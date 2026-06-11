@@ -55,6 +55,7 @@ namespace mqbmock {
 // ========================
 
 /// Mock implementation of `mqbc::ClusterStateLedger` interface.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ClusterStateLedger : public mqbc::ClusterStateLedger {
   public:
     // TYPES
@@ -226,6 +227,7 @@ class ClusterStateLedger : public mqbc::ClusterStateLedger {
     ///         dispatcher thread.
     void _uncommittedAdvisories(ClusterMessageCRefList* out) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                           INLINE DEFINITIONS

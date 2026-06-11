@@ -91,6 +91,7 @@ namespace mqbmock {
 // ============
 
 /// Mock domain implementation of the `mqbi::Domain` interface.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Domain : public mqbi::Domain {
   private:
     // PRIVATE TYPES
@@ -254,12 +255,14 @@ class Domain : public mqbi::Domain {
     /// of DOMAINS REMOVE is completed
     bool isRemoveComplete() const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ===================
 // class DomainFactory
 // ===================
 
 /// Mock implementation of the `mqbi::DomainFactory` interface.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class DomainFactory : public mqbi::DomainFactory {
   private:
     // DATA
@@ -311,6 +314,7 @@ class DomainFactory : public mqbi::DomainFactory {
     mqbi::Domain*
     getDomain(const bsl::string& name) const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

@@ -70,10 +70,12 @@ void printMessageDetails(bsl::ostream&         os,
         typename bsl::vector<
             RecordDetails<mqbs::ConfirmRecord> >::const_iterator it =
             confirmRecords.begin();
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (; it != confirmRecords.end(); ++it) {
             RecordPrinter::printDelimeter<PRINTER_TYPE>(os);
             printer.printRecordDetails(*it);
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
 
     // Print deletion record
@@ -118,6 +120,7 @@ template <typename PRINTER_TYPE1, typename PRINTER_TYPE2>
 void printJournalFileMeta(bsl::ostream&                    ostream,
                           const mqbs::JournalFileIterator* journalFile_p,
                           bslma::Allocator*                allocator)
+// NOLINTBEGIN(*-magic-numbers)
 {
     BSLS_ASSERT_SAFE(journalFile_p && journalFile_p->isValid());
 
@@ -181,8 +184,10 @@ void printJournalFileMeta(bsl::ostream&                    ostream,
                 p << recHeader->type();
                 bdlt::Datetime      datetime;
                 bsls::Types::Uint64 epochValue = recHeader->timestamp();
+                // NOLINTBEGIN(*-narrowing-conversions)
                 const int rc = bdlt::EpochUtil::convertFromTimeT64(&datetime,
                                                                    epochValue);
+                // NOLINTEND(*-narrowing-conversions)
                 if (0 != rc) {
                     p << 0;
                 }
@@ -214,8 +219,10 @@ void printJournalFileMeta(bsl::ostream&                    ostream,
 
                 bsls::Types::Uint64 epochValue = syncPt.header().timestamp();
                 bdlt::Datetime      datetime;
+                // NOLINTBEGIN(*-narrowing-conversions)
                 const int rc = bdlt::EpochUtil::convertFromTimeT64(&datetime,
                                                                    epochValue);
+                // NOLINTEND(*-narrowing-conversions)
                 if (0 != rc) {
                     p << 0;
                 }
@@ -232,6 +239,7 @@ void printJournalFileMeta(bsl::ostream&                    ostream,
         printer << s.str();
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 /// Helper to print journal file meta data
 template <typename PRINTER_TYPE>
@@ -239,6 +247,7 @@ void printQueueDetails(bsl::ostream&          ostream,
                        const QueueDetailsMap& queueDetailsMap,
                        bslma::Allocator*      allocator)
 {
+    // NOLINTBEGIN(*-magic-numbers)
     for (QueueDetailsMap::const_iterator it = queueDetailsMap.cbegin();
          it != queueDetailsMap.cend();
          ++it) {
@@ -323,10 +332,12 @@ void printQueueDetails(bsl::ostream&          ostream,
             printer << details.d_deleteRecordsNumber;
         }
     }
+    // NOLINTEND(*-magic-numbers)
 }
 
 }  // close anonymous namespace
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class HumanReadablePrinter : public Printer {
   private:
     // DATA
@@ -418,6 +429,7 @@ class HumanReadablePrinter : public Printer {
     void printCompositesNotFound(const CompositesVec& seqNums) const
         BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // CREATORS
 HumanReadablePrinter::HumanReadablePrinter(bsl::ostream&     os,
@@ -654,9 +666,11 @@ void HumanReadablePrinter::printOffsetsNotFound(
         d_ostream << "\nThe following " << offsets.size()
                   << " offset(s) not found:\n";
         OffsetsVec::const_iterator it = offsets.cbegin();
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (; it != offsets.cend(); ++it) {
             d_ostream << *it << '\n';
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
 }
 
@@ -667,9 +681,11 @@ void HumanReadablePrinter::printCompositesNotFound(
         d_ostream << "\nThe following " << seqNums.size()
                   << " sequence number(s) not found:\n";
         CompositesVec::const_iterator it = seqNums.cbegin();
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (; it != seqNums.cend(); ++it) {
             d_ostream << *it << '\n';
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
 }
 
@@ -684,6 +700,7 @@ void HumanReadablePrinter::printRecordDetails(
     d_ostream << "\n";
 }
 
+// NOLINTBEGIN(cppcoreguidelines-non-private-member-variables-in-classes,cppcoreguidelines-special-member-functions)
 class JsonPrinter : public Printer {
   protected:
     bsl::ostream&     d_ostream;
@@ -751,6 +768,7 @@ class JsonPrinter : public Printer {
     void printCompositesNotFound(const CompositesVec& seqNums) const
         BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-non-private-member-variables-in-classes,cppcoreguidelines-special-member-functions)
 
 // PROTECTED METHODS
 
@@ -885,6 +903,7 @@ void JsonPrinter::printMessageSummary(bsl::size_t totalMessagesCount,
 void JsonPrinter::printQueueOpSummary(
     bsls::Types::Uint64     queueOpRecordsCount,
     const QueueOpCountsVec& queueOpCountsVec) const
+// NOLINTBEGIN(*-magic-numbers)
 {
     BSLS_ASSERT_SAFE(queueOpCountsVec.size() > mqbs::QueueOpType::e_ADDITION);
     closeBraceIfOpen();
@@ -903,6 +922,7 @@ void JsonPrinter::printQueueOpSummary(
             << queueOpCountsVec[mqbs::QueueOpType::e_DELETION]
             << queueOpCountsVec[mqbs::QueueOpType::e_ADDITION];
 }
+// NOLINTEND(*-magic-numbers)
 
 void JsonPrinter::printJournalOpSummary(
     bsls::Types::Uint64 journalOpRecordsCount) const
@@ -931,12 +951,14 @@ void JsonPrinter::printOffsetsNotFound(const OffsetsVec& offsets) const
     closeBraceIfOpen();
     d_ostream << "  \"OffsetsNotFound\": [";
     OffsetsVec::const_iterator it = offsets.cbegin();
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (; it != offsets.cend(); ++it) {
         if (it != offsets.cbegin()) {
             d_ostream << ",";
         }
         d_ostream << "\n    " << *it;
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     d_ostream << "\n  ]";
 }
 
@@ -945,6 +967,7 @@ void JsonPrinter::printCompositesNotFound(const CompositesVec& seqNums) const
     closeBraceIfOpen();
     d_ostream << "  \"SequenceNumbersNotFound\": [";
     CompositesVec::const_iterator it = seqNums.cbegin();
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (; it != seqNums.cend(); ++it) {
         if (it != seqNums.cbegin()) {
             d_ostream << ',';
@@ -954,9 +977,11 @@ void JsonPrinter::printCompositesNotFound(const CompositesVec& seqNums) const
                   << "\", \"sequenceNumber\": \"" << it->sequenceNumber()
                   << "\"}";
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     d_ostream << "\n  ]";
 }
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class JsonPrettyPrinter : public JsonPrinter {
   private:
     // PRIVATE ACCESSORS
@@ -998,6 +1023,7 @@ class JsonPrettyPrinter : public JsonPrinter {
                             const QueueDetailsMap& queueDetailsMap) const
         BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // CREATORS
 JsonPrettyPrinter::JsonPrettyPrinter(bsl::ostream&     os,
@@ -1015,12 +1041,14 @@ JsonPrettyPrinter::~JsonPrettyPrinter()
 // PUBLIC METHODS
 
 void JsonPrettyPrinter::printMessage(const MessageDetails& details) const
+// NOLINTBEGIN(*-magic-numbers)
 {
     openBraceIfNotOpen("Records");
     printMessageDetails<bmqu::JsonPrinter<true, true, 4, 6> >(d_ostream,
                                                               details,
                                                               d_allocator_p);
 }
+// NOLINTEND(*-magic-numbers)
 
 void JsonPrettyPrinter::printConfirmRecord(
     const RecordDetails<mqbs::ConfirmRecord>& rec) const
@@ -1048,6 +1076,7 @@ void JsonPrettyPrinter::printJournalOpRecord(
 
 void JsonPrettyPrinter::printJournalFileMeta(
     const mqbs::JournalFileIterator* journalFile_p) const
+// NOLINTBEGIN(*-magic-numbers)
 {
     closeBraceIfOpen();
     d_ostream << "  \"JournalFileDetails\":\n";
@@ -1057,9 +1086,11 @@ void JsonPrettyPrinter::printJournalFileMeta(
                                               journalFile_p,
                                               d_allocator_p);
 }
+// NOLINTEND(*-magic-numbers)
 
 void JsonPrettyPrinter::printDataFileMeta(
     const mqbs::DataFileIterator* dataFile_p) const
+// NOLINTBEGIN(*-magic-numbers)
 {
     closeBraceIfOpen();
     d_ostream << "  \"DataFileDetails\":\n";
@@ -1069,10 +1100,12 @@ void JsonPrettyPrinter::printDataFileMeta(
         dataFile_p,
         d_allocator_p);
 }
+// NOLINTEND(*-magic-numbers)
 
 void JsonPrettyPrinter::printRecordSummary(
     bsls::Types::Uint64    totalRecordsCount,
     const QueueDetailsMap& queueDetailsMap) const
+// NOLINTBEGIN(*-magic-numbers)
 {
     closeBraceIfOpen();
     d_ostream << "  \"TotalRecordsNumber\": \"" << totalRecordsCount
@@ -1085,18 +1118,22 @@ void JsonPrettyPrinter::printRecordSummary(
                                                             d_allocator_p);
     d_ostream << "\n  ]";
 }
+// NOLINTEND(*-magic-numbers)
 
 template <typename RECORD_TYPE>
 void JsonPrettyPrinter::printRecordDetails(
     const RecordDetails<RECORD_TYPE>& recordDetails) const
 {
     openBraceIfNotOpen("Records");
+    // NOLINTBEGIN(*-magic-numbers)
     RecordDetailsPrinter<bmqu::JsonPrinter<true, true, 4, 6> > printer(
         d_ostream,
         d_allocator_p);
+    // NOLINTEND(*-magic-numbers)
     printer.printRecordDetails(recordDetails);
 }
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class JsonLinePrinter : public JsonPrinter {
   private:
     // PRIVATE ACCESSORS
@@ -1138,6 +1175,7 @@ class JsonLinePrinter : public JsonPrinter {
                             const QueueDetailsMap& queueDetailsMap) const
         BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // CREATORS
 JsonLinePrinter::JsonLinePrinter(bsl::ostream& os, bslma::Allocator* allocator)
@@ -1154,12 +1192,14 @@ JsonLinePrinter::~JsonLinePrinter()
 // PUBLIC METHODS
 
 void JsonLinePrinter::printMessage(const MessageDetails& details) const
+// NOLINTBEGIN(*-magic-numbers)
 {
     openBraceIfNotOpen("Records");
     printMessageDetails<bmqu::JsonPrinter<false, true, 4, 6> >(d_ostream,
                                                                details,
                                                                d_allocator_p);
 }
+// NOLINTEND(*-magic-numbers)
 
 void JsonLinePrinter::printConfirmRecord(
     const RecordDetails<mqbs::ConfirmRecord>& rec) const
@@ -1187,6 +1227,7 @@ void JsonLinePrinter::printJournalOpRecord(
 
 void JsonLinePrinter::printJournalFileMeta(
     const mqbs::JournalFileIterator* journalFile_p) const
+// NOLINTBEGIN(*-magic-numbers)
 {
     closeBraceIfOpen();
     d_ostream << "  \"JournalFileDetails\":\n";
@@ -1196,9 +1237,11 @@ void JsonLinePrinter::printJournalFileMeta(
                                                journalFile_p,
                                                d_allocator_p);
 }
+// NOLINTEND(*-magic-numbers)
 
 void JsonLinePrinter::printDataFileMeta(
     const mqbs::DataFileIterator* dataFile_p) const
+// NOLINTBEGIN(*-magic-numbers)
 {
     closeBraceIfOpen();
     d_ostream << "  \"DataFileDetails\": \n";
@@ -1208,10 +1251,12 @@ void JsonLinePrinter::printDataFileMeta(
         dataFile_p,
         d_allocator_p);
 }
+// NOLINTEND(*-magic-numbers)
 
 void JsonLinePrinter::printRecordSummary(
     bsls::Types::Uint64    totalRecordsCount,
     const QueueDetailsMap& queueDetailsMap) const
+// NOLINTBEGIN(*-magic-numbers)
 {
     closeBraceIfOpen();
     d_ostream << "  \"TotalRecordsNumber\": \"" << totalRecordsCount
@@ -1224,15 +1269,18 @@ void JsonLinePrinter::printRecordSummary(
                                                              d_allocator_p);
     d_ostream << "\n  ]";
 }
+// NOLINTEND(*-magic-numbers)
 
 template <typename RECORD_TYPE>
 void JsonLinePrinter::printRecordDetails(
     const RecordDetails<RECORD_TYPE>& recordDetails) const
 {
     openBraceIfNotOpen("Records");
+    // NOLINTBEGIN(*-magic-numbers)
     RecordDetailsPrinter<bmqu::JsonPrinter<false, true, 4, 6> > printer(
         d_ostream,
         d_allocator_p);
+    // NOLINTEND(*-magic-numbers)
     printer.printRecordDetails(recordDetails);
 }
 

@@ -42,6 +42,7 @@ namespace mqbc {
 // =====================
 
 /// Per-partition or per-cluster watchdog context.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class WatchdogContext {
   public:
     // DATA
@@ -72,6 +73,7 @@ class WatchdogContext {
     WatchdogContext(const WatchdogContext&) BSLS_KEYWORD_DELETED;
     WatchdogContext& operator=(const WatchdogContext&) BSLS_KEYWORD_DELETED;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                           INLINE DEFINITIONS

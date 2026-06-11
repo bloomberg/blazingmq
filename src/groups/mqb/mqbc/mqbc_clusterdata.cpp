@@ -70,6 +70,7 @@ mqbc::ClusterDataIdentity clusterIdentity(const bslstl::StringRef& name,
     }
 
     // Create and set description
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<256> localAllocator(allocator);
     bmqu::MemOutStream                   os(&localAllocator);
     if (isRemote) {
@@ -133,12 +134,15 @@ ClusterData::ClusterData(
           ->second->addSubcontext(
               bmqst::StatContextConfiguration(d_identity.name(),
                                               d_allocator_p)))
+// NOLINTNEXTLINE(*-magic-numbers)
 , d_stateSpPool(8192, allocator)
+// NOLINTBEGIN(*-magic-numbers)
 , d_miscWorkThreadPool(
       bslmt::ThreadAttributes().setThreadName("bmqMiscWorkTP"),
       3,      // numThreads
       10000,  // maxNumPendingJobs
       allocator)
+// NOLINTEND(*-magic-numbers)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_allocator_p);

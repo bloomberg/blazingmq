@@ -93,6 +93,7 @@ namespace bmqtsk {
 // ================
 
 /// Mechanism to periodically clean up old logs.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class LogCleaner {
   private:
     // PRIVATE DATA
@@ -162,6 +163,7 @@ class LogCleaner {
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(LogCleaner, bslma::UsesBslmaAllocator)
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

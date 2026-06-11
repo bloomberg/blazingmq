@@ -48,6 +48,7 @@ namespace bmqio {
 
 /// Partial implementation of the `Channel` protocol for decorating Channel
 /// implementations.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class DecoratingChannelPartialImp : public Channel {
   private:
     // DATA
@@ -105,6 +106,7 @@ class DecoratingChannelPartialImp : public Channel {
     /// Forward to the underlying base `Channel`.
     const bmqvt::PropertyBag& properties() const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                      INLINE AND TEMPLATE FUNCTION IMPLEMENTATIONS

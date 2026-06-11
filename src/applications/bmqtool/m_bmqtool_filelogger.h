@@ -87,6 +87,7 @@ namespace m_bmqtool {
 // ================
 
 /// Mechanism to log BlazingMQ events to a file.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class FileLogger {
   private:
     bsl::string         d_filePath;  // Path to the file where to log to
@@ -134,6 +135,7 @@ class FileLogger {
     /// Return the path to the file this object is logging to.
     const bsl::string& filePath() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

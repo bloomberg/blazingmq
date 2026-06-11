@@ -59,6 +59,7 @@ int ClusterCatalog::createNetCluster(
     bslma::ManagedPtr<mqbnet::Cluster>*     out,
     const bsl::string&                      name,
     const bsl::vector<mqbcfg::ClusterNode>& nodes)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     // PRECONDITIONS
     BSLMT_MUTEXASSERT_IS_LOCKED_SAFE(&d_mutex);  // mutex was LOCKED
@@ -86,6 +87,7 @@ int ClusterCatalog::createNetCluster(
                                                connectionMode,
                                                &userDataMp);
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 struct Named {
     explicit Named(const bslstl::StringRef& name)
@@ -104,6 +106,7 @@ struct Named {
 int ClusterCatalog::createCluster(bsl::ostream& errorDescription,
                                   bsl::shared_ptr<mqbi::Cluster>* out,
                                   const bsl::string&              name)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLMT_MUTEXASSERT_IS_LOCKED_SAFE(&d_mutex);  // mutex was LOCKED
@@ -286,6 +289,7 @@ int ClusterCatalog::createCluster(bsl::ostream& errorDescription,
 
     return 0;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-use-enum-class)
 
 int ClusterCatalog::startCluster(bsl::ostream&  errorDescription,
                                  mqbi::Cluster* cluster)
@@ -356,6 +360,7 @@ ClusterCatalog::~ClusterCatalog()
 }
 
 int ClusterCatalog::loadBrokerClusterConfig(bsl::ostream&)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     // executed by the *MAIN* thread
 
@@ -429,12 +434,14 @@ int ClusterCatalog::loadBrokerClusterConfig(bsl::ostream&)
                    local::clusterName);
 
     // Populate the virtual clusters map
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (bsl::vector<mqbcfg::VirtualClusterInformation>::const_iterator it =
              d_clustersDefinition.myVirtualClusters().begin();
          it != d_clustersDefinition.myVirtualClusters().end();
          ++it) {
         d_myVirtualClusters[it->name()] = it->selfNodeId();
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     BALL_LOG_INFO_BLOCK
     {
@@ -461,8 +468,10 @@ int ClusterCatalog::loadBrokerClusterConfig(bsl::ostream&)
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 int ClusterCatalog::start(bsl::ostream& errorDescription)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(!d_isStarted &&
@@ -483,6 +492,7 @@ int ClusterCatalog::start(bsl::ostream& errorDescription)
 
     // Create any cluster this broker is member of
     bsl::unordered_set<bsl::string>::const_iterator it;
+    // NOLINTBEGIN(*-magic-numbers)
     for (it = allClusters.begin(); it != allClusters.end(); ++it) {
         bsl::shared_ptr<mqbi::Cluster> cluster;
         // CreateCluster expects unique cluster names, but that's fine, we are
@@ -501,11 +511,13 @@ int ClusterCatalog::start(bsl::ostream& errorDescription)
             return (rc * 10) + rc_CLUSTER_START_FAILED;  // RETURN
         }
     }
+    // NOLINTEND(*-magic-numbers)
 
     d_isStarted = true;
 
     return rc;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 void ClusterCatalog::stop()
 {
@@ -604,10 +616,12 @@ bool ClusterCatalog::findCluster(bsl::shared_ptr<mqbi::Cluster>* out,
 }
 
 int ClusterCatalog::count()
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // d_mutex LOCK
     return d_clusters.size();
 }
+// NOLINTEND(*-narrowing-conversions)
 
 mqbnet::ClusterNode* ClusterCatalog::onNegotiationForClusterSession(
     bsl::ostream&                     errorDescription,

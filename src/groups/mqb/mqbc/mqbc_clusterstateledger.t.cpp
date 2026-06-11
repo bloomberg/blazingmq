@@ -161,6 +161,7 @@ static void test1_clusterStateLedger_protocol()
 // Testing:
 //   PROTOCOL TEST
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("CLUSTER STATE LEDGER - PROTOCOL TEST");
 
@@ -208,6 +209,7 @@ static void test1_clusterStateLedger_protocol()
     BSLMF_ASSERT(mqbc::ClusterStateLedgerConsistency::e_EVENTUAL !=
                  mqbc::ClusterStateLedgerConsistency::e_STRONG);
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test2_commitStatus_fromAscii()
 // ------------------------------------------------------------------------
@@ -224,6 +226,7 @@ static void test2_commitStatus_fromAscii()
 // Testing:
 //   'ClusterStateLedgerCommitStatus::fromAscii'
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelper::printTestName("COMMIT STATUS - FROM ASCII");
 
@@ -239,9 +242,12 @@ static void test2_commitStatus_fromAscii()
     // NOTE: Using the 'integer' value instead of the enum to ensure the
     //       numeric values are *never* changed.
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(cppcoreguidelines-init-variables,performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         PVV(test.d_line << ": Testing: fromAscii(" << test.d_input
@@ -259,7 +265,9 @@ static void test2_commitStatus_fromAscii()
                                test.d_expected);
         }
     }
+    // NOLINTEND(cppcoreguidelines-init-variables,performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 static void test3_commitStatus_toAscii()
 // ------------------------------------------------------------------------
@@ -276,6 +284,7 @@ static void test3_commitStatus_toAscii()
 // Testing:
 //   'ClusterStateLedgerCommitStatus::toAscii'
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelper::printTestName("COMMIT STATUS - TO ASCII");
 
@@ -291,9 +300,12 @@ static void test3_commitStatus_toAscii()
     // NOTE: Using the 'integer' value instead of the enum to ensure the
     //       numeric values are *never* changed.
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         PVV(test.d_line << ": Testing: toAscii(" << test.d_value
@@ -305,7 +317,9 @@ static void test3_commitStatus_toAscii()
 
         BMQTST_ASSERT_EQ_D(test.d_line, ascii, test.d_expected);
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 static void test4_commitStatus_print()
 // ------------------------------------------------------------------------
@@ -324,6 +338,7 @@ static void test4_commitStatus_print()
 // Testing:
 //   'ClusterStateLedgerCommitStatus::print'
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelper::printTestName("COMMIT STATUS - PRINT");
 
@@ -336,9 +351,12 @@ static void test4_commitStatus_print()
                   {L_, -1, "CANCELED"},
                   {L_, -2, "TIMEOUT"}};
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         PVV(test.d_line << ": Testing: print(" << test.d_value
@@ -373,7 +391,9 @@ static void test4_commitStatus_print()
 
         BMQTST_ASSERT_EQ_D(test.d_line, out.str(), "");
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 static void test5_clusterStateLedgerConsistency_fromAscii()
 // ------------------------------------------------------------------------
@@ -390,6 +410,7 @@ static void test5_clusterStateLedgerConsistency_fromAscii()
 // Testing:
 //   'ClusterStateLedgerConsistency::fromAscii'
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelper::printTestName("CLUSTER STATE LEDGER CONSISTENCY -"
                                       " FROM ASCII");
@@ -409,9 +430,12 @@ static void test5_clusterStateLedgerConsistency_fromAscii()
     // NOTE: Using the 'integer' value instead of the enum to ensure the
     //       numeric values are *never* changed.
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(cppcoreguidelines-init-variables,performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         PVV(test.d_line << ": Testing: fromAscii(" << test.d_input
@@ -428,7 +452,9 @@ static void test5_clusterStateLedgerConsistency_fromAscii()
                                test.d_expected);
         }
     }
+    // NOLINTEND(cppcoreguidelines-init-variables,performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 static void test6_clusterStateLedgerConsistency_toAscii()
 // ------------------------------------------------------------------------
@@ -445,6 +471,7 @@ static void test6_clusterStateLedgerConsistency_toAscii()
 // Testing:
 //   'ClusterStateLedgerConsistency::toAscii'
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelper::printTestName("CLUSTER STATE LEDGER CONSISTENCY -"
                                       " TO ASCII");
@@ -459,9 +486,12 @@ static void test6_clusterStateLedgerConsistency_toAscii()
     // NOTE: Using the 'integer' value instead of the enum to ensure the
     //       numeric values are *never* changed.
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         PVV(test.d_line << ": Testing: toAscii(" << test.d_value
@@ -473,7 +503,9 @@ static void test6_clusterStateLedgerConsistency_toAscii()
 
         BMQTST_ASSERT_EQ_D(test.d_line, ascii, test.d_expected);
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 static void test7_clusterStateLedgerConsistency_print()
 // ------------------------------------------------------------------------
@@ -492,6 +524,7 @@ static void test7_clusterStateLedgerConsistency_print()
 // Testing:
 //   'ClusterStateLedgerConsistency::print'
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelper::printTestName("CLUSTER STATE LEDGER CONSISTENCY -"
                                       " PRINT");
@@ -505,9 +538,12 @@ static void test7_clusterStateLedgerConsistency_print()
         {L_, mqbc::ClusterStateLedgerConsistency::e_EVENTUAL, "EVENTUAL"},
         {L_, mqbc::ClusterStateLedgerConsistency::e_STRONG, "STRONG"}};
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         PVV(test.d_line << ": Testing: print(" << test.d_value
@@ -542,13 +578,16 @@ static void test7_clusterStateLedgerConsistency_print()
 
         BMQTST_ASSERT_EQ_D(test.d_line, out.str(), "");
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -569,3 +608,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

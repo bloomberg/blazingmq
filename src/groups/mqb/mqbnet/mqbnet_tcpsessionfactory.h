@@ -134,6 +134,7 @@ class Negotiator;
 // =======================
 
 /// Mechanism to generate sessions over TCP channels.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class TCPSessionFactory {
     // FRIENDS
     friend class TCPSessionFactoryIterator;
@@ -642,6 +643,7 @@ class TCPSessionFactory {
     /// result in connecting to ourself.
     bool isEndpointLoopback(const bslstl::StringRef& uri) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ===============================
 // class TCPSessionFactoryIterator
@@ -655,6 +657,7 @@ class TCPSessionFactory {
 /// construction and unlocking it at the iterator's destruction.  This
 /// guarantees that during the life time of an iterator, the factory can't
 /// be modified.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class TCPSessionFactoryIterator {
   private:
     // DATA
@@ -698,6 +701,7 @@ class TCPSessionFactoryIterator {
     /// The behavior is undefined unless the iterator is *valid*.
     bsl::weak_ptr<mqbnet::Session> session() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS
@@ -731,11 +735,13 @@ inline void TCPSessionFactoryIterator::operator++()
 
 // ACCESSORS
 inline TCPSessionFactoryIterator::operator const void*() const
+// NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast)
 {
     return (d_iterator == d_factory_p->d_channels.end())
                ? 0
                : const_cast<TCPSessionFactoryIterator*>(this);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-const-cast)
 
 inline bsl::weak_ptr<mqbnet::Session>
 TCPSessionFactoryIterator::session() const

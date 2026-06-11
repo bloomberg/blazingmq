@@ -51,6 +51,7 @@ SessionEvent Event::sessionEvent() const
 
     SessionEvent                    event;
     bsl::shared_ptr<bmqimp::Event>& eventImpl =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         reinterpret_cast<bsl::shared_ptr<bmqimp::Event>&>(event);
     eventImpl = d_impl_sp;
 
@@ -65,6 +66,7 @@ MessageEvent Event::messageEvent() const
 
     MessageEvent                    event;
     bsl::shared_ptr<bmqimp::Event>& eventImpl =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         reinterpret_cast<bsl::shared_ptr<bmqimp::Event>&>(event);
     eventImpl = d_impl_sp;
 

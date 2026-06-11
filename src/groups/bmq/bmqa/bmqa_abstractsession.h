@@ -46,6 +46,7 @@ namespace bmqa {
 // =====================
 
 /// A pure protocol for a session.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class AbstractSession {
   public:
     // TYPES
@@ -426,6 +427,7 @@ class AbstractSession {
     /// session has been started.
     virtual int configureMessageDumping(const bslstl::StringRef& command);
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

@@ -50,12 +50,14 @@ namespace {
 
 /// struct representing the parameters that `AckEventBuilder::appendMessage`
 /// takes.
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 struct Data {
     int               d_status;
     int               d_corrId;
     bmqt::MessageGUID d_guid;
     int               d_queueId;
 };
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 /// Append the specified `numMsgs` messages to the specified `builder` and
 /// populate the specified `vec` with the messages that were added, so that
@@ -63,6 +65,7 @@ struct Data {
 static void appendMessages(bmqp::AckEventBuilder* builder,
                            bsl::vector<Data>*     vec,
                            size_t                 numMsgs)
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     // Above hex string represents a valid guid with these values:
     //   TS = bdlb::BigEndianUint64::make(12345)
@@ -72,6 +75,7 @@ static void appendMessages(bmqp::AckEventBuilder* builder,
 
     vec->reserve(numMsgs);
 
+    // NOLINTBEGIN(*-narrowing-conversions,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     for (size_t i = 0; i < numMsgs; ++i) {
         Data data;
         data.d_status = i % 3;
@@ -85,7 +89,9 @@ static void appendMessages(bmqp::AckEventBuilder* builder,
         BMQTST_ASSERT_EQ(rc, 0);
         vec->push_back(data);
     }
+    // NOLINTEND(*-narrowing-conversions,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 /// Use an AckMessageIterator to verify that the specified `builder`
 /// contains the messages represented in the specified `data`.  Note that
@@ -93,6 +99,7 @@ static void appendMessages(bmqp::AckEventBuilder* builder,
 /// bmqp::AckEventBuilder and thus, can be used to test it.
 static void verifyContent(const bmqp::AckEventBuilder& builder,
                           const bsl::vector<Data>&     data)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     PVV("Verifying accessors");
     size_t expectedSize = sizeof(bmqp::EventHeader) + sizeof(bmqp::AckHeader) +
@@ -130,6 +137,7 @@ static void verifyContent(const bmqp::AckEventBuilder& builder,
     BMQTST_ASSERT_EQ(idx, data.size());
     BMQTST_ASSERT_EQ(iter.isValid(), false);
 }
+// NOLINTEND(performance-avoid-endl)
 
 }  // close unnamed namespace
 
@@ -138,12 +146,15 @@ static void verifyContent(const bmqp::AckEventBuilder& builder,
 // ----------------------------------------------------------------------------
 
 static void test1_breathingTest()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         256,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
@@ -164,17 +175,21 @@ static void test1_breathingTest()
     PVV("Verifying content");
     verifyContent(obj, messages);
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test2_multiMessage()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("MULTI MESSAGE");
     // Create an ACK event with multiple ACK messages.  Iterate and verify.
 
     const int k_NUM_MSGS = 1000;
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         256,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
@@ -189,15 +204,19 @@ static void test2_multiMessage()
     PVV("Verifying content");
     verifyContent(obj, messages);
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test3_reset()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("RESET");
     // Verifying reset: add two messages, reset, and add another message.
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         256,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
@@ -224,16 +243,20 @@ static void test3_reset()
     PV("Verifying content");
     verifyContent(obj, messages);
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test4_capacity()
+// NOLINTBEGIN(cppcoreguidelines-init-variables,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("CAPACITY");
     // Verify that once the event is full, AppendMessage returns error.
 
-    int                            rc;
+    int rc;
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         256,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
@@ -273,6 +296,7 @@ static void test4_capacity()
         static_cast<int>(bmqt::EventBuilderResult::e_EVENT_TOO_BIG));
     BMQTST_ASSERT(obj.eventSize() <= bmqp::EventHeader::k_MAX_SIZE_SOFT);
 }
+// NOLINTEND(cppcoreguidelines-init-variables,performance-avoid-endl)
 
 static void testN1_decodeFromFile()
 // --------------------------------------------------------------------
@@ -288,12 +312,15 @@ static void testN1_decodeFromFile()
 //   3. Read this file, decode event and verify that it contains messages
 //      with expected properties.
 // --------------------------------------------------------------------
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("DECODE FROM FILE");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         256,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
@@ -303,10 +330,11 @@ static void testN1_decodeFromFile()
     bsl::vector<Data>     messages(bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob outBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bmqu::MemOutStream os(bmqtst::TestHelperUtil::allocator());
-    bdlb::Guid         guid        = bdlb::GuidUtil::generate();
-    const int          k_NUM_MSGS  = 10;
-    const int          k_SIZE      = 256;
-    char               buf[k_SIZE] = {0};
+    bdlb::Guid         guid       = bdlb::GuidUtil::generate();
+    const int          k_NUM_MSGS = 10;
+    const int          k_SIZE     = 256;
+    // NOLINTNEXTLINE(*-avoid-c-arrays)
+    char buf[k_SIZE] = {0};
 
     PVV("Appending messages");
     appendMessages(&obj, &messages, k_NUM_MSGS);
@@ -342,10 +370,12 @@ static void testN1_decodeFromFile()
     ifile.read(buf, k_SIZE);
     ifile.close();
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bsl::shared_ptr<char> dataBufferSp(buf,
                                        bslstl::SharedPtrNilDeleter(),
                                        bmqtst::TestHelperUtil::allocator());
-    bdlbb::BlobBuffer     dataBlobBuffer(dataBufferSp, k_SIZE);
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+    bdlbb::BlobBuffer dataBlobBuffer(dataBufferSp, k_SIZE);
 
     outBlob.appendDataBuffer(dataBlobBuffer);
     outBlob.setLength(obj.blob()->length());
@@ -381,12 +411,14 @@ static void testN1_decodeFromFile()
     BMQTST_ASSERT_EQ(idx, messages.size());
     BMQTST_ASSERT_EQ(iter.isValid(), false);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -405,3 +437,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

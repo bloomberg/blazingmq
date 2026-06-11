@@ -84,9 +84,11 @@ struct TestCollectionUtil {
 
     template <class PLATFORM>
     static void collectAndPrint()
+    // NOLINTBEGIN(performance-avoid-endl)
     {
         PVVV_SAFE("Per-thread collection not enabled on this platform");
     }
+    // NOLINTEND(performance-avoid-endl)
 };
 
 #if defined(BSLS_PLATFORM_OS_DARWIN)
@@ -145,24 +147,29 @@ void TestCollectionUtil::collectAndPrint<bsls::Platform::OsDarwin>()
 
 // FUNCTIONS
 int doWork_threadFunction_CpuIntensive()
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     const int k_1K = 1000;
 
     int                   multiplier = 1;
     volatile unsigned int sum        = 0;
     for (int i = 0; i < (k_1K * multiplier); ++i) {
+        // NOLINTNEXTLINE(*-magic-numbers)
         volatile int a = 50 * 9873 / 3;
         sum += a;
 
+        // NOLINTNEXTLINE(*-narrowing-conversions)
         volatile int b = a * (a ^ (~0U));
         sum += b;
 
+        // NOLINTNEXTLINE(*-magic-numbers,*-narrowing-conversions)
         volatile int c = (a * (b ^ (~0U))) % 999983;
         sum += c;
     }
 
     return sum;
 }
+// NOLINTEND(*-narrowing-conversions)
 
 void doWork_threadFunction(bslmt::Barrier* turnsFinishedBarrier,
                            double          rate,
@@ -204,12 +211,14 @@ void doWorkAndPostWhenDone(bslmt::Semaphore* workDoneSemaphore)
     bslmt::Barrier     workDoneBarrier(k_NUM_THREADS + 1);
 
     for (int i = 0; i < k_NUM_THREADS; ++i) {
+        // NOLINTBEGIN(*-magic-numbers)
         int rc = threadGroup.addThread(
             bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
                                   &doWork_threadFunction,
                                   &workDoneBarrier,
                                   10000,  // rate
                                   3));    // duration
+        // NOLINTEND(*-magic-numbers)
         BSLS_ASSERT_OPT(rc == 0);
     }
 
@@ -241,6 +250,7 @@ static void test1_breathingTest()
 //   - Basic functionality
 //   - Constructor
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
@@ -272,6 +282,7 @@ static void test1_breathingTest()
         BMQTST_ASSERT_SAFE_FAIL(obj.involuntaryContextSwitches(0));
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test2_start()
 // ------------------------------------------------------------------------
@@ -414,28 +425,43 @@ static void test4_snapshot()
 // Testing:
 //   - snapshot
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(bugprone-macro-parentheses,cppcoreguidelines-init-variables,performance-avoid-endl)
 {
     // MACROS
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define PVV_CPU_USER_N(ID) PVV("cpuUser(" << ID << "): " << obj.cpuUser(ID));
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define PVV_CPU_USER(HEADER)                                                  \
     PVV(HEADER);                                                              \
     PVV_CPU_USER_N(0);                                                        \
     BSLS_MACROREPEAT(3, PVV_CPU_USER_N);
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define PVV_CPU_SYSTEM_N(ID)                                                  \
-    PVV("cpuSystem(" << ID << "): " << obj.cpuSystem(ID));
+    PVV("cpuSystem(" << ID << "): "                                           \
+                     << obj.cpuSystem(                                        \
+                            ID)); /* NOLINT(bugprone-macro-parentheses) */
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define PVV_CPU_SYSTEM(HEADER)                                                \
     PVV(HEADER);                                                              \
     PVV_CPU_SYSTEM_N(0);                                                      \
     BSLS_MACROREPEAT(3, PVV_CPU_SYSTEM_N);
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define PVV_MEM_VIRTUAL_N(ID)                                                 \
-    PVV("memVirtual(" << ID << "): " << obj.memVirtual(ID));
+    PVV("memVirtual(" << ID << "): "                                          \
+                      << obj.memVirtual(                                      \
+                             ID)); /* NOLINT(bugprone-macro-parentheses) */
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define PVV_MEM_VIRTUAL(HEADER)                                               \
     PVV(HEADER);                                                              \
     PVV_MEM_VIRTUAL_N(0);                                                     \
     BSLS_MACROREPEAT(3, PVV_MEM_VIRTUAL_N);
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define PVV_INV_CONTEXT_SWITCHES_N(ID)                                        \
     PVV("involuntaryContextSwitches("                                         \
-        << ID << "): " << obj.involuntaryContextSwitches(ID));
+        << ID << "): "                                                        \
+        << obj.involuntaryContextSwitches(                                    \
+               ID)); /* NOLINT(bugprone-macro-parentheses) */
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define PVV_INV_CONTEXT_SWITCHES(HEADER)                                      \
     PVV(HEADER);                                                              \
     PVV_INV_CONTEXT_SWITCHES_N(0);                                            \
@@ -560,12 +586,14 @@ static void test4_snapshot()
 #undef PVV_INV_CONTEXT_SWITCHES_N
 #undef PVV_INV_CONTEXT_SWITCHES
 }
+// NOLINTEND(bugprone-macro-parentheses,cppcoreguidelines-init-variables,performance-avoid-endl)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -583,3 +611,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

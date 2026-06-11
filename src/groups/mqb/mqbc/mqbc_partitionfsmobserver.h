@@ -40,6 +40,7 @@ namespace mqbc {
 /// @note This is purposely not a pure interface, each method has a default
 ///       void implementation, so that clients only need to implement the ones
 ///       they care about.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class PartitionFSMObserver {
   public:
     // CREATORS
@@ -64,6 +65,7 @@ class PartitionFSMObserver {
     onTransitionOutOfHealed(int                            partitionId,
                             PartitionStateTableState::Enum oldState);
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

@@ -205,6 +205,7 @@ void StatContext::initValues(ValueVecPtr& vec, bsls::Types::Int64 initTime)
 void StatContext::clearDeletedSubcontexts(
     bsl::vector<ValueVec*>* expiredValuesVec)
 {
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (StatContextVector::iterator iter = d_deletedSubcontexts.begin();
          iter != d_deletedSubcontexts.end();
          ++iter) {
@@ -246,6 +247,7 @@ void StatContext::clearDeletedSubcontexts(
 
         d_allocator_p->deleteObject(*iter);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     d_deletedSubcontexts.clear();
 }
@@ -264,6 +266,7 @@ void StatContext::moveNewSubcontexts()
         updates->reserve(updates->size() + localNewSubcontexts.size());
     }
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (StatContextVector::iterator iter = localNewSubcontexts.begin();
          iter != localNewSubcontexts.end();
          ++iter) {
@@ -285,6 +288,7 @@ void StatContext::moveNewSubcontexts()
             context->initializeUpdate(context->d_update_p);
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 StatContext::ValueVec* StatContext::getTotalValuesVec()
@@ -320,6 +324,7 @@ void StatContext::snapshotSubcontext(StatContext*       subcontext,
 }
 
 void StatContext::snapshotImp(bsls::Types::Int64 snapshotTime)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     if (d_preSnapshotCallback) {
         d_preSnapshotCallback(*this);
@@ -351,11 +356,13 @@ void StatContext::snapshotImp(bsls::Types::Int64 snapshotTime)
 
     // Snapshot all subcontexts and, if we're a table, add them to our
     // children's total
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (StatContextVector::iterator iter = d_deletedSubcontexts.begin();
          iter != d_deletedSubcontexts.end();
          ++iter) {
         snapshotSubcontext(*iter, snapshotTime);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     for (StatContextMap::iterator iter = d_subcontexts.begin();
          iter != d_subcontexts.end();
@@ -416,6 +423,7 @@ void StatContext::snapshotImp(bsls::Types::Int64 snapshotTime)
 
     ++d_numSnapshots;
 }
+// NOLINTEND(*-narrowing-conversions)
 
 void StatContext::cleanupImp(bsl::vector<ValueVec*>* expiredValuesVec)
 {
@@ -463,6 +471,7 @@ void StatContext::applyUpdate(const bmqstm::StatContextUpdate& update)
     // Create, update, or delete subcontexts as specified in the update.
 
     typedef bmqstm::StatContextUpdateFlags Flags;
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (bsl::vector<bmqstm::StatContextUpdate>::const_iterator i =
              update.subcontexts().begin();
          i != update.subcontexts().end();
@@ -492,6 +501,7 @@ void StatContext::applyUpdate(const bmqstm::StatContextUpdate& update)
             context->d_isDeleted = true;
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 // CREATORS
@@ -570,6 +580,7 @@ StatContext::StatContext(const Config&     config,
 
 // MANIPULATORS
 bslma::ManagedPtr<StatContext> StatContext::addSubcontext(const Config& config)
+// NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions)
 {
     bdlma::LocalSequentialAllocator<1024> seqAlloc;
 
@@ -626,6 +637,7 @@ bslma::ManagedPtr<StatContext> StatContext::addSubcontext(const Config& config)
 
     return ret;
 }
+// NOLINTEND(*-magic-numbers,*-narrowing-conversions)
 
 void StatContext::snapshot()
 {
@@ -633,12 +645,14 @@ void StatContext::snapshot()
 }
 
 void StatContext::cleanup()
+// NOLINTBEGIN(*-magic-numbers)
 {
     bdlma::LocalSequentialAllocator<256> seqAlloc;
     bsl::vector<ValueVec*>               expiredVecs(&seqAlloc);
 
     cleanupImp(&expiredVecs);
 }
+// NOLINTEND(*-magic-numbers)
 
 void StatContext::clearValues()
 {

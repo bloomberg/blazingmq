@@ -138,6 +138,7 @@ int decodeAuthenticationEvent(bmqp_ctrlmsg::AuthenticationMessage* output,
     return event.loadAuthenticationEvent(output);
 }
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class TestBench {
   public:
     // DATA
@@ -150,6 +151,7 @@ class TestBench {
 
     // CREATORS
     explicit TestBench(bslma::Allocator* allocator)
+    // NOLINTNEXTLINE(*-magic-numbers)
     : d_bufferFactory(256, allocator)
     , d_blobSpPool_sp(
           bmqp::BlobPoolUtil::createBlobPool(&d_bufferFactory, allocator))
@@ -197,6 +199,7 @@ class TestBench {
                                         &d_scheduler);
     }
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close unnamed namespace
 
@@ -246,9 +249,11 @@ static void test1_authenticateSuccess()
     BMQTST_ASSERT_EQ(req.mechanism(), "BASIC");
     BMQTST_ASSERT(req.data().has_value());
 
+    // NOLINTBEGIN(bugprone-unchecked-optional-access)
     bsl::string dataStr(req.data().value().begin(),
                         req.data().value().end(),
                         alloc);
+    // NOLINTEND(bugprone-unchecked-optional-access)
     BMQTST_ASSERT_EQ(dataStr, "user:pass");
 }
 
@@ -366,6 +371,7 @@ static void test5_handleResponseSuccessNoLifetime()
 //   2) Call 'handleResponse()' with a success response (no lifetimeMs).
 //   3) Advance time significantly and verify no additional writes occur.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("HANDLE RESPONSE SUCCESS NO LIFETIME");
 
@@ -393,6 +399,7 @@ static void test5_handleResponseSuccessNoLifetime()
     tb.d_testClock.d_timeSource.advanceTime(bsls::TimeInterval(60));
     BMQTST_ASSERT_EQ(tb.d_channel->numWriteCalls(), writeCountAfterAuth);
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test6_handleResponseSuccessWithLifetime()
 // ------------------------------------------------------------------------
@@ -410,6 +417,7 @@ static void test6_handleResponseSuccessWithLifetime()
 //   3) Advance 1ms more to 8000ms to trigger reauth timer. Verify one
 //      AuthenticationRequest is sent.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("HANDLE RESPONSE SUCCESS WITH LIFETIME");
 
@@ -450,6 +458,7 @@ static void test6_handleResponseSuccessWithLifetime()
     BMQTST_ASSERT_EQ(rc, 0);
     BMQTST_ASSERT(decoded.isAuthenticationRequestValue());
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test7_handleResponseAuthenticationFailure()
 // ------------------------------------------------------------------------
@@ -478,6 +487,7 @@ static void test7_handleResponseAuthenticationFailure()
 
     // 2)
     bmqp_ctrlmsg::AuthenticationMessage response =
+        // NOLINTNEXTLINE(*-magic-numbers)
         makeFailureResponse("access denied", 403);
 
     bmqu::MemOutStream errStream(alloc);
@@ -537,6 +547,7 @@ static void test9_destructorCancelsReauthTimer()
 //   2) Destroy the client.
 //   3) Advance time past the reauthn lifetime, verify no additional writes.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-init-variables)
 {
     bmqtst::TestHelper::printTestName("DESTRUCTOR CANCELS REAUTH TIMER");
 
@@ -572,6 +583,7 @@ static void test9_destructorCancelsReauthTimer()
         bsls::TimeInterval().addMilliseconds(100000));
     BMQTST_ASSERT_EQ(tb.d_channel->numWriteCalls(), writeCountAfterAuth);
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-init-variables)
 
 static void test10_reauthChannelGoneAtTimerFire()
 // ------------------------------------------------------------------------
@@ -633,6 +645,7 @@ static void test10_reauthChannelGoneAtTimerFire()
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -664,3 +677,4 @@ int main(int argc, char* argv[])
     //       (balber::BerEncoder/BerDecoder) use the default allocator.
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

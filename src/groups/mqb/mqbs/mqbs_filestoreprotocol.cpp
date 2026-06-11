@@ -155,21 +155,29 @@ const char* FileType::toAscii(FileType::Enum value)
 // struct FileHeader
 // -----------------
 
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 const int FileHeader::k_PROTOCOL_VERSION_MASK = bdlb::BitMaskUtil::one(
     FileHeader::k_PROTOCOL_VERSION_START_IDX,
     FileHeader::k_PROTOCOL_VERSION_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 const int FileHeader::k_HEADER_WORDS_MASK = bdlb::BitMaskUtil::one(
     FileHeader::k_HEADER_WORDS_START_IDX,
     FileHeader::k_HEADER_WORDS_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 const int FileHeader::k_FILE_TYPE_MASK = bdlb::BitMaskUtil::one(
     FileHeader::k_FILE_TYPE_START_IDX,
     FileHeader::k_FILE_TYPE_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 const int FileHeader::k_BITNESS_MASK = bdlb::BitMaskUtil::one(
     FileHeader::k_BITNESS_START_IDX,
     FileHeader::k_BITNESS_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 
 // ----------------------
 // struct DataHeaderFlags
@@ -286,6 +294,7 @@ int DataHeaderFlagUtil::fromString(bsl::ostream&      errorDescription,
     *out   = 0;
 
     bdlb::Tokenizer tokenizer(str, ",");
+    // NOLINTBEGIN(cppcoreguidelines-init-variables)
     for (bdlb::TokenizerIterator it = tokenizer.begin(); it != tokenizer.end();
          ++it) {
         DataHeaderFlags::Enum value;
@@ -302,6 +311,7 @@ int DataHeaderFlagUtil::fromString(bsl::ostream&      errorDescription,
             *out |= value;
         }
     }
+    // NOLINTEND(cppcoreguidelines-init-variables)
 
     return rc;
 }
@@ -310,33 +320,51 @@ int DataHeaderFlagUtil::fromString(bsl::ostream&      errorDescription,
 // struct DataHeader
 // -----------------
 
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 const int DataHeader::k_MSG_WORDS_MASK = bdlb::BitMaskUtil::one(
     DataHeader::k_MSG_WORDS_START_IDX,
     DataHeader::k_MSG_WORDS_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 const int DataHeader::k_HEADER_WORDS_MASK = bdlb::BitMaskUtil::one(
     DataHeader::k_HEADER_WORDS_START_IDX,
     DataHeader::k_HEADER_WORDS_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 const int DataHeader::k_OPTIONS_WORDS_MASK = bdlb::BitMaskUtil::one(
     DataHeader::k_OPTIONS_WORDS_START_IDX,
     DataHeader::k_OPTIONS_WORDS_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 const int DataHeader::k_FLAGS_MASK = bdlb::BitMaskUtil::one(
     DataHeader::k_FLAGS_START_IDX,
     DataHeader::k_FLAGS_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 
 // ------------------------
 // struct QueueRecordHeader
 // ------------------------
 
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 const int QueueRecordHeader::k_HEADER_WORDS_MASK = bdlb::BitMaskUtil::one(
     QueueRecordHeader::k_HEADER_WORDS_START_IDX,
     QueueRecordHeader::k_HEADER_WORDS_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 
+// NOLINTBEGIN(cppcoreguidelines-interfaces-global-init)
+// NOLINTBEGIN(cert-err58-cpp)
 const int QueueRecordHeader::k_QUEUE_RECORD_WORDS_MASK =
+    // NOLINTBEGIN(*-narrowing-conversions)
+    // NOLINTBEGIN(*-narrowing-conversions)
     bdlb::BitMaskUtil::one(QueueRecordHeader::k_QUEUE_RECORD_WORDS_START_IDX,
                            QueueRecordHeader::k_QUEUE_RECORD_WORDS_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions)
+// NOLINTEND(*-narrowing-conversions)
+// NOLINTEND(cppcoreguidelines-interfaces-global-init)
+// NOLINTEND(cert-err58-cpp)
 
 // -----------------
 // struct RecordType
@@ -379,13 +407,17 @@ const char* RecordType::toAscii(RecordType::Enum value)
 // struct RecordHeader
 // -------------------
 
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 const int RecordHeader::k_TYPE_MASK = bdlb::BitMaskUtil::one(
     RecordHeader::k_TYPE_START_IDX,
     RecordHeader::k_TYPE_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 
+// NOLINTBEGIN(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 const int RecordHeader::k_FLAGS_MASK = bdlb::BitMaskUtil::one(
     RecordHeader::k_FLAGS_START_IDX,
     RecordHeader::k_FLAGS_NUM_BITS);
+// NOLINTEND(*-narrowing-conversions,cert-err58-cpp,cppcoreguidelines-interfaces-global-init)
 
 bsl::ostream&
 RecordHeader::print(bsl::ostream& stream, int level, int spacesPerLevel) const

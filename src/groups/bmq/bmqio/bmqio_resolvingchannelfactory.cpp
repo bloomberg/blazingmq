@@ -234,6 +234,7 @@ void ResolvingChannelFactoryUtil::defaultResolutionFn(
     const Channel&   baseChannel,
     const ResolveFn& resolveFn,
     bool             verbose)
+// NOLINTBEGIN(*-magic-numbers)
 {
     bslstl::StringRef peerUri = baseChannel.peerUri();
     bslstl::StringRef colon   = bdlb::StringRefUtil::strstr(peerUri, ":");
@@ -279,6 +280,7 @@ void ResolvingChannelFactoryUtil::defaultResolutionFn(
     resolvedUri->append(resolvedName);
     resolvedUri->append(colon.data(), peerUri.end());
 }
+// NOLINTEND(*-magic-numbers)
 
 }  // close package namespace
 }  // close enterprise namespace

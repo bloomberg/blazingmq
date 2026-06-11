@@ -183,6 +183,7 @@ namespace bmqc {
 
 /// Configuration for a MultiQueueThreadPool
 template <typename TYPE>
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class MultiQueueThreadPoolConfig {
   private:
     // PRIVATE TYPES
@@ -290,6 +291,7 @@ class MultiQueueThreadPoolConfig {
     MultiQueueThreadPoolConfig<TYPE>&
     setMonitorWarningTimeout(const bsls::TimeInterval& timeout);
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ==========================
 // class MultiQueueThreadPool
@@ -298,6 +300,7 @@ class MultiQueueThreadPoolConfig {
 /// Set of queues of the parameterized QUEUE type processed by a number of
 /// threads.
 template <typename TYPE>
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
   public:
     // PUBLIC TYPES
@@ -311,6 +314,7 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
 
   private:
     // PRIVATE TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum MonitorEventState {
         /// An event has been enqueued on the queue but the next
         /// `processMonitorEvents` hasn't been called yet
@@ -321,7 +325,9 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
         /// interval
         e_MONITOR_STUCK
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     struct QueueInfo {
         // PUBLIC DATA
         /// Pointer to the queue
@@ -379,6 +385,7 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
         QueueInfo(const QueueInfo&) BSLS_KEYWORD_DELETED;
         QueueInfo& operator=(const QueueInfo&) BSLS_KEYWORD_DELETED;
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
     /// The thread functor.
     struct ProcessQueueJob {
@@ -519,6 +526,7 @@ class MultiQueueThreadPool BSLS_KEYWORD_FINAL {
 
     bsl::string_view queueName(int queueId) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 template <typename TYPE>
 const double MultiQueueThreadPool<TYPE>::k_MONITORING_PERIOD_SEC = 5.0;
@@ -773,6 +781,7 @@ inline MultiQueueThreadPool<TYPE>::~MultiQueueThreadPool()
 // MANIPULATORS
 template <typename TYPE>
 inline int MultiQueueThreadPool<TYPE>::start()
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     /// Enum for the various RC error categories
     enum RcEnum {
@@ -850,6 +859,7 @@ inline int MultiQueueThreadPool<TYPE>::start()
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 template <typename TYPE>
 inline void MultiQueueThreadPool<TYPE>::stop()

@@ -42,10 +42,12 @@ static void test1_breathingTest()
 // Testing:
 //   Basic functionality
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
-    const bsl::string         k_DATA_FILE         = "data";
+    const bsl::string k_DATA_FILE = "data";
+    // NOLINTNEXTLINE(bugprone-implicit-widening-of-multiplication-result)
     const bsls::Types::Uint64 k_DATA_FILE_SIZE    = 1 * 1024 * 1024;
     const bsl::string         k_JOURNAL_FILE      = "journal";
     const bsls::Types::Uint64 k_JOURNAL_FILE_SIZE = 2048;
@@ -135,12 +137,14 @@ static void test1_breathingTest()
         BMQTST_ASSERT_EQ(out.str(), "");
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -155,3 +159,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

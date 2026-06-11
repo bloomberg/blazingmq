@@ -101,8 +101,10 @@ StatMonitorSnapshotRecorder::StatMonitorSnapshotRecorder(
     d_impl_sp.createInplace(alloc, now, now, header, alloc);
 
     // Start the StatMonitor to track system stats
+    // NOLINTBEGIN(*-magic-numbers)
     bdlma::LocalSequentialAllocator<256> localAllocator(
         d_impl_sp->d_allocator_p);
+    // NOLINTEND(*-magic-numbers)
     bmqu::MemOutStream errorDesc(&localAllocator);
     if (d_impl_sp->d_statMonitor.start(errorDesc) != 0) {
         // Failed to start the StatMonitor.  We log and simply continue because

@@ -165,12 +165,14 @@ static void test2_weakMemFn_callOperator()
 // Testing:
 //   'bmqu::WeakMemFn's call operator
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     typedef bmqu::WeakMemFn<int (Int::*)() const> GetFn;
     typedef bmqu::WeakMemFn<Int& (Int::*)(int)>   SetFn;
     typedef bmqu::WeakMemFn<void (Int::*)()>      ResetFn;
 
     bslma::TestAllocator alloc;
+    // NOLINTNEXTLINE(*-magic-numbers)
     bsl::shared_ptr<Int> intPtr     = bsl::allocate_shared<Int>(&alloc, 10);
     bsl::weak_ptr<Int>   weakIntPtr = bsl::weak_ptr<Int>(intPtr);
 
@@ -179,7 +181,8 @@ static void test2_weakMemFn_callOperator()
     BMQTST_ASSERT_EQ(getRes.isNull(), false);
     BMQTST_ASSERT_EQ(getRes.value(), 10);
 
-    SetFn             setFn(&Int::set);
+    SetFn setFn(&Int::set);
+    // NOLINTNEXTLINE(*-magic-numbers)
     SetFn::ResultType setRes = setFn(weakIntPtr, 42);
     BMQTST_ASSERT_EQ(setRes.isNull(), false);
     BMQTST_ASSERT_EQ(setRes.value().get(), 42);
@@ -200,6 +203,7 @@ static void test2_weakMemFn_callOperator()
     resetRes = resetFn(weakIntPtr);
     BMQTST_ASSERT_EQ(resetRes.isNull(), true);
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test3_weakMemFnInstance_resultType()
 // ------------------------------------------------------------------------
@@ -301,12 +305,14 @@ static void test4_weakMemFnInstance_callOperator()
 // Testing:
 //   'bmqu::WeakMemFnInstance's call operator
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     typedef bmqu::WeakMemFnInstance<int (Int::*)() const> GetFn;
     typedef bmqu::WeakMemFnInstance<Int& (Int::*)(int)>   SetFn;
     typedef bmqu::WeakMemFnInstance<void (Int::*)()>      ResetFn;
 
     bslma::TestAllocator alloc;
+    // NOLINTNEXTLINE(*-magic-numbers)
     bsl::shared_ptr<Int> intPtr     = bsl::allocate_shared<Int>(&alloc, 10);
     bsl::weak_ptr<Int>   weakIntPtr = bsl::weak_ptr<Int>(intPtr);
 
@@ -315,7 +321,8 @@ static void test4_weakMemFnInstance_callOperator()
     BMQTST_ASSERT_EQ(getRes.isNull(), false);
     BMQTST_ASSERT_EQ(getRes.value(), 10);
 
-    SetFn             setFn(&Int::set, weakIntPtr);
+    SetFn setFn(&Int::set, weakIntPtr);
+    // NOLINTNEXTLINE(*-magic-numbers)
     SetFn::ResultType setRes = setFn(42);
     BMQTST_ASSERT_EQ(setRes.isNull(), false);
     BMQTST_ASSERT_EQ(setRes.value().get(), 42);
@@ -336,12 +343,14 @@ static void test4_weakMemFnInstance_callOperator()
     resetRes = resetFn();
     BMQTST_ASSERT_EQ(resetRes.isNull(), true);
 }
+// NOLINTEND(*-magic-numbers)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -360,3 +369,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

@@ -94,6 +94,7 @@ struct Version {
     static const char* s_what;
 
 #define BMQSCM_CONCAT2(a, b, c, d, e) a##b##c##d##e
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQSCM_CONCAT(a, b, c, d, e) BMQSCM_CONCAT2(a, b, c, d, e)
 
 // 'BMQSCM_S_VERSION' is a symbol whose name warns users of version mismatch
@@ -146,9 +147,11 @@ inline int Version::versionAsInt()
 
 }  // close package namespace
 
-BSLS_LINKCOERCION_FORCE_SYMBOL_DEPENDENCY(const char*,
-                                          bmqscm_version_assertion,
-                                          bmqscm::Version::BMQSCM_S_VERSION)
+BSLS_LINKCOERCION_FORCE_SYMBOL_DEPENDENCY(
+    const char*,
+    // NOLINTNEXTLINE(cert-err58-cpp,cppcoreguidelines-avoid-non-const-global-variables)
+    bmqscm_version_assertion,
+    bmqscm::Version::BMQSCM_S_VERSION)
 
 }  // close enterprise namespace
 

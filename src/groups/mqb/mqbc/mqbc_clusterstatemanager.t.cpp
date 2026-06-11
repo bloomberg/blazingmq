@@ -60,8 +60,10 @@ using namespace bsl;
 // ----------------------------------------------------------------------------
 namespace {
 // CONSTANTS
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 static const char* k_REFUSAL_MESSAGE = "Not a follower";
 
+// NOLINTNEXTLINE(bugprone-implicit-widening-of-multiplication-result)
 static const bsls::Types::Int64 k_WATCHDOG_TIMEOUT_DURATION = 5 * 60;
 // 5 minutes
 
@@ -73,6 +75,7 @@ static const int k_WATCHDOG_NUM_RETRIES = 5;
 /// Flag set by `testSigintHandler` when SIGINT is received.  Used to
 /// verify that `mqbu::ExitUtil::shutdown` was invoked (which sends
 /// SIGINT to the process) without actually terminating the test.
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 static volatile sig_atomic_t s_sigintReceived = 0;
 
 /// Signal handler that captures SIGINT instead of terminating.
@@ -99,6 +102,7 @@ typedef mqbc::ClusterStateLedger::ClusterMessageCRefList
 /// This class provides the mock cluster and other components necessary to
 /// test the cluster state manager in isolation, as well as some helper
 /// methods.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct Tester {
   public:
     // PUBLIC DATA
@@ -120,6 +124,7 @@ struct Tester {
     , d_clusterStateLedger_p(0)
     , d_clusterStateManager_mp(0)
     , d_storageManager()
+    // NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-type-const-cast)
     {
         // Create the cluster
         mqbmock::Cluster::ClusterNodeDefs clusterNodeDefs(
@@ -216,6 +221,7 @@ struct Tester {
             d_clusterStateManager_mp->clusterState())
             ->unregisterObserver(d_clusterStateManager_mp.get());
     }
+    // NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-type-const-cast)
 
     ~Tester()
     {
@@ -480,6 +486,7 @@ struct Tester {
     }
 
     void verifyFollowerClusterStateRequestSent() const
+    // NOLINTBEGIN(performance-avoid-endl)
     {
         // Verify that a follower cluster state request is sent to the highest
         // LSN follower.
@@ -532,6 +539,7 @@ struct Tester {
             }
         }
     }
+    // NOLINTEND(performance-avoid-endl)
 
     void verifyFollowerClusterStateResponseSent(
         const bmqp_ctrlmsg::LeaderMessageSequence& sequenceNumber) const
@@ -577,6 +585,7 @@ struct Tester {
         }
     }
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close unnamed namespace
 
@@ -616,8 +625,10 @@ static void test1_breathingTestLeader()
     const NodeToLSNMap& lsnMap =
         tester.d_clusterStateManager_mp->nodeToLSNMap();
     BMQTST_ASSERT_EQ(lsnMap.size(), 1U);
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast)
     NodeToLSNMapCIter citer = lsnMap.find(const_cast<mqbnet::ClusterNode*>(
         tester.d_cluster_mp->netCluster().selfNode()));
+    // NOLINTEND(cppcoreguidelines-pro-type-const-cast)
     BMQTST_ASSERT(citer != lsnMap.cend());
     BMQTST_ASSERT_LT(citer->second,
                      tester.d_cluster_mp->_clusterData()
@@ -713,6 +724,7 @@ static void test4_invalidMessagesLeader()
 // Testing:
 //   Invalid message handling when in any leader state
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
                                       "INVALID MESSAGES LEADER");
@@ -784,6 +796,7 @@ static void test4_invalidMessagesLeader()
 
     tester.verifyFailureFollowerLSNResponseSent(*source);
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test5_followerLSNRequestHandlingFollower()
 // ------------------------------------------------------------------------
@@ -847,6 +860,7 @@ static void test6_registrationRequestHandlingLeader()
 // Testing:
 //   Leader response to registration request
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
                                       "REGISTRATION REQUEST HANDLING LEADER");
@@ -894,6 +908,7 @@ static void test6_registrationRequestHandlingLeader()
     BMQTST_ASSERT_EQ(citer->second.electorTerm(), 2U);
     BMQTST_ASSERT_EQ(citer->second.sequenceNumber(), 5U);
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test7_followerLSNResponseQuorum()
 // ------------------------------------------------------------------------
@@ -906,6 +921,7 @@ static void test7_followerLSNResponseQuorum()
 // Testing:
 //   Leader transition upon follower LSN response quorum
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
                                       "FOLLOWER LSN RESPONSE QUORUM");
@@ -967,6 +983,7 @@ static void test7_followerLSNResponseQuorum()
     BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->healthState(),
                      mqbc::ClusterStateTableState::e_LDR_HEALING_STG2);
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test8_registrationRequestQuorum()
 // ------------------------------------------------------------------------
@@ -979,6 +996,7 @@ static void test8_registrationRequestQuorum()
 // Testing:
 //   Leader transition upon registration request quorum
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
                                       "REGISTRATION REQUEST QUORUM");
@@ -1044,6 +1062,7 @@ static void test8_registrationRequestQuorum()
     BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->healthState(),
                      mqbc::ClusterStateTableState::e_LDR_HEALING_STG2);
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test9_followerLSNNoQuorum()
 // ------------------------------------------------------------------------
@@ -1184,6 +1203,7 @@ static void test11_leaderHighestLeaderHealed()
 // Testing:
 //   Leader transition to healed upon successful CSL commit callback
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
                                       "LEADER HIGHEST LEADER HEALED");
@@ -1263,6 +1283,7 @@ static void test11_leaderHighestLeaderHealed()
     BMQTST_ASSERT_EQ(latestLSN.electorTerm(), 2U);
     BMQTST_ASSERT_EQ(latestLSN.sequenceNumber(), 2U);
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test12_followerHighestLeaderHealed()
 // ------------------------------------------------------------------------
@@ -1277,6 +1298,7 @@ static void test12_followerHighestLeaderHealed()
 //   Leader transition to healed upon follower cluster state response and
 //   successful CSL commit callback
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
                                       "FOLLOWER HIGHEST LEADER HEALED");
@@ -1353,9 +1375,11 @@ static void test12_followerHighestLeaderHealed()
     clusterStateSnapshot.sequenceNumber().sequenceNumber() = 8U;
     clusterStateSnapshot.partitions().resize(
         tester.d_cluster_mp->_state()->partitions().size());
+    // NOLINTBEGIN(*-narrowing-conversions)
     for (size_t i = 0; i < clusterStateSnapshot.partitions().size(); ++i) {
         clusterStateSnapshot.partitions()[i].partitionId() = i;
     }
+    // NOLINTEND(*-narrowing-conversions)
 
     tester.d_cluster_mp->requestManager().processResponse(
         followerClusterStateResponse);
@@ -1388,6 +1412,7 @@ static void test12_followerHighestLeaderHealed()
     BMQTST_ASSERT_EQ(latestLSN.electorTerm(), 2U);
     BMQTST_ASSERT_EQ(latestLSN.sequenceNumber(), 2U);
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test13_followerHealed()
 // FOLLOWER HEALED
@@ -1399,6 +1424,7 @@ static void test13_followerHealed()
 // Testing:
 //   Follower transition to healed upon successful CSL commit callback
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
                                       "FOLLOWER HEALED");
@@ -1428,6 +1454,7 @@ static void test13_followerHealed()
     BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->healthState(),
                      mqbc::ClusterStateTableState::e_FOL_HEALED);
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test14_leaderCSLCommitFailure()
 // ------------------------------------------------------------------------
@@ -1441,6 +1468,7 @@ static void test14_leaderCSLCommitFailure()
 // Testing:
 //   Leader upon CSL commit callback failure
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
                                       "LEADER CSL COMMIT FAILURE");
@@ -1507,6 +1535,7 @@ static void test14_leaderCSLCommitFailure()
     BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->healthState(),
                      mqbc::ClusterStateTableState::e_LDR_HEALING_STG1);
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test15_followerCSLCommitFailure()
 // FOLLOWER CSL COMMIT FAILURE
@@ -1519,6 +1548,7 @@ static void test15_followerCSLCommitFailure()
 // Testing:
 //   Follower upon CSL commit callback failure
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
                                       "FOLLOWER CSL COMMIT FAILURE");
@@ -1557,6 +1587,7 @@ static void test15_followerCSLCommitFailure()
     BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->healthState(),
                      mqbc::ClusterStateTableState::e_FOL_HEALING);
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test16_followerClusterStateRespFailureLeaderNext()
 // ------------------------------------------------------------------------
@@ -1571,6 +1602,7 @@ static void test16_followerClusterStateRespFailureLeaderNext()
 //   After failure follower cluster state response, leader transition to
 //   healed upon successful CSL commit callback
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName(
         "CLUSTER STATE MANAGER - "
@@ -1675,6 +1707,7 @@ static void test16_followerClusterStateRespFailureLeaderNext()
     BMQTST_ASSERT_EQ(latestLSN.electorTerm(), 2U);
     BMQTST_ASSERT_EQ(latestLSN.sequenceNumber(), 2U);
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test17_followerClusterStateRespFailureFollowerNext()
 // ------------------------------------------------------------------------
@@ -1691,6 +1724,7 @@ static void test17_followerClusterStateRespFailureFollowerNext()
 //   healed upon follower cluster state response and successful CSL commit
 //   callback
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName(
         "CLUSTER STATE MANAGER - "
@@ -1791,9 +1825,11 @@ static void test17_followerClusterStateRespFailureFollowerNext()
     clusterStateSnapshot.sequenceNumber().sequenceNumber() = 5U;
     clusterStateSnapshot.partitions().resize(
         tester.d_cluster_mp->_state()->partitions().size());
+    // NOLINTBEGIN(*-narrowing-conversions)
     for (size_t i = 0; i < clusterStateSnapshot.partitions().size(); ++i) {
         clusterStateSnapshot.partitions()[i].partitionId() = i;
     }
+    // NOLINTEND(*-narrowing-conversions)
 
     tester.d_cluster_mp->requestManager().processResponse(
         followerClusterStateRespMsg);
@@ -1826,6 +1862,7 @@ static void test17_followerClusterStateRespFailureFollowerNext()
     BMQTST_ASSERT_EQ(latestLSN.electorTerm(), 2U);
     BMQTST_ASSERT_EQ(latestLSN.sequenceNumber(), 2U);
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test18_followerClusterStateRespFailureLostQuorum()
 // ------------------------------------------------------------------------
@@ -1839,6 +1876,7 @@ static void test18_followerClusterStateRespFailureLostQuorum()
 // Testing:
 //   After losing quorum, leader transition back to healing stage 1
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName(
         "CLUSTER STATE MANAGER - "
@@ -1928,6 +1966,7 @@ static void test18_followerClusterStateRespFailureLostQuorum()
     // Verify that self re-sends follower LSN requests to all followers
     tester.verifyFollowerLSNRequestsSent();
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test19_stopNode()
 // ------------------------------------------------------------------------
@@ -1940,6 +1979,7 @@ static void test19_stopNode()
 // Testing:
 //   Self transition to STOPPING state
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("CLUSTER STATE MANAGER - STOP NODE");
 
@@ -2075,6 +2115,7 @@ static void test19_stopNode()
     BMQTST_ASSERT_EQ(tester6.d_clusterStateManager_mp->healthState(),
                      mqbc::ClusterStateTableState::e_STOPPED);
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test20_resetUnknownLeader()
 // ------------------------------------------------------------------------
@@ -2087,6 +2128,7 @@ static void test20_resetUnknownLeader()
 // Testing:
 //   Upon RST_UNKNOWN event, the leader goes back to UNKNOWN state
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
                                       "RESET UNKNOWN LEADER");
@@ -2204,6 +2246,7 @@ static void test20_resetUnknownLeader()
                      mqbc::ClusterStateTableState::e_UNKNOWN);
     BMQTST_ASSERT(lsnMap.empty());
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test21_resetUnknownFollower()
 // ------------------------------------------------------------------------
@@ -2276,6 +2319,7 @@ static void test22_selectFollowerFromLeader()
 //   Upon new leader, existing leader transition to Follower Healing
 // ------------------------------------------------------------------------
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
                                       "SELECT FOLLOWER FROM LEADER");
@@ -2399,6 +2443,7 @@ static void test22_selectFollowerFromLeader()
     currentSelfLSN.sequenceNumber() = 2U;
     tester3.verifyRegistrationRequestSent(currentSelfLSN);
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test23_selectLeaderFromFollower()
 // ------------------------------------------------------------------------
@@ -2412,6 +2457,7 @@ static void test23_selectLeaderFromFollower()
 //   Follower transition to leader
 // ------------------------------------------------------------------------
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast)
 {
     bmqtst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
                                       "SELECT LEADER FROM FOLLOWER");
@@ -2473,6 +2519,7 @@ static void test23_selectLeaderFromFollower()
 
     tester.verifyFollowerLSNRequestsSent();
 }
+// NOLINTEND(cppcoreguidelines-pro-type-const-cast)
 
 static void test24_watchdogLeader()
 // ------------------------------------------------------------------------
@@ -2502,6 +2549,7 @@ static void test24_watchdogLeader()
 // Testing:
 //   Watchdog retry and state reset for healing leader.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
                                       "WATCHDOG LEADER");
@@ -2627,6 +2675,7 @@ static void test24_watchdogLeader()
     BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->healthState(),
                      mqbc::ClusterStateTableState::e_LDR_HEALED);
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test25_watchdogFollower()
 // ------------------------------------------------------------------------
@@ -2808,6 +2857,7 @@ static void test27_watchdogFollowerRetryExhaustion()
 // Testing:
 //   Watchdog retry exhaustion and broker shutdown for follower.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 {
     bmqtst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
                                       "WATCHDOG FOLLOWER RETRY EXHAUSTION");
@@ -2856,6 +2906,7 @@ static void test27_watchdogFollowerRetryExhaustion()
     // Restore original handler
     sigaction(SIGINT, &oldSa, NULL);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 static void test28_watchdogLeaderRetryExhaustion()
 // ------------------------------------------------------------------------
@@ -2879,6 +2930,7 @@ static void test28_watchdogLeaderRetryExhaustion()
 // Testing:
 //   Watchdog retry exhaustion and broker shutdown for leader.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-type-member-init)
 {
     bmqtst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
                                       "WATCHDOG LEADER RETRY EXHAUSTION");
@@ -2927,12 +2979,43 @@ static void test28_watchdogLeaderRetryExhaustion()
     // Restore original handler
     sigaction(SIGINT, &oldSa, NULL);
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-type-member-init)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
+// NOLINTBEGIN(bugprone-exception-escape)
 int main(int argc, char* argv[])
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTBEGIN(cert-err34-c)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -2977,3 +3060,33 @@ int main(int argc, char* argv[])
     // 'bdlmt::EventSchedulerTestTimeSource' inside 'mqbmock::Cluster' uses
     // the default allocator in its constructor.
 }
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTEND(cert-err34-c)
+// NOLINTEND(bugprone-exception-escape)

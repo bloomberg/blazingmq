@@ -69,6 +69,7 @@ namespace m_bmqtool {
 // =================
 
 /// Main application class for `bmqtool`.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Application : public bmqa::SessionEventHandler {
   private:
     // CLASS METHODS
@@ -234,6 +235,7 @@ class Application : public bmqa::SessionEventHandler {
 
     void stop();
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

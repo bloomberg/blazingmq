@@ -64,6 +64,7 @@ namespace mqbblp {
 // =========================
 
 /// Mechanism for opening and closing a queue.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class QueueSessionManager {
   public:
     // TYPES
@@ -103,6 +104,7 @@ class QueueSessionManager {
     };
 
     /// Struct holding the state associated to a queue opened in the session
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     struct QueueState {
         // TYPES
 
@@ -145,6 +147,7 @@ class QueueSessionManager {
         QueueState(const QueueState& original,
                    bslma::Allocator* allocator = 0);
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
     /// Map of queueId -> QueueState
     typedef bsl::unordered_map<int, QueueState> QueueStateMap;
@@ -324,6 +327,7 @@ class QueueSessionManager {
     const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>&
     requesterContext() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                            INLINE DEFINITIONS

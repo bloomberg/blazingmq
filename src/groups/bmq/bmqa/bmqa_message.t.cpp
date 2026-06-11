@@ -53,6 +53,7 @@ namespace {
 /// specified `max`, inclusive.  The behavior is undefined unless `min >= 0`
 /// and `max >= min`.
 int generateRandomInteger(int min, int max)
+// NOLINTBEGIN(cert-msc30-c,cert-msc50-cpp)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(min >= 0);
@@ -60,6 +61,7 @@ int generateRandomInteger(int min, int max)
 
     return min + (bsl::rand() % (max - min + 1));
 }
+// NOLINTEND(cert-msc30-c,cert-msc50-cpp)
 
 /// Populate the specified `subQueueInfos` with the specified
 /// `numSubQueueInfos` number of randomly generated SubQueueInfos. Note that
@@ -94,6 +96,7 @@ static void test1_messageOnStackIsInvalid()
 //   'explicit bmqa::Message();'
 //   'Message clone(bslma::Allocator *basicAllocator = 0)' of invalid msg
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Can't ensure no default memory is allocated because a default
@@ -128,6 +131,7 @@ static void test1_messageOnStackIsInvalid()
     BMQTST_ASSERT_SAFE_FAIL(clone.totalSize());
     BMQTST_ASSERT_SAFE_FAIL(clone.hasProperties());
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test2_validPushMessagePrint()
 // ------------------------------------------------------------------------
@@ -142,6 +146,7 @@ static void test2_validPushMessagePrint()
 //   'explicit bmqa::Message();'
 //   'Message clone(bslma::Allocator *basicAllocator = 0)' of invalid msg
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Can't ensure no default memory is allocated because a default
@@ -150,15 +155,18 @@ static void test2_validPushMessagePrint()
 
     typedef bsl::shared_ptr<bmqimp::Event> EventImplSp;
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         4 * 1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator()));
     bmqa::Event event;
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     EventImplSp& implPtr = reinterpret_cast<EventImplSp&>(event);
     implPtr              = bsl::make_shared<bmqimp::Event>(
         &bufferFactory,
@@ -219,6 +227,7 @@ static void test2_validPushMessagePrint()
     BMQTST_ASSERT_EQ(message.compressionAlgorithmType(),
                      bmqt::CompressionAlgorithmType::e_NONE);
 }
+// NOLINTEND(*-narrowing-conversions)
 
 static void test3_messageProperties()
 // ------------------------------------------------------------------------
@@ -231,15 +240,18 @@ static void test3_messageProperties()
 //   'explicit bmqa::Message();'
 //   'Message clone(bslma::Allocator *basicAllocator = 0)' of invalid msg
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,*-narrowing-conversions,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Can't ensure no default memory is allocated because a default
     // QueueId is instantiated and that uses the default allocator to
     // allocate memory for an automatically generated CorrelationId.
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         4 * 1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
@@ -295,6 +307,7 @@ static void test3_messageProperties()
 
     bmqa::Event                     event;
     bsl::shared_ptr<bmqimp::Event>& implPtr =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         reinterpret_cast<bsl::shared_ptr<bmqimp::Event>&>(event);
 
     implPtr = bsl::make_shared<bmqimp::Event>(
@@ -322,8 +335,10 @@ static void test3_messageProperties()
     BMQTST_ASSERT_EQ(0, message.loadProperties(&out1));
 
     // get EventHeader length
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     bmqp::EventHeader* eh = reinterpret_cast<bmqp::EventHeader*>(
         peb.blob()->buffer(0).data());
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
     const int ehSize = eh->headerWords() * bmqp::Protocol::k_WORD_SIZE;
 
     BMQTST_ASSERT_EQ(message.totalSize(), peb.blob()->length() - ehSize);
@@ -384,6 +399,7 @@ static void test3_messageProperties()
         BMQTST_ASSERT_EQ(out4.getPropertyAsString("z"), z);
     }
 }
+// NOLINTEND(*-avoid-c-arrays,*-narrowing-conversions,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 
 static void test4_subscriptionHandle()
 // ------------------------------------------------------------------------
@@ -399,6 +415,7 @@ static void test4_subscriptionHandle()
 //   'const bmqt::SubscriptionHandle& subscriptionHandle()' of PUSH, ACK
 //   and PUT messages
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-narrowing-conversions,performance-avoid-endl)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Can't ensure no default memory is allocated because a default
@@ -417,9 +434,11 @@ static void test4_subscriptionHandle()
 
     bsl::shared_ptr<bmqimp::Queue> queueSp = bsl::make_shared<bmqimp::Queue>(
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         4 * 1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
@@ -441,6 +460,7 @@ static void test4_subscriptionHandle()
         bmqp::Protocol::SubQueueInfosArray subQueueInfos(
             bmqtst::TestHelperUtil::allocator());
 
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         EventImplSp& implPtr = reinterpret_cast<EventImplSp&>(event);
         implPtr              = bsl::make_shared<bmqimp::Event>(
             &bufferFactory,
@@ -505,6 +525,7 @@ static void test4_subscriptionHandle()
 
         bmqa::Event event;
 
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         EventImplSp& implPtr = reinterpret_cast<EventImplSp&>(event);
         implPtr              = bsl::make_shared<bmqimp::Event>(
             &bufferFactory,
@@ -551,6 +572,7 @@ static void test4_subscriptionHandle()
     {
         bmqa::Event event;
 
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         EventImplSp& implPtr = reinterpret_cast<EventImplSp&>(event);
         implPtr              = bsl::make_shared<bmqimp::Event>(
             &bufferFactory,
@@ -586,8 +608,10 @@ static void test4_subscriptionHandle()
         PVVV("Message: " << message);
 
         // get EventHeader length
+        // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
         bmqp::EventHeader* eh = reinterpret_cast<bmqp::EventHeader*>(
             builder.blob()->buffer(0).data());
+        // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
         const int ehSize = eh->headerWords() * bmqp::Protocol::k_WORD_SIZE;
 
         BMQTST_ASSERT_EQ(message.totalSize(),
@@ -600,6 +624,7 @@ static void test4_subscriptionHandle()
     {
         bmqa::Event event;
 
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         EventImplSp& implPtr = reinterpret_cast<EventImplSp&>(event);
         implPtr              = bsl::make_shared<bmqimp::Event>(
             &bufferFactory,
@@ -633,12 +658,14 @@ static void test4_subscriptionHandle()
         BMQTST_ASSERT_OPT_FAIL(message.subscriptionHandle());
     }
 }
+// NOLINTEND(*-narrowing-conversions,performance-avoid-endl)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
     switch (_testCase) {
@@ -655,3 +682,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

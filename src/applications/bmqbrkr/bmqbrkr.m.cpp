@@ -82,6 +82,7 @@ BALL_LOG_SET_NAMESPACE_CATEGORY("BMQBRKR");
 
 /// Struct holding various `global` parameters representing the Context of
 /// this process.
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 struct TaskEnvironment {
     bsl::string d_instanceId;
     // BMQ_INSTANCE if provided ('default'
@@ -106,9 +107,11 @@ struct TaskEnvironment {
     // Task as those are getting shutdown and
     // destroyed.
 };
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 /// Raw pointer to the TaskEnvironment, used so that the signal handler, and
 /// the assert handler can access the needed data.
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 static TaskEnvironment* s_taskEnv_p = 0;
 }  // close unnamed namespace
 
@@ -139,6 +142,7 @@ static void appShutdownSignal(int signal)
 /// state.
 BSLA_NORETURN
 static void bmqAssertHandler(const char* comment, const char* file, int line)
+// NOLINTBEGIN(cppcoreguidelines-pro-type-union-access,cppcoreguidelines-pro-type-vararg)
 {
     // The following code is copied verbatim from 'printError' in
     // bsls_assert.cpp
@@ -174,6 +178,7 @@ static void bmqAssertHandler(const char* comment, const char* file, int line)
 
     bsls::AssertImpUtil::failByAbort();
 }
+// NOLINTEND(cppcoreguidelines-pro-type-union-access,cppcoreguidelines-pro-type-vararg)
 
 // ====
 // main
@@ -181,6 +186,7 @@ static void bmqAssertHandler(const char* comment, const char* file, int line)
 
 /// On Unix only, ignore the SIGPIPE & SIGXFSZ signal.
 static void ignoreSigpipe()
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 {
 #if defined(BSLS_PLATFORM_OS_UNIX)
     // Ignore SIGPIPE & SIGXFSZ on Unix platforms.  By default, SIGXFSZ
@@ -208,6 +214,7 @@ static void ignoreSigpipe()
 
 #endif
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 /// Print the start/stop trace for the specified `action` (starting,
 /// started, stopping, stopped, ...) for the specified `instance` (could be
@@ -234,6 +241,7 @@ static int getConfig(bsl::ostream&          errorDescription,
                      bsl::string*           configJson,
                      mqbcfg::Configuration* config,
                      const bsl::string&     configDir)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     enum RcEnum {
         // Enum for the various RC error categories
@@ -295,6 +303,7 @@ static int getConfig(bsl::ostream&          errorDescription,
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 /// Callback called upon execution of the specified admin command `command`
 /// with the specified `prefix`.  The specified `start` is a time when
@@ -336,6 +345,7 @@ struct MTrapHandler {
     }
 
     void operator()(const bsl::string& prefix, bsl::istream& stream) const
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-union-access)
     {
         bsl::string cmd;
 
@@ -367,6 +377,7 @@ struct MTrapHandler {
                        << "Send 'HELP' to see a list of commands supported by "
                        << "bmqbrkr.";
     }
+    // NOLINTEND(cppcoreguidelines-pro-type-union-access)
 };
 
 /// Create and initialize the Task object in the specified `taskEnv` using
@@ -376,6 +387,7 @@ struct MTrapHandler {
 static int initializeTask(bsl::ostream&             errorDescription,
                           TaskEnvironment*          taskEnv,
                           const mqbcfg::TaskConfig& taskConfig)
+// NOLINTBEGIN(cppcoreguidelines-pro-type-union-access,cppcoreguidelines-use-enum-class)
 {
     enum RcEnum {
         // Enum for the various RC error categories
@@ -390,6 +402,7 @@ static int initializeTask(bsl::ostream&             errorDescription,
                         taskConfig.allocationLimit());
 
     bmqu::MemOutStream localError;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
     const int rc = taskEnv->d_task.object().initialize(localError, taskConfig);
     if (rc != 0) {
         errorDescription << "Failed to initialize task " << "[rc: " << rc
@@ -426,9 +439,11 @@ static int initializeTask(bsl::ostream&             errorDescription,
 
     return 0;
 }
+// NOLINTEND(cppcoreguidelines-pro-type-union-access,cppcoreguidelines-use-enum-class)
 
 /// Shutdown and destroy the Task from the specified `taskEnv`.
 static void shutdownTask(TaskEnvironment* taskEnv)
+// NOLINTBEGIN(cppcoreguidelines-pro-type-union-access)
 {
     // Remove our custom assert handler (refer to the comments in
     // 'bmqAssertHandler' as to why this is done at this point and not later.
@@ -444,6 +459,7 @@ static void shutdownTask(TaskEnvironment* taskEnv)
     const bsl::string pidFile = taskEnv->d_bmqPrefix + "/bmqbrkr.pid";
     bdls::FilesystemUtil::remove(pidFile);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-union-access)
 
 /// Create and initialize the Application object from the specified
 /// `taskEnv`.  Return 0 on success, or a non-zero error code and populate
@@ -452,7 +468,9 @@ static void shutdownTask(TaskEnvironment* taskEnv)
 static int
 initializeApplication(BSLA_MAYBE_UNUSED bsl::ostream& errorDescription,
                       TaskEnvironment*                taskEnv)
+// NOLINTBEGIN(cppcoreguidelines-pro-type-union-access)
 {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
     m_bmqbrkr::Task& task = taskEnv->d_task.object();
 
     // Create the Application
@@ -468,12 +486,15 @@ initializeApplication(BSLA_MAYBE_UNUSED bsl::ostream& errorDescription,
                                                   MTrapHandler(taskEnv));
     return 0;
 }
+// NOLINTEND(cppcoreguidelines-pro-type-union-access)
 
 /// Shutdown and destroy the Application from the specified `taskEnv`.
 static void shutdownApplication(TaskEnvironment* taskEnv)
 {
-    m_bmqbrkr::Task&   task = taskEnv->d_task.object();
-    mqba::Application& app  = taskEnv->d_app.object();
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
+    m_bmqbrkr::Task& task = taskEnv->d_task.object();
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
+    mqba::Application& app = taskEnv->d_app.object();
 
     // DeRegister M-Trap handler
     task.deregisterMTrapHandler("CMD");
@@ -500,6 +521,7 @@ static void shutdownApplication(TaskEnvironment* taskEnv)
 /// crash because the logs have been rotated and cleaned up, and many new
 /// versions may have been deployed since the last start, overriding it.
 static void updateHistFile(const TaskEnvironment* taskEnv)
+// NOLINTBEGIN(modernize-use-emplace)
 {
     static const int k_MAX_ENTRIES = 90;  // Maximum number of entries to keep
 
@@ -524,7 +546,7 @@ static void updateHistFile(const TaskEnvironment* taskEnv)
     }
 
     // Generate the new entry
-    bmqu::MemOutStream os;
+    bmqu::MemOutStream       os;
     const mqbcfg::AppConfig& appConfig = mqbcfg::BrokerConfig::get();
     os << bdlt::CurrentTime::utc() << "|" << appConfig.brokerVersion() << "|"
        << appConfig.configVersion() << "|"
@@ -548,6 +570,7 @@ static void updateHistFile(const TaskEnvironment* taskEnv)
     }
     output.close();
 }
+// NOLINTEND(modernize-use-emplace)
 
 /// Start the Application in the specified `taskEnv` and wait until
 /// termination (if the optionally specified `wait` is true).  Return 0 on
@@ -559,6 +582,7 @@ run(bsl::ostream& errorDescription, TaskEnvironment* taskEnv, bool wait = true)
     // Start the application
     bmqu::MemOutStream localError;
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
     int rc = taskEnv->d_app.object().start(localError);
     if (rc != 0) {
         errorDescription << "Failed to start application [rc: " << rc
@@ -581,6 +605,7 @@ run(bsl::ostream& errorDescription, TaskEnvironment* taskEnv, bool wait = true)
 }
 
 int main(int argc, const char* argv[])
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 {
     // Parse command line parameters
     bsl::string configDir;
@@ -592,6 +617,7 @@ int main(int argc, const char* argv[])
     bool        version = false;
 
     {
+        // NOLINTBEGIN(*-avoid-c-arrays)
         balcl::OptionInfo specTable[] = {
             {"",
              "config",
@@ -629,6 +655,7 @@ int main(int argc, const char* argv[])
              balcl::TypeInfo(&version),
              balcl::OccurrenceInfo::e_OPTIONAL},
         };
+        // NOLINTEND(*-avoid-c-arrays)
 
         balcl::CommandLine commandLine(specTable);
 
@@ -764,3 +791,4 @@ int main(int argc, const char* argv[])
 
     return mqbu::ExitCode::e_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)

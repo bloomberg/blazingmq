@@ -61,6 +61,7 @@ namespace mqbc {
 
 /// This component provides a mechanism to manage storage recovery in a cluster
 /// node.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class RecoveryManager {
   public:
     // TYPES
@@ -107,6 +108,7 @@ class RecoveryManager {
     /// receiving data chunks from an up-to-date node during recovery, such as
     /// the recovery data source, range of sequence numbers to recover, and
     /// current sequence number offset.
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     class ReceiveDataContext {
       public:
         // TYPES
@@ -152,6 +154,7 @@ class RecoveryManager {
         /// Reset the members of this object.
         void reset();
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
     // =====================
     // class RecoveryContext
@@ -161,6 +164,7 @@ class RecoveryManager {
     /// This class contains important information to keep track during
     /// recovery, such as recovery file set, mapped journal/data fds, buffered
     /// storage events, and receive data context.
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     class RecoveryContext {
       public:
         // TYPES
@@ -220,6 +224,7 @@ class RecoveryManager {
         RecoveryContext(const RecoveryContext& other,
                         bslma::Allocator*      basicAllocator = 0);
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
   private:
     // CLASS-SCOPE CATEGORY
@@ -447,6 +452,7 @@ class RecoveryManager {
     void loadReplicaDataResponsePush(bmqp_ctrlmsg::ControlMessage* out,
                                      int partitionId) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                            INLINE DEFINITIONS

@@ -28,13 +28,18 @@ namespace {
 // ============================================================================
 //                              GLOBAL VARIABLES
 // ----------------------------------------------------------------------------
-int               s_testStatus          = 0;
-int               s_verbosityLevel      = 0;
-bool              s_ignoreCheckDefAlloc = false;
-bool              s_ignoreCheckGblAlloc = false;
-bslmt::QLock      s_serializePrintLock  = BSLMT_QLOCK_INITIALIZER;
-bslma::Allocator* s_allocator_p         = 0;
-
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+int s_testStatus = 0;
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+int s_verbosityLevel = 0;
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+bool s_ignoreCheckDefAlloc = false;
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+bool s_ignoreCheckGblAlloc = false;
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+bslmt::QLock s_serializePrintLock = BSLMT_QLOCK_INITIALIZER;
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+bslma::Allocator* s_allocator_p = 0;
 }
 
 int& bmqtst::TestHelperUtil::testStatus()
@@ -112,13 +117,16 @@ void Test::TearDown()
 // ----------------------
 
 // CLASS DATA
+// NOLINTBEGIN(*-avoid-c-arrays)
 TestHelper_Test::TestFn
     TestHelper_Test::s_tests[TestHelper_Test::k_MAX_TESTS] = {};
+// NOLINTEND(*-avoid-c-arrays)
 
 int TestHelper_Test::s_numTests = 0;
 
 // CREATORS
 TestHelper_Test::TestHelper_Test(const TestFn& test)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
 {
     // PRECONDITIONS
     BSLS_ASSERT(s_numTests < k_MAX_TESTS);
@@ -126,11 +134,13 @@ TestHelper_Test::TestHelper_Test(const TestFn& test)
     // add test
     s_tests[s_numTests++] = test;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
 
 // --------------
 // Free Functions
 // --------------
 void runTest(int index)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
 {
     const int testCase = index - 1;
 
@@ -144,6 +154,7 @@ void runTest(int index)
     // Execute the test
     TestHelper_Test::s_tests[testCase]();
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
 
 }  // close package namespace
 }  // close enterprise namespace

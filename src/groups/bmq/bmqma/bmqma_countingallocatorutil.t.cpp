@@ -194,6 +194,7 @@ static void test3_allocationLimitCb()
 //   AllocationLimitChecker
 //   setAllocationLimit
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("ALLOCATION LIMIT CALLBACK");
 
@@ -213,9 +214,11 @@ static void test3_allocationLimitCb()
 
     {
         // Expect no alarm: allocated less than the limit
+        // NOLINTBEGIN(*-magic-numbers)
         BSLA_MAYBE_UNUSED bsl::vector<char> globalVec(
             2048,
             bslma::Default::globalAllocator());
+        // NOLINTEND(*-magic-numbers)
         //  [====....] ~2048/4096 bytes
         BMQTST_ASSERT_EQ(alarmTriggeredCount, 0);
 
@@ -225,37 +228,45 @@ static void test3_allocationLimitCb()
     //  [........] ~0/4096 bytes
 
     // Expect no alarm: allocated less than the limit
+    // NOLINTBEGIN(*-magic-numbers)
     BSLA_MAYBE_UNUSED bsl::vector<char> globalVec(
         2048,
         bslma::Default::globalAllocator());
+    // NOLINTEND(*-magic-numbers)
     //  [====....] ~2048/4096 bytes
     BMQTST_ASSERT_EQ(alarmTriggeredCount, 0);
 
     // Expect no alarm: allocated less than the limit
+    // NOLINTBEGIN(*-magic-numbers)
     BSLA_MAYBE_UNUSED bsl::vector<char> defaultVec(
         1024,
         bslma::Default::defaultAllocator());
+    // NOLINTEND(*-magic-numbers)
     //  [======..] ~3072/4096 bytes
     BMQTST_ASSERT_EQ(alarmTriggeredCount, 0);
 
     // Expect 1 alarm: allocated more than the limit
     bslma::Allocator* customAllocator =
         bmqma::CountingAllocatorUtil::topAllocatorStore().get("custom");
+    // NOLINTNEXTLINE(*-magic-numbers)
     BSLA_MAYBE_UNUSED bsl::vector<char> customVec(2048, customAllocator);
     //  [========]== ~5120/4096 bytes ALARM
     BMQTST_ASSERT_EQ(alarmTriggeredCount, 1);
 
     // Expect 1 alarm: alarm was already triggered once, no more alarms
+    // NOLINTNEXTLINE(*-magic-numbers)
     BSLA_MAYBE_UNUSED bsl::vector<char> customVec2(2048, customAllocator);
     //  [========]======= ~7168/4096 bytes
     BMQTST_ASSERT_EQ(alarmTriggeredCount, 1);
 }
+// NOLINTEND(*-magic-numbers)
 
 //=============================================================================
 //                              MAIN PROGRAM
 //-----------------------------------------------------------------------------
 
 int main(int argc, char** argv)
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -272,3 +283,4 @@ int main(int argc, char** argv)
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

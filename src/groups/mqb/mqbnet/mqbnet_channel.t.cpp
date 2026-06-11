@@ -53,6 +53,7 @@ using namespace bsl;
 namespace BloombergLP {
 namespace bmqio {
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class TestChannelEx : public TestChannel {
   private:
     size_t                       d_limit;
@@ -78,10 +79,11 @@ class TestChannelEx : public TestChannel {
     bool waitForChannel(const bsls::TimeInterval& interval);
     void lowWatermark();
 };
-
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 }
 }
 
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char   k_CONTENT[]   = "Being is always the Being of a being";
 const size_t k_BUFFER_SIZE = sizeof(k_CONTENT) * 100;
 
@@ -161,6 +163,7 @@ struct Iterator<bmqp::PutEventBuilder> : public bmqp::PutMessageIterator {
     }
 
     bool isEqual(const Iterator<bmqp::PutEventBuilder>& other) const
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast)
     {
         // mqbnet::Channel packs raw
         const_cast<bmqp::PutHeader&>(header()).setCrc32c(0);
@@ -175,6 +178,7 @@ struct Iterator<bmqp::PutEventBuilder> : public bmqp::PutMessageIterator {
         return memcmp(&header(), &other.header(), sizeof(header())) == 0 &&
                bdlbb::BlobUtil::compare(blob, otherBlob) == 0;
     }
+    // NOLINTEND(cppcoreguidelines-pro-type-const-cast)
 };
 
 template <>
@@ -276,24 +280,32 @@ struct Iterator<PseudoBuilder> {
 // ============================================================================
 
 inline void setContent(bdlbb::BlobBuffer* buffer)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
+    // NOLINTNEXTLINE(*-magic-numbers)
     static bsls::AtomicInt s_seed(0x01020304);
     int                    seed = s_seed;
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     int i1 = bdlb::Random::generate15(&seed) % sizeof(k_CONTENT);
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     int i2 = bdlb::Random::generate15(&seed) % sizeof(k_CONTENT);
 
     s_seed += seed;
 
     buffer->setSize(k_BUFFER_SIZE);
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (size_t length = 0; length < k_BUFFER_SIZE;
          length += sizeof(k_CONTENT)) {
         bsl::memcpy(buffer->data() + length, k_CONTENT, sizeof(k_CONTENT));
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     const char temp    = buffer->data()[i2];
     buffer->data()[i2] = buffer->data()[i1];
     buffer->data()[i1] = temp;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 // -----------------
 // class TestChannel
@@ -311,6 +323,7 @@ TestChannelEx::TestChannelEx(mqbnet::Channel&                channel,
 , d_channel(channel)
 , d_isInHWM(false)
 , d_eof_sp(0, basicAllocator)
+// NOLINTBEGIN(*-avoid-c-arrays,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     d_eof_sp                      = blobSpPool_p->getObject();
     static const char signature[] = "12345";
@@ -323,6 +336,7 @@ TestChannelEx::TestChannelEx(mqbnet::Channel&                channel,
 
     d_eof_sp->appendDataBuffer(blobBuffer);
 }
+// NOLINTEND(*-avoid-c-arrays,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 TestChannelEx::~TestChannelEx()
 {
@@ -483,6 +497,7 @@ inline bmqt::EventBuilderResult::Enum Tester<bmqp::PutEventBuilder>::build()
 
 template <>
 inline bmqt::EventBuilderResult::Enum Tester<bmqp::PushEventBuilder>::build()
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     static int        queueId = 0;
     const int         flags   = 0;
@@ -492,9 +507,11 @@ inline bmqt::EventBuilderResult::Enum Tester<bmqp::PushEventBuilder>::build()
     static int                     flip = 0;
 
     bmqp::Protocol::SubQueueInfosArray subQueueInfos(d_allocator_p);
+    // NOLINTBEGIN(*-magic-numbers)
     for (unsigned int subQueueId = 0; subQueueId < 10; ++subQueueId) {
         subQueueInfos.push_back(bmqp::SubQueueInfo(subQueueId));
     }
+    // NOLINTEND(*-magic-numbers)
     rc = d_builder.addSubQueueInfosOption(subQueueInfos);
 
     if (++flip & 1) {
@@ -542,10 +559,12 @@ inline bmqt::EventBuilderResult::Enum Tester<bmqp::PushEventBuilder>::build()
 
     return rc;
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 template <>
 inline bmqt::EventBuilderResult::Enum
 Tester<bmqp::ConfirmEventBuilder>::build()
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     static int        queueId    = 0;
     const int         subQueueId = 0;
@@ -561,9 +580,11 @@ Tester<bmqp::ConfirmEventBuilder>::build()
 
     return rc;
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 template <>
 inline bmqt::EventBuilderResult::Enum Tester<bmqp::RejectEventBuilder>::build()
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     static int        queueId    = 0;
     const int         subQueueId = 0;
@@ -579,9 +600,11 @@ inline bmqt::EventBuilderResult::Enum Tester<bmqp::RejectEventBuilder>::build()
 
     return rc;
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 template <>
 inline bmqt::EventBuilderResult::Enum Tester<bmqp::AckEventBuilder>::build()
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     static int        id      = 0;
     static int        queueId = 0;
@@ -598,6 +621,7 @@ inline bmqt::EventBuilderResult::Enum Tester<bmqp::AckEventBuilder>::build()
 
     return rc;
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 template <>
 inline bmqt::EventBuilderResult::Enum Tester<PseudoBuilder>::build()
@@ -636,9 +660,9 @@ inline size_t Tester<Builder>::verify(
 
     bmqio::TestChannel::WriteCall writeCall;
     size_t                        writeCallIndex = 0;
-    Iterator<Builder> itEvents(&d_bufferFactory, d_allocator_p);
-    size_t            counter    = 0;
-    size_t            writeBlobs = 0;
+    Iterator<Builder>             itEvents(&d_bufferFactory, d_allocator_p);
+    size_t                        counter    = 0;
+    size_t                        writeBlobs = 0;
 
     for (BlobDeque::iterator itHistory = d_history.begin();
          itHistory != d_history.end();
@@ -711,16 +735,20 @@ void Tester<Builder>::threadFn(bslmt::Barrier* phase1, bslmt::Barrier* phase2)
 
     phase1->wait();
     size_t i = 0;
+    // NOLINTBEGIN(*-magic-numbers)
     for (; i < 3000 || !d_stop; ++i) {
         test();
     }
+    // NOLINTEND(*-magic-numbers)
     d_stop = false;
 
     phase2->wait();
 
+    // NOLINTBEGIN(*-magic-numbers)
     for (i = 0; i < 3000 || !d_stop; ++i) {
         test();
     }
+    // NOLINTEND(*-magic-numbers)
 }
 
 // ============================================================================
@@ -780,6 +808,7 @@ static void test1_write()
 
     channel.setChannel(bsl::weak_ptr<bmqio::TestChannel>(testChannel));
 
+    // NOLINTBEGIN(*-magic-numbers)
     for (size_t i = 0; i < 5000; i++) {
         put.test();
         push.test();
@@ -787,9 +816,11 @@ static void test1_write()
         confirm.test();
         reject.test();
     }
+    // NOLINTEND(*-magic-numbers)
 
     testChannel->setWriteStatus(bmqio::StatusCategory::e_LIMIT);
 
+    // NOLINTBEGIN(*-magic-numbers)
     for (size_t i = 0; i < 5000; i++) {
         put.test();
         push.test();
@@ -797,6 +828,7 @@ static void test1_write()
         confirm.test();
         reject.test();
     }
+    // NOLINTEND(*-magic-numbers)
 
     testChannel->setWriteStatus(bmqio::StatusCategory::e_SUCCESS);
     channel.onWatermark(bmqio::ChannelWatermarkType::e_LOW_WATERMARK);
@@ -872,7 +904,9 @@ static void test2_highWatermark()
         *blobSpPool,
         bmqtst::TestHelperUtil::allocator());
 
+    // NOLINTNEXTLINE(*-magic-numbers)
     bslmt::Barrier phase1(6 + 1);
+    // NOLINTNEXTLINE(*-magic-numbers)
     bslmt::Barrier phase2(6 + 1);
 
     channel.setChannel(bsl::weak_ptr<bmqio::TestChannel>(testChannel));
@@ -985,7 +1019,9 @@ static void test3_highWatermarkInWriteCb()
         *blobSpPool,
         bmqtst::TestHelperUtil::allocator());
 
+    // NOLINTNEXTLINE(*-magic-numbers)
     bslmt::Barrier phase1(5 + 1);
+    // NOLINTNEXTLINE(*-magic-numbers)
     bslmt::Barrier phase2(5 + 1);
 
     channel.setChannel(bsl::weak_ptr<bmqio::TestChannelEx>(testChannel));
@@ -1247,7 +1283,14 @@ static void test5_reconnect()
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
+// NOLINTBEGIN(bugprone-exception-escape)
 int main(int argc, char* argv[])
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTBEGIN(cert-err34-c)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -1267,3 +1310,10 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTEND(cert-err34-c)
+// NOLINTEND(bugprone-exception-escape)

@@ -59,6 +59,7 @@ class Log;
 // ================
 
 /// Factory used to create log instances.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class LogFactory {
   public:
     // CREATORS
@@ -71,6 +72,7 @@ class LogFactory {
     /// Create a new log using the specified `config`.
     virtual bslma::ManagedPtr<Log> create(const LogConfig& config) = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ==================
 // struct LogOpResult
@@ -79,6 +81,7 @@ class LogFactory {
 /// This enum represents the result of a log operation.
 struct LogOpResult {
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         // Generic
         // - - - -
@@ -152,6 +155,7 @@ struct LogOpResult {
         /// Failed to write bytes into the log
         e_BYTE_WRITE_FAILURE = -19
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CLASS METHODS
 
@@ -286,6 +290,7 @@ bool operator==(const LogConfig& lhs, const LogConfig& rhs);
 // ====================
 
 /// Generator of unique log IDs.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class LogIdGenerator {
   public:
     // CREATORS
@@ -305,24 +310,28 @@ class LogIdGenerator {
     virtual void generateLogId(bsl::string*      logName,
                                mqbu::StorageKey* logId) = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =========
 // class Log
 // =========
 
 /// This class provides an interface for reading and writing log records.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Log {
   public:
     // TYPES
     typedef bsls::Types::Int64  Offset;
     typedef bsls::Types::Uint64 UnsignedOffset;
 
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         /// Whether the log is read-only
         e_READ_ONLY = (1 << 0),
         /// Whether to create the log when opening if it does not exist
         e_CREATE_IF_MISSING = (1 << 1)
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CLASS DATA
     static const Offset k_INVALID_OFFSET = -1;  // Offset value representing
@@ -438,6 +447,7 @@ class Log {
     /// Return true if the log supports aliasing, false otherwise.
     virtual bool supportsAliasing() const = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

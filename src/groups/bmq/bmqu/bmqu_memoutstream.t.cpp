@@ -29,6 +29,7 @@ using namespace bsl;
 //                                    TESTS
 // ----------------------------------------------------------------------------
 static void test1_breathingTest()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
@@ -96,6 +97,7 @@ static void test1_breathingTest()
         BMQTST_ASSERT_EQ(obj.length(), static_cast<bsl::size_t>(6));
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test2_usageExample()
 // ------------------------------------------------------------------------
@@ -105,6 +107,7 @@ static void test2_usageExample()
 {
     bmqtst::TestHelper::printTestName("USAGE EXAMPLE");
 
+    // NOLINTNEXTLINE(*-magic-numbers)
     bmqu::MemOutStream obj(30, bmqtst::TestHelperUtil::allocator());
     obj << "hello world";
     BMQTST_ASSERT_EQ(obj.str(), "hello world");
@@ -115,6 +118,7 @@ static void test2_usageExample()
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -130,3 +134,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

@@ -43,6 +43,7 @@ const bsl::string_view k_CSI = "\x1b[";
 
 /// @brief RAII guard that switches stdin to raw mode on construction and
 /// restores the original terminal settings on destruction.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class RawModeGuard {
     // NOT IMPLEMENTED
     RawModeGuard(const RawModeGuard&);             // = delete
@@ -60,6 +61,7 @@ class RawModeGuard {
     /// If the terminal attributes cannot be read or set, the guard is
     /// inactive ('isActive' returns 'false') and the destructor is a
     /// no-op.
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
     RawModeGuard()
     : d_active(false)
     {
@@ -91,6 +93,7 @@ class RawModeGuard {
             d_active = true;
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
     /// @brief Restore the original terminal settings.
     ~RawModeGuard()
@@ -106,6 +109,7 @@ class RawModeGuard {
     /// @return 'true' if raw mode was successfully applied
     bool isActive() const { return d_active; }
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 /// @brief Clear and redraw the current terminal line.
 ///
@@ -148,6 +152,7 @@ TerminalReader::TerminalReader(bslma::Allocator* allocator)
 
 // MANIPULATORS
 bool TerminalReader::getLine(bsl::string* out, bsl::string_view prompt)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     // PRECONDITIONS
     BSLS_ASSERT(out);
@@ -183,6 +188,7 @@ bool TerminalReader::getLine(bsl::string* out, bsl::string_view prompt)
     bsl::string savedLine(d_allocator_p);  // saves current line when
                                            // navigating history
 
+    // NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers,cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
     while (true) {
         char c;
         if (read(STDIN_FILENO, &c, 1) != 1) {
@@ -351,7 +357,9 @@ bool TerminalReader::getLine(bsl::string* out, bsl::string_view prompt)
             refreshLine(prompt, line, cursor);
         }
     }
+    // NOLINTEND(*-avoid-c-arrays,*-magic-numbers,cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 }
+// NOLINTEND(performance-avoid-endl)
 
 }  // close package namespace
 }  // close enterprise namespace

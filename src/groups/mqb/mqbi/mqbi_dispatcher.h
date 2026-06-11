@@ -122,6 +122,7 @@ namespace BloombergLP {
 
 // FORWARD DECLARATION
 namespace mqbnet {
+// NOLINTNEXTLINE(bugprone-forward-declaration-namespace)
 class ClusterNode;
 }
 
@@ -132,6 +133,7 @@ class Dispatcher;
 class DispatcherClient;
 class DispatcherClientData;
 class DispatcherEvent;
+// NOLINTNEXTLINE(bugprone-forward-declaration-namespace)
 class QueueHandle;
 
 // ===========================
@@ -141,6 +143,7 @@ class QueueHandle;
 /// Enumeration for the different types of dispatcher clients.
 struct DispatcherClientType {
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         /// Unspecified client type
         e_UNDEFINED = -1,
@@ -150,6 +153,7 @@ struct DispatcherClientType {
         e_QUEUE   = 1,
         e_CLUSTER = 2
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CONSTANTS
     static const int k_COUNT = 3;  // Total number of different ClientTypes.
@@ -225,6 +229,7 @@ struct DispatcherEventType {
     ///       more control over to the target destination dispatcher client:
     ///       the client will be able to do some pre and post callback
     ///       invocation duty (such as flushing some state).
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         /// invalid event
         e_UNDEFINED = 0,
@@ -252,6 +257,7 @@ struct DispatcherEventType {
         e_RECOVERY            = 11,
         e_REPLICATION_RECEIPT = 12
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CLASS METHODS
 
@@ -304,6 +310,7 @@ bsl::ostream& operator<<(bsl::ostream&             stream,
 /// Pure interface for a dispatcher mechanism to dispense `DispatcherEvent`
 /// objects of type `DispatcherEventType` to clients of type
 /// `DispatcherClient`.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Dispatcher {
   public:
     // TYPES
@@ -465,6 +472,7 @@ class Dispatcher {
     virtual bsls::Types::Int64
     numProcessorEvents(const mqbi::DispatcherClient* client) const = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =====================
 // class DispatcherEvent
@@ -473,6 +481,7 @@ class Dispatcher {
 /// Base class for dispatcher events, holding the common context information
 /// of an Event dispatched by the Dispatcher.  Concrete event types inherit
 /// from this class and add their specific fields.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class DispatcherEvent {
   private:
     // DATA
@@ -553,6 +562,7 @@ class DispatcherEvent {
                                 int           level          = 0,
                                 int           spacesPerLevel = 4) const = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // FREE OPERATORS
 
@@ -637,6 +647,7 @@ bsl::ostream& operator<<(bsl::ostream&               stream,
 // ======================
 
 /// Interface for a client of the Dispatcher.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class DispatcherClient {
   private:
     // DATA
@@ -738,6 +749,7 @@ class DispatcherClient {
         return d_eventSource_sp;
     }
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // FREE OPERATORS
 

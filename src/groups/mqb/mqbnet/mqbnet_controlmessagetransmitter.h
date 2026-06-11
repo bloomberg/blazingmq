@@ -52,6 +52,7 @@ namespace bdlbb {
 class BlobBufferFactory;
 }
 namespace mqbi {
+// NOLINTNEXTLINE(bugprone-forward-declaration-namespace)
 class Cluster;
 }
 namespace mqbnet {
@@ -63,6 +64,7 @@ class ClusterNode;
 
 /// This class provides a mechanism to transmit messages to peer nodes in
 /// the same cluster.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ControlMessageTransmitter {
   public:
     typedef bmqp::BlobPoolUtil::BlobSpPool BlobSpPool;
@@ -167,6 +169,7 @@ class ControlMessageTransmitter {
     void broadcastMessage(const bmqp_ctrlmsg::ControlMessage& message,
                           mqbnet::TransportManager* transportManager = 0);
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

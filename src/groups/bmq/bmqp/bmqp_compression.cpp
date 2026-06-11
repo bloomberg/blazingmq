@@ -159,6 +159,7 @@ bool ZLib::advanceInput(bdlbb::BlobBuffer* inBuffer,
                         z_stream*          stream,
                         int*               index,
                         const bdlbb::Blob& input)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-reinterpret-cast)
 {
     if (0 == stream->avail_in) {
         // Read the next buffer from the blob.
@@ -185,11 +186,13 @@ bool ZLib::advanceInput(bdlbb::BlobBuffer* inBuffer,
 
     return true;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-reinterpret-cast)
 
 void ZLib::advanceOutput(bdlbb::Blob*              output,
                          bdlbb::BlobBuffer*        outBuffer,
                          bdlbb::BlobBufferFactory* factory,
                          z_stream*                 stream)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-reinterpret-cast)
 {
     if (0 == stream->avail_out) {
         if (outBuffer->size()) {
@@ -219,6 +222,7 @@ void ZLib::advanceOutput(bdlbb::Blob*              output,
                                                             offset);
     }
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-reinterpret-cast)
 
 int ZLib::writeOutput(bdlbb::Blob*              output,
                       bdlbb::BlobBufferFactory* factory,
@@ -227,6 +231,7 @@ int ZLib::writeOutput(bdlbb::Blob*              output,
                       const bdlbb::Blob&        input,
                       ZlibStreamMethod          zlibMethod,
                       ZlibEndStreamMethod       zlibEndMethod)
+// NOLINTBEGIN(*-narrowing-conversions,cppcoreguidelines-init-variables,cppcoreguidelines-use-enum-class)
 {
     enum RcEnum {
         rc_SUCCESS                = 0,
@@ -264,12 +269,14 @@ int ZLib::writeOutput(bdlbb::Blob*              output,
     // the value of 'avail_out' and only continue iterating while bytes are
     // being written to the output.
     unsigned int lastSize;
+    // NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
     do {
         advanceOutput(output, &outBuffer, factory, stream);
         lastSize = stream->avail_out;
         result   = zlibMethod(stream, Z_FINISH);
     } while ((Z_BUF_ERROR == result || Z_OK == result) &&
              lastSize != stream->avail_out);
+    // NOLINTEND(cppcoreguidelines-avoid-do-while)
 
     zlibEndMethod(stream);
 
@@ -297,6 +304,7 @@ int ZLib::writeOutput(bdlbb::Blob*              output,
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-narrowing-conversions,cppcoreguidelines-init-variables,cppcoreguidelines-use-enum-class)
 
 }  // close unnamed namespace
 
@@ -315,6 +323,7 @@ int Compression::compress(bdlbb::Blob*                         output,
     BSLS_ASSERT_SAFE(output);
     BSLS_ASSERT_SAFE(factory);
 
+    // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
     enum RcEnum { rc_SUCCESS = 0, rc_UNKNOWN_ALGORITHM = -1 };
 
     switch (algorithm) {
@@ -351,15 +360,18 @@ int Compression::compress(bdlbb::Blob*                         output,
     BSLS_ASSERT_SAFE(factory);
     BSLS_ASSERT_SAFE(input);
 
+    // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
     enum RcEnum { rc_SUCCESS = 0, rc_UNKNOWN_ALGORITHM = -1 };
 
     bdlbb::Blob inputBlob(factory, allocator);
     switch (algorithm) {
     case bmqt::CompressionAlgorithmType::e_ZLIB: {
+        // NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast)
         bsl::shared_ptr<char> inputBufferSp(const_cast<char*>(input),
                                             bslstl::SharedPtrNilDeleter(),
                                             allocator);
-        bdlbb::BlobBuffer     inputBlobBuffer(inputBufferSp, inputLength);
+        // NOLINTEND(cppcoreguidelines-pro-type-const-cast)
+        bdlbb::BlobBuffer inputBlobBuffer(inputBufferSp, inputLength);
 
         if (inputBlobBuffer.size() > 0) {
             inputBlob.appendDataBuffer(inputBlobBuffer);
@@ -388,6 +400,7 @@ int Compression::decompress(bdlbb::Blob*                         output,
                             bsl::ostream*                        errorStream,
                             bslma::Allocator*                    allocator)
 {
+    // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
     enum RcEnum { rc_SUCCESS = 0, rc_UNKNOWN_ALGORITHM = -1 };
 
     switch (algorithm) {
@@ -421,6 +434,7 @@ int Compression_Impl::compressZlib(bdlbb::Blob*              output,
                                    bsl::ostream*             errorStream,
                                    bslma::Allocator*         allocator)
 {
+    // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
     enum RcEnum { rc_SUCCESS = 0, rc_STREAM_INIT_FAILURE = -1 };
 
     z_stream stream = {};
@@ -457,6 +471,7 @@ int Compression_Impl::decompressZlib(bdlbb::Blob*              output,
                                      bsl::ostream*             errorStream,
                                      bslma::Allocator*         allocator)
 {
+    // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
     enum RcEnum { rc_SUCCESS = 0, rc_STREAM_INIT_FAILURE = -1 };
 
     z_stream stream = {};

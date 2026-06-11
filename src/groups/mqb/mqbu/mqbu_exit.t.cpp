@@ -59,6 +59,7 @@ using namespace bsl;
 /// posts upon invocation, defined here because `signal` accepts a signal
 /// handler function pointer that only accepts an int and fails to accept
 /// a `bsl::function` to which an output variable would be bound.
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 static bsls::ObjectBuffer<bslmt::TimedSemaphore> g_semaphore;
 
 /// Incremented everytime the signal handler is being invoked.  Variable
@@ -66,11 +67,13 @@ static bsls::ObjectBuffer<bslmt::TimedSemaphore> g_semaphore;
 /// here because `signal` accepts a signal handler function pointer that
 /// only accepts an int and fails to accept a `bsl::function` to which an
 /// output variable would be bound.
+// NOLINTNEXTLINE(cert-err58-cpp,cppcoreguidelines-avoid-non-const-global-variables)
 static bsls::AtomicInt g_signalCount(0);
 
 /// Callback method for signal handling, this will increment the
 /// `g_signalCount` and post of the `g_semaphore`.
 static void dummySignalHandler(int signal)
+// NOLINTBEGIN(cppcoreguidelines-pro-type-union-access,performance-avoid-endl)
 {
     PVV_SAFE("received signal '" << strsignal(signal) << "' (" << signal
                                  << ")]\n");
@@ -81,6 +84,7 @@ static void dummySignalHandler(int signal)
     ++g_signalCount;
     g_semaphore.object().post();
 }
+// NOLINTEND(cppcoreguidelines-pro-type-union-access,performance-avoid-endl)
 
 // ============================================================================
 //                                    TESTS
@@ -99,6 +103,7 @@ static void test1_exitCode_toAscii()
 // Testing:
 //   'ExitCode::toAscii'
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelper::printTestName("EXIT CODE - TO ASCII");
 
@@ -106,6 +111,7 @@ static void test1_exitCode_toAscii()
         int         d_line;
         int         d_value;
         const char* d_expected;
+        // NOLINTBEGIN(*-magic-numbers)
     } k_DATA[] = {{L_, 0, "SUCCESS"},
                   {L_, 1, "COMMAND_LINE"},
                   {L_, 2, "CONFIG_GENERATION"},
@@ -120,12 +126,16 @@ static void test1_exitCode_toAscii()
                   {L_, 11, "UNSUPPORTED_SCENARIO"},
                   {L_, 12, "MEMORY_LIMIT"},
                   {L_, 13, "REQUESTED"}};
+    // NOLINTEND(*-magic-numbers)
     // NOTE: Using the 'integer' value instead of the enum to ensure the
     //       numeric values are *never* changed.
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         PVV(test.d_line << ": Testing: toAscii(" << test.d_value
@@ -136,7 +146,9 @@ static void test1_exitCode_toAscii()
 
         BMQTST_ASSERT_EQ_D(test.d_line, ascii, test.d_expected);
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 static void test2_exitCode_fromAscii()
 // ------------------------------------------------------------------------
@@ -152,6 +164,7 @@ static void test2_exitCode_fromAscii()
 // Testing:
 //   'ExitCode::fromAscii'
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelper::printTestName("EXIT CODE - FROM ASCII");
 
@@ -160,6 +173,7 @@ static void test2_exitCode_fromAscii()
         const char* d_input;
         bool        d_isValid;
         int         d_expected;
+        // NOLINTBEGIN(*-magic-numbers)
     } k_DATA[] = {{L_, "SUCCESS", true, 0},
                   {L_, "COMMAND_LINE", true, 1},
                   {L_, "CONFIG_GENERATION", true, 2},
@@ -175,12 +189,16 @@ static void test2_exitCode_fromAscii()
                   {L_, "MEMORY_LIMIT", true, 12},
                   {L_, "REQUESTED", true, 13},
                   {L_, "invalid", false, -1}};
+    // NOLINTEND(*-magic-numbers)
     // NOTE: Using the 'integer' value instead of the enum to ensure the
     //       numeric values are *never* changed.
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(cppcoreguidelines-init-variables,performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         PVV(test.d_line << ": Testing: fromAscii(" << test.d_input
@@ -196,7 +214,9 @@ static void test2_exitCode_fromAscii()
                                test.d_expected);
         }
     }
+    // NOLINTEND(cppcoreguidelines-init-variables,performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 static void test3_exitCode_print()
 // ------------------------------------------------------------------------
@@ -214,6 +234,7 @@ static void test3_exitCode_print()
 // Testing:
 //   'ExitCode::print'
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelper::printTestName("EXIT CODE - PRINT");
 
@@ -222,6 +243,7 @@ static void test3_exitCode_print()
         int         d_line;
         int         d_value;
         const char* d_expected;
+        // NOLINTBEGIN(*-magic-numbers)
     } k_DATA[] = {{L_, 0, "SUCCESS"},
                   {L_, 1, "COMMAND_LINE"},
                   {L_, 2, "CONFIG_GENERATION"},
@@ -236,10 +258,14 @@ static void test3_exitCode_print()
                   {L_, 11, "UNSUPPORTED_SCENARIO"},
                   {L_, 12, "MEMORY_LIMIT"},
                   {L_, 13, "REQUESTED"}};
+    // NOLINTEND(*-magic-numbers)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         PVV(test.d_line << ": Testing: print(" << test.d_value
@@ -273,8 +299,11 @@ static void test3_exitCode_print()
 
         BMQTST_ASSERT_EQ_D(test.d_line, out.str(), "");
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays)
 
+// NOLINTBEGIN(*-avoid-c-arrays)
 static void test4_exit_terminate(int argc, char* argv[])
 // ------------------------------------------------------------------------
 // EXIT UTIL - TERMINATE
@@ -289,6 +318,7 @@ static void test4_exit_terminate(int argc, char* argv[])
 // Testing:
 //   'ExitUtil::terminate'
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
     // PRECONDITIONS
     BSLS_ASSERT(argc >= 2);
@@ -298,6 +328,7 @@ static void test4_exit_terminate(int argc, char* argv[])
         // This is a fork.
 
         // Terminate with a reason.
+        // NOLINTNEXTLINE(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic)
         const int terminateReason = argc >= 4 ? bsl::atoi(argv[3]) : 0;
         mqbu::ExitUtil::terminate(
             static_cast<mqbu::ExitCode::Enum>(terminateReason));  // EXIT
@@ -323,9 +354,12 @@ static void test4_exit_terminate(int argc, char* argv[])
                   {L_, mqbu::ExitCode::e_MEMORY_LIMIT},
                   {L_, mqbu::ExitCode::e_REQUESTED}};
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-vararg,performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         PVV(test.d_line << ": terminating with reason '" << test.d_reason
@@ -343,6 +377,7 @@ static void test4_exit_terminate(int argc, char* argv[])
 
             // run self binary with a special "--fork" argument that will let
             // the test know it is a forked process
+            // NOLINTNEXTLINE(*-avoid-c-arrays,*-magic-numbers)
             char reasonStr[16] = {};
             bsl::to_chars(reasonStr,
                           reasonStr + 16,
@@ -368,7 +403,9 @@ static void test4_exit_terminate(int argc, char* argv[])
                              WEXITSTATUS(status));
         }
     }
+    // NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-vararg,performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 static void test5_exit_shutdown()
 // ------------------------------------------------------------------------
@@ -386,6 +423,7 @@ static void test5_exit_shutdown()
 // Testing:
 //   'ExitUtil::shutdown'
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(cppcoreguidelines-init-variables,cppcoreguidelines-pro-type-member-init,cppcoreguidelines-pro-type-union-access,performance-avoid-endl)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     bmqtst::TestHelperUtil::ignoreCheckGblAlloc() = true;
@@ -441,10 +479,12 @@ static void test5_exit_shutdown()
         struct local {
             static void threadFn()
             // Thread function which simply invokes 'ExitUtil::shutdown'
+            // NOLINTBEGIN(performance-avoid-endl)
             {
                 PVV_SAFE("Invoking shutdown");
                 mqbu::ExitUtil::shutdown(mqbu::ExitCode::e_SUCCESS);
             }
+            // NOLINTEND(performance-avoid-endl)
         };
 
         bslmt::ThreadUtil::Handle threadHandle;
@@ -464,12 +504,14 @@ static void test5_exit_shutdown()
         bslmt::ThreadUtil::join(threadHandle);
     }
 }
+// NOLINTEND(cppcoreguidelines-init-variables,cppcoreguidelines-pro-type-member-init,cppcoreguidelines-pro-type-union-access,performance-avoid-endl)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -488,3 +530,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

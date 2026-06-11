@@ -82,6 +82,7 @@ using namespace bsl;
 // ----------------------------------------------------------------------------
 namespace {
 // CONSTANTS
+// NOLINTNEXTLINE(bugprone-implicit-widening-of-multiplication-result)
 static const bsls::Types::Int64 k_WATCHDOG_TIMEOUT_DURATION = 5 * 60;
 // 5 minutes
 
@@ -95,6 +96,7 @@ static const bsls::Types::Int64 k_WATCHDOG_TIMEOUT_DURATION_SHORT = 5;
 /// Flag set by `testSigintHandler` when SIGINT is received.  Used to
 /// verify that `mqbu::ExitUtil::shutdown` was invoked (which sends
 /// SIGINT to the process) without actually terminating the test.
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 static volatile sig_atomic_t s_sigintReceived = 0;
 
 /// Signal handler that captures SIGINT instead of terminating.
@@ -120,18 +122,22 @@ typedef NodeIdToPSNMap::const_iterator NodeIdToPSNMapCIter;
 
 // FUNCTIONS
 void mockOnRecoveryStatus(int status)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     PV("Storage recovery completed with status: " << status);
 }
+// NOLINTEND(performance-avoid-endl)
 
 void mockOnPartitionPrimaryStatus(int          partitionId,
                                   int          status,
                                   unsigned int primaryLeaseId)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     PV("On partition primary status, partitionId: "
        << partitionId << ", status: " << status
        << ", primaryLeaseId: " << primaryLeaseId);
 }
+// NOLINTEND(performance-avoid-endl)
 
 // CLASSES
 // ===================
@@ -140,6 +146,7 @@ void mockOnPartitionPrimaryStatus(int          partitionId,
 
 /// Provide helper methods to abstract away the code needed to modify the
 /// cluster state which is required by storage manager.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct TestHelper {
   private:
     // PRIVATE TYPES
@@ -159,6 +166,7 @@ struct TestHelper {
     : d_cluster_mp(0)
     , d_tempDir(bmqtst::TestHelperUtil::allocator())
     , d_tempArchiveDir(bmqtst::TestHelperUtil::allocator())
+    // NOLINTBEGIN(*-magic-numbers)
     {
         // Create the cluster
         mqbmock::Cluster::ClusterNodeDefs clusterNodeDefs(
@@ -225,6 +233,7 @@ struct TestHelper {
         int                rc = d_cluster_mp->start(errorDescription);
         BSLS_ASSERT_OPT(rc == 0);
     }
+    // NOLINTEND(*-magic-numbers)
 
     void clearChannels()
     {
@@ -242,6 +251,7 @@ struct TestHelper {
     verifyPrimarySendsReplicaStateRqst(int               selfNodeId,
                                        ReqIdToNodeIdMap* reqIdToNodeIdMap = 0)
     {
+        // NOLINTBEGIN(bugprone-unchecked-optional-access)
         for (TestChannelMapCIter cit = d_cluster_mp->_channels().cbegin();
              cit != d_cluster_mp->_channels().cend();
              ++cit) {
@@ -273,6 +283,7 @@ struct TestHelper {
                 BMQTST_ASSERT(!cit->second->waitFor(1));
             }
         }
+        // NOLINTEND(bugprone-unchecked-optional-access)
     }
 
     void verifyPrimarySendsDataChunks(
@@ -444,8 +455,10 @@ struct TestHelper {
         fs.loadQueueOpRecordRaw(&expectedRecord, handle);
         */
 
+        // NOLINTBEGIN(*-narrowing-conversions)
         const int expectedNumDataChunks = endSeqNum.sequenceNumber() -
                                           beginSeqNum.sequenceNumber();
+        // NOLINTEND(*-narrowing-conversions)
 
         for (TestChannelMapCIter cit = d_cluster_mp->_channels().cbegin();
              cit != d_cluster_mp->_channels().cend();
@@ -809,6 +822,7 @@ struct TestHelper {
     void writeMessageRecord(mqbs::FileStore*        fs,
                             const mqbu::StorageKey& queueKey,
                             size_t                  recNum)
+    // NOLINTBEGIN(*-narrowing-conversions)
     {
         // Write a message record.
 
@@ -828,9 +842,11 @@ struct TestHelper {
         rec.d_appData_sp.createInplace(bmqtst::TestHelperUtil::allocator(),
                                        d_cluster_mp->bufferFactory(),
                                        bmqtst::TestHelperUtil::allocator());
+        // NOLINTBEGIN(*-magic-numbers)
         bsl::string payloadStr(recNum * 10,
                                'x',
                                bmqtst::TestHelperUtil::allocator());
+        // NOLINTEND(*-magic-numbers)
         bdlbb::BlobUtil::append(rec.d_appData_sp.get(),
                                 payloadStr.c_str(),
                                 payloadStr.length());
@@ -859,6 +875,7 @@ struct TestHelper {
 
         BSLS_ASSERT_OPT(rc == 0);
     }
+    // NOLINTEND(*-narrowing-conversions)
 
     void
     initializeRecords(mqbs::DataStoreRecordHandle*           handle,
@@ -904,9 +921,11 @@ struct TestHelper {
             .setMaxQlistFileSize(partitionCfg.maxQlistFileSize())
             .setMaxArchivedFileSets(partitionCfg.maxArchivedFileSets());
 
+        // NOLINTBEGIN(*-magic-numbers)
         bdlmt::FixedThreadPool threadPool(1,
                                           100,
                                           bmqtst::TestHelperUtil::allocator());
+        // NOLINTEND(*-magic-numbers)
         threadPool.start();
 
         mqbs::FileStore fs(
@@ -961,6 +980,7 @@ struct TestHelper {
         const int          rc = storageManager->start(errorDescription);
         BSLS_ASSERT_OPT(rc == 0);
 
+        // NOLINTBEGIN(*-narrowing-conversions)
         for (size_t pid = 0; pid < numPartitions(); ++pid) {
             d_cluster_mp->_state()->setPartitionPrimary(
                 pid,
@@ -969,7 +989,9 @@ struct TestHelper {
                     ->membership()
                     .getClusterNodeSession(primaryNode));
         }
+        // NOLINTEND(*-narrowing-conversions)
         storageManager->initializeQueueKeyInfoMap(*d_cluster_mp->_state());
+        // NOLINTBEGIN(*-narrowing-conversions)
         for (size_t pid = 0; pid < numPartitions(); ++pid) {
             if (d_cluster_mp->_state()->isSelfPrimary(pid)) {
                 storageManager->detectSelfPrimaryInPFSM(pid,
@@ -982,6 +1004,7 @@ struct TestHelper {
                                                         1);  // primaryLeaseId
             }
         }
+        // NOLINTEND(*-narrowing-conversions)
     }
 
     /// Allow any thread to pass `inDispatcherThread` checks on the
@@ -990,10 +1013,12 @@ struct TestHelper {
     /// which eventually dispatch to partition threads.
     void relaxFileStoreThreadChecks(mqbc::StorageManager* storageManager)
     {
+        // NOLINTBEGIN(*-narrowing-conversions)
         for (size_t pid = 0; pid < numPartitions(); ++pid) {
             storageManager->fileStore(pid).setThreadId(
                 mqbi::DispatcherClient::k_ANY_THREAD_ID);
         }
+        // NOLINTEND(*-narrowing-conversions)
     }
 
     ~TestHelper() { bmqu::Time::shutdown(); }
@@ -1005,6 +1030,7 @@ struct TestHelper {
             .numPartitions();
     }
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 }  // close unnamed namespace
 
 // ============================================================================
@@ -1786,6 +1812,7 @@ static void test9_primaryHealingStage1QuorumSendsReplicaDataRequestPull()
 // Testing:
 //   Basic functionality.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST - "
                                       "PRIMARY HEALING STAGE 1 QUORUM"
@@ -1891,6 +1918,7 @@ static void test9_primaryHealingStage1QuorumSendsReplicaDataRequestPull()
     storageManager.stop();
     helper.d_cluster_mp->stop();
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test10_replicaWaitingDetectSelfPrimary()
 // ------------------------------------------------------------------------
@@ -2612,6 +2640,7 @@ static void test16_primaryHealingStage1SelfHighestSendsDataChunks()
 // Testing:
 //   Basic functionality.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST - "
                                       "PRIMARY HEALING STAGE 1 SELF HIGHEST"
@@ -2739,6 +2768,7 @@ static void test16_primaryHealingStage1SelfHighestSendsDataChunks()
     storageManager.stop();
     helper.d_cluster_mp->stop();
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test17_fileSizesHardLimits()
 // ------------------------------------------------------------------------
@@ -2754,6 +2784,7 @@ static void test17_fileSizesHardLimits()
 //   sizes.
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("FILE SIZES HARD LIMITS");
 
@@ -2845,6 +2876,7 @@ static void test17_fileSizesHardLimits()
     // Stop the cluster
     helper.d_cluster_mp->stop();
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test18_primaryHealingWatchdogRetry()
 // ------------------------------------------------------------------------
@@ -2921,8 +2953,10 @@ static void test18_primaryHealingWatchdogRetry()
                     1);
 
     const int k_PRIMARY_LEASE_ID =
+        // NOLINTNEXTLINE(*-narrowing-conversions)
         storageManager.fileStore(k_PARTITION_ID).primaryLeaseId();
     const int k_PRIMARY_SEQ_NUM =
+        // NOLINTNEXTLINE(*-narrowing-conversions)
         storageManager.fileStore(k_PARTITION_ID).sequenceNumber();
 
     static const int             k_REQUEST_ID = 1;
@@ -3199,6 +3233,7 @@ static void test21_watchdogMultipleRetries()
 //   Multiple watchdog retries end-to-end, including broker shutdown
 //   on retry exhaustion.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 {
     bmqtst::TestHelper::printTestName("WATCHDOG MULTIPLE RETRIES");
 
@@ -3297,6 +3332,7 @@ static void test21_watchdogMultipleRetries()
     storageManager.stop();
     helper.d_cluster_mp->stop();
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 static void test22_rstUnknownCancelsInFlightRequests()
 // ------------------------------------------------------------------------
@@ -3354,6 +3390,7 @@ static void test22_rstUnknownCancelsInFlightRequests()
 
     // Collect request IDs from the ReplicaStateRequests sent to peers
     bsl::vector<int> requestIds;
+    // NOLINTBEGIN(bugprone-unchecked-optional-access)
     for (TestChannelMapCIter cit = helper.d_cluster_mp->_channels().cbegin();
          cit != helper.d_cluster_mp->_channels().cend();
          ++cit) {
@@ -3370,6 +3407,7 @@ static void test22_rstUnknownCancelsInFlightRequests()
             requestIds.push_back(message.rId().value());
         }
     }
+    // NOLINTEND(bugprone-unchecked-optional-access)
     helper.clearChannels();
 
     // Trigger RST_UNKNOWN -> calls do_cancelRequests
@@ -3422,6 +3460,7 @@ static void test23_replicaHealingReceivesReplicaDataRqstDropInvalidPid()
 // Testing:
 //   processReplicaDataRequestDrop invalid partition validation
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bmqtst::TestHelper::printTestName(
         "REPLICA HEALING RECEIVES REPLICA DATA REQUEST DROP "
@@ -3560,20 +3599,27 @@ static void test23_replicaHealingReceivesReplicaDataRqstDropInvalidPid()
                                   helper.d_cluster_mp->_blobSpPool(),
                                   bmqtst::TestHelperUtil::allocator());
 
+    // NOLINTNEXTLINE(*-avoid-c-arrays)
     char journalBuf[mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE];
     bsl::memset(journalBuf, 0, sizeof(journalBuf));
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bsl::shared_ptr<char> journalSp(journalBuf,
                                     bslstl::SharedPtrNilDeleter(),
                                     bmqtst::TestHelperUtil::allocator());
-    bdlbb::BlobBuffer     journalBlobBuf(journalSp, sizeof(journalBuf));
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+    bdlbb::BlobBuffer journalBlobBuf(journalSp, sizeof(journalBuf));
 
+    // NOLINTNEXTLINE(*-avoid-c-arrays)
     char dataBuf[bmqp::Protocol::k_WORD_SIZE];
     bsl::memset(dataBuf, 0, sizeof(dataBuf));
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bsl::shared_ptr<char> dataSp(dataBuf,
                                  bslstl::SharedPtrNilDeleter(),
                                  bmqtst::TestHelperUtil::allocator());
-    bdlbb::BlobBuffer     dataBlobBuf(dataSp, sizeof(dataBuf));
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+    bdlbb::BlobBuffer dataBlobBuf(dataSp, sizeof(dataBuf));
 
+    // NOLINTBEGIN(*-magic-numbers)
     bmqt::EventBuilderResult::Enum rc = seb.packMessage(
         bmqp::StorageMessageType::e_DATA,
         k_PARTITION_ID,
@@ -3581,6 +3627,7 @@ static void test23_replicaHealingReceivesReplicaDataRqstDropInvalidPid()
         1000,  // journalOffsetWords (non-zero, required by builder)
         journalBlobBuf,
         dataBlobBuf);
+    // NOLINTEND(*-magic-numbers)
     BSLS_ASSERT_OPT(rc == bmqt::EventBuilderResult::e_SUCCESS);
 
     mqbevt::StorageEvent storageEvent(bmqtst::TestHelperUtil::allocator());
@@ -3602,12 +3649,38 @@ static void test23_replicaHealingReceivesReplicaDataRqstDropInvalidPid()
     storageManager.stop();
     helper.d_cluster_mp->stop();
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
+// NOLINTBEGIN(bugprone-exception-escape)
 int main(int argc, char* argv[])
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTBEGIN(cert-err34-c)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -3662,3 +3735,28 @@ int main(int argc, char* argv[])
     // 'bdlmt::EventSchedulerTestTimeSource' inside 'mqbmock::Cluster' uses
     // the default allocator in its constructor.
 }
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTEND(cert-err34-c)
+// NOLINTEND(bugprone-exception-escape)

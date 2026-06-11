@@ -101,10 +101,14 @@ static void test1_queueMessagesCountComparator()
 
     using namespace mqbs;
 
+    // NOLINTNEXTLINE(*-magic-numbers)
     StorageUtil::QueueMessagesCount lhs(tester.d_d1uri1, 10);
 
+    // NOLINTNEXTLINE(*-magic-numbers)
     StorageUtil::QueueMessagesCount rhs1(tester.d_d1uri2, 5);
+    // NOLINTNEXTLINE(*-magic-numbers)
     StorageUtil::QueueMessagesCount rhs2(tester.d_d2uri1, 10);
+    // NOLINTNEXTLINE(*-magic-numbers)
     StorageUtil::QueueMessagesCount rhs3(tester.d_d3uri1, 15);
 
     BMQTST_ASSERT(StorageUtil::queueMessagesCountComparator(lhs, rhs1));
@@ -122,6 +126,7 @@ static void test2_mergeQueueMessagesCountMap()
 // Testing:
 //   mergeQueueMessagesCountMap(...)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("MERGE QUEUE MESSAGES");
 
@@ -147,6 +152,7 @@ static void test2_mergeQueueMessagesCountMap()
     BMQTST_ASSERT_EQ(qs1[tester.d_d1uri2], 20);
     BMQTST_ASSERT_EQ(qs1[tester.d_d1uri3], 333);
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test3_mergeDomainQueueMessagesCountMap()
 // ------------------------------------------------------------------------
@@ -158,6 +164,7 @@ static void test3_mergeDomainQueueMessagesCountMap()
 // Testing:
 //   mergeDomainQueueMessagesCountMap(...)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("MERGE DOMAIN QUEUE MESSAGES MAP");
 
@@ -223,6 +230,7 @@ static void test3_mergeDomainQueueMessagesCountMap()
     BMQTST_ASSERT_EQ(map1[tester.d_domain3].size(), 1U);
     BMQTST_ASSERT_EQ(map1[tester.d_domain3][tester.d_d3uri1], 1234567);
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test4_loadArrivalTime()
 // ------------------------------------------------------------------------
@@ -234,6 +242,7 @@ static void test4_loadArrivalTime()
 // Testing:
 //   loadArrivalTime(...)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-init-variables)
 {
     bmqtst::TestHelper::printTestName("LOAD ARRIVAL TIME");
 
@@ -305,6 +314,7 @@ static void test4_loadArrivalTime()
         BMQTST_ASSERT_EQ(arrivalDatetime, expectedArrivalDatetime);
     }
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-init-variables)
 
 static void test5_loadArrivalTimeDelta()
 // ------------------------------------------------------------------------
@@ -316,6 +326,7 @@ static void test5_loadArrivalTimeDelta()
 // Testing:
 //   loadArrivalTimeDelta(...)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-init-variables)
 {
     bmqtst::TestHelper::printTestName("LOAD ARRIVAL TIME DELTA");
 
@@ -367,12 +378,14 @@ static void test5_loadArrivalTimeDelta()
             1 * bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MILLISECOND);
     }
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-init-variables)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -395,3 +408,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

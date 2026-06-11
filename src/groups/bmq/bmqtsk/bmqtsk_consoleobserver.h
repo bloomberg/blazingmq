@@ -128,6 +128,7 @@ namespace bmqtsk {
 // =====================
 
 /// BALL observer printing to stdout
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ConsoleObserver : public ball::ObserverAdapter {
   private:
     // CLASS-SCOPE CATEGORY
@@ -258,6 +259,7 @@ class ConsoleObserver : public ball::ObserverAdapter {
     /// with a value of `ball::Severity::e_OFF`.
     bool isEnabled() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

@@ -55,6 +55,7 @@ namespace bmqimp {
 
 /// Struct to hold together statContext, table and tip for delta and non
 /// delta stats.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct Stat {
   private:
     // NOT IMPLEMENTED
@@ -94,6 +95,7 @@ struct Stat {
     /// column if the specified `includeDelta` is true.
     void printStats(bsl::ostream& stream, bool includeDelta) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ===============
 // struct StatUtil

@@ -58,6 +58,7 @@ namespace mqba {
 // ==========================
 
 /// Client-side authenticator for an outbound broker-to-broker connection.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class AuthenticationClient : public mqbnet::AuthenticationClient {
   private:
     // CLASS-SCOPE CATEGORY
@@ -150,6 +151,7 @@ class AuthenticationClient : public mqbnet::AuthenticationClient {
                        const bmqp_ctrlmsg::AuthenticationMessage& response)
         BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

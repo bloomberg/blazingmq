@@ -62,11 +62,14 @@ using namespace bsl;
 namespace {
 
 // CONSTANTS
-const bsls::Types::Int64 k_LOG_MAX_SIZE       = 64 * 1024 * 1024;
-const char*              k_DEFAULT_LOG_PREFIX = "BMQ_TEST_LOG_";
+// NOLINTNEXTLINE(bugprone-implicit-widening-of-multiplication-result)
+const bsls::Types::Int64 k_LOG_MAX_SIZE = 64 * 1024 * 1024;
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+const char* k_DEFAULT_LOG_PREFIX = "BMQ_TEST_LOG_";
 
 // TYPES
 struct AdvisoryType {
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         e_LEADER            = 0,
         e_PARTITION_PRIMARY = 1,
@@ -74,6 +77,7 @@ struct AdvisoryType {
         e_QUEUE_UNASSIGNED  = 3,
         e_COMMIT            = 4
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 };
 
 /// Pair of (clusterMessage, recordLength) for a record
@@ -88,6 +92,7 @@ mqbc::ClusterStateRecordType::Enum
 createClusterMessage(bmqp_ctrlmsg::ClusterMessage*              message,
                      AdvisoryType::Enum                         advisoryType,
                      const bmqp_ctrlmsg::LeaderMessageSequence& sequenceNumber)
+// NOLINTBEGIN(*-magic-numbers)
 {
     switch (advisoryType) {
     case AdvisoryType::e_LEADER: {
@@ -180,10 +185,13 @@ createClusterMessage(bmqp_ctrlmsg::ClusterMessage*              message,
     BSLS_ASSERT_OPT(false && "Unreachable by design.");
     return mqbc::ClusterStateRecordType::e_UNDEFINED;
 }
+// NOLINTEND(*-magic-numbers)
 
+// NOLINTBEGIN(performance-unnecessary-value-param)
 int extractLogIdCallback(mqbu::StorageKey*                      logId,
                          const bsl::string&                     logPath,
                          bsl::shared_ptr<mqbsi::LogIdGenerator> logIdGenerator)
+// NOLINTEND(performance-unnecessary-value-param)
 {
     int rc = mqbc::ClusterStateLedgerUtil::extractLogId(logId, logPath);
     BSLS_ASSERT_OPT(rc == 0);
@@ -208,6 +216,7 @@ void writeRecord(bsl::vector<RecordInfo>*                   recordInfos,
                  AdvisoryType::Enum                         advisoryType,
                  mqbsi::Ledger*                             ledger,
                  bdlbb::BlobBufferFactory*                  bufferFactory)
+// NOLINTBEGIN(modernize-use-emplace)
 {
     bmqp_ctrlmsg::ClusterMessage             msg;
     const mqbc::ClusterStateRecordType::Enum recordType =
@@ -230,12 +239,14 @@ void writeRecord(bsl::vector<RecordInfo>*                   recordInfos,
 
     recordInfos->push_back(bsl::make_pair(msg, record.length()));
 }
+// NOLINTEND(modernize-use-emplace)
 
 // CLASSES
 // =============
 // struct Tester
 // =============
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct Tester {
   private:
     // DATA
@@ -255,6 +266,7 @@ struct Tester {
     , d_tempDir(allocator)
     , d_config(allocator)
     , d_ledger_mp(0)
+    // NOLINTNEXTLINE(*-magic-numbers)
     , d_bufferFactory(1024, allocator)
     {
         // Instantiate ledger config
@@ -325,6 +337,7 @@ struct Tester {
 
     bdlbb::BlobBufferFactory* bufferFactory() { return &d_bufferFactory; }
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close anonymous namespace
 
@@ -343,6 +356,7 @@ static void test1_breathingTest()
 // Testing:
 //   Basic functionality.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     Tester tester;
 
@@ -353,6 +367,7 @@ static void test1_breathingTest()
         bsls::Types::Uint64                d_timeStamp;
         AdvisoryType::Enum                 d_advisoryType;
         mqbc::ClusterStateRecordType::Enum d_recordType;
+        // NOLINTBEGIN(*-magic-numbers)
     } k_DATA[] = {{L_,
                    2U,
                    99U,
@@ -383,13 +398,16 @@ static void test1_breathingTest()
                    123678U,
                    AdvisoryType::e_COMMIT,
                    mqbc::ClusterStateRecordType::e_COMMIT}};
+    // NOLINTEND(*-magic-numbers)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
     // Write a record of each advisory type
     bsl::vector<RecordInfo> recordInfos;
     recordInfos.reserve(k_NUM_DATA);
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         bmqp_ctrlmsg::LeaderMessageSequence lms;
@@ -411,6 +429,7 @@ static void test1_breathingTest()
         BMQTST_ASSERT_EQ(incoreCslIt.next(), 0);
         BMQTST_ASSERT(incoreCslIt.isValid());
 
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test&                           test   = k_DATA[idx];
         const mqbc::ClusterStateRecordHeader& header = incoreCslIt.header();
         BMQTST_ASSERT_EQ(header.headerWords(),
@@ -444,12 +463,14 @@ static void test1_breathingTest()
     BMQTST_ASSERT_EQ(incoreCslIt.next(), 1);  // 1 means end of ledger
     BMQTST_ASSERT(!incoreCslIt.isValid());
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -468,3 +489,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

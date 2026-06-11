@@ -101,6 +101,7 @@ void verifyBroadfcastPut(
 // ----------------------------------------------------------------------------
 
 /// mocking the bare minimum to make mqbblp::RemoteQueue postMessage work
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class TestBench {
     typedef mqbblp::RemoteQueue::StateSpPool StateSpPool;
 
@@ -163,6 +164,7 @@ class TestBench {
 
     void advanceTime(const bsls::TimeInterval& step);
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 TestBench::TestBench(bslma::Allocator* allocator_p)
 : d_dispatcher(allocator_p)
@@ -172,6 +174,7 @@ TestBench::TestBench(bslma::Allocator* allocator_p)
 , d_status(bmqt::AckResult::e_UNKNOWN)
 , d_puts(allocator_p)
 , d_testClock(d_cluster._timeSource())
+// NOLINTNEXTLINE(*-magic-numbers)
 , d_stateSpPool(8192, allocator_p)
 , d_allocator_p(allocator_p)
 {
@@ -224,6 +227,7 @@ TestBench::PutEvent::PutEvent(const bmqp::PutHeader&              header,
     // NOTHING
 }
 
+// NOLINTBEGIN(modernize-use-emplace)
 mqbi::InlineResult::Enum TestBench::putProcessor(
     BSLS_ANNOTATION_UNUSED int          partitionId,
     const bmqp::PutHeader&              putHeader,
@@ -236,6 +240,7 @@ mqbi::InlineResult::Enum TestBench::putProcessor(
 
     return mqbi::InlineResult::e_SUCCESS;
 }
+// NOLINTEND(modernize-use-emplace)
 
 void TestBench::ackPuts(mqbi::Queue* queue, bmqt::AckResult::Enum status)
 {
@@ -266,9 +271,11 @@ void TestBench::dropPuts()
 }
 
 void TestBench::advanceTime(const bsls::TimeInterval& step)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     d_cluster.advanceTime(step.totalSeconds());
 }
+// NOLINTEND(*-narrowing-conversions)
 
 TestBench::TestRemoteQueue::TestRemoteQueue(
     TestBench&                          theBench,
@@ -300,6 +307,7 @@ TestBench::TestRemoteQueue::TestRemoteQueue(
     d_remoteQueue.onOpenUpstream(1, bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID);
 }
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class TestQueueHandle : public mqbmock::QueueHandle {
   public:
     TestBench&                                               d_bench;
@@ -334,6 +342,7 @@ class TestQueueHandle : public mqbmock::QueueHandle {
 
     size_t count();
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 TestQueueHandle::TestQueueHandle(
     const bsl::shared_ptr<mqbi::Queue>&                       queue_sp,
@@ -370,6 +379,7 @@ TestQueueHandle::~TestQueueHandle()
 }
 
 void TestQueueHandle::postOneMessage(mqbblp::RemoteQueue* queue_p)
+// NOLINTBEGIN(*-avoid-c-arrays,clang-analyzer-security.insecureAPI.strcpy,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bsl::shared_ptr<bdlbb::Blob> data_sp;
 
@@ -409,6 +419,7 @@ void TestQueueHandle::postOneMessage(mqbblp::RemoteQueue* queue_p)
 
     queue_p->postMessage(putHeader, data_sp, options_sp, this);
 }
+// NOLINTEND(*-avoid-c-arrays,clang-analyzer-security.insecureAPI.strcpy,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 inline size_t TestQueueHandle::count()
 {
@@ -467,13 +478,16 @@ static void test1_fanoutBasic()
 //      Producers should receive all ACKs.
 //   6. Run timer which shoudl not rechedule because there are no pending.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("basic tests using fanout");
 
     bsl::shared_ptr<bmqst::StatContext> statContext =
+        // NOLINTBEGIN(*-magic-numbers)
         mqbstat::BrokerStatsUtil::initializeStatContext(
             30,
             bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
 
     TestBench theBench(bmqtst::TestHelperUtil::allocator());
 
@@ -482,11 +496,13 @@ static void test1_fanoutBasic()
     bmqp_ctrlmsg::RoutingConfiguration routingConfig;
     size_t                             ackWindowSize = 1000;
     int                                timeout       = 10;
-    TestBench::TestRemoteQueue         theQueue(theBench,
+    // NOLINTBEGIN(*-narrowing-conversions)
+    TestBench::TestRemoteQueue theQueue(theBench,
                                         uri,
                                         timeout,
                                         ackWindowSize,
                                         routingConfig);
+    // NOLINTEND(*-narrowing-conversions)
 
     bsl::shared_ptr<mqbi::QueueHandleRequesterContext> clientContext_sp(
         new (*bmqtst::TestHelperUtil::allocator())
@@ -587,6 +603,7 @@ static void test1_fanoutBasic()
     // run timer
     theBench.advanceTime(bsls::TimeInterval(1, 0));
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test2_broadcastBasic()
 // ------------------------------------------------------------------------
@@ -612,13 +629,16 @@ static void test2_broadcastBasic()
 //      Queue should be empty of all pending PUTs.
 //   6. Force close the queue.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-init-variables)
 {
     bmqtst::TestHelper::printTestName("basic tests using broadcast");
 
     bsl::shared_ptr<bmqst::StatContext> statContext =
+        // NOLINTBEGIN(*-magic-numbers)
         mqbstat::BrokerStatsUtil::initializeStatContext(
             30,
             bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
 
     TestBench theBench(bmqtst::TestHelperUtil::allocator());
 
@@ -628,13 +648,15 @@ static void test2_broadcastBasic()
 
     bmqp::RoutingConfigurationUtils::setAtMostOnce(&routingConfig);
 
-    size_t                     ackWindowSize = 1000;
-    int                        timeout       = 10;
+    size_t ackWindowSize = 1000;
+    int    timeout       = 10;
+    // NOLINTBEGIN(*-narrowing-conversions)
     TestBench::TestRemoteQueue theQueue(theBench,
                                         uri,
                                         timeout,
                                         ackWindowSize,
                                         routingConfig);
+    // NOLINTEND(*-narrowing-conversions)
 
     bsl::shared_ptr<mqbi::QueueHandleRequesterContext> clientContext_sp(
         new (*bmqtst::TestHelperUtil::allocator())
@@ -891,6 +913,7 @@ static void test2_broadcastBasic()
 
     theQueue.d_remoteQueue.close();
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-init-variables)
 
 static void test3_close()
 // ------------------------------------------------------------------------
@@ -903,13 +926,16 @@ static void test3_close()
 //   1. Post messages. Force close the queue
 //      Producers should not receive any NACKs.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("close queue with pending messages");
 
     bsl::shared_ptr<bmqst::StatContext> statContext =
+        // NOLINTBEGIN(*-magic-numbers)
         mqbstat::BrokerStatsUtil::initializeStatContext(
             30,
             bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
 
     TestBench theBench(bmqtst::TestHelperUtil::allocator());
 
@@ -918,11 +944,13 @@ static void test3_close()
     bmqp_ctrlmsg::RoutingConfiguration routingConfig;
     size_t                             ackWindowSize = 1000;
     int                                timeout       = 10;
-    TestBench::TestRemoteQueue         theQueue(theBench,
+    // NOLINTBEGIN(*-narrowing-conversions)
+    TestBench::TestRemoteQueue theQueue(theBench,
                                         uri,
                                         timeout,
                                         ackWindowSize,
                                         routingConfig);
+    // NOLINTEND(*-narrowing-conversions)
 
     bsl::shared_ptr<mqbi::QueueHandleRequesterContext> clientContext_sp(
         new (*bmqtst::TestHelperUtil::allocator())
@@ -946,6 +974,7 @@ static void test3_close()
     BMQTST_ASSERT_EQ(2U, x.count());
     BMQTST_ASSERT_EQ(3U, y.count());
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test4_buffering()
 // ------------------------------------------------------------------------
@@ -961,13 +990,16 @@ static void test4_buffering()
 // Testing:
 //   onUnavailableUpstreamDispatched
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("buffering");
 
     bsl::shared_ptr<bmqst::StatContext> statContext =
+        // NOLINTBEGIN(*-magic-numbers)
         mqbstat::BrokerStatsUtil::initializeStatContext(
             30,
             bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
 
     TestBench theBench(bmqtst::TestHelperUtil::allocator());
 
@@ -976,11 +1008,13 @@ static void test4_buffering()
     bmqp_ctrlmsg::RoutingConfiguration routingConfig;
     size_t                             ackWindowSize = 1000;
     int                                timeout       = 10;
-    TestBench::TestRemoteQueue         theQueue(theBench,
+    // NOLINTBEGIN(*-narrowing-conversions)
+    TestBench::TestRemoteQueue theQueue(theBench,
                                         uri,
                                         timeout,
                                         ackWindowSize,
                                         routingConfig);
+    // NOLINTEND(*-narrowing-conversions)
 
     bsl::shared_ptr<mqbi::QueueHandleRequesterContext> clientContext_sp(
         new (*bmqtst::TestHelperUtil::allocator())
@@ -1047,6 +1081,7 @@ static void test4_buffering()
 
     theBench.d_cluster.waitForScheduler();
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test5_reopen_failure()
 // ------------------------------------------------------------------------
@@ -1061,13 +1096,16 @@ static void test5_reopen_failure()
 // Testing:
 //   onReopenFailure
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("buffering");
 
     bsl::shared_ptr<bmqst::StatContext> statContext =
+        // NOLINTBEGIN(*-magic-numbers)
         mqbstat::BrokerStatsUtil::initializeStatContext(
             30,
             bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
 
     TestBench theBench(bmqtst::TestHelperUtil::allocator());
 
@@ -1076,11 +1114,13 @@ static void test5_reopen_failure()
     bmqp_ctrlmsg::RoutingConfiguration routingConfig;
     size_t                             ackWindowSize = 1000;
     int                                timeout       = 10;
-    TestBench::TestRemoteQueue         theQueue(theBench,
+    // NOLINTBEGIN(*-narrowing-conversions)
+    TestBench::TestRemoteQueue theQueue(theBench,
                                         uri,
                                         timeout,
                                         ackWindowSize,
                                         routingConfig);
+    // NOLINTEND(*-narrowing-conversions)
 
     bsl::shared_ptr<mqbi::QueueHandleRequesterContext> clientContext_sp(
         new (*bmqtst::TestHelperUtil::allocator())
@@ -1135,12 +1175,14 @@ static void test5_reopen_failure()
 
     theQueue.d_remoteQueue.close();
 }
+// NOLINTEND(*-magic-numbers)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -1159,3 +1201,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

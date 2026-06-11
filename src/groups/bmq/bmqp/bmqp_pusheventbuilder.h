@@ -87,10 +87,11 @@ namespace bmqp {
 // ======================
 
 /// Mechanism to build a BlazingMQ PUSH event
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class PushEventBuilder {
   public:
     // TYPES
-    typedef bmqp::BlobPoolUtil::BlobSpPool BlobSpPool;
+    typedef bmqp::BlobPoolUtil::BlobSpPool                    BlobSpPool;
     typedef bsl::function<bsl::shared_ptr<bdlbb::Blob>(void)> BlobSpCreator;
 
   private:
@@ -260,6 +261,7 @@ class PushEventBuilder {
     /// passed and kept in another thread while this builder object is used.
     const bsl::shared_ptr<bdlbb::Blob>& blob() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

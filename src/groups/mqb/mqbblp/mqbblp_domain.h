@@ -94,6 +94,7 @@ namespace mqbblp {
 // ============
 
 /// Domain implementation
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Domain BSLS_KEYWORD_FINAL : public mqbi::Domain {
   private:
     // CLASS-SCOPE CATEGORY
@@ -110,8 +111,9 @@ class Domain BSLS_KEYWORD_FINAL : public mqbi::Domain {
     typedef QueueMap::const_iterator QueueMapCIter;
 
     typedef mqbc::ClusterState::AppInfos AppInfos;
-    typedef AppInfos::const_iterator AppInfosCIter;
+    typedef AppInfos::const_iterator     AppInfosCIter;
 
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum DomainState {
         e_STARTED  = 0,
         e_STOPPING = 1,
@@ -119,6 +121,7 @@ class Domain BSLS_KEYWORD_FINAL : public mqbi::Domain {
         /// Indicate the start of the first round of DOMAINS REMOVE
         e_REMOVING = 3
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
   private:
     // DATA
@@ -357,6 +360,7 @@ class Domain BSLS_KEYWORD_FINAL : public mqbi::Domain {
     /// of DOMAINS REMOVE is completed
     bool isRemoveComplete() const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

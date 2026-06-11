@@ -220,8 +220,10 @@ const int k_NAGLE_PACKET_SIZE = 1024 * 1024;  // 1MB
 
 const int k_MAX_INSTANT_MESSAGES = 10;
 // Maximum messages logged with throttling in a short period of time.
+// NOLINTBEGIN(cppcoreguidelines-interfaces-global-init)
 const bsls::Types::Int64 k_NS_PER_MESSAGE =
     bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MINUTE / k_MAX_INSTANT_MESSAGES;
+// NOLINTEND(cppcoreguidelines-interfaces-global-init)
 // Time interval between messages logged with throttling.
 
 #define BMQ_LOGTHROTTLE_WARN                                                  \
@@ -244,6 +246,7 @@ void createQueueStatsDatum(bmqst::StatContext* statContext,
                            const bsl::string&  domain,
                            const bsl::string&  cluster,
                            bsls::Types::Uint64 queueFlags)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     typedef bslma::ManagedPtr<bdld::ManagedDatum> ManagedDatumMp;
     bslma::Allocator* alloc = statContext->datumAllocator();
@@ -257,11 +260,13 @@ void createQueueStatsDatum(bmqst::StatContext* statContext,
 
     datum->adopt(builder.commit());
 }
+// NOLINTEND(*-narrowing-conversions)
 
 bmqp_ctrlmsg::ClientIdentity* extractClientIdentity(
     const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage)
 // Based on the client type, return the pointer to the correct identity field
 // of the specified 'negotiationMesage'.
+// NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast)
 {
     switch (negotiationMessage.selectionId()) {
     case bmqp_ctrlmsg::NegotiationMessage::SELECTION_INDEX_CLIENT_IDENTITY: {
@@ -278,6 +283,7 @@ bmqp_ctrlmsg::ClientIdentity* extractClientIdentity(
     }
     };
 }
+// NOLINTEND(cppcoreguidelines-pro-type-const-cast)
 
 bool isClientGeneratingGUIDs(
     const bmqp_ctrlmsg::ClientIdentity& clientIdentity)
@@ -288,8 +294,10 @@ bool isClientGeneratingGUIDs(
 }
 
 // Finalize the specified 'handle' associated with the specified 'description'
+// NOLINTBEGIN(performance-unnecessary-value-param)
 void finalizeClosedHandle(bsl::string description,
                           const bsl::shared_ptr<mqbi::QueueHandle>& handle)
+// NOLINTEND(performance-unnecessary-value-param)
 {
     // executed by ONE of the *QUEUE* dispatcher threads
 
@@ -387,6 +395,7 @@ ClientSessionState::ClientSessionState(
 , d_ackBuilder(blobSpPool, allocator)
 , d_throttledFailedAckMessages()
 , d_throttledFailedPutMessages()
+// NOLINTBEGIN(*-magic-numbers)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(encodingType != bmqp::EncodingType::e_UNKNOWN);
@@ -400,6 +409,7 @@ ClientSessionState::ClientSessionState(
         5 * bdlt::TimeUnitRatio::k_NS_PER_S);
     // One maximum log per 5 seconds
 }
+// NOLINTEND(*-magic-numbers)
 
 // -------------------
 // class ClientSession
@@ -411,14 +421,17 @@ void ClientSession::sendErrorResponse(
     const bslstl::StringRef&            errorDescription,
     const int                           code,
     const bmqp_ctrlmsg::ControlMessage& request)
+// NOLINTBEGIN(bugprone-unchecked-optional-access)
 {
     // executed by the *CLIENT* dispatcher thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(inDispatcherThread());
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlma::LocalSequentialAllocator<2048> localAllocator(
         d_state.d_allocator_p);
+    // NOLINTEND(*-magic-numbers)
 
     bmqp_ctrlmsg::ControlMessage response(&localAllocator);
     response.rId() = request.rId().value();
@@ -447,6 +460,7 @@ void ClientSession::sendErrorResponse(
     // Send the response
     sendPacketDispatched(d_state.d_schemaEventBuilder.blob(), true);
 }
+// NOLINTEND(bugprone-unchecked-optional-access)
 
 void ClientSession::sendPacket(const bsl::shared_ptr<bdlbb::Blob>& blob,
                                bool flushBuilders)
@@ -822,6 +836,7 @@ void ClientSession::onHandleConfiguredDispatched(
     const bmqp_ctrlmsg::StreamParameters&         streamParameters,
     const bmqp_ctrlmsg::ControlMessage&           streamParamsCtrlMsg,
     const bsl::shared_ptr<bmqu::OperationLogger>& opLogger)
+// NOLINTBEGIN(bugprone-unchecked-optional-access)
 {
     // executed by the *CLIENT* dispatcher thread
 
@@ -842,6 +857,7 @@ void ClientSession::onHandleConfiguredDispatched(
             : streamParamsCtrlMsg.choice().configureStream().qId();
 
     ClientSessionState::QueueStateMap::iterator queueStateIter =
+        // NOLINTNEXTLINE(*-narrowing-conversions)
         d_queueSessionManager.queues().find(qId);
 
     if (opLogger && queueStateIter != d_queueSessionManager.queues().end() &&
@@ -852,6 +868,7 @@ void ClientSession::onHandleConfiguredDispatched(
     }
 
     // Send success/error response to client
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<2048> localAlloc(d_state.d_allocator_p);
     bmqp_ctrlmsg::ControlMessage          response(&localAlloc);
 
@@ -921,6 +938,7 @@ void ClientSession::onHandleConfiguredDispatched(
     // Send the response
     sendPacketDispatched(d_state.d_schemaEventBuilder.blob(), true);
 }
+// NOLINTEND(bugprone-unchecked-optional-access)
 
 void ClientSession::initiateShutdownDispatched()
 {
@@ -1062,6 +1080,7 @@ void ClientSession::processDisconnectAllQueuesDone(
 void ClientSession::processDisconnect(
     const bmqp_ctrlmsg::ControlMessage& controlMessage,
     BSLA_MAYBE_UNUSED const bsl::shared_ptr<bmqu::OperationLogger>& opLogger)
+// NOLINTBEGIN(bugprone-unchecked-optional-access)
 {
     // executed by the *CLIENT* dispatcher thread
 
@@ -1085,8 +1104,10 @@ void ClientSession::processDisconnect(
 
     // A graceful close message.. simply send back a 'disconnect' response as
     // an acknowledgement.
+    // NOLINTBEGIN(*-magic-numbers)
     bdlma::LocalSequentialAllocator<2048> localAllocator(
         d_state.d_allocator_p);
+    // NOLINTEND(*-magic-numbers)
 
     bmqp_ctrlmsg::ControlMessage response(&localAllocator);
     response.rId() = controlMessage.rId().value();
@@ -1119,6 +1140,7 @@ void ClientSession::processDisconnect(
     d_operationState = e_DISCONNECTED;
     d_queueSessionManager.shutDown();
 }
+// NOLINTEND(bugprone-unchecked-optional-access)
 
 void ClientSession::processOpenQueue(
     const bmqp_ctrlmsg::ControlMessage&           handleParamsCtrlMsg,
@@ -1152,6 +1174,7 @@ void ClientSession::openQueueCb(
     const bmqp_ctrlmsg::OpenQueueResponse& openQueueResponse,
     const bmqp_ctrlmsg::ControlMessage&    handleParamsCtrlMsg,
     BSLA_MAYBE_UNUSED const bsl::shared_ptr<bmqu::OperationLogger>& opLogger)
+// NOLINTBEGIN(bugprone-unchecked-optional-access)
 {
     // executed by the *CLIENT* dispatcher thread
 
@@ -1164,8 +1187,10 @@ void ClientSession::openQueueCb(
     BSLS_ASSERT_SAFE(handleParamsCtrlMsg.choice().isOpenQueueValue());
 
     // Send success/error response to client
+    // NOLINTBEGIN(*-magic-numbers)
     bdlma::LocalSequentialAllocator<2048> localAllocator(
         d_state.d_allocator_p);
+    // NOLINTEND(*-magic-numbers)
 
     bmqp_ctrlmsg::ControlMessage response(&localAllocator);
     response.rId() = handleParamsCtrlMsg.rId().value();
@@ -1204,6 +1229,7 @@ void ClientSession::openQueueCb(
     // Send the response
     sendPacketDispatched(d_state.d_schemaEventBuilder.blob(), true);
 }
+// NOLINTEND(bugprone-unchecked-optional-access)
 
 void ClientSession::processCloseQueue(
     const bmqp_ctrlmsg::ControlMessage&           handleParamsCtrlMsg,
@@ -1233,6 +1259,7 @@ void ClientSession::closeQueueCb(
     const bsl::shared_ptr<mqbi::QueueHandle>& handle,
     const bmqp_ctrlmsg::ControlMessage&       handleParamsCtrlMsg,
     BSLA_MAYBE_UNUSED const bsl::shared_ptr<bmqu::OperationLogger>& opLogger)
+// NOLINTBEGIN(bugprone-unchecked-optional-access)
 {
     // executed by the *CLIENT* dispatcher thread
 
@@ -1243,8 +1270,10 @@ void ClientSession::closeQueueCb(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(inDispatcherThread());
     BSLS_ASSERT_SAFE(handleParamsCtrlMsg.choice().isCloseQueueValue());
+    // NOLINTBEGIN(*-magic-numbers)
     bdlma::LocalSequentialAllocator<2048> localAllocator(
         d_state.d_allocator_p);
+    // NOLINTEND(*-magic-numbers)
 
     bmqp_ctrlmsg::ControlMessage response(&localAllocator);
     response.rId() = handleParamsCtrlMsg.rId().value();
@@ -1291,6 +1320,7 @@ void ClientSession::closeQueueCb(
         handle->queue(),
         mqbi::DispatcherEventType::e_DISPATCHER);
 }
+// NOLINTEND(bugprone-unchecked-optional-access)
 
 void ClientSession::processConfigureStream(
     const bmqp_ctrlmsg::ControlMessage&           streamParamsCtrlMsg,
@@ -1319,6 +1349,7 @@ void ClientSession::processConfigureStream(
     }
 
     ClientSessionState::QueueStateMap::iterator queueStateIter =
+        // NOLINTNEXTLINE(*-narrowing-conversions)
         d_queueSessionManager.queues().find(req.qId());
     if (queueStateIter == d_queueSessionManager.queues().end()) {
         // Failure to find queue
@@ -1522,6 +1553,7 @@ void ClientSession::onConfirmEvent(const mqbevt::ConfirmEvent& event)
     int msgNum = 0;
     int rc     = 0;
 
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<256> localAllocator(d_state.d_allocator_p);
     bmqu::MemOutStream                   errorStream(&localAllocator);
 
@@ -1608,6 +1640,7 @@ void ClientSession::onRejectEvent(const mqbevt::RejectEvent& event)
     int msgNum = 0;
     int rc     = 0;
 
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<256> localAllocator(d_state.d_allocator_p);
     bmqu::MemOutStream                   errorStream(&localAllocator);
 
@@ -1937,6 +1970,7 @@ void ClientSession::onPushEvent(const mqbevt::PushEvent& event)
 }
 
 void ClientSession::onPutEvent(const mqbevt::PutEvent& event)
+// NOLINTBEGIN(*-magic-numbers,bugprone-branch-clone)
 {
     // executed by the *CLIENT* dispatcher thread
 
@@ -2014,9 +2048,12 @@ void ClientSession::onPutEvent(const mqbevt::PutEvent& event)
     int        rc         = 0;
     int        msgNum     = 0;
     const bool isFirstHop = handleRequesterContext()->isFirstHop();
+    // NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-type-const-cast)
     while ((rc = putIt.next()) == 1) {
+        // NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast)
         bmqp::PutHeader& putHeader = const_cast<bmqp::PutHeader&>(
             putIt.header());
+        // NOLINTEND(cppcoreguidelines-pro-type-const-cast)
         const bmqp::QueueId queueId(putHeader.queueId(),
                                     bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID);
 
@@ -2183,6 +2220,7 @@ void ClientSession::onPutEvent(const mqbevt::PutEvent& event)
                                                appDataSp,
                                                optionsSp);
     }
+    // NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-type-const-cast)
 
     // Check if the PUT event was valid
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc < 0)) {
@@ -2199,6 +2237,7 @@ void ClientSession::onPutEvent(const mqbevt::PutEvent& event)
         }
     }
 }
+// NOLINTEND(*-magic-numbers,bugprone-branch-clone)
 
 mqbstat::QueueStatsClient* ClientSession::invalidQueueStats()
 {
@@ -2434,10 +2473,12 @@ ClientSession::ClientSession(
 , d_negotiationMessage(negotiationMessage, allocator)
 , d_clientIdentity_p(extractClientIdentity(d_negotiationMessage))
 , d_isClientGeneratingGUIDs(isClientGeneratingGUIDs(*d_clientIdentity_p))
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 , d_supportsMessagePropertiesEX(bmqp::ProtocolUtil::hasFeature(
       bmqp::MessagePropertiesFeatures::k_FIELD_NAME,
       bmqp::MessagePropertiesFeatures::k_MESSAGE_PROPERTIES_EX,
       d_clientIdentity_p->features()))
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 , d_description(sessionDescription, allocator)
 , d_channel_sp(channel)
 , d_state(clientStatContext,
@@ -2455,6 +2496,7 @@ ClientSession::ClientSession(
 , d_scheduler_p(scheduler)
 , d_periodicUnconfirmedCheckHandler()
 , d_shutdownChain(allocator)
+// NOLINTBEGIN(clang-analyzer-optin.cplusplus.VirtualCall)
 {
     // Register this client to the dispatcher
     mqbi::Dispatcher::ProcessorHandle processor = dispatcher->registerClient(
@@ -2479,8 +2521,10 @@ ClientSession::ClientSession(
                   << d_queueSessionManager.requesterContext()->requesterId()
                   << ", channel: '" << d_channel_sp.get() << "'].";
 }
+// NOLINTEND(clang-analyzer-optin.cplusplus.VirtualCall)
 
 ClientSession::~ClientSession()
+// NOLINTBEGIN(clang-analyzer-optin.cplusplus.VirtualCall)
 {
     // executed by ONE of the *QUEUE* dispatcher threads
 
@@ -2496,6 +2540,7 @@ ClientSession::~ClientSession()
     // Unregister from the dispatcher
     dispatcher()->unregisterClient(this);
 }
+// NOLINTEND(clang-analyzer-optin.cplusplus.VirtualCall)
 
 // MANIPULATORS
 //   (virtual: mqbnet::Session)
@@ -2508,8 +2553,10 @@ void ClientSession::processEvent(const bmqp::Event& event,
     BSLS_ASSERT_SAFE(!event.isAuthenticationEvent());
 
     if (event.isControlEvent()) {
+        // NOLINTBEGIN(*-magic-numbers)
         bdlma::LocalSequentialAllocator<2048> localAllocator(
             d_state.d_allocator_p);
+        // NOLINTEND(*-magic-numbers)
         bmqp_ctrlmsg::ControlMessage controlMessage(&localAllocator);
 
         int rc = event.loadControlEvent(&controlMessage);
@@ -2746,8 +2793,10 @@ void ClientSession::initiateShutdown(const ShutdownCb& callback)
     }
 }
 
+// NOLINTBEGIN(performance-unnecessary-value-param)
 void ClientSession::initiateShutdownSafe(bsl::weak_ptr<ClientSession> self,
                                          const ShutdownCb&            callback)
+// NOLINTEND(performance-unnecessary-value-param)
 {
     // Thread: CLIENT dispatcher
 

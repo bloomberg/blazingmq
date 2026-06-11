@@ -13,6 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// bmqu_operationchain_cpp03.h                                        -*-C++-*-
+
 // Automatically generated file.  **DO NOT EDIT**
 
 #ifndef INCLUDED_BMQU_OPERATIONCHAIN_CPP03
@@ -34,7 +36,7 @@
 // regions of C++11 code, then this header contains no code and is not
 // '#include'd in the original header.
 //
-// Generated on Wed Jun 18 14:44:06 2025
+// Generated on Thu Jun 11 19:52:21 2026
 // Command line: sim_cpp11_features.pl bmqu_operationchain.h
 
 #ifdef COMPILING_BMQU_OPERATIONCHAIN_H
@@ -107,6 +109,7 @@ struct OperationChain_IsOperationCallbackCompatible
 /// A wrapper around a completion callback object that invokes the callback
 /// and notifies the operation chain.
 template <class CO_CALLBACK>
+// NOLINTBEGIN(performance-unnecessary-value-param)
 class OperationChain_CompletionCallbackWrapper {
     // PRECONDITIONS
     BSLMF_ASSERT(
@@ -279,12 +282,14 @@ class OperationChain_CompletionCallbackWrapper {
     BSLMF_NESTED_TRAIT_DECLARATION(OperationChain_CompletionCallbackWrapper,
                                    bsl::is_nothrow_move_constructible)
 };
+// NOLINTEND(performance-unnecessary-value-param)
 
 // ========================
 // class OperationChain_Job
 // ========================
 
 /// A job representing an async operation to be executed and accounted for.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class OperationChain_Job {
   public:
     // TYPES
@@ -294,6 +299,7 @@ class OperationChain_Job {
     // PRIVATE TYPES
 
     /// An interface used to implement the type erasure technique.
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     class TargetBase {
       public:
         // CREATORS
@@ -310,9 +316,11 @@ class OperationChain_Job {
         /// `chain`.
         virtual void execute(OperationChain* chain, JobHandle jobHandle) = 0;
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
     /// Provides an implementation of the `TargetBase` interface.
     template <class OP_CALLBACK, class CO_CALLBACK>
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     class Target : public TargetBase {
         // PRECONDITIONS
         BSLMF_ASSERT(
@@ -348,12 +356,15 @@ class OperationChain_Job {
         void execute(OperationChain* chain,
                      JobHandle       jobHandle) BSLS_KEYWORD_OVERRIDE;
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
     /// A "small" dummy functor used to help calculate the size of the
     /// on-stack buffer.
+    // NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers)
     struct Dummy : public bdlf::NoOp {
         void* d_padding[5];
     };
+    // NOLINTEND(*-avoid-c-arrays,*-magic-numbers)
 
   private:
     // PRIVATE DATA
@@ -420,12 +431,14 @@ class OperationChain_Job {
     BSLMF_NESTED_TRAIT_DECLARATION(OperationChain_Job,
                                    bslma::UsesBslmaAllocator)
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ====================
 // class OperationChain
 // ====================
 
 /// A mechanism to serialize execution of async operations.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class OperationChain {
   public:
     // TYPES
@@ -642,12 +655,14 @@ class OperationChain {
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(OperationChain, bslma::UsesBslmaAllocator)
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ========================
 // class OperationChainLink
 // ========================
 
 /// A representation of a link in the operation chain.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class OperationChainLink {
   private:
     // PRIVATE TYPES
@@ -682,6 +697,7 @@ class OperationChainLink {
     /// specified `original` object by moving the contents of `original` to
     /// the new link. The allocator associated with `original` is propagated
     /// for use in the newly-created link. `original` is left empty.
+    // NOLINTNEXTLINE(cppcoreguidelines-noexcept-move-operations,performance-noexcept-move-constructor)
     OperationChainLink(bslmf::MovableRef<OperationChainLink> original);
 
   public:
@@ -739,6 +755,7 @@ class OperationChainLink {
     BSLMF_NESTED_TRAIT_DECLARATION(OperationChainLink,
                                    bslma::UsesBslmaAllocator)
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // FREE OPERATORS
 
@@ -756,6 +773,7 @@ void swap(OperationChainLink& lhs,
 // ----------------------------------------------
 
 // CREATORS
+// NOLINTBEGIN(performance-unnecessary-value-param)
 template <class CO_CALLBACK>
 inline OperationChain_CompletionCallbackWrapper<CO_CALLBACK>::
     OperationChain_CompletionCallbackWrapper(OperationChain* chain,
@@ -769,6 +787,7 @@ inline OperationChain_CompletionCallbackWrapper<CO_CALLBACK>::
     BSLS_ASSERT(chain);
     BSLS_ASSERT(coCallback);
 }
+// NOLINTEND(performance-unnecessary-value-param)
 
 // ACCESSORS
 #if BSLS_COMPILERFEATURES_SIMULATE_VARIADIC_TEMPLATES
@@ -1094,6 +1113,7 @@ inline void OperationChain_CompletionCallbackWrapper<CO_CALLBACK>::operator()(
 
 // CREATORS
 template <class OP_CALLBACK, class CO_CALLBACK>
+// NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
 inline OperationChain_Job::OperationChain_Job(
     unsigned id,
     BSLS_COMPILERFEATURES_FORWARD_REF(OP_CALLBACK) opCallback,
@@ -1114,6 +1134,7 @@ inline OperationChain_Job::OperationChain_Job(
         BSLS_COMPILERFEATURES_FORWARD(CO_CALLBACK, coCallback),
         allocator);
 }
+// NOLINTEND(cppcoreguidelines-missing-std-forward)
 
 // CREATORS
 inline OperationChain_Job::~OperationChain_Job()
@@ -1122,8 +1143,10 @@ inline OperationChain_Job::~OperationChain_Job()
 }
 
 // MANIPULATORS
+// NOLINTBEGIN(performance-unnecessary-value-param)
 inline void OperationChain_Job::execute(OperationChain* chain,
                                         JobHandle jobHandle) BSLS_NOTHROW_SPEC
+// NOLINTEND(performance-unnecessary-value-param)
 {
     // NOTE: 'BSLS_NOTHROW_SPEC' specification ensures that 'bsl::terminate' is
     //       called in case of exception in C++03.
@@ -1145,6 +1168,7 @@ inline unsigned OperationChain_Job::id() const BSLS_KEYWORD_NOEXCEPT
 // --------------------------------
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
 template <class OP_CALLBACK, class CO_CALLBACK>
 template <class OP_CALLBACK_ARG, class CO_CALLBACK_ARG>
 inline OperationChain_Job::Target<OP_CALLBACK, CO_CALLBACK>::Target(
@@ -1163,6 +1187,7 @@ inline OperationChain_Job::Target<OP_CALLBACK, CO_CALLBACK>::Target(
         OperationChain_IsCompletionCallbackCompatible<CO_CALLBACK_ARG>::value);
     BSLS_ASSERT(allocator);
 }
+// NOLINTEND(cppcoreguidelines-missing-std-forward)
 
 // MANIPULATORS
 template <class OP_CALLBACK, class CO_CALLBACK>
@@ -1203,9 +1228,11 @@ inline void OperationChain::append(bsl::initializer_list<Link*> links)
 #endif  // BSLS_COMPILERFEATURES_SUPPORT_GENERALIZED_INITIALIZERS
 
 template <class OP_CALLBACK>
+// NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
 inline void
 OperationChain::appendInplace(BSLS_COMPILERFEATURES_FORWARD_REF(OP_CALLBACK)
                                   opCallback)
+// NOLINTEND(cppcoreguidelines-missing-std-forward)
 {
     // PRECONDITIONS
     BSLMF_ASSERT(
@@ -1216,9 +1243,11 @@ OperationChain::appendInplace(BSLS_COMPILERFEATURES_FORWARD_REF(OP_CALLBACK)
 }
 
 template <class OP_CALLBACK, class CO_CALLBACK>
+// NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
 inline void OperationChain::appendInplace(
     BSLS_COMPILERFEATURES_FORWARD_REF(OP_CALLBACK) opCallback,
     BSLS_COMPILERFEATURES_FORWARD_REF(CO_CALLBACK) coCallback)
+// NOLINTEND(cppcoreguidelines-missing-std-forward)
 {
     // PRECONDITIONS
     BSLMF_ASSERT(
@@ -1241,9 +1270,11 @@ inline void OperationChain::appendInplace(
 
 // MANIPULATORS
 template <class OP_CALLBACK>
+// NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
 inline void
 OperationChainLink::insert(BSLS_COMPILERFEATURES_FORWARD_REF(OP_CALLBACK)
                                opCallback)
+// NOLINTEND(cppcoreguidelines-missing-std-forward)
 {
     // PRECONDITIONS
     BSLMF_ASSERT(
@@ -1253,9 +1284,11 @@ OperationChainLink::insert(BSLS_COMPILERFEATURES_FORWARD_REF(OP_CALLBACK)
 }
 
 template <class OP_CALLBACK, class CO_CALLBACK>
+// NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
 inline void OperationChainLink::insert(
     BSLS_COMPILERFEATURES_FORWARD_REF(OP_CALLBACK) opCallback,
     BSLS_COMPILERFEATURES_FORWARD_REF(CO_CALLBACK) coCallback)
+// NOLINTEND(cppcoreguidelines-missing-std-forward)
 {
     // PRECONDITIONS
     BSLMF_ASSERT(

@@ -99,6 +99,7 @@ namespace bmqu {
 
 /// Operarion execution and logging context holding the operation description
 /// and start time.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class OperationLogger BSLS_KEYWORD_FINAL {
   private:
     // PRIVATE DATA
@@ -148,6 +149,7 @@ class OperationLogger BSLS_KEYWORD_FINAL {
     /// `bdlcc::ObjectPoolFunctors::Clear<OperationLogger>`.
     void clear();
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

@@ -42,6 +42,7 @@ int RecoveryUtil::loadFileDescriptors(mqbs::MappedFileDescriptor* journalFd,
                                       mqbs::MappedFileDescriptor* dataFd,
                                       const mqbs::FileStoreSet&   fileSet,
                                       mqbs::MappedFileDescriptor* qlistFd)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(journalFd);
@@ -84,6 +85,7 @@ int RecoveryUtil::loadFileDescriptors(mqbs::MappedFileDescriptor* journalFd,
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 void RecoveryUtil::validateArgs(
     BSLA_MAYBE_UNUSED const bmqp_ctrlmsg::PartitionSequenceNumber& beginSeqNum,
@@ -109,6 +111,7 @@ int RecoveryUtil::bootstrapCurrentSeqNum(
     // This assumes initial 'journalIt.nextRecord()' call has been done.
     int hadFound = false;
 
+    // NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
     do {
         const mqbs::RecordHeader& recordHeader = journalIt.recordHeader();
         currentSeqNum->primaryLeaseId()        = recordHeader.primaryLeaseId();
@@ -132,6 +135,7 @@ int RecoveryUtil::bootstrapCurrentSeqNum(
             return -1;  // RETURN
         }
     } while (1 == journalIt.nextRecord());
+    // NOLINTEND(cppcoreguidelines-avoid-do-while)
 
     // We reached the end of JOURNAL, but couldn't reach the beginning
     // sequence number 'beginSeqNum'.
@@ -141,6 +145,7 @@ int RecoveryUtil::bootstrapCurrentSeqNum(
 int RecoveryUtil::incrementCurrentSeqNum(
     bmqp_ctrlmsg::PartitionSequenceNumber* currentSeqNum,
     mqbs::JournalFileIterator&             journalIt)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(currentSeqNum);
@@ -169,6 +174,7 @@ int RecoveryUtil::incrementCurrentSeqNum(
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 void RecoveryUtil::processJournalRecord(
     bmqp::StorageMessageType::Enum*   storageMsgType,
@@ -178,6 +184,7 @@ void RecoveryUtil::processJournalRecord(
     const mqbs::MappedFileDescriptor& dataFd,
     bool                              qlistAware,
     const mqbs::MappedFileDescriptor& qlistFd)
+// NOLINTBEGIN(*-narrowing-conversions,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(storageMsgType);
@@ -250,6 +257,7 @@ void RecoveryUtil::processJournalRecord(
         *storageMsgType = bmqp::StorageMessageType::e_DELETION;
     }
 }
+// NOLINTEND(*-narrowing-conversions,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 }  // close package namespace
 }  // close enterprise namespace

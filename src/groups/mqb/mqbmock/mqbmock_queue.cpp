@@ -180,6 +180,7 @@ void Queue::dropHandle(mqbi::QueueHandle* handle, bool doDeconfigure)
     mqbi::QueueHandle::SubStreams::const_iterator citer =
         handle->subStreamInfos().begin();
     bool isFinal = (citer == handle->subStreamInfos().end());
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     while (!isFinal) {
         const bsl::string& appId = citer->first;
 
@@ -223,6 +224,7 @@ void Queue::dropHandle(mqbi::QueueHandle* handle, bool doDeconfigure)
                       isFinal,  // isFinal flag
                       mqbi::QueueHandle::HandleReleasedCallback());
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 }
 
 void Queue::close(const bsl::function<void(void)>& callback)

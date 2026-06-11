@@ -78,6 +78,7 @@ void PutEventBuilder::resetFields()
 
 bmqt::EventBuilderResult::Enum
 PutEventBuilder::packMessageInternal(const bdlbb::Blob& appData, int queueId)
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     typedef bmqt::EventBuilderResult Result;
     typedef OptionUtil::OptionMeta   OptionMeta;
@@ -94,8 +95,10 @@ PutEventBuilder::packMessageInternal(const bdlbb::Blob& appData, int queueId)
         return Result::e_PAYLOAD_TOO_BIG;  // RETURN
     }
 
+    // NOLINTBEGIN(*-narrowing-conversions)
     const int sizeNoOptions = eventSize() + sizeof(PutHeader) + appDataLength +
                               numPaddingBytes;
+    // NOLINTEND(*-narrowing-conversions)
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(sizeNoOptions >
                                               PutHeader::k_MAX_SIZE_SOFT)) {
@@ -118,9 +121,11 @@ PutEventBuilder::packMessageInternal(const bdlbb::Blob& appData, int queueId)
     // Add option(s) if they fit.
     OptionUtil::OptionsBox optionBox;
     if (!d_msgGroupId.isNull()) {
+        // NOLINTBEGIN(*-narrowing-conversions)
         const OptionMeta msgGroupId = OptionMeta::forOptionWithPadding(
             OptionType::e_MSG_GROUP_ID,
             d_msgGroupId.value().length());
+        // NOLINTEND(*-narrowing-conversions)
         Result::Enum res = OptionUtil::isValidMsgGroupId(d_msgGroupId.value());
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(res != Result::e_SUCCESS)) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
@@ -170,6 +175,7 @@ PutEventBuilder::packMessageInternal(const bdlbb::Blob& appData, int queueId)
 
     return Result::e_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 PutEventBuilder::PutEventBuilder(BlobSpPool*       blobSpPool_p,
                                  bslma::Allocator* allocator)
@@ -323,6 +329,7 @@ PutEventBuilder::packMessageInOldStyle(int queueId)
 }
 
 bmqt::EventBuilderResult::Enum PutEventBuilder::packMessage(int queueId)
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_msgStarted);
@@ -414,6 +421,7 @@ bmqt::EventBuilderResult::Enum PutEventBuilder::packMessage(int queueId)
 
     return packMessageInternal(*resultBlob_sp, queueId);
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores)
 
 bmqt::EventBuilderResult::Enum PutEventBuilder::packMessageRaw(int queueId)
 {
@@ -432,8 +440,10 @@ const bsl::shared_ptr<bdlbb::Blob>& PutEventBuilder::blob() const
 {
     // Fix packet's length in header now that we know it ..  Following is valid
     // (see comment in reset)
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     EventHeader& eh = *reinterpret_cast<EventHeader*>(
         d_blob_sp->buffer(0).data());
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
     eh.setLength(d_blob_sp->length());
 
     return d_blob_sp;

@@ -36,19 +36,23 @@ struct MyDummyType {};
 /// between the maximum and the minimum clients associated to processors is
 /// at most 1.
 static void ensureIsBalanced(const mqbu::LoadBalancer<MyDummyType>& obj)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     int minClients = bsl::numeric_limits<int>::max();
     int maxClients = bsl::numeric_limits<int>::min();
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (int i = 0; i < obj.processorsCount(); ++i) {
         int count = obj.clientsCountForProcessor(i);
         PVVV("    Processor " << i << " has " << count << " clients");
         minClients = bsl::min(minClients, count);
         maxClients = bsl::max(maxClients, count);
     }
+    // NOLINTEND(performance-avoid-endl)
     PVV("    MinClients: " << minClients << ", maxClients: " << maxClients);
     BMQTST_ASSERT_LE(maxClients - minClients, 1);
 }
+// NOLINTEND(performance-avoid-endl)
 
 }  // close unnamed namespace
 
@@ -56,6 +60,7 @@ static void ensureIsBalanced(const mqbu::LoadBalancer<MyDummyType>& obj)
 //                                    TESTS
 // ----------------------------------------------------------------------------
 static void test1_breathingTest()
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
@@ -71,52 +76,66 @@ static void test1_breathingTest()
 
     // Make sure each processor has no clients.
     PV(":: Verifying " << k_NUM_PROCESSORS << " processors have no clients");
+    // NOLINTBEGIN(performance-avoid-endl)
     for (int i = 0; i < k_NUM_PROCESSORS; ++i) {
         PVVV("      Checking processor " << i);
         BMQTST_ASSERT_EQ(obj.clientsCountForProcessor(i), 0);
     }
+    // NOLINTEND(performance-avoid-endl)
 
     // Register some clients, and verify the associated 'processorId' is within
     // the '[0..processors - 1]' range
     PV(":: Registering " << k_NUM_CLIENTS << " clients");
+    // NOLINTBEGIN(performance-avoid-endl)
     for (int i = 0; i < k_NUM_CLIENTS; ++i) {
         PVVV("      Registering client " << i);
+        // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast,performance-no-int-to-ptr)
         int processorId = obj.getProcessorForClient(
             reinterpret_cast<MyDummyType*>(i));
+        // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast,performance-no-int-to-ptr)
         BMQTST_ASSERT_LT(processorId, k_NUM_PROCESSORS);
     }
+    // NOLINTEND(performance-avoid-endl)
     BMQTST_ASSERT_EQ(obj.clientsCount(), k_NUM_CLIENTS);
 
     // Make sure that each processor has at least one client associated and
     // that all clients have been registered.
     PV(":: Checking clients count for " << k_NUM_PROCESSORS << " processors");
     int sumClients = 0;
+    // NOLINTBEGIN(performance-avoid-endl)
     for (int i = 0; i < k_NUM_PROCESSORS; ++i) {
         PVVV("      Checking processor " << i);
         int clientsCount = obj.clientsCountForProcessor(i);
         sumClients += clientsCount;
         BMQTST_ASSERT_LE(1, clientsCount);
     }
+    // NOLINTEND(performance-avoid-endl)
     BMQTST_ASSERT_EQ(sumClients, k_NUM_CLIENTS);
 
     // Remove all clients
     PV(":: Removing " << k_NUM_CLIENTS << " clients");
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast,performance-no-int-to-ptr)
     for (int i = 0; i < k_NUM_CLIENTS; ++i) {
         obj.removeClient(reinterpret_cast<MyDummyType*>(i));
     }
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast,performance-no-int-to-ptr)
 
     PV(":: Verifying " << k_NUM_PROCESSORS << " processors have no clients");
     BMQTST_ASSERT_EQ(obj.clientsCount(), 0);
+    // NOLINTBEGIN(performance-avoid-endl)
     for (int i = 0; i < k_NUM_PROCESSORS; ++i) {
         PVVV("      Verifying processor " << i);
         BMQTST_ASSERT_EQ(0, obj.clientsCountForProcessor(i));
     }
+    // NOLINTEND(performance-avoid-endl)
 
     // Ensure removing of non existing client doesn't crash
     obj.removeClient(reinterpret_cast<MyDummyType*>(0));
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast,performance-avoid-endl)
 
 static void test2_singleProcessorLoadBalancer()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("SINGLE PROCESSOR LOAD BALANCER");
 
@@ -133,31 +152,41 @@ static void test2_singleProcessorLoadBalancer()
     // Verify that registerClient always returns the same value
     int processor = -1;
     PV(":: Registering " << k_NUM_CLIENTS << " clients");
+    // NOLINTBEGIN(performance-avoid-endl)
     for (int i = 0; i < k_NUM_CLIENTS; ++i) {
         PVVV("      Registering client " << i);
+        // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast,performance-no-int-to-ptr)
         int processorId = obj.getProcessorForClient(
             reinterpret_cast<MyDummyType*>(i));
+        // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast,performance-no-int-to-ptr)
         if (i == 0) {
             processor = processorId;
         }
         BMQTST_ASSERT_EQ(processor, processorId);
     }
+    // NOLINTEND(performance-avoid-endl)
 
     BMQTST_ASSERT_EQ(obj.clientsCount(), k_NUM_CLIENTS);
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test3_loadBalancing()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("LOAD BALANCING");
 
-    const int                       k_INITIAL_CLIENTS_COUNT = 137;
+    const int k_INITIAL_CLIENTS_COUNT = 137;
+    // NOLINTBEGIN(*-magic-numbers)
     mqbu::LoadBalancer<MyDummyType> obj(5,
                                         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
 
     PV(":: Registering " << k_INITIAL_CLIENTS_COUNT << " clients");
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast,performance-no-int-to-ptr)
     for (int i = 0; i < k_INITIAL_CLIENTS_COUNT; ++i) {
         obj.getProcessorForClient(reinterpret_cast<MyDummyType*>(i));
     }
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast,performance-no-int-to-ptr)
     BMQTST_ASSERT_EQ(obj.clientsCount(), k_INITIAL_CLIENTS_COUNT);
 
     PV(":: Verifying proper balancing between processors");
@@ -166,32 +195,42 @@ static void test3_loadBalancing()
     // Inserting the same clients, there should be no change in the clients
     // count
     PV(":: Insert the same " << k_INITIAL_CLIENTS_COUNT << " clients again");
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast,performance-no-int-to-ptr)
     for (int i = 0; i < k_INITIAL_CLIENTS_COUNT; ++i) {
         obj.getProcessorForClient(reinterpret_cast<MyDummyType*>(i));
     }
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast,performance-no-int-to-ptr)
     BMQTST_ASSERT_EQ(obj.clientsCount(), k_INITIAL_CLIENTS_COUNT);
 
     PV(":: Removing a few clients to create imbalanced load");
+    // NOLINTBEGIN(*-avoid-c-arrays)
     const int toRemove[] = {0,
                             5,
                             10,
                             15,  // from processor 0
                             1,
                             21};  // from processor 1
+    // NOLINTEND(*-avoid-c-arrays)
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast,performance-no-int-to-ptr)
     for (size_t i = 0; i < sizeof(toRemove) / sizeof(int); ++i) {
         obj.removeClient(reinterpret_cast<MyDummyType*>(i));
     }
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast,performance-no-int-to-ptr)
 
     PV(":: Register new clients (more than were deleted)");
+    // NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-type-reinterpret-cast,performance-no-int-to-ptr)
     for (size_t i = 0; i < 2 * sizeof(toRemove) / sizeof(int); ++i) {
         obj.getProcessorForClient(reinterpret_cast<MyDummyType*>(1000 + i));
     }
+    // NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-type-reinterpret-cast,performance-no-int-to-ptr)
 
     PV(":: Verify processors are balanced again");
     ensureIsBalanced(obj);
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test4_forceAssociate()
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("FORCE_ASSOCIATE");
 
@@ -235,12 +274,14 @@ static void test4_forceAssociate()
     BMQTST_ASSERT_OPT_FAIL(
         obj.setProcessorForClient(reinterpret_cast<MyDummyType*>(4), -1));
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast,performance-avoid-endl)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -258,3 +299,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

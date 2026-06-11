@@ -346,9 +346,11 @@ void FileManagerImpl::CslFileHandler::fillQueueMap(QueueMap* queueMap_p) const
     {
         // Fill queue map
         QueueInfosIt it = queuesInfo.cbegin();
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (; it != queuesInfo.cend(); ++it) {
             queueMap_p->insert(*it);
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
 
     // Iterate from last snapshot to get updates
@@ -369,9 +371,11 @@ void FileManagerImpl::CslFileHandler::fillQueueMap(QueueMap* queueMap_p) const
                     clusterMessage.choice().queueAssignmentAdvisory();
                 const QueueInfos& updateQueuesInfo = queueAdvisory.queues();
                 QueueInfosIt      it               = updateQueuesInfo.cbegin();
+                // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
                 for (; it != updateQueuesInfo.cend(); ++it) {
                     queueMap_p->insert(*it);
                 }
+                // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
             }
             else if (clusterMessage.choice().selectionId() ==
                      // Process queueUpdateAdvisory record
@@ -383,9 +387,11 @@ void FileManagerImpl::CslFileHandler::fillQueueMap(QueueMap* queueMap_p) const
                     queueUpdateAdvisory.queueUpdates();
                 bsl::vector<QueueInfoUpdate>::const_iterator it =
                     queueInfoUpdates.cbegin();
+                // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
                 for (; it != queueInfoUpdates.cend(); ++it) {
                     queueMap_p->update(*it);
                 }
+                // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
             }
         }
     }

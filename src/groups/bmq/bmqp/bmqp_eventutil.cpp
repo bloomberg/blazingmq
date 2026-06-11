@@ -57,11 +57,13 @@ BSLMF_ASSERT(Protocol::SubQueueIdsArrayOld::static_size >= 1);
 // ===============
 
 /// Implements the flattening functionality
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Flattener {
   private:
     // PRIVATE TYPES
     typedef bmqp::BlobPoolUtil::BlobSpPool BlobSpPool;
 
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum RcEnum {
         // Value for the various RC error categories
         /// No error
@@ -81,6 +83,7 @@ class Flattener {
         /// Too many subsequent failed attempts
         rc_SUBSEQUENT_RETRIES_ERROR = -7
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     /// Convenience alias of type type
     typedef bmqt::EventBuilderResult::Enum EventBuilderResult;
@@ -115,6 +118,7 @@ class Flattener {
 
     // PRIVATE TYPES
     typedef bdlma::LocalSequentialAllocator<
+        // NOLINTNEXTLINE(*-magic-numbers)
         32 * sizeof(Protocol::SubQueueIdsArrayOld::value_type)>
         LocalAllocator;
 
@@ -194,6 +198,7 @@ class Flattener {
     /// (or once if there is no subQueueId)
     int flattenPushEvent();
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ---------------
 // class Flattener
@@ -205,9 +210,11 @@ int Flattener::packError(const EventBuilderResult result, int error)
 }
 
 int Flattener::packError(int error, int context)
+// NOLINTBEGIN(*-magic-numbers)
 {
     return 10 * error + context;
 }
+// NOLINTEND(*-magic-numbers)
 
 bool Flattener::hasSubQueues(const OptionsView& optionsView)
 {
@@ -267,6 +274,7 @@ int Flattener::cloneAndPackEachSubQId(
 
 Flattener::CloneSingleStatus
 Flattener::cloneAndPackSingle(const Protocol::SubQueueInfosArray& subQInfo)
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(subQInfo.size() == 1);
@@ -293,6 +301,7 @@ Flattener::cloneAndPackSingle(const Protocol::SubQueueInfosArray& subQInfo)
 
     return CloneSingleStatus(result, rc_SUCCESS);
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores)
 
 Flattener::EventBuilderResult Flattener::importOptions()
 {
@@ -359,6 +368,7 @@ Flattener::EventBuilderResult Flattener::importOptions()
 
 Flattener::EventBuilderResult
 Flattener::packMesage(const Protocol::SubQueueInfosArray& subQInfo)
+// NOLINTBEGIN(modernize-use-emplace)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(subQInfo.size() == 1u);
@@ -410,6 +420,7 @@ Flattener::packMesage(const Protocol::SubQueueInfosArray& subQInfo)
 
     return result;
 }
+// NOLINTEND(modernize-use-emplace)
 
 void Flattener::advanceEvent()
 {

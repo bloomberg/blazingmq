@@ -126,28 +126,34 @@ class PropertyValueStreamOutVisitor {
     }
 
     void operator()(short value)
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     {
         bdlb::BigEndianInt16 nboValue = bdlb::BigEndianInt16::make(value);
         bdlbb::BlobUtil::append(d_blob_p,
                                 reinterpret_cast<char*>(&nboValue),
                                 sizeof(nboValue));
     }
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
     void operator()(int value)
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     {
         bdlb::BigEndianInt32 nboValue = bdlb::BigEndianInt32::make(value);
         bdlbb::BlobUtil::append(d_blob_p,
                                 reinterpret_cast<char*>(&nboValue),
                                 sizeof(nboValue));
     }
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
     void operator()(bsls::Types::Int64 value)
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     {
         bdlb::BigEndianInt64 nboValue = bdlb::BigEndianInt64::make(value);
         bdlbb::BlobUtil::append(d_blob_p,
                                 reinterpret_cast<char*>(&nboValue),
                                 sizeof(nboValue));
     }
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
     void operator()(const bsl::string& value)
     {
@@ -167,11 +173,13 @@ class PropertyValueStreamOutVisitor {
 void populateProperties(bmqp::MessageProperties* properties,
                         PropertyMap*             propertyMap,
                         size_t                   numProps)
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqp::MessageProperties& p            = *properties;   // convenience
     PropertyMap&             pmap         = *propertyMap;  // convenience
     size_t                   numPropTypes = 7;
 
+    // NOLINTBEGIN(*-magic-numbers)
     for (size_t i = 1; i < (numProps + 1); ++i) {
         size_t             remainder = i % numPropTypes;
         bmqu::MemOutStream osstr(bmqtst::TestHelperUtil::allocator());
@@ -245,6 +253,7 @@ void populateProperties(bmqp::MessageProperties* properties,
         case 4: {
             osstr << "int64PropName" << i << bsl::ends;
             bsls::Types::Int64 value =
+                // NOLINTNEXTLINE(*-narrowing-conversions)
                 bsl::numeric_limits<bsls::Types::Int64>::max() / i;
 
             BMQTST_ASSERT_EQ_D(i, 0, p.setPropertyAsInt64(osstr.str(), value));
@@ -299,7 +308,9 @@ void populateProperties(bmqp::MessageProperties* properties,
         default: BSLS_ASSERT_OPT(false && "Unreachable by design.");
         }
     }
+    // NOLINTEND(*-magic-numbers)
 }
+// NOLINTEND(*-magic-numbers)
 
 void verify(PropertyMap*                   propertyMap,
             const bmqp::MessageProperties& properties)
@@ -426,6 +437,7 @@ void encode(bdlbb::Blob* blob, const PropertyMap& pmap)
     // of blob buffer factory, which, we know, is greater than the size of
     // `bmqp::MessagePropertiesHeader`.
     bmqp::MessagePropertiesHeader* mpsh =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         reinterpret_cast<bmqp::MessagePropertiesHeader*>(b.buffer(0).data());
 
     mpsh->setHeaderSize(sizeof(bmqp::MessagePropertiesHeader));
@@ -435,6 +447,7 @@ void encode(bdlbb::Blob* blob, const PropertyMap& pmap)
     totalSize += sizeof(bmqp::MessagePropertiesHeader);
 
     // First pass.
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     for (PropertyMapConstIter cit = pmap.begin(); cit != pmap.end(); ++cit) {
         const PropertyTypeSizeVariantPair& tsvPair = cit->second;
         bmqp::MessagePropertyHeader        mph;
@@ -447,6 +460,7 @@ void encode(bdlbb::Blob* blob, const PropertyMap& pmap)
                                 sizeof(mph));
         totalSize += sizeof(bmqp::MessagePropertyHeader);
     }
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
     // Second pass.
     for (PropertyMapConstIter cit = pmap.begin(); cit != pmap.end(); ++cit) {
@@ -482,13 +496,16 @@ void encode(bdlbb::Blob* blob, const PropertyMap& pmap)
 // ----------------------------------------------------------------------------
 
 static void test1_breathingTest()
+// NOLINTBEGIN(*-narrowing-conversions,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
     PV("Testing MessageProperties");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         128,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::MessageProperties     p(bmqtst::TestHelperUtil::allocator());
     int                         totalLen = 0;
     bmqp::MessagePropertiesInfo logic =
@@ -598,8 +615,10 @@ static void test1_breathingTest()
     BMQTST_ASSERT_SAFE_FAIL(objIt.getAsString());
     BMQTST_ASSERT_SAFE_FAIL(objIt.getAsBinary());
 }
+// NOLINTEND(*-narrowing-conversions,performance-avoid-endl)
 
 static void test2_setPropertyTest()
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("'setPropertyAs*' TEST");
 
@@ -629,10 +648,13 @@ static void test2_setPropertyTest()
         bsls::Types::Int64 int64V =
             bsl::numeric_limits<bsls::Types::Int64>::max();
 
+        // NOLINTNEXTLINE(*-magic-numbers)
         bsl::string stringV(42, 'x', bmqtst::TestHelperUtil::allocator());
+        // NOLINTBEGIN(*-magic-numbers)
         bsl::vector<char> binaryV(84,
                                   250,
                                   bmqtst::TestHelperUtil::allocator());
+        // NOLINTEND(*-magic-numbers)
 
         BMQTST_ASSERT_NE(0, obj.setPropertyAsBool("", boolV));
         BMQTST_ASSERT_NE(0, obj.setPropertyAsChar("", charV));
@@ -803,15 +825,18 @@ static void test2_setPropertyTest()
                          p.setPropertyAsShort("dummy", 42));
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test3_binaryPropertyTest()
 {
     // Ensure that a binary property is set and retrieved correctly.
     bmqtst::TestHelper::printTestName("'setPropertyAsBinary' TEST");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         128,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
 
     const size_t      length   = 2080;
     const char        binValue = bsl::numeric_limits<char>::max();
@@ -836,9 +861,11 @@ static void test4_iteratorTest()
     // Ensure iterator's functionality is correct.
     bmqtst::TestHelper::printTestName("'setPropertyAsBinary' TEST");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         128,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::MessageProperties p(bmqtst::TestHelperUtil::allocator());
     const size_t            numProps = 157;
     PropertyMap             pmap(bmqtst::TestHelperUtil::allocator());
@@ -857,13 +884,16 @@ static void test4_iteratorTest()
 }
 
 static void test5_streamInTest()
+// NOLINTBEGIN(bugprone-signed-char-misuse,cert-str34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     // Ensure 'streamIn' functionality is correct.
     bmqtst::TestHelper::printTestName("'streamIn' TEST");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         128,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::MessageProperties p(bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob wireRep(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bmqp::MessagePropertiesInfo logic =
@@ -912,9 +942,11 @@ static void test5_streamInTest()
     {
         PV("Testing 'getPropertyAsString' after 'streamIn' (contiguous)");
 
+        // NOLINTBEGIN(*-magic-numbers)
         bdlbb::PooledBlobBufferFactory bigFactory(
             4096,
             bmqtst::TestHelperUtil::allocator());
+        // NOLINTEND(*-magic-numbers)
         bmqp::MessageProperties src(bmqtst::TestHelperUtil::allocator());
         BMQTST_ASSERT_EQ(0, src.setPropertyAsString("tableName", "mytable"));
 
@@ -929,9 +961,11 @@ static void test5_streamInTest()
     {
         PV("Testing 'getPropertyAsStringOr' after 'streamIn' (contiguous)");
 
+        // NOLINTBEGIN(*-magic-numbers)
         bdlbb::PooledBlobBufferFactory bigFactory(
             4096,
             bmqtst::TestHelperUtil::allocator());
+        // NOLINTEND(*-magic-numbers)
         bmqp::MessageProperties src(bmqtst::TestHelperUtil::allocator());
         BMQTST_ASSERT_EQ(0, src.setPropertyAsString("tableName", "mytable"));
 
@@ -946,15 +980,19 @@ static void test5_streamInTest()
                          "fallback");
     }
 }
+// NOLINTEND(bugprone-signed-char-misuse,cert-str34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 
 static void test6_streamOutTest()
+// NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast)
 {
     // Ensure 'streamOut' functionality is correct.
     bmqtst::TestHelper::printTestName("'streamOut' TEST");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         128,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bdlbb::Blob wireRep(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bmqp::MessageProperties     p(bmqtst::TestHelperUtil::allocator());
     bmqp::MessagePropertiesInfo logic =
@@ -978,9 +1016,11 @@ static void test6_streamOutTest()
 
     const bdlbb::Blob& out2 = p.streamOut(&bufferFactory, logic);
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bigBufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bdlbb::Blob buffer(&bigBufferFactory, bmqtst::TestHelperUtil::allocator());
 
     BMQTST_ASSERT_EQ(0,
@@ -1003,17 +1043,21 @@ static void test6_streamOutTest()
     // 'streamOut' encodes in the new style, 'encode' - in the old
     BMQTST_ASSERT_EQ(0, bdlbb::BlobUtil::compare(wireRep, out2));
 }
+// NOLINTEND(cppcoreguidelines-pro-type-const-cast)
 
 static void test7_streamInOutMixTest()
+// NOLINTBEGIN(bugprone-signed-char-misuse,cert-str34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
     // Ensure that 'streamOut' works correctly if 'streamIn' was invoked before
     // on the instance.
 
     bmqtst::TestHelper::printTestName("'streamIn/Out Mix' TEST");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         128,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bdlbb::Blob wireRep(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bmqp::MessageProperties     p(bmqtst::TestHelperUtil::allocator());
     bmqp::MessagePropertiesInfo logic =
@@ -1069,6 +1113,7 @@ static void test7_streamInOutMixTest()
     }
     BMQTST_ASSERT_EQ(newWireRep.length(), (p.totalSize() + padding));
 }
+// NOLINTEND(bugprone-signed-char-misuse,cert-str34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 static void test8_printTest()
 // --------------------------------------------------------------------
@@ -1091,6 +1136,7 @@ static void test8_printTest()
 //   bmqp::operator<<(bsl::ostream& stream,
 //                    const bmqp::MessageProperties& rhs)
 // --------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("PRINT");
 
@@ -1120,7 +1166,8 @@ static void test8_printTest()
     int                intV   = 333;
     bsls::Types::Int64 int64V = 123LL;
     bsl::string        stringV(3, 'A', bmqtst::TestHelperUtil::allocator());
-    bsl::vector<char>  binaryV(15, 255, bmqtst::TestHelperUtil::allocator());
+    // NOLINTNEXTLINE(*-magic-numbers)
+    bsl::vector<char> binaryV(15, 255, bmqtst::TestHelperUtil::allocator());
 
     struct Test {
         bmqt::PropertyType::Enum d_type;
@@ -1138,9 +1185,11 @@ static void test8_printTest()
          "   FFFFFFFF FFFFFFFF FFFFFFFF FFFFFF "
          "      |............... |\n\" ]"}};
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test&             test = k_DATA[idx];
         bmqp::MessageProperties obj(bmqtst::TestHelperUtil::allocator());
         bmqu::MemOutStream      out(bmqtst::TestHelperUtil::allocator());
@@ -1190,6 +1239,7 @@ static void test8_printTest()
         BMQTST_ASSERT_EQ(out.str(), expected.str());
     }
 }
+// NOLINTEND(*-avoid-c-arrays,*-magic-numbers)
 
 static void test9_copyAssignTest()
 // --------------------------------------------------------------------
@@ -1213,9 +1263,11 @@ static void test9_copyAssignTest()
 {
     bmqtst::TestHelper::printTestName("COPY AND ASSIGN");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         128,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::MessageProperties obj(bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob wireRep(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     PropertyMap pmap(bmqtst::TestHelperUtil::allocator());
@@ -1273,9 +1325,11 @@ static void test10_empty()
 
     bmqtst::TestHelper::printTestName("'empty MPs' TEST");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         128,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::MessageProperties p(bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob wireRep(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bmqp::MessagePropertiesInfo logic(true, 1, true);
@@ -1294,9 +1348,11 @@ static void test10_empty()
 static bsl::vector<char> makeBytes(bslma::Allocator* allocator)
 // Return a vector of chars by value, for use in testing rvalue
 // arguments to 'setPropertyAsBinary'.
+// NOLINTBEGIN(*-magic-numbers)
 {
     return bsl::vector<char>(10, 'z', allocator);
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test11_binaryPropertyRvalueTest()
 // ------------------------------------------------------------------------
@@ -1365,9 +1421,11 @@ static void test12_emptyPropertyValueStreamOutTest()
 {
     bmqtst::TestHelper::printTestName("EMPTY PROPERTY VALUE STREAM OUT TEST");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         128,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::MessageProperties     p(bmqtst::TestHelperUtil::allocator());
     bmqp::MessagePropertiesInfo logic =
         bmqp::MessagePropertiesInfo::makeNoSchema();
@@ -1411,6 +1469,7 @@ struct MessagePropertiesBenchmark_getPropertyRef {
 
         const size_t k_NUM_ITERATIONS = 1000000;
 
+        // NOLINTNEXTLINE(*-magic-numbers)
         bdlbb::PooledBlobBufferFactory bufferFactory(1024, alloc);
         bmqp::MessageProperties        obj(alloc);
         bdlbb::Blob                    wireRep(&bufferFactory, alloc);
@@ -1473,6 +1532,7 @@ struct MessagePropertiesBenchmark_streamIn {
 
         const size_t k_NUM_ITERATIONS = 10000000;
 
+        // NOLINTNEXTLINE(*-magic-numbers)
         bdlbb::PooledBlobBufferFactory bufferFactory(1024, alloc);
         bmqp::MessageProperties        obj(alloc);
         bdlbb::Blob                    wireRep(&bufferFactory, alloc);
@@ -1567,6 +1627,7 @@ static void testN1_benchmark(benchmark::State& state)
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -1620,3 +1681,4 @@ int main(int argc, char* argv[])
     // 'bmqp::MessageProperties' or one of its data members may allocate
     // temporaries with default allocator.
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

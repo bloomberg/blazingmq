@@ -43,12 +43,16 @@
 #include <bsls_performancehint.h>
 
 #if BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
+// clang-format off
 // Include version that can be compiled with C++03
-// Generated on Wed Jun 18 14:44:06 2025
+// Generated on Thu Jun 11 19:52:21 2026
 // Command line: sim_cpp11_features.pl bmqu_objectplaceholder.h
-#define COMPILING_BMQU_OBJECTPLACEHOLDER_H
-#include <bmqu_objectplaceholder_cpp03.h>
-#undef COMPILING_BMQU_OBJECTPLACEHOLDER_H
+
+# define COMPILING_BMQU_OBJECTPLACEHOLDER_H
+# include <bmqu_objectplaceholder_cpp03.h>
+# undef COMPILING_BMQU_OBJECTPLACEHOLDER_H
+
+// clang-format on
 #else
 
 namespace BloombergLP {
@@ -60,6 +64,7 @@ namespace bmqu {
 
 /// A guard to deallocate an object in case of exception.
 template <class PLACEHOLDER>
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ObjectPlaceHolder_ObjectGuard {
   private:
     // PRIVATE DATA
@@ -83,6 +88,7 @@ class ObjectPlaceHolder_ObjectGuard {
     /// Release this guard.
     void release() BSLS_KEYWORD_NOEXCEPT;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =======================
 // class ObjectPlaceHolder
@@ -91,9 +97,11 @@ class ObjectPlaceHolder_ObjectGuard {
 /// A placeholder for any object with a local buffer of (at least) the
 /// specified `SIZE`.
 template <size_t SIZE>
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ObjectPlaceHolder {
   private:
     // PRIVATE TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum State {
         // State of the placeholder.
 
@@ -104,6 +112,7 @@ class ObjectPlaceHolder {
         /// The placeholder contains an external object.
         e_FULL_EXT = 2
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     /// An aligned buffer large enough to hold two pointers - the allocator
     /// pointer and the object pointer.
@@ -235,6 +244,7 @@ class ObjectPlaceHolder {
     /// is empty.
     const void* objectAddress() const BSLS_KEYWORD_NOEXCEPT;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                           INLINE DEFINITIONS
@@ -280,23 +290,28 @@ ObjectPlaceHolder_ObjectGuard<PLACEHOLDER>::release() BSLS_KEYWORD_NOEXCEPT
 template <size_t SIZE>
 inline void ObjectPlaceHolder<SIZE>::storeAllocator(
     bslma::Allocator* allocator) BSLS_KEYWORD_NOEXCEPT
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     // the buffer now contains a pointer to the allocator
     *reinterpret_cast<bslma::Allocator**>(d_buffer.buffer()) = allocator;
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 template <size_t SIZE>
 inline void ObjectPlaceHolder<SIZE>::storeObjectAddress(void* address)
     BSLS_KEYWORD_NOEXCEPT
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-reinterpret-cast)
 {
     // the buffer now contains a pointer to the object
     *reinterpret_cast<void**>(d_buffer.buffer() + sizeof(void*)) = address;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-reinterpret-cast)
 
 template <size_t SIZE>
 template <class TYPE>
 inline TYPE*
 ObjectPlaceHolder<SIZE>::allocateObject(bslma::Allocator* allocator)
+// NOLINTBEGIN(cppcoreguidelines-init-variables,cppcoreguidelines-pro-type-reinterpret-cast)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(allocator);
@@ -330,6 +345,7 @@ ObjectPlaceHolder<SIZE>::allocateObject(bslma::Allocator* allocator)
 
     return reinterpret_cast<TYPE*>(objectAddress);
 }
+// NOLINTEND(cppcoreguidelines-init-variables,cppcoreguidelines-pro-type-reinterpret-cast)
 
 template <size_t SIZE>
 inline void ObjectPlaceHolder<SIZE>::deallocateObject() BSLS_KEYWORD_NOEXCEPT
@@ -356,18 +372,22 @@ inline void ObjectPlaceHolder<SIZE>::deallocateObject() BSLS_KEYWORD_NOEXCEPT
 template <size_t SIZE>
 inline bslma::Allocator*
 ObjectPlaceHolder<SIZE>::loadAllocator() const BSLS_KEYWORD_NOEXCEPT
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     char* buffer = const_cast<char*>(d_buffer.buffer());
     return *reinterpret_cast<bslma::Allocator**>(buffer);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 template <size_t SIZE>
 inline void*
 ObjectPlaceHolder<SIZE>::loadObjectAddress() const BSLS_KEYWORD_NOEXCEPT
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-reinterpret-cast)
 {
     char* buffer = const_cast<char*>(d_buffer.buffer());
     return *reinterpret_cast<void**>(buffer + sizeof(void*));
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-reinterpret-cast)
 
 // CREATORS
 template <size_t SIZE>
@@ -429,17 +449,21 @@ inline void ObjectPlaceHolder<SIZE>::deleteObject() BSLS_KEYWORD_NOEXCEPT
 template <size_t SIZE>
 template <class TYPE>
 inline TYPE* ObjectPlaceHolder<SIZE>::object() BSLS_KEYWORD_NOEXCEPT
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     return reinterpret_cast<TYPE*>(objectAddress());
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 template <size_t SIZE>
 template <class TYPE>
 inline const TYPE*
 ObjectPlaceHolder<SIZE>::object() const BSLS_KEYWORD_NOEXCEPT
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     return reinterpret_cast<const TYPE*>(objectAddress());
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 template <size_t SIZE>
 inline void* ObjectPlaceHolder<SIZE>::objectAddress() BSLS_KEYWORD_NOEXCEPT
@@ -461,9 +485,11 @@ inline void* ObjectPlaceHolder<SIZE>::objectAddress() BSLS_KEYWORD_NOEXCEPT
 template <size_t SIZE>
 inline const void*
 ObjectPlaceHolder<SIZE>::objectAddress() const BSLS_KEYWORD_NOEXCEPT
+// NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast)
 {
     return const_cast<ObjectPlaceHolder*>(this)->objectAddress();
 }
+// NOLINTEND(cppcoreguidelines-pro-type-const-cast)
 
 }  // close package namespace
 }  // close enterprise namespace

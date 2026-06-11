@@ -65,6 +65,7 @@ namespace mqbblp {
 // =========================
 
 /// Monitor and alarm on the cluster state.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ClusterStateMonitor {
   private:
     // CLASS-SCOPE CATEGORY
@@ -72,6 +73,7 @@ class ClusterStateMonitor {
 
   public:
     /// Enum to signify which state a given attribute is in.
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum StateType {
         /// State is invalid but within allowed max invalid time.
         e_INVALID,
@@ -84,6 +86,7 @@ class ClusterStateMonitor {
         /// is now alarming.
         e_ALARMING
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
   private:
     // PRIVATE TYPES
@@ -131,6 +134,7 @@ class ClusterStateMonitor {
     typedef bsl::unordered_map<int, State> NodeStatesMap;
 
     /// Enum to signify if the healthiness of the cluster has changed.
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum StateTransition {
         /// State has transitioned to a healthy state.
         e_HEALTHY,
@@ -140,6 +144,7 @@ class ClusterStateMonitor {
         e_BAD,
         e_NO_CHANGE
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
   private:
     // DATA
@@ -291,6 +296,7 @@ class ClusterStateMonitor {
     /// valid, and false otherwise.
     bool isHealthy() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

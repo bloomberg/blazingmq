@@ -37,6 +37,7 @@ bsl::vector<int> TestUtil::intVector(const char* nums)
 {
     bsl::vector<int> ret;
     bdlb::Tokenizer  tokenizer(nums, " ");
+    // NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-constant-array-index)
     for (bdlb::TokenizerIterator iter = tokenizer.begin();
          iter != tokenizer.end();
          ++iter) {
@@ -47,6 +48,7 @@ bsl::vector<int> TestUtil::intVector(const char* nums)
             ret.push_back(INT_MAX);
         }
         else {
+            // NOLINTNEXTLINE(*-avoid-c-arrays,*-magic-numbers)
             char buf[32] = {0};
             bsl::memcpy(buf, iter->begin(), iter->length());
             buf[iter->length()] = '\0';
@@ -54,6 +56,7 @@ bsl::vector<int> TestUtil::intVector(const char* nums)
             ret.push_back(bsl::atoi(buf));
         }
     }
+    // NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-constant-array-index)
 
     return ret;
 }
@@ -62,6 +65,7 @@ bsl::vector<bsls::Types::Int64> TestUtil::int64Vector(const char* nums)
 {
     bsl::vector<bsls::Types::Int64> ret;
     bdlb::Tokenizer                 tokenizer(nums, " ");
+    // NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-constant-array-index)
     for (bdlb::TokenizerIterator iter = tokenizer.begin();
          iter != tokenizer.end();
          ++iter) {
@@ -72,6 +76,7 @@ bsl::vector<bsls::Types::Int64> TestUtil::int64Vector(const char* nums)
             ret.push_back(LLONG_MAX);
         }
         else {
+            // NOLINTNEXTLINE(*-avoid-c-arrays,*-magic-numbers)
             char buf[32] = {0};
             bsl::memcpy(buf, iter->begin(), iter->length());
             buf[iter->length()] = '\0';
@@ -79,6 +84,7 @@ bsl::vector<bsls::Types::Int64> TestUtil::int64Vector(const char* nums)
             ret.push_back(bsl::atol(buf));
         }
     }
+    // NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-constant-array-index)
 
     return ret;
 }
@@ -87,6 +93,7 @@ bsl::vector<bsl::string> TestUtil::stringVector(const char* s)
 {
     bsl::vector<bsl::string> ret;
     bdlb::Tokenizer          tokenizer(s, " ");
+    // NOLINTBEGIN(modernize-use-emplace)
     for (bdlb::TokenizerIterator iter = tokenizer.begin();
          iter != tokenizer.end();
          ++iter) {
@@ -97,6 +104,7 @@ bsl::vector<bsl::string> TestUtil::stringVector(const char* s)
             ret.push_back(*iter);
         }
     }
+    // NOLINTEND(modernize-use-emplace)
 
     return ret;
 }
@@ -108,21 +116,26 @@ void TestUtil::hexToString(bsl::string* output, const bslstl::StringRef& input)
     BSLS_ASSERT_OPT(!(input.length() & 1) && "Odd length");
     output->reserve(input.length() / 2);
 
+    // NOLINTBEGIN(*-narrowing-conversions)
     for (size_t i = 0; i < input.length(); i += 2) {
-        char        a = input[i];
+        char a = input[i];
+        // NOLINTNEXTLINE(*-magic-numbers,cppcoreguidelines-pro-bounds-pointer-arithmetic)
         const char* p = bsl::lower_bound(HEX_DIGITS, HEX_DIGITS + 16, a);
         BSLS_ASSERT_OPT(*p == a && "Bad hex input");
 
-        char        b = input[i + 1];
+        char b = input[i + 1];
+        // NOLINTNEXTLINE(*-magic-numbers,cppcoreguidelines-pro-bounds-pointer-arithmetic)
         const char* q = bsl::lower_bound(HEX_DIGITS, HEX_DIGITS + 16, b);
         BSLS_ASSERT_OPT(*q == b && "Bad hex input");
 
         output->push_back(static_cast<char>((p - HEX_DIGITS) << 4) |
                           static_cast<char>(q - HEX_DIGITS));
     }
+    // NOLINTEND(*-narrowing-conversions)
 }
 
 bool TestUtil::testRunningInJenkins()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     char* envVar    = getenv("JENKINS_URL");
     bool  isJenkins = (envVar != 0);
@@ -132,8 +145,10 @@ bool TestUtil::testRunningInJenkins()
     }
     return isJenkins;
 }
+// NOLINTEND(performance-avoid-endl)
 
 void TestUtil::printTestStatus(int testStatus, int verbose)
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     if (testStatus == 254) {
         bsl::cerr << "Test skipped." << bsl::endl;
@@ -146,6 +161,7 @@ void TestUtil::printTestStatus(int testStatus, int verbose)
         bsl::cout << "Test Passed!" << bsl::endl;
     }
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 // ----------------------
 // class BlobDataComparer

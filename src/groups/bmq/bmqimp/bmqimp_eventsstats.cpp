@@ -31,14 +31,17 @@ namespace bmqimp {
 
 namespace {
 /// Name of the stat context to create (holding all events statistics)
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char k_STAT_NAME[] = "events";
 
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 enum {
     /// value = bytes ; increments = number of events
     k_STAT_EVENT = 0,
     /// value = number of messages
     k_STAT_MESSAGE = 1
 };
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 }  // close unnamed namespace
 
 // ---------------------------
@@ -79,10 +82,12 @@ void EventsStats::initializeStats(
     const bmqst::StatValue::SnapshotLocation& start,
     const bmqst::StatValue::SnapshotLocation& end)
 {
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<2048> localAllocator(d_allocator_p);
 
     // Create the root stat context
     // ----------------------------
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bmqst::StatContextConfiguration config(k_STAT_NAME, &localAllocator);
     config.isTable(true);
     config.value("event").value("message");
@@ -90,12 +95,14 @@ void EventsStats::initializeStats(
 
     // Create the subContexts
     // ----------------------
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
     for (int type = 0; type < EventsStatsEventType::e_LAST; ++type) {
         const char* name = EventsStatsEventType::toAscii(
             static_cast<EventsStatsEventType::Enum>(type));
         d_statContexts_mp[type] = d_stat.d_statContext_mp->addSubcontext(
             bmqst::StatContextConfiguration(name, &localAllocator));
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
 
     // Create table (with Delta stats)
     // -------------------------------
@@ -198,6 +205,7 @@ void EventsStats::resetStats()
 void EventsStats::onEvent(EventsStatsEventType::Enum type,
                           int                        eventSize,
                           int                        messageCount)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
 {
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!d_statContexts_mp[type])) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
@@ -208,6 +216,7 @@ void EventsStats::onEvent(EventsStatsEventType::Enum type,
     d_statContexts_mp[type]->adjustValue(k_STAT_EVENT, eventSize);
     d_statContexts_mp[type]->adjustValue(k_STAT_MESSAGE, messageCount);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
 
 }  // close package namespace
 }  // close enterprise namespace

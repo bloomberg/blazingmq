@@ -48,6 +48,7 @@ class TcpInterfaceConfigValidator {
     // TYPES
 
     /// Codes to indicate the reason for a validation failure.
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum ErrorCode {
         /// Indicates a config is valid. Guaranteed to equal zero.
         k_OK = 0,
@@ -58,6 +59,7 @@ class TcpInterfaceConfigValidator {
         /// Indicates a port number was passed outside of the valid port range.
         k_PORT_RANGE = -3
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // ACCESSORS
 

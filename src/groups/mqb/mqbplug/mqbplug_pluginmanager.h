@@ -53,6 +53,7 @@ namespace mqbplug {
 // class PluginManager
 // ===================
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class PluginManager BSLS_CPP11_FINAL {
   private:
     // PRIVATE TYPES
@@ -155,6 +156,7 @@ class PluginManager BSLS_CPP11_FINAL {
     void get(bsl::unordered_set<PluginFactory*>* result,
              PluginType::Enum                    type) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

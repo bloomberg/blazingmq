@@ -58,6 +58,7 @@ class PartitionStats;
 // ==================
 
 /// Mechanism to keep track of individual overall statistics of a cluster
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ClusterStats {
   public:
     // TYPES
@@ -66,6 +67,7 @@ class ClusterStats {
     /// from this object.
     struct Stat {
         // TYPES
+        // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
         enum Enum {
             // ClusterStats: those metrics make sense only from the 'cluster
             //               level' stat context
@@ -130,17 +132,20 @@ class ClusterStats {
             /// the cluster.
             e_PARTITION_REPLICATION_TIME_NS_MAX
         };
+        // NOLINTEND(cppcoreguidelines-use-enum-class)
     };
 
     /// Enum representing the leader status (leader or follower) of a node.
     struct LeaderStatus {
         // TYPES
+        // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
         enum Enum { e_FOLLOWER, e_LEADER };
     };
 
     /// Enum representing the role (member or proxy) of a broker for a given
     /// cluster.
     struct Role {
+        // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
         enum Enum { e_MEMBER = 1, e_PROXY };
 
         // CLASS METHODS
@@ -182,6 +187,7 @@ class ClusterStats {
     /// Namespace for the constants of stat values that applies to the
     /// partition.
     struct ClusterStatsIndex {
+        // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
         enum Enum {
             // Cluster stats
 
@@ -226,15 +232,18 @@ class ClusterStats {
             /// entry in journal file.
             e_PARTITION_REPLICATION_TIME_NS
         };
+        // NOLINTEND(cppcoreguidelines-use-enum-class)
     };
 
     /// Namespace for the constants of stat values that applies to the queues
     /// from the clients
     struct ClusterStatus {
+        // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
         enum Enum {
             e_CLUSTER_STATUS_HEALTHY   = 1,
             e_CLUSTER_STATUS_UNHEALTHY = 2
         };
+        // NOLINTEND(cppcoreguidelines-use-enum-class)
     };
 
     // DATA
@@ -329,12 +338,14 @@ class ClusterStats {
     /// Return a pointer to the statcontext.
     bmqst::StatContext* statContext();
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ====================
 // class PartitionStats
 // ====================
 
 /// Mechanism to keep track of individual overall statistics of a partition
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class PartitionStats {
   public:
     // TYPES
@@ -344,6 +355,7 @@ class PartitionStats {
     /// the maximum observed value over the report interval.
     struct PrimaryStatus {
         // TYPES
+        // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
         enum Enum { e_UNKNOWN, e_REPLICA, e_PRIMARY };
     };
 
@@ -391,6 +403,7 @@ class PartitionStats {
     /// Return a pointer to the statcontext.
     bmqst::StatContext* statContext();
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =======================
 // struct ClusterStatsUtil

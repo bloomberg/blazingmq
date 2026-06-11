@@ -102,12 +102,14 @@ class CommandRouter {
     /// VST representing which nodes a command should be routed to.  Contains
     /// both a list of external nodes to route to and a flag indicating whether
     /// the self node should execute the command.
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
     struct RouteTargets {
         /// Proxy nodes and the self node should never be route members.
         NodesVector d_nodes;
         /// True if the command should execute on the self node.
         bool d_self;
     };
+    // NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
     // ==================
     // class Routing Mode
@@ -115,6 +117,7 @@ class CommandRouter {
 
     /// Private interface to implement various methods of choosing routing
     /// targets.
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     class RoutingMode {
       public:
         RoutingMode();
@@ -128,6 +131,7 @@ class CommandRouter {
                                     RouteTargets*  routeMembers,
                                     mqbi::Cluster* cluster) = 0;
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
     class AllPartitionPrimariesRoutingMode : public RoutingMode {
       public:
         /// Used to route the command to all nodes which are a primary of any

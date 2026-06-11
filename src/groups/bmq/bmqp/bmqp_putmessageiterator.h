@@ -81,6 +81,7 @@ class MessageProperties;
 
 /// An iterator providing read-only sequential access to messages contained
 /// into a `PutEvent`.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class PutMessageIterator {
   private:
     // PRIVATE TYPES
@@ -405,6 +406,7 @@ class PutMessageIterator {
     /// Return the size (in bytes) of wire representation for the message.
     int totalSize() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS
@@ -438,6 +440,7 @@ inline PutMessageIterator::PutMessageIterator(
     // NOTHING
 }
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline PutMessageIterator::PutMessageIterator(
     const bdlbb::Blob*        blob,
     const EventHeader&        eventHeader,
@@ -454,7 +457,9 @@ inline PutMessageIterator::PutMessageIterator(
 {
     reset(blob, eventHeader, decompressFlag);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline PutMessageIterator::PutMessageIterator(const PutMessageIterator& src,
                                               bslma::Allocator* allocator)
 : d_blobIter(0,
@@ -467,6 +472,7 @@ inline PutMessageIterator::PutMessageIterator(const PutMessageIterator& src,
 {
     copyFrom(src);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // MANIPULATORS
 inline PutMessageIterator&

@@ -90,6 +90,7 @@ namespace bmqp {
 // =========================
 
 /// Mechanism to build a BlazingMQ STORAGE event
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class StorageEventBuilder BSLS_CPP11_FINAL {
   public:
     /// Pool of shared pointers to Blobs
@@ -214,6 +215,7 @@ class StorageEventBuilder BSLS_CPP11_FINAL {
     /// passed and kept in another thread while this builder object is used.
     const bsl::shared_ptr<bdlbb::Blob>& blob() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

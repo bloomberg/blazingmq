@@ -63,6 +63,7 @@ namespace mqbc {
 /// This struct defines various status of a leader node in a cluster.
 struct ElectorInfoLeaderStatus {
     // TYPES
+    // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
     enum Enum { e_UNDEFINED = 0, e_PASSIVE = 1, e_ACTIVE = 2 };
 
     // CLASS METHODS
@@ -120,6 +121,7 @@ bsl::ostream& operator<<(bsl::ostream&                 stream,
 /// @note This is purposely not a pure interface, each method has a default
 ///       void implementation, so that clients only need to implement the ones
 ///       they care about.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ElectorInfoObserver {
   public:
     // CREATORS
@@ -140,6 +142,7 @@ class ElectorInfoObserver {
     virtual void onClusterLeader(mqbnet::ClusterNode*          node,
                                  ElectorInfoLeaderStatus::Enum status);
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =================
 // class ElectorInfo

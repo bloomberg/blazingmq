@@ -100,6 +100,7 @@ class StorageManagerIterator;
 /// on storage partitions. Every operation including and not limited to change
 /// in partition node ownership and syncing partition info should be routed via
 /// this component.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class StorageManager BSLS_KEYWORD_FINAL
 : public mqbi::StorageManager,
   public PartitionStateTableActions<PartitionFSM::EventWithData>,
@@ -199,6 +200,7 @@ class StorageManager BSLS_KEYWORD_FINAL
     // PRIVATE TYPES
     /// VST representing data push/drop destinations for the immediate next
     /// sends.
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     struct DataDestinations {
       public:
         // DATA
@@ -224,6 +226,7 @@ class StorageManager BSLS_KEYWORD_FINAL
         DataDestinations(const DataDestinations& other,
                          bslma::Allocator*       allocator = 0);
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
   private:
     // DATA
@@ -1085,6 +1088,7 @@ class StorageManager BSLS_KEYWORD_FINAL
     ///         partition dispatcher thread for the specified `partitionId`.
     bool isWatchdogActive(int partitionId) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================
 // class StorageManagerIterator
@@ -1098,6 +1102,7 @@ class StorageManager BSLS_KEYWORD_FINAL
 /// construction and unlocking it at the iterator's destruction.  This
 /// guarantees that during the life time of an iterator, the partition's
 /// storage map can't be modified.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class StorageManagerIterator : public mqbi::StorageManagerIterator {
   private:
     // PRIVATE TYPES
@@ -1158,6 +1163,7 @@ class StorageManagerIterator : public mqbi::StorageManagerIterator {
     /// class object, its okay to pass a raw pointer.
     const mqbs::ReplicatedStorage* storage() const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                            INLINE DEFINITIONS
@@ -1197,11 +1203,13 @@ inline void StorageManagerIterator::operator++()
 
 // ACCESSORS
 inline StorageManagerIterator::operator const void*() const
+// NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast)
 {
     return (d_iterator == d_map_p->end())
                ? 0
                : const_cast<StorageManagerIterator*>(this);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-const-cast)
 
 inline const bmqt::Uri& StorageManagerIterator::uri() const
 {

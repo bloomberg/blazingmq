@@ -75,9 +75,11 @@ namespace {
 
 /// The default timeout for scheduled PUT expiration clean-up event.
 static const bsls::Types::Int64 k_DEFAULT_PUT_EXPIRATION_TIMEOUT_MINUTES = 5;
+// NOLINTBEGIN(cppcoreguidelines-interfaces-global-init)
 static const bsls::Types::Int64 k_DEFAULT_PUT_EXPIRATION_TIMEOUT_NS =
     k_DEFAULT_PUT_EXPIRATION_TIMEOUT_MINUTES *
     bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MINUTE;
+// NOLINTEND(cppcoreguidelines-interfaces-global-init)
 
 }  // close unnamed namespace
 
@@ -87,6 +89,7 @@ static const bsls::Types::Int64 k_DEFAULT_PUT_EXPIRATION_TIMEOUT_NS =
 
 int RemoteQueue::configureAsProxy(bsl::ostream& errorDescription,
                                   bool          isReconfigure)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -180,8 +183,10 @@ int RemoteQueue::configureAsProxy(bsl::ostream& errorDescription,
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 int RemoteQueue::configureAsClusterMember(bool isReconfigure)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -193,8 +198,8 @@ int RemoteQueue::configureAsClusterMember(bool isReconfigure)
         rc_ENGINE_CONFIGURE_FAILURE = -2
     };
 
-    int                     rc        = 0;
-    mqbi::Queue*            queue     = d_state_p->queue();
+    int                                     rc    = 0;
+    mqbi::Queue*                            queue = d_state_p->queue();
     bsl::shared_ptr<const mqbconfm::Domain> domainCfg =
         d_state_p->domain()->config();
 
@@ -202,7 +207,8 @@ int RemoteQueue::configureAsClusterMember(bool isReconfigure)
         // Only create a storage if this is the initial configure; reconfigure
         // (which happens during conversion to local/remote) should reuse the
         // previously created storage.
-        bsl::shared_ptr<mqbi::Storage>        storageSp;
+        bsl::shared_ptr<mqbi::Storage> storageSp;
+        // NOLINTNEXTLINE(*-magic-numbers)
         bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
         bmqu::MemOutStream                    errorDesc(&localAllocator);
         rc = d_state_p->storageManager()->configureStorage(
@@ -259,6 +265,7 @@ int RemoteQueue::configureAsClusterMember(bool isReconfigure)
                                         domainCfg->maxDeliveryAttempts());
     }
 
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
     bmqu::MemOutStream                    errorDesc(&localAllocator);
     rc = d_queueEngine_mp->configure(errorDesc, isReconfigure);
@@ -292,6 +299,7 @@ int RemoteQueue::configureAsClusterMember(bool isReconfigure)
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 bool RemoteQueue::loadSubQueueInfos(
     bmqp::Protocol::SubQueueInfosArray* subQueueInfos,
@@ -458,6 +466,7 @@ void RemoteQueue::pushMessage(
     // 'flush' will inform the queue engine so it delivers the message.
 }
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 RemoteQueue::RemoteQueue(QueueState*       state,
                          int               deduplicationTimeMs,
                          int               ackWindowSize,
@@ -479,6 +488,10 @@ RemoteQueue::RemoteQueue(QueueState*       state,
 , d_statePool_p(statePool)
 , d_producerState()
 , d_allocator_p(allocator)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_state_p);
@@ -501,6 +514,7 @@ RemoteQueue::RemoteQueue(QueueState*       state,
     // 1 log per 5s interval
 
     // Description, to identify a 'remote' queue, prefix its URI with an '@'.
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
     bmqu::MemOutStream                    os(&localAllocator);
     os << '@' << d_state_p->uri().asString();
@@ -521,6 +535,11 @@ RemoteQueue::RemoteQueue(QueueState*       state,
     BALL_LOG_INFO << "Remote queue: " << d_state_p->uri()
                   << " [id: " << d_state_p->id() << "]";
 }
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 RemoteQueue::~RemoteQueue()
 {
@@ -557,6 +576,7 @@ int RemoteQueue::configure(bsl::ostream& errorDescription, bool isReconfigure)
 }
 
 void RemoteQueue::resetState()
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     // executed by the *DISPATCHER* thread
 
@@ -576,6 +596,7 @@ void RemoteQueue::resetState()
                                        mqbu::StorageKey::k_NULL_KEY);
     d_pendingConfirms.clear();
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 void RemoteQueue::close()
 {
@@ -616,6 +637,7 @@ void RemoteQueue::getHandle(
     const bmqp_ctrlmsg::QueueHandleParameters&                handleParameters,
     unsigned int                                upstreamSubQueueId,
     const mqbi::QueueHandle::GetHandleCallback& callback)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     // executed by the *DISPATCHER* thread
 
@@ -656,6 +678,7 @@ void RemoteQueue::getHandle(
                                 upstreamSubQueueId,
                                 callback);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 void RemoteQueue::configureHandle(
     mqbi::QueueHandle*                                 handle,
@@ -871,6 +894,7 @@ void RemoteQueue::postMessage(const bmqp::PutHeader&              putHeaderIn,
                               const bsl::shared_ptr<bdlbb::Blob>& appData,
                               const bsl::shared_ptr<bdlbb::Blob>& options,
                               mqbi::QueueHandle*                  source)
+// NOLINTBEGIN(*-narrowing-conversions,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     // executed by the *DISPATCHER* thread
 
@@ -1087,6 +1111,7 @@ void RemoteQueue::postMessage(const bmqp::PutHeader&              putHeaderIn,
         d_queueEngine_mp->afterPostMessage();
     }
 }
+// NOLINTEND(*-narrowing-conversions,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 void RemoteQueue::confirmMessage(const bmqt::MessageGUID& msgGUID,
                                  unsigned int             upstreamSubQueueId,
@@ -1138,6 +1163,7 @@ void RemoteQueue::confirmMessage(const bmqt::MessageGUID& msgGUID,
 int RemoteQueue::rejectMessage(const bmqt::MessageGUID& msgGUID,
                                unsigned int             upstreamSubQueueId,
                                mqbi::QueueHandle*       source)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     // executed by the *DISPATCHER* thread
 
@@ -1177,7 +1203,7 @@ int RemoteQueue::rejectMessage(const bmqt::MessageGUID& msgGUID,
             .setSubQueueId(upstreamSubQueueId)
             .setMessageGUID(msgGUID);
 
-        mqbi::Dispatcher*      dispatcher = queue->dispatcher();
+        mqbi::Dispatcher*                    dispatcher = queue->dispatcher();
         bsl::shared_ptr<mqbevt::RejectEvent> event_sp =
             d_state_p->queue()->getEvent<mqbevt::RejectEvent>();
         // Relay message
@@ -1197,10 +1223,12 @@ int RemoteQueue::rejectMessage(const bmqt::MessageGUID& msgGUID,
     }
     return result;
 }
+// NOLINTEND(*-narrowing-conversions)
 
 void RemoteQueue::sendConfirmMessage(const bmqt::MessageGUID& msgGUID,
                                      unsigned int       upstreamSubQueueId,
                                      mqbi::QueueHandle* source)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     // executed by the *DISPATCHER* thread
 
@@ -1235,6 +1263,7 @@ void RemoteQueue::sendConfirmMessage(const bmqt::MessageGUID& msgGUID,
         }
     }
 }
+// NOLINTEND(*-narrowing-conversions)
 
 void RemoteQueue::onAckMessageDispatched(const mqbevt::AckEvent& event)
 {
@@ -1404,9 +1433,10 @@ void RemoteQueue::expirePendingMessagesDispatched()
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_state_p->queue()->inDispatcherThread());
 
-    bsls::Types::Int64 now         = bmqu::Time::highResolutionTimer();
-    bsls::Types::Int64 nextTime    = 0;
-    bsls::Types::Int64 numExpired  = 0;
+    bsls::Types::Int64 now        = bmqu::Time::highResolutionTimer();
+    bsls::Types::Int64 nextTime   = 0;
+    bsls::Types::Int64 numExpired = 0;
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     bsls::Types::Int64 numMessages = d_pendingMessages.size();
     bmqp::AckMessage   ackMessage;
 
@@ -1706,12 +1736,14 @@ void RemoteQueue::onLostUpstream()
     BSLS_ASSERT_SAFE(d_state_p->queue()->inDispatcherThread());
 
     // Connection with upstream was lost.
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (SubQueueIds::iterator i = d_subStreams.begin();
          i != d_subStreams.end();
          ++i) {
         i->d_state    = SubStreamContext::e_STOPPED;
         i->d_genCount = 0;
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     d_producerState.d_state    = SubStreamContext::e_STOPPED;
     d_producerState.d_genCount = 0;
@@ -1796,6 +1828,7 @@ void RemoteQueue::onOpenUpstream(bsls::Types::Uint64 genCount,
 
 // ACCESSORS
 void RemoteQueue::loadInternals(mqbcmd::RemoteQueue* out) const
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     // executed by the *DISPATCHER* thread
 
@@ -1806,6 +1839,7 @@ void RemoteQueue::loadInternals(mqbcmd::RemoteQueue* out) const
     out->numPendingConfirms()             = d_pendingConfirms.size();
     out->isPushExpirationTimerScheduled() = d_pendingMessagesTimerEventHandle;
     int i                                 = 0;
+    // NOLINTBEGIN(*-narrowing-conversions,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (SubQueueIds::const_iterator cit = d_subStreams.begin();
          cit != d_subStreams.end();
          ++cit, ++i) {
@@ -1817,10 +1851,12 @@ void RemoteQueue::loadInternals(mqbcmd::RemoteQueue* out) const
             out->streams().push_back(info);
         }
     }
+    // NOLINTEND(*-narrowing-conversions,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     // QueueEngine
     d_queueEngine_mp->loadInternals(&out->queueEngine());
 }
+// NOLINTEND(*-narrowing-conversions)
 
 }  // close package namespace
 }  // close enterprise namespace

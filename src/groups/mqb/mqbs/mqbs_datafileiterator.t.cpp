@@ -63,10 +63,13 @@ static char* addRecords(bslma::Allocator*     ta,
     // Have to compute the 'totalSize' we need for the 'MemoryBlock' based on
     // the padding that we need for each record.
 
+    // NOLINTBEGIN(*-narrowing-conversions)
     for (unsigned int i = 0; i < numMessages; i++) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         unsigned int optionsLen = bsl::strlen(messages[i].d_options_p);
         BSLS_ASSERT_OPT(0 == optionsLen % bmqp::Protocol::k_WORD_SIZE);
 
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         unsigned int appDataLen     = bsl::strlen(messages[i].d_appData_p);
         int          appDataPadding = 0;
         bmqp::ProtocolUtil::calcNumDwordsAndPadding(&appDataPadding,
@@ -75,6 +78,7 @@ static char* addRecords(bslma::Allocator*     ta,
 
         totalSize += dhSize + appDataLen + appDataPadding + optionsLen;
     }
+    // NOLINTEND(*-narrowing-conversions)
 
     // Allocate the memory now.
     char* p = static_cast<char*>(ta->allocate(totalSize));
@@ -100,19 +104,23 @@ static char* addRecords(bslma::Allocator*     ta,
     dfh->setHeaderWords(sizeof(DataFileHeader) / bmqp::Protocol::k_WORD_SIZE);
     currPos += sizeof(DataFileHeader);
 
+    // NOLINTBEGIN(*-narrowing-conversions,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (unsigned int i = 0; i < numMessages; i++) {
         OffsetPtr<DataHeader> dh(block, currPos);
         new (dh.get()) DataHeader();
 
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         unsigned int optionsLen = bsl::strlen(messages[i].d_options_p);
         dh->setOptionsWords(optionsLen / bmqp::Protocol::k_WORD_SIZE);
         currPos += sizeof(DataHeader);
 
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-reinterpret-cast)
         char* destination = reinterpret_cast<char*>(block.base() + currPos);
         bsl::memcpy(destination, messages[i].d_options_p, optionsLen);
         currPos += optionsLen;
         destination += optionsLen;
 
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         unsigned int appDataLen = bsl::strlen(messages[i].d_appData_p);
         int          appDataPad = 0;
         bmqp::ProtocolUtil::calcNumDwordsAndPadding(&appDataPad,
@@ -129,6 +137,7 @@ static char* addRecords(bslma::Allocator*     ta,
                             ((appDataLen + appDataPad + optionsLen) /
                              bmqp::Protocol::k_WORD_SIZE));
     }
+    // NOLINTEND(*-narrowing-conversions,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     *fileHeader = *fh;
 
@@ -213,6 +222,7 @@ static void test2_forwardIteration()
 {
     bmqtst::TestHelper::printTestName("FORWARD ITERATION");
 
+    // NOLINTBEGIN(*-avoid-c-arrays)
     const Message MESSAGES[] = {
         {
             L_,
@@ -231,16 +241,20 @@ static void test2_forwardIteration()
         {L_, "APP_DATA_APP_DATA_APP_DATA_APP_DATA_APP_DATA_APP_DATA", ""},
         {L_, "A", "OPTIONS_OPTIONS_OPTIONS_OPTIONS_OPTIONS_OPTIONS_OPTIONS_"},
     };
+    // NOLINTEND(*-avoid-c-arrays)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const unsigned int k_NUM_MSGS = sizeof(MESSAGES) / sizeof(*MESSAGES);
 
     FileHeader           fileHeader;
     MappedFileDescriptor mfd;
-    char*                p = addRecords(bmqtst::TestHelperUtil::allocator(),
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+    char* p = addRecords(bmqtst::TestHelperUtil::allocator(),
                          &mfd,
                          &fileHeader,
                          MESSAGES,
                          k_NUM_MSGS);
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
     BMQTST_ASSERT(p != 0);
     BMQTST_ASSERT_GT(mfd.fileSize(), 0ULL);
@@ -257,6 +271,7 @@ static void test2_forwardIteration()
     unsigned int offset = sizeof(FileHeader) + sizeof(DataFileHeader);
     BMQTST_ASSERT_EQ(offset, it.firstRecordPosition());
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
     while (it.nextRecord() == 1) {
         BMQTST_ASSERT_EQ_D(i, it.recordOffset(), offset);
         BMQTST_ASSERT_EQ_D(i, it.recordIndex(), i);
@@ -283,6 +298,7 @@ static void test2_forwardIteration()
         offset += (dh.messageWords() * bmqp::Protocol::k_WORD_SIZE);
         ++i;
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
 
     BMQTST_ASSERT_EQ(i, k_NUM_MSGS);
 
@@ -300,6 +316,7 @@ static void test3_reverseIteration()
 {
     bmqtst::TestHelper::printTestName("REVERSE ITERATION");
 
+    // NOLINTBEGIN(*-avoid-c-arrays)
     const Message MESSAGES[] = {
         {
             L_,
@@ -318,16 +335,20 @@ static void test3_reverseIteration()
         {L_, "APP_DATA_APP_DATA_APP_DATA_APP_DATA_APP_DATA_APP_DATA", ""},
         {L_, "A", "OPTIONS_OPTIONS_OPTIONS_OPTIONS_OPTIONS_OPTIONS_OPTIONS_"},
     };
+    // NOLINTEND(*-avoid-c-arrays)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const unsigned int k_NUM_MSGS = sizeof(MESSAGES) / sizeof(*MESSAGES);
 
     FileHeader           fileHeader;
     MappedFileDescriptor mfd;
-    char*                p = addRecords(bmqtst::TestHelperUtil::allocator(),
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+    char* p = addRecords(bmqtst::TestHelperUtil::allocator(),
                          &mfd,
                          &fileHeader,
                          MESSAGES,
                          k_NUM_MSGS);
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
     BMQTST_ASSERT(p != 0);
     BMQTST_ASSERT_GT(mfd.fileSize(), 0ULL);
@@ -369,6 +390,7 @@ static void test3_reverseIteration()
     // 5.
 
     unsigned int i = 0;
+    // NOLINTBEGIN(cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-constant-array-index)
     while (it.nextRecord() == 1) {
         BMQTST_ASSERT_EQ_D(i, k_NUM_MSGS - i - 2, it.recordIndex());
 
@@ -376,9 +398,11 @@ static void test3_reverseIteration()
         unsigned int length;
         it.loadApplicationData(&data, &length);
 
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
         int rc = bsl::memcmp(data,
                              MESSAGES[k_NUM_MSGS - i - 2].d_appData_p,
                              length);
+        // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
         BMQTST_ASSERT_EQ_D(i, rc, 0);
 
         it.loadOptions(&data, &length);
@@ -391,6 +415,7 @@ static void test3_reverseIteration()
 
         ++i;
     }
+    // NOLINTEND(cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-constant-array-index)
 
     BMQTST_ASSERT_EQ(i, k_NUM_MSGS - 1);
     BMQTST_ASSERT_EQ(it.isValid(), false);
@@ -403,6 +428,7 @@ static void test3_reverseIteration()
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -419,3 +445,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

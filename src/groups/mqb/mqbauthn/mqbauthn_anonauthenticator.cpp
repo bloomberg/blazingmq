@@ -85,6 +85,7 @@ AnonAuthenticator::AnonAuthenticator(
     bool isShouldPassFound = false;
     bsl::vector<mqbcfg::PluginSettingKeyValue>::const_iterator it =
         config->settings().cbegin();
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (; it != config->settings().cend(); ++it) {
         if (it->key() == "shouldPass") {
             if (!it->value().isBoolValValue()) {
@@ -101,6 +102,7 @@ AnonAuthenticator::AnonAuthenticator(
             isShouldPassFound = true;
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     if (isShouldPassFound) {
         BALL_LOG_INFO << "Setting found in configuration: using shouldPass = "
                       << (d_shouldPass ? "true" : "false");

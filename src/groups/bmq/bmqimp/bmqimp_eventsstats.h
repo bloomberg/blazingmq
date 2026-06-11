@@ -60,6 +60,7 @@ namespace bmqimp {
 ///       be updated.
 struct EventsStatsEventType {
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         e_ACK     = 0,
         e_CONFIRM = 1,
@@ -68,6 +69,7 @@ struct EventsStatsEventType {
         e_PUT     = 4,
         e_LAST    = 5  // enum item count
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // MANIPULATORS
 
@@ -87,6 +89,7 @@ struct EventsStatsEventType {
 // =================
 
 /// Events statistics manipulator
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class EventsStats {
   private:
     // PRIVATE TYPES
@@ -100,6 +103,7 @@ class EventsStats {
     Stat d_stat;
     // Stat holder
 
+    // NOLINTNEXTLINE(*-avoid-c-arrays)
     StatContextMp d_statContexts_mp[EventsStatsEventType::e_LAST];
     // SubContext for each of the various event's type
 
@@ -149,6 +153,7 @@ class EventsStats {
     /// column if the specified `includeDelta` is true.
     void printStats(bsl::ostream& stream, bool includeDelta) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

@@ -57,6 +57,7 @@ class MessageCorrelationIdContainer;
 // ===================
 
 /// Mechanism to dump messages.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class MessageDumper BSLS_CPP11_FINAL {
   private:
     // CLASS-SCOPE CATEGORY
@@ -246,6 +247,7 @@ class MessageDumper BSLS_CPP11_FINAL {
     template <bmqp::EventType::Enum type>
     bool isEventDumpEnabled() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

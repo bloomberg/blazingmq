@@ -369,6 +369,7 @@ struct SessionUtil {
 // Session management helpers
 // --------------------------
 int SessionUtil::createApplication(SessionImpl* sessionImpl)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(sessionImpl);
@@ -458,8 +459,10 @@ int SessionUtil::createApplication(SessionImpl* sessionImpl)
 
     return 0;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 int SessionUtil::validateOptions(const bmqt::SessionOptions& options)
+// NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
 {
 #define VALIDATE_TIMEOUT(OP)                                                  \
     do {                                                                      \
@@ -485,6 +488,7 @@ int SessionUtil::validateOptions(const bmqt::SessionOptions& options)
 
     return rc;
 }
+// NOLINTEND(cppcoreguidelines-avoid-do-while)
 
 // Event handler helpers
 // ------------------------
@@ -502,6 +506,7 @@ void SessionUtil::eventHandlerCB(
     case bmqimp::Event::EventType::e_SESSION: {
         SessionEvent                    event;
         bsl::shared_ptr<bmqimp::Event>& implRef =
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
             reinterpret_cast<bsl::shared_ptr<bmqimp::Event>&>(event);
         implRef = eventImpl;
         sessionImpl->d_eventHandler_mp->onSessionEvent(event);
@@ -509,6 +514,7 @@ void SessionUtil::eventHandlerCB(
     case bmqimp::Event::EventType::e_MESSAGE: {
         MessageEvent                    event;
         bsl::shared_ptr<bmqimp::Event>& implRef =
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
             reinterpret_cast<bsl::shared_ptr<bmqimp::Event>&>(event);
         implRef = eventImpl;
         sessionImpl->d_eventHandler_mp->onMessageEvent(event);
@@ -530,6 +536,7 @@ inline void SessionUtil::makeSessionEventFromImpl(
     const bsl::shared_ptr<bmqimp::Event>& eventImpl)
 {
     bsl::shared_ptr<bmqimp::Event>& implRef =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         reinterpret_cast<bsl::shared_ptr<bmqimp::Event>&>(*event);
     implRef = eventImpl;
 }
@@ -643,8 +650,10 @@ bmqt::OpenQueueResult::Enum SessionUtil::validateAndSetOpenQueueParameters(
     }
 
     // Validate the queue flags
+    // NOLINTBEGIN(*-magic-numbers)
     bdlma::LocalSequentialAllocator<1024> localAllocator(
         sessionImpl->d_allocator_p);
+    // NOLINTEND(*-magic-numbers)
     bmqu::MemOutStream error(&localAllocator);
     if (!bmqt::QueueFlagsUtil::isValid(error, flags)) {
         (*errorDescription)
@@ -668,6 +677,7 @@ bmqt::OpenQueueResult::Enum SessionUtil::validateAndSetOpenQueueParameters(
 
     // Convert to bmqimp::Queue and forward the openQueue to impl
     bsl::shared_ptr<bmqimp::Queue>& queue =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         reinterpret_cast<bsl::shared_ptr<bmqimp::Queue>&>(*queueId);
 
     bmqt::QueueOptions optionsCopy(options, sessionImpl->d_allocator_p);
@@ -800,6 +810,7 @@ class MessageEventCreator {
 
         // MessageEvent::d_impl is private
         bsl::shared_ptr<bmqimp::Event>& eventImplSpRef =
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
             reinterpret_cast<bsl::shared_ptr<bmqimp::Event>&>(result);
 
         eventImplSpRef = d_brokerSession_p->createEvent();
@@ -846,6 +857,7 @@ void SessionImpl::loadMessageEventBuilder(MessageEventBuilder* builder)
 
     // Get MessageEventBuilderImpl from MessageEventBuilder
     MessageEventBuilderImpl& builderImplRef =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         reinterpret_cast<MessageEventBuilderImpl&>(builderRef);
 
     builderImplRef.d_guidGenerator_sp = d_guidGenerator_sp;
@@ -978,6 +990,7 @@ void Session::loadMessageEventBuilder(MessageEventBuilder* builder)
 }
 
 void Session::loadConfirmEventBuilder(ConfirmEventBuilder* builder)
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     // PRECONDITIONS
     BSLS_ASSERT(d_impl.d_application_mp && "This session was not started");
@@ -987,6 +1000,7 @@ void Session::loadConfirmEventBuilder(ConfirmEventBuilder* builder)
 
     // Get ConfirmEventBuilderImpl from ConfirmEventBuilder
     ConfirmEventBuilderImpl& builderImplRef =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         reinterpret_cast<ConfirmEventBuilderImpl&>(builderRef);
 
     if (builderImplRef.d_builder_p) {
@@ -1003,6 +1017,7 @@ void Session::loadConfirmEventBuilder(ConfirmEventBuilder* builder)
     builderImplRef.d_builder_p = reinterpret_cast<bmqp::ConfirmEventBuilder*>(
         builderImplRef.d_buffer.buffer());
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 void Session::loadMessageProperties(MessageProperties* buffer)
 {
@@ -1031,6 +1046,7 @@ int Session::getQueueId(QueueId* queueId, const bmqt::Uri& uri)
     }
 
     bsl::shared_ptr<bmqimp::Queue>& queueImplSpRef =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         reinterpret_cast<bsl::shared_ptr<bmqimp::Queue>&>(*queueId);
     queueImplSpRef = queue;
 
@@ -1056,6 +1072,7 @@ int Session::getQueueId(QueueId*                   queueId,
     }
 
     bsl::shared_ptr<bmqimp::Queue>& queueImplSpRef =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         reinterpret_cast<bsl::shared_ptr<bmqimp::Queue>&>(*queueId);
     queueImplSpRef = queue;
 
@@ -1092,6 +1109,7 @@ int Session::openQueue(QueueId*                  queueId,
 
     // Convert to bmqimp::Queue and forward the openQueue to impl
     bsl::shared_ptr<bmqimp::Queue>& queue =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         reinterpret_cast<bsl::shared_ptr<bmqimp::Queue>&>(*queueId);
 
     BALL_LOG_INFO << "Open queue (SYNC DEPRECATED)"
@@ -1136,6 +1154,7 @@ OpenQueueStatus Session::openQueueSync(QueueId*                  queueId,
     // of the operation is serialized through the queue of incoming events).
     bmqa::OpenQueueStatus           status;
     bsl::shared_ptr<bmqimp::Queue>& queue =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         reinterpret_cast<bsl::shared_ptr<bmqimp::Queue>&>(*queueId);
 
     BALL_LOG_INFO << "Open queue (SYNC)"
@@ -1160,6 +1179,7 @@ int Session::openQueue(const QueueId&            queueId,
                        const bmqt::QueueOptions& options,
                        const bsls::TimeInterval& timeout)
 {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
     QueueId* queue = const_cast<QueueId*>(&queueId);
     return openQueue(queue, uri, flags, options, timeout);
 }
@@ -1194,6 +1214,7 @@ int Session::openQueueAsync(QueueId*                  queueId,
 
     // Convert to bmqimp::Queue and forward the openQueue to impl
     bsl::shared_ptr<bmqimp::Queue>& queue =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         reinterpret_cast<bsl::shared_ptr<bmqimp::Queue>&>(*queueId);
 
     BALL_LOG_INFO << "Open queue (ASYNC)"
@@ -1214,6 +1235,7 @@ void Session::openQueueAsync(bmqa::QueueId*            queueId,
                              const bsls::TimeInterval& timeout)
 {
     bsl::shared_ptr<bmqimp::Queue>& queue =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         reinterpret_cast<bsl::shared_ptr<bmqimp::Queue>&>(*queueId);
 
     // Wrap the user-specified callback
@@ -1293,6 +1315,7 @@ int Session::configureQueue(QueueId*                  queueId,
 
     // Convert to bmqimp::Queue and forward the configureQueue to impl
     bsl::shared_ptr<bmqimp::Queue>& queue =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         reinterpret_cast<bsl::shared_ptr<bmqimp::Queue>&>(*queueId);
 
     BALL_LOG_INFO << "Configure queue (SYNC DEPRECATED)"
@@ -1339,6 +1362,7 @@ Session::configureQueueSync(QueueId*                  queueId,
     // events).
     bmqa::ConfigureQueueStatus            status;
     const bsl::shared_ptr<bmqimp::Queue>& queue =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         reinterpret_cast<const bsl::shared_ptr<bmqimp::Queue>&>(*queueId);
 
     BALL_LOG_INFO << "Configure queue (SYNC)"
@@ -1385,6 +1409,7 @@ int Session::configureQueueAsync(QueueId*                  queueId,
 
     // Convert to bmqimp::Queue and forward the configureQueueAsync to impl
     bsl::shared_ptr<bmqimp::Queue>& queue =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         reinterpret_cast<bsl::shared_ptr<bmqimp::Queue>&>(*queueId);
 
     BALL_LOG_INFO << "Configure queue (ASYNC)"
@@ -1405,6 +1430,7 @@ void Session::configureQueueAsync(QueueId*                      queueId,
                                   const bsls::TimeInterval&     timeout)
 {
     const bsl::shared_ptr<bmqimp::Queue>& queue =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         reinterpret_cast<const bsl::shared_ptr<bmqimp::Queue>&>(*queueId);
 
     // Wrap the user-specified callback
@@ -1478,6 +1504,7 @@ int Session::closeQueue(QueueId* queueId, const bsls::TimeInterval& timeout)
 
     // Convert to bmqimp::Queue and forward the configureQueue to impl
     bsl::shared_ptr<bmqimp::Queue>& queue =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         reinterpret_cast<bsl::shared_ptr<bmqimp::Queue>&>(*queueId);
 
     BALL_LOG_INFO << "Close queue (SYNC DEPRECATED)"
@@ -1517,6 +1544,7 @@ CloseQueueStatus Session::closeQueueSync(QueueId*                  queueId,
     // events).
     bmqa::CloseQueueStatus                status;
     const bsl::shared_ptr<bmqimp::Queue>& queue =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         reinterpret_cast<const bsl::shared_ptr<bmqimp::Queue>&>(*queueId);
 
     BALL_LOG_INFO << "Close queue (SYNC)"
@@ -1537,6 +1565,7 @@ CloseQueueStatus Session::closeQueueSync(QueueId*                  queueId,
 int Session::closeQueue(const QueueId&            queueId,
                         const bsls::TimeInterval& timeout)
 {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
     QueueId* queue = const_cast<QueueId*>(&queueId);
     return closeQueue(queue, timeout);
 }
@@ -1565,6 +1594,7 @@ int Session::closeQueueAsync(QueueId*                  queueId,
 
     // Convert to bmqimp::Queue and forward the configureQueue to impl
     bsl::shared_ptr<bmqimp::Queue>& queue =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         reinterpret_cast<bsl::shared_ptr<bmqimp::Queue>&>(*queueId);
 
     BALL_LOG_INFO << "Close queue (ASYNC)"
@@ -1581,6 +1611,7 @@ void Session::closeQueueAsync(QueueId*                  queueId,
                               const bsls::TimeInterval& timeout)
 {
     const bsl::shared_ptr<bmqimp::Queue>& queue =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         reinterpret_cast<const bsl::shared_ptr<bmqimp::Queue>&>(*queueId);
 
     // Wrap the user-specified callback
@@ -1632,17 +1663,20 @@ void Session::closeQueueAsync(QueueId*                  queueId,
 int Session::closeQueueAsync(const QueueId&            queueId,
                              const bsls::TimeInterval& timeout)
 {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
     QueueId* queue = const_cast<QueueId*>(&queueId);
     return closeQueueAsync(queue, timeout);
 }
 
 Event Session::nextEvent(const bsls::TimeInterval& timeout)
+// NOLINTBEGIN(*-magic-numbers)
 {
     // PRECONDITIONS
     BSLS_ASSERT(d_impl.d_application_mp && "The session was not started");
 
     Event                           event;
     bsl::shared_ptr<bmqimp::Event>& eventImplSpRef =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         reinterpret_cast<bsl::shared_ptr<bmqimp::Event>&>(event);
 
     // If no timeout was specified, use a long timeout to simulate a 'no
@@ -1655,6 +1689,7 @@ Event Session::nextEvent(const bsls::TimeInterval& timeout)
     eventImplSpRef = d_impl.d_application_mp->brokerSession().nextEvent(time);
     return event;
 }
+// NOLINTEND(*-magic-numbers)
 
 int Session::post(const MessageEvent& event)
 {
@@ -1666,6 +1701,7 @@ int Session::post(const MessageEvent& event)
     }
 
     const bsl::shared_ptr<bmqimp::Event>& eventSpRef =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         reinterpret_cast<const bsl::shared_ptr<bmqimp::Event>&>(event);
 
     BSLS_ASSERT_SAFE(0 != eventSpRef.get());
@@ -1688,8 +1724,10 @@ int Session::confirmMessage(const MessageConfirmationCookie& cookie)
     }
 
     const bsl::shared_ptr<bmqimp::Queue>& queue =
+        // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
         reinterpret_cast<const bsl::shared_ptr<bmqimp::Queue>&>(
             cookie.queueId());
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
     return d_impl.d_application_mp->brokerSession().confirmMessage(
         queue,
@@ -1724,6 +1762,7 @@ int Session::confirmMessages(ConfirmEventBuilder* builder)
 }
 
 int Session::configureMessageDumping(const bslstl::StringRef& command)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     if (!d_impl.d_application_mp || !d_impl.d_application_mp->isStarted()) {
         return bmqt::GenericResult::e_NOT_CONNECTED;  // RETURN
@@ -1746,6 +1785,7 @@ int Session::configureMessageDumping(const bslstl::StringRef& command)
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 }  // close package namespace
 }  // close enterprise namespace

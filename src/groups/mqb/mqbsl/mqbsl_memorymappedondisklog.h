@@ -57,6 +57,7 @@ namespace mqbsl {
 // ==================================
 
 /// Factory used to create in-memory log instances.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class MemoryMappedOnDiskLogFactory BSLS_KEYWORD_FINAL
 : public mqbsi::LogFactory {
   private:
@@ -86,12 +87,14 @@ class MemoryMappedOnDiskLogFactory BSLS_KEYWORD_FINAL
     bslma::ManagedPtr<mqbsi::Log>
     create(const mqbsi::LogConfig& config) BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ===========================
 // class MemoryMappedOnDiskLog
 // ===========================
 
 /// This class implements an on-disk log using the mmap() syscall.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class MemoryMappedOnDiskLog BSLS_KEYWORD_FINAL : public OnDiskLog {
   private:
     // PRIVATE TYPES
@@ -276,6 +279,7 @@ class MemoryMappedOnDiskLog BSLS_KEYWORD_FINAL : public OnDiskLog {
     /// Return the config of this on-disk log
     const mqbsi::LogConfig& config() const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

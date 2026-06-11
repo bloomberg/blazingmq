@@ -52,8 +52,10 @@ namespace {
 BALL_LOG_SET_NAMESPACE_CATEGORY("BMQIMP.EVENTQUEUE");
 
 /// Name of the stat context to create for holding this component's stats
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char k_STAT_NAME[] = "EventQueue";
 
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 enum {
     // Index of the different stat values
     /// Queue/Dequeue
@@ -61,6 +63,7 @@ enum {
     /// Event queued time
     k_STAT_TIME = 1
 };
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 }  // close unnamed namespace
 
@@ -321,10 +324,12 @@ EventQueue::EventQueue(EventPool*                  eventPool,
                              bdlf::PlaceHolders::_1));  // state
 }
 
+// NOLINTBEGIN(bugprone-exception-escape)
 EventQueue::~EventQueue()
 {
     stop();
 }
+// NOLINTEND(bugprone-exception-escape)
 
 void EventQueue::initializeStats(
     bmqst::StatContext*                       rootStatContext,
@@ -335,8 +340,10 @@ void EventQueue::initializeStats(
     BSLS_ASSERT_OPT(!d_stats_mp && "Stats already initialized");
 
     // Create stat sub-context
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<2048> localAllocator(d_allocator_p);
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bmqst::StatContextConfiguration config(k_STAT_NAME, &localAllocator);
     config.value("Queue").value("Time", bmqst::StatValue::e_DISCRETE);
     d_stats_mp = rootStatContext->addSubcontext(config);
@@ -559,6 +566,7 @@ bsl::shared_ptr<Event> EventQueue::popFront()
 bsl::shared_ptr<Event>
 EventQueue::timedPopFront(const bsls::TimeInterval& timeout,
                           const bsls::TimeInterval& now)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     bsl::shared_ptr<Event> event;
 
@@ -614,6 +622,7 @@ EventQueue::timedPopFront(const bsls::TimeInterval& timeout,
     afterEventPopped(item);
     return event;
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 void EventQueue::enqueuePoisonPill()
 {

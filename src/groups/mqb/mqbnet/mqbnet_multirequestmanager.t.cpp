@@ -99,6 +99,7 @@ typedef bmqp_ctrlmsg::ControlMessageChoice         ReqChoice;
 typedef bsl::unordered_set<ReqChoice>              ReqChoiceSet;
 typedef bsl::shared_ptr<bmqio::TestChannel>        ChannelSp;
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 const bsls::TimeInterval SEND_REQUEST_TIMEOUT(30);
 
 }  // close unnamed namespace
@@ -115,6 +116,7 @@ struct Caller {
     }
 };
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class TestContext {
   private:
     /// Allocator to use
@@ -227,11 +229,12 @@ class TestContext {
                                 int                 writeCount = 1,
                                 int                 adminCount = 0);
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 TestContext::TestContext(int nodesCount, bslma::Allocator* allocator)
 : d_allocator_p(bslma::Default::allocator(allocator))
 , d_tempDir(d_allocator_p)
-, d_cluster_mp(new(*d_allocator_p) mqbmock::Cluster(
+, d_cluster_mp(new (*d_allocator_p) mqbmock::Cluster(
                    d_allocator_p,
                    true,   // isClusterMember
                    false,  // isLeader
@@ -271,6 +274,7 @@ TestContext::TestContext(int nodesCount, bslma::Allocator* allocator)
 
 /// Set dummy callback to prevent bad_function_call for case if it has not
 /// been set before.
+// NOLINTBEGIN(bugprone-exception-escape)
 TestContext::~TestContext()
 {
     bool called = false;
@@ -282,6 +286,7 @@ TestContext::~TestContext()
     d_cluster_mp->netCluster().closeChannels();
     d_cluster_mp->_scheduler().stop();
 }
+// NOLINTEND(bugprone-exception-escape)
 
 // ACCESSORS
 bslma::Allocator* TestContext::allocator() const
@@ -311,9 +316,11 @@ Nodes& TestContext::nodes()
 
 // MANIPULATORS
 void TestContext::advanceTime(bsls::TimeInterval amount)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     d_cluster_mp->advanceTime(amount.seconds());
 }
+// NOLINTEND(*-narrowing-conversions)
 
 void TestContext::cancelRequests()
 {
@@ -393,6 +400,7 @@ TestContext::generateNodeDefs(int nodesCount, bslma::Allocator* allocator)
 {
     BMQTST_ASSERT_GT(nodesCount, 0);
     mqbmock::Cluster::ClusterNodeDefs clusterNodeDefs(allocator);
+    // NOLINTBEGIN(*-magic-numbers)
     for (int i = 0; i < nodesCount; ++i) {
         bsl::ostringstream nodeName(bmqtst::TestHelperUtil::allocator());
         nodeName << "testNode" << i;
@@ -404,6 +412,7 @@ TestContext::generateNodeDefs(int nodesCount, bslma::Allocator* allocator)
             mqbmock::Cluster::k_LEADER_NODE_ID + i,
             allocator);
     }
+    // NOLINTEND(*-magic-numbers)
     return clusterNodeDefs;
 }
 
@@ -463,9 +472,11 @@ static void test1_contextTest()
         TestContext::populateRequest(request);
         BMQTST_ASSERT_PASS(reqContext->request() = request->request());
 
+        // NOLINTBEGIN(*-magic-numbers)
         mqbmock::Cluster::ClusterNodeDefs defs = TestContext::generateNodeDefs(
             5,
             bmqtst::TestHelperUtil::allocator());
+        // NOLINTEND(*-magic-numbers)
         bmqu::TempDirectory tempDir(bmqtst::TestHelperUtil::allocator());
         mqbmock::Cluster    cluster(bmqtst::TestHelperUtil::allocator(),
                                  true,   // isClusterMember
@@ -483,10 +494,12 @@ static void test1_contextTest()
         BMQTST_ASSERT_EQ(nodes.size(), responses.size());
         NodesIt         nodesIt     = nodes.begin();
         NodeResponsesIt responsesIt = responses.begin();
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (; nodesIt != nodes.end() && responsesIt != responses.end();
              ++nodesIt, ++responsesIt) {
             BMQTST_ASSERT_EQ(*nodesIt, responsesIt->first);
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
         reqContext->clear();
         // Check that the MultiRequestManagerRequestContext object returned to
@@ -515,6 +528,7 @@ static void test2_creatorsTest()
 
     {
         // Success creation
+        // NOLINTNEXTLINE(*-magic-numbers)
         TestContext context(5, bmqtst::TestHelperUtil::allocator());
         BMQTST_ASSERT_PASS(
             MultiReqManagerType(context.manager().get(),
@@ -532,6 +546,7 @@ static void test3_sendRequestTest()
 
     {
         // Send one request and check it was delivered
+        // NOLINTNEXTLINE(*-magic-numbers)
         TestContext context(5, bmqtst::TestHelperUtil::allocator());
 
         ReqSp req = context.createRequest();
@@ -539,6 +554,7 @@ static void test3_sendRequestTest()
         context.sendRequest(req);
 
         NodesIt it = context.nodes().begin();
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (; it != context.nodes().end(); ++it) {
             ChannelSp ch = bsl::dynamic_pointer_cast<bmqio::TestChannel>(
                 (*it)->channel().channel());
@@ -547,6 +563,7 @@ static void test3_sendRequestTest()
             Mes controlMessage = context.getNextRequest(ch);
             BMQTST_ASSERT_EQ(req->request().choice(), controlMessage.choice());
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
 }
 
@@ -560,6 +577,7 @@ static void test4_handleResponseTest()
 
     {
         // Successfully receive responses from all the nodes
+        // NOLINTNEXTLINE(*-magic-numbers)
         TestContext context(5, bmqtst::TestHelperUtil::allocator());
         ReqSp       req = context.createRequest();
         context.populateRequest(req);
@@ -572,6 +590,7 @@ static void test4_handleResponseTest()
         bsl::vector<Mes> responses(bmqtst::TestHelperUtil::allocator());
         responses.reserve(context.nodes().size());
         NodesIt it = context.nodes().begin();
+        // NOLINTBEGIN(bugprone-unchecked-optional-access,cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (; it != context.nodes().end(); ++it) {
             ChannelSp ch = bsl::dynamic_pointer_cast<bmqio::TestChannel>(
                 (*it)->channel().channel());
@@ -581,25 +600,31 @@ static void test4_handleResponseTest()
             responses.emplace_back(
                 context.createResponse(controlMessage.rId().value()));
         }
+        // NOLINTEND(bugprone-unchecked-optional-access,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
         BMQTST_ASSERT(!called);
         bsl::vector<Mes>::const_iterator rIt = responses.begin();
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (; rIt != responses.end(); ++rIt) {
             context.manager()->processResponse(*rIt);
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         BMQTST_ASSERT(called);
 
         const NodeResponses& nodeResponses = context.context()->response();
         NodeResponsesIt      nodeIt        = nodeResponses.begin();
         rIt                                = responses.begin();
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (; nodeIt != nodeResponses.end() && rIt != responses.end();
              ++nodeIt, ++rIt) {
             BMQTST_ASSERT_EQ(nodeIt->second, *rIt);
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
 
     {
         // No responses from the nodes
+        // NOLINTNEXTLINE(*-magic-numbers)
         TestContext context(5, bmqtst::TestHelperUtil::allocator());
         ReqSp       req = context.createRequest();
         context.populateRequest(req);
@@ -667,6 +692,7 @@ static void test4_handleResponseTest()
         context.sendRequest(req);
 
         NodesIt it = context.nodes().begin();
+        // NOLINTBEGIN(bugprone-unchecked-optional-access,cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (; it != context.nodes().end(); ++it) {
             ChannelSp ch = bsl::dynamic_pointer_cast<bmqio::TestChannel>(
                 (*it)->channel().channel());
@@ -676,6 +702,7 @@ static void test4_handleResponseTest()
             responses.emplace(
                 context.createResponse(controlMessage.rId().value()));
         }
+        // NOLINTEND(bugprone-unchecked-optional-access,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
         // Start the threads to process responses from queue
         for (bsl::size_t i = 0; i < threadsCount; ++i) {
@@ -774,12 +801,14 @@ static void test5_cancelByComponentIdTest()
 
         // Verify the CLUSTER_FSM responses have cancel status
         const NodeResponses& clusterResponses = clusterCtx->response();
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (NodeResponsesIt rIt = clusterResponses.begin();
              rIt != clusterResponses.end();
              ++rIt) {
             BMQTST_ASSERT_EQ(rIt->second.choice().status().category(),
                              bmqp_ctrlmsg::StatusCategory::E_CANCELED);
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
 }
 
@@ -787,7 +816,14 @@ static void test5_cancelByComponentIdTest()
 //                                MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
+// NOLINTBEGIN(bugprone-exception-escape)
 int main(int argc, char* argv[])
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTBEGIN(cert-err34-c)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -812,3 +848,10 @@ int main(int argc, char* argv[])
     // Default: EventQueue uses bmqex::BindUtil::bindExecute(), which uses
     //          default allocator.
 }
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTEND(cert-err34-c)
+// NOLINTEND(bugprone-exception-escape)

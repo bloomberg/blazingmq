@@ -99,6 +99,7 @@ static void test1_breathingTest()
 // Testing:
 //  Basic Functionality
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
@@ -184,6 +185,7 @@ static void test1_breathingTest()
         // Verifies release occurred in the destructor above
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test2_atomicValidatorMultiThreaded()
 // ------------------------------------------------------------------------
@@ -200,6 +202,7 @@ static void test2_atomicValidatorMultiThreaded()
 // Testing:
 //  AtomicValidator
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("ATOMIC VALIDATOR - MULTI-THREADED");
 
@@ -211,6 +214,7 @@ static void test2_atomicValidatorMultiThreaded()
 
     // 1. Start several threads just doing acquire/release
     for (int i = 0; i < k_NUM_THREADS; ++i) {
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
         int ret = bslmt::ThreadUtil::createWithAllocator(
             &handles[i],
             bslmt::ThreadAttributes(),
@@ -219,6 +223,7 @@ static void test2_atomicValidatorMultiThreaded()
                                   &validator,
                                   &numRunningThreads),
             bmqtst::TestHelperUtil::allocator());
+        // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
         BMQTST_ASSERT_EQ(ret, 0);
     }
 
@@ -236,9 +241,11 @@ static void test2_atomicValidatorMultiThreaded()
 
     PV("Waiting for threads to exit...");
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
     for (int i = 0; i < k_NUM_THREADS; ++i) {
         bslmt::ThreadUtil::join(handles[i]);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
 
     BMQTST_ASSERT_EQ(numRunningThreads, 0);
 
@@ -250,12 +257,14 @@ static void test2_atomicValidatorMultiThreaded()
 
     BMQTST_ASSERT(validator.acquire());
 }
+// NOLINTEND(*-avoid-c-arrays,performance-avoid-endl)
 
 //=============================================================================
 //                                MAIN PROGRAM
 //-----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -271,3 +280,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

@@ -142,6 +142,7 @@ class MockChannel : public bmqio::Channel {
 
 }
 
+// NOLINTBEGIN(cppcoreguidelines-non-private-member-variables-in-classes,cppcoreguidelines-special-member-functions,cppcoreguidelines-virtual-class-destructor)
 class TCPSessionFactoryTest : public ::testing::Test {
   protected:
     bslma::Allocator*              d_allocator;
@@ -161,6 +162,7 @@ class TCPSessionFactoryTest : public ::testing::Test {
     static int processCommand(const bslstl::StringRef& source,
                               const bsl::string&       cmd,
                               bsl::ostream&            os)
+    // NOLINTBEGIN(performance-avoid-endl)
     {
         PRINT_SAFE("Processing command '" << cmd << "' from '" << source
                                           << "'");
@@ -168,6 +170,7 @@ class TCPSessionFactoryTest : public ::testing::Test {
 
         return 0;
     }
+    // NOLINTEND(performance-avoid-endl)
 
     mqbstat::StatController::CommandProcessorFn
     processCommandFn(bslma::Allocator* allocator)
@@ -181,6 +184,7 @@ class TCPSessionFactoryTest : public ::testing::Test {
     , d_appConfig(d_allocator)
     , d_tcpConfig(d_allocator)
     , d_scheduler(bsls::SystemClockType::e_MONOTONIC, d_allocator)
+    // NOLINTNEXTLINE(*-magic-numbers)
     , d_blobBufferFactory(1024, d_allocator)
     , d_authenticator()
     , d_negotiator()
@@ -206,6 +210,7 @@ class TCPSessionFactoryTest : public ::testing::Test {
 
     mqbnet::TCPSessionFactory& obj() { return d_tcpSessionFactory; }
 };
+// NOLINTEND(cppcoreguidelines-non-private-member-variables-in-classes,cppcoreguidelines-special-member-functions,cppcoreguidelines-virtual-class-destructor)
 
 TCPSessionFactoryTest::~TCPSessionFactoryTest()
 {
@@ -236,6 +241,7 @@ TEST_F(TCPSessionFactoryTest, setNodeWriteQueueWatermarksFromTcpConfig)
 // ------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -245,3 +251,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

@@ -56,9 +56,12 @@ namespace mqbnet {
 
 void TransportManager::onClusterReleased(void* object, void* transportManager)
 {
-    mqbnet::Cluster*  cluster = reinterpret_cast<Cluster*>(object);
-    TransportManager* self    = reinterpret_cast<TransportManager*>(
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+    mqbnet::Cluster* cluster = reinterpret_cast<Cluster*>(object);
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
+    TransportManager* self = reinterpret_cast<TransportManager*>(
         transportManager);
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
     {
         bslmt::LockGuard<bslmt::Mutex> guard(&self->d_mutex);  // d_mutex LOCK
@@ -202,6 +205,7 @@ bool TransportManager::sessionResult(
 {
     // executed by one of the *IO* threads
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     ConnectionState* state = reinterpret_cast<ConnectionState*>(resultState);
 
     BALL_LOG_DEBUG << "SessionResult: [event: " << event
@@ -298,20 +302,24 @@ void TransportManager::onClose(
 
 int TransportManager::selfNodeIdLocked(
     const bsl::vector<mqbcfg::ClusterNode>& nodes) const
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     // PRECONDITIONS
     BSLMT_MUTEXASSERT_IS_LOCKED_SAFE(&d_mutex);  // mutex was LOCKED
 
     bsl::vector<mqbcfg::ClusterNode>::const_iterator it;
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (it = nodes.begin(); it != nodes.end(); ++it) {
         if (it->transport().isTcpValue() &&
             isEndpointLoopback(it->transport().tcp().endpoint())) {
             return it->id();  // RETURN
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     return Cluster::k_INVALID_NODE_ID;
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 TransportManager::TransportManager(
     bdlmt::EventScheduler*            scheduler,
@@ -343,6 +351,7 @@ TransportManager::~TransportManager()
 }
 
 int TransportManager::start(bsl::ostream& errorDescription)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(e_STOPPED == d_state &&
@@ -383,6 +392,7 @@ int TransportManager::start(bsl::ostream& errorDescription)
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 int TransportManager::startListening(bsl::ostream& errorDescription)
 {
@@ -473,6 +483,7 @@ int TransportManager::createCluster(
     const bsl::vector<mqbcfg::ClusterNode>& nodes,
     ConnectionMode                          connectionMode,
     bslma::ManagedPtr<void>*                userData)
+// NOLINTBEGIN(cppcoreguidelines-init-variables,cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(out);
@@ -515,6 +526,7 @@ int TransportManager::createCluster(
 
     // At the moment, only TCP is supported, validate that
     bsl::vector<mqbcfg::ClusterNode>::const_iterator nodeIt;
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (nodeIt = nodes.begin(); nodeIt != nodes.end(); ++nodeIt) {
         if (!nodeIt->transport().isTcpValue()) {
             errorDescription << "Unsupported Cluster Node transport: "
@@ -522,8 +534,10 @@ int TransportManager::createCluster(
             return rc_INVALID_NODE_TYPE;  // RETURN
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     // Now create the connections
+    // NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (nodeIt = nodes.begin(); nodeIt != nodes.end(); ++nodeIt) {
         const mqbcfg::TcpClusterNodeConnection& tcpConfig =
             nodeIt->transport().tcp();
@@ -583,6 +597,7 @@ int TransportManager::createCluster(
             return (rc * 10) + rc_FAILED_CONNECT;  // RETURN
         }
     }
+    // NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     // Return a managedPtr with a custom deleter
     out->load(cluster.get(), this, &TransportManager::onClusterReleased);
@@ -590,6 +605,7 @@ int TransportManager::createCluster(
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-init-variables,cppcoreguidelines-use-enum-class)
 
 void* TransportManager::getClusterNodeAndState(
     bsl::ostream&            errorDescription,

@@ -41,15 +41,18 @@ using namespace bsl;
 namespace {
 
 /// Struct representing the attributes of a RejectMessage.
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 struct Data {
     int               d_queueId;
     bmqt::MessageGUID d_guid;
     int               d_subQueueId;
 };
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 /// Append a reject message having the attributes from the specified `data`
 /// to the specified `blob`.
 static void appendRejectMessage(bdlbb::Blob* blob, const Data& data)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-type-reinterpret-cast)
 {
     // QueueId
     bdlb::BigEndianInt32 queueId = bdlb::BigEndianInt32::make(data.d_queueId);
@@ -59,6 +62,7 @@ static void appendRejectMessage(bdlbb::Blob* blob, const Data& data)
                             sizeof(queueId));
 
     // GUID
+    // NOLINTNEXTLINE(*-avoid-c-arrays)
     unsigned char guidBinBuffer[bmqt::MessageGUID::e_SIZE_BINARY];
     data.d_guid.toBinary(guidBinBuffer);
     bdlbb::BlobUtil::append(blob,
@@ -73,6 +77,7 @@ static void appendRejectMessage(bdlbb::Blob* blob, const Data& data)
                             reinterpret_cast<const char*>(&subQueueId),
                             sizeof(subQueueId));
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-type-reinterpret-cast)
 
 /// Populate the specified `blob` with the specified `numMsgs` reject
 /// messages, and store them also in the specified `vec`.  Populate the
@@ -81,6 +86,7 @@ static void populateBlob(bdlbb::Blob*       blob,
                          bmqp::EventHeader* eh,
                          bsl::vector<Data>* vec,
                          size_t             numMsgs)
+// NOLINTBEGIN(*-avoid-c-arrays,cppcoreguidelines-pro-type-reinterpret-cast)
 {
     // Create a GUID from valid hex rep
 
@@ -114,6 +120,7 @@ static void populateBlob(bdlbb::Blob*       blob,
     eventLength += sizeof(bmqp::RejectHeader);
 
     // RejectMessages
+    // NOLINTBEGIN(*-narrowing-conversions,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     for (size_t i = 0; i < numMsgs; ++i) {
         Data data;
         data.d_guid.fromHex(s_GUID_HEX);  // TBD: use new guid every time
@@ -126,12 +133,16 @@ static void populateBlob(bdlbb::Blob*       blob,
 
         vec->push_back(data);
     }
+    // NOLINTEND(*-narrowing-conversions,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
     // Set the final EventHeader length
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     bmqp::EventHeader* e = reinterpret_cast<bmqp::EventHeader*>(
         blob->buffer(0).data());
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
     e->setLength(eventLength);
 }
+// NOLINTEND(*-avoid-c-arrays,cppcoreguidelines-pro-type-reinterpret-cast)
 
 /// Populate the specified `blob` with full RejectMessage event for the
 /// message having the specified `queueId`, `guid`, and `subQueueId`; and
@@ -141,6 +152,7 @@ static void populateBlob(bdlbb::Blob*             blob,
                          int                      queueId,
                          const bmqt::MessageGUID& guid,
                          int                      subQueueId)
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     Data data;
     data.d_queueId    = queueId;
@@ -176,6 +188,7 @@ static void populateBlob(bdlbb::Blob*             blob,
     // Reject Message
     appendRejectMessage(blob, data);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 }  // close unnamed namespace
 
@@ -187,9 +200,11 @@ static void test1_breathingTest()
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
 
     {
         // Create invalid iter
@@ -200,6 +215,7 @@ static void test1_breathingTest()
     {
         // Create invalid iter from another invalid iter
         bmqp::RejectMessageIterator iter1;
+        // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
         bmqp::RejectMessageIterator iter2(iter1);
 
         BMQTST_ASSERT_EQ(iter1.isValid(), false);
@@ -297,9 +313,11 @@ static void test2_multiReject()
 
     // Test iterating over REJECT event having multiple REJECT messages
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
     bsl::vector<Data> data(bmqtst::TestHelperUtil::allocator());
@@ -361,9 +379,11 @@ static void test3_nextMethod()
     // Next method. Iterator is in invalid state case.
     {
         // Create buffer factory and blob
+        // NOLINTBEGIN(*-magic-numbers)
         bdlbb::PooledBlobBufferFactory bufferFactory(
             1024,
             bmqtst::TestHelperUtil::allocator());
+        // NOLINTEND(*-magic-numbers)
         bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Populate blob
@@ -387,9 +407,11 @@ static void test3_nextMethod()
                                   sizeof(bmqp::RejectMessage);
 
         // Create buffer factory and blob
+        // NOLINTBEGIN(*-magic-numbers)
         bdlbb::PooledBlobBufferFactory bufferFactory(
             1024,
             bmqtst::TestHelperUtil::allocator());
+        // NOLINTEND(*-magic-numbers)
         bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Populate blob
@@ -515,14 +537,16 @@ static void test5_dumpBlob()
 
     // Test iterator dump contains expected value
 
-    bmqp::EventHeader              eventHeader;
-    bmqu::MemOutStream             stream(bmqtst::TestHelperUtil::allocator());
-    const int                      qId = 54321;
-    const bmqt::MessageGUID        guid;
-    const int                      sQId = 123;
+    bmqp::EventHeader       eventHeader;
+    bmqu::MemOutStream      stream(bmqtst::TestHelperUtil::allocator());
+    const int               qId = 54321;
+    const bmqt::MessageGUID guid;
+    const int               sQId = 123;
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
     // Populate blob
@@ -568,6 +592,7 @@ static void test5_dumpBlob()
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -586,3 +611,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

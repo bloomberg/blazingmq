@@ -68,6 +68,7 @@ namespace m_bmqstoragetool {
 // class PrinterMock
 // =================
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class PrinterMock : public Printer {
   public:
     // CREATORS
@@ -117,11 +118,13 @@ class PrinterMock : public Printer {
     MOCK_CONST_METHOD1(printOffsetsNotFound, void(const OffsetsVec&));
     MOCK_CONST_METHOD1(printCompositesNotFound, void(const CompositesVec&));
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ====================
 // class CslPrinterMock
 // ====================
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class CslPrinterMock : public CslPrinter {
   public:
     // CREATORS
@@ -157,6 +160,7 @@ class CslPrinterMock : public CslPrinter {
                        void(const CslRecordCount& recordCount,
                             const Parameters::ProcessCslRecordTypes&));
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 

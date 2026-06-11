@@ -50,6 +50,7 @@ void populateMd5Digest(char* digest, const char* data, int length)
     bsl::memcpy(digest, md5Digest.buffer(), k_MD5_DIGEST_LEN);
 }
 
+// NOLINTBEGIN(*-avoid-c-arrays,cppcoreguidelines-pro-type-member-init)
 struct Data {
     // DATA
     unsigned int d_pid;
@@ -64,11 +65,13 @@ struct Data {
 
     char d_md5Digest[k_MD5_DIGEST_LEN];
 };
+// NOLINTEND(*-avoid-c-arrays,cppcoreguidelines-pro-type-member-init)
 
 bmqt::EventBuilderResult::Enum appendMessage(unsigned int                index,
                                              bmqp::RecoveryEventBuilder* reb,
                                              bsl::vector<Data>* dataVec,
                                              bool               isFinalChunk)
+// NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions,bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     Data D;
 
@@ -84,10 +87,13 @@ bmqt::EventBuilderResult::Enum appendMessage(unsigned int                index,
 
     dataVec->push_back(D);
 
-    Data&                 Dref = dataVec->back();
+    Data& Dref = dataVec->back();
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast)
     bsl::shared_ptr<char> chunkBufferSp(
         const_cast<char*>(Dref.d_chunk.c_str()),
         bslstl::SharedPtrNilDeleter());
+    // NOLINTEND(cppcoreguidelines-pro-type-const-cast)
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     bdlbb::BlobBuffer chunkBlobBuffer(chunkBufferSp, Dref.d_chunk.length());
 
     return reb->packMessage(D.d_pid,
@@ -96,6 +102,7 @@ bmqt::EventBuilderResult::Enum appendMessage(unsigned int                index,
                             chunkBlobBuffer,
                             D.d_isFinalChunk);
 }
+// NOLINTEND(*-magic-numbers,*-narrowing-conversions,bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 }  // close unnamed namespace
 
@@ -111,12 +118,15 @@ static void test1_breathingTest()
 // Testing:
 //   Basic functionality
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,*-narrowing-conversions,cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
@@ -138,16 +148,21 @@ static void test1_breathingTest()
                      static_cast<size_t>(reb.eventSize()));
     BMQTST_ASSERT_EQ(reb.messageCount(), 0);
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast)
     bsl::shared_ptr<char> chunkBufferSp(const_cast<char*>(CHUNK),
                                         bslstl::SharedPtrNilDeleter());
-    bdlbb::BlobBuffer     chunkBlobBuffer(chunkBufferSp, CHUNK_LEN);
+    // NOLINTEND(cppcoreguidelines-pro-type-const-cast)
+    // NOLINTNEXTLINE(*-narrowing-conversions)
+    bdlbb::BlobBuffer chunkBlobBuffer(chunkBufferSp, CHUNK_LEN);
 
+    // NOLINTBEGIN(*-magic-numbers)
     bmqt::EventBuilderResult::Enum rc = reb.packMessage(
         1,  // partitionId
         bmqp::RecoveryFileChunkType::e_DATA,
         1000,  // sequenceNum
         chunkBlobBuffer,
         false);
+    // NOLINTEND(*-magic-numbers)
 
     BMQTST_ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
     BMQTST_ASSERT_LT(CHUNK_LEN, static_cast<unsigned int>(reb.eventSize()));
@@ -194,6 +209,7 @@ static void test1_breathingTest()
     BMQTST_ASSERT_EQ(compareResult, 0);
     BMQTST_ASSERT_EQ(recoveryIter.next(), 0);  // we added only 1 msg
 }
+// NOLINTEND(*-avoid-c-arrays,*-narrowing-conversions,cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 static void test2_multipleMessagesTest()
 // ------------------------------------------------------------------------
@@ -210,9 +226,11 @@ static void test2_multipleMessagesTest()
 {
     bmqtst::TestHelper::printTestName("MULTIPLE MESSAGES TEST");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
@@ -244,6 +262,7 @@ static void test2_multipleMessagesTest()
 
     size_t dataIndex = 0;
 
+    // NOLINTBEGIN(*-narrowing-conversions,cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     while (1 == iter.next() && dataIndex < NUM_MSGS) {
         const Data& D = data[dataIndex];
 
@@ -283,6 +302,7 @@ static void test2_multipleMessagesTest()
 
         ++dataIndex;
     }
+    // NOLINTEND(*-narrowing-conversions,cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
     BMQTST_ASSERT_EQ(dataIndex, data.size());
     BMQTST_ASSERT_EQ(false, iter.isValid());
@@ -295,12 +315,15 @@ static void test3_eventTooBigTest()
 // Concerns:
 //   Test behavior when trying to build *one* big event.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers,*-narrowing-conversions,cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-type-const-cast)
 {
     bmqtst::TestHelper::printTestName("EVENT TOO BIG TEST");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
@@ -316,16 +339,21 @@ static void test3_eventTooBigTest()
     char         md5Digest[k_MD5_DIGEST_LEN];
     populateMd5Digest(md5Digest, k_SMALL_CHUNK, k_SMALL_CHUNK_LEN);
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast)
     bsl::shared_ptr<char> chunkBufferSp(const_cast<char*>(bigChunk.c_str()),
                                         bslstl::SharedPtrNilDeleter());
-    bdlbb::BlobBuffer     chunkBlobBuffer(chunkBufferSp, bigChunk.size());
+    // NOLINTEND(cppcoreguidelines-pro-type-const-cast)
+    // NOLINTNEXTLINE(*-narrowing-conversions)
+    bdlbb::BlobBuffer chunkBlobBuffer(chunkBufferSp, bigChunk.size());
 
+    // NOLINTBEGIN(*-magic-numbers)
     bmqt::EventBuilderResult::Enum rc = reb.packMessage(
         1,  // PartitionId
         bmqp::RecoveryFileChunkType::e_DATA,
         1000,  // SequenceNum
         chunkBlobBuffer,
         true);  // IsFinalChunk
+    // NOLINTEND(*-magic-numbers)
 
     BMQTST_ASSERT_EQ(rc, bmqt::EventBuilderResult::e_PAYLOAD_TOO_BIG);
     BMQTST_ASSERT_EQ(static_cast<int>(sizeof(bmqp::EventHeader)),
@@ -384,6 +412,7 @@ static void test3_eventTooBigTest()
     BMQTST_ASSERT_EQ(compareResult, 0);
     BMQTST_ASSERT_EQ(recoveryIter.next(), false);  // we added only 1 msg
 }
+// NOLINTEND(*-avoid-c-arrays,*-magic-numbers,*-narrowing-conversions,cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-type-const-cast)
 
 static void test4_emptyPayloadTest()
 // ------------------------------------------------------------------------
@@ -395,9 +424,11 @@ static void test4_emptyPayloadTest()
 {
     bmqtst::TestHelper::printTestName("EMPTY PAYLOAD TEST");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
@@ -405,17 +436,21 @@ static void test4_emptyPayloadTest()
     bmqp::RecoveryEventBuilder reb(blobSpPool.get(),
                                    bmqtst::TestHelperUtil::allocator());
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     bsl::shared_ptr<char> chunkBufferSp(
         reinterpret_cast<char*>(&reb),  // dummy
         bslstl::SharedPtrNilDeleter());
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
     bdlbb::BlobBuffer chunkBlobBuffer(chunkBufferSp, 0);
 
+    // NOLINTBEGIN(*-magic-numbers)
     bmqt::EventBuilderResult::Enum rc = reb.packMessage(
         1,  // PartitionId
         bmqp::RecoveryFileChunkType::e_DATA,
         1000,  // SequenceNum
         chunkBlobBuffer,
         false);  // IsNotFinalChunk
+    // NOLINTEND(*-magic-numbers)
 
     BMQTST_ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
     // BMQTST_ASSERT_EQ(sizeof(bmqp::EventHeader) +
@@ -452,6 +487,7 @@ static void test4_emptyPayloadTest()
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -469,3 +505,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

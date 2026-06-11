@@ -57,6 +57,7 @@ typedef bsl::list<NodeType> RecordsListType;
 
 /// Return 0 if `lhs` is equal to `rhs`, non-zero loggable value otherwise.
 int areEqual(const MessageRecord& lhs, const MessageRecord& rhs)
+// NOLINTBEGIN(*-magic-numbers)
 {
     if (lhs.refCount() != rhs.refCount()) {
         return -1;  // RETURN
@@ -88,9 +89,11 @@ int areEqual(const MessageRecord& lhs, const MessageRecord& rhs)
 
     return 0;
 }
+// NOLINTEND(*-magic-numbers)
 
 /// Return 0 if `lhs` is equal to `rhs`, non-zero loggable value otherwise.
 int areEqual(const ConfirmRecord& lhs, const ConfirmRecord& rhs)
+// NOLINTBEGIN(*-magic-numbers)
 {
     if (lhs.queueKey() != rhs.queueKey()) {
         return -1;  // RETURN
@@ -110,9 +113,11 @@ int areEqual(const ConfirmRecord& lhs, const ConfirmRecord& rhs)
 
     return 0;
 }
+// NOLINTEND(*-magic-numbers)
 
 /// Return 0 if `lhs` is equal to `rhs`, non-zero loggable value otherwise.
 int areEqual(const DeletionRecord& lhs, const DeletionRecord& rhs)
+// NOLINTBEGIN(*-magic-numbers)
 {
     if (lhs.queueKey() != rhs.queueKey()) {
         return -1;  // RETURN
@@ -132,9 +137,11 @@ int areEqual(const DeletionRecord& lhs, const DeletionRecord& rhs)
 
     return 0;
 }
+// NOLINTEND(*-magic-numbers)
 
 /// Return 0 if `lhs` is equal to `rhs`, non-zero loggable value otherwise.
 int areEqual(const QueueOpRecord& lhs, const QueueOpRecord& rhs)
+// NOLINTBEGIN(*-magic-numbers)
 {
     if (lhs.flags() != rhs.flags()) {
         return -1;  // RETURN
@@ -158,9 +165,11 @@ int areEqual(const QueueOpRecord& lhs, const QueueOpRecord& rhs)
 
     return 0;
 }
+// NOLINTEND(*-magic-numbers)
 
 /// Return 0 if `lhs` is equal to `rhs`, non-zero loggable value otherwise.
 int areEqual(const JournalOpRecord& lhs, const JournalOpRecord& rhs)
+// NOLINTBEGIN(*-magic-numbers)
 {
     if (lhs.flags() != rhs.flags()) {
         return -1;  // RETURN
@@ -188,6 +197,7 @@ int areEqual(const JournalOpRecord& lhs, const JournalOpRecord& rhs)
 
     return 0;
 }
+// NOLINTEND(*-magic-numbers)
 
 /// Assert if the record currently pointed by iterator 'it' isn't equal to the
 /// record stored in 'node'.
@@ -199,36 +209,46 @@ void assertEqual(const JournalFileIterator& it, const NodeType& node)
 
     switch (rtype) {
     case RecordType::e_MESSAGE: {
+        // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
         const MessageRecord& m1 = *reinterpret_cast<const MessageRecord*>(
             node.second.buffer());
+        // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
         const MessageRecord& m2 = it.asMessageRecord();
 
         BMQTST_ASSERT_EQ_D(i, 0, areEqual(m1, m2));
     } break;
     case RecordType::e_CONFIRM: {
+        // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
         const ConfirmRecord& m1 = *reinterpret_cast<const ConfirmRecord*>(
             node.second.buffer());
+        // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
         const ConfirmRecord& m2 = it.asConfirmRecord();
 
         BMQTST_ASSERT_EQ_D(i, 0, areEqual(m1, m2));
     } break;
     case RecordType::e_DELETION: {
+        // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
         const DeletionRecord& m1 = *reinterpret_cast<const DeletionRecord*>(
             node.second.buffer());
+        // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
         const DeletionRecord& m2 = it.asDeletionRecord();
 
         BMQTST_ASSERT_EQ_D(i, 0, areEqual(m1, m2));
     } break;
     case RecordType::e_QUEUE_OP: {
+        // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
         const QueueOpRecord& m1 = *reinterpret_cast<const QueueOpRecord*>(
             node.second.buffer());
+        // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
         const QueueOpRecord& m2 = it.asQueueOpRecord();
 
         BMQTST_ASSERT_EQ_D(i, 0, areEqual(m1, m2));
     } break;
     case RecordType::e_JOURNAL_OP: {
+        // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
         const JournalOpRecord& m1 = *reinterpret_cast<const JournalOpRecord*>(
             node.second.buffer());
+        // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
         const JournalOpRecord& m2 = it.asJournalOpRecord();
 
@@ -257,9 +277,11 @@ void addRecords(MemoryBlock*         block,
     new (jfh.get()) JournalFileHeader();  // Default values are ok
     currPos += sizeof(JournalFileHeader);
 
+    // NOLINTBEGIN(*-magic-numbers,modernize-use-emplace)
     for (unsigned int i = 1; i <= numRecords; ++i) {
         *lastRecordPos = currPos;
 
+        // NOLINTNEXTLINE(*-magic-numbers)
         unsigned int remainder = i % 5;
         if (0 == remainder) {
             bmqt::MessageGUID g;
@@ -374,6 +396,7 @@ void addRecords(MemoryBlock*         block,
 
         currPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
     }
+    // NOLINTEND(*-magic-numbers,modernize-use-emplace)
 }
 
 }  // close unnamed namespace
@@ -392,6 +415,7 @@ static void test1_breathingTest()
 //  Testing:
 //    Basic functionality.
 // --------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
@@ -427,6 +451,7 @@ static void test1_breathingTest()
         BMQTST_ASSERT_EQ(-1, it.nextRecord());
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test2_forwardIteration()
 // ------------------------------------------------------------------------
@@ -435,14 +460,17 @@ static void test2_forwardIteration()
 // Testing:
 //   Forward iteration with non-zero journal records.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("FORWARD ITERATION");
 
     unsigned int numRecords = 5000;
 
     bsls::Types::Uint64 totalSize =
+        // NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result)
         sizeof(FileHeader) + sizeof(JournalFileHeader) +
         numRecords * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+    // NOLINTEND(bugprone-implicit-widening-of-multiplication-result)
 
     char* p = static_cast<char*>(
         bmqtst::TestHelperUtil::allocator()->allocate(totalSize));
@@ -477,6 +505,7 @@ static void test2_forwardIteration()
     bsl::list<NodeType>::const_iterator recordIter = records.begin();
     unsigned int                        i          = 0;
     int                                 rc         = 0;
+    // NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
     while ((rc = it.nextRecord()) == 1) {
         BMQTST_ASSERT_EQ_D(i, false, recordIter == records.end());
         BMQTST_ASSERT_EQ_D(i, it.recordIndex(), i);
@@ -486,12 +515,14 @@ static void test2_forwardIteration()
         ++i;
         ++recordIter;
     }
+    // NOLINTEND(clang-analyzer-deadcode.DeadStores)
 
     BMQTST_ASSERT_EQ(i, records.size());
     BMQTST_ASSERT_EQ(false, it.isValid());
 
     bmqtst::TestHelperUtil::allocator()->deallocate(p);
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test3_forwardIterationWithZeroJournalRecords()
 // ------------------------------------------------------------------------
@@ -500,6 +531,7 @@ static void test3_forwardIterationWithZeroJournalRecords()
 // Testing:
 //   Forward iteration with zero journal records.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
 {
     bmqtst::TestHelper::printTestName("FORWARD ITERATION WITH ZERO JOURNAL"
                                       " RECORDS");
@@ -550,10 +582,12 @@ static void test3_forwardIterationWithZeroJournalRecords()
         JournalFileIterator it(&mfd, *fh, false);
         BMQTST_ASSERT_EQ(true, it.isValid());
         unsigned int numRecords = 0;
+        // NOLINTBEGIN(*-magic-numbers)
         while (it.advance(10) == 1) {
             BMQTST_ASSERT_EQ_D(numRecords, numRecords, it.recordIndex());
             numRecords += 10;
         }
+        // NOLINTEND(*-magic-numbers)
 
         BMQTST_ASSERT_EQ(0U, numRecords);
     }
@@ -588,16 +622,19 @@ static void test3_forwardIterationWithZeroJournalRecords()
         BMQTST_ASSERT_EQ(0, it.reset(&mfd, *fh, false));
         BMQTST_ASSERT_EQ(true, it.isValid());
         unsigned int numRecords = 0;
+        // NOLINTBEGIN(*-magic-numbers)
         while (1 == it.advance(10)) {
             BMQTST_ASSERT_EQ_D(numRecords, numRecords, it.recordIndex());
             numRecords += 10;
         }
+        // NOLINTEND(*-magic-numbers)
 
         BMQTST_ASSERT_EQ(0U, numRecords);
     }
 
     bmqtst::TestHelperUtil::allocator()->deallocate(p);
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores)
 
 static void test4_backwardIteration()
 // ------------------------------------------------------------------------
@@ -612,8 +649,10 @@ static void test4_backwardIteration()
     const unsigned int k_NUM_RECORDS = 5000;
 
     bsls::Types::Uint64 totalSize =
+        // NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result)
         sizeof(FileHeader) + sizeof(JournalFileHeader) +
         k_NUM_RECORDS * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+    // NOLINTEND(bugprone-implicit-widening-of-multiplication-result)
 
     char* p = static_cast<char*>(
         bmqtst::TestHelperUtil::allocator()->allocate(totalSize));
@@ -648,6 +687,7 @@ static void test4_backwardIteration()
 
     unsigned int i  = 0;
     int          rc = 0;
+    // NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
     while (1 == (rc = it.nextRecord())) {
         BMQTST_ASSERT_EQ_D(i, false, recordIter == records.crend());
         BMQTST_ASSERT_EQ_D(i, it.recordIndex(), k_NUM_RECORDS - i - 1);
@@ -657,6 +697,7 @@ static void test4_backwardIteration()
         ++i;
         ++recordIter;
     }
+    // NOLINTEND(clang-analyzer-deadcode.DeadStores)
 
     BMQTST_ASSERT_EQ(i, records.size());
     BMQTST_ASSERT_EQ(false, it.isValid());
@@ -671,6 +712,7 @@ static void test5_backwardIterationWithZeroJournalEntries()
 // Testing:
 //   Backward iteration with zero journal records.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
 {
     bmqtst::TestHelper::printTestName("BACKWARD ITERATION WITH ZERO JOURNAL"
                                       " RECORDS");
@@ -720,9 +762,11 @@ static void test5_backwardIterationWithZeroJournalEntries()
         JournalFileIterator it(&mfd, fileHeader, true);
         BMQTST_ASSERT_EQ(true, it.isValid());
         unsigned int numRecords = 0;
+        // NOLINTBEGIN(*-magic-numbers)
         while (1 == it.advance(10)) {
             numRecords += 10;
         }
+        // NOLINTEND(*-magic-numbers)
 
         BMQTST_ASSERT_EQ(0U, numRecords);
     }
@@ -756,15 +800,18 @@ static void test5_backwardIterationWithZeroJournalEntries()
         BMQTST_ASSERT_EQ(0, it.reset(&mfd, *fh, true));
         BMQTST_ASSERT_EQ(true, it.isValid());
         unsigned int numRecords = 0;
+        // NOLINTBEGIN(*-magic-numbers)
         while (1 == it.advance(10)) {
             numRecords += 10;
         }
+        // NOLINTEND(*-magic-numbers)
 
         BMQTST_ASSERT_EQ(0U, numRecords);
     }
 
     bmqtst::TestHelperUtil::allocator()->deallocate(p);
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores)
 
 static void test6_forwardIterationOfSparseJournalFileNoRecords()
 // --------------------------------------------------------------------
@@ -778,10 +825,12 @@ static void test6_forwardIterationOfSparseJournalFileNoRecords()
 //   This simulates broker crash when no records have been written to
 //   the journal.
 // --------------------------------------------------------------------
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
 {
     bmqtst::TestHelper::printTestName("FORWARD ITERATION OF SPARSE JOURNAL"
                                       " FILE WITH NO RECORDS");
 
+    // NOLINTNEXTLINE(*-magic-numbers,bugprone-implicit-widening-of-multiplication-result)
     bsls::Types::Uint64 totalSize = 1024 * 1024 * 10;  // 10MB sparse file
 
     char* p = static_cast<char*>(
@@ -835,10 +884,12 @@ static void test6_forwardIterationOfSparseJournalFileNoRecords()
         BMQTST_ASSERT_EQ(0ULL, it.lastRecordPosition());
 
         unsigned int numRecords = 0;
+        // NOLINTBEGIN(*-magic-numbers)
         while (1 == it.advance(10)) {
             BMQTST_ASSERT_EQ_D(numRecords, numRecords, it.recordIndex());
             numRecords += 10;
         }
+        // NOLINTEND(*-magic-numbers)
 
         BMQTST_ASSERT_EQ(0U, numRecords);
     }
@@ -877,16 +928,19 @@ static void test6_forwardIterationOfSparseJournalFileNoRecords()
         BMQTST_ASSERT_EQ(0ULL, it.lastRecordPosition());
 
         unsigned int numRecords = 0;
+        // NOLINTBEGIN(*-magic-numbers)
         while (1 == it.advance(10)) {
             BMQTST_ASSERT_EQ_D(numRecords, numRecords, it.recordIndex());
             numRecords += 10;
         }
+        // NOLINTEND(*-magic-numbers)
 
         BMQTST_ASSERT_EQ(0U, numRecords);
     }
 
     bmqtst::TestHelperUtil::allocator()->deallocate(p);
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores)
 
 static void test7_backwardIterationOfSparseJournalFileNoRecords()
 // ------------------------------------------------------------------------
@@ -900,10 +954,12 @@ static void test7_backwardIterationOfSparseJournalFileNoRecords()
 //   This simulates broker crash when no records have been written to
 //   the journal.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
 {
     bmqtst::TestHelper::printTestName("BACKWARD ITERATION OF SPARSE JOURNAL"
                                       " FILE WITH NO RECORDS");
 
+    // NOLINTNEXTLINE(*-magic-numbers,bugprone-implicit-widening-of-multiplication-result)
     bsls::Types::Uint64 totalSize = 1024 * 1024 * 10;  // 10MB sparse file
 
     char* p = static_cast<char*>(
@@ -956,9 +1012,11 @@ static void test7_backwardIterationOfSparseJournalFileNoRecords()
         BMQTST_ASSERT_EQ(0ULL, it.lastRecordPosition());
 
         unsigned int numRecords = 0;
+        // NOLINTBEGIN(*-magic-numbers)
         while (1 == it.advance(10)) {
             numRecords += 10;
         }
+        // NOLINTEND(*-magic-numbers)
 
         BMQTST_ASSERT_EQ(0U, numRecords);
     }
@@ -996,15 +1054,18 @@ static void test7_backwardIterationOfSparseJournalFileNoRecords()
         BMQTST_ASSERT_EQ(0ULL, it.lastRecordPosition());
 
         unsigned int numRecords = 0;
+        // NOLINTBEGIN(*-magic-numbers)
         while (1 == it.advance(10)) {
             numRecords += 10;
         }
+        // NOLINTEND(*-magic-numbers)
 
         BMQTST_ASSERT_EQ(0U, numRecords);
     }
 
     bmqtst::TestHelperUtil::allocator()->deallocate(p);
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores)
 
 static void test8_forwardIterationOfSparseJournalFileWithRecords()
 // ------------------------------------------------------------------------
@@ -1025,9 +1086,11 @@ static void test8_forwardIterationOfSparseJournalFileWithRecords()
     const unsigned int k_NUM_RECORDS = 5432;
 
     bsls::Types::Uint64 totalSize =
+        // NOLINTBEGIN(*-magic-numbers,bugprone-implicit-widening-of-multiplication-result)
         sizeof(FileHeader) + sizeof(JournalFileHeader) +
         k_NUM_RECORDS * FileStoreProtocol::k_JOURNAL_RECORD_SIZE +
         1024 * 1024 * 10;  // 10MB of sparse area
+    // NOLINTEND(*-magic-numbers,bugprone-implicit-widening-of-multiplication-result)
 
     char* p = static_cast<char*>(
         bmqtst::TestHelperUtil::allocator()->allocate(totalSize));
@@ -1066,6 +1129,7 @@ static void test8_forwardIterationOfSparseJournalFileWithRecords()
     bsl::list<NodeType>::const_iterator recordIter = records.begin();
     unsigned int                        i          = 0;
     int                                 rc         = 0;
+    // NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
     while (1 == (rc = it.nextRecord())) {
         BMQTST_ASSERT_EQ_D(i, false, recordIter == records.end());
         BMQTST_ASSERT_EQ_D(i, it.recordIndex(), i);
@@ -1075,6 +1139,7 @@ static void test8_forwardIterationOfSparseJournalFileWithRecords()
         ++i;
         ++recordIter;
     }
+    // NOLINTEND(clang-analyzer-deadcode.DeadStores)
 
     BMQTST_ASSERT_EQ(i, records.size());
     BMQTST_ASSERT_EQ(false, it.isValid());
@@ -1101,9 +1166,11 @@ static void test9_backwardIterationOfSparseJournalFileWithRecords()
     const unsigned int k_NUM_RECORDS = 5432;
 
     bsls::Types::Uint64 totalSize =
+        // NOLINTBEGIN(*-magic-numbers,bugprone-implicit-widening-of-multiplication-result)
         sizeof(FileHeader) + sizeof(JournalFileHeader) +
         k_NUM_RECORDS * FileStoreProtocol::k_JOURNAL_RECORD_SIZE +
         1024 * 1024 * 50;  // 50MB of sparse area
+    // NOLINTEND(*-magic-numbers,bugprone-implicit-widening-of-multiplication-result)
 
     char* p = static_cast<char*>(
         bmqtst::TestHelperUtil::allocator()->allocate(totalSize));
@@ -1142,6 +1209,7 @@ static void test9_backwardIterationOfSparseJournalFileWithRecords()
     bsl::list<NodeType>::const_reverse_iterator recordIter = records.rbegin();
     unsigned int                                i          = 0;
     int                                         rc         = 0;
+    // NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
     while (1 == (rc = it.nextRecord())) {
         BMQTST_ASSERT_EQ_D(i, false, recordIter == records.crend());
 
@@ -1152,6 +1220,7 @@ static void test9_backwardIterationOfSparseJournalFileWithRecords()
         ++i;
         ++recordIter;
     }
+    // NOLINTEND(clang-analyzer-deadcode.DeadStores)
 
     BMQTST_ASSERT_EQ(i, records.size());
     BMQTST_ASSERT_EQ(false, it.isValid());
@@ -1166,14 +1235,17 @@ static void test10_bidirectionalIteration()
 // Testing:
 //   Bi-directional iteration.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("BIDIRECTIONAL ITERATION");
 
     unsigned int k_NUM_RECORDS = 5000;
 
     bsls::Types::Uint64 totalSize =
+        // NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result)
         sizeof(FileHeader) + sizeof(JournalFileHeader) +
         +k_NUM_RECORDS * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+    // NOLINTEND(bugprone-implicit-widening-of-multiplication-result)
 
     char* p = static_cast<char*>(
         bmqtst::TestHelperUtil::allocator()->allocate(totalSize));
@@ -1213,6 +1285,7 @@ static void test10_bidirectionalIteration()
     unsigned int count              = currentRecordCount;
     int          rc                 = 0;
     bool         forward            = true;
+    // NOLINTBEGIN(bugprone-assignment-in-if-condition)
     while (recordIter != records.end()) {
         BMQTST_ASSERT_EQ_D(i, true, it.hasRecordSizeRemaining());
         BMQTST_ASSERT_EQ_D(i, 1, (rc = it.nextRecord()));
@@ -1263,12 +1336,14 @@ static void test10_bidirectionalIteration()
             --recordIter;
         }
     }
+    // NOLINTEND(bugprone-assignment-in-if-condition)
 
     BMQTST_ASSERT_EQ(false, it.isReverseMode());
     BMQTST_ASSERT_EQ(false, it.hasRecordSizeRemaining());
 
     bmqtst::TestHelperUtil::allocator()->deallocate(p);
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test11_forwardAdvance()
 // ------------------------------------------------------------------------
@@ -1277,14 +1352,17 @@ static void test11_forwardAdvance()
 // Testing:
 //   Advance.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("FORWARD ADVANCE");
 
     unsigned int k_NUM_RECORDS = 5001;
 
     bsls::Types::Uint64 totalSize =
+        // NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result)
         sizeof(FileHeader) + sizeof(JournalFileHeader) +
         +k_NUM_RECORDS * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+    // NOLINTEND(bugprone-implicit-widening-of-multiplication-result)
 
     char* p = static_cast<char*>(
         bmqtst::TestHelperUtil::allocator()->allocate(totalSize));
@@ -1342,6 +1420,7 @@ static void test11_forwardAdvance()
 
     bmqtst::TestHelperUtil::allocator()->deallocate(p);
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test12_backwardAdvance()
 // ------------------------------------------------------------------------
@@ -1350,14 +1429,17 @@ static void test12_backwardAdvance()
 // Testing:
 //   Advance.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("BACKWARD ADVANCE");
 
     unsigned int k_NUM_RECORDS = 5001;
 
     bsls::Types::Uint64 totalSize =
+        // NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result)
         sizeof(FileHeader) + sizeof(JournalFileHeader) +
         +k_NUM_RECORDS * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+    // NOLINTEND(bugprone-implicit-widening-of-multiplication-result)
 
     char* p = static_cast<char*>(
         bmqtst::TestHelperUtil::allocator()->allocate(totalSize));
@@ -1415,12 +1497,14 @@ static void test12_backwardAdvance()
 
     bmqtst::TestHelperUtil::allocator()->deallocate(p);
 }
+// NOLINTEND(*-magic-numbers)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -1448,3 +1532,4 @@ int main(int argc, char* argv[])
     // NOTE: for some reason the default allcoator verification never
     // succeeds.
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

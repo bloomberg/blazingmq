@@ -282,6 +282,7 @@ namespace bmqa {
 /// (That is so that bmqa::Session::loadMessageEventBuilder can access
 /// private members of MessageEventBuilder to initialize it, without having
 /// to expose them publicly).
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 struct MessageEventBuilderImpl {
     // PUBLIC DATA
 
@@ -314,6 +315,7 @@ struct MessageEventBuilderImpl {
 
     MessageEventFactory d_messageEventFactory;
 };
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // =========================
 // class MessageEventBuilder

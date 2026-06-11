@@ -49,6 +49,7 @@ namespace mqbstat {
 // class TablePrinter
 // ==================
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class TablePrinter {
   public:
     // PUBLIC TYPES
@@ -60,6 +61,7 @@ class TablePrinter {
 
     /// Context including table and tip for printing and statcontext for
     /// stats.
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
     struct Context {
         /// Stat Context pointer
         bmqst::StatContext* d_statContext_p;
@@ -70,6 +72,7 @@ class TablePrinter {
         /// tip
         bmqst::BasicTableInfoProvider d_tip;
     };
+    // NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
     typedef bsl::shared_ptr<Context>                   ContextSp;
     typedef bsl::unordered_map<bsl::string, ContextSp> ContextsMap;
@@ -112,6 +115,7 @@ class TablePrinter {
     /// THREAD: This method is called in the `snapshot` thread.
     void printStats(bsl::ostream& stream, int statId);
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

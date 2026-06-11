@@ -51,6 +51,7 @@ using namespace BloombergLP;
 using namespace bsl;
 using namespace m_bmqstoragetool;
 using namespace bmqp_ctrlmsg;
+// NOLINTNEXTLINE(bugprone-reserved-identifier,cert-dcl37-c,cert-dcl51-cpp)
 using ::testing::_;
 using ::testing::Eq;
 using ::testing::Field;
@@ -64,11 +65,14 @@ using ::testing::Sequence;
 namespace {
 
 // CONSTANTS
-const bsls::Types::Int64 k_LOG_MAX_SIZE       = 64 * 1024 * 1024;
-const char*              k_DEFAULT_LOG_PREFIX = "BMQ_TEST_LOG_";
+// NOLINTNEXTLINE(bugprone-implicit-widening-of-multiplication-result)
+const bsls::Types::Int64 k_LOG_MAX_SIZE = 64 * 1024 * 1024;
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+const char* k_DEFAULT_LOG_PREFIX = "BMQ_TEST_LOG_";
 
 // TYPES
 struct AdvisoryType {
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         e_LEADER             = 0,
         e_PARTITION_PRIMARY  = 1,
@@ -77,6 +81,7 @@ struct AdvisoryType {
         e_COMMIT             = 4,
         e_ACK                = 5
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 };
 
 /// Pair of (clusterMessage, recordLength) for a record
@@ -94,6 +99,7 @@ createClusterMessage(bmqp_ctrlmsg::ClusterMessage*              message,
                      const bmqp_ctrlmsg::LeaderMessageSequence& sequenceNumber,
                      const bsl::string&                         queueUri,
                      const bsl::string&                         queueKey)
+// NOLINTBEGIN(*-magic-numbers)
 {
     switch (advisoryType) {
     case AdvisoryType::e_LEADER: {
@@ -193,10 +199,13 @@ createClusterMessage(bmqp_ctrlmsg::ClusterMessage*              message,
         BSLS_ASSERT_INVOKE_NORETURN("");
     }
 }
+// NOLINTEND(*-magic-numbers)
 
+// NOLINTBEGIN(performance-unnecessary-value-param)
 int extractLogIdCallback(mqbu::StorageKey*                      logId,
                          const bsl::string&                     logPath,
                          bsl::shared_ptr<mqbsi::LogIdGenerator> logIdGenerator)
+// NOLINTEND(performance-unnecessary-value-param)
 {
     int rc = mqbc::ClusterStateLedgerUtil::extractLogId(logId, logPath);
     BSLS_ASSERT_OPT(rc == 0);
@@ -223,6 +232,7 @@ void writeRecord(bsl::vector<RecordInfo>*                   recordInfos,
                  AdvisoryType::Enum                         advisoryType,
                  mqbsi::Ledger*                             ledger,
                  bdlbb::BlobBufferFactory*                  bufferFactory)
+// NOLINTBEGIN(modernize-use-emplace)
 {
     bmqp_ctrlmsg::ClusterMessage             msg;
     const mqbc::ClusterStateRecordType::Enum recordType = createClusterMessage(
@@ -249,6 +259,7 @@ void writeRecord(bsl::vector<RecordInfo>*                   recordInfos,
 
     recordInfos->push_back(bsl::make_pair(msg, record.length()));
 }
+// NOLINTEND(modernize-use-emplace)
 
 /// Create a 'CommandProcessor' instance with the specified arguments
 bslma::ManagedPtr<CommandProcessor>
@@ -282,6 +293,7 @@ createCommandProcessor(const Parameters*                  params,
 // struct Tester
 // =============
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct Tester {
   private:
     // DATA
@@ -301,6 +313,7 @@ struct Tester {
     , d_tempDir(allocator)
     , d_config(allocator)
     , d_ledger_mp(0)
+    // NOLINTNEXTLINE(*-magic-numbers)
     , d_bufferFactory(1024, allocator)
     {
         // Instantiate ledger config
@@ -371,6 +384,7 @@ struct Tester {
 
     bdlbb::BlobBufferFactory* bufferFactory() { return &d_bufferFactory; }
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close anonymous namespace
 
@@ -389,6 +403,7 @@ static void test1_breathingTest()
 // Testing:
 //   CslFileProcessor::process()
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
@@ -403,6 +418,7 @@ static void test1_breathingTest()
         bsl::string                        d_queueKey;
         AdvisoryType::Enum                 d_advisoryType;
         mqbc::ClusterStateRecordType::Enum d_recordType;
+        // NOLINTBEGIN(*-magic-numbers)
     } k_DATA[] = {{L_,
                    2U,
                    1U,
@@ -459,13 +475,16 @@ static void test1_breathingTest()
                    "1111111111",
                    AdvisoryType::e_ACK,
                    mqbc::ClusterStateRecordType::e_ACK}};
+    // NOLINTEND(*-magic-numbers)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
     // Write records to CSL
     bsl::vector<RecordInfo> recordInfos(bmqtst::TestHelperUtil::allocator());
     recordInfos.reserve(k_NUM_DATA);
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         bmqp_ctrlmsg::LeaderMessageSequence lms;
@@ -551,6 +570,7 @@ static void test1_breathingTest()
     // Run search
     searchProcessor->process();
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 static void test2_searchRecordsByTypeTest()
 // ------------------------------------------------------------------------
@@ -563,6 +583,7 @@ static void test2_searchRecordsByTypeTest()
 // Testing:
 //   CslFileProcessor::process()
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelper::printTestName("SEARCH RECORDS BY TYPE TEST");
 
@@ -577,6 +598,7 @@ static void test2_searchRecordsByTypeTest()
         bsl::string                        d_queueKey;
         AdvisoryType::Enum                 d_advisoryType;
         mqbc::ClusterStateRecordType::Enum d_recordType;
+        // NOLINTBEGIN(*-magic-numbers)
     } k_DATA[] = {{L_,
                    2U,
                    1U,
@@ -633,13 +655,16 @@ static void test2_searchRecordsByTypeTest()
                    "1111111111",
                    AdvisoryType::e_ACK,
                    mqbc::ClusterStateRecordType::e_ACK}};
+    // NOLINTEND(*-magic-numbers)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
     // Write records to CSL
     bsl::vector<RecordInfo> recordInfos(bmqtst::TestHelperUtil::allocator());
     recordInfos.reserve(k_NUM_DATA);
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         bmqp_ctrlmsg::LeaderMessageSequence lms;
@@ -719,6 +744,7 @@ static void test2_searchRecordsByTypeTest()
     // Run search
     searchProcessor->process();
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 static void test3_searchRecordsByQueueKeyTest()
 // ------------------------------------------------------------------------
@@ -731,6 +757,7 @@ static void test3_searchRecordsByQueueKeyTest()
 // Testing:
 //   CslFileProcessor::process()
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,modernize-use-emplace)
 {
     bmqtst::TestHelper::printTestName("SEARCH RECORDS BY QUEUE KEY TEST");
 
@@ -745,6 +772,7 @@ static void test3_searchRecordsByQueueKeyTest()
         bsl::string                        d_queueKey;
         AdvisoryType::Enum                 d_advisoryType;
         mqbc::ClusterStateRecordType::Enum d_recordType;
+        // NOLINTBEGIN(*-magic-numbers)
     } k_DATA[] = {{L_,
                    2U,
                    1U,
@@ -801,13 +829,16 @@ static void test3_searchRecordsByQueueKeyTest()
                    "3333333333",
                    AdvisoryType::e_LEADER,
                    mqbc::ClusterStateRecordType::e_SNAPSHOT}};
+    // NOLINTEND(*-magic-numbers)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
     // Write records to CSL
     bsl::vector<RecordInfo> recordInfos(bmqtst::TestHelperUtil::allocator());
     recordInfos.reserve(k_NUM_DATA);
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         bmqp_ctrlmsg::LeaderMessageSequence lms;
@@ -864,6 +895,7 @@ static void test3_searchRecordsByQueueKeyTest()
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         standardCslIt.next();
 
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
         if (test.d_queueKey == "2222222222" ||
             test.d_queueKey == "3333333333") {
@@ -885,6 +917,7 @@ static void test3_searchRecordsByQueueKeyTest()
     // Run search
     searchProcessor->process();
 }
+// NOLINTEND(*-avoid-c-arrays,modernize-use-emplace)
 
 static void test4_searchRecordsByTimestampRangeTest()
 // ------------------------------------------------------------------------
@@ -897,6 +930,7 @@ static void test4_searchRecordsByTimestampRangeTest()
 // Testing:
 //   CslFileProcessor::process()
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName(
         "SEARCH RECORDS BY TIMESTAMP RANGE TEST");
@@ -912,6 +946,7 @@ static void test4_searchRecordsByTimestampRangeTest()
         bsl::string                        d_queueKey;
         AdvisoryType::Enum                 d_advisoryType;
         mqbc::ClusterStateRecordType::Enum d_recordType;
+        // NOLINTBEGIN(*-magic-numbers)
     } k_DATA[] = {{L_,
                    2U,
                    1U,
@@ -952,13 +987,16 @@ static void test4_searchRecordsByTimestampRangeTest()
                    "1111111111",
                    AdvisoryType::e_LEADER,
                    mqbc::ClusterStateRecordType::e_SNAPSHOT}};
+    // NOLINTEND(*-magic-numbers)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
     // Write records to CSL
     bsl::vector<RecordInfo> recordInfos(bmqtst::TestHelperUtil::allocator());
     recordInfos.reserve(k_NUM_DATA);
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         bmqp_ctrlmsg::LeaderMessageSequence lms;
@@ -1013,6 +1051,7 @@ static void test4_searchRecordsByTimestampRangeTest()
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         standardCslIt.next();
 
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
         if (test.d_timeStamp > params.d_range.d_timestampGt &&
             test.d_timeStamp < params.d_range.d_timestampLt) {
@@ -1033,6 +1072,7 @@ static void test4_searchRecordsByTimestampRangeTest()
     // Run search
     searchProcessor->process();
 }
+// NOLINTEND(*-avoid-c-arrays,*-magic-numbers)
 
 static void test5_searchRecordsByOffsetRangeTest()
 // ------------------------------------------------------------------------
@@ -1045,6 +1085,7 @@ static void test5_searchRecordsByOffsetRangeTest()
 // Testing:
 //   CslFileProcessor::process()
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("SEARCH RECORDS BY OFFSET RANGE TEST");
 
@@ -1059,6 +1100,7 @@ static void test5_searchRecordsByOffsetRangeTest()
         bsl::string                        d_queueKey;
         AdvisoryType::Enum                 d_advisoryType;
         mqbc::ClusterStateRecordType::Enum d_recordType;
+        // NOLINTBEGIN(*-magic-numbers)
     } k_DATA[] = {{L_,
                    2U,
                    1U,
@@ -1099,13 +1141,16 @@ static void test5_searchRecordsByOffsetRangeTest()
                    "1111111111",
                    AdvisoryType::e_LEADER,
                    mqbc::ClusterStateRecordType::e_SNAPSHOT}};
+    // NOLINTEND(*-magic-numbers)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
     // Write records to CSL
     bsl::vector<RecordInfo> recordInfos(bmqtst::TestHelperUtil::allocator());
     recordInfos.reserve(k_NUM_DATA);
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         bmqp_ctrlmsg::LeaderMessageSequence lms;
@@ -1180,6 +1225,7 @@ static void test5_searchRecordsByOffsetRangeTest()
     // Run search
     searchProcessor->process();
 }
+// NOLINTEND(*-avoid-c-arrays,*-magic-numbers)
 
 static void test6_searchRecordsBySeqNumberRangeTest()
 // ------------------------------------------------------------------------
@@ -1192,6 +1238,7 @@ static void test6_searchRecordsBySeqNumberRangeTest()
 // Testing:
 //   CslFileProcessor::process()
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelper::printTestName(
         "SEARCH RECORDS BY SEQUENCE NUMBER RANGE TEST");
@@ -1207,6 +1254,7 @@ static void test6_searchRecordsBySeqNumberRangeTest()
         bsl::string                        d_queueKey;
         AdvisoryType::Enum                 d_advisoryType;
         mqbc::ClusterStateRecordType::Enum d_recordType;
+        // NOLINTBEGIN(*-magic-numbers)
     } k_DATA[] = {{L_,
                    1U,
                    1U,
@@ -1247,13 +1295,16 @@ static void test6_searchRecordsBySeqNumberRangeTest()
                    "1111111111",
                    AdvisoryType::e_LEADER,
                    mqbc::ClusterStateRecordType::e_SNAPSHOT}};
+    // NOLINTEND(*-magic-numbers)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
     // Write records to CSL
     bsl::vector<RecordInfo> recordInfos(bmqtst::TestHelperUtil::allocator());
     recordInfos.reserve(k_NUM_DATA);
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         bmqp_ctrlmsg::LeaderMessageSequence lms;
@@ -1308,6 +1359,7 @@ static void test6_searchRecordsBySeqNumberRangeTest()
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         standardCslIt.next();
 
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test&             test = k_DATA[idx];
         CompositeSequenceNumber recSeqNum(test.d_electorTerm,
                                           test.d_sequenceNumber);
@@ -1330,6 +1382,7 @@ static void test6_searchRecordsBySeqNumberRangeTest()
     // Run search
     searchProcessor->process();
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 static void test7_searchRecordsByOffsetTest()
 // ------------------------------------------------------------------------
@@ -1342,6 +1395,7 @@ static void test7_searchRecordsByOffsetTest()
 // Testing:
 //   CslFileProcessor::process()
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("SEARCH RECORDS BY OFFSET TEST");
 
@@ -1356,6 +1410,7 @@ static void test7_searchRecordsByOffsetTest()
         bsl::string                        d_queueKey;
         AdvisoryType::Enum                 d_advisoryType;
         mqbc::ClusterStateRecordType::Enum d_recordType;
+        // NOLINTBEGIN(*-magic-numbers)
     } k_DATA[] = {{L_,
                    2U,
                    1U,
@@ -1396,13 +1451,16 @@ static void test7_searchRecordsByOffsetTest()
                    "1111111111",
                    AdvisoryType::e_LEADER,
                    mqbc::ClusterStateRecordType::e_SNAPSHOT}};
+    // NOLINTEND(*-magic-numbers)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
     // Write records to CSL
     bsl::vector<RecordInfo> recordInfos(bmqtst::TestHelperUtil::allocator());
     recordInfos.reserve(k_NUM_DATA);
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         bmqp_ctrlmsg::LeaderMessageSequence lms;
@@ -1453,6 +1511,7 @@ static void test7_searchRecordsByOffsetTest()
     // Prepare expected output with list of snapshot records in CSL file
     mqbc::IncoreClusterStateLedgerIterator standardCslIt(tester.ledger());
     Sequence                               s;
+    // NOLINTBEGIN(*-magic-numbers)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         standardCslIt.next();
 
@@ -1466,6 +1525,7 @@ static void test7_searchRecordsByOffsetTest()
                 .InSequence(s);
         }
     }
+    // NOLINTEND(*-magic-numbers)
 
     CslRecordCount recordCount;
     recordCount.d_snapshotCount = 2;
@@ -1476,6 +1536,7 @@ static void test7_searchRecordsByOffsetTest()
     // Run search
     searchProcessor->process();
 }
+// NOLINTEND(*-avoid-c-arrays,*-magic-numbers)
 
 static void test8_searchRecordsBySeqNumberTest()
 // ------------------------------------------------------------------------
@@ -1488,6 +1549,7 @@ static void test8_searchRecordsBySeqNumberTest()
 // Testing:
 //   CslFileProcessor::process()
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,modernize-use-emplace)
 {
     bmqtst::TestHelper::printTestName(
         "SEARCH RECORDS BY SEQUENCE NUMBER TEST");
@@ -1503,6 +1565,7 @@ static void test8_searchRecordsBySeqNumberTest()
         bsl::string                        d_queueKey;
         AdvisoryType::Enum                 d_advisoryType;
         mqbc::ClusterStateRecordType::Enum d_recordType;
+        // NOLINTBEGIN(*-magic-numbers)
     } k_DATA[] = {{L_,
                    1U,
                    1U,
@@ -1543,13 +1606,16 @@ static void test8_searchRecordsBySeqNumberTest()
                    "1111111111",
                    AdvisoryType::e_LEADER,
                    mqbc::ClusterStateRecordType::e_SNAPSHOT}};
+    // NOLINTEND(*-magic-numbers)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
     // Write records to CSL
     bsl::vector<RecordInfo> recordInfos(bmqtst::TestHelperUtil::allocator());
     recordInfos.reserve(k_NUM_DATA);
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         bmqp_ctrlmsg::LeaderMessageSequence lms;
@@ -1604,6 +1670,7 @@ static void test8_searchRecordsBySeqNumberTest()
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         standardCslIt.next();
 
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
         if ((test.d_electorTerm == 1U || test.d_electorTerm == 2U) &&
             test.d_sequenceNumber == 2U) {
@@ -1624,6 +1691,7 @@ static void test8_searchRecordsBySeqNumberTest()
     // Run search
     searchProcessor->process();
 }
+// NOLINTEND(*-avoid-c-arrays,modernize-use-emplace)
 
 static void test9_summaryTest()
 // ------------------------------------------------------------------------
@@ -1636,6 +1704,7 @@ static void test9_summaryTest()
 // Testing:
 //   CslFileProcessor::process()
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("SUMMARY TEST");
 
@@ -1650,6 +1719,7 @@ static void test9_summaryTest()
         bsl::string                        d_queueKey;
         AdvisoryType::Enum                 d_advisoryType;
         mqbc::ClusterStateRecordType::Enum d_recordType;
+        // NOLINTBEGIN(*-magic-numbers)
     } k_DATA[] = {{L_,
                    2U,
                    1U,
@@ -1706,13 +1776,16 @@ static void test9_summaryTest()
                    "1111111111",
                    AdvisoryType::e_ACK,
                    mqbc::ClusterStateRecordType::e_ACK}};
+    // NOLINTEND(*-magic-numbers)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
     // Write records to CSL
     bsl::vector<RecordInfo> recordInfos(bmqtst::TestHelperUtil::allocator());
     recordInfos.reserve(k_NUM_DATA);
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         bmqp_ctrlmsg::LeaderMessageSequence lms;
@@ -1802,12 +1875,14 @@ static void test9_summaryTest()
     // Run search
     searchProcessor->process();
 }
+// NOLINTEND(*-avoid-c-arrays,*-magic-numbers)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -1834,3 +1909,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

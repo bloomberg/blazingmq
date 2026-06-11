@@ -136,6 +136,7 @@ struct RelayQueueEngine_AppState : QueueEngineUtil_AppState {
 // ======================
 
 /// QueueEngine implementation for a BlazingMQ relay node (replica/proxy).
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class RelayQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
   private:
     // CLASS-SCOPE CATEGORY
@@ -168,6 +169,7 @@ class RelayQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     /// (plural in the case of wildcard) to upstream.  Once all responses
     /// are collected (there are no more references), it calls the specified
     /// callback
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     struct ConfigureContext {
         // TRAITS
         BSLMF_NESTED_TRAIT_DECLARATION(ConfigureContext,
@@ -204,6 +206,7 @@ class RelayQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
 
         void initializeRouting(Routers::QueueRoutingContext& queueContext);
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
   private:
     // DATA
@@ -565,6 +568,7 @@ class RelayQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
                                            unsigned int*            subQueueId,
                                            unsigned int subscriptionId) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS
@@ -626,10 +630,12 @@ inline RelayQueueEngine::ConfigureContext::ConfigureContext(
     d_status.code()     = 0;
 }
 
+// NOLINTBEGIN(bugprone-exception-escape)
 inline RelayQueueEngine::ConfigureContext::~ConfigureContext()
 {
     invokeCallback();
 }
+// NOLINTEND(bugprone-exception-escape)
 
 inline void RelayQueueEngine::ConfigureContext::setStatus(
     const bmqp_ctrlmsg::StatusCategory::Value& category,

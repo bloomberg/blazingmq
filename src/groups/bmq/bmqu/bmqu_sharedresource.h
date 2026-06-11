@@ -262,6 +262,7 @@ class SharedResource_Deleter : public bdlma::Deleter<void> {
 
 /// Provides a partial implementation for `SharedResource` to reduce the
 /// amount of generated template code.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct SharedResource_Base {
     // PUBLIC DATA
 
@@ -357,6 +358,7 @@ struct SharedResource_Base {
     /// otherwise.
     bool isValid() const BSLS_KEYWORD_NOEXCEPT;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ====================
 // class SharedResource
@@ -370,6 +372,7 @@ struct SharedResource_Base {
 /// of type `DELETER` and a valid resource pointer `r` of type `RESOURCE*`,
 /// `d(r)` shall be a valid expression, and shall not throw.
 template <class RESOURCE, class DELETER = SharedResourceNoOpDeleter<RESOURCE> >
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class SharedResource {
   private:
     // PRIVATE DATA
@@ -489,6 +492,7 @@ class SharedResource {
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(SharedResource, bslma::UsesBslmaAllocator)
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ==================================
 // class SharedResourceFactoryDeleter

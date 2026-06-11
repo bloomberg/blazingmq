@@ -40,6 +40,7 @@ namespace bmqt {
 /// This struct defines various types of compression algorithms.
 struct CompressionAlgorithmType {
     // TYPES
+    // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
     enum Enum { e_UNKNOWN = -1, e_NONE = 0, e_ZLIB = 1 };
 
     // CONSTANTS

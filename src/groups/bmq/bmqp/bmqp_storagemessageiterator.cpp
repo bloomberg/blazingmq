@@ -45,6 +45,7 @@ void StorageMessageIterator::copyFrom(const StorageMessageIterator& src)
 }
 
 int StorageMessageIterator::next()
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     enum RcEnum {
         // Value for the various RC error categories
@@ -113,9 +114,11 @@ int StorageMessageIterator::next()
 
     return rc_HAS_NEXT;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 int StorageMessageIterator::reset(const bdlbb::Blob* blob,
                                   const EventHeader& eventHeader)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(blob);
@@ -147,6 +150,7 @@ int StorageMessageIterator::reset(const bdlbb::Blob* blob,
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 void StorageMessageIterator::reset(const bdlbb::Blob*            blob,
                                    const StorageMessageIterator& other)

@@ -105,6 +105,7 @@ const double k_PARTITION_AVAILABLESPACE_SECS = 20;
 
 const int k_NAGLE_PACKET_COUNT = 100;
 
+// NOLINTNEXTLINE(cppcoreguidelines-interfaces-global-init)
 const int k_KEY_LEN = FileStoreProtocol::k_KEY_LENGTH;
 
 /// k_RESERVED1_SYNC_POINT_SIZE is the space in the end of the JOURNAL file
@@ -112,19 +113,28 @@ const int k_KEY_LEN = FileStoreProtocol::k_KEY_LENGTH;
 /// 1 journal sync point if rolling over +
 /// 1 journal sync point if self needs to issue another sync point in
 ///   'setActivePrimary' with old values
+// NOLINTBEGIN(cppcoreguidelines-interfaces-global-init)
 const bsls::Types::Uint64 k_RESERVED1_SYNC_POINT_SIZE =
+    // NOLINTNEXTLINE(bugprone-implicit-widening-of-multiplication-result)
     2 * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+// NOLINTEND(cppcoreguidelines-interfaces-global-init)
 
 /// k_RESERVED2_PURGE_SIZE is the space in the end of the JOURNAL file reserved
 /// for PURGE records if JOURNAL file is not available
+// NOLINTBEGIN(cppcoreguidelines-interfaces-global-init)
 const bsls::Types::Uint64 k_RESERVED2_PURGE_SIZE =
+    // NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result)
     k_RESERVED1_SYNC_POINT_SIZE +
     16 * FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+// NOLINTEND(bugprone-implicit-widening-of-multiplication-result)
+// NOLINTEND(cppcoreguidelines-interfaces-global-init)
 
 /// k_REQUESTED_JOURNAL_SPACE is the minimum required space in JOURNAL to write
 /// a next common record
+// NOLINTBEGIN(cppcoreguidelines-interfaces-global-init)
 const bsls::Types::Uint64 k_REQUESTED_JOURNAL_SPACE =
     FileStoreProtocol::k_JOURNAL_RECORD_SIZE + k_RESERVED2_PURGE_SIZE;
+// NOLINTEND(cppcoreguidelines-interfaces-global-init)
 
 /// Reserved areas of the JOURNAL file (not in scale):
 /// [start ======================= JOURNAL FILE ========================== end]
@@ -138,6 +148,7 @@ const bsls::Types::Uint64 k_REQUESTED_JOURNAL_SPACE =
 /// having the specified `inUse` bytes used.
 bsls::Types::Uint64 computePercentage(bsls::Types::Uint64 inUse,
                                       bsls::Types::Uint64 capacity)
+// NOLINTBEGIN(*-magic-numbers)
 {
     bsls::Types::Uint64 percent = 0;
     if (inUse <= capacity) {
@@ -146,6 +157,7 @@ bsls::Types::Uint64 computePercentage(bsls::Types::Uint64 inUse,
 
     return percent;
 }
+// NOLINTEND(*-magic-numbers)
 
 /// Print to the specified `out` a capture of used space in the partition
 /// file represented by the specified `prefix` and having the specified
@@ -264,9 +276,11 @@ void printLastJournalRecord(bsl::ostream&               stream,
 {
     if (journalPos >= FileStoreProtocol::k_JOURNAL_RECORD_SIZE) {
         // Create a 'MemoryBlock' for the last record in local journal
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         MemoryBlock selfBlock(journal.block().base() + journalPos -
                                   FileStoreProtocol::k_JOURNAL_RECORD_SIZE,
                               FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         stream << "Last record in self journal: \n";
         printRecord(stream, selfBlock);
         stream << "\n";
@@ -343,6 +357,7 @@ int FileStore::openInNonRecoveryMode()
 
 int FileStore::openInRecoveryMode(bsl::ostream&    errorDescription,
                                   QueueKeyInfoMap* queueKeyInfoMap)
+// NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions,bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-init-variables,cppcoreguidelines-use-enum-class)
 {
     // executed by the *DISPATCHER* thread
 
@@ -1060,6 +1075,7 @@ int FileStore::openInRecoveryMode(bsl::ostream&    errorDescription,
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,*-narrowing-conversions,bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-init-variables,cppcoreguidelines-use-enum-class)
 
 int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                                bsls::Types::Uint64* journalOffset,
@@ -1069,6 +1085,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                                QlistFileIterator*   qit,
                                DataFileIterator*    dit,
                                bool                 withCSL)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(queueKeyInfoMap);
@@ -1148,6 +1165,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
 
     // First pass.
     int rc = 0;
+    // NOLINTBEGIN(*-narrowing-conversions)
     while ((rc = journalIt.nextRecord()) == 1) {
         const RecordHeader& recHeader = journalIt.recordHeader();
         RecordType::Enum    rt        = recHeader.type();
@@ -1470,6 +1488,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
             continue;  // CONTINUE
         }
     }
+    // NOLINTEND(*-narrowing-conversions)
 
     BALL_LOG_INFO << partitionDesc() << "Completed first pass over the journal"
                   << " with rc: " << rc
@@ -1498,6 +1517,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
     }
 
     // Second pass.
+    // NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result)
     while (1 == (rc = jit->nextRecord())) {
         const RecordHeader& recHeader = jit->recordHeader();
         RecordType::Enum    rt        = recHeader.type();
@@ -2063,9 +2083,12 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                 if (d_qListAware) {
                     // Retrieve QueueUri from QueueUriRecord.
 
+                    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
                     const char* uriBegin = qlistFd->block().base() +
                                            queueUriRecOffset +
                                            queueRecHeaderLen;
+                    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+                    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
                     char lastByte = uriBegin[paddedUriLen - 1];
 
                     if (paddedUriLen <= static_cast<unsigned int>(lastByte)) {
@@ -2084,9 +2107,11 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                         return rc_INVALID_QLIST_RECORD;  // RETURN
                     }
 
+                    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
                     bslstl::StringRef uri(uriBegin,
                                           paddedUriLen -
                                               uriBegin[paddedUriLen - 1]);
+                    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
                     if (withCSL) {
                         BSLS_ASSERT_SAFE(!qinfo.canonicalQueueUri().empty());
@@ -2142,11 +2167,13 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                         FileStoreProtocol::k_HASH_LENGTH -
                         sizeof(unsigned int);  // Magic
 
+                    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
                     MemoryBlock appIdsBlock(
                         qlistFd->block().base() + queueUriRecOffset +
                             queueRecHeaderLen + paddedUriLen +
                             FileStoreProtocol::k_HASH_LENGTH,
                         appIdsAreaLen);
+                    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
                     AppInfos appIdKeyPairs(d_allocator_p);
                     FileStoreProtocolUtil::loadAppInfos(&appIdKeyPairs,
@@ -2554,8 +2581,10 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                 return rc_INVALID_DATA_RECORD;  // RETURN
             }
 
-            const char* begin    = dataFd->block().base() + dataHeaderOffset;
-            const int   lastByte = static_cast<int>(begin[totalLen - 1]);
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+            const char* begin = dataFd->block().base() + dataHeaderOffset;
+            // NOLINTNEXTLINE(bugprone-signed-char-misuse,cert-str34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic)
+            const int lastByte = static_cast<int>(begin[totalLen - 1]);
 
             if (lastByte < 1 || lastByte > bmqp::Protocol::k_DWORD_SIZE) {
                 BALL_LOG_ERROR
@@ -2617,9 +2646,11 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                                       lastByte;
 
             // Check CRC32C
+            // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
             unsigned int checksum = bmqp::Crc32c::calculate(
                 dataFd->block().base() + appDataOffset,
                 appDataLen);
+            // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
             if (rec.crc32c() != checksum) {
                 BMQTSK_ALARMLOG_ALARM("RECOVERY")
@@ -2655,6 +2686,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
             activeFileSet->d_outstandingBytesData += totalLen;
         }
     }
+    // NOLINTEND(bugprone-implicit-widening-of-multiplication-result)
 
     BALL_LOG_INFO << partitionDesc() << "Completed second pass over the "
                   << "journal with rc: " << rc;
@@ -2676,6 +2708,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 int FileStore::create(FileSetSp* fileSetSp)
 {
@@ -2703,6 +2736,7 @@ int FileStore::create(FileSetSp* fileSetSp)
 }
 
 int FileStore::rolloverImpl(bsls::Types::Uint64 timestamp)
+// NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(0 < d_fileSets.size());
@@ -2755,14 +2789,17 @@ int FileStore::rolloverImpl(bsls::Types::Uint64 timestamp)
 
     QueueKeyCounterList queueKeyCounters;
     queueKeyCounters.reserve(queueKeyCounterMap.size());
+    // NOLINTBEGIN(modernize-use-emplace)
     for (QueueKeyCounterMapCIter queueKeyCounterCIter =
              queueKeyCounterMap.cbegin();
          queueKeyCounterCIter != queueKeyCounterMap.cend();
          ++queueKeyCounterCIter) {
         queueKeyCounters.push_back(*queueKeyCounterCIter);
     }
+    // NOLINTEND(modernize-use-emplace)
     bsl::sort(queueKeyCounters.begin(), queueKeyCounters.end(), compareByByte);
 
+    // NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (QueueKeyCounterListCIter queueCountersCIter =
              queueKeyCounters.cbegin();
          queueCountersCIter != queueKeyCounters.cend();
@@ -2779,6 +2816,7 @@ int FileStore::rolloverImpl(bsls::Types::Uint64 timestamp)
                          queueCountersCIter->second.second)
                   << " " << sit->second->queueUri();
     }
+    // NOLINTEND(*-magic-numbers,*-narrowing-conversions,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     BALL_LOG_INFO << outStream.str();
 
     // Local refs for convenience.
@@ -2869,10 +2907,12 @@ int FileStore::rolloverImpl(bsls::Types::Uint64 timestamp)
     // JournalFileHeader.d_firstSyncPointAfterRolloverOffset must be the last
     // operation to occur in rolling over file store.
 
-    OffsetPtr<const FileHeader>  fhJ(rJournalFile.block(), 0);
+    OffsetPtr<const FileHeader> fhJ(rJournalFile.block(), 0);
+    // NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result)
     OffsetPtr<JournalFileHeader> jfh(rJournalFile.block(),
                                      fhJ->headerWords() *
                                          bmqp::Protocol::k_WORD_SIZE);
+    // NOLINTEND(bugprone-implicit-widening-of-multiplication-result)
 
     jfh->setFirstSyncPointAfterRolloverOffsetWords(
         spoPair.offset() / bmqp::Protocol::k_WORD_SIZE);
@@ -3023,12 +3063,14 @@ int FileStore::rolloverImpl(bsls::Types::Uint64 timestamp)
 
     return 0;
 }
+// NOLINTEND(*-magic-numbers,*-narrowing-conversions)
 
 int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
                                 const MappedFileDescriptor& file,
                                 const bsl::string&          fileName,
                                 bsls::Types::Uint64         currentSize,
                                 bsls::Types::Uint64         requestedSpace)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     FileSet* activeFileSet = d_fileSets[0].get();
     BSLS_ASSERT_SAFE(activeFileSet);
@@ -3254,8 +3296,10 @@ int FileStore::rolloverIfNeeded(FileType::Enum              fileType,
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 int FileStore::rollover()
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     enum {
         rc_SUCCESS                        = 0,
@@ -3323,6 +3367,7 @@ int FileStore::rollover()
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 void FileStore::truncate(FileSet* fileSet)
 {
@@ -3366,6 +3411,7 @@ void FileStore::truncate(FileSet* fileSet)
 }
 
 int FileStore::close(FileSet& fileSetRef, bool flush)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     enum RcEnum {
         rc_SUCCESS               = 0,
@@ -3458,9 +3504,11 @@ int FileStore::close(FileSet& fileSetRef, bool flush)
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 int FileStore::archive(FileSet* fileSet)
 {
+    // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
     enum rcEnum { rc_SUCCESS = 0, rc_FILE_MOVE_FAILURE = -1 };
 
     int rc = FileStoreUtil::archiveFileSet(fileSet->d_dataFileName,
@@ -3506,6 +3554,7 @@ void FileStore::gc(FileSet* fileSet)
 
 void FileStore::gcDispatched(BSLA_MAYBE_UNUSED int partitionId,
                              FileSet*              fileSet)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     // executed by the *DISPATCHER* thread
 
@@ -3540,12 +3589,14 @@ void FileStore::gcDispatched(BSLA_MAYBE_UNUSED int partitionId,
 
     FileSetSp          fileSetSp;
     FileSets::iterator it;
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (it = d_fileSets.begin(); it != d_fileSets.end(); ++it) {
         if (it->get() == fileSet) {
             fileSetSp = *it;
             break;  // BREAK
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     BSLS_ASSERT_SAFE(fileSetSp);
     BSLS_ASSERT_SAFE(fileSet->d_dataFile.isValid());
@@ -3563,6 +3614,7 @@ void FileStore::gcDispatched(BSLA_MAYBE_UNUSED int partitionId,
         bdlf::BindUtil::bind(&FileStore::gcWorkerDispatched, this, fileSetSp));
     BSLS_ASSERT_SAFE(rc == 0);
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 void FileStore::gcWorkerDispatched(const bsl::shared_ptr<FileSet>& fileSet)
 {
@@ -3624,6 +3676,7 @@ int FileStore::writeQueueOpRecord(DataStoreRecordHandle*  handle,
                                   bsls::Types::Uint64     timestamp,
                                   unsigned int            startPrimaryLeaseId,
                                   bsls::Types::Uint64     startSequenceNum)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(handle);
@@ -3711,6 +3764,7 @@ int FileStore::writeQueueOpRecord(DataStoreRecordHandle*  handle,
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 void FileStore::writeQueueOpRecordImpl(DataStoreRecordHandle*  handle,
                                        const mqbu::StorageKey& queueKey,
@@ -3757,6 +3811,7 @@ void FileStore::writeRolledOverRecord(DataStoreRecord*    record,
                                       QueueKeyCounterMap* queueKeyCounterMap,
                                       FileSet*            oldFileSet,
                                       FileSet*            newFileSet)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(0 != record->d_recordOffset);
@@ -3922,6 +3977,7 @@ void FileStore::writeRolledOverRecord(DataStoreRecord*    record,
     newFileSet->d_outstandingBytesJournal +=
         FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 void FileStore::issueSyncPointCb()
 {
@@ -3953,6 +4009,7 @@ void FileStore::alarmHighwatermarkIfNeededCb()
 }
 
 void FileStore::alarmHighwatermarkIfNeededDispatched()
+// NOLINTBEGIN(*-magic-numbers)
 {
     // executed by the *DISPATCHER* thread
 
@@ -4035,6 +4092,7 @@ void FileStore::alarmHighwatermarkIfNeededDispatched()
         }
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 void FileStore::issueSyncPointDispatched(BSLA_MAYBE_UNUSED int partitionId)
 {
@@ -4099,10 +4157,12 @@ void FileStore::issueSyncPointIfNeeded()
 
 int FileStore::issueSyncPointInternal(SyncPointType::Enum            type,
                                       const bmqp_ctrlmsg::SyncPoint& syncPoint)
+// NOLINTBEGIN(*-magic-numbers,bugprone-implicit-widening-of-multiplication-result)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(inDispatcherThread());
 
+    // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
     enum { rc_SUCCESS = 0, rc_WRITE_FAILURE = -1 };
 
     const FileSet* fs = d_fileSets[0].get();
@@ -4156,6 +4216,7 @@ int FileStore::issueSyncPointInternal(SyncPointType::Enum            type,
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,bugprone-implicit-widening-of-multiplication-result)
 
 void FileStore::processReceiptEvent(unsigned int         primaryLeaseId,
                                     bsls::Types::Uint64  sequenceNumber,
@@ -4265,6 +4326,7 @@ int FileStore::writeMessageRecord(const bmqp::StorageHeader& header,
                                   const mqbs::RecordHeader&  recHeader,
                                   const bsl::shared_ptr<bdlbb::Blob>& event,
                                   const bmqu::BlobPosition& recordPosition)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(0 < d_fileSets.size());
@@ -4370,6 +4432,7 @@ int FileStore::writeMessageRecord(const bmqp::StorageHeader& header,
 
     // For padding.
     const char lastByte =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         dataFile.block().base()[dataOffset + messageSize - 1];
 
     // Create in-memory record
@@ -4398,12 +4461,14 @@ int FileStore::writeMessageRecord(const bmqp::StorageHeader& header,
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 int FileStore::writeQueueCreationRecord(
     const bmqp::StorageHeader&          header,
     const mqbs::RecordHeader&           recHeader,
     const bsl::shared_ptr<bdlbb::Blob>& event,
     const bmqu::BlobPosition&           recordPosition)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     enum {
         rc_SUCCESS                           = 0,
@@ -4529,12 +4594,14 @@ int FileStore::writeQueueCreationRecord(
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
                                   const mqbs::RecordHeader&  recHeader,
                                   const bsl::shared_ptr<bdlbb::Blob>& event,
                                   const bmqu::BlobPosition& recordPosition,
                                   bmqp::StorageMessageType::Enum messageType)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-use-enum-class)
 {
     enum {
         rc_SUCCESS                = 0,
@@ -4961,10 +5028,12 @@ int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-use-enum-class)
 
 void FileStore::replicateRecord(bmqp::StorageMessageType::Enum type,
                                 bsls::Types::Uint64            journalOffset,
                                 bool                           immediateFlush)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(bmqp::StorageMessageType::e_QLIST != type &&
@@ -4984,15 +5053,18 @@ void FileStore::replicateRecord(bmqp::StorageMessageType::Enum type,
 
     MappedFileDescriptor& journal = activeFileSet->d_journalFile;
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     bsl::shared_ptr<char> journalRecordBufferSp(
         activeFileSet->d_aliasedChunk_sp,
         journal.mapping() + journalOffset);
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     bdlbb::BlobBuffer journalRecordBlobBuffer(
         journalRecordBufferSp,
         FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
 
     bmqt::EventBuilderResult::Enum buildRc;
     bool                           doRetry = false;
+    // NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
     do {
         buildRc = d_storageEventBuilder.packMessage(type,
                                                     d_config.partitionId(),
@@ -5010,6 +5082,7 @@ void FileStore::replicateRecord(bmqp::StorageMessageType::Enum type,
             doRetry = false;
         }
     } while (doRetry);
+    // NOLINTEND(cppcoreguidelines-avoid-do-while)
 
     if (bmqt::EventBuilderResult::e_SUCCESS != buildRc) {
         BMQTSK_ALARMLOG_ALARM("REPLICATION")
@@ -5028,12 +5101,14 @@ void FileStore::replicateRecord(bmqp::StorageMessageType::Enum type,
     // Flush if the builder is 'full' or if immediate flush is requested.
     flushIfNeeded(immediateFlush);
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 void FileStore::replicateRecord(bmqp::StorageMessageType::Enum type,
                                 int                            flags,
                                 bsls::Types::Uint64            journalOffset,
                                 bsls::Types::Uint64            dataOffset,
                                 unsigned int                   totalDataLen)
+// NOLINTBEGIN(*-narrowing-conversions,cppcoreguidelines-init-variables)
 {
     BSLS_ASSERT_SAFE(bmqp::StorageMessageType::e_DATA == type ||
                      bmqp::StorageMessageType::e_QLIST == type);
@@ -5049,9 +5124,11 @@ void FileStore::replicateRecord(bmqp::StorageMessageType::Enum type,
 
     MappedFileDescriptor& journal = activeFileSet->d_journalFile;
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     bsl::shared_ptr<char> journalRecordBufferSp(
         activeFileSet->d_aliasedChunk_sp,
         journal.mapping() + journalOffset);
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     bdlbb::BlobBuffer journalRecordBlobBuffer(
         bslmf::MovableRefUtil::move(journalRecordBufferSp),
         FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
@@ -5063,8 +5140,10 @@ void FileStore::replicateRecord(bmqp::StorageMessageType::Enum type,
                                         ? activeFileSet->d_dataFile
                                         : activeFileSet->d_qlistFile;
 
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         bsl::shared_ptr<char> dataBufferSp(activeFileSet->d_aliasedChunk_sp,
                                            mfd.mapping() + dataOffset);
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         dataBlobBuffer.reset(bslmf::MovableRefUtil::move(dataBufferSp),
                              totalDataLen);
     }
@@ -5073,6 +5152,7 @@ void FileStore::replicateRecord(bmqp::StorageMessageType::Enum type,
     const unsigned int             journalOffsetWords = journalOffset /
                                             bmqp::Protocol::k_WORD_SIZE;
     bool flushAndRetry = false;
+    // NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
     do {
         if (bmqp::StorageMessageType::e_DATA == type) {
             buildRc = d_storageEventBuilder.packMessage(
@@ -5114,6 +5194,7 @@ void FileStore::replicateRecord(bmqp::StorageMessageType::Enum type,
         }
 
     } while (flushAndRetry);
+    // NOLINTEND(cppcoreguidelines-avoid-do-while)
 
     if (bmqt::EventBuilderResult::e_SUCCESS != buildRc) {
         BMQTSK_ALARMLOG_ALARM("REPLICATION")
@@ -5137,6 +5218,7 @@ void FileStore::replicateRecord(bmqp::StorageMessageType::Enum type,
     // Flush if the builder is 'full'.
     flushIfNeeded(false);
 }
+// NOLINTEND(*-narrowing-conversions,cppcoreguidelines-init-variables)
 
 void FileStore::deleteArchiveFilesCb()
 {
@@ -5150,6 +5232,7 @@ void FileStore::deleteArchiveFilesCb()
 
 int FileStore::validateWritingRecord(const bmqt::MessageGUID& guid,
                                      const mqbu::StorageKey&  queueKey)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     enum {
         rc_SUCCESS     = 0,
@@ -5184,6 +5267,7 @@ int FileStore::validateWritingRecord(const bmqt::MessageGUID& guid,
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 void FileStore::replicateAndInsertDataStoreRecord(
     DataStoreRecordHandle*         handle,
@@ -5234,26 +5318,34 @@ void FileStore::aliasMessage(bsl::shared_ptr<bdlbb::Blob>* appData,
     const bsls::Types::Uint64 appDataOffset = record.d_messageOffset +
                                               dataHdrSize + optionsSize;
     if (0 != optionsSize) {
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         bsl::shared_ptr<char> optionsBufferSp(
             activeFileSet->d_aliasedChunk_sp,
             activeFileSet->d_dataFile.block().base() + optionsOffset);
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
+        // NOLINTBEGIN(*-narrowing-conversions)
         bdlbb::BlobBuffer optionsBlobBuffer(
             bslmf::MovableRefUtil::move(optionsBufferSp),
             optionsSize);
+        // NOLINTEND(*-narrowing-conversions)
 
         *options = d_blobSpPool_p->getObject();
         (*options)->appendDataBuffer(
             bslmf::MovableRefUtil::move(optionsBlobBuffer));
     }
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     bsl::shared_ptr<char> appDataBufferSp(
         activeFileSet->d_aliasedChunk_sp,
         activeFileSet->d_dataFile.block().base() + appDataOffset);
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
+    // NOLINTBEGIN(*-narrowing-conversions)
     bdlbb::BlobBuffer appDataBlobBuffer(
         bslmf::MovableRefUtil::move(appDataBufferSp),
         record.d_appDataUnpaddedLen);
+    // NOLINTEND(*-narrowing-conversions)
 
     *appData = d_blobSpPool_p->getObject();
     (*appData)->appendDataBuffer(
@@ -5271,6 +5363,7 @@ void FileStore::flushIfNeeded(bool immediateFlush)
 }
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 FileStore::FileStore(
     const DataStoreConfig&                          config,
     int                                             processorId,
@@ -5297,6 +5390,7 @@ FileStore::FileStore(
 , d_isStopping(false)
 , d_flushWhenClosing(false)
 , d_lastSyncPtReceived(false)
+// NOLINTNEXTLINE(*-magic-numbers)
 , d_records(10000, d_allocators.get("OutstandingRecords"))
 , d_unreceipted(d_allocators.get("UnreceiptedRecords"))
 , d_replicationNotifications(allocator)
@@ -5322,6 +5416,7 @@ FileStore::FileStore(
 , d_firstSyncPointAfterRolloverSeqNum()
 , d_highestSeqNums(allocator)
 , d_messageTransmitter(blobSpPool, cluster, allocator)
+// NOLINTBEGIN(*-magic-numbers)
 {
     // PRECONDITIONS
     BSLS_ASSERT(allocator);
@@ -5341,6 +5436,8 @@ FileStore::FileStore(
     d_alarmSoftLimiter.initialize(1, 15 * bdlt::TimeUnitRatio::k_NS_PER_M);
     // Throttling of one maximum alarm per 15 minutes
 }
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 FileStore::~FileStore()
 {
@@ -5352,6 +5449,7 @@ FileStore::~FileStore()
 
 // MANIPULATORS
 int FileStore::open(QueueKeyInfoMap* queueKeyInfoMap)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     // executed by the *DISPATCHER* thread
 
@@ -5429,8 +5527,10 @@ int FileStore::open(QueueKeyInfoMap* queueKeyInfoMap)
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 int FileStore::close(bool flush, bool archive)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     enum RcEnum {
         rc_SUCCESS         = 0,
@@ -5527,6 +5627,7 @@ int FileStore::close(bool flush, bool archive)
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 void FileStore::createStorage(bsl::shared_ptr<ReplicatedStorage>* storageSp,
                               const bmqt::Uri&                    queueUri,
@@ -5581,6 +5682,7 @@ int FileStore::writeMessageRecord(mqbi::StorageMessageAttributes* attributes,
                                   const bsl::shared_ptr<bdlbb::Blob>& appData,
                                   const bsl::shared_ptr<bdlbb::Blob>& options,
                                   const mqbu::StorageKey&             queueKey)
+// NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions,cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(handle);
@@ -5784,6 +5886,7 @@ int FileStore::writeMessageRecord(mqbi::StorageMessageAttributes* attributes,
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,*-narrowing-conversions,cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-use-enum-class)
 
 int FileStore::writeQueueCreationRecord(DataStoreRecordHandle*  handle,
                                         const bmqt::Uri&        queueUri,
@@ -5791,6 +5894,7 @@ int FileStore::writeQueueCreationRecord(DataStoreRecordHandle*  handle,
                                         const AppInfos&         appIdKeyPairs,
                                         bsls::Types::Uint64     timestamp,
                                         bool                    isNewQueue)
+// NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(handle);
@@ -5850,6 +5954,7 @@ int FileStore::writeQueueCreationRecord(DataStoreRecordHandle*  handle,
                               queueUri.asString().length() + queueUriPadding +
                               FileStoreProtocol::k_HASH_LENGTH;
         size_t i = 0;
+        // NOLINTBEGIN(*-narrowing-conversions)
         for (AppInfos::const_iterator cit = appIdKeyPairs.cbegin();
              cit != appIdKeyPairs.cend();
              ++cit, ++i) {
@@ -5862,6 +5967,7 @@ int FileStore::writeQueueCreationRecord(DataStoreRecordHandle*  handle,
                 sizeof(AppIdHeader) + cit->first.length() + appIdPaddings[i] +
                 FileStoreProtocol::k_HASH_LENGTH;  // for AppKey
         }
+        // NOLINTEND(*-narrowing-conversions)
 
         qlistRecTotalLength += sizeof(unsigned int);  // magic length
 
@@ -5950,6 +6056,7 @@ int FileStore::writeQueueCreationRecord(DataStoreRecordHandle*  handle,
         // of the right length, zero it out, and copy only 'queueKey' worth of
         // data.
 
+        // NOLINTNEXTLINE(*-avoid-c-arrays)
         char queueHash[mqbs::FileStoreProtocol::k_HASH_LENGTH] = {0};
         bsl::memcpy(queueHash, queueKey.data(), k_KEY_LEN);
         OffsetPtr<char> quriHash(qlistFile.block(), qlistFilePos);
@@ -5960,6 +6067,7 @@ int FileStore::writeQueueCreationRecord(DataStoreRecordHandle*  handle,
 
         // 3) Append AppIds and AppKeys
         size_t i = 0;
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (AppInfos::const_iterator cit = appIdKeyPairs.cbegin();
              cit != appIdKeyPairs.cend();
              ++cit, ++i) {
@@ -5987,6 +6095,7 @@ int FileStore::writeQueueCreationRecord(DataStoreRecordHandle*  handle,
             // Append AppIdHash (see 'Append QueueUriHash' comments section
             // above for explanation).
 
+            // NOLINTNEXTLINE(*-avoid-c-arrays)
             char appIdHash[mqbs::FileStoreProtocol::k_HASH_LENGTH] = {0};
             bsl::memcpy(appIdHash, cit->second.data(), k_KEY_LEN);
             OffsetPtr<char> appHash(qlistFile.block(), qlistFilePos);
@@ -5995,6 +6104,7 @@ int FileStore::writeQueueCreationRecord(DataStoreRecordHandle*  handle,
                         FileStoreProtocol::k_HASH_LENGTH);
             qlistFilePos += FileStoreProtocol::k_HASH_LENGTH;
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
         // 4) Append magic bits
         OffsetPtr<bdlb::BigEndianUint32> magic(qlistFile.block(),
@@ -6046,6 +6156,7 @@ int FileStore::writeQueueCreationRecord(DataStoreRecordHandle*  handle,
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,*-narrowing-conversions,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-use-enum-class)
 
 int FileStore::writeQueuePurgeRecord(DataStoreRecordHandle*       handle,
                                      const mqbu::StorageKey&      queueKey,
@@ -6092,6 +6203,7 @@ int FileStore::writeConfirmRecord(DataStoreRecordHandle*   handle,
                                   const mqbu::StorageKey&  appKey,
                                   bsls::Types::Uint64      timestamp,
                                   ConfirmReason::Enum      reason)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(handle);
@@ -6159,11 +6271,13 @@ int FileStore::writeConfirmRecord(DataStoreRecordHandle*   handle,
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 int FileStore::writeDeletionRecord(const bmqt::MessageGUID& guid,
                                    const mqbu::StorageKey&  queueKey,
                                    DeletionRecordFlag::Enum deletionFlag,
                                    bsls::Types::Uint64      timestamp)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!queueKey.isNull());
@@ -6222,10 +6336,12 @@ int FileStore::writeDeletionRecord(const bmqt::MessageGUID& guid,
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 int FileStore::writeSyncPointRecord(const bmqp_ctrlmsg::SyncPoint& syncPoint,
                                     SyncPointType::Enum            type)
 {
+    // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
     enum { rc_SUCCESS = 0, rc_UNAVAILABLE = -1 };
 
     BSLS_ASSERT_SAFE(0 < d_fileSets.size());
@@ -6279,8 +6395,10 @@ void FileStore::removeRecordRaw(const DataStoreRecordHandle& handle)
 {
     BSLS_ASSERT_SAFE(handle.isValid());
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     const RecordIterator& recordIt = *reinterpret_cast<const RecordIterator*>(
         &handle);
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
     BSLS_ASSERT_SAFE(d_records.end() != d_records.find(recordIt->first));
 
     FileSet*               activeFileSet = d_fileSets[0].get();
@@ -6353,6 +6471,7 @@ void FileStore::processStorageEvent(const bsl::shared_ptr<bdlbb::Blob>& blob,
     const unsigned int      pid         = iter.header().partitionId();
     FileStore::NodeContext* nodeContext = 0;
 
+    // NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
     do {
         const bmqp::StorageHeader& header = iter.header();
         if (pid != header.partitionId()) {
@@ -6486,11 +6605,13 @@ void FileStore::processStorageEvent(const bsl::shared_ptr<bdlbb::Blob>& blob,
                 << BMQTSK_ALARMLOG_END;
         }
     } while (1 == iter.next());
+    // NOLINTEND(cppcoreguidelines-avoid-do-while)
 
     sendReceipt(source, nodeContext);
 }
 
 int FileStore::processRecoveryEvent(const bsl::shared_ptr<bdlbb::Blob>& blob)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     // executed by the *DISPATCHER* thread
 
@@ -6524,6 +6645,7 @@ int FileStore::processRecoveryEvent(const bsl::shared_ptr<bdlbb::Blob>& blob)
         hasValidLeaseIdSeqNum = true;
     }
 
+    // NOLINTBEGIN(*-magic-numbers)
     while (1 == iter.next()) {
         const bmqp::StorageHeader& header = iter.header();
 
@@ -6660,9 +6782,11 @@ int FileStore::processRecoveryEvent(const bsl::shared_ptr<bdlbb::Blob>& blob)
             return 10 * rc + rc_WRITE_FAILURE;  // RETURN
         }
     }
+    // NOLINTEND(*-magic-numbers)
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 FileStore::NodeContext*
 FileStore::generateReceipt(NodeContext*         nodeContext,
@@ -6697,8 +6821,10 @@ FileStore::generateReceipt(NodeContext*         nodeContext,
     if (nodeContext->d_state && nodeContext->d_state->tryLock()) {
         char* buffer = nodeContext->d_blob_sp->buffer(0).data();
         bmqp::ReplicationReceipt* receipt =
+            // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-reinterpret-cast)
             reinterpret_cast<bmqp::ReplicationReceipt*>(
                 buffer + sizeof(bmqp::EventHeader));
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-reinterpret-cast)
 
         // Overwrite Receipt PSN
         (*receipt)
@@ -6774,7 +6900,9 @@ void FileStore::sendImplicitReceipt()
 }
 
 int FileStore::issueSyncPoint()
+// NOLINTBEGIN(*-magic-numbers)
 {
+    // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
     enum { rc_SUCCESS = 0, rc_UNAVAILABLE = -1, rc_MISC_FAILURE = -2 };
 
     // This routine is invoked out-of-band (by a higher level component, or by
@@ -6839,9 +6967,11 @@ int FileStore::issueSyncPoint()
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers)
 
 void FileStore::setActivePrimary(mqbnet::ClusterNode* primaryNode,
                                  unsigned int         primaryLeaseId)
+// NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result)
 {
     // executed by the *DISPATCHER* thread
 
@@ -7074,6 +7204,7 @@ void FileStore::setActivePrimary(mqbnet::ClusterNode* primaryNode,
         return;  // RETURN
     }
 }
+// NOLINTEND(bugprone-implicit-widening-of-multiplication-result)
 
 void FileStore::clearPrimary()
 {
@@ -7464,10 +7595,12 @@ void FileStore::getStorages(StorageList*          storages,
 
     StorageCollectionUtil::loadStorages(storages, d_storages);
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (StorageFiltersconstIter cit = filters.cbegin(); cit != filters.cend();
          ++cit) {
         StorageCollectionUtil::filterStorages(storages, *cit);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 void FileStore::loadSummary(mqbcmd::FileStore* fileStore) const
@@ -7509,8 +7642,10 @@ void FileStore::loadMessageRecordRaw(MessageRecord*               buffer,
     FileSet* activeFileSet = d_fileSets[0].get();
     BSLS_ASSERT_SAFE(activeFileSet);
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     const RecordIterator& recordIt = *reinterpret_cast<const RecordIterator*>(
         &handle);
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
     const DataStoreRecord& record = recordIt->second;
     BSLS_ASSERT_SAFE(RecordType::e_MESSAGE == record.d_recordType);
     BSLS_ASSERT_SAFE(0 != record.d_recordOffset);
@@ -7529,8 +7664,10 @@ void FileStore::loadConfirmRecordRaw(ConfirmRecord*               buffer,
     FileSet* activeFileSet = d_fileSets[0].get();
     BSLS_ASSERT_SAFE(activeFileSet);
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     const RecordIterator& recordIt = *reinterpret_cast<const RecordIterator*>(
         &handle);
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
     const DataStoreRecord& record = recordIt->second;
     BSLS_ASSERT_SAFE(RecordType::e_CONFIRM == record.d_recordType);
     BSLS_ASSERT_SAFE(0 != record.d_recordOffset);
@@ -7547,8 +7684,10 @@ void FileStore::loadDeletionRecordRaw(
     FileSet* activeFileSet = d_fileSets[0].get();
     BSLS_ASSERT_SAFE(activeFileSet);
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     const RecordIterator& recordIt = *reinterpret_cast<const RecordIterator*>(
         &handle);
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
     const DataStoreRecord& record = recordIt->second;
     BSLS_ASSERT_SAFE(RecordType::e_DELETION == record.d_recordType);
     BSLS_ASSERT_SAFE(0 != record.d_recordOffset);
@@ -7564,8 +7703,10 @@ void FileStore::loadQueueOpRecordRaw(QueueOpRecord*               buffer,
     FileSet* activeFileSet = d_fileSets[0].get();
     BSLS_ASSERT_SAFE(activeFileSet);
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     const RecordIterator& recordIt = *reinterpret_cast<const RecordIterator*>(
         &handle);
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
     const DataStoreRecord& record = recordIt->second;
     BSLS_ASSERT_SAFE(RecordType::e_QUEUE_OP == record.d_recordType);
     BSLS_ASSERT_SAFE(0 != record.d_recordOffset);
@@ -7579,8 +7720,10 @@ void FileStore::loadMessageAttributesRaw(
     const DataStoreRecordHandle&    handle) const
 {
     BSLS_ASSERT_SAFE(handle.isValid());
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     const RecordIterator& recordIt = *reinterpret_cast<const RecordIterator*>(
         &handle);
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
     DataStoreRecord& record = const_cast<DataStoreRecord&>(recordIt->second);
     BSLS_ASSERT_SAFE(RecordType::e_MESSAGE == record.d_recordType);
@@ -7608,8 +7751,10 @@ void FileStore::loadMessageRaw(bsl::shared_ptr<bdlbb::Blob>*   appData,
                                const DataStoreRecordHandle&    handle) const
 {
     loadMessageAttributesRaw(attributes, handle);
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     const RecordIterator& recordIt = *reinterpret_cast<const RecordIterator*>(
         &handle);
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
     aliasMessage(appData, options, recordIt->second);
 }
 
@@ -7617,8 +7762,10 @@ unsigned int
 FileStore::getMessageLenRaw(const DataStoreRecordHandle& handle) const
 {
     BSLS_ASSERT_SAFE(handle.isValid());
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     const RecordIterator& recordIt = *reinterpret_cast<const RecordIterator*>(
         &handle);
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
     const DataStoreRecord& record = recordIt->second;
     BSLS_ASSERT_SAFE(RecordType::e_MESSAGE == record.d_recordType);
@@ -7644,8 +7791,10 @@ void FileStore::loadCurrentFiles(mqbs::FileStoreSet* fileStoreSet) const
 bool FileStore::hasReceipt(const DataStoreRecordHandle& handle) const
 {
     BSLS_ASSERT_SAFE(handle.isValid());
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     const RecordIterator& recordIt = *reinterpret_cast<const RecordIterator*>(
         &handle);
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
     const DataStoreRecord& record = recordIt->second;
 
@@ -7688,6 +7837,7 @@ void FileStoreIterator::loadMessageRecord(MessageRecord* buffer) const
     BSLS_ASSERT_SAFE(RecordType::e_MESSAGE == type());
 
     DataStoreRecordHandle handle;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     RecordIterator& recordItRef = *reinterpret_cast<RecordIterator*>(&handle);
     recordItRef                 = d_iterator;
     d_store_p->loadMessageRecordRaw(buffer, handle);
@@ -7699,6 +7849,7 @@ void FileStoreIterator::loadConfirmRecord(ConfirmRecord* buffer) const
     BSLS_ASSERT_SAFE(RecordType::e_CONFIRM == type());
 
     DataStoreRecordHandle handle;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     RecordIterator& recordItRef = *reinterpret_cast<RecordIterator*>(&handle);
     recordItRef                 = d_iterator;
     d_store_p->loadConfirmRecordRaw(buffer, handle);
@@ -7710,6 +7861,7 @@ void FileStoreIterator::loadDeletionRecord(DeletionRecord* buffer) const
     BSLS_ASSERT_SAFE(RecordType::e_DELETION == type());
 
     DataStoreRecordHandle handle;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     RecordIterator& recordItRef = *reinterpret_cast<RecordIterator*>(&handle);
     recordItRef                 = d_iterator;
     d_store_p->loadDeletionRecordRaw(buffer, handle);
@@ -7721,6 +7873,7 @@ void FileStoreIterator::loadQueueOpRecord(QueueOpRecord* buffer) const
     BSLS_ASSERT_SAFE(RecordType::e_QUEUE_OP == type());
 
     DataStoreRecordHandle handle;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     RecordIterator& recordItRef = *reinterpret_cast<RecordIterator*>(&handle);
     recordItRef                 = d_iterator;
     d_store_p->loadQueueOpRecordRaw(buffer, handle);

@@ -43,6 +43,7 @@ using namespace bsl;
 // ----------------------------------------------------------------------------
 namespace {
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 struct Data {
     // DATA
     int               d_status;
@@ -50,11 +51,13 @@ struct Data {
     bmqt::MessageGUID d_guid;
     int               d_queueId;
 };
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 void populateBlob(bdlbb::Blob*       blob,
                   bmqp::EventHeader* eh,
                   bsl::vector<Data>* vec,
                   size_t             numMsgs)
+// NOLINTBEGIN(*-avoid-c-arrays,cppcoreguidelines-pro-type-reinterpret-cast)
 {
     // Create guid from valid hex rep
 
@@ -89,6 +92,7 @@ void populateBlob(bdlbb::Blob*       blob,
                             sizeof(bmqp::AckHeader));
     eventLength += sizeof(bmqp::AckHeader);
 
+    // NOLINTBEGIN(*-narrowing-conversions,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-type-reinterpret-cast)
     for (size_t i = 0; i < numMsgs; ++i) {
         Data data;
         data.d_status = i % 3;
@@ -109,12 +113,16 @@ void populateBlob(bdlbb::Blob*       blob,
 
         vec->push_back(data);
     }
+    // NOLINTEND(*-narrowing-conversions,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-type-reinterpret-cast)
 
     // set EventHeader length
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     bmqp::EventHeader* e = reinterpret_cast<bmqp::EventHeader*>(
         blob->buffer(0).data());
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
     e->setLength(eventLength);
 }
+// NOLINTEND(*-avoid-c-arrays,cppcoreguidelines-pro-type-reinterpret-cast)
 
 void populateBlob(bdlbb::Blob*             blob,
                   bmqp::EventHeader*       eh,
@@ -123,6 +131,7 @@ void populateBlob(bdlbb::Blob*             blob,
                   const bmqt::MessageGUID& guid,
                   int                      queueId,
                   unsigned char            flags)
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     int eventLength = sizeof(bmqp::EventHeader) + sizeof(bmqp::AckHeader) +
                       sizeof(bmqp::AckMessage);
@@ -158,6 +167,7 @@ void populateBlob(bdlbb::Blob*             blob,
                             reinterpret_cast<const char*>(&ackMessage),
                             sizeof(bmqp::AckMessage));
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 }  // close unnamed namespace
 
@@ -180,12 +190,15 @@ static void test1_breathingTest()
 // Testing:
 //   Basic functionality
 // --------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
 
     {
         PVV("Create invalid iter");
@@ -197,6 +210,7 @@ static void test1_breathingTest()
     {
         PVV("Create invalid iter from another invalid iter");
         bmqp::AckMessageIterator iter1;
+        // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
         bmqp::AckMessageIterator iter2(iter1);
 
         BMQTST_ASSERT_EQ(false, iter1.isValid());
@@ -338,15 +352,18 @@ static void test1_breathingTest()
         BMQTST_ASSERT_EQ(iter.next(), -1);
     }
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 /// Test iterating over ACK event having multiple ACK messages
 static void test2_ackEventWithMultipleMessages()
 {
     bmqtst::TestHelper::printTestName("ACK EVENT WITH MULTIPLE MESSAGES");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
     bsl::vector<Data> data(bmqtst::TestHelperUtil::allocator());
@@ -377,6 +394,7 @@ static void test2_ackEventWithMultipleMessages()
 }
 
 static void test3_nextMethod()
+// NOLINTBEGIN(*-magic-numbers)
 {
     // --------------------------------------------------------------------
     // NEXT
@@ -416,9 +434,11 @@ static void test3_nextMethod()
     // Next method. Iterator is in invalid state case.
     {
         // Create buffer factory and blob
+        // NOLINTBEGIN(*-magic-numbers)
         bdlbb::PooledBlobBufferFactory bufferFactory(
             1024,
             bmqtst::TestHelperUtil::allocator());
+        // NOLINTEND(*-magic-numbers)
         bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Populate blob
@@ -443,9 +463,11 @@ static void test3_nextMethod()
     // Next method. Not enough bytes case.
     {
         // Create buffer factory and blob
+        // NOLINTBEGIN(*-magic-numbers)
         bdlbb::PooledBlobBufferFactory bufferFactory(
             1024,
             bmqtst::TestHelperUtil::allocator());
+        // NOLINTEND(*-magic-numbers)
         bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Populate blob
@@ -471,8 +493,10 @@ static void test3_nextMethod()
         BMQTST_ASSERT_LT(iter.next(), 0);  // rc_NOT_ENOUGH_BYTES
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test4_resetMethod()
+// NOLINTBEGIN(*-magic-numbers)
 {
     // --------------------------------------------------------------------
     // RESET
@@ -508,9 +532,11 @@ static void test4_resetMethod()
 
     // Reset method. Invalid event header case.
     {
+        // NOLINTBEGIN(*-magic-numbers)
         bdlbb::PooledBlobBufferFactory bufferFactory(
             1024,
             bmqtst::TestHelperUtil::allocator());
+        // NOLINTEND(*-magic-numbers)
 
         // Create buffer factory and blob
         bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
@@ -545,9 +571,11 @@ static void test4_resetMethod()
     // Reset method. Not enough bytes case.
     {
         // Create buffer factory and blob
+        // NOLINTBEGIN(*-magic-numbers)
         bdlbb::PooledBlobBufferFactory bufferFactory(
             1024,
             bmqtst::TestHelperUtil::allocator());
+        // NOLINTEND(*-magic-numbers)
         bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Populate blob and manually set length
@@ -574,8 +602,10 @@ static void test4_resetMethod()
         BMQTST_ASSERT(!iter.isValid());
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test5_dumpBlob()
+// NOLINTBEGIN(*-magic-numbers)
 {
     // --------------------------------------------------------------------
     // DUMB BLOB
@@ -605,9 +635,11 @@ static void test5_dumpBlob()
     const int               k_STATUS   = 3;
     const int               k_QUEUE_ID = 9876;
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bmqp::EventHeader eventHeader;
     bmqu::MemOutStream stream(bmqtst::TestHelperUtil::allocator());
@@ -655,12 +687,14 @@ static void test5_dumpBlob()
         BMQTST_ASSERT_EQ(str1, str2);
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -679,3 +713,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

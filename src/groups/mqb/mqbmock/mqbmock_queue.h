@@ -100,6 +100,7 @@ namespace mqbmock {
 // ===========
 
 /// Mock queue implementation of the `mqbi::Queue` interface
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Queue : public mqbi::Queue {
   private:
     // CLASS-SCOPE CATEGORY
@@ -346,9 +347,11 @@ class Queue : public mqbi::Queue {
     /// Synchronously process the specified `command` and write the result
     /// to the specified `result` object.  Return zero on success or a
     /// nonzero value otherwise.
+    // NOLINTBEGIN(cppcoreguidelines-explicit-virtual-functions)
     virtual int
     processCommand(mqbcmd::QueueResult*        result,
                    const mqbcmd::QueueCommand& command) BSLS_KEYWORD_OVERRIDE;
+    // NOLINTEND(cppcoreguidelines-explicit-virtual-functions)
 
     void convertToLocal() BSLS_KEYWORD_OVERRIDE;
 
@@ -437,6 +440,7 @@ class Queue : public mqbi::Queue {
     // ACCESSORS
     //   (specific to mqbi::MockQueue)
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ===================
 // class HandleFactory
@@ -444,6 +448,7 @@ class Queue : public mqbi::Queue {
 
 /// Provide a mock implementation of the `mqbi::QueueHandleFactory` creating
 /// mock Queue Handle objects.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class HandleFactory : public mqbi::QueueHandleFactory {
   public:
     // CREATORS
@@ -465,6 +470,7 @@ class HandleFactory : public mqbi::QueueHandleFactory {
                const bmqp_ctrlmsg::QueueHandleParameters& handleParameters,
                bslma::Allocator* allocator) BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

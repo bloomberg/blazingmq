@@ -76,6 +76,7 @@ namespace mqbblp {
 
 namespace {
 
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char k_LOG_CATEGORY[] = "MQBBLP.RECOVERYMANAGER";
 
 const unsigned int k_STARTUP_WAIT_RETRIES  = 20;
@@ -100,6 +101,7 @@ class SyncPointOffsetPairComparator {
 void movePartitionFiles(int                      partitionId,
                         const bslstl::StringRef& currentLocation,
                         const bslstl::StringRef& archiveLocation)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     BSLS_ASSERT_SAFE(0 <= partitionId);
     BSLS_ASSERT_SAFE(bdls::FilesystemUtil::isDirectory(currentLocation));
@@ -126,6 +128,7 @@ void movePartitionFiles(int                      partitionId,
         mqbs::FileStoreUtil::archiveFileSet(fileSets[i], archiveLocation);
     }
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 }  // close unnamed namespace
 
@@ -230,6 +233,7 @@ void RecoveryManager_PrimarySyncContext::clear()
 // ACCESSORS
 void RecoveryManager_ChunkDeleter::operator()(
     BSLA_MAYBE_UNUSED const void* ptr) const
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     // executed by *ANY* thread
 
@@ -355,6 +359,7 @@ void RecoveryManager_ChunkDeleter::operator()(
     // a contract violation.
     BSLS_ASSERT_SAFE(false && "Unreachable by design.");
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 // ---------------------
 // class RecoveryManager
@@ -442,6 +447,7 @@ void RecoveryManager::recoveryStartupWaitDispatched(int partitionId)
 void RecoveryManager::recoveryStartupWaitPartitionDispatched(
     int                 partitionId,
     const ClusterNodes& availableNodes)
+// NOLINTBEGIN(cert-msc30-c,cert-msc50-cpp)
 {
     // executed by each of the *STORAGE (QUEUE) DISPATCHER* threads
 
@@ -567,6 +573,7 @@ void RecoveryManager::recoveryStartupWaitPartitionDispatched(
 
     sendStorageSyncRequesterHelper(&recoveryCtx, partitionId);
 }
+// NOLINTEND(cert-msc30-c,cert-msc50-cpp)
 
 void RecoveryManager::recoveryStatusCb(int partitionId)
 {
@@ -1538,6 +1545,7 @@ int RecoveryManager::sendFile(RequestContext*                   context,
                               unsigned int                      chunkSize,
                               bmqp::RecoveryFileChunkType::Enum chunkFileType)
 
+// NOLINTBEGIN(*-magic-numbers)
 {
     // executed by *ANY* thread
 
@@ -1546,6 +1554,7 @@ int RecoveryManager::sendFile(RequestContext*                   context,
     BSLS_ASSERT_SAFE(beginOffset <= endOffset);
     BSLS_ASSERT_SAFE(0 < chunkSize);
 
+    // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
     enum { rc_SUCCESS = 0, rc_BUILDER_FAILURE = -1, rc_WRITE_FAILURE = -2 };
 
     mqbs::MappedFileDescriptor* mfd = 0;
@@ -1581,12 +1590,16 @@ int RecoveryManager::sendFile(RequestContext*                   context,
     bmqp::RecoveryEventBuilder builder(&d_clusterData_p->blobSpPool(),
                                        d_allocator_p);
 
+    // NOLINTBEGIN(*-magic-numbers)
     while ((currOffset + chunkSize) < endOffset) {
         BSLS_ASSERT_SAFE(currOffset < mfd->fileSize());
 
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         bsl::shared_ptr<char> chunkBufferSp(mfd->mapping() + currOffset,
                                             ChunkDeleter(context));
-        bdlbb::BlobBuffer     chunkBlobBuffer(chunkBufferSp, chunkSize);
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        // NOLINTNEXTLINE(*-narrowing-conversions)
+        bdlbb::BlobBuffer chunkBlobBuffer(chunkBufferSp, chunkSize);
 
         // Bump up aliased chunk counter now that 'chunkBufferSp' is referring
         // to the mapped region of type 'chunkFileType' (DATA/QLIST/JOURNAL).
@@ -1630,11 +1643,15 @@ int RecoveryManager::sendFile(RequestContext*                   context,
 
         currOffset += chunkSize;
     }
+    // NOLINTEND(*-magic-numbers)
 
     // Send remaining part of the file.
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     bsl::shared_ptr<char> chunkBufferSp(mfd->mapping() + currOffset,
                                         ChunkDeleter(context));
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     bdlbb::BlobBuffer chunkBlobBuffer(chunkBufferSp, endOffset - currOffset);
 
     // Bump up aliased chunk counter now that 'chunkBufferSp' is referring to
@@ -1677,6 +1694,7 @@ int RecoveryManager::sendFile(RequestContext*                   context,
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers)
 
 int RecoveryManager::replayPartition(
     RequestContext*                              requestContext,
@@ -1685,6 +1703,7 @@ int RecoveryManager::replayPartition(
     const bmqp_ctrlmsg::PartitionSequenceNumber& fromSequenceNum,
     const bmqp_ctrlmsg::PartitionSequenceNumber& toSequenceNum,
     bsls::Types::Uint64                          fromSyncPtOffset)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     BSLS_ASSERT_SAFE(requestContext || primarySyncContext);
     BSLS_ASSERT_SAFE(0 == requestContext || 0 == primarySyncContext);
@@ -1784,9 +1803,12 @@ int RecoveryManager::replayPartition(
 
     bool isDone = false;
 
+    // NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-init-variables)
     while (!isDone && rc == 0) {
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         char* journalRecordBase = fti->journalFd().block().base() +
                                   journalIt.recordOffset();
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         int journalRecordLen = mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
         char*                          payloadRecordBase = 0;
         int                            payloadRecordLen  = 0;
@@ -1882,6 +1904,7 @@ int RecoveryManager::replayPartition(
                                                             journalIt);
         }
     }
+    // NOLINTEND(*-magic-numbers,cppcoreguidelines-init-variables)
 
     if (!isDone) {
         BALL_LOG_WARN << d_clusterData_p->identity().description()
@@ -1908,6 +1931,7 @@ int RecoveryManager::replayPartition(
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 void RecoveryManager::syncPeerPartitions(PrimarySyncContext* primarySyncCtx)
 {
@@ -1947,8 +1971,10 @@ void RecoveryManager::syncPeerPartitions(PrimarySyncContext* primarySyncCtx)
 
     // Create a proctor which will invoke the chunk-deleter (if required).
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     bsl::shared_ptr<char> ftiProctor(reinterpret_cast<char*>(this),  // dummy
                                      ChunkDeleter(primarySyncCtx));
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
     fti.incrementAliasedChunksCount();
 
     for (size_t i = 0; i < ppStates.size(); ++i) {
@@ -1987,6 +2013,7 @@ void RecoveryManager::syncPeerPartitions(PrimarySyncContext* primarySyncCtx)
 
 int RecoveryManager::syncPeerPartition(PrimarySyncContext* primarySyncCtx,
                                        const PeerPartitionState& ppState)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     BSLS_ASSERT_SAFE(primarySyncCtx);
     BSLS_ASSERT_SAFE(primarySyncCtx->primarySyncInProgress());
@@ -2197,6 +2224,7 @@ int RecoveryManager::syncPeerPartition(PrimarySyncContext* primarySyncCtx,
 
     return 0;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 bool RecoveryManager::hasSyncPoint(bmqp_ctrlmsg::SyncPoint* syncPoint,
                                    mqbs::RecordHeader*      syncPointRecHeader,
@@ -2492,6 +2520,7 @@ void RecoveryManager::onPartitionSyncStateQueryResponseDispatched(
                    << " Partition [" << partitionId << "]: processing "
                    << pairs.size() << " partition sync state query responses";
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (NodeResponsePairsConstIter it = pairs.begin(); it != pairs.end();
          ++it) {
         BSLS_ASSERT_SAFE(it->first);
@@ -2589,6 +2618,7 @@ void RecoveryManager::onPartitionSyncStateQueryResponseDispatched(
 
         ppState->setNeedsPartitionSync(true);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     BSLS_ASSERT_SAFE(maxSeqNode);
 
@@ -2963,6 +2993,7 @@ void RecoveryManager::stop()
                   << " Enqueuing event to all partition dispatcher threads to "
                   << "stop any ongoing recovery or primary-sync, and waiting.";
 
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     bslmt::Latch latch(d_partitionsInfo.size());
     for (unsigned int i = 0; i < d_partitionsInfo.size(); ++i) {
         const mqbi::DispatcherClientData& dispData =
@@ -2984,6 +3015,7 @@ void RecoveryManager::startRecovery(
     int                               partitionId,
     const mqbi::DispatcherClientData& dispatcherData,
     const PartitionRecoveryCb&        partitionRecoveryCb)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     // executed by each of the *STORAGE (QUEUE) DISPATCHER* threads
 
@@ -3027,10 +3059,12 @@ void RecoveryManager::startRecovery(
     // don't wait the same amount of time.  Adding randomness here will ensure
     // at least one node proceeds with recovery and becomes available, thereby
     // syncing other nodes.
+    // NOLINTBEGIN(cert-msc30-c,cert-msc50-cpp)
     const int startupWaitMs = d_clusterConfig.partitionConfig()
                                   .syncConfig()
                                   .startupWaitDurationMs() +
                               bsl::rand() % 5000;
+    // NOLINTEND(cert-msc30-c,cert-msc50-cpp)
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << ": For Partition [" << partitionId
@@ -3259,6 +3293,7 @@ void RecoveryManager::startRecovery(
                                     journalOpRec.header().sequenceNumber())
                   << ".";
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 void RecoveryManager::processStorageEvent(
     int                                 partitionId,
@@ -3435,6 +3470,7 @@ void RecoveryManager::processRecoveryEvent(
     rawEvent.loadRecoveryMessageIterator(&iter);
     BSLS_ASSERT_SAFE(iter.isValid());
 
+    // NOLINTBEGIN(*-narrowing-conversions,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     while (1 == iter.next()) {
         const bmqp::RecoveryHeader& header = iter.header();
 
@@ -3685,6 +3721,7 @@ void RecoveryManager::processRecoveryEvent(
             onPartitionRecoveryStatus(partitionId, 0 /* status */);
         }
     }
+    // NOLINTEND(*-narrowing-conversions,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 void RecoveryManager::processShutdownEvent(int partitionId)
@@ -3717,6 +3754,7 @@ void RecoveryManager::processStorageSyncRequest(
     const bmqp_ctrlmsg::ControlMessage& message,
     mqbnet::ClusterNode*                source,
     const mqbs::FileStore*              fs)
+// NOLINTBEGIN(cppcoreguidelines-init-variables,modernize-use-emplace)
 {
     // executed by the *STORAGE (QUEUE) DISPATCHER* thread
 
@@ -3790,9 +3828,11 @@ void RecoveryManager::processStorageSyncRequest(
     // Create a proctor to auto-remove 'requestCtx' from the list of request
     // contexts in case of failure.
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     bsl::shared_ptr<char> contextProctor(
         reinterpret_cast<char*>(this),  // dummy
         ChunkDeleter(requestContext));
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
     fti.incrementAliasedChunksCount();
 
     // Note about variable names:
@@ -4248,8 +4288,10 @@ void RecoveryManager::processStorageSyncRequest(
     d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg, source);
 
     // Send data file patch first, in chunks.
+    // NOLINTBEGIN(*-narrowing-conversions)
     const bsls::Types::Int64 dataFileSize = dataFileEndOffset -
                                             dataFileBeginOffset;
+    // NOLINTEND(*-narrowing-conversions)
     BSLS_ASSERT_SAFE(dataFileSize >= 0);
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << " Partition [" << req.partitionId()
@@ -4275,8 +4317,10 @@ void RecoveryManager::processStorageSyncRequest(
     }
 
     // Next, send qlist file, in chunks.
+    // NOLINTBEGIN(*-narrowing-conversions)
     const bsls::Types::Int64 qlistFileSize = qlistFileEndOffset -
                                              qlistFileBeginOffset;
+    // NOLINTEND(*-narrowing-conversions)
     BSLS_ASSERT_SAFE(qlistFileSize >= 0);
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << " Partition [" << req.partitionId()
@@ -4300,8 +4344,10 @@ void RecoveryManager::processStorageSyncRequest(
     }
 
     // Send journal file once data file patch has been sent, in chunks.
+    // NOLINTBEGIN(*-narrowing-conversions)
     const bsls::Types::Int64 journalFileSize = journalFileEndOffset -
                                                journalFileBeginOffset;
+    // NOLINTEND(*-narrowing-conversions)
     BSLS_ASSERT_SAFE(journalFileSize >= 0);
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << " Partition [" << req.partitionId()
@@ -4325,6 +4371,7 @@ void RecoveryManager::processStorageSyncRequest(
         return;  // RETURN
     }
 }
+// NOLINTEND(cppcoreguidelines-init-variables,modernize-use-emplace)
 
 void RecoveryManager::startPartitionPrimarySync(
     const mqbs::FileStore*                   fs,
@@ -4482,6 +4529,7 @@ void RecoveryManager::processPartitionSyncDataRequest(
     const bmqp_ctrlmsg::ControlMessage& message,
     mqbnet::ClusterNode*                source,
     const mqbs::FileStore*              fs)
+// NOLINTBEGIN(modernize-use-emplace)
 {
     // executed by the *STORAGE (QUEUE) DISPATCHER* thread
 
@@ -4563,9 +4611,11 @@ void RecoveryManager::processPartitionSyncDataRequest(
     // Create a proctor to auto-remove 'requestCtx' from the list of request
     // contexts in case of failure.
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     bsl::shared_ptr<char> contextProctor(
         reinterpret_cast<char*>(this),  // dummy
         ChunkDeleter(&requestCtx));
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
     fti.incrementAliasedChunksCount();
 
     bmqp_ctrlmsg::PartitionSequenceNumber requesterPSN;
@@ -4917,6 +4967,7 @@ void RecoveryManager::processPartitionSyncDataRequest(
 
     d_clusterData_p->messageTransmitter().sendMessageSafe(statusMsg, source);
 }
+// NOLINTEND(modernize-use-emplace)
 
 void RecoveryManager::processPartitionSyncDataRequestStatus(
     const bmqp_ctrlmsg::ControlMessage& message,

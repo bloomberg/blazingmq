@@ -72,6 +72,7 @@ namespace mqbsi {
 /// This enum represents the result of a ledger operation.
 struct LedgerOpResult {
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         // Generic
         // - - - -
@@ -98,6 +99,7 @@ struct LedgerOpResult {
         e_ALIAS_NOT_SUPPORTED     = -18,
         e_INVALID_BLOB_SECTION    = -19
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CLASS METHODS
 
@@ -400,17 +402,20 @@ bool operator==(const LedgerConfig& lhs, const LedgerConfig& rhs);
 /// This interface provides a way to store application-defined records.  A
 /// `Ledger` implemenation may own multiple `Log` instances, and records may
 /// span across these multiple instances.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Ledger {
   public:
     typedef bsl::shared_ptr<Log> LogSp;
     typedef bsl::vector<LogSp>   Logs;
 
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         /// Whether the ledger is read-only
         e_READ_ONLY = (1 << 0),
         /// Whether to create the ledger when opening if it does not exist
         e_CREATE_IF_MISSING = (1 << 1)
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
   public:
     // CREATORS
@@ -531,6 +536,7 @@ class Ledger {
     virtual bsls::Types::Int64 totalNumBytes(
         const mqbu::StorageKey& logId = mqbu::StorageKey()) const = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

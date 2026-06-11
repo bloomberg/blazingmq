@@ -81,6 +81,7 @@ class RecoveryManager_ChunkDeleter;
 /// Private class.  Implementation detail of @bbref{mqbblp::RecoveryManager}.
 /// This class provides a VST representing some static information associated
 /// with a storage partition.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class RecoveryManager_PartitionInfo {
   private:
     // DATA
@@ -105,6 +106,7 @@ class RecoveryManager_PartitionInfo {
     const mqbi::DispatcherClientData& dispatcherClientData() const;
     bool                              isInitialized() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ======================================
 // class RecoveryManager_FileTransferInfo
@@ -113,6 +115,7 @@ class RecoveryManager_PartitionInfo {
 /// Private class.  Implementation detail of @bbref{mqbblp::RecoveryManager}.
 /// This class provides a VST representing the details associated with a file
 /// transfer operation.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class RecoveryManager_FileTransferInfo {
     // FRIENDS
     friend class RecoveryManager_ChunkDeleter;
@@ -157,6 +160,7 @@ class RecoveryManager_FileTransferInfo {
     bsls::Types::Int64                aliasedChunksCount() const;
     bool                              areFilesMapped() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =====================================
 // class RecoveryManager_RecoveryContext
@@ -165,6 +169,7 @@ class RecoveryManager_FileTransferInfo {
 /// Private class.  Implementation detail of @bbref{mqbblp::RecoveryManager}.
 /// This class provides a VST representing the context associated with a
 /// storage partition.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class RecoveryManager_RecoveryContext {
   public:
     // TYPES
@@ -373,6 +378,7 @@ class RecoveryManager_RecoveryContext {
 
     const StorageEvents& storageEvents() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ========================================
 // class RecoveryManager_PrimarySyncContext
@@ -381,6 +387,7 @@ class RecoveryManager_RecoveryContext {
 /// Private class.  Implementation detail of @bbref{mqbblp::RecoveryManager}.
 /// This class provides a VST representing the context associated with a
 /// partition under primary-sync.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class RecoveryManager_PrimarySyncContext {
     // FRIENDS
     friend class RecoveryManager_ChunkDeleter;
@@ -542,6 +549,7 @@ class RecoveryManager_PrimarySyncContext {
 
     const PeerPartitionStates& peerPartitionStates() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =========================================
 // struct RecoveryManager_RequestContextType
@@ -550,6 +558,7 @@ class RecoveryManager_PrimarySyncContext {
 /// This struct contains an enum which defines the type of request context.
 struct RecoveryManager_RequestContextType {
     // PUBLIC TYPES
+    // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
     enum Enum { e_UNDEFINED = 0, e_RECOVERY = 1, e_PARTITION_SYNC = 2 };
 
     // CLASS METHODS
@@ -679,6 +688,7 @@ class RecoveryManager_ChunkDeleter {
 
 /// This component provides a mechanism to manage storage recovery in a
 /// cluster node.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class RecoveryManager : public mqbnet::ClusterObserver {
   private:
     // CLASS-SCOPE CATEGORY
@@ -1028,6 +1038,7 @@ class RecoveryManager : public mqbnet::ClusterObserver {
 
     mqbnet::ClusterNode* primarySyncPeer(int partitionId) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                            INLINE DEFINITIONS

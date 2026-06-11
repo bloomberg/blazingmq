@@ -27,21 +27,30 @@ namespace bmqt {
 // class SessionOptions
 // --------------------
 
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char SessionOptions::k_BROKER_DEFAULT_URI[] = "tcp://localhost:30114";
 
+// NOLINTBEGIN(*-magic-numbers)
 SessionOptions::SessionOptions(bslma::Allocator* allocator)
+// NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 : d_brokerUri(k_BROKER_DEFAULT_URI, allocator)
 , d_processNameOverride(allocator)
 , d_numProcessingThreads(1)
+// NOLINTNEXTLINE(*-magic-numbers)
 , d_blobBufferSize(4 * 1024)
+// NOLINTNEXTLINE(*-magic-numbers,bugprone-implicit-widening-of-multiplication-result)
 , d_channelHighWatermark(128 * 1024 * 1024)
+// NOLINTNEXTLINE(*-magic-numbers)
 , d_statsDumpInterval(5 * 60.0)
+// NOLINTNEXTLINE(*-magic-numbers)
 , d_connectTimeout(60)
+// NOLINTNEXTLINE(*-magic-numbers)
 , d_disconnectTimeout(30)
 , d_openQueueTimeout(k_QUEUE_OPERATION_DEFAULT_TIMEOUT)
 , d_configureQueueTimeout(k_QUEUE_OPERATION_DEFAULT_TIMEOUT)
 , d_closeQueueTimeout(k_QUEUE_OPERATION_DEFAULT_TIMEOUT)
 , d_eventQueueLowWatermark(50)
+// NOLINTNEXTLINE(*-magic-numbers)
 , d_eventQueueHighWatermark(2 * 1000)
 , d_eventQueueSize(-1)  // DEPRECATED: will be removed in future release
 , d_authnCredentialCb()
@@ -53,6 +62,7 @@ SessionOptions::SessionOptions(bslma::Allocator* allocator)
 {
     // NOTHING
 }
+// NOLINTEND(*-magic-numbers)
 
 SessionOptions::SessionOptions(const SessionOptions& other,
                                bslma::Allocator*     allocator)

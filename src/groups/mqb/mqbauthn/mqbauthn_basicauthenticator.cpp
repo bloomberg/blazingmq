@@ -94,6 +94,7 @@ BasicAuthenticator::BasicAuthenticator(
     // Load the configured key-values as username and password
     bsl::vector<mqbcfg::PluginSettingKeyValue>::const_iterator it =
         config->settings().cbegin();
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (; it != config->settings().cend(); ++it) {
         if (!it->value().isStringValValue()) {
             BALL_LOG_WARN << "Expected string for credential, got type id = "
@@ -102,6 +103,7 @@ BasicAuthenticator::BasicAuthenticator(
         }
         d_credentials[it->key()] = it->value().stringVal();
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     if (d_credentials.empty()) {
         BMQTSK_ALARMLOG_ALARM("CREDENTIALS_MISSING")
@@ -142,9 +144,11 @@ int BasicAuthenticator::authenticate(
                    << "'.";
 
     const bsl::vector<char>& payload = input.authnPayload();
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     bsl::string_view payloadView(reinterpret_cast<const char*>(payload.data()),
                                  payload.size());
-    bsl::size_t      colonPos = payloadView.find(':');
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
+    bsl::size_t colonPos = payloadView.find(':');
     if (bsl::string::npos == colonPos) {
         errorDescription << "Invalid authentication payload format. Expected "
                             "'username:password'";

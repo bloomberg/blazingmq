@@ -120,9 +120,11 @@ int PutMessageIterator::compressedApplicationDataSize() const
         return -1;  // RETURN
     }
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     char lastByte = d_blobIter.blob()
                         ->buffer(lastBytePos.buffer())
                         .data()[lastBytePos.byte()];
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
             !isValidWordPaddingByte(lastByte))) {
@@ -153,6 +155,7 @@ int PutMessageIterator::applicationDataSize() const
 
 int PutMessageIterator::loadApplicationDataPosition(
     bmqu::BlobPosition* position) const
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(position);
@@ -167,8 +170,10 @@ int PutMessageIterator::loadApplicationDataPosition(
     *position = d_applicationDataPosition;
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 int PutMessageIterator::loadApplicationData(bdlbb::Blob* blob) const
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(isValid());
@@ -208,8 +213,10 @@ int PutMessageIterator::loadApplicationData(bdlbb::Blob* blob) const
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 int PutMessageIterator::loadOptions(bdlbb::Blob* blob) const
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(isValid());
@@ -238,6 +245,7 @@ int PutMessageIterator::loadOptions(bdlbb::Blob* blob) const
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 int PutMessageIterator::loadOptionsView(OptionsView* view) const
 {
@@ -254,6 +262,7 @@ int PutMessageIterator::loadMessagePropertiesPosition(
     BSLS_ASSERT_SAFE(position);
     BSLS_ASSERT_SAFE(isValid());
 
+    // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
     enum RcEnum { rc_SUCCESS = 0, rc_NO_MSG_PROPERTIES = -1 };
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!hasMessageProperties())) {
@@ -270,11 +279,13 @@ int PutMessageIterator::loadMessagePropertiesPosition(
 }
 
 int PutMessageIterator::loadMessageProperties(bdlbb::Blob* blob) const
+// NOLINTBEGIN(*-magic-numbers)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(isValid());
     BSLS_ASSERT_SAFE(d_decompressFlag || d_isDecompressingOldMPs);
 
+    // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
     enum RcEnum { rc_SUCCESS = 0, rc_INVALID_MSG_PROPS_OFFSET = -1 };
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!hasMessageProperties())) {
@@ -298,9 +309,11 @@ int PutMessageIterator::loadMessageProperties(bdlbb::Blob* blob) const
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers)
 
 int PutMessageIterator::loadMessageProperties(
     MessageProperties* properties) const
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(isValid());
@@ -336,6 +349,7 @@ int PutMessageIterator::loadMessageProperties(
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 int PutMessageIterator::messagePayloadSize() const
 {
@@ -353,6 +367,7 @@ int PutMessageIterator::messagePayloadSize() const
 
 int PutMessageIterator::loadMessagePayloadPosition(
     bmqu::BlobPosition* position) const
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(position);
@@ -385,8 +400,10 @@ int PutMessageIterator::loadMessagePayloadPosition(
     *position = d_lazyMessagePayloadPosition;
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 int PutMessageIterator::loadMessagePayload(bdlbb::Blob* blob) const
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(isValid());
@@ -426,6 +443,7 @@ int PutMessageIterator::loadMessagePayload(bdlbb::Blob* blob) const
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 bool PutMessageIterator::extractMsgGroupId(
     bmqp::Protocol::MsgGroupId* msgGroupId) const
@@ -467,6 +485,7 @@ int PutMessageIterator::totalSize() const
 
 // MANIPULATORS
 int PutMessageIterator::next()
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     enum RcEnum {
         // Value for the various RC error categories
@@ -671,10 +690,12 @@ int PutMessageIterator::next()
 
     return rc_HAS_NEXT;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 int PutMessageIterator::reset(const bdlbb::Blob* blob,
                               const EventHeader& eventHeader,
                               bool               decompressFlag)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(blob);
@@ -709,6 +730,7 @@ int PutMessageIterator::reset(const bdlbb::Blob* blob,
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 int PutMessageIterator::reset(const bdlbb::Blob*        blob,
                               const PutMessageIterator& other)

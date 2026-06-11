@@ -30,6 +30,7 @@ namespace bmqt {
 // -------------------
 
 CorrelationId CorrelationId::autoValue()
+// NOLINTBEGIN(clang-analyzer-core.CallAndMessage)
 {
     static bsls::AtomicInt* g_id_p = 0;  // A unique id for each AutoValue
 
@@ -44,6 +45,7 @@ CorrelationId CorrelationId::autoValue()
     res.d_variant.createInPlace<AutoValue>(++(*g_id_p));
     return res;
 }
+// NOLINTEND(clang-analyzer-core.CallAndMessage)
 
 bsl::ostream&
 CorrelationId::print(bsl::ostream& stream, int level, int spacesPerLevel) const

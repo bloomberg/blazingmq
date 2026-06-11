@@ -81,6 +81,7 @@ bool CompressionAlgorithmType::fromAscii(CompressionAlgorithmType::Enum* out,
 
 bool CompressionAlgorithmType::isValid(const bsl::string* str,
                                        bsl::ostream&      stream)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     CompressionAlgorithmType::Enum value;
     if (fromAscii(&value, *str) == true) {
@@ -90,6 +91,7 @@ bool CompressionAlgorithmType::isValid(const bsl::string* str,
     stream << "Error: compressionAlgorithmType must be one of [NONE, ZLIB]\n";
     return false;
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 }  // close package namespace
 }  // close enterprise namespace

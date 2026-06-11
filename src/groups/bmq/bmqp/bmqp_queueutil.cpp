@@ -185,6 +185,7 @@ bmqp_ctrlmsg::QueueHandleParameters QueueUtil::createHandleParameters(
     const bmqp_ctrlmsg::QueueHandleParameters& handleParameters,
     const bmqp_ctrlmsg::SubQueueIdInfo&        subStreamInfo,
     int                                        readCount)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(subStreamInfo.appId() !=
@@ -235,6 +236,7 @@ bmqp_ctrlmsg::QueueHandleParameters QueueUtil::createHandleParameters(
 
     return result;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 bmqp_ctrlmsg::QueueHandleParameters&
 QueueUtil::extractCanonicalHandleParameters(
@@ -248,6 +250,7 @@ QueueUtil::extractCanonicalHandleParameters(
     (*canonicalHandleParameters) = queueHandleParameters;
 
     // Replace the 'uri' with its canonical representation
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<1024> lsa(bslma::Default::allocator());
     bmqt::Uri uri(queueHandleParameters.uri(), &lsa);
     BSLS_ASSERT_SAFE(uri.isValid());

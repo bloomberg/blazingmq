@@ -51,6 +51,7 @@ struct Version {
     static const char* s_what;
 
 #define MQBSCM_CONCAT2(a, b, c, d, e) a##b##c##d##e
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define MQBSCM_CONCAT(a, b, c, d, e) MQBSCM_CONCAT2(a, b, c, d, e)
 
 // 'MQBSCM_S_VERSION' is a symbol whose name warns users of version mismatch
@@ -103,9 +104,11 @@ inline int Version::versionAsInt()
 
 }  // close package namespace
 
-BSLS_LINKCOERCION_FORCE_SYMBOL_DEPENDENCY(const char*,
-                                          mqbscm_version_assertion,
-                                          mqbscm::Version::MQBSCM_S_VERSION)
+BSLS_LINKCOERCION_FORCE_SYMBOL_DEPENDENCY(
+    const char*,
+    // NOLINTNEXTLINE(cert-err58-cpp,cppcoreguidelines-avoid-non-const-global-variables)
+    mqbscm_version_assertion,
+    mqbscm::Version::MQBSCM_S_VERSION)
 
 }  // close enterprise namespace
 

@@ -103,6 +103,7 @@ void ControlMessageTransmitter::broadcastMessageHelper(
         sessions.push_back(sessIt.session());
     }
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     for (unsigned int i = 0; i < sessions.size(); ++i) {
         bsl::shared_ptr<mqbnet::Session> sessionSp = sessions[i].lock();
         if (!sessionSp) {
@@ -134,6 +135,7 @@ void ControlMessageTransmitter::broadcastMessageHelper(
             }
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 }
 
 // CREATORS

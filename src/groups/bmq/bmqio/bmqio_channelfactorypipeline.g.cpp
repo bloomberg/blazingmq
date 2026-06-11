@@ -95,6 +95,7 @@ class WrappedChannelFactory : public bmqio::ChannelFactory {
 //                                  TESTS
 // ------------------------------------------------------------------------
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions,cppcoreguidelines-virtual-class-destructor)
 class ChannelFactoryPipelineConfigTest : public ::testing::Test {
   protected:
     ChannelFactoryPipelineConfigTest() {}
@@ -115,6 +116,7 @@ class ChannelFactoryPipelineConfigTest : public ::testing::Test {
             get_allocator());
     }
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions,cppcoreguidelines-virtual-class-destructor)
 
 ChannelFactoryPipelineConfigTest::~ChannelFactoryPipelineConfigTest()
 {
@@ -186,6 +188,7 @@ TEST_F(ChannelFactoryPipelineConfigTest, canMove)
     Config builder2(MoveUtil::move(builder), get_allocator());
 }
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions,cppcoreguidelines-virtual-class-destructor)
 class ChannelFactoryPipelineTest : public ::testing::Test {
   protected:
     ChannelFactoryPipelineTest() {}
@@ -236,6 +239,7 @@ class ChannelFactoryPipelineTest : public ::testing::Test {
             _1);
     }
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions,cppcoreguidelines-virtual-class-destructor)
 
 ChannelFactoryPipelineTest::~ChannelFactoryPipelineTest()
 {
@@ -425,6 +429,7 @@ TEST_F(ChannelFactoryPipelineTest, getDoesntFindNonexistantSubtype)
 // ------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -434,3 +439,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

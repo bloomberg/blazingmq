@@ -46,6 +46,7 @@ static void test1_validate()
 // Testing:
 //   validate
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelper::printTestName("VALIDATE");
 
@@ -66,9 +67,12 @@ static void test1_validate()
          bmqp_ctrlmsg::ControlMessageChoice::SELECTION_ID_OPEN_QUEUE,
          0}};
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         PVV(test.d_line << ": Testing:"
@@ -86,6 +90,7 @@ static void test1_validate()
                            bmqp::ControlMessageUtil::validate(controlMessage),
                            test.d_expectedRc);
     }
+    // NOLINTEND(performance-avoid-endl)
 
     // Edge case #1: 'id.isNull()'
     bmqp_ctrlmsg::ControlMessage controlMessage(
@@ -98,6 +103,7 @@ static void test1_validate()
     BMQTST_ASSERT_EQ(bmqp::ControlMessageUtil::validate(controlMessage), 0);
     // rc_SUCCESS
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 static void test2_makeStatusControlMessage()
 // ------------------------------------------------------------------------
@@ -113,6 +119,7 @@ static void test2_makeStatusControlMessage()
 // Testing:
 //   makeStatusControlMessage
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelper::printTestName("MAKE STATUS CONTROL MESSAGE");
 
@@ -124,9 +131,12 @@ static void test2_makeStatusControlMessage()
     } k_DATA[] = {{L_, bmqp_ctrlmsg::StatusCategory::E_SUCCESS, 0, "Success!"},
                   {L_, bmqp_ctrlmsg::StatusCategory::E_NOT_SUPPORTED, -1, ""}};
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         PVV(test.d_line
@@ -150,13 +160,16 @@ static void test2_makeStatusControlMessage()
 
         BMQTST_ASSERT_EQ_D(test.d_line, obj, expected);
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 // ============================================================================
 //                                MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -172,3 +185,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

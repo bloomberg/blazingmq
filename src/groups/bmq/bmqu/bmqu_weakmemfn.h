@@ -200,6 +200,7 @@ class WeakMemFnResult;
 /// that its call signature is compatible with the specified return type
 /// `RET` and the specified argument types `ARGS`.
 template <class WEAKMEMFN, class RET, class ARGS>
+// NOLINTNEXTLINE(bugprone-crtp-constructor-accessibility)
 struct WeakMemFn_Invocable {};
 
 /// Provides a specialization of `WeakMemFn_Invocable` for a non-void return
@@ -615,6 +616,7 @@ struct WeakMemFn_Invocable<
 /// with the specified return type `RET` and the specified argument types
 /// `ARGS`.
 template <class WEAKMEMFN, class RET, class ARGS>
+// NOLINTNEXTLINE(bugprone-crtp-constructor-accessibility)
 struct WeakMemFnInstance_Invocable {};
 
 /// Provides a specialization of `WeakMemFnInstance_Invocable` for 0
@@ -917,6 +919,7 @@ class WeakMemFnInstance
 /// `VALUE` must meet the requirements of Destructible as specified in the
 /// C++ standard.
 template <class VALUE>
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class WeakMemFnResult {
   private:
     // PRIVATE DATA
@@ -992,8 +995,10 @@ class WeakMemFnResult {
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(WeakMemFnResult, bslma::UsesBslmaAllocator)
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 /// Provides a specialization of `WeakMemFnResult` for `void` value type.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 template <>
 class WeakMemFnResult<void> {
   private:
@@ -1037,9 +1042,11 @@ class WeakMemFnResult<void> {
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(WeakMemFnResult, bslma::UsesBslmaAllocator)
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 /// Provides a specialization of `WeakMemFnResult` for reference value
 /// types.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 template <class VALUE>
 class WeakMemFnResult<VALUE&> {
   private:
@@ -1087,6 +1094,7 @@ class WeakMemFnResult<VALUE&> {
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(WeakMemFnResult, bslma::UsesBslmaAllocator)
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ====================
 // struct WeakMemFnUtil
@@ -1983,6 +1991,7 @@ inline WeakMemFnResult<VALUE>::WeakMemFnResult(
     // NOTHING
 }
 
+// NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
 template <class VALUE>
 template <class VALUE_T>
 inline WeakMemFnResult<VALUE>::WeakMemFnResult(
@@ -1993,6 +2002,7 @@ inline WeakMemFnResult<VALUE>::WeakMemFnResult(
 {
     // NOTHING
 }
+// NOLINTEND(cppcoreguidelines-missing-std-forward)
 
 template <class VALUE>
 inline WeakMemFnResult<VALUE>::WeakMemFnResult(
@@ -2015,6 +2025,7 @@ inline WeakMemFnResult<VALUE>::WeakMemFnResult(
 }
 
 // MANIPULATORS
+// NOLINTBEGIN(cert-oop54-cpp)
 template <class VALUE>
 inline WeakMemFnResult<VALUE>&
 WeakMemFnResult<VALUE>::operator=(const WeakMemFnResult& original)
@@ -2022,6 +2033,7 @@ WeakMemFnResult<VALUE>::operator=(const WeakMemFnResult& original)
     d_value.object() = original.d_value.object();
     return *this;
 }
+// NOLINTEND(cert-oop54-cpp)
 
 template <class VALUE>
 inline WeakMemFnResult<VALUE>&
@@ -2035,12 +2047,14 @@ WeakMemFnResult<VALUE>::operator=(bslmf::MovableRef<WeakMemFnResult> original)
 // ACCESSORS
 template <class VALUE>
 inline VALUE& WeakMemFnResult<VALUE>::value() BSLS_KEYWORD_NOEXCEPT
+// NOLINTBEGIN(bugprone-unchecked-optional-access)
 {
     // PRECONDITIONS
     BSLS_ASSERT(!isNull());
 
     return d_value.object().value();
 }
+// NOLINTEND(bugprone-unchecked-optional-access)
 
 template <class VALUE>
 inline const VALUE& WeakMemFnResult<VALUE>::value() const BSLS_KEYWORD_NOEXCEPT
@@ -2117,12 +2131,14 @@ inline WeakMemFnResult<VALUE&>::WeakMemFnResult(
 // ACCESSORS
 template <class VALUE>
 inline VALUE& WeakMemFnResult<VALUE&>::value() const BSLS_KEYWORD_NOEXCEPT
+// NOLINTBEGIN(bugprone-unchecked-optional-access)
 {
     // PRECONDITIONS
     BSLS_ASSERT(!isNull());
 
     return *d_value.value();
 }
+// NOLINTEND(bugprone-unchecked-optional-access)
 
 template <class VALUE>
 inline bool WeakMemFnResult<VALUE&>::isNull() const BSLS_KEYWORD_NOEXCEPT

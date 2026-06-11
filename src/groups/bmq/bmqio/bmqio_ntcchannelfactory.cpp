@@ -43,6 +43,7 @@ namespace {
 BALL_LOG_SET_NAMESPACE_CATEGORY("BMQIO.NTCCHANNELFACTORY");
 
 #if defined(BSLS_PLATFORM_CPU_64_BIT)
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQIO_ADDRESS_WIDTH 16
 #else
 #define BMQIO_ADDRESS_WIDTH 8
@@ -180,6 +181,7 @@ NtcChannelFactory::NtcChannelFactory(
 }
 
 NtcChannelFactory::~NtcChannelFactory()
+// NOLINTBEGIN(clang-analyzer-optin.cplusplus.VirtualCall)
 {
     this->stop();
 
@@ -196,6 +198,7 @@ NtcChannelFactory::~NtcChannelFactory()
     BSLS_ASSERT_OPT(d_limitSignaler.slotCount() == 0);
     BSLS_ASSERT_OPT(!d_interface_sp);
 }
+// NOLINTEND(clang-analyzer-optin.cplusplus.VirtualCall)
 
 // MANIPULATORS
 int NtcChannelFactory::start()
@@ -264,6 +267,7 @@ void NtcChannelFactory::listen(Status*                      status,
                                bslma::ManagedPtr<OpHandle>* handle,
                                const ListenOptions&         options,
                                const ResultCallback&        cb)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     ntsa::Error error;
     int         rc;
@@ -327,11 +331,13 @@ void NtcChannelFactory::listen(Status*                      status,
                    << " at " << listener->localUri() << " registered"
                    << BALL_LOG_END;
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 void NtcChannelFactory::connect(Status*                      status,
                                 bslma::ManagedPtr<OpHandle>* handle,
                                 const ConnectOptions&        options,
                                 const ResultCallback&        cb)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     ntsa::Error error;
     int         rc;
@@ -398,6 +404,7 @@ void NtcChannelFactory::connect(Status*                      status,
                    << " to " << channel->peerUri() << " registered"
                    << BALL_LOG_END;
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 bdlmt::SignalerConnection NtcChannelFactory::onCreate(const CreateFn& cb)
 {

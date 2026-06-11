@@ -40,6 +40,7 @@ using namespace bsl;
 // ----------------------------------------------------------------------------
 
 static void test1_BreathingTest()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("BreathingTest");
 
@@ -53,9 +54,11 @@ static void test1_BreathingTest()
 
     mqbcfg::ClusterDefinition clusterConfig(
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     mqbnet::MockCluster mockCluster(clusterConfig,
                                     &bufferFactory,
                                     bmqtst::TestHelperUtil::allocator());
@@ -96,12 +99,14 @@ static void test1_BreathingTest()
         obj.tearDown(handle, false);
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -118,3 +123,4 @@ int main(int argc, char* argv[])
     //       constructor/desctructor of the object under test.
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

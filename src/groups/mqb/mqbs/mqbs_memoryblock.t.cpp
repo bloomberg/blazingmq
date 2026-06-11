@@ -37,6 +37,7 @@ static void test1_breathingTest()
 //   Verifies the default and parameterized constructors of
 //   'mqbs::MemoryBlock'.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("Breathing Test");
 
@@ -61,6 +62,7 @@ static void test1_breathingTest()
         BMQTST_ASSERT_EQ(obj.base(), static_cast<const char*>(0U));
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test2_operations()
 // ------------------------------------------------------------------------
@@ -123,6 +125,7 @@ static void test3_reset()
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -139,3 +142,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

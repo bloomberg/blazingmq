@@ -66,6 +66,7 @@ namespace {
 
 /// Append the specified `value` to `result` in YYYYMMDD_HHMMSS format.
 void appendFormattedDatetime(bsl::string* result, const bdlt::Datetime& value)
+// NOLINTBEGIN(*-avoid-c-arrays,cert-err33-c,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-use-enum-class)
 {
     enum {
         e_BUFFER_SIZE = 16  // includes null-character
@@ -76,6 +77,7 @@ void appendFormattedDatetime(bsl::string* result, const bdlt::Datetime& value)
     bsl::strftime(buffer, e_BUFFER_SIZE, "%G%m%d_%H%M%S", &timeStruct);
     result->append(buffer);
 }
+// NOLINTEND(*-avoid-c-arrays,cert-err33-c,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-use-enum-class)
 
 /// Populate the specified `filename` with the well known BlazingMQ file
 /// name format using the specified `basePath`, `partitionId`, `datetime`
@@ -112,6 +114,7 @@ int openFileSet(bsl::ostream&         errorDescription,
                 MappedFileDescriptor* journalFd = 0,
                 MappedFileDescriptor* dataFd    = 0,
                 MappedFileDescriptor* qlistFd   = 0)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(journalFd || dataFd || qlistFd);
@@ -203,6 +206,7 @@ int openFileSet(bsl::ostream&         errorDescription,
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 void closeAndDeleteFileSet(const FileStoreSet&   fileSet,
                            bool                  deleteOnFailure,
@@ -243,6 +247,7 @@ int FileStoreUtil::findFileStoreSetsFromPaths(
     FileSetMap*                     fileSetMap,
     const bsl::vector<bsl::string>& files,
     bool                            loadSize)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(fileSetMap);
@@ -261,6 +266,7 @@ int FileStoreUtil::findFileStoreSetsFromPaths(
     if (loadSize) {
         // For every file in the output, also populate the corresponding file
         // size
+        // NOLINTBEGIN(*-magic-numbers,clang-analyzer-deadcode.DeadStores)
         for (bsl::vector<bsl::string>::size_type i = 0; i < files.size();
              ++i) {
             bsl::string timestamp;
@@ -299,9 +305,11 @@ int FileStoreUtil::findFileStoreSetsFromPaths(
                                << "result.";
             }
         }
+        // NOLINTEND(*-magic-numbers,clang-analyzer-deadcode.DeadStores)
     }
     else {
         // For every file in the output, populate only the file name
+        // NOLINTBEGIN(*-magic-numbers)
         for (bsl::vector<bsl::string>::size_type i = 0; i < files.size();
              ++i) {
             bsl::string timestamp;
@@ -333,15 +341,18 @@ int FileStoreUtil::findFileStoreSetsFromPaths(
                                << "result.";
             }
         }
+        // NOLINTEND(*-magic-numbers)
     }
 
     return returnRC;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 // CLASS METHODS
 int FileStoreUtil::closePartitionSet(MappedFileDescriptor* dataFileMfd,
                                      MappedFileDescriptor* journalFileMfd,
                                      MappedFileDescriptor* qlistFileMfd)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     // PRECONDTIONS
     BSLS_ASSERT_SAFE(dataFileMfd);
@@ -370,6 +381,7 @@ int FileStoreUtil::closePartitionSet(MappedFileDescriptor* dataFileMfd,
 
     return rc;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 void FileStoreUtil::createDataFileName(bsl::string*             filename,
                                        const bslstl::StringRef& basePath,
@@ -431,6 +443,7 @@ bool FileStoreUtil::hasQlistFileExtension(const bsl::string& filename)
 int FileStoreUtil::createFilePattern(bsl::string*             pattern,
                                      const bslstl::StringRef& basePath,
                                      int                      partitionId)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     // Pattern to create: '/basePath/bmq_x.*_*.bmq_*' where 'x' is partitionId
 
@@ -466,12 +479,14 @@ int FileStoreUtil::createFilePattern(bsl::string*             pattern,
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 int FileStoreUtil::createFilePattern(bsl::string*             pattern,
                                      const bslstl::StringRef& basePath)
 {
     // Pattern to create: `/basePath/bmq_*.*_*.bmq_*`
 
+    // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
     enum { rc_SUCCESS = 0, rc_INVALID_BASE_PATH = -1 };
 
     if (basePath.isEmpty()) {
@@ -513,6 +528,7 @@ int FileStoreUtil::create(bsl::ostream&            errorDescription,
     bdlt::Datetime now       = bdlt::CurrentTime::utc();
     int            increment = 0;
 
+    // NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
     do {
         // Increment 'now' by 1 second everytime there is a clash of at least
         // 1 file name.
@@ -538,6 +554,7 @@ int FileStoreUtil::create(bsl::ostream&            errorDescription,
         bdls::FilesystemUtil::exists(result->d_dataFileName) ||
         bdls::FilesystemUtil::exists(result->d_journalFileName) ||
         (needQList && bdls::FilesystemUtil::exists(result->d_qlistFileName)));
+    // NOLINTEND(cppcoreguidelines-avoid-do-while)
 
     BSLS_ASSERT_SAFE(!bdls::FilesystemUtil::exists(result->d_dataFileName));
     BSLS_ASSERT_SAFE(!bdls::FilesystemUtil::exists(result->d_journalFileName));
@@ -656,6 +673,7 @@ int FileStoreUtil::create(bsl::ostream&            errorDescription,
 
 int FileStoreUtil::extractTimestamp(bsl::string*       timestamp,
                                     const bsl::string& filename)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     // /path/to/files/bmq_x.YYYYMMDD_HHMMSS.bmq_[data|journal|qlist]
 
@@ -697,6 +715,7 @@ int FileStoreUtil::extractTimestamp(bsl::string*       timestamp,
 
     return 0;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 void FileStoreUtil::loadCurrentFiles(FileStoreSet*  fileStoreSet,
                                      const FileSet& fileSet,
@@ -722,6 +741,7 @@ int FileStoreUtil::findFileSets(bsl::vector<FileStoreSet>* fileSets,
                                 int                        partitionId,
                                 bool                       withSize,
                                 bool                       needQList)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(fileSets);
@@ -803,12 +823,14 @@ int FileStoreUtil::findFileSets(bsl::vector<FileStoreSet>* fileSets,
 
     return 0;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 int FileStoreUtil::archiveFileSet(bsl::string_view dataFile,
                                   bsl::string_view journalFile,
                                   bsl::string_view qlistFile,
                                   bsl::string_view archiveLocation,
                                   bool             qlistAware)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     enum RcEnum {
         rc_SUCCESS              = 0,
@@ -853,6 +875,7 @@ int FileStoreUtil::archiveFileSet(bsl::string_view dataFile,
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 int FileStoreUtil::archiveFileSet(const FileStoreSet& fileSet,
                                   bsl::string_view    archiveLocation,
@@ -955,12 +978,14 @@ void FileStoreUtil::deleteArchiveFiles(
     const unsigned int numPartitions = static_cast<unsigned int>(
         partitionCfg.numPartitions());
 
+    // NOLINTBEGIN(*-narrowing-conversions)
     for (unsigned int pid = 0; pid < numPartitions; ++pid) {
         deleteArchiveFiles(pid,
                            archiveLocation,
                            partitionCfg.maxArchivedFileSets(),
                            cluster);
     }
+    // NOLINTEND(*-narrowing-conversions)
 }
 
 int FileStoreUtil::openFileSetReadMode(bsl::ostream&         errorDescription,
@@ -989,6 +1014,7 @@ int FileStoreUtil::openFileSetWriteMode(bsl::ostream&         errorDescription,
                                         MappedFileDescriptor* dataFd,
                                         MappedFileDescriptor* qlistFd,
                                         bool                  prefaultPages)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(journalFd || dataFd || qlistFd);
@@ -1058,10 +1084,12 @@ int FileStoreUtil::openFileSetWriteMode(bsl::ostream&         errorDescription,
     failureGuard.release();
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 int FileStoreUtil::validateFileSet(const MappedFileDescriptor& journalFd,
                                    const MappedFileDescriptor& dataFd,
                                    const MappedFileDescriptor& qlistFd)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     enum {
         rc_SUCCESS         = 0,
@@ -1095,6 +1123,7 @@ int FileStoreUtil::validateFileSet(const MappedFileDescriptor& journalFd,
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 int FileStoreUtil::openRecoveryFileSet(bsl::ostream&         errorDescription,
                                        MappedFileDescriptor* journalFd,
@@ -1108,6 +1137,7 @@ int FileStoreUtil::openRecoveryFileSet(bsl::ostream&         errorDescription,
                                        bool                         readOnly,
                                        MappedFileDescriptor*        qlistFd,
                                        bsls::Types::Uint64* qlistFilePos)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(journalFd);
@@ -1156,15 +1186,19 @@ int FileStoreUtil::openRecoveryFileSet(bsl::ostream&         errorDescription,
     int              recoveryIndex = k_INVALID_INDEX;
     bsl::vector<int> archivingIndices;
 
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     for (int i = (fileSets.size() - 1); i >= 0; --i) {
         if (numSetsToCheck-- < 0) {
             break;  // BREAK
         }
 
-        FileStoreSet&            fs              = fileSets[i];
+        FileStoreSet& fs = fileSets[i];
+        // NOLINTNEXTLINE(*-narrowing-conversions)
         const bsls::Types::Int64 journalFileSize = fs.journalFileSize();
-        const bsls::Types::Int64 dataFileSize    = fs.dataFileSize();
-        const bsls::Types::Int64 qlistFileSize   = fs.qlistFileSize();
+        // NOLINTNEXTLINE(*-narrowing-conversions)
+        const bsls::Types::Int64 dataFileSize = fs.dataFileSize();
+        // NOLINTNEXTLINE(*-narrowing-conversions)
+        const bsls::Types::Int64 qlistFileSize = fs.qlistFileSize();
 
         BALL_LOG_INFO << "Partition [" << partitionId << "]"
                       << ": Checking file set: " << fs;
@@ -1299,6 +1333,7 @@ int FileStoreUtil::openRecoveryFileSet(bsl::ostream&         errorDescription,
     *recoveryFileSet = fileSets[recoveryIndex];
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 void FileStoreUtil::setFileHeaderOffsets(bsls::Types::Uint64* journalOffset,
                                          bsls::Types::Uint64* dataOffset,
@@ -1307,6 +1342,7 @@ void FileStoreUtil::setFileHeaderOffsets(bsls::Types::Uint64* journalOffset,
                                          bool                       needQList,
                                          bsls::Types::Uint64*     qlistOffset,
                                          const QlistFileIterator& qit)
+// NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(journalOffset);
@@ -1339,6 +1375,7 @@ void FileStoreUtil::setFileHeaderOffsets(bsls::Types::Uint64* journalOffset,
                         bmqp::Protocol::k_WORD_SIZE;
     }
 }
+// NOLINTEND(bugprone-implicit-widening-of-multiplication-result)
 
 int FileStoreUtil::loadIterators(bsl::ostream&               errorDescription,
                                  const FileStoreSet&         fileSet,
@@ -1348,6 +1385,7 @@ int FileStoreUtil::loadIterators(bsl::ostream&               errorDescription,
                                  const MappedFileDescriptor& dataFd,
                                  QlistFileIterator*          qit,
                                  const MappedFileDescriptor& qlistFd)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(jit);
@@ -1401,6 +1439,7 @@ int FileStoreUtil::loadIterators(bsl::ostream&               errorDescription,
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 int FileStoreUtil::writeMessageRecordImpl(
     bsls::Types::Uint64*         journalPos,
@@ -1417,6 +1456,7 @@ int FileStoreUtil::writeMessageRecordImpl(
     bmqt::MessageGUID*           messageGuid,
     unsigned int*                refCount,
     bmqp::MessagePropertiesInfo* messagePropertiesInfo)
+// NOLINTBEGIN(*-magic-numbers,bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(journalPos && *journalPos >= 0);
@@ -1542,6 +1582,7 @@ int FileStoreUtil::writeMessageRecordImpl(
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-use-enum-class)
 
 int FileStoreUtil::writeQueueCreationRecordImpl(
     bsls::Types::Uint64*        journalPos,
@@ -1558,6 +1599,7 @@ int FileStoreUtil::writeQueueCreationRecordImpl(
     bmqt::Uri*                  quri,
     mqbu::StorageKey*           queueKey,
     QueueOpType::Enum*          queueOpType)
+// NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions,bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(journalPos && *journalPos >= 0);
@@ -1696,11 +1738,15 @@ int FileStoreUtil::writeQueueCreationRecordImpl(
 
         BSLS_ASSERT_SAFE(0 < paddedUriLen);
 
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         const char* uriBegin = qlistFile.block().base() + qlistOffset +
                                queueRecHeaderLen;
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         bmqt::Uri uri(
             bslstl::StringRef(uriBegin,
                               paddedUriLen - uriBegin[paddedUriLen - 1]));
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         if (quri) {
             *quri = uri;
         }
@@ -1709,10 +1755,12 @@ int FileStoreUtil::writeQueueCreationRecordImpl(
                                       paddedUriLen -
                                       FileStoreProtocol::k_HASH_LENGTH -
                                       sizeof(unsigned int);  // Magic word
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         MemoryBlock appIdsBlock(qlistFile.block().base() + qlistOffset +
                                     queueRecHeaderLen + paddedUriLen +
                                     FileStoreProtocol::k_HASH_LENGTH,
                                 appIdsAreaSize);
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         // NOTE: `appIdKeyPairs` is only populated if `qListAware` is true.
         // Please handle `appIdKeyPairs` properly if we want to run a cluster
         // with `qListAware = false`.
@@ -1738,6 +1786,7 @@ int FileStoreUtil::writeQueueCreationRecordImpl(
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,*-narrowing-conversions,bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-use-enum-class)
 
 }  // close package namespace
 }  // close enterprise namespace

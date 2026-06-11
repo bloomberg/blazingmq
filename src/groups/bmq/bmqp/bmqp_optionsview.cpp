@@ -38,6 +38,7 @@ namespace bmqp {
 int OptionsView::resetImpl(const bdlbb::Blob*        blob,
                            const bmqu::BlobPosition& optionsAreaPos,
                            int                       optionsAreaSize)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(blob);
@@ -73,9 +74,11 @@ int OptionsView::resetImpl(const bdlbb::Blob*        blob,
             return rc_INVALID_OPTIONS_AREA_SIZE;  // RETURN
         }
 
+        // NOLINTBEGIN(*-narrowing-conversions,bugprone-implicit-widening-of-multiplication-result)
         const int optionSize = oh->packed()
                                    ? sizeof(OptionHeader)
                                    : (oh->words() * Protocol::k_WORD_SIZE);
+        // NOLINTEND(*-narrowing-conversions,bugprone-implicit-widening-of-multiplication-result)
         if (!oh->packed() && optionSize == sizeof(OptionHeader)) {
             // At this time we don't support an non-packed option header that
             // is not followed by an option payload.
@@ -141,6 +144,7 @@ int OptionsView::resetImpl(const bdlbb::Blob*        blob,
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 // PRIVATE ACCESSORS
 int OptionsView::loadOptionPositionAndSize(
@@ -199,6 +203,7 @@ int OptionsView::loadOptionPositionAndSize(
     }
 
     const char lastByte =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         (*d_blob_p).buffer(lastBytePos.buffer()).data()[lastBytePos.byte()];
 
     *payloadSizeBytes = optionLenBytes - lastByte;
@@ -225,6 +230,7 @@ void OptionsView::dumpBlob(bsl::ostream& stream)
 // ACCESSORS
 int OptionsView::loadSubQueueIdsOption(
     Protocol::SubQueueIdsArrayOld* subQueueIdsOld) const
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(subQueueIdsOld);
@@ -240,6 +246,7 @@ int OptionsView::loadSubQueueIdsOption(
 
     // Read in the SubQueueIds as BigEndianUint32 and then convert them to
     // unsigned integers.
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<16 * sizeof(bdlb::BigEndianUint32)>
                                        bufferedAllocator(d_allocator_p);
     bsl::vector<bdlb::BigEndianUint32> tempVec(&bufferedAllocator);
@@ -258,9 +265,11 @@ int OptionsView::loadSubQueueIdsOption(
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 int OptionsView::loadSubQueueInfosOption(
     Protocol::SubQueueInfosArray* subQueueInfos) const
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(subQueueInfos);
@@ -295,6 +304,7 @@ int OptionsView::loadSubQueueInfosOption(
 
         // Read in the encoded SubQueueInfos and then decode them into the
         // output.
+        // NOLINTNEXTLINE(*-magic-numbers)
         bdlma::LocalSequentialAllocator<16 * sizeof(SubQueueInfo)>
                                   bufferedAllocator(d_allocator_p);
         bsl::vector<SubQueueInfo> tempVec(&bufferedAllocator);
@@ -303,9 +313,11 @@ int OptionsView::loadSubQueueInfosOption(
                                           oh->typeSpecific()) *
                                       Protocol::k_WORD_SIZE;
 
+        // NOLINTBEGIN(*-narrowing-conversions)
         int rc = loadSubQueueInfosOptionHelper(&tempVec,
                                                itemSize,
                                                OptionType::e_SUB_QUEUE_INFOS);
+        // NOLINTEND(*-narrowing-conversions)
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
             return rc_LOAD_FAILURE;  // RETURN
@@ -319,6 +331,7 @@ int OptionsView::loadSubQueueInfosOption(
     else if (find(OptionType::e_SUB_QUEUE_IDS_OLD) != end()) {
         // Read in the SubQueueIds as BigEndianUint32 and then convert them to
         // unsigned integers.
+        // NOLINTNEXTLINE(*-magic-numbers)
         bdlma::LocalSequentialAllocator<16 * sizeof(bdlb::BigEndianUint32)>
                                            bufferedAllocator(d_allocator_p);
         bsl::vector<bdlb::BigEndianUint32> tempVec(&bufferedAllocator);
@@ -333,12 +346,14 @@ int OptionsView::loadSubQueueInfosOption(
         }
 
         // Populate SubQueueInfos
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (bsl::vector<bdlb::BigEndianUint32>::const_iterator cit =
                  tempVec.cbegin();
              cit != tempVec.cend();
              ++cit) {
             subQueueInfos->push_back(SubQueueInfo(*cit));
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
         return rc_SUCCESS;  // RETURN
     }
@@ -346,8 +361,10 @@ int OptionsView::loadSubQueueInfosOption(
     BSLS_ASSERT_SAFE(false && "SubQueueInfos not found");
     return rc_UNREACHABLE;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 int OptionsView::loadMsgGroupIdOption(Protocol::MsgGroupId* msgGroupId) const
+// NOLINTBEGIN(cppcoreguidelines-init-variables,cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(msgGroupId);
@@ -408,6 +425,7 @@ int OptionsView::loadMsgGroupIdOption(Protocol::MsgGroupId* msgGroupId) const
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-init-variables,cppcoreguidelines-use-enum-class)
 
 }  // close package namespace
 }  // close enterprise namespace

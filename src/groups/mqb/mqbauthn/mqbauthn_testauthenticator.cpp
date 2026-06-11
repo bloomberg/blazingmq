@@ -93,6 +93,7 @@ TestAuthenticator::TestAuthenticator(
     // Load sleep time configuration
     bsl::vector<mqbcfg::PluginSettingKeyValue>::const_iterator it =
         config->settings().cbegin();
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (; it != config->settings().cend(); ++it) {
         if (it->key() == "sleepTimeMs") {
             if (!it->value().isIntValValue()) {
@@ -105,6 +106,7 @@ TestAuthenticator::TestAuthenticator(
                           << d_sleepTimeMs;
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 TestAuthenticator::~TestAuthenticator()

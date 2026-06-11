@@ -67,9 +67,11 @@ namespace {
 using ManagedHandler = bslma::ManagedPtr<bmqa::SessionEventHandler>;
 
 // CONSTANTS
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char k_QUEUE_URL[] = "bmq://bmq.test.mem.priority/test-queue";
 
 // FUNCTIONS
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 bsl::function<void(int)> shutdownHandler;
 
 /// Handle the specified `signal`
@@ -82,6 +84,7 @@ void signalHandler(int signal)
 
 /// Concrete implementation of an event handler.  Note that the methods are
 /// called on the session's own threads.
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 class EventHandler : public bmqa::SessionEventHandler {
   private:
     // DATA
@@ -99,6 +102,7 @@ class EventHandler : public bmqa::SessionEventHandler {
 
     void setSession(bmqa::Session* session);
 };
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 void EventHandler::onMessageEvent(const bmqa::MessageEvent& messageEvent)
 // Handle the specified 'messageEvent'
@@ -174,13 +178,16 @@ void EventHandler::setSession(bmqa::Session* session)
 /// does not exist already.  Each queue is identified by a short URL
 /// containing a namespace and a queue name.
 static void consume(bmqa::Session* session)
+// NOLINTBEGIN(cert-err33-c,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
-    bmqt::CorrelationId   corrId(bmqt::CorrelationId::autoValue());
-    bmqa::QueueId         queueId(corrId);
+    bmqt::CorrelationId corrId(bmqt::CorrelationId::autoValue());
+    bmqa::QueueId       queueId(corrId);
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bmqa::OpenQueueStatus status = session->openQueueSync(
         &queueId,
         k_QUEUE_URL,
         bmqt::QueueFlags::e_READ);
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     if (!status || !queueId.isValid()) {
         bsl::cerr << "Failed to open queue: '" << k_QUEUE_URL
                   << "', status: " << status << "\n";
@@ -223,6 +230,7 @@ static void consume(bmqa::Session* session)
     bsl::cerr << "Queue ['" << k_QUEUE_URL << "'] has been shut down "
               << "gracefully and is now closed.\n";
 }
+// NOLINTEND(cert-err33-c,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 //=============================================================================
 //                              MAIN PROGRAM

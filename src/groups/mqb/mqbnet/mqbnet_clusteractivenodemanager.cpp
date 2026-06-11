@@ -43,6 +43,7 @@ namespace mqbnet {
 int ClusterActiveNodeManager::onNodeUp(
     ClusterNode*                        node,
     const bmqp_ctrlmsg::ClientIdentity& identity)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     NodesMap::iterator nodeIt = d_nodes.find(node);
 
@@ -69,6 +70,7 @@ int ClusterActiveNodeManager::onNodeUp(
 
     return processNodeStatus(node, context, oldStatus);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 int ClusterActiveNodeManager::onNodeStatusChange(
     ClusterNode*                    node,
@@ -149,6 +151,7 @@ int ClusterActiveNodeManager::refresh()
 }
 
 bool ClusterActiveNodeManager::findNewActiveNode()
+// NOLINTBEGIN(cert-msc30-c,cert-msc50-cpp)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_activeNodeIt == d_nodes.end());
@@ -202,6 +205,7 @@ bool ClusterActiveNodeManager::findNewActiveNode()
         return true;  // RETURN
     }
 }
+// NOLINTEND(cert-msc30-c,cert-msc50-cpp)
 
 void ClusterActiveNodeManager::onNewActiveNode(ClusterNode* node)
 {
@@ -271,6 +275,7 @@ void ClusterActiveNodeManager::initialize(TransportManager* transportManager)
     // thread-safe and can change.
     // So, we detect connected nodes by iterating connected sessions because
     // 'mqbnet::Session::negotiationMessage' is read-only (safe to access).
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     for (TransportManagerIterator sessIt(transportManager); sessIt; ++sessIt) {
         bsl::shared_ptr<Session> session = sessIt.session().lock();
         NodesMap::iterator       nodeIt = d_nodes.find(session->clusterNode());
@@ -310,6 +315,7 @@ void ClusterActiveNodeManager::initialize(TransportManager* transportManager)
             nodeIt->second.d_status = bmqp_ctrlmsg::NodeStatus::E_UNKNOWN;
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 }
 
 void ClusterActiveNodeManager::loadNodesInfo(mqbcmd::NodeStatuses* out) const

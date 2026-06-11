@@ -62,34 +62,46 @@
 // 'BALL_LOG_ERROR_BLOCK', meaning that:
 //:  o log message is streamed into the macro
 //:  o the call must be ended by a terminal 'BMQTSK_ALARMLOG_END'
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQTSK_ALARMLOG_ALARM(CATEGORY)                                       \
     BALL_LOG_ERROR_BLOCK                                                      \
     {                                                                         \
-        BALL_LOG_OUTPUT_STREAM << "ALARM [" << CATEGORY << "] ";              \
+        BALL_LOG_OUTPUT_STREAM                                                \
+            << "ALARM [" << CATEGORY                                          \
+            << "] "; /* NOLINT(bugprone-macro-parentheses) */                 \
         BALL_LOG_RECORD->customFields().appendString("ALARM");                \
         BALL_LOG_OUTPUT_STREAM
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQTSK_ALARMLOG_PANIC(CATEGORY)                                       \
     BALL_LOG_ERROR_BLOCK                                                      \
     {                                                                         \
-        BALL_LOG_OUTPUT_STREAM << "PANIC [" << CATEGORY << "] ";              \
+        BALL_LOG_OUTPUT_STREAM                                                \
+            << "PANIC [" << CATEGORY                                          \
+            << "] "; /* NOLINT(bugprone-macro-parentheses) */                 \
         BALL_LOG_RECORD->customFields().appendString("PANIC");                \
         BALL_LOG_OUTPUT_STREAM
 
 // The following two macros provide a simple wrapper on top of the
 // 'BALL_LOG_ERROR_BLOCK' macro as above, setting up the alarm identification
 // field, only doing so in such a way that alarm generation is not throttled.
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQTSK_ALARMLOG_RAW_ALARM(CATEGORY)                                   \
     BALL_LOG_ERROR_BLOCK                                                      \
     {                                                                         \
-        BALL_LOG_OUTPUT_STREAM << "ALARM [" << CATEGORY << "] ";              \
+        BALL_LOG_OUTPUT_STREAM                                                \
+            << "ALARM [" << CATEGORY                                          \
+            << "] "; /* NOLINT(bugprone-macro-parentheses) */                 \
         BALL_LOG_RECORD->customFields().appendString("RAW_ALARM");            \
         BALL_LOG_OUTPUT_STREAM
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQTSK_ALARMLOG_RAW_PANIC(CATEGORY)                                   \
     BALL_LOG_ERROR_BLOCK                                                      \
     {                                                                         \
-        BALL_LOG_OUTPUT_STREAM << "PANIC [" << CATEGORY << "] ";              \
+        BALL_LOG_OUTPUT_STREAM                                                \
+            << "PANIC [" << CATEGORY                                          \
+            << "] "; /* NOLINT(bugprone-macro-parentheses) */                 \
         BALL_LOG_RECORD->customFields().appendString("RAW_PANIC");            \
         BALL_LOG_OUTPUT_STREAM
 

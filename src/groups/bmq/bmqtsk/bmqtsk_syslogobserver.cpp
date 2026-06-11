@@ -67,6 +67,7 @@ void SyslogObserver::disableLogging()
 
 void SyslogObserver::publish(const ball::Record&     record,
                              BSLA_MAYBE_UNUSED const ball::Context& context)
+// NOLINTBEGIN(cppcoreguidelines-pro-type-vararg)
 {
     // Check if the record's severity is higher than the severity threshold
     if (record.fixedFields().severity() > d_severityThreshold) {
@@ -75,6 +76,7 @@ void SyslogObserver::publish(const ball::Record&     record,
 
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
 
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
     bmqu::MemOutStream                    os(&localAllocator);
     d_formatter(os, record);
@@ -84,6 +86,7 @@ void SyslogObserver::publish(const ball::Record&     record,
 
     syslog(severity, "%s", os.str().data());
 }
+// NOLINTEND(cppcoreguidelines-pro-type-vararg)
 
 }  // close package namespace
 }  // close enterprise namespace

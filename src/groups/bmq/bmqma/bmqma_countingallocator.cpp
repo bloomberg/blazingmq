@@ -271,6 +271,7 @@ void CountingAllocator::setAllocationLimit(
 }
 
 void* CountingAllocator::allocate(size_type size)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(static_cast<bsls::Types::Uint64>(size) <=
@@ -291,6 +292,7 @@ void* CountingAllocator::allocate(size_type size)
 
     // We're recording stats; allocate 'sizeof(header) + size' bytes.
     const bsls::Types::Int64 totalSize =
+        // NOLINTNEXTLINE(*-narrowing-conversions)
         bsls::AlignmentUtil::roundUpToMaximalAlignment(size) + sizeof(Header);
     BSLS_ASSERT_SAFE(totalSize >= 0);
     d_statContext_mp->adjustValue(0, totalSize);
@@ -303,8 +305,10 @@ void* CountingAllocator::allocate(size_type size)
 
     return header + 1;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 void CountingAllocator::deallocate(void* address)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(address == 0)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
@@ -318,6 +322,7 @@ void CountingAllocator::deallocate(void* address)
     }
 
     // We're recording stats
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     Header* header = static_cast<Header*>(address) - 1;
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(header->d_data.d_magic !=
@@ -351,6 +356,7 @@ void CountingAllocator::deallocate(void* address)
     d_statContext_mp->adjustValue(0, -totalSize);
     d_limitChecker_sp->update(-totalSize);
 }
+// NOLINTEND(*-narrowing-conversions)
 
 void CountingAllocator::AllocationLimitChecker::update(
     bsls::Types::Int64 deltaValue)

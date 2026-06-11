@@ -171,6 +171,7 @@ namespace bmqimp {
 // ================
 
 /// Thread safe queue of pooled bmqimp::Event items.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class EventQueue {
   public:
     // TYPES
@@ -402,6 +403,7 @@ class EventQueue {
     /// initialized by a call to `initializeStats`.
     void printStats(bsl::ostream& stream, bool includeDelta) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

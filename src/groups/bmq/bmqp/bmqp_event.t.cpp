@@ -78,12 +78,15 @@ static void test1_breathingTest()
 }
 
 static void test2_isValid()
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-type-reinterpret-cast)
 {
     bmqtst::TestHelper::printTestName("IS VALID");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
 
     {
         // Create blob of length 1 (something shorter than
@@ -118,6 +121,7 @@ static void test2_isValid()
         BMQTST_ASSERT_EQ(false, event.isValid());
     }
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-type-reinterpret-cast)
 
 static void test3_eventTypes()
 // --------------------------------------------------------------------
@@ -149,12 +153,15 @@ static void test3_eventTypes()
 //   bmqp::Event::isHeartbeatReqEvent()
 //   bmqp::Event::isHeartbeatRspEvent()
 // --------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelper::printTestName("EVENT TYPES");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
 
     struct Test {
         int                   d_line;
@@ -383,9 +390,12 @@ static void test3_eventTypes()
                    false,
                    false}};
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast,performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test&       test = k_DATA[idx];
         bmqp::EventHeader eh(test.d_type);
 
@@ -434,7 +444,9 @@ static void test3_eventTypes()
         BMQTST_ASSERT_EQ(event.isHeartbeatRspEvent(),
                          test.d_isHeartbeatRspEvent);
     }
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast,performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 static void test4_eventLoading()
 // --------------------------------------------------------------------
@@ -460,6 +472,7 @@ static void test4_eventLoading()
 //   template <class TYPE>
 //       int bmqp::Event::loadElectorEvent(TYPE *message) const
 // --------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,cppcoreguidelines-init-variables,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("EVENT LOADING");
     // Disable check that no memory was allocated from the default allocator
@@ -467,10 +480,12 @@ static void test4_eventLoading()
     // baljsn::Encoder constructor does not pass the allocator to the
     // formatter.
 
-    int                            rc;
+    int rc;
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
@@ -485,9 +500,12 @@ static void test4_eventLoading()
                   },
                   {L_, bmqp::EncodingType::e_JSON}};
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
         PVV(test.d_line << ": Testing " << test.d_encodingType << "encoding");
 
@@ -536,6 +554,7 @@ static void test4_eventLoading()
         obj.reset();
         BSLS_ASSERT_OPT(obj.blob()->length() == 0);
     }
+    // NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
     {
         bmqp::SchemaEventBuilder obj(blobSpPool.get(),
@@ -575,6 +594,7 @@ static void test4_eventLoading()
         BSLS_ASSERT_OPT(obj.blob()->length() == 0);
     }
 }
+// NOLINTEND(*-avoid-c-arrays,cppcoreguidelines-init-variables,performance-avoid-endl)
 
 static void test5_iteratorLoading()
 // --------------------------------------------------------------------
@@ -605,12 +625,15 @@ static void test5_iteratorLoading()
 //   bmqp::Event::loadRecoveryMessageIterator(
 //                                 RecoveryMessageIterator *iterator) const
 // --------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelper::printTestName("ITERATOR LOADING");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
 
     struct Test {
         int                   d_line;
@@ -629,9 +652,12 @@ static void test5_iteratorLoading()
                   {L_, bmqp::EventType::e_HEARTBEAT_REQ},
                   {L_, bmqp::EventType::e_HEARTBEAT_RSP}};
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast,performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test&       test = k_DATA[idx];
         bmqp::EventHeader eh(test.d_type);
 
@@ -647,9 +673,9 @@ static void test5_iteratorLoading()
         BMQTST_ASSERT_EQ(event.isValid(),
                          (test.d_type != bmqp::EventType::e_UNDEFINED));
 
-        bmqp::AckMessageIterator      ackIter;
-        bmqp::ConfirmMessageIterator  confirmIter;
-        bmqp::PushMessageIterator     pushIter(
+        bmqp::AckMessageIterator     ackIter;
+        bmqp::ConfirmMessageIterator confirmIter;
+        bmqp::PushMessageIterator    pushIter(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator());
         bmqp::PutMessageIterator      putIter(&bufferFactory,
@@ -710,7 +736,9 @@ static void test5_iteratorLoading()
         BMQTST_ASSERT_EQ(storageIter.isValid(), false);
         BMQTST_ASSERT_EQ(recoveryIter.isValid(), false);
     }
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast,performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 static void test6_printing()
 // --------------------------------------------------------------------
@@ -732,6 +760,7 @@ static void test6_printing()
 //   bmqp::operator<<(bsl::ostream& stream,
 //                    const bmqp::Event& rhs)
 // --------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelper::printTestName("PRINT");
 
@@ -741,9 +770,11 @@ static void test6_printing()
     BSLMF_ASSERT(bmqp::EventType::e_AUTHENTICATION ==
                  bmqp::EventType::k_HIGHEST_SUPPORTED_EVENT_TYPE);
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
 
     struct Test {
         bmqp::EventType::Enum d_type;
@@ -767,9 +798,12 @@ static void test6_printing()
          "[ type = REPLICATION_RECEIPT ]"},
         {bmqp::EventType::e_AUTHENTICATION, "[ type = AUTHENTICATION ]"}};
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test&        test = k_DATA[idx];
         bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
         bmqu::MemOutStream expected(bmqtst::TestHelperUtil::allocator());
@@ -804,13 +838,16 @@ static void test6_printing()
             BMQTST_ASSERT_EQ(out.str(), expected.str());
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -830,3 +867,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

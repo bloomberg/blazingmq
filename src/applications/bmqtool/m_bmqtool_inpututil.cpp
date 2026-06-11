@@ -312,7 +312,7 @@ bool InputUtil::populateSubscriptions(bmqt::QueueOptions* out,
 
     bool failed = false;
     for (int i = 0; i < autoPubSubModulo; ++i) {
-        bmqt::Subscription       to;
+        bmqt::Subscription  to;
         bmqt::CorrelationId correlationId(bmqt::CorrelationId::autoValue());
         bmqt::SubscriptionHandle handle(correlationId);
 
@@ -341,6 +341,7 @@ bool InputUtil::decodeHexDump(bsl::ostream*     out,
                               bsl::ostream*     error,
                               bsl::istream&     in,
                               bslma::Allocator* allocator)
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     // PRECONDITIONS
     BSLS_ASSERT(out);
@@ -370,6 +371,7 @@ bool InputUtil::decodeHexDump(bsl::ostream*     out,
         bdlb::Tokenizer           tokenizer(line, " ");
         bdlb::Tokenizer::iterator tokenizerIt = tokenizer.begin();
         // Process tokens skipping the first one (address offset)
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         for (++tokenizerIt; tokenizerIt != tokenizer.end(); ++tokenizerIt) {
             bslstl::StringRef token = *tokenizerIt;
 
@@ -384,27 +386,32 @@ bool InputUtil::decodeHexDump(bsl::ostream*     out,
                 return false;  // RETURN
             }
 
+            // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
             const int rc = hexDecoder.convert(outputBuffer,
                                               &numOut,
                                               &numIn,
                                               token.begin(),
                                               token.end());
+            // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
             if (rc < 0) {
                 *error << "HexDecoder convert error: " << rc;
                 return false;  // RETURN
             }
             out->write(outputBuffer, numOut);
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     }
 
     return true;
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 bool InputUtil::loadMessageFromFile(bsl::ostream*      payload,
                                     bsl::ostream*      properties,
                                     bsl::ostream*      error,
                                     const bsl::string& filePath,
                                     bslma::Allocator*  allocator)
+// NOLINTBEGIN(*-avoid-c-arrays,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     // PRECONDITIONS
     BSLS_ASSERT(payload);
@@ -492,6 +499,7 @@ bool InputUtil::loadMessageFromFile(bsl::ostream*      payload,
 
     return true;
 }
+// NOLINTEND(*-avoid-c-arrays,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 }  // close package namespace
 }  // close enterprise namespace

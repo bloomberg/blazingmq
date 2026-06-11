@@ -99,12 +99,14 @@ namespace bmqc {
 /// can be in.
 struct MonitoredQueueState {
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         e_NORMAL                   = 0,
         e_HIGH_WATERMARK_REACHED   = 1,
         e_HIGH_WATERMARK_2_REACHED = 2,
         e_QUEUE_FILLED             = 3
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CLASS METHODS
 
@@ -157,6 +159,7 @@ struct MonitoredQueueTraits;
 /// Queue wrapper that monitors the queue's size to report when it becomes
 /// full.
 template <class QUEUE, class QUEUE_TRAITS = MonitoredQueueTraits<QUEUE> >
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class MonitoredQueue {
     /// Called when the state of this `MonitoredQueue` changes.
     typedef bsl::function<void(MonitoredQueueState::Enum state)> StateCallback;
@@ -342,6 +345,7 @@ class MonitoredQueue {
     /// Return the state of the MonitoredQueue.
     MonitoredQueueState::Enum state() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =========================
 // struct MonitoredQueueUtil
@@ -646,6 +650,7 @@ template <class QUEUE, class QUEUE_TRAITS>
 inline int MonitoredQueue<QUEUE, QUEUE_TRAITS>::timedPopFront(
     ElementType*              buffer,
     const bsls::TimeInterval& timeout)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(buffer);
@@ -693,6 +698,7 @@ inline int MonitoredQueue<QUEUE, QUEUE_TRAITS>::timedPopFront(
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 template <class QUEUE, class QUEUE_TRAITS>
 inline void MonitoredQueue<QUEUE, QUEUE_TRAITS>::disablePushBack()

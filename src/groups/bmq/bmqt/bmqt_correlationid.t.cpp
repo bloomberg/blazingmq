@@ -49,6 +49,7 @@ static void test1_breathingTest()
 // Testing:
 //   Basic functionality
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
@@ -74,6 +75,7 @@ static void test1_breathingTest()
     BMQTST_ASSERT_EQ(numeric, numericId.theNumeric());
 
     PV("Test copy constructor");
+    // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
     bmqt::CorrelationId newNumericId(numericId);
     BMQTST_ASSERT_EQ(newNumericId.isPointer(), false);
     BMQTST_ASSERT_EQ(numeric, newNumericId.theNumeric());
@@ -89,6 +91,7 @@ static void test1_breathingTest()
     BMQTST_ASSERT_EQ(fooPtr, ptrId.thePointer());
 
     PV("Test copy constructor");
+    // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
     bmqt::CorrelationId newPtrId(ptrId);
     BMQTST_ASSERT_EQ(newPtrId.isPointer(), true);
     BMQTST_ASSERT_EQ(fooPtr, newPtrId.thePointer());
@@ -124,6 +127,7 @@ static void test1_breathingTest()
     BMQTST_ASSERT_EQ(id, bmqt::CorrelationId());
     BMQTST_ASSERT_EQ(id.isUnset(), true);
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 
 static void test2_copyAndAssign()
 // ------------------------------------------------------------------------
@@ -136,6 +140,7 @@ static void test2_copyAndAssign()
 //
 // Testing:
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions,performance-avoid-endl,performance-unnecessary-copy-initialization)
 {
     bmqtst::TestHelper::printTestName("COPY AND ASSIGN");
 
@@ -145,17 +150,20 @@ static void test2_copyAndAssign()
 
     // conversions to bmqt::CorrelationId and back
     bsls::Types::Int64 numeric = 0xA5A5A5A5A5A5A5A5;
-    void*              ptr     = fooPtr + 1;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    void* ptr = fooPtr + 1;
 
     bmqt::CorrelationId numericId(numeric);
     bmqt::CorrelationId ptrId(ptr);
 
     PV("Test copy constructor")
     {
+        // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
         bmqt::CorrelationId numericIdCopy(numericId);
         BMQTST_ASSERT_EQ(numericIdCopy.isPointer(), false);
         BMQTST_ASSERT_EQ(numericIdCopy.theNumeric(), numeric);
 
+        // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
         bmqt::CorrelationId ptrIdCopy(ptrId);
         BMQTST_ASSERT_EQ(ptrIdCopy.isPointer(), true);
         BMQTST_ASSERT_EQ(ptrIdCopy.thePointer(), ptr);
@@ -183,6 +191,7 @@ static void test2_copyAndAssign()
         BMQTST_ASSERT_EQ(ptrIdCopy.thePointer(), ptr);
     }
 }
+// NOLINTEND(*-magic-numbers,*-narrowing-conversions,performance-avoid-endl,performance-unnecessary-copy-initialization)
 
 static void test3_compare()
 // ------------------------------------------------------------------------
@@ -212,7 +221,9 @@ static void test3_compare()
     bmqt::CorrelationId sptrId4(intPtr4);
     bmqt::CorrelationId numericId1(val1);
     bmqt::CorrelationId numericId4(val4);
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast,performance-no-int-to-ptr)
     bmqt::CorrelationId ptrId1(reinterpret_cast<void*>(val1));
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast,performance-no-int-to-ptr)
     bmqt::CorrelationId ptrId4(reinterpret_cast<void*>(val4));
     bmqt::CorrelationId autoId1 = bmqt::CorrelationId::autoValue();
     bmqt::CorrelationId autoId2 = bmqt::CorrelationId::autoValue();
@@ -259,6 +270,7 @@ static void test4_smartPointers()
 //
 // Testing:
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-type-reinterpret-cast)
 {
     bmqtst::TestHelper::printTestName("SMART POINTERS");
 
@@ -277,6 +289,7 @@ static void test4_smartPointers()
     bsl::shared_ptr<void> resPtr = smartIntCorrelation.theSharedPtr();
     BMQTST_ASSERT_EQ(value, *reinterpret_cast<int*>(resPtr.get()));
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-type-reinterpret-cast)
 
 static void test5_autoValue()
 // ------------------------------------------------------------------------
@@ -319,6 +332,7 @@ static void test6_hashAppend()
 //   hashAppend(HASH_ALGORITHM&            hashAlgo,
 //              const bmqt::CorrelationId& corrId)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("HASH APPEND");
 
@@ -359,6 +373,7 @@ static void test6_hashAppend()
         bsl::hash<bmqt::CorrelationId>              hasher;
         bsl::hash<bmqt::CorrelationId>::result_type firstHash = hasher(obj);
 
+        // NOLINTBEGIN(performance-avoid-endl)
         for (size_t i = 0; i < k_NUM_ITERATIONS; ++i) {
             bslh::DefaultHashAlgorithm algo;
             hashAppend(algo, obj);
@@ -368,10 +383,13 @@ static void test6_hashAppend()
                      << "[" << i << "] hash: " << currHash);
             BMQTST_ASSERT_EQ_D(i, currHash, firstHash);
         }
+        // NOLINTEND(performance-avoid-endl)
     }
 }
+// NOLINTEND(*-magic-numbers,*-narrowing-conversions,performance-avoid-endl)
 
 static void test7_printTest()
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("PRINT");
 
@@ -385,6 +403,7 @@ static void test7_printTest()
 
     intPtr.createInplace(bmqtst::TestHelperUtil::allocator(), numeric);
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     for (; t < bmqt::CorrelationId::e_UNSET + 1; ++t) {
         bmqt::CorrelationId obj;
         bmqu::MemOutStream  patStream(bmqtst::TestHelperUtil::allocator());
@@ -428,6 +447,7 @@ static void test7_printTest()
 
         BMQTST_ASSERT_EQ(objStream.str(), patStream.str());
     }
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
     PV("Bad stream test");
 
@@ -440,12 +460,14 @@ static void test7_printTest()
 
     BMQTST_ASSERT_EQ(stream.str(), "BAD STREAM");
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -466,3 +488,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

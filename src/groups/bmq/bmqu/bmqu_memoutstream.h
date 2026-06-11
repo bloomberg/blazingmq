@@ -59,6 +59,7 @@ namespace bmqu {
 
 /// Private type used to construct the buffer before calling the constructor
 /// of `bsl::ostream`, to which the buffer must be passed.
+// NOLINTBEGIN(cppcoreguidelines-non-private-member-variables-in-classes,cppcoreguidelines-special-member-functions)
 class MemOutStream_BufferHolder {
   private:
     // NOT IMPLEMENTED
@@ -83,6 +84,7 @@ class MemOutStream_BufferHolder {
     MemOutStream_BufferHolder(bsl::size_t       initialSize,
                               bslma::Allocator* allocator);
 };
+// NOLINTEND(cppcoreguidelines-non-private-member-variables-in-classes,cppcoreguidelines-special-member-functions)
 
 // ==================
 // class MemOutStream
@@ -91,6 +93,7 @@ class MemOutStream_BufferHolder {
 /// This class is used just like `bsl::ostringstream` except that the `str`
 /// method returns a `bslstl::StringRef` instead of `bsl::string`.  It is
 /// also possible to reserve memory in the underlying buffer.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class MemOutStream : private virtual MemOutStream_BufferHolder,
                      public bsl::ostream {
   private:
@@ -143,6 +146,7 @@ class MemOutStream : private virtual MemOutStream_BufferHolder,
     /// obj.str.isEmpty() == (obj.length() == 0)'.
     bool isEmpty() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

@@ -58,6 +58,7 @@ namespace mqbc {
 // ========================
 
 /// This interface defines an observer of the Cluster FSM.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ClusterFSMObserver {
   public:
     // CREATORS
@@ -85,12 +86,14 @@ class ClusterFSMObserver {
     ///         dispatcher thread.
     virtual void onHealedFollower();
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =============================
 // class ClusterFSMEventMetadata
 // =============================
 
 /// This class defines a VST for the metadata of a Cluster FSM event.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ClusterFSMEventMetadata {
   public:
     // TYPES
@@ -211,6 +214,7 @@ class ClusterFSMEventMetadata {
     const bmqp_ctrlmsg::LeaderAdvisory& clusterStateSnapshot() const;
     const bsl::vector<int>&             modifiedPartitions() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ================
 // class ClusterFSM
@@ -218,6 +222,7 @@ class ClusterFSMEventMetadata {
 
 /// This class provides a finite state machine for controlling cluster
 /// state.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ClusterFSM {
   private:
     // CLASS-SCOPE CATEGORY
@@ -308,6 +313,7 @@ class ClusterFSM {
     /// Return true if self node is healed, false otherwise.
     bool isSelfHealed() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

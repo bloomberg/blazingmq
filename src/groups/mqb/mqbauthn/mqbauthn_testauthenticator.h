@@ -58,10 +58,11 @@ namespace mqbauthn {
 // class TestAuthenticationResult
 // ==============================
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class TestAuthenticationResult : public mqbplug::AuthenticationResult {
   private:
     // DATA
-    bsl::string                       d_principal;
+    bsl::string                        d_principal;
     bsl::optional<bsls::Types::Uint64> d_lifetimeMs;
 
   public:
@@ -84,11 +85,13 @@ class TestAuthenticationResult : public mqbplug::AuthenticationResult {
     const bsl::optional<bsls::Types::Uint64>&
     lifetimeMs() const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =======================
 // class TestAuthenticator
 // =======================
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class TestAuthenticator : public mqbplug::Authenticator {
   public:
     // PUBLIC CLASS DATA
@@ -152,11 +155,13 @@ class TestAuthenticator : public mqbplug::Authenticator {
     /// Stop the authenticator.
     void stop() BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ====================================
 // class TestAuthenticatorPluginFactory
 // ====================================
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class TestAuthenticatorPluginFactory
 : public mqbplug::AuthenticatorPluginFactory {
   public:
@@ -168,6 +173,7 @@ class TestAuthenticatorPluginFactory
     bslma::ManagedPtr<mqbplug::Authenticator>
     create(bslma::Allocator* allocator) BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

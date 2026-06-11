@@ -45,8 +45,10 @@ struct PrintTestData {
 // ----------------------------------------------------------------------------
 
 template <typename ENUM_TYPE, typename ARRAY, int SIZE>
+// NOLINTBEGIN(*-avoid-c-arrays)
 static void printEnumHelper(ARRAY (&data)[SIZE])
 {
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < SIZE; ++idx) {
         const PrintTestData& test = data[idx];
 
@@ -76,7 +78,9 @@ static void printEnumHelper(ARRAY (&data)[SIZE])
 
         BMQTST_ASSERT_EQ(out.str(), expected.str());
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 static void test1_enumPrint()
 // ------------------------------------------------------------------------
@@ -97,6 +101,7 @@ static void test1_enumPrint()
 //   CompressionAlgorithmType::print
 //   operator<<(bsl::ostream&, CompressionAlgorithmType::Enum)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("ENUM LAYOUT");
 
@@ -109,20 +114,24 @@ static void test1_enumPrint()
             bmqt::CompressionAlgorithmType::k_HIGHEST_SUPPORTED_TYPE ==
             bmqt::CompressionAlgorithmType::e_ZLIB);
 
+        // NOLINTBEGIN(*-avoid-c-arrays)
         PrintTestData k_DATA[] = {
             {L_, bmqt::CompressionAlgorithmType::e_UNKNOWN, "UNKNOWN"},
             {L_, bmqt::CompressionAlgorithmType::e_NONE, "NONE"},
             {L_, bmqt::CompressionAlgorithmType::e_ZLIB, "ZLIB"}};
+        // NOLINTEND(*-avoid-c-arrays)
 
         printEnumHelper<bmqt::CompressionAlgorithmType>(k_DATA);
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -137,3 +146,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

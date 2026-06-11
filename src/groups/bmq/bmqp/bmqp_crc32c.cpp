@@ -28,6 +28,7 @@ namespace bmqp {
 
 namespace {
 
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 BSLA_MAYBE_UNUSED const char k_LOG_CATEGORY[] = "BMQP.CRC32C";
 
 }  // close unnamed namespace
@@ -36,6 +37,7 @@ BSLA_MAYBE_UNUSED const char k_LOG_CATEGORY[] = "BMQP.CRC32C";
 // struct Crc32c
 // -------------
 
+// NOLINTNEXTLINE(cppcoreguidelines-interfaces-global-init)
 const unsigned int Crc32c::k_NULL_CRC32C = bdlde::Crc32c::k_NULL_CRC32C;
 
 unsigned int

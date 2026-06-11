@@ -44,6 +44,7 @@ namespace mqbstat {
 // =====================
 
 /// Mechanism to keep track of individual overall statistics of a dispatcher
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class DispatcherStats {
   public:
     // TYPES
@@ -52,6 +53,7 @@ class DispatcherStats {
     /// from this object.
     struct Stat {
         // TYPES
+        // NOLINTBEGIN(cert-int09-c,cppcoreguidelines-use-enum-class)
         enum Enum {
             e_ENQUEUE_DELTA      = 0,
             e_DEQUEUE_DELTA      = 1,
@@ -115,11 +117,13 @@ class DispatcherStats {
             e_PROCESSING_TIME_REPLICATION_RECEIPT_SUM,
             e_PROCESSED_COUNT_REPLICATION_RECEIPT,
         };
+        // NOLINTEND(cert-int09-c,cppcoreguidelines-use-enum-class)
     };
 
     /// Namespace for the constants of stat values that applies to the
     /// dispatcher queues from the clients.
     struct DispatcherStatsIndex {
+        // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
         enum Enum {
             /// Processing times for each event type.
             /// Each enum value MUST be equal to the corresponding
@@ -141,6 +145,7 @@ class DispatcherStats {
             e_STAT_QUEUE = 13,  // Queue/Dequeue
             e_STAT_TIME  = 14,  // Event queued time
         };
+        // NOLINTEND(cppcoreguidelines-use-enum-class)
     };
 
     // CLASS METHODS
@@ -177,6 +182,7 @@ class DispatcherStats {
     /// Copy constructor and assignment operator are not implemented.
     DispatcherStats& operator=(const DispatcherStats&) BSLS_CPP11_DELETED;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ==========================
 // struct DispatcherStatsUtil

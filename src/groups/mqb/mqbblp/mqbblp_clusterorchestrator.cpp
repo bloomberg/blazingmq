@@ -173,6 +173,7 @@ void ClusterOrchestrator::onElectorStateChange(
 void ClusterOrchestrator::electorTransitionToDormant(
     BSLA_MAYBE_UNUSED int leaderNodeId,
     bsls::Types::Uint64   term)
+// NOLINTBEGIN(bugprone-branch-clone)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -211,9 +212,11 @@ void ClusterOrchestrator::electorTransitionToDormant(
     default: BSLS_ASSERT(0 && "Unreachable by design");
     }
 }
+// NOLINTEND(bugprone-branch-clone)
 
 void ClusterOrchestrator::electorTransitionToFollower(int leaderNodeId,
                                                       bsls::Types::Uint64 term)
+// NOLINTBEGIN(bugprone-branch-clone)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -275,6 +278,7 @@ void ClusterOrchestrator::electorTransitionToFollower(int leaderNodeId,
     default: BSLS_ASSERT(0 && "Unreachable by design");
     }
 }
+// NOLINTEND(bugprone-branch-clone)
 
 void ClusterOrchestrator::electorTransitionToCandidate(
     BSLA_MAYBE_UNUSED int leaderNodeId,
@@ -576,7 +580,7 @@ ClusterOrchestrator::ClusterOrchestrator(
 , d_stateManager_mp(
       clusterConfig.clusterAttributes().isFSMWorkflow()
           ? static_cast<mqbi::ClusterStateManager*>(
-                new(*d_allocator_p) mqbc::ClusterStateManager(
+                new (*d_allocator_p) mqbc::ClusterStateManager(
                     clusterConfig,
                     d_cluster_p,
                     d_clusterData_p,
@@ -595,7 +599,7 @@ ClusterOrchestrator::ClusterOrchestrator(
                         .clusterFsmWatchdogNumRetries(),
                     d_allocators.get("ClusterStateManager")))
           : static_cast<mqbi::ClusterStateManager*>(
-                new(*d_allocator_p) ClusterStateManager(
+                new (*d_allocator_p) ClusterStateManager(
                     clusterConfig,
                     d_cluster_p,
                     d_clusterData_p,
@@ -639,6 +643,7 @@ ClusterOrchestrator::~ClusterOrchestrator()
 
 // MANIPULATORS
 int ClusterOrchestrator::start(bsl::ostream& errorDescription)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -715,6 +720,7 @@ int ClusterOrchestrator::start(bsl::ostream& errorDescription)
     d_isStarted = true;
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 void ClusterOrchestrator::stop()
 {
@@ -1037,6 +1043,7 @@ void ClusterOrchestrator::processNodeStoppingNotification(
             bmqp_ctrlmsg::NodeStatus::E_STOPPING);
     }
 
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     bslmt::Latch latch(partitions.size());
 
     for (int i = static_cast<int>(partitions.size()) - 1; 0 <= i; --i) {
@@ -1574,6 +1581,7 @@ void ClusterOrchestrator::processPrimaryStatusAdvisory(
 void ClusterOrchestrator::processPrimaryStatusAdvisoryImpl(
     const bmqp_ctrlmsg::PrimaryStatusAdvisory& primaryAdv,
     mqbnet::ClusterNode*                       source)
+// NOLINTBEGIN(modernize-use-emplace)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -1750,6 +1758,7 @@ void ClusterOrchestrator::processPrimaryStatusAdvisoryImpl(
         d_storageManager_p->processPrimaryStatusAdvisory(primaryAdv, source);
     }
 }
+// NOLINTEND(modernize-use-emplace)
 
 void ClusterOrchestrator::processStateNotification(
     const bmqp_ctrlmsg::ControlMessage& notification,
@@ -1963,6 +1972,7 @@ void ClusterOrchestrator::processBufferedPrimaryStatusAdvisories(
     const mqbc::ClusterStatePartitionInfo& pinfo = clusterState()->partition(
         partitionId);
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (PrimaryStatusAdvisoryInfosCIter cit =
              d_bufferedPrimaryStatusAdvisoryInfosVec[partitionId].cbegin();
          cit != d_bufferedPrimaryStatusAdvisoryInfosVec[partitionId].cend();
@@ -1985,6 +1995,7 @@ void ClusterOrchestrator::processBufferedPrimaryStatusAdvisories(
         }
         processPrimaryStatusAdvisoryImpl(cit->first, cit->second);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     d_bufferedPrimaryStatusAdvisoryInfosVec[partitionId].clear();
 }

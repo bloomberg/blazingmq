@@ -100,6 +100,7 @@ namespace mqbblp {
 // ===========
 
 /// @todo Document this class
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
   private:
     // CLASS-SCOPE CATEGORY
@@ -366,9 +367,11 @@ class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
     /// Synchronously process the specified `command` and load the outcome
     /// in the specified `result` object.  Return zero on success or a
     /// nonzero value otherwise.
+    // NOLINTBEGIN(cppcoreguidelines-explicit-virtual-functions)
     virtual int
     processCommand(mqbcmd::QueueResult*        result,
                    const mqbcmd::QueueCommand& command) BSLS_KEYWORD_OVERRIDE;
+    // NOLINTEND(cppcoreguidelines-explicit-virtual-functions)
 
     // ACCESSORS
     //   (virtual mqbi::Queue)
@@ -457,6 +460,7 @@ class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
     /// Return the Schema Leaner associated with this queue.
     bmqp::SchemaLearner& schemaLearner() const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

@@ -94,6 +94,7 @@ typedef bsl::shared_ptr<OpenQueueContext> OpenQueueConfirmationCookieSp;
 // ============
 
 /// Interface for a Domain.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Domain {
   public:
     // TYPES
@@ -229,12 +230,14 @@ class Domain {
     /// of DOMAINS REMOVE is completed
     virtual bool isRemoveComplete() const = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ===================
 // class DomainFactory
 // ===================
 
 /// Interface for a Domain factory.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class DomainFactory {
   public:
     // TYPES
@@ -283,6 +286,7 @@ class DomainFactory {
     /// if the domain has not been previously created via `createDomain`.
     virtual Domain* getDomain(const bsl::string& name) const = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

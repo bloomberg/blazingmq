@@ -61,11 +61,13 @@ namespace mqbnet {
 // ===========================
 
 struct AuthenticationState {
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         e_AUTHENTICATING = 0,  // Authentication is in progress.
         e_AUTHENTICATED,       // Authentication is completed.
         e_CLOSED               // Channel is closed.
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CLASS METHODS
 
@@ -112,6 +114,7 @@ bsl::ostream& operator<<(bsl::ostream&             stream,
                          AuthenticationState::Enum value);
 
 /// VST for the context associated with a connection being authenticated.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class AuthenticationContext {
   private:
     // CLASS-SCOPE CATEGORY
@@ -241,6 +244,7 @@ class AuthenticationContext {
 
     InitialConnectionContext* initialConnectionContext();
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 

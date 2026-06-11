@@ -95,6 +95,7 @@ namespace bmqp {
 // ==========================
 
 /// Provides a mechanism to generate bmqt::MessageGUIDs.
+// NOLINTBEGIN(*-avoid-c-arrays,cppcoreguidelines-special-member-functions)
 class MessageGUIDGenerator {
   private:
     // PRIVATE CONSTANTS
@@ -113,6 +114,7 @@ class MessageGUIDGenerator {
 
     // NOTE: each character takes two char in hex, and we add a terminating
     //       null character.
+    // NOLINTNEXTLINE(*-avoid-c-arrays)
     char d_clientIdHex[k_CLIENT_ID_LEN_HEX + 1];
 
     // Monotonically incrementing counter per every GUID generated.
@@ -186,6 +188,7 @@ class MessageGUIDGenerator {
     static bsl::ostream& print(bsl::ostream&            stream,
                                const bmqt::MessageGUID& guid);
 };
+// NOLINTEND(*-avoid-c-arrays,cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS
@@ -197,9 +200,11 @@ class MessageGUIDGenerator {
 
 // ACCESSORS
 inline const char* MessageGUIDGenerator::clientIdHex() const
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     return d_clientIdHex;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 }  // close package namespace
 }  // close enterprise namespace

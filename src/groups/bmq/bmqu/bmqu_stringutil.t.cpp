@@ -38,6 +38,7 @@ static void test1_contains()
 // Testing:
 //   Proper behavior of the 'contains(str, substr)' method.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding)
 {
     bmqtst::TestHelper::printTestName("contains");
 
@@ -56,9 +57,12 @@ static void test1_contains()
                   {L_, "endFail", "ailN", false},
                   {L_, "middleFail", "dleN", false}};
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         PVV(test.d_line << ": checking if '" << test.d_substr << "' "
@@ -69,7 +73,9 @@ static void test1_contains()
                            bmqu::StringUtil::contains(str, test.d_substr),
                            test.d_result);
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding)
 
 static void test2_startsWith()
 // ------------------------------------------------------------------------
@@ -84,6 +90,7 @@ static void test2_startsWith()
 // Testing:
 //   Proper behavior of the 'startsWith(str, prefix, offset)' method.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding)
 {
     bmqtst::TestHelper::printTestName("startsWith");
 
@@ -106,9 +113,12 @@ static void test2_startsWith()
                   {L_, "abc", "abcd", 0, false},
                   {L_, "abc", "abc", 0, true}};
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         PVV(test.d_line << ": checking if '" << test.d_str << "' "
@@ -121,7 +131,9 @@ static void test2_startsWith()
                                                         test.d_offset),
                            test.d_result);
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding)
 
 static void test3_endsWith()
 // ------------------------------------------------------------------------
@@ -136,6 +148,7 @@ static void test3_endsWith()
 // Testing:
 //   Proper behavior of the 'endsWith(str, suffix)' method.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding)
 {
     bmqtst::TestHelper::printTestName("endsWith");
 
@@ -154,9 +167,12 @@ static void test3_endsWith()
                   {L_, "abc", "abcd", false},
                   {L_, "abc", "abc", true}};
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         PVV(test.d_line << ": checking if '" << test.d_str << "' "
@@ -167,7 +183,9 @@ static void test3_endsWith()
                                                       test.d_suffix),
                            test.d_result);
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding)
 
 static void test4_trim()
 // ------------------------------------------------------------------------
@@ -182,6 +200,7 @@ static void test4_trim()
 // Testing:
 //   Proper behavior of the 'trim(str)' method.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelper::printTestName("trim");
 
@@ -197,9 +216,12 @@ static void test4_trim()
                   {L_, "  abc   ", "abc"},
                   {L_, "   a b c    ", "a b c"}};
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         PVV(test.d_line << ": trimming '" << test.d_str << "'");
@@ -208,7 +230,9 @@ static void test4_trim()
         bmqu::StringUtil::trim(&input);
         BMQTST_ASSERT_EQ_D("line " << test.d_line, input, test.d_expected);
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 static void test5_ltrim()
 // ------------------------------------------------------------------------
@@ -223,6 +247,7 @@ static void test5_ltrim()
 // Testing:
 //   Proper behavior of the 'ltrim(str)' method.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelper::printTestName("ltrim");
 
@@ -238,9 +263,12 @@ static void test5_ltrim()
                   {L_, "  abc   ", "abc   "},
                   {L_, "   a b c  ", "a b c  "}};
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         PVV(test.d_line << ": ltrimming '" << test.d_str << "'");
@@ -249,7 +277,9 @@ static void test5_ltrim()
         bmqu::StringUtil::ltrim(&input);
         BMQTST_ASSERT_EQ_D("line " << test.d_line, input, test.d_expected);
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 static void test6_rtrim()
 // ------------------------------------------------------------------------
@@ -264,6 +294,7 @@ static void test6_rtrim()
 // Testing:
 //   Proper behavior of the 'rtrim(str)' method.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelper::printTestName("rtrim");
 
@@ -279,9 +310,12 @@ static void test6_rtrim()
                   {L_, "  abc   ", "  abc"},
                   {L_, "   a b c  ", "   a b c"}};
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         PVV(test.d_line << ": rtrimming '" << test.d_str << "'");
@@ -290,7 +324,9 @@ static void test6_rtrim()
         bmqu::StringUtil::rtrim(&input);
         BMQTST_ASSERT_EQ_D("line " << test.d_line, input, test.d_expected);
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 static void test7_strTokenizeRef()
 // ------------------------------------------------------------------------
@@ -305,6 +341,7 @@ static void test7_strTokenizeRef()
 // Testing:
 //   Proper behavior of the 'strTokenizeRef(str, delims)' method.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // The vector returned by 'bmqu::StringUtil::strTokenizeRef' uses the
@@ -336,9 +373,12 @@ static void test7_strTokenizeRef()
         {L_, ":bonjour:hello", ":,", 3, "", "bonjour", "hello"},
         {L_, "bonjour:hello:", ":,", 3, "bonjour", "hello", ""}};
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         PVV(test.d_line << ": tokenizing '" << test.d_input << "'");
@@ -365,7 +405,9 @@ static void test7_strTokenizeRef()
                                test.d_token3);
         }
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 static void test8_match()
 // ------------------------------------------------------------------------
@@ -380,6 +422,7 @@ static void test8_match()
 // Testing:
 //   Proper behavior of the 'match(str, pattern)' method.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding)
 {
     bmqtst::TestHelper::printTestName("match");
 
@@ -454,9 +497,12 @@ static void test8_match()
                   {L_, "fish bone", "", false},
                   {L_, "", "", true}};
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         PVV(test.d_line << ": matching '" << test.d_input << "'" << " with '"
@@ -468,7 +514,9 @@ static void test8_match()
             bmqu::StringUtil::match(test.d_input, test.d_pattern),
             test.d_expected);
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding)
 
 static void test9_squeeze()
 // ------------------------------------------------------------------------
@@ -483,6 +531,7 @@ static void test9_squeeze()
 // Testing:
 //   Proper behavior of the 'squeeze(str, characters)' method.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelper::printTestName("squeeze");
 
@@ -509,9 +558,12 @@ static void test9_squeeze()
                    " ",
                    "DOMAINS DOMAIN foo QUEUE bar LIST baz 0 10"}};
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
         bsl::string str(test.d_str, bmqtst::TestHelperUtil::allocator());
 
@@ -522,13 +574,16 @@ static void test9_squeeze()
                            bmqu::StringUtil::squeeze(&str, test.d_characters),
                            test.d_expected);
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -551,3 +606,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

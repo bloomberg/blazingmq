@@ -58,6 +58,7 @@ namespace mqbi {
 // class DispatcherEventSource
 // ===========================
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class DispatcherEventSource {
   public:
     // PUBLIC TYPES
@@ -89,6 +90,7 @@ class DispatcherEventSource {
     template <class EVENT_TYPE>
     bsl::shared_ptr<EVENT_TYPE> getEvent();
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

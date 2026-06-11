@@ -95,6 +95,7 @@ consumerInfo(const bmqp_ctrlmsg::StreamParameters& from)
 }
 
 // CONSTANTS
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char k_URI[] = "bmq://ts.trades.myapp/my.queue?id=my.app";
 
 /// Struct to initialize system time component
@@ -126,18 +127,23 @@ struct TestClock {
 static void eventHandler(bsl::shared_ptr<bmqimp::Event>*       resultEvent,
                          bslmt::TimedSemaphore&                eventSem,
                          const bsl::shared_ptr<bmqimp::Event>& event)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     PV_SAFE("Got an event: " << *event);
 
     *resultEvent = event;
     eventSem.post();
 }
+// NOLINTEND(performance-avoid-endl)
 
+// NOLINTBEGIN(performance-unnecessary-value-param)
 static void eventHandlerSyncCall(bsl::shared_ptr<bmqimp::Event>* resultEvent,
                                  bmqimp::BrokerSession*          session,
                                  bsl::shared_ptr<bmqimp::Queue>  queue,
                                  bslmt::TimedSemaphore&          eventSem,
                                  const bsl::shared_ptr<bmqimp::Event>& event)
+// NOLINTEND(performance-unnecessary-value-param)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     const bsls::TimeInterval& timeout = bsls::TimeInterval();
     bmqt::QueueOptions        queueOptions;
@@ -158,12 +164,14 @@ static void eventHandlerSyncCall(bsl::shared_ptr<bmqimp::Event>* resultEvent,
 
     eventSem.post();
 }
+// NOLINTEND(performance-avoid-endl)
 
 /// REVISIT: usage of these semaphores here and everywhere after #1974.
 static int stateCb(bmqimp::BrokerSession::State::Enum oldState,
                    bmqimp::BrokerSession::State::Enum newState,
                    bsls::AtomicInt*                   startCounter,
                    bsls::AtomicInt*                   stopCounter)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     PV_SAFE("StateCb: " << oldState << " -> " << newState);
 
@@ -176,6 +184,7 @@ static int stateCb(bmqimp::BrokerSession::State::Enum oldState,
 
     return 0;
 }
+// NOLINTEND(performance-avoid-endl)
 
 static int transitionCb(
     bmqimp::BrokerSession::State::Enum                   oldState,
@@ -183,18 +192,21 @@ static int transitionCb(
     bsl::vector<bmqimp::BrokerSession::StateTransition>* transitionTable,
     bsls::AtomicInt*                                     rc,
     bslmt::TimedSemaphore*                               doneSem)
+// NOLINTBEGIN(cppcoreguidelines-init-variables,performance-avoid-endl)
 {
     PV_SAFE("transitionCb: " << oldState << " -> " << newState
                              << " (tableSize:" << transitionTable->size()
                              << ")");
 
     bsl::vector<bmqimp::BrokerSession::StateTransition>::iterator it;
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (it = transitionTable->begin(); it != transitionTable->end(); ++it) {
         if (it->d_currentState == oldState && it->d_newState == newState) {
             transitionTable->erase(it);
             break;
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     if (transitionTable->empty()) {
         doneSem->post();
@@ -202,11 +214,13 @@ static int transitionCb(
 
     return *rc;
 }
+// NOLINTEND(cppcoreguidelines-init-variables,performance-avoid-endl)
 
 void channelSetEventHandler(const bsl::shared_ptr<bmqimp::Event>& event,
                             bsls::AtomicInt&                      eventCounter,
                             bslmt::TimedSemaphore&                stopSem,
                             int                                   maxEvents)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     const bmqt::CorrelationId k_EMPTY_CORRID;
 
@@ -258,18 +272,22 @@ void channelSetEventHandler(const bsl::shared_ptr<bmqimp::Event>& event,
     BMQTST_ASSERT_EQ(event->statusCode(), 0);
     BMQTST_ASSERT_EQ(event->correlationId(), k_EMPTY_CORRID);
 }
+// NOLINTEND(performance-avoid-endl)
 
 void channelEventHandler(const bsl::shared_ptr<bmqimp::Event>& event,
                          bslmt::TimedSemaphore*                eventSem)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     PV_SAFE("Incoming event: " << *event);
 
     eventSem->post();
 }
+// NOLINTEND(performance-avoid-endl)
 
 void sessionEventHandler(
     bdlcc::Deque<bsl::shared_ptr<bmqimp::Event> >* eventQueue,
     const bsl::shared_ptr<bmqimp::Event>&          event)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     BMQTST_ASSERT(event);
 
@@ -278,6 +296,7 @@ void sessionEventHandler(
 
     eventQueue->pushBack(event);
 }
+// NOLINTEND(performance-avoid-endl)
 
 bool waitRealTime(bslmt::TimedSemaphore* sem)
 {
@@ -300,6 +319,7 @@ bool isConfigure(const bmqp_ctrlmsg::ControlMessage& request)
 
 void makeResponse(bmqp_ctrlmsg::ControlMessage*       response,
                   const bmqp_ctrlmsg::ControlMessage& request)
+// NOLINTBEGIN(bugprone-unchecked-optional-access)
 {
     BMQTST_ASSERT(!request.rId().isNull());
     response->rId().makeValue(request.rId().value());
@@ -315,6 +335,7 @@ void makeResponse(bmqp_ctrlmsg::ControlMessage*       response,
             request.choice().configureQueueStream();
     }
 }
+// NOLINTEND(bugprone-unchecked-optional-access)
 
 void getConsumerInfo(bmqp_ctrlmsg::ConsumerInfo*  out,
                      bmqp_ctrlmsg::ControlMessage request)
@@ -334,6 +355,7 @@ void getConsumerInfo(bmqp_ctrlmsg::ConsumerInfo*  out,
 
 /// This class provides a wrapper on top of the BrokerSession under test and
 /// implements a few mechanisms to help testing the object.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct TestSession BSLS_CPP11_FINAL {
   public:
     // CONSTANTS
@@ -343,6 +365,7 @@ struct TestSession BSLS_CPP11_FINAL {
 
   public:
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum RequestType {
         e_REQ_OPEN_QUEUE   = 0,
         e_REQ_CONFIG_QUEUE = 1,
@@ -350,16 +373,20 @@ struct TestSession BSLS_CPP11_FINAL {
         e_REQ_DISCONNECT   = 3,
         e_REQ_UNDEFINED    = -1
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum ErrorResult {
         e_ERR_NOT_SENT      = 0,  // request failed to send
         e_ERR_BAD_RESPONSE  = 1,  // bad response
         e_ERR_LATE_RESPONSE = 2   // late response
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // Note that the following two enumerations must have consecutive
     // enumerators:
 
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum QueueTestStep {
         /// pending open queue request
         e_OPEN_OPENING = 0,
@@ -386,7 +413,9 @@ struct TestSession BSLS_CPP11_FINAL {
         /// no pending requests
         e_CLOSE_CLOSED = 11
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum LateResponseTestStep {
         /// late open 1st part respose
         e_LATE_OPEN_OPENING = 0,
@@ -399,6 +428,7 @@ struct TestSession BSLS_CPP11_FINAL {
         /// late close 2st part response
         e_LATE_CLOSE_CLOSING = 4
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     typedef bdlcc::Deque<bsl::shared_ptr<bmqimp::Event> > EventQueue;
 
@@ -488,36 +518,46 @@ struct TestSession BSLS_CPP11_FINAL {
     /// Inject open and configure queue responses and wait for
     /// SessionEventType::e_QUEUE_OPEN_RESULT event.
     /// Assert in case of any error or expired timeout
+    // NOLINTBEGIN(*-magic-numbers)
     void openQueue(bsl::shared_ptr<bmqimp::Queue> queue,
                    const bsls::TimeInterval& timeout = bsls::TimeInterval(5),
                    const bool                skipReaderCfgs = false);
+    // NOLINTEND(*-magic-numbers)
 
     /// Process the specified `queue` reopening by injecting open and
     /// configure queue responses and wait for
     /// `SessionEventType::e_QUEUE_REOPEN_RESULT` event.  Assert in case of
     /// any error or expired timeout.
+    // NOLINTBEGIN(*-magic-numbers)
     void
     reopenQueue(bsl::shared_ptr<bmqimp::Queue> queue,
                 const bsls::TimeInterval& timeout = bsls::TimeInterval(5));
+    // NOLINTEND(*-magic-numbers)
 
     /// Closes the specified `queue` by injecting close and configure queue
     /// responses and wait for `SessionEventType::e_QUEUE_CLOSE_RESULT`
     /// event.  Assert in case of any error or expired timeout.
+    // NOLINTBEGIN(*-magic-numbers)
     void closeQueue(bsl::shared_ptr<bmqimp::Queue> queue,
                     const bsls::TimeInterval& timeout = bsls::TimeInterval(5),
                     bool                      isFinal = true);
+    // NOLINTEND(*-magic-numbers)
 
     /// Close the specified `queue` by injecting close queueresponses and
     /// wait for `SessionEventType::e_QUEUE_CLOSE_RESULT` event.  Assert in
     /// case of any error or expired timeout.
+    // NOLINTBEGIN(*-magic-numbers)
     void closeDeconfiguredQueue(
         bsl::shared_ptr<bmqimp::Queue> queue,
         const bsls::TimeInterval&      timeout = bsls::TimeInterval(5));
+    // NOLINTEND(*-magic-numbers)
 
+    // NOLINTBEGIN(*-magic-numbers)
     void configureQueueSync(
         bsl::shared_ptr<bmqimp::Queue>& queue,
         const bmqt::QueueOptions&       options,
         const bsls::TimeInterval&       timeout = bsls::TimeInterval(5));
+    // NOLINTEND(*-magic-numbers)
 
     /// For the specified `queue` call async opening and verify open queue
     /// request is sent to the channel.  Return control message sent to the
@@ -605,14 +645,18 @@ struct TestSession BSLS_CPP11_FINAL {
     /// processing corresponsing requests and responses and waiting for
     /// related session events.  Assert in case of any error or expired
     /// timeout.
+    // NOLINTBEGIN(*-magic-numbers)
     bsl::shared_ptr<bmqimp::Queue> createQueueOnStep(
         const QueueTestStep       step,
         bsls::Types::Uint64       queueFlags,
         const bsls::TimeInterval& timeout = bsls::TimeInterval(5));
+    // NOLINTEND(*-magic-numbers)
+    // NOLINTBEGIN(*-magic-numbers)
     bsl::shared_ptr<bmqimp::Queue> createQueueOnStep(
         const LateResponseTestStep step,
         bsls::Types::Uint64        queueFlags,
         const bsls::TimeInterval&  timeout = bsls::TimeInterval(5));
+    // NOLINTEND(*-magic-numbers)
 
     /// Wait up to the specified `timeout` for a call to close the channel.
     /// If such a call happens, invoke the closeSignaler and return true.
@@ -794,10 +838,13 @@ struct TestSession BSLS_CPP11_FINAL {
     /// Clear write calls stored in the owned TestChannel
     void clearWriteCalls();
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // CLASS DATA
+// NOLINTNEXTLINE(cert-err58-cpp)
 const bsls::TimeInterval TestSession::k_EVENT_TIMEOUT(30);
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 const bsls::TimeInterval TestSession::k_TIME_SOURCE_STEP(0.001);
 
 void TestSession::advanceTime(const bsls::TimeInterval& step)
@@ -828,6 +875,7 @@ void TestSession::advanceTime(const bsls::TimeInterval& step)
 }
 
 bsl::shared_ptr<bmqimp::Event> TestSession::getInboundEvent()
+// NOLINTBEGIN(*-magic-numbers)
 {
     bsl::shared_ptr<bmqimp::Event> event;
 
@@ -840,12 +888,14 @@ bsl::shared_ptr<bmqimp::Event> TestSession::getInboundEvent()
 
     return event;
 }
+// NOLINTEND(*-magic-numbers)
 
 TestSession::TestSession(const bmqt::SessionOptions& sessionOptions,
                          bdlmt::EventScheduler&      scheduler,
                          bool                        useEventHandler,
                          bslma::Allocator*           allocator)
 : d_allocator_p(allocator)
+// NOLINTNEXTLINE(*-magic-numbers)
 , d_blobBufferFactory(1024, d_allocator_p)
 , d_blobSpPool_sp(
       bmqp::BlobPoolUtil::createBlobPool(&d_blobBufferFactory,
@@ -883,6 +933,7 @@ TestSession::TestSession(const bmqt::SessionOptions& sessionOptions,
                          bool                        useEventHandler,
                          bslma::Allocator*           allocator)
 : d_allocator_p(allocator)
+// NOLINTNEXTLINE(*-magic-numbers)
 , d_blobBufferFactory(1024, d_allocator_p)
 , d_blobSpPool_sp(
       bmqp::BlobPoolUtil::createBlobPool(&d_blobBufferFactory,
@@ -952,6 +1003,7 @@ bmqp::BlobPoolUtil::BlobSpPool& TestSession::blobSpPool()
 
 // MANIPULATORS
 void TestSession::startAndConnect(bool expectHostUnhealthy)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     PVVV_SAFE("Starting session...");
     d_startCounter = 0;
@@ -978,8 +1030,10 @@ void TestSession::startAndConnect(bool expectHostUnhealthy)
 
     PVVV_SAFE("Channel connected");
 }
+// NOLINTEND(performance-avoid-endl)
 
 bool TestSession::stop()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     session().stop();
 
@@ -1013,17 +1067,23 @@ bool TestSession::stop()
 
     return true;
 }
+// NOLINTEND(performance-avoid-endl)
 
 void TestSession::openQueue(bsl::shared_ptr<bmqimp::Queue> queue,
                             const bsls::TimeInterval&      timeout,
                             const bool                     skipReaderCfgs)
+// NOLINTBEGIN(performance-unnecessary-value-param)
 {
     arriveAtStep(queue, e_OPEN_OPENED, timeout, skipReaderCfgs);
 }
+// NOLINTEND(performance-unnecessary-value-param)
 
+// NOLINTBEGIN(performance-unnecessary-value-param)
 void TestSession::reopenQueue(
     bsl::shared_ptr<bmqimp::Queue> queue,
     BSLA_MAYBE_UNUSED const bsls::TimeInterval& timeout)
+// NOLINTEND(performance-unnecessary-value-param)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     BMQTST_ASSERT(queue);
 
@@ -1053,10 +1113,14 @@ void TestSession::reopenQueue(
     BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
     BMQTST_ASSERT(queue->isValid());
 }
+// NOLINTEND(performance-avoid-endl)
 
+// NOLINTBEGIN(performance-unnecessary-value-param)
 void TestSession::closeQueue(bsl::shared_ptr<bmqimp::Queue> queue,
                              const bsls::TimeInterval&      timeout,
                              bool                           isFinal)
+// NOLINTEND(performance-unnecessary-value-param)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     BMQTST_ASSERT(queue);
     BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
@@ -1089,9 +1153,13 @@ void TestSession::closeQueue(bsl::shared_ptr<bmqimp::Queue> queue,
     PVVV_SAFE("Closing: Wait close queue result");
     verifyCloseQueueResult(bmqp_ctrlmsg::StatusCategory::E_SUCCESS, queue);
 }
+// NOLINTEND(performance-avoid-endl)
 
+// NOLINTBEGIN(performance-unnecessary-value-param)
 void TestSession::closeDeconfiguredQueue(bsl::shared_ptr<bmqimp::Queue> queue,
                                          const bsls::TimeInterval& timeout)
+// NOLINTEND(performance-unnecessary-value-param)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     BMQTST_ASSERT(queue);
     BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_CLOSING_CLS);
@@ -1114,6 +1182,7 @@ void TestSession::closeDeconfiguredQueue(bsl::shared_ptr<bmqimp::Queue> queue,
     BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_CLOSED);
     BMQTST_ASSERT_EQ(queue->isValid(), false);
 }
+// NOLINTEND(performance-avoid-endl)
 
 void TestSession::configureQueueSync(bsl::shared_ptr<bmqimp::Queue>& queue,
                                      const bmqt::QueueOptions&       options,
@@ -1130,9 +1199,12 @@ void TestSession::configureQueueSync(bsl::shared_ptr<bmqimp::Queue>& queue,
     // This uses 'd_eventQueue' for 'configureQueueSync' result
 }
 
+// NOLINTBEGIN(performance-unnecessary-value-param)
 bmqp_ctrlmsg::ControlMessage
 TestSession::openQueueFirstStep(bsl::shared_ptr<bmqimp::Queue> queue,
                                 const bsls::TimeInterval&      timeout)
+// NOLINTEND(performance-unnecessary-value-param)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_CLOSED);
     BMQTST_ASSERT_EQ(queue->isValid(), false);
@@ -1153,10 +1225,14 @@ TestSession::openQueueFirstStep(bsl::shared_ptr<bmqimp::Queue> queue,
 
     return currentRequest;
 }
+// NOLINTEND(performance-avoid-endl)
 
+// NOLINTBEGIN(performance-unnecessary-value-param)
 bmqp_ctrlmsg::ControlMessage
 TestSession::openQueueFirstStepExpired(bsl::shared_ptr<bmqimp::Queue> queue,
                                        const bsls::TimeInterval&      timeout)
+// NOLINTEND(performance-unnecessary-value-param)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqp_ctrlmsg::ControlMessage currentRequest(
         bmqtst::TestHelperUtil::allocator());
@@ -1183,9 +1259,12 @@ TestSession::openQueueFirstStepExpired(bsl::shared_ptr<bmqimp::Queue> queue,
 
     return currentRequest;
 }
+// NOLINTEND(performance-avoid-endl)
 
+// NOLINTBEGIN(performance-unnecessary-value-param)
 bmqp_ctrlmsg::ControlMessage
 TestSession::reopenQueueFirstStep(bsl::shared_ptr<bmqimp::Queue> queue)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_OPENED);
     BMQTST_ASSERT(queue->isValid());
@@ -1214,11 +1293,18 @@ TestSession::reopenQueueFirstStep(bsl::shared_ptr<bmqimp::Queue> queue)
 
     return currentRequest;
 }
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(performance-unnecessary-value-param)
 
+// NOLINTBEGIN(performance-unnecessary-value-param)
 void TestSession::closeQueueSecondStep(
     bsl::shared_ptr<bmqimp::Queue>      queue,
     const bmqp_ctrlmsg::ControlMessage& closeRequest,
     bool                                waitCloseEvent)
+// NOLINTEND(performance-unnecessary-value-param)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     BMQTST_ASSERT(closeRequest.choice().isCloseQueueValue());
     BMQTST_ASSERT_EQ(queue->state(), bmqimp::QueueState::e_CLOSING_CLS);
@@ -1236,10 +1322,14 @@ void TestSession::closeQueueSecondStep(
     BMQTST_ASSERT(waitForQueueState(queue, bmqimp::QueueState::e_CLOSED));
     BMQTST_ASSERT_EQ(queue->isValid(), false);
 }
+// NOLINTEND(performance-avoid-endl)
 
+// NOLINTBEGIN(performance-unnecessary-value-param)
 bmqp_ctrlmsg::ControlMessage
 TestSession::closeQueueSecondStepExpired(bsl::shared_ptr<bmqimp::Queue> queue,
                                          const bsls::TimeInterval& timeout)
+// NOLINTEND(performance-unnecessary-value-param)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqp_ctrlmsg::ControlMessage currentRequest(
         bmqtst::TestHelperUtil::allocator());
@@ -1274,11 +1364,14 @@ TestSession::closeQueueSecondStepExpired(bsl::shared_ptr<bmqimp::Queue> queue,
 
     return currentRequest;
 }
+// NOLINTEND(performance-avoid-endl)
 
+// NOLINTBEGIN(performance-unnecessary-value-param)
 bmqp_ctrlmsg::ControlMessage
 TestSession::arriveAtStepWithCfgs(bsl::shared_ptr<bmqimp::Queue> queue,
                                   const QueueTestStep            step,
                                   const bsls::TimeInterval&      timeout)
+// NOLINTEND(performance-unnecessary-value-param)
 {
     BSLS_ASSERT_OPT(bmqt::QueueFlagsUtil::isReader(queue->flags()));
 
@@ -1286,6 +1379,7 @@ TestSession::arriveAtStepWithCfgs(bsl::shared_ptr<bmqimp::Queue> queue,
         bmqtst::TestHelperUtil::allocator());
     int currentStep = e_OPEN_OPENING;
 
+    // NOLINTBEGIN(performance-avoid-endl)
     while (currentStep <= step) {
         switch (currentStep) {
         case e_OPEN_OPENING: {
@@ -1432,18 +1526,22 @@ TestSession::arriveAtStepWithCfgs(bsl::shared_ptr<bmqimp::Queue> queue,
 
         ++currentStep;
     }
+    // NOLINTEND(performance-avoid-endl)
     return currentRequest;
 }
 
+// NOLINTBEGIN(performance-unnecessary-value-param)
 bmqp_ctrlmsg::ControlMessage
 TestSession::arriveAtStepWithoutCfgs(bsl::shared_ptr<bmqimp::Queue> queue,
                                      const QueueTestStep            step,
                                      const bsls::TimeInterval&      timeout)
+// NOLINTEND(performance-unnecessary-value-param)
 {
     bmqp_ctrlmsg::ControlMessage currentRequest(
         bmqtst::TestHelperUtil::allocator());
     int currentStep = e_OPEN_OPENING;
 
+    // NOLINTBEGIN(performance-avoid-endl)
     while (currentStep <= step) {
         switch (currentStep) {
         case e_OPEN_OPENING: {
@@ -1541,15 +1639,18 @@ TestSession::arriveAtStepWithoutCfgs(bsl::shared_ptr<bmqimp::Queue> queue,
 
         ++currentStep;
     }
+    // NOLINTEND(performance-avoid-endl)
 
     return currentRequest;
 }
 
+// NOLINTBEGIN(performance-unnecessary-value-param)
 bmqp_ctrlmsg::ControlMessage
 TestSession::arriveAtStep(bsl::shared_ptr<bmqimp::Queue> queue,
                           const QueueTestStep            step,
                           const bsls::TimeInterval&      timeout,
                           const bool                     skipReaderCfgs)
+// NOLINTEND(performance-unnecessary-value-param)
 {
     if (queue->state() == bmqimp::QueueState::e_OPENED) {
         closeQueue(queue);
@@ -1562,10 +1663,12 @@ TestSession::arriveAtStep(bsl::shared_ptr<bmqimp::Queue> queue,
     return arriveAtStepWithoutCfgs(queue, step, timeout);
 }
 
+// NOLINTBEGIN(performance-unnecessary-value-param)
 void TestSession::arriveAtLateResponseStep(
     bsl::shared_ptr<bmqimp::Queue> queue,
     const LateResponseTestStep     step,
     const bsls::TimeInterval&      timeout)
+// NOLINTEND(performance-unnecessary-value-param)
 {
     if (bmqt::QueueFlagsUtil::isReader(queue->flags())) {
         return arriveAtLateResponseStepReader(queue, step, timeout);  // RETURN
@@ -1574,15 +1677,18 @@ void TestSession::arriveAtLateResponseStep(
     return arriveAtLateResponseStepWriter(queue, step, timeout);
 }
 
+// NOLINTBEGIN(performance-unnecessary-value-param)
 void TestSession::arriveAtLateResponseStepReader(
     bsl::shared_ptr<bmqimp::Queue> queue,
     const LateResponseTestStep     step,
     const bsls::TimeInterval&      timeout)
+// NOLINTEND(performance-unnecessary-value-param)
 {
     bmqp_ctrlmsg::ControlMessage currentRequest(
         bmqtst::TestHelperUtil::allocator());
     int currentStep = e_LATE_OPEN_OPENING;
 
+    // NOLINTBEGIN(performance-avoid-endl)
     while (currentStep <= step) {
         switch (currentStep) {
         case e_LATE_OPEN_OPENING: {
@@ -1669,12 +1775,15 @@ void TestSession::arriveAtLateResponseStepReader(
 
         ++currentStep;
     }
+    // NOLINTEND(performance-avoid-endl)
 }
 
+// NOLINTBEGIN(performance-unnecessary-value-param)
 void TestSession::arriveAtLateResponseStepWriter(
     bsl::shared_ptr<bmqimp::Queue> queue,
     const LateResponseTestStep     step,
     const bsls::TimeInterval&      timeout)
+// NOLINTEND(performance-unnecessary-value-param)
 {
     bmqp_ctrlmsg::ControlMessage currentRequest(
         bmqtst::TestHelperUtil::allocator());
@@ -1743,9 +1852,11 @@ TestSession::createQueueOnStep(const QueueTestStep       step,
 {
     bmqt::QueueOptions queueOptions;
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bsl::shared_ptr<bmqimp::Queue> pQueue = createQueue(k_URI,
                                                         queueFlags,
                                                         queueOptions);
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     arriveAtStep(pQueue, step, timeout);
 
     return pQueue;
@@ -1758,25 +1869,30 @@ TestSession::createQueueOnStep(const LateResponseTestStep step,
 {
     bmqt::QueueOptions queueOptions;
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bsl::shared_ptr<bmqimp::Queue> pQueue = createQueue(k_URI,
                                                         queueFlags,
                                                         queueOptions);
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     arriveAtLateResponseStep(pQueue, step, timeout);
 
     return pQueue;
 }
 
 bool TestSession::waitForChannelClose(const bsls::TimeInterval& timeout)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     PVVV_SAFE("Waiting for channel close");
 
     // Wait for the close to be called on the base channel
     const bsls::TimeInterval expireAfter =
         bsls::SystemTime::nowRealtimeClock() + timeout;
+    // NOLINTBEGIN(*-narrowing-conversions)
     while (0 == d_testChannel.numCloseCalls() &&
            bsls::SystemTime::nowRealtimeClock() < expireAfter) {
         bslmt::ThreadUtil::microSleep(k_TIME_SOURCE_STEP.totalMicroseconds());
     }
+    // NOLINTEND(*-narrowing-conversions)
 
     if (0 == d_testChannel.numCloseCalls()) {
         return false;  // RETURN
@@ -1790,44 +1906,54 @@ bool TestSession::waitForChannelClose(const bsls::TimeInterval& timeout)
 
     return true;
 }
+// NOLINTEND(performance-avoid-endl)
 
 bool TestSession::waitForQueueState(
     const bsl::shared_ptr<bmqimp::Queue>& queue,
     const bmqimp::QueueState::Enum        state,
     const bsls::TimeInterval&             timeout)
 
+// NOLINTBEGIN(performance-avoid-endl)
 {
     PVVV_SAFE("Waiting the queue in state " << state);
 
     const bsls::TimeInterval expireAfter =
         bsls::SystemTime::nowRealtimeClock() + timeout;
+    // NOLINTBEGIN(*-narrowing-conversions)
     while (queue->state() != state &&
            bsls::SystemTime::nowRealtimeClock() < expireAfter) {
         bslmt::ThreadUtil::microSleep(k_TIME_SOURCE_STEP.totalMicroseconds());
     }
+    // NOLINTEND(*-narrowing-conversions)
 
     return queue->state() == state;
 }
+// NOLINTEND(performance-avoid-endl)
 
 bool TestSession::waitForQueueRemoved(
     const bsl::shared_ptr<bmqimp::Queue>& queue,
     const bsls::TimeInterval&             timeout)
 
+// NOLINTBEGIN(performance-avoid-endl)
 {
     PVVV_SAFE("Waiting the queue is closed and removed");
 
     const bsls::TimeInterval expireAfter =
         bsls::SystemTime::nowRealtimeClock() + timeout;
+    // NOLINTBEGIN(*-narrowing-conversions)
     while (session().lookupQueue(queue->uri()) != 0 &&
            bsls::SystemTime::nowRealtimeClock() < expireAfter) {
         bslmt::ThreadUtil::microSleep(k_TIME_SOURCE_STEP.totalMicroseconds());
     }
+    // NOLINTEND(*-narrowing-conversions)
 
     return (queue->state() == bmqimp::QueueState::e_CLOSED) &&
            (session().lookupQueue(queue->uri()) == 0);
 }
+// NOLINTEND(performance-avoid-endl)
 
 void TestSession::stopGracefully(bool waitForDisconnected)
+// NOLINTBEGIN(bugprone-unchecked-optional-access,performance-avoid-endl)
 {
     PVVV_SAFE("Stopping session...");
     session().stopAsync();
@@ -1859,6 +1985,7 @@ void TestSession::stopGracefully(bool waitForDisconnected)
 
     PVVV_SAFE("Session stopped...");
 }
+// NOLINTEND(bugprone-unchecked-optional-access,performance-avoid-endl)
 
 void TestSession::setChannel()
 {
@@ -1868,71 +1995,90 @@ void TestSession::setChannel()
 }
 
 bool TestSession::waitConnectedEvent()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     PVVV_SAFE("Waiting CONNECTED event...");
     return verifyOperationResult(bmqt::SessionEventType::e_CONNECTED,
                                  bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
 }
+// NOLINTEND(performance-avoid-endl)
 
 bool TestSession::waitReconnectedEvent()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     PVVV_SAFE("Waiting RECONNECTED event...");
     return verifyOperationResult(bmqt::SessionEventType::e_RECONNECTED,
                                  bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
 }
+// NOLINTEND(performance-avoid-endl)
 
 bool TestSession::waitStateRestoredEvent()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     PVVV_SAFE("Waiting STATE_RESTORED event...");
     return verifyOperationResult(bmqt::SessionEventType::e_STATE_RESTORED,
                                  bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
 }
+// NOLINTEND(performance-avoid-endl)
 
 bool TestSession::waitDisconnectedEvent()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     PVVV_SAFE("Waiting DISCONNECTED event...");
 
     return verifyOperationResult(bmqt::SessionEventType::e_DISCONNECTED,
                                  bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
 }
+// NOLINTEND(performance-avoid-endl)
 
 bool TestSession::waitConnectionLostEvent()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     PVVV_SAFE("Waiting CONNECTION_LOST event...");
     return verifyOperationResult(bmqt::SessionEventType::e_CONNECTION_LOST,
                                  bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
 }
+// NOLINTEND(performance-avoid-endl)
 
 bool TestSession::waitHostUnhealthyEvent()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     PVVV_SAFE("Waiting HOST_UNHEALTHY event...");
     return verifyOperationResult(bmqt::SessionEventType::e_HOST_UNHEALTHY,
                                  bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
 }
+// NOLINTEND(performance-avoid-endl)
 
 bool TestSession::waitQueueSuspendedEvent(bmqt::GenericResult::Enum status)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     PVVV_SAFE("Waiting QUEUE_SUSPENDED event...");
     return verifyOperationResult(bmqt::SessionEventType::e_QUEUE_SUSPENDED,
                                  status);
 }
+// NOLINTEND(performance-avoid-endl)
 
 bool TestSession::waitQueueResumedEvent(bmqt::GenericResult::Enum status)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     PVVV_SAFE("Waiting QUEUE_RESUMED event...");
     return verifyOperationResult(bmqt::SessionEventType::e_QUEUE_RESUMED,
                                  status);
 }
+// NOLINTEND(performance-avoid-endl)
 
 bool TestSession::waitHostHealthRestoredEvent()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     PVVV_SAFE("Waiting HOST_HEALTH_RESTORED event...");
     return verifyOperationResult(
         bmqt::SessionEventType::e_HOST_HEALTH_RESTORED,
         bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
 }
+// NOLINTEND(performance-avoid-endl)
 
 bsl::shared_ptr<bmqimp::Event> TestSession::waitAckEvent()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     PVVV_SAFE("Waiting ACK event...");
     bsl::shared_ptr<bmqimp::Event> event = getInboundEvent();
@@ -1947,8 +2093,10 @@ bsl::shared_ptr<bmqimp::Event> TestSession::waitAckEvent()
 
     return event;
 }
+// NOLINTEND(performance-avoid-endl)
 
 bool TestSession::checkNoEvent()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bsl::shared_ptr<bmqimp::Event> event;
     if (d_eventQueue.tryPopFront(&event) == 0) {
@@ -1957,6 +2105,7 @@ bool TestSession::checkNoEvent()
 
     return event == 0;
 }
+// NOLINTEND(performance-avoid-endl)
 
 bool TestSession::isChannelEmpty()
 {
@@ -1994,6 +2143,7 @@ void TestSession::getOutboundControlMessage(
 
 void TestSession::sendControlMessage(
     const bmqp_ctrlmsg::ControlMessage& message)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqp::SchemaEventBuilder builder(d_blobSpPool_sp.get(),
                                      bmqp::EncodingType::e_BER,
@@ -2004,6 +2154,7 @@ void TestSession::sendControlMessage(
     PVVV_SAFE("Send control message");
     d_brokerSession.processPacket(builder.blob());
 }
+// NOLINTEND(performance-avoid-endl)
 
 void TestSession::sendResponse(const bmqp_ctrlmsg::ControlMessage& request)
 {
@@ -2041,6 +2192,7 @@ void TestSession::sendStatus(const bmqp_ctrlmsg::ControlMessage& request)
 
 bmqp_ctrlmsg::ControlMessage
 TestSession::getNextOutboundRequest(const RequestType requestType)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqp_ctrlmsg::ControlMessage controlMessage(
         bmqtst::TestHelperUtil::allocator());
@@ -2070,11 +2222,14 @@ TestSession::getNextOutboundRequest(const RequestType requestType)
     }
     return controlMessage;
 }
+// NOLINTEND(performance-avoid-endl)
 
 int TestSession::verifyRequestSent(const RequestType requestType)
+// NOLINTBEGIN(bugprone-unchecked-optional-access)
 {
     return getNextOutboundRequest(requestType).rId().value();
 }
+// NOLINTEND(bugprone-unchecked-optional-access)
 
 bmqp_ctrlmsg::ControlMessage TestSession::verifyCloseRequestSent(bool isFinal)
 {
@@ -2089,6 +2244,7 @@ bmqp_ctrlmsg::ControlMessage TestSession::verifyCloseRequestSent(bool isFinal)
 bool TestSession::verifyOperationStatus(
     const bmqt::SessionEventType::Enum eventType,
     int                                eventStatus)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bsl::shared_ptr<bmqimp::Event> event = getInboundEvent();
 
@@ -2110,10 +2266,12 @@ bool TestSession::verifyOperationStatus(
 
     return true;
 }
+// NOLINTEND(performance-avoid-endl)
 
 bool TestSession::verifyOperationResult(
     const bmqt::SessionEventType::Enum eventType,
     bmqt::GenericResult::Enum          eventResult)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bsl::shared_ptr<bmqimp::Event> event = getInboundEvent();
 
@@ -2135,6 +2293,7 @@ bool TestSession::verifyOperationResult(
 
     return true;
 }
+// NOLINTEND(performance-avoid-endl)
 
 bool TestSession::verifyOperationResult(
     const bmqt::SessionEventType::Enum  eventType,
@@ -2167,21 +2326,26 @@ void TestSession::verifyOpenQueueErrorResult(
 }
 
 void TestSession::onChannelClose(const bmqio::Status& status)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     PVVV_SAFE("onChannelClose: [" << status << "] Resetting the channel");
     session().setChannel(bsl::shared_ptr<bmqio::Channel>());
 }
+// NOLINTEND(performance-avoid-endl)
 
 bool TestSession::verifySessionIsStopped()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     PVVV_SAFE("Verifying that the session is stopped");
 
     return d_brokerSession.state() == bmqimp::BrokerSession::State::e_STOPPED;
 }
+// NOLINTEND(performance-avoid-endl)
 
 int TestSession::stateCb(bmqimp::BrokerSession::State::Enum    oldState,
                          bmqimp::BrokerSession::State::Enum    newState,
                          bmqimp::BrokerSession::FsmEvent::Enum event)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     PVVV_SAFE("stateCb: " << oldState << " -> " << newState << " on "
                           << event);
@@ -2195,6 +2359,7 @@ int TestSession::stateCb(bmqimp::BrokerSession::State::Enum    oldState,
 
     return 0;
 }
+// NOLINTEND(performance-avoid-endl)
 
 void TestSession::verifyCloseQueueResult(
     const bmqp_ctrlmsg::StatusCategory::Value status,
@@ -2236,6 +2401,7 @@ void TestSession::clearWriteCalls()
 }
 
 static void test_disconnectRequestErr(bmqio::StatusCategory::Enum category)
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqt::SessionOptions  sessionOptions;
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
@@ -2265,6 +2431,7 @@ static void test_disconnectRequestErr(bmqio::StatusCategory::Enum category)
 
     BMQTST_ASSERT(obj.verifySessionIsStopped());
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 struct AsyncCancelTestData {
     int                          d_line;
@@ -2288,19 +2455,24 @@ class DTTestContext : public bmqpi::DTContext {
     bsl::shared_ptr<bmqpi::DTSpan> d_currentSpan_sp;
     bslma::Allocator*              d_allocator_p;
 
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     class ScopeToken {
         DTTestContext&               d_context;
         bsl::weak_ptr<bmqpi::DTSpan> d_previousSpan_wp;
 
       public:
+        // NOLINTBEGIN(performance-unnecessary-value-param)
         ScopeToken(DTTestContext&                 context,
                    bsl::shared_ptr<bmqpi::DTSpan> previousSpan,
                    bsl::shared_ptr<bmqpi::DTSpan> newSpan)
         : d_context(context)
         , d_previousSpan_wp(previousSpan)
+        // NOLINTBEGIN(performance-unnecessary-value-param)
         {
             d_context.d_currentSpan_sp = newSpan;
         }
+        // NOLINTEND(performance-unnecessary-value-param)
+        // NOLINTEND(performance-unnecessary-value-param)
 
         ~ScopeToken()
         {
@@ -2308,6 +2480,7 @@ class DTTestContext : public bmqpi::DTContext {
             d_context.d_currentSpan_sp = d_previousSpan_wp.lock();
         }
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
   public:
     DTTestContext(bslma::Allocator* allocator_p)
@@ -2336,6 +2509,7 @@ class DTTestContext : public bmqpi::DTContext {
     }
 };
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class DTTestSpan : public bmqpi::DTSpan {
     bsl::string                d_operation;
     bdlcc::Deque<bsl::string>* d_eventsQueue_p;
@@ -2378,6 +2552,7 @@ class DTTestSpan : public bmqpi::DTSpan {
         return d_operation;
     }
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 class DTTestTracer : public bmqpi::DTTracer {
     bdlcc::Deque<bsl::string>* d_eventsQueue_p;
@@ -2422,6 +2597,7 @@ class DTTestTracer : public bmqpi::DTTracer {
 // ----------------------------------------------------------------------------
 
 static void test1_breathingTest()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
@@ -2429,9 +2605,11 @@ static void test1_breathingTest()
                                     bmqtst::TestHelperUtil::allocator());
     scheduler.start();
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory blobBufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &blobBufferFactory,
@@ -2478,6 +2656,7 @@ static void test1_breathingTest()
     scheduler.cancelAllEventsAndWait();
     scheduler.stop();
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test2_basicAccessorsTest()
 // ------------------------------------------------------------------------
@@ -2497,12 +2676,15 @@ static void test2_basicAccessorsTest()
 {
     bmqtst::TestHelper::printTestName("BASIC ACCESSORS");
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bmqt::Uri                 uri(k_URI, bmqtst::TestHelperUtil::allocator());
     const bmqp::QueueId       k_QUEUE_ID(0, 0);
     const bmqt::CorrelationId corrId(bmqt::CorrelationId::autoValue());
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory blobBufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &blobBufferFactory,
@@ -2548,13 +2730,16 @@ static void test3_nullChannelTest()
 // Testing manipulators:
 //   - setChannel
 //   ----------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("NULL CHANNEL");
 
-    const int                      k_NUM_EVENTS = 3;
+    const int k_NUM_EVENTS = 3;
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory blobBufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &blobBufferFactory,
@@ -2628,6 +2813,7 @@ static void test3_nullChannelTest()
     BMQTST_ASSERT_EQ(startCounter, 1);
     BMQTST_ASSERT_EQ(stopCounter, 3);
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 static void test4_createEventTest()
 // ------------------------------------------------------------------------
@@ -2652,9 +2838,11 @@ static void test4_createEventTest()
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
                                     bmqtst::TestHelperUtil::allocator());
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory blobBufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &blobBufferFactory,
@@ -2678,13 +2866,17 @@ static void test4_createEventTest()
 }
 
 static void queueErrorsTest(bsls::Types::Uint64 queueFlags)
+// NOLINTBEGIN(performance-avoid-endl)
 {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bmqt::Uri                 uri(k_URI, bmqtst::TestHelperUtil::allocator());
     const bsls::TimeInterval& timeout = bsls::TimeInterval();
     bsl::shared_ptr<bmqimp::Queue> pQueue;
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory blobBufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &blobBufferFactory,
@@ -2846,6 +3038,7 @@ static void queueErrorsTest(bsls::Types::Uint64 queueFlags)
     scheduler.cancelAllEventsAndWait();
     scheduler.stop();
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test5_queueErrorsTest()
 // ------------------------------------------------------------------------
@@ -2869,6 +3062,7 @@ static void test5_queueErrorsTest()
 //   - closeQueue
 //   - closeQueueAsync
 //   ----------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("QUEUE ERRORS TEST");
 
@@ -2885,6 +3079,7 @@ static void test5_queueErrorsTest()
     PVV_SAFE("Check READER and WRITER");
     queueErrorsTest(flags);
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test6_setChannelTest()
 // ------------------------------------------------------------------------
@@ -2910,6 +3105,7 @@ static void test6_setChannelTest()
 // Testing manipulators:
 //   - setChannel
 //   ----------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("SET CHANNEL");
 
@@ -2921,11 +3117,13 @@ static void test6_setChannelTest()
     // - RECONNECTED
     // - STATE_RESTORED
     // - CONNECTION_LOST
-    const int                      k_NUM_CALLS  = 4;
-    const int                      k_NUM_EVENTS = 2 + 3 * (k_NUM_CALLS - 1);
+    const int k_NUM_CALLS  = 4;
+    const int k_NUM_EVENTS = 2 + 3 * (k_NUM_CALLS - 1);
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory blobBufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &blobBufferFactory,
@@ -2982,8 +3180,10 @@ static void test6_setChannelTest()
     // Expect one more event - DISCONNECTED
     BMQTST_ASSERT_EQ(eventCounter, k_NUM_EVENTS + 1);
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void queueOpenTimeoutTest(bsls::Types::Uint64 queueFlags)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     const bsls::TimeInterval timeout = bsls::TimeInterval(15);
     bmqt::SessionOptions     sessionOptions;
@@ -2998,9 +3198,11 @@ static void queueOpenTimeoutTest(bsls::Types::Uint64 queueFlags)
                     testClock,
                     bmqtst::TestHelperUtil::allocator());
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bsl::shared_ptr<bmqimp::Queue> pQueue = obj.createQueue(k_URI,
                                                             queueFlags,
                                                             queueOptions);
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
     PVV_SAFE("Step 1. Starting session...");
     obj.startAndConnect();
@@ -3095,6 +3297,7 @@ static void queueOpenTimeoutTest(bsls::Types::Uint64 queueFlags)
     PVV_SAFE("Step 12. Stop the session");
     obj.stopGracefully();
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test7_queueOpenTimeoutTest()
 // ------------------------------------------------------------------------
@@ -3116,6 +3319,7 @@ static void test7_queueOpenTimeoutTest()
 //   - openQueue
 //   - openQueueAsync
 //   ----------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("QUEUE OPEN TIMEOUT TEST");
 
@@ -3132,6 +3336,7 @@ static void test7_queueOpenTimeoutTest()
     PVV_SAFE("Check READER and WRITER");
     queueOpenTimeoutTest(flags);
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test8_queueWriterConfigureTest()
 // ------------------------------------------------------------------------
@@ -3143,6 +3348,7 @@ static void test8_queueWriterConfigureTest()
 //   2. Check that configureSync does not dead-lock after stop
 //
 //   ----------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("QUEUE WRITER CONFIGURE TEST");
 
@@ -3158,6 +3364,7 @@ static void test8_queueWriterConfigureTest()
                     bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Queue> pQueue =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         obj.createQueue(k_URI, bmqt::QueueFlags::e_WRITE);
 
     (*pQueue).setState(bmqimp::QueueState::e_OPENED);
@@ -3231,8 +3438,10 @@ static void test8_queueWriterConfigureTest()
     // Now really stop
     obj.stopGracefully();
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void queueOpenErrorTest(bsls::Types::Uint64 queueFlags)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("QUEUE OPEN ERROR TEST");
 
@@ -3248,9 +3457,11 @@ static void queueOpenErrorTest(bsls::Types::Uint64 queueFlags)
                     scheduler,
                     bmqtst::TestHelperUtil::allocator());
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bsl::shared_ptr<bmqimp::Queue> pQueue = obj.createQueue(k_URI,
                                                             queueFlags,
                                                             queueOptions);
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
     PVV_SAFE("Step 1. Starting session...");
     obj.startAndConnect();
@@ -3337,6 +3548,7 @@ static void queueOpenErrorTest(bsls::Types::Uint64 queueFlags)
     PVV_SAFE("Step 15. Stop the session");
     obj.stopGracefully();
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test9_queueOpenErrorTest()
 // ------------------------------------------------------------------------
@@ -3357,6 +3569,7 @@ static void test9_queueOpenErrorTest()
 // Testing manipulators:
 //   - openQueueAsync
 //   ----------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("QUEUE OPEN ERROR TEST");
 
@@ -3373,8 +3586,10 @@ static void test9_queueOpenErrorTest()
     PVV_SAFE("Check READER and WRITER");
     queueOpenErrorTest(flags);
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void queueOpenCloseAsync(bsls::Types::Uint64 queueFlags)
+// NOLINTBEGIN(bugprone-unchecked-optional-access,cppcoreguidelines-init-variables,performance-avoid-endl)
 {
     const bsls::TimeInterval timeout = bsls::TimeInterval(15);
     bmqt::SessionOptions     sessionOptions;
@@ -3388,9 +3603,11 @@ static void queueOpenCloseAsync(bsls::Types::Uint64 queueFlags)
                     scheduler,
                     bmqtst::TestHelperUtil::allocator());
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bsl::shared_ptr<bmqimp::Queue> pQueue = obj.createQueue(k_URI,
                                                             queueFlags,
                                                             queueOptions);
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
     PVV_SAFE("Start the session");
     obj.startAndConnect();
@@ -3517,6 +3734,7 @@ static void queueOpenCloseAsync(bsls::Types::Uint64 queueFlags)
 
     obj.stopGracefully();
 }
+// NOLINTEND(bugprone-unchecked-optional-access,cppcoreguidelines-init-variables,performance-avoid-endl)
 
 static void test10_queueOpenCloseAsync()
 // ------------------------------------------------------------------------
@@ -3552,6 +3770,7 @@ static void test10_queueOpenCloseAsync()
 //   - closeQueueAsync
 //   - stop
 //   ----------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("ASYNC OPEN/CLOSE QUEUE TEST");
 
@@ -3568,6 +3787,7 @@ static void test10_queueOpenCloseAsync()
     PVV_SAFE("Check READER and WRITER");
     queueOpenCloseAsync(flags);
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test11_disconnect()
 // ------------------------------------------------------------------------
@@ -3595,14 +3815,17 @@ static void test11_disconnect()
 //   - setChannel
 //   - stop
 //   ----------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,bugprone-unchecked-optional-access,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("DISCONNECT");
 
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
                                     bmqtst::TestHelperUtil::allocator());
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory blobBufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &blobBufferFactory,
@@ -3818,6 +4041,7 @@ static void test11_disconnect()
         PVV_SAFE("Verify the user receives a DISCONNECTED event");
         // Since we are using next event, we should 'infinitely' pop out
         // 'disconnected' events now.
+        // NOLINTBEGIN(*-magic-numbers)
         for (int i = 0; i < 5; ++i) {
             event = obj.nextEvent(bsls::TimeInterval(5));
             BMQTST_ASSERT(event);
@@ -3825,6 +4049,7 @@ static void test11_disconnect()
             BMQTST_ASSERT_EQ(event->sessionEventType(),
                              bmqt::SessionEventType::e_DISCONNECTED);
         }
+        // NOLINTEND(*-magic-numbers)
 
         BMQTST_ASSERT_EQ(startCounter, 2);
         // Ensure stateCb was called
@@ -3834,6 +4059,7 @@ static void test11_disconnect()
     scheduler.cancelAllEventsAndWait();
     scheduler.stop();
 }
+// NOLINTEND(*-magic-numbers,bugprone-unchecked-optional-access,performance-avoid-endl)
 
 static void test12_disconnectStatus()
 // ------------------------------------------------------------------------
@@ -3858,6 +4084,7 @@ static void test12_disconnectStatus()
 //   - setChannel
 //   - stop
 //   ----------------------------------------------------------------------
+// NOLINTBEGIN(bugprone-unchecked-optional-access,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("DISCONNECT STATUS MESSAGE");
 
@@ -3900,6 +4127,7 @@ static void test12_disconnectStatus()
 
     BMQTST_ASSERT(obj.verifySessionIsStopped());
 }
+// NOLINTEND(bugprone-unchecked-optional-access,performance-avoid-endl)
 
 static void test13_disconnectTimeout()
 // ------------------------------------------------------------------------
@@ -3924,6 +4152,7 @@ static void test13_disconnectTimeout()
 //   - setChannel
 //   - stop
 //   ----------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("DISCONNECT TIMEOUT");
 
@@ -3958,6 +4187,7 @@ static void test13_disconnectTimeout()
 
     BMQTST_ASSERT(obj.verifySessionIsStopped());
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test14_disconnectRequestGenericErr()
 // ------------------------------------------------------------------------
@@ -4101,6 +4331,7 @@ static void test18_disconnectRequestLimit()
 }
 
 static void lateOpenQueueResponse(bsls::Types::Uint64 queueFlags)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("QUEUE LATE OPEN RESPONSE TEST");
 
@@ -4116,6 +4347,7 @@ static void lateOpenQueueResponse(bsls::Types::Uint64 queueFlags)
                     testClock,
                     bmqtst::TestHelperUtil::allocator());
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bsl::shared_ptr<bmqimp::Queue> pQueue = obj.createQueue(k_URI, queueFlags);
 
     PVV_SAFE("Step 1. Starting session...");
@@ -4161,6 +4393,7 @@ static void lateOpenQueueResponse(bsls::Types::Uint64 queueFlags)
     PVV_SAFE("Step 8. Stop the session");
     obj.stopGracefully();
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test19_queueOpen_LateOpenQueueResponse()
 // ------------------------------------------------------------------------
@@ -4182,6 +4415,7 @@ static void test19_queueOpen_LateOpenQueueResponse()
 // Testing manipulators:
 //   - openQueueAsync
 //   ----------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("QUEUE LATE OPEN RESPONSE TEST");
 
@@ -4198,6 +4432,7 @@ static void test19_queueOpen_LateOpenQueueResponse()
     PVV_SAFE("Check READER and WRITER");
     lateOpenQueueResponse(flags);
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test20_queueOpen_LateConfigureQueueResponse()
 // ------------------------------------------------------------------------
@@ -4219,9 +4454,11 @@ static void test20_queueOpen_LateConfigureQueueResponse()
 // Testing manipulators:
 //   - openQueueAsync
 //   ----------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("QUEUE LATE CONFIGURE RESPONSE TEST");
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bmqt::Uri                uri(k_URI, bmqtst::TestHelperUtil::allocator());
     const bsls::TimeInterval timeout = bsls::TimeInterval(15);
     bmqt::SessionOptions     sessionOptions;
@@ -4239,6 +4476,7 @@ static void test20_queueOpen_LateConfigureQueueResponse()
 
     // The test case is applicable only for the reader queue
     bsl::shared_ptr<bmqimp::Queue> pQueue =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         obj.createQueue(k_URI, bmqt::QueueFlags::e_READ);
 
     PVV_SAFE("Step 1. Starting session...");
@@ -4288,6 +4526,7 @@ static void test20_queueOpen_LateConfigureQueueResponse()
     PVV_SAFE("Step 10. Stop the session");
     obj.stopGracefully();
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test21_post_Limit()
 // ------------------------------------------------------------------------
@@ -4315,6 +4554,7 @@ static void test21_post_Limit()
 //   - openQueueAsync
 //   - post
 //-------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("POST CHANNEL LIMIT TEST");
 
@@ -4333,6 +4573,7 @@ static void test21_post_Limit()
                     bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Queue> pQueue =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         obj.createQueue(k_URI, bmqt::QueueFlags::e_WRITE, queueOptions);
 
     PVV_SAFE("Step 1. Starting session...");
@@ -4347,8 +4588,9 @@ static void test21_post_Limit()
     PVV_SAFE("Step 4. Create and post PUT message");
     bmqp::PutEventBuilder builder(&obj.blobSpPool(), obj.allocator());
 
-    const char* k_PAYLOAD     = "abcdefghijklmnopqrstuvwxyz";
-    const int   k_PAYLOAD_LEN = bsl::strlen(k_PAYLOAD);
+    const char* k_PAYLOAD = "abcdefghijklmnopqrstuvwxyz";
+    // NOLINTNEXTLINE(*-narrowing-conversions)
+    const int k_PAYLOAD_LEN = bsl::strlen(k_PAYLOAD);
 
     builder.startMessage();
     builder.setMessagePayload(k_PAYLOAD, k_PAYLOAD_LEN)
@@ -4430,6 +4672,7 @@ static void test21_post_Limit()
     PV_SAFE("Step 11. Stop the session");
     obj.stopGracefully();
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 static void test22_confirm_Limit()
 // ------------------------------------------------------------------------
@@ -4458,6 +4701,7 @@ static void test22_confirm_Limit()
 //   - openQueueAsync
 //   - confirmMessages
 //-------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("CONFIRM MESSAGES CHANNEL LIMIT TEST");
 
@@ -4476,6 +4720,7 @@ static void test22_confirm_Limit()
                     bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Queue> pQueue =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         obj.createQueue(k_URI, bmqt::QueueFlags::e_WRITE, queueOptions);
 
     PVV_SAFE("Step 1. Starting session...");
@@ -4490,9 +4735,11 @@ static void test22_confirm_Limit()
     PVV_SAFE("Step 4. Create the blob and confirm messages");
     bmqp::ConfirmEventBuilder builder(&obj.blobSpPool(), obj.allocator());
 
+    // NOLINTBEGIN(*-narrowing-conversions)
     int rc = builder.appendMessage(pQueue->id(),
                                    pQueue->subQueueId(),
                                    bmqt::MessageGUID());
+    // NOLINTEND(*-narrowing-conversions)
     BMQTST_ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
 
     rc = obj.session().confirmMessages(builder.blob());
@@ -4559,8 +4806,10 @@ static void test22_confirm_Limit()
     PV_SAFE("Step 10. Stop the session");
     obj.stopGracefully();
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 static void queueCloseSync(bsls::Types::Uint64 queueFlags)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("SYNC CLOSE QUEUE TEST");
 
@@ -4576,9 +4825,11 @@ static void queueCloseSync(bsls::Types::Uint64 queueFlags)
                     scheduler,
                     bmqtst::TestHelperUtil::allocator());
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bsl::shared_ptr<bmqimp::Queue> pQueue = obj.createQueue(k_URI,
                                                             queueFlags,
                                                             queueOptions);
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
     PVV_SAFE("Step 1. Start the session");
     obj.startAndConnect();
@@ -4619,6 +4870,7 @@ static void queueCloseSync(bsls::Types::Uint64 queueFlags)
 
     BMQTST_ASSERT_EQ(pQueue->isValid(), false);
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test23_queueCloseSync()
 // ------------------------------------------------------------------------
@@ -4642,6 +4894,7 @@ static void test23_queueCloseSync()
 //   - closeQueue
 //   - stop
 //   ----------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("SYNC CLOSE QUEUE TEST");
 
@@ -4658,6 +4911,7 @@ static void test23_queueCloseSync()
     PVV_SAFE("Check READER and WRITER");
     queueCloseSync(flags);
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void
 queueAsyncCanceled(int                          lineNum,
@@ -4670,6 +4924,7 @@ queueAsyncCanceled(int                          lineNum,
                    bool                     waitStateRestoredOnChannelDown,
                    bool                     waitStateRestoredOnDisconnect,
                    bmqimp::QueueState::Enum queueStateAfterDisconnect)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     const bsls::TimeInterval timeout = bsls::TimeInterval(15);
     bmqt::SessionOptions     sessionOptions;
@@ -4767,6 +5022,7 @@ queueAsyncCanceled(int                          lineNum,
     BMQTST_ASSERT(obj.waitForQueueState(pQueue, bmqimp::QueueState::e_CLOSED));
     BMQTST_ASSERT_EQ(pQueue->isValid(), false);
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void queueAsyncCanceled_OPEN_OPENING()
 {
@@ -4778,6 +5034,7 @@ static void queueAsyncCanceled_OPEN_OPENING()
     bmqt::QueueFlagsUtil::setReader(&k_READ_WRITE);
     bmqt::QueueFlagsUtil::setWriter(&k_READ_WRITE);
 
+    // NOLINTBEGIN(*-avoid-c-arrays)
     AsyncCancelTestData k_DATA[] = {
         {
             L_,
@@ -4819,10 +5076,13 @@ static void queueAsyncCanceled_OPEN_OPENING()
                                                 // down
         },
     };
+    // NOLINTEND(*-avoid-c-arrays)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const AsyncCancelTestData& test = k_DATA[idx];
 
         queueAsyncCanceled(test.d_line,
@@ -4848,6 +5108,7 @@ static void queueAsyncCanceled_OPEN_CONFIGURING()
     bmqt::QueueFlagsUtil::setReader(&k_READ_WRITE);
     bmqt::QueueFlagsUtil::setWriter(&k_READ_WRITE);
 
+    // NOLINTBEGIN(*-avoid-c-arrays)
     AsyncCancelTestData k_DATA[] = {
         {
             L_,
@@ -4888,10 +5149,13 @@ static void queueAsyncCanceled_OPEN_CONFIGURING()
                                                 // down
         },
     };
+    // NOLINTEND(*-avoid-c-arrays)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const AsyncCancelTestData& test = k_DATA[idx];
 
         queueAsyncCanceled(test.d_line,
@@ -4917,6 +5181,7 @@ static void queueAsyncCanceled_REOPEN_OPENING()
     bmqt::QueueFlagsUtil::setReader(&k_READ_WRITE);
     bmqt::QueueFlagsUtil::setWriter(&k_READ_WRITE);
 
+    // NOLINTBEGIN(*-avoid-c-arrays)
     AsyncCancelTestData k_DATA[] = {
         {
             L_,
@@ -4955,10 +5220,13 @@ static void queueAsyncCanceled_REOPEN_OPENING()
             bmqimp::QueueState::e_PENDING,  // queue state after channel down
         },
     };
+    // NOLINTEND(*-avoid-c-arrays)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const AsyncCancelTestData& test = k_DATA[idx];
 
         queueAsyncCanceled(test.d_line,
@@ -4984,6 +5252,7 @@ static void queueAsyncCanceled_REOPEN_CONFIGURING()
     bmqt::QueueFlagsUtil::setReader(&k_READ_WRITE);
     bmqt::QueueFlagsUtil::setWriter(&k_READ_WRITE);
 
+    // NOLINTBEGIN(*-avoid-c-arrays)
     AsyncCancelTestData k_DATA[] = {
         {
             L_,
@@ -5022,10 +5291,13 @@ static void queueAsyncCanceled_REOPEN_CONFIGURING()
             bmqimp::QueueState::e_PENDING,  // queue state after channel down
         },
     };
+    // NOLINTEND(*-avoid-c-arrays)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const AsyncCancelTestData& test = k_DATA[idx];
 
         queueAsyncCanceled(test.d_line,
@@ -5051,6 +5323,7 @@ static void queueAsyncCanceled_CONFIGURING()
     bmqt::QueueFlagsUtil::setReader(&k_READ_WRITE);
     bmqt::QueueFlagsUtil::setWriter(&k_READ_WRITE);
 
+    // NOLINTBEGIN(*-avoid-c-arrays)
     AsyncCancelTestData k_DATA[] = {
         {
             L_,
@@ -5089,10 +5362,13 @@ static void queueAsyncCanceled_CONFIGURING()
             bmqimp::QueueState::e_PENDING,  // queue state after channel down
         },
     };
+    // NOLINTEND(*-avoid-c-arrays)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const AsyncCancelTestData& test = k_DATA[idx];
 
         queueAsyncCanceled(test.d_line,
@@ -5118,6 +5394,7 @@ static void queueAsyncCanceled_CONFIGURING_RECONFIGURING()
     bmqt::QueueFlagsUtil::setReader(&k_READ_WRITE);
     bmqt::QueueFlagsUtil::setWriter(&k_READ_WRITE);
 
+    // NOLINTBEGIN(*-avoid-c-arrays)
     AsyncCancelTestData k_DATA[] = {
         {
             L_,
@@ -5156,10 +5433,13 @@ static void queueAsyncCanceled_CONFIGURING_RECONFIGURING()
             bmqimp::QueueState::e_PENDING,  // queue state after channel down
         },
     };
+    // NOLINTEND(*-avoid-c-arrays)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const AsyncCancelTestData& test = k_DATA[idx];
 
         queueAsyncCanceled(test.d_line,
@@ -5185,6 +5465,7 @@ static void queueAsyncCanceled_CLOSE_CONFIGURING()
     bmqt::QueueFlagsUtil::setReader(&k_READ_WRITE);
     bmqt::QueueFlagsUtil::setWriter(&k_READ_WRITE);
 
+    // NOLINTBEGIN(*-avoid-c-arrays)
     AsyncCancelTestData k_DATA[] = {
         {
             L_,
@@ -5223,10 +5504,13 @@ static void queueAsyncCanceled_CLOSE_CONFIGURING()
             bmqimp::QueueState::e_CLOSED,  // queue state after channel down
         },
     };
+    // NOLINTEND(*-avoid-c-arrays)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const AsyncCancelTestData& test = k_DATA[idx];
 
         queueAsyncCanceled(test.d_line,
@@ -5252,6 +5536,7 @@ static void queueAsyncCanceled_CLOSE_CLOSING()
     bmqt::QueueFlagsUtil::setReader(&k_READ_WRITE);
     bmqt::QueueFlagsUtil::setWriter(&k_READ_WRITE);
 
+    // NOLINTBEGIN(*-avoid-c-arrays)
     AsyncCancelTestData k_DATA[] = {
         {
             L_,
@@ -5290,10 +5575,13 @@ static void queueAsyncCanceled_CLOSE_CLOSING()
             bmqimp::QueueState::e_CLOSED,  // queue state after channel down
         },
     };
+    // NOLINTEND(*-avoid-c-arrays)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const AsyncCancelTestData& test = k_DATA[idx];
 
         queueAsyncCanceled(test.d_line,
@@ -5357,6 +5645,7 @@ static void test25_sessionFsmTable()
 //   - setChannel
 //   - onStartTimeout
 //   ----------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("SESSION FSM TRANSITION TABLE TEST");
 
@@ -5372,9 +5661,11 @@ static void test25_sessionFsmTable()
         monitor,
         bmqtst::TestHelperUtil::allocator());
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory blobBufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &blobBufferFactory,
@@ -5612,6 +5903,7 @@ static void test25_sessionFsmTable()
     scheduler.cancelAllEventsAndWait();
     scheduler.stop();
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test26_openCloseMultipleSubqueues()
 // ------------------------------------------------------------------------
@@ -5635,6 +5927,7 @@ static void test26_openCloseMultipleSubqueues()
 //   - closeQueueAsync
 //   - stop
 //   ----------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     const bsls::TimeInterval timeout = bsls::TimeInterval(15);
     bmqt::SessionOptions     sessionOptions;
@@ -5687,6 +5980,7 @@ static void test26_openCloseMultipleSubqueues()
     PVV_SAFE("Step 4. Stop the session");
     obj.stopGracefully();
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void
 queueLateAsyncCanceled(int                               testId,
@@ -5694,6 +5988,7 @@ queueLateAsyncCanceled(int                               testId,
                        TestSession::LateResponseTestStep step,
                        bmqimp::QueueState::Enum queueStateAfterDisconnect)
 
+// NOLINTBEGIN(performance-avoid-endl)
 {
     const bsls::TimeInterval timeout = bsls::TimeInterval(15);
     bmqt::SessionOptions     sessionOptions;
@@ -5767,6 +6062,7 @@ queueLateAsyncCanceled(int                               testId,
     BMQTST_ASSERT(obj.waitForQueueState(pQueue, bmqimp::QueueState::e_CLOSED));
     BMQTST_ASSERT_EQ(pQueue->isValid(), false);
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test28_queueLateAsyncCanceledReader1()
 // ------------------------------------------------------------------------
@@ -5884,6 +6180,7 @@ static void test30_queueLateAsyncCanceledHybrid1()
 }
 
 static void queueDoubleOpenUri(bsls::Types::Uint64 queueFlags)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     const bsls::TimeInterval timeout = bsls::TimeInterval(500);
     bmqt::SessionOptions     sessionOptions;
@@ -5897,12 +6194,16 @@ static void queueDoubleOpenUri(bsls::Types::Uint64 queueFlags)
                     scheduler,
                     bmqtst::TestHelperUtil::allocator());
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bsl::shared_ptr<bmqimp::Queue> pQueue1 = obj.createQueue(k_URI,
                                                              queueFlags,
                                                              queueOptions);
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bsl::shared_ptr<bmqimp::Queue> pQueue2 = obj.createQueue(k_URI,
                                                              queueFlags,
                                                              queueOptions);
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
     PVV_SAFE("Step 1. Start the session");
     obj.startAndConnect();
@@ -5928,6 +6229,7 @@ static void queueDoubleOpenUri(bsls::Types::Uint64 queueFlags)
     PVV_SAFE("Step 4. Stop the session");
     obj.stopGracefully();
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test31_queueDoubleOpenUri()
 // ------------------------------------------------------------------------
@@ -5949,6 +6251,7 @@ static void test31_queueDoubleOpenUri()
 //   - openQueue
 //   - stop
 //   ----------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("QUEUE DOUBLE OPEN URI TEST");
 
@@ -5965,8 +6268,10 @@ static void test31_queueDoubleOpenUri()
     PVV_SAFE("Check READER and WRITER");
     queueDoubleOpenUri(flags);
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void queueDoubleOpenCorrelationId(bsls::Types::Uint64 queueFlags)
+// NOLINTBEGIN(*-avoid-c-arrays,performance-avoid-endl)
 {
     const char k_URI1[] = "bmq://ts.trades.myapp/my.queue1?id=my.app";
     const char k_URI2[] = "bmq://ts.trades.myapp/my.queue2?id=my.app";
@@ -5984,12 +6289,16 @@ static void queueDoubleOpenCorrelationId(bsls::Types::Uint64 queueFlags)
                     scheduler,
                     bmqtst::TestHelperUtil::allocator());
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bsl::shared_ptr<bmqimp::Queue> pQueue1 = obj.createQueue(k_URI1,
                                                              queueFlags,
                                                              queueOptions);
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bsl::shared_ptr<bmqimp::Queue> pQueue2 = obj.createQueue(k_URI2,
                                                              queueFlags,
                                                              queueOptions);
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
     pQueue1->setCorrelationId(corId);
     pQueue2->setCorrelationId(corId);
@@ -6018,6 +6327,7 @@ static void queueDoubleOpenCorrelationId(bsls::Types::Uint64 queueFlags)
     PVV_SAFE("Step 4. Stop the session");
     obj.stopGracefully();
 }
+// NOLINTEND(*-avoid-c-arrays,performance-avoid-endl)
 
 static void test32_queueDoubleOpenCorrelationId()
 // ------------------------------------------------------------------------
@@ -6039,6 +6349,7 @@ static void test32_queueDoubleOpenCorrelationId()
 //   - openQueue
 //   - stop
 //   ----------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("QUEUE DOUBLE OPEN CORRELATION ID TEST");
 
@@ -6055,6 +6366,7 @@ static void test32_queueDoubleOpenCorrelationId()
     PVV_SAFE("Check READER and WRITER");
     queueDoubleOpenCorrelationId(flags);
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test33_queueNackTest()
 // ------------------------------------------------------------------------
@@ -6080,18 +6392,22 @@ static void test33_queueNackTest()
 //   - post
 //   - stop
 //   ----------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("QUEUE NACK TEST");
 
-    const char* k_PAYLOAD     = "abcdefghijklmnopqrstuvwxyz";
-    const int   k_PAYLOAD_LEN = bsl::strlen(k_PAYLOAD);
+    const char* k_PAYLOAD = "abcdefghijklmnopqrstuvwxyz";
+    // NOLINTNEXTLINE(*-narrowing-conversions)
+    const int k_PAYLOAD_LEN = bsl::strlen(k_PAYLOAD);
 
-    const bsls::TimeInterval       timeout = bsls::TimeInterval(5);
-    bmqt::SessionOptions           sessionOptions;
-    bmqt::QueueOptions             queueOptions;
+    const bsls::TimeInterval timeout = bsls::TimeInterval(5);
+    bmqt::SessionOptions     sessionOptions;
+    bmqt::QueueOptions       queueOptions;
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
@@ -6111,6 +6427,7 @@ static void test33_queueNackTest()
                     bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Queue> pQueue =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         obj.createQueue(k_URI, bmqt::QueueFlags::e_WRITE, queueOptions);
 
     PVV_SAFE("Step 1. Start the session");
@@ -6211,8 +6528,10 @@ static void test33_queueNackTest()
     BMQTST_ASSERT_EQ(pQueue->isValid(), false);
     rawEvent.clear();
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void reopenError(bsls::Types::Uint64 queueFlags)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("REOPEN ERROR TEST");
 
@@ -6227,9 +6546,11 @@ static void reopenError(bsls::Types::Uint64 queueFlags)
                     scheduler,
                     bmqtst::TestHelperUtil::allocator());
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bsl::shared_ptr<bmqimp::Queue> queue = obj.createQueue(k_URI,
                                                            queueFlags,
                                                            queueOptions);
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
     PVV_SAFE("Step 1. Start the session");
     obj.startAndConnect();
@@ -6346,6 +6667,7 @@ static void reopenError(bsls::Types::Uint64 queueFlags)
     PVV_SAFE("Step 14. Stop the session");
     obj.stopGracefully();
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test34_reopenError()
 // ------------------------------------------------------------------------
@@ -6370,6 +6692,7 @@ static void test34_reopenError()
 //   - openQueueAsync
 //   - stop
 //   ----------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("REOPEN ERROR TEST");
 
@@ -6386,6 +6709,7 @@ static void test34_reopenError()
     PVV_SAFE("Check READER and WRITER");
     reopenError(flags);
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test35_hostHealthMonitoring()
 // ------------------------------------------------------------------------
@@ -6421,6 +6745,7 @@ static void test35_hostHealthMonitoring()
 //   - setHostHealthMonitor
 // ------------------------------------------------------------------------
 
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("HOST HEALTH MONITORING TEST");
 
@@ -6608,6 +6933,7 @@ static void test35_hostHealthMonitoring()
     obj.stopGracefully();
     BMQTST_ASSERT_EQ(monitor->numRegistrants(), 0u);
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 static void test36_closingAfterConfigTimeout()
 // ------------------------------------------------------------------------
@@ -6632,6 +6958,7 @@ static void test36_closingAfterConfigTimeout()
 //   - closeQueueAsync
 //   - stop
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("CLOSING AFTER CONFIGURE TIMEOUT TEST");
 
@@ -6654,6 +6981,7 @@ static void test36_closingAfterConfigTimeout()
     obj.startAndConnect();
 
     bsl::shared_ptr<bmqimp::Queue> queue =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         obj.createQueue(k_URI, bmqt::QueueFlags::e_READ, queueOptions);
 
     PVV_SAFE("Test step: Open the queue");
@@ -6714,6 +7042,7 @@ static void test36_closingAfterConfigTimeout()
     PVV_SAFE("Test step: Stop the session");
     obj.stopGracefully();
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test37_closingPendingConfig()
 // ------------------------------------------------------------------------
@@ -6738,6 +7067,7 @@ static void test37_closingPendingConfig()
 //   - closeQueueAsync
 //   - stop
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("CLOSING WHILE PENDING CONFIGURE TEST");
 
@@ -6759,6 +7089,7 @@ static void test37_closingPendingConfig()
     obj.startAndConnect();
 
     bsl::shared_ptr<bmqimp::Queue> queue =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         obj.createQueue(k_URI, bmqt::QueueFlags::e_READ, queueOptions);
 
     PVV_SAFE("Test step: Open the queue");
@@ -6814,11 +7145,13 @@ static void test37_closingPendingConfig()
     PVV_SAFE("Test step: Stop the session");
     obj.stopGracefully();
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void eventCallbackMockup(bsl::shared_ptr<bmqimp::Event>* resultEvent,
                                 int*                            count,
                                 bmqimp::BrokerSession*          session,
                                 const bsl::shared_ptr<bmqimp::Event>& event)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     PV_SAFE("Got an event: " << *event);
 
@@ -6837,14 +7170,20 @@ static void eventCallbackMockup(bsl::shared_ptr<bmqimp::Event>* resultEvent,
         session->enqueueSessionEvent(bmqt::SessionEventType::e_UNDEFINED);
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
+// NOLINTBEGIN(*-avoid-c-arrays)
 static void responderMockup(TestSession*                   obj,
                             int                            count,
                             const TestSession::RequestType type[])
+// NOLINTEND(*-avoid-c-arrays)
 {
+    // NOLINTBEGIN(bugprone-unchecked-optional-access,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (int i = 0; i < count; ++i) {
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         bmqp_ctrlmsg::ControlMessage request = obj->getNextOutboundRequest(
             type[i]);
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         if (TestSession::e_REQ_DISCONNECT == type[i]) {
             bmqp_ctrlmsg::ControlMessage response(
                 bmqtst::TestHelperUtil::allocator());
@@ -6860,9 +7199,11 @@ static void responderMockup(TestSession*                   obj,
             obj->sendResponse(request);
         }
     }
+    // NOLINTEND(bugprone-unchecked-optional-access,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 static void test_syncOpenConfigureClose(bool withHandler)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-init-variables,performance-avoid-endl)
 {
     // Plan:
     //   1. Create bmqimp::BrokerSession test wrapper object with Event Handler
@@ -6898,6 +7239,7 @@ static void test_syncOpenConfigureClose(bool withHandler)
     PVV_SAFE("2: Open the queue");
 
     bsl::shared_ptr<bmqimp::Queue> queueSp =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         obj.createQueue(k_URI, bmqt::QueueFlags::e_READ, queueOptions);
     int                                calls = 0;
     const bmqimp::Event::EventCallback cb    = bdlf::BindUtil::bind(
@@ -6908,12 +7250,14 @@ static void test_syncOpenConfigureClose(bool withHandler)
         bdlf::PlaceHolders::_1);  // event
 
     bslmt::ThreadUtil::Handle threadHandle;
-    TestSession::RequestType  requestType[] = {TestSession::e_REQ_OPEN_QUEUE,
-                                               TestSession::e_REQ_CONFIG_QUEUE,
-                                               TestSession::e_REQ_CONFIG_QUEUE,
-                                               TestSession::e_REQ_CONFIG_QUEUE,
-                                               TestSession::e_REQ_CLOSE_QUEUE,
-                                               TestSession::e_REQ_DISCONNECT};
+    // NOLINTBEGIN(*-avoid-c-arrays)
+    TestSession::RequestType requestType[] = {TestSession::e_REQ_OPEN_QUEUE,
+                                              TestSession::e_REQ_CONFIG_QUEUE,
+                                              TestSession::e_REQ_CONFIG_QUEUE,
+                                              TestSession::e_REQ_CONFIG_QUEUE,
+                                              TestSession::e_REQ_CLOSE_QUEUE,
+                                              TestSession::e_REQ_DISCONNECT};
+    // NOLINTEND(*-avoid-c-arrays)
     bslmt::ThreadUtil::createWithAllocator(
         &threadHandle,
         bdlf::BindUtil::bind(&responderMockup, &obj, 6, requestType),
@@ -6974,8 +7318,10 @@ static void test_syncOpenConfigureClose(bool withHandler)
     bslmt::ThreadUtil::join(threadHandle);
     eventSp.clear();
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-init-variables,performance-avoid-endl)
 
 static void test_asyncOpenConfigureClose(bool withHandler)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     // Plan:
     //   1. Create bmqimp::BrokerSession test wrapper object with Event Handler
@@ -7004,9 +7350,11 @@ static void test_asyncOpenConfigureClose(bool withHandler)
     bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
                                     bmqtst::TestHelperUtil::allocator());
     TestSession           obj(sessionOptions, scheduler, withHandler);
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory blobBufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
 
     sessionOptions.setNumProcessingThreads(1);
 
@@ -7015,10 +7363,12 @@ static void test_asyncOpenConfigureClose(bool withHandler)
 
     PVV_SAFE("2: Open the queue");
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bsl::shared_ptr<bmqimp::Queue> queueSp = obj.createQueue(
         k_URI,
         bmqt::QueueFlags::e_READ | bmqt::QueueFlags::e_WRITE,
         queueOptions);
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     int                                calls = 0;
     const bmqimp::Event::EventCallback cb    = bdlf::BindUtil::bind(
         &eventCallbackMockup,
@@ -7118,6 +7468,7 @@ static void test_asyncOpenConfigureClose(bool withHandler)
     eventSp.clear();
     dummy.clear();
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test38_syncOpenConfigureCloseWithHandler()
 // ------------------------------------------------------------------------
@@ -7202,16 +7553,20 @@ static void test40_syncCalledFromEventHandler()
 //   - closeQueue
 //   - stop
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName(
         "SYNC API CALLED FROM EVENT HANDLER TEST");
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bmqt::Uri                 uri(k_URI, bmqtst::TestHelperUtil::allocator());
     const bsls::TimeInterval& timeout = bsls::TimeInterval();
     bsl::shared_ptr<bmqimp::Queue> pQueue;
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory blobBufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &blobBufferFactory,
@@ -7285,6 +7640,7 @@ static void test40_syncCalledFromEventHandler()
     scheduler.cancelAllEventsAndWait();
     scheduler.stop();
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test41_asyncOpenConfigureCloseWithHandler()
 // ------------------------------------------------------------------------
@@ -7378,6 +7734,7 @@ static void test43_hostHealthMonitoringErrors()
 //   - setHostHealthMonitor
 // ------------------------------------------------------------------------
 
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("HOST HEALTH MONITORING ERRORS TEST");
 
@@ -7523,6 +7880,7 @@ static void test43_hostHealthMonitoringErrors()
     obj.stopGracefully();
     BMQTST_ASSERT_EQ(monitor->numRegistrants(), 0u);
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void testHostHealthWithMultipleQueues(
     TestSession*                    testSession,
@@ -7537,6 +7895,7 @@ static void testHostHealthWithMultipleQueues(
     const size_t                    numNaiveWriters)
 // Implementation invoked multiple times by
 // 'test44_hostHealthMonitoringMultipleQueues'.
+// NOLINTBEGIN(performance-avoid-endl)
 {
     const size_t numSensitiveQueues = numSensitiveReaders +
                                       numSensitiveWriters;
@@ -7552,27 +7911,38 @@ static void testHostHealthWithMultipleQueues(
             TestSession::e_REQ_CONFIG_QUEUE);
         testSession->sendResponse(request);
     }
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t k = 0; k < numSensitiveQueues; k++) {
         PVV_SAFE("Waiting on event #" << k);
         BMQTST_ASSERT(testSession->waitQueueSuspendedEvent());
     }
+    // NOLINTEND(performance-avoid-endl)
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (size_t k = 0; k < numSensitiveReaders; k++) {
         BMQTST_ASSERT(sensitiveReaders[k]->isSuspended());
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (size_t k = 0; k < numSensitiveWriters; k++) {
         BMQTST_ASSERT(sensitiveWriters[k]->isSuspended());
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (size_t k = 0; k < numNaiveReaders; k++) {
         BMQTST_ASSERT(!naiveReaders[k]->isSuspended());
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (size_t k = 0; k < numNaiveWriters; k++) {
         BMQTST_ASSERT(!naiveWriters[k]->isSuspended());
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     PVV_SAFE("Step 3. "
              "Verify that naive readers can still reconfigure with broker");
     bmqt::QueueOptions naiveOptions;
     naiveOptions.setSuspendsOnBadHostHealth(false);
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (size_t k = 0; k < numNaiveReaders; k++) {
         BMQTST_ASSERT_EQ(
             bmqt::GenericResult::e_SUCCESS,
@@ -7586,6 +7956,7 @@ static void testHostHealthWithMultipleQueues(
             bmqt::SessionEventType::e_QUEUE_CONFIGURE_RESULT,
             bmqp_ctrlmsg::StatusCategory::E_SUCCESS));
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     PVV_SAFE("Step 4. Recover host health and verify that all queues resume");
     monitor->setState(bmqt::HostHealthState::e_HEALTHY);
@@ -7600,19 +7971,28 @@ static void testHostHealthWithMultipleQueues(
     BMQTST_ASSERT(testSession->waitHostHealthRestoredEvent());
     BMQTST_ASSERT(testSession->checkNoEvent());
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (size_t k = 0; k < numSensitiveReaders; k++) {
         BMQTST_ASSERT(!sensitiveReaders[k]->isSuspended());
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (size_t k = 0; k < numSensitiveWriters; k++) {
         BMQTST_ASSERT(!sensitiveWriters[k]->isSuspended());
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (size_t k = 0; k < numNaiveReaders; k++) {
         BMQTST_ASSERT(!naiveReaders[k]->isSuspended());
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (size_t k = 0; k < numNaiveWriters; k++) {
         BMQTST_ASSERT(!naiveWriters[k]->isSuspended());
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test44_hostHealthMonitoringMultipleQueues()
 // ------------------------------------------------------------------------
@@ -7641,6 +8021,7 @@ static void test44_hostHealthMonitoringMultipleQueues()
 //   - setHostHealthMonitor
 // ------------------------------------------------------------------------
 
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName(
         "HOST HEALTH MONITORING MULTIPLE QUEUES TEST");
@@ -7679,6 +8060,7 @@ static void test44_hostHealthMonitoringMultipleQueues()
     bmqt::QueueOptions sensitiveOptions;
     sensitiveOptions.setSuspendsOnBadHostHealth(true);
 
+    // NOLINTBEGIN(*-avoid-c-arrays)
     bsl::shared_ptr<bmqimp::Queue> sensitiveReaders[] = {
         obj.createQueue("bmq://ts.trades.myapp/my.q1?id=foo",
                         bmqt::QueueFlags::e_READ,
@@ -7687,9 +8069,11 @@ static void test44_hostHealthMonitoringMultipleQueues()
                         bmqt::QueueFlags::e_READ,
                         sensitiveOptions),
     };
+    // NOLINTEND(*-avoid-c-arrays)
     const size_t numSensitiveReaders = sizeof(sensitiveReaders) /
                                        sizeof(sensitiveReaders[0]);
 
+    // NOLINTBEGIN(*-avoid-c-arrays)
     bsl::shared_ptr<bmqimp::Queue> naiveReaders[] = {
         obj.createQueue("bmq://ts.trades.myapp/my.q5?id=foo",
                         bmqt::QueueFlags::e_READ,
@@ -7698,9 +8082,11 @@ static void test44_hostHealthMonitoringMultipleQueues()
                         bmqt::QueueFlags::e_READ,
                         naiveOptions),
     };
+    // NOLINTEND(*-avoid-c-arrays)
     const size_t numNaiveReaders = sizeof(naiveReaders) /
                                    sizeof(naiveReaders[0]);
 
+    // NOLINTBEGIN(*-avoid-c-arrays)
     bsl::shared_ptr<bmqimp::Queue> sensitiveWriters[] = {
         obj.createQueue("bmq://ts.trades.myapp/my.q3?id=foo",
                         bmqt::QueueFlags::e_WRITE,
@@ -7709,9 +8095,11 @@ static void test44_hostHealthMonitoringMultipleQueues()
                         bmqt::QueueFlags::e_WRITE,
                         sensitiveOptions),
     };
+    // NOLINTEND(*-avoid-c-arrays)
     const size_t numSensitiveWriters = sizeof(sensitiveWriters) /
                                        sizeof(sensitiveWriters[0]);
 
+    // NOLINTBEGIN(*-avoid-c-arrays)
     bsl::shared_ptr<bmqimp::Queue> naiveWriters[] = {
         obj.createQueue("bmq://ts.trades.myapp/my.q7?id=foo",
                         bmqt::QueueFlags::e_WRITE,
@@ -7720,16 +8108,21 @@ static void test44_hostHealthMonitoringMultipleQueues()
                         bmqt::QueueFlags::e_WRITE,
                         naiveOptions),
     };
+    // NOLINTEND(*-avoid-c-arrays)
     const size_t numNaiveWriters = sizeof(naiveWriters) /
                                    sizeof(naiveWriters[0]);
 
     PVV_SAFE("Step 4. Test with readers only.");
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
     for (size_t k = 0; k < numSensitiveReaders; k++) {
         obj.openQueue(sensitiveReaders[k]);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
     for (size_t k = 0; k < numNaiveReaders; k++) {
         obj.openQueue(naiveReaders[k]);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
     testHostHealthWithMultipleQueues(&obj,
                                      monitor,
                                      sensitiveReaders,
@@ -7742,12 +8135,16 @@ static void test44_hostHealthMonitoringMultipleQueues()
                                      0);
 
     PVV_SAFE("Step 5. Test with mixed readers and writers.");
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
     for (size_t k = 0; k < numSensitiveWriters; k++) {
         obj.openQueue(sensitiveWriters[k]);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
     for (size_t k = 0; k < numNaiveWriters; k++) {
         obj.openQueue(naiveWriters[k]);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
     testHostHealthWithMultipleQueues(&obj,
                                      monitor,
                                      sensitiveReaders,
@@ -7760,12 +8157,16 @@ static void test44_hostHealthMonitoringMultipleQueues()
                                      numNaiveWriters);
 
     PVV_SAFE("Step 6. Test with writers only.");
+    // NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-bounds-constant-array-index)
     for (size_t k = 0; k < numSensitiveReaders; k++) {
         obj.closeQueue(sensitiveReaders[k], bsls::TimeInterval(5), true);
     }
+    // NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-bounds-constant-array-index)
+    // NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-bounds-constant-array-index)
     for (size_t k = 0; k < numNaiveReaders; k++) {
         obj.closeQueue(naiveReaders[k], bsls::TimeInterval(5), true);
     }
+    // NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-bounds-constant-array-index)
     testHostHealthWithMultipleQueues(&obj,
                                      monitor,
                                      NULL,
@@ -7781,6 +8182,7 @@ static void test44_hostHealthMonitoringMultipleQueues()
     obj.stopGracefully();
     BMQTST_ASSERT_EQ(monitor->numRegistrants(), 0u);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 
 static void test45_hostHealthMonitoringPendingStandalone()
 // ------------------------------------------------------------------------
@@ -7812,6 +8214,7 @@ static void test45_hostHealthMonitoringPendingStandalone()
 //   - openQueue
 // ------------------------------------------------------------------------
 
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName(
         "HOST HEALTH MONITORING PENDING STANDALONE TEST");
@@ -7845,6 +8248,7 @@ static void test45_hostHealthMonitoringPendingStandalone()
     bmqt::QueueOptions queueOptions;
     queueOptions.setSuspendsOnBadHostHealth(true);
 
+    // NOLINTNEXTLINE(*-magic-numbers)
     bsls::TimeInterval timeout(5);
 
     bsl::shared_ptr<bmqimp::Queue> queue = obj.createQueue(
@@ -7906,6 +8310,7 @@ static void test45_hostHealthMonitoringPendingStandalone()
     obj.stopGracefully();
     BMQTST_ASSERT_EQ(monitor->numRegistrants(), 0u);
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test46_hostHealthMonitoringDeferredResumeClose()
 // ------------------------------------------------------------------------
@@ -7934,6 +8339,7 @@ static void test46_hostHealthMonitoringDeferredResumeClose()
 //   - openQueue
 // ------------------------------------------------------------------------
 
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName(
         "HOST HEALTH MONITORING DEFERRED SUSPEND RESUME TEST");
@@ -7967,6 +8373,7 @@ static void test46_hostHealthMonitoringDeferredResumeClose()
     bmqt::QueueOptions queueOptions;
     queueOptions.setSuspendsOnBadHostHealth(true);
 
+    // NOLINTNEXTLINE(*-magic-numbers)
     bsls::TimeInterval timeout(5);
 
     bsl::shared_ptr<bmqimp::Queue> queue1 = obj.createQueue(
@@ -8065,6 +8472,7 @@ static void test46_hostHealthMonitoringDeferredResumeClose()
     obj.stopGracefully();
     BMQTST_ASSERT_EQ(monitor->numRegistrants(), 0u);
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test47_configureMergesQueueOptions()
 // ------------------------------------------------------------------------
@@ -8088,6 +8496,7 @@ static void test47_configureMergesQueueOptions()
 //   - configureQueueAsync
 // ------------------------------------------------------------------------
 
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("CONFIGURE MERGED QUEUE OPTIONS TEST");
 
@@ -8109,6 +8518,7 @@ static void test47_configureMergesQueueOptions()
     bmqt::QueueOptions queueOptions;
     queueOptions.setMaxUnconfirmedMessages(300);
 
+    // NOLINTNEXTLINE(*-magic-numbers)
     bsls::TimeInterval timeout(5);
 
     bsl::shared_ptr<bmqimp::Queue> queue = obj.createQueue(
@@ -8156,6 +8566,7 @@ static void test47_configureMergesQueueOptions()
     PVV_SAFE("Step 6. Stop the session");
     obj.stopGracefully();
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 static void test48_hostHealthSensitivityReconfiguration()
 // ------------------------------------------------------------------------
@@ -8186,6 +8597,7 @@ static void test48_hostHealthSensitivityReconfiguration()
 //   - configureQueue
 // ------------------------------------------------------------------------
 
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName(
         "HOST HEALTH SENSITIVITY RECONFIGURATION TEST");
@@ -8219,6 +8631,7 @@ static void test48_hostHealthSensitivityReconfiguration()
     bmqt::QueueOptions queueOptions;
     queueOptions.setSuspendsOnBadHostHealth(true);
 
+    // NOLINTNEXTLINE(*-magic-numbers)
     bsls::TimeInterval timeout(5);
 
     bsl::shared_ptr<bmqimp::Queue> reader = obj.createQueue(
@@ -8340,6 +8753,7 @@ static void test48_hostHealthSensitivityReconfiguration()
     obj.stopGracefully();
     BMQTST_ASSERT_EQ(monitor->numRegistrants(), 0u);
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 static void test49_controlsBuffering()
 // ------------------------------------------------------------------------
@@ -8362,6 +8776,7 @@ static void test49_controlsBuffering()
 //   - openQueueAsync
 //   - handleChannelWatermark
 //-------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("CONTROLS BUFFERING TEST");
 
@@ -8472,6 +8887,7 @@ static void test49_controlsBuffering()
     BMQTST_ASSERT(obj.waitForChannelClose());
     BMQTST_ASSERT(obj.waitDisconnectedEvent());
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test50_putRetransmittingTest()
 // ------------------------------------------------------------------------
@@ -8506,24 +8922,28 @@ static void test50_putRetransmittingTest()
 //   - post
 //   - stop
 //   ----------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("QUEUE RETRANSMITTING TEST");
 
-    const char* k_PAYLOAD     = "abcdefghijklmnopqrstuvwxyz";
-    const int   k_PAYLOAD_LEN = bsl::strlen(k_PAYLOAD);
+    const char* k_PAYLOAD = "abcdefghijklmnopqrstuvwxyz";
+    // NOLINTNEXTLINE(*-narrowing-conversions)
+    const int k_PAYLOAD_LEN = bsl::strlen(k_PAYLOAD);
 
     const int k_ACK_STATUS_SUCCESS = bmqp::ProtocolUtil::ackResultToCode(
         bmqt::AckResult::e_SUCCESS);
     const int k_ACK_STATUS_UNKNOWN = bmqp::ProtocolUtil::ackResultToCode(
         bmqt::AckResult::e_UNKNOWN);
 
-    const bsls::TimeInterval       timeout = bsls::TimeInterval(5);
-    int                            phFlags = 0;
-    bmqt::SessionOptions           sessionOptions;
-    bmqt::QueueOptions             queueOptions;
+    const bsls::TimeInterval timeout = bsls::TimeInterval(5);
+    int                      phFlags = 0;
+    bmqt::SessionOptions     sessionOptions;
+    bmqt::QueueOptions       queueOptions;
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
@@ -8556,6 +8976,7 @@ static void test50_putRetransmittingTest()
                     bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Queue> pQueue =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         obj.createQueue(k_URI, bmqt::QueueFlags::e_WRITE, queueOptions);
 
     PVV_SAFE("Step 1. Start the session");
@@ -8767,6 +9188,7 @@ static void test50_putRetransmittingTest()
     BMQTST_ASSERT_EQ(pQueue->isValid(), false);
     rawEvent.clear();
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test51_putRetransmittingNoAckTest()
 // ------------------------------------------------------------------------
@@ -8802,22 +9224,26 @@ static void test51_putRetransmittingNoAckTest()
 //   - post
 //   - stop
 //   ----------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("PUT RETRANSMITTING NO ACK TEST");
 
-    const char* k_PAYLOAD     = "abcdefghijklmnopqrstuvwxyz";
-    const int   k_PAYLOAD_LEN = bsl::strlen(k_PAYLOAD);
+    const char* k_PAYLOAD = "abcdefghijklmnopqrstuvwxyz";
+    // NOLINTNEXTLINE(*-narrowing-conversions)
+    const int k_PAYLOAD_LEN = bsl::strlen(k_PAYLOAD);
 
     const int k_ACK_STATUS_UNKNOWN = bmqp::ProtocolUtil::ackResultToCode(
         bmqt::AckResult::e_UNKNOWN);
 
-    const bsls::TimeInterval       timeout = bsls::TimeInterval(5);
-    int                            phFlags = 0;
-    bmqt::SessionOptions           sessionOptions;
-    bmqt::QueueOptions             queueOptions;
+    const bsls::TimeInterval timeout = bsls::TimeInterval(5);
+    int                      phFlags = 0;
+    bmqt::SessionOptions     sessionOptions;
+    bmqt::QueueOptions       queueOptions;
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
@@ -8842,6 +9268,7 @@ static void test51_putRetransmittingNoAckTest()
                     bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Queue> pQueue =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         obj.createQueue(k_URI, bmqt::QueueFlags::e_WRITE, queueOptions);
 
     PVV_SAFE("Step 1. Start the session");
@@ -9002,6 +9429,7 @@ static void test51_putRetransmittingNoAckTest()
     BMQTST_ASSERT_EQ(pQueue->isValid(), false);
     rawEvent.clear();
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test52_controlRetransmission()
 // ------------------------------------------------------------------------
@@ -9033,6 +9461,7 @@ static void test52_controlRetransmission()
 //   - configureQueueAsync
 //   - stop
 //   ----------------------------------------------------------------------
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("CONTROL RETRANSMISSION TEST");
 
@@ -9050,6 +9479,7 @@ static void test52_controlRetransmission()
                     bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Queue> pQueue =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         obj.createQueue(k_URI, bmqt::QueueFlags::e_READ, queueOptions);
 
     PVV_SAFE("Step 1. Starting session...");
@@ -9185,8 +9615,10 @@ static void test52_controlRetransmission()
 
     obj.stopGracefully();
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores,performance-avoid-endl)
 
 static void queueExpired(bsls::Types::Uint64 queueFlags)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("QUEUE EXPIRED TEST");
 
@@ -9204,9 +9636,11 @@ static void queueExpired(bsls::Types::Uint64 queueFlags)
                     testClock,
                     bmqtst::TestHelperUtil::allocator());
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bsl::shared_ptr<bmqimp::Queue> pQueue = obj.createQueue(k_URI,
                                                             queueFlags,
                                                             queueOptions);
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
     PVV_SAFE("Step 1. Start the session");
     obj.startAndConnect();
@@ -9316,6 +9750,7 @@ static void queueExpired(bsls::Types::Uint64 queueFlags)
     PVV_SAFE("Step 15. Stop the session");
     BMQTST_ASSERT(obj.stop());
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test53_queueExpired()
 // ------------------------------------------------------------------------
@@ -9353,6 +9788,7 @@ static void test53_queueExpired()
 //   - configureQueue
 //   - stop
 //   ----------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("QUEUE EXPIRED TEST");
 
@@ -9369,6 +9805,7 @@ static void test53_queueExpired()
     PVV_SAFE("Check READER and WRITER");
     queueExpired(flags);
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test54_distributedTrace()
 // ------------------------------------------------------------------------
@@ -9429,6 +9866,14 @@ static void test54_distributedTrace()
 //   - closeQueueAsync
 //   - stop
 //   ----------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     using namespace bdlf::PlaceHolders;
 
@@ -9457,6 +9902,7 @@ static void test54_distributedTrace()
             // The test expected to fail if number of events is not sufficient
             // with the given default timeout.
             buffer.resize(expectedNum);
+            // NOLINTBEGIN(*-magic-numbers)
             for (size_t i = 0; i < expectedNum; i++) {
                 BMQTST_ASSERT_EQ(
                     events.timedPopFront(&buffer[i],
@@ -9464,11 +9910,13 @@ static void test54_distributedTrace()
                                              bsls::TimeInterval(0.1)),
                     0);
             }
+            // NOLINTEND(*-magic-numbers)
 
             addSpacer(events);
         }
 
         static void checkNoEvents(bdlcc::Deque<bsl::string>& events)
+        // NOLINTBEGIN(*-magic-numbers)
         {
             getSpacer(events);
 
@@ -9480,6 +9928,7 @@ static void test54_distributedTrace()
                                          bsls::TimeInterval(0.01)),
                 0);
         }
+        // NOLINTEND(*-magic-numbers)
     };
 
     bsl::vector<bsl::string>  dtEvents(bmqtst::TestHelperUtil::allocator());
@@ -9521,6 +9970,7 @@ static void test54_distributedTrace()
                     bmqtst::TestHelperUtil::allocator());
 
     bsl::shared_ptr<bmqimp::Queue> pQueue =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         obj.createQueue(k_URI, bmqt::QueueFlags::e_READ, queueOptions);
 
     PVV_SAFE("Step 1. Starting session...");
@@ -9640,6 +10090,7 @@ static void test54_distributedTrace()
 
     PVV_SAFE("Step 6. Open a write-only queue");
     bsl::shared_ptr<bmqimp::Queue> pWriterQueue =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         obj.createQueue(k_URI, bmqt::QueueFlags::e_WRITE, queueOptions);
     rc = obj.session().openQueueAsync(pWriterQueue, timeout);
     BMQTST_ASSERT_EQ(rc, bmqp_ctrlmsg::StatusCategory::E_SUCCESS);
@@ -9670,6 +10121,7 @@ static void test54_distributedTrace()
     obj.session().stop();
     localFns::checkNoEvents(dtEventsQueue);
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test55_queueAsyncCanceled2()
 {
@@ -9755,7 +10207,82 @@ static void test68_queueLateAsyncCanceledHybrid3()
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
+// NOLINTBEGIN(bugprone-exception-escape)
 int main(int argc, char* argv[])
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(bugprone-branch-clone)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(bugprone-branch-clone)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(bugprone-branch-clone)
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTBEGIN(cert-err34-c)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -9847,3 +10374,78 @@ int main(int argc, char* argv[])
     //          generates a unique name using an ostringstream, hence the
     //          default allocator.
 }
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(bugprone-branch-clone)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(bugprone-branch-clone)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(bugprone-branch-clone)
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTEND(cert-err34-c)
+// NOLINTEND(bugprone-exception-escape)

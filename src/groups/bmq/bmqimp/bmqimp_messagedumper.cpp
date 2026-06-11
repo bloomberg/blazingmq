@@ -52,6 +52,7 @@ namespace {
 /// non-zero otherwise.
 int parseMessageType(bmqp_ctrlmsg::DumpMsgType::Value* dumpMessageType,
                      const bsl::string&                messageTypeStr)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     // PRECONDTIONS
     BSLS_ASSERT_SAFE(dumpMessageType);
@@ -86,6 +87,7 @@ int parseMessageType(bmqp_ctrlmsg::DumpMsgType::Value* dumpMessageType,
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 }  // close unnamed namespace
 
@@ -161,6 +163,7 @@ void MessageDumper::processDumpMessageHelper(
 int MessageDumper::parseCommand(
     bmqp_ctrlmsg::DumpMessages* dumpMessagesCommand,
     const bslstl::StringRef&    command)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(dumpMessagesCommand &&
@@ -209,6 +212,7 @@ int MessageDumper::parseCommand(
             bmqp_ctrlmsg::DumpActionType::E_OFF;
     }
     else {
+        // NOLINTNEXTLINE(cert-err34-c)
         const int dumpActionValue = bsl::atoi(dumpActionType.c_str());
         if (dumpActionValue <= 0) {
             // No conversion can be performed
@@ -242,6 +246,7 @@ int MessageDumper::parseCommand(
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 // CREATORS
 MessageDumper::MessageDumper(
@@ -267,6 +272,7 @@ MessageDumper::MessageDumper(
 // MANIPULATORS
 int MessageDumper::processDumpCommand(
     const bmqp_ctrlmsg::DumpMessages& command)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     enum RcEnum {
         // Value for the various RC error categories
@@ -308,6 +314,7 @@ int MessageDumper::processDumpCommand(
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 void MessageDumper::reset()
 {
@@ -319,6 +326,7 @@ void MessageDumper::reset()
 
 // ACCESSORS
 void MessageDumper::dumpPushEvent(bsl::ostream& out, const bmqp::Event& event)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(event.isPushEvent() && "'event' must be of type PUSH");
@@ -327,6 +335,7 @@ void MessageDumper::dumpPushEvent(bsl::ostream& out, const bmqp::Event& event)
 
     out << "Dumping a PUSH message event.\n";
 
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<1024> lsa(d_allocator_p);
     bmqp::PushMessageIterator             iter(d_bufferFactory_p, &lsa);
     event.loadPushMessageIterator(&iter, true);
@@ -335,6 +344,7 @@ void MessageDumper::dumpPushEvent(bsl::ostream& out, const bmqp::Event& event)
 
     int msgNum = 0;
     int rc     = 0;
+    // NOLINTBEGIN(cppcoreguidelines-init-variables)
     while ((rc = iter.next()) == 1) {
         int                 qId = bmqimp::Queue::k_INVALID_QUEUE_ID;
         unsigned int        subscriptionId;
@@ -385,6 +395,7 @@ void MessageDumper::dumpPushEvent(bsl::ostream& out, const bmqp::Event& event)
             break;  // BREAK
         }
     }
+    // NOLINTEND(cppcoreguidelines-init-variables)
 
     if (rc < 0) {
         // Invalid PushMessage Event
@@ -393,6 +404,7 @@ void MessageDumper::dumpPushEvent(bsl::ostream& out, const bmqp::Event& event)
         return;  // RETURN
     }
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 void MessageDumper::dumpAckEvent(bsl::ostream& out, const bmqp::Event& event)
 {
@@ -429,6 +441,7 @@ void MessageDumper::dumpAckEvent(bsl::ostream& out, const bmqp::Event& event)
 void MessageDumper::dumpPutEvent(bsl::ostream&             out,
                                  const bmqp::Event&        event,
                                  bdlbb::BlobBufferFactory* bufferFactory)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(event.isPutEvent() && "'event' must be of type PUT");
@@ -437,6 +450,7 @@ void MessageDumper::dumpPutEvent(bsl::ostream&             out,
 
     out << "Dumping a PUT message event.\n";
 
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<1024> lsa(d_allocator_p);
     bmqp::PutMessageIterator              iter(bufferFactory, &lsa);
     event.loadPutMessageIterator(&iter, true);
@@ -484,6 +498,7 @@ void MessageDumper::dumpPutEvent(bsl::ostream&             out,
         }
     }
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 void MessageDumper::dumpConfirmEvent(bsl::ostream&      out,
                                      const bmqp::Event& event)

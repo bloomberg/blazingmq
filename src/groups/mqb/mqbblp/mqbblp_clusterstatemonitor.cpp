@@ -289,6 +289,7 @@ void ClusterStateMonitor::verifyAllStates()
 }
 
 void ClusterStateMonitor::verifyAllStatesDispatched()
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores,cppcoreguidelines-init-variables)
 {
     // invoked in the cluster *DISPATCHER* thread
 
@@ -307,6 +308,7 @@ void ClusterStateMonitor::verifyAllStatesDispatched()
     StateTransition stateTransition;
 
     // partitions primary state
+    // NOLINTBEGIN(*-narrowing-conversions)
     for (size_t i = 0; i != d_partitionStates.size(); ++i) {
         state              = &d_partitionStates[i];
         status             = d_clusterState_p->hasActivePrimary(i);
@@ -316,6 +318,7 @@ void ClusterStateMonitor::verifyAllStatesDispatched()
             alarmOs << "Partition [" << i << "] goes to alarming state\n";
         }
     }
+    // NOLINTEND(*-narrowing-conversions)
 
     const ClusterNodeSessionMap& nodeMap =
         d_clusterData_p->membership().clusterNodeSessionMap();
@@ -378,6 +381,7 @@ void ClusterStateMonitor::verifyAllStatesDispatched()
 
     notifyObserversIfNeeded();
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores,cppcoreguidelines-init-variables)
 
 mqbi::Dispatcher* ClusterStateMonitor::dispatcher()
 {

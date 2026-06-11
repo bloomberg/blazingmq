@@ -48,6 +48,7 @@ namespace bmqt {
 /// Enumeration for message encoding types.
 struct EncodingType {
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         e_UNDEFINED  = 0,
         e_RAW        = 1,
@@ -58,6 +59,7 @@ struct EncodingType {
         e_TEXT       = 6,
         e_MULTIPARTS = 7
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // PUBLIC CONSTANTS
 

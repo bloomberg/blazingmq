@@ -34,6 +34,7 @@ namespace bmqp {
 // -----------------------------
 EncodingType::Enum SchemaEventBuilderUtil::bestEncodingSupported(
     const bsl::string& remoteFeatureSet)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bsl::vector<bsl::string> encodingsSupported;
     if (!ProtocolUtil::loadFieldValues(&encodingsSupported,
@@ -68,6 +69,7 @@ EncodingType::Enum SchemaEventBuilderUtil::bestEncodingSupported(
     // negotiation.
     return EncodingType::e_BER;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 }  // close package namespace
 }  // close enterprise namespace

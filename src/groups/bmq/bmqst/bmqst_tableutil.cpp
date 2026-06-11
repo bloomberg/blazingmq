@@ -40,7 +40,9 @@ namespace bmqst {
 
 // CLASS METHODS
 int TableUtil::printTable(bsl::ostream& stream, const TableInfoProvider& info)
+// NOLINTBEGIN(performance-avoid-endl)
 {
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<5 * 1024> seqAlloc;
 
     int numRows         = info.numRows();
@@ -136,6 +138,7 @@ int TableUtil::printTable(bsl::ostream& stream, const TableInfoProvider& info)
     stream << bsl::setfill(' ');
 
     // Print the header rows
+    // NOLINTBEGIN(performance-avoid-endl)
     for (int level = static_cast<int>(columnWidths.size()) - 1; level >= 0;
          --level) {
         stream << bsl::endl;
@@ -152,6 +155,7 @@ int TableUtil::printTable(bsl::ostream& stream, const TableInfoProvider& info)
                              columnWidths[level][i]);
         }
     }
+    // NOLINTEND(performance-avoid-endl)
 
     // Print separating line
     stream << bsl::endl;
@@ -168,6 +172,7 @@ int TableUtil::printTable(bsl::ostream& stream, const TableInfoProvider& info)
 
     // Print values
     stream << bsl::endl;
+    // NOLINTBEGIN(performance-avoid-endl)
     for (int row = 0; row < numRows; ++row) {
         for (size_t col = 0; col < columnWidths[0].size(); ++col) {
             if (col > 0) {
@@ -182,12 +187,15 @@ int TableUtil::printTable(bsl::ostream& stream, const TableInfoProvider& info)
         }
         stream << bsl::endl;
     }
+    // NOLINTEND(performance-avoid-endl)
 
     return 0;
 }
+// NOLINTEND(performance-avoid-endl)
 
 int TableUtil::outputToVector(bsl::vector<bsl::vector<bsl::string> >* dest,
                               const TableInfoProvider&                info)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-type-member-init)
 {
     bsls::AlignedBuffer<1024>   buf;
     bdlsb::FixedMemOutStreamBuf sb(buf.buffer(), sizeof(buf));
@@ -226,6 +234,7 @@ int TableUtil::outputToVector(bsl::vector<bsl::vector<bsl::string> >* dest,
 
     return 0;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-type-member-init)
 
 void TableUtil::printCsv(bsl::ostream& stream, const BaseTable& table)
 {
@@ -255,6 +264,7 @@ void TableUtil::printCsv(bsl::ostream& stream, const BaseTable& table)
 }
 
 void TableUtil::printCsv(bsl::ostream& stream, const TableInfoProvider& info)
+// NOLINTBEGIN(*-magic-numbers)
 {
     int numRows    = info.numRows();
     int numColumns = info.numColumns(0);
@@ -290,6 +300,7 @@ void TableUtil::printCsv(bsl::ostream& stream, const TableInfoProvider& info)
         stream << '\n';
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 }  // close package namespace
 }  // close enterprise namespace

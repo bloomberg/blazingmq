@@ -53,6 +53,7 @@ using namespace BloombergLP;
 using namespace m_bmqstoragetool;
 using namespace bsl;
 using namespace mqbs;
+// NOLINTNEXTLINE(bugprone-reserved-identifier,cert-dcl37-c,cert-dcl51-cpp)
 using ::testing::_;
 using ::testing::Eq;
 using ::testing::Field;
@@ -138,13 +139,18 @@ char* addDataRecords(bslma::Allocator*          ta,
     // Have to compute the 'totalSize' we need for the 'MemoryBlock' based on
     // the padding that we need for each record.
 
+    // NOLINTBEGIN(*-narrowing-conversions)
     for (unsigned int i = 0; i < numMessages; i++) {
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         unsigned int optionsLen = static_cast<unsigned int>(
             bsl::strlen(messages[i].d_options_p));
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         BSLS_ASSERT_OPT(0 == optionsLen % bmqp::Protocol::k_WORD_SIZE);
 
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         unsigned int appDataLen = static_cast<unsigned int>(
             bsl::strlen(messages[i].d_appData_p));
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         int appDataPadding = 0;
         bmqp::ProtocolUtil::calcNumDwordsAndPadding(&appDataPadding,
                                                     appDataLen + optionsLen +
@@ -152,6 +158,7 @@ char* addDataRecords(bslma::Allocator*          ta,
 
         totalSize += dhSize + appDataLen + appDataPadding + optionsLen;
     }
+    // NOLINTEND(*-narrowing-conversions)
 
     // Allocate the memory now.
     char* p = static_cast<char*>(ta->allocate(totalSize));
@@ -177,6 +184,7 @@ char* addDataRecords(bslma::Allocator*          ta,
     dfh->setHeaderWords(sizeof(DataFileHeader) / bmqp::Protocol::k_WORD_SIZE);
     currPos += sizeof(DataFileHeader);
 
+    // NOLINTBEGIN(*-narrowing-conversions,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (unsigned int i = 0; i < numMessages; i++) {
         messageOffsets.push_back(
             static_cast<unsigned int>(currPos / bmqp::Protocol::k_DWORD_SIZE));
@@ -184,18 +192,23 @@ char* addDataRecords(bslma::Allocator*          ta,
         OffsetPtr<DataHeader> dh(block, currPos);
         new (dh.get()) DataHeader();
 
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         unsigned int optionsLen = static_cast<unsigned int>(
             bsl::strlen(messages[i].d_options_p));
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         dh->setOptionsWords(optionsLen / bmqp::Protocol::k_WORD_SIZE);
         currPos += sizeof(DataHeader);
 
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-reinterpret-cast)
         char* destination = reinterpret_cast<char*>(block.base() + currPos);
         bsl::memcpy(destination, messages[i].d_options_p, optionsLen);
         currPos += optionsLen;
         destination += optionsLen;
 
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         unsigned int appDataLen = static_cast<unsigned int>(
             bsl::strlen(messages[i].d_appData_p));
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         int appDataPad = 0;
         bmqp::ProtocolUtil::calcNumDwordsAndPadding(&appDataPad,
                                                     appDataLen + optionsLen +
@@ -212,6 +225,7 @@ char* addDataRecords(bslma::Allocator*          ta,
                                       bmqp::Protocol::k_WORD_SIZE);
         dh->setMessageWords(messageOffset);
     }
+    // NOLINTEND(*-narrowing-conversions,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     *fileHeader = *fh;
 
@@ -223,12 +237,15 @@ char* addDataRecords(bslma::Allocator*          ta,
 void outputGuidString(bsl::ostream&            ostream,
                       const bmqt::MessageGUID& messageGUID,
                       bool                     addNewLine = true)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     ostream << messageGUID;
     if (addNewLine)
         ostream << bsl::endl;
 }
+// NOLINTEND(performance-avoid-endl)
 
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 enum ProcessRecordTypeFlags {
     /// Do not process any record types
     e_EMPTY = 0,
@@ -240,6 +257,7 @@ enum ProcessRecordTypeFlags {
     /// Enable processing of Journal Op records
     e_JOURNAL_OP = 4
 };
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 /// Helper function to instantiate test Parameters
 Parameters createTestParameters(int flags = e_MESSAGE)
@@ -394,8 +412,10 @@ static void test1_breathingTest()
     for (; recordIter != records.end(); ++recordIter) {
         RecordType::Enum rtype = recordIter->first;
         if (rtype == RecordType::e_MESSAGE) {
+            // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
             const MessageRecord& msg = *reinterpret_cast<const MessageRecord*>(
                 recordIter->second.buffer());
+            // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
             EXPECT_CALL(*printer, printGuid(msg.messageGUID())).InSequence(s);
             foundMessagesCount++;
         }
@@ -442,13 +462,16 @@ static void test2_searchGuidTest()
         records.begin();
     bsl::size_t msgCnt = 0;
     Sequence    s;
+    // NOLINTBEGIN(modernize-use-emplace)
     for (; recordIter != records.end(); ++recordIter) {
         RecordType::Enum rtype = recordIter->first;
         if (rtype == RecordType::e_MESSAGE) {
             if (msgCnt++ % 2 != 0)
                 continue;  // Skip odd messages for test purposes
+            // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
             const MessageRecord& msg = *reinterpret_cast<const MessageRecord*>(
                 recordIter->second.buffer());
+            // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
             bmqu::MemOutStream ss(bmqtst::TestHelperUtil::allocator());
             ss << msg.messageGUID();
             searchGuids.push_back(
@@ -456,6 +479,7 @@ static void test2_searchGuidTest()
             EXPECT_CALL(*printer, printGuid(msg.messageGUID())).InSequence(s);
         }
     }
+    // NOLINTEND(modernize-use-emplace)
     EXPECT_CALL(
         *printer,
         printFooter(searchGuids.size(), 0, 0, params.d_processRecordTypes))
@@ -516,6 +540,7 @@ static void test3_searchNonExistingGuidTest()
     GuidsList         notFoundGuids(bmqtst::TestHelperUtil::allocator());
     bmqt::MessageGUID guid;
 
+    // NOLINTBEGIN(modernize-use-emplace)
     for (int i = 0; i < 2; ++i) {
         mqbu::MessageGUIDUtil::generateGUID(&guid);
         bmqu::MemOutStream ss(bmqtst::TestHelperUtil::allocator());
@@ -524,6 +549,7 @@ static void test3_searchNonExistingGuidTest()
             bsl::string(ss.str(), bmqtst::TestHelperUtil::allocator()));
         notFoundGuids.push_back(guid);
     }
+    // NOLINTEND(modernize-use-emplace)
 
     // Prepare file manager
     bslma::ManagedPtr<FileManager> fileManager(
@@ -592,13 +618,16 @@ static void test4_searchExistingAndNonExistingGuidTest()
     size_t   msgCnt        = 0;
     size_t   foundGuidsCnt = 0;
     Sequence s;
+    // NOLINTBEGIN(modernize-use-emplace)
     for (; recordIter != records.end(); ++recordIter) {
         RecordType::Enum rtype = recordIter->first;
         if (rtype == RecordType::e_MESSAGE) {
             if (msgCnt++ == 2)
                 break;  // Take two GUIDs
+            // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
             const MessageRecord& msg = *reinterpret_cast<const MessageRecord*>(
                 recordIter->second.buffer());
+            // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
             bmqu::MemOutStream ss(bmqtst::TestHelperUtil::allocator());
             ss << msg.messageGUID();
             searchGuids.push_back(
@@ -607,10 +636,12 @@ static void test4_searchExistingAndNonExistingGuidTest()
             EXPECT_CALL(*printer, printGuid(msg.messageGUID())).InSequence(s);
         }
     }
+    // NOLINTEND(modernize-use-emplace)
 
     // Get two non existing message GUIDs
     GuidsList         notFoundGuids(bmqtst::TestHelperUtil::allocator());
     bmqt::MessageGUID guid;
+    // NOLINTBEGIN(modernize-use-emplace)
     for (int i = 0; i < 2; ++i) {
         mqbu::MessageGUIDUtil::generateGUID(&guid);
         bmqu::MemOutStream ss(bmqtst::TestHelperUtil::allocator());
@@ -619,6 +650,7 @@ static void test4_searchExistingAndNonExistingGuidTest()
             bsl::string(ss.str(), bmqtst::TestHelperUtil::allocator()));
         notFoundGuids.push_back(guid);
     }
+    // NOLINTEND(modernize-use-emplace)
 
     EXPECT_CALL(*printer,
                 printFooter(foundGuidsCnt, 0, 0, params.d_processRecordTypes))
@@ -701,9 +733,11 @@ static void test5_searchOutstandingMessagesTest()
         outstandingGUIDS.cbegin();
 
     Sequence s;
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (; guidIt != outstandingGUIDS.cend(); ++guidIt) {
         EXPECT_CALL(*printer, printGuid(*guidIt)).InSequence(s);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     EXPECT_CALL(*printer,
                 printFooter(outstandingGUIDS.size(),
                             0,
@@ -777,9 +811,11 @@ static void test6_searchConfirmedMessagesTest()
         confirmedGUIDS.cbegin();
 
     Sequence s;
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (; guidIt != confirmedGUIDS.cend(); ++guidIt) {
         EXPECT_CALL(*printer, printGuid(*guidIt)).InSequence(s);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     EXPECT_CALL(
         *printer,
         printFooter(confirmedGUIDS.size(), 0, 0, params.d_processRecordTypes))
@@ -854,9 +890,11 @@ static void test7_searchPartiallyConfirmedMessagesTest()
         partiallyConfirmedGUIDS.cbegin();
 
     Sequence s;
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (; guidIt != partiallyConfirmedGUIDS.cend(); ++guidIt) {
         EXPECT_CALL(*printer, printGuid(*guidIt)).InSequence(s);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     EXPECT_CALL(*printer,
                 printFooter(partiallyConfirmedGUIDS.size(),
                             0,
@@ -884,6 +922,7 @@ static void test8_searchMessagesByQueueKeyTest()
 // Testing:
 //   JournalFileProcessor::process()
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(modernize-use-emplace)
 {
     bmqtst::TestHelper::printTestName("SEARCH MESSAGES BY QUEUE KEY TEST");
 
@@ -928,9 +967,11 @@ static void test8_searchMessagesByQueueKeyTest()
     JournalFile::GuidVectorType::const_iterator guidIt =
         queueKey1GUIDS.cbegin();
     Sequence s;
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (; guidIt != queueKey1GUIDS.cend(); ++guidIt) {
         EXPECT_CALL(*printer, printGuid(*guidIt)).InSequence(s);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     EXPECT_CALL(
         *printer,
         printFooter(queueKey1GUIDS.size(), 0, 0, params.d_processRecordTypes))
@@ -939,6 +980,7 @@ static void test8_searchMessagesByQueueKeyTest()
     // Run search
     searchProcessor->process();
 }
+// NOLINTEND(modernize-use-emplace)
 
 static void test9_searchMessagesByQueueNameTest()
 // ------------------------------------------------------------------------
@@ -951,6 +993,7 @@ static void test9_searchMessagesByQueueNameTest()
 // Testing:
 //   JournalFileProcessor::process()
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(modernize-use-emplace)
 {
     bmqtst::TestHelper::printTestName("SEARCH MESSAGES BY QUEUE NAME TEST");
 
@@ -972,9 +1015,11 @@ static void test9_searchMessagesByQueueNameTest()
     bmqp_ctrlmsg::QueueInfo queueInfo(bmqtst::TestHelperUtil::allocator());
     queueInfo.uri() = "queue1";
     mqbu::StorageKey key(mqbu::StorageKey::HexRepresentation(), queueKey1);
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (int i = 0; i < mqbu::StorageKey::e_KEY_LENGTH_BINARY; i++) {
         queueInfo.key().push_back(key.data()[i]);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     QueueMap qMap(bmqtst::TestHelperUtil::allocator());
 
     Parameters params = createTestParameters();
@@ -1004,9 +1049,11 @@ static void test9_searchMessagesByQueueNameTest()
     JournalFile::GuidVectorType::const_iterator guidIt =
         queueKey1GUIDS.cbegin();
     Sequence s;
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (; guidIt != queueKey1GUIDS.cend(); ++guidIt) {
         EXPECT_CALL(*printer, printGuid(*guidIt)).InSequence(s);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     EXPECT_CALL(
         *printer,
         printFooter(queueKey1GUIDS.size(), 0, 0, params.d_processRecordTypes))
@@ -1015,6 +1062,7 @@ static void test9_searchMessagesByQueueNameTest()
     // Run search
     searchProcessor->process();
 }
+// NOLINTEND(modernize-use-emplace)
 
 static void test10_searchMessagesByQueueNameAndQueueKeyTest()
 // ------------------------------------------------------------------------
@@ -1027,6 +1075,7 @@ static void test10_searchMessagesByQueueNameAndQueueKeyTest()
 // Testing:
 //   JournalFileProcessor::process()
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(modernize-use-emplace)
 {
     bmqtst::TestHelper::printTestName(
         "SEARCH MESSAGES BY QUEUE NAME AND QUEUE KEY TEST");
@@ -1051,9 +1100,11 @@ static void test10_searchMessagesByQueueNameAndQueueKeyTest()
     bmqp_ctrlmsg::QueueInfo queueInfo(bmqtst::TestHelperUtil::allocator());
     queueInfo.uri() = "queue1";
     mqbu::StorageKey key(mqbu::StorageKey::HexRepresentation(), queueKey1);
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (int i = 0; i < mqbu::StorageKey::e_KEY_LENGTH_BINARY; i++) {
         queueInfo.key().push_back(key.data()[i]);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     QueueMap qMap(bmqtst::TestHelperUtil::allocator());
 
     Parameters params = createTestParameters();
@@ -1084,9 +1135,11 @@ static void test10_searchMessagesByQueueNameAndQueueKeyTest()
     JournalFile::GuidVectorType::const_iterator guidIt =
         queueKey1GUIDS.cbegin();
     Sequence s;
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (; guidIt != queueKey1GUIDS.cend(); ++guidIt) {
         EXPECT_CALL(*printer, printGuid(*guidIt)).InSequence(s);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     EXPECT_CALL(
         *printer,
         printFooter(queueKey1GUIDS.size(), 0, 0, params.d_processRecordTypes))
@@ -1095,6 +1148,7 @@ static void test10_searchMessagesByQueueNameAndQueueKeyTest()
     // Run search
     searchProcessor->process();
 }
+// NOLINTEND(modernize-use-emplace)
 
 static void test11_searchMessagesByTimestamp()
 // ------------------------------------------------------------------------
@@ -1151,8 +1205,10 @@ static void test11_searchMessagesByTimestamp()
     for (; recordIter != records.end(); ++recordIter) {
         RecordType::Enum rtype = recordIter->first;
         if (rtype == RecordType::e_MESSAGE) {
+            // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
             const MessageRecord& msg = *reinterpret_cast<const MessageRecord*>(
                 recordIter->second.buffer());
+            // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
             const bsls::Types::Uint64& ts = msg.header().timestamp();
             // Get GUIDs of messages with matching timestamps
             if (ts > ts1 && ts < ts2) {
@@ -1228,10 +1284,12 @@ static void test12_printMessagesDetailsTest()
     Sequence s;
 
     JournalFile::GuidVectorType::const_iterator it = confirmedGUIDS.cbegin();
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (; it != confirmedGUIDS.cend(); ++it) {
         EXPECT_CALL(*printer, printMessage(ConfirmedGuidMatcher(*it)))
             .InSequence(s);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     EXPECT_CALL(*printer, printMessage(NotConfirmedGuidMatcher()))
         .Times(2)
         .InSequence(s);
@@ -1257,11 +1315,13 @@ static void test13_searchMessagesWithPayloadDumpTest()
 // Testing:
 //   JournalFileProcessor::process()
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(cppcoreguidelines-pro-type-static-cast-downcast,modernize-use-emplace)
 {
     bmqtst::TestHelper::printTestName(
         "SEARCH MESSAGES WITH PAYLOAD DUMP TEST");
 
     // Simulate data file
+    // NOLINTBEGIN(*-avoid-c-arrays)
     const DataMessage MESSAGES[] = {
         {
             L_,
@@ -1284,19 +1344,23 @@ static void test13_searchMessagesWithPayloadDumpTest()
             ""  //"OPTIONS_OPTIONS_"  // Word aligned
         },
     };
+    // NOLINTEND(*-avoid-c-arrays)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const unsigned int k_NUM_MSGS = sizeof(MESSAGES) / sizeof(*MESSAGES);
 
     FileHeader                fileHeader;
     MappedFileDescriptor      mfdData;
     bsl::vector<unsigned int> messageOffsets(
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     char* pd = addDataRecords(bmqtst::TestHelperUtil::allocator(),
                               &mfdData,
                               &fileHeader,
                               MESSAGES,
                               k_NUM_MSGS,
                               messageOffsets);
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     BMQTST_ASSERT(pd != 0);
     BMQTST_ASSERT_GT(mfdData.fileSize(), 0ULL);
     // Create data file iterator
@@ -1304,6 +1368,7 @@ static void test13_searchMessagesWithPayloadDumpTest()
 
     // Simulate journal file
     const size_t k_NUM_RECORDS =
+        // NOLINTNEXTLINE(bugprone-implicit-widening-of-multiplication-result)
         k_NUM_MSGS * 2;  // k_NUM_MSGS records + k_NUM_MSGS deletion records
 
     JournalFile::RecordsListType records(bmqtst::TestHelperUtil::allocator());
@@ -1359,6 +1424,7 @@ static void test13_searchMessagesWithPayloadDumpTest()
     // Check that substrings are present in resultStream in correct order
     for (unsigned int i = 0; i < k_NUM_MSGS; i++) {
         // Check GUID
+        // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
         bmqt::MessageGUID  guid = confirmedGUIDS.at(i);
         bmqu::MemOutStream ss(bmqtst::TestHelperUtil::allocator());
         outputGuidString(ss, guid);
@@ -1371,6 +1437,7 @@ static void test13_searchMessagesWithPayloadDumpTest()
         startIdx = foundIdx + guidStr.length();
 
         // Check payload dump substring
+        // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
         bsl::string dumpStr = expectedPayloadSubstring[i];
         foundIdx            = resultString.find(dumpStr, startIdx);
 
@@ -1381,6 +1448,7 @@ static void test13_searchMessagesWithPayloadDumpTest()
 
     bmqtst::TestHelperUtil::allocator()->deallocate(pd);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-static-cast-downcast,modernize-use-emplace)
 
 static void test14_summaryTest()
 // ------------------------------------------------------------------------
@@ -1634,6 +1702,7 @@ static void test16_sequenceNumberLowerBoundTest()
 // Testing:
 //   m_bmqstoragetool::moveToLowerBound()
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding)
 {
     bmqtst::TestHelper::printTestName(
         "MOVE TO SEQUENCE NUMBER LOWER BOUND TEST");
@@ -1644,6 +1713,7 @@ static void test16_sequenceNumberLowerBoundTest()
         size_t              d_numRecordsWithSameLeaseId;
         unsigned int        d_leaseIdGt;
         bsls::Types::Uint64 d_seqNumberGt;
+        // NOLINTBEGIN(*-magic-numbers)
     } k_DATA[] = {
         {L_, 32, 4, 3, 2},
         {L_, 3, 2, 1, 2},
@@ -1656,10 +1726,13 @@ static void test16_sequenceNumberLowerBoundTest()
         {L_, 330, 11, 30, 10},  // edge case (prev before last seqNum
                                 // inside last leaseId)
     };
+    // NOLINTEND(*-magic-numbers)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         // Simulate journal file
@@ -1737,6 +1810,7 @@ static void test16_sequenceNumberLowerBoundTest()
                          k_NUM_RECORDS);
     }
 }
+// NOLINTEND(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding)
 
 static void test17_searchMessagesBySequenceNumbersRange()
 // ------------------------------------------------------------------------
@@ -1749,6 +1823,7 @@ static void test17_searchMessagesBySequenceNumbersRange()
 // Testing:
 //   JournalFileProcessor::process()
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName(
         "SEARCH MESSAGES BY SEQUENCE NUMBERS RANGE TEST");
@@ -1796,8 +1871,10 @@ static void test17_searchMessagesBySequenceNumbersRange()
     for (; recordIter != records.end(); ++recordIter) {
         RecordType::Enum rtype = recordIter->first;
         if (rtype == RecordType::e_MESSAGE) {
+            // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
             const MessageRecord& msg = *reinterpret_cast<const MessageRecord*>(
                 recordIter->second.buffer());
+            // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
             const CompositeSequenceNumber seqNum(
                 msg.header().primaryLeaseId(),
                 msg.header().sequenceNumber());
@@ -1816,6 +1893,7 @@ static void test17_searchMessagesBySequenceNumbersRange()
     // Run search
     searchProcessor->process();
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test18_searchMessagesByOffsetsRange()
 // ------------------------------------------------------------------------
@@ -1837,8 +1915,10 @@ static void test18_searchMessagesByOffsetsRange()
                             bmqtst::TestHelperUtil::allocator());
     journalFile.addAllTypesRecords(&records);
     const bsls::Types::Uint64 offsetGt =
+        // NOLINTNEXTLINE(bugprone-implicit-widening-of-multiplication-result)
         mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE * 15 + k_HEADER_SIZE;
     const bsls::Types::Uint64 offsetLt =
+        // NOLINTNEXTLINE(bugprone-implicit-widening-of-multiplication-result)
         mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE * 35 + k_HEADER_SIZE;
 
     // Configure parameters to search messages by offsets
@@ -1875,8 +1955,10 @@ static void test18_searchMessagesByOffsetsRange()
     for (; recordIter != records.end(); ++recordIter) {
         RecordType::Enum rtype = recordIter->first;
         if (rtype == RecordType::e_MESSAGE) {
+            // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
             const MessageRecord& msg = *reinterpret_cast<const MessageRecord*>(
                 recordIter->second.buffer());
+            // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
             const bsls::Types::Uint64 offset = recordOffset(msg);
             if (offset > offsetGt && offset < offsetLt) {
                 EXPECT_CALL(*printer, printGuid(msg.messageGUID()))
@@ -1915,8 +1997,10 @@ static void test19_searchQueueOpRecords()
                             bmqtst::TestHelperUtil::allocator());
     journalFile.addAllTypesRecords(&records);
     const bsls::Types::Uint64 offsetGt =
+        // NOLINTNEXTLINE(bugprone-implicit-widening-of-multiplication-result)
         mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE * 15 + k_HEADER_SIZE;
     const bsls::Types::Uint64 offsetLt =
+        // NOLINTNEXTLINE(bugprone-implicit-widening-of-multiplication-result)
         mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE * 35 + k_HEADER_SIZE;
 
     // Configure parameters to search queueOp records by offsets
@@ -1954,8 +2038,10 @@ static void test19_searchQueueOpRecords()
         RecordType::Enum rtype = recordIter->first;
         if (rtype == RecordType::e_QUEUE_OP) {
             const QueueOpRecord& queueOp =
+                // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
                 *reinterpret_cast<const QueueOpRecord*>(
                     recordIter->second.buffer());
+            // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
             const bsls::Types::Uint64 offset = recordOffset(queueOp);
             if (offset > offsetGt && offset < offsetLt) {
                 ++queueOpCount;
@@ -1995,8 +2081,10 @@ static void test20_searchJournalOpRecords()
                             bmqtst::TestHelperUtil::allocator());
     journalFile.addAllTypesRecords(&records);
     const bsls::Types::Uint64 offsetGt =
+        // NOLINTNEXTLINE(bugprone-implicit-widening-of-multiplication-result)
         mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE * 15 + k_HEADER_SIZE;
     const bsls::Types::Uint64 offsetLt =
+        // NOLINTNEXTLINE(bugprone-implicit-widening-of-multiplication-result)
         mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE * 35 + k_HEADER_SIZE;
 
     // Configure parameters to search journalOp records by offsets
@@ -2034,8 +2122,10 @@ static void test20_searchJournalOpRecords()
         RecordType::Enum rtype = recordIter->first;
         if (rtype == RecordType::e_JOURNAL_OP) {
             const JournalOpRecord& journalOp =
+                // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
                 *reinterpret_cast<const JournalOpRecord*>(
                     recordIter->second.buffer());
+            // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
             const bsls::Types::Uint64 offset = recordOffset(journalOp);
             if (offset > offsetGt && offset < offsetLt) {
                 ++journalOpCount;
@@ -2075,8 +2165,10 @@ static void test21_searchAllTypesRecords()
                             bmqtst::TestHelperUtil::allocator());
     journalFile.addAllTypesRecords(&records);
     const bsls::Types::Uint64 offsetGt =
+        // NOLINTNEXTLINE(bugprone-implicit-widening-of-multiplication-result)
         mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE * 15 + k_HEADER_SIZE;
     const bsls::Types::Uint64 offsetLt =
+        // NOLINTNEXTLINE(bugprone-implicit-widening-of-multiplication-result)
         mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE * 35 + k_HEADER_SIZE;
 
     // Configure parameters to search journalOp records by offsets
@@ -2118,8 +2210,10 @@ static void test21_searchAllTypesRecords()
     for (; recordIter != records.cend(); ++recordIter) {
         RecordType::Enum rtype = recordIter->first;
         if (rtype == RecordType::e_MESSAGE) {
+            // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
             const MessageRecord& msg = *reinterpret_cast<const MessageRecord*>(
                 recordIter->second.buffer());
+            // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
             const bsls::Types::Uint64 offset = recordOffset(msg);
             if (offset > offsetGt && offset < offsetLt) {
                 msgCnt++;
@@ -2129,8 +2223,10 @@ static void test21_searchAllTypesRecords()
         }
         else if (rtype == RecordType::e_QUEUE_OP) {
             const QueueOpRecord& queueOp =
+                // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
                 *reinterpret_cast<const QueueOpRecord*>(
                     recordIter->second.buffer());
+            // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
             const bsls::Types::Uint64 offset = recordOffset(queueOp);
             if (offset > offsetGt && offset < offsetLt) {
                 queueOpCnt++;
@@ -2141,8 +2237,10 @@ static void test21_searchAllTypesRecords()
         }
         else if (rtype == RecordType::e_JOURNAL_OP) {
             const JournalOpRecord& journalOp =
+                // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
                 *reinterpret_cast<const JournalOpRecord*>(
                     recordIter->second.buffer());
+            // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
             const bsls::Types::Uint64 offset = recordOffset(journalOp);
             if (offset > offsetGt && offset < offsetLt) {
                 journalOpCnt++;
@@ -2207,12 +2305,15 @@ static void test22_searchQueueOpRecordsByOffset()
     bsl::size_t resCnt     = 0;
     bsl::size_t queueOpCnt = 0;
     Sequence    s;
+    // NOLINTBEGIN(*-narrowing-conversions)
     for (; recordIter != records.cend(); ++recordIter) {
         RecordType::Enum rtype = recordIter->first;
         if (rtype == RecordType::e_QUEUE_OP) {
             const QueueOpRecord& queueOp =
+                // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
                 *reinterpret_cast<const QueueOpRecord*>(
                     recordIter->second.buffer());
+            // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
             const bsls::Types::Uint64 offset = recordOffset(queueOp);
             if (queueOpCnt++ % 3 == 0) {
                 params.d_offset.push_back(offset);
@@ -2223,6 +2324,7 @@ static void test22_searchQueueOpRecordsByOffset()
             }
         }
     }
+    // NOLINTEND(*-narrowing-conversions)
 
     // Create command processor
     bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
@@ -2290,8 +2392,10 @@ static void test23_searchJournalOpRecordsBySeqNumber()
         RecordType::Enum rtype = recordIter->first;
         if (rtype == RecordType::e_JOURNAL_OP) {
             const JournalOpRecord& journalOp =
+                // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
                 *reinterpret_cast<const JournalOpRecord*>(
                     recordIter->second.buffer());
+            // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
             if (jOpCnt++ % 3 == 0) {
                 CompositeSequenceNumber expectedComposite(
                     journalOp.header().primaryLeaseId(),
@@ -2371,13 +2475,16 @@ static void test24_searchConfirmAndDeletionRecordsByOffset()
     bsl::size_t foundConfirmCnt  = 0;
     bsl::size_t foundDeletionCnt = 0;
     Sequence    s;
+    // NOLINTBEGIN(*-magic-numbers)
     for (; recordIter != records.end(); ++recordIter) {
         RecordType::Enum rtype = recordIter->first;
         if (rtype == RecordType::e_CONFIRM) {
             if (++confirmCnt % 5 == 0) {
                 const ConfirmRecord& confirm =
+                    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
                     *reinterpret_cast<const ConfirmRecord*>(
                         recordIter->second.buffer());
+                // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
                 const bsls::Types::Uint64 offset = recordOffset(confirm);
                 params.d_offset.emplace_back(offset);
 
@@ -2389,8 +2496,10 @@ static void test24_searchConfirmAndDeletionRecordsByOffset()
         else if (rtype == RecordType::e_DELETION) {
             if (++deletionCnt % 5 == 0) {
                 const DeletionRecord& deletion =
+                    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
                     *reinterpret_cast<const DeletionRecord*>(
                         recordIter->second.buffer());
+                // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
                 const bsls::Types::Uint64 offset = recordOffset(deletion);
                 params.d_offset.emplace_back(offset);
 
@@ -2400,6 +2509,7 @@ static void test24_searchConfirmAndDeletionRecordsByOffset()
             }
         }
     }
+    // NOLINTEND(*-magic-numbers)
 
     // Create command processor
     bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
@@ -2434,6 +2544,7 @@ static void test25_searchConfirmAndDeletionRecordsBySeqNumber()
 // Testing:
 //   JournalFileProcessor::process()
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName(
         "SEARCH CONFIRM AND DELETION RECORDS BY SEQUENCE NUMBER TEST");
@@ -2470,13 +2581,16 @@ static void test25_searchConfirmAndDeletionRecordsBySeqNumber()
     bsl::size_t foundConfirmCnt  = 0;
     bsl::size_t foundDeletionCnt = 0;
     Sequence    s;
+    // NOLINTBEGIN(*-magic-numbers)
     for (; recordIter != records.end(); ++recordIter) {
         RecordType::Enum rtype = recordIter->first;
         if (rtype == RecordType::e_CONFIRM) {
             if (++confirmCnt % 5 == 0) {
                 const ConfirmRecord& confirm =
+                    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
                     *reinterpret_cast<const ConfirmRecord*>(
                         recordIter->second.buffer());
+                // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
                 CompositeSequenceNumber expectedComposite(
                     confirm.header().primaryLeaseId(),
                     confirm.header().sequenceNumber());
@@ -2489,8 +2603,10 @@ static void test25_searchConfirmAndDeletionRecordsBySeqNumber()
         else if (rtype == RecordType::e_DELETION) {
             if (++deletionCnt % 5 == 0) {
                 const DeletionRecord& deletion =
+                    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
                     *reinterpret_cast<const DeletionRecord*>(
                         recordIter->second.buffer());
+                // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
                 CompositeSequenceNumber expectedComposite(
                     deletion.header().primaryLeaseId(),
                     deletion.header().sequenceNumber());
@@ -2501,6 +2617,7 @@ static void test25_searchConfirmAndDeletionRecordsBySeqNumber()
             }
         }
     }
+    // NOLINTEND(*-magic-numbers)
 
     // Create command processor
     bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
@@ -2523,6 +2640,7 @@ static void test25_searchConfirmAndDeletionRecordsBySeqNumber()
     // Run search
     searchProcessor->process();
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test26_summaryWithQueueDetailsTest()
 // ------------------------------------------------------------------------
@@ -2534,6 +2652,7 @@ static void test26_summaryWithQueueDetailsTest()
 // Testing:
 //   JournalFileProcessor::process()
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName(
         "OUTPUT SUMMARY WITH QUEUE DETAILS TEST");
@@ -2612,12 +2731,14 @@ static void test26_summaryWithQueueDetailsTest()
     // Run search
     searchProcessor->process();
 }
+// NOLINTEND(*-magic-numbers)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     ::testing::GTEST_FLAG(throw_on_failure) = true;
     ::testing::InitGoogleMock(&argc, argv);
@@ -2659,3 +2780,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

@@ -161,16 +161,20 @@ class DataFileIterator {
 // ----------------------
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline DataFileIterator::DataFileIterator()
 {
     clear();
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline DataFileIterator::DataFileIterator(const MappedFileDescriptor* mfd,
                                           const FileHeader& fileHeader)
 {
     reset(mfd, fileHeader);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // MANIPULATORS
 inline void DataFileIterator::clear()

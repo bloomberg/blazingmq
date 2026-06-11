@@ -120,6 +120,7 @@ class SystemExecutor_Context;
 /// `FUNCTION` must meet the requirements of Destructible as specified in
 /// the C++ standard.
 template <class FUNCTION>
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct SystemExecutor_ThreadData {
     // DATA
 
@@ -159,12 +160,14 @@ struct SystemExecutor_ThreadData {
                                   function,
                               bslma::Allocator* allocator);
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================
 // class SystemExecutor_Context
 // ============================
 
 /// Provides a singleton execution context for `SystemExecutor`.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class SystemExecutor_Context {
   private:
     // PRIVATE DATA
@@ -293,6 +296,7 @@ class SystemExecutor_Context {
     /// memory.
     bslma::Allocator* allocator() const BSLS_KEYWORD_NOEXCEPT;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ====================
 // class SystemExecutor
@@ -375,6 +379,7 @@ class SystemExecutor {
 /// Provides a scoped guard for the system execution context singleton, that
 /// initializes the singleton object on construction and destroy the singleton
 /// object on destruction.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class SystemExecutorContextGuard {
   private:
     // NOT IMPLEMENTED
@@ -394,6 +399,7 @@ class SystemExecutorContextGuard {
     /// Destroy the system execution context singleton.
     ~SystemExecutorContextGuard();
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // FREE OPERATORS
 
@@ -420,6 +426,7 @@ bool operator!=(const SystemExecutor& lhs,
 // --------------------------------
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
 template <class FUNCTION>
 template <class FUNCTION_PARAM>
 inline SystemExecutor_ThreadData<FUNCTION>::SystemExecutor_ThreadData(
@@ -436,6 +443,7 @@ inline SystemExecutor_ThreadData<FUNCTION>::SystemExecutor_ThreadData(
     BSLS_ASSERT(context);
     BSLS_ASSERT(allocator);
 }
+// NOLINTEND(cppcoreguidelines-missing-std-forward)
 
 // ----------------------------
 // class SystemExecutor_Context
@@ -446,6 +454,7 @@ template <class THREAD_DATA>
 inline void* SystemExecutor_Context::threadRunHandler(void* threadData)
     BSLS_KEYWORD_NOEXCEPT
 {
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     THREAD_DATA* typedThreadData = reinterpret_cast<THREAD_DATA*>(threadData);
 
     // PRECONDITIONS
@@ -458,6 +467,7 @@ inline void* SystemExecutor_Context::threadRunHandler(void* threadData)
 
 // PRIVATE MANIPULATORS
 template <class THREAD_DATA>
+// NOLINTBEGIN(bugprone-exception-escape)
 inline void
 SystemExecutor_Context::onThreadRun(THREAD_DATA* threadData) BSLS_NOTHROW_SPEC
 {
@@ -486,12 +496,15 @@ SystemExecutor_Context::onThreadRun(THREAD_DATA* threadData) BSLS_NOTHROW_SPEC
     // establish necessary postconditions before thread completion
     finalizeThread(thisThread);
 }
+// NOLINTEND(bugprone-exception-escape)
 
 // MANIPULATORS
 template <class FUNCTION>
+// NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
 inline void SystemExecutor_Context::executeAsync(
     BSLS_COMPILERFEATURES_FORWARD_REF(FUNCTION) f,
     const bslmt::ThreadAttributes& threadAttributes)
+// NOLINTEND(cppcoreguidelines-missing-std-forward)
 {
     // PRECONDITIONS
     BSLS_ASSERT(threadAttributes.detachedState() ==
@@ -530,8 +543,10 @@ inline void SystemExecutor_Context::executeAsync(
 }
 
 template <class FUNCTION>
+// NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
 inline void SystemExecutor_Context::executeInPlace(
     BSLS_COMPILERFEATURES_FORWARD_REF(FUNCTION) f)
+// NOLINTEND(cppcoreguidelines-missing-std-forward)
 {
     // make a local, non-const copy of the function
     bslalg::ConstructorProxy<typename bsl::decay<FUNCTION>::type> f2(
@@ -548,8 +563,10 @@ inline void SystemExecutor_Context::executeInPlace(
 
 // MANIPULATORS
 template <class FUNCTION>
+// NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
 inline void SystemExecutor::post(BSLS_COMPILERFEATURES_FORWARD_REF(FUNCTION)
                                      f) const
+// NOLINTEND(cppcoreguidelines-missing-std-forward)
 {
     SystemExecutor_Context::singleton().executeAsync(
         BSLS_COMPILERFEATURES_FORWARD(FUNCTION, f),
@@ -557,12 +574,14 @@ inline void SystemExecutor::post(BSLS_COMPILERFEATURES_FORWARD_REF(FUNCTION)
 }
 
 template <class FUNCTION>
+// NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
 inline void
 SystemExecutor::dispatch(BSLS_COMPILERFEATURES_FORWARD_REF(FUNCTION) f) const
 {
     SystemExecutor_Context::singleton().executeInPlace(
         BSLS_COMPILERFEATURES_FORWARD(FUNCTION, f));
 }
+// NOLINTEND(cppcoreguidelines-missing-std-forward)
 
 // --------------------------------
 // class SystemExecutorContextGuard

@@ -32,6 +32,7 @@ namespace bmqst {
 namespace {
 
 // CONSTANTS
+// NOLINTNEXTLINE(cert-err58-cpp)
 const bslstl::StringRef NA_STRING("N/A");
 
 // FUNCTIONS
@@ -389,6 +390,7 @@ void BasicTableInfoProvider::setTitle(const bslstl::StringRef& title)
 }
 
 void BasicTableInfoProvider::setColumnGroup(const bslstl::StringRef& groupName)
+// NOLINTBEGIN(modernize-use-emplace)
 {
     if (!d_columns.empty() && d_columnGroups.empty()) {
         d_columnGroups.push_back("");
@@ -396,6 +398,7 @@ void BasicTableInfoProvider::setColumnGroup(const bslstl::StringRef& groupName)
 
     d_columnGroups.push_back(groupName);
 }
+// NOLINTEND(modernize-use-emplace)
 
 BasicTableInfoProvider::ColumnFormat&
 BasicTableInfoProvider::addColumn(const bslstl::StringRef& tableColumnName,

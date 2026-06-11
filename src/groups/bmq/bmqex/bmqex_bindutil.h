@@ -146,12 +146,16 @@
 #include <bsls_compilerfeatures.h>
 
 #if BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
+// clang-format off
 // Include version that can be compiled with C++03
-// Generated on Wed Jun 18 14:44:15 2025
+// Generated on Thu Jun 11 19:52:31 2026
 // Command line: sim_cpp11_features.pl bmqex_bindutil.h
-#define COMPILING_BMQEX_BINDUTIL_H
-#include <bmqex_bindutil_cpp03.h>
-#undef COMPILING_BMQEX_BINDUTIL_H
+
+# define COMPILING_BMQEX_BINDUTIL_H
+# include <bmqex_bindutil_cpp03.h>
+# undef COMPILING_BMQEX_BINDUTIL_H
+
+// clang-format on
 #else
 
 namespace BloombergLP {
@@ -193,6 +197,7 @@ struct BindUtil_DummyNullaryFunction {
 /// `FUNCTION` must meet the requirements of Destructible as specified in
 /// the C++ standard.
 template <class POLICY, class FUNCTION>
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class BindUtil_BindWrapper {
   private:
     // PRIVATE DATA
@@ -275,6 +280,7 @@ class BindUtil_BindWrapper {
     BSLMF_NESTED_TRAIT_DECLARATION(BindUtil_BindWrapper,
                                    bslma::UsesBslmaAllocator)
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ===============
 // struct BindUtil
@@ -322,6 +328,7 @@ struct BindUtil {
 // --------------------------
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
 template <class POLICY, class FUNCTION>
 template <class POLICY_PARAM, class FUNCTION_PARAM>
 inline BindUtil_BindWrapper<POLICY, FUNCTION>::BindUtil_BindWrapper(
@@ -334,6 +341,7 @@ inline BindUtil_BindWrapper<POLICY, FUNCTION>::BindUtil_BindWrapper(
 {
     // NOTHING
 }
+// NOLINTEND(cppcoreguidelines-missing-std-forward)
 
 template <class POLICY, class FUNCTION>
 inline BindUtil_BindWrapper<POLICY, FUNCTION>::BindUtil_BindWrapper(
@@ -367,6 +375,7 @@ BindUtil_BindWrapper<POLICY, FUNCTION>::operator()() const
 }
 
 #if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES  // $var-args=8
+// NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
 template <class POLICY, class FUNCTION>
 template <class ARG1, class... ARGS>
 inline typename ExecutionUtil::ExecuteResult<
@@ -376,6 +385,7 @@ inline typename ExecutionUtil::ExecuteResult<
                                   typename bsl::decay<ARGS>::type...> >::Type
 BindUtil_BindWrapper<POLICY, FUNCTION>::operator()(ARG1&& arg1,
                                                    ARGS&&... args) const
+// NOLINTEND(cppcoreguidelines-missing-std-forward)
 {
     typedef typename ExecutionUtil::ExecuteResult<
         POLICY,
@@ -398,10 +408,12 @@ BindUtil_BindWrapper<POLICY, FUNCTION>::operator()(ARG1&& arg1,
 
 // CLASS METHODS
 template <class POLICY, class FUNCTION>
+// NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
 inline BindUtil_BindWrapper<typename bsl::decay<POLICY>::type,
                             typename bsl::decay<FUNCTION>::type>
 BindUtil::bindExecute(BSLS_COMPILERFEATURES_FORWARD_REF(POLICY) policy,
                       BSLS_COMPILERFEATURES_FORWARD_REF(FUNCTION) function)
+// NOLINTEND(cppcoreguidelines-missing-std-forward)
 {
     return BindUtil_BindWrapper<typename bsl::decay<POLICY>::type,
                                 typename bsl::decay<FUNCTION>::type>(
@@ -414,6 +426,7 @@ BindUtil::bindExecute(BSLS_COMPILERFEATURES_FORWARD_REF(POLICY) policy,
 }  // close enterprise namespace
 
 #endif  // End C++11 code
+
 #include <bsl_type_traits.h>
 
 #endif

@@ -55,6 +55,7 @@ static void test1_decodeHexDumpTest()
 // Testing:
 //   decodeHexDump
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding)
 {
     bmqtst::TestHelper::printTestName("DECODEHEXDUMP TEST");
 
@@ -98,8 +99,10 @@ static void test1_decodeHexDumpTest()
          ""},
     };
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         bsl::istringstream input(
@@ -121,6 +124,7 @@ static void test1_decodeHexDumpTest()
         BMQTST_ASSERT_EQ_D(test.d_line, output.str(), test.d_expectedOutput);
     }
 }
+// NOLINTEND(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding)
 
 static void test2_loadMessageFromFileTest()
 // ------------------------------------------------------------------------
@@ -136,6 +140,7 @@ static void test2_loadMessageFromFileTest()
 // Testing:
 //   loadMessageFromFile
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding)
 {
     bmqtst::TestHelper::printTestName("LOADMESSAGEFROMFILE TEST");
 
@@ -269,12 +274,15 @@ static void test2_loadMessageFromFileTest()
         BMQTST_ASSERT_EQ(error.str(), "Failed to open file: wrongFilePath");
     }
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         // Create temp file and write content
-        bmqtst::TempFile  tempFile(bmqtst::TestHelperUtil::allocator());
+        bmqtst::TempFile tempFile(bmqtst::TestHelperUtil::allocator());
+        // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
         const bsl::string filePath = tempFile.path();
         {
             bsl::ofstream ofs(filePath.c_str());
@@ -298,9 +306,11 @@ static void test2_loadMessageFromFileTest()
         // Check payload
         BMQTST_ASSERT_EQ_D(test.d_line, payload.str(), test.d_expectedPayload);
         // Check properties (deserialize into properties instance)
+        // NOLINTBEGIN(*-magic-numbers)
         bdlbb::PooledBlobBufferFactory bufferFactory(
             128,
             bmqtst::TestHelperUtil::allocator());
+        // NOLINTEND(*-magic-numbers)
         bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
         bmqa::MessageProperties messageProperties(
             bmqtst::TestHelperUtil::allocator());
@@ -310,12 +320,14 @@ static void test2_loadMessageFromFileTest()
         BMQTST_ASSERT_EQ_D(test.d_line, messageProperties.streamIn(blob), 0);
     }
 }
+// NOLINTEND(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -335,3 +347,4 @@ int main(int argc, char* argv[])
     // 'bmqa::MessageProperties' or one of its data members may allocate
     // temporaries with default allocator. The same for 'bmqtst::TempFile'.
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

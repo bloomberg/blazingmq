@@ -45,6 +45,7 @@ namespace mqbmock {
 // ====================
 
 /// Mock implementation of the `mqbsi::LogIdGenerator` interface.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class LogIdGenerator BSLS_KEYWORD_FINAL : public mqbsi::LogIdGenerator {
   private:
     // DATA
@@ -78,6 +79,7 @@ class LogIdGenerator BSLS_KEYWORD_FINAL : public mqbsi::LogIdGenerator {
     void generateLogId(bsl::string*      logName,
                        mqbu::StorageKey* logId) BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

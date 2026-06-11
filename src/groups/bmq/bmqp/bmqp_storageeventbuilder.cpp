@@ -44,6 +44,7 @@ bmqt::EventBuilderResult::Enum StorageEventBuilder::packMessageImp(
     unsigned int             journalOffsetWords,
     const bdlbb::BlobBuffer& journalRecordBuffer,
     const bdlbb::BlobBuffer& payloadBuffer)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     unsigned int totalLength = journalRecordBuffer.size() +
                                payloadBuffer.size();
@@ -101,6 +102,7 @@ bmqt::EventBuilderResult::Enum StorageEventBuilder::packMessageImp(
     ++d_msgCount;
     return bmqt::EventBuilderResult::e_SUCCESS;
 }
+// NOLINTEND(*-narrowing-conversions)
 
 // CREATORS
 StorageEventBuilder::StorageEventBuilder(int storageProtocolVersion,
@@ -204,8 +206,10 @@ const bsl::shared_ptr<bdlbb::Blob>& StorageEventBuilder::blob() const
 
     // Fix packet's length in header now that we know it ..  Following is valid
     // (see comment in reset)
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     EventHeader& eh = *reinterpret_cast<EventHeader*>(
         d_blob_sp->buffer(0).data());
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
     eh.setLength(d_blob_sp->length());
 
     return d_blob_sp;

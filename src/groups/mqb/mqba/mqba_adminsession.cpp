@@ -85,6 +85,7 @@ BALL_LOG_SET_NAMESPACE_CATEGORY("MQBA.ADMINSESSION");
 /// field of the specified `negotiationMesage`.
 bmqp_ctrlmsg::ClientIdentity* extractClientIdentity(
     const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage)
+// NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast)
 {
     switch (negotiationMessage.selectionId()) {
     case bmqp_ctrlmsg::NegotiationMessage::SELECTION_INDEX_CLIENT_IDENTITY: {
@@ -101,6 +102,7 @@ bmqp_ctrlmsg::ClientIdentity* extractClientIdentity(
     }
     };
 }
+// NOLINTEND(cppcoreguidelines-pro-type-const-cast)
 
 }  // close unnamed namespace
 
@@ -188,6 +190,7 @@ void AdminSession::initiateShutdownDispatched(const ShutdownCb& callback)
 void AdminSession::finalizeAdminCommand(
     const bmqp_ctrlmsg::ControlMessage& adminCommandCtrlMsg,
     const bsl::string&                  commandExecResults)
+// NOLINTBEGIN(bugprone-unchecked-optional-access)
 {
     // executed by the *CLIENT* dispatcher thread
 
@@ -197,8 +200,10 @@ void AdminSession::finalizeAdminCommand(
     BSLS_ASSERT_SAFE(d_state.d_schemaEventBuilder.blob()->length() == 0);
 
     // Send success/error response to client
+    // NOLINTBEGIN(*-magic-numbers)
     bdlma::LocalSequentialAllocator<2048> localAllocator(
         d_state.d_allocator_p);
+    // NOLINTEND(*-magic-numbers)
 
     bmqp_ctrlmsg::ControlMessage response(&localAllocator);
     response.rId() = adminCommandCtrlMsg.rId().value();
@@ -225,6 +230,7 @@ void AdminSession::finalizeAdminCommand(
     // Send the response.
     sendPacket();
 }
+// NOLINTEND(bugprone-unchecked-optional-access)
 
 void AdminSession::onProcessedAdminCommand(
     const bmqp_ctrlmsg::ControlMessage& adminCommandCtrlMsg,
@@ -287,6 +293,7 @@ AdminSession::AdminSession(
           allocator)
 , d_scheduler_p(scheduler)
 , d_adminCb(adminCb)
+// NOLINTBEGIN(clang-analyzer-optin.cplusplus.VirtualCall)
 {
     // Register this client to the dispatcher
     mqbi::Dispatcher::ProcessorHandle processor = dispatcher->registerClient(
@@ -298,8 +305,10 @@ AdminSession::AdminSession(
                   << ", identity: " << *(d_clientIdentity_p)
                   << ", ptr: " << this;
 }
+// NOLINTEND(clang-analyzer-optin.cplusplus.VirtualCall)
 
 AdminSession::~AdminSession()
+// NOLINTBEGIN(clang-analyzer-optin.cplusplus.VirtualCall)
 {
     // executed by ONE of the *QUEUE* dispatcher threads
 
@@ -311,6 +320,7 @@ AdminSession::~AdminSession()
     // Unregister from the dispatcher
     dispatcher()->unregisterClient(this);
 }
+// NOLINTEND(clang-analyzer-optin.cplusplus.VirtualCall)
 
 // MANIPULATORS
 //   (virtual: mqbnet::Session)
@@ -325,8 +335,10 @@ void AdminSession::processEvent(const bmqp::Event& event,
         return;  // RETURN
     }
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlma::LocalSequentialAllocator<2048> localAllocator(
         d_state.d_allocator_p);
+    // NOLINTEND(*-magic-numbers)
     bmqp_ctrlmsg::ControlMessage controlMessage(&localAllocator);
 
     int rc = event.loadControlEvent(&controlMessage);

@@ -210,6 +210,7 @@ void Util::printCommandResponses(const mqbcmd::RouteResponseList& responseList,
     typedef bsl::vector<BloombergLP::mqbcmd::RouteResponse>
         RouteResponseVector;
 
+    // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
     RouteResponseVector responses = responseList.responses();
 
     // When there is only 1 response (as in single route or self exec.)

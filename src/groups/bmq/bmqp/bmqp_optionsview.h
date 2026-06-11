@@ -87,6 +87,7 @@ class OptionsView {
     typedef bsl::vector<bmqu::BlobPosition> OptionPositions;
 
     /// Enables iteration on `bmqp::OptionsView`
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     class Iterator {
       private:
         // DATA
@@ -128,6 +129,7 @@ class OptionsView {
         /// itself is the same in both objects, return `false` otherwise.
         bool operator==(const Iterator& rhs) const;
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
   public:
     // PUBLIC TYPES
@@ -361,12 +363,14 @@ OptionsView::Iterator::operator=(const Iterator& rhs)
 
 // MANIPULATORS
 inline void OptionsView::Iterator::operator++()
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_optionsView_p);
 
     *this = d_optionsView_p->advance(d_offset).imp();
 }
+// NOLINTEND(*-narrowing-conversions)
 
 // ACCESSORS
 inline const bmqp::OptionType::Enum& OptionsView::Iterator::operator*() const
@@ -410,6 +414,7 @@ int OptionsView::loadSubQueueInfosOptionHelper(
     bsl::vector<SUB_QUEUE_INFO>* out,
     int                          itemSize,
     OptionType::Enum             optionType) const
+// NOLINTBEGIN(cppcoreguidelines-init-variables,cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(out && out->empty());
@@ -460,6 +465,7 @@ int OptionsView::loadSubQueueInfosOptionHelper(
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-init-variables,cppcoreguidelines-pro-type-reinterpret-cast,cppcoreguidelines-use-enum-class)
 
 // CREATORS
 inline OptionsView::OptionsView(bslma::Allocator* allocator)

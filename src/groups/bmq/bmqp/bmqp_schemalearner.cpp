@@ -29,6 +29,7 @@ namespace bmqp {
 // ============================
 
 /// This struct keeps opaque data associated with each Schema
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct SchemaLearner::SchemaHandle BSLS_KEYWORD_FINAL {
     LRU::const_iterator d_listIterator;
     // Iterator in the list of keys which assists in
@@ -47,6 +48,7 @@ struct SchemaLearner::SchemaHandle BSLS_KEYWORD_FINAL {
 
     ~SchemaHandle();
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // CREATORS
 SchemaLearner::SchemaHandle::SchemaHandle(SchemaIdType id)
@@ -363,7 +365,9 @@ int SchemaLearner::read(Context&                     context,
                         MessageProperties*           mps,
                         const MessagePropertiesInfo& messagePropertiesInfo,
                         const bdlbb::Blob&           blob) const
+// NOLINTBEGIN(*-magic-numbers)
 {
+    // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
     enum RcEnum { rc_SUCCESS = 0, rc_PARSING_ERROR = -1 };
 
     BSLS_ASSERT_SAFE(mps);
@@ -406,6 +410,7 @@ int SchemaLearner::read(Context&                     context,
 
     return rc;
 }
+// NOLINTEND(*-magic-numbers)
 
 // CLASS METHODS
 bool SchemaLearner::isPresentAndValid(SchemaIdType schemaId)

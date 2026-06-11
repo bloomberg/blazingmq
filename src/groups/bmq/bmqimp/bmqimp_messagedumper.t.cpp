@@ -78,6 +78,7 @@ namespace {
 static bool regexMatch(const bslstl::StringRef& str,
                        const char*              pattern,
                        bslma::Allocator*        allocator)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(pattern);
@@ -99,9 +100,11 @@ static bool regexMatch(const bslstl::StringRef& str,
 
     return rc == 0;
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 /// This class provides a wrapper on top of the MessageDumper under test and
 /// implements a few mechanisms to help testing the object.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct Tester BSLS_CPP11_FINAL {
     /// full URI -> QueueId (id, subId)
     typedef bsl::unordered_map<bsl::string, bmqp::QueueId> QueueIdsMap;
@@ -301,6 +304,7 @@ struct Tester BSLS_CPP11_FINAL {
     /// Return the current time in total nanoseconds.
     bsls::Types::Int64 highResolutionTimer() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ------
 // Tester
@@ -322,6 +326,7 @@ Tester::Tester(bslma::Allocator* allocator)
                   allocator)
 , d_nextCorrelationId(0)
 , d_time(0, 0)
+// NOLINTNEXTLINE(*-magic-numbers)
 , d_bufferFactory(1024, allocator)
 , d_blobSpPool_sp(
       bmqp::BlobPoolUtil::createBlobPool(&d_bufferFactory, allocator))
@@ -394,6 +399,7 @@ void Tester::insertQueue(const bslstl::StringRef& uri)
 void Tester::packPushMessage(const bslstl::StringRef& uri,
                              const bslstl::StringRef& payload,
                              unsigned int             subscriptionId)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(d_queueIdsByUri.find(uri) != d_queueIdsByUri.end() &&
@@ -425,6 +431,7 @@ void Tester::packPushMessage(const bslstl::StringRef& uri,
         bmqt::CompressionAlgorithmType::e_NONE);
     BSLS_ASSERT_OPT(rc == 0);
 }
+// NOLINTEND(*-narrowing-conversions)
 
 void Tester::appendAckMessage(const bslstl::StringRef& uri,
                               bmqt::AckResult::Enum    ackResult)
@@ -453,6 +460,7 @@ void Tester::appendAckMessage(const bslstl::StringRef& uri,
 
 void Tester::packPutMessage(const bslstl::StringRef& uri,
                             const bslstl::StringRef& payload)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(d_queueIdsByUri.find(uri) != d_queueIdsByUri.end() &&
@@ -475,6 +483,7 @@ void Tester::packPutMessage(const bslstl::StringRef& uri,
     int rc = d_putEventBuilder.packMessage(queueId.id());
     BSLS_ASSERT_OPT(rc == 0);
 }
+// NOLINTEND(*-narrowing-conversions)
 
 void Tester::appendConfirmMessage(const bslstl::StringRef& uri)
 
@@ -488,9 +497,11 @@ void Tester::appendConfirmMessage(const bslstl::StringRef& uri)
 
     queueId = d_queueIdsByUri.find(uri)->second;
 
+    // NOLINTBEGIN(*-narrowing-conversions)
     int rc = d_confirmEventBuilder.appendMessage(queueId.id(),
                                                  queueId.subId(),
                                                  msgGUID);
+    // NOLINTEND(*-narrowing-conversions)
     BSLS_ASSERT_OPT(rc == 0);
 }
 
@@ -554,9 +565,11 @@ void Tester::updateSubscriptions(const bslstl::StringRef&              uri,
 
 // ACCESSORS
 bool Tester::isEventDumpEnabled(const bmqp::EventType::Enum& type) const
+// NOLINTBEGIN(bugprone-branch-clone)
 {
     bool result = false;
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define CASE(t)                                                               \
     case (t): {                                                               \
         result = d_messageDumper.isEventDumpEnabled<(t)>();                   \
@@ -589,6 +602,7 @@ bool Tester::isEventDumpEnabled(const bmqp::EventType::Enum& type) const
 
     return result;
 }
+// NOLINTEND(bugprone-branch-clone)
 
 bmqp::Event& Tester::pushEvent(bmqp::Event* event) const
 {
@@ -699,6 +713,7 @@ static void test2_parseCommand()
 // Testing:
 //   MessageDumper::parseCommand
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Logging infrastructure allocates using the default allocator, and
@@ -713,6 +728,7 @@ static void test2_parseCommand()
         bmqp_ctrlmsg::DumpMsgType::Value    d_expectedMsgTypeToDump;
         bmqp_ctrlmsg::DumpActionType::Value d_expectedDumpActionType;
         int                                 d_expectedDumpActionValue;
+        // NOLINTBEGIN(*-magic-numbers)
     } k_DATA[] = {
 
         // IN
@@ -1036,10 +1052,14 @@ static void test2_parseCommand()
          ,
          0}  // dumpActionValue
     };
+    // NOLINTEND(*-magic-numbers)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         PVV(test.d_line << ": parsing dump command: [command: "
@@ -1076,7 +1096,9 @@ static void test2_parseCommand()
         BMQTST_ASSERT_EQ(dumpMessagesCommand.dumpActionValue(),
                          test.d_expectedDumpActionValue);
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 static void test3_processDumpCommand()
 // ------------------------------------------------------------------------
@@ -1093,6 +1115,7 @@ static void test3_processDumpCommand()
 // Testing:
 //   processDumpCommand
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding)
 {
     bmqtst::TestHelper::printTestName("PROCESS DUMP COMMAND");
 
@@ -1111,10 +1134,13 @@ static void test3_processDumpCommand()
                   {L_, "OUT 1s", false, false, true, true},
                   {L_, "IN OFF", false, false, false, false}};
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
-        Tester      tester(bmqtst::TestHelperUtil::allocator());
+        Tester tester(bmqtst::TestHelperUtil::allocator());
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         // 1. Process various DumpMessages commands and verify that dumping of
@@ -1138,7 +1164,9 @@ static void test3_processDumpCommand()
         BMQTST_ASSERT_EQ(tester.isEventDumpEnabled(bmqp::EventType::e_CONFIRM),
                          test.d_isConfirmEnabled);
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding)
 
 static void test4_processDumpCommand_invalidDumpMessage()
 // ------------------------------------------------------------------------
@@ -1161,6 +1189,7 @@ static void test4_processDumpCommand_invalidDumpMessage()
 // Testing:
 //   processDumpCommand
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Logging infrastructure allocates using the default allocator, and
@@ -1183,10 +1212,13 @@ static void test4_processDumpCommand_invalidDumpMessage()
                   {L_, "OUT 1s", false, false, true, true},
                   {L_, "IN OFF", false, false, false, false}};
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
-        Tester      tester(bmqtst::TestHelperUtil::allocator());
+        Tester tester(bmqtst::TestHelperUtil::allocator());
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         // a. Process the command and verify that dumping of the corresponding
@@ -1210,7 +1242,9 @@ static void test4_processDumpCommand_invalidDumpMessage()
         BMQTST_ASSERT_EQ(tester.isEventDumpEnabled(bmqp::EventType::e_CONFIRM),
                          test.d_isConfirmEnabled);
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding)
 
 static void test5_reset()
 // ------------------------------------------------------------------------
@@ -1228,6 +1262,7 @@ static void test5_reset()
 // Testing:
 //   reset
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Logging infrastructure allocates using the default allocator, and
@@ -1250,10 +1285,13 @@ static void test5_reset()
                   {L_, "OUT 1s", false, false, true, true},
                   {L_, "IN OFF", false, false, false, false}};
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
-        Tester      tester(bmqtst::TestHelperUtil::allocator());
+        Tester tester(bmqtst::TestHelperUtil::allocator());
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         // 1. Process various DumpMessages commands and verify that dumping of
@@ -1290,7 +1328,9 @@ static void test5_reset()
         BMQTST_ASSERT_EQ(tester.isEventDumpEnabled(bmqp::EventType::e_CONFIRM),
                          false);
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding)
 
 static void test6_dumpPushEvent()
 // ------------------------------------------------------------------------
@@ -1316,6 +1356,7 @@ static void test6_dumpPushEvent()
 // Testing:
 //   dumpPushEvent
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // QueueManager's 'generateQueueAndSubQueueId' method creates a
@@ -1437,6 +1478,7 @@ static void test6_dumpPushEvent()
     BMQTST_ASSERT_EQ(tester.isEventDumpEnabled(bmqp::EventType::e_PUSH),
                      false);
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test7_dumpAckEvent()
 // ------------------------------------------------------------------------
@@ -1466,6 +1508,7 @@ static void test7_dumpAckEvent()
 // Testing:
 //   dumpAckEvent
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // QueueManager's 'generateQueueAndSubQueueId' method creates a
@@ -1565,6 +1608,7 @@ static void test7_dumpAckEvent()
 
     BMQTST_ASSERT_EQ(tester.isEventDumpEnabled(bmqp::EventType::e_ACK), false);
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 static void test8_dumpPutEvent()
 // ------------------------------------------------------------------------
@@ -1586,6 +1630,7 @@ static void test8_dumpPutEvent()
 // Testing:
 //   dumpPushEvent
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // QueueManager's 'generateQueueAndSubQueueId' method creates a
@@ -1657,6 +1702,7 @@ static void test8_dumpPutEvent()
 
     BMQTST_ASSERT_EQ(tester.isEventDumpEnabled(bmqp::EventType::e_PUT), false);
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test9_dumpConfirmEvent()
 // ------------------------------------------------------------------------
@@ -1691,6 +1737,7 @@ static void test9_dumpConfirmEvent()
 // Testing:
 //   dumpConfirmEvent
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // QueueManager's 'generateQueueAndSubQueueId' method creates a
@@ -1803,12 +1850,14 @@ static void test9_dumpConfirmEvent()
     BMQTST_ASSERT_EQ(tester.isEventDumpEnabled(bmqp::EventType::e_CONFIRM),
                      false);
 }
+// NOLINTEND(performance-avoid-endl)
 
 //=============================================================================
 //                              MAIN PROGRAM
 //-----------------------------------------------------------------------------
 
 int main(int argc, char** argv)
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -1831,3 +1880,4 @@ int main(int argc, char** argv)
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

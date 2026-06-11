@@ -96,8 +96,10 @@ bool verifyStreamParameters(const bmqp_ctrlmsg::StreamParameters& parameters)
 const int k_MAX_INSTANT_MESSAGES = 10;
 // Maximum messages logged with throttling in a short period of time.
 
+// NOLINTBEGIN(cppcoreguidelines-interfaces-global-init)
 const bsls::Types::Int64 k_NS_PER_MESSAGE =
     bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MINUTE / k_MAX_INSTANT_MESSAGES;
+// NOLINTEND(cppcoreguidelines-interfaces-global-init)
 // Time interval between messages logged with throttling.
 
 const bsls::Types::Int64 k_FLOW_CONTROL_LOW_WATERMARK  = 10;
@@ -112,6 +114,7 @@ const unsigned int       k_FLOW_CONTROL_BATCH          = 100;
     BALL_LOGTHROTTLE_WARN(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)           \
         << "[THROTTLED] "
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct VirtualIterator : mqbblp::QueueEngineUtil_AppState::VirtualIterator {
     mqbi::StorageIterator*  d_start_p;
     const bmqt::MessageGUID d_stop;
@@ -128,6 +131,7 @@ struct VirtualIterator : mqbblp::QueueEngineUtil_AppState::VirtualIterator {
     ~VirtualIterator() BSLS_KEYWORD_OVERRIDE;
     const mqbi::StorageIterator* next() BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 const mqbi::StorageIterator* VirtualIterator::next()
 {
@@ -347,6 +351,7 @@ void RootQueueEngine::BroadcastConfiguration::loadRoutingConfiguration(
 }
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 RootQueueEngine::RootQueueEngine(QueueState*             queueState,
                                  const mqbconfm::Domain& domainConfig,
                                  bslma::Allocator*       allocator)
@@ -376,6 +381,7 @@ RootQueueEngine::RootQueueEngine(QueueState*             queueState,
                             &RootQueueEngine::onFlowControlTimer,
                             this))
 , d_allocator_p(allocator)
+// NOLINTBEGIN(*-magic-numbers)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_queueState_p);
@@ -392,11 +398,14 @@ RootQueueEngine::RootQueueEngine(QueueState*             queueState,
     resetState();  // Just to ensure 'resetState' is doing what is expected,
                    // similarly to the constructor.
 }
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // MANIPULATORS
 //   (virtual mqbi::QueueEngine)
 int RootQueueEngine::configure(bsl::ostream& errorDescription,
                                bool          isReconfigure)
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-use-enum-class)
 {
     enum RcEnum {
         // Return values
@@ -510,6 +519,7 @@ int RootQueueEngine::configure(bsl::ostream& errorDescription,
 
     return rc_SUCCESS;
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-use-enum-class)
 
 int RootQueueEngine::initializeAppId(const bsl::string& appId,
                                      bsl::ostream&      errorDescription,
@@ -728,6 +738,7 @@ mqbi::QueueHandle* RootQueueEngine::getHandle(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define CALLBACK(CAT, RC, MSG, HAN)                                           \
     if (callback) {                                                           \
         bmqp_ctrlmsg::Status status(d_allocator_p);                           \
@@ -973,6 +984,7 @@ void RootQueueEngine::configureHandle(
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
     BSLS_ASSERT_SAFE(handle);
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define CONFIGURE_CB(CAT, RC, MSG, SPARAMS)                                   \
     if (configuredCb) {                                                       \
         bmqp_ctrlmsg::Status status;                                          \
@@ -1016,8 +1028,10 @@ void RootQueueEngine::configureHandle(
         return;  // RETURN
     }
 
+    // NOLINTBEGIN(*-narrowing-conversions)
     const bmqp::QueueId queueId(handle->id(),
                                 it->second.d_downstreamSubQueueId);
+    // NOLINTEND(*-narrowing-conversions)
 
     BALL_LOG_INFO << "For queue [" << d_queueState_p->queue()->uri()
                   << "], appId: '" << appId << "'"
@@ -1160,6 +1174,7 @@ void RootQueueEngine::releaseHandle(
     // Extract queueId (Id, subId)
     const bmqp_ctrlmsg::SubQueueIdInfo& subStreamInfo =
         bmqp::QueueUtil::extractSubQueueInfo(handleParameters);
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     const bmqp::QueueId queueId(handleParameters.qId(), subStreamInfo.subId());
 
     // Validate 'handleParameters'.  If they are invalid, but 'isFinal' flag is
@@ -1503,8 +1518,10 @@ void RootQueueEngine::afterNewMessage()
         }
         d_appsDeliveryContext.deliverMessage();
 
+        // NOLINTBEGIN(*-narrowing-conversions)
         mqbu::FlowController::Watermark::Enum result = d_flowController.add(
             numHits);
+        // NOLINTEND(*-narrowing-conversions)
 
         if (result == mqbu::FlowController::Watermark::e_STRICT) {
             BMQ_LOGTHROTTLE_INFO << "Local queue: " << d_queueState_p->uri()
@@ -1551,6 +1568,7 @@ void RootQueueEngine::afterNewMessage()
 int RootQueueEngine::onConfirmMessage(mqbi::QueueHandle*       handle,
                                       const bmqt::MessageGUID& msgGUID,
                                       unsigned int             subQueueId)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -1616,11 +1634,13 @@ int RootQueueEngine::onConfirmMessage(mqbi::QueueHandle*       handle,
 
     return rc_ERROR;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 int RootQueueEngine::onRejectMessage(
     BSLA_MAYBE_UNUSED mqbi::QueueHandle* handle,
     const bmqt::MessageGUID&             msgGUID,
     unsigned int                         subQueueId)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -1769,6 +1789,7 @@ int RootQueueEngine::onRejectMessage(
 
     return counter;
 }
+// NOLINTEND(*-narrowing-conversions)
 
 void RootQueueEngine::beforeMessageRemoved(const bmqt::MessageGUID& msgGUID)
 {
@@ -1785,6 +1806,7 @@ void RootQueueEngine::beforeMessageRemoved(const bmqt::MessageGUID& msgGUID)
 
 void RootQueueEngine::afterQueuePurged(const bsl::string&      appId,
                                        const mqbu::StorageKey& appKey)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -1807,6 +1829,7 @@ void RootQueueEngine::afterQueuePurged(const bsl::string&      appId,
     BSLS_ASSERT_SAFE(iter->first == appId);
     iter->second->clear();
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 void RootQueueEngine::afterPostMessage()
 {
@@ -1883,6 +1906,7 @@ RootQueueEngine::logAppSubscriptionInfo(bsl::ostream&     stream,
         }
 
         size_t exprNum = 0;
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (bsl::vector<mqbcmd::SubscriptionGroup>::const_iterator cIt =
                  subscrGroups.begin();
              cIt != subscrGroups.end() && exprNum < k_EXPR_NUM_LIMIT;
@@ -1894,6 +1918,7 @@ RootQueueEngine::logAppSubscriptionInfo(bsl::ostream&     stream,
                 stream << cIt->expression() << '\n';
             }
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         stream << '\n';
     }
 
@@ -1979,6 +2004,7 @@ RootQueueEngine::haveUndeliveredCb(bsls::TimeInterval*       alarmTime_p,
 void RootQueueEngine::logAlarmCb(
     const bsl::string&                              appId,
     const bslma::ManagedPtr<mqbi::StorageIterator>& oldestMsgIt) const
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
@@ -1992,6 +2018,7 @@ void RootQueueEngine::logAlarmCb(
     const AppStateSp& app = cItApp->second;
 
     // Logging alarm info
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<4096> localAllocator(d_allocator_p);
 
     bmqu::MemOutStream ss(&localAllocator);
@@ -2084,6 +2111,7 @@ void RootQueueEngine::logAlarmCb(
 
     BMQTSK_ALARMLOG_ALARM("QUEUE_STUCK") << out.str() << BMQTSK_ALARMLOG_END;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 void RootQueueEngine::updateFlowControl(bsls::Types::Int64 nowMs)
 {
@@ -2309,6 +2337,7 @@ void RootQueueEngine::evaluateAppSubscriptions(
     }
 }
 
+// NOLINTBEGIN(performance-unnecessary-value-param)
 bslma::ManagedPtr<mqbi::StorageIterator>
 RootQueueEngine::head(const AppStateSp app) const
 {
@@ -2327,6 +2356,7 @@ RootQueueEngine::head(const AppStateSp app) const
 
     return out;
 }
+// NOLINTEND(performance-unnecessary-value-param)
 
 // ACCESSORS
 //   (virtual mqbi::QueueEngine)
@@ -2353,7 +2383,8 @@ void RootQueueEngine::loadInternals(mqbcmd::QueueEngine* out) const
     bsl::shared_ptr<const mqbconfm::Domain> cfg = config();
     fanoutQueueEngine.mode()                    = cfg->mode().selectionName();
     fanoutQueueEngine.maxConsumers()            = cfg->maxConsumers();
-    Apps& consumerStatesRef          = const_cast<Apps&>(d_apps);
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
+    Apps& consumerStatesRef = const_cast<Apps&>(d_apps);
 
     bsl::vector<mqbcmd::ConsumerState>& consumerStates =
         fanoutQueueEngine.consumerStates();
@@ -2387,8 +2418,10 @@ void RootQueueEngine::loadInternals(mqbcmd::QueueEngine* out) const
 bool RootQueueEngine::hasHandle(const bsl::string& appId,
                                 mqbi::QueueHandle* handle) const
 {
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast)
     Apps::iterator iter = const_cast<RootQueueEngine*>(this)->d_apps.find(
         appId);
+    // NOLINTEND(cppcoreguidelines-pro-type-const-cast)
 
     return (iter != d_apps.end() && iter->second->find(handle));
 }

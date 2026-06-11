@@ -52,6 +52,7 @@ void JournalFile::createFileHeader()
     d_currPos += sizeof(JournalFileHeader);
 }
 
+// NOLINTBEGIN(*-magic-numbers)
 JournalFile::JournalFile(size_t numRecords, bslma::Allocator* allocator)
 : d_numRecords(numRecords)
 , d_mfd()
@@ -76,6 +77,7 @@ JournalFile::JournalFile(size_t numRecords, bslma::Allocator* allocator)
     d_mfd.setBlock(d_block);
     d_mfd.setFileSize(totalSize);
 }
+// NOLINTEND(*-magic-numbers)
 
 JournalFile::~JournalFile()
 {
@@ -111,6 +113,7 @@ JournalFile::makeQueueOpRecord(unsigned int        primaryLeaseId,
 JournalFile::RecordBufferType
 JournalFile::makeJournalOpRecord(unsigned int        primaryLeaseId,
                                  bsls::Types::Uint64 sequenceNumber)
+// NOLINTBEGIN(*-magic-numbers)
 {
     OffsetPtr<JournalOpRecord> rec(d_block, d_currPos);
     new (rec.get()) JournalOpRecord(JournalOpType::e_SYNCPOINT,
@@ -132,13 +135,16 @@ JournalFile::makeJournalOpRecord(unsigned int        primaryLeaseId,
                 FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
     return buf;
 }
+// NOLINTEND(*-magic-numbers)
 
 void JournalFile::addAllTypesRecords(RecordsListType* records)
 {
     // PRECONDITIONS
     BSLS_ASSERT(records);
 
+    // NOLINTBEGIN(*-magic-numbers,modernize-use-emplace)
     for (unsigned int i = 1; i <= d_numRecords; ++i) {
+        // NOLINTNEXTLINE(*-magic-numbers)
         unsigned int remainder = i % 5;
         if (0 == remainder) {
             bmqt::MessageGUID guid;
@@ -229,6 +235,7 @@ void JournalFile::addAllTypesRecords(RecordsListType* records)
 
         d_currPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
     }
+    // NOLINTEND(*-magic-numbers,modernize-use-emplace)
 }
 
 void JournalFile::addJournalRecordsWithOutstandingAndConfirmedMessages(
@@ -243,6 +250,7 @@ void JournalFile::addJournalRecordsWithOutstandingAndConfirmedMessages(
     bool              outstandingFlag = false;
     bmqt::MessageGUID lastMessageGUID;
 
+    // NOLINTBEGIN(*-magic-numbers,modernize-use-emplace,performance-unnecessary-copy-initialization)
     for (unsigned int i = 1; i <= d_numRecords; ++i) {
         unsigned int remainder = i % 3;
         if (1 == remainder) {
@@ -334,6 +342,7 @@ void JournalFile::addJournalRecordsWithOutstandingAndConfirmedMessages(
 
         d_currPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
     }
+    // NOLINTEND(*-magic-numbers,modernize-use-emplace,performance-unnecessary-copy-initialization)
 }
 
 void JournalFile::addJournalRecordsWithPartiallyConfirmedMessages(
@@ -347,6 +356,7 @@ void JournalFile::addJournalRecordsWithPartiallyConfirmedMessages(
     bool              partialyConfirmedFlag = false;
     bmqt::MessageGUID lastMessageGUID;
 
+    // NOLINTBEGIN(*-magic-numbers,modernize-use-emplace,performance-unnecessary-copy-initialization)
     for (unsigned int i = 1; i <= d_numRecords; ++i) {
         unsigned int remainder = i % 3;
 
@@ -436,6 +446,7 @@ void JournalFile::addJournalRecordsWithPartiallyConfirmedMessages(
 
         d_currPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
     }
+    // NOLINTEND(*-magic-numbers,modernize-use-emplace,performance-unnecessary-copy-initialization)
 }
 
 void JournalFile::addJournalRecordsWithTwoQueueKeys(
@@ -447,6 +458,7 @@ void JournalFile::addJournalRecordsWithTwoQueueKeys(
 {
     bmqt::MessageGUID lastMessageGUID;
 
+    // NOLINTBEGIN(*-magic-numbers,modernize-use-emplace,performance-unnecessary-copy-initialization)
     for (unsigned int i = 1; i <= d_numRecords; ++i) {
         const char* queueKey = (i % 2 != 0) ? queueKey1 : queueKey2;
 
@@ -532,6 +544,7 @@ void JournalFile::addJournalRecordsWithTwoQueueKeys(
 
         d_currPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
     }
+    // NOLINTEND(*-magic-numbers,modernize-use-emplace,performance-unnecessary-copy-initialization)
 }
 
 void JournalFile::addJournalRecordsWithConfirmedMessagesWithDifferentOrder(
@@ -546,6 +559,7 @@ void JournalFile::addJournalRecordsWithConfirmedMessagesWithDifferentOrder(
     BSLS_ASSERT(d_numRecords == numMessages * 2);
 
     // Create messages
+    // NOLINTBEGIN(*-magic-numbers,modernize-use-emplace)
     for (unsigned int i = 0; i < numMessages; ++i) {
         bmqt::MessageGUID guid;
         mqbu::MessageGUIDUtil::generateGUID(&guid);
@@ -578,8 +592,10 @@ void JournalFile::addJournalRecordsWithConfirmedMessagesWithDifferentOrder(
 
         d_currPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
     }
+    // NOLINTEND(*-magic-numbers,modernize-use-emplace)
 
     // Create delete messages, and replace GUIDS for 2nd and 3rd message
+    // NOLINTBEGIN(*-magic-numbers,modernize-use-emplace)
     for (unsigned int i = 0; i < numMessages; ++i) {
         // DelRec
         bmqt::MessageGUID guid;
@@ -615,6 +631,7 @@ void JournalFile::addJournalRecordsWithConfirmedMessagesWithDifferentOrder(
 
         d_currPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
     }
+    // NOLINTEND(*-magic-numbers,modernize-use-emplace)
 }
 
 void JournalFile::addMultipleTypesRecordsWithMultipleLeaseId(
@@ -627,6 +644,7 @@ void JournalFile::addMultipleTypesRecordsWithMultipleLeaseId(
     unsigned int        leaseId   = 0;
     bsls::Types::Uint64 seqNumber = 1;
 
+    // NOLINTBEGIN(modernize-use-emplace)
     for (unsigned int i = 1; i <= d_numRecords; ++i) {
         unsigned int remainder = i % 4;
         if (i % numRecordsWithSameLeaseId == 1) {
@@ -720,6 +738,7 @@ void JournalFile::addMultipleTypesRecordsWithMultipleLeaseId(
 
         d_currPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
     }
+    // NOLINTEND(modernize-use-emplace)
 }
 
 }  // close package namespace

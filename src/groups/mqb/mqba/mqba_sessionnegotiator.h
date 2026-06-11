@@ -80,6 +80,7 @@ namespace mqba {
 // =======================
 
 /// Negotiator for a BlazingMQ session with client or broker
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class SessionNegotiator : public mqbnet::Negotiator {
   public:
     // TYPES
@@ -252,6 +253,7 @@ class SessionNegotiator : public mqbnet::Negotiator {
                           mqbnet::InitialConnectionContext* context_p)
         BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

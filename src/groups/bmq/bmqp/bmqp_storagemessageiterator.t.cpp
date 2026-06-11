@@ -45,6 +45,7 @@ namespace {
 const int k_RECORD_SIZE = 48;  // Size of a journal record.  Must be 4-byte
                                // aligned.
 
+// NOLINTBEGIN(*-avoid-c-arrays)
 struct Data {
     // DATA
     bmqp::StorageMessageType::Enum d_messageType;
@@ -69,13 +70,17 @@ struct Data {
     Data(bslma::Allocator* allocator);
     Data(const Data& other, bslma::Allocator* allocator);
 };
+// NOLINTEND(*-avoid-c-arrays)
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 Data::Data(bslma::Allocator* allocator)
 : d_payload(allocator)
 {
     // NOTHING
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 Data::Data(const Data& other, bslma::Allocator* allocator)
 : d_messageType(other.d_messageType)
 , d_flags(other.d_flags)
@@ -83,9 +88,14 @@ Data::Data(const Data& other, bslma::Allocator* allocator)
 , d_pid(other.d_pid)
 , d_journalOffsetWords(other.d_journalOffsetWords)
 , d_payload(other.d_payload, allocator)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bsl::memcpy(d_recordBuffer, other.d_recordBuffer, k_RECORD_SIZE);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 /// Populate specified `blob` with a STORAGE event which has specified
 /// `numMsgs` storage messages, update specified `eh` with corresponding
@@ -94,6 +104,7 @@ void populateBlob(bdlbb::Blob*       blob,
                   bmqp::EventHeader* eh,
                   bsl::vector<Data>* vec,
                   size_t             numMsgs)
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     int eventLength = 0;
 
@@ -105,6 +116,7 @@ void populateBlob(bdlbb::Blob*       blob,
                             sizeof(bmqp::EventHeader));
     eventLength += sizeof(bmqp::EventHeader);
 
+    // NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-type-reinterpret-cast)
     for (size_t i = 0; i < numMsgs; ++i) {
         int  msgSize = 0;
         Data data(bmqtst::TestHelperUtil::allocator());
@@ -113,6 +125,7 @@ void populateBlob(bdlbb::Blob*       blob,
         data.d_pid                = i % 100;
         data.d_journalOffsetWords = i * 100 + 5;
 
+        // NOLINTNEXTLINE(*-magic-numbers)
         size_t remainder = i % 6;
 
         if (0 == remainder) {
@@ -179,12 +192,16 @@ void populateBlob(bdlbb::Blob*       blob,
 
         vec->push_back(data);
     }
+    // NOLINTEND(*-magic-numbers,*-narrowing-conversions,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-type-reinterpret-cast)
 
     // Set EventHeader length
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     bmqp::EventHeader* e = reinterpret_cast<bmqp::EventHeader*>(
         blob->buffer(0).data());
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
     e->setLength(eventLength);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 void appendMessage(bdlbb::Blob*                   blob,
                    bmqp::EventHeader*             eh,
@@ -192,6 +209,7 @@ void appendMessage(bdlbb::Blob*                   blob,
                    unsigned int                   partitionId,
                    unsigned int                   journalOffsetWords,
                    int                            flags)
+// NOLINTBEGIN(*-narrowing-conversions,cppcoreguidelines-pro-type-reinterpret-cast)
 {
     int eventLength = 0;
 
@@ -226,10 +244,13 @@ void appendMessage(bdlbb::Blob*                   blob,
     eventLength += pLen;
 
     // set EventHeader length
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     bmqp::EventHeader* e = reinterpret_cast<bmqp::EventHeader*>(
         blob->buffer(0).data());
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
     e->setLength(eventLength);
 }
+// NOLINTEND(*-narrowing-conversions,cppcoreguidelines-pro-type-reinterpret-cast)
 
 }  // close unnamed namespace
 
@@ -250,9 +271,11 @@ static void test1_breathingTest()
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
 
     {
         // Create invalid iter
@@ -263,6 +286,7 @@ static void test1_breathingTest()
     {
         // Create invalid iter from another invalid iter
         bmqp::StorageMessageIterator iter1;
+        // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
         bmqp::StorageMessageIterator iter2(iter1);
 
         BMQTST_ASSERT_EQ(false, iter1.isValid());
@@ -367,9 +391,11 @@ static void test2_storageEventHavingMultipleMessages()
     bmqtst::TestHelper::printTestName("STORAGE EVENT HAVING MULTIPLE"
                                       " MESSAGES");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
     bsl::vector<Data> data(bmqtst::TestHelperUtil::allocator());
@@ -384,6 +410,7 @@ static void test2_storageEventHavingMultipleMessages()
 
     size_t index  = 0;
     int    nextRc = -1;
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     while (1 == (nextRc = iter.next()) && index < data.size()) {
         const Data& D = data[index];
         BMQTST_ASSERT_EQ_D(index, D.d_flags, iter.header().flags());
@@ -436,6 +463,7 @@ static void test2_storageEventHavingMultipleMessages()
 
         ++index;
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
     BMQTST_ASSERT_EQ(nextRc, 0);
     BMQTST_ASSERT_EQ(data.size(), index);
@@ -455,12 +483,15 @@ static void test3_corruptedStorageEvent_part1()
 //   Iterating over corrupted STORAGE event (not having bytes for a full
 //   storageHeader).
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions,cppcoreguidelines-pro-type-reinterpret-cast)
 {
     bmqtst::TestHelper::printTestName("CORRUPTED STORAGE EVENT - PART 1");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
     const char*  p    = "abcdefgh";
@@ -522,6 +553,7 @@ static void test3_corruptedStorageEvent_part1()
                                        // returning invalid
     BMQTST_ASSERT_EQ(iter.isValid(), false);
 }
+// NOLINTEND(*-magic-numbers,*-narrowing-conversions,cppcoreguidelines-pro-type-reinterpret-cast)
 
 static void test4_corruptedStorageEvent_part2()
 // ------------------------------------------------------------------------
@@ -535,12 +567,15 @@ static void test4_corruptedStorageEvent_part2()
 //   Iterating over corrupted STORAGE event (not having enough payload
 //   bytes in the blob).
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     bmqtst::TestHelper::printTestName("CORRUPTED STORAGE EVENT - PART 2");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
     // BUILD the event blob ...
@@ -606,6 +641,7 @@ static void test4_corruptedStorageEvent_part2()
                                        // keep returning invalid
     BMQTST_ASSERT_EQ(iter.isValid(), false);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 static void test5_corruptedStorageEvent_part3()
 {
@@ -632,9 +668,11 @@ static void test5_corruptedStorageEvent_part3()
                                   sizeof(bmqp::EventHeader);
 
         // Create buffer factory and blob
+        // NOLINTBEGIN(*-magic-numbers)
         bdlbb::PooledBlobBufferFactory bufferFactory(
             1024,
             bmqtst::TestHelperUtil::allocator());
+        // NOLINTEND(*-magic-numbers)
         bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Populate blob
@@ -674,9 +712,11 @@ static void test6_resetMethod()
     {
         // Min buf size not to reproduce given rc
         const size_t enoughSize = sizeof(bmqp::EventHeader) + 1;
+        // NOLINTBEGIN(*-magic-numbers)
         bdlbb::PooledBlobBufferFactory bufferFactory(
             1024,
             bmqtst::TestHelperUtil::allocator());
+        // NOLINTEND(*-magic-numbers)
 
         // Create buffer factory and blob
         bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
@@ -721,12 +761,14 @@ static void test7_dumpBlob()
     bmqtst::TestHelper::printTestName("DUMP BLOB");
 
     // Test iterator dump contains expected value
-    bmqp::EventHeader              eventHeader;
-    bsl::vector<Data>              data(bmqtst::TestHelperUtil::allocator());
-    bmqu::MemOutStream             stream(bmqtst::TestHelperUtil::allocator());
+    bmqp::EventHeader  eventHeader;
+    bsl::vector<Data>  data(bmqtst::TestHelperUtil::allocator());
+    bmqu::MemOutStream stream(bmqtst::TestHelperUtil::allocator());
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
     // Populate blob
@@ -775,6 +817,7 @@ static void test7_dumpBlob()
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -804,3 +847,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

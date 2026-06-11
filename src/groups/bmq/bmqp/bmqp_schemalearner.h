@@ -117,6 +117,7 @@ namespace bmqp {
 /// be referenced by some context in which case next call for that context
 /// will have to find another id.
 /// Finally, all references are shared_ptr.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class SchemaLearner {
   private:
     // PRIVATE TYPES
@@ -236,6 +237,7 @@ class SchemaLearner {
     // CLASS METHODS
     static bool isPresentAndValid(SchemaIdType schemaId);
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

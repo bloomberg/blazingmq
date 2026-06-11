@@ -166,6 +166,7 @@ namespace bmqu {
 
 /// A mechanism to check if a function call is always performed in the same
 /// thread.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class SameThreadChecker {
   private:
     // PRIVATE DATA
@@ -196,6 +197,7 @@ class SameThreadChecker {
     /// Reset this object to a default-constructed state.
     void reset() BSLS_KEYWORD_NOEXCEPT;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

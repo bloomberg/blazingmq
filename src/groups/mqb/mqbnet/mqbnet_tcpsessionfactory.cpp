@@ -310,6 +310,7 @@ struct ChannelFactoryBuilders {
     reconnectingChannelFactory(bslma::Allocator*      allocator,
                                ChannelFactorySP&      prev,
                                bdlmt::EventScheduler* scheduler)
+    // NOLINTBEGIN(*-magic-numbers)
     {
         return bsl::allocate_shared<bmqio::ReconnectingChannelFactory>(
             allocator,
@@ -324,6 +325,7 @@ struct ChannelFactoryBuilders {
                     bsls::TimeInterval(30.0)))     // maxInterval
         );
     }
+    // NOLINTEND(*-magic-numbers)
 
     static ChannelFactorySP statChannelFactory(
         bslma::Allocator* allocator,
@@ -345,6 +347,7 @@ struct ChannelFactoryBuilders {
 
 /// Structure holding a context associated to each individual call to either
 /// `listen` or `connect`.
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 struct TCPSessionFactory_OperationContext {
     TCPSessionFactory::ResultCallback d_resultCb;
     // Callback to invoke when a session is
@@ -371,6 +374,7 @@ struct TCPSessionFactory_OperationContext {
     // 'InitialConnectionContext::resultState' passed to the
     // 'Negotiator::negotiate'.
 };
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // -----------------------
 // class TCPSessionFactory
@@ -380,6 +384,7 @@ bslma::ManagedPtr<bmqst::StatContext>
 TCPSessionFactory::channelStatContextCreator(
     const bsl::shared_ptr<bmqio::Channel>&                  channel,
     const bsl::shared_ptr<bmqio::StatChannelFactoryHandle>& handle)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     int peerAddress;
     channel->properties().load(&peerAddress, k_CHANNEL_PROPERTY_PEER_IP);
@@ -407,10 +412,12 @@ TCPSessionFactory::channelStatContextCreator(
                                      endpoint,
                                      static_cast<bsl::uint16_t>(localPort));
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 void TCPSessionFactory::handleInitialConnection(
     const bsl::shared_ptr<bmqio::Channel>&   channel,
     const bsl::shared_ptr<OperationContext>& context)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     // executed by one of the *IO* threads
 
@@ -467,6 +474,7 @@ void TCPSessionFactory::handleInitialConnection(
 
     initialConnectionContext_sp->handleInitialConnection();
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 void TCPSessionFactory::readCallback(const bmqio::Status& status,
                                      int*                 numNeeded,
@@ -622,6 +630,7 @@ void TCPSessionFactory::initialConnectionComplete(
                              d_allocator_p);
         channel->close(status);
 
+        // NOLINTNEXTLINE(*-magic-numbers)
         bdlma::LocalSequentialAllocator<64> localAlloc(d_allocator_p);
         bmqu::MemOutStream                  logStream(&localAlloc);
         logStream << "[channel: '" << channel.get() << "]";
@@ -877,6 +886,7 @@ void TCPSessionFactory::channelStateCallback(
 
 void TCPSessionFactory::onClose(const bsl::shared_ptr<bmqio::Channel>& channel,
                                 const bmqio::Status&                   status)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     // Executed by *ANY* thread
 
@@ -968,6 +978,7 @@ void TCPSessionFactory::onClose(const bsl::shared_ptr<bmqio::Channel>& channel,
                                             isBrokerShutdown);
     }
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 void TCPSessionFactory::onHeartbeatSchedulerEvent()
 {
@@ -1174,6 +1185,7 @@ TCPSessionFactory::TCPSessionFactory(
 , d_listenContexts(allocator)
 , d_timestampMap(allocator)
 , d_allocator_p(allocator)
+// NOLINTBEGIN(*-magic-numbers)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(scheduler->clockType() ==
@@ -1206,6 +1218,7 @@ TCPSessionFactory::TCPSessionFactory(
     // on Linux, a thread name is limited to 16 characters,
     // including the \0.
 }
+// NOLINTEND(*-magic-numbers)
 
 TCPSessionFactory::~TCPSessionFactory()
 {
@@ -1368,6 +1381,7 @@ int TCPSessionFactory::startListening(bsl::ostream&         errorDescription,
         }
     }
     else {
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (bsl::vector<mqbcfg::TcpInterfaceListener>::const_iterator
                  it  = d_config.listeners().cbegin(),
                  end = d_config.listeners().cend();
@@ -1382,6 +1396,7 @@ int TCPSessionFactory::startListening(bsl::ostream&         errorDescription,
                 return rc;  // RETURN
             }
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
 
     d_isListening = true;
@@ -1552,6 +1567,7 @@ int TCPSessionFactory::listen(const mqbcfg::TcpInterfaceListener& listener,
     context->d_isIncoming    = true;
     context->d_resultState_p = 0;
 
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<64> localAlloc(d_allocator_p);
     bmqu::MemOutStream                  endpoint(&localAlloc);
     endpoint << listener.address() << ":" << listener.port();
@@ -1606,7 +1622,8 @@ int TCPSessionFactory::connect(const bslstl::StringRef& endpoint,
         context->d_negotiationUserData_sp = *negotiationUserData;
     }
 
-    bmqio::TCPEndpoint                  tcpEndpoint(endpoint);
+    bmqio::TCPEndpoint tcpEndpoint(endpoint);
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<64> localAlloc(d_allocator_p);
     bmqu::MemOutStream                  endpointStream(&localAlloc);
     endpointStream << tcpEndpoint.host() << ":" << tcpEndpoint.port();
@@ -1645,6 +1662,7 @@ int TCPSessionFactory::connect(const bslstl::StringRef& endpoint,
 }
 
 bool TCPSessionFactory::setNodeWriteQueueWatermarks(const Session& session)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_config.nodeLowWatermark() > 0);
@@ -1658,6 +1676,7 @@ bool TCPSessionFactory::setNodeWriteQueueWatermarks(const Session& session)
 
     return true;
 }
+// NOLINTEND(*-narrowing-conversions)
 
 // ACCESSORS
 bool TCPSessionFactory::isEndpointLoopback(const bslstl::StringRef& uri) const
@@ -1717,6 +1736,7 @@ TCPSessionFactory::PortManager::addChannelContext(bmqst::StatContext* parent,
                                                   const bsl::string&  endpoint,
                                                   bsl::uint16_t       port)
 {
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<2048> localAllocator(d_allocator_p);
     bmqst::StatContextConfiguration statConfig(endpoint, &localAllocator);
 

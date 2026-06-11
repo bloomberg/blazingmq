@@ -178,6 +178,7 @@ void ClusterNodeSession::createQueueHandleRequesterContext()
 void ClusterNodeSession::createQueueHandleRequesterContextImpl(
     const bmqp_ctrlmsg::ClientIdentity&        identity,
     const bsl::shared_ptr<bmqst::StatContext>& statContext)
+// NOLINTBEGIN(clang-analyzer-optin.cplusplus.VirtualCall)
 {
     // executed by the *DISPATCHER* thread
 
@@ -195,6 +196,7 @@ void ClusterNodeSession::createQueueHandleRequesterContextImpl(
         .setInlineClient(this)
         .setStatContext(statContext);
 }
+// NOLINTEND(clang-analyzer-optin.cplusplus.VirtualCall)
 
 bool ClusterNodeSession::isPrimaryForPartition(int partitionId) const
 {

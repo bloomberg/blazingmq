@@ -111,6 +111,7 @@ namespace mqbmock {
 // =============
 
 /// Mock cluster implementation of the `mqbi::Cluster` interface.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Cluster : public mqbi::Cluster {
   private:
     // PRIVATE TYPES
@@ -573,6 +574,7 @@ class Cluster : public mqbi::Cluster {
     /// Return the current time in Int64 format.
     bsls::Types::Int64 getTimeInt64() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

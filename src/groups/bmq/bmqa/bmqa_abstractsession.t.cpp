@@ -242,9 +242,11 @@ struct AbstractSessionTestImp : bsls::ProtocolTestImp<bmqa::AbstractSession> {
 struct AbstractSessionDummyImp : bsls::ProtocolTestImp<bmqa::AbstractSession> {
     int configureMessageDumping(const bslstl::StringRef& command)
         BSLS_KEYWORD_OVERRIDE
+    // NOLINTBEGIN(*-magic-numbers)
     {
         return -1497;
     }
+    // NOLINTEND(*-magic-numbers)
 };
 
 // ============================================================================
@@ -289,6 +291,7 @@ static void test1_breathingTest()
 // Testing:
 //   PROTOCOL TEST
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // The default allocator check fails in this test case because the
@@ -409,6 +412,7 @@ static void test1_breathingTest()
                              confirmMessages(dummyConfirmEventBuilderPtr));
     BSLS_PROTOCOLTEST_ASSERT(testObj, configureMessageDumping(""));
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test2_instanceInvariants()
 // ------------------------------------------------------------------------
@@ -437,6 +441,7 @@ static void test2_instanceInvariants()
 // Testing:
 //   INSTANCE INVARIANTS
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Can't ensure no default memory is allocated because a default
@@ -460,8 +465,8 @@ static void test2_instanceInvariants()
     bmqa::QueueId*                  dummyQueueIdPtr             = 0;
     bmqt::CorrelationId             dummyCorrelationId;
     bmqt::QueueOptions              dummyQueueOptions;
-    bmqt::Uri dummyUri(bmqtst::TestHelperUtil::allocator());
-    bsls::TimeInterval              dummyTimeInterval(0);
+    bmqt::Uri          dummyUri(bmqtst::TestHelperUtil::allocator());
+    bsls::TimeInterval dummyTimeInterval(0);
 
     const bmqa::AbstractSession::OpenQueueCallback      openQueueCallback;
     const bmqa::AbstractSession::ConfigureQueueCallback configureQueueCallback;
@@ -606,12 +611,14 @@ static void test2_instanceInvariants()
     BMQTST_ASSERT_OPT_PASS(testObj.configureMessageDumping(""));
     BMQTST_ASSERT_EQ(testObj.configureMessageDumping(""), -1497);
 }
+// NOLINTEND(performance-avoid-endl)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -627,3 +634,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

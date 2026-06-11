@@ -84,6 +84,7 @@ namespace mqbs {
 // =======================
 
 /// Provide a BlazingMQ storage backed by a file on disk.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
   private:
     // CLASS-SCOPE CATEGORY
@@ -107,12 +108,14 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     typedef bmqc::Array<DataStoreRecordHandle, k_MOST_LIKELY_NUM_RECORDS>
         RecordHandlesArray;
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
     struct Item {
         RecordHandlesArray d_array;
         unsigned int       d_refCount;  // Outstanding reference count
 
         void reset();
     };
+    // NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
     struct AutoConfirm {
         // Transient state tracking auto-confirm status for the current
@@ -569,10 +572,12 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     /// Any other sequence removes auto CONFIRMs.
     /// Auto-confirmed Apps do not PUSH the message.
 
+    // NOLINTNEXTLINE(cppcoreguidelines-explicit-virtual-functions)
     virtual void setPrimary() BSLS_KEYWORD_OVERRIDE;
 
     /// Calculate offsets of all Apps (after recovery) in the data stream.
     /// An App offset is the number of messages older than the App.
+    // NOLINTNEXTLINE(cppcoreguidelines-explicit-virtual-functions)
     virtual void calibrate() BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS (for mqbs::ReplicatedStorage)
@@ -585,6 +590,7 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     /// Return the number of auto confirmed Apps for the current message.
     unsigned int numAutoConfirms() const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

@@ -41,6 +41,7 @@ namespace mqbnet {
 // ==========================
 
 /// Protocol for the client side of broker-to-broker authentication.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class AuthenticationClient {
   public:
     // CREATORS
@@ -64,6 +65,7 @@ class AuthenticationClient {
     handleResponse(bsl::ostream&                              errorDescription,
                    const bmqp_ctrlmsg::AuthenticationMessage& response) = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

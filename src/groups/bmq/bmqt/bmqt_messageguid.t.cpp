@@ -42,6 +42,7 @@ static void test1_breathingTest()
 // Testing:
 //   Basic functionality
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
@@ -76,6 +77,7 @@ static void test1_breathingTest()
     BMQTST_ASSERT_EQ(false, obj4.isUnset());
 
     PV("obj4 -> binary -> obj5");
+    // NOLINTNEXTLINE(*-avoid-c-arrays)
     unsigned char binObj4[bmqt::MessageGUID::e_SIZE_BINARY];
     obj4.toBinary(binObj4);
     bmqt::MessageGUID obj5;
@@ -84,6 +86,7 @@ static void test1_breathingTest()
 
     PV("obj4 -> hex -> obj6");
     // (note that here, 'hex' must be equal to VALID_HEX_REP
+    // NOLINTNEXTLINE(*-avoid-c-arrays)
     char hexObj4[bmqt::MessageGUID::e_SIZE_HEX];
     obj4.toHex(hexObj4);
     bmqt::MessageGUID obj6;
@@ -105,6 +108,7 @@ static void test1_breathingTest()
     obj7.fromHex(hexObj7);
     BMQTST_ASSERT_EQ(false, obj7.isUnset());
 
+    // NOLINTNEXTLINE(*-avoid-c-arrays)
     unsigned char binObj7[bmqt::MessageGUID::e_SIZE_BINARY];
     obj7.toBinary(binObj7);
 
@@ -118,8 +122,10 @@ static void test1_breathingTest()
     obj9.fromHex(hexObj7);
     BMQTST_ASSERT_EQ(obj7, obj9);
 }
+// NOLINTEND(*-avoid-c-arrays,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 
 static void test2_streamout()
+// NOLINTBEGIN(*-avoid-c-arrays,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("STREAM OUT");
 
@@ -148,9 +154,11 @@ static void test2_streamout()
         bmqu::MemOutStream osstr(bmqtst::TestHelperUtil::allocator());
         osstr << obj;
 
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         bsl::string guidStr(k_HEX_G,
                             bmqt::MessageGUID::e_SIZE_HEX,
                             bmqtst::TestHelperUtil::allocator());
+        // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
         BMQTST_ASSERT_EQ(guidStr, osstr.str());
 
@@ -188,6 +196,7 @@ static void test2_streamout()
         BMQTST_ASSERT_EQ(out.str(), "");
     }
 }
+// NOLINTEND(*-avoid-c-arrays,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 
 static void test3_alignment()
 // ------------------------------------------------------------------------
@@ -226,6 +235,7 @@ static void test4_hashAppend()
 //              const bmqt::MessageGUID& mesGuid)
 //   bmqt::MessageGUIDHashAlgo
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("HASH APPEND");
 
@@ -245,6 +255,7 @@ static void test4_hashAppend()
     bslh::Hash<bmqt::MessageGUIDHashAlgo>      hasher;
     bslh::Hash<bmqt::MessageGUID>::result_type firstHash = hasher(obj);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t i = 0; i < k_NUM_ITERATIONS; ++i) {
         bmqt::MessageGUIDHashAlgo algo;
         hashAppend(algo, obj);
@@ -253,7 +264,9 @@ static void test4_hashAppend()
         PVVV("[" << i << "] hash: " << currHash);
         BMQTST_ASSERT_EQ_D(i, currHash, firstHash);
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 
 static void test5_comparisonOperators()
 // ------------------------------------------------------------------------
@@ -281,6 +294,7 @@ static void test5_comparisonOperators()
 //   * free function bmqt::operator<(const bmqt::MessageGUID& lhs,
 //                                   const bmqt::MessageGUID& rhs)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("COMPARISON OPERATORS");
 
@@ -309,12 +323,14 @@ static void test5_comparisonOperators()
     PV("LESSER THAN OPERATOR CHECK");
     BMQTST_ASSERT(obj1 < obj2);
 }
+// NOLINTEND(*-avoid-c-arrays,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -333,3 +349,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

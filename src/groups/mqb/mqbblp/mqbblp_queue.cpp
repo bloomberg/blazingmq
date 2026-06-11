@@ -65,6 +65,7 @@ void Queue::onHandleDeconfigured(
     const bmqp_ctrlmsg::Status&,
     const bmqp_ctrlmsg::StreamParameters& streamParameters,
     mqbi::QueueHandle*                    handle)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     // executed by the *QUEUE* dispatcher thread
 
@@ -108,6 +109,7 @@ void Queue::onHandleDeconfigured(
         isFinal,
         mqbi::QueueHandle::HandleReleasedCallback());
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 void Queue::configureDispatchedAndPost(int*              result,
                                        bsl::ostream*     errorDescription,
@@ -285,6 +287,7 @@ void Queue::dropHandleDispatched(mqbi::QueueHandle* handle, bool doDeconfigure)
     mqbi::QueueHandle::SubStreams::const_iterator citer =
         handle->subStreamInfos().begin();
     bool isFinal = (citer == handle->subStreamInfos().end());
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     while (!isFinal) {
         const bsl::string&                   appId = citer->first;
         const mqbi::QueueHandle::StreamInfo& info  = citer->second;
@@ -332,6 +335,7 @@ void Queue::dropHandleDispatched(mqbi::QueueHandle* handle, bool doDeconfigure)
                 mqbi::QueueHandle::HandleReleasedCallback());
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 }
 
 void Queue::closeDispatched(const bsl::function<void(void)>& callback)
@@ -375,6 +379,7 @@ void Queue::closeDispatched(const bsl::function<void(void)>& callback)
 }
 
 void Queue::convertToLocalDispatched()
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     // executed by the *QUEUE* dispatcher thread
 
@@ -404,7 +409,8 @@ void Queue::convertToLocalDispatched()
                   << ", stream parameters: " << d_state.subQueuesParameters()
                   << "]";
 
-    int                                   rc;
+    int rc;
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
     bmqu::MemOutStream                    errorDescription(&localAllocator);
 
@@ -463,6 +469,7 @@ void Queue::convertToLocalDispatched()
 
     d_localQueue_mp->queueEngine()->afterNewMessage();
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 void Queue::updateStats()
 {

@@ -47,6 +47,7 @@ namespace bmqio {
 
 /// Partial implementation of the `Channel` protocol that tries to handle
 /// the signal hookups and property bag.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class BaseChannelPartialImp : public Channel {
   public:
     // TYPES
@@ -112,6 +113,7 @@ class BaseChannelPartialImp : public Channel {
     /// this Channel.
     const bmqvt::PropertyBag& properties() const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                      INLINE AND TEMPLATE FUNCTION IMPLEMENTATIONS

@@ -27,6 +27,7 @@ using namespace bsl;
 // ----------------------------------------------------------------------------
 
 static void test1_basicFunctionality()
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("BASIC FUNCTIONALITY");
 
@@ -59,12 +60,14 @@ static void test1_basicFunctionality()
     BMQTST_ASSERT_EQ(obj.monotonicClock(), bsls::TimeInterval(0));
     BMQTST_ASSERT_EQ(obj.highResTimer(), 0);
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -79,3 +82,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

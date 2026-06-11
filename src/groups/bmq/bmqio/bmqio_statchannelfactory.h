@@ -67,6 +67,7 @@ struct StatChannelFactoryHandle;
 // ========================
 
 /// Configuration for a `StatChannelFactory`
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class StatChannelFactoryConfig {
   public:
     // PUBLIC TYPES
@@ -111,12 +112,14 @@ class StatChannelFactoryConfig {
     StatChannelFactoryConfig(const StatChannelFactoryConfig& original,
                              bslma::Allocator* basicAllocator = 0);
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ===============================
 // struct StatChannelFactoryHandle
 // ===============================
 
 /// Handle to an outstanding `connect` or `listen`
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct StatChannelFactoryHandle : public ChannelFactory::OpHandle {
   public:
     // PUBLIC TYPES
@@ -161,6 +164,7 @@ struct StatChannelFactoryHandle : public ChannelFactory::OpHandle {
 
     const OptionsVariant& options() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ========================
 // class StatChannelFactory
@@ -168,6 +172,7 @@ struct StatChannelFactoryHandle : public ChannelFactory::OpHandle {
 
 /// A ChannelFactory decorator that creates channels that collect
 /// statistics.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class StatChannelFactory : public ChannelFactory {
   public:
     // TYPES
@@ -235,6 +240,7 @@ class StatChannelFactory : public ChannelFactory {
     /// `start()` and is not one of the I/O threads used by this object.
     void stop() BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =============================
 // struct StatChannelFactoryUtil
@@ -249,6 +255,7 @@ struct StatChannelFactoryUtil {
     /// from this object.
     struct Stat {
         // TYPES
+        // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
         enum Enum {
             e_BYTES_IN_DELTA,
             e_BYTES_IN_ABS,
@@ -257,6 +264,7 @@ struct StatChannelFactoryUtil {
             e_CONNECTIONS_DELTA,
             e_CONNECTIONS_ABS
         };
+        // NOLINTEND(cppcoreguidelines-use-enum-class)
     };
 
   public:

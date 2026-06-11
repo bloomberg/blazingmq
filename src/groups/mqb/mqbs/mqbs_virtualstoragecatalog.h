@@ -75,6 +75,7 @@ namespace mqbs {
 // offset in the consecutive memory ('VirtualStorage::DataStreamMessage')
 // holding all Apps states ('mqbi::AppMessage') for each guid.
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class VirtualStorageCatalog BSLS_KEYWORD_FINAL {
   private:
     // CLASS-SCOPE CATEGORY
@@ -391,6 +392,7 @@ class VirtualStorageCatalog BSLS_KEYWORD_FINAL {
     appMessageView(const mqbi::DataStreamMessage& dataStreamMessage,
                    unsigned int                   ordinal) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

@@ -34,6 +34,7 @@ namespace bmqu {
 // -------------------------
 
 bslma::Allocator* SingletonAllocator::allocator()
+// NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-type-union-access)
 {
     typedef bdlma::BufferedSequentialAllocator SeqAllocType;
     typedef bdlma::ConcurrentAllocatorAdapter  AdapterType;
@@ -54,6 +55,7 @@ bslma::Allocator* SingletonAllocator::allocator()
     }
     return &adapter.object();
 }
+// NOLINTEND(*-avoid-c-arrays,*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-type-union-access)
 
 }  // close package namespace
 }  // close enterprise namespace

@@ -79,6 +79,7 @@ namespace mqbblp {
 // ================
 
 /// Value-semantic type holding the state of a queue.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class QueueState {
   public:
     // TYPES
@@ -279,18 +280,18 @@ class QueueState {
         bmqp_ctrlmsg::StreamParameters* value,
         unsigned int subQueueId = bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID) const;
 
-    bdlbb::BlobBufferFactory*                    blobBufferFactory() const;
-    bdlmt::EventScheduler*                       scheduler() const;
-    mqbi::ClusterResources::BlobSpPool*          blobSpPool() const;
+    bdlbb::BlobBufferFactory*                     blobBufferFactory() const;
+    bdlmt::EventScheduler*                        scheduler() const;
+    mqbi::ClusterResources::BlobSpPool*           blobSpPool() const;
     const bsl::shared_ptr<bdlma::ConcurrentPool>& pushElementsPool() const;
-    bdlmt::FixedThreadPool*                      miscWorkThreadPool() const;
-    const bsl::string&                           description() const;
-    const mqbi::DispatcherClientData&            dispatcherClientData() const;
-    mqbi::Domain*                                domain() const;
-    unsigned int                                 id() const;
-    const mqbu::StorageKey&                      key() const;
-    const QueueHandleCatalog&                    handleCatalog() const;
-    const bmqp_ctrlmsg::QueueHandleParameters&   handleParameters() const;
+    bdlmt::FixedThreadPool*                       miscWorkThreadPool() const;
+    const bsl::string&                            description() const;
+    const mqbi::DispatcherClientData&             dispatcherClientData() const;
+    mqbi::Domain*                                 domain() const;
+    unsigned int                                  id() const;
+    const mqbu::StorageKey&                       key() const;
+    const QueueHandleCatalog&                     handleCatalog() const;
+    const bmqp_ctrlmsg::QueueHandleParameters&    handleParameters() const;
 
     int                                       partitionId() const;
     mqbi::Queue*                              queue() const;
@@ -348,6 +349,7 @@ class QueueState {
     bool canMerge(
         const bmqp_ctrlmsg::QueueHandleParameters& handleParameters) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

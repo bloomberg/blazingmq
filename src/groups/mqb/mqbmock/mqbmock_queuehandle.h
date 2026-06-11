@@ -85,6 +85,7 @@ namespace mqbmock {
 // =================
 
 /// Mock Queue Handle implementation used to emulate a real queue handle.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class QueueHandle : public mqbi::QueueHandle {
   private:
     // PRIVATE TYPES
@@ -431,8 +432,10 @@ class QueueHandle : public mqbi::QueueHandle {
     /// `appId` is not specified, then the default stream is assumed.  The
     /// behavior is undefined unless the stream identified by `appId` has
     /// been registered.
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     void _resetUnconfirmed(
         const bsl::string& appId = bmqp::ProtocolUtil::k_DEFAULT_APP_ID);
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
     // ACCESSORS
     //   (virtual mqbi::QueueHandle)
@@ -510,16 +513,20 @@ class QueueHandle : public mqbi::QueueHandle {
     ///
     /// The behavior is undefined unless the stream identified by `appId`
     /// has been registered.
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bsl::string _messages(
         const bsl::string& appId = bmqp::ProtocolUtil::k_DEFAULT_APP_ID) const;
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
     /// Return the number of messages that were sent to this consumer for
     /// the optionally specified `appId` stream but not yet confirmed.  If
     /// `appId` is not specified, then the default stream is assumed.  The
     /// behavior is undefined unless the stream identified by `appId` has
     /// been registered.
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     int _numMessages(
         const bsl::string& appId = bmqp::ProtocolUtil::k_DEFAULT_APP_ID) const;
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
     /// Return the number of subStreams of this handle that are currently
     /// active, meaning the number of subStream that are registered and have
@@ -534,10 +541,12 @@ class QueueHandle : public mqbi::QueueHandle {
     /// with the optionally specified `appId`.  If `appId` is not specified,
     /// then the default stream is assumed.  The behavior is undefined
     /// unless the stream identified by `appId` has been registered.
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const bmqp_ctrlmsg::StreamParameters& _streamParameters(
         const bsl::string& appId = bmqp::ProtocolUtil::k_DEFAULT_APP_ID) const;
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 };
-
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 }
 }
 

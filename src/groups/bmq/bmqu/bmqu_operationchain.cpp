@@ -39,6 +39,7 @@ OperationChain_Job::TargetBase::~TargetBase()
 // --------------------
 
 // PRIVATE MANIPULATORS
+// NOLINTBEGIN(performance-unnecessary-value-param)
 void OperationChain::onOperationCompleted(JobHandle handle)
     BSLS_KEYWORD_NOEXCEPT
 {
@@ -66,6 +67,7 @@ void OperationChain::onOperationCompleted(JobHandle handle)
     // notify all waiting threads
     d_condition.broadcast();
 }
+// NOLINTEND(performance-unnecessary-value-param)
 
 void OperationChain::run(LockGuard* lock) BSLS_KEYWORD_NOEXCEPT
 {
@@ -190,6 +192,7 @@ void OperationChain::append(Link* const* links, size_t count)
     // the number of links before append
     const unsigned prevNumLinks = d_numLinks;
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (; count != 0; ++links, --count) {
         // make sure the link is using the same allocator as this chain
         BSLS_ASSERT((*links) && (*links)->allocator() == allocator());
@@ -205,6 +208,7 @@ void OperationChain::append(Link* const* links, size_t count)
         // transfer ownership of all jobs to this chain
         d_jobList.splice(d_jobList.end(), (*links)->d_jobList);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     // if the chain is started and the first appended link is the first one in
     // the chain, start executing operations right away
@@ -357,6 +361,7 @@ OperationChainLink::OperationChainLink(bslma::Allocator* basicAllocator)
     //       can throw.
 }
 
+// NOLINTBEGIN(cppcoreguidelines-noexcept-move-operations,performance-noexcept-move-constructor)
 OperationChainLink::OperationChainLink(
     bslmf::MovableRef<OperationChainLink> original)
 : d_jobList(bslmf::MovableRefUtil::move(
@@ -365,6 +370,7 @@ OperationChainLink::OperationChainLink(
     // NOTE: This constructor is *not* noexcept because the move constructor of
     //       'bsl::list' is allowed to throw.
 }
+// NOLINTEND(cppcoreguidelines-noexcept-move-operations,performance-noexcept-move-constructor)
 
 // MANIPULATORS
 OperationChainLink& OperationChainLink::operator=(

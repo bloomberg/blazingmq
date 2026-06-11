@@ -37,6 +37,7 @@ using namespace bmqio;
 // ----------------------------------------------------------------------------
 
 static void test1_breathingTest()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("RESOLVE UTILITIES - BREATHING TEST");
 
@@ -86,18 +87,20 @@ static void test1_breathingTest()
 
         bsl::vector<ntsa::IpAddress> addresses(
             bmqtst::TestHelperUtil::allocator());
-        ntsa::Error                  error =
+        ntsa::Error error =
             bmqio::ResolveUtil::getIpAddress(&addresses, "www.wikipedia.org");
 
         BMQTST_ASSERT_EQ(error.code(), ntsa::Error::e_OK);
         BMQTST_ASSERT_GT(addresses.size(), 0U);
 
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
         for (bsl::vector<ntsa::IpAddress>::const_iterator it =
                  addresses.begin();
              it != addresses.end();
              ++it) {
             PVV(*it);
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
     }
 
     {
@@ -113,6 +116,7 @@ static void test1_breathingTest()
         ntsa::IpAddress loopback("127.0.0.1");
         bool            foundLoopback = false;
 
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
         for (bsl::vector<ntsa::IpAddress>::const_iterator it =
                  addresses.begin();
              it != addresses.end();
@@ -122,16 +126,19 @@ static void test1_breathingTest()
                 foundLoopback = true;
             }
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 
         BMQTST_ASSERT(foundLoopback);
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -148,3 +155,4 @@ int main(int argc, char* argv[])
     // with default allocator so we can check here only for global allocations.
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

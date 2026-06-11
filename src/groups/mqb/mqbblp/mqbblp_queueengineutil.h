@@ -155,6 +155,7 @@ struct QueueEngineUtil {
 // ===========================================
 
 /// Proctor mechanism managing ReleaseHandle callback invocation
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct QueueEngineUtil_ReleaseHandleProctor {
     // Discern the following (partially orthogonal) cases:
     //
@@ -238,6 +239,7 @@ struct QueueEngineUtil_ReleaseHandleProctor {
     /// handle, the stream in the queue, the stream in the handle.
     const mqbi::QueueHandleReleaseResult& result() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ===============================
 // struct QueueEngineUtil_AppState
@@ -323,6 +325,7 @@ class RedeliveryList {
 };
 
 /// Mechanism managing state of a group of consumers supporting priorities.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct QueueEngineUtil_AppState {
   public:
     // PUBLIC TYPES
@@ -330,12 +333,14 @@ struct QueueEngineUtil_AppState {
     /// Set of alive consumers
     typedef Routers::Consumers Consumers;
 
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     class VirtualIterator {
       public:
         virtual ~VirtualIterator();
 
         virtual const mqbi::StorageIterator* next() = 0;
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
   private:
     // PRIVATE DATA
@@ -597,6 +602,7 @@ struct QueueEngineUtil_AppState {
         bslma::ManagedPtr<mqbi::StorageIterator>* out,
         RedeliveryList&                           list);
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ==========================================
 // struct QueueEngineUtil_AppsDeliveryContext

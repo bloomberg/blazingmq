@@ -69,11 +69,13 @@ static void test2_operations()
 {
     bmqtst::TestHelper::printTestName("Operations Test");
 
-    const bsl::size_t         bufferLength         = 64;
+    const bsl::size_t bufferLength = 64;
+    // NOLINTNEXTLINE(*-avoid-c-arrays)
     char                      buffer[bufferLength] = {0};
     const int                 fileDescriptor       = 10;
     const bsls::Types::Uint64 fileSize             = 512;
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     mqbs::MemoryBlock block(buffer, bufferLength);
 
     mqbs::MappedFileDescriptor obj;
@@ -104,11 +106,13 @@ static void test3_reset()
 {
     bmqtst::TestHelper::printTestName("Reset Test");
 
-    const bsl::size_t         bufferLength         = 32;
+    const bsl::size_t bufferLength = 32;
+    // NOLINTNEXTLINE(*-avoid-c-arrays)
     char                      buffer[bufferLength] = {0};
     const int                 fileDescriptor       = 7;
     const bsls::Types::Uint64 fileSize             = 128;
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     mqbs::MemoryBlock block(buffer, bufferLength);
 
     mqbs::MappedFileDescriptor obj;
@@ -140,6 +144,7 @@ static void test3_reset()
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -156,3 +161,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

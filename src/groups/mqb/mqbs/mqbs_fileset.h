@@ -53,6 +53,7 @@ class FileStore;
 // ==============
 
 /// Value-semantic type representing a set of BlazingMQ data store files.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct FileSet BSLS_CPP11_FINAL {
   public:
     // PUBLIC DATA
@@ -120,6 +121,7 @@ struct FileSet BSLS_CPP11_FINAL {
     /// FileSet.
     long numReferences() const { return d_aliasedChunk_wp.use_count(); }
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

@@ -85,6 +85,7 @@ RecoveryEventBuilder::packMessage(unsigned int                partitionId,
                                   const bdlbb::BlobBuffer&    chunkBuffer,
                                   bool                        isFinal,
                                   bool                        isSetMd5)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     // Validate payload is not too big (no padding needed for the chunk).  Note
     // that chunkBuffer could be zero length.
@@ -152,6 +153,7 @@ RecoveryEventBuilder::packMessage(unsigned int                partitionId,
     ++d_msgCount;
     return bmqt::EventBuilderResult::e_SUCCESS;
 }
+// NOLINTEND(*-narrowing-conversions)
 
 const bsl::shared_ptr<bdlbb::Blob>& RecoveryEventBuilder::blob() const
 {
@@ -160,8 +162,10 @@ const bsl::shared_ptr<bdlbb::Blob>& RecoveryEventBuilder::blob() const
 
     // Fix packet's length in header now that we know it ..  Following is valid
     // (see comment in reset)
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     EventHeader& eh = *reinterpret_cast<EventHeader*>(
         d_blob_sp->buffer(0).data());
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
     eh.setLength(d_blob_sp->length());
 
     return d_blob_sp;

@@ -79,28 +79,34 @@ class PropertyValueStreamOutVisitor {
     }
 
     void operator()(short value)
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     {
         bdlb::BigEndianInt16 nboValue = bdlb::BigEndianInt16::make(value);
         bdlbb::BlobUtil::append(d_blob_p,
                                 reinterpret_cast<char*>(&nboValue),
                                 sizeof(nboValue));
     }
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
     void operator()(int value)
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     {
         bdlb::BigEndianInt32 nboValue = bdlb::BigEndianInt32::make(value);
         bdlbb::BlobUtil::append(d_blob_p,
                                 reinterpret_cast<char*>(&nboValue),
                                 sizeof(nboValue));
     }
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
     void operator()(bsls::Types::Int64 value)
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     {
         bdlb::BigEndianInt64 nboValue = bdlb::BigEndianInt64::make(value);
         bdlbb::BlobUtil::append(d_blob_p,
                                 reinterpret_cast<char*>(&nboValue),
                                 sizeof(nboValue));
     }
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
     void operator()(const bsl::string_view& value)
     {
@@ -122,6 +128,7 @@ class PropertyValueStreamOutVisitor {
 };
 
 bool validatePropertyLength(int propLen, bmqt::PropertyType::Enum propType)
+// NOLINTBEGIN(bugprone-branch-clone)
 {
     // PRECONDITIONS
     BSLS_ASSERT(bmqt::PropertyType::e_UNDEFINED != propType);
@@ -171,6 +178,7 @@ bool validatePropertyLength(int propLen, bmqt::PropertyType::Enum propType)
 
     return false;
 }
+// NOLINTEND(bugprone-branch-clone)
 
 }  // close unnamed namespace
 
@@ -256,6 +264,7 @@ MessageProperties::getPropertyValueAsString(const Property& property) const
 }
 
 bool MessageProperties::streamInPropertyValue(const Property& p) const
+// NOLINTBEGIN(cppcoreguidelines-init-variables,cppcoreguidelines-pro-type-member-init,cppcoreguidelines-pro-type-reinterpret-cast)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(bmqt::PropertyType::e_UNDEFINED != p.d_type);
@@ -332,8 +341,10 @@ bool MessageProperties::streamInPropertyValue(const Property& p) const
             // Do not align
             if (bmqu::BlobUtil::isDataContinuous(position, end)) {
                 // Section is good
+                // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
                 char* start = d_blob_p->buffer(position.buffer()).data() +
                               position.byte();
+                // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
                 p.d_value = bsl::string_view(start, p.d_length);
                 doCopy    = false;
@@ -371,6 +382,7 @@ bool MessageProperties::streamInPropertyValue(const Property& p) const
 
     return rc == 0;
 }
+// NOLINTEND(cppcoreguidelines-init-variables,cppcoreguidelines-pro-type-member-init,cppcoreguidelines-pro-type-reinterpret-cast)
 
 // CREATORS
 MessageProperties::MessageProperties(bslma::Allocator* basicAllocator)
@@ -604,8 +616,8 @@ int MessageProperties::streamInHeader(const bdlbb::Blob& blob)
     else {
         d_blob_p = &blob;
     }
-    d_originalSize      = d_totalSize;
-    d_originalNumProps  = d_numProps;
+    d_originalSize     = d_totalSize;
+    d_originalNumProps = d_numProps;
 
     return rc_SUCCESS;
 }
@@ -617,6 +629,7 @@ int MessageProperties::streamInPropertyHeader(Property*    property,
                                               bool isNewStyleProperties,
                                               int  start,
                                               int  index) const
+// NOLINTBEGIN(*-magic-numbers)
 {
     BSLS_ASSERT_SAFE(property);
     BSLS_ASSERT_SAFE(totalLength);
@@ -765,6 +778,7 @@ int MessageProperties::streamInPropertyHeader(Property*    property,
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers)
 
 int MessageProperties::loadProperties(bool isFirstTime,
                                       bool isNewStyleProperties) const
@@ -807,6 +821,7 @@ int MessageProperties::loadProperties(bool isFirstTime,
 
 int MessageProperties::streamIn(const bdlbb::Blob& blob,
                                 bool               isNewStyleProperties)
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 {
     clear();
 
@@ -855,10 +870,12 @@ int MessageProperties::streamIn(const bdlbb::Blob& blob,
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 int MessageProperties::streamIn(const bdlbb::Blob&           blob,
                                 const MessagePropertiesInfo& info,
                                 const SchemaPtr&             schema)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     int rc;
     if (schema) {
@@ -872,6 +889,7 @@ int MessageProperties::streamIn(const bdlbb::Blob&           blob,
     }
     return rc;
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 // ACCESSORS
 // PUBLIC ACCESSORS
@@ -1112,6 +1130,7 @@ bsl::ostream& MessageProperties::print(bsl::ostream& stream,
     MessagePropertiesIterator msgPropIter(this);
 
     while (msgPropIter.hasNext()) {
+        // NOLINTNEXTLINE(*-magic-numbers)
         bdlma::LocalSequentialAllocator<64> nameLsa(0);
         bmqu::MemOutStream                  nameOs(&nameLsa);
 

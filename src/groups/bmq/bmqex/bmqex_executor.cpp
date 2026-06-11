@@ -55,17 +55,21 @@ Executor_Box_DefImp::target() const BSLS_KEYWORD_NOEXCEPT
 // -------------------------
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 Executor_Box_SboImp::Executor_Box_SboImp(const Executor_Box_SboImp& original)
     BSLS_KEYWORD_NOEXCEPT
 {
     original.target()->copy(this);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 Executor_Box_SboImp::Executor_Box_SboImp(
     bslmf::MovableRef<Executor_Box_SboImp> original) BSLS_KEYWORD_NOEXCEPT
 {
     bslmf::MovableRefUtil::access(original).target()->move(this);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 Executor_Box_SboImp::~Executor_Box_SboImp()
 {
@@ -73,8 +77,10 @@ Executor_Box_SboImp::~Executor_Box_SboImp()
 }
 
 // MANIPULATORS
+// NOLINTBEGIN(cert-oop54-cpp)
 Executor_Box_SboImp& Executor_Box_SboImp::operator=(
     const Executor_Box_SboImp& rhs) BSLS_KEYWORD_NOEXCEPT
+// NOLINTEND(cert-oop54-cpp)
 {
     target()->~Executor_TargetBase();
     rhs.target()->copy(this);
@@ -102,15 +108,19 @@ void Executor_Box_SboImp::swap(Executor_Box_SboImp& other)
 
 // ACCESSORS
 Executor_TargetBase* Executor_Box_SboImp::target() BSLS_KEYWORD_NOEXCEPT
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     return reinterpret_cast<Executor_TargetBase*>(this);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 const Executor_TargetBase*
 Executor_Box_SboImp::target() const BSLS_KEYWORD_NOEXCEPT
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     return reinterpret_cast<const Executor_TargetBase*>(this);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 // ------------------
 // class Executor_Box
@@ -141,9 +151,11 @@ Executor_TargetBase* Executor_Box::target() BSLS_KEYWORD_NOEXCEPT
 }
 
 const Executor_TargetBase* Executor_Box::target() const BSLS_KEYWORD_NOEXCEPT
+// NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast)
 {
     return const_cast<Executor_Box*>(this)->target();
 }
+// NOLINTEND(cppcoreguidelines-pro-type-const-cast)
 
 // --------------
 // class Executor
@@ -171,11 +183,13 @@ Executor::Executor(bslmf::MovableRef<Executor> original,
 }
 
 // MANIPULATORS
+// NOLINTBEGIN(cert-oop54-cpp)
 Executor& Executor::operator=(const Executor& rhs) BSLS_KEYWORD_NOEXCEPT
 {
     d_box = rhs.d_box;
     return *this;
 }
+// NOLINTEND(cert-oop54-cpp)
 
 Executor&
 Executor::operator=(bslmf::MovableRef<Executor> rhs) BSLS_KEYWORD_NOEXCEPT

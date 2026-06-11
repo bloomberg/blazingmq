@@ -53,6 +53,7 @@ namespace mqbblp {
 namespace {
 
 // For convenience
+// NOLINTNEXTLINE(cppcoreguidelines-interfaces-global-init)
 const int k_KEY_LEN = mqbs::FileStoreProtocol::k_KEY_LENGTH;
 
 }  // close unnamed namespace
@@ -221,6 +222,7 @@ void ClusterStateManager::onLeaderSyncStateQueryResponse(
 
     BSLS_ASSERT_SAFE(!pairs.empty());
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (NodeResponsePairsConstIter it = pairs.begin(); it != pairs.end();
          ++it) {
         BSLS_ASSERT_SAFE(it->first);
@@ -266,6 +268,7 @@ void ClusterStateManager::onLeaderSyncStateQueryResponse(
             maxSeqNode = it->first;
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     if (maxSeqNode == d_clusterData_p->membership().selfNode()) {
         BALL_LOG_INFO << d_clusterData_p->identity().description()
@@ -303,6 +306,7 @@ void ClusterStateManager::onLeaderSyncStateQueryResponse(
         maxSeqNode));
 
     bmqt::GenericResult::Enum status =
+        // NOLINTNEXTLINE(*-magic-numbers)
         d_cluster_p->sendRequest(request, maxSeqNode, bsls::TimeInterval(10));
 
     if (bmqt::GenericResult::e_SUCCESS != status) {
@@ -740,12 +744,14 @@ ClusterStateManager::~ClusterStateManager()
 // MANIPULATORS
 //   (virtual: mqbi::ClusterStateManager)
 int ClusterStateManager::start(bsl::ostream& errorDescription)
+// NOLINTBEGIN(*-magic-numbers)
 {
     // executed by the cluster *DISPATCHER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
 
+    // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
     enum { rc_SUCCESS = 0, rc_CLUSTER_STATE_LEDGER_FAILURE = -1 };
 
     if (d_isStarted) {
@@ -766,6 +772,7 @@ int ClusterStateManager::start(bsl::ostream& errorDescription)
     d_isStarted = true;
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers)
 
 void ClusterStateManager::stop()
 {
@@ -960,6 +967,7 @@ ClusterStateManager::updateAppIds(const bsl::vector<bsl::string>& added,
 }
 
 void ClusterStateManager::initiateLeaderSync(bool wait)
+// NOLINTBEGIN(*-magic-numbers)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -1076,6 +1084,7 @@ void ClusterStateManager::initiateLeaderSync(bool wait)
     d_clusterData_p->multiRequestManager().sendRequest(contextSp,
                                                        bsls::TimeInterval(10));
 }
+// NOLINTEND(*-magic-numbers)
 
 void ClusterStateManager::processLeaderSyncStateQuery(
     const bmqp_ctrlmsg::ControlMessage& message,
@@ -1190,6 +1199,7 @@ void ClusterStateManager::processLeaderSyncDataQuery(
 
         for (size_t pid = 0; pid < d_state_p->partitions().size(); ++pid) {
             const mqbc::ClusterStatePartitionInfo& pinfo =
+                // NOLINTNEXTLINE(*-narrowing-conversions)
                 d_state_p->partition(pid);
 
             // Only send those partitions which are not orphan.

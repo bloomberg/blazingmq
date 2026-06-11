@@ -38,6 +38,7 @@ namespace mqbs {
 // MANIPULATORS
 int QlistFileIterator::reset(const MappedFileDescriptor* mfd,
                              const FileHeader&           fileHeader)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     BSLS_ASSERT_SAFE(mfd);
     enum RcEnum {
@@ -73,8 +74,10 @@ int QlistFileIterator::reset(const MappedFileDescriptor* mfd,
     }
 
     // Skip the FileHeader to point to the QlistFileHeader
+    // NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result)
     bool rc = d_blockIter.advance(fileHeader.headerWords() *
                                   bmqp::Protocol::k_WORD_SIZE);
+    // NOLINTEND(bugprone-implicit-widening-of-multiplication-result)
     if (!rc) {
         // Not enough space for FileHeader
         clear();
@@ -130,8 +133,10 @@ int QlistFileIterator::reset(const MappedFileDescriptor* mfd,
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 int QlistFileIterator::nextRecord()
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     enum RcEnum {
         // Value for the various RC error categories
@@ -214,6 +219,7 @@ int QlistFileIterator::nextRecord()
             bsls::Types::Uint64 recSize =
                 bsl::numeric_limits<unsigned int>::max();
 
+            // NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result)
             while (position < d_blockIter.position()) {
                 OffsetPtr<const QueueRecordHeader> header(*d_blockIter.block(),
                                                           position);
@@ -221,6 +227,7 @@ int QlistFileIterator::nextRecord()
                           bmqp::Protocol::k_WORD_SIZE;
                 position += recSize;
             }
+            // NOLINTEND(bugprone-implicit-widening-of-multiplication-result)
 
             d_advanceLength = recSize;
             --d_qlistRecordIndex;
@@ -241,6 +248,7 @@ int QlistFileIterator::nextRecord()
 
     return rc_HAS_NEXT;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 void QlistFileIterator::flipDirection()
 {
@@ -275,13 +283,16 @@ void QlistFileIterator::flipDirection()
 // ACCESSORS
 void QlistFileIterator::loadQueueUri(const char**  data,
                                      unsigned int* length) const
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
     BSLS_ASSERT_SAFE(data);
     BSLS_ASSERT_SAFE(length);
 
     const QueueRecordHeader* qrh = queueRecordHeader();
+    // NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     const char* begin = d_blockIter.block()->base() + d_blockIter.position() +
                         (qrh->headerWords() * bmqp::Protocol::k_WORD_SIZE);
+    // NOLINTEND(bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     unsigned int paddedLen = qrh->queueUriLengthWords() *
                              bmqp::Protocol::k_WORD_SIZE;
 
@@ -290,8 +301,10 @@ void QlistFileIterator::loadQueueUri(const char**  data,
     *data   = begin;
     *length = paddedLen - begin[paddedLen - 1];
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 void QlistFileIterator::loadQueueUriHash(const char** data) const
+// NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
     BSLS_ASSERT_SAFE(data);
 
@@ -301,6 +314,7 @@ void QlistFileIterator::loadQueueUriHash(const char** data) const
             (qrh->headerWords() * bmqp::Protocol::k_WORD_SIZE) +
             (qrh->queueUriLengthWords() * bmqp::Protocol::k_WORD_SIZE);
 }
+// NOLINTEND(bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 void QlistFileIterator::loadAppIds(bsl::vector<AppIdLengthPair>* appIds) const
 {
@@ -312,18 +326,23 @@ void QlistFileIterator::loadAppIds(bsl::vector<AppIdLengthPair>* appIds) const
 
     // Find location of first AppIdHeader.
 
+    // NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result)
     size_t pos = d_blockIter.position() +
                  (qrh->headerWords() * bmqp::Protocol::k_WORD_SIZE) +
                  (qrh->queueUriLengthWords() * bmqp::Protocol::k_WORD_SIZE) +
                  FileStoreProtocol::k_HASH_LENGTH;
+    // NOLINTEND(bugprone-implicit-widening-of-multiplication-result)
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic,modernize-use-emplace)
     for (size_t i = 0; i < numAppIds; ++i) {
         OffsetPtr<const AppIdHeader> appIdHeader(*d_blockIter.block(), pos);
 
         unsigned int paddedLen = appIdHeader->appIdLengthWords() *
                                  bmqp::Protocol::k_WORD_SIZE;
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         const char* begin = d_blockIter.block()->base() + pos +
                             sizeof(AppIdHeader);
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
         appIds->push_back(
             bsl::make_pair(begin, (paddedLen - begin[paddedLen - 1])));
@@ -333,6 +352,7 @@ void QlistFileIterator::loadAppIds(bsl::vector<AppIdLengthPair>* appIds) const
         pos += sizeof(AppIdHeader) + paddedLen +
                FileStoreProtocol::k_HASH_LENGTH;
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic,modernize-use-emplace)
 
     BSLS_ASSERT_SAFE(numAppIds == appIds->size());
 }
@@ -348,18 +368,22 @@ void QlistFileIterator::loadAppIdHashes(
 
     // Find location of first AppIdHeader.
 
+    // NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result)
     size_t pos = d_blockIter.position() +
                  (qrh->headerWords() * bmqp::Protocol::k_WORD_SIZE) +
                  (qrh->queueUriLengthWords() * bmqp::Protocol::k_WORD_SIZE) +
                  FileStoreProtocol::k_HASH_LENGTH;
+    // NOLINTEND(bugprone-implicit-widening-of-multiplication-result)
 
     for (size_t i = 0; i < numAppIds; ++i) {
         OffsetPtr<const AppIdHeader> appIdHeader(*d_blockIter.block(), pos);
 
         unsigned int paddedLen = appIdHeader->appIdLengthWords() *
                                  bmqp::Protocol::k_WORD_SIZE;
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         const char* begin = d_blockIter.block()->base() + pos +
                             sizeof(AppIdHeader) + paddedLen;
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
         appIdHashes->push_back(begin);
 

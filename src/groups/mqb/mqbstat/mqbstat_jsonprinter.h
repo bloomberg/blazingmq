@@ -45,6 +45,7 @@ namespace mqbstat {
 // class JsonPrinter
 // =================
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class JsonPrinter {
   private:
     // PRIVATE TYPES
@@ -84,6 +85,7 @@ class JsonPrinter {
     /// THREAD: This method is called in the `snapshot` thread.
     void printStats(bsl::ostream& stream, bool compact);
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

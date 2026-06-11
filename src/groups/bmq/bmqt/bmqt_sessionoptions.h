@@ -169,6 +169,7 @@ namespace bmqt {
 
 /// value-semantic type for options to configure a session with a BlazingMQ
 /// broker
+// NOLINTBEGIN(*-avoid-c-arrays,cppcoreguidelines-special-member-functions)
 class SessionOptions {
   public:
     // TYPES
@@ -429,6 +430,7 @@ class SessionOptions {
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
 };
+// NOLINTEND(*-avoid-c-arrays,cppcoreguidelines-special-member-functions)
 
 // FREE OPERATORS
 
@@ -483,6 +485,7 @@ inline SessionOptions& SessionOptions::setBlobBufferSize(int value)
 
 inline SessionOptions&
 SessionOptions::setChannelHighWatermark(bsls::Types::Int64 value)
+// NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(8 * 1024 * 1024 < value);
@@ -493,6 +496,7 @@ SessionOptions::setChannelHighWatermark(bsls::Types::Int64 value)
     d_channelHighWatermark = value;
     return *this;
 }
+// NOLINTEND(bugprone-implicit-widening-of-multiplication-result)
 
 inline SessionOptions&
 SessionOptions::setStatsDumpInterval(const bsls::TimeInterval& value)

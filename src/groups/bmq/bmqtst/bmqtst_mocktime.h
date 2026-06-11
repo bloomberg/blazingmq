@@ -49,6 +49,7 @@ namespace bmqtst {
 // ==============
 
 /// A mock utility of the time accessors usable with `bmqu::Time`.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class MockTime {
   private:
     // DATA
@@ -100,6 +101,7 @@ class MockTime {
     /// Return the value representing the corresponding time.
     bsls::Types::Int64 highResTimer() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

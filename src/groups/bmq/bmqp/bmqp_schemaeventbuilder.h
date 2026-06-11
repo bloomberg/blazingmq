@@ -91,6 +91,7 @@ namespace bmqp {
 // ========================
 
 /// Mechanism to build a BlazingMQ schema event
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class SchemaEventBuilder {
   public:
     // TYPES
@@ -165,6 +166,7 @@ class SchemaEventBuilder {
     /// returned will be an empty one.
     const bsl::shared_ptr<bdlbb::Blob>& blob() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =============================
 // struct SchemaEventBuilderUtil

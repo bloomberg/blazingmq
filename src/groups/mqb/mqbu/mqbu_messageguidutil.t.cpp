@@ -99,6 +99,7 @@ static void test1_breathingTest()
 // Testing:
 //   Basic functionality
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
@@ -110,6 +111,7 @@ static void test1_breathingTest()
         BMQTST_ASSERT_EQ(guid.isUnset(), false);
 
         // Export to binary representation
+        // NOLINTNEXTLINE(*-avoid-c-arrays)
         unsigned char binaryBuffer[bmqt::MessageGUID::e_SIZE_BINARY];
         guid.toBinary(binaryBuffer);
 
@@ -119,6 +121,7 @@ static void test1_breathingTest()
         BMQTST_ASSERT_EQ(fromBinGUID, guid);
 
         // Export to hex representation
+        // NOLINTNEXTLINE(*-avoid-c-arrays)
         char hexBuffer[bmqt::MessageGUID::e_SIZE_HEX];
         guid.toHex(hexBuffer);
         BMQTST_ASSERT_EQ(
@@ -157,6 +160,7 @@ static void test1_breathingTest()
         BMQTST_ASSERT_EQ(1u, myMap.count(guid));
     }
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 static void test2_multithread()
 // ------------------------------------------------------------------------
@@ -247,6 +251,7 @@ static void test3_print()
 // Testing:
 //   Printing of the various parts of a GUID.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
 
@@ -276,8 +281,10 @@ static void test3_print()
         guid.fromHex(k_HEX_BUFFER);
 
         // Print and compare
+        // NOLINTBEGIN(*-avoid-c-arrays)
         const char k_EXPECTED[] = "[version: 1, counter: 5, timerTick: "
                                   "1162476081501, brokerId: CACE04742D2E]";
+        // NOLINTEND(*-avoid-c-arrays)
         bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
         mqbu::MessageGUIDUtil::print(out, guid);
         BMQTST_ASSERT_EQ(out.str(), k_EXPECTED);
@@ -295,11 +302,13 @@ static void test3_print()
         // characters before the last one (an hexadecimal brokerId is 12
         // characters, and we skip the closing ']').
         bslstl::StringRef printedBrokerId =
+            // NOLINTNEXTLINE(*-magic-numbers)
             bslstl::StringRef(&out.str()[out.length() - 13], 12);
         BMQTST_ASSERT_EQ(printedBrokerId,
                          mqbu::MessageGUIDUtil::brokerIdHex());
     }
 }
+// NOLINTEND(*-avoid-c-arrays,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 
 static void test4_defaultHashUniqueness()
 // ------------------------------------------------------------------------
@@ -315,6 +324,7 @@ static void test4_defaultHashUniqueness()
 // Testing:
 //   Hash uniqueness of the generated GUIDs.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions,performance-avoid-endl)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Because there is no emplace on unordered_map, the temporary list
@@ -380,13 +390,16 @@ static void test4_defaultHashUniqueness()
              << "GUIDs with the highest collisions..: " << endl;
 
         Guids& guids = hashes[maxCollisionsHash];
+        // NOLINTBEGIN(performance-avoid-endl)
         for (size_t i = 0; i < guids.size(); ++i) {
             cout << "  ";
             mqbu::MessageGUIDUtil::print(cout, guids[i]);
             cout << endl;
         }
+        // NOLINTEND(performance-avoid-endl)
     }
 }
+// NOLINTEND(*-magic-numbers,*-narrowing-conversions,performance-avoid-endl)
 
 static void test5_customHashUniqueness()
 // ------------------------------------------------------------------------
@@ -402,6 +415,7 @@ static void test5_customHashUniqueness()
 // Testing:
 //   Hash uniqueness of the generated GUIDs.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions,performance-avoid-endl)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Because there is no emplace on unordered_map, the temporary list
@@ -468,13 +482,16 @@ static void test5_customHashUniqueness()
              << "GUIDs with the highest collisions..: " << endl;
 
         Guids& guids = hashes[maxCollisionsHash];
+        // NOLINTBEGIN(performance-avoid-endl)
         for (size_t i = 0; i < guids.size(); ++i) {
             cout << "  ";
             mqbu::MessageGUIDUtil::print(cout, guids[i]);
             cout << endl;
         }
+        // NOLINTEND(performance-avoid-endl)
     }
 }
+// NOLINTEND(*-magic-numbers,*-narrowing-conversions,performance-avoid-endl)
 
 // ============================================================================
 //                              PERFORMANCE TESTS
@@ -498,6 +515,7 @@ static void testN1_decode()
 // Testing:
 //   -
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers,cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() =
         true;  // istringstream allocates
@@ -514,6 +532,7 @@ static void testN1_decode()
     char buffer[256];
     bsl::cin.getline(buffer, 256, '\n');
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bsl::istringstream is(buffer);
 
     bsl::string        hexGuid(bmqtst::TestHelperUtil::allocator());
@@ -579,6 +598,7 @@ static void testN1_decode()
         bsl::cout << "Converted timestamp (UTC): " << timestamp << bsl::endl;
     }
 }
+// NOLINTEND(*-avoid-c-arrays,*-magic-numbers,cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 
 BSLA_MAYBE_UNUSED
 static void testN2_bdlbPerformance()
@@ -595,6 +615,7 @@ static void testN2_bdlbPerformance()
 // Testing:
 //   Performance of bdlb::Guid generation.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("PERFORMANCE");
 
@@ -605,11 +626,13 @@ static void testN2_bdlbPerformance()
     // ---------------------
 
     // Warm the cache
+    // NOLINTBEGIN(*-magic-numbers)
     for (int i = 0; i < 1000; ++i) {
         bdlb::Guid guid;
         bdlb::GuidUtil::generate(&guid);
         (void)guid;
     }
+    // NOLINTEND(*-magic-numbers)
 
     bsls::Types::Int64 start = bsls::TimeUtil::getTimer();
 
@@ -630,6 +653,7 @@ static void testN2_bdlbPerformance()
                                           (end - start))
          << " bdlb::Guids per second." << endl;
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 BSLA_MAYBE_UNUSED
 static void testN2_mqbuPerformance()
@@ -646,6 +670,7 @@ static void testN2_mqbuPerformance()
 // Testing:
 //   Performance of the bmqt::MessageGUID generation
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("PERFORMANCE");
 
@@ -655,11 +680,13 @@ static void testN2_mqbuPerformance()
     // bmqt::GUID generation
     // ---------------------
 
+    // NOLINTBEGIN(*-magic-numbers)
     for (int i = 0; i < 1000; ++i) {
         bmqt::MessageGUID guid;
         mqbu::MessageGUIDUtil::generateGUID(&guid);
         (void)guid;
     }
+    // NOLINTEND(*-magic-numbers)
 
     bsls::Types::Int64 start = bsls::TimeUtil::getTimer();
 
@@ -680,6 +707,7 @@ static void testN2_mqbuPerformance()
                                           (end - start))
          << " bdlb::Guids per second." << endl;
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 BSLA_MAYBE_UNUSED static void testN3_defaultHashBenchmark()
 // ------------------------------------------------------------------------
@@ -694,6 +722,7 @@ BSLA_MAYBE_UNUSED static void testN3_defaultHashBenchmark()
 // Testing:
 //   NA
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("DEFAULT HASH BENCHMARK");
 
@@ -717,6 +746,7 @@ BSLA_MAYBE_UNUSED static void testN3_defaultHashBenchmark()
                 (k_NUM_ITERATIONS * 1000000000) / (end - begin)))
          << " hashes per second." << endl;
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 BSLA_MAYBE_UNUSED
 static void testN4_customHashBenchmark()
@@ -732,6 +762,7 @@ static void testN4_customHashBenchmark()
 // Testing:
 //   NA
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("CUSTOM HASH BENCHMARK");
 
@@ -755,6 +786,7 @@ static void testN4_customHashBenchmark()
                 (k_NUM_ITERATIONS * 1000000000) / (end - begin)))
          << " hashes per second." << endl;
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 BSLA_MAYBE_UNUSED static void testN5_hashTableWithDefaultHashBenchmark()
 // ------------------------------------------------------------------------
@@ -765,6 +797,7 @@ BSLA_MAYBE_UNUSED static void testN5_hashTableWithDefaultHashBenchmark()
 //   hash function.
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("HASH TABLE w/ DEFAULT HASH BENCHMARK");
 
@@ -775,10 +808,12 @@ BSLA_MAYBE_UNUSED static void testN5_hashTableWithDefaultHashBenchmark()
     ht.reserve(k_NUM_ELEMS);
 
     // Warmup
+    // NOLINTBEGIN(*-magic-numbers)
     for (size_t i = 1; i <= 1000; ++i) {
         mqbu::MessageGUIDUtil::generateGUID(&guid);
         ht.insert(bsl::make_pair(guid, i));
     }
+    // NOLINTEND(*-magic-numbers)
 
     ht.clear();
 
@@ -799,6 +834,7 @@ BSLA_MAYBE_UNUSED static void testN5_hashTableWithDefaultHashBenchmark()
                 (k_NUM_ELEMS * 1000000000) / (end - begin)))
          << " insertions per second." << endl;
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 BSLA_MAYBE_UNUSED static void testN6_hashTableWithCustomHashBenchmark()
 // ------------------------------------------------------------------------
@@ -809,6 +845,7 @@ BSLA_MAYBE_UNUSED static void testN6_hashTableWithCustomHashBenchmark()
 //   hash function.
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("HASH TABLE w/ CUSTOM HASH BENCHMARK");
 
@@ -822,10 +859,12 @@ BSLA_MAYBE_UNUSED static void testN6_hashTableWithCustomHashBenchmark()
     ht.reserve(k_NUM_ELEMS);
 
     // Warmup
+    // NOLINTBEGIN(*-magic-numbers)
     for (size_t i = 1; i <= 1000; ++i) {
         mqbu::MessageGUIDUtil::generateGUID(&guid);
         ht.insert(bsl::make_pair(guid, i));
     }
+    // NOLINTEND(*-magic-numbers)
 
     ht.clear();
 
@@ -846,6 +885,7 @@ BSLA_MAYBE_UNUSED static void testN6_hashTableWithCustomHashBenchmark()
                 (k_NUM_ELEMS * 1000000000) / (end - begin)))
          << " insertions per second." << endl;
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 BSLA_MAYBE_UNUSED static void testN7_orderedMapWithDefaultHashBenchmark()
 // ------------------------------------------------------------------------
@@ -856,6 +896,7 @@ BSLA_MAYBE_UNUSED static void testN7_orderedMapWithDefaultHashBenchmark()
 //   default hash function.
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("ORDERED MAP DEFAULT HASH BENCHMARK");
 
@@ -866,10 +907,12 @@ BSLA_MAYBE_UNUSED static void testN7_orderedMapWithDefaultHashBenchmark()
         k_NUM_ELEMS,
         bmqtst::TestHelperUtil::allocator());
     // Warmup
+    // NOLINTBEGIN(*-magic-numbers)
     for (size_t i = 1; i <= 1000; ++i) {
         mqbu::MessageGUIDUtil::generateGUID(&guid);
         ht.insert(bsl::make_pair(guid, i));
     }
+    // NOLINTEND(*-magic-numbers)
 
     ht.clear();
 
@@ -890,6 +933,7 @@ BSLA_MAYBE_UNUSED static void testN7_orderedMapWithDefaultHashBenchmark()
                 (k_NUM_ELEMS * 1000000000) / (end - begin)))
          << " insertions per second." << endl;
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 BSLA_MAYBE_UNUSED static void testN8_orderedMapWithCustomHashBenchmark()
 // ------------------------------------------------------------------------
@@ -900,6 +944,7 @@ BSLA_MAYBE_UNUSED static void testN8_orderedMapWithCustomHashBenchmark()
 //   hash function.
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("ORDERED MAP CUSTOM HASH BENCHMARK");
 
@@ -912,10 +957,12 @@ BSLA_MAYBE_UNUSED static void testN8_orderedMapWithCustomHashBenchmark()
         ht(k_NUM_ELEMS, bmqtst::TestHelperUtil::allocator());
 
     // Warmup
+    // NOLINTBEGIN(*-magic-numbers)
     for (size_t i = 1; i <= 1000; ++i) {
         mqbu::MessageGUIDUtil::generateGUID(&guid);
         ht.insert(bsl::make_pair(guid, i));
     }
+    // NOLINTEND(*-magic-numbers)
 
     ht.clear();
 
@@ -936,6 +983,7 @@ BSLA_MAYBE_UNUSED static void testN8_orderedMapWithCustomHashBenchmark()
                 (k_NUM_ELEMS * 1000000000) / (end - begin)))
          << " insertions per second." << endl;
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 #ifdef BMQTST_BENCHMARK_ENABLED
 static void testN2_mqbuPerformance_GoogleBenchmark(benchmark::State& state)
@@ -952,6 +1000,7 @@ static void testN2_mqbuPerformance_GoogleBenchmark(benchmark::State& state)
 // Testing:
 //   Performance of the bmqt::MessageGUID generation
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
 {
     bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK PERFORMANCE");
 
@@ -960,11 +1009,13 @@ static void testN2_mqbuPerformance_GoogleBenchmark(benchmark::State& state)
     // ----------------------------
 
     // Warm the cache
+    // NOLINTBEGIN(*-magic-numbers)
     for (int i = 0; i < 1000; ++i) {
         bmqt::MessageGUID guid;
         mqbu::MessageGUIDUtil::generateGUID(&guid);
         (void)guid;
     }
+    // NOLINTEND(*-magic-numbers)
 
     for (auto _ : state) {
         for (bsls::Types::Int64 i = 0; i < state.range(0); ++i) {
@@ -974,6 +1025,7 @@ static void testN2_mqbuPerformance_GoogleBenchmark(benchmark::State& state)
         }
     }
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores)
 
 static void testN2_bdlbPerformance_GoogleBenchmark(benchmark::State& state)
 // ------------------------------------------------------------------------
@@ -989,14 +1041,17 @@ static void testN2_bdlbPerformance_GoogleBenchmark(benchmark::State& state)
 // Testing:
 //   Performance of the bdlb::GUID generation
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
 {
     bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK PERFORMANCE");
     // Warm the cache
+    // NOLINTBEGIN(*-magic-numbers)
     for (int i = 0; i < 1000; ++i) {
         bdlb::Guid guid;
         bdlb::GuidUtil::generate(&guid);
         (void)guid;
     }
+    // NOLINTEND(*-magic-numbers)
 
     for (auto _ : state) {
         for (bsls::Types::Int64 i = 0; i < state.range(0); ++i) {
@@ -1006,6 +1061,7 @@ static void testN2_bdlbPerformance_GoogleBenchmark(benchmark::State& state)
         }
     }
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores)
 
 static void
 testN3_defaultHashBenchmark_GoogleBenchmark(benchmark::State& state)
@@ -1021,6 +1077,7 @@ testN3_defaultHashBenchmark_GoogleBenchmark(benchmark::State& state)
 // Testing:
 //   NA
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
 {
     bmqtst::TestHelper::printTestName(
         "GOOGLE BENCHMARK DEFAULT HASH BENCHMARK");
@@ -1034,6 +1091,7 @@ testN3_defaultHashBenchmark_GoogleBenchmark(benchmark::State& state)
         }
     }
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores)
 
 static void testN4_customHashBenchmark_GoogleBenchmark(benchmark::State& state)
 // ------------------------------------------------------------------------
@@ -1048,6 +1106,7 @@ static void testN4_customHashBenchmark_GoogleBenchmark(benchmark::State& state)
 // Testing:
 //   NA
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
 {
     bmqtst::TestHelper::printTestName(
         "GOOGLE BENCHMARK CUSTOM HASH BENCHMARK");
@@ -1061,6 +1120,7 @@ static void testN4_customHashBenchmark_GoogleBenchmark(benchmark::State& state)
         }
     }
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores)
 
 static void testN5_hashTableWithDefaultHashBenchmark_GoogleBenchmark(
     benchmark::State& state)
@@ -1072,6 +1132,7 @@ static void testN5_hashTableWithDefaultHashBenchmark_GoogleBenchmark(
 //   hash function.
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
 {
     bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK HASH TABLE "
                                       "w/ DEFAULT HASH BENCHMARK");
@@ -1082,10 +1143,12 @@ static void testN5_hashTableWithDefaultHashBenchmark_GoogleBenchmark(
     ht.reserve(state.range(0));
 
     // Warmup
+    // NOLINTBEGIN(*-magic-numbers)
     for (size_t i = 1; i <= 1000; ++i) {
         mqbu::MessageGUIDUtil::generateGUID(&guid);
         ht.insert(bsl::make_pair(guid, i));
     }
+    // NOLINTEND(*-magic-numbers)
 
     ht.clear();
     for (auto _ : state) {
@@ -1095,6 +1158,7 @@ static void testN5_hashTableWithDefaultHashBenchmark_GoogleBenchmark(
         }
     }
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores)
 
 static void testN6_hashTableWithCustomHashBenchmark_GoogleBenchmark(
     benchmark::State& state)
@@ -1106,6 +1170,7 @@ static void testN6_hashTableWithCustomHashBenchmark_GoogleBenchmark(
 //   hash function.
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
 {
     bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK HASH TABLE "
                                       "w/ CUSTOM HASH BENCHMARK");
@@ -1119,10 +1184,12 @@ static void testN6_hashTableWithCustomHashBenchmark_GoogleBenchmark(
     ht.reserve(state.range(0));
 
     // Warmup
+    // NOLINTBEGIN(*-magic-numbers)
     for (size_t i = 1; i <= 1000; ++i) {
         mqbu::MessageGUIDUtil::generateGUID(&guid);
         ht.insert(bsl::make_pair(guid, i));
     }
+    // NOLINTEND(*-magic-numbers)
 
     ht.clear();
 
@@ -1133,6 +1200,7 @@ static void testN6_hashTableWithCustomHashBenchmark_GoogleBenchmark(
         }
     }
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores)
 
 static void testN7_orderedMapWithDefaultHashBenchmark_GoogleBenchmark(
     benchmark::State& state)
@@ -1144,20 +1212,25 @@ static void testN7_orderedMapWithDefaultHashBenchmark_GoogleBenchmark(
 //   default hash function.
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
 {
     bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK ORDERED MAP "
                                       "DEFAULT HASH BENCHMARK");
 
     bmqt::MessageGUID guid;
 
+    // NOLINTBEGIN(*-narrowing-conversions)
     bmqc::OrderedHashMap<bmqt::MessageGUID, size_t> ht(
         state.range(0),
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-narrowing-conversions)
     // Warmup
+    // NOLINTBEGIN(*-magic-numbers)
     for (size_t i = 1; i <= 1000; ++i) {
         mqbu::MessageGUIDUtil::generateGUID(&guid);
         ht.insert(bsl::make_pair(guid, i));
     }
+    // NOLINTEND(*-magic-numbers)
 
     ht.clear();
 
@@ -1168,6 +1241,7 @@ static void testN7_orderedMapWithDefaultHashBenchmark_GoogleBenchmark(
         }
     }
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores)
 
 static void testN8_orderedMapWithCustomHashBenchmark_GoogleBenchmark(
     benchmark::State& state)
@@ -1179,6 +1253,7 @@ static void testN8_orderedMapWithCustomHashBenchmark_GoogleBenchmark(
 //   hash function.
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
 {
     bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK ORDERED MAP "
                                       "CUSTOM HASH BENCHMARK");
@@ -1188,13 +1263,16 @@ static void testN8_orderedMapWithCustomHashBenchmark_GoogleBenchmark(
     bmqc::OrderedHashMap<bmqt::MessageGUID,
                          size_t,
                          bslh::Hash<bmqt::MessageGUIDHashAlgo> >
+        // NOLINTNEXTLINE(*-narrowing-conversions)
         ht(state.range(0), bmqtst::TestHelperUtil::allocator());
 
     // Warmup
+    // NOLINTBEGIN(*-magic-numbers)
     for (size_t i = 1; i <= 1000; ++i) {
         mqbu::MessageGUIDUtil::generateGUID(&guid);
         ht.insert(bsl::make_pair(guid, i));
     }
+    // NOLINTEND(*-magic-numbers)
 
     ht.clear();
 
@@ -1205,6 +1283,7 @@ static void testN8_orderedMapWithCustomHashBenchmark_GoogleBenchmark(
         }
     }
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores)
 #endif  // BMQTST_BENCHMARK_ENABLED
 
 // ============================================================================
@@ -1212,6 +1291,7 @@ static void testN8_orderedMapWithCustomHashBenchmark_GoogleBenchmark(
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     // To be called only once per process instantiation.  Calling those two
     // here before the TEST_PROLOG because 'MessageGUIDUtil::initialize' prints
@@ -1290,5 +1370,6 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 
 // ----------------------------------------------------------------------------

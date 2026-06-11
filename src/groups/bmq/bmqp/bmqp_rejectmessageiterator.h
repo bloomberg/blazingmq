@@ -76,6 +76,7 @@ namespace bmqp {
 
 /// An iterator providing read-only sequential access to messages contained
 /// in a `RejectEvent`.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class RejectMessageIterator {
   private:
     // DATA
@@ -162,6 +163,7 @@ class RejectMessageIterator {
     /// returned 1.
     const RejectMessage& message() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS
@@ -179,6 +181,7 @@ inline RejectMessageIterator::RejectMessageIterator()
     // NOTHING
 }
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline RejectMessageIterator::RejectMessageIterator(
     const bdlbb::Blob* blob,
     const EventHeader& eventHeader)
@@ -186,7 +189,9 @@ inline RejectMessageIterator::RejectMessageIterator(
 {
     reset(blob, eventHeader);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline RejectMessageIterator::RejectMessageIterator(
     const RejectMessageIterator& src)
 : d_blobIter(0,
@@ -196,14 +201,17 @@ inline RejectMessageIterator::RejectMessageIterator(
 {
     copyFrom(src);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // MANIPULATORS
+// NOLINTBEGIN(cert-oop54-cpp)
 inline RejectMessageIterator&
 RejectMessageIterator::operator=(const RejectMessageIterator& rhs)
 {
     copyFrom(rhs);
     return *this;
 }
+// NOLINTEND(cert-oop54-cpp)
 
 inline void RejectMessageIterator::clear()
 {

@@ -51,6 +51,7 @@ namespace m_bmqtool {
 // ====================
 
 /// A class to hold a context of a single series of messages to be posted.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class PostingContext {
   private:
     // DATA
@@ -125,6 +126,7 @@ class PostingContext {
     PostingContext(const PostingContext&) BSLS_KEYWORD_DELETED;
     PostingContext& operator=(const PostingContext&) BSLS_KEYWORD_DELETED;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============
 // class Poster
@@ -132,6 +134,7 @@ class PostingContext {
 
 // A factory-semantic class to hold everything needed for posting
 // and ease creating posting contexts: buffers, a logger, an allocator etc.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Poster {
     // DATA
     bslma::Allocator* d_allocator_p;
@@ -172,6 +175,7 @@ class Poster {
     Poster(const Poster&) BSLS_KEYWORD_DELETED;
     Poster& operator=(const Poster&) BSLS_KEYWORD_DELETED;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

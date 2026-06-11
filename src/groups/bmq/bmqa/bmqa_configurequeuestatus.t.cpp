@@ -49,6 +49,7 @@ static void test1_breathingTest()
 // Testing:
 //   Basic functionality.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
@@ -131,6 +132,7 @@ static void test1_breathingTest()
         BMQTST_ASSERT_EQ(obj1.errorDescription(), obj2.errorDescription());
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test2_comparison()
 // ------------------------------------------------------------------------
@@ -151,6 +153,7 @@ static void test2_comparison()
 //   bool operator!=(const bmqa::ConfigureQueueStatus& lhs,
 //                   const bmqa::ConfigureQueueStatus& rhs);
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("COMPARISON");
 
@@ -200,6 +203,7 @@ static void test2_comparison()
         BMQTST_ASSERT(obj1 != obj2);
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test3_print()
 // ------------------------------------------------------------------------
@@ -217,6 +221,7 @@ static void test3_print()
 //   bmqa::operator<<(bsl::ostream&                     stream,
 //                    const bmqa::ConfigureQueueStatus& rhs);
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Can't check the default allocator: 'bmqa::OpenQueueResult::print' and
@@ -234,6 +239,7 @@ static void test3_print()
 
     // Set URI on the queueId
     bsl::shared_ptr<bmqimp::Queue>& queue =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         reinterpret_cast<bsl::shared_ptr<bmqimp::Queue>&>(queueId);
     queue->setUri(bmqt::Uri("bmq://bmq.test.mem.priority/q1",
                             bmqtst::TestHelperUtil::allocator()));
@@ -261,12 +267,14 @@ static void test3_print()
 
     BMQTST_ASSERT_EQ(out.str(), expected);
 }
+// NOLINTEND(performance-avoid-endl)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -283,3 +291,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

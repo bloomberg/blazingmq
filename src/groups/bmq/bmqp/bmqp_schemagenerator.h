@@ -77,6 +77,7 @@ namespace bmqp {
 ///
 /// REVISIT: it is possible to make this class a template to make it work
 /// with a sequence representation other than `MessageProperties`.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class SchemaGenerator {
   public:
     // PUBLIC TYPES
@@ -136,6 +137,7 @@ class SchemaGenerator {
     /// For testing only.
     void _setCapacity(SchemaIdType maxSchema);
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

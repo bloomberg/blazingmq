@@ -63,6 +63,7 @@ namespace bmqex {
 /// class template `Job_Target<F>` is instantiated and stored via a pointer
 /// to its base class (this one). Then, calls to `bmqex::Job`s public
 /// methods are forwarded to this class.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Job_TargetBase {
   public:
     // CREATORS
@@ -76,6 +77,7 @@ class Job_TargetBase {
     /// Invoke the contained function object `f` as if by `bsl::move(f)()`.
     virtual void invoke() = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ================
 // class Job_Target
@@ -84,6 +86,7 @@ class Job_TargetBase {
 /// An implementation of the `Job_TargetBase` interface containing the
 /// function object.
 template <class FUNCTION>
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Job_Target : public Job_TargetBase {
   private:
     // PRIVATE DATA
@@ -114,21 +117,25 @@ class Job_Target : public Job_TargetBase {
     /// Invoke the contained function object `f` as if by `bsl::move(f)()`.
     void invoke() BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =========
 // class Job
 // =========
 
 /// A polymorphic function object wrapper with small buffer optimization.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Job {
   private:
     // PRIVATE TYPES
 
     /// A "small" dummy object used to help calculate the size of the
     /// on-stack buffer.
+    // NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers)
     struct Dummy : public bdlf::NoOp {
         void* d_padding[5];
     };
+    // NOLINTEND(*-avoid-c-arrays,*-magic-numbers)
 
   private:
     // PRIVATE DATA
@@ -158,8 +165,10 @@ class Job {
     /// object `f` of type `bsl::decay_t<FUNCTION>`, `f()` shall be a valid
     /// expression.
     template <class FUNCTION>
+    // NOLINTBEGIN(bugprone-forwarding-reference-overload)
     explicit Job(BSLS_COMPILERFEATURES_FORWARD_REF(FUNCTION) function,
                  bslma::Allocator* basicAllocator = 0);
+    // NOLINTEND(bugprone-forwarding-reference-overload)
 
     /// Destroy this object and the contained function object with it.
     ~Job();
@@ -174,6 +183,7 @@ class Job {
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(Job, bslma::UsesBslmaAllocator)
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                           INLINE DEFINITIONS
@@ -185,6 +195,7 @@ class Job {
 
 // CREATORS
 template <class FUNCTION>
+// NOLINTBEGIN(bugprone-forwarding-reference-overload,cppcoreguidelines-missing-std-forward)
 inline Job::Job(BSLS_COMPILERFEATURES_FORWARD_REF(FUNCTION) function,
                 bslma::Allocator* basicAllocator)
 {
@@ -195,12 +206,14 @@ inline Job::Job(BSLS_COMPILERFEATURES_FORWARD_REF(FUNCTION) function,
                                                                 function),
                                   bslma::Default::allocator(basicAllocator));
 }
+// NOLINTEND(bugprone-forwarding-reference-overload,cppcoreguidelines-missing-std-forward)
 
 // ----------------
 // class Job_Target
 // ----------------
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
 template <class FUNCTION>
 template <class FUNCTION_PARAM>
 inline Job_Target<FUNCTION>::Job_Target(
@@ -212,6 +225,7 @@ inline Job_Target<FUNCTION>::Job_Target(
     // PRECONDITIONS
     BSLS_ASSERT(allocator);
 }
+// NOLINTEND(cppcoreguidelines-missing-std-forward)
 
 // MANIPULATORS
 template <class FUNCTION>

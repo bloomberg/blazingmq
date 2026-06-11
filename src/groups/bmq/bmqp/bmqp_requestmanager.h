@@ -391,6 +391,7 @@ class RequestManager;
 /// purpose of component-scoped cancellation.
 struct RequestManagerComponentId {
     // CONSTANTS
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum {
         /// Default; no component association.
         k_NO_COMPONENT_ID = 0,
@@ -405,6 +406,7 @@ struct RequestManagerComponentId {
         /// given partition.
         k_PARTITION_FSM_PREFIX = 900
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CLASS METHODS
 
@@ -426,6 +428,7 @@ struct RequestManagerComponentId {
 /// request and all associated context state.  This allows for both
 /// synchronous and asynchronous response management.
 template <class REQUEST, class RESPONSE>
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class RequestManagerRequest {
   public:
     // PUBLIC CLASS DATA
@@ -647,6 +650,7 @@ class RequestManagerRequest {
     /// Return the associated user data.
     const bdld::Datum& userData() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ====================
 // class RequestManager
@@ -654,6 +658,7 @@ class RequestManagerRequest {
 
 /// Mechanism to manage requests and their response.
 template <class REQUEST, class RESPONSE>
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class RequestManager {
   public:
     // TYPES
@@ -889,6 +894,7 @@ class RequestManager {
     /// invoked in the order in which requests were sent.
     void cancelComponentRequests(const RESPONSE& reason, int componentId);
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS
@@ -908,11 +914,13 @@ inline int RequestManagerComponentId::partitionFSM(int partitionId)
 }
 
 inline bool RequestManagerComponentId::isValid(int componentId)
+// NOLINTBEGIN(*-magic-numbers)
 {
     return componentId == k_NO_COMPONENT_ID || componentId == k_CLUSTER_FSM ||
            (componentId >= k_PARTITION_FSM_PREFIX &&
             componentId < k_PARTITION_FSM_PREFIX + 100);
 }
+// NOLINTEND(*-magic-numbers)
 
 // ---------------------------
 // class RequestManagerRequest
@@ -1192,6 +1200,7 @@ inline bmqt::GenericResult::Enum RequestManager<REQUEST, RESPONSE>::sendHelper(
 
 template <class REQUEST, class RESPONSE>
 void RequestManager<REQUEST, RESPONSE>::onRequestTimeout(int requestId)
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     // executed by the thread selected by 'd_executor'
 
@@ -1266,10 +1275,12 @@ void RequestManager<REQUEST, RESPONSE>::onRequestTimeout(int requestId)
         request->signal();
     }
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 template <class REQUEST, class RESPONSE>
 void RequestManager<REQUEST, RESPONSE>::applyResponse(const RequestSp& request,
                                                       const RESPONSE& response)
+// NOLINTBEGIN(bugprone-unchecked-optional-access)
 {
     // mutex *NOT* locked
 
@@ -1315,6 +1326,7 @@ void RequestManager<REQUEST, RESPONSE>::applyResponse(const RequestSp& request,
         request->signal();
     }
 }
+// NOLINTEND(bugprone-unchecked-optional-access)
 
 template <class REQUEST, class RESPONSE>
 RequestManager<REQUEST, RESPONSE>::RequestManager(
@@ -1526,6 +1538,7 @@ bmqt::GenericResult::Enum RequestManager<REQUEST, RESPONSE>::sendRequest(
 template <class REQUEST, class RESPONSE>
 int RequestManager<REQUEST, RESPONSE>::processResponse(
     const RESPONSE& response)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     enum RcEnum {
         // Value for the various RC error categories
@@ -1538,6 +1551,7 @@ int RequestManager<REQUEST, RESPONSE>::processResponse(
     {
         bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // MUTEX LOCKED
 
+        // NOLINTNEXTLINE(bugprone-unchecked-optional-access)
         RequestMapIter it = d_requests.find(response.rId().value());
 
         if (it == d_requests.end()) {
@@ -1564,6 +1578,7 @@ int RequestManager<REQUEST, RESPONSE>::processResponse(
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 template <class REQUEST, class RESPONSE>
 void RequestManager<REQUEST, RESPONSE>::cancelAllRequests(

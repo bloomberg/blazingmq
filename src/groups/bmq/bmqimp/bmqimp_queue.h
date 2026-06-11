@@ -66,6 +66,7 @@ namespace bmqimp {
 /// This enum represents the state of a queue
 struct QueueState {
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         /// The queue is being opened, 1st phase
         e_OPENING_OPN = 1,
@@ -86,6 +87,7 @@ struct QueueState {
         /// The queue is pending, channel is down
         e_PENDING = 9
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // PUBLIC CONSTANTS
 
@@ -163,6 +165,7 @@ struct QueueStatsUtil {
 // ===========
 
 /// Representation of a Queue (properties, stats, state, ...)
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Queue {
   public:
     // PUBLIC TYPES
@@ -396,6 +399,7 @@ class Queue {
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // FREE OPERATORS
 
@@ -592,9 +596,11 @@ inline unsigned int Queue::subQueueId() const
 }
 
 inline int Queue::id() const
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     return d_handleParameters.qId();
 }
+// NOLINTEND(*-narrowing-conversions)
 
 inline const bmqt::CorrelationId& Queue::correlationId() const
 {

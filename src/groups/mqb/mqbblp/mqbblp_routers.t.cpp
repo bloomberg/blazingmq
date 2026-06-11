@@ -50,6 +50,7 @@ using namespace bsl;
 namespace BloombergLP {
 
 /// Mechanism to mock QueueHandle and StorageIterator for Router testing.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct TestStorage {
     bslma::Allocator* d_allocator_p;
 
@@ -83,6 +84,7 @@ struct TestStorage {
                 &d_capacityMeter,
                 d_allocator_p)
     , d_iterator(d_storage.getIterator(mqbu::StorageKey()))
+    // NOLINTNEXTLINE(*-magic-numbers)
     , d_bufferFactory(32, d_allocator_p)
     , d_queue_sp(
           bsl::allocate_shared<mqbmock::Queue>(d_allocator_p,
@@ -120,6 +122,7 @@ struct TestStorage {
                                     d_allocator_p);
     }
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 struct Visitor {
     mqbi::QueueHandle*         d_handle;
@@ -173,13 +176,16 @@ static void test1_registry()
 //  2. Release of last mqbblp::Routers::Registry::SharedItem should erase
 //     the item from the registry.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     typedef mqbblp::Routers::Registry<int, Item> Registry;
 
     Registry registry(bmqtst::TestHelperUtil::allocator());
-    Item     value13(13);
-    Item     value14(14);
-    int      key12 = 12;
+    // NOLINTNEXTLINE(*-magic-numbers)
+    Item value13(13);
+    // NOLINTNEXTLINE(*-magic-numbers)
+    Item value14(14);
+    int  key12 = 12;
 
     {
         Registry::SharedItem si1 = registry.record(key12, value13);
@@ -195,6 +201,7 @@ static void test1_registry()
     }
     BMQTST_ASSERT_EQ(registry.size(), size_t(0));
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test2_priority()
 // ------------------------------------------------------------------------
@@ -204,6 +211,7 @@ static void test2_priority()
 // Priority (weakly) registers Subscribers, Subscriber owns SharedItem
 // reference to Consumer.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init,cppcoreguidelines-pro-type-union-access)
 {
     mqbblp::Routers::Expressions expressions(
         bmqtst::TestHelperUtil::allocator());
@@ -217,13 +225,15 @@ static void test2_priority()
     const bmqp_ctrlmsg::StreamParameters streamParameters(
         bmqtst::TestHelperUtil::allocator());
     mqbblp::Routers::Consumers consumers(bmqtst::TestHelperUtil::allocator());
-    const unsigned int         subQueueId           = 13;
+    const unsigned int         subQueueId = 13;
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-union-access)
     mqbblp::Routers::Consumers::SharedItem consumer = consumers.record(
         handle.address(),
         mqbblp::Routers::Consumer(streamParameters,
                                   subQueueId,
                                   true,
                                   bmqtst::TestHelperUtil::allocator()));
+    // NOLINTEND(cppcoreguidelines-pro-type-union-access)
 
     mqbblp::Routers::Priority priority(bmqtst::TestHelperUtil::allocator());
 
@@ -232,6 +242,7 @@ static void test2_priority()
         mqbblp::Routers::Subscriber(consumer,
                                     bmqtst::TestHelperUtil::allocator()));
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init,cppcoreguidelines-pro-type-union-access)
 
 static void test3_parse()
 // ------------------------------------------------------------------------
@@ -243,6 +254,7 @@ static void test3_parse()
 //  3. Two handles each with one subscription with two consumers at
 //     different priorities.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqp_ctrlmsg::StreamParameters streamParams(
         bmqtst::TestHelperUtil::allocator());
@@ -468,6 +480,7 @@ static void test3_parse()
                                                  false),
                      true);
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test4_generate()
 // ------------------------------------------------------------------------
@@ -478,6 +491,7 @@ static void test4_generate()
 //  Generated streamParameters contain one subscription with two
 // accumulated consumers.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqp_ctrlmsg::StreamParameters in(bmqtst::TestHelperUtil::allocator());
     bmqp::SchemaLearner schemaLearner(bmqtst::TestHelperUtil::allocator());
@@ -490,10 +504,10 @@ static void test4_generate()
         bmqtst::TestHelperUtil::allocator());
     bmqu::MemOutStream errorStream(bmqtst::TestHelperUtil::allocator());
 
-    bsl::string           appId("foo", bmqtst::TestHelperUtil::allocator());
-    int                   priorityCount = 2;
-    int                   priority      = 2;
-    unsigned int          subQueueId    = 13;
+    bsl::string  appId("foo", bmqtst::TestHelperUtil::allocator());
+    int          priorityCount = 2;
+    int          priority      = 2;
+    unsigned int subQueueId    = 13;
 
     in.appId() = appId;
     in.subscriptions().resize(1);
@@ -553,12 +567,14 @@ static void test4_generate()
         BMQTST_ASSERT_EQ(ci.consumerPriorityCount(), 2 * priorityCount);
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -579,3 +595,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

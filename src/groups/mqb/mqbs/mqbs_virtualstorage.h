@@ -66,6 +66,7 @@ class VirtualStorageCatalog;
 // class VirtualStorage
 // ====================
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class VirtualStorage {
     // This Mechanism represents one App in a Storage (FileBased or InMemory)
 
@@ -183,11 +184,13 @@ class VirtualStorage {
     void setNumRemoved(bsls::Types::Int64 numRemoved,
                        bsls::Types::Int64 bytes);
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =====================
 // class StorageIterator
 // =====================
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class StorageIterator : public mqbi::StorageIterator {
     // Mechanism to provide access to both underlying real storage (FileBased
     // or InMemory) and all App states in Virtual Storage.
@@ -309,11 +312,13 @@ class StorageIterator : public mqbi::StorageIterator {
     /// iterator has received replication factor Receipts.
     bool hasReceipt() const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================
 // class VirtualStorageIterator
 // ============================
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class VirtualStorageIterator : public StorageIterator {
     // Mechanism to provide access to both underlying real storage (FileBased
     // or InMemory) and one App states in Virtual Storage.
@@ -348,6 +353,7 @@ class VirtualStorageIterator : public StorageIterator {
     /// pending.
     bool advance() BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

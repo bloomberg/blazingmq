@@ -46,6 +46,7 @@ using namespace bsl;
 //=============================================================================
 //                      STANDARD BDE ASSERT TEST MACROS
 //-----------------------------------------------------------------------------
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 static int testStatus = 0;
 
 //=============================================================================
@@ -61,12 +62,14 @@ static int testStatus = 0;
 // FUNCTIONS
 template <class TYPE>
 void checkStreamOutput(int line, const TYPE& obj, const char* expected)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bsl::ostringstream ss;
     ss << bmqst::Printer<TYPE>(&obj);
 
     LOOP_ASSERT_EQUALS(line, ss.str(), expected);
 }
+// NOLINTEND(performance-avoid-endl)
 
 template <class TYPE>
 void checkPrintOutput(int         line,
@@ -74,19 +77,23 @@ void checkPrintOutput(int         line,
                       int         level,
                       int         spacesPerLevel,
                       const char* expected)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bsl::ostringstream   ss;
     bmqst::Printer<TYPE> printer(&obj);
     printer.print(ss, level, spacesPerLevel);
     LOOP_ASSERT_EQUALS(line, ss.str(), expected);
 }
+// NOLINTEND(performance-avoid-endl)
 
 //=============================================================================
 //                                MAIN PROGRAM
 //-----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers,clang-analyzer-optin.performance.Padding,performance-avoid-endl)
 {
+    // NOLINTNEXTLINE(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     int test    = argc > 1 ? atoi(argv[1]) : 0;
     int verbose = argc > 2;
     // int veryVerbose = argc > 3;
@@ -156,9 +163,12 @@ int main(int argc, char* argv[])
             {L_, 101, "101st"},
             {L_, 111, "111th"},
         };
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         const int NUM_DATA = sizeof(DATA) / sizeof(*DATA);
 
+        // NOLINTBEGIN(performance-avoid-endl)
         for (int dataIdx = 0; dataIdx < NUM_DATA; ++dataIdx) {
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
             const TestData& data = DATA[dataIdx];
             const int       LINE = data.d_line;
 
@@ -168,6 +178,7 @@ int main(int argc, char* argv[])
             PrintUtil::printOrdinal(ss, data.d_num);
             LOOP_ASSERT_EQUALS(LINE, ss.str(), data.d_expected_p);
         }
+        // NOLINTEND(performance-avoid-endl)
 
     } break;
 
@@ -206,9 +217,12 @@ int main(int argc, char* argv[])
             {L_, 9999123400000LL, 3, "2.777 h"},
             {L_, 5LL * 60 * 1000 * 1000 * 1000, 2, "5.00 m"},
             {L_, 1000LL * 1000 * 1000 * 60 * 60 * 24 * 20, 2, "2.85 w"}};
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         const int NUM_DATA = sizeof(DATA) / sizeof(*DATA);
 
+        // NOLINTBEGIN(performance-avoid-endl)
         for (int dataIdx = 0; dataIdx < NUM_DATA; ++dataIdx) {
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
             const TestData& data = DATA[dataIdx];
             const int       LINE = data.d_line;
 
@@ -226,6 +240,7 @@ int main(int argc, char* argv[])
             LOOP_ASSERT_EQUALS(LINE, ss.str(), data.d_expected_p);
             LOOP_ASSERT_EQUALS(LINE, printedLength, expectedLength);
         }
+        // NOLINTEND(performance-avoid-endl)
     } break;
 
     case 3: {
@@ -260,9 +275,12 @@ int main(int argc, char* argv[])
             {L_, 1234556.342324, 0, 1, ',', "1,2,3,4,5,5,6"},
             {L_, -3432.11223, 4, 3, ',', "-3,432.1122"},
         };
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         const int NUM_DATA = sizeof(DATA) / sizeof(*DATA);
 
+        // NOLINTBEGIN(performance-avoid-endl)
         for (int dataIdx = 0; dataIdx < NUM_DATA; ++dataIdx) {
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
             const TestData& data = DATA[dataIdx];
             const int       LINE = data.d_line;
 
@@ -275,6 +293,7 @@ int main(int argc, char* argv[])
                                                data.d_groupSize,
                                                data.d_separator);
 
+            // NOLINTNEXTLINE(*-narrowing-conversions)
             int expectedLength   = ss.str().length();
             int calculatedLength = PrintUtil::printedValueLengthWithSeparator(
                 data.d_arg,
@@ -284,6 +303,7 @@ int main(int argc, char* argv[])
             LOOP_ASSERT_EQUALS(LINE, ss.str(), data.d_expected_p);
             LOOP_ASSERT_EQUALS(LINE, expectedLength, calculatedLength);
         }
+        // NOLINTEND(performance-avoid-endl)
     } break;
 
     case 2: {
@@ -319,9 +339,12 @@ int main(int argc, char* argv[])
             {L_, maxInt, 2, '.', "9.22.33.72.03.68.54.77.58.07"},
             {L_, minInt, 4, '-', "-922-3372-0368-5477-5808"},
         };
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         const int NUM_DATA = sizeof(DATA) / sizeof(*DATA);
 
+        // NOLINTBEGIN(performance-avoid-endl)
         for (int dataIdx = 0; dataIdx < NUM_DATA; ++dataIdx) {
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
             const TestData& data = DATA[dataIdx];
             const int       LINE = data.d_line;
 
@@ -335,6 +358,7 @@ int main(int argc, char* argv[])
 
             LOOP_ASSERT_EQUALS(LINE, ss.str(), data.d_expected_p);
         }
+        // NOLINTEND(performance-avoid-endl)
     } break;
 
     case 1: {
@@ -356,6 +380,7 @@ int main(int argc, char* argv[])
                  << "PRINT MEMORY TEST" << endl
                  << "=================" << endl;
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define TO_I64(x) static_cast<Int64>(x)
 
         const struct TestData {
@@ -363,6 +388,7 @@ int main(int argc, char* argv[])
             Int64       d_arg;
             int         d_precision;
             const char* d_expected_p;
+            // NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result)
         } DATA[] = {
             {L_, 0, 3, "0 B"},
             {L_, 500, 0, "500 B"},
@@ -384,9 +410,13 @@ int main(int argc, char* argv[])
             {L_, -500, 2, "-500 B"},
             {L_, TO_I64(-1.951 * 1024 * 1024), 2, "-1.95 MB"},
         };
+        // NOLINTEND(bugprone-implicit-widening-of-multiplication-result)
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         const int NUM_DATA = sizeof(DATA) / sizeof(*DATA);
 
+        // NOLINTBEGIN(performance-avoid-endl)
         for (int dataIdx = 0; dataIdx < NUM_DATA; ++dataIdx) {
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
             const TestData& data = DATA[dataIdx];
             const int       LINE = data.d_line;
 
@@ -403,6 +433,7 @@ int main(int argc, char* argv[])
                                static_cast<int>(ss.str().length()),
                                expectedLength);
         }
+        // NOLINTEND(performance-avoid-endl)
 
 #undef TO_I64
 
@@ -429,3 +460,4 @@ int main(int argc, char* argv[])
     }
     return testStatus;
 }
+// NOLINTEND(*-avoid-c-arrays,*-magic-numbers,clang-analyzer-optin.performance.Padding,performance-avoid-endl)

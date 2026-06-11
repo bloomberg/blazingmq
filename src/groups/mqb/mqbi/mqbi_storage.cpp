@@ -97,6 +97,7 @@ bool StorageResult::fromAscii(StorageResult::Enum*     out,
 }
 
 bmqt::AckResult::Enum StorageResult::toAckResult(StorageResult::Enum value)
+// NOLINTBEGIN(bugprone-branch-clone)
 {
 #define CASE(X, Y)                                                            \
     case e_##X: return bmqt::AckResult::e_##Y;
@@ -118,6 +119,7 @@ bmqt::AckResult::Enum StorageResult::toAckResult(StorageResult::Enum value)
 
 #undef CASE
 }
+// NOLINTEND(bugprone-branch-clone)
 
 // ------------------------------
 // class StorageMessageAttributes

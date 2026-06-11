@@ -53,11 +53,14 @@ class BasicTableInfoProvider_ValuePrintVisitor;
 // =========================================
 
 /// Format of a column to be printed by a `BasicTableInfoProvider`
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class BasicTableInfoProvider_ColumnFormat {
   private:
     // PRIVATE TYPES
+    // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
     enum Justification { DMCU_LEFT, DMCU_RIGHT, DMCU_CENTER };
 
+    // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
     enum ValueType { DMCU_DEFAULT, DMCU_NS_TIME_INTERVAL, DMCU_MEMORY };
 
     typedef bdlb::NullableValue<bsl::string> NullableString;
@@ -141,12 +144,14 @@ class BasicTableInfoProvider_ColumnFormat {
     BasicTableInfoProvider_ColumnFormat&
     extremeValueString(const bslstl::StringRef& value);
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =============================================
 // class BasicTableInfoProvider_ValueSizeVisitor
 // =============================================
 
 /// A `bmqst::Value` visitor that returns the printed size of the value
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class BasicTableInfoProvider_ValueSizeVisitor {
   public:
     // PUBLIC TYPES
@@ -187,12 +192,14 @@ class BasicTableInfoProvider_ValueSizeVisitor {
     template <typename TYPE>
     int operator()(const TYPE& value) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ==============================================
 // class BasicTableInfoProvider_ValuePrintVisitor
 // ==============================================
 
 /// A `bmqst::Value` visitor that prints the a value
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class BasicTableInfoProvider_ValuePrintVisitor {
   public:
     // PUBLIC TYPES
@@ -234,12 +241,14 @@ class BasicTableInfoProvider_ValuePrintVisitor {
     template <typename TYPE>
     int operator()(const TYPE& value) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================
 // class BasicTableInfoProvider
 // ============================
 
 /// Adapts `bmqst::BaseTable` to `bmqst::TableInfoProvider`
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class BasicTableInfoProvider : public bmqst::TableInfoProvider {
   public:
     // PUBLIC TYPES
@@ -316,6 +325,7 @@ class BasicTableInfoProvider : public bmqst::TableInfoProvider {
                               int           column,
                               int           width) const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

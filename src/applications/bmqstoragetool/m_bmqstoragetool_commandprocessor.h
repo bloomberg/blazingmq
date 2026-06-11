@@ -38,6 +38,7 @@ namespace m_bmqstoragetool {
 // class CommandProcessor
 // ======================
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class CommandProcessor {
   public:
     // CREATORS
@@ -52,6 +53,7 @@ class CommandProcessor {
     /// Process command.
     virtual void process() = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

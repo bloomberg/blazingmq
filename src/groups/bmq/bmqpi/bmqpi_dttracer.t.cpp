@@ -32,10 +32,12 @@ using namespace BloombergLP;
 
 /// A test implementation of the `bmqpi::DTTracer` protocol.
 struct DTTracerTestImp : public bsls::ProtocolTestImp<bmqpi::DTTracer> {
+    // NOLINTBEGIN(cppcoreguidelines-explicit-virtual-functions)
     virtual bsl::shared_ptr<bmqpi::DTSpan> createChildSpan(
         const bsl::shared_ptr<bmqpi::DTSpan>& parent,
         const bsl::string_view&               operation,
         const bmqpi::DTSpan::Baggage& baggage) const BSLS_KEYWORD_OVERRIDE;
+    // NOLINTEND(cppcoreguidelines-explicit-virtual-functions)
 };
 
 // Define one of DTTracerTestImp methods out-of-line, to instruct the
@@ -80,6 +82,7 @@ static void test1_breathingTest()
 // Testing:
 //   PROTOCOL TEST
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // The default allocator check fails in this test case because the
@@ -104,12 +107,14 @@ static void test1_breathingTest()
     bmqpi::DTSpan::Baggage empty;
     BSLS_PROTOCOLTEST_ASSERT(tracer, createChildSpan(NULL, "", empty));
 }
+// NOLINTEND(performance-avoid-endl)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -125,3 +130,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

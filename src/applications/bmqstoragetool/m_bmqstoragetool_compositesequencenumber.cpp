@@ -50,6 +50,7 @@ CompositeSequenceNumber::fromString(bool*              success,
     // PRECONDITION
     BSLS_ASSERT(success);
 
+    // NOLINTBEGIN(cppcoreguidelines-avoid-do-while,cppcoreguidelines-init-variables)
     do {
         if (seqNumString.empty()) {
             errorDescription << "Invalid input: empty string.";
@@ -107,6 +108,7 @@ CompositeSequenceNumber::fromString(bool*              success,
         *success = true;
         return *this;  // RETURN
     } while (false);
+    // NOLINTEND(cppcoreguidelines-avoid-do-while,cppcoreguidelines-init-variables)
 
     *success = false;
     return *this;

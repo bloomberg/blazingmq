@@ -66,6 +66,7 @@ struct ReconnectingChannelFactory_ConnectHandle;
 // ======================================
 
 /// Configuration for a `ReconnectingChannelFactory`
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ReconnectingChannelFactoryConfig {
   public:
     // TYPES
@@ -178,12 +179,14 @@ class ReconnectingChannelFactoryConfig {
     ReconnectingChannelFactoryConfig&
     setEndpointResolveFn(const EndpointResolveFn& value);
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ===============================================
 // struct ReconnectingChannelFactory_ConnectHandle
 // ===============================================
 
 /// Handle to an outstanding `connect` operation.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct ReconnectingChannelFactory_ConnectHandle
 : public ChannelFactory::OpHandle {
   public:
@@ -234,6 +237,7 @@ struct ReconnectingChannelFactory_ConnectHandle
     // ACCESSORS
     const bmqvt::PropertyBag& properties() const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ================================
 // class ReconnectingChannelFactory
@@ -241,6 +245,7 @@ struct ReconnectingChannelFactory_ConnectHandle
 
 /// A ChannelFactory decorator that will automatically try reconnecting if
 /// a Channel produced by a `connect` goes down.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ReconnectingChannelFactory : public ChannelFactory {
   public:
     // TYPES
@@ -349,6 +354,7 @@ class ReconnectingChannelFactory : public ChannelFactory {
                  const ConnectOptions&        options,
                  const ResultCallback&        cb) BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =====================================
 // struct ReconnectingChannelFactoryUtil

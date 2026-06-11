@@ -22,6 +22,7 @@ namespace mqbu {
 // class FlowController
 // --------------------
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 FlowController::FlowController()
 : d_count(0)
 , d_lastUpdateMs(0)
@@ -37,10 +38,13 @@ FlowController::FlowController()
 , d_previousMaxBurst(0)
 , d_isHistoryFull()
 {
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
     for (int i = 0; i < k_HISTORY_SIZE; i++) {
         d_history[i] = 0;
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 FlowController::~FlowController()
 {
@@ -77,6 +81,7 @@ FlowController::Watermark::Enum FlowController::add(int howMany)
 
 void FlowController::checkWatermark(bsls::Types::Int64 lowThreshold,
                                     bsls::Types::Int64 maxRateLimit)
+// NOLINTBEGIN(*-magic-numbers)
 {
     const FlowController::Policy::Enum policy    = d_config.policy();
     bsls::Types::Int64                 watermark = averageWatermark();
@@ -86,9 +91,11 @@ void FlowController::checkWatermark(bsls::Types::Int64 lowThreshold,
             if (d_config.ratePerMs() < maxRateLimit) {
                 // scale up, by 100
 
+                // NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions)
                 mqbu::FlowController::Config config(Policy::e_LIMIT,
                                                     d_config.ratePerMs() + 100,
                                                     d_config.burst() + 100);
+                // NOLINTEND(*-magic-numbers,*-narrowing-conversions)
 
                 configure(config);
             }
@@ -109,9 +116,11 @@ void FlowController::checkWatermark(bsls::Types::Int64 lowThreshold,
         configure(config);
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 void FlowController::update(bsls::Types::Int64 ms,
                             bsls::Types::Int64 watermark)
+// NOLINTBEGIN(*-magic-numbers,bugprone-implicit-widening-of-multiplication-result)
 {
     const bsls::Types::Int64 deltaMs = ms - d_lastUpdateMs;
 
@@ -145,6 +154,7 @@ void FlowController::update(bsls::Types::Int64 ms,
         // reset the entire history.
         elapsedSinceLastSecondMs = k_RECORD_MS * k_HISTORY_SIZE + 1;
     }
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
     while (elapsedSinceLastSecondMs > k_RECORD_MS) {
         // Accumulate the count at the last minute leaving previous whole
         // minutes blank.
@@ -162,6 +172,7 @@ void FlowController::update(bsls::Types::Int64 ms,
             d_currentRecord = 0;
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
 
     // the last second
     d_currentSecondMs = elapsedSinceLastSecondMs;
@@ -185,11 +196,14 @@ void FlowController::update(bsls::Types::Int64 ms,
     d_currentAverageWatermark += (watermark - d_currentAverageWatermark) /
                                  d_currentHits;
 }
+// NOLINTEND(*-magic-numbers,bugprone-implicit-widening-of-multiplication-result)
 
 FlowController::Config FlowController::survey(Policy::Enum policy) const
+// NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions)
 {
     bsls::Types::Int64 sum = d_currentSecondCount + d_totalCount;
-    const int numRecords  = d_isHistoryFull ? k_HISTORY_SIZE : d_currentRecord;
+    const int numRecords = d_isHistoryFull ? k_HISTORY_SIZE : d_currentRecord;
+    // NOLINTNEXTLINE(bugprone-implicit-widening-of-multiplication-result)
     bsls::Types::Int64 ms = d_currentSecondMs + k_RECORD_MS * numRecords;
 
     if (ms == 0) {
@@ -201,6 +215,7 @@ FlowController::Config FlowController::survey(Policy::Enum policy) const
 
     return Config(policy, sum * 1000 / ms, maxBurst());
 }
+// NOLINTEND(*-magic-numbers,*-narrowing-conversions)
 
 const FlowController::Config& FlowController::config() const
 {

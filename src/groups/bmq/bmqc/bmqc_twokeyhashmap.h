@@ -183,6 +183,7 @@ struct TwoKeyHashMap_Erase {
 /// hash maps for each of the 2 keys.  The actual value that the user code
 /// stores in the `TwoKeyHashMap` is stored in this struct.
 template <class MAP>
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct TwoKeyHashMap_Node {
     // TYPES
     typedef typename bsl::unordered_map<typename MAP::first_key_type,
@@ -209,13 +210,16 @@ struct TwoKeyHashMap_Node {
 
     // CREATORS
     template <class VALUE_T>
+    // NOLINTBEGIN(performance-unnecessary-value-param)
     TwoKeyHashMap_Node(K1MapIter k1MapIter,
                        K2MapIter k2MapIter,
                        BSLS_COMPILERFEATURES_FORWARD_REF(VALUE_T) value,
                        bslma::Allocator* allocator);
+    // NOLINTEND(performance-unnecessary-value-param)
 
     ~TwoKeyHashMap_Node();
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ===================
 // class TwoKeyHashMap
@@ -230,6 +234,7 @@ template <class K1,
           class VALUE,
           class HASH1 = bsl::hash<K1>,
           class HASH2 = bsl::hash<K2> >
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class TwoKeyHashMap {
   private:
     // PRIVATE TYPES
@@ -237,6 +242,7 @@ class TwoKeyHashMap {
 
   public:
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum KeyIndex {
         // Defines a numeric type to be used as the key index.
 
@@ -245,7 +251,9 @@ class TwoKeyHashMap {
         /// ALWAYS 2
         e_SECOND_KEY = 2
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum InsertResult {
         // Defines a numeric type to be used as the result of the 'insert()'
         // member function.
@@ -257,6 +265,7 @@ class TwoKeyHashMap {
         /// ALWAYS 2
         e_SECOND_KEY_EXISTS = 2
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     typedef K1                                first_key_type;
     typedef K2                                second_key_type;
@@ -709,6 +718,7 @@ class TwoKeyHashMap {
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(TwoKeyHashMap, bslma::UsesBslmaAllocator)
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ========================
 // class TwoKeyHashMapValue
@@ -721,6 +731,7 @@ class TwoKeyHashMap {
 /// value.  Two `TwoKeyHashMapValue` objects can be compared for equality or
 /// inequality using corresponding free comparison operators.
 template <class MAP>
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class TwoKeyHashMapValue : private TwoKeyHashMap_Node<MAP> {
   private:
     // NOT IMPLEMENTED
@@ -751,6 +762,7 @@ class TwoKeyHashMapValue : private TwoKeyHashMap_Node<MAP> {
     /// `TwoKeyHashMapValue`.
     const typename MAP::mapped_type& value() const BSLS_KEYWORD_NOEXCEPT;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // FREE OPERATORS
 
@@ -803,6 +815,7 @@ inline void TwoKeyHashMap_Erase::operator()(CONTAINER*   container,
 // -------------------------
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
 template <class MAP>
 template <class VALUE_T>
 inline TwoKeyHashMap_Node<MAP>::TwoKeyHashMap_Node(
@@ -813,6 +826,7 @@ inline TwoKeyHashMap_Node<MAP>::TwoKeyHashMap_Node(
 : d_k1MapIter(k1MapIter)
 , d_k2MapIter(k2MapIter)
 , d_value()
+// NOLINTBEGIN(cppcoreguidelines-pro-type-union-access)
 {
     // PRECONDITIONS
     BSLS_ASSERT(allocator);
@@ -822,13 +836,17 @@ inline TwoKeyHashMap_Node<MAP>::TwoKeyHashMap_Node(
                                        BSLS_COMPILERFEATURES_FORWARD(VALUE_T,
                                                                      value));
 }
+// NOLINTEND(cppcoreguidelines-pro-type-union-access)
+// NOLINTEND(cppcoreguidelines-missing-std-forward)
 
 template <class MAP>
 inline TwoKeyHashMap_Node<MAP>::~TwoKeyHashMap_Node()
+// NOLINTBEGIN(cppcoreguidelines-pro-type-union-access)
 {
     typedef typename MAP::mapped_type value_type;
     d_value.object().~value_type();
 }
+// NOLINTEND(cppcoreguidelines-pro-type-union-access)
 
 // -----------------------------
 // class TwoKeyHashMap::iterator
@@ -896,22 +914,26 @@ TwoKeyHashMap<K1, K2, VALUE, H1, H2>::iterator::operator++(int)
 template <class K1, class K2, class VALUE, class H1, class H2>
 inline typename TwoKeyHashMap<K1, K2, VALUE, H1, H2>::iterator::reference
 TwoKeyHashMap<K1, K2, VALUE, H1, H2>::iterator::operator*() const
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     // PRECONDITIONS
     BSLS_ASSERT(d_node_p);
 
     return reinterpret_cast<reference>(*d_node_p);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 template <class K1, class K2, class VALUE, class H1, class H2>
 inline typename TwoKeyHashMap<K1, K2, VALUE, H1, H2>::iterator::pointer
 TwoKeyHashMap<K1, K2, VALUE, H1, H2>::iterator::operator->() const
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     // PRECONDITIONS
     BSLS_ASSERT(d_node_p);
 
     return &reinterpret_cast<reference>(*d_node_p);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 template <class K1, class K2, class VALUE, class H1, class H2>
 inline typename TwoKeyHashMap<K1, K2, VALUE, H1, H2>::KeyIndex
@@ -996,22 +1018,26 @@ TwoKeyHashMap<K1, K2, VALUE, H1, H2>::const_iterator::operator++(int)
 template <class K1, class K2, class VALUE, class H1, class H2>
 inline typename TwoKeyHashMap<K1, K2, VALUE, H1, H2>::const_iterator::reference
 TwoKeyHashMap<K1, K2, VALUE, H1, H2>::const_iterator::operator*() const
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     // PRECONDITIONS
     BSLS_ASSERT(d_node_p);
 
     return reinterpret_cast<reference>(*d_node_p);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 template <class K1, class K2, class VALUE, class H1, class H2>
 inline typename TwoKeyHashMap<K1, K2, VALUE, H1, H2>::const_iterator::pointer
 TwoKeyHashMap<K1, K2, VALUE, H1, H2>::const_iterator::operator->() const
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     // PRECONDITIONS
     BSLS_ASSERT(d_node_p);
 
     return &reinterpret_cast<reference>(*d_node_p);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 template <class K1, class K2, class VALUE, class H1, class H2>
 inline typename TwoKeyHashMap<K1, K2, VALUE, H1, H2>::KeyIndex
@@ -1037,7 +1063,7 @@ inline TwoKeyHashMap<K1, K2, VALUE, H1, H2>::TwoKeyHashMap(
           H2(),
           typename K2Map::key_equal(),
           basicAllocator)
-, d_nodeAllocator(new(*allocator()) bdlma::Pool(sizeof(Node), allocator()),
+, d_nodeAllocator(new (*allocator()) bdlma::Pool(sizeof(Node), allocator()),
                   allocator())
 {
     // POSTCONDITIONS
@@ -1056,7 +1082,7 @@ inline TwoKeyHashMap<K1, K2, VALUE, H1, H2>::TwoKeyHashMap(
           H2(),
           typename K2Map::key_equal(),
           basicAllocator)
-, d_nodeAllocator(new(*allocator()) bdlma::Pool(sizeof(Node), allocator()),
+, d_nodeAllocator(new (*allocator()) bdlma::Pool(sizeof(Node), allocator()),
                   allocator())
 {
     // POSTCONDITIONS
@@ -1076,7 +1102,7 @@ inline TwoKeyHashMap<K1, K2, VALUE, H1, H2>::TwoKeyHashMap(
           hash2,
           typename K2Map::key_equal(),
           basicAllocator)
-, d_nodeAllocator(new(*allocator()) bdlma::Pool(sizeof(Node), allocator()),
+, d_nodeAllocator(new (*allocator()) bdlma::Pool(sizeof(Node), allocator()),
                   allocator())
 {
     // POSTCONDITIONS
@@ -1095,7 +1121,7 @@ inline TwoKeyHashMap<K1, K2, VALUE, H1, H2>::TwoKeyHashMap(
           original.d_k2Map.hash_function(),
           original.d_k2Map.key_eq(),
           basicAllocator)
-, d_nodeAllocator(new(*allocator()) bdlma::Pool(sizeof(Node), allocator()),
+, d_nodeAllocator(new (*allocator()) bdlma::Pool(sizeof(Node), allocator()),
                   allocator())
 {
     // free memory on failure
@@ -1128,7 +1154,7 @@ inline TwoKeyHashMap<K1, K2, VALUE, H1, H2>::TwoKeyHashMap(
           H2(),
           typename K2Map::key_equal(),
           basicAllocator)
-, d_nodeAllocator(new(*allocator()) bdlma::Pool(sizeof(Node), allocator()),
+, d_nodeAllocator(new (*allocator()) bdlma::Pool(sizeof(Node), allocator()),
                   allocator())
 {
     if (allocator() == bslmf::MovableRefUtil::access(original).allocator()) {
@@ -1227,6 +1253,7 @@ TwoKeyHashMap<K1, K2, VALUE, H1, H2>::insert(const value_type& value,
     return insert(value.key1(), value.key2(), value.value(), keyIndex);
 }
 
+// NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
 template <class K1, class K2, class VALUE, class H1, class H2>
 template <class K1_T, class K2_T, class VALUE_T>
 inline bsl::pair<typename TwoKeyHashMap<K1, K2, VALUE, H1, H2>::iterator,
@@ -1236,6 +1263,7 @@ TwoKeyHashMap<K1, K2, VALUE, H1, H2>::insert(
     BSLS_COMPILERFEATURES_FORWARD_REF(K2_T) k2,
     BSLS_COMPILERFEATURES_FORWARD_REF(VALUE_T) value,
     KeyIndex keyIndex)
+// NOLINTEND(cppcoreguidelines-missing-std-forward)
 {
     // PRECONDITIONS
     BSLS_ASSERT(keyIndex == e_FIRST_KEY || keyIndex == e_SECOND_KEY);
@@ -1589,9 +1617,11 @@ inline bool TwoKeyHashMap<K1, K2, VALUE, H1, H2>::assertInvariants() const
 template <class MAP>
 inline typename MAP::mapped_type&
 TwoKeyHashMapValue<MAP>::value() BSLS_KEYWORD_NOEXCEPT
+// NOLINTBEGIN(cppcoreguidelines-pro-type-union-access)
 {
     return this->d_value.object();
 }
+// NOLINTEND(cppcoreguidelines-pro-type-union-access)
 
 // ACCESSORS
 template <class MAP>
@@ -1611,9 +1641,11 @@ TwoKeyHashMapValue<MAP>::key2() const BSLS_KEYWORD_NOEXCEPT
 template <class MAP>
 inline const typename MAP::mapped_type&
 TwoKeyHashMapValue<MAP>::value() const BSLS_KEYWORD_NOEXCEPT
+// NOLINTBEGIN(cppcoreguidelines-pro-type-union-access)
 {
     return this->d_value.object();
 }
+// NOLINTEND(cppcoreguidelines-pro-type-union-access)
 
 }  // close package namespace
 

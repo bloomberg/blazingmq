@@ -59,6 +59,7 @@ bool findQueueAppIdByAppKey(
 struct QueueDetails {
     // PUBLIC TYPES
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
     struct AppDetails {
         bsls::Types::Uint64 d_recordsNumber;
         bsl::string         d_appId;
@@ -69,6 +70,7 @@ struct QueueDetails {
                    d_appId == other.d_appId;
         }
     };
+    // NOLINTEND(cppcoreguidelines-pro-type-member-init)
     typedef bsl::unordered_map<mqbu::StorageKey, AppDetails> AppDetailsMap;
     // Map of records details per App
 

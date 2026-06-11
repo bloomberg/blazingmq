@@ -58,6 +58,7 @@ namespace mqbplug {
 // ==================
 
 /// Interface for a StatConsumer.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class StatConsumer {
   public:
     // TYPES
@@ -106,6 +107,7 @@ class StatConsumer {
     /// 0.
     virtual void setPublishInterval(bsls::TimeInterval interval) = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ===============================
 // class StatConsumerPluginFactory
@@ -115,6 +117,7 @@ class StatConsumer {
 /// `StatConsumer`. All it does is allows to instantiate a concrete object
 /// of the `StatConsumer` interface, taking any required (plugin specific)
 /// arguments..
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class StatConsumerPluginFactory : public PluginFactory {
   public:
     // CREATORS
@@ -129,6 +132,7 @@ class StatConsumerPluginFactory : public PluginFactory {
            bdlbb::BlobBufferFactory*               bufferFactory,
            bslma::Allocator*                       allocator) = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =======================
 // struct StatConsumerUtil

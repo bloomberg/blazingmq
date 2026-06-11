@@ -46,6 +46,7 @@ namespace m_bmqstoragetool {
 // class Printer
 // =============
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Printer {
   protected:
     // PROTECTED TYPES
@@ -161,6 +162,7 @@ class Printer {
     virtual void
     printDataFileMeta(const mqbs::DataFileIterator* dataFile_p) const = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 /// Create an instance of printer to print data to the specified 'stream'
 /// according to the specified 'mode' using the specified 'allocator'.

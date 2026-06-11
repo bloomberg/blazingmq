@@ -130,9 +130,11 @@ int PushMessageIterator::compressedApplicationDataSize() const
         return -1;  // RETURN
     }
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     char lastByte = d_blobIter.blob()
                         ->buffer(lastBytePos.buffer())
                         .data()[lastBytePos.byte()];
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
             !isValidWordPaddingByte(lastByte))) {
@@ -170,6 +172,7 @@ int PushMessageIterator::applicationDataSize() const
 
 int PushMessageIterator::loadApplicationDataPosition(
     bmqu::BlobPosition* position) const
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(position);
@@ -191,8 +194,10 @@ int PushMessageIterator::loadApplicationDataPosition(
     *position = d_applicationDataPosition;
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 int PushMessageIterator::loadApplicationData(bdlbb::Blob* blob) const
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(isValid());
@@ -239,8 +244,10 @@ int PushMessageIterator::loadApplicationData(bdlbb::Blob* blob) const
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 int PushMessageIterator::loadMessageProperties(bdlbb::Blob* blob) const
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     // NOTE: This method returns success even if there are no properties
     //       associated with the current message.  This *must* *not* be changed
@@ -282,9 +289,11 @@ int PushMessageIterator::loadMessageProperties(bdlbb::Blob* blob) const
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 int PushMessageIterator::loadMessageProperties(
     MessageProperties* properties) const
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     // NOTE: This method returns success even if there are no properties
     //       associated with the current message.  This *must* *not* be changed
@@ -328,6 +337,7 @@ int PushMessageIterator::loadMessageProperties(
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 int PushMessageIterator::messagePayloadSize() const
 {
@@ -348,6 +358,7 @@ int PushMessageIterator::messagePayloadSize() const
 }
 
 int PushMessageIterator::loadMessagePayloadPosition() const
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(isValid());
@@ -378,8 +389,10 @@ int PushMessageIterator::loadMessagePayloadPosition() const
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 int PushMessageIterator::loadMessagePayload(bdlbb::Blob* blob) const
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(isValid());
@@ -423,6 +436,7 @@ int PushMessageIterator::loadMessagePayload(bdlbb::Blob* blob) const
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 void PushMessageIterator::extractQueueInfo(int*          queueId,
                                            unsigned int* subscriptionId,
@@ -507,6 +521,7 @@ int PushMessageIterator::totalSize() const
 // MANIPULATORS
 
 int PushMessageIterator::next()
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     enum RcEnum {
         // Value for the various RC error categories
@@ -682,10 +697,12 @@ int PushMessageIterator::next()
 
     return rc_HAS_NEXT;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 int PushMessageIterator::reset(const bdlbb::Blob* blob,
                                const EventHeader& eventHeader,
                                bool               decompressFlag)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(blob);
@@ -719,6 +736,7 @@ int PushMessageIterator::reset(const bdlbb::Blob* blob,
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 int PushMessageIterator::reset(const bdlbb::Blob*         blob,
                                const PushMessageIterator& other)

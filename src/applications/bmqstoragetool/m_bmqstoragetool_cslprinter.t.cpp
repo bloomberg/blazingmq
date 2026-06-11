@@ -50,6 +50,7 @@ static void test1_humanReadableShortResultTest()
 // Testing:
 //   HumanReadablePrinter::printShortResult
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("HUMAN SHORT RESULT TEST");
 
@@ -91,6 +92,7 @@ static void test1_humanReadableShortResultTest()
 
     BMQTST_ASSERT_EQ(expectedStream.str(), resultStream.str());
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test2_humanReadableDetailResultTest()
 // ------------------------------------------------------------------------
@@ -102,6 +104,7 @@ static void test2_humanReadableDetailResultTest()
 // Testing:
 //   HumanReadablePrinter::printDetailResult
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("HUMAN DETAIL RESULT TEST");
 
@@ -149,6 +152,7 @@ static void test2_humanReadableDetailResultTest()
 
     BMQTST_ASSERT_EQ(expectedStream.str(), resultStream.str());
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test3_humanReadableNotFoundTest()
 // ------------------------------------------------------------------------
@@ -162,6 +166,7 @@ static void test3_humanReadableNotFoundTest()
 //   HumanReadablePrinter::printOffsetsNotFound
 //   HumanReadablePrinter::printCompositesNotFound
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(modernize-use-emplace)
 {
     bmqtst::TestHelper::printTestName("HUMAN NOT FOUND TEST");
 
@@ -185,9 +190,11 @@ static void test3_humanReadableNotFoundTest()
         expectedStream << "\nThe following " << offsets.size()
                        << " offset(s) not found:\n";
         bsl::vector<bsls::Types::Int64>::const_iterator it = offsets.cbegin();
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (; it != offsets.cend(); ++it) {
             expectedStream << *it << '\n';
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
         BMQTST_ASSERT_EQ(expectedStream.str(), resultStream.str());
     }
@@ -207,13 +214,16 @@ static void test3_humanReadableNotFoundTest()
                        << " sequence number(s) not found:\n";
         bsl::vector<CompositeSequenceNumber>::const_iterator it =
             seqNums.cbegin();
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (; it != seqNums.cend(); ++it) {
             expectedStream << *it << '\n';
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
         BMQTST_ASSERT_EQ(expectedStream.str(), resultStream.str());
     }
 }
+// NOLINTEND(modernize-use-emplace)
 
 static void test4_humanReadableFooterTest()
 // ------------------------------------------------------------------------
@@ -225,6 +235,7 @@ static void test4_humanReadableFooterTest()
 // Testing:
 //   HumanReadablePrinter::printFooter
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("HUMAN FOOTER TEST");
 
@@ -263,6 +274,7 @@ static void test4_humanReadableFooterTest()
 
     BMQTST_ASSERT_EQ(expectedStream.str(), resultStream.str());
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test5_humanReadableSummaryTest()
 // ------------------------------------------------------------------------
@@ -274,6 +286,7 @@ static void test5_humanReadableSummaryTest()
 // Testing:
 //   HumanReadablePrinter::printSummaryResult
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("HUMAN SUMMARY TEST");
 
@@ -336,6 +349,7 @@ static void test5_humanReadableSummaryTest()
 
     BMQTST_ASSERT_EQ(expectedStream.str(), resultStream.str());
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test6_prettyShortResultTest()
 // ------------------------------------------------------------------------
@@ -347,6 +361,7 @@ static void test6_prettyShortResultTest()
 // Testing:
 //   JsonPrettyCslPrinter::printShortResult
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("PRETTY SHORT TEST");
 
@@ -399,6 +414,7 @@ static void test6_prettyShortResultTest()
     BMQTST_ASSERT_D(error, (rc == 0));
     BMQTST_ASSERT_EQ(expectedStream.str(), resultStream.str());
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test7_prettyDetailResultTest()
 // ------------------------------------------------------------------------
@@ -410,6 +426,7 @@ static void test7_prettyDetailResultTest()
 // Testing:
 //   JsonPrettyCslPrinter::printDetailResult
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("PRETTY SHORT TEST");
 
@@ -473,6 +490,7 @@ static void test7_prettyDetailResultTest()
     BMQTST_ASSERT_D(error, (rc == 0));
     BMQTST_ASSERT_EQ(expectedStream.str(), resultStream.str());
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test8_prettySummaryTest()
 // ------------------------------------------------------------------------
@@ -484,6 +502,7 @@ static void test8_prettySummaryTest()
 // Testing:
 //   JsonPrettyCslPrinter::printSummaryResult
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("PRETTY SUMMARY TEST");
 
@@ -561,6 +580,7 @@ static void test8_prettySummaryTest()
 
     BMQTST_ASSERT_EQ(expectedStream.str(), resultStream.str());
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test9_lineShortResultTest()
 // ------------------------------------------------------------------------
@@ -572,6 +592,7 @@ static void test9_lineShortResultTest()
 // Testing:
 //   JsonLineCslPrinter::printShortResult
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("LINE SHORT TEST");
 
@@ -619,6 +640,7 @@ static void test9_lineShortResultTest()
     BMQTST_ASSERT_D(error, (rc == 0));
     BMQTST_ASSERT_EQ(expectedStream.str(), resultStream.str());
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test10_lineDetailResultTest()
 // ------------------------------------------------------------------------
@@ -630,6 +652,7 @@ static void test10_lineDetailResultTest()
 // Testing:
 //   JsonLineCslPrinter::printDetailResult
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("LINE SHORT TEST");
 
@@ -687,6 +710,7 @@ static void test10_lineDetailResultTest()
     BMQTST_ASSERT_D(error, (rc == 0));
     BMQTST_ASSERT_EQ(expectedStream.str(), resultStream.str());
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test11_lineSummaryTest()
 // ------------------------------------------------------------------------
@@ -698,6 +722,7 @@ static void test11_lineSummaryTest()
 // Testing:
 //   JsonLineCslPrinter::printSummaryResult
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("LINE SUMMARY TEST");
 
@@ -769,12 +794,14 @@ static void test11_lineSummaryTest()
 
     BMQTST_ASSERT_EQ(expectedStream.str(), resultStream.str());
 }
+// NOLINTEND(*-magic-numbers)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -800,3 +827,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

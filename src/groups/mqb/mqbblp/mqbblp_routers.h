@@ -204,6 +204,7 @@ class Routers {
     /// invalidated , the corresponding map entry is removed.
     /// This is to track Topic Based Routing data structures.
     template <class KEY, class VALUE>
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     class Registry {
       public:
         // TRAITS
@@ -214,6 +215,7 @@ class Routers {
 
         typedef typename bsl::unordered_map<KEY, bsl::weak_ptr<Item> > Base;
 
+        // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
         struct Item {
             // TRAITS
             BSLMF_NESTED_TRAIT_DECLARATION(Item, bslma::UsesBslmaAllocator)
@@ -235,18 +237,22 @@ class Routers {
             , d_key(key)
             , d_value()
             , d_isValid(true)
+            // NOLINTBEGIN(cppcoreguidelines-pro-type-union-access)
             {
                 bslalg::ScalarPrimitives::copyConstruct(d_value.address(),
                                                         value,
                                                         allocator);
                 BSLS_ASSERT_SAFE(d_owner.find(d_key) != d_owner.end());
             }
+            // NOLINTEND(cppcoreguidelines-pro-type-union-access)
 
             ~Item()
+            // NOLINTBEGIN(cppcoreguidelines-pro-type-union-access)
             {
                 invalidate();
                 d_value.object().~VALUE();
             }
+            // NOLINTEND(cppcoreguidelines-pro-type-union-access)
             void release()
             {
                 if (isValid()) {
@@ -254,6 +260,7 @@ class Routers {
                     BSLS_ASSERT_SAFE(n == 1);
                 }
             }
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-union-access)
             VALUE&     value() { return d_value.object(); }
             const KEY& key()
             {
@@ -267,6 +274,7 @@ class Routers {
                 d_isValid = false;
             }
         };
+        // NOLINTEND(cppcoreguidelines-special-member-functions)
         typedef typename Base::const_iterator const_iterator;
 
         /// Serves as an external references to the Item.
@@ -345,6 +353,7 @@ class Routers {
             return cit->second.lock()->value();
         }
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
     struct Subscription;
     typedef bsl::list<const Subscription*> SubscriptionList;
@@ -352,6 +361,7 @@ class Routers {
     /// Represents the current state of the queue handle. Used to throttle
     /// potentially poisonous messages.
     /// One per handle per App.
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     struct Consumer {
         // TRAITS
         BSLMF_NESTED_TRAIT_DECLARATION(Consumer, bslma::UsesBslmaAllocator)
@@ -388,11 +398,13 @@ class Routers {
 
         void registerSubscriptions(mqbi::QueueHandle* handle);
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
     struct MessagePropertiesReader;
 
     /// VST to store context for optimization of `Subscription`s evaluation.
     /// One per Queue.
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     struct Expression {
         // DATA
         bmqeval::SimpleEvaluator d_evaluator;
@@ -405,6 +417,7 @@ class Routers {
 
         bool evaluate();
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
     typedef Registry<const bmqp_ctrlmsg::Expression, Expression> Expressions;
     struct PriorityGroup;
@@ -428,6 +441,7 @@ class Routers {
     /// VST representing all `Subscription`s with the same priority and the
     /// same Expression.
     /// One per App.
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     struct PriorityGroup {
         // TRAITS
         BSLMF_NESTED_TRAIT_DECLARATION(PriorityGroup,
@@ -457,6 +471,7 @@ class Routers {
 
         unsigned int sId() const;
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
     typedef Registry<mqbi::QueueHandle*, Consumer> Consumers;
     typedef Registry<const bmqp_ctrlmsg::Expression, PriorityGroup>
@@ -464,6 +479,7 @@ class Routers {
 
     /// VST representing `Priority` consumer.
     /// One per Handle per `Priority` per App.
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     struct Subscriber {
         // TRAITS
         BSLMF_NESTED_TRAIT_DECLARATION(Subscriber, bslma::UsesBslmaAllocator)
@@ -489,11 +505,13 @@ class Routers {
 
         ~Subscriber();
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
     typedef Registry<mqbi::QueueHandle*, Subscriber> Subscribers;
 
     /// VST representing one `Subscription`.
     /// One per each received `ConsumerInfo`.
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     struct Subscription {
         const bmqp_ctrlmsg::ConsumerInfo d_ci;
         const unsigned int               d_downstreamSubscriptionId;
@@ -525,9 +543,11 @@ class Routers {
 
         unsigned int upstreamId() const;
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
     /// Mechanism representing all `Subscription` `PriorityGroup`s with the
     /// same priority.  One per received priority per App
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     struct Priority {
         // TRAITS
         BSLMF_NESTED_TRAIT_DECLARATION(Priority, bslma::UsesBslmaAllocator)
@@ -554,9 +574,11 @@ class Routers {
 
         ~Priority();
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
     typedef bsl::map<int, Priority, std::greater<int> > Priorities;
 
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     struct MessagePropertiesReader : public bmqeval::PropertiesReader {
       private:
         // CLASS-SCOPE CATEGORY
@@ -599,9 +621,11 @@ class Routers {
 
         unsigned int numHits() const;
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
     /// Mechanism to assist `Expression`s evaluation optimization to avoid
     /// evaluating the same `Expression` more than once.
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     struct QueueRoutingContext {
         // TRAITS
         BSLMF_NESTED_TRAIT_DECLARATION(QueueRoutingContext,
@@ -638,12 +662,14 @@ class Routers {
 
         void loadInternals(mqbcmd::Routing* out) const;
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
     typedef bsl::function<bool(mqbi::QueueHandle* handle,
                                Routers::Consumer* consumer,
                                unsigned int       downstreamSubscriptionId)>
         Visitor;
 
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Result {
         /// Found Subscription and there is capacity.
         e_SUCCESS = 0,
@@ -658,6 +684,7 @@ class Routers {
         /// Not valid anymore due to Confirm/Purge.
         e_INVALID = 5
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     /// Class that implements round-robin routing policy.
     class RoundRobin {
@@ -697,6 +724,7 @@ class Routers {
     };
 
     // Mechanism aggregating all data structures for TBR.  One per App.
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     struct AppContext {
       public:
         // TRAITS
@@ -803,6 +831,7 @@ class Routers {
 
         unsigned int priorityCount() const;
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 };
 
 // ============================================================================
@@ -888,7 +917,7 @@ inline Routers::QueueRoutingContext::QueueRoutingContext(
 : d_expressions(allocator)
 , d_nextSubscriptionId(0)
 , d_groupIds(allocator)
-, d_preader(new(*allocator) MessagePropertiesReader(schemaLearner, allocator),
+, d_preader(new (*allocator) MessagePropertiesReader(schemaLearner, allocator),
             allocator)
 , d_evaluationContext(0, allocator)
 , d_allocator_p(allocator)
@@ -1027,6 +1056,7 @@ inline unsigned int Routers::SubscriptionId::upstreamSubQueueId() const
 // struct Routers::PriorityGroup
 // -----------------------------
 
+// NOLINTBEGIN(performance-unnecessary-value-param)
 inline Routers::PriorityGroup::PriorityGroup(
     const SubscriptionIds::SharedItem itId,
     bslma::Allocator*                 allocator)
@@ -1037,6 +1067,7 @@ inline Routers::PriorityGroup::PriorityGroup(
 {
     // NOTHING
 }
+// NOLINTEND(performance-unnecessary-value-param)
 
 inline Routers::PriorityGroup::PriorityGroup(const PriorityGroup& other,
                                              bslma::Allocator*    allocator)

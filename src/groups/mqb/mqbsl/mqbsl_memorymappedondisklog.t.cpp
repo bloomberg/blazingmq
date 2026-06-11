@@ -60,22 +60,27 @@ namespace {
 
 // CONSTANTS
 const bsls::Types::Int64 k_LOG_MAX_SIZE = 2048;
-const char               k_LOG_ID[]     = "DEADFACE42";
-const mqbu::StorageKey   k_LOG_KEY(mqbu::StorageKey::HexRepresentation(),
+// NOLINTNEXTLINE(*-avoid-c-arrays)
+const char k_LOG_ID[] = "DEADFACE42";
+// NOLINTBEGIN(cert-err58-cpp,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+const mqbu::StorageKey k_LOG_KEY(mqbu::StorageKey::HexRepresentation(),
                                  k_LOG_ID);
+// NOLINTEND(cert-err58-cpp,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
-const char* const k_ENTRIES[]    = {"ax001",
-                                    "ax002",
-                                    "ax003",
-                                    "ax004",
-                                    "ax005",
-                                    "ax006",
-                                    "ax007",
-                                    "ax008",
-                                    "ax009",
-                                    "ax010"};
-const int         k_NUM_ENTRIES  = 10;
-const int         k_ENTRY_LENGTH = 5;
+// NOLINTBEGIN(*-avoid-c-arrays)
+const char* const k_ENTRIES[] = {"ax001",
+                                 "ax002",
+                                 "ax003",
+                                 "ax004",
+                                 "ax005",
+                                 "ax006",
+                                 "ax007",
+                                 "ax008",
+                                 "ax009",
+                                 "ax010"};
+// NOLINTEND(*-avoid-c-arrays)
+const int k_NUM_ENTRIES  = 10;
+const int k_ENTRY_LENGTH = 5;
 
 const char* const k_LONG_ENTRY             = "xxxxxxxxxxHELLO_WORLDxxxxxxxxxx";
 const char* const k_LONG_ENTRY_MEAT        = "HELLO_WORLD";
@@ -96,7 +101,9 @@ typedef mqbsi::Log::Offset           Offset;
 typedef mqbsi::LogOpResult           LogOpResult;
 
 // STATICS
-static bdlbb::PooledBlobBufferFactory* g_bufferFactory_p     = 0;
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
+static bdlbb::PooledBlobBufferFactory* g_bufferFactory_p = 0;
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 static bdlbb::PooledBlobBufferFactory* g_miniBufferFactory_p = 0;
 
 // CLASSES
@@ -201,6 +208,7 @@ static void test3_updateOutstandingNumBytes()
 // Testing:
 //   updateOutstandingNumBytes(...)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("UPDATE OUTSTANDING NUM BYTES");
 
@@ -225,6 +233,7 @@ static void test3_updateOutstandingNumBytes()
 
     BSLS_ASSERT_OPT(log.close() == LogOpResult::e_SUCCESS);
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test4_setOutstandingNumBytes()
 // ------------------------------------------------------------------------
@@ -236,6 +245,7 @@ static void test4_setOutstandingNumBytes()
 // Testing:
 //   setOutstandingNumBytes(...)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("SET OUTSTANDING NUM BYTES");
 
@@ -260,6 +270,7 @@ static void test4_setOutstandingNumBytes()
 
     BSLS_ASSERT_OPT(log.close() == LogOpResult::e_SUCCESS);
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test5_writeRaw()
 // ------------------------------------------------------------------------
@@ -283,6 +294,7 @@ static void test5_writeRaw()
                     LogOpResult::e_SUCCESS);
 
     // 1. Write a list of entries
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
         BMQTST_ASSERT_EQ(log.write(k_ENTRIES[i], 0, k_ENTRY_LENGTH),
                          static_cast<Offset>(i * k_ENTRY_LENGTH));
@@ -291,6 +303,7 @@ static void test5_writeRaw()
         BMQTST_ASSERT_EQ(log.currentOffset(),
                          static_cast<Offset>((i + 1) * k_ENTRY_LENGTH));
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
 
     // 2. Set `outstandingNumBytes` to zero, indicating that all entries are no
     //    longer outstanding
@@ -353,6 +366,7 @@ static void test6_writeBlob()
     // 1. Write a list of entries
     bdlbb::Blob blob(g_miniBufferFactory_p,
                      bmqtst::TestHelperUtil::allocator());
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
         bdlbb::BlobUtil::append(&blob, k_ENTRIES[i], k_ENTRY_LENGTH);
 
@@ -364,6 +378,7 @@ static void test6_writeBlob()
         BMQTST_ASSERT_EQ(log.currentOffset(),
                          static_cast<Offset>((i + 1) * k_ENTRY_LENGTH));
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
     blob.removeAll();
 
     // 2. Set `outstandingNumBytes` to zero, indicating that all entries are no
@@ -430,6 +445,7 @@ static void test7_writeBlobSection()
     // 1. Write a list of entries
     bdlbb::Blob blob(g_miniBufferFactory_p,
                      bmqtst::TestHelperUtil::allocator());
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
         bdlbb::BlobUtil::append(&blob, k_ENTRIES[i], k_ENTRY_LENGTH);
 
@@ -443,6 +459,7 @@ static void test7_writeBlobSection()
         BMQTST_ASSERT_EQ(log.currentOffset(),
                          static_cast<Offset>((i + 1) * k_ENTRY_LENGTH));
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
     blob.removeAll();
 
     // 2. Set `outstandingNumBytes` to zero, indicating that all entries are no
@@ -494,6 +511,7 @@ static void test8_readRaw()
 // Testing:
 //   read(void *entry, int length, Offset offset)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bmqtst::TestHelper::printTestName("READ RAW");
 
@@ -503,13 +521,16 @@ static void test8_readRaw()
                     LogOpResult::e_SUCCESS);
 
     // 1. Write a list of entries
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
         BSLS_ASSERT_OPT(log.write(k_ENTRIES[i], 0, k_ENTRY_LENGTH) ==
                         static_cast<Offset>(i * k_ENTRY_LENGTH));
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
 
     // 2. Read each entry in the list of entries
     char entry[k_LONG_ENTRY_LENGTH];
+    // NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-constant-array-index)
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
         BMQTST_ASSERT_EQ(log.read(static_cast<void*>(entry),
                                   k_ENTRY_LENGTH,
@@ -517,6 +538,7 @@ static void test8_readRaw()
                          LogOpResult::e_SUCCESS);
         BMQTST_ASSERT_EQ(bsl::memcmp(entry, k_ENTRIES[i], k_ENTRY_LENGTH), 0);
     }
+    // NOLINTEND(bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-constant-array-index)
 
     // 3. Close and re-open the log
     BSLS_ASSERT_OPT(log.close() == LogOpResult::e_SUCCESS);
@@ -532,6 +554,7 @@ static void test8_readRaw()
                     static_cast<Offset>(k_NUM_ENTRIES * k_ENTRY_LENGTH));
 
     // 5. Re-read the list of entries, then read the long entry
+    // NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-constant-array-index)
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
         BMQTST_ASSERT_EQ(log.read(static_cast<void*>(entry),
                                   k_ENTRY_LENGTH,
@@ -539,6 +562,7 @@ static void test8_readRaw()
                          LogOpResult::e_SUCCESS);
         BMQTST_ASSERT_EQ(bsl::memcmp(entry, k_ENTRIES[i], k_ENTRY_LENGTH), 0);
     }
+    // NOLINTEND(bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-constant-array-index)
 
     BMQTST_ASSERT_EQ(log.read(static_cast<void*>(entry),
                               k_LONG_ENTRY_LENGTH,
@@ -549,8 +573,10 @@ static void test8_readRaw()
         0);
 
     // 6. Write another long entry
+    // NOLINTBEGIN(bugprone-misplaced-widening-cast)
     const Offset currOffset = static_cast<Offset>(
         k_NUM_ENTRIES * k_ENTRY_LENGTH + k_LONG_ENTRY_LENGTH);
+    // NOLINTEND(bugprone-misplaced-widening-cast)
 
     bdlbb::Blob blob2(g_bufferFactory_p, bmqtst::TestHelperUtil::allocator());
     bdlbb::BlobUtil::append(&blob2, k_LONG_ENTRY2, k_LONG_ENTRY2_FULL_LENGTH);
@@ -578,6 +604,7 @@ static void test8_readRaw()
     BSLS_ASSERT_OPT(log.flush() == LogOpResult::e_SUCCESS);
     BSLS_ASSERT_OPT(log.close() == LogOpResult::e_SUCCESS);
 }
+// NOLINTEND(*-avoid-c-arrays,bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 static void test9_readBlob()
 // ------------------------------------------------------------------------
@@ -589,6 +616,7 @@ static void test9_readBlob()
 // Testing:
 //   read(bdlbb::Blob *entry, int length, Offset offset)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bmqtst::TestHelper::printTestName("READ BLOB");
 
@@ -598,16 +626,19 @@ static void test9_readBlob()
                     LogOpResult::e_SUCCESS);
 
     // 1. Write a list of entries
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
         BSLS_ASSERT_OPT(log.write(k_ENTRIES[i], 0, k_ENTRY_LENGTH) ==
                         static_cast<Offset>(i * k_ENTRY_LENGTH));
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
 
     // 2. Read each entry in the list of entries
     bdlbb::Blob blob(g_miniBufferFactory_p,
                      bmqtst::TestHelperUtil::allocator());
 
     char entry[k_LONG_ENTRY_LENGTH];
+    // NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-constant-array-index)
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
         BMQTST_ASSERT_EQ(log.read(&blob, k_ENTRY_LENGTH, i * k_ENTRY_LENGTH),
                          LogOpResult::e_SUCCESS);
@@ -619,6 +650,7 @@ static void test9_readBlob()
 
         blob.removeBuffer(0);
     }
+    // NOLINTEND(bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-constant-array-index)
 
     // 3. Close and re-open the log
     BSLS_ASSERT_OPT(log.close() == LogOpResult::e_SUCCESS);
@@ -634,6 +666,7 @@ static void test9_readBlob()
                     static_cast<Offset>(k_NUM_ENTRIES * k_ENTRY_LENGTH));
 
     // 5. Re-read the list of entries, then read the long entry
+    // NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-constant-array-index)
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
         BMQTST_ASSERT_EQ(log.read(&blob, k_ENTRY_LENGTH, i * k_ENTRY_LENGTH),
                          LogOpResult::e_SUCCESS);
@@ -645,6 +678,7 @@ static void test9_readBlob()
 
         blob.removeBuffer(0);
     }
+    // NOLINTEND(bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-constant-array-index)
 
     BMQTST_ASSERT_EQ(
         log.read(&blob, k_LONG_ENTRY_LENGTH, k_NUM_ENTRIES * k_ENTRY_LENGTH),
@@ -659,8 +693,10 @@ static void test9_readBlob()
     blob.removeAll();
 
     // 6. Write another long entry
+    // NOLINTBEGIN(bugprone-misplaced-widening-cast)
     const Offset currOffset = static_cast<Offset>(
         k_NUM_ENTRIES * k_ENTRY_LENGTH + k_LONG_ENTRY_LENGTH);
+    // NOLINTEND(bugprone-misplaced-widening-cast)
 
     bdlbb::Blob blob3(g_bufferFactory_p, bmqtst::TestHelperUtil::allocator());
     bdlbb::BlobUtil::append(&blob3, k_LONG_ENTRY2, k_LONG_ENTRY2_FULL_LENGTH);
@@ -693,6 +729,7 @@ static void test9_readBlob()
     BSLS_ASSERT_OPT(log.flush() == LogOpResult::e_SUCCESS);
     BSLS_ASSERT_OPT(log.close() == LogOpResult::e_SUCCESS);
 }
+// NOLINTEND(*-avoid-c-arrays,bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 static void test10_aliasRaw()
 // ------------------------------------------------------------------------
@@ -704,6 +741,7 @@ static void test10_aliasRaw()
 // Testing:
 //   alias(void **entry, int length, Offset offset)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-init-variables,cppcoreguidelines-pro-type-reinterpret-cast)
 {
     bmqtst::TestHelper::printTestName("ALIAS RAW");
 
@@ -713,13 +751,16 @@ static void test10_aliasRaw()
                     LogOpResult::e_SUCCESS);
 
     // 1. Write a list of entries
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
         BSLS_ASSERT_OPT(log.write(k_ENTRIES[i], 0, k_ENTRY_LENGTH) ==
                         static_cast<Offset>(i * k_ENTRY_LENGTH));
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
 
     // 2. Alias each entry in the list of entries
     char* entry;
+    // NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-pro-bounds-constant-array-index,cppcoreguidelines-pro-type-reinterpret-cast)
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
         BMQTST_ASSERT_EQ(log.alias(reinterpret_cast<void**>(&entry),
                                    k_ENTRY_LENGTH,
@@ -727,6 +768,7 @@ static void test10_aliasRaw()
                          LogOpResult::e_SUCCESS);
         BMQTST_ASSERT_EQ(bsl::memcmp(entry, k_ENTRIES[i], k_ENTRY_LENGTH), 0);
     }
+    // NOLINTEND(bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-pro-bounds-constant-array-index,cppcoreguidelines-pro-type-reinterpret-cast)
 
     // 3. Close and re-open the log
     BSLS_ASSERT_OPT(log.close() == LogOpResult::e_SUCCESS);
@@ -742,6 +784,7 @@ static void test10_aliasRaw()
                     static_cast<Offset>(k_NUM_ENTRIES * k_ENTRY_LENGTH));
 
     // 5. Re-alias the list of entries, then alias the long entry
+    // NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-pro-bounds-constant-array-index,cppcoreguidelines-pro-type-reinterpret-cast)
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
         BMQTST_ASSERT_EQ(log.alias(reinterpret_cast<void**>(&entry),
                                    k_ENTRY_LENGTH,
@@ -749,6 +792,7 @@ static void test10_aliasRaw()
                          LogOpResult::e_SUCCESS);
         BMQTST_ASSERT_EQ(bsl::memcmp(entry, k_ENTRIES[i], k_ENTRY_LENGTH), 0);
     }
+    // NOLINTEND(bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-pro-bounds-constant-array-index,cppcoreguidelines-pro-type-reinterpret-cast)
 
     BMQTST_ASSERT_EQ(log.alias(reinterpret_cast<void**>(&entry),
                                k_LONG_ENTRY_LENGTH,
@@ -759,8 +803,10 @@ static void test10_aliasRaw()
         0);
 
     // 6. Write another long entry
+    // NOLINTBEGIN(bugprone-misplaced-widening-cast)
     const Offset currOffset = static_cast<Offset>(
         k_NUM_ENTRIES * k_ENTRY_LENGTH + k_LONG_ENTRY_LENGTH);
+    // NOLINTEND(bugprone-misplaced-widening-cast)
 
     bdlbb::Blob blob2(g_bufferFactory_p, bmqtst::TestHelperUtil::allocator());
     bdlbb::BlobUtil::append(&blob2, k_LONG_ENTRY2, k_LONG_ENTRY2_FULL_LENGTH);
@@ -791,6 +837,7 @@ static void test10_aliasRaw()
     BSLS_ASSERT_OPT(log.flush() == LogOpResult::e_SUCCESS);
     BSLS_ASSERT_OPT(log.close() == LogOpResult::e_SUCCESS);
 }
+// NOLINTEND(bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-init-variables,cppcoreguidelines-pro-type-reinterpret-cast)
 
 static void test11_aliasBlob()
 // ------------------------------------------------------------------------
@@ -802,6 +849,7 @@ static void test11_aliasBlob()
 // Testing:
 //   alias(bdlbb::Blob *entry, int length, Offset offset)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bmqtst::TestHelper::printTestName("ALIAS BLOB");
 
@@ -811,15 +859,18 @@ static void test11_aliasBlob()
                     LogOpResult::e_SUCCESS);
 
     // 1. Write a list of entries
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
         BSLS_ASSERT_OPT(log.write(k_ENTRIES[i], 0, k_ENTRY_LENGTH) ==
                         static_cast<Offset>(i * k_ENTRY_LENGTH));
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
 
     // 2. Alias each entry in the list of entries
     bdlbb::Blob blob(g_bufferFactory_p, bmqtst::TestHelperUtil::allocator());
 
     char entry[k_LONG_ENTRY_LENGTH];
+    // NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-constant-array-index)
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
         BMQTST_ASSERT_EQ(log.alias(&blob, k_ENTRY_LENGTH, i * k_ENTRY_LENGTH),
                          LogOpResult::e_SUCCESS);
@@ -831,6 +882,7 @@ static void test11_aliasBlob()
 
         blob.removeBuffer(0);
     }
+    // NOLINTEND(bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-constant-array-index)
 
     // 3. Close and re-open the log
     BSLS_ASSERT_OPT(log.close() == LogOpResult::e_SUCCESS);
@@ -846,6 +898,7 @@ static void test11_aliasBlob()
                     static_cast<Offset>(k_NUM_ENTRIES * k_ENTRY_LENGTH));
 
     // 5. Re-alias the list of entries, then alias the long entry
+    // NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-constant-array-index)
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
         BMQTST_ASSERT_EQ(log.alias(&blob, k_ENTRY_LENGTH, i * k_ENTRY_LENGTH),
                          LogOpResult::e_SUCCESS);
@@ -857,6 +910,7 @@ static void test11_aliasBlob()
 
         blob.removeBuffer(0);
     }
+    // NOLINTEND(bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-constant-array-index)
 
     BMQTST_ASSERT_EQ(
         log.alias(&blob, k_LONG_ENTRY_LENGTH, k_NUM_ENTRIES * k_ENTRY_LENGTH),
@@ -871,8 +925,10 @@ static void test11_aliasBlob()
     blob.removeBuffer(0);
 
     // 6. Write another long entry
+    // NOLINTBEGIN(bugprone-misplaced-widening-cast)
     const Offset currOffset = static_cast<Offset>(
         k_NUM_ENTRIES * k_ENTRY_LENGTH + k_LONG_ENTRY_LENGTH);
+    // NOLINTEND(bugprone-misplaced-widening-cast)
 
     bdlbb::Blob blob3(g_bufferFactory_p, bmqtst::TestHelperUtil::allocator());
     bdlbb::BlobUtil::append(&blob3, k_LONG_ENTRY2, k_LONG_ENTRY2_FULL_LENGTH);
@@ -905,6 +961,7 @@ static void test11_aliasBlob()
     BSLS_ASSERT_OPT(log.flush() == LogOpResult::e_SUCCESS);
     BSLS_ASSERT_OPT(log.close() == LogOpResult::e_SUCCESS);
 }
+// NOLINTEND(*-avoid-c-arrays,bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 static void test12_seek()
 // ------------------------------------------------------------------------
@@ -917,6 +974,7 @@ static void test12_seek()
 // Testing:
 //   seek(...)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result)
 {
     bmqtst::TestHelper::printTestName("SEEK");
 
@@ -932,10 +990,12 @@ static void test12_seek()
     BSLS_ASSERT_OPT(log.outstandingNumBytes() == expOutstandingNumBytes);
 
     // 1. Write a list of entries
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
     for (int i = 0; i < k_NUM_ENTRIES; ++i) {
         BSLS_ASSERT_OPT(log.write(k_ENTRIES[i], 0, k_ENTRY_LENGTH) ==
                         static_cast<Offset>(i * k_ENTRY_LENGTH));
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
     BSLS_ASSERT_OPT(log.currentOffset() ==
                     static_cast<Offset>(k_NUM_ENTRIES * k_ENTRY_LENGTH));
     expTotalNumBytes += k_NUM_ENTRIES * k_ENTRY_LENGTH;
@@ -991,6 +1051,7 @@ static void test12_seek()
         0);
 
     // 5. Seek to the end
+    // NOLINTNEXTLINE(bugprone-misplaced-widening-cast)
     Offset endpoint = static_cast<Offset>(k_NUM_ENTRIES * k_ENTRY_LENGTH);
     BMQTST_ASSERT_EQ(log.seek(endpoint), LogOpResult::e_SUCCESS);
     BMQTST_ASSERT_EQ(log.currentOffset(), endpoint);
@@ -1026,12 +1087,14 @@ static void test12_seek()
     BSLS_ASSERT_OPT(log.close() == LogOpResult::e_SUCCESS);
     bmqtst::TestHelperUtil::allocator()->deallocate(entry);
 }
+// NOLINTEND(bugprone-implicit-widening-of-multiplication-result)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -1068,3 +1131,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

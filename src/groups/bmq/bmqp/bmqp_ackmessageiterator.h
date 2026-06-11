@@ -74,6 +74,7 @@ namespace bmqp {
 
 /// An iterator providing read-only sequential access to messages contained
 /// into a `AckEvent`.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class AckMessageIterator {
   private:
     // DATA
@@ -168,6 +169,7 @@ class AckMessageIterator {
     /// returned 1.
     const AckMessage& message() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS
@@ -185,13 +187,16 @@ inline AckMessageIterator::AckMessageIterator()
     // NOTHING
 }
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline AckMessageIterator::AckMessageIterator(const bdlbb::Blob* blob,
                                               const EventHeader& eventHeader)
 : d_blobIter(0, bmqu::BlobPosition(), 0, true)  // no def ctor - set in reset
 {
     reset(blob, eventHeader);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline AckMessageIterator::AckMessageIterator(const AckMessageIterator& src)
 : d_blobIter(0,
              bmqu::BlobPosition(),
@@ -200,14 +205,17 @@ inline AckMessageIterator::AckMessageIterator(const AckMessageIterator& src)
 {
     copyFrom(src);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // MANIPULATORS
+// NOLINTBEGIN(cert-oop54-cpp)
 inline AckMessageIterator&
 AckMessageIterator::operator=(const AckMessageIterator& rhs)
 {
     copyFrom(rhs);
     return *this;
 }
+// NOLINTEND(cert-oop54-cpp)
 
 inline void AckMessageIterator::clear()
 {

@@ -32,6 +32,7 @@ namespace BloombergLP {
 namespace bmqio {
 
 namespace {
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char k_SCHEME[]   = "tcp://";
 const int  k_SCHEME_LEN = sizeof(k_SCHEME) / sizeof(char) - 1;
 }  // close unnamed namespace
@@ -67,6 +68,7 @@ TCPEndpoint::TCPEndpoint(const bslstl::StringRef& host,
 }
 
 bool TCPEndpoint::fromUri(const bsl::string& uri)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     d_uri.clear();
 
@@ -89,6 +91,7 @@ bool TCPEndpoint::fromUri(const bsl::string& uri)
     }
 
     // Extract the port part: i.e. after the last ':'
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     const long port = bsl::strtol(uri.c_str() + colon + 1, 0, 10);
 
     // For simplicity, do not accept ambiguous `port` value 0
@@ -105,6 +108,7 @@ bool TCPEndpoint::fromUri(const bsl::string& uri)
 
     return true;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 void TCPEndpoint::fromUriRaw(const bsl::string& uri)
 {
@@ -113,6 +117,7 @@ void TCPEndpoint::fromUriRaw(const bsl::string& uri)
 }
 
 TCPEndpoint& TCPEndpoint::assign(const bslstl::StringRef& host, int port)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bdlma::LocalSequentialAllocator<128> localAllocator;
     bmqu::MemOutStream                   ss(&localAllocator);
@@ -123,6 +128,7 @@ TCPEndpoint& TCPEndpoint::assign(const bslstl::StringRef& host, int port)
 
     return *this;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 bsl::ostream&
 TCPEndpoint::print(bsl::ostream& stream, int level, int spacesPerLevel) const

@@ -147,6 +147,7 @@ class Dispatcher_Executor {
 
 /// This class provides an implementation of the `mqbi::Dispatcher`
 /// protocol, using the bmqc::MultiQueueThreadPool
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
   private:
     // CLASS-SCOPE CATEGORY
@@ -163,6 +164,7 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
     typedef bsl::vector<mqbi::DispatcherClient*> DispatcherClientPtrVector;
 
     /// Context for a dispatcher, with threads and pools
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     struct DispatcherContext {
       private:
         // NOT IMPLEMENTED
@@ -212,6 +214,7 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
         DispatcherContext(const mqbcfg::DispatcherProcessorConfig& config,
                           bslma::Allocator*                        allocator);
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
     typedef bsl::shared_ptr<DispatcherContext> DispatcherContextSp;
 
@@ -510,6 +513,7 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
     bsls::Types::Int64 numProcessorEvents(
         const mqbi::DispatcherClient* client) const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

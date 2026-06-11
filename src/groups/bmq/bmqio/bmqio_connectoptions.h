@@ -45,6 +45,7 @@ namespace bmqio {
 // ====================
 
 /// Connection options used when calling `bmqio::ChannelFactory::connect`.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ConnectOptions {
   private:
     // DATA
@@ -137,6 +138,7 @@ class ConnectOptions {
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // FREE OPERATORS
 
@@ -156,6 +158,7 @@ bsl::ostream& operator<<(bsl::ostream& stream, const ConnectOptions& obj);
 inline ConnectOptions::ConnectOptions(bslma::Allocator* basicAllocator)
 : d_endpoint(basicAllocator)
 , d_numAttempts(bsl::numeric_limits<int>::max())
+// NOLINTNEXTLINE(*-magic-numbers)
 , d_attemptInterval(10.0)
 , d_autoReconnect(false)
 , d_properties(basicAllocator)

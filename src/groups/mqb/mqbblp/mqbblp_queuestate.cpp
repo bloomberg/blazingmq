@@ -46,6 +46,7 @@ namespace mqbblp {
 // class QueueState
 // ----------------
 
+// NOLINTBEGIN(performance-unnecessary-value-param)
 QueueState::QueueState(mqbi::Queue*                 queue,
                        const bmqt::Uri&             uri,
                        unsigned int                 id,
@@ -94,6 +95,7 @@ QueueState::QueueState(mqbi::Queue*                 queue,
     mqbstat::BrokerStats::instance()
         .onEvent<mqbstat::BrokerStats::EventType::e_QUEUE_CREATED>();
 }
+// NOLINTEND(performance-unnecessary-value-param)
 
 QueueState::~QueueState()
 {
@@ -273,6 +275,7 @@ bool QueueState::canMerge(
 {
     // It is enough to check d_handleParameters, it includes counters for any
     // registered substream.
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define MQBBLP_NO_OVERFLOW(C)                                                 \
     (static_cast<bsls::Types::Int64>(d_handleParameters.C()) +                \
          static_cast<bsls::Types::Int64>(handleParameters.C()) <=             \

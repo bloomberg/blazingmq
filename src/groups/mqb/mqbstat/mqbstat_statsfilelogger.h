@@ -48,6 +48,7 @@ namespace mqbstat {
 // class StatsFileLogger
 // ====================
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class StatsFileLogger {
   public:
     // PUBLIC TYPES
@@ -101,6 +102,7 @@ class StatsFileLogger {
     /// to format the output.
     void logStats(const PrinterCb& printerCb);
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

@@ -76,6 +76,7 @@ namespace bmqp {
 
 /// An iterator providing read-only sequential access to messages contained
 /// into a `ConfirmEvent`.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ConfirmMessageIterator {
   private:
     // DATA
@@ -162,6 +163,7 @@ class ConfirmMessageIterator {
     /// returned 1.
     const ConfirmMessage& message() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS
@@ -179,6 +181,7 @@ inline ConfirmMessageIterator::ConfirmMessageIterator()
     // NOTHING
 }
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline ConfirmMessageIterator::ConfirmMessageIterator(
     const bdlbb::Blob* blob,
     const EventHeader& eventHeader)
@@ -186,7 +189,9 @@ inline ConfirmMessageIterator::ConfirmMessageIterator(
 {
     reset(blob, eventHeader);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline ConfirmMessageIterator::ConfirmMessageIterator(
     const ConfirmMessageIterator& src)
 : d_blobIter(0,
@@ -196,14 +201,17 @@ inline ConfirmMessageIterator::ConfirmMessageIterator(
 {
     copyFrom(src);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // MANIPULATORS
+// NOLINTBEGIN(cert-oop54-cpp)
 inline ConfirmMessageIterator&
 ConfirmMessageIterator::operator=(const ConfirmMessageIterator& rhs)
 {
     copyFrom(rhs);
     return *this;
 }
+// NOLINTEND(cert-oop54-cpp)
 
 inline void ConfirmMessageIterator::clear()
 {

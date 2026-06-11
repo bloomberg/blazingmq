@@ -28,11 +28,13 @@ namespace mqbcmd {
 
 namespace {
 
+// NOLINTBEGIN(*-avoid-c-arrays,cppcoreguidelines-avoid-non-const-global-variables)
 struct CommandDefinition {
     const char* d_command;      // Command name and argument syntax
     const char* d_summary;      // Short description (one line command summary)
     const char* d_description;  // Long description.
 } k_COMMANDS[] = {
+    // NOLINTEND(*-avoid-c-arrays,cppcoreguidelines-avoid-non-const-global-variables)
     // Help
     {"HELP",
      "Show list of supported commands",
@@ -177,6 +179,7 @@ void CommandList::loadCommands(mqbcmd::Help* out, const bool isPlumbing)
     commands.reserve(BDLB_ARRAYUTIL_SIZE(k_COMMANDS));
     out->isPlumbing() = isPlumbing;
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (const CommandDefinition* it = k_COMMANDS;
          it != bdlb::ArrayUtil::end(k_COMMANDS);
          ++it) {
@@ -186,6 +189,7 @@ void CommandList::loadCommands(mqbcmd::Help* out, const bool isPlumbing)
         command.command()     = it->d_command;
         command.description() = isPlumbing ? it->d_summary : it->d_description;
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 }  // close package namespace

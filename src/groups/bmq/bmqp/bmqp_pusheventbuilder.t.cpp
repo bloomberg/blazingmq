@@ -58,8 +58,8 @@ using namespace bsl;
 namespace {
 
 struct Data {
-    bmqt::MessageGUID                  d_guid;
-    int                                d_qid;
+    bmqt::MessageGUID                    d_guid;
+    int                                  d_qid;
     bmqp::Protocol::SubQueueInfosArray   d_subQueueInfos;
     bdlbb::Blob                          d_payload;
     int                                  d_flags;
@@ -102,12 +102,14 @@ Data::Data(const Data& other, bslma::Allocator* allocator)
 /// TS = bdlb::BigEndianUint64::make(12345)
 /// IP = 98765
 /// ID = 9999
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char HEX_REP[] = "0000000000003039CD8101000000270F";
 
 /// Return a 15-bit random number between the specified `min` and the
 /// specified `max`, inclusive.  The behavior is undefined unless `min >= 0`
 /// and `max >= min`.
 int generateRandomInteger(int min, int max)
+// NOLINTBEGIN(cert-msc30-c,cert-msc50-cpp)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(min >= 0);
@@ -115,6 +117,7 @@ int generateRandomInteger(int min, int max)
 
     return min + (bsl::rand() % (max - min + 1));
 }
+// NOLINTEND(cert-msc30-c,cert-msc50-cpp)
 
 /// Populate the specified `subQueueInfos` with the specified
 /// `numSubQueueInfos` number of randomly generated SubQueueInfos. Note that
@@ -143,6 +146,7 @@ void populateBlob(bdlbb::Blob* blob, int* payloadLen, int atLeastLen)
     const char* FIXED_PAYLOAD = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRS"
                                 "TUVWXYZ0123456789abcdefghijklmno";
 
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     const int FIXED_PAYLOAD_LEN = bsl::strlen(FIXED_PAYLOAD);
 
     int numIters = atLeastLen / FIXED_PAYLOAD_LEN + 1;
@@ -160,6 +164,7 @@ appendMessage(size_t                    iteration,
               bsl::vector<Data>*        vec,
               bdlbb::BlobBufferFactory* bufferFactory,
               bslma::Allocator*         allocator)
+// NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     Data data(bufferFactory, allocator);
     data.d_guid.fromHex(HEX_REP);
@@ -168,6 +173,7 @@ appendMessage(size_t                    iteration,
     data.d_compressionAlgorithmType = bmqt::CompressionAlgorithmType::e_NONE;
 
     // Between [1, 15] SubQueueInfos
+    // NOLINTNEXTLINE(*-magic-numbers)
     int numSubQueueInfos = generateRandomInteger(1, 15);
     if (iteration % 7 == 0) {
         // Every 7th iteration we force a PushMessage with no SubQueueInfo
@@ -198,6 +204,7 @@ appendMessage(size_t                    iteration,
                             data.d_flags,
                             data.d_compressionAlgorithmType);
 }
+// NOLINTEND(*-magic-numbers,*-narrowing-conversions,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 bool isDefaultSubscription(
     const bmqp::Protocol::SubQueueInfosArray& subQueueInfos)
@@ -228,12 +235,15 @@ static void test1_breathingTest()
 // Testing:
 //   Basic functionality
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
@@ -339,6 +349,7 @@ static void test1_breathingTest()
 
     BMQTST_ASSERT_NE(1, pushIter.next());  // we added only 1 msg
 }
+// NOLINTEND(*-narrowing-conversions)
 
 static void test2_buildEventBackwardsCompatibility()
 // ------------------------------------------------------------------------
@@ -356,12 +367,15 @@ static void test2_buildEventBackwardsCompatibility()
 // Testing:
 //   Backwards compatibility
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     bmqtst::TestHelper::printTestName("BACKWARDS COMPATIBILITY");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
@@ -467,6 +481,7 @@ static void test2_buildEventBackwardsCompatibility()
 
     BMQTST_ASSERT_NE(1, pushIter.next());  // we added only 1 msg
 }
+// NOLINTEND(*-narrowing-conversions)
 
 static void test3_buildEventWithPackedOption()
 // ------------------------------------------------------------------------
@@ -485,12 +500,15 @@ static void test3_buildEventWithPackedOption()
 // Testing:
 //   Packed Option
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions)
 {
     bmqtst::TestHelper::printTestName("PACKED OPTION");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
@@ -595,6 +613,7 @@ static void test3_buildEventWithPackedOption()
 
     BMQTST_ASSERT_NE(1, pushIter.next());  // we added only 1 msg
 }
+// NOLINTEND(*-magic-numbers,*-narrowing-conversions)
 
 static void test4_buildEventWithMultipleMessages()
 // --------------------------------------------------------------------
@@ -604,9 +623,11 @@ static void test4_buildEventWithMultipleMessages()
     bmqtst::TestHelper::printTestName("BUILD EVENT WITH MULTIPLE MESSAGES");
 
     // Create PushEventBuilder
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
@@ -711,12 +732,15 @@ static void test5_buildEventWithPayloadTooBig()
 // Testing:
 //   Behavior when trying to add a message with a large payload.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     bmqtst::TestHelper::printTestName("PAYLOAD TOO BIG");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
@@ -751,8 +775,10 @@ static void test5_buildEventWithPayloadTooBig()
 
     // Add a valid size option
     generateSubQueueInfos(&subQueueInfos, numSubQueueInfos);
+    // NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
     bmqt::EventBuilderResult::Enum rc = peb.addSubQueueInfosOption(
         subQueueInfos);
+    // NOLINTEND(clang-analyzer-deadcode.DeadStores)
 
     BMQTST_ASSERT_EQ(sizeof(bmqp::EventHeader),
                      static_cast<size_t>(peb.eventSize()));
@@ -832,15 +858,18 @@ static void test5_buildEventWithPayloadTooBig()
                          optionsView.end());
     BMQTST_ASSERT_NE(1, pushIter.next());  // we added only 1 msg
 }
+// NOLINTEND(*-narrowing-conversions)
 
 static void test6_buildEventWithImplicitPayload()
 // --------------------------------------------------------------------
 // Implicit payload test
 // --------------------------------------------------------------------
 {
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
@@ -921,12 +950,15 @@ static void test7_buildEventOptionTooBig()
 // Testing:
 //   Behavior of adding an option that is larger than the max allowed.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-narrowing-conversions,bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-init-variables)
 {
     bmqtst::TestHelper::printTestName("OPTION TOO BIG TEST");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
@@ -1010,9 +1042,11 @@ static void test7_buildEventOptionTooBig()
 
     BMQTST_ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
 
+    // NOLINTBEGIN(*-narrowing-conversions)
     int evtSizeUnpadded = sizeof(bmqp::EventHeader) +
                           sizeof(bmqp::PushHeader) + optionSize +
                           regularPayload.length();
+    // NOLINTEND(*-narrowing-conversions)
     BMQTST_ASSERT_LE(evtSizeUnpadded, peb.eventSize());
     // Less than or equal due to possible padding
     BMQTST_ASSERT_LE(evtSizeUnpadded, peb.blob()->length());
@@ -1063,6 +1097,7 @@ static void test7_buildEventOptionTooBig()
 
     BMQTST_ASSERT_NE(1, pushIter.next());  // we added only 1 msg
 }
+// NOLINTEND(*-narrowing-conversions,bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-init-variables)
 
 static void test8_buildEventTooBig()
 // ------------------------------------------------------------------------
@@ -1086,9 +1121,11 @@ static void test8_buildEventTooBig()
 {
     bmqtst::TestHelper::printTestName("EVENT TOO BIG");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
@@ -1132,6 +1169,7 @@ static void test8_buildEventTooBig()
     bdlbb::BlobUtil::append(&validPayload2, s.c_str(), validLen);
 
     int count = 1;
+    // NOLINTBEGIN(*-narrowing-conversions)
     while ((evtSize + sizeof(bmqp::PushHeader) + validLen) <
            bmqp::EventHeader::k_MAX_SIZE_SOFT) {
         rc = peb.packMessage(validPayload2,
@@ -1143,6 +1181,7 @@ static void test8_buildEventTooBig()
         evtSize += sizeof(bmqp::PushHeader) + validLen;
         ++count;
     }
+    // NOLINTEND(*-narrowing-conversions)
     evtSize = peb.eventSize();  // not calculating padding
     rc      = peb.packMessage(validPayload2,
                          queueId,
@@ -1169,18 +1208,23 @@ static void testN1_decodeFromFile()
 //   3. Read this file, decode event and verify that it contains a message
 //      with expected properties and payload.
 // --------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bmqtst::TestHelper::printTestName("DECODE FROM FILE");
 
     const char  k_VALID_HEX_REP[] = "ABCDEF0123456789ABCDEF0123456789";
     const char* k_PAYLOAD         = "abcdefghijklmnopqrstuvwxyz";
-    const int   k_PAYLOAD_LEN     = bsl::strlen(k_PAYLOAD);
-    const int   k_QID             = 9876;
-    const int   k_SIZE            = 128;
-    char        buf[k_SIZE]       = {0};
+    // NOLINTNEXTLINE(*-narrowing-conversions)
+    const int k_PAYLOAD_LEN = bsl::strlen(k_PAYLOAD);
+    const int k_QID         = 9876;
+    const int k_SIZE        = 128;
+    // NOLINTNEXTLINE(*-avoid-c-arrays)
+    char buf[k_SIZE] = {0};
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
@@ -1240,10 +1284,12 @@ static void testN1_decodeFromFile()
     ifile.read(buf, k_SIZE);
     ifile.close();
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bsl::shared_ptr<char> dataBufferSp(buf,
                                        bslstl::SharedPtrNilDeleter(),
                                        bmqtst::TestHelperUtil::allocator());
-    bdlbb::BlobBuffer     dataBlobBuffer(dataBufferSp, k_SIZE);
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+    bdlbb::BlobBuffer dataBlobBuffer(dataBufferSp, k_SIZE);
 
     outBlob.appendDataBuffer(dataBlobBuffer);
     outBlob.setLength(obj.blob()->length());
@@ -1281,11 +1327,13 @@ static void testN1_decodeFromFile()
     BMQTST_ASSERT_EQ(0, pushIter.next());  // we added only 1 msg
     BMQTST_ASSERT_EQ(false, pushIter.isValid());
 }
+// NOLINTEND(*-avoid-c-arrays,cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -1324,3 +1372,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

@@ -34,6 +34,7 @@ namespace mqbplug {
 // ===================
 
 /// Base class solely used for having a common type for the factories.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class PluginFactory {
   public:
     // CREATORS
@@ -41,6 +42,7 @@ class PluginFactory {
 
     virtual ~PluginFactory();
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

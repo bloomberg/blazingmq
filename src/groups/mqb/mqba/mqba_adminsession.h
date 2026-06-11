@@ -69,6 +69,7 @@ namespace mqba {
 // =========================
 
 /// VST representing the state of a session
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct AdminSessionState {
   public:
     // TYPES
@@ -118,12 +119,14 @@ struct AdminSessionState {
                       bmqp::EncodingType::Enum encodingType,
                       bslma::Allocator*        allocator);
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ==================
 // class AdminSession
 // ==================
 
 /// A session with a BlazingMQ admin application
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class AdminSession : public mqbnet::Session, public mqbi::DispatcherClient {
   private:
     // DATA
@@ -314,6 +317,7 @@ class AdminSession : public mqbnet::Session, public mqbi::DispatcherClient {
     const mqbi::DispatcherClientData&
     dispatcherClientData() const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

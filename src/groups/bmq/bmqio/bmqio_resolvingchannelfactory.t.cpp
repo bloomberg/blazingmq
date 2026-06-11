@@ -93,10 +93,12 @@ class TestExecutor {
 
     // MANIPULATORS
     template <class FUNCTION>
+    // NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
     void post(BSLS_COMPILERFEATURES_FORWARD_REF(FUNCTION) f) const
     {
         d_store_p->emplace_back(BSLS_COMPILERFEATURES_FORWARD(FUNCTION, f));
     }
+    // NOLINTEND(cppcoreguidelines-missing-std-forward)
 
     // ACCESSORS
     bool operator==(const TestExecutor& rhs) const
@@ -276,7 +278,13 @@ static void test2_channelFactory()
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
+// NOLINTBEGIN(bugprone-exception-escape)
 int main(int argc, char* argv[])
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTBEGIN(cert-err34-c)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -292,3 +300,9 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTEND(cert-err34-c)
+// NOLINTEND(bugprone-exception-escape)

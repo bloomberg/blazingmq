@@ -94,6 +94,7 @@ void MessageGUIDUtil::extractFields(int*                     version,
 
 bsl::ostream& MessageGUIDUtil::print(bsl::ostream&            stream,
                                      const bmqt::MessageGUID& guid)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-init-variables)
 {
     if (stream.bad()) {
         return stream;  // RETURN
@@ -118,6 +119,7 @@ bsl::ostream& MessageGUIDUtil::print(bsl::ostream&            stream,
 
     return stream;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-init-variables)
 
 }  // close package namespace
 }  // close enterprise namespace

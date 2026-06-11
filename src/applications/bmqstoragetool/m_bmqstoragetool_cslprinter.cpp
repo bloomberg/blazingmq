@@ -65,6 +65,7 @@ void printQueueInfo(bsl::ostream&     ostream,
                     const QueueMap&   queueMap,
                     unsigned int      queuesLimit,
                     bslma::Allocator* allocator)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
     const QueueMap::QueueInfos& queueInfos = queueMap.queueInfos();
     if (!queueInfos.empty()) {
@@ -78,6 +79,7 @@ void printQueueInfo(bsl::ostream&     ostream,
             ostream << "    \"Queues\": [";
         }
         QueueMap::QueueInfos::const_iterator it = queueInfos.cbegin();
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (; it != itEnd; ++it) {
             if (it != queueInfos.cbegin()) {
                 ostream << ",";
@@ -86,12 +88,14 @@ void printQueueInfo(bsl::ostream&     ostream,
 
             ostream << "\n      " << recStr;
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         ostream << "\n    ]";
     }
     else {
         ostream << "    \"Queues\": []";
     }
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 }  // close unnamed namespace
 
@@ -107,6 +111,7 @@ CslPrinter::~CslPrinter()
 // class HumanReadableCslPrinter
 // =============================
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class HumanReadableCslPrinter : public CslPrinter {
   private:
     // PRIVATE DATA
@@ -149,6 +154,7 @@ class HumanReadableCslPrinter : public CslPrinter {
                      const Parameters::ProcessCslRecordTypes&
                          processCslRecordTypes) const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // CREATORS
 HumanReadableCslPrinter::HumanReadableCslPrinter(bsl::ostream&     os,
@@ -206,11 +212,13 @@ void HumanReadableCslPrinter::printOffsetsNotFound(
     if (!offsets.empty()) {
         d_ostream << "\nThe following " << offsets.size()
                   << " offset(s) not found:\n";
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (OffsetsVec::const_iterator it = offsets.cbegin();
              it != offsets.cend();
              ++it) {
             d_ostream << *it << '\n';
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
 }
 
@@ -221,9 +229,11 @@ void HumanReadableCslPrinter::printCompositesNotFound(
         d_ostream << "\nThe following " << seqNums.size()
                   << " sequence number(s) not found:\n";
         CompositesVec::const_iterator it = seqNums.cbegin();
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (; it != seqNums.cend(); ++it) {
             d_ostream << *it << '\n';
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
 }
 
@@ -233,6 +243,7 @@ void HumanReadableCslPrinter::printSummaryResult(
     const QueueMap&                          queueMap,
     const Parameters::ProcessCslRecordTypes& processCslRecordTypes,
     unsigned int                             queuesLimit) const
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
     if (processCslRecordTypes.d_snapshot) {
         recordCount.d_snapshotCount > 0
@@ -298,11 +309,14 @@ void HumanReadableCslPrinter::printSummaryResult(
         }
         bsl::vector<bmqp_ctrlmsg::QueueInfo>::const_iterator it =
             queueInfos.cbegin();
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (; it != itEnd; ++it) {
             d_ostream << *it << '\n';
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 void HumanReadableCslPrinter::printFooter(
     const CslRecordCount&                    recordCount,
@@ -338,6 +352,7 @@ void HumanReadableCslPrinter::printFooter(
 // class JsonCslPrinter
 // ====================
 
+// NOLINTBEGIN(cppcoreguidelines-non-private-member-variables-in-classes,cppcoreguidelines-special-member-functions)
 class JsonCslPrinter : public CslPrinter {
   protected:
     // PROTECTED DATA
@@ -372,6 +387,7 @@ class JsonCslPrinter : public CslPrinter {
                      BSLA_MAYBE_UNUSED const Parameters::ProcessCslRecordTypes&
                          processCslRecordTypes) const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-non-private-member-variables-in-classes,cppcoreguidelines-special-member-functions)
 
 // PROTECTED METHODS
 
@@ -428,12 +444,14 @@ void JsonCslPrinter::printOffsetsNotFound(const OffsetsVec& offsets) const
     closeBraceIfOpen();
     d_ostream << "  \"OffsetsNotFound\": [";
     OffsetsVec::const_iterator it = offsets.cbegin();
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (; it != offsets.cend(); ++it) {
         if (it != offsets.cbegin()) {
             d_ostream << ",";
         }
         d_ostream << "\n    " << *it;
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     d_ostream << "\n  ]";
 }
 
@@ -443,6 +461,7 @@ void JsonCslPrinter::printCompositesNotFound(
     closeBraceIfOpen();
     d_ostream << "  \"SequenceNumbersNotFound\": [";
     CompositesVec::const_iterator it = seqNums.cbegin();
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (; it != seqNums.cend(); ++it) {
         if (it != seqNums.cbegin()) {
             d_ostream << ',';
@@ -451,6 +470,7 @@ void JsonCslPrinter::printCompositesNotFound(
         d_ostream << "\n    {\"leaseId\": " << it->leaseId()
                   << ", \"sequenceNumber\": " << it->sequenceNumber() << "}";
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     d_ostream << "\n  ]";
 }
 
@@ -473,6 +493,7 @@ void JsonCslPrinter::printFooter(
 // class JsonPrettyCslPrinter
 // ==========================
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class JsonPrettyCslPrinter : public JsonCslPrinter {
   public:
     // CREATORS
@@ -499,6 +520,7 @@ class JsonPrettyCslPrinter : public JsonCslPrinter {
                                   processCslRecordTypes,
         unsigned int              queuesLimit) const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // CREATORS
 
@@ -522,9 +544,11 @@ void JsonPrettyCslPrinter::printShortResult(
 {
     openBraceIfNotOpen("Records");
 
+    // NOLINTBEGIN(*-magic-numbers)
     CslRecordPrinter<bmqu::JsonPrinter<true, true, 4, 6> > printer(
         d_ostream,
         d_allocator_p);
+    // NOLINTEND(*-magic-numbers)
     printer.printRecordDetails("", header, recordId);
 }
 
@@ -543,9 +567,11 @@ void JsonPrettyCslPrinter::printDetailResult(
     // escaped string.
     bsl::string recStr = recordToJsonString(&record, d_allocator_p);
 
+    // NOLINTBEGIN(*-magic-numbers)
     CslRecordPrinter<bmqu::JsonPrinter<true, true, 4, 6> > printer(
         d_ostream,
         d_allocator_p);
+    // NOLINTEND(*-magic-numbers)
 
     printer.printRecordDetails(recStr, header, recordId);
 }
@@ -560,9 +586,11 @@ void JsonPrettyCslPrinter::printSummaryResult(
 {
     d_ostream << "    \"Summary\":\n";
 
+    // NOLINTBEGIN(*-magic-numbers)
     CslRecordPrinter<bmqu::JsonPrinter<true, true, 4, 6> > printer(
         d_ostream,
         d_allocator_p);
+    // NOLINTEND(*-magic-numbers)
 
     printer.printRecordsSummary(recordCount, updateChoiceMap);
 
@@ -573,6 +601,7 @@ void JsonPrettyCslPrinter::printSummaryResult(
 // class JsonLineCslPrinter
 // ========================
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class JsonLineCslPrinter : public JsonCslPrinter {
   public:
     // CREATORS
@@ -598,6 +627,7 @@ class JsonLineCslPrinter : public JsonCslPrinter {
                                   processCslRecordTypes,
         unsigned int              queuesLimit) const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // CREATORS
 JsonLineCslPrinter::JsonLineCslPrinter(bsl::ostream&     os,
@@ -618,9 +648,11 @@ void JsonLineCslPrinter::printShortResult(
 {
     openBraceIfNotOpen("Records");
 
+    // NOLINTBEGIN(*-magic-numbers)
     CslRecordPrinter<bmqu::JsonPrinter<false, true, 4, 6> > printer(
         d_ostream,
         d_allocator_p);
+    // NOLINTEND(*-magic-numbers)
     printer.printRecordDetails("", header, recordId);
 }
 
@@ -639,9 +671,11 @@ void JsonLineCslPrinter::printDetailResult(
     // escaped string.
     bsl::string recStr = recordToJsonString(&record, d_allocator_p);
 
+    // NOLINTBEGIN(*-magic-numbers)
     CslRecordPrinter<bmqu::JsonPrinter<false, true, 4, 6> > printer(
         d_ostream,
         d_allocator_p);
+    // NOLINTEND(*-magic-numbers)
 
     printer.printRecordDetails(recStr, header, recordId);
 }
@@ -656,9 +690,11 @@ void JsonLineCslPrinter::printSummaryResult(
 {
     d_ostream << "    \"Summary\": ";
 
+    // NOLINTBEGIN(*-magic-numbers)
     CslRecordPrinter<bmqu::JsonPrinter<false, true, 0, 6> > printer(
         d_ostream,
         d_allocator_p);
+    // NOLINTEND(*-magic-numbers)
 
     printer.printRecordsSummary(recordCount, updateChoiceMap);
 

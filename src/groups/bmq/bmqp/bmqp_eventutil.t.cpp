@@ -69,6 +69,7 @@ struct Data {
 };
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 Data::Data(bdlbb::BlobBufferFactory* bufferFactory,
            bslma::Allocator*         allocator)
 : d_subQueueInfos(allocator)
@@ -78,6 +79,7 @@ Data::Data(bdlbb::BlobBufferFactory* bufferFactory,
 {
     // NOTHING
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 Data::Data(const Data& other, bslma::Allocator* allocator)
 : d_guid(other.d_guid)
@@ -96,6 +98,7 @@ Data::Data(const Data& other, bslma::Allocator* allocator)
 /// specified `max`, inclusive.  The behavior is undefined unless `min >= 0`
 /// and `max >= min`.
 static int generateRandomInteger(int min, int max)
+// NOLINTBEGIN(cert-msc30-c,cert-msc50-cpp)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(min >= 0);
@@ -103,6 +106,7 @@ static int generateRandomInteger(int min, int max)
 
     return min + (bsl::rand() % (max - min + 1));
 }
+// NOLINTEND(cert-msc30-c,cert-msc50-cpp)
 
 /// Populate the specified `subQueueInfos` with the specified
 /// `numSubQueueInfos` number of generated subQueueInfos. Clear the
@@ -131,6 +135,7 @@ static void populateBlob(bdlbb::Blob* blob, int* payloadLen, int atLeastLen)
     const char* k_FIXED_PAYLOAD =
         "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     const int k_FIXED_PAYLOAD_LEN = bsl::strlen(k_FIXED_PAYLOAD);
 
     const int numIters = atLeastLen / k_FIXED_PAYLOAD_LEN + 1;
@@ -151,6 +156,7 @@ static void appendDatum(bsl::vector<Data>*        data,
                         int                       payloadLength,
                         bdlbb::BlobBufferFactory* bufferFactory,
                         bslma::Allocator*         allocator)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(data);
@@ -173,11 +179,13 @@ static void appendDatum(bsl::vector<Data>*        data,
 
     data->push_back(datum);
 }
+// NOLINTEND(*-narrowing-conversions)
 
 /// Add to the event being built by the specified `PushEventBuilder`
 /// messages using the specified `data`.
 static void appendMessages(bmqp::PushEventBuilder*  pushEventBuilder,
                            const bsl::vector<Data>& data)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(pushEventBuilder);
@@ -202,6 +210,7 @@ static void appendMessages(bmqp::PushEventBuilder*  pushEventBuilder,
         BSLS_ASSERT_OPT(rc == bmqt::EventBuilderResult::e_SUCCESS);
     }
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 bool find(bmqp::EventUtilEventInfo& eventInfo,
           int                       qId,
@@ -245,12 +254,15 @@ static void test1_breathingTest()
 // Testing:
 //   Basic functionality of 'flattenPushEvent(...)'.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
@@ -426,6 +438,7 @@ static void test1_breathingTest()
                 dummy));
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test2_flattenExplodesEvent()
 // ------------------------------------------------------------------------
@@ -452,12 +465,15 @@ static void test2_flattenExplodesEvent()
 //   multiple event blobs.
 //     - 'flattenPushEvent(...)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
 {
     bmqtst::TestHelper::printTestName("FLATTEN EXPLODES EVENT");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
@@ -664,6 +680,7 @@ static void test2_flattenExplodesEvent()
     // No more messages
     rc = msgIterator.next();
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores)
 
 static void test3_flattenWithMessageProperties()
 // ------------------------------------------------------------------------
@@ -689,12 +706,15 @@ static void test3_flattenWithMessageProperties()
 //   multiple SubQueueIds.
 //     - 'flattenPushEvent(...)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-init-variables)
 {
     bmqtst::TestHelper::printTestName("FLATTEN WITH MESSAGE PROPERTIES");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
@@ -708,8 +728,9 @@ static void test3_flattenWithMessageProperties()
     int                            payloadLength    = 0;
     int                            numSubQueueInfos = 0;
     int                            rc               = 0;
-    int                            qid   = generateRandomInteger(1, 200);
-    int                            flags = 0;
+    // NOLINTNEXTLINE(*-magic-numbers)
+    int qid   = generateRandomInteger(1, 200);
+    int flags = 0;
 
     // 1) Create an event composed of one message having message properties
     //    and two SubQueueIds.
@@ -853,12 +874,14 @@ static void test3_flattenWithMessageProperties()
         BMQTST_ASSERT_EQ_D(i, datum.d_subQueueInfos[i], subQueueInfos[0]);
     }
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-init-variables)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -879,3 +902,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

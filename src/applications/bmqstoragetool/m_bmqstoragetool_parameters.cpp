@@ -59,17 +59,21 @@ namespace {
 bool isValidQueueKeyHexRepresentation(const char* queueKeyBuf)
 {
     const size_t queueKeyHexLength =
+        // NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result)
         mqbu::StorageKey::e_KEY_LENGTH_BINARY *
         2;  // one byte is represented by two hex symbols
+    // NOLINTEND(bugprone-implicit-widening-of-multiplication-result)
     if (bsl::strlen(queueKeyBuf) != queueKeyHexLength)
         return false;  // RETURN
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (size_t i = 0; i < queueKeyHexLength; ++i) {
         if (!bsl::isxdigit(queueKeyBuf[i]) ||
             bdlb::CharType::isLower(queueKeyBuf[i])) {
             return false;  // RETURN
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     return true;
 }
 
@@ -195,6 +199,7 @@ void CommandLineArguments::validateCslModeArgs(bsl::ostream&     stream,
     }
     if (!d_seqNum.empty()) {
         bmqu::MemOutStream errorDescr(allocator);
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (bsl::vector<bsl::string>::const_iterator cit = d_seqNum.begin();
              cit != d_seqNum.end();
              ++cit) {
@@ -203,8 +208,10 @@ void CommandLineArguments::validateCslModeArgs(bsl::ostream&     stream,
                 errorDescr.reset();
             }
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
     if (!d_offset.empty()) {
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (bsl::vector<bsls::Types::Int64>::const_iterator cit =
                  d_offset.begin();
              cit != d_offset.end();
@@ -213,6 +220,7 @@ void CommandLineArguments::validateCslModeArgs(bsl::ostream&     stream,
                 stream << "--offset: " << *cit << " cannot be negative\n";
             }
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
 
     const bool isFilterPresent = !d_queueKey.empty() || !d_queueName.empty() ||
@@ -226,11 +234,13 @@ void CommandLineArguments::validateCslModeArgs(bsl::ostream&     stream,
     }
 
     bsl::vector<bsl::string>::const_iterator it = d_queueKey.cbegin();
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (; it != d_queueKey.cend(); ++it) {
         if (!isValidQueueKeyHexRepresentation(it->c_str())) {
             stream << *it << " is not a valid Queue Key\n";
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     if (!d_guid.empty() || !d_dataFile.empty() || d_dumpPayload ||
         d_outstanding || d_confirmed || d_partiallyConfirmed) {
@@ -272,6 +282,7 @@ void CommandLineArguments::validateJournalModeArgs(bsl::ostream&     stream,
             bdls::FilesystemUtil::findMatchingPaths(&result,
                                                     d_journalPath.c_str());
             bsl::vector<bsl::string>::const_iterator it = result.cbegin();
+            // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
             for (; it != result.cend(); ++it) {
                 if (it->ends_with(".bmq_journal")) {
                     if (d_journalFile.empty()) {
@@ -296,6 +307,7 @@ void CommandLineArguments::validateJournalModeArgs(bsl::ostream&     stream,
                     }
                 }
             }
+            // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
             if (d_journalFile.empty()) {
                 stream
                     << "Couldn't define a journal file, which is required\n";
@@ -350,6 +362,7 @@ void CommandLineArguments::validateJournalModeArgs(bsl::ostream&     stream,
     }
     if (!d_seqNum.empty()) {
         bmqu::MemOutStream errorDescr(allocator);
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (bsl::vector<bsl::string>::const_iterator cit = d_seqNum.begin();
              cit != d_seqNum.end();
              ++cit) {
@@ -358,8 +371,10 @@ void CommandLineArguments::validateJournalModeArgs(bsl::ostream&     stream,
                 errorDescr.reset();
             }
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
     if (!d_offset.empty()) {
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (bsl::vector<bsls::Types::Int64>::const_iterator cit =
                  d_offset.begin();
              cit != d_offset.end();
@@ -368,6 +383,7 @@ void CommandLineArguments::validateJournalModeArgs(bsl::ostream&     stream,
                 stream << "--offset: " << *cit << " cannot be negative\n";
             }
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
 
     if (d_summary &&
@@ -386,18 +402,22 @@ void CommandLineArguments::validateJournalModeArgs(bsl::ostream&     stream,
     }
 
     bsl::vector<bsl::string>::const_iterator it = d_guid.cbegin();
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (; it != d_guid.cend(); ++it) {
         if (!bmqt::MessageGUID::isValidHexRepresentation(it->c_str())) {
             stream << *it << " is not a valid GUID\n";
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     it = d_queueKey.cbegin();
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (; it != d_queueKey.cend(); ++it) {
         if (!isValidQueueKeyHexRepresentation(it->c_str())) {
             stream << *it << " is not a valid Queue Key\n";
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     if (d_dumpLimit <= 0)
         stream << "Dump limit must be positive value greater than zero.\n";
@@ -465,6 +485,7 @@ bool CommandLineArguments::validateRangeArgs(bsl::ostream&     error,
 
 bool CommandLineArguments::isValidRecordType(const bsl::string* recordType,
                                              bsl::ostream&      stream)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     if (*recordType != k_ALL_TYPE && *recordType != k_MESSAGE_TYPE &&
         *recordType != k_QUEUEOP_TYPE && *recordType != k_JOURNALOP_TYPE) {
@@ -475,10 +496,12 @@ bool CommandLineArguments::isValidRecordType(const bsl::string* recordType,
 
     return true;
 }
+// NOLINTEND(performance-avoid-endl)
 
 bool CommandLineArguments::isValidCslRecordType(
     const bsl::string* cslRecordType,
     bsl::ostream&      stream)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     if (*cslRecordType != k_CSL_ALL_TYPE &&
         *cslRecordType != k_CSL_SNAPSHOT_TYPE &&
@@ -491,9 +514,11 @@ bool CommandLineArguments::isValidCslRecordType(
 
     return true;
 }
+// NOLINTEND(performance-avoid-endl)
 
 bool CommandLineArguments::isValidPrintMode(const bsl::string* printMode,
                                             bsl::ostream&      stream)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     if (*printMode != k_HUMAN_MODE && *printMode != k_JSON_PRETTY_MODE &&
         *printMode != k_JSON_LINE_MODE) {
@@ -504,9 +529,11 @@ bool CommandLineArguments::isValidPrintMode(const bsl::string* printMode,
 
     return true;
 }
+// NOLINTEND(performance-avoid-endl)
 
 bool CommandLineArguments::isValidFileName(const bsl::string* fileName,
                                            bsl::ostream&      stream)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     if (!bdls::FilesystemUtil::isRegularFile(*fileName, true)) {
         stream << "The specified file does not exist: " << *fileName
@@ -517,6 +544,7 @@ bool CommandLineArguments::isValidFileName(const bsl::string* fileName,
 
     return true;
 }
+// NOLINTEND(performance-avoid-endl)
 
 Parameters::Range::Range()
 : d_timestampGt()
@@ -621,6 +649,7 @@ Parameters::Parameters(const CommandLineArguments& arguments,
             d_processCslRecordTypes.setAll();
         }
         else {
+            // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
             for (bsl::vector<bsl::string>::const_iterator cit =
                      arguments.d_cslRecordType.begin();
                  cit != arguments.d_cslRecordType.end();
@@ -644,6 +673,7 @@ Parameters::Parameters(const CommandLineArguments& arguments,
                     BSLS_ASSERT(false && "Unknown CSL record type");
                 }
             }
+            // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         }
     }
     else {
@@ -652,6 +682,7 @@ Parameters::Parameters(const CommandLineArguments& arguments,
             d_processRecordTypes.setAll();
         }
         else {
+            // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
             for (bsl::vector<bsl::string>::const_iterator cit =
                      arguments.d_recordType.begin();
                  cit != arguments.d_recordType.end();
@@ -673,6 +704,7 @@ Parameters::Parameters(const CommandLineArguments& arguments,
                     BSLS_ASSERT(false && "Unknown journal record type");
                 }
             }
+            // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         }
     }
 
@@ -721,6 +753,7 @@ Parameters::Parameters(const CommandLineArguments& arguments,
         CompositeSequenceNumber seqNum;
         bmqu::MemOutStream      errorDescr(allocator);
         bool                    success = false;
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (bsl::vector<bsl::string>::const_iterator cit =
                  arguments.d_seqNum.begin();
              cit != arguments.d_seqNum.end();
@@ -729,6 +762,7 @@ Parameters::Parameters(const CommandLineArguments& arguments,
             BSLS_ASSERT(success);
             d_seqNum.push_back(seqNum);
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
 
     if (arguments.d_minRecordsPerQueue > 0) {
@@ -742,12 +776,14 @@ void Parameters::validateQueueNames(bslma::Allocator* allocator) const
     // Validate given queue names agains existing in csl file
     bmqu::MemOutStream                       ss(allocator);
     bsl::vector<bsl::string>::const_iterator it = d_queueName.cbegin();
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
     for (; it != d_queueName.cend(); ++it) {
         if (!d_queueMap.findKeyByUri(*it).has_value()) {
             ss << "Queue name: '" << *it << "' is not found in Csl file."
                << bsl::endl;
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
     if (!ss.isEmpty()) {
         throw bsl::runtime_error(ss.str());
     }

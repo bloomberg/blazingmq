@@ -53,6 +53,7 @@ namespace m_bmqtool {
 // ==========================
 
 struct ParametersVerbosity {
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Value {
         e_SILENT  // Do not output anything
         ,
@@ -68,6 +69,7 @@ struct ParametersVerbosity {
         ,
         e_FATAL  // Enable FATAL output
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CLASS METHODS
     static bsl::ostream& print(bsl::ostream&              stream,
@@ -92,6 +94,7 @@ bsl::ostream& operator<<(bsl::ostream&              stream,
 // =====================
 
 struct ParametersMode {
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Value {
         e_CLI  // Command line mode
         ,
@@ -101,6 +104,7 @@ struct ParametersMode {
         ,
         e_SYSCHK  // Run in syschk mode
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CLASS METHODS
     static bsl::ostream& print(bsl::ostream&         stream,
@@ -124,6 +128,7 @@ bsl::ostream& operator<<(bsl::ostream& stream, ParametersMode::Value value);
 // ========================
 
 struct ParametersLatency {
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Value {
         e_NONE  // Do not put any timestamp in the messages
         ,
@@ -131,6 +136,7 @@ struct ParametersLatency {
         ,
         e_EPOCH  // Use the system time slower but work accross network
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CLASS METHODS
     static bsl::ostream& print(bsl::ostream&            stream,
@@ -154,6 +160,7 @@ bsl::ostream& operator<<(bsl::ostream& stream, ParametersLatency::Value value);
 // ================
 
 /// Holds command line parameters for bmqtool.
+// NOLINTBEGIN(clang-analyzer-optin.performance.Padding)
 class Parameters {
   private:
     // DATA
@@ -390,6 +397,7 @@ class Parameters {
 
     const char* autoPubSubPropertyName() const;
 };
+// NOLINTEND(clang-analyzer-optin.performance.Padding)
 
 // FREE OPERATORS
 bsl::ostream& operator<<(bsl::ostream& stream, const Parameters& value);

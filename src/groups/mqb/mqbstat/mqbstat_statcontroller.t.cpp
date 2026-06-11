@@ -80,9 +80,11 @@ static void test1_breathingTest()
         bmqtst::TestHelperUtil::allocator());  // empty default config
     mqbcfg::BrokerConfig::set(cfg);
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bdlmt::EventScheduler  scheduler(bsls::SystemClockType::e_MONOTONIC,
                                     bmqtst::TestHelperUtil::allocator());
     mqbplug::PluginManager pluginManager;
@@ -111,6 +113,7 @@ static void test1_breathingTest()
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -128,3 +131,4 @@ int main(int argc, char* argv[])
     TEST_EPILOG(bmqtst::TestHelper::e_DEFAULT);
     // Do not check fro default/global allocator usage.
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

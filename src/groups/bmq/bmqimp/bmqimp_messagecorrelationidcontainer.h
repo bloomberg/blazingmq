@@ -58,6 +58,7 @@ namespace bmqimp {
 // ===================================
 
 /// Implementation of a container for message correlationIds.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class MessageCorrelationIdContainer {
   public:
     // PUBLIC TYPES
@@ -260,6 +261,7 @@ class MessageCorrelationIdContainer {
     /// Return the current number of control requests in the container.
     size_t numberOfControls() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

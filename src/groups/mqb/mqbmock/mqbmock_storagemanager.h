@@ -44,6 +44,7 @@ namespace mqbmock {
 // ====================
 
 /// Mock implementation of `mqbi::StorageManager` interface.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager {
   public:
     // CREATORS
@@ -284,6 +285,7 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager {
     bslma::ManagedPtr<mqbi::StorageManagerIterator>
     getIterator(int partitionId) const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

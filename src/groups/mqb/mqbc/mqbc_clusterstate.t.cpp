@@ -42,6 +42,7 @@ static void test1_partitionIdExtractor()
 // Testing:
 //    PartitionIdExtractor
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     mqbc::ClusterState::PartitionIdExtractor extractor(
         bmqtst::TestHelperUtil::allocator());
@@ -67,12 +68,14 @@ static void test1_partitionIdExtractor()
         BMQTST_ASSERT_EQ(result, cIt->second);
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -87,3 +90,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

@@ -178,6 +178,7 @@ struct AdvisoryInfo {
 
 /// This class provides a wrapper on top of the IncoreClusterStateLedger
 /// under test and implements a few mechanisms to help testing the object.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct Tester {
   private:
     // PRIVATE TYPES
@@ -206,6 +207,7 @@ struct Tester {
     , d_clusterStateLedger_mp(0)
     , d_committedMessages(bmqtst::TestHelperUtil::allocator())
     , d_commitCounter(0)
+    // NOLINTBEGIN(*-magic-numbers)
     {
         mqbmock::Cluster::ClusterNodeDefs clusterNodeDefs(
             bmqtst::TestHelperUtil::allocator());
@@ -305,10 +307,12 @@ struct Tester {
         d_cluster_mp->_clusterData()->electorInfo().setLeaderMessageSequence(
             leaderSeqNum);
     }
+    // NOLINTEND(*-magic-numbers)
 
     // MANIPULATORS
     void onCommitCb(const bmqp_ctrlmsg::ControlMessage&        advisory,
                     mqbc::ClusterStateLedgerCommitStatus::Enum status)
+    // NOLINTBEGIN(performance-avoid-endl)
     {
         // PRECONDITIONS
         BSLS_ASSERT_OPT(advisory.choice().isClusterMessageValue());
@@ -323,6 +327,7 @@ struct Tester {
                                      *d_cluster_mp->_clusterData());
         }
     }
+    // NOLINTEND(performance-avoid-endl)
 
     /// Load into the specified `event` a bmqp::Event of type
     /// `e_CLUSTER_STATE` containing a ledger record of the specified
@@ -334,6 +339,7 @@ struct Tester {
         const bmqp_ctrlmsg::LeaderMessageSequence& sequenceNumber,
         bsls::Types::Uint64                        timestamp,
         mqbc::ClusterStateRecordType::Enum         recordType)
+    // NOLINTBEGIN(*-narrowing-conversions,cppcoreguidelines-pro-type-reinterpret-cast)
     {
         // PRECONDITIONS
         BSLS_ASSERT_OPT(event);
@@ -357,6 +363,7 @@ struct Tester {
                                 sizeof(bmqp::EventHeader));
         bdlbb::BlobUtil::append(event, record);
     }
+    // NOLINTEND(*-narrowing-conversions,cppcoreguidelines-pro-type-reinterpret-cast)
 
     /// Let the specified `ledger` receive the specified `numAcks` acks for the
     /// record having the specific `sequenceNumber`.  Behavior is undefined
@@ -364,6 +371,7 @@ struct Tester {
     void receiveAck(mqbc::IncoreClusterStateLedger*            ledger,
                     const bmqp_ctrlmsg::LeaderMessageSequence& sequenceNumber,
                     int                                        numAcks)
+    // NOLINTBEGIN(*-magic-numbers)
     {
         // PRECONDITIONS
         BSLS_ASSERT_OPT(d_isLeader);
@@ -390,6 +398,7 @@ struct Tester {
                 0);
         }
     }
+    // NOLINTEND(*-magic-numbers)
 
     // ACCESSORS
     /// Return true if we observe no more than the `number` of write calls
@@ -530,11 +539,14 @@ struct Tester {
 
         bsl::vector<bsl::string> files(bmqtst::TestHelperUtil::allocator());
         bdls::FilesystemUtil::findMatchingPaths(&files, pattern.c_str());
+        // NOLINTBEGIN(cert-err33-c)
         for (size_t i = 0; i < files.size(); ++i) {
             bsl::remove(files[i].c_str());
         }
+        // NOLINTEND(cert-err33-c)
     }
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close unnamed namespace
 
@@ -875,6 +887,7 @@ static void test7_apply_ClusterStateRecord()
 //   int apply(const bdlbb::Blob& record)  // for 'record' of type
 //                                         // 'e_SNAPSHOT' or 'e_UPDATE'
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("APPLY - CLUSTER STATE RECORD");
 
@@ -974,6 +987,7 @@ static void test7_apply_ClusterStateRecord()
     BMQTST_ASSERT(msg.choice().isLeaderAdvisoryValue());
     BMQTST_ASSERT_EQ(msg.choice().leaderAdvisory(), leaderAdvisory);
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test8_apply_ClusterStateRecordCommit()
 // ------------------------------------------------------------------------
@@ -989,6 +1003,7 @@ static void test8_apply_ClusterStateRecordCommit()
 //   int apply(const bdlbb::Blob& record)  // for 'record' of type
 //                                         // 'e_COMMIT'
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("APPLY - CLUSTER STATE RECORD COMMIT");
 
@@ -1090,6 +1105,7 @@ static void test8_apply_ClusterStateRecordCommit()
     BSLS_ASSERT_OPT(obj->close() == 0);
     BMQTST_ASSERT(tester.hasNoMoreBroadcastedMessages(1));
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test9_persistanceLeader()
 // ------------------------------------------------------------------------
@@ -1230,7 +1246,8 @@ static void test9_persistanceLeader()
                        pmAdvisory.sequenceNumber());
 
     bmqp_ctrlmsg::ClusterMessage msg;
-    int                          rc = cslIter->loadClusterMessage(&msg);
+    // NOLINTNEXTLINE(clang-analyzer-deadcode.DeadStores)
+    int rc = cslIter->loadClusterMessage(&msg);
     BMQTST_ASSERT_EQ(cslIter->loadClusterMessage(&msg), 0);
     BMQTST_ASSERT(msg.choice().isPartitionPrimaryAdvisoryValue());
     BMQTST_ASSERT_EQ(msg.choice().partitionPrimaryAdvisory(), pmAdvisory);
@@ -1330,6 +1347,7 @@ static void test10_persistanceFollower()
 //  Testing:
 //    Persistence of the logs at the follower node.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("PERSISTENCE FOLLOWER");
 
@@ -1603,6 +1621,7 @@ static void test10_persistanceFollower()
     BMQTST_ASSERT_EQ(cslIter->next(), 1);
     BMQTST_ASSERT(!cslIter->isValid());
 }
+// NOLINTEND(*-magic-numbers)
 
 BSLA_MAYBE_UNUSED
 static void test11_persistanceAcrossRolloverLeader()
@@ -1627,6 +1646,7 @@ static void test11_persistanceAcrossRolloverLeader()
 //  Testing:
 //    Rollover and persistence.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(modernize-use-emplace)
 {
     bmqtst::TestHelper::printTestName("PERSISTENCE ACROSS ROLLOVER LEADER");
 
@@ -1745,6 +1765,7 @@ static void test11_persistanceAcrossRolloverLeader()
 
     // Build 'QueueAssignmentAdvisory'
     bmqp_ctrlmsg::QueueAssignmentAdvisory qadvisory;
+    // NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions)
     for (size_t i = 0; i < 50; ++i) {
         bmqu::MemOutStream uriStream(bmqtst::TestHelperUtil::allocator());
         uriStream << "bmq://bmq.test.mmap.priority/q" << i;
@@ -1753,12 +1774,15 @@ static void test11_persistanceAcrossRolloverLeader()
         qinfoI.uri()         = uriStream.str();
         qinfoI.partitionId() = i % 4U;
 
+        // NOLINTBEGIN(*-magic-numbers)
         mqbu::StorageKey keyI(mqbu::StorageKey::BinaryRepresentation(),
                               bsl::to_string(12300 + i).c_str());
+        // NOLINTEND(*-magic-numbers)
         keyI.loadBinary(&qinfoI.key());
 
         qadvisory.queues().push_back(qinfoI);
     }
+    // NOLINTEND(*-magic-numbers,*-narrowing-conversions)
 
     size_t i = 0;
     bool   hasUncommittedBeforeRollover =
@@ -1797,8 +1821,10 @@ static void test11_persistanceAcrossRolloverLeader()
         ++i;
     }
 
+    // NOLINTBEGIN(*-narrowing-conversions)
     const int numBroadcastSoFar = hasUncommittedBeforeRollover ? 2 * i + 3
                                                                : 2 * i + 4;
+    // NOLINTEND(*-narrowing-conversions)
 
     const bmqp_ctrlmsg::LeaderMessageSequence snapshotSeqNum =
         tester.d_cluster_mp->_clusterData()
@@ -1967,6 +1993,7 @@ static void test11_persistanceAcrossRolloverLeader()
               compareQueueInfo);
     BMQTST_ASSERT_EQ(snapshot.queues(), qadvisory.queues());
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (bsl::vector<AdvisoryInfo>::const_iterator cit =
              uncommittedAdvisories.cbegin();
          cit != uncommittedAdvisories.cend();
@@ -1980,6 +2007,7 @@ static void test11_persistanceAcrossRolloverLeader()
         BMQTST_ASSERT(cit->d_advisory.choice().isClusterMessageValue());
         BMQTST_ASSERT_EQ(msg, cit->d_advisory.choice().clusterMessage());
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     // Skip the advisory which caused rollover, and its associated commit if
     // any
@@ -1996,6 +2024,7 @@ static void test11_persistanceAcrossRolloverLeader()
                        mqbc::ClusterStateRecordType::e_COMMIT,
                        pmAdvisoryCommit.sequenceNumber());
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (bsl::vector<AdvisoryInfo>::const_iterator cit =
              lastAdvisories.cbegin();
          cit != lastAdvisories.cend();
@@ -2013,6 +2042,7 @@ static void test11_persistanceAcrossRolloverLeader()
         BMQTST_ASSERT(cslIter->isValid());
         verifyLeaderAdvisoryCommit(*cslIter, cit->d_sequenceNumber);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     // Verify end of ledger
     BMQTST_ASSERT_EQ(cslIter->next(), 1);
@@ -2020,6 +2050,7 @@ static void test11_persistanceAcrossRolloverLeader()
 
     BSLS_ASSERT_OPT(obj->close() == 0);
 }
+// NOLINTEND(modernize-use-emplace)
 
 static void test12_quorumChangeCb()
 // ------------------------------------------------------------------------
@@ -2033,6 +2064,7 @@ static void test12_quorumChangeCb()
 // Testing:
 //   void onQuorumChangeCb(const unsigned int ackQuorum);
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     bmqtst::TestHelper::printTestName("QUORUM CHANGE CALLBACK");
 
@@ -2093,12 +2125,14 @@ static void test12_quorumChangeCb()
     BSLS_ASSERT_OPT(obj->close() == 0);
     BMQTST_ASSERT(tester.hasNoMoreBroadcastedMessages(2));
 }
+// NOLINTEND(*-narrowing-conversions)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -2134,3 +2168,4 @@ int main(int argc, char* argv[])
     // The tester object makes use of 'bmqu::TempDirectory', which
     // allocates a temporary string using the default allocator.
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

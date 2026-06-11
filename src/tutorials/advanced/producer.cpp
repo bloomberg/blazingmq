@@ -57,9 +57,11 @@ using namespace BloombergLP;
 
 namespace {
 
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char k_LOG_CATEGORY[] = "PRODUCER";
 
 void readUserInput(bsl::string* input)
+// NOLINTBEGIN(*-avoid-c-arrays,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     const int k_BUFFER_SIZE = 256;
 
@@ -70,6 +72,7 @@ void readUserInput(bsl::string* input)
     *input = buffer;
     bdlb::String::trim(input);
 }
+// NOLINTEND(*-avoid-c-arrays,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 }  // close unnamed namespace
 
@@ -82,6 +85,7 @@ class QueueManager;
 
 /// Concrete implementation of an event handler.  Note that the methods are
 /// called on the session's own threads.
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-type-member-init)
 class EventHandler : public bmqa::SessionEventHandler {
   private:
     // CLASS-SCOPE CATEGORY
@@ -112,6 +116,7 @@ class EventHandler : public bmqa::SessionEventHandler {
     /// event handler.
     QueueManager* queueManager() const;
 };
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-type-member-init)
 
 // ==================
 // class QueueManager
@@ -155,6 +160,7 @@ class QueueManager {
     /// * queueCorrelationId -> queueContext
     typedef bsl::unordered_map<bmqt::CorrelationId, QueueContext> QueuesMap;
 
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum RcEnum {
         // Value for the various RC error categories
         rc_SUCCESS = 0  // Success
@@ -163,6 +169,7 @@ class QueueManager {
         ,
         rc_UNKNOWN_MESSAGE = -2  // Unknown message
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
   private:
     // DATA
@@ -632,6 +639,7 @@ static bool postEvent(const bsl::string&   text,
                       const bmqa::QueueId& queueId,
                       bmqa::Session*       session,
                       QueueManager*        queueManager)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     BALL_LOG_SET_CATEGORY(k_LOG_CATEGORY);
 
@@ -742,8 +750,10 @@ static bool postEvent(const bsl::string&   text,
     untrackGuard.release();
     return true;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 static void produce(bmqa::Session* session, QueueManager* queueManager)
+// NOLINTBEGIN(*-avoid-c-arrays,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(session);
@@ -777,11 +787,13 @@ static void produce(bmqa::Session* session, QueueManager* queueManager)
     const char k_QUEUE_URL[] = "bmq://bmq.test.mem.priority/test-queue";
     const int  k_QUEUE_ID    = 1;
 
-    bmqa::QueueId         queueId(k_QUEUE_ID);
+    bmqa::QueueId queueId(k_QUEUE_ID);
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bmqa::OpenQueueStatus openStatus = session->openQueueSync(
         &queueId,
         k_QUEUE_URL,
         bmqt::QueueFlags::e_WRITE | bmqt::QueueFlags::e_ACK);
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
     // Note that 'openQueue()' takes 2 more optional parameters - queue options
     // and timeout.  See 'openQueue()' documentation for more details.
@@ -831,12 +843,14 @@ static void produce(bmqa::Session* session, QueueManager* queueManager)
         return;  // RETURN
     }
 }
+// NOLINTEND(*-avoid-c-arrays,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 //=============================================================================
 //                              MAIN PROGRAM
 //-----------------------------------------------------------------------------
 
 int main(BSLA_MAYBE_UNUSED int argc, BSLA_MAYBE_UNUSED const char* argv[])
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     // Set up logging with output to the console and verbosity set to
     // INFO-level.  This way we will get logs from the BlazingMQ SDK.
@@ -888,3 +902,4 @@ int main(BSLA_MAYBE_UNUSED int argc, BSLA_MAYBE_UNUSED const char* argv[])
 
     return 0;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)

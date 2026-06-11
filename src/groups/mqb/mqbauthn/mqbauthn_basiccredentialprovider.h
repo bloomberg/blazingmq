@@ -58,6 +58,7 @@ namespace mqbauthn {
 // class BasicCredentialProvider
 // =============================
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class BasicCredentialProvider : public mqbplug::CredentialProvider {
   public:
     // PUBLIC CLASS DATA
@@ -111,11 +112,13 @@ class BasicCredentialProvider : public mqbplug::CredentialProvider {
     /// Stop the provider.
     void stop() BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ========================================
 // class BasicCredentialProviderPluginFactory
 // ========================================
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class BasicCredentialProviderPluginFactory
 : public mqbplug::CredentialProviderPluginFactory {
   public:
@@ -127,6 +130,7 @@ class BasicCredentialProviderPluginFactory
     bslma::ManagedPtr<mqbplug::CredentialProvider>
     create(bslma::Allocator* allocator) BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

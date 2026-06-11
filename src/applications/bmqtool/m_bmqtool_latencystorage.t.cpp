@@ -38,6 +38,7 @@ static void test1_breathingTest()
 // ------------------------------------------------------------------------
 // BREATHING TEST
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
@@ -51,6 +52,7 @@ static void test1_breathingTest()
     storage.insert(200);
     BMQTST_ASSERT_EQ(storage.totalCount(), 2);
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test2_roundingPrecisionTest()
 // ------------------------------------------------------------------------
@@ -59,6 +61,7 @@ static void test2_roundingPrecisionTest()
 // Verify that latencies are grouped into correct buckets with different
 // 'latencyDigits' values.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("ROUNDING PRECISION TEST");
 
@@ -76,9 +79,11 @@ static void test2_roundingPrecisionTest()
         BMQTST_ASSERT_EQ(storage.totalCount(), 5);
 
         // Buckets: 100 (3 items), 200 (2 items)
+        // NOLINTNEXTLINE(*-magic-numbers)
         bsls::Types::Int64 p50 = storage.computePercentile(50);
         BMQTST_ASSERT_EQ(p50, 100);
 
+        // NOLINTNEXTLINE(*-magic-numbers)
         bsls::Types::Int64 p100 = storage.computePercentile(100);
         BMQTST_ASSERT_EQ(p100, 200);
     }
@@ -97,13 +102,16 @@ static void test2_roundingPrecisionTest()
         BMQTST_ASSERT_EQ(storage.maxLatency(), 1000);
 
         // Buckets: 500 (1 item), 550 (1 item), 1000 (2 items)
+        // NOLINTNEXTLINE(*-magic-numbers)
         bsls::Types::Int64 p50 = storage.computePercentile(50);
         BMQTST_ASSERT(p50 == 550 || p50 == 1000);
 
+        // NOLINTNEXTLINE(*-magic-numbers)
         bsls::Types::Int64 p100 = storage.computePercentile(100);
         BMQTST_ASSERT_EQ(p100, 1000);
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test3_percentileComputationTest()
 // ------------------------------------------------------------------------
@@ -111,21 +119,28 @@ static void test3_percentileComputationTest()
 //
 // Test 0th, 50th, 95th, and 100th percentile computation.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("PERCENTILE COMPUTATION TEST");
 
     LatencyStorage storage("test", 1);
 
     // Insert 10 latencies: 10, 10, 20, 20, 20, 30, 30, 40, 50, 60
+    // NOLINTBEGIN(*-magic-numbers)
     for (int i = 0; i < 2; ++i) {
         storage.insert(10);
     }
+    // NOLINTEND(*-magic-numbers)
+    // NOLINTBEGIN(*-magic-numbers)
     for (int i = 0; i < 3; ++i) {
         storage.insert(20);
     }
+    // NOLINTEND(*-magic-numbers)
+    // NOLINTBEGIN(*-magic-numbers)
     for (int i = 0; i < 2; ++i) {
         storage.insert(30);
     }
+    // NOLINTEND(*-magic-numbers)
     storage.insert(40);
     storage.insert(50);
     storage.insert(60);
@@ -137,17 +152,21 @@ static void test3_percentileComputationTest()
     BMQTST_ASSERT_EQ(p0, 10);
 
     // 50th percentile (median)
+    // NOLINTNEXTLINE(*-magic-numbers)
     bsls::Types::Int64 p50 = storage.computePercentile(50);
     BMQTST_ASSERT(p50 >= 20 && p50 <= 30);
 
     // 95th percentile should be high
+    // NOLINTNEXTLINE(*-magic-numbers)
     bsls::Types::Int64 p95 = storage.computePercentile(95);
     BMQTST_ASSERT(p95 >= 50);
 
     // 100th percentile should be max
+    // NOLINTNEXTLINE(*-magic-numbers)
     bsls::Types::Int64 p100 = storage.computePercentile(100);
     BMQTST_ASSERT_EQ(p100, 60);
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test4_emptyStorageTest()
 // ------------------------------------------------------------------------
@@ -170,6 +189,7 @@ static void test5_statisticsTest()
 // ------------------------------------------------------------------------
 // STATISTICS TEST
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("STATISTICS TEST");
 
@@ -190,6 +210,7 @@ static void test5_statisticsTest()
     bsls::Types::Int64 avg = storage.avgLatency();
     BMQTST_ASSERT_EQ(avg, 21);  // 130 / 6 = 21 (integer division)
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test6_saveAndLoadTest()
 // ------------------------------------------------------------------------
@@ -197,6 +218,7 @@ static void test6_saveAndLoadTest()
 //
 // Save to file, read back, and verify JSON structure and field values.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("SAVE AND LOAD TEST");
 
@@ -240,6 +262,7 @@ static void test6_saveAndLoadTest()
     BMQTST_ASSERT(content.find("\"median\":") != bsl::string::npos);
     BMQTST_ASSERT(content.find("\"99percentile\":") != bsl::string::npos);
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test_N1_manualSaveInspection()
 // ------------------------------------------------------------------------
@@ -248,6 +271,7 @@ static void test_N1_manualSaveInspection()
 // Insert a large number of random latencies, save to file, and print
 // stats and sample output for manual inspection.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("MANUAL SAVE INSPECTION TEST");
 
@@ -260,15 +284,21 @@ static void test_N1_manualSaveInspection()
     const bsls::Types::Int64 k_ONE_MILLION = 1000000;
     const bsls::Types::Int64 k_ONE_BILLION = 1000000000;
 
+    // NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
     for (bsls::Types::Int64 i = 0; i < k_ONE_MILLION; ++i) {
+        // NOLINTBEGIN(cert-msc30-c,cert-msc50-cpp)
         bsls::Types::Int64 randomBase = static_cast<bsls::Types::Int64>(
                                             bsl::rand()) %
                                         k_ONE_BILLION;
+        // NOLINTEND(cert-msc30-c,cert-msc50-cpp)
+        // NOLINTNEXTLINE(*-magic-numbers,cert-msc30-c,cert-msc50-cpp)
         int                divisorExp = static_cast<int>(bsl::rand()) % 9;
         bsls::Types::Int64 divisor    = 1;
+        // NOLINTBEGIN(*-magic-numbers)
         for (int j = 0; j < divisorExp; ++j) {
             divisor *= 10;
         }
+        // NOLINTEND(*-magic-numbers)
 
         bsls::Types::Int64 latency = (randomBase / divisor) * divisor;
         storage.insert(latency);
@@ -278,6 +308,7 @@ static void test_N1_manualSaveInspection()
             cout << "  Inserted " << (i + 1) << " latencies" << endl;
         }
     }
+    // NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
     cout << "Saving to file..." << endl;
     int rc = storage.save(filename);
@@ -301,19 +332,23 @@ static void test_N1_manualSaveInspection()
     bsl::ifstream infile(filename.c_str());
     bsl::string   line;
     int           lineCount = 0;
+    // NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
     while (bsl::getline(infile, line) && lineCount < 50) {
         cout << line << endl;
         ++lineCount;
     }
+    // NOLINTEND(*-magic-numbers,performance-avoid-endl)
     infile.close();
     cout << "-----" << endl;
 }
+// NOLINTEND(performance-avoid-endl)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ============================================================================
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -334,3 +369,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_DEFAULT);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

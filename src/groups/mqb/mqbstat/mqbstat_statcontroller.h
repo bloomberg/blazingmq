@@ -84,6 +84,7 @@ namespace bmqst {
 class Table;
 }
 namespace bmqu {
+// NOLINTNEXTLINE(bugprone-forward-declaration-namespace)
 class BasicTableInfoProvider;
 }
 
@@ -93,6 +94,7 @@ namespace mqbstat {
 // class StatController
 // ====================
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class StatController {
   public:
     // PUBLIC TYPES
@@ -101,6 +103,7 @@ class StatController {
     /// the `channels` stats.
     struct ChannelSelector {
         // TYPES
+        // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
         enum Enum { e_ALL, e_LOCAL, e_REMOTE };
     };
 
@@ -158,6 +161,7 @@ class StatController {
 
     /// Struct containing a statcontext and bool specifying if the
     /// statcontext is managed.
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     struct StatContextDetails {
         /// Stat Context
         StatContextSp d_statContext_sp;
@@ -173,6 +177,7 @@ class StatController {
         StatContextDetails(const StatContextDetails& rhs,
                            bslma::Allocator*         allocator_p = 0);
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
     /// Map of StatContext name to StatContextDetail object
     typedef bsl::unordered_map<bsl::string, StatContextDetails>
@@ -382,6 +387,7 @@ class StatController {
     /// `selector`.
     bmqst::StatContext* channelsStatContext(ChannelSelector::Enum selector);
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

@@ -196,6 +196,7 @@ struct FileStoreProtocol {
 /// store.
 struct Bitness {
     // TYPES
+    // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
     enum Enum { e_32 = 1, e_64 = 2 };
 
     // CLASS METHODS
@@ -250,6 +251,7 @@ bsl::ostream& operator<<(bsl::ostream& stream, Bitness::Enum value);
 /// BlazingMQ broker.
 struct FileType {
     // TYPES
+    // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
     enum Enum { e_UNDEFINED = 0, e_DATA = 1, e_JOURNAL = 2, e_QLIST = 3 };
 
     // CLASS METHODS
@@ -303,6 +305,7 @@ bsl::ostream& operator<<(bsl::ostream& stream, FileType::Enum value);
 /// This struct represents the header for all types of files maintained by a
 /// BlazingMQ file store.  This header is also referred to as the "BlazingMQ
 /// header".
+// NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers)
 struct FileHeader {
     // FileHeader structure datagram [32 bytes]:
     //..
@@ -416,6 +419,7 @@ struct FileHeader {
 
     int partitionId() const;
 };
+// NOLINTEND(*-avoid-c-arrays,*-magic-numbers)
 
 // =====================
 // struct DataFileHeader
@@ -452,6 +456,7 @@ struct DataFileHeader {
 
     BSLA_MAYBE_UNUSED char d_reserved1;
 
+    // NOLINTNEXTLINE(*-avoid-c-arrays)
     char d_fileKey[FileStoreProtocol::k_KEY_LENGTH];
 
     BSLA_MAYBE_UNUSED char d_reserved2;
@@ -480,6 +485,7 @@ struct DataFileHeader {
 
 /// This struct represents the header for `JOURNAL` file of a BlazingMQ file
 /// store.
+// NOLINTBEGIN(*-avoid-c-arrays)
 struct JournalFileHeader {
     // JournalFileHeader structure datagram [12 bytes]:
     //..
@@ -545,6 +551,7 @@ struct JournalFileHeader {
 
     bsls::Types::Uint64 firstSyncPointAfterRollloverOffsetWords() const;
 };
+// NOLINTEND(*-avoid-c-arrays)
 
 // ======================
 // struct QlistFileHeader
@@ -552,6 +559,7 @@ struct JournalFileHeader {
 
 /// This struct represents the header for `QLIST` file of a BlazingMQ file
 /// store.
+// NOLINTBEGIN(*-avoid-c-arrays)
 struct QlistFileHeader {
     // QlistFileHeader structure datagram [4 bytes]:
     //..
@@ -593,6 +601,7 @@ struct QlistFileHeader {
     // ACCESSORS
     unsigned char headerWords() const;
 };
+// NOLINTEND(*-avoid-c-arrays)
 
 // ======================
 // struct DataHeaderFlags
@@ -602,6 +611,7 @@ struct QlistFileHeader {
 /// `DataHeader` structure.
 struct DataHeaderFlags {
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         /// Contains message properties
         e_MESSAGE_PROPERTIES = (1 << 0),
@@ -613,6 +623,7 @@ struct DataHeaderFlags {
         e_UNUSED7            = (1 << 6),
         e_UNUSED8            = (1 << 7)
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CLASS METHODS
 
@@ -700,6 +711,7 @@ struct DataHeaderFlagUtil {
 
 /// This struct represents the header for each message present in the `DATA`
 /// file of a BlazingMQ file store.
+// NOLINTBEGIN(*-avoid-c-arrays)
 struct DataHeader {
     // DataHeader structure datagram [4 bytes]:
     //..
@@ -794,6 +806,7 @@ struct DataHeader {
 
     const bmqp::SchemaWireId& schemaId() const;
 };
+// NOLINTEND(*-avoid-c-arrays)
 
 // ==================
 // struct AppIdHeader
@@ -849,6 +862,7 @@ struct AppIdHeader {
 
 /// This struct represents the header for each record present in the `QLIST`
 /// file of a BlazingMQ file store.
+// NOLINTBEGIN(*-avoid-c-arrays)
 struct QueueRecordHeader {
     // QueueRecordHeader structure datagram [20 bytes]:
     //..
@@ -944,6 +958,7 @@ struct QueueRecordHeader {
 
     unsigned int queueRecordWords() const;
 };
+// NOLINTEND(*-avoid-c-arrays)
 
 // =================
 // struct RecordType
@@ -952,6 +967,7 @@ struct QueueRecordHeader {
 /// This struct defines the type of records in the journal file.
 struct RecordType {
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         e_UNDEFINED  = 0,
         e_MESSAGE    = 1,
@@ -960,6 +976,7 @@ struct RecordType {
         e_QUEUE_OP   = 4,
         e_JOURNAL_OP = 5
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CLASS METHODS
 
@@ -1196,12 +1213,15 @@ struct MessageRecord {
 
     char d_reservedAndCAT;
 
+    // NOLINTNEXTLINE(*-avoid-c-arrays)
     unsigned char d_queueKey[FileStoreProtocol::k_KEY_LENGTH];
 
+    // NOLINTNEXTLINE(*-avoid-c-arrays)
     char d_fileKey[FileStoreProtocol::k_KEY_LENGTH];
 
     bdlb::BigEndianUint32 d_messageOffsetDwords;
 
+    // NOLINTNEXTLINE(*-avoid-c-arrays)
     unsigned char d_guid[bmqt::MessageGUID::e_SIZE_BINARY];
 
     bdlb::BigEndianUint32 d_crc32c;
@@ -1284,6 +1304,7 @@ bsl::ostream& operator<<(bsl::ostream& stream, const MessageRecord& rhs);
 struct ConfirmReason {
     // TYPES
     // This is a bitmask, not enumeration
+    // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
     enum Enum { e_CONFIRMED = 0, e_REJECTED = 1, e_AUTO_CONFIRMED = 2 };
 
     // CLASS METHODS
@@ -1336,6 +1357,7 @@ bsl::ostream& operator<<(bsl::ostream& stream, ConfirmReason::Enum value);
 
 /// This struct represents a ConfirmRecord present in the `JOURNAL` file of
 /// a BlazingMQ file store.
+// NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers)
 struct ConfirmRecord {
     // ConfirmRecord structure datagram [60 bytes]:
     //..
@@ -1389,10 +1411,13 @@ struct ConfirmRecord {
 
     BSLA_MAYBE_UNUSED char d_reserved1[2];
 
+    // NOLINTNEXTLINE(*-avoid-c-arrays)
     char d_queueKey[FileStoreProtocol::k_KEY_LENGTH];
 
+    // NOLINTNEXTLINE(*-avoid-c-arrays)
     char d_appKey[FileStoreProtocol::k_KEY_LENGTH];
 
+    // NOLINTNEXTLINE(*-avoid-c-arrays)
     unsigned char d_guid[bmqt::MessageGUID::e_SIZE_BINARY];
 
     BSLA_MAYBE_UNUSED char d_reserved2[8];
@@ -1443,6 +1468,7 @@ struct ConfirmRecord {
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
 };
+// NOLINTEND(*-avoid-c-arrays,*-magic-numbers)
 
 // FREE OPERATORS
 
@@ -1457,12 +1483,14 @@ bsl::ostream& operator<<(bsl::ostream& stream, const ConfirmRecord& rhs);
 /// This struct defines the flags applicable to DeletionRecord.
 struct DeletionRecordFlag {
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         e_NONE             = 0,
         e_IMPLICIT_CONFIRM = 1,
         e_TTL_EXPIRATION   = 2,
         e_NO_SC_QUORUM     = 4
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CLASS METHODS
 
@@ -1515,6 +1543,7 @@ bsl::ostream& operator<<(bsl::ostream& stream, DeletionRecordFlag::Enum value);
 
 /// This struct represents a DeletionRecord present in the `JOURNAL` file of
 /// a BlazingMQ file store.
+// NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers)
 struct DeletionRecord {
     // DeletionRecord structure datagram [60 bytes]:
     //..
@@ -1567,8 +1596,10 @@ struct DeletionRecord {
 
     BSLA_MAYBE_UNUSED char d_reserved1[3];
 
+    // NOLINTNEXTLINE(*-avoid-c-arrays)
     char d_queueKey[FileStoreProtocol::k_KEY_LENGTH];
 
+    // NOLINTNEXTLINE(*-avoid-c-arrays)
     unsigned char d_guid[bmqt::MessageGUID::e_SIZE_BINARY];
 
     BSLA_MAYBE_UNUSED char d_reserved2[12];
@@ -1615,6 +1646,7 @@ struct DeletionRecord {
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
 };
+// NOLINTEND(*-avoid-c-arrays,*-magic-numbers)
 
 // FREE OPERATORS
 
@@ -1629,6 +1661,7 @@ bsl::ostream& operator<<(bsl::ostream& stream, const DeletionRecord& rhs);
 /// This struct defines the type of queue operations in QueueOpRecord.
 struct QueueOpType {
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         e_UNDEFINED = 0,
         /// A queue (or a specific appId) is purged
@@ -1640,6 +1673,7 @@ struct QueueOpType {
         /// New appId(s) have been added to existing queue
         e_ADDITION = 4
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CLASS METHODS
 
@@ -1691,6 +1725,7 @@ bsl::ostream& operator<<(bsl::ostream& stream, QueueOpType::Enum value);
 
 /// This struct represents a QueueOpRecord present in the `JOURNAL` file of
 /// a BlazingMQ file store.
+// NOLINTBEGIN(*-avoid-c-arrays)
 struct QueueOpRecord {
     // QueueOpRecord structure datagram [60 bytes]:
     //..
@@ -1753,8 +1788,10 @@ struct QueueOpRecord {
 
     BSLA_MAYBE_UNUSED char d_reserved1[2];
 
+    // NOLINTNEXTLINE(*-avoid-c-arrays)
     char d_queueKey[FileStoreProtocol::k_KEY_LENGTH];
 
+    // NOLINTNEXTLINE(*-avoid-c-arrays)
     char d_appKey[FileStoreProtocol::k_KEY_LENGTH];
 
     bdlb::BigEndianInt32 d_queueOpType;
@@ -1826,6 +1863,7 @@ struct QueueOpRecord {
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
 };
+// NOLINTEND(*-avoid-c-arrays)
 
 // FREE OPERATORS
 
@@ -1840,12 +1878,14 @@ bsl::ostream& operator<<(bsl::ostream& stream, const QueueOpRecord& rhs);
 /// This struct defines the type of journal operations in JournalOpRecord.
 struct JournalOpType {
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         e_UNDEFINED = 0,
         /// Can be used in future.
         e_UNUSED    = 1,
         e_SYNCPOINT = 2
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CLASS METHODS
 
@@ -1898,6 +1938,7 @@ bsl::ostream& operator<<(bsl::ostream& stream, JournalOpType::Enum value);
 /// This struct defines the types of journal sync point records.
 struct SyncPointType {
     // TYPES
+    // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
     enum Enum { e_UNDEFINED = 0, e_REGULAR = 1, e_ROLLOVER = 2 };
 
     // CLASS METHODS
@@ -1950,6 +1991,7 @@ bsl::ostream& operator<<(bsl::ostream& stream, SyncPointType::Enum value);
 
 /// This struct represents a JournalOpRecord present in the `JOURNAL` file
 /// of a BlazingMQ file store.
+// NOLINTBEGIN(*-avoid-c-arrays)
 struct JournalOpRecord {
     // JournalOpRecord structure datagram [60 bytes]:
     //..
@@ -2111,6 +2153,7 @@ struct JournalOpRecord {
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
 };
+// NOLINTEND(*-avoid-c-arrays)
 
 // FREE OPERATORS
 
@@ -2127,7 +2170,9 @@ bsl::ostream& operator<<(bsl::ostream& stream, const JournalOpRecord& rhs);
 // -----------------
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline FileHeader::FileHeader()
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     bsl::memset(reinterpret_cast<char*>(this), 0, sizeof(FileHeader));
     setProtocolVersion(FileStoreProtocol::k_VERSION);
@@ -2136,6 +2181,8 @@ inline FileHeader::FileHeader()
     setMagic1(FileHeader::k_MAGIC1);
     setMagic2(FileHeader::k_MAGIC2);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // MANIPULATORS
 inline FileHeader& FileHeader::setMagic1(unsigned int value)
@@ -2245,12 +2292,16 @@ inline int FileHeader::partitionId() const
 // ---------------------
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline DataFileHeader::DataFileHeader()
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     bsl::memset(reinterpret_cast<char*>(this), 0, sizeof(DataFileHeader));
     setHeaderWords(sizeof(DataFileHeader) / bmqp::Protocol::k_WORD_SIZE);
     setFileKey(mqbu::StorageKey::k_NULL_KEY);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // MANIPULATORS
 inline DataFileHeader& DataFileHeader::setHeaderWords(unsigned char value)
@@ -2261,10 +2312,12 @@ inline DataFileHeader& DataFileHeader::setHeaderWords(unsigned char value)
 
 inline DataFileHeader&
 DataFileHeader::setFileKey(const mqbu::StorageKey& value)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bsl::memcpy(d_fileKey, value.data(), FileStoreProtocol::k_KEY_LENGTH);
     return *this;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 // ACCESSORS
 inline unsigned char DataFileHeader::headerWords() const
@@ -2273,16 +2326,20 @@ inline unsigned char DataFileHeader::headerWords() const
 }
 
 inline const mqbu::StorageKey& DataFileHeader::fileKey() const
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     return reinterpret_cast<const mqbu::StorageKey&>(d_fileKey);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 // ------------------------
 // struct JournalFileHeader
 // ------------------------
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline JournalFileHeader::JournalFileHeader()
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     bsl::memset(reinterpret_cast<char*>(this), 0, sizeof(JournalFileHeader));
     setHeaderWords(sizeof(JournalFileHeader) / bmqp::Protocol::k_WORD_SIZE);
@@ -2290,6 +2347,8 @@ inline JournalFileHeader::JournalFileHeader()
                    bmqp::Protocol::k_WORD_SIZE);
     setFirstSyncPointAfterRolloverOffsetWords(0);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // MANIPULATORS
 inline JournalFileHeader&
@@ -2340,11 +2399,15 @@ JournalFileHeader::firstSyncPointAfterRollloverOffsetWords() const
 // ----------------------
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline QlistFileHeader::QlistFileHeader()
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     bsl::memset(reinterpret_cast<char*>(this), 0, sizeof(QlistFileHeader));
     setHeaderWords(sizeof(QlistFileHeader) / bmqp::Protocol::k_WORD_SIZE);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // MANIPULATORS
 inline QlistFileHeader& QlistFileHeader::setHeaderWords(unsigned char value)
@@ -2385,13 +2448,17 @@ inline bool DataHeaderFlagUtil::isSet(int flags, DataHeaderFlags::Enum flag)
 // -----------------
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline DataHeader::DataHeader()
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     bsl::memset(reinterpret_cast<char*>(this), 0, sizeof(DataHeader));
     const size_t size = sizeof(DataHeader) / bmqp::Protocol::k_WORD_SIZE;
     setHeaderWords(size);
     setMessageWords(size);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // MANIPULATORS
 inline DataHeader& DataHeader::setHeaderWords(int value)
@@ -2444,26 +2511,34 @@ inline bmqp::SchemaWireId& DataHeader::schemaId()
 
 // ACCESSORS
 inline int DataHeader::headerWords() const
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     return (d_headerWordsAndMessageWords & k_HEADER_WORDS_MASK) >>
            k_HEADER_WORDS_START_IDX;
 }
+// NOLINTEND(*-narrowing-conversions)
 
 inline int DataHeader::messageWords() const
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     return d_headerWordsAndMessageWords & k_MSG_WORDS_MASK;
 }
+// NOLINTEND(*-narrowing-conversions)
 
 inline int DataHeader::optionsWords() const
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     return (d_optionsWordsAndFlags & k_OPTIONS_WORDS_MASK) >>
            k_OPTIONS_WORDS_START_IDX;
 }
+// NOLINTEND(*-narrowing-conversions)
 
 inline int DataHeader::flags() const
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     return d_optionsWordsAndFlags & k_FLAGS_MASK;
 }
+// NOLINTEND(*-narrowing-conversions)
 
 inline const bmqp::SchemaWireId& DataHeader::schemaId() const
 {
@@ -2499,16 +2574,20 @@ inline unsigned int AppIdHeader::appIdLengthWords() const
 // ------------------------
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline QueueRecordHeader::QueueRecordHeader()
 : d_queueUriLengthWords(bdlb::BigEndianUint16::make(0))
 , d_numAppIds(bdlb::BigEndianUint16::make(0))
 , d_headerWordsAndQueueRecordWords(bdlb::BigEndianUint32::make(0))
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     const size_t val = sizeof(QueueRecordHeader) / bmqp::Protocol::k_WORD_SIZE;
     setHeaderWords(val);
     setQueueRecordWords(val);
     bsl::memset(d_reserved, 0, k_RESERVED_FIELD_NUM_BYTES);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // MANIPULATORS
 inline QueueRecordHeader&
@@ -2570,10 +2649,14 @@ inline unsigned int QueueRecordHeader::queueRecordWords() const
 // -------------------
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline RecordHeader::RecordHeader()
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     bsl::memset(reinterpret_cast<char*>(this), 0, sizeof(RecordHeader));
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // MANIPULATORS
 inline RecordHeader& RecordHeader::setType(RecordType::Enum value)
@@ -2642,7 +2725,9 @@ inline bsls::Types::Uint64 RecordHeader::timestamp() const
 // --------------------
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline MessageRecord::MessageRecord()
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     bsl::memset(reinterpret_cast<char*>(this), 0, sizeof(MessageRecord));
     d_header.setType(RecordType::e_MESSAGE);
@@ -2650,6 +2735,8 @@ inline MessageRecord::MessageRecord()
     setFileKey(mqbu::StorageKey::k_NULL_KEY);
     static_cast<void>(d_refCountHighBits);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // MANIPULATORS
 inline RecordHeader& MessageRecord::header()
@@ -2673,6 +2760,7 @@ inline MessageRecord& MessageRecord::setRefCount(unsigned int value)
 
 inline MessageRecord& MessageRecord::setCompressionAlgorithmType(
     bmqt::CompressionAlgorithmType::Enum compressionAlgorithmType)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     // PRECONDITIONS: protect against overflow
     BSLS_ASSERT_SAFE(
@@ -2687,18 +2775,23 @@ inline MessageRecord& MessageRecord::setCompressionAlgorithmType(
                                          << k_CAT_START_IDX);
     return *this;
 }
+// NOLINTEND(*-narrowing-conversions)
 
 inline MessageRecord& MessageRecord::setQueueKey(const mqbu::StorageKey& key)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bsl::memcpy(d_queueKey, key.data(), mqbu::StorageKey::e_KEY_LENGTH_BINARY);
     return *this;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 inline MessageRecord& MessageRecord::setFileKey(const mqbu::StorageKey& key)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bsl::memcpy(d_fileKey, key.data(), mqbu::StorageKey::e_KEY_LENGTH_BINARY);
     return *this;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 inline MessageRecord& MessageRecord::setMessageOffsetDwords(unsigned int value)
 {
@@ -2708,10 +2801,12 @@ inline MessageRecord& MessageRecord::setMessageOffsetDwords(unsigned int value)
 
 inline MessageRecord&
 MessageRecord::setMessageGUID(const bmqt::MessageGUID& value)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     value.toBinary(d_guid);
     return *this;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 inline MessageRecord& MessageRecord::setCrc32c(unsigned int value)
 {
@@ -2749,14 +2844,18 @@ MessageRecord::compressionAlgorithmType() const
 }
 
 inline const mqbu::StorageKey& MessageRecord::queueKey() const
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     return reinterpret_cast<const mqbu::StorageKey&>(d_queueKey);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 inline const mqbu::StorageKey& MessageRecord::fileKey() const
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     return reinterpret_cast<const mqbu::StorageKey&>(d_fileKey);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 inline unsigned int MessageRecord::messageOffsetDwords() const
 {
@@ -2764,9 +2863,11 @@ inline unsigned int MessageRecord::messageOffsetDwords() const
 }
 
 inline const bmqt::MessageGUID& MessageRecord::messageGUID() const
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     return reinterpret_cast<const bmqt::MessageGUID&>(d_guid);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 inline unsigned int MessageRecord::crc32c() const
 {
@@ -2783,13 +2884,17 @@ inline unsigned int MessageRecord::magic() const
 // --------------------
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline ConfirmRecord::ConfirmRecord()
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     bsl::memset(reinterpret_cast<char*>(this), 0, sizeof(ConfirmRecord));
     d_header.setType(RecordType::e_CONFIRM);
     setQueueKey(mqbu::StorageKey::k_NULL_KEY);
     setAppKey(mqbu::StorageKey::k_NULL_KEY);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // MANIPULATORS
 inline RecordHeader& ConfirmRecord::header()
@@ -2804,23 +2909,29 @@ inline ConfirmRecord& ConfirmRecord::setReason(ConfirmReason::Enum value)
 }
 
 inline ConfirmRecord& ConfirmRecord::setQueueKey(const mqbu::StorageKey& key)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bsl::memcpy(d_queueKey, key.data(), mqbu::StorageKey::e_KEY_LENGTH_BINARY);
     return *this;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 inline ConfirmRecord& ConfirmRecord::setAppKey(const mqbu::StorageKey& key)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bsl::memcpy(d_appKey, key.data(), mqbu::StorageKey::e_KEY_LENGTH_BINARY);
     return *this;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 inline ConfirmRecord&
 ConfirmRecord::setMessageGUID(const bmqt::MessageGUID& value)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     value.toBinary(d_guid);
     return *this;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 inline ConfirmRecord& ConfirmRecord::setMagic(unsigned int value)
 {
@@ -2840,19 +2951,25 @@ inline ConfirmReason::Enum ConfirmRecord::reason() const
 }
 
 inline const mqbu::StorageKey& ConfirmRecord::queueKey() const
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     return reinterpret_cast<const mqbu::StorageKey&>(d_queueKey);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 inline const mqbu::StorageKey& ConfirmRecord::appKey() const
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     return reinterpret_cast<const mqbu::StorageKey&>(d_appKey);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 inline const bmqt::MessageGUID& ConfirmRecord::messageGUID() const
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     return reinterpret_cast<const bmqt::MessageGUID&>(d_guid);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 inline unsigned int ConfirmRecord::magic() const
 {
@@ -2864,12 +2981,16 @@ inline unsigned int ConfirmRecord::magic() const
 // ---------------------
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline DeletionRecord::DeletionRecord()
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     bsl::memset(reinterpret_cast<char*>(this), 0, sizeof(DeletionRecord));
     d_header.setType(RecordType::e_DELETION);
     setQueueKey(mqbu::StorageKey::k_NULL_KEY);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // MANIPULATORS
 inline RecordHeader& DeletionRecord::header()
@@ -2885,17 +3006,21 @@ DeletionRecord::setDeletionRecordFlag(DeletionRecordFlag::Enum value)
 }
 
 inline DeletionRecord& DeletionRecord::setQueueKey(const mqbu::StorageKey& key)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bsl::memcpy(d_queueKey, key.data(), mqbu::StorageKey::e_KEY_LENGTH_BINARY);
     return *this;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 inline DeletionRecord&
 DeletionRecord::setMessageGUID(const bmqt::MessageGUID& value)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     value.toBinary(d_guid);
     return *this;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 inline DeletionRecord& DeletionRecord::setMagic(unsigned int value)
 {
@@ -2915,14 +3040,18 @@ inline DeletionRecordFlag::Enum DeletionRecord::deletionRecordFlag() const
 }
 
 inline const mqbu::StorageKey& DeletionRecord::queueKey() const
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     return reinterpret_cast<const mqbu::StorageKey&>(d_queueKey);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 inline const bmqt::MessageGUID& DeletionRecord::messageGUID() const
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     return reinterpret_cast<const bmqt::MessageGUID&>(d_guid);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 inline unsigned int DeletionRecord::magic() const
 {
@@ -2934,13 +3063,17 @@ inline unsigned int DeletionRecord::magic() const
 // --------------------
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline QueueOpRecord::QueueOpRecord()
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     bsl::memset(reinterpret_cast<char*>(this), 0, sizeof(QueueOpRecord));
     d_header.setType(RecordType::e_QUEUE_OP);
     setQueueKey(mqbu::StorageKey::k_NULL_KEY);
     setAppKey(mqbu::StorageKey::k_NULL_KEY);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // MANIPULATORS
 inline RecordHeader& QueueOpRecord::header()
@@ -2955,16 +3088,20 @@ inline QueueOpRecord& QueueOpRecord::setFlags(unsigned int value)
 }
 
 inline QueueOpRecord& QueueOpRecord::setQueueKey(const mqbu::StorageKey& key)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bsl::memcpy(d_queueKey, key.data(), mqbu::StorageKey::e_KEY_LENGTH_BINARY);
     return *this;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 inline QueueOpRecord& QueueOpRecord::setAppKey(const mqbu::StorageKey& key)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bsl::memcpy(d_appKey, key.data(), mqbu::StorageKey::e_KEY_LENGTH_BINARY);
     return *this;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 inline QueueOpRecord& QueueOpRecord::setType(QueueOpType::Enum value)
 {
@@ -3012,14 +3149,18 @@ inline unsigned int QueueOpRecord::flags() const
 }
 
 inline const mqbu::StorageKey& QueueOpRecord::queueKey() const
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     return reinterpret_cast<const mqbu::StorageKey&>(d_queueKey);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 inline const mqbu::StorageKey& QueueOpRecord::appKey() const
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     return reinterpret_cast<const mqbu::StorageKey&>(d_appKey);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 inline QueueOpType::Enum QueueOpRecord::type() const
 {
@@ -3052,21 +3193,30 @@ inline unsigned int QueueOpRecord::magic() const
 // ----------------------
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline JournalOpRecord::JournalOpRecord()
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     bsl::memset(reinterpret_cast<char*>(this), 0, sizeof(JournalOpRecord));
     d_header.setType(RecordType::e_JOURNAL_OP);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline JournalOpRecord::JournalOpRecord(JournalOpType::Enum type,
                                         unsigned int        magic)
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     bsl::memset(reinterpret_cast<char*>(this), 0, sizeof(JournalOpRecord));
     d_header.setType(RecordType::e_JOURNAL_OP);
     setType(type);
     setMagic(magic);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline JournalOpRecord::JournalOpRecord(JournalOpType::Enum type,
                                         SyncPointType::Enum syncPointType,
                                         bsls::Types::Uint64 sequenceNum,
@@ -3075,6 +3225,7 @@ inline JournalOpRecord::JournalOpRecord(JournalOpType::Enum type,
                                         unsigned int dataFileOffsetDwords,
                                         unsigned int qlistFileOffsetWords,
                                         unsigned int magic)
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     bsl::memset(reinterpret_cast<char*>(this), 0, sizeof(JournalOpRecord));
     d_header.setType(RecordType::e_JOURNAL_OP);
@@ -3087,6 +3238,8 @@ inline JournalOpRecord::JournalOpRecord(JournalOpType::Enum type,
     setQlistFileOffsetWords(qlistFileOffsetWords);
     setMagic(magic);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // MANIPULATORS
 inline RecordHeader& JournalOpRecord::header()

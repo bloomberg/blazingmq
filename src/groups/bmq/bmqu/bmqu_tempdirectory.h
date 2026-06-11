@@ -69,6 +69,7 @@ namespace bmqu {
 /// temporary directory for the current process that is automatically
 /// removed when an object of this class is destroyed.  This class is thread
 /// safe.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class TempDirectory {
     // DATA
     bsl::string d_path;
@@ -98,6 +99,7 @@ class TempDirectory {
     /// Return the path to the directory.
     const bsl::string& path() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

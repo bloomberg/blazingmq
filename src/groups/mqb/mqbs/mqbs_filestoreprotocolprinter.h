@@ -98,6 +98,7 @@ template <typename PRINTER_TYPE>
 void printFileHeader(bsl::ostream&                     stream,
                      const mqbs::MappedFileDescriptor& mfd,
                      bslma::Allocator*                 allocator = 0)
+// NOLINTBEGIN(*-magic-numbers)
 {
     bsl::vector<const char*> fields(allocator);
     fields.reserve(5);
@@ -114,6 +115,7 @@ void printFileHeader(bsl::ostream&                     stream,
             << fh.fileType() << static_cast<unsigned int>(fh.headerWords())
             << fh.partitionId();
 }
+// NOLINTEND(*-magic-numbers)
 
 /// Print the specified `header` while using the specified `journalFd` and the
 /// specified `allocator` to the specified `stream`.
@@ -122,6 +124,7 @@ void printJournalFileHeader(bsl::ostream&                     stream,
                             const mqbs::JournalFileHeader&    header,
                             const mqbs::MappedFileDescriptor& journalFd,
                             bslma::Allocator*                 allocator = 0)
+// NOLINTBEGIN(*-magic-numbers)
 {
     bsl::vector<const char*> fields(allocator);
     fields.reserve(10);
@@ -165,6 +168,7 @@ void printJournalFileHeader(bsl::ostream&                     stream,
 
         bsls::Types::Uint64 epochValue = spRec->header().timestamp();
         bdlt::Datetime      datetime;
+        // NOLINTNEXTLINE(*-narrowing-conversions)
         int rc = bdlt::EpochUtil::convertFromTimeT64(&datetime, epochValue);
         if (0 != rc) {
             printer << 0;
@@ -175,6 +179,7 @@ void printJournalFileHeader(bsl::ostream&                     stream,
         printer << epochValue;
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 /// Print the specified `header` while using the specified `journalFd` and the
 /// specified `allocator` to the specified `stream`.

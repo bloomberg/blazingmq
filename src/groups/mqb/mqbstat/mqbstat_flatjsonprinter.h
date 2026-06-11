@@ -45,6 +45,7 @@ namespace mqbstat {
 // class FlatJsonPrinter
 // =====================
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class FlatJsonPrinter {
   private:
     // PRIVATE TYPES
@@ -84,6 +85,7 @@ class FlatJsonPrinter {
     /// THREAD: This method is called in the `snapshot` thread.
     void printStats(bsl::ostream& stream, int statId);
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

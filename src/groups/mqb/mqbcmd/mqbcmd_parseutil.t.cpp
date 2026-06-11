@@ -120,6 +120,7 @@ void verifyFailsWithExtra(const Test& test)
 //                                  TESTS
 // ----------------------------------------------------------------------------
 
+// NOLINTBEGIN(*-avoid-c-arrays)
 const Test k_TESTS[] = {
     {__LINE__, "HELP command", "HELP", "{\"help\": {\"plumbing\": false}}"},
     {__LINE__,
@@ -339,35 +340,42 @@ const Test k_TESTS[] = {
      "Broker Config command",
      "BROKERCONFIG DUMP",
      "{\"brokerConfig\": {\"dump\": {}}}"}};
+// NOLINTEND(*-avoid-c-arrays)
 
 void test1_parseExpected()
 {
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (const Test* it = k_TESTS; it != bdlb::ArrayUtil::end(k_TESTS); ++it) {
         const Test& test = *it;
         if (test.d_expectedJson) {
             verifyExpected(test);
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 void test2_parseFailure()
 {
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (const Test* it = k_TESTS; it != bdlb::ArrayUtil::end(k_TESTS); ++it) {
         const Test& test = *it;
         if (!test.d_expectedJson) {
             verifyFailure(test);
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 void test3_parseFailsWithExtra()
 {
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (const Test* it = k_TESTS; it != bdlb::ArrayUtil::end(k_TESTS); ++it) {
         const Test& test = *it;
         if (test.d_expectedJson) {
             verifyFailsWithExtra(test);
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 }  // close unnamed namespace
@@ -377,6 +385,7 @@ void test3_parseFailsWithExtra()
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -392,3 +401,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_DEFAULT);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

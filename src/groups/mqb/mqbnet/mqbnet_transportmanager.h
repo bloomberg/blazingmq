@@ -103,6 +103,7 @@ class TransportManagerIterator;
 
 /// Manager for all transport interfaces and clusters of abstracted
 /// transport protocol.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class TransportManager {
   private:
     // CLASS-SCOPE CATEGORY
@@ -110,6 +111,7 @@ class TransportManager {
 
   public:
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum ConnectionMode {
         // Enum describing how the cluster should establish connection with the
         // nodes of the cluster.
@@ -119,6 +121,7 @@ class TransportManager {
         /// from lower node Ids
         e_MIXED = 1
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
   private:
     // FRIENDS
@@ -126,17 +129,20 @@ class TransportManager {
 
     // PRIVATE TYPES
 
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum State {
         e_STOPPED  = 0,  // Stopped.
         e_STARTING = 1,  // Starting (and reconnecting) but not listening.
         e_STARTED  = 2,  // Listening / reconnecting.
         e_STOPPING = 3   // Shutting down.
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     /// Structure representing the state associated to a connection with a
     /// remote peer which belongs to a cluster (whether proxy or
     /// not).  Note that even for `listen` connections of a `cluster`, such a
     /// state is created.
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
     struct ConnectionState {
         // PUBLIC DATA
         bsl::string d_endpoint;
@@ -155,6 +161,7 @@ class TransportManager {
         // This correspond to the negotiator
         // user data.
     };
+    // NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
     /// A map for holding all the connection states (ptr to its associated
     /// shared ptr).
@@ -387,6 +394,7 @@ class TransportManager {
     /// of that cluster.
     int selfNodeId(const bsl::vector<mqbcfg::ClusterNode>& nodes) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ==============================
 // class TransportManagerIterator
@@ -399,6 +407,7 @@ class TransportManager {
 /// is provided by locking the manager during the iterator's construction
 /// and unlocking it at the iterator's destruction.  This guarantees that
 /// during the life time of an iterator, the manager can't be modified.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class TransportManagerIterator {
   private:
     // DATA
@@ -442,6 +451,7 @@ class TransportManagerIterator {
     /// The behavior is undefined unless the iterator is *valid*.
     bsl::weak_ptr<mqbnet::Session> session() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

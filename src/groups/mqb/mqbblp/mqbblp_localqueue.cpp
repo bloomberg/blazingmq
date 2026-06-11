@@ -75,6 +75,7 @@ LocalQueue::LocalQueue(QueueState* state, bslma::Allocator* allocator)
 : d_allocator_p(allocator)
 , d_state_p(state)
 , d_queueEngine_mp(0)
+// NOLINTNEXTLINE(*-magic-numbers)
 , d_throttledFailedPutMessages(5000, 1)  // 1 log per 5s interval
 , d_throttledDuplicateMessages()
 , d_haveStrongConsistency(false)
@@ -92,6 +93,7 @@ LocalQueue::LocalQueue(QueueState* state, bslma::Allocator* allocator)
 }
 
 int LocalQueue::configure(bsl::ostream& errorDescription, bool isReconfigure)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     // executed by the *DISPATCHER* thread
 
@@ -107,8 +109,8 @@ int LocalQueue::configure(bsl::ostream& errorDescription, bool isReconfigure)
         rc_QUEUE_ENGINE_CFG_FAILURE = -4
     };
 
-    int                     rc        = 0;
-    mqbi::Queue*            queue     = d_state_p->queue();
+    int                                     rc    = 0;
+    mqbi::Queue*                            queue = d_state_p->queue();
     bsl::shared_ptr<const mqbconfm::Domain> domainCfg =
         d_state_p->domain()->config();
 
@@ -204,8 +206,10 @@ int LocalQueue::configure(bsl::ostream& errorDescription, bool isReconfigure)
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 void LocalQueue::resetState()
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     // executed by the *DISPATCHER* thread
 
@@ -216,6 +220,7 @@ void LocalQueue::resetState()
     d_queueEngine_mp->afterQueuePurged(bmqp::ProtocolUtil::k_NULL_APP_ID,
                                        mqbu::StorageKey::k_NULL_KEY);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 int LocalQueue::importState(bsl::ostream& errorDescription)
 {
@@ -402,6 +407,7 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
                              const bsl::shared_ptr<bdlbb::Blob>& appData,
                              const bsl::shared_ptr<bdlbb::Blob>& options,
                              mqbi::QueueHandle*                  source)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     // executed by the *DISPATCHER* thread
 
@@ -541,6 +547,7 @@ void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
         }
     }
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 void LocalQueue::onPushMessage(
     BSLA_MAYBE_UNUSED const bmqt::MessageGUID& msgGUID,

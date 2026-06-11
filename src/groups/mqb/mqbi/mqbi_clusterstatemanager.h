@@ -74,6 +74,7 @@ class StorageManager;
 
 /// This class provides an interface for mechanism to manage the cluster
 /// state.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ClusterStateManager {
   public:
     // TYPES
@@ -338,6 +339,7 @@ class ClusterStateManager {
     virtual int
     latestLedgerLSN(bmqp_ctrlmsg::LeaderMessageSequence* out) const = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

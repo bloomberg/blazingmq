@@ -117,6 +117,7 @@ namespace mqbblp {
 
 /// Mechanism to monitor a queue and alert if it is not consumed for a
 /// configurable amount of time.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class QueueConsumptionMonitor {
   private:
     // CLASS-SCOPE CATEGORY
@@ -127,6 +128,7 @@ class QueueConsumptionMonitor {
 
     /// Struct-enum representing the state the queue can be in.
     struct State {
+        // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
         enum Enum { e_ALIVE = 0, e_IDLE = 1 };
 
         // CLASS METHODS
@@ -183,6 +185,7 @@ class QueueConsumptionMonitor {
     // PRIVATE TYPES
 
     /// Struct representing the context for each sub stream of the queue.
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     struct SubStreamInfo {
         // CREATORS
 
@@ -198,6 +201,7 @@ class QueueConsumptionMonitor {
         /// The current state.
         State::Enum d_state;
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
     typedef bsl::unordered_map<bsl::string, SubStreamInfo> SubStreamInfoMap;
 
@@ -366,6 +370,7 @@ class QueueConsumptionMonitor {
     /// and `false` otherwise.
     bool isMonitoringDisabled() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // FREE OPERATORS
 

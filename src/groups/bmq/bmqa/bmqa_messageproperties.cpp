@@ -63,6 +63,7 @@ MessageProperties::MessageProperties(bslma::Allocator* basicAllocator)
 : d_impl_p(0)
 , d_buffer()
 , d_allocator_p(bslma::Default::allocator(basicAllocator))
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     BSLMF_ASSERT(k_MAX_SIZEOF_BMQP_MESSAGEPROPERTIES >=
                  sizeof(bmqp::MessageProperties));
@@ -76,12 +77,14 @@ MessageProperties::MessageProperties(bslma::Allocator* basicAllocator)
     new (d_buffer.buffer()) bmqp::MessageProperties(d_allocator_p);
     d_impl_p = reinterpret_cast<bmqp::MessageProperties*>(d_buffer.buffer());
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 MessageProperties::MessageProperties(const MessageProperties& other,
                                      bslma::Allocator*        basicAllocator)
 : d_impl_p(0)
 , d_buffer()
 , d_allocator_p(bslma::Default::allocator(basicAllocator))
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     // PRECONDITIONS
     BSLS_ASSERT(other.d_impl_p);
@@ -90,6 +93,7 @@ MessageProperties::MessageProperties(const MessageProperties& other,
         bmqp::MessageProperties(*other.d_impl_p, d_allocator_p);
     d_impl_p = reinterpret_cast<bmqp::MessageProperties*>(d_buffer.buffer());
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 MessageProperties::~MessageProperties()
 {
@@ -102,6 +106,7 @@ MessageProperties::~MessageProperties()
 
 // MANIPULATORS
 MessageProperties& MessageProperties::operator=(const MessageProperties& rhs)
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     if (this == &rhs) {
         return *this;  // RETURN
@@ -117,6 +122,7 @@ MessageProperties& MessageProperties::operator=(const MessageProperties& rhs)
 
     return *this;
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 void MessageProperties::clear()
 {
@@ -306,16 +312,19 @@ bsl::ostream& MessageProperties::print(bsl::ostream& stream,
 MessagePropertiesIterator::MessagePropertiesIterator()
 : d_impl_p(0)
 , d_buffer()
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     new (d_buffer.buffer()) bmqp::MessagePropertiesIterator();
     d_impl_p = reinterpret_cast<bmqp::MessagePropertiesIterator*>(
         d_buffer.buffer());
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 MessagePropertiesIterator::MessagePropertiesIterator(
     const MessageProperties* properties)
 : d_impl_p(0)
 , d_buffer()
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     // PRECONDITIONS
     BSLS_ASSERT(properties);
@@ -326,9 +335,12 @@ MessagePropertiesIterator::MessagePropertiesIterator(
     d_impl_p = reinterpret_cast<bmqp::MessagePropertiesIterator*>(
         d_buffer.buffer());
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 MessagePropertiesIterator::MessagePropertiesIterator(
     const MessagePropertiesIterator& other)
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     // PRECONDITIONS
     BSLS_ASSERT(other.d_impl_p);
@@ -337,6 +349,8 @@ MessagePropertiesIterator::MessagePropertiesIterator(
     d_impl_p = reinterpret_cast<bmqp::MessagePropertiesIterator*>(
         d_buffer.buffer());
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 MessagePropertiesIterator::~MessagePropertiesIterator()
 {

@@ -153,6 +153,7 @@ class ClusterStatePartitionInfo {
 ///       @bbref{bmqp_ctrlmsg::QueueInfo}.  Doing vice versa will not be
 ///       possible because we don't want to edit generated file.  Perhaps we
 ///       can place the converter routine in `ClusterUtil`.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ClusterStateQueueInfo {
   public:
     // TYPES
@@ -166,12 +167,14 @@ class ClusterStateQueueInfo {
         /// asynchronous, hence the need for `k_ASSIGNING`/`k_UNASSIGNING`
         /// Assigning following unassigning is also supported.  On Replica, the
         /// only possible state is `k_ASSIGNED`.
+        // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
         enum Enum {
             k_NONE        = 0,
             k_ASSIGNING   = -1,
             k_ASSIGNED    = -2,
             k_UNASSIGNING = -3
         };
+        // NOLINTEND(cppcoreguidelines-use-enum-class)
 
         /// Write the string representation of the specified enumeration
         /// `value` to the specified output `stream`, and return a reference to
@@ -312,6 +315,7 @@ class ClusterStateQueueInfo {
     /// as this object excluding the appKeys.  Return false otherwise.
     bool isEquivalent(const ClusterStateQueueInfo& rhs) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // FREE OPERATORS
 
@@ -334,6 +338,7 @@ bsl::ostream& operator<<(bsl::ostream&                      stream,
 /// @note This is purposely not a pure interface, each method has a default
 ///       void implementation, so that clients only need to implement the ones
 ///       they care about.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ClusterStateObserver {
   public:
     // TYPES
@@ -419,6 +424,7 @@ class ClusterStateObserver {
     ///         dispatcher thread.
     virtual void onFailoverThreshold();
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ==================
 // class ClusterState
@@ -1149,6 +1155,7 @@ inline bool ClusterState::isSelfPrimary() const
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(cluster()->inDispatcherThread());
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (PartitionsInfo::const_iterator cit = d_partitionsInfo.begin();
          cit != d_partitionsInfo.end();
          ++cit) {
@@ -1157,6 +1164,7 @@ inline bool ClusterState::isSelfPrimary() const
             return true;  // RETURN
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     return false;
 }
@@ -1166,6 +1174,7 @@ inline bool ClusterState::isSelfActivePrimary() const
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(cluster()->inDispatcherThread());
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (PartitionsInfo::const_iterator cit = d_partitionsInfo.begin();
          cit != d_partitionsInfo.end();
          ++cit) {
@@ -1175,6 +1184,7 @@ inline bool ClusterState::isSelfActivePrimary() const
             return true;  // RETURN
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     return false;
 }

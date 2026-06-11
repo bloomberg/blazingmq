@@ -160,6 +160,7 @@ struct Synchronize {
 
 /// Provides a no-op function object that throws an instance of
 /// `ThrowOnCopy::ExceptionType` on copy.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct ThrowOnCopy {
     // TYPES
 
@@ -180,6 +181,7 @@ struct ThrowOnCopy {
 
     // MANIPULATORS
     BSLA_NORETURN
+    // NOLINTNEXTLINE(cert-oop54-cpp)
     ThrowOnCopy& operator=(const ThrowOnCopy&) { throw ExceptionType(); }
 
     // ACCESSORS
@@ -188,6 +190,7 @@ struct ThrowOnCopy {
         // NOTHING
     }
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // UTILITY FUNCTIONS
 void postOnSemaphoreOnThreadExit(void* sem)
@@ -294,6 +297,7 @@ static void test3_context_stop()
 // Testing:
 //   bmqex::SequentialContext::stop
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-init-variables)
 {
     bslma::TestAllocator alloc;
 
@@ -347,6 +351,7 @@ static void test3_context_stop()
     rc = bslmt::ThreadUtil::deleteKey(tlsKey);
     BSLS_ASSERT_OPT(rc == 0);
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-init-variables)
 
 static void test4_context_join()
 // ------------------------------------------------------------------------
@@ -366,6 +371,7 @@ static void test4_context_join()
 // Testing:
 //   bmqex::SequentialContext::join
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     static const int NUM_JOBS = 100;
 
@@ -408,6 +414,7 @@ static void test4_context_join()
     rc = bslmt::ThreadUtil::deleteKey(tlsKey);
     BSLS_ASSERT_OPT(rc == 0);
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 static void test5_context_dropPendingJobs()
 // ------------------------------------------------------------------------
@@ -890,6 +897,7 @@ static void test11_executor_context()
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -918,3 +926,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

@@ -55,6 +55,7 @@ static void setup(ObjectUnderTest& obj, size_t total, int timeout)
 }
 
 static void test1_insert()
+// NOLINTBEGIN(*-magic-numbers)
 {
     // ------------------------------------------------------------------------
     // HISTORY
@@ -75,8 +76,10 @@ static void test1_insert()
 
     setup(obj, 10, timeout);
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test2_eraseMiddleToEnd()
+// NOLINTBEGIN(*-magic-numbers)
 {
     // ------------------------------------------------------------------------
     // HISTORY
@@ -121,6 +124,7 @@ static void test2_eraseMiddleToEnd()
     }
 
     // gc the half
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     bsls::Types::Int64 now = (HALF + 2) * timeout;
     for (size_t key = HALF; key < TOTAL; ++key, now += timeout) {
         obj.gc(now);
@@ -128,8 +132,10 @@ static void test2_eraseMiddleToEnd()
         BMQTST_ASSERT_EQ(false, obj.find(key) != obj.end());
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test3_eraseMiddleToBegin()
+// NOLINTBEGIN(*-magic-numbers)
 {
     // ------------------------------------------------------------------------
     // HISTORY
@@ -176,6 +182,7 @@ static void test3_eraseMiddleToBegin()
     }
 
     // gc the half
+    // NOLINTNEXTLINE(bugprone-implicit-widening-of-multiplication-result)
     bsls::Types::Int64 now = 2 * timeout;
     for (size_t key = 0; key < HALF; ++key, now += timeout) {
         obj.gc(now);
@@ -183,8 +190,10 @@ static void test3_eraseMiddleToBegin()
         BMQTST_ASSERT_EQ(false, obj.find(key) != obj.end());
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test4_gc()
+// NOLINTBEGIN(*-magic-numbers)
 {
     // ------------------------------------------------------------------------
     // HISTORY
@@ -211,6 +220,7 @@ static void test4_gc()
     setup(obj, TOTAL, timeout);
 
     // erase end to middle
+    // NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result)
     for (size_t key = TOTAL; key-- > HALF;) {
         BMQTST_ASSERT_EQ(true, obj.isInHistory(key));
         BMQTST_ASSERT_EQ(true, obj.find(key) != obj.end());
@@ -229,8 +239,10 @@ static void test4_gc()
             BMQTST_ASSERT_EQ(false, obj.find(i) != obj.end());
         }
     }
+    // NOLINTEND(bugprone-implicit-widening-of-multiplication-result)
 
     // erase middle to begin
+    // NOLINTBEGIN(*-narrowing-conversions)
     for (size_t key = HALF; key-- > 0;) {
         BMQTST_ASSERT_EQ(true, obj.isInHistory(key));
         BMQTST_ASSERT_EQ(true, obj.find(key) != obj.end());
@@ -249,9 +261,11 @@ static void test4_gc()
             BMQTST_ASSERT_EQ(false, obj.find(i) != obj.end());
         }
     }
+    // NOLINTEND(*-narrowing-conversions)
 
     BMQTST_ASSERT_EQ(0U, obj.size());
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test5_insertAfterEnd()
 {
@@ -289,6 +303,7 @@ static void test5_insertAfterEnd()
 }
 
 static void test6_eraseThenGc()
+// NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result)
 {
     // ------------------------------------------------------------------------
     // HISTORY
@@ -320,6 +335,7 @@ static void test6_eraseThenGc()
     setup(obj, BATCH_SIZE + ADDITIONS, timeout);
 
     // expire 1001
+    // NOLINTNEXTLINE(bugprone-implicit-widening-of-multiplication-result)
     bsls::Types::Int64 now = (BATCH_SIZE + 2) * timeout;
 
     // 'erase' ('confirm') 1100th item to make 'd_historySize > 0'
@@ -336,6 +352,7 @@ static void test6_eraseThenGc()
     now += ADDITIONS * timeout;
     obj.gc(now, BATCH_SIZE);
 }
+// NOLINTEND(bugprone-implicit-widening-of-multiplication-result)
 
 static void test7_gcThenInsert()
 {
@@ -579,7 +596,16 @@ static void testN3_findPerformance()
 //                              MAIN PROGRAM
 //-----------------------------------------------------------------------------
 
+// NOLINTBEGIN(bugprone-exception-escape)
 int main(int argc, char* argv[])
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTBEGIN(cert-err34-c)
 {
     bsls::TimeUtil::initialize();
 
@@ -605,3 +631,12 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTEND(cert-err34-c)
+// NOLINTEND(bugprone-exception-escape)

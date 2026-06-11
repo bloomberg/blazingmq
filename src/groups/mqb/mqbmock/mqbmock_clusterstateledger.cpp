@@ -226,6 +226,7 @@ void ClusterStateLedger::_commitAdvisories(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (AdvisoriesCIter cit = d_uncommittedAdvisories.cbegin();
          cit != d_uncommittedAdvisories.cend();
          ++cit) {
@@ -281,6 +282,7 @@ void ClusterStateLedger::_commitAdvisories(
             d_commitCb(controlMessage, status);
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     d_uncommittedAdvisories.clear();
 }

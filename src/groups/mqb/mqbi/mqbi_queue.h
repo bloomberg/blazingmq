@@ -121,6 +121,7 @@ class QueueEngine;
 // struct InlineResult
 // ===================
 struct InlineResult {
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         e_SUCCESS           = 0,
         e_UNAVAILABLE       = 1,
@@ -130,6 +131,7 @@ struct InlineResult {
         e_INVALID_PARTITION = 5,
         e_SELF_PRIMARY      = 6
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
     // CLASS METHODS
     static const char*           toAscii(InlineResult::Enum value);
     static bool                  isPermanentError(InlineResult::Enum value);
@@ -139,6 +141,7 @@ struct InlineResult {
 // ==================
 // class InlineClient
 // ==================
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class InlineClient {
     // Interface for PUSH and ACK.
 
@@ -168,6 +171,7 @@ class InlineClient {
     //
     // THREAD: This method is called from the Queue's dispatcher thread.
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =================================
 // class QueueHandleRequesterContext
@@ -175,6 +179,7 @@ class InlineClient {
 
 /// Value-semantic type representing the context of a client, requester of a
 /// queue handle.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class QueueHandleRequesterContext {
   public:
     // TYPES
@@ -283,12 +288,14 @@ class QueueHandleRequesterContext {
     /// last hop before the client).
     bool isFirstHop() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ==========================
 // class QueueHandleRequester
 // ==========================
 
 /// Interface for a requester of QueueHandle.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class QueueHandleRequester {
   public:
     // CREATORS
@@ -303,6 +310,7 @@ class QueueHandleRequester {
     virtual const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>&
     handleRequesterContext() const = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =======================
 // struct OpenQueueContext
@@ -359,6 +367,7 @@ struct QueueCounts {
 
 struct QueueHandleReleaseResult {
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum ReleaseResultFlags {
         // Handle release event processing
 
@@ -379,6 +388,7 @@ struct QueueHandleReleaseResult {
         /// no more producers for this subStream across all handles
         e_NO_QUEUE_STREAM_PRODUCERS = (1 << 4)
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // DATA
     int d_result;
@@ -482,6 +492,7 @@ typedef bsl::function<void(const bmqt::MessageGUID& msgGUID)>
 // =================
 
 /// Interface for a QueueHandle.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class QueueHandle {
   public:
     // TYPES
@@ -800,12 +811,14 @@ class QueueHandle {
     /// Return SchemaLearner Context associated with this handle.
     virtual bmqp::SchemaLearner::Context& schemaLearnerContext() const = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ===========
 // class Queue
 // ===========
 
 /// Interface for a Queue.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Queue : public DispatcherClient {
   public:
     // CREATORS
@@ -1047,12 +1060,14 @@ class Queue : public DispatcherClient {
     /// Return the Schema Leaner associated with this queue.
     virtual bmqp::SchemaLearner& schemaLearner() const = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ========================
 // class QueueHandleFactory
 // ========================
 
 /// Interface for a QueueHandle factory.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class QueueHandleFactory {
   public:
     // CREATORS
@@ -1073,6 +1088,7 @@ class QueueHandleFactory {
         const bmqp_ctrlmsg::QueueHandleParameters&          handleParameters,
         bslma::Allocator*                                   allocator) = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

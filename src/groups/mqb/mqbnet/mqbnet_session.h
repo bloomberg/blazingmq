@@ -58,6 +58,7 @@ class ClusterNode;
 // class SessionEventProcessor
 // ===========================
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class SessionEventProcessor {
   public:
     // CREATORS
@@ -74,12 +75,14 @@ class SessionEventProcessor {
     virtual void processEvent(const bmqp::Event& event,
                               ClusterNode*       source = 0) = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =============
 // class Session
 // =============
 
 /// Protocol for a session object.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Session : public SessionEventProcessor {
   public:
     // TYPES
@@ -156,6 +159,7 @@ class Session : public SessionEventProcessor {
     /// be copied before any deferred use.
     virtual bsl::string_view description() const = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

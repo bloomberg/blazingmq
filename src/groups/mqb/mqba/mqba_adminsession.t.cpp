@@ -90,6 +90,7 @@ struct TestClock {
 bmqp_ctrlmsg::NegotiationMessage client()
 // Create a 'NegotiationMessage' that represents a client configuration for
 // the specified 'clientType'.
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqp_ctrlmsg::NegotiationMessage negotiationMessage;
     bmqp_ctrlmsg::ClientIdentity&    clientIdentity =
@@ -100,6 +101,7 @@ bmqp_ctrlmsg::NegotiationMessage client()
 
     return negotiationMessage;
 }
+// NOLINTEND(*-magic-numbers)
 
 /// Create a new blob at the specified `arena` address, using the specified
 /// `bufferFactory` and `allocator`.
@@ -126,6 +128,7 @@ struct TestAdminRetranslator {
 };
 
 /// The `TestBench` holds system components together.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class TestBench {
   public:
     // DATA
@@ -145,13 +148,16 @@ class TestBench {
     TestBench(const bmqp_ctrlmsg::NegotiationMessage&       negotiationMessage,
               const mqbnet::Session::AdminCommandEnqueueCb& adminEnqueueCb,
               bslma::Allocator*                             allocator)
+    // NOLINTNEXTLINE(*-magic-numbers)
     : d_bufferFactory(256, allocator)
+    // NOLINTBEGIN(*-magic-numbers)
     , d_blobSpPool(bdlf::BindUtil::bind(&createBlob,
                                         &d_bufferFactory,
                                         bdlf::PlaceHolders::_1,   // arena
                                         bdlf::PlaceHolders::_2),  // alloc
                    1024,  // blob pool growth strategy
                    allocator)
+    // NOLINTEND(*-magic-numbers)
     , d_channel(new bmqio::TestChannel(allocator))
     , d_mockDispatcher(allocator)
     , d_scheduler(bsls::SystemClockType::e_MONOTONIC, allocator)
@@ -190,6 +196,7 @@ class TestBench {
         d_scheduler.stop();
     }
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close unnamed namespace
 
@@ -232,8 +239,10 @@ static void test1_watermark()
         bmqtst::TestHelperUtil::allocator());
 
     // Prepare sample admin command control message event
+    // NOLINTBEGIN(*-magic-numbers)
     bdlma::LocalSequentialAllocator<2048> localAllocator(
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp_ctrlmsg::ControlMessage admin(&localAllocator);
 
     admin.rId() = rId;
@@ -289,6 +298,7 @@ static void test1_watermark()
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -313,3 +323,4 @@ int main(int argc, char* argv[])
     TEST_EPILOG(bmqtst::TestHelper::e_DEFAULT);
     // Do not check for default/global allocator usage.
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

@@ -99,6 +99,7 @@ namespace m_bmqbrkr {
 // ===========================
 
 /// Guard-like mechanism to manage allocators for use by the entire process.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Task_AllocatorManager {
   private:
     // DATA
@@ -172,12 +173,14 @@ class Task_AllocatorManager {
     /// Return 0 otherwise.
     bsls::Types::Uint64 allocationLimit() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 //===========
 // class Task
 //===========
 
 /// This class provides the base infrastructure for a task.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Task {
   private:
     // CLASS-SCOPE CATEGORY
@@ -312,6 +315,7 @@ class Task {
     /// behavior is undefined unless the task has been initialized.
     const bsl::string& pipeName() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

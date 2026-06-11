@@ -101,6 +101,7 @@ class MessageProperties;
 ///                      lazily populated (such as `queueId` or
 ///                      `correlationId`), then they should be reset in
 ///                      `bmqa::MessageIterator.nextMessage()`.
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 struct MessageImpl {
     // PUBLIC DATA
 
@@ -122,6 +123,7 @@ struct MessageImpl {
     /// Schema pointer
     bsl::shared_ptr<const bmqp::MessageProperties_Schema> d_schema_sp;
 };
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // ===============================
 // class MessageConfirmationCookie

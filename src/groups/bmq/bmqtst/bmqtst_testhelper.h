@@ -356,6 +356,7 @@
     }
 
 // An alias to the required BDE ASSERT macro
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQTST_ASSERT(X) ASSERT(X)
 
 #define BMQTST_ASSERT_EQ(X, Y)                                                \
@@ -385,11 +386,12 @@
 
 // '_D' variants, allowing to specify a 'description' that will be printed in
 // case of failure.
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQTST_ASSERT_D(D, X)                                                 \
     {                                                                         \
         bdlsb::MemOutStreamBuf _buf(bmqtst::TestHelperUtil::allocator());     \
         bsl::ostream           _os(&_buf);                                    \
-        _os << D << '\0';                                                     \
+        _os << D << '\0'; /* NOLINT(bugprone-macro-parentheses) */            \
         bsl::string_view _osStr(_buf.data(), _buf.length());                  \
         if (!(X)) {                                                           \
             BloombergLP::_assert(false, _osStr.data(), __FILE__, __LINE__);   \
@@ -399,7 +401,7 @@
     {                                                                         \
         bdlsb::MemOutStreamBuf _buf(bmqtst::TestHelperUtil::allocator());     \
         bsl::ostream           _os(&_buf);                                    \
-        _os << D << ": ";                                                     \
+        _os << D << ": "; /* NOLINT(bugprone-macro-parentheses) */            \
         bsl::string_view _osStr(_buf.data(), _buf.length());                  \
         _assertCompareEquals(_osStr, X, Y, #X, #Y, __FILE__, __LINE__);       \
     }
@@ -407,7 +409,7 @@
     {                                                                         \
         bdlsb::MemOutStreamBuf _buf(bmqtst::TestHelperUtil::allocator());     \
         bsl::ostream           _os(&_buf);                                    \
-        _os << D << ": ";                                                     \
+        _os << D << ": "; /* NOLINT(bugprone-macro-parentheses) */            \
         bsl::string_view _osStr(_buf.data(), _buf.length());                  \
         _assertCompareNotEquals(_osStr, X, Y, #X, #Y, __FILE__, __LINE__);    \
     }
@@ -415,7 +417,7 @@
     {                                                                         \
         bdlsb::MemOutStreamBuf _buf(bmqtst::TestHelperUtil::allocator());     \
         bsl::ostream           _os(&_buf);                                    \
-        _os << D << ": ";                                                     \
+        _os << D << ": "; /* NOLINT(bugprone-macro-parentheses) */            \
         bsl::string_view _osStr(_buf.data(), _buf.length());                  \
         _assertCompareLess(_osStr, X, Y, #X, #Y, __FILE__, __LINE__);         \
     }
@@ -423,7 +425,7 @@
     {                                                                         \
         bdlsb::MemOutStreamBuf _buf(bmqtst::TestHelperUtil::allocator());     \
         bsl::ostream           _os(&_buf);                                    \
-        _os << D << ": ";                                                     \
+        _os << D << ": "; /* NOLINT(bugprone-macro-parentheses) */            \
         bsl::string_view _osStr(_buf.data(), _buf.length());                  \
         _assertCompareLessEquals(_osStr, X, Y, #X, #Y, __FILE__, __LINE__);   \
     }
@@ -431,7 +433,7 @@
     {                                                                         \
         bdlsb::MemOutStreamBuf _buf(bmqtst::TestHelperUtil::allocator());     \
         bsl::ostream           _os(&_buf);                                    \
-        _os << D << ": ";                                                     \
+        _os << D << ": "; /* NOLINT(bugprone-macro-parentheses) */            \
         bsl::string_view _osStr(_buf.data(), _buf.length());                  \
         _assertCompareGreater(_osStr, X, Y, #X, #Y, __FILE__, __LINE__);      \
     }
@@ -439,7 +441,7 @@
     {                                                                         \
         bdlsb::MemOutStreamBuf _buf(bmqtst::TestHelperUtil::allocator());     \
         bsl::ostream           _os(&_buf);                                    \
-        _os << D << ": ";                                                     \
+        _os << D << ": "; /* NOLINT(bugprone-macro-parentheses) */            \
         bsl::string_view _osStr(_buf.data(), _buf.length());                  \
         _assertCompareGreaterEquals(_osStr,                                   \
                                     X,                                        \
@@ -480,11 +482,17 @@
 // ============================================================================
 //                     NEGATIVE-TEST MACROS ABBREVIATIONS
 // ----------------------------------------------------------------------------
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQTST_ASSERT_SAFE_PASS(EXPR) BSLS_ASSERTTEST_ASSERT_SAFE_PASS(EXPR)
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQTST_ASSERT_SAFE_FAIL(EXPR) BSLS_ASSERTTEST_ASSERT_SAFE_FAIL(EXPR)
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQTST_ASSERT_PASS(EXPR) BSLS_ASSERTTEST_ASSERT_PASS(EXPR)
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQTST_ASSERT_FAIL(EXPR) BSLS_ASSERTTEST_ASSERT_FAIL(EXPR)
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQTST_ASSERT_OPT_PASS(EXPR) BSLS_ASSERTTEST_ASSERT_OPT_PASS(EXPR)
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQTST_ASSERT_OPT_FAIL(EXPR) BSLS_ASSERTTEST_ASSERT_OPT_FAIL(EXPR)
 
 // ============================================================================
@@ -495,16 +503,19 @@
 // that expressions containing output stream operations can be supported.  The
 // '_SAFE' versions use a mutex to make sure concurrent output doesn't get
 // interleaved.
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define PRINT(X)                                                              \
     {                                                                         \
-        bsl::cout << X << bsl::endl;                                          \
+        bsl::cout << X << bsl::endl; /* NOLINT(bugprone-macro-parentheses) */ \
     }
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define PRINT_(X)                                                             \
     {                                                                         \
-        bsl::cout << X;                                                       \
+        bsl::cout << X; /* NOLINT(bugprone-macro-parentheses) */              \
     }
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define PRINT_SAFE(X)                                                         \
     {                                                                         \
         bslmt::QLockGuard qGuard(                                             \
@@ -512,6 +523,7 @@
         PRINT(X);                                                             \
     }
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define PRINT_SAFE_(X)                                                        \
     {                                                                         \
         bslmt::QLockGuard qGuard(                                             \
@@ -519,24 +531,30 @@
         PRINT_(X);                                                            \
     }
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define PV(X)                                                                 \
     if (bmqtst::TestHelperUtil::verbosityLevel() >= 1)                        \
         PRINT(X);
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define PVV(X)                                                                \
     if (bmqtst::TestHelperUtil::verbosityLevel() >= 2)                        \
         PRINT(X);
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define PVVV(X)                                                               \
     if (bmqtst::TestHelperUtil::verbosityLevel() >= 3)                        \
         PRINT(X);
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define PV_SAFE(X)                                                            \
     if (bmqtst::TestHelperUtil::verbosityLevel() >= 1) {                      \
         PRINT_SAFE(X);                                                        \
     };
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define PVV_SAFE(X)                                                           \
     if (bmqtst::TestHelperUtil::verbosityLevel() >= 2) {                      \
         PRINT_SAFE(X);                                                        \
     };
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define PVVV_SAFE(X)                                                          \
     if (bmqtst::TestHelperUtil::verbosityLevel() >= 3) {                      \
         PRINT_SAFE(X);                                                        \
@@ -545,6 +563,7 @@
 // ============================================================================
 //                                 TEST SHELL
 // ----------------------------------------------------------------------------
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define TEST_PROLOG(F)                                                        \
     const int _testCase                      = argc > 1 ? atoi(argv[1]) : 0;  \
     bmqtst::TestHelperUtil::verbosityLevel() = argc - 2;                      \
@@ -565,6 +584,7 @@
                                                                               \
     /* Create a scope for all code in between TEST_PROLOG and TEST_EPILOG */  \
     {
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define INIT_BALL_LOGGING()                                                   \
     /* create logger configuration */                                         \
     ball::LoggerManagerConfiguration _logConfig;                              \
@@ -598,6 +618,7 @@
     ball::LoggerManagerScopedGuard _logManagerGuard(&_logMultiplexObserver,   \
                                                     _logConfig);
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define INIT_GLOBAL_ALLOCATOR_INTERNAL()                                      \
     /* Global Allocator */                                                    \
     /* NOTE: The global allocator has a static storage duration to outlive */ \
@@ -613,12 +634,14 @@
 #ifdef BSLS_PLATFORM_CMP_CLANG
 /* Suppress "exit-time-destructor" warning on Clang by qualifying the */
 /* static variable '_gblAlloc' with Clang-specific attribute.         */
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define INIT_GLOBAL_ALLOCATOR()                                               \
     [[clang::no_destroy]] INIT_GLOBAL_ALLOCATOR_INTERNAL()
 #else
 #define INIT_GLOBAL_ALLOCATOR() INIT_GLOBAL_ALLOCATOR_INTERNAL()
 #endif
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define INIT_ALLOCATORS(F)                                                    \
     INIT_GLOBAL_ALLOCATOR();                                                  \
                                                                               \
@@ -644,6 +667,7 @@
         bmqtst::TestHelperUtil::allocator() = &_testAlloc;                    \
     }
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define TEST_EPILOG(F)                                                        \
     /* Close the scope for all code in between TEST_PROLOG and TEST_EPILOG */ \
     }                                                                         \
@@ -652,13 +676,17 @@
     BMQTST_ASSERT_EQ(_testAlloc.numBlocksInUse(), 0);                         \
                                                                               \
     /* Verify no default allocator usage */                                   \
-    if (F & bmqtst::TestHelper::e_CHECK_DEF_ALLOC &&                          \
+    if (F & bmqtst::TestHelper::                                              \
+                e_CHECK_DEF_ALLOC && /* NOLINT(bugprone-macro-parentheses)    \
+                                      */                                      \
         !bmqtst::TestHelperUtil::ignoreCheckDefAlloc()) {                     \
         BMQTST_ASSERT_EQ(_defAlloc.numBlocksTotal(), 0);                      \
     }                                                                         \
                                                                               \
     /* Verify no global allocator usage */                                    \
-    if (F & bmqtst::TestHelper::e_CHECK_GBL_ALLOC &&                          \
+    if (F & bmqtst::TestHelper::                                              \
+                e_CHECK_GBL_ALLOC && /* NOLINT(bugprone-macro-parentheses)    \
+                                      */                                      \
         !bmqtst::TestHelperUtil::ignoreCheckGblAlloc()) {                     \
         BMQTST_ASSERT_EQ(_gblAlloc.numBlocksTotal(), 0);                      \
     }                                                                         \
@@ -821,6 +849,7 @@ struct TestHelperUtil {
 /// with the specified `expression` from the specified `file` and `line`.
 static inline void
 _assert(bool result, const char* expression, const char* file, int line)
+// NOLINTBEGIN(*-magic-numbers,cert-err33-c,cppcoreguidelines-pro-type-vararg)
 {
     if (!result) {
         bsl::fprintf(stdout,
@@ -835,6 +864,7 @@ _assert(bool result, const char* expression, const char* file, int line)
         }
     }
 }
+// NOLINTEND(*-magic-numbers,cert-err33-c,cppcoreguidelines-pro-type-vararg)
 
 /// A handler to be invoked on BDE assertion violation (see `bsls_assert`).
 /// Prints the error and calls
@@ -842,6 +872,7 @@ _assert(bool result, const char* expression, const char* file, int line)
 BSLA_NORETURN
 static inline void
 _assertViolationHandler(const bsls::AssertViolation& violation)
+// NOLINTBEGIN(cert-err33-c,cppcoreguidelines-pro-type-vararg)
 {
     // Since we're handling a contract failure (as opposed to a test
     // assertion), we want the program to die immediately. For this reason, we
@@ -857,14 +888,21 @@ _assertViolationHandler(const bsls::AssertViolation& violation)
 
     bsls::AssertTest::failTestDriver(violation);
 }
+// NOLINTEND(cert-err33-c,cppcoreguidelines-pro-type-vararg)
 
 // Create a definition of the assert template method for each of the 6 common
 // comparison operators.
+// NOLINTNEXTLINE(bugprone-signed-char-misuse,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 ASSERT_COMPARE_DECLARE(Equals, ==)
+// NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 ASSERT_COMPARE_DECLARE(NotEquals, !=)
+// NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 ASSERT_COMPARE_DECLARE(Less, <)
+// NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 ASSERT_COMPARE_DECLARE(LessEquals, <=)
+// NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 ASSERT_COMPARE_DECLARE(Greater, >)
+// NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 ASSERT_COMPARE_DECLARE(GreaterEquals, >=)
 
 namespace bmqtst {
@@ -874,6 +912,7 @@ namespace bmqtst {
 // ======================
 
 /// Class for registering tests.
+// NOLINTBEGIN(*-avoid-c-arrays)
 struct TestHelper_Test {
     // TYPES
     typedef void (*TestFn)();
@@ -888,6 +927,7 @@ struct TestHelper_Test {
     // CREATORS
     TestHelper_Test(const TestFn& test);
 };
+// NOLINTEND(*-avoid-c-arrays)
 
 // ========================
 // class TestHelper_Printer
@@ -922,6 +962,7 @@ class TestHelper_Printer {
 struct TestHelper {
     // TYPES
     /// Flags to provide to `TEST_PROLOG` and `TEST_EPILOG` macros.
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum e_FLAGS {
         e_DEFAULT = 0,
 
@@ -933,6 +974,7 @@ struct TestHelper {
         e_CHECK_GBL_ALLOC     = 1 << 1,
         e_CHECK_DEF_GBL_ALLOC = e_CHECK_DEF_ALLOC | e_CHECK_GBL_ALLOC
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CLASS METHODS
 
@@ -950,6 +992,7 @@ struct TestHelper {
 
 /// Default class for tests, and base class for tests that require a
 /// `fixture`, i.e. a context for their execution.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Test {
   public:
     // CREATORS
@@ -964,6 +1007,7 @@ class Test {
     /// Perform cleanup after running the test.
     virtual void TearDown();
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // FREE FUNCTIONS
 
@@ -1031,9 +1075,11 @@ template <typename TYPE>
 inline bsl::ostream&
 bmqtst::operator<<(bsl::ostream&                   stream,
                    const TestHelper_Printer<TYPE>& printer)
+// NOLINTBEGIN(bugprone-unintended-char-ostream-output,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     return stream << printer.obj();
 }
+// NOLINTEND(bugprone-unintended-char-ostream-output,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 template <typename TYPE>
 inline bsl::ostream&

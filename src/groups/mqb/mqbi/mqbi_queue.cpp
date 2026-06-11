@@ -45,6 +45,7 @@ bsl::ostream& operator<<(bsl::ostream&                   stream,
 
 // Initialize `s_previousRequesterId` to -1, so that pre-incremented value
 // starts from zero.
+// NOLINTNEXTLINE(cert-err58-cpp)
 bsls::AtomicInt64 QueueHandleRequesterContext::s_previousRequesterId(-1);
 
 // ------------------

@@ -49,22 +49,27 @@ namespace mqbstat {
 
 namespace {
 
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char k_LOG_CATEGORY[] = "MQBSTAT.QUEUESTATS";
 
 /// Name of the stat context to create (holding all domain's queues
 /// statistics)
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char k_DOMAIN_STAT_NAME[] = "domain";
 
 /// Name of the stat context to create (holding all client's queues
 /// statistics)
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char k_CLIENT_STAT_NAME[] = "client";
 
 /// Maximum messages logged with throttling in a short period of time.
 const int k_MAX_INSTANT_MESSAGES = 10;
 
 /// Time interval between messages logged with throttling.
+// NOLINTBEGIN(cppcoreguidelines-interfaces-global-init)
 const bsls::Types::Int64 k_NS_PER_MESSAGE =
     bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MINUTE / k_MAX_INSTANT_MESSAGES;
+// NOLINTEND(cppcoreguidelines-interfaces-global-init)
 
 /// The default utilization value reported when we cannot
 /// compute utilization.
@@ -77,6 +82,7 @@ const bsls::Types::Int64 k_UNDEFINED_UTILIZATION_VALUE = 0;
 /// Namespace for the constants of stat values that applies to the queues
 /// from the clients
 struct ClientStats {
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         /// Value:      Number of ack messages delivered to the client
         e_STAT_ACK,
@@ -94,6 +100,7 @@ struct ClientStats {
         /// Increments: Number of messages ever pushed to the client
         e_STAT_PUSH
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 };
 
 /// Functor method returning `true`, i.e., filter out, if the specified
@@ -112,6 +119,7 @@ bool filterDirect(const bmqst::TableRecords::Record& record)
 
 const char* QueueStatsDomain::Stat::toString(Stat::Enum value)
 {
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define MQBSTAT_CASE(VAL, DESC)                                               \
     case (VAL): {                                                             \
         return (DESC);                                                        \
@@ -169,6 +177,7 @@ const char* QueueStatsDomain::Stat::toString(Stat::Enum value)
 
 inline bmqst::StatContext*
 QueueStatsDomain::findAppIdContext(const bsl::string& appId) const
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     BSLS_ASSERT_SAFE(d_statContext_mp && "initialize was not called");
     if (d_subContextsLookup.empty()) {
@@ -191,11 +200,13 @@ QueueStatsDomain::findAppIdContext(const bsl::string& appId) const
 
     return it->second;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 bsls::Types::Int64
 QueueStatsDomain::getValue(const bmqst::StatContext& context,
                            int                       snapshotId,
                            const Stat::Enum&         stat)
+// NOLINTBEGIN(*-magic-numbers)
 {
     // invoked from the SNAPSHOT thread
 
@@ -204,6 +215,7 @@ QueueStatsDomain::getValue(const bmqst::StatContext& context,
 
     const bmqst::StatValue::SnapshotLocation latestSnapshot(0, 0);
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define OLDEST_SNAPSHOT(STAT)                                                 \
     (bmqst::StatValue::SnapshotLocation(                                      \
         0,                                                                    \
@@ -213,11 +225,13 @@ QueueStatsDomain::getValue(const bmqst::StatContext& context,
                    .historySize(0) -                                          \
                1)))
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define STAT_SINGLE(OPERATION, STAT)                                          \
     bmqst::StatUtil::OPERATION(                                               \
         context.value(bmqst::StatContext::e_DIRECT_VALUE, STAT),              \
         latestSnapshot)
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define STAT_RANGE(OPERATION, STAT)                                           \
     bmqst::StatUtil::OPERATION(                                               \
         context.value(bmqst::StatContext::e_DIRECT_VALUE, STAT),              \
@@ -376,6 +390,7 @@ QueueStatsDomain::getValue(const bmqst::StatContext& context,
 #undef STAT_RANGE
 #undef STAT_SINGLE
 }
+// NOLINTEND(*-magic-numbers)
 
 QueueStatsDomain::QueueStatsDomain(bslma::Allocator* allocator)
 : d_allocator_p(bslma::Default::allocator(allocator))
@@ -393,6 +408,7 @@ void QueueStatsDomain::initialize(const bmqt::Uri& uri, mqbi::Domain* domain)
     BSLS_ASSERT_SAFE(domain->cluster());
 
     // Create subContext
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<2048> localAllocator(d_allocator_p);
 
     d_statContext_mp = domain->queueStatContext()->addSubcontext(
@@ -438,6 +454,7 @@ void QueueStatsDomain::initialize(const bmqt::Uri& uri, mqbi::Domain* domain)
         domainCfg->mode().fanout().publishAppIdMetrics()) {
         const bsl::vector<bsl::string>& appIDs =
             domainCfg->mode().fanout().appIDs();
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (bsl::vector<bsl::string>::const_iterator cit = appIDs.begin();
              cit != appIDs.end();
              ++cit) {
@@ -448,6 +465,7 @@ void QueueStatsDomain::initialize(const bmqt::Uri& uri, mqbi::Domain* domain)
             d_subContextsHolder.emplace_back(
                 bslmf::MovableRefUtil::move(subContext));
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
 }
 
@@ -586,6 +604,7 @@ void QueueStatsDomain::updateDomainAppIds(
     }
 
     // 2. Add the remaining appIds
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<2048> localAllocator(d_allocator_p);
 
     for (bsl::unordered_set<bsl::string>::const_iterator sIt =
@@ -652,11 +671,13 @@ QueueStatsClient::getValue(const bmqst::StatContext& context,
     const bmqst::StatValue::SnapshotLocation latestSnapshot(0, 0);
     const bmqst::StatValue::SnapshotLocation oldestSnapshot(0, snapshotId);
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define STAT_SINGLE(OPERATION, STAT)                                          \
     bmqst::StatUtil::OPERATION(                                               \
         context.value(bmqst::StatContext::e_DIRECT_VALUE, STAT),              \
         latestSnapshot)
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define STAT_RANGE(OPERATION, STAT)                                           \
     bmqst::StatUtil::OPERATION(                                               \
         context.value(bmqst::StatContext::e_DIRECT_VALUE, STAT),              \
@@ -725,6 +746,7 @@ void QueueStatsClient::initialize(const bmqt::Uri&    uri,
     BSLS_ASSERT_SAFE(!d_statContext_mp && "initialize called twice");
 
     // Create subContext
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<2048> localAllocator(allocator);
 
     d_statContext_mp = clientStatContext->addSubcontext(
@@ -764,10 +786,13 @@ bsl::shared_ptr<bmqst::StatContext>
 QueueStatsUtil::initializeStatContextDomains(int               historySize,
                                              bslma::Allocator* allocator)
 {
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<2048> localAllocator(allocator);
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bmqst::StatContextConfiguration config(k_DOMAIN_STAT_NAME,
                                            &localAllocator);
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
     config.isTable(true)
         .defaultHistorySize(historySize)
@@ -806,10 +831,13 @@ bsl::shared_ptr<bmqst::StatContext>
 QueueStatsUtil::initializeStatContextClients(int               historySize,
                                              bslma::Allocator* allocator)
 {
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<2048> localAllocator(allocator);
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bmqst::StatContextConfiguration config(k_CLIENT_STAT_NAME,
                                            &localAllocator);
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     config.isTable(true)
         .defaultHistorySize(historySize)
         .statValueAllocator(allocator)

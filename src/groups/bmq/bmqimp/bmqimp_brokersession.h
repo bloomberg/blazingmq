@@ -131,6 +131,7 @@ class BrokerSession_Executor {
 // ===================
 
 /// Implementation of a session with the bmqbrkr.
+// NOLINTBEGIN(clang-analyzer-optin.performance.Padding,cppcoreguidelines-special-member-functions)
 class BrokerSession BSLS_CPP11_FINAL {
   public:
     // PUBLIC TYPES
@@ -146,6 +147,7 @@ class BrokerSession BSLS_CPP11_FINAL {
     /// Enum representing the state of the connection with bmqbrkr
     struct State {
         // TYPES
+        // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
         enum Enum {
             /// The session has been started, but the channel is not yet
             /// connected
@@ -162,6 +164,7 @@ class BrokerSession BSLS_CPP11_FINAL {
             /// The session is stopped
             e_STOPPED = 5
         };
+        // NOLINTEND(cppcoreguidelines-use-enum-class)
 
         // CLASS METHODS
 
@@ -191,6 +194,7 @@ class BrokerSession BSLS_CPP11_FINAL {
     /// Enum representing events that accepts the session FSM
     struct FsmEvent {
         // TYPES
+        // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
         enum Enum {
             /// User start request
             e_START = 0,
@@ -215,6 +219,7 @@ class BrokerSession BSLS_CPP11_FINAL {
             /// All queues have been resumed
             e_ALL_QUEUES_RESUMED = 9
         };
+        // NOLINTEND(cppcoreguidelines-use-enum-class)
 
         // CLASS METHODS
 
@@ -256,6 +261,7 @@ class BrokerSession BSLS_CPP11_FINAL {
     /// Enum representing events accepted by the queue FSM
     struct QueueFsmEvent {
         // TYPES
+        // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
         enum Enum {
             /// Open queue request
             e_OPEN_CMD = 1,
@@ -292,6 +298,7 @@ class BrokerSession BSLS_CPP11_FINAL {
             /// Request failed due to transport/write error
             e_REQ_WRITE_ERROR = 16
         };
+        // NOLINTEND(cppcoreguidelines-use-enum-class)
 
         // CLASS METHODS
 
@@ -1690,6 +1697,7 @@ class BrokerSession BSLS_CPP11_FINAL {
 
     const SessionId& id() const;
 };
+// NOLINTEND(clang-analyzer-optin.performance.Padding,cppcoreguidelines-special-member-functions)
 
 // FREE OPERATORS
 

@@ -28,6 +28,7 @@
 namespace BloombergLP {
 namespace bmqst {
 
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 enum {
     VALUE_NULLTYPE,
     VALUE_BOOLTYPE,
@@ -40,6 +41,7 @@ enum {
     VALUE_STRINGTYPE,
     VALUE_BADTYPE
 };
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 // -----------
 // class Value
@@ -60,6 +62,7 @@ void Value::ownValue()
 
 // ACCESSORS
 size_t Value::hash() const
+// NOLINTBEGIN(*-magic-numbers)
 {
     static bsl::hash<int>                 intHasher;
     static bsl::hash<bsls::Types::Int64>  int64Hasher;
@@ -85,6 +88,7 @@ size_t Value::hash() const
     case VALUE_DOUBLETYPE: {
         const double&              d = d_value.the<double>();
         const bsls::Types::Uint64* u =
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
             reinterpret_cast<const bsls::Types::Uint64*>(&d);
         d_hash = uint64Hasher(*u);
     } break;
@@ -125,6 +129,7 @@ size_t Value::hash() const
 
     return d_hash;
 }
+// NOLINTEND(*-magic-numbers)
 
 }  // close package namespace
 

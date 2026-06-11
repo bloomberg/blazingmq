@@ -44,6 +44,7 @@ namespace mqbs {
 // struct FileStoreTestUtil_Record
 // ===============================
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct FileStoreTestUtil_Record {
     // DATA
     bslma::Allocator* d_allocator_p;
@@ -140,6 +141,7 @@ struct FileStoreTestUtil_Record {
         return *this;
     }
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // FREE OPERATORS
 

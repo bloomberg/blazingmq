@@ -115,6 +115,7 @@ void printQueueStatus(bsl::ostream&         os,
     const Storages&                       storages = storageContent.storages();
     bmqu::OutStreamFormatSaver            fmtSaver(os);
 
+    // NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (Storages::const_iterator cit = storages.cbegin();
          cit != storages.cend();
          ++cit) {
@@ -127,6 +128,7 @@ void printQueueStatus(bsl::ostream&         os,
            << cit->queueUri()
            << (cit->isPersistent() ? "" : "  (non-persistent)");
     }
+    // NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 void printDomainInfo(bsl::ostream&     os,
@@ -184,6 +186,7 @@ void printClusterList(bsl::ostream& os, const ClusterList& clusterList)
     bmqu::OutStreamFormatSaver fmtSaver(os);
     os << "The following clusters are active:";
 
+    // NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (bsl::vector<ClusterInfo>::const_iterator itCluster =
              clusterList.clusters().cbegin();
          itCluster != clusterList.clusters().end();
@@ -195,6 +198,7 @@ void printClusterList(bsl::ostream& os, const ClusterList& clusterList)
         os << "[" << bsl::left << bsl::setw(6) << locality << "] "
            << itCluster->name() << ":";
 
+        // NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (bsl::vector<ClusterNode>::const_iterator itNode =
                  itCluster->nodes().cbegin();
              itNode != itCluster->nodes().cend();
@@ -203,8 +207,10 @@ void printClusterList(bsl::ostream& os, const ClusterList& clusterList)
                << itNode->hostName() << bsl::setw(7) << itNode->nodeId()
                << bsl::setw(14) << itNode->dataCenter();
         }
+        // NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-bounds-pointer-arithmetic)
         os << "\n";
     }
+    // NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 void printBrokerConfig(bsl::ostream& os, const BrokerConfig& brokerConfig)
@@ -255,14 +261,17 @@ void printTunableList(bsl::ostream& os, const Tunables& tunables)
 
     // Compute the longest tunable name, for pretty-alignment
     bsl::size_t longestName = 0;
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (bsl::vector<Tunable>::const_iterator it =
              tunables.tunables().cbegin();
          it != tunables.tunables().cend();
          ++it) {
         longestName = bsl::max(longestName, it->name().length());
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     // Print all tunables
+    // NOLINTBEGIN(*-narrowing-conversions,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (bsl::vector<Tunable>::const_iterator it =
              tunables.tunables().cbegin();
          it != tunables.tunables().cend();
@@ -273,6 +282,7 @@ void printTunableList(bsl::ostream& os, const Tunables& tunables)
         printValue(os, it->value());
         os << "\n    " << it->description() << "\n";
     }
+    // NOLINTEND(*-narrowing-conversions,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 void printTunableConfirmation(bsl::ostream&              os,
@@ -294,6 +304,7 @@ void printPurgedQueues(bsl::ostream& os, const PurgedQueues& purgedQueueList)
     // const_cast so we can inline sort without the need to make a deep
     // copy of the vector
     bsl::vector<PurgeQueueResult>& queues =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
         const_cast<bsl::vector<PurgeQueueResult>&>(purgedQueueList.queues());
 
     bsl::sort(queues.begin(), queues.end(), SortPurgeQueueResultByBytesDesc());
@@ -303,6 +314,7 @@ void printPurgedQueues(bsl::ostream& os, const PurgedQueues& purgedQueueList)
     bsls::Types::Int64 totalBytes    = 0;
     bsls::Types::Int64 totalMessages = 0;
 
+    // NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
     for (bsl::vector<PurgeQueueResult>::const_iterator it = queues.begin();
          it != queues.end();
          ++it) {
@@ -323,6 +335,7 @@ void printPurgedQueues(bsl::ostream& os, const PurgedQueues& purgedQueueList)
         totalBytes += queue.numBytesPurged();
         totalMessages += queue.numMessagesPurged();
     }
+    // NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 
     os << "Purged " << bmqu::PrintUtil::prettyNumber(totalMessages)
        << " message(s) for a total of "
@@ -343,6 +356,7 @@ void printQueueContents(bsl::ostream& os, const QueueContents& queueContents)
 
     bsl::vector<Message>::const_iterator it =
         queueContents.messages().cbegin();
+    // NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (bsls::Types::Int64 sequenceNo = queueContents.offset();
          it != queueContents.messages().cend();
          ++sequenceNo, ++it) {
@@ -352,7 +366,9 @@ void printQueueContents(bsl::ostream& os, const QueueContents& queueContents)
                    << bmqu::PrintUtil::prettyBytes(it->sizeBytes()) << "  "
                    << it->arrivalTimestamp() << "\n";
     }
+    // NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     bsls::Types::Int64 numMessages = queueContents.messages().size();
     bsls::Types::Int64 endInterval = 0;
     if (queueContents.offset() + numMessages >=
@@ -373,18 +389,21 @@ void printQueueContents(bsl::ostream& os, const QueueContents& queueContents)
 }
 
 void printMessage(bsl::ostream& os, const Message& message)
+// NOLINTBEGIN(*-magic-numbers)
 {
     os << "GUID                              Size        Timestamp (UTC)\n"
        << bsl::setw(32) << message.guid() << "  " << bsl::setw(10)
        << bmqu::PrintUtil::prettyBytes(message.sizeBytes()) << "  "
        << message.arrivalTimestamp();
 }
+// NOLINTEND(*-magic-numbers)
 
 void printFileStoreSummary(bsl::ostream&           os,
                            const FileStoreSummary& summary,
                            int                     partitionId,
                            int                     level,
                            int                     spacesPerLevel)
+// NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions)
 {
     using namespace bmqu::PrintUtil;
 
@@ -403,6 +422,7 @@ void printFileStoreSummary(bsl::ostream&           os,
 
     typedef bsl::vector<FileSet> FileSets;
     const FileSets&              fileSets = summary.fileSets();
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (FileSets::const_iterator cit = fileSets.cbegin();
          cit != fileSets.cend();
          ++cit) {
@@ -411,6 +431,7 @@ void printFileStoreSummary(bsl::ostream&           os,
            << prettyNumber(static_cast<bsls::Types::Int64>(
                   cit->aliasedBlobBufferCount()));
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     const ActiveFileSet& activeFileSet = summary.activeFileSet();
     BSLS_ASSERT_SAFE(activeFileSet.dataFile().sizeBytes() > 0);
@@ -476,6 +497,7 @@ void printFileStoreSummary(bsl::ostream&           os,
 
     printQueueStatus(os, summary.storageContent(), level + 2, spacesPerLevel);
 }
+// NOLINTEND(*-magic-numbers,*-narrowing-conversions)
 
 void printClusterStorageSummary(bsl::ostream&                os,
                                 const ClusterStorageSummary& summary,
@@ -491,6 +513,7 @@ void printClusterStorageSummary(bsl::ostream&                os,
 
     typedef bsl::vector<FileStore> FileStores;
     const FileStores&              fileStores = summary.fileStores();
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (FileStores::const_iterator cit = fileStores.cbegin();
          cit != fileStores.cend();
          ++cit) {
@@ -512,6 +535,7 @@ void printClusterStorageSummary(bsl::ostream&                os,
                               spacesPerLevel);
         os << "\n";
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 void printClusterQueueHelper(bsl::ostream&             os,
@@ -542,12 +566,15 @@ void printClusterQueueHelper(bsl::ostream&             os,
     bsl::size_t                        maxDomainLength = 0;
     typedef bsl::vector<ClusterDomain> ClusterDomains;
     const ClusterDomains& clusterDomains = clusterQueueHelper.domains();
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (ClusterDomains::const_iterator cit = clusterDomains.cbegin();
          cit != clusterDomains.cend();
          ++cit) {
         maxDomainLength = bsl::max(maxDomainLength, cit->name().length());
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
+    // NOLINTBEGIN(*-narrowing-conversions,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (ClusterDomains::const_iterator cit = clusterDomains.cbegin();
          cit != clusterDomains.cend();
          ++cit) {
@@ -560,6 +587,7 @@ void printClusterQueueHelper(bsl::ostream&             os,
         }
         os << "\n";
     }
+    // NOLINTEND(*-narrowing-conversions,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     // Queues
     os << bmqu::PrintUtil::newlineAndIndent(level + 1, spacesPerLevel)
@@ -569,6 +597,7 @@ void printClusterQueueHelper(bsl::ostream&             os,
 
     typedef bsl::vector<ClusterQueue> ClusterQueues;
     const ClusterQueues& clusterQueues = clusterQueueHelper.queues();
+    // NOLINTBEGIN(*-narrowing-conversions,bugprone-unchecked-optional-access,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (ClusterQueues::const_iterator cit = clusterQueues.cbegin();
          cit != clusterQueues.cend();
          ++cit) {
@@ -591,6 +620,7 @@ void printClusterQueueHelper(bsl::ostream&             os,
 
         typedef bsl::vector<SubId> SubIds;
         const SubIds&              subIds = cit->subIds();
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (SubIds::const_iterator citer = subIds.cbegin();
              citer != subIds.cend();
              ++citer) {
@@ -601,6 +631,7 @@ void printClusterQueueHelper(bsl::ostream&             os,
                 os << ", ";
             }
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
         os << bmqu::PrintUtil::newlineAndIndent(level + 3, spacesPerLevel)
            << "partitionId......: " << cit->partitionId();
@@ -624,6 +655,7 @@ void printClusterQueueHelper(bsl::ostream&             os,
                << "]";
         }
     }
+    // NOLINTEND(*-narrowing-conversions,bugprone-unchecked-optional-access,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 void printResourceUsageMonitor(bsl::ostream&               os,
@@ -708,11 +740,13 @@ void printQueueHandle(bsl::ostream&      os,
 
     typedef bsl::vector<QueueHandleSubStream> SubStreams;
     const SubStreams&                         subStreams = handle.subStreams();
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (SubStreams::const_iterator cit = subStreams.begin();
          cit != subStreams.end();
          ++cit) {
         printQueueHandleSubStream(os, *cit, level, spacesPerLevel);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 void printQueueHandles(bsl::ostream&                   os,
@@ -773,6 +807,7 @@ void printQueueState(bsl::ostream&     os,
         if (storage.virtualStorages().size()) {
             typedef bsl::vector<VirtualStorage> VirtualStorages;
             const VirtualStorages& virtualStorages = storage.virtualStorages();
+            // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
             for (VirtualStorages::const_iterator cit =
                      virtualStorages.cbegin();
                  cit != virtualStorages.cend();
@@ -784,6 +819,7 @@ void printQueueState(bsl::ostream&     os,
                           static_cast<bsls::Types::Int64>(cit->numMessages()))
                    << "]";
             }
+            // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         }
     }
     else {
@@ -827,6 +863,7 @@ void printMessageGroupIdManagerIndex(
         typedef bsl::vector<LeastRecentlyUsedGroupId> LruGroupIds;
         const LruGroupIds&                            lruGroupIds =
             messageGroupIdManagerIndex.leastRecentlyUsedGroupIds();
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (LruGroupIds::const_iterator cit = lruGroupIds.begin();
              cit != lruGroupIds.end();
              ++cit) {
@@ -838,6 +875,7 @@ void printMessageGroupIdManagerIndex(
                 cit->lastSeenDeltaNanoseconds());
             printer.printAttribute(key.str().c_str(), timeDelta.str());
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         printer.end();
     }
 
@@ -849,6 +887,7 @@ void printMessageGroupIdManagerIndex(
         typedef bsl::vector<ClientMsgGroupsCount> NumMsgGroupsPerClient;
         const NumMsgGroupsPerClient&              numMsgGroupsPerClient =
             messageGroupIdManagerIndex.numMsgGroupsPerClient();
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (NumMsgGroupsPerClient::const_iterator cit =
                  numMsgGroupsPerClient.begin();
              cit != numMsgGroupsPerClient.end();
@@ -856,6 +895,7 @@ void printMessageGroupIdManagerIndex(
             printer.printAttribute(cit->clientDescription().c_str(),
                                    cit->numMsgGroupIds());
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         printer.end();
     }
 }
@@ -921,12 +961,15 @@ void printFanoutQueueEngine(bsl::ostream&            os,
     bsl::size_t                        maxAppIdLength = 0;
     typedef bsl::vector<ConsumerState> ConsumerStates;
     const ConsumerStates& consumerStates = queueEngine.consumerStates();
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (ConsumerStates::const_iterator cit = consumerStates.begin();
          cit != consumerStates.end();
          ++cit) {
         maxAppIdLength = bsl::max(maxAppIdLength, cit->appId().length());
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
+    // NOLINTBEGIN(*-narrowing-conversions,bugprone-unchecked-optional-access,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (ConsumerStates::const_iterator cit = consumerStates.begin();
          cit != consumerStates.end();
          ++cit) {
@@ -944,6 +987,7 @@ void printFanoutQueueEngine(bsl::ostream&            os,
 
         printAppState(os, cit->appState(), level + 2, spacesPerLevel);
     }
+    // NOLINTEND(*-narrowing-conversions,bugprone-unchecked-optional-access,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     os << '\n';
 }
 
@@ -962,6 +1006,7 @@ void printRelayQueueEngine(bsl::ostream&           os,
     if (queueEngine.numSubstreams()) {
         typedef bsl::vector<RelayQueueEngineSubStream> SubStreams;
         const SubStreams& subStreams = queueEngine.subStreams();
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (SubStreams::const_iterator cit = subStreams.cbegin();
              cit != subStreams.cend();
              ++cit) {
@@ -969,10 +1014,12 @@ void printRelayQueueEngine(bsl::ostream&           os,
                << "[" << cit->appId() << "] - [" << cit->appKey()
                << "] : " << cit->numMessages();
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
 
     typedef bsl::vector<AppState> AppStates;
     const AppStates&              appStates = queueEngine.appStates();
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (AppStates::const_iterator cit = appStates.begin();
          cit != appStates.end();
          ++cit) {
@@ -982,6 +1029,7 @@ void printRelayQueueEngine(bsl::ostream&           os,
            << "-----------------";
         printAppState(os, *cit, level + 2, spacesPerLevel);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     os << "\n";
 }
@@ -1055,10 +1103,12 @@ void printRemoteQueue(bsl::ostream&      os,
 
     typedef bsl::vector<RemoteStreamInfo> Streams;
     const Streams&                        streams = remoteQueue.streams();
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (Streams::const_iterator cit = streams.begin(); cit != streams.end();
          ++cit, --num) {
         printRemoteStream(os, *cit, level + 2, spacesPerLevel);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     os << "\n";
     printQueueEngine(os, remoteQueue.queueEngine(), level + 1, spacesPerLevel);
@@ -1107,6 +1157,7 @@ void printQueuesInfo(bsl::ostream&         os,
            << " QueueKey    Partition    Internal QueueId          QueueUri";
     }
 
+    // NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (QueuesInfo::const_iterator cit = queues.begin(); cit != queues.end();
          ++cit) {
         os << bmqu::PrintUtil::newlineAndIndent(level, spacesPerLevel)
@@ -1115,6 +1166,7 @@ void printQueuesInfo(bsl::ostream&         os,
            << bmqp::QueueId::QueueIdInt(cit->internalQueueId()) << "       "
            << cit->queueUri();
     }
+    // NOLINTEND(*-magic-numbers,*-narrowing-conversions,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 void printPartitionsInfo(bsl::ostream&         os,
@@ -1127,6 +1179,7 @@ void printPartitionsInfo(bsl::ostream&         os,
        << "----------";
 
     const bsl::vector<PartitionInfo>& partitions = partitionsInfo.partitions();
+    // NOLINTBEGIN(bugprone-unchecked-optional-access)
     for (unsigned int i = 0; i < partitions.size(); ++i) {
         os << bmqu::PrintUtil::newlineAndIndent(level, spacesPerLevel)
            << "PartitionId: " << i
@@ -1148,6 +1201,7 @@ void printPartitionsInfo(bsl::ostream&         os,
            << bmqu::PrintUtil::newlineAndIndent(level + 1, spacesPerLevel)
            << "Primary Status : " << partitions[i].primaryStatus();
     }
+    // NOLINTEND(bugprone-unchecked-optional-access)
 }
 
 void printElectorInfo(bsl::ostream&      os,
@@ -1182,6 +1236,7 @@ void printNodeStatuses(bsl::ostream&       os,
     os << bmqu::PrintUtil::newlineAndIndent(level, spacesPerLevel) << "-----";
     typedef bsl::vector<ClusterNodeInfo> Nodes;
     const Nodes&                         nodes = nodeStatuses.nodes();
+    // NOLINTBEGIN(bugprone-unchecked-optional-access,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (Nodes::const_iterator cit = nodes.cbegin(); cit != nodes.cend();
          ++cit) {
         os << bmqu::PrintUtil::newlineAndIndent(level, spacesPerLevel)
@@ -1210,6 +1265,7 @@ void printNodeStatuses(bsl::ostream&       os,
             os << " ]";
         }
     }
+    // NOLINTEND(bugprone-unchecked-optional-access,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 void printClusterStatus(bsl::ostream&        os,
@@ -1220,9 +1276,11 @@ void printClusterStatus(bsl::ostream&        os,
     os << "Cluster ('" << clusterStatus.name() << "') :\n";
     os << "---------";
     // Add extra '-' padding
+    // NOLINTBEGIN(*-magic-numbers)
     for (size_t i = 0; i < clusterStatus.name().size() + 5; ++i) {
         os << "-";
     }
+    // NOLINTEND(*-magic-numbers)
     os << bmqu::PrintUtil::newlineAndIndent(level + 1, spacesPerLevel)
        << "Cluster name  : " << clusterStatus.description();
     os << bmqu::PrintUtil::newlineAndIndent(level + 1, spacesPerLevel)
@@ -1315,12 +1373,14 @@ void printHelpCommands(bsl::ostream& os, const Help& helpCommands)
         os << "This process responds to the following CMD subcommands:\n";
     }
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (Commands::const_iterator cit = commands.cbegin();
          cit != commands.cend();
          ++cit) {
         os << separator1 << cit->command() << separator2 << cit->description()
            << "\n";
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 }  // close anonymous namespace
@@ -1434,8 +1494,10 @@ HumanPrinter::printResponses(bsl::ostream&            os,
     typedef bsl::vector<BloombergLP::mqbcmd::RouteResponse>
         RouteResponseVector;
 
+    // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
     RouteResponseVector responses = responseList.responses();
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
     for (RouteResponseVector::const_iterator respIt = responses.begin();
          respIt != responses.end();
          ++respIt) {
@@ -1445,6 +1507,7 @@ HumanPrinter::printResponses(bsl::ostream&            os,
         os << respIt->response();
         os << bsl::endl;
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
     return os;
 }
 

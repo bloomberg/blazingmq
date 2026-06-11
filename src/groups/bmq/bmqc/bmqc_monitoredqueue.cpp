@@ -32,6 +32,7 @@ namespace BloombergLP {
 namespace bmqc {
 
 namespace {
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char k_LOG_CATEGORY[] = "BMQC.MONITOREDQUEUE";
 }  // close unnamed namespace
 
@@ -83,6 +84,7 @@ void MonitoredQueueUtil::stateLogCallback(const bsl::string& queueName,
                                           bsls::Types::Int64 highWatermark2,
                                           bsls::Types::Int64 queueSize,
                                           MonitoredQueueState::Enum state)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     BALL_LOG_SET_CATEGORY(k_LOG_CATEGORY);
 
@@ -114,6 +116,7 @@ void MonitoredQueueUtil::stateLogCallback(const bsl::string& queueName,
     } break;
     }
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 }  // close package namespace
 }  // close enterprise namespace

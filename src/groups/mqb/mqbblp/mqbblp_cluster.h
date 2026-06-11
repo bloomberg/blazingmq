@@ -112,6 +112,7 @@ namespace mqbblp {
 // =============
 
 /// @todo TBD
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Cluster : public mqbi::Cluster,
                 public mqbnet::SessionEventProcessor,
                 public mqbc::ElectorInfoObserver,
@@ -205,12 +206,14 @@ class Cluster : public mqbi::Cluster,
         StopRequestManagerType;
 
     struct ValidationResult {
+        // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
         enum Enum {
             k_SUCCESS = 0,
             k_UNKNOWN_QUEUE,
             k_UNKNOWN_SUBQUEUE,
             k_FINAL
         };
+        // NOLINTEND(cppcoreguidelines-use-enum-class)
 
         // CLASS METHODS
 
@@ -830,6 +833,7 @@ class Cluster : public mqbi::Cluster,
     /// Return a pointer to the storage manager associated to this cluster.
     mqbi::StorageManager* storageManager() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS
@@ -901,9 +905,11 @@ Cluster::clusterProxyConfig() const
 }
 
 inline mqbi::Dispatcher* Cluster::dispatcher()
+// NOLINTBEGIN(clang-analyzer-optin.cplusplus.VirtualCall)
 {
     return dispatcherClientData().dispatcher();
 }
+// NOLINTEND(clang-analyzer-optin.cplusplus.VirtualCall)
 
 inline const mqbi::Dispatcher* Cluster::dispatcher() const
 {

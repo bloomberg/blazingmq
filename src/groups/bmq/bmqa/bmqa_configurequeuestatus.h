@@ -57,6 +57,7 @@ namespace bmqa {
 
 /// A value-semantic type for a configure queue operation with the message
 /// queue broker.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ConfigureQueueStatus {
   private:
     // PRIVATE TYPES
@@ -134,6 +135,7 @@ class ConfigureQueueStatus {
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // FREE OPERATORS
 
@@ -194,6 +196,7 @@ inline ConfigureQueueStatus::ConfigureQueueStatus(
 }
 
 // MANIPULATORS
+// NOLINTBEGIN(cert-oop54-cpp)
 inline ConfigureQueueStatus&
 ConfigureQueueStatus::operator=(const ConfigureQueueStatus& other)
 {
@@ -202,6 +205,7 @@ ConfigureQueueStatus::operator=(const ConfigureQueueStatus& other)
     d_errorDescription = other.errorDescription();
     return *this;
 }
+// NOLINTEND(cert-oop54-cpp)
 
 // ACCESSORS
 inline ConfigureQueueStatus::operator BoolType() const

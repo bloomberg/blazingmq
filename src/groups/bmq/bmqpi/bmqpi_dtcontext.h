@@ -51,6 +51,7 @@ namespace bmqpi {
 // ===============
 
 /// A pure interface for a context with a notion of a current span.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class DTContext {
   public:
     // PUBLIC CREATORS
@@ -81,6 +82,7 @@ class DTContext {
     virtual bslma::ManagedPtr<void>
     scope(const bsl::shared_ptr<DTSpan>& newSpan) = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

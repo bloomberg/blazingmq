@@ -216,15 +216,18 @@ namespace mqbnet {
 // ==============================
 
 /// Mechanism to manage an active node from an associated cluster.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ClusterActiveNodeManager {
   public:
     // PUBLIC TYPES
 
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum eResult {
         e_NO_CHANGE   = 0,
         e_LOST_ACTIVE = (1 << 0),
         e_NEW_ACTIVE  = (1 << 1)
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
   private:
     // CLASS-SCOPE CATEGORY
@@ -232,12 +235,14 @@ class ClusterActiveNodeManager {
 
     // PRIVATE TYPES
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
     struct NodeContext {
         bmqp_ctrlmsg::NodeStatus::Value d_status;
 
         /// Current session description
         bsl::string d_sessionDescription;
     };
+    // NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
     typedef bsl::map<mqbnet::ClusterNode*, NodeContext> NodesMap;
 
@@ -337,6 +342,7 @@ class ClusterActiveNodeManager {
     /// `out` object.
     void loadNodesInfo(mqbcmd::NodeStatuses* out) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

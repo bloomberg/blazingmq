@@ -41,6 +41,7 @@ namespace mqbstat {
 namespace {
 
 // Subcontext names
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char k_SUBCONTEXT_ALLOCATORS[] = "allocators";
 
 }  // close unnamed namespace
@@ -50,6 +51,7 @@ const char k_SUBCONTEXT_ALLOCATORS[] = "allocators";
 // ------------------
 
 void TablePrinter::initializeTablesAndTips(int historySize)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(historySize > 0);
@@ -94,6 +96,7 @@ void TablePrinter::initializeTablesAndTips(int historySize)
         start,
         end);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 TablePrinter::TablePrinter(const StatContextsMap& statContextsMap,
                            int                    historySize,

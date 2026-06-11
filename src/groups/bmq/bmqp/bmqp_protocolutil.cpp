@@ -41,6 +41,7 @@ namespace bmqp {
 namespace {
 
 /// Static buffer data used by the padding blob buffers and for the raw copy
+// NOLINTBEGIN(*-avoid-c-arrays)
 const char k_PADDING_DATA[9][8] = {
     {0, 0, 0, 0, 0, 0, 0, 0},
     {1, 1, 1, 1, 1, 1, 1, 1},
@@ -52,11 +53,13 @@ const char k_PADDING_DATA[9][8] = {
     {7, 7, 7, 7, 7, 7, 7, 7},
     {8, 8, 8, 8, 8, 8, 8, 8},
 };
+// NOLINTEND(*-avoid-c-arrays)
 
 /// Return a reference to the pre-built padding `BlobBuffer` for the
 /// specified `numPaddingBytes`.  The padding buffers are lazily initialized
 /// on first call.
 const bdlbb::BlobBuffer& getPaddingBlobBuffer(int numPaddingBytes)
+// NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers,cppcoreguidelines-pro-bounds-constant-array-index,cppcoreguidelines-pro-type-union-access)
 {
     // PRECONDITIONS
     BSLS_ASSERT(1 <= numPaddingBytes && numPaddingBytes <= 8);
@@ -65,6 +68,7 @@ const bdlbb::BlobBuffer& getPaddingBlobBuffer(int numPaddingBytes)
     BSLMT_ONCE_DO
     {
         bslma::Allocator* alloc = bmqu::SingletonAllocator::allocator();
+        // NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-bounds-constant-array-index,cppcoreguidelines-pro-type-const-cast,cppcoreguidelines-pro-type-union-access)
         for (int i = 0; i < 9; ++i) {
             bsl::shared_ptr<char> data;
             data.reset(const_cast<char*>(k_PADDING_DATA[i]),
@@ -72,9 +76,11 @@ const bdlbb::BlobBuffer& getPaddingBlobBuffer(int numPaddingBytes)
                        alloc);
             new (buffers[i].buffer()) bdlbb::BlobBuffer(data, i);
         }
+        // NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-bounds-constant-array-index,cppcoreguidelines-pro-type-const-cast,cppcoreguidelines-pro-type-union-access)
     }
     return buffers[numPaddingBytes].object();
 }
+// NOLINTEND(*-avoid-c-arrays,*-magic-numbers,cppcoreguidelines-pro-bounds-constant-array-index,cppcoreguidelines-pro-type-union-access)
 
 }  // close unnamed namespace
 
@@ -82,8 +88,10 @@ const bdlbb::BlobBuffer& getPaddingBlobBuffer(int numPaddingBytes)
 // struct ProtocolUtil
 // -------------------
 
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char ProtocolUtil::k_NULL_APP_ID[] = "";
 
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char ProtocolUtil::k_DEFAULT_APP_ID[] = "__default";
 
 void ProtocolUtil::initialize(bslma::Allocator*)
@@ -98,6 +106,7 @@ void ProtocolUtil::shutdown()
 
 void ProtocolUtil::appendPaddingRaw(bdlbb::Blob* destination,
                                     int          numPaddingBytes)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-constant-array-index,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
     // PRECONDITIONS
     BSLS_ASSERT(1 <= numPaddingBytes && numPaddingBytes <= 8);
@@ -124,25 +133,31 @@ void ProtocolUtil::appendPaddingRaw(bdlbb::Blob* destination,
         destination->appendDataBuffer(getPaddingBlobBuffer(numPaddingBytes));
     }
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-constant-array-index,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 void ProtocolUtil::appendPaddingRaw(char* destination, int numPaddingBytes)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-constant-array-index)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(numPaddingBytes >= 1 && numPaddingBytes <= 4);
 
     bsl::memcpy(destination, k_PADDING_DATA[numPaddingBytes], numPaddingBytes);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-constant-array-index)
 
 void ProtocolUtil::appendPaddingDwordRaw(char* destination,
                                          int   numPaddingBytes)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-constant-array-index)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(numPaddingBytes >= 1 && numPaddingBytes <= 8);
 
     bsl::memcpy(destination, k_PADDING_DATA[numPaddingBytes], numPaddingBytes);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-constant-array-index)
 
 int ProtocolUtil::calcUnpaddedLength(const bdlbb::Blob& blob, int length)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
     BSLS_ASSERT_SAFE(length);
 
@@ -156,8 +171,10 @@ int ProtocolUtil::calcUnpaddedLength(const bdlbb::Blob& blob, int length)
 
     return length - buf.data()[pos.second];
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 int ProtocolUtil::ackResultToCode(bmqt::AckResult::Enum value)
+// NOLINTBEGIN(*-magic-numbers)
 {
     switch (value) {
     case bmqt::AckResult::e_SUCCESS: {
@@ -188,8 +205,10 @@ int ProtocolUtil::ackResultToCode(bmqt::AckResult::Enum value)
     }
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 bmqt::AckResult::Enum ProtocolUtil::ackResultFromCode(int value)
+// NOLINTBEGIN(*-magic-numbers)
 {
     switch (value) {
     case 0: {
@@ -213,6 +232,7 @@ bmqt::AckResult::Enum ProtocolUtil::ackResultFromCode(int value)
     }
     };
 }
+// NOLINTEND(*-magic-numbers)
 
 bool ProtocolUtil::loadFieldValues(bsl::vector<bsl::string>* fieldValues,
                                    const bsl::string&        fieldName,
@@ -247,9 +267,11 @@ bool ProtocolUtil::loadFieldValues(bsl::vector<bsl::string>* fieldValues,
         // Tokenize "<val1>,<val2>,<val3>" into:
         //     {"<val1>", "<val2>", "<val3>"}
         bdlb::Tokenizer valueTokenIt(values, ",");
+        // NOLINTBEGIN(modernize-use-emplace)
         for (; valueTokenIt.isValid(); ++valueTokenIt) {
             fieldValues->push_back(valueTokenIt.token());
         }
+        // NOLINTEND(modernize-use-emplace)
         return true;  // RETURN
     }
     return false;
@@ -270,6 +292,7 @@ int ProtocolUtil::convertToOld(bdlbb::Blob*                         dst,
                                bmqt::CompressionAlgorithmType::Enum cat,
                                bdlbb::BlobBufferFactory*            factory,
                                bslma::Allocator*                    allocator)
+// NOLINTBEGIN(*-avoid-c-arrays,cppcoreguidelines-use-enum-class)
 {
     enum RcEnum {
         rc_SUCCESS                          = 0,
@@ -356,6 +379,7 @@ int ProtocolUtil::convertToOld(bdlbb::Blob*                         dst,
     // need to keep two instances, current and previous
     bmqu::BlobObjectProxy<MessagePropertyHeader> mph[2];
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
     while (numProps--) {
         // Move the blob position to the beginning of
         // 'MessagePropertyHeader'.
@@ -377,9 +401,11 @@ int ProtocolUtil::convertToOld(bdlbb::Blob*                         dst,
         }
 
         // Keep track of property's info.
-        int length  = 0;
+        int length = 0;
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         int nameLen = mph[current]->propertyNameLength();
-        int offset  = mph[current]->propertyValueLength();
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
+        int offset = mph[current]->propertyValueLength();
 
         // New style.  Calculate length as delta between offsets
         // 'offset' is to the property name
@@ -418,6 +444,7 @@ int ProtocolUtil::convertToOld(bdlbb::Blob*                         dst,
         advanceLength = mphSize;
         totalLength += nameLen;
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
 
     if (totalSize != totalLength) {
         return rc_INCORRECT_LENGTH;  // RETURN
@@ -463,10 +490,12 @@ int ProtocolUtil::convertToOld(bdlbb::Blob*                         dst,
 
     return rc;
 }
+// NOLINTEND(*-avoid-c-arrays,cppcoreguidelines-use-enum-class)
 
 int ProtocolUtil::readPropertiesSize(int*                      size,
                                      const bdlbb::Blob&        blob,
                                      const bmqu::BlobPosition& position)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     enum RcEnum {
         // Return codes
@@ -506,6 +535,7 @@ int ProtocolUtil::readPropertiesSize(int*                      size,
     // padding length and message properties header.
     return rc_OK;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 int ProtocolUtil::parse(bdlbb::Blob*              messagePropertiesOutput,
                         int*                      messagePropertiesSize,
@@ -519,6 +549,7 @@ int ProtocolUtil::parse(bdlbb::Blob*              messagePropertiesOutput,
                         bmqt::CompressionAlgorithmType::Enum cat,
                         bdlbb::BlobBufferFactory*            blobBufferFactory,
                         bslma::Allocator*                    allocator)
+// NOLINTBEGIN(*-magic-numbers,clang-analyzer-core.uninitialized.Assign,cppcoreguidelines-init-variables,cppcoreguidelines-use-enum-class)
 {
     // This is to capture parsing and de-compressing MessageProperties in a
     // single place.
@@ -661,6 +692,7 @@ int ProtocolUtil::parse(bdlbb::Blob*              messagePropertiesOutput,
 
     return rc_OK;
 }
+// NOLINTEND(*-magic-numbers,clang-analyzer-core.uninitialized.Assign,cppcoreguidelines-init-variables,cppcoreguidelines-use-enum-class)
 
 }  // close package namespace
 }  // close enterprise namespace

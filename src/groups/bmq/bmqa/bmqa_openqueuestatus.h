@@ -58,6 +58,7 @@ namespace bmqa {
 
 /// A value-semantic type for an open queue operation with the message queue
 /// broker.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class OpenQueueStatus {
   private:
     // DATA
@@ -133,6 +134,7 @@ class OpenQueueStatus {
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // FREE OPERATORS
 
@@ -188,6 +190,7 @@ inline OpenQueueStatus::OpenQueueStatus(const QueueId&              queueId,
 }
 
 // MANIPULATORS
+// NOLINTBEGIN(cert-oop54-cpp)
 inline OpenQueueStatus&
 OpenQueueStatus::operator=(const OpenQueueStatus& other)
 {
@@ -196,6 +199,7 @@ OpenQueueStatus::operator=(const OpenQueueStatus& other)
     d_errorDescription = other.errorDescription();
     return *this;
 }
+// NOLINTEND(cert-oop54-cpp)
 
 // ACCESSORS
 inline OpenQueueStatus::operator BoolType() const

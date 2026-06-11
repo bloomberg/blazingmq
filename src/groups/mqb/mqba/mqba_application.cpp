@@ -111,10 +111,12 @@ void Application::oneTimeInit()
         // information to take care of scenarios when nodes are started at the
         // same time or on the same physical host.
         unsigned int seed =
+            // NOLINTBEGIN(*-magic-numbers)
             bsl::time(NULL) +
             static_cast<unsigned int>(bdls::ProcessUtil::getProcessId()) +
             static_cast<unsigned int>(bmqu::Time::highResolutionTimer() &
                                       0xFFFFFFFF);
+        // NOLINTEND(*-magic-numbers)
 
         bsl::srand(seed);
     }
@@ -134,16 +136,20 @@ Application::Application(bdlmt::EventScheduler* scheduler,
                          bslma::Allocator*      allocator)
 : d_allocators(allocator)
 , d_scheduler_p(scheduler)
+// NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions)
 , d_adminExecutionPool(bslmt::ThreadAttributes(),
                        0,
                        1,
                        bsls::TimeInterval(120).totalMilliseconds(),
                        allocator)
+// NOLINTEND(*-magic-numbers,*-narrowing-conversions)
+// NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions)
 , d_adminRerouteExecutionPool(bslmt::ThreadAttributes(),
                               0,
                               1,
                               bsls::TimeInterval(120).totalMilliseconds(),
                               allocator)
+// NOLINTEND(*-magic-numbers,*-narrowing-conversions)
 , d_bufferFactory(k_BLOBBUFFER_SIZE,
                   bsls::BlockGrowth::BSLS_CONSTANT,
                   d_allocators.get("BufferFactory"))
@@ -170,6 +176,7 @@ Application::Application(bdlmt::EventScheduler* scheduler,
 , d_clusterCatalog_mp()
 , d_domainManager_mp()
 , d_allocator_p(allocator)
+// NOLINTBEGIN(*-avoid-c-arrays,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_scheduler_p->clockType() ==
@@ -195,6 +202,7 @@ Application::Application(bdlmt::EventScheduler* scheduler,
 #endif
 
 #define MQBA_STRINGIFY2(s) #s
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define MQBA_STRINGIFY(s) MQBA_STRINGIFY2(s)
 
     // Print banner
@@ -220,6 +228,7 @@ Application::Application(bdlmt::EventScheduler* scheduler,
 #undef MQBA_STRINGIFY2
 #undef MQBA_STRINGIFY
 }
+// NOLINTEND(*-avoid-c-arrays,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 Application::~Application()
 {
@@ -237,6 +246,7 @@ void Application::loadStatContexts(
 }
 
 int Application::start(bsl::ostream& errorDescription)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     enum RcEnum {
         // Value for the various RC error categories
@@ -452,8 +462,10 @@ int Application::start(bsl::ostream& errorDescription)
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 void Application::stop()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     BALL_LOG_INFO << bsl::endl
                   << "========== ============================== =========="
@@ -464,16 +476,18 @@ void Application::stop()
 
     bsls::TimeInterval startTime = bdlt::CurrentTime::now();
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define STOP_OBJ(OBJ, NAME)                                                   \
     if (OBJ) {                                                                \
         BALL_LOG_INFO << "Stopping " NAME "...";                              \
-        OBJ->stop();                                                          \
+        OBJ->stop(); /* NOLINT(bugprone-macro-parentheses) */                 \
     }
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define DESTROY_OBJ(OBJ, NAME)                                                \
     if (OBJ) {                                                                \
         BALL_LOG_INFO << "Destroying " NAME "...";                            \
-        OBJ.reset();                                                          \
+        OBJ.reset(); /* NOLINT(bugprone-macro-parentheses) */                 \
     }
 
     // Stop listening so that any new connections are refused.
@@ -493,6 +507,7 @@ void Application::stop()
         bsl::vector<bsl::shared_ptr<mqbi::Cluster> > clusters(d_allocator_p);
         d_clusterCatalog_mp->getClusters(&clusters);
 
+        // NOLINTNEXTLINE(*-narrowing-conversions)
         bslmt::Latch latch(clusters.size());
 
         BALL_LOG_INFO << "Initiating " << clusters.size()
@@ -559,6 +574,7 @@ void Application::stop()
 #undef DESTROY_OBJ
 #undef STOP_OBJ
 }
+// NOLINTEND(performance-avoid-endl)
 
 bool Application::initiateShutdown()
 {
@@ -567,6 +583,7 @@ bool Application::initiateShutdown()
     Sessions clients(d_allocator_p);
     Sessions proxies(d_allocator_p);
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     for (mqbnet::TransportManagerIterator sessIt(d_transportManager_mp.get());
          sessIt;
          ++sessIt) {
@@ -623,7 +640,9 @@ bool Application::initiateShutdown()
             }
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     bslmt::Latch latchDownstreams(clients.size() + 1);
     // The 'StopRequestManagerType::sendRequest' always calls 'd_responseCb'.
 
@@ -639,11 +658,13 @@ bool Application::initiateShutdown()
     BALL_LOG_INFO << "Shutting down " << clients.size()
                   << " clients; timeout is " << shutdownTimeout << " ms";
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (Sessions::const_iterator cit = clients.begin(); cit != clients.end();
          ++cit) {
         (*cit)->initiateShutdown(
             bdlf::BindUtil::bind(&bslmt::Latch::arrive, &latchDownstreams));
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     // Need to wait for peers to update this node status to guarantee no new
     // clusters.
@@ -767,6 +788,7 @@ Application::getRelevantCluster(bsl::ostream&          errorDescription,
 
 void Application::executeCommand(const mqbcmd::Command&  command,
                                  mqbcmd::InternalResult* cmdResult)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(cmdResult);
@@ -860,11 +882,13 @@ void Application::executeCommand(const mqbcmd::Command&  command,
         cmdResult->makeError().message() = errorOs.str();
     }
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 int Application::processCommand(const bslstl::StringRef& source,
                                 const bsl::string&       cmd,
                                 bsl::ostream&            os,
                                 bool                     fromReroute)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     enum RcEnum {
         rc_SUCCESS     = 0,
@@ -962,6 +986,7 @@ int Application::processCommand(const bslstl::StringRef& source,
 
     return cmdResult.isErrorValue() ? rc_ERROR : rc_SUCCESS;  // RETURN
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 int Application::processCommandCb(
     const bslstl::StringRef&                            source,

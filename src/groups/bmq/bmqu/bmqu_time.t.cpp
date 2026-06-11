@@ -43,6 +43,7 @@ using namespace bsl;
 namespace {
 
 /// A struct to provide controllable timer functions.
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 struct TestClock {
     // DATA
     bsls::TimeInterval d_realtimeClock;
@@ -59,6 +60,7 @@ struct TestClock {
 
     bsls::Types::Int64 highResTimer() { return d_highResTimer; }
 };
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 }  // close unnamed namespace
 
@@ -80,6 +82,7 @@ static void test1_breathingTest()
 // Testing:
 //   Basic functionality
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
@@ -122,6 +125,7 @@ static void test1_breathingTest()
 
     bmqu::Time::shutdown();
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 static void test2_defaultInitializeShutdown()
 // ------------------------------------------------------------------------
@@ -240,6 +244,7 @@ static void testN1_performance()
 //      (3) |   70  |    36   |    Linux system.
 //      (4) |  100  |    36   |
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(cppcoreguidelines-init-variables,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("PERFORMANCE");
 
@@ -314,10 +319,12 @@ static void testN1_performance()
              << " nano seconds per call)." << endl;
     }
 }
+// NOLINTEND(cppcoreguidelines-init-variables,performance-avoid-endl)
 
 // Begin benchmarking tests
 #ifdef BMQTST_BENCHMARK_ENABLED
 static void testN1_defaultPerformance_GoogleBenchmark(benchmark::State& state)
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
 {
     // Default function call
     bmqtst::TestHelper::printTestName("PERFORMANCE GOOGLE BENCHMARK");
@@ -329,8 +336,10 @@ static void testN1_defaultPerformance_GoogleBenchmark(benchmark::State& state)
         }
     }
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores)
 
 static void testN1_funcptrPerformance_GoogleBenchmark(benchmark::State& state)
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores,cppcoreguidelines-init-variables)
 {
     // Function pointer
     bmqtst::TestHelper::printTestName("PERFORMANCE GOOGLE BENCHMARK");
@@ -345,8 +354,10 @@ static void testN1_funcptrPerformance_GoogleBenchmark(benchmark::State& state)
         }
     }
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores,cppcoreguidelines-init-variables)
 
 static void testN1_bslPerformance_GoogleBenchmark(benchmark::State& state)
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
 {
     // BSL Typdef performance
     bmqtst::TestHelper::printTestName("PERFORMANCE GOOGLE BENCHMARK");
@@ -361,8 +372,10 @@ static void testN1_bslPerformance_GoogleBenchmark(benchmark::State& state)
         }
     }
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores)
 
 static void testN1_bindPerformance_GoogleBenchmark(benchmark::State& state)
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
 {
     // Binding performance
     bmqtst::TestHelper::printTestName("PERFORMANCE GOOGLE BENCHMARK");
@@ -377,6 +390,7 @@ static void testN1_bindPerformance_GoogleBenchmark(benchmark::State& state)
         }
     }
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores)
 #endif  // BMQTST_BENCHMARK_ENABLED
 
 // ============================================================================
@@ -384,6 +398,7 @@ static void testN1_bindPerformance_GoogleBenchmark(benchmark::State& state)
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -424,3 +439,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

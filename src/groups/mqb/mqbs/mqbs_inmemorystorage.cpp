@@ -305,6 +305,7 @@ InMemoryStorage::confirm(const bmqt::MessageGUID& msgGUID,
 
 mqbi::StorageResult::Enum
 InMemoryStorage::releaseRef(const bmqt::MessageGUID& guid, bool asPrimary)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     ItemsMapIter it = d_items.find(guid);
     if (it == d_items.end()) {
@@ -352,9 +353,11 @@ InMemoryStorage::releaseRef(const bmqt::MessageGUID& guid, bool asPrimary)
 
     return mqbi::StorageResult::e_NON_ZERO_REFERENCES;
 }
+// NOLINTEND(*-narrowing-conversions)
 
 mqbi::StorageResult::Enum
 InMemoryStorage::remove(const bmqt::MessageGUID& msgGUID, int* msgSize)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     ItemsMapIter it = d_items.find(msgGUID);
     if (it == d_items.end()) {
@@ -386,9 +389,11 @@ InMemoryStorage::remove(const bmqt::MessageGUID& msgGUID, int* msgSize)
 
     return mqbi::StorageResult::e_SUCCESS;
 }
+// NOLINTEND(*-narrowing-conversions)
 
 mqbi::StorageResult::Enum
 InMemoryStorage::removeAll(const mqbu::StorageKey& appKey)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     if (appKey.isNull()) {
         // Clear the 'physical' queue, as well as all virtual storages.
@@ -434,6 +439,7 @@ InMemoryStorage::removeAll(const mqbu::StorageKey& appKey)
 
     return mqbi::StorageResult::e_SUCCESS;
 }
+// NOLINTEND(*-narrowing-conversions)
 
 void InMemoryStorage::flushStorage()
 {
@@ -443,9 +449,10 @@ void InMemoryStorage::flushStorage()
 int InMemoryStorage::gcExpiredMessages(const bdlt::Datetime& currentTimeUtc,
                                        bsls::Types::Uint64   secondsFromEpoch,
                                        int                   limit)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     bsls::Types::Uint64      latestMsgTimestampEpoch = 0;
-    int                      numMsgsDeleted = 0;
+    int                      numMsgsDeleted          = 0;
     const bsls::Types::Int64 now = bmqu::Time::highResolutionTimer();
 
     for (ItemsMapIter next = d_items.begin(), cit; next != d_items.end();) {
@@ -510,8 +517,10 @@ int InMemoryStorage::gcExpiredMessages(const bdlt::Datetime& currentTimeUtc,
 
     return numMsgsDeleted;
 }
+// NOLINTEND(*-narrowing-conversions)
 
 void InMemoryStorage::gcHistory(bsls::Types::Int64 now)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     const int rc = d_items.gc(now, k_GC_HISTORY_BATCH_SIZE);
     if (0 != rc) {
@@ -520,6 +529,7 @@ void InMemoryStorage::gcHistory(bsls::Types::Int64 now)
                 d_items.historySize());
     }
 }
+// NOLINTEND(*-narrowing-conversions)
 
 void InMemoryStorage::selectForAutoConfirming(const bmqt::MessageGUID& msgGUID)
 {

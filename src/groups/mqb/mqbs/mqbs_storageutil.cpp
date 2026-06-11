@@ -53,7 +53,8 @@ void StorageUtil::generateStorageKey(
     // second instance.
 
     bdlde::Md5::Md5Digest digest;
-    bdlde::Md5            md5(value.data(), value.length());
+    // NOLINTNEXTLINE(*-narrowing-conversions)
+    bdlde::Md5 md5(value.data(), value.length());
 
     bsls::Types::Int64 time = bmqu::Time::highResolutionTimer();
     md5.update(&time, sizeof(time));
@@ -131,6 +132,7 @@ void StorageUtil::mergeDomainQueueMessagesCountMap(
 void StorageUtil::loadArrivalTime(
     bsls::Types::Int64*                   out,
     const mqbi::StorageMessageAttributes& attributes)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(out);
@@ -159,10 +161,12 @@ void StorageUtil::loadArrivalTime(
         *out *= bdlt::TimeUnitRatio::k_NANOSECONDS_PER_SECOND;
     }
 }
+// NOLINTEND(*-narrowing-conversions)
 
 void StorageUtil::loadArrivalTime(
     bdlt::Datetime*                       out,
     const mqbi::StorageMessageAttributes& attributes)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(out);
@@ -173,10 +177,12 @@ void StorageUtil::loadArrivalTime(
     arrivalTimeInterval.addNanoseconds(arrivalTimeNs);
     bdlt::EpochUtil::convertFromTimeInterval(out, arrivalTimeInterval);
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 void StorageUtil::loadArrivalTimeDelta(
     bsls::Types::Int64*                   out,
     const mqbi::StorageMessageAttributes& attributes)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(out);
@@ -200,6 +206,7 @@ void StorageUtil::loadArrivalTimeDelta(
         *out *= bdlt::TimeUnitRatio::k_NANOSECONDS_PER_SECOND;
     }
 }
+// NOLINTEND(*-narrowing-conversions)
 
 int StorageUtil::loadRecordHeaderAndPos(
     bmqu::BlobObjectProxy<mqbs::RecordHeader>* recordHeader,
@@ -207,6 +214,7 @@ int StorageUtil::loadRecordHeaderAndPos(
     const bmqp::StorageMessageIterator&        storageIter,
     const bsl::shared_ptr<bdlbb::Blob>&        stroageEvent,
     const bslstl::StringRef&                   partitionDesc)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(recordHeader);
@@ -280,6 +288,7 @@ int StorageUtil::loadRecordHeaderAndPos(
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 }  // close package namespace
 }  // close enterprise namespace

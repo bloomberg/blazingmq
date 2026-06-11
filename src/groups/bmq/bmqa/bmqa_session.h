@@ -607,6 +607,7 @@ class SessionEvent;
 /// Pure protocol for an asynchronous event handler.  The implementation
 /// must be thread safe if the `Session` is configured to use multiple
 /// threads.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class SessionEventHandler {
   public:
     // CREATORS
@@ -624,6 +625,7 @@ class SessionEventHandler {
     /// messages.
     virtual void onMessageEvent(const MessageEvent& event) = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ==================
 // struct SessionImpl
@@ -633,6 +635,7 @@ class SessionEventHandler {
 /// Impl structure for the session data members, so that special task such
 /// as `bmqadm` can access them by reinterpret casting a `Session` object.
 /// Care should be taken though since `Session` is a polymorphic class.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct SessionImpl {
     // PUBLIC DATA
 
@@ -670,12 +673,14 @@ struct SessionImpl {
 
     void loadMessageEventBuilder(MessageEventBuilder* builder);
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =============
 // class Session
 // =============
 
 /// A session with a BlazingMQ broker.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Session : public AbstractSession {
   public:
     // TYPES
@@ -1156,6 +1161,7 @@ class Session : public AbstractSession {
     int configureMessageDumping(const bslstl::StringRef& command)
         BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

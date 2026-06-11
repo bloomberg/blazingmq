@@ -82,6 +82,7 @@ class PushStream {
     // forward declaration
     struct Element;
 
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum ElementList {
         /// column
         e_GUID = 0,
@@ -89,6 +90,7 @@ class PushStream {
         e_APP   = 1,
         e_TOTAL = 2
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     struct ElementBase {
         Element* d_next_p;
@@ -171,6 +173,7 @@ class PushStream {
     typedef Stream::iterator                      iterator;
     typedef bsl::unordered_map<unsigned int, App> Apps;
 
+    // NOLINTBEGIN(*-avoid-c-arrays)
     struct Element {
         friend struct Elements;
 
@@ -212,6 +215,7 @@ class PushStream {
         // Return the datastream iterator referencing the GUID of this element.
         const iterator& iteratorGuid() const;
     };
+    // NOLINTEND(*-avoid-c-arrays)
 
     // PUBLIC DATA
     Stream d_stream;
@@ -278,6 +282,7 @@ class PushStream {
 /// A mechanism to iterate the `PushStream`; see above.  To be used by the
 /// `QueueEngine` routing in the same way as another
 /// @bbref{mqbi::StorageIterator} implementation(s).
+// NOLINTBEGIN(cppcoreguidelines-non-private-member-variables-in-classes,cppcoreguidelines-special-member-functions)
 class PushStreamIterator : public mqbi::StorageIterator {
   private:
     // DATA
@@ -331,6 +336,7 @@ class PushStreamIterator : public mqbi::StorageIterator {
                        const PushStream::iterator& initialPosition);
 
     /// Destructor
+    // NOLINTNEXTLINE(cppcoreguidelines-explicit-virtual-functions)
     virtual ~PushStreamIterator() BSLS_KEYWORD_OVERRIDE;
 
     /// Remove the current element (`mqbi::AppMessage`, `upstreamSubQueueId`
@@ -414,12 +420,14 @@ class PushStreamIterator : public mqbi::StorageIterator {
     /// iterator has received replication factor Receipts.
     bool hasReceipt() const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-non-private-member-variables-in-classes,cppcoreguidelines-special-member-functions)
 
 // ============================
 // class VirtualStorageIterator
 // ============================
 
 /// A mechanism to iterate `Element`s related to one App only.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class VirtualPushStreamIterator : public PushStreamIterator {
   private:
     // NOT IMPLEMENTED
@@ -437,6 +445,7 @@ class VirtualPushStreamIterator : public PushStreamIterator {
                               PushStream*    owner);
 
     /// Destructor
+    // NOLINTNEXTLINE(cppcoreguidelines-explicit-virtual-functions)
     virtual ~VirtualPushStreamIterator() BSLS_KEYWORD_OVERRIDE;
 
     /// Remove the current element (`mqbi::AppMessage`, `upstreamSubQueueId`
@@ -462,6 +471,7 @@ class VirtualPushStreamIterator : public PushStreamIterator {
     /// collection, and hence doesn't reference a valid item.
     bool atEnd() const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // FREE OPERATORS
 bool operator==(const VirtualPushStreamIterator& lhs,
@@ -577,6 +587,7 @@ inline void PushStream::Elements::onRemove()
 }
 
 inline void PushStream::Elements::remove(Element* element, ElementList where)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
 {
     BSLS_ASSERT_SAFE(element);
 
@@ -608,8 +619,10 @@ inline void PushStream::Elements::remove(Element* element, ElementList where)
 
     element->d_base[where].d_previous_p = element->d_base[where].d_next_p = 0;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
 
 inline void PushStream::Elements::add(Element* element, ElementList where)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
 {
     BSLS_ASSERT_SAFE(element->d_base[where].d_previous_p == 0);
     BSLS_ASSERT_SAFE(element->d_base[where].d_next_p == 0);
@@ -624,6 +637,7 @@ inline void PushStream::Elements::add(Element* element, ElementList where)
 
     onAdd(element);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
 
 inline PushStream::Element* PushStream::Elements::front() const
 {
@@ -780,6 +794,7 @@ inline unsigned int PushStream::removeApp(unsigned int upstreamSubQueueId)
     return numMessages;
 }
 
+// NOLINTBEGIN(performance-unnecessary-value-param)
 inline unsigned int PushStream::removeApp(Apps::iterator itApp)
 {
     unsigned int numElements = itApp->second.d_elements.numElements();
@@ -793,6 +808,7 @@ inline unsigned int PushStream::removeApp(Apps::iterator itApp)
 
     return numElements;
 }
+// NOLINTEND(performance-unnecessary-value-param)
 
 inline unsigned int PushStream::removeAll()
 {

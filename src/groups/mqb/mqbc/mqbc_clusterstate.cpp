@@ -36,6 +36,7 @@ namespace mqbc {
 // ---------------------------
 
 bool ClusterStateQueueInfo::containsDefaultAppIdOnly(const AppInfos& appInfos)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     if (appInfos.empty()) {
         return true;  // RETURN
@@ -48,6 +49,7 @@ bool ClusterStateQueueInfo::containsDefaultAppIdOnly(const AppInfos& appInfos)
 
     return false;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 bool ClusterStateQueueInfo::hasTheSameAppIds(const AppInfos& appInfos) const
 {
@@ -79,6 +81,7 @@ void ClusterStateQueueInfo::setApps(const bmqp_ctrlmsg::QueueInfo& advisory)
 
     d_appInfos.clear();
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (bsl::vector<bmqp_ctrlmsg::AppIdInfo>::const_iterator cit =
              advisory.appIds().cbegin();
          cit != advisory.appIds().cend();
@@ -91,6 +94,7 @@ void ClusterStateQueueInfo::setApps(const bmqp_ctrlmsg::QueueInfo& advisory)
             mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
                              cit->appKey().data())));
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 bool ClusterStateQueueInfo::equal(
@@ -110,6 +114,7 @@ bool ClusterStateQueueInfo::equal(
         return false;
     }
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (bsl::vector<bmqp_ctrlmsg::AppIdInfo>::const_iterator cit =
              advisory.appIds().cbegin();
          cit != advisory.appIds().cend();
@@ -118,6 +123,7 @@ bool ClusterStateQueueInfo::equal(
             return false;
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     return true;
 }
 
@@ -661,6 +667,7 @@ void ClusterState::clearQueues()
 }
 
 int ClusterState::updateQueue(const bmqp_ctrlmsg::QueueInfoUpdate& update)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -698,6 +705,7 @@ int ClusterState::updateQueue(const bmqp_ctrlmsg::QueueInfoUpdate& update)
         }
         AppInfos& appInfos = iter->second->appInfos();
 
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (bsl::vector<bmqp_ctrlmsg::AppIdInfo>::const_iterator citer =
                  update.addedAppIds().cbegin();
              citer != update.addedAppIds().cend();
@@ -712,7 +720,9 @@ int ClusterState::updateQueue(const bmqp_ctrlmsg::QueueInfoUpdate& update)
             }
             addedAppIds.insert(appInfo);
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (bsl::vector<bmqp_ctrlmsg::AppIdInfo>::const_iterator citer =
                  update.removedAppIds().cbegin();
              citer != update.removedAppIds().cend();
@@ -728,6 +738,7 @@ int ClusterState::updateQueue(const bmqp_ctrlmsg::QueueInfoUpdate& update)
 
             removedAppIds.insert(appInfo);
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
         bmqu::Printer<bsl::vector<bmqp_ctrlmsg::AppIdInfo> > printer1(
             &update.addedAppIds());
@@ -758,6 +769,7 @@ int ClusterState::updateQueue(const bmqp_ctrlmsg::QueueInfoUpdate& update)
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 void ClusterState::clear()
 {
@@ -855,6 +867,7 @@ ClusterState::PartitionIdExtractor::PartitionIdExtractor(
     bslma::Allocator* allocator)
 : d_allocator_p(allocator)
 , d_regex(allocator)
+// NOLINTBEGIN(*-avoid-c-arrays,cppcoreguidelines-init-variables)
 {
     // Enable JIT compilation, unless running under MemorySanitizer.
     // Low-level assembler instructions used by sljit causes sanitizer issues.
@@ -872,10 +885,12 @@ ClusterState::PartitionIdExtractor::PartitionIdExtractor(
     bsl::string                 error(d_allocator_p);
     size_t                      errorOffset;
     BSLA_MAYBE_UNUSED const int rc =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         d_regex.prepare(&error, &errorOffset, pattern, regexOptions);
     BSLS_ASSERT_SAFE(rc == 0);
     BSLS_ASSERT_SAFE(d_regex.isPrepared() == true);
 }
+// NOLINTEND(*-avoid-c-arrays,cppcoreguidelines-init-variables)
 
 int ClusterState::PartitionIdExtractor::extract(
     const bsl::string& queueName) const

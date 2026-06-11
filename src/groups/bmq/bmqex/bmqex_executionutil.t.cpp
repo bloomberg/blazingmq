@@ -140,6 +140,7 @@ struct SynchronizeCallable {
 
 /// Provides an single-threaded execution context for test purposes that
 /// executes submitted function objects in the context of an owned thread.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class TestExecutionContext {
   public:
     // TYPES
@@ -288,9 +289,11 @@ class TestExecutionContext {
     /// Return an executor that may be used for submitting function objects
     /// to this execution context.
     ExecutorType executor() const BSLS_KEYWORD_NOEXCEPT
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast)
     {
         return const_cast<TestExecutionContext*>(this);
     }
+    // NOLINTEND(cppcoreguidelines-pro-type-const-cast)
 
     /// Return collected statistics.
     const Statistics& statistics() const BSLS_KEYWORD_NOEXCEPT
@@ -298,6 +301,7 @@ class TestExecutionContext {
         return d_statistics;
     }
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close unnamed namespace
 
@@ -591,6 +595,7 @@ static void test4_execute_always_blocking()
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -612,3 +617,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

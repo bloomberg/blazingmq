@@ -43,6 +43,7 @@ namespace mqbplug {
 /// Base class for plugin libraries, that exposes metadata of each
 /// plugin, as well as provides support for library lifetime management
 /// method.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class PluginLibrary {
   public:
     // CREATORS
@@ -73,6 +74,7 @@ class PluginLibrary {
     /// Return the information about all plugins this PluginLibrary exposes.
     virtual const bsl::vector<PluginInfo>& plugins() const = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

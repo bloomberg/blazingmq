@@ -182,9 +182,11 @@ void Application::setUpLog()
     }
 
     const bsl::string logFormat =
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         d_parameters.logFormat().empty()
             ? CommandLineParameters::DEFAULT_INITIALIZER_LOG_FORMAT
             : d_parameters.logFormat();
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
     d_consoleObserver.setSeverityThreshold(ball::Severity::e_TRACE);
     // We use the ballLoggerManager global threshold to determine what gets
@@ -251,6 +253,7 @@ void Application::autoReadShutdown()
 }
 
 void Application::printStatHeader() const
+// NOLINTBEGIN(performance-avoid-endl)
 {
     static bool headerPrinted = false;  // To only print it once
     if (headerPrinted) {
@@ -285,8 +288,10 @@ void Application::printStatHeader() const
     }
     bsl::cout << bsl::endl;
 }
+// NOLINTEND(performance-avoid-endl)
 
 void Application::printStats(int interval) const
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     // Header
     printStatHeader();
@@ -372,8 +377,10 @@ void Application::printStats(int interval) const
 
     bsl::cout << ss.str() << bsl::endl;
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 void Application::printFinalStats()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     d_statContext_sp->snapshot();
 
@@ -408,6 +415,7 @@ void Application::printFinalStats()
        << bmqu::PrintUtil::prettyBytes(evtBytes) << "]";
 
     if (msgBytes != 0) {
+        // NOLINTNEXTLINE(*-narrowing-conversions)
         double protocol = (evtBytes - msgBytes) * 100.0 / evtBytes;
         ss << " (Protocol: " << bsl::setprecision(4) << protocol << "%)";
     }
@@ -428,8 +436,10 @@ void Application::printFinalStats()
     bsl::cout << "\n"
               << "Final stats: " << ss.str() << bsl::endl;
 }
+// NOLINTEND(performance-avoid-endl)
 
 void Application::generateLatencyReport(const LatencyStorage& latencyStorage)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(latencyStorage.totalCount() > 0);
@@ -450,8 +460,10 @@ void Application::generateLatencyReport(const LatencyStorage& latencyStorage)
         return;  // RETURN
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 int Application::initialize()
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class,performance-avoid-endl)
 {
     enum RC {
         e_OK                          = 0,
@@ -572,6 +584,7 @@ int Application::initialize()
 
     return e_OK;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class,performance-avoid-endl)
 
 void Application::onSessionEvent(const bmqa::SessionEvent& event)
 {
@@ -606,6 +619,7 @@ void Application::onMessageEvent(const bmqa::MessageEvent& event)
     if (event.type() == bmqt::MessageEventType::e_PUSH) {
         // Update event size (i.e. including protocol overhead)
         const bsl::shared_ptr<bmqimp::Event>& eventImpl =
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
             reinterpret_cast<const bsl::shared_ptr<bmqimp::Event>&>(event);
         d_statContext_sp->adjustValue(k_STAT_EVT,
                                       eventImpl->rawEvent().blob()->length());
@@ -646,6 +660,7 @@ void Application::onMessageEvent(const bmqa::MessageEvent& event)
             d_fileLogger.writeAckMessage(message);
 
             // Try to compute and record ack latency, or break early
+            // NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
             do {
                 if (d_parameters.latency() == ParametersLatency::e_NONE ||
                     !message.correlationId().isNumeric()) {
@@ -676,6 +691,7 @@ void Application::onMessageEvent(const bmqa::MessageEvent& event)
                 d_ackLatencyStorage.insert(delta);
 
             } while (false);
+            // NOLINTEND(cppcoreguidelines-avoid-do-while)
 
             if (d_numExpectedAcks != 0 &&
                 d_numExpectedAcks == ++d_numAcknowledged) {
@@ -712,6 +728,7 @@ void Application::onMessageEvent(const bmqa::MessageEvent& event)
             }
 
             // Try to compute and record end-to-end latency, or break early
+            // NOLINTBEGIN(cppcoreguidelines-avoid-do-while,cppcoreguidelines-pro-type-member-init)
             do {
                 if (d_parameters.latency() == ParametersLatency::e_NONE) {
                     break;  // BREAK
@@ -720,11 +737,13 @@ void Application::onMessageEvent(const bmqa::MessageEvent& event)
                 // Extract message post timestamp
                 bdlb::BigEndianInt64 postTime;
 
+                // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
                 BSLA_MAYBE_UNUSED int rc = bmqu::BlobUtil::readNBytes(
                     reinterpret_cast<char*>(&postTime),
                     blob,
                     bmqu::BlobPosition(0, 0),
                     sizeof(bdlb::BigEndianInt64));
+                // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
                 BSLS_ASSERT_SAFE(rc == 0);
 
                 if (postTime == 0) {
@@ -751,6 +770,7 @@ void Application::onMessageEvent(const bmqa::MessageEvent& event)
                 d_confirmLatencyStorage.insert(delta);
 
             } while (false);
+            // NOLINTEND(cppcoreguidelines-avoid-do-while,cppcoreguidelines-pro-type-member-init)
 
             // Update msg/event stats
             d_statContext_sp->adjustValue(k_STAT_MSG, blob.length());
@@ -800,9 +820,11 @@ void Application::onMessageEvent(const bmqa::MessageEvent& event)
 }
 
 void Application::producerThread()
+// NOLINTBEGIN(*-magic-numbers)
 {
     BSLS_ASSERT_SAFE(d_session_mp);
 
+    // NOLINTNEXTLINE(*-magic-numbers)
     bslmt::Turnstile turnstile(1000.0);
     if (d_parameters.postInterval() != 0) {
         turnstile.reset(1000.0 / d_parameters.postInterval());
@@ -826,6 +848,7 @@ void Application::producerThread()
         d_shutdownSemaphore_p->post();
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 // CLASS METHODS
 int Application::syschk(const m_bmqtool::Parameters& parameters)
@@ -888,6 +911,7 @@ Application::Application(const Parameters& parameters,
 , d_shutdownSemaphore_p(shutdownSemaphore)
 , d_runningThread(bslmt::ThreadUtil::invalidHandle())
 , d_queueId(d_allocator_p)
+// NOLINTNEXTLINE(*-magic-numbers)
 , d_statContext_sp(createStatContext(10, d_allocator_p))
 , d_isConnected(false)
 , d_isRunning(false)

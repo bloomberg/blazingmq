@@ -60,6 +60,7 @@ namespace BloombergLP {
 namespace bmqa {
 
 namespace {
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char k_LOG_CATEGORY[] = "BMQA.MOCKSESSION";
 
 /// Two key hash map of uri and correlationIds to QueueId.
@@ -76,14 +77,17 @@ typedef bmqc::TwoKeyHashMap<bmqt::Uri,
 /// increments the value of this integer by one.  Each call to `shutdown`
 /// decrements the value of this integer by one.  If the decremented value
 /// is zero, then the `shutdown` on all required components is called.
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 int g_utilInitialized = 0;
 
 /// Lock used to provide thread-safe protection for accessing the
 /// `g_initialized` counter.
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 bslmt::QLock g_initLock = BSLMT_QLOCK_INITIALIZER;
 
 /// First call to `initialize` assigns a BlobBufferFactory created on heap
 /// to this `g_BufferFactory_p` which remains unchanged till destroyed.
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 bdlbb::BlobBufferFactory* g_bufferFactory_p = 0;
 
 #ifdef BSLS_PLATFORM_CMP_CLANG
@@ -91,11 +95,13 @@ bdlbb::BlobBufferFactory* g_bufferFactory_p = 0;
 // static variable 'g_guidGenerator_sp' with Clang-specific attribute.
 [[clang::no_destroy]]
 #endif
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 bsl::shared_ptr<bmqp::MessageGUIDGenerator> g_guidGenerator_sp;
 // First call to 'initialize' allocates a MessageGUIDGenerator created on
 // heap and managed by this 'g_BufferFactory_sp' till destroyed.
 
 /// First call to `initialize` assigns a Allocator to this `g_alloc_p`.
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 bslma::Allocator* g_alloc_p = 0;
 
 BSLMF_ASSERT(sizeof(bsl::shared_ptr<bmqimp::Event>) == sizeof(Event));
@@ -106,6 +112,7 @@ BSLMF_ASSERT(sizeof(bsl::shared_ptr<bmqimp::Event>) == sizeof(Event));
 void defaultFailureCallback(const bslstl::StringRef& description,
                             const bslstl::StringRef& file,
                             int                      line)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     BALL_LOG_SET_CATEGORY(k_LOG_CATEGORY);
     BALL_LOG_ERROR_BLOCK
@@ -120,14 +127,17 @@ void defaultFailureCallback(const bslstl::StringRef& description,
 
     BSLS_ASSERT_OPT(false);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 /// Utility method to cast the `UriCorrIdToQueueMap` held by the
 /// `bsls::AlignedBuffer` (represented by the type `B`).
 template <class B>
 UriCorrIdToQueueMap& uriCorrIdToQueues(B& buffer)
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     return reinterpret_cast<UriCorrIdToQueueMap&>(*(buffer.buffer()));
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 struct BlobSpCreatorF {
     // TRAITS
@@ -167,17 +177,21 @@ Event createAckEventImpl(bmqp::AckEventBuilder& ackBuilder,
     /// the pimpl of `bmqa::QueueId`.
     typedef bsl::shared_ptr<bmqimp::Queue> QueueImplSp;
 
-    Event        event;
+    Event event;
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     EventImplSp& implPtr = reinterpret_cast<EventImplSp&>(
         static_cast<Event&>(event));
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
     implPtr = EventImplSp(new (*allocator)
                               bmqimp::Event(bufferFactory, allocator),
                           allocator);
 
     for (size_t i = 0; i != acks.size(); ++i) {
         const MockSessionUtil::AckParams& params = acks[i];
+        // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
         const QueueImplSp& impQueue = reinterpret_cast<const QueueImplSp&>(
             params.d_queueId);
+        // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
         ackBuilder.appendMessage(
             bmqp::ProtocolUtil::ackResultToCode(params.d_status),
@@ -214,15 +228,18 @@ Event createPushEventImpl(
     /// the pimpl of `bmqa::QueueId`.
     typedef bsl::shared_ptr<bmqimp::Queue> QueueImplSp;
 
-    Event        event;
+    Event event;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     EventImplSp& implPtr = reinterpret_cast<EventImplSp&>(event);
     implPtr              = EventImplSp(new (*allocator)
                               bmqimp::Event(bufferFactory, allocator),
                           allocator);
 
     for (size_t i = 0; i != pushEventParams.size(); ++i) {
+        // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
         const QueueImplSp& queueImplPtr = reinterpret_cast<const QueueImplSp&>(
             static_cast<const QueueId&>(pushEventParams[i].d_queueId));
+        // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
         const MockSessionUtil::PushMessageParams& pushMessageParams =
             pushEventParams[i];
@@ -260,6 +277,7 @@ Event createPushEventImpl(
 
 }  // close unnamed namespace
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQA_CHECK_ARG(METHOD, ARGNAME, EXPECTED, ACTUAL, CALL)               \
     do {                                                                      \
         if ((EXPECTED) != (ACTUAL)) {                                         \
@@ -275,6 +293,7 @@ Event createPushEventImpl(
 // regular macros because we expect the scope of the 'const Call&' to leak into
 // the function calling it.  This allows for us to write the functions more
 // cleanly and succinctly.
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQA_CHECK_CALL(METHOD, RETURNBLOCK)                                  \
     if (d_calls.empty()) {                                                    \
         assertWrongCall((METHOD));                                            \
@@ -286,12 +305,14 @@ Event createPushEventImpl(
         RETURNBLOCK;                                                          \
     }
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQA_ASSERT_AND_POP_FRONT()                                           \
     do {                                                                      \
         BSLS_ASSERT_OPT(!d_calls.empty());                                    \
         d_calls.pop_front();                                                  \
     } while (0)
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQA_RETURN_ON_RC()                                                   \
     do {                                                                      \
         const int _rc = call.d_rc;                                            \
@@ -357,9 +378,11 @@ Event MockSessionUtil::createSessionEvent(
 
     bslma::Allocator* alloc = bslma::Default::allocator(allocator);
 
-    Event        event;
+    Event event;
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     EventImplSp& implPtr = reinterpret_cast<EventImplSp&>(
         static_cast<Event&>(event));
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
     implPtr = EventImplSp(new (*alloc) bmqimp::Event(g_bufferFactory_p, alloc),
                           alloc);
 
@@ -389,9 +412,11 @@ Event MockSessionUtil::createQueueSessionEvent(
 
     bslma::Allocator* alloc = bslma::Default::allocator(allocator);
 
-    Event        event;
+    Event event;
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     EventImplSp& implPtr = reinterpret_cast<EventImplSp&>(
         static_cast<Event&>(event));
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
     implPtr = EventImplSp(new (*alloc) bmqimp::Event(g_bufferFactory_p, alloc),
                           alloc);
 
@@ -401,6 +426,7 @@ Event MockSessionUtil::createQueueSessionEvent(
                                      correlationId,
                                      errorDescription);
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     QueueImplSp& impQueue = reinterpret_cast<QueueImplSp&>(*queueId);
 
     implPtr->insertQueue(impQueue);
@@ -581,6 +607,7 @@ MockSession::Call& MockSession::Call::returning(int rc)
 
 MockSession::Call&
 MockSession::Call::returning(const bmqa::OpenQueueStatus& result)
+// NOLINTBEGIN(bugprone-assignment-in-if-condition)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_method = e_OPEN_QUEUE_SYNC);
@@ -588,9 +615,11 @@ MockSession::Call::returning(const bmqa::OpenQueueStatus& result)
     d_openQueueResult = result;
     return *this;
 }
+// NOLINTEND(bugprone-assignment-in-if-condition)
 
 MockSession::Call&
 MockSession::Call::returning(const bmqa::ConfigureQueueStatus& result)
+// NOLINTBEGIN(bugprone-assignment-in-if-condition)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_method = e_CONFIGURE_QUEUE_SYNC);
@@ -598,9 +627,11 @@ MockSession::Call::returning(const bmqa::ConfigureQueueStatus& result)
     d_configureQueueResult = result;
     return *this;
 }
+// NOLINTEND(bugprone-assignment-in-if-condition)
 
 MockSession::Call&
 MockSession::Call::returning(const bmqa::CloseQueueStatus& result)
+// NOLINTBEGIN(bugprone-assignment-in-if-condition)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_method = e_CLOSE_QUEUE_SYNC);
@@ -608,6 +639,7 @@ MockSession::Call::returning(const bmqa::CloseQueueStatus& result)
     d_closeQueueResult = result;
     return *this;
 }
+// NOLINTEND(bugprone-assignment-in-if-condition)
 
 MockSession::Call& MockSession::Call::returning(const Event& event)
 {
@@ -624,6 +656,7 @@ MockSession::Call& MockSession::Call::emitting(const Event& event)
 
 MockSession::Call&
 MockSession::Call::emitting(const OpenQueueStatus& openQueueResult)
+// NOLINTBEGIN(bugprone-assignment-in-if-condition)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_method = e_OPEN_QUEUE_ASYNC_CALLBACK);
@@ -635,8 +668,10 @@ MockSession::Call::emitting(const OpenQueueStatus& openQueueResult)
                                                         d_openQueueCallback,
                                                         openQueueResult);
     bmqa::QueueId    queueId    = openQueueResult.queueId();
-    QueueImplSp      queue = reinterpret_cast<bsl::shared_ptr<bmqimp::Queue>&>(
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
+    QueueImplSp queue = reinterpret_cast<bsl::shared_ptr<bmqimp::Queue>&>(
         queueId);
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
     Job job;
     job.d_callback = callbackFn;
@@ -649,9 +684,11 @@ MockSession::Call::emitting(const OpenQueueStatus& openQueueResult)
 
     return *this;
 }
+// NOLINTEND(bugprone-assignment-in-if-condition)
 
 MockSession::Call&
 MockSession::Call::emitting(const ConfigureQueueStatus& configureQueueResult)
+// NOLINTBEGIN(bugprone-assignment-in-if-condition)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_method = e_CONFIGURE_QUEUE_ASYNC_CALLBACK);
@@ -665,8 +702,10 @@ MockSession::Call::emitting(const ConfigureQueueStatus& configureQueueResult)
         configureQueueResult);
 
     bmqa::QueueId queueId = configureQueueResult.queueId();
-    QueueImplSp   queue   = reinterpret_cast<bsl::shared_ptr<bmqimp::Queue>&>(
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
+    QueueImplSp queue = reinterpret_cast<bsl::shared_ptr<bmqimp::Queue>&>(
         queueId);
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
     Job job;
     job.d_callback = callbackFn;
@@ -679,9 +718,11 @@ MockSession::Call::emitting(const ConfigureQueueStatus& configureQueueResult)
 
     return *this;
 }
+// NOLINTEND(bugprone-assignment-in-if-condition)
 
 MockSession::Call&
 MockSession::Call::emitting(const CloseQueueStatus& closeQueueResult)
+// NOLINTBEGIN(bugprone-assignment-in-if-condition)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_method = e_CLOSE_QUEUE_ASYNC_CALLBACK);
@@ -694,8 +735,10 @@ MockSession::Call::emitting(const CloseQueueStatus& closeQueueResult)
                                                         closeQueueResult);
 
     bmqa::QueueId queueId = closeQueueResult.queueId();
-    QueueImplSp   queue   = reinterpret_cast<bsl::shared_ptr<bmqimp::Queue>&>(
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
+    QueueImplSp queue = reinterpret_cast<bsl::shared_ptr<bmqimp::Queue>&>(
         queueId);
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
     Job job;
     job.d_callback = callbackFn;
@@ -708,6 +751,7 @@ MockSession::Call::emitting(const CloseQueueStatus& closeQueueResult)
 
     return *this;
 }
+// NOLINTEND(bugprone-assignment-in-if-condition)
 
 const char* MockSession::Call::methodName() const
 {
@@ -719,6 +763,7 @@ const char* MockSession::Call::methodName() const
 // -----------------
 
 void MockSession::initialize(bslma::Allocator* allocator)
+// NOLINTBEGIN(*-magic-numbers)
 {
     bslmt::QLockGuard qlockGuard(&g_initLock);  // LOCK
 
@@ -734,6 +779,7 @@ void MockSession::initialize(bslma::Allocator* allocator)
         bdlbb::PooledBlobBufferFactory(1024, g_alloc_p);
     g_guidGenerator_sp.createInplace(g_alloc_p, 0);
 }
+// NOLINTEND(*-magic-numbers)
 
 void MockSession::shutdown()
 {
@@ -848,6 +894,7 @@ void MockSession::openQueueImp(QueueId*                  queueId,
                                bool                      async)
 {
     // Cast the supplied queue
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     QueueImplSp& queueImpl = reinterpret_cast<QueueImplSp&>(*queueId);
 
     // In case queueId was uninitialized the impl ptr will be 0x0
@@ -885,6 +932,7 @@ void MockSession::processIfQueueEvent(Event* event)
         return;  // RETURN
     }
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     EventImplSp& implPtr = reinterpret_cast<EventImplSp&>(*event);
 
     const bmqimp::Event::QueuesMap& queues = implPtr->queues();
@@ -986,6 +1034,7 @@ MessageEvent MockSession::createMessageEvent()
 
     // MessageEvent::d_impl is private
     bsl::shared_ptr<bmqimp::Event>& eventImplSpRef =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         reinterpret_cast<bsl::shared_ptr<bmqimp::Event>&>(result);
 
     eventImplSpRef.createInplace(d_allocator_p,
@@ -1037,6 +1086,7 @@ void MockSession::assertWrongArg(const T&     expected,
 }
 
 int MockSession::start(const bsls::TimeInterval& timeout)
+// NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
 {
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
 
@@ -1051,9 +1101,11 @@ int MockSession::start(const bsls::TimeInterval& timeout)
     BMQA_ASSERT_AND_POP_FRONT();
     return rc;
 }
+// NOLINTEND(cppcoreguidelines-avoid-do-while)
 
 MockSession::MockSession(const bmqt::SessionOptions& options,
                          bslma::Allocator*           allocator)
+// NOLINTNEXTLINE(*-magic-numbers)
 : d_blobBufferFactory(1024, allocator)
 , d_blobSpPool_sp(
       bmqp::BlobPoolUtil::createBlobPool(&d_blobBufferFactory, allocator))
@@ -1068,7 +1120,7 @@ MockSession::MockSession(const bmqt::SessionOptions& options,
                                     bdlf::PlaceHolders::_2,
                                     bdlf::PlaceHolders::_3))
 , d_lastQueueId(0)
-, d_corrIdContainer_sp(new(*bslma::Default::allocator(allocator))
+, d_corrIdContainer_sp(new (*bslma::Default::allocator(allocator))
                            bmqimp::MessageCorrelationIdContainer(
                                bslma::Default::allocator(allocator)),
                        bslma::Default::allocator(allocator))
@@ -1076,7 +1128,7 @@ MockSession::MockSession(const bmqt::SessionOptions& options,
 , d_rootStatContext_mp(bslma::ManagedPtrUtil::makeManaged<bmqst::StatContext>(
       bmqst::StatContextConfiguration("MockSession", allocator),
       allocator))
-, d_queuesStats_sp(new(*bslma::Default::allocator(allocator))
+, d_queuesStats_sp(new (*bslma::Default::allocator(allocator))
                        bmqimp::Stat(bslma::Default::allocator(allocator)),
                    bslma::Default::allocator(allocator))
 , d_sessionOptions(options, allocator)
@@ -1100,6 +1152,7 @@ MockSession::MockSession(const bmqt::SessionOptions& options,
 MockSession::MockSession(bslma::ManagedPtr<SessionEventHandler> eventHandler,
                          const bmqt::SessionOptions&            options,
                          bslma::Allocator*                      allocator)
+// NOLINTNEXTLINE(*-magic-numbers)
 : d_blobBufferFactory(1024, allocator)
 , d_blobSpPool_sp(
       bmqp::BlobPoolUtil::createBlobPool(&d_blobBufferFactory, allocator))
@@ -1114,7 +1167,7 @@ MockSession::MockSession(bslma::ManagedPtr<SessionEventHandler> eventHandler,
                                     bdlf::PlaceHolders::_2,
                                     bdlf::PlaceHolders::_3))
 , d_lastQueueId(0)
-, d_corrIdContainer_sp(new(*bslma::Default::allocator(allocator))
+, d_corrIdContainer_sp(new (*bslma::Default::allocator(allocator))
                            bmqimp::MessageCorrelationIdContainer(
                                bslma::Default::allocator(allocator)),
                        bslma::Default::allocator(allocator))
@@ -1122,7 +1175,7 @@ MockSession::MockSession(bslma::ManagedPtr<SessionEventHandler> eventHandler,
 , d_rootStatContext_mp(bslma::ManagedPtrUtil::makeManaged<bmqst::StatContext>(
       bmqst::StatContextConfiguration("MockSession", allocator),
       allocator))
-, d_queuesStats_sp(new(*bslma::Default::allocator(allocator))
+, d_queuesStats_sp(new (*bslma::Default::allocator(allocator))
                        bmqimp::Stat(bslma::Default::allocator(allocator)),
                    bslma::Default::allocator(allocator))
 , d_sessionOptions(options, allocator)
@@ -1135,6 +1188,7 @@ MockSession::MockSession(bslma::ManagedPtr<SessionEventHandler> eventHandler,
     initializeStats();
 }
 
+// NOLINTBEGIN(bugprone-exception-escape)
 MockSession::~MockSession()
 {
     if (!d_calls.empty()) {
@@ -1167,6 +1221,7 @@ MockSession::~MockSession()
 
     shutdown();
 }
+// NOLINTEND(bugprone-exception-escape)
 
 MockSession::Call& MockSession::expect_start(const bsls::TimeInterval& timeout)
 {
@@ -1533,6 +1588,7 @@ bool MockSession::emitEvent(int numEvents)
 }
 
 int MockSession::startAsync(const bsls::TimeInterval& timeout)
+// NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
 {
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
 
@@ -1547,8 +1603,10 @@ int MockSession::startAsync(const bsls::TimeInterval& timeout)
     BMQA_ASSERT_AND_POP_FRONT();
     return rc;
 }
+// NOLINTEND(cppcoreguidelines-avoid-do-while)
 
 void MockSession::stop()
+// NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
 {
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
 
@@ -1562,6 +1620,7 @@ void MockSession::stop()
     UriCorrIdToQueueMap& queueMap = uriCorrIdToQueues(d_twoKeyHashMapBuffer);
     UriCorrIdToQueueMap::iterator qIt = queueMap.begin();
     while (qIt != queueMap.end()) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         QueueImplSp& queueImpl = reinterpret_cast<QueueImplSp&>(qIt->value());
         queueImpl->setState(bmqimp::QueueState::e_CLOSED);
         ++qIt;
@@ -1569,8 +1628,10 @@ void MockSession::stop()
 
     BMQA_ASSERT_AND_POP_FRONT();
 }
+// NOLINTEND(cppcoreguidelines-avoid-do-while)
 
 void MockSession::stopAsync()
+// NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
 {
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
 
@@ -1584,6 +1645,7 @@ void MockSession::stopAsync()
     UriCorrIdToQueueMap& queueMap = uriCorrIdToQueues(d_twoKeyHashMapBuffer);
     UriCorrIdToQueueMap::iterator qIt = queueMap.begin();
     while (qIt != queueMap.end()) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         QueueImplSp& queueImpl = reinterpret_cast<QueueImplSp&>(qIt->value());
         queueImpl->setState(bmqimp::QueueState::e_CLOSED);
         ++qIt;
@@ -1591,8 +1653,10 @@ void MockSession::stopAsync()
 
     BMQA_ASSERT_AND_POP_FRONT();
 }
+// NOLINTEND(cppcoreguidelines-avoid-do-while)
 
 void MockSession::finalizeStop()
+// NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
 {
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
 
@@ -1604,6 +1668,7 @@ void MockSession::finalizeStop()
 
     BMQA_ASSERT_AND_POP_FRONT();
 }
+// NOLINTEND(cppcoreguidelines-avoid-do-while)
 
 void MockSession::loadMessageEventBuilder(MessageEventBuilder* builder)
 {
@@ -1614,6 +1679,7 @@ void MockSession::loadMessageEventBuilder(MessageEventBuilder* builder)
 
     // Get MessageEventBuilderImpl from MessageEventBuilder
     MessageEventBuilderImpl& builderImplRef =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         reinterpret_cast<MessageEventBuilderImpl&>(builderRef);
 
     builderImplRef.d_guidGenerator_sp = g_guidGenerator_sp;
@@ -1625,6 +1691,7 @@ void MockSession::loadMessageEventBuilder(MessageEventBuilder* builder)
 }
 
 void MockSession::loadConfirmEventBuilder(ConfirmEventBuilder* builder)
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(builder);
@@ -1633,6 +1700,7 @@ void MockSession::loadConfirmEventBuilder(ConfirmEventBuilder* builder)
 
     // Get ConfirmEventBuilderImpl from ConfirmEventBuilder
     ConfirmEventBuilderImpl& builderImplRef =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         reinterpret_cast<ConfirmEventBuilderImpl&>(builderRef);
 
     if (builderImplRef.d_builder_p) {
@@ -1648,6 +1716,7 @@ void MockSession::loadConfirmEventBuilder(ConfirmEventBuilder* builder)
     builderImplRef.d_builder_p = reinterpret_cast<bmqp::ConfirmEventBuilder*>(
         builderImplRef.d_buffer.buffer());
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 void MockSession::loadMessageProperties(MessageProperties* buffer)
 {
@@ -1667,6 +1736,7 @@ int MockSession::getQueueId(QueueId* queueId, const bmqt::Uri& uri)
     }
 
     const bsl::shared_ptr<bmqimp::Queue>& queueImplSpRef =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         reinterpret_cast<const bsl::shared_ptr<bmqimp::Queue>&>(iter->value());
     if (queueImplSpRef->state() != bmqimp::QueueState::e_OPENED) {
         return bmqt::GenericResult::e_REFUSED;  // RETURN
@@ -1696,6 +1766,7 @@ int MockSession::openQueue(QueueId*                  queueId,
                            bsls::Types::Uint64       flags,
                            const bmqt::QueueOptions& options,
                            const bsls::TimeInterval& timeout)
+// NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
 {
     // PRECONDITIONS
     BSLS_ASSERT(queueId);
@@ -1724,12 +1795,14 @@ int MockSession::openQueue(QueueId*                  queueId,
     BMQA_ASSERT_AND_POP_FRONT();
     return 0;
 }
+// NOLINTEND(cppcoreguidelines-avoid-do-while)
 
 OpenQueueStatus MockSession::openQueueSync(QueueId*                  queueId,
                                            const bmqt::Uri&          uri,
                                            bsls::Types::Uint64       flags,
                                            const bmqt::QueueOptions& options,
                                            const bsls::TimeInterval& timeout)
+// NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
 {
     // PRECONDITIONS
     BSLS_ASSERT(queueId && "'queueId' not provided");
@@ -1773,12 +1846,14 @@ OpenQueueStatus MockSession::openQueueSync(QueueId*                  queueId,
     BMQA_ASSERT_AND_POP_FRONT();
     return _result;
 }
+// NOLINTEND(cppcoreguidelines-avoid-do-while)
 
 int MockSession::openQueueAsync(QueueId*                  queueId,
                                 const bmqt::Uri&          uri,
                                 bsls::Types::Uint64       flags,
                                 const bmqt::QueueOptions& options,
                                 const bsls::TimeInterval& timeout)
+// NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
 {
     // PRECONDITIONS
     BSLS_ASSERT(queueId);
@@ -1811,6 +1886,7 @@ int MockSession::openQueueAsync(QueueId*                  queueId,
     BMQA_ASSERT_AND_POP_FRONT();
     return 0;
 }
+// NOLINTEND(cppcoreguidelines-avoid-do-while)
 
 void MockSession::openQueueAsync(
     BSLA_MAYBE_UNUSED QueueId*                 queueId,
@@ -1819,6 +1895,7 @@ void MockSession::openQueueAsync(
     BSLA_MAYBE_UNUSED const OpenQueueCallback& callback,
     const bmqt::QueueOptions&                  options,
     const bsls::TimeInterval&                  timeout)
+// NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
 {
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
 
@@ -1846,8 +1923,10 @@ void MockSession::openQueueAsync(
                            call.d_emittedEvents.begin(),
                            call.d_emittedEvents.end());
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast)
     bmqa::QueueId& queueIdRef = const_cast<bmqa::QueueId&>(
         call.d_openQueueResult.queueId());
+    // NOLINTEND(cppcoreguidelines-pro-type-const-cast)
 
     openQueueImp(&queueIdRef,
                  options,
@@ -1857,10 +1936,12 @@ void MockSession::openQueueAsync(
 
     BMQA_ASSERT_AND_POP_FRONT();
 }
+// NOLINTEND(cppcoreguidelines-avoid-do-while)
 
 int MockSession::configureQueue(BSLA_MAYBE_UNUSED QueueId* queueId,
                                 const bmqt::QueueOptions&  options,
                                 const bsls::TimeInterval&  timeout)
+// NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
 {
     // PRECONDITIONS
     BSLS_ASSERT(queueId);
@@ -1888,11 +1969,13 @@ int MockSession::configureQueue(BSLA_MAYBE_UNUSED QueueId* queueId,
     BMQA_ASSERT_AND_POP_FRONT();
     return 0;
 }
+// NOLINTEND(cppcoreguidelines-avoid-do-while)
 
 ConfigureQueueStatus
 MockSession::configureQueueSync(BSLA_MAYBE_UNUSED QueueId* queueId,
                                 const bmqt::QueueOptions&  options,
                                 const bsls::TimeInterval&  timeout)
+// NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
 {
     // PRECONDITIONS
     BSLS_ASSERT(queueId && "'queueId' not provided");
@@ -1932,10 +2015,12 @@ MockSession::configureQueueSync(BSLA_MAYBE_UNUSED QueueId* queueId,
     BMQA_ASSERT_AND_POP_FRONT();
     return _result;
 }
+// NOLINTEND(cppcoreguidelines-avoid-do-while)
 
 int MockSession::configureQueueAsync(BSLA_MAYBE_UNUSED QueueId* queueId,
                                      const bmqt::QueueOptions&  options,
                                      const bsls::TimeInterval&  timeout)
+// NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
 {
     // PRECONDITIONS
     BSLS_ASSERT(queueId);
@@ -1965,12 +2050,14 @@ int MockSession::configureQueueAsync(BSLA_MAYBE_UNUSED QueueId* queueId,
 
     return 0;
 }
+// NOLINTEND(cppcoreguidelines-avoid-do-while)
 
 void MockSession::configureQueueAsync(
     BSLA_MAYBE_UNUSED QueueId*                      queueId,
     const bmqt::QueueOptions&                       options,
     BSLA_MAYBE_UNUSED const ConfigureQueueCallback& callback,
     const bsls::TimeInterval&                       timeout)
+// NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(queueId && "'queueId' not provided");
@@ -1997,9 +2084,11 @@ void MockSession::configureQueueAsync(
 
     BMQA_ASSERT_AND_POP_FRONT();
 }
+// NOLINTEND(cppcoreguidelines-avoid-do-while)
 
 int MockSession::closeQueue(QueueId*                  queueId,
                             const bsls::TimeInterval& timeout)
+// NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
 {
     // PRECONDITIONS
     BSLS_ASSERT(queueId);
@@ -2012,6 +2101,7 @@ int MockSession::closeQueue(QueueId*                  queueId,
     BMQA_CHECK_ARG(e_CLOSE_QUEUE, "timeout", call.d_timeout, timeout, call);
     BMQA_RETURN_ON_RC();
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     QueueImplSp& queueImpl = reinterpret_cast<QueueImplSp&>(*queueId);
 
     // In case queueId was uninitialized the impl ptr will be 0x0
@@ -2027,9 +2117,11 @@ int MockSession::closeQueue(QueueId*                  queueId,
     BMQA_ASSERT_AND_POP_FRONT();
     return 0;
 }
+// NOLINTEND(cppcoreguidelines-avoid-do-while)
 
 CloseQueueStatus MockSession::closeQueueSync(QueueId*                  queueId,
                                              const bsls::TimeInterval& timeout)
+// NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
 {
     // PRECONDITIONS
     BSLS_ASSERT(queueId && "'queueId' not provided");
@@ -2057,8 +2149,10 @@ CloseQueueStatus MockSession::closeQueueSync(QueueId*                  queueId,
         return _result;  // RETURN
     }
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     const QueueImplSp& queueImpl = reinterpret_cast<const QueueImplSp&>(
         *queueId);
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
     // In case queueId was uninitialized the impl ptr will be 0x0
     BSLS_ASSERT(queueImpl && "QueueId not set");
@@ -2073,9 +2167,11 @@ CloseQueueStatus MockSession::closeQueueSync(QueueId*                  queueId,
     BMQA_ASSERT_AND_POP_FRONT();
     return _result;
 }
+// NOLINTEND(cppcoreguidelines-avoid-do-while)
 
 int MockSession::closeQueueAsync(QueueId*                  queueId,
                                  const bsls::TimeInterval& timeout)
+// NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
 {
     // PRECONDITIONS
     BSLS_ASSERT(queueId);
@@ -2092,6 +2188,7 @@ int MockSession::closeQueueAsync(QueueId*                  queueId,
                    call);
     BMQA_RETURN_ON_RC();
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
     QueueImplSp& queueImpl = reinterpret_cast<QueueImplSp&>(*queueId);
 
     // In case queueId was uninitialized the impl ptr will be 0x0
@@ -2106,11 +2203,13 @@ int MockSession::closeQueueAsync(QueueId*                  queueId,
     BMQA_ASSERT_AND_POP_FRONT();
     return 0;
 }
+// NOLINTEND(cppcoreguidelines-avoid-do-while)
 
 void MockSession::closeQueueAsync(
     BSLA_MAYBE_UNUSED QueueId*                  queueId,
     BSLA_MAYBE_UNUSED const CloseQueueCallback& callback,
     const bsls::TimeInterval&                   timeout)
+// NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(queueId && "'queueId' not provided");
@@ -2132,8 +2231,10 @@ void MockSession::closeQueueAsync(
 
     BMQA_ASSERT_AND_POP_FRONT();
 }
+// NOLINTEND(cppcoreguidelines-avoid-do-while)
 
 Event MockSession::nextEvent(const bsls::TimeInterval& timeout)
+// NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
 {
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
 
@@ -2156,8 +2257,10 @@ Event MockSession::nextEvent(const bsls::TimeInterval& timeout)
     BMQA_ASSERT_AND_POP_FRONT();
     return event;
 }
+// NOLINTEND(cppcoreguidelines-avoid-do-while)
 
 int MockSession::post(const MessageEvent& messageEvent)
+// NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
 {
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
 
@@ -2174,6 +2277,7 @@ int MockSession::post(const MessageEvent& messageEvent)
     d_postedEvents.push_back(messageEvent);
     return 0;
 }
+// NOLINTEND(cppcoreguidelines-avoid-do-while)
 
 int MockSession::confirmMessage(const Message& message)
 {
@@ -2181,6 +2285,7 @@ int MockSession::confirmMessage(const Message& message)
 }
 
 int MockSession::confirmMessage(const MessageConfirmationCookie& cookie)
+// NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
 {
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
 
@@ -2204,8 +2309,10 @@ int MockSession::confirmMessage(const MessageConfirmationCookie& cookie)
     BMQA_ASSERT_AND_POP_FRONT();
     return 0;
 }
+// NOLINTEND(cppcoreguidelines-avoid-do-while)
 
 int MockSession::confirmMessages(ConfirmEventBuilder* builder)
+// NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
 {
     // PRECONDITIONS
     BSLS_ASSERT(builder->blob().length() && "Invalid builder");
@@ -2229,6 +2336,7 @@ int MockSession::confirmMessages(ConfirmEventBuilder* builder)
     BMQA_ASSERT_AND_POP_FRONT();
     return 0;
 }
+// NOLINTEND(cppcoreguidelines-avoid-do-while)
 
 int MockSession::configureMessageDumping(
     BSLA_MAYBE_UNUSED const bslstl::StringRef& command)

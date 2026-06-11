@@ -139,6 +139,7 @@ namespace bmqt {
 // =========
 
 /// Value semantic type representing a URI
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Uri {
   public:
     // PUBLIC CONSTANTS
@@ -269,6 +270,7 @@ class Uri {
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // FREE OPERATORS
 
@@ -298,6 +300,7 @@ bsl::ostream& operator<<(bsl::ostream& stream, const Uri& rhs);
 struct UriParser {
     // PUBLIC TYPES
     struct UriParseResult {
+        // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
         enum Enum {
             e_SUCCESS             = 0,
             e_INVALID_SCHEME      = -1,
@@ -308,6 +311,7 @@ struct UriParser {
             e_EMPTY_TIER          = -6,
             e_QUEUE_NAME_TOO_LONG = -7
         };
+        // NOLINTEND(cppcoreguidelines-use-enum-class)
     };
 
     // CLASS METHODS
@@ -347,6 +351,7 @@ struct UriParser {
 
 /// This component implements a mechanism, `bmqt::UriBuilder`, that can be
 /// used for creating queue URI for BMQ.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class UriBuilder {
   private:
     // DATA
@@ -394,6 +399,7 @@ class UriBuilder {
     /// optionally specified `errorDescription` if provided.
     int uri(Uri* result, bsl::string* errorDescription = 0) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS
@@ -403,12 +409,14 @@ class UriBuilder {
 // class Uri
 // ---------
 
+// NOLINTBEGIN(cert-oop54-cpp)
 inline Uri& Uri::operator=(const Uri& rhs)
 {
     copyImpl(rhs);
 
     return *this;
 }
+// NOLINTEND(cert-oop54-cpp)
 
 inline const bsl::string& Uri::asString() const
 {

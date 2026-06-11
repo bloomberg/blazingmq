@@ -116,6 +116,7 @@ void ConfigProvider::stop()
 
 void ConfigProvider::getDomainConfig(bsl::string_view         domainName,
                                      const GetDomainConfigCb& callback)
+// NOLINTBEGIN(*-narrowing-conversions,cppcoreguidelines-use-enum-class)
 {
     enum {
         e_SUCCESS       = 0,
@@ -147,6 +148,7 @@ void ConfigProvider::getDomainConfig(bsl::string_view         domainName,
     if (!bdls::FilesystemUtil::exists(filePath)) {
         guard.release()->unlock();  // UNLOCK
 
+        // NOLINTNEXTLINE(*-magic-numbers)
         bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
         bmqu::MemOutStream                    os(&localAllocator);
         os << "Domain file '" << filePath << "' doesn't exist";
@@ -161,6 +163,7 @@ void ConfigProvider::getDomainConfig(bsl::string_view         domainName,
     if (!fileStream) {
         guard.release()->unlock();  // UNLOCK
 
+        // NOLINTNEXTLINE(*-magic-numbers)
         bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
         bmqu::MemOutStream                    os(&localAllocator);
         os << "Unable to open domain file '" << filePath << "'";
@@ -187,6 +190,7 @@ void ConfigProvider::getDomainConfig(bsl::string_view         domainName,
 
     callback(e_SUCCESS, config);
 }
+// NOLINTEND(*-narrowing-conversions,cppcoreguidelines-use-enum-class)
 
 void ConfigProvider::clearCache(bsl::string_view domainName)
 {

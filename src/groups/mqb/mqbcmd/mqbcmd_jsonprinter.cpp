@@ -27,6 +27,7 @@ namespace BloombergLP {
 namespace mqbcmd {
 
 namespace {
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char k_LOG_CATEGORY[] = "MQBCMD.JSONPRINTER";
 }  // close unnamed namespace
 
@@ -39,6 +40,7 @@ bsl::ostream& JsonPrinter::print(bsl::ostream& os,
                                  bool          pretty,
                                  int           level,
                                  int           spacesPerLevel)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bslma::Allocator* alloc = bslma::Default::allocator(0);
 
@@ -57,6 +59,7 @@ bsl::ostream& JsonPrinter::print(bsl::ostream& os,
     }
     return os;  // RETURN
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 bsl::ostream&
 JsonPrinter::printResponses(bsl::ostream&            os,
@@ -64,6 +67,7 @@ JsonPrinter::printResponses(bsl::ostream&            os,
                             bool                     pretty,
                             int                      level,
                             int                      spacesPerLevel)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     // First need to decode the string responses back to a result format.
     baljsn::Decoder        decoder;
@@ -75,6 +79,7 @@ JsonPrinter::printResponses(bsl::ostream&            os,
     bsl::vector<mqbcmd::RouteResponseResult>& responseResults =
         responseResultList.responses();
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (bsl::vector<mqbcmd::RouteResponse>::const_iterator rit =
              responseList.responses().begin();
          rit != responseList.responses().end();
@@ -93,6 +98,7 @@ JsonPrinter::printResponses(bsl::ostream&            os,
         }
         responseResults.push_back(result);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     bslma::Allocator* alloc = bslma::Default::allocator(0);
 
@@ -110,6 +116,7 @@ JsonPrinter::printResponses(bsl::ostream&            os,
     }
     return os;  // RETURN
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 }  // close package namespace
 }  // close enterprise namespace

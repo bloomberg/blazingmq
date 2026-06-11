@@ -57,11 +57,13 @@ class ListenOptions;
 /// operations on the `bmqio::ChannelFactory` object.
 struct ChannelFactoryEvent {
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         e_CHANNEL_UP             = 1,
         e_CONNECT_ATTEMPT_FAILED = 2,
         e_CONNECT_FAILED         = 3
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CLASS METHODS
 
@@ -106,6 +108,7 @@ bsl::ostream& operator<<(bsl::ostream&             stream,
 
 /// Handle to an ongoing `listen` or `connect` operation of a
 /// `ChannelFactory`.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ChannelFactoryOperationHandle {
   public:
     // CREATORS
@@ -126,12 +129,14 @@ class ChannelFactoryOperationHandle {
     /// object.
     virtual const bmqvt::PropertyBag& properties() const = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ====================
 // class ChannelFactory
 // ====================
 
 /// Protocol for a factory of `bmqio::Channel` objects.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ChannelFactory {
   public:
     // PUBLIC TYPES
@@ -195,6 +200,7 @@ class ChannelFactory {
     /// connections.
     virtual void stop() = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 

@@ -91,6 +91,7 @@ namespace bmqvt {
 // ==================
 
 template <class VALUE, class ERROR>
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ValueOrError {
     // DATA
 
@@ -241,6 +242,7 @@ class ValueOrError {
     /// otherwise.
     bool isUndefined() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // FREE OPERATORS
 
@@ -317,9 +319,11 @@ inline ERROR& ValueOrError<VALUE, ERROR>::error()
 template <class VALUE, class ERROR>
 inline const VALUE&
 ValueOrError<VALUE, ERROR>::valueOr(const VALUE& defaultValue) const
+// NOLINTBEGIN(bugprone-return-const-ref-from-parameter)
 {
     return isValue() ? value() : defaultValue;
 }
+// NOLINTEND(bugprone-return-const-ref-from-parameter)
 
 template <class VALUE, class ERROR>
 template <class TARGET_VALUE, class UNARYOPERATION>
@@ -408,6 +412,7 @@ inline bool ValueOrError<VALUE, ERROR>::isUndefined() const
 
 // MANIPULATORS
 
+// NOLINTBEGIN(cert-oop54-cpp)
 template <class VALUE, class ERROR>
 ValueOrError<VALUE, ERROR>&
 ValueOrError<VALUE, ERROR>::operator=(const ValueOrError<VALUE, ERROR>& rhs)
@@ -416,6 +421,7 @@ ValueOrError<VALUE, ERROR>::operator=(const ValueOrError<VALUE, ERROR>& rhs)
 
     return *this;
 }
+// NOLINTEND(cert-oop54-cpp)
 
 template <class VALUE, class ERROR>
 void ValueOrError<VALUE, ERROR>::reset()

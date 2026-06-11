@@ -46,6 +46,7 @@ void RecoveryMessageIterator::copyFrom(const RecoveryMessageIterator& src)
 }
 
 int RecoveryMessageIterator::next()
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     enum RcEnum {
         // Value for the various RC error categories
@@ -115,9 +116,11 @@ int RecoveryMessageIterator::next()
 
     return rc_HAS_NEXT;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 int RecoveryMessageIterator::reset(const bdlbb::Blob* blob,
                                    const EventHeader& eventHeader)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(blob);
@@ -149,6 +152,7 @@ int RecoveryMessageIterator::reset(const bdlbb::Blob* blob,
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 void RecoveryMessageIterator::reset(const bdlbb::Blob*             blob,
                                     const RecoveryMessageIterator& other)

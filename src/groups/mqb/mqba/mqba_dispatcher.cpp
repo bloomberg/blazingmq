@@ -156,11 +156,13 @@ Dispatcher::DispatcherContext::DispatcherContext(
 {
     typedef bsl::vector<bsl::shared_ptr<mqbi::DispatcherEventSource> >
         EventSources;
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (EventSources::iterator it = d_eventSources.begin();
          it != d_eventSources.end();
          ++it) {
         *it = bsl::allocate_shared<mqba::DispatcherEventSource>(allocator);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 // ----------------
@@ -170,6 +172,7 @@ Dispatcher::DispatcherContext::DispatcherContext(
 int Dispatcher::startContext(bsl::ostream&                    errorDescription,
                              mqbi::DispatcherClientType::Enum type,
                              const mqbcfg::DispatcherProcessorConfig& config)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     enum RcEnum {
         // Value for the various RC error categories
@@ -251,6 +254,7 @@ int Dispatcher::startContext(bsl::ostream&                    errorDescription,
 
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 Dispatcher::ProcessorPool::Queue*
 Dispatcher::queueCreator(mqbi::DispatcherClientType::Enum             type,
@@ -385,10 +389,11 @@ void Dispatcher::stop()
 
     d_isStarted = false;
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define STOP_AND_CLEAR(OBJ)                                                   \
     if (OBJ) {                                                                \
-        OBJ->stop();                                                          \
-        OBJ.clear();                                                          \
+        OBJ->stop(); /* NOLINT(bugprone-macro-parentheses) */                 \
+        OBJ.clear(); /* NOLINT(bugprone-macro-parentheses) */                 \
     }
 
     DispatcherContext* context = 0;

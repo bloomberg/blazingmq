@@ -170,6 +170,7 @@ namespace bmqp {
 /// VST representing the RDA counter and flags, with the MSB being a flag
 /// for unlimited retransmission and the second bit being a flag for a
 /// potentially poisonous message.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct RdaInfo {
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(RdaInfo, bsl::is_trivially_copyable)
@@ -179,6 +180,7 @@ struct RdaInfo {
 
   private:
     // TYPES
+    // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
     enum Enum { e_UNLIMITED = (1 << 7), e_POISONOUS = (1 << 6) };
 
   public:
@@ -246,6 +248,7 @@ struct RdaInfo {
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // FREE OPERATORS
 
@@ -263,6 +266,7 @@ bool operator==(const RdaInfo& lhs, const RdaInfo& rhs);
 // ===================
 
 /// VST representing a sub-queue which will be receiving a message.
+// NOLINTBEGIN(*-avoid-c-arrays)
 struct SubQueueInfo {
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(SubQueueInfo, bsl::is_trivially_copyable)
@@ -325,6 +329,7 @@ struct SubQueueInfo {
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
 };
+// NOLINTEND(*-avoid-c-arrays)
 
 // FREE OPERATORS
 
@@ -346,6 +351,7 @@ struct Protocol {
     // TYPES
 
     struct eStopRequestVersion {
+        // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
         enum Enum { e_V1 = 1, e_V2 = 2 };
     };
 
@@ -466,6 +472,7 @@ struct Protocol {
 /// client and BlazingMQ broker, as well as between BlazingMQ brokers.
 struct EventType {
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         e_UNDEFINED           = 0,
         e_CONTROL             = 1,  // Protocol event (schema-based choice)
@@ -486,6 +493,7 @@ struct EventType {
         // Authentication event
         e_AUTHENTICATION = 15,
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CONSTANTS
 
@@ -551,6 +559,7 @@ bsl::ostream& operator<<(bsl::ostream& stream, EventType::Enum value);
 /// or a broker for control messages
 struct EncodingType {
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         e_UNKNOWN = -1,
         /// For backward compatibility, 'BER' needs to be assigned a value of
@@ -558,6 +567,7 @@ struct EncodingType {
         e_BER  = 0,
         e_JSON = 1
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CONSTANTS
 
@@ -622,6 +632,7 @@ bsl::ostream& operator<<(bsl::ostream& stream, EncodingType::Enum value);
 /// This struct defines the field name of the encoding features and the
 /// list of supported encoding features exchanged in a Negotiation Message
 /// between a broker and its peer (a broker or a client).
+// NOLINTBEGIN(*-avoid-c-arrays)
 struct EncodingFeature {
     // CONSTANTS
 
@@ -634,8 +645,10 @@ struct EncodingFeature {
     /// JSON encoding feature
     static const char k_ENCODING_JSON[];
 };
+// NOLINTEND(*-avoid-c-arrays)
 
 /// This struct defines feature names related to High-Availability
+// NOLINTBEGIN(*-avoid-c-arrays)
 struct HighAvailabilityFeatures {
     /// Field name of the encoding features
     static const char k_FIELD_NAME[];
@@ -647,8 +660,10 @@ struct HighAvailabilityFeatures {
 
     static const char k_GRACEFUL_SHUTDOWN_V2[];
 };
+// NOLINTEND(*-avoid-c-arrays)
 
 /// This struct defines feature names related to MessageProperties
+// NOLINTBEGIN(*-avoid-c-arrays)
 struct MessagePropertiesFeatures {
     /// Field name of the encoding features
     static const char k_FIELD_NAME[];
@@ -656,8 +671,10 @@ struct MessagePropertiesFeatures {
     // CONSTANTS
     static const char k_MESSAGE_PROPERTIES_EX[];
 };
+// NOLINTEND(*-avoid-c-arrays)
 
 /// TEMPORARILY. This struct defines feature names related to Subscriptions
+// NOLINTBEGIN(*-avoid-c-arrays)
 struct SubscriptionsFeatures {
     /// Field name of the encoding features
     static const char k_FIELD_NAME[];
@@ -665,6 +682,7 @@ struct SubscriptionsFeatures {
     // CONSTANTS
     static const char k_CONFIGURE_STREAM[];
 };
+// NOLINTEND(*-avoid-c-arrays)
 
 // =================
 // struct OptionType
@@ -674,6 +692,7 @@ struct SubscriptionsFeatures {
 /// `PUSH` messages.
 struct OptionType {
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         // Values for the OptionHeader 'type' field.  Valid values are in the
         // range [0, OptionHeader::k_MAX_TYPE].  They must begin at 0 and
@@ -683,6 +702,7 @@ struct OptionType {
         e_MSG_GROUP_ID      = 2,
         e_SUB_QUEUE_INFOS   = 3
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CONSTANTS
 
@@ -1375,6 +1395,7 @@ struct SchemaWireId {
 
 /// This struct represents the header for a `PUT` event.  A `PUT` event is
 /// the event sent by a client to the broker to post message on queue(s).
+// NOLINTBEGIN(*-avoid-c-arrays)
 struct PutHeader {
     // PutHeader structure datagram [36 bytes (followed by zero or more options
     //                                         then zero or more message
@@ -1493,6 +1514,7 @@ struct PutHeader {
     bdlb::BigEndianInt32 d_queueId;
     // Queue Id.
 
+    // NOLINTNEXTLINE(*-avoid-c-arrays)
     unsigned char d_guidOrCorrId[bmqt::MessageGUID::e_SIZE_BINARY];
     // MessageGUID/CorrelationId associated with this
     // header.  Note that the 24-bit correlationId is
@@ -1639,6 +1661,7 @@ struct PutHeader {
     /// Return the binary protocol representation of Schema Id.
     const SchemaWireId& schemaId() const;
 };
+// NOLINTEND(*-avoid-c-arrays)
 
 // =====================
 // struct PutHeaderFlags
@@ -1648,6 +1671,7 @@ struct PutHeader {
 /// `PutHeader` structure.
 struct PutHeaderFlags {
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         /// Ack for PUT msg is requested
         e_ACK_REQUESTED = (1 << 0),
@@ -1656,6 +1680,7 @@ struct PutHeaderFlags {
         e_UNUSED3            = (1 << 2),
         e_UNUSED4            = (1 << 3)
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // PUBLIC CONSTANTS
 
@@ -1767,6 +1792,7 @@ struct PutHeaderFlagUtil {
 /// This struct represents header for an `ACK` event.  An `ACK` event is the
 /// event sent by the broker to a client in response to a post message on
 /// queue.  Such event is optional, depending on flags used at queue open.
+// NOLINTBEGIN(*-avoid-c-arrays)
 struct AckHeader {
     // AckHeader structure datagram [4 bytes (followed by one or multiple
     //                                            AckMessage)]:
@@ -1867,6 +1893,7 @@ struct AckHeader {
     /// Return the flags mask of this header.
     unsigned char flags() const;
 };
+// NOLINTEND(*-avoid-c-arrays)
 
 // =====================
 // struct AckHeaderFlags
@@ -1876,6 +1903,7 @@ struct AckHeader {
 /// `AckHeader` structure.
 struct AckHeaderFlags {
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         e_UNUSED1 = (1 << 0),
         e_UNUSED2 = (1 << 1),
@@ -1886,6 +1914,7 @@ struct AckHeaderFlags {
         e_UNUSED7 = (1 << 6),
         e_UNUSED8 = (1 << 7)
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 };
 
 // =================
@@ -1941,6 +1970,7 @@ struct AckMessage {
     bdlb::BigEndianInt32 d_statusAndCorrelationId;
     // Status code and associated correlation Id.
 
+    // NOLINTNEXTLINE(*-avoid-c-arrays)
     unsigned char d_messageGUID[bmqt::MessageGUID::e_SIZE_BINARY];
     // MessageGUID associated to this message.
 
@@ -2009,6 +2039,7 @@ struct AckMessage {
 /// This struct represents the header for a `PUSH` event.  A `PUSH` event is
 /// the event sent by the broker to a client to deliver a message from
 /// queue(s).
+// NOLINTBEGIN(*-avoid-c-arrays)
 struct PushHeader {
     // PushHeader structure datagram [32 bytes (followed by options, if any,
     //                                          then data payload)]:
@@ -2103,6 +2134,7 @@ struct PushHeader {
     bdlb::BigEndianInt32 d_queueId;
     // Queue Id.
 
+    // NOLINTNEXTLINE(*-avoid-c-arrays)
     unsigned char d_messageGUID[bmqt::MessageGUID::e_SIZE_BINARY];
     // MessageGUID associated to this message by the
     // broker.
@@ -2220,6 +2252,7 @@ struct PushHeader {
     /// Return the binary protocol representation of Schema Id.
     const SchemaWireId& schemaId() const;
 };
+// NOLINTEND(*-avoid-c-arrays)
 
 // ======================
 // struct PushHeaderFlags
@@ -2229,12 +2262,14 @@ struct PushHeader {
 /// `PushHeader` structure.
 struct PushHeaderFlags {
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         e_IMPLICIT_PAYLOAD   = (1 << 0),
         e_MESSAGE_PROPERTIES = (1 << 1),
         e_OUT_OF_ORDER       = (1 << 2),
         e_UNUSED4            = (1 << 3)
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // PUBLIC CONSTANTS
 
@@ -2346,6 +2381,7 @@ struct PushHeaderFlagUtil {
 /// This struct represents header for a `CONFIRM` event.  A `CONFIRM` event
 /// is the event sent by a client to the broker to signify it's done
 /// processing a specific message and the broker can dispose of it.
+// NOLINTBEGIN(*-avoid-c-arrays)
 struct ConfirmHeader {
     // ConfirmHeader structure datagram [4 bytes (followed by one or multiple
     //                                            ConfirmMessage)]:
@@ -2433,6 +2469,7 @@ struct ConfirmHeader {
     /// that follows.
     int perMessageWords() const;
 };
+// NOLINTEND(*-avoid-c-arrays)
 
 // =====================
 // struct ConfirmMessage
@@ -2476,6 +2513,7 @@ struct ConfirmMessage {
     bdlb::BigEndianInt32 d_queueId;
     // Queue Id.
 
+    // NOLINTNEXTLINE(*-avoid-c-arrays)
     unsigned char d_messageGUID[bmqt::MessageGUID::e_SIZE_BINARY];
     // MessageGUID associated to this message.
 
@@ -2522,6 +2560,7 @@ struct ConfirmMessage {
 /// is the event sent by a downstream broker to an upstream broker to
 /// signify that a specific message has been rejected after a number of
 /// attempts to deliver the message to consumers.
+// NOLINTBEGIN(*-avoid-c-arrays)
 struct RejectHeader {
     // RejectHeader structure datagram [4 bytes (followed by one or multiple
     //                                           RejectMessage)]:
@@ -2609,6 +2648,7 @@ struct RejectHeader {
     /// that follows.
     int perMessageWords() const;
 };
+// NOLINTEND(*-avoid-c-arrays)
 
 // ====================
 // struct RejectMessage
@@ -2652,6 +2692,7 @@ struct RejectMessage {
     bdlb::BigEndianInt32 d_queueId;
     // Queue Id.
 
+    // NOLINTNEXTLINE(*-avoid-c-arrays)
     unsigned char d_messageGUID[bmqt::MessageGUID::e_SIZE_BINARY];
     // MessageGUID associated to this message.
 
@@ -2734,6 +2775,7 @@ struct ReplicationReceipt {
 /// BlazingMQ brokers within a cluster.
 struct StorageMessageType {
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         e_UNDEFINED  = 0,
         e_DATA       = 1,
@@ -2743,6 +2785,7 @@ struct StorageMessageType {
         e_JOURNAL_OP = 5,
         e_QUEUE_OP   = 6
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // PUBLIC CONSTANTS
 
@@ -3007,6 +3050,7 @@ struct StorageHeader {
 /// `StorageHeader` structure.
 struct StorageHeaderFlags {
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         /// Ack for STORAGE msg is requested
         e_RECEIPT_REQUESTED = (1 << 0),
@@ -3015,6 +3059,7 @@ struct StorageHeaderFlags {
         e_UNUSED4           = (1 << 3),
         e_UNUSED5           = (1 << 4)
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // PUBLIC CONSTANTS
 
@@ -3130,6 +3175,7 @@ struct StorageHeaderFlagUtil {
 /// recovery phase in BMQ.
 struct RecoveryFileChunkType {
     // TYPES
+    // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
     enum Enum { e_UNDEFINED = 0, e_DATA = 1, e_JOURNAL = 2, e_QLIST = 3 };
 
     // PUBLIC CONSTANTS
@@ -3197,6 +3243,7 @@ bsl::ostream& operator<<(bsl::ostream&               stream,
 /// This struct represents the header for a `RECOVERY` message.  A
 /// `RECOVERY` message is exchanged strictly among the nodes inside the
 /// cluster.  It is never sent to clients or proxies.
+// NOLINTBEGIN(*-avoid-c-arrays)
 struct RecoveryHeader {
     // RecoveryHeader structure datagram (28 bytes, followed by payload)
     //..
@@ -3375,6 +3422,7 @@ struct RecoveryHeader {
     /// Return the MD5 digest of the chunk.
     const char* md5Digest() const;
 };
+// NOLINTEND(*-avoid-c-arrays)
 
 /// This VST controls MessageProperties logic and storage.
 /// The intended use is for:
@@ -3413,6 +3461,7 @@ struct RecoveryHeader {
 ///               1  |   new style, w/o schema           |   ASSERT_SAFE
 ///        even > 0  |   new style, w/ schema            |   ASSERT_SAFE
 ///         odd > 1  |   new style, w/ schema, recycled  |   ASSERT_SAFE
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct MessagePropertiesInfo {
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(MessagePropertiesInfo,
@@ -3511,6 +3560,7 @@ struct MessagePropertiesInfo {
     /// offsets.
     static const MessagePropertiesInfo makeNoSchema();
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 inline MessagePropertiesInfo::MessagePropertiesInfo()
 : d_isPresent(false)
@@ -3554,6 +3604,7 @@ inline MessagePropertiesInfo::MessagePropertiesInfo(bool         isPresent,
     BSLS_ASSERT_SAFE(d_isPresent || d_schemaWireId == k_NO_WIRE_SCHEMA);
 }
 
+// NOLINTBEGIN(cert-oop54-cpp)
 inline MessagePropertiesInfo&
 MessagePropertiesInfo::operator=(const MessagePropertiesInfo& rvalue)
 {
@@ -3562,6 +3613,7 @@ MessagePropertiesInfo::operator=(const MessagePropertiesInfo& rvalue)
 
     return *this;
 }
+// NOLINTEND(cert-oop54-cpp)
 
 template <class HEADER>
 inline void MessagePropertiesInfo::applyTo(HEADER* header) const
@@ -3638,10 +3690,12 @@ inline const MessagePropertiesInfo MessagePropertiesInfo::makeNoSchema()
 // ==============
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline RdaInfo::RdaInfo()
 {
     setUnlimited();
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 inline RdaInfo::RdaInfo(unsigned int internalRepresentation)
 {
@@ -3651,9 +3705,11 @@ inline RdaInfo::RdaInfo(unsigned int internalRepresentation)
 }
 
 inline RdaInfo::RdaInfo(const RdaInfo& original)
+// NOLINTBEGIN(cppcoreguidelines-prefer-member-initializer)
 {
     d_counter = original.d_counter;
 }
+// NOLINTEND(cppcoreguidelines-prefer-member-initializer)
 
 // MANIPULATORS
 inline RdaInfo& RdaInfo::setUnlimited()
@@ -3741,25 +3797,33 @@ inline const RdaInfo& SubQueueInfo::rdaInfo() const
 
 inline bsls::Types::Uint64 Protocol::combine(unsigned int upper,
                                              unsigned int lower)
+// NOLINTBEGIN(*-magic-numbers)
 {
     bsls::Types::Uint64 value = upper;
     return (value << 32) | lower;
 }
+// NOLINTEND(*-magic-numbers)
 
 inline unsigned int Protocol::getUpper(bsls::Types::Uint64 value)
+// NOLINTBEGIN(*-magic-numbers)
 {
     return static_cast<unsigned int>((value >> 32) & 0xFFFFFFFF);
 }
+// NOLINTEND(*-magic-numbers)
 
 inline unsigned int Protocol::getLower(bsls::Types::Uint64 value)
+// NOLINTBEGIN(*-magic-numbers)
 {
     return value & 0xFFFFFFFF;
 }
+// NOLINTEND(*-magic-numbers)
 
 inline unsigned short Protocol::get48to32Bits(bsls::Types::Uint64 value)
+// NOLINTBEGIN(*-magic-numbers)
 {
     return static_cast<unsigned short>((value >> 32) & 0xFFFF);
 }
+// NOLINTEND(*-magic-numbers)
 
 inline void Protocol::split(unsigned int*       upper,
                             unsigned int*       lower,
@@ -3790,6 +3854,7 @@ inline void Protocol::split(bdlb::BigEndianUint16* upper,
 // ------------------
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline EventHeader::EventHeader()
 {
     bsl::memset(this, 0, sizeof(EventHeader));
@@ -3798,7 +3863,9 @@ inline EventHeader::EventHeader()
     setHeaderWords(sizeof(EventHeader) / Protocol::k_WORD_SIZE);
     setLength(sizeof(EventHeader));
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline EventHeader::EventHeader(EventType::Enum type)
 {
     bsl::memset(this, 0, sizeof(EventHeader));
@@ -3807,6 +3874,7 @@ inline EventHeader::EventHeader(EventType::Enum type)
     setHeaderWords(sizeof(EventHeader) / Protocol::k_WORD_SIZE);
     setLength(sizeof(EventHeader));
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // MANIPULATORS
 inline EventHeader& EventHeader::setLength(int value)
@@ -3862,14 +3930,18 @@ inline EventHeader& EventHeader::setTypeSpecific(unsigned char value)
 
 // ACCESSORS
 inline int EventHeader::fragmentBit() const
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     return (d_fragmentBitAndLength & k_FRAGMENT_MASK) >> k_FRAGMENT_START_IDX;
 }
+// NOLINTEND(*-narrowing-conversions)
 
 inline int EventHeader::length() const
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     return d_fragmentBitAndLength & k_LENGTH_MASK;
 }
+// NOLINTEND(*-narrowing-conversions)
 
 inline unsigned char EventHeader::protocolVersion() const
 {
@@ -3936,13 +4008,16 @@ EventHeaderUtil::encodingType(const EventHeader& eventHeader)
 // -------------------
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline OptionHeader::OptionHeader()
 {
     bsl::memset(this, 0, sizeof(OptionHeader));
     setType(OptionType::e_UNDEFINED);
     setWords(sizeof(OptionHeader) / Protocol::k_WORD_SIZE);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline OptionHeader::OptionHeader(OptionType::Enum type, bool isPacked)
 {
     bsl::memset(this, 0, sizeof(OptionHeader));
@@ -3952,6 +4027,7 @@ inline OptionHeader::OptionHeader(OptionType::Enum type, bool isPacked)
         setWords(sizeof(OptionHeader) / Protocol::k_WORD_SIZE);
     }
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // MANIPULATORS
 inline OptionHeader& OptionHeader::setType(OptionType::Enum value)
@@ -4006,15 +4082,18 @@ inline unsigned char OptionHeader::typeSpecific() const
 }
 
 inline int OptionHeader::words() const
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     return (d_content & k_WORDS_MASK) >> k_WORDS_START_IDX;
 }
+// NOLINTEND(*-narrowing-conversions)
 
 // -----------------------------
 // class MessagePropertiesHeader
 // -----------------------------
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline MessagePropertiesHeader::MessagePropertiesHeader()
 {
     bsl::memset(this, 0, sizeof(MessagePropertiesHeader));
@@ -4027,6 +4106,7 @@ inline MessagePropertiesHeader::MessagePropertiesHeader()
 
     setMessagePropertyHeaderSize(sizeof(MessagePropertyHeader));
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // MANIPULATORS
 inline MessagePropertiesHeader&
@@ -4057,6 +4137,7 @@ MessagePropertiesHeader::setMessagePropertyHeaderSize(int value)
 
 inline MessagePropertiesHeader&
 MessagePropertiesHeader::setMessagePropertiesAreaWords(int value)
+// NOLINTBEGIN(*-magic-numbers)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(value >= 0 &&
@@ -4068,6 +4149,7 @@ MessagePropertiesHeader::setMessagePropertiesAreaWords(int value)
 
     return *this;
 }
+// NOLINTEND(*-magic-numbers)
 
 inline MessagePropertiesHeader&
 MessagePropertiesHeader::setNumProperties(int value)
@@ -4111,10 +4193,12 @@ inline int MessagePropertiesHeader::numProperties() const
 // ---------------------------
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline MessagePropertyHeader::MessagePropertyHeader()
 {
     bsl::memset(this, 0, sizeof(MessagePropertyHeader));
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // MANIPULATORS
 inline MessagePropertyHeader& MessagePropertyHeader::setPropertyType(int value)
@@ -4131,6 +4215,7 @@ inline MessagePropertyHeader& MessagePropertyHeader::setPropertyType(int value)
 
 inline MessagePropertyHeader&
 MessagePropertyHeader::setPropertyValueLength(int value)
+// NOLINTBEGIN(*-magic-numbers)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(value >= 0 && value <= k_MAX_PROPERTY_VALUE_LENGTH);
@@ -4144,6 +4229,7 @@ MessagePropertyHeader::setPropertyValueLength(int value)
 
     return *this;
 }
+// NOLINTEND(*-magic-numbers)
 
 inline MessagePropertyHeader&
 MessagePropertyHeader::setPropertyNameLength(int value)
@@ -4311,6 +4397,7 @@ inline PutHeader& PutHeader::setQueueId(int value)
 }
 
 inline PutHeader& PutHeader::setCorrelationId(int value)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-reinterpret-cast)
 {
     // PRECONDITIONS: protect against overflow
     BSLS_ASSERT_SAFE(value >= 0 &&
@@ -4325,6 +4412,7 @@ inline PutHeader& PutHeader::setCorrelationId(int value)
 
     return *this;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-reinterpret-cast)
 
 inline PutHeader& PutHeader::setMessageGUID(const bmqt::MessageGUID& value)
 {
@@ -4345,33 +4433,43 @@ inline SchemaWireId& PutHeader::schemaId()
 
 // ACCESSORS
 inline int PutHeader::flags() const
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     return (d_flagsAndMessageWords & k_FLAGS_MASK) >> k_FLAGS_START_IDX;
 }
+// NOLINTEND(*-narrowing-conversions)
 
 inline int PutHeader::messageWords() const
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     return d_flagsAndMessageWords & k_MSG_WORDS_MASK;
 }
+// NOLINTEND(*-narrowing-conversions)
 
 inline int PutHeader::optionsWords() const
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     return (d_optionsAndHeaderWordsAndCAT & k_OPTIONS_WORDS_MASK) >>
            k_OPTIONS_WORDS_START_IDX;
 }
+// NOLINTEND(*-narrowing-conversions)
 
 inline bmqt::CompressionAlgorithmType::Enum
 PutHeader::compressionAlgorithmType() const
 {
+    // NOLINTBEGIN(*-narrowing-conversions)
     int value = (d_optionsAndHeaderWordsAndCAT & k_CAT_MASK) >>
                 k_CAT_START_IDX;
+    // NOLINTEND(*-narrowing-conversions)
     return static_cast<bmqt::CompressionAlgorithmType::Enum>(value);
 }
 
 inline int PutHeader::headerWords() const
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     return d_optionsAndHeaderWordsAndCAT & k_HEADER_WORDS_MASK;
 }
+// NOLINTEND(*-narrowing-conversions)
 
 inline int PutHeader::queueId() const
 {
@@ -4379,6 +4477,7 @@ inline int PutHeader::queueId() const
 }
 
 inline int PutHeader::correlationId() const
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-reinterpret-cast)
 {
     // Retrieve correlationId from d_guidOrCorrId[1-3]
     bdlb::BigEndianInt32 corrIdBE = bdlb::BigEndianInt32::make(0);
@@ -4387,11 +4486,14 @@ inline int PutHeader::correlationId() const
                 k_CORRELATION_ID_LEN);
     return corrIdBE;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-reinterpret-cast)
 
 inline const bmqt::MessageGUID& PutHeader::messageGUID() const
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     return reinterpret_cast<const bmqt::MessageGUID&>(d_guidOrCorrId);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 inline unsigned int PutHeader::crc32c() const
 {
@@ -4408,12 +4510,14 @@ inline const SchemaWireId& PutHeader::schemaId() const
 // ----------------
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline AckHeader::AckHeader()
 {
     bsl::memset(this, 0, sizeof(AckHeader));
     setHeaderWords(sizeof(AckHeader) / Protocol::k_WORD_SIZE);
     setPerMessageWords(sizeof(AckMessage) / Protocol::k_WORD_SIZE);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // MANIPULATORS
 inline AckHeader& AckHeader::setHeaderWords(int value)
@@ -4467,15 +4571,19 @@ inline unsigned char AckHeader::flags() const
 // struct AckMessage
 // -----------------
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline AckMessage::AckMessage()
 {
     bsl::memset(this, 0, sizeof(AckMessage));
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline AckMessage::AckMessage(int                      status,
                               int                      correlationId,
                               const bmqt::MessageGUID& guid,
                               int                      queueId)
+// NOLINTBEGIN(cppcoreguidelines-prefer-member-initializer)
 {
     d_statusAndCorrelationId = 0;
     // NOTE: status and correlationId are stored on the same field, so
@@ -4487,6 +4595,8 @@ inline AckMessage::AckMessage(int                      status,
     setMessageGUID(guid);
     setQueueId(queueId);
 }
+// NOLINTEND(cppcoreguidelines-prefer-member-initializer)
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // MANIPULATORS
 inline AckMessage& AckMessage::setStatus(int value)
@@ -4533,9 +4643,11 @@ inline int AckMessage::correlationId() const
 }
 
 inline const bmqt::MessageGUID& AckMessage::messageGUID() const
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     return reinterpret_cast<const bmqt::MessageGUID&>(d_messageGUID);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 inline int AckMessage::queueId() const
 {
@@ -4643,33 +4755,43 @@ inline SchemaWireId& PushHeader::schemaId()
 
 // ACCESSORS
 inline int PushHeader::flags() const
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     return (d_flagsAndMessageWords & k_FLAGS_MASK) >> k_FLAGS_START_IDX;
 }
+// NOLINTEND(*-narrowing-conversions)
 
 inline int PushHeader::messageWords() const
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     return d_flagsAndMessageWords & k_MSG_WORDS_MASK;
 }
+// NOLINTEND(*-narrowing-conversions)
 
 inline int PushHeader::optionsWords() const
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     return (d_optionsAndHeaderWordsAndCAT & k_OPTIONS_WORDS_MASK) >>
            k_OPTIONS_WORDS_START_IDX;
 }
+// NOLINTEND(*-narrowing-conversions)
 
 inline bmqt::CompressionAlgorithmType::Enum
 PushHeader::compressionAlgorithmType() const
 {
+    // NOLINTBEGIN(*-narrowing-conversions)
     int value = (d_optionsAndHeaderWordsAndCAT & k_CAT_MASK) >>
                 k_CAT_START_IDX;
+    // NOLINTEND(*-narrowing-conversions)
     return static_cast<bmqt::CompressionAlgorithmType::Enum>(value);
 }
 
 inline int PushHeader::headerWords() const
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     return d_optionsAndHeaderWordsAndCAT & k_HEADER_WORDS_MASK;
 }
+// NOLINTEND(*-narrowing-conversions)
 
 inline int PushHeader::queueId() const
 {
@@ -4677,9 +4799,11 @@ inline int PushHeader::queueId() const
 }
 
 inline const bmqt::MessageGUID& PushHeader::messageGUID() const
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     return reinterpret_cast<const bmqt::MessageGUID&>(d_messageGUID);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 inline const SchemaWireId& PushHeader::schemaId() const
 {
@@ -4711,12 +4835,14 @@ inline bool PushHeaderFlagUtil::isSet(int flags, PushHeaderFlags::Enum flag)
 // --------------------
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline ConfirmHeader::ConfirmHeader()
 {
     bsl::memset(this, 0, sizeof(ConfirmHeader));
     setHeaderWords(sizeof(ConfirmHeader) / Protocol::k_WORD_SIZE);
     setPerMessageWords(sizeof(ConfirmMessage) / Protocol::k_WORD_SIZE);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // MANIPULATORS
 inline ConfirmHeader& ConfirmHeader::setHeaderWords(int value)
@@ -4759,10 +4885,12 @@ inline int ConfirmHeader::perMessageWords() const
 // struct ConfirmMessage
 // ---------------------
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline ConfirmMessage::ConfirmMessage()
 {
     bsl::memset(this, 0, sizeof(ConfirmMessage));
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // MANIPULATORS
 inline ConfirmMessage& ConfirmMessage::setQueueId(int value)
@@ -4791,9 +4919,11 @@ inline int ConfirmMessage::queueId() const
 }
 
 inline const bmqt::MessageGUID& ConfirmMessage::messageGUID() const
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     return reinterpret_cast<const bmqt::MessageGUID&>(d_messageGUID);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 inline int ConfirmMessage::subQueueId() const
 {
@@ -4805,12 +4935,14 @@ inline int ConfirmMessage::subQueueId() const
 // -------------------
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline RejectHeader::RejectHeader()
 {
     bsl::memset(this, 0, sizeof(RejectHeader));
     setHeaderWords(sizeof(RejectHeader) / Protocol::k_WORD_SIZE);
     setPerMessageWords(sizeof(RejectMessage) / Protocol::k_WORD_SIZE);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // MANIPULATORS
 inline RejectHeader& RejectHeader::setHeaderWords(int value)
@@ -4854,10 +4986,12 @@ inline int RejectHeader::perMessageWords() const
 // --------------------
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline RejectMessage::RejectMessage()
 {
     bsl::memset(this, 0, sizeof(RejectMessage));
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // MANIPULATORS
 inline RejectMessage& RejectMessage::setQueueId(int value)
@@ -4886,9 +5020,11 @@ inline int RejectMessage::queueId() const
 }
 
 inline const bmqt::MessageGUID& RejectMessage::messageGUID() const
+// NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
 {
     return reinterpret_cast<const bmqt::MessageGUID&>(d_messageGUID);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
 inline int RejectMessage::subQueueId() const
 {
@@ -4900,10 +5036,12 @@ inline int RejectMessage::subQueueId() const
 // -------------------------
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline ReplicationReceipt::ReplicationReceipt()
 {
     bsl::memset(this, 0, sizeof(ReplicationReceipt));
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // MANIPULATORS
 inline ReplicationReceipt&
@@ -4950,6 +5088,7 @@ inline bsls::Types::Uint64 ReplicationReceipt::sequenceNum() const
 // --------------------
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline StorageHeader::StorageHeader()
 {
     bsl::memset(this, 0, sizeof(StorageHeader));
@@ -4957,6 +5096,7 @@ inline StorageHeader::StorageHeader()
     setMessageWords(headerWords);
     setHeaderWords(headerWords);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // MANIPULATORS
 inline StorageHeader& StorageHeader::setFlags(int value)
@@ -5022,14 +5162,18 @@ inline StorageHeader& StorageHeader::setJournalOffsetWords(unsigned int value)
 
 // ACCESSORS
 inline int StorageHeader::flags() const
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     return (d_flagsAndMessageWords & k_FLAGS_MASK) >> k_FLAGS_START_IDX;
 }
+// NOLINTEND(*-narrowing-conversions)
 
 inline int StorageHeader::messageWords() const
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     return d_flagsAndMessageWords & k_MSG_WORDS_MASK;
 }
+// NOLINTEND(*-narrowing-conversions)
 
 inline int StorageHeader::storageProtocolVersion() const
 {
@@ -5084,6 +5228,7 @@ inline bool StorageHeaderFlagUtil::isSet(unsigned char            flags,
 // ---------------------
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline RecoveryHeader::RecoveryHeader()
 {
     bsl::memset(this, 0, sizeof(RecoveryHeader));
@@ -5091,6 +5236,7 @@ inline RecoveryHeader::RecoveryHeader()
     setMessageWords(headerWords);
     setHeaderWords(headerWords);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // MANIPULATORS
 inline RecoveryHeader& RecoveryHeader::setFinalChunkBit()
@@ -5147,10 +5293,12 @@ RecoveryHeader::setChunkSequenceNumber(unsigned int value)
 }
 
 inline RecoveryHeader& RecoveryHeader::setMd5Digest(const char* value)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bsl::memcpy(d_md5Digest, value, k_MD5_DIGEST_LEN);
     return *this;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 // ACCESSORS
 inline bool RecoveryHeader::isFinalChunk() const
@@ -5160,9 +5308,11 @@ inline bool RecoveryHeader::isFinalChunk() const
 }
 
 inline int RecoveryHeader::messageWords() const
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     return d_fcbAndReservedAndMessageWords & k_MSG_WORDS_MASK;
 }
+// NOLINTEND(*-narrowing-conversions)
 
 inline int RecoveryHeader::headerWords() const
 {
@@ -5187,9 +5337,11 @@ inline unsigned int RecoveryHeader::chunkSequenceNumber() const
 }
 
 inline const char* RecoveryHeader::md5Digest() const
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     return d_md5Digest;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 }  // close package namespace
 

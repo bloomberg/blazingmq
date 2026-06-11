@@ -50,6 +50,7 @@ void RejectMessageIterator::copyFrom(const RejectMessageIterator& src)
 }
 
 int RejectMessageIterator::next()
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     enum RcEnum {
         // Value for the various RC error categories
@@ -94,9 +95,11 @@ int RejectMessageIterator::next()
 
     return rc_HAS_NEXT;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 int RejectMessageIterator::reset(const bdlbb::Blob* blob,
                                  const EventHeader& eventHeader)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(blob);
@@ -169,6 +172,7 @@ int RejectMessageIterator::reset(const bdlbb::Blob* blob,
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 void RejectMessageIterator::dumpBlob(bsl::ostream& stream)
 {

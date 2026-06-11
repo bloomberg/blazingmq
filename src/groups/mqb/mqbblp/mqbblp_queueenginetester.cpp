@@ -58,19 +58,23 @@ namespace mqbblp {
 
 namespace {
 
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char k_LOG_CATEGORY[] = "MQBBLP.QUEUEENGINETESTER";
 
 /// Constant representing the numeric value of an invalid, or unassigned
 /// queue id.  This value should be used for the id of a queue that is used
 /// for testing purposes (specificially, as the `id` of `mqbblp::QueueState`
 /// and `bmqp_ctrlmsg::OpenQueueOld`).
+// NOLINTBEGIN(cppcoreguidelines-interfaces-global-init)
 const unsigned int k_UNASSIGNED_QUEUE_ID =
     bmqp::QueueId::k_UNASSIGNED_QUEUE_ID;
+// NOLINTEND(cppcoreguidelines-interfaces-global-init)
 
 /// Constant representing a null QueueKey for a queue. This value should be
 /// used for the key of a queue that is used for testing purposes
 /// (specificially, as the `key` of `mqbblp::QueueState` and `queueKey` of
 /// `mqbs::InMemoryStorage`).
+// NOLINTNEXTLINE(cppcoreguidelines-interfaces-global-init)
 const mqbu::StorageKey k_NULL_QUEUE_KEY = mqbu::StorageKey::k_NULL_KEY;
 
 /// Constant representing a valid PartitionId for a queue.  This value
@@ -104,6 +108,7 @@ static void dummyGetHandleCallback(
     const bmqp_ctrlmsg::QueueHandleParameters& requestedHandleParameters,
     const bmqp_ctrlmsg::Status&                status,
     mqbi::QueueHandle*                         handleIn)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(handleOut && "'handleOut' must not be null");
@@ -116,6 +121,7 @@ static void dummyGetHandleCallback(
 
     *handleOut = handleIn;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 /// A dummy callback provided to `QueueEngine::configureHandle()` populating
 /// the specified `rc` with the result status code of the configureHandle
@@ -128,6 +134,7 @@ static void dummyHandleConfiguredCallback(
     const bmqp_ctrlmsg::Status&           status,
     const bmqp_ctrlmsg::StreamParameters& streamParameters,
     mqbi::QueueHandle*                    handle)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     BSLS_ASSERT_OPT(rc);
 
@@ -141,15 +148,18 @@ static void dummyHandleConfiguredCallback(
 
     *rc = status.code();
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 /// Populate the specified `out` with tokens parsed from the specified `in`.
 /// The format of `in` must be: `<item1>,<item2>,...,<itemN>`.  Use the
 /// specified `allocator` when creating new string out of a token.
 ///
 /// The behavior is undefined unless `in` is formatted as above.
+// NOLINTBEGIN(performance-unnecessary-value-param)
 static void parseList(bsl::vector<bsl::string>* out,
                       const bsl::string         in,
                       bslma::Allocator*         allocator)
+// NOLINTEND(performance-unnecessary-value-param)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(out);
@@ -160,10 +170,12 @@ static void parseList(bsl::vector<bsl::string>* out,
 
     BSLS_ASSERT_OPT(tokenizer.isValid() && "Format error in 'messages'");
 
+    // NOLINTBEGIN(modernize-use-emplace)
     while (tokenizer.isValid()) {
         out->push_back(bsl::string(tokenizer.token(), allocator));
         ++tokenizer;
     }
+    // NOLINTEND(modernize-use-emplace)
 }
 
 /// Populate the specified `handleParams` with attributes (e.g. `readCount`)
@@ -280,6 +292,7 @@ parseHandleParameters(bmqp_ctrlmsg::QueueHandleParameters* handleParams,
 /// The behavior is undefined unless `attributesStr` is formatted as above.
 static int parseStreamParameters(bmqp_ctrlmsg::StreamParameters* streamParams,
                                  const bsl::string&              attributesStr)
+// NOLINTBEGIN(*-magic-numbers,bugprone-implicit-widening-of-multiplication-result)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(streamParams && "Must provide 'streamParameters'");
@@ -372,6 +385,7 @@ static int parseStreamParameters(bmqp_ctrlmsg::StreamParameters* streamParams,
 
     return numAttributes;
 }
+// NOLINTEND(*-magic-numbers,bugprone-implicit-widening-of-multiplication-result)
 
 }  // close unnamed namespace
 
@@ -435,6 +449,7 @@ void QueueEngineTester::oneTimeInit()
 
 void QueueEngineTester::init(const mqbconfm::Domain& domainConfig,
                              bool                    startScheduler)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bmqu::MemOutStream errorDescription(d_allocator_p);
     int                rc = 0;
@@ -626,6 +641,7 @@ void QueueEngineTester::init(const mqbconfm::Domain& domainConfig,
     const_cast<QueueHandleCatalog&>(d_queueState_mp->handleCatalog())
         .setHandleFactory(handleFactory_mp);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 void QueueEngineTester::oneTimeShutdown()
 {
@@ -682,6 +698,7 @@ void QueueEngineTester::dummyHandleReleasedCallback(
 // MANIPULATORS
 mqbmock::QueueHandle*
 QueueEngineTester::getHandle(const bsl::string& clientText)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(d_queueEngine_mp &&
@@ -698,6 +715,7 @@ QueueEngineTester::getHandle(const bsl::string& clientText)
     // TODO: Refactor this chunk into a function (possibly all of 1.2, 1.3,
     //       and before 2. could all go into a function)
     // 1.2 appId (if any)
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bsl::string            appId = bmqp::ProtocolUtil::k_DEFAULT_APP_ID;
     bsl::string::size_type appIdStartPosition = clientText.find_first_of('@');
     if (appIdStartPosition != bsl::string::npos) {
@@ -854,8 +872,10 @@ QueueEngineTester::getHandle(const bsl::string& clientText)
 
     return mockHandle;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 int QueueEngineTester::configureHandle(const bsl::string& clientText)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(d_queueEngine_mp &&
@@ -872,6 +892,7 @@ int QueueEngineTester::configureHandle(const bsl::string& clientText)
     // TODO: Refactor this chunk into a function (possibly all of 1.2, 1.3,
     //       and before 2. could all go into a function)
     // 1.2 appId (if any)
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bsl::string            appId = bmqp::ProtocolUtil::k_DEFAULT_APP_ID;
     bsl::string::size_type appIdStartPosition = clientText.find_first_of('@');
     bsl::string::size_type appIdEndPosition   = attributesPos;
@@ -946,6 +967,7 @@ int QueueEngineTester::configureHandle(const bsl::string& clientText)
 
     return rc;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 mqbmock::QueueHandle*
 QueueEngineTester::client(const bslstl::StringRef& clientKey)
@@ -968,6 +990,7 @@ void QueueEngineTester::post(const bslstl::StringRef& messages,
     bsl::vector<bsl::string> msgs(d_allocator_p);
     parseList(&msgs, messages, d_allocator_p);
 
+    // NOLINTBEGIN(*-narrowing-conversions)
     for (unsigned int i = 0; i < msgs.size(); ++i) {
         // Each message must have its own 'subscriptions'.
         bmqp::Protocol::SubQueueInfosArray subscriptions(d_allocator_p);
@@ -1038,6 +1061,7 @@ void QueueEngineTester::post(const bslstl::StringRef& messages,
             bsl::make_pair(bsl::string(msgs[i], d_allocator_p), msgGUID));
         BSLS_ASSERT_OPT(insertRC.second);
     }
+    // NOLINTEND(*-narrowing-conversions)
 }
 
 void QueueEngineTester::afterNewMessage(int numMessages)
@@ -1049,6 +1073,7 @@ void QueueEngineTester::afterNewMessage(int numMessages)
     BSLS_ASSERT_OPT(static_cast<unsigned int>(numMessages) <=
                     d_newMessages.size());
 
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     int remaining = numMessages == 0 ? d_newMessages.size() : numMessages;
 
     for (MessagesMap::iterator it = d_newMessages.begin();
@@ -1066,6 +1091,7 @@ void QueueEngineTester::afterNewMessage(int numMessages)
 
 void QueueEngineTester::confirm(const bsl::string&       clientText,
                                 const bslstl::StringRef& messages)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(d_queueEngine_mp &&
@@ -1073,6 +1099,7 @@ void QueueEngineTester::confirm(const bsl::string&       clientText,
     // BSLS_ASSERT_OPT(client(clientKey) && "Unknown client 'clientKey'");
 
     // 1. Parse 'clientText'
+    // NOLINTNEXTLINE(performance-faster-string-find)
     bsl::string::size_type appIdStartPosition = clientText.find_first_of("@");
     BSLS_ASSERT_OPT(clientText.find_first_of(' ', appIdStartPosition) ==
                     bsl::string::npos);
@@ -1083,6 +1110,7 @@ void QueueEngineTester::confirm(const bsl::string&       clientText,
 
     // TODO: Refactor this chunk into a function
     // 1.2 appId (if any)
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bsl::string appId = bmqp::ProtocolUtil::k_DEFAULT_APP_ID;
     if (appIdStartPosition != bsl::string::npos) {
         // appId was specified.  Skip over the '@', capture the appId.
@@ -1126,15 +1154,18 @@ void QueueEngineTester::confirm(const bsl::string&       clientText,
         }
     }
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 void QueueEngineTester::reject(const bsl::string&       clientText,
                                const bslstl::StringRef& messages)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(d_queueEngine_mp &&
                     "'createQueueEngine()' was not called");
 
     // 1. Parse 'clientText'
+    // NOLINTNEXTLINE(performance-faster-string-find)
     bsl::string::size_type appIdStartPosition = clientText.find_first_of("@");
     BSLS_ASSERT_OPT(clientText.find_first_of(' ', appIdStartPosition) ==
                     bsl::string::npos);
@@ -1145,6 +1176,7 @@ void QueueEngineTester::reject(const bsl::string&       clientText,
 
     // TODO: Refactor this chunk into a function
     // 1.2 appId (if any)
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bsl::string appId = bmqp::ProtocolUtil::k_DEFAULT_APP_ID;
     if (appIdStartPosition != bsl::string::npos) {
         // appId was specified.  Skip over the '@', capture the appId.
@@ -1182,6 +1214,7 @@ void QueueEngineTester::reject(const bsl::string&       clientText,
         }
     }
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 void QueueEngineTester::garbageCollectMessages(int numMessages)
 {
@@ -1192,6 +1225,7 @@ void QueueEngineTester::garbageCollectMessages(int numMessages)
     BSLS_ASSERT_OPT(static_cast<unsigned int>(numMessages) <=
                     d_postedMessages.size());
 
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     int removing  = numMessages == 0 ? d_postedMessages.size() : numMessages;
     int remaining = removing;
 
@@ -1218,6 +1252,7 @@ void QueueEngineTester::garbageCollectMessages(int numMessages)
 }
 
 void QueueEngineTester::purgeQueue(const bslstl::StringRef& appId)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(d_queueEngine_mp &&
@@ -1226,6 +1261,7 @@ void QueueEngineTester::purgeQueue(const bslstl::StringRef& appId)
     mqbi::StorageResult::Enum rc     = mqbi::StorageResult::e_SUCCESS;
     mqbu::StorageKey          appKey = mqbi::QueueEngine::k_DEFAULT_APP_KEY;
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bsl::string appIdInternal = bmqp::ProtocolUtil::k_DEFAULT_APP_ID;
     bsl::shared_ptr<const mqbconfm::Domain> domainConfig =
         d_queueState_mp->domain()->config();
@@ -1262,8 +1298,10 @@ void QueueEngineTester::purgeQueue(const bslstl::StringRef& appId)
         d_queueEngine_mp->afterQueuePurged(appIdInternal, appKey);
     }
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 int QueueEngineTester::releaseHandle(const bsl::string& clientText)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(d_queueEngine_mp &&
@@ -1281,6 +1319,7 @@ int QueueEngineTester::releaseHandle(const bsl::string& clientText)
     // TODO: Refactor this chunk into a function (possibly all of 1.2, 1.3,
     //       and before 2. could all go into a function)
     // 1.2 appId (if any)
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bsl::string            appId = bmqp::ProtocolUtil::k_DEFAULT_APP_ID;
     bsl::string::size_type appIdStartPosition = clientText.find_first_of('@');
     if (appIdStartPosition != bsl::string::npos) {
@@ -1355,9 +1394,11 @@ int QueueEngineTester::releaseHandle(const bsl::string& clientText)
 
     return rc;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 int QueueEngineTester::releaseHandle(const bsl::string& clientText,
                                      bool*              isDeleted)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(d_queueEngine_mp &&
@@ -1375,6 +1416,7 @@ int QueueEngineTester::releaseHandle(const bsl::string& clientText,
     // TODO: Refactor this chunk into a function (possibly all of 1.2, 1.3,
     //       and before 2. could all go into a function)
     // 1.2 appId (if any)
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bsl::string            appId = bmqp::ProtocolUtil::k_DEFAULT_APP_ID;
     bsl::string::size_type appIdStartPosition = clientText.find_first_of('@');
     if (appIdStartPosition != bsl::string::npos) {
@@ -1449,6 +1491,7 @@ int QueueEngineTester::releaseHandle(const bsl::string& clientText,
 
     return rc;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 void QueueEngineTester::dropHandle(const bslstl::StringRef& clientKey)
 {
@@ -1561,8 +1604,11 @@ bool QueueEngineTester::getUpstreamParameters(
     return d_queueState_mp->getUpstreamParameters(value, upstreamSubQueueId);
 }
 
+// NOLINTBEGIN(performance-unnecessary-value-param)
 bsl::string QueueEngineTester::getMessages(bsl::string messages,
                                            bsl::string indices) const
+// NOLINTEND(performance-unnecessary-value-param)
+// NOLINTBEGIN(performance-unnecessary-value-param)
 {
     bsl::string              result("", d_allocator_p);
     bsl::vector<int>         idxs(d_allocator_p);
@@ -1596,6 +1642,7 @@ bsl::string QueueEngineTester::getMessages(bsl::string messages,
 
     return result;
 }
+// NOLINTEND(performance-unnecessary-value-param)
 
 }  // close namespace mqbblp
 }  // close namespace BloombergLP

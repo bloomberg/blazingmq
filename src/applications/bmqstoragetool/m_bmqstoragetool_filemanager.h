@@ -55,6 +55,7 @@
 namespace BloombergLP {
 namespace m_bmqstoragetool {
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class FileManager {
   public:
     // CREATORS
@@ -75,11 +76,13 @@ class FileManager {
     /// Fill the specified `queueMap_p` with key/uri mapping from CSL file.
     virtual void fillQueueMapFromCslFile(QueueMap* queueMap_p) const = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 class FileManagerImpl : public FileManager {
   private:
     // PRIVATE TYPES
     template <typename ITER>
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     class FileHandler {
       private:
         const bsl::string          d_path;
@@ -107,7 +110,9 @@ class FileManagerImpl : public FileManager {
         /// Mapped file descriptor
         mqbs::MappedFileDescriptor& mappedFileDescriptor();
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     class CslFileHandler {
       private:
         // PRIVATE DATA
@@ -142,6 +147,7 @@ class FileManagerImpl : public FileManager {
         /// Fill the specified `queueMap_p` with data from CSL file.
         void fillQueueMap(QueueMap* queueMap_p) const;
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
     // PRIVATE DATA
 

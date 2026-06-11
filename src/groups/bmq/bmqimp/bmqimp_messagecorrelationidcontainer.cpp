@@ -37,6 +37,7 @@ namespace bmqimp {
 MessageCorrelationIdContainer::QueueAndCorrelationId::QueueAndCorrelationId(
     bslma::Allocator* allocator)
 : d_correlationId()
+// NOLINTNEXTLINE(*-narrowing-conversions)
 , d_queueId(bmqp::QueueId::k_UNASSIGNED_QUEUE_ID)
 , d_messageType(bmqp::EventType::e_UNDEFINED)
 , d_messageData(allocator)

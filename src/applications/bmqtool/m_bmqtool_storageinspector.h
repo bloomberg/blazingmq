@@ -91,6 +91,7 @@ struct StorageInspector_QueueRecord {
 
 /// This component provides a command line interface to inspect BlazingMQ
 /// storage.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class StorageInspector {
   private:
     // PRIVATE TYPES
@@ -172,6 +173,7 @@ class StorageInspector {
     /// main loop; read from stdin, parse JSON commands and executes them.
     int mainLoop();
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

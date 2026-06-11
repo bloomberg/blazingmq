@@ -50,11 +50,13 @@ BALL_LOG_SET_NAMESPACE_CATEGORY("BMQIO.NTCCHANNEL");
 const int k_MAX_BYTES_DUMP = 512;
 
 #if defined(BSLS_PLATFORM_CPU_64_BIT)
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQIO_ADDRESS_WIDTH 16
 #else
 #define BMQIO_ADDRESS_WIDTH 8
 #endif
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQIO_UNUSED(parameter) (void)(parameter)
 
 // Define and set to 1 to enable resolution of a listener's source endpoint
@@ -64,6 +66,7 @@ const int k_MAX_BYTES_DUMP = 512;
 // bind and listen synchronously. This configuration option should be set to
 // 0 until the channel factory supports some notion of a listener starting
 // asynchronously.
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQIO_NTCLISTENER_BIND_ASYNC 0
 
 struct AddressFormatter {
@@ -91,6 +94,7 @@ struct AddressFormatter {
     }
 };
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQIO_NTCCHANNEL_LOG_CONNECT_START(address,                           \
                                            streamSocket,                      \
                                            remoteEndpoint)                    \
@@ -100,6 +104,7 @@ struct AddressFormatter {
                        << " connection initiated" << BALL_LOG_END;            \
     } while (false)
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQIO_NTCCHANNEL_LOG_CONNECT_COMPLETE(address, streamSocket, event)   \
     do {                                                                      \
         BALL_LOG_TRACE << "NTC channel " << AddressFormatter(address)         \
@@ -109,6 +114,7 @@ struct AddressFormatter {
                        << BALL_LOG_END;                                       \
     } while (false)
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQIO_NTCCHANNEL_LOG_CONNECT_FAILED(address,                          \
                                             streamSocket,                     \
                                             remoteEndpoint,                   \
@@ -119,6 +125,7 @@ struct AddressFormatter {
                        << " connection failed: " << (event) << BALL_LOG_END;  \
     } while (false)
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQIO_NTCCHANNEL_LOG_RECEIVE_WOULD_BLOCK(address, streamSocket)       \
     do {                                                                      \
         BALL_LOG_TRACE << "NTC channel " << AddressFormatter(address)         \
@@ -127,6 +134,7 @@ struct AddressFormatter {
                        << " receive WOULD_BLOCK" << BALL_LOG_END;             \
     } while (false)
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQIO_NTCCHANNEL_LOG_RECEIVE_EOF(address, streamSocket)               \
     do {                                                                      \
         BALL_LOG_TRACE << "NTC channel " << AddressFormatter(address)         \
@@ -135,6 +143,7 @@ struct AddressFormatter {
                        << " receive EOF" << BALL_LOG_END;                     \
     } while (false)
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQIO_NTCCHANNEL_LOG_RECEIVE_FAILED(address, streamSocket, error)     \
     do {                                                                      \
         BALL_LOG_TRACE << "NTC channel " << AddressFormatter(address)         \
@@ -143,6 +152,7 @@ struct AddressFormatter {
                        << " receive failed: " << (event) << BALL_LOG_END;     \
     } while (false)
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQIO_NTCCHANNEL_LOG_READ_CACHE_FILLED(address,                       \
                                                streamSocket,                  \
                                                readCache)                     \
@@ -158,6 +168,7 @@ struct AddressFormatter {
                        << BALL_LOG_END;                                       \
     } while (false)
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQIO_NTCCHANNEL_LOG_READ_CACHE_DRAINED(address,                      \
                                                 streamSocket,                 \
                                                 readCache)                    \
@@ -173,6 +184,7 @@ struct AddressFormatter {
                        << BALL_LOG_END;                                       \
     } while (false)
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQIO_NTCCHANNEL_LOG_READ_START(address,                              \
                                         streamSocket,                         \
                                         read,                                 \
@@ -187,6 +199,7 @@ struct AddressFormatter {
                        << " started" << BALL_LOG_END;                         \
     } while (false)
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQIO_NTCCHANNEL_LOG_READ_SATISFIED(address,                          \
                                             streamSocket,                     \
                                             read,                             \
@@ -204,6 +217,7 @@ struct AddressFormatter {
                        << BALL_LOG_END;                                       \
     } while (false)
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQIO_NTCCHANNEL_LOG_READ_COMPLETE(address, streamSocket, read)       \
     do {                                                                      \
         BALL_LOG_TRACE << "NTC channel " << AddressFormatter(address)         \
@@ -213,6 +227,7 @@ struct AddressFormatter {
                        << " is complete" << BALL_LOG_END;                     \
     } while (false)
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQIO_NTCCHANNEL_LOG_READ_MORE(address,                               \
                                        streamSocket,                          \
                                        read,                                  \
@@ -227,6 +242,7 @@ struct AddressFormatter {
                        << BALL_LOG_END;                                       \
     } while (false)
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQIO_NTCCHANNEL_LOG_READ_CAUSED_CLOSE(address, streamSocket, read)   \
     do {                                                                      \
         BALL_LOG_TRACE << "NTC channel " << AddressFormatter(address)         \
@@ -237,38 +253,51 @@ struct AddressFormatter {
                        << BALL_LOG_END;                                       \
     } while (false)
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQIO_NTCCHANNEL_LOG_WRITE(address, streamSocket, blob)               \
     do {                                                                      \
-        BALL_LOG_TRACE << "NTC channel " << AddressFormatter(address)         \
-                       << " at " << (streamSocket)->sourceEndpoint()          \
-                       << " to " << (streamSocket)->remoteEndpoint()          \
-                       << " write of " << (blob).length()                     \
-                       << ((blob.length()) == 1 ? " byte" : " bytes")         \
-                       << " started:\n"                                       \
-                       << bmqu::BlobStartHexDumper(&(blob), k_MAX_BYTES_DUMP) \
-                       << BALL_LOG_END;                                       \
+        BALL_LOG_TRACE                                                        \
+            << "NTC channel " << AddressFormatter(address) << " at "          \
+            << (streamSocket)->sourceEndpoint() << " to "                     \
+            << (streamSocket)->remoteEndpoint() << " write of "               \
+            << (blob).length()                                                \
+            << ((blob.length()) == 1                                          \
+                    ? " byte"                                                 \
+                    : " bytes") /* NOLINT(bugprone-macro-parentheses) */      \
+            << " started:\n"                                                  \
+            << bmqu::BlobStartHexDumper(&(blob), k_MAX_BYTES_DUMP)            \
+            << BALL_LOG_END;                                                  \
     } while (false)
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQIO_NTCCHANNEL_LOG_WRITE_WOULD_BLOCK(address, streamSocket, blob)   \
     do {                                                                      \
-        BALL_LOG_TRACE << "NTC channel " << AddressFormatter(address)         \
-                       << " at " << (streamSocket)->sourceEndpoint()          \
-                       << " to " << (streamSocket)->remoteEndpoint()          \
-                       << " write of " << (blob).length()                     \
-                       << ((blob.length()) == 1 ? " byte" : " bytes")         \
-                       << " WOULD_BLOCK" << BALL_LOG_END;                     \
+        BALL_LOG_TRACE                                                        \
+            << "NTC channel " << AddressFormatter(address) << " at "          \
+            << (streamSocket)->sourceEndpoint() << " to "                     \
+            << (streamSocket)->remoteEndpoint() << " write of "               \
+            << (blob).length()                                                \
+            << ((blob.length()) == 1                                          \
+                    ? " byte"                                                 \
+                    : " bytes") /* NOLINT(bugprone-macro-parentheses) */      \
+            << " WOULD_BLOCK" << BALL_LOG_END;                                \
     } while (false)
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQIO_NTCCHANNEL_LOG_WRITE_FAILED(address, streamSocket, blob, error) \
     do {                                                                      \
-        BALL_LOG_TRACE << "NTC channel " << AddressFormatter(address)         \
-                       << " at " << (streamSocket)->sourceEndpoint()          \
-                       << " to " << (streamSocket)->remoteEndpoint()          \
-                       << " write of " << (blob).length()                     \
-                       << ((blob.length()) == 1 ? " byte" : " bytes")         \
-                       << " failed: " << (error) << BALL_LOG_END;             \
+        BALL_LOG_TRACE                                                        \
+            << "NTC channel " << AddressFormatter(address) << " at "          \
+            << (streamSocket)->sourceEndpoint() << " to "                     \
+            << (streamSocket)->remoteEndpoint() << " write of "               \
+            << (blob).length()                                                \
+            << ((blob.length()) == 1                                          \
+                    ? " byte"                                                 \
+                    : " bytes") /* NOLINT(bugprone-macro-parentheses) */      \
+            << " failed: " << (error) << BALL_LOG_END;                        \
     } while (false)
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQIO_NTCCHANNEL_LOG_EVENT(address, streamSocket, type, event)        \
     do {                                                                      \
         BALL_LOG_TRACE << "NTC channel " << AddressFormatter(address)         \
@@ -277,6 +306,7 @@ struct AddressFormatter {
                        << (type) << " event: " << (event) << BALL_LOG_END;    \
     } while (false)
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQIO_NTCCHANNEL_LOG_CLOSING(address, streamSocket)                   \
     do {                                                                      \
         BALL_LOG_TRACE << "NTC channel " << AddressFormatter(address)         \
@@ -285,6 +315,7 @@ struct AddressFormatter {
                        << " closing" << BALL_LOG_END;                         \
     } while (false)
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQIO_NTCCHANNEL_LOG_CLOSED(address, streamSocket, status)            \
     do {                                                                      \
         BALL_LOG_TRACE << "NTC channel " << AddressFormatter(address)         \
@@ -323,6 +354,7 @@ struct AddressFormatter {
 
 #else
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQIO_NTCLISTENER_LOG_RESOLVE_FAILED(address, endpointString, error)  \
     do {                                                                      \
         BALL_LOG_TRACE << "NTC listener " << AddressFormatter(address)        \
@@ -332,6 +364,7 @@ struct AddressFormatter {
 
 #endif
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQIO_NTCLISTENER_LOG_ACCEPT_COMPLETE(address, streamSocket, event)   \
     do {                                                                      \
         BALL_LOG_TRACE << "NTC listener " << AddressFormatter(address)        \
@@ -340,6 +373,7 @@ struct AddressFormatter {
                        << " accept complete: " << (event) << BALL_LOG_END;    \
     } while (false)
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQIO_NTCLISTENER_LOG_ACCEPT_FAILED(address, listenerSocket, event)   \
     do {                                                                      \
         BALL_LOG_TRACE << "NTC listener " << AddressFormatter(address)        \
@@ -347,6 +381,7 @@ struct AddressFormatter {
                        << " accept failed: " << (event) << BALL_LOG_END;      \
     } while (false)
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQIO_NTCLISTENER_LOG_CLOSING(address, listenerSocket)                \
     do {                                                                      \
         BALL_LOG_TRACE << "NTC listener " << AddressFormatter(address)        \
@@ -354,6 +389,7 @@ struct AddressFormatter {
                        << " closing" << BALL_LOG_END;                         \
     } while (false)
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define BMQIO_NTCLISTENER_LOG_CLOSED(address, listenerSocket, status)         \
     do {                                                                      \
         BALL_LOG_TRACE << "NTC listener " << AddressFormatter(address)        \
@@ -367,6 +403,7 @@ struct AddressFormatter {
 int parseEndpoint(bsl::string*             host,
                   bsl::string*             port,
                   const bslstl::StringRef& str)
+// NOLINTBEGIN(*-magic-numbers)
 {
     bdlma::LocalSequentialAllocator<128> arena;
 
@@ -383,6 +420,7 @@ int parseEndpoint(bsl::string*             host,
     *port = portStringRef;
     return 0;
 }
+// NOLINTEND(*-magic-numbers)
 
 }  // close unnamed namespace
 
@@ -526,6 +564,7 @@ bool NtcReadQueue::empty() const
 void NtcChannel::processConnect(
     const bsl::shared_ptr<ntci::Connector>& connector,
     const ntca::ConnectEvent&               event)
+// NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
 {
     BMQIO_UNUSED(connector);
 
@@ -608,6 +647,7 @@ void NtcChannel::processConnect(
         }
     }
 }
+// NOLINTEND(cppcoreguidelines-avoid-do-while)
 
 void NtcChannel::processReadTimeout(
     const bsl::shared_ptr<bmqio::NtcRead>& read,
@@ -675,6 +715,7 @@ void NtcChannel::processReadCancelled(
 void NtcChannel::processReadQueueLowWatermark(
     const bsl::shared_ptr<ntci::StreamSocket>& streamSocket,
     const ntca::ReadQueueEvent&                event)
+// NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
 {
     BMQIO_UNUSED(streamSocket);
 
@@ -686,6 +727,7 @@ void NtcChannel::processReadQueueLowWatermark(
 
     bool close = false;
 
+    // NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
     while (true) {
         if (d_readQueue.empty()) {
             break;
@@ -783,6 +825,7 @@ void NtcChannel::processReadQueueLowWatermark(
             }
         }
     }
+    // NOLINTEND(cppcoreguidelines-avoid-do-while)
 
     if (close) {
         bsl::shared_ptr<NtcChannel> self = this->shared_from_this();
@@ -805,10 +848,12 @@ void NtcChannel::processReadQueueLowWatermark(
                                  bmqio::Status()));
     }
 }
+// NOLINTEND(cppcoreguidelines-avoid-do-while)
 
 void NtcChannel::processWriteQueueLowWatermark(
     const bsl::shared_ptr<ntci::StreamSocket>& streamSocket,
     const ntca::WriteQueueEvent&               event)
+// NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
 {
     BMQIO_UNUSED(streamSocket);
 
@@ -816,10 +861,12 @@ void NtcChannel::processWriteQueueLowWatermark(
 
     d_watermarkSignaler(bmqio::ChannelWatermarkType::e_LOW_WATERMARK);
 }
+// NOLINTEND(cppcoreguidelines-avoid-do-while)
 
 void NtcChannel::processWriteQueueHighWatermark(
     const bsl::shared_ptr<ntci::StreamSocket>& streamSocket,
     const ntca::WriteQueueEvent&               event)
+// NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
 {
     BMQIO_UNUSED(streamSocket);
 
@@ -827,19 +874,23 @@ void NtcChannel::processWriteQueueHighWatermark(
 
     d_watermarkSignaler(bmqio::ChannelWatermarkType::e_HIGH_WATERMARK);
 }
+// NOLINTEND(cppcoreguidelines-avoid-do-while)
 
 void NtcChannel::processShutdownInitiated(
     const bsl::shared_ptr<ntci::StreamSocket>& streamSocket,
     const ntca::ShutdownEvent&                 event)
+// NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
 {
     BMQIO_UNUSED(streamSocket);
 
     BMQIO_NTCCHANNEL_LOG_EVENT(this, d_streamSocket_sp, "shutdown", event);
 }
+// NOLINTEND(cppcoreguidelines-avoid-do-while)
 
 void NtcChannel::processShutdownReceive(
     const bsl::shared_ptr<ntci::StreamSocket>& streamSocket,
     const ntca::ShutdownEvent&                 event)
+// NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
 {
     BMQIO_UNUSED(streamSocket);
 
@@ -847,19 +898,23 @@ void NtcChannel::processShutdownReceive(
 
     // Keep the readers until 'processShutdownComplete'.
 }
+// NOLINTEND(cppcoreguidelines-avoid-do-while)
 
 void NtcChannel::processShutdownSend(
     const bsl::shared_ptr<ntci::StreamSocket>& streamSocket,
     const ntca::ShutdownEvent&                 event)
+// NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
 {
     BMQIO_UNUSED(streamSocket);
 
     BMQIO_NTCCHANNEL_LOG_EVENT(this, d_streamSocket_sp, "shutdown", event);
 }
+// NOLINTEND(cppcoreguidelines-avoid-do-while)
 
 void NtcChannel::processShutdownComplete(
     const bsl::shared_ptr<ntci::StreamSocket>& streamSocket,
     const ntca::ShutdownEvent&                 event)
+// NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
 {
     BMQIO_UNUSED(streamSocket);
 
@@ -889,8 +944,10 @@ void NtcChannel::processShutdownComplete(
                                                   self,
                                                   bmqio::Status()));
 }
+// NOLINTEND(cppcoreguidelines-avoid-do-while)
 
 void NtcChannel::processClose(const bmqio::Status& status)
+// NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
 {
     bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
 
@@ -914,6 +971,7 @@ void NtcChannel::processClose(const bmqio::Status& status)
     d_watermarkSignaler.disconnectAllSlots();
     d_closeSignaler.disconnectAllSlots();
 }
+// NOLINTEND(cppcoreguidelines-avoid-do-while)
 
 void NtcChannel::drainReaders(const bmqio::Status& status)
 {
@@ -965,6 +1023,7 @@ NtcChannel::~NtcChannel()
 // MANIPULATORS
 int NtcChannel::connect(bmqio::Status*               status,
                         const bmqio::ConnectOptions& options)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-avoid-do-while)
 {
     ntsa::Error error;
 
@@ -1085,6 +1144,7 @@ int NtcChannel::connect(bmqio::Status*               status,
 
     return 0;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-avoid-do-while)
 
 void NtcChannel::import(
     const bsl::shared_ptr<ntci::StreamSocket>& streamSocket)
@@ -1102,6 +1162,7 @@ void NtcChannel::read(Status*                   status,
                       int                       numBytes,
                       const ReadCallback&       readCallback,
                       const bsls::TimeInterval& timeout)
+// NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
 {
     ntsa::Error error;
 
@@ -1185,10 +1246,12 @@ void NtcChannel::read(Status*                   status,
 
     d_readQueue.append(read);
 }
+// NOLINTEND(cppcoreguidelines-avoid-do-while)
 
 void NtcChannel::write(Status*            status,
                        const bdlbb::Blob& blob,
                        bsls::Types::Int64 watermark)
+// NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
 {
     ntsa::Error error;
 
@@ -1238,8 +1301,10 @@ void NtcChannel::write(Status*            status,
         }
     }
 }
+// NOLINTEND(cppcoreguidelines-avoid-do-while)
 
 void NtcChannel::cancel()
+// NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
 {
     bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
 
@@ -1257,6 +1322,7 @@ void NtcChannel::cancel()
     d_streamSocket_sp->close(
         bdlf::BindUtil::bind(&NtcChannel::processClose, self, status));
 }
+// NOLINTEND(cppcoreguidelines-avoid-do-while)
 
 void NtcChannel::cancelRead()
 {
@@ -1282,6 +1348,7 @@ void NtcChannel::cancelRead()
 }
 
 void NtcChannel::close(const Status& status)
+// NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
 {
     // Executed from *ANY* thread
 
@@ -1311,6 +1378,7 @@ void NtcChannel::close(const Status& status)
     d_streamSocket_sp->close(
         bdlf::BindUtil::bind(&NtcChannel::processClose, self, status));
 }
+// NOLINTEND(cppcoreguidelines-avoid-do-while)
 
 int NtcChannel::execute(const ExecuteCb& cb)
 {
@@ -1427,6 +1495,7 @@ void NtcListener::processAccept(
     const bsl::shared_ptr<ntci::Acceptor>&     acceptor,
     const bsl::shared_ptr<ntci::StreamSocket>& streamSocket,
     const ntca::AcceptEvent&                   event)
+// NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
 {
     ntsa::Error error;
 
@@ -1506,8 +1575,10 @@ void NtcListener::processAccept(
             bdlf::BindUtil::bind(&NtcListener::processClose, self, status));
     }
 }
+// NOLINTEND(cppcoreguidelines-avoid-do-while)
 
 void NtcListener::processClose(const bmqio::Status& status)
+// NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
 {
     bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
 
@@ -1530,6 +1601,7 @@ void NtcListener::processClose(const bmqio::Status& status)
 
     d_closeSignaler.disconnectAllSlots();
 }
+// NOLINTEND(cppcoreguidelines-avoid-do-while)
 
 // CREATORS
 NtcListener::NtcListener(
@@ -1556,6 +1628,7 @@ NtcListener::~NtcListener()
 // MANIPULATORS
 int NtcListener::listen(bmqio::Status*              status,
                         const bmqio::ListenOptions& options)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-avoid-do-while,cppcoreguidelines-init-variables)
 {
     ntsa::Error error;
 
@@ -1748,8 +1821,10 @@ int NtcListener::listen(bmqio::Status*              status,
 
     return 0;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-avoid-do-while,cppcoreguidelines-init-variables)
 
 void NtcListener::cancel()
+// NOLINTBEGIN(cppcoreguidelines-avoid-do-while)
 {
     bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
 
@@ -1767,6 +1842,7 @@ void NtcListener::cancel()
     d_listenerSocket_sp->close(
         bdlf::BindUtil::bind(&NtcListener::processClose, self, status));
 }
+// NOLINTEND(cppcoreguidelines-avoid-do-while)
 
 bdlmt::SignalerConnection NtcListener::onClose(const CloseFn& cb)
 {
@@ -1805,14 +1881,18 @@ bslma::Allocator* NtcListener::allocator() const
 
 // CLASS METHODS
 bslstl::StringRef NtcListenerUtil::listenBacklogProperty()
+// NOLINTBEGIN(*-magic-numbers)
 {
     return bslstl::StringRef("tcp.listen.backlog", 18);
 }
+// NOLINTEND(*-magic-numbers)
 
 bslstl::StringRef NtcListenerUtil::listenPortProperty()
+// NOLINTBEGIN(*-magic-numbers)
 {
     return bslstl::StringRef("tcp.listen.port", 15);
 }
+// NOLINTEND(*-magic-numbers)
 
 void NtcListenerUtil::fail(Status*                     status,
                            bmqio::StatusCategory::Enum category,

@@ -59,14 +59,20 @@ namespace mqbc {
 namespace {
 
 // CONSTANTS
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char k_LOG_CATEGORY[] = "MQBC.CLUSTERUTIL";
 
 const double k_MAX_QUEUES_HIGH_WATERMARK = 0.80;  // % of maximum
-const char   k_MAXIMUM_NUMBER_OF_QUEUES_REACHED[] =
+// NOLINTBEGIN(*-avoid-c-arrays)
+const char k_MAXIMUM_NUMBER_OF_QUEUES_REACHED[] =
     "maximum number of queues reached";
-const char k_SELF_NODE_IS_STOPPING[]   = "self node is stopping";
+// NOLINTEND(*-avoid-c-arrays)
+// NOLINTNEXTLINE(*-avoid-c-arrays)
+const char k_SELF_NODE_IS_STOPPING[] = "self node is stopping";
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char k_DOMAIN_CREATION_FAILURE[] = "failed to create domain";
-const char k_CSL_FAILURE[]             = "CSL failure";
+// NOLINTNEXTLINE(*-avoid-c-arrays)
+const char k_CSL_FAILURE[] = "CSL failure";
 
 // TYPES
 typedef ClusterUtil::AppInfos      AppInfos;
@@ -118,6 +124,7 @@ void applyPartitionPrimary(
 void applyQueueAssignment(mqbc::ClusterState* clusterState,
                           const bsl::vector<bmqp_ctrlmsg::QueueInfo>& queues)
 {
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (bsl::vector<bmqp_ctrlmsg::QueueInfo>::const_iterator it =
              queues.begin();
          it != queues.end();
@@ -127,11 +134,13 @@ void applyQueueAssignment(mqbc::ClusterState* clusterState,
         // CSL commit
         clusterState->assignQueue(queueInfo);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 void applyQueueUnassignment(mqbc::ClusterState* clusterState,
                             const bsl::vector<bmqp_ctrlmsg::QueueInfo>& queues)
 {
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (bsl::vector<bmqp_ctrlmsg::QueueInfo>::const_iterator it =
              queues.begin();
          it != queues.end();
@@ -141,14 +150,17 @@ void applyQueueUnassignment(mqbc::ClusterState* clusterState,
         //       exist when receiving this advisory, so the return code
         //       of the 'unassignQueue' operation is not checked.
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 void applyQueueUpdate(mqbc::ClusterState* clusterState,
                       const bsl::vector<bmqp_ctrlmsg::QueueInfoUpdate>& queues,
                       const mqbc::ClusterData& clusterData)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     BALL_LOG_SET_CATEGORY(k_LOG_CATEGORY);
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (bsl::vector<bmqp_ctrlmsg::QueueInfoUpdate>::const_iterator it =
              queues.begin();
          it != queues.end();
@@ -235,7 +247,9 @@ void applyQueueUpdate(mqbc::ClusterState* clusterState,
             return;  // RETURN
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 void getNextPrimarys(NumNewPartitionsMap* numNewPartitions,
                      unsigned int         numPartitionsToAssign,
@@ -249,6 +263,7 @@ void getNextPrimarys(NumNewPartitionsMap* numNewPartitions,
 //
 // THREAD: This method is invoked in the associated cluster's
 //         dispatcher thread.
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -291,12 +306,15 @@ void getNextPrimarys(NumNewPartitionsMap* numNewPartitions,
     }
     }
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 /// If the specified `status` is SUCCESS, load the specified `domain` into
 /// the specified `domainState`.
+// NOLINTBEGIN(performance-unnecessary-value-param)
 void createDomainCb(const bmqp_ctrlmsg::Status& status,
                     mqbi::Domain*               domain,
                     ClusterState::DomainStateSp domainState)
+// NOLINTEND(performance-unnecessary-value-param)
 {
     if (status.category() != bmqp_ctrlmsg::StatusCategory::E_SUCCESS) {
         return;  // RETURN
@@ -331,6 +349,7 @@ bool populateQueueUpdate(bmqp_ctrlmsg::QueueUpdateAdvisory* queueAdvisory,
         appKeys.insert(appInfoCit->second);
     }
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (bsl::vector<bsl::string>::const_iterator cit = added.begin();
          cit != added.end();
          ++cit) {
@@ -349,7 +368,9 @@ bool populateQueueUpdate(bmqp_ctrlmsg::QueueUpdateAdvisory* queueAdvisory,
             queueUpdate.addedAppIds().push_back(appIdInfo);
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (bsl::vector<bsl::string>::const_iterator cit = removed.begin();
          cit != removed.end();
          ++cit) {
@@ -366,6 +387,7 @@ bool populateQueueUpdate(bmqp_ctrlmsg::QueueUpdateAdvisory* queueAdvisory,
             queueUpdate.removedAppIds().push_back(appIdInfo);
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     if (queueUpdate.removedAppIds().size() == removed.size() &&
         queueUpdate.addedAppIds().size() == added.size()) {
@@ -502,6 +524,7 @@ void ClusterUtil::assignPartitions(
         BSLS_ASSERT_SAFE(primary);
 
         // Assign 'cit->second' partitions to 'primary'.
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (unsigned int i = 0; i < cit->second; ++i) {
             const mqbc::ClusterStatePartitionInfo& pinfo = *cit2;
 
@@ -519,6 +542,7 @@ void ClusterUtil::assignPartitions(
 
             ++cit2;
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
     BSLS_ASSERT_SAFE(cit2 == partitionsToChange.cend());
 
@@ -559,6 +583,7 @@ int ClusterUtil::getNextPartitionId(const ClusterState& clusterState,
     int minQueuesMapped = bsl::numeric_limits<int>::max();
     int res             = -1;
 
+    // NOLINTBEGIN(*-narrowing-conversions)
     for (size_t i = 0; i < clusterState.partitions().size(); ++i) {
         const mqbc::ClusterStatePartitionInfo& partitionInfo =
             clusterState.partitions()[i];
@@ -568,17 +593,20 @@ int ClusterUtil::getNextPartitionId(const ClusterState& clusterState,
             res             = i;
         }
     }
+    // NOLINTEND(*-narrowing-conversions)
 
     if (res == -1) {
         // Didn't find a partition with a primary; drop this requirement and
         // simply look for the least used partition.
         res = 0;
+        // NOLINTBEGIN(*-narrowing-conversions)
         for (size_t i = 1; i < clusterState.partitions().size(); ++i) {
             if (clusterState.partitions()[i].numQueuesMapped() <
                 clusterState.partitions()[res].numQueuesMapped()) {
                 res = i;
             }
         }
+        // NOLINTEND(*-narrowing-conversions)
     }
 
     // POSTCONDITIONS
@@ -706,6 +734,7 @@ void ClusterUtil::processQueueAssignmentRequest(
                   << ": Processing queueAssignment request from '"
                   << requester->nodeDescription() << "': " << request;
 
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<1024> localAllocator(allocator);
     bmqp_ctrlmsg::ControlMessage          response(&localAllocator);
     response.rId() = request.rId();
@@ -850,6 +879,7 @@ bool ClusterUtil::assignQueue(ClusterState*         clusterState,
                               const bmqt::Uri&      uri,
                               bslma::Allocator*     allocator,
                               bmqp_ctrlmsg::Status* status)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -958,6 +988,7 @@ bool ClusterUtil::assignQueue(ClusterState*         clusterState,
 
         static void
         alarm(bsl::string_view domainName, int maxQueues, int queues)
+        // NOLINTBEGIN(*-magic-numbers)
         {
             BMQTSK_ALARMLOG_ALARM("DOMAIN_QUEUE_LIMIT_HIGH_WATERMARK")
                 << "domain 'bmq://" << domainName << "' has reached the "
@@ -966,6 +997,7 @@ bool ClusterUtil::assignQueue(ClusterState*         clusterState,
                 << queues << ", limit: " << maxQueues << ")."
                 << BMQTSK_ALARMLOG_END;
         }
+        // NOLINTEND(*-magic-numbers)
     };
 
     // It is not a proxy: guaranteed to have a domain configuration:
@@ -1033,6 +1065,7 @@ bool ClusterUtil::assignQueue(ClusterState*         clusterState,
                   << uri << "].";
 
     // Populate 'queueAssignmentAdvisory'
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<1024>  localAllocator(allocator);
     bmqp_ctrlmsg::ControlMessage           controlMsg(&localAllocator);
     bmqp_ctrlmsg::QueueAssignmentAdvisory& queueAdvisory =
@@ -1077,6 +1110,7 @@ bool ClusterUtil::assignQueue(ClusterState*         clusterState,
         return false;  // RETURN
     }
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 void ClusterUtil::registerQueueInfo(ClusterState*        clusterState,
                                     const mqbi::Cluster* cluster,
@@ -1198,6 +1232,7 @@ void ClusterUtil::registerQueueInfo(ClusterState*        clusterState,
 void ClusterUtil::populateAppInfos(
     bsl::vector<bmqp_ctrlmsg::AppIdInfo>* appInfos,
     const mqbconfm::QueueMode&            domainConfig)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(appInfos && appInfos->empty());
@@ -1207,6 +1242,7 @@ void ClusterUtil::populateAppInfos(
             domainConfig.fanout().appIDs();
         bsl::unordered_set<mqbu::StorageKey> appKeys;
 
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (bsl::vector<bsl::string>::const_iterator cit = cfgAppIds.begin();
              cit != cfgAppIds.end();
              ++cit) {
@@ -1223,6 +1259,7 @@ void ClusterUtil::populateAppInfos(
 
             appInfos->push_back(appIdInfo);
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
     else {
         bmqp_ctrlmsg::AppIdInfo appIdInfo;
@@ -1232,6 +1269,7 @@ void ClusterUtil::populateAppInfos(
         appInfos->push_back(appIdInfo);
     }
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 mqbi::ClusterErrorCode::Enum
 ClusterUtil::updateAppIds(ClusterData*                    clusterData,
@@ -1283,6 +1321,7 @@ ClusterUtil::updateAppIds(ClusterData*                    clusterData,
     }
 
     // Populate 'queueUpdateAdvisory'
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<1024> localAllocator(allocator);
     bmqp_ctrlmsg::QueueUpdateAdvisory     queueAdvisory(&localAllocator);
     clusterData->electorInfo().nextLeaderMessageSequence(
@@ -1305,6 +1344,7 @@ ClusterUtil::updateAppIds(ClusterData*                    clusterData,
         queueUpdate.domain() = domainName;
 
         // Populate AppInfos
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (bsl::vector<bsl::string>::const_iterator cit = added.begin();
              cit != added.end();
              ++cit) {
@@ -1314,6 +1354,8 @@ ClusterUtil::updateAppIds(ClusterData*                    clusterData,
 
             queueUpdate.addedAppIds().push_back(appIdInfo);
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (bsl::vector<bsl::string>::const_iterator cit = removed.begin();
              cit != removed.end();
              ++cit) {
@@ -1323,6 +1365,7 @@ ClusterUtil::updateAppIds(ClusterData*                    clusterData,
 
             queueUpdate.removedAppIds().push_back(appIdInfo);
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
         queueAdvisory.queueUpdates().push_back(queueUpdate);
     }
@@ -1501,6 +1544,7 @@ void ClusterUtil::sendClusterState(
             if (!newlyAssigned.empty()) {
                 advisory.partitions() = newlyAssigned;
 
+                // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
                 for (bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>::iterator
                          pit = advisory.partitions().begin();
                      pit != advisory.partitions().end();
@@ -1530,6 +1574,7 @@ void ClusterUtil::sendClusterState(
                         pit->primaryLeaseId() = leaseIdInCSL + 1;
                     }
                 }
+                // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
             }
             else {
                 loadPartitionsInfo(&advisory.partitions(), tempState);
@@ -1677,6 +1722,7 @@ int ClusterUtil::validateState(bsl::ostream&       errorDescription,
 
     // Validate partition information
     bsl::vector<ClusterStatePartitionInfo> incorrectPartitions;
+    // NOLINTBEGIN(*-narrowing-conversions)
     for (size_t i = 0; i < state.partitions().size(); ++i) {
         const ClusterStatePartitionInfo& stateInfo = state.partitions()[i];
         const int                        pid       = i;
@@ -1698,6 +1744,7 @@ int ClusterUtil::validateState(bsl::ostream&       errorDescription,
             incorrectPartitions.push_back(stateInfo);
         }
     }
+    // NOLINTEND(*-narrowing-conversions)
 
     if (!incorrectPartitions.empty()) {
         bdlb::Print::newlineAndIndent(out, level);
@@ -1706,6 +1753,7 @@ int ClusterUtil::validateState(bsl::ostream&       errorDescription,
         out << "Incorrect Partition Infos :";
         bdlb::Print::newlineAndIndent(out, level);
         out << "---------------------------";
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (bsl::vector<ClusterStatePartitionInfo>::const_iterator citer =
                  incorrectPartitions.cbegin();
              citer != incorrectPartitions.cend();
@@ -1715,6 +1763,7 @@ int ClusterUtil::validateState(bsl::ostream&       errorDescription,
                 << "]:  primaryLeaseId: " << citer->primaryLeaseId()
                 << ", primaryNodeId: " << citer->primaryNodeId();
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
         bdlb::Print::newlineAndIndent(out, level);
         out << "--------------------------------";
@@ -1722,6 +1771,7 @@ int ClusterUtil::validateState(bsl::ostream&       errorDescription,
         out << "Partition Infos In Cluster State :";
         bdlb::Print::newlineAndIndent(out, level);
         out << "--------------------------------";
+        // NOLINTBEGIN(*-narrowing-conversions)
         for (size_t i = 0; i < state.partitions().size(); ++i) {
             const ClusterStatePartitionInfo& referenceInfo =
                 reference.partitions()[i];
@@ -1732,6 +1782,7 @@ int ClusterUtil::validateState(bsl::ostream&       errorDescription,
                 << "]:  primaryLeaseId: " << referenceInfo.primaryLeaseId()
                 << ", primaryNodeId: " << referenceInfo.primaryNodeId();
         }
+        // NOLINTEND(*-narrowing-conversions)
     }
 
     // Check incorrect or extra queues
@@ -1757,6 +1808,7 @@ int ClusterUtil::validateState(bsl::ostream&       errorDescription,
             continue;  // CONTINUE
         }
 
+        // NOLINTBEGIN(modernize-use-emplace)
         for (ClusterState::UriToQueueInfoMapCIter citer =
                  domCit->second->queuesInfo().begin();
              citer != domCit->second->queuesInfo().end();
@@ -1781,6 +1833,7 @@ int ClusterUtil::validateState(bsl::ostream&       errorDescription,
                 }
             }
         }
+        // NOLINTEND(modernize-use-emplace)
     }
 
     if (!incorrectQueues.empty()) {
@@ -1790,6 +1843,7 @@ int ClusterUtil::validateState(bsl::ostream&       errorDescription,
         out << "Incorrect Queues :";
         bdlb::Print::newlineAndIndent(out, level);
         out << "-----------------";
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (bsl::vector<bsl::pair<bsl::shared_ptr<ClusterStateQueueInfo>,
                                    bsl::shared_ptr<ClusterStateQueueInfo> > >::
                  const_iterator citer = incorrectQueues.cbegin();
@@ -1800,6 +1854,7 @@ int ClusterUtil::validateState(bsl::ostream&       errorDescription,
             bdlb::Print::newlineAndIndent(out, level + 1);
             out << "(correct queue info) " << *citer->second;
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
 
     if (!extraQueues.empty()) {
@@ -1809,6 +1864,7 @@ int ClusterUtil::validateState(bsl::ostream&       errorDescription,
         out << "Extra queues :";
         bdlb::Print::newlineAndIndent(out, level);
         out << "--------------";
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (bsl::vector<bsl::shared_ptr<ClusterStateQueueInfo> >::
                  const_iterator citer = extraQueues.cbegin();
              citer != extraQueues.cend();
@@ -1816,6 +1872,7 @@ int ClusterUtil::validateState(bsl::ostream&       errorDescription,
             bdlb::Print::newlineAndIndent(out, level + 1);
             out << **citer;
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
 
     // Check missing queues
@@ -1862,6 +1919,7 @@ int ClusterUtil::validateState(bsl::ostream&       errorDescription,
         out << "Missing queues :";
         bdlb::Print::newlineAndIndent(out, level);
         out << "----------------";
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (bsl::vector<bsl::shared_ptr<ClusterStateQueueInfo> >::
                  const_iterator citer = missingQueues.cbegin();
              citer != missingQueues.cend();
@@ -1869,6 +1927,7 @@ int ClusterUtil::validateState(bsl::ostream&       errorDescription,
             bdlb::Print::newlineAndIndent(out, level + 1);
             out << **citer;
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     }
 
     const bool queueInfoMismatch = !incorrectQueues.empty() ||
@@ -1924,10 +1983,12 @@ void ClusterUtil::validateClusterStateLedger(mqbi::Cluster*            cluster,
     }
 
     // Compare contents of cluster state and CSL contents on disk
+    // NOLINTBEGIN(*-narrowing-conversions)
     ClusterState tempState(cluster,
                            clusterState.partitions().size(),
                            true,  // isTemporary
                            allocator);
+    // NOLINTEND(*-narrowing-conversions)
 
     int rc =
         load(&tempState, ledger.getIterator().get(), clusterData, allocator);
@@ -1953,6 +2014,7 @@ int ClusterUtil::load(ClusterState*               state,
                       ClusterStateLedgerIterator* iterator,
                       const ClusterData&          clusterData,
                       bslma::Allocator*           allocator)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-use-enum-class)
 {
     // executed by the *CLUSTER DISPATCHER* thread
 
@@ -2000,6 +2062,7 @@ int ClusterUtil::load(ClusterState*               state,
         return rc * 10 + rc_ITERATION_ERROR;  // RETURN
     }
 
+    // NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-avoid-do-while)
     do {
         BSLS_ASSERT_SAFE(latestIter->isValid());
 
@@ -2047,12 +2110,14 @@ int ClusterUtil::load(ClusterState*               state,
         } break;  // BREAK
         }
     } while ((rc = latestIter->next()) == 0);
+    // NOLINTEND(*-magic-numbers,cppcoreguidelines-avoid-do-while)
 
     if (rc != 1) {
         return rc * 10 + rc_ITERATION_ERROR;  // RETURN
     }
     return rc_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-use-enum-class)
 
 void ClusterUtil::loadPartitionsInfo(
     bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>* out,
@@ -2146,6 +2211,7 @@ void ClusterUtil::loadPeerNodes(bsl::vector<mqbnet::ClusterNode*>* out,
 int ClusterUtil::latestLedgerLSN(bmqp_ctrlmsg::LeaderMessageSequence* out,
                                  const ClusterStateLedger&            ledger,
                                  const ClusterData& clusterData)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(out);
@@ -2191,6 +2257,7 @@ int ClusterUtil::latestLedgerLSN(bmqp_ctrlmsg::LeaderMessageSequence* out,
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 }  // close package namespace
 }  // close enterprise namespace

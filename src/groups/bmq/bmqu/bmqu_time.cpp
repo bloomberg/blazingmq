@@ -31,14 +31,18 @@ namespace BloombergLP {
 namespace bmqu {
 
 namespace {
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 bsls::ObjectBuffer<Time::SystemTimeCb> g_realTimeClock;
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 bsls::ObjectBuffer<Time::SystemTimeCb> g_monotonicClock;
 
 /// Globals holding the various timer callback set up.  Note that an object
 /// buffer is needed to avoid exit time destructors because bsl::function is
 /// a non-POD type.
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 bsls::ObjectBuffer<Time::HighResolutionTimeCb> g_highResTimer;
 
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 int g_initialized = 0;
 // Integer to keep track of the number of
 // calls to 'initialize' for the 'Time'.
@@ -52,6 +56,7 @@ int g_initialized = 0;
 // value is zero, then the 'Time' is
 // destroyed.
 
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 bslmt::QLock g_initLock = BSLMT_QLOCK_INITIALIZER;
 // Lock used to provide thread-safe
 // protection for accessing the
@@ -63,6 +68,7 @@ bslmt::QLock g_initLock = BSLMT_QLOCK_INITIALIZER;
 // -----------
 
 void Time::initialize(bslma::Allocator* allocator)
+// NOLINTBEGIN(cppcoreguidelines-pro-type-union-access)
 {
     // PRECONDITIONS
     bslmt::QLockGuard qlockGuard(&g_initLock);
@@ -95,11 +101,13 @@ void Time::initialize(bslma::Allocator* allocator)
 
     bsls::TimeUtil::initialize();
 }
+// NOLINTEND(cppcoreguidelines-pro-type-union-access)
 
 void Time::initialize(const SystemTimeCb&         realTimeClockCb,
                       const SystemTimeCb&         monotonicClockCb,
                       const HighResolutionTimeCb& highResTimeCb,
                       bslma::Allocator*           allocator)
+// NOLINTBEGIN(cppcoreguidelines-pro-type-union-access)
 {
     // PRECONDITIONS
     bslmt::QLockGuard qlockGuard(&g_initLock);
@@ -122,8 +130,10 @@ void Time::initialize(const SystemTimeCb&         realTimeClockCb,
     new (g_highResTimer.buffer())
         HighResolutionTimeCb(bsl::allocator_arg, alloc, highResTimeCb);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-union-access)
 
 void Time::shutdown()
+// NOLINTBEGIN(cppcoreguidelines-pro-type-union-access)
 {
     bslmt::QLockGuard qlockGuard(&g_initLock);
 
@@ -138,30 +148,37 @@ void Time::shutdown()
     g_monotonicClock.object().~SystemTimeCb();
     g_highResTimer.object().~HighResolutionTimeCb();
 }
+// NOLINTEND(cppcoreguidelines-pro-type-union-access)
 
 bsls::TimeInterval Time::nowRealtimeClock()
+// NOLINTBEGIN(cppcoreguidelines-pro-type-union-access)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(g_initialized && "Not initialized");
 
     return g_realTimeClock.object()();
 }
+// NOLINTEND(cppcoreguidelines-pro-type-union-access)
 
 bsls::TimeInterval Time::nowMonotonicClock()
+// NOLINTBEGIN(cppcoreguidelines-pro-type-union-access)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(g_initialized && "Not initialized");
 
     return g_monotonicClock.object()();
 }
+// NOLINTEND(cppcoreguidelines-pro-type-union-access)
 
 bsls::Types::Int64 Time::highResolutionTimer()
+// NOLINTBEGIN(cppcoreguidelines-pro-type-union-access)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(g_initialized && "Not initialized");
 
     return g_highResTimer.object()();
 }
+// NOLINTEND(cppcoreguidelines-pro-type-union-access)
 
 }  // close package namespace
 }  // close enterprise namespace

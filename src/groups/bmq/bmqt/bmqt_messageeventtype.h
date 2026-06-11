@@ -44,6 +44,7 @@ namespace bmqt {
 /// Enumeration for the types of message events
 struct MessageEventType {
     // TYPES
+    // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
     enum Enum { e_UNDEFINED = 0, e_PUT = 1, e_PUSH = 2, e_ACK = 3 };
 
     // PUBLIC CONSTANTS

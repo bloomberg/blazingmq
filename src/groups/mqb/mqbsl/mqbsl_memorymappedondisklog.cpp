@@ -136,6 +136,7 @@ MemoryMappedOnDiskLog::~MemoryMappedOnDiskLog()
 }
 
 int MemoryMappedOnDiskLog::open(int flags)
+// NOLINTBEGIN(*-magic-numbers)
 {
     const bool alreadyExists = bdls::FilesystemUtil::exists(
         logConfig().location());
@@ -186,8 +187,10 @@ int MemoryMappedOnDiskLog::open(int flags)
     guard.release();
     return LogOpResult::e_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers)
 
 int MemoryMappedOnDiskLog::close()
+// NOLINTBEGIN(*-magic-numbers)
 {
     if (!d_isOpened) {
         return LogOpResult::e_LOG_ALREADY_CLOSED;  // RETURN
@@ -213,6 +216,7 @@ int MemoryMappedOnDiskLog::close()
 
     return LogOpResult::e_SUCCESS;
 }
+// NOLINTEND(*-magic-numbers)
 
 int MemoryMappedOnDiskLog::seek(Offset offset)
 {
@@ -233,6 +237,7 @@ int MemoryMappedOnDiskLog::seek(Offset offset)
 
 mqbsi::Log::Offset
 MemoryMappedOnDiskLog::write(const void* entry, int offset, int length)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(entry);
@@ -256,6 +261,7 @@ MemoryMappedOnDiskLog::write(const void* entry, int offset, int length)
 
     return oldOffset;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 mqbsi::Log::Offset
 MemoryMappedOnDiskLog::write(const bdlbb::Blob&        entry,
@@ -274,10 +280,12 @@ MemoryMappedOnDiskLog::write(const bdlbb::Blob&        entry,
         return LogOpResult::e_REACHED_END_OF_LOG;  // RETURN
     }
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     int rc = bmqu::BlobUtil::readNBytes(d_mfd.mapping() + oldOffset,
                                         entry,
                                         offset,
                                         length);
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     if (rc != 0) {
         return LogOpResult::e_BYTE_WRITE_FAILURE;  // RETURN
     }
@@ -290,6 +298,7 @@ MemoryMappedOnDiskLog::write(const bdlbb::Blob&        entry,
 mqbsi::Log::Offset
 MemoryMappedOnDiskLog::write(const bdlbb::Blob&       entry,
                              const bmqu::BlobSection& section)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     int length;
     int rc = bmqu::BlobUtil::sectionSize(&length, entry, section);
@@ -299,6 +308,7 @@ MemoryMappedOnDiskLog::write(const bdlbb::Blob&       entry,
 
     return write(entry, section.start(), length);
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 int MemoryMappedOnDiskLog::flush(Offset offset)
 {
@@ -328,6 +338,7 @@ int MemoryMappedOnDiskLog::flush(Offset offset)
 }
 
 int MemoryMappedOnDiskLog::read(void* entry, int length, Offset offset) const
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(entry);
@@ -341,10 +352,12 @@ int MemoryMappedOnDiskLog::read(void* entry, int length, Offset offset) const
 
     return LogOpResult::e_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 int MemoryMappedOnDiskLog::read(bdlbb::Blob* entry,
                                 int          length,
                                 Offset       offset) const
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(entry);
@@ -358,8 +371,10 @@ int MemoryMappedOnDiskLog::read(bdlbb::Blob* entry,
 
     return LogOpResult::e_SUCCESS;
 }
+// NOLINTEND(*-narrowing-conversions)
 
 int MemoryMappedOnDiskLog::alias(void** entry, int length, Offset offset) const
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(entry);
@@ -373,6 +388,7 @@ int MemoryMappedOnDiskLog::alias(void** entry, int length, Offset offset) const
 
     return LogOpResult::e_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 int MemoryMappedOnDiskLog::alias(bdlbb::Blob* entry,
                                  int          length,
@@ -386,9 +402,11 @@ int MemoryMappedOnDiskLog::alias(bdlbb::Blob* entry,
         return rc;  // RETURN
     }
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     bsl::shared_ptr<char> entryBufferSp(d_mfd.mapping() + offset,
                                         bslstl::SharedPtrNilDeleter());
-    bdlbb::BlobBuffer     entryBlobBuffer(entryBufferSp, length);
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+    bdlbb::BlobBuffer entryBlobBuffer(entryBufferSp, length);
     entry->appendDataBuffer(entryBlobBuffer);
 
     return LogOpResult::e_SUCCESS;

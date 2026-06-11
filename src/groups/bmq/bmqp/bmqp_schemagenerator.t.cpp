@@ -35,6 +35,7 @@ using namespace bsl;
 
 typedef bmqp::MessagePropertiesInfo::SchemaIdType SchemaIdType;
 
+// NOLINTNEXTLINE(cppcoreguidelines-interfaces-global-init)
 const SchemaIdType NO_SCHEMA = bmqp::MessagePropertiesInfo::k_NO_SCHEMA;
 
 /// instead of `bmqp::MessagePropertiesHeader::k_MAX_SCHEMA`
@@ -53,9 +54,11 @@ const int NUM_LAPS = 3;
 const int NUM_RECYCLED = NUM_COMBINATIONS * NUM_LAPS - MAX_SCHEMA;
 
 // keep these on heap rather than on stack
+// NOLINTNEXTLINE(*-avoid-c-arrays,cppcoreguidelines-avoid-non-const-global-variables)
 static int length[NUM_COMBINATIONS];
 
 /// shuffled integers in the range [0..NUM_COMBINATIONS)
+// NOLINTNEXTLINE(*-avoid-c-arrays,cppcoreguidelines-avoid-non-const-global-variables)
 static int sequence[NUM_COMBINATIONS];
 
 static void generateMessageProperties(bmqp::MessageProperties* mps,
@@ -66,7 +69,9 @@ static void generateMessageProperties(bmqp::MessageProperties* mps,
     // Randomize calling 'setPropertyAsString'
     // Note that MessageProperties::d_properties is a map (not a HT)
 
+    // NOLINTNEXTLINE(cert-msc30-c,cert-msc50-cpp,cppcoreguidelines-pro-bounds-constant-array-index)
     int property = bsl::rand() % length[combination];
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
     for (int l = 0; l < length[combination]; ++l) {
         bsl::string name("property_", bmqtst::TestHelperUtil::allocator());
         name += bsl::to_string(lap);
@@ -79,6 +84,7 @@ static void generateMessageProperties(bmqp::MessageProperties* mps,
             property = 0;
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
 }
 
 static void test1_breathingTest()
@@ -93,10 +99,12 @@ static void test1_breathingTest()
     // from '1' to 'NUM_PROPERTIES'
     for (int start = 0; start < NUM_PROPERTIES; ++start) {
         // 'start' of next sequence
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
         for (int len = 1; len <= (NUM_PROPERTIES - start); ++len, ++count) {
             // 'length' of next sequence
             length[count] = len;
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
     }
     BSLS_ASSERT_SAFE(count == NUM_COMBINATIONS);
 
@@ -105,15 +113,22 @@ static void test1_breathingTest()
     // Use two 'MessageProperties' to over-reach 'k_MAX_SCHEMA'
     BSLS_ASSERT_SAFE(NUM_LAPS * count > MAX_SCHEMA + 33);
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
     for (int i = 0; i < NUM_COMBINATIONS; ++i) {
         sequence[i] = i;
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
 
     // Shuffle by swapping two random properties (NUM_SEQUENCES / 2) times
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
     for (int i = NUM_COMBINATIONS >> 1; i > 0; --i) {
-        int i1  = bsl::rand() % NUM_COMBINATIONS;
-        int i2  = bsl::rand() % NUM_COMBINATIONS;
+        // NOLINTNEXTLINE(cert-msc30-c,cert-msc50-cpp)
+        int i1 = bsl::rand() % NUM_COMBINATIONS;
+        // NOLINTNEXTLINE(cert-msc30-c,cert-msc50-cpp)
+        int i2 = bsl::rand() % NUM_COMBINATIONS;
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         int seq = sequence[i1];
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         int len = length[i1];
 
         sequence[i1] = sequence[i2];
@@ -121,10 +136,12 @@ static void test1_breathingTest()
         length[i1]   = length[i2];
         length[i2]   = len;
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
     count = 0;
     // Use three 'MessageProperties' (there is the limit of 255)
     for (int lap = 0; lap < NUM_LAPS; ++lap) {
         // Up till 'k_MAX_SCHEMA' everything is unique (one time only)
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
         for (int i = 0; i < NUM_COMBINATIONS; ++i, ++count) {
             BSLS_ASSERT_SAFE(length[i]);
 
@@ -153,9 +170,11 @@ static void test1_breathingTest()
             BMQTST_ASSERT_EQ(schemaId, logic.schemaId());
             BMQTST_ASSERT(!logic.isRecycled());  // second use
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
     }
     // Some number of first test combinations (65) got recycled.
     // Repeat them again and verify, they got new IDs.
+    // NOLINTBEGIN(*-magic-numbers)
     for (int i = 0; i < 33; ++i) {
         bmqp::MessageProperties mps(bmqtst::TestHelperUtil::allocator());
         generateMessageProperties(&mps, 0, i);
@@ -179,6 +198,7 @@ static void test1_breathingTest()
         // We continue recycling
         BMQTST_ASSERT_EQ(logic.schemaId(), SchemaIdType(i + 1 + NUM_RECYCLED));
     }
+    // NOLINTEND(*-magic-numbers)
 }
 
 // ============================================================================
@@ -186,6 +206,7 @@ static void test1_breathingTest()
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -200,3 +221,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

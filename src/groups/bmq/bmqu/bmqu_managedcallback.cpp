@@ -22,6 +22,7 @@ namespace bmqu {
 
 namespace {
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class VoidCallback : public bmqu::ManagedCallback::CallbackFunctor {
   private:
     // PRIVATE DATA
@@ -55,6 +56,7 @@ class VoidCallback : public bmqu::ManagedCallback::CallbackFunctor {
         }
     }
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close unnamed namespace
 

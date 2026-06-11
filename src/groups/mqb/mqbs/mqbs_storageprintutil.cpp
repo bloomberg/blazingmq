@@ -52,6 +52,7 @@ namespace mqbs {
 int StoragePrintUtil::listMessage(mqbcmd::Message*             message,
                                   const mqbi::Storage*         storage,
                                   const mqbi::StorageIterator& storageIter)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(storage);
@@ -80,12 +81,14 @@ int StoragePrintUtil::listMessage(mqbcmd::Message*             message,
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 int StoragePrintUtil::listMessages(mqbcmd::QueueContents* queueContents,
                                    const bsl::string&     appId,
                                    bsls::Types::Int64     offset,
                                    bsls::Types::Int64     count,
                                    mqbi::Storage*         storage)
+// NOLINTBEGIN(cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(storage);
@@ -137,6 +140,7 @@ int StoragePrintUtil::listMessages(mqbcmd::QueueContents* queueContents,
 
     return 0;
 }
+// NOLINTEND(cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 void StoragePrintUtil::printRecoveredStorages(
     bsl::ostream&            out,

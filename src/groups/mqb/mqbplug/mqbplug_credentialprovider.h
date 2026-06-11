@@ -51,6 +51,7 @@ namespace mqbplug {
 
 /// Interface for a plugin that supplies credentials for outbound
 /// broker-to-broker authentication.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class CredentialProvider {
   public:
     // TYPES
@@ -84,6 +85,7 @@ class CredentialProvider {
     /// Stop the CredentialProvider.
     virtual void stop() = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ======================================
 // class CredentialProviderPluginFactory
@@ -92,6 +94,7 @@ class CredentialProvider {
 /// This is the base class for the factory of plugins of type
 /// `CredentialProvider`.  It allows instantiation of a concrete
 /// `CredentialProvider` object.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class CredentialProviderPluginFactory : public PluginFactory {
   public:
     // CREATORS
@@ -103,6 +106,7 @@ class CredentialProviderPluginFactory : public PluginFactory {
     virtual bslma::ManagedPtr<CredentialProvider>
     create(bslma::Allocator* allocator) = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

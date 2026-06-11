@@ -110,6 +110,7 @@ class StoragePoster {
     StoragePoster(const bsl::shared_ptr<mqbs::ReplicatedStorage>& storage,
                   bslma::Allocator*                               allocator)
     : d_storage_sp(storage)
+    // NOLINTNEXTLINE(*-magic-numbers)
     , d_bufferFactory(1024, allocator)
     {
     }
@@ -117,6 +118,7 @@ class StoragePoster {
     /// Post a dummy message to the underlying storage. Return the result
     /// of the put operation.
     mqbi::StorageResult::Enum postMessage()
+    // NOLINTBEGIN(*-narrowing-conversions)
     {
         bmqt::MessageGUID guid;
         mqbu::MessageGUIDUtil::generateGUID(&guid);
@@ -125,6 +127,7 @@ class StoragePoster {
         appData_sp.createInplace(bmqtst::TestHelperUtil::allocator(),
                                  &d_bufferFactory,
                                  bmqtst::TestHelperUtil::allocator());
+        // NOLINTNEXTLINE(*-magic-numbers)
         bsl::string payload(10, 'x', bmqtst::TestHelperUtil::allocator());
         bdlbb::BlobUtil::append(appData_sp.get(),
                                 payload.c_str(),
@@ -147,6 +150,7 @@ class StoragePoster {
 
         return d_storage_sp->put(&attributes, guid, appData_sp, options_sp);
     }
+    // NOLINTEND(*-narrowing-conversions)
 };
 
 // FUNCTIONS
@@ -163,6 +167,7 @@ void recoveredQueuesCb(
 // =============
 // struct Tester
 // =============
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct Tester {
   private:
     // DATA
@@ -191,6 +196,7 @@ struct Tester {
     Tester(const char* location, const char* archiveLocation = 0)
     : d_scheduler(bsls::SystemClockType::e_MONOTONIC,
                   bmqtst::TestHelperUtil::allocator())
+    // NOLINTNEXTLINE(*-magic-numbers)
     , d_bufferFactory(1024, bmqtst::TestHelperUtil::allocator())
     , d_clusterLocation(location, bmqtst::TestHelperUtil::allocator())
     , d_clusterArchiveLocation(archiveLocation ? archiveLocation : location,
@@ -209,7 +215,9 @@ struct Tester {
     , d_clusterStats(bmqtst::TestHelperUtil::allocator())
     , d_miscWorkThreadPool(1, 1, bmqtst::TestHelperUtil::allocator())
     , d_dispatcher(bmqtst::TestHelperUtil::allocator())
+    // NOLINTNEXTLINE(*-magic-numbers)
     , d_statePool(1024, bmqtst::TestHelperUtil::allocator())
+    // NOLINTBEGIN(*-magic-numbers,bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-prefer-member-initializer)
     {
         bdls::FilesystemUtil::remove(d_clusterLocation, true);
         bdls::FilesystemUtil::remove(d_clusterArchiveLocation, true);
@@ -299,6 +307,7 @@ struct Tester {
         // To pass `inDispatcherThread` checks:
         d_fs_mp->setThreadId(bslmt::ThreadUtil::selfId());
     }
+    // NOLINTEND(*-magic-numbers,bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-prefer-member-initializer)
 
     ~Tester()
     {
@@ -317,6 +326,7 @@ struct Tester {
                       bsls::Types::Uint64*           seqNum,
                       bsls::Types::Uint64*           numRecordsWritten,
                       bsls::Types::Uint64            numRecords)
+    // NOLINTBEGIN(*-magic-numbers)
     {
         // TBD:  need to create a FileBackedStorage-like data structure, which
         // maintains a map of 'QueueKey ->
@@ -340,6 +350,7 @@ struct Tester {
         int          seed      = 58133;
         // initial seed for bdlb::Random
 
+        // NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions,modernize-use-emplace,performance-avoid-endl)
         for (size_t i = 0; i < numRecords; ++i) {
             // Total 7 types of records.
             // QueueOp - creation, purge, deletion.
@@ -442,9 +453,11 @@ struct Tester {
                     bmqtst::TestHelperUtil::allocator(),
                     &d_bufferFactory,
                     bmqtst::TestHelperUtil::allocator());
+                // NOLINTBEGIN(*-magic-numbers)
                 bsl::string payloadStr(i * 10,
                                        'x',
                                        bmqtst::TestHelperUtil::allocator());
+                // NOLINTEND(*-magic-numbers)
                 bdlbb::BlobUtil::append(rec.d_appData_sp.get(),
                                         payloadStr.c_str(),
                                         payloadStr.length());
@@ -770,9 +783,11 @@ struct Tester {
                 continue;  // CONTINUE
             }
         }
+        // NOLINTEND(*-magic-numbers,*-narrowing-conversions,modernize-use-emplace,performance-avoid-endl)
 
         return true;
     }
+    // NOLINTEND(*-magic-numbers)
 
     // ACCESSORS
     mqbs::FileStore& fileStore() const { return *(d_fs_mp); }
@@ -788,6 +803,7 @@ struct Tester {
 
     bdlmt::EventScheduler& scheduler() { return d_scheduler; }
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                                    TESTS
@@ -803,11 +819,13 @@ static void test1_breathingTest()
 // Testing:
 //   Basic functionality
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,modernize-use-emplace,performance-avoid-endl)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
 
     const char k_FILE_STORE_LOCATION[] = "./test-cluster123-1";
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     Tester           tester(k_FILE_STORE_LOCATION);
     mqbs::FileStore& fs = tester.fileStore();
 
@@ -922,6 +940,7 @@ static void test1_breathingTest()
     // TBD: Open it again, and iterate over it again, and check retrieved
     // queue uris, keys, appIds, appKeys against in-memory data structure.
 }
+// NOLINTEND(*-avoid-c-arrays,modernize-use-emplace,performance-avoid-endl)
 
 static void test2_printTest()
 // ------------------------------------------------------------------------
@@ -933,6 +952,7 @@ static void test2_printTest()
 // Testing:
 //   operator<<(bsl::ostream& stream, const FileStoreIterator& rhs
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,cppcoreguidelines-init-variables,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("PRINT TEST");
 
@@ -940,6 +960,7 @@ static void test2_printTest()
 
     const char k_FILE_STORE_LOCATION[] = "./test-cluster123-2";
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     Tester           tester(k_FILE_STORE_LOCATION);
     mqbs::FileStore& fs = tester.fileStore();
     BSLS_ASSERT_OPT(fs.open(0) == 0);
@@ -1018,6 +1039,7 @@ static void test2_printTest()
 
     fs.close();
 }
+// NOLINTEND(*-avoid-c-arrays,cppcoreguidelines-init-variables,performance-avoid-endl)
 
 static void test3_partitionFullAlarm()
 // ------------------------------------------------------------------------
@@ -1031,11 +1053,13 @@ static void test3_partitionFullAlarm()
 // Testing:
 //   writeQueueCreationRecord, writeMessageRecord, removeRecordRaw
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
 
     const char k_FILE_STORE_LOCATION[] = "./test-cluster123-3";
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     Tester           tester(k_FILE_STORE_LOCATION);
     mqbs::FileStore& fs = tester.fileStore();
 
@@ -1164,6 +1188,7 @@ static void test3_partitionFullAlarm()
     fs.unregisterStorage(storage_sp.get());
     fs.close();
 }
+// NOLINTEND(*-avoid-c-arrays,*-magic-numbers,performance-avoid-endl)
 
 }  // close unnamed namespace
 
@@ -1172,6 +1197,7 @@ static void test3_partitionFullAlarm()
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -1192,3 +1218,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

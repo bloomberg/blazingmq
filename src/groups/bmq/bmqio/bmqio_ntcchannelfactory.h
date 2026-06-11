@@ -57,6 +57,7 @@ namespace bmqio {
 // =======================
 
 /// This class provides a factory of `bmqio::NtcChannel` objects.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class NtcChannelFactory : public bmqio::ChannelFactory {
   public:
     // TYPES
@@ -259,6 +260,7 @@ class NtcChannelFactory : public bmqio::ChannelFactory {
     template <typename VISITOR>
     void visitChannels(VISITOR& visitor);
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================
 // struct NtcChannelFactoryUtil
@@ -299,11 +301,13 @@ void NtcChannelFactory::visitChannels(VISITOR& visitor)
         }
     }
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (ChannelVector::const_iterator it = channels.begin();
          it != channels.end();
          ++it) {
         visitor(*it);
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 }
 
 }  // close package namespace

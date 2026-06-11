@@ -61,6 +61,7 @@ static void test2_calcNumWordsAndPadding()
 //   - int calcNumWordsAndPadding(int *padding, int length)
 //   - int calcNumDwordsAndPAdding(int *padding, int length)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelper::printTestName("CALC NUM WORDS AND PADDING");
 
@@ -71,6 +72,7 @@ static void test2_calcNumWordsAndPadding()
         int d_wordNumWords;
         int d_dwordPadding;
         int d_dwordNumWords;
+        // NOLINTBEGIN(*-magic-numbers)
     } k_DATA[] = {
         {L_, 0, 4, 1, 8, 1},
         {L_, 1, 3, 1, 7, 1},
@@ -87,10 +89,13 @@ static void test2_calcNumWordsAndPadding()
         {L_, 1024, 4, 257, 8, 129},
         {L_, 1025, 3, 257, 7, 129},
     };
+    // NOLINTEND(*-magic-numbers)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         int padding = 0;
@@ -115,6 +120,7 @@ static void test2_calcNumWordsAndPadding()
                            test.d_dwordNumWords);
     }
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 static void test3_paddingChar()
 // ------------------------------------------------------------------------
@@ -129,6 +135,7 @@ static void test3_paddingChar()
 //   - void appendPaddingRaw(char *destination, int numPaddingBytes)
 //   - void appendPaddingDwordRaw(char *destination, int numPaddingBytes)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("APPEND PADDING (char)");
 
@@ -138,20 +145,26 @@ static void test3_paddingChar()
             int  d_line;
             int  d_numPaddingBytes;
             char d_expectedBuffer[5];
+            // NOLINTBEGIN(*-magic-numbers)
         } k_DATA[] = {
             {L_, 1, {1, 0x0B, 0x0C, 0x0D, 0x0E}},
             {L_, 2, {2, 2, 0x0C, 0x0D, 0x0E}},
             {L_, 3, {3, 3, 3, 0x0D, 0x0E}},
             {L_, 4, {4, 4, 4, 4, 0x0E}},
         };
+        // NOLINTEND(*-magic-numbers)
 
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
         for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
             const Test& test = k_DATA[idx];
 
             PVV(test.d_line << ": word padding of " << test.d_numPaddingBytes
                             << " bytes");
+            // NOLINTNEXTLINE(*-avoid-c-arrays,*-magic-numbers)
             char buffer[5] = {0x0A, 0x0B, 0x0C, 0x0D, 0x0E};
             bmqp::ProtocolUtil::appendPaddingRaw(buffer,
                                                  test.d_numPaddingBytes);
@@ -159,6 +172,7 @@ static void test3_paddingChar()
                                0,
                                bsl::memcmp(test.d_expectedBuffer, buffer, 5));
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
     }
 
     PV("DWORD");
@@ -167,6 +181,7 @@ static void test3_paddingChar()
             int  d_line;
             int  d_numPaddingBytes;
             char d_expectedBuffer[9];
+            // NOLINTBEGIN(*-magic-numbers)
         } k_DATA[] = {
             {L_, 1, {1, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x12, 0x34}},
             {L_, 2, {2, 2, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x12, 0x34}},
@@ -177,15 +192,20 @@ static void test3_paddingChar()
             {L_, 7, {7, 7, 7, 7, 7, 7, 7, 0x12, 0x34}},
             {L_, 8, {8, 8, 8, 8, 8, 8, 8, 8, 0x34}},
         };
+        // NOLINTEND(*-magic-numbers)
 
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+        // NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
         for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
             const Test& test = k_DATA[idx];
 
             PVV(test.d_line << ": word padding of " << test.d_numPaddingBytes
                             << " bytes");
             char buffer[9] =
+                // NOLINTNEXTLINE(*-magic-numbers)
                 {0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x12, 0x34};
             bmqp::ProtocolUtil::appendPaddingDwordRaw(buffer,
                                                       test.d_numPaddingBytes);
@@ -193,8 +213,10 @@ static void test3_paddingChar()
                                0,
                                bsl::memcmp(test.d_expectedBuffer, buffer, 9));
         }
+        // NOLINTEND(*-avoid-c-arrays,*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
     }
 }
+// NOLINTEND(*-avoid-c-arrays,*-magic-numbers,performance-avoid-endl)
 
 static void test4_paddingBlob()
 // ------------------------------------------------------------------------
@@ -212,14 +234,17 @@ static void test4_paddingBlob()
 //       'appendPadding' is simply a basic wrapper on 'appendPaddingRaw',
 //       but is being called for coverage purposes.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("APPEND PADDING (blob)");
 
     PV("blob with enough capacity in last buffer");
     {
+        // NOLINTBEGIN(*-magic-numbers)
         bdlbb::PooledBlobBufferFactory bufferFactory(
             5,
             bmqtst::TestHelperUtil::allocator());
+        // NOLINTEND(*-magic-numbers)
 
         bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
@@ -234,6 +259,7 @@ static void test4_paddingBlob()
         // the already existing buffer.
         BMQTST_ASSERT_EQ(blob.length(), 5);
         BMQTST_ASSERT_EQ(blob.numDataBuffers(), 1);
+        // NOLINTNEXTLINE(*-avoid-c-arrays)
         const char expectedBufferContent[] = {'A', 'B', 'C', 2, 2};
         BMQTST_ASSERT_EQ(
             0,
@@ -242,9 +268,11 @@ static void test4_paddingBlob()
 
     PV("blob without enough capacity in last buffer");
     {
+        // NOLINTBEGIN(*-magic-numbers)
         bdlbb::PooledBlobBufferFactory bufferFactory(
             5,
             bmqtst::TestHelperUtil::allocator());
+        // NOLINTEND(*-magic-numbers)
 
         bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
@@ -264,7 +292,9 @@ static void test4_paddingBlob()
         BMQTST_ASSERT_EQ(blob.buffer(1).size(), 4);
         BMQTST_ASSERT_EQ(blob.lastDataBufferLength(), 4);
 
+        // NOLINTNEXTLINE(*-avoid-c-arrays)
         const char expectedBuffer1Content[] = {'A', 'B', 'C'};
+        // NOLINTNEXTLINE(*-avoid-c-arrays)
         const char expectedBuffer2Content[] = {4, 4, 4, 4};
 
         BMQTST_ASSERT_EQ(
@@ -277,9 +307,11 @@ static void test4_paddingBlob()
 
     PV("append padding");
     {
+        // NOLINTBEGIN(*-magic-numbers)
         bdlbb::PooledBlobBufferFactory bufferFactory(
             5,
             bmqtst::TestHelperUtil::allocator());
+        // NOLINTEND(*-magic-numbers)
 
         bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
@@ -293,12 +325,14 @@ static void test4_paddingBlob()
         // Expecting it to add 1 byte of padding
         BMQTST_ASSERT_EQ(blob.length(), 4);
         BMQTST_ASSERT_EQ(blob.numDataBuffers(), 1);
+        // NOLINTNEXTLINE(*-avoid-c-arrays)
         const char expectedBufferContent[] = {'A', 'B', 'C', 1};
         BMQTST_ASSERT_EQ(
             0,
             bsl::memcmp(blob.buffer(0).data(), expectedBufferContent, 4));
     }
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 
 static void test6_ackResultToCode()
 // ------------------------------------------------------------------------
@@ -314,6 +348,7 @@ static void test6_ackResultToCode()
 // Testing:
 //   ackResultToCode
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelper::printTestName("ACK RESULT TO CODE");
 
@@ -321,6 +356,7 @@ static void test6_ackResultToCode()
         int                   d_line;
         bmqt::AckResult::Enum d_ackResult;
         int                   d_expectedCode;
+        // NOLINTBEGIN(*-magic-numbers)
     } k_DATA[] = {{L_, bmqt::AckResult::e_SUCCESS, 0},
                   {L_, bmqt::AckResult::e_LIMIT_MESSAGES, 1},
                   {L_, bmqt::AckResult::e_LIMIT_BYTES, 2},
@@ -333,10 +369,14 @@ static void test6_ackResultToCode()
                   {L_, bmqt::AckResult::e_REFUSED, 5},
                   {L_, bmqt::AckResult::e_INVALID_ARGUMENT, 5},
                   {L_, bmqt::AckResult::e_NOT_READY, 7}};
+    // NOLINTEND(*-magic-numbers)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         PVV(test.d_line << ": Testing: bmqp::ProtocolUti::ackResultToCode("
@@ -347,7 +387,9 @@ static void test6_ackResultToCode()
             bmqp::ProtocolUtil::ackResultToCode(test.d_ackResult),
             test.d_expectedCode);
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 static void test7_ackResultFromCode()
 // ------------------------------------------------------------------------
@@ -363,6 +405,7 @@ static void test7_ackResultFromCode()
 // Testing:
 //   ackResultFromCode
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelper::printTestName("ACK RESULT FROM CODE");
 
@@ -370,6 +413,7 @@ static void test7_ackResultFromCode()
         int                   d_line;
         int                   d_code;
         bmqt::AckResult::Enum d_expectedAckResult;
+        // NOLINTBEGIN(*-magic-numbers)
     } k_DATA[] = {
         {L_, 0, bmqt::AckResult::e_SUCCESS},
         {L_, 1, bmqt::AckResult::e_LIMIT_MESSAGES},
@@ -378,10 +422,14 @@ static void test7_ackResultFromCode()
         {L_, 5, bmqt::AckResult::e_UNKNOWN},
         {L_, -1, bmqt::AckResult::e_UNKNOWN},
     };
+    // NOLINTEND(*-magic-numbers)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         PVV(test.d_line << ": Testing: bmqp::ProtocolUti::ackResultFromCode("
@@ -391,7 +439,9 @@ static void test7_ackResultFromCode()
                            bmqp::ProtocolUtil::ackResultFromCode(test.d_code),
                            test.d_expectedAckResult);
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 static void test8_loadFieldValues()
 // ------------------------------------------------------------------------
@@ -410,6 +460,7 @@ static void test8_loadFieldValues()
 // Testing:
 //   loadFieldValues
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("LOAD FIELD VALUES");
     // Disable check that no memory was allocated from the default allocator
@@ -493,14 +544,18 @@ static void test8_loadFieldValues()
         BMQTST_ASSERT(field1Values.empty());
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 template <typename E>
 static void encodeDecodeHelper(E encodingType)
+// NOLINTBEGIN(*-magic-numbers)
 {
-    bmqu::MemOutStream             ms;
+    bmqu::MemOutStream ms;
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bmqp_ctrlmsg::ClusterMessage       clusterMessage;
     bmqp_ctrlmsg::LeaderAdvisoryCommit commit;
@@ -541,6 +596,7 @@ static void encodeDecodeHelper(E encodingType)
     BMQTST_ASSERT_EQ(ms.str(), "");
     BMQTST_ASSERT_EQ(decodedClusterMessage, clusterMessage);
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test9_encodeDecodeMessage()
 // ------------------------------------------------------------------------
@@ -559,6 +615,7 @@ static void test9_encodeDecodeMessage()
 //   encodeMessage
 //   decodeMessage
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // The default allocator check fails in this test case because the
@@ -577,6 +634,7 @@ static void test9_encodeDecodeMessage()
         encodeDecodeHelper(bmqp::EncodingType::e_BER);
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void encode(bmqp::MessageProperties* properties)
 {
@@ -599,6 +657,7 @@ static void populateBlob(bdlbb::Blob* blob, int atLeastLen)
     const char* k_FIXED_PAYLOAD =
         "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdef";
 
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     const int k_FIXED_PAYLOAD_LEN = bsl::strlen(k_FIXED_PAYLOAD);
 
     int numIters = atLeastLen / k_FIXED_PAYLOAD_LEN + 1;
@@ -622,9 +681,11 @@ static void test10_parseMessageProperties()
 {
     bmqtst::TestHelper::printTestName("TEST PARSING");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
@@ -694,6 +755,7 @@ static void test10_parseMessageProperties()
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -717,3 +779,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

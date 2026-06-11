@@ -49,6 +49,7 @@ namespace mqbevt {
 // =======================
 
 /// Concrete dispatcher event for 'e_CLUSTER_STATE' type events.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ClusterStateEvent : public mqbi::DispatcherEvent {
   public:
     // CLASS DATA
@@ -119,6 +120,7 @@ class ClusterStateEvent : public mqbi::DispatcherEvent {
                         int           level = 0,
                         int spacesPerLevel  = 4) const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

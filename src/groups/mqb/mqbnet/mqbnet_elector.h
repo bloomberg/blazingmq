@@ -113,6 +113,7 @@ class Elector;
 /// emitted from mqbnet::ElectorStateMachine.
 struct ElectorIOEventType {
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         e_NONE               = 0,
         e_ELECTION_PROPOSAL  = 1,
@@ -125,6 +126,7 @@ struct ElectorIOEventType {
         e_SCOUTING_RESPONSE  = 8,
         e_LEADERSHIP_CESSION = 9
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CLASS METHODS
 
@@ -177,6 +179,7 @@ bsl::ostream& operator<<(bsl::ostream& stream, ElectorIOEventType::Enum value);
 /// emitted from mqbnet::ElectorStateMachine
 struct ElectorTimerEventType {
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         e_NONE                      = 0,
         e_INITIAL_WAIT_TIMER        = 1,
@@ -186,6 +189,7 @@ struct ElectorTimerEventType {
         e_HEARTBEAT_BROADCAST_TIMER = 5,
         e_SCOUTING_RESULT_TIMER     = 6
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CLASS METHODS
 
@@ -239,6 +243,7 @@ bsl::ostream& operator<<(bsl::ostream&               stream,
 /// participating in an election.
 struct ElectorState {
     // TYPES
+    // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
     enum Enum { e_DORMANT = 0, e_FOLLOWER = 1, e_CANDIDATE = 2, e_LEADER = 3 };
 
     // CLASS METHODS
@@ -292,6 +297,7 @@ bsl::ostream& operator<<(bsl::ostream& stream, ElectorState::Enum value);
 /// change event.
 struct ElectorTransitionReason {
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         // Valid with all 4 ElectorStates
         e_NONE = 0,
@@ -304,6 +310,7 @@ struct ElectorTransitionReason {
         e_ELECTION_PREEMPTED  = 5,
         e_QUORUM_NOT_ACHIEVED = 6
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CLASS METHODS
 
@@ -786,6 +793,7 @@ class ElectorStateMachine {
 
 /// This component provides a mechanism to elect a leader from among a
 /// cluster of nodes.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Elector : public SessionEventProcessor {
   private:
     // CLASS-SCOPE CATEGORY
@@ -1076,6 +1084,7 @@ class Elector : public SessionEventProcessor {
     /// Return the configuration of this instance.
     const mqbcfg::ElectorConfig& config() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS
@@ -1086,16 +1095,19 @@ class Elector : public SessionEventProcessor {
 // -------------------------------
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline ElectorStateMachineOutput::ElectorStateMachineOutput()
 {
     reset();
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 inline ElectorStateMachineOutput::ElectorStateMachineOutput(
     bsls::Types::Uint64         term,
     ElectorIOEventType::Enum    io,
     ElectorTimerEventType::Enum timer,
     int                         destinationNodeId)
+// NOLINTBEGIN(cppcoreguidelines-prefer-member-initializer)
 {
     d_stateChangedFlag      = false;
     d_term                  = term;
@@ -1105,6 +1117,7 @@ inline ElectorStateMachineOutput::ElectorStateMachineOutput(
     d_cancelTimerEventsFlag = false;
     d_scoutingResponseFlag  = false;
 }
+// NOLINTEND(cppcoreguidelines-prefer-member-initializer)
 
 // MANIPULATORS
 inline void ElectorStateMachineOutput::reset()
@@ -1314,6 +1327,7 @@ inline ElectorStateMachine::ElectorStateMachine(bslma::Allocator* allocator)
 {
 }
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline ElectorStateMachine::ElectorStateMachine(
     const ElectorStateMachine& other,
     bslma::Allocator*          allocator)
@@ -1331,6 +1345,7 @@ inline ElectorStateMachine::ElectorStateMachine(
 , d_age(other.d_age)
 {
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // MANIPULATORS
 

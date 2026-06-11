@@ -57,6 +57,7 @@ ConfirmEventBuilder::ConfirmEventBuilder(BlobSpPool*       blobSpPool_p,
 }
 
 void ConfirmEventBuilder::reset()
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
     d_blob_sp = d_blobSpPool_p->getObject();
 
@@ -82,6 +83,7 @@ void ConfirmEventBuilder::reset()
     // ConfirmHeader
     new (d_blob_sp->buffer(0).data() + sizeof(EventHeader)) ConfirmHeader();
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 bmqt::EventBuilderResult::Enum
 ConfirmEventBuilder::appendMessage(int                      queueId,
@@ -134,8 +136,10 @@ const bsl::shared_ptr<bdlbb::Blob>& ConfirmEventBuilder::blob() const
 
     // Fix packet's length in header now that we know it.  Following is valid
     // (see comment in reset).
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     EventHeader& eh = *reinterpret_cast<EventHeader*>(
         d_blob_sp->buffer(0).data());
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
     eh.setLength(d_blob_sp->length());
 
     return d_blob_sp;

@@ -81,6 +81,7 @@ queueCreator(int                               queueId,
              bslma::Allocator*                 allocator,
              int                               fixedQueueSize,
              bsl::map<int, bsl::vector<int> >* queueContextMap)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     PV("Creating queue [queueId: " << queueId << "]\n");
 
@@ -89,6 +90,7 @@ queueCreator(int                               queueId,
 
     return new (*allocator) MQTP::Queue(fixedQueueSize, allocator);
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void eventCb(bsl::map<int, bsl::vector<int> >* queueContextMap,
                     int                               queueId,
@@ -160,8 +162,10 @@ static void performanceTestFixedQueuePopper(
 }
 
 static void printProcessedItems(int numItems, bsls::Types::Int64 elapsedTime)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     const double numSeconds = static_cast<double>(elapsedTime) / 1000000000LL;
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     const bsls::Types::Int64 itemsPerSec = numItems / numSeconds;
 
     bsl::cout << "Processed " << numItems << " items in "
@@ -169,6 +173,7 @@ static void printProcessedItems(int numItems, bsls::Types::Int64 elapsedTime)
               << bmqu::PrintUtil::prettyNumber(itemsPerSec) << "/s"
               << bsl::endl;
 }
+// NOLINTEND(performance-avoid-endl)
 
 }  // close unnamed namespace
 
@@ -298,6 +303,7 @@ static void testN1_performance()
 // Testing:
 //  Performance
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
 
@@ -434,6 +440,7 @@ static void testN1_performance()
 
     printProcessedItems(k_NUM_ITERATIONS, endTime - startTime);
 }
+// NOLINTEND(performance-avoid-endl)
 
 #ifdef BMQTST_BENCHMARK_ENABLED
 static void testN1_performance_GoogleBenchmark(benchmark::State& state)
@@ -450,6 +457,7 @@ static void testN1_performance_GoogleBenchmark(benchmark::State& state)
 // Testing:
 //  Performance
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores,performance-avoid-endl)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
 
@@ -508,6 +516,7 @@ static void testN1_performance_GoogleBenchmark(benchmark::State& state)
         mfqtp.stop();
     }
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores,performance-avoid-endl)
 
 static void testN1_fixedPerformance_GoogleBenchmark(benchmark::State& state)
 // ------------------------------------------------------------------------
@@ -524,6 +533,7 @@ static void testN1_fixedPerformance_GoogleBenchmark(benchmark::State& state)
 // Testing:
 //  Performance
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores,performance-avoid-endl)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
 
@@ -572,13 +582,20 @@ static void testN1_fixedPerformance_GoogleBenchmark(benchmark::State& state)
         }
     }
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores,performance-avoid-endl)
 #endif  // BMQTST_BENCHMARK_ENABLED
 
 //=============================================================================
 //                                MAIN PROGRAM
 //-----------------------------------------------------------------------------
 
+// NOLINTBEGIN(bugprone-exception-escape)
 int main(int argc, char* argv[])
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTBEGIN(cert-err34-c)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -605,3 +622,9 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTEND(cert-err34-c)
+// NOLINTEND(bugprone-exception-escape)

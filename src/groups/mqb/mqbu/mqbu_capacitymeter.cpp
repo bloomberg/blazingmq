@@ -103,6 +103,7 @@ void CapacityMeter::logOnMonitorStateTransition(
     }
 }
 
+// NOLINTBEGIN(performance-unnecessary-value-param)
 CapacityMeter::CapacityMeter(const bsl::string&       name,
                              LogEnhancedStorageInfoCb logEnhancedStorageInfoCb,
                              bslma::Allocator*        allocator)
@@ -126,7 +127,9 @@ CapacityMeter::CapacityMeter(const bsl::string&       name,
 {
     // NOTHING
 }
+// NOLINTEND(performance-unnecessary-value-param)
 
+// NOLINTBEGIN(performance-unnecessary-value-param)
 CapacityMeter::CapacityMeter(const bsl::string&       name,
                              CapacityMeter*           parent,
                              LogEnhancedStorageInfoCb logEnhancedStorageInfoCb,
@@ -151,6 +154,7 @@ CapacityMeter::CapacityMeter(const bsl::string&       name,
 {
     // NOTHING
 }
+// NOLINTEND(performance-unnecessary-value-param)
 
 CapacityMeter& CapacityMeter::setLimits(bsls::Types::Int64 messages,
                                         bsls::Types::Int64 bytes)

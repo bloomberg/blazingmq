@@ -40,11 +40,14 @@ char* removeIfPrecededBySame(char*       begin,
                              const char* allowlistEnd)
 {
     bsl::bitset<UCHAR_MAX + 1> allowlist;
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (const char* iter = allowlistBegin; iter != allowlistEnd; ++iter) {
         allowlist[static_cast<unsigned char>(*iter)] = true;
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     char* result = begin;
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (; begin != end; ++begin) {
         // If this is *not* a repeated item from the allowlist, then copy it
         // into its final place.
@@ -53,6 +56,7 @@ char* removeIfPrecededBySame(char*       begin,
             *result++ = *begin;
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     return result;
 }
@@ -140,6 +144,7 @@ bsl::string& StringUtil::rtrim(bsl::string* str)
 bsl::vector<bslstl::StringRef>
 StringUtil::strTokenizeRef(const bsl::string&       str,
                            const bslstl::StringRef& delims)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic,modernize-use-emplace)
 {
     bsl::vector<bslstl::StringRef> res;
 
@@ -154,6 +159,7 @@ StringUtil::strTokenizeRef(const bsl::string&       str,
 
     bsl::string::size_type idx = 0, delimIdx = 0, len = 0;
 
+    // NOLINTBEGIN(bugprone-assignment-in-if-condition,cppcoreguidelines-pro-bounds-pointer-arithmetic,modernize-use-emplace)
     while ((delimIdx = str.find_first_of(delims, idx)) != bsl::string::npos) {
         if ((len = delimIdx - idx) != 0) {
             res.push_back(bslstl::StringRef(str.c_str() + idx, len));
@@ -164,6 +170,7 @@ StringUtil::strTokenizeRef(const bsl::string&       str,
         }
         idx = delimIdx + 1;
     }
+    // NOLINTEND(bugprone-assignment-in-if-condition,cppcoreguidelines-pro-bounds-pointer-arithmetic,modernize-use-emplace)
 
     if (idx != str.length()) {
         res.push_back(
@@ -176,6 +183,7 @@ StringUtil::strTokenizeRef(const bsl::string&       str,
 
     return res;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic,modernize-use-emplace)
 
 bool StringUtil::match(const bslstl::StringRef& str,
                        const bslstl::StringRef& pattern)
@@ -240,6 +248,7 @@ bool StringUtil::match(const bslstl::StringRef& str,
 
 bsl::string& StringUtil::squeeze(bsl::string*             str,
                                  const bslstl::StringRef& characters)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
     BSLS_ASSERT_SAFE(str);
 
@@ -255,6 +264,7 @@ bsl::string& StringUtil::squeeze(bsl::string*             str,
 
     return strRef;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 }  // close package namespace
 }  // close enterprise namespace

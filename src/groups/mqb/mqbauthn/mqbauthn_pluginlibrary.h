@@ -44,6 +44,7 @@ namespace mqbauthn {
 // class PluginLibrary
 // ===================
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class PluginLibrary : public mqbplug::PluginLibrary {
   private:
     // DATA
@@ -77,6 +78,7 @@ class PluginLibrary : public mqbplug::PluginLibrary {
     const bsl::vector<mqbplug::PluginInfo>&
     plugins() const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

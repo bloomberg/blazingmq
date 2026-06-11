@@ -116,9 +116,11 @@ class LegacyHash {
     /// Compute the unrolled djb2 hash on the specified `data`. The specified
     /// `numBytes` is not used.
     void operator()(const void* data, BSLA_MAYBE_UNUSED size_t numBytes)
+    // NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     {
         d_result = 5381ULL;
 
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         const char* start = reinterpret_cast<const char*>(data);
         d_result          = (d_result << 5) + d_result + start[0];
         d_result          = (d_result << 5) + d_result + start[1];
@@ -137,6 +139,7 @@ class LegacyHash {
         d_result          = (d_result << 5) + d_result + start[14];
         d_result          = (d_result << 5) + d_result + start[15];
     }
+    // NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     /// Return the computed hash.
     result_type computeHash() { return d_result; }
@@ -163,13 +166,16 @@ class BaselineHash {
     /// Compute the trivial hash of the specified `data`. The specified
     /// `numBytes` is not used.
     void operator()(const void* data, BSLA_MAYBE_UNUSED size_t numBytes)
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     {
         const bsls::Types::Uint64* start =
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
             reinterpret_cast<const bsls::Types::Uint64*>(data);
 
         // Touch all the bytes in the data
         d_result = start[0] ^ start[1];
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     /// Return the computed hash.
     result_type computeHash() { return d_result; }
@@ -194,12 +200,15 @@ class Mx3Hash {
     /// Compute the hash of the specified `data`. The specified `numBytes` is
     /// not used.
     void operator()(const void* data, BSLA_MAYBE_UNUSED size_t numBytes)
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     {
         const bsls::Types::Uint64* start =
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
             reinterpret_cast<const bsls::Types::Uint64*>(data);
 
         struct LocalFuncs {
             inline static bsls::Types::Uint64 mix(bsls::Types::Uint64 x)
+            // NOLINTBEGIN(*-magic-numbers)
             {
                 x ^= x >> 32;
                 x *= 0xbea225f9eb34556d;
@@ -210,24 +219,29 @@ class Mx3Hash {
                 x ^= x >> 29;
                 return x;
             }
+            // NOLINTEND(*-magic-numbers)
 
             inline static bsls::Types::Uint64 combine(bsls::Types::Uint64 lhs,
                                                       bsls::Types::Uint64 rhs)
+            // NOLINTBEGIN(*-magic-numbers)
             {
                 lhs ^= rhs + 0x517cc1b727220a95 + (lhs << 6) + (lhs >> 2);
                 return lhs;
             }
+            // NOLINTEND(*-magic-numbers)
         };
 
         d_result = LocalFuncs::combine(LocalFuncs::mix(start[0]),
                                        LocalFuncs::mix(start[1]));
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     /// Return the computed hash.
     result_type computeHash() { return d_result; }
 };
 
 /// Data struct holding the results of a benchmark
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 struct HashBenchmarkStats {
     /// Name of the current case
     bsl::string d_caseName;
@@ -244,9 +258,11 @@ struct HashBenchmarkStats {
     /// The estimated hash computation rate (per second)
     bsls::Types::Int64 d_hashesPerSecond;
 };
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 template <class HashType>
 HashBenchmarkStats benchmarkHash(const bsl::string& name)
+// NOLINTBEGIN(*-narrowing-conversions,performance-avoid-endl)
 {
     const size_t               k_NUM_ITERATIONS = 100000000;  // 100M
     HashType                   hasher;
@@ -256,6 +272,7 @@ HashBenchmarkStats benchmarkHash(const bsl::string& name)
     generator.generateGUID(&guid);
 
     const bsls::Types::Int64 begin = bsls::TimeUtil::getTimer();
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t i = 0; i < k_NUM_ITERATIONS; ++i) {
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(hasher(guid) == i)) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
@@ -263,6 +280,7 @@ HashBenchmarkStats benchmarkHash(const bsl::string& name)
             bsl::cout << bsl::endl;
         }
     }
+    // NOLINTEND(performance-avoid-endl)
     const bsls::Types::Int64 end = bsls::TimeUtil::getTimer();
 
     HashBenchmarkStats stats;
@@ -285,6 +303,7 @@ HashBenchmarkStats benchmarkHash(const bsl::string& name)
 
     return stats;
 }
+// NOLINTEND(*-narrowing-conversions,performance-avoid-endl)
 
 template <class HashType>
 static int calcCollisions(const bsl::vector<bmqt::MessageGUID>& guids)
@@ -294,12 +313,14 @@ static int calcCollisions(const bsl::vector<bmqt::MessageGUID>& guids)
     bsl::vector<bsls::Types::Uint64> hashes;
     hashes.resize(guids.size());
 
+    // NOLINTBEGIN(*-magic-numbers)
     for (size_t i = 0; i < guids.size(); i++) {
         hashes[i] = hasher(guids[i]);
         bsl::string hex;
         hex.resize(32);
         guids[i].toHex(&hex[0]);
     }
+    // NOLINTEND(*-magic-numbers)
 
     bsl::sort(hashes.begin(), hashes.end());
     int res = 0;
@@ -332,6 +353,7 @@ static void test1_breathingTest()
 // Testing:
 //   Basic functionality
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // 'bmqp::MessageGUIDGenerator::ctor' prints a BALL_LOG_INFO which
@@ -349,6 +371,7 @@ static void test1_breathingTest()
         BMQTST_ASSERT_EQ(guid.isUnset(), false);
 
         // Export to binary representation
+        // NOLINTNEXTLINE(*-avoid-c-arrays)
         unsigned char binaryBuffer[bmqt::MessageGUID::e_SIZE_BINARY];
         guid.toBinary(binaryBuffer);
 
@@ -358,6 +381,7 @@ static void test1_breathingTest()
         BMQTST_ASSERT_EQ(fromBinGUID, guid);
 
         // Export to hex representation
+        // NOLINTNEXTLINE(*-avoid-c-arrays)
         char hexBuffer[bmqt::MessageGUID::e_SIZE_HEX];
         guid.toHex(hexBuffer);
         BMQTST_ASSERT_EQ(
@@ -396,11 +420,13 @@ static void test1_breathingTest()
         BMQTST_ASSERT_EQ(1u, myMap.count(guid));
     }
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 static void test2_extract()
 // ------------------------------------------------------------------------
 // TBD:
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() =
         true;  // Implicit string conversion in BMQTST_ASSERT_EQ
@@ -494,6 +520,7 @@ static void test2_extract()
         BMQTST_ASSERT_EQ(clientId, "0DCE04742D2E");
     }
 }
+// NOLINTEND(*-avoid-c-arrays,cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 
 static void test3_multithreadUseIP()
 // ------------------------------------------------------------------------
@@ -677,6 +704,7 @@ static void test5_print()
 // Testing:
 //   Printing of the various parts of a GUID.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // 'bmqp::MessageGUIDGenerator::ctor' prints a BALL_LOG_INFO which
@@ -748,6 +776,7 @@ static void test5_print()
         // Extract the ClientId from the printed string, that is the last 12
         // characters.
         bslstl::StringRef printedClientId =
+            // NOLINTNEXTLINE(*-magic-numbers)
             bslstl::StringRef(&out.str()[out.length() - 12], 12);
         BMQTST_ASSERT_EQ(printedClientId, generator.clientIdHex());
     }
@@ -772,6 +801,7 @@ static void test5_print()
         BMQTST_ASSERT_EQ(out2.str(), k_EXPECTED_2);
     }
 }
+// NOLINTEND(*-avoid-c-arrays,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 
 static void test6_defaultHashUniqueness()
 // ------------------------------------------------------------------------
@@ -787,6 +817,7 @@ static void test6_defaultHashUniqueness()
 // Testing:
 //   Hash uniqueness of the generated GUIDs.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions,performance-avoid-endl)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Because there is no emplace on unordered_map, the temporary list
@@ -855,13 +886,16 @@ static void test6_defaultHashUniqueness()
              << "GUIDs with the highest collisions..: " << endl;
 
         Guids& guids = hashes[maxDuplicatesHash];
+        // NOLINTBEGIN(performance-avoid-endl)
         for (size_t i = 0; i < guids.size(); ++i) {
             cout << "  ";
             bmqp::MessageGUIDGenerator::print(cout, guids[i]);
             cout << endl;
         }
+        // NOLINTEND(performance-avoid-endl)
     }
 }
+// NOLINTEND(*-magic-numbers,*-narrowing-conversions,performance-avoid-endl)
 
 static void test7_customHashUniqueness()
 // ------------------------------------------------------------------------
@@ -877,6 +911,7 @@ static void test7_customHashUniqueness()
 // Testing:
 //   Hash uniqueness of the generated GUIDs.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions,performance-avoid-endl)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Because there is no emplace on unordered_map, the temporary list
@@ -945,13 +980,16 @@ static void test7_customHashUniqueness()
              << "GUIDs with the highest collisions..: " << endl;
 
         Guids& guids = hashes[maxCollisionsHash];
+        // NOLINTBEGIN(performance-avoid-endl)
         for (size_t i = 0; i < guids.size(); ++i) {
             cout << "  ";
             bmqp::MessageGUIDGenerator::print(cout, guids[i]);
             cout << endl;
         }
+        // NOLINTEND(performance-avoid-endl)
     }
 }
+// NOLINTEND(*-magic-numbers,*-narrowing-conversions,performance-avoid-endl)
 
 // ============================================================================
 //                              PERFORMANCE TESTS
@@ -976,6 +1014,7 @@ static void testN1_decode()
 // Testing:
 //   -
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers,cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() =
         true;  // istringstream allocates
@@ -992,6 +1031,7 @@ static void testN1_decode()
     char buffer[256];
     bsl::cin.getline(buffer, 256, '\n');
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bsl::istringstream is(buffer);
 
     bsl::string        hexGuid(bmqtst::TestHelperUtil::allocator());
@@ -1053,6 +1093,7 @@ static void testN1_decode()
         }
     }
 }
+// NOLINTEND(*-avoid-c-arrays,*-magic-numbers,cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 
 BSLA_MAYBE_UNUSED
 static void testN2_bmqtPerformance()
@@ -1069,6 +1110,7 @@ static void testN2_bmqtPerformance()
 // Testing:
 //   Performance of the bmqt::MessageGUID generation.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // 'bmqp::MessageGUIDGenerator::ctor' prints a BALL_LOG_INFO which
@@ -1085,11 +1127,13 @@ static void testN2_bmqtPerformance()
     bmqp::MessageGUIDGenerator generator(0);
 
     // Warm the cache
+    // NOLINTBEGIN(*-magic-numbers)
     for (int i = 0; i < 1000; ++i) {
         bmqt::MessageGUID guid;
         generator.generateGUID(&guid);
         (void)guid;
     }
+    // NOLINTEND(*-magic-numbers)
 
     bsls::Types::Int64 start = bsls::TimeUtil::getTimer();
 
@@ -1111,6 +1155,7 @@ static void testN2_bmqtPerformance()
          << " bmqt::MessageGUIDs per second.\n\n"
          << endl;
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 BSLA_MAYBE_UNUSED
 static void testN2_bdlbPerformance()
@@ -1127,6 +1172,7 @@ static void testN2_bdlbPerformance()
 // Testing:
 //   Performance of the bdlb::Guid generation.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // 'bmqp::MessageGUIDGenerator::ctor' prints a BALL_LOG_INFO which
@@ -1141,11 +1187,13 @@ static void testN2_bdlbPerformance()
     // ---------------------
 
     // Warm the cache
+    // NOLINTBEGIN(*-magic-numbers)
     for (int i = 0; i < 1000; ++i) {
         bdlb::Guid guid;
         bdlb::GuidUtil::generate(&guid);
         (void)guid;
     }
+    // NOLINTEND(*-magic-numbers)
 
     bsls::Types::Int64 start = bsls::TimeUtil::getTimer();
 
@@ -1166,6 +1214,7 @@ static void testN2_bdlbPerformance()
                                           (end - start))
          << " bdlb::Guids per second." << endl;
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 BSLA_MAYBE_UNUSED static void testN3_defaultHashBenchmark()
 // ------------------------------------------------------------------------
@@ -1221,6 +1270,7 @@ BSLA_MAYBE_UNUSED static void testN5_hashTableWithDefaultHashBenchmark()
 //   hash function.
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // 'bmqp::MessageGUIDGenerator::ctor' prints a BALL_LOG_INFO which
@@ -1237,10 +1287,12 @@ BSLA_MAYBE_UNUSED static void testN5_hashTableWithDefaultHashBenchmark()
     bmqp::MessageGUIDGenerator generator(0);
 
     // Warmup
+    // NOLINTBEGIN(*-magic-numbers)
     for (size_t i = 1; i <= 1000; ++i) {
         generator.generateGUID(&guid);
         ht.insert(bsl::make_pair(guid, i));
     }
+    // NOLINTEND(*-magic-numbers)
 
     ht.clear();
 
@@ -1261,6 +1313,7 @@ BSLA_MAYBE_UNUSED static void testN5_hashTableWithDefaultHashBenchmark()
                 (k_NUM_ELEMS * 1000000000) / (end - begin)))
          << " insertions per second." << endl;
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 BSLA_MAYBE_UNUSED static void testN6_hashTableWithCustomHashBenchmark()
 // ------------------------------------------------------------------------
@@ -1271,6 +1324,7 @@ BSLA_MAYBE_UNUSED static void testN6_hashTableWithCustomHashBenchmark()
 //   hash function.
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // 'bmqp::MessageGUIDGenerator::ctor' prints a BALL_LOG_INFO which
@@ -1290,10 +1344,12 @@ BSLA_MAYBE_UNUSED static void testN6_hashTableWithCustomHashBenchmark()
     bmqp::MessageGUIDGenerator generator(0);
 
     // Warmup
+    // NOLINTBEGIN(*-magic-numbers)
     for (size_t i = 1; i <= 1000; ++i) {
         generator.generateGUID(&guid);
         ht.insert(bsl::make_pair(guid, i));
     }
+    // NOLINTEND(*-magic-numbers)
 
     ht.clear();
 
@@ -1314,6 +1370,7 @@ BSLA_MAYBE_UNUSED static void testN6_hashTableWithCustomHashBenchmark()
                 (k_NUM_ELEMS * 1000000000) / (end - begin)))
          << " insertions per second." << endl;
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 BSLA_MAYBE_UNUSED static void testN7_orderedMapWithDefaultHashBenchmark()
 // ------------------------------------------------------------------------
@@ -1324,6 +1381,7 @@ BSLA_MAYBE_UNUSED static void testN7_orderedMapWithDefaultHashBenchmark()
 //   default hash function.
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // 'bmqp::MessageGUIDGenerator::ctor' prints a BALL_LOG_INFO which
@@ -1341,10 +1399,12 @@ BSLA_MAYBE_UNUSED static void testN7_orderedMapWithDefaultHashBenchmark()
     bmqp::MessageGUIDGenerator generator(0);
 
     // Warmup
+    // NOLINTBEGIN(*-magic-numbers)
     for (size_t i = 1; i <= 1000; ++i) {
         generator.generateGUID(&guid);
         ht.insert(bsl::make_pair(guid, i));
     }
+    // NOLINTEND(*-magic-numbers)
 
     ht.clear();
 
@@ -1365,6 +1425,7 @@ BSLA_MAYBE_UNUSED static void testN7_orderedMapWithDefaultHashBenchmark()
                 (k_NUM_ELEMS * 1000000000) / (end - begin)))
          << " insertions per second." << endl;
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 BSLA_MAYBE_UNUSED static void testN8_orderedMapWithCustomHashBenchmark()
 // ------------------------------------------------------------------------
@@ -1375,6 +1436,7 @@ BSLA_MAYBE_UNUSED static void testN8_orderedMapWithCustomHashBenchmark()
 //   hash function.
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // 'bmqp::MessageGUIDGenerator::ctor' prints a BALL_LOG_INFO which
@@ -1393,10 +1455,12 @@ BSLA_MAYBE_UNUSED static void testN8_orderedMapWithCustomHashBenchmark()
     bmqp::MessageGUIDGenerator generator(0);
 
     // Warmup
+    // NOLINTBEGIN(*-magic-numbers)
     for (size_t i = 1; i <= 1000; ++i) {
         generator.generateGUID(&guid);
         ht.insert(bsl::make_pair(guid, i));
     }
+    // NOLINTEND(*-magic-numbers)
 
     ht.clear();
 
@@ -1417,6 +1481,7 @@ BSLA_MAYBE_UNUSED static void testN8_orderedMapWithCustomHashBenchmark()
                 (k_NUM_ELEMS * 1000000000) / (end - begin)))
          << " insertions per second." << endl;
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 BSLA_MAYBE_UNUSED
 static void testN9_hashBenchmarkComparison()
@@ -1463,6 +1528,7 @@ static void testN10_hashCollisionsComparison()
 //   Compare hash collisions between different hash algos.
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Because there is no emplace on unordered_map, the temporary list
@@ -1505,6 +1571,7 @@ static void testN10_hashCollisionsComparison()
         static void generateGUIDs_bmqpMessageGUIDGeneratorN(
             bsl::vector<bmqt::MessageGUID>* guids,
             size_t                          num)
+        // NOLINTBEGIN(*-magic-numbers)
         {
             // PRECONDITIONS
             BSLS_ASSERT(guids);
@@ -1526,6 +1593,7 @@ static void testN10_hashCollisionsComparison()
                     ->generateGUID(&guids->at(i));
             }
         }
+        // NOLINTEND(*-magic-numbers)
 
         static void generateGUIDs_rand(bsl::vector<bmqt::MessageGUID>* guids,
                                        size_t                          num)
@@ -1534,14 +1602,19 @@ static void testN10_hashCollisionsComparison()
             BSLS_ASSERT(guids);
             guids->resize(num);
 
+            // NOLINTNEXTLINE(*-avoid-c-arrays)
             unsigned char buff[bmqt::MessageGUID::e_SIZE_BINARY];
 
+            // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
             for (size_t i = 0; i < num; i++) {
+                // NOLINTBEGIN(*-magic-numbers,cert-msc30-c,cert-msc50-cpp,cppcoreguidelines-pro-bounds-constant-array-index)
                 for (size_t j = 0; j < bmqt::MessageGUID::e_SIZE_BINARY; j++) {
                     buff[j] = rand() % 256;
                 }
+                // NOLINTEND(*-magic-numbers,cert-msc30-c,cert-msc50-cpp,cppcoreguidelines-pro-bounds-constant-array-index)
                 guids->at(i).fromBinary(buff);
             }
+            // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         }
 
         static void
@@ -1552,17 +1625,23 @@ static void testN10_hashCollisionsComparison()
             BSLS_ASSERT(guids);
             guids->resize(num);
 
-            unsigned char  buff[bmqt::MessageGUID::e_SIZE_BINARY];
+            // NOLINTNEXTLINE(*-avoid-c-arrays)
+            unsigned char buff[bmqt::MessageGUID::e_SIZE_BINARY];
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
             bsl::uint32_t* ptr = reinterpret_cast<bsl::uint32_t*>(buff);
             BSLS_ASSERT(0 == bmqt::MessageGUID::e_SIZE_BINARY % 4);
 
+            // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
             for (size_t i = 0; i < num; i++) {
+                // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
                 for (size_t j = 0; j * 4 < bmqt::MessageGUID::e_SIZE_BINARY;
                      j++) {
                     ptr[j] = i;
                 }
+                // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
                 guids->at(i).fromBinary(buff);
             }
+            // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         }
 
         static void
@@ -1573,18 +1652,25 @@ static void testN10_hashCollisionsComparison()
             BSLS_ASSERT(guids);
             guids->resize(num);
 
+            // NOLINTNEXTLINE(*-avoid-c-arrays)
             unsigned char buff[bmqt::MessageGUID::e_SIZE_BINARY];
-            int*          ptr = reinterpret_cast<int*>(buff);
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
+            int* ptr = reinterpret_cast<int*>(buff);
             BSLS_ASSERT(0 == bmqt::MessageGUID::e_SIZE_BINARY % 4);
 
+            // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
             for (size_t i = 0; i < num; i++) {
+                // NOLINTNEXTLINE(cert-msc30-c,cert-msc50-cpp)
                 int val = rand();
+                // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
                 for (size_t j = 0; j * 4 < bmqt::MessageGUID::e_SIZE_BINARY;
                      j++) {
                     ptr[j] = val;
                 }
+                // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
                 guids->at(i).fromBinary(buff);
             }
+            // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         }
 
         static void
@@ -1595,19 +1681,24 @@ static void testN10_hashCollisionsComparison()
             BSLS_ASSERT(guids);
             guids->resize(num);
 
+            // NOLINTNEXTLINE(*-avoid-c-arrays)
             unsigned char buff[bmqt::MessageGUID::e_SIZE_BINARY];
             BSLS_ASSERT(0 == bmqt::MessageGUID::e_SIZE_BINARY % 2);
 
+            // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
             for (size_t i = 0; i < num; i++) {
+                // NOLINTBEGIN(*-magic-numbers,cert-msc30-c,cert-msc50-cpp,cppcoreguidelines-pro-bounds-constant-array-index)
                 for (size_t j = 0; j * 2 < bmqt::MessageGUID::e_SIZE_BINARY;
                      j++) {
                     buff[j] = rand() % 256;
                 }
+                // NOLINTEND(*-magic-numbers,cert-msc30-c,cert-msc50-cpp,cppcoreguidelines-pro-bounds-constant-array-index)
                 bsl::memcpy(&buff[bmqt::MessageGUID::e_SIZE_BINARY / 2],
                             buff,
                             bmqt::MessageGUID::e_SIZE_BINARY / 2);
                 guids->at(i).fromBinary(buff);
             }
+            // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         }
 
         static void
@@ -1618,18 +1709,24 @@ static void testN10_hashCollisionsComparison()
             BSLS_ASSERT(guids);
             guids->resize(num);
 
-            unsigned char  buff[bmqt::MessageGUID::e_SIZE_BINARY];
+            // NOLINTNEXTLINE(*-avoid-c-arrays)
+            unsigned char buff[bmqt::MessageGUID::e_SIZE_BINARY];
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
             bsl::uint32_t* ptr = reinterpret_cast<bsl::uint32_t*>(buff);
             BSLS_ASSERT(0 == bmqt::MessageGUID::e_SIZE_BINARY % 4);
 
+            // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic)
             for (size_t i = 0; i < num; i++) {
+                // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
                 for (size_t j = 1; j < bmqt::MessageGUID::e_SIZE_BINARY / 4;
                      j++) {
                     ptr[j] = 0;
                 }
+                // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
                 ptr[0] = i;
                 guids->at(i).fromBinary(buff);
             }
+            // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic)
         }
     };
 
@@ -1674,8 +1771,10 @@ static void testN10_hashCollisionsComparison()
          "Init the uint32_t block of GUID as 'counter', set all other to 0: "
          "uint32_t[0] <- counter++, uint32_t[1..3] <- 0"},
     };
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_GENERATORS = sizeof(k_GENERATORS) /
                                     sizeof(*k_GENERATORS);
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
     struct HashCheckerContext {
         // PUBLIC DATA
@@ -1688,18 +1787,23 @@ static void testN10_hashCollisionsComparison()
         {calcCollisions<bslh::Hash<LegacyHash> >, "legacy(djb2)"},
         {calcCollisions<bslh::Hash<Mx3Hash> >, "mx3"},
         {calcCollisions<bslh::Hash<bmqt::MessageGUIDHashAlgo> >, "mxm"}};
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_HASH_CHECKERS = sizeof(k_HASH_CHECKERS) /
                                        sizeof(*k_HASH_CHECKERS);
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
     bmqtst::Table table(bmqtst::TestHelperUtil::allocator());
     for (size_t checkerId = 0; checkerId < k_NUM_HASH_CHECKERS; checkerId++) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const HashCheckerContext& checker = k_HASH_CHECKERS[checkerId];
         table.column("Name").insertValue(checker.d_name);
     }
 
     bsl::vector<bmqt::MessageGUID> guids(bmqtst::TestHelperUtil::allocator());
     guids.reserve(k_NUM_GUIDS);
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t genId = 0; genId < k_NUM_GENERATORS; genId++) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const GeneratorContext& gen = k_GENERATORS[genId];
         gen.d_func(&guids, k_NUM_GUIDS);
 
@@ -1713,14 +1817,17 @@ static void testN10_hashCollisionsComparison()
 
         for (size_t checkerId = 0; checkerId < k_NUM_HASH_CHECKERS;
              checkerId++) {
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
             const HashCheckerContext& checker    = k_HASH_CHECKERS[checkerId];
             const int                 collisions = checker.d_func(guids);
             table.column(gen.d_name).insertValue(collisions);
         }
     }
+    // NOLINTEND(performance-avoid-endl)
 
     table.print(bsl::cout);
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 // Begin Benchmarking Tests
 
@@ -1742,6 +1849,7 @@ static void testN2_bmqtPerformance_GoogleBenchmark(benchmark::State& state)
 //   Performance of the bmqt::MessageGUID generation and comparison with
 //   bdlb::Guid generation.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK PERFORMANCE");
@@ -1752,11 +1860,13 @@ static void testN2_bmqtPerformance_GoogleBenchmark(benchmark::State& state)
     bmqp::MessageGUIDGenerator generator(0);
 
     // Warm the cache
+    // NOLINTBEGIN(*-magic-numbers)
     for (int i = 0; i < 1000; ++i) {
         bmqt::MessageGUID guid;
         generator.generateGUID(&guid);
         (void)guid;
     }
+    // NOLINTEND(*-magic-numbers)
 
     for (auto _ : state) {
         for (bsls::Types::Int64 i = 0; i < state.range(0); ++i) {
@@ -1766,8 +1876,10 @@ static void testN2_bmqtPerformance_GoogleBenchmark(benchmark::State& state)
         }
     }
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores)
 
 static void testN2_bdlbPerformance_GoogleBenchmark(benchmark::State& state)
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
 {
     // ---------------------
     // bdlb::GUID generation
@@ -1777,11 +1889,13 @@ static void testN2_bdlbPerformance_GoogleBenchmark(benchmark::State& state)
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
 
     bmqtst::TestHelper::printTestName("GOOGLE BENCHMARK PERFORMANCE");
+    // NOLINTBEGIN(*-magic-numbers)
     for (int i = 0; i < 1000; ++i) {
         bdlb::Guid guid;
         bdlb::GuidUtil::generate(&guid);
         (void)guid;
     }
+    // NOLINTEND(*-magic-numbers)
 
     for (auto _ : state) {
         for (bsls::Types::Int64 i = 0; i < state.range(0); ++i) {
@@ -1791,6 +1905,7 @@ static void testN2_bdlbPerformance_GoogleBenchmark(benchmark::State& state)
         }
     }
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores)
 
 static void
 testN3_defaultHashBenchmark_GoogleBenchmark(benchmark::State& state)
@@ -1806,6 +1921,7 @@ testN3_defaultHashBenchmark_GoogleBenchmark(benchmark::State& state)
 // Testing:
 //   NA
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // 'bmqp::MessageGUIDGenerator::ctor' prints a BALL_LOG_INFO which
@@ -1826,6 +1942,7 @@ testN3_defaultHashBenchmark_GoogleBenchmark(benchmark::State& state)
         }
     }
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores)
 
 static void testN4_customHashBenchmark_GoogleBenchmark(benchmark::State& state)
 // ------------------------------------------------------------------------
@@ -1840,6 +1957,7 @@ static void testN4_customHashBenchmark_GoogleBenchmark(benchmark::State& state)
 // Testing:
 //   NA
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // 'bmqp::MessageGUIDGenerator::ctor' prints a BALL_LOG_INFO which
@@ -1860,6 +1978,7 @@ static void testN4_customHashBenchmark_GoogleBenchmark(benchmark::State& state)
         }
     }
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores)
 
 static void testN5_hashTableWithDefaultHashBenchmark_GoogleBenchmark(
     benchmark::State& state)
@@ -1871,6 +1990,7 @@ static void testN5_hashTableWithDefaultHashBenchmark_GoogleBenchmark(
 //   hash function.
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // 'bmqp::MessageGUIDGenerator::ctor' prints a BALL_LOG_INFO which
@@ -1887,10 +2007,12 @@ static void testN5_hashTableWithDefaultHashBenchmark_GoogleBenchmark(
     bmqp::MessageGUIDGenerator generator(0);
 
     // Warmup
+    // NOLINTBEGIN(*-magic-numbers)
     for (size_t i = 1; i <= 1000; ++i) {
         generator.generateGUID(&guid);
         ht.insert(bsl::make_pair(guid, i));
     }
+    // NOLINTEND(*-magic-numbers)
 
     ht.clear();
 
@@ -1901,6 +2023,7 @@ static void testN5_hashTableWithDefaultHashBenchmark_GoogleBenchmark(
         }
     }
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores)
 
 static void testN6_hashTableWithCustomHashBenchmark_GoogleBenchmark(
     benchmark::State& state)
@@ -1912,6 +2035,7 @@ static void testN6_hashTableWithCustomHashBenchmark_GoogleBenchmark(
 //   hash function.
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // 'bmqp::MessageGUIDGenerator::ctor' prints a BALL_LOG_INFO which
@@ -1931,10 +2055,12 @@ static void testN6_hashTableWithCustomHashBenchmark_GoogleBenchmark(
     bmqp::MessageGUIDGenerator generator(0);
 
     // Warmup
+    // NOLINTBEGIN(*-magic-numbers)
     for (size_t i = 1; i <= 1000; ++i) {
         generator.generateGUID(&guid);
         ht.insert(bsl::make_pair(guid, i));
     }
+    // NOLINTEND(*-magic-numbers)
 
     ht.clear();
 
@@ -1945,6 +2071,7 @@ static void testN6_hashTableWithCustomHashBenchmark_GoogleBenchmark(
         }
     }
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores)
 
 static void testN7_orderedMapWithDefaultHashBenchmark_GoogleBenchmark(
     benchmark::State& state)
@@ -1956,6 +2083,7 @@ static void testN7_orderedMapWithDefaultHashBenchmark_GoogleBenchmark(
 //   default hash function.
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // 'bmqp::MessageGUIDGenerator::ctor' prints a BALL_LOG_INFO which
@@ -1966,17 +2094,21 @@ static void testN7_orderedMapWithDefaultHashBenchmark_GoogleBenchmark(
 
     bmqt::MessageGUID guid;
 
+    // NOLINTBEGIN(*-narrowing-conversions)
     bmqc::OrderedHashMap<bmqt::MessageGUID, size_t> ht(
         state.range(0),
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-narrowing-conversions)
 
     bmqp::MessageGUIDGenerator generator(0);
 
     // Warmup
+    // NOLINTBEGIN(*-magic-numbers)
     for (size_t i = 1; i <= 1000; ++i) {
         generator.generateGUID(&guid);
         ht.insert(bsl::make_pair(guid, i));
     }
+    // NOLINTEND(*-magic-numbers)
 
     ht.clear();
     for (auto _ : state) {
@@ -1986,6 +2118,7 @@ static void testN7_orderedMapWithDefaultHashBenchmark_GoogleBenchmark(
         }
     }
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores)
 
 static void testN8_orderedMapWithCustomHashBenchmark_GoogleBenchmark(
     benchmark::State& state)
@@ -1997,6 +2130,7 @@ static void testN8_orderedMapWithCustomHashBenchmark_GoogleBenchmark(
 //   hash function.
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(clang-analyzer-deadcode.DeadStores)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // 'bmqp::MessageGUIDGenerator::ctor' prints a BALL_LOG_INFO which
@@ -2010,15 +2144,18 @@ static void testN8_orderedMapWithCustomHashBenchmark_GoogleBenchmark(
     bmqc::OrderedHashMap<bmqt::MessageGUID,
                          size_t,
                          bslh::Hash<bmqt::MessageGUIDHashAlgo> >
+        // NOLINTNEXTLINE(*-narrowing-conversions)
         ht(state.range(0), bmqtst::TestHelperUtil::allocator());
 
     bmqp::MessageGUIDGenerator generator(0);
 
     // Warmup
+    // NOLINTBEGIN(*-magic-numbers)
     for (size_t i = 1; i <= 1000; ++i) {
         generator.generateGUID(&guid);
         ht.insert(bsl::make_pair(guid, i));
     }
+    // NOLINTEND(*-magic-numbers)
 
     ht.clear();
 
@@ -2029,13 +2166,29 @@ static void testN8_orderedMapWithCustomHashBenchmark_GoogleBenchmark(
         }
     }
 }
+// NOLINTEND(clang-analyzer-deadcode.DeadStores)
 #endif  // BMQTST_BENCHMARK_ENABLED
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
+// NOLINTBEGIN(bugprone-exception-escape)
 int main(int argc, char* argv[])
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTBEGIN(cert-err34-c)
 {
     // To be called only once per process instantiation.
     bsls::TimeUtil::initialize();
@@ -2117,3 +2270,18 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTEND(cert-err34-c)
+// NOLINTEND(bugprone-exception-escape)

@@ -80,6 +80,7 @@ namespace mqbblp {
 // =================
 
 /// @todo Document class.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class RemoteQueue {
   public:
     // PUBLIC TYPES
@@ -106,6 +107,7 @@ class RemoteQueue {
 
   private:
     // PRIVATE TYPES
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     struct PutMessage {
         mqbi::QueueHandle* const     d_handle;
         const bmqp::PutHeader        d_header;
@@ -124,6 +126,7 @@ class RemoteQueue {
 
         ~PutMessage();
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
     struct ConfirmMessage {
         const bmqt::MessageGUID  d_guid;
@@ -136,6 +139,7 @@ class RemoteQueue {
     };
 
     struct SubStreamContext {
+        // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
         enum Enum {
             /// Unknown.
             e_NONE = 0,
@@ -146,6 +150,7 @@ class RemoteQueue {
             /// Send.
             e_OPENED = 3,
         };
+        // NOLINTEND(cppcoreguidelines-use-enum-class)
         /// Last seen genCount
         bsls::Types::Uint64 d_genCount;
 
@@ -463,6 +468,7 @@ class RemoteQueue {
     void                     loadInternals(mqbcmd::RemoteQueue* out) const;
     const bmqt::MessageGUID& resumePoint() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

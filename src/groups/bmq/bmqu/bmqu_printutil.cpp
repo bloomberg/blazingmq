@@ -44,15 +44,18 @@ char* prettyNumberImp(char*              buf,
                       bsls::Types::Int64 value,
                       int                groupSize,
                       char               separator)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 {
     const bool isNegative = (value < 0);
 
     int processedDigits = 0;
+    // NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     while (value) {
         if (processedDigits && (processedDigits % groupSize == 0)) {
             *(--buf) = separator;
         }
 
+        // NOLINTNEXTLINE(*-magic-numbers)
         bsls::Types::Int64 digit = value % 10;
         if (digit < 0) {
             digit *= -1;
@@ -63,6 +66,7 @@ char* prettyNumberImp(char*              buf,
 
         ++processedDigits;
     }
+    // NOLINTEND(*-magic-numbers,*-narrowing-conversions,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     if (processedDigits == 0) {
         *(--buf) = '0';
@@ -74,6 +78,7 @@ char* prettyNumberImp(char*              buf,
 
     return buf;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
 }  // close unnamed namespace
 
@@ -96,27 +101,32 @@ bsl::ostream& prettyNumber(bsl::ostream&      stream,
                            bsls::Types::Int64 value,
                            int                groupSize,
                            char               separator)
+// NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(groupSize > 0);
 
-    char  buf[64];
+    char buf[64];
+    // NOLINTNEXTLINE(*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     char* pos = buf + 63;
     *pos      = '\0';
 
     return stream << prettyNumberImp(pos, value, groupSize, separator);
 }
+// NOLINTEND(*-avoid-c-arrays,*-magic-numbers)
 
 bsl::ostream& prettyNumber(bsl::ostream& stream,
                            double        value,
                            int           precision,
                            int           groupSize,
                            char          separator)
+// NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers,cert-err33-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-vararg)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(groupSize > 0);
 
-    char  buf[128];
+    char buf[128];
+    // NOLINTNEXTLINE(*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     char* pos = buf + 127;
     *pos      = '\0';
 
@@ -141,15 +151,21 @@ bsl::ostream& prettyNumber(bsl::ostream& stream,
                                      groupSize,
                                      separator);
 }
+// NOLINTEND(*-avoid-c-arrays,*-magic-numbers,cert-err33-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,cppcoreguidelines-pro-type-vararg)
 
 bsl::ostream&
 prettyBytes(bsl::ostream& stream, bsls::Types::Int64 bytes, int precision)
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-bounds-constant-array-index)
 {
-    static const char* k_UNITS[]     = {" B", "KB", "MB", "GB", "TB", "PB"};
-    static const int   k_UNITS_COUNT = sizeof(k_UNITS) / sizeof(*k_UNITS);
+    // NOLINTNEXTLINE(*-avoid-c-arrays)
+    static const char* k_UNITS[] = {" B", "KB", "MB", "GB", "TB", "PB"};
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+    static const int k_UNITS_COUNT = sizeof(k_UNITS) / sizeof(*k_UNITS);
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlma::LocalSequentialAllocator<1024> localAllocator(
         bslma::Default::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqu::MemOutStream temp(&localAllocator);
 
     // Handle negative 'bytes'
@@ -169,11 +185,13 @@ prettyBytes(bsl::ostream& stream, bsls::Types::Int64 bytes, int precision)
         temp << '-';
     }
 
+    // NOLINTBEGIN(*-magic-numbers)
     int unit = (bdlb::BitUtil::sizeInBits(bytes) -
                 bdlb::BitUtil::numLeadingUnsetBits(
                     static_cast<uint64_t>(bytes)) -
                 1) /
                10;
+    // NOLINTEND(*-magic-numbers)
 
     if (unit >= k_UNITS_COUNT) {
         unit = k_UNITS_COUNT - 1;
@@ -181,9 +199,11 @@ prettyBytes(bsl::ostream& stream, bsls::Types::Int64 bytes, int precision)
 
     if (precision == 0 || unit == 0) {
         // When no decimal part is required, we round up the value and print it
+        // NOLINTBEGIN(*-magic-numbers)
         bsls::Types::Int64 quot = lround(
             static_cast<double>(bytes) /
             bsl::pow(1024., static_cast<double>(unit)));
+        // NOLINTEND(*-magic-numbers)
         if (quot == 1024 && unit != k_UNITS_COUNT - 1) {
             // This is a special case when the round up leads to the next unit
             quot = 1;
@@ -192,21 +212,26 @@ prettyBytes(bsl::ostream& stream, bsls::Types::Int64 bytes, int precision)
         temp << quot;
     }
     else {
+        // NOLINTNEXTLINE(*-magic-numbers)
         int shift   = unit * 10;
         int scaling = 1;
 
+        // NOLINTBEGIN(*-magic-numbers)
         for (int mult = precision; mult; --mult) {
             scaling *= 10;
         }
+        // NOLINTEND(*-magic-numbers)
 
         if (unit == k_UNITS_COUNT - 1) {
             shift -= 10;
             bytes >>= 10;
         }
 
+        // NOLINTBEGIN(*-magic-numbers)
         bsls::Types::Int64 scaledValue = (bytes * scaling * 10) /
                                              (1LL << shift) +
                                          5;
+        // NOLINTEND(*-magic-numbers)
 
         temp << (scaledValue / scaling / 10) << "." << bsl::setw(precision)
              << bsl::setfill('0') << (scaledValue / 10 % scaling);
@@ -227,17 +252,24 @@ prettyBytes(bsl::ostream& stream, bsls::Types::Int64 bytes, int precision)
 
     return stream;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-bounds-constant-array-index)
 
 bsl::ostream& prettyTimeInterval(bsl::ostream&      stream,
                                  bsls::Types::Int64 timeNs,
                                  int                precision)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
 {
+    // NOLINTNEXTLINE(*-avoid-c-arrays)
     static const char* k_UNITS[] = {"ns", "us", "ms", "s", "m", "h", "d", "w"};
-    static const int   k_SIZES[] = {1000, 1000, 1000, 60, 60, 24, 7};
-    static const int   k_SIZES_COUNT = sizeof(k_SIZES) / sizeof(*k_SIZES);
+    // NOLINTNEXTLINE(*-avoid-c-arrays)
+    static const int k_SIZES[] = {1000, 1000, 1000, 60, 60, 24, 7};
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+    static const int k_SIZES_COUNT = sizeof(k_SIZES) / sizeof(*k_SIZES);
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlma::LocalSequentialAllocator<1024> localAllocator(
         bslma::Default::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqu::MemOutStream temp(&localAllocator);
 
     // Handle negative 'timeNs'
@@ -262,6 +294,7 @@ bsl::ostream& prettyTimeInterval(bsl::ostream&      stream,
     int                unitIdx = 0;
     bsls::Types::Int64 div     = 1;
     for (; unitIdx < k_SIZES_COUNT; ++unitIdx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const int unitSize = k_SIZES[unitIdx];
         if (timeNs < div * unitSize) {
             break;  // BREAK
@@ -303,6 +336,7 @@ bsl::ostream& prettyTimeInterval(bsl::ostream&      stream,
 
     return stream;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
 
 }  // close PrintUtil namespace
 

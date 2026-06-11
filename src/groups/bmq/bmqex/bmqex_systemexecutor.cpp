@@ -35,19 +35,23 @@ namespace {
 // ===================
 
 /// Provides a guard that calls `shutdownSingletonImpl` on destruction.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct ContextGuard {
     // CREATORS
     ~ContextGuard();
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // GLOBAL DATA
 
 /// Pointer to the execution context singleton object. The reason this is an
 /// atomic is that this pointer might be initialized from one thread, and be
 /// read from another.
+// NOLINTNEXTLINE(cert-err58-cpp,cppcoreguidelines-avoid-non-const-global-variables)
 bsls::AtomicPointer<SystemExecutor_Context> s_context_p(0);
 
 /// Memory buffer used to store the singleton object.
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 bsls::ObjectBuffer<SystemExecutor_Context> s_contextBuffer;
 
 // UTILITY FUNCTIONS
@@ -61,6 +65,7 @@ bsls::ObjectBuffer<SystemExecutor_Context> s_contextBuffer;
 /// `shutdownSingletonImpl`.
 SystemExecutor_Context&
 initSingletonImpl(bool* wasInit, bslma::Allocator* globalAllocator = 0)
+// NOLINTBEGIN(cppcoreguidelines-pro-type-union-access)
 {
     // PRECONDITIONS
     BSLS_ASSERT(wasInit);
@@ -100,6 +105,7 @@ initSingletonImpl(bool* wasInit, bslma::Allocator* globalAllocator = 0)
     BSLS_ASSERT(context && "Singleton not initialized");
     return *context;
 }
+// NOLINTEND(cppcoreguidelines-pro-type-union-access)
 
 /// Destroy the singleton object, if not already. Load into the specified
 /// `wasShutdown` `true` if the singleton object was destroyed, and `false`
@@ -127,10 +133,12 @@ void shutdownSingletonImpl(bool* wasShutdown) BSLS_KEYWORD_NOEXCEPT
 
 // CREATORS
 ContextGuard::~ContextGuard()
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     bool wasShutdown;  // unused
     shutdownSingletonImpl(&wasShutdown);
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 }  // close unnamed namespace
 
@@ -175,13 +183,16 @@ void SystemExecutor_Context::finalizeThread(
 
 // CLASS METHODS
 SystemExecutor_Context& SystemExecutor_Context::singleton()
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     bool wasInit;  // unused
     return initSingletonImpl(&wasInit);
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 SystemExecutor_Context&
 SystemExecutor_Context::initSingleton(bslma::Allocator* globalAllocator)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     bool                    wasInit;
     SystemExecutor_Context& context = initSingletonImpl(&wasInit,
@@ -190,14 +201,17 @@ SystemExecutor_Context::initSingleton(bslma::Allocator* globalAllocator)
     BSLS_ASSERT(wasInit && "Singleton already initialized");
     return context;
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 void SystemExecutor_Context::shutdownSingleton() BSLS_KEYWORD_NOEXCEPT
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     bool wasShutdown;
     shutdownSingletonImpl(&wasShutdown);
 
     BSLS_ASSERT(wasShutdown && "Singleton not initialized");
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 // CREATORS
 SystemExecutor_Context::SystemExecutor_Context(bslma::Allocator* allocator)

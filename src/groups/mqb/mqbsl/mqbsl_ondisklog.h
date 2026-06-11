@@ -50,6 +50,7 @@ namespace mqbsl {
 
 /// This class provides an interface for reading and writing to an on-disk
 /// log.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class OnDiskLog : public mqbsi::Log {
   public:
     // CREATORS
@@ -62,6 +63,7 @@ class OnDiskLog : public mqbsi::Log {
     /// Return the config of this on-disk log.
     virtual const mqbsi::LogConfig& config() const = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

@@ -88,11 +88,13 @@ QueueId::QueueId(const bsl::shared_ptr<void>& sharedPtr,
     d_impl_sp->setCorrelationId(bmqt::CorrelationId(sharedPtr));
 }
 
+// NOLINTBEGIN(cert-oop54-cpp)
 QueueId& QueueId::operator=(const QueueId& rhs)
 {
     d_impl_sp = rhs.d_impl_sp;
     return *this;
 }
+// NOLINTEND(cert-oop54-cpp)
 
 const bmqt::CorrelationId& QueueId::correlationId() const
 {

@@ -64,7 +64,8 @@ void generateStorageKey(mqbu::StorageKey*                     key,
                         const bsl::string&                    value)
 {
     bdlde::Md5::Md5Digest digest;
-    bdlde::Md5            md5(value.data(), value.length());
+    // NOLINTNEXTLINE(*-narrowing-conversions)
+    bdlde::Md5 md5(value.data(), value.length());
 
     bsls::Types::Int64 time = bsls::TimeUtil::getTimer();
     md5.update(&time, sizeof(time));
@@ -117,6 +118,7 @@ static void test1_StorageKeyHexUtil()
 //
 // Testing: mqbu::StorageKeyHexUtil
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("HEX/BINARY CONVERSIONS");
 
@@ -126,6 +128,7 @@ static void test1_StorageKeyHexUtil()
             int                 d_line;
             const char*         d_hex;
             const unsigned char d_expected[8];
+            // NOLINTBEGIN(*-magic-numbers)
         } k_DATA[] = {
             {L_, "0000000000000000", {0, 0, 0, 0, 0, 0, 0, 0}},
             {L_, "FFFFFFFFFFFFFFFF", {255, 255, 255, 255, 255, 255, 255, 255}},
@@ -139,19 +142,25 @@ static void test1_StorageKeyHexUtil()
              "0123456789ABCDEF",
              {0x01, 0x23, 0x45, 0x67, 0x89, 0xAB, 0xCD, 0xEF}},
         };
+        // NOLINTEND(*-magic-numbers)
 
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+        // NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
         for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
             const Test& test = k_DATA[idx];
 
             PVV(test.d_line << ": converting '" << test.d_hex << "' to bin");
+            // NOLINTNEXTLINE(*-avoid-c-arrays,*-magic-numbers)
             char buffer[8] = {0};
             mqbu::StorageKeyHexUtil::hexToBinary(buffer, 8, test.d_hex);
             BMQTST_ASSERT_EQ_D("line " << test.d_line,
                                0,
                                bsl::memcmp(test.d_expected, buffer, 8));
         }
+        // NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
     }
 
     PV("binaryToHex");
@@ -160,6 +169,7 @@ static void test1_StorageKeyHexUtil()
             int                 d_line;
             const unsigned char d_binary[8];
             const char*         d_expected;
+            // NOLINTBEGIN(*-magic-numbers)
         } k_DATA[] = {
             {L_, {0, 0, 0, 0, 0, 0, 0, 0}, "0000000000000000"},
             {L_, {255, 255, 255, 255, 255, 255, 255, 255}, "FFFFFFFFFFFFFFFF"},
@@ -174,14 +184,19 @@ static void test1_StorageKeyHexUtil()
              "0123456789ABCDEF"},
             {L_, {0x01, 0x02, 0x03}, "010203"},
         };
+        // NOLINTEND(*-magic-numbers)
 
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-type-reinterpret-cast,performance-avoid-endl)
         for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
             const Test& test = k_DATA[idx];
 
             PVV(test.d_line << ": converting to hex (expected: "
                             << test.d_expected << ")");
+            // NOLINTNEXTLINE(*-avoid-c-arrays,*-magic-numbers)
             char   buffer[16] = {0};
             size_t l          = strlen(test.d_expected) / 2;
             mqbu::StorageKeyHexUtil::binaryToHex(
@@ -192,15 +207,19 @@ static void test1_StorageKeyHexUtil()
                                0,
                                bsl::memcmp(test.d_expected, buffer, l * 2));
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-type-reinterpret-cast,performance-avoid-endl)
     }
 
     PV("Isomorphism");
     {
-        const char k_HEX[]               = "0123456789ABCDEF";
-        const char k_BINARY[]            = {4, 'a', '?', '1', 0, 22, 127, '*'};
-        const int  k_SIZE                = 8;
-        char       binaryToFill[k_SIZE]  = {0};
-        char       hexToFill[2 * k_SIZE] = {0};
+        const char k_HEX[] = "0123456789ABCDEF";
+        // NOLINTNEXTLINE(*-avoid-c-arrays)
+        const char k_BINARY[] = {4, 'a', '?', '1', 0, 22, 127, '*'};
+        const int  k_SIZE     = 8;
+        // NOLINTNEXTLINE(*-avoid-c-arrays)
+        char binaryToFill[k_SIZE] = {0};
+        // NOLINTNEXTLINE(*-avoid-c-arrays)
+        char hexToFill[2 * k_SIZE] = {0};
 
         PVV("binaryToHex(hexToBinary(x))");
         mqbu::StorageKeyHexUtil::hexToBinary(binaryToFill, k_SIZE, k_HEX);
@@ -213,6 +232,7 @@ static void test1_StorageKeyHexUtil()
         BMQTST_ASSERT_EQ(0, bsl::memcmp(k_BINARY, binaryToFill, k_SIZE));
     }
 }
+// NOLINTEND(*-avoid-c-arrays,bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 
 void test2_breathingTest()
 // ------------------------------------------------------------------------
@@ -224,6 +244,7 @@ void test2_breathingTest()
 // Testing:
 //   Basic functionality
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-type-reinterpret-cast,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
     PV("Test some invalid StorageKeys");
@@ -240,12 +261,14 @@ void test2_breathingTest()
     BMQTST_ASSERT_EQ(true, s3.isNull());
 
     PV("Create StorageKey s4 and s5 from valid hex");
-    const char          k_VALID_HEX[] = "ABCDEF1234";
+    const char k_VALID_HEX[] = "ABCDEF1234";
+    // NOLINTNEXTLINE(*-avoid-c-arrays)
     const unsigned char k_VALID_BIN[] = {0xAB, 0xCD, 0xEF, 0x12, 0x34};
     mqbu::StorageKey    s4;
     s4.fromHex(k_VALID_HEX);
     BMQTST_ASSERT_EQ(false, s4.isNull());
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     mqbu::StorageKey s5(mqbu::StorageKey::HexRepresentation(), k_VALID_HEX);
     BMQTST_ASSERT_EQ(false, s5.isNull());
     BMQTST_ASSERT_EQ(0,
@@ -266,8 +289,10 @@ void test2_breathingTest()
         s6,
         reinterpret_cast<const mqbu::StorageKey&>(k_VALID_BINARY));
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     mqbu::StorageKey s7(mqbu::StorageKey::BinaryRepresentation(),
                         k_VALID_BINARY);
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     BMQTST_ASSERT_EQ(false, s7.isNull());
     BMQTST_ASSERT_EQ(0,
                      bsl::memcmp(s6.data(),
@@ -294,6 +319,7 @@ void test2_breathingTest()
     BMQTST_ASSERT_EQ(false, s10 != s11);
 
     PV("Checking accessors");
+    // NOLINTNEXTLINE(*-avoid-c-arrays)
     char s[mqbu::StorageKey::e_KEY_LENGTH_HEX];
     s5.loadHex(s);
     BMQTST_ASSERT_EQ(
@@ -351,25 +377,30 @@ void test2_breathingTest()
 
     BMQTST_ASSERT_EQ(1u, myMap.count(s6));
 }
+// NOLINTEND(*-avoid-c-arrays,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-type-reinterpret-cast,performance-avoid-endl)
 
 void test3_streamout()
+// NOLINTBEGIN(*-avoid-c-arrays,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("STREAM OUT");
 
     // Create StorageKey from valid hex rep
     const char k_HEX[] = "0123456789";
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     mqbu::StorageKey s1(mqbu::StorageKey::HexRepresentation(), k_HEX);
 
     bmqu::MemOutStream osstr(bmqtst::TestHelperUtil::allocator());
     osstr << s1;
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bsl::string storageKeyStr(k_HEX, bmqtst::TestHelperUtil::allocator());
 
     BMQTST_ASSERT_EQ(storageKeyStr, osstr.str());
 
     PV("StorageKey [" << osstr.str() << "]");
 }
+// NOLINTEND(*-avoid-c-arrays,performance-avoid-endl)
 
 void test4_defaultHashUniqueness()
 // ------------------------------------------------------------------------
@@ -386,6 +417,7 @@ void test4_defaultHashUniqueness()
 // Testing:
 //   Hash uniqueness of the generated StorageKeys.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions,bugprone-integer-division,cppcoreguidelines-use-enum-class,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("DEFAULT HASH UNIQUENESS");
 
@@ -450,13 +482,16 @@ void test4_defaultHashUniqueness()
              << "StorageKeys with the highest collisions..: " << endl;
 
         StorageKeys& keys = hashes[maxCollisionsHash];
+        // NOLINTBEGIN(performance-avoid-endl)
         for (size_t i = 0; i < keys.size(); ++i) {
             cout << "  ";
             keys[i].print(cout);
             cout << endl;
         }
+        // NOLINTEND(performance-avoid-endl)
     }
 }
+// NOLINTEND(*-magic-numbers,*-narrowing-conversions,bugprone-integer-division,cppcoreguidelines-use-enum-class,performance-avoid-endl)
 
 void test5_customHashUniqueness()
 // ------------------------------------------------------------------------
@@ -473,6 +508,7 @@ void test5_customHashUniqueness()
 // Testing:
 //   Hash uniqueness of the generated StorageKeys.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,*-narrowing-conversions,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("CUSTOM HASH UNIQUENESS");
 
@@ -536,13 +572,16 @@ void test5_customHashUniqueness()
              << "StorageKeys with the highest collisions..: " << endl;
 
         StorageKeys& keys = hashes[maxCollisionsHash];
+        // NOLINTBEGIN(performance-avoid-endl)
         for (size_t i = 0; i < keys.size(); ++i) {
             cout << "  ";
             keys[i].print(cout);
             cout << endl;
         }
+        // NOLINTEND(performance-avoid-endl)
     }
 }
+// NOLINTEND(*-magic-numbers,*-narrowing-conversions,performance-avoid-endl)
 
 // ============================================================================
 //                              PERFORMANCE TESTS
@@ -562,6 +601,7 @@ void testN1_defaultHashBenchmark()
 // Testing:
 //   NA
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("DEFAULT HASH BENCHMARK");
 
@@ -591,6 +631,7 @@ void testN1_defaultHashBenchmark()
                 (k_NUM_ITERATIONS * 1000000000) / (end - begin)))
          << " hashes per second." << endl;
 }
+// NOLINTEND(*-avoid-c-arrays,*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 
 BSLA_MAYBE_UNUSED
 void testN2_customHashBenchmark()
@@ -606,6 +647,7 @@ void testN2_customHashBenchmark()
 // Testing:
 //   NA
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("CUSTOM HASH BENCHMARK");
 
@@ -635,6 +677,7 @@ void testN2_customHashBenchmark()
                 (k_NUM_ITERATIONS * 1000000000) / (end - begin)))
          << " hashes per second." << endl;
 }
+// NOLINTEND(*-avoid-c-arrays,*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 
 BSLA_MAYBE_UNUSED
 void testN3_hashTableWithDefaultHashBenchmark()
@@ -646,6 +689,7 @@ void testN3_hashTableWithDefaultHashBenchmark()
 //   hash function.
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("HASH TABLE w/ DEFAULT HASH BENCHMARK");
 
@@ -654,9 +698,11 @@ void testN3_hashTableWithDefaultHashBenchmark()
     const size_t                         k_NUM_ELEMS = 10000;  // 10K
     bsl::unordered_set<mqbu::StorageKey> keySet(
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTBEGIN(*-magic-numbers)
     bsl::unordered_map<mqbu::StorageKey, size_t> ht(
         16843,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     ht.reserve(k_NUM_ELEMS);
 
     generateStorageKeys(&keySet, k_NUM_ELEMS);  // k_NUM_ELEMS in keySet
@@ -681,6 +727,7 @@ void testN3_hashTableWithDefaultHashBenchmark()
                 (k_NUM_ELEMS * 1000000000) / (end - begin)))
          << " insertions per second." << endl;
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 BSLA_MAYBE_UNUSED
 void testN4_hashTableWithCustomHashBenchmark()
@@ -692,6 +739,7 @@ void testN4_hashTableWithCustomHashBenchmark()
 //   hash function.
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("HASH TABLE w/ CUSTOM HASH BENCHMARK");
 
@@ -703,6 +751,7 @@ void testN4_hashTableWithCustomHashBenchmark()
     bsl::unordered_map<mqbu::StorageKey,
                        size_t,
                        bslh::Hash<mqbu::StorageKeyHashAlgo> >
+        // NOLINTNEXTLINE(*-magic-numbers)
         ht(16843, bmqtst::TestHelperUtil::allocator());
     ht.reserve(k_NUM_ELEMS);
 
@@ -728,6 +777,7 @@ void testN4_hashTableWithCustomHashBenchmark()
                 (k_NUM_ELEMS * 1000000000) / (end - begin)))
          << " insertions per second." << endl;
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 BSLA_MAYBE_UNUSED
 void testN5_orderedMapWithDefaultHashBenchmark()
@@ -739,6 +789,7 @@ void testN5_orderedMapWithDefaultHashBenchmark()
 //   default hash function.
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("ORDERED MAP DEFAULT HASH BENCHMARK");
 
@@ -750,12 +801,15 @@ void testN5_orderedMapWithDefaultHashBenchmark()
 
     generateStorageKeys(&keySet, k_NUM_ELEMS);
 
+    // NOLINTBEGIN(*-magic-numbers)
     bmqc::OrderedHashMap<mqbu::StorageKey, size_t> ht(
         16843,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
 
     int i = 1;
     // Warmup
+    // NOLINTNEXTLINE(*-magic-numbers)
     for (CITER citer = keySet.cbegin(); i <= 1000 && citer != keySet.cend();
          ++citer) {
         ht.insert(bsl::make_pair(*citer, i++));
@@ -782,6 +836,7 @@ void testN5_orderedMapWithDefaultHashBenchmark()
                 (k_NUM_ELEMS * 1000000000) / (end - begin)))
          << " insertions per second." << endl;
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 BSLA_MAYBE_UNUSED
 void testN6_orderedMapWithCustomHashBenchmark()
@@ -793,6 +848,7 @@ void testN6_orderedMapWithCustomHashBenchmark()
 //   custom hash function.
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("ORDERED MAP Custom HASH BENCHMARK");
 
@@ -807,10 +863,12 @@ void testN6_orderedMapWithCustomHashBenchmark()
     bmqc::OrderedHashMap<mqbu::StorageKey,
                          size_t,
                          bslh::Hash<mqbu::StorageKeyHashAlgo> >
+        // NOLINTNEXTLINE(*-magic-numbers)
         ht(16843, bmqtst::TestHelperUtil::allocator());
 
     int i = 1;
     // Warmup
+    // NOLINTNEXTLINE(*-magic-numbers)
     for (CITER citer = keySet.cbegin(); i <= 1000 && citer != keySet.cend();
          ++citer) {
         ht.insert(bsl::make_pair(*citer, i++));
@@ -837,6 +895,7 @@ void testN6_orderedMapWithCustomHashBenchmark()
                 (k_NUM_ELEMS * 1000000000) / (end - begin)))
          << " insertions per second." << endl;
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 // Begin Google Benchmark Tests
 #ifdef BMQTST_BENCHMARK_ENABLED
@@ -854,6 +913,7 @@ testN1_defaultHashBenchmark_GoogleBenchmark(benchmark::State& state)
 // Testing:
 //   NA
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,clang-analyzer-deadcode.DeadStores,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bmqtst::TestHelper::printTestName("DEFAULT HASH BENCHMARK");
 
@@ -871,6 +931,7 @@ testN1_defaultHashBenchmark_GoogleBenchmark(benchmark::State& state)
         }
     }
 }
+// NOLINTEND(*-avoid-c-arrays,clang-analyzer-deadcode.DeadStores,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 static void testN2_customHashBenchmark_GoogleBenchmark(benchmark::State& state)
 // ------------------------------------------------------------------------
@@ -885,6 +946,7 @@ static void testN2_customHashBenchmark_GoogleBenchmark(benchmark::State& state)
 // Testing:
 //   NA
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,clang-analyzer-deadcode.DeadStores,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bmqtst::TestHelper::printTestName("CUSTOM HASH BENCHMARK");
 
@@ -904,6 +966,7 @@ static void testN2_customHashBenchmark_GoogleBenchmark(benchmark::State& state)
     }
     // </time>
 }
+// NOLINTEND(*-avoid-c-arrays,clang-analyzer-deadcode.DeadStores,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 static void testN3_hashTableWithDefaultHashBenchmark_GoogleBenchmark(
     benchmark::State& state)
@@ -915,6 +978,7 @@ static void testN3_hashTableWithDefaultHashBenchmark_GoogleBenchmark(
 //   hash function.
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-narrowing-conversions,clang-analyzer-deadcode.DeadStores)
 {
     bmqtst::TestHelper::printTestName("HASH TABLE w/ DEFAULT HASH BENCHMARK");
 
@@ -923,9 +987,11 @@ static void testN3_hashTableWithDefaultHashBenchmark_GoogleBenchmark(
     const size_t                         k_NUM_ELEMS = state.range(0);
     bsl::unordered_set<mqbu::StorageKey> keySet(
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTBEGIN(*-magic-numbers)
     bsl::unordered_map<mqbu::StorageKey, size_t> ht(
         16843,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     ht.reserve(k_NUM_ELEMS);
 
     generateStorageKeys(&keySet, k_NUM_ELEMS);  // k_NUM_ELEMS in keySet
@@ -940,6 +1006,7 @@ static void testN3_hashTableWithDefaultHashBenchmark_GoogleBenchmark(
     }
     // </time>
 }
+// NOLINTEND(*-narrowing-conversions,clang-analyzer-deadcode.DeadStores)
 
 static void testN4_hashTableWithCustomHashBenchmark_GoogleBenchmark(
     benchmark::State& state)
@@ -951,6 +1018,7 @@ static void testN4_hashTableWithCustomHashBenchmark_GoogleBenchmark(
 //   hash function.
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-narrowing-conversions,clang-analyzer-deadcode.DeadStores)
 {
     bmqtst::TestHelper::printTestName("HASH TABLE w/ CUSTOM HASH BENCHMARK");
 
@@ -962,6 +1030,7 @@ static void testN4_hashTableWithCustomHashBenchmark_GoogleBenchmark(
     bsl::unordered_map<mqbu::StorageKey,
                        size_t,
                        bslh::Hash<mqbu::StorageKeyHashAlgo> >
+        // NOLINTNEXTLINE(*-magic-numbers)
         ht(16843, bmqtst::TestHelperUtil::allocator());
     ht.reserve(k_NUM_ELEMS);
 
@@ -976,6 +1045,7 @@ static void testN4_hashTableWithCustomHashBenchmark_GoogleBenchmark(
         }
     }
 }
+// NOLINTEND(*-narrowing-conversions,clang-analyzer-deadcode.DeadStores)
 
 static void testN5_orderedMapWithDefaultHashBenchmark_GoogleBenchmark(
     benchmark::State& state)
@@ -987,6 +1057,7 @@ static void testN5_orderedMapWithDefaultHashBenchmark_GoogleBenchmark(
 //   default hash function.
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-narrowing-conversions,clang-analyzer-deadcode.DeadStores)
 {
     bmqtst::TestHelper::printTestName("ORDERED MAP DEFAULT HASH BENCHMARK");
 
@@ -998,12 +1069,15 @@ static void testN5_orderedMapWithDefaultHashBenchmark_GoogleBenchmark(
 
     generateStorageKeys(&keySet, k_NUM_ELEMS);
 
+    // NOLINTBEGIN(*-magic-numbers)
     bmqc::OrderedHashMap<mqbu::StorageKey, size_t> ht(
         16843,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
 
     int i = 1;
     // Warmup
+    // NOLINTNEXTLINE(*-magic-numbers)
     for (CITER citer = keySet.cbegin(); i <= 1000 && citer != keySet.cend();
          ++citer) {
         ht.insert(bsl::make_pair(*citer, i++));
@@ -1020,6 +1094,7 @@ static void testN5_orderedMapWithDefaultHashBenchmark_GoogleBenchmark(
     }
     // </time>
 }
+// NOLINTEND(*-narrowing-conversions,clang-analyzer-deadcode.DeadStores)
 static void testN6_orderedMapWithCustomHashBenchmark_GoogleBenchmark(
     benchmark::State& state)
 // ------------------------------------------------------------------------
@@ -1030,6 +1105,7 @@ static void testN6_orderedMapWithCustomHashBenchmark_GoogleBenchmark(
 //   custom hash function.
 //
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-narrowing-conversions,clang-analyzer-deadcode.DeadStores)
 {
     bmqtst::TestHelper::printTestName("ORDERED MAP Custom HASH BENCHMARK");
 
@@ -1044,10 +1120,12 @@ static void testN6_orderedMapWithCustomHashBenchmark_GoogleBenchmark(
     bmqc::OrderedHashMap<mqbu::StorageKey,
                          size_t,
                          bslh::Hash<mqbu::StorageKeyHashAlgo> >
+        // NOLINTNEXTLINE(*-magic-numbers)
         ht(16843, bmqtst::TestHelperUtil::allocator());
 
     int i = 1;
     // Warmup
+    // NOLINTNEXTLINE(*-magic-numbers)
     for (CITER citer = keySet.cbegin(); i <= 1000 && citer != keySet.cend();
          ++citer) {
         ht.insert(bsl::make_pair(*citer, i++));
@@ -1064,6 +1142,7 @@ static void testN6_orderedMapWithCustomHashBenchmark_GoogleBenchmark(
     }
     // </time>
 }
+// NOLINTEND(*-narrowing-conversions,clang-analyzer-deadcode.DeadStores)
 
 #endif  // BMQTST_BENCHMARK_ENABLED
 
@@ -1074,6 +1153,7 @@ static void testN6_orderedMapWithCustomHashBenchmark_GoogleBenchmark(
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     bsls::TimeUtil::initialize();
 
@@ -1132,5 +1212,6 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 
 // ----------------------------------------------------------------------------

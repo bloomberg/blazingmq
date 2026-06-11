@@ -62,6 +62,7 @@ namespace mqba {
 // ===================
 
 /// Authenticator for a BlazingMQ session with client or broker
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Authenticator : public mqbnet::Authenticator {
   private:
     // CLASS-SCOPE CATEGORY
@@ -251,6 +252,7 @@ class Authenticator : public mqbnet::Authenticator {
     const bsl::optional<mqbcfg::Credential>&
     anonymousCredential() const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

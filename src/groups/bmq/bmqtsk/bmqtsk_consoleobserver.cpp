@@ -41,15 +41,18 @@ namespace BloombergLP {
 namespace bmqtsk {
 
 namespace {
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char k_COLOR_RESET[] = "\033[0m";
 // Code to reset coloring to normal
 
 /// Struct representing color information
+// NOLINTBEGIN(*-avoid-c-arrays)
 const struct Color {
     const char* d_name_p;  // Name of the color
     int         d_fgCode;  // Code for the foreground color
     int         d_bgCode;  // Code for the background color
 } k_COLORS[] = {
+    // NOLINTEND(*-avoid-c-arrays)
     {"black", 30, 40},
     {"red", 31, 41},
     {"green", 32, 42},
@@ -62,9 +65,11 @@ const struct Color {
     {0, 0, 0}  // Last
 };
 
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char k_COLOR_WARN[] = "bold-yellow";
 // Color to use for any WARNING severity log
 
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char k_COLOR_ERROR[] = "bold-red";
 // Color to use for any ERROR severity log
 }  // close unnamed namespace
@@ -85,7 +90,9 @@ void ConsoleObserver::initializeColorMap()
     bsl::string        name;
 
     // Colors with no background
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
     for (size_t i = 0; k_COLORS[i].d_name_p != 0; ++i) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Color& color = k_COLORS[i];
 
         // Reset os
@@ -108,11 +115,16 @@ void ConsoleObserver::initializeColorMap()
         name.assign(osName.str().data(), osName.str().length());
         d_colorMap[name] = osCode.str();
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
 
     // Colors with background
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
     for (size_t i = 0; k_COLORS[i].d_name_p != 0; ++i) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Color& bgColor = k_COLORS[i];
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
         for (size_t j = 0; k_COLORS[j].d_name_p != 0; ++j) {
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
             const Color& fgColor = k_COLORS[j];
 
             // Reset os
@@ -138,7 +150,9 @@ void ConsoleObserver::initializeColorMap()
             name.assign(osName.str().data(), osName.str().length());
             d_colorMap[name] = osCode.str();
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
 }
 
 const char*
@@ -149,11 +163,13 @@ ConsoleObserver::getColorCodeForRecord(const ball::Record& record) const
 
     // Errors and Warnings have a special color, regardless of the category
     if (record.fixedFields().severity() == ball::Severity::e_WARN) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         ColorMap::const_iterator it = d_colorMap.find(k_COLOR_WARN);
         BSLS_ASSERT_SAFE(it != d_colorMap.end());
         return it->second.c_str();  // RETURN
     }
     if (record.fixedFields().severity() == ball::Severity::e_ERROR) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         ColorMap::const_iterator it = d_colorMap.find(k_COLOR_ERROR);
         BSLS_ASSERT_SAFE(it != d_colorMap.end());
         return it->second.c_str();  // RETURN
@@ -165,6 +181,7 @@ ConsoleObserver::getColorCodeForRecord(const ball::Record& record) const
     // which may not necessarily be best match (for example, if "A*" was
     // registered before "A.B", then the color associated to "A*" will be used
     // for an "A.B" category).
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (CategoryColorVec::const_iterator it = d_categoryColorVec.begin();
          it != d_categoryColorVec.end();
          ++it) {
@@ -173,6 +190,7 @@ ConsoleObserver::getColorCodeForRecord(const ball::Record& record) const
             return it->second;  // RETURN
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     return 0;
 }
@@ -196,6 +214,7 @@ ConsoleObserver::~ConsoleObserver()
 ConsoleObserver&
 ConsoleObserver::setCategoryColor(const bslstl::StringRef& category,
                                   const bslstl::StringRef& color)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     if (!isatty(fileno(stdout))) {
         // Not writing to a TTY, disable all coloring
@@ -207,6 +226,7 @@ ConsoleObserver::setCategoryColor(const bslstl::StringRef& category,
     if (color.length() == 0) {
         // Clear category color entry, if found
         CategoryColorVec::iterator it;
+        // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (it = d_categoryColorVec.begin(); it != d_categoryColorVec.end();
              ++it) {
             if (it->first == category) {
@@ -214,6 +234,7 @@ ConsoleObserver::setCategoryColor(const bslstl::StringRef& category,
                 break;  // BREAK
             }
         }
+        // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
         return *this;  // RETURN
     }
 
@@ -239,6 +260,7 @@ ConsoleObserver::setCategoryColor(const bslstl::StringRef& category,
     // Insert the new color registration entry for that category, or replace an
     // existing one if that same category is already registered.
     CategoryColorVec::iterator categoryIt;
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (categoryIt = d_categoryColorVec.begin();
          categoryIt != d_categoryColorVec.end();
          ++categoryIt) {
@@ -248,6 +270,7 @@ ConsoleObserver::setCategoryColor(const bslstl::StringRef& category,
             break;  // BREAK
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     // Not found, append new entry
     if (categoryIt == d_categoryColorVec.end()) {
@@ -257,9 +280,11 @@ ConsoleObserver::setCategoryColor(const bslstl::StringRef& category,
 
     return *this;
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 void ConsoleObserver::publish(const ball::Record&     record,
                               BSLA_MAYBE_UNUSED const ball::Context& context)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     // Check if the record's severity is higher than the severity threshold
     if (record.fixedFields().severity() > d_severityThreshold) {
@@ -274,6 +299,7 @@ void ConsoleObserver::publish(const ball::Record&     record,
     }
 
     // Format record with color information
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
     bmqu::MemOutStream                    os(&localAllocator);
     d_formatter(os, record);
@@ -287,6 +313,7 @@ void ConsoleObserver::publish(const ball::Record&     record,
         bsl::cout << k_COLOR_RESET << os.str();
     }
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 }  // close package namespace
 }  // close enterprise namespace

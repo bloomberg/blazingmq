@@ -43,6 +43,7 @@ namespace bmqex {
 struct ExecutionProperty {
     // TYPES
 
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Blocking {
         // Provides a enumeration type defining the blocking behavior property.
 
@@ -50,6 +51,7 @@ struct ExecutionProperty {
         e_POSSIBLY_BLOCKING = 1,
         e_ALWAYS_BLOCKING   = 2
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 };
 
 }  // close package namespace

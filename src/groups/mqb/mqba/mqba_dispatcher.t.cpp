@@ -53,6 +53,7 @@ namespace {
 
 static void
 printSummary(bsl::string_view desc, bsls::Types::Int64 dt, size_t iters)
+// NOLINTBEGIN(*-narrowing-conversions,performance-avoid-endl)
 {
     bsl::cout << desc << ":" << bsl::endl;
     bsl::cout << "       total: " << bmqu::PrintUtil::prettyTimeInterval(dt)
@@ -62,8 +63,10 @@ printSummary(bsl::string_view desc, bsls::Types::Int64 dt, size_t iters)
               << bsl::endl;
     bsl::cout << bsl::endl;
 }
+// NOLINTEND(*-narrowing-conversions,performance-avoid-endl)
 
 static mqbcfg::DispatcherConfig makeConfig()
+// NOLINTBEGIN(*-magic-numbers)
 {
     mqbcfg::DispatcherConfig config;
 
@@ -85,6 +88,7 @@ static mqbcfg::DispatcherConfig makeConfig()
 
     return config;
 }
+// NOLINTEND(*-magic-numbers)
 
 // ==================
 // struct Synchronize
@@ -127,6 +131,7 @@ struct LoadSelfThreadId {
     }
 };
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct TestDispatcherClient : public mqbi::DispatcherClient {
   private:
     // DATA
@@ -213,6 +218,7 @@ struct TestDispatcherClient : public mqbi::DispatcherClient {
         return d_description;
     }
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 /// A helper class used to verify correctness of ExecuteOnAllQueues.
 struct ExecuteOnAllQueuesHelper {
@@ -771,6 +777,7 @@ static void testN1_inDispatcherThread()
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -794,3 +801,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

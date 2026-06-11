@@ -157,6 +157,7 @@ struct QueueUtil {
 inline bmqp::QueueId QueueUtil::createQueueIdFromHandleParameters(
     const bmqp_ctrlmsg::QueueHandleParameters& handleParameters)
 {
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     const int          id    = handleParameters.qId();
     const unsigned int subId = extractSubQueueId(handleParameters);
 
@@ -166,6 +167,7 @@ inline bmqp::QueueId QueueUtil::createQueueIdFromHandleParameters(
 template <typename PARAMS>
 inline const bmqp_ctrlmsg::SubQueueIdInfo&
 QueueUtil::extractSubQueueInfo(const PARAMS& parameters)
+// NOLINTBEGIN(cppcoreguidelines-pro-type-union-access)
 {
     if (parameters.subIdInfo().isNull()) {
         // Use an objectBuffer to avoid 'exit-time destructor' compiler warning
@@ -181,6 +183,7 @@ QueueUtil::extractSubQueueInfo(const PARAMS& parameters)
 
     return parameters.subIdInfo().value();
 }
+// NOLINTEND(cppcoreguidelines-pro-type-union-access)
 
 template <typename PARAMS>
 inline unsigned int QueueUtil::extractSubQueueId(const PARAMS& parameters)
@@ -194,18 +197,22 @@ inline unsigned int QueueUtil::extractSubQueueId(const PARAMS& parameters)
 
 template <typename PARAMS>
 inline const char* QueueUtil::extractAppId(const PARAMS& parameters)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     return parameters.subIdInfo().isNull()
                ? bmqp::ProtocolUtil::k_DEFAULT_APP_ID
                : parameters.subIdInfo().value().appId().c_str();
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 inline bool
 QueueUtil::isDefaultSubstream(const bmqp_ctrlmsg::SubQueueIdInfo& subIdInfo)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     return subIdInfo.appId() == bmqp::ProtocolUtil::k_DEFAULT_APP_ID &&
            subIdInfo.subId() == bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID;
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 inline bool
 QueueUtil::isDefaultSubstream(const bmqp_ctrlmsg::QueueHandleParameters& p)

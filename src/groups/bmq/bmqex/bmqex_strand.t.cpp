@@ -169,6 +169,7 @@ struct Synchronize {
 
 /// Provides a no-op function object that throws an instance of
 /// `ThrowOnCopy::ExceptionType` on copy.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct ThrowOnCopy {
     // TYPES
 
@@ -189,6 +190,7 @@ struct ThrowOnCopy {
 
     // MANIPULATORS
     BSLA_NORETURN
+    // NOLINTNEXTLINE(cert-oop54-cpp)
     ThrowOnCopy& operator=(const ThrowOnCopy&) { throw ExceptionType(); }
 
     // ACCESSORS
@@ -197,6 +199,7 @@ struct ThrowOnCopy {
         // NOTHING
     }
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ==========================
 // class IdentifiableExecutor
@@ -219,11 +222,13 @@ class IdentifiableExecutor {
   public:
     // MANIPULATORS
     template <class FUNCTION>
+    // NOLINTBEGIN(performance-unnecessary-value-param)
     void post(FUNCTION) const
     {
         // not a valid operation
         BSLS_ASSERT_OPT(false);
     }
+    // NOLINTEND(performance-unnecessary-value-param)
 
     template <class FUNCTION>
     void dispatch(FUNCTION) const
@@ -247,6 +252,7 @@ class IdentifiableExecutor {
 // ======================
 
 /// Provides an executor that throws an exception on functor submission.
+// NOLINTBEGIN(performance-unnecessary-value-param)
 class ThrowingExecutor {
   public:
     // TYPES
@@ -275,6 +281,7 @@ class ThrowingExecutor {
         return true;
     }
 };
+// NOLINTEND(performance-unnecessary-value-param)
 
 // ==========================
 // class TestExecutionContext
@@ -286,6 +293,7 @@ class ThrowingExecutor {
 /// Note that, unless initialized with `numThreads` equal to 1, this
 /// execution context does not provide guarantees of ordering and non-
 /// concurrency.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class TestExecutionContext {
   public:
     // TYPES
@@ -317,21 +325,25 @@ class TestExecutionContext {
 
         /// Submit the specified function object `f` for execution.
         template <class FUNCTION>
+        // NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
         void post(BSLS_COMPILERFEATURES_FORWARD_REF(FUNCTION) f) const
         {
             int rc = d_context_p->d_threadPool.enqueueJob(
                 BSLS_COMPILERFEATURES_FORWARD(FUNCTION, f));
             BSLS_ASSERT_OPT(rc == 0);
         }
+        // NOLINTEND(cppcoreguidelines-missing-std-forward)
 
         /// Submit the specified function object `f` for execution.
         template <class FUNCTION>
+        // NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
         void dispatch(BSLS_COMPILERFEATURES_FORWARD_REF(FUNCTION) f) const
         {
             int rc = d_context_p->d_threadPool.enqueueJob(
                 BSLS_COMPILERFEATURES_FORWARD(FUNCTION, f));
             BSLS_ASSERT_OPT(rc == 0);
         }
+        // NOLINTEND(cppcoreguidelines-missing-std-forward)
     };
 
   private:
@@ -351,13 +363,14 @@ class TestExecutionContext {
 
     /// Create a `TestExecutionContext` object. Swawn `numThreads` threads
     /// of execution. Specify an `allocator` used to supply memory.
-    TestExecutionContext(unsigned          numThreads,
-                         bslma::Allocator* allocator)
+    TestExecutionContext(unsigned numThreads, bslma::Allocator* allocator)
+    // NOLINTBEGIN(*-narrowing-conversions)
     : d_threadPool(bslmt::ThreadAttributes(),        // use default attributes
                    numThreads,                       // minThreads
                    numThreads,                       // maxThreads
                    bsl::numeric_limits<int>::max(),  // maxIdleTime
                    allocator)
+    // NOLINTEND(*-narrowing-conversions)
     {
         // PRECONDITIONS
         BSLS_ASSERT(allocator);
@@ -376,10 +389,13 @@ class TestExecutionContext {
     /// Return an executor that may be used for submitting function objects
     /// to this execution context.
     ExecutorType executor() const BSLS_KEYWORD_NOEXCEPT
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-const-cast)
     {
         return const_cast<TestExecutionContext*>(this);
     }
+    // NOLINTEND(cppcoreguidelines-pro-type-const-cast)
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close unnamed namespace
 
@@ -431,6 +447,7 @@ static void test1_strand_creators()
         bslma::TestAllocator alloc;
 
         // create context
+        // NOLINTNEXTLINE(*-magic-numbers)
         Strand strand(IdentifiableExecutor(42), &alloc);
 
         // check postconditions
@@ -1195,7 +1212,20 @@ static void test11_executor_context()
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
+// NOLINTBEGIN(bugprone-exception-escape)
 int main(int argc, char* argv[])
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTBEGIN(cert-err34-c)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -1224,3 +1254,16 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTEND(cert-err34-c)
+// NOLINTEND(bugprone-exception-escape)

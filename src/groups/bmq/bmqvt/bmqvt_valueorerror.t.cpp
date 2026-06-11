@@ -38,37 +38,46 @@ using namespace bsl;
 namespace {
 
 // A long string to trigger allocation.
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 const char* k_LONG_STRING = "12345678901234567890123456789001234567890";
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class CustomValueType {
   public:
     CustomValueType()
     : d_foo(k_LONG_STRING, bmqtst::TestHelperUtil::allocator())
     , d_bar(k_LONG_STRING, bmqtst::TestHelperUtil::allocator())
+    // NOLINTBEGIN(performance-avoid-endl)
     {
         PVV("CustomValueType(bslma::Allocator *)");
     }
+    // NOLINTEND(performance-avoid-endl)
 
     CustomValueType(const bsl::string& src)
     : d_foo(k_LONG_STRING, bmqtst::TestHelperUtil::allocator())
     , d_bar(k_LONG_STRING, bmqtst::TestHelperUtil::allocator())
+    // NOLINTBEGIN(performance-avoid-endl)
     {
         PVV("CustomValueType(const bsl::string&)");
 
         d_foo += src;
         d_bar += src;
     }
+    // NOLINTEND(performance-avoid-endl)
 
     CustomValueType(const CustomValueType& rhs)
     : d_foo(rhs.d_foo, bmqtst::TestHelperUtil::allocator())
     , d_bar(rhs.d_bar, bmqtst::TestHelperUtil::allocator())
+    // NOLINTBEGIN(performance-avoid-endl)
     {
         PVV("CustomValueType(const CustomValueType& , bslma::Allocator *)");
     }
+    // NOLINTEND(performance-avoid-endl)
 
     bsl::string d_foo;
     bsl::string d_bar;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 bsl::ostream& operator<<(bsl::ostream& os, const CustomValueType& value)
 {
@@ -131,6 +140,7 @@ bsl::string formatError(int rc)
     return bsl::string(os.str(), bmqtst::TestHelperUtil::allocator());
 }
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class CustomErrorType {
   public:
     CustomErrorType()
@@ -154,6 +164,7 @@ class CustomErrorType {
     bsl::string d_error;
     int         d_rc;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 bsl::ostream& operator<<(bsl::ostream& os, const CustomErrorType& error)
 {
@@ -209,16 +220,20 @@ bool operator==(const CustomAllocErrorType& lhs,
 template <typename T, typename V>
 T makeObjectCase(const V&          value,
                  BSLA_MAYBE_UNUSED bsl::true_type uses_allocator)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     return T(value, bmqtst::TestHelperUtil::allocator());
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 template <typename T, typename V>
 T makeObjectCase(const V&          value,
                  BSLA_MAYBE_UNUSED bsl::false_type uses_allocator)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     return T(value);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 template <typename T, typename V>
 T makeObject(const V& value)
@@ -246,9 +261,11 @@ T makeObject()
 }
 
 int atoiNoThrowSpec(const char* str)
+// NOLINTBEGIN(cert-err34-c)
 {
     return bsl::atoi(str);
 }
+// NOLINTEND(cert-err34-c)
 
 inline unsigned toUnsigned(const double in)
 {
@@ -263,6 +280,7 @@ inline unsigned toUnsigned(const double in)
 
 template <typename T>
 static void test_ops_generic()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     typedef typename T::ValueType Value;
     typedef typename T::ErrorType Error;
@@ -300,6 +318,7 @@ static void test_ops_generic()
 
     PVV("Test makeError(const ERROR&)");
 
+    // NOLINTNEXTLINE(*-magic-numbers)
     Error refError(makeObject<Error>(-5));
 
     value.makeError(refError);
@@ -364,6 +383,7 @@ static void test_ops_generic()
                                                   bslma::UsesBslmaAllocator> >(
             dummy2));
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test1_ops_on_string_int()
 // ------------------------------------------------------------------------
@@ -488,6 +508,7 @@ static void test6_converters()
 // Testing:
 //   Proper behavior of the 'ValueOrError' class.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("converters");
 
@@ -576,6 +597,7 @@ static void test6_converters()
         BMQTST_ASSERT_EQ(tt2.error(), 3u);
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test7_explicit_print()
 // ------------------------------------------------------------------------
@@ -591,6 +613,7 @@ static void test7_explicit_print()
 // Testing:
 //   Proper behavior of the 'ValueOrError' class.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("explicit_print");
 
@@ -603,12 +626,14 @@ static void test7_explicit_print()
     TypeUnderTest::print(os, value, 0, 0);
     BMQTST_ASSERT_EQ(os.str(), "[ value = 12 ]\n");
 }
+// NOLINTEND(*-magic-numbers)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -629,3 +654,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

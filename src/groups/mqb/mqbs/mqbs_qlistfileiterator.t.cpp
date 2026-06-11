@@ -77,6 +77,7 @@ char* addRecords(bslma::Allocator*                                  ta,
     unsigned int numRecords = queueUris.size();
     unsigned int totalSize  = sizeof(FileHeader) + sizeof(QlistFileHeader);
 
+    // NOLINTBEGIN(*-narrowing-conversions)
     for (unsigned int i = 0; i < numRecords; i++) {
         int          padding = 0;
         int          words   = 0;
@@ -98,6 +99,7 @@ char* addRecords(bslma::Allocator*                                  ta,
         bsl::vector<unsigned int>& appIdWords    = appIdWordsVec[i];
         bsl::vector<unsigned int>& appIdPaddings = appIdPaddingsVec[i];
 
+        // NOLINTBEGIN(*-narrowing-conversions)
         for (size_t j = 0; j < appIds.size(); ++j) {
             length = appIds[j].length();
 
@@ -118,9 +120,11 @@ char* addRecords(bslma::Allocator*                                  ta,
 
             totalSize += FileStoreProtocol::k_HASH_LENGTH;  // AppIdHash
         }
+        // NOLINTEND(*-narrowing-conversions)
 
         totalSize += sizeof(unsigned int);  // magic length
     }
+    // NOLINTEND(*-narrowing-conversions)
 
     // Allocate the memory for the data now.
     char* p = static_cast<char*>(ta->allocate(totalSize));
@@ -149,6 +153,7 @@ char* addRecords(bslma::Allocator*                                  ta,
     new (qfh.get()) QlistFileHeader();
     currPos += sizeof(QlistFileHeader);
 
+    // NOLINTBEGIN(*-narrowing-conversions,cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (unsigned int i = 0; i < numRecords; i++) {
         unsigned int totalRecordLength = sizeof(QueueRecordHeader);
         unsigned int uriLength         = queueUris[i].asString().length();
@@ -206,6 +211,7 @@ char* addRecords(bslma::Allocator*                                  ta,
         currPos += FileStoreProtocol::k_HASH_LENGTH;
 
         // 4) Append 'AppId' and 'AppKey'
+        // NOLINTBEGIN(*-narrowing-conversions,cppcoreguidelines-pro-bounds-pointer-arithmetic)
         for (size_t j = 0; j < appIdWords.size(); ++j) {
             if (0 == appIdWords[j]) {
                 continue;  // CONTINUE
@@ -235,12 +241,14 @@ char* addRecords(bslma::Allocator*                                  ta,
                         mqbu::StorageKey::e_KEY_LENGTH_BINARY);
             currPos += FileStoreProtocol::k_HASH_LENGTH;
         }
+        // NOLINTEND(*-narrowing-conversions,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
         // 5) Append magic bits
         OffsetPtr<bdlb::BigEndianUint32> magic(block, currPos);
         *magic = QueueRecordHeader::k_MAGIC;
         currPos += sizeof(QueueRecordHeader::k_MAGIC);
     }
+    // NOLINTEND(*-narrowing-conversions,cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     *fileHeader = *fh;
 
@@ -298,6 +306,7 @@ static void test2_backwardIteration()
 // Testing:
 //   Backward iteration with non-zero qlist records.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(modernize-use-emplace)
 {
     bmqtst::TestHelper::printTestName("BACKWARD ITERATION");
 
@@ -332,6 +341,7 @@ static void test2_backwardIteration()
     for (size_t i = 0; i < appIdsVec.size(); ++i) {
         bsl::vector<bsl::string>& appIds = appIdsVec[i];
 
+        // NOLINTBEGIN(modernize-use-emplace)
         for (size_t j = 0; j < i; ++j) {
             // The 1st queue uri (ie, 'i == 0') will have no appIds associated
             // with it.
@@ -340,6 +350,7 @@ static void test2_backwardIteration()
             osstr << "AppId" << i << "_" << j << bsl::ends;
             appIds.push_back(osstr.str());
         }
+        // NOLINTEND(modernize-use-emplace)
     }
 
     bsl::vector<bsl::vector<mqbu::StorageKey> > appKeysVec(
@@ -349,6 +360,7 @@ static void test2_backwardIteration()
     for (size_t i = 0; i < appKeysVec.size(); ++i) {
         bsl::vector<mqbu::StorageKey>& appKeys = appKeysVec[i];
 
+        // NOLINTBEGIN(modernize-use-emplace)
         for (size_t j = 0; j < i; ++j) {
             bmqu::MemOutStream osstr(bmqtst::TestHelperUtil::allocator());
             osstr << j << j << j << j << j;
@@ -358,6 +370,7 @@ static void test2_backwardIteration()
                 mqbu::StorageKey(mqbu::StorageKey::HexRepresentation(),
                                  osstr.str().data()));
         }
+        // NOLINTEND(modernize-use-emplace)
     }
 
     char* p = addRecords(bmqtst::TestHelperUtil::allocator(),
@@ -395,6 +408,7 @@ static void test2_backwardIteration()
     BMQTST_ASSERT_EQ(it.hasRecordSizeRemaining(), true);
     BMQTST_ASSERT_EQ(it.isReverseMode(), true);
 
+    // NOLINTBEGIN(cppcoreguidelines-init-variables)
     while (i > 0) {
         unsigned index = i - 1;
 
@@ -483,12 +497,14 @@ static void test2_backwardIteration()
 
         --i;
     }
+    // NOLINTEND(cppcoreguidelines-init-variables)
 
     BMQTST_ASSERT_EQ(it.isValid(), false);
     BMQTST_ASSERT_EQ(0U, i);
 
     bmqtst::TestHelperUtil::allocator()->deallocate(p);
 }
+// NOLINTEND(modernize-use-emplace)
 
 static void test3_iteratorWithNoRecords()
 // ------------------------------------------------------------------------
@@ -548,6 +564,7 @@ static void test4_iteratorAppKeys()
 // Testing:
 //   Iterator with records both having and not having appKeys.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(modernize-use-emplace)
 {
     bmqtst::TestHelper::printTestName("ITERATOR APPKEYS");
 
@@ -582,6 +599,7 @@ static void test4_iteratorAppKeys()
     for (size_t i = 0; i < appIdsVec.size(); ++i) {
         bsl::vector<bsl::string>& appIds = appIdsVec[i];
 
+        // NOLINTBEGIN(modernize-use-emplace)
         for (size_t j = 0; j < i; ++j) {
             // The 1st queue uri (ie, 'i == 0') will have no appIds
             // associated with it.
@@ -590,6 +608,7 @@ static void test4_iteratorAppKeys()
             osstr << "AppId" << i << "_" << j << bsl::ends;
             appIds.push_back(osstr.str());
         }
+        // NOLINTEND(modernize-use-emplace)
     }
 
     bsl::vector<bsl::vector<mqbu::StorageKey> > appKeysVec(
@@ -599,6 +618,7 @@ static void test4_iteratorAppKeys()
     for (size_t i = 0; i < appKeysVec.size(); ++i) {
         bsl::vector<mqbu::StorageKey>& appKeys = appKeysVec[i];
 
+        // NOLINTBEGIN(modernize-use-emplace)
         for (size_t j = 0; j < i; ++j) {
             bmqu::MemOutStream osstr(bmqtst::TestHelperUtil::allocator());
             osstr << j << j << j << j << j;
@@ -608,6 +628,7 @@ static void test4_iteratorAppKeys()
                 mqbu::StorageKey(mqbu::StorageKey::HexRepresentation(),
                                  osstr.str().data()));
         }
+        // NOLINTEND(modernize-use-emplace)
     }
 
     char* p = addRecords(bmqtst::TestHelperUtil::allocator(),
@@ -627,6 +648,7 @@ static void test4_iteratorAppKeys()
 
     unsigned int i      = 0;
     unsigned int offset = sizeof(FileHeader) + sizeof(QlistFileHeader);
+    // NOLINTBEGIN(cppcoreguidelines-init-variables)
     while (it.hasRecordSizeRemaining()) {
         BMQTST_ASSERT_EQ_D(i, 1, it.nextRecord());
         BMQTST_ASSERT_EQ_D(i, offset, it.recordOffset());
@@ -696,6 +718,7 @@ static void test4_iteratorAppKeys()
         offset += qrh->queueRecordWords() * bmqp::Protocol::k_WORD_SIZE;
         ++i;
     }
+    // NOLINTEND(cppcoreguidelines-init-variables)
 
     BMQTST_ASSERT_EQ(it.isValid(), true);
     BMQTST_ASSERT_EQ(it.hasRecordSizeRemaining(), false);
@@ -704,12 +727,14 @@ static void test4_iteratorAppKeys()
 
     bmqtst::TestHelperUtil::allocator()->deallocate(p);
 }
+// NOLINTEND(modernize-use-emplace)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -729,3 +754,4 @@ int main(int argc, char* argv[])
     // NOTE: for some reason the default allcoator verification never
     // succeeds.
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

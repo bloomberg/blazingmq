@@ -32,13 +32,16 @@
 using namespace BloombergLP;
 using namespace m_bmqstoragetool;
 
+// NOLINTBEGIN(*-avoid-c-arrays)
 static bool parseArgs(CommandLineArguments& arguments,
                       int                   argc,
                       const char*           argv[],
                       bslma::Allocator*     allocator)
+// NOLINTEND(*-avoid-c-arrays)
 {
     bool showHelp = false;
 
+    // NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers)
     balcl::OptionInfo specTable[] = {
         {"r|record-type",
          "record type",
@@ -195,6 +198,7 @@ static bool parseArgs(CommandLineArguments& arguments,
          "print usage)",
          balcl::TypeInfo(&showHelp),
          balcl::OccurrenceInfo::e_OPTIONAL}};
+    // NOLINTEND(*-avoid-c-arrays,*-magic-numbers)
     balcl::CommandLine commandLine(specTable);
     if (commandLine.parse(argc, argv) != 0 || showHelp) {
         commandLine.printUsage();
@@ -215,6 +219,7 @@ static bool parseArgs(CommandLineArguments& arguments,
 // ====
 
 int main(int argc, const char* argv[])
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     enum RcEnum {
         // Enum for the various RC error categories
@@ -273,3 +278,4 @@ int main(int argc, const char* argv[])
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)

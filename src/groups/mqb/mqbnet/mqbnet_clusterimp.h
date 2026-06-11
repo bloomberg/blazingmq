@@ -67,6 +67,7 @@ class ClusterNodeImp;
 // ====================
 
 /// Mechanism to represent and interact with a node.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ClusterNodeImp : public ClusterNode {
   private:
     // CLASS-SCOPE CATEGORY
@@ -177,12 +178,14 @@ class ClusterNodeImp : public ClusterNode {
     /// channel.
     bool isAvailable() const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =============
 // class Cluster
 // =============
 
 /// Mechanism to manipulate a collection of nodes.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ClusterImp : public Cluster {
   private:
     // CLASS-SCOPE CATEGORY
@@ -338,6 +341,7 @@ class ClusterImp : public Cluster {
     /// nodes part of this cluster.
     const Cluster::NodesList& nodes() const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

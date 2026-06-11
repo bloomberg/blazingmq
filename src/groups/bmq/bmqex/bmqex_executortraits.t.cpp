@@ -70,11 +70,13 @@ struct PostExecutor {
 
     // ACCESSORS
     template <class FUNCTION>
+    // NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
     void post(BSLS_COMPILERFEATURES_FORWARD_REF(FUNCTION) f) const
     {
         bslmf::MovableRefUtil::access(f)();
         ++d_postCallCount;
     }
+    // NOLINTEND(cppcoreguidelines-missing-std-forward)
 };
 
 // ===========================
@@ -102,18 +104,22 @@ struct PostDispatchExecutor {
 
     // ACCESSORS
     template <class FUNCTION>
+    // NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
     void post(BSLS_COMPILERFEATURES_FORWARD_REF(FUNCTION) f) const
     {
         bslmf::MovableRefUtil::access(f)();
         ++d_postCallCount;
     }
+    // NOLINTEND(cppcoreguidelines-missing-std-forward)
 
     template <class FUNCTION>
+    // NOLINTBEGIN(cppcoreguidelines-missing-std-forward)
     void dispatch(BSLS_COMPILERFEATURES_FORWARD_REF(FUNCTION) f) const
     {
         bslmf::MovableRefUtil::access(f)();
         ++d_dispatchCallCount;
     }
+    // NOLINTEND(cppcoreguidelines-missing-std-forward)
 };
 
 }  // close unnamed namespace
@@ -225,6 +231,7 @@ static void test2_dispatch()
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -241,3 +248,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

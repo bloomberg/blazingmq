@@ -118,6 +118,7 @@ class ClusterDataIdentity {
 
 /// This class provides a VST representing the non-persistent state of a
 /// cluster.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ClusterData {
   public:
     // TYPES
@@ -308,6 +309,7 @@ class ClusterData {
     const mqbi::Cluster&                  cluster() const;
     const StatContextMp&                  clusterNodesStatContext() const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS

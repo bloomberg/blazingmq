@@ -38,6 +38,7 @@ namespace {
 /// `FULL`. Behavior is undefined unless `monitor` is non-null and is in the
 /// `NORMAL` state with respect to bytes and messages.
 void testIncrementFromZeroToFullCapacity(mqbu::ResourceUsageMonitor* monitor)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(monitor);
@@ -50,9 +51,11 @@ void testIncrementFromZeroToFullCapacity(mqbu::ResourceUsageMonitor* monitor)
 
     const bsls::Types::Int64 byteCapacity = monitor->byteCapacity();
     const bsls::Types::Int64 byteHighWatermark =
+        // NOLINTNEXTLINE(*-narrowing-conversions)
         byteCapacity * monitor->byteHighWatermarkRatio();
     const bsls::Types::Int64 messageCapacity = monitor->messageCapacity();
     const bsls::Types::Int64 messageHighWatermark =
+        // NOLINTNEXTLINE(*-narrowing-conversions)
         messageCapacity * monitor->messageHighWatermarkRatio();
 
     // BYTES
@@ -61,6 +64,7 @@ void testIncrementFromZeroToFullCapacity(mqbu::ResourceUsageMonitor* monitor)
     // Not needed here but for logical consistency
 
     // Increment by 1 until hitting high watermark
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     for (int i = monitor->bytes() + 1; i < byteHighWatermark; ++i) {
         BMQTST_ASSERT_EQ_D(
             i,
@@ -80,6 +84,7 @@ void testIncrementFromZeroToFullCapacity(mqbu::ResourceUsageMonitor* monitor)
                      mqbu::ResourceUsageMonitorState::e_STATE_HIGH_WATERMARK);
 
     // Increment by 1 until hitting full capacity
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     for (int i = byteHighWatermark + 1; i < byteCapacity; ++i) {
         BMQTST_ASSERT_EQ_D(
             i,
@@ -124,6 +129,7 @@ void testIncrementFromZeroToFullCapacity(mqbu::ResourceUsageMonitor* monitor)
                      mqbu::ResourceUsageMonitorState::e_STATE_HIGH_WATERMARK);
 
     // Increment by 1 until hitting capacity
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     for (int i = messageHighWatermark + 1; i < messageCapacity; ++i) {
         BMQTST_ASSERT_EQ_D(
             i,
@@ -153,6 +159,7 @@ void testIncrementFromZeroToFullCapacity(mqbu::ResourceUsageMonitor* monitor)
     BMQTST_ASSERT_EQF(messageHighWatermark,
                       messageCapacity * monitor->messageHighWatermarkRatio());
 }
+// NOLINTEND(performance-avoid-endl)
 
 /// Decrement bytes and messages being monitored by the specified `monitor`
 /// from a state `FULL` to `LOW_WATERMARK`.  Behavior is undefined unless
@@ -172,12 +179,16 @@ void testDecrementFromFullCapacityToLowWatermark(
     BSLS_ASSERT_SAFE(monitor->messages() == monitor->messageCapacity());
 
     const bsls::Types::Int64 byteLowWatermark =
+        // NOLINTNEXTLINE(*-narrowing-conversions)
         monitor->byteCapacity() * monitor->byteLowWatermarkRatio();
     const bsls::Types::Int64 byteHighWatermark =
+        // NOLINTNEXTLINE(*-narrowing-conversions)
         monitor->byteCapacity() * monitor->byteHighWatermarkRatio();
     const bsls::Types::Int64 messageLowWatermark =
+        // NOLINTNEXTLINE(*-narrowing-conversions)
         monitor->messageCapacity() * monitor->messageLowWatermarkRatio();
     const bsls::Types::Int64 messageHighWatermark =
+        // NOLINTNEXTLINE(*-narrowing-conversions)
         monitor->messageCapacity() * monitor->messageHighWatermarkRatio();
 
     // BYTES
@@ -186,6 +197,7 @@ void testDecrementFromFullCapacityToLowWatermark(
     // Not necessary here but for logical consistency
 
     // Decrement by 1 until hitting high watermark
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     for (int i = monitor->bytes() - 1; i > byteHighWatermark; --i) {
         BMQTST_ASSERT_EQ_D(
             i,
@@ -204,6 +216,7 @@ void testDecrementFromFullCapacityToLowWatermark(
                      mqbu::ResourceUsageMonitorState::e_STATE_HIGH_WATERMARK);
 
     // Decrement by 1 until hitting low watermark
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     for (int i = monitor->bytes() - 1; i > byteLowWatermark; --i) {
         BMQTST_ASSERT_EQ_D(
             i,
@@ -240,6 +253,7 @@ void testDecrementFromFullCapacityToLowWatermark(
     // Not necessary here but for logical consistency
 
     // Decrement by 1 until hitting high watermark
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     for (int i = monitor->messages() - 1; i > messageHighWatermark; --i) {
         BMQTST_ASSERT_EQ_D(
             i,
@@ -258,6 +272,7 @@ void testDecrementFromFullCapacityToLowWatermark(
                      mqbu::ResourceUsageMonitorState::e_STATE_HIGH_WATERMARK);
 
     // Decrement by 1 until hitting low watermark
+    // NOLINTNEXTLINE(*-narrowing-conversions)
     for (int i = monitor->messages() - 1; i > messageLowWatermark; --i) {
         BMQTST_ASSERT_EQ_D(
             i,
@@ -326,6 +341,7 @@ static void test1_breathingTest()
 // Testing:
 //   Basic functionality
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
@@ -491,12 +507,18 @@ static void test1_breathingTest()
     //    becomes in 'HIGH_WATERMARK' state for bytes but remains in
     //    'LOW_WATERMARK' state for messages, and confirm that the values of
     //    bytes and messages have not changed.
+    // NOLINTBEGIN(*-narrowing-conversions)
     bsls::Types::Int64 k_BYTE_LOW_WATERMARK = k_BYTE_CAPACITY *
                                               k_BYTE_LOW_WATERMARK_RATIO;
+    // NOLINTEND(*-narrowing-conversions)
+    // NOLINTBEGIN(*-narrowing-conversions)
     bsls::Types::Int64 k_BYTE_HIGH_WATERMARK = k_BYTE_CAPACITY *
                                                k_BYTE_HIGH_WATERMARK_RATIO;
+    // NOLINTEND(*-narrowing-conversions)
+    // NOLINTBEGIN(*-narrowing-conversions)
     bsls::Types::Int64 k_MESSAGE_LOW_WATERMARK = k_MESSAGE_CAPACITY *
                                                  k_MESSAGE_LOW_WATERMARK_RATIO;
+    // NOLINTEND(*-narrowing-conversions)
 
     monitor.reconfigure(k_BYTE_CAPACITY,
                         k_MESSAGE_CAPACITY,
@@ -525,6 +547,7 @@ static void test1_breathingTest()
     BMQTST_ASSERT_EQ(monitor.messageState(),
                      mqbu::ResourceUsageMonitorState::e_STATE_HIGH_WATERMARK);
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 static void test2_zeroCapacity()
 // ------------------------------------------------------------------------
@@ -546,6 +569,7 @@ static void test2_zeroCapacity()
 //   Proper behavior in the special case where one or more of the
 //   messageCapacity or byteCapacity is zero.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("UPDATE ONE RESOURCE");
 
@@ -599,6 +623,7 @@ static void test2_zeroCapacity()
     BMQTST_ASSERT_EQ(obj.state(),
                      mqbu::ResourceUsageMonitorState::e_STATE_FULL);
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 static void test3_updateOneResource()
 // ------------------------------------------------------------------------
@@ -617,6 +642,7 @@ static void test3_updateOneResource()
 //     - updateBytes(bsls::Types::Int64 delta)
 //     - updateMessages(bsls::Types::Int64 delta)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelper::printTestName("UPDATE ONE RESOURCE");
 
@@ -635,6 +661,7 @@ static void test3_updateOneResource()
         bsls::Types::Int64       d_messages;
         RUMStateTransition::Enum d_expectedByteStateTransition;
         RUMStateTransition::Enum d_expectedMessageStateTransition;
+        // NOLINTBEGIN(*-magic-numbers)
     } k_DATA[] = {
         // Format:
         //..
@@ -847,10 +874,14 @@ static void test3_updateOneResource()
          RUMStateTransition::e_FULL},  // Messages : 0 to CAPACITY
 
     };
+    // NOLINTEND(*-magic-numbers)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         PVV(test.d_line << ": checking 'monitor(" << test.d_byteLowWatermark
@@ -862,6 +893,7 @@ static void test3_updateOneResource()
                         << "updateBytes(" << test.d_bytes << ")\n"
                         << "updateMessages(" << test.d_messages << ")\n");
 
+        // NOLINTBEGIN(*-narrowing-conversions)
         mqbu::ResourceUsageMonitor monitor(
             test.d_byteCapacity,
             test.d_messageCapacity,
@@ -869,6 +901,7 @@ static void test3_updateOneResource()
             test.d_byteHighWatermark * 1.0 / test.d_byteCapacity,
             test.d_messageLowWatermark * 1.0 / test.d_messageCapacity,
             test.d_messageHighWatermark * 1.0 / test.d_messageCapacity);
+        // NOLINTEND(*-narrowing-conversions)
 
         // Update bytes
         BMQTST_ASSERT_EQ_D("line " << test.d_line,
@@ -910,7 +943,9 @@ static void test3_updateOneResource()
         monitor.updateMessages(-test.d_messages);
         BMQTST_ASSERT_EQ_D("line " << test.d_line, monitor.messages(), 0);
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 static void test4_updateBothResources()
 // ------------------------------------------------------------------------
@@ -940,6 +975,7 @@ static void test4_updateBothResources()
 //     -  update(bsls::Types::Int64 deltaBytes,
 //               bsls::Types::Int64 deltaMessages)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers,*-narrowing-conversions,clang-analyzer-optin.performance.Padding)
 {
     bmqtst::TestHelper::printTestName("UPDATE BOTH RESOURCES");
 
@@ -958,6 +994,7 @@ static void test4_updateBothResources()
         bsls::Types::Int64       d_bytes;
         bsls::Types::Int64       d_messages;
         RUMStateTransition::Enum d_expectedStateTransition;
+        // NOLINTBEGIN(*-magic-numbers)
     } k_DATA[] = {
         // Format:
         //..
@@ -1251,10 +1288,14 @@ static void test4_updateBothResources()
          40,
          RUMStateTransition::e_FULL},  // 0 to CAPACITY (both)
     };
+    // NOLINTEND(*-magic-numbers)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         PVV(test.d_line << ": checking 'monitor(" << test.d_byteLowWatermark
@@ -1268,6 +1309,7 @@ static void test4_updateBothResources()
                         << "\n");
 
         // Create a mqbu::ResourceUsageMonitor with test parameters
+        // NOLINTBEGIN(*-narrowing-conversions)
         mqbu::ResourceUsageMonitor monitor(
             test.d_byteCapacity,
             test.d_messageCapacity,
@@ -1275,6 +1317,7 @@ static void test4_updateBothResources()
             test.d_byteHighWatermark * 1.0 / test.d_byteCapacity,
             test.d_messageLowWatermark * 1.0 / test.d_messageCapacity,
             test.d_messageHighWatermark * 1.0 / test.d_messageCapacity);
+        // NOLINTEND(*-narrowing-conversions)
 
         // update(bytes, msgs)
         BMQTST_ASSERT_EQ_D("line " << test.d_line,
@@ -1316,6 +1359,7 @@ static void test4_updateBothResources()
 
         BMQTST_ASSERT_EQ_D("line " << test.d_line, monitor.messages(), 0);
     }
+    // NOLINTEND(performance-avoid-endl)
 
     // 3 Verify that an update that takes the monitor past a limit emits the
     //   appropriate state transition only once.
@@ -1329,6 +1373,7 @@ static void test4_updateBothResources()
     bsls::Types::Int64 k_MESSAGE_CAPACITY       = 11;
 
     // Create a mqbu::ResourceUsageMonitor object
+    // NOLINTBEGIN(*-narrowing-conversions)
     mqbu::ResourceUsageMonitor monitor(
         k_BYTE_CAPACITY,
         k_MESSAGE_CAPACITY,
@@ -1336,6 +1381,7 @@ static void test4_updateBothResources()
         k_BYTE_HIGH_WATERMARK * 1.0 / k_BYTE_CAPACITY,
         k_MESSAGE_LOW_WATERMARK * 1.0 / k_MESSAGE_CAPACITY,
         k_MESSAGE_HIGH_WATERMARK * 1.0 / k_MESSAGE_CAPACITY);
+    // NOLINTEND(*-narrowing-conversions)
 
     BMQTST_ASSERT_EQ(monitor.update(k_BYTE_HIGH_WATERMARK - 1,
                                     k_MESSAGE_HIGH_WATERMARK - 1),
@@ -1399,6 +1445,7 @@ static void test4_updateBothResources()
                                     -k_MESSAGE_LOW_WATERMARK),
                      RUMStateTransition::e_NO_CHANGE);
 }
+// NOLINTEND(*-avoid-c-arrays,*-magic-numbers,*-narrowing-conversions,clang-analyzer-optin.performance.Padding)
 
 static void test5_stateOneResource()
 // ------------------------------------------------------------------------
@@ -1422,6 +1469,7 @@ static void test5_stateOneResource()
 //     - byteState()
 //     - messageState()
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelper::printTestName("STATE ONE RESOURCE");
 
@@ -1440,6 +1488,7 @@ static void test5_stateOneResource()
         bsls::Types::Int64 d_messages;
         RUMState::Enum     d_expectedByteState;
         RUMState::Enum     d_expectedMessageState;
+        // NOLINTBEGIN(*-magic-numbers)
     } k_DATA[] = {
         // Format:
         //..
@@ -1762,10 +1811,14 @@ static void test5_stateOneResource()
          RUMState::e_STATE_FULL,   // Bytes    : 0 to CAPACITY
          RUMState::e_STATE_FULL},  // Messages : 0 to CAPACITY
     };
+    // NOLINTEND(*-magic-numbers)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         PVV(test.d_line << ": checking 'monitor(" << test.d_byteLowWatermark
@@ -1781,6 +1834,7 @@ static void test5_stateOneResource()
                         << test.d_messages << ")"
                         << "\n");
 
+        // NOLINTBEGIN(*-narrowing-conversions)
         mqbu::ResourceUsageMonitor monitor(
             test.d_byteCapacity,
             test.d_messageCapacity,
@@ -1788,6 +1842,7 @@ static void test5_stateOneResource()
             test.d_byteHighWatermark * 1.0 / test.d_byteCapacity,
             test.d_messageLowWatermark * 1.0 / test.d_messageCapacity,
             test.d_messageHighWatermark * 1.0 / test.d_messageCapacity);
+        // NOLINTEND(*-narrowing-conversions)
 
         // Update and check state
         monitor.update(test.d_bytes, test.d_messages);
@@ -1829,7 +1884,9 @@ static void test5_stateOneResource()
                            monitor.messageState(),
                            RUMState::e_STATE_NORMAL);
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 static void test6_stateBothResources()
 // ------------------------------------------------------------------------
@@ -1850,6 +1907,7 @@ static void test6_stateBothResources()
 //   Proper state of the monitor as reported by the following methods:
 //     - state()
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding)
 {
     bmqtst::TestHelper::printTestName("STATE BOTH RESOURCES");
 
@@ -1868,6 +1926,7 @@ static void test6_stateBothResources()
         bsls::Types::Int64 d_bytes;
         bsls::Types::Int64 d_messages;
         RUMState::Enum     d_expectedMonitorState;
+        // NOLINTBEGIN(*-magic-numbers)
     } k_DATA[] = {
         // Format:
         //..
@@ -2135,10 +2194,14 @@ static void test6_stateBothResources()
          40,
          RUMState::e_STATE_FULL},  // 0 to CAPACITY (both)
     };
+    // NOLINTEND(*-magic-numbers)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         PVV(test.d_line << ": checking 'monitor(" << test.d_byteLowWatermark
@@ -2153,6 +2216,7 @@ static void test6_stateBothResources()
                         << test.d_messages << ")"
                         << "\n");
 
+        // NOLINTBEGIN(*-narrowing-conversions)
         mqbu::ResourceUsageMonitor monitor(
             test.d_byteCapacity,
             test.d_messageCapacity,
@@ -2160,6 +2224,7 @@ static void test6_stateBothResources()
             test.d_byteHighWatermark * 1.0 / test.d_byteCapacity,
             test.d_messageLowWatermark * 1.0 / test.d_messageCapacity,
             test.d_messageHighWatermark * 1.0 / test.d_messageCapacity);
+        // NOLINTEND(*-narrowing-conversions)
 
         // Update and check state
         monitor.update(test.d_bytes, test.d_messages);
@@ -2189,9 +2254,12 @@ static void test6_stateBothResources()
                            monitor.state(),
                            RUMState::e_STATE_NORMAL);
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding)
 
 static void test7_jumpingStates()
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("JUMPING STATES");
 
@@ -2205,6 +2273,7 @@ static void test7_jumpingStates()
     bsls::Types::Int64 k_MESSAGE_CAPACITY       = 30;
 
     // Create a mqbu::ResourceUsageMonitor object
+    // NOLINTBEGIN(*-narrowing-conversions)
     mqbu::ResourceUsageMonitor monitor(
         k_BYTE_CAPACITY,
         k_MESSAGE_CAPACITY,
@@ -2212,6 +2281,7 @@ static void test7_jumpingStates()
         k_BYTE_HIGH_WATERMARK * 1.0 / k_BYTE_CAPACITY,
         k_MESSAGE_LOW_WATERMARK * 1.0 / k_MESSAGE_CAPACITY,
         k_MESSAGE_HIGH_WATERMARK * 1.0 / k_MESSAGE_CAPACITY);
+    // NOLINTEND(*-narrowing-conversions)
 
     BMQTST_ASSERT_EQ(monitor.byteState(),
                      mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
@@ -2306,6 +2376,7 @@ static void test7_jumpingStates()
     BMQTST_ASSERT_EQ(monitor.messageState(),
                      mqbu::ResourceUsageMonitorState::e_STATE_NORMAL);
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test8_zeroWatermarksUpdate()
 // ------------------------------------------------------------------------
@@ -2341,12 +2412,14 @@ static void test8_zeroWatermarksUpdate()
     bsls::Types::Int64 k_MESSAGE_CAPACITY       = 0;
 
     // Careful! Do not divide by 0!
+    // NOLINTBEGIN(*-narrowing-conversions)
     mqbu::ResourceUsageMonitor monitor(k_BYTE_CAPACITY,
                                        k_MESSAGE_CAPACITY,
                                        k_BYTE_LOW_WATERMARK,
                                        k_BYTE_HIGH_WATERMARK,
                                        k_MESSAGE_LOW_WATERMARK,
                                        k_MESSAGE_HIGH_WATERMARK);
+    // NOLINTEND(*-narrowing-conversions)
 
     BMQTST_ASSERT_EQ(monitor.state(),
                      mqbu::ResourceUsageMonitorState::e_STATE_FULL);
@@ -2432,6 +2505,7 @@ static void test9_print()
 //                                 int           level = 0,
 //                                 int           spacesPerLevel = 4) const;
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("PRINT");
 
@@ -2451,9 +2525,12 @@ static void test9_print()
             {L_, RUMState::e_STATE_HIGH_WATERMARK, "STATE_HIGH_WATERMARK"},
             {L_, RUMState::e_STATE_FULL, "STATE_FULL"}};
 
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+        // NOLINTBEGIN(performance-avoid-endl)
         for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
             const Test& test = k_DATA[idx];
             bsl::string ascii(bmqtst::TestHelperUtil::allocator());
 
@@ -2466,6 +2543,7 @@ static void test9_print()
 
             PVV("    " << ascii);
         }
+        // NOLINTEND(performance-avoid-endl)
     }
 
     // 2
@@ -2485,9 +2563,12 @@ static void test9_print()
             {L_, RUMStateTransition::e_HIGH_WATERMARK, "HIGH_WATERMARK"},
             {L_, RUMStateTransition::e_FULL, "FULL"}};
 
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+        // NOLINTBEGIN(performance-avoid-endl)
         for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
             const Test& test = k_DATA[idx];
 
             bsl::string ascii(bmqtst::TestHelperUtil::allocator());
@@ -2502,6 +2583,7 @@ static void test9_print()
 
             PVV("    " << ascii);
         }
+        // NOLINTEND(performance-avoid-endl)
     }
 
     // 3
@@ -2520,9 +2602,12 @@ static void test9_print()
             {L_, RUMState::e_STATE_HIGH_WATERMARK, "STATE_HIGH_WATERMARK"},
             {L_, RUMState::e_STATE_FULL, "STATE_FULL"}};
 
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+        // NOLINTBEGIN(performance-avoid-endl)
         for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
             const Test&        test = k_DATA[idx];
             bsl::string        ascii(bmqtst::TestHelperUtil::allocator());
             bmqu::MemOutStream ss(bmqtst::TestHelperUtil::allocator());
@@ -2555,6 +2640,7 @@ static void test9_print()
             RUMState::print(ss, test.d_value, 0, -1);
             BMQTST_ASSERT_EQ_D("line" << test.d_line, ss.str(), "");
         }
+        // NOLINTEND(performance-avoid-endl)
     }
 
     // 4
@@ -2574,9 +2660,12 @@ static void test9_print()
             {L_, RUMStateTransition::e_HIGH_WATERMARK, "HIGH_WATERMARK"},
             {L_, RUMStateTransition::e_FULL, "FULL"}};
 
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+        // NOLINTBEGIN(performance-avoid-endl)
         for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
             const Test&        test = k_DATA[idx];
             bmqu::MemOutStream ss(bmqtst::TestHelperUtil::allocator());
 
@@ -2607,6 +2696,7 @@ static void test9_print()
             RUMStateTransition::print(ss, test.d_value, 0, -1);
             BMQTST_ASSERT_EQ_D("line" << test.d_line, ss.str(), "");
         }
+        // NOLINTEND(performance-avoid-endl)
     }
 
     // 5
@@ -2624,6 +2714,7 @@ static void test9_print()
             const char* d_expectedLowWatermark;   // string output by 'print()'
             const char* d_expectedHighWatermark;  // string output by 'print()'
             const char* d_expectedCapacity;       // string output by 'print()'
+            // NOLINTBEGIN(*-magic-numbers)
         } k_DATA[] = {
             // Format:
             //..
@@ -2698,15 +2789,20 @@ static void test9_print()
              " (5,000,000 - 137,137,137 - 933,933,933)"
              ", Bytes (STATE_FULL): 890.67 MB"
              " (4.77 MB - 130.78 MB - 890.67 MB)] "}};
+        // NOLINTEND(*-magic-numbers)
 
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
         const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+        // NOLINTBEGIN(performance-avoid-endl)
         for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
             const Test&        test = k_DATA[idx];
             bmqu::MemOutStream ss(bmqtst::TestHelperUtil::allocator());
 
             PVV(test.d_line << ": checking 'monitor.print(ostream)'");
 
+            // NOLINTBEGIN(*-narrowing-conversions)
             mqbu::ResourceUsageMonitor monitor(
                 test.d_byteCapacity,
                 test.d_messageCapacity,
@@ -2714,6 +2810,7 @@ static void test9_print()
                 test.d_byteHighWatermark * 1.0 / test.d_byteCapacity,
                 test.d_messageLowWatermark * 1.0 / test.d_messageCapacity,
                 test.d_messageHighWatermark * 1.0 / test.d_messageCapacity);
+            // NOLINTEND(*-narrowing-conversions)
 
             // STATE_NORMAL
             monitor.print(ss, 0, -1);
@@ -2768,8 +2865,10 @@ static void test9_print()
                                ss.str(),
                                test.d_expectedCapacity);
         }
+        // NOLINTEND(performance-avoid-endl)
     }
 }
+// NOLINTEND(*-avoid-c-arrays,performance-avoid-endl)
 
 static void test10_usageExample()
 // ------------------------------------------------------------------------
@@ -2785,6 +2884,7 @@ static void test10_usageExample()
 // Testing:
 //   Usage example
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("USAGE EXAMPLE");
 
@@ -2799,6 +2899,7 @@ static void test10_usageExample()
     bsls::Types::Int64 k_MESSAGE_CAPACITY       = 11;
 
     // Create a mqbu::ResourceUsageMonitor object
+    // NOLINTBEGIN(*-narrowing-conversions)
     mqbu::ResourceUsageMonitor monitor(
         k_BYTE_CAPACITY,
         k_MESSAGE_CAPACITY,
@@ -2806,6 +2907,7 @@ static void test10_usageExample()
         k_BYTE_HIGH_WATERMARK * 1.0 / k_BYTE_CAPACITY,
         k_MESSAGE_LOW_WATERMARK * 1.0 / k_MESSAGE_CAPACITY,
         k_MESSAGE_HIGH_WATERMARK * 1.0 / k_MESSAGE_CAPACITY);
+    // NOLINTEND(*-narrowing-conversions)
 
     // Then, we check to see if we've hit our high watermark or capacity before
     // sending a message (i.e. we're no longer in 'NORMAL' state).
@@ -2838,6 +2940,7 @@ static void test10_usageExample()
     typedef mqbu::ResourceUsageMonitorStateTransition RUMStateTransition;
 
     // Update resource usage state (e.g. confirmed message from client)
+    // NOLINTNEXTLINE(*-magic-numbers)
     RUMStateTransition::Enum change = monitor.update(-30, -7);
 
     BMQTST_ASSERT_EQ(change, RUMStateTransition::e_LOW_WATERMARK);
@@ -2847,6 +2950,7 @@ static void test10_usageExample()
         // Resume sending messages
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 }  // close unnamed namespace
 
@@ -2855,6 +2959,7 @@ static void test10_usageExample()
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -2878,3 +2983,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(*-magic-numbers,cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

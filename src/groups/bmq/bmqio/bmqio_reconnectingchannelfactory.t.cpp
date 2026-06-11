@@ -58,6 +58,7 @@ static const int k_INTERVAL_RESET_LIMIT = 200;
 // class Tester
 // ------------
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Tester : public bmqtst::Test {
   private:
     // TYPES
@@ -164,10 +165,12 @@ class Tester : public bmqtst::Test {
     /// resultCb.
     int resultsCount();
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 void Tester::connectIntervalFn(bsls::TimeInterval*       interval,
                                const ConnectOptions&     options,
                                const bsls::TimeInterval& timeSinceLastAttempt)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     // For the test driver purpose, we don't care about exponential reconnect
     // and jitter, so this method is a simplified version of the default one
@@ -196,25 +199,31 @@ void Tester::connectIntervalFn(bsls::TimeInterval*       interval,
         *interval = k_MAX_INTERVAL;
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 void Tester::resolverFn(bsl::vector<bsl::string>* out,
                         const ConnectOptions&     options)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     PVV("Resolving '" << options.endpoint() << "' to '"
                       << bmqu::PrintUtil::printer(d_resolverResults) << "'");
     *out = d_resolverResults;
 }
+// NOLINTEND(performance-avoid-endl)
 
 void Tester::connectResultCb(ChannelFactoryEvent::Enum       event,
                              const Status&                   status,
                              const bsl::shared_ptr<Channel>& channel)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     PVV("ConnectResultCb: [event: " << event << ", status: " << status
                                     << ", channel: " << channel.get() << "]");
 
     d_connectResultItems.emplace_back(event, status);
 }
+// NOLINTEND(performance-avoid-endl)
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 Tester::Tester()
 : d_scheduler(bmqtst::TestHelperUtil::allocator())
 , d_timeSource(&d_scheduler)
@@ -223,6 +232,7 @@ Tester::Tester()
 , d_connectResultItems(bmqtst::TestHelperUtil::allocator())
 , d_connectHandle()
 , d_channel(bmqtst::TestHelperUtil::allocator())
+// NOLINTBEGIN(cppcoreguidelines-pro-type-union-access)
 {
     d_scheduler.start();
 
@@ -247,8 +257,11 @@ Tester::Tester()
                                    bmqtst::TestHelperUtil::allocator());
     obj().start();
 }
+// NOLINTEND(cppcoreguidelines-pro-type-union-access)
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 Tester::~Tester()
+// NOLINTBEGIN(cppcoreguidelines-pro-type-union-access)
 {
     // Some invariants checking
     BMQTST_ASSERT(d_connectResultItems.empty());
@@ -260,11 +273,14 @@ Tester::~Tester()
 
     d_scheduler.stop();
 }
+// NOLINTEND(cppcoreguidelines-pro-type-union-access)
 
 ReconnectingChannelFactory& Tester::obj()
+// NOLINTBEGIN(cppcoreguidelines-pro-type-union-access)
 {
     return d_reconnectingFactory.object();
 }
+// NOLINTEND(cppcoreguidelines-pro-type-union-access)
 
 TestChannelFactory& Tester::baseFactory()
 {
@@ -280,10 +296,12 @@ void Tester::setResolverResults(const char** endpoints, size_t count)
 {
     d_resolverResults.clear();
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic,modernize-use-emplace)
     while (count--) {
         d_resolverResults.emplace_back(
             bsl::string(*endpoints++, bmqtst::TestHelperUtil::allocator()));
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic,modernize-use-emplace)
 }
 
 void Tester::advanceSchedulerTime(int value)
@@ -298,6 +316,7 @@ void Tester::advanceSchedulerTime(int value)
 // }
 
 void Tester::connect(const ConnectOptions& options)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     PVV("Connecting using '" << options << "'");
 
@@ -317,8 +336,10 @@ void Tester::connect(const ConnectOptions& options)
                                        bdlf::PlaceHolders::_3));
     BMQTST_ASSERT(status);
 }
+// NOLINTEND(performance-avoid-endl)
 
 void Tester::closeChannel()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     PV("Closing channel");
 
@@ -330,10 +351,12 @@ void Tester::closeChannel()
     call.d_closeFn(Status(StatusCategory::e_CONNECTION,
                           bmqtst::TestHelperUtil::allocator()));
 }
+// NOLINTEND(performance-avoid-endl)
 
 void Tester::ensureConnectAndEmitEvent(int                       line,
                                        bslstl::StringRef         endpoint,
                                        ChannelFactoryEvent::Enum event)
+// NOLINTBEGIN(performance-avoid-endl)
 {
     // The baseFactory must have received a 'connect' call from the object
     // under test.
@@ -358,6 +381,7 @@ void Tester::ensureConnectAndEmitEvent(int                       line,
     call.d_cb(event, Status(bmqtst::TestHelperUtil::allocator()), channel);
     d_baseFactory.connectCalls().pop_front();
 }
+// NOLINTEND(performance-avoid-endl)
 
 void Tester::checkResult(int line, ChannelFactoryEvent::Enum event)
 {
@@ -369,9 +393,11 @@ void Tester::checkResult(int line, ChannelFactoryEvent::Enum event)
 }
 
 int Tester::resultsCount()
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     return d_connectResultItems.size();
 }
+// NOLINTEND(*-narrowing-conversions)
 
 }  // close unnamed namespace
 
@@ -379,6 +405,7 @@ int Tester::resultsCount()
 //                                    TESTS
 // ----------------------------------------------------------------------------
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BMQTST_TEST_F(Tester, SingleHost)
 // ------------------------------------------------------------------------
 // In this test:
@@ -387,7 +414,9 @@ BMQTST_TEST_F(Tester, SingleHost)
 // 2. drop the channel, and ensure a reconnection happens, which will
 //    perform 3 failing attempts before giving up for ever
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 {
+    // NOLINTNEXTLINE(*-avoid-c-arrays)
     const char* k_ENDPOINT[] = {"singleHost:123"};
     setResolverResults(k_ENDPOINT, 1);
 
@@ -458,7 +487,9 @@ BMQTST_TEST_F(Tester, SingleHost)
     advanceSchedulerTime(2 * k_RECONNECT_INTERVAL);
     BMQTST_ASSERT(baseFactory().connectCalls().empty());
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BMQTST_TEST_F(Tester, MultipleHosts)
 // ------------------------------------------------------------------------
 // In this test:
@@ -467,7 +498,9 @@ BMQTST_TEST_F(Tester, MultipleHosts)
 // 2. drop the channel, and ensure a reconnection happens, which will
 //    perform 3 failing attempts of all 3 hosts before giving up for ever
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 {
+    // NOLINTNEXTLINE(*-avoid-c-arrays)
     const char* k_ENDPOINTS[] = {"first:123", "second:456", "third:789"};
     setResolverResults(k_ENDPOINTS, 3);
 
@@ -576,7 +609,9 @@ BMQTST_TEST_F(Tester, MultipleHosts)
     advanceSchedulerTime(2 * k_RECONNECT_INTERVAL);
     BMQTST_ASSERT(baseFactory().connectCalls().empty());
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BMQTST_TEST_F(Tester, EmptyAndChangingResolvingList)
 // ------------------------------------------------------------------------
 // In this test:
@@ -584,9 +619,11 @@ BMQTST_TEST_F(Tester, EmptyAndChangingResolvingList)
 //    the expected time, and ensures it handles both a changing size of
 //    resolved hosts as well as an empty resolved hosts list.
 //------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 {
     // This will be used to temporarily change the resolver list, to ensure
     // the `EndpointResolveFn` was only called at expected time.
+    // NOLINTNEXTLINE(*-avoid-c-arrays)
     const char* k_GARBAGE_ENDPOINTS[] = {"garbage:123"};
 
     ConnectOptions options(bmqtst::TestHelperUtil::allocator());
@@ -598,6 +635,7 @@ BMQTST_TEST_F(Tester, EmptyAndChangingResolvingList)
     {
         PV("Resolving to two hosts, connect [{fail x 2}]");
 
+        // NOLINTNEXTLINE(*-avoid-c-arrays)
         const char* k_ENDPOINTS[] = {"first:123", "second:456"};
         setResolverResults(k_ENDPOINTS, 2);
 
@@ -621,6 +659,7 @@ BMQTST_TEST_F(Tester, EmptyAndChangingResolvingList)
         // resolving hosts
         advanceSchedulerTime(k_RECONNECT_INTERVAL - 1);
 
+        // NOLINTNEXTLINE(*-avoid-c-arrays)
         const char* k_ENDPOINTS[] = {"third:123", "fourth:456", "fifth:789"};
         setResolverResults(k_ENDPOINTS, 3);
 
@@ -648,6 +687,7 @@ BMQTST_TEST_F(Tester, EmptyAndChangingResolvingList)
         // resolving hosts
         advanceSchedulerTime(k_RECONNECT_INTERVAL - 1);
 
+        // NOLINTNEXTLINE(*-avoid-c-arrays)
         const char* k_ENDPOINTS[] = {"dummy"};
         setResolverResults(k_ENDPOINTS, 0);
 
@@ -668,6 +708,7 @@ BMQTST_TEST_F(Tester, EmptyAndChangingResolvingList)
         // resolving hosts
         advanceSchedulerTime(k_RECONNECT_INTERVAL - 1);
 
+        // NOLINTNEXTLINE(*-avoid-c-arrays)
         const char* k_ENDPOINTS[] = {"sixth:123", "seventh:456"};
         setResolverResults(k_ENDPOINTS, 2);
 
@@ -684,7 +725,9 @@ BMQTST_TEST_F(Tester, EmptyAndChangingResolvingList)
         checkResult(L_, ChannelFactoryEvent::e_CONNECT_ATTEMPT_FAILED);
     }
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BMQTST_TEST_F(Tester, NonReconnecting)
 // ------------------------------------------------------------------------
 // In this test:
@@ -702,6 +745,7 @@ BMQTST_TEST_F(Tester, NonReconnecting)
 // not going to be made aware of the close, therefore we know it won't try
 // to reconnect.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 {
     ConnectOptions options(bmqtst::TestHelperUtil::allocator());
     options.setEndpoint("dummyWillBeResolved:123")
@@ -712,6 +756,7 @@ BMQTST_TEST_F(Tester, NonReconnecting)
     {
         PV("Non-reconnecting connect, single host: [Fail x 3]");
 
+        // NOLINTNEXTLINE(*-avoid-c-arrays)
         const char* k_ENDPOINT[] = {"singleHost:123"};
         setResolverResults(k_ENDPOINT, 1);
 
@@ -745,6 +790,7 @@ BMQTST_TEST_F(Tester, NonReconnecting)
     {
         PV("Non-reconnecting connect, single host: [Fail, Connect, Close");
 
+        // NOLINTNEXTLINE(*-avoid-c-arrays)
         const char* k_ENDPOINT[] = {"singleHost:123"};
         setResolverResults(k_ENDPOINT, 1);
 
@@ -774,6 +820,7 @@ BMQTST_TEST_F(Tester, NonReconnecting)
     {
         PV("Non-reconnecting connect, multiple hosts: [{Fail * 3} * 3]");
 
+        // NOLINTNEXTLINE(*-avoid-c-arrays)
         const char* k_ENDPOINTS[] = {"first:123", "second:456", "third:789"};
         setResolverResults(k_ENDPOINTS, 3);
 
@@ -832,6 +879,7 @@ BMQTST_TEST_F(Tester, NonReconnecting)
         PV("Non-reconnecting connect, multiple hosts: "
            "[{Fail * 3} {Fail, Success} Close");
 
+        // NOLINTNEXTLINE(*-avoid-c-arrays)
         const char* k_ENDPOINTS[] = {"first:123", "second:456", "third:789"};
         setResolverResults(k_ENDPOINTS, 3);
 
@@ -870,12 +918,15 @@ BMQTST_TEST_F(Tester, NonReconnecting)
         BMQTST_ASSERT(baseFactory().connectCalls().empty());
     }
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 
+// NOLINTNEXTLINE(cert-err58-cpp)
 BMQTST_TEST(DefaultConnectIntervalFn)
 // ------------------------------------------------------------------------
 // In this test:
 //     Verify the well behaving of the default 'connectIntervalFn' method.
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(cert-msc32-c,cert-msc51-cpp)
 {
     static const bsls::Types::Int64 k_RESET    = 100;  // minUpTimeBeforeReset
     static const bsls::Types::Int64 k_MAX      = 50;   // maxInterval
@@ -890,6 +941,7 @@ BMQTST_TEST(DefaultConnectIntervalFn)
     // Number of iterations, since the response is `fuzzy` due to random.
     static const int k_ITERATIONS = 1000;
 
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define FN_CHECK(EXPECTED_MIN, EXPECTED_MAX, INPUT, LAST_ATTEMPT_TIME)        \
     for (int iter = 0; iter < k_ITERATIONS; ++iter) {                         \
         bsls::TimeInterval input(INPUT);                                      \
@@ -936,12 +988,14 @@ BMQTST_TEST(DefaultConnectIntervalFn)
 
 #undef FN_CHECK
 }
+// NOLINTEND(cert-msc32-c,cert-msc51-cpp)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -949,3 +1003,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

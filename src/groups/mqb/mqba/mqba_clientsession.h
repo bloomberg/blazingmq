@@ -106,6 +106,7 @@ namespace mqba {
 // =========================
 
 /// VST representing the state of a session
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct ClientSessionState {
   public:
     // TYPES
@@ -235,12 +236,14 @@ struct ClientSessionState {
         bmqp::EncodingType::Enum                   encodingType,
         bslma::Allocator*                          allocator);
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ===================
 // class ClientSession
 // ===================
 
 /// A session with a BlazingMQ client application
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ClientSession : public mqbnet::Session,
                       public mqbi::DispatcherClient,
                       public mqbi::QueueHandleRequester {
@@ -259,6 +262,7 @@ class ClientSession : public mqbnet::Session,
     typedef ClientSessionState::StreamsMap StreamsMap;
 
     /// Enum to signify the session's operation state.
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum OperationState {
         /// Running normally.
         e_RUNNING,
@@ -269,8 +273,10 @@ class ClientSession : public mqbnet::Session,
         /// The session cannot do anything.
         e_DEAD
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     /// Struct to be used as a context for shutdown operation.
+    // NOLINTBEGIN(cppcoreguidelines-special-member-functions)
     struct ShutdownContext {
         ShutdownCb         d_callback;
         bsls::TimeInterval d_stopTime;
@@ -288,6 +294,7 @@ class ClientSession : public mqbnet::Session,
 
         ~ShutdownContext();
     };
+    // NOLINTEND(cppcoreguidelines-special-member-functions)
 
     typedef bsl::shared_ptr<ShutdownContext> ShutdownContextSp;
 
@@ -696,6 +703,7 @@ class ClientSession : public mqbnet::Session,
     const bsl::shared_ptr<mqbi::QueueHandleRequesterContext>&
     handleRequesterContext() const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // ============================================================================
 //                             INLINE DEFINITIONS
@@ -739,12 +747,14 @@ inline ClientSession::ShutdownContext::ShutdownContext(
     BSLS_ASSERT_SAFE(d_callback);
 }
 
+// NOLINTBEGIN(bugprone-exception-escape)
 inline ClientSession::ShutdownContext::~ShutdownContext()
 {
     // Assume 'd_callback' does not require specific thread
 
     d_callback();
 }
+// NOLINTEND(bugprone-exception-escape)
 
 // -------------------
 // class ClientSession

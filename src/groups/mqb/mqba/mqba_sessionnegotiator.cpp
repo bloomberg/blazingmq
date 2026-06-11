@@ -102,6 +102,7 @@ void loadBrokerIdentity(bmqp_ctrlmsg::ClientIdentity* identity,
                         bool                          shouldBroadcastToProxies,
                         bool shouldExtendMessageProperties)
 
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     static bsls::AtomicInt s_sessionInstanceCount(0);
 
@@ -159,11 +160,13 @@ void loadBrokerIdentity(bmqp_ctrlmsg::ClientIdentity* identity,
     identity->userAgent()   = bsl::string("bmqbrkr:") +
                             mqbscm::Version::s_versionDotString;
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 void loadBrokerIdentity(bmqp_ctrlmsg::ClientIdentity* identity,
                         bool                          shouldBroadcastToProxies,
                         const bslstl::StringRef&      name,
                         int                           nodeId)
+// NOLINTBEGIN(*-magic-numbers,bugprone-branch-clone)
 {
     bool shouldExtendMessageProperties = false;
 
@@ -191,6 +194,7 @@ void loadBrokerIdentity(bmqp_ctrlmsg::ClientIdentity* identity,
     identity->clusterName()   = name;
     identity->clusterNodeId() = nodeId;
 }
+// NOLINTEND(*-magic-numbers,bugprone-branch-clone)
 
 /// Load in the specified `out` the short description representing the
 /// specified `identity` from the specified `peerChannel`.  The format is as
@@ -208,6 +212,7 @@ void loadBrokerIdentity(bmqp_ctrlmsg::ClientIdentity* identity,
 void loadSessionDescription(bsl::string*                        out,
                             const bmqp_ctrlmsg::ClientIdentity& identity,
                             const bmqio::Channel&               peerChannel)
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     bmqu::MemOutStream os;
 
@@ -243,6 +248,7 @@ void loadSessionDescription(bsl::string*                        out,
 
     out->assign(os.str().data(), os.str().length());
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 }  // close unnamed namespace
 
 // -----------------------
@@ -253,6 +259,7 @@ int SessionNegotiator::createSessionOnMsgType(
     bsl::ostream&                     errorDescription,
     bsl::shared_ptr<mqbnet::Session>* session,
     mqbnet::InitialConnectionContext* context_p)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT(session);
@@ -344,10 +351,12 @@ int SessionNegotiator::createSessionOnMsgType(
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onClientIdentityMessage(
     bsl::ostream&                     errorDescription,
     mqbnet::InitialConnectionContext* context_p)
+// NOLINTBEGIN(*-magic-numbers)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(context_p);
@@ -513,6 +522,7 @@ bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onClientIdentityMessage(
 
     return session;
 }
+// NOLINTEND(*-magic-numbers)
 
 bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onBrokerResponseMessage(
     bsl::ostream&                     errorDescription,
@@ -567,6 +577,7 @@ int SessionNegotiator::sendNegotiationMessage(
     bsl::ostream&                           errorDescription,
     const bmqp_ctrlmsg::NegotiationMessage& message,
     const NegotiationContextSp&             context_sp)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     enum RcEnum {
         // Value for the various RC error categories
@@ -601,6 +612,7 @@ int SessionNegotiator::sendNegotiationMessage(
     }
 
     // Build connection response event
+    // NOLINTNEXTLINE(*-magic-numbers)
     bdlma::LocalSequentialAllocator<2048> localAllocator(d_allocator_p);
 
     bmqp::SchemaEventBuilder builder(d_blobSpPool_p,
@@ -627,10 +639,12 @@ int SessionNegotiator::sendNegotiationMessage(
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 int SessionNegotiator::populateNegotiationContext(
     bsl::ostream&                     errorDescription,
     mqbnet::InitialConnectionContext* context_p)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     enum RcEnum {
         // Value for the various RC error categories
@@ -720,6 +734,7 @@ int SessionNegotiator::populateNegotiationContext(
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 void SessionNegotiator::createSession(
     bsl::shared_ptr<mqbnet::Session>* out,
@@ -912,8 +927,10 @@ int SessionNegotiator::negotiateOutbound(
     BSLS_ASSERT_SAFE(!context_p->isIncoming());
 
     const mqbblp::ClusterCatalog::NegotiationUserData* userData =
+        // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
         reinterpret_cast<mqbblp::ClusterCatalog::NegotiationUserData*>(
             context_p->userData());
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
     BSLS_ASSERT_SAFE(userData);
 

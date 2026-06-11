@@ -45,16 +45,19 @@ using namespace bsl;
 // ----------------------------------------------------------------------------
 namespace {
 
+// NOLINTNEXTLINE(cppcoreguidelines-avoid-non-const-global-variables)
 int seed = bsl::numeric_limits<int>::max();
 
 /// struct representing the parameters that `AckEventBuilder::appendMessage`
 /// takes.
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 struct AckData {
     int               d_status;
     int               d_corrId;
     bmqt::MessageGUID d_guid;
     int               d_queueId;
 };
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 /// Append the specified `numMsgs` messages to the specified `builder` and
 /// populate the specified `vec` with the messages that were added, so that
@@ -63,14 +66,17 @@ static void appendMessages(bmqp::AckEventBuilder* builder,
                            bsl::vector<AckData>*  vec,
                            size_t                 numMsgs)
 {
+    // NOLINTBEGIN(*-avoid-c-arrays)
     static const char* s_HEX_REP[] = {"0000000000003039CD8101000000270F",
                                       "00000000010EA8F9515DCACE04742D2E",
                                       "ABCDEF0123456789ABCDEF0123456789"};
+    // NOLINTEND(*-avoid-c-arrays)
 
     const int k_NUM_GUIDS = sizeof(s_HEX_REP) / sizeof(s_HEX_REP[0]);
 
     vec->reserve(numMsgs);
 
+    // NOLINTBEGIN(*-narrowing-conversions,cppcoreguidelines-pro-bounds-constant-array-index)
     for (size_t i = 0; i < numMsgs; ++i) {
         AckData data;
         data.d_status = i % 3;
@@ -84,6 +90,7 @@ static void appendMessages(bmqp::AckEventBuilder* builder,
         BMQTST_ASSERT_EQ(rc, 0);
         vec->push_back(data);
     }
+    // NOLINTEND(*-narrowing-conversions,cppcoreguidelines-pro-bounds-constant-array-index)
 }
 
 struct PutData {
@@ -114,6 +121,7 @@ appendMessage(size_t                    iteration,
               bsl::vector<PutData>*     vec,
               bdlbb::BlobBufferFactory* bufferFactory,
               bslma::Allocator*         allocator)
+// NOLINTBEGIN(*-narrowing-conversions)
 {
     PutData data(allocator);
 
@@ -137,6 +145,7 @@ appendMessage(size_t                    iteration,
     peb->setMessageGUID(data.d_guid);
     return peb->packMessage(data.d_qid);
 }
+// NOLINTEND(*-narrowing-conversions)
 
 }  // close unnamed namespace
 
@@ -152,6 +161,7 @@ static void test1_breathingTest()
 }
 
 static void test2_ackMesageIteratorTest()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Can't ensure no default memory is allocated because a default
@@ -164,9 +174,11 @@ static void test2_ackMesageIteratorTest()
 
     const int k_NUM_MSGS = 5;
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         256,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
@@ -187,14 +199,17 @@ static void test2_ackMesageIteratorTest()
                             bmqtst::TestHelperUtil::allocator());
     eventImpl->configureAsMessageEvent(rawEvent);
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
     for (bsl::vector<AckData>::const_iterator i = messages.begin();
          i != messages.end();
          ++i) {
         eventImpl->addContext(bmqt::CorrelationId(i->d_corrId));
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
 
     bmqa::MessageEvent              event;
     bsl::shared_ptr<bmqimp::Event>& eventImplref =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         reinterpret_cast<bsl::shared_ptr<bmqimp::Event>&>(event);
     eventImplref = eventImpl;
 
@@ -214,8 +229,10 @@ static void test2_ackMesageIteratorTest()
         BMQTST_ASSERT_EQ(offset, k_NUM_MSGS);
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test3_putMessageIteratorTest()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // Can't ensure no default memory is allocated because a default
@@ -228,9 +245,11 @@ static void test3_putMessageIteratorTest()
 
     const int k_NUM_MSGS = 5;
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         256,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
@@ -262,12 +281,15 @@ static void test3_putMessageIteratorTest()
     // Fill event's correlationId list as it is done in the
     // 'bmqa::MessageEventBuilder::packMessage' so that the message iterator
     // can access the correlationId for each message.
+    // NOLINTBEGIN(*-narrowing-conversions)
     for (size_t i = 0; i < k_NUM_MSGS; ++i) {
         eventImpl->addContext(bmqt::CorrelationId(i));
     }
+    // NOLINTEND(*-narrowing-conversions)
 
     bmqa::MessageEvent              event;
     bsl::shared_ptr<bmqimp::Event>& eventImplref =
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-reinterpret-cast)
         reinterpret_cast<bsl::shared_ptr<bmqimp::Event>&>(event);
     eventImplref = eventImpl;
 
@@ -293,12 +315,14 @@ static void test3_putMessageIteratorTest()
         BMQTST_ASSERT_EQ(offset, k_NUM_MSGS);
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -324,3 +348,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

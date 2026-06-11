@@ -40,6 +40,7 @@ namespace bmqpi {
 // =======================
 
 /// A pure interface for monitoring the health of the host.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class HostHealthMonitor {
   public:
     // TYPES
@@ -67,6 +68,7 @@ class HostHealthMonitor {
     /// Queries the current health of the host.
     virtual bmqt::HostHealthState::Enum hostState() const = 0;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

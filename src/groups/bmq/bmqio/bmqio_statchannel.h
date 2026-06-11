@@ -52,6 +52,7 @@ class StatChannel;
 // =======================
 
 /// Configuration for a `StatChannel`.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class StatChannelConfig {
   private:
     // DATA
@@ -76,12 +77,14 @@ class StatChannelConfig {
     StatChannelConfig(const StatChannelConfig& other,
                       bslma::Allocator*        basicAllocator = 0);
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =================
 // class StatChannel
 // =================
 
 /// Implementation of the `Channel` protocol that collects stats.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class StatChannel : public DecoratingChannelPartialImp {
   public:
     // TYPES
@@ -95,6 +98,7 @@ class StatChannel : public DecoratingChannelPartialImp {
     ///       `bmqio::StatChannelFactory`).
     struct Stat {
         // TYPES
+        // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
         enum Enum { e_BYTES_IN = 0, e_BYTES_OUT = 1, e_CONNECTIONS = 2 };
     };
 
@@ -136,6 +140,7 @@ class StatChannel : public DecoratingChannelPartialImp {
                const bdlbb::Blob& blob,
                bsls::Types::Int64 highWatermark) BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

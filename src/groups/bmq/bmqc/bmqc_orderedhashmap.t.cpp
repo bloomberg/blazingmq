@@ -58,6 +58,7 @@ class IdentityHasher {
     size_t operator()(size_t x) const { return x; }
 };
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct TestKeyType {
     // CLASS LEVEL DATA
     static size_t s_numDeletions;
@@ -66,10 +67,12 @@ struct TestKeyType {
     size_t d_a;
 
     // CREATORS
+    // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
     TestKeyType(size_t a) { d_a = a; }
 
     ~TestKeyType() { s_numDeletions += 1; }
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 size_t TestKeyType::s_numDeletions(0);
 
@@ -86,6 +89,7 @@ void hashAppend(HASH_ALGORITHM& hashAlgo, const TestKeyType& key)
     hashAppend(hashAlgo, key.d_a);
 }
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct TestValueType {
     // CLASS LEVEL DATA
     static size_t s_numDeletions;
@@ -94,10 +98,12 @@ struct TestValueType {
     size_t d_b;
 
     // CREATORS
+    // NOLINTNEXTLINE(cppcoreguidelines-prefer-member-initializer)
     TestValueType(size_t b) { d_b = b; }
 
     ~TestValueType() { s_numDeletions += 1; }
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 size_t TestValueType::s_numDeletions(0);
 
@@ -222,6 +228,7 @@ static void test3_insert()
 #endif
 
     // Insert 1M elements
+    // NOLINTBEGIN(*-magic-numbers)
     for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
         RcType rc = map.insert(bsl::make_pair(i, i + 1));
         BMQTST_ASSERT_EQ_D(i, true, rc.second);
@@ -230,6 +237,7 @@ static void test3_insert()
         BMQTST_ASSERT_EQ_D(i, (i + 1), rc.first->second);
         BMQTST_ASSERT_EQ_D(i, true, 1.5 >= map.load_factor());
     }
+    // NOLINTEND(*-magic-numbers)
 
     BMQTST_ASSERT_EQ(map.size(), k_NUM_ELEMENTS);
 
@@ -293,6 +301,7 @@ static void test4_rinsert()
 #endif
 
     // Insert 1M elements
+    // NOLINTBEGIN(*-magic-numbers)
     for (size_t i = 0; i < k_NUM_ELEMENTS; ++i) {
         RcType rc = map.rinsert(bsl::make_pair(i, i + 1));
         BMQTST_ASSERT_EQ_D(i, true, rc.second);
@@ -301,6 +310,7 @@ static void test4_rinsert()
         BMQTST_ASSERT_EQ_D(i, (i + 1), rc.first->second);
         BMQTST_ASSERT_EQ_D(i, true, 1.5 >= map.load_factor());
     }
+    // NOLINTEND(*-magic-numbers)
 
     BMQTST_ASSERT_EQ(map.size(), k_NUM_ELEMENTS);
 
@@ -347,6 +357,7 @@ static void test5_insertEraseInsert()
 
     MyMapType map(bmqtst::TestHelperUtil::allocator());
 
+    // NOLINTNEXTLINE(bugprone-implicit-widening-of-multiplication-result)
     const size_t k_NUM_ELEMENTS = 100 * 1000;  // 100K
     const size_t k_STEP         = 10;
 
@@ -600,6 +611,7 @@ static void test10_erasureIterator()
 // Concerns:
 //   Use iterator returned by erase(const_iterator)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("ERASURE ITERATOR");
     // Use iterator returned by erase(const_iterator)
@@ -619,6 +631,7 @@ static void test10_erasureIterator()
     }
 
     // Find
+    // NOLINTNEXTLINE(*-magic-numbers)
     IterType iter = map.find(9000);
     BMQTST_ASSERT_EQ(true, iter != map.end());
     BMQTST_ASSERT_EQ(iter->first, 9000U);
@@ -634,6 +647,7 @@ static void test10_erasureIterator()
         ++i;
     }
 }
+// NOLINTEND(*-magic-numbers)
 
 static void test11_copyConstructor()
 // ------------------------------------------------------------------------
@@ -785,6 +799,7 @@ static void test13_previousEndIterator()
     BMQTST_ASSERT_EQ((i * i), endIt->second);
 
     ++i;
+    // NOLINTBEGIN(*-magic-numbers)
     for (; i < 10000; ++i) {
         endIt = map.end();
         rc    = map.insert(bsl::make_pair(i, i * i));
@@ -792,6 +807,7 @@ static void test13_previousEndIterator()
         BMQTST_ASSERT_EQ_D(i, i, endIt->first);
         BMQTST_ASSERT_EQ_D(i, (i * i), endIt->second);
     }
+    // NOLINTEND(*-magic-numbers)
 
     // Erase last element
     map.erase(i - 1);
@@ -897,6 +913,7 @@ static void test15_eraseRange()
 // Testing:
 //   erase(const_iterator first, const_iterator last)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(bugprone-inc-dec-in-conditions)
 {
     bmqtst::TestHelper::printTestName("ERASE RANGE");
 
@@ -948,6 +965,7 @@ static void test15_eraseRange()
 
     BMQTST_ASSERT_EQ(true, map.empty());
 }
+// NOLINTEND(bugprone-inc-dec-in-conditions)
 
 static void testN1_insertPerformance()
 // ------------------------------------------------------------------------
@@ -1163,7 +1181,24 @@ static void testN3_findPerformance()
 //                              MAIN PROGRAM
 //-----------------------------------------------------------------------------
 
+// NOLINTBEGIN(bugprone-exception-escape)
 int main(int argc, char* argv[])
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTBEGIN(cert-err34-c)
 {
     // One time initialization
     bsls::TimeUtil::initialize();
@@ -1198,3 +1233,20 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTEND(cert-err34-c)
+// NOLINTEND(bugprone-exception-escape)

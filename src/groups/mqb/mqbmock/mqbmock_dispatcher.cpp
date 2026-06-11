@@ -212,6 +212,7 @@ bsls::Types::Int64 Dispatcher::numProcessorEvents(
 // ---------------------------------
 
 /// A guard that ensures the event is removed when it goes out of scope.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class Dispatcher::InnerEventGuard {
   private:
     // DATA
@@ -230,13 +231,16 @@ class Dispatcher::InnerEventGuard {
                     mqbi::Dispatcher::DispatcherEventSp event)
     : d_dispatcher(dispatcher)
     , d_client(client)
+    // NOLINTBEGIN(performance-unnecessary-value-param)
     {
         d_dispatcher->d_eventsForClients[client] = event;
     }
+    // NOLINTEND(performance-unnecessary-value-param)
 
     /// Destructor of this object.
     ~InnerEventGuard() { d_dispatcher->d_eventsForClients.erase(d_client); }
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 Dispatcher::EventGuard
 Dispatcher::_withEvent(const mqbi::DispatcherClient*       client,

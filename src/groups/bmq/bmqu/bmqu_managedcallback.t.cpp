@@ -44,6 +44,7 @@ namespace {
 
 static void
 printSummary(bsl::string_view desc, bsls::Types::Int64 dt, size_t iters)
+// NOLINTBEGIN(*-narrowing-conversions,performance-avoid-endl)
 {
     bsl::cout << desc << ":" << bsl::endl;
     bsl::cout << "       total: " << bmqu::PrintUtil::prettyTimeInterval(dt)
@@ -53,12 +54,14 @@ printSummary(bsl::string_view desc, bsls::Types::Int64 dt, size_t iters)
               << bsl::endl;
     bsl::cout << bsl::endl;
 }
+// NOLINTEND(*-narrowing-conversions,performance-avoid-endl)
 
 void increment(size_t* calls)
 {
     ++(*calls);
 }
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct IncrementCallback : public bmqu::ManagedCallback::CallbackFunctor {
     size_t* d_calls_p;
 
@@ -75,6 +78,7 @@ struct IncrementCallback : public bmqu::ManagedCallback::CallbackFunctor {
 
     void operator()() const BSLS_KEYWORD_OVERRIDE { ++(*d_calls_p); }
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 void complexFunction(size_t*           calls,
                      BSLA_MAYBE_UNUSED bsls::Types::Uint64 arg1,
@@ -89,6 +93,7 @@ void complexFunction(size_t*           calls,
     ++(*calls);
 }
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct ComplexCallback : bmqu::ManagedCallback::CallbackFunctor {
     size_t*             d_calls_p;
     bsls::Types::Uint64 d_arg1;
@@ -129,7 +134,9 @@ struct ComplexCallback : bmqu::ManagedCallback::CallbackFunctor {
 
     void operator()() const BSLS_KEYWORD_OVERRIDE { ++(*d_calls_p); }
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
+// NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers,cppcoreguidelines-special-member-functions)
 struct BigCallback : public bmqu::ManagedCallback::CallbackFunctor {
     size_t* d_calls_p;
     char    d_data[4096];
@@ -148,7 +155,9 @@ struct BigCallback : public bmqu::ManagedCallback::CallbackFunctor {
 
     void operator()() const BSLS_KEYWORD_OVERRIDE { ++(*d_calls_p); }
 };
+// NOLINTEND(*-avoid-c-arrays,*-magic-numbers,cppcoreguidelines-special-member-functions)
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 struct DestructorChecker : public bmqu::ManagedCallback::CallbackFunctor {
     bool* d_wasDestructorCalled_p;
 
@@ -170,7 +179,9 @@ struct DestructorChecker : public bmqu::ManagedCallback::CallbackFunctor {
         // NOTHING
     }
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
+// NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers,cppcoreguidelines-special-member-functions)
 class ManagedCallbackBuffer BSLS_KEYWORD_FINAL {
   private:
     // DATA
@@ -198,6 +209,7 @@ class ManagedCallbackBuffer BSLS_KEYWORD_FINAL {
 
     // MANIPULATORS
     inline void reset()
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     {
         if (!d_empty) {
             // Not necessary to resize the vector or memset its elements to 0,
@@ -209,6 +221,7 @@ class ManagedCallbackBuffer BSLS_KEYWORD_FINAL {
             d_empty = true;
         }
     }
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 
     /// Note: this class exists for evaluation only, and we don't define
     ///       `createInplace` for it, because it requires generation of C++03
@@ -217,6 +230,7 @@ class ManagedCallbackBuffer BSLS_KEYWORD_FINAL {
     ///       with "placement new".
     template <class CALLBACK_TYPE>
     inline char* place()
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-type-reinterpret-cast)
     {
         // PRECONDITIONS
         BSLS_ASSERT_SAFE(d_empty);
@@ -231,6 +245,7 @@ class ManagedCallbackBuffer BSLS_KEYWORD_FINAL {
         d_empty = false;
         return d_callbackBuffer;
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-type-reinterpret-cast)
 
     // ACCESSORS
 
@@ -238,6 +253,7 @@ class ManagedCallbackBuffer BSLS_KEYWORD_FINAL {
     inline bool empty() const { return d_empty; }
 
     inline void operator()() const
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     {
         // PRECONDITIONS
         BSLS_ASSERT_SAFE(!d_empty);
@@ -245,7 +261,9 @@ class ManagedCallbackBuffer BSLS_KEYWORD_FINAL {
         (*reinterpret_cast<const bmqu::ManagedCallback::CallbackFunctor*>(
             d_callbackBuffer))();
     }
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
 };
+// NOLINTEND(*-avoid-c-arrays,*-magic-numbers,cppcoreguidelines-special-member-functions)
 
 }  // close unnamed namespace
 
@@ -253,6 +271,7 @@ class ManagedCallbackBuffer BSLS_KEYWORD_FINAL {
 //                                    TESTS
 // ----------------------------------------------------------------------------
 static void test1_ManagedCallback()
+// NOLINTBEGIN(*-magic-numbers)
 {
     bmqtst::TestHelper::printTestName("MANAGED CALLBACK");
 
@@ -278,10 +297,12 @@ static void test1_ManagedCallback()
     callback.createInplace<IncrementCallback>(&calls2);
     BMQTST_ASSERT(!callback.empty());
 
+    // NOLINTBEGIN(*-magic-numbers)
     for (size_t i = 1; i <= 5; ++i) {
         callback();
         BMQTST_ASSERT_EQ(i, calls2);
     }
+    // NOLINTEND(*-magic-numbers)
     BMQTST_ASSERT_EQ(1U, calls1);
 
     callback.reset();
@@ -332,6 +353,7 @@ static void test1_ManagedCallback()
 
     // 6. Multiple reuse
     size_t calls6 = 0;
+    // NOLINTBEGIN(*-magic-numbers)
     for (size_t i = 1; i <= 100000; i++) {
         if (i % 3 == 0) {
             callback.createInplace<IncrementCallback>(&calls6);
@@ -358,6 +380,7 @@ static void test1_ManagedCallback()
         callback.reset();
         BMQTST_ASSERT(callback.empty());
     }
+    // NOLINTEND(*-magic-numbers)
 
     // 7. ManagedCallback destructor destructs the stored callback object
     bool wasDestructorCalled = false;
@@ -371,8 +394,10 @@ static void test1_ManagedCallback()
     }
     BMQTST_ASSERT(wasDestructorCalled);
 }
+// NOLINTEND(*-magic-numbers)
 
 static void testN1_ManagedCallbackPerformance()
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     const size_t k_ITERS_NUM = 10000000;
 
@@ -556,6 +581,7 @@ static void testN1_ManagedCallbackPerformance()
         bsl::function<void(void)> callback;
 
         const bsls::Types::Int64 begin = bsls::TimeUtil::getTimer();
+        // NOLINTBEGIN(*-magic-numbers)
         for (size_t i = 0; i < k_ITERS_NUM; i++) {
             callback = bdlf::BindUtil::bindS(
                 bmqtst::TestHelperUtil::allocator(),
@@ -571,6 +597,7 @@ static void testN1_ManagedCallbackPerformance()
                 args[7]);
             callback();
         }
+        // NOLINTEND(*-magic-numbers)
         const bsls::Types::Int64 end = bsls::TimeUtil::getTimer();
 
         printSummary("bsl::function<...>()", end - begin, k_ITERS_NUM);
@@ -579,6 +606,7 @@ static void testN1_ManagedCallbackPerformance()
         bmqu::ManagedCallback callback(bmqtst::TestHelperUtil::allocator());
 
         const bsls::Types::Int64 begin = bsls::TimeUtil::getTimer();
+        // NOLINTBEGIN(*-magic-numbers)
         for (size_t i = 0; i < k_ITERS_NUM; i++) {
             callback.createInplace<ComplexCallback>(&calls,
                                                     args[0],
@@ -592,6 +620,7 @@ static void testN1_ManagedCallbackPerformance()
             callback();
             callback.reset();
         }
+        // NOLINTEND(*-magic-numbers)
         const bsls::Types::Int64 end = bsls::TimeUtil::getTimer();
 
         printSummary("bmqu::ManagedCallback(vector)",
@@ -602,6 +631,7 @@ static void testN1_ManagedCallbackPerformance()
         ManagedCallbackBuffer callback;
 
         const bsls::Types::Int64 begin = bsls::TimeUtil::getTimer();
+        // NOLINTBEGIN(*-magic-numbers)
         for (size_t i = 0; i < k_ITERS_NUM; i++) {
             new (callback.place<ComplexCallback>()) ComplexCallback(&calls,
                                                                     args[0],
@@ -615,6 +645,7 @@ static void testN1_ManagedCallbackPerformance()
             callback();
             callback.reset();
         }
+        // NOLINTEND(*-magic-numbers)
         const bsls::Types::Int64 end = bsls::TimeUtil::getTimer();
 
         printSummary("bmqu::ManagedCallback(char[])",
@@ -626,12 +657,19 @@ static void testN1_ManagedCallbackPerformance()
         bsl::cout << calls << bsl::endl;
     }
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
+// NOLINTBEGIN(bugprone-exception-escape)
 int main(int argc, char* argv[])
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTBEGIN(cert-err34-c)
 {
     // To be called only once per process instantiation.
     bsls::TimeUtil::initialize();
@@ -651,3 +689,9 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTEND(cert-err34-c)
+// NOLINTEND(bugprone-exception-escape)

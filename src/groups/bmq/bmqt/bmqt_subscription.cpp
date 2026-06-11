@@ -42,6 +42,7 @@ const int Subscription::k_DEFAULT_CONSUMER_PRIORITY        = 0;
 // PRIVATE CLASS METHODS
 
 unsigned int SubscriptionHandle::nextId()
+// NOLINTBEGIN(clang-analyzer-core.CallAndMessage)
 {
     static bsls::AtomicUint* s_id = 0;
 
@@ -54,6 +55,7 @@ unsigned int SubscriptionHandle::nextId()
 
     return ++(*s_id);
 }
+// NOLINTEND(clang-analyzer-core.CallAndMessage)
 
 }  // close package namespace
 }  // close enterprise namespace

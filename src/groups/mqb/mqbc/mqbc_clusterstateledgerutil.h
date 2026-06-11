@@ -55,6 +55,7 @@ namespace mqbc {
 /// @bbref{mqbc::ClusterStateLedgerUtil} component.
 struct ClusterStateLedgerUtilRc {
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
 
         /// @name ClusterStateLedgerUtilRc_Enum_Generic
@@ -125,6 +126,7 @@ struct ClusterStateLedgerUtilRc {
 
         /// @}
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CLASS METHODS
 
@@ -276,10 +278,12 @@ struct ClusterStateLedgerUtil {
 
 inline bsls::Types::Int64
 ClusterStateLedgerUtil::recordSize(const ClusterStateRecordHeader& header)
+// NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result)
 {
     return (header.headerWords() + header.leaderAdvisoryWords()) *
            bmqp::Protocol::k_WORD_SIZE;
 }
+// NOLINTEND(bugprone-implicit-widening-of-multiplication-result)
 
 }  // close package namespace
 

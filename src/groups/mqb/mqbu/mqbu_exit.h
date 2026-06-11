@@ -47,6 +47,7 @@ namespace mqbu {
 struct ExitCode {
   public:
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         /// Clean exit
         e_SUCCESS = 0,
@@ -98,6 +99,7 @@ struct ExitCode {
         /// The broker was requested, through a command, to stop.
         e_REQUESTED = 13
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CLASS METHODS
 

@@ -101,6 +101,7 @@ static void test1_validateState()
 // Testing:
 //   validateState(...)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     bmqtst::TestHelper::printTestName("VALIDATE STATE");
 
@@ -108,14 +109,18 @@ static void test1_validateState()
 
     // We need to generate two different states and make sure we have the
     // expected outputs
+    // NOLINTBEGIN(*-magic-numbers)
     mqbc::ClusterState original(tester.cluster(),
                                 5,
                                 false,  // isTemporary
                                 tester.allocator());
+    // NOLINTEND(*-magic-numbers)
+    // NOLINTBEGIN(*-magic-numbers)
     mqbc::ClusterState reference(tester.cluster(),
                                  5,
                                  false,  // isTemporary
                                  tester.allocator());
+    // NOLINTEND(*-magic-numbers)
 
     // 0. Generate different and same primary lease Id
     original.setPartitionPrimary(0, 10, 0);
@@ -229,29 +234,35 @@ static void test1_validateState()
     mqbu::StorageKey correctQueueKey(mqbu::StorageKey::BinaryRepresentation(),
                                      keyCorrectQueue.data());
     mqbc::ClusterState::QueueInfoSp correctQueueInfoSp =
+        // NOLINTBEGIN(*-magic-numbers)
         tester.createQueueInfoSp(queueCorrectQueue,
                                  correctQueueKey,
                                  5,
                                  mqbc::ClusterState::AppInfos());
+    // NOLINTEND(*-magic-numbers)
 
     bsl::string queueCorrectQueue2 = "bmq://" + domainCorrectQueue + "/qqq2";
     bsl::string keyCorrectQueue2   = "correct.queue2";
     mqbu::StorageKey correctQueueKey2(mqbu::StorageKey::BinaryRepresentation(),
                                       keyCorrectQueue2.data());
     mqbc::ClusterState::QueueInfoSp correctQueueInfoSp2NullApp =
+        // NOLINTBEGIN(*-magic-numbers)
         tester.createQueueInfoSp(queueCorrectQueue2,
                                  correctQueueKey2,
                                  6,
                                  mqbc::ClusterState::AppInfos());
+    // NOLINTEND(*-magic-numbers)
     mqbc::ClusterState::AppInfos defaultAppInfos;
     defaultAppInfos.insert(bsl::make_pair(
         bsl::string(bmqp::ProtocolUtil::k_DEFAULT_APP_ID, tester.allocator()),
         mqbi::QueueEngine::k_DEFAULT_APP_KEY));
     mqbc::ClusterState::QueueInfoSp correctQueueInfoSp2DefaultApp =
+        // NOLINTBEGIN(*-magic-numbers)
         tester.createQueueInfoSp(queueCorrectQueue2,
                                  correctQueueKey2,
                                  6,
                                  defaultAppInfos);
+    // NOLINTEND(*-magic-numbers)
 
     mqbc::ClusterState::DomainStateSp correctQueueDomainStateSp =
         tester.createDomainState();
@@ -388,12 +399,19 @@ static void test1_validateState()
 
     BMQTST_ASSERT_EQ(errorDescription.str(), out.str());
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
+// NOLINTBEGIN(bugprone-exception-escape)
 int main(int argc, char* argv[])
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTBEGIN(cert-err34-c)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -411,3 +429,9 @@ int main(int argc, char* argv[])
     // 'bdlmt::EventSchedulerTestTimeSource' inside 'mqbmock::Cluster' uses
     // the default allocator in its constructor.
 }
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTEND(cert-err34-c)
+// NOLINTEND(bugprone-exception-escape)

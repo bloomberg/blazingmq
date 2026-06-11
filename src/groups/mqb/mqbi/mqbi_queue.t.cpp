@@ -43,6 +43,7 @@ namespace {
 /// specified `max`, inclusive.  The behavior is undefined unless `min >= 0`
 /// and `max >= min`.
 int generateRandomInteger(int min, int max)
+// NOLINTBEGIN(cert-msc30-c,cert-msc50-cpp)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(min >= 0);
@@ -50,6 +51,7 @@ int generateRandomInteger(int min, int max)
 
     return min + (bsl::rand() % (max - min + 1));
 }
+// NOLINTEND(cert-msc30-c,cert-msc50-cpp)
 
 }  // close unnamed namespace
 
@@ -77,6 +79,7 @@ static void test1_hashAppendSubQueueIdInfo()
 //   hashAppend(HASH_ALGORITHM&                     hashAlgo,
 //              const bmqp_ctrlmsg::SubQueueIdInfo& subQueueIdInfo)
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("HASH APPEND SUBQUEUEIDINFO");
 
@@ -93,6 +96,7 @@ static void test1_hashAppendSubQueueIdInfo()
 
         bsl::hash<bmqp_ctrlmsg::SubQueueIdInfo>::result_type firstHash =
             hasher(obj);
+        // NOLINTBEGIN(performance-avoid-endl)
         for (size_t i = 0; i < k_NUM_ITERATIONS; ++i) {
             bslh::DefaultHashAlgorithm algo;
             hashAppend(algo, obj);
@@ -101,6 +105,7 @@ static void test1_hashAppendSubQueueIdInfo()
             PVV("[" << i << "] hash: " << currHash);
             BMQTST_ASSERT_EQ_D(i, currHash, firstHash);
         }
+        // NOLINTEND(performance-avoid-endl)
     }
 
     {
@@ -143,12 +148,14 @@ static void test1_hashAppendSubQueueIdInfo()
         BMQTST_ASSERT_EQ(infos.count(obj3), static_cast<size_t>(1));
     }
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -167,3 +174,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

@@ -63,6 +63,7 @@ namespace bmqt {
 // ==================
 
 /// Value-semantic type for options related to a queue.
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class QueueOptions {
   public:
     // PUBLIC CONSTANTS
@@ -230,6 +231,7 @@ class QueueOptions {
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // FREE OPERATORS
 

@@ -44,6 +44,7 @@ namespace bmqa {
 // class ManualHostHealthMonitor
 // =============================
 
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ManualHostHealthMonitor : public bmqpi::HostHealthMonitor {
   private:
     // PRIVATE DATA
@@ -70,6 +71,7 @@ class ManualHostHealthMonitor : public bmqpi::HostHealthMonitor {
     // ACCESSORS
     bmqt::HostHealthState::Enum hostState() const BSLS_KEYWORD_OVERRIDE;
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 }  // close package namespace
 }  // close enterprise namespace

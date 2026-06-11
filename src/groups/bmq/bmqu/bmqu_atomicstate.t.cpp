@@ -45,6 +45,7 @@ void threadFn(bool*              result,
 // ----------------------------------------------------------------------------
 
 static void test1_cancelThenProcess()
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     // ------------------------------------------------------------------------
     //
@@ -61,8 +62,10 @@ static void test1_cancelThenProcess()
     result = state.process();
     BMQTST_ASSERT_EQ(result, false);
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 static void test2_processThenCancel()
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     // ------------------------------------------------------------------------
     //
@@ -79,8 +82,10 @@ static void test2_processThenCancel()
     result = state.cancel();
     BMQTST_ASSERT_EQ(result, false);
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 static void test3_lockThenProcess()
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     // ------------------------------------------------------------------------
     //
@@ -116,8 +121,10 @@ static void test3_lockThenProcess()
 
     BMQTST_ASSERT_EQ(result2, true);
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 static void test4_lockThenCancelThenProcess()
+// NOLINTBEGIN(cppcoreguidelines-init-variables)
 {
     // ------------------------------------------------------------------------
     //
@@ -137,12 +144,14 @@ static void test4_lockThenCancelThenProcess()
     result = state.process();
     BMQTST_ASSERT_EQ(result, false);
 }
+// NOLINTEND(cppcoreguidelines-init-variables)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 
@@ -160,3 +169,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

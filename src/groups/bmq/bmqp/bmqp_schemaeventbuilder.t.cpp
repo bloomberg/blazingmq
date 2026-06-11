@@ -51,13 +51,16 @@ using namespace bsl;
 // ----------------------------------------------------------------------------
 
 static void test1_breathingTest()
+// NOLINTBEGIN(*-avoid-c-arrays,cppcoreguidelines-init-variables)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
-    int                            rc;
+    int rc;
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
@@ -72,9 +75,12 @@ static void test1_breathingTest()
                   },
                   {L_, bmqp::EncodingType::e_JSON}};
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
         PVV(test.d_line << ": Testing " << test.d_encodingType << "encoding");
 
@@ -119,7 +125,9 @@ static void test1_breathingTest()
         obj.reset();
         BMQTST_ASSERT_EQ(obj.blob()->length(), 0);
     }
+    // NOLINTEND(*-magic-numbers,performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays,cppcoreguidelines-init-variables)
 
 /// This is a helper function to test the routine of encoding the message,
 /// writing to file, reading from file and decoding it, as described in
@@ -130,6 +138,7 @@ void testDecodeFromFileHelper(bmqp::SchemaEventBuilder*       obj,
                               const TYPE&                     message,
                               const char*                     typeString,
                               bdlbb::PooledBlobBufferFactory* bufferFactory)
+// NOLINTBEGIN(cppcoreguidelines-init-variables,performance-avoid-endl)
 {
     BSLS_ASSERT(decoded != 0);
     BSLS_ASSERT(typeString != 0);
@@ -200,6 +209,7 @@ void testDecodeFromFileHelper(bmqp::SchemaEventBuilder*       obj,
 
     delete[] buf;
 }
+// NOLINTEND(cppcoreguidelines-init-variables,performance-avoid-endl)
 
 static void test2_bestEncodingSupported()
 // --------------------------------------------------------------------
@@ -212,6 +222,7 @@ static void test2_bestEncodingSupported()
 // Testing:
 //   bestEncodingSupported
 // --------------------------------------------------------------------
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("BEST ENCODING SUPPORTED");
 
@@ -259,6 +270,7 @@ static void test2_bestEncodingSupported()
             bmqp::SchemaEventBuilderUtil::bestEncodingSupported(features));
     }
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 
 static void testN1_decodeFromFile()
 // --------------------------------------------------------------------
@@ -281,6 +293,7 @@ static void testN1_decodeFromFile()
 // SchemaEventBuilder::setMessage(const TYPE&     message,
 //                                EventType::Enum type)
 // --------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     bmqtst::TestHelper::printTestName("DECODE FROM FILE");
 
@@ -302,9 +315,12 @@ static void testN1_decodeFromFile()
                   },
                   {L_, bmqp::EncodingType::e_JSON}};
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
+    // NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
         PVV(test.d_line << ": Testing " << test.d_encodingType << " encoding");
 
@@ -576,13 +592,16 @@ static void testN1_decodeFromFile()
             BMQTST_ASSERT(decOpenQueueResponse == openQueueResponse);
         }
     }
+    // NOLINTEND(*-magic-numbers,performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -599,3 +618,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

@@ -126,11 +126,14 @@ class MemoryBlockIterator {
 // -------------------------
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline MemoryBlockIterator::MemoryBlockIterator()
 {
     clear();
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline MemoryBlockIterator::MemoryBlockIterator(const MemoryBlock*  block,
                                                 bsls::Types::Uint64 position,
                                                 bsls::Types::Uint64 remaining,
@@ -138,6 +141,7 @@ inline MemoryBlockIterator::MemoryBlockIterator(const MemoryBlock*  block,
 {
     reset(block, position, remaining, forwardIter);
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // MANIPULATORS
 inline void MemoryBlockIterator::clear()

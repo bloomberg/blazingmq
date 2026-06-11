@@ -34,6 +34,7 @@ namespace bmqu {
 // ---------------
 
 bsl::string TempUtil::tempDir()
+// NOLINTBEGIN(*-avoid-c-arrays,cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-constant-array-index)
 {
 #if defined(BSLS_PLATFORM_OS_UNIX)
 
@@ -57,6 +58,7 @@ bsl::string TempUtil::tempDir()
     std::memcpy(buffer, tmp, length);
     buffer[length] = 0;
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     bsl::string result(buffer);
 
     if (result.empty()) {
@@ -105,6 +107,7 @@ bsl::string TempUtil::tempDir()
 #error The platform is not supported
 #endif
 }
+// NOLINTEND(*-avoid-c-arrays,cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-bounds-constant-array-index)
 
 bsl::string TempUtil::tempDirDefault()
 {

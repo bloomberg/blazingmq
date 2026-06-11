@@ -41,11 +41,13 @@ namespace mqbplug {
 /// authentication, ...)
 struct PluginType {
     // TYPES
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         e_STATS_CONSUMER      = 0,
         e_AUTHENTICATOR       = 1,
         e_CREDENTIAL_PROVIDER = 2
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CLASS METHODS
 

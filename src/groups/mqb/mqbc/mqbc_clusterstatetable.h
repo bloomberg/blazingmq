@@ -49,6 +49,7 @@ struct ClusterStateTableState {
     // TYPES
 
     /// Enumeration used to distinguish among different type of state.
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         /// The leader is unknown.
         e_UNKNOWN = 0,
@@ -78,6 +79,7 @@ struct ClusterStateTableState {
         /// represent the number of states.
         e_NUM_STATES = 7
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CLASS METHODS
 
@@ -132,6 +134,7 @@ struct ClusterStateTableEvent {
     // TYPES
 
     /// Enumeration used to distinguish among different type of event.
+    // NOLINTBEGIN(cppcoreguidelines-use-enum-class)
     enum Enum {
         /// Self is transitioned as leader by the Elector.
         e_SLCT_LDR = 0,
@@ -216,6 +219,7 @@ struct ClusterStateTableEvent {
         /// represent the number of states.
         e_NUM_EVENTS = 24
     };
+    // NOLINTEND(cppcoreguidelines-use-enum-class)
 
     // CLASS METHODS
 
@@ -267,6 +271,7 @@ bsl::ostream& operator<<(bsl::ostream&                stream,
 
 /// This class defines the actions in the cluster state table.
 template <typename ARGS>
+// NOLINTBEGIN(cppcoreguidelines-special-member-functions)
 class ClusterStateTableActions {
   private:
     // CLASS-SCOPE CATEGORY
@@ -399,6 +404,7 @@ class ClusterStateTableActions {
 
     void do_logUnexpectedCSLCommit_and_abort(const ARGS& args);
 };
+// NOLINTEND(cppcoreguidelines-special-member-functions)
 
 // =======================
 // class ClusterStateTable

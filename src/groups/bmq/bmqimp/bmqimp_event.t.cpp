@@ -49,28 +49,40 @@ using namespace bsl;
 namespace {
 
 // CONSTANTS
-const int  k_QUEUE_ID           = 1399;
-const int  k_FLAGS              = 0;
-const int  k_CORR_ID            = 123;
-const char k_HEX_REP[]          = "0000000000003039CD8101000000270F";
-const int  k_ACK_STATUS         = 3;
-const int  k_EVENT_HEADER_SIZE  = sizeof(bmqp::EventHeader);
-const int  k_EVENT_HEADER_WORDS = k_EVENT_HEADER_SIZE /
+const int k_QUEUE_ID = 1399;
+const int k_FLAGS    = 0;
+const int k_CORR_ID  = 123;
+// NOLINTNEXTLINE(*-avoid-c-arrays)
+const char k_HEX_REP[]         = "0000000000003039CD8101000000270F";
+const int  k_ACK_STATUS        = 3;
+const int  k_EVENT_HEADER_SIZE = sizeof(bmqp::EventHeader);
+// NOLINTBEGIN(cppcoreguidelines-interfaces-global-init)
+const int k_EVENT_HEADER_WORDS = k_EVENT_HEADER_SIZE /
                                  bmqp::Protocol::k_WORD_SIZE;
+// NOLINTEND(cppcoreguidelines-interfaces-global-init)
+// NOLINTBEGIN(cppcoreguidelines-interfaces-global-init)
 const int k_ACK_HEADER_WORDS = sizeof(bmqp::AckHeader) /
                                bmqp::Protocol::k_WORD_SIZE;
+// NOLINTEND(cppcoreguidelines-interfaces-global-init)
+// NOLINTBEGIN(cppcoreguidelines-interfaces-global-init)
 const int k_PUSH_HEADER_WORDS = sizeof(bmqp::PushHeader) /
                                 bmqp::Protocol::k_WORD_SIZE;
+// NOLINTEND(cppcoreguidelines-interfaces-global-init)
+// NOLINTBEGIN(cppcoreguidelines-interfaces-global-init)
 const int k_PUT_HEADER_WORDS = sizeof(bmqp::PutHeader) /
                                bmqp::Protocol::k_WORD_SIZE;
-const int  k_OPTION_WORDS    = 0;
+// NOLINTEND(cppcoreguidelines-interfaces-global-init)
+const int k_OPTION_WORDS = 0;
+// NOLINTNEXTLINE(*-avoid-c-arrays)
 const char k_APP_DATA[]      = "AppData";
 const int  k_APP_DATA_LENGTH = sizeof(k_APP_DATA) - 1;
 // For a 0-terminated char string last
 // zero byte is included by sizeof and
 // therefore should be removed.
+// NOLINTBEGIN(cppcoreguidelines-interfaces-global-init)
 const int k_APP_DATA_WORDS = 1 +
                              k_APP_DATA_LENGTH / bmqp::Protocol::k_WORD_SIZE;
+// NOLINTEND(cppcoreguidelines-interfaces-global-init)
 // 'k_APP_DATA_WORDS' also includes word
 // possibly used for padding.
 //: o In case when extra padding word is
@@ -95,6 +107,7 @@ static void prepareBlobForMessageEvent(bmqp::EventHeader*    eh,
                                        bdlbb::Blob*          eb,
                                        bmqt::MessageGUID*    messageGUID,
                                        bmqp::EventType::Enum type)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-type-reinterpret-cast)
 {
     BMQTST_ASSERT(eh);
     BMQTST_ASSERT(eb);
@@ -187,13 +200,16 @@ static void prepareBlobForMessageEvent(bmqp::EventHeader*    eh,
     }
 
     // Modify event header in blob
+    // NOLINTBEGIN(cppcoreguidelines-pro-type-reinterpret-cast)
     bmqp::EventHeader* e = reinterpret_cast<bmqp::EventHeader*>(
         eb->buffer(0).data());
+    // NOLINTEND(cppcoreguidelines-pro-type-reinterpret-cast)
     (*e).setLength(eventLength).setType(type);
 
     // Set event length for local event header instance
     (*eh).setLength(eventLength).setType(type);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,cppcoreguidelines-pro-type-reinterpret-cast)
 
 static unsigned int findExpectedCrc32(
     const char*                          messagePayload,
@@ -235,11 +251,14 @@ static unsigned int findExpectedCrc32(
 // ----------------------------------------------------------------------------
 
 static void test1_breathingTest()
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqimp::Event obj(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bmqp::EventHeader eventHeader;
@@ -295,8 +314,10 @@ static void test1_breathingTest()
     BMQTST_ASSERT(obj.rawEvent().isValid());
     BMQTST_ASSERT(obj.rawEvent().isAckEvent());
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 
 static void test2_setterGetterTest()
+// NOLINTBEGIN(*-avoid-c-arrays,*-magic-numbers,performance-avoid-endl)
 {
     // ------------------------------------------------------------------------
     // SETTER GETTER TEST
@@ -322,9 +343,11 @@ static void test2_setterGetterTest()
     //   ----------------------------------------------------------------------
     bmqtst::TestHelper::printTestName("GENERAL SETTER GETTER TEST");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqimp::Event obj(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
     BMQTST_ASSERT_EQ(obj.type(), bmqimp::Event::EventType::e_UNINITIALIZED);
@@ -360,13 +383,14 @@ static void test2_setterGetterTest()
         bsl::allocate_shared<bmqimp::Queue, bslma::Allocator>(
             bmqtst::TestHelperUtil::allocator());
 
-    const char         k_URI[] = "bmq://ts.trades.myapp/my.queue?id=my.app";
-    bmqt::Uri          uri(k_URI, bmqtst::TestHelperUtil::allocator());
-    const unsigned int k_SQID         = 2U;
-    const unsigned int k_ID           = 12345;
-    const int          k_PENDING_ID   = 65432;
-    bmqimp::QueueState::Enum  k_STATE = bmqimp::QueueState::e_OPENED;
-    const bmqt::CorrelationId k_CORID = bmqt::CorrelationId::autoValue();
+    const char k_URI[] = "bmq://ts.trades.myapp/my.queue?id=my.app";
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
+    bmqt::Uri                 uri(k_URI, bmqtst::TestHelperUtil::allocator());
+    const unsigned int        k_SQID       = 2U;
+    const unsigned int        k_ID         = 12345;
+    const int                 k_PENDING_ID = 65432;
+    bmqimp::QueueState::Enum  k_STATE      = bmqimp::QueueState::e_OPENED;
+    const bmqt::CorrelationId k_CORID      = bmqt::CorrelationId::autoValue();
 
     bsls::Types::Uint64 flags = 0;
     bmqt::QueueFlagsUtil::setReader(&flags);
@@ -406,8 +430,10 @@ static void test2_setterGetterTest()
     obj.clear();
     BMQTST_ASSERT_EQ(obj.type(), bmqimp::Event::EventType::e_UNINITIALIZED);
 }
+// NOLINTEND(*-avoid-c-arrays,*-magic-numbers,performance-avoid-endl)
 
 static void test3_sessionEvent_setterGetterTest()
+// NOLINTBEGIN(performance-avoid-endl)
 {
     // ------------------------------------------------------------------------
     // SETTER GETTER TEST FOR SESSION EVENT
@@ -435,9 +461,11 @@ static void test3_sessionEvent_setterGetterTest()
     // ------------------------------------------------------------------------
     bmqtst::TestHelper::printTestName("SETTER GETTER TEST FOR SESSION EVENT");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqimp::Event obj(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
     BMQTST_ASSERT_EQ(obj.type(), bmqimp::Event::EventType::e_UNINITIALIZED)
@@ -449,8 +477,9 @@ static void test3_sessionEvent_setterGetterTest()
         bmqimp::Event::EventType::e_SESSION;
     int                       statusCode = -4;
     bmqt::GenericResult::Enum result     = bmqt::GenericResult::e_UNKNOWN;
-    bmqt::CorrelationId       correlationId(123);
-    bsl::string               errorDescription("Error");
+    // NOLINTNEXTLINE(*-magic-numbers)
+    bmqt::CorrelationId correlationId(123);
+    bsl::string         errorDescription("Error");
 
     obj.setType(eventType)
         .setSessionEventType(sessionType)
@@ -465,8 +494,10 @@ static void test3_sessionEvent_setterGetterTest()
     BMQTST_ASSERT_EQ(statusCode, obj.statusCode());
     BMQTST_ASSERT_EQ(result, obj.result());
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test4_messageEvent_setterGetterTest()
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 {
     // ------------------------------------------------------------------------
     // SETTER GETTER TEST FOR MESSAGE EVENT
@@ -489,13 +520,17 @@ static void test4_messageEvent_setterGetterTest()
     bmqtst::TestHelper::printTestName("SETTER GETTER TEST FOR MESSAGE EVENT");
 
     PV("Configure as MesageEvent");
+    // NOLINTNEXTLINE(*-magic-numbers)
     bmqt::CorrelationId corrId1(123);
+    // NOLINTNEXTLINE(*-magic-numbers)
     bmqt::CorrelationId corrId2(234);
 
     // addCorrelationId / correlationId / numCorrrelationIds
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bmqp::EventHeader eventHeader;
     bmqt::MessageGUID guid;
@@ -527,8 +562,10 @@ static void test4_messageEvent_setterGetterTest()
     BMQTST_ASSERT(container_p);
     BMQTST_ASSERT_EQ(&container, container_p);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 
 static void test5_configureAsMessageEventTest()
+// NOLINTBEGIN(*-avoid-c-arrays,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 {
     // ------------------------------------------------------------------------
     // CONFIGURE AS MESSAGE EVENT / MESSAGE ITERATOR
@@ -565,10 +602,12 @@ static void test5_configureAsMessageEventTest()
     typedef bmqimp::Event::EventType::Enum        EventType;
 
     // Variables
-    bmqt::MessageGUID              guid;
+    bmqt::MessageGUID guid;
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     guid.fromHex(k_HEX_REP);
 
     // Test data
@@ -589,61 +628,64 @@ static void test5_configureAsMessageEventTest()
         bool                  d_isPartitionSyncEvent;
         bool                  d_isHeartbeatReqEvent;
         bool                  d_isHeartbeatRspEvent;
-    } k_DATA[]              = {{L_,
-                                bmqp::EventType::e_PUT,
-                                bmqimp::Event::MessageEventMode::e_READ,
-                                bmqimp::Event::EventType::e_MESSAGE,
-                                true,
-                                false,
-                                true,
-                                false,
-                                false,
-                                false,
-                                false,
-                                false,
-                                false,
-                                false,
-                                false,
-                                false},
-                               {L_,
-                                bmqp::EventType::e_PUSH,
-                                bmqimp::Event::MessageEventMode::e_READ,
-                                bmqimp::Event::EventType::e_MESSAGE,
-                                true,
-                                false,
-                                false,
-                                false,
-                                true,
-                                false,
-                                false,
-                                false,
-                                false,
-                                false,
-                                false,
-                                false},
-                               {L_,
-                                bmqp::EventType::e_ACK,
-                                bmqimp::Event::MessageEventMode::e_READ,
-                                bmqimp::Event::EventType::e_MESSAGE,
-                                true,
-                                false,
-                                false,
-                                false,
-                                false,
-                                true,
-                                false,
-                                false,
-                                false,
-                                false,
-                                false,
-                                false}};
+    } k_DATA[] = {{L_,
+                   bmqp::EventType::e_PUT,
+                   bmqimp::Event::MessageEventMode::e_READ,
+                   bmqimp::Event::EventType::e_MESSAGE,
+                   true,
+                   false,
+                   true,
+                   false,
+                   false,
+                   false,
+                   false,
+                   false,
+                   false,
+                   false,
+                   false,
+                   false},
+                  {L_,
+                   bmqp::EventType::e_PUSH,
+                   bmqimp::Event::MessageEventMode::e_READ,
+                   bmqimp::Event::EventType::e_MESSAGE,
+                   true,
+                   false,
+                   false,
+                   false,
+                   true,
+                   false,
+                   false,
+                   false,
+                   false,
+                   false,
+                   false,
+                   false},
+                  {L_,
+                   bmqp::EventType::e_ACK,
+                   bmqimp::Event::MessageEventMode::e_READ,
+                   bmqimp::Event::EventType::e_MESSAGE,
+                   true,
+                   false,
+                   false,
+                   false,
+                   false,
+                   true,
+                   false,
+                   false,
+                   false,
+                   false,
+                   false,
+                   false}};
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
     bmqtst::TestHelper::printTestName(
         "CONFIGURE AS MESSAGE EVENT / MESSAGE ITERATOR TEST");
 
     // Iterate over test data grouped by message event types
+    // NOLINTBEGIN(performance-avoid-endl)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
         PVV("Testing " << bmqp::EventType::toAscii(test.d_type)
                        << " message event.");
@@ -735,9 +777,12 @@ static void test5_configureAsMessageEventTest()
             BMQTST_ASSERT_EQ(0, iter->next())
         }
     }
+    // NOLINTEND(performance-avoid-endl)
 }
+// NOLINTEND(*-avoid-c-arrays,cppcoreguidelines-pro-bounds-array-to-pointer-decay)
 
 static void test6_comparisonOperatorTest()
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 {
     // ------------------------------------------------------------------------
     // COMPARISON OPERATORS
@@ -777,9 +822,11 @@ static void test6_comparisonOperatorTest()
     //   ----------------------------------------------------------------------
     bmqtst::TestHelper::printTestName("COMPARISON OPERATORS");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
@@ -792,8 +839,9 @@ static void test6_comparisonOperatorTest()
         bmqimp::Event::EventType::e_SESSION;
     int                       statusCode = -3;
     bmqt::GenericResult::Enum result     = bmqt::GenericResult::e_UNKNOWN;
-    bmqt::CorrelationId       correlationId(123);
-    bsl::string               errorDescription("testing");
+    // NOLINTNEXTLINE(*-magic-numbers)
+    bmqt::CorrelationId correlationId(123);
+    bsl::string         errorDescription("testing");
     bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bmqp::EventHeader eventHeader;
     bmqt::MessageGUID guid;
@@ -846,6 +894,7 @@ static void test6_comparisonOperatorTest()
     // NOTE: Raw event can not be equal
     BMQTST_ASSERT(obj5 != obj6);
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 
 static void test7_printing()
 // --------------------------------------------------------------------
@@ -872,6 +921,7 @@ static void test7_printing()
 //   bmqimp::operator<<(bsl::ostream& stream,
 //                      const bmqp::Event& rhs)
 // --------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 {
     // bmqu::PrintUtil::prettyTimeInterval uses default allocator
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
@@ -879,9 +929,11 @@ static void test7_printing()
     bmqtst::TestHelper::printTestName("PRINT");
     bmqu::MemOutStream out(bmqtst::TestHelperUtil::allocator());
     bmqu::MemOutStream expected(bmqtst::TestHelperUtil::allocator());
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bmqp::EventHeader eventHeader;
     bmqt::MessageGUID guid;
@@ -898,6 +950,7 @@ static void test7_printing()
         bmqimp::Event::MessageEventMode::Enum d_messageEventMode;
         const char*                           d_uri;
         bmqp::EventType::Enum                 d_rawEventType;
+        // NOLINTBEGIN(*-magic-numbers)
     } k_DATA[] = {{bmqimp::Event::EventType::e_SESSION,
                    "NULL",
                    bmqt::SessionEventType::e_TIMEOUT,
@@ -950,11 +1003,14 @@ static void test7_printing()
                       "bmq://ts.trades.myapp/my.queue?id=my.app",
                       bmqp::EventType::e_PUSH,
                   }};
+    // NOLINTEND(*-magic-numbers)
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
     // Iterate over test data.
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         Test&         data = k_DATA[idx];
         bmqimp::Event obj(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
@@ -1088,7 +1144,9 @@ static void test7_printing()
         out.reset();
     }
 }
+// NOLINTEND(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 static void test8_putEventBuilder()
+// NOLINTBEGIN(*-avoid-c-arrays)
 {
     // ------------------------------------------------------------------------
     // PUT EVENT BUILDER TEST
@@ -1110,9 +1168,11 @@ static void test8_putEventBuilder()
 
     bmqtst::TestHelper::printTestName("PUT EVENT BUILDER TEST");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
@@ -1122,11 +1182,12 @@ static void test8_putEventBuilder()
     const unsigned int       k_CRC32                 = 123;
     const bsls::Types::Int64 k_TIME_STAMP            = 1234567890LL;
     const int                k_NUM_PROPERTIES        = 3;
-    const char*              k_PAYLOAD     = "abcdefghijklmnopqrstuvwxyz";
-    const int                k_PAYLOAD_LEN = bsl::strlen(k_PAYLOAD);
-    const char*              k_HEX_GUID1 = "40000000000000000000000000000001";
-    const char*              k_HEX_GUID2 = "40000000000000000000000000000002";
-    const char*              k_HEX_GUID3 = "40000000000000000000000000000003";
+    const char*              k_PAYLOAD = "abcdefghijklmnopqrstuvwxyz";
+    // NOLINTNEXTLINE(*-narrowing-conversions)
+    const int   k_PAYLOAD_LEN = bsl::strlen(k_PAYLOAD);
+    const char* k_HEX_GUID1   = "40000000000000000000000000000001";
+    const char* k_HEX_GUID2   = "40000000000000000000000000000002";
+    const char* k_HEX_GUID3   = "40000000000000000000000000000003";
 
     bmqp::MessageProperties msgProps(bmqtst::TestHelperUtil::allocator());
 
@@ -1155,17 +1216,23 @@ static void test8_putEventBuilder()
         bsls::Types::Int64 d_timeStamp;
         bool               d_hasProperties;
         bool               d_hasNewTimeStamp;
+        // NOLINTBEGIN(*-magic-numbers)
     } k_DATA[] = {{L_, 9876, k_HEX_GUID1, k_TIME_STAMP, true, false},
                   {L_, 5432, k_HEX_GUID2, 9876543210LL, true, true},
                   {L_, 3333, k_HEX_GUID3, 0LL, false, false}};
+    // NOLINTEND(*-magic-numbers)
 
     // Pack messages
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
     unsigned int expectedCrc32[k_NUM_DATA];
 
+    // NOLINTBEGIN(cppcoreguidelines-pro-bounds-constant-array-index)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
-        const Test& test   = k_DATA[idx];
-        const int   msgNum = idx + 1;
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
+        const Test& test = k_DATA[idx];
+        // NOLINTNEXTLINE(*-narrowing-conversions)
+        const int msgNum = idx + 1;
 
         builder.setCrc32c(k_CRC32).setMessageGUID(
             bmqp::MessageGUIDGenerator::testGUID());
@@ -1201,6 +1268,7 @@ static void test8_putEventBuilder()
         BMQTST_ASSERT_GT(builder.eventSize(),
                          k_PAYLOAD_LEN * msgNum + msgProps.totalSize());
     }
+    // NOLINTEND(cppcoreguidelines-pro-bounds-constant-array-index)
 
     // Get blob and use bmqp iterator to test.  Note that bmqp event and
     // bmqp iterators are lower than bmqp builders, and thus, can be used
@@ -1220,7 +1288,9 @@ static void test8_putEventBuilder()
     BMQTST_ASSERT(putIter.isValid());
     bdlbb::Blob payloadBlob(bmqtst::TestHelperUtil::allocator());
 
+    // NOLINTBEGIN(cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-constant-array-index)
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test&       test = k_DATA[idx];
         bmqt::MessageGUID guid;
         guid.fromHex(test.d_guidHex);
@@ -1273,13 +1343,16 @@ static void test8_putEventBuilder()
                              test.d_timeStamp);
         }
     }
+    // NOLINTEND(cppcoreguidelines-init-variables,cppcoreguidelines-pro-bounds-constant-array-index)
 
     BMQTST_ASSERT_EQ(true, putIter.isValid());
     BMQTST_ASSERT_EQ(0, putIter.next());  // we added only 3 msgs
     BMQTST_ASSERT_EQ(false, putIter.isValid());
 }
+// NOLINTEND(*-avoid-c-arrays)
 
 static void test9_copyTest()
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 {
     // ------------------------------------------------------------------------
     // COPY CONSTRUCTOR TEST
@@ -1308,9 +1381,11 @@ static void test9_copyTest()
     bmqtst::TestHelper::printTestName("COPY CONSTRUCTOR TEST");
 
     PV("Configure as MesageEvent");
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bmqp::EventHeader eventHeader;
     bmqt::MessageGUID guid;
@@ -1366,8 +1441,10 @@ static void test9_copyTest()
     BMQTST_ASSERT_EQ(obj6.type(), bmqimp::Event::EventType::e_RAW);
     BMQTST_ASSERT_EQ(obj6.rawEvent().type(), obj.rawEvent().type());
 }
+// NOLINTEND(cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 
 static void test10_assignmentTest()
+// NOLINTBEGIN(*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 {
     // ------------------------------------------------------------------------
     // ASSIGNMENT OPERATOR TEST
@@ -1398,9 +1475,11 @@ static void test10_assignmentTest()
     bmqtst::TestHelper::printTestName("ASSIGNMENT OPERATOR TEST");
 
     PV("ASSIGNMENT OPERATOR - Configure as MesageEvent");
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bdlbb::Blob eventBlob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
     bmqp::EventHeader eventHeader;
     bmqt::MessageGUID guid;
@@ -1467,8 +1546,10 @@ static void test10_assignmentTest()
     BMQTST_ASSERT_EQ(obj6.type(), bmqimp::Event::EventType::e_RAW);
     BMQTST_ASSERT_EQ(obj6.rawEvent().type(), obj.rawEvent().type());
 }
+// NOLINTEND(*-magic-numbers,cppcoreguidelines-pro-bounds-array-to-pointer-decay,performance-avoid-endl)
 
 static void test11_doneCallbackTest()
+// NOLINTBEGIN(*-magic-numbers,performance-avoid-endl)
 {
     // ------------------------------------------------------------------------
     // DONE CALLBACK TEST
@@ -1493,9 +1574,11 @@ static void test11_doneCallbackTest()
     //   ----------------------------------------------------------------------
     bmqtst::TestHelper::printTestName("DONE CALLBACK TEST");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqimp::Event obj(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
     BMQTST_ASSERT_EQ(obj.type(), bmqimp::Event::EventType::e_UNINITIALIZED);
@@ -1516,6 +1599,7 @@ static void test11_doneCallbackTest()
     obj.clear();
     BMQTST_ASSERT_EQ(8, input);
 }
+// NOLINTEND(*-magic-numbers,performance-avoid-endl)
 
 static void test12_upgradeDowngradeMessageEvent()
 {
@@ -1541,9 +1625,11 @@ static void test12_upgradeDowngradeMessageEvent()
     //   ----------------------------------------------------------------------
     bmqtst::TestHelper::printTestName("UPGRADE DOWNGRADE MESSAGE EVENT TEST");
 
+    // NOLINTBEGIN(*-magic-numbers)
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
+    // NOLINTEND(*-magic-numbers)
     bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
         bmqp::BlobPoolUtil::createBlobPool(
             &bufferFactory,
@@ -1577,7 +1663,21 @@ static void test12_upgradeDowngradeMessageEvent()
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
+// NOLINTBEGIN(bugprone-exception-escape)
 int main(int argc, char* argv[])
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(*-magic-numbers)
+// NOLINTBEGIN(performance-avoid-endl)
+// NOLINTBEGIN(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTBEGIN(cert-err34-c)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -1603,3 +1703,17 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(*-magic-numbers)
+// NOLINTEND(performance-avoid-endl)
+// NOLINTEND(cppcoreguidelines-pro-bounds-pointer-arithmetic)
+// NOLINTEND(cert-err34-c)
+// NOLINTEND(bugprone-exception-escape)

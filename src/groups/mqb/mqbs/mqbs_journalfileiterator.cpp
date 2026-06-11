@@ -38,6 +38,7 @@ namespace mqbs {
 int JournalFileIterator::reset(const MappedFileDescriptor* mfd,
                                const FileHeader&           fileHeader,
                                bool                        isReverse)
+// NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-use-enum-class)
 {
     BSLS_ASSERT_SAFE(mfd);
 
@@ -77,8 +78,10 @@ int JournalFileIterator::reset(const MappedFileDescriptor* mfd,
     }
 
     // Skip the FileHeader to point to the JournalFileHeader
+    // NOLINTBEGIN(bugprone-implicit-widening-of-multiplication-result)
     bool rc = d_blockIter.advance(fileHeader.headerWords() *
                                   bmqp::Protocol::k_WORD_SIZE);
+    // NOLINTEND(bugprone-implicit-widening-of-multiplication-result)
     if (!rc) {
         // Not enough space for FileHeader
         clear();
@@ -181,6 +184,7 @@ int JournalFileIterator::reset(const MappedFileDescriptor* mfd,
 
     return rc_SUCCESS;
 }
+// NOLINTEND(bugprone-implicit-widening-of-multiplication-result,cppcoreguidelines-use-enum-class)
 
 int JournalFileIterator::nextRecord()
 {
@@ -188,6 +192,7 @@ int JournalFileIterator::nextRecord()
 }
 
 int JournalFileIterator::advance(const bsls::Types::Uint64 distance)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     enum RcEnum {
         // Value for the various RC error categories
@@ -273,6 +278,7 @@ int JournalFileIterator::advance(const bsls::Types::Uint64 distance)
 
     return rc_HAS_NEXT;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 void JournalFileIterator::flipDirection()
 {

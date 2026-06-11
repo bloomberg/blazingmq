@@ -37,6 +37,7 @@ static void test1_breathingTest()
 // Testing:
 //   Basic functionality
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
@@ -51,9 +52,11 @@ static void test1_breathingTest()
     {
         PV("With value constructor");
 
+        // NOLINTBEGIN(*-magic-numbers)
         bmqvt::RcDescriptionError obj(123,
                                       "abc",
                                       bmqtst::TestHelperUtil::allocator());
+        // NOLINTEND(*-magic-numbers)
         BMQTST_ASSERT_EQ(obj.rc(), 123);
         BMQTST_ASSERT_EQ(obj.description(), "abc");
     }
@@ -61,24 +64,29 @@ static void test1_breathingTest()
     {
         PV("Copy constructor and assignment operator");
 
+        // NOLINTBEGIN(*-magic-numbers)
         bmqvt::RcDescriptionError obj(123,
                                       "abc",
                                       bmqtst::TestHelperUtil::allocator());
+        // NOLINTEND(*-magic-numbers)
 
         bmqvt::RcDescriptionError copy(obj,
                                        bmqtst::TestHelperUtil::allocator());
         BMQTST_ASSERT_EQ(copy.rc(), 123);
         BMQTST_ASSERT_EQ(copy.description(), "abc");
 
+        // NOLINTBEGIN(*-magic-numbers)
         bmqvt::RcDescriptionError assignment(
             987,
             "zyx",
             bmqtst::TestHelperUtil::allocator());
+        // NOLINTEND(*-magic-numbers)
         assignment = obj;
         BMQTST_ASSERT_EQ(assignment.rc(), 123);
         BMQTST_ASSERT_EQ(assignment.description(), "abc");
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 static void test2_equality()
 // ------------------------------------------------------------------------
@@ -91,6 +99,7 @@ static void test2_equality()
 //   operator==
 //   operator!=
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding)
 {
     bmqtst::TestHelper::printTestName("EQUALITY");
 
@@ -108,9 +117,11 @@ static void test2_equality()
                   {L_, 0, "", 1, "", false},
                   {L_, 0, "a", 1, "a", false}};
 
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-array-to-pointer-decay)
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
 
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-bounds-constant-array-index)
         const Test& test = k_DATA[idx];
 
         bmqvt::RcDescriptionError lhs(test.d_lrc,
@@ -123,6 +134,7 @@ static void test2_equality()
         BMQTST_ASSERT_NE_D("line " << test.d_line, test.d_equal, lhs != rhs);
     }
 }
+// NOLINTEND(*-avoid-c-arrays,clang-analyzer-optin.performance.Padding)
 
 static void test3_print()
 // ------------------------------------------------------------------------
@@ -135,16 +147,19 @@ static void test3_print()
 //   print
 //   operator<<
 // ------------------------------------------------------------------------
+// NOLINTBEGIN(performance-avoid-endl)
 {
     bmqtst::TestHelper::printTestName("PRINT");
 
     {
         PV("Explicit print");
 
+        // NOLINTBEGIN(*-magic-numbers)
         bmqvt::RcDescriptionError obj(123,
                                       "abc",
                                       bmqtst::TestHelperUtil::allocator());
-        bmqu::MemOutStream        os(bmqtst::TestHelperUtil::allocator());
+        // NOLINTEND(*-magic-numbers)
+        bmqu::MemOutStream os(bmqtst::TestHelperUtil::allocator());
         bmqvt::RcDescriptionError::print(os, obj, 0, 0);
         BMQTST_ASSERT_EQ(os.str(), "[\nrc = 123\ndescription = \"abc\"\n]\n");
     }
@@ -152,10 +167,12 @@ static void test3_print()
     {
         PV("operator<<");
 
+        // NOLINTBEGIN(*-magic-numbers)
         bmqvt::RcDescriptionError obj(123,
                                       "abc",
                                       bmqtst::TestHelperUtil::allocator());
-        bmqu::MemOutStream        os(bmqtst::TestHelperUtil::allocator());
+        // NOLINTEND(*-magic-numbers)
+        bmqu::MemOutStream os(bmqtst::TestHelperUtil::allocator());
 
         os << obj;
         BMQTST_ASSERT_EQ(os.str(), "[ rc = 123 description = \"abc\" ]");
@@ -164,10 +181,12 @@ static void test3_print()
     {
         PV("Invalid stream ('badbit' set)");
 
+        // NOLINTBEGIN(*-magic-numbers)
         bmqvt::RcDescriptionError obj(123,
                                       "abc",
                                       bmqtst::TestHelperUtil::allocator());
-        bmqu::MemOutStream        os(bmqtst::TestHelperUtil::allocator());
+        // NOLINTEND(*-magic-numbers)
+        bmqu::MemOutStream os(bmqtst::TestHelperUtil::allocator());
 
         os.setstate(bsl::ios_base::badbit);
         bmqvt::RcDescriptionError::print(os, obj, 0, 0);
@@ -175,12 +194,14 @@ static void test3_print()
         BMQTST_ASSERT_EQ(os.str(), "");
     }
 }
+// NOLINTEND(performance-avoid-endl)
 
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
+// NOLINTBEGIN(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
@@ -197,3 +218,4 @@ int main(int argc, char* argv[])
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
+// NOLINTEND(cert-err34-c,cppcoreguidelines-pro-bounds-pointer-arithmetic,performance-avoid-endl)

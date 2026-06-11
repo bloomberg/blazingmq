@@ -109,10 +109,12 @@ class MappedFileDescriptor {
 // --------------------------
 
 // CREATORS
+// NOLINTBEGIN(cppcoreguidelines-pro-type-member-init)
 inline MappedFileDescriptor::MappedFileDescriptor()
 {
     reset();
 }
+// NOLINTEND(cppcoreguidelines-pro-type-member-init)
 
 // MANIPULATORS
 inline MappedFileDescriptor& MappedFileDescriptor::setFd(int value)

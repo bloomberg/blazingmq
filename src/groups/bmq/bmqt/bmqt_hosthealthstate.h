@@ -43,6 +43,7 @@ namespace bmqt {
 /// Enumeration for host health states.
 struct HostHealthState {
     // TYPES
+    // NOLINTNEXTLINE(cppcoreguidelines-use-enum-class)
     enum Enum { e_UNKNOWN = 0, e_HEALTHY = 1, e_UNHEALTHY = 2 };
 
     // CLASS METHODS

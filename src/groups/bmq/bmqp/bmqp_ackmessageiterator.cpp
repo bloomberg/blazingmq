@@ -55,6 +55,7 @@ void AckMessageIterator::copyFrom(const AckMessageIterator& src)
 }
 
 int AckMessageIterator::next()
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     enum RcEnum {
         // Value for the various RC error categories
@@ -101,9 +102,11 @@ int AckMessageIterator::next()
 
     return rc_HAS_NEXT;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 int AckMessageIterator::reset(const bdlbb::Blob* blob,
                               const EventHeader& eventHeader)
+// NOLINTBEGIN(cppcoreguidelines-use-enum-class)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(blob);
@@ -177,6 +180,7 @@ int AckMessageIterator::reset(const bdlbb::Blob* blob,
 
     return rc_SUCCESS;
 }
+// NOLINTEND(cppcoreguidelines-use-enum-class)
 
 int AckMessageIterator::reset(const bdlbb::Blob*        blob,
                               const AckMessageIterator& other)
