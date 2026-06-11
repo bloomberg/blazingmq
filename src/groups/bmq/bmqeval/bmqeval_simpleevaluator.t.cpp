@@ -23,6 +23,7 @@
 #include <bmqtst_testhelper.h>
 
 #include <bdlma_localsequentialallocator.h>
+#include <bsl_limits.h>
 #include <bsl_sstream.h>
 
 // BENCHMARKING LIBRARY
@@ -63,6 +64,10 @@ MockPropertiesReader::MockPropertiesReader(bslma::Allocator* allocator)
     d_map["i_3"]     = bdld::Datum::createInteger(3);
     d_map["i_42"]    = bdld::Datum::createInteger(42);
     d_map["i64_42"]  = bdld::Datum::createInteger64(42, allocator);
+    d_map["i64_min"] = bdld::Datum::createInteger64(
+        bsl::numeric_limits<bsls::Types::Int64>::min(),
+        allocator);
+    d_map["i_neg1"]  = bdld::Datum::createInteger(-1);
     d_map["s_foo"]   = bdld::Datum::createStringRef("foo", allocator);
     d_map["exists"]  = bdld::Datum::createInteger(42);
 }
@@ -612,6 +617,9 @@ static void test4_evaluationErrors()
         // modulo by zero
         {"i_42 % i_0 == 0", ErrorType::e_ARITHMETIC},
         {"i_42 % i_0 > 1", ErrorType::e_ARITHMETIC},
+        // quotient overflow
+        {"i64_min / i_neg1 == 0", ErrorType::e_ARITHMETIC},
+        {"i64_min % i_neg1 == 0", ErrorType::e_ARITHMETIC},
 
     };
     const TestParameters* testParametersEnd = testParameters +
