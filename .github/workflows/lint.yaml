@@ -92,7 +92,7 @@ jobs:
 
   cpp_formatting_check:
     name: C++ Formatting Check
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
       - uses: actions/checkout@v6
         with:
@@ -100,7 +100,7 @@ jobs:
       - name: clang-format style check
         id: format-check
         run: |
-          git clang-format-18 --diff -q origin/main | tee clang_format.patch
+          git clang-format-21 --diff -q origin/main | tee clang_format.patch
           if [ -s clang_format.patch ]; then
             echo ""
             echo "clang-format check failed.  A patch file with the required"
