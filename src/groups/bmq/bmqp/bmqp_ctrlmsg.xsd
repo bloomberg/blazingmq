@@ -786,9 +786,10 @@
         This type represents a request sent to the replica by the primary to
         start the synchronization of data.
 
+        partitionId:         partition id for corresponding partition.
+        primaryLeaseId:      lease id of the current primary.
         replicaDataType:     type of request i.e. PULL, PUSH or DROP for
                              corresponding partition.
-        partitionId:         partition id for corresponding partition.
         beginSequenceNumber: Primary's begin sequence number for corresponding
                              partition for corresponding data chunks.
         endSequenceNumber:   Primary's end sequence number for corresponding
@@ -796,8 +797,9 @@
       </documentation>
     </annotation>
     <sequence>
-      <element name='replicaDataType'     type='tns:ReplicaDataType'/>
       <element name='partitionId'         type='int'/>
+      <element name='primaryLeaseId' type='unsignedInt'/>
+      <element name='replicaDataType'     type='tns:ReplicaDataType'/>
       <element name='beginSequenceNumber' type='tns:PartitionSequenceNumber'/>
       <element name='endSequenceNumber'   type='tns:PartitionSequenceNumber'/>
     </sequence>
@@ -809,12 +811,13 @@
         This type represents a response sent by a replica to the primary for
         the data synchronization request received by it.
 
+        partitionId:         partition id for corresponding partition.
+        primaryLeaseId:      lease id of the current primary.
         replicaDataType:     type of request received i.e. PULL, PUSH or DROP
                              for corresponding partition. Note, this field will
                              be set as per the request received and the primary
                              purpose of sending this field back in response is
                              for debugging and sanity checking.
-        partitionId:         partition id for corresponding partition.
         beginSequenceNumber: Replica's begin sequence number for corresponding
                              partition for corresponding data chunks.
         endSequenceNumber:   Replica's end sequence number for corresponding
@@ -822,8 +825,9 @@
       </documentation>
     </annotation>
     <sequence>
-      <element name='replicaDataType' type='tns:ReplicaDataType'/>
       <element name='partitionId'     type='int'/>
+      <element name='primaryLeaseId' type='unsignedInt'/>
+      <element name='replicaDataType' type='tns:ReplicaDataType'/>
       <element name='beginSequenceNumber' type='tns:PartitionSequenceNumber'/>
       <element name='endSequenceNumber'   type='tns:PartitionSequenceNumber'/>
     </sequence>
