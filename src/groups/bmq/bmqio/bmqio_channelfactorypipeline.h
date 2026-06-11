@@ -18,6 +18,7 @@
 
 #include <bmqio_channelfactory.h>
 
+#include <bsl_functional.h>
 #include <bsl_memory.h>
 #include <bsl_vector.h>
 #include <bslma_managedptr.h>

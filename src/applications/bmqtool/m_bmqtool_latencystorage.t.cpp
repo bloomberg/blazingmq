@@ -21,6 +21,7 @@
 #include <bmqtst_testhelper.h>
 #include <bsl_cstdlib.h>
 #include <bsl_fstream.h>
+#include <bsl_ios.h>
 #include <bsl_iostream.h>
 #include <bsls_types.h>
 

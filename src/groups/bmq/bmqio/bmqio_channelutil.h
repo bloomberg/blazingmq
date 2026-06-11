@@ -30,6 +30,7 @@
 #include <bsl_vector.h>
 
 // NTC
+#include <bsl_functional.h>
 #include <ntsa_ipaddress.h>
 
 namespace BloombergLP {

@@ -107,6 +107,7 @@
 #include <bmqex_executor.h>
 
 // BDE
+#include <bsl_functional.h>
 #include <bsl_iostream.h>
 #include <bsl_memory.h>
 #include <bsl_string.h>

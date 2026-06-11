@@ -105,6 +105,7 @@
 
 // BDE
 #include <bdlbb_blob.h>
+#include <bsl_memory.h>
 #include <bsls_alignedbuffer.h>
 
 namespace BloombergLP {

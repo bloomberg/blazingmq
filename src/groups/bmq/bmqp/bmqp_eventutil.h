@@ -36,6 +36,7 @@
 
 // BDE
 #include <bdlbb_blob.h>
+#include <bsl_memory.h>
 #include <bsl_unordered_set.h>
 #include <bsl_vector.h>
 #include <bslma_allocator.h>

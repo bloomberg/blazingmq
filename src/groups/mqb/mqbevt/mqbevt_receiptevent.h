@@ -32,6 +32,7 @@
 // BDE
 #include <bdlbb_blob.h>
 #include <bsl_memory.h>
+#include <bsl_ostream.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
 
