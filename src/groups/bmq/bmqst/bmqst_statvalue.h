@@ -38,42 +38,17 @@
 ///-------------
 // 'adjustValue' and 'setValue' are thread-safe.  All other functions are not.
 
-#ifndef INCLUDED_BSLIM_PRINTER
 #include <bslim_printer.h>
-#endif
-
-#ifndef INCLUDED_BSLMA_USESBSLMAALLOCATOR
 #include <bslma_usesbslmaallocator.h>
-#endif
-
-#ifndef INCLUDED_BSLMF_NESTEDTRAITDECLARATION
 #include <bslmf_nestedtraitdeclaration.h>
-#endif
-
-#ifndef INCLUDED_BSLS_ATOMIC
 #include <bsls_atomic.h>
-#endif
 
-#ifndef INCLUDED_BSL_ALGORITHM
 #include <bsl_algorithm.h>
-#endif
-
-#ifndef INCLUDED_BSL_LIMITS
-#include <bsl_limits.h>
-#endif
-
-#ifndef INCLUDED_BSLS_TYPES
-#include <bsls_types.h>
-#endif
-
-#ifndef INCLUDED_BSL_CSTDINT
 #include <bsl_cstdint.h>
-#endif
-
-#ifndef INCLUDED_BSL_VECTOR
-#include <bsl_vector.h>
-#endif
+#include <bsl_limits.h>
 #include <bsl_ostream.h>
+#include <bsl_vector.h>
+#include <bsls_types.h>
 
 namespace BloombergLP {
 

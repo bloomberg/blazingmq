@@ -489,8 +489,6 @@
 #include <bdlcc_objectpool.h>
 #include <bdld_manageddatum.h>
 #include <bsl_functional.h>
-#include <bsl_list.h>
-#include <bsl_map.h>
 #include <bsl_memory.h>
 #include <bsl_ostream.h>
 #include <bsl_string.h>
@@ -516,8 +514,6 @@ namespace bmqst {
 class StatContext;
 class StatContextConfiguration;
 class StatContextIterator;
-class StatContextUserData;
-
 // =================
 // class StatContext
 // =================
@@ -580,11 +576,9 @@ class StatContext {
     typedef bsl::unordered_multimap<Id, StatContext*, size_t (*)(const Id&)>
                                                   StatContextMap;
     typedef bsl::unordered_map<int, StatContext*> StatContextIdMap;
-    typedef StatContextUserData                   UserData;
     typedef bsl::vector<ValueDefinition>          ValueDefs;
     typedef bsl::shared_ptr<ValueDefs>            ValueDefsPtr;
 
-    typedef bsl::list<StatContext*>     StatContextList;
     typedef bsl::vector<StatContext*>   StatContextVector;
     typedef bsl::vector<StatValue>      ValueVec;
     typedef bslma::ManagedPtr<ValueVec> ValueVecPtr;
@@ -644,8 +638,6 @@ class StatContext {
     StatContextVector d_newSubcontexts;
 
     bslmt::Mutex d_newSubcontextsLock;
-
-    bslma::ManagedPtr<UserData> d_userData_p;
 
     mutable bsls::SpinLock d_managedDatumLock;
 
@@ -830,10 +822,6 @@ class StatContext {
     /// `valueType`
     const StatValue& value(ValueType valueType, int valueIndex) const;
 
-    /// Return a modifiable pointer to the user data associated with this
-    /// context, or 0 if no such data exists.
-    UserData* userData() const;
-
     /// Return a pointer to the datum allocator in this context.
     bslma::Allocator* datumAllocator() const;
 
@@ -884,7 +872,6 @@ class StatContextConfiguration {
     bsl::vector<int>                     d_defaultHistorySizes;
     StatContext::ValueDefs               d_valueDefs;
     bool                                 d_isTable;
-    bsl::shared_ptr<StatContextUserData> d_userData_p;
     bool                                 d_storeExpiredSubcontextValues;
     StatContext::SnapshotCallback        d_preSnapshotCallback;
     const bmqstm::StatContextUpdate*     d_update_p;
@@ -939,8 +926,6 @@ class StatContextConfiguration {
 
     // MANIPULATORS
     StatContextConfiguration& isTable(bool value);
-    StatContextConfiguration&
-    userData(bslma::ManagedPtr<StatContextUserData> userData);
 
     /// Set the allocator used for creating the StatContext's StatValues
     /// and their containing vectors.  This setting has no effect if
@@ -1195,11 +1180,6 @@ inline const StatValue& StatContext::value(ValueType valueType,
     return (*valueVec)[valueIndex];
 }
 
-inline StatContextUserData* StatContext::userData() const
-{
-    return d_userData_p.ptr();
-}
-
 inline bslma::Allocator* StatContext::datumAllocator() const
 {
     return d_managedDatum.allocator();
@@ -1226,7 +1206,6 @@ inline StatContextConfiguration::StatContextConfiguration(
 , d_defaultHistorySizes(basicAllocator)
 , d_valueDefs(basicAllocator)
 , d_isTable(false)
-, d_userData_p()
 , d_storeExpiredSubcontextValues(false)
 , d_preSnapshotCallback(bsl::allocator_arg, basicAllocator)
 , d_update_p(0)
@@ -1246,7 +1225,6 @@ inline StatContextConfiguration::StatContextConfiguration(
 , d_defaultHistorySizes(basicAllocator)
 , d_valueDefs(basicAllocator)
 , d_isTable(false)
-, d_userData_p()
 , d_storeExpiredSubcontextValues(false)
 , d_preSnapshotCallback(bsl::allocator_arg, basicAllocator)
 , d_update_p(0)
@@ -1265,7 +1243,6 @@ inline StatContextConfiguration::StatContextConfiguration(
 , d_defaultHistorySizes(other.d_defaultHistorySizes, basicAllocator)
 , d_valueDefs(other.d_valueDefs, basicAllocator)
 , d_isTable(other.d_isTable)
-, d_userData_p(other.d_userData_p)
 , d_storeExpiredSubcontextValues(other.d_storeExpiredSubcontextValues)
 , d_preSnapshotCallback(bsl::allocator_arg,
                         basicAllocator,
@@ -1282,13 +1259,6 @@ inline StatContextConfiguration::StatContextConfiguration(
 inline StatContextConfiguration& StatContextConfiguration::isTable(bool value)
 {
     d_isTable = value;
-    return *this;
-}
-
-inline StatContextConfiguration& StatContextConfiguration::userData(
-    bslma::ManagedPtr<StatContextUserData> userData)
-{
-    d_userData_p = userData;
     return *this;
 }
 

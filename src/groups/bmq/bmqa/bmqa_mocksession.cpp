@@ -832,10 +832,8 @@ const char* MockSession::toAscii(const Method method)
 
 void MockSession::initializeStats()
 {
-    bmqst::StatValue::SnapshotLocation start;
-    bmqst::StatValue::SnapshotLocation end;
-    start.setLevel(0).setIndex(0);
-    end.setLevel(0).setIndex(1);
+    bmqst::StatValue::SnapshotLocation start(0, 0);
+    bmqst::StatValue::SnapshotLocation end(0, 1);
     bmqimp::QueueStatsUtil::initializeStats(d_queuesStats_sp.get(),
                                             d_rootStatContext_mp.get(),
                                             start,

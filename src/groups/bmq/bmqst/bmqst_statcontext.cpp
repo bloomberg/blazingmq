@@ -16,7 +16,6 @@
 #include <bmqst_statcontext.h>
 
 #include <bmqscm_version.h>
-#include <bmqst_statcontextuserdata.h>
 
 #include <ball_log.h>
 
@@ -416,13 +415,6 @@ void StatContext::snapshotImp(bsls::Types::Int64 snapshotTime)
     snapshotValueVec(d_totalValues_p.ptr(), snapshotTime);
 
     ++d_numSnapshots;
-
-    // Snapshot the user data.  This must happen last so that the user data may
-    // trigger a read from the latest snapshot of data in this context.
-
-    if (d_userData_p) {
-        d_userData_p->snapshot();
-    }
 }
 
 void StatContext::cleanupImp(bsl::vector<ValueVec*>* expiredValuesVec)
@@ -524,7 +516,6 @@ StatContext::StatContext(const Config&     config,
 , d_deletedSubcontexts(basicAllocator)
 , d_newSubcontexts(basicAllocator)
 , d_newSubcontextsLock()
-, d_userData_p(config.d_userData_p.managedPtr())
 , d_managedDatumLock(bsls::SpinLock::s_unlocked)
 , d_managedDatum(basicAllocator)
 , d_preSnapshotCallback(bsl::allocator_arg,
@@ -658,29 +649,24 @@ void StatContext::clearValues()
         iter->second->clearValues();
     }
 
-    if (d_totalValues_p) {
-        for (size_t i = 0; i < d_totalValues_p->size(); ++i) {
-            (*d_totalValues_p)[i].clear(0);
+    struct Local {
+        static void clearVec(bmqst::StatContext::ValueVecPtr& vec)
+        {
+            if (vec) {
+                for (bmqst::StatContext::ValueVec::iterator iter =
+                         vec->begin();
+                     iter != vec->end();
+                     ++iter) {
+                    iter->clear(0);
+                }
+            }
         }
-    }
+    };
 
-    if (d_activeChildrenTotalValues_p) {
-        for (size_t i = 0; i < d_activeChildrenTotalValues_p->size(); ++i) {
-            (*d_activeChildrenTotalValues_p)[i].clear(0);
-        }
-    }
-
-    if (d_directValues_p) {
-        for (size_t i = 0; i < d_directValues_p->size(); ++i) {
-            (*d_directValues_p)[i].clear(0);
-        }
-    }
-
-    if (d_expiredValues_p) {
-        for (size_t i = 0; i < d_expiredValues_p->size(); ++i) {
-            (*d_expiredValues_p)[i].clear(0);
-        }
-    }
+    Local::clearVec(d_totalValues_p);
+    Local::clearVec(d_activeChildrenTotalValues_p);
+    Local::clearVec(d_directValues_p);
+    Local::clearVec(d_expiredValues_p);
 }
 
 void StatContext::snapshotFromUpdate(const bmqstm::StatContextUpdate& update)
@@ -848,7 +834,6 @@ StatContextConfiguration::StatContextConfiguration(
 , d_uniqueId(0)
 , d_valueDefs(basicAllocator)
 , d_isTable(false)
-, d_userData_p()
 , d_storeExpiredSubcontextValues(false)
 , d_preSnapshotCallback(bsl::allocator_arg, basicAllocator)
 , d_update_p(&update)
