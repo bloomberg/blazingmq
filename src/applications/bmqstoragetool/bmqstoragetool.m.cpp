@@ -22,6 +22,9 @@
 #include <m_bmqstoragetool_commandprocessorfactory.h>
 #include <m_bmqstoragetool_parameters.h>
 
+// MQB
+#include <mqbscm_version.h>
+
 // BDE
 #include <balcl_commandline.h>
 #include <bdls_filesystemutil.h>
@@ -32,12 +35,24 @@
 using namespace BloombergLP;
 using namespace m_bmqstoragetool;
 
-static bool parseArgs(CommandLineArguments& arguments,
-                      int                   argc,
-                      const char*           argv[],
-                      bslma::Allocator*     allocator)
+/// Enum for the result of command-line argument parsing.
+enum ParseResult {
+    /// Args parsed and validated, run the program.
+    e_SUCCESS,
+    /// Handled informational flag (`--help`/`--version`), caller should exit
+    /// 0.
+    e_EXIT,
+    /// Parse or validation failure.
+    e_ERROR
+};
+
+static ParseResult parseArgs(CommandLineArguments& arguments,
+                             int                   argc,
+                             const char*           argv[],
+                             bslma::Allocator*     allocator)
 {
-    bool showHelp = false;
+    bool showHelp    = false;
+    bool showVersion = false;
 
     balcl::OptionInfo specTable[] = {
         {"r|record-type",
@@ -190,24 +205,39 @@ static bool parseArgs(CommandLineArguments& arguments,
          "limit of queues to display in CSL file summary",
          balcl::TypeInfo(&arguments.d_cslSummaryQueuesLimit),
          balcl::OccurrenceInfo(50)},
-        {"h|help",
+        {"help",
          "help",
-         "print usage)",
+         "show usage",
          balcl::TypeInfo(&showHelp),
+         balcl::OccurrenceInfo::e_OPTIONAL},
+        {"version",
+         "version",
+         "show version number",
+         balcl::TypeInfo(&showVersion),
          balcl::OccurrenceInfo::e_OPTIONAL}};
     balcl::CommandLine commandLine(specTable);
-    if (commandLine.parse(argc, argv) != 0 || showHelp) {
+    if (commandLine.parse(argc, argv) != 0) {
         commandLine.printUsage();
-        return false;  // RETURN
+        return e_ERROR;  // RETURN
+    }
+
+    if (showHelp) {
+        commandLine.printUsage();
+        return e_EXIT;  // RETURN
+    }
+
+    if (showVersion) {
+        bsl::cout << "bmqstoragetool version: "
+                  << mqbscm::Version::s_versionDotString << "\n";
+        return e_EXIT;  // RETURN
     }
 
     bsl::string error;
     if (!arguments.validate(&error, allocator)) {
         bsl::cerr << "Arguments validation failed:\n" << error;
-        return false;  // RETURN
+        return e_ERROR;  // RETURN
     }
-
-    return true;
+    return e_SUCCESS;
 }
 
 // ====
@@ -229,8 +259,11 @@ int main(int argc, const char* argv[])
 
     // Arguments parsing
     CommandLineArguments arguments(allocator);
-    if (!parseArgs(arguments, argc, argv, allocator)) {
-        return rc_ARGUMENTS_PARSING_FAILED;  // RETURN
+    switch (parseArgs(arguments, argc, argv, allocator)) {
+    case e_SUCCESS: break;
+    case e_EXIT: return rc_SUCCESS;                    // RETURN
+    case e_ERROR: return rc_ARGUMENTS_PARSING_FAILED;  // RETURN
+    default: break;
     }
 
     // Create parameters
