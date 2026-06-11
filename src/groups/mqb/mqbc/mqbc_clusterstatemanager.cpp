@@ -428,8 +428,8 @@ void ClusterStateManager::do_sendFollowerLSNResponse(
     BSLS_ASSERT_SAFE(!d_clusterData_p->electorInfo().isSelfLeader() &&
                      d_clusterFSM.isSelfFollower());
 
-    const ClusterFSMEventMetadata& metadata      = event.second;
-    const InputMessage&            inputMessage  = metadata.inputMessage();
+    const ClusterFSMEventMetadata& metadata     = event.second;
+    const InputMessage&            inputMessage = metadata.inputMessage();
 
     bmqp_ctrlmsg::ControlMessage controlMsg;
     controlMsg.rId() = inputMessage.requestId();
@@ -489,8 +489,8 @@ void ClusterStateManager::do_sendFailureFollowerLSNResponse(
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
     BSLS_ASSERT_SAFE(!d_clusterData_p->cluster().isLocal());
 
-    const ClusterFSMEventMetadata& metadata      = event.second;
-    const InputMessage&            inputMessage  = metadata.inputMessage();
+    const ClusterFSMEventMetadata& metadata     = event.second;
+    const InputMessage&            inputMessage = metadata.inputMessage();
 
     bmqp_ctrlmsg::ControlMessage controlMsg;
     controlMsg.rId() = inputMessage.requestId();
@@ -601,8 +601,8 @@ void ClusterStateManager::do_sendFollowerClusterStateResponse(
     BSLS_ASSERT_SAFE(!d_clusterData_p->electorInfo().isSelfLeader() &&
                      d_clusterFSM.isSelfFollower());
 
-    const ClusterFSMEventMetadata& metadata      = event.second;
-    const InputMessage&            inputMessage  = metadata.inputMessage();
+    const ClusterFSMEventMetadata& metadata     = event.second;
+    const InputMessage&            inputMessage = metadata.inputMessage();
 
     bmqp_ctrlmsg::ControlMessage controlMsg;
     controlMsg.rId() = inputMessage.requestId();
@@ -673,8 +673,8 @@ void ClusterStateManager::do_sendFailureFollowerClusterStateResponse(
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
     BSLS_ASSERT_SAFE(!d_clusterData_p->cluster().isLocal());
 
-    const ClusterFSMEventMetadata& metadata      = event.second;
-    const InputMessage&            inputMessage  = metadata.inputMessage();
+    const ClusterFSMEventMetadata& metadata     = event.second;
+    const InputMessage&            inputMessage = metadata.inputMessage();
 
     bmqp_ctrlmsg::ControlMessage controlMsg;
     controlMsg.rId() = inputMessage.requestId();
@@ -702,8 +702,8 @@ void ClusterStateManager::do_storeSelfLSN(const EventWithMetadata& event)
     BSLS_ASSERT_SAFE(d_clusterData_p->electorInfo().isSelfLeader() &&
                      d_clusterFSM.isSelfLeader());
 
-    const ClusterFSMEventMetadata& metadata      = event.second;
-    const InputMessage&            inputMessage  = metadata.inputMessage();
+    const ClusterFSMEventMetadata& metadata     = event.second;
+    const InputMessage&            inputMessage = metadata.inputMessage();
     BSLS_ASSERT_SAFE(inputMessage.source()->nodeId() ==
                      d_clusterData_p->membership().selfNode()->nodeId());
 
@@ -726,8 +726,8 @@ void ClusterStateManager::do_storeFollowerLSNs(const EventWithMetadata& event)
     BSLS_ASSERT_SAFE(d_clusterData_p->electorInfo().isSelfLeader() &&
                      d_clusterFSM.isSelfLeader());
 
-    const ClusterFSMEventMetadata& metadata      = event.second;
-    const InputMessage&            inputMessage  = metadata.inputMessage();
+    const ClusterFSMEventMetadata& metadata     = event.second;
+    const InputMessage&            inputMessage = metadata.inputMessage();
 
     d_nodeToLedgerLSNMap[inputMessage.source()] =
         inputMessage.leaderSequenceNumber();
@@ -858,8 +858,8 @@ void ClusterStateManager::do_sendRegistrationResponse(
     BSLS_ASSERT_SAFE(d_clusterData_p->electorInfo().isSelfLeader() &&
                      d_clusterFSM.isSelfLeader());
 
-    const ClusterFSMEventMetadata& metadata      = event.second;
-    const InputMessage&            inputMessage  = metadata.inputMessage();
+    const ClusterFSMEventMetadata& metadata     = event.second;
+    const InputMessage&            inputMessage = metadata.inputMessage();
 
     bmqp_ctrlmsg::ControlMessage controlMsg;
     controlMsg.rId() = inputMessage.requestId();
@@ -888,8 +888,8 @@ void ClusterStateManager::do_sendFailureRegistrationResponse(
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
     BSLS_ASSERT_SAFE(!d_clusterData_p->cluster().isLocal());
 
-    const ClusterFSMEventMetadata& metadata      = event.second;
-    const InputMessage&            inputMessage  = metadata.inputMessage();
+    const ClusterFSMEventMetadata& metadata     = event.second;
+    const InputMessage&            inputMessage = metadata.inputMessage();
 
     bmqp_ctrlmsg::ControlMessage controlMsg;
     controlMsg.rId() = inputMessage.requestId();
@@ -937,8 +937,8 @@ void ClusterStateManager::do_logStaleFollowerLSNResponse(
                      !d_clusterFSM.isSelfLeader());
     // Response is not stale if self is leader
 
-    const ClusterFSMEventMetadata& metadata      = event.second;
-    const InputMessage&            inputMessage  = metadata.inputMessage();
+    const ClusterFSMEventMetadata& metadata     = event.second;
+    const InputMessage&            inputMessage = metadata.inputMessage();
 
     BALL_LOG_WARN << d_clusterData_p->identity().description()
                   << ": Follower LSN response from "
@@ -960,8 +960,8 @@ void ClusterStateManager::do_logStaleFollowerClusterStateResponse(
     BSLS_ASSERT_SAFE(d_clusterFSM.state() !=
                      ClusterFSM::State::e_LDR_HEALING_STG2);
 
-    const ClusterFSMEventMetadata& metadata      = event.second;
-    const InputMessage&            inputMessage  = metadata.inputMessage();
+    const ClusterFSMEventMetadata& metadata     = event.second;
+    const InputMessage&            inputMessage = metadata.inputMessage();
 
     BALL_LOG_WARN << d_clusterData_p->identity().description()
                   << ": Follower cluster state response from "
@@ -982,8 +982,8 @@ void ClusterStateManager::do_logFailFollowerLSNResponses(
     BSLS_ASSERT_SAFE(d_clusterData_p->electorInfo().isSelfLeader() &&
                      d_clusterFSM.isSelfLeader());
 
-    const ClusterFSMEventMetadata& metadata      = event.second;
-    const InputMessage&            inputMessage  = metadata.inputMessage();
+    const ClusterFSMEventMetadata& metadata     = event.second;
+    const InputMessage&            inputMessage = metadata.inputMessage();
     BSLS_ASSERT_SAFE(inputMessage.source());
 
     BALL_LOG_WARN << d_clusterData_p->identity().description()
@@ -1002,8 +1002,8 @@ void ClusterStateManager::do_logFailFollowerClusterStateResponse(
     BSLS_ASSERT_SAFE(d_clusterData_p->electorInfo().isSelfLeader() &&
                      d_clusterFSM.isSelfLeader());
 
-    const ClusterFSMEventMetadata& metadata      = event.second;
-    const InputMessage&            inputMessage  = metadata.inputMessage();
+    const ClusterFSMEventMetadata& metadata     = event.second;
+    const InputMessage&            inputMessage = metadata.inputMessage();
 
     BSLS_ASSERT_SAFE(inputMessage.source());
     if (inputMessage.source()->nodeId() ==
@@ -1034,8 +1034,8 @@ void ClusterStateManager::do_logFailRegistrationResponse(
     BSLS_ASSERT_SAFE(!d_clusterData_p->electorInfo().isSelfLeader() &&
                      d_clusterFSM.isSelfFollower());
 
-    const ClusterFSMEventMetadata& metadata      = event.second;
-    const InputMessage&            inputMessage  = metadata.inputMessage();
+    const ClusterFSMEventMetadata& metadata     = event.second;
+    const InputMessage&            inputMessage = metadata.inputMessage();
 
     BSLS_ASSERT_SAFE(inputMessage.source());
     if (inputMessage.source()->nodeId() ==
