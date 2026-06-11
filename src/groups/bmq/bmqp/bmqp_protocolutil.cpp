@@ -16,9 +16,9 @@
 #include <bmqp_protocolutil.h>
 
 #include <bmqscm_version.h>
+
 // BMQ
 #include <bmqp_compression.h>
-#include <bmqp_queueid.h>
 #include <bmqu_blobiterator.h>
 #include <bmqu_blobobjectproxy.h>
 #include <bmqu_memoutstream.h>
@@ -660,31 +660,6 @@ int ProtocolUtil::parse(bdlbb::Blob*              messagePropertiesOutput,
     }  // else, de-compressed directly to the 'dataOutput'
 
     return rc_OK;
-}
-
-// static
-bool ProtocolUtil::verify(const bmqp_ctrlmsg::ConsumerInfo& ci)
-{
-    if (ci.consumerPriority() == bmqp::Protocol::k_CONSUMER_PRIORITY_INVALID) {
-        return ci.consumerPriorityCount() == 0;
-    }
-    else {
-        return ci.consumerPriorityCount() > 0;
-    }
-}
-
-// static
-bool ProtocolUtil::verify(const bmqp_ctrlmsg::StreamParameters& parameters)
-{
-    for (size_t i = 0; i < parameters.subscriptions().size(); ++i) {
-        const bmqp_ctrlmsg::Subscription& s = parameters.subscriptions()[i];
-        for (size_t n = 0; n < s.consumers().size(); ++n) {
-            if (!verify(s.consumers()[n])) {
-                return false;
-            }
-        }
-    }
-    return true;
 }
 
 }  // close package namespace

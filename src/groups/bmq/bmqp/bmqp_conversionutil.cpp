@@ -1,4 +1,4 @@
-// Copyright 2025 Bloomberg Finance L.P.
+// Copyright 2026 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,22 +13,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <bmqimp_sessionid.h>
+#include <bmqp_conversionutil.h>
 
 #include <bmqscm_version.h>
 
-#include <bmqp_ctrlmsg_messages.h>
+// BMQ
+#include <bmqp_queueid.h>
 
 namespace BloombergLP {
-namespace bmqimp {
+namespace bmqp {
 
-SessionId::SessionId(
-    const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage)
-: d_sessionId(negotiationMessage.isClientIdentityValue()
-                  ? negotiationMessage.clientIdentity().sessionId()
-                  : 0)
+// ---------------------
+// struct ConversionUtil
+// ---------------------
+
+bdlb::NullableValue<bmqp_ctrlmsg::SubQueueIdInfo>
+ConversionUtil::makeSubQueueIdInfo(const bsl::string& appId,
+                                   unsigned int       subId)
 {
-    // NOTHING
+    bdlb::NullableValue<bmqp_ctrlmsg::SubQueueIdInfo> result;
+    if (subId != bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID) {
+        result.makeValue();
+        result.value().appId() = appId;
+        result.value().subId() = subId;
+    }
+
+    return result;
 }
 
 }  // close package namespace

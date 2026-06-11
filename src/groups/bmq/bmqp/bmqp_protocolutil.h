@@ -40,7 +40,6 @@
 // Thread safe.
 
 // BMQ
-#include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_protocol.h>
 #include <bmqt_resultcode.h>
 #include <bmqu_blob.h>
@@ -293,37 +292,6 @@ struct ProtocolUtil {
                      bmqt::CompressionAlgorithmType::Enum cat,
                      bdlbb::BlobBufferFactory*            blobBufferFactory,
                      bslma::Allocator*                    allocator);
-
-    /// Temporary
-    static void convert(
-        bmqp_ctrlmsg::QueueStreamParameters*                     to,
-        const bmqp_ctrlmsg::StreamParameters&                    from,
-        const bdlb::NullableValue<bmqp_ctrlmsg::SubQueueIdInfo>& subIdInfo);
-
-    /// Temporary
-    static void convert(bmqp_ctrlmsg::StreamParameters*            to,
-                        const bmqp_ctrlmsg::QueueStreamParameters& from);
-
-    /// Temporary
-    static void convert(bmqp_ctrlmsg::ConfigureStream*            to,
-                        const bmqp_ctrlmsg::ConfigureQueueStream& from);
-
-    static void makeResponse(bmqp_ctrlmsg::ControlMessage*         response,
-                             const bmqp_ctrlmsg::StreamParameters& from,
-                             const bmqp_ctrlmsg::ControlMessage&   request);
-
-    /// Temporary
-    static void convert(bmqp_ctrlmsg::ConsumerInfo*                to,
-                        const bmqp_ctrlmsg::QueueStreamParameters& from);
-    static const bmqp_ctrlmsg::ConsumerInfo&
-    consumerInfo(const bmqp_ctrlmsg::StreamParameters& from);
-
-    static bdlb::NullableValue<bmqp_ctrlmsg::SubQueueIdInfo>
-    makeSubQueueIdInfo(const bsl::string& appId, unsigned int subId);
-
-    static bool verify(const bmqp_ctrlmsg::ConsumerInfo& ci);
-
-    static bool verify(const bmqp_ctrlmsg::StreamParameters& parameters);
 };
 
 // ============================================================================
@@ -578,162 +546,6 @@ inline void ProtocolUtil::buildReceipt(bdlbb::Blob*        blob,
         .setPartitionId(partitionId)
         .setPrimaryLeaseId(primaryLeaseId)
         .setSequenceNum(sequenceNumber);
-}
-
-inline bdlb::NullableValue<bmqp_ctrlmsg::SubQueueIdInfo>
-ProtocolUtil::makeSubQueueIdInfo(const bsl::string& appId, unsigned int subId)
-{
-    bdlb::NullableValue<bmqp_ctrlmsg::SubQueueIdInfo> result;
-    if (subId != bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID) {
-        result.makeValue();
-        result.value().appId() = appId;
-        result.value().subId() = subId;
-    }
-
-    return result;
-}
-
-inline void ProtocolUtil::convert(
-    bmqp_ctrlmsg::QueueStreamParameters*                     to,
-    const bmqp_ctrlmsg::StreamParameters&                    from,
-    const bdlb::NullableValue<bmqp_ctrlmsg::SubQueueIdInfo>& subIdInfo)
-{
-    BSLS_ASSERT_SAFE(from.subscriptions().size() < 2);
-
-    to->subIdInfo() = subIdInfo;
-
-    if (from.subscriptions().size() > 0) {
-        BSLS_ASSERT_SAFE(from.subscriptions().size() == 1);
-        // Enable multiple subscriptions in SDK only when all brokers support
-        // them.
-        BSLS_ASSERT_SAFE(from.subscriptions()[0].consumers().size() > 0);
-        // New ConfigureStream request can carry multiple priorities but the
-        // first element in the array is the highest priority one.
-        const bmqp_ctrlmsg::ConsumerInfo& ci =
-            from.subscriptions()[0].consumers()[0];
-
-        to->consumerPriority()       = ci.consumerPriority();
-        to->consumerPriorityCount()  = ci.consumerPriorityCount();
-        to->maxUnconfirmedMessages() = ci.maxUnconfirmedMessages();
-        to->maxUnconfirmedBytes()    = ci.maxUnconfirmedBytes();
-    }
-    else {
-        to->consumerPriority()       = Protocol::k_CONSUMER_PRIORITY_INVALID;
-        to->consumerPriorityCount()  = 0;
-        to->maxUnconfirmedMessages() = 0;
-        to->maxUnconfirmedBytes()    = 0;
-    }
-}
-
-inline void
-ProtocolUtil::convert(bmqp_ctrlmsg::ConfigureStream*            to,
-                      const bmqp_ctrlmsg::ConfigureQueueStream& from)
-{
-    const bmqp_ctrlmsg::QueueStreamParameters& oldStype =
-        from.streamParameters();
-
-    to->qId() = from.qId();
-    to->streamParameters().subscriptions().resize(1);
-    bmqp_ctrlmsg::Subscription& subscription =
-        to->streamParameters().subscriptions()[0];
-
-    if (!oldStype.subIdInfo().isNull()) {
-        subscription.sId()             = oldStype.subIdInfo().value().subId();
-        to->streamParameters().appId() = oldStype.subIdInfo().value().appId();
-    }
-    // else DEFAULT_INITIALIZER_ID      (0),
-    //      DEFAULT_INITIALIZER_APP_ID  ("__default")
-
-    subscription.consumers().resize(1);
-    convert(&subscription.consumers()[0], oldStype);
-}
-
-inline void
-ProtocolUtil::convert(bmqp_ctrlmsg::StreamParameters*            to,
-                      const bmqp_ctrlmsg::QueueStreamParameters& from)
-{
-    if (!from.subIdInfo().isNull()) {
-        to->appId() = from.subIdInfo().value().appId();
-    }
-    // else DEFAULT_INITIALIZER_APP_ID  ("__default")
-
-    if (from.consumerPriorityCount()) {
-        to->subscriptions().resize(1);
-        to->subscriptions()[0].consumers().resize(1);
-
-        convert(&to->subscriptions()[0].consumers()[0], from);
-    }
-    else {
-        BSLS_ASSERT_SAFE(from.consumerPriority() ==
-                         Protocol::k_CONSUMER_PRIORITY_INVALID);
-        BSLS_ASSERT_SAFE(from.consumerPriorityCount() == 0);
-        BSLS_ASSERT_SAFE(from.maxUnconfirmedMessages() == 0);
-        BSLS_ASSERT_SAFE(from.maxUnconfirmedBytes() == 0);
-    }
-}
-
-inline void
-ProtocolUtil::convert(bmqp_ctrlmsg::ConsumerInfo*                to,
-                      const bmqp_ctrlmsg::QueueStreamParameters& from)
-{
-    to->consumerPriority()       = from.consumerPriority();
-    to->consumerPriorityCount()  = from.consumerPriorityCount();
-    to->maxUnconfirmedMessages() = from.maxUnconfirmedMessages();
-    to->maxUnconfirmedBytes()    = from.maxUnconfirmedBytes();
-}
-
-inline void
-ProtocolUtil::makeResponse(bmqp_ctrlmsg::ControlMessage*         response,
-                           const bmqp_ctrlmsg::StreamParameters& from,
-                           const bmqp_ctrlmsg::ControlMessage&   request)
-{
-    response->rId() = request.rId();
-
-    if (request.choice().isConfigureQueueStreamValue()) {
-        bmqp_ctrlmsg::ConfigureQueueStream& oldStyleRequest =
-            response->choice().makeConfigureQueueStreamResponse().request();
-        const bmqp_ctrlmsg::ConfigureQueueStream& original =
-            request.choice().configureQueueStream();
-        bmqp_ctrlmsg::QueueStreamParameters parameters =
-            oldStyleRequest.streamParameters();
-
-        oldStyleRequest.qId() = original.qId();
-
-        // QE::configureHandle mirrors parameters currently but let's leave
-        // the possibility for changing them.  For this reason, reconstruct
-        // parameters.
-
-        convert(&parameters, from, original.streamParameters().subIdInfo());
-    }
-    else {
-        BSLS_ASSERT_SAFE(request.choice().isConfigureStreamValue());
-
-        bmqp_ctrlmsg::ConfigureStream& newStyleRequest =
-            response->choice().makeConfigureStreamResponse().request();
-
-        newStyleRequest = request.choice().configureStream();
-    }
-}
-
-inline const bmqp_ctrlmsg::ConsumerInfo&
-ProtocolUtil::consumerInfo(const bmqp_ctrlmsg::StreamParameters& from)
-{
-    size_t n = from.subscriptions().size();
-
-    if (n == 0) {
-        static const bmqp_ctrlmsg::ConsumerInfo& defaultValues = *(
-            new bmqp_ctrlmsg::ConsumerInfo());
-
-        // Heap allocate it to prevent 'exit-time-destructor needed' compiler
-        // warning.  Causes valgrind-reported memory leak.
-
-        return defaultValues;
-    }
-
-    BSLS_ASSERT_SAFE(from.subscriptions()[0].consumers().size() > 0);
-
-    // Consider only the first (highest priority) consumer
-    return from.subscriptions()[0].consumers()[0];
 }
 
 }  // close package namespace

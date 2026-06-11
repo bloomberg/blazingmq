@@ -34,7 +34,6 @@
 #include <mqbu_capacitymeter.h>
 
 // BMQ
-#include <bmqp_ctrlmsg_messages.h>
 #include <bmqt_uri.h>
 
 // BDE
@@ -60,6 +59,12 @@
 namespace BloombergLP {
 
 // FORWARD DECLARATION
+namespace bmqp_ctrlmsg {
+class OpenQueueResponse;
+class QueueHandleParameters;
+class RoutingConfiguration;
+class Status;
+}
 namespace mqbcmd {
 class DomainCommand;
 }

@@ -166,6 +166,7 @@
 #include <bmqp_compression.h>
 #include <bmqp_confirmmessageiterator.h>
 #include <bmqp_controlmessageutil.h>
+#include <bmqp_conversionutil.h>
 #include <bmqp_event.h>
 #include <bmqp_messageproperties.h>
 #include <bmqp_protocolutil.h>
@@ -871,7 +872,7 @@ void ClientSession::onHandleConfiguredDispatched(
                 response.choice().makeConfigureQueueStreamResponse().request();
 
             configureQueueStream.qId() = qId;
-            bmqp::ProtocolUtil::convert(
+            bmqp::ConversionUtil::convert(
                 &configureQueueStream.streamParameters(),
                 streamParameters,
                 streamParamsCtrlMsg.choice()
@@ -1309,7 +1310,7 @@ void ClientSession::processConfigureStream(
     bmqp_ctrlmsg::ConfigureStream& req = adaptor;
 
     if (streamParamsCtrlMsg.choice().isConfigureQueueStreamValue()) {
-        bmqp::ProtocolUtil::convert(
+        bmqp::ConversionUtil::convert(
             &adaptor,
             streamParamsCtrlMsg.choice().configureQueueStream());
     }

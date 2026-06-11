@@ -33,8 +33,8 @@
 // Thread safe.
 
 // BMQ
-
 #include <bmqp_protocol.h>
+#include <bmqp_queueid.h>
 #include <bmqp_requestmanager.h>
 #include <bmqt_correlationid.h>
 #include <bmqt_messageguid.h>

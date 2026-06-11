@@ -26,10 +26,8 @@
 ///   - *NONE*: No compression algorithm was specified
 ///   - *ZLIB*: The compression algorithm is ZLIB
 
-// BMQ
-
 // BDE
-#include <bsl_ostream.h>
+#include <bsl_iosfwd.h>
 #include <bsl_string.h>
 
 namespace BloombergLP {
