@@ -318,6 +318,72 @@ def make_put_message() -> BoofuzzSequence:
     )
 
 
+def make_put_with_properties() -> BoofuzzSequence:
+    """
+    Constructs a PUT event with MESSAGE_PROPERTIES flag set whose app_data
+    contains a MessagePropertiesHeader with messagePropertiesAreaWords=0.
+
+    The entire PUT event is pre-computed as raw bytes to avoid boofuzz's
+    Size/Checksum/Block interactions producing wrong wire values.  A single
+    fuzzable Bytes field wraps the payload so boofuzz iterates over it,
+    sending the default (crashing) value on the seed pass and mutations on
+    subsequent passes.
+
+    Wire layout of the crashing PUT event (52 bytes):
+
+      EventHeader (8 bytes):
+        [0-3]   event_size = 0x00000034 (52, inclusive)
+        [4-7]   event_desc = 0x42020000 (type=PUT, ver=2)
+
+      PutHeader (36 bytes = 9 words):
+        [8-11]  flags(0x3=ACK|PROPS) + message_words(0xB=11)
+        [12-15] options_words(0) + header_words(9)
+        [16-19] queueId(0)
+        [20-35] GUID
+        [36-39] CRC32C of app_data (0x31f71c72)
+        [40-43] schema_id(0) + reserved(0)
+
+      App data (6 bytes) + padding (2 bytes):
+        [44]    0x1B  headerSize=6, mphSize=6
+        [45-47] 0x000000  messagePropertiesAreaWords = 0 (CRASH)
+        [48]    0x00  reserved
+        [49]    0x01  numProperties = 1
+        [50-51] 0x0202  word-alignment padding
+    """
+    import struct
+
+    guid = b"\x00\x00\x00\x00\x05\x78\x8d\xae\xd4\xb8\xca\x12\xae\xf3\x2d\xce"
+    app_data = b"\x1b\x00\x00\x00\x00\x01"
+    padding = b"\x02\x02"
+
+    # PutHeader fields
+    flags = 0x3  # ACK_REQUESTED | MESSAGE_PROPERTIES
+    message_words = 11  # (36 header + 6 app_data + 2 padding) / 4
+    header_words = 9
+    crc32c_val = 0x31F71C72  # pre-computed CRC32C of app_data
+
+    put_header = struct.pack(
+        ">II",
+        (flags << 28) | message_words,  # word 0
+        header_words,  # word 1 (options_words=0)
+    )
+    put_header += struct.pack(">I", 0)  # queueId
+    put_header += guid
+    put_header += struct.pack(">I", crc32c_val)
+    put_header += struct.pack(">HH", 0, 0)  # schema_id, reserved
+
+    put_message = put_header + app_data + padding
+
+    # EventHeader
+    event_desc = bytes([0x40 + broker.EventType.PUT, 0x02, 0x00, 0x00])
+    event_contents = event_desc + put_message
+    event_size = struct.pack(">I", len(event_contents) + 4)  # +4 for size field
+
+    full_event = event_size + event_contents
+
+    return [boofuzz.Bytes(name="put_event", default_value=full_event, size=len(full_event))]
+
+
 def make_confirm_message() -> BoofuzzSequence:
     """
     Constructs boofuzz structures representing ConfirmMessage.
@@ -465,5 +531,89 @@ def fuzz(host: str, port: int, request: Optional[str] = None) -> None:
 
     attach_fuzz_sequence(base_workflow, fuzz_filter=request)
     attach_fuzz_sequence(authn_bypass_workflow, fuzz_filter=request)
+
+    session.fuzz(max_depth=1)
+
+
+def fuzz_put_with_properties(host: str, port: int) -> None:
+    """
+    Launch a fuzzing session targeting PUT messages with malformed
+    MessagePropertiesHeader, using a consumer subscription expression 'x > 0'
+    so the broker evaluates the expression and parses the properties.
+
+    All requests except PUT are sent verbatim (not fuzzed) so that the session
+    reaches the routing path that triggers the crash.
+    """
+
+    session = boofuzz.Session(
+        target=boofuzz.Target(
+            connection=boofuzz.TCPSocketConnection(host, port, recv_timeout=0.05)
+        ),
+        receive_data_after_each_request=True,
+        receive_data_after_fuzz=True,
+        web_port=None,
+        fuzz_loggers=[FuzzLoggerLimited()],
+        fuzz_db_keep_only_n_pass_cases=1,
+    )
+
+    authentication = boofuzz.Request(
+        "Authentication", children=(make_authentication_message())
+    )
+    negotiation = boofuzz.Request(
+        "Negotiation", children=(make_control_message(broker.CLIENT_IDENTITY_SCHEMA))
+    )
+    open_queue = boofuzz.Request(
+        "OpenQueue", children=(make_control_message(broker.OPEN_QUEUE_SCHEMA))
+    )
+    # Fixed 'x > 0' expression so the broker evaluates a property access on
+    # every routed message, reaching the crashing parse path.
+    configure_stream = boofuzz.Request(
+        "ConfigureStream",
+        children=(
+            make_control_message(broker.CONFIGURE_STREAM_PROPERTY_EXPRESSION_SCHEMA)
+        ),
+    )
+    put = boofuzz.Request("Put", children=(make_put_with_properties()))
+    confirm = boofuzz.Request("Confirm", children=(make_confirm_message()))
+    close_queue = boofuzz.Request(
+        "CloseQueue", children=(make_control_message(broker.CLOSE_QUEUE_SCHEMA))
+    )
+    disconnect = boofuzz.Request(
+        "Disconnect", children=(make_control_message(broker.DISCONNECT_SCHEMA))
+    )
+
+    # Lock down every request except PUT so mutations are targeted.
+    for req in [
+        authentication,
+        negotiation,
+        open_queue,
+        configure_stream,
+        confirm,
+        close_queue,
+        disconnect,
+    ]:
+        disable_fuzzing(req)
+
+    # configureQueueStream is deliberately omitted — it overwrites the
+    # subscription expression set by configureStream, removing the 'x > 0'
+    # expression that triggers the crashing property-parse path.
+    workflow = [
+        authentication,
+        negotiation,
+        open_queue,
+        configure_stream,
+        put,
+        confirm,
+        close_queue,
+        disconnect,
+    ]
+
+    prev = None
+    for req in workflow:
+        if prev is None:
+            session.connect(req)
+        else:
+            session.connect(prev, req)
+        prev = req
 
     session.fuzz(max_depth=1)
