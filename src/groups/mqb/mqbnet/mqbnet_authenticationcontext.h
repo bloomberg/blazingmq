@@ -202,7 +202,7 @@ class AuthenticationContext {
     void resetAuthenticationMessage();
 
     /// Schedule a reauthentication timer using the specified `scheduler_p`
-    /// with the specified `lifetimeMs`.  The specified `channel` is used to
+    /// with the specified `lifetimeMs`.  The specified `channel_sp` is used to
     /// close the connection in case of reauthentication timeout or error.
     /// Return 0 on success, and a non-zero value populating the specified
     /// `errorDescription` with details on failure.
@@ -210,16 +210,21 @@ class AuthenticationContext {
         bsl::ostream&                             errorDescription,
         bdlmt::EventScheduler*                    scheduler_p,
         const bsl::optional<bsls::Types::Uint64>& lifetimeMs,
-        const bsl::shared_ptr<bmqio::Channel>&    channel);
+        const bsl::shared_ptr<bmqio::Channel>&    channel_sp);
 
-    /// Close the specified `channel` with `errorCode`, `errorName`, and
-    /// `errorDescription`, indicating a reauthentication error or
-    /// authentication timeout for the current context.
-    void onReauthenticateErrorOrTimeout(
-        int                                    errorCode,
-        const bsl::string&                     errorName,
-        const bsl::string&                     errorDescription,
-        const bsl::shared_ptr<bmqio::Channel>& channel);
+    /// Close the specified `channel_sp` indicating that reauthentication was
+    /// not received within the specified `timeoutMs` (in milliseconds).
+    void onReauthenticationTimeout(
+        const bsl::shared_ptr<bmqio::Channel>& channel_sp,
+        bsls::Types::Uint64                    timeoutMs);
+
+    /// Close the specified `channel_sp` with the specified `errorCode` and
+    /// `errorDescription`, indicating a reauthentication error for the
+    /// current context.
+    void
+    onReauthenticationError(const bsl::shared_ptr<bmqio::Channel>& channel_sp,
+                            int                                    errorCode,
+                            const bsl::string& errorDescription);
 
     /// Called when a channel is closing.  Cancel any outstanding
     /// reauthentication timer using the specified `scheduler_p`.

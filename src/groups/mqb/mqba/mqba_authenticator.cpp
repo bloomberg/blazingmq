@@ -231,12 +231,11 @@ void Authenticator::authenticate(
     if (isReauthn) {
         // For reauthentication: set up error guard to handle failures
         scopeGuard.emplace(bdlf::BindUtil::bind(
-            &mqbnet::AuthenticationContext::onReauthenticateErrorOrTimeout,
+            &mqbnet::AuthenticationContext::onReauthenticationError,
             context_sp.get(),
+            channel,
             bsl::ref(rc),
-            "reauthenticationError",
-            bsl::ref(error),
-            channel));
+            bsl::ref(error)));
     }
     else {
         // For initial authentication: set up state machine transition
