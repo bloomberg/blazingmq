@@ -258,6 +258,7 @@
 #include <bmqt_resultcode.h>
 
 // BDE
+#include <bsl_functional.h>
 #include <bsl_memory.h>
 
 namespace BloombergLP {

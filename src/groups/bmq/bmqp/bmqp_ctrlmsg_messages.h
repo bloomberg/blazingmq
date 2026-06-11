@@ -50,6 +50,7 @@
 
 #include <bsl_ostream.h>
 #include <bsl_string.h>
+#include <bsl_type_traits.h>
 
 namespace BloombergLP {
 

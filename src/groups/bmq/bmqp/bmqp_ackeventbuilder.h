@@ -67,6 +67,7 @@
 
 // BDE
 #include <bdlbb_blob.h>
+#include <bsl_functional.h>
 #include <bsl_memory.h>
 #include <bslma_allocator.h>
 #include <bslma_usesbslmaallocator.h>

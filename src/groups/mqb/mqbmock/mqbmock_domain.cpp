@@ -24,6 +24,7 @@
 #include <bmqu_memoutstream.h>
 
 // BDE
+#include <bsl_functional.h>
 #include <bsl_iostream.h>
 #include <bsl_limits.h>
 #include <bsla_annotations.h>

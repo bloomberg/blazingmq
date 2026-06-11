@@ -32,6 +32,7 @@
 #include <bmqu_managedcallback.h>
 
 // BDE
+#include <bsl_ostream.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
 

@@ -39,6 +39,7 @@
 #include <bsls_timeutil.h>
 
 // NTC
+#include <bsl_algorithm.h>
 #include <bsl_ios.h>
 #include <bsl_optional.h>
 #include <ntsa_error.h>
