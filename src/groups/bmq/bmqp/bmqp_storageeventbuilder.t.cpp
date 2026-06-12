@@ -17,6 +17,7 @@
 
 // BMQ
 #include <bmqp_event.h>
+#include <bmqp_storagemessageiterator.h>
 
 // BDE
 #include <bdlbb_blob.h>

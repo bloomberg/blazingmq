@@ -17,6 +17,7 @@
 
 // BMQ
 #include <bmqp_event.h>
+#include <bmqp_recoverymessageiterator.h>
 
 #include <bmqu_blob.h>
 
