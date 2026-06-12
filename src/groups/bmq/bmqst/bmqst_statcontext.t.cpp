@@ -1076,6 +1076,20 @@ static void testDatum(bslma::Allocator* allocator)
     ASSERT(datum->datum().isInteger());
 }
 
+static void testUserData(bslma::Allocator* allocator)
+{
+    bmqst::StatContextConfiguration config("test");
+    bmqst::StatContext              context(config, allocator);
+
+    struct LocalType {
+        // NOTHING
+    };
+
+    LocalType* ptr = dynamic_cast<LocalType*>(context.userData());
+
+    ASSERT(NULL == ptr);
+}
+
 //=============================================================================
 //                              MAIN PROGRAM
 //-----------------------------------------------------------------------------
@@ -1111,6 +1125,16 @@ int main(int argc, char** argv)
 
     switch (test) {
     case 0:  // Zero is always the leading case.
+    case 8: {
+        // --------------------------------------------------------------------
+        // TEST USER DATA ABI COMPATIBILITY
+        // --------------------------------------------------------------------
+
+        if (verbose)
+            cout << endl << "TEST USER DATA" << endl << "==========" << endl;
+        testUserData(&ta);
+    } break;
+
     case 7: {
         // --------------------------------------------------------------------
         // TEST DATUM

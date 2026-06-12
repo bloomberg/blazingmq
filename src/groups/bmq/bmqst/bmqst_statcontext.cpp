@@ -158,6 +158,14 @@ inline static bsls::Types::Int64 convertFromEpoch(bsls::Types::Int64 epochTime)
 
 }  // close anonymous namespace
 
+// -------------------------
+// class StatContextUserData
+// -------------------------
+
+StatContext::StatContextUserData::~StatContextUserData()
+{
+}
+
 // -----------------
 // class StatContext
 // -----------------
