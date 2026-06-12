@@ -67,12 +67,7 @@ void Time::initialize(bslma::Allocator* allocator)
     // PRECONDITIONS
     bslmt::QLockGuard qlockGuard(&g_initLock);
 
-    // NOTE: We pre-increment here instead of post-incrementing inside the
-    //       conditional check below because the post-increment of an int does
-    //       not work correctly with versions of IBM xlc12 released following
-    //       the Dec 2015 PTF.
-    ++g_initialized;
-    if (g_initialized > 1) {
+    if (++g_initialized > 1) {
         return;  // RETURN
     }
 
@@ -104,12 +99,7 @@ void Time::initialize(const SystemTimeCb&         realTimeClockCb,
     // PRECONDITIONS
     bslmt::QLockGuard qlockGuard(&g_initLock);
 
-    // NOTE: We pre-increment here instead of post-incrementing inside the
-    //       conditional check below because the post-increment of an int does
-    //       not work correctly with versions of IBM xlc12 released following
-    //       the Dec 2015 PTF.
-    ++g_initialized;
-    if (g_initialized > 1) {
+    if (++g_initialized > 1) {
         return;  // RETURN
     }
 
@@ -121,6 +111,8 @@ void Time::initialize(const SystemTimeCb&         realTimeClockCb,
         SystemTimeCb(bsl::allocator_arg, alloc, monotonicClockCb);
     new (g_highResTimer.buffer())
         HighResolutionTimeCb(bsl::allocator_arg, alloc, highResTimeCb);
+
+    bsls::TimeUtil::initialize();
 }
 
 void Time::shutdown()
