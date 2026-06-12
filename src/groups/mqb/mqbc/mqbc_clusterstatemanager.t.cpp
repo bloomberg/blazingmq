@@ -757,17 +757,17 @@ static void test4_invalidMessagesLeader()
             .makeClusterStateFSMMessage()
             .choice()
             .makeFollowerLSNResponse();
-    followerResponse.sequenceNumber().electorTerm()    = 1U;
-    followerResponse.sequenceNumber().sequenceNumber() = 2U;
-
-    followerMessage.rId() = 1;
-    tester.d_cluster_mp->requestManager().processResponse(followerMessage);
-    followerMessage.rId() = 2;
-    tester.d_cluster_mp->requestManager().processResponse(followerMessage);
 
     // This is the highest LSN follower
-    followerMessage.rId()                              = 3;
+    followerMessage.rId()                              = 1;
+    followerResponse.sequenceNumber().electorTerm()    = 1U;
     followerResponse.sequenceNumber().sequenceNumber() = 5U;
+    tester.d_cluster_mp->requestManager().processResponse(followerMessage);
+
+    followerMessage.rId()                              = 2;
+    followerResponse.sequenceNumber().sequenceNumber() = 2U;
+    tester.d_cluster_mp->requestManager().processResponse(followerMessage);
+    followerMessage.rId() = 3;
     tester.d_cluster_mp->requestManager().processResponse(followerMessage);
 
     BSLS_ASSERT_OPT(tester.d_clusterStateManager_mp->healthState() ==
@@ -2329,11 +2329,14 @@ static void test22_selectFollowerFromLeader()
             .makeFollowerLSNResponse()
             .sequenceNumber();
 
-    followerLSNResponse.rId() = 1;
-    lms.electorTerm()         = 1U;
-    lms.sequenceNumber()      = 8U;  // Follower LSNs are higher than leader's
+    const bsls::Types::Uint64 highestFollowerLSN = 10U;
+    followerLSNResponse.rId()                    = 1;
+    lms.electorTerm()                            = 1U;
+    lms.sequenceNumber()                         = highestFollowerLSN;
     tester2.d_cluster_mp->requestManager().processResponse(
         followerLSNResponse);
+
+    lms.sequenceNumber()      = 8U;
     followerLSNResponse.rId() = 2;
     tester2.d_cluster_mp->requestManager().processResponse(
         followerLSNResponse);
