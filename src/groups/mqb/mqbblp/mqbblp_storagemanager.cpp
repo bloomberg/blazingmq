@@ -1262,18 +1262,6 @@ int StorageManager::start(bsl::ostream& errorDescription)
         return rc * 10 + rc_NOT_ENOUGH_DISK_SPACE;  // RETURN
     }
 
-    // Schedule a periodic event (every minute) which monitors storage (disk
-    // space, archive clean up, etc).
-    d_clusterData_p->scheduler().scheduleRecurringEvent(
-        &d_storageMonitorEventHandle,
-        bsls::TimeInterval(bdlt::TimeUnitRatio::k_SECONDS_PER_MINUTE),
-        bdlf::BindUtil::bind(&mqbc::StorageUtil::storageMonitorCb,
-                             &d_lowDiskspaceWarning,
-                             &d_isStarted,
-                             d_minimumRequiredDiskSpace,
-                             d_clusterData_p->identity().description(),
-                             d_clusterConfig.partitionConfig()));
-
     rc = mqbc::StorageUtil::assignPartitionDispatcherThreads(
         d_miscWorkThreadPool_p,
         d_clusterData_p,
@@ -1325,18 +1313,14 @@ int StorageManager::start(bsl::ostream& errorDescription)
         .setMaxQlistFileSize(partitionCfg.maxQlistFileSize());
     // Only relevant fields of data store config are set.
 
-    // Get named allocator from associated bmqma::CountingAllocatorStore
-    bslma::Allocator* recoveryManagerAllocator = d_allocators.get(
-        "RecoveryManager");
-
-    d_recoveryManager_mp.load(new (*recoveryManagerAllocator)
-                                  RecoveryManager(d_clusterConfig,
-                                                  d_cluster_p,
-                                                  d_clusterData_p,
-                                                  dsCfg,
-                                                  d_dispatcher_p,
-                                                  recoveryManagerAllocator),
-                              recoveryManagerAllocator);
+    d_recoveryManager_mp =
+        bslma::ManagedPtrUtil::allocateManaged<RecoveryManager>(
+            d_allocators.get("RecoveryManager"),
+            d_clusterConfig,
+            d_cluster_p,
+            d_clusterData_p,
+            dsCfg,
+            d_dispatcher_p);
 
     rc = d_recoveryManager_mp->start(errorDescription);
     if (rc != 0) {
@@ -1344,6 +1328,18 @@ int StorageManager::start(bsl::ostream& errorDescription)
                        << ": Failed to start recovery manager, rc: " << rc;
         return 10 * rc + rc_RECOVERY_MANAGER_FAILURE;  // RETURN
     }
+
+    // Schedule a periodic event (every minute) which monitors storage (disk
+    // space, archive clean up, etc).
+    d_clusterData_p->scheduler().scheduleRecurringEvent(
+        &d_storageMonitorEventHandle,
+        bsls::TimeInterval(bdlt::TimeUnitRatio::k_SECONDS_PER_MINUTE),
+        bdlf::BindUtil::bind(&mqbc::StorageUtil::storageMonitorCb,
+                             &d_lowDiskspaceWarning,
+                             &d_isStarted,
+                             d_minimumRequiredDiskSpace,
+                             d_clusterData_p->identity().description(),
+                             d_clusterConfig.partitionConfig()));
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << ": Enqueuing events in recovery manager for each "
