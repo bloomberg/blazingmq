@@ -966,6 +966,11 @@ class StatContextConfiguration {
                                     StatValue::Type          type,
                                     int                      historySize);
 
+    /// Return a modifiable pointer to the user data associated with this
+    /// context, or 0 if no such data exists.
+    /// NOTE: keep for ABI compatibility.
+    void* userData() const { return NULL; }
+
     /// Add a snapshot level of the specified `size` to the last added
     /// value.  A snapshot of a given level represents a range of snapshots
     /// of a lower level.  For example, if a value was added with
