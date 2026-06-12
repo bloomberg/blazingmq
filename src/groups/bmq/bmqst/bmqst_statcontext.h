@@ -822,6 +822,11 @@ class StatContext {
     /// `valueType`
     const StatValue& value(ValueType valueType, int valueIndex) const;
 
+    /// Return a modifiable pointer to the user data associated with this
+    /// context, or 0 if no such data exists.
+    /// NOTE: keep for ABI compatibility.
+    void* userData() const { return NULL; }
+
     /// Return a pointer to the datum allocator in this context.
     bslma::Allocator* datumAllocator() const;
 
@@ -965,11 +970,6 @@ class StatContextConfiguration {
     StatContextConfiguration& value(const bslstl::StringRef& name,
                                     StatValue::Type          type,
                                     int                      historySize);
-
-    /// Return a modifiable pointer to the user data associated with this
-    /// context, or 0 if no such data exists.
-    /// NOTE: keep for ABI compatibility.
-    void* userData() const { return NULL; }
 
     /// Add a snapshot level of the specified `size` to the last added
     /// value.  A snapshot of a given level represents a range of snapshots
