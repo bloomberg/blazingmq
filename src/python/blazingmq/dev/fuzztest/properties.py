@@ -496,6 +496,78 @@ def make_put_request_with_cat_fuzz(properties_bytes: bytes, schema_id: int = 0) 
     return boofuzz.Request("put_with_cat_fuzz", children=children)
 
 
+def make_control_request_with_encoding_fuzz(schema) -> boofuzz.Request:
+    """
+    Build a CONTROL event as a boofuzz Request with the EventHeader's
+    TypeSpecific byte (encoding type, 3 bits at bits 5-7) marked as fuzzable.
+    All other fields are static.
+
+    The payload is a valid JSON-encoded control message from the given schema,
+    so the only variable is how the broker interprets the encoding type field.
+    Valid encoding values: BER=0, JSON=1 (3-bit field allows 0-7).
+    """
+
+    from blazingmq.dev.fuzztest import schema_to_boofuzz, PaddingBlock
+
+    # Render the JSON payload statically
+    payload_children = schema_to_boofuzz(schema)
+    payload_req = boofuzz.Request("_payload", children=payload_children)
+    payload_bytes = payload_req.render()
+
+    # Word-align the payload
+    padded_payload = bytearray(payload_bytes)
+    remainder = len(padded_payload) % NumBytes.WORD
+    if remainder:
+        padding_count = NumBytes.WORD - remainder
+        padded_payload += bytes([padding_count] * padding_count)
+
+    # Total event size: EventHeader (8 bytes) + padded payload
+    total_size = 2 * NumBytes.WORD + len(padded_payload)
+
+    children = [
+        # EventHeader: length (4 bytes) — includes fragment bit (0) in MSB
+        boofuzz.DWord(
+            name="event_length",
+            default_value=total_size,
+            endian=">",
+            fuzzable=False,
+        ),
+        # EventHeader byte 4: [PV(2) | Type(6)]
+        boofuzz.Byte(
+            name="pv_and_type",
+            default_value=0x40 + broker.EventType.CONTROL,
+            fuzzable=False,
+        ),
+        # EventHeader byte 5: headerWords
+        boofuzz.Byte(
+            name="header_words",
+            default_value=0x02,
+            fuzzable=False,
+        ),
+        # EventHeader byte 6: TypeSpecific (encoding type) -- FUZZABLE
+        boofuzz.Byte(
+            name="type_specific_encoding",
+            default_value=broker.TypeSpecific.ENCODING_JSON,
+            fuzzable=True,
+        ),
+        # EventHeader byte 7: reserved
+        boofuzz.Byte(
+            name="event_reserved",
+            default_value=0x00,
+            fuzzable=False,
+        ),
+        # Payload (static JSON control message)
+        boofuzz.Bytes(
+            name="control_payload",
+            default_value=bytes(padded_payload),
+            size=len(padded_payload),
+            fuzzable=False,
+        ),
+    ]
+
+    return boofuzz.Request("control_with_encoding_fuzz", children=children)
+
+
 # =============================================================================
 #                              SETUP HELPERS
 # =============================================================================
@@ -565,59 +637,72 @@ def _is_broker_alive(sock: socket.socket) -> bool:
 # =============================================================================
 
 
+def _run_fuzz_pass(sock, request, label):
+    """Send all mutations of a boofuzz Request over the socket.
+    Returns the number of mutations sent.  Raises AssertionError if the
+    broker crashes or the connection drops."""
+
+    mutations = request.num_mutations()
+    logger.info("Fuzzing %s: %d mutations", label, mutations)
+
+    count = 0
+    for m_list in request.get_mutations():
+        mc = MutationContext(
+            mutations={m.qualified_name: m for m in m_list},
+        )
+        fuzzed_event = request.render(mutation_context=mc)
+
+        try:
+            sock.sendall(fuzzed_event)
+        except OSError as e:
+            raise AssertionError(
+                f"Broker connection lost at mutation "
+                f"{count} ({label}): {e}"
+            ) from e
+
+        try:
+            sock.recv(4096)
+        except socket.timeout:
+            pass
+
+        if not _is_broker_alive(sock):
+            raise AssertionError(
+                f"Broker appears to have crashed at mutation "
+                f"{count} ({label})"
+            )
+
+        count += 1
+
+    return count
+
+
 def fuzz_properties(host: str, port: int) -> None:
     """
-    Launch a CAT-field fuzzing session against a BlazingMQ Broker.
+    Launch a fuzzing session against a BlazingMQ Broker targeting the
+    encoding type (TypeSpecific) byte in CONTROL event headers.
 
     Connects to the broker, performs the session handshake once, then sends
-    PUT messages with fuzzed CAT (Compression Algorithm Type) field values
-    in the PutHeader.  Raises AssertionError if the broker crashes.
+    CONTROL messages with fuzzed TypeSpecific values.  The encoding type is
+    a 3-bit field (bits 5-7) with valid values BER=0 and JSON=1.
+
+    Raises AssertionError if the broker crashes.
     """
 
     sock = _connect(host, port)
     try:
         _send_setup_messages(sock)
 
-        # Build static properties (new-style, 2 props) to embed in the PUT
-        props_request = make_message_properties_area_new_style(num_properties=2)
-        static_props = props_request.render()
+        total = 0
 
-        put_request = make_put_request_with_cat_fuzz(static_props, schema_id=2)
-        mutations = put_request.num_mutations()
-        logger.info("Fuzzing CAT field: %d mutations", mutations)
-
-        total_mutation_count = 0
-
-        for m_list in put_request.get_mutations():
-            mc = MutationContext(
-                mutations={m.qualified_name: m for m in m_list},
-            )
-            fuzzed_event = put_request.render(mutation_context=mc)
-
-            try:
-                sock.sendall(fuzzed_event)
-            except OSError as e:
-                raise AssertionError(
-                    f"Broker connection lost at mutation "
-                    f"{total_mutation_count} (CAT fuzz): {e}"
-                ) from e
-
-            try:
-                sock.recv(4096)
-            except socket.timeout:
-                pass
-
-            if not _is_broker_alive(sock):
-                raise AssertionError(
-                    f"Broker appears to have crashed at mutation "
-                    f"{total_mutation_count} (CAT fuzz)"
-                )
-
-            total_mutation_count += 1
+        # Fuzz encoding type on a CONTROL event (configure stream)
+        encoding_request = make_control_request_with_encoding_fuzz(
+            broker.CONFIGURE_STREAM_SCHEMA,
+        )
+        total += _run_fuzz_pass(sock, encoding_request, "encoding type")
 
         logger.info(
             "Completed %d total mutations without broker crash",
-            total_mutation_count,
+            total,
         )
     finally:
         sock.close()
