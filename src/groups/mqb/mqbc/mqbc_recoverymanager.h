@@ -440,12 +440,13 @@ class RecoveryManager {
 
     /// Load into the specified `out` a ReplicaDataResponsePush using
     /// information in self's ReceiveDataContext for the specified
-    /// `partitionId`.
+    /// `partitionId` and `primaryLeaseId`.
     ///
     /// THREAD: Executed in the dispatcher thread associated with the
     /// specified `partitionId`.
     void loadReplicaDataResponsePush(bmqp_ctrlmsg::ControlMessage* out,
-                                     int partitionId) const;
+                                     int                           partitionId,
+                                     unsigned int primaryLeaseId) const;
 };
 
 // ============================================================================
