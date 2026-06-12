@@ -1274,7 +1274,7 @@ void RequestManager<REQUEST, RESPONSE>::applyResponse(const RequestSp& request,
     // mutex *NOT* locked
 
     // Cancel the timeout event
-    d_scheduler_p->cancelEvent(&(request->d_timeoutSchedulerHandle));
+    d_scheduler_p->cancelEventAndWait(&(request->d_timeoutSchedulerHandle));
 
     // Populate response field.
 

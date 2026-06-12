@@ -295,7 +295,7 @@ void ClusterProxy::processActiveNodeManagerResult(
     if (result & mqbnet::ClusterActiveNodeManager::e_NEW_ACTIVE) {
         // Cancel the scheduler event, if any.
         if (d_activeNodeLookupEventHandle) {
-            d_clusterData.scheduler().cancelEvent(
+            d_clusterData.scheduler().cancelEventAndWait(
                 &d_activeNodeLookupEventHandle);
             d_activeNodeManager.enableExtendedSelection();
         }
