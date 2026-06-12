@@ -160,7 +160,7 @@ void ClusterStateManager::do_stopWatchdog(
     d_watchdogCtx.d_retriesRemaining = d_watchdogNumRetries;
     d_watchdogCtx.d_active           = false;
 
-    const int rc = d_clusterData_p->scheduler().cancelEvent(
+    const int rc = d_clusterData_p->scheduler().cancelEventAndWait(
         d_watchdogCtx.d_eventHandle);
     if (rc != 0) {
         BALL_LOG_ERROR << d_clusterData_p->identity().description()
