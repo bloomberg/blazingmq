@@ -29,15 +29,8 @@
 
 // BMQ
 
-#include <bmqp_ackmessageiterator.h>
-#include <bmqp_confirmmessageiterator.h>
 #include <bmqp_protocol.h>
 #include <bmqp_protocolutil.h>
-#include <bmqp_pushmessageiterator.h>
-#include <bmqp_putmessageiterator.h>
-#include <bmqp_recoverymessageiterator.h>
-#include <bmqp_rejectmessageiterator.h>
-#include <bmqp_storagemessageiterator.h>
 
 #include <bmqu_blob.h>
 #include <bmqu_blobobjectproxy.h>
@@ -56,6 +49,15 @@
 
 namespace BloombergLP {
 namespace bmqp {
+
+// FORWARD DECLARATIONS
+class AckMessageIterator;
+class ConfirmMessageIterator;
+class PushMessageIterator;
+class PutMessageIterator;
+class RecoveryMessageIterator;
+class RejectMessageIterator;
+class StorageMessageIterator;
 
 // ===========
 // class Event
@@ -632,75 +634,6 @@ int Event::loadAuthenticationEvent(TYPE* message) const
     BSLS_ASSERT_SAFE(isAuthenticationEvent());
 
     return loadSchemaEvent(message);
-}
-
-inline void Event::loadAckMessageIterator(AckMessageIterator* iterator) const
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(isAckEvent());
-    BSLS_ASSERT_SAFE(isValid());
-
-    iterator->reset(blob(), *d_header);
-}
-
-inline void
-Event::loadConfirmMessageIterator(ConfirmMessageIterator* iterator) const
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(isConfirmEvent());
-    BSLS_ASSERT_SAFE(isValid());
-
-    iterator->reset(blob(), *d_header);
-}
-
-inline void Event::loadPushMessageIterator(PushMessageIterator* iterator,
-                                           bool decompressFlag) const
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(isPushEvent());
-    BSLS_ASSERT_SAFE(isValid());
-
-    iterator->reset(blob(), *d_header, decompressFlag);
-}
-
-inline void Event::loadPutMessageIterator(PutMessageIterator* iterator,
-                                          bool decompressFlag) const
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(isPutEvent());
-    BSLS_ASSERT_SAFE(isValid());
-
-    iterator->reset(blob(), *d_header, decompressFlag);
-}
-
-inline void
-Event::loadStorageMessageIterator(StorageMessageIterator* iterator) const
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(isStorageEvent() || isPartitionSyncEvent());
-    BSLS_ASSERT_SAFE(isValid());
-
-    iterator->reset(blob(), *d_header);
-}
-
-inline void
-Event::loadRecoveryMessageIterator(RecoveryMessageIterator* iterator) const
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(isRecoveryEvent());
-    BSLS_ASSERT_SAFE(isValid());
-
-    iterator->reset(blob(), *d_header);
-}
-
-inline void
-Event::loadRejectMessageIterator(RejectMessageIterator* iterator) const
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(isRejectEvent());
-    BSLS_ASSERT_SAFE(isValid());
-
-    iterator->reset(blob(), *d_header);
 }
 
 inline const bdlbb::Blob* Event::blob() const

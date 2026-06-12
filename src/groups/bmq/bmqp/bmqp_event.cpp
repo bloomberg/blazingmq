@@ -15,6 +15,14 @@
 
 #include <bmqp_event.h>
 
+#include <bmqp_ackmessageiterator.h>
+#include <bmqp_confirmmessageiterator.h>
+#include <bmqp_pushmessageiterator.h>
+#include <bmqp_putmessageiterator.h>
+#include <bmqp_recoverymessageiterator.h>
+#include <bmqp_rejectmessageiterator.h>
+#include <bmqp_storagemessageiterator.h>
+
 #include <bmqscm_version.h>
 // BDE
 #include <bsl_iostream.h>
@@ -26,6 +34,72 @@ namespace bmqp {
 // -----------
 // class Event
 // -----------
+
+void Event::loadAckMessageIterator(AckMessageIterator* iterator) const
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(isAckEvent());
+    BSLS_ASSERT_SAFE(isValid());
+
+    iterator->reset(blob(), *d_header);
+}
+
+void Event::loadConfirmMessageIterator(ConfirmMessageIterator* iterator) const
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(isConfirmEvent());
+    BSLS_ASSERT_SAFE(isValid());
+
+    iterator->reset(blob(), *d_header);
+}
+
+void Event::loadPushMessageIterator(PushMessageIterator* iterator,
+                                    bool                 decompressFlag) const
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(isPushEvent());
+    BSLS_ASSERT_SAFE(isValid());
+
+    iterator->reset(blob(), *d_header, decompressFlag);
+}
+
+void Event::loadPutMessageIterator(PutMessageIterator* iterator,
+                                   bool                decompressFlag) const
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(isPutEvent());
+    BSLS_ASSERT_SAFE(isValid());
+
+    iterator->reset(blob(), *d_header, decompressFlag);
+}
+
+void Event::loadStorageMessageIterator(StorageMessageIterator* iterator) const
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(isStorageEvent() || isPartitionSyncEvent());
+    BSLS_ASSERT_SAFE(isValid());
+
+    iterator->reset(blob(), *d_header);
+}
+
+void Event::loadRecoveryMessageIterator(
+    RecoveryMessageIterator* iterator) const
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(isRecoveryEvent());
+    BSLS_ASSERT_SAFE(isValid());
+
+    iterator->reset(blob(), *d_header);
+}
+
+void Event::loadRejectMessageIterator(RejectMessageIterator* iterator) const
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(isRejectEvent());
+    BSLS_ASSERT_SAFE(isValid());
+
+    iterator->reset(blob(), *d_header);
+}
 
 bsl::ostream&
 Event::print(bsl::ostream& stream, int level, int spacesPerLevel) const

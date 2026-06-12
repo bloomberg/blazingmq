@@ -16,10 +16,15 @@
 #include <mqbnet_channel.h>
 
 // BMQ
+#include <bmqp_ackmessageiterator.h>
+#include <bmqp_confirmmessageiterator.h>
 #include <bmqp_crc32c.h>
 #include <bmqp_event.h>
 #include <bmqp_messageguidgenerator.h>
 #include <bmqp_protocol.h>
+#include <bmqp_pushmessageiterator.h>
+#include <bmqp_putmessageiterator.h>
+#include <bmqp_rejectmessageiterator.h>
 #include <bmqt_messageguid.h>
 
 #include <bmqio_testchannel.h>
