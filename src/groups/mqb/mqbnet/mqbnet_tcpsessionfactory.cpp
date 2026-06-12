@@ -36,9 +36,11 @@
 #include <mqbnet_initialconnectioncontext.h>
 #include <mqbnet_negotiationcontext.h>
 #include <mqbnet_session.h>
+#include <mqbstat_statcontroller.h>
 
 // BMQ
 #include <bmqex_executionutil.h>
+#include <bmqex_sequentialcontext.h>
 #include <bmqex_systemexecutor.h>
 #include <bmqio_channelfactory.h>
 #include <bmqio_channelfactorypipeline.h>
@@ -48,13 +50,16 @@
 #include <bmqio_ntcchannelfactory.h>
 #include <bmqio_reconnectingchannelfactory.h>
 #include <bmqio_resolveutil.h>
+#include <bmqio_resolvingchannelfactory.h>
 #include <bmqio_statchannel.h>
 #include <bmqio_statchannelfactory.h>
 #include <bmqio_status.h>
 #include <bmqio_tcpendpoint.h>
 #include <bmqp_event.h>
+#include <bmqp_heartbeatmonitor.h>
 #include <bmqp_protocol.h>
 #include <bmqp_protocolutil.h>
+#include <bmqst_statcontext.h>
 #include <bmqu_blob.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_printutil.h>
@@ -288,17 +293,17 @@ struct ChannelFactoryBuilders {
         return factory;
     }
 
-    static ChannelFactorySP
-    resolvingChannelFactory(bslma::Allocator*               allocator,
-                            ChannelFactorySP&               prev,
-                            const bmqex::SequentialContext& resolutionContext)
+    static ChannelFactorySP resolvingChannelFactory(
+        bslma::Allocator*                                allocator,
+        ChannelFactorySP&                                prev,
+        const bsl::shared_ptr<bmqex::SequentialContext>& resolutionContext_sp)
     {
         return bsl::allocate_shared<bmqio::ResolvingChannelFactory>(
             allocator,
             bmqio::ResolvingChannelFactoryConfig(
                 prev.get(),
                 bmqex::ExecutionPolicyUtil::neverBlocking().useExecutor(
-                    resolutionContext.executor()))
+                    resolutionContext_sp->executor()))
                 .resolutionFn(bdlf::BindUtil::bind(
                     &monitoredDNSResolution,
                     bdlf::PlaceHolders::_1,   // resolvedUri
@@ -419,9 +424,8 @@ void TCPSessionFactory::handleInitialConnection(
         rc_SUCCESS = 0,
     };
 
-    BALL_LOG_INFO << "TCPSessionFactory '" << d_config.name()
-                  << "': allocating a channel with '" << channel.get() << "' ["
-                  << d_nbActiveChannels << " active channels]";
+    BALL_LOG_INFO << d_name << ": allocating a channel with '" << channel.get()
+                  << "' [" << d_nbActiveChannels << " active channels]";
 
     // Create a unique InitialConnectionContext for the channel, from
     // the OperationContext.  When we start reading incoming messages, this
@@ -564,8 +568,8 @@ void TCPSessionFactory::read(ChannelInfo*       channelInfo,
         return;  // RETURN
     }
 
-    if (channelInfo->d_monitor.checkData(channelInfo->d_channel_sp.get(),
-                                         event)) {
+    if (channelInfo->d_monitor_mp->checkData(channelInfo->d_channel_sp.get(),
+                                             event)) {
         if (event.isAuthenticationEvent()) {
             reauthnOnAuthenticationEvent(event, channelInfo);
         }
@@ -609,9 +613,8 @@ void TCPSessionFactory::initialConnectionComplete(
 
     if (statusCode != 0) {
         // Failed to negotiate
-        BALL_LOG_WARN << "#INITIAL_CONNECTION TCPSessionFactory '"
-                      << d_config.name() << "' "
-                      << "failed to authenticate/negotiate a session "
+        BALL_LOG_WARN << "#INITIAL_CONNECTION " << d_name
+                      << ": failed to authenticate/negotiate a session "
                       << "[channel: '" << channel.get()
                       << "', status: " << statusCode << ", error: '"
                       << errorDescription << "']";
@@ -633,8 +636,8 @@ void TCPSessionFactory::initialConnectionComplete(
     BSLS_ASSERT_SAFE(initialConnectionContext_sp->negotiationContext());
 
     BALL_LOG_INFO
-        << "TCPSessionFactory '" << d_config.name()
-        << "' successfully authenticated and negotiated a session [session: '"
+        << d_name
+        << ": successfully authenticated and negotiated a session [session: '"
         << session->description() << "', channel: '" << channel.get()
         << "', maxMissedHeartbeat: "
         << initialConnectionContext_sp->negotiationContext()
@@ -676,16 +679,15 @@ void TCPSessionFactory::initialConnectionComplete(
         // thread while the channel is closed in IO thread)
         if (initialConnectionContext_sp->isClosed()) {
             BALL_LOG_WARN
-                << "#TCP_UNEXPECTED_STATE TCPSessionFactory '"
-                << d_config.name()
-                << "' got an already closed channel after negotiation.";
+                << "#TCP_UNEXPECTED_STATE " << d_name
+                << ": got an already closed channel after negotiation.";
 
             // Since the 'session' has missed 'onClose', call 'tearDown' here.
             session->tearDown(session, false);
             return;  // RETURN
         }
 
-        info.createInplace(
+        info = bsl::allocate_shared<ChannelInfo>(
             d_allocator_p,
             channel,
             initialConnectionContext_sp->authenticationContext(),
@@ -702,7 +704,7 @@ void TCPSessionFactory::initialConnectionComplete(
         inserted = d_channels.insert(toInsert);
         info     = inserted.first->second;
 
-        if (info->d_monitor.isHearbeatEnabled() &&
+        if (info->d_monitor_mp->isHearbeatEnabled() &&
             d_heartbeatSchedulerActive) {
             // Enable/Disable heartbeating under the lock
             // If the 'result' below is 'false' and the channel gets closed,
@@ -744,10 +746,9 @@ void TCPSessionFactory::initialConnectionComplete(
         //       called before or after 'stopListening'.  Invoke 'tearDown'
         //       explicitly (it supports subsequent calls).
 
-        BALL_LOG_WARN << "#TCP_UNEXPECTED_STATE TCPSessionFactory '"
-                      << d_config.name()
-                      << (d_isListening ? "' has encountered an error "
-                                        : "' has initiated shutdown ")
+        BALL_LOG_WARN << "#TCP_UNEXPECTED_STATE " << d_name << ":"
+                      << (d_isListening ? " has encountered an error "
+                                        : " has initiated shutdown ")
                       << "while negotiating a session [session: '"
                       << monitoredSession->description() << "', channel: '"
                       << channel.get() << "']";
@@ -808,8 +809,7 @@ void TCPSessionFactory::channelStateCallback(
     // proactively-execute code in the IO threads created by the channelPool).
     setCurrentThreadNameOnce(d_threadName);
 
-    BALL_LOG_TRACE << "TCPSessionFactory '" << d_config.name()
-                   << "': channelStateCallback [event: " << event
+    BALL_LOG_TRACE << d_name << ": channelStateCallback [event: " << event
                    << ", status: " << status << ", channel: '" << channel.get()
                    << "', " << d_nbActiveChannels << " active channels]";
 
@@ -819,9 +819,8 @@ void TCPSessionFactory::channelStateCallback(
         BSLS_ASSERT_SAFE(channel);
 
         if (!d_isListening) {
-            BALL_LOG_INFO << "#SESSION_NEGOTIATION TCPSessionFactory '"
-                          << d_config.name()
-                          << "' has stopped listening and rejecting '"
+            BALL_LOG_INFO << "#SESSION_NEGOTIATION " << d_name
+                          << ": has stopped listening and rejecting '"
                           << channel.get() << "'";
 
             bmqio::Status closeStatus(bmqio::StatusCategory::e_GENERIC_ERROR,
@@ -829,9 +828,8 @@ void TCPSessionFactory::channelStateCallback(
             channel->close(closeStatus);
         }
         else if (channel->peerUri().empty()) {
-            BALL_LOG_ERROR << "#SESSION_NEGOTIATION "
-                           << "TCPSessionFactory '" << d_config.name() << "' "
-                           << "rejecting empty peer URI: '" << channel.get()
+            BALL_LOG_ERROR << "#SESSION_NEGOTIATION " << d_name
+                           << ": rejecting empty peer URI: '" << channel.get()
                            << "'";
 
             bmqio::Status closeStatus(bmqio::StatusCategory::e_GENERIC_ERROR,
@@ -882,9 +880,9 @@ void TCPSessionFactory::onClose(const bsl::shared_ptr<bmqio::Channel>& channel,
 
     --d_nbActiveChannels;
 
-    BALL_LOG_INFO << "TCPSessionFactory '" << d_config.name()
-                  << "': onClose called for channel '" << channel.get()
-                  << "', " << d_nbActiveChannels << " active channels";
+    BALL_LOG_INFO << d_name << ": onClose called for channel '"
+                  << channel.get() << "', " << d_nbActiveChannels
+                  << " active channels";
 
     int port;
     channel->properties().load(
@@ -912,7 +910,7 @@ void TCPSessionFactory::onClose(const bsl::shared_ptr<bmqio::Channel>& channel,
             d_channels.erase(it);
 
             // Synchronously remove from heartbeat monitored channels
-            if (channelInfo->d_monitor.isHearbeatEnabled() &&
+            if (channelInfo->d_monitor_mp->isHearbeatEnabled() &&
                 d_heartbeatSchedulerActive) {
                 // NOTE: When shutting down, we don't care about heartbeat
                 //       verifying the channel, therefore, as an optimization
@@ -939,15 +937,13 @@ void TCPSessionFactory::onClose(const bsl::shared_ptr<bmqio::Channel>& channel,
         // however, we insert in the d_channels only upon successful
         // negotiation; therefore a failed to negotiate channel (like during
         // intrusion testing) would trigger this trace.
-        BALL_LOG_INFO << "#TCP_UNEXPECTED_STATE "
-                      << "TCPSessionFactory '" << d_config.name()
-                      << "': OnClose channel for an unknown channel '"
+        BALL_LOG_INFO << "#TCP_UNEXPECTED_STATE " << d_name
+                      << ": onClose channel for an unknown channel '"
                       << channel.get() << "', " << d_nbActiveChannels
                       << " active channels, status: " << status;
     }
     else {
-        BALL_LOG_INFO << "TCPSessionFactory '" << d_config.name()
-                      << "': OnClose channel [session: '"
+        BALL_LOG_INFO << d_name << ": onClose channel [session: '"
                       << channelInfo->d_session_sp->description()
                       << "', channel: '" << channel.get() << "', "
                       << d_nbActiveChannels << " active channels"
@@ -976,15 +972,14 @@ void TCPSessionFactory::onHeartbeatSchedulerEvent()
     for (ChannelMap::const_iterator it = d_heartbeatChannels.begin();
          it != d_heartbeatChannels.end();) {
         ChannelInfo* info = it->second.get();
-        if (!info->d_monitor.checkHeartbeat(info->d_channel_sp.get())) {
+        if (!info->d_monitor_mp->checkHeartbeat(info->d_channel_sp.get())) {
             const Session* session = info->d_session_sp.get();
             BSLS_ASSERT_SAFE(session);
             const ClusterNode* node = session->clusterNode();
 
-            BALL_LOG_WARN << "#TCP_DEAD_CHANNEL TCPSessionFactory '"
-                          << d_config.name() << "'"
-                          << ": Closing unresponsive channel after "
-                          << info->d_monitor.maxMissedHeartbeats()
+            BALL_LOG_WARN << "#TCP_DEAD_CHANNEL " << d_name
+                          << ": closing unresponsive channel after "
+                          << info->d_monitor_mp->maxMissedHeartbeats()
                           << " missed heartbeats [session: '"
                           << session->description() << "', channel: '"
                           << info->d_channel_sp.get() << "', node: '"
@@ -1005,8 +1000,7 @@ void TCPSessionFactory::enableHeartbeat(
 {
     // executed by the *SCHEDULER* thread
 
-    BALL_LOG_INFO << "Enabling TCPSessionFactory '" << d_config.name()
-                  << "' Heartbeat for [session: '"
+    BALL_LOG_INFO << d_name << ": enabling heartbeat for [session: '"
                   << channelInfo_sp->d_session_sp->description()
                   << "', channel: '" << channelInfo_sp->d_channel_sp.get()
                   << "' ]";
@@ -1029,8 +1023,7 @@ void TCPSessionFactory::disableHeartbeat(const bmqio::Channel* channel_p)
     BSLS_ASSERT_SAFE(channelInfo_sp);
     BSLS_ASSERT_SAFE(channelInfo_sp->d_session_sp);
 
-    BALL_LOG_INFO << "Disabling TCPSessionFactory '" << d_config.name()
-                  << "' Heartbeat for [session: '"
+    BALL_LOG_INFO << d_name << ": disabling heartbeat for [session: '"
                   << channelInfo_sp->d_session_sp->description()
                   << "', channel: '" << channelInfo_sp->d_channel_sp.get()
                   << "' ]";
@@ -1076,7 +1069,7 @@ void TCPSessionFactory::stopHeartbeats()
 int TCPSessionFactory::validateTcpInterfaces() const
 {
     mqbcfg::TcpInterfaceConfigValidator validator;
-    return validator(d_config);
+    return validator(*d_config_mp);
 }
 
 void TCPSessionFactory::reauthnOnAuthenticationEvent(
@@ -1149,14 +1142,19 @@ TCPSessionFactory::TCPSessionFactory(
     bslma::Allocator*                 allocator)
 : d_self(this)  // use default allocator
 , d_isStarted(false)
-, d_config(config, allocator)
+, d_config_mp(
+      bslma::ManagedPtrUtil::allocateManaged<mqbcfg::TcpInterfaceConfig>(
+          allocator,
+          config))
+, d_name("TCPSessionFactory '" + d_config_mp->name() + "'", allocator)
 , d_scheduler_p(scheduler)
 , d_blobBufferFactory_p(blobBufferFactory)
 , d_blobSpPool(k_BLOB_POOL_GROWTH_STRATEGY, allocator)
 , d_authenticator_p(authenticator)
 , d_negotiator_p(negotiator)
 , d_statController_p(statController)
-, d_resolutionContext(allocator)
+, d_resolutionContext_sp(
+      bsl::allocate_shared<bmqex::SequentialContext>(allocator))
 , d_channelFactoryPipeline_mp()
 , d_threadName(allocator)
 , d_nbActiveChannels(0)
@@ -1197,12 +1195,11 @@ TCPSessionFactory::TCPSessionFactory(
         return;  // RETURN
     }
 
-    BALL_LOG_INFO << "TcpSessionFactory '" << d_config.name() << "' "
-                  << "[Hostname: " << hostname << ", ipAddress: " << defaultIP
-                  << "]";
+    BALL_LOG_INFO << d_name << " [Hostname: " << hostname
+                  << ", ipAddress: " << defaultIP << "]";
 
     // Thread name
-    d_threadName = "bmqIO_" + d_config.name().substr(0, 15 - 6);
+    d_threadName = "bmqIO_" + d_config_mp->name().substr(0, 15 - 6);
     // on Linux, a thread name is limited to 16 characters,
     // including the \0.
 }
@@ -1213,8 +1210,7 @@ TCPSessionFactory::~TCPSessionFactory()
     BSLS_ASSERT_OPT(!d_isStarted &&
                     "stop() must be called before destroying this object");
 
-    BALL_LOG_INFO << "Destructing TCPSessionFactory '" << d_config.name()
-                  << "'";
+    BALL_LOG_INFO << d_name << ": destructing";
 
     d_self.invalidate();
 }
@@ -1240,24 +1236,24 @@ int TCPSessionFactory::start(bsl::ostream& errorDescription)
     BSLS_ASSERT_OPT(!d_isStarted &&
                     "start() can only be called once on this object");
 
-    BALL_LOG_INFO << "Starting TCPSessionFactory '" << d_config.name() << "'";
+    BALL_LOG_INFO << d_name << ": starting";
 
     int rc = 0;
 
     rc = validateTcpInterfaces();
 
     if (rc != 0) {
-        errorDescription << "Failed to validate the TCP interface config for "
-                         << "TCPSessionFactory '" << d_config.name()
-                         << "' [rc: " << rc << "]";
+        errorDescription << d_name << ": failed to validate the TCP interface "
+                         << "config [rc: " << rc << "]";
         return rc;  // RETURN
     }
 
-    ntca::InterfaceConfig interfaceConfig = ntcCreateInterfaceConfig(d_config);
+    ntca::InterfaceConfig interfaceConfig = ntcCreateInterfaceConfig(
+        *d_config_mp);
 
     bslmt::ThreadAttributes attributes;
     attributes.setThreadName("bmqDNSResolver");
-    rc = d_resolutionContext.start(attributes);
+    rc = d_resolutionContext_sp->start(attributes);
     BSLS_ASSERT_SAFE(rc == 0);
 
     bmqio::StatChannelFactoryConfig::StatContextCreatorFn statContextCreator(
@@ -1278,7 +1274,7 @@ int TCPSessionFactory::start(bsl::ostream& errorDescription)
         bdlf::BindUtil::bind(ChannelFactoryBuilders::resolvingChannelFactory,
                              d_allocator_p,
                              bdlf::PlaceHolders::_1,
-                             bsl::cref(d_resolutionContext));
+                             d_resolutionContext_sp);
     ChannelFactoryBuilder reconnectingChannelFactoryBuilder =
         bdlf::BindUtil::bind(
             ChannelFactoryBuilders::reconnectingChannelFactory,
@@ -1309,23 +1305,21 @@ int TCPSessionFactory::start(bsl::ostream& errorDescription)
     rc = d_channelFactoryPipeline_mp->start();
 
     if (rc != 0) {
-        errorDescription << "Failed starting stat channel factory for "
-                         << "TCPSessionFactory '" << d_config.name()
-                         << "' [rc: " << rc << "]";
+        errorDescription << d_name << ": failed starting stat channel factory "
+                         << "[rc: " << rc << "]";
         return rc;  // RETURN
     }
 
-    if (d_config.heartbeatIntervalMs() != 0) {
+    if (d_config_mp->heartbeatIntervalMs() != 0) {
         BALL_LOG_INFO
-            << "TCPSessionFactory '" << d_config.name()
-            << "' heartbeat enabled (interval: "
+            << d_name << ": heartbeat enabled (interval: "
             << bmqu::PrintUtil::prettyTimeInterval(
-                   d_config.heartbeatIntervalMs() *
+                   d_config_mp->heartbeatIntervalMs() *
                    bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MILLISECOND)
             << ")";
 
         bsls::TimeInterval interval;
-        interval.addMilliseconds(d_config.heartbeatIntervalMs());
+        interval.addMilliseconds(d_config_mp->heartbeatIntervalMs());
 
         d_scheduler_p->scheduleRecurringEvent(
             &d_heartbeatSchedulerHandle,
@@ -1336,12 +1330,10 @@ int TCPSessionFactory::start(bsl::ostream& errorDescription)
         d_heartbeatSchedulerActive = true;
     }
     else {
-        BALL_LOG_INFO << "TCPSessionFactory '" << d_config.name()
-                      << "' heartbeat globally disabled by config.";
+        BALL_LOG_INFO << d_name << ": heartbeat globally disabled by config";
     }
 
-    BALL_LOG_INFO << "TCPSessionFactory '" << d_config.name() << "' "
-                  << "successfully started";
+    BALL_LOG_INFO << d_name << ": successfully started";
 
     d_isStarted = true;
 
@@ -1354,30 +1346,28 @@ int TCPSessionFactory::startListening(bsl::ostream&         errorDescription,
     BSLS_ASSERT_SAFE(d_isStarted && "TCPSessionFactory must be started first");
 
     // Adapt a legacy listener configuration
-    if (d_config.listeners().empty()) {
+    if (d_config_mp->listeners().empty()) {
         mqbcfg::TcpInterfaceListener listener;
-        listener.name() = d_config.name();
-        listener.port() = d_config.port();
+        listener.name() = d_config_mp->name();
+        listener.port() = d_config_mp->port();
         int rc          = listen(listener, resultCallback);
         if (rc != 0) {
-            errorDescription << "Failed listening to port '" << d_config.port()
-                             << "' for TCPSessionFactory '" << d_config.name()
-                             << "' [rc: " << rc << "]";
+            errorDescription << d_name << ": failed listening to port '"
+                             << d_config_mp->port() << "' [rc: " << rc << "]";
             cancelListeners();
             return rc;  // RETURN
         }
     }
     else {
         for (bsl::vector<mqbcfg::TcpInterfaceListener>::const_iterator
-                 it  = d_config.listeners().cbegin(),
-                 end = d_config.listeners().cend();
+                 it  = d_config_mp->listeners().cbegin(),
+                 end = d_config_mp->listeners().cend();
              it != end;
              ++it) {
             int rc = listen(*it, resultCallback);
             if (rc != 0) {
-                errorDescription << "Failed listening to port '" << it->port()
-                                 << "' for TCPSessionFactory '"
-                                 << d_config.name() << "' [rc: " << rc << "]";
+                errorDescription << d_name << ": failed listening to port '"
+                                 << it->port() << "' [rc: " << rc << "]";
                 cancelListeners();
                 return rc;  // RETURN
             }
@@ -1391,9 +1381,8 @@ int TCPSessionFactory::startListening(bsl::ostream&         errorDescription,
 void TCPSessionFactory::stopListening()
 {
     if (!d_isListening) {
-        BALL_LOG_WARN << "#TCP_UNEXPECTED_STATE "
-                      << "TCPSessionFactory '" << d_config.name()
-                      << "' is not listening";
+        BALL_LOG_WARN << "#TCP_UNEXPECTED_STATE " << d_name
+                      << " is not listening";
         return;  // RETURN
     }
     d_isListening = false;
@@ -1410,8 +1399,8 @@ void TCPSessionFactory::closeClients()
     bsl::vector<bsl::weak_ptr<Session> > clients(d_allocator_p);
     bslmt::LockGuard<bslmt::Mutex>       guard(&d_mutex);  // LOCK
 
-    BALL_LOG_INFO << "TCPSessionFactory '" << d_config.name() << "' closing "
-                  << d_nbOpenClients << " open client(s)";
+    BALL_LOG_INFO << d_name << ": closing " << d_nbOpenClients
+                  << " open client(s)";
 
     bmqio::Status status(bmqio::StatusCategory::e_SUCCESS,
                          k_CHANNEL_STATUS_CLOSE_REASON,
@@ -1430,9 +1419,8 @@ void TCPSessionFactory::closeClients()
     while (d_nbOpenClients) {
         bsls::TimeInterval timeout = bsls::SystemTime::nowMonotonicClock();
         timeout.addSeconds(k_CLIENT_CLOSE_WAIT);
-        BALL_LOG_INFO << "TCPSessionFactory '" << d_config.name() << "' "
-                      << "waiting up to " << k_CLIENT_CLOSE_WAIT << "s for "
-                      << d_nbOpenClients << " clients to close";
+        BALL_LOG_INFO << d_name << ": waiting up to " << k_CLIENT_CLOSE_WAIT
+                      << "s for " << d_nbOpenClients << " clients to close";
         const int rc = d_noClientCondition.timedWait(&d_mutex, timeout);
         if (rc == -1) {  // timeout
             break;       // BREAK
@@ -1441,19 +1429,16 @@ void TCPSessionFactory::closeClients()
 
     if (d_nbOpenClients) {
         // We timed out
-        BALL_LOG_ERROR << "TCPSessionFactory '" << d_config.name() << "' "
-                       << "timed out while waiting for clients to close"
-                       << ", remaining clients: " << d_nbOpenClients;
+        BALL_LOG_ERROR << d_name << ": timed out while waiting for clients to "
+                       << "close, remaining clients: " << d_nbOpenClients;
 
         // Invalidate the remaining sessions before stopping all Dispatchers.
 
         for (size_t i = 0; i < clients.size(); ++i) {
             bsl::shared_ptr<Session> session = clients[i].lock();
             if (session) {
-                BALL_LOG_ERROR << "TCPSessionFactory '" << d_config.name()
-                               << "' invalidating '" << session->description()
-                               << "'";
-
+                BALL_LOG_ERROR << d_name << ": invalidating '"
+                               << session->description() << "'";
                 session->invalidate();
             }
         }
@@ -1467,17 +1452,17 @@ void TCPSessionFactory::stop()
     }
     d_isStarted = false;
 
-    BALL_LOG_INFO << "Stopping TCPSessionFactory '" << d_config.name() << "'"
-                  << " [" << d_nbActiveChannels << " active channels, "
-                  << d_nbSessions << " alive sessions]";
+    BALL_LOG_INFO << d_name << ": stopping [" << d_nbActiveChannels
+                  << " active channels, " << d_nbSessions
+                  << " alive sessions]";
 
     // NOTE: We don't need to manually call 'teardown' on any active session in
     //       the 'd_channels' map: calling 'stop' on the channel factory will
     //       invoke the 'onClose' for every sessions.
 
     // STOP
-    d_resolutionContext.stop();
-    d_resolutionContext.join();
+    d_resolutionContext_sp->stop();
+    d_resolutionContext_sp->join();
 
     if (d_channelFactoryPipeline_mp) {
         d_channelFactoryPipeline_mp->stop();
@@ -1503,9 +1488,9 @@ void TCPSessionFactory::stop()
     }
 
     if (d_nbSessions != 0) {
-        BALL_LOG_INFO << "TCPSessionFactory '" << d_config.name() << "' "
-                      << "waiting up to " << k_SESSION_DESTROY_WAIT << "s "
-                      << "for " << d_nbSessions << " sessions to be destroyed";
+        BALL_LOG_INFO << d_name << ": waiting up to " << k_SESSION_DESTROY_WAIT
+                      << "s for " << d_nbSessions
+                      << " sessions to be destroyed";
         while (d_nbSessions != 0) {
             bsls::TimeInterval timeout = bsls::SystemTime::nowMonotonicClock();
             timeout.addSeconds(k_SESSION_DESTROY_WAIT);
@@ -1517,9 +1502,9 @@ void TCPSessionFactory::stop()
 
         if (d_nbSessions != 0) {
             // We timed out
-            BALL_LOG_ERROR << "TCPSessionFactory '" << d_config.name() << "' "
-                           << "timedout while waiting for sessions to be "
-                           << "destroyed, remaining sessions: "
+            BALL_LOG_ERROR << d_name
+                           << ": timedout while waiting for sessions "
+                           << "to be destroyed, remaining sessions: "
                            << d_nbSessions;
         }
     }
@@ -1528,7 +1513,7 @@ void TCPSessionFactory::stop()
     // DESTROY
     d_channelFactoryPipeline_mp.reset();
 
-    BALL_LOG_INFO << "Stopped TCPSessionFactory '" << d_config.name() << "'";
+    BALL_LOG_INFO << d_name << ": stopped";
 }
 
 int TCPSessionFactory::listen(const mqbcfg::TcpInterfaceListener& listener,
@@ -1571,9 +1556,8 @@ int TCPSessionFactory::listen(const mqbcfg::TcpInterfaceListener& listener,
                              bdlf::PlaceHolders::_3,  // channel
                              context));
     if (!status) {
-        BALL_LOG_ERROR << "#TCP_LISTEN_FAILED "
-                       << "TCPSessionFactory '" << d_config.name() << "' "
-                       << "failed listening to '" << endpoint.str()
+        BALL_LOG_ERROR << "#TCP_LISTEN_FAILED " << d_name
+                       << ": failed listening to '" << endpoint.str()
                        << "' [status: " << status << "]";
         d_isListening = false;
         return status.category();  // RETURN
@@ -1584,13 +1568,13 @@ int TCPSessionFactory::listen(const mqbcfg::TcpInterfaceListener& listener,
     OpHandleSp listeningHandle_sp(listeningHandle_mp, d_allocator_p);
     d_listeningHandles.emplace(port, listeningHandle_sp);
 
-    BALL_LOG_INFO << "TCPSessionFactory '" << d_config.name() << "' "
-                  << "successfully listening to '" << endpoint.str() << "'";
+    BALL_LOG_INFO << d_name << ": successfully listening to '"
+                  << endpoint.str() << "'";
 
     return 0;
 }
 
-int TCPSessionFactory::connect(const bslstl::StringRef& endpoint,
+int TCPSessionFactory::connect(bsl::string_view         endpoint,
                                const ResultCallback&    resultCallback,
                                bslma::ManagedPtr<void>* negotiationUserData,
                                void*                    resultState,
@@ -1606,7 +1590,8 @@ int TCPSessionFactory::connect(const bslstl::StringRef& endpoint,
         context->d_negotiationUserData_sp = *negotiationUserData;
     }
 
-    bmqio::TCPEndpoint                  tcpEndpoint(endpoint);
+    bsl::string                         endpointStr(endpoint, d_allocator_p);
+    bmqio::TCPEndpoint                  tcpEndpoint(endpointStr);
     bdlma::LocalSequentialAllocator<64> localAlloc(d_allocator_p);
     bmqu::MemOutStream                  endpointStream(&localAlloc);
     endpointStream << tcpEndpoint.host() << ":" << tcpEndpoint.port();
@@ -1630,14 +1615,12 @@ int TCPSessionFactory::connect(const bslstl::StringRef& endpoint,
                              context));
 
     if (!status) {
-        BALL_LOG_ERROR << "#TCP_CONNECT_FAILED "
-                       << "TCPSessionFactory '" << d_config.name() << "' "
-                       << "failed connecting to '" << endpointStream.str()
+        BALL_LOG_ERROR << "#TCP_CONNECT_FAILED " << d_name
+                       << ": failed connecting to '" << endpointStream.str()
                        << "' [status: " << status << "]";
     }
     else {
-        BALL_LOG_DEBUG << "TCPSessionFactory '" << d_config.name() << "' "
-                       << "successfully initiated connection to '"
+        BALL_LOG_DEBUG << d_name << ": successfully initiated connection to '"
                        << endpointStream.str() << "'";
     }
 
@@ -1647,35 +1630,36 @@ int TCPSessionFactory::connect(const bslstl::StringRef& endpoint,
 bool TCPSessionFactory::setNodeWriteQueueWatermarks(const Session& session)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_config.nodeLowWatermark() > 0);
-    BSLS_ASSERT_SAFE(d_config.nodeLowWatermark() <=
-                     d_config.nodeHighWatermark());
+    BSLS_ASSERT_SAFE(d_config_mp->nodeLowWatermark() > 0);
+    BSLS_ASSERT_SAFE(d_config_mp->nodeLowWatermark() <=
+                     d_config_mp->nodeHighWatermark());
 
     bsl::shared_ptr<bmqio::Channel> channel = session.channel();
 
-    channel->setWriteQueueLowWatermark(d_config.nodeLowWatermark());
-    channel->setWriteQueueHighWatermark(d_config.nodeHighWatermark());
+    channel->setWriteQueueLowWatermark(d_config_mp->nodeLowWatermark());
+    channel->setWriteQueueHighWatermark(d_config_mp->nodeHighWatermark());
 
     return true;
 }
 
 // ACCESSORS
-bool TCPSessionFactory::isEndpointLoopback(const bslstl::StringRef& uri) const
+bool TCPSessionFactory::isEndpointLoopback(bsl::string_view uri) const
 {
-    bmqio::TCPEndpoint endpoint(uri);
+    bsl::string        uriStr(uri, d_allocator_p);
+    bmqio::TCPEndpoint endpoint(uriStr);
 
     if (!bmqio::ChannelUtil::isLocalHost(endpoint.host())) {
         return false;
     }
 
     // Use the original port specification method
-    if (d_config.listeners().empty()) {
-        return endpoint.port() == d_config.port();
+    if (d_config_mp->listeners().empty()) {
+        return endpoint.port() == d_config_mp->port();
     }
 
     PortMatcher portMatcher(endpoint.port());
-    return bsl::any_of(d_config.listeners().cbegin(),
-                       d_config.listeners().cend(),
+    return bsl::any_of(d_config_mp->listeners().cbegin(),
+                       d_config_mp->listeners().cend(),
                        portMatcher);
 }
 
@@ -1689,12 +1673,16 @@ TCPSessionFactory::ChannelInfo::ChannelInfo(
     const bsl::shared_ptr<Session>&               monitoredSession,
     SessionEventProcessor*                        eventProcessor,
     int                                           maxMissedHeartbeats,
-    int initialMissedHeartbeatCounter)
+    int               initialMissedHeartbeatCounter,
+    bslma::Allocator* allocator)
 : d_channel_sp(channel_sp)
 , d_authenticationCtx_sp(authenticationContext)
 , d_session_sp(monitoredSession)
 , d_eventProcessor_p(eventProcessor)
-, d_monitor(maxMissedHeartbeats, initialMissedHeartbeatCounter)
+, d_monitor_mp(bslma::ManagedPtrUtil::allocateManaged<bmqp::HeartbeatMonitor>(
+      allocator,
+      maxMissedHeartbeats,
+      initialMissedHeartbeatCounter))
 {
     if (!d_eventProcessor_p) {
         // No eventProcessor was provided default to the negotiated session
