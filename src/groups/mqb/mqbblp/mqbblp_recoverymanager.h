@@ -939,8 +939,7 @@ class RecoveryManager : public mqbnet::ClusterObserver {
 
   public:
     // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(RecoveryManager,
-                                   bslma::UsesBslmaAllocator)
+    BSLMF_NESTED_TRAIT_DECLARATION(RecoveryManager, bslma::UsesBslmaAllocator)
 
     // CREATORS
 
