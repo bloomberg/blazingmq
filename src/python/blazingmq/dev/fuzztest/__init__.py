@@ -180,11 +180,13 @@ def wrap_event(
         endian=">",
         inclusive=True,
         length=NumBytes.WORD,
+        fuzzable=False,
     )
     event_desc = boofuzz.Bytes(
         name="event_desc",
         default_value=bytes([0x40 + event_type, 0x02, type_specific, 0x00]),
         size=NumBytes.WORD,
+        fuzzable=False,
     )
 
     build_block = PaddingBlock if add_padding else boofuzz.Block
