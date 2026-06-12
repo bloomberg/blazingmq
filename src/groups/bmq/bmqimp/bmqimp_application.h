@@ -38,7 +38,6 @@
 #include <bmqimp_brokersession.h>
 #include <bmqimp_eventqueue.h>
 #include <bmqimp_negotiatedchannelfactory.h>
-#include <bmqp_heartbeatmonitor.h>
 #include <bmqt_sessionoptions.h>
 
 #include <bmqio_channel.h>
@@ -71,6 +70,10 @@
 namespace BloombergLP {
 
 // FORWARD DECLARATION
+namespace bmqp {
+class HeartbeatMonitor;
+}
+
 namespace bmqp_ctrlmsg {
 class NegotiationMessage;
 }

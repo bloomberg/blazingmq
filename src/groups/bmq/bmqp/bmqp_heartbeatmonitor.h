@@ -33,12 +33,12 @@
 namespace BloombergLP {
 namespace bmqp {
 
-// =======================
-// struct HeartbeatMonitor
-// =======================
+// ======================
+// class HeartbeatMonitor
+// ======================
 
 /// The class monitoring channel heartbeat.
-struct HeartbeatMonitor {
+class HeartbeatMonitor {
   private:
     // PRIVATE DATA
 
