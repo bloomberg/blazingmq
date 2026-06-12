@@ -69,27 +69,31 @@ class ClusterStateLedger : public mqbc::ClusterStateLedger {
 
   private:
     // DATA
+
+    /// Allocator used to supply memory.
     bslma::Allocator* d_allocator_p;
-    // Allocator used to supply memory.
 
+    /// Flag to indicate open/close status of this object.
     bool d_isOpen;
-    // Flag to indicate open/close status of this object.
 
+    /// Flag to indicate whether to pause commit callback.
     bool d_pauseCommitCb;
-    // Flag to indicate whether to pause commit callback.
 
+    /// Callback invoked when the status of a commit
+    /// operation becomes available.
     CommitCb d_commitCb;
-    // Callback invoked when the status of a commit
-    // operation becomes available.
 
+    /// Cluster's transient state.
     mqbc::ClusterData* d_clusterData_p;
-    // Cluster's transient state.
 
+    /// List of records stored in this ledger.
     LedgerRecords d_records;
-    // List of records stored in this ledger.
 
+    /// List of uncommitted (but not canceled) advisories.
     Advisories d_uncommittedAdvisories;
-    // List of uncommitted (but not canceled) advisories.
+
+    /// Nodes passed to 'replicateUncommitted', in call order.
+    bsl::vector<mqbnet::ClusterNode*> d_replicateUncommittedCalls;
 
   private:
     // PRIVATE MANIPULATORS
@@ -190,6 +194,15 @@ class ClusterStateLedger : public mqbc::ClusterStateLedger {
     /// Set the commit callback to the specified `value`.
     void setCommitCb(const CommitCb& value) BSLS_KEYWORD_OVERRIDE;
 
+    /// Replicate all uncommitted advisories to the specified `destination`
+    /// node.  Return 0 on success, and a non-zero value otherwise.  Note
+    /// that *only* a leader node may invoke this routine.
+    ///
+    /// THREAD: This method can be invoked only in the associated cluster's
+    ///         dispatcher thread.
+    int replicateUncommitted(mqbnet::ClusterNode* destination)
+        BSLS_KEYWORD_OVERRIDE;
+
     // MANIPULATORS
 
     /// Set the pause commit callback flag to the specified `value`.
@@ -213,6 +226,14 @@ class ClusterStateLedger : public mqbc::ClusterStateLedger {
     ///         dispatcher thread.
     bool isOpen() const BSLS_KEYWORD_OVERRIDE;
 
+    /// Load into the specified `out` the list of uncommitted advisories as
+    /// const references.
+    ///
+    /// THREAD: This method can be invoked only in the associated cluster's
+    ///         dispatcher thread.
+    void uncommittedAdvisories(ClusterMessageCRefList* out) const
+        BSLS_KEYWORD_OVERRIDE;
+
     /// Return an iterator to this ledger.
     ///
     /// THREAD: This method can be invoked only in the associated cluster's
@@ -220,11 +241,12 @@ class ClusterStateLedger : public mqbc::ClusterStateLedger {
     bslma::ManagedPtr<mqbc::ClusterStateLedgerIterator>
     getIterator() const BSLS_KEYWORD_OVERRIDE;
 
-    /// Load into `out` the list of uncommitted advisories as const references.
-    ///
-    /// THREAD: This method can be invoked only in the associated cluster's
-    ///         dispatcher thread.
-    void _uncommittedAdvisories(ClusterMessageCRefList* out) const;
+    // ACCESSORS
+
+    /// Return the list of nodes passed to `replicateUncommitted`, in call
+    /// order.
+    const bsl::vector<mqbnet::ClusterNode*>&
+    _replicateUncommittedCalls() const;
 };
 
 // ============================================================================
@@ -253,6 +275,13 @@ inline void ClusterStateLedger::setCommitCb(const CommitCb& value)
     d_commitCb = value;
 }
 
+inline int
+ClusterStateLedger::replicateUncommitted(mqbnet::ClusterNode* destination)
+{
+    d_replicateUncommittedCalls.push_back(destination);
+    return 0;
+}
+
 // MANIPULATORS
 inline void ClusterStateLedger::_setPauseCommitCb(bool value)
 {
@@ -277,7 +306,7 @@ inline bool ClusterStateLedger::isOpen() const
 }
 
 inline void
-ClusterStateLedger::_uncommittedAdvisories(ClusterMessageCRefList* out) const
+ClusterStateLedger::uncommittedAdvisories(ClusterMessageCRefList* out) const
 {
     // executed by the *CLUSTER DISPATCHER* thread
 
@@ -285,8 +314,16 @@ ClusterStateLedger::_uncommittedAdvisories(ClusterMessageCRefList* out) const
     BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
     BSLS_ASSERT_SAFE(out);
 
+    out->clear();
     out->assign(d_uncommittedAdvisories.begin(),
                 d_uncommittedAdvisories.end());
+}
+
+// ACCESSORS
+inline const bsl::vector<mqbnet::ClusterNode*>&
+ClusterStateLedger::_replicateUncommittedCalls() const
+{
+    return d_replicateUncommittedCalls;
 }
 
 }  // close package namespace

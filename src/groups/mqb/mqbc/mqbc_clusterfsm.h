@@ -490,6 +490,7 @@ inline bool ClusterFSM::isSelfLeader() const
 {
     return d_state == State::e_LDR_HEALING_STG1 ||
            d_state == State::e_LDR_HEALING_STG2 ||
+           d_state == State::e_LDR_HEALING_STG3 ||
            d_state == State::e_LDR_HEALED;
 }
 
