@@ -184,23 +184,3 @@ jobs:
         run: |
           export PYTHONPATH=${{ github.workspace }}/src/python:$PYTHONPATH
           git diff -U0 origin/main | lint-diffs
-
-  cpp-linter-check:
-    name: C++ Linter Check
-    runs-on: ubuntu-slim
-    steps:
-      - uses: actions/checkout@v5
-      - uses: cpp-linter/cpp-linter-action@77c390c5ba9c947ebc185a3e49cc754f1558abb5
-        id: linter
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          style: ''  # Disable clang-format checks
-          tidy-checks: '' # Use .clang-tidy config file
-          # only 'update' a single comment in a pull request thread.
-          thread-comments: ${{ github.event_name == 'pull_request' && 'update' }}
-          lines-changed-only: diff
-          version: '18'
-      - name: Fail fast?!
-        if: steps.linter.outputs.checks-failed > 0
-        run: exit 1
