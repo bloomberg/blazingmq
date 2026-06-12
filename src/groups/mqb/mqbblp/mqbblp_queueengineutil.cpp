@@ -1197,6 +1197,11 @@ void QueueEngineUtil_AppState::tryCancelThrottle(
     mqbi::QueueHandle*       handle,
     const bmqt::MessageGUID& msgGUID)
 {
+    if (!d_throttleEventHandle) {
+        // No throttle: nothing to do
+        return;  // RETURN
+    }
+
     Routers::Consumer* queueHandleContext = findQueueHandleContext(handle);
     if (!queueHandleContext) {
         // This is the case where a handle can be deconfigured but then later
@@ -1210,14 +1215,12 @@ void QueueEngineUtil_AppState::tryCancelThrottle(
     }
 
     queueHandleContext->d_timeLastMessageSent = 0;
-    if (d_throttleEventHandle) {
-        // No need to wait anymore.  Can deliver the next message (if any)
-        // immediately.
-        d_scheduler_p->rescheduleEvent(d_throttleEventHandle,
-                                       bsls::TimeInterval());
-        // Do not check the return value.  If the event is already dispatched,
-        // then there is no need to reschedule.
-    }
+    // No need to wait anymore.  Can deliver the next message (if any)
+    // immediately.
+    d_scheduler_p->rescheduleEvent(d_throttleEventHandle,
+                                   bsls::TimeInterval());
+    // Do not check the return value.  If the event is already dispatched,
+    // then there is no need to reschedule.
 }
 
 void QueueEngineUtil_AppState::scheduleThrottle(
