@@ -64,8 +64,20 @@ bsls::Types::Int64 ClusterStats::getValue(const bmqst::StatContext& context,
 {
     // invoked from the SNAPSHOT thread
 
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(snapshotId >= -1);
+
     const bmqst::StatValue::SnapshotLocation latestSnapshot(0, 0);
-    const bmqst::StatValue::SnapshotLocation oldestSnapshot(0, snapshotId);
+
+#define OLDEST_SNAPSHOT(STAT)                                                 \
+    (bmqst::StatValue::SnapshotLocation(                                      \
+        0,                                                                    \
+        (snapshotId >= 0) ? snapshotId                                        \
+                          : (context                                          \
+                                 .value(bmqst::StatContext::e_DIRECT_VALUE,   \
+                                        ClusterStatsIndex::STAT)              \
+                                 .historySize(0) -                            \
+                             1)))
 
 #define STAT_SINGLE(OPERATION, STAT)                                          \
     bmqst::StatUtil::OPERATION(                                               \
@@ -78,7 +90,7 @@ bsls::Types::Int64 ClusterStats::getValue(const bmqst::StatContext& context,
         context.value(bmqst::StatContext::e_DIRECT_VALUE,                     \
                       ClusterStatsIndex::STAT),                               \
         latestSnapshot,                                                       \
-        oldestSnapshot)
+        OLDEST_SNAPSHOT(STAT))
 
     switch (stat) {
     case Stat::e_CLUSTER_STATUS: {
@@ -207,6 +219,7 @@ bsls::Types::Int64 ClusterStats::getValue(const bmqst::StatContext& context,
     return 0;
 #undef STAT_RANGE
 #undef STAT_SINGLE
+#undef OLDEST_SNAPSHOT
 }
 
 bsl::shared_ptr<PartitionStats>
@@ -357,6 +370,52 @@ bsl::ostream& ClusterStats::Role::print(bsl::ostream& stream,
     }
 
     return stream;
+}
+
+const char* ClusterStats::Stat::toString(Stat::Enum value)
+{
+#define MQBSTAT_CASE(VAL, DESC)                                               \
+    case (VAL): {                                                             \
+        return (DESC);                                                        \
+    } break;
+
+    switch (value) {
+        MQBSTAT_CASE(e_CLUSTER_STATUS, "cluster_status")
+        MQBSTAT_CASE(e_ROLE, "cluster_role")
+        MQBSTAT_CASE(e_LEADER_STATUS, "cluster_leader_status")
+        MQBSTAT_CASE(e_CSL_REPLICATION_TIME_NS_AVG,
+                     "cluster_csl_replication_time_avg_ns")
+        MQBSTAT_CASE(e_CSL_REPLICATION_TIME_NS_MAX,
+                     "cluster_csl_replication_time_max_ns")
+        MQBSTAT_CASE(e_CSL_LOG_OFFSET_BYTES, "cluster_csl_offset_bytes")
+        MQBSTAT_CASE(e_CSL_WRITE_BYTES, "cluster_csl_write_bytes")
+        MQBSTAT_CASE(e_CSL_CFG_BYTES, "cluster_csl_cfg_bytes")
+        MQBSTAT_CASE(e_PARTITION_CFG_DATA_BYTES,
+                     "cluster_partition_cfg_data_bytes")
+        MQBSTAT_CASE(e_PARTITION_CFG_JOURNAL_BYTES,
+                     "cluster_partition_cfg_journal_bytes")
+        MQBSTAT_CASE(e_PARTITION_PRIMARY_STATUS, "partition_primary_status")
+        MQBSTAT_CASE(e_PARTITION_ROLLOVER_TIME, "partition_rollover_time_ns")
+        MQBSTAT_CASE(e_PARTITION_DATA_CONTENT, "partition_data_content_bytes")
+        MQBSTAT_CASE(e_PARTITION_JOURNAL_CONTENT,
+                     "partition_journal_content_bytes")
+        MQBSTAT_CASE(e_PARTITION_DATA_OFFSET, "partition_data_offset_bytes")
+        MQBSTAT_CASE(e_PARTITION_JOURNAL_OFFSET,
+                     "partition_journal_offset_bytes")
+        MQBSTAT_CASE(e_PARTITION_DATA_UTILIZATION_MAX,
+                     "partition_data_utilization_max")
+        MQBSTAT_CASE(e_PARTITION_JOURNAL_UTILIZATION_MAX,
+                     "partition_journal_utilization_max")
+        MQBSTAT_CASE(e_PARTITION_SEQUENCE_NUMBER, "partition_sequence_number")
+        MQBSTAT_CASE(e_PARTITION_REPLICATION_TIME_NS_AVG,
+                     "partition_replication_time_avg_ns")
+        MQBSTAT_CASE(e_PARTITION_REPLICATION_TIME_NS_MAX,
+                     "partition_replication_time_max_ns")
+    default:
+        BSLS_ASSERT(false && "invalid enumerator");
+        BSLS_ASSERT_INVOKE_NORETURN("");
+    }
+#undef MQBSTAT_CASE
 }
 
 const char* ClusterStats::Role::toAscii(Enum value)

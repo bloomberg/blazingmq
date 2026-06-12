@@ -130,6 +130,13 @@ class ClusterStats {
             /// the cluster.
             e_PARTITION_REPLICATION_TIME_NS_MAX
         };
+
+        // CLASS METHODS
+
+        /// Return the non-modifiable string representation corresponding to
+        /// the specified enumeration `value`, if it exists, and a unique
+        /// (error) string otherwise.
+        static const char* toString(Stat::Enum value);
     };
 
     /// Enum representing the leader status (leader or follower) of a node.
