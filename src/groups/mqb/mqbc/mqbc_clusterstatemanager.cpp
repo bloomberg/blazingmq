@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "mqbc_clusterstatemanager.h"
+#include <mqbc_clusterstatemanager.h>
 
 #include <mqbscm_version.h>
 // MQB
@@ -43,6 +43,13 @@
 
 namespace BloombergLP {
 namespace mqbc {
+
+namespace {
+
+// Timeout for Cluster FSM requests sent during CSL healing.
+const bsls::TimeInterval k_CFSM_REQUEST_TIMEOUT(10);
+
+}  // close unnamed namespace
 
 // -------------------------
 // class ClusterStateManager
@@ -405,7 +412,7 @@ void ClusterStateManager::do_sendFollowerLSNRequests(
         const bmqt::GenericResult::Enum rc = d_cluster_p->sendRequest(
             request,
             follower,
-            bsls::TimeInterval(10));
+            k_CFSM_REQUEST_TIMEOUT);
 
         if (rc != bmqt::GenericResult::e_SUCCESS) {
             InputMessage inputMessage;
@@ -578,7 +585,7 @@ void ClusterStateManager::do_sendFollowerClusterStateRequest(
     bmqt::GenericResult::Enum rc = d_cluster_p->sendRequest(
         request,
         metadata.highestLSNNode(),
-        bsls::TimeInterval(10));
+        k_CFSM_REQUEST_TIMEOUT);
 
     if (rc != bmqt::GenericResult::e_SUCCESS) {
         InputMessage inputMessage;
@@ -835,7 +842,7 @@ void ClusterStateManager::do_sendRegistrationRequest(
                              bdlf::PlaceHolders::_1));
 
     bmqt::GenericResult::Enum rc =
-        d_cluster_p->sendRequest(request, destNode, bsls::TimeInterval(10));
+        d_cluster_p->sendRequest(request, destNode, k_CFSM_REQUEST_TIMEOUT);
 
     if (rc != bmqt::GenericResult::e_SUCCESS) {
         InputMessage inputMessage;
@@ -1364,21 +1371,6 @@ void ClusterStateManager::onFollowerLSNResponse(
         return;  // RETURN
     }
 
-    BSLS_ASSERT_SAFE(
-        requestContext->response().choice().isClusterMessageValue());
-    BSLS_ASSERT_SAFE(requestContext->response()
-                         .choice()
-                         .clusterMessage()
-                         .choice()
-                         .isClusterStateFSMMessageValue());
-    BSLS_ASSERT_SAFE(requestContext->response()
-                         .choice()
-                         .clusterMessage()
-                         .choice()
-                         .clusterStateFSMMessage()
-                         .choice()
-                         .isFollowerLSNResponseValue());
-
     const bmqp_ctrlmsg::FollowerLSNResponse& resp =
         requestContext->response()
             .choice()
@@ -1438,21 +1430,6 @@ void ClusterStateManager::onRegistrationResponse(
         return;  // RETURN
     }
 
-    BSLS_ASSERT_SAFE(
-        requestContext->response().choice().isClusterMessageValue());
-    BSLS_ASSERT_SAFE(requestContext->response()
-                         .choice()
-                         .clusterMessage()
-                         .choice()
-                         .isClusterStateFSMMessageValue());
-    BSLS_ASSERT_SAFE(requestContext->response()
-                         .choice()
-                         .clusterMessage()
-                         .choice()
-                         .clusterStateFSMMessage()
-                         .choice()
-                         .isRegistrationResponseValue());
-
     const bmqp_ctrlmsg::RegistrationResponse& resp =
         requestContext->response()
             .choice()
@@ -1501,21 +1478,6 @@ void ClusterStateManager::onFollowerClusterStateResponse(
 
         return;  // RETURN
     }
-
-    BSLS_ASSERT_SAFE(
-        requestContext->response().choice().isClusterMessageValue());
-    BSLS_ASSERT_SAFE(requestContext->response()
-                         .choice()
-                         .clusterMessage()
-                         .choice()
-                         .isClusterStateFSMMessageValue());
-    BSLS_ASSERT_SAFE(requestContext->response()
-                         .choice()
-                         .clusterMessage()
-                         .choice()
-                         .clusterStateFSMMessage()
-                         .choice()
-                         .isFollowerClusterStateResponseValue());
 
     const bmqp_ctrlmsg::FollowerClusterStateResponse& resp =
         requestContext->response()
@@ -1805,11 +1767,6 @@ void ClusterStateManager::processFollowerLSNRequest(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
-    BSLS_ASSERT_SAFE(message.choice().isClusterMessageValue());
-    BSLS_ASSERT_SAFE(message.choice()
-                         .clusterMessage()
-                         .choice()
-                         .isClusterStateFSMMessageValue());
     BSLS_ASSERT_SAFE(message.choice()
                          .clusterMessage()
                          .choice()
@@ -1836,11 +1793,6 @@ void ClusterStateManager::processFollowerClusterStateRequest(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
-    BSLS_ASSERT_SAFE(message.choice().isClusterMessageValue());
-    BSLS_ASSERT_SAFE(message.choice()
-                         .clusterMessage()
-                         .choice()
-                         .isClusterStateFSMMessageValue());
     BSLS_ASSERT_SAFE(message.choice()
                          .clusterMessage()
                          .choice()
@@ -1867,11 +1819,6 @@ void ClusterStateManager::processRegistrationRequest(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
-    BSLS_ASSERT_SAFE(message.choice().isClusterMessageValue());
-    BSLS_ASSERT_SAFE(message.choice()
-                         .clusterMessage()
-                         .choice()
-                         .isClusterStateFSMMessageValue());
     BSLS_ASSERT_SAFE(message.choice()
                          .clusterMessage()
                          .choice()
