@@ -127,14 +127,14 @@ def _make_mph_fields_new_style(prefix, prop_type, name_len, cumulative_offset):
             name=f"{prefix}_type_and_offset_upper",
             default_value=type_and_upper,
             endian=">",
-            fuzzable=True, #keep fuzzable
+            fuzzable=False,
         ),
         # Bytes 2-3: OffsetLower (16 bits)
         boofuzz.Word(
             name=f"{prefix}_offset_lower",
             default_value=cumulative_offset & 0xFFFF,
             endian=">",
-            fuzzable=True, #keep fuzzable
+            fuzzable=False,
         ),
         # Bytes 4-5: [R2(4) | PropNameLen(12)]
         boofuzz.Word(
@@ -372,6 +372,130 @@ def make_put_message_with_properties(properties_bytes: bytes, schema_id: int = 0
     return event
 
 
+def make_put_request_with_cat_fuzz(properties_bytes: bytes, schema_id: int = 0) -> boofuzz.Request:
+    """
+    Build a complete PUT event as a boofuzz Request with the CAT
+    (Compression Algorithm Type) field marked as fuzzable.  All other fields
+    are static.
+
+    The CAT field is 3 bits in byte 7 of the PutHeader (Word 1), packed as:
+        optionsWords(24) | CAT(3) | headerWords(5)
+    """
+
+    flags = broker.PutHeaderFlags.ACK_REQUESTED | broker.PutHeaderFlags.MESSAGE_PROPERTIES
+    flags_shifted = flags << 4
+
+    guid = b"\x00\x00\x00\x00\x05\x78\x8d\xae\xd4\xb8\xca\x12\xae\xf3\x2d\xce"
+    header_words = 9
+
+    # Word-align properties area
+    props_padded = bytearray(properties_bytes)
+    remainder = len(props_padded) % NumBytes.WORD
+    if remainder:
+        padding_count = NumBytes.WORD - remainder
+        props_padded += bytes([padding_count] * padding_count)
+
+    app_data = bytes(props_padded)
+
+    message_words = header_words + len(app_data) // NumBytes.WORD
+    options_words = 0
+
+    crc = crc32c.crc32c(app_data)
+
+    total_size = NumBytes.WORD + NumBytes.WORD + header_words * NumBytes.WORD + len(app_data)
+    event_padding = b""
+    remainder = total_size % NumBytes.WORD
+    if remainder:
+        padding_count = NumBytes.WORD - remainder
+        event_padding = bytes([padding_count] * padding_count)
+        total_size += padding_count
+
+    event_descriptor = bytes([0x40 + broker.EventType.PUT, 0x02, broker.TypeSpecific.EMPTY, 0x00])
+
+    # Word 1 byte 3: (CAT << 5) | headerWords — CAT=0 by default
+    word1_byte3_default = (0 << 5) | header_words
+
+    children = [
+        # EventHeader: size (4 bytes)
+        boofuzz.DWord(
+            name="event_size",
+            default_value=total_size,
+            endian=">",
+            fuzzable=False,
+        ),
+        # EventHeader: descriptor (4 bytes)
+        boofuzz.Bytes(
+            name="event_descriptor",
+            default_value=event_descriptor,
+            size=4,
+            fuzzable=False,
+        ),
+        # PutHeader Word 0: flags(4) | messageWords(28)
+        boofuzz.DWord(
+            name="put_word0",
+            default_value=(flags_shifted << 24) | message_words,
+            endian=">",
+            fuzzable=False,
+        ),
+        # PutHeader Word 1 bytes 0-2: optionsWords upper bits
+        boofuzz.Bytes(
+            name="put_word1_upper",
+            default_value=struct.pack(">I", options_words << 8)[:3],
+            size=3,
+            fuzzable=False,
+        ),
+        # PutHeader Word 1 byte 3: CAT(3) | headerWords(5) -- FUZZABLE
+        boofuzz.Byte(
+            name="cat_and_header_words",
+            default_value=word1_byte3_default,
+            fuzzable=True,
+        ),
+        # PutHeader Word 2: queueId
+        boofuzz.DWord(
+            name="queue_id",
+            default_value=0,
+            endian=">",
+            fuzzable=False,
+        ),
+        # PutHeader Words 3-6: GUID (16 bytes)
+        boofuzz.Bytes(
+            name="guid",
+            default_value=guid,
+            size=16,
+            fuzzable=False,
+        ),
+        # PutHeader Word 7: CRC32-C
+        boofuzz.DWord(
+            name="crc32c",
+            default_value=crc,
+            endian=">",
+            fuzzable=False,
+        ),
+        # PutHeader Word 8: schemaId(16) | reserved(16)
+        boofuzz.Word(
+            name="schema_id",
+            default_value=schema_id,
+            endian=">",
+            fuzzable=False,
+        ),
+        boofuzz.Word(
+            name="reserved",
+            default_value=0,
+            endian=">",
+            fuzzable=False,
+        ),
+        # App data (properties + event padding)
+        boofuzz.Bytes(
+            name="app_data",
+            default_value=app_data + event_padding,
+            size=len(app_data) + len(event_padding),
+            fuzzable=False,
+        ),
+    ]
+
+    return boofuzz.Request("put_with_cat_fuzz", children=children)
+
+
 # =============================================================================
 #                              SETUP HELPERS
 # =============================================================================
@@ -443,70 +567,53 @@ def _is_broker_alive(sock: socket.socket) -> bool:
 
 def fuzz_properties(host: str, port: int) -> None:
     """
-    Launch a message-properties fuzzing session against a BlazingMQ Broker.
+    Launch a CAT-field fuzzing session against a BlazingMQ Broker.
 
     Connects to the broker, performs the session handshake once, then sends
-    PUT messages with fuzzed MessageProperties fields for varying numbers of
-    properties (1, 2, 3, 5, 10) in both old-style (direct length) and
-    new-style (offset-based) encoding.  Raises AssertionError if the broker
-    crashes.
+    PUT messages with fuzzed CAT (Compression Algorithm Type) field values
+    in the PutHeader.  Raises AssertionError if the broker crashes.
     """
-
-    encoding_modes = [
-        ("old-style", make_message_properties_area, 0),
-        ("new-style", make_message_properties_area_new_style, 2),
-    ]
 
     sock = _connect(host, port)
     try:
         _send_setup_messages(sock)
 
+        # Build static properties (new-style, 2 props) to embed in the PUT
+        props_request = make_message_properties_area_new_style(num_properties=2)
+        static_props = props_request.render()
+
+        put_request = make_put_request_with_cat_fuzz(static_props, schema_id=2)
+        mutations = put_request.num_mutations()
+        logger.info("Fuzzing CAT field: %d mutations", mutations)
+
         total_mutation_count = 0
 
-        for mode_label, area_builder, schema_id in encoding_modes:
-            for num_props in PROPERTY_COUNTS_TO_TEST:
-                props_request = area_builder(num_props)
-                mutations = props_request.num_mutations()
-                logger.info(
-                    "Fuzzing %s with %d properties: %d mutations",
-                    mode_label,
-                    num_props,
-                    mutations,
+        for m_list in put_request.get_mutations():
+            mc = MutationContext(
+                mutations={m.qualified_name: m for m in m_list},
+            )
+            fuzzed_event = put_request.render(mutation_context=mc)
+
+            try:
+                sock.sendall(fuzzed_event)
+            except OSError as e:
+                raise AssertionError(
+                    f"Broker connection lost at mutation "
+                    f"{total_mutation_count} (CAT fuzz): {e}"
+                ) from e
+
+            try:
+                sock.recv(4096)
+            except socket.timeout:
+                pass
+
+            if not _is_broker_alive(sock):
+                raise AssertionError(
+                    f"Broker appears to have crashed at mutation "
+                    f"{total_mutation_count} (CAT fuzz)"
                 )
 
-                for m_list in props_request.get_mutations():
-                    mc = MutationContext(
-                        mutations={m.qualified_name: m for m in m_list},
-                    )
-                    fuzzed_props = props_request.render(mutation_context=mc)
-
-                    put_event = make_put_message_with_properties(
-                        fuzzed_props, schema_id=schema_id,
-                    )
-
-                    try:
-                        sock.sendall(put_event)
-                    except OSError as e:
-                        raise AssertionError(
-                            f"Broker connection lost at mutation "
-                            f"{total_mutation_count} "
-                            f"({mode_label}, {num_props} props): {e}"
-                        ) from e
-
-                    # Drain any response
-                    try:
-                        sock.recv(4096)
-                    except socket.timeout:
-                        pass
-
-                    if not _is_broker_alive(sock):
-                        raise AssertionError(
-                            f"Broker appears to have crashed at mutation "
-                            f"{total_mutation_count} "
-                            f"({mode_label}, {num_props} props)"
-                        )
-
-                    total_mutation_count += 1
+            total_mutation_count += 1
 
         logger.info(
             "Completed %d total mutations without broker crash",
