@@ -110,54 +110,162 @@ getMessageQueueTime(const mqbi::StorageMessageAttributes& attributes)
     return timeDelta;
 }
 
-/// Callback to use in `QueueEngineUtil_AppState::tryDeliverOneMessage`
-struct Visitor {
+/// Result of a consumer selection, populated by visitors below.
+struct FoundConsumer {
     mqbi::QueueHandle* d_handle;
     Routers::Consumer* d_consumer;
-    bsls::TimeInterval d_lowestDelay;
     unsigned int       d_downstreamSubscriptionId;
 
-    Visitor()
+    FoundConsumer()
     : d_handle(0)
     , d_consumer(0)
-    , d_lowestDelay(k_MAX_SECONDS, k_MAX_NANOSECONDS)
     , d_downstreamSubscriptionId(bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID)
     {
         // NOTHING
     }
-    bool oneConsumer(mqbi::QueueHandle* handle,
-                     Routers::Consumer* consumer,
-                     unsigned int       downstreamSubscriptionId)
+};
+
+/// Visitor that selects the first available consumer.
+struct OneConsumerVisitor : Routers::Visitor {
+    FoundConsumer* d_result_p;
+
+    explicit OneConsumerVisitor(FoundConsumer* result)
+    : d_result_p(result)
     {
-        d_handle                   = handle;
-        d_consumer                 = consumer;
-        d_downstreamSubscriptionId = downstreamSubscriptionId;
+        BSLS_ASSERT_SAFE(d_result_p);
+    }
+
+    bool visit(mqbi::QueueHandle* handle,
+               Routers::Consumer* consumer,
+               unsigned int downstreamSubscriptionId) BSLS_KEYWORD_OVERRIDE
+    {
+        d_result_p->d_handle                   = handle;
+        d_result_p->d_consumer                 = consumer;
+        d_result_p->d_downstreamSubscriptionId = downstreamSubscriptionId;
 
         return true;
     }
-    bool minDelayConsumer(bsls::TimeInterval*       delay,
-                          mqbi::QueueHandle*        handle,
-                          Routers::Consumer*        consumer,
-                          unsigned int              downstreamSubscriptionId,
-                          const bsls::TimeInterval& messageDelay,
-                          const bsls::TimeInterval& now)
+};
+
+/// Visitor that selects the first consumer whose message delay has elapsed,
+/// tracking the lowest remaining delay across all consumers.
+struct MinDelayConsumerVisitor : Routers::Visitor {
+    FoundConsumer*           d_result_p;
+    bsls::TimeInterval*      d_delay_p;
+    bsls::TimeInterval       d_lowestDelay;
+    const bsls::TimeInterval d_delta;
+
+    MinDelayConsumerVisitor(FoundConsumer*            result,
+                            bsls::TimeInterval*       delay,
+                            const bsls::TimeInterval& messageDelay,
+                            const bsls::TimeInterval& now)
+    : d_result_p(result)
+    , d_delay_p(delay)
+    , d_lowestDelay(k_MAX_SECONDS, k_MAX_NANOSECONDS)
+    , d_delta(messageDelay - now)
+    {
+        BSLS_ASSERT_SAFE(d_result_p);
+        BSLS_ASSERT_SAFE(d_delay_p);
+    }
+
+    bool visit(mqbi::QueueHandle* handle,
+               Routers::Consumer* consumer,
+               unsigned int downstreamSubscriptionId) BSLS_KEYWORD_OVERRIDE
     {
         BSLS_ASSERT_SAFE(handle);
         BSLS_ASSERT_SAFE(consumer);
 
         bsls::TimeInterval delayLeft = consumer->d_timeLastMessageSent +
-                                       messageDelay - now;
+                                       d_delta;
 
         if (delayLeft <= 0) {
-            d_handle                   = handle;
-            d_consumer                 = consumer;
-            d_downstreamSubscriptionId = downstreamSubscriptionId;
+            d_result_p->d_handle                   = handle;
+            d_result_p->d_consumer                 = consumer;
+            d_result_p->d_downstreamSubscriptionId = downstreamSubscriptionId;
 
             return true;
         }
         if (d_lowestDelay > delayLeft) {
-            *delay = d_lowestDelay = delayLeft;
+            *d_delay_p = d_lowestDelay = delayLeft;
         }
+        return false;
+    }
+};
+
+/// Visitor that delivers a message to every consumer without tracking.
+struct BroadcastNoTrackVisitor : Routers::Visitor {
+    const mqbi::StorageIterator* d_message_p;
+
+    explicit BroadcastNoTrackVisitor(const mqbi::StorageIterator* message)
+    : d_message_p(message)
+    {
+        BSLS_ASSERT_SAFE(d_message_p);
+    }
+
+    bool visit(mqbi::QueueHandle* handle,
+               BSLA_MAYBE_UNUSED Routers::Consumer* consumer,
+               unsigned int downstreamSubscriptionId) BSLS_KEYWORD_OVERRIDE
+    {
+        BSLS_ASSERT_SAFE(handle);
+
+        handle->deliverMessageNoTrack(
+            *d_message_p,
+            bmqp::Protocol::SubQueueInfosArray(
+                1,
+                bmqp::SubQueueInfo(downstreamSubscriptionId)));
+
+        return false;
+    }
+};
+
+/// Visitor that collects a consumer for fanout delivery.
+struct FanoutVisitor : Routers::Visitor {
+    QueueEngineUtil_AppsDeliveryContext::Consumers* d_consumers_p;
+    const mqbi::AppMessage*                         d_appView_p;
+
+    FanoutVisitor(QueueEngineUtil_AppsDeliveryContext::Consumers* consumers,
+                  const mqbi::AppMessage*                         appView)
+    : d_consumers_p(consumers)
+    , d_appView_p(appView)
+    {
+        BSLS_ASSERT_SAFE(d_consumers_p);
+        BSLS_ASSERT_SAFE(d_appView_p);
+    }
+
+    bool visit(mqbi::QueueHandle* handle,
+               BSLA_MAYBE_UNUSED Routers::Consumer* consumer,
+               unsigned int downstreamSubscriptionId) BSLS_KEYWORD_OVERRIDE
+    {
+        BSLS_ASSERT_SAFE(handle);
+
+        (*d_consumers_p)[handle].push_back(
+            bmqp::SubQueueInfo(downstreamSubscriptionId,
+                               d_appView_p->d_rdaInfo));
+
+        return true;
+    }
+};
+
+/// Visitor that collects all consumers for broadcast delivery.
+struct BroadcastVisitor : Routers::Visitor {
+    QueueEngineUtil_AppsDeliveryContext::Consumers* d_consumers_p;
+
+    explicit BroadcastVisitor(
+        QueueEngineUtil_AppsDeliveryContext::Consumers* consumers)
+    : d_consumers_p(consumers)
+    {
+        BSLS_ASSERT_SAFE(d_consumers_p);
+    }
+
+    bool visit(mqbi::QueueHandle* handle,
+               BSLA_MAYBE_UNUSED Routers::Consumer* consumer,
+               unsigned int downstreamSubscriptionId) BSLS_KEYWORD_OVERRIDE
+    {
+        BSLS_ASSERT_SAFE(handle);
+
+        (*d_consumers_p)[handle].push_back(
+            bmqp::SubQueueInfo(downstreamSubscriptionId));
+
         return false;
     }
 };
@@ -638,21 +746,6 @@ QueueEngineUtil_AppsDeliveryContext::QueueEngineUtil_AppsDeliveryContext(
 , d_currentMessage_p(0)
 , d_queue_p(queue)
 , d_timeDelta()
-, d_currentAppView_p(0)
-, d_fanoutVisitor(
-      bdlf::BindUtil::bindS(allocator,
-                            &QueueEngineUtil_AppsDeliveryContext::visit,
-                            this,
-                            bdlf::PlaceHolders::_1,
-                            bdlf::PlaceHolders::_2,
-                            bdlf::PlaceHolders::_3))
-, d_broadcastVisitor(bdlf::BindUtil::bindS(
-      allocator,
-      &QueueEngineUtil_AppsDeliveryContext::visitBroadcast,
-      this,
-      bdlf::PlaceHolders::_1,
-      bdlf::PlaceHolders::_2,
-      bdlf::PlaceHolders::_3))
 , d_revCounter(0)
 {
     BSLS_ASSERT_SAFE(queue);
@@ -693,8 +786,8 @@ bool QueueEngineUtil_AppsDeliveryContext::processApp(
 
     if (d_queue_p->isDeliverAll()) {
         // collect all handles
-        app.routing()->iterateConsumers(d_broadcastVisitor,
-                                        d_currentMessage_p);
+        BroadcastVisitor visitor(&d_consumers);
+        app.routing()->iterateConsumers(visitor, d_currentMessage_p);
 
         // Broadcast does not need stats nor any special per-message treatment.
         return false;  // RETURN
@@ -725,14 +818,10 @@ bool QueueEngineUtil_AppsDeliveryContext::processApp(
     // mapped file, which can delay the unmapping of files in case this
     // message has a huge TTL and there are no consumers for this message.
 
-    d_currentAppView_p     = &appView;
-    Routers::Result result = app.selectConsumer(d_fanoutVisitor,
+    FanoutVisitor   fanoutVisitor(&d_consumers, &appView);
+    Routers::Result result = app.selectConsumer(fanoutVisitor,
                                                 d_currentMessage_p,
                                                 ordinal);
-    // We use this pointer only from `d_visitVisitor`, so not cleaning it is
-    // okay, but we clean it to keep contract that `d_currentAppView_p` only
-    // points at the actual AppView.
-    d_currentAppView_p = NULL;
 
     if (result == Routers::e_SUCCESS) {
         // RootQueueEngine makes stat reports
@@ -765,36 +854,6 @@ bool QueueEngineUtil_AppsDeliveryContext::processApp(
     app.putAside(d_currentMessage_p->guid());
 
     return putAsideReturnValue;
-}
-
-bool QueueEngineUtil_AppsDeliveryContext::visit(
-    mqbi::QueueHandle* handle,
-    BSLA_MAYBE_UNUSED Routers::Consumer* consumer,
-    unsigned int                         downstreamSubscriptionId)
-{
-    BSLS_ASSERT_SAFE(handle);
-    BSLS_ASSERT_SAFE(
-        d_currentAppView_p &&
-        "`d_currentAppView_p` must be assigned before calling this function");
-
-    d_consumers[handle].push_back(
-        bmqp::SubQueueInfo(downstreamSubscriptionId,
-                           d_currentAppView_p->d_rdaInfo));
-
-    return true;
-}
-
-bool QueueEngineUtil_AppsDeliveryContext::visitBroadcast(
-    mqbi::QueueHandle* handle,
-    BSLA_MAYBE_UNUSED Routers::Consumer* consumer,
-    unsigned int                         downstreamSubscriptionId)
-{
-    BSLS_ASSERT_SAFE(handle);
-
-    d_consumers[handle].push_back(
-        bmqp::SubQueueInfo(downstreamSubscriptionId));
-
-    return false;
 }
 
 void QueueEngineUtil_AppsDeliveryContext::deliverMessage()
@@ -1003,34 +1062,21 @@ Routers::Result QueueEngineUtil_AppState::tryDeliverOneMessage(
 
     bsls::TimeInterval messageDelay;
     bsls::TimeInterval now = bmqu::Time::nowMonotonicClock();
-    Visitor            visitor;
+    FoundConsumer      found;
 
     Routers::Result result = Routers::e_SUCCESS;
 
     if (!QueueEngineUtil::loadMessageDelay(appView.d_rdaInfo,
                                            d_queue_p->messageThrottleConfig(),
                                            &messageDelay)) {
-        result = selectConsumer(bdlf::BindUtil::bind(&Visitor::oneConsumer,
-                                                     &visitor,
-                                                     bdlf::PlaceHolders::_1,
-                                                     bdlf::PlaceHolders::_2,
-                                                     bdlf::PlaceHolders::_3),
-                                message,
-                                ordinal());
+        OneConsumerVisitor visitor(&found);
+        result = selectConsumer(visitor, message, ordinal());
         // RelayQueueEngine_VirtualPushStorageIterator ignores ordinal
     }
     else {
+        MinDelayConsumerVisitor visitor(&found, delay, messageDelay, now);
         // Iterate all highest priority consumers and find the lowest delay
-        if (!d_routing_sp->iterateConsumers(
-                bdlf::BindUtil::bind(&Visitor::minDelayConsumer,
-                                     &visitor,
-                                     delay,
-                                     bdlf::PlaceHolders::_1,
-                                     bdlf::PlaceHolders::_2,
-                                     bdlf::PlaceHolders::_3,
-                                     messageDelay,
-                                     now),
-                message)) {
+        if (!d_routing_sp->iterateConsumers(visitor, message)) {
             result = Routers::e_DELAY;
         }
 
@@ -1040,23 +1086,23 @@ Routers::Result QueueEngineUtil_AppState::tryDeliverOneMessage(
         // one consumer so we don't return a lowestDelay set to its max value.
     }
 
-    if (!visitor.d_handle) {
+    if (!found.d_handle) {
         return result;  // RETURN
     }
-    BSLS_ASSERT_SAFE(visitor.d_consumer);
+    BSLS_ASSERT_SAFE(found.d_consumer);
 
     BSLS_ASSERT_SAFE(result == Routers::e_SUCCESS);
 
     const bmqp::Protocol::SubQueueInfosArray subQueueInfos(
         1,
-        bmqp::SubQueueInfo(visitor.d_downstreamSubscriptionId,
+        bmqp::SubQueueInfo(found.d_downstreamSubscriptionId,
                            message->appMessageView(ordinal()).d_rdaInfo));
-    visitor.d_handle->deliverMessage(*message,
-                                     subQueueInfos,
-                                     true /* out of order */);
+    found.d_handle->deliverMessage(*message,
+                                   subQueueInfos,
+                                   true /* out of order */);
 
-    visitor.d_consumer->d_timeLastMessageSent = now;
-    visitor.d_consumer->d_lastSentMessage     = message->guid();
+    found.d_consumer->d_timeLastMessageSent = now;
+    found.d_consumer->d_lastSentMessage     = message->guid();
 
     return result;
 }
@@ -1064,31 +1110,8 @@ Routers::Result QueueEngineUtil_AppState::tryDeliverOneMessage(
 void QueueEngineUtil_AppState::broadcastOneMessage(
     const mqbi::StorageIterator* storageIter)
 {
-    d_routing_sp->iterateConsumers(
-        bdlf::BindUtil::bind(&QueueEngineUtil_AppState::visitBroadcast,
-                             this,
-                             storageIter,
-                             bdlf::PlaceHolders::_1,
-                             bdlf::PlaceHolders::_2,
-                             bdlf::PlaceHolders::_3),
-        storageIter);
-}
-
-bool QueueEngineUtil_AppState::visitBroadcast(
-    const mqbi::StorageIterator* message,
-    mqbi::QueueHandle*           handle,
-    BSLA_MAYBE_UNUSED Routers::Consumer* consumer,
-    unsigned int                         downstreamSubscriptionId)
-{
-    BSLS_ASSERT_SAFE(handle);
-    // TBD: groupId: send 'options' as well...
-    handle->deliverMessageNoTrack(
-        *message,
-        bmqp::Protocol::SubQueueInfosArray(
-            1,
-            bmqp::SubQueueInfo(downstreamSubscriptionId)));
-
-    return false;
+    BroadcastNoTrackVisitor visitor(storageIter);
+    d_routing_sp->iterateConsumers(visitor, storageIter);
 }
 
 size_t
@@ -1341,7 +1364,7 @@ bool QueueEngineUtil_AppState::transferUnconfirmedMessages(
 }
 
 Routers::Result QueueEngineUtil_AppState::selectConsumer(
-    const Routers::Visitor&      visitor,
+    Routers::Visitor&            visitor,
     const mqbi::StorageIterator* currentMessage,
     unsigned int                 ordinal)
 {

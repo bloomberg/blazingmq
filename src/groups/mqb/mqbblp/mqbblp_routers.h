@@ -639,10 +639,12 @@ class Routers {
         void loadInternals(mqbcmd::Routing* out) const;
     };
 
-    typedef bsl::function<bool(mqbi::QueueHandle* handle,
-                               Routers::Consumer* consumer,
-                               unsigned int       downstreamSubscriptionId)>
-        Visitor;
+    struct Visitor {
+        virtual ~Visitor();
+        virtual bool visit(mqbi::QueueHandle* handle,
+                           Consumer*          consumer,
+                           unsigned int       downstreamSubscriptionId) = 0;
+    };
 
     enum Result {
         /// Found Subscription and there is capacity.
@@ -682,7 +684,7 @@ class Routers {
         /// subscription to the end of round-robind selection list if it has
         /// been selected `d_consumerPriorityCount` times , and return
         /// `true`.
-        Result iterateGroups(const Visitor& visitor);
+        Result iterateGroups(Visitor& visitor);
 
         /// Iterate all highest priority `Subscription`s within the
         /// specified `group` and call the specified `visitor` for each
@@ -690,8 +692,7 @@ class Routers {
         /// `visitor` returns `true`, stop iterating, move the subscription
         /// to the end of round-robind selection list if it has been
         /// selected `d_consumerPriorityCount` times, and return `true`.
-        bool iterateSubscriptions(const Visitor& visitor,
-                                  PriorityGroup& group);
+        bool iterateSubscriptions(Visitor& visitor, PriorityGroup& group);
 
         void print(bsl::ostream& os, int level, int spacesPerLevel) const;
     };
@@ -770,7 +771,7 @@ class Routers {
         /// been selected `d_consumerPriorityCount` times, and return
         /// `true`.
         Routers::Result
-        selectConsumer(const Visitor&               visitor,
+        selectConsumer(Visitor&                     visitor,
                        const mqbi::StorageIterator* currentMessage,
                        unsigned int                 subscriptionId);
 
@@ -779,7 +780,7 @@ class Routers {
         /// which has `canDeliver` consumer and which `Expression` matches
         /// the specified `currentMessage`.  If the `visitor` returns
         /// `true`, stop iterating and return `true`.
-        bool iterateConsumers(const Visitor&               visitor,
+        bool iterateConsumers(Visitor&                     visitor,
                               const mqbi::StorageIterator* message);
 
         /// Iterate all highest priority highest priority `Subscription`s
