@@ -16,9 +16,15 @@
 #include <bmqp_event.h>
 
 // BMQ
+#include <bmqp_ackmessageiterator.h>
+#include <bmqp_confirmmessageiterator.h>
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_protocol.h>
+#include <bmqp_pushmessageiterator.h>
+#include <bmqp_putmessageiterator.h>
+#include <bmqp_recoverymessageiterator.h>
 #include <bmqp_schemaeventbuilder.h>
+#include <bmqp_storagemessageiterator.h>
 
 #include <bmqu_memoutstream.h>
 
