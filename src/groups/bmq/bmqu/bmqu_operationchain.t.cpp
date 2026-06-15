@@ -59,19 +59,6 @@ void asyncNullOperation(bdlmt::ThreadPool*           threadPool,
     threadPool->enqueueJob(callback);
 }
 
-/// Invoke the specified completion `callback` on the specified `threadPool`
-/// with the specified `operationId` parameter.
-void asyncIdentifiableOperation(bdlmt::ThreadPool* threadPool,
-                                unsigned           operationId,
-                                const bsl::function<void(unsigned)>& callback)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT(threadPool);
-    BSLS_ASSERT(callback);
-
-    threadPool->enqueueJob(bdlf::BindUtil::bind(callback, operationId));
-}
-
 /// Return a `bsls::TimeInterval` object encoding a point in time the
 /// specified number of `seconds` from now, according to the monotonic
 /// clock.
@@ -241,7 +228,7 @@ struct UsageExample {
     // TYPES
     typedef bsl::function<void()> SendCallback;
 
-    typedef bsl::function<void(int clientId, int payload)> ReceiveCallback;
+    typedef bsl::function<void()> ReceiveCallback;
 
     // CLASS FUNCTIONS
 
@@ -249,7 +236,7 @@ struct UsageExample {
     static void onDataSent();
 
     /// Callback invoked on completion of a `receive` operation.
-    static void onDataReceived(int clientId, int payload);
+    static void onDataReceived();
 
     /// Send the specified `payload` to the client identified by the
     /// specified `clientId` and invoke the specified
@@ -257,9 +244,8 @@ struct UsageExample {
     static void
     send(int clientId, int payload, const SendCallback& completionCallback);
 
-    /// Receive a payload send to us by another client and invoke the
-    /// specified `completionCallback` with the payload and the sender
-    /// client ID.
+    /// Receive a payload from another client and invoke the specified
+    /// `completionCallback` when done.
     static void receive(const ReceiveCallback& completionCallback);
 };
 
@@ -273,7 +259,7 @@ inline void UsageExample::onDataSent()
     // NOTHING
 }
 
-inline void UsageExample::onDataReceived(int, int)
+inline void UsageExample::onDataReceived()
 {
     // NOTHING
 }
@@ -286,7 +272,7 @@ UsageExample::send(int, int, const SendCallback& completionCallback)
 
 inline void UsageExample::receive(const ReceiveCallback& completionCallback)
 {
-    completionCallback(0, 0);
+    completionCallback();
 }
 
 // ============================================================================
@@ -412,13 +398,10 @@ static void test3_chain_startStop(bdlmt::ThreadPool* threadPool)
         for (unsigned operationId = 0; operationId < k_NUM_OPERATIONS;
              ++operationId) {
             chain.appendInplace(
-                bdlf::BindUtil::bind(&asyncIdentifiableOperation,
+                bdlf::BindUtil::bind(&asyncNullOperation,
                                      threadPool,
-                                     operationId,
                                      bdlf::PlaceHolders::_1),
-                bdlf::BindUtil::bind(PushBack(),
-                                     &completionIds,
-                                     bdlf::PlaceHolders::_1));
+                bdlf::BindUtil::bind(PushBack(), &completionIds, operationId));
         }
 
         // make sure operation haven't started executing
@@ -458,15 +441,13 @@ static void test3_chain_startStop(bdlmt::ThreadPool* threadPool)
         // add several operations
         for (unsigned operationId = 0; operationId < k_NUM_OPERATIONS;
              ++operationId) {
-            chain.appendInplace(
-                bdlf::BindUtil::bind(&asyncIdentifiableOperation,
-                                     threadPool,
-                                     operationId,
-                                     bdlf::PlaceHolders::_1),
-                bdlf::BindUtil::bind(PushBackSynchronize(),
-                                     &semaphore,
-                                     &completionIds,
-                                     bdlf::PlaceHolders::_1));
+            chain.appendInplace(bdlf::BindUtil::bind(&asyncNullOperation,
+                                                     threadPool,
+                                                     bdlf::PlaceHolders::_1),
+                                bdlf::BindUtil::bind(PushBackSynchronize(),
+                                                     &semaphore,
+                                                     &completionIds,
+                                                     operationId));
         }
 
         // no executing operations
@@ -524,13 +505,12 @@ static void test4_chain_join(bdlmt::ThreadPool* threadPool)
     // add several operations
     for (unsigned operationId = 0; operationId < k_NUM_OPERATIONS;
          ++operationId) {
-        chain.appendInplace(bdlf::BindUtil::bind(&asyncIdentifiableOperation,
+        chain.appendInplace(bdlf::BindUtil::bind(&asyncNullOperation,
                                                  threadPool,
-                                                 operationId,
                                                  bdlf::PlaceHolders::_1),
                             bdlf::BindUtil::bind(PushBackRndSleep(),
                                                  &completionIds,
-                                                 bdlf::PlaceHolders::_1));
+                                                 operationId));
     }
 
     // start executing
@@ -1102,13 +1082,12 @@ static void test10_chain_serialization(bdlmt::ThreadPool* threadPool)
     for (unsigned i = 0; i < k_NUM_LINKS; ++i) {
         for (unsigned j = 0; j < k_NUM_OPERATIONS; ++j) {
             unsigned operationId = i * k_NUM_OPERATIONS + j;
-            link.insert(bdlf::BindUtil::bind(&asyncIdentifiableOperation,
+            link.insert(bdlf::BindUtil::bind(&asyncNullOperation,
                                              threadPool,
-                                             operationId,
                                              bdlf::PlaceHolders::_1),
                         bdlf::BindUtil::bind(PushBackRndSleep(),
                                              &completionIds,
-                                             bdlf::PlaceHolders::_1));
+                                             operationId));
         }
 
         chain.append(&link);

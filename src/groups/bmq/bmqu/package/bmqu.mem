@@ -10,7 +10,6 @@ bmqu_managedcallback
 bmqu_managedcallback_cpp03
 bmqu_memoutstream
 bmqu_operationchain
-bmqu_operationchain_cpp03
 bmqu_operationlogger
 bmqu_outstreamformatsaver
 bmqu_printutil
