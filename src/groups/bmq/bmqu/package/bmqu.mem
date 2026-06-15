@@ -12,7 +12,6 @@ bmqu_memoutstream
 bmqu_objectplaceholder
 bmqu_objectplaceholder_cpp03
 bmqu_operationchain
-bmqu_operationchain_cpp03
 bmqu_operationlogger
 bmqu_outstreamformatsaver
 bmqu_printutil

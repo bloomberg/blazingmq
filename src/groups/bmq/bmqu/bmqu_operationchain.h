@@ -101,14 +101,14 @@
 //      typedef bsl::function<void()>
 //              SendCallback;
 //
-//      typedef bsl::function<void(int clientId, int payload)>
+//      typedef bsl::function<void()>
 //              ReceiveCallback;
 //
 //      // CLASS FUNCTIONS
 //      static void onDataSent();
 //          // Callback invoked on completion of a 'send' operation.
 //
-//      static void onDataReceived(int clientId, int payload);
+//      static void onDataReceived();
 //          // Callback invoked on completion of a 'receive' operation.
 //
 //      static void send(int                 clientId,
@@ -119,9 +119,8 @@
 //          // 'completionCallback' when the payload is sent.
 //
 //      static void receive(const ReceiveCallback& completionCallback);
-//          // Receive a payload send to us by another client and invoke the
-//          // specified 'completionCallback' with the payload and the sender
-//          // client ID.
+//          // Receive a payload from another client and invoke the specified
+//          // 'completionCallback' when done.
 //  };
 //..
 // Lets say we want to "receive" data from 10 clients, and then "send" data
@@ -188,15 +187,6 @@
 #ifdef BSLS_COMPILERFEATURES_SUPPORT_TRAITS_HEADER
 #include <bsl_type_traits.h>
 #endif
-
-#if BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
-// Include version that can be compiled with C++03
-// Generated on Wed Jun 18 14:44:06 2025
-// Command line: sim_cpp11_features.pl bmqu_operationchain.h
-# define COMPILING_BMQU_OPERATIONCHAIN_H
-# include <bmqu_operationchain_cpp03.h>
-#undef COMPILING_BMQU_OPERATIONCHAIN_H
-#else
 
 namespace BloombergLP {
 
@@ -300,14 +290,11 @@ class OperationChain_CompletionCallbackWrapper {
 
   public:
     // ACCESSORS
-#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES  // $var-args=9
 
-    /// Invoke the associated completion callback with the specified `args`
-    /// arguments and notify the associated operation chain. Propagate any
-    /// exception thrown by the completion callback to the caller.
-    template <class... ARGS>
-    void operator()(ARGS&&... args) const;
-#endif
+    /// Invoke the associated completion callback and notify the associated
+    /// operation chain. Propagate any exception thrown by the completion
+    /// callback to the caller.
+    void operator()() const;
 
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(OperationChain_CompletionCallbackWrapper,
@@ -805,27 +792,20 @@ inline OperationChain_CompletionCallbackWrapper<CO_CALLBACK>::
 }
 
 // ACCESSORS
-#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES  // $var-args=9
 template <class CO_CALLBACK>
-template <class... ARGS>
-inline void OperationChain_CompletionCallbackWrapper<CO_CALLBACK>::operator()(
-    ARGS&&... args) const
+inline void
+OperationChain_CompletionCallbackWrapper<CO_CALLBACK>::operator()() const
 {
     try {
-        // invoke completion callback
-        bslmf::Util::moveIfSupported((*d_coCallback_p))(
-            bslmf::Util::forward<ARGS>(args)...);
+        bslmf::Util::moveIfSupported((*d_coCallback_p))();
     }
     catch (...) {
-        // notify the chain and rethrow the exception
         d_chain_p->onOperationCompleted(d_jobHandle);
         throw;  // THROW
     }
 
-    // notify the chain
     d_chain_p->onOperationCompleted(d_jobHandle);
 }
-#endif
 
 // ------------------------
 // class OperationChain_Job
@@ -1019,7 +999,5 @@ inline void bmqu::swap(OperationChainLink& lhs,
 }
 
 }  // close enterprise namespace
-
-#endif  // End C++11 code
 
 #endif
