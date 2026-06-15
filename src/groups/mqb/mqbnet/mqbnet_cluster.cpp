@@ -16,12 +16,41 @@
 #include <mqbnet_cluster.h>
 
 #include <mqbscm_version.h>
+// BMQ
+#include <bmqp_ctrlmsg_messages.h>
+
 // BDE
 #include <bsl_limits.h>
 #include <bsla_annotations.h>
 
 namespace BloombergLP {
 namespace mqbnet {
+
+// ------------------
+// struct ClusterUtil
+// ------------------
+
+bool ClusterUtil::isProxy(const bmqp_ctrlmsg::NegotiationMessage& negoMsg,
+                          const bsl::string&                      clusterName)
+{
+    return isClientOrProxy(negoMsg) &&
+           negoMsg.clientIdentity().clusterName() == clusterName;
+}
+
+bool ClusterUtil::isClient(const bmqp_ctrlmsg::NegotiationMessage& negoMsg)
+{
+    return isClientOrProxy(negoMsg) &&
+           negoMsg.clientIdentity().clusterName().empty();
+}
+
+bool ClusterUtil::isClientOrProxy(
+    const bmqp_ctrlmsg::NegotiationMessage& negoMsg)
+{
+    return negoMsg.isClientIdentityValue() &&
+           (negoMsg.clientIdentity().clusterNodeId() ==
+                mqbnet::Cluster::k_INVALID_NODE_ID ||
+            negoMsg.clientIdentity().clusterName().empty());
+}
 
 // ---------------------
 // class ClusterObserver

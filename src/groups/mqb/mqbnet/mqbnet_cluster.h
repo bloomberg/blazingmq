@@ -29,15 +29,10 @@
 // is an interface that clients can implement if they want to observe some
 // events happening on the cluster.
 
-// MQB
-
-#include <mqbnet_channel.h>
-
 // BMQ
-#include <bmqp_ctrlmsg_messages.h>
-
 #include <bmqio_channel.h>
-#include <bmqio_status.h>
+#include <bmqp_protocol.h>
+#include <bmqt_resultcode.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -46,9 +41,17 @@
 #include <bsl_string.h>
 
 namespace BloombergLP {
+
+// FORWARD DECLARATIONS
+namespace bmqp_ctrlmsg {
+class ClientIdentity;
+class NegotiationMessage;
+}
+
 namespace mqbnet {
 
 // FORWARD DECLARATIONS
+class Channel;
 class Cluster;
 class ClusterNode;
 
@@ -258,34 +261,6 @@ class Cluster {
     /// nodes part of this cluster.
     virtual const NodesList& nodes() const = 0;
 };
-
-// ============================================================================
-//                             INLINE DEFINITIONS
-// ============================================================================
-
-inline bool
-ClusterUtil::isProxy(const bmqp_ctrlmsg::NegotiationMessage& negoMsg,
-                     const bsl::string&                      clusterName)
-{
-    return isClientOrProxy(negoMsg) &&
-           negoMsg.clientIdentity().clusterName() == clusterName;
-}
-
-inline bool
-ClusterUtil::isClient(const bmqp_ctrlmsg::NegotiationMessage& negoMsg)
-{
-    return isClientOrProxy(negoMsg) &&
-           negoMsg.clientIdentity().clusterName().empty();
-}
-
-inline bool
-ClusterUtil::isClientOrProxy(const bmqp_ctrlmsg::NegotiationMessage& negoMsg)
-{
-    return negoMsg.isClientIdentityValue() &&
-           (negoMsg.clientIdentity().clusterNodeId() ==
-                mqbnet::Cluster::k_INVALID_NODE_ID ||
-            negoMsg.clientIdentity().clusterName().empty());
-}
 
 }  // close package namespace
 }  // close enterprise namespace

@@ -16,6 +16,8 @@
 #include <mqbc_clusternodesession.h>
 
 #include <mqbscm_version.h>
+// MQB
+#include <mqbnet_channel.h>
 
 #include <bmqio_status.h>
 

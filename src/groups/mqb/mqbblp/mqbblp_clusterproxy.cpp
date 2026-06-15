@@ -28,6 +28,7 @@
 #include <mqbevt_pushevent.h>
 #include <mqbevt_rejectevent.h>
 #include <mqbi_queue.h>
+#include <mqbnet_channel.h>
 
 // BMQ
 #include <bmqp_ackmessageiterator.h>

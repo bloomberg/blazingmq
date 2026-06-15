@@ -24,6 +24,7 @@
 // BMQ
 #include <bmqp_crc32c.h>
 #include <bmqp_ctrlmsg_messages.h>
+#include <bmqp_event.h>
 #include <bmqp_protocol.h>
 
 #include <bmqio_channel.h>

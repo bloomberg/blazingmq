@@ -62,42 +62,47 @@
 
 // MQB
 
-#include <mqbcfg_clusterquorummanager.h>
-#include <mqbcfg_messages.h>
-#include <mqbi_cluster.h>
-#include <mqbi_dispatcher.h>
 #include <mqbnet_cluster.h>
 #include <mqbnet_session.h>
 
 // BMQ
-#include <bmqp_event.h>
+#include <bmqp_blobpoolutil.h>
 
 // BDE
 #include <ball_log.h>
-#include <bdlbb_blob.h>
 #include <bdlmt_eventscheduler.h>
 #include <bsl_functional.h>
 #include <bsl_map.h>
 #include <bsl_ostream.h>
-#include <bsl_string.h>
 #include <bsl_vector.h>
 #include <bslma_allocator.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
-#include <bslmt_lockguard.h>
 #include <bslmt_mutex.h>
 #include <bslmt_threadutil.h>
 #include <bsls_assert.h>
 #include <bsls_types.h>
+#include <bslstl_stringref.h>
 
 namespace BloombergLP {
 
 // FORWARD DECLARATIONS
+namespace mqbcfg {
+class ClusterQuorumManager;
+class ElectorConfig;
+}
 namespace mqbcmd {
 class ElectorCommand;
 }
 namespace mqbcmd {
 class ElectorResult;
+}
+namespace bmqp {
+class Event;
+}
+namespace mqbi {
+class Cluster;
+class Dispatcher;
 }
 
 namespace mqbnet {
@@ -920,10 +925,6 @@ class Elector : public SessionEventProcessor {
                                 bsls::Types::Uint64           term,
                                 bsls::Types::Uint64           age);
 
-    /// Return a pointer to the dispatcher associated with the cluster of
-    /// this elector.
-    mqbi::Dispatcher* dispatcher();
-
     /// Process the specified `output` of the elector state machine, and if
     /// elector state change callback needs to be invoked, invoke it inline
     /// if specified `invokeStateChangeCbInline` flag is true, otherwise
@@ -1000,12 +1001,6 @@ class Elector : public SessionEventProcessor {
     /// associated scheduler's dispatcher thread.
     void scoutingResultTimeoutCb();
 
-    // PRIVATE ACCESSORS
-
-    /// Return a pointer to the dispatcher associated with the cluster of
-    /// this elector.
-    const mqbi::Dispatcher* dispatcher() const;
-
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(Elector, bslma::UsesBslmaAllocator)
@@ -1069,9 +1064,6 @@ class Elector : public SessionEventProcessor {
                        const mqbcmd::ElectorCommand& command);
 
     // ACCESSORS
-
-    /// Return the cluster associated with this instance.
-    mqbi::Cluster* cluster() const;
 
     /// Return the configuration of this instance.
     const mqbcfg::ElectorConfig& config() const;
@@ -1289,13 +1281,6 @@ inline bool ElectorStateMachine::isValidSourceNode(int sourceNodeId) const
     return true;
 }
 
-inline unsigned int ElectorStateMachine::getQuorum() const
-{
-    BSLS_ASSERT_SAFE(d_quorumManager_p);
-
-    return d_quorumManager_p->quorum();
-}
-
 // CREATORS
 inline ElectorStateMachine::ElectorStateMachine(bslma::Allocator* allocator)
 : d_state(ElectorState::e_DORMANT)
@@ -1379,24 +1364,7 @@ inline bsls::Types::Uint64 ElectorStateMachine::age() const
 // class Elector
 // -------------
 
-// PRIVATE MANIPULATORS
-inline mqbi::Dispatcher* Elector::dispatcher()
-{
-    return d_cluster_p->dispatcher();
-}
-
-// PRIVATE ACCESSORS
-inline const mqbi::Dispatcher* Elector::dispatcher() const
-{
-    return d_cluster_p->dispatcher();
-}
-
 // ACCESSORS
-inline mqbi::Cluster* Elector::cluster() const
-{
-    return d_cluster_p;
-}
-
 inline const mqbcfg::ElectorConfig& Elector::config() const
 {
     return d_config;

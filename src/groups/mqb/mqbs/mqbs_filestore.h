@@ -52,6 +52,7 @@
 
 #include <bmqc_orderedhashmap.h>
 #include <bmqma_countingallocatorstore.h>
+#include <bmqu_atomicstate.h>
 #include <bmqu_blob.h>
 
 // BDE

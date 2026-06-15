@@ -19,6 +19,7 @@
 
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
+#include <bmqp_event.h>
 #include <bmqp_schemaeventbuilder.h>
 
 #include <bmqio_status.h>
@@ -26,12 +27,16 @@
 
 // MQB
 #include <mqbcfg_clusterquorummanager.h>
+#include <mqbcfg_messages.h>
+#include <mqbi_cluster.h>
+#include <mqbi_dispatcher.h>
 
 // BDE
 #include <ball_logthrottle.h>
 #include <bdlb_print.h>
 #include <bdlb_string.h>
 #include <bdlb_stringrefutil.h>
+#include <bdlbb_blob.h>
 #include <bdlf_bind.h>
 #include <bdlt_timeunitratio.h>
 #include <bsl_algorithm.h>
@@ -40,9 +45,11 @@
 #include <bsl_iostream.h>
 #include <bsl_list.h>
 #include <bsl_memory.h>
+#include <bsl_string.h>
 #include <bsl_utility.h>
 #include <bsla_annotations.h>
 #include <bslim_printer.h>
+#include <bslmt_lockguard.h>
 #include <bslmt_mutexassert.h>
 #include <bslmt_threadutil.h>
 #include <bsls_systemclocktype.h>
@@ -367,6 +374,14 @@ bool ElectorTransitionReason::fromAscii(ElectorTransitionReason::Enum* out,
 // CONSTANTS
 const int ElectorStateMachine::k_INVALID_NODE_ID;
 const int ElectorStateMachine::k_ALL_NODES_ID = Cluster::k_ALL_NODES_ID;
+
+// PRIVATE ACCESSORS
+unsigned int ElectorStateMachine::getQuorum() const
+{
+    BSLS_ASSERT_SAFE(d_quorumManager_p);
+
+    return d_quorumManager_p->quorum();
+}
 
 // PRIVATE MANIPULATORS
 void ElectorStateMachine::applyLeadershipCessionEventToFollower(
@@ -1924,7 +1939,7 @@ void Elector::scheduleElectorCallback()
 
     // Dispatch the elector state change callback in the associated cluster's
     // dispatcher thread.
-    dispatcher()->execute(
+    d_cluster_p->dispatcher()->execute(
         bdlf::BindUtil::bind(&Elector::electorStateInternalCb,
                              this,
                              d_state.state(),

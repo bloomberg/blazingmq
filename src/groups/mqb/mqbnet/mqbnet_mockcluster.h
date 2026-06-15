@@ -30,10 +30,12 @@
 // MQB
 
 #include <mqbcfg_messages.h>
+#include <mqbnet_channel.h>
 #include <mqbnet_cluster.h>
 
 #include <bmqio_channel.h>
 #include <bmqio_status.h>
+#include <bmqp_ctrlmsg_messages.h>
 
 // BDE
 #include <bdlbb_blob.h>
