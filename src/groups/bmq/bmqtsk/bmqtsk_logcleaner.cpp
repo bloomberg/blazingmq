@@ -17,10 +17,9 @@
 
 #include <bmqscm_version.h>
 
-#include <bmqex_bindutil.h>
-#include <bmqex_executionpolicy.h>
 // BDE
 #include <ball_log.h>
+#include <bdlf_bind.h>
 #include <bdlf_memfn.h>
 #include <bdlma_localsequentialallocator.h>
 #include <bdls_filesystemutil.h>
@@ -28,6 +27,7 @@
 #include <bdlt_datetime.h>
 #include <bdlt_epochutil.h>
 #include <bsl_cstddef.h>
+#include <bsl_functional.h>
 #include <bsl_iostream.h>
 #include <bsl_ostream.h>
 #include <bsl_vector.h>
@@ -158,13 +158,23 @@ int LogCleaner::start(bslstl::StringRef         pattern,
 
     // schedule a logs cleanup immediately and then once every 'cleanupPeriod'
     // interval
+    typedef bmqex::Strand<bmqex::SystemExecutor> StrandType;
+
+    struct Local {
+        static void post(StrandType*                  strand,
+                         const bsl::function<void()>& callback)
+        {
+            strand->executor().post(callback);
+        }
+    };
+
     d_scheduler_p->scheduleRecurringEvent(
         &d_logsCleaningEvent,
         cleanupPeriod,
-        bmqex::BindUtil::bindExecute(
-            bmqex::ExecutionPolicyUtil::neverBlocking().useExecutor(
-                d_logsCleaningContext.executor()),
-            bdlf::MemFnUtil::memFn(&LogCleaner::cleanLogs, this)),
+        bdlf::BindUtil::bind(&Local::post,
+                             &d_logsCleaningContext,
+                             bdlf::MemFnUtil::memFn(&LogCleaner::cleanLogs,
+                                                    this)),
         bsls::SystemTime::now(d_scheduler_p->clockType()));
 
     return 0;

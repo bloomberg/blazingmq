@@ -809,6 +809,5 @@ int main(int argc, char* argv[])
     bmqu::Time::shutdown();
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);  // RETURN
-    // Default: EventQueue uses bmqex::BindUtil::bindExecute(), which uses
-    //          default allocator.
+    // Default: EventQueue uses default allocator.
 }
