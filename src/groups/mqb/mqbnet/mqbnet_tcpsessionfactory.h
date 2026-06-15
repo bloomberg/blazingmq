@@ -77,24 +77,15 @@
 // stale connection will be dropped after a time of ']12;16]' seconds.
 
 // MQB
-#include <mqbcfg_messages.h>
-#include <mqbnet_initialconnectioncontext.h>
-#include <mqbstat_statcontroller.h>
 
-#include <bmqex_sequentialcontext.h>
 #include <bmqio_channel.h>
 #include <bmqio_channelfactory.h>
-#include <bmqio_channelfactorypipeline.h>
-#include <bmqio_reconnectingchannelfactory.h>
-#include <bmqio_resolvingchannelfactory.h>
-#include <bmqio_statchannelfactory.h>
 #include <bmqio_status.h>
-#include <bmqp_heartbeatmonitor.h>
-#include <bmqst_statcontext.h>
 #include <bmqu_sharedresource.h>
 
 // BDE
 #include <bdlbb_blob.h>
+#include <bdlcc_sharedobjectpool.h>
 #include <bdlmt_eventscheduler.h>
 #include <bsl_cstddef.h>
 #include <bsl_functional.h>
@@ -113,15 +104,44 @@
 
 namespace BloombergLP {
 
+namespace mqbcfg {
+class TcpInterfaceConfig;
+class TcpInterfaceListener;
+}
+
+namespace bmqex {
+class SequentialContext;
+}
+
+namespace bmqp {
+class Event;
+class HeartbeatMonitor;
+}
+
 namespace bmqio {
+class ChannelFactoryPipeline;
 class NtcChannelFactory;
 class NtcChannel;
+class ReconnectingChannelFactory;
+class ResolvingChannelFactory;
+class StatChannelFactory;
+struct StatChannelFactoryHandle;
+}
+
+namespace bmqst {
+class StatContext;
+}
+
+namespace mqbstat {
+class StatController;
 }
 
 namespace mqbnet {
 
 // FORWARD DECLARATION
+class AuthenticationContext;
 class Cluster;
+class InitialConnectionContext;
 class Session;
 class SessionEventProcessor;
 class TCPSessionFactoryIterator;
@@ -185,6 +205,9 @@ class TCPSessionFactory {
     /// A view into a an active channel, its session, event processor, and
     /// heartbeat monitor.
     struct ChannelInfo {
+        // TRAITS
+        BSLMF_NESTED_TRAIT_DECLARATION(ChannelInfo, bslma::UsesBslmaAllocator)
+
         /// The channel
         bsl::shared_ptr<bmqio::Channel> d_channel_sp;
 
@@ -197,7 +220,9 @@ class TCPSessionFactory {
         /// The event processor of Events received on this channel.
         SessionEventProcessor* d_eventProcessor_p;
 
-        bmqp::HeartbeatMonitor d_monitor;
+        bslma::ManagedPtr<bmqp::HeartbeatMonitor> d_monitor_mp;
+
+        // CREATORS
 
         /// @param channel_sp The channel
         /// @param authenticationContext The authentication context associated
@@ -214,8 +239,14 @@ class TCPSessionFactory {
                                  authenticationContext,
                              const bsl::shared_ptr<Session>& session,
                              SessionEventProcessor*          eventProcessor,
-                             int maxMissedHeartbeats,
-                             int initialMissedHeartbeatCounter);
+                             int               maxMissedHeartbeats,
+                             int               initialMissedHeartbeatCounter,
+                             bslma::Allocator* allocator);
+
+      private:
+        // NOT IMPLEMENTED
+        ChannelInfo(const ChannelInfo&);
+        ChannelInfo& operator=(const ChannelInfo&);
     };
 
     /// This class provides mechanism to store a map of port stat contexts.
@@ -280,14 +311,6 @@ class TCPSessionFactory {
     typedef bsl::unordered_map<const bmqio::Channel*, ChannelInfoSp>
         ChannelMap;
 
-    typedef bslma::ManagedPtr<bmqio::ResolvingChannelFactory>
-        ResolvingChannelFactoryMp;
-
-    typedef bslma::ManagedPtr<bmqio::ReconnectingChannelFactory>
-        ReconnectingChannelFactoryMp;
-
-    typedef bslma::ManagedPtr<bmqio::StatChannelFactory> StatChannelFactoryMp;
-
     typedef bsl::unordered_map<const bmqio::Channel*,
                                bsl::shared_ptr<InitialConnectionContext> >
         InitialConnectionContextMp;
@@ -311,7 +334,10 @@ class TCPSessionFactory {
     bool d_isStarted;
 
     // Config to use for setting up this SessionFactory
-    mqbcfg::TcpInterfaceConfig d_config;
+    bslma::ManagedPtr<mqbcfg::TcpInterfaceConfig> d_config_mp;
+
+    /// The name of this object: `TCPSessionFactory '<name>'`
+    bsl::string d_name;
 
     /// Event scheduler held not owned
     bdlmt::EventScheduler* d_scheduler_p;
@@ -334,14 +360,15 @@ class TCPSessionFactory {
     mqbstat::StatController* d_statController_p;
 
     /// Executor context used for performing DNS resolution
-    bmqex::SequentialContext d_resolutionContext;
+    bsl::shared_ptr<bmqex::SequentialContext> d_resolutionContext_sp;
 
     bslma::ManagedPtr<bmqio::ChannelFactoryPipeline>
         d_channelFactoryPipeline_mp;
 
-    ReconnectingChannelFactoryMp d_reconnectingChannelFactory_mp;
+    bslma::ManagedPtr<bmqio::ReconnectingChannelFactory>
+        d_reconnectingChannelFactory_mp;
 
-    StatChannelFactoryMp d_statChannelFactory_mp;
+    bslma::ManagedPtr<bmqio::StatChannelFactory> d_statChannelFactory_mp;
 
     /// Cache of shared pointers to @bbref{mqbnet::InitialConnectionContext} to
     /// preserve their lifetime while an initial connection
@@ -622,15 +649,15 @@ class TCPSessionFactory {
     /// callback method.  The optionally specified `shouldAutoReconnect` will
     /// be used to determine if the factory should attempt to reconnect upon
     /// loss of connection.
-    int connect(const bslstl::StringRef& endpoint,
+    int connect(bsl::string_view         endpoint,
                 const ResultCallback&    resultCallback,
                 bslma::ManagedPtr<void>* negotiationUserData = 0,
                 void*                    resultState         = 0,
                 bool                     shouldAutoReconnect = false);
 
     /// Set the write queue low and high watermarks for the specified
-    /// `session` to the `d_config.lowNodeWatermark()` and
-    /// `d_config.highNodeWatermark()` values by calling underlying
+    /// `session` to the configured `nodeLowWatermark` and
+    /// `nodeHighWatermark` values by calling underlying
     /// transport.  Return `true` on success, and `false` otherwise.
     bool setNodeWriteQueueWatermarks(const Session& session);
 
@@ -640,7 +667,7 @@ class TCPSessionFactory {
     /// loopback connection, i.e., an endpoint to which this interface is a
     /// listener of; meaning that establishing a connection to `uri` would
     /// result in connecting to ourself.
-    bool isEndpointLoopback(const bslstl::StringRef& uri) const;
+    bool isEndpointLoopback(bsl::string_view uri) const;
 };
 
 // ===============================

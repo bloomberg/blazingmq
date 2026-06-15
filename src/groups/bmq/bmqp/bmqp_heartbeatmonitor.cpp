@@ -26,9 +26,9 @@
 namespace BloombergLP {
 namespace bmqp {
 
-// -----------------------
-// struct HeartbeatMonitor
-// -----------------------
+// ----------------------
+// class HeartbeatMonitor
+// ----------------------
 
 const bdlbb::Blob& HeartbeatMonitor::heartbeatReqBlob()
 {

@@ -32,6 +32,7 @@
 #include <bmqio_tcpendpoint.h>
 #include <bmqma_countingallocatorutil.h>
 #include <bmqp_crc32c.h>
+#include <bmqp_heartbeatmonitor.h>
 #include <bmqscm_version.h>
 #include <bmqst_statvalue.h>
 #include <bmqst_tableutil.h>
