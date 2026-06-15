@@ -30,13 +30,6 @@
 // 'mqbstat::QueueStatsUtil' is a utility namespace exposing methods to
 // initialize the stat contexts and associated objects.
 
-// BMQ
-#include <bmqt_uri.h>
-
-#include <bmqst_basictableinfoprovider.h>
-#include <bmqst_table.h>
-#include <bmqst_tablerecords.h>
-
 // BDE
 #include <bsl_list.h>
 #include <bsl_memory.h>
@@ -49,14 +42,19 @@
 #include <bslma_managedptr.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
-#include <bsls_cpp11.h>
+#include <bsls_keyword.h>
 #include <bsls_types.h>
 
 namespace BloombergLP {
 
 // FORWARD DECLARATION
+namespace bmqt {
+class Uri;
+}
 namespace bmqst {
+class BasicTableInfoProvider;
 class StatContext;
+class Table;
 }
 namespace mqbi {
 class Domain;
@@ -217,10 +215,10 @@ class QueueStatsDomain {
 
   private:
     // NOT IMPLEMENTED
-    QueueStatsDomain(const QueueStatsDomain&) BSLS_CPP11_DELETED;
+    QueueStatsDomain(const QueueStatsDomain&) BSLS_KEYWORD_DELETED;
 
     /// Copy constructor and assignment operator are not implemented.
-    QueueStatsDomain& operator=(const QueueStatsDomain&) BSLS_CPP11_DELETED;
+    QueueStatsDomain& operator=(const QueueStatsDomain&) BSLS_KEYWORD_DELETED;
 
     // ACCESSORS
     /// Look for the specified `appId` among the stored appId subcontexts and
@@ -347,10 +345,10 @@ class QueueStatsClient {
 
   private:
     // NOT IMPLEMENTED
-    QueueStatsClient(const QueueStatsClient&) BSLS_CPP11_DELETED;
+    QueueStatsClient(const QueueStatsClient&) BSLS_KEYWORD_DELETED;
 
     /// Copy constructor and assignment operator are not implemented.
-    QueueStatsClient& operator=(const QueueStatsClient&) BSLS_CPP11_DELETED;
+    QueueStatsClient& operator=(const QueueStatsClient&) BSLS_KEYWORD_DELETED;
 
   public:
     // CLASS METHODS

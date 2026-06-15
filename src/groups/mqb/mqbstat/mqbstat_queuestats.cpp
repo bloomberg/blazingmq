@@ -18,6 +18,7 @@
 #include <mqbscm_version.h>
 // BMQ
 #include <bmqt_queueflags.h>
+#include <bmqt_uri.h>
 
 // MQB
 #include <mqbcfg_brokerconfig.h>
@@ -26,9 +27,12 @@
 #include <mqbi_domain.h>
 #include <mqbi_queue.h>
 
+#include <bmqst_basictableinfoprovider.h>
 #include <bmqst_statcontext.h>
 #include <bmqst_statutil.h>
 #include <bmqst_statvalue.h>
+#include <bmqst_table.h>
+#include <bmqst_tablerecords.h>
 
 // BDE
 #include <ball_log.h>
