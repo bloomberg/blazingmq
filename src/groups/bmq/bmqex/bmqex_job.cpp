@@ -35,13 +35,13 @@ Job_TargetBase::~Job_TargetBase()
 // CREATORS
 Job::~Job()
 {
-    d_target.deleteObject<Job_TargetBase>();
+    // NOTHING
 }
 
 // MANIPULATORS
 void Job::operator()()
 {
-    d_target.object<Job_TargetBase>()->invoke();
+    d_target_mp->invoke();
 }
 
 }  // close package namespace
