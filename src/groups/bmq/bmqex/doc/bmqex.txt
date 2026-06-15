@@ -9,11 +9,9 @@ utilites and mechanisms to be reused through various applications.
 
 /Hierarchical Synopsis
 /---------------------
-The 'bmqex' package currently has 10 components having 4 levels of physical
+The 'bmqex' package currently has 8 components having 3 levels of physical
 dependency.  The list below shows the hierarchical ordering of the components.
 ..
-  4. bmqex_bindutil
-
   3. bmqex_executionutil
 
   2. bmqex_executionpolicy
@@ -29,9 +27,6 @@ dependency.  The list below shows the hierarchical ordering of the components.
 
 /Component Synopsis
 /------------------
-: 'bmqex_bindutil':
-:      Provides utility functions to bind functors to execution functions.
-:
 : 'bmqex_executionpolicy':
 :      Provides an execution policy to customize execution functions.
 :

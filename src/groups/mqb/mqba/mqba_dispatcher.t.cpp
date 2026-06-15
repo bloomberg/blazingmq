@@ -21,7 +21,6 @@
 #include <mqbmock_dispatcher.h>
 #include <mqbstat_dispatcherstats.h>
 
-#include <bmqex_bindutil.h>
 #include <bmqex_executionpolicy.h>
 #include <bmqex_executionutil.h>
 #include <bmqex_executor.h>
@@ -30,6 +29,7 @@
 // BDE
 #include <bdlf_bind.h>
 #include <bdlmt_eventscheduler.h>
+#include <bsl_functional.h>
 #include <bsl_iostream.h>
 #include <bsl_sstream.h>
 #include <bslmt_semaphore.h>
@@ -475,15 +475,26 @@ static void test3_executorsSupport()
         // submit a functor that, when invoked, will submit another functor
         // via the executor's 'dispatch' function and block the calling thread
         // until the nested functor completes
+        struct Local {
+            static void executeBlocking(bmqex::Executor*             executor,
+                                        const bsl::function<void()>& callback)
+            {
+                bmqex::ExecutionUtil::execute(
+                    bmqex::ExecutionPolicyUtil::alwaysBlocking().useExecutor(
+                        *executor),
+                    callback);
+            }
+        };
+
         bmqex::ExecutionUtil::execute(
             bmqex::ExecutionPolicyUtil::alwaysBlocking()
                 .useExecutor(executor1)
                 .useAllocator(bmqtst::TestHelperUtil::allocator()),
-            bmqex::BindUtil::bindExecute(
-                bmqex::ExecutionPolicyUtil::alwaysBlocking()
-                    .useExecutor(executor3)
-                    .useAllocator(bmqtst::TestHelperUtil::allocator()),
-                bdlf::BindUtil::bind(LoadSelfThreadId(), &threadId1)));
+            bdlf::BindUtil::bind(
+                &Local::executeBlocking,
+                &executor3,
+                bsl::function<void()>(
+                    bdlf::BindUtil::bind(LoadSelfThreadId(), &threadId1))));
 
         // the nested functor was invoked in-place (we know that because
         // otherwise the operation above would not complete)

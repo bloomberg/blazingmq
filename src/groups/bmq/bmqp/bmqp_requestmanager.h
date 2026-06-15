@@ -334,8 +334,6 @@
 #include <bmqt_resultcode.h>
 
 #include <bmqc_orderedhashmap.h>
-#include <bmqex_bindutil.h>
-#include <bmqex_executionpolicy.h>
 #include <bmqex_executor.h>
 #include <bmqex_systemexecutor.h>
 #include <bmqio_channel.h>
@@ -1504,16 +1502,23 @@ bmqt::GenericResult::Enum RequestManager<REQUEST, RESPONSE>::sendRequest(
     }
 
     // Schedule a timeout
+    struct Local {
+        static void dispatch(bmqex::Executor*             executor,
+                             const bsl::function<void()>& callback)
+        {
+            executor->dispatch(callback);
+        }
+    };
+
     d_scheduler_p->scheduleEvent(
         &(request->d_timeoutSchedulerHandle),
         bmqu::Time::nowMonotonicClock() + timeout,
-        bmqex::BindUtil::bindExecute(
-            bmqex::ExecutionPolicyUtil::possiblyBlocking()
-                .useExecutor(d_executor)
-                .useAllocator(d_allocator_p),
-            bdlf::BindUtil::bind(&RequestManager::onRequestTimeout,
+        bdlf::BindUtil::bind(&Local::dispatch,
+                             &d_executor,
+                             bsl::function<void()>(bdlf::BindUtil::bind(
+                                 &RequestManager::onRequestTimeout,
                                  this,
-                                 requestId)));
+                                 requestId))));
 
     // Insert the request in the map
     BSLA_MAYBE_UNUSED bsl::pair<RequestMapIter, bool> insertRC =
