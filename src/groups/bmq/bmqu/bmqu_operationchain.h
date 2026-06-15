@@ -159,13 +159,12 @@
 //  chain.join();
 //..
 
-#include <bmqu_objectplaceholder.h>
-
 // BDE
 #include <bdlf_noop.h>
 #include <bsl_list.h>
 #include <bslalg_constructorproxy.h>
 #include <bslma_allocator.h>
+#include <bslma_managedptr.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_assert.h>
 #include <bslmf_decay.h>
@@ -383,12 +382,6 @@ class OperationChain_Job {
                      JobHandle       jobHandle) BSLS_KEYWORD_OVERRIDE;
     };
 
-    /// A "small" dummy functor used to help calculate the size of the
-    /// on-stack buffer.
-    struct Dummy : public bdlf::NoOp {
-        void* d_padding[5];
-    };
-
   private:
     // PRIVATE DATA
 
@@ -397,11 +390,8 @@ class OperationChain_Job {
     // job inserted into a link.
     unsigned d_id;
 
-    // Uses an on-stack buffer to allocate memory for "small" objects, and
-    // falls back to requesting memory from the supplied allocator if
-    // the buffer is not large enough. Note that the size of the on-stack
-    // buffer is an arbitrary value.
-    bmqu::ObjectPlaceHolder<sizeof(Target<Dummy, Dummy>)> d_target;
+    /// Type-erased target holding the operation and completion callbacks.
+    bslma::ManagedPtr<TargetBase> d_target_mp;
 
   private:
     // NOT IMPLEMENTED
@@ -847,7 +837,7 @@ inline OperationChain_Job::OperationChain_Job(
                    typename bsl::decay<CO_CALLBACK>::type>
         Target;
 
-    d_target.createObject<Target>(
+    d_target_mp = bslma::ManagedPtrUtil::allocateManaged<Target>(
         allocator,
         BSLS_COMPILERFEATURES_FORWARD(OP_CALLBACK, opCallback),
         BSLS_COMPILERFEATURES_FORWARD(CO_CALLBACK, coCallback),
@@ -857,7 +847,7 @@ inline OperationChain_Job::OperationChain_Job(
 // CREATORS
 inline OperationChain_Job::~OperationChain_Job()
 {
-    d_target.deleteObject<TargetBase>();
+    // NOTHING
 }
 
 // MANIPULATORS
@@ -870,7 +860,7 @@ inline void OperationChain_Job::execute(OperationChain* chain,
     // PRECONDITIONS
     BSLS_ASSERT(chain);
 
-    d_target.object<TargetBase>()->execute(chain, jobHandle);
+    d_target_mp->execute(chain, jobHandle);
 }
 
 // ACCESSORS

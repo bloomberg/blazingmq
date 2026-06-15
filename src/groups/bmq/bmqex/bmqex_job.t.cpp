@@ -33,20 +33,19 @@ using namespace BloombergLP;
 // ----------------------------------------------------------------------------
 namespace {
 
-// =========================
-// class SmallNullaryFunctor
-// =========================
+// ======================
+// class NullaryFunctor
+// ======================
 
-/// A nullary function for test purposes that should fit in the
-/// `bmqex::Job`s on-stack buffer.
-class SmallNullaryFunctor {
+/// A nullary function for test purposes.
+class NullaryFunctor {
   private:
     // PRIVATE DATA
     bool* d_invoked;
 
   public:
     // CREATORS
-    explicit SmallNullaryFunctor(bool* invoked)
+    explicit NullaryFunctor(bool* invoked)
     : d_invoked(invoked)
     {
         // PRECONDITIONS
@@ -65,31 +64,6 @@ class SmallNullaryFunctor {
     }
 };
 
-// =========================
-// class LargeNullaryFunctor
-// =========================
-
-/// A nullary function for test purposes that should NOT fit in the
-/// `bmqex::Job`s on-stack buffer.
-class LargeNullaryFunctor : public SmallNullaryFunctor {
-  private:
-    // PRIVATE DATA
-
-    /// Anonymous union suppresses unused private-field warning for Clang.
-    union {
-        char d_padding[128];
-    };
-
-  public:
-    // CREATORS
-    explicit LargeNullaryFunctor(bool* invoked)
-    : SmallNullaryFunctor(invoked)
-    {
-        // PRECONDITIONS
-        BSLS_ASSERT(invoked);
-    }
-};
-
 }  // close unnamed namespace
 
 // ============================================================================
@@ -104,9 +78,7 @@ static void test1_breathing()
 //   Ensure proper behavior of 'bmqex::Job'.
 //
 // Plan:
-//   Create a job, invoke it, check that the target was invoked. Test the
-//   job with a "small" target that does not require memory allocation, and
-//   with a "large" one that does.
+//   Create a job, invoke it, check that the target was invoked.
 //
 // Testing:
 //   basic functionality
@@ -114,43 +86,21 @@ static void test1_breathing()
 {
     bslma::TestAllocator alloc;
 
-    // small target
-    {
-        // create target
-        bool                invoked = false;
-        SmallNullaryFunctor target(&invoked);
+    // create target
+    bool           invoked = false;
+    NullaryFunctor target(&invoked);
 
-        // create job
-        bmqex::Job job(target, &alloc);
+    // create job
+    bmqex::Job job(target, &alloc);
 
-        // no memory allocated
-        BMQTST_ASSERT_EQ(alloc.numBytesInUse(), 0);
+    // memory allocated
+    BMQTST_ASSERT_NE(alloc.numBytesInUse(), 0);
 
-        // invoke job
-        job();
+    // invoke job
+    job();
 
-        // target invoked
-        BMQTST_ASSERT_EQ(invoked, true);
-    }
-
-    // large target
-    {
-        // create target
-        bool                invoked = false;
-        LargeNullaryFunctor target(&invoked);
-
-        // create job
-        bmqex::Job job(target, &alloc);
-
-        // memory allocated
-        BMQTST_ASSERT_NE(alloc.numBytesInUse(), 0);
-
-        // invoke job
-        job();
-
-        // target invoked
-        BMQTST_ASSERT_EQ(invoked, true);
-    }
+    // target invoked
+    BMQTST_ASSERT_EQ(invoked, true);
 }
 
 // ============================================================================

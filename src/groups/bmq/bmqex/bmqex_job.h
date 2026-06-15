@@ -34,14 +34,12 @@
 // 'bsl::function' that invokes the target functor 'f' as if by 'f()',
 // 'bmqex::Job' does it as as if by 'bsl::move(f)()'.
 
-#include <bmqu_objectplaceholder.h>
-
 // BDE
-#include <bdlf_noop.h>
 #include <bsl_type_traits.h>
 #include <bslalg_constructorproxy.h>
 #include <bslma_allocator.h>
 #include <bslma_default.h>
+#include <bslma_managedptr.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_decay.h>
 #include <bslmf_movableref.h>
@@ -119,25 +117,13 @@ class Job_Target : public Job_TargetBase {
 // class Job
 // =========
 
-/// A polymorphic function object wrapper with small buffer optimization.
+/// A polymorphic function object wrapper.
 class Job {
-  private:
-    // PRIVATE TYPES
-
-    /// A "small" dummy object used to help calculate the size of the
-    /// on-stack buffer.
-    struct Dummy : public bdlf::NoOp {
-        void* d_padding[5];
-    };
-
   private:
     // PRIVATE DATA
 
-    // Uses an on-stack buffer to allocate memory for "small" objects, and
-    // falls back to requesting memory from the supplied allocator if
-    // the buffer is not large enough. Note that the size of the on-stack
-    // buffer is an arbitrary value.
-    bmqu::ObjectPlaceHolder<sizeof(Job_Target<Dummy>)> d_target;
+    /// Type-erased target function object.
+    bslma::ManagedPtr<Job_TargetBase> d_target_mp;
 
   private:
     // NOT IMPLEMENTED
@@ -190,10 +176,11 @@ inline Job::Job(BSLS_COMPILERFEATURES_FORWARD_REF(FUNCTION) function,
 {
     typedef Job_Target<typename bsl::decay<FUNCTION>::type> Target;
 
-    d_target.createObject<Target>(bslma::Default::allocator(basicAllocator),
-                                  BSLS_COMPILERFEATURES_FORWARD(FUNCTION,
-                                                                function),
-                                  bslma::Default::allocator(basicAllocator));
+    bslma::Allocator* alloc = bslma::Default::allocator(basicAllocator);
+    d_target_mp             = bslma::ManagedPtrUtil::allocateManaged<Target>(
+        alloc,
+        BSLS_COMPILERFEATURES_FORWARD(FUNCTION, function),
+        alloc);
 }
 
 // ----------------
