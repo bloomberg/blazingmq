@@ -13,7 +13,8 @@
                 "BMQ_ASSERT_LEVEL": "SAFE",
                 "CMAKE_CXX_STANDARD": "23",
                 "BDE_BUILD_TARGET_CPP23": "ON",
-                "CMAKE_INSTALL_LIBDIR": "lib64"
+                "CMAKE_INSTALL_LIBDIR": "lib64",
+                "SIM_CPP11": ""
             }
         }
     ]
