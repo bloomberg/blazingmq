@@ -391,10 +391,10 @@ TCPSessionFactory::channelStatContextCreator(
 
     ntsa::Ipv4Address   ipv4Address(static_cast<bsl::uint32_t>(peerAddress));
     ntsa::IpAddress     ipAddress(ipv4Address);
-    bmqst::StatContext* parent = d_statController_p->channelsStatContext(
+    bmqst::StatContext* parent =
         bmqio::ChannelUtil::isLocalHost(ipAddress)
-            ? mqbstat::StatController::ChannelSelector::e_LOCAL
-            : mqbstat::StatController::ChannelSelector::e_REMOTE);
+            ? d_statController_p->localChannelsStatContext()
+            : d_statController_p->remoteChannelsStatContext();
     BSLS_ASSERT_SAFE(parent);
 
     bsl::string endpoint =

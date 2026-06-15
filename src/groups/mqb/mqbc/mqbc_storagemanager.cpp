@@ -22,6 +22,7 @@
 // MQB
 #include <mqbc_clusterutil.h>
 #include <mqbc_recoverymanager.h>
+#include <mqbcmd_messages.h>
 #include <mqbevt_dispatcherevent.h>
 #include <mqbevt_storageevent.h>
 #include <mqbi_storage.h>

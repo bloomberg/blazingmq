@@ -27,24 +27,15 @@
 // config) dumping the stats to a dedicated log file.
 
 // MQB
-#include <mqbcmd_messages.h>
-#include <mqbstat_flatjsonprinter.h>
-#include <mqbstat_jsonprinter.h>
-#include <mqbstat_statmonitor.h>
-#include <mqbstat_statsfilelogger.h>
-#include <mqbstat_tableprinter.h>
-
 #include <bmqma_countingallocatorstore.h>
-#include <bmqst_statcontext.h>
 
 // BDE
 #include <ball_log.h>
 #include <bdlbb_blob.h>
 #include <bdlmt_throttle.h>
-#include <bdlmt_timereventscheduler.h>
 #include <bsl_functional.h>
+#include <bsl_iosfwd.h>
 #include <bsl_memory.h>
-#include <bsl_ostream.h>
 #include <bsl_string.h>
 #include <bsl_unordered_map.h>
 #include <bsl_vector.h>
@@ -52,7 +43,6 @@
 #include <bslma_managedptr.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
-#include <bsls_assert.h>
 #include <bsls_keyword.h>
 #include <bsls_types.h>
 
@@ -61,14 +51,14 @@ namespace BloombergLP {
 // FORWARD DECLARATION
 namespace bdlmt {
 class EventScheduler;
+class TimerEventScheduler;
 }
 namespace bslmt {
 class Semaphore;
 }
 namespace mqbcmd {
+class SetTunable;
 class StatCommand;
-}
-namespace mqbcmd {
 class StatResult;
 }
 namespace mqbplug {
@@ -89,6 +79,13 @@ class BasicTableInfoProvider;
 
 namespace mqbstat {
 
+// FORWARD DECLARATION
+class FlatJsonPrinter;
+class JsonPrinter;
+class StatMonitor;
+class StatsFileLogger;
+class TablePrinter;
+
 // ====================
 // class StatController
 // ====================
@@ -96,13 +93,6 @@ namespace mqbstat {
 class StatController {
   public:
     // PUBLIC TYPES
-
-    /// Enum representing the available types of stat context selections for
-    /// the `channels` stats.
-    struct ChannelSelector {
-        // TYPES
-        enum Enum { e_ALL, e_LOCAL, e_REMOTE };
-    };
 
     /// Signature of a method for processing the command in the specified
     /// `cmd` coming from the specified `source`, and writing the result of
@@ -273,10 +263,9 @@ class StatController {
     /// Note that the JSON format is typically used within integration tests
     /// so we make an out of order stats snapshot when compact or pretty JSON
     /// encoding is passed.
-    void captureStatsAndSemaphorePost(
-        mqbcmd::StatResult*                  result,
-        bslmt::Semaphore*                    semaphore,
-        const mqbcmd::EncodingFormat::Value& encoding);
+    void captureStatsAndSemaphorePost(mqbcmd::StatResult* result_p,
+                                      bslmt::Semaphore*   semaphore_p,
+                                      int                 encoding);
 
     /// Process specified `tunable` subcommand and load the result into the
     /// specified `result` and post on the optionally specified `semaphore`
@@ -356,9 +345,9 @@ class StatController {
     /// object.  Return zero on success or a nonzero value otherwise.
     /// The specified `encoding` parameter controls whether the result should
     /// be in a text format or in a JSON.
-    int processCommand(mqbcmd::StatResult*                  result,
-                       const mqbcmd::StatCommand&           command,
-                       const mqbcmd::EncodingFormat::Value& encoding);
+    int processCommand(mqbcmd::StatResult*        result,
+                       const mqbcmd::StatCommand& command,
+                       int                        encoding);
 
     /// Retrieve the dispatcher top-level stat context.
     bmqst::StatContext* dispatcherStatContext();
@@ -378,9 +367,11 @@ class StatController {
     /// Retrieve the clusters top-level stat context.
     bmqst::StatContext* clustersStatContext();
 
-    /// Retrieve the channels stat context corresponding to the specified
-    /// `selector`.
-    bmqst::StatContext* channelsStatContext(ChannelSelector::Enum selector);
+    /// Retrieve the local channels stat context.
+    bmqst::StatContext* localChannelsStatContext();
+
+    /// Retrieve the remote channels stat context.
+    bmqst::StatContext* remoteChannelsStatContext();
 };
 
 // ============================================================================
@@ -421,19 +412,14 @@ inline bmqst::StatContext* StatController::clustersStatContext()
     return d_statContextsMap["clusters"].d_statContext_sp.get();
 }
 
-inline bmqst::StatContext*
-StatController::channelsStatContext(ChannelSelector::Enum selector)
+inline bmqst::StatContext* StatController::localChannelsStatContext()
 {
-    switch (selector) {
-    case ChannelSelector::e_ALL:
-        return d_statContextsMap["channels"].d_statContext_sp.get();
-    case ChannelSelector::e_LOCAL: return d_statContextChannelsLocal_mp.get();
-    case ChannelSelector::e_REMOTE:
-        return d_statContextChannelsRemote_mp.get();
-    default: BSLS_ASSERT_OPT(false && "unknown channel selector");
-    }
+    return d_statContextChannelsLocal_mp.get();
+}
 
-    return 0;  // compiler happiness
+inline bmqst::StatContext* StatController::remoteChannelsStatContext()
+{
+    return d_statContextChannelsRemote_mp.get();
 }
 
 }  // close package namespace

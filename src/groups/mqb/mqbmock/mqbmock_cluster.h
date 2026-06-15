@@ -42,23 +42,16 @@
 #include <mqbc_clusterdata.h>
 #include <mqbc_clusterstate.h>
 #include <mqbcfg_messages.h>
-#include <mqbconfm_messages.h>
 #include <mqbi_cluster.h>
 #include <mqbi_dispatcher.h>
 #include <mqbmock_dispatcher.h>
 #include <mqbmock_domain.h>
-#include <mqbnet_channel.h>
 #include <mqbnet_cluster.h>
 #include <mqbnet_transportmanager.h>
-
-#include <bmqio_status.h>
-#include <bmqio_testchannel.h>
-#include <bmqst_statcontext.h>
 
 // BDE
 #include <bdlbb_blob.h>
 #include <bdlbb_pooledblobbufferfactory.h>
-#include <bdlcc_objectpool.h>
 #include <bdlcc_sharedobjectpool.h>
 #include <bdlmt_eventscheduler.h>
 #include <bsl_functional.h>
@@ -81,11 +74,17 @@ namespace BloombergLP {
 namespace bdlmt {
 class FixedThreadPool;
 }
+namespace bmqio {
+class TestChannel;
+}
 namespace bmqp_ctrlmsg {
 class QueueHandleParameters;
 }
 namespace bmqp_ctrlmsg {
 class QueueStreamParameters;
+}
+namespace bmqst {
+class StatContext;
 }
 namespace bmqt {
 class Uri;
@@ -95,6 +94,9 @@ class ClusterCommand;
 }
 namespace mqbcmd {
 class ClusterResult;
+}
+namespace mqbconfm {
+class Domain;
 }
 namespace mqbi {
 class Domain;

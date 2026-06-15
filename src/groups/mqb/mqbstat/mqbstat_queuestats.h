@@ -30,6 +30,9 @@
 // 'mqbstat::QueueStatsUtil' is a utility namespace exposing methods to
 // initialize the stat contexts and associated objects.
 
+// BMQ
+#include <bmqst_statcontext.h>
+
 // BDE
 #include <bsl_list.h>
 #include <bsl_memory.h>

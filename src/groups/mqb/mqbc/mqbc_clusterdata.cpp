@@ -16,16 +16,21 @@
 #include <mqbc_clusterdata.h>
 
 // MQB
+#include <mqbi_domain.h>
 #include <mqbnet_cluster.h>
 #include <mqbnet_elector.h>
+#include <mqbnet_transportmanager.h>
 #include <mqbscm_version.h>
 
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_protocol.h>
 #include <bmqscm_version.h>
+#include <bmqst_statcontext.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
+#include <bdlma_localsequentialallocator.h>
 #include <bdls_processutil.h>
 #include <bsl_map.h>
 #include <bsl_memory.h>

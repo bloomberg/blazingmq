@@ -30,6 +30,7 @@
 #include <mqbnet_elector.h>
 
 // BMQ
+#include <bmqio_testchannel.h>
 #include <bmqp_crc32c.h>
 #include <bmqp_ctrlmsg_messages.h>
 

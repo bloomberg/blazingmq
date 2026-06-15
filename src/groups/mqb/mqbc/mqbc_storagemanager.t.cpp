@@ -16,6 +16,7 @@
 #include <mqbc_storagemanager.h>
 
 // BMQ
+#include <bmqio_testchannel.h>
 #include <bmqp_crc32c.h>
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_event.h>
