@@ -421,7 +421,7 @@ int SessionUtil::createApplication(SessionImpl* sessionImpl)
     sessionImpl->d_guidGenerator_sp.createInplace(sessionImpl->d_allocator_p,
                                                   ci.sessionId());
 
-    ci.guidInfo() = sessionImpl->d_guidGenerator_sp->guidInfo();
+    sessionImpl->d_guidGenerator_sp->loadGuidInfo(&ci.guidInfo());
 
     // EventHandlerCB
     bmqimp::EventQueue::EventHandlerCallback eventHandler;

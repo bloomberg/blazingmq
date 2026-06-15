@@ -18,6 +18,7 @@
 #include <bmqscm_version.h>
 
 #include <bmqio_resolveutil.h>
+#include <bmqp_ctrlmsg_messages.h>
 #include <bmqt_messageguid.h>
 #include <bmqu_memoutstream.h>
 
@@ -339,14 +340,13 @@ bsl::ostream& MessageGUIDGenerator::print(bsl::ostream&            stream,
     return stream;
 }
 
-bmqp_ctrlmsg::GuidInfo MessageGUIDGenerator::guidInfo() const
+void MessageGUIDGenerator::loadGuidInfo(bmqp_ctrlmsg::GuidInfo* guidInfo) const
 {
-    bmqp_ctrlmsg::GuidInfo ret;
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(guidInfo);
 
-    ret.clientId()             = d_clientIdHex;
-    ret.nanoSecondsFromEpoch() = d_nanoSecondsFromEpoch;
-
-    return ret;
+    guidInfo->clientId()             = d_clientIdHex;
+    guidInfo->nanoSecondsFromEpoch() = d_nanoSecondsFromEpoch;
 }
 
 }  // close package namespace

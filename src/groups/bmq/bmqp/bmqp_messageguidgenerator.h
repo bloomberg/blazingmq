@@ -77,7 +77,6 @@
 
 // BMQ
 
-#include <bmqp_ctrlmsg_messages.h>
 #include <bmqt_messageguid.h>
 
 // BDE
@@ -88,6 +87,12 @@
 #include <bsls_types.h>
 
 namespace BloombergLP {
+
+// FORWARD DECLARATION
+namespace bmqp_ctrlmsg {
+class GuidInfo;
+}
+
 namespace bmqp {
 
 // ==========================
@@ -157,8 +162,8 @@ class MessageGUIDGenerator {
     /// component level documentation for details about how it is computed).
     const char* clientIdHex() const;
 
-    /// Return the `guidInfo` populated with the attributes of this object.
-    bmqp_ctrlmsg::GuidInfo guidInfo() const;
+    /// Populate the specified `guidInfo` with the attributes of this object.
+    void loadGuidInfo(bmqp_ctrlmsg::GuidInfo* guidInfo) const;
 
     /// --------------------------
     /// For testing/debugging only
