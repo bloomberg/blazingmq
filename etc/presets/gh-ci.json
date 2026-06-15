@@ -12,7 +12,8 @@
                 "BDE_BUILD_TARGET_64": "ON",
                 "CMAKE_BUILD_TYPE": "Debug",
                 "CMAKE_PREFIX_PATH":
-                    "$env{GITHUB_WORKSPACE}/deps/srcs/bde-tools/BdeBuildSystem"
+                    "$env{GITHUB_WORKSPACE}/deps/srcs/bde-tools/BdeBuildSystem",
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "1"
             }
         },
         {
