@@ -77,9 +77,21 @@ namespace mqbblp {
 
 namespace {
 
-BALL_LOG_SET_NAMESPACE_CATEGORY("MQBBLP.STORAGEMANAGER");
-
 const int k_GC_MESSAGES_INTERVAL_SECONDS = 5;
+
+void sendNotReadyResponse(mqbc::ClusterData*                  clusterData,
+                          const bmqp_ctrlmsg::ControlMessage& request,
+                          mqbnet::ClusterNode*                destination,
+                          const bsl::string&                  message)
+{
+    bmqp_ctrlmsg::ControlMessage controlMsg;
+    controlMsg.rId()             = request.rId();
+    bmqp_ctrlmsg::Status& status = controlMsg.choice().makeStatus();
+    status.category()            = bmqp_ctrlmsg::StatusCategory::E_NOT_READY;
+    status.code()                = -1;
+    status.message()             = message;
+    clusterData->messageTransmitter().sendMessageSafe(controlMsg, destination);
+}
 
 bsl::ostream& printRecoveryBanner(bsl::ostream&    out,
                                   bsl::string_view lastLineSuffix)
@@ -103,86 +115,6 @@ bool isZero(const bmqp_ctrlmsg::LeaderMessageSequence& lsn)
 {
     return lsn.electorTerm() == mqbnet::Elector::k_INVALID_TERM &&
            lsn.sequenceNumber() == 0;
-}
-
-void processPrimaryStatusAdvisoryDispatched(
-    mqbs::FileStore*                           fs,
-    mqbi::StorageManager_PartitionInfo*        pinfo,
-    const bmqp_ctrlmsg::PrimaryStatusAdvisory& advisory,
-    const bsl::string&                         clusterDescription,
-    mqbnet::ClusterNode*                       source,
-    bool                                       isFSMWorkflow)
-{
-    // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(fs && fs->inDispatcherThread());
-    BSLS_ASSERT_SAFE(pinfo);
-    BSLS_ASSERT_SAFE(source);
-    BSLS_ASSERT_SAFE(bmqp_ctrlmsg::PrimaryStatus::E_UNDEFINED !=
-                     advisory.status());
-
-    if (source == pinfo->primary()) {
-        if (advisory.primaryLeaseId() != pinfo->primaryLeaseId()) {
-            BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
-                << clusterDescription << " Partition ["
-                << advisory.partitionId()
-                << "]: received primary advisory: " << advisory
-                << ", from perceived primary: " << source->nodeDescription()
-                << ", but with different leaseId. LeaseId "
-                << "perceived by self: " << pinfo->primaryLeaseId()
-                << BMQTSK_ALARMLOG_END;
-            return;  // RETURN
-        }
-
-        if (!isFSMWorkflow &&
-            bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE == pinfo->primaryStatus()) {
-            BSLS_ASSERT_SAFE(pinfo->primary() == fs->primaryNode());
-            BSLS_ASSERT_SAFE(pinfo->primaryLeaseId() == fs->primaryLeaseId());
-        }
-    }
-    else {
-        if (0 != pinfo->primary()) {
-            BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
-                << clusterDescription << " Partition ["
-                << advisory.partitionId()
-                << "]: received primary advisory: " << advisory
-                << ", from: " << source->nodeDescription()
-                << ", but self perceives: "
-                << pinfo->primary()->nodeDescription()
-                << " as current primary." << BMQTSK_ALARMLOG_END;
-            return;  // RETURN
-        }
-
-        // 'pinfo->primary()' is null.  This means we haven't heard from the
-        // leader about the partition/primary mapping.  We apply this to the
-        // partition anyways, so that we can continue to accept storage events
-        // once self has recovered from the 'source' for this partition but
-        // hasn't transitioned to AVAILABLE (because its awaiting to finish
-        // recovery for other partitions).  This node will eventually hear from
-        // the leader and will not process further storage events once it
-        // becomes AVAILABLE.
-
-        // TBD: This breaks our contracts that only leader informs a node of
-        // partition/primary mapping, so this needs to be reviewed carefully.
-        // See 'ClusterStateMgr::processPrimaryStatusAdvisory' as well.
-
-        BALL_LOG_WARN << clusterDescription << " Partition ["
-                      << advisory.partitionId()
-                      << "]: received primary advisory: " << advisory
-                      << ", from: " << source->nodeDescription()
-                      << ". Self has not received partition/primary advisory "
-                      << "from leader yet, but will go ahead and mark this "
-                      << "node as primary.";
-    }
-
-    pinfo->setPrimary(source);
-    pinfo->setPrimaryLeaseId(advisory.primaryLeaseId());
-    pinfo->setPrimaryStatus(advisory.status());
-
-    if (bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE == advisory.status()) {
-        fs->setActivePrimary(source, advisory.primaryLeaseId());
-    }
 }
 
 }  // close unnamed namespace
@@ -260,7 +192,6 @@ void StorageManager::onPartitionRecovery(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
-
     if (d_cluster_p->isStopping()) {
         BALL_LOG_WARN << d_clusterData_p->identity().description()
                       << ": Partition [" << partitionId
@@ -270,7 +201,7 @@ void StorageManager::onPartitionRecovery(
 
     mqbs::FileStore* fs = d_fileStores[partitionId].get();
     BSLS_ASSERT_SAFE(fs);
-    BSLS_ASSERT_SAFE(!fs->isOpen());
+    BSLS_ASSERT_SAFE(!fs->isOpen() || d_cluster_p->isHybridWorkflow());
     BSLS_ASSERT_SAFE(d_numPartitionsRecoveredFully <
                      static_cast<int>(d_fileStores.size()));
 
@@ -281,8 +212,8 @@ void StorageManager::onPartitionRecovery(
 
     const PartitionInfo& pinfo = d_partitionInfoVec[partitionId];
 
-    if (pinfo.primary() != 0 && recoveryPeer != 0 &&
-        pinfo.primary() != recoveryPeer &&
+    if (!d_cluster_p->isHybridWorkflow() && pinfo.primary() != 0 &&
+        recoveryPeer != 0 && pinfo.primary() != recoveryPeer &&
         pinfo.primary() != d_clusterData_p->membership().selfNode()) {
         BALL_LOG_INFO << d_clusterData_p->identity().description()
                       << " Partition [" << partitionId
@@ -318,7 +249,14 @@ void StorageManager::onPartitionRecovery(
                                        : "**NA**")
                       << ", and will now be opened.";
 
-        int rc = fs->open(0);
+        int rc = 0;
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << ": Partition [" << partitionId
+                      << "] onPartitionRecovery: fs->isOpen()=" << fs->isOpen()
+                      << " recoveryEvents.size()=" << recoveryEvents.size();
+        if (!fs->isOpen()) {
+            rc = fs->open(0);
+        }
         if (0 != rc) {
             BMQTSK_ALARMLOG_ALARM("FILE_IO")
                 << d_clusterData_p->identity().description()
@@ -349,54 +287,61 @@ void StorageManager::onPartitionRecovery(
                 }
             }
 
-            // Get the latest PSN for this partition.
-            if (fs->isOpen()) {
-                d_recoveredPrimaryLeaseIds[partitionId] = fs->primaryLeaseId();
-
-                BALL_LOG_INFO
-                    << d_clusterData_p->identity().description()
-                    << ": Partition [" << partitionId
-                    << "] after applying buffered storage events, "
-                    << "(recoveryPeerNode, PSN): ("
-                    << (recoveryPeer ? recoveryPeer->nodeDescription()
-                                     : "**none**")
-                    << ", "
-                    << mqbs::printPSN(fs->primaryLeaseId(),
-                                      fs->sequenceNumber())
-                    << ")";
+            if (d_cluster_p->isHybridWorkflow() && fs->isOpen()) {
+                BSLS_ASSERT_SAFE(pinfo.primary() != 0);
+                BSLS_ASSERT_SAFE(pinfo.primaryStatus() ==
+                                 bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE);
+                fs->setActivePrimary(pinfo.primary(), pinfo.primaryLeaseId());
             }
+
+            BALL_LOG_INFO << d_clusterData_p->identity().description()
+                          << ": Partition [" << partitionId
+                          << "] after applying buffered storage events, "
+                          << "fs->isOpen()=" << fs->isOpen()
+                          << " (recoveryPeerNode, PSN): ("
+                          << (recoveryPeer ? recoveryPeer->nodeDescription()
+                                           : "**none**")
+                          << ", "
+                          << mqbs::printPSN(fs->primaryLeaseId(),
+                                            fs->sequenceNumber())
+                          << ")";
         }
     }
 
-    // Print a summary of the recovered storages if the partition opened
-    // successfully.
-    bmqu::MemOutStream out;
+    onPartitionDoneRecovery(partitionId, recoveryStartTime);
+}
+
+void StorageManager::onPartitionDoneRecovery(int                partitionId,
+                                             bsls::Types::Int64 startTime)
+{
+    // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
+
+    mqbs::FileStore* fs = d_fileStores[partitionId].get();
+    BSLS_ASSERT_SAFE(fs);
+
     if (fs->isOpen()) {
+        bmqu::MemOutStream out;
         mqbs::StoragePrintUtil::printRecoveredStorages(
             out,
             d_storageLockVec[partitionId].get(),
             d_storages[partitionId],
             partitionId,
             d_clusterData_p->identity().description(),
-            recoveryStartTime);
+            startTime);
         BALL_LOG_INFO << out.str();
     }
 
-    // Bump up the number of partitions for which recovery is complete
-    // (irrespective of the recovery 'status' of the 'partitionId').  This must
-    // be done at the end, because if all partitions' recovery is complete,
-    // their status will be checked in this thread.  This means that we will be
-    // invoking 'isOpen()' on all file stores, which is const-thread safe, and
-    // we should be good.
+    if (fs->isOpen()) {
+        d_recoveredPrimaryLeaseIds[partitionId] = fs->primaryLeaseId();
+    }
 
     if (++d_numPartitionsRecoveredFully <
         static_cast<int>(d_fileStores.size())) {
-        // One or more partitions have yet to recover.
         return;  // RETURN
     }
 
-    out.reset();
-    const bool success =
+    bmqu::MemOutStream out;
+    const bool         success =
         mqbs::StoragePrintUtil::printStorageRecoveryCompletion(
             out,
             d_fileStores,
@@ -404,17 +349,19 @@ void StorageManager::onPartitionRecovery(
     BALL_LOG_INFO << out.str();
 
     if (success) {
-        // All partitions have opened successfully.  Schedule a recurring event
-        // in StorageMgr, which will in turn enqueue an event in each
-        // partition's dispatcher thread for GC'ing expired messages as well as
-        // cleaning history.
-
         d_clusterData_p->scheduler().scheduleRecurringEvent(
             &d_gcMessagesEventHandle,
             bsls::TimeInterval(k_GC_MESSAGES_INTERVAL_SECONDS),
             bdlf::BindUtil::bind(&StorageManager::forceFlushFileStores, this));
 
-        d_recoveryStatusCb(0, d_recoveredPrimaryLeaseIds);
+        if (d_cluster_p->isHybridWorkflow()) {
+            // In hybrid mode, Cluster::onRecoveryStatusDispatched expects an
+            // empty primaryLeaseIds vector (same as FSM mode).
+            d_recoveryStatusCb(0, bsl::vector<unsigned int>());
+        }
+        else {
+            d_recoveryStatusCb(0, d_recoveredPrimaryLeaseIds);
+        }
     }
     else {
         d_recoveredPrimaryLeaseIds.clear();
@@ -438,6 +385,13 @@ void StorageManager::onPartitionPrimarySync(int partitionId, int status)
                                               d_partitionPrimaryStatusCb,
                                               partitionId,
                                               status);
+
+    if (d_cluster_p->isHybridWorkflow()) {
+        // In hybrid mode, the primary's recovery state (set by startRecovery)
+        // must be cleared after partition primary sync completes.  This flows
+        // through onPartitionRecovery -> onPartitionDoneRecovery.
+        d_recoveryManager_mp->onPartitionRecoveryStatus(partitionId, status);
+    }
 }
 
 void StorageManager::shutdownCb(int partitionId, bslmt::Latch* latch)
@@ -593,6 +547,11 @@ void StorageManager::setPrimaryForPartitionDispatched(
                      static_cast<unsigned int>(partitionId));
     BSLS_ASSERT_SAFE(d_partitionInfoVec.size() >
                      static_cast<unsigned int>(partitionId));
+    BSLS_ASSERT_OPT(
+        !d_cluster_p->isHybridWorkflow() &&
+        "setPrimaryForPartition should not be called in hybrid "
+        "mode; use detectSelfPrimaryInPFSM/detectSelfReplicaInPFSM "
+        "instead");
 
     mqbs::FileStore* fs    = d_fileStores[partitionId].get();
     PartitionInfo&   pinfo = d_partitionInfoVec[partitionId];
@@ -752,8 +711,8 @@ void StorageManager::processStorageEventDispatched(
     BSLA_MAYBE_UNUSED const PartitionInfo& pinfo =
         d_partitionInfoVec[partitionId];
     BSLS_ASSERT_SAFE(pinfo.primary() == source);
-    BSLS_ASSERT_SAFE(pinfo.primaryStatus() ==
-                     bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE);
+    //    BSLS_ASSERT_SAFE(pinfo.primaryStatus() ==
+    //                     bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE);
 
     if (d_recoveryManager_mp->isRecoveryInProgress(partitionId)) {
         d_recoveryManager_mp->processStorageEvent(partitionId, blob, source);
@@ -789,11 +748,7 @@ void StorageManager::processPartitionSyncEvent(
     //    the newly chosen primary (self).
     // 2) A newly chosen primary ('source') sends missing storage events to
     //    replica (self).
-    if (d_clusterData_p->membership().selfNodeStatus() ==
-        bmqp_ctrlmsg::NodeStatus::E_STARTING) {
-        // If its (1), self node cannot be STARTING.  If its (2), there is no
-        // way self node can process this event because its not AVAILABLE yet,
-        // and is most likely recovering.
+    if (!d_cluster_p->isPartitionSyncReady()) {
         return;  // RETURN
     }
 
@@ -818,12 +773,13 @@ void StorageManager::processPartitionSyncEvent(
     pinfo.setPrimary(cspinfo.primaryNode());
     pinfo.setPrimaryLeaseId(cspinfo.primaryLeaseId());
     pinfo.setPrimaryStatus(cspinfo.primaryStatus());
-    if (!mqbc::StorageUtil::validatePartitionSyncEvent(rawEvent,
-                                                       pid,
-                                                       source,
-                                                       pinfo,
-                                                       *d_clusterData_p,
-                                                       false)  // isFSMWorkflow
+    if (!mqbc::StorageUtil::validatePartitionSyncEvent(
+            rawEvent,
+            pid,
+            source,
+            pinfo,
+            *d_clusterData_p,
+            d_cluster_p->isHybridWorkflow())  // isFSMWorkflow
     ) {
         return;  // RETURN
     }
@@ -852,9 +808,13 @@ void StorageManager::processPartitionSyncEventDispatched(
 
     // Cluster forwards a partition-sync event to the storage only if node is
     // AVAILABLE, which means that this partition (or any partition for that
-    // matter) cannot be in recovery.
+    // matter) cannot be in recovery.  In hybrid mode, the primary receives
+    // partition-sync events during primary sync while recovery is still in
+    // progress (cleared after primary sync completes).
 
-    BSLS_ASSERT_SAFE(!d_recoveryManager_mp->isRecoveryInProgress(partitionId));
+    BSLS_ASSERT_SAFE(
+        !d_recoveryManager_mp->isRecoveryInProgress(partitionId) ||
+        d_cluster_p->isHybridWorkflow());
 
     const PartitionInfo& pinfo = d_partitionInfoVec[partitionId];
 
@@ -943,6 +903,16 @@ void StorageManager::processStorageSyncRequestDispatched(
         d_fileStores[static_cast<unsigned int>(partitionId)].get();
     BSLS_ASSERT_SAFE(fs);
 
+    if (d_cluster_p->isHybridWorkflow() &&
+        d_partitionInfoVec[partitionId].primaryStatus() !=
+            bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE) {
+        sendNotReadyResponse(d_clusterData_p,
+                             message,
+                             source,
+                             "Partition not active yet.");
+        return;  // RETURN
+    }
+
     d_recoveryManager_mp->processStorageSyncRequest(message, source, fs);
 }
 
@@ -954,7 +924,9 @@ void StorageManager::processPartitionSyncStateRequestDispatched(
     // executed by *DISPATCHER* thread
 
     // PRECONDITION
-    BSLS_ASSERT_SAFE(!d_recoveryManager_mp->isRecoveryInProgress(partitionId));
+    BSLS_ASSERT_SAFE(
+        !d_recoveryManager_mp->isRecoveryInProgress(partitionId) ||
+        d_cluster_p->isHybridWorkflow());
 
     const PartitionInfo& pinfo = d_partitionInfoVec[partitionId];
 
@@ -975,15 +947,64 @@ void StorageManager::processPartitionSyncStateRequestDispatched(
                       << "Self node will still reply.";
     }
 
-    // TBD: when does a replica schedule partition sync with primary if it
-    // misses
-    //      the original syncstate request?  When it has received partition-
-    //      primary advisory from the leader, AND self node is AVAILABLE, AND
-    //      self (replica) receives a message from the new primary which it
-    //      will reject in StorageMgr.processStorageEventDispatched() if
-    //      PartitionInfo.d_isPrimaryActive flag is set to false.  How to
-    //      recover though?  Close fs and initiate recovery?  Keep fs open,
-    //      start buffering and then same as recovery?
+    if (d_cluster_p->isHybridWorkflow() &&
+        d_recoveryManager_mp->isRecoveryInProgress(partitionId)) {
+        mqbs::FileStore* fs = d_fileStores[partitionId].get();
+
+        if (d_recoveryManager_mp->recoveryPeer(partitionId) != 0) {
+            BALL_LOG_INFO
+                << d_clusterData_p->identity().description() << " Partition ["
+                << partitionId << "]: recovery active with "
+                << d_recoveryManager_mp->recoveryPeer(partitionId)
+                       ->nodeDescription()
+                << ". Responding E_NOT_READY to partition sync state query.";
+
+            sendNotReadyResponse(d_clusterData_p,
+                                 message,
+                                 source,
+                                 "Recovery in progress.");
+            return;  // RETURN
+        }
+
+        if (!d_recoveryManager_mp->hasRecoverableData(partitionId)) {
+            BALL_LOG_INFO << d_clusterData_p->identity().description()
+                          << " Partition [" << partitionId
+                          << "]: no recoverable data for partition sync."
+                          << " Will recover via StorageSync upon E_ACTIVE.";
+
+            sendNotReadyResponse(d_clusterData_p,
+                                 message,
+                                 source,
+                                 "No data for partition sync.");
+            return;  // RETURN
+        }
+
+        if (!fs->isOpen()) {
+            BALL_LOG_INFO
+                << d_clusterData_p->identity().description() << " Partition ["
+                << partitionId
+                << "]: opening FileStore for partition sync (hybrid).";
+
+            int rc = fs->open(0);
+            if (0 != rc) {
+                BMQTSK_ALARMLOG_ALARM("FILE_IO")
+                    << d_clusterData_p->identity().description()
+                    << ": Failed to open Partition [" << partitionId
+                    << "] for hybrid partition sync, rc: " << rc
+                    << BMQTSK_ALARMLOG_END;
+
+                sendNotReadyResponse(d_clusterData_p,
+                                     message,
+                                     source,
+                                     "Failed to open partition.");
+                return;  // RETURN
+            }
+        }
+
+        d_recoveryManager_mp->startPartitionSyncRecovery(partitionId,
+                                                         source,
+                                                         fs);
+    }
 
     d_recoveryManager_mp->processPartitionSyncStateRequest(
         message,
@@ -998,10 +1019,24 @@ void StorageManager::processPartitionSyncDataRequestDispatched(
 {
     // executed by *DISPATCHER* thread
 
-    d_recoveryManager_mp->processPartitionSyncDataRequest(
-        message,
-        source,
-        d_fileStores[partitionId].get());
+    mqbs::FileStore* fs = d_fileStores[partitionId].get();
+
+    if (d_cluster_p->isHybridWorkflow() && !fs->isOpen()) {
+        // In hybrid mode the FileStore may not be open yet (replica still in
+        // startup recovery).  Respond E_NOT_READY so the primary retries.
+
+        bmqp_ctrlmsg::ControlMessage controlMsg;
+        controlMsg.rId()             = message.rId();
+        bmqp_ctrlmsg::Status& status = controlMsg.choice().makeStatus();
+        status.category() = bmqp_ctrlmsg::StatusCategory::E_NOT_READY;
+        status.code()     = -1;
+        status.message()  = "Node is not available.";
+        d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
+                                                              source);
+        return;  // RETURN
+    }
+
+    d_recoveryManager_mp->processPartitionSyncDataRequest(message, source, fs);
 }
 
 void StorageManager::processPartitionSyncDataRequestStatusDispatched(
@@ -1414,8 +1449,12 @@ void StorageManager::initializeQueueKeyInfoMap(
     // PRECONDITION
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
 
-    BSLS_ASSERT_OPT(false && "Only the FSM version of this method from "
-                             "mqbc::StorageManager should be invoked.");
+    BSLS_ASSERT_OPT(d_cluster_p->isHybridWorkflow() &&
+                    "Only the FSM version of this method from "
+                    "mqbc::StorageManager should be invoked.");
+
+    // In hybrid mode, queue key info is populated via recoveredQueuesCb
+    // during file store recovery — no action needed here.
 }
 
 void StorageManager::setPrimaryForPartition(int                  partitionId,
@@ -1447,16 +1486,7 @@ void StorageManager::setPrimaryForPartition(int                  partitionId,
     BSLS_ASSERT_SAFE(fs);
 
     ClusterNodes peers;
-    typedef mqbc::ClusterMembership::ClusterNodeSessionMapIter
-        ClusterNodeSessionMapIter;
-    for (ClusterNodeSessionMapIter nodeIt =
-             d_clusterData_p->membership().clusterNodeSessionMap().begin();
-         nodeIt != d_clusterData_p->membership().clusterNodeSessionMap().end();
-         ++nodeIt) {
-        if (nodeIt->first != d_clusterData_p->membership().selfNode()) {
-            peers.push_back(nodeIt->first);
-        }
-    }
+    mqbc::ClusterUtil::loadPeerNodes(&peers, *d_clusterData_p);
 
     fs->execute(
         bdlf::BindUtil::bind(&StorageManager::setPrimaryForPartitionDispatched,
@@ -1498,7 +1528,12 @@ void StorageManager::setPrimaryStatusForPartition(
     // PRECONDITION
     BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
 
-    BSLS_ASSERT_OPT(false && "This method should only be invoked in FSM mode");
+    BSLS_ASSERT_OPT(
+        d_cluster_p->isHybridWorkflow() &&
+        "This method should only be invoked in FSM or Hybrid mode");
+
+    // In hybrid mode, primary status is set via processPrimaryStatusAdvisory
+    // when the primary broadcasts its status advisory.
 }
 
 void StorageManager::stopPFSMs()
@@ -1507,44 +1542,183 @@ void StorageManager::stopPFSMs()
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
+    BSLS_ASSERT_OPT(
+        d_cluster_p->isHybridWorkflow() &&
+        "This method should only be invoked in FSM or Hybrid mode");
 
-    BSLS_ASSERT_OPT(false && "This method should only be invoked in FSM mode");
+    // In hybrid mode, partition shutdown is handled by processShutdownEvent
+    // which is called separately from Cluster::continueShutdownDispatched.
 }
 
-void StorageManager::detectPrimaryLossInPFSM(BSLA_MAYBE_UNUSED int partitionId)
+void StorageManager::detectPrimaryLossInPFSM(int partitionId)
 {
     // executed by cluster *DISPATCHER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
+    BSLS_ASSERT_OPT(
+        d_cluster_p->isHybridWorkflow() &&
+        "This method should only be invoked in FSM or Hybrid mode");
 
-    BSLS_ASSERT_OPT(false && "This method should only be invoked in FSM mode");
+    clearPrimaryForPartition(partitionId,
+                             d_partitionInfoVec[partitionId].primary());
 }
 
-void StorageManager::detectSelfPrimaryInPFSM(
-    BSLA_MAYBE_UNUSED int partitionId,
-    BSLA_MAYBE_UNUSED mqbnet::ClusterNode* primaryNode,
-    BSLA_MAYBE_UNUSED unsigned int         primaryLeaseId)
+void StorageManager::detectSelfPrimaryInPFSM(int                  partitionId,
+                                             mqbnet::ClusterNode* primaryNode,
+                                             unsigned int primaryLeaseId)
 {
     // executed by cluster *DISPATCHER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
+    BSLS_ASSERT_OPT(
+        d_cluster_p->isHybridWorkflow() &&
+        "This method should only be invoked in FSM or Hybrid mode");
 
-    BSLS_ASSERT_OPT(false && "This method should only be invoked in FSM mode");
+    unsigned int pid = static_cast<unsigned int>(partitionId);
+    BSLS_ASSERT_SAFE(d_fileStores.size() > pid);
+
+    mqbs::FileStore* fs = d_fileStores[pid].get();
+    BSLS_ASSERT_SAFE(fs);
+
+    ClusterNodes peers;
+    mqbc::ClusterUtil::loadPeerNodes(&peers, *d_clusterData_p);
+
+    fs->execute(
+        bdlf::BindUtil::bind(&StorageManager::startPartitionPrimarySyncHybrid,
+                             this,
+                             partitionId,
+                             primaryNode,
+                             primaryLeaseId,
+                             peers));
 }
 
-void StorageManager::detectSelfReplicaInPFSM(
-    BSLA_MAYBE_UNUSED int partitionId,
-    BSLA_MAYBE_UNUSED mqbnet::ClusterNode* primaryNode,
-    BSLA_MAYBE_UNUSED unsigned int         primaryLeaseId)
+void StorageManager::startPartitionPrimarySyncHybrid(
+    int                  partitionId,
+    mqbnet::ClusterNode* primaryNode,
+    unsigned int         primaryLeaseId,
+    const ClusterNodes&  peers)
+{
+    // executed by *QUEUE DISPATCHER* thread
+
+    mqbs::FileStore* fs = d_fileStores[partitionId].get();
+    BSLS_ASSERT_SAFE(fs);
+    BSLS_ASSERT_SAFE(primaryNode);
+
+    // Set pinfo with the new primary assignment from CSL commit (mirrors
+    // mqbc::StorageManager::do_setPrimary).  Note that pinfo->primaryLeaseId()
+    // is the NEW leaseId assigned by the Cluster FSM, while
+    // fs->primaryLeaseId() (populated from the journal after open) reflects
+    // the PREVIOUS primary's leaseId.  startPartitionPrimarySync uses
+    // fs->primaryLeaseId() to determine self's current PSN and compare with
+    // peers.  After healing, fs->setActivePrimary(pinfo->primary(),
+    // pinfo->primaryLeaseId()) will update the FileStore to use the new
+    // leaseId for future writes.
+    // Discard any stale buffered events from a previous replica recovery
+    // attempt for this partition (e.g., if self was a replica trying to sync
+    // with an old primary that died before completing).  Applying those events
+    // during primary sync completion would fail and close the FileStore.
+    d_recoveryManager_mp->clearReplicaRecoveryState(partitionId);
+
+    PartitionInfo& pinfo = d_partitionInfoVec[partitionId];
+    pinfo.setPrimary(primaryNode);
+    pinfo.setPrimaryLeaseId(primaryLeaseId);
+    pinfo.setPrimaryStatus(bmqp_ctrlmsg::PrimaryStatus::E_PASSIVE);
+
+    if (!fs->isOpen()) {
+        int rc = fs->open(0);
+        if (0 != rc) {
+            BMQTSK_ALARMLOG_ALARM("FILE_IO")
+                << d_clusterData_p->identity().description()
+                << ": Failed to open Partition [" << partitionId
+                << "] in hybrid primary sync, rc: " << rc
+                << BMQTSK_ALARMLOG_END;
+            onPartitionPrimarySync(partitionId, -1);
+            return;  // RETURN
+        }
+    }
+
+    d_recoveryManager_mp->startPartitionPrimarySync(
+        fs,
+        peers,
+        bdlf::BindUtil::bind(&StorageManager::onPartitionPrimarySync,
+                             this,
+                             bdlf::PlaceHolders::_1,    // partitionId
+                             bdlf::PlaceHolders::_2));  // status
+}
+
+void StorageManager::updateReplicaPartitionInfoHybrid(
+    int                  partitionId,
+    mqbnet::ClusterNode* primaryNode,
+    unsigned int         primaryLeaseId)
+{
+    // executed by *QUEUE DISPATCHER* thread
+
+    PartitionInfo& pinfo = d_partitionInfoVec[partitionId];
+
+    BALL_LOG_INFO << d_clusterData_p->identity().description()
+                  << " Partition [" << partitionId << "]: old primary: "
+                  << (pinfo.primary() ? pinfo.primary()->nodeDescription()
+                                      : "** null **")
+                  << ", inRecovery: "
+                  << d_recoveryManager_mp->isRecoveryInProgress(partitionId)
+                  << ", recoveryPeer: "
+                  << (d_recoveryManager_mp->recoveryPeer(partitionId)
+                          ? d_recoveryManager_mp->recoveryPeer(partitionId)
+                                ->nodeDescription()
+                          : "** null **");
+
+    if (pinfo.primary() != 0 && pinfo.primary() != primaryNode) {
+        // Primary switch — clear old recovery state so we can participate
+        // in the new primary's PartitionSyncStateQuery.  Only clear when
+        // switching from a known primary, not on the initial assignment
+        // (pinfo.primary()==0): the initial assignment races with
+        // processPartitionSyncStateRequestDispatched which may have already
+        // set recoveryPeer via startPartitionSyncRecovery.
+        d_recoveryManager_mp->clearReplicaRecoveryState(partitionId);
+    }
+
+    pinfo.setPrimary(primaryNode);
+    pinfo.setPrimaryLeaseId(primaryLeaseId);
+    pinfo.setPrimaryStatus(bmqp_ctrlmsg::PrimaryStatus::E_PASSIVE);
+
+    d_cluster_p->processBufferedPrimaryStatusAdvisories(partitionId);
+}
+
+void StorageManager::detectSelfReplicaInPFSM(int                  partitionId,
+                                             mqbnet::ClusterNode* primaryNode,
+                                             unsigned int primaryLeaseId)
 {
     // executed by cluster *DISPATCHER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
+    BSLS_ASSERT_OPT(
+        d_cluster_p->isHybridWorkflow() &&
+        "This method should only be invoked in FSM or Hybrid mode");
 
-    BSLS_ASSERT_OPT(false && "This method should only be invoked in FSM mode");
+    unsigned int pid = static_cast<unsigned int>(partitionId);
+    BSLS_ASSERT_SAFE(d_fileStores.size() > pid);
+
+    mqbs::FileStore* fs = d_fileStores[pid].get();
+    BSLS_ASSERT_SAFE(fs);
+
+    BALL_LOG_INFO << d_clusterData_p->identity().description()
+                  << " Partition [" << partitionId
+                  << "]: detect self replica event. Primary: "
+                  << primaryNode->nodeDescription()
+                  << ", leaseId: " << primaryLeaseId;
+
+    // Only update partition info.  Recovery is driven by the primary:
+    // PartitionSyncStateQuery (simultaneous startup) or
+    // PrimaryStatusAdvisory(E_ACTIVE) (late join).
+    fs->execute(
+        bdlf::BindUtil::bind(&StorageManager::updateReplicaPartitionInfoHybrid,
+                             this,
+                             partitionId,
+                             primaryNode,
+                             primaryLeaseId));
 }
 
 void StorageManager::processPrimaryStateRequest(
@@ -1651,8 +1825,8 @@ void StorageManager::processStorageEvent(const mqbevt::StorageEvent& event)
             pinfo.primaryStatus(),
             d_clusterData_p->identity().description(),
             skipAlarm,
-            false)) {  // isFSMWorkflow
-        return;        // RETURN
+            d_cluster_p->isHybridWorkflow())) {  // isFSMWorkflow
+        return;                                  // RETURN
     }
 
     mqbs::FileStore* fs = d_fileStores[pid].get();
@@ -1717,8 +1891,7 @@ void StorageManager::processPartitionSyncStateRequest(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
     BSLS_ASSERT_SAFE(source);
-    BSLS_ASSERT_SAFE(bmqp_ctrlmsg::NodeStatus::E_AVAILABLE ==
-                     d_clusterData_p->membership().selfNodeStatus());
+    BSLS_ASSERT_SAFE(d_cluster_p->isPartitionSyncReady());
 
     const bmqp_ctrlmsg::PartitionSyncStateQuery& req =
         message.choice().clusterMessage().choice().partitionSyncStateQuery();
@@ -1760,8 +1933,7 @@ void StorageManager::processPartitionSyncDataRequest(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
     BSLS_ASSERT_SAFE(source);
-    BSLS_ASSERT_SAFE(bmqp_ctrlmsg::NodeStatus::E_AVAILABLE ==
-                     d_clusterData_p->membership().selfNodeStatus());
+    BSLS_ASSERT_SAFE(d_cluster_p->isPartitionSyncReady());
 
     const bmqp_ctrlmsg::PartitionSyncDataQuery& req =
         message.choice().clusterMessage().choice().partitionSyncDataQuery();
@@ -1946,6 +2118,116 @@ void StorageManager::processReceiptEvent(const bmqp::Event&   event,
                                      source));
 }
 
+void StorageManager::processPrimaryStatusAdvisoryDispatched(
+    mqbs::FileStore*                           fs,
+    mqbi::StorageManager_PartitionInfo*        pinfo,
+    const bmqp_ctrlmsg::PrimaryStatusAdvisory& advisory,
+    mqbnet::ClusterNode*                       source)
+{
+    // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(fs && fs->inDispatcherThread());
+    BSLS_ASSERT_SAFE(pinfo);
+    BSLS_ASSERT_SAFE(source);
+    BSLS_ASSERT_SAFE(bmqp_ctrlmsg::PrimaryStatus::E_UNDEFINED !=
+                     advisory.status());
+
+    const bsl::string& clusterDescription =
+        d_clusterData_p->identity().description();
+
+    if (source == pinfo->primary()) {
+        if (advisory.primaryLeaseId() != pinfo->primaryLeaseId()) {
+            BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
+                << clusterDescription << " Partition ["
+                << advisory.partitionId()
+                << "]: received primary advisory: " << advisory
+                << ", from perceived primary: " << source->nodeDescription()
+                << ", but with different leaseId. LeaseId "
+                << "perceived by self: " << pinfo->primaryLeaseId()
+                << BMQTSK_ALARMLOG_END;
+            return;  // RETURN
+        }
+
+        if (!d_cluster_p->isFSMWorkflow() && fs->isOpen() &&
+            fs->primaryNode() &&
+            bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE == pinfo->primaryStatus()) {
+            BSLS_ASSERT_SAFE(pinfo->primary() == fs->primaryNode());
+            BSLS_ASSERT_SAFE(pinfo->primaryLeaseId() == fs->primaryLeaseId());
+        }
+    }
+    else {
+        if (0 != pinfo->primary()) {
+            BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
+                << clusterDescription << " Partition ["
+                << advisory.partitionId()
+                << "]: received primary advisory: " << advisory
+                << ", from: " << source->nodeDescription()
+                << ", but self perceives: "
+                << pinfo->primary()->nodeDescription()
+                << " as current primary." << BMQTSK_ALARMLOG_END;
+            return;  // RETURN
+        }
+
+        // 'pinfo->primary()' is null.  This means we haven't heard from the
+        // leader about the partition/primary mapping.  We apply this to the
+        // partition anyways, so that we can continue to accept storage events
+        // once self has recovered from the 'source' for this partition but
+        // hasn't transitioned to AVAILABLE (because its awaiting to finish
+        // recovery for other partitions).  This node will eventually hear from
+        // the leader and will not process further storage events once it
+        // becomes AVAILABLE.
+
+        // TBD: This breaks our contracts that only leader informs a node of
+        // partition/primary mapping, so this needs to be reviewed carefully.
+        // See 'ClusterStateMgr::processPrimaryStatusAdvisory' as well.
+
+        BALL_LOG_WARN << clusterDescription << " Partition ["
+                      << advisory.partitionId()
+                      << "]: received primary advisory: " << advisory
+                      << ", from: " << source->nodeDescription()
+                      << ". Self has not received partition/primary advisory "
+                      << "from leader yet, but will go ahead and mark this "
+                      << "node as primary.";
+    }
+
+    pinfo->setPrimary(source);
+    pinfo->setPrimaryLeaseId(advisory.primaryLeaseId());
+    pinfo->setPrimaryStatus(advisory.status());
+
+    if (bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE == advisory.status()) {
+        if (d_recoveryManager_mp->isRecoveryInProgress(
+                advisory.partitionId()) &&
+            d_cluster_p->isHybridWorkflow()) {
+            if (d_recoveryManager_mp->recoveryPeer(advisory.partitionId()) ==
+                0) {
+                BALL_LOG_INFO << clusterDescription << " Partition ["
+                              << advisory.partitionId()
+                              << "]: initiating replica recovery from "
+                              << source->nodeDescription()
+                              << " upon PrimaryStatusAdvisory(E_ACTIVE).";
+                d_recoveryManager_mp->startReplicaRecovery(
+                    advisory.partitionId(),
+                    source);
+            }
+            else if (d_recoveryManager_mp->isPartitionSync(
+                         advisory.partitionId())) {
+                BALL_LOG_INFO << clusterDescription << " Partition ["
+                              << advisory.partitionId()
+                              << "]: completing partition sync recovery "
+                              << "upon PrimaryStatusAdvisory(E_ACTIVE) from "
+                              << source->nodeDescription() << ".";
+                d_recoveryManager_mp->onPartitionRecoveryStatus(
+                    advisory.partitionId(),
+                    0);
+            }
+        }
+        else if (fs->isOpen()) {
+            fs->setActivePrimary(source, advisory.primaryLeaseId());
+        }
+    }
+}
+
 void StorageManager::processPrimaryStatusAdvisory(
     const bmqp_ctrlmsg::PrimaryStatusAdvisory& advisory,
     mqbnet::ClusterNode*                       source)
@@ -1964,14 +2246,13 @@ void StorageManager::processPrimaryStatusAdvisory(
     mqbs::FileStore* fs = d_fileStores[advisory.partitionId()].get();
     BSLS_ASSERT_SAFE(fs);
 
-    fs->execute(
-        bdlf::BindUtil::bind(&processPrimaryStatusAdvisoryDispatched,
-                             fs,
-                             &d_partitionInfoVec[advisory.partitionId()],
-                             advisory,
-                             d_clusterData_p->identity().description(),
-                             source,
-                             false));  // isFSMWorkflow
+    fs->execute(bdlf::BindUtil::bind(
+        &StorageManager::processPrimaryStatusAdvisoryDispatched,
+        this,
+        fs,
+        &d_partitionInfoVec[advisory.partitionId()],
+        advisory,
+        source));
 }
 
 void StorageManager::processReplicaStatusAdvisory(

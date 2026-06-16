@@ -316,6 +316,24 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager {
     ///         'partitionId'.
     void onPartitionPrimarySync(int partitionId, int status);
 
+    void onPartitionDoneRecovery(int                partitionId,
+                                 bsls::Types::Int64 startTime);
+
+    void startPartitionPrimarySyncHybrid(int                  partitionId,
+                                         mqbnet::ClusterNode* primaryNode,
+                                         unsigned int         primaryLeaseId,
+                                         const ClusterNodes&  peers);
+
+    void updateReplicaPartitionInfoHybrid(int                  partitionId,
+                                          mqbnet::ClusterNode* primaryNode,
+                                          unsigned int         primaryLeaseId);
+
+    void processPrimaryStatusAdvisoryDispatched(
+        mqbs::FileStore*                           fs,
+        mqbi::StorageManager_PartitionInfo*        pinfo,
+        const bmqp_ctrlmsg::PrimaryStatusAdvisory& advisory,
+        mqbnet::ClusterNode*                       source);
+
     /// Gracefully shut down the partition associated with the specified
     /// `partitionId` assigned to the dispatcher thread identified by the
     /// specified `processorId`, and arrive on the specified `latch` when

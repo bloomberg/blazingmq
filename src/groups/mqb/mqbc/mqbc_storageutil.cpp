@@ -1206,6 +1206,12 @@ bool StorageUtil::validateStorageEvent(
     BSLS_ASSERT_SAFE(event.isStorageEvent());
     BSLS_ASSERT_SAFE(source);
 
+    BALL_LOG_INFO << clusterDescription << ": Received storage "
+                  << "event from node " << source->nodeDescription() << " for "
+                  << "Partition [" << partitionId << "] with primary "
+                  << (primary ? primary->nodeDescription() : "none")
+                  << " status " << status;
+
     // Ensure that this node still perceives 'source' node as the primary of
     // 'partitionId'.
     if (0 == primary) {
@@ -1497,7 +1503,8 @@ void StorageUtil::onPartitionPrimarySync(
         return;  // RETURN
     }
 
-    if (pinfo->primary() != clusterData->membership().selfNode()) {
+    if (!clusterData->cluster().isHybridWorkflow() &&
+        pinfo->primary() != clusterData->membership().selfNode()) {
         // Looks like a new primary was assigned while self node was performing
         // partition-primary-sync (after being chosen as the primary).  This
         // could occur if this node failed to transition to active primary in

@@ -240,6 +240,11 @@ class RecoveryManager_RecoveryContext {
     /// for that.
     bool d_inRecovery;
 
+    /// True if `d_recoveryPeer_p` was set by `startPartitionSyncRecovery`
+    /// (primary sync path), false if set by `startReplicaRecovery`
+    /// (StorageSyncRequest path).
+    bool d_isPartitionSync;
+
     /// Peer node which is serving recovery request for this partition.  If
     /// this is zero, it means there is no active recovery in progress.
     mqbnet::ClusterNode* d_recoveryPeer_p;
@@ -315,6 +320,8 @@ class RecoveryManager_RecoveryContext {
 
     void setRecoveryPeer(mqbnet::ClusterNode* node);
 
+    void setIsPartitionSync(bool value);
+
     void setResponseType(bmqp_ctrlmsg::StorageSyncResponseType::Value value);
 
     void setExpectedChunkFileType(bmqp::RecoveryFileChunkType::Enum value);
@@ -362,6 +369,13 @@ class RecoveryManager_RecoveryContext {
     bsls::Types::Uint64 qlistFileOffset() const;
 
     bool inRecovery() const;
+
+    /// Return true if the current recovery was initiated by the primary
+    /// via `startPartitionSyncRecovery` (partition sync path), or false if
+    /// it was initiated via `startReplicaRecovery` (StorageSyncRequest
+    /// path).  Meaningful only when `inRecovery()` is true and
+    /// `recoveryPeer()` is non-null.
+    bool isPartitionSync() const;
 
     mqbnet::ClusterNode* recoveryPeer() const;
 
@@ -739,8 +753,6 @@ class RecoveryManager : public mqbnet::ClusterObserver {
 
     typedef RecoveryContext::PartitionRecoveryCb PartitionRecoveryCb;
 
-    typedef PrimarySyncContext::PartitionPrimarySyncCb PartitionPrimarySyncCb;
-
     typedef mqbc::ClusterData::RequestManagerType RequestManagerType;
 
     typedef mqbc::ClusterData::MultiRequestManagerType MultiRequestManagerType;
@@ -867,10 +879,6 @@ class RecoveryManager : public mqbnet::ClusterObserver {
 
     /// Executed by the dispatcher thread associated with the specified
     /// `partitionId`.
-    void onPartitionRecoveryStatus(int partitionId, int status);
-
-    /// Executed by the dispatcher thread associated with the specified
-    /// `partitionId`.
     void onPartitionPrimarySyncStatus(int partitionId, int status);
 
     void stopDispatched(int partitionId, bslmt::Latch* latch);
@@ -938,6 +946,9 @@ class RecoveryManager : public mqbnet::ClusterObserver {
                       const mqbnet::ClusterNode*          source);
 
   public:
+    // PUBLIC TYPES
+    typedef PrimarySyncContext::PartitionPrimarySyncCb PartitionPrimarySyncCb;
+
     // CREATORS
 
     /// Create a `RecoveryManager` object with the specified
@@ -963,6 +974,26 @@ class RecoveryManager : public mqbnet::ClusterObserver {
     void startRecovery(int                               partitionId,
                        const mqbi::DispatcherClientData& dispatcherData,
                        const PartitionRecoveryCb&        partitionRecoveryCb);
+
+    /// Executed by the dispatcher thread associated with the specified
+    /// `partitionId`.  In hybrid mode, initiate active recovery from the
+    /// specified `primaryNode` by sending a StorageSyncRequest.  The
+    /// recovery context must already be initialized via `startRecovery`.
+    void startReplicaRecovery(int                  partitionId,
+                              mqbnet::ClusterNode* primaryNode);
+
+    /// Executed by the dispatcher thread associated with the specified
+    /// `partitionId`.
+    void onPartitionRecoveryStatus(int partitionId, int status);
+
+    /// Executed by the dispatcher thread associated with the specified
+    /// `partitionId`.  In hybrid mode, mark partition sync recovery as
+    /// active by setting the recovery peer to the specified `source`.
+    /// The specified `fs` must be open.  The recovery context must be
+    /// in recovery with no recovery peer set.
+    void startPartitionSyncRecovery(int                  partitionId,
+                                    mqbnet::ClusterNode* source,
+                                    mqbs::FileStore*     fs);
 
     /// Executed in the dispatcher thread associated with the specified
     /// `partitionId`.
@@ -1023,6 +1054,12 @@ class RecoveryManager : public mqbnet::ClusterObserver {
     bool isRecoveryInProgress(int partitionId) const;
 
     mqbnet::ClusterNode* recoveryPeer(int partitionId) const;
+
+    bool isPartitionSync(int partitionId) const;
+
+    bool hasRecoverableData(int partitionId) const;
+
+    void clearReplicaRecoveryState(int partitionId);
 
     bool isPrimarySyncInProgress(int partitionId) const;
 
@@ -1202,6 +1239,7 @@ inline RecoveryManager_RecoveryContext::RecoveryManager_RecoveryContext(
 , d_qlistFileOffset(0)
 , d_bufferedEvents(basicAllocator)
 , d_inRecovery(false)
+, d_isPartitionSync(false)
 , d_recoveryPeer_p(0)
 , d_responseType(bmqp_ctrlmsg::StorageSyncResponseType::E_UNDEFINED)
 , d_expectedChunkFileType(bmqp::RecoveryFileChunkType::e_UNDEFINED)
@@ -1230,6 +1268,7 @@ inline RecoveryManager_RecoveryContext::RecoveryManager_RecoveryContext(
 , d_qlistFileOffset(other.d_qlistFileOffset)
 , d_bufferedEvents(other.d_bufferedEvents, basicAllocator)
 , d_inRecovery(other.d_inRecovery)
+, d_isPartitionSync(other.d_isPartitionSync)
 , d_recoveryPeer_p(other.d_recoveryPeer_p)
 , d_responseType(other.d_responseType)
 , d_expectedChunkFileType(other.d_expectedChunkFileType)
@@ -1275,6 +1314,11 @@ inline void
 RecoveryManager_RecoveryContext::setRecoveryPeer(mqbnet::ClusterNode* node)
 {
     d_recoveryPeer_p = node;
+}
+
+inline void RecoveryManager_RecoveryContext::setIsPartitionSync(bool value)
+{
+    d_isPartitionSync = value;
 }
 
 inline void RecoveryManager_RecoveryContext::setResponseType(
@@ -1452,6 +1496,11 @@ RecoveryManager_RecoveryContext::qlistFileOffset() const
 inline bool RecoveryManager_RecoveryContext::inRecovery() const
 {
     return d_inRecovery;
+}
+
+inline bool RecoveryManager_RecoveryContext::isPartitionSync() const
+{
+    return d_isPartitionSync;
 }
 
 inline mqbnet::ClusterNode*
@@ -1832,6 +1881,24 @@ inline mqbnet::ClusterNode*
 RecoveryManager::recoveryPeer(int partitionId) const
 {
     return d_recoveryContexts[partitionId].recoveryPeer();
+}
+
+inline bool RecoveryManager::isPartitionSync(int partitionId) const
+{
+    return d_recoveryContexts[partitionId].isPartitionSync();
+}
+
+inline bool RecoveryManager::hasRecoverableData(int partitionId) const
+{
+    return d_recoveryContexts[partitionId].oldSyncPoint().primaryLeaseId() !=
+           0;
+}
+
+inline void RecoveryManager::clearReplicaRecoveryState(int partitionId)
+{
+    d_recoveryContexts[partitionId].purgeStorageEvents();
+    d_recoveryContexts[partitionId].setRecoveryPeer(0);
+    d_recoveryContexts[partitionId].setIsPartitionSync(false);
 }
 
 inline bool RecoveryManager::isPrimarySyncInProgress(int partitionId) const

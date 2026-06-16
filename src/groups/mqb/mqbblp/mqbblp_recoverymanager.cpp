@@ -197,6 +197,7 @@ void RecoveryManager_RecoveryContext::clear()
     d_dataFileOffset     = 0;
     d_qlistFileOffset    = 0;
     d_inRecovery         = false;
+    d_isPartitionSync    = false;
     d_recoveryPeer_p     = 0;
     d_responseType       = bmqp_ctrlmsg::StorageSyncResponseType::E_UNDEFINED;
     d_expectedChunkFileType     = bmqp::RecoveryFileChunkType::e_UNDEFINED;
@@ -384,6 +385,7 @@ void RecoveryManager::recoveryStartupWaitDispatched(int partitionId)
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster().isHybridWorkflow());
     BSLS_ASSERT_SAFE(0 <= partitionId);
     BSLS_ASSERT_SAFE(d_partitionsInfo.size() >
                      static_cast<size_t>(partitionId));
@@ -944,6 +946,26 @@ void RecoveryManager::onStorageSyncResponseDispatched(
             return;  // RETURN
         }
 
+        if (d_clusterData_p->cluster().isHybridWorkflow() &&
+            status.category() == bmqp_ctrlmsg::StatusCategory::E_NOT_READY) {
+            // In hybrid mode, E_NOT_READY means the primary is not yet
+            // available.  Clear the recovery peer and wait for the primary's
+            // PartitionSyncStateQuery to sync this partition instead.
+
+            BALL_LOG_INFO
+                << d_clusterData_p->identity().description()
+                << ": For Partition [" << partitionId
+                << "], received E_NOT_READY from "
+                << responder->nodeDescription()
+                << ". Clearing recovery peer; will wait for partition sync.";
+
+            recoveryCtx.setRecoveryPeer(0);
+            bmqp_ctrlmsg::SyncPoint emptySyncPoint;
+            recoveryCtx.setOldSyncPoint(emptySyncPoint);
+            recoveryCtx.setOldSyncPointOffset(0);
+            return;  // RETURN
+        }
+
         // Request failed due to some other reason.  Should be retried.
 
         const int maxAttempts = d_clusterConfig.partitionConfig()
@@ -1058,6 +1080,11 @@ void RecoveryManager::onStorageSyncResponseDispatched(
         response.storageSyncResponseType();
 
     recoveryCtx.setResponseType(rtype);
+
+    BALL_LOG_INFO << d_clusterData_p->identity().description()
+                  << ": onStorageSyncResponseDispatched Partition ["
+                  << partitionId << "] responseType=" << rtype << " from "
+                  << responder->nodeDescription();
 
     if (bmqp_ctrlmsg::StorageSyncResponseType::E_IN_SYNC == rtype) {
         onPartitionRecoveryStatus(partitionId, 0 /* status */);
@@ -1375,7 +1402,11 @@ void RecoveryManager::onPartitionRecoveryStatus(int partitionId, int status)
                          d_recoveryContexts.size());
 
     RecoveryContext& recoveryCtx = d_recoveryContexts[partitionId];
-    BSLS_ASSERT_SAFE(recoveryCtx.inRecovery());
+    if (!recoveryCtx.inRecovery()) {
+        // Recovery already completed (e.g., StorageSyncRequest finished
+        // before this call arrived on the partition thread).
+        return;  // RETURN
+    }
 
     d_clusterData_p->scheduler().cancelEventAndWait(
         &recoveryCtx.recoveryStartupWaitHandle());
@@ -1438,6 +1469,14 @@ void RecoveryManager::onPartitionRecoveryStatus(int partitionId, int status)
     bsl::vector<bsl::shared_ptr<bdlbb::Blob> > bufferedStorageEvents(
         recoveryCtx.storageEvents());
     PartitionRecoveryCb partitionRecoveryCb = recoveryCtx.recoveryCb();
+
+    BALL_LOG_INFO << d_clusterData_p->identity().description()
+                  << ": onPartitionRecoveryStatus Partition [" << partitionId
+                  << "] status=" << status << " bufferedStorageEvents.size()="
+                  << bufferedStorageEvents.size() << " recoveryPeer="
+                  << (recoveryPeerNode ? recoveryPeerNode->nodeDescription()
+                                       : "** null **");
+
     recoveryCtx.clear();
 
     partitionRecoveryCb(partitionId,
@@ -1688,7 +1727,6 @@ int RecoveryManager::replayPartition(
 {
     BSLS_ASSERT_SAFE(requestContext || primarySyncContext);
     BSLS_ASSERT_SAFE(0 == requestContext || 0 == primarySyncContext);
-    BSLS_ASSERT_SAFE(0 < fromSyncPtOffset);
     mqbc::RecoveryUtil::validateArgs(fromSequenceNum,
                                      toSequenceNum,
                                      destination);
@@ -1734,40 +1772,53 @@ int RecoveryManager::replayPartition(
         return rc_JOURNAL_ITERATOR_FAILURE;  // RETURN
     }
 
-    // Do not make initial 'journalIt.nextRecord()' call because the loop
-    // below calls 'recordOffset()'
-
-    // Skip JOURNAL records till 'fromSyncPtOffset' is reached.
-
-    while (journalIt.recordOffset() < fromSyncPtOffset &&
-           1 == journalIt.nextRecord())
-        ;
-
-    if (journalIt.recordOffset() != fromSyncPtOffset) {
-        return rc_INCOMPLETE_JOURNAL;  // RETURN
-    }
-
-    // Ensure that record at the specified offset is indeed a SyncPt.
-
-    const mqbs::RecordHeader& recordHeader = journalIt.recordHeader();
-    if (mqbs::RecordType::e_JOURNAL_OP != recordHeader.type()) {
-        return rc_INVALID_SYNC_PT_OFFSET;  // RETURN
-    }
-
-    if (mqbs::JournalOpType::e_SYNCPOINT !=
-        journalIt.asJournalOpRecord().type()) {
-        return rc_INVALID_JOURNALOP_RECORD;  // RETURN
-    }
-
-    // Retrieve PSN from the RecordHeader in the SyncPt, not from
-    // the SyncPt itself.
-
     bmqp_ctrlmsg::PartitionSequenceNumber currentSeqNum;
-    rc = mqbc::RecoveryUtil::bootstrapCurrentSeqNum(&currentSeqNum,
-                                                    journalIt,
-                                                    fromSequenceNum);
-    if (rc != 0) {
-        return rc_INVALID_SEQUENCE_NUMBER;
+
+    if (0 == fromSyncPtOffset) {
+        // Replay from the very beginning of the journal (requester has no
+        // data).  Advance the iterator to the first record; there is no
+        // SyncPt anchor to validate.
+
+        if (1 != journalIt.nextRecord()) {
+            return rc_INCOMPLETE_JOURNAL;  // RETURN
+        }
+
+        rc = mqbc::RecoveryUtil::bootstrapCurrentSeqNum(&currentSeqNum,
+                                                        journalIt,
+                                                        fromSequenceNum);
+        if (rc != 0) {
+            return rc_INVALID_SEQUENCE_NUMBER;
+        }
+    }
+    else {
+        // Skip JOURNAL records till 'fromSyncPtOffset' is reached.
+
+        while (journalIt.recordOffset() < fromSyncPtOffset &&
+               1 == journalIt.nextRecord())
+            ;
+
+        if (journalIt.recordOffset() != fromSyncPtOffset) {
+            return rc_INCOMPLETE_JOURNAL;  // RETURN
+        }
+
+        // Ensure that record at the specified offset is indeed a SyncPt.
+
+        const mqbs::RecordHeader& recordHeader = journalIt.recordHeader();
+        if (mqbs::RecordType::e_JOURNAL_OP != recordHeader.type()) {
+            return rc_INVALID_SYNC_PT_OFFSET;  // RETURN
+        }
+
+        if (mqbs::JournalOpType::e_SYNCPOINT !=
+            journalIt.asJournalOpRecord().type()) {
+            return rc_INVALID_JOURNALOP_RECORD;  // RETURN
+        }
+
+        rc = mqbc::RecoveryUtil::bootstrapCurrentSeqNum(&currentSeqNum,
+                                                        journalIt,
+                                                        fromSequenceNum);
+        if (rc != 0) {
+            return rc_INVALID_SEQUENCE_NUMBER;
+        }
     }
 
     bmqp::StorageEventBuilder builder(mqbs::FileStoreProtocol::k_VERSION,
@@ -2694,6 +2745,22 @@ void RecoveryManager::onPartitionSyncStateQueryResponseDispatched(
         // Request failed to encode/be sent; process error handling (note that
         // 'onPartitionSyncDataQueryResponse' won't be invoked in this case).
 
+        if (d_clusterData_p->cluster().isHybridWorkflow() &&
+            bmqt::GenericResult::e_NOT_CONNECTED == status) {
+            // In hybrid mode, the peer may have disconnected.  Treat self as
+            // up-to-date and proceed to sync replicas from self's own data.
+
+            BALL_LOG_WARN << d_clusterData_p->identity().description()
+                          << ": For Partition [" << partitionId
+                          << "], failed to send partition sync data query to "
+                          << maxSeqNode->nodeDescription()
+                          << " (NOT_CONNECTED). Treating self as up-to-date.";
+
+            syncPeerPartitions(&primarySyncCtx);
+            onPartitionPrimarySyncStatus(partitionId, 0 /* status */);
+            return;  // RETURN
+        }
+
         BMQTSK_ALARMLOG_ALARM("RECOVERY")
             << d_clusterData_p->identity().description() << ": For Partition ["
             << partitionId << "], failed to send "
@@ -2773,12 +2840,36 @@ void RecoveryManager::onPartitionSyncDataQueryResponseDispatched(
             .partitionSyncDataQuery();
 
     if (context->response().choice().isStatusValue()) {
+        const bmqp_ctrlmsg::Status& failStatus =
+            context->response().choice().status();
+
+        if (d_clusterData_p->cluster().isHybridWorkflow() &&
+            (failStatus.category() ==
+                 bmqp_ctrlmsg::StatusCategory::E_NOT_READY ||
+             failStatus.category() ==
+                 bmqp_ctrlmsg::StatusCategory::E_NOT_CONNECTED)) {
+            // In hybrid mode, the peer may not have its FileStore open yet
+            // (E_NOT_READY) or may have disconnected (E_NOT_CONNECTED).
+            // Treat as if self is already up-to-date and proceed to sync
+            // replicas from self's own data.
+
+            BALL_LOG_WARN
+                << d_clusterData_p->identity().description() << " Partition ["
+                << partitionId << "]: received " << failStatus.category()
+                << " from " << responder->nodeDescription()
+                << " for partition sync data query. Treating self as "
+                << "up-to-date and proceeding to sync replicas.";
+
+            syncPeerPartitions(&primarySyncCtx);
+            onPartitionPrimarySyncStatus(partitionId, 0 /* status */);
+            return;  // RETURN
+        }
+
         BMQTSK_ALARMLOG_ALARM("RECOVERY")
             << d_clusterData_p->identity().description() << " Partition ["
             << partitionId
             << "]: " << "received partition sync data query failure response: "
-            << context->response().choice().status()
-            << " from node: " << responder->nodeDescription()
+            << failStatus << " from node: " << responder->nodeDescription()
             << " for request: " << req << ". No retry attempt will be made."
             << BMQTSK_ALARMLOG_END;
 
@@ -2980,6 +3071,55 @@ void RecoveryManager::stop()
                   << " RecoveryManager stopped.";
 }
 
+void RecoveryManager::startPartitionSyncRecovery(int partitionId,
+                                                 mqbnet::ClusterNode* source,
+                                                 mqbs::FileStore*     fs)
+{
+    // executed by *STORAGE (QUEUE) DISPATCHER* thread
+
+    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().isHybridWorkflow());
+    BSLS_ASSERT_SAFE(fs && fs->isOpen());
+    BSLS_ASSERT_SAFE(d_recoveryContexts[partitionId].inRecovery());
+    BSLS_ASSERT_SAFE(0 == d_recoveryContexts[partitionId].recoveryPeer());
+
+    d_recoveryContexts[partitionId].setRecoveryPeer(source);
+    d_recoveryContexts[partitionId].setIsPartitionSync(true);
+}
+
+void RecoveryManager::startReplicaRecovery(int                  partitionId,
+                                           mqbnet::ClusterNode* primaryNode)
+{
+    // executed by each of the *STORAGE (QUEUE) DISPATCHER* threads
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(0 <= partitionId);
+    BSLS_ASSERT_SAFE(static_cast<unsigned int>(partitionId) <
+                     d_recoveryContexts.size());
+    BSLS_ASSERT_SAFE(primaryNode);
+
+    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().isHybridWorkflow());
+
+    RecoveryContext& recoveryCtx = d_recoveryContexts[partitionId];
+
+    if (!recoveryCtx.inRecovery() || 0 != recoveryCtx.recoveryPeer()) {
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << ": For Partition [" << partitionId
+                      << "], hybrid mode: recovery already "
+                      << (recoveryCtx.inRecovery() ? "in progress"
+                                                   : "completed");
+        return;  // RETURN
+    }
+
+    BALL_LOG_INFO << d_clusterData_p->identity().description()
+                  << ": For Partition [" << partitionId
+                  << "], hybrid mode: initiating replica recovery from "
+                  << primaryNode->nodeDescription();
+
+    recoveryCtx.setRecoveryPeer(primaryNode);
+
+    sendStorageSyncRequesterHelper(&recoveryCtx, partitionId);
+}
+
 void RecoveryManager::startRecovery(
     int                               partitionId,
     const mqbi::DispatcherClientData& dispatcherData,
@@ -3006,7 +3146,8 @@ void RecoveryManager::startRecovery(
 
     recoveryCtx.setRecoveryStatus(true);
 
-    if (d_clusterData_p->cluster().isLocal()) {
+    if (d_clusterData_p->cluster().isLocal() &&
+        !d_clusterData_p->cluster().isHybridWorkflow()) {
         onPartitionRecoveryStatus(partitionId, 0 /* status */);
         return;  // RETURN
     }
@@ -3018,33 +3159,44 @@ void RecoveryManager::startRecovery(
     recoveryCtx.setDataFileOffset(0);
     recoveryCtx.setQlistFileOffset(0);
 
-    // Schedule an event which will check if a sync-point has been received
-    // for this partition.  If no, then self node will try to recovery w/ any
-    // AVAILABLE peer.
+    if (d_clusterData_p->cluster().isHybridWorkflow()) {
+        // In hybrid mode, skip the timer-based recovery wait.  The Cluster FSM
+        // will trigger partition healing via detectSelfPrimaryInPFSM/
+        // detectSelfReplicaInPFSM once roles are assigned.
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << ": For Partition [" << partitionId
+                      << "], hybrid mode: skipping startup recovery wait.";
+    }
+    else {
+        // Schedule an event which will check if a sync-point has been received
+        // for this partition.  If no, then self node will try to recovery w/
+        // any AVAILABLE peer.
 
-    // Add a randomness between 0-5 seconds for the sync point wait, so that
-    // in case all nodes in the cluster are started at the same time, they
-    // don't wait the same amount of time.  Adding randomness here will ensure
-    // at least one node proceeds with recovery and becomes available, thereby
-    // syncing other nodes.
-    const int startupWaitMs = d_clusterConfig.partitionConfig()
-                                  .syncConfig()
-                                  .startupWaitDurationMs() +
-                              bsl::rand() % 5000;
+        // Add a randomness between 0-5 seconds for the sync point wait, so
+        // that in case all nodes in the cluster are started at the same time,
+        // they don't wait the same amount of time.  Adding randomness here
+        // will ensure at least one node proceeds with recovery and becomes
+        // available, thereby syncing other nodes.
+        const int startupWaitMs = d_clusterConfig.partitionConfig()
+                                      .syncConfig()
+                                      .startupWaitDurationMs() +
+                                  bsl::rand() % 5000;
 
-    BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << ": For Partition [" << partitionId
-                  << "], will check after " << startupWaitMs << " millisec "
-                  << "if any sync point has been received by then.";
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << ": For Partition [" << partitionId
+                      << "], will check after " << startupWaitMs
+                      << " millisec "
+                      << "if any sync point has been received by then.";
 
-    bsls::TimeInterval after(bmqu::Time::nowMonotonicClock());
-    after.addMilliseconds(startupWaitMs);
-    d_clusterData_p->scheduler().scheduleEvent(
-        &recoveryCtx.recoveryStartupWaitHandle(),
-        after,
-        bdlf::BindUtil::bind(&RecoveryManager::recoveryStartupWaitCb,
-                             this,
-                             partitionId));
+        bsls::TimeInterval after(bmqu::Time::nowMonotonicClock());
+        after.addMilliseconds(startupWaitMs);
+        d_clusterData_p->scheduler().scheduleEvent(
+            &recoveryCtx.recoveryStartupWaitHandle(),
+            after,
+            bdlf::BindUtil::bind(&RecoveryManager::recoveryStartupWaitCb,
+                                 this,
+                                 partitionId));
+    }
 
     // Max number of file sets that we want to be inspected.  TBD: add reason
     // for '2'.
@@ -3306,6 +3458,14 @@ void RecoveryManager::processStorageEvent(
                           << "rescheduled with the new primary, if any.";
         }
 
+        return;  // RETURN
+    }
+
+    if (d_clusterData_p->cluster().isHybridWorkflow()) {
+        // In hybrid mode, replica does not initiate StorageSyncRequest on
+        // sync point detection.  Recovery is driven by the primary:
+        // PartitionSyncStateQuery (simultaneous startup) or
+        // PrimaryStatusAdvisory(E_ACTIVE) (late join).
         return;  // RETURN
     }
 
@@ -4452,7 +4612,8 @@ void RecoveryManager::processPartitionSyncStateRequest(
         message.choice().clusterMessage().choice().partitionSyncStateQuery();
 
     BSLS_ASSERT_SAFE(req.partitionId() == fs->config().partitionId());
-    BSLS_ASSERT_SAFE(!isRecoveryInProgress(req.partitionId()));
+    BSLS_ASSERT_SAFE(!isRecoveryInProgress(req.partitionId()) ||
+                     d_clusterData_p->cluster().isHybridWorkflow());
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << " Partition [" << req.partitionId()
@@ -4672,7 +4833,21 @@ void RecoveryManager::processPartitionSyncDataRequest(
     const bmqp_ctrlmsg::SyncPointOffsetPair& firstSpOffPair =
         spOffsetPairs.front();
 
-    if (false == (firstSpOffPair.syncPoint() <= lastSpoPair.syncPoint())) {
+    bsls::Types::Uint64 journalSpOffset = 0;
+
+    if (!mqbc::ClusterUtil::isValid(lastSpoPair.syncPoint())) {
+        // Requester has no data (empty partition).  Replay the entire
+        // partition from the beginning of the journal.
+
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << " Partition [" << req.partitionId() << "]: requester "
+                      << source->nodeDescription()
+                      << " has no data. Will replay entire partition.";
+
+        journalSpOffset = 0;
+    }
+    else if (false ==
+             (firstSpOffPair.syncPoint() <= lastSpoPair.syncPoint())) {
         // TBD: Need to peek into the archived files to retrieve the correct
         // one.  In practice, there should never be a need to peek beyond the
         // latest archived file, since a newly elected primary is supposed to
@@ -4688,73 +4863,69 @@ void RecoveryManager::processPartitionSyncDataRequest(
                                                               source);
         return;  // RETURN
     }
+    else {
+        // Replay storage events from the current ("live") files of the
+        // partition, starting from the requester's last sync point.
 
-    // Replay storage events from the current ("live") files of the partition.
+        BSLS_ASSERT_SAFE(mqbc::ClusterUtil::isValid(lastSpoPair));
 
-    BSLS_ASSERT_SAFE(mqbc::ClusterUtil::isValid(lastSpoPair));
+        bsl::pair<SyncPointOffsetConstIter, SyncPointOffsetConstIter> rcPair =
+            bsl::equal_range(spOffsetPairs.begin(),
+                             spOffsetPairs.end(),
+                             lastSpoPair,
+                             SyncPointOffsetPairComparator());
 
-    // Find req.lastSyncPoint() in the list of sync points maintained by the
-    // partition.
+        if (rcPair.first == rcPair.second) {
+            BALL_LOG_WARN << d_clusterData_p->identity().description()
+                          << " Partition [" << req.partitionId()
+                          << "]: Last sync point not found: " << lastSpoPair
+                          << ", while serving partition-sync data request: "
+                          << req << ", from: " << source->nodeDescription()
+                          << ". Sending error.";
 
-    bsl::pair<SyncPointOffsetConstIter, SyncPointOffsetConstIter> rcPair =
-        bsl::equal_range(spOffsetPairs.begin(),
-                         spOffsetPairs.end(),
-                         lastSpoPair,
-                         SyncPointOffsetPairComparator());
+            bmqp_ctrlmsg::Status& status = controlMsg.choice().makeStatus();
+            status.category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+            status.code()     = -1;
+            status.message()  = "Last sync point not found.";
 
-    if (rcPair.first == rcPair.second) {
-        // This could be a bug in replication or 'source' sent a bogus sync
-        // point.
+            d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
+                                                                  source);
+            return;  // RETURN
+        }
 
-        BALL_LOG_WARN << d_clusterData_p->identity().description()
-                      << " Partition [" << req.partitionId()
-                      << "]: Last sync point not found: " << lastSpoPair
-                      << ", while serving partition-sync data request: " << req
-                      << ", from: " << source->nodeDescription()
-                      << ". Sending error.";
-
-        bmqp_ctrlmsg::Status& status = controlMsg.choice().makeStatus();
-        status.category()            = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
-        status.code()                = -1;
-        status.message()             = "Last sync point not found.";
-
-        d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
-                                                              source);
-        return;  // RETURN
+        journalSpOffset = lastSpoPair.offset();
     }
-
-    bsls::Types::Uint64 journalSpOffset = lastSpoPair.offset();
-    mqbs::FileStoreSet  fileSet;
+    mqbs::FileStoreSet fileSet;
     fs->loadCurrentFiles(&fileSet);
 
-    bsls::Types::Uint64 minJournalSize =
-        journalSpOffset + mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+    if (0 != journalSpOffset) {
+        bsls::Types::Uint64 minJournalSize =
+            journalSpOffset + mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
 
-    if (static_cast<bsls::Types::Uint64>(fileSet.journalFileSize()) <
-        minJournalSize) {
-        // Yikes, this is bad.
+        if (static_cast<bsls::Types::Uint64>(fileSet.journalFileSize()) <
+            minJournalSize) {
+            BMQTSK_ALARMLOG_ALARM("CLUSTER")
+                << d_clusterData_p->identity().description() << " Partition ["
+                << req.partitionId()
+                << "]: Encountered invalid sync point JOURNAL offset: "
+                << journalSpOffset
+                << ", JOURNAL size: " << fileSet.journalFileSize()
+                << ", sync point: " << lastSpoPair.syncPoint()
+                << ", while processing partition-sync"
+                << " data request: " << req
+                << ", from: " << source->nodeDescription()
+                << BMQTSK_ALARMLOG_END;
 
-        BMQTSK_ALARMLOG_ALARM("CLUSTER")
-            << d_clusterData_p->identity().description() << " Partition ["
-            << req.partitionId()
-            << "]: Encountered invalid sync point JOURNAL offset: "
-            << journalSpOffset
-            << ", JOURNAL size: " << fileSet.journalFileSize()
-            << ", sync point: " << lastSpoPair.syncPoint()
-            << ", while processing partition-sync" << " data request: " << req
-            << ", from: " << source->nodeDescription() << BMQTSK_ALARMLOG_END;
+            bmqp_ctrlmsg::Status& status = controlMsg.choice().makeStatus();
+            status.category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+            status.code()     = -1;
+            status.message()  = "Peer's JOURNAL is invalid.";
 
-        bmqp_ctrlmsg::Status& status = controlMsg.choice().makeStatus();
-        status.category()            = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
-        status.code()                = -1;
-        status.message()             = "Peer's JOURNAL is invalid.";
-
-        d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
-                                                              source);
-        return;  // RETURN
+            d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
+                                                                  source);
+            return;  // RETURN
+        }
     }
-
-    // Map JOURNAL file at appropriate offset.
 
     bmqu::MemOutStream errorDesc;
     int                rc = mqbs::FileStoreUtil::openFileSetReadMode(errorDesc,
@@ -4782,71 +4953,76 @@ void RecoveryManager::processPartitionSyncDataRequest(
         return;  // RETURN
     }
 
-    // Retrieve the sync point from JOURNAL.
+    if (0 != journalSpOffset) {
+        // Validate the sync point record in the JOURNAL.
 
-    mqbs::OffsetPtr<const mqbs::RecordHeader> journalRec(
-        fti.journalFd().block(),
-        journalSpOffset);
-    BSLS_ASSERT_SAFE(mqbs::RecordType::e_JOURNAL_OP == journalRec->type());
-    static_cast<void>(journalRec);
+        mqbs::OffsetPtr<const mqbs::RecordHeader> journalRec(
+            fti.journalFd().block(),
+            journalSpOffset);
+        BSLS_ASSERT_SAFE(mqbs::RecordType::e_JOURNAL_OP == journalRec->type());
+        static_cast<void>(journalRec);
 
-    mqbs::OffsetPtr<const mqbs::JournalOpRecord> syncPtRec(
-        fti.journalFd().block(),
-        journalSpOffset);
+        mqbs::OffsetPtr<const mqbs::JournalOpRecord> syncPtRec(
+            fti.journalFd().block(),
+            journalSpOffset);
 
-    BSLS_ASSERT_SAFE(mqbs::JournalOpType::e_SYNCPOINT == syncPtRec->type());
-    BSLS_ASSERT_SAFE(mqbs::SyncPointType::e_UNDEFINED !=
-                     syncPtRec->syncPointType());
+        BSLS_ASSERT_SAFE(mqbs::JournalOpType::e_SYNCPOINT ==
+                         syncPtRec->type());
+        BSLS_ASSERT_SAFE(mqbs::SyncPointType::e_UNDEFINED !=
+                         syncPtRec->syncPointType());
 
-    bsls::Types::Uint64 qlistMapOffset =
-        static_cast<bsls::Types::Uint64>(syncPtRec->qlistFileOffsetWords()) *
-        bmqp::Protocol::k_WORD_SIZE;
-    if (static_cast<bsls::Types::Uint64>(fileSet.qlistFileSize()) <
-        qlistMapOffset) {
-        // Yikes, this is bad.
+        bsls::Types::Uint64 qlistMapOffset =
+            static_cast<bsls::Types::Uint64>(
+                syncPtRec->qlistFileOffsetWords()) *
+            bmqp::Protocol::k_WORD_SIZE;
+        if (static_cast<bsls::Types::Uint64>(fileSet.qlistFileSize()) <
+            qlistMapOffset) {
+            BMQTSK_ALARMLOG_ALARM("CLUSTER")
+                << d_clusterData_p->identity().description() << " Partition ["
+                << req.partitionId() << "]: Invalid QLIST ["
+                << fileSet.qlistFile()
+                << "] offset in sync point: " << lastSpoPair.syncPoint()
+                << ". Current QLIST file size: " << fileSet.qlistFileSize()
+                << ". Error encountered while serving partition-sync data "
+                << "request from: " << source->nodeDescription()
+                << BMQTSK_ALARMLOG_END;
 
-        BMQTSK_ALARMLOG_ALARM("CLUSTER")
-            << d_clusterData_p->identity().description() << " Partition ["
-            << req.partitionId() << "]: Invalid QLIST [" << fileSet.qlistFile()
-            << "] offset in sync point: " << lastSpoPair.syncPoint()
-            << ". Current QLIST file size: " << fileSet.qlistFileSize()
-            << ". Error encountered while serving partition-sync data request "
-            << "from: " << source->nodeDescription() << BMQTSK_ALARMLOG_END;
+            bmqp_ctrlmsg::Status& status = controlMsg.choice().makeStatus();
+            status.category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+            status.code()     = -1;
+            status.message()  = "Peer's QLIST file is invalid.";
 
-        bmqp_ctrlmsg::Status& status = controlMsg.choice().makeStatus();
-        status.category()            = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
-        status.code()                = -1;
-        status.message()             = "Peer's QLIST file is invalid.";
+            d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
+                                                                  source);
+            return;  // RETURN
+        }
 
-        d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
-                                                              source);
-        return;  // RETURN
-    }
+        bsls::Types::Uint64 dataMapOffset =
+            static_cast<bsls::Types::Uint64>(
+                syncPtRec->dataFileOffsetDwords()) *
+            bmqp::Protocol::k_DWORD_SIZE;
+        if (static_cast<bsls::Types::Uint64>(fileSet.dataFileSize()) <
+            dataMapOffset) {
+            BMQTSK_ALARMLOG_ALARM("CLUSTER")
+                << d_clusterData_p->identity().description() << " Partition ["
+                << req.partitionId() << "]: Invalid DATA ["
+                << fileSet.dataFile()
+                << "] offset in sync point: " << lastSpoPair.syncPoint()
+                << ". Current DATA file size: " << fileSet.dataFileSize()
+                << ". Error encountered while serving partition-sync data "
+                << "request from: " << source->nodeDescription()
+                << BMQTSK_ALARMLOG_END;
 
-    bsls::Types::Uint64 dataMapOffset =
-        static_cast<bsls::Types::Uint64>(syncPtRec->dataFileOffsetDwords()) *
-        bmqp::Protocol::k_DWORD_SIZE;
-    if (static_cast<bsls::Types::Uint64>(fileSet.dataFileSize()) <
-        dataMapOffset) {
-        // Yikes, this is bad.
+            bmqp_ctrlmsg::Status& status = controlMsg.choice().makeStatus();
+            status.category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+            status.code()     = -1;
+            status.message()  = "Peer's DATA file is invalid.";
 
-        BMQTSK_ALARMLOG_ALARM("CLUSTER")
-            << d_clusterData_p->identity().description() << " Partition ["
-            << req.partitionId() << "]: Invalid DATA [" << fileSet.dataFile()
-            << "] offset in sync point: " << lastSpoPair.syncPoint()
-            << ". Current DATA file size: " << fileSet.dataFileSize()
-            << ". Error encountered while serving partition-sync data request "
-            << "from: " << source->nodeDescription() << BMQTSK_ALARMLOG_END;
-
-        bmqp_ctrlmsg::Status& status = controlMsg.choice().makeStatus();
-        status.category()            = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
-        status.code()                = -1;
-        status.message()             = "Peer's DATA file is invalid.";
-
-        d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
-                                                              source);
-        return;  // RETURN
-    }
+            d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
+                                                                  source);
+            return;  // RETURN
+        }
+    }  // if (0 != journalSpOffset)
 
     // All initial things have been validated at this point.  Reply to the
     // 'source' node informing it with what's coming its way.

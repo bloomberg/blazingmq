@@ -199,7 +199,7 @@ void Cluster::startDispatched(bsl::ostream* errorDescription, int* rc)
 
     // Start the StorageManager
     d_storageManager_mp.load(
-        isFSMWorkflow()
+        d_clusterData.clusterConfig().clusterAttributes().isFSMWorkflow()
             ? static_cast<mqbi::StorageManager*>(
                   new (*storageManagerAllocator) mqbc::StorageManager(
                       d_clusterData.clusterConfig(),
@@ -3243,7 +3243,23 @@ void Cluster::printClusterStateSummary(bsl::ostream& out,
 
 bool Cluster::isFSMWorkflow() const
 {
-    return d_clusterData.clusterConfig().clusterAttributes().isFSMWorkflow();
+    return d_clusterData.clusterConfig().clusterAttributes().isFSMWorkflow() ||
+           isHybridWorkflow();
+}
+
+bool Cluster::isHybridWorkflow() const
+{
+    return true;
+}
+
+bool Cluster::isPartitionSyncReady() const
+{
+    const bmqp_ctrlmsg::NodeStatus::Value status =
+        d_clusterData.membership().selfNodeStatus();
+
+    return status == bmqp_ctrlmsg::NodeStatus::E_AVAILABLE ||
+           (isHybridWorkflow() &&
+            status == bmqp_ctrlmsg::NodeStatus::E_STARTING);
 }
 
 bool Cluster::doesFSMwriteQLIST() const

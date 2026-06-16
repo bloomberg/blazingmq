@@ -6498,6 +6498,12 @@ int FileStore::processRecoveryEvent(const bsl::shared_ptr<bdlbb::Blob>& blob)
     BSLS_ASSERT_SAFE(inDispatcherThread());
     BSLS_ASSERT_SAFE(blob);
 
+    BALL_LOG_INFO << partitionDesc() << "processRecoveryEvent: "
+                  << "journalPos BEFORE: "
+                  << d_fileSets[0]->d_journalFilePosition
+                  << ", primaryLeaseId: " << d_primaryLeaseId
+                  << ", seqNum: " << sequenceNumber();
+
     enum {
         rc_SUCCESS                  = 0,
         rc_INVALID_MSG_TYPE         = -1,
@@ -6660,6 +6666,12 @@ int FileStore::processRecoveryEvent(const bsl::shared_ptr<bdlbb::Blob>& blob)
             return 10 * rc + rc_WRITE_FAILURE;  // RETURN
         }
     }
+
+    BALL_LOG_INFO << partitionDesc() << "processRecoveryEvent: "
+                  << "journalPos AFTER: "
+                  << d_fileSets[0]->d_journalFilePosition
+                  << ", primaryLeaseId: " << d_primaryLeaseId
+                  << ", seqNum: " << sequenceNumber();
 
     return rc_SUCCESS;
 }
