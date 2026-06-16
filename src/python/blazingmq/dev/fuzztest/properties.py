@@ -27,9 +27,7 @@ o 'fuzz_properties': launch a message-properties fuzzing session against a
 
 import logging
 import struct
-
 import boofuzz
-import crc32c
 
 from blazingmq.dev.fuzztest import (
     BoofuzzSequence,
@@ -48,10 +46,10 @@ logger = logging.getLogger(__name__)
 #                               CONSTANTS
 # =============================================================================
 
-PROPS_HEADER_SIZE_2X = 3  # 6 bytes / 2
+properties_HEADER_SIZE_2X = 3  # 6 bytes / 2
 MPH_SIZE_2X = 3  # 6 bytes / 2
 MPH_SIZE = 6  # bytes
-PROPS_HEADER_SIZE = 6  # bytes
+properties_HEADER_SIZE = 6  # bytes
 
 PROP_TYPE_STRING = 6  # bmqt::PropertyType::e_STRING
 PROP_TYPE_INT32 = 4  # bmqt::PropertyType::e_INT32
@@ -72,14 +70,6 @@ PROPERTY_POOL = [
     (PROP_TYPE_INT64, b"big", struct.pack(">q", -1)),
     (PROP_TYPE_STRING, b"msg", b"hello"),
 ]
-
-PROPERTY_COUNTS_TO_TEST = [1,2]
-
-
-# =============================================================================
-#                         MESSAGE PROPERTIES BUILDERS
-# =============================================================================
-
 
 def _make_mph_fields(prefix, prop_type, name_len, middle_value, fuzzable=False):
     """Build the 3 boofuzz Words for a MessagePropertyHeader.
@@ -132,16 +122,16 @@ def make_message_properties_area(
       [name #1][value #1]...[name #N][value #N]
     """
 
-    props = PROPERTY_POOL[:num_properties]
+    properties = PROPERTY_POOL[:num_properties]
 
-    data_size = sum(len(name) + len(value) for _, name, value in props)
-    total_unpadded = PROPS_HEADER_SIZE + num_properties * MPH_SIZE + data_size
+    data_size = sum(len(name) + len(value) for _, name, value in properties)
+    total_unpadded = properties_HEADER_SIZE + num_properties * MPH_SIZE + data_size
     area_words = (total_unpadded + NumBytes.WORD - 1) // NumBytes.WORD
 
-    packed_byte0 = (MPH_SIZE_2X << 3) | PROPS_HEADER_SIZE_2X
+    packed_byte0 = (MPH_SIZE_2X << 3) | properties_HEADER_SIZE_2X
     children = [
         boofuzz.Byte(
-            name="props_hdr_byte0",
+            name="properties_hdr_byte0",
             default_value=packed_byte0,
             full_range=True,
             fuzzable=fuzz_header,
@@ -158,7 +148,7 @@ def make_message_properties_area(
             fuzzable=fuzz_header,
         ),
         boofuzz.Byte(
-            name="props_hdr_reserved",
+            name="properties_hdr_reserved",
             default_value=0,
             fuzzable=False,
         ),
@@ -171,21 +161,21 @@ def make_message_properties_area(
     ]
 
     # Pre-compute cumulative offsets for new-style encoding
+    offsets = []
     if new_style:
-        offsets = []
         running = 0
-        for _, name, value in props:
+        for _, name, value in properties:
             offsets.append(running)
             running += len(name) + len(value)
 
-    for i, (prop_type, name, value) in enumerate(props):
+    for i, (prop_type, name, value) in enumerate(properties):
         middle = offsets[i] if new_style else len(value)
         children.extend(_make_mph_fields(
             f"mph{i}", prop_type, len(name), middle,
             fuzzable=(fuzz_mph and i == 0),
         ))
 
-    for i, (_, name, value) in enumerate(props):
+    for i, (_, name, value) in enumerate(properties):
         children.append(boofuzz.Bytes(
             name=f"prop{i}_name",
             default_value=name,
@@ -204,68 +194,6 @@ def make_message_properties_area(
         children=children,
     )
 
-
-def make_put_message_with_properties(properties_bytes: bytes, schema_id: int = 0) -> bytes:
-    """
-    Build a complete PUT event (EventHeader + PutHeader + app data) with the
-    specified 'properties_bytes' as the message properties area in app data.
-
-    The PUT header flags include both ACK_REQUESTED and MESSAGE_PROPERTIES.
-
-    Returns the raw bytes of the entire event, ready to send on the wire.
-    """
-
-    flags = broker.PutHeaderFlags.ACK_REQUESTED | broker.PutHeaderFlags.MESSAGE_PROPERTIES
-    flags_shifted = flags << 4
-
-    guid = b"\x00\x00\x00\x00\x05\x78\x8d\xae\xd4\xb8\xca\x12\xae\xf3\x2d\xce"
-    header_words = 9
-
-    # Word-align properties area
-    props_padded_len = len(properties_bytes)
-    remainder = props_padded_len % NumBytes.WORD
-    if remainder:
-        padding_count = NumBytes.WORD - remainder
-        properties_bytes += bytes([padding_count] * padding_count)
-        props_padded_len += padding_count
-
-    app_data = properties_bytes
-
-    # PutHeader (36 bytes = 9 words) + app data
-    message_words = header_words + len(app_data) // NumBytes.WORD
-    options_words = 0
-
-    put_header = b""
-    # Word 0: flags(4) | messageWords(28)
-    put_header += struct.pack(">I", (flags_shifted << 24) | message_words)
-    # Word 1: optionsWords(24) | CAT(3) | headerWords(5)
-    put_header += struct.pack(">I", (options_words << 8) | header_words)
-    # Word 2: queueId
-    put_header += struct.pack(">I", 0)
-    # Words 3-6: GUID (16 bytes)
-    put_header += guid
-    # Word 7: CRC32-C over the application data
-    crc = crc32c.crc32c(app_data)
-    put_header += struct.pack(">I", crc)
-    # Word 8: schemaId(16) | reserved(16)
-    put_header += struct.pack(">HH", schema_id, 0)
-
-    message = put_header + app_data
-    total_size = NumBytes.WORD + NumBytes.WORD + len(message)
-
-    # Pad entire event to word boundary
-    remainder = total_size % NumBytes.WORD
-    if remainder:
-        padding_count = NumBytes.WORD - remainder
-        message += bytes([padding_count] * padding_count)
-        total_size += padding_count
-
-    # EventHeader: size(4 bytes) + descriptor(4 bytes)
-    event_descriptor = bytes([0x40 + broker.EventType.PUT, 0x02, broker.TypeSpecific.EMPTY, 0x00])
-    event = struct.pack(">I", total_size) + event_descriptor + message
-
-    return event
-
 def make_put_with_fuzzable_properties(
     num_properties: int = 2,
     new_style: bool = False,
@@ -273,7 +201,7 @@ def make_put_with_fuzzable_properties(
     """
     Build a PUT event as a BoofuzzSequence with auto-computed CRC and the
     6 high-value properties fields marked fuzzable:
-      - props_hdr_byte0, area_words_lower, num_properties  (header)
+      - properties_hdr_byte0, area_words_lower, num_properties  (header)
       - mph0 type/value_len/name_len                       (first MPH)
 
     Uses boofuzz.Checksum to recompute CRC32-C over the app_data block on
@@ -308,7 +236,7 @@ def make_put_with_fuzzable_properties(
 
     guid = b"\x00\x00\x00\x00\x05\x78\x8d\xae\xd4\xb8\xca\x12\xae\xf3\x2d\xce"
 
-    props_request = make_message_properties_area(
+    properties_request = make_message_properties_area(
         num_properties=num_properties,
         fuzz_header=True,
         fuzz_mph=True,
@@ -357,7 +285,7 @@ def make_put_with_fuzzable_properties(
         ),
         # app_data is a Block so Checksum can reference it by name.
         # Its children are the fuzzable properties fields.
-        boofuzz.Block(name="app_data", children=list(props_request.stack)),
+        boofuzz.Block(name="app_data", children=list(properties_request.stack)),
     ]
 
     message = boofuzz.Block(name="message", children=message_components)
@@ -412,12 +340,12 @@ class _PersistentConnection(boofuzz.TCPSocketConnection):
     def send(self, data):
         try:
             super().send(data)
-        except Exception:
+        except OSError:
             logger.info("Connection lost — reconnecting and replaying handshake")
             self._connected = False
             try:
                 super().close()
-            except Exception:
+            except OSError:
                 pass
             super().open()
             self._send_setup()
@@ -431,7 +359,7 @@ class _PersistentConnection(boofuzz.TCPSocketConnection):
             super().send(req.render())
             try:
                 self.recv(4096)
-            except Exception:
+            except OSError:
                 pass
 
     def shutdown(self):
