@@ -50,6 +50,7 @@ PROPERTIES_HEADER_SIZE = 6  # bytes
 PROP_TYPE_STRING = 6  # bmqt::PropertyType::e_STRING
 PROP_TYPE_INT32 = 4  # bmqt::PropertyType::e_INT32
 
+
 def _make_mph_fields(prefix, prop_type, name_len, middle_value, fuzzable=False):
     """Build the 3 boofuzz Words for a MessagePropertyHeader.
 
@@ -91,7 +92,10 @@ def make_message_properties_area(
     Construct a boofuzz Request representing the MessageProperties wire format.
     """
 
-    properties = [(PROP_TYPE_STRING, b"key", b"val"), (PROP_TYPE_INT32, b"id", struct.pack(">i", 42))]
+    properties = [
+        (PROP_TYPE_STRING, b"key", b"val"),
+        (PROP_TYPE_INT32, b"id", struct.pack(">i", 42)),
+    ]
 
     data_size = sum(len(name) + len(value) for _, name, value in properties)
     total_unpadded = PROPERTIES_HEADER_SIZE + num_properties * MPH_SIZE + data_size
@@ -110,7 +114,7 @@ def make_message_properties_area(
             default_value=(area_words >> 16) & 0xFF,
             fuzzable=False,
         ),
-        boofuzz.Word( #double check
+        boofuzz.Word(  # double check
             name="area_words_lower",
             default_value=area_words & 0xFFFF,
             endian=">",
@@ -139,29 +143,41 @@ def make_message_properties_area(
 
     for i, (prop_type, name, value) in enumerate(properties):
         middle = offsets[i] if new_style else len(value)
-        children.extend(_make_mph_fields(
-            f"mph{i}", prop_type, len(name), middle,
-            fuzzable=(fuzz_mph and i == 0), #only fuzz the first message property header to save time, might want to fuzz more
-        ))
+        children.extend(
+            _make_mph_fields(
+                f"mph{i}",
+                prop_type,
+                len(name),
+                middle,
+                fuzzable=(
+                    fuzz_mph and i == 0
+                ),  # only fuzz the first message property header to save time, might want to fuzz more
+            )
+        )
 
     for i, (_, name, value) in enumerate(properties):
-        children.append(boofuzz.Bytes(
-            name=f"prop{i}_name",
-            default_value=name,
-            size=len(name),
-            fuzzable=False,
-        ))
-        children.append(boofuzz.Bytes(
-            name=f"prop{i}_value",
-            default_value=value,
-            size=len(value),
-            fuzzable=False,
-        ))
+        children.append(
+            boofuzz.Bytes(
+                name=f"prop{i}_name",
+                default_value=name,
+                size=len(name),
+                fuzzable=False,
+            )
+        )
+        children.append(
+            boofuzz.Bytes(
+                name=f"prop{i}_value",
+                default_value=value,
+                size=len(value),
+                fuzzable=False,
+            )
+        )
 
     return boofuzz.Request(
         "message_properties_new_style" if new_style else "message_properties",
         children=children,
     )
+
 
 def make_put_with_fuzzable_properties(
     num_properties: int = 2,
@@ -214,7 +230,9 @@ def make_put_with_fuzzable_properties(
 
     message_components = [
         boofuzz.BitField(
-            name="options_size", width=3 * NumBits.BYTE, fuzzable=False,
+            name="options_size",
+            width=3 * NumBits.BYTE,
+            fuzzable=False,
         ),
         boofuzz.BitField(
             name="header_words",
@@ -224,8 +242,11 @@ def make_put_with_fuzzable_properties(
             fuzzable=False,
         ),
         boofuzz.DWord(
-            name="qId", default_value=0, endian=">",
-            output_format="binary", fuzzable=False,
+            name="qId",
+            default_value=0,
+            endian=">",
+            output_format="binary",
+            fuzzable=False,
         ),
         boofuzz.Bytes(
             name="correlation_id",
@@ -245,12 +266,18 @@ def make_put_with_fuzzable_properties(
             fuzzable=False,
         ),
         boofuzz.BitField(
-            name="schema_id", default_value=0, width=2 * NumBits.BYTE,
-            endian=">", fuzzable=False,
+            name="schema_id",
+            default_value=0,
+            width=2 * NumBits.BYTE,
+            endian=">",
+            fuzzable=False,
         ),
         boofuzz.BitField(
-            name="reserved", default_value=0, width=2 * NumBits.BYTE,
-            endian=">", fuzzable=False,
+            name="reserved",
+            default_value=0,
+            width=2 * NumBits.BYTE,
+            endian=">",
+            fuzzable=False,
         ),
         # app_data is a Block so Checksum can reference it by name.
         # Its children are the fuzzable properties fields.
@@ -269,9 +296,14 @@ def make_put_with_fuzzable_properties(
     )
     event_desc = boofuzz.Bytes(
         name="event_desc",
-        default_value=bytes([
-            0x40 + broker.EventType.PUT, 0x02, broker.TypeSpecific.EMPTY, 0x00,
-        ]),
+        default_value=bytes(
+            [
+                0x40 + broker.EventType.PUT,
+                0x02,
+                broker.TypeSpecific.EMPTY,
+                0x00,
+            ]
+        ),
         size=NumBytes.WORD,
         fuzzable=False,
     )
@@ -351,7 +383,10 @@ def fuzz_properties(host: str, port: int) -> None:
     ]
 
     conn = _PersistentConnection(
-        host, port, setup_steps=setup_steps, recv_timeout=0.05,
+        host,
+        port,
+        setup_steps=setup_steps,
+        recv_timeout=0.05,
     )
 
     session = boofuzz.Session(
@@ -364,7 +399,8 @@ def fuzz_properties(host: str, port: int) -> None:
     )
 
     put = boofuzz.Request(
-        "Put", children=(make_put_with_fuzzable_properties()),
+        "Put",
+        children=(make_put_with_fuzzable_properties()),
     )
     session.connect(put)
 
@@ -373,12 +409,11 @@ def fuzz_properties(host: str, port: int) -> None:
     finally:
         conn.shutdown()
 
-'''
-todo: (specific to fuzz testing message properties)
 
-- add test for new type of property encodings
-- decide if we want to fuzz names/values of messages,
-  currently the test only fuzzes the message properties header and message property headers fields, not the actual properties.
-- decide if we want to fuzz each property header or just the first one
-- decide if we want more than 2 properties
-'''
+# todo: (specific to fuzz testing message properties)
+#
+# - add test for new type of property encodings
+# - decide if we want to fuzz names/values of messages,
+#   currently the test only fuzzes the message properties header and message property headers fields, not the actual properties.
+# - decide if we want to fuzz each property header or just the first one
+# - decide if we want more than 2 properties
