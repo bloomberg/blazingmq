@@ -24,9 +24,9 @@ during routing.
 
 import pytest
 
-from blazingmq.dev.fuzztest.properties import fuzz_properties
+from blazingmq.dev.fuzztest.put_message_properties import fuzz_properties
 
 
 @pytest.mark.fuzztest
-def test_fuzz_message_properties(broker):
+def test_fuzz_put_message_properties(broker):
     fuzz_properties(broker.host, broker.port)
