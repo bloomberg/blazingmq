@@ -42,34 +42,13 @@ from blazingmq.schemas import broker
 
 logger = logging.getLogger(__name__)
 
-# =============================================================================
-#                               CONSTANTS
-# =============================================================================
-
-properties_HEADER_SIZE_2X = 3  # 6 bytes / 2
+PROPERTIES_HEADER_SIZE_2X = 3  # 6 bytes / 2
 MPH_SIZE_2X = 3  # 6 bytes / 2
 MPH_SIZE = 6  # bytes
-properties_HEADER_SIZE = 6  # bytes
+PROPERTIES_HEADER_SIZE = 6  # bytes
 
 PROP_TYPE_STRING = 6  # bmqt::PropertyType::e_STRING
 PROP_TYPE_INT32 = 4  # bmqt::PropertyType::e_INT32
-PROP_TYPE_BOOL = 1  # bmqt::PropertyType::e_BOOL
-PROP_TYPE_INT64 = 5  # bmqt::PropertyType::e_INT64
-
-# Pool of properties to draw from when generating multi-property messages.
-# Each entry: (type_enum, name_bytes, value_bytes)
-PROPERTY_POOL = [
-    (PROP_TYPE_STRING, b"key", b"val"),
-    (PROP_TYPE_INT32, b"id", struct.pack(">i", 42)),
-    (PROP_TYPE_BOOL, b"flag", b"\x01"),
-    (PROP_TYPE_INT64, b"ts", struct.pack(">q", 1234567890)),
-    (PROP_TYPE_STRING, b"name", b"fuzz"),
-    (PROP_TYPE_INT32, b"cnt", struct.pack(">i", 0)),
-    (PROP_TYPE_STRING, b"tag", b"ab"),
-    (PROP_TYPE_BOOL, b"ok", b"\x00"),
-    (PROP_TYPE_INT64, b"big", struct.pack(">q", -1)),
-    (PROP_TYPE_STRING, b"msg", b"hello"),
-]
 
 def _make_mph_fields(prefix, prop_type, name_len, middle_value, fuzzable=False):
     """Build the 3 boofuzz Words for a MessagePropertyHeader.
@@ -110,25 +89,15 @@ def make_message_properties_area(
 ) -> boofuzz.Request:
     """
     Construct a boofuzz Request representing the MessageProperties wire format.
-
-    In old-style encoding, each MPH stores the property value length directly.
-    In new-style (offset-based) encoding, it stores a cumulative byte offset.
-
-    Wire layout (same for both styles):
-      [MessagePropertiesHeader        (6 bytes)]
-      [MessagePropertyHeader #1       (6 bytes)]
-      ...
-      [MessagePropertyHeader #N       (6 bytes)]
-      [name #1][value #1]...[name #N][value #N]
     """
 
-    properties = PROPERTY_POOL[:num_properties]
+    properties = [(PROP_TYPE_STRING, b"key", b"val"), (PROP_TYPE_INT32, b"id", struct.pack(">i", 42))]
 
     data_size = sum(len(name) + len(value) for _, name, value in properties)
-    total_unpadded = properties_HEADER_SIZE + num_properties * MPH_SIZE + data_size
+    total_unpadded = PROPERTIES_HEADER_SIZE + num_properties * MPH_SIZE + data_size
     area_words = (total_unpadded + NumBytes.WORD - 1) // NumBytes.WORD
 
-    packed_byte0 = (MPH_SIZE_2X << 3) | properties_HEADER_SIZE_2X
+    packed_byte0 = (MPH_SIZE_2X << 3) | PROPERTIES_HEADER_SIZE_2X
     children = [
         boofuzz.Byte(
             name="properties_hdr_byte0",
@@ -172,7 +141,7 @@ def make_message_properties_area(
         middle = offsets[i] if new_style else len(value)
         children.extend(_make_mph_fields(
             f"mph{i}", prop_type, len(name), middle,
-            fuzzable=(fuzz_mph and i == 0),
+            fuzzable=(fuzz_mph and i == 0), #only fuzz the first message property header to save time, might want to fuzz more
         ))
 
     for i, (_, name, value) in enumerate(properties):
@@ -371,18 +340,7 @@ def fuzz_properties(host: str, port: int) -> None:
     """
     Launch a long-running fuzzing session targeting message properties in PUT
     messages at depth 2 (all pairs of fuzzable fields).
-
-    How it works:
-      1. _PersistentConnection opens a TCP connection and sends the handshake
-         (auth, negotiate, open queue, configure stream with 'x > 0').
-      2. The connection stays open across mutations.  If the broker resets it
-         (heartbeat timeout), _PersistentConnection auto-reconnects and
-         replays the handshake.
-      3. The PUT Request uses boofuzz.Checksum to recompute a valid CRC for
-         every mutation, so the broker accepts the event and actually parses
-         the properties (instead of rejecting at the CRC check).
-      4. session.fuzz(max_depth=2) iterates all single-field mutations AND
-         all pairwise field combinations.
+    NOTE: This currently only fuzzes the first property's header fields to limit the combinatorial explosion, but can be extended to fuzz more.
     """
 
     setup_steps = [
@@ -414,3 +372,12 @@ def fuzz_properties(host: str, port: int) -> None:
         session.fuzz(max_depth=2)
     finally:
         conn.shutdown()
+
+'''
+todo:
+- add test for new type of property encodings
+- decide if we want to fuzz names/values of messages,
+  currently the test only fuzzes the message properties header and message property headers fields, not the actual properties.
+- decide if we want to fuzz each property header or just the first one
+- decide if we want more than 2 properties
+'''
