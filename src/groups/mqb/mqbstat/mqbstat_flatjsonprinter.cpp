@@ -31,6 +31,7 @@
 #include <bsl_string_view.h>
 #include <bslma_managedptr.h>
 #include <bsls_assert.h>
+#include <bsls_types.h>
 
 namespace BloombergLP {
 namespace mqbstat {
@@ -121,10 +122,28 @@ inline void DomainQueueStatsTraversal::forEachQueue(
 // class DomainQueuesVisitor
 // =========================
 
-struct DomainQueuesVisitor {
+class DomainQueuesVisitor {
+  private:
     bsl::ostream&    d_os;
     bsl::string_view d_prefix;
 
+    template <class KEY, class VAL>
+    void wrap(const KEY& key, const VAL& val) const
+    {
+        d_os << ",\"" << key << "\":\"" << val << "\"";
+    }
+
+    void metric(const bmqst::StatContext&             ctx,
+                mqbstat::QueueStatsDomain::Stat::Enum stat) const
+    {
+        const bsls::Types::Int64 val =
+            mqbstat::QueueStatsDomain::getValue(ctx, -1, stat);
+        if (val != 0) {
+            wrap(mqbstat::QueueStatsDomain::Stat::toString(stat), val);
+        }
+    }
+
+  public:
     explicit DomainQueuesVisitor(bsl::ostream& os, bsl::string_view prefix)
     : d_os(os)
     , d_prefix(prefix)
@@ -137,69 +156,59 @@ struct DomainQueuesVisitor {
                     bsl::string_view          appId,
                     const bmqst::StatContext& ctx) const
     {
-#define WRAP(KEY, VAL) ",\"" << (KEY) << "\":\"" << (VAL) << "\""
-
-#define METRIC(STAT)                                                          \
-    WRAP(mqbstat::QueueStatsDomain::Stat::toString(STAT),                     \
-         mqbstat::QueueStatsDomain::getValue(ctx, -1, (STAT)))
-
         typedef mqbstat::QueueStatsDomain::Stat Stat;
 
         d_os << "{" << d_prefix;
         if (appId.empty()) {
-            d_os << WRAP("stat", "queue");
-            d_os << WRAP("domain", domainName);
-            d_os << WRAP("queue", queueName);
-            // no `app`
+            wrap("stat", "queue");
+            wrap("domain", domainName);
+            wrap("queue", queueName);
         }
         else {
-            d_os << WRAP("stat", "queue_app");
-            d_os << WRAP("domain", domainName);
-            d_os << WRAP("queue", queueName);
-            d_os << WRAP("app", appId);
+            wrap("stat", "queue_app");
+            wrap("domain", domainName);
+            wrap("queue", queueName);
+            wrap("app", appId);
         }
-        d_os << METRIC(Stat::e_NB_PRODUCER);
-        d_os << METRIC(Stat::e_NB_CONSUMER);
-        d_os << METRIC(Stat::e_MESSAGES_CURRENT);
-        d_os << METRIC(Stat::e_MESSAGES_MAX);
-        d_os << METRIC(Stat::e_MESSAGES_UTILIZATION_MAX);
-        d_os << METRIC(Stat::e_BYTES_CURRENT);
-        d_os << METRIC(Stat::e_BYTES_MAX);
-        d_os << METRIC(Stat::e_BYTES_UTILIZATION_MAX);
-        d_os << METRIC(Stat::e_PUT_MESSAGES_DELTA);
-        d_os << METRIC(Stat::e_PUT_BYTES_DELTA);
-        d_os << METRIC(Stat::e_PUT_MESSAGES_ABS);
-        d_os << METRIC(Stat::e_PUT_BYTES_ABS);
-        d_os << METRIC(Stat::e_PUSH_MESSAGES_DELTA);
-        d_os << METRIC(Stat::e_PUSH_BYTES_DELTA);
-        d_os << METRIC(Stat::e_PUSH_MESSAGES_ABS);
-        d_os << METRIC(Stat::e_PUSH_BYTES_ABS);
-        d_os << METRIC(Stat::e_ACK_DELTA);
-        d_os << METRIC(Stat::e_ACK_ABS);
-        d_os << METRIC(Stat::e_ACK_TIME_AVG);
-        d_os << METRIC(Stat::e_ACK_TIME_MAX);
-        d_os << METRIC(Stat::e_NACK_DELTA);
-        d_os << METRIC(Stat::e_NACK_ABS);
-        d_os << METRIC(Stat::e_CONFIRM_DELTA);
-        d_os << METRIC(Stat::e_CONFIRM_ABS);
-        d_os << METRIC(Stat::e_CONFIRM_TIME_AVG);
-        d_os << METRIC(Stat::e_CONFIRM_TIME_MAX);
-        d_os << METRIC(Stat::e_REJECT_ABS);
-        d_os << METRIC(Stat::e_REJECT_DELTA);
-        d_os << METRIC(Stat::e_QUEUE_TIME_AVG);
-        d_os << METRIC(Stat::e_QUEUE_TIME_MAX);
-        d_os << METRIC(Stat::e_GC_MSGS_DELTA);
-        d_os << METRIC(Stat::e_GC_MSGS_ABS);
-        d_os << METRIC(Stat::e_ROLE);
-        d_os << METRIC(Stat::e_CFG_MSGS);
-        d_os << METRIC(Stat::e_CFG_BYTES);
-        d_os << METRIC(Stat::e_NO_SC_MSGS_DELTA);
-        d_os << METRIC(Stat::e_NO_SC_MSGS_ABS);
-        d_os << METRIC(Stat::e_HISTORY_ABS);
+        metric(ctx, Stat::e_NB_PRODUCER);
+        metric(ctx, Stat::e_NB_CONSUMER);
+        metric(ctx, Stat::e_MESSAGES_CURRENT);
+        metric(ctx, Stat::e_MESSAGES_MAX);
+        metric(ctx, Stat::e_MESSAGES_UTILIZATION_MAX);
+        metric(ctx, Stat::e_BYTES_CURRENT);
+        metric(ctx, Stat::e_BYTES_MAX);
+        metric(ctx, Stat::e_BYTES_UTILIZATION_MAX);
+        metric(ctx, Stat::e_PUT_MESSAGES_DELTA);
+        metric(ctx, Stat::e_PUT_BYTES_DELTA);
+        metric(ctx, Stat::e_PUT_MESSAGES_ABS);
+        metric(ctx, Stat::e_PUT_BYTES_ABS);
+        metric(ctx, Stat::e_PUSH_MESSAGES_DELTA);
+        metric(ctx, Stat::e_PUSH_BYTES_DELTA);
+        metric(ctx, Stat::e_PUSH_MESSAGES_ABS);
+        metric(ctx, Stat::e_PUSH_BYTES_ABS);
+        metric(ctx, Stat::e_ACK_DELTA);
+        metric(ctx, Stat::e_ACK_ABS);
+        metric(ctx, Stat::e_ACK_TIME_AVG);
+        metric(ctx, Stat::e_ACK_TIME_MAX);
+        metric(ctx, Stat::e_NACK_DELTA);
+        metric(ctx, Stat::e_NACK_ABS);
+        metric(ctx, Stat::e_CONFIRM_DELTA);
+        metric(ctx, Stat::e_CONFIRM_ABS);
+        metric(ctx, Stat::e_CONFIRM_TIME_AVG);
+        metric(ctx, Stat::e_CONFIRM_TIME_MAX);
+        metric(ctx, Stat::e_REJECT_ABS);
+        metric(ctx, Stat::e_REJECT_DELTA);
+        metric(ctx, Stat::e_QUEUE_TIME_AVG);
+        metric(ctx, Stat::e_QUEUE_TIME_MAX);
+        metric(ctx, Stat::e_GC_MSGS_DELTA);
+        metric(ctx, Stat::e_GC_MSGS_ABS);
+        metric(ctx, Stat::e_ROLE);
+        metric(ctx, Stat::e_CFG_MSGS);
+        metric(ctx, Stat::e_CFG_BYTES);
+        metric(ctx, Stat::e_NO_SC_MSGS_DELTA);
+        metric(ctx, Stat::e_NO_SC_MSGS_ABS);
+        metric(ctx, Stat::e_HISTORY_ABS);
         d_os << "}" << bsl::endl;
-
-#undef METRIC
-#undef WRAP
     }
 };
 
@@ -264,13 +273,28 @@ inline void ClusterStatsTraversal::forEachCluster(
 }
 
 // ======================
-// struct ClustersVisitor
+// class ClustersVisitor
 // ======================
 
-struct ClustersVisitor {
+class ClustersVisitor {
+  private:
     bsl::ostream&    d_os;
     bsl::string_view d_prefix;
 
+    template <class KEY, class VAL>
+    void wrap(const KEY& key, const VAL& val) const
+    {
+        d_os << ",\"" << key << "\":\"" << val << "\"";
+    }
+
+    void metric(const bmqst::StatContext&         ctx,
+                mqbstat::ClusterStats::Stat::Enum stat) const
+    {
+        wrap(mqbstat::ClusterStats::Stat::toString(stat),
+             mqbstat::ClusterStats::getValue(ctx, -1, stat));
+    }
+
+  public:
     explicit ClustersVisitor(bsl::ostream& os, bsl::string_view prefix)
     : d_os(os)
     , d_prefix(prefix)
@@ -282,49 +306,40 @@ struct ClustersVisitor {
                     bsl::string_view          partitionName,
                     const bmqst::StatContext& ctx) const
     {
-#define WRAP(KEY, VAL) ",\"" << (KEY) << "\":\"" << (VAL) << "\""
-
-#define METRIC(STAT)                                                          \
-    WRAP(mqbstat::ClusterStats::Stat::toString(STAT),                         \
-         mqbstat::ClusterStats::getValue(ctx, -1, (STAT)))
-
         typedef mqbstat::ClusterStats::Stat Stat;
 
         d_os << "{" << d_prefix;
         if (partitionName.empty()) {
-            d_os << WRAP("stat", "cluster");
-            d_os << WRAP("cluster", clusterName);
-            d_os << METRIC(Stat::e_CLUSTER_STATUS);
-            d_os << METRIC(Stat::e_ROLE);
-            d_os << METRIC(Stat::e_LEADER_STATUS);
-            d_os << METRIC(Stat::e_CSL_REPLICATION_TIME_NS_AVG);
-            d_os << METRIC(Stat::e_CSL_REPLICATION_TIME_NS_MAX);
-            d_os << METRIC(Stat::e_CSL_LOG_OFFSET_BYTES);
-            d_os << METRIC(Stat::e_CSL_WRITE_BYTES);
-            d_os << METRIC(Stat::e_CSL_CFG_BYTES);
-            d_os << METRIC(Stat::e_PARTITION_CFG_DATA_BYTES);
-            d_os << METRIC(Stat::e_PARTITION_CFG_JOURNAL_BYTES);
+            wrap("stat", "cluster");
+            wrap("cluster", clusterName);
+            metric(ctx, Stat::e_CLUSTER_STATUS);
+            metric(ctx, Stat::e_ROLE);
+            metric(ctx, Stat::e_LEADER_STATUS);
+            metric(ctx, Stat::e_CSL_REPLICATION_TIME_NS_AVG);
+            metric(ctx, Stat::e_CSL_REPLICATION_TIME_NS_MAX);
+            metric(ctx, Stat::e_CSL_LOG_OFFSET_BYTES);
+            metric(ctx, Stat::e_CSL_WRITE_BYTES);
+            metric(ctx, Stat::e_CSL_CFG_BYTES);
+            metric(ctx, Stat::e_PARTITION_CFG_DATA_BYTES);
+            metric(ctx, Stat::e_PARTITION_CFG_JOURNAL_BYTES);
         }
         else {
-            d_os << WRAP("stat", "cluster_partition");
-            d_os << WRAP("cluster", clusterName);
-            d_os << WRAP("partition", partitionName);
-            d_os << METRIC(Stat::e_PARTITION_PRIMARY_STATUS);
-            d_os << METRIC(Stat::e_PARTITION_ROLLOVER_TIME);
-            d_os << METRIC(Stat::e_PARTITION_DATA_CONTENT);
-            d_os << METRIC(Stat::e_PARTITION_JOURNAL_CONTENT);
-            d_os << METRIC(Stat::e_PARTITION_DATA_OFFSET);
-            d_os << METRIC(Stat::e_PARTITION_JOURNAL_OFFSET);
-            d_os << METRIC(Stat::e_PARTITION_DATA_UTILIZATION_MAX);
-            d_os << METRIC(Stat::e_PARTITION_JOURNAL_UTILIZATION_MAX);
-            d_os << METRIC(Stat::e_PARTITION_SEQUENCE_NUMBER);
-            d_os << METRIC(Stat::e_PARTITION_REPLICATION_TIME_NS_AVG);
-            d_os << METRIC(Stat::e_PARTITION_REPLICATION_TIME_NS_MAX);
+            wrap("stat", "cluster_partition");
+            wrap("cluster", clusterName);
+            wrap("partition", partitionName);
+            metric(ctx, Stat::e_PARTITION_PRIMARY_STATUS);
+            metric(ctx, Stat::e_PARTITION_ROLLOVER_TIME);
+            metric(ctx, Stat::e_PARTITION_DATA_CONTENT);
+            metric(ctx, Stat::e_PARTITION_JOURNAL_CONTENT);
+            metric(ctx, Stat::e_PARTITION_DATA_OFFSET);
+            metric(ctx, Stat::e_PARTITION_JOURNAL_OFFSET);
+            metric(ctx, Stat::e_PARTITION_DATA_UTILIZATION_MAX);
+            metric(ctx, Stat::e_PARTITION_JOURNAL_UTILIZATION_MAX);
+            metric(ctx, Stat::e_PARTITION_SEQUENCE_NUMBER);
+            metric(ctx, Stat::e_PARTITION_REPLICATION_TIME_NS_AVG);
+            metric(ctx, Stat::e_PARTITION_REPLICATION_TIME_NS_MAX);
         }
         d_os << "}" << bsl::endl;
-
-#undef METRIC
-#undef WRAP
     }
 };
 
