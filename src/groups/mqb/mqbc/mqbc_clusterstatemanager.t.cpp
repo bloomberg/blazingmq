@@ -1436,12 +1436,12 @@ static void test14_registrationRequestInLdrHealingStg3()
 // Concerns:
 //   Verify that a leader in LDR_HEALING_STG3 (has applied the
 //   LeaderAdvisory, waiting for commit) handles a late-joining follower's
-//   registration request by sending a registration response and
-//   replicating the uncommitted advisory to that follower.
+//   registration request by sending a registration response and applying a
+//   new LeaderAdvisory to the CSL.
 //
 // Testing:
 //   LDR_HEALING_STG3 + REGISTRATION_RQST -> sendRegistrationResponse +
-//   sendCSLPatch, stays in LDR_HEALING_STG3
+//   applyCSLSelf, stays in LDR_HEALING_STG3
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("CLUSTER STATE MANAGER - "
@@ -1531,11 +1531,12 @@ static void test14_registrationRequestInLdrHealingStg3()
     // 4. Verify: registration response was sent to the late follower
     tester.verifyRegistrationResponseSent(*lateFollower, 10);
 
-    // 5. Verify: replicateUncommitted was called with the late follower
-    const bsl::vector<mqbnet::ClusterNode*>& replicateCalls =
-        tester.d_clusterStateLedger_p->_replicateUncommittedCalls();
-    BMQTST_ASSERT_EQ(replicateCalls.size(), 1U);
-    BMQTST_ASSERT_EQ(replicateCalls[0], lateFollower);
+    // 5. Verify: a second LeaderAdvisory was applied to the CSL
+    ClusterMessageCRefList advisoriesAfter;
+    tester.d_clusterStateLedger_p->uncommittedAdvisories(&advisoriesAfter);
+    BMQTST_ASSERT_EQ(advisoriesAfter.size(), 2U);
+    BMQTST_ASSERT(
+        advisoriesAfter.back().get().choice().isLeaderAdvisoryValue());
 
     // 6. Commit the advisory → leader transitions to LDR_HEALED
     tester.d_clusterStateLedger_p->_commitAdvisories(
@@ -2508,9 +2509,6 @@ static void test23_selectFollowerFromLeader()
     tester3.d_cluster_mp->requestManager().processResponse(
         followerLSNResponse);
     followerLSNResponse.rId() = 2;
-    tester3.d_cluster_mp->requestManager().processResponse(
-        followerLSNResponse);
-    followerLSNResponse.rId() = 3;
     tester3.d_cluster_mp->requestManager().processResponse(
         followerLSNResponse);
 

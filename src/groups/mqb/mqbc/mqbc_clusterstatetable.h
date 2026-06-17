@@ -691,7 +691,7 @@ class ClusterStateTable
                 LDR_HEALING_STG3);
         CST_CFG(LDR_HEALING_STG3,
                 FOL_LSN_RSPN,
-                sendCSLPatch,
+                applyCSLSelf,
                 LDR_HEALING_STG3);
         CST_CFG(LDR_HEALING_STG3,
                 FOL_CSL_RQST,
@@ -703,7 +703,7 @@ class ClusterStateTable
                 LDR_HEALING_STG3);
         CST_CFG(LDR_HEALING_STG3,
                 REGISTRATION_RQST,
-                sendRegistrationResponse_sendCSLPatch,
+                sendRegistrationResponse_applyCSLSelf,
                 LDR_HEALING_STG3);
         CST_CFG(LDR_HEALING_STG3,
                 CSL_CMT_SUCCESS,
