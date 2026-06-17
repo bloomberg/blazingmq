@@ -840,7 +840,13 @@ def test_restart_between_legacy_and_fsm_add_remove_app(
     confirm_one_message(consumer, fanout_queue, "foo")
 
     current_app_ids = DEFAULT_APP_IDS + ["quux"]
-    cluster.set_app_ids(current_app_ids, du)
+    cluster.set_app_ids(current_app_ids, du, succeed=None)
+
+    # need to make sure the config has made it to the primary since this is a
+    # non-blocking op.
+    assert cluster.last_known_leader.capture(
+        r"Adding VirtualStorage for appId 'quux'", 5
+    )
 
     post_few_messages(producer, fanout_queue, ["msg3"])
 
@@ -867,7 +873,16 @@ def test_restart_between_legacy_and_fsm_add_remove_app(
     reconfigure_leader_only = switch_cluster_mode[2]
 
     current_app_ids.append("corge")
-    cluster.set_app_ids(current_app_ids, du, leader_only=reconfigure_leader_only)
+    cluster.set_app_ids(
+        current_app_ids, du, leader_only=reconfigure_leader_only, succeed=None
+    )
+
+    # need to make sure the config has made it to the primary since this is a
+    # non-blocking op.
+    assert cluster.last_known_leader.capture(
+        r"Adding VirtualStorage for appId 'corge'", 5
+    )
+
     post_few_messages(producer, fanout_queue, ["msg4"])
 
     current_app_ids.remove("foo")
@@ -980,7 +995,13 @@ def test_restart_between_legacy_and_fsm_purge_queue_app(
     confirm_one_message(consumer, fanout_queue, "foo")
 
     current_app_ids = DEFAULT_APP_IDS + ["quux"]
-    cluster.set_app_ids(current_app_ids, du)
+    cluster.set_app_ids(current_app_ids, du, succeed=None)
+
+    # need to make sure the config has made it to the primary since this is a
+    # non-blocking op.
+    assert cluster.last_known_leader.capture(
+        r"Adding VirtualStorage for appId 'quux'", 5
+    )
 
     post_few_messages(producer, fanout_queue, ["msg3"])
 
@@ -1007,7 +1028,16 @@ def test_restart_between_legacy_and_fsm_purge_queue_app(
     reconfigure_leader_only = switch_cluster_mode[2]
 
     current_app_ids.append("corge")
-    cluster.set_app_ids(current_app_ids, du, leader_only=reconfigure_leader_only)
+    cluster.set_app_ids(
+        current_app_ids, du, leader_only=reconfigure_leader_only, succeed=None
+    )
+
+    # need to make sure the config has made it to the primary since this is a
+    # non-blocking op.
+    assert cluster.last_known_leader.capture(
+        r"Adding VirtualStorage for appId 'corge'", 5
+    )
+
     post_few_messages(producer, fanout_queue, ["msg4"])
 
     current_app_ids.remove("foo")
