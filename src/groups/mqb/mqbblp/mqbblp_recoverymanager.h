@@ -1448,6 +1448,7 @@ RecoveryManager_RecoveryContext::fileSet() const
 inline const RecoveryManager_RecoveryContext::PartitionRecoveryCb&
 RecoveryManager_RecoveryContext::recoveryCb() const
 {
+    BSLS_ASSERT_SAFE(d_recoveryCb);
     return d_recoveryCb;
 }
 
@@ -1741,6 +1742,7 @@ RecoveryManager_PrimarySyncContext::syncPeer() const
 inline const RecoveryManager_PrimarySyncContext::PartitionPrimarySyncCb&
 RecoveryManager_PrimarySyncContext::partitionPrimarySyncCb() const
 {
+    BSLS_ASSERT_SAFE(d_primarySyncCb);
     return d_primarySyncCb;
 }
 

@@ -3146,8 +3146,7 @@ void RecoveryManager::startRecovery(
 
     recoveryCtx.setRecoveryStatus(true);
 
-    if (d_clusterData_p->cluster().isLocal() &&
-        !d_clusterData_p->cluster().isHybridWorkflow()) {
+    if (d_clusterData_p->cluster().isLocal()) {
         onPartitionRecoveryStatus(partitionId, 0 /* status */);
         return;  // RETURN
     }

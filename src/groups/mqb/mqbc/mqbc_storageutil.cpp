@@ -1491,7 +1491,6 @@ void StorageUtil::onPartitionPrimarySync(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(fs && fs->inDispatcherThread());
-    BSLS_ASSERT_SAFE(fs->isOpen());
     BSLS_ASSERT_SAFE(pinfo);
     BSLS_ASSERT_SAFE(clusterData);
     BSLS_ASSERT_SAFE(0 <= partitionId);
@@ -1545,6 +1544,8 @@ void StorageUtil::onPartitionPrimarySync(
         //      partition.  If chosen node doesn't transition to active primary
         //      during that time, leader should choose a new node as primary.
     }
+
+    BSLS_ASSERT_SAFE(fs->isOpen());
 
     // Broadcast self as active primary of this partition.  This must be done
     // before invoking 'FileStore::setActivePrimary'.

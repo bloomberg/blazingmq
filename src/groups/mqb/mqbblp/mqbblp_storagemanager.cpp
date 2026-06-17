@@ -287,10 +287,10 @@ void StorageManager::onPartitionRecovery(
                 }
             }
 
-            if (d_cluster_p->isHybridWorkflow() && fs->isOpen()) {
-                BSLS_ASSERT_SAFE(pinfo.primary() != 0);
-                BSLS_ASSERT_SAFE(pinfo.primaryStatus() ==
-                                 bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE);
+            if (d_cluster_p->isHybridWorkflow() && fs->isOpen() &&
+                pinfo.primary() != 0 &&
+                pinfo.primaryStatus() ==
+                    bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE) {
                 fs->setActivePrimary(pinfo.primary(), pinfo.primaryLeaseId());
             }
 
@@ -386,7 +386,8 @@ void StorageManager::onPartitionPrimarySync(int partitionId, int status)
                                               partitionId,
                                               status);
 
-    if (d_cluster_p->isHybridWorkflow()) {
+    if (d_cluster_p->isHybridWorkflow() &&
+        !d_clusterData_p->cluster().isLocal()) {
         // In hybrid mode, the primary's recovery state (set by startRecovery)
         // must be cleared after partition primary sync completes.  This flows
         // through onPartitionRecovery -> onPartitionDoneRecovery.
@@ -911,6 +912,10 @@ void StorageManager::processStorageSyncRequestDispatched(
                              source,
                              "Partition not active yet.");
         return;  // RETURN
+    }
+
+    if (d_cluster_p->isHybridWorkflow() && fs->isOpen()) {
+        fs->issueSyncPoint();
     }
 
     d_recoveryManager_mp->processStorageSyncRequest(message, source, fs);
@@ -1581,6 +1586,12 @@ void StorageManager::detectSelfPrimaryInPFSM(int                  partitionId,
 
     mqbs::FileStore* fs = d_fileStores[pid].get();
     BSLS_ASSERT_SAFE(fs);
+
+    BALL_LOG_INFO << d_clusterData_p->identity().description()
+                  << " Partition [" << partitionId
+                  << "]: detect self primary event. Primary: "
+                  << primaryNode->nodeDescription()
+                  << ", leaseId: " << primaryLeaseId;
 
     ClusterNodes peers;
     mqbc::ClusterUtil::loadPeerNodes(&peers, *d_clusterData_p);
