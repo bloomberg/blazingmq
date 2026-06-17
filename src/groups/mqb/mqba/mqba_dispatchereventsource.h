@@ -76,20 +76,18 @@ class DispatcherEventSource BSLS_KEYWORD_FINAL
     };
 
     // DATA
-    typename PoolTraits<mqbevt::AckEvent>::Pool      d_ackEventPool;
-    typename PoolTraits<mqbevt::CallbackEvent>::Pool d_callbackEventPool;
-    typename PoolTraits<mqbevt::ClusterStateEvent>::Pool
-                                                    d_clusterStateEventPool;
-    typename PoolTraits<mqbevt::ConfirmEvent>::Pool d_confirmEventPool;
-    typename PoolTraits<mqbevt::ControlMessageEvent>::Pool
-        d_controlMessageEventPool;
-    typename PoolTraits<mqbevt::DispatcherEvent>::Pool d_dispatcherEventPool;
-    typename PoolTraits<mqbevt::PushEvent>::Pool       d_pushEventPool;
-    typename PoolTraits<mqbevt::PutEvent>::Pool        d_putEventPool;
-    typename PoolTraits<mqbevt::ReceiptEvent>::Pool    d_receiptEventPool;
-    typename PoolTraits<mqbevt::RecoveryEvent>::Pool   d_recoveryEventPool;
-    typename PoolTraits<mqbevt::RejectEvent>::Pool     d_rejectEventPool;
-    typename PoolTraits<mqbevt::StorageEvent>::Pool    d_storageEventPool;
+    PoolTraits<mqbevt::AckEvent>::Pool            d_ackEventPool;
+    PoolTraits<mqbevt::CallbackEvent>::Pool       d_callbackEventPool;
+    PoolTraits<mqbevt::ClusterStateEvent>::Pool   d_clusterStateEventPool;
+    PoolTraits<mqbevt::ConfirmEvent>::Pool        d_confirmEventPool;
+    PoolTraits<mqbevt::ControlMessageEvent>::Pool d_controlMessageEventPool;
+    PoolTraits<mqbevt::DispatcherEvent>::Pool     d_dispatcherEventPool;
+    PoolTraits<mqbevt::PushEvent>::Pool           d_pushEventPool;
+    PoolTraits<mqbevt::PutEvent>::Pool            d_putEventPool;
+    PoolTraits<mqbevt::ReceiptEvent>::Pool        d_receiptEventPool;
+    PoolTraits<mqbevt::RecoveryEvent>::Pool       d_recoveryEventPool;
+    PoolTraits<mqbevt::RejectEvent>::Pool         d_rejectEventPool;
+    PoolTraits<mqbevt::StorageEvent>::Pool        d_storageEventPool;
 
   public:
     // TRAITS
