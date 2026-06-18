@@ -6,5 +6,6 @@ pytest-cmake
 pytest-cov
 pytest-order
 pytest-repeat
+pytest-timeout
 pytest-rerunfailures==14.0
 pytest-xdist
