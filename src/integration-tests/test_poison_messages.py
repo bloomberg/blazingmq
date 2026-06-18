@@ -213,8 +213,31 @@ class TestPoisonMessages:
             leader = leader_candidate
         assert leader == multi_node.wait_leader()
 
+        # Drain before kill so the crash-rejection and REJECT upstream messages
+        # are not already in the backlog from a prior event.
+        proxy.drain()
+        replica.drain()
+
         consumer.check_exit_code = False
         consumer.kill()
+
+        # Wait for proxy and the active replica to fully process consumer_1's
+        # disconnect before opening consumer_2.
+        # When consumer_1 is killed:
+        # 1. westp detects the crash, calls clearClientDispatched(hasLostClient=
+        #    true) on the queue dispatcher, which rejects the in-flight message
+        #    and sends a REJECT upstream to the active replica.
+        # 2. The active replica processes the REJECT and removes the GUID from
+        #    its relay QueueHandle's d_unconfirmedMessages.
+        # Without both barriers the replica may still consider the message
+        # in-flight and skip the re-push as a "duplicate PUSH".
+        assert proxy.capture("rejecting.*messages because of a client crash", 10)
+
+        # Wait for the new leader to process the closeQueue from westp
+        # (triggered by consumer_1's disconnect), which calls
+        # transferUnconfirmedMessages and clears d_unconfirmedMessages.
+        leader.drain()
+        assert leader.capture(f"closeQueue.*{tc.TEST_QUEUE}", 10)
 
         # start new consumer to synchronize with proxy and replica
         consumer = proxy.create_client("consumer_2")
