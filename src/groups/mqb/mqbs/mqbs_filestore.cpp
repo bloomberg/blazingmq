@@ -6882,7 +6882,7 @@ void FileStore::setActivePrimary(mqbnet::ClusterNode* primaryNode,
     }
 
     if (primaryLeaseId > d_primaryLeaseId) {
-        d_highestSeqNums[primaryLeaseId] = 0;
+        d_highestSeqNums.emplace(primaryLeaseId, 0);
     }
     d_primaryLeaseId = primaryLeaseId;
     d_primaryNode_p  = primaryNode;
