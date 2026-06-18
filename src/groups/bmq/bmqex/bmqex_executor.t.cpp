@@ -141,60 +141,6 @@ class StatExecutor {
     Statistics* statistics() const { return d_statistics_p; }
 };
 
-// =======================
-// class SelfEqualExecutor
-// =======================
-
-/// Provides a dummy executor that always compares equal to itself.
-class SelfEqualExecutor {
-  public:
-    // MANIPULATORS
-    template <class F>
-    void post(const F&) const
-    {
-        // not a valid operation
-        BSLS_ASSERT_OPT(false);
-    }
-
-    template <class F>
-    void dispatch(const F&) const
-    {
-        // not a valid operation
-        BSLS_ASSERT_OPT(false);
-    }
-
-  public:
-    // ACCESSORS
-    bool operator==(const SelfEqualExecutor&) const { return true; }
-};
-
-// =========================
-// class SelfUnequalExecutor
-// =========================
-
-/// Provides a dummy executor that always compares unequal to itself.
-class SelfUnequalExecutor {
-  public:
-    // MANIPULATORS
-    template <class F>
-    void post(const F&) const
-    {
-        // not a valid operation
-        BSLS_ASSERT_OPT(false);
-    }
-
-    template <class F>
-    void dispatch(const F&) const
-    {
-        // not a valid operation
-        BSLS_ASSERT_OPT(false);
-    }
-
-  public:
-    // ACCESSORS
-    bool operator==(const SelfUnequalExecutor&) const { return false; }
-};
-
 // =====================
 // class ExecutorElarger
 // =====================
@@ -786,87 +732,6 @@ static void test8_targetType()
     BMQTST_ASSERT_EQ(ex2.targetType() == typeid(StatExecutor), true);
 }
 
-static void test9_equalityComparison()
-// ------------------------------------------------------------------------
-// EQUALITY COMPARISON
-//
-// Concerns:
-//   Ensure proper behavior of the equality comparison operator.
-//
-// Plan:
-//   Check that:
-//   : o Two empty executors compare equal;
-//   : o An empty executor does not compare equal with a non-empty executor;
-//   : o Executors sharing the same target compares equal;
-//   : o Executors with different target types compare unequal;
-//   : o Executors with the same target type compare equal if their targets
-//   :   compare equal, and vice versa.
-//
-// Testing:
-//   Equality comparison
-// ------------------------------------------------------------------------
-{
-    // PRECONDITIONS
-    BSLMF_ASSERT(bmqex::Executor_Box_SboImpCanHold<
-                     ExecutorElarger<SelfUnequalExecutor> >::value == false);
-
-    bslma::TestAllocator alloc;
-
-    // two empty executors compare equal
-    BMQTST_ASSERT_EQ(bmqex::Executor() == bmqex::Executor(), true);
-    BMQTST_ASSERT_EQ(bmqex::Executor() != bmqex::Executor(), false);
-
-    // empty executor is not equal to a non-empty executor
-    BMQTST_ASSERT_EQ(bmqex::Executor() ==
-                         bmqex::Executor(SelfEqualExecutor(), &alloc),
-                     false);
-    BMQTST_ASSERT_EQ(bmqex::Executor() !=
-                         bmqex::Executor(SelfEqualExecutor(), &alloc),
-                     true);
-
-    // non-empty executor is not equal to an empty executor
-    BMQTST_ASSERT_EQ(bmqex::Executor(SelfEqualExecutor(), &alloc) ==
-                         bmqex::Executor(),
-                     false);
-    BMQTST_ASSERT_EQ(bmqex::Executor(SelfEqualExecutor(), &alloc) !=
-                         bmqex::Executor(),
-                     true);
-
-    // executors sharing the same target compares equal
-    bmqex::Executor ex1(ExecutorElarger<SelfUnequalExecutor>(), &alloc);
-    bmqex::Executor ex2 = ex1;
-    BMQTST_ASSERT_EQ(ex1.target<SelfUnequalExecutor>() ==
-                         ex2.target<SelfUnequalExecutor>(),
-                     true);
-    BMQTST_ASSERT_EQ(ex1 == ex2, true);
-    BMQTST_ASSERT_EQ(ex1 != ex2, false);
-
-    // executors with different target types compare unequal
-    BMQTST_ASSERT_EQ(bmqex::Executor(SelfEqualExecutor(), &alloc) ==
-                         bmqex::Executor(SelfUnequalExecutor(), &alloc),
-                     false);
-    BMQTST_ASSERT_EQ(bmqex::Executor(SelfEqualExecutor(), &alloc) !=
-                         bmqex::Executor(SelfUnequalExecutor(), &alloc),
-                     true);
-
-    // executors with the same target type compare equal if their targets
-    // compare equal ...
-    BMQTST_ASSERT_EQ(bmqex::Executor(SelfUnequalExecutor(), &alloc) ==
-                         bmqex::Executor(SelfUnequalExecutor(), &alloc),
-                     false);
-    BMQTST_ASSERT_EQ(bmqex::Executor(SelfUnequalExecutor(), &alloc) !=
-                         bmqex::Executor(SelfUnequalExecutor(), &alloc),
-                     true);
-
-    // ... and vice versa
-    BMQTST_ASSERT_EQ(bmqex::Executor(SelfEqualExecutor(), &alloc) ==
-                         bmqex::Executor(SelfEqualExecutor(), &alloc),
-                     true);
-    BMQTST_ASSERT_EQ(bmqex::Executor(SelfEqualExecutor(), &alloc) !=
-                         bmqex::Executor(SelfEqualExecutor(), &alloc),
-                     false);
-}
-
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -884,7 +749,6 @@ int main(int argc, char* argv[])
     case 6: test6_boolOperator(); break;
     case 7: test7_target(); break;
     case 8: test8_targetType(); break;
-    case 9: test9_equalityComparison(); break;
 
     default: {
         bsl::cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND."

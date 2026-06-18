@@ -19,8 +19,7 @@
 //@PURPOSE: Provides an executor allowing functions to execute on any thread.
 //
 //@CLASSES:
-//  bmqex::SystemExecutor:             system executor
-//  bmqex::SystemExecutorContextGuard: scoped system execution context guard
+//  bmqex::SystemExecutor: system executor
 //
 //@DESCRIPTION:
 // This component provides a mechanism 'bmqex::SystemExecutor', that is an
@@ -43,11 +42,11 @@
 //
 /// Execution context
 ///-----------------
-// All 'bmqex::SystemExecutor' objects refer to the same execution context
-// mechanism, that is a singleton. While the execution context itself is an
-// implementation details, a guard class, 'bmqex::SystemExecutorContextGuard',
-// is provided, allowing to explicitly initialized the context with a custom
-// allocator.
+// Each 'bmqex::SystemExecutor' object owns an execution context, represented
+// by 'bmqex::SystemExecutor_Context', via a shared pointer. Copies of an
+// executor share the same context. When the last executor referencing a given
+// context is destroyed, the context destructor blocks until all threads
+// spawned through that context have completed.
 //
 /// Usage
 ///-----
@@ -57,26 +56,6 @@
 //  bmqex::SystemExecutor ex;
 //  ex.post([](){ bsl::cout << "I'm executed!"; });
 //..
-// And here is another one. This time we explicitly specify desired attributes
-// of the system thread.
-//..
-//  bslmt::ThreadAttributes threadAttr;
-//  threadAttr.setStackSize(1024 * 1024);
-//
-//  bmqex::SystemExecutor ex(threadAttr);
-//  ex.post([](){ bsl::cout << "I'm executed!"; });
-//..
-// And this example demonstrates the usage of the execution context guard with
-// a custom allocator.
-//..
-//  // a test allocator
-//  bslma::TestAllocator testAlloc;
-//
-//  // initialize system execution context with test allocator
-//  // bmqex::SystemExecutorContextGuard sysCtxGuard(&testAlloc);
-//
-//  // use the executor ...
-//..
 
 // BDE
 #include <bdlma_concurrentpoolallocator.h>
@@ -85,6 +64,7 @@
 #include <bslalg_constructorproxy.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
+#include <bslma_usesbslmaallocator.h>
 #include <bslmf_decay.h>
 #include <bslmf_isbitwisemoveable.h>
 #include <bslmf_nestedtraitdeclaration.h>
@@ -164,7 +144,7 @@ struct SystemExecutor_ThreadData {
 // class SystemExecutor_Context
 // ============================
 
-/// Provides a singleton execution context for `SystemExecutor`.
+/// Provides an execution context for `SystemExecutor`.
 class SystemExecutor_Context {
   private:
     // PRIVATE DATA
@@ -216,39 +196,15 @@ class SystemExecutor_Context {
     operator&=(const SystemExecutor_Context&) BSLS_KEYWORD_DELETED;
 
   public:
-    // CLASS METHODS
-
-    /// Return a reference to a process-wide unique object of this class.
-    /// The lifetime of this object is guaranteed to extend from the first
-    /// call of this function (or of `initSingleton`), and until either a
-    /// call to `shutdownSingleton`, or the program termination. The
-    /// behavior is undefined if the object has already been destroyed via a
-    /// call to `shutdownSingleton`.
-    static SystemExecutor_Context& singleton();
-
-    /// Return a reference to a process-wide unique object of this class
-    /// initialized with the optionally specified `globalAllocator` or, if
-    /// `globalAllocator` is 0, with the currently installed global
-    /// allocator. The lifetime of this object is guaranteed to extend from
-    /// the first call of this function, and until either a call to
-    /// `shutdownSingleton`, or the program termination. The behavior is
-    /// undefined if the object has already been initialized via a call to
-    /// `singleton` / `initSingleton`, or has already been destroyed via a
-    /// call to `shutdownSingleton`.
-    static SystemExecutor_Context&
-    initSingleton(bslma::Allocator* globalAllocator = 0);
-
-    /// Destroy the singleton object. The behavior is undefined if the
-    /// object has not been initialized, or has already been destroyed.
-    static void shutdownSingleton() BSLS_KEYWORD_NOEXCEPT;
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(SystemExecutor_Context,
+                                   bslma::UsesBslmaAllocator)
 
   public:
     // CREATORS
 
     /// Create a `SystemExecutor_Context` object. Specify an `allocator`
     /// used to supply memory.
-    ///
-    /// Note that this constructor shall not be used directly.
     explicit SystemExecutor_Context(bslma::Allocator* allocator);
 
     /// Destroy this object. Block the calling thread pending completion of
@@ -303,6 +259,9 @@ class SystemExecutor {
   private:
     // PRIVATE DATA
 
+    // Execution context shared between copies of this executor.
+    bsl::shared_ptr<SystemExecutor_Context> d_context_sp;
+
     // Optional thread attributes used when spawning threads to execute
     // submitted functors. Note that to meet the `noexcept` requirements
     // for the executor copy and move constructors, this object is shared
@@ -310,11 +269,18 @@ class SystemExecutor {
     bsl::shared_ptr<bslmt::ThreadAttributes> d_threadAttributes;
 
   public:
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(SystemExecutor, bslma::UsesBslmaAllocator)
+    BSLMF_NESTED_TRAIT_DECLARATION(SystemExecutor, bslmf::IsBitwiseMoveable)
+
+  public:
     // CREATORS
 
     /// Create a `SystemExecutor` object with no associated thread
-    /// attributes.
-    SystemExecutor();
+    /// attributes. Optionally specify a `basicAllocator` used to supply
+    /// memory. If `basicAllocator` is 0, the currently installed default
+    /// allocator is used.
+    SystemExecutor(bslma::Allocator* basicAllocator = 0);
 
     /// Create a `SystemExecutor` object with the specified associated
     /// `threadAttributes`. Optionally specify a `basicAllocator` used to
@@ -354,62 +320,7 @@ class SystemExecutor {
     /// expression.
     template <class FUNCTION>
     void dispatch(BSLS_COMPILERFEATURES_FORWARD_REF(FUNCTION) f) const;
-
-  public:
-    // ACCESSORS
-
-    /// Return a pointer to the executor's associated tread attributes, or a
-    /// null pointer if the executor has no associated thread attributes.
-    const bslmt::ThreadAttributes*
-    threadAttributes() const BSLS_KEYWORD_NOEXCEPT;
-
-  public:
-    // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(SystemExecutor, bslmf::IsBitwiseMoveable)
 };
-
-// ================================
-// class SystemExecutorContextGuard
-// ================================
-
-/// Provides a scoped guard for the system execution context singleton, that
-/// initializes the singleton object on construction and destroy the singleton
-/// object on destruction.
-class SystemExecutorContextGuard {
-  private:
-    // NOT IMPLEMENTED
-    SystemExecutorContextGuard(const SystemExecutorContextGuard&)
-        BSLS_KEYWORD_DELETED;
-    SystemExecutorContextGuard&
-    operator=(const SystemExecutorContextGuard&) BSLS_KEYWORD_DELETED;
-
-  public:
-    // CREATORS
-
-    /// Initialize the system execution context singleton with the specified
-    /// `globalAllocator`. The behavior is undefined if the singleton has
-    /// already been initialized or has already been destroyed.
-    explicit SystemExecutorContextGuard(bslma::Allocator* globalAllocator = 0);
-
-    /// Destroy the system execution context singleton.
-    ~SystemExecutorContextGuard();
-};
-
-// FREE OPERATORS
-
-/// - If `lhs` and `rhs` have no associated thread attributes, return
-///   `true`;
-/// - Otherwise, if `lhs` or `rhs` has no associated thread attributes,
-///   return `false`;
-/// - Otherwise, if `lhs` and `rhs` contain identical thread attributes,
-///   return `true`;
-/// - Otherwise, return `false`.
-bool operator==(const SystemExecutor& lhs,
-                const SystemExecutor& rhs) BSLS_KEYWORD_NOEXCEPT;
-
-/// Return !(lhs == rhs).
-bool operator!=(const SystemExecutor& lhs,
-                const SystemExecutor& rhs) BSLS_KEYWORD_NOEXCEPT;
 
 // ============================================================================
 //                           INLINE DEFINITIONS
@@ -551,33 +462,16 @@ template <class FUNCTION>
 inline void SystemExecutor::post(BSLS_COMPILERFEATURES_FORWARD_REF(FUNCTION)
                                      f) const
 {
-    SystemExecutor_Context::singleton().executeAsync(
-        BSLS_COMPILERFEATURES_FORWARD(FUNCTION, f),
-        d_threadAttributes ? *d_threadAttributes : bslmt::ThreadAttributes());
+    d_context_sp->executeAsync(BSLS_COMPILERFEATURES_FORWARD(FUNCTION, f),
+                               d_threadAttributes ? *d_threadAttributes
+                                                  : bslmt::ThreadAttributes());
 }
 
 template <class FUNCTION>
 inline void
 SystemExecutor::dispatch(BSLS_COMPILERFEATURES_FORWARD_REF(FUNCTION) f) const
 {
-    SystemExecutor_Context::singleton().executeInPlace(
-        BSLS_COMPILERFEATURES_FORWARD(FUNCTION, f));
-}
-
-// --------------------------------
-// class SystemExecutorContextGuard
-// --------------------------------
-
-// CREATORS
-inline SystemExecutorContextGuard::SystemExecutorContextGuard(
-    bslma::Allocator* globalAllocator)
-{
-    SystemExecutor_Context::initSingleton(globalAllocator);
-}
-
-inline SystemExecutorContextGuard::~SystemExecutorContextGuard()
-{
-    SystemExecutor_Context::shutdownSingleton();
+    d_context_sp->executeInPlace(BSLS_COMPILERFEATURES_FORWARD(FUNCTION, f));
 }
 
 }  // close package namespace

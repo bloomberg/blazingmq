@@ -191,39 +191,6 @@ void Executor::swap(Executor& other) BSLS_KEYWORD_NOEXCEPT
 }
 
 // ACCESSORS
-bool Executor::operator==(const Executor& rhs) const BSLS_KEYWORD_NOEXCEPT
-{
-    if (!(*this) && !rhs) {
-        // Both 'Executor's are target-less, therefore equal.
-        return true;  // RETURN
-    }
-
-    if (!(*this) || !rhs) {
-        // Only one 'Executor' contains a target, therefore they are not equal.
-        return false;  // RETURN
-    }
-
-    if (this->d_box.target() == rhs.d_box.target()) {
-        // Both 'Executor's share a target, therefore they are equal.
-        return true;  // RETURN
-    }
-
-    if (this->d_box.target()->targetType() !=
-        rhs.d_box.target()->targetType()) {
-        // 'Executor's have different target types, therefore they are not
-        // equal.
-        return false;  // RETURN
-    }
-
-    // compare targets
-    return this->d_box.target()->equal(*rhs.d_box.target());
-}
-
-bool Executor::operator!=(const Executor& rhs) const BSLS_KEYWORD_NOEXCEPT
-{
-    return !(*this == rhs);
-}
-
 Executor::operator bool() const BSLS_KEYWORD_NOEXCEPT
 {
     return static_cast<bool>(d_box.target());

@@ -86,30 +86,7 @@ void onThreadExit(void* threadsCompleted)
 //                                    TESTS
 // ----------------------------------------------------------------------------
 
-static void test1_context_singleton()
-// ------------------------------------------------------------------------
-// CONTEXT SINGLETON
-//
-// Concerns:
-//   Ensure proper behavior of the 'singleton' function.
-//
-// Plan:
-//   Check that 'singleton()' always returns a reference to the same
-//   object.
-//
-// Testing:
-//   bmqex::SystemExecutor::singleton
-// ------------------------------------------------------------------------
-{
-    bmqex::SystemExecutor_Context* ctx1 =
-        &bmqex::SystemExecutor_Context::singleton();
-    bmqex::SystemExecutor_Context* ctx2 =
-        &bmqex::SystemExecutor_Context::singleton();
-
-    BMQTST_ASSERT_EQ(ctx1, ctx2);
-}
-
-static void test2_context_creators()
+static void test1_context_creators()
 // ------------------------------------------------------------------------
 // CONTEXT CREATORS
 //
@@ -134,31 +111,26 @@ static void test2_context_creators()
 
     // create a thread-local storage associated with a thread-exit handler
     bslmt::ThreadUtil::Key tlsKey;
-    int rc = bslmt::ThreadUtil::createKey(&tlsKey, onThreadExit);
+    int                    rc = 0;
+    rc = bslmt::ThreadUtil::createKey(&tlsKey, onThreadExit);
     BSLS_ASSERT_OPT(rc == 0);
 
-    // initialize the context singleton object
-    bmqex::SystemExecutor_Context& context =
-        bmqex::SystemExecutor_Context::initSingleton(&alloc);
-
-    // context initialized with the test allocator
-    BMQTST_ASSERT_EQ(context.allocator(), &alloc);
-
     bsls::AtomicInt threadsCompleted(0);
-    for (int i = 0; i < k_NUM_JOBS; ++i) {
-        // submit a function object that attaches the thread-exit handler
-        // to the current thread
-        context.executeAsync(
-            bdlf::BindUtil::bind(bslmt::ThreadUtil::setSpecific,
-                                 bsl::cref(tlsKey),
-                                 &threadsCompleted),
-            bslmt::ThreadAttributes());
+    {
+        bmqex::SystemExecutor_Context context(&alloc);
+
+        BMQTST_ASSERT_EQ(context.allocator(), &alloc);
+
+        for (int i = 0; i < k_NUM_JOBS; ++i) {
+            context.executeAsync(
+                bdlf::BindUtil::bind(bslmt::ThreadUtil::setSpecific,
+                                     bsl::cref(tlsKey),
+                                     &threadsCompleted),
+                bslmt::ThreadAttributes());
+        }
     }
 
-    // destroy context singleton object
-    bmqex::SystemExecutor_Context::shutdownSingleton();
-
-    // all thread owned by the execution context have completed
+    // all threads owned by the execution context have completed
     BMQTST_ASSERT_EQ(threadsCompleted, k_NUM_JOBS);
 
     // delete the thread-local storage
@@ -166,7 +138,7 @@ static void test2_context_creators()
     BSLS_ASSERT_OPT(rc == 0);
 }
 
-static void test3_executor_creators()
+static void test2_executor_creators()
 // ------------------------------------------------------------------------
 // EXECUTOR CREATORS
 //
@@ -186,50 +158,23 @@ static void test3_executor_creators()
 {
     bslma::TestAllocator alloc;
 
-    // initialize the context singleton with the test allocator
-    bmqex::SystemExecutorContextGuard contextGuard(&alloc);
-
     // 1. default-construct
     {
-        bmqex::SystemExecutor ex;
-
-        BMQTST_ASSERT(!ex.threadAttributes());
+        bmqex::SystemExecutor ex(&alloc);
+        (void)ex;
     }
 
     // 2. ThreadAttributes-construct
     {
-        // prepare thread attributes with non-default values (except for the
-        // DETACHED attribute, that has to be 'e_CREATE_JOINABLE')
         bslmt::ThreadAttributes attr(&alloc);
         attr.setDetachedState(bslmt::ThreadAttributes::e_CREATE_JOINABLE);
-        attr.setGuardSize(100);
-        attr.setInheritSchedule(false);
-        attr.setSchedulingPolicy(bslmt::ThreadAttributes::e_SCHED_FIFO);
-        attr.setSchedulingPriority(200);
-        attr.setStackSize(300);
-        attr.setThreadName("myThread");
 
-        // create executor
         bmqex::SystemExecutor ex(attr, &alloc);
-
-        // executor holds a copy of the thread attributes
-        BMQTST_ASSERT(ex.threadAttributes());
-        BMQTST_ASSERT(ex.threadAttributes() != &attr);
-
-        // the copy is identical to the original value
-        BMQTST_ASSERT_EQ(ex.threadAttributes()->detachedState(),
-                         bslmt::ThreadAttributes::e_CREATE_JOINABLE);
-        BMQTST_ASSERT_EQ(ex.threadAttributes()->guardSize(), 100);
-        BMQTST_ASSERT_EQ(ex.threadAttributes()->inheritSchedule(), false);
-        BMQTST_ASSERT_EQ(ex.threadAttributes()->schedulingPolicy(),
-                         bslmt::ThreadAttributes::e_SCHED_FIFO);
-        BMQTST_ASSERT_EQ(ex.threadAttributes()->schedulingPriority(), 200);
-        BMQTST_ASSERT_EQ(ex.threadAttributes()->stackSize(), 300);
-        BMQTST_ASSERT_EQ(ex.threadAttributes()->threadName(), "myThread");
+        (void)ex;
     }
 }
 
-static void test4_executor_post()
+static void test3_executor_post()
 // ------------------------------------------------------------------------
 // EXECUTOR POST
 //
@@ -250,8 +195,7 @@ static void test4_executor_post()
 
     bslma::TestAllocator alloc;
 
-    // initialize the context singleton with the test allocator
-    bmqex::SystemExecutorContextGuard contextGuard(&alloc);
+    bmqex::SystemExecutor ex(&alloc);
 
     bslmt::Semaphore      sem1, sem2;
     int                   jobNo    = 0;
@@ -259,12 +203,11 @@ static void test4_executor_post()
 
     for (int i = 0; i < k_NUM_JOBS; ++i) {
         // schedule function object execution
-        bmqex::SystemExecutor().post(
-            bdlf::BindUtil::bindR<void>(AsyncTestCallback(),
-                                        &sem1,
-                                        &jobNo,
-                                        &threadId,
-                                        &sem2));
+        ex.post(bdlf::BindUtil::bindR<void>(AsyncTestCallback(),
+                                            &sem1,
+                                            &jobNo,
+                                            &threadId,
+                                            &sem2));
 
         // function object not executed yet
         BMQTST_ASSERT_EQ(jobNo, i);
@@ -278,7 +221,7 @@ static void test4_executor_post()
     }
 }
 
-static void test5_executor_dispatch()
+static void test4_executor_dispatch()
 // ------------------------------------------------------------------------
 // EXECUTOR DISPATCH
 //
@@ -298,119 +241,20 @@ static void test5_executor_dispatch()
 
     bslma::TestAllocator alloc;
 
-    // initialize the context singleton with the test allocator
-    bmqex::SystemExecutorContextGuard contextGuard(&alloc);
+    bmqex::SystemExecutor ex(&alloc);
 
     int                   jobNo = 0;
     bslmt::ThreadUtil::Id threadId;
 
     for (int i = 0; i < k_NUM_JOBS; ++i) {
         // execute function object
-        bmqex::SystemExecutor().dispatch(
-            bdlf::BindUtil::bindR<void>(InPlaceTestCallback(),
-                                        &jobNo,
-                                        &threadId));
+        ex.dispatch(bdlf::BindUtil::bindR<void>(InPlaceTestCallback(),
+                                                &jobNo,
+                                                &threadId));
 
         // function object executed in this thread
         BMQTST_ASSERT_EQ(jobNo, i + 1);
         BMQTST_ASSERT_EQ(threadId, bslmt::ThreadUtil::selfId());
-    }
-}
-
-static void test6_executor_comparison()
-// ------------------------------------------------------------------------
-// EXECUTOR COMPARISON
-//
-// Concerns:
-//   Ensure proper behavior of the comparison operators.
-//
-// Plan:
-//   1. Check that two executors having no associated thread attributes
-//      compares equal.
-//
-//   2. Check that two executors sharing a 'bslmt::ThreadAttribute' object
-//      compares equal.
-//
-//   3. Check that two executors compares unequal if one of them has
-//      associated thread attributes and the other doesn't.
-//
-//   4. Check that two executors compares equal if they have an identical
-//      set of thread attributes.
-//
-//   5. Check that two executors compares unequal if the have a different
-//      set of thread attributes.
-//
-// Testing:
-//   bmqex::SystemExecutor's comparison operators
-// ------------------------------------------------------------------------
-{
-    bslma::TestAllocator alloc;
-
-    // initialize the context singleton with the test allocator
-    bmqex::SystemExecutorContextGuard contextGuard(&alloc);
-
-    // 1. both executors has no attributes
-    {
-        bmqex::SystemExecutor ex1, ex2;
-
-        BMQTST_ASSERT(!ex1.threadAttributes());
-        BMQTST_ASSERT(!ex2.threadAttributes());
-
-        BMQTST_ASSERT_EQ(ex1 == ex2, true);
-        BMQTST_ASSERT_EQ(ex1 != ex2, false);
-    }
-
-    // 2. both executors share same attributes
-    {
-        bmqex::SystemExecutor ex1(bslmt::ThreadAttributes(), &alloc);
-        bmqex::SystemExecutor ex2 = ex1;
-
-        BMQTST_ASSERT(ex1.threadAttributes() == ex2.threadAttributes());
-
-        BMQTST_ASSERT_EQ(ex1 == ex2, true);
-        BMQTST_ASSERT_EQ(ex1 != ex2, false);
-    }
-
-    // 3. one executor has attributes, the other doesn't
-    {
-        bmqex::SystemExecutor ex1(bslmt::ThreadAttributes(), &alloc);
-        bmqex::SystemExecutor ex2;
-
-        BMQTST_ASSERT(ex1.threadAttributes());
-        BMQTST_ASSERT(!ex2.threadAttributes());
-
-        BMQTST_ASSERT_EQ(ex1 == ex2, false);
-        BMQTST_ASSERT_EQ(ex1 != ex2, true);
-    }
-
-    // 4. both executors has identical attributes
-    {
-        bmqex::SystemExecutor ex1(bslmt::ThreadAttributes(), &alloc);
-        bmqex::SystemExecutor ex2(bslmt::ThreadAttributes(), &alloc);
-
-        BMQTST_ASSERT(ex1.threadAttributes() && ex2.threadAttributes());
-        BMQTST_ASSERT(ex1.threadAttributes() != ex2.threadAttributes());
-
-        BMQTST_ASSERT_EQ(ex1 == ex2, true);
-        BMQTST_ASSERT_EQ(ex1 != ex2, false);
-    }
-
-    // 5. executors has non-identical attributes
-    {
-        bslmt::ThreadAttributes attr1(&alloc);
-        attr1.setThreadName("thread_1");
-
-        bslmt::ThreadAttributes attr2(&alloc);
-        attr1.setThreadName("thread_2");
-
-        bmqex::SystemExecutor ex1(attr1, &alloc);
-        bmqex::SystemExecutor ex2(attr2, &alloc);
-
-        BMQTST_ASSERT(ex1.threadAttributes() && ex2.threadAttributes());
-        BMQTST_ASSERT(ex1.threadAttributes() != ex2.threadAttributes());
-
-        BMQTST_ASSERT_EQ(ex1 == ex2, false);
-        BMQTST_ASSERT_EQ(ex1 != ex2, true);
     }
 }
 
@@ -423,12 +267,10 @@ int main(int argc, char* argv[])
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     switch (_testCase) {
-    case 1: test1_context_singleton(); break;
-    case 2: test2_context_creators(); break;
-    case 3: test3_executor_creators(); break;
-    case 4: test4_executor_post(); break;
-    case 5: test5_executor_dispatch(); break;
-    case 6: test6_executor_comparison(); break;
+    case 1: test1_context_creators(); break;
+    case 2: test2_executor_creators(); break;
+    case 3: test3_executor_post(); break;
+    case 4: test4_executor_dispatch(); break;
 
     default: {
         bsl::cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND."
