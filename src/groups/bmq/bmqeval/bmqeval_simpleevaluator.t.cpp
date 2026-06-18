@@ -542,6 +542,10 @@ static void test3_evaluation()
         {"true && b_true", true},
         {"b_true == true", true},
         {"b_true < true", false},
+        {"b_true != true", false},
+        {"b_true != false", true},
+        {"b_false != true", true},
+        {"b_false != false", false},
         // overflows
         // supported_ints
         {"i_0 != -32768", true},                // -(2 ** 15)

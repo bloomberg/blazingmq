@@ -1072,20 +1072,17 @@ CompilationContext::makeComparison(ExpressionPtr a, ExpressionPtr b)
     }
 
     // Handle comparisons with boolean literals at compile time.
-    //   - for 'expr = true' and 'true = expr' return 'expr'
-    //   - for 'expr = false' and 'false = expr' return '!expr'
+    //   - for 'expr == true'  and 'true == expr'  return 'expr'
+    //   - for 'expr == false' and 'false == expr' return '!expr'
+    //   - for 'expr != true'  and 'true != expr'  return '!expr'
+    //   - for 'expr != false' and 'false != expr' return 'expr'
     //   - if both sides are boolean literals, return
-    //   'BooleanLiteral(a && b)'
+    //   'BooleanLiteral(Op(a, b))'
 
     typedef SimpleEvaluator::BooleanLiteral BooleanLiteral;
     typedef SimpleEvaluator::Not            Not;
 
-    // Booleans can only be compared for (in)equality.
-    const bool isEquality =
-        bsl::is_same<Op<int>, bsl::equal_to<int> >::value ||
-        bsl::is_same<Op<int>, bsl::not_equal_to<int> >::value;
-
-    if /*constexpr*/ (isEquality) {
+    if /*constexpr*/ (bsl::is_same<Op<int>, bsl::equal_to<int> >::value) {
         const BooleanLiteral* boolean_a = dynamic_cast<const BooleanLiteral*>(
             a.get());
         const BooleanLiteral* boolean_b = dynamic_cast<const BooleanLiteral*>(
@@ -1114,6 +1111,38 @@ CompilationContext::makeComparison(ExpressionPtr a, ExpressionPtr b)
 
             return ExpressionPtr(new (*d_allocator) Not(a),
                                  d_allocator);  // RETURN
+        }
+    }
+
+    if /*constexpr*/ (bsl::is_same<Op<int>, bsl::not_equal_to<int> >::value) {
+        const BooleanLiteral* boolean_a = dynamic_cast<const BooleanLiteral*>(
+            a.get());
+        const BooleanLiteral* boolean_b = dynamic_cast<const BooleanLiteral*>(
+            b.get());
+
+        if (boolean_a) {
+            if (boolean_b) {
+                return ExpressionPtr(
+                    new (*d_allocator) BooleanLiteral(
+                        Op<bool>()(boolean_a->value(), boolean_b->value())),
+                    d_allocator);  // RETURN
+            }
+
+            if (boolean_a->value()) {
+                return ExpressionPtr(new (*d_allocator) Not(b),
+                                     d_allocator);  // RETURN
+            }
+
+            return b;  // RETURN
+        }
+
+        if (boolean_b) {
+            if (boolean_b->value()) {
+                return ExpressionPtr(new (*d_allocator) Not(a),
+                                     d_allocator);  // RETURN
+            }
+
+            return a;  // RETURN
         }
     }
 
