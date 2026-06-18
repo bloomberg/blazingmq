@@ -1,7 +1,7 @@
 name: Build Ubuntu
 
 description: |
-  This is a reusable workflow to build BlazingMQ on Ubuntu. 
+  This is a reusable workflow to build BlazingMQ on Ubuntu.
   Optionally run unit tests if the target is "all.t".
   Given a ref and a target, this workflow will build the project and will save the build results both as artifact and in cache.
   The cache key is generated based on the ref and the target, and is returned via workflow output.
@@ -87,7 +87,9 @@ jobs:
       - uses: actions/cache/restore@v4
         if: steps.build-cache-restore-step.outputs.cache-hit != 'true' # Variable type is string, thus using quotes
         with:
-          path: deps
+          path: |
+            deps
+            /opt/bb
           key: ${{ needs.get_dependencies.outputs.cache_key }}
       - name: Set up dependencies
         if: steps.build-cache-restore-step.outputs.cache-hit != 'true' # Variable type is string, thus using quotes
@@ -105,16 +107,15 @@ jobs:
             libfl-dev \
             libbenchmark-dev \
             libz-dev
-      - name: Install cached non packaged dependencies
-        if: steps.build-cache-restore-step.outputs.cache-hit != 'true' # Variable type is string, thus using quotes
-        working-directory: deps
-        run: ../docker/build_deps.sh --cxx-standard=${{ inputs.cxx_standard }}
 
       # Build BlazingMQ
-      - name: Build BlazingMQ
+      - name: Configure BlazingMQ
         if: steps.build-cache-restore-step.outputs.cache-hit != 'true' # Variable type is string, thus using quotes
+        run: cmake --preset gh-build-ubuntu-latest-${{ inputs.cxx_standard }} -S .
+
+      - name: Build BlazingMQ
+        if: steps.build-cache-restore-step.outputs.cache-hit != 'true' && inputs.target != '' # Variable type is string, thus using quotes
         run: |
-          cmake --preset gh-build-ubuntu-latest-${{ inputs.cxx_standard }} -S .
           echo "::add-matcher::.github/workflows/problem-matchers/cpp.json"
           cmake --build --preset gh-build-ubuntu-latest-${{ inputs.cxx_standard }} --target ${{ inputs.target }}
           echo "::remove-matcher owner=cpp"

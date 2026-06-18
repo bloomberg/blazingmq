@@ -184,3 +184,38 @@ jobs:
         run: |
           export PYTHONPATH=${{ github.workspace }}/src/python:$PYTHONPATH
           git diff -U0 origin/main | lint-diffs
+
+  configure_ubuntu:
+    name: "Configure [ubuntu]"
+    uses: ./.github/workflows/build-ubuntu.yaml
+    with:
+      ref: ${{ github.sha }}
+      name: "configure-ubuntu"
+      target: ""
+      save_build_as_artifacts: true
+      run_unit_tests: false
+      cxx_standard: cpp23
+
+  cpp_linter_check:
+    name: C++ Linter Check
+    needs: configure_ubuntu
+    runs-on: ubuntu-slim
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/download-artifact@v5
+        with:
+          name: ${{ needs.configure_ubuntu.outputs.artifact_key }}
+      - uses: cpp-linter/cpp-linter-action@77c390c5ba9c947ebc185a3e49cc754f1558abb5
+        id: linter
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          style: ''  # Disable clang-format checks
+          tidy-checks: '' # Use .clang-tidy config file
+          thread-comments: update
+          lines-changed-only: diff
+          version: '21'
+          database: build/blazingmq
+      - name: Fail fast?!
+        if: steps.linter.outputs.checks-failed > 0
+        run: exit 1

@@ -128,9 +128,11 @@ build_google_test() {
     pushd srcs/googletest
     cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo \
         -DCMAKE_CXX_STANDARD="$cmake_cxx_standard" \
+        -DCMAKE_INSTALL_PREFIX=/opt/bb \
+        -DCMAKE_INSTALL_LIBDIR=lib64 \
         -S . -B build
     cmake --build build -j8
-    cd build && sudo make install
+    cd build && make install
     popd
 }
 
