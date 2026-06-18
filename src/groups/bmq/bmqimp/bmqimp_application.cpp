@@ -434,7 +434,7 @@ void Application::channelStateCallback(
 
         // Cancel the timeout event (if the handle is invalid, this will just
         // do nothing)
-        d_scheduler.cancelEvent(&d_startTimeoutHandle);
+        d_scheduler.cancelEventAndWait(&d_startTimeoutHandle);
 
         startHeartbeat(channel, monitor);
     } break;  // BREAK

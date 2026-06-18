@@ -343,7 +343,8 @@ void AuthenticatedChannelFactory::onChannelDown(
     // executed by the *IO* thread
 
     // Cancel pending reauthentication event when a channel goes down.
-    d_config.d_scheduler_p->cancelEvent(&d_reauthenticationTimeoutHandle);
+    d_config.d_scheduler_p->cancelEventAndWait(
+        &d_reauthenticationTimeoutHandle);
 }
 
 bool AuthenticatedChannelFactory::processAuthenticationEvent(
