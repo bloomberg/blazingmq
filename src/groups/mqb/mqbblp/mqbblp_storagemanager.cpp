@@ -344,7 +344,7 @@ void StorageManager::onPartitionRecovery(
                         << "] failed to apply buffered storage event, rc: "
                         << rc << ". Closing the partition."
                         << BMQTSK_ALARMLOG_END;
-                    fs->close();
+                    fs->close(false);  // don't flush
                     break;  // BREAK
                 }
             }
@@ -446,8 +446,7 @@ void StorageManager::shutdownCb(int partitionId, bslmt::Latch* latch)
     mqbc::StorageUtil::shutdown(partitionId,
                                 latch,
                                 &d_fileStores,
-                                d_clusterData_p->identity().description(),
-                                d_clusterConfig);
+                                d_clusterData_p->identity().description());
 }
 
 void StorageManager::queueCreationCb(int                     partitionId,

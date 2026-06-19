@@ -19,7 +19,6 @@
                 }
             ],
             "partitionConfig": {
-                "flushAtShutdown": true,
                 "location": "localBMQ/storage/local",
                 "maxArchivedFileSets": 0,
                 "maxDataFileSize": 268435456,

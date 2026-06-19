@@ -2392,11 +2392,10 @@ void StorageUtil::stop(FileStores*        fileStores,
         << " (" << (shutdownEndTime - shutdownStartTime) << " nanoseconds)";
 }
 
-void StorageUtil::shutdown(int                              partitionId,
-                           bslmt::Latch*                    latch,
-                           FileStores*                      fileStores,
-                           const bsl::string&               clusterDescription,
-                           const mqbcfg::ClusterDefinition& clusterConfig)
+void StorageUtil::shutdown(int                partitionId,
+                           bslmt::Latch*      latch,
+                           FileStores*        fileStores,
+                           const bsl::string& clusterDescription)
 {
     // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
 
@@ -2416,7 +2415,7 @@ void StorageUtil::shutdown(int                              partitionId,
         BALL_LOG_INFO << clusterDescription << ": Closing Partition ["
                       << partitionId << "].";
 
-        fs->close(clusterConfig.partitionConfig().flushAtShutdown());
+        fs->close(true);  // flush
 
         BALL_LOG_INFO << clusterDescription << ": Partition [" << partitionId
                       << "] closed.";

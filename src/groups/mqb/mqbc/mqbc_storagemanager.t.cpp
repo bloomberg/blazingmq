@@ -941,7 +941,7 @@ struct TestHelper {
             writeMessageRecord(&fs, queueKey, i);
         }
 
-        fs.close();
+        fs.close(true);
         dynamic_cast<mqbnet::MockCluster&>(d_cluster_mp->netCluster())
             ._setDisableBroadcast(false);
 
