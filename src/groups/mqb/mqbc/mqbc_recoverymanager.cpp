@@ -889,26 +889,27 @@ int RecoveryManager::createRecoveryFileSet(bsl::ostream&    errorDescription,
     }
 
     RecoveryContext& recoveryCtx = d_recoveryContextVec[partitionId];
-    recoveryCtx.d_recoveryFileSet.setJournalFile(fileSetSp->d_journalFileName)
+    recoveryCtx.d_recoveryFileSet
+        .setJournalFile(fileSetSp->d_journal.d_fileName)
         .setJournalFileSize(d_dataStoreConfig.maxJournalFileSize())
-        .setDataFile(fileSetSp->d_dataFileName)
+        .setDataFile(fileSetSp->d_data.d_fileName)
         .setDataFileSize(d_dataStoreConfig.maxDataFileSize())
         .setQlistFileSize(d_dataStoreConfig.maxQlistFileSize())
-        .setQlistFile(fileSetSp->d_qlistFileName);
+        .setQlistFile(fileSetSp->d_qlist.d_fileName);
 
     mqbs::FileStoreUtil::loadCurrentFiles(&recoveryCtx.d_recoveryFileSet,
                                           *fileSetSp,
                                           d_qListAware);  // needQList
 
-    recoveryCtx.d_mappedJournalFd     = fileSetSp->d_journalFile;
-    recoveryCtx.d_journalFilePosition = fileSetSp->d_journalFilePosition;
-    recoveryCtx.d_mappedDataFd        = fileSetSp->d_dataFile;
-    recoveryCtx.d_dataFilePosition    = fileSetSp->d_dataFilePosition;
+    recoveryCtx.d_mappedJournalFd     = fileSetSp->d_journal.d_file;
+    recoveryCtx.d_journalFilePosition = fileSetSp->d_journal.d_filePosition;
+    recoveryCtx.d_mappedDataFd        = fileSetSp->d_data.d_file;
+    recoveryCtx.d_dataFilePosition    = fileSetSp->d_data.d_filePosition;
     BSLS_ASSERT_SAFE(recoveryCtx.d_mappedJournalFd.isValid());
     BSLS_ASSERT_SAFE(recoveryCtx.d_mappedDataFd.isValid());
     if (d_qListAware) {
-        recoveryCtx.d_mappedQlistFd     = fileSetSp->d_qlistFile;
-        recoveryCtx.d_qlistFilePosition = fileSetSp->d_qlistFilePosition;
+        recoveryCtx.d_mappedQlistFd     = fileSetSp->d_qlist.d_file;
+        recoveryCtx.d_qlistFilePosition = fileSetSp->d_qlist.d_filePosition;
         BSLS_ASSERT_SAFE(recoveryCtx.d_mappedQlistFd.isValid());
     }
 
@@ -922,7 +923,7 @@ int RecoveryManager::createRecoveryFileSet(bsl::ostream&    errorDescription,
             << ", data file position: " << recoveryCtx.d_dataFilePosition;
         if (d_qListAware) {
             BALL_LOG_OUTPUT_STREAM << ", qlist file position: "
-                                   << fileSetSp->d_qlistFilePosition;
+                                   << fileSetSp->d_qlist.d_filePosition;
         }
     }
 

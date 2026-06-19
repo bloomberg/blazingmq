@@ -518,42 +518,43 @@ int FileStoreUtil::create(bsl::ostream&            errorDescription,
         // 1 file name.
 
         now.addSeconds(increment++);
-        createDataFileName(&result->d_dataFileName,
+        createDataFileName(&result->d_data.d_fileName,
                            dataStoreConfig.location(),
                            partitionId,
                            now);
 
-        createJournalFileName(&result->d_journalFileName,
+        createJournalFileName(&result->d_journal.d_fileName,
                               dataStoreConfig.location(),
                               partitionId,
                               now);
 
         if (needQList) {
-            createQlistFileName(&result->d_qlistFileName,
+            createQlistFileName(&result->d_qlist.d_fileName,
                                 dataStoreConfig.location(),
                                 partitionId,
                                 now);
         }
-    } while (
-        bdls::FilesystemUtil::exists(result->d_dataFileName) ||
-        bdls::FilesystemUtil::exists(result->d_journalFileName) ||
-        (needQList && bdls::FilesystemUtil::exists(result->d_qlistFileName)));
+    } while (bdls::FilesystemUtil::exists(result->d_data.d_fileName) ||
+             bdls::FilesystemUtil::exists(result->d_journal.d_fileName) ||
+             (needQList &&
+              bdls::FilesystemUtil::exists(result->d_qlist.d_fileName)));
 
-    BSLS_ASSERT_SAFE(!bdls::FilesystemUtil::exists(result->d_dataFileName));
-    BSLS_ASSERT_SAFE(!bdls::FilesystemUtil::exists(result->d_journalFileName));
+    BSLS_ASSERT_SAFE(!bdls::FilesystemUtil::exists(result->d_data.d_fileName));
+    BSLS_ASSERT_SAFE(
+        !bdls::FilesystemUtil::exists(result->d_journal.d_fileName));
     if (needQList) {
         BSLS_ASSERT_SAFE(
-            !bdls::FilesystemUtil::exists(result->d_qlistFileName));
+            !bdls::FilesystemUtil::exists(result->d_qlist.d_fileName));
     }
 
     // Open, mmap and grow files (delete created files on failure)
     FileStoreSet fs;
-    fs.setDataFile(result->d_dataFileName)
+    fs.setDataFile(result->d_data.d_fileName)
         .setDataFileSize(dataStoreConfig.maxDataFileSize())
-        .setJournalFile(result->d_journalFileName)
+        .setJournalFile(result->d_journal.d_fileName)
         .setJournalFileSize(dataStoreConfig.maxJournalFileSize());
     if (needQList) {
-        fs.setQlistFile(result->d_qlistFileName)
+        fs.setQlistFile(result->d_qlist.d_fileName)
             .setQlistFileSize(dataStoreConfig.maxQlistFileSize());
     }
 
@@ -562,9 +563,9 @@ int FileStoreUtil::create(bsl::ostream&            errorDescription,
                                   fs,
                                   dataStoreConfig.hasPreallocate(),
                                   true,  // delete on failure
-                                  &result->d_journalFile,
-                                  &result->d_dataFile,
-                                  needQList ? &result->d_qlistFile : 0,
+                                  &result->d_journal.d_file,
+                                  &result->d_data.d_file,
+                                  needQList ? &result->d_qlist.d_file : 0,
                                   dataStoreConfig.hasPrefaultPages());
 
     if (0 != rc) {
@@ -574,26 +575,27 @@ int FileStoreUtil::create(bsl::ostream&            errorDescription,
     }
 
     // Local refs for convenience
-    MappedFileDescriptor& dataFile    = result->d_dataFile;
-    bsls::Types::Uint64&  dataFilePos = result->d_dataFilePosition;
+    MappedFileDescriptor& dataFile    = result->d_data.d_file;
+    bsls::Types::Uint64&  dataFilePos = result->d_data.d_filePosition;
 
-    MappedFileDescriptor& journal    = result->d_journalFile;
-    bsls::Types::Uint64&  journalPos = result->d_journalFilePosition;
+    MappedFileDescriptor& journal    = result->d_journal.d_file;
+    bsls::Types::Uint64&  journalPos = result->d_journal.d_filePosition;
 
-    MappedFileDescriptor& qlistFile    = result->d_qlistFile;
-    bsls::Types::Uint64&  qlistFilePos = result->d_qlistFilePosition;
+    MappedFileDescriptor& qlistFile    = result->d_qlist.d_file;
+    bsls::Types::Uint64&  qlistFilePos = result->d_qlist.d_filePosition;
 
     BALL_LOG_INFO_BLOCK
     {
         BALL_LOG_OUTPUT_STREAM
-            << partitionDesc << "Created data file [" << result->d_dataFileName
-            << "] (size = " << dataFile.fileSize()
+            << partitionDesc << "Created data file ["
+            << result->d_data.d_fileName << "] (size = " << dataFile.fileSize()
             << ", filePos = " << dataFilePos << "), journal file ["
-            << result->d_journalFileName << "] (size = " << journal.fileSize()
+            << result->d_journal.d_fileName
+            << "] (size = " << journal.fileSize()
             << ", filePos = " << journalPos << ")";
         if (needQList) {
             BALL_LOG_OUTPUT_STREAM << ", qlist file ["
-                                   << result->d_qlistFileName
+                                   << result->d_qlist.d_fileName
                                    << "] (size = " << qlistFile.fileSize()
                                    << ", filePos = " << qlistFilePos << ")";
         }
@@ -618,7 +620,7 @@ int FileStoreUtil::create(bsl::ostream&            errorDescription,
     dfh->setFileKey(result->d_dataFileKey);
     dataFilePos += sizeof(DataFileHeader);
 
-    result->d_outstandingBytesData += dataFilePos;
+    result->d_data.d_outstandingBytes += dataFilePos;
 
     // Journal file -- append BlazingMQ header
     fh.reset(journal.block(), journalPos);
@@ -631,7 +633,7 @@ int FileStoreUtil::create(bsl::ostream&            errorDescription,
     new (jfh.get()) JournalFileHeader();  // Default values are fine
     journalPos += sizeof(JournalFileHeader);
 
-    result->d_outstandingBytesJournal += journalPos;
+    result->d_journal.d_outstandingBytes += journalPos;
 
     if (needQList) {
         // Qlist file -- append BlazingMQ header
@@ -646,7 +648,7 @@ int FileStoreUtil::create(bsl::ostream&            errorDescription,
         new (qfh.get()) QlistFileHeader();
         qlistFilePos += sizeof(QlistFileHeader);
 
-        result->d_outstandingBytesQlist += qlistFilePos;
+        result->d_qlist.d_outstandingBytes += qlistFilePos;
     }
 
     *fileSetSp = result;
@@ -706,14 +708,14 @@ void FileStoreUtil::loadCurrentFiles(FileStoreSet*  fileStoreSet,
     BSLS_ASSERT_SAFE(fileStoreSet);
 
     (*fileStoreSet)
-        .setDataFile(fileSet.d_dataFileName)
-        .setDataFileSize(fileSet.d_dataFilePosition)
-        .setJournalFile(fileSet.d_journalFileName)
-        .setJournalFileSize(fileSet.d_journalFilePosition);
+        .setDataFile(fileSet.d_data.d_fileName)
+        .setDataFileSize(fileSet.d_data.d_filePosition)
+        .setJournalFile(fileSet.d_journal.d_fileName)
+        .setJournalFileSize(fileSet.d_journal.d_filePosition);
     if (needQList) {
         (*fileStoreSet)
-            .setQlistFile(fileSet.d_qlistFileName)
-            .setQlistFileSize(fileSet.d_qlistFilePosition);
+            .setQlistFile(fileSet.d_qlist.d_fileName)
+            .setQlistFileSize(fileSet.d_qlist.d_filePosition);
     }
 }
 
