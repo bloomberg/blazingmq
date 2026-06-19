@@ -385,19 +385,9 @@ static void test3_executorsSupport()
         bmqex::Executor executor2 = dispatcher.executor(&client2);
         BMQTST_ASSERT(static_cast<bool>(executor2));
 
-        // executors for the first and the second client do compare equal as
-        // the clients used to obtain them have the same types, and therefore
-        // the same associated processors
-        BMQTST_ASSERT(executor1 == executor2);
-
         // obtain executor for third client's processor
         bmqex::Executor executor3 = dispatcher.executor(&client3);
         BMQTST_ASSERT(static_cast<bool>(executor3));
-
-        // executors for the second and the third clients do not compare equal
-        // as the clients used to obtain them have different types, and
-        // therefore different associated processors
-        BMQTST_ASSERT(executor2 != executor3);
 
         // create utility semaphores
         bslmt::Semaphore startedSignal,  // used to sync. with async op.

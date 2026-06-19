@@ -265,7 +265,7 @@ static void test4_util()
     {
         BMQTST_ASSERT_EQ(defaultPolicy.blocking(),
                          bmqex::ExecutionProperty::e_POSSIBLY_BLOCKING);
-        BMQTST_ASSERT(defaultPolicy.executor() == bmqex::SystemExecutor());
+
         BMQTST_ASSERT_EQ(defaultPolicy.allocator(),
                          bslma::Default::allocator());
     }
@@ -276,7 +276,7 @@ static void test4_util()
 
         BMQTST_ASSERT_EQ(p.blocking(),
                          bmqex::ExecutionProperty::e_NEVER_BLOCKING);
-        BMQTST_ASSERT(p.executor() == defaultPolicy.executor());
+
         BMQTST_ASSERT_EQ(p.allocator(), defaultPolicy.allocator());
     }
 
@@ -286,7 +286,7 @@ static void test4_util()
 
         BMQTST_ASSERT_EQ(p.blocking(),
                          bmqex::ExecutionProperty::e_POSSIBLY_BLOCKING);
-        BMQTST_ASSERT(p.executor() == defaultPolicy.executor());
+
         BMQTST_ASSERT_EQ(p.allocator(), defaultPolicy.allocator());
     }
 
@@ -296,7 +296,7 @@ static void test4_util()
 
         BMQTST_ASSERT_EQ(p.blocking(),
                          bmqex::ExecutionProperty::e_ALWAYS_BLOCKING);
-        BMQTST_ASSERT(p.executor() == defaultPolicy.executor());
+
         BMQTST_ASSERT_EQ(p.allocator(), defaultPolicy.allocator());
     }
 
@@ -316,7 +316,7 @@ static void test4_util()
             &allocator);
 
         BMQTST_ASSERT_EQ(p.blocking(), defaultPolicy.blocking());
-        BMQTST_ASSERT(p.executor() == defaultPolicy.executor());
+
         BMQTST_ASSERT_EQ(p.allocator(), &allocator);
     }
 }
@@ -342,5 +342,7 @@ int main(int argc, char* argv[])
     } break;
     }
 
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    // 'ExecutionPolicyUtil::defaultPolicy()' allocates a 'SystemExecutor'
+    // context from the default allocator via 'bsl::allocate_shared'.
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
 }

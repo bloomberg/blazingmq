@@ -161,12 +161,6 @@ class Executor_TargetBase {
   public:
     // ACCESSORS
 
-    /// Return `e1 == e2`, where `e1` and `e2` are contained executor
-    /// targets (of type `E`) of `*this` and `other` respectively. The
-    /// behavior is undefined unless `typeid(e1) == typeid(e2)` is `true`.
-    virtual bool
-    equal(const Executor_TargetBase& other) const BSLS_KEYWORD_NOEXCEPT = 0;
-
     /// Return a pointer to the contained executor target.
     virtual void*       target() BSLS_KEYWORD_NOEXCEPT       = 0;
     virtual const void* target() const BSLS_KEYWORD_NOEXCEPT = 0;
@@ -224,10 +218,6 @@ class Executor_Target : public Executor_TargetBase {
 
   public:
     // ACCESSORS
-    bool equal(const Executor_TargetBase& other) const BSLS_KEYWORD_NOEXCEPT
-        BSLS_KEYWORD_OVERRIDE;
-    // Implements 'Executor_TargetBase::equal()'.
-
     void* target() BSLS_KEYWORD_NOEXCEPT BSLS_KEYWORD_OVERRIDE;
 
     /// Implements `Executor_TargetBase::target()`.
@@ -293,11 +283,6 @@ class Executor_Box_SboImp {
     /// size of the on-stack buffer used to store the executor target.
     struct Dummy {
         void* d_padding[4];
-
-        bool operator==(const Dummy&) const BSLS_KEYWORD_NOEXCEPT
-        {
-            return false;
-        }
 
         void post(const bsl::function<void()>&) const
         {
@@ -517,20 +502,6 @@ class Executor {
   public:
     // ACCESSORS
 
-    /// * If both `*this` and `rhs` contain no target, return `true`;
-    /// * Otherwise, if only one of `*this` and `rhs` contains a target,
-    ///   return `false`;
-    /// * Otherwise, if `*this` and `rhs` share the same target, return
-    ///   `true`;
-    /// * Otherwise, if `*this` and `rhs` contain targets of different
-    ///   types, return `false`;
-    /// * Otherwise, return `e1 == e2`, where `e1` and `e2` are targets
-    ///   (of type `E`) of `*this` and `rhs` respectively.
-    bool operator==(const Executor& rhs) const BSLS_KEYWORD_NOEXCEPT;
-
-    /// Return `!(*this == rhs)`.
-    bool operator!=(const Executor& rhs) const BSLS_KEYWORD_NOEXCEPT;
-
     /// If `*this` has a target, return `true`.  Otherwise, return `false`.
     BSLS_KEYWORD_EXPLICIT
     operator bool() const BSLS_KEYWORD_NOEXCEPT;
@@ -600,17 +571,6 @@ inline void Executor_Target<EXECUTOR>::move(void* dst) BSLS_KEYWORD_NOEXCEPT
 }
 
 // ACCESSORS
-template <class EXECUTOR>
-inline bool Executor_Target<EXECUTOR>::equal(
-    const Executor_TargetBase& other) const BSLS_KEYWORD_NOEXCEPT
-{
-    // PRECONDITIONS
-    BSLS_ASSERT(targetType() == other.targetType());
-
-    return *static_cast<const EXECUTOR*>(target()) ==
-           *static_cast<const EXECUTOR*>(other.target());
-}
-
 template <class EXECUTOR>
 inline void* Executor_Target<EXECUTOR>::target() BSLS_KEYWORD_NOEXCEPT
 {
