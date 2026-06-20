@@ -25,6 +25,7 @@
 #include <bmqtsk_alarmlog.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_printutil.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <bdlb_string.h>
@@ -277,6 +278,8 @@ int Task::initialize(bsl::ostream&             errorDescription,
     int                rc = rc_SUCCESS;
     bmqu::MemOutStream localError;
 
+    bmqu::Time::initialize();
+
     // ---------
     // Scheduler
     rc = d_scheduler.start();
@@ -378,6 +381,8 @@ void Task::shutdown()
 
     // Stop the scheduler
     d_scheduler.stop();
+
+    bmqu::Time::shutdown();
 
     d_isInitialized = false;
 }
