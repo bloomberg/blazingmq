@@ -39,6 +39,7 @@ int ClusterStateLedger::applyAdvisoryInternal(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
 
+    d_records.emplace_back(clusterMessage);
     d_uncommittedAdvisories.emplace_back(clusterMessage);
 
     return 0;
@@ -231,9 +232,6 @@ void ClusterStateLedger::_commitAdvisories(
          cit != d_uncommittedAdvisories.cend();
          ++cit) {
         if (status == mqbc::ClusterStateLedgerCommitStatus::e_SUCCESS) {
-            // Store the record and its commit
-            d_records.emplace_back(*cit);
-
             bmqp_ctrlmsg::ClusterMessage        commitRecord;
             bmqp_ctrlmsg::LeaderAdvisoryCommit& commit =
                 commitRecord.choice().makeLeaderAdvisoryCommit();
