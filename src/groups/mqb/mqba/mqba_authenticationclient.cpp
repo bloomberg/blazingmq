@@ -226,7 +226,7 @@ int AuthenticationClient::handleResponse(
         {
             bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);
 
-            d_scheduler_p->cancelEvent(&d_reauthHandle);
+            d_scheduler_p->cancelEventAndWait(&d_reauthHandle);
             d_scheduler_p->scheduleEvent(
                 &d_reauthHandle,
                 bsls::TimeInterval(bmqu::Time::nowMonotonicClock())
