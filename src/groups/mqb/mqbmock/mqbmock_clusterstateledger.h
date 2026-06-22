@@ -92,9 +92,6 @@ class ClusterStateLedger : public mqbc::ClusterStateLedger {
     /// List of uncommitted (but not canceled) advisories.
     Advisories d_uncommittedAdvisories;
 
-    /// Nodes passed to 'replicateUncommitted', in call order.
-    bsl::vector<mqbnet::ClusterNode*> d_replicateUncommittedCalls;
-
   private:
     // PRIVATE MANIPULATORS
 
@@ -194,15 +191,6 @@ class ClusterStateLedger : public mqbc::ClusterStateLedger {
     /// Set the commit callback to the specified `value`.
     void setCommitCb(const CommitCb& value) BSLS_KEYWORD_OVERRIDE;
 
-    /// Replicate all uncommitted advisories to the specified `destination`
-    /// node.  Return 0 on success, and a non-zero value otherwise.  Note
-    /// that *only* a leader node may invoke this routine.
-    ///
-    /// THREAD: This method can be invoked only in the associated cluster's
-    ///         dispatcher thread.
-    int replicateUncommitted(mqbnet::ClusterNode* destination)
-        BSLS_KEYWORD_OVERRIDE;
-
     // MANIPULATORS
 
     /// Set the pause commit callback flag to the specified `value`.
@@ -240,13 +228,6 @@ class ClusterStateLedger : public mqbc::ClusterStateLedger {
     ///         dispatcher thread.
     bslma::ManagedPtr<mqbc::ClusterStateLedgerIterator>
     getIterator() const BSLS_KEYWORD_OVERRIDE;
-
-    // ACCESSORS
-
-    /// Return the list of nodes passed to `replicateUncommitted`, in call
-    /// order.
-    const bsl::vector<mqbnet::ClusterNode*>&
-    _replicateUncommittedCalls() const;
 };
 
 // ============================================================================
@@ -273,13 +254,6 @@ inline bool ClusterStateLedger::isSelfLeader() const
 inline void ClusterStateLedger::setCommitCb(const CommitCb& value)
 {
     d_commitCb = value;
-}
-
-inline int
-ClusterStateLedger::replicateUncommitted(mqbnet::ClusterNode* destination)
-{
-    d_replicateUncommittedCalls.push_back(destination);
-    return 0;
 }
 
 // MANIPULATORS
@@ -317,13 +291,6 @@ ClusterStateLedger::uncommittedAdvisories(ClusterMessageCRefList* out) const
     out->clear();
     out->assign(d_uncommittedAdvisories.begin(),
                 d_uncommittedAdvisories.end());
-}
-
-// ACCESSORS
-inline const bsl::vector<mqbnet::ClusterNode*>&
-ClusterStateLedger::_replicateUncommittedCalls() const
-{
-    return d_replicateUncommittedCalls;
 }
 
 }  // close package namespace

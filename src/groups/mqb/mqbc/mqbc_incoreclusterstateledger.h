@@ -384,15 +384,6 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     /// Set the commit callback to the specified `value`.
     void setCommitCb(const CommitCb& value) BSLS_KEYWORD_OVERRIDE;
 
-    /// Replicate all uncommitted advisories to the specified `destination`
-    /// node.  Return 0 on success, and a non-zero value otherwise.  Note
-    /// that *only* a leader node may invoke this routine.
-    ///
-    /// THREAD: This method can be invoked only in the associated cluster's
-    ///         dispatcher thread.
-    int replicateUncommitted(mqbnet::ClusterNode* destination)
-        BSLS_KEYWORD_OVERRIDE;
-
     // ACCESSORS
     //   (virtual mqbc::ClusterStateLedger)
 
