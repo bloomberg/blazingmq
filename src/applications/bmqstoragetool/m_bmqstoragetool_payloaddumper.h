@@ -25,6 +25,7 @@
 
 // MQB
 #include <bsl_ostream.h>
+#include <bsl_string.h>
 #include <mqbs_datafileiterator.h>
 
 namespace BloombergLP {
@@ -60,6 +61,12 @@ class PayloadDumper {
 
     /// Output message payload from the specified offset in Data file.
     void outputPayload(bsls::Types::Uint64 messageOffsetDwords);
+
+    /// Load first 64 bytes of message payload from the specified offset in
+    /// Data file and return it as a hex string via the specified `result`.
+    /// Return 0 on success, non-zero on error.
+    int loadPayloadHex(bsl::string*        result,
+                       bsls::Types::Uint64 messageOffsetDwords);
 };
 
 }  // close package namespace

@@ -24,10 +24,15 @@
 #include <bmqu_memoutstream.h>
 
 // BDE
+#include <baljsn_encoder.h>
+#include <baljsn_encoderoptions.h>
+#include <bdlde_base64decoder.h>
 #include <bsl_cstring.h>
 #include <bsl_iomanip.h>
+#include <bsl_iostream.h>
 #include <bsl_memory.h>
 #include <bsl_ostream.h>
+#include <bsl_sstream.h>
 #include <bsl_vector.h>
 #include <bslim_printer.h>
 
@@ -36,28 +41,103 @@ namespace m_bmqstoragetool {
 
 namespace {
 
-// Helper to convert record to json string (escaped single line)
+bsl::string base64ToHex(const bsl::string& base64, bslma::Allocator* allocator)
+{
+    bdlde::Base64Decoder decoder(true);
+    bsl::vector<char>    bin(allocator);
+    bin.resize(bdlde::Base64Decoder::maxDecodedLength(
+        static_cast<int>(base64.size())));
+
+    int numOut = 0;
+    int numIn  = 0;
+    int rc     = decoder.convert(bin.data(),
+                             &numOut,
+                             &numIn,
+                             base64.data(),
+                             base64.data() + base64.size());
+    if (rc < 0) {
+        return base64;
+    }
+    int endOut = 0;
+    rc         = decoder.endConvert(bin.data() + numOut, &endOut);
+    if (rc < 0) {
+        return base64;
+    }
+    bin.resize(numOut + endOut);
+
+    static const char HEX[] = "0123456789ABCDEF";
+    bsl::string       result(allocator);
+    result.reserve(bin.size() * 2);
+    for (bsl::size_t i = 0; i < bin.size(); ++i) {
+        unsigned char c = static_cast<unsigned char>(bin[i]);
+        result.push_back(HEX[c >> 4]);
+        result.push_back(HEX[c & 0x0F]);
+    }
+    return result;
+}
+
+void convertKeysToHex(bsl::string* json, bslma::Allocator* allocator)
+{
+    const char* keys[]    = {"\"key\"", "\"appKey\""};
+    const int   keyLens[] = {5, 8};
+
+    for (int p = 0; p < 2; ++p) {
+        bsl::size_t pos = 0;
+        while ((pos = json->find(keys[p], pos)) != bsl::string::npos) {
+            bsl::size_t quoteStart = json->find('"', pos + keyLens[p]);
+            if (quoteStart == bsl::string::npos) {
+                break;
+            }
+            bsl::size_t valStart = quoteStart + 1;
+            bsl::size_t valEnd   = json->find('"', valStart);
+            if (valEnd == bsl::string::npos) {
+                break;
+            }
+            bsl::string b64(json->data() + valStart,
+                            valEnd - valStart,
+                            allocator);
+            bsl::string hex = base64ToHex(b64, allocator);
+            json->replace(valStart, valEnd - valStart, hex);
+            pos = valStart + hex.size() + 1;
+        }
+    }
+}
+
+// Helper to convert record to JSON using baljsn encoder.
+// Produces a JSON object string (starts with '{') that the JsonPrinter
+// will emit unquoted as a nested object.
 template <typename RECORD_TYPE>
 bsl::string recordToJsonString(const RECORD_TYPE* record,
                                bslma::Allocator*  allocator,
-                               bool               removeTrailingQuotes = true)
+                               bool               pretty)
 {
-    bmqu::MemOutStream recStr(allocator);
-    // Print record in one line string
-    record->print(recStr, -1, -1);
+    bmqu::MemOutStream os(allocator);
 
-    // Escape the string
-    bmqu::MemOutStream escapedStr(allocator);
-    escapedStr << bsl::quoted(recStr.str());
-
-    bsl::string resultStr = escapedStr.str();
-    // Remove leading and trailing quotes with '\n' character
-    if (removeTrailingQuotes && !resultStr.empty() &&
-        resultStr.front() == '"' && resultStr.back() == '"') {
-        resultStr = resultStr.substr(1, resultStr.size() - 3);
+    baljsn::Encoder        encoder(allocator);
+    baljsn::EncoderOptions options;
+    if (pretty) {
+        options.setEncodingStyle(baljsn::EncoderOptions::e_PRETTY);
+        options.setInitialIndentLevel(3);
+        options.setSpacesPerLevel(2);
+    }
+    else {
+        options.setEncodingStyle(baljsn::EncoderOptions::e_COMPACT);
     }
 
-    return resultStr;
+    const int rc = encoder.encode(os, *record, options);
+    if (rc != 0) {
+        bsl::cerr << "Error: failed to encode record to JSON (rc=" << rc
+                  << ")\n";
+        return bsl::string(allocator);
+    }
+
+    bsl::string result(os.str(), allocator);
+    convertKeysToHex(&result, allocator);
+    bsl::size_t start = result.find_first_not_of(" \n");
+    if (start != 0 && start != bsl::string::npos) {
+        result.erase(0, start);
+    }
+    return result;
 }
 
 // Helper to print queue info in json format
@@ -83,7 +163,6 @@ void printQueueInfo(bsl::ostream&     ostream,
                 ostream << ",";
             }
             bsl::string recStr = recordToJsonString(it, allocator, false);
-
             ostream << "\n      " << recStr;
         }
         ostream << "\n    ]";
@@ -123,7 +202,8 @@ class HumanReadableCslPrinter : public CslPrinter {
 
     // ACCESSORS
 
-    void printShortResult(const mqbc::ClusterStateRecordHeader& header,
+    void printShortResult(const bmqp_ctrlmsg::ClusterMessage&   record,
+                          const mqbc::ClusterStateRecordHeader& header,
                           const mqbsi::LedgerRecordId&          recordId) const
         BSLS_KEYWORD_OVERRIDE;
 
@@ -166,8 +246,9 @@ HumanReadableCslPrinter::~HumanReadableCslPrinter()
 
 // ACCESSORS
 void HumanReadableCslPrinter::printShortResult(
-    const mqbc::ClusterStateRecordHeader& header,
-    const mqbsi::LedgerRecordId&          recordId) const
+    BSLA_MAYBE_UNUSED const bmqp_ctrlmsg::ClusterMessage& record,
+    const mqbc::ClusterStateRecordHeader&                 header,
+    const mqbsi::LedgerRecordId&                          recordId) const
 {
     bslim::Printer printer(&d_ostream, 0, -1);
     printer.start();
@@ -194,7 +275,7 @@ void HumanReadableCslPrinter::printDetailResult(
     d_ostream << "===========================" << aiignedDelimiter << "\n\n";
 
     bmqu::MemOutStream recordStream(d_allocator_p);
-    record.print(recordStream, 2, 2);
+    record.print(recordStream, -1, -1);
 
     CslRecordPrinter<bmqu::AlignedPrinter> printer(d_ostream, d_allocator_p);
     printer.printRecordDetails(recordStream.str(), header, recordId);
@@ -482,7 +563,8 @@ class JsonPrettyCslPrinter : public JsonCslPrinter {
 
     // PUBLIC METHODS
 
-    void printShortResult(const mqbc::ClusterStateRecordHeader& header,
+    void printShortResult(const bmqp_ctrlmsg::ClusterMessage&   record,
+                          const mqbc::ClusterStateRecordHeader& header,
                           const mqbsi::LedgerRecordId&          recordId) const
         BSLS_KEYWORD_OVERRIDE;
 
@@ -517,15 +599,11 @@ JsonPrettyCslPrinter::~JsonPrettyCslPrinter()
 // PUBLIC METHODS
 
 void JsonPrettyCslPrinter::printShortResult(
+    const bmqp_ctrlmsg::ClusterMessage&   record,
     const mqbc::ClusterStateRecordHeader& header,
     const mqbsi::LedgerRecordId&          recordId) const
 {
-    openBraceIfNotOpen("Records");
-
-    CslRecordPrinter<bmqu::JsonPrinter<true, true, 4, 6> > printer(
-        d_ostream,
-        d_allocator_p);
-    printer.printRecordDetails("", header, recordId);
+    printDetailResult(record, header, recordId);
 }
 
 void JsonPrettyCslPrinter::printDetailResult(
@@ -535,13 +613,7 @@ void JsonPrettyCslPrinter::printDetailResult(
 {
     openBraceIfNotOpen("Records");
 
-    // Print record.
-    // Since `record` uses `bslim::Printer` to print its objects hierarchy,
-    // it is not easy (and error prone) to do the same for json printer
-    // without changing nested `record` objects.
-    // So, we will use the output of `print` method and store it in json as
-    // escaped string.
-    bsl::string recStr = recordToJsonString(&record, d_allocator_p);
+    bsl::string recStr = recordToJsonString(&record, d_allocator_p, true);
 
     CslRecordPrinter<bmqu::JsonPrinter<true, true, 4, 6> > printer(
         d_ostream,
@@ -581,7 +653,8 @@ class JsonLineCslPrinter : public JsonCslPrinter {
     ~JsonLineCslPrinter() BSLS_KEYWORD_OVERRIDE;
 
     // PUBLIC METHODS
-    void printShortResult(const mqbc::ClusterStateRecordHeader& header,
+    void printShortResult(const bmqp_ctrlmsg::ClusterMessage&   record,
+                          const mqbc::ClusterStateRecordHeader& header,
                           const mqbsi::LedgerRecordId&          recordId) const
         BSLS_KEYWORD_OVERRIDE;
 
@@ -613,15 +686,11 @@ JsonLineCslPrinter::~JsonLineCslPrinter()
 
 // PUBLIC METHODS
 void JsonLineCslPrinter::printShortResult(
+    const bmqp_ctrlmsg::ClusterMessage&   record,
     const mqbc::ClusterStateRecordHeader& header,
     const mqbsi::LedgerRecordId&          recordId) const
 {
-    openBraceIfNotOpen("Records");
-
-    CslRecordPrinter<bmqu::JsonPrinter<false, true, 4, 6> > printer(
-        d_ostream,
-        d_allocator_p);
-    printer.printRecordDetails("", header, recordId);
+    printDetailResult(record, header, recordId);
 }
 
 void JsonLineCslPrinter::printDetailResult(
@@ -631,13 +700,7 @@ void JsonLineCslPrinter::printDetailResult(
 {
     openBraceIfNotOpen("Records");
 
-    // Print record.
-    // Since `record` uses `bslim::Printer` to print its objects hierarchy,
-    // it is not easy (and error prone) to do the same for json printer
-    // without changing nested `record` objects.
-    // So, we will use the output of `print` method and store it in json as
-    // escaped string.
-    bsl::string recStr = recordToJsonString(&record, d_allocator_p);
+    bsl::string recStr = recordToJsonString(&record, d_allocator_p, false);
 
     CslRecordPrinter<bmqu::JsonPrinter<false, true, 4, 6> > printer(
         d_ostream,

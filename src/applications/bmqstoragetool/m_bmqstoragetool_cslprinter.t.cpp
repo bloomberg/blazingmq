@@ -73,7 +73,7 @@ static void test1_humanReadableShortResultTest()
     recordId.setLogId(storageKey).setOffset(2);
 
     // Print short result
-    printer->printShortResult(header, recordId);
+    bmqp_ctrlmsg::ClusterMessage msg(bmqtst::TestHelperUtil::allocator()); printer->printShortResult(msg, header, recordId);
 
     // Prepare expected output
     bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
@@ -373,7 +373,7 @@ static void test6_prettyShortResultTest()
             bmqtst::TestHelperUtil::allocator());
 
         // Print short result
-        printer->printShortResult(header, recordId);
+        bmqp_ctrlmsg::ClusterMessage msg(bmqtst::TestHelperUtil::allocator()); printer->printShortResult(msg, header, recordId);
     }
 
     // Prepare expected output
@@ -598,7 +598,7 @@ static void test9_lineShortResultTest()
             bmqtst::TestHelperUtil::allocator());
 
         // Print short result
-        printer->printShortResult(header, recordId);
+        bmqp_ctrlmsg::ClusterMessage msg(bmqtst::TestHelperUtil::allocator()); printer->printShortResult(msg, header, recordId);
     }
 
     // Prepare expected output
