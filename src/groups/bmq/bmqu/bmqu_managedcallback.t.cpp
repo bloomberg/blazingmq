@@ -81,10 +81,7 @@ void complexFunction(size_t*           calls,
                      BSLA_MAYBE_UNUSED bsls::Types::Uint64 arg2,
                      BSLA_MAYBE_UNUSED bsls::Types::Uint64 arg3,
                      BSLA_MAYBE_UNUSED bsls::Types::Uint64 arg4,
-                     BSLA_MAYBE_UNUSED bsls::Types::Uint64 arg5,
-                     BSLA_MAYBE_UNUSED bsls::Types::Uint64 arg6,
-                     BSLA_MAYBE_UNUSED bsls::Types::Uint64 arg7,
-                     BSLA_MAYBE_UNUSED bsls::Types::Uint64 arg8)
+                     BSLA_MAYBE_UNUSED bsls::Types::Uint64 arg5)
 {
     ++(*calls);
 }
@@ -96,28 +93,19 @@ struct ComplexCallback : bmqu::ManagedCallback::CallbackFunctor {
     bsls::Types::Uint64 d_arg3;
     bsls::Types::Uint64 d_arg4;
     bsls::Types::Uint64 d_arg5;
-    bsls::Types::Uint64 d_arg6;
-    bsls::Types::Uint64 d_arg7;
-    bsls::Types::Uint64 d_arg8;
 
     explicit ComplexCallback(size_t*             calls,
                              bsls::Types::Uint64 arg1,
                              bsls::Types::Uint64 arg2,
                              bsls::Types::Uint64 arg3,
                              bsls::Types::Uint64 arg4,
-                             bsls::Types::Uint64 arg5,
-                             bsls::Types::Uint64 arg6,
-                             bsls::Types::Uint64 arg7,
-                             bsls::Types::Uint64 arg8)
+                             bsls::Types::Uint64 arg5)
     : d_calls_p(calls)
     , d_arg1(arg1)
     , d_arg2(arg2)
     , d_arg3(arg3)
     , d_arg4(arg4)
     , d_arg5(arg5)
-    , d_arg6(arg6)
-    , d_arg7(arg7)
-    , d_arg8(arg8)
     {
         BSLS_ASSERT_SAFE(calls);
     }
@@ -257,7 +245,7 @@ static void test1_ManagedCallback()
     bmqtst::TestHelper::printTestName("MANAGED CALLBACK");
 
     bsl::vector<bsls::Types::Uint64> args(bmqtst::TestHelperUtil::allocator());
-    args.resize(8, 0);
+    args.resize(5, 0);
 
     bmqu::ManagedCallback callback(bmqtst::TestHelperUtil::allocator());
     BMQTST_ASSERT(callback.empty());
@@ -318,10 +306,7 @@ static void test1_ManagedCallback()
                                             args[1],
                                             args[2],
                                             args[3],
-                                            args[4],
-                                            args[5],
-                                            args[6],
-                                            args[7]);
+                                            args[4]);
     BMQTST_ASSERT(!callback.empty());
 
     callback();
@@ -345,10 +330,7 @@ static void test1_ManagedCallback()
                                                     args[1],
                                                     args[2],
                                                     args[3],
-                                                    args[4],
-                                                    args[5],
-                                                    args[6],
-                                                    args[7]);
+                                                    args[4]);
         }
         BMQTST_ASSERT(!callback.empty());
 
@@ -379,7 +361,7 @@ static void testN1_ManagedCallbackPerformance()
     // `calls` is used everywhere to prevent optimizing out anything.
     size_t                           calls = 0;
     bsl::vector<bsls::Types::Uint64> args(bmqtst::TestHelperUtil::allocator());
-    args.resize(8, 0);
+    args.resize(5, 0);
 
     // Warmup
     for (size_t i = 0; i < k_ITERS_NUM; i++) {
@@ -565,10 +547,7 @@ static void testN1_ManagedCallbackPerformance()
                 args[1],
                 args[2],
                 args[3],
-                args[4],
-                args[5],
-                args[6],
-                args[7]);
+                args[4]);
             callback();
         }
         const bsls::Types::Int64 end = bsls::TimeUtil::getTimer();
@@ -585,10 +564,7 @@ static void testN1_ManagedCallbackPerformance()
                                                     args[1],
                                                     args[2],
                                                     args[3],
-                                                    args[4],
-                                                    args[5],
-                                                    args[6],
-                                                    args[7]);
+                                                    args[4]);
             callback();
             callback.reset();
         }
@@ -608,10 +584,7 @@ static void testN1_ManagedCallbackPerformance()
                                                                     args[1],
                                                                     args[2],
                                                                     args[3],
-                                                                    args[4],
-                                                                    args[5],
-                                                                    args[6],
-                                                                    args[7]);
+                                                                    args[4]);
             callback();
             callback.reset();
         }
