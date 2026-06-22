@@ -180,8 +180,6 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
 
     void do_applyCSLSelf(const EventWithMetadata& event) BSLS_KEYWORD_OVERRIDE;
 
-    void do_sendCSLPatch(const EventWithMetadata& event) BSLS_KEYWORD_OVERRIDE;
-
     void do_initializeQueueKeyInfoMap(const EventWithMetadata& event)
         BSLS_KEYWORD_OVERRIDE;
 
