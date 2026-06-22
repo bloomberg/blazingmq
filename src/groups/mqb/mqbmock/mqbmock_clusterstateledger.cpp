@@ -55,7 +55,6 @@ ClusterStateLedger::ClusterStateLedger(mqbc::ClusterData* clusterData,
 , d_clusterData_p(clusterData)
 , d_records(d_allocator_p)
 , d_uncommittedAdvisories(d_allocator_p)
-, d_replicateUncommittedCalls(d_allocator_p)
 {
     // NOTHING
 }

@@ -112,11 +112,6 @@ struct ClusterStateLedgerTestImp
         markDone();
     }
 
-    int replicateUncommitted(mqbnet::ClusterNode*) BSLS_KEYWORD_OVERRIDE
-    {
-        return markDone();
-    }
-
     // ACCESSORS
     bool isOpen() const BSLS_KEYWORD_OVERRIDE { return markDone(); }
 
@@ -211,9 +206,6 @@ static void test1_clusterStateLedger_protocol()
         BSLS_PROTOCOLTEST_ASSERT(
             testObj,
             setCommitCb(mqbc::ClusterStateLedger::CommitCb()));
-        BSLS_PROTOCOLTEST_ASSERT(
-            testObj,
-            replicateUncommitted(static_cast<mqbnet::ClusterNode*>(0)));
         BSLS_PROTOCOLTEST_ASSERT(testObj, isOpen());
         BSLS_PROTOCOLTEST_ASSERT(
             testObj,
