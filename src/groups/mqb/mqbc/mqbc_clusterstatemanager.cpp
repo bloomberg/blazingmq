@@ -319,48 +319,6 @@ void ClusterStateManager::do_applyCSLSelf(const EventWithMetadata& event)
     d_clusterStateLedger_mp->apply(clusterStateSnapshot);
 }
 
-void ClusterStateManager::do_sendCSLPatch(const EventWithMetadata& event)
-{
-    // executed by the cluster *DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
-    BSLS_ASSERT_SAFE(d_clusterData_p->electorInfo().isSelfLeader() &&
-                     d_clusterFSM.isSelfLeader());
-
-    ClusterStateLedger::ClusterMessageCRefList uncommitted(d_allocator_p);
-    d_clusterStateLedger_mp->uncommittedAdvisories(&uncommitted);
-
-    if (uncommitted.size() != 1) {
-        BMQTSK_ALARMLOG_ALARM("RECOVERY")
-            << d_clusterData_p->identity().description()
-            << ": Cannot send CSL patch to out-of-date follower because we "
-            << "expect to have exactly 1 uncommitted advisory, but saw "
-            << uncommitted.size() << BMQTSK_ALARMLOG_END;
-        return;  // RETURN
-    }
-
-    if (!uncommitted[0].get().choice().isLeaderAdvisoryValue()) {
-        BMQTSK_ALARMLOG_ALARM("RECOVERY")
-            << d_clusterData_p->identity().description()
-            << ": Cannot send CSL patch to out-of-date follower because the "
-            << "uncommitted advisory is not a leader advisory: "
-            << uncommitted[0] << BMQTSK_ALARMLOG_END;
-        return;  // RETURN
-    }
-
-    const ClusterFSMEventMetadata::InputMessage& inputMessage =
-        event.second.inputMessage();
-    const int rc = d_clusterStateLedger_mp->replicateUncommitted(
-        inputMessage.source());
-    if (rc != 0) {
-        BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                       << ": Failed to replicate uncommitted advisory to "
-                       << inputMessage.source()->nodeDescription()
-                       << ", rc: " << rc;
-    }
-}
-
 void ClusterStateManager::do_initializeQueueKeyInfoMap(
     BSLA_MAYBE_UNUSED const EventWithMetadata& event)
 {

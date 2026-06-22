@@ -298,8 +298,6 @@ class ClusterStateTableActions {
 
     virtual void do_applyCSLSelf(const ARGS& args) = 0;
 
-    virtual void do_sendCSLPatch(const ARGS& args) = 0;
-
     virtual void do_initializeQueueKeyInfoMap(const ARGS& args) = 0;
 
     virtual void do_stopPFSMs(const ARGS& args) = 0;
@@ -403,8 +401,6 @@ class ClusterStateTableActions {
     void do_removeFollowerLSN_checkLSNQuorum(const ARGS& args);
 
     void do_sendRegistrationResponse_applyCSLSelf(const ARGS& args);
-
-    void do_sendRegistrationResponse_sendCSLPatch(const ARGS& args);
 
     void do_logUnexpectedCSLCommit_and_abort(const ARGS& args);
 };
@@ -971,14 +967,6 @@ void ClusterStateTableActions<ARGS>::do_sendRegistrationResponse_applyCSLSelf(
 {
     do_sendRegistrationResponse(args);
     do_applyCSLSelf(args);
-}
-
-template <typename ARGS>
-void ClusterStateTableActions<ARGS>::do_sendRegistrationResponse_sendCSLPatch(
-    const ARGS& args)
-{
-    do_sendRegistrationResponse(args);
-    do_sendCSLPatch(args);
 }
 
 template <typename ARGS>
