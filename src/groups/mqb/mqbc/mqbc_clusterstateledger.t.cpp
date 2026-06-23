@@ -112,6 +112,11 @@ struct ClusterStateLedgerTestImp
         markDone();
     }
 
+    void setIsHealedCb(const IsHealedCb&) BSLS_KEYWORD_OVERRIDE
+    {
+        markDone();
+    }
+
     // ACCESSORS
     bool isOpen() const BSLS_KEYWORD_OVERRIDE { return markDone(); }
 
@@ -206,6 +211,9 @@ static void test1_clusterStateLedger_protocol()
         BSLS_PROTOCOLTEST_ASSERT(
             testObj,
             setCommitCb(mqbc::ClusterStateLedger::CommitCb()));
+        BSLS_PROTOCOLTEST_ASSERT(
+            testObj,
+            setIsHealedCb(mqbc::ClusterStateLedger::IsHealedCb()));
         BSLS_PROTOCOLTEST_ASSERT(testObj, isOpen());
         BSLS_PROTOCOLTEST_ASSERT(
             testObj,

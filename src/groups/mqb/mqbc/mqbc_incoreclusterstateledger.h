@@ -183,6 +183,9 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     /// available.
     CommitCb d_commitCb;
 
+    /// Callback returning true if this node is healed, false otherwise.
+    IsHealedCb d_isHealedCb;
+
     /// Cluster's transient state.
     ClusterData* d_clusterData_p;
 
@@ -384,6 +387,9 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     /// Set the commit callback to the specified `value`.
     void setCommitCb(const CommitCb& value) BSLS_KEYWORD_OVERRIDE;
 
+    /// Set the callback used to determine if this node is healed to `value`.
+    void setIsHealedCb(const IsHealedCb& value) BSLS_KEYWORD_OVERRIDE;
+
     // ACCESSORS
     //   (virtual mqbc::ClusterStateLedger)
 
@@ -477,6 +483,11 @@ inline unsigned int IncoreClusterStateLedger::getAckQuorum() const
 inline void IncoreClusterStateLedger::setCommitCb(const CommitCb& value)
 {
     d_commitCb = value;
+}
+
+inline void IncoreClusterStateLedger::setIsHealedCb(const IsHealedCb& value)
+{
+    d_isHealedCb = value;
 }
 
 // ACCESSORS
