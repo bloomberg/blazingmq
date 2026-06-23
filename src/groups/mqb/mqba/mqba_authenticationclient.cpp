@@ -47,6 +47,12 @@ void AuthenticationClient::onReauthenticate()
 {
     // executed by the *SCHEDULER* thread
 
+    // Skip the authentication call if destructor has been called.
+    bmqu::GateKeeper::Status gateStatus(d_gateKeeper);
+    if (!gateStatus.isOpen()) {
+        return;  // RETURN
+    }
+
     bmqu::MemOutStream errStream(d_allocator_p);
     const int          rc = authenticate(errStream);
     if (rc != 0) {
