@@ -95,6 +95,9 @@ ClusterStateManager::ClusterStateManager(
                              this,
                              bdlf::PlaceHolders::_1,    // advisory
                              bdlf::PlaceHolders::_2));  // status
+
+    d_clusterStateLedger_mp->setIsHealedCb(
+        bdlf::BindUtil::bind(&ClusterFSM::isSelfHealed, &d_clusterFSM));
 }
 
 ClusterStateManager::~ClusterStateManager()

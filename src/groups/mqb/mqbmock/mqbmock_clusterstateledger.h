@@ -191,6 +191,9 @@ class ClusterStateLedger : public mqbc::ClusterStateLedger {
     /// Set the commit callback to the specified `value`.
     void setCommitCb(const CommitCb& value) BSLS_KEYWORD_OVERRIDE;
 
+    /// Set the callback used to determine if this node is healed to `value`.
+    void setIsHealedCb(const IsHealedCb& value) BSLS_KEYWORD_OVERRIDE;
+
     // MANIPULATORS
 
     /// Set the pause commit callback flag to the specified `value`.
@@ -254,6 +257,11 @@ inline bool ClusterStateLedger::isSelfLeader() const
 inline void ClusterStateLedger::setCommitCb(const CommitCb& value)
 {
     d_commitCb = value;
+}
+
+inline void ClusterStateLedger::setIsHealedCb(const IsHealedCb&)
+{
+    // NOTHING
 }
 
 // MANIPULATORS

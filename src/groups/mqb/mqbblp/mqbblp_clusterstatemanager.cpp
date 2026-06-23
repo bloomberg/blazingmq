@@ -55,6 +55,11 @@ namespace {
 // For convenience
 const int k_KEY_LEN = mqbs::FileStoreProtocol::k_KEY_LENGTH;
 
+bool alwaysHealed()
+{
+    return true;
+}
+
 }  // close unnamed namespace
 
 // -------------------------
@@ -728,6 +733,8 @@ ClusterStateManager::ClusterStateManager(
                              this,
                              bdlf::PlaceHolders::_1,    // advisory
                              bdlf::PlaceHolders::_2));  // status
+
+    d_clusterStateLedger_mp->setIsHealedCb(&alwaysHealed);
 }
 
 ClusterStateManager::~ClusterStateManager()
