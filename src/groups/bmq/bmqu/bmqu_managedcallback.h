@@ -75,31 +75,20 @@
 //  }
 //..
 //
-// NOTE: the need to support cpp03 for Solaris makes it impossible to call
-//       `createInplace` with classes that expect non-const references in
-//       constructor arguments.  This is due to cpp03 compatibility code
-//       passing arguments as (const &) when perfect forwarding with `&&`
-//       is not available.
+// NOTE: In C++03, the forwarding macros used below pass arguments as
+//       (const &) because perfect forwarding with `&&` is not available.
+//       This makes it impossible to call `createInplace` with classes that
+//       expect non-const references in constructor arguments.
 //       Consider passing output arguments with equivalent code using pointers
 //       to mutable variables instead.
 //
 
 // BDE
 #include <bsl_functional.h>
-#include <bsl_utility.h>  // bsl::forward
 #include <bsl_vector.h>
 #include <bslmf_isaccessiblebaseof.h>
 #include <bsls_assert.h>
 #include <bsls_compilerfeatures.h>
-
-#if BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES
-// Include version that can be compiled with C++03
-// Generated on Wed Jun 18 14:44:06 2025
-// Command line: sim_cpp11_features.pl bmqu_managedcallback.h
-# define COMPILING_BMQU_MANAGEDCALLBACK_H
-# include <bmqu_managedcallback_cpp03.h>
-#undef COMPILING_BMQU_MANAGEDCALLBACK_H
-#else
 
 namespace BloombergLP {
 namespace bmqu {
@@ -152,14 +141,60 @@ class ManagedCallback BSLS_KEYWORD_FINAL {
     /// call a destructor for it and set this object empty.
     void reset();
 
-#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES  // $var-args=9
     /// Construct a callback object of the specified CALLBACK_TYPE in this
     /// objects' reusable buffer, with the specified `args` passed to its
     /// constructor.  The buffer must be empty before construction, it is
     /// the user's responsibility to call `reset()` to destroy the callback.
-    template <class CALLBACK_TYPE, class... ARGS>
-    void createInplace(ARGS&&... args);
-#endif
+    template <class CALLBACK_TYPE>
+    void createInplace();
+
+    template <class CALLBACK_TYPE, class ARGS_1>
+    void createInplace(BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1);
+
+    template <class CALLBACK_TYPE, class ARGS_1, class ARGS_2>
+    void createInplace(BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                       BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2);
+
+    template <class CALLBACK_TYPE, class ARGS_1, class ARGS_2, class ARGS_3>
+    void createInplace(BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                       BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                       BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3);
+
+    template <class CALLBACK_TYPE,
+              class ARGS_1,
+              class ARGS_2,
+              class ARGS_3,
+              class ARGS_4>
+    void createInplace(BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                       BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                       BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
+                       BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4);
+
+    template <class CALLBACK_TYPE,
+              class ARGS_1,
+              class ARGS_2,
+              class ARGS_3,
+              class ARGS_4,
+              class ARGS_5>
+    void createInplace(BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                       BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                       BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
+                       BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
+                       BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5);
+
+    template <class CALLBACK_TYPE,
+              class ARGS_1,
+              class ARGS_2,
+              class ARGS_3,
+              class ARGS_4,
+              class ARGS_5,
+              class ARGS_6>
+    void createInplace(BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+                       BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+                       BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
+                       BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
+                       BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
+                       BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6);
 
     /// Store the specified `callback` in this object.
     /// Note: these setters are slow because they performs function copy, going
@@ -266,19 +301,107 @@ inline void ManagedCallback::operator()() const
     (*reinterpret_cast<const CallbackFunctor*>(d_callbackBuffer.data()))();
 }
 
-#if !BSLS_COMPILERFEATURES_SIMULATE_CPP11_FEATURES  // $var-args=9
-template <class CALLBACK_TYPE, class... ARGS>
-inline void ManagedCallback::createInplace(ARGS&&... args)
+template <class CALLBACK_TYPE>
+inline void ManagedCallback::createInplace()
 {
-    // Preconditions for placement are checked in `place()`.
-    // Destructor for the built object will be called in `reset()`.
-    new (place<CALLBACK_TYPE>()) CALLBACK_TYPE(bsl::forward<ARGS>(args)...);
+    new (place<CALLBACK_TYPE>()) CALLBACK_TYPE();
 }
-#endif
+
+template <class CALLBACK_TYPE, class ARGS_1>
+inline void
+ManagedCallback::createInplace(BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1)
+                                   args_1)
+{
+    new (place<CALLBACK_TYPE>())
+        CALLBACK_TYPE(BSLS_COMPILERFEATURES_FORWARD(ARGS_1, args_1));
+}
+
+template <class CALLBACK_TYPE, class ARGS_1, class ARGS_2>
+inline void ManagedCallback::createInplace(
+    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2)
+{
+    new (place<CALLBACK_TYPE>())
+        CALLBACK_TYPE(BSLS_COMPILERFEATURES_FORWARD(ARGS_1, args_1),
+                      BSLS_COMPILERFEATURES_FORWARD(ARGS_2, args_2));
+}
+
+template <class CALLBACK_TYPE, class ARGS_1, class ARGS_2, class ARGS_3>
+inline void ManagedCallback::createInplace(
+    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3)
+{
+    new (place<CALLBACK_TYPE>())
+        CALLBACK_TYPE(BSLS_COMPILERFEATURES_FORWARD(ARGS_1, args_1),
+                      BSLS_COMPILERFEATURES_FORWARD(ARGS_2, args_2),
+                      BSLS_COMPILERFEATURES_FORWARD(ARGS_3, args_3));
+}
+
+template <class CALLBACK_TYPE,
+          class ARGS_1,
+          class ARGS_2,
+          class ARGS_3,
+          class ARGS_4>
+inline void ManagedCallback::createInplace(
+    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
+    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4)
+{
+    new (place<CALLBACK_TYPE>())
+        CALLBACK_TYPE(BSLS_COMPILERFEATURES_FORWARD(ARGS_1, args_1),
+                      BSLS_COMPILERFEATURES_FORWARD(ARGS_2, args_2),
+                      BSLS_COMPILERFEATURES_FORWARD(ARGS_3, args_3),
+                      BSLS_COMPILERFEATURES_FORWARD(ARGS_4, args_4));
+}
+
+template <class CALLBACK_TYPE,
+          class ARGS_1,
+          class ARGS_2,
+          class ARGS_3,
+          class ARGS_4,
+          class ARGS_5>
+inline void ManagedCallback::createInplace(
+    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
+    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
+    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5)
+{
+    new (place<CALLBACK_TYPE>())
+        CALLBACK_TYPE(BSLS_COMPILERFEATURES_FORWARD(ARGS_1, args_1),
+                      BSLS_COMPILERFEATURES_FORWARD(ARGS_2, args_2),
+                      BSLS_COMPILERFEATURES_FORWARD(ARGS_3, args_3),
+                      BSLS_COMPILERFEATURES_FORWARD(ARGS_4, args_4),
+                      BSLS_COMPILERFEATURES_FORWARD(ARGS_5, args_5));
+}
+
+template <class CALLBACK_TYPE,
+          class ARGS_1,
+          class ARGS_2,
+          class ARGS_3,
+          class ARGS_4,
+          class ARGS_5,
+          class ARGS_6>
+inline void ManagedCallback::createInplace(
+    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_1) args_1,
+    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_2) args_2,
+    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_3) args_3,
+    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_4) args_4,
+    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_5) args_5,
+    BSLS_COMPILERFEATURES_FORWARD_REF(ARGS_6) args_6)
+{
+    new (place<CALLBACK_TYPE>())
+        CALLBACK_TYPE(BSLS_COMPILERFEATURES_FORWARD(ARGS_1, args_1),
+                      BSLS_COMPILERFEATURES_FORWARD(ARGS_2, args_2),
+                      BSLS_COMPILERFEATURES_FORWARD(ARGS_3, args_3),
+                      BSLS_COMPILERFEATURES_FORWARD(ARGS_4, args_4),
+                      BSLS_COMPILERFEATURES_FORWARD(ARGS_5, args_5),
+                      BSLS_COMPILERFEATURES_FORWARD(ARGS_6, args_6));
+}
 
 }  // close package namespace
 }  // close enterprise namespace
-
-#endif  // End C++11 code
 
 #endif
