@@ -500,7 +500,9 @@ inline bool ClusterFSM::isSelfLeader() const
 
 inline bool ClusterFSM::isSelfFollower() const
 {
-    return d_state == State::e_FOL_HEALING || d_state == State::e_FOL_HEALED;
+    return d_state == State::e_FOL_WAITING ||
+           d_state == State::e_FOL_HEALING ||
+           d_state == State::e_FOL_HEALED;
 }
 
 inline bool ClusterFSM::isSelfHealed() const

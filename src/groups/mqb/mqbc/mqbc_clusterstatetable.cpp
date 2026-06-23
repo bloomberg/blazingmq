@@ -53,6 +53,7 @@ const char* ClusterStateTableState::toAscii(ClusterStateTableState::Enum value)
 
     switch (value) {
         CASE(UNKNOWN)
+        CASE(FOL_WAITING)
         CASE(FOL_HEALING)
         CASE(LDR_HEALING_STG1)
         CASE(LDR_HEALING_STG2)
@@ -80,6 +81,7 @@ bool ClusterStateTableState::fromAscii(ClusterStateTableState::Enum* out,
     }
 
     CHECKVALUE(UNKNOWN)
+    CHECKVALUE(FOL_WAITING)
     CHECKVALUE(FOL_HEALING)
     CHECKVALUE(LDR_HEALING_STG1)
     CHECKVALUE(LDR_HEALING_STG2)
