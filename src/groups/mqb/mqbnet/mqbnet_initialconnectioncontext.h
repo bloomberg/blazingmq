@@ -387,20 +387,16 @@ class InitialConnectionContext {
     /// `errorDescription` on failure.  Must be called with `d_mutex`
     /// locked.
     int handleAuthnRequestEvent(
-        bsl::ostream&                                         errorDescription,
-        const bsl::variant<bsl::monostate,
-                           bmqp_ctrlmsg::AuthenticationMessage,
-                           bmqp_ctrlmsg::NegotiationMessage>& message);
+        bsl::ostream&                              errorDescription,
+        const bmqp_ctrlmsg::AuthenticationMessage& message);
 
     /// Handle the `e_NEGOTIATION_MESSAGE` event with the specified
     /// `message`.  Return 0 on success, or a non-zero code and populate
     /// `errorDescription` on failure.  Must be called with `d_mutex`
     /// locked.
     int handleNegotiationMessageEvent(
-        bsl::ostream&                                         errorDescription,
-        const bsl::variant<bsl::monostate,
-                           bmqp_ctrlmsg::AuthenticationMessage,
-                           bmqp_ctrlmsg::NegotiationMessage>& message);
+        bsl::ostream&                           errorDescription,
+        const bmqp_ctrlmsg::NegotiationMessage& message);
 
     /// Handle the `e_AUTHN_SUCCESS` event.  Return 0 on success, or a
     /// non-zero code and populate `errorDescription` on failure.  Must be

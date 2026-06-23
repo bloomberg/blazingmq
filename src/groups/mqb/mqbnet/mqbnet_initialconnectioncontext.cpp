@@ -543,11 +543,20 @@ void InitialConnectionContext::handleEvent(
         break;
     }
     case InitialConnectionEvent::e_AUTHN_REQUEST: {
-        rc = handleAuthnRequestEvent(errStream, message);
+        BSLS_ASSERT_SAFE(
+            bsl::holds_alternative<bmqp_ctrlmsg::AuthenticationMessage>(
+                message));
+        rc = handleAuthnRequestEvent(
+            errStream,
+            bsl::get<bmqp_ctrlmsg::AuthenticationMessage>(message));
         break;
     }
     case InitialConnectionEvent::e_NEGOTIATION_MESSAGE: {
-        rc = handleNegotiationMessageEvent(errStream, message);
+        BSLS_ASSERT_SAFE(
+            bsl::holds_alternative<bmqp_ctrlmsg::NegotiationMessage>(message));
+        rc = handleNegotiationMessageEvent(
+            errStream,
+            bsl::get<bmqp_ctrlmsg::NegotiationMessage>(message));
         break;
     }
     case InitialConnectionEvent::e_AUTHN_SUCCESS: {
@@ -656,10 +665,8 @@ int InitialConnectionContext::handleIncomingEvent(
 }
 
 int InitialConnectionContext::handleAuthnRequestEvent(
-    bsl::ostream&                                         errorDescription,
-    const bsl::variant<bsl::monostate,
-                       bmqp_ctrlmsg::AuthenticationMessage,
-                       bmqp_ctrlmsg::NegotiationMessage>& message)
+    bsl::ostream&                              errorDescription,
+    const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg)
 {
     // executed by an *AUTHENTICATION* or one of the *IO* threads
     // PRECONDITIONS: 'd_mutex' must be locked.
@@ -669,11 +676,6 @@ int InitialConnectionContext::handleAuthnRequestEvent(
         rc_SUCCESS = 0,
         rc_ERROR   = -1
     };
-
-    BSLS_ASSERT_SAFE(
-        bsl::holds_alternative<bmqp_ctrlmsg::AuthenticationMessage>(message));
-    const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg =
-        bsl::get<bmqp_ctrlmsg::AuthenticationMessage>(message);
 
     if (d_state != InitialConnectionState::e_INITIAL) {
         errorDescription << "Unexpected event received: " << d_state << " -> "
@@ -697,10 +699,8 @@ int InitialConnectionContext::handleAuthnRequestEvent(
 }
 
 int InitialConnectionContext::handleNegotiationMessageEvent(
-    bsl::ostream&                                         errorDescription,
-    const bsl::variant<bsl::monostate,
-                       bmqp_ctrlmsg::AuthenticationMessage,
-                       bmqp_ctrlmsg::NegotiationMessage>& message)
+    bsl::ostream&                           errorDescription,
+    const bmqp_ctrlmsg::NegotiationMessage& negotiationMsg)
 {
     // executed by an *AUTHENTICATION* or one of the *IO* threads
     // PRECONDITIONS: 'd_mutex' must be locked.
@@ -710,11 +710,6 @@ int InitialConnectionContext::handleNegotiationMessageEvent(
         rc_SUCCESS = 0,
         rc_ERROR   = -1
     };
-
-    BSLS_ASSERT_SAFE(
-        bsl::holds_alternative<bmqp_ctrlmsg::NegotiationMessage>(message));
-    const bmqp_ctrlmsg::NegotiationMessage& negotiationMsg =
-        bsl::get<bmqp_ctrlmsg::NegotiationMessage>(message);
 
     if (d_state == InitialConnectionState::e_INITIAL &&
         negotiationMsg.isClientIdentityValue()) {
