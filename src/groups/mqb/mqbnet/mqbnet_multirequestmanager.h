@@ -58,30 +58,29 @@ namespace BloombergLP {
 namespace mqbnet {
 
 // FORWARD DECLARATION
-template <class REQUEST, class RESPONSE, class TARGET>
+template <class TARGET>
 class MultiRequestManager;
 
 // =======================================
 // class MultiRequestManagerRequestContext
 // =======================================
 
-template <class REQUEST, class RESPONSE, class TARGET>
+template <class TARGET>
 class MultiRequestManagerRequestContext {
     // FRIENDS
-    friend class MultiRequestManager<REQUEST, RESPONSE, TARGET>;
+    friend class MultiRequestManager<TARGET>;
 
   public:
     // TYPES
 
     /// SelfType is an alias to this `class`.
-    typedef MultiRequestManagerRequestContext<REQUEST, RESPONSE, TARGET>
-        SelfType;
+    typedef MultiRequestManagerRequestContext<TARGET> SelfType;
 
     typedef bsl::shared_ptr<SelfType> SelfTypeSp;
 
     typedef bsl::vector<TARGET> Nodes;
 
-    typedef bsl::pair<TARGET, RESPONSE> NodeResponsePair;
+    typedef bsl::pair<TARGET, bmqp_ctrlmsg::ControlMessage> NodeResponsePair;
 
     typedef bsl::vector<NodeResponsePair> NodeResponsePairs;
 
@@ -96,8 +95,7 @@ class MultiRequestManagerRequestContext {
 
   private:
     // PRIVATE TYPES
-    typedef
-        typename bmqp::RequestManager<REQUEST, RESPONSE>::RequestSp RequestSp;
+    typedef bmqp::RequestManager::RequestSp RequestSp;
 
     typedef typename Nodes::iterator NodesIter;
 
@@ -105,7 +103,7 @@ class MultiRequestManagerRequestContext {
 
   private:
     // DATA
-    REQUEST d_request;
+    bmqp_ctrlmsg::ControlMessage d_request;
 
     NodeResponsePairs d_nodeResponsePairs;
 
@@ -141,7 +139,7 @@ class MultiRequestManagerRequestContext {
 
     /// Return a reference offering modifiable access to the request
     /// associated with this context.
-    REQUEST& request();
+    bmqp_ctrlmsg::ControlMessage& request();
 
     void setDestinationNodes(const Nodes& nodes);
 
@@ -155,7 +153,7 @@ class MultiRequestManagerRequestContext {
     void setComponentId(int value);
 
     // ACCESSORS
-    const REQUEST& request() const;
+    const bmqp_ctrlmsg::ControlMessage& request() const;
 
     /// Return the component id.
     int componentId() const;
@@ -169,12 +167,11 @@ class MultiRequestManagerRequestContext {
 // class MultiRequestManager
 // =========================
 
-template <class REQUEST, class RESPONSE, class TARGET = mqbnet::ClusterNode*>
+template <class TARGET = mqbnet::ClusterNode*>
 class MultiRequestManager {
   public:
     // TYPES
-    typedef MultiRequestManagerRequestContext<REQUEST, RESPONSE, TARGET>
-        RequestContextType;
+    typedef MultiRequestManagerRequestContext<TARGET> RequestContextType;
 
     typedef typename RequestContextType::NodeResponsePair NodeResponsePair;
 
@@ -198,7 +195,9 @@ class MultiRequestManager {
 
     typedef typename RequestContextType::NodesIter NodesIter;
 
-    typedef bmqp::RequestManager<REQUEST, RESPONSE> RequestManagerType;
+    typedef bmqp::RequestManager::RequestSp RequestSp;
+
+    typedef bmqp::RequestManager::SendFn SendFn;
 
   private:
     // NOT IMPLEMENTED
@@ -218,10 +217,9 @@ class MultiRequestManager {
     /// Object Pool.
     void poolCreateRequestContext(void* address, bslma::Allocator* allocator);
 
-    void onSingleResponse(
-        const typename RequestManagerType::RequestSp& singleRequestContext,
-        const RequestContextSp&                       multiRequestContext,
-        TARGET                                        node);
+    void onSingleResponse(const RequestSp&        singleRequestContext,
+                          const RequestContextSp& multiRequestContext,
+                          TARGET                  node);
 
     const bsl::string&
     targetDescription(const mqbnet::ClusterNode* target) const;
@@ -229,21 +227,19 @@ class MultiRequestManager {
     bsl::string_view
     targetDescription(const bsl::shared_ptr<mqbnet::Session>& target) const;
 
-    void setGroupId(typename RequestManagerType::RequestSp& context,
-                    const mqbnet::ClusterNode*              target) const;
+    void setGroupId(RequestSp&                 context,
+                    const mqbnet::ClusterNode* target) const;
 
-    void setGroupId(typename RequestManagerType::RequestSp& context,
+    void setGroupId(RequestSp&                              context,
                     const bsl::shared_ptr<mqbnet::Session>& target) const;
 
-    const typename RequestManagerType::SendFn
-    sendFn(mqbnet::ClusterNode* target) const;
+    const SendFn sendFn(mqbnet::ClusterNode* target) const;
 
-    const typename RequestManagerType::SendFn
-    sendFn(const bsl::shared_ptr<mqbnet::Session>& target) const;
+    const SendFn sendFn(const bsl::shared_ptr<mqbnet::Session>& target) const;
 
   private:
     // DATA
-    RequestManagerType* d_requestManager_p;
+    bmqp::RequestManager* d_requestManager_p;
 
     RequestContextPool d_requestContextPool;
 
@@ -253,9 +249,8 @@ class MultiRequestManager {
                                    bslma::UsesBslmaAllocator)
 
     // CREATORS
-    MultiRequestManager(
-        bmqp::RequestManager<REQUEST, RESPONSE>* requestManager,
-        bslma::Allocator*                        allocator);
+    MultiRequestManager(bmqp::RequestManager* requestManager,
+                        bslma::Allocator*     allocator);
 
     /// Destructor
     ~MultiRequestManager();
@@ -278,9 +273,9 @@ class MultiRequestManager {
 // ---------------------------------------
 
 // CREATORS
-template <class REQUEST, class RESPONSE, class TARGET>
-MultiRequestManagerRequestContext<REQUEST, RESPONSE, TARGET>::
-    MultiRequestManagerRequestContext(bslma::Allocator* allocator)
+template <class TARGET>
+MultiRequestManagerRequestContext<TARGET>::MultiRequestManagerRequestContext(
+    bslma::Allocator* allocator)
 : d_request(allocator)
 , d_nodeResponsePairs(allocator)
 , d_numOutstandingRequests(0)
@@ -291,8 +286,8 @@ MultiRequestManagerRequestContext<REQUEST, RESPONSE, TARGET>::
 }
 
 // MANIPULATORS
-template <class REQUEST, class RESPONSE, class TARGET>
-void MultiRequestManagerRequestContext<REQUEST, RESPONSE, TARGET>::clear()
+template <class TARGET>
+void MultiRequestManagerRequestContext<TARGET>::clear()
 {
     d_request.reset();
     d_nodeResponsePairs.clear();
@@ -301,35 +296,35 @@ void MultiRequestManagerRequestContext<REQUEST, RESPONSE, TARGET>::clear()
     d_componentId = bmqp::RequestManagerComponentId::k_NO_COMPONENT_ID;
 }
 
-template <class REQUEST, class RESPONSE, class TARGET>
-REQUEST&
-MultiRequestManagerRequestContext<REQUEST, RESPONSE, TARGET>::request()
+template <class TARGET>
+bmqp_ctrlmsg::ControlMessage&
+MultiRequestManagerRequestContext<TARGET>::request()
 {
     return d_request;
 }
 
-template <class REQUEST, class RESPONSE, class TARGET>
-void MultiRequestManagerRequestContext<REQUEST, RESPONSE, TARGET>::
-    setDestinationNodes(const Nodes& nodes)
+template <class TARGET>
+void MultiRequestManagerRequestContext<TARGET>::setDestinationNodes(
+    const Nodes& nodes)
 {
     d_nodeResponsePairs.clear();
     for (NodesConstIter it = nodes.begin(); it != nodes.end(); ++it) {
-        d_nodeResponsePairs.push_back(bsl::make_pair(*it, RESPONSE()));
+        d_nodeResponsePairs.push_back(
+            bsl::make_pair(*it, bmqp_ctrlmsg::ControlMessage()));
     }
 
     d_numOutstandingRequests = static_cast<int>(d_nodeResponsePairs.size());
 }
 
-template <class REQUEST, class RESPONSE, class TARGET>
-void MultiRequestManagerRequestContext<REQUEST, RESPONSE, TARGET>::
-    setResponseCb(const ResponseCb& value)
+template <class TARGET>
+void MultiRequestManagerRequestContext<TARGET>::setResponseCb(
+    const ResponseCb& value)
 {
     d_responseCb = value;
 }
 
-template <class REQUEST, class RESPONSE, class TARGET>
-void MultiRequestManagerRequestContext<REQUEST, RESPONSE, TARGET>::
-    setComponentId(int value)
+template <class TARGET>
+void MultiRequestManagerRequestContext<TARGET>::setComponentId(int value)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(bmqp::RequestManagerComponentId::isValid(value));
@@ -340,25 +335,22 @@ void MultiRequestManagerRequestContext<REQUEST, RESPONSE, TARGET>::
 }
 
 // ACCESSORS
-template <class REQUEST, class RESPONSE, class TARGET>
-const REQUEST&
-MultiRequestManagerRequestContext<REQUEST, RESPONSE, TARGET>::request() const
+template <class TARGET>
+const bmqp_ctrlmsg::ControlMessage&
+MultiRequestManagerRequestContext<TARGET>::request() const
 {
     return d_request;
 }
 
-template <class REQUEST, class RESPONSE, class TARGET>
-int MultiRequestManagerRequestContext<REQUEST, RESPONSE, TARGET>::componentId()
-    const
+template <class TARGET>
+int MultiRequestManagerRequestContext<TARGET>::componentId() const
 {
     return d_componentId;
 }
 
-template <class REQUEST, class RESPONSE, class TARGET>
-const typename MultiRequestManagerRequestContext<REQUEST,
-                                                 RESPONSE,
-                                                 TARGET>::NodeResponsePairs&
-MultiRequestManagerRequestContext<REQUEST, RESPONSE, TARGET>::response() const
+template <class TARGET>
+const typename MultiRequestManagerRequestContext<TARGET>::NodeResponsePairs&
+MultiRequestManagerRequestContext<TARGET>::response() const
 {
     return d_nodeResponsePairs;
 }
@@ -368,9 +360,8 @@ MultiRequestManagerRequestContext<REQUEST, RESPONSE, TARGET>::response() const
 // -------------------------
 
 // PRIVATE MANIPULATORS
-template <class REQUEST, class RESPONSE, class TARGET>
-inline bmqt::GenericResult::Enum
-MultiRequestManager<REQUEST, RESPONSE, TARGET>::sendHelper(
+template <class TARGET>
+inline bmqt::GenericResult::Enum MultiRequestManager<TARGET>::sendHelper(
     bmqio::Channel*                     channel,
     const bsl::shared_ptr<bdlbb::Blob>& blob)
 {
@@ -392,19 +383,19 @@ MultiRequestManager<REQUEST, RESPONSE, TARGET>::sendHelper(
     return bmqt::GenericResult::e_UNKNOWN;
 }
 
-template <class REQUEST, class RESPONSE, class TARGET>
-void MultiRequestManager<REQUEST, RESPONSE, TARGET>::poolCreateRequestContext(
+template <class TARGET>
+void MultiRequestManager<TARGET>::poolCreateRequestContext(
     void*             address,
     bslma::Allocator* allocator)
 {
     new (address) RequestContextType(allocator);
 }
 
-template <class REQUEST, class RESPONSE, class TARGET>
-void MultiRequestManager<REQUEST, RESPONSE, TARGET>::onSingleResponse(
-    const typename RequestManagerType::RequestSp& singleRequestContext,
-    const RequestContextSp&                       multiRequestContext,
-    TARGET                                        node)
+template <class TARGET>
+void MultiRequestManager<TARGET>::onSingleResponse(
+    const RequestSp&        singleRequestContext,
+    const RequestContextSp& multiRequestContext,
+    TARGET                  node)
 {
     BSLS_ASSERT_SAFE(node);
     BSLS_ASSERT_SAFE(0 < multiRequestContext->d_numOutstandingRequests);
@@ -434,10 +425,10 @@ void MultiRequestManager<REQUEST, RESPONSE, TARGET>::onSingleResponse(
 }
 
 // CREATORS
-template <class REQUEST, class RESPONSE, class TARGET>
-MultiRequestManager<REQUEST, RESPONSE, TARGET>::MultiRequestManager(
-    bmqp::RequestManager<REQUEST, RESPONSE>* requestManager,
-    bslma::Allocator*                        allocator)
+template <class TARGET>
+MultiRequestManager<TARGET>::MultiRequestManager(
+    bmqp::RequestManager* requestManager,
+    bslma::Allocator*     allocator)
 : d_requestManager_p(requestManager)
 , d_requestContextPool(
       bdlf::BindUtil::bind(&MultiRequestManager::poolCreateRequestContext,
@@ -450,8 +441,8 @@ MultiRequestManager<REQUEST, RESPONSE, TARGET>::MultiRequestManager(
     BSLS_ASSERT_SAFE(d_requestManager_p);
 }
 
-template <class REQUEST, class RESPONSE, class TARGET>
-MultiRequestManager<REQUEST, RESPONSE, TARGET>::~MultiRequestManager()
+template <class TARGET>
+MultiRequestManager<TARGET>::~MultiRequestManager()
 {
     BSLS_ASSERT_SAFE((d_requestContextPool.numAvailableObjects() ==
                       d_requestContextPool.numObjects()) &&
@@ -459,17 +450,16 @@ MultiRequestManager<REQUEST, RESPONSE, TARGET>::~MultiRequestManager()
 }
 
 // MANIPULATORS
-template <class REQUEST, class RESPONSE, class TARGET>
-typename MultiRequestManager<REQUEST, RESPONSE, TARGET>::RequestContextSp
-MultiRequestManager<REQUEST, RESPONSE, TARGET>::createRequestContext()
+template <class TARGET>
+typename MultiRequestManager<TARGET>::RequestContextSp
+MultiRequestManager<TARGET>::createRequestContext()
 {
     return d_requestContextPool.getObject();
 }
 
-template <class REQUEST, class RESPONSE, class TARGET>
-void MultiRequestManager<REQUEST, RESPONSE, TARGET>::sendRequest(
-    const RequestContextSp& context,
-    bsls::TimeInterval      timeout)
+template <class TARGET>
+void MultiRequestManager<TARGET>::sendRequest(const RequestContextSp& context,
+                                              bsls::TimeInterval      timeout)
 {
     NodeResponsePairs& nodeResponsePairs = context->d_nodeResponsePairs;
     int                numRequests       = context->d_numOutstandingRequests;
@@ -477,8 +467,7 @@ void MultiRequestManager<REQUEST, RESPONSE, TARGET>::sendRequest(
     for (NodeResponsePairsIter it = nodeResponsePairs.begin();
          it != nodeResponsePairs.end();
          ++it) {
-        typename RequestManagerType::RequestSp singleRequestCtx =
-            d_requestManager_p->createRequest();
+        RequestSp singleRequestCtx  = d_requestManager_p->createRequest();
         singleRequestCtx->request() = context->d_request;
         singleRequestCtx->setResponseCb(
             bdlf::BindUtil::bind(&MultiRequestManager::onSingleResponse,
@@ -526,51 +515,47 @@ void MultiRequestManager<REQUEST, RESPONSE, TARGET>::sendRequest(
     }
 }
 
-template <class REQUEST, class RESPONSE, class TARGET>
-inline void MultiRequestManager<REQUEST, RESPONSE, TARGET>::processResponse(
+template <class TARGET>
+inline void MultiRequestManager<TARGET>::processResponse(
     const bmqp_ctrlmsg::ControlMessage& response)
 {
     d_requestManager_p->processResponse(response);
 };
 
-template <class REQUEST, class RESPONSE, class TARGET>
-inline const bsl::string&
-MultiRequestManager<REQUEST, RESPONSE, TARGET>::targetDescription(
+template <class TARGET>
+inline const bsl::string& MultiRequestManager<TARGET>::targetDescription(
     const mqbnet::ClusterNode* target) const
 {
     return target->nodeDescription();
 }
 
-template <class REQUEST, class RESPONSE, class TARGET>
-inline bsl::string_view
-MultiRequestManager<REQUEST, RESPONSE, TARGET>::targetDescription(
+template <class TARGET>
+inline bsl::string_view MultiRequestManager<TARGET>::targetDescription(
     const bsl::shared_ptr<mqbnet::Session>& target) const
 {
     return target->clusterNode() ? target->clusterNode()->nodeDescription()
                                  : target->description();
 }
 
-template <class REQUEST, class RESPONSE, class TARGET>
-inline void MultiRequestManager<REQUEST, RESPONSE, TARGET>::setGroupId(
-    typename RequestManagerType::RequestSp& context,
-    const mqbnet::ClusterNode*              target) const
+template <class TARGET>
+inline void MultiRequestManager<TARGET>::setGroupId(
+    RequestSp&                 context,
+    const mqbnet::ClusterNode* target) const
 {
     context->setGroupId(target->nodeId());
 }
 
-template <class REQUEST, class RESPONSE, class TARGET>
-inline void MultiRequestManager<REQUEST, RESPONSE, TARGET>::setGroupId(
-    BSLA_MAYBE_UNUSED typename RequestManagerType::RequestSp& context,
+template <class TARGET>
+inline void MultiRequestManager<TARGET>::setGroupId(
+    BSLA_MAYBE_UNUSED RequestSp& context,
     BSLA_MAYBE_UNUSED const bsl::shared_ptr<mqbnet::Session>& target) const
 {
     // NOTHING
 }
 
-template <class REQUEST, class RESPONSE, class TARGET>
-inline const typename MultiRequestManager<REQUEST, RESPONSE, TARGET>::
-    RequestManagerType::SendFn
-    MultiRequestManager<REQUEST, RESPONSE, TARGET>::sendFn(
-        mqbnet::ClusterNode* target) const
+template <class TARGET>
+inline const typename MultiRequestManager<TARGET>::SendFn
+MultiRequestManager<TARGET>::sendFn(mqbnet::ClusterNode* target) const
 {
     return bdlf::BindUtil::bind(&mqbnet::ClusterNode::write,
                                 target,
@@ -578,11 +563,10 @@ inline const typename MultiRequestManager<REQUEST, RESPONSE, TARGET>::
                                 bmqp::EventType::e_CONTROL);
 }
 
-template <class REQUEST, class RESPONSE, class TARGET>
-inline const typename MultiRequestManager<REQUEST, RESPONSE, TARGET>::
-    RequestManagerType::SendFn
-    MultiRequestManager<REQUEST, RESPONSE, TARGET>::sendFn(
-        const bsl::shared_ptr<mqbnet::Session>& target) const
+template <class TARGET>
+inline const typename MultiRequestManager<TARGET>::SendFn
+MultiRequestManager<TARGET>::sendFn(
+    const bsl::shared_ptr<mqbnet::Session>& target) const
 {
     return bdlf::BindUtil::bind(&sendHelper,
                                 target->channel().get(),

@@ -136,14 +136,10 @@ class ClusterData {
         StateSpPool;
 
     /// Type of the RequestManager used by the cluster.
-    typedef bmqp::RequestManager<bmqp_ctrlmsg::ControlMessage,
-                                 bmqp_ctrlmsg::ControlMessage>
-        RequestManagerType;
+    typedef bmqp::RequestManager RequestManagerType;
 
     /// Type of the MultiRequestManager used by the cluster.
-    typedef mqbnet::MultiRequestManager<bmqp_ctrlmsg::ControlMessage,
-                                        bmqp_ctrlmsg::ControlMessage>
-        MultiRequestManagerType;
+    typedef mqbnet::MultiRequestManager<> MultiRequestManagerType;
 
     typedef bslma::ManagedPtr<bmqst::StatContext> StatContextMp;
 

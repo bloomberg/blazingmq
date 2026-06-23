@@ -21,6 +21,7 @@
 #include <bmqp_protocol.h>
 #include <bmqp_protocolutil.h>
 #include <bmqp_queueid.h>
+#include <bmqp_requestmanager.h>
 
 // BDE
 #include <bsl_utility.h>
@@ -132,10 +133,10 @@ void MessageCorrelationIdContainer::add(
     d_correlationIds.insert(bsl::make_pair(key, toInsert));
 }
 
-bmqt::MessageGUID MessageCorrelationIdContainer::add(
-    const RequestManagerType::RequestSp& context,
-    const bmqp::QueueId&                 queueId,
-    const bdlbb::Blob&                   blob)
+bmqt::MessageGUID
+MessageCorrelationIdContainer::add(const RequestSp&     context,
+                                   const bmqp::QueueId& queueId,
+                                   const bdlbb::Blob&   blob)
 {
     bsls::SpinLockGuard guard(&d_lock);  // LOCK
 
