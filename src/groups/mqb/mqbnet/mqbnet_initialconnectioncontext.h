@@ -375,20 +375,12 @@ class InitialConnectionContext {
     /// Handle the `e_OUTBOUND_NEGOTIATION` event.  Return 0 on success, or
     /// a non-zero code and populate `errorDescription` on failure.  Must
     /// be called with `d_mutex` locked.
-    int handleOutboundNegotiationEvent(
-        bsl::ostream&                                         errorDescription,
-        const bsl::variant<bsl::monostate,
-                           bmqp_ctrlmsg::AuthenticationMessage,
-                           bmqp_ctrlmsg::NegotiationMessage>& message);
+    int handleOutboundNegotiationEvent(bsl::ostream& errorDescription);
 
     /// Handle the `e_INCOMING` event.  Return 0 on success, or a non-zero
     /// code and populate `errorDescription` on failure.  Must be called
     /// with `d_mutex` locked.
-    int handleIncomingEvent(
-        bsl::ostream&                                         errorDescription,
-        const bsl::variant<bsl::monostate,
-                           bmqp_ctrlmsg::AuthenticationMessage,
-                           bmqp_ctrlmsg::NegotiationMessage>& message);
+    int handleIncomingEvent(bsl::ostream& errorDescription);
 
     /// Handle the `e_AUTHN_REQUEST` event with the specified `message`.
     /// Return 0 on success, or a non-zero code and populate
@@ -413,11 +405,7 @@ class InitialConnectionContext {
     /// Handle the `e_AUTHN_SUCCESS` event.  Return 0 on success, or a
     /// non-zero code and populate `errorDescription` on failure.  Must be
     /// called with `d_mutex` locked.
-    int handleAuthnSuccessEvent(
-        bsl::ostream&                                         errorDescription,
-        const bsl::variant<bsl::monostate,
-                           bmqp_ctrlmsg::AuthenticationMessage,
-                           bmqp_ctrlmsg::NegotiationMessage>& message);
+    int handleAuthnSuccessEvent(bsl::ostream& errorDescription);
 
   public:
     // MANIPULATORS

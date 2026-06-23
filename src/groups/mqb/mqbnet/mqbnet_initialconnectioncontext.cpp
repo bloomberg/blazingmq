@@ -535,11 +535,11 @@ void InitialConnectionContext::handleEvent(
 
     switch (event) {
     case InitialConnectionEvent::e_OUTBOUND_NEGOTIATION: {
-        rc = handleOutboundNegotiationEvent(errStream, message);
+        rc = handleOutboundNegotiationEvent(errStream);
         break;
     }
     case InitialConnectionEvent::e_INCOMING: {
-        rc = handleIncomingEvent(errStream, message);
+        rc = handleIncomingEvent(errStream);
         break;
     }
     case InitialConnectionEvent::e_AUTHN_REQUEST: {
@@ -551,7 +551,7 @@ void InitialConnectionContext::handleEvent(
         break;
     }
     case InitialConnectionEvent::e_AUTHN_SUCCESS: {
-        rc = handleAuthnSuccessEvent(errStream, message);
+        rc = handleAuthnSuccessEvent(errStream);
         break;
     }
     case InitialConnectionEvent::e_ERROR: {
@@ -595,11 +595,7 @@ void InitialConnectionContext::handleEvent(
 }
 
 int InitialConnectionContext::handleOutboundNegotiationEvent(
-    bsl::ostream&           errorDescription,
-    BSLA_MAYBE_UNUSED const bsl::variant<bsl::monostate,
-                                         bmqp_ctrlmsg::AuthenticationMessage,
-                                         bmqp_ctrlmsg::NegotiationMessage>&
-                            message)
+    bsl::ostream& errorDescription)
 {
     // executed by an *AUTHENTICATION* or one of the *IO* threads
     // PRECONDITIONS: 'd_mutex' must be locked.
@@ -634,11 +630,7 @@ int InitialConnectionContext::handleOutboundNegotiationEvent(
 }
 
 int InitialConnectionContext::handleIncomingEvent(
-    bsl::ostream&           errorDescription,
-    BSLA_MAYBE_UNUSED const bsl::variant<bsl::monostate,
-                                         bmqp_ctrlmsg::AuthenticationMessage,
-                                         bmqp_ctrlmsg::NegotiationMessage>&
-                            message)
+    bsl::ostream& errorDescription)
 {
     // executed by an *AUTHENTICATION* or one of the *IO* threads
     // PRECONDITIONS: 'd_mutex' must be locked.
@@ -774,11 +766,7 @@ int InitialConnectionContext::handleNegotiationMessageEvent(
 }
 
 int InitialConnectionContext::handleAuthnSuccessEvent(
-    bsl::ostream&           errorDescription,
-    BSLA_MAYBE_UNUSED const bsl::variant<bsl::monostate,
-                                         bmqp_ctrlmsg::AuthenticationMessage,
-                                         bmqp_ctrlmsg::NegotiationMessage>&
-                            message)
+    bsl::ostream& errorDescription)
 {
     // executed by an *AUTHENTICATION* or one of the *IO* threads
     // PRECONDITIONS: 'd_mutex' must be locked.
