@@ -865,6 +865,7 @@ inline void MultiQueueThreadPool<TYPE>::stop()
             &d_warningMonitorEventHandle);
     }
 
+    // Signal all queues to stop.
     for (size_t i = 0; i < d_queues.size(); ++i) {
         QueueInfo& info = *d_queues[i];
 
@@ -882,6 +883,11 @@ inline void MultiQueueThreadPool<TYPE>::stop()
         // It is possible that something is enqueued to the queue between the
         // last monitor event and `disablePushBack()` call, this is expected.
         info.d_queue_p->disablePushBack();
+    }
+
+    // Wait for all queues to finish, then drain and delete.
+    for (size_t i = 0; i < d_queues.size(); ++i) {
+        QueueInfo& info = *d_queues[i];
 
         const bsls::TimeInterval timeout =
             bsls::SystemTime::nowMonotonicClock().addSeconds(
