@@ -25,7 +25,6 @@ o 'fuzz_properties': launch a message-properties fuzzing session against a
                      BlazingMQ Broker at the given 'host':'port'.
 """
 
-import logging
 import struct
 import boofuzz
 
@@ -38,9 +37,8 @@ from blazingmq.dev.fuzztest import (
     make_authentication_message,
     make_control_message,
 )
+from blazingmq.dev.fuzztest.persistent_connection import PersistentConnection
 from blazingmq.schemas import broker
-
-logger = logging.getLogger(__name__)
 
 PROPERTIES_HEADER_SIZE_2X = 3  # 6 bytes / 2
 MPH_SIZE_2X = 3  # 6 bytes / 2
@@ -315,60 +313,7 @@ def make_put_with_fuzzable_properties(
     return [event_size, event_contents]
 
 
-class _PersistentConnection(boofuzz.TCPSocketConnection):
-    """TCPSocketConnection that stays open across test cases and auto-reconnects.
-
-    Boofuzz's Session calls open()/close() around each mutation.  close() is
-    a no-op so the connection persists.  If the broker RSTs the connection
-    (e.g. after a heartbeat timeout), send() catches the error, reconnects,
-    replays the handshake, and retries the send.
-    """
-
-    def __init__(self, host, port, setup_steps=None, **kwargs):
-        super().__init__(host, port, **kwargs)
-        self._setup_steps = setup_steps or []
-        self._connected = False
-
-    def open(self):
-        if not self._connected:
-            super().open()
-            self._send_setup()
-            self._connected = True
-
-    def close(self):
-        pass
-
-    def send(self, data):
-        try:
-            super().send(data)
-        except OSError:
-            logger.info("Connection lost — reconnecting and replaying handshake")
-            self._connected = False
-            try:
-                super().close()
-            except OSError:
-                pass
-            super().open()
-            self._send_setup()
-            self._connected = True
-            super().send(data)
-
-    def _send_setup(self):
-        """Replay the full handshake (auth, negotiate, open queue, configure)."""
-        for children in self._setup_steps:
-            req = boofuzz.Request("_setup", children=children)
-            super().send(req.render())
-            try:
-                self.recv(4096)
-            except OSError:
-                pass
-
-    def shutdown(self):
-        self._connected = False
-        super().close()
-
-
-def fuzz_properties(host: str, port: int) -> None:
+def fuzz_properties(host: str, port: int, max_depth: int = 2) -> None:
     """
     Launch a long-running fuzzing session targeting message properties in PUT
     messages at depth 2 (all pairs of fuzzable fields).
@@ -379,10 +324,10 @@ def fuzz_properties(host: str, port: int) -> None:
         make_authentication_message(),
         make_control_message(broker.CLIENT_IDENTITY_SCHEMA),
         make_control_message(broker.OPEN_QUEUE_SCHEMA),
-        make_control_message(broker.CONFIGURE_STREAM_PROPERTY_EXPRESSION_SCHEMA),
+        make_control_message(broker.CONFIGURE_STREAM_WITH_CONSUMER_SUBSCRIPTION_SCHEMA),
     ]
 
-    conn = _PersistentConnection(
+    conn = PersistentConnection(
         host,
         port,
         setup_steps=setup_steps,
@@ -405,15 +350,6 @@ def fuzz_properties(host: str, port: int) -> None:
     session.connect(put)
 
     try:
-        session.fuzz(max_depth=2)
+        session.fuzz(max_depth=max_depth)
     finally:
         conn.shutdown()
-
-
-# todo: (specific to fuzz testing message properties)
-#
-# - add test for new type of property encodings
-# - decide if we want to fuzz names/values of messages,
-#   currently the test only fuzzes the message properties header and message property headers fields, not the actual properties.
-# - decide if we want to fuzz each property header or just the first one
-# - decide if we want more than 2 properties

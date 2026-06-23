@@ -130,7 +130,7 @@ CONFIGURE_STREAM_SCHEMA: SchemaDescription = {
     },
 }
 
-CONFIGURE_STREAM_PROPERTY_EXPRESSION_SCHEMA: SchemaDescription = {
+CONFIGURE_STREAM_WITH_CONSUMER_SUBSCRIPTION_SCHEMA: SchemaDescription = {
     "rId": 0,
     "configureStream": {
         "qId": 0,
@@ -145,10 +145,10 @@ CONFIGURE_STREAM_PROPERTY_EXPRESSION_SCHEMA: SchemaDescription = {
                     },
                     "consumers": [
                         {
-                            "maxUnconfirmedMessages": 0,
-                            "maxUnconfirmedBytes": 0,
-                            "consumerPriority": -2147483648,
-                            "consumerPriorityCount": 0,
+                            "maxUnconfirmedMessages": 100,
+                            "maxUnconfirmedBytes": 10000,
+                            "consumerPriority": 1,
+                            "consumerPriorityCount": 1,
                         },
                     ],
                 },
