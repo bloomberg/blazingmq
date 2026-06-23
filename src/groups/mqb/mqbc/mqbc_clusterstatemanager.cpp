@@ -524,20 +524,42 @@ void ClusterStateManager::do_sendFailureFollowerLSNResponse(
     const InputMessage&            inputMessage = metadata.inputMessage();
 
     bmqp_ctrlmsg::ControlMessage controlMsg;
-    controlMsg.rId() = inputMessage.requestId();
-
+    controlMsg.rId()               = inputMessage.requestId();
     bmqp_ctrlmsg::Status& response = controlMsg.choice().makeStatus();
-    response.category()            = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
-    response.code()                = mqbi::ClusterErrorCode::e_NOT_FOLLOWER;
-    response.message()             = "Not a follower";
+
+    if (!d_clusterFSM.isSelfFollower()) {
+        response.category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+        response.code()     = mqbi::ClusterErrorCode::e_NOT_FOLLOWER;
+        response.message()  = "Not a follower";
+
+        BALL_LOG_INFO
+            << d_clusterData_p->identity().description()
+            << ": Self not follower! Sent failure response " << controlMsg
+            << " to FollowerLSNRequest from node claiming to be leader: "
+            << inputMessage.source()->nodeDescription() << ".";
+    }
+    else {
+        BSLS_ASSERT_SAFE(d_clusterFSM.state() ==
+                         ClusterFSM::State::e_FOL_WAITING);
+        BSLS_ASSERT_SAFE(d_clusterData_p->electorInfo().leaderNode());
+        BSLS_ASSERT_SAFE(inputMessage.source()->nodeId() ==
+                         d_clusterData_p->electorInfo().leaderNodeId());
+
+        response.category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+        response.code()     = mqbi::ClusterErrorCode::e_FOLLOWER_WAITING;
+        response.message()  = "Self follower waiting for RegistrationResponse";
+
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << ": Self is waiting for RegistrationResponse, and "
+                      << "**must** reject the FollowerLSNRequest to prevent "
+                      << "leader from healing us twice in a row, leading to "
+                      << "duplicate work.  Sent failure response "
+                      << controlMsg << " to FollowerLSNRequest from leader "
+                      << inputMessage.source()->nodeDescription() << ".";
+    }
 
     d_clusterData_p->messageTransmitter().sendMessage(controlMsg,
                                                       inputMessage.source());
-
-    BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << ": Sent failure response " << controlMsg
-                  << " to follower LSN request from "
-                  << inputMessage.source()->nodeDescription();
 }
 
 void ClusterStateManager::do_findHighestLSN(
@@ -1052,6 +1074,51 @@ void ClusterStateManager::do_logFailFollowerClusterStateResponse(
                       << " for request with rId = "
                       << inputMessage.requestId();
     }
+}
+
+void ClusterStateManager::do_logUnexpectedRegistrationResponse(
+    const EventWithMetadata& event)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster().isLocal());
+
+    const mqbnet::ClusterNode* source = event.second.inputMessage().source();
+    BSLS_ASSERT_SAFE(source);
+
+    BSLS_ASSERT_SAFE(d_clusterFSM.state() != ClusterFSM::State::e_FOL_WAITING);
+
+    BALL_LOG_WARN << d_clusterData_p->identity().description()
+                  << ": Received unexpected RegistrationResponse from node "
+                  << source->nodeDescription() << ", while self is in "
+                  << d_clusterFSM.state()
+                  << " state.  Self should only receive RegistrationResponse "
+                  << "when in FOL_WAITING state.";
+}
+
+void ClusterStateManager::do_logUnexpectedFailureRegistrationResponse(
+    const EventWithMetadata& event)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster().isLocal());
+
+    const mqbnet::ClusterNode* source = event.second.inputMessage().source();
+    BSLS_ASSERT_SAFE(source);
+
+    BSLS_ASSERT_SAFE(d_clusterFSM.state() != ClusterFSM::State::e_FOL_WAITING);
+
+    BALL_LOG_WARN
+        << d_clusterData_p->identity().description()
+        << ": Received unexpected failure RegistrationResponse from node "
+        << source->nodeDescription() << ", while self is in "
+        << d_clusterFSM.state()
+        << " state.  Self should only receive failure RegistrationResponse "
+        << "when in FOL_WAITING state.";
 }
 
 void ClusterStateManager::do_logFailRegistrationResponse(

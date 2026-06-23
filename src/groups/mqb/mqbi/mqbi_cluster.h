@@ -163,7 +163,12 @@ struct ClusterErrorCode {
         e_SOURCE_NOT_PRIMARY = -212,
         /// The node's storage has irreconcilable data
         /// with respect to a peer
-        e_IRRECONCILABLE_DATA = -213
+        e_IRRECONCILABLE_DATA = -213,
+        /// Self is follower waiting for either success of failure
+        /// RegistrationResponse, and **must** reject the FollowerLSNRequest
+        /// to prevent leader from healing it twice in a row, leading to
+        /// duplicate work.
+        e_FOLLOWER_WAITING = -214
     };
 
     // CLASS METHODS
