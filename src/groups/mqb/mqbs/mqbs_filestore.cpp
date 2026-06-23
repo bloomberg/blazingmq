@@ -6498,6 +6498,12 @@ int FileStore::processRecoveryEvent(const bsl::shared_ptr<bdlbb::Blob>& blob)
     BSLS_ASSERT_SAFE(inDispatcherThread());
     BSLS_ASSERT_SAFE(blob);
 
+    BALL_LOG_INFO << partitionDesc() << "processRecoveryEvent: "
+                  << "journalPos BEFORE: "
+                  << d_fileSets[0]->d_journalFilePosition
+                  << ", primaryLeaseId: " << d_primaryLeaseId
+                  << ", seqNum: " << sequenceNumber();
+
     enum {
         rc_SUCCESS                  = 0,
         rc_INVALID_MSG_TYPE         = -1,
@@ -6660,6 +6666,12 @@ int FileStore::processRecoveryEvent(const bsl::shared_ptr<bdlbb::Blob>& blob)
             return 10 * rc + rc_WRITE_FAILURE;  // RETURN
         }
     }
+
+    BALL_LOG_INFO << partitionDesc() << "processRecoveryEvent: "
+                  << "journalPos AFTER: "
+                  << d_fileSets[0]->d_journalFilePosition
+                  << ", primaryLeaseId: " << d_primaryLeaseId
+                  << ", seqNum: " << sequenceNumber();
 
     return rc_SUCCESS;
 }
@@ -6870,7 +6882,7 @@ void FileStore::setActivePrimary(mqbnet::ClusterNode* primaryNode,
     }
 
     if (primaryLeaseId > d_primaryLeaseId) {
-        d_highestSeqNums[primaryLeaseId] = 0;
+        d_highestSeqNums.emplace(primaryLeaseId, 0);
     }
     d_primaryLeaseId = primaryLeaseId;
     d_primaryNode_p  = primaryNode;
