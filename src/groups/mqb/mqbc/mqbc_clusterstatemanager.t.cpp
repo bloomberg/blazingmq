@@ -1620,9 +1620,14 @@ static void test15_leaderCSLCommitFailure()
     BSLS_ASSERT_OPT(tester.d_clusterStateManager_mp->healthState() ==
                     mqbc::ClusterStateTableState::e_LDR_HEALING_STG3);
 
-    // 2. Invoke failure commit callback at the CSL
+    // 2. Invoke failure commit callback at the CSL.  Stop the scheduler
+    //    first to prevent the triggered watchdog from firing on the scheduler
+    //    thread while the main thread is still processing commit callbacks
+    //    (which would be a data race on the FSM event queue).
+    tester.d_cluster_mp->_scheduler().stop();
     tester.d_clusterStateLedger_p->_commitAdvisories(
         mqbc::ClusterStateLedgerCommitStatus::e_CANCELED);
+    tester.d_cluster_mp->_scheduler().start();
 
     // CSL_CMT_FAIL triggers the watchdog (reschedules to now) but stays in
     // LDR_HEALING_STG3.  Advance time so the triggered watchdog fires.
