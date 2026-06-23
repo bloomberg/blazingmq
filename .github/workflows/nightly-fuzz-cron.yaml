@@ -51,7 +51,7 @@ jobs:
           find ./build -type f -name "*.tsk" -exec chmod +x {} +
           cp src/applications/bmqbrkr/run "$BROKER_DIR/run"
           chmod +x "$BROKER_DIR/run"
-          rm -f "$BROKER_DIR/etc"
+          rm -rf "$BROKER_DIR/etc"
           cp -r src/applications/bmqbrkr/etc "$BROKER_DIR/etc"
 
       - name: Install Python dependencies
