@@ -315,10 +315,7 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
 
     // PRIVATE TYPES
 
-    /// Type of the RequestManager to use
-    typedef bmqp::RequestManager<bmqp_ctrlmsg::ControlMessage,
-                                 bmqp_ctrlmsg::ControlMessage>
-        RequestManagerType;
+    typedef bmqp::RequestManager::RequestSp RequestSp;
 
     typedef mqbc::ClusterStatePartitionInfo ClusterStatePartitionInfo;
 
@@ -549,10 +546,9 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// QueueAssignment request response handler, for a queue with the
     /// specified `uri`, and with the request and its associated response in
     /// the specified `requestContext`.
-    void onQueueAssignmentResponse(
-        const RequestManagerType::RequestSp& requestContext,
-        const bmqt::Uri&                     uri,
-        mqbnet::ClusterNode*                 responder);
+    void onQueueAssignmentResponse(const RequestSp&     requestContext,
+                                   const bmqt::Uri&     uri,
+                                   mqbnet::ClusterNode* responder);
 
     /// Method invoked when the queue in the specified `queueContext` has
     /// been assigned; to resume the operation on any pending contexts.
@@ -609,17 +605,16 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// Response callback of an open queue request, in the specified
     /// `context` and with the request and its associated response in the
     /// specified `requestContext`.
-    void
-    onOpenQueueResponse(const RequestManagerType::RequestSp& requestContext,
-                        const OpenQueueContextSp&            context,
-                        mqbnet::ClusterNode*                 responder);
+    void onOpenQueueResponse(const RequestSp&          requestContext,
+                             const OpenQueueContextSp& context,
+                             mqbnet::ClusterNode*      responder);
 
     /// Response callback of an open queue request, that was sent due to the
     /// state being restored, with the request and its associated response
     /// in the specified `requestContext`.
     void
-    onReopenQueueResponse(const RequestManagerType::RequestSp& requestContext,
-                          mqbnet::ClusterNode*                 activeNode,
+    onReopenQueueResponse(const RequestSp&     requestContext,
+                          mqbnet::ClusterNode* activeNode,
                           const bsl::shared_ptr<PartitionReopenCycle>& cycle,
                           int numAttempts);
 
@@ -627,20 +622,19 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// the state being restored, with the request and its associated
     /// response in the specified `requestContext`.
     void onConfigureQueueResponse(
-        const RequestManagerType::RequestSp&               requestContext,
+        const RequestSp&                                   requestContext,
         const bmqt::Uri&                                   uri,
         const bmqp_ctrlmsg::StreamParameters&              streamParameters,
         bsls::Types::Uint64                                generationCount,
         const mqbi::QueueHandle::HandleConfiguredCallback& callback);
 
-    void
-    onReopenQueueRetry(const RequestManagerType::RequestSp& requestContext,
-                       mqbnet::ClusterNode*                 activeNode,
-                       const bsl::shared_ptr<PartitionReopenCycle>& cycle,
-                       int numAttempts);
+    void onReopenQueueRetry(const RequestSp&     requestContext,
+                            mqbnet::ClusterNode* activeNode,
+                            const bsl::shared_ptr<PartitionReopenCycle>& cycle,
+                            int numAttempts);
 
     void onReopenQueueRetryDispatched(
-        const RequestManagerType::RequestSp&         requestContext,
+        const RequestSp&                             requestContext,
         mqbnet::ClusterNode*                         activeNode,
         const bsl::shared_ptr<PartitionReopenCycle>& cycle,
         int                                          numAttempts);
@@ -767,7 +761,7 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
         const mqbi::Cluster::HandleReleasedCallback& callback);
 
     void onCloseQueueResponse(
-        const RequestManagerType::RequestSp&         requestContext,
+        const RequestSp&                             requestContext,
         const mqbi::Cluster::HandleReleasedCallback& callback);
 
     void onQueueHandleCreatedDispatched(mqbi::Queue*     queue,

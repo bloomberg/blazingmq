@@ -35,14 +35,16 @@
 // BMQ
 #include <bmqp_protocol.h>
 #include <bmqp_queueid.h>
-#include <bmqp_requestmanager.h>
 #include <bmqt_correlationid.h>
 #include <bmqt_messageguid.h>
 
 #include <bmqc_orderedhashmap.h>
 
 // BDE
+#include <bdlbb_blob.h>
 #include <bsl_functional.h>
+#include <bsl_memory.h>
+#include <bsl_unordered_map.h>
 #include <bsl_vector.h>
 #include <bslma_allocator.h>
 #include <bslma_usesbslmaallocator.h>
@@ -51,6 +53,11 @@
 #include <bsls_spinlock.h>
 
 namespace BloombergLP {
+
+namespace bmqp {
+class RequestManagerRequest;
+}
+
 namespace bmqimp {
 
 // ===================================
@@ -62,9 +69,7 @@ class MessageCorrelationIdContainer {
   public:
     // PUBLIC TYPES
 
-    typedef bmqp::RequestManager<bmqp_ctrlmsg::ControlMessage,
-                                 bmqp_ctrlmsg::ControlMessage>
-        RequestManagerType;
+    typedef bsl::shared_ptr<bmqp::RequestManagerRequest> RequestSp;
 
     /// Struct representing the correlationId and queueId for a given
     /// message.
@@ -84,7 +89,7 @@ class MessageCorrelationIdContainer {
         bdlbb::Blob d_messageData;
         // Message data.
 
-        RequestManagerType::RequestSp d_requestContext;
+        RequestSp d_requestContext;
         // Control request context.
 
         /// Create a `QueueAndCorrelationId` having an invalid queueId and
@@ -204,9 +209,9 @@ class MessageCorrelationIdContainer {
 
     /// Add the specified `context` and the `blob` and return a GUID key
     /// that can be used to retrieve it later.
-    bmqt::MessageGUID add(const RequestManagerType::RequestSp& context,
-                          const bmqp::QueueId&                 queueId,
-                          const bdlbb::Blob&                   blob);
+    bmqt::MessageGUID add(const RequestSp&     context,
+                          const bmqp::QueueId& queueId,
+                          const bdlbb::Blob&   blob);
 
     /// Remove the item uniquely identified by the specified `key`,
     /// and populate the optionally specified `correlationId` with the
