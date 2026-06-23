@@ -100,10 +100,9 @@ class StorageManagerIterator;
 /// on storage partitions. Every operation including and not limited to change
 /// in partition node ownership and syncing partition info should be routed via
 /// this component.
-class StorageManager BSLS_KEYWORD_FINAL
-: public mqbi::StorageManager,
-  public PartitionStateTableActions<PartitionFSM::EventWithData>,
-  public PartitionFSMObserver {
+class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager,
+                                          public PartitionStateTableActions,
+                                          public PartitionFSMObserver {
   private:
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("MQBC.STORAGEMANAGER");
@@ -181,8 +180,6 @@ class StorageManager BSLS_KEYWORD_FINAL
 
   public:
     // TYPES
-    typedef PartitionFSM::EventWithData EventWithData;
-
     /// Pool of shared pointers to Blobs
     typedef StorageUtil::BlobSpPool BlobSpPool;
 
@@ -509,8 +506,9 @@ class StorageManager BSLS_KEYWORD_FINAL
 
     /// Determine which nodes to send ReplicaDataRequestPush/Drop based on the
     /// `event`, and populate the specified `destinations`.
-    void determineDataDestinations(DataDestinations*    destinations,
-                                   const EventWithData& event);
+    void determineDataDestinations(DataDestinations*              destinations,
+                                   PartitionStateTableEvent::Enum eventType,
+                                   const PartitionFSMEventData&   eventData);
 
     /// For `partitionId`, send ReplicaDataRequestPush to the `destinations`
     /// replicas`.
@@ -614,140 +612,205 @@ class StorageManager BSLS_KEYWORD_FINAL
     void forceFlushFileStores();
 
     //   (virtual: mqbc::PartitionStateTableActions)
-    void do_startWatchdog(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
-
-    void do_stopWatchdog(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
-
-    void
-    do_openRecoveryFileSet(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
-
-    void
-    do_closeRecoveryFileSet(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
-
-    void do_storeSelfSeq(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
-
-    void do_storePrimarySeq(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
-
-    void do_storeReplicaSeq(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
-
-    void
-    do_replicaStateRequest(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
-
-    void
-    do_replicaStateResponse(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
-
-    void do_failureReplicaStateResponse(const EventWithData& event)
+    void do_startWatchdog(PartitionStateTableEvent::Enum eventType,
+                          const PartitionFSMEventData&   eventData)
         BSLS_KEYWORD_OVERRIDE;
 
-    void do_logFailureReplicaStateResponse(const EventWithData& event)
+    void do_stopWatchdog(PartitionStateTableEvent::Enum eventType,
+                         const PartitionFSMEventData&   eventData)
         BSLS_KEYWORD_OVERRIDE;
 
-    void do_logFailurePrimaryStateResponse(const EventWithData& event)
+    void do_openRecoveryFileSet(PartitionStateTableEvent::Enum eventType,
+                                const PartitionFSMEventData&   eventData)
         BSLS_KEYWORD_OVERRIDE;
 
-    void do_logUnexpectedPrimaryStateResponse(const EventWithData& event)
+    void do_closeRecoveryFileSet(PartitionStateTableEvent::Enum eventType,
+                                 const PartitionFSMEventData&   eventData)
         BSLS_KEYWORD_OVERRIDE;
+
+    void do_storeSelfSeq(PartitionStateTableEvent::Enum eventType,
+                         const PartitionFSMEventData&   eventData)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_storePrimarySeq(PartitionStateTableEvent::Enum eventType,
+                            const PartitionFSMEventData&   eventData)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_storeReplicaSeq(PartitionStateTableEvent::Enum eventType,
+                            const PartitionFSMEventData&   eventData)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_replicaStateRequest(PartitionStateTableEvent::Enum eventType,
+                                const PartitionFSMEventData&   eventData)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_replicaStateResponse(PartitionStateTableEvent::Enum eventType,
+                                 const PartitionFSMEventData&   eventData)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_failureReplicaStateResponse(
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData) BSLS_KEYWORD_OVERRIDE;
+
+    void do_logFailureReplicaStateResponse(
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData) BSLS_KEYWORD_OVERRIDE;
+
+    void do_logFailurePrimaryStateResponse(
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData) BSLS_KEYWORD_OVERRIDE;
+
+    void do_logUnexpectedPrimaryStateResponse(
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData) BSLS_KEYWORD_OVERRIDE;
 
     void do_logUnexpectedFailurePrimaryStateResponse(
-        const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData) BSLS_KEYWORD_OVERRIDE;
 
-    void
-    do_primaryStateRequest(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
-
-    void
-    do_primaryStateResponse(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
-
-    void do_primaryRemoveStorageIfNeeded(const EventWithData& event)
+    void do_primaryStateRequest(PartitionStateTableEvent::Enum eventType,
+                                const PartitionFSMEventData&   eventData)
         BSLS_KEYWORD_OVERRIDE;
 
-    void
-    do_primaryRemoveStorage(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
-
-    void do_failurePrimaryStateResponse(const EventWithData& event)
+    void do_primaryStateResponse(PartitionStateTableEvent::Enum eventType,
+                                 const PartitionFSMEventData&   eventData)
         BSLS_KEYWORD_OVERRIDE;
 
-    void do_replicaDataResponsePush(const EventWithData& event)
+    void do_primaryRemoveStorageIfNeeded(
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData) BSLS_KEYWORD_OVERRIDE;
+
+    void do_primaryRemoveStorage(PartitionStateTableEvent::Enum eventType,
+                                 const PartitionFSMEventData&   eventData)
         BSLS_KEYWORD_OVERRIDE;
 
-    void do_replicaDataRequestPull(const EventWithData& event)
+    void do_failurePrimaryStateResponse(
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData) BSLS_KEYWORD_OVERRIDE;
+
+    void do_replicaDataResponsePush(PartitionStateTableEvent::Enum eventType,
+                                    const PartitionFSMEventData&   eventData)
         BSLS_KEYWORD_OVERRIDE;
 
-    void do_replicaDataResponsePull(const EventWithData& event)
+    void do_replicaDataRequestPull(PartitionStateTableEvent::Enum eventType,
+                                   const PartitionFSMEventData&   eventData)
         BSLS_KEYWORD_OVERRIDE;
 
-    void do_failureReplicaDataResponsePull(const EventWithData& event)
+    void do_replicaDataResponsePull(PartitionStateTableEvent::Enum eventType,
+                                    const PartitionFSMEventData&   eventData)
         BSLS_KEYWORD_OVERRIDE;
 
-    void do_failureReplicaDataResponsePush(const EventWithData& event)
+    void do_failureReplicaDataResponsePull(
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData) BSLS_KEYWORD_OVERRIDE;
+
+    void do_failureReplicaDataResponsePush(
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData) BSLS_KEYWORD_OVERRIDE;
+
+    void do_sendDataToReplicas(PartitionStateTableEvent::Enum eventType,
+                               const PartitionFSMEventData&   eventData)
         BSLS_KEYWORD_OVERRIDE;
 
-    void
-    do_sendDataToReplicas(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
-
-    void
-    do_sendDataToPrimary(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
-
-    void do_bufferLiveData(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
-
-    void do_processBufferedLiveData(const EventWithData& event)
+    void do_sendDataToPrimary(PartitionStateTableEvent::Enum eventType,
+                              const PartitionFSMEventData&   eventData)
         BSLS_KEYWORD_OVERRIDE;
 
-    void
-    do_clearBufferedLiveData(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
-
-    void do_processBufferedPrimaryStatusAdvisories(const EventWithData& event)
+    void do_bufferLiveData(PartitionStateTableEvent::Enum eventType,
+                           const PartitionFSMEventData&   eventData)
         BSLS_KEYWORD_OVERRIDE;
 
-    void do_processLiveData(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
-
-    void do_setPrimary(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
-
-    void do_cleanupMetadata(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
-
-    void do_cancelRequests(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
-
-    void do_clearPrimary(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
-
-    void do_setExpectedDataChunkRange(const EventWithData& event)
+    void do_processBufferedLiveData(PartitionStateTableEvent::Enum eventType,
+                                    const PartitionFSMEventData&   eventData)
         BSLS_KEYWORD_OVERRIDE;
 
-    void
-    do_resetReceiveDataCtx(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+    void do_clearBufferedLiveData(PartitionStateTableEvent::Enum eventType,
+                                  const PartitionFSMEventData&   eventData)
+        BSLS_KEYWORD_OVERRIDE;
 
-    void
-    do_attemptOpenStorage(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+    void do_processBufferedPrimaryStatusAdvisories(
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData) BSLS_KEYWORD_OVERRIDE;
 
-    void do_updateStorage(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+    void do_processLiveData(PartitionStateTableEvent::Enum eventType,
+                            const PartitionFSMEventData&   eventData)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_setPrimary(PartitionStateTableEvent::Enum eventType,
+                       const PartitionFSMEventData&   eventData)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_cleanupMetadata(PartitionStateTableEvent::Enum eventType,
+                            const PartitionFSMEventData&   eventData)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_cancelRequests(PartitionStateTableEvent::Enum eventType,
+                           const PartitionFSMEventData&   eventData)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_clearPrimary(PartitionStateTableEvent::Enum eventType,
+                         const PartitionFSMEventData&   eventData)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_setExpectedDataChunkRange(PartitionStateTableEvent::Enum eventType,
+                                      const PartitionFSMEventData&   eventData)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_resetReceiveDataCtx(PartitionStateTableEvent::Enum eventType,
+                                const PartitionFSMEventData&   eventData)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_attemptOpenStorage(PartitionStateTableEvent::Enum eventType,
+                               const PartitionFSMEventData&   eventData)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_updateStorage(PartitionStateTableEvent::Enum eventType,
+                          const PartitionFSMEventData&   eventData)
+        BSLS_KEYWORD_OVERRIDE;
 
     void do_removeStorageAndSendReplicaDataDropResponse(
-        const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData) BSLS_KEYWORD_OVERRIDE;
 
-    void do_incrementNumRplcaDataRspn(const EventWithData& event)
+    void do_incrementNumRplcaDataRspn(PartitionStateTableEvent::Enum eventType,
+                                      const PartitionFSMEventData&   eventData)
         BSLS_KEYWORD_OVERRIDE;
 
-    void do_checkQuorumRplcaDataRspn(const EventWithData& event)
+    void do_checkQuorumRplcaDataRspn(PartitionStateTableEvent::Enum eventType,
+                                     const PartitionFSMEventData&   eventData)
         BSLS_KEYWORD_OVERRIDE;
 
-    void do_reapplyEvent(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
-
-    void do_checkQuorumSeq(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
-
-    void do_findHighestSeq(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
-
-    void
-    do_flagFailedReplicaSeq(const EventWithData& event) BSLS_KEYWORD_OVERRIDE;
-
-    void do_transitionToActivePrimary(const EventWithData& event)
+    void do_reapplyEvent(PartitionStateTableEvent::Enum eventType,
+                         const PartitionFSMEventData&   eventData)
         BSLS_KEYWORD_OVERRIDE;
 
-    void do_reapplyDetectSelfPrimary(const EventWithData& event)
+    void do_checkQuorumSeq(PartitionStateTableEvent::Enum eventType,
+                           const PartitionFSMEventData&   eventData)
         BSLS_KEYWORD_OVERRIDE;
 
-    void do_reapplyDetectSelfReplica(const EventWithData& event)
+    void do_findHighestSeq(PartitionStateTableEvent::Enum eventType,
+                           const PartitionFSMEventData&   eventData)
         BSLS_KEYWORD_OVERRIDE;
 
-    void do_unsupportedPrimaryDowngrade(const EventWithData& event)
+    void do_flagFailedReplicaSeq(PartitionStateTableEvent::Enum eventType,
+                                 const PartitionFSMEventData&   eventData)
         BSLS_KEYWORD_OVERRIDE;
+
+    void do_transitionToActivePrimary(PartitionStateTableEvent::Enum eventType,
+                                      const PartitionFSMEventData&   eventData)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_reapplyDetectSelfPrimary(PartitionStateTableEvent::Enum eventType,
+                                     const PartitionFSMEventData&   eventData)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_reapplyDetectSelfReplica(PartitionStateTableEvent::Enum eventType,
+                                     const PartitionFSMEventData&   eventData)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_unsupportedPrimaryDowngrade(
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData) BSLS_KEYWORD_OVERRIDE;
 
     // PRIVATE ACCESSORS
 

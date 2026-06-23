@@ -237,12 +237,14 @@ struct PartitionStateTableEvent {
 bsl::ostream& operator<<(bsl::ostream&                  stream,
                          PartitionStateTableEvent::Enum value);
 
+// FORWARD DECLARATIONS
+class PartitionFSMEventData;
+
 // ================================
 // class PartitionStateTableActions
 // ================================
 
 /// This class defines the actions in the partition state table.
-template <typename ARGS>
 class PartitionStateTableActions {
   private:
     // CLASS-SCOPE CATEGORY
@@ -250,222 +252,354 @@ class PartitionStateTableActions {
 
   public:
     // TYPES
-    typedef void (PartitionStateTableActions<ARGS>::*ActionFunctor)(
-        const ARGS& args);
+    typedef void (PartitionStateTableActions::*ActionFunctor)(
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData);
 
   public:
     virtual ~PartitionStateTableActions();
 
-    virtual void do_none(const ARGS& args);
+    virtual void do_none(PartitionStateTableEvent::Enum eventType,
+                         const PartitionFSMEventData&   eventData);
 
-    virtual void do_startWatchdog(const ARGS& args) = 0;
+    virtual void do_startWatchdog(PartitionStateTableEvent::Enum eventType,
+                                  const PartitionFSMEventData& eventData) = 0;
 
-    virtual void do_stopWatchdog(const ARGS& args) = 0;
-
-    virtual void do_openRecoveryFileSet(const ARGS& args) = 0;
-
-    virtual void do_closeRecoveryFileSet(const ARGS& args) = 0;
-
-    virtual void do_storeSelfSeq(const ARGS& args) = 0;
-
-    virtual void do_storePrimarySeq(const ARGS& args) = 0;
-
-    virtual void do_storeReplicaSeq(const ARGS& args) = 0;
-
-    virtual void do_replicaStateRequest(const ARGS& args) = 0;
-
-    virtual void do_replicaStateResponse(const ARGS& args) = 0;
-
-    virtual void do_failureReplicaStateResponse(const ARGS& args) = 0;
-
-    virtual void do_logFailureReplicaStateResponse(const ARGS& args) = 0;
-
-    virtual void do_logFailurePrimaryStateResponse(const ARGS& args) = 0;
-
-    virtual void do_logUnexpectedPrimaryStateResponse(const ARGS& args) = 0;
+    virtual void do_stopWatchdog(PartitionStateTableEvent::Enum eventType,
+                                 const PartitionFSMEventData&   eventData) = 0;
 
     virtual void
-    do_logUnexpectedFailurePrimaryStateResponse(const ARGS& args) = 0;
+    do_openRecoveryFileSet(PartitionStateTableEvent::Enum eventType,
+                           const PartitionFSMEventData&   eventData) = 0;
 
-    virtual void do_primaryStateRequest(const ARGS& args) = 0;
+    virtual void
+    do_closeRecoveryFileSet(PartitionStateTableEvent::Enum eventType,
+                            const PartitionFSMEventData&   eventData) = 0;
 
-    virtual void do_primaryStateResponse(const ARGS& args) = 0;
+    virtual void do_storeSelfSeq(PartitionStateTableEvent::Enum eventType,
+                                 const PartitionFSMEventData&   eventData) = 0;
+
+    virtual void
+    do_storePrimarySeq(PartitionStateTableEvent::Enum eventType,
+                       const PartitionFSMEventData&   eventData) = 0;
+
+    virtual void
+    do_storeReplicaSeq(PartitionStateTableEvent::Enum eventType,
+                       const PartitionFSMEventData&   eventData) = 0;
+
+    virtual void
+    do_replicaStateRequest(PartitionStateTableEvent::Enum eventType,
+                           const PartitionFSMEventData&   eventData) = 0;
+
+    virtual void
+    do_replicaStateResponse(PartitionStateTableEvent::Enum eventType,
+                            const PartitionFSMEventData&   eventData) = 0;
+
+    virtual void
+    do_failureReplicaStateResponse(PartitionStateTableEvent::Enum eventType,
+                                   const PartitionFSMEventData& eventData) = 0;
+
+    virtual void do_logFailureReplicaStateResponse(
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData) = 0;
+
+    virtual void do_logFailurePrimaryStateResponse(
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData) = 0;
+
+    virtual void do_logUnexpectedPrimaryStateResponse(
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData) = 0;
+
+    virtual void do_logUnexpectedFailurePrimaryStateResponse(
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData) = 0;
+
+    virtual void
+    do_primaryStateRequest(PartitionStateTableEvent::Enum eventType,
+                           const PartitionFSMEventData&   eventData) = 0;
+
+    virtual void
+    do_primaryStateResponse(PartitionStateTableEvent::Enum eventType,
+                            const PartitionFSMEventData&   eventData) = 0;
 
     /// This method is called by primary to drop partition storage
     /// if needed (e.g primary missed rollover).
-    virtual void do_primaryRemoveStorageIfNeeded(const ARGS& args) = 0;
+    virtual void do_primaryRemoveStorageIfNeeded(
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData) = 0;
 
     /// This method is called by primary to unconditionally drop partition
     /// storage (e.g. upon receiving irreconcilable data response from
     /// replica).
-    virtual void do_primaryRemoveStorage(const ARGS& args) = 0;
-
-    virtual void do_failurePrimaryStateResponse(const ARGS& args) = 0;
-
-    virtual void do_replicaDataResponsePush(const ARGS& args) = 0;
-
-    virtual void do_replicaDataRequestPull(const ARGS& args) = 0;
-
-    virtual void do_replicaDataResponsePull(const ARGS& args) = 0;
-
-    virtual void do_failureReplicaDataResponsePull(const ARGS& args) = 0;
-
-    virtual void do_failureReplicaDataResponsePush(const ARGS& args) = 0;
-
-    virtual void do_sendDataToReplicas(const ARGS& args) = 0;
-
-    virtual void do_sendDataToPrimary(const ARGS& args) = 0;
-
-    virtual void do_bufferLiveData(const ARGS& args) = 0;
-
-    virtual void do_processBufferedLiveData(const ARGS& args) = 0;
-
-    virtual void do_clearBufferedLiveData(const ARGS& args) = 0;
+    virtual void
+    do_primaryRemoveStorage(PartitionStateTableEvent::Enum eventType,
+                            const PartitionFSMEventData&   eventData) = 0;
 
     virtual void
-    do_processBufferedPrimaryStatusAdvisories(const ARGS& args) = 0;
-
-    virtual void do_processLiveData(const ARGS& args) = 0;
-
-    virtual void do_setPrimary(const ARGS& args) = 0;
-
-    virtual void do_cleanupMetadata(const ARGS& args) = 0;
-
-    virtual void do_cancelRequests(const ARGS& args) = 0;
-
-    virtual void do_clearPrimary(const ARGS& args) = 0;
-
-    virtual void do_setExpectedDataChunkRange(const ARGS& args) = 0;
-
-    virtual void do_resetReceiveDataCtx(const ARGS& args) = 0;
-
-    virtual void do_attemptOpenStorage(const ARGS& args) = 0;
-
-    virtual void do_updateStorage(const ARGS& args) = 0;
+    do_failurePrimaryStateResponse(PartitionStateTableEvent::Enum eventType,
+                                   const PartitionFSMEventData& eventData) = 0;
 
     virtual void
-    do_removeStorageAndSendReplicaDataDropResponse(const ARGS& args) = 0;
+    do_replicaDataResponsePush(PartitionStateTableEvent::Enum eventType,
+                               const PartitionFSMEventData&   eventData) = 0;
 
-    virtual void do_incrementNumRplcaDataRspn(const ARGS& args) = 0;
+    virtual void
+    do_replicaDataRequestPull(PartitionStateTableEvent::Enum eventType,
+                              const PartitionFSMEventData&   eventData) = 0;
 
-    virtual void do_checkQuorumRplcaDataRspn(const ARGS& args) = 0;
+    virtual void
+    do_replicaDataResponsePull(PartitionStateTableEvent::Enum eventType,
+                               const PartitionFSMEventData&   eventData) = 0;
 
-    virtual void do_reapplyEvent(const ARGS& args) = 0;
+    virtual void do_failureReplicaDataResponsePull(
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData) = 0;
 
-    virtual void do_checkQuorumSeq(const ARGS& args) = 0;
+    virtual void do_failureReplicaDataResponsePush(
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData) = 0;
 
-    virtual void do_findHighestSeq(const ARGS& args) = 0;
+    virtual void
+    do_sendDataToReplicas(PartitionStateTableEvent::Enum eventType,
+                          const PartitionFSMEventData&   eventData) = 0;
 
-    virtual void do_flagFailedReplicaSeq(const ARGS& args) = 0;
+    virtual void
+    do_sendDataToPrimary(PartitionStateTableEvent::Enum eventType,
+                         const PartitionFSMEventData&   eventData) = 0;
 
-    virtual void do_transitionToActivePrimary(const ARGS& args) = 0;
+    virtual void do_bufferLiveData(PartitionStateTableEvent::Enum eventType,
+                                   const PartitionFSMEventData& eventData) = 0;
 
-    virtual void do_reapplyDetectSelfPrimary(const ARGS& args) = 0;
+    virtual void
+    do_processBufferedLiveData(PartitionStateTableEvent::Enum eventType,
+                               const PartitionFSMEventData&   eventData) = 0;
 
-    virtual void do_reapplyDetectSelfReplica(const ARGS& args) = 0;
+    virtual void
+    do_clearBufferedLiveData(PartitionStateTableEvent::Enum eventType,
+                             const PartitionFSMEventData&   eventData) = 0;
 
-    virtual void do_unsupportedPrimaryDowngrade(const ARGS& args) = 0;
+    virtual void do_processBufferedPrimaryStatusAdvisories(
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData) = 0;
+
+    virtual void
+    do_processLiveData(PartitionStateTableEvent::Enum eventType,
+                       const PartitionFSMEventData&   eventData) = 0;
+
+    virtual void do_setPrimary(PartitionStateTableEvent::Enum eventType,
+                               const PartitionFSMEventData&   eventData) = 0;
+
+    virtual void
+    do_cleanupMetadata(PartitionStateTableEvent::Enum eventType,
+                       const PartitionFSMEventData&   eventData) = 0;
+
+    virtual void do_cancelRequests(PartitionStateTableEvent::Enum eventType,
+                                   const PartitionFSMEventData& eventData) = 0;
+
+    virtual void do_clearPrimary(PartitionStateTableEvent::Enum eventType,
+                                 const PartitionFSMEventData&   eventData) = 0;
+
+    virtual void
+    do_setExpectedDataChunkRange(PartitionStateTableEvent::Enum eventType,
+                                 const PartitionFSMEventData&   eventData) = 0;
+
+    virtual void
+    do_resetReceiveDataCtx(PartitionStateTableEvent::Enum eventType,
+                           const PartitionFSMEventData&   eventData) = 0;
+
+    virtual void
+    do_attemptOpenStorage(PartitionStateTableEvent::Enum eventType,
+                          const PartitionFSMEventData&   eventData) = 0;
+
+    virtual void do_updateStorage(PartitionStateTableEvent::Enum eventType,
+                                  const PartitionFSMEventData& eventData) = 0;
+
+    virtual void do_removeStorageAndSendReplicaDataDropResponse(
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData) = 0;
+
+    virtual void
+    do_incrementNumRplcaDataRspn(PartitionStateTableEvent::Enum eventType,
+                                 const PartitionFSMEventData&   eventData) = 0;
+
+    virtual void
+    do_checkQuorumRplcaDataRspn(PartitionStateTableEvent::Enum eventType,
+                                const PartitionFSMEventData&   eventData) = 0;
+
+    virtual void do_reapplyEvent(PartitionStateTableEvent::Enum eventType,
+                                 const PartitionFSMEventData&   eventData) = 0;
+
+    virtual void do_checkQuorumSeq(PartitionStateTableEvent::Enum eventType,
+                                   const PartitionFSMEventData& eventData) = 0;
+
+    virtual void do_findHighestSeq(PartitionStateTableEvent::Enum eventType,
+                                   const PartitionFSMEventData& eventData) = 0;
+
+    virtual void
+    do_flagFailedReplicaSeq(PartitionStateTableEvent::Enum eventType,
+                            const PartitionFSMEventData&   eventData) = 0;
+
+    virtual void
+    do_transitionToActivePrimary(PartitionStateTableEvent::Enum eventType,
+                                 const PartitionFSMEventData&   eventData) = 0;
+
+    virtual void
+    do_reapplyDetectSelfPrimary(PartitionStateTableEvent::Enum eventType,
+                                const PartitionFSMEventData&   eventData) = 0;
+
+    virtual void
+    do_reapplyDetectSelfReplica(PartitionStateTableEvent::Enum eventType,
+                                const PartitionFSMEventData&   eventData) = 0;
+
+    virtual void
+    do_unsupportedPrimaryDowngrade(PartitionStateTableEvent::Enum eventType,
+                                   const PartitionFSMEventData& eventData) = 0;
 
     void
     do_removeStorageAndSendReplicaDataDropResponse_reapplyDetectSelfReplica(
-        const ARGS& args);
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData);
 
     void
     do_setPrimary_startWatchdog_openRecoveryFileSet_storeSelfSeq_replicaStateRequest_checkQuorumSeq(
-        const ARGS& args);
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData);
 
     void
     do_startWatchdog_openRecoveryFileSet_storeSelfSeq_replicaStateRequest_checkQuorumSeq(
-        const ARGS& args);
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData);
 
     void
     do_setPrimary_startWatchdog_openRecoveryFileSet_storeSelfSeq_primaryStateRequest(
-        const ARGS& args);
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData);
 
     void do_startWatchdog_openRecoveryFileSet_storeSelfSeq_primaryStateRequest(
-        const ARGS& args);
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData);
+
+    void do_storeReplicaSeq_primaryStateResponse_checkQuorumSeq(
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData);
 
     void
-    do_storeReplicaSeq_primaryStateResponse_checkQuorumSeq(const ARGS& args);
+    do_storeReplicaSeq_checkQuorumSeq(PartitionStateTableEvent::Enum eventType,
+                                      const PartitionFSMEventData& eventData);
 
-    void do_storeReplicaSeq_checkQuorumSeq(const ARGS& args);
-
-    void do_storePrimarySeq_replicaStateResponse(const ARGS& args);
+    void do_storePrimarySeq_replicaStateResponse(
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData);
 
     void
     do_cleanupMetadata_clearPrimary_closeRecoveryFileSet_stopWatchdog_cancelRequests(
-        const ARGS& args);
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData);
 
     void
     do_cleanupMetadata_clearPrimary_closeRecoveryFileSet_stopWatchdog_cancelRequests_reapplyEvent(
-        const ARGS& args);
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData);
 
-    void do_cleanupMetadata_clearPrimary_reapplyEvent(const ARGS& args);
+    void do_cleanupMetadata_clearPrimary_reapplyEvent(
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData);
 
     void do_cleanupMetadata_closeRecoveryFileSet_cancelRequests_reapplyEvent(
-        const ARGS& args);
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData);
 
-    void do_cleanupMetadata_reapplyEvent(const ARGS& args);
+    void
+    do_cleanupMetadata_reapplyEvent(PartitionStateTableEvent::Enum eventType,
+                                    const PartitionFSMEventData&   eventData);
 
-    void do_cleanupMetadata_clearPrimary(const ARGS& args);
+    void
+    do_cleanupMetadata_clearPrimary(PartitionStateTableEvent::Enum eventType,
+                                    const PartitionFSMEventData&   eventData);
 
     void do_resetReceiveDataCtx_flagFailedReplicaSeq_checkQuorumSeq(
-        const ARGS& args);
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData);
 
-    void do_resetReceiveDataCtx_closeRecoveryFileSet(const ARGS& args);
+    void do_resetReceiveDataCtx_closeRecoveryFileSet(
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData);
 
     void do_closeRecoveryFileSet_attemptOpenStorage_sendDataToPrimary(
-        const ARGS& args);
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData);
 
     void
     do_closeRecoveryFileSet_attemptOpenStorage_sendDataToReplicas_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
-        const ARGS& args);
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData);
 
     void
     do_primaryRemoveStorageIfNeeded_setExpectedDataChunkRange_replicaDataRequestPull(
-        const ARGS& args);
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData);
 
     void
     do_resetReceiveDataCtx_primaryRemoveStorage_setExpectedDataChunkRange_replicaDataRequestPull(
-        const ARGS& args);
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData);
 
-    void do_setExpectedDataChunkRange_clearBufferedLiveData(const ARGS& args);
+    void do_setExpectedDataChunkRange_clearBufferedLiveData(
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData);
 
     void
     do_resetReceiveDataCtx_storeSelfSeq_closeRecoveryFileSet_attemptOpenStorage_sendDataToReplicas_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
-        const ARGS& args);
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData);
 
-    void do_stopWatchdog_transitionToActivePrimary(const ARGS& args);
+    void do_stopWatchdog_transitionToActivePrimary(
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData);
 
-    void do_replicaStateResponse_storePrimarySeq(const ARGS& args);
+    void do_replicaStateResponse_storePrimarySeq(
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData);
 
     void
     do_replicaDataResponsePull_processBufferedLiveData_processBufferedPrimaryStatusAdvisories_stopWatchdog(
-        const ARGS& args);
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData);
 
     void do_failureReplicaDataResponsePull_reapplyDetectSelfReplica(
-        const ARGS& args);
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData);
 
     void do_failureReplicaDataResponsePush_reapplyDetectSelfReplica(
-        const ARGS& args);
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData);
 
     void
     do_replicaDataResponsePush_resetReceiveDataCtx_closeRecoveryFileSet_attemptOpenStorage_processBufferedLiveData_processBufferedPrimaryStatusAdvisories_stopWatchdog(
-        const ARGS& args);
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData);
 
     void do_storeReplicaSeq_primaryStateResponse_sendDataToReplicas(
-        const ARGS& args);
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData);
 
     void
     do_storeSelfSeq_storeReplicaSeq_primaryStateResponse_sendDataToReplicas(
-        const ARGS& args);
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData);
 
-    void do_storeReplicaSeq_sendDataToReplicas(const ARGS& args);
+    void do_storeReplicaSeq_sendDataToReplicas(
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData);
 
-    void do_storeSelfSeq_storeReplicaSeq_sendDataToReplicas(const ARGS& args);
+    void do_storeSelfSeq_storeReplicaSeq_sendDataToReplicas(
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData);
 
-    void
-    do_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(const ARGS& args);
+    void do_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData);
 };
 
 // =========================
@@ -473,33 +607,30 @@ class PartitionStateTableActions {
 // =========================
 
 /// This class is a state table for the Partition FSM.
-template <typename ARGS>
 class PartitionStateTable
-: public mqbu::StateTable<
-      PartitionStateTableState::e_NUM_STATES,
-      PartitionStateTableEvent::e_NUM_EVENTS,
-      typename PartitionStateTableActions<ARGS>::ActionFunctor> {
+: public mqbu::StateTable<PartitionStateTableState::e_NUM_STATES,
+                          PartitionStateTableEvent::e_NUM_EVENTS,
+                          PartitionStateTableActions::ActionFunctor> {
   public:
     // TYPES
-    typedef PartitionStateTableState State;
-    typedef PartitionStateTableEvent Event;
-    typedef
-        typename PartitionStateTableActions<ARGS>::ActionFunctor ActionFunctor;
+    typedef PartitionStateTableState                  State;
+    typedef PartitionStateTableEvent                  Event;
+    typedef PartitionStateTableActions::ActionFunctor ActionFunctor;
     typedef mqbu::
         StateTable<State::e_NUM_STATES, Event::e_NUM_EVENTS, ActionFunctor>
-                                       Table;
-    typedef typename Table::Transition Transition;
+                              Table;
+    typedef Table::Transition Transition;
 
   public:
     // CREATORS
     PartitionStateTable()
-    : Table(&PartitionStateTableActions<ARGS>::do_none)
+    : Table(&PartitionStateTableActions::do_none)
     {
 #define PST_CFG(s, e, a, n)                                                   \
     Table::configure(State::e_##s,                                            \
                      Event::e_##e,                                            \
                      Transition(State::e_##n,                                 \
-                                &PartitionStateTableActions<ARGS>::do_##a));
+                                &PartitionStateTableActions::do_##a));
         //       state                 event                         action
         //       next state
         PST_CFG(
@@ -861,150 +992,138 @@ class PartitionStateTable
 /// `do_<a1>_<a2>_<a3>_<a4>`, derived from the same arguments, so the name
 /// and body cannot diverge.
 #define PST_COMPOSITE_4(a1, a2, a3, a4)                                       \
-    template <typename ARGS>                                                  \
-    void PartitionStateTableActions<ARGS>::do_##a1##_##a2##_##a3##_##a4(      \
-        const ARGS& args)                                                     \
+    inline void PartitionStateTableActions::do_##a1##_##a2##_##a3##_##a4(     \
+        PartitionStateTableEvent::Enum eventType,                             \
+        const PartitionFSMEventData&   eventData)                             \
     {                                                                         \
-        do_##a1(args);                                                        \
-        do_##a2(args);                                                        \
-        do_##a3(args);                                                        \
-        do_##a4(args);                                                        \
+        do_##a1(eventType, eventData);                                        \
+        do_##a2(eventType, eventData);                                        \
+        do_##a3(eventType, eventData);                                        \
+        do_##a4(eventType, eventData);                                        \
     }
 
 /// Generate a composite action implementation that calls exactly the 5
 /// sub-actions named by the arguments, in order.
 #define PST_COMPOSITE_5(a1, a2, a3, a4, a5)                                   \
-    template <typename ARGS>                                                  \
-    void PartitionStateTableActions<                                          \
-        ARGS>::do_##a1##_##a2##_##a3##_##a4##_##a5(const ARGS& args)          \
+    inline void                                                               \
+        PartitionStateTableActions::do_##a1##_##a2##_##a3##_##a4##_##a5(      \
+            PartitionStateTableEvent::Enum eventType,                         \
+            const PartitionFSMEventData&   eventData)                         \
     {                                                                         \
-        do_##a1(args);                                                        \
-        do_##a2(args);                                                        \
-        do_##a3(args);                                                        \
-        do_##a4(args);                                                        \
-        do_##a5(args);                                                        \
+        do_##a1(eventType, eventData);                                        \
+        do_##a2(eventType, eventData);                                        \
+        do_##a3(eventType, eventData);                                        \
+        do_##a4(eventType, eventData);                                        \
+        do_##a5(eventType, eventData);                                        \
     }
 
-// CREATORS
-template <typename ARGS>
-PartitionStateTableActions<ARGS>::~PartitionStateTableActions()
-{
-    // NOTHING (pure interface)
-}
-
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::do_none(const ARGS& args)
-{
-    const int partitionId = args.second.partitionId();
-    BALL_LOG_INFO << "Partition FSM for Partition [" << partitionId
-                  << "]: NO ACTION PERFORMED.";
-}
-
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
+inline void PartitionStateTableActions::
     do_removeStorageAndSendReplicaDataDropResponse_reapplyDetectSelfReplica(
-        const ARGS& args)
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData)
 {
-    do_removeStorageAndSendReplicaDataDropResponse(args);
-    do_reapplyDetectSelfReplica(args);
+    do_removeStorageAndSendReplicaDataDropResponse(eventType, eventData);
+    do_reapplyDetectSelfReplica(eventType, eventData);
 }
 
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
+inline void PartitionStateTableActions::
     do_startWatchdog_openRecoveryFileSet_storeSelfSeq_replicaStateRequest_checkQuorumSeq(
-        const ARGS& args)
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData)
 {
-    do_startWatchdog(args);
-    do_openRecoveryFileSet(args);
-    do_storeSelfSeq(args);
-    do_replicaStateRequest(args);
-    do_checkQuorumSeq(args);
+    do_startWatchdog(eventType, eventData);
+    do_openRecoveryFileSet(eventType, eventData);
+    do_storeSelfSeq(eventType, eventData);
+    do_replicaStateRequest(eventType, eventData);
+    do_checkQuorumSeq(eventType, eventData);
 }
 
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
+inline void PartitionStateTableActions::
     do_setPrimary_startWatchdog_openRecoveryFileSet_storeSelfSeq_replicaStateRequest_checkQuorumSeq(
-        const ARGS& args)
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData)
 {
-    do_setPrimary(args);
-    do_startWatchdog(args);
-    do_openRecoveryFileSet(args);
-    do_storeSelfSeq(args);
-    do_replicaStateRequest(args);
-    do_checkQuorumSeq(args);
+    do_setPrimary(eventType, eventData);
+    do_startWatchdog(eventType, eventData);
+    do_openRecoveryFileSet(eventType, eventData);
+    do_storeSelfSeq(eventType, eventData);
+    do_replicaStateRequest(eventType, eventData);
+    do_checkQuorumSeq(eventType, eventData);
 }
 
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
+inline void PartitionStateTableActions::
     do_setPrimary_startWatchdog_openRecoveryFileSet_storeSelfSeq_primaryStateRequest(
-        const ARGS& args)
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData)
 {
-    do_setPrimary(args);
-    do_startWatchdog(args);
-    do_openRecoveryFileSet(args);
-    do_storeSelfSeq(args);
-    do_primaryStateRequest(args);
+    do_setPrimary(eventType, eventData);
+    do_startWatchdog(eventType, eventData);
+    do_openRecoveryFileSet(eventType, eventData);
+    do_storeSelfSeq(eventType, eventData);
+    do_primaryStateRequest(eventType, eventData);
 }
 
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
+inline void PartitionStateTableActions::
     do_startWatchdog_openRecoveryFileSet_storeSelfSeq_primaryStateRequest(
-        const ARGS& args)
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData)
 {
-    do_startWatchdog(args);
-    do_openRecoveryFileSet(args);
-    do_storeSelfSeq(args);
-    do_primaryStateRequest(args);
+    do_startWatchdog(eventType, eventData);
+    do_openRecoveryFileSet(eventType, eventData);
+    do_storeSelfSeq(eventType, eventData);
+    do_primaryStateRequest(eventType, eventData);
 }
 
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
-    do_storeReplicaSeq_primaryStateResponse_checkQuorumSeq(const ARGS& args)
+inline void PartitionStateTableActions::
+    do_storeReplicaSeq_primaryStateResponse_checkQuorumSeq(
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData)
 {
-    do_storeReplicaSeq(args);
-    do_primaryStateResponse(args);
-    do_checkQuorumSeq(args);
+    do_storeReplicaSeq(eventType, eventData);
+    do_primaryStateResponse(eventType, eventData);
+    do_checkQuorumSeq(eventType, eventData);
 }
 
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::do_storeReplicaSeq_checkQuorumSeq(
-    const ARGS& args)
+inline void PartitionStateTableActions::do_storeReplicaSeq_checkQuorumSeq(
+    PartitionStateTableEvent::Enum eventType,
+    const PartitionFSMEventData&   eventData)
 {
-    do_storeReplicaSeq(args);
-    do_checkQuorumSeq(args);
+    do_storeReplicaSeq(eventType, eventData);
+    do_checkQuorumSeq(eventType, eventData);
 }
 
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::do_storePrimarySeq_replicaStateResponse(
-    const ARGS& args)
+inline void
+PartitionStateTableActions::do_storePrimarySeq_replicaStateResponse(
+    PartitionStateTableEvent::Enum eventType,
+    const PartitionFSMEventData&   eventData)
 {
-    do_storePrimarySeq(args);
-    do_replicaStateResponse(args);
+    do_storePrimarySeq(eventType, eventData);
+    do_replicaStateResponse(eventType, eventData);
 }
 
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
+inline void PartitionStateTableActions::
     do_cleanupMetadata_clearPrimary_closeRecoveryFileSet_stopWatchdog_cancelRequests(
-        const ARGS& args)
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData)
 {
-    do_cleanupMetadata(args);
-    do_clearPrimary(args);
-    do_closeRecoveryFileSet(args);
-    do_stopWatchdog(args);
-    do_cancelRequests(args);
+    do_cleanupMetadata(eventType, eventData);
+    do_clearPrimary(eventType, eventData);
+    do_closeRecoveryFileSet(eventType, eventData);
+    do_stopWatchdog(eventType, eventData);
+    do_cancelRequests(eventType, eventData);
 }
 
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
+inline void PartitionStateTableActions::
     do_cleanupMetadata_clearPrimary_closeRecoveryFileSet_stopWatchdog_cancelRequests_reapplyEvent(
-        const ARGS& args)
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData)
 {
-    do_cleanupMetadata(args);
-    do_clearPrimary(args);
-    do_closeRecoveryFileSet(args);
-    do_stopWatchdog(args);
-    do_cancelRequests(args);
-    do_reapplyEvent(args);
+    do_cleanupMetadata(eventType, eventData);
+    do_clearPrimary(eventType, eventData);
+    do_closeRecoveryFileSet(eventType, eventData);
+    do_stopWatchdog(eventType, eventData);
+    do_cancelRequests(eventType, eventData);
+    do_reapplyEvent(eventType, eventData);
 }
 
 PST_COMPOSITE_4(cleanupMetadata,
@@ -1012,217 +1131,224 @@ PST_COMPOSITE_4(cleanupMetadata,
                 cancelRequests,
                 reapplyEvent)
 
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::do_cleanupMetadata_reapplyEvent(
-    const ARGS& args)
+inline void PartitionStateTableActions::do_cleanupMetadata_reapplyEvent(
+    PartitionStateTableEvent::Enum eventType,
+    const PartitionFSMEventData&   eventData)
 {
-    do_cleanupMetadata(args);
-    do_reapplyEvent(args);
+    do_cleanupMetadata(eventType, eventData);
+    do_reapplyEvent(eventType, eventData);
 }
 
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::do_cleanupMetadata_clearPrimary(
-    const ARGS& args)
+inline void PartitionStateTableActions::do_cleanupMetadata_clearPrimary(
+    PartitionStateTableEvent::Enum eventType,
+    const PartitionFSMEventData&   eventData)
 {
-    do_cleanupMetadata(args);
-    do_clearPrimary(args);
+    do_cleanupMetadata(eventType, eventData);
+    do_clearPrimary(eventType, eventData);
 }
 
-template <typename ARGS>
-void PartitionStateTableActions<
-    ARGS>::do_cleanupMetadata_clearPrimary_reapplyEvent(const ARGS& args)
+inline void
+PartitionStateTableActions::do_cleanupMetadata_clearPrimary_reapplyEvent(
+    PartitionStateTableEvent::Enum eventType,
+    const PartitionFSMEventData&   eventData)
 {
-    do_cleanupMetadata(args);
-    do_clearPrimary(args);
-    do_reapplyEvent(args);
+    do_cleanupMetadata(eventType, eventData);
+    do_clearPrimary(eventType, eventData);
+    do_reapplyEvent(eventType, eventData);
 }
 
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
+inline void PartitionStateTableActions::
     do_resetReceiveDataCtx_flagFailedReplicaSeq_checkQuorumSeq(
-        const ARGS& args)
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData)
 {
-    do_resetReceiveDataCtx(args);
-    do_flagFailedReplicaSeq(args);
-    do_checkQuorumSeq(args);
+    do_resetReceiveDataCtx(eventType, eventData);
+    do_flagFailedReplicaSeq(eventType, eventData);
+    do_checkQuorumSeq(eventType, eventData);
 }
 
-template <typename ARGS>
-void PartitionStateTableActions<
-    ARGS>::do_resetReceiveDataCtx_closeRecoveryFileSet(const ARGS& args)
+inline void
+PartitionStateTableActions::do_resetReceiveDataCtx_closeRecoveryFileSet(
+    PartitionStateTableEvent::Enum eventType,
+    const PartitionFSMEventData&   eventData)
 {
-    do_resetReceiveDataCtx(args);
-    do_closeRecoveryFileSet(args);
+    do_resetReceiveDataCtx(eventType, eventData);
+    do_closeRecoveryFileSet(eventType, eventData);
 }
 
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
+inline void PartitionStateTableActions::
     do_closeRecoveryFileSet_attemptOpenStorage_sendDataToPrimary(
-        const ARGS& args)
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData)
 {
-    do_closeRecoveryFileSet(args);
-    do_attemptOpenStorage(args);
-    do_sendDataToPrimary(args);
+    do_closeRecoveryFileSet(eventType, eventData);
+    do_attemptOpenStorage(eventType, eventData);
+    do_sendDataToPrimary(eventType, eventData);
 }
 
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
+inline void PartitionStateTableActions::
     do_closeRecoveryFileSet_attemptOpenStorage_sendDataToReplicas_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
-        const ARGS& args)
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData)
 {
-    do_closeRecoveryFileSet(args);
-    do_attemptOpenStorage(args);
-    do_sendDataToReplicas(args);
-    do_incrementNumRplcaDataRspn(args);
-    do_checkQuorumRplcaDataRspn(args);
+    do_closeRecoveryFileSet(eventType, eventData);
+    do_attemptOpenStorage(eventType, eventData);
+    do_sendDataToReplicas(eventType, eventData);
+    do_incrementNumRplcaDataRspn(eventType, eventData);
+    do_checkQuorumRplcaDataRspn(eventType, eventData);
 }
 
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
+inline void PartitionStateTableActions::
     do_primaryRemoveStorageIfNeeded_setExpectedDataChunkRange_replicaDataRequestPull(
-        const ARGS& args)
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData)
 {
-    do_primaryRemoveStorageIfNeeded(args);
-    do_setExpectedDataChunkRange(args);
-    do_replicaDataRequestPull(args);
+    do_primaryRemoveStorageIfNeeded(eventType, eventData);
+    do_setExpectedDataChunkRange(eventType, eventData);
+    do_replicaDataRequestPull(eventType, eventData);
 }
 
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
+inline void PartitionStateTableActions::
     do_resetReceiveDataCtx_primaryRemoveStorage_setExpectedDataChunkRange_replicaDataRequestPull(
-        const ARGS& args)
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData)
 {
-    do_resetReceiveDataCtx(args);
-    do_primaryRemoveStorage(args);
-    do_setExpectedDataChunkRange(args);
-    do_replicaDataRequestPull(args);
+    do_resetReceiveDataCtx(eventType, eventData);
+    do_primaryRemoveStorage(eventType, eventData);
+    do_setExpectedDataChunkRange(eventType, eventData);
+    do_replicaDataRequestPull(eventType, eventData);
 }
 
-template <typename ARGS>
-void PartitionStateTableActions<
-    ARGS>::do_setExpectedDataChunkRange_clearBufferedLiveData(const ARGS& args)
+inline void
+PartitionStateTableActions::do_setExpectedDataChunkRange_clearBufferedLiveData(
+    PartitionStateTableEvent::Enum eventType,
+    const PartitionFSMEventData&   eventData)
 {
-    do_setExpectedDataChunkRange(args);
-    do_clearBufferedLiveData(args);
+    do_setExpectedDataChunkRange(eventType, eventData);
+    do_clearBufferedLiveData(eventType, eventData);
 }
 
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
+inline void PartitionStateTableActions::
     do_resetReceiveDataCtx_storeSelfSeq_closeRecoveryFileSet_attemptOpenStorage_sendDataToReplicas_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
-        const ARGS& args)
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData)
 {
-    do_resetReceiveDataCtx(args);
-    do_storeSelfSeq(args);
-    do_closeRecoveryFileSet(args);
-    do_attemptOpenStorage(args);
-    do_sendDataToReplicas(args);
-    do_incrementNumRplcaDataRspn(args);
-    do_checkQuorumRplcaDataRspn(args);
+    do_resetReceiveDataCtx(eventType, eventData);
+    do_storeSelfSeq(eventType, eventData);
+    do_closeRecoveryFileSet(eventType, eventData);
+    do_attemptOpenStorage(eventType, eventData);
+    do_sendDataToReplicas(eventType, eventData);
+    do_incrementNumRplcaDataRspn(eventType, eventData);
+    do_checkQuorumRplcaDataRspn(eventType, eventData);
 }
 
-template <typename ARGS>
-void PartitionStateTableActions<
-    ARGS>::do_stopWatchdog_transitionToActivePrimary(const ARGS& args)
+inline void
+PartitionStateTableActions::do_stopWatchdog_transitionToActivePrimary(
+    PartitionStateTableEvent::Enum eventType,
+    const PartitionFSMEventData&   eventData)
 {
-    do_stopWatchdog(args);
-    do_transitionToActivePrimary(args);
+    do_stopWatchdog(eventType, eventData);
+    do_transitionToActivePrimary(eventType, eventData);
 }
 
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::do_replicaStateResponse_storePrimarySeq(
-    const ARGS& args)
+inline void
+PartitionStateTableActions::do_replicaStateResponse_storePrimarySeq(
+    PartitionStateTableEvent::Enum eventType,
+    const PartitionFSMEventData&   eventData)
 {
-    do_replicaStateResponse(args);
-    do_storePrimarySeq(args);
+    do_replicaStateResponse(eventType, eventData);
+    do_storePrimarySeq(eventType, eventData);
 }
 
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
+inline void PartitionStateTableActions::
     do_replicaDataResponsePull_processBufferedLiveData_processBufferedPrimaryStatusAdvisories_stopWatchdog(
-        const ARGS& args)
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData)
 {
-    do_replicaDataResponsePull(args);
-    do_processBufferedLiveData(args);
-    do_processBufferedPrimaryStatusAdvisories(args);
-    do_stopWatchdog(args);
+    do_replicaDataResponsePull(eventType, eventData);
+    do_processBufferedLiveData(eventType, eventData);
+    do_processBufferedPrimaryStatusAdvisories(eventType, eventData);
+    do_stopWatchdog(eventType, eventData);
 }
 
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
+inline void PartitionStateTableActions::
     do_failureReplicaDataResponsePull_reapplyDetectSelfReplica(
-        const ARGS& args)
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData)
 {
-    do_failureReplicaDataResponsePull(args);
-    do_reapplyDetectSelfReplica(args);
+    do_failureReplicaDataResponsePull(eventType, eventData);
+    do_reapplyDetectSelfReplica(eventType, eventData);
 }
 
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
+inline void PartitionStateTableActions::
     do_failureReplicaDataResponsePush_reapplyDetectSelfReplica(
-        const ARGS& args)
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData)
 {
-    do_failureReplicaDataResponsePush(args);
-    do_reapplyDetectSelfReplica(args);
+    do_failureReplicaDataResponsePush(eventType, eventData);
+    do_reapplyDetectSelfReplica(eventType, eventData);
 }
 
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
+inline void PartitionStateTableActions::
     do_replicaDataResponsePush_resetReceiveDataCtx_closeRecoveryFileSet_attemptOpenStorage_processBufferedLiveData_processBufferedPrimaryStatusAdvisories_stopWatchdog(
-        const ARGS& args)
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData)
 {
-    do_replicaDataResponsePush(args);
-    do_resetReceiveDataCtx(args);
-    do_closeRecoveryFileSet(args);
-    do_attemptOpenStorage(args);
-    do_processBufferedLiveData(args);
-    do_processBufferedPrimaryStatusAdvisories(args);
-    do_stopWatchdog(args);
+    do_replicaDataResponsePush(eventType, eventData);
+    do_resetReceiveDataCtx(eventType, eventData);
+    do_closeRecoveryFileSet(eventType, eventData);
+    do_attemptOpenStorage(eventType, eventData);
+    do_processBufferedLiveData(eventType, eventData);
+    do_processBufferedPrimaryStatusAdvisories(eventType, eventData);
+    do_stopWatchdog(eventType, eventData);
 }
 
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
+inline void PartitionStateTableActions::
     do_storeReplicaSeq_primaryStateResponse_sendDataToReplicas(
-        const ARGS& args)
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData)
 {
-    do_storeReplicaSeq(args);
-    do_primaryStateResponse(args);
-    do_sendDataToReplicas(args);
+    do_storeReplicaSeq(eventType, eventData);
+    do_primaryStateResponse(eventType, eventData);
+    do_sendDataToReplicas(eventType, eventData);
 }
 
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
+inline void PartitionStateTableActions::
     do_storeSelfSeq_storeReplicaSeq_primaryStateResponse_sendDataToReplicas(
-        const ARGS& args)
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData)
 {
-    do_storeSelfSeq(args);
-    do_storeReplicaSeq(args);
-    do_primaryStateResponse(args);
-    do_sendDataToReplicas(args);
+    do_storeSelfSeq(eventType, eventData);
+    do_storeReplicaSeq(eventType, eventData);
+    do_primaryStateResponse(eventType, eventData);
+    do_sendDataToReplicas(eventType, eventData);
 }
 
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::do_storeReplicaSeq_sendDataToReplicas(
-    const ARGS& args)
+inline void PartitionStateTableActions::do_storeReplicaSeq_sendDataToReplicas(
+    PartitionStateTableEvent::Enum eventType,
+    const PartitionFSMEventData&   eventData)
 {
-    do_storeReplicaSeq(args);
-    do_sendDataToReplicas(args);
+    do_storeReplicaSeq(eventType, eventData);
+    do_sendDataToReplicas(eventType, eventData);
 }
 
-template <typename ARGS>
-void PartitionStateTableActions<
-    ARGS>::do_storeSelfSeq_storeReplicaSeq_sendDataToReplicas(const ARGS& args)
+inline void
+PartitionStateTableActions::do_storeSelfSeq_storeReplicaSeq_sendDataToReplicas(
+    PartitionStateTableEvent::Enum eventType,
+    const PartitionFSMEventData&   eventData)
 {
-    do_storeSelfSeq(args);
-    do_storeReplicaSeq(args);
-    do_sendDataToReplicas(args);
+    do_storeSelfSeq(eventType, eventData);
+    do_storeReplicaSeq(eventType, eventData);
+    do_sendDataToReplicas(eventType, eventData);
 }
 
-template <typename ARGS>
-void PartitionStateTableActions<ARGS>::
-    do_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(const ARGS& args)
+inline void PartitionStateTableActions::
+    do_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
+        PartitionStateTableEvent::Enum eventType,
+        const PartitionFSMEventData&   eventData)
 {
-    do_incrementNumRplcaDataRspn(args);
-    do_checkQuorumRplcaDataRspn(args);
+    do_incrementNumRplcaDataRspn(eventType, eventData);
+    do_checkQuorumRplcaDataRspn(eventType, eventData);
 }
 
 }  // close package namespace

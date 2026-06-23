@@ -214,10 +214,7 @@ class PartitionFSM {
 
   public:
     // TYPES
-    typedef bsl::pair<PartitionStateTableEvent::Enum, PartitionFSMEventData>
-        EventWithData;
-
-    typedef PartitionStateTable<EventWithData> StateTable;
+    typedef PartitionStateTable                StateTable;
     typedef StateTable::State                  State;
     typedef StateTable::Event                  Event;
     typedef StateTable::ActionFunctor          ActionFunctor;
@@ -228,6 +225,10 @@ class PartitionFSM {
     typedef ObserversSet::iterator                    ObserversSetIter;
 
   private:
+    // TYPES
+    typedef bsl::pair<PartitionStateTableEvent::Enum, PartitionFSMEventData>
+        EventEntry;
+
     // DATA
     bslma::Allocator* d_allocator_p;
 
@@ -235,11 +236,11 @@ class PartitionFSM {
 
     State::Enum d_state;
 
-    PartitionStateTableActions<EventWithData>& d_actions;
+    PartitionStateTableActions& d_actions;
 
     /// Internal queue containing events which need to be applied to the
     /// current state of the FSM.
-    bsl::queue<EventWithData> d_eventsQueue;
+    bsl::queue<EventEntry> d_eventsQueue;
 
     /// Observers of this object.
     ObserversSet d_observers;
@@ -258,8 +259,10 @@ class PartitionFSM {
 
     // PRIVATE MANIPULATORS
 
-    /// Process the specified `event` and notify observers.
-    void processEvent(const EventWithData& event);
+    /// Process the specified `eventType` with the specified `eventData`
+    /// and notify observers.
+    void processEvent(PartitionStateTableEvent::Enum eventType,
+                      const PartitionFSMEventData&   eventData);
 
   public:
     // TRAITS
@@ -269,8 +272,8 @@ class PartitionFSM {
 
     /// Create an instance with the specified `actions`, using the specified
     /// `allocator`.
-    PartitionFSM(PartitionStateTableActions<EventWithData>& actions,
-                 bslma::Allocator*                          allocator);
+    PartitionFSM(PartitionStateTableActions& actions,
+                 bslma::Allocator*           allocator);
 
     // MANIPULATORS
 
@@ -284,9 +287,11 @@ class PartitionFSM {
     /// object.
     PartitionFSM& unregisterObserver(PartitionFSMObserver* observer);
 
-    /// Enqueue the specified `event` to the internal events queue.  It will be
-    /// processed as an input to the FSM.
-    void enqueueEvent(const EventWithData& event);
+    /// Enqueue the specified `eventType` with the specified `eventData` to
+    /// the internal events queue.  It will be processed as an input to the
+    /// FSM.
+    void enqueueEvent(PartitionStateTableEvent::Enum eventType,
+                      const PartitionFSMEventData&   eventData);
 
     // ACCESSORS
 
@@ -500,9 +505,8 @@ PartitionFSMEventData::storageEvent() const
 // ------------------
 
 // CREATORS
-inline PartitionFSM::PartitionFSM(
-    PartitionStateTableActions<EventWithData>& actions,
-    bslma::Allocator*                          allocator)
+inline PartitionFSM::PartitionFSM(PartitionStateTableActions& actions,
+                                  bslma::Allocator*           allocator)
 : d_allocator_p(allocator)
 , d_stateTable()
 , d_state(State::e_UNKNOWN)
