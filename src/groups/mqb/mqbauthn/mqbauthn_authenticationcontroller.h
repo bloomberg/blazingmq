@@ -165,7 +165,8 @@ class AuthenticationController {
     /// stream with the description of the error.
     int start(bsl::ostream& errorDescription);
 
-    /// Stop the AuthenticationController.
+    /// Stop the AuthenticationController.  The caller must ensure that no
+    /// `authenticate()` calls are in flight before invoking this method.
     void stop();
 
     /// Authenticate using the specified AuthenticationData `input` and
