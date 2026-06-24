@@ -133,8 +133,7 @@ struct AuthnCredentialProvider {
     }
 
     // MANIPULATORS
-    bsl::optional<bmqt::AuthnCredential>
-    operator()(bsl::ostream& /* error */) const
+    bsl::optional<bmqt::AuthnCredential> operator()() const
     {
         return bsl::optional<bmqt::AuthnCredential>(bsl::in_place,
                                                     d_mechanism,

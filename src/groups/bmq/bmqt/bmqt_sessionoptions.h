@@ -178,8 +178,7 @@ class SessionOptions {
     /// an `AuthnCredential` object on success, or `bsl::nullopt` if an error
     /// occurs. Any error details should be written to the provided `error`
     /// stream.
-    typedef bsl::function<bsl::optional<AuthnCredential>(bsl::ostream& error)>
-        AuthnCredentialCb;
+    typedef bsl::function<bsl::optional<AuthnCredential>()> AuthnCredentialCb;
 
     // CONSTANTS
 

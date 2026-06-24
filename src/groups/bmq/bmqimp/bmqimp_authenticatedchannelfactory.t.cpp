@@ -71,8 +71,7 @@ struct ResultItem {
     }
 };
 
-bsl::optional<bmqt::AuthnCredential>
-basicCredentialCb(bsl::ostream& /* error */)
+bsl::optional<bmqt::AuthnCredential> basicCredentialCb()
 {
     bslma::Allocator*      alloc   = bmqtst::TestHelperUtil::allocator();
     const bsl::string_view dataStr = "testdata";
@@ -88,8 +87,7 @@ basicCredentialCb(bsl::ostream& /* error */)
 AuthnCredentialCb makeDefaultCredentialCb()
 {
     return bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
-                                 basicCredentialCb,
-                                 bdlf::PlaceHolders::_1);  // error stream
+                                 basicCredentialCb);  // error stream
 }
 
 // -----------------
@@ -504,18 +502,15 @@ BMQTST_TEST(CredentialCallbackFailure)
 // ------------------------------------------------------------------------
 {
     struct Local {
-        static bsl::optional<bmqt::AuthnCredential>
-        alwaysFailCb(bsl::ostream& error)
+        static bsl::optional<bmqt::AuthnCredential> alwaysFailCb()
         {
-            error << "credential unavailable";
             return bsl::nullopt;
         }
     };
 
     AuthnCredentialCb nulloptCb = bdlf::BindUtil::bindS(
         bmqtst::TestHelperUtil::allocator(),
-        Local::alwaysFailCb,
-        bdlf::PlaceHolders::_1);  // error stream
+        Local::alwaysFailCb);  // error stream
     TestContext ctx(nulloptCb);
 
     ctx.connect();
