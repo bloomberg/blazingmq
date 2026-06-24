@@ -287,11 +287,13 @@
 #include <balst_stacktracetestallocator.h>
 #include <bdlm_metricsregistry.h>
 #include <bdlsb_memoutstreambuf.h>
+#include <bsl_array.h>
 #include <bsl_cstdio.h>
 #include <bsl_cstdlib.h>
 #include <bsl_iostream.h>
 #include <bsl_map.h>
 #include <bsl_set.h>
+#include <bsl_stdexcept.h>
 #include <bsl_string_view.h>
 #include <bsl_unordered_map.h>
 #include <bsl_unordered_set.h>
@@ -546,8 +548,16 @@
 //                                 TEST SHELL
 // ----------------------------------------------------------------------------
 #define TEST_PROLOG(F)                                                        \
-    const int _testCase                      = argc > 1 ? atoi(argv[1]) : 0;  \
-    bmqtst::TestHelperUtil::verbosityLevel() = argc - 2;                      \
+    bsl::span<char*> _argv(argv, argc);                                       \
+    int              _testCase = 0;                                           \
+    try {                                                                     \
+        _testCase = argc > 1 ? bsl::stol(_argv[1]) : 0;                       \
+        bmqtst::TestHelperUtil::verbosityLevel() = argc - 2;                  \
+    }                                                                         \
+    catch (const bsl::invalid_argument&) {                                    \
+        bsl::cerr << "Unrecognized test case: " << _argv[1] << "\n";          \
+        bsl::exit(1);                                                         \
+    }                                                                         \
                                                                               \
     /* Install an assert handler to gracefully mark the test as failure */    \
     /* in case of assert.                                               */    \
@@ -561,7 +571,7 @@
     /* Initialize allocators */                                               \
     INIT_ALLOCATORS(F);                                                       \
                                                                               \
-    bsl::cout << "TEST " << __FILE__ << " CASE " << _testCase << bsl::endl;   \
+    bsl::cout << "TEST " << __FILE__ << " CASE " << _testCase << "\n";        \
                                                                               \
     /* Create a scope for all code in between TEST_PROLOG and TEST_EPILOG */  \
     {
@@ -759,12 +769,12 @@ struct TestHelperUtil {
     /// Verbosity to use ([0..4], the higher the more verbose).
     static int& verbosityLevel();
 
-    /// Global flag which can be set to ignore checking the default allocator
-    /// usage for a specific test case.
+    /// Global flag which can be set to ignore checking the default
+    /// allocator usage for a specific test case.
     static bool& ignoreCheckDefAlloc();
 
-    /// Global flag which can be set to ignore checking the global allocator
-    /// usage for a specific test case.
+    /// Global flag which can be set to ignore checking the global
+    /// allocator usage for a specific test case.
     static bool& ignoreCheckGblAlloc();
 
     /// Lock mechanism to serialize output in.
@@ -844,8 +854,8 @@ static inline void
 _assertViolationHandler(const bsls::AssertViolation& violation)
 {
     // Since we're handling a contract failure (as opposed to a test
-    // assertion), we want the program to die immediately. For this reason, we
-    // use stderr instead of stdout.
+    // assertion), we want the program to die immediately. For this reason,
+    // we use stderr instead of stdout.
     bsl::fprintf(stderr,
                  "Error %s(%d): %s    (failed)\n",
                  violation.fileName(),
@@ -858,8 +868,8 @@ _assertViolationHandler(const bsls::AssertViolation& violation)
     bsls::AssertTest::failTestDriver(violation);
 }
 
-// Create a definition of the assert template method for each of the 6 common
-// comparison operators.
+// Create a definition of the assert template method for each of the 6
+// common comparison operators.
 ASSERT_COMPARE_DECLARE(Equals, ==)
 ASSERT_COMPARE_DECLARE(NotEquals, !=)
 ASSERT_COMPARE_DECLARE(Less, <)
@@ -939,8 +949,8 @@ struct TestHelper {
     /// Print the banner of the name of the test, in the specified `value`.
     static void printTestName(bsl::string_view value);
 
-    /// Return true if the specified `x` and `y` should be considered equal,
-    /// with respect to floating numerics imprecision.
+    /// Return true if the specified `x` and `y` should be considered
+    /// equal, with respect to floating numerics imprecision.
     static bool areFuzzyEqual(double x, double y);
 };
 
