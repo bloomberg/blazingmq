@@ -121,9 +121,9 @@ void Channel::stop()
         // Do not 'e_RESET' the state to let the drain finish.
 
         d_stateCondition.signal();
-    }
 
-    BALL_LOG_INFO << "Stopped " << d_description;
+        BALL_LOG_INFO << "Stopped " << d_description;
+    }
 
     BSLA_MAYBE_UNUSED const int rc = bslmt::ThreadUtil::join(d_threadHandle);
     BSLS_ASSERT_SAFE(rc == 0);
@@ -344,7 +344,8 @@ void Channel::setChannel(const bsl::weak_ptr<bmqio::Channel>& value)
 
 void Channel::reset()
 {
-    // executed by the internal thread
+    // Thread: internal thread 'd_threadHandle'
+    // Expects 'd_mutex' to be locked by the caller.
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_internalThreadChecker.inSameThread());
 
@@ -367,8 +368,7 @@ void Channel::reset()
 
 void Channel::wakeUp()
 {
-    BALL_LOG_TRACE << "'" << d_description << "': waking up";
-
+    // Thread: any
     bslma::ManagedPtr<Item> item(new (d_itemPool.allocate())
                                      Item(d_allocator_p),
                                  this,
