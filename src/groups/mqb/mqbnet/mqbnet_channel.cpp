@@ -939,7 +939,10 @@ void Channel::threadFn()
             // else keep the item
         }
     }
-    reset();
+    {        
+        bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
+        reset();
+    }
     d_isStopped.store(true);
 }
 
