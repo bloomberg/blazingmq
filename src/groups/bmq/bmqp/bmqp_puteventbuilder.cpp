@@ -94,8 +94,9 @@ PutEventBuilder::packMessageInternal(const bdlbb::Blob& appData, int queueId)
         return Result::e_PAYLOAD_TOO_BIG;  // RETURN
     }
 
-    const int sizeNoOptions = eventSize() + sizeof(PutHeader) + appDataLength +
-                              numPaddingBytes;
+    const int sizeNoOptions = eventSize() +
+                              static_cast<int>(sizeof(PutHeader)) +
+                              appDataLength + numPaddingBytes;
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(sizeNoOptions >
                                               PutHeader::k_MAX_SIZE_SOFT)) {
@@ -120,7 +121,7 @@ PutEventBuilder::packMessageInternal(const bdlbb::Blob& appData, int queueId)
     if (!d_msgGroupId.isNull()) {
         const OptionMeta msgGroupId = OptionMeta::forOptionWithPadding(
             OptionType::e_MSG_GROUP_ID,
-            d_msgGroupId.value().length());
+            static_cast<int>(d_msgGroupId.value().length()));
         Result::Enum res = OptionUtil::isValidMsgGroupId(d_msgGroupId.value());
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(res != Result::e_SUCCESS)) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;

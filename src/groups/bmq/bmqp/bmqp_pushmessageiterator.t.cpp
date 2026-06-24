@@ -467,7 +467,9 @@ void populateBlob(bdlbb::Blob*              blob,
                                     reinterpret_cast<const char*>(&mph),
                                     sizeof(mph));
             props.resize(static_cast<size_t>(propAreaSize) - sizeof(mph), 'x');
-            bdlbb::BlobUtil::append(&properties, props.data(), props.size());
+            bdlbb::BlobUtil::append(&properties,
+                                    props.data(),
+                                    static_cast<int>(props.size()));
             BSLS_ASSERT_OPT(properties.length() == propAreaSize);
             bmqp::ProtocolUtil::appendPadding(&properties, propAreaSize);
             // Message properties area is word aligned.
@@ -551,7 +553,9 @@ void populateBlob(bdlbb::Blob*              blob,
 
             // Write the properties area.
 
-            bdlbb::BlobUtil::append(blob, props.data(), props.size());
+            bdlbb::BlobUtil::append(blob,
+                                    props.data(),
+                                    static_cast<int>(props.size()));
 
             bmqp::ProtocolUtil::appendPadding(blob, propAreaSize);
             // Message properties area is word aligned.

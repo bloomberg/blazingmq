@@ -202,10 +202,6 @@ struct RdaInfo {
     /// `internalRepresentation > 255`.
     RdaInfo(unsigned int internalRepresentation);
 
-    /// Create an `RdaInfo` that has the same value as the specified
-    /// `original` object.
-    RdaInfo(const RdaInfo& original);
-
     // MANIPULATORS
 
     /// Set the unlimited delivery flag to true.
@@ -3648,11 +3644,6 @@ inline RdaInfo::RdaInfo(unsigned int internalRepresentation)
     BSLS_ASSERT_SAFE(internalRepresentation <= k_MAX_INTERNAL_COUNTER_VALUE);
 
     d_counter = static_cast<unsigned char>(internalRepresentation);
-}
-
-inline RdaInfo::RdaInfo(const RdaInfo& original)
-{
-    d_counter = original.d_counter;
 }
 
 // MANIPULATORS

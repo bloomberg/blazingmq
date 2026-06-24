@@ -423,7 +423,7 @@ int QueueManager::onPushEvent(QueueManager::EventInfos* eventInfos,
             }
 
             // Update message count
-            *messageCount += subQueueInfos.size();
+            *messageCount += static_cast<int>(subQueueInfos.size());
         }
         else {
             eventInfos->back().d_ids.push_back(bmqp::EventUtilQueueInfo(

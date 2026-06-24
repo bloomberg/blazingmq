@@ -245,17 +245,17 @@ bmqt::EventBuilderResult::Enum PushEventBuilder::addSubQueueIdsOption(
     typedef bmqt::EventBuilderResult Result;
     typedef OptionUtil::OptionMeta   OptionMeta;
 
-    const unsigned int numSubQueueIds = subQueueIds.size();
+    const size_t numSubQueueIds = subQueueIds.size();
 
     // We do not write an OptionHeader when there is no option payload
     if (numSubQueueIds == 0) {
         return bmqt::EventBuilderResult::e_SUCCESS;  // RETURN
     }
 
-    const int  currentSize = eventSize() + sizeof(PushHeader);
-    const int  size        = numSubQueueIds * Protocol::k_WORD_SIZE;
+    const int    currentSize = eventSize() + sizeof(PushHeader);
+    const size_t size        = numSubQueueIds * Protocol::k_WORD_SIZE;
     OptionMeta option = OptionMeta::forOption(OptionType::e_SUB_QUEUE_IDS_OLD,
-                                              size);
+                                              static_cast<int>(size));
 
     const Result::Enum rc = d_options.canAdd(currentSize, option);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != Result::e_SUCCESS)) {
@@ -299,7 +299,7 @@ bmqt::EventBuilderResult::Enum PushEventBuilder::addSubQueueInfosOption(
     typedef bmqt::EventBuilderResult Result;
     typedef OptionUtil::OptionMeta   OptionMeta;
 
-    const unsigned int numSubQueueIds = subQueueInfos.size();
+    const size_t numSubQueueIds = subQueueInfos.size();
 
     // We do not write an OptionHeader when there is no option payload
     if (numSubQueueIds == 0) {
@@ -307,9 +307,9 @@ bmqt::EventBuilderResult::Enum PushEventBuilder::addSubQueueInfosOption(
     }
 
     // Old option only includes subQueueId
-    int        size   = numSubQueueIds * Protocol::k_WORD_SIZE;
+    size_t     size   = numSubQueueIds * Protocol::k_WORD_SIZE;
     OptionMeta option = OptionMeta::forOption(OptionType::e_SUB_QUEUE_IDS_OLD,
-                                              size);
+                                              static_cast<int>(size));
     if (packRdaCounter) {
         // New option includes subQueueId + rdaCounter, or a special "packed"
         // option header if there is only the default subQueueId.
@@ -327,7 +327,7 @@ bmqt::EventBuilderResult::Enum PushEventBuilder::addSubQueueInfosOption(
             size         = 0;
         }
         option = OptionMeta::forOption(OptionType::e_SUB_QUEUE_INFOS,
-                                       size,
+                                       static_cast<int>(size),
                                        packed,
                                        packedValue,
                                        typeSpecific);
@@ -411,9 +411,10 @@ PushEventBuilder::addMsgGroupIdOption(const Protocol::MsgGroupId& msgGroupId)
     typedef OptionUtil::OptionMeta   OptionMeta;
 
     const int  currentSize = eventSize() + sizeof(PushHeader);
-    const int  size        = msgGroupId.length();
-    OptionMeta option =
-        OptionMeta::forOptionWithPadding(OptionType::e_MSG_GROUP_ID, size);
+    const size_t size        = msgGroupId.length();
+    OptionMeta   option      = OptionMeta::forOptionWithPadding(
+        OptionType::e_MSG_GROUP_ID,
+        static_cast<int>(size));
     Result::Enum rc = d_options.canAdd(currentSize, option);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != Result::e_SUCCESS)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;

@@ -598,7 +598,7 @@ class OrderedHashMap {
     /// more than `initialNumBuckets` buckets may be created in order to
     /// preserve the bucket allocation strategy of the hash-table (but never
     /// fewer).
-    explicit OrderedHashMap(int               initialNumBuckets,
+    explicit OrderedHashMap(size_t            initialNumBuckets,
                             bslma::Allocator* basicAllocator = 0);
 
     /// Create an `OrderedHashMap` having the same value and maximum load
@@ -1264,7 +1264,7 @@ inline OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::OrderedHashMap(
 
 template <class KEY, class VALUE, class HASH, class VALUE_TYPE>
 inline OrderedHashMap<KEY, VALUE, HASH, VALUE_TYPE>::OrderedHashMap(
-    int               initialNumBuckets,
+    size_t            initialNumBuckets,
     bslma::Allocator* basicAllocator)
 : d_allocator_p(bslma::Default::allocator(basicAllocator))
 , d_nodePool(e_NODE_SIZE, basicAllocator)

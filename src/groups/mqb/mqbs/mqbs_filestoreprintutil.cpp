@@ -101,8 +101,10 @@ void FileStorePrintUtil::loadSummary(mqbcmd::FileStoreSummary*  summary,
         activeFileSet->d_outstandingBytesQlist;
 
     summary->totalMappedBytes()       = totalMappedSize;
-    summary->numOutstandingRecords()  = numOutstandingRecords;
-    summary->numUnreceiptedMessages() = numUnreceiptedMessages;
+    summary->numOutstandingRecords()  = static_cast<unsigned int>(
+        numOutstandingRecords);
+    summary->numUnreceiptedMessages() = static_cast<unsigned int>(
+        numUnreceiptedMessages);
     summary->naglePacketCount()       = naglePacketCount;
 
     StorageList storages;

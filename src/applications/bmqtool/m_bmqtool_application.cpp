@@ -408,7 +408,8 @@ void Application::printFinalStats()
        << bmqu::PrintUtil::prettyBytes(evtBytes) << "]";
 
     if (msgBytes != 0) {
-        double protocol = (evtBytes - msgBytes) * 100.0 / evtBytes;
+        double protocol = static_cast<double>(evtBytes - msgBytes) * 100.0 /
+                          static_cast<double>(evtBytes);
         ss << " (Protocol: " << bsl::setprecision(4) << protocol << "%)";
     }
 

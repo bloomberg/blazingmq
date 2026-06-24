@@ -81,8 +81,8 @@ class FlowController {
 
         // PUBLIC ACCESSORS
         Policy::Enum       policy() const;
-        bsls::Types::Int64 ratePerMs() const;
-        bsls::Types::Int64 burst() const;
+        int                ratePerMs() const;
+        int                burst() const;
 
         bsl::ostream&
         print(bsl::ostream& stream, int level, int spacesPerLevel) const;
@@ -230,12 +230,12 @@ inline FlowController::Policy::Enum FlowController::Config::policy() const
     return d_policy;
 }
 
-inline bsls::Types::Int64 FlowController::Config::ratePerMs() const
+inline int FlowController::Config::ratePerMs() const
 {
     return d_ratePerMs;
 }
 
-inline bsls::Types::Int64 FlowController::Config::burst() const
+inline int FlowController::Config::burst() const
 {
     return d_burst;
 }

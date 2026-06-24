@@ -716,7 +716,7 @@ OrderedHashMapWithHistory<KEY, VALUE, HASH, VALUE_TYPE>::gc(TimeType now,
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         d_gcIt = beginGc();
     }
-    const int initialHistorySize = d_historySize;
+    const size_t initialHistorySize = d_historySize;
 
     while (d_gcIt != endGc() && d_historySize) {
         if (now < d_gcIt->d_time) {
@@ -743,16 +743,16 @@ OrderedHashMapWithHistory<KEY, VALUE, HASH, VALUE_TYPE>::gc(TimeType now,
         if (--batchSize == 0) {
             // Remember where we have stopped and resume from there next time
             d_requireGC             = true;
-            const int historyChange = initialHistorySize - d_historySize;
+            const size_t historyChange = initialHistorySize - d_historySize;
             // Note that we return either a negative value or 0 here:
-            return -historyChange;  // RETURN
+            return -static_cast<int>(historyChange);  // RETURN
         }
     }
 
     d_requireGC             = false;
-    const int historyChange = initialHistorySize - d_historySize;
+    const size_t historyChange = initialHistorySize - d_historySize;
     // Note that we return either a positive value or 0 here:
-    return historyChange;
+    return static_cast<int>(historyChange);
 }
 
 template <class KEY, class VALUE, class HASH, class VALUE_TYPE>

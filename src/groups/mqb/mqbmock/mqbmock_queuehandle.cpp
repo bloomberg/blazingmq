@@ -401,8 +401,8 @@ int QueueHandle::transferUnconfirmedMessageGUID(
     Downstreams::iterator mapIter = d_downstreams.find(subQueueId);
     BSLS_ASSERT_OPT(mapIter != d_downstreams.end());
 
-    GUIDMap& guids  = mapIter->second.d_unconfirmedMessages;
-    int      result = guids.size();
+    GUIDMap&  guids  = mapIter->second.d_unconfirmedMessages;
+    const int result = static_cast<int>(guids.size());
 
     if (out) {
         for (GUIDMap::const_iterator msgIter = guids.begin();
@@ -670,7 +670,7 @@ int QueueHandle::_numMessages(const bsl::string& appId) const
         return 0;  // RETURN
     }
 
-    return cit->second.d_unconfirmedMessages.size();
+    return static_cast<int>(cit->second.d_unconfirmedMessages.size());
 }
 
 size_t QueueHandle::_numActiveSubstreams() const

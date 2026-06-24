@@ -287,6 +287,8 @@ class ResourceUsageMonitor {
         bsls::Types::Int64 capacity() const;
         double             lowWatermarkRatio() const;
         double             highWatermarkRatio() const;
+        bsls::Types::Int64 lowWatermark() const;
+        bsls::Types::Int64 highWatermark() const;
         bsls::Types::Int64 value() const;
 
         /// Get the value of the corresponding attribute.
@@ -569,6 +571,20 @@ inline double
 ResourceUsageMonitor::ResourceAttributes::highWatermarkRatio() const
 {
     return d_highWatermarkRatio;
+}
+
+inline bsls::Types::Int64
+ResourceUsageMonitor::ResourceAttributes::lowWatermark() const
+{
+    return static_cast<bsls::Types::Int64>(static_cast<double>(d_capacity) *
+                                           d_lowWatermarkRatio);
+}
+
+inline bsls::Types::Int64
+ResourceUsageMonitor::ResourceAttributes::highWatermark() const
+{
+    return static_cast<bsls::Types::Int64>(static_cast<double>(d_capacity) *
+                                           d_highWatermarkRatio);
 }
 
 inline bsls::Types::Int64

@@ -573,11 +573,11 @@ void Interactive::processCommand(const ConfirmCommand& command)
         else {
             // Newest guids
             value *= -1;
-            int toSkip                     = messages.size() - value;
-            toSkip                         = (toSkip < 0 ? 0 : toSkip);
+            int toSkip = static_cast<int>(messages.size()) - value;
             MessagesMap::const_iterator it = messages.begin();
-            while (toSkip-- != 0) {
+            while (toSkip > 0) {
                 ++it;
+                toSkip--;
             }
             while (it != messages.end()) {
                 guids.push_back(it->first);
