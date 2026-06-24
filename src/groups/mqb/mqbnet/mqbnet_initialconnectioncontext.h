@@ -372,6 +372,37 @@ class InitialConnectionContext {
     /// error.
     int handleAnonAuthentication(bsl::ostream& errorDescription);
 
+    /// Handle the `e_OUTBOUND_NEGOTIATION` event.  Return 0 on success, or
+    /// a non-zero code and populate `errorDescription` on failure.  Must
+    /// be called with `d_mutex` locked.
+    int handleOutboundNegotiationEvent(bsl::ostream& errorDescription);
+
+    /// Handle the `e_INCOMING` event.  Return 0 on success, or a non-zero
+    /// code and populate `errorDescription` on failure.  Must be called
+    /// with `d_mutex` locked.
+    int handleIncomingEvent(bsl::ostream& errorDescription);
+
+    /// Handle the `e_AUTHN_REQUEST` event with the specified `message`.
+    /// Return 0 on success, or a non-zero code and populate
+    /// `errorDescription` on failure.  Must be called with `d_mutex`
+    /// locked.
+    int handleAuthnRequestEvent(
+        bsl::ostream&                              errorDescription,
+        const bmqp_ctrlmsg::AuthenticationMessage& message);
+
+    /// Handle the `e_NEGOTIATION_MESSAGE` event with the specified
+    /// `message`.  Return 0 on success, or a non-zero code and populate
+    /// `errorDescription` on failure.  Must be called with `d_mutex`
+    /// locked.
+    int handleNegotiationMessageEvent(
+        bsl::ostream&                           errorDescription,
+        const bmqp_ctrlmsg::NegotiationMessage& message);
+
+    /// Handle the `e_AUTHN_SUCCESS` event.  Return 0 on success, or a
+    /// non-zero code and populate `errorDescription` on failure.  Must be
+    /// called with `d_mutex` locked.
+    int handleAuthnSuccessEvent(bsl::ostream& errorDescription);
+
   public:
     // MANIPULATORS
 
