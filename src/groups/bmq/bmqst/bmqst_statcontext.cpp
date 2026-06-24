@@ -260,6 +260,8 @@ void StatContext::clearDeletedSubcontexts(
 
 void StatContext::moveNewSubcontexts()
 {
+    // Thread: snapshot
+
     StatContextVector localNewSubcontexts(d_allocator_p);
     {
         bslmt::LockGuard<bslmt::Mutex> guard(&d_newSubcontextsLock);

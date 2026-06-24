@@ -723,47 +723,64 @@ class StatContext {
 
     // MANIPULATORS
 
-    /// Add a subcontext with the specified `config`.  If this
+    /// @brief Add a subcontext with the specified `config`.
+    /// @param config The configuration for the new subcontext.  If this
     /// `StatContext` is a table, the `isTable` and `valueDefinitions`
-    /// fields  of the `config` are ignored.
+    /// fields of the `config` are ignored.
+    /// @note Thread: any
     bslma::ManagedPtr<StatContext> addSubcontext(const Config& config);
 
-    /// Adjust the value at the specified index `valueKey` using the
-    /// specified `delta`.  Note that this method is thread-safe.  The
-    /// behavior is undefined unless the value corresponding to the
+    /// @brief Adjust the value at the specified index `valueKey` using the
+    /// specified `delta`.
+    /// @param valueKey The index of the value to adjust.
+    /// @param delta The delta by which the value is updated.
+    /// @note Thread: any
+    /// The behavior is undefined unless the value corresponding to the
     /// `valueKey` is continuous.
     void adjustValue(int valueKey, bsls::Types::Int64 delta);
 
-    /// Set the value at the specified index `valueKey` using the specified
-    /// `value`.  Note that this method is thread-safe.  The behavior is
-    /// undefined unless the value corresponding to the `valueKey` is
-    /// continuous.
+    /// @brief Set the value at the specified index `valueKey` using the
+    /// specified `value`.
+    /// @param valueKey The index of the value to set.
+    /// @param value The value to set.
+    /// @note Thread: any
+    /// The behavior is undefined unless the value corresponding to the
+    /// `valueKey` is continuous.
     void setValue(int valueKey, bsls::Types::Int64 value);
 
-    /// Set the value at the specified index `valueKey` using the specified
-    /// `value`.  Note that this method is thread-safe.  The behavior is
-    /// undefined unless the value corresponding to the `valueKey`
-    /// is discrete.
+    /// @brief Set the value at the specified index `valueKey` using the
+    /// specified `value`.
+    /// @param valueKey The index of the value to report.
+    /// @param value The value to report.
+    /// @note Thread: any
+    /// The behavior is undefined unless the value corresponding to the
+    /// `valueKey` is discrete.
     void reportValue(int valueKey, bsls::Types::Int64 value);
 
-    /// Snapshot all values of all subcontexts, then snapshot the user data
-    /// associated with this context, if any.
+    /// @brief Snapshot all values of all subcontexts, then snapshot the
+    /// user data associated with this context, if any.
+    /// @note Thread: snapshot
     void snapshot();
 
-    /// Remove any deleted subcontexts of this StatContext and of all
-    /// subcontexts.
+    /// @brief Remove any deleted subcontexts of this StatContext and of
+    /// all subcontexts.
+    /// @note Thread: snapshot
     void cleanup();
 
-    /// Clear all history of all values.
+    /// @brief Clear all history of all values.
+    /// @note Thread: snapshot
     void clearValues();
 
-    /// Remove all subcontexts of this StatContext.
+    /// @brief Remove all subcontexts of this StatContext.
+    /// @note Thread: snapshot
     void clearSubcontexts();
 
-    /// Add and remove subcontexts, and update the fields of all values
-    /// according to the specified `update`.  The behavior is undefined if
-    /// this method is called and the context is configured to record its
-    /// snapshots.
+    /// @brief Add and remove subcontexts, and update the fields of all
+    /// values according to the specified `update`.
+    /// @param update The update to apply.
+    /// @note Thread: snapshot
+    /// The behavior is undefined if this method is called and the context
+    /// is configured to record its snapshots.
     void snapshotFromUpdate(const bmqstm::StatContextUpdate& update);
 
     // ACCESSORS
