@@ -551,7 +551,7 @@
     bsl::span<char*> _argv(argv, argc);                                       \
     int              _testCase = 0;                                           \
     try {                                                                     \
-        _testCase = argc > 1 ? bsl::stol(_argv[1]) : 0;                       \
+        _testCase = argc > 1 ? bsl::stoi(_argv[1]) : 0;                       \
         bmqtst::TestHelperUtil::verbosityLevel() = argc - 2;                  \
     }                                                                         \
     catch (const bsl::invalid_argument&) {                                    \
@@ -572,6 +572,21 @@
     INIT_ALLOCATORS(F);                                                       \
                                                                               \
     bsl::cout << "TEST " << __FILE__ << " CASE " << _testCase << "\n";        \
+                                                                              \
+    /* Create a scope for all code in between TEST_PROLOG and TEST_EPILOG */  \
+    {
+#define GTEST_PROLOG(F)                                                       \
+    /* Install an assert handler to gracefully mark the test as failure */    \
+    /* in case of assert.                                               */    \
+    bsls::AssertFailureHandlerGuard _assertGuard(::_assertViolationHandler);  \
+                                                                              \
+    /* Initialize BALL */                                                     \
+    /* NOTE: BALL mechanisms use the default allocator, that is why */        \
+    /*       logging is initialized before the allocators.          */        \
+    INIT_BALL_LOGGING();                                                      \
+                                                                              \
+    /* Initialize allocators */                                               \
+    INIT_ALLOCATORS(F);                                                       \
                                                                               \
     /* Create a scope for all code in between TEST_PROLOG and TEST_EPILOG */  \
     {
@@ -679,8 +694,7 @@
     /* Check test result */                                                   \
     if (bmqtst::TestHelperUtil::testStatus() > 0) {                           \
         bsl::cerr << "Error, non-zero test status: "                          \
-                  << bmqtst::TestHelperUtil::testStatus() << "."              \
-                  << bsl::endl;                                               \
+                  << bmqtst::TestHelperUtil::testStatus() << ".\n";           \
     }                                                                         \
                                                                               \
     bmqtst::TestHelperUtil::allocator() =                                     \
@@ -1012,6 +1026,10 @@ template <typename TYPE1, typename TYPE2>
 bsl::ostream&
 operator<<(bsl::ostream&                                       stream,
            const TestHelper_Printer<bsl::pair<TYPE1, TYPE2> >& printer);
+template <typename TYPE, bsl::size_t SIZE>
+bsl::ostream&
+operator<<(bsl::ostream&                                      stream,
+           const TestHelper_Printer<bsl::array<TYPE, SIZE> >& printer);
 
 // ============================================================================
 //                      INLINE FUNCTION IMPLEMENTATIONS
@@ -1163,6 +1181,25 @@ bmqtst::operator<<(bsl::ostream&                                       stream,
 {
     return stream << '<' << printer.obj().first << ", " << printer.obj().second
                   << '>';
+}
+
+template <typename TYPE, bsl::size_t SIZE>
+inline bsl::ostream&
+bmqtst::operator<<(bsl::ostream&                                      stream,
+                   const TestHelper_Printer<bsl::array<TYPE, SIZE> >& printer)
+{
+    stream << "[";
+
+    if (!printer.obj().empty()) {
+        for (size_t i = 0; i < printer.obj().size() - 1; ++i) {
+            stream << TestHelper_Printer<TYPE>(&printer.obj()[i]) << ", ";
+        }
+
+        stream << TestHelper_Printer<TYPE>(&printer.obj().back());
+    }
+
+    stream << "]";
+    return stream;
 }
 
 }  // close enterprise namespace
