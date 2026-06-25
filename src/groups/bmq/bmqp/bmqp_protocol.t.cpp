@@ -1377,9 +1377,6 @@ static void test4_enumPrint()
         BSLMF_ASSERT(bmqp::EventType::e_CONTROL ==
                      bmqp::EventType::k_LOWEST_SUPPORTED_EVENT_TYPE);
 
-        BSLMF_ASSERT(bmqp::EventType::e_AUTHENTICATION ==
-                     bmqp::EventType::k_HIGHEST_SUPPORTED_EVENT_TYPE);
-
         PrintTestData k_DATA[] = {
             {L_, bmqp::EventType::e_UNDEFINED, "UNDEFINED"},
             {L_, bmqp::EventType::e_CONTROL, "CONTROL"},

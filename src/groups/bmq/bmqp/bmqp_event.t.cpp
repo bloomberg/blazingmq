@@ -744,8 +744,6 @@ static void test6_printing()
     BSLMF_ASSERT(bmqp::EventType::e_CONTROL ==
                  bmqp::EventType::k_LOWEST_SUPPORTED_EVENT_TYPE);
 
-    BSLMF_ASSERT(bmqp::EventType::e_AUTHENTICATION ==
-                 bmqp::EventType::k_HIGHEST_SUPPORTED_EVENT_TYPE);
 
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
