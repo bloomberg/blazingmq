@@ -417,9 +417,6 @@ void Dispatcher::stop()
     }
 
 #undef STOP_AND_CLEAR
-
-    // Clear all stat sub contexts
-    d_statContext_p->clearSubcontexts();
 }
 
 mqbi::Dispatcher::ProcessorHandle
