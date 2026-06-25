@@ -1,4 +1,4 @@
-// Copyright 2022-2023 Bloomberg Finance L.P.
+// Copyright 2026 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,130 +16,39 @@
 #ifndef INCLUDED_BMQST_TABLEUTIL
 #define INCLUDED_BMQST_TABLEUTIL
 
-//@PURPOSE: Provide a set of functions for working with tables
+//@PURPOSE: Provide a utility for printing tables.
 //
 //@CLASSES:
 // bmqst::TableUtil
 //
-//@SEE_ALSO:
-//
 //@DESCRIPTION: This component defines a utility, 'bmqst::TableUtil',
-//  containing functions for working with tables defined by a
-//  'bmqst::TableInfoProvider'.
-//
-/// printTable
-///---------
-// This function prints a table of data to a stream by using a provided
-// 'bmqst::TableInfoProvider' object which provides information about the table
-// to be printed.  It supports printing tables with an arbitrary
-// number of header rows, and ensures that all columns are sized correctly so
-// all their values fit.
+// for printing tables described by a 'bmqst::TableInfoProvider'.
 //
 /// Usage Example
 ///-------------
-// We will print a 5x5 table where each cell contains its coordinates in the
-// form '(row x column)'.  To do this, we must define a 'TableInfoProvider'
-// implementation that will handle this for us.
+// Given a 'bmqst::TableInfoProvider' implementation, we can print a table:
 //..
-//  class SimpleInfoProvider : public bmqst::TableInfoProvider {
-//
-//      // ACCESSORS
-//      virtual int numRows() const
-//      {
-//          return 5;
-//      }
-//
-//      virtual int numColumns(int level) const
-//      {
-//          return 6;
-//      }
-//
-//      virtual int numHeaderLevels() const
-//      {
-//          return 1;
-//      }
-//
-//      virtual int getValueSize(int row, int column) const
-//      {
-//          if (column == 0) {
-//              return 1;
-//          } else {
-//              return bsl::strlen("(#x#)");
-//          }
-//      }
-//
-//      virtual bsl::ostream& printValue(bsl::ostream& stream,
-//                                       int           row,
-//                                       int           column,
-//                                       int           width) const
-//      {
-//          if (column == 0) {
-//              return stream << bsl::right << row;
-//          } else {
-//              bsl::ostringstream ss;
-//              ss << '(' << row << 'x' << column - 1 << ')';
-//              return stream << bsl::right << ss.str();
-//          }
-//      }
-//
-//
-//      virtual int getHeaderSize(int level, int column) const
-//      {
-//          return column == 0 ? 0 : 1;
-//      }
-//
-//      virtual int getParentHeader(int level, int column) const
-//      {
-//          return -1;
-//      }
-//
-//      virtual bsl::ostream& printHeader(bsl::ostream& stream,
-//                                        int           level,
-//                                        int           column,
-//                                        int           width) const
-//      {
-//          if (column == 0) {
-//              return stream << "";
-//          } else {
-//              return stream << bsl::right << column - 1;
-//          }
-//      }
-//  };
+//  TestTableInfoProvider provider;
+//  provider.addHeaderLevel({"a", "b", "c"});
+//  provider.addRow({"1", "2", "3"});
+//  provider.addRow({"4", "5", "6"});
+//  bmqst::TableUtil::printTable(bsl::cout, provider);
 //..
-// Now, we can use an object of this class to see what our table looks like.
+// The above produces:
 //..
-//  SimpleInfoProvider provider;
-//  TableUtil::printTable(bsl::cout, provider);
-//..
-//  The following table should be printed to cout.
-//..
-//   |     0|     1|     2|     3|     4
-//  -+------+------+------+------+------
-//  0| (0x0)| (0x1)| (0x2)| (0x3)| (0x4)
-//  1| (1x0)| (1x1)| (1x2)| (1x3)| (1x4)
-//  2| (2x0)| (2x1)| (2x2)| (2x3)| (2x4)
-//  3| (3x0)| (3x1)| (3x2)| (3x3)| (3x4)
-//  4| (4x0)| (4x1)| (4x2)| (4x3)| (4x4)
+//  a| b| c
+//  -+--+--
+//  1| 2| 3
+//  4| 5| 6
 //..
 
-#ifndef INCLUDED_BSL_OSTREAM
-#include <bsl_ostream.h>
-#endif
-
-#ifndef INCLUDED_BSL_STRING
-#include <bsl_string.h>
-#endif
-
-#ifndef INCLUDED_BSL_VECTOR
-#include <bsl_vector.h>
-#endif
+#include <bsl_iosfwd.h>
 
 namespace BloombergLP {
 
 namespace bmqst {
 
 // FORWARD DECLARATIONS
-class BaseTable;
 class TableInfoProvider;
 
 // ================
@@ -154,22 +63,6 @@ struct TableUtil {
     /// `stream`.  Return `0` on success or a negative value if the `info`
     /// is inconsistent.
     static int printTable(bsl::ostream& stream, const TableInfoProvider& info);
-
-    /// Output the table described by the specified `info` to the specified
-    /// `dest` vector<vector<string>>.  Note that only the first header row
-    /// will be output to `dest`, as (*dest)[0].  Return `0` on success or
-    /// a negative value if the `info` is inconsistent.
-    static int outputToVector(bsl::vector<bsl::vector<bsl::string> >* dest,
-                              const TableInfoProvider&                info);
-
-    /// Print the specified `table` to the specified
-    /// `stream` as a csv with one line for the header, and one
-    /// line per row.
-    static void printCsv(bsl::ostream& stream, const BaseTable& table);
-
-    /// Print the specified `info` to the specified `stream` in CSV format
-    /// with one line for the header, and one line per row.
-    static void printCsv(bsl::ostream& stream, const TableInfoProvider& info);
 };
 
 }  // close package namespace
