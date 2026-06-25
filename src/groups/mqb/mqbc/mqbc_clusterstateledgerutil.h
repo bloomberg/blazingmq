@@ -181,7 +181,16 @@ struct ClusterStateLedgerUtil {
     BALL_LOG_SET_CLASS_CATEGORY("MQBC.CLUSTERSTATELEDGERUTIL");
 
   public:
+    // PUBLIC CONSTANTS
+
+    /// Glob pattern for CSL log files.
+    static const char k_CSL_FILE_PATTERN[];
+
     // FUNCTIONS
+
+    /// Append the current UTC date and time to the specified `result` in
+    /// YYYYMMDD_HHMMSS format.
+    static void appendFormattedDatetime(bsl::string* result);
 
     /// Validate the specified file `header`.  If the optionally specified
     /// `expectedLogId` is set, also ensure that the `header` contains the
@@ -227,7 +236,8 @@ struct ClusterStateLedgerUtil {
                  const bmqp_ctrlmsg::ClusterMessage&        clusterMessage,
                  const bmqp_ctrlmsg::LeaderMessageSequence& sequenceNumber,
                  bsls::Types::Uint64                        timestamp,
-                 ClusterStateRecordType::Enum               recordType);
+                 ClusterStateRecordType::Enum               recordType,
+                 bslma::Allocator*                          allocator = 0);
 
     /// Load the cluster message recorded at the specified `recordId` with
     /// the specified `recordHeader` from the specified `ledger` into the
@@ -264,6 +274,18 @@ struct ClusterStateLedgerUtil {
     /// Return the size in bytes of the specified `header`.
     static bsls::Types::Int64
     recordSize(const ClusterStateRecordHeader& header);
+
+    /// Resolve the CSL log file path and logId for the specified `directory`.
+    /// If files matching the CSL naming pattern exist, select the most
+    /// recently modified one and extract its logId.  Otherwise, generate a
+    /// new filename and logId.  Load results into the specified `filePath`
+    /// and `logId`.  Return 0 on success, non-zero on failure with
+    /// `errorDescription` populated.
+    static int generateCslFilePath(bsl::string*       filePath,
+                                   mqbu::StorageKey*  logId,
+                                   const bsl::string& directory,
+                                   bsl::ostream&      errorDescription,
+                                   bslma::Allocator*  allocator);
 };
 
 // ============================================================================

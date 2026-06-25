@@ -476,8 +476,9 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// Just a shortcut alias to `d_clusterState_p->cluster()`
     mqbi::Cluster* d_cluster_p;
 
-    /// Cluster state manager to use
-    mqbi::ClusterStateManager* d_clusterStateManager_p;
+    /// Cluster state updater to use (legacy: ClusterStateManager, Raft:
+    /// ClusterStateRaft)
+    mqbi::ClusterStateUpdater* d_clusterStateManager_p;
 
     /// Storage manager to use
     mqbi::StorageManager* d_storageManager_p;
@@ -516,19 +517,6 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// Get the next subQueueId for a subStream of the queue corresponding
     /// to the specified `context`.
     unsigned int getNextSubQueueId(const OpenQueueContextSp& context);
-
-    /// Invoked after the specified `partitionId` gets assigned to the
-    /// specified `primary` with the specified `status`.  Note that null is
-    /// a valid value for the `primary`, and it implies that there is no
-    /// primary for that partition.  Also note that this method will be
-    /// invoked when the `primary` or the `status` or both change.
-    ///
-    /// THREAD: This method is invoked in the associated cluster's
-    ///         dispatcher thread.
-    void
-    afterPartitionPrimaryAssignment(int                  partitionId,
-                                    mqbnet::ClusterNode* primary,
-                                    bmqp_ctrlmsg::PrimaryStatus::Value status);
 
     /// If not already assigned, try to assign the queue represented by the
     /// specified `queueContext_sp`, that is give it an id and a partition id.
@@ -994,7 +982,7 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// `allocator`.
     ClusterQueueHelper(mqbc::ClusterData*         clusterData,
                        mqbc::ClusterState*        clusterState,
-                       mqbi::ClusterStateManager* clusterStateManager,
+                       mqbi::ClusterStateUpdater* clusterStateManager,
                        bslma::Allocator*          allocator);
 
     /// Destructor
@@ -1042,6 +1030,11 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
 
     // Only used by Cluster
     // - - - - - - - - - -
+
+    /// Set the cluster state updater to the specified `value` and return a
+    /// reference offering modifiable access to this object.
+    ClusterQueueHelper&
+    setClusterStateUpdater(mqbi::ClusterStateUpdater* value);
 
     /// Set the storage manager to the specified `value` and return a
     /// reference offering modifiable access to this object.
@@ -1111,6 +1104,19 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
 
     /// Called upon leader becoming available.
     void onLeaderAvailable();
+
+    /// Invoked after the specified `partitionId` gets assigned to the
+    /// specified `primary` with the specified `status`.  Note that null is
+    /// a valid value for the `primary`, and it implies that there is no
+    /// primary for that partition.  Also note that this method will be
+    /// invoked when the `primary` or the `status` or both change.
+    ///
+    /// THREAD: This method is invoked in the associated cluster's
+    ///         dispatcher thread.
+    void
+    afterPartitionPrimaryAssignment(int                  partitionId,
+                                    mqbnet::ClusterNode* primary,
+                                    bmqp_ctrlmsg::PrimaryStatus::Value status);
 
     // ACCESSORS
 
@@ -1408,6 +1414,13 @@ ClusterQueueHelper::setStorageManager(mqbi::StorageManager* value)
     // Prevent setting it twice, but allow to unset.
 
     d_storageManager_p = value;
+    return *this;
+}
+
+inline ClusterQueueHelper&
+ClusterQueueHelper::setClusterStateUpdater(mqbi::ClusterStateUpdater* value)
+{
+    d_clusterStateManager_p = value;
     return *this;
 }
 

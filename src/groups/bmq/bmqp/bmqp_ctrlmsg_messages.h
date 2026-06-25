@@ -1,18 +1,3 @@
-// Copyright 2026 Bloomberg Finance L.P.
-// SPDX-License-Identifier: Apache-2.0
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 // bmqp_ctrlmsg_messages.h          *DO NOT EDIT*          @generated -*-C++-*-
 #ifndef INCLUDED_BMQP_CTRLMSG_MESSAGES
 #define INCLUDED_BMQP_CTRLMSG_MESSAGES
@@ -46,11 +31,9 @@
 
 #include <bsl_iosfwd.h>
 #include <bsl_limits.h>
-#include <bsl_type_traits.h>
 
 #include <bsl_ostream.h>
 #include <bsl_string.h>
-#include <bsl_type_traits.h>
 
 namespace BloombergLP {
 
@@ -143,6 +126,24 @@ namespace bmqp_ctrlmsg {
 class QueueUnassignmentRequest;
 }
 namespace bmqp_ctrlmsg {
+class RaftAppendEntriesResponse;
+}
+namespace bmqp_ctrlmsg {
+class RaftInstallSnapshot;
+}
+namespace bmqp_ctrlmsg {
+class RaftInstallSnapshotResponse;
+}
+namespace bmqp_ctrlmsg {
+class RaftRequestVote;
+}
+namespace bmqp_ctrlmsg {
+class RaftRequestVoteResponse;
+}
+namespace bmqp_ctrlmsg {
+class RaftTimeoutNow;
+}
+namespace bmqp_ctrlmsg {
 class RegistrationResponse;
 }
 namespace bmqp_ctrlmsg {
@@ -218,6 +219,9 @@ namespace bmqp_ctrlmsg {
 class QueueStreamParameters;
 }
 namespace bmqp_ctrlmsg {
+class RaftMessageChoice;
+}
+namespace bmqp_ctrlmsg {
 class RegistrationRequest;
 }
 namespace bmqp_ctrlmsg {
@@ -285,6 +289,9 @@ class QueueUnAssignmentAdvisory;
 }
 namespace bmqp_ctrlmsg {
 class QueueUpdateAdvisory;
+}
+namespace bmqp_ctrlmsg {
+class RaftMessage;
 }
 namespace bmqp_ctrlmsg {
 class StateNotification;
@@ -552,10 +559,7 @@ class AdminCommand {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::AdminCommand);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::AdminCommand>
-: bsl::true_type {};
+    bmqp_ctrlmsg::AdminCommand)
 
 namespace bmqp_ctrlmsg {
 
@@ -771,10 +775,7 @@ class AdminCommandResponse {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::AdminCommandResponse);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::AdminCommandResponse>
-: bsl::true_type {};
+    bmqp_ctrlmsg::AdminCommandResponse)
 
 namespace bmqp_ctrlmsg {
 
@@ -990,9 +991,7 @@ class AppIdInfo {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::AppIdInfo);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::AppIdInfo> : bsl::true_type {};
+    bmqp_ctrlmsg::AppIdInfo)
 
 namespace bmqp_ctrlmsg {
 
@@ -1219,10 +1218,7 @@ class AuthenticationRequest {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::AuthenticationRequest);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::AuthenticationRequest>
-: bsl::true_type {};
+    bmqp_ctrlmsg::AuthenticationRequest)
 
 namespace bmqp_ctrlmsg {
 
@@ -1236,17 +1232,9 @@ struct ClientLanguage {
 
   public:
     // TYPES
-    enum Value {
-        e_E_UNKNOWN = 0,
-        e_E_CPP     = 1,
-        e_E_JAVA    = 2,
+    enum Value { E_UNKNOWN = 0, E_CPP = 1, E_JAVA = 2 };
 
-        E_UNKNOWN = e_E_UNKNOWN,
-        E_CPP     = e_E_CPP,
-        E_JAVA    = e_E_JAVA
-    };
-
-    enum { k_NUM_ENUMERATORS = 3, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
+    enum { NUM_ENUMERATORS = 3 };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -1294,7 +1282,7 @@ struct ClientLanguage {
 
 // TRAITS
 
-BDLAT_DECL_ENUMERATION_TRAITS(bmqp_ctrlmsg::ClientLanguage);
+BDLAT_DECL_ENUMERATION_TRAITS(bmqp_ctrlmsg::ClientLanguage)
 
 namespace bmqp_ctrlmsg {
 
@@ -1309,18 +1297,13 @@ struct ClientType {
   public:
     // TYPES
     enum Value {
-        e_E_UNKNOWN   = 0,
-        e_E_TCPCLIENT = 1,
-        e_E_TCPBROKER = 2,
-        e_E_TCPADMIN  = 3,
-
-        E_UNKNOWN   = e_E_UNKNOWN,
-        E_TCPCLIENT = e_E_TCPCLIENT,
-        E_TCPBROKER = e_E_TCPBROKER,
-        E_TCPADMIN  = e_E_TCPADMIN
+        E_UNKNOWN   = 0,
+        E_TCPCLIENT = 1,
+        E_TCPBROKER = 2,
+        E_TCPADMIN  = 3
     };
 
-    enum { k_NUM_ENUMERATORS = 4, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
+    enum { NUM_ENUMERATORS = 4 };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -1368,7 +1351,7 @@ struct ClientType {
 
 // TRAITS
 
-BDLAT_DECL_ENUMERATION_TRAITS(bmqp_ctrlmsg::ClientType);
+BDLAT_DECL_ENUMERATION_TRAITS(bmqp_ctrlmsg::ClientType)
 
 namespace bmqp_ctrlmsg {
 
@@ -1518,10 +1501,7 @@ class CloseQueueResponse {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::CloseQueueResponse);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::CloseQueueResponse>
-: bsl::true_type {};
+    bmqp_ctrlmsg::CloseQueueResponse)
 
 namespace bmqp_ctrlmsg {
 
@@ -1748,10 +1728,7 @@ class ConsumerInfo {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(bmqp_ctrlmsg::ConsumerInfo);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::ConsumerInfo>
-: bsl::true_type {};
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(bmqp_ctrlmsg::ConsumerInfo)
 
 namespace bmqp_ctrlmsg {
 
@@ -1898,10 +1875,7 @@ class Disconnect {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(bmqp_ctrlmsg::Disconnect);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::Disconnect> : bsl::true_type {
-};
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(bmqp_ctrlmsg::Disconnect)
 
 namespace bmqp_ctrlmsg {
 
@@ -2053,10 +2027,7 @@ class DisconnectResponse {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::DisconnectResponse);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::DisconnectResponse>
-: bsl::true_type {};
+    bmqp_ctrlmsg::DisconnectResponse)
 
 namespace bmqp_ctrlmsg {
 
@@ -2202,9 +2173,7 @@ class DummyType {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(bmqp_ctrlmsg::DummyType);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::DummyType> : bsl::true_type {};
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(bmqp_ctrlmsg::DummyType)
 
 namespace bmqp_ctrlmsg {
 
@@ -2216,18 +2185,13 @@ struct DumpActionType {
   public:
     // TYPES
     enum Value {
-        e_E_ON              = 0,
-        e_E_OFF             = 1,
-        e_E_MESSAGE_COUNT   = 2,
-        e_E_TIME_IN_SECONDS = 3,
-
-        E_ON              = e_E_ON,
-        E_OFF             = e_E_OFF,
-        E_MESSAGE_COUNT   = e_E_MESSAGE_COUNT,
-        E_TIME_IN_SECONDS = e_E_TIME_IN_SECONDS
+        E_ON              = 0,
+        E_OFF             = 1,
+        E_MESSAGE_COUNT   = 2,
+        E_TIME_IN_SECONDS = 3
     };
 
-    enum { k_NUM_ENUMERATORS = 4, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
+    enum { NUM_ENUMERATORS = 4 };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -2275,7 +2239,7 @@ struct DumpActionType {
 
 // TRAITS
 
-BDLAT_DECL_ENUMERATION_TRAITS(bmqp_ctrlmsg::DumpActionType);
+BDLAT_DECL_ENUMERATION_TRAITS(bmqp_ctrlmsg::DumpActionType)
 
 namespace bmqp_ctrlmsg {
 
@@ -2287,22 +2251,15 @@ struct DumpMsgType {
   public:
     // TYPES
     enum Value {
-        e_E_INCOMING = 0,
-        e_E_OUTGOING = 1,
-        e_E_PUSH     = 2,
-        e_E_ACK      = 3,
-        e_E_PUT      = 4,
-        e_E_CONFIRM  = 5,
-
-        E_INCOMING = e_E_INCOMING,
-        E_OUTGOING = e_E_OUTGOING,
-        E_PUSH     = e_E_PUSH,
-        E_ACK      = e_E_ACK,
-        E_PUT      = e_E_PUT,
-        E_CONFIRM  = e_E_CONFIRM
+        E_INCOMING = 0,
+        E_OUTGOING = 1,
+        E_PUSH     = 2,
+        E_ACK      = 3,
+        E_PUT      = 4,
+        E_CONFIRM  = 5
     };
 
-    enum { k_NUM_ENUMERATORS = 6, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
+    enum { NUM_ENUMERATORS = 6 };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -2350,7 +2307,7 @@ struct DumpMsgType {
 
 // TRAITS
 
-BDLAT_DECL_ENUMERATION_TRAITS(bmqp_ctrlmsg::DumpMsgType);
+BDLAT_DECL_ENUMERATION_TRAITS(bmqp_ctrlmsg::DumpMsgType)
 
 namespace bmqp_ctrlmsg {
 
@@ -2499,11 +2456,7 @@ class ElectionProposal {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::ElectionProposal);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::ElectionProposal>
-: bsl::true_type {};
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(bmqp_ctrlmsg::ElectionProposal)
 
 namespace bmqp_ctrlmsg {
 
@@ -2652,11 +2605,7 @@ class ElectionResponse {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::ElectionResponse);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::ElectionResponse>
-: bsl::true_type {};
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(bmqp_ctrlmsg::ElectionResponse)
 
 namespace bmqp_ctrlmsg {
 
@@ -2829,10 +2778,7 @@ class ElectorNodeStatus {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::ElectorNodeStatus);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::ElectorNodeStatus>
-: bsl::true_type {};
+    bmqp_ctrlmsg::ElectorNodeStatus)
 
 namespace bmqp_ctrlmsg {
 
@@ -2845,15 +2791,9 @@ struct ExpressionVersion {
 
   public:
     // TYPES
-    enum Value {
-        e_E_UNDEFINED = 0,
-        e_E_VERSION_1 = 1,
+    enum Value { E_UNDEFINED = 0, E_VERSION_1 = 1 };
 
-        E_UNDEFINED = e_E_UNDEFINED,
-        E_VERSION_1 = e_E_VERSION_1
-    };
-
-    enum { k_NUM_ENUMERATORS = 2, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
+    enum { NUM_ENUMERATORS = 2 };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -2901,7 +2841,7 @@ struct ExpressionVersion {
 
 // TRAITS
 
-BDLAT_DECL_ENUMERATION_TRAITS(bmqp_ctrlmsg::ExpressionVersion);
+BDLAT_DECL_ENUMERATION_TRAITS(bmqp_ctrlmsg::ExpressionVersion)
 
 namespace bmqp_ctrlmsg {
 
@@ -3053,10 +2993,7 @@ class FollowerClusterStateRequest {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::FollowerClusterStateRequest);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::FollowerClusterStateRequest>
-: bsl::true_type {};
+    bmqp_ctrlmsg::FollowerClusterStateRequest)
 
 namespace bmqp_ctrlmsg {
 
@@ -3207,10 +3144,7 @@ class FollowerLSNRequest {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::FollowerLSNRequest);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::FollowerLSNRequest>
-: bsl::true_type {};
+    bmqp_ctrlmsg::FollowerLSNRequest)
 
 namespace bmqp_ctrlmsg {
 
@@ -3441,9 +3375,7 @@ class GuidInfo {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::GuidInfo);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::GuidInfo> : bsl::true_type {};
+    bmqp_ctrlmsg::GuidInfo)
 
 namespace bmqp_ctrlmsg {
 
@@ -3593,10 +3525,7 @@ class HeartbeatResponse {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::HeartbeatResponse);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::HeartbeatResponse>
-: bsl::true_type {};
+    bmqp_ctrlmsg::HeartbeatResponse)
 
 namespace bmqp_ctrlmsg {
 
@@ -3745,10 +3674,7 @@ class LeaderHeartbeat {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(bmqp_ctrlmsg::LeaderHeartbeat);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::LeaderHeartbeat>
-: bsl::true_type {};
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(bmqp_ctrlmsg::LeaderHeartbeat)
 
 namespace bmqp_ctrlmsg {
 
@@ -3933,10 +3859,7 @@ class LeaderMessageSequence {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::LeaderMessageSequence);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::LeaderMessageSequence>
-: bsl::true_type {};
+    bmqp_ctrlmsg::LeaderMessageSequence)
 
 namespace bmqp_ctrlmsg {
 
@@ -4085,10 +4008,7 @@ class LeaderPassive {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(bmqp_ctrlmsg::LeaderPassive);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::LeaderPassive>
-: bsl::true_type {};
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(bmqp_ctrlmsg::LeaderPassive)
 
 namespace bmqp_ctrlmsg {
 
@@ -4240,10 +4160,7 @@ class LeaderSyncDataQuery {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::LeaderSyncDataQuery);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::LeaderSyncDataQuery>
-: bsl::true_type {};
+    bmqp_ctrlmsg::LeaderSyncDataQuery)
 
 namespace bmqp_ctrlmsg {
 
@@ -4394,10 +4311,7 @@ class LeaderSyncStateQuery {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::LeaderSyncStateQuery);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::LeaderSyncStateQuery>
-: bsl::true_type {};
+    bmqp_ctrlmsg::LeaderSyncStateQuery)
 
 namespace bmqp_ctrlmsg {
 
@@ -4549,10 +4463,7 @@ class LeadershipCessionNotification {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::LeadershipCessionNotification);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::LeadershipCessionNotification>
-: bsl::true_type {};
+    bmqp_ctrlmsg::LeadershipCessionNotification)
 
 namespace bmqp_ctrlmsg {
 
@@ -4566,20 +4477,14 @@ struct NodeStatus {
   public:
     // TYPES
     enum Value {
-        e_E_UNKNOWN     = 0,
-        e_E_STARTING    = 10,
-        e_E_AVAILABLE   = 20,
-        e_E_STOPPING    = 30,
-        e_E_UNAVAILABLE = 40,
-
-        E_UNKNOWN     = e_E_UNKNOWN,
-        E_STARTING    = e_E_STARTING,
-        E_AVAILABLE   = e_E_AVAILABLE,
-        E_STOPPING    = e_E_STOPPING,
-        E_UNAVAILABLE = e_E_UNAVAILABLE
+        E_UNKNOWN     = 0,
+        E_STARTING    = 10,
+        E_AVAILABLE   = 20,
+        E_STOPPING    = 30,
+        E_UNAVAILABLE = 40
     };
 
-    enum { k_NUM_ENUMERATORS = 5, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
+    enum { NUM_ENUMERATORS = 5 };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -4627,7 +4532,7 @@ struct NodeStatus {
 
 // TRAITS
 
-BDLAT_DECL_ENUMERATION_TRAITS(bmqp_ctrlmsg::NodeStatus);
+BDLAT_DECL_ENUMERATION_TRAITS(bmqp_ctrlmsg::NodeStatus)
 
 namespace bmqp_ctrlmsg {
 
@@ -4827,10 +4732,7 @@ class PartitionPrimaryInfo {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::PartitionPrimaryInfo);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::PartitionPrimaryInfo>
-: bsl::true_type {};
+    bmqp_ctrlmsg::PartitionPrimaryInfo)
 
 namespace bmqp_ctrlmsg {
 
@@ -5017,10 +4919,7 @@ class PartitionSequenceNumber {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::PartitionSequenceNumber);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::PartitionSequenceNumber>
-: bsl::true_type {};
+    bmqp_ctrlmsg::PartitionSequenceNumber)
 
 namespace bmqp_ctrlmsg {
 
@@ -5223,10 +5122,7 @@ class PartitionSyncDataQueryResponse {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::PartitionSyncDataQueryResponse);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::PartitionSyncDataQueryResponse>
-: bsl::true_type {};
+    bmqp_ctrlmsg::PartitionSyncDataQueryResponse)
 
 namespace bmqp_ctrlmsg {
 
@@ -5401,10 +5297,7 @@ class PartitionSyncStateQuery {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::PartitionSyncStateQuery);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::PartitionSyncStateQuery>
-: bsl::true_type {};
+    bmqp_ctrlmsg::PartitionSyncStateQuery)
 
 namespace bmqp_ctrlmsg {
 
@@ -5417,17 +5310,9 @@ struct PrimaryStatus {
 
   public:
     // TYPES
-    enum Value {
-        e_E_UNDEFINED = 0,
-        e_E_PASSIVE   = 1,
-        e_E_ACTIVE    = 5,
+    enum Value { E_UNDEFINED = 0, E_PASSIVE = 1, E_ACTIVE = 5 };
 
-        E_UNDEFINED = e_E_UNDEFINED,
-        E_PASSIVE   = e_E_PASSIVE,
-        E_ACTIVE    = e_E_ACTIVE
-    };
-
-    enum { k_NUM_ENUMERATORS = 3, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
+    enum { NUM_ENUMERATORS = 3 };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -5475,7 +5360,7 @@ struct PrimaryStatus {
 
 // TRAITS
 
-BDLAT_DECL_ENUMERATION_TRAITS(bmqp_ctrlmsg::PrimaryStatus);
+BDLAT_DECL_ENUMERATION_TRAITS(bmqp_ctrlmsg::PrimaryStatus)
 
 namespace bmqp_ctrlmsg {
 
@@ -5689,10 +5574,7 @@ class QueueAssignmentRequest {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::QueueAssignmentRequest);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::QueueAssignmentRequest>
-: bsl::true_type {};
+    bmqp_ctrlmsg::QueueAssignmentRequest)
 
 namespace bmqp_ctrlmsg {
 
@@ -5936,10 +5818,1099 @@ class QueueUnassignmentRequest {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::QueueUnassignmentRequest);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::QueueUnassignmentRequest>
-: bsl::true_type {};
+    bmqp_ctrlmsg::QueueUnassignmentRequest)
+
+namespace bmqp_ctrlmsg {
+
+// ===============================
+// class RaftAppendEntriesResponse
+// ===============================
+
+class RaftAppendEntriesResponse {
+    // Follower's response to AppendEntries.
+    // success....: True if log matched and entries were appended matchIndex.:
+    // Follower's last log index
+
+    // INSTANCE DATA
+    bsls::Types::Uint64 d_matchIndex;
+    bool                d_success;
+
+  public:
+    // TYPES
+    enum { ATTRIBUTE_ID_SUCCESS = 0, ATTRIBUTE_ID_MATCH_INDEX = 1 };
+
+    enum { NUM_ATTRIBUTES = 2 };
+
+    enum { ATTRIBUTE_INDEX_SUCCESS = 0, ATTRIBUTE_INDEX_MATCH_INDEX = 1 };
+
+    // CONSTANTS
+    static const char CLASS_NAME[];
+
+    static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
+
+  public:
+    // CLASS METHODS
+    static const bdlat_AttributeInfo* lookupAttributeInfo(int id);
+    // Return attribute information for the attribute indicated by the
+    // specified 'id' if the attribute exists, and 0 otherwise.
+
+    static const bdlat_AttributeInfo* lookupAttributeInfo(const char* name,
+                                                          int nameLength);
+    // Return attribute information for the attribute indicated by the
+    // specified 'name' of the specified 'nameLength' if the attribute
+    // exists, and 0 otherwise.
+
+    // CREATORS
+    RaftAppendEntriesResponse();
+    // Create an object of type 'RaftAppendEntriesResponse' having the
+    // default value.
+
+    // MANIPULATORS
+    void reset();
+    // Reset this object to the default value (i.e., its value upon
+    // default construction).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttributes(t_MANIPULATOR& manipulator);
+    // Invoke the specified 'manipulator' sequentially on the address of
+    // each (modifiable) attribute of this object, supplying 'manipulator'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'manipulator' (i.e., the invocation that
+    // terminated the sequence).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator, int id);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'id',
+    // supplying 'manipulator' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'manipulator' if 'id' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator,
+                            const char*    name,
+                            int            nameLength);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'name' of the
+    // specified 'nameLength', supplying 'manipulator' with the
+    // corresponding attribute information structure.  Return the value
+    // returned from the invocation of 'manipulator' if 'name' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    bool& success();
+    // Return a reference to the modifiable "Success" attribute of this
+    // object.
+
+    bsls::Types::Uint64& matchIndex();
+    // Return a reference to the modifiable "MatchIndex" attribute of this
+    // object.
+
+    // ACCESSORS
+    bsl::ostream&
+    print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
+    // Format this object to the specified output 'stream' at the
+    // optionally specified indentation 'level' and return a reference to
+    // the modifiable 'stream'.  If 'level' is specified, optionally
+    // specify 'spacesPerLevel', the number of spaces per indentation level
+    // for this and all of its nested objects.  Each line is indented by
+    // the absolute value of 'level * spacesPerLevel'.  If 'level' is
+    // negative, suppress indentation of the first line.  If
+    // 'spacesPerLevel' is negative, suppress line breaks and format the
+    // entire output on one line.  If 'stream' is initially invalid, this
+    // operation has no effect.  Note that a trailing newline is provided
+    // in multiline mode only.
+
+    template <typename t_ACCESSOR>
+    int accessAttributes(t_ACCESSOR& accessor) const;
+    // Invoke the specified 'accessor' sequentially on each
+    // (non-modifiable) attribute of this object, supplying 'accessor'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'accessor' (i.e., the invocation that terminated
+    // the sequence).
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor, int id) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'id', supplying 'accessor'
+    // with the corresponding attribute information structure.  Return the
+    // value returned from the invocation of 'accessor' if 'id' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor,
+                        const char* name,
+                        int         nameLength) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'name' of the specified
+    // 'nameLength', supplying 'accessor' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'accessor' if 'name' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    bool success() const;
+    // Return the value of the "Success" attribute of this object.
+
+    bsls::Types::Uint64 matchIndex() const;
+    // Return the value of the "MatchIndex" attribute of this object.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const RaftAppendEntriesResponse& lhs,
+                           const RaftAppendEntriesResponse& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' attribute objects
+    // have the same value, and 'false' otherwise.  Two attribute objects
+    // have the same value if each respective attribute has the same value.
+    {
+        return lhs.success() == rhs.success() &&
+               lhs.matchIndex() == rhs.matchIndex();
+    }
+
+    friend bool operator!=(const RaftAppendEntriesResponse& lhs,
+                           const RaftAppendEntriesResponse& rhs)
+    // Returns '!(lhs == rhs)'
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream&                    stream,
+                                    const RaftAppendEntriesResponse& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM&                hashAlg,
+                           const RaftAppendEntriesResponse& object)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for
+    // 'RaftAppendEntriesResponse'.
+    {
+        using bslh::hashAppend;
+        hashAppend(hashAlg, object.success());
+        hashAppend(hashAlg, object.matchIndex());
+    }
+};
+
+}  // close package namespace
+
+// TRAITS
+
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
+    bmqp_ctrlmsg::RaftAppendEntriesResponse)
+
+namespace bmqp_ctrlmsg {
+
+// =========================
+// class RaftInstallSnapshot
+// =========================
+
+class RaftInstallSnapshot {
+    // Leader sends snapshot metadata to a far-behind follower.  The actual
+    // snapshot data (partition files) travels as a raw binary blob appended
+    // after the BER-encoded RaftMessage in the same event — it is NOT
+    // included in this XSD type.
+    // Chunked transfer: the leader sends multiple InstallSnapshot messages
+    // with increasing `offset` values.  The follower buffers chunks and
+    // applies the complete snapshot on `done=true`.  The `term` in the
+    // enclosing RaftMessage guards against stale snapshots from ex-leaders:
+    // the follower rejects any message whose term is less than its own
+    // currentTerm.  A new election during transfer causes the new leader to
+    // restart with fresh nextIndex/matchIndex for that follower.
+    // lastIncludedIndex.: Last log index covered by this snapshot
+    // lastIncludedTerm..: Term of lastIncludedIndex offset...........: Byte
+    // offset of this chunk in the full snapshot data done.............: True
+    // if this is the last chunk
+
+    // INSTANCE DATA
+    bsls::Types::Uint64 d_lastIncludedIndex;
+    bsls::Types::Uint64 d_lastIncludedTerm;
+    bsls::Types::Uint64 d_offset;
+    bool                d_done;
+
+    // PRIVATE ACCESSORS
+    template <typename t_HASH_ALGORITHM>
+    void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
+
+    bool isEqualTo(const RaftInstallSnapshot& rhs) const;
+
+  public:
+    // TYPES
+    enum {
+        ATTRIBUTE_ID_LAST_INCLUDED_INDEX = 0,
+        ATTRIBUTE_ID_LAST_INCLUDED_TERM  = 1,
+        ATTRIBUTE_ID_OFFSET              = 2,
+        ATTRIBUTE_ID_DONE                = 3
+    };
+
+    enum { NUM_ATTRIBUTES = 4 };
+
+    enum {
+        ATTRIBUTE_INDEX_LAST_INCLUDED_INDEX = 0,
+        ATTRIBUTE_INDEX_LAST_INCLUDED_TERM  = 1,
+        ATTRIBUTE_INDEX_OFFSET              = 2,
+        ATTRIBUTE_INDEX_DONE                = 3
+    };
+
+    // CONSTANTS
+    static const char CLASS_NAME[];
+
+    static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
+
+  public:
+    // CLASS METHODS
+    static const bdlat_AttributeInfo* lookupAttributeInfo(int id);
+    // Return attribute information for the attribute indicated by the
+    // specified 'id' if the attribute exists, and 0 otherwise.
+
+    static const bdlat_AttributeInfo* lookupAttributeInfo(const char* name,
+                                                          int nameLength);
+    // Return attribute information for the attribute indicated by the
+    // specified 'name' of the specified 'nameLength' if the attribute
+    // exists, and 0 otherwise.
+
+    // CREATORS
+    RaftInstallSnapshot();
+    // Create an object of type 'RaftInstallSnapshot' having the default
+    // value.
+
+    // MANIPULATORS
+    void reset();
+    // Reset this object to the default value (i.e., its value upon
+    // default construction).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttributes(t_MANIPULATOR& manipulator);
+    // Invoke the specified 'manipulator' sequentially on the address of
+    // each (modifiable) attribute of this object, supplying 'manipulator'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'manipulator' (i.e., the invocation that
+    // terminated the sequence).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator, int id);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'id',
+    // supplying 'manipulator' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'manipulator' if 'id' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator,
+                            const char*    name,
+                            int            nameLength);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'name' of the
+    // specified 'nameLength', supplying 'manipulator' with the
+    // corresponding attribute information structure.  Return the value
+    // returned from the invocation of 'manipulator' if 'name' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    bsls::Types::Uint64& lastIncludedIndex();
+    // Return a reference to the modifiable "LastIncludedIndex" attribute
+    // of this object.
+
+    bsls::Types::Uint64& lastIncludedTerm();
+    // Return a reference to the modifiable "LastIncludedTerm" attribute of
+    // this object.
+
+    bsls::Types::Uint64& offset();
+    // Return a reference to the modifiable "Offset" attribute of this
+    // object.
+
+    bool& done();
+    // Return a reference to the modifiable "Done" attribute of this
+    // object.
+
+    // ACCESSORS
+    bsl::ostream&
+    print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
+    // Format this object to the specified output 'stream' at the
+    // optionally specified indentation 'level' and return a reference to
+    // the modifiable 'stream'.  If 'level' is specified, optionally
+    // specify 'spacesPerLevel', the number of spaces per indentation level
+    // for this and all of its nested objects.  Each line is indented by
+    // the absolute value of 'level * spacesPerLevel'.  If 'level' is
+    // negative, suppress indentation of the first line.  If
+    // 'spacesPerLevel' is negative, suppress line breaks and format the
+    // entire output on one line.  If 'stream' is initially invalid, this
+    // operation has no effect.  Note that a trailing newline is provided
+    // in multiline mode only.
+
+    template <typename t_ACCESSOR>
+    int accessAttributes(t_ACCESSOR& accessor) const;
+    // Invoke the specified 'accessor' sequentially on each
+    // (non-modifiable) attribute of this object, supplying 'accessor'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'accessor' (i.e., the invocation that terminated
+    // the sequence).
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor, int id) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'id', supplying 'accessor'
+    // with the corresponding attribute information structure.  Return the
+    // value returned from the invocation of 'accessor' if 'id' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor,
+                        const char* name,
+                        int         nameLength) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'name' of the specified
+    // 'nameLength', supplying 'accessor' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'accessor' if 'name' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    bsls::Types::Uint64 lastIncludedIndex() const;
+    // Return the value of the "LastIncludedIndex" attribute of this
+    // object.
+
+    bsls::Types::Uint64 lastIncludedTerm() const;
+    // Return the value of the "LastIncludedTerm" attribute of this object.
+
+    bsls::Types::Uint64 offset() const;
+    // Return the value of the "Offset" attribute of this object.
+
+    bool done() const;
+    // Return the value of the "Done" attribute of this object.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const RaftInstallSnapshot& lhs,
+                           const RaftInstallSnapshot& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' attribute objects
+    // have the same value, and 'false' otherwise.  Two attribute objects
+    // have the same value if each respective attribute has the same value.
+    {
+        return lhs.isEqualTo(rhs);
+    }
+
+    friend bool operator!=(const RaftInstallSnapshot& lhs,
+                           const RaftInstallSnapshot& rhs)
+    // Returns '!(lhs == rhs)'
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream&              stream,
+                                    const RaftInstallSnapshot& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM&          hashAlg,
+                           const RaftInstallSnapshot& object)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for
+    // 'RaftInstallSnapshot'.
+    {
+        object.hashAppendImpl(hashAlg);
+    }
+};
+
+}  // close package namespace
+
+// TRAITS
+
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
+    bmqp_ctrlmsg::RaftInstallSnapshot)
+
+namespace bmqp_ctrlmsg {
+
+// =================================
+// class RaftInstallSnapshotResponse
+// =================================
+
+class RaftInstallSnapshotResponse {
+    // INSTANCE DATA
+
+  public:
+    // TYPES
+    enum { NUM_ATTRIBUTES = 0 };
+
+    // CONSTANTS
+    static const char CLASS_NAME[];
+
+  public:
+    // CLASS METHODS
+    static const bdlat_AttributeInfo* lookupAttributeInfo(int id);
+    // Return attribute information for the attribute indicated by the
+    // specified 'id' if the attribute exists, and 0 otherwise.
+
+    static const bdlat_AttributeInfo* lookupAttributeInfo(const char* name,
+                                                          int nameLength);
+    // Return attribute information for the attribute indicated by the
+    // specified 'name' of the specified 'nameLength' if the attribute
+    // exists, and 0 otherwise.
+
+    // CREATORS
+
+    // MANIPULATORS
+    void reset();
+    // Reset this object to the default value (i.e., its value upon
+    // default construction).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttributes(t_MANIPULATOR& manipulator);
+    // Invoke the specified 'manipulator' sequentially on the address of
+    // each (modifiable) attribute of this object, supplying 'manipulator'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'manipulator' (i.e., the invocation that
+    // terminated the sequence).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator, int id);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'id',
+    // supplying 'manipulator' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'manipulator' if 'id' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator,
+                            const char*    name,
+                            int            nameLength);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'name' of the
+    // specified 'nameLength', supplying 'manipulator' with the
+    // corresponding attribute information structure.  Return the value
+    // returned from the invocation of 'manipulator' if 'name' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    // ACCESSORS
+    bsl::ostream&
+    print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
+    // Format this object to the specified output 'stream' at the
+    // optionally specified indentation 'level' and return a reference to
+    // the modifiable 'stream'.  If 'level' is specified, optionally
+    // specify 'spacesPerLevel', the number of spaces per indentation level
+    // for this and all of its nested objects.  Each line is indented by
+    // the absolute value of 'level * spacesPerLevel'.  If 'level' is
+    // negative, suppress indentation of the first line.  If
+    // 'spacesPerLevel' is negative, suppress line breaks and format the
+    // entire output on one line.  If 'stream' is initially invalid, this
+    // operation has no effect.  Note that a trailing newline is provided
+    // in multiline mode only.
+
+    template <typename t_ACCESSOR>
+    int accessAttributes(t_ACCESSOR& accessor) const;
+    // Invoke the specified 'accessor' sequentially on each
+    // (non-modifiable) attribute of this object, supplying 'accessor'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'accessor' (i.e., the invocation that terminated
+    // the sequence).
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor, int id) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'id', supplying 'accessor'
+    // with the corresponding attribute information structure.  Return the
+    // value returned from the invocation of 'accessor' if 'id' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor,
+                        const char* name,
+                        int         nameLength) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'name' of the specified
+    // 'nameLength', supplying 'accessor' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'accessor' if 'name' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const RaftInstallSnapshotResponse&,
+                           const RaftInstallSnapshotResponse&)
+    // Returns 'true' as this type has no attributes and so all objects of
+    // this type are considered equal.
+    {
+        return true;
+    }
+
+    friend bool operator!=(const RaftInstallSnapshotResponse& lhs,
+                           const RaftInstallSnapshotResponse& rhs)
+    // Returns '!(lhs == rhs)'
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream&                      stream,
+                                    const RaftInstallSnapshotResponse& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM&,
+                           const RaftInstallSnapshotResponse&)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for
+    // 'RaftInstallSnapshotResponse'.
+    {
+    }
+};
+
+}  // close package namespace
+
+// TRAITS
+
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
+    bmqp_ctrlmsg::RaftInstallSnapshotResponse)
+
+namespace bmqp_ctrlmsg {
+
+// =====================
+// class RaftRequestVote
+// =====================
+
+class RaftRequestVote {
+    // Candidate requests vote from peer.
+    // lastLogIndex.: Index of candidate's last log entry lastLogTerm..: Term
+    // of candidate's last log entry preVote......: True if this is a pre-vote
+
+    // INSTANCE DATA
+    bsls::Types::Uint64 d_lastLogIndex;
+    bsls::Types::Uint64 d_lastLogTerm;
+    bool                d_preVote;
+
+    // PRIVATE ACCESSORS
+    template <typename t_HASH_ALGORITHM>
+    void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
+
+  public:
+    // TYPES
+    enum {
+        ATTRIBUTE_ID_LAST_LOG_INDEX = 0,
+        ATTRIBUTE_ID_LAST_LOG_TERM  = 1,
+        ATTRIBUTE_ID_PRE_VOTE       = 2
+    };
+
+    enum { NUM_ATTRIBUTES = 3 };
+
+    enum {
+        ATTRIBUTE_INDEX_LAST_LOG_INDEX = 0,
+        ATTRIBUTE_INDEX_LAST_LOG_TERM  = 1,
+        ATTRIBUTE_INDEX_PRE_VOTE       = 2
+    };
+
+    // CONSTANTS
+    static const char CLASS_NAME[];
+
+    static const bool DEFAULT_INITIALIZER_PRE_VOTE;
+
+    static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
+
+  public:
+    // CLASS METHODS
+    static const bdlat_AttributeInfo* lookupAttributeInfo(int id);
+    // Return attribute information for the attribute indicated by the
+    // specified 'id' if the attribute exists, and 0 otherwise.
+
+    static const bdlat_AttributeInfo* lookupAttributeInfo(const char* name,
+                                                          int nameLength);
+    // Return attribute information for the attribute indicated by the
+    // specified 'name' of the specified 'nameLength' if the attribute
+    // exists, and 0 otherwise.
+
+    // CREATORS
+    RaftRequestVote();
+    // Create an object of type 'RaftRequestVote' having the default value.
+
+    // MANIPULATORS
+    void reset();
+    // Reset this object to the default value (i.e., its value upon
+    // default construction).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttributes(t_MANIPULATOR& manipulator);
+    // Invoke the specified 'manipulator' sequentially on the address of
+    // each (modifiable) attribute of this object, supplying 'manipulator'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'manipulator' (i.e., the invocation that
+    // terminated the sequence).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator, int id);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'id',
+    // supplying 'manipulator' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'manipulator' if 'id' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator,
+                            const char*    name,
+                            int            nameLength);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'name' of the
+    // specified 'nameLength', supplying 'manipulator' with the
+    // corresponding attribute information structure.  Return the value
+    // returned from the invocation of 'manipulator' if 'name' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    bsls::Types::Uint64& lastLogIndex();
+    // Return a reference to the modifiable "LastLogIndex" attribute of
+    // this object.
+
+    bsls::Types::Uint64& lastLogTerm();
+    // Return a reference to the modifiable "LastLogTerm" attribute of this
+    // object.
+
+    bool& preVote();
+    // Return a reference to the modifiable "PreVote" attribute of this
+    // object.
+
+    // ACCESSORS
+    bsl::ostream&
+    print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
+    // Format this object to the specified output 'stream' at the
+    // optionally specified indentation 'level' and return a reference to
+    // the modifiable 'stream'.  If 'level' is specified, optionally
+    // specify 'spacesPerLevel', the number of spaces per indentation level
+    // for this and all of its nested objects.  Each line is indented by
+    // the absolute value of 'level * spacesPerLevel'.  If 'level' is
+    // negative, suppress indentation of the first line.  If
+    // 'spacesPerLevel' is negative, suppress line breaks and format the
+    // entire output on one line.  If 'stream' is initially invalid, this
+    // operation has no effect.  Note that a trailing newline is provided
+    // in multiline mode only.
+
+    template <typename t_ACCESSOR>
+    int accessAttributes(t_ACCESSOR& accessor) const;
+    // Invoke the specified 'accessor' sequentially on each
+    // (non-modifiable) attribute of this object, supplying 'accessor'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'accessor' (i.e., the invocation that terminated
+    // the sequence).
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor, int id) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'id', supplying 'accessor'
+    // with the corresponding attribute information structure.  Return the
+    // value returned from the invocation of 'accessor' if 'id' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor,
+                        const char* name,
+                        int         nameLength) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'name' of the specified
+    // 'nameLength', supplying 'accessor' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'accessor' if 'name' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    bsls::Types::Uint64 lastLogIndex() const;
+    // Return the value of the "LastLogIndex" attribute of this object.
+
+    bsls::Types::Uint64 lastLogTerm() const;
+    // Return the value of the "LastLogTerm" attribute of this object.
+
+    bool preVote() const;
+    // Return the value of the "PreVote" attribute of this object.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const RaftRequestVote& lhs,
+                           const RaftRequestVote& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' attribute objects
+    // have the same value, and 'false' otherwise.  Two attribute objects
+    // have the same value if each respective attribute has the same value.
+    {
+        return lhs.lastLogIndex() == rhs.lastLogIndex() &&
+               lhs.lastLogTerm() == rhs.lastLogTerm() &&
+               lhs.preVote() == rhs.preVote();
+    }
+
+    friend bool operator!=(const RaftRequestVote& lhs,
+                           const RaftRequestVote& rhs)
+    // Returns '!(lhs == rhs)'
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream&          stream,
+                                    const RaftRequestVote& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM&      hashAlg,
+                           const RaftRequestVote& object)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for
+    // 'RaftRequestVote'.
+    {
+        object.hashAppendImpl(hashAlg);
+    }
+};
+
+}  // close package namespace
+
+// TRAITS
+
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(bmqp_ctrlmsg::RaftRequestVote)
+
+namespace bmqp_ctrlmsg {
+
+// =============================
+// class RaftRequestVoteResponse
+// =============================
+
+class RaftRequestVoteResponse {
+    // Peer's vote response.
+    // voteGranted.: True if vote was granted preVote.....: Echoes the
+    // request's preVote flag
+
+    // INSTANCE DATA
+    bool d_voteGranted;
+    bool d_preVote;
+
+  public:
+    // TYPES
+    enum { ATTRIBUTE_ID_VOTE_GRANTED = 0, ATTRIBUTE_ID_PRE_VOTE = 1 };
+
+    enum { NUM_ATTRIBUTES = 2 };
+
+    enum { ATTRIBUTE_INDEX_VOTE_GRANTED = 0, ATTRIBUTE_INDEX_PRE_VOTE = 1 };
+
+    // CONSTANTS
+    static const char CLASS_NAME[];
+
+    static const bool DEFAULT_INITIALIZER_PRE_VOTE;
+
+    static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
+
+  public:
+    // CLASS METHODS
+    static const bdlat_AttributeInfo* lookupAttributeInfo(int id);
+    // Return attribute information for the attribute indicated by the
+    // specified 'id' if the attribute exists, and 0 otherwise.
+
+    static const bdlat_AttributeInfo* lookupAttributeInfo(const char* name,
+                                                          int nameLength);
+    // Return attribute information for the attribute indicated by the
+    // specified 'name' of the specified 'nameLength' if the attribute
+    // exists, and 0 otherwise.
+
+    // CREATORS
+    RaftRequestVoteResponse();
+    // Create an object of type 'RaftRequestVoteResponse' having the
+    // default value.
+
+    // MANIPULATORS
+    void reset();
+    // Reset this object to the default value (i.e., its value upon
+    // default construction).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttributes(t_MANIPULATOR& manipulator);
+    // Invoke the specified 'manipulator' sequentially on the address of
+    // each (modifiable) attribute of this object, supplying 'manipulator'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'manipulator' (i.e., the invocation that
+    // terminated the sequence).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator, int id);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'id',
+    // supplying 'manipulator' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'manipulator' if 'id' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator,
+                            const char*    name,
+                            int            nameLength);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'name' of the
+    // specified 'nameLength', supplying 'manipulator' with the
+    // corresponding attribute information structure.  Return the value
+    // returned from the invocation of 'manipulator' if 'name' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    bool& voteGranted();
+    // Return a reference to the modifiable "VoteGranted" attribute of this
+    // object.
+
+    bool& preVote();
+    // Return a reference to the modifiable "PreVote" attribute of this
+    // object.
+
+    // ACCESSORS
+    bsl::ostream&
+    print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
+    // Format this object to the specified output 'stream' at the
+    // optionally specified indentation 'level' and return a reference to
+    // the modifiable 'stream'.  If 'level' is specified, optionally
+    // specify 'spacesPerLevel', the number of spaces per indentation level
+    // for this and all of its nested objects.  Each line is indented by
+    // the absolute value of 'level * spacesPerLevel'.  If 'level' is
+    // negative, suppress indentation of the first line.  If
+    // 'spacesPerLevel' is negative, suppress line breaks and format the
+    // entire output on one line.  If 'stream' is initially invalid, this
+    // operation has no effect.  Note that a trailing newline is provided
+    // in multiline mode only.
+
+    template <typename t_ACCESSOR>
+    int accessAttributes(t_ACCESSOR& accessor) const;
+    // Invoke the specified 'accessor' sequentially on each
+    // (non-modifiable) attribute of this object, supplying 'accessor'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'accessor' (i.e., the invocation that terminated
+    // the sequence).
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor, int id) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'id', supplying 'accessor'
+    // with the corresponding attribute information structure.  Return the
+    // value returned from the invocation of 'accessor' if 'id' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor,
+                        const char* name,
+                        int         nameLength) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'name' of the specified
+    // 'nameLength', supplying 'accessor' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'accessor' if 'name' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    bool voteGranted() const;
+    // Return the value of the "VoteGranted" attribute of this object.
+
+    bool preVote() const;
+    // Return the value of the "PreVote" attribute of this object.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const RaftRequestVoteResponse& lhs,
+                           const RaftRequestVoteResponse& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' attribute objects
+    // have the same value, and 'false' otherwise.  Two attribute objects
+    // have the same value if each respective attribute has the same value.
+    {
+        return lhs.voteGranted() == rhs.voteGranted() &&
+               lhs.preVote() == rhs.preVote();
+    }
+
+    friend bool operator!=(const RaftRequestVoteResponse& lhs,
+                           const RaftRequestVoteResponse& rhs)
+    // Returns '!(lhs == rhs)'
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream&                  stream,
+                                    const RaftRequestVoteResponse& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM&              hashAlg,
+                           const RaftRequestVoteResponse& object)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for
+    // 'RaftRequestVoteResponse'.
+    {
+        using bslh::hashAppend;
+        hashAppend(hashAlg, object.voteGranted());
+        hashAppend(hashAlg, object.preVote());
+    }
+};
+
+}  // close package namespace
+
+// TRAITS
+
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
+    bmqp_ctrlmsg::RaftRequestVoteResponse)
+
+namespace bmqp_ctrlmsg {
+
+// ====================
+// class RaftTimeoutNow
+// ====================
+
+class RaftTimeoutNow {
+    // Leader tells target to start election immediately (leadership transfer).
+
+    // INSTANCE DATA
+
+  public:
+    // TYPES
+    enum { NUM_ATTRIBUTES = 0 };
+
+    // CONSTANTS
+    static const char CLASS_NAME[];
+
+  public:
+    // CLASS METHODS
+    static const bdlat_AttributeInfo* lookupAttributeInfo(int id);
+    // Return attribute information for the attribute indicated by the
+    // specified 'id' if the attribute exists, and 0 otherwise.
+
+    static const bdlat_AttributeInfo* lookupAttributeInfo(const char* name,
+                                                          int nameLength);
+    // Return attribute information for the attribute indicated by the
+    // specified 'name' of the specified 'nameLength' if the attribute
+    // exists, and 0 otherwise.
+
+    // CREATORS
+
+    // MANIPULATORS
+    void reset();
+    // Reset this object to the default value (i.e., its value upon
+    // default construction).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttributes(t_MANIPULATOR& manipulator);
+    // Invoke the specified 'manipulator' sequentially on the address of
+    // each (modifiable) attribute of this object, supplying 'manipulator'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'manipulator' (i.e., the invocation that
+    // terminated the sequence).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator, int id);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'id',
+    // supplying 'manipulator' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'manipulator' if 'id' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator,
+                            const char*    name,
+                            int            nameLength);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'name' of the
+    // specified 'nameLength', supplying 'manipulator' with the
+    // corresponding attribute information structure.  Return the value
+    // returned from the invocation of 'manipulator' if 'name' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    // ACCESSORS
+    bsl::ostream&
+    print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
+    // Format this object to the specified output 'stream' at the
+    // optionally specified indentation 'level' and return a reference to
+    // the modifiable 'stream'.  If 'level' is specified, optionally
+    // specify 'spacesPerLevel', the number of spaces per indentation level
+    // for this and all of its nested objects.  Each line is indented by
+    // the absolute value of 'level * spacesPerLevel'.  If 'level' is
+    // negative, suppress indentation of the first line.  If
+    // 'spacesPerLevel' is negative, suppress line breaks and format the
+    // entire output on one line.  If 'stream' is initially invalid, this
+    // operation has no effect.  Note that a trailing newline is provided
+    // in multiline mode only.
+
+    template <typename t_ACCESSOR>
+    int accessAttributes(t_ACCESSOR& accessor) const;
+    // Invoke the specified 'accessor' sequentially on each
+    // (non-modifiable) attribute of this object, supplying 'accessor'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'accessor' (i.e., the invocation that terminated
+    // the sequence).
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor, int id) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'id', supplying 'accessor'
+    // with the corresponding attribute information structure.  Return the
+    // value returned from the invocation of 'accessor' if 'id' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor,
+                        const char* name,
+                        int         nameLength) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'name' of the specified
+    // 'nameLength', supplying 'accessor' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'accessor' if 'name' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const RaftTimeoutNow&, const RaftTimeoutNow&)
+    // Returns 'true' as this type has no attributes and so all objects of
+    // this type are considered equal.
+    {
+        return true;
+    }
+
+    friend bool operator!=(const RaftTimeoutNow& lhs,
+                           const RaftTimeoutNow& rhs)
+    // Returns '!(lhs == rhs)'
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream&         stream,
+                                    const RaftTimeoutNow& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM&, const RaftTimeoutNow&)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for
+    // 'RaftTimeoutNow'.
+    {
+    }
+};
+
+}  // close package namespace
+
+// TRAITS
+
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(bmqp_ctrlmsg::RaftTimeoutNow)
 
 namespace bmqp_ctrlmsg {
 
@@ -6090,10 +7061,7 @@ class RegistrationResponse {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::RegistrationResponse);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::RegistrationResponse>
-: bsl::true_type {};
+    bmqp_ctrlmsg::RegistrationResponse)
 
 namespace bmqp_ctrlmsg {
 
@@ -6106,19 +7074,9 @@ struct ReplicaDataType {
 
   public:
     // TYPES
-    enum Value {
-        e_E_UNKNOWN = 0,
-        e_E_PULL    = 10,
-        e_E_PUSH    = 20,
-        e_E_DROP    = 30,
+    enum Value { E_UNKNOWN = 0, E_PULL = 10, E_PUSH = 20, E_DROP = 30 };
 
-        E_UNKNOWN = e_E_UNKNOWN,
-        E_PULL    = e_E_PULL,
-        E_PUSH    = e_E_PUSH,
-        E_DROP    = e_E_DROP
-    };
-
-    enum { k_NUM_ENUMERATORS = 4, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
+    enum { NUM_ENUMERATORS = 4 };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -6166,7 +7124,7 @@ struct ReplicaDataType {
 
 // TRAITS
 
-BDLAT_DECL_ENUMERATION_TRAITS(bmqp_ctrlmsg::ReplicaDataType);
+BDLAT_DECL_ENUMERATION_TRAITS(bmqp_ctrlmsg::ReplicaDataType)
 
 namespace bmqp_ctrlmsg {
 
@@ -6341,10 +7299,7 @@ class RoutingConfiguration {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::RoutingConfiguration);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::RoutingConfiguration>
-: bsl::true_type {};
+    bmqp_ctrlmsg::RoutingConfiguration)
 
 namespace bmqp_ctrlmsg {
 
@@ -6371,18 +7326,13 @@ struct RoutingConfigurationFlags {
   public:
     // TYPES
     enum Value {
-        e_E_AT_MOST_ONCE              = 0,
-        e_E_DELIVER_CONSUMER_PRIORITY = 1,
-        e_E_DELIVER_ALL               = 2,
-        e_E_HAS_MULTIPLE_SUB_STREAMS  = 3,
-
-        E_AT_MOST_ONCE              = e_E_AT_MOST_ONCE,
-        E_DELIVER_CONSUMER_PRIORITY = e_E_DELIVER_CONSUMER_PRIORITY,
-        E_DELIVER_ALL               = e_E_DELIVER_ALL,
-        E_HAS_MULTIPLE_SUB_STREAMS  = e_E_HAS_MULTIPLE_SUB_STREAMS
+        E_AT_MOST_ONCE              = 0,
+        E_DELIVER_CONSUMER_PRIORITY = 1,
+        E_DELIVER_ALL               = 2,
+        E_HAS_MULTIPLE_SUB_STREAMS  = 3
     };
 
-    enum { k_NUM_ENUMERATORS = 4, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
+    enum { NUM_ENUMERATORS = 4 };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -6430,7 +7380,7 @@ struct RoutingConfigurationFlags {
 
 // TRAITS
 
-BDLAT_DECL_ENUMERATION_TRAITS(bmqp_ctrlmsg::RoutingConfigurationFlags);
+BDLAT_DECL_ENUMERATION_TRAITS(bmqp_ctrlmsg::RoutingConfigurationFlags)
 
 namespace bmqp_ctrlmsg {
 
@@ -6580,10 +7530,7 @@ class ScoutingRequest {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(bmqp_ctrlmsg::ScoutingRequest);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::ScoutingRequest>
-: bsl::true_type {};
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(bmqp_ctrlmsg::ScoutingRequest)
 
 namespace bmqp_ctrlmsg {
 
@@ -6757,11 +7704,7 @@ class ScoutingResponse {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::ScoutingResponse);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::ScoutingResponse>
-: bsl::true_type {};
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(bmqp_ctrlmsg::ScoutingResponse)
 
 namespace bmqp_ctrlmsg {
 
@@ -6780,28 +7723,18 @@ struct StatusCategory {
   public:
     // TYPES
     enum Value {
-        e_E_SUCCESS          = 0,
-        e_E_UNKNOWN          = -1,
-        e_E_TIMEOUT          = -2,
-        e_E_NOT_CONNECTED    = -3,
-        e_E_CANCELED         = -4,
-        e_E_NOT_SUPPORTED    = -5,
-        e_E_REFUSED          = -6,
-        e_E_INVALID_ARGUMENT = -7,
-        e_E_NOT_READY        = -8,
-
-        E_SUCCESS          = e_E_SUCCESS,
-        E_UNKNOWN          = e_E_UNKNOWN,
-        E_TIMEOUT          = e_E_TIMEOUT,
-        E_NOT_CONNECTED    = e_E_NOT_CONNECTED,
-        E_CANCELED         = e_E_CANCELED,
-        E_NOT_SUPPORTED    = e_E_NOT_SUPPORTED,
-        E_REFUSED          = e_E_REFUSED,
-        E_INVALID_ARGUMENT = e_E_INVALID_ARGUMENT,
-        E_NOT_READY        = e_E_NOT_READY
+        E_SUCCESS          = 0,
+        E_UNKNOWN          = -1,
+        E_TIMEOUT          = -2,
+        E_NOT_CONNECTED    = -3,
+        E_CANCELED         = -4,
+        E_NOT_SUPPORTED    = -5,
+        E_REFUSED          = -6,
+        E_INVALID_ARGUMENT = -7,
+        E_NOT_READY        = -8
     };
 
-    enum { k_NUM_ENUMERATORS = 9, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
+    enum { NUM_ENUMERATORS = 9 };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -6849,7 +7782,7 @@ struct StatusCategory {
 
 // TRAITS
 
-BDLAT_DECL_ENUMERATION_TRAITS(bmqp_ctrlmsg::StatusCategory);
+BDLAT_DECL_ENUMERATION_TRAITS(bmqp_ctrlmsg::StatusCategory)
 
 namespace bmqp_ctrlmsg {
 
@@ -7070,10 +8003,7 @@ class StopRequest {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::StopRequest);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::StopRequest> : bsl::true_type {
-};
+    bmqp_ctrlmsg::StopRequest)
 
 namespace bmqp_ctrlmsg {
 
@@ -7284,10 +8214,7 @@ class StopResponse {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::StopResponse);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::StopResponse>
-: bsl::true_type {};
+    bmqp_ctrlmsg::StopResponse)
 
 namespace bmqp_ctrlmsg {
 
@@ -7301,20 +8228,14 @@ struct StorageSyncResponseType {
   public:
     // TYPES
     enum Value {
-        e_E_UNDEFINED = 0,
-        e_E_PATCH     = 1,
-        e_E_FILE      = 2,
-        e_E_IN_SYNC   = 3,
-        e_E_EMPTY     = 4,
-
-        E_UNDEFINED = e_E_UNDEFINED,
-        E_PATCH     = e_E_PATCH,
-        E_FILE      = e_E_FILE,
-        E_IN_SYNC   = e_E_IN_SYNC,
-        E_EMPTY     = e_E_EMPTY
+        E_UNDEFINED = 0,
+        E_PATCH     = 1,
+        E_FILE      = 2,
+        E_IN_SYNC   = 3,
+        E_EMPTY     = 4
     };
 
-    enum { k_NUM_ENUMERATORS = 5, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
+    enum { NUM_ENUMERATORS = 5 };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -7362,7 +8283,7 @@ struct StorageSyncResponseType {
 
 // TRAITS
 
-BDLAT_DECL_ENUMERATION_TRAITS(bmqp_ctrlmsg::StorageSyncResponseType);
+BDLAT_DECL_ENUMERATION_TRAITS(bmqp_ctrlmsg::StorageSyncResponseType)
 
 namespace bmqp_ctrlmsg {
 
@@ -7590,10 +8511,7 @@ class SubQueueIdInfo {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::SubQueueIdInfo);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::SubQueueIdInfo>
-: bsl::true_type {};
+    bmqp_ctrlmsg::SubQueueIdInfo)
 
 namespace bmqp_ctrlmsg {
 
@@ -7808,9 +8726,7 @@ class SyncPoint {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(bmqp_ctrlmsg::SyncPoint);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::SyncPoint> : bsl::true_type {};
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(bmqp_ctrlmsg::SyncPoint)
 
 namespace bmqp_ctrlmsg {
 
@@ -8196,10 +9112,7 @@ class ClientIdentity {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::ClientIdentity);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::ClientIdentity>
-: bsl::true_type {};
+    bmqp_ctrlmsg::ClientIdentity)
 
 namespace bmqp_ctrlmsg {
 
@@ -8395,10 +9308,7 @@ class DumpMessages {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(bmqp_ctrlmsg::DumpMessages);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::DumpMessages>
-: bsl::true_type {};
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(bmqp_ctrlmsg::DumpMessages)
 
 namespace bmqp_ctrlmsg {
 
@@ -8822,7 +9732,7 @@ class ElectorMessageChoice {
 // TRAITS
 
 BDLAT_DECL_CHOICE_WITH_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::ElectorMessageChoice);
+    bmqp_ctrlmsg::ElectorMessageChoice)
 
 namespace bmqp_ctrlmsg {
 
@@ -9043,10 +9953,7 @@ class Expression {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::Expression);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::Expression> : bsl::true_type {
-};
+    bmqp_ctrlmsg::Expression)
 
 namespace bmqp_ctrlmsg {
 
@@ -9220,10 +10127,7 @@ class FollowerLSNResponse {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::FollowerLSNResponse);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::FollowerLSNResponse>
-: bsl::true_type {};
+    bmqp_ctrlmsg::FollowerLSNResponse)
 
 namespace bmqp_ctrlmsg {
 
@@ -9396,10 +10300,7 @@ class LeaderAdvisoryAck {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::LeaderAdvisoryAck);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::LeaderAdvisoryAck>
-: bsl::true_type {};
+    bmqp_ctrlmsg::LeaderAdvisoryAck)
 
 namespace bmqp_ctrlmsg {
 
@@ -9589,10 +10490,7 @@ class LeaderAdvisoryCommit {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::LeaderAdvisoryCommit);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::LeaderAdvisoryCommit>
-: bsl::true_type {};
+    bmqp_ctrlmsg::LeaderAdvisoryCommit)
 
 namespace bmqp_ctrlmsg {
 
@@ -9765,10 +10663,7 @@ class LeaderSyncStateQueryResponse {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::LeaderSyncStateQueryResponse);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::LeaderSyncStateQueryResponse>
-: bsl::true_type {};
+    bmqp_ctrlmsg::LeaderSyncStateQueryResponse)
 
 namespace bmqp_ctrlmsg {
 
@@ -9940,10 +10835,7 @@ class NodeStatusAdvisory {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::NodeStatusAdvisory);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::NodeStatusAdvisory>
-: bsl::true_type {};
+    bmqp_ctrlmsg::NodeStatusAdvisory)
 
 namespace bmqp_ctrlmsg {
 
@@ -10172,10 +11064,7 @@ class PartitionPrimaryAdvisory {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::PartitionPrimaryAdvisory);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::PartitionPrimaryAdvisory>
-: bsl::true_type {};
+    bmqp_ctrlmsg::PartitionPrimaryAdvisory)
 
 namespace bmqp_ctrlmsg {
 
@@ -10397,10 +11286,7 @@ class PrimaryStateRequest {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::PrimaryStateRequest);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::PrimaryStateRequest>
-: bsl::true_type {};
+    bmqp_ctrlmsg::PrimaryStateRequest)
 
 namespace bmqp_ctrlmsg {
 
@@ -10621,10 +11507,7 @@ class PrimaryStateResponse {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::PrimaryStateResponse);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::PrimaryStateResponse>
-: bsl::true_type {};
+    bmqp_ctrlmsg::PrimaryStateResponse)
 
 namespace bmqp_ctrlmsg {
 
@@ -10829,10 +11712,7 @@ class PrimaryStatusAdvisory {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::PrimaryStatusAdvisory);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::PrimaryStatusAdvisory>
-: bsl::true_type {};
+    bmqp_ctrlmsg::PrimaryStatusAdvisory)
 
 namespace bmqp_ctrlmsg {
 
@@ -11127,10 +12007,7 @@ class QueueHandleParameters {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::QueueHandleParameters);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::QueueHandleParameters>
-: bsl::true_type {};
+    bmqp_ctrlmsg::QueueHandleParameters)
 
 namespace bmqp_ctrlmsg {
 
@@ -11375,9 +12252,7 @@ class QueueInfo {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::QueueInfo);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::QueueInfo> : bsl::true_type {};
+    bmqp_ctrlmsg::QueueInfo)
 
 namespace bmqp_ctrlmsg {
 
@@ -11653,10 +12528,7 @@ class QueueInfoUpdate {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::QueueInfoUpdate);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::QueueInfoUpdate>
-: bsl::true_type {};
+    bmqp_ctrlmsg::QueueInfoUpdate)
 
 namespace bmqp_ctrlmsg {
 
@@ -11940,10 +12812,368 @@ class QueueStreamParameters {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::QueueStreamParameters);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::QueueStreamParameters>
-: bsl::true_type {};
+    bmqp_ctrlmsg::QueueStreamParameters)
+
+namespace bmqp_ctrlmsg {
+
+// =======================
+// class RaftMessageChoice
+// =======================
+
+class RaftMessageChoice {
+    // INSTANCE DATA
+    union {
+        bsls::ObjectBuffer<RaftRequestVote>           d_requestVote;
+        bsls::ObjectBuffer<RaftRequestVoteResponse>   d_requestVoteResponse;
+        bsls::ObjectBuffer<RaftAppendEntriesResponse> d_appendEntriesResponse;
+        bsls::ObjectBuffer<RaftInstallSnapshot>       d_installSnapshot;
+        bsls::ObjectBuffer<RaftInstallSnapshotResponse>
+                                           d_installSnapshotResponse;
+        bsls::ObjectBuffer<RaftTimeoutNow> d_timeoutNow;
+    };
+
+    int d_selectionId;
+
+    // PRIVATE ACCESSORS
+    template <typename t_HASH_ALGORITHM>
+    void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
+
+    bool isEqualTo(const RaftMessageChoice& rhs) const;
+
+  public:
+    // TYPES
+
+    enum {
+        SELECTION_ID_UNDEFINED                 = -1,
+        SELECTION_ID_REQUEST_VOTE              = 0,
+        SELECTION_ID_REQUEST_VOTE_RESPONSE     = 1,
+        SELECTION_ID_APPEND_ENTRIES_RESPONSE   = 2,
+        SELECTION_ID_INSTALL_SNAPSHOT          = 3,
+        SELECTION_ID_INSTALL_SNAPSHOT_RESPONSE = 4,
+        SELECTION_ID_TIMEOUT_NOW               = 5
+    };
+
+    enum { NUM_SELECTIONS = 6 };
+
+    enum {
+        SELECTION_INDEX_REQUEST_VOTE              = 0,
+        SELECTION_INDEX_REQUEST_VOTE_RESPONSE     = 1,
+        SELECTION_INDEX_APPEND_ENTRIES_RESPONSE   = 2,
+        SELECTION_INDEX_INSTALL_SNAPSHOT          = 3,
+        SELECTION_INDEX_INSTALL_SNAPSHOT_RESPONSE = 4,
+        SELECTION_INDEX_TIMEOUT_NOW               = 5
+    };
+
+    // CONSTANTS
+    static const char CLASS_NAME[];
+
+    static const bdlat_SelectionInfo SELECTION_INFO_ARRAY[];
+
+    // CLASS METHODS
+    static const bdlat_SelectionInfo* lookupSelectionInfo(int id);
+    // Return selection information for the selection indicated by the
+    // specified 'id' if the selection exists, and 0 otherwise.
+
+    static const bdlat_SelectionInfo* lookupSelectionInfo(const char* name,
+                                                          int nameLength);
+    // Return selection information for the selection indicated by the
+    // specified 'name' of the specified 'nameLength' if the selection
+    // exists, and 0 otherwise.
+
+    // CREATORS
+    RaftMessageChoice();
+    // Create an object of type 'RaftMessageChoice' having the default
+    // value.
+
+    RaftMessageChoice(const RaftMessageChoice& original);
+    // Create an object of type 'RaftMessageChoice' having the value of the
+    // specified 'original' object.
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    RaftMessageChoice(RaftMessageChoice&& original) noexcept;
+    // Create an object of type 'RaftMessageChoice' having the value of the
+    // specified 'original' object.  After performing this action, the
+    // 'original' object will be left in a valid, but unspecified state.
+#endif
+
+    ~RaftMessageChoice();
+    // Destroy this object.
+
+    // MANIPULATORS
+    RaftMessageChoice& operator=(const RaftMessageChoice& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    RaftMessageChoice& operator=(RaftMessageChoice&& rhs);
+    // Assign to this object the value of the specified 'rhs' object.
+    // After performing this action, the 'rhs' object will be left in a
+    // valid, but unspecified state.
+#endif
+
+    void reset();
+    // Reset this object to the default value (i.e., its value upon default
+    // construction).
+
+    int makeSelection(int selectionId);
+    // Set the value of this object to be the default for the selection
+    // indicated by the specified 'selectionId'.  Return 0 on success, and
+    // non-zero value otherwise (i.e., the selection is not found).
+
+    int makeSelection(const char* name, int nameLength);
+    // Set the value of this object to be the default for the selection
+    // indicated by the specified 'name' of the specified 'nameLength'.
+    // Return 0 on success, and non-zero value otherwise (i.e., the
+    // selection is not found).
+
+    RaftRequestVote& makeRequestVote();
+    RaftRequestVote& makeRequestVote(const RaftRequestVote& value);
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    RaftRequestVote& makeRequestVote(RaftRequestVote&& value);
+#endif
+    // Set the value of this object to be a "RequestVote" value.
+    // Optionally specify the 'value' of the "RequestVote".  If 'value' is
+    // not specified, the default "RequestVote" value is used.
+
+    RaftRequestVoteResponse& makeRequestVoteResponse();
+    RaftRequestVoteResponse&
+    makeRequestVoteResponse(const RaftRequestVoteResponse& value);
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    RaftRequestVoteResponse&
+    makeRequestVoteResponse(RaftRequestVoteResponse&& value);
+#endif
+    // Set the value of this object to be a "RequestVoteResponse" value.
+    // Optionally specify the 'value' of the "RequestVoteResponse".  If
+    // 'value' is not specified, the default "RequestVoteResponse" value is
+    // used.
+
+    RaftAppendEntriesResponse& makeAppendEntriesResponse();
+    RaftAppendEntriesResponse&
+    makeAppendEntriesResponse(const RaftAppendEntriesResponse& value);
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    RaftAppendEntriesResponse&
+    makeAppendEntriesResponse(RaftAppendEntriesResponse&& value);
+#endif
+    // Set the value of this object to be a "AppendEntriesResponse" value.
+    // Optionally specify the 'value' of the "AppendEntriesResponse".  If
+    // 'value' is not specified, the default "AppendEntriesResponse" value
+    // is used.
+
+    RaftInstallSnapshot& makeInstallSnapshot();
+    RaftInstallSnapshot& makeInstallSnapshot(const RaftInstallSnapshot& value);
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    RaftInstallSnapshot& makeInstallSnapshot(RaftInstallSnapshot&& value);
+#endif
+    // Set the value of this object to be a "InstallSnapshot" value.
+    // Optionally specify the 'value' of the "InstallSnapshot".  If 'value'
+    // is not specified, the default "InstallSnapshot" value is used.
+
+    RaftInstallSnapshotResponse& makeInstallSnapshotResponse();
+    RaftInstallSnapshotResponse&
+    makeInstallSnapshotResponse(const RaftInstallSnapshotResponse& value);
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    RaftInstallSnapshotResponse&
+    makeInstallSnapshotResponse(RaftInstallSnapshotResponse&& value);
+#endif
+    // Set the value of this object to be a "InstallSnapshotResponse"
+    // value.  Optionally specify the 'value' of the
+    // "InstallSnapshotResponse".  If 'value' is not specified, the default
+    // "InstallSnapshotResponse" value is used.
+
+    RaftTimeoutNow& makeTimeoutNow();
+    RaftTimeoutNow& makeTimeoutNow(const RaftTimeoutNow& value);
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    RaftTimeoutNow& makeTimeoutNow(RaftTimeoutNow&& value);
+#endif
+    // Set the value of this object to be a "TimeoutNow" value.  Optionally
+    // specify the 'value' of the "TimeoutNow".  If 'value' is not
+    // specified, the default "TimeoutNow" value is used.
+
+    template <typename t_MANIPULATOR>
+    int manipulateSelection(t_MANIPULATOR& manipulator);
+    // Invoke the specified 'manipulator' on the address of the modifiable
+    // selection, supplying 'manipulator' with the corresponding selection
+    // information structure.  Return the value returned from the
+    // invocation of 'manipulator' if this object has a defined selection,
+    // and -1 otherwise.
+
+    RaftRequestVote& requestVote();
+    // Return a reference to the modifiable "RequestVote" selection of this
+    // object if "RequestVote" is the current selection.  The behavior is
+    // undefined unless "RequestVote" is the selection of this object.
+
+    RaftRequestVoteResponse& requestVoteResponse();
+    // Return a reference to the modifiable "RequestVoteResponse" selection
+    // of this object if "RequestVoteResponse" is the current selection.
+    // The behavior is undefined unless "RequestVoteResponse" is the
+    // selection of this object.
+
+    RaftAppendEntriesResponse& appendEntriesResponse();
+    // Return a reference to the modifiable "AppendEntriesResponse"
+    // selection of this object if "AppendEntriesResponse" is the current
+    // selection.  The behavior is undefined unless "AppendEntriesResponse"
+    // is the selection of this object.
+
+    RaftInstallSnapshot& installSnapshot();
+    // Return a reference to the modifiable "InstallSnapshot" selection of
+    // this object if "InstallSnapshot" is the current selection.  The
+    // behavior is undefined unless "InstallSnapshot" is the selection of
+    // this object.
+
+    RaftInstallSnapshotResponse& installSnapshotResponse();
+    // Return a reference to the modifiable "InstallSnapshotResponse"
+    // selection of this object if "InstallSnapshotResponse" is the current
+    // selection.  The behavior is undefined unless
+    // "InstallSnapshotResponse" is the selection of this object.
+
+    RaftTimeoutNow& timeoutNow();
+    // Return a reference to the modifiable "TimeoutNow" selection of this
+    // object if "TimeoutNow" is the current selection.  The behavior is
+    // undefined unless "TimeoutNow" is the selection of this object.
+
+    // ACCESSORS
+    bsl::ostream&
+    print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
+    // Format this object to the specified output 'stream' at the
+    // optionally specified indentation 'level' and return a reference to
+    // the modifiable 'stream'.  If 'level' is specified, optionally
+    // specify 'spacesPerLevel', the number of spaces per indentation level
+    // for this and all of its nested objects.  Each line is indented by
+    // the absolute value of 'level * spacesPerLevel'.  If 'level' is
+    // negative, suppress indentation of the first line.  If
+    // 'spacesPerLevel' is negative, suppress line breaks and format the
+    // entire output on one line.  If 'stream' is initially invalid, this
+    // operation has no effect.  Note that a trailing newline is provided
+    // in multiline mode only.
+
+    int selectionId() const;
+    // Return the id of the current selection if the selection is defined,
+    // and -1 otherwise.
+
+    template <typename t_ACCESSOR>
+    int accessSelection(t_ACCESSOR& accessor) const;
+    // Invoke the specified 'accessor' on the non-modifiable selection,
+    // supplying 'accessor' with the corresponding selection information
+    // structure.  Return the value returned from the invocation of
+    // 'accessor' if this object has a defined selection, and -1 otherwise.
+
+    const RaftRequestVote& requestVote() const;
+    // Return a reference to the non-modifiable "RequestVote" selection of
+    // this object if "RequestVote" is the current selection.  The behavior
+    // is undefined unless "RequestVote" is the selection of this object.
+
+    const RaftRequestVoteResponse& requestVoteResponse() const;
+    // Return a reference to the non-modifiable "RequestVoteResponse"
+    // selection of this object if "RequestVoteResponse" is the current
+    // selection.  The behavior is undefined unless "RequestVoteResponse"
+    // is the selection of this object.
+
+    const RaftAppendEntriesResponse& appendEntriesResponse() const;
+    // Return a reference to the non-modifiable "AppendEntriesResponse"
+    // selection of this object if "AppendEntriesResponse" is the current
+    // selection.  The behavior is undefined unless "AppendEntriesResponse"
+    // is the selection of this object.
+
+    const RaftInstallSnapshot& installSnapshot() const;
+    // Return a reference to the non-modifiable "InstallSnapshot" selection
+    // of this object if "InstallSnapshot" is the current selection.  The
+    // behavior is undefined unless "InstallSnapshot" is the selection of
+    // this object.
+
+    const RaftInstallSnapshotResponse& installSnapshotResponse() const;
+    // Return a reference to the non-modifiable "InstallSnapshotResponse"
+    // selection of this object if "InstallSnapshotResponse" is the current
+    // selection.  The behavior is undefined unless
+    // "InstallSnapshotResponse" is the selection of this object.
+
+    const RaftTimeoutNow& timeoutNow() const;
+    // Return a reference to the non-modifiable "TimeoutNow" selection of
+    // this object if "TimeoutNow" is the current selection.  The behavior
+    // is undefined unless "TimeoutNow" is the selection of this object.
+
+    bool isRequestVoteValue() const;
+    // Return 'true' if the value of this object is a "RequestVote" value,
+    // and return 'false' otherwise.
+
+    bool isRequestVoteResponseValue() const;
+    // Return 'true' if the value of this object is a "RequestVoteResponse"
+    // value, and return 'false' otherwise.
+
+    bool isAppendEntriesResponseValue() const;
+    // Return 'true' if the value of this object is a
+    // "AppendEntriesResponse" value, and return 'false' otherwise.
+
+    bool isInstallSnapshotValue() const;
+    // Return 'true' if the value of this object is a "InstallSnapshot"
+    // value, and return 'false' otherwise.
+
+    bool isInstallSnapshotResponseValue() const;
+    // Return 'true' if the value of this object is a
+    // "InstallSnapshotResponse" value, and return 'false' otherwise.
+
+    bool isTimeoutNowValue() const;
+    // Return 'true' if the value of this object is a "TimeoutNow" value,
+    // and return 'false' otherwise.
+
+    bool isUndefinedValue() const;
+    // Return 'true' if the value of this object is undefined, and 'false'
+    // otherwise.
+
+    const char* selectionName() const;
+    // Return the symbolic name of the current selection of this object.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const RaftMessageChoice& lhs,
+                           const RaftMessageChoice& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' objects have the same
+    // value, and 'false' otherwise.  Two 'RaftMessageChoice' objects have
+    // the same value if either the selections in both objects have the
+    // same ids and the same values, or both selections are undefined.
+    {
+        return lhs.isEqualTo(rhs);
+    }
+
+    friend bool operator!=(const RaftMessageChoice& lhs,
+                           const RaftMessageChoice& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' objects do not have
+    // the same values, as determined by 'operator==', and 'false'
+    // otherwise.
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream&            stream,
+                                    const RaftMessageChoice& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM&        hashAlg,
+                           const RaftMessageChoice& object)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for
+    // 'RaftMessageChoice'.
+    {
+        return object.hashAppendImpl(hashAlg);
+    }
+};
+
+}  // close package namespace
+
+// TRAITS
+
+BDLAT_DECL_CHOICE_WITH_BITWISEMOVEABLE_TRAITS(bmqp_ctrlmsg::RaftMessageChoice)
 
 namespace bmqp_ctrlmsg {
 
@@ -12117,10 +13347,7 @@ class RegistrationRequest {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::RegistrationRequest);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::RegistrationRequest>
-: bsl::true_type {};
+    bmqp_ctrlmsg::RegistrationRequest)
 
 namespace bmqp_ctrlmsg {
 
@@ -12339,10 +13566,7 @@ class ReplicaDataRequest {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::ReplicaDataRequest);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::ReplicaDataRequest>
-: bsl::true_type {};
+    bmqp_ctrlmsg::ReplicaDataRequest)
 
 namespace bmqp_ctrlmsg {
 
@@ -12563,10 +13787,7 @@ class ReplicaDataResponse {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::ReplicaDataResponse);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::ReplicaDataResponse>
-: bsl::true_type {};
+    bmqp_ctrlmsg::ReplicaDataResponse)
 
 namespace bmqp_ctrlmsg {
 
@@ -12788,10 +14009,7 @@ class ReplicaStateRequest {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::ReplicaStateRequest);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::ReplicaStateRequest>
-: bsl::true_type {};
+    bmqp_ctrlmsg::ReplicaStateRequest)
 
 namespace bmqp_ctrlmsg {
 
@@ -13012,10 +14230,7 @@ class ReplicaStateResponse {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::ReplicaStateResponse);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::ReplicaStateResponse>
-: bsl::true_type {};
+    bmqp_ctrlmsg::ReplicaStateResponse)
 
 namespace bmqp_ctrlmsg {
 
@@ -13222,7 +14437,7 @@ class StateNotificationChoice {
 // TRAITS
 
 BDLAT_DECL_CHOICE_WITH_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::StateNotificationChoice);
+    bmqp_ctrlmsg::StateNotificationChoice)
 
 namespace bmqp_ctrlmsg {
 
@@ -13459,10 +14674,7 @@ class Status {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::Status);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::Status> : bsl::true_type {};
+BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(bmqp_ctrlmsg::Status)
 
 namespace bmqp_ctrlmsg {
 
@@ -13680,10 +14892,7 @@ class StorageSyncResponse {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::StorageSyncResponse);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::StorageSyncResponse>
-: bsl::true_type {};
+    bmqp_ctrlmsg::StorageSyncResponse)
 
 namespace bmqp_ctrlmsg {
 
@@ -13868,10 +15077,7 @@ class SyncPointOffsetPair {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::SyncPointOffsetPair);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::SyncPointOffsetPair>
-: bsl::true_type {};
+    bmqp_ctrlmsg::SyncPointOffsetPair)
 
 namespace bmqp_ctrlmsg {
 
@@ -14101,10 +15307,7 @@ class AuthenticationResponse {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::AuthenticationResponse);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::AuthenticationResponse>
-: bsl::true_type {};
+    bmqp_ctrlmsg::AuthenticationResponse)
 
 namespace bmqp_ctrlmsg {
 
@@ -14399,10 +15602,7 @@ class BrokerResponse {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::BrokerResponse);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::BrokerResponse>
-: bsl::true_type {};
+    bmqp_ctrlmsg::BrokerResponse)
 
 namespace bmqp_ctrlmsg {
 
@@ -14629,10 +15829,7 @@ class CloseQueue {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::CloseQueue);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::CloseQueue> : bsl::true_type {
-};
+    bmqp_ctrlmsg::CloseQueue)
 
 namespace bmqp_ctrlmsg {
 
@@ -14857,10 +16054,7 @@ class ConfigureQueueStream {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::ConfigureQueueStream);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::ConfigureQueueStream>
-: bsl::true_type {};
+    bmqp_ctrlmsg::ConfigureQueueStream)
 
 namespace bmqp_ctrlmsg {
 
@@ -15042,10 +16236,7 @@ class ElectorMessage {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(bmqp_ctrlmsg::ElectorMessage);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::ElectorMessage>
-: bsl::true_type {};
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(bmqp_ctrlmsg::ElectorMessage)
 
 namespace bmqp_ctrlmsg {
 
@@ -15289,10 +16480,7 @@ class LeaderAdvisory {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::LeaderAdvisory);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::LeaderAdvisory>
-: bsl::true_type {};
+    bmqp_ctrlmsg::LeaderAdvisory)
 
 namespace bmqp_ctrlmsg {
 
@@ -15499,9 +16687,7 @@ class OpenQueue {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::OpenQueue);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::OpenQueue> : bsl::true_type {};
+    bmqp_ctrlmsg::OpenQueue)
 
 namespace bmqp_ctrlmsg {
 
@@ -15872,7 +17058,7 @@ class PartitionMessageChoice {
 // TRAITS
 
 BDLAT_DECL_CHOICE_WITH_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::PartitionMessageChoice);
+    bmqp_ctrlmsg::PartitionMessageChoice)
 
 namespace bmqp_ctrlmsg {
 
@@ -16108,10 +17294,7 @@ class PartitionSyncDataQuery {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::PartitionSyncDataQuery);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::PartitionSyncDataQuery>
-: bsl::true_type {};
+    bmqp_ctrlmsg::PartitionSyncDataQuery)
 
 namespace bmqp_ctrlmsg {
 
@@ -16344,10 +17527,7 @@ class PartitionSyncDataQueryStatus {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::PartitionSyncDataQueryStatus);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::PartitionSyncDataQueryStatus>
-: bsl::true_type {};
+    bmqp_ctrlmsg::PartitionSyncDataQueryStatus)
 
 namespace bmqp_ctrlmsg {
 
@@ -16562,10 +17742,7 @@ class PartitionSyncStateQueryResponse {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::PartitionSyncStateQueryResponse);
-template <>
-struct bdlat_UsesDefaultValueFlag<
-    bmqp_ctrlmsg::PartitionSyncStateQueryResponse> : bsl::true_type {};
+    bmqp_ctrlmsg::PartitionSyncStateQueryResponse)
 
 namespace bmqp_ctrlmsg {
 
@@ -16790,10 +17967,7 @@ class QueueAssignmentAdvisory {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::QueueAssignmentAdvisory);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::QueueAssignmentAdvisory>
-: bsl::true_type {};
+    bmqp_ctrlmsg::QueueAssignmentAdvisory)
 
 namespace bmqp_ctrlmsg {
 
@@ -17060,10 +18234,7 @@ class QueueUnAssignmentAdvisory {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::QueueUnAssignmentAdvisory);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::QueueUnAssignmentAdvisory>
-: bsl::true_type {};
+    bmqp_ctrlmsg::QueueUnAssignmentAdvisory)
 
 namespace bmqp_ctrlmsg {
 
@@ -17290,10 +18461,192 @@ class QueueUpdateAdvisory {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::QueueUpdateAdvisory);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::QueueUpdateAdvisory>
-: bsl::true_type {};
+    bmqp_ctrlmsg::QueueUpdateAdvisory)
+
+namespace bmqp_ctrlmsg {
+
+// =================
+// class RaftMessage
+// =================
+
+class RaftMessage {
+    // Top-level type for Raft consensus messages, carried as
+    // ControlMessage.raftMessage (bdem:id=18).
+    // AppendEntries (data path) is NOT represented here — it travels as a
+    // binary event (e_RAFT_CLUSTER or e_RAFT_PARTITION) with a RaftHeader
+    // followed by raw entry blobs (CSL records or journal records + payloads),
+    // for zero-copy efficiency.
+    // InstallSnapshot data also travels as raw binary blobs appended after the
+    // BER-encoded RaftMessage.  Only the metadata (lastIncludedIndex, offset,
+    // done) is in the XSD.
+    // term....: Sender's current term
+
+    // INSTANCE DATA
+    bsls::Types::Uint64 d_term;
+    RaftMessageChoice   d_choice;
+
+  public:
+    // TYPES
+    enum { ATTRIBUTE_ID_TERM = 0, ATTRIBUTE_ID_CHOICE = 1 };
+
+    enum { NUM_ATTRIBUTES = 2 };
+
+    enum { ATTRIBUTE_INDEX_TERM = 0, ATTRIBUTE_INDEX_CHOICE = 1 };
+
+    // CONSTANTS
+    static const char CLASS_NAME[];
+
+    static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
+
+  public:
+    // CLASS METHODS
+    static const bdlat_AttributeInfo* lookupAttributeInfo(int id);
+    // Return attribute information for the attribute indicated by the
+    // specified 'id' if the attribute exists, and 0 otherwise.
+
+    static const bdlat_AttributeInfo* lookupAttributeInfo(const char* name,
+                                                          int nameLength);
+    // Return attribute information for the attribute indicated by the
+    // specified 'name' of the specified 'nameLength' if the attribute
+    // exists, and 0 otherwise.
+
+    // CREATORS
+    RaftMessage();
+    // Create an object of type 'RaftMessage' having the default value.
+
+    // MANIPULATORS
+    void reset();
+    // Reset this object to the default value (i.e., its value upon
+    // default construction).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttributes(t_MANIPULATOR& manipulator);
+    // Invoke the specified 'manipulator' sequentially on the address of
+    // each (modifiable) attribute of this object, supplying 'manipulator'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'manipulator' (i.e., the invocation that
+    // terminated the sequence).
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator, int id);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'id',
+    // supplying 'manipulator' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'manipulator' if 'id' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    template <typename t_MANIPULATOR>
+    int manipulateAttribute(t_MANIPULATOR& manipulator,
+                            const char*    name,
+                            int            nameLength);
+    // Invoke the specified 'manipulator' on the address of
+    // the (modifiable) attribute indicated by the specified 'name' of the
+    // specified 'nameLength', supplying 'manipulator' with the
+    // corresponding attribute information structure.  Return the value
+    // returned from the invocation of 'manipulator' if 'name' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    bsls::Types::Uint64& term();
+    // Return a reference to the modifiable "Term" attribute of this
+    // object.
+
+    RaftMessageChoice& choice();
+    // Return a reference to the modifiable "Choice" attribute of this
+    // object.
+
+    // ACCESSORS
+    bsl::ostream&
+    print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
+    // Format this object to the specified output 'stream' at the
+    // optionally specified indentation 'level' and return a reference to
+    // the modifiable 'stream'.  If 'level' is specified, optionally
+    // specify 'spacesPerLevel', the number of spaces per indentation level
+    // for this and all of its nested objects.  Each line is indented by
+    // the absolute value of 'level * spacesPerLevel'.  If 'level' is
+    // negative, suppress indentation of the first line.  If
+    // 'spacesPerLevel' is negative, suppress line breaks and format the
+    // entire output on one line.  If 'stream' is initially invalid, this
+    // operation has no effect.  Note that a trailing newline is provided
+    // in multiline mode only.
+
+    template <typename t_ACCESSOR>
+    int accessAttributes(t_ACCESSOR& accessor) const;
+    // Invoke the specified 'accessor' sequentially on each
+    // (non-modifiable) attribute of this object, supplying 'accessor'
+    // with the corresponding attribute information structure until such
+    // invocation returns a non-zero value.  Return the value from the
+    // last invocation of 'accessor' (i.e., the invocation that terminated
+    // the sequence).
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor, int id) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'id', supplying 'accessor'
+    // with the corresponding attribute information structure.  Return the
+    // value returned from the invocation of 'accessor' if 'id' identifies
+    // an attribute of this class, and -1 otherwise.
+
+    template <typename t_ACCESSOR>
+    int accessAttribute(t_ACCESSOR& accessor,
+                        const char* name,
+                        int         nameLength) const;
+    // Invoke the specified 'accessor' on the (non-modifiable) attribute
+    // of this object indicated by the specified 'name' of the specified
+    // 'nameLength', supplying 'accessor' with the corresponding attribute
+    // information structure.  Return the value returned from the
+    // invocation of 'accessor' if 'name' identifies an attribute of this
+    // class, and -1 otherwise.
+
+    bsls::Types::Uint64 term() const;
+    // Return the value of the "Term" attribute of this object.
+
+    const RaftMessageChoice& choice() const;
+    // Return a reference offering non-modifiable access to the "Choice"
+    // attribute of this object.
+
+    // HIDDEN FRIENDS
+    friend bool operator==(const RaftMessage& lhs, const RaftMessage& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' attribute objects
+    // have the same value, and 'false' otherwise.  Two attribute objects
+    // have the same value if each respective attribute has the same value.
+    {
+        return lhs.term() == rhs.term() && lhs.choice() == rhs.choice();
+    }
+
+    friend bool operator!=(const RaftMessage& lhs, const RaftMessage& rhs)
+    // Returns '!(lhs == rhs)'
+    {
+        return !(lhs == rhs);
+    }
+
+    friend bsl::ostream& operator<<(bsl::ostream&      stream,
+                                    const RaftMessage& rhs)
+    // Format the specified 'rhs' to the specified output 'stream' and
+    // return a reference to the modifiable 'stream'.
+    {
+        return rhs.print(stream, 0, -1);
+    }
+
+    template <typename t_HASH_ALGORITHM>
+    friend void hashAppend(t_HASH_ALGORITHM&  hashAlg,
+                           const RaftMessage& object)
+    // Pass the specified 'object' to the specified 'hashAlg'.  This
+    // function integrates with the 'bslh' modular hashing system and
+    // effectively provides a 'bsl::hash' specialization for 'RaftMessage'.
+    {
+        using bslh::hashAppend;
+        hashAppend(hashAlg, object.term());
+        hashAppend(hashAlg, object.choice());
+    }
+};
+
+}  // close package namespace
+
+// TRAITS
+
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(bmqp_ctrlmsg::RaftMessage)
 
 namespace bmqp_ctrlmsg {
 
@@ -17468,10 +18821,7 @@ class StateNotification {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::StateNotification);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::StateNotification>
-: bsl::true_type {};
+    bmqp_ctrlmsg::StateNotification)
 
 namespace bmqp_ctrlmsg {
 
@@ -17680,10 +19030,7 @@ class StorageSyncRequest {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::StorageSyncRequest);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::StorageSyncRequest>
-: bsl::true_type {};
+    bmqp_ctrlmsg::StorageSyncRequest)
 
 namespace bmqp_ctrlmsg {
 
@@ -17925,10 +19272,7 @@ class Subscription {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::Subscription);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::Subscription>
-: bsl::true_type {};
+    bmqp_ctrlmsg::Subscription)
 
 namespace bmqp_ctrlmsg {
 
@@ -18197,7 +19541,7 @@ class AuthenticationMessage {
 // TRAITS
 
 BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::AuthenticationMessage);
+    bmqp_ctrlmsg::AuthenticationMessage)
 
 namespace bmqp_ctrlmsg {
 
@@ -18415,10 +19759,7 @@ class ConfigureQueueStreamResponse {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::ConfigureQueueStreamResponse);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::ConfigureQueueStreamResponse>
-: bsl::true_type {};
+    bmqp_ctrlmsg::ConfigureQueueStreamResponse)
 
 namespace bmqp_ctrlmsg {
 
@@ -18639,10 +19980,7 @@ class FollowerClusterStateResponse {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::FollowerClusterStateResponse);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::FollowerClusterStateResponse>
-: bsl::true_type {};
+    bmqp_ctrlmsg::FollowerClusterStateResponse)
 
 namespace bmqp_ctrlmsg {
 
@@ -18858,10 +20196,7 @@ class LeaderSyncDataQueryResponse {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::LeaderSyncDataQueryResponse);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::LeaderSyncDataQueryResponse>
-: bsl::true_type {};
+    bmqp_ctrlmsg::LeaderSyncDataQueryResponse)
 
 namespace bmqp_ctrlmsg {
 
@@ -19152,7 +20487,7 @@ class NegotiationMessage {
 // TRAITS
 
 BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::NegotiationMessage);
+    bmqp_ctrlmsg::NegotiationMessage)
 
 namespace bmqp_ctrlmsg {
 
@@ -19403,10 +20738,7 @@ class OpenQueueResponse {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::OpenQueueResponse);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::OpenQueueResponse>
-: bsl::true_type {};
+    bmqp_ctrlmsg::OpenQueueResponse)
 
 namespace bmqp_ctrlmsg {
 
@@ -19581,11 +20913,7 @@ class PartitionMessage {
 
 // TRAITS
 
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::PartitionMessage);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::PartitionMessage>
-: bsl::true_type {};
+BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(bmqp_ctrlmsg::PartitionMessage)
 
 namespace bmqp_ctrlmsg {
 
@@ -19815,10 +21143,7 @@ class StreamParameters {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::StreamParameters);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::StreamParameters>
-: bsl::true_type {};
+    bmqp_ctrlmsg::StreamParameters)
 
 namespace bmqp_ctrlmsg {
 
@@ -20214,7 +21539,7 @@ class ClusterStateFSMMessageChoice {
 // TRAITS
 
 BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::ClusterStateFSMMessageChoice);
+    bmqp_ctrlmsg::ClusterStateFSMMessageChoice)
 
 namespace bmqp_ctrlmsg {
 
@@ -20439,10 +21764,7 @@ class ConfigureStream {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::ConfigureStream);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::ConfigureStream>
-: bsl::true_type {};
+    bmqp_ctrlmsg::ConfigureStream)
 
 namespace bmqp_ctrlmsg {
 
@@ -20659,10 +21981,7 @@ class ClusterStateFSMMessage {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::ClusterStateFSMMessage);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::ClusterStateFSMMessage>
-: bsl::true_type {};
+    bmqp_ctrlmsg::ClusterStateFSMMessage)
 
 namespace bmqp_ctrlmsg {
 
@@ -20876,10 +22195,7 @@ class ConfigureStreamResponse {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::ConfigureStreamResponse);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::ConfigureStreamResponse>
-: bsl::true_type {};
+    bmqp_ctrlmsg::ConfigureStreamResponse)
 
 namespace bmqp_ctrlmsg {
 
@@ -22029,7 +23345,7 @@ class ClusterMessageChoice {
 // TRAITS
 
 BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::ClusterMessageChoice);
+    bmqp_ctrlmsg::ClusterMessageChoice)
 
 namespace bmqp_ctrlmsg {
 
@@ -22244,10 +23560,7 @@ class ClusterMessage {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::ClusterMessage);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::ClusterMessage>
-: bsl::true_type {};
+    bmqp_ctrlmsg::ClusterMessage)
 
 namespace bmqp_ctrlmsg {
 
@@ -22273,6 +23586,7 @@ class ControlMessageChoice {
                                             d_configureQueueStreamResponse;
         bsls::ObjectBuffer<ConfigureStream> d_configureStream;
         bsls::ObjectBuffer<ConfigureStreamResponse> d_configureStreamResponse;
+        bsls::ObjectBuffer<RaftMessage>             d_raftMessage;
     };
 
     int               d_selectionId;
@@ -22302,10 +23616,11 @@ class ControlMessageChoice {
         SELECTION_ID_CONFIGURE_QUEUE_STREAM          = 14,
         SELECTION_ID_CONFIGURE_QUEUE_STREAM_RESPONSE = 15,
         SELECTION_ID_CONFIGURE_STREAM                = 16,
-        SELECTION_ID_CONFIGURE_STREAM_RESPONSE       = 17
+        SELECTION_ID_CONFIGURE_STREAM_RESPONSE       = 17,
+        SELECTION_ID_RAFT_MESSAGE                    = 18
     };
 
-    enum { NUM_SELECTIONS = 14 };
+    enum { NUM_SELECTIONS = 15 };
 
     enum {
         SELECTION_INDEX_STATUS                          = 0,
@@ -22321,7 +23636,8 @@ class ControlMessageChoice {
         SELECTION_INDEX_CONFIGURE_QUEUE_STREAM          = 10,
         SELECTION_INDEX_CONFIGURE_QUEUE_STREAM_RESPONSE = 11,
         SELECTION_INDEX_CONFIGURE_STREAM                = 12,
-        SELECTION_INDEX_CONFIGURE_STREAM_RESPONSE       = 13
+        SELECTION_INDEX_CONFIGURE_STREAM_RESPONSE       = 13,
+        SELECTION_INDEX_RAFT_MESSAGE                    = 14
     };
 
     // CONSTANTS
@@ -22558,6 +23874,16 @@ class ControlMessageChoice {
     // "ConfigureStreamResponse".  If 'value' is not specified, the default
     // "ConfigureStreamResponse" value is used.
 
+    RaftMessage& makeRaftMessage();
+    RaftMessage& makeRaftMessage(const RaftMessage& value);
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+    RaftMessage& makeRaftMessage(RaftMessage&& value);
+#endif
+    // Set the value of this object to be a "RaftMessage" value.
+    // Optionally specify the 'value' of the "RaftMessage".  If 'value' is
+    // not specified, the default "RaftMessage" value is used.
+
     template <typename t_MANIPULATOR>
     int manipulateSelection(t_MANIPULATOR& manipulator);
     // Invoke the specified 'manipulator' on the address of the modifiable
@@ -22645,6 +23971,11 @@ class ControlMessageChoice {
     // selection of this object if "ConfigureStreamResponse" is the current
     // selection.  The behavior is undefined unless
     // "ConfigureStreamResponse" is the selection of this object.
+
+    RaftMessage& raftMessage();
+    // Return a reference to the modifiable "RaftMessage" selection of this
+    // object if "RaftMessage" is the current selection.  The behavior is
+    // undefined unless "RaftMessage" is the selection of this object.
 
     // ACCESSORS
     bsl::ostream&
@@ -22753,6 +24084,11 @@ class ControlMessageChoice {
     // selection.  The behavior is undefined unless
     // "ConfigureStreamResponse" is the selection of this object.
 
+    const RaftMessage& raftMessage() const;
+    // Return a reference to the non-modifiable "RaftMessage" selection of
+    // this object if "RaftMessage" is the current selection.  The behavior
+    // is undefined unless "RaftMessage" is the selection of this object.
+
     bool isStatusValue() const;
     // Return 'true' if the value of this object is a "Status" value, and
     // return 'false' otherwise.
@@ -22809,6 +24145,10 @@ class ControlMessageChoice {
     // Return 'true' if the value of this object is a
     // "ConfigureStreamResponse" value, and return 'false' otherwise.
 
+    bool isRaftMessageValue() const;
+    // Return 'true' if the value of this object is a "RaftMessage" value,
+    // and return 'false' otherwise.
+
     bool isUndefinedValue() const;
     // Return 'true' if the value of this object is undefined, and 'false'
     // otherwise.
@@ -22861,7 +24201,7 @@ class ControlMessageChoice {
 // TRAITS
 
 BDLAT_DECL_CHOICE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::ControlMessageChoice);
+    bmqp_ctrlmsg::ControlMessageChoice)
 
 namespace bmqp_ctrlmsg {
 
@@ -23088,10 +24428,7 @@ class ControlMessage {
 // TRAITS
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::ControlMessage);
-template <>
-struct bdlat_UsesDefaultValueFlag<bmqp_ctrlmsg::ControlMessage>
-: bsl::true_type {};
+    bmqp_ctrlmsg::ControlMessage)
 
 // ============================================================================
 //                          INLINE DEFINITIONS
@@ -26266,6 +27603,825 @@ inline int QueueUnassignmentRequest::partitionId() const
 inline const bsl::vector<char>& QueueUnassignmentRequest::queueKey() const
 {
     return d_queueKey;
+}
+
+// -------------------------------
+// class RaftAppendEntriesResponse
+// -------------------------------
+
+// CLASS METHODS
+// MANIPULATORS
+template <typename t_MANIPULATOR>
+int RaftAppendEntriesResponse::manipulateAttributes(t_MANIPULATOR& manipulator)
+{
+    int ret;
+
+    ret = manipulator(&d_success,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SUCCESS]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_matchIndex,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MATCH_INDEX]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
+template <typename t_MANIPULATOR>
+int RaftAppendEntriesResponse::manipulateAttribute(t_MANIPULATOR& manipulator,
+                                                   int            id)
+{
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_SUCCESS: {
+        return manipulator(&d_success,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SUCCESS]);
+    }
+    case ATTRIBUTE_ID_MATCH_INDEX: {
+        return manipulator(&d_matchIndex,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MATCH_INDEX]);
+    }
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_MANIPULATOR>
+int RaftAppendEntriesResponse::manipulateAttribute(t_MANIPULATOR& manipulator,
+                                                   const char*    name,
+                                                   int            nameLength)
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return manipulateAttribute(manipulator, attributeInfo->d_id);
+}
+
+inline bool& RaftAppendEntriesResponse::success()
+{
+    return d_success;
+}
+
+inline bsls::Types::Uint64& RaftAppendEntriesResponse::matchIndex()
+{
+    return d_matchIndex;
+}
+
+// ACCESSORS
+template <typename t_ACCESSOR>
+int RaftAppendEntriesResponse::accessAttributes(t_ACCESSOR& accessor) const
+{
+    int ret;
+
+    ret = accessor(d_success, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SUCCESS]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_matchIndex,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MATCH_INDEX]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
+template <typename t_ACCESSOR>
+int RaftAppendEntriesResponse::accessAttribute(t_ACCESSOR& accessor,
+                                               int         id) const
+{
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_SUCCESS: {
+        return accessor(d_success,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SUCCESS]);
+    }
+    case ATTRIBUTE_ID_MATCH_INDEX: {
+        return accessor(d_matchIndex,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MATCH_INDEX]);
+    }
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_ACCESSOR>
+int RaftAppendEntriesResponse::accessAttribute(t_ACCESSOR& accessor,
+                                               const char* name,
+                                               int         nameLength) const
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return accessAttribute(accessor, attributeInfo->d_id);
+}
+
+inline bool RaftAppendEntriesResponse::success() const
+{
+    return d_success;
+}
+
+inline bsls::Types::Uint64 RaftAppendEntriesResponse::matchIndex() const
+{
+    return d_matchIndex;
+}
+
+// -------------------------
+// class RaftInstallSnapshot
+// -------------------------
+
+// PRIVATE ACCESSORS
+template <typename t_HASH_ALGORITHM>
+void RaftInstallSnapshot::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
+{
+    using bslh::hashAppend;
+    hashAppend(hashAlgorithm, this->lastIncludedIndex());
+    hashAppend(hashAlgorithm, this->lastIncludedTerm());
+    hashAppend(hashAlgorithm, this->offset());
+    hashAppend(hashAlgorithm, this->done());
+}
+
+inline bool
+RaftInstallSnapshot::isEqualTo(const RaftInstallSnapshot& rhs) const
+{
+    return this->lastIncludedIndex() == rhs.lastIncludedIndex() &&
+           this->lastIncludedTerm() == rhs.lastIncludedTerm() &&
+           this->offset() == rhs.offset() && this->done() == rhs.done();
+}
+
+// CLASS METHODS
+// MANIPULATORS
+template <typename t_MANIPULATOR>
+int RaftInstallSnapshot::manipulateAttributes(t_MANIPULATOR& manipulator)
+{
+    int ret;
+
+    ret = manipulator(
+        &d_lastIncludedIndex,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LAST_INCLUDED_INDEX]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(
+        &d_lastIncludedTerm,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LAST_INCLUDED_TERM]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_offset, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_OFFSET]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_done, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DONE]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
+template <typename t_MANIPULATOR>
+int RaftInstallSnapshot::manipulateAttribute(t_MANIPULATOR& manipulator,
+                                             int            id)
+{
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_LAST_INCLUDED_INDEX: {
+        return manipulator(
+            &d_lastIncludedIndex,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LAST_INCLUDED_INDEX]);
+    }
+    case ATTRIBUTE_ID_LAST_INCLUDED_TERM: {
+        return manipulator(
+            &d_lastIncludedTerm,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LAST_INCLUDED_TERM]);
+    }
+    case ATTRIBUTE_ID_OFFSET: {
+        return manipulator(&d_offset,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_OFFSET]);
+    }
+    case ATTRIBUTE_ID_DONE: {
+        return manipulator(&d_done,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DONE]);
+    }
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_MANIPULATOR>
+int RaftInstallSnapshot::manipulateAttribute(t_MANIPULATOR& manipulator,
+                                             const char*    name,
+                                             int            nameLength)
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return manipulateAttribute(manipulator, attributeInfo->d_id);
+}
+
+inline bsls::Types::Uint64& RaftInstallSnapshot::lastIncludedIndex()
+{
+    return d_lastIncludedIndex;
+}
+
+inline bsls::Types::Uint64& RaftInstallSnapshot::lastIncludedTerm()
+{
+    return d_lastIncludedTerm;
+}
+
+inline bsls::Types::Uint64& RaftInstallSnapshot::offset()
+{
+    return d_offset;
+}
+
+inline bool& RaftInstallSnapshot::done()
+{
+    return d_done;
+}
+
+// ACCESSORS
+template <typename t_ACCESSOR>
+int RaftInstallSnapshot::accessAttributes(t_ACCESSOR& accessor) const
+{
+    int ret;
+
+    ret = accessor(d_lastIncludedIndex,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LAST_INCLUDED_INDEX]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_lastIncludedTerm,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LAST_INCLUDED_TERM]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_offset, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_OFFSET]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_done, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DONE]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
+template <typename t_ACCESSOR>
+int RaftInstallSnapshot::accessAttribute(t_ACCESSOR& accessor, int id) const
+{
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_LAST_INCLUDED_INDEX: {
+        return accessor(
+            d_lastIncludedIndex,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LAST_INCLUDED_INDEX]);
+    }
+    case ATTRIBUTE_ID_LAST_INCLUDED_TERM: {
+        return accessor(
+            d_lastIncludedTerm,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LAST_INCLUDED_TERM]);
+    }
+    case ATTRIBUTE_ID_OFFSET: {
+        return accessor(d_offset,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_OFFSET]);
+    }
+    case ATTRIBUTE_ID_DONE: {
+        return accessor(d_done, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DONE]);
+    }
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_ACCESSOR>
+int RaftInstallSnapshot::accessAttribute(t_ACCESSOR& accessor,
+                                         const char* name,
+                                         int         nameLength) const
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return accessAttribute(accessor, attributeInfo->d_id);
+}
+
+inline bsls::Types::Uint64 RaftInstallSnapshot::lastIncludedIndex() const
+{
+    return d_lastIncludedIndex;
+}
+
+inline bsls::Types::Uint64 RaftInstallSnapshot::lastIncludedTerm() const
+{
+    return d_lastIncludedTerm;
+}
+
+inline bsls::Types::Uint64 RaftInstallSnapshot::offset() const
+{
+    return d_offset;
+}
+
+inline bool RaftInstallSnapshot::done() const
+{
+    return d_done;
+}
+
+// ---------------------------------
+// class RaftInstallSnapshotResponse
+// ---------------------------------
+
+// CLASS METHODS
+// MANIPULATORS
+template <typename t_MANIPULATOR>
+int RaftInstallSnapshotResponse::manipulateAttributes(
+    t_MANIPULATOR& manipulator)
+{
+    (void)manipulator;
+    return 0;
+}
+
+template <typename t_MANIPULATOR>
+int RaftInstallSnapshotResponse::manipulateAttribute(
+    t_MANIPULATOR& manipulator,
+    int            id)
+{
+    (void)manipulator;
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_MANIPULATOR>
+int RaftInstallSnapshotResponse::manipulateAttribute(
+    t_MANIPULATOR& manipulator,
+    const char*    name,
+    int            nameLength)
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return manipulateAttribute(manipulator, attributeInfo->d_id);
+}
+
+// ACCESSORS
+template <typename t_ACCESSOR>
+int RaftInstallSnapshotResponse::accessAttributes(t_ACCESSOR& accessor) const
+{
+    (void)accessor;
+    return 0;
+}
+
+template <typename t_ACCESSOR>
+int RaftInstallSnapshotResponse::accessAttribute(t_ACCESSOR& accessor,
+                                                 int         id) const
+{
+    (void)accessor;
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_ACCESSOR>
+int RaftInstallSnapshotResponse::accessAttribute(t_ACCESSOR& accessor,
+                                                 const char* name,
+                                                 int         nameLength) const
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return accessAttribute(accessor, attributeInfo->d_id);
+}
+
+// ---------------------
+// class RaftRequestVote
+// ---------------------
+
+// PRIVATE ACCESSORS
+template <typename t_HASH_ALGORITHM>
+void RaftRequestVote::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
+{
+    using bslh::hashAppend;
+    hashAppend(hashAlgorithm, this->lastLogIndex());
+    hashAppend(hashAlgorithm, this->lastLogTerm());
+    hashAppend(hashAlgorithm, this->preVote());
+}
+
+// CLASS METHODS
+// MANIPULATORS
+template <typename t_MANIPULATOR>
+int RaftRequestVote::manipulateAttributes(t_MANIPULATOR& manipulator)
+{
+    int ret;
+
+    ret = manipulator(&d_lastLogIndex,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LAST_LOG_INDEX]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_lastLogTerm,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LAST_LOG_TERM]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_preVote,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRE_VOTE]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
+template <typename t_MANIPULATOR>
+int RaftRequestVote::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
+{
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_LAST_LOG_INDEX: {
+        return manipulator(
+            &d_lastLogIndex,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LAST_LOG_INDEX]);
+    }
+    case ATTRIBUTE_ID_LAST_LOG_TERM: {
+        return manipulator(
+            &d_lastLogTerm,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LAST_LOG_TERM]);
+    }
+    case ATTRIBUTE_ID_PRE_VOTE: {
+        return manipulator(&d_preVote,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRE_VOTE]);
+    }
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_MANIPULATOR>
+int RaftRequestVote::manipulateAttribute(t_MANIPULATOR& manipulator,
+                                         const char*    name,
+                                         int            nameLength)
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return manipulateAttribute(manipulator, attributeInfo->d_id);
+}
+
+inline bsls::Types::Uint64& RaftRequestVote::lastLogIndex()
+{
+    return d_lastLogIndex;
+}
+
+inline bsls::Types::Uint64& RaftRequestVote::lastLogTerm()
+{
+    return d_lastLogTerm;
+}
+
+inline bool& RaftRequestVote::preVote()
+{
+    return d_preVote;
+}
+
+// ACCESSORS
+template <typename t_ACCESSOR>
+int RaftRequestVote::accessAttributes(t_ACCESSOR& accessor) const
+{
+    int ret;
+
+    ret = accessor(d_lastLogIndex,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LAST_LOG_INDEX]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_lastLogTerm,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LAST_LOG_TERM]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_preVote, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRE_VOTE]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
+template <typename t_ACCESSOR>
+int RaftRequestVote::accessAttribute(t_ACCESSOR& accessor, int id) const
+{
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_LAST_LOG_INDEX: {
+        return accessor(d_lastLogIndex,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LAST_LOG_INDEX]);
+    }
+    case ATTRIBUTE_ID_LAST_LOG_TERM: {
+        return accessor(d_lastLogTerm,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LAST_LOG_TERM]);
+    }
+    case ATTRIBUTE_ID_PRE_VOTE: {
+        return accessor(d_preVote,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRE_VOTE]);
+    }
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_ACCESSOR>
+int RaftRequestVote::accessAttribute(t_ACCESSOR& accessor,
+                                     const char* name,
+                                     int         nameLength) const
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return accessAttribute(accessor, attributeInfo->d_id);
+}
+
+inline bsls::Types::Uint64 RaftRequestVote::lastLogIndex() const
+{
+    return d_lastLogIndex;
+}
+
+inline bsls::Types::Uint64 RaftRequestVote::lastLogTerm() const
+{
+    return d_lastLogTerm;
+}
+
+inline bool RaftRequestVote::preVote() const
+{
+    return d_preVote;
+}
+
+// -----------------------------
+// class RaftRequestVoteResponse
+// -----------------------------
+
+// CLASS METHODS
+// MANIPULATORS
+template <typename t_MANIPULATOR>
+int RaftRequestVoteResponse::manipulateAttributes(t_MANIPULATOR& manipulator)
+{
+    int ret;
+
+    ret = manipulator(&d_voteGranted,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_VOTE_GRANTED]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_preVote,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRE_VOTE]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
+template <typename t_MANIPULATOR>
+int RaftRequestVoteResponse::manipulateAttribute(t_MANIPULATOR& manipulator,
+                                                 int            id)
+{
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_VOTE_GRANTED: {
+        return manipulator(&d_voteGranted,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_VOTE_GRANTED]);
+    }
+    case ATTRIBUTE_ID_PRE_VOTE: {
+        return manipulator(&d_preVote,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRE_VOTE]);
+    }
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_MANIPULATOR>
+int RaftRequestVoteResponse::manipulateAttribute(t_MANIPULATOR& manipulator,
+                                                 const char*    name,
+                                                 int            nameLength)
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return manipulateAttribute(manipulator, attributeInfo->d_id);
+}
+
+inline bool& RaftRequestVoteResponse::voteGranted()
+{
+    return d_voteGranted;
+}
+
+inline bool& RaftRequestVoteResponse::preVote()
+{
+    return d_preVote;
+}
+
+// ACCESSORS
+template <typename t_ACCESSOR>
+int RaftRequestVoteResponse::accessAttributes(t_ACCESSOR& accessor) const
+{
+    int ret;
+
+    ret = accessor(d_voteGranted,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_VOTE_GRANTED]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_preVote, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRE_VOTE]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
+template <typename t_ACCESSOR>
+int RaftRequestVoteResponse::accessAttribute(t_ACCESSOR& accessor,
+                                             int         id) const
+{
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_VOTE_GRANTED: {
+        return accessor(d_voteGranted,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_VOTE_GRANTED]);
+    }
+    case ATTRIBUTE_ID_PRE_VOTE: {
+        return accessor(d_preVote,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRE_VOTE]);
+    }
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_ACCESSOR>
+int RaftRequestVoteResponse::accessAttribute(t_ACCESSOR& accessor,
+                                             const char* name,
+                                             int         nameLength) const
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return accessAttribute(accessor, attributeInfo->d_id);
+}
+
+inline bool RaftRequestVoteResponse::voteGranted() const
+{
+    return d_voteGranted;
+}
+
+inline bool RaftRequestVoteResponse::preVote() const
+{
+    return d_preVote;
+}
+
+// --------------------
+// class RaftTimeoutNow
+// --------------------
+
+// CLASS METHODS
+// MANIPULATORS
+template <typename t_MANIPULATOR>
+int RaftTimeoutNow::manipulateAttributes(t_MANIPULATOR& manipulator)
+{
+    (void)manipulator;
+    return 0;
+}
+
+template <typename t_MANIPULATOR>
+int RaftTimeoutNow::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
+{
+    (void)manipulator;
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_MANIPULATOR>
+int RaftTimeoutNow::manipulateAttribute(t_MANIPULATOR& manipulator,
+                                        const char*    name,
+                                        int            nameLength)
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return manipulateAttribute(manipulator, attributeInfo->d_id);
+}
+
+// ACCESSORS
+template <typename t_ACCESSOR>
+int RaftTimeoutNow::accessAttributes(t_ACCESSOR& accessor) const
+{
+    (void)accessor;
+    return 0;
+}
+
+template <typename t_ACCESSOR>
+int RaftTimeoutNow::accessAttribute(t_ACCESSOR& accessor, int id) const
+{
+    (void)accessor;
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_ACCESSOR>
+int RaftTimeoutNow::accessAttribute(t_ACCESSOR& accessor,
+                                    const char* name,
+                                    int         nameLength) const
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return accessAttribute(accessor, attributeInfo->d_id);
 }
 
 // --------------------------
@@ -30834,6 +32990,262 @@ inline int QueueStreamParameters::consumerPriorityCount() const
     return d_consumerPriorityCount;
 }
 
+// -----------------------
+// class RaftMessageChoice
+// -----------------------
+
+// CLASS METHODS
+// PRIVATE ACCESSORS
+template <typename t_HASH_ALGORITHM>
+void RaftMessageChoice::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
+{
+    typedef RaftMessageChoice Class;
+    using bslh::hashAppend;
+    hashAppend(hashAlgorithm, this->selectionId());
+    switch (this->selectionId()) {
+    case Class::SELECTION_ID_REQUEST_VOTE:
+        hashAppend(hashAlgorithm, this->requestVote());
+        break;
+    case Class::SELECTION_ID_REQUEST_VOTE_RESPONSE:
+        hashAppend(hashAlgorithm, this->requestVoteResponse());
+        break;
+    case Class::SELECTION_ID_APPEND_ENTRIES_RESPONSE:
+        hashAppend(hashAlgorithm, this->appendEntriesResponse());
+        break;
+    case Class::SELECTION_ID_INSTALL_SNAPSHOT:
+        hashAppend(hashAlgorithm, this->installSnapshot());
+        break;
+    case Class::SELECTION_ID_INSTALL_SNAPSHOT_RESPONSE:
+        hashAppend(hashAlgorithm, this->installSnapshotResponse());
+        break;
+    case Class::SELECTION_ID_TIMEOUT_NOW:
+        hashAppend(hashAlgorithm, this->timeoutNow());
+        break;
+    default: BSLS_ASSERT(this->selectionId() == Class::SELECTION_ID_UNDEFINED);
+    }
+}
+
+inline bool RaftMessageChoice::isEqualTo(const RaftMessageChoice& rhs) const
+{
+    typedef RaftMessageChoice Class;
+    if (this->selectionId() == rhs.selectionId()) {
+        switch (rhs.selectionId()) {
+        case Class::SELECTION_ID_REQUEST_VOTE:
+            return this->requestVote() == rhs.requestVote();
+        case Class::SELECTION_ID_REQUEST_VOTE_RESPONSE:
+            return this->requestVoteResponse() == rhs.requestVoteResponse();
+        case Class::SELECTION_ID_APPEND_ENTRIES_RESPONSE:
+            return this->appendEntriesResponse() ==
+                   rhs.appendEntriesResponse();
+        case Class::SELECTION_ID_INSTALL_SNAPSHOT:
+            return this->installSnapshot() == rhs.installSnapshot();
+        case Class::SELECTION_ID_INSTALL_SNAPSHOT_RESPONSE:
+            return this->installSnapshotResponse() ==
+                   rhs.installSnapshotResponse();
+        case Class::SELECTION_ID_TIMEOUT_NOW:
+            return this->timeoutNow() == rhs.timeoutNow();
+        default:
+            BSLS_ASSERT(Class::SELECTION_ID_UNDEFINED == rhs.selectionId());
+            return true;
+        }
+    }
+    else {
+        return false;
+    }
+}
+
+// CREATORS
+inline RaftMessageChoice::RaftMessageChoice()
+: d_selectionId(SELECTION_ID_UNDEFINED)
+{
+}
+
+inline RaftMessageChoice::~RaftMessageChoice()
+{
+    reset();
+}
+
+// MANIPULATORS
+template <typename t_MANIPULATOR>
+int RaftMessageChoice::manipulateSelection(t_MANIPULATOR& manipulator)
+{
+    switch (d_selectionId) {
+    case RaftMessageChoice::SELECTION_ID_REQUEST_VOTE:
+        return manipulator(&d_requestVote.object(),
+                           SELECTION_INFO_ARRAY[SELECTION_INDEX_REQUEST_VOTE]);
+    case RaftMessageChoice::SELECTION_ID_REQUEST_VOTE_RESPONSE:
+        return manipulator(
+            &d_requestVoteResponse.object(),
+            SELECTION_INFO_ARRAY[SELECTION_INDEX_REQUEST_VOTE_RESPONSE]);
+    case RaftMessageChoice::SELECTION_ID_APPEND_ENTRIES_RESPONSE:
+        return manipulator(
+            &d_appendEntriesResponse.object(),
+            SELECTION_INFO_ARRAY[SELECTION_INDEX_APPEND_ENTRIES_RESPONSE]);
+    case RaftMessageChoice::SELECTION_ID_INSTALL_SNAPSHOT:
+        return manipulator(
+            &d_installSnapshot.object(),
+            SELECTION_INFO_ARRAY[SELECTION_INDEX_INSTALL_SNAPSHOT]);
+    case RaftMessageChoice::SELECTION_ID_INSTALL_SNAPSHOT_RESPONSE:
+        return manipulator(
+            &d_installSnapshotResponse.object(),
+            SELECTION_INFO_ARRAY[SELECTION_INDEX_INSTALL_SNAPSHOT_RESPONSE]);
+    case RaftMessageChoice::SELECTION_ID_TIMEOUT_NOW:
+        return manipulator(&d_timeoutNow.object(),
+                           SELECTION_INFO_ARRAY[SELECTION_INDEX_TIMEOUT_NOW]);
+    default:
+        BSLS_ASSERT(RaftMessageChoice::SELECTION_ID_UNDEFINED ==
+                    d_selectionId);
+        return -1;
+    }
+}
+
+inline RaftRequestVote& RaftMessageChoice::requestVote()
+{
+    BSLS_ASSERT(SELECTION_ID_REQUEST_VOTE == d_selectionId);
+    return d_requestVote.object();
+}
+
+inline RaftRequestVoteResponse& RaftMessageChoice::requestVoteResponse()
+{
+    BSLS_ASSERT(SELECTION_ID_REQUEST_VOTE_RESPONSE == d_selectionId);
+    return d_requestVoteResponse.object();
+}
+
+inline RaftAppendEntriesResponse& RaftMessageChoice::appendEntriesResponse()
+{
+    BSLS_ASSERT(SELECTION_ID_APPEND_ENTRIES_RESPONSE == d_selectionId);
+    return d_appendEntriesResponse.object();
+}
+
+inline RaftInstallSnapshot& RaftMessageChoice::installSnapshot()
+{
+    BSLS_ASSERT(SELECTION_ID_INSTALL_SNAPSHOT == d_selectionId);
+    return d_installSnapshot.object();
+}
+
+inline RaftInstallSnapshotResponse&
+RaftMessageChoice::installSnapshotResponse()
+{
+    BSLS_ASSERT(SELECTION_ID_INSTALL_SNAPSHOT_RESPONSE == d_selectionId);
+    return d_installSnapshotResponse.object();
+}
+
+inline RaftTimeoutNow& RaftMessageChoice::timeoutNow()
+{
+    BSLS_ASSERT(SELECTION_ID_TIMEOUT_NOW == d_selectionId);
+    return d_timeoutNow.object();
+}
+
+// ACCESSORS
+inline int RaftMessageChoice::selectionId() const
+{
+    return d_selectionId;
+}
+
+template <typename t_ACCESSOR>
+int RaftMessageChoice::accessSelection(t_ACCESSOR& accessor) const
+{
+    switch (d_selectionId) {
+    case SELECTION_ID_REQUEST_VOTE:
+        return accessor(d_requestVote.object(),
+                        SELECTION_INFO_ARRAY[SELECTION_INDEX_REQUEST_VOTE]);
+    case SELECTION_ID_REQUEST_VOTE_RESPONSE:
+        return accessor(
+            d_requestVoteResponse.object(),
+            SELECTION_INFO_ARRAY[SELECTION_INDEX_REQUEST_VOTE_RESPONSE]);
+    case SELECTION_ID_APPEND_ENTRIES_RESPONSE:
+        return accessor(
+            d_appendEntriesResponse.object(),
+            SELECTION_INFO_ARRAY[SELECTION_INDEX_APPEND_ENTRIES_RESPONSE]);
+    case SELECTION_ID_INSTALL_SNAPSHOT:
+        return accessor(
+            d_installSnapshot.object(),
+            SELECTION_INFO_ARRAY[SELECTION_INDEX_INSTALL_SNAPSHOT]);
+    case SELECTION_ID_INSTALL_SNAPSHOT_RESPONSE:
+        return accessor(
+            d_installSnapshotResponse.object(),
+            SELECTION_INFO_ARRAY[SELECTION_INDEX_INSTALL_SNAPSHOT_RESPONSE]);
+    case SELECTION_ID_TIMEOUT_NOW:
+        return accessor(d_timeoutNow.object(),
+                        SELECTION_INFO_ARRAY[SELECTION_INDEX_TIMEOUT_NOW]);
+    default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId); return -1;
+    }
+}
+
+inline const RaftRequestVote& RaftMessageChoice::requestVote() const
+{
+    BSLS_ASSERT(SELECTION_ID_REQUEST_VOTE == d_selectionId);
+    return d_requestVote.object();
+}
+
+inline const RaftRequestVoteResponse&
+RaftMessageChoice::requestVoteResponse() const
+{
+    BSLS_ASSERT(SELECTION_ID_REQUEST_VOTE_RESPONSE == d_selectionId);
+    return d_requestVoteResponse.object();
+}
+
+inline const RaftAppendEntriesResponse&
+RaftMessageChoice::appendEntriesResponse() const
+{
+    BSLS_ASSERT(SELECTION_ID_APPEND_ENTRIES_RESPONSE == d_selectionId);
+    return d_appendEntriesResponse.object();
+}
+
+inline const RaftInstallSnapshot& RaftMessageChoice::installSnapshot() const
+{
+    BSLS_ASSERT(SELECTION_ID_INSTALL_SNAPSHOT == d_selectionId);
+    return d_installSnapshot.object();
+}
+
+inline const RaftInstallSnapshotResponse&
+RaftMessageChoice::installSnapshotResponse() const
+{
+    BSLS_ASSERT(SELECTION_ID_INSTALL_SNAPSHOT_RESPONSE == d_selectionId);
+    return d_installSnapshotResponse.object();
+}
+
+inline const RaftTimeoutNow& RaftMessageChoice::timeoutNow() const
+{
+    BSLS_ASSERT(SELECTION_ID_TIMEOUT_NOW == d_selectionId);
+    return d_timeoutNow.object();
+}
+
+inline bool RaftMessageChoice::isRequestVoteValue() const
+{
+    return SELECTION_ID_REQUEST_VOTE == d_selectionId;
+}
+
+inline bool RaftMessageChoice::isRequestVoteResponseValue() const
+{
+    return SELECTION_ID_REQUEST_VOTE_RESPONSE == d_selectionId;
+}
+
+inline bool RaftMessageChoice::isAppendEntriesResponseValue() const
+{
+    return SELECTION_ID_APPEND_ENTRIES_RESPONSE == d_selectionId;
+}
+
+inline bool RaftMessageChoice::isInstallSnapshotValue() const
+{
+    return SELECTION_ID_INSTALL_SNAPSHOT == d_selectionId;
+}
+
+inline bool RaftMessageChoice::isInstallSnapshotResponseValue() const
+{
+    return SELECTION_ID_INSTALL_SNAPSHOT_RESPONSE == d_selectionId;
+}
+
+inline bool RaftMessageChoice::isTimeoutNowValue() const
+{
+    return SELECTION_ID_TIMEOUT_NOW == d_selectionId;
+}
+
+inline bool RaftMessageChoice::isUndefinedValue() const
+{
+    return SELECTION_ID_UNDEFINED == d_selectionId;
+}
+
 // -------------------------
 // class RegistrationRequest
 // -------------------------
@@ -35096,6 +37508,136 @@ QueueUpdateAdvisory::queueUpdates() const
     return d_queueUpdates;
 }
 
+// -----------------
+// class RaftMessage
+// -----------------
+
+// CLASS METHODS
+// MANIPULATORS
+template <typename t_MANIPULATOR>
+int RaftMessage::manipulateAttributes(t_MANIPULATOR& manipulator)
+{
+    int ret;
+
+    ret = manipulator(&d_term, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TERM]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_choice, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CHOICE]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
+template <typename t_MANIPULATOR>
+int RaftMessage::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
+{
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_TERM: {
+        return manipulator(&d_term,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TERM]);
+    }
+    case ATTRIBUTE_ID_CHOICE: {
+        return manipulator(&d_choice,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CHOICE]);
+    }
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_MANIPULATOR>
+int RaftMessage::manipulateAttribute(t_MANIPULATOR& manipulator,
+                                     const char*    name,
+                                     int            nameLength)
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return manipulateAttribute(manipulator, attributeInfo->d_id);
+}
+
+inline bsls::Types::Uint64& RaftMessage::term()
+{
+    return d_term;
+}
+
+inline RaftMessageChoice& RaftMessage::choice()
+{
+    return d_choice;
+}
+
+// ACCESSORS
+template <typename t_ACCESSOR>
+int RaftMessage::accessAttributes(t_ACCESSOR& accessor) const
+{
+    int ret;
+
+    ret = accessor(d_term, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TERM]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_choice, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CHOICE]);
+    if (ret) {
+        return ret;
+    }
+
+    return 0;
+}
+
+template <typename t_ACCESSOR>
+int RaftMessage::accessAttribute(t_ACCESSOR& accessor, int id) const
+{
+    enum { NOT_FOUND = -1 };
+
+    switch (id) {
+    case ATTRIBUTE_ID_TERM: {
+        return accessor(d_term, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TERM]);
+    }
+    case ATTRIBUTE_ID_CHOICE: {
+        return accessor(d_choice,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CHOICE]);
+    }
+    default: return NOT_FOUND;
+    }
+}
+
+template <typename t_ACCESSOR>
+int RaftMessage::accessAttribute(t_ACCESSOR& accessor,
+                                 const char* name,
+                                 int         nameLength) const
+{
+    enum { NOT_FOUND = -1 };
+
+    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
+                                                                   nameLength);
+    if (0 == attributeInfo) {
+        return NOT_FOUND;
+    }
+
+    return accessAttribute(accessor, attributeInfo->d_id);
+}
+
+inline bsls::Types::Uint64 RaftMessage::term() const
+{
+    return d_term;
+}
+
+inline const RaftMessageChoice& RaftMessage::choice() const
+{
+    return d_choice;
+}
+
 // -----------------------
 // class StateNotification
 // -----------------------
@@ -38436,6 +40978,9 @@ void ControlMessageChoice::hashAppendImpl(
     case Class::SELECTION_ID_CONFIGURE_STREAM_RESPONSE:
         hashAppend(hashAlgorithm, this->configureStreamResponse());
         break;
+    case Class::SELECTION_ID_RAFT_MESSAGE:
+        hashAppend(hashAlgorithm, this->raftMessage());
+        break;
     default: BSLS_ASSERT(this->selectionId() == Class::SELECTION_ID_UNDEFINED);
     }
 }
@@ -38475,6 +41020,8 @@ ControlMessageChoice::isEqualTo(const ControlMessageChoice& rhs) const
         case Class::SELECTION_ID_CONFIGURE_STREAM_RESPONSE:
             return this->configureStreamResponse() ==
                    rhs.configureStreamResponse();
+        case Class::SELECTION_ID_RAFT_MESSAGE:
+            return this->raftMessage() == rhs.raftMessage();
         default:
             BSLS_ASSERT(Class::SELECTION_ID_UNDEFINED == rhs.selectionId());
             return true;
@@ -38556,6 +41103,9 @@ int ControlMessageChoice::manipulateSelection(t_MANIPULATOR& manipulator)
         return manipulator(
             &d_configureStreamResponse.object(),
             SELECTION_INFO_ARRAY[SELECTION_INDEX_CONFIGURE_STREAM_RESPONSE]);
+    case ControlMessageChoice::SELECTION_ID_RAFT_MESSAGE:
+        return manipulator(&d_raftMessage.object(),
+                           SELECTION_INFO_ARRAY[SELECTION_INDEX_RAFT_MESSAGE]);
     default:
         BSLS_ASSERT(ControlMessageChoice::SELECTION_ID_UNDEFINED ==
                     d_selectionId);
@@ -38648,6 +41198,12 @@ inline ConfigureStreamResponse& ControlMessageChoice::configureStreamResponse()
     return d_configureStreamResponse.object();
 }
 
+inline RaftMessage& ControlMessageChoice::raftMessage()
+{
+    BSLS_ASSERT(SELECTION_ID_RAFT_MESSAGE == d_selectionId);
+    return d_raftMessage.object();
+}
+
 // ACCESSORS
 inline int ControlMessageChoice::selectionId() const
 {
@@ -38708,6 +41264,9 @@ int ControlMessageChoice::accessSelection(t_ACCESSOR& accessor) const
         return accessor(
             d_configureStreamResponse.object(),
             SELECTION_INFO_ARRAY[SELECTION_INDEX_CONFIGURE_STREAM_RESPONSE]);
+    case SELECTION_ID_RAFT_MESSAGE:
+        return accessor(d_raftMessage.object(),
+                        SELECTION_INFO_ARRAY[SELECTION_INDEX_RAFT_MESSAGE]);
     default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId); return -1;
     }
 }
@@ -38802,6 +41361,12 @@ ControlMessageChoice::configureStreamResponse() const
     return d_configureStreamResponse.object();
 }
 
+inline const RaftMessage& ControlMessageChoice::raftMessage() const
+{
+    BSLS_ASSERT(SELECTION_ID_RAFT_MESSAGE == d_selectionId);
+    return d_raftMessage.object();
+}
+
 inline bool ControlMessageChoice::isStatusValue() const
 {
     return SELECTION_ID_STATUS == d_selectionId;
@@ -38870,6 +41435,11 @@ inline bool ControlMessageChoice::isConfigureStreamValue() const
 inline bool ControlMessageChoice::isConfigureStreamResponseValue() const
 {
     return SELECTION_ID_CONFIGURE_STREAM_RESPONSE == d_selectionId;
+}
+
+inline bool ControlMessageChoice::isRaftMessageValue() const
+{
+    return SELECTION_ID_RAFT_MESSAGE == d_selectionId;
 }
 
 inline bool ControlMessageChoice::isUndefinedValue() const
@@ -39013,6 +41583,13 @@ inline const ControlMessageChoice& ControlMessage::choice() const
 }  // close enterprise namespace
 #endif
 
-// GENERATED BY BLP_BAS_CODEGEN_2026.05.21
+// GENERATED BY @BLP_BAS_CODEGEN_VERSION@
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package bmqp_ctrlmsg --msgComponent messages bmqp_ctrlmsg.xsd
+// ----------------------------------------------------------------------------
+// NOTICE:
+//      Copyright 2026 Bloomberg Finance L.P. All rights reserved.
+//      Property of Bloomberg Finance L.P. (BFLP)
+//      This software is made available solely pursuant to the
+//      terms of a BFLP license agreement which governs its use.
+// ------------------------------- END-OF-FILE --------------------------------

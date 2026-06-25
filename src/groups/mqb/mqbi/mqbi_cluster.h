@@ -438,6 +438,9 @@ class Cluster : public DispatcherClient {
     /// Return boolean flag indicating if CSL FSM workflow is in effect.
     virtual bool isFSMWorkflow() const;
 
+    /// Return boolean flag indicating if Raft consensus is in effect.
+    virtual bool isRaftEnabled() const;
+
     /// Return boolean flag indicating whether the broker still writes to the
     /// to-be-deprecated QLIST file when FSM workflow is enabled.
     virtual bool doesFSMwriteQLIST() const;
@@ -548,6 +551,11 @@ struct ClusterResources {
 // ============================================================================
 
 inline bool Cluster::isFSMWorkflow() const
+{
+    return false;
+}
+
+inline bool Cluster::isRaftEnabled() const
 {
     return false;
 }

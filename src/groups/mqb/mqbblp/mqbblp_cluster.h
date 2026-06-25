@@ -778,6 +778,9 @@ class Cluster : public mqbi::Cluster,
     /// Return boolean flag indicating if CSL FSM workflow is in effect.
     bool isFSMWorkflow() const BSLS_KEYWORD_OVERRIDE;
 
+    /// Return boolean flag indicating if Raft consensus is in effect.
+    bool isRaftEnabled() const BSLS_KEYWORD_OVERRIDE;
+
     /// Return boolean flag indicating whether the broker still writes to the
     /// to-be-deprecated QLIST file when FSM workflow is enabled.
     bool doesFSMwriteQLIST() const BSLS_KEYWORD_OVERRIDE;

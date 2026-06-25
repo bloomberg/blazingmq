@@ -573,43 +573,7 @@ ClusterOrchestrator::ClusterOrchestrator(
 , d_clusterConfig(clusterConfig)
 , d_cluster_p(cluster)
 , d_clusterData_p(clusterData)
-, d_stateManager_mp(
-      clusterConfig.clusterAttributes().isFSMWorkflow()
-          ? static_cast<mqbi::ClusterStateManager*>(
-                new(*d_allocator_p) mqbc::ClusterStateManager(
-                    clusterConfig,
-                    d_cluster_p,
-                    d_clusterData_p,
-                    clusterState,
-                    ClusterStateManager::ClusterStateLedgerMp(
-                        bslma::ManagedPtrUtil::allocateManaged<
-                            mqbc::IncoreClusterStateLedger>(
-                            d_allocators.get("ClusterStateLedger"),
-                            clusterConfig,
-                            d_clusterData_p,
-                            clusterState,
-                            &d_clusterData_p->blobSpPool())),
-                    clusterConfig.clusterAttributes()
-                        .clusterFsmWatchdogTimeoutSec(),
-                    clusterConfig.clusterAttributes()
-                        .clusterFsmWatchdogNumRetries(),
-                    d_allocators.get("ClusterStateManager")))
-          : static_cast<mqbi::ClusterStateManager*>(
-                new(*d_allocator_p) ClusterStateManager(
-                    clusterConfig,
-                    d_cluster_p,
-                    d_clusterData_p,
-                    clusterState,
-                    ClusterStateManager::ClusterStateLedgerMp(
-                        bslma::ManagedPtrUtil::allocateManaged<
-                            mqbc::IncoreClusterStateLedger>(
-                            d_allocators.get("ClusterStateLedger"),
-                            clusterConfig,
-                            d_clusterData_p,
-                            clusterState,
-                            &d_clusterData_p->blobSpPool())),
-                    d_allocators.get("ClusterStateManager"))),
-      d_allocator_p)
+, d_stateManager_mp()
 , d_queueHelper(d_clusterData_p,
                 clusterState,
                 d_stateManager_mp.get(),
@@ -625,6 +589,8 @@ ClusterOrchestrator::ClusterOrchestrator(
     BSLS_ASSERT_SAFE(d_cluster_p);
     BSLS_ASSERT_SAFE(d_clusterData_p);
 
+    init(clusterState);
+
     d_bufferedPrimaryStatusAdvisoryInfosVec.resize(
         d_clusterConfig.partitionConfig().numPartitions(),
         PrimaryStatusAdvisoryInfos(allocator));
@@ -638,6 +604,81 @@ ClusterOrchestrator::~ClusterOrchestrator()
 }
 
 // MANIPULATORS
+
+void ClusterOrchestrator::init(mqbc::ClusterState* clusterState)
+{
+    if (d_cluster_p->isRaftEnabled()) {
+        // Raft mode: create and start ClusterStateRaft.
+        // Skip Elector and ClusterStateManager start.
+
+        d_clusterStateRaft_mp.load(
+            new (*d_allocator_p)
+                mqbraft::ClusterStateRaft(d_clusterData_p,
+                                          clusterState,
+                                          d_clusterConfig.partitionConfig(),
+                                          d_allocator_p),
+            d_allocator_p);
+
+        d_queueHelper.setClusterStateUpdater(d_clusterStateRaft_mp.get());
+
+        // TODO: setAfterPartitionPrimaryAssignmentCb
+
+        return;  // RETURN
+    }
+
+    if (d_clusterConfig.clusterAttributes().isFSMWorkflow()) {
+        d_stateManager_mp.load(
+            new (*d_allocator_p) mqbc::ClusterStateManager(
+                d_clusterConfig,
+                d_cluster_p,
+                d_clusterData_p,
+                clusterState,
+                ClusterStateManager::ClusterStateLedgerMp(
+                    bslma::ManagedPtrUtil::allocateManaged<
+                        mqbc::IncoreClusterStateLedger>(
+                        d_allocators.get("ClusterStateLedger"),
+                        d_clusterConfig,
+                        d_clusterData_p,
+                        clusterState,
+                        &d_clusterData_p->blobSpPool())),
+                d_clusterConfig.clusterAttributes()
+                    .clusterFsmWatchdogTimeoutSec(),
+                d_clusterConfig.clusterAttributes()
+                    .clusterFsmWatchdogNumRetries(),
+                d_allocators.get("ClusterStateManager")),
+            d_allocator_p);
+    }
+    else {
+        d_stateManager_mp.load(
+            new (*d_allocator_p) ClusterStateManager(
+                d_clusterConfig,
+                d_cluster_p,
+                d_clusterData_p,
+                clusterState,
+                ClusterStateManager::ClusterStateLedgerMp(
+                    bslma::ManagedPtrUtil::allocateManaged<
+                        mqbc::IncoreClusterStateLedger>(
+                        d_allocators.get("ClusterStateLedger"),
+                        d_clusterConfig,
+                        d_clusterData_p,
+                        clusterState,
+                        &d_clusterData_p->blobSpPool())),
+                d_allocators.get("ClusterStateManager")),
+            d_allocator_p);
+    }
+
+    d_queueHelper.setClusterStateUpdater(d_stateManager_mp.get());
+
+    d_stateManager_mp->setAfterPartitionPrimaryAssignmentCb(
+        bdlf::BindUtil::bindS(
+            d_allocator_p,
+            &ClusterQueueHelper::afterPartitionPrimaryAssignment,
+            &d_queueHelper,
+            bdlf::PlaceHolders::_1,    // partitionId
+            bdlf::PlaceHolders::_2,    // primary
+            bdlf::PlaceHolders::_3));  // status
+}
+
 int ClusterOrchestrator::start(bsl::ostream& errorDescription)
 {
     // executed by the cluster *DISPATCHER* thread
@@ -654,25 +695,35 @@ int ClusterOrchestrator::start(bsl::ostream& errorDescription)
         return rc_SUCCESS;  // RETURN
     }
 
-    // Start the elector.  It must be one of the first things to get started,
-    // so that new node can discover the leader as soon as possible.
+    if (d_cluster_p->isRaftEnabled()) {
+        // Raft mode: start ClusterStateRaft.
+        // Skip Elector and ClusterStateManager start.
+
+        BSLS_ASSERT_SAFE(d_clusterStateRaft_mp);
+
+        int rc = d_clusterStateRaft_mp->start(errorDescription);
+        if (rc != 0) {
+            return rc * 10 + rc_CLUSTER_STATE_MANAGER_FAILURE;  // RETURN
+        }
+
+        d_isStarted = true;
+        return rc_SUCCESS;
+    }
+
+    // Legacy mode: start Elector + ClusterStateManager
 
     if (isLocal()) {
-        // Specify minimum initial wait time and election result wait time in
-        // case of 1-node cluster.
         mqbcfg::ElectorConfig& electorCfg    = d_clusterConfig.elector();
         electorCfg.initialWaitTimeoutMs()    = 0;
         electorCfg.electionResultTimeoutMs() = 0;
     }
 
-    // Start the cluster state manager
     int rc = d_stateManager_mp->start(errorDescription);
 
     if (rc != 0) {
         return rc * 10 + rc_CLUSTER_STATE_MANAGER_FAILURE;  // RETURN
     }
 
-    // Fetch latest LSN from the ledger and supply it to the elector.
     bmqp_ctrlmsg::LeaderMessageSequence ledgerLSN;
     rc = d_stateManager_mp->latestLedgerLSN(&ledgerLSN);
     if (rc == 0) {
@@ -729,6 +780,13 @@ void ClusterOrchestrator::stop()
     BSLS_ASSERT_SAFE(d_clusterData_p);
     d_clusterData_p->scheduler().cancelEventAndWait(
         &d_consumptionMonitorEventHandle);
+
+    if (d_cluster_p->isRaftEnabled()) {
+        if (d_clusterStateRaft_mp) {
+            d_clusterStateRaft_mp->stop();
+        }
+        return;  // RETURN
+    }
 
     d_stateManager_mp->stop();
 
@@ -2017,6 +2075,46 @@ int ClusterOrchestrator::processCommand(
     mqbcmd::Error& error = result->makeError();
     error.message()      = os.str();
     return -1;
+}
+
+void ClusterOrchestrator::processRaftClusterEvent(const bmqp::Event&   event,
+                                                  mqbnet::ClusterNode* source)
+{
+    // executed by the IO thread — dispatch to cluster dispatcher
+    dispatcher()->execute(
+        bdlf::BindUtil::bind(
+            &ClusterOrchestrator::processRaftClusterEventDispatched,
+            this,
+            event.sharedBlob(),
+            source),
+        d_cluster_p);
+}
+
+void ClusterOrchestrator::processRaftClusterEventDispatched(
+    const bsl::shared_ptr<const bdlbb::Blob>& blob,
+    mqbnet::ClusterNode*                      source)
+{
+    // executed by the cluster *DISPATCHER* thread
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+    BSLS_ASSERT_SAFE(d_clusterStateRaft_mp);
+
+    d_clusterStateRaft_mp->processAppendEntriesEvent(*blob, source);
+}
+
+void ClusterOrchestrator::processRaftControlMessage(
+    const bmqp_ctrlmsg::RaftMessage& message,
+    mqbnet::ClusterNode*             source)
+{
+    // executed by the cluster *DISPATCHER* thread
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+    BSLS_ASSERT_SAFE(d_clusterStateRaft_mp);
+
+    d_clusterStateRaft_mp->processRaftMessage(message, source);
+}
+
+mqbraft::ClusterStateRaft* ClusterOrchestrator::clusterStateRaft()
+{
+    return d_clusterStateRaft_mp.get();
 }
 
 }  // close package namespace

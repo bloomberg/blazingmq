@@ -118,6 +118,7 @@
         <element bdem:id='15' name='configureQueueStreamResponse'   type='tns:ConfigureQueueStreamResponse'/>
         <element bdem:id='16' name='configureStream'                type='tns:ConfigureStream'/>
         <element bdem:id='17' name='configureStreamResponse'        type='tns:ConfigureStreamResponse'/>
+        <element bdem:id='18' name='raftMessage'                    type='tns:RaftMessage'/>
       </choice>
     </sequence>
   </complexType>
@@ -1782,6 +1783,133 @@
     <sequence>
       <element name='status'      type='tns:Status' />
       <element name='lifetimeMs'  type='unsignedLong'   minOccurs='0'/>
+    </sequence>
+  </complexType>
+
+  <!-- ========================================================================
+       ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+       :                         RAFT MESSAGE                                :
+       #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::#
+       ==================================================================== -->
+
+  <complexType name='RaftRequestVote'>
+    <annotation>
+      <documentation>
+        Candidate requests vote from peer.
+
+        lastLogIndex.: Index of candidate's last log entry
+        lastLogTerm..: Term of candidate's last log entry
+        preVote......: True if this is a pre-vote
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='lastLogIndex' type='unsignedLong'/>
+      <element name='lastLogTerm'  type='unsignedLong'/>
+      <element name='preVote'      type='boolean' default='false'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='RaftRequestVoteResponse'>
+    <annotation>
+      <documentation>
+        Peer's vote response.
+
+        voteGranted.: True if vote was granted
+        preVote.....: Echoes the request's preVote flag
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='voteGranted' type='boolean'/>
+      <element name='preVote'     type='boolean' default='false'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='RaftAppendEntriesResponse'>
+    <annotation>
+      <documentation>
+        Follower's response to AppendEntries.
+
+        success....: True if log matched and entries were appended
+        matchIndex.: Follower's last log index
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='success'    type='boolean'/>
+      <element name='matchIndex' type='unsignedLong'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='RaftInstallSnapshot'>
+    <annotation>
+      <documentation>
+        Leader sends snapshot metadata to a far-behind follower.  The actual
+        snapshot data (partition files) travels as a raw binary blob appended
+        after the BER-encoded RaftMessage in the same event — it is NOT
+        included in this XSD type.
+
+        Chunked transfer: the leader sends multiple InstallSnapshot messages
+        with increasing `offset` values.  The follower buffers chunks and
+        applies the complete snapshot on `done=true`.  The `term` in the
+        enclosing RaftMessage guards against stale snapshots from ex-leaders:
+        the follower rejects any message whose term is less than its own
+        currentTerm.  A new election during transfer causes the new leader to
+        restart with fresh nextIndex/matchIndex for that follower.
+
+        lastIncludedIndex.: Last log index covered by this snapshot
+        lastIncludedTerm..: Term of lastIncludedIndex
+        offset...........: Byte offset of this chunk in the full snapshot data
+        done.............: True if this is the last chunk
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='lastIncludedIndex' type='unsignedLong'/>
+      <element name='lastIncludedTerm'  type='unsignedLong'/>
+      <element name='offset'            type='unsignedLong'/>
+      <element name='done'              type='boolean'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='RaftInstallSnapshotResponse'>
+    <sequence/>
+  </complexType>
+
+  <complexType name='RaftTimeoutNow'>
+    <annotation>
+      <documentation>
+        Leader tells target to start election immediately (leadership transfer).
+      </documentation>
+    </annotation>
+    <sequence/>
+  </complexType>
+
+  <complexType name='RaftMessage'>
+    <annotation>
+      <documentation>
+        Top-level type for Raft consensus messages, carried as
+        ControlMessage.raftMessage (bdem:id=18).
+
+        AppendEntries (data path) is NOT represented here — it travels as a
+        binary event (e_RAFT_CLUSTER or e_RAFT_PARTITION) with a RaftHeader
+        followed by raw entry blobs (CSL records or journal records + payloads),
+        for zero-copy efficiency.
+
+        InstallSnapshot data also travels as raw binary blobs appended after
+        the BER-encoded RaftMessage.  Only the metadata (lastIncludedIndex,
+        offset, done) is in the XSD.
+
+        term....: Sender's current term
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='term'    type='unsignedLong'/>
+      <choice>
+        <element name='requestVote'              type='tns:RaftRequestVote'/>
+        <element name='requestVoteResponse'      type='tns:RaftRequestVoteResponse'/>
+        <element name='appendEntriesResponse'    type='tns:RaftAppendEntriesResponse'/>
+        <element name='installSnapshot'          type='tns:RaftInstallSnapshot'/>
+        <element name='installSnapshotResponse'  type='tns:RaftInstallSnapshotResponse'/>
+        <element name='timeoutNow'               type='tns:RaftTimeoutNow'/>
+      </choice>
     </sequence>
   </complexType>
 
