@@ -53,6 +53,7 @@
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
 #include <bslmt_mutex.h>
+#include <bsls_atomic.h>
 #include <bsls_cpp11.h>
 
 namespace BloombergLP {
@@ -94,7 +95,7 @@ class ClusterNodeImp : public ClusterNode {
 
     bmqio::Channel::ReadCallback d_readCb;
 
-    bool d_isReading;
+    bsls::AtomicBool d_isReading;
     // Indicates if post-negotiation read has
     // started.
 
@@ -243,7 +244,7 @@ class ClusterImp : public Cluster {
     // Mutex for thread-safety of this
     // component.
 
-    bool d_isReadEnabled;
+    bsls::AtomicBool d_isReadEnabled;
     // 'true' if cluster has been
     // initialized to enable reading from
     // its nodes.
