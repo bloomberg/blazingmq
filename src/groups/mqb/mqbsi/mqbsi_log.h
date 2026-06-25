@@ -46,6 +46,7 @@
 #include <bsl_string.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
+#include <bslma_usesbslmaallocator.h>
 #include <bsls_types.h>
 
 namespace BloombergLP {
@@ -222,6 +223,9 @@ class LogConfig {
                            // file representing the log
 
   public:
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(LogConfig, bslma::UsesBslmaAllocator)
+
     // CREATORS
 
     /// Create a new `LogConfig` with the specified `maxSize` and `logId`
@@ -237,6 +241,8 @@ class LogConfig {
               bool                     reserveOnDisk,
               bool                     prefaultPages,
               bslma::Allocator*        allocator);
+
+    LogConfig(const LogConfig& original, bslma::Allocator* allocator = 0);
 
     // MANIPULATORS
     LogConfig& setMaxSize(bsls::Types::Int64 value);
@@ -365,6 +371,12 @@ class Log {
     /// overwriting existing bytes.
     virtual int seek(Offset offset) = 0;
 
+    /// Truncate the log to the specified `offset`, physically removing
+    /// all data beyond that point.  Repositions the write cursor to
+    /// `offset` and updates outstanding/total byte counts.  Return 0 on
+    /// success, or a negative value LogOpResult on error.
+    virtual int truncate(Offset offset) = 0;
+
     /// Increment the number of outstanding bytes in the log by the
     /// specified `value` (can be negative).
     virtual void updateOutstandingNumBytes(bsls::Types::Int64 value) = 0;
@@ -473,6 +485,16 @@ inline LogConfig::LogConfig(bsls::Types::Int64       maxSize,
 , d_prefaultPages(prefaultPages)
 {
     // NOTHING
+}
+
+inline LogConfig::LogConfig(const LogConfig&  original,
+                            bslma::Allocator* allocator)
+: d_maxSize(original.d_maxSize)
+, d_logId(original.d_logId)
+, d_location(original.d_location, allocator)
+, d_reserveOnDisk(original.d_reserveOnDisk)
+, d_prefaultPages(original.d_prefaultPages)
+{
 }
 
 // MANIPULATORS
