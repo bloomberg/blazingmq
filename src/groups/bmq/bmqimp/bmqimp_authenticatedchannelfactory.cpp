@@ -128,14 +128,17 @@ bool AuthenticatedChannelFactory::sendRequest(
     const ResultCallback&                  cb,
     bool                                   isReauthentication) const
 {
-    bmqu::MemOutStream errStream;
-
-    bsl::optional<bmqt::AuthnCredential> credential =
-        d_config.d_authnCredentialCb(errStream);
+    bsl::optional<bmqt::AuthnCredential> credential;
+    try {
+        credential = d_config.d_authnCredentialCb();
+    }
+    // NOLINTNEXTLINE(bugprone-empty-catch)
+    catch (...) {
+        // Intentionally discard, we can't tolerate user exceptions
+    }
 
     if (!credential.has_value()) {
-        BALL_LOG_ERROR << "Failed to get authentication credential: "
-                       << errStream.str();
+        BALL_LOG_ERROR << "Failed to get authentication credential";
         bmqio::Status status(bmqio::StatusCategory::e_GENERIC_ERROR,
                              "authenticationError",
                              rc_AUTHENTICATION_FAILURE);
