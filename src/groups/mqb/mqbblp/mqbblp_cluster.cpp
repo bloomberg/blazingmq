@@ -2498,6 +2498,22 @@ void Cluster::processControlMessage(
     case MsgChoice::SELECTION_ID_ADMIN_COMMAND_RESPONSE: {
         requestManager().processResponse(message);
     } break;
+    case MsgChoice::SELECTION_ID_RAFT_MESSAGE: {
+        if (isRaftEnabled()) {
+            dispatcher()->execute(
+                bdlf::BindUtil::bind(
+                    &ClusterOrchestrator::processRaftControlMessage,
+                    &d_clusterOrchestrator,
+                    message.choice().raftMessage(),
+                    source),
+                this);
+        }
+        else {
+            BALL_LOG_WARN << description() << ": Ignoring RAFT_MESSAGE from "
+                          << source->nodeDescription()
+                          << " because Raft is not enabled.";
+        }
+    } break;
     case MsgChoice::SELECTION_ID_UNDEFINED:
     default: {
         BMQTSK_ALARMLOG_ALARM("CLUSTER")
@@ -2779,7 +2795,25 @@ void Cluster::processEvent(const bmqp::Event&   event,
         processControlMessage(message, source);
     } break;  // BREAK
     case bmqp::EventType::e_ELECTOR: {
-        d_clusterOrchestrator.processElectorEvent(event, source);
+        if (!isRaftEnabled()) {
+            d_clusterOrchestrator.processElectorEvent(event, source);
+        }
+        else {
+            BALL_LOG_WARN << description() << ": Ignoring ELECTOR event from "
+                          << source->nodeDescription()
+                          << " because Raft is enabled.";
+        }
+    } break;  // BREAK
+    case bmqp::EventType::e_RAFT_CLUSTER: {
+        if (isRaftEnabled()) {
+            d_clusterOrchestrator.processRaftClusterEvent(event, source);
+        }
+        else {
+            BALL_LOG_WARN << description()
+                          << ": Ignoring RAFT_CLUSTER event from "
+                          << source->nodeDescription()
+                          << " because Raft is not enabled.";
+        }
     } break;  // BREAK
     case bmqp::EventType::e_PUT: {
         // This event arrives from a replica to this node, which should be the
@@ -2851,6 +2885,12 @@ void Cluster::processEvent(const bmqp::Event&   event,
         // TODO
         BALL_LOG_ERROR << "Received Authentication Event but reauthentication "
                           "logic is not implemented yet.";
+    } break;  // BREAK
+    case bmqp::EventType::e_RAFT_PARTITION: {
+        // TODO: partition Raft not yet implemented
+        BALL_LOG_WARN << description()
+                      << ": Ignoring RAFT_PARTITION event from "
+                      << source->nodeDescription();
     } break;  // BREAK
     case bmqp::EventType::e_UNDEFINED:
     default: {
@@ -3023,9 +3063,10 @@ void Cluster::onClusterLeader(mqbnet::ClusterNode*                node,
         else {
             d_clusterData.stats().setIsLeader(
                 mqbstat::ClusterStats::LeaderStatus::e_FOLLOWER);
-            if (d_state.isSelfPrimary()) {
-                // We encountered the leader / primary divergence.
-                // Initiate a graceful shutdown of the broker
+            if (d_state.isSelfPrimary() && !isRaftEnabled()) {
+                // In legacy/FSM mode, leader != primary is unsupported.
+                // In Raft mode, this is the normal case (each partition
+                // independently elects its primary).
                 BALL_LOG_ERROR
                     << "Encountered leader-primary divergence: this node is "
                        "still the primary but the leadership has gone to "
@@ -3245,6 +3286,11 @@ void Cluster::printClusterStateSummary(bsl::ostream& out,
 bool Cluster::isFSMWorkflow() const
 {
     return d_clusterData.clusterConfig().clusterAttributes().isFSMWorkflow();
+}
+
+bool Cluster::isRaftEnabled() const
+{
+    return false;  // can hijack isFSMWorkflow();
 }
 
 bool Cluster::doesFSMwriteQLIST() const

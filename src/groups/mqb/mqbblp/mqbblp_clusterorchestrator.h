@@ -40,6 +40,7 @@
 #include <mqbi_clusterstatemanager.h>
 #include <mqbi_dispatcher.h>
 #include <mqbnet_elector.h>
+#include <mqbraft_clusterstateraft.h>
 
 // BMQ
 #include <bmqma_countingallocatorstore.h>
@@ -177,6 +178,8 @@ class ClusterOrchestrator {
 
     ElectorMp d_elector_mp;
 
+    bslma::ManagedPtr<mqbraft::ClusterStateRaft> d_clusterStateRaft_mp;
+
     mqbi::StorageManager* d_storageManager_p;
 
     RecurringEventHandle d_consumptionMonitorEventHandle;
@@ -193,8 +196,15 @@ class ClusterOrchestrator {
   private:
     // PRIVATE MANIPULATORS
 
+    /// Initialize data members for the given cluster mode
+    void init(mqbc::ClusterState* clusterState);
+
     /// Return the dispatcher of the associated cluster.
     mqbi::Dispatcher* dispatcher();
+
+    void processRaftClusterEventDispatched(
+        const bsl::shared_ptr<const bdlbb::Blob>& blob,
+        mqbnet::ClusterNode*                      source);
 
     void processElectorEventDispatched(const bmqp::Event&   event,
                                        mqbnet::ClusterNode* source);
@@ -352,6 +362,16 @@ class ClusterOrchestrator {
     ///         thread.
     void processElectorEvent(const bmqp::Event&   event,
                              mqbnet::ClusterNode* source);
+
+    /// Process an incoming binary Raft AppendEntries event
+    /// (e_RAFT_CLUSTER) from the specified 'source'.
+    void processRaftClusterEvent(const bmqp::Event&   event,
+                                 mqbnet::ClusterNode* source);
+
+    /// Process an incoming Raft control message (election, response) from
+    /// the specified 'source'.
+    void processRaftControlMessage(const bmqp_ctrlmsg::RaftMessage& message,
+                                   mqbnet::ClusterNode*             source);
 
     /// Process the specified leader-sync-state-query `message` from the
     /// specified `source`.
@@ -522,6 +542,9 @@ class ClusterOrchestrator {
 
     /// Get a modifiable reference to this object's queue helper.
     ClusterQueueHelper& queueHelper();
+
+    /// Get a pointer to the ClusterStateRaft, or null if not in Raft mode.
+    mqbraft::ClusterStateRaft* clusterStateRaft();
 
     // ACCESSORS
     const mqbc::ClusterState* clusterState() const;
