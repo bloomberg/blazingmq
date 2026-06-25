@@ -16,6 +16,9 @@
 #include <mqbnet_mockcluster.h>
 
 #include <mqbscm_version.h>
+// MQB
+#include <mqbnet_channel.h>
+
 // BMQ
 #include <bmqp_protocol.h>
 #include <bmqu_memoutstream.h>

@@ -16,9 +16,9 @@
 #include <mqbnet_session.h>
 
 // BMQ
-#include <bmqp_ctrlmsg_messages.h>
-
 #include <bmqio_channel.h>
+#include <bmqp_ctrlmsg_messages.h>
+#include <bmqp_event.h>
 
 // BDE
 #include <bsls_platform.h>

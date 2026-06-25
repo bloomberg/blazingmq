@@ -22,6 +22,7 @@
 
 // BMQ
 #include <bmqio_channel.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bsls_platform.h>

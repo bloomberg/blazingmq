@@ -25,6 +25,7 @@
 #include <bmqu_printutil.h>
 
 // BDE
+#include <bdlb_string.h>
 #include <bsl_vector.h>
 #include <bslim_printer.h>
 

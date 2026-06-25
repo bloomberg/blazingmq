@@ -78,6 +78,7 @@ class Semaphore;
 }
 namespace bmqp {
 class Event;
+class PutMessageIterator;
 }
 namespace bmqt {
 class MessageGUID;

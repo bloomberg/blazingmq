@@ -32,6 +32,7 @@
 #include <mqbevt_recoveryevent.h>
 #include <mqbevt_rejectevent.h>
 #include <mqbevt_storageevent.h>
+#include <mqbnet_channel.h>
 #include <mqbnet_elector.h>
 #include <mqbnet_session.h>
 #include <mqbs_datastore.h>

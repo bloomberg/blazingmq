@@ -26,6 +26,7 @@
 
 // BMQ
 #include <bmqio_testchannelfactory.h>
+#include <bmqp_event.h>
 
 // BDE
 #include <bdlbb_pooledblobbufferfactory.h>

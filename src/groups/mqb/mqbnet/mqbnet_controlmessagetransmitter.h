@@ -30,32 +30,38 @@
 /// should always be manipulated from the associated cluster's dispatcher
 /// thread, unless specified by the function (such as `sendMessageSafe`).
 
-// MQB
-#include <mqbnet_transportmanager.h>
-
 // BMQ
-#include <bmqio_channel.h>
-#include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_schemaeventbuilder.h>
 
 // BDE
 #include <ball_log.h>
 #include <bsl_memory.h>
-#include <bslma_allocator.h>
+#include <bsl_string.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
 
 namespace BloombergLP {
 
-// FORWARD DECLARATION
+// FORWARD DECLARATIONS
 namespace bdlbb {
 class BlobBufferFactory;
+}
+namespace bmqio {
+class Channel;
+}
+namespace bmqp_ctrlmsg {
+class ControlMessage;
+}
+namespace bslma {
+class Allocator;
 }
 namespace mqbi {
 class Cluster;
 }
 namespace mqbnet {
+class Cluster;
 class ClusterNode;
+class TransportManager;
 
 // ===============================
 // class ControlMessageTransmitter

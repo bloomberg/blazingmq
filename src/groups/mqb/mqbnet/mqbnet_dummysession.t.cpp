@@ -20,6 +20,7 @@
 
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
+#include <bmqp_event.h>
 
 #include <bmqio_testchannel.h>
 

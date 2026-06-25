@@ -30,6 +30,7 @@
 
 // MQB
 
+#include <mqbnet_channel.h>
 #include <mqbnet_cluster.h>
 #include <mqbnet_session.h>
 

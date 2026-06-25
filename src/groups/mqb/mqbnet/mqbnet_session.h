@@ -27,11 +27,6 @@
 // 'mqbnet::SessionEventProcessor' is a protocol for a processor of session
 // events.
 
-// MQB
-
-// BMQ
-#include <bmqp_event.h>
-
 // BDE
 #include <bsl_functional.h>
 #include <bsl_memory.h>
@@ -42,6 +37,9 @@
 namespace BloombergLP {
 
 // FORWARD DECLARATION
+namespace bmqp {
+class Event;
+}
 namespace bmqp_ctrlmsg {
 class NegotiationMessage;
 }

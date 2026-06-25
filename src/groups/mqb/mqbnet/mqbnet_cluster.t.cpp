@@ -13,7 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <mqbnet_channel.h>
 #include <mqbnet_cluster.h>
+
+// BMQ
+#include <bmqp_ctrlmsg_messages.h>
 
 // BDE
 #include <bdlbb_blob.h>

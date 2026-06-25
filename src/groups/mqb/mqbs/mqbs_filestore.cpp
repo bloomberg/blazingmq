@@ -24,6 +24,7 @@
 #include <mqbi_domain.h>
 #include <mqbi_queue.h>
 #include <mqbi_queueengine.h>
+#include <mqbnet_channel.h>
 #include <mqbs_datafileiterator.h>
 #include <mqbs_filebackedstorage.h>
 #include <mqbs_filestoreprintutil.h>

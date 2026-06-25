@@ -20,12 +20,17 @@
 #include <mqbi_cluster.h>
 #include <mqbnet_cluster.h>
 #include <mqbnet_session.h>
+#include <mqbnet_transportmanager.h>
 
+// BMQ
+#include <bmqio_channel.h>
 #include <bmqio_status.h>
+#include <bmqp_ctrlmsg_messages.h>
 
 // BDE
 #include <bsl_memory.h>
 #include <bsl_vector.h>
+#include <bslma_allocator.h>
 #include <bsls_assert.h>
 
 namespace BloombergLP {
