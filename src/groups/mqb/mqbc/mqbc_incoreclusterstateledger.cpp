@@ -74,26 +74,6 @@ namespace mqbc {
 
 namespace {
 
-const char k_FILE_PATTERN[] = "bmq_csl_*.bmq_csl";
-
-/// Append the current date and time to the specified `result` in
-/// YYYYMMDD_HHMMSS format.
-void appendFormattedDatetime(bsl::string* result)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(result);
-
-    enum {
-        e_BUFFER_SIZE = 16  // includes null-character
-    };
-
-    bdlt::Datetime now = bdlt::CurrentTime::utc();
-    char           buffer[e_BUFFER_SIZE];
-    struct bsl::tm timeStruct = bdlt::DatetimeUtil::convertToTm(now);
-    bsl::strftime(buffer, e_BUFFER_SIZE, "%G%m%d_%H%M%S", &timeStruct);
-    result->append(buffer);
-}
-
 /// Return the current time in UTC
 bsls::Types::Uint64 currentTime()
 {
@@ -193,7 +173,7 @@ void IncoreClusterStateLeger_LogIdGenerator::generateLogId(
     // Create log name prefix: 'bmq_cs_YYYYMMDD_HHMMSS'
     bsl::string logName;
     logName.append("bmq_csl_");
-    appendFormattedDatetime(&logName);
+    ClusterStateLedgerUtil::appendFormattedDatetime(&logName);
 
     mqbs::StorageUtil::generateStorageKey(logId, &d_logIds, *name);
 
@@ -1271,7 +1251,7 @@ IncoreClusterStateLedger::IncoreClusterStateLedger(
     const mqbcfg::PartitionConfig& partitionCfg =
         clusterDefinition.partitionConfig();
     d_ledgerConfig.setLocation(partitionCfg.location())
-        .setPattern(k_FILE_PATTERN)
+        .setPattern(ClusterStateLedgerUtil::k_CSL_FILE_PATTERN)
         .setMaxLogSize(partitionCfg.maxCSLFileSize())
         .setReserveOnDisk(partitionCfg.preallocate())
         .setPrefaultPages(partitionCfg.prefaultPages())

@@ -18,6 +18,7 @@
 #include <mqbscm_version.h>
 // MQB
 #include <mqbc_electorinfo.h>
+#include <mqbs_storageutil.h>
 
 // BMQ
 #include <bmqp_crc32c.h>
@@ -37,7 +38,13 @@
 #include <bdlbb_blobutil.h>
 #include <bdlbb_pooledblobbufferfactory.h>
 #include <bdlf_bind.h>
+#include <bdls_filesystemutil.h>
+#include <bdlt_currenttime.h>
+#include <bdlt_datetimeutil.h>
+#include <bsl_algorithm.h>
+#include <bsl_ctime.h>
 #include <bsl_iosfwd.h>
+#include <bsl_vector.h>
 #include <bslmf_assert.h>
 #include <bsls_assert.h>
 #include <bsls_types.h>
@@ -52,7 +59,64 @@
 #include <unistd.h>
 
 namespace BloombergLP {
+
+namespace {
+
+const char k_LOG_CATEGORY[] = "MQBC.CLUSTERSTATELEDGERUTIL";
+
+/// Binary function for comparing two file paths by last modification time.
+/// Earlier modification time is "less".  On failure to retrieve time,
+/// logs a warning and returns a safe default.
+struct FileLastModificationTimeLess {
+    bool operator()(const bsl::string& lhs, const bsl::string& rhs) const
+    {
+        BALL_LOG_SET_CATEGORY(k_LOG_CATEGORY);
+
+        bdlt::Datetime lhsTime, rhsTime;
+
+        int rc = bdls::FilesystemUtil::getLastModificationTime(&lhsTime, lhs);
+        if (rc != 0) {
+            BALL_LOG_WARN << "Failed retrieving last modification time of '"
+                          << lhs << "' [rc: " << rc << "]";
+            return true;  // RETURN
+        }
+
+        rc = bdls::FilesystemUtil::getLastModificationTime(&rhsTime, rhs);
+        if (rc != 0) {
+            BALL_LOG_WARN << "Failed retrieving last modification time of '"
+                          << rhs << "' [rc: " << rc << "]";
+            return false;  // RETURN
+        }
+
+        return lhsTime < rhsTime;
+    }
+};
+
+}  // close unnamed namespace
+
 namespace mqbc {
+
+// =============================
+// struct ClusterStateLedgerUtil
+// =============================
+
+// PUBLIC CONSTANTS
+const char ClusterStateLedgerUtil::k_CSL_FILE_PATTERN[] = "bmq_csl_*.bmq_csl";
+
+// CLASS METHODS
+void ClusterStateLedgerUtil::appendFormattedDatetime(bsl::string* result)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(result);
+
+    enum { e_BUFFER_SIZE = 16 };  // includes null-character
+
+    bdlt::Datetime now = bdlt::CurrentTime::utc();
+    char           buffer[e_BUFFER_SIZE];
+    struct bsl::tm timeStruct = bdlt::DatetimeUtil::convertToTm(now);
+    bsl::strftime(buffer, e_BUFFER_SIZE, "%G%m%d_%H%M%S", &timeStruct);
+    result->append(buffer);
+}
 
 // -------------------------------
 // struct ClusterStateLedgerUtilRc
@@ -362,7 +426,8 @@ int ClusterStateLedgerUtil::appendRecord(
     const bmqp_ctrlmsg::ClusterMessage&        clusterMessage,
     const bmqp_ctrlmsg::LeaderMessageSequence& sequenceNumber,
     bsls::Types::Uint64                        timestamp,
-    ClusterStateRecordType::Enum               recordType)
+    ClusterStateRecordType::Enum               recordType,
+    bslma::Allocator*                          allocator)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(blob);
@@ -387,7 +452,7 @@ int ClusterStateLedgerUtil::appendRecord(
         .setTimestamp(timestamp);
 
     // Encode and append 'advisory' to the blob
-    bmqu::MemOutStream os;
+    bmqu::MemOutStream os(allocator);
     int                rc = bmqp::ProtocolUtil::encodeMessage(os,
                                                blob,
                                                clusterMessage,
@@ -541,6 +606,56 @@ int ClusterStateLedgerUtil::loadClusterMessage(
     }
 
     return loadClusterMessage(message, *header, record, offset);
+}
+
+int ClusterStateLedgerUtil::generateCslFilePath(bsl::string*       filePath,
+                                                mqbu::StorageKey*  logId,
+                                                const bsl::string& directory,
+                                                bsl::ostream& errorDescription,
+                                                bslma::Allocator* allocator)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(filePath);
+    BSLS_ASSERT_SAFE(logId);
+
+    bsl::string dir(directory, allocator);
+    if (!dir.empty() && dir[dir.length() - 1] != '/') {
+        dir.append(1, '/');
+    }
+
+    bsl::string pattern(dir, allocator);
+    pattern.append(k_CSL_FILE_PATTERN);
+
+    bsl::vector<bsl::string> files(allocator);
+    bdls::FilesystemUtil::findMatchingPaths(&files, pattern.c_str());
+
+    if (files.empty()) {
+        // Generate new filename: bmq_csl_YYYYMMDD_HHMMSS_<LOGID>.bmq_csl
+        filePath->assign(dir);
+        filePath->append("bmq_csl_");
+        appendFormattedDatetime(filePath);
+        filePath->append("_");
+        mqbs::StorageUtil::generateStorageKey(logId, *filePath);
+        char logIdStr[mqbu::StorageKey::e_KEY_LENGTH_HEX + 1];
+        logId->loadHex(logIdStr);
+        logIdStr[mqbu::StorageKey::e_KEY_LENGTH_HEX] = '\0';
+        filePath->append(logIdStr);
+        filePath->append(".bmq_csl");
+    }
+    else {
+        // Use the most recently modified file.
+        bsl::sort(files.begin(), files.end(), FileLastModificationTimeLess());
+        *filePath = files.back();
+
+        int rc = extractLogId(logId, *filePath);
+        if (rc != 0) {
+            errorDescription << "Failed to extract log ID from '" << *filePath
+                             << "', rc=" << rc;
+            return rc;  // RETURN
+        }
+    }
+
+    return 0;
 }
 
 }  // close package namespace

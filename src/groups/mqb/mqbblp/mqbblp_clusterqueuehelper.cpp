@@ -3786,7 +3786,7 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
 
     // If a specific partitionId is specified, check if partition is assigned
     // to a primary node, and if that primary is ACTIVE.
-    bool                             isSelfPrimaryAndLeader = false;
+    bool                             isSelfPrimary          = false;
     const ClusterStatePartitionInfo* pinfo                  = 0;
 
     if (!allPartitions) {
@@ -3805,18 +3805,23 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
             return;  // RETURN
         }
 
-        // Primary for this partitionId is ACTIVE.  Check if self is the
-        // primary and leader.  If self is primary but not leader, this is
-        // primary-leader divergence and we should not proceed with state
-        // restore.
+        // Primary for this partitionId is ACTIVE.  In Raft mode, check if
+        // self is the primary.  In legacy/FSM mode, also require self to be
+        // leader (leader-primary divergence is unsupported).
 
-        isSelfPrimaryAndLeader =
-            pinfo->primaryNode() == d_clusterData_p->membership().selfNode() &&
-            d_clusterData_p->electorInfo().isSelfLeader();
+        if (d_cluster_p->isRaftEnabled()) {
+            isSelfPrimary = pinfo->primaryNode() ==
+                            d_clusterData_p->membership().selfNode();
+        }
+        else {
+            isSelfPrimary = pinfo->primaryNode() ==
+                                d_clusterData_p->membership().selfNode() &&
+                            d_clusterData_p->electorInfo().isSelfLeader();
+        }
     }
 
     /// TODO (FSM); remove after switching to FSM
-    if (!d_cluster_p->isFSMWorkflow() && isSelfPrimaryAndLeader) {
+    if (!d_cluster_p->isFSMWorkflow() && isSelfPrimary) {
         // Note that this fails if there are data
         mqbc::ClusterState::AssignmentVisitor doubleAssignmentVisitor =
             bdlf::BindUtil::bindS(d_allocator_p,
@@ -3880,10 +3885,15 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
                     << ", primary status: " << pinfo->primaryStatus();
                 continue;  // CONTINUE
             }
-            isSelfPrimaryAndLeader =
-                pinfo->primaryNode() ==
-                    d_clusterData_p->membership().selfNode() &&
-                d_clusterData_p->electorInfo().isSelfLeader();
+            if (d_cluster_p->isRaftEnabled()) {
+                isSelfPrimary = pinfo->primaryNode() ==
+                                d_clusterData_p->membership().selfNode();
+            }
+            else {
+                isSelfPrimary = pinfo->primaryNode() ==
+                                    d_clusterData_p->membership().selfNode() &&
+                                d_clusterData_p->electorInfo().isSelfLeader();
+            }
         }
         else if (queueContext->partitionId() != partitionId) {
             // Skip the queue as its assigned to a different partitionId.
@@ -3902,7 +3912,7 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
 
         // Verify the CSL if needed by comparing it with the Domain config
         if (liveQInfo.d_queue_sp) {
-            if (isSelfPrimaryAndLeader) {
+            if (isSelfPrimary) {
                 // We are assuming that it is not possible for a node to be
                 // primary, lose primary-ship and regain primary-ship;
                 // unless eventually the node went down in which case it
@@ -4668,7 +4678,7 @@ void ClusterQueueHelper::setStreamState(const QueueContextSp& queueContextSp,
 ClusterQueueHelper::ClusterQueueHelper(
     mqbc::ClusterData*         clusterData,
     mqbc::ClusterState*        clusterState,
-    mqbi::ClusterStateManager* clusterStateManager,
+    mqbi::ClusterStateUpdater* clusterStateManager,
     bslma::Allocator*          allocator)
 : d_allocator_p(allocator)
 , d_nextQueueId(0)
@@ -4693,17 +4703,6 @@ ClusterQueueHelper::ClusterQueueHelper(
     // timeout of closeQueue to prevent out-of-order processing of
     // closeQueue (e.g. closeQueue sent after configureQueue but timeout
     // response processed first for the closeQueue)
-
-    if (d_clusterStateManager_p) {
-        d_clusterStateManager_p->setAfterPartitionPrimaryAssignmentCb(
-            bdlf::BindUtil::bindS(
-                d_allocator_p,
-                &ClusterQueueHelper::afterPartitionPrimaryAssignment,
-                this,
-                bdlf::PlaceHolders::_1,    // partitionId
-                bdlf::PlaceHolders::_2,    // primary
-                bdlf::PlaceHolders::_3));  // status
-    }
 }
 
 ClusterQueueHelper::~ClusterQueueHelper()

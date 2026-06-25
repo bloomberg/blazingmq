@@ -644,7 +644,9 @@ void ClusterProxy::processEvent(const bmqp::Event&   event,
     case bmqp::EventType::e_PARTITION_SYNC:
     case bmqp::EventType::e_HEARTBEAT_REQ:
     case bmqp::EventType::e_HEARTBEAT_RSP:
-    case bmqp::EventType::e_REPLICATION_RECEIPT: {
+    case bmqp::EventType::e_REPLICATION_RECEIPT:
+    case bmqp::EventType::e_RAFT_CLUSTER:
+    case bmqp::EventType::e_RAFT_PARTITION: {
         BALL_LOG_ERROR << "#UNEXPECTED_EVENT " << description()
                        << "Received unexpected event: " << event;
         BSLS_ASSERT_SAFE(false && "Unexpected event received");
