@@ -775,8 +775,7 @@ void StorageManager::sendReplicaDataRequestPush(
         mqbnet::ClusterNode* destNode = (*cit)->first;
         BSLS_ASSERT_SAFE(destNode->nodeId() != selfNode->nodeId());
 
-        RequestManagerType::RequestSp request =
-            d_clusterData_p->requestManager().createRequest();
+        RequestSp request = d_clusterData_p->requestManager().createRequest();
         request->setComponentId(
             bmqp::RequestManagerComponentId::partitionFSM(partitionId));
         bmqp_ctrlmsg::ReplicaDataRequest& replicaDataRqst =
@@ -847,8 +846,7 @@ void StorageManager::sendReplicaDataRequestDrop(
         mqbnet::ClusterNode* destNode = (*cit)->first;
         BSLS_ASSERT_SAFE(destNode->nodeId() != selfNode->nodeId());
 
-        RequestManagerType::RequestSp request =
-            d_clusterData_p->requestManager().createRequest();
+        RequestSp request = d_clusterData_p->requestManager().createRequest();
         request->setComponentId(
             bmqp::RequestManagerComponentId::partitionFSM(partitionId));
         bmqp_ctrlmsg::ReplicaDataRequest& replicaDataRqst =
@@ -1291,8 +1289,8 @@ void StorageManager::processReplicaDataRequestDrop(
 }
 
 void StorageManager::processPrimaryStateResponseDispatched(
-    const RequestManagerType::RequestSp& context,
-    mqbnet::ClusterNode*                 responder)
+    const RequestSp&     context,
+    mqbnet::ClusterNode* responder)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -1402,8 +1400,8 @@ void StorageManager::processPrimaryStateResponseDispatched(
 }
 
 void StorageManager::processPrimaryStateResponse(
-    const RequestManagerType::RequestSp& context,
-    mqbnet::ClusterNode*                 responder)
+    const RequestSp&     context,
+    mqbnet::ClusterNode* responder)
 {
     // executed by *any* thread
     // dispatch to the CLUSTER DISPATCHER
@@ -1423,8 +1421,8 @@ void StorageManager::processPrimaryStateResponse(
 }
 
 void StorageManager::processReplicaStateResponseDispatched(
-    const RequestContextSp& requestContext,
-    mqbnet::ClusterNode*    responder)
+    const RequestSp&     requestContext,
+    mqbnet::ClusterNode* responder)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -1541,8 +1539,8 @@ void StorageManager::processReplicaStateResponseDispatched(
 }
 
 void StorageManager::processReplicaStateResponse(
-    const RequestContextSp& requestContext,
-    mqbnet::ClusterNode*    responder)
+    const RequestSp&     requestContext,
+    mqbnet::ClusterNode* responder)
 {
     // executed by *any* thread
     // dispatch to the CLUSTER DISPATCHER
@@ -1556,8 +1554,8 @@ void StorageManager::processReplicaStateResponse(
 }
 
 void StorageManager::processReplicaDataResponseDispatched(
-    const RequestManagerType::RequestSp& context,
-    mqbnet::ClusterNode*                 responder)
+    const RequestSp&     context,
+    mqbnet::ClusterNode* responder)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -1731,9 +1729,8 @@ void StorageManager::processReplicaDataResponseDispatched(
     }
 }
 
-void StorageManager::processReplicaDataResponse(
-    const RequestManagerType::RequestSp& context,
-    mqbnet::ClusterNode*                 responder)
+void StorageManager::processReplicaDataResponse(const RequestSp&     context,
+                                                mqbnet::ClusterNode* responder)
 {
     // executed by *any* thread
 
@@ -2102,7 +2099,7 @@ void StorageManager::do_replicaStateRequest(const EventWithData& event)
          ++it) {
         mqbnet::ClusterNode* replica = *it;
 
-        RequestContextSp contextSp =
+        RequestSp contextSp =
             d_clusterData_p->requestManager().createRequest();
         contextSp->setComponentId(
             bmqp::RequestManagerComponentId::partitionFSM(partitionId));
@@ -2363,8 +2360,7 @@ void StorageManager::do_primaryStateRequest(const EventWithData& event)
 
     d_recoveryManager_mp->setLiveDataSource(primary, partitionId);
 
-    RequestManagerType::RequestSp request =
-        d_clusterData_p->requestManager().createRequest();
+    RequestSp request = d_clusterData_p->requestManager().createRequest();
     request->setComponentId(
         bmqp::RequestManagerComponentId::partitionFSM(partitionId));
 
@@ -2562,8 +2558,7 @@ void StorageManager::do_replicaDataRequestPull(const EventWithData& event)
     BSLS_ASSERT_SAFE(destNode->nodeId() !=
                      d_clusterData_p->membership().selfNode()->nodeId());
 
-    RequestManagerType::RequestSp request =
-        d_clusterData_p->requestManager().createRequest();
+    RequestSp request = d_clusterData_p->requestManager().createRequest();
     request->setComponentId(
         bmqp::RequestManagerComponentId::partitionFSM(partitionId));
     bmqp_ctrlmsg::ReplicaDataRequest& replicaDataRequest =

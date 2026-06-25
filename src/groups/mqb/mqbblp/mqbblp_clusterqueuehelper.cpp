@@ -571,8 +571,7 @@ void ClusterQueueHelper::requestQueueAssignment(const bmqt::Uri& uri)
         return;  // RETURN
     }
 
-    RequestManagerType::RequestSp request =
-        d_cluster_p->requestManager().createRequest();
+    RequestSp request = d_cluster_p->requestManager().createRequest();
     bmqp_ctrlmsg::QueueAssignmentRequest& queueAssignmentRequest =
         request->request()
             .choice()
@@ -613,9 +612,9 @@ void ClusterQueueHelper::requestQueueAssignment(const bmqt::Uri& uri)
 }
 
 void ClusterQueueHelper::onQueueAssignmentResponse(
-    const RequestManagerType::RequestSp& requestContext,
-    const bmqt::Uri&                     uri,
-    mqbnet::ClusterNode*                 responder)
+    const RequestSp&     requestContext,
+    const bmqt::Uri&     uri,
+    mqbnet::ClusterNode* responder)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -1239,8 +1238,7 @@ void ClusterQueueHelper::sendOpenQueueRequest(
     }
 
     if (subQueueContext.d_state == SubQueueContext::k_OPEN) {
-        RequestManagerType::RequestSp request =
-            d_cluster_p->requestManager().createRequest();
+        RequestSp request = d_cluster_p->requestManager().createRequest();
         bmqp_ctrlmsg::OpenQueue& openQueue =
             request->request().choice().makeOpenQueue();
 
@@ -1325,8 +1323,7 @@ bmqt::GenericResult::Enum ClusterQueueHelper::sendReopenQueueRequest(
     BSLS_ASSERT_SAFE(activeNode);
     BSLS_ASSERT_SAFE(cycle);
 
-    RequestManagerType::RequestSp request =
-        d_cluster_p->requestManager().createRequest();
+    RequestSp request = d_cluster_p->requestManager().createRequest();
     bmqp_ctrlmsg::OpenQueue& openQueue =
         request->request().choice().makeOpenQueue();
 
@@ -1390,10 +1387,9 @@ bmqt::GenericResult::Enum ClusterQueueHelper::sendReopenQueueRequest(
     return rc;
 }
 
-void ClusterQueueHelper::onOpenQueueResponse(
-    const RequestManagerType::RequestSp& requestContext,
-    const OpenQueueContextSp&            context,
-    mqbnet::ClusterNode*                 responder)
+void ClusterQueueHelper::onOpenQueueResponse(const RequestSp& requestContext,
+                                             const OpenQueueContextSp& context,
+                                             mqbnet::ClusterNode* responder)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -1584,7 +1580,7 @@ void ClusterQueueHelper::onOpenQueueResponse(
 }
 
 void ClusterQueueHelper::onReopenQueueResponse(
-    const RequestManagerType::RequestSp&         requestContext,
+    const RequestSp&                             requestContext,
     mqbnet::ClusterNode*                         activeNode,
     const bsl::shared_ptr<PartitionReopenCycle>& cycle,
     int                                          numAttempts)
@@ -1790,7 +1786,7 @@ void ClusterQueueHelper::onReopenQueueResponse(
 }
 
 void ClusterQueueHelper::onConfigureQueueResponse(
-    const RequestManagerType::RequestSp&               requestContext,
+    const RequestSp&                                   requestContext,
     const bmqt::Uri&                                   uri,
     const bmqp_ctrlmsg::StreamParameters&              streamParameters,
     bsls::Types::Uint64                                generationCount,
@@ -1818,7 +1814,7 @@ void ClusterQueueHelper::onConfigureQueueResponse(
         bmqp_ctrlmsg::StreamParameters              d_streamParams;
 
         ScopeGuard(const mqbi::QueueHandle::HandleConfiguredCallback& callback,
-                   const RequestManagerType::RequestSp&  requestContext,
+                   const RequestSp&                      requestContext,
                    const bmqp_ctrlmsg::StreamParameters& streamParameters)
         : d_callback(callback)
         , d_streamParams(streamParameters)
@@ -1898,7 +1894,7 @@ void ClusterQueueHelper::onConfigureQueueResponse(
 }
 
 void ClusterQueueHelper::onReopenQueueRetry(
-    const RequestManagerType::RequestSp&         requestContext,
+    const RequestSp&                             requestContext,
     mqbnet::ClusterNode*                         activeNode,
     const bsl::shared_ptr<PartitionReopenCycle>& cycle,
     int                                          numAttempts)
@@ -1922,7 +1918,7 @@ void ClusterQueueHelper::onReopenQueueRetry(
 }
 
 void ClusterQueueHelper::onReopenQueueRetryDispatched(
-    const RequestManagerType::RequestSp&         requestContext,
+    const RequestSp&                             requestContext,
     mqbnet::ClusterNode*                         activeNode,
     const bsl::shared_ptr<PartitionReopenCycle>& cycle,
     int                                          numAttempts)
@@ -3255,7 +3251,7 @@ void ClusterQueueHelper::sendCloseQueueRequest(
 }
 
 void ClusterQueueHelper::onCloseQueueResponse(
-    const RequestManagerType::RequestSp&         requestContext,
+    const RequestSp&                             requestContext,
     const mqbi::Cluster::HandleReleasedCallback& callback)
 {
     // executed by the cluster *DISPATCHER* thread
@@ -3436,8 +3432,7 @@ bool ClusterQueueHelper::sendConfigureQueueRequest(
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
     BSLS_ASSERT_SAFE(upstreamNode);
 
-    RequestManagerType::RequestSp request =
-        d_cluster_p->requestManager().createRequest();
+    RequestSp request = d_cluster_p->requestManager().createRequest();
 
     // TODO: Replace with 'ConfigureStream' once all brokers recognize it
 
@@ -3534,8 +3529,7 @@ void ClusterQueueHelper::sendCloseQueueRequest(
     // downstream (self) node.  This is one of the reasons that this routine
     // does not return an error code.
 
-    RequestManagerType::RequestSp request =
-        d_cluster_p->requestManager().createRequest();
+    RequestSp request = d_cluster_p->requestManager().createRequest();
     bmqp_ctrlmsg::CloseQueue& req =
         request->request().choice().makeCloseQueue();
 

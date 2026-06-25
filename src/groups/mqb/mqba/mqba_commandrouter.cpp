@@ -168,10 +168,7 @@ int CommandRouter::route(bsl::ostream&  errorDescription,
     BSLS_ASSERT_SAFE(selfShouldExecute);
     BSLS_ASSERT_SAFE(relevantCluster);
 
-    typedef mqbnet::MultiRequestManager<bmqp_ctrlmsg::ControlMessage,
-                                        bmqp_ctrlmsg::ControlMessage,
-                                        mqbnet::ClusterNode*>::RequestContextSp
-        RequestContextSp;
+    typedef mqbnet::MultiRequestManager<>::RequestContextSp RequestContextSp;
 
     enum RcEnum {
         rc_SUCCESS = 0,

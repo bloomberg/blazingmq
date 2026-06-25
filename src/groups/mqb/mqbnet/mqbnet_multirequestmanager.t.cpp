@@ -80,9 +80,9 @@ namespace {
 
 typedef bmqp_ctrlmsg::ControlMessage               Mes;
 typedef bsl::queue<Mes>                            MesQue;
-typedef bmqp::RequestManager<Mes, Mes>             ReqManagerType;
+typedef bmqp::RequestManager                       ReqManagerType;
 typedef bsl::shared_ptr<ReqManagerType>            ReqManagerTypeSp;
-typedef mqbnet::MultiRequestManager<Mes, Mes>      MultiReqManagerType;
+typedef mqbnet::MultiRequestManager<>              MultiReqManagerType;
 typedef bsl::shared_ptr<MultiReqManagerType>       MultiReqManagerTypeSp;
 typedef MultiReqManagerType::RequestContextType    ReqContextType;
 typedef MultiReqManagerType::RequestContextSp      ReqContextSp;

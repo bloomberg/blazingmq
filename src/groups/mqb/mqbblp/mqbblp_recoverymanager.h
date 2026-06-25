@@ -741,21 +741,10 @@ class RecoveryManager : public mqbnet::ClusterObserver {
 
     typedef PrimarySyncContext::PartitionPrimarySyncCb PartitionPrimarySyncCb;
 
-    typedef mqbc::ClusterData::RequestManagerType RequestManagerType;
+    typedef bmqp::RequestManager::RequestSp RequestSp;
 
-    typedef mqbc::ClusterData::MultiRequestManagerType MultiRequestManagerType;
-
-    typedef MultiRequestManagerType::RequestContextSp RequestContextSp;
-
-    typedef MultiRequestManagerType::NodeResponsePair NodeResponsePair;
-
-    typedef MultiRequestManagerType::NodeResponsePairs NodeResponsePairs;
-
-    typedef MultiRequestManagerType::NodeResponsePairsIter
-        NodeResponsePairsIter;
-
-    typedef MultiRequestManagerType::NodeResponsePairsConstIter
-        NodeResponsePairsConstIter;
+    typedef mqbc::ClusterData::MultiRequestManagerType::RequestContextSp
+        RequestContextSp;
 
     typedef mqbs::FileStore::SyncPointOffsetPairs SyncPointOffsetPairs;
 
@@ -855,15 +844,14 @@ class RecoveryManager : public mqbnet::ClusterObserver {
                                         int              partitionId);
 
     /// Executed by any thread.
-    void onStorageSyncResponse(const RequestManagerType::RequestSp& context,
-                               const mqbnet::ClusterNode*           responder);
+    void onStorageSyncResponse(const RequestSp&           context,
+                               const mqbnet::ClusterNode* responder);
 
     /// Executed by the dispatcher thread identified by the specified
     /// `processorId` assigned to the specified `partitionId`.
-    void onStorageSyncResponseDispatched(
-        int                                  partitionId,
-        const RequestManagerType::RequestSp& context,
-        const mqbnet::ClusterNode*           responder);
+    void onStorageSyncResponseDispatched(int              partitionId,
+                                         const RequestSp& context,
+                                         const mqbnet::ClusterNode* responder);
 
     /// Executed by the dispatcher thread associated with the specified
     /// `partitionId`.
@@ -914,9 +902,9 @@ class RecoveryManager : public mqbnet::ClusterObserver {
     /// specified `requestContext`.
     ///
     /// THREAD: This method is invoked in the associated cluster's IO thread.
-    void onPartitionSyncDataQueryResponse(
-        const RequestManagerType::RequestSp& context,
-        const mqbnet::ClusterNode*           responder);
+    void
+    onPartitionSyncDataQueryResponse(const RequestSp&           context,
+                                     const mqbnet::ClusterNode* responder);
 
     /// Process the partition-sync-data-query response contained in the
     /// specified `requestContext`.
@@ -924,9 +912,9 @@ class RecoveryManager : public mqbnet::ClusterObserver {
     /// THREAD: This method is invoked in the associated partition's dispatcher
     ///         thread.
     void onPartitionSyncDataQueryResponseDispatched(
-        int                                  partitionId,
-        const RequestManagerType::RequestSp& context,
-        const mqbnet::ClusterNode*           responder);
+        int                        partitionId,
+        const RequestSp&           context,
+        const mqbnet::ClusterNode* responder);
 
     bool hasSyncPoint(bmqp_ctrlmsg::SyncPoint* syncPoint,
                       mqbs::RecordHeader*      syncPointRecHeader,
