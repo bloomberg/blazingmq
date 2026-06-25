@@ -78,7 +78,6 @@ class ClusterStateRaft : public mqbi::ClusterStateUpdater {
     bslma::ManagedPtr<RaftNode>                 d_raftNode_mp;
     mqbc::ClusterData*                          d_clusterData_p;
     mqbc::ClusterState*                         d_clusterState_p;
-    AfterPartitionPrimaryAssignmentCb           d_afterPartitionPrimaryAssignmentCb;
     bdlmt::EventScheduler::RecurringEventHandle d_tickHandle;
     bool                                        d_isStarted;
     bslma::Allocator*                           d_allocator_p;
@@ -158,8 +157,6 @@ class ClusterStateRaft : public mqbi::ClusterStateUpdater {
 
     // ClusterStateUpdater interface
 
-    void setAfterPartitionPrimaryAssignmentCb(
-        const AfterPartitionPrimaryAssignmentCb& value) BSLS_KEYWORD_OVERRIDE;
 
     bool assignQueue(const bmqt::Uri&      uri,
                      bmqp_ctrlmsg::Status* status) BSLS_KEYWORD_OVERRIDE;
