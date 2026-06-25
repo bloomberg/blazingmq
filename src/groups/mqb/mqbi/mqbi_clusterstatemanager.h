@@ -84,24 +84,10 @@ class StorageManager;
 /// 'ClusterStateManager' and Raft-based 'ClusterStateRaft'.
 class ClusterStateUpdater {
   public:
-    // TYPES
-
-    /// Signature of a callback invoked after the specified `partitionId`
-    /// gets assigned to the specified `primary` with the specified `status`.
-    typedef bsl::function<void(int                                partitionId,
-                               mqbnet::ClusterNode*               primary,
-                               bmqp_ctrlmsg::PrimaryStatus::Value status)>
-        AfterPartitionPrimaryAssignmentCb;
-
-  public:
     // CREATORS
     virtual ~ClusterStateUpdater();
 
     // MANIPULATORS
-
-    /// Set the callback to be invoked after a partition-primary assignment.
-    virtual void setAfterPartitionPrimaryAssignmentCb(
-        const AfterPartitionPrimaryAssignmentCb& value) = 0;
 
     /// Assign a queue key, partition, and appIds to the queue with the
     /// specified `uri`, applying the corresponding advisory.  Return false
@@ -132,7 +118,14 @@ class ClusterStateManager : public ClusterStateUpdater {
   public:
     // TYPES
 
-    // Inherit AfterPartitionPrimaryAssignmentCb from ClusterStateUpdater.
+    /// Signature of a callback invoked after the specified `partitionId`
+    /// gets assigned to the specified `primary` with the specified `status`.
+    /// This callback is specific to legacy ClusterStateManager; Raft-based
+    /// ClusterStateRaft does not support or require this callback.
+    typedef bsl::function<void(int                                partitionId,
+                               mqbnet::ClusterNode*               primary,
+                               bmqp_ctrlmsg::PrimaryStatus::Value status)>
+        AfterPartitionPrimaryAssignmentCb;
 
     /// Pair of (appId, appKey)
     typedef bsl::pair<bsl::string, mqbu::StorageKey>            AppInfo;
@@ -167,6 +160,11 @@ class ClusterStateManager : public ClusterStateUpdater {
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
     virtual void setStorageManager(StorageManager* value) = 0;
+
+    /// Set the after partition primary assignment callback to the specified
+    /// `value`.
+    virtual void setAfterPartitionPrimaryAssignmentCb(
+        const AfterPartitionPrimaryAssignmentCb& value) = 0;
 
     /// Set the primary for the specified `partitionId` to be the specified
     /// `primary` with the specified `leaseId`.

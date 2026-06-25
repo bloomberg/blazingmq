@@ -320,41 +320,55 @@ void ClusterStateRaft::tickDispatched()
 
 void ClusterStateRaft::updateElectorInfo()
 {
-    mqbnet::ClusterNode* leaderNode = 0;
-    int                  leadId     = d_raftNode_mp->leaderId();
+    int leaderId = d_raftNode_mp->leaderId();
 
-    if (leadId != RaftNode::k_INVALID_NODE_ID) {
-        leaderNode = d_clusterData_p->membership().netCluster()->lookupNode(
-            leadId);
+    if (leaderId == RaftNode::k_INVALID_NODE_ID) {
+        d_clusterData_p->electorInfo().setElectorInfo(mqbnet::ElectorState::e_DORMANT,
+                                                      d_raftNode_mp->currentTerm(),
+                                                      0,
+                                                      mqbc::ElectorInfoLeaderStatus::e_UNDEFINED);
+
+        return; // RETURN
     }
 
-    mqbc::ElectorInfoLeaderStatus::Enum leaderStatus =
-        mqbc::ElectorInfoLeaderStatus::e_UNDEFINED;
 
-    if (d_raftNode_mp->state() == RaftState::e_LEADER) {
-        leaderStatus = mqbc::ElectorInfoLeaderStatus::e_ACTIVE;
-    }
-    else if (leaderNode) {
-        leaderStatus = mqbc::ElectorInfoLeaderStatus::e_ACTIVE;
-    }
+    mqbnet::ClusterNode* leaderNode = d_clusterData_p->membership().netCluster()->lookupNode(
+        leaderId);
 
-    mqbnet::ElectorState::Enum electorState;
+    BSLS_ASSERT_SAFE(leaderNode);
+
+    bool                        isActive;
+    mqbnet::ElectorState::Enum  electorState;
+
     switch (d_raftNode_mp->state()) {
     case RaftState::e_LEADER:
         electorState = mqbnet::ElectorState::e_LEADER;
+        isActive = true;
         break;
     case RaftState::e_CANDIDATE:
     case RaftState::e_PRE_CANDIDATE:
         electorState = mqbnet::ElectorState::e_CANDIDATE;
+        isActive = false;
         break;
     case RaftState::e_FOLLOWER:
-    default: electorState = mqbnet::ElectorState::e_FOLLOWER; break;
+    default:
+        electorState = mqbnet::ElectorState::e_FOLLOWER;
+        isActive = true;
+        break;
     }
 
     d_clusterData_p->electorInfo().setElectorInfo(electorState,
                                                   d_raftNode_mp->currentTerm(),
                                                   leaderNode,
-                                                  leaderStatus);
+                                                  mqbc::ElectorInfoLeaderStatus::e_PASSIVE);
+
+    if (isActive) {
+        // Raft doesn't need a healing phase: election safety guarantees
+        // the leader has all committed entries. Both leader and followers
+        // can immediately proceed with cluster operations.
+
+        d_clusterData_p->electorInfo().setLeaderStatus(mqbc::ElectorInfoLeaderStatus::e_ACTIVE);
+    }
 }
 
 // MANIPULATORS
@@ -555,12 +569,7 @@ int ClusterStateRaft::propose(const bmqp_ctrlmsg::ClusterMessage& advisory)
     return 0;
 }
 
-// ClusterStateUpdater interface
-void ClusterStateRaft::setAfterPartitionPrimaryAssignmentCb(
-    const AfterPartitionPrimaryAssignmentCb& value)
-{
-    d_afterPartitionPrimaryAssignmentCb = value;
-}
+
 
 bool ClusterStateRaft::assignQueue(const bmqt::Uri&      uri,
                                    bmqp_ctrlmsg::Status* status)

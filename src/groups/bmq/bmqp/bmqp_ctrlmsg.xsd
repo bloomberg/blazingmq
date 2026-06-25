@@ -119,6 +119,7 @@
         <element bdem:id='16' name='configureStream'                type='tns:ConfigureStream'/>
         <element bdem:id='17' name='configureStreamResponse'        type='tns:ConfigureStreamResponse'/>
         <element bdem:id='18' name='raftMessage'                    type='tns:RaftMessage'/>
+        <element bdem:id='19' name='partitionElectionResult'        type='tns:PartitionElectionResult'/>
       </choice>
     </sequence>
   </complexType>
@@ -1795,6 +1796,27 @@
        :                         RAFT MESSAGE                                :
        #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::#
        ==================================================================== -->
+
+  <complexType name='PartitionElectionResult'>
+    <annotation>
+      <documentation>
+        Sent by a partition Raft primary to the cluster Raft leader after
+        winning a partition election.  The cluster leader validates and
+        proposes a PartitionPrimaryAdvisory to CSL upon receipt.  The
+        partition primary does not start serving PUTs until it sees its
+        own PartitionPrimaryAdvisory committed in CSL.
+
+        partitionId.....: The partition for which an election completed
+        primaryNodeId...: The winning node (sender)
+        primaryLeaseId..: The partition Raft term of the new primary
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='partitionId'    type='int'/>
+      <element name='primaryNodeId'  type='int'/>
+      <element name='primaryLeaseId' type='unsignedInt'/>
+    </sequence>
+  </complexType>
 
   <complexType name='RaftRequestVote'>
     <annotation>
