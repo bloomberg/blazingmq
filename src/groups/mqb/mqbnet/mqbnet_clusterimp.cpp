@@ -94,7 +94,7 @@ bool ClusterNodeImp::enableRead()
 
     BSLS_ASSERT_SAFE(d_readCb);
 
-    if (d_isReading.testAndSwap(false, true) != false) {
+    if (d_isReading.swap(true)) {
         return true;  // RETURN
     }
 
