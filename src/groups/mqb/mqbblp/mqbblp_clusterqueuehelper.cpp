@@ -1145,10 +1145,23 @@ void ClusterQueueHelper::processOpenQueueRequest(
             }
         }
         else {
-            // We are a replica for the queue, make sure it has a unique
-            // upstream id associated, if we haven't already done so, assign
-            // one now.
+            // We are a replica for the queue.  If the local partition
+            // hasn't finished recovery, buffer the request until
+            // restoreState() drains it after recovery completes.
+            if (!d_storageManager_p->fileStore(pid).isOpen()) {
+                BMQ_LOGTHROTTLE_ERROR
+                    << d_cluster_p->description() << ": Partition [" << pid
+                    << "] is not yet recovered, buffering open queue"
+                    << " request for '" << context->queueContext()->uri()
+                    << "'";
 
+                context->queueContext()->d_liveQInfo.d_pending.push_back(
+                    context);
+                return;  // RETURN
+            }
+
+            // Make sure it has a unique upstream id associated, if we
+            // haven't already done so, assign one now.
             if (context->queueContext()->d_liveQInfo.d_id ==
                 bmqp::QueueId::k_UNASSIGNED_QUEUE_ID) {
                 context->queueContext()->d_liveQInfo.d_id = getNextQueueId();
