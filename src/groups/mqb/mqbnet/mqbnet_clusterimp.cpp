@@ -94,7 +94,7 @@ bool ClusterNodeImp::enableRead()
 
     BSLS_ASSERT_SAFE(d_readCb);
 
-    if (d_isReading) {
+    if (d_isReading.swap(true)) {
         return true;  // RETURN
     }
 
@@ -109,10 +109,10 @@ bool ClusterNodeImp::enableRead()
 
         channelSp->close();
 
+        d_isReading = false;
+
         return false;  // RETURN
     }
-
-    d_isReading = true;
 
     BALL_LOG_INFO << nodeDescription() << ": reading from the channel '"
                   << channelSp->peerUri() << "'";
