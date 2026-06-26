@@ -130,6 +130,33 @@ CONFIGURE_STREAM_SCHEMA: SchemaDescription = {
     },
 }
 
+CONFIGURE_STREAM_WITH_CONSUMER_SUBSCRIPTION_SCHEMA: SchemaDescription = {
+    "rId": 0,
+    "configureStream": {
+        "qId": 0,
+        "streamParameters": {
+            "appId": "__default",
+            "subscriptions": [
+                {
+                    "sId": 0,
+                    "expression": {
+                        "version": "E_VERSION_1",
+                        "text": "x > 0",
+                    },
+                    "consumers": [
+                        {
+                            "maxUnconfirmedMessages": 100,
+                            "maxUnconfirmedBytes": 10000,
+                            "consumerPriority": 1,
+                            "consumerPriorityCount": 1,
+                        },
+                    ],
+                },
+            ],
+        },
+    },
+}
+
 CONFIGURE_QUEUE_STREAM_SCHEMA: SchemaDescription = {
     "rId": 0,
     "configureQueueStream": {
