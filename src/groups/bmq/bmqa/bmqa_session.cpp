@@ -124,137 +124,63 @@ int validateQueueOptions(bsl::ostream& out, const bmqt::QueueOptions& options)
     return 0;
 }
 
-template <typename T>
-T fromStatusCode(int statusCode);
+template <typename RESULT_ENUM>
+struct ResultCodeType_Imp {};
 
-/// Convert a status code into a generic result. If `code` does not match one
-/// of the `GenericResult::Enum` variants, return
-/// `bmqt::GenericResult::e_UNKNOWN`. Otherwise, return the value of `code`
-/// casted as a `GenericResult::Enum`.
 template <>
-bmqt::GenericResult::Enum
-fromStatusCode<bmqt::GenericResult::Enum>(int statusCode)
-{
-    switch (statusCode) {
-    case bmqt::GenericResult::e_SUCCESS:
-    case bmqt::GenericResult::e_UNKNOWN:
-    case bmqt::GenericResult::e_TIMEOUT:
-    case bmqt::GenericResult::e_NOT_CONNECTED:
-    case bmqt::GenericResult::e_CANCELED:
-    case bmqt::GenericResult::e_NOT_SUPPORTED:
-    case bmqt::GenericResult::e_REFUSED:
-    case bmqt::GenericResult::e_INVALID_ARGUMENT:
-    case bmqt::GenericResult::e_NOT_READY: {
-        return static_cast<bmqt::GenericResult::Enum>(statusCode);
-    }
-    default: {
-        return bmqt::GenericResult::e_UNKNOWN;
-    }
-    }
-}
+struct ResultCodeType_Imp<bmqt::GenericResult::Enum> {
+    typedef bmqt::GenericResult Type;
+};
 
-/// Convert a status code into an open queue result. If `code` does not match
-/// one of the `OpenQueueResult::Enum` variants, return
-/// `bmqt::OpenQueueResult::e_UNKNOWN`. Otherwise, return the value of `code`
-/// casted as a `bmqt::OpenQueueResult::Enum`.
 template <>
-bmqt::OpenQueueResult::Enum
-fromStatusCode<bmqt::OpenQueueResult::Enum>(int code)
-{
-#define BMQA_CASE(X) case bmqt::OpenQueueResult::e_##X:
+struct ResultCodeType_Imp<bmqt::OpenQueueResult::Enum> {
+    typedef bmqt::OpenQueueResult Type;
+};
 
-    switch (code) {
-        BMQA_CASE(SUCCESS)
-        BMQA_CASE(UNKNOWN)
-        BMQA_CASE(TIMEOUT)
-        BMQA_CASE(NOT_CONNECTED)
-        BMQA_CASE(CANCELED)
-        BMQA_CASE(NOT_SUPPORTED)
-        BMQA_CASE(REFUSED)
-        BMQA_CASE(INVALID_ARGUMENT)
-        BMQA_CASE(NOT_READY)
-        BMQA_CASE(ALREADY_OPENED)
-        BMQA_CASE(ALREADY_IN_PROGRESS)
-        BMQA_CASE(INVALID_URI)
-        BMQA_CASE(INVALID_FLAGS)
-        BMQA_CASE(CORRELATIONID_NOT_UNIQUE)
-        {
-            return static_cast<bmqt::OpenQueueResult::Enum>(code);
-        }
-    default: {
-        return bmqt::OpenQueueResult::e_UNKNOWN;
-    }
-    }
-
-#undef BMQA_CASE
-}
-
-/// Convert a status code into a close queue result. If `code` does not match
-/// one of the `CloseQueueResult::Enum` variants, return
-/// `bmqt::CloseQueueResult::e_UNKNOWN`. Otherwise, return the value of `code`
-/// casted as a `bmqt::CloseQueueResult::Enum`.
 template <>
-bmqt::CloseQueueResult::Enum
-fromStatusCode<bmqt::CloseQueueResult::Enum>(int code)
-{
-#define BMQA_CASE(X) case bmqt::CloseQueueResult::e_##X:
+struct ResultCodeType_Imp<bmqt::ConfigureQueueResult::Enum> {
+    typedef bmqt::ConfigureQueueResult Type;
+};
 
-    switch (code) {
-        BMQA_CASE(SUCCESS)
-        BMQA_CASE(UNKNOWN)
-        BMQA_CASE(TIMEOUT)
-        BMQA_CASE(NOT_CONNECTED)
-        BMQA_CASE(CANCELED)
-        BMQA_CASE(NOT_SUPPORTED)
-        BMQA_CASE(REFUSED)
-        BMQA_CASE(INVALID_ARGUMENT)
-        BMQA_CASE(NOT_READY)
-        BMQA_CASE(ALREADY_CLOSED)
-        BMQA_CASE(ALREADY_IN_PROGRESS)
-        BMQA_CASE(UNKNOWN_QUEUE)
-        BMQA_CASE(INVALID_QUEUE)
-        {
-            return static_cast<bmqt::CloseQueueResult::Enum>(code);
-        }
-    default: {
-        return bmqt::CloseQueueResult::e_UNKNOWN;
-    }
-    }
-
-#undef BMQA_CASE
-}
-
-/// Convert a status code into an open queue result. If `code` does not match
-/// one of the `ConfigureQueueResult::Enum` variants, return
-/// `bmqt::ConfigureQueueResult::e_UNKNOWN`. Otherwise, return the value of
-/// `code` casted as a `bmqt::ConfigureQueueResult::Enum`.
 template <>
-bmqt::ConfigureQueueResult::Enum
-fromStatusCode<bmqt::ConfigureQueueResult::Enum>(int code)
+struct ResultCodeType_Imp<bmqt::CloseQueueResult::Enum> {
+    typedef bmqt::CloseQueueResult Type;
+};
+
+/// This is a type trait struct that maps bmqa_resultcode enums back to their
+/// wrapping type.
+///
+/// In other words, `ResultCodeType<ResultType::Enum> == ResultType`.
+template <typename RESULT_ENUM>
+struct ResultCodeType
+: public ResultCodeType_Imp<typename bsl::remove_cv<RESULT_ENUM>::type> {};
+
+// Check that every type maps as we expect.
+BSLMF_ASSERT((bsl::is_same<ResultCodeType<bmqt::GenericResult::Enum>::Type,
+                           bmqt::GenericResult>::value));
+BSLMF_ASSERT((bsl::is_same<ResultCodeType<bmqt::OpenQueueResult::Enum>::Type,
+                           bmqt::OpenQueueResult>::value));
+BSLMF_ASSERT(
+    (bsl::is_same<ResultCodeType<bmqt::ConfigureQueueResult::Enum>::Type,
+                  bmqt::ConfigureQueueResult>::value));
+BSLMF_ASSERT((bsl::is_same<ResultCodeType<bmqt::CloseQueueResult::Enum>::Type,
+                           bmqt::CloseQueueResult>::value));
+
+/// This is a templated version of the `fromStatusCode` static member functions
+/// in the types from bmqt_resultcode.
+///
+/// For example:
+/// ```c++
+/// ASSERT_EQ(
+///     fromStatusCode<bmqt::GenericResult::Enum>(status),
+///     bmqt::GenericResult::fromStatusCode(status)
+/// );
+/// ```
+template <typename RESULT_ENUM>
+RESULT_ENUM fromStatusCode(int status)
 {
-#define BMQA_CASE(X) case bmqt::ConfigureQueueResult::e_##X:
-
-    switch (code) {
-        BMQA_CASE(SUCCESS)
-        BMQA_CASE(UNKNOWN)
-        BMQA_CASE(TIMEOUT)
-        BMQA_CASE(NOT_CONNECTED)
-        BMQA_CASE(CANCELED)
-        BMQA_CASE(NOT_SUPPORTED)
-        BMQA_CASE(REFUSED)
-        BMQA_CASE(INVALID_ARGUMENT)
-        BMQA_CASE(NOT_READY)
-        BMQA_CASE(ALREADY_IN_PROGRESS)
-        BMQA_CASE(INVALID_QUEUE)
-        {
-            return static_cast<bmqt::ConfigureQueueResult::Enum>(code);
-        }
-    default: {
-        return bmqt::ConfigureQueueResult::e_UNKNOWN;
-    }
-    }
-
-#undef BMQA_CASE
+    typedef typename ResultCodeType<RESULT_ENUM>::Type ResultType;
+    return ResultType::fromStatusCode(status);
 }
 
 // CLASSES

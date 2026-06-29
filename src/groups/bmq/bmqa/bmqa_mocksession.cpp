@@ -376,6 +376,24 @@ Event MockSessionUtil::createQueueSessionEvent(
     QueueId*                     queueId,
     const bmqt::CorrelationId&   correlationId,
     int                          errorCode,
+    const bslstl::StringRef&     errorDescription,
+    bslma::Allocator*            allocator)
+{
+    return createQueueSessionEvent(
+        sessionEventType,
+        queueId,
+        correlationId,
+        errorCode,
+        bmqt::GenericResult::fromStatusCode(errorCode),
+        errorDescription,
+        allocator);
+}
+
+Event MockSessionUtil::createQueueSessionEvent(
+    bmqt::SessionEventType::Enum sessionEventType,
+    QueueId*                     queueId,
+    const bmqt::CorrelationId&   correlationId,
+    int                          errorCode,
     bmqt::GenericResult::Enum    result,
     const bslstl::StringRef&     errorDescription,
     bslma::Allocator*            allocator)
@@ -1068,7 +1086,7 @@ MockSession::MockSession(const bmqt::SessionOptions& options,
                                     bdlf::PlaceHolders::_2,
                                     bdlf::PlaceHolders::_3))
 , d_lastQueueId(0)
-, d_corrIdContainer_sp(new(*bslma::Default::allocator(allocator))
+, d_corrIdContainer_sp(new (*bslma::Default::allocator(allocator))
                            bmqimp::MessageCorrelationIdContainer(
                                bslma::Default::allocator(allocator)),
                        bslma::Default::allocator(allocator))
@@ -1076,7 +1094,7 @@ MockSession::MockSession(const bmqt::SessionOptions& options,
 , d_rootStatContext_mp(bslma::ManagedPtrUtil::makeManaged<bmqst::StatContext>(
       bmqst::StatContextConfiguration("MockSession", allocator),
       allocator))
-, d_queuesStats_sp(new(*bslma::Default::allocator(allocator))
+, d_queuesStats_sp(new (*bslma::Default::allocator(allocator))
                        bmqimp::Stat(bslma::Default::allocator(allocator)),
                    bslma::Default::allocator(allocator))
 , d_sessionOptions(options, allocator)
@@ -1114,7 +1132,7 @@ MockSession::MockSession(bslma::ManagedPtr<SessionEventHandler> eventHandler,
                                     bdlf::PlaceHolders::_2,
                                     bdlf::PlaceHolders::_3))
 , d_lastQueueId(0)
-, d_corrIdContainer_sp(new(*bslma::Default::allocator(allocator))
+, d_corrIdContainer_sp(new (*bslma::Default::allocator(allocator))
                            bmqimp::MessageCorrelationIdContainer(
                                bslma::Default::allocator(allocator)),
                        bslma::Default::allocator(allocator))
@@ -1122,7 +1140,7 @@ MockSession::MockSession(bslma::ManagedPtr<SessionEventHandler> eventHandler,
 , d_rootStatContext_mp(bslma::ManagedPtrUtil::makeManaged<bmqst::StatContext>(
       bmqst::StatContextConfiguration("MockSession", allocator),
       allocator))
-, d_queuesStats_sp(new(*bslma::Default::allocator(allocator))
+, d_queuesStats_sp(new (*bslma::Default::allocator(allocator))
                        bmqimp::Stat(bslma::Default::allocator(allocator)),
                    bslma::Default::allocator(allocator))
 , d_sessionOptions(options, allocator)

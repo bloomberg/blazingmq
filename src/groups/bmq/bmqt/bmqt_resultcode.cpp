@@ -91,6 +91,26 @@ bool GenericResult::fromAscii(GenericResult::Enum*     out,
 #undef BMQT_CHECKVALUE
 }
 
+bmqt::GenericResult::Enum GenericResult::fromStatusCode(int statusCode)
+{
+    switch (statusCode) {
+    case bmqt::GenericResult::e_SUCCESS:
+    case bmqt::GenericResult::e_UNKNOWN:
+    case bmqt::GenericResult::e_TIMEOUT:
+    case bmqt::GenericResult::e_NOT_CONNECTED:
+    case bmqt::GenericResult::e_CANCELED:
+    case bmqt::GenericResult::e_NOT_SUPPORTED:
+    case bmqt::GenericResult::e_REFUSED:
+    case bmqt::GenericResult::e_INVALID_ARGUMENT:
+    case bmqt::GenericResult::e_NOT_READY: {
+        return static_cast<bmqt::GenericResult::Enum>(statusCode);
+    }
+    default: {
+        return bmqt::GenericResult::e_UNKNOWN;
+    }
+    }
+}
+
 // ----------------------
 // struct OpenQueueResult
 // ----------------------
@@ -168,6 +188,36 @@ bool OpenQueueResult::fromAscii(OpenQueueResult::Enum*   out,
 #undef BMQT_CHECKVALUE
 }
 
+bmqt::OpenQueueResult::Enum OpenQueueResult::fromStatusCode(int code)
+{
+#define BMQT_CASE(X) case bmqt::OpenQueueResult::e_##X:
+
+    switch (code) {
+        BMQT_CASE(SUCCESS)
+        BMQT_CASE(UNKNOWN)
+        BMQT_CASE(TIMEOUT)
+        BMQT_CASE(NOT_CONNECTED)
+        BMQT_CASE(CANCELED)
+        BMQT_CASE(NOT_SUPPORTED)
+        BMQT_CASE(REFUSED)
+        BMQT_CASE(INVALID_ARGUMENT)
+        BMQT_CASE(NOT_READY)
+        BMQT_CASE(ALREADY_OPENED)
+        BMQT_CASE(ALREADY_IN_PROGRESS)
+        BMQT_CASE(INVALID_URI)
+        BMQT_CASE(INVALID_FLAGS)
+        BMQT_CASE(CORRELATIONID_NOT_UNIQUE)
+        {
+            return static_cast<bmqt::OpenQueueResult::Enum>(code);
+        }
+    default: {
+        return bmqt::OpenQueueResult::e_UNKNOWN;
+    }
+    }
+
+#undef BMQT_CASE
+}
+
 // ---------------------------
 // struct ConfigureQueueResult
 // ---------------------------
@@ -237,6 +287,33 @@ bool ConfigureQueueResult::fromAscii(ConfigureQueueResult::Enum* out,
     return false;
 
 #undef BMQT_CHECKVALUE
+}
+
+bmqt::ConfigureQueueResult::Enum ConfigureQueueResult::fromStatusCode(int code)
+{
+#define BMQT_CASE(X) case bmqt::ConfigureQueueResult::e_##X:
+
+    switch (code) {
+        BMQT_CASE(SUCCESS)
+        BMQT_CASE(UNKNOWN)
+        BMQT_CASE(TIMEOUT)
+        BMQT_CASE(NOT_CONNECTED)
+        BMQT_CASE(CANCELED)
+        BMQT_CASE(NOT_SUPPORTED)
+        BMQT_CASE(REFUSED)
+        BMQT_CASE(INVALID_ARGUMENT)
+        BMQT_CASE(NOT_READY)
+        BMQT_CASE(ALREADY_IN_PROGRESS)
+        BMQT_CASE(INVALID_QUEUE)
+        {
+            return static_cast<bmqt::ConfigureQueueResult::Enum>(code);
+        }
+    default: {
+        return bmqt::ConfigureQueueResult::e_UNKNOWN;
+    }
+    }
+
+#undef BMQT_CASE
 }
 
 // -----------------------
@@ -312,6 +389,35 @@ bool CloseQueueResult::fromAscii(CloseQueueResult::Enum*  out,
     return false;
 
 #undef BMQT_CHECKVALUE
+}
+
+bmqt::CloseQueueResult::Enum CloseQueueResult::fromStatusCode(int code)
+{
+#define BMQT_CASE(X) case bmqt::CloseQueueResult::e_##X:
+
+    switch (code) {
+        BMQT_CASE(SUCCESS)
+        BMQT_CASE(UNKNOWN)
+        BMQT_CASE(TIMEOUT)
+        BMQT_CASE(NOT_CONNECTED)
+        BMQT_CASE(CANCELED)
+        BMQT_CASE(NOT_SUPPORTED)
+        BMQT_CASE(REFUSED)
+        BMQT_CASE(INVALID_ARGUMENT)
+        BMQT_CASE(NOT_READY)
+        BMQT_CASE(ALREADY_CLOSED)
+        BMQT_CASE(ALREADY_IN_PROGRESS)
+        BMQT_CASE(UNKNOWN_QUEUE)
+        BMQT_CASE(INVALID_QUEUE)
+        {
+            return static_cast<bmqt::CloseQueueResult::Enum>(code);
+        }
+    default: {
+        return bmqt::CloseQueueResult::e_UNKNOWN;
+    }
+    }
+
+#undef BMQT_CASE
 }
 
 // -------------------------
