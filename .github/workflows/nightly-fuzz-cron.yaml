@@ -86,3 +86,4 @@ jobs:
           name: fuzz-logs-${{ matrix.request }}
           path: |
             src/fuzz-tests/boofuzz-results/
+            build/blazingmq/src/applications/bmqbrkr/localBMQ/logs/
