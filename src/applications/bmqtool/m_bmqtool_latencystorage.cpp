@@ -69,7 +69,7 @@ bsls::Types::Int64 LatencyStorage::computePercentile(double percentile) const
     }
 
     bsls::Types::Int64 targetCount = static_cast<bsls::Types::Int64>(
-        bsl::ceil(percentile * d_totalCount / 100.0));
+        bsl::ceil(percentile * static_cast<double>(d_totalCount) / 100.0));
 
     bsls::Types::Int64 accumulated = 0;
     for (LatencyMap::const_iterator it = d_latencies.begin();

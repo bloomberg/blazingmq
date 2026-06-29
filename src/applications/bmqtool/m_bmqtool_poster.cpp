@@ -67,7 +67,7 @@ PostingContext::PostingContext(
 
     // Prepare the blob that we will post over and over again
     if (d_parameters.sequentialMessagePattern().empty()) {
-        int msgPayloadSize = d_parameters.msgSize();
+        size_t msgPayloadSize = static_cast<size_t>(d_parameters.msgSize());
 
         if (d_parameters.latency() != ParametersLatency::e_NONE) {
             // To optimize, if asked to insert latency, we put in a
@@ -84,7 +84,7 @@ PostingContext::PostingContext(
 
         // Initialize a buffer of the right published size, with
         // alphabet's letters
-        for (int i = 0; i < msgPayloadSize; ++i) {
+        for (size_t i = 0; i < msgPayloadSize; ++i) {
             char c = static_cast<char>('A' + i % 26);
             bdlbb::BlobUtil::append(&d_blob, &c, 1);
         }

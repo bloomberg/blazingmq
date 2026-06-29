@@ -487,7 +487,7 @@ int main(int argc, const char* argv[])
 
     // Memory debugging
     if (parameters.memoryDebug()) {
-        int bytesLeaked = ta.numBytesInUse();
+        bsls::Types::Int64 bytesLeaked = ta.numBytesInUse();
         if (bytesLeaked > 0) {
             bsl::cerr << bytesLeaked << " bytes of memory were leaked!"
                       << "\n";

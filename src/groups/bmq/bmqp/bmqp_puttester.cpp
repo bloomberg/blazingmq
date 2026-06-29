@@ -113,7 +113,9 @@ void PutTester::populateBlob(bdlbb::Blob*              blob,
                                 sizeof(mph));
 
         bsl::vector<char> props(propAreaSize - sizeof(mph), 'x', allocator);
-        bdlbb::BlobUtil::append(&properties, props.data(), props.size());
+        bdlbb::BlobUtil::append(&properties,
+                                props.data(),
+                                static_cast<int>(props.size()));
         bmqp::ProtocolUtil::appendPadding(&properties, propAreaSize);
         // Message properties area is word aligned.
 
@@ -223,7 +225,9 @@ void PutTester::populateBlob(bdlbb::Blob*              blob,
             bdlbb::BlobUtil::append(blob,
                                     reinterpret_cast<const char*>(&mph),
                                     sizeof(mph));
-            bdlbb::BlobUtil::append(blob, props.data(), props.size());
+            bdlbb::BlobUtil::append(blob,
+                                    props.data(),
+                                    static_cast<int>(props.size()));
 
             bmqp::ProtocolUtil::appendPadding(blob, propAreaSize);
             // Message properties area is word aligned.
@@ -255,20 +259,21 @@ void PutTester::populateBlob(bdlbb::Blob*             blob,
 {
     // Payload is 36 bytes.  Per BlazingMQ protocol, it will require 4 bytes of
     // padding (ie 1 word)
-    const char* payload = "abcdefghijklmnopqrstuvwxyz1234567890";  // 36
+    const bsl::string_view payload =
+        "abcdefghijklmnopqrstuvwxyz1234567890";  // 36
+    const int length = static_cast<int>(payload.length());
 
-    *ebLen = bsl::strlen(payload);
+    *ebLen = length;
 
-    bdlbb::BlobUtil::append(eb, payload, *ebLen);
+    bdlbb::BlobUtil::append(eb, payload.data(), *ebLen);
     bmqu::MemOutStream error(allocator);
     bdlbb::Blob        compressedBlob(bufferFactory, allocator);
     if (cat != bmqt::CompressionAlgorithmType::e_NONE) {
-        int payloadLength = bsl::strlen(payload);
         bmqp::Compression::compress(&compressedBlob,
                                     bufferFactory,
                                     cat,
-                                    payload,
-                                    payloadLength,
+                                    payload.data(),
+                                    length,
                                     &error,
                                     allocator);
         int                   padding = 0;
@@ -287,7 +292,7 @@ void PutTester::populateBlob(bdlbb::Blob*             blob,
                                 padding);
     }
 
-    int payloadLenWords = bsl::strlen(payload) / bmqp::Protocol::k_WORD_SIZE;
+    int payloadLenWords = length / bmqp::Protocol::k_WORD_SIZE;
 
     // 1 word of padding
     payloadLenWords += 1;
@@ -344,12 +349,12 @@ void PutTester::populateBlob(bdlbb::Blob*             blob,
     }
     else {
         // Capture payload position
-        bmqu::BlobUtil::reserve(payloadPosition, blob, bsl::strlen(payload));
+        bmqu::BlobUtil::reserve(payloadPosition, blob, length);
 
         bmqu::BlobUtil::writeBytes(blob,
                                    *payloadPosition,
-                                   payload,
-                                   bsl::strlen(payload));
+                                   payload.data(),
+                                   length);
 
         // Adding padding per BlazingMQ protocol
         const char padding[] = {4, 4, 4, 4};
@@ -473,15 +478,17 @@ void PutTester::populateBlob(bdlbb::Blob*                   blob,
 
 void PutTester::populateBlob(bdlbb::Blob* blob, int atLeastLen)
 {
-    const char* k_FIXED_PAYLOAD =
+    const bsl::string_view k_FIXED_PAYLOAD =
         "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdef";
 
-    const int k_FIXED_PAYLOAD_LEN = bsl::strlen(k_FIXED_PAYLOAD);
+    const int k_FIXED_PAYLOAD_LEN = static_cast<int>(k_FIXED_PAYLOAD.length());
 
     int numIters = atLeastLen / k_FIXED_PAYLOAD_LEN + 1;
 
     for (int i = 0; i < numIters; ++i) {
-        bdlbb::BlobUtil::append(blob, k_FIXED_PAYLOAD, k_FIXED_PAYLOAD_LEN);
+        bdlbb::BlobUtil::append(blob,
+                                k_FIXED_PAYLOAD.data(),
+                                k_FIXED_PAYLOAD_LEN);
     }
 }
 

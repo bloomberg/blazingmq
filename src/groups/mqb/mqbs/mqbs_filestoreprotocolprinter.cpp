@@ -224,17 +224,19 @@ bsl::ostream& operator<<(bsl::ostream&                          stream,
 
     case bmqt::PropertyType::e_STRING: {
         const bsl::string& val = iterator.getAsString();
-        bdlb::Print::printString(stream,
-                                 val.c_str(),
-                                 bsl::min(k_MIN_LENGTH, val.size()));
+        bdlb::Print::printString(
+            stream,
+            val.c_str(),
+            static_cast<int>(bsl::min(k_MIN_LENGTH, val.size())));
         return stream;  // RETURN
     }
 
     case bmqt::PropertyType::e_BINARY: {
         const bsl::vector<char>& val = iterator.getAsBinary();
-        bdlb::Print::singleLineHexDump(stream,
-                                       val.data(),
-                                       bsl::min(k_MIN_LENGTH, val.size()));
+        bdlb::Print::singleLineHexDump(
+            stream,
+            val.data(),
+            static_cast<int>(bsl::min(k_MIN_LENGTH, val.size())));
         return stream;  // RETURN
     }
 

@@ -230,7 +230,8 @@ bsls::Types::Uint64 AuthenticatedChannelFactory::timeoutInterval(
     bsls::Types::Uint64 lifetimeMs) const
 {
     const bsls::Types::Uint64 intervalMsWithRatio =
-        static_cast<bsls::Types::Uint64>(lifetimeMs * k_REAUTHN_EARLY_RATIO);
+        static_cast<bsls::Types::Uint64>(static_cast<double>(lifetimeMs) *
+                                         k_REAUTHN_EARLY_RATIO);
     const bsls::Types::Uint64 intervalMsWithBuffer =
         saturatingSub(lifetimeMs, k_REAUTHN_EARLY_BUFFER);
     return bsl::min(intervalMsWithRatio, intervalMsWithBuffer);

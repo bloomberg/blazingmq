@@ -78,7 +78,7 @@ class PostingContext {
     // StatContext for msg/event stats.
     // Held, not owned
 
-    int d_remainingEvents;
+    bsls::Types::Int64 d_remainingEvents;
     // How many events are still left for posting.
 
     int d_numMessagesPosted;

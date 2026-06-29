@@ -1339,8 +1339,10 @@ BrokerSession::QueueFsm::actionReconfigureQueue(
     }
 
     bmqt::QueueOptions options(d_session.d_allocator_p);
-    options.setMaxUnconfirmedMessages(ci.maxUnconfirmedMessages())
-        .setMaxUnconfirmedBytes(ci.maxUnconfirmedBytes())
+    options
+        .setMaxUnconfirmedMessages(
+            static_cast<int>(ci.maxUnconfirmedMessages()))
+        .setMaxUnconfirmedBytes(static_cast<int>(ci.maxUnconfirmedBytes()))
         .setConsumerPriority(ci.consumerPriority());
 
     if (queue->options().hasSuspendsOnBadHostHealth()) {
@@ -6539,7 +6541,7 @@ void BrokerSession::reopenQueues()
     bsl::vector<bsl::shared_ptr<Queue> >       pendingQueues(&localAllocator);
     d_queueManager.lookupQueuesByState(&pendingQueues, QueueState::e_PENDING);
 
-    d_numPendingReopenQueues = pendingQueues.size();
+    d_numPendingReopenQueues = static_cast<int>(pendingQueues.size());
     if (d_numPendingReopenQueues == 0) {
         // Fast path
         BALL_LOG_INFO << id() << "No queues need to be reopened.";

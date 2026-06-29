@@ -445,8 +445,9 @@ void StatController::setTunable(mqbcmd::StatResult*       result,
             return;  // RETURN
         }
 
-        int newValue = tunable.value().theInteger();
-        int oldValue = targetConsumer->publishInterval().seconds();
+        bsls::Types::Int64 newValue = tunable.value().theInteger();
+        bsls::Types::Int64 oldValue =
+            targetConsumer->publishInterval().seconds();
 
         if (newValue == -1) {
             newValue = targetConsumerCfg->publishInterval();
@@ -472,7 +473,8 @@ void StatController::setTunable(mqbcmd::StatResult*       result,
         tunableConfirmation.oldValue().makeTheInteger(oldValue);
         tunableConfirmation.newValue().makeTheInteger(newValue);
 
-        targetConsumer->setPublishInterval(bsls::TimeInterval(newValue));
+        targetConsumer->setPublishInterval(
+            bsls::TimeInterval(newValue, 0 /* ns */));
         return;  // RETURN
     }
 

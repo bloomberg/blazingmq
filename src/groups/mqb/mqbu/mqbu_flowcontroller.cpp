@@ -199,7 +199,7 @@ FlowController::Config FlowController::survey(Policy::Enum policy) const
     // Calculate moving average within approximately 5 min
     // Use 'd_currentMaxBurst' as the burst size
 
-    return Config(policy, sum * 1000 / ms, maxBurst());
+    return Config(policy, static_cast<int>(sum * 1000 / ms), maxBurst());
 }
 
 const FlowController::Config& FlowController::config() const

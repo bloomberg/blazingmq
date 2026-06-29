@@ -51,7 +51,8 @@ void computeWatermarkRatio(double*            watermarkRatio,
         *watermarkRatio = 0.0;
     }
     else {
-        *watermarkRatio = static_cast<double>(watermark) / capacity;
+        *watermarkRatio = static_cast<double>(watermark) /
+                          static_cast<double>(capacity);
     }
 }
 
@@ -156,11 +157,7 @@ ResourceUsageMonitor::updateValueInternal(ResourceAttributes* attributes,
     typedef ResourceUsageMonitorState           RUMState;
     typedef ResourceUsageMonitorStateTransition RUMStateTransition;
 
-    RUMStateTransition::Enum ret          = RUMStateTransition::e_NO_CHANGE;
-    const bsls::Types::Int64 lowWatermark = attributes->capacity() *
-                                            attributes->lowWatermarkRatio();
-    const bsls::Types::Int64 highWatermark = attributes->capacity() *
-                                             attributes->highWatermarkRatio();
+    RUMStateTransition::Enum ret = RUMStateTransition::e_NO_CHANGE;
 
     attributes->setValue(attributes->value() + delta);
 
@@ -173,7 +170,7 @@ ResourceUsageMonitor::updateValueInternal(ResourceAttributes* attributes,
     if (delta > 0) {
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
                 attributes->state() == RUMState::e_STATE_NORMAL &&
-                attributes->value() >= highWatermark)) {
+                attributes->value() >= attributes->highWatermark())) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
             // 'NORMAL' -> 'HIGH_WATERMARK'
@@ -208,7 +205,7 @@ ResourceUsageMonitor::updateValueInternal(ResourceAttributes* attributes,
 
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
                 attributes->state() == RUMState::e_STATE_FULL &&
-                attributes->value() <= highWatermark)) {
+                attributes->value() <= attributes->highWatermark())) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
             // 'FULL' -> 'HIGH_WATERMARK'
@@ -218,7 +215,7 @@ ResourceUsageMonitor::updateValueInternal(ResourceAttributes* attributes,
 
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
                 attributes->state() == RUMState::e_STATE_HIGH_WATERMARK &&
-                attributes->value() <= lowWatermark)) {
+                attributes->value() <= attributes->lowWatermark())) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
             // 'HIGH_WATERMARK' -> 'NORMAL'
@@ -309,10 +306,10 @@ void ResourceUsageMonitor::reset(bsls::Types::Int64 byteCapacity,
                                  bsls::Types::Int64 messageHighWatermark)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(0.0 <= byteLowWatermark &&
+    BSLS_ASSERT_SAFE(0 <= byteLowWatermark &&
                      byteLowWatermark <= byteHighWatermark &&
                      byteHighWatermark <= byteCapacity);
-    BSLS_ASSERT_SAFE(0.0 <= messageLowWatermark &&
+    BSLS_ASSERT_SAFE(0 <= messageLowWatermark &&
                      messageLowWatermark <= messageHighWatermark &&
                      messageHighWatermark <= messageCapacity);
 
@@ -378,10 +375,10 @@ void ResourceUsageMonitor::reconfigure(bsls::Types::Int64 byteCapacity,
                                        bsls::Types::Int64 messageHighWatermark)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(0.0 <= byteLowWatermark &&
+    BSLS_ASSERT_SAFE(0 <= byteLowWatermark &&
                      byteLowWatermark <= byteHighWatermark &&
                      byteHighWatermark <= byteCapacity);
-    BSLS_ASSERT_SAFE(0.0 <= messageLowWatermark &&
+    BSLS_ASSERT_SAFE(0 <= messageLowWatermark &&
                      messageLowWatermark <= messageHighWatermark &&
                      messageHighWatermark <= messageCapacity);
 
@@ -497,25 +494,16 @@ bsl::ostream& ResourceUsageMonitor::print(bsl::ostream& stream,
                                           int           spacesPerLevel) const
 {
     stream << bmqu::PrintUtil::newlineAndIndent(level, spacesPerLevel)
-           << state() << " " << "[Messages (" << messageState()
+           << state() << " [Messages (" << messageState()
            << "): " << bmqu::PrintUtil::prettyNumber(messages()) << " ("
-           << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
-                  d_messages.lowWatermarkRatio() * d_messages.capacity()))
-           << " - "
-           << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
-                  d_messages.highWatermarkRatio() * d_messages.capacity()))
+           << bmqu::PrintUtil::prettyNumber(d_messages.lowWatermark()) << " - "
+           << bmqu::PrintUtil::prettyNumber(d_messages.highWatermark())
            << " - " << bmqu::PrintUtil::prettyNumber(d_messages.capacity())
-           << "), " << "Bytes (" << byteState()
+           << "), Bytes (" << byteState()
            << "): " << bmqu::PrintUtil::prettyBytes(bytes()) << " ("
-           << bmqu::PrintUtil::prettyBytes(d_bytes.lowWatermarkRatio() *
-                                               d_bytes.capacity(),
-                                           2)
-           << " - "
-           << bmqu::PrintUtil::prettyBytes(d_bytes.highWatermarkRatio() *
-                                               d_bytes.capacity(),
-                                           2)
-           << " - " << bmqu::PrintUtil::prettyBytes(d_bytes.capacity())
-           << ")] ";
+           << bmqu::PrintUtil::prettyBytes(d_bytes.lowWatermark(), 2) << " - "
+           << bmqu::PrintUtil::prettyBytes(d_bytes.highWatermark(), 2) << " - "
+           << bmqu::PrintUtil::prettyBytes(d_bytes.capacity()) << ")] ";
 
     return stream;
 }
