@@ -29,7 +29,12 @@
 #include <mqbstat_clusterstats.h>
 #include <mqbstat_dispatcherstats.h>
 #include <mqbstat_domainstats.h>
+#include <mqbstat_flatjsonprinter.h>
+#include <mqbstat_jsonprinter.h>
 #include <mqbstat_queuestats.h>
+#include <mqbstat_statmonitor.h>
+#include <mqbstat_statsfilelogger.h>
+#include <mqbstat_tableprinter.h>
 
 #include <bmqio_statchannelfactory.h>
 #include <bmqst_statcontext.h>
@@ -52,6 +57,7 @@
 #include <bdlf_bind.h>
 #include <bdlf_placeholder.h>
 #include <bdlmt_eventscheduler.h>
+#include <bdlmt_timereventscheduler.h>
 #include <bdlt_timeunitratio.h>
 #include <bsl_algorithm.h>
 #include <bsl_ctime.h>
@@ -301,24 +307,26 @@ void StatController::initializeStats()
 }
 
 void StatController::captureStatsAndSemaphorePost(
-    mqbcmd::StatResult*                  result,
-    bslmt::Semaphore*                    semaphore,
-    const mqbcmd::EncodingFormat::Value& encoding)
+    mqbcmd::StatResult* result_p,
+    bslmt::Semaphore*   semaphore_p,
+    int                 encoding)
 {
     // executed by the *SCHEDULER* thread
 
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(result_p);
+    BSLS_ASSERT_SAFE(semaphore_p);
+
     if (d_allocatorsStatContext_p) {
-        // When using test allocator, we don't have a stat context
         d_allocatorsStatContext_p->snapshot();
     }
 
     switch (encoding) {
     case mqbcmd::EncodingFormat::TEXT: {
-        bmqu::MemOutStream os;
+        bmqu::MemOutStream os(d_allocator_p);
         d_tablePrinter_mp->printStats(os, -1);
-        result->makeStats() = os.str();
+        result_p->makeStats() = os.str();
     } break;  // BREAK
-
     case mqbcmd::EncodingFormat::JSON_COMPACT: BSLA_FALLTHROUGH;
     case mqbcmd::EncodingFormat::JSON_PRETTY: {
         // Make an unscheduled snapshot, but do not notify stats consumers
@@ -328,25 +336,24 @@ void StatController::captureStatsAndSemaphorePost(
         // outdated existing one.
         const bool savedNextSnapshot = snapshot();
         if (savedNextSnapshot) {
-            const bool compact = (encoding ==
+            const bool         compact = (encoding ==
                                   mqbcmd::EncodingFormat::JSON_COMPACT);
             bmqu::MemOutStream os(d_allocator_p);
             d_jsonPrinter_mp->printStats(os, compact);
-            result->makeStats() = os.str();
+            result_p->makeStats() = os.str();
         }
         else {
-            result->makeError().message() =
+            result_p->makeError().message() =
                 "Cannot save the recent snapshot, trying to make snapshots "
                 "too often";
         }
     } break;  // BREAK
-
     default: {
         BSLS_ASSERT(!"invalid enumerator");
     } break;  // BREAK
     }
 
-    semaphore->post();
+    semaphore_p->post();
 }
 
 void StatController::setTunable(mqbcmd::StatResult*       result,
@@ -1047,10 +1054,9 @@ void StatController::loadStatContexts(StatContexts* contexts)
     }
 }
 
-int StatController::processCommand(
-    mqbcmd::StatResult*                  result,
-    const mqbcmd::StatCommand&           command,
-    const mqbcmd::EncodingFormat::Value& encoding)
+int StatController::processCommand(mqbcmd::StatResult*        result,
+                                   const mqbcmd::StatCommand& command,
+                                   int                        encoding)
 {
     if (command.isShowValue()) {
         bslmt::Semaphore semaphore;

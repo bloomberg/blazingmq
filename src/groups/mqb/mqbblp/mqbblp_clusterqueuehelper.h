@@ -73,6 +73,7 @@ namespace BloombergLP {
 
 // FORWARD DECLARATION
 namespace mqbcmd {
+class ClusterQueueHelper;
 class StorageContent;
 }
 namespace mqbi {

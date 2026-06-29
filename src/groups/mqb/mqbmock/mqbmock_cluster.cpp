@@ -20,11 +20,14 @@
 #include <mqbc_clustermembership.h>
 #include <mqbc_clusterutil.h>
 #include <mqbcmd_messages.h>
+#include <mqbconfm_messages.h>
 #include <mqbnet_mockcluster.h>
 #include <mqbstat_clusterstats.h>
 
 // BMQ
+#include <bmqio_testchannel.h>
 #include <bmqp_ctrlmsg_messages.h>
+#include <bmqst_statcontext.h>
 
 #include <bmqio_channel.h>
 #include <bmqu_memoutstream.h>

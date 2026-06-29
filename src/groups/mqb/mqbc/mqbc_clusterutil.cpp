@@ -19,11 +19,14 @@
 
 #include <mqbscm_version.h>
 // MQB
+#include <mqbc_clusterdata.h>
 #include <mqbc_clusternodesession.h>
+#include <mqbc_clusterstateledgeriterator.h>
 #include <mqbc_clusterstateledgerprotocol.h>
 #include <mqbc_electorinfo.h>
 #include <mqbc_incoreclusterstateledgeriterator.h>
 #include <mqbcfg_brokerconfig.h>
+#include <mqbconfm_messages.h>
 #include <mqbi_domain.h>
 #include <mqbi_queueengine.h>
 #include <mqbi_storagemanager.h>
@@ -32,6 +35,7 @@
 #include <mqbs_datastore.h>
 #include <mqbs_filestoreprotocol.h>
 #include <mqbs_storageutil.h>
+#include <mqbu_storagekey.h>
 
 // BMQ
 #include <bmqp_protocol.h>
@@ -46,8 +50,11 @@
 
 // BDE
 #include <bdlb_print.h>
+#include <bdlbb_blob.h>
 #include <bdlde_md5.h>
+#include <bdlf_bind.h>
 #include <bdlma_localsequentialallocator.h>
+#include <bsl_iostream.h>
 #include <bsl_limits.h>
 #include <bsl_unordered_set.h>
 #include <bsl_utility.h>

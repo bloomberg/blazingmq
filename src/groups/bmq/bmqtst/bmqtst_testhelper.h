@@ -466,7 +466,7 @@
 
 #define BMQTST_ASSERT_NEF(X, Y)                                               \
     {                                                                         \
-        if (bmqtst::TestHelper : areFuzzyEqual((X), (Y))) {                   \
+        if (bmqtst::TestHelper::areFuzzyEqual((X), (Y))) {                    \
             bsl::cout << "Error " << __FILE__ << "(" << __LINE__              \
                       << "): " << #X << " (" << bmqtst::printer(X)            \
                       << ") !~= " << #Y << " (" << bmqtst::printer(Y) << ")"  \

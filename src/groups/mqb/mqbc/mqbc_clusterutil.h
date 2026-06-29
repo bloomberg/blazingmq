@@ -29,28 +29,16 @@
 /// thread.
 
 // MQB
-#include <mqbc_clusterdata.h>
+#include <mqbc_clustermembership.h>
 #include <mqbc_clusterstate.h>
-#include <mqbc_clusterstateledger.h>
-#include <mqbc_clusterstateledgeriterator.h>
 #include <mqbcfg_messages.h>
-#include <mqbconfm_messages.h>
 #include <mqbi_clusterstatemanager.h>
-#include <mqbi_dispatcher.h>
-#include <mqbu_storagekey.h>
 
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
-#include <bmqp_protocolutil.h>
-#include <bmqp_puteventbuilder.h>
-#include <bmqt_resultcode.h>
-#include <bmqt_uri.h>
 
 // BDE
-#include <bdlbb_blob.h>
-#include <bdlf_bind.h>
-#include <bsl_iostream.h>
-#include <bsl_memory.h>
+#include <bsl_iosfwd.h>
 #include <bsl_string.h>
 #include <bsl_unordered_map.h>
 #include <bsl_vector.h>
@@ -58,7 +46,16 @@
 
 namespace BloombergLP {
 
-// FORWARD DECLARATION
+// FORWARD DECLARATIONS
+namespace bdlbb {
+class Blob;
+}
+namespace bmqt {
+class Uri;
+}
+namespace mqbconfm {
+class QueueMode;
+}
 namespace mqbi {
 class Domain;
 }
@@ -68,11 +65,17 @@ class StorageManager;
 namespace mqbnet {
 class ClusterNode;
 }
+namespace mqbu {
+class StorageKey;
+}
 
 namespace mqbc {
 
-// FORWARD DECLARATION
+// FORWARD DECLARATIONS
+class ClusterData;
 class ClusterNodeSession;
+class ClusterStateLedger;
+class ClusterStateLedgerIterator;
 
 // ==================
 // struct ClusterUtil

@@ -30,41 +30,41 @@
 #include <mqbcfg_messages.h>
 #include <mqbi_cluster.h>
 #include <mqbi_dispatcher.h>
-#include <mqbi_domain.h>
-#include <mqbnet_cluster.h>
 #include <mqbnet_controlmessagetransmitter.h>
-#include <mqbnet_elector.h>
 #include <mqbnet_multirequestmanager.h>
-#include <mqbnet_transportmanager.h>
 #include <mqbstat_clusterstats.h>
 
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_requestmanager.h>
-#include <bmqst_statcontext.h>
 #include <bmqu_atomicstate.h>
-#include <bmqu_memoutstream.h>
 
 // BDE
 #include <bdlbb_blob.h>
 #include <bdlcc_objectpool.h>
-#include <bdlma_localsequentialallocator.h>
 #include <bdlmt_eventscheduler.h>
 #include <bdlmt_fixedthreadpool.h>
-#include <bsl_map.h>
-#include <bsl_memory.h>
 #include <bsl_string.h>
 #include <bsl_unordered_map.h>
-#include <bsl_unordered_set.h>
-#include <bsl_vector.h>
-#include <bslma_default.h>
 #include <bslma_managedptr.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
 #include <bsls_keyword.h>
-#include <bsls_types.h>
 
 namespace BloombergLP {
+
+// FORWARD DECLARATIONS
+namespace bmqst {
+class StatContext;
+}
+namespace mqbi {
+class DomainFactory;
+}
+namespace mqbnet {
+class Cluster;
+class TransportManager;
+}
+
 namespace mqbc {
 
 // =========================
