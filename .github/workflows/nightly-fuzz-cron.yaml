@@ -19,36 +19,25 @@ jobs:
       cxx_standard: cpp23
 
   fuzz_tests:
-    name: "Fuzz [${{ matrix.request }}]"
+    name: "Fuzz [${{ matrix.fuzztest }}]"
     runs-on: ubuntu-latest
     needs: build
     timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - request: authentication
-            pytest_target: "test_fuzz.py -k 'test_fuzz_request[authentication]'"
-          - request: negotiation
-            pytest_target: "test_fuzz.py -k 'test_fuzz_request[negotiation]'"
-          - request: open_queue
-            pytest_target: "test_fuzz.py -k 'test_fuzz_request[open_queue]'"
-          - request: configure_stream
-            pytest_target: "test_fuzz.py -k 'test_fuzz_request[configure_stream]'"
-          - request: configure_queue_stream
-            pytest_target: "test_fuzz.py -k 'test_fuzz_request[configure_queue_stream]'"
-          - request: put
-            pytest_target: "test_fuzz.py -k 'test_fuzz_request[put]'"
-          - request: confirm
-            pytest_target: "test_fuzz.py -k 'test_fuzz_request[confirm]'"
-          - request: close_queue
-            pytest_target: "test_fuzz.py -k 'test_fuzz_request[close_queue]'"
-          - request: disconnect
-            pytest_target: "test_fuzz.py -k 'test_fuzz_request[disconnect]'"
-          - request: negotiation_bypass_authentication
-            pytest_target: "test_fuzz.py -k 'test_fuzz_request[negotiation_bypass_authentication]'"
-          - request: put_message_properties
-            pytest_target: "test_fuzz_put_message_properties.py -k 'test_fuzz_put_message_properties'"
+        fuzztest:
+          - "test_fuzz_request[authentication]"
+          - "test_fuzz_request[negotiation]"
+          - "test_fuzz_request[open_queue]"
+          - "test_fuzz_request[configure_stream]"
+          - "test_fuzz_request[configure_queue_stream]"
+          - "test_fuzz_request[put]"
+          - "test_fuzz_request[confirm]"
+          - "test_fuzz_request[close_queue]"
+          - "test_fuzz_request[disconnect]"
+          - "test_fuzz_request[negotiation_bypass_authentication]"
+          - "test_fuzz_properties"
     steps:
       - uses: actions/checkout@v6
 
@@ -74,7 +63,7 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}/src/python
           BLAZINGMQ_BUILD_DIR: ${{ github.workspace }}/build/blazingmq
         run: |
-          pytest src/fuzz-tests/${{ matrix.pytest_target }} \
+          pytest "src/fuzz-tests/test_fuzz.py::${{ matrix.fuzztest }}" \
             -m fuzztest \
             -v \
             --timeout=3600
@@ -83,7 +72,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v5
         with:
-          name: fuzz-logs-${{ matrix.request }}
+          name: fuzz-logs-${{ matrix.fuzztest }}
           path: |
             src/fuzz-tests/boofuzz-results/
             build/blazingmq/src/applications/bmqbrkr/localBMQ/logs/
