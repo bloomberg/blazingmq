@@ -1,4 +1,4 @@
-Checks: bugprone-*,cert-*,clang-analyzer-*,clang-diagnostic-*,cppcoreguidelines-*,modernize-make-*,performance-*,modernize-use-emplace,-bugprone-easily-swappable-parameters,-cppcoreguidelines-avoid-const-or-ref-data-members,-cppcoreguidelines-owning-memory,-cppcoreguidelines-use-default-member-init,-,-performance-enum-size
+Checks: bugprone-*,cert-*,clang-analyzer-*,clang-diagnostic-*,cppcoreguidelines-*,modernize-make-*,performance-*,modernize-use-emplace,-bugprone-easily-swappable-parameters,-cppcoreguidelines-avoid-const-or-ref-data-members,-cppcoreguidelines-owning-memory,-cppcoreguidelines-use-default-member-init,-,-performance-enum-size,-readability-magic-numbers
 CheckOptions:
   cppcoreguidelines-special-member-functions.AllowSoleDefaultDtor: true
   bugprone-string-constructor.StringNames: ::bsl::basic_string; ::std::basic_string; ::std::basic_string_view
