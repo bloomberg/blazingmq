@@ -308,7 +308,6 @@ static void test1_staticMethods()
         BMQTST_ASSERT_EQ(sessionEvent.correlationId(), bmqt::CorrelationId(1));
     }
 
-
     {
         PVV("Create Queue Session Event using Session Event Method");
 
