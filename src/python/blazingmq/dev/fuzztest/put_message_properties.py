@@ -82,8 +82,11 @@ def _make_mph_fields(prefix, prop_type, name_len, middle_value, fuzzable=False):
 
 def make_message_properties_area(
     num_properties: int = 2,
-    fuzz_header: bool = False,
     fuzz_mph: bool = False,
+    fuzz_data: bool = False,
+    fuzz_byte0: bool = False,
+    fuzz_area_words: bool = False,
+    fuzz_num_properties: bool = False,
     new_style: bool = False,
 ) -> boofuzz.Request:
     """
@@ -105,18 +108,18 @@ def make_message_properties_area(
             name="properties_hdr_byte0",
             default_value=packed_byte0,
             full_range=True,
-            fuzzable=fuzz_header,
+            fuzzable=fuzz_byte0,
         ),
         boofuzz.Byte(
             name="area_words_upper",
             default_value=(area_words >> 16) & 0xFF,
             fuzzable=False,
         ),
-        boofuzz.Word(  # double check
+        boofuzz.Word(
             name="area_words_lower",
             default_value=area_words & 0xFFFF,
             endian=">",
-            fuzzable=fuzz_header,
+            fuzzable=fuzz_area_words,
         ),
         boofuzz.Byte(
             name="properties_hdr_reserved",
@@ -127,7 +130,7 @@ def make_message_properties_area(
             name="num_properties",
             default_value=num_properties,
             full_range=True,
-            fuzzable=fuzz_header,
+            fuzzable=fuzz_num_properties,
         ),
     ]
 
@@ -147,9 +150,7 @@ def make_message_properties_area(
                 prop_type,
                 len(name),
                 middle,
-                fuzzable=(
-                    fuzz_mph and i == 0
-                ),  # only fuzz the first message property header to save time, might want to fuzz more
+                fuzzable=fuzz_mph,
             )
         )
 
@@ -159,7 +160,7 @@ def make_message_properties_area(
                 name=f"prop{i}_name",
                 default_value=name,
                 size=len(name),
-                fuzzable=False,
+                fuzzable=fuzz_data,
             )
         )
         children.append(
@@ -167,7 +168,7 @@ def make_message_properties_area(
                 name=f"prop{i}_value",
                 default_value=value,
                 size=len(value),
-                fuzzable=False,
+                fuzzable=fuzz_data,
             )
         )
 
@@ -180,6 +181,11 @@ def make_message_properties_area(
 def make_put_with_fuzzable_properties(
     num_properties: int = 2,
     new_style: bool = False,
+    fuzz_mph: bool = True,
+    fuzz_data: bool = False,
+    fuzz_byte0: bool = True,
+    fuzz_area_words: bool = True,
+    fuzz_num_properties: bool = True,
 ) -> BoofuzzSequence:
     """
     Build a PUT event as a BoofuzzSequence with auto-computed CRC and the
@@ -221,8 +227,11 @@ def make_put_with_fuzzable_properties(
 
     properties_request = make_message_properties_area(
         num_properties=num_properties,
-        fuzz_header=True,
-        fuzz_mph=True,
+        fuzz_mph=fuzz_mph,
+        fuzz_data=fuzz_data,
+        fuzz_byte0=fuzz_byte0,
+        fuzz_area_words=fuzz_area_words,
+        fuzz_num_properties=fuzz_num_properties,
         new_style=new_style,
     )
 
@@ -313,12 +322,11 @@ def make_put_with_fuzzable_properties(
     return [event_size, event_contents]
 
 
-def fuzz_properties(host: str, port: int, max_depth: int = 2) -> None:
-    """
-    Launch a long-running fuzzing session targeting message properties in PUT
-    messages at depth 2 (all pairs of fuzzable fields).
-    NOTE: This currently only fuzzes the first property's header fields to limit the combinatorial explosion, but can be extended to fuzz more.
-    """
+def _run_put_fuzz_session(
+    host: str, port: int, put_sequence: BoofuzzSequence, max_depth: int = 2
+) -> None:
+    """Set up a persistent connection with a property-expression subscription,
+    wrap *put_sequence* as a PUT request, and fuzz."""
 
     setup_steps = [
         make_authentication_message(),
@@ -343,13 +351,36 @@ def fuzz_properties(host: str, port: int, max_depth: int = 2) -> None:
         fuzz_db_keep_only_n_pass_cases=1,
     )
 
-    put = boofuzz.Request(
-        "Put",
-        children=(make_put_with_fuzzable_properties()),
-    )
+    put = boofuzz.Request("Put", children=put_sequence)
     session.connect(put)
 
     try:
         session.fuzz(max_depth=max_depth)
     finally:
         conn.shutdown()
+
+
+def fuzz_properties(host: str, port: int) -> None:
+    """
+    Fuzz the message-properties metadata fields (properties header + first MPH)
+    in PUT messages.
+    """
+    _run_put_fuzz_session(host, port, make_put_with_fuzzable_properties())
+
+
+def fuzz_property_data(host: str, port: int) -> None:
+    """
+    Fuzz the actual property names/values in PUT messages, along with the MPH
+    and area_words fields that describe the data layout.
+    """
+    _run_put_fuzz_session(
+        host,
+        port,
+        make_put_with_fuzzable_properties(
+            fuzz_mph=False,
+            fuzz_data=False,
+            fuzz_byte0=False,
+            fuzz_area_words=True,
+            fuzz_num_properties=False,
+        ),
+    )
