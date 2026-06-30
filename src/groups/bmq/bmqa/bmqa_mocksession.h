@@ -580,6 +580,7 @@
 #include <bslmt_mutex.h>
 #include <bsls_alignedbuffer.h>
 #include <bsls_assert.h>
+#include <bsls_deprecatefeature.h>
 #include <bsls_timeinterval.h>
 #include <bsls_types.h>
 
@@ -725,11 +726,23 @@ struct MockSessionUtil {
                     bdlbb::BlobBufferFactory*             bufferFactory,
                     bslma::Allocator*                     allocator);
 
-    /// DEPRECATED: Use the `createOpenQueueStatus(...)`,
-    ///            `createConfigureQueueStatus(...)`, or
-    ///            `createCloseQueueStatus(...)` methods instead.  This method
-    ///            will be marked as `BSLA_DEPRECATED` in future release of
-    ///            libbmq.
+    BSLS_DEPRECATE_FEATURE(
+        "bmq",
+        "bmqa::MockSessionUtil::createQueueSessionEvent",
+        "Use the createOpenQueueStatus(...), createConfigureQueueStatus(...), "
+        "or createCloseQueueStatus(...) methods instead.")
+    static Event
+    createQueueSessionEvent(bmqt::SessionEventType::Enum sessionEventType,
+                            QueueId*                     queueId,
+                            const bmqt::CorrelationId&   correlationId,
+                            int                          errorCode,
+                            const bslstl::StringRef&     errorDescription,
+                            bslma::Allocator*            allocator);
+    BSLS_DEPRECATE_FEATURE(
+        "bmq",
+        "bmqa::MockSessionUtil::createQueueSessionEvent",
+        "Use the createOpenQueueStatus(...), createConfigureQueueStatus(...), "
+        "or createCloseQueueStatus(...) methods instead.")
     static Event
     createQueueSessionEvent(bmqt::SessionEventType::Enum sessionEventType,
                             QueueId*                     queueId,
@@ -743,6 +756,22 @@ struct MockSessionUtil {
     /// specified `sessionEventType`, `errorCode` and `errorDescription` and
     /// using the specified `allocator` to supply memory.  Note that this
     /// method will not create queue related session events.
+    BSLS_DEPRECATE_FEATURE(
+        "bmq",
+        "result-code",
+        "Use the createSessionEvent overload that takes a result code")
+    static Event
+    createSessionEvent(bmqt::SessionEventType::Enum sessionEventType,
+                       const bmqt::CorrelationId&   correlationId,
+                       const int                    errorCode,
+                       const bslstl::StringRef&     errorDescription,
+                       bslma::Allocator*            allocator);
+
+    /// Create and return an `Event` configured as a session event with the
+    /// specified `sessionEventType`, `errorCode`, `result`, and
+    /// `errorDescription` and using the specified `allocator` to supply
+    /// memory.  Note that this method will not create queue related session
+    /// events.
     static Event
     createSessionEvent(bmqt::SessionEventType::Enum sessionEventType,
                        const bmqt::CorrelationId&   correlationId,

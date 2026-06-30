@@ -117,6 +117,12 @@ struct GenericResult {
     /// the enum.
     static bool fromAscii(GenericResult::Enum*     out,
                           const bslstl::StringRef& str);
+
+    /// Convert a status code into a generic result. If `code` does not match
+    /// one of the `GenericResult::Enum` variants, return
+    /// `bmqt::GenericResult::e_UNKNOWN`. Otherwise, return the value of `code`
+    /// casted as a `GenericResult::Enum`.
+    static bmqt::GenericResult::Enum fromStatusCode(int statusCode);
 };
 
 // FREE OPERATORS
@@ -195,6 +201,12 @@ struct OpenQueueResult {
     /// the enum.
     static bool fromAscii(OpenQueueResult::Enum*   out,
                           const bslstl::StringRef& str);
+
+    /// Convert a status code into an open queue result. If `code` does not
+    /// match one of the `OpenQueueResult::Enum` variants, return
+    /// `bmqt::OpenQueueResult::e_UNKNOWN`. Otherwise, return the value of
+    /// `code` casted as a `bmqt::OpenQueueResult::Enum`.
+    static bmqt::OpenQueueResult::Enum fromStatusCode(int code);
 };
 
 // FREE OPERATORS
@@ -265,6 +277,12 @@ struct ConfigureQueueResult {
     /// the enum.
     static bool fromAscii(ConfigureQueueResult::Enum* out,
                           const bslstl::StringRef&    str);
+
+    /// Convert a status code into an open queue result. If `code` does not
+    /// match one of the `ConfigureQueueResult::Enum` variants, return
+    /// `bmqt::ConfigureQueueResult::e_UNKNOWN`. Otherwise, return the value of
+    /// `code` casted as a `bmqt::ConfigureQueueResult::Enum`.
+    static bmqt::ConfigureQueueResult::Enum fromStatusCode(int code);
 };
 
 // FREE OPERATORS
@@ -342,6 +360,12 @@ struct CloseQueueResult {
     /// the enum.
     static bool fromAscii(CloseQueueResult::Enum*  out,
                           const bslstl::StringRef& str);
+
+    /// Convert a status code into a close queue result. If `code` does not
+    /// match one of the `CloseQueueResult::Enum` variants, return
+    /// `bmqt::CloseQueueResult::e_UNKNOWN`. Otherwise, return the value of
+    /// `code` casted as a `bmqt::CloseQueueResult::Enum`.
+    static bmqt::CloseQueueResult::Enum fromStatusCode(int code);
 };
 
 // FREE OPERATORS
