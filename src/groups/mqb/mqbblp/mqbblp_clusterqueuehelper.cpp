@@ -1112,8 +1112,10 @@ void ClusterQueueHelper::processOpenQueueRequest(
     }
 
     const int pid = context->queueContext()->partitionId();
-
-    if (hasActiveAvailablePrimary(pid)) {
+    const bool isSelfAvailable =
+        d_clusterData_p->membership().selfNodeStatus() ==
+        bmqp_ctrlmsg::NodeStatus::e_E_AVAILABLE;
+    if (hasActiveAvailablePrimary(pid) && isSelfAvailable) {
         if (d_clusterState_p->isSelfPrimary(pid)) {
             // At primary.
 
@@ -1145,21 +1147,7 @@ void ClusterQueueHelper::processOpenQueueRequest(
             }
         }
         else {
-            // We are a replica for the queue.  If the local partition
-            // hasn't finished recovery, buffer the request until
-            // restoreState() drains it after recovery completes.
-            if (!d_storageManager_p->fileStore(pid).isOpen()) {
-                BMQ_LOGTHROTTLE_ERROR
-                    << d_cluster_p->description() << ": Partition [" << pid
-                    << "] is not yet recovered, buffering open queue"
-                    << " request for '" << context->queueContext()->uri()
-                    << "'";
-
-                context->queueContext()->d_liveQInfo.d_pending.push_back(
-                    context);
-                return;  // RETURN
-            }
-
+            // We are a replica for the queue.
             // Make sure it has a unique upstream id associated, if we
             // haven't already done so, assign one now.
             if (context->queueContext()->d_liveQInfo.d_id ==
@@ -1173,8 +1161,8 @@ void ClusterQueueHelper::processOpenQueueRequest(
         }
     }
     else {
-        // Note: this is an extra safeguard.
-        // We do not expect this to happen, consider removing in the future.
+        // If the local partition hasn't finished recovery, buffer the request
+        // until `restoreState()` drains it after recovery complete.
         BMQ_LOGTHROTTLE_ERROR
             << d_cluster_p->description()
             << ": unable to send and rebuffering open queue request for "
