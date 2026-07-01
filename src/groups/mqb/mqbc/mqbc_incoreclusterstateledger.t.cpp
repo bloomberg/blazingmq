@@ -202,7 +202,9 @@ struct Tester {
 
   public:
     // CREATORS
-    Tester(bool isLeader = true, const bslstl::StringRef& location = "")
+    Tester(bool isLeader =  // NOLINT(cppcoreguidelines-pro-type-member-init)
+           true,
+           const bslstl::StringRef& location = "")
     : d_isLeader(isLeader)
     , d_isHealed(true)
     , d_tempDir(bmqtst::TestHelperUtil::allocator())
@@ -2200,6 +2202,7 @@ int main(int argc, char* argv[])
 
     bmqu::Time::initialize(bmqtst::TestHelperUtil::allocator());
 
+    // NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers)
     switch (_testCase) {
     case 0:
     case 13: test13_quorumChangeCb(); break;
@@ -2224,6 +2227,7 @@ int main(int argc, char* argv[])
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
+    // NOLINTEND(cppcoreguidelines-avoid-magic-numbers)
 
     bmqu::Time::shutdown();
 
