@@ -112,10 +112,7 @@ struct ClusterStateLedgerTestImp
         markDone();
     }
 
-    void setIsHealedCb(const IsHealedCb&) BSLS_KEYWORD_OVERRIDE
-    {
-        markDone();
-    }
+    void setIsHealedCb(const IsHealedCb&) BSLS_KEYWORD_OVERRIDE { markDone(); }
 
     // ACCESSORS
     bool isOpen() const BSLS_KEYWORD_OVERRIDE { return markDone(); }
