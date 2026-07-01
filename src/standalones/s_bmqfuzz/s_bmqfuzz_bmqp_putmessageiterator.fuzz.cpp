@@ -23,11 +23,15 @@ using namespace BloombergLP;
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 {
-    if (size < sizeof(bmqp::EventHeader)) {
+    if (size < sizeof(bmqp::EventHeader) + 1) {
         return 0;
     }
 
-    bslma::Allocator* alloc = bslma::Default::defaultAllocator();
+    bool decompressFlag = (data[0] & 1);
+    data++;
+    size--;
+
+    bslma::Allocator*              alloc = bslma::Default::defaultAllocator();
     bdlbb::PooledBlobBufferFactory bufferFactory(1024, alloc);
 
     bdlbb::Blob blob(&bufferFactory, alloc);
@@ -39,13 +43,24 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
     bsl::memcpy(&eventHeader, data, sizeof(bmqp::EventHeader));
 
     bmqp::PutMessageIterator iter(&bufferFactory, alloc);
-    int rc = iter.reset(&blob, eventHeader, false);
+    int rc = iter.reset(&blob, eventHeader, decompressFlag);
     if (rc != 0) {
         return 0;
     }
 
     while (iter.next() == 1) {
         iter.header();
+        iter.applicationDataSize();
+
+        if (iter.hasOptions()) {
+            bdlbb::Blob optBlob(&bufferFactory, alloc);
+            iter.loadOptions(&optBlob);
+        }
+
+        if (decompressFlag && iter.hasMessageProperties()) {
+            bdlbb::Blob propsBlob(&bufferFactory, alloc);
+            iter.loadMessageProperties(&propsBlob);
+        }
     }
 
     return 0;
