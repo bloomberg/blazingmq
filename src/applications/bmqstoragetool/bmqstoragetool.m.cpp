@@ -32,10 +32,8 @@
 using namespace BloombergLP;
 using namespace m_bmqstoragetool;
 
-static bool parseArgs(CommandLineArguments& arguments,
-                      int                   argc,
-                      const char*           argv[],
-                      bslma::Allocator*     allocator)
+static bool
+parseArgs(CommandLineArguments& arguments, int argc, const char* argv[])
 {
     bool showHelp = false;
 
@@ -202,7 +200,7 @@ static bool parseArgs(CommandLineArguments& arguments,
     }
 
     bsl::string error;
-    if (!arguments.validate(&error, allocator)) {
+    if (!arguments.validate(&error)) {
         bsl::cerr << "Arguments validation failed:\n" << error;
         return false;  // RETURN
     }
@@ -229,7 +227,7 @@ int main(int argc, const char* argv[])
 
     // Arguments parsing
     CommandLineArguments arguments(allocator);
-    if (!parseArgs(arguments, argc, argv, allocator)) {
+    if (!parseArgs(arguments, argc, argv)) {
         return rc_ARGUMENTS_PARSING_FAILED;  // RETURN
     }
 
