@@ -61,7 +61,9 @@
 #include <m_bmqstoragetool_printer.h>
 
 // MQB
+#include <mqbs_datafileiterator.h>
 #include <mqbs_filestoreprotocolprinter.h>
+#include <mqbs_journalfileiterator.h>
 
 // BDE
 #include <bsl_iostream.h>

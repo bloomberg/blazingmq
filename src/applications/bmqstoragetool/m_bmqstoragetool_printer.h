@@ -27,6 +27,10 @@
 #include <m_bmqstoragetool_messagedetails.h>
 #include <m_bmqstoragetool_parameters.h>
 
+// MQB
+#include <mqbs_datafileiterator.h>
+#include <mqbs_journalfileiterator.h>
+
 // BMQ
 #include <bmqt_messageguid.h>
 
