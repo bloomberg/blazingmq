@@ -213,8 +213,23 @@ class TestPoisonMessages:
             leader = leader_candidate
         assert leader == multi_node.wait_leader()
 
+        # Wait for the new leader to complete state-restore before killing
+        # consumer_1. If consumer_1 is killed before state-restore, the
+        # closeQueue arrives on a RelayQueue (not yet converted to LocalQueue),
+        # RelayQueueEngine processes it without calling transferUnconfirmedMessages,
+        # so d_unconfirmedMessages is never cleared. When consumer_2 opens, the
+        # primary finds the GUID still in-flight and skips as "duplicate PUSH".
+        # After state-restore, closeQueue arrives on a LocalQueue, RootQueueEngine
+        # calls transferUnconfirmedMessages ("Lost a reader"), requeues the message,
+        # and consumer_2 receives it.
+        assert leader.capture("state restored", 15)
+
+        proxy.drain()
+
         consumer.check_exit_code = False
         consumer.kill()
+
+        assert proxy.capture("rejecting.*messages because of a client crash", 10)
 
         # start new consumer to synchronize with proxy and replica
         consumer = proxy.create_client("consumer_2")
