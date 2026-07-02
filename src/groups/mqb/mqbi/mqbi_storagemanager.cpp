@@ -19,6 +19,16 @@
 namespace BloombergLP {
 namespace mqbi {
 
+// ---------------------
+// class StorageProvider
+// ---------------------
+
+// CREATORS
+StorageProvider::~StorageProvider()
+{
+    // NOTHING (pure interface)
+}
+
 // --------------------
 // class StorageManager
 // --------------------

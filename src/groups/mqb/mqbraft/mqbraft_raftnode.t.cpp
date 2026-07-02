@@ -61,10 +61,13 @@ class MemoryRaftLog : public RaftLog {
 
     ~MemoryRaftLog() BSLS_KEYWORD_OVERRIDE {}
 
-    int append(bsls::Types::Uint64 term,
-               const bdlbb::Blob&  data) BSLS_KEYWORD_OVERRIDE
+    int append(bsls::Types::Uint64                  term,
+               const bsl::shared_ptr<bdlbb::Blob>&  data,
+               bsls::Types::Uint64                  id = 0)
+        BSLS_KEYWORD_OVERRIDE
     {
-        d_entries.push_back(LogEntry(term, data, d_allocator_p));
+        (void)id;
+        d_entries.push_back(LogEntry(term, lastIndex() + 1, data));
         return 0;
     }
 
@@ -132,6 +135,15 @@ class MemoryRaftLog : public RaftLog {
     bsls::Types::Uint64 snapshotTerm() const BSLS_KEYWORD_OVERRIDE
     {
         return d_snapshotTerm;
+    }
+
+    void applySnapshot(bsls::Types::Uint64 lastIncludedIndex,
+                       bsls::Types::Uint64 lastIncludedTerm)
+        BSLS_KEYWORD_OVERRIDE
+    {
+        d_snapshotIndex = lastIncludedIndex;
+        d_snapshotTerm  = lastIncludedTerm;
+        d_entries.clear();
     }
 };
 
@@ -284,10 +296,11 @@ class TestCluster {
         return count;
     }
 
-    bdlbb::Blob makeBlob(const char* data)
+    bsl::shared_ptr<bdlbb::Blob> makeBlob(const char* data)
     {
-        bdlbb::Blob blob(&d_bufferFactory, d_allocator_p);
-        bdlbb::BlobUtil::append(&blob,
+        bsl::shared_ptr<bdlbb::Blob> blob =
+            bsl::make_shared<bdlbb::Blob>(&d_bufferFactory, d_allocator_p);
+        bdlbb::BlobUtil::append(blob.get(),
                                 data,
                                 static_cast<int>(bsl::strlen(data)));
         return blob;
@@ -405,8 +418,9 @@ static void test4_electionWithLogRestriction()
     TestCluster cluster(3, false, &alloc);
 
     // Give nodes 1 and 2 a log entry that node 0 doesn't have
-    bdlbb::Blob data(&factory, &alloc);
-    bdlbb::BlobUtil::append(&data, "entry1", 6);
+    bsl::shared_ptr<bdlbb::Blob> data =
+        bsl::make_shared<bdlbb::Blob>(&factory, &alloc);
+    bdlbb::BlobUtil::append(data.get(), "entry1", 6);
     cluster.log(1)->append(1, data);
     cluster.log(2)->append(1, data);
 
@@ -455,7 +469,7 @@ static void test5_logReplication()
     BMQTST_ASSERT_GE(leader, 0);
 
     // Propose an entry
-    bdlbb::Blob    data = cluster.makeBlob("hello");
+    bsl::shared_ptr<bdlbb::Blob> data = cluster.makeBlob("hello");
     RaftNodeOutput proposeOutput(&alloc);
     int            rc = cluster.node(leader)->propose(&proposeOutput, data);
     BMQTST_ASSERT_EQ(rc, 0);
@@ -484,8 +498,9 @@ static void test6_logConsistencyCheck()
     bdlbb::PooledBlobBufferFactory factory(256, &alloc);
 
     MemoryRaftLog log(&alloc);
-    bdlbb::Blob   data(&factory, &alloc);
-    bdlbb::BlobUtil::append(&data, "x", 1);
+    bsl::shared_ptr<bdlbb::Blob> data =
+        bsl::make_shared<bdlbb::Blob>(&factory, &alloc);
+    bdlbb::BlobUtil::append(data.get(), "x", 1);
     log.append(1, data);  // index 1, term 1
 
     bsl::vector<int> peers(&alloc);
@@ -534,8 +549,9 @@ static void test7_logConflictResolution()
     bdlbb::PooledBlobBufferFactory factory(256, &alloc);
 
     MemoryRaftLog log(&alloc);
-    bdlbb::Blob   data1(&factory, &alloc);
-    bdlbb::BlobUtil::append(&data1, "old", 3);
+    bsl::shared_ptr<bdlbb::Blob> data1 =
+        bsl::make_shared<bdlbb::Blob>(&factory, &alloc);
+    bdlbb::BlobUtil::append(data1.get(), "old", 3);
     log.append(1, data1);  // index 1, term 1
     log.append(1, data1);  // index 2, term 1
 
@@ -556,10 +572,11 @@ static void test7_logConflictResolution()
 
     // Leader sends entry at index 1 with term 2 (conflict with existing
     // term 1)
-    bdlbb::Blob newData(&factory, &alloc);
-    bdlbb::BlobUtil::append(&newData, "new", 3);
+    bsl::shared_ptr<bdlbb::Blob> newData =
+        bsl::make_shared<bdlbb::Blob>(&factory, &alloc);
+    bdlbb::BlobUtil::append(newData.get(), "new", 3);
 
-    LogEntry leaderEntry(2, newData, &alloc);
+    LogEntry leaderEntry(2, 1, newData);
 
     RaftMessage ae(&alloc);
     ae.d_type              = RaftMessageType::e_APPEND_ENTRIES;
@@ -597,8 +614,8 @@ static void test8_commitIndexAdvancement()
     BMQTST_ASSERT_GE(leader, 0);
 
     // Propose entries
-    bdlbb::Blob data1 = cluster.makeBlob("entry1");
-    bdlbb::Blob data2 = cluster.makeBlob("entry2");
+    bsl::shared_ptr<bdlbb::Blob> data1 = cluster.makeBlob("entry1");
+    bsl::shared_ptr<bdlbb::Blob> data2 = cluster.makeBlob("entry2");
 
     RaftNodeOutput out1(&alloc);
     cluster.node(leader)->propose(&out1, data1);
