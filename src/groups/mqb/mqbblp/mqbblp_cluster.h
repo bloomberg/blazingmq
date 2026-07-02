@@ -98,6 +98,7 @@ class StorageContent;
 }
 namespace mqbi {
 class StorageManager;
+class StorageProvider;
 }
 namespace mqbnet {
 class TransportManager;
@@ -261,8 +262,12 @@ class Cluster : public mqbi::Cluster,
     /// Cluster's persistent state.
     mqbc::ClusterState d_state;
 
-    /// `StorageManager` associated with this cluster.
+    /// `StorageManager` associated with this cluster (legacy mode only).
     StorageManagerMp d_storageManager_mp;
+
+    /// Active storage provider (legacy: d_storageManager_mp, Raft:
+    /// PartitionRaftManager from orchestrator).
+    mqbi::StorageProvider* d_storageProvider_p;
 
     ClusterOrchestrator d_clusterOrchestrator;
 

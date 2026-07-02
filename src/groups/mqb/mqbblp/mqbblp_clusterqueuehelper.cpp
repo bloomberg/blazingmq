@@ -3825,7 +3825,7 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
         // Note that this fails if there are data
         mqbc::ClusterState::AssignmentVisitor doubleAssignmentVisitor =
             bdlf::BindUtil::bindS(d_allocator_p,
-                                  &mqbi::StorageManager::unregisterQueue,
+                                  &mqbi::StorageProvider::unregisterQueue,
                                   d_storageManager_p,
                                   bdlf::PlaceHolders::_1,   // uri
                                   bdlf::PlaceHolders::_2);  // partitionId),

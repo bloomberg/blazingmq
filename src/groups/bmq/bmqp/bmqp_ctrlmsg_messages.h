@@ -19063,26 +19063,35 @@ class RaftMessage {
     // InstallSnapshot data also travels as raw binary blobs appended after the
     // BER-encoded RaftMessage.  Only the metadata (lastIncludedIndex, offset,
     // done) is in the XSD.
-    // term....: Sender's current term
+    // term.............: Sender's current term partitionId......: Raft group
+    // identifier.  0 = CSL (cluster metadata) group.  1..N = partition Raft
+    // group (maps to storage partition partitionId - 1).  Used by the
+    // orchestrator to route the message to ClusterStateRaft or the correct
+    // PartitionRaft.
 
     // INSTANCE DATA
     bsls::Types::Uint64  d_term;
     RaftMessageChoice    d_choice;
+    unsigned int         d_partitionId;
+
+    // PRIVATE ACCESSORS
+    template <typename t_HASH_ALGORITHM>
+    void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
 
   public:
     // TYPES
     enum {
-        ATTRIBUTE_ID_TERM   = 0
-      , ATTRIBUTE_ID_CHOICE = 1
+        ATTRIBUTE_ID_TERM         = 0,
+        ATTRIBUTE_ID_PARTITION_ID = 1,
+        ATTRIBUTE_ID_CHOICE       = 2
     };
 
-    enum {
-        NUM_ATTRIBUTES = 2
-    };
+    enum { NUM_ATTRIBUTES = 3 };
 
     enum {
-        ATTRIBUTE_INDEX_TERM   = 0
-      , ATTRIBUTE_INDEX_CHOICE = 1
+        ATTRIBUTE_INDEX_TERM         = 0,
+        ATTRIBUTE_INDEX_PARTITION_ID = 1,
+        ATTRIBUTE_INDEX_CHOICE       = 2
     };
 
     // CONSTANTS
@@ -19146,6 +19155,10 @@ class RaftMessage {
         // Return a reference to the modifiable "Term" attribute of this
         // object.
 
+    unsigned int& partitionId();
+    // Return a reference to the modifiable "PartitionId" attribute of this
+    // object.
+
     RaftMessageChoice& choice();
         // Return a reference to the modifiable "Choice" attribute of this
         // object.
@@ -19197,6 +19210,9 @@ class RaftMessage {
     bsls::Types::Uint64 term() const;
         // Return the value of the "Term" attribute of this object.
 
+    unsigned int partitionId() const;
+    // Return the value of the "PartitionId" attribute of this object.
+
     const RaftMessageChoice& choice() const;
         // Return a reference offering non-modifiable access to the "Choice"
         // attribute of this object.
@@ -19208,6 +19224,7 @@ class RaftMessage {
         // have the same value if each respective attribute has the same value.
     {
         return lhs.term() == rhs.term() &&
+               lhs.partitionId() == rhs.partitionId() &&
                lhs.choice() == rhs.choice();
     }
 
@@ -19232,9 +19249,7 @@ class RaftMessage {
         // function integrates with the 'bslh' modular hashing system and
         // effectively provides a 'bsl::hash' specialization for 'RaftMessage'.
     {
-        using bslh::hashAppend;
-        hashAppend(hashAlg, object.term());
-        hashAppend(hashAlg, object.choice());
+        object.hashAppendImpl(hashAlg);
     }
 };
 
@@ -38351,6 +38366,16 @@ const bsl::vector<QueueInfoUpdate>& QueueUpdateAdvisory::queueUpdates() const
                              // class RaftMessage
                              // -----------------
 
+// PRIVATE ACCESSORS
+template <typename t_HASH_ALGORITHM>
+void RaftMessage::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
+{
+    using bslh::hashAppend;
+    hashAppend(hashAlgorithm, this->term());
+    hashAppend(hashAlgorithm, this->partitionId());
+    hashAppend(hashAlgorithm, this->choice());
+}
+
 // CLASS METHODS
 // MANIPULATORS
 template <typename t_MANIPULATOR>
@@ -38359,6 +38384,12 @@ int RaftMessage::manipulateAttributes(t_MANIPULATOR& manipulator)
     int ret;
 
     ret = manipulator(&d_term, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TERM]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_partitionId,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID]);
     if (ret) {
         return ret;
     }
@@ -38379,6 +38410,11 @@ int RaftMessage::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
     switch (id) {
       case ATTRIBUTE_ID_TERM: {
         return manipulator(&d_term, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TERM]);
+      }
+      case ATTRIBUTE_ID_PARTITION_ID: {
+          return manipulator(
+              &d_partitionId,
+              ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID]);
       }
       case ATTRIBUTE_ID_CHOICE: {
         return manipulator(&d_choice, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CHOICE]);
@@ -38411,6 +38447,11 @@ bsls::Types::Uint64& RaftMessage::term()
     return d_term;
 }
 
+inline unsigned int& RaftMessage::partitionId()
+{
+    return d_partitionId;
+}
+
 inline
 RaftMessageChoice& RaftMessage::choice()
 {
@@ -38424,6 +38465,12 @@ int RaftMessage::accessAttributes(t_ACCESSOR& accessor) const
     int ret;
 
     ret = accessor(d_term, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TERM]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_partitionId,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID]);
     if (ret) {
         return ret;
     }
@@ -38444,6 +38491,10 @@ int RaftMessage::accessAttribute(t_ACCESSOR& accessor, int id) const
     switch (id) {
       case ATTRIBUTE_ID_TERM: {
         return accessor(d_term, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TERM]);
+      }
+      case ATTRIBUTE_ID_PARTITION_ID: {
+          return accessor(d_partitionId,
+                          ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID]);
       }
       case ATTRIBUTE_ID_CHOICE: {
         return accessor(d_choice, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CHOICE]);
@@ -38474,6 +38525,11 @@ inline
 bsls::Types::Uint64 RaftMessage::term() const
 {
     return d_term;
+}
+
+inline unsigned int RaftMessage::partitionId() const
+{
+    return d_partitionId;
 }
 
 inline

@@ -1791,12 +1791,6 @@
     </sequence>
   </complexType>
 
-  <!-- ========================================================================
-       ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
-       :                         RAFT MESSAGE                                :
-       #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::#
-       ==================================================================== -->
-
   <complexType name='PartitionElectionResult'>
     <annotation>
       <documentation>
@@ -1817,6 +1811,12 @@
       <element name='primaryLeaseId' type='unsignedInt'/>
     </sequence>
   </complexType>
+  
+  <!-- ========================================================================
+       ::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::
+       :                         RAFT MESSAGE                                :
+       #::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::::#
+       ==================================================================== -->
 
   <complexType name='RaftRequestVote'>
     <annotation>
@@ -1923,11 +1923,17 @@
         the BER-encoded RaftMessage.  Only the metadata (lastIncludedIndex,
         offset, done) is in the XSD.
 
-        term....: Sender's current term
+        term.............: Sender's current term
+        partitionId......: Raft group identifier.  0 = CSL (cluster
+                           metadata) group.  1..N = partition Raft group
+                           (maps to storage partition partitionId - 1).
+                           Used by the orchestrator to route the message
+                           to ClusterStateRaft or the correct PartitionRaft.
       </documentation>
     </annotation>
     <sequence>
-      <element name='term'    type='unsignedLong'/>
+      <element name='term'         type='unsignedLong'/>
+      <element name='partitionId'  type='unsignedInt'/>
       <choice>
         <element name='requestVote'              type='tns:RaftRequestVote'/>
         <element name='requestVoteResponse'      type='tns:RaftRequestVoteResponse'/>

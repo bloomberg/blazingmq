@@ -44,17 +44,17 @@ const int k_FILE_HEADER_SIZE = static_cast<int>(
 
 // CREATORS
 CslRaftLog::CslRaftLog(const bsl::shared_ptr<mqbsi::Log>& log,
-                       bdlbb::BlobBufferFactory*          bufferFactory,
-                       bslma::Allocator*                  allocator)
+                       BlobSpPool*                       blobSpPool,
+                       bslma::Allocator*                 allocator)
 : d_log_sp(log)
 , d_index(allocator)
 , d_snapshotIndex(0)
 , d_snapshotTerm(0)
-, d_bufferFactory_p(bufferFactory)
+, d_blobSpPool_p(blobSpPool)
 , d_allocator_p(bslma::Default::allocator(allocator))
 {
     BSLS_ASSERT_SAFE(log);
-    BSLS_ASSERT_SAFE(bufferFactory);
+    BSLS_ASSERT_SAFE(blobSpPool);
 }
 
 CslRaftLog::~CslRaftLog()
@@ -112,11 +112,14 @@ int CslRaftLog::close()
     return 0;
 }
 
-int CslRaftLog::append(bsls::Types::Uint64 term, const bdlbb::Blob& data)
+int CslRaftLog::append(bsls::Types::Uint64                  term,
+                       const bsl::shared_ptr<bdlbb::Blob>&  data,
+                       bsls::Types::Uint64                  id)
 {
-    mqbsi::Log::Offset writeOffset = d_log_sp->write(data,
-                                                     bmqu::BlobPosition(),
-                                                     data.length());
+    BSLS_ASSERT_SAFE(id == 0);
+    mqbsi::Log::Offset writeOffset = d_log_sp->write(*data,
+                                                      bmqu::BlobPosition(),
+                                                      data->length());
 
     if (writeOffset < 0) {
         return static_cast<int>(writeOffset);
@@ -177,7 +180,7 @@ bsls::Types::Uint64 CslRaftLog::term(bsls::Types::Uint64 index) const
     }
 
     bsls::Types::Uint64 vectorIdx = index - d_snapshotIndex - 1;
-    return d_index[static_cast<int>(vectorIdx)].d_term;
+    return d_index[vectorIdx].d_term;
 }
 
 int CslRaftLog::entries(bsls::Types::Uint64    lo,
@@ -208,17 +211,16 @@ int CslRaftLog::entries(bsls::Types::Uint64    lo,
         int recSize = static_cast<int>(
             mqbc::ClusterStateLedgerUtil::recordSize(*header));
 
-        bdlbb::Blob entryBlob(d_bufferFactory_p, d_allocator_p);
-        entryBlob.setLength(recSize);
+        bsl::shared_ptr<bdlbb::Blob> entryBlob = d_blobSpPool_p->getObject();
 
-        rc = d_log_sp->read(entryBlob.buffer(0).data(), recSize, offset);
+        rc = d_log_sp->read(entryBlob.get(), recSize, offset);
         if (rc != 0) {
             return rc;
         }
 
         out->push_back(LogEntry(d_index[static_cast<int>(vectorIdx)].d_term,
-                                entryBlob,
-                                d_allocator_p));
+                                i,
+                                entryBlob));
     }
 
     return 0;
@@ -232,6 +234,14 @@ bsls::Types::Uint64 CslRaftLog::snapshotIndex() const
 bsls::Types::Uint64 CslRaftLog::snapshotTerm() const
 {
     return d_snapshotTerm;
+}
+
+void CslRaftLog::applySnapshot(bsls::Types::Uint64 lastIncludedIndex,
+                                bsls::Types::Uint64 lastIncludedTerm)
+{
+    d_snapshotIndex = lastIncludedIndex;
+    d_snapshotTerm  = lastIncludedTerm;
+    d_index.clear();
 }
 
 }  // close package namespace

@@ -162,10 +162,9 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     // DATA
     bslma::Allocator* d_allocator_p;
 
-    /// The pointer to the parent DataStore object that contains this storage.
-    /// Held, not owned.
+    /// The pointer to the record store for this partition.  Held, not owned.
     /// Is always not NULL.
-    DataStore* d_store_p;
+    RecordStore* d_store_p;
 
     mqbu::StorageKey d_queueKey;
 
@@ -271,7 +270,7 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     /// `queueUri` and `queueKey`, backed by the specified `dataStore`, and
     /// using the specified `config`, `parentCapacityMeter`, and
     /// `allocator`.
-    FileBackedStorage(DataStore*                     dataStore,
+    FileBackedStorage(RecordStore*                   dataStore,
                       const bmqt::Uri&               queueUri,
                       const mqbu::StorageKey&        queueKey,
                       mqbi::Domain*                  domain,
@@ -717,7 +716,7 @@ FileBackedStorage::getMessageSize(int*                     msgSize,
 
 inline int FileBackedStorage::partitionId() const
 {
-    return d_store_p->config().partitionId();
+    return d_store_p->partitionId();
 }
 
 inline const ReplicatedStorage::RecordHandles&

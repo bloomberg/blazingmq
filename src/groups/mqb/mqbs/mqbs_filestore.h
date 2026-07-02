@@ -144,6 +144,59 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     typedef SyncPointOffsetPairs::const_iterator SyncPointOffsetConstIter;
 
+    /// VST holding all parameters for the Raft primary message write path.
+    /// Input fields are set by 'PartitionRaft' before calling
+    /// 'formatMessageRecord'; output fields are filled in by
+    /// 'formatMessageRecord'.
+    struct PendingWrite {
+        // INPUT — common
+        bsls::Types::Uint64              d_id;
+        RecordType::Enum                 d_recordType;
+        bsls::Types::Uint64              d_primaryLeaseId;
+        bsls::Types::Uint64              d_sequenceNumber;
+        mqbu::StorageKey                 d_queueKey;
+
+        // INPUT — e_MESSAGE
+        mqbi::StorageMessageAttributes*  d_attributes_p;
+        DataStoreRecordHandle            d_handle;
+        bmqt::MessageGUID                d_guid;
+        bsl::shared_ptr<bdlbb::Blob>     d_appData;
+        bsl::shared_ptr<bdlbb::Blob>     d_options;
+
+        // INPUT — e_QUEUE_OP (creation)
+        bmqt::Uri                        d_queueUri;
+        const AppInfos*                  d_appIdKeyPairs_p;
+        bsls::Types::Uint64              d_timestamp;
+        bool                             d_isNewQueue;
+
+        // OUTPUT (set by formatMessageRecord / writeQueueCreationRecordImpl)
+        bsls::Types::Uint64              d_journalOffset;
+        bsls::Types::Uint64              d_dataOffset;
+        bsl::shared_ptr<bdlbb::Blob>     d_entryBlob;
+        bsls::Types::Uint64              d_qlistOffset;
+        unsigned int                     d_qlistRecTotalLength;
+
+        PendingWrite();
+
+        /// Message record constructor.
+        PendingWrite(bsls::Types::Uint64                  id,
+                     unsigned int                         primaryLeaseId,
+                     bsls::Types::Uint64                  sequenceNumber,
+                     mqbi::StorageMessageAttributes*      attributes,
+                     const bmqt::MessageGUID&             guid,
+                     const bsl::shared_ptr<bdlbb::Blob>&  appData,
+                     const bsl::shared_ptr<bdlbb::Blob>&  options,
+                     const mqbu::StorageKey&              queueKey);
+
+        /// Queue creation record constructor.
+        PendingWrite(bsls::Types::Uint64     id,
+                     const bmqt::Uri&        queueUri,
+                     const mqbu::StorageKey& queueKey,
+                     const AppInfos*         appIdKeyPairs,
+                     bsls::Types::Uint64     timestamp,
+                     bool                    isNewQueue);
+    };
+
     /// Type of the functor required by `applyForEachQueue`.
     typedef bsl::function<void(mqbi::Queue*)> QueueFunctor;
 
@@ -455,8 +508,9 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// be treated as fatal.  Also note that file store will attempt to
     /// recover any outstanding messages from the files found at the
     /// location indicated by the configuration of this instance.
-    int openInRecoveryMode(bsl::ostream&    errorDescription,
-                           QueueKeyInfoMap* queueKeyInfoMap);
+    int openInRecoveryMode(bsl::ostream&                    errorDescription,
+                           QueueKeyInfoMap*                 queueKeyInfoMap,
+                           bsl::vector<RecoveryRecordInfo>* recoveryIndex = 0);
 
     /// Make two passes over the journal file iterator `jit` in reverse
     /// iteration.
@@ -477,14 +531,15 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// undefined unless the journal iterator `jit` is in reverse mode.
     ///
     /// WARNING: This method invalidates all iterators.
-    int recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
-                        bsls::Types::Uint64* journalOffset,
-                        bsls::Types::Uint64* qlistOffset,
-                        bsls::Types::Uint64* dataOffset,
-                        JournalFileIterator* jit,
-                        QlistFileIterator*   qit,
-                        DataFileIterator*    dit,
-                        bool                 withCSL);
+    int recoverMessages(QueueKeyInfoMap*                 queueKeyInfoMap,
+                        bsls::Types::Uint64*             journalOffset,
+                        bsls::Types::Uint64*             qlistOffset,
+                        bsls::Types::Uint64*             dataOffset,
+                        JournalFileIterator*             jit,
+                        QlistFileIterator*               qit,
+                        DataFileIterator*                dit,
+                        bool                             withCSL,
+                        bsl::vector<RecoveryRecordInfo>* recoveryIndex = 0);
 
     /// Rollover the outstanding messages belonging to the storages mapped
     /// to this file store, from active file set into the rollover file set,
@@ -535,6 +590,19 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
                                QueueKeyCounterMap* queueKeyCounterMap,
                                FileSet*            oldFileSet,
                                FileSet*            newFileSet);
+
+    /// Write qlist and journal records for a queue creation/addition.
+    /// Use the specified 'primaryLeaseId' and 'sequenceNumber'.  Load the
+    /// journal record offset into the specified 'journalOffset', the qlist
+    /// offset into 'qlistOffset', and the qlist record length into
+    /// 'qlistRecTotalLength'.  Insert the record into 'd_records' and
+    /// update outstanding byte counters.  Return 0 on success.
+    /// Core implementation for queue creation/addition record write.
+    /// All inputs and outputs are passed via the specified 'pw'.  Fills
+    /// 'pw->d_handle', 'pw->d_journalOffset', 'pw->d_qlistOffset', and
+    /// 'pw->d_qlistRecTotalLength'.  Callers are responsible for
+    /// post-processing (replication for legacy, entry blob for Raft).
+    int writeQueueCreationRecordImpl(PendingWrite* pw);
 
     /// Issue a sync point.
     ///
@@ -649,7 +717,9 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
                                const DataStoreRecordKey& key,
                                const DataStoreRecord&    record);
     void recordIteratorToHandle(DataStoreRecordHandle* handle,
-                                const RecordIterator   recordIt);
+                                const RecordIterator   recordIt) const;
+
+    const RecordIterator& handleTorRecordIterator(const DataStoreRecordHandle& handle) const;
 
     /// Replicate a record having the specified `messageType` and
     /// `recordOffset`, insert a corresponding record having the specified
@@ -763,6 +833,12 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// Return zero on success, non-zero value otherwise.
     int open(QueueKeyInfoMap* queueKeyInfoMap) BSLS_KEYWORD_OVERRIDE;
 
+    /// Open this instance for Raft mode.  Populate the specified
+    /// `recoveryIndex` with a `RecoveryRecordInfo` for every journal
+    /// record after the rollover boundary, in forward order.  Return zero
+    /// on success, non-zero value otherwise.
+    int openForRaft(bsl::vector<RecoveryRecordInfo>* recoveryIndex);
+
     /// Close this instance.  If the optional `flush` flag is true, flush
     /// the data store to disk.  If the optional `archive` flag is true,
     /// archive the data store.  Return zero on success, non-zero value
@@ -845,6 +921,87 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     int writeSyncPointRecord(const bmqp_ctrlmsg::SyncPoint& syncPoint,
                              SyncPointType::Enum type) BSLS_KEYWORD_OVERRIDE;
 
+    /// Raft integration
+    /// -----------------
+
+    /// Write a pre-formatted record from the specified 'entryBlob' to the
+    /// journal and (for DATA/QLIST types) the data file.  Load the
+    /// resulting journal offset into the specified 'journalOffset' and the
+    /// data file offset (0 if not applicable) into the specified
+    /// 'dataOffset'.  Update file positions and insert into 'd_records'.
+    /// Return 0 on success, non-zero on error.
+    /// Write a pre-formatted record to the appropriate mmap files.  'data'
+    /// contains the journal record (and, on the replica path, the payload
+    /// appended after it).  On the primary path the optionally specified
+    /// 'payload' carries the data-file or qlist content separately,
+    /// avoiding an intermediate combined blob; when 'payload' is null the
+    /// payload bytes are read from 'data' starting after the journal record.
+    int writeFormattedRecord(const bdlbb::Blob&                   data,
+                             bsls::Types::Uint64*                 journalOffset,
+                             bsls::Types::Uint64*                 dataOffset,
+                             DataStoreRecordHandle*               handle = 0,
+                             const bsl::shared_ptr<bdlbb::Blob>&  payload = {});
+
+    /// Notify that a record has been committed by Raft quorum on a replica.
+    /// The specified `data` blob contains the journal record (and optional
+    /// payload).  The specified `handle` identifies the record in
+    /// `d_records`.  Read queueKey/guid from the blob, look up the
+    /// storage, and call the appropriate `ReplicatedStorage::process*`
+    /// method.
+    void onRecordCommittedReplica(const bdlbb::Blob&           data,
+                                  const DataStoreRecordHandle& handle);
+
+    /// Notify that the record identified by the specified 'primaryLeaseId'
+    /// and 'sequenceNumber' has been committed by Raft quorum on the
+    /// primary.  For strong consistency: find in 'd_unreceipted' and call
+    /// queue->onReceipt().
+    void onRecordCommittedPrimary(unsigned int        primaryLeaseId,
+                                  bsls::Types::Uint64 sequenceNumber);
+
+    /// Read the record at the specified 'journalOffset' (and any
+    /// associated data payload) into the specified 'out' blob using
+    /// zero-copy aliased BlobBuffers from the mmap'd files.  Return 0 on
+    /// success, non-zero on error.
+    int readRecord(bsl::shared_ptr<bdlbb::Blob>* out,
+                   bsls::Types::Uint64           journalOffset) const;
+
+    /// Truncate the journal file at the specified 'offset'.  Return 0 on
+    /// success, non-zero on error.
+    int truncateJournal(bsls::Types::Uint64 offset);
+
+    /// Truncate the data file at the specified 'offset'.  Return 0 on
+    /// success, non-zero on error.
+    int truncateData(bsls::Types::Uint64 offset);
+
+    /// Remove from 'd_records' all entries whose journal offset is at or
+    /// above the specified 'journalOffset'.  Reverse-walks from the tail,
+    /// relying on the monotonic relationship between sequence numbers and
+    /// journal offsets.
+    void truncateRecords(bsls::Types::Uint64 journalOffset);
+
+    /// Look up the record identified by the specified 'primaryLeaseId' and
+    /// 'sequenceNumber' in d_records.  Load the journal offset into the
+    /// specified 'journalOffset' and the data/qlist offset into the
+    /// specified 'dataOffset' (0 if not applicable).  Return 0 on
+    /// success, non-zero if not found.
+    int lookupRecord(bsls::Types::Uint64* journalOffset,
+                     bsls::Types::Uint64* dataOffset,
+                     unsigned int         primaryLeaseId,
+                     bsls::Types::Uint64  sequenceNumber) const;
+
+    /// Raft primary path: write a message record directly to mmap using the
+    /// input fields of the specified 'pw'.  No StorageEvent replication is
+    /// performed.  Fills 'pw->d_journalOffset', 'pw->d_dataOffset',
+    /// 'pw->d_entryBlob' (zero-copy mmap alias), and 'pw->d_handle'.
+    int formatMessageRecord(PendingWrite* pw);
+
+    /// Raft primary path: write a queue creation record (journal + qlist)
+    /// directly to mmap using the input fields of the specified 'pw'
+    /// (d_queueUri, d_queueKey, d_appIdKeyPairs_p, d_timestamp,
+    /// d_isNewQueue).  Fills 'pw->d_journalOffset', 'pw->d_entryBlob'
+    /// (journal record + qlist bytes), and 'pw->d_handle'.
+    int formatQueueCreationRecord(PendingWrite* pw);
+
     /// Remove the record identified by the specified `handle`.  The
     /// behavior is undefined unless `handle` is valid and represents a
     /// record in the data store.
@@ -917,9 +1074,10 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// points.
     int rollover();
 
-    void registerStorage(ReplicatedStorage* storage);
+    void registerStorage(ReplicatedStorage* storage) BSLS_KEYWORD_OVERRIDE;
 
-    void unregisterStorage(const ReplicatedStorage* storage);
+    void unregisterStorage(const ReplicatedStorage* storage)
+        BSLS_KEYWORD_OVERRIDE;
 
     void cancelTimersAndWait();
 
@@ -1012,6 +1170,9 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     /// Return a printable description of the client (e.g. for logging).
     bsl::string_view description() const BSLS_KEYWORD_OVERRIDE;
+
+    /// Return the partition id associated with this record store.
+    int partitionId() const BSLS_KEYWORD_OVERRIDE;
 
     /// Load into the specified `fileStoreSet` the active (current) file
     /// set.  The behavior is undefined unless there is a fileSet in current
@@ -1187,7 +1348,7 @@ inline void FileStore::insertDataStoreRecord(DataStoreRecordHandle*    handle,
 }
 
 inline void FileStore::recordIteratorToHandle(DataStoreRecordHandle* handle,
-                                              const RecordIterator   recordIt)
+                                              const RecordIterator   recordIt) const
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(handle);
@@ -1195,6 +1356,22 @@ inline void FileStore::recordIteratorToHandle(DataStoreRecordHandle* handle,
     RecordIterator& recordItRef = *reinterpret_cast<RecordIterator*>(handle);
     recordItRef                 = recordIt;
 }
+
+inline const FileStore::RecordIterator& FileStore::handleTorRecordIterator(
+        const DataStoreRecordHandle& handle) const
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(handle.isValid());
+
+    const RecordIterator& recordIt = *reinterpret_cast<const RecordIterator*>(
+        &handle);
+    BSLS_ASSERT_SAFE(d_records.end() != d_records.find(recordIt->first));
+
+    return recordIt;
+}
+
+void handleTorRecordIterator();
+
 
 // PRIVATE ACCESSORS
 inline const bsl::string& FileStore::partitionDesc() const
@@ -1279,6 +1456,11 @@ inline mqbi::DispatcherClientData& FileStore::dispatcherClientData()
 inline bsl::string_view FileStore::description() const
 {
     return partitionDesc();
+}
+
+inline int FileStore::partitionId() const
+{
+    return d_config.partitionId();
 }
 
 inline bool FileStore::isOpen() const

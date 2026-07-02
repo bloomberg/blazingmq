@@ -214,23 +214,23 @@ struct StorageUtil {
                                     const AppInfos& newAppInfos);
 
     /// THREAD: Executed by the Queue's dispatcher thread.
-    static int registerQueueDispatched(mqbs::FileStore*         fs,
+    static int registerQueueDispatched(mqbs::RecordStore*       rs,
                                        mqbs::ReplicatedStorage* storage,
                                        const AppInfos&          appIdKeyPairs);
 
     /// THREAD: This method is called from the Queue's dispatcher thread.
     static void updateQueuePrimaryDispatched(mqbs::ReplicatedStorage* storage,
-                                             bslmt::Mutex*    storagesLock,
-                                             mqbs::FileStore* fs,
-                                             const AppInfos&  appIdKeyPairs,
-                                             bool             isFanout);
+                                             bslmt::Mutex*       storagesLock,
+                                             mqbs::RecordStore*  rs,
+                                             const AppInfos&     appIdKeyPairs,
+                                             bool                isFanout);
 
     /// StorageManager's storages lock must be locked before calling this
     /// method.
     ///
     /// THREAD: Executed by the Queue's dispatcher thread.
     static int updateQueuePrimaryRaw(mqbs::ReplicatedStorage* storage,
-                                     mqbs::FileStore*         fs,
+                                     mqbs::RecordStore*       rs,
                                      const AppInfos&          addedIdKeyPairs,
                                      const AppInfos& removedIdKeyPairs,
                                      bool            isFanout);
@@ -244,16 +244,16 @@ struct StorageUtil {
                                             const mqbu::StorageKey&  appKey,
                                             bool asPrimary);
 
-    static void createQueueStorageAsPrimary(StorageSpMap*    storageMap,
-                                            bslmt::Mutex*    storagesLock,
-                                            mqbs::FileStore* fs,
-                                            const bmqt::Uri& uri,
+    static void createQueueStorageAsPrimary(StorageSpMap*       storageMap,
+                                            bslmt::Mutex*       storagesLock,
+                                            mqbs::RecordStore*  rs,
+                                            const bmqt::Uri&    uri,
                                             const mqbu::StorageKey& queueKey,
-                                            const AppInfos& appIdKeyPairs,
-                                            mqbi::Domain*   domain);
+                                            const AppInfos&     appIdKeyPairs,
+                                            mqbi::Domain*       domain);
 
     static bsl::shared_ptr<mqbs::ReplicatedStorage>
-    createQueueStorageImpl(mqbs::FileStore*        fs,
+    createQueueStorageImpl(mqbs::RecordStore*      rs,
                            const bmqt::Uri&        uri,
                            const mqbu::StorageKey& queueKey,
                            const AppInfos&         appIdKeyPairs,
@@ -646,17 +646,21 @@ struct StorageUtil {
     /// Insert the created storage into Load into `storageMap`.
     ///
     /// THREAD: Executed by the Client's dispatcher thread.
-    static void registerQueueAsPrimary(const mqbi::Cluster*    cluster,
-                                       StorageSpMap*           storageMap,
+    /// Register the queue having the specified 'uri', 'queueKey',
+    /// 'appIdKeyPairs', and 'domain' as primary using the specified
+    /// 'storageMap', 'storagesLock', and 'rs' (RecordStore).
+    ///
+    /// THREAD: Must be called from the partition's dispatcher thread.
+    static void registerQueueAsPrimary(StorageSpMap*           storageMap,
                                        bslmt::Mutex*           storagesLock,
-                                       mqbs::FileStore*        fs,
+                                       mqbs::RecordStore*      rs,
                                        const bmqt::Uri&        uri,
                                        const mqbu::StorageKey& queueKey,
                                        const AppInfos&         appIdKeyPairs,
                                        mqbi::Domain*           domain);
 
     /// THREAD: Executed by the Queue's dispatcher thread.
-    static void unregisterQueueDispatched(mqbs::FileStore*     fs,
+    static void unregisterQueueDispatched(mqbs::RecordStore*   rs,
                                           StorageSpMap*        storageMap,
                                           bslmt::Mutex*        storagesLock,
                                           const ClusterData*   clusterData,
@@ -673,12 +677,12 @@ struct StorageUtil {
     /// queue is configured in fanout mode.
     ///
     /// THREAD: Executed by the Queue's dispatcher thread.
-    static int updateQueuePrimary(StorageSpMap*    storageMap,
-                                  bslmt::Mutex*    storagesLock,
-                                  mqbs::FileStore* fs,
-                                  const bmqt::Uri& uri,
-                                  const AppInfos&  addedIdKeyPairs,
-                                  const AppInfos&  removedIdKeyPairs);
+    static int updateQueuePrimary(StorageSpMap*       storageMap,
+                                  bslmt::Mutex*       storagesLock,
+                                  mqbs::RecordStore*  rs,
+                                  const bmqt::Uri&    uri,
+                                  const AppInfos&     addedIdKeyPairs,
+                                  const AppInfos&     removedIdKeyPairs);
 
     static void createQueueStorageAsReplica(StorageSpMap*        storageMap,
                                             bslmt::Mutex*        storagesLock,

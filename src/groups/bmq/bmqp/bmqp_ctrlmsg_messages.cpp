@@ -12219,22 +12219,21 @@ bsl::ostream& QueueUpdateAdvisory::print(bsl::ostream& stream,
 const char RaftMessage::CLASS_NAME[] = "RaftMessage";
 
 const bdlat_AttributeInfo RaftMessage::ATTRIBUTE_INFO_ARRAY[] = {
-    {
-        ATTRIBUTE_ID_TERM,
-        "term",
-        sizeof("term") - 1,
-        "",
-        bdlat_FormattingMode::e_DEC
-    },
-    {
-        ATTRIBUTE_ID_CHOICE,
-        "Choice",
-        sizeof("Choice") - 1,
-        "",
-        bdlat_FormattingMode::e_DEFAULT
-      | bdlat_FormattingMode::e_UNTAGGED
-    }
-};
+    {ATTRIBUTE_ID_TERM,
+     "term",
+     sizeof("term") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC},
+    {ATTRIBUTE_ID_PARTITION_ID,
+     "partitionId",
+     sizeof("partitionId") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC},
+    {ATTRIBUTE_ID_CHOICE,
+     "Choice",
+     sizeof("Choice") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT | bdlat_FormattingMode::e_UNTAGGED}};
 
 // CLASS METHODS
 
@@ -12266,7 +12265,7 @@ const bdlat_AttributeInfo *RaftMessage::lookupAttributeInfo(
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CHOICE];
     }
 
-    for (int i = 0; i < 2; ++i) {
+    for (int i = 0; i < 3; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
                     RaftMessage::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -12285,6 +12284,8 @@ const bdlat_AttributeInfo *RaftMessage::lookupAttributeInfo(int id)
     switch (id) {
       case ATTRIBUTE_ID_TERM:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TERM];
+      case ATTRIBUTE_ID_PARTITION_ID:
+          return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID];
       case ATTRIBUTE_ID_CHOICE:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CHOICE];
       default:
@@ -12297,6 +12298,7 @@ const bdlat_AttributeInfo *RaftMessage::lookupAttributeInfo(int id)
 RaftMessage::RaftMessage()
 : d_term()
 , d_choice()
+, d_partitionId()
 {
 }
 
@@ -12305,6 +12307,7 @@ RaftMessage::RaftMessage()
 void RaftMessage::reset()
 {
     bdlat_ValueTypeFunctions::reset(&d_term);
+    bdlat_ValueTypeFunctions::reset(&d_partitionId);
     bdlat_ValueTypeFunctions::reset(&d_choice);
 }
 
@@ -12317,6 +12320,7 @@ bsl::ostream& RaftMessage::print(bsl::ostream& stream,
     bslim::Printer printer(&stream, level, spacesPerLevel);
     printer.start();
     printer.printAttribute("term", this->term());
+    printer.printAttribute("partitionId", this->partitionId());
     printer.printAttribute("choice", this->choice());
     printer.end();
     return stream;

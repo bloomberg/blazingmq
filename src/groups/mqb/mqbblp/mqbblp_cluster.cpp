@@ -198,58 +198,65 @@ void Cluster::startDispatched(bsl::ostream* errorDescription, int* rc)
     // "uninitialized variable" warning
     mqbi::Dispatcher* clusterDispatcher = dispatcher();
 
-    // Start the StorageManager
-    d_storageManager_mp.load(
-        isFSMWorkflow()
-            ? static_cast<mqbi::StorageManager*>(
-                  new (*storageManagerAllocator) mqbc::StorageManager(
-                      d_clusterData.clusterConfig(),
-                      this,
-                      &d_clusterData,
-                      &d_state,
-                      d_clusterData.domainFactory(),
-                      clusterDispatcher,
-                      d_clusterData.clusterConfig()
-                          .clusterAttributes()
-                          .partitionFsmWatchdogTimeoutSec(),
-                      d_clusterData.clusterConfig()
-                          .clusterAttributes()
-                          .partitionFsmWatchdogNumRetries(),
-                      bdlf::BindUtil::bind(&Cluster::onRecoveryStatus,
-                                           this,
-                                           bdlf::PlaceHolders::_1,  // status
-                                           bsl::vector<unsigned int>(),
-                                           statRecorder),
-                      bdlf::BindUtil::bind(
-                          &ClusterOrchestrator::onPartitionPrimaryStatus,
-                          &d_clusterOrchestrator,
-                          bdlf::PlaceHolders::_1,   // partitionId
-                          bdlf::PlaceHolders::_2,   // status
-                          bdlf::PlaceHolders::_3),  // primary leaseId
-                      storageManagerAllocator))
-            : static_cast<mqbi::StorageManager*>(
-                  new (*storageManagerAllocator) mqbblp::StorageManager(
-                      d_clusterData.clusterConfig(),
-                      this,
-                      &d_clusterData,
-                      &d_state,
-                      bdlf::BindUtil::bind(
-                          &Cluster::onRecoveryStatus,
+    if (!isRaftEnabled()) {
+        // Legacy mode: create and start StorageManager.
+        d_storageManager_mp.load(
+            isFSMWorkflow()
+                ? static_cast<mqbi::StorageManager*>(
+                      new (*storageManagerAllocator) mqbc::StorageManager(
+                          d_clusterData.clusterConfig(),
                           this,
-                          bdlf::PlaceHolders::_1,  // status
-                          bdlf::PlaceHolders::_2,  // vector<leaseId>
-                          statRecorder),
-                      bdlf::BindUtil::bind(
-                          &ClusterOrchestrator::onPartitionPrimaryStatus,
-                          &d_clusterOrchestrator,
-                          bdlf::PlaceHolders::_1,   // partitionId
-                          bdlf::PlaceHolders::_2,   // status
-                          bdlf::PlaceHolders::_3),  // primary leaseId
-                      d_clusterData.domainFactory(),
-                      clusterDispatcher,
-                      &d_clusterData.miscWorkThreadPool(),
-                      storageManagerAllocator)),
-        storageManagerAllocator);
+                          &d_clusterData,
+                          &d_state,
+                          d_clusterData.domainFactory(),
+                          clusterDispatcher,
+                          d_clusterData.clusterConfig()
+                              .clusterAttributes()
+                              .partitionFsmWatchdogTimeoutSec(),
+                          d_clusterData.clusterConfig()
+                              .clusterAttributes()
+                              .partitionFsmWatchdogNumRetries(),
+                          bdlf::BindUtil::bind(
+                              &Cluster::onRecoveryStatus,
+                              this,
+                              bdlf::PlaceHolders::_1,  // status
+                              bsl::vector<unsigned int>(),
+                              statRecorder),
+                          bdlf::BindUtil::bind(
+                              &ClusterOrchestrator::onPartitionPrimaryStatus,
+                              &d_clusterOrchestrator,
+                              bdlf::PlaceHolders::_1,   // partitionId
+                              bdlf::PlaceHolders::_2,   // status
+                              bdlf::PlaceHolders::_3),  // primary leaseId
+                          storageManagerAllocator))
+                : static_cast<mqbi::StorageManager*>(
+                      new (*storageManagerAllocator) mqbblp::StorageManager(
+                          d_clusterData.clusterConfig(),
+                          this,
+                          &d_clusterData,
+                          &d_state,
+                          bdlf::BindUtil::bind(
+                              &Cluster::onRecoveryStatus,
+                              this,
+                              bdlf::PlaceHolders::_1,  // status
+                              bdlf::PlaceHolders::_2,  // vector<leaseId>
+                              statRecorder),
+                          bdlf::BindUtil::bind(
+                              &ClusterOrchestrator::onPartitionPrimaryStatus,
+                              &d_clusterOrchestrator,
+                              bdlf::PlaceHolders::_1,   // partitionId
+                              bdlf::PlaceHolders::_2,   // status
+                              bdlf::PlaceHolders::_3),  // primary leaseId
+                          d_clusterData.domainFactory(),
+                          clusterDispatcher,
+                          &d_clusterData.miscWorkThreadPool(),
+                          storageManagerAllocator)),
+            storageManagerAllocator);
+
+        d_clusterOrchestrator.setStorageManager(d_storageManager_mp.get());
+        d_clusterOrchestrator.queueHelper().setStorageManager(
+                d_storageManager_mp.get());
+    }
 
     // Start the misc work thread pool
     *rc = d_clusterData.miscWorkThreadPool().start();
@@ -259,7 +266,10 @@ void Cluster::startDispatched(bsl::ostream* errorDescription, int* rc)
         return;  // RETURN
     }
 
-    *rc = d_storageManager_mp->start(*errorDescription);
+    d_storageProvider_p = d_clusterOrchestrator.storageProvider();
+    BSLS_ASSERT_SAFE(d_storageProvider_p);
+
+    *rc = d_storageProvider_p->start(*errorDescription);
     if (*rc != 0) {
         d_clusterOrchestrator.stop();
         *rc = *rc * 10 + rc_STORAGE_MGR_FAILURE;
@@ -267,10 +277,6 @@ void Cluster::startDispatched(bsl::ostream* errorDescription, int* rc)
     }
 
     d_clusterOrchestrator.queueHelper().initialize();
-
-    d_clusterOrchestrator.setStorageManager(d_storageManager_mp.get());
-    d_clusterOrchestrator.queueHelper().setStorageManager(
-        d_storageManager_mp.get());
 
     d_clusterData.electorInfo().registerObserver(this);
     d_state.registerObserver(this);
@@ -372,7 +378,7 @@ void Cluster::stopDispatched()
     // Ignore rc
 
     d_clusterOrchestrator.queueHelper().teardown();
-    d_storageManager_mp->stop();
+    d_storageProvider_p->stop();
 
     d_clusterData.membership().selfNodeSession()->removeAllPartitions();
     // TBD: perform above in initiateShutdownDispatched() ?
@@ -541,7 +547,7 @@ void Cluster::processCommandDispatched(mqbcmd::ClusterResult*        result,
     }
     else if (command.isStorageValue()) {
         mqbcmd::StorageResult storageResult;
-        d_storageManager_mp->processCommand(&storageResult, command.storage());
+        d_storageProvider_p->processCommand(&storageResult, command.storage());
         if (storageResult.isErrorValue()) {
             result->makeError(storageResult.error());
             return;  // RETURN
@@ -683,7 +689,7 @@ void Cluster::continueShutdownDispatched(
     // broadcast above.  This is per design and the ordering should not be
     // changed.
 
-    d_storageManager_mp->processShutdownEvent();
+    d_storageProvider_p->processShutdownEvent();
 
     // Also update primary status for those partitions in cluster state.
 
@@ -1743,6 +1749,7 @@ void Cluster::onRecoveryStatusDispatched(
         // 'ClusterOrchestrator'.
         for (size_t pid = 0; pid < d_state.partitions().size(); ++pid) {
             bslma::ManagedPtr<mqbi::StorageManagerIterator> itMp;
+            BSLS_ASSERT_SAFE(d_storageManager_mp);
             itMp = d_storageManager_mp->getIterator(pid);
             while (itMp && *itMp) {
                 const bmqt::Uri uri(itMp->uri().canonical());
@@ -2079,6 +2086,7 @@ Cluster::Cluster(const bslstl::StringRef&           name,
           false,  // isTemporary
           allocator)
 , d_storageManager_mp()
+, d_storageProvider_p(0)
 , d_clusterOrchestrator(d_clusterData.clusterConfig(),
                         this,
                         &d_clusterData,
@@ -2878,8 +2886,9 @@ void Cluster::processEvent(const bmqp::Event&   event,
         BSLS_ASSERT_SAFE(false && "Heartbeat are handled at mqbnet layer");
     } break;
     case bmqp::EventType::e_REPLICATION_RECEIPT: {
-        // Receipt event arrives from replication nodes to primary.
-        d_storageManager_mp->processReceiptEvent(event, source);
+        if (d_storageManager_mp) {
+            d_storageManager_mp->processReceiptEvent(event, source);
+        }
     } break;  // BREAK
     case bmqp::EventType::e_AUTHENTICATION: {
         // TODO
@@ -2887,10 +2896,26 @@ void Cluster::processEvent(const bmqp::Event&   event,
                           "logic is not implemented yet.";
     } break;  // BREAK
     case bmqp::EventType::e_RAFT_PARTITION: {
-        // TODO: partition Raft not yet implemented
-        BALL_LOG_WARN << description()
-                      << ": Ignoring RAFT_PARTITION event from "
-                      << source->nodeDescription();
+        if (isRaftEnabled()) {
+            d_clusterOrchestrator.processRaftPartitionEvent(event, source);
+        }
+        else {
+            BALL_LOG_ERROR << description()
+                          << ": Ignoring RAFT_PARTITION event from "
+                          << source->nodeDescription()
+                          << " because Raft is not enabled.";
+        }
+    } break;  // BREAK
+    case bmqp::EventType::e_RAFT_SNAPSHOT: {
+        if (isRaftEnabled()) {
+            d_clusterOrchestrator.processRaftSnapshotEvent(event, source);
+        }
+        else {
+            BALL_LOG_ERROR << description()
+                          << ": Ignoring RAFT_SNAPSHOT event from "
+                          << source->nodeDescription()
+                          << " because Raft is not enabled.";
+        }
     } break;  // BREAK
     case bmqp::EventType::e_UNDEFINED:
     default: {
@@ -2956,14 +2981,18 @@ void Cluster::onDispatcherEvent(const mqbi::DispatcherEvent& event)
         d_clusterOrchestrator.processClusterStateEvent(clusterStateEvt);
     } break;  // BREAK
     case mqbi::DispatcherEventType::e_STORAGE: {
-        const mqbevt::StorageEvent& storageEvt =
-            *event.the<mqbevt::StorageEvent>();
-        d_storageManager_mp->processStorageEvent(storageEvt);
+        if (d_storageManager_mp) {
+            const mqbevt::StorageEvent& storageEvt =
+                *event.the<mqbevt::StorageEvent>();
+            d_storageManager_mp->processStorageEvent(storageEvt);
+        }
     } break;  // BREAK
     case mqbi::DispatcherEventType::e_RECOVERY: {
-        const mqbevt::RecoveryEvent& recoveryEvt =
-            *event.the<mqbevt::RecoveryEvent>();
-        d_storageManager_mp->processRecoveryEvent(recoveryEvt);
+        if (d_storageManager_mp) {
+            const mqbevt::RecoveryEvent& recoveryEvt =
+                *event.the<mqbevt::RecoveryEvent>();
+            d_storageManager_mp->processRecoveryEvent(recoveryEvt);
+        }
     } break;  // BREAK
     case mqbi::DispatcherEventType::e_PUSH: {
         const mqbevt::PushEvent& realEvent = *event.the<mqbevt::PushEvent>();
@@ -3182,7 +3211,7 @@ void Cluster::loadClusterStatus(mqbcmd::ClusterResult* result)
     mqbcmd::StorageCommand cmd;
     cmd.makeSummary();
     mqbcmd::StorageResult storageResult;
-    d_storageManager_mp->processCommand(&storageResult, cmd);
+    d_storageProvider_p->processCommand(&storageResult, cmd);
     clusterStatus.clusterStorageSummary() =
         storageResult.clusterStorageSummary();
 }
@@ -3222,7 +3251,7 @@ void Cluster::purgeAndGCQueueOnDomainDispatched(mqbcmd::ClusterResult* result,
 
     // Purge queues on the given domain
     mqbcmd::StorageResult storageResult;
-    d_storageManager_mp->purgeQueueOnDomain(&storageResult, domainName);
+    d_storageProvider_p->purgeQueueOnDomain(&storageResult, domainName);
     result->makeStorageResult(storageResult);
 
     if (result->isErrorValue()) {

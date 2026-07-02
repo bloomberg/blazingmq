@@ -4227,14 +4227,15 @@ void StorageManager::registerQueue(const bmqt::Uri&        uri,
                      partitionId < static_cast<int>(d_fileStores.size()));
     BSLS_ASSERT_SAFE(domain);
 
-    StorageUtil::registerQueueAsPrimary(d_cluster_p,
-                                        &d_storages[partitionId],
-                                        d_storageLockVec[partitionId].get(),
-                                        d_fileStores[partitionId].get(),
-                                        uri,
-                                        queueKey,
-                                        appIdKeyPairs,
-                                        domain);
+    d_fileStores[partitionId]->execute(
+        bdlf::BindUtil::bind(&StorageUtil::registerQueueAsPrimary,
+                             &d_storages[partitionId],
+                             d_storageLockVec[partitionId].get(),
+                             d_fileStores[partitionId].get(),
+                             uri,
+                             queueKey,
+                             appIdKeyPairs,
+                             domain));
 }
 
 void StorageManager::unregisterQueue(const bmqt::Uri& uri, int partitionId)

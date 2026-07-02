@@ -571,12 +571,165 @@ bool operator==(const DataStoreRecordHandle& lhs,
 bool operator!=(const DataStoreRecordHandle& lhs,
                 const DataStoreRecordHandle& rhs);
 
+// ===========================
+// struct RecoveryRecordInfo
+// ===========================
+
+/// Lightweight metadata for a journal record, collected during FileStore
+/// recovery and used as the Raft log index entry type.
+struct RecoveryRecordInfo {
+    bsls::Types::Uint64 d_sequenceNum;
+    bsls::Types::Uint64 d_primaryLeaseId;
+    bsls::Types::Uint64 d_journalOffset;
+    bsls::Types::Uint64 d_dataOffset;
+    DataStoreRecordHandle d_handle;
+
+    RecoveryRecordInfo();
+
+    RecoveryRecordInfo(bsls::Types::Uint64          sequenceNum,
+                       bsls::Types::Uint64          primaryLeaseId,
+                       bsls::Types::Uint64          journalOffset,
+                       bsls::Types::Uint64          dataOffset,
+                       const DataStoreRecordHandle& handle = DataStoreRecordHandle());
+};
+
+// =================
+// class RecordStore
+// =================
+
+/// Narrow interface used by 'FileBackedStorage' to write and read records
+/// for a single partition.  Both the legacy 'FileStore' (via 'DataStore')
+/// and 'PartitionRaft' implement this interface.
+class RecordStore {
+  public:
+    // TYPES
+    typedef mqbi::Storage::AppInfos AppInfos;
+
+  public:
+    // CREATORS
+    virtual ~RecordStore();
+
+    // MANIPULATORS
+
+    /// Write the specified `appData` and `options` belonging to specified
+    /// `queueKey` and having specified `guid` and `attributes` to the data
+    /// store, and update the specified `handle` with an identifier which
+    /// can be used to retrieve the message.  Return zero on success,
+    /// non-zero value otherwise.
+    virtual int writeMessageRecord(mqbi::StorageMessageAttributes* attributes,
+                                   DataStoreRecordHandle*          handle,
+                                   const bmqt::MessageGUID&        guid,
+                                   const bsl::shared_ptr<bdlbb::Blob>& appData,
+                                   const bsl::shared_ptr<bdlbb::Blob>& options,
+                                   const mqbu::StorageKey& queueKey) = 0;
+
+    /// Write a CONFIRM record to the data store with the specified
+    /// `queueKey`, optional `appKey`, `guid`, `timestamp` and `reason`.
+    /// Return zero on success, non-zero value otherwise.
+    virtual int writeConfirmRecord(DataStoreRecordHandle*   handle,
+                                   const bmqt::MessageGUID& guid,
+                                   const mqbu::StorageKey&  queueKey,
+                                   const mqbu::StorageKey&  appKey,
+                                   bsls::Types::Uint64      timestamp,
+                                   ConfirmReason::Enum      reason) = 0;
+
+    /// Write a DELETION record to the data store with the specified
+    /// `queueKey`, `flag`, `guid` and `timestamp`.  Return zero on success,
+    /// non-zero value otherwise.
+    virtual int writeDeletionRecord(const bmqt::MessageGUID& guid,
+                                    const mqbu::StorageKey&  queueKey,
+                                    DeletionRecordFlag::Enum deletionFlag,
+                                    bsls::Types::Uint64      timestamp) = 0;
+
+    /// Write a QUEUE_OP creation record for the specified `queueUri` with
+    /// the specified `queueKey`, `appIdKeyPairs` and `timestamp`.  Set
+    /// `isNewQueue` to true for a brand-new queue, false for an app-ID
+    /// addition.  Return zero on success, non-zero otherwise.
+    virtual int writeQueueCreationRecord(DataStoreRecordHandle*  handle,
+                                         const bmqt::Uri&        queueUri,
+                                         const mqbu::StorageKey& queueKey,
+                                         const AppInfos&         appIdKeyPairs,
+                                         bsls::Types::Uint64     timestamp,
+                                         bool isNewQueue) = 0;
+
+    /// Register the specified `storage` with this record store so that
+    /// rollover can copy its outstanding records.
+    virtual void registerStorage(ReplicatedStorage* storage) = 0;
+
+    virtual void unregisterStorage(const ReplicatedStorage* storage) = 0;
+
+    /// Create and load into the specified `storageSp` an instance of
+    /// ReplicatedStorage for the queue having the specified `queueUri`
+    /// and `queueKey` and belonging to the specified `domain`.
+    virtual void createStorage(bsl::shared_ptr<ReplicatedStorage>* storageSp,
+                               const bmqt::Uri&                    queueUri,
+                               const mqbu::StorageKey&             queueKey,
+                               mqbi::Domain*                       domain) = 0;
+
+    virtual int writeQueuePurgeRecord(DataStoreRecordHandle*       handle,
+                                      const mqbu::StorageKey&      queueKey,
+                                      const mqbu::StorageKey&      appKey,
+                                      bsls::Types::Uint64          timestamp,
+                                      const DataStoreRecordHandle& start) = 0;
+
+    virtual int writeQueueDeletionRecord(DataStoreRecordHandle*  handle,
+                                         const mqbu::StorageKey& queueKey,
+                                         const mqbu::StorageKey& appKey,
+                                         bsls::Types::Uint64 timestamp) = 0;
+
+    /// Remove the record identified by the specified `handle`.  Behavior is
+    /// undefined unless `handle` is valid and represents a record in the
+    /// data store.
+    virtual void removeRecordRaw(const DataStoreRecordHandle& handle) = 0;
+
+    /// Attempt to rollover the journal if needed after a purge has cleared
+    /// outstanding records.
+    virtual void onPurgeComplete() = 0;
+
+    /// Flush any buffered replication messages to the peers.  Behaviour is
+    /// undefined unless this cluster node is the primary for this partition.
+    virtual void flushStorage() = 0;
+
+    // ACCESSORS
+
+    virtual void loadMessageRaw(bsl::shared_ptr<bdlbb::Blob>*   appData,
+                                bsl::shared_ptr<bdlbb::Blob>*   options,
+                                mqbi::StorageMessageAttributes* attributes,
+                                const DataStoreRecordHandle& handle) const = 0;
+
+    virtual void
+    loadMessageAttributesRaw(mqbi::StorageMessageAttributes* buffer,
+                             const DataStoreRecordHandle&    handle) const = 0;
+
+    virtual void
+    loadQueueOpRecordRaw(QueueOpRecord*               buffer,
+                         const DataStoreRecordHandle& handle) const = 0;
+
+    virtual unsigned int
+    getMessageLenRaw(const DataStoreRecordHandle& handle) const = 0;
+
+    /// Return the current primary leaseId for this partition.
+    virtual unsigned int primaryLeaseId() const = 0;
+
+    /// Return `true` if there was Replication Receipt for the specified
+    /// `handle`.
+    virtual bool hasReceipt(const DataStoreRecordHandle& handle) const = 0;
+
+    /// Return the partition id associated with this record store.
+    virtual int partitionId() const = 0;
+
+    /// Return a printable description of the client (e.g., for logging).
+    /// The returned view is valid for the lifetime of this object and must
+    /// be copied before any deferred use.
+    virtual bsl::string_view description() const = 0;
+};
+
 // ===============
 // class DataStore
 // ===============
 
 /// This component provides an interface for a BlazingMQ data store.
-class DataStore : public mqbi::DispatcherClient {
+class DataStore : public RecordStore, public mqbi::DispatcherClient {
   public:
     // TYPES
     typedef mqbi::Storage::AppInfos AppInfos;
@@ -600,86 +753,14 @@ class DataStore : public mqbi::DispatcherClient {
     virtual int close(bool flush = false, bool archive = false) = 0;
 
     /// Create and load into the specified `storageSp` an instance of
-    /// ReplicatedStorage for the queue having the specified `queueUri` and
-    /// `queueKey` and belonging to the specified `domain`.  Behavior is
-    /// undefined unless `storageSp` and `domain` are non-null.
-    virtual void createStorage(bsl::shared_ptr<ReplicatedStorage>* storageSp,
-                               const bmqt::Uri&                    queueUri,
-                               const mqbu::StorageKey&             queueKey,
-                               mqbi::Domain*                       domain) = 0;
-
-    /// Payload related
-    /// ---------------
-
-    /// Write the specified `appData` and `options` belonging to specified
-    /// `queueKey` and having specified `guid` and `attributes` to the data
-    /// store, and update the specified `handle` with an identifier which
-    /// can be used to retrieve the message.  Return zero on success,
-    /// non-zero value otherwise.
-    virtual int writeMessageRecord(mqbi::StorageMessageAttributes* attributes,
-                                   DataStoreRecordHandle*          handle,
-                                   const bmqt::MessageGUID&        guid,
-                                   const bsl::shared_ptr<bdlbb::Blob>& appData,
-                                   const bsl::shared_ptr<bdlbb::Blob>& options,
-                                   const mqbu::StorageKey& queueKey) = 0;
-
     /// Queue List related
     /// -------------
-
-    /// Write a record for the specified `queueUri` with specified
-    /// `queueKey`, and `timestamp` to the data file.  If the specified
-    /// `appIdKeyPairs` vector is non-empty, write those fields to the
-    /// record as well.  Return zero on success, non-zero value otherwise.
-    virtual int writeQueueCreationRecord(DataStoreRecordHandle*  handle,
-                                         const bmqt::Uri&        queueUri,
-                                         const mqbu::StorageKey& queueKey,
-                                         const AppInfos&         appIdKeyPairs,
-                                         bsls::Types::Uint64     timestamp,
-                                         bool isNewQueue) = 0;
-
-    virtual int writeQueuePurgeRecord(DataStoreRecordHandle*       handle,
-                                      const mqbu::StorageKey&      queueKey,
-                                      const mqbu::StorageKey&      appKey,
-                                      bsls::Types::Uint64          timestamp,
-                                      const DataStoreRecordHandle& start) = 0;
-
-    virtual int writeQueueDeletionRecord(DataStoreRecordHandle*  handle,
-                                         const mqbu::StorageKey& queueKey,
-                                         const mqbu::StorageKey& appKey,
-                                         bsls::Types::Uint64 timestamp) = 0;
 
     /// Journal related
     /// ---------------
 
-    /// Write a CONFIRM record to the data store with the specified
-    /// `queueKey`, optional `appKey`, `guid`, `timestamp` and `reason`.
-    /// Return zero on success, non-zero value otherwise.
-    virtual int writeConfirmRecord(DataStoreRecordHandle*   handle,
-                                   const bmqt::MessageGUID& guid,
-                                   const mqbu::StorageKey&  queueKey,
-                                   const mqbu::StorageKey&  appKey,
-                                   bsls::Types::Uint64      timestamp,
-                                   ConfirmReason::Enum      reason) = 0;
-
-    /// Write a DELETION record to the data store with the specified
-    /// `queueKey`, `flag`, `guid` and `timestamp`.  Return zero on success,
-    /// non-zero value otherwise.
-    virtual int writeDeletionRecord(const bmqt::MessageGUID& guid,
-                                    const mqbu::StorageKey&  queueKey,
-                                    DeletionRecordFlag::Enum deletionFlag,
-                                    bsls::Types::Uint64      timestamp) = 0;
-
     virtual int writeSyncPointRecord(const bmqp_ctrlmsg::SyncPoint& syncPoint,
                                      SyncPointType::Enum            type) = 0;
-
-    /// Remove the record identified by the specified `handle`.  Behavior is
-    /// undefined unless `handle` is valid and represents a record in the
-    /// data store.
-    virtual void removeRecordRaw(const DataStoreRecordHandle& handle) = 0;
-
-    /// Attempt to rollover the journal if needed after a purge has cleared
-    /// outstanding records.
-    virtual void onPurgeComplete() = 0;
 
     /// Process the specified storage event `blob` containing one or more
     /// storage messages.  The behavior is undefined unless each message in
@@ -716,10 +797,6 @@ class DataStore : public mqbi::DispatcherClient {
     /// Clear the current primary associated with this partition.
     virtual void clearPrimary() = 0;
 
-    /// Flush any buffered replication messages to the peers.  Behaviour is
-    /// undefined unless this cluster node is the primary for this partition.
-    virtual void flushStorage() = 0;
-
     // ACCESSORS
 
     /// Return true if this instance is open, false otherwise.
@@ -746,28 +823,6 @@ class DataStore : public mqbi::DispatcherClient {
     loadDeletionRecordRaw(DeletionRecord*              buffer,
                           const DataStoreRecordHandle& handle) const = 0;
 
-    virtual void
-    loadQueueOpRecordRaw(QueueOpRecord*               buffer,
-                         const DataStoreRecordHandle& handle) const = 0;
-
-    virtual void
-    loadMessageAttributesRaw(mqbi::StorageMessageAttributes* buffer,
-                             const DataStoreRecordHandle&    handle) const = 0;
-
-    virtual void loadMessageRaw(bsl::shared_ptr<bdlbb::Blob>*   appData,
-                                bsl::shared_ptr<bdlbb::Blob>*   options,
-                                mqbi::StorageMessageAttributes* attributes,
-                                const DataStoreRecordHandle& handle) const = 0;
-
-    virtual unsigned int
-    getMessageLenRaw(const DataStoreRecordHandle& handle) const = 0;
-
-    /// Return the current primary leaseId for this partition.
-    virtual unsigned int primaryLeaseId() const = 0;
-
-    /// Return `true` if there was Replication Receipt for the specified
-    /// `handle`.
-    virtual bool hasReceipt(const DataStoreRecordHandle& handle) const = 0;
 };
 
 // ============================================================================

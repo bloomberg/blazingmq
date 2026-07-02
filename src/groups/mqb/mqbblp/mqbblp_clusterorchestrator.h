@@ -41,6 +41,7 @@
 #include <mqbi_dispatcher.h>
 #include <mqbnet_elector.h>
 #include <mqbraft_clusterstateraft.h>
+#include <mqbraft_partitionraftmanager.h>
 
 // BMQ
 #include <bmqma_countingallocatorstore.h>
@@ -179,6 +180,8 @@ class ClusterOrchestrator {
     ElectorMp d_elector_mp;
 
     bslma::ManagedPtr<mqbraft::ClusterStateRaft> d_clusterStateRaft_mp;
+
+    bslma::ManagedPtr<mqbraft::PartitionRaftManager> d_partitionRaftManager_mp;
 
     mqbi::StorageManager* d_storageManager_p;
 
@@ -368,6 +371,17 @@ class ClusterOrchestrator {
     void processRaftClusterEvent(const bmqp::Event&   event,
                                  mqbnet::ClusterNode* source);
 
+    /// Process an incoming binary Raft AppendEntries event
+    /// (e_RAFT_PARTITION) from the specified 'source'.  Dispatches to the
+    /// partition thread internally.
+    void processRaftPartitionEvent(const bmqp::Event&   event,
+                                   mqbnet::ClusterNode* source);
+
+    /// Process an incoming Raft snapshot chunk event (e_RAFT_SNAPSHOT) from
+    /// the specified 'source'.  Dispatches to the partition thread internally.
+    void processRaftSnapshotEvent(const bmqp::Event&   event,
+                                  mqbnet::ClusterNode* source);
+
     /// Process an incoming Raft control message (election, response) from
     /// the specified 'source'.
     void processRaftControlMessage(const bmqp_ctrlmsg::RaftMessage& message,
@@ -545,6 +559,10 @@ class ClusterOrchestrator {
 
     /// Get a pointer to the ClusterStateRaft, or null if not in Raft mode.
     mqbraft::ClusterStateRaft* clusterStateRaft();
+
+    /// Return the active storage provider (legacy: StorageManager, Raft:
+    /// PartitionRaftManager).
+    mqbi::StorageProvider* storageProvider();
 
     // ACCESSORS
     const mqbc::ClusterState* clusterState() const;

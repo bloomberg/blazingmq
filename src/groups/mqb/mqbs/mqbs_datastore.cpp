@@ -157,6 +157,37 @@ bsl::ostream& DataStoreConfig::print(bsl::ostream& stream,
     return stream;
 }
 
+// -----------------
+// class RecordStore
+// -----------------
+
+RecoveryRecordInfo::RecoveryRecordInfo()
+: d_sequenceNum(0)
+, d_primaryLeaseId(0)
+, d_journalOffset(0)
+, d_dataOffset(0)
+, d_handle()
+{
+}
+
+RecoveryRecordInfo::RecoveryRecordInfo(bsls::Types::Uint64          sequenceNum,
+                                       bsls::Types::Uint64          primaryLeaseId,
+                                       bsls::Types::Uint64          journalOffset,
+                                       bsls::Types::Uint64          dataOffset,
+                                       const DataStoreRecordHandle& handle)
+: d_sequenceNum(sequenceNum)
+, d_primaryLeaseId(primaryLeaseId)
+, d_journalOffset(journalOffset)
+, d_dataOffset(dataOffset)
+, d_handle(handle)
+{
+}
+
+RecordStore::~RecordStore()
+{
+    // NOTHING
+}
+
 // ---------------
 // class DataStore
 // ---------------

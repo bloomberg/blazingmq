@@ -391,9 +391,21 @@ class MockDataStore : public mqbs::DataStore {
         return d_description;
     }
 
+    int partitionId() const BSLS_KEYWORD_OVERRIDE
+    {
+        return d_config.partitionId();
+    }
+
     int open(QueueKeyInfoMap*) BSLS_KEYWORD_OVERRIDE { return 0; }
 
     int close(bool, bool) BSLS_KEYWORD_OVERRIDE { return 0; }
+
+    void registerStorage(mqbs::ReplicatedStorage*) BSLS_KEYWORD_OVERRIDE {}
+
+    void
+    unregisterStorage(const mqbs::ReplicatedStorage*) BSLS_KEYWORD_OVERRIDE
+    {
+    }
 
     void createStorage(bsl::shared_ptr<mqbs::ReplicatedStorage>*,
                        const bmqt::Uri&,

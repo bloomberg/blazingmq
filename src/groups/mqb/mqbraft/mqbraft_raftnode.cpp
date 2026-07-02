@@ -429,7 +429,8 @@ void RaftNode::handleAppendEntries(RaftNodeOutput*    output,
             d_log_p->truncateFrom(entryIndex);
         }
 
-        d_log_p->append(msg.d_entries[i].d_term, msg.d_entries[i].d_data);
+        d_log_p->append(msg.d_entries[i].d_term,
+                        msg.d_entries[i].d_data);
     }
 
     // Advance commit index
@@ -527,6 +528,69 @@ void RaftNode::handleTimeoutNow(RaftNodeOutput* output, const RaftMessage& msg)
     output->d_stateChanged = true;
 }
 
+void RaftNode::handleInstallSnapshot(RaftNodeOutput*    output,
+                                     const RaftMessage& msg)
+{
+    BSLS_ASSERT_SAFE(output);
+
+    if (msg.d_term < d_currentTerm) {
+        BALL_LOG_INFO << "Node " << d_config.d_selfId
+                      << " rejecting stale InstallSnapshot from "
+                      << msg.d_sourceNodeId << ", term " << msg.d_term
+                      << " < " << d_currentTerm;
+        return;
+    }
+
+    if (msg.d_term > d_currentTerm) {
+        d_currentTerm = msg.d_term;
+        d_votedFor    = k_INVALID_NODE_ID;
+    }
+
+    if (d_state != RaftState::e_FOLLOWER) {
+        d_state                = RaftState::e_FOLLOWER;
+        output->d_stateChanged = true;
+    }
+
+    d_leaderId = msg.d_sourceNodeId;
+    resetElectionTimer();
+
+    BALL_LOG_INFO << "Node " << d_config.d_selfId
+                  << " received InstallSnapshot from " << msg.d_sourceNodeId
+                  << ", lastIncludedIndex=" << msg.d_lastLogIndex
+                  << ", lastIncludedTerm=" << msg.d_lastLogTerm;
+
+    output->d_hasInstallSnapshot = true;
+    output->d_installSnapshot    = msg;
+}
+
+void RaftNode::handleInstallSnapshotResp(RaftNodeOutput*    output,
+                                         const RaftMessage& msg)
+{
+    BSLS_ASSERT_SAFE(output);
+
+    if (d_state != RaftState::e_LEADER) {
+        return;
+    }
+
+    bsl::unordered_map<int, PeerState>::iterator it = d_peerStates.find(
+        msg.d_sourceNodeId);
+    if (it == d_peerStates.end()) {
+        return;
+    }
+
+    BALL_LOG_INFO << "Node " << d_config.d_selfId
+                  << " received InstallSnapshot response from "
+                  << msg.d_sourceNodeId
+                  << ", lastIncludedIndex=" << msg.d_lastLogIndex;
+
+    if (msg.d_lastLogIndex > it->second.d_matchIndex) {
+        it->second.d_matchIndex = msg.d_lastLogIndex;
+        it->second.d_nextIndex  = msg.d_lastLogIndex + 1;
+    }
+
+    advanceCommitIndex(output);
+}
+
 void RaftNode::sendAppendEntries(RaftNodeOutput* output, int peerId)
 {
     BSLS_ASSERT_SAFE(output);
@@ -538,7 +602,20 @@ void RaftNode::sendAppendEntries(RaftNodeOutput* output, int peerId)
         return;
     }
 
-    bsls::Types::Uint64 nextIdx      = it->second.d_nextIndex;
+    bsls::Types::Uint64 nextIdx = it->second.d_nextIndex;
+
+    if (nextIdx <= d_log_p->snapshotIndex()) {
+        RaftMessage snap(d_allocator_p);
+        snap.d_type              = RaftMessageType::e_INSTALL_SNAPSHOT;
+        snap.d_term              = d_currentTerm;
+        snap.d_sourceNodeId      = d_config.d_selfId;
+        snap.d_destinationNodeId = peerId;
+        snap.d_lastLogIndex      = d_log_p->snapshotIndex();
+        snap.d_lastLogTerm       = d_log_p->snapshotTerm();
+        output->d_messages.push_back(snap);
+        return;
+    }
+
     bsls::Types::Uint64 prevLogIndex = nextIdx - 1;
     bsls::Types::Uint64 prevLogTerm  = d_log_p->term(prevLogIndex);
 
@@ -663,9 +740,11 @@ void RaftNode::step(RaftNodeOutput* output, const RaftMessage& message)
     case RaftMessageType::e_TIMEOUT_NOW: {
         handleTimeoutNow(output, message);
     } break;
-    case RaftMessageType::e_INSTALL_SNAPSHOT:
+    case RaftMessageType::e_INSTALL_SNAPSHOT: {
+        handleInstallSnapshot(output, message);
+    } break;
     case RaftMessageType::e_INSTALL_SNAPSHOT_RESP: {
-        // Not implemented in POC
+        handleInstallSnapshotResp(output, message);
     } break;
     default: {
         BALL_LOG_WARN << "Node " << d_config.d_selfId
@@ -674,7 +753,9 @@ void RaftNode::step(RaftNodeOutput* output, const RaftMessage& message)
     }
 }
 
-int RaftNode::propose(RaftNodeOutput* output, const bdlbb::Blob& data)
+int RaftNode::propose(RaftNodeOutput*                      output,
+                      const bsl::shared_ptr<bdlbb::Blob>&  data,
+                      bsls::Types::Uint64                  id)
 {
     BSLS_ASSERT_SAFE(output);
 
@@ -682,7 +763,7 @@ int RaftNode::propose(RaftNodeOutput* output, const bdlbb::Blob& data)
         return -1;
     }
 
-    d_log_p->append(d_currentTerm, data);
+    d_log_p->append(d_currentTerm, data, id);
 
     for (bsl::unordered_map<int, PeerState>::const_iterator it =
              d_peerStates.begin();

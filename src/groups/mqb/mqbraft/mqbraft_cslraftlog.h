@@ -42,6 +42,7 @@
 // BDE
 #include <ball_log.h>
 #include <bdlbb_blob.h>
+#include <bmqp_blobpoolutil.h>
 #include <bsl_memory.h>
 #include <bsl_vector.h>
 #include <bslma_allocator.h>
@@ -57,6 +58,10 @@ namespace mqbraft {
 // ================
 
 class CslRaftLog : public RaftLog {
+  public:
+    // TYPES
+    typedef bmqp::BlobPoolUtil::BlobSpPool BlobSpPool;
+
   private:
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("MQBRAFT.CSLRAFTLOG");
@@ -72,7 +77,7 @@ class CslRaftLog : public RaftLog {
     bsl::vector<RecordInfo>     d_index;
     bsls::Types::Uint64         d_snapshotIndex;
     bsls::Types::Uint64         d_snapshotTerm;
-    bdlbb::BlobBufferFactory*   d_bufferFactory_p;
+    BlobSpPool*                 d_blobSpPool_p;
     bslma::Allocator*           d_allocator_p;
 
     // NOT IMPLEMENTED
@@ -85,8 +90,8 @@ class CslRaftLog : public RaftLog {
 
     // CREATORS
     CslRaftLog(const bsl::shared_ptr<mqbsi::Log>& log,
-               bdlbb::BlobBufferFactory*          bufferFactory,
-               bslma::Allocator*                  allocator = 0);
+               BlobSpPool*                       blobSpPool,
+               bslma::Allocator*                 allocator = 0);
 
     ~CslRaftLog() BSLS_KEYWORD_OVERRIDE;
 
@@ -99,8 +104,10 @@ class CslRaftLog : public RaftLog {
     /// Close the underlying log.
     int close();
 
-    int append(bsls::Types::Uint64 term,
-               const bdlbb::Blob&  data) BSLS_KEYWORD_OVERRIDE;
+    int append(bsls::Types::Uint64                  term,
+               const bsl::shared_ptr<bdlbb::Blob>&  data,
+               bsls::Types::Uint64                  id = 0)
+        BSLS_KEYWORD_OVERRIDE;
 
     int truncateFrom(bsls::Types::Uint64 index) BSLS_KEYWORD_OVERRIDE;
 
@@ -119,6 +126,10 @@ class CslRaftLog : public RaftLog {
     bsls::Types::Uint64 snapshotIndex() const BSLS_KEYWORD_OVERRIDE;
 
     bsls::Types::Uint64 snapshotTerm() const BSLS_KEYWORD_OVERRIDE;
+
+    void applySnapshot(bsls::Types::Uint64 lastIncludedIndex,
+                       bsls::Types::Uint64 lastIncludedTerm)
+        BSLS_KEYWORD_OVERRIDE;
 };
 
 }  // close package namespace

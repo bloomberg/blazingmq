@@ -96,7 +96,7 @@ ClusterStateRaft::~ClusterStateRaft()
 }
 
 // PRIVATE MANIPULATORS
-void ClusterStateRaft::processOutput(RaftNodeOutput* output)
+void ClusterStateRaft::dispatchOutput(RaftNodeOutput* output)
 {
     BSLS_ASSERT_SAFE(output);
 
@@ -160,7 +160,7 @@ void ClusterStateRaft::sendAppendEntries(const RaftMessage& msg)
     for (bsl::vector<LogEntry>::size_type i = 0; i < msg.d_entries.size();
          ++i) {
         bmqu::BlobUtil::appendToBlob(&event,
-                                     msg.d_entries[i].d_data,
+                                     *msg.d_entries[i].d_data,
                                      bmqu::BlobPosition());
     }
 
@@ -196,7 +196,7 @@ void ClusterStateRaft::applyCommittedEntry(const LogEntry& entry)
     bmqp_ctrlmsg::ClusterMessage clusterMessage(d_allocator_p);
 
     int rc = mqbc::ClusterStateLedgerUtil::loadClusterMessage(&clusterMessage,
-                                                              entry.d_data);
+                                                              *entry.d_data);
     if (rc != 0) {
         BALL_LOG_ERROR << "Failed to decode committed CSL entry, rc=" << rc;
         return;
@@ -214,7 +214,8 @@ void ClusterStateRaft::toCtrlMsg(bmqp_ctrlmsg::RaftMessage* out,
 {
     BSLS_ASSERT_SAFE(out);
 
-    out->term() = msg.d_term;
+    out->term()        = msg.d_term;
+    out->partitionId() = 0;  // CSL Raft group
 
     switch (msg.d_type) {
     case RaftMessageType::e_REQUEST_VOTE: {
@@ -315,7 +316,7 @@ void ClusterStateRaft::tickDispatched()
 {
     RaftNodeOutput output(d_allocator_p);
     d_raftNode_mp->tick(&output);
-    processOutput(&output);
+    dispatchOutput(&output);
 }
 
 void ClusterStateRaft::updateElectorInfo()
@@ -416,7 +417,7 @@ int ClusterStateRaft::start(bsl::ostream& errorDescription)
 
     d_cslLog_mp.load(new (*d_allocator_p)
                          CslRaftLog(cslLog,
-                                    &d_clusterData_p->bufferFactory(),
+                                    &d_clusterData_p->blobSpPool(),
                                     d_allocator_p),
                      d_allocator_p);
 
@@ -464,7 +465,7 @@ void ClusterStateRaft::stop()
                   << d_raftNode_mp->selfId();
 }
 
-void ClusterStateRaft::processRaftMessage(
+void ClusterStateRaft::onRaftControlMessage(
     const bmqp_ctrlmsg::RaftMessage& message,
     mqbnet::ClusterNode*             source)
 {
@@ -475,10 +476,10 @@ void ClusterStateRaft::processRaftMessage(
 
     RaftNodeOutput output(d_allocator_p);
     d_raftNode_mp->step(&output, internalMsg);
-    processOutput(&output);
+    dispatchOutput(&output);
 }
 
-void ClusterStateRaft::processAppendEntriesEvent(const bdlbb::Blob&   event,
+void ClusterStateRaft::appendEntries(const bdlbb::Blob&   event,
                                                  mqbnet::ClusterNode* source)
 {
     BSLS_ASSERT_SAFE(source);
@@ -522,14 +523,16 @@ void ClusterStateRaft::processAppendEntriesEvent(const bdlbb::Blob&   event,
         }
 
         // Extract the CSL record blob
-        bdlbb::Blob        entryBlob(&d_clusterData_p->bufferFactory(),
-                              d_allocator_p);
+        bsl::shared_ptr<bdlbb::Blob> entryBlob =
+            d_clusterData_p->blobSpPool().getObject();
         bmqu::BlobPosition startPos;
         bmqu::BlobUtil::findOffsetSafe(&startPos, event, offset);
-        bmqu::BlobUtil::appendToBlob(&entryBlob, event, startPos, recSize);
+        bmqu::BlobUtil::appendToBlob(entryBlob.get(), event, startPos, recSize);
 
         internalMsg.d_entries.push_back(
-            LogEntry(recHeader->electorTerm(), entryBlob, d_allocator_p));
+            LogEntry(recHeader->electorTerm(),
+                     internalMsg.d_prevLogIndex + 1 + i,
+                     entryBlob));
 
         offset += recSize;
         remaining -= recSize;
@@ -537,19 +540,20 @@ void ClusterStateRaft::processAppendEntriesEvent(const bdlbb::Blob&   event,
 
     RaftNodeOutput output(d_allocator_p);
     d_raftNode_mp->step(&output, internalMsg);
-    processOutput(&output);
+    dispatchOutput(&output);
 }
 
 int ClusterStateRaft::propose(const bmqp_ctrlmsg::ClusterMessage& advisory)
 {
-    bdlbb::Blob blob(&d_clusterData_p->bufferFactory(), d_allocator_p);
+    bsl::shared_ptr<bdlbb::Blob> blob =
+        d_clusterData_p->blobSpPool().getObject();
 
     bmqp_ctrlmsg::LeaderMessageSequence lms;
     lms.electorTerm()    = d_raftNode_mp->currentTerm();
     lms.sequenceNumber() = d_cslLog_mp->lastIndex() + 1;
 
     int rc = mqbc::ClusterStateLedgerUtil::appendRecord(
-        &blob,
+        blob.get(),
         advisory,
         lms,
         0,
@@ -565,7 +569,7 @@ int ClusterStateRaft::propose(const bmqp_ctrlmsg::ClusterMessage& advisory)
         return rc;
     }
 
-    processOutput(&output);
+    dispatchOutput(&output);
     return 0;
 }
 

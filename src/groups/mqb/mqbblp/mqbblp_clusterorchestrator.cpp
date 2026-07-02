@@ -608,8 +608,8 @@ ClusterOrchestrator::~ClusterOrchestrator()
 void ClusterOrchestrator::init(mqbc::ClusterState* clusterState)
 {
     if (d_cluster_p->isRaftEnabled()) {
-        // Raft mode: create and start ClusterStateRaft.
-        // Skip Elector and ClusterStateManager start.
+        // Raft mode: create ClusterStateRaft and PartitionRaftManager.
+        // Skip Elector and ClusterStateManager.
 
         d_clusterStateRaft_mp.load(
             new (*d_allocator_p)
@@ -621,7 +621,19 @@ void ClusterOrchestrator::init(mqbc::ClusterState* clusterState)
 
         d_queueHelper.setClusterStateUpdater(d_clusterStateRaft_mp.get());
 
-        // TODO: setAfterPartitionPrimaryAssignmentCb
+        d_partitionRaftManager_mp.load(
+            new (*d_allocator_p)
+                mqbraft::PartitionRaftManager(
+                    d_clusterData_p,
+                    d_cluster_p,
+                    dispatcher(),
+                    d_clusterData_p->domainFactory(),
+                    clusterState,
+                    d_clusterConfig,
+                    d_allocators.get("PartitionRaftManager")),
+            d_allocator_p);
+
+        d_queueHelper.setStorageManager(d_partitionRaftManager_mp.get());
 
         return;  // RETURN
     }
@@ -2098,7 +2110,27 @@ void ClusterOrchestrator::processRaftClusterEventDispatched(
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
     BSLS_ASSERT_SAFE(d_clusterStateRaft_mp);
 
-    d_clusterStateRaft_mp->processAppendEntriesEvent(*blob, source);
+    d_clusterStateRaft_mp->appendEntries(*blob, source);
+}
+
+void ClusterOrchestrator::processRaftPartitionEvent(
+    const bmqp::Event&   event,
+    mqbnet::ClusterNode* source)
+{
+    // executed by the *IO* thread
+    BSLS_ASSERT_SAFE(d_partitionRaftManager_mp);
+
+    d_partitionRaftManager_mp->appendEntries(event.sharedBlob(), source);
+}
+
+void ClusterOrchestrator::processRaftSnapshotEvent(
+    const bmqp::Event&   event,
+    mqbnet::ClusterNode* source)
+{
+    // executed by the *IO* thread
+    BSLS_ASSERT_SAFE(d_partitionRaftManager_mp);
+
+    d_partitionRaftManager_mp->appendSnapshotChunk(event.sharedBlob(), source);
 }
 
 void ClusterOrchestrator::processRaftControlMessage(
@@ -2107,14 +2139,31 @@ void ClusterOrchestrator::processRaftControlMessage(
 {
     // executed by the cluster *DISPATCHER* thread
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
-    BSLS_ASSERT_SAFE(d_clusterStateRaft_mp);
 
-    d_clusterStateRaft_mp->processRaftMessage(message, source);
+    if (message.partitionId() == 0) {
+        BSLS_ASSERT_SAFE(d_clusterStateRaft_mp);
+        d_clusterStateRaft_mp->onRaftControlMessage(message, source);
+    }
+    else {
+        BSLS_ASSERT_SAFE(d_partitionRaftManager_mp);
+        d_partitionRaftManager_mp->onRaftControlMessage(
+            message,
+            message.partitionId() - 1,
+            source);
+    }
 }
 
 mqbraft::ClusterStateRaft* ClusterOrchestrator::clusterStateRaft()
 {
     return d_clusterStateRaft_mp.get();
+}
+
+mqbi::StorageProvider* ClusterOrchestrator::storageProvider()
+{
+    if (d_partitionRaftManager_mp) {
+        return d_partitionRaftManager_mp.get();
+    }
+    return d_storageManager_p;
 }
 
 }  // close package namespace

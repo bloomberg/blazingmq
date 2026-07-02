@@ -21,6 +21,9 @@
 #include <mqbc_clusterstateledgerutil.h>
 #include <mqbsl_memorymappedondisklog.h>
 
+// BMQ
+#include <bmqp_blobpoolutil.h>
+
 #include <bmqu_tempdirectory.h>
 
 // BDE
@@ -49,10 +52,10 @@ const mqbu::StorageKey k_LOG_KEY(mqbu::StorageKey::BinaryRepresentation(),
 
 /// Build a CSL record blob for a PartitionPrimaryAdvisory with the
 /// specified 'term' and 'seqNum'.
-bdlbb::Blob makeRecord(bsls::Types::Uint64       term,
-                       bsls::Types::Uint64       seqNum,
-                       bdlbb::BlobBufferFactory* factory,
-                       bslma::Allocator*         allocator)
+bsl::shared_ptr<bdlbb::Blob> makeRecord(bsls::Types::Uint64       term,
+                                         bsls::Types::Uint64       seqNum,
+                                         bdlbb::BlobBufferFactory* factory,
+                                         bslma::Allocator*         allocator)
 {
     bmqp_ctrlmsg::ClusterMessage        clusterMessage(allocator);
     bmqp_ctrlmsg::LeaderMessageSequence lms;
@@ -63,9 +66,10 @@ bdlbb::Blob makeRecord(bsls::Types::Uint64       term,
         clusterMessage.choice().makePartitionPrimaryAdvisory();
     advisory.sequenceNumber() = lms;
 
-    bdlbb::Blob record(factory, allocator);
+    bsl::shared_ptr<bdlbb::Blob> record =
+        bsl::make_shared<bdlbb::Blob>(factory, allocator);
     int         rc = mqbc::ClusterStateLedgerUtil::appendRecord(
-        &record,
+        record.get(),
         clusterMessage,
         lms,
         0,
@@ -86,8 +90,9 @@ class Tester {
     bsl::string                    d_logPath;
     mqbsi::LogConfig               d_logConfig;
     bsl::shared_ptr<mqbsi::Log>    d_log_sp;
-    bdlbb::PooledBlobBufferFactory d_bufferFactory;
-    CslRaftLog                     d_cslRaftLog;
+    bdlbb::PooledBlobBufferFactory       d_bufferFactory;
+    bmqp::BlobPoolUtil::BlobSpPoolSp     d_blobSpPool_sp;
+    CslRaftLog                           d_cslRaftLog;
     bslma::Allocator*              d_allocator_p;
 
     // NOT IMPLEMENTED
@@ -112,7 +117,9 @@ class Tester {
                                                                   d_logConfig,
                                                                   allocator))
     , d_bufferFactory(256, allocator)
-    , d_cslRaftLog(d_log_sp, &d_bufferFactory, allocator)
+    , d_blobSpPool_sp(bmqp::BlobPoolUtil::createBlobPool(&d_bufferFactory,
+                                                          allocator))
+    , d_cslRaftLog(d_log_sp, d_blobSpPool_sp.get(), allocator)
     , d_allocator_p(allocator)
     {
     }
@@ -137,15 +144,16 @@ class Tester {
         return d_cslRaftLog.open();
     }
 
-    bdlbb::Blob makeUpdateRecord(bsls::Types::Uint64 term,
-                                 bsls::Types::Uint64 seqNum)
+    bsl::shared_ptr<bdlbb::Blob> makeUpdateRecord(bsls::Types::Uint64 term,
+                                                   bsls::Types::Uint64 seqNum)
     {
         return makeRecord(term, seqNum, &d_bufferFactory, d_allocator_p);
     }
 
     CslRaftLog&                     raftLog() { return d_cslRaftLog; }
     bsl::shared_ptr<mqbsi::Log>&    log() { return d_log_sp; }
-    bdlbb::PooledBlobBufferFactory& factory() { return d_bufferFactory; }
+    bdlbb::PooledBlobBufferFactory& factory()  { return d_bufferFactory; }
+    CslRaftLog::BlobSpPool*         blobPool() { return d_blobSpPool_sp.get(); }
     bslma::Allocator*               allocator() { return d_allocator_p; }
 };
 
@@ -178,9 +186,9 @@ static void test2_appendAndReadBack()
     BMQTST_ASSERT_EQ(rc, 0);
 
     // Append 3 entries with different terms
-    bdlbb::Blob rec1 = tester.makeUpdateRecord(1, 1);
-    bdlbb::Blob rec2 = tester.makeUpdateRecord(1, 2);
-    bdlbb::Blob rec3 = tester.makeUpdateRecord(2, 3);
+    bsl::shared_ptr<bdlbb::Blob> rec1 = tester.makeUpdateRecord(1, 1);
+    bsl::shared_ptr<bdlbb::Blob> rec2 = tester.makeUpdateRecord(1, 2);
+    bsl::shared_ptr<bdlbb::Blob> rec3 = tester.makeUpdateRecord(2, 3);
 
     BMQTST_ASSERT_EQ(tester.raftLog().append(1, rec1), 0);
     BMQTST_ASSERT_EQ(tester.raftLog().append(1, rec2), 0);
@@ -212,7 +220,7 @@ static void test3_truncate()
 
     // Append 5 entries
     for (bsls::Types::Uint64 i = 1; i <= 5; ++i) {
-        bdlbb::Blob rec = tester.makeUpdateRecord(1, i);
+        bsl::shared_ptr<bdlbb::Blob> rec = tester.makeUpdateRecord(1, i);
         BMQTST_ASSERT_EQ(tester.raftLog().append(1, rec), 0);
     }
     BMQTST_ASSERT_EQ(tester.raftLog().lastIndex(), 5ULL);
@@ -236,7 +244,7 @@ static void test4_appendAfterTruncate()
 
     // Append 3 entries with term 1
     for (bsls::Types::Uint64 i = 1; i <= 3; ++i) {
-        bdlbb::Blob rec = tester.makeUpdateRecord(1, i);
+        bsl::shared_ptr<bdlbb::Blob> rec = tester.makeUpdateRecord(1, i);
         BMQTST_ASSERT_EQ(tester.raftLog().append(1, rec), 0);
     }
 
@@ -246,7 +254,7 @@ static void test4_appendAfterTruncate()
     BMQTST_ASSERT_EQ(tester.raftLog().lastIndex(), 1ULL);
 
     // Append new entry with term 2
-    bdlbb::Blob rec = tester.makeUpdateRecord(2, 2);
+    bsl::shared_ptr<bdlbb::Blob> rec = tester.makeUpdateRecord(2, 2);
     BMQTST_ASSERT_EQ(tester.raftLog().append(2, rec), 0);
 
     BMQTST_ASSERT_EQ(tester.raftLog().lastIndex(), 2ULL);
@@ -260,7 +268,9 @@ static void test5_openPrePopulated()
 
     bslma::Allocator*              alloc = bmqtst::TestHelperUtil::allocator();
     bmqu::TempDirectory            tempDir(alloc);
-    bdlbb::PooledBlobBufferFactory factory(256, alloc);
+    bdlbb::PooledBlobBufferFactory       factory(256, alloc);
+    bmqp::BlobPoolUtil::BlobSpPoolSp     poolSp =
+        bmqp::BlobPoolUtil::createBlobPool(&factory, alloc);
 
     bsl::string      logPath = tempDir.path() + "/csl_prepop.bmq";
     mqbsi::LogConfig logConfig(k_LOG_MAX_SIZE,
@@ -284,8 +294,8 @@ static void test5_openPrePopulated()
                    static_cast<int>(sizeof(mqbc::ClusterStateFileHeader)));
 
         for (bsls::Types::Uint64 i = 1; i <= 3; ++i) {
-            bdlbb::Blob rec = makeRecord(i, i, &factory, alloc);
-            log->write(rec, bmqu::BlobPosition(), rec.length());
+            bsl::shared_ptr<bdlbb::Blob> rec = makeRecord(i, i, &factory, alloc);
+            log->write(*rec, bmqu::BlobPosition(), rec->length());
         }
 
         log->close();
@@ -299,7 +309,7 @@ static void test5_openPrePopulated()
         int rc = log->open(0);
         BMQTST_ASSERT_EQ(rc, 0);
 
-        CslRaftLog raftLog(log, &factory, alloc);
+        CslRaftLog raftLog(log, poolSp.get(), alloc);
         rc = raftLog.open();
         BMQTST_ASSERT_EQ(rc, 0);
 

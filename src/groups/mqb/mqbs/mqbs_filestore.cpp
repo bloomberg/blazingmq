@@ -91,6 +91,90 @@
 namespace BloombergLP {
 namespace mqbs {
 
+// --------------------
+// struct FileStore::PendingWrite
+// --------------------
+
+FileStore::PendingWrite::PendingWrite()
+: d_id(0)
+, d_recordType(RecordType::e_UNDEFINED)
+, d_primaryLeaseId(0)
+, d_sequenceNumber(0)
+, d_queueKey()
+, d_attributes_p(0)
+, d_handle()
+, d_guid()
+, d_appData()
+, d_options()
+, d_queueUri()
+, d_appIdKeyPairs_p(0)
+, d_timestamp(0)
+, d_isNewQueue(false)
+, d_journalOffset(0)
+, d_dataOffset(0)
+, d_entryBlob()
+, d_qlistOffset(0)
+, d_qlistRecTotalLength(0)
+{
+}
+
+FileStore::PendingWrite::PendingWrite(
+    bsls::Types::Uint64                  id,
+    unsigned int                         primaryLeaseId,
+    bsls::Types::Uint64                  sequenceNumber,
+    mqbi::StorageMessageAttributes*      attributes,
+    const bmqt::MessageGUID&             guid,
+    const bsl::shared_ptr<bdlbb::Blob>&  appData,
+    const bsl::shared_ptr<bdlbb::Blob>&  options,
+    const mqbu::StorageKey&              queueKey)
+: d_id(id)
+, d_recordType(RecordType::e_MESSAGE)
+, d_primaryLeaseId(primaryLeaseId)
+, d_sequenceNumber(sequenceNumber)
+, d_queueKey(queueKey)
+, d_attributes_p(attributes)
+, d_handle()
+, d_guid(guid)
+, d_appData(appData)
+, d_options(options)
+, d_queueUri()
+, d_appIdKeyPairs_p(0)
+, d_timestamp(0)
+, d_isNewQueue(false)
+, d_journalOffset(0)
+, d_dataOffset(0)
+, d_entryBlob()
+, d_qlistOffset(0)
+, d_qlistRecTotalLength(0)
+{
+}
+
+FileStore::PendingWrite::PendingWrite(bsls::Types::Uint64     id,
+                                      const bmqt::Uri&        queueUri,
+                                      const mqbu::StorageKey& queueKey,
+                                      const AppInfos*         appIdKeyPairs,
+                                      bsls::Types::Uint64     timestamp,
+                                      bool                    isNewQueue)
+: d_id(id)
+, d_recordType(RecordType::e_QUEUE_OP)
+, d_primaryLeaseId(0)
+, d_sequenceNumber(0)
+, d_queueKey(queueKey)
+, d_attributes_p(0)
+, d_handle()
+, d_guid()
+, d_appData()
+, d_options()
+, d_queueUri(queueUri)
+, d_appIdKeyPairs_p(appIdKeyPairs)
+, d_timestamp(timestamp)
+, d_isNewQueue(isNewQueue)
+, d_journalOffset(0)
+, d_dataOffset(0)
+, d_entryBlob()
+{
+}
+
 namespace {
 
 typedef bsl::pair<unsigned int, bsls::Types::Uint64> MessageByteCounter;
@@ -342,8 +426,9 @@ int FileStore::openInNonRecoveryMode()
     return rc;
 }
 
-int FileStore::openInRecoveryMode(bsl::ostream&    errorDescription,
-                                  QueueKeyInfoMap* queueKeyInfoMap)
+int FileStore::openInRecoveryMode(bsl::ostream&                    errorDescription,
+                                  QueueKeyInfoMap*                 queueKeyInfoMap,
+                                  bsl::vector<RecoveryRecordInfo>* recoveryIndex)
 {
     // executed by the *DISPATCHER* thread
 
@@ -831,7 +916,8 @@ int FileStore::openInRecoveryMode(bsl::ostream&    errorDescription,
                          &jit,
                          &qit,
                          &dit,
-                         asPrimary);
+                         asPrimary,
+                         recoveryIndex);
     if (0 != rc) {
         BALL_LOG_ERROR << partitionDesc() << "Failed to recover messages from"
                        << " storage, rc: " << rc;
@@ -1062,14 +1148,15 @@ int FileStore::openInRecoveryMode(bsl::ostream&    errorDescription,
     return rc_SUCCESS;
 }
 
-int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
-                               bsls::Types::Uint64* journalOffset,
-                               bsls::Types::Uint64* qlistOffset,
-                               bsls::Types::Uint64* dataOffset,
-                               JournalFileIterator* jit,
-                               QlistFileIterator*   qit,
-                               DataFileIterator*    dit,
-                               bool                 withCSL)
+int FileStore::recoverMessages(QueueKeyInfoMap*                 queueKeyInfoMap,
+                               bsls::Types::Uint64*             journalOffset,
+                               bsls::Types::Uint64*             qlistOffset,
+                               bsls::Types::Uint64*             dataOffset,
+                               JournalFileIterator*             jit,
+                               QlistFileIterator*               qit,
+                               DataFileIterator*                dit,
+                               bool                             withCSL,
+                               bsl::vector<RecoveryRecordInfo>* recoveryIndex)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(queueKeyInfoMap);
@@ -1498,6 +1585,15 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
         d_highestSeqNums[primaryLeaseId] = sequenceNumber();
     }
 
+    bsls::Types::Uint64 snapshotSeqNum = 0;
+    if (recoveryIndex) {
+        snapshotSeqNum =
+            d_firstSyncPointAfterRolloverSeqNum.sequenceNumber();
+        bsls::Types::Uint64 numRaftEntries = sequenceNumber() -
+                                             snapshotSeqNum;
+        recoveryIndex->resize(numRaftEntries);
+    }
+
     // Second pass.
     while (1 == (rc = jit->nextRecord())) {
         const RecordHeader& recHeader = jit->recordHeader();
@@ -1570,6 +1666,22 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
 
         primaryLeaseId = recHeader.primaryLeaseId();
         sequenceNum    = recHeader.sequenceNumber();
+
+        bsls::Types::Uint64 currentDataOffset = 0;
+        if (RecordType::e_MESSAGE == rt) {
+            currentDataOffset =
+                bsls::Types::Uint64(jit->asMessageRecord()
+                                        .messageOffsetDwords()) *
+                bmqp::Protocol::k_DWORD_SIZE;
+        }
+
+        if (recoveryIndex && sequenceNum > snapshotSeqNum) {
+            (*recoveryIndex)[sequenceNum - snapshotSeqNum - 1] =
+                RecoveryRecordInfo(sequenceNum,
+                                   primaryLeaseId,
+                                   jit->recordOffset(),
+                                   currentDataOffset);
+        }
 
         // Update journal file offset only if its the last record in the
         // journal (ie, first record in iteration since we are iterating
@@ -2428,9 +2540,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                 return rc_INVALID_MESSAGE_RECORD;  // RETURN
             }
 
-            bsls::Types::Uint64 dataHeaderOffset =
-                static_cast<bsls::Types::Uint64>(rec.messageOffsetDwords()) *
-                bmqp::Protocol::k_DWORD_SIZE;
+            bsls::Types::Uint64 dataHeaderOffset = currentDataOffset;
 
             if (0 == dataHeaderOffset) {
                 BALL_LOG_ERROR
@@ -2655,6 +2765,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                 FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
             activeFileSet->d_data.d_outstandingBytes += totalLen;
         }
+
     }
 
     BALL_LOG_INFO << partitionDesc() << "Completed second pass over the "
@@ -5451,6 +5562,81 @@ int FileStore::open(QueueKeyInfoMap* queueKeyInfoMap)
     return rc_SUCCESS;
 }
 
+int FileStore::openForRaft(bsl::vector<RecoveryRecordInfo>* recoveryIndex)
+{
+    BSLS_ASSERT_SAFE(inDispatcherThread());
+    BSLS_ASSERT_SAFE(recoveryIndex);
+
+    enum {
+        rc_SUCCESS                   = 0,
+        rc_NON_RECOVERY_MODE_FAILURE = -1,
+        rc_RECOVERY_MODE_FAILURE     = -2,
+        rc_JOURNAL_FILE_TOO_SMALL    = -3
+    };
+
+    BALL_LOG_INFO_BLOCK
+    {
+        BALL_LOG_OUTPUT_STREAM << partitionDesc()
+                               << "Opening file store (Raft) with config: \n";
+        d_config.print(BALL_LOG_OUTPUT_STREAM);
+    }
+
+    if (d_isOpen) {
+        BALL_LOG_INFO << partitionDesc() << "is already open.";
+        return rc_SUCCESS;
+    }
+
+    const bsls::Types::Uint64 minJournalFileSize = sizeof(FileHeader) +
+                                                   sizeof(JournalFileHeader) +
+                                                   k_REQUESTED_JOURNAL_SPACE;
+    if (d_config.maxJournalFileSize() < minJournalFileSize) {
+        BALL_LOG_ERROR << partitionDesc() << "maxJournalFileSize ("
+                       << d_config.maxJournalFileSize()
+                       << ") is too small. Minimum required: "
+                       << minJournalFileSize;
+        return rc_JOURNAL_FILE_TOO_SMALL;
+    }
+
+    bmqu::MemOutStream errorDescription;
+    int rc = openInRecoveryMode(errorDescription, 0, recoveryIndex);
+    if (rc == 0) {
+        d_isOpen = true;
+    }
+    else if (rc == 1) {
+        BALL_LOG_INFO << partitionDesc() << "Recovery: no files found to "
+                      << "recover messages. Attempting to open in "
+                      << "'non-recovery' mode.";
+        rc = openInNonRecoveryMode();
+        if (0 != rc) {
+            BALL_LOG_ERROR << partitionDesc() << "Recovery: failed to open in "
+                           << "'non-recovery' mode, rc: " << rc;
+            return rc * 10 + rc_NON_RECOVERY_MODE_FAILURE;
+        }
+
+        d_isOpen = true;
+    }
+    else {
+        BALL_LOG_ERROR << partitionDesc() << "Failed to open in recovery mode,"
+                       << " rc:" << rc << ", reason: ["
+                       << errorDescription.str() << "].";
+        return rc * 10 + rc_RECOVERY_MODE_FAILURE;
+    }
+
+    BSLS_ASSERT_SAFE(d_isOpen);
+
+    const FileSet* fs = d_fileSets[0].get();
+    d_partitionStats_sp->setPartitionBytes(fs->d_outstandingBytesData,
+                                           fs->d_outstandingBytesJournal,
+                                           fs->d_dataFilePosition,
+                                           fs->d_journalFilePosition,
+                                           sequenceNumber());
+
+    BALL_LOG_INFO << partitionDesc() << "Raft recovery index: "
+                  << recoveryIndex->size() << " records.";
+
+    return rc_SUCCESS;
+}
+
 int FileStore::close(bool flush, bool archive)
 {
     enum RcEnum {
@@ -5688,97 +5874,34 @@ int FileStore::writeMessageRecord(mqbi::StorageMessageAttributes* attributes,
     // Update 'activeFileSet' as it may have rolled over above.
     activeFileSet = d_fileSets[0].get();
 
-    // Local refs for convenience.
+    // Delegate the actual mmap formatting to formatMessageRecord.
+    PendingWrite pw(0,                   // id (0 = legacy path)
+                    d_primaryLeaseId,
+                    ++currentSeqNumRef(),
+                    attributes,
+                    guid,
+                    appData,
+                    options,
+                    queueKey);
 
-    MappedFileDescriptor& dataFile    = activeFileSet->d_data.d_file;
-    bsls::Types::Uint64&  dataFilePos = activeFileSet->d_data.d_filePosition;
-    MappedFileDescriptor& journal     = activeFileSet->d_journal.d_file;
-    bsls::Types::Uint64&  journalPos = activeFileSet->d_journal.d_filePosition;
-
-    BSLS_ASSERT_SAFE(journal.fileSize() >=
-                     (journalPos + k_REQUESTED_JOURNAL_SPACE));
-
-    // All good.  Take current offset in data file.
-    bsls::Types::Uint64 dataOffset = dataFilePos;
-    BSLS_ASSERT_SAFE(0 == dataOffset % bmqp::Protocol::k_DWORD_SIZE);
-
-    // Append DataHeader to data file.
-    OffsetPtr<DataHeader> dataHeader(dataFile.block(), dataFilePos);
-    new (dataHeader.get()) DataHeader();
-
-    int dhFlags = dataHeader->flags();
-
-    dataHeader->setMessageWords(totalLength / bmqp::Protocol::k_WORD_SIZE)
-        .setOptionsWords(optionsSize / bmqp::Protocol::k_WORD_SIZE)
-        .setFlags(dhFlags);
-    attributes->messagePropertiesInfo().applyTo(dataHeader.get());
-    dataFilePos += sizeof(DataHeader);
-
-    // Append options, if any, to data file.
-    if (options) {
-        bdlbb::BlobUtil::copy(dataFile.mapping() + dataFilePos,
-                              *options,
-                              0,  // start offset in blob
-                              options->length());
-        dataFilePos += static_cast<unsigned int>(options->length());
+    int formatRc = formatMessageRecord(&pw);
+    if (0 != formatRc) {
+        return formatRc;
     }
 
-    // Append appData to data file.
-    bdlbb::BlobUtil::copy(dataFile.mapping() + dataFilePos,
-                          *appData,
-                          0,  // start offset in blob
-                          appData->length());
+    *handle = pw.d_handle;
 
-    dataFilePos += static_cast<unsigned int>(appData->length());
-
-    // Append padding to data file.
-    bmqp::ProtocolUtil::appendPaddingDwordRaw(dataFile.mapping() + dataFilePos,
-                                              numBytesPadding);
-    dataFilePos += static_cast<unsigned int>(numBytesPadding);
-
-    // Append MessageRecord to journal.
-    BSLS_ASSERT_SAFE(journal.fileSize() >=
-                     (journalPos + k_REQUESTED_JOURNAL_SPACE));
-
-    bsls::Types::Uint64      journalOffset = journalPos;
-    OffsetPtr<MessageRecord> msgRec(journal.block(), journalPos);
-    new (msgRec.get()) MessageRecord();
-    msgRec->header()
-        .setPrimaryLeaseId(d_primaryLeaseId)
-        .setSequenceNumber(++currentSeqNumRef())
-        .setTimestamp(attributes->arrivalTimestamp());
-    msgRec->setRefCount(attributes->refCount())
-        .setQueueKey(queueKey)
-        .setFileKey(activeFileSet->d_dataFileKey)
-        .setMessageOffsetDwords(dataOffset / bmqp::Protocol::k_DWORD_SIZE)
-        .setMessageGUID(guid)
-        .setCrc32c(attributes->crc32c())
-        .setCompressionAlgorithmType(attributes->compressionAlgorithmType())
-        .setMagic(RecordHeader::k_MAGIC);
-    journalPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
-
-    DataStoreRecordKey key(sequenceNumber(), d_primaryLeaseId);
-    DataStoreRecord    record(RecordType::e_MESSAGE, journalOffset);
-    record.d_messageOffset      = dataOffset;
-    record.d_appDataUnpaddedLen = static_cast<unsigned int>(appData->length());
-    record.d_dataOrQlistRecordPaddedLen = totalLength;
-    record.d_messagePropertiesInfo      = attributes->messagePropertiesInfo();
-    record.d_hasReceipt                 = attributes->hasReceipt();
-    record.d_arrivalTimepoint           = attributes->arrivalTimepoint();
-    record.d_arrivalTimestamp           = attributes->arrivalTimestamp();
-
-    RecordIterator recordIt;
-    insertDataStoreRecord(&recordIt, key, record);
-    recordIteratorToHandle(handle, recordIt);
-
+    // Legacy replication and receipt tracking.
     int flags = 0;
-    // If this requires Receipt
     if (!attributes->hasReceipt()) {
+        DataStoreRecordKey key(pw.d_sequenceNumber, pw.d_primaryLeaseId);
+        RecordIterator     it = handleTorRecordIterator(*handle);
+        BSLS_ASSERT_SAFE(it != d_records.end());
         d_unreceipted.insert(
             bsl::make_pair(key,
                            ReceiptContext(queueKey,
                                           guid,
-                                          recordIt,
+                                          it,
                                           1,  // receipt count
                                           attributes->queueHandle())));
         flags = bmqp::StorageHeaderFlags::e_RECEIPT_REQUESTED;
@@ -5787,41 +5910,33 @@ int FileStore::writeMessageRecord(mqbi::StorageMessageAttributes* attributes,
         d_replicationNotifications.insert(queueKey);
     }
 
-    // Replicate the message.
     replicateRecord(bmqp::StorageMessageType::e_DATA,
                     flags,
-                    journalOffset,
-                    dataOffset,
+                    pw.d_journalOffset,
+                    pw.d_dataOffset,
                     totalLength);
-
-    // Update outstanding JOURNAL and DATA bytes.
-    activeFileSet->d_journal.d_outstandingBytes +=
-        FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
-    activeFileSet->d_data.d_outstandingBytes += totalLength;
 
     return rc_SUCCESS;
 }
 
-int FileStore::writeQueueCreationRecord(DataStoreRecordHandle*  handle,
-                                        const bmqt::Uri&        queueUri,
-                                        const mqbu::StorageKey& queueKey,
-                                        const AppInfos&         appIdKeyPairs,
-                                        bsls::Types::Uint64     timestamp,
-                                        bool                    isNewQueue)
+int FileStore::writeQueueCreationRecordImpl(PendingWrite* pw)
 {
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(handle);
-    BSLS_ASSERT_SAFE(!queueUri.asString().empty());
-    BSLS_ASSERT_SAFE(!queueKey.isNull());
-    BSLS_ASSERT_SAFE(d_fileSets.size() > 0);
+    BSLS_ASSERT_SAFE(pw);
+    BSLS_ASSERT_SAFE(pw->d_recordType == RecordType::e_QUEUE_OP);
+    BSLS_ASSERT_SAFE(!pw->d_queueUri.asString().empty());
+    BSLS_ASSERT_SAFE(!pw->d_queueKey.isNull());
+    BSLS_ASSERT_SAFE(pw->d_appIdKeyPairs_p);
+    BSLS_ASSERT_SAFE(0 < d_fileSets.size());
+
+    const bmqt::Uri&        queueUri      = pw->d_queueUri;
+    const mqbu::StorageKey& queueKey      = pw->d_queueKey;
+    const AppInfos&         appIdKeyPairs = *pw->d_appIdKeyPairs_p;
 
     enum {
         rc_SUCCESS          = 0,
         rc_STOPPING         = -1,
         rc_UNAVAILABLE      = -2,
-        rc_NOT_PRIMARY      = -3,
-        rc_ROLLOVER_FAILURE = -4,
-        rc_PARTITION_FULL   = -5
+        rc_ROLLOVER_FAILURE = -3
     };
 
     FileSet* activeFileSet = d_fileSets[0].get();
@@ -5829,23 +5944,13 @@ int FileStore::writeQueueCreationRecord(DataStoreRecordHandle*  handle,
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(d_isStopping)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        return rc_STOPPING;  // RETURN
+        return rc_STOPPING;
     }
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
             !activeFileSet->d_journalFileAvailable)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        return rc_UNAVAILABLE;  // RETURN
-    }
-
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!d_isPrimary)) {
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        BMQTSK_ALARMLOG_ALARM("REPLICATION")
-            << partitionDesc()
-            << "Not the primary. Not writing & replicating QueueUriRecord for "
-            << "uri: " << queueUri << " and queueKey [" << queueKey << "]"
-            << BMQTSK_ALARMLOG_END;
-        return rc_NOT_PRIMARY;  // RETURN
+        return rc_UNAVAILABLE;
     }
 
     int          queueUriPadding     = 0;
@@ -5853,16 +5958,13 @@ int FileStore::writeQueueCreationRecord(DataStoreRecordHandle*  handle,
     unsigned int qlistRecTotalLength = 0;
     int          rc                  = 0;
 
-    // AppIds and AppKeys.
-    bsl::vector<int> appIdPaddings(appIdKeyPairs.size(), 0);
-    bsl::vector<int> appIdWords(appIdKeyPairs.size(), 0);
+    bsl::vector<int> appIdPaddings(appIdKeyPairs.size(), 0, d_allocator_p);
+    bsl::vector<int> appIdWords(appIdKeyPairs.size(), 0, d_allocator_p);
 
     if (d_qListAware) {
-        // QueueUri and QueueKey
         queueUriWords = bmqp::ProtocolUtil::calcNumWordsAndPadding(
             &queueUriPadding,
             queueUri.asString().length());
-
         qlistRecTotalLength = sizeof(QueueRecordHeader) +
                               queueUri.asString().length() + queueUriPadding +
                               FileStoreProtocol::k_HASH_LENGTH;
@@ -5877,18 +5979,15 @@ int FileStore::writeQueueCreationRecord(DataStoreRecordHandle*  handle,
                 cit->first.length());
             qlistRecTotalLength +=
                 sizeof(AppIdHeader) + cit->first.length() + appIdPaddings[i] +
-                FileStoreProtocol::k_HASH_LENGTH;  // for AppKey
+                FileStoreProtocol::k_HASH_LENGTH;
         }
-
-        qlistRecTotalLength += sizeof(unsigned int);  // magic length
-
-        // Roll over QLIST file if needed.
+        qlistRecTotalLength += sizeof(unsigned int);  // magic
 
         rc = rolloverIfNeeded(FileType::e_QLIST,
                               activeFileSet->d_qlist,
                               qlistRecTotalLength);
         if (0 != rc) {
-            return 10 * rc + rc_ROLLOVER_FAILURE;  // RETURN
+            return 10 * rc + rc_ROLLOVER_FAILURE;
         }
     }
 
@@ -5901,38 +6000,26 @@ int FileStore::writeQueueCreationRecord(DataStoreRecordHandle*  handle,
             (activeFileSet->d_qlist.d_filePosition + qlistRecTotalLength));
     }
 
-    // Roll over journal if needed.
-
     rc = rolloverIfNeeded(FileType::e_JOURNAL,
                           activeFileSet->d_journal,
                           k_REQUESTED_JOURNAL_SPACE);
     if (0 != rc) {
-        return 10 * rc + rc_ROLLOVER_FAILURE;  // RETURN
+        return 10 * rc + rc_ROLLOVER_FAILURE;
     }
-
-    // Update 'activeFileSet' as it may have rolled over above.
-
     activeFileSet = d_fileSets[0].get();
-
-    // Local refs for convenience.
 
     MappedFileDescriptor& journal    = activeFileSet->d_journal.d_file;
     bsls::Types::Uint64&  journalPos = activeFileSet->d_journal.d_filePosition;
-    MappedFileDescriptor  nullMfd;
     MappedFileDescriptor& qlistFile    = activeFileSet->d_qlist.d_file;
     bsls::Types::Uint64&  qlistFilePos = activeFileSet->d_qlist.d_filePosition;
 
     BSLS_ASSERT_SAFE(journal.fileSize() >=
                      (journalPos + k_REQUESTED_JOURNAL_SPACE));
 
-    // All good.  Take current offset in QLIST file.
-
-    bsls::Types::Uint64 qlistOffset = d_qListAware ? qlistFilePos : 0;
+    const bsls::Types::Uint64 qlistOffset = d_qListAware ? qlistFilePos : 0;
     BSLS_ASSERT_SAFE(0 == qlistOffset % bmqp::Protocol::k_WORD_SIZE);
 
     if (d_qListAware) {
-        // Append QueueRecordHeader to QLIST file.
-
         OffsetPtr<QueueRecordHeader> qrh(qlistFile.block(), qlistFilePos);
         new (qrh.get()) QueueRecordHeader();
         qrh->setQueueUriLengthWords(queueUriWords)
@@ -5941,132 +6028,163 @@ int FileStore::writeQueueCreationRecord(DataStoreRecordHandle*  handle,
                                  bmqp::Protocol::k_WORD_SIZE);
         qlistFilePos += sizeof(QueueRecordHeader);
 
-        // Append QueueRecord to QLIST file.
-
-        // 1) Append QueueUri
         OffsetPtr<char> quri(qlistFile.block(), qlistFilePos);
         bsl::memcpy(quri.get(),
                     queueUri.asString().c_str(),
                     queueUri.asString().length());
         qlistFilePos += queueUri.asString().length();
 
-        // 2) Append padding after QueueUri
         bmqp::ProtocolUtil::appendPaddingRaw(qlistFile.mapping() +
                                                  qlistFilePos,
                                              queueUriPadding);
         qlistFilePos += queueUriPadding;
 
-        // 3) Append QueueUriHash.  QueueUriRecord needs
-        // 'mqbs::FileStoreProtocol::k_HASH_LENGTH' characters for queue uri
-        // hash and appId hash but 'queueKey' is only
-        // mqbu::StorageKey::e_KEY_LENGTH_BINARY' long.  So we create an array
-        // of the right length, zero it out, and copy only 'queueKey' worth of
-        // data.
-
         char queueHash[mqbs::FileStoreProtocol::k_HASH_LENGTH] = {0};
         bsl::memcpy(queueHash, queueKey.data(), k_KEY_LEN);
         OffsetPtr<char> quriHash(qlistFile.block(), qlistFilePos);
-        bsl::memcpy(quriHash.get(),
-                    queueHash,
-                    FileStoreProtocol::k_HASH_LENGTH);
+        bsl::memcpy(quriHash.get(), queueHash, FileStoreProtocol::k_HASH_LENGTH);
         qlistFilePos += FileStoreProtocol::k_HASH_LENGTH;
 
-        // 3) Append AppIds and AppKeys
         size_t i = 0;
         for (AppInfos::const_iterator cit = appIdKeyPairs.cbegin();
              cit != appIdKeyPairs.cend();
              ++cit, ++i) {
-            // Append AppIdHeader.
-
-            OffsetPtr<AppIdHeader> appIdHeader(qlistFile.block(),
-                                               qlistFilePos);
+            OffsetPtr<AppIdHeader> appIdHeader(qlistFile.block(), qlistFilePos);
             new (appIdHeader.get()) AppIdHeader;
             appIdHeader->setAppIdLengthWords(appIdWords[i]);
             qlistFilePos += sizeof(AppIdHeader);
 
-            // Append AppId.
-
             OffsetPtr<char> appId(qlistFile.block(), qlistFilePos);
             bsl::memcpy(appId.get(), cit->first.c_str(), cit->first.length());
             qlistFilePos += cit->first.length();
-
-            // Append padding after AppId.
 
             bmqp::ProtocolUtil::appendPaddingRaw(qlistFile.mapping() +
                                                      qlistFilePos,
                                                  appIdPaddings[i]);
             qlistFilePos += appIdPaddings[i];
 
-            // Append AppIdHash (see 'Append QueueUriHash' comments section
-            // above for explanation).
-
             char appIdHash[mqbs::FileStoreProtocol::k_HASH_LENGTH] = {0};
             bsl::memcpy(appIdHash, cit->second.data(), k_KEY_LEN);
             OffsetPtr<char> appHash(qlistFile.block(), qlistFilePos);
-            bsl::memcpy(appHash.get(),
-                        appIdHash,
+            bsl::memcpy(appHash.get(), appIdHash,
                         FileStoreProtocol::k_HASH_LENGTH);
             qlistFilePos += FileStoreProtocol::k_HASH_LENGTH;
         }
 
-        // 4) Append magic bits
-        OffsetPtr<bdlb::BigEndianUint32> magic(qlistFile.block(),
-                                               qlistFilePos);
+        OffsetPtr<bdlb::BigEndianUint32> magic(qlistFile.block(), qlistFilePos);
         *magic = QueueRecordHeader::k_MAGIC;
         qlistFilePos += sizeof(QueueRecordHeader::k_MAGIC);
     }
 
-    // Append QueueOpRecord to JOURNAL file.
-
-    bsls::Types::Uint64      recordOffset = journalPos;
-    OffsetPtr<QueueOpRecord> queueOpRec(journal.block(), journalPos);
+    // Write QueueOpRecord to journal.
+    const bsls::Types::Uint64 recordOffset = journalPos;
+    OffsetPtr<QueueOpRecord>  queueOpRec(journal.block(), journalPos);
     new (queueOpRec.get()) QueueOpRecord();
     queueOpRec->header()
-        .setPrimaryLeaseId(d_primaryLeaseId)
-        .setSequenceNumber(++currentSeqNumRef())
-        .setTimestamp(timestamp);
+        .setPrimaryLeaseId(pw->d_primaryLeaseId)
+        .setSequenceNumber(pw->d_sequenceNumber)
+        .setTimestamp(pw->d_timestamp);
     queueOpRec->setQueueKey(queueKey).setType(
-        isNewQueue ? QueueOpType::e_CREATION : QueueOpType::e_ADDITION);
+        pw->d_isNewQueue ? QueueOpType::e_CREATION : QueueOpType::e_ADDITION);
     queueOpRec->setQueueUriRecordOffsetWords(
         d_qListAware ? (qlistOffset / bmqp::Protocol::k_WORD_SIZE) : 0);
-
-    // Note that we don't write any appKey to the QueueOpRecord in the journal,
-    // because there could be multiple appKeys specified, and its not possible
-    // to capture all of them in the journal.  We could specify the appKey if
-    // 'appKeys.size() == 1', but that may lead to confusion.
-
     queueOpRec->setMagic(RecordHeader::k_MAGIC);
     journalPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
 
-    replicateRecord(bmqp::StorageMessageType::e_QLIST,
-                    0,  // flags
-                    recordOffset,
-                    qlistOffset,
-                    qlistRecTotalLength);
-
-    DataStoreRecordKey key(sequenceNumber(), d_primaryLeaseId);
+    DataStoreRecordKey key(pw->d_sequenceNumber, pw->d_primaryLeaseId);
     DataStoreRecord    record(RecordType::e_QUEUE_OP,
                            recordOffset,
                            qlistRecTotalLength);
-    insertDataStoreRecord(handle, key, record);
+    insertDataStoreRecord(&pw->d_handle, key, record);
 
-    // Update outstanding JOURNAL and QLIST bytes.
     activeFileSet->d_journal.d_outstandingBytes +=
         FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
     if (d_qListAware) {
         activeFileSet->d_qlist.d_outstandingBytes += qlistRecTotalLength;
     }
 
-    BALL_LOG_INFO << partitionDesc() << "Wrote QueueCreationRecord to journal"
-                  << " [queueUri: " << queueUri << ", queueKey: " << queueKey
-                  << ", isNewQueue: " << isNewQueue << ", appIdKeyPairs: "
-                  << bmqu::Printer<AppInfos>(&appIdKeyPairs)
-                  << ", timestamp: " << timestamp
-                  << ", PSN: " << printPSN(d_primaryLeaseId, sequenceNumber())
-                  << ", journal offset: " << recordOffset
-                  << ", qlist offset: " << qlistOffset << "]";
+    pw->d_journalOffset      = recordOffset;
+    pw->d_qlistOffset        = qlistOffset;
+    pw->d_qlistRecTotalLength = qlistRecTotalLength;
 
     return rc_SUCCESS;
+}
+
+int FileStore::writeQueueCreationRecord(DataStoreRecordHandle*  handle,
+                                        const bmqt::Uri&        queueUri,
+                                        const mqbu::StorageKey& queueKey,
+                                        const AppInfos&         appIdKeyPairs,
+                                        bsls::Types::Uint64     timestamp,
+                                        bool                    isNewQueue)
+{
+    BSLS_ASSERT_SAFE(handle);
+    BSLS_ASSERT_SAFE(!queueUri.asString().empty());
+    BSLS_ASSERT_SAFE(!queueKey.isNull());
+    BSLS_ASSERT_SAFE(0 < d_fileSets.size());
+
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!d_isPrimary)) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        BMQTSK_ALARMLOG_ALARM("REPLICATION")
+            << partitionDesc()
+            << "Not the primary. Not writing & replicating QueueUriRecord for "
+            << "uri: " << queueUri << " and queueKey [" << queueKey << "]"
+            << BMQTSK_ALARMLOG_END;
+        return -1;
+    }
+
+    PendingWrite pw(0,
+                    queueUri,
+                    queueKey,
+                    &appIdKeyPairs,
+                    timestamp,
+                    isNewQueue);
+    pw.d_primaryLeaseId = d_primaryLeaseId;
+    pw.d_sequenceNumber = ++currentSeqNumRef();
+
+    int rc = writeQueueCreationRecordImpl(&pw);
+    if (rc != 0) {
+        return rc;
+    }
+
+    *handle = pw.d_handle;
+
+    replicateRecord(bmqp::StorageMessageType::e_QLIST,
+                    0,
+                    pw.d_journalOffset,
+                    pw.d_qlistOffset,
+                    pw.d_qlistRecTotalLength);
+    return 0;
+}
+
+int FileStore::formatQueueCreationRecord(PendingWrite* pw)
+{
+    BSLS_ASSERT_SAFE(pw);
+    BSLS_ASSERT_SAFE(pw->d_recordType == RecordType::e_QUEUE_OP);
+    BSLS_ASSERT_SAFE(!pw->d_queueUri.asString().empty());
+    BSLS_ASSERT_SAFE(!pw->d_queueKey.isNull());
+    BSLS_ASSERT_SAFE(pw->d_appIdKeyPairs_p);
+    BSLS_ASSERT_SAFE(0 < d_fileSets.size());
+
+    int rc = writeQueueCreationRecordImpl(pw);
+    if (rc != 0) {
+        return rc;
+    }
+
+    // Build entry blob: [journal record][qlist bytes] for AppendEntries.
+    FileSet* activeFileSet = d_fileSets[0].get();
+    pw->d_entryBlob        = d_blobSpPool_p->getObject();
+    bdlbb::BlobUtil::append(pw->d_entryBlob.get(),
+                            activeFileSet->d_journalFile.block().base() +
+                                pw->d_journalOffset,
+                            FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
+    if (d_qListAware && pw->d_qlistRecTotalLength > 0) {
+        bdlbb::BlobUtil::append(pw->d_entryBlob.get(),
+                                activeFileSet->d_qlistFile.block().base() +
+                                    pw->d_qlistOffset,
+                                pw->d_qlistRecTotalLength);
+    }
+
+    return 0;
 }
 
 int FileStore::writeQueuePurgeRecord(DataStoreRecordHandle*       handle,
@@ -6297,6 +6415,621 @@ int FileStore::writeSyncPointRecord(const bmqp_ctrlmsg::SyncPoint& syncPoint,
                   << ", journal offset: " << recordOffset << "]";
 
     return rc_SUCCESS;
+}
+
+int FileStore::writeFormattedRecord(const bdlbb::Blob&                   data,
+                                    bsls::Types::Uint64*                 journalOffset,
+                                    bsls::Types::Uint64*                 dataOffset,
+                                    DataStoreRecordHandle*               handle,
+                                    const bsl::shared_ptr<bdlbb::Blob>&  payload)
+{
+    BSLS_ASSERT_SAFE(journalOffset);
+    BSLS_ASSERT_SAFE(dataOffset);
+    BSLS_ASSERT_SAFE(data.length() >=
+                     FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
+    BSLS_ASSERT_SAFE(0 < d_fileSets.size());
+
+    const int k_JREC_SIZE = FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+
+    // On the primary path 'payload' carries the content separately from the
+    // journal record.  On the replica path the content follows the journal
+    // record inside 'data'.
+
+    const bdlbb::Blob& payloadSrc    = payload ? *payload : data;
+    const int          payloadOffset = payload ? 0 : k_JREC_SIZE;
+
+    FileSet* activeFileSet = d_fileSets[0].get();
+    BSLS_ASSERT_SAFE(activeFileSet);
+
+    MappedFileDescriptor& journal    = activeFileSet->d_journalFile;
+    bsls::Types::Uint64&  journalPos = activeFileSet->d_journalFilePosition;
+
+    BSLS_ASSERT_SAFE(journal.fileSize() >= journalPos + k_JREC_SIZE);
+
+    bmqu::BlobObjectProxy<RecordHeader> recHeader(
+        &data,
+        true,   // read
+        false); // write
+    BSLS_ASSERT_SAFE(recHeader.isSet());
+
+    bool      needsRecord  = true;
+    bool      hasData      = false;
+    bool      needsQList   = false;
+    const int dataPayloadLen = payload
+        ? payload->length()
+        : data.length() - k_JREC_SIZE;
+
+    switch (recHeader->type()) {
+    case RecordType::e_MESSAGE:
+        hasData = true;
+        break;
+    case RecordType::e_QUEUE_OP:
+        needsQList = (d_qListAware && dataPayloadLen > 0);
+        break;
+    case RecordType::e_CONFIRM:
+        break;
+    case RecordType::e_DELETION:
+    case RecordType::e_JOURNAL_OP:
+        needsRecord = false;
+        break;
+    case RecordType::e_UNDEFINED:
+    default:
+        BALL_LOG_ERROR << partitionDesc()
+                       << "writeFormattedRecord: unknown record type "
+                       << recHeader->type();
+        return -1;                                                    // RETURN
+    }
+
+    *dataOffset = 0;
+
+    // Phase 1: type-specific data/qlist writes
+    if (hasData) {
+        BSLS_ASSERT_SAFE(dataPayloadLen > 0);
+        BSLS_ASSERT_SAFE(0 == dataPayloadLen % bmqp::Protocol::k_DWORD_SIZE);
+
+        MappedFileDescriptor& dataFile    = activeFileSet->d_dataFile;
+        bsls::Types::Uint64&  dataFilePos = activeFileSet->d_dataFilePosition;
+
+
+        BSLS_ASSERT_SAFE(dataFile.fileSize() >=
+                         dataFilePos + dataPayloadLen);
+
+        *dataOffset = dataFilePos;
+        bdlbb::BlobUtil::copy(dataFile.mapping() + dataFilePos,
+                              payloadSrc,
+                              payloadOffset,
+                              dataPayloadLen);
+        dataFilePos += dataPayloadLen;
+    }
+
+    if (needsQList) {
+        MappedFileDescriptor& qlistFile = activeFileSet->d_qlistFile;
+        bsls::Types::Uint64&  qlistPos  =
+            activeFileSet->d_qlistFilePosition;
+
+        BSLS_ASSERT_SAFE(qlistFile.fileSize() >=
+                         qlistPos + dataPayloadLen);
+
+        *dataOffset = qlistPos;
+        bdlbb::BlobUtil::copy(qlistFile.mapping() + qlistPos,
+                              payloadSrc,
+                              payloadOffset,
+                              dataPayloadLen);
+        qlistPos += dataPayloadLen;
+
+        activeFileSet->d_outstandingBytesQlist += dataPayloadLen;
+    }
+
+    // Phase 2: copy journal record to journal mmap (common).
+    *journalOffset = journalPos;
+    bdlbb::BlobUtil::copy(journal.mapping() + journalPos,
+                          data,
+                          0,
+                          k_JREC_SIZE);
+
+    // Patch local offsets for MESSAGE and QUEUE_OP.
+    if (recHeader->type() == RecordType::e_MESSAGE) {
+        OffsetPtr<MessageRecord> msgRec(journal.block(), journalPos);
+        msgRec->setMessageOffsetDwords(static_cast<unsigned int>(
+            *dataOffset / bmqp::Protocol::k_DWORD_SIZE));
+        msgRec->setFileKey(activeFileSet->d_dataFileKey);
+    }
+    else if (recHeader->type() == RecordType::e_QUEUE_OP && needsQList) {
+        OffsetPtr<QueueOpRecord> qRec(journal.block(), journalPos);
+        qRec->setQueueUriRecordOffsetWords(static_cast<unsigned int>(
+            *dataOffset / bmqp::Protocol::k_WORD_SIZE));
+    }
+
+    journalPos += k_JREC_SIZE;
+
+    // Phase 3: type-specific d_records + outstanding bytes.
+    if (needsRecord) {
+        DataStoreRecordKey key(recHeader->sequenceNumber(),
+                               recHeader->primaryLeaseId());
+        DataStoreRecord dsRecord(recHeader->type(), *journalOffset);
+        // dsRecord.d_hasReceipt defaults to true;
+
+        dsRecord.d_dataOrQlistRecordPaddedLen = dataPayloadLen;
+        dsRecord.d_arrivalTimestamp           = recHeader->timestamp();
+
+
+        if (hasData) {
+            bmqu::BlobPosition dhPos;
+            int rc = bmqu::BlobUtil::findOffsetSafe(&dhPos,
+                                                    payloadSrc,
+                                                    payloadOffset);
+            BSLS_ASSERT_SAFE(0 == rc);
+            (void)rc;
+
+            bmqu::BlobObjectProxy<DataHeader> dh(
+                &payloadSrc,
+                dhPos,
+                -DataHeader::k_MIN_HEADER_SIZE,
+                true,   // read
+                false); // write
+            BSLS_ASSERT_SAFE(dh.isSet());
+
+            int optionsSize = dh->optionsWords() * bmqp::Protocol::k_WORD_SIZE;
+            int headerSize  = dh->headerWords() * bmqp::Protocol::k_WORD_SIZE;
+            dsRecord.d_appDataUnpaddedLen =
+                dataPayloadLen - static_cast<unsigned int>(headerSize) -
+                static_cast<unsigned int>(optionsSize);
+            if (dsRecord.d_appDataUnpaddedLen > 0) {
+                MappedFileDescriptor& dataFile = activeFileSet->d_dataFile;
+                const char* end = dataFile.mapping() + *dataOffset +
+                                 dataPayloadLen - 1;
+                unsigned int padding = static_cast<unsigned int>(
+                    static_cast<unsigned char>(*end));
+                if (padding < bmqp::Protocol::k_DWORD_SIZE) {
+                    dsRecord.d_appDataUnpaddedLen -= padding;
+                }
+            }
+            dsRecord.d_messageOffset              = *dataOffset;
+            dsRecord.d_messagePropertiesInfo =
+                bmqp::MessagePropertiesInfo(*dh);
+
+            activeFileSet->d_outstandingBytesData += dataPayloadLen;
+        }
+
+        DataStoreRecordHandle recHandle;
+        insertDataStoreRecord(&recHandle, key, dsRecord);
+
+        if (handle) {
+            *handle = recHandle;
+        }
+
+        activeFileSet->d_outstandingBytesJournal += k_JREC_SIZE;
+
+    }
+
+    return 0;
+}
+
+int FileStore::formatMessageRecord(PendingWrite* pw)
+{
+    BSLS_ASSERT_SAFE(pw);
+    BSLS_ASSERT_SAFE(pw->d_attributes_p);
+    BSLS_ASSERT_SAFE(pw->d_appData);
+    BSLS_ASSERT_SAFE(0 < d_fileSets.size());
+
+    const int k_JREC_SIZE = FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+
+    FileSet* activeFileSet = d_fileSets[0].get();
+    BSLS_ASSERT_SAFE(activeFileSet);
+
+    const int optionsSize = pw->d_options ? pw->d_options->length() : 0;
+
+    int numBytesPadding = 0;
+    bmqp::ProtocolUtil::calcNumDwordsAndPadding(
+        &numBytesPadding,
+        sizeof(DataHeader) + optionsSize + pw->d_appData->length());
+
+    const unsigned int totalLength =
+        sizeof(DataHeader) +
+        static_cast<unsigned int>(optionsSize) +
+        static_cast<unsigned int>(pw->d_appData->length()) +
+        static_cast<unsigned int>(numBytesPadding);
+
+    MappedFileDescriptor& dataFile    = activeFileSet->d_dataFile;
+    bsls::Types::Uint64&  dataFilePos = activeFileSet->d_dataFilePosition;
+    MappedFileDescriptor& journal     = activeFileSet->d_journalFile;
+    bsls::Types::Uint64&  journalPos  = activeFileSet->d_journalFilePosition;
+
+    BSLS_ASSERT_SAFE(dataFile.fileSize() >= dataFilePos + totalLength);
+    BSLS_ASSERT_SAFE(journal.fileSize() >=
+                     journalPos + k_REQUESTED_JOURNAL_SPACE);
+
+    // Write DataHeader directly to data mmap.
+    const bsls::Types::Uint64 dataOffset = dataFilePos;
+    OffsetPtr<DataHeader> dataHeader(dataFile.block(), dataFilePos);
+    new (dataHeader.get()) DataHeader();
+    dataHeader->setMessageWords(totalLength / bmqp::Protocol::k_WORD_SIZE)
+        .setOptionsWords(optionsSize / bmqp::Protocol::k_WORD_SIZE);
+    pw->d_attributes_p->messagePropertiesInfo().applyTo(dataHeader.get());
+    dataFilePos += sizeof(DataHeader);
+
+    if (optionsSize > 0) {
+        bdlbb::BlobUtil::copy(dataFile.mapping() + dataFilePos,
+                              *pw->d_options,
+                              0,
+                              optionsSize);
+        dataFilePos += optionsSize;
+    }
+
+    bdlbb::BlobUtil::copy(dataFile.mapping() + dataFilePos,
+                          *pw->d_appData,
+                          0,
+                          pw->d_appData->length());
+    dataFilePos += pw->d_appData->length();
+
+    bmqp::ProtocolUtil::appendPaddingDwordRaw(dataFile.mapping() + dataFilePos,
+                                              numBytesPadding);
+    dataFilePos += numBytesPadding;
+
+    // Write MessageRecord to journal mmap.
+    const bsls::Types::Uint64 journalOffset = journalPos;
+    OffsetPtr<MessageRecord>  msgRec(journal.block(), journalPos);
+    new (msgRec.get()) MessageRecord();
+    msgRec->header()
+        .setPrimaryLeaseId(pw->d_primaryLeaseId)
+        .setSequenceNumber(pw->d_sequenceNumber)
+        .setTimestamp(pw->d_attributes_p->arrivalTimestamp());
+    msgRec->setRefCount(pw->d_attributes_p->refCount())
+        .setQueueKey(pw->d_queueKey)
+        .setFileKey(activeFileSet->d_dataFileKey)
+        .setMessageOffsetDwords(dataOffset / bmqp::Protocol::k_DWORD_SIZE)
+        .setMessageGUID(pw->d_guid)
+        .setCrc32c(pw->d_attributes_p->crc32c())
+        .setCompressionAlgorithmType(
+            pw->d_attributes_p->compressionAlgorithmType())
+        .setMagic(RecordHeader::k_MAGIC);
+    journalPos += k_JREC_SIZE;
+
+    DataStoreRecordKey key(pw->d_sequenceNumber, pw->d_primaryLeaseId);
+    DataStoreRecord    record(RecordType::e_MESSAGE, journalOffset);
+    record.d_messageOffset              = dataOffset;
+    record.d_appDataUnpaddedLen         = pw->d_appData->length();
+    record.d_dataOrQlistRecordPaddedLen = totalLength;
+    record.d_messagePropertiesInfo =
+        pw->d_attributes_p->messagePropertiesInfo();
+    record.d_hasReceipt       = pw->d_attributes_p->hasReceipt();
+    record.d_arrivalTimepoint = pw->d_attributes_p->arrivalTimepoint();
+    record.d_arrivalTimestamp = pw->d_attributes_p->arrivalTimestamp();
+
+    RecordIterator recordIt;
+    insertDataStoreRecord(&recordIt, key, record);
+    recordIteratorToHandle(&pw->d_handle, recordIt);
+
+    activeFileSet->d_outstandingBytesJournal += k_JREC_SIZE;
+    activeFileSet->d_outstandingBytesData    += totalLength;
+
+    // Set output offsets in PendingWrite.
+    pw->d_journalOffset = journalOffset;
+    pw->d_dataOffset    = dataOffset;
+
+    // Build zero-copy mmap alias: [journal record][data region].
+    pw->d_entryBlob = d_blobSpPool_p->getObject();
+    bsl::shared_ptr<char> jrecSp(activeFileSet->d_aliasedChunk_sp,
+                                  journal.mapping() + journalOffset);
+    pw->d_entryBlob->appendDataBuffer(
+        bdlbb::BlobBuffer(bslmf::MovableRefUtil::move(jrecSp), k_JREC_SIZE));
+
+    bsl::shared_ptr<char> dataSp(activeFileSet->d_aliasedChunk_sp,
+                                  dataFile.mapping() + dataOffset);
+    pw->d_entryBlob->appendDataBuffer(
+        bdlbb::BlobBuffer(bslmf::MovableRefUtil::move(dataSp),
+                          static_cast<int>(totalLength)));
+
+    return 0;
+}
+
+int FileStore::readRecord(bsl::shared_ptr<bdlbb::Blob>* out,
+                          bsls::Types::Uint64           journalOffset) const
+{
+    BSLS_ASSERT_SAFE(out);
+    BSLS_ASSERT_SAFE(0 < d_fileSets.size());
+
+    *out = d_blobSpPool_p->getObject();
+    bdlbb::Blob* blob = out->get();
+
+    const int k_JREC_SIZE = FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+
+    FileSet* activeFileSet = d_fileSets[0].get();
+    BSLS_ASSERT_SAFE(activeFileSet);
+
+    MappedFileDescriptor& journal = activeFileSet->d_journalFile;
+    BSLS_ASSERT_SAFE(journal.fileSize() >= journalOffset + k_JREC_SIZE);
+
+    // Alias journal record from mmap.
+    bsl::shared_ptr<char> journalSp(activeFileSet->d_aliasedChunk_sp,
+                                    journal.mapping() + journalOffset);
+    bdlbb::BlobBuffer journalBuf(bslmf::MovableRefUtil::move(journalSp),
+                                 k_JREC_SIZE);
+
+    OffsetPtr<const RecordHeader> recHeader(journal.block(), journalOffset);
+
+    blob->removeAll();
+    blob->appendDataBuffer(journalBuf);
+
+    switch (recHeader->type()) {
+    case RecordType::e_MESSAGE: {
+        OffsetPtr<const MessageRecord> msgRec(journal.block(), journalOffset);
+
+        bsls::Types::Uint64 dataOffset =
+            static_cast<bsls::Types::Uint64>(msgRec->messageOffsetDwords()) *
+            bmqp::Protocol::k_DWORD_SIZE;
+
+        MappedFileDescriptor& dataFile = activeFileSet->d_dataFile;
+        OffsetPtr<const DataHeader> dh(dataFile.block(), dataOffset);
+        int dataLen = dh->messageWords() * bmqp::Protocol::k_WORD_SIZE;
+
+        BSLS_ASSERT_SAFE(dataFile.fileSize() >= dataOffset + dataLen);
+
+        bsl::shared_ptr<char> dataSp(activeFileSet->d_aliasedChunk_sp,
+                                     dataFile.mapping() + dataOffset);
+        bdlbb::BlobBuffer dataBuf(bslmf::MovableRefUtil::move(dataSp),
+                                  dataLen);
+        blob->appendDataBuffer(dataBuf);
+    } break;
+
+    case RecordType::e_QUEUE_OP: {
+        if (d_qListAware) {
+            OffsetPtr<const QueueOpRecord> qRec(journal.block(),
+                                                journalOffset);
+
+            bsls::Types::Uint64 qlistOffset =
+                static_cast<bsls::Types::Uint64>(
+                    qRec->queueUriRecordOffsetWords()) *
+                bmqp::Protocol::k_WORD_SIZE;
+
+            if (qlistOffset > 0) {
+                MappedFileDescriptor& qlistFile = activeFileSet->d_qlistFile;
+                OffsetPtr<const QueueRecordHeader> qrh(qlistFile.block(),
+                                                       qlistOffset);
+                int qlistLen = qrh->queueRecordWords() *
+                               bmqp::Protocol::k_WORD_SIZE;
+
+                BSLS_ASSERT_SAFE(qlistFile.fileSize() >=
+                                 qlistOffset + qlistLen);
+
+                bsl::shared_ptr<char> qlistSp(
+                    activeFileSet->d_aliasedChunk_sp,
+                    qlistFile.mapping() + qlistOffset);
+                bdlbb::BlobBuffer qlistBuf(
+                    bslmf::MovableRefUtil::move(qlistSp),
+                    qlistLen);
+                blob->appendDataBuffer(qlistBuf);
+            }
+        }
+    } break;
+
+    case RecordType::e_CONFIRM:
+    case RecordType::e_DELETION:
+    case RecordType::e_JOURNAL_OP:
+        break;
+
+    case RecordType::e_UNDEFINED:
+    default:
+        return -1;                                                    // RETURN
+    }
+
+    return 0;
+}
+
+int FileStore::truncateJournal(bsls::Types::Uint64 offset)
+{
+    BSLS_ASSERT_SAFE(0 < d_fileSets.size());
+
+    FileSet* activeFileSet = d_fileSets[0].get();
+    BSLS_ASSERT_SAFE(activeFileSet);
+
+    activeFileSet->d_journalFilePosition = offset;
+
+    bmqu::MemOutStream errorDesc;
+    int rc = FileSystemUtil::truncate(&activeFileSet->d_journalFile,
+                                      activeFileSet->d_journalFilePosition,
+                                      errorDesc);
+    if (0 != rc) {
+        BMQTSK_ALARMLOG_ALARM("FILE_IO")
+            << partitionDesc() << "Failed to truncate journal ["
+            << activeFileSet->d_journalFileName << "] at offset " << offset
+            << ", rc: " << rc << ", error: " << errorDesc.str()
+            << BMQTSK_ALARMLOG_END;
+    }
+
+    return rc;
+}
+
+int FileStore::truncateData(bsls::Types::Uint64 offset)
+{
+    BSLS_ASSERT_SAFE(0 < d_fileSets.size());
+
+    FileSet* activeFileSet = d_fileSets[0].get();
+    BSLS_ASSERT_SAFE(activeFileSet);
+
+    BALL_LOG_WARN << partitionDesc() << "Truncating data file ["
+                  << activeFileSet->d_dataFileName << "] from offset "
+                  << activeFileSet->d_dataFilePosition << " to " << offset;
+
+    activeFileSet->d_dataFilePosition = offset;
+
+    bmqu::MemOutStream errorDesc;
+    int rc = FileSystemUtil::truncate(&activeFileSet->d_dataFile,
+                                      activeFileSet->d_dataFilePosition,
+                                      errorDesc);
+    if (0 != rc) {
+        BMQTSK_ALARMLOG_ALARM("FILE_IO")
+            << partitionDesc() << "Failed to truncate data file ["
+            << activeFileSet->d_dataFileName << "] at offset " << offset
+            << ", rc: " << rc << ", error: " << errorDesc.str()
+            << BMQTSK_ALARMLOG_END;
+    }
+
+    return rc;
+}
+
+void FileStore::truncateRecords(bsls::Types::Uint64 journalOffset)
+{
+    // This method is called during Raft log truncation to remove records
+    // that a new leader has overridden.  It assumes that ALL records being
+    // removed are uncommitted: no FileBackedStorage (or any other Storage)
+    // holds references to them.  On replicas this is guaranteed because
+    // replicas populate FileBackedStorage only on commit, not on append.
+    // On a former primary that lost leadership, the broker terminates and
+    // restarts rather than truncating in place, so this path is never
+    // reached with Storage references outstanding.
+
+    BALL_LOG_WARN << partitionDesc()
+                  << "Truncating d_records at journal offset "
+                  << journalOffset << ". Records before truncation: "
+                  << d_records.size();
+
+    bsls::Types::Uint64 numRemoved = 0;
+    while (!d_records.empty()) {
+        RecordIterator last = --d_records.end();
+        if (last->second.d_recordOffset < journalOffset) {
+            break;
+        }
+
+        BALL_LOG_INFO << partitionDesc() << "Removing record: type="
+                      << last->second.d_recordType << ", seqNum="
+                      << last->first.d_sequenceNum << ", leaseId="
+                      << last->first.d_primaryLeaseId << ", journalOffset="
+                      << last->second.d_recordOffset;
+
+        DataStoreRecordHandle handle;
+        recordIteratorToHandle(&handle, last);
+        removeRecordRaw(handle);
+        ++numRemoved;
+    }
+
+    BALL_LOG_WARN << partitionDesc() << "Truncated " << numRemoved
+                  << " records. Records remaining: " << d_records.size();
+}
+
+int FileStore::lookupRecord(bsls::Types::Uint64* journalOffset,
+                            bsls::Types::Uint64* dataOffset,
+                            unsigned int         primaryLeaseId,
+                            bsls::Types::Uint64  sequenceNumber) const
+{
+    BSLS_ASSERT_SAFE(journalOffset);
+    BSLS_ASSERT_SAFE(dataOffset);
+
+    DataStoreRecordKey  key(sequenceNumber, primaryLeaseId);
+    RecordConstIterator it = d_records.find(key);
+    if (it == d_records.end()) {
+        return -1;
+    }
+
+    *journalOffset = it->second.d_recordOffset;
+    *dataOffset    = it->second.d_messageOffset;
+    return 0;
+}
+
+void FileStore::onRecordCommittedReplica(const bdlbb::Blob&           data,
+                                         const DataStoreRecordHandle& handle)
+{
+    bmqu::BlobObjectProxy<RecordHeader> recHeader(&data, true, false);
+    BSLS_ASSERT_SAFE(recHeader.isSet());
+
+    RecordType::Enum type = recHeader->type();
+
+
+
+    switch (type) {
+    case RecordType::e_MESSAGE: {
+        BSLS_ASSERT_SAFE(handle.isValid());
+
+        const RecordIterator&  recordIt = handleTorRecordIterator(handle);
+        const DataStoreRecord& record   = recordIt->second;
+
+        bmqu::BlobObjectProxy<MessageRecord> msgRec(&data, true, false);
+
+        StorageMapIter sit = d_storages.find(msgRec->queueKey());
+        if (sit == d_storages.end()) {
+            BALL_LOG_WARN << partitionDesc()
+                          << "Committed MESSAGE for unknown queueKey ["
+                          << msgRec->queueKey() << "], GUID ["
+                          << msgRec->messageGUID() << "]";
+            return;
+        }
+        sit->second->processMessageRecord(msgRec->messageGUID(),
+                record.d_appDataUnpaddedLen,
+                                           msgRec->refCount(),
+                                           handle);
+    } break;
+
+    case RecordType::e_CONFIRM: {
+        bmqu::BlobObjectProxy<ConfirmRecord> confRec(&data, true, false);
+
+        BSLS_ASSERT_SAFE(confRec.isSet());
+
+        StorageMapIter sit = d_storages.find(confRec->queueKey());
+        if (sit == d_storages.end()) {
+            BALL_LOG_WARN << partitionDesc()
+                          << "Committed CONFIRM for unknown queueKey ["
+                          << confRec->queueKey() << "], GUID ["
+                          << confRec->messageGUID() << "]";
+            return;
+        }
+        sit->second->processConfirmRecord(confRec->messageGUID(),
+                                           confRec->appKey(),
+                                           confRec->reason(),
+                                           handle);
+    } break;
+
+    case RecordType::e_DELETION: {
+        bmqu::BlobObjectProxy<DeletionRecord> delRec(&data, true, false);
+
+        BSLS_ASSERT_SAFE(delRec.isSet());
+
+        StorageMapIter sit = d_storages.find(delRec->queueKey());
+        if (sit == d_storages.end()) {
+            BALL_LOG_WARN << partitionDesc()
+                          << "Committed DELETION for unknown queueKey ["
+                          << delRec->queueKey() << "], GUID ["
+                          << delRec->messageGUID() << "]";
+            return;
+        }
+        sit->second->processDeletionRecord(delRec->messageGUID());
+    } break;
+
+    case RecordType::e_QUEUE_OP: {
+        bmqu::BlobObjectProxy<QueueOpRecord> qOpRec(&data, true, false);
+
+        BSLS_ASSERT_SAFE(qOpRec.isSet());
+
+        StorageMapIter sit = d_storages.find(qOpRec->queueKey());
+        if (sit == d_storages.end()) {
+            BALL_LOG_WARN << partitionDesc()
+                          << "Committed QUEUE_OP for unknown queueKey ["
+                          << qOpRec->queueKey() << "]";
+            return;
+        }
+        ReplicatedStorage* rstorage = sit->second;
+        if (QueueOpType::e_PURGE == qOpRec->type()) {
+            if (qOpRec->appKey().isNull() ||
+                rstorage->hasVirtualStorage(qOpRec->appKey())) {
+                rstorage->purge(qOpRec->appKey());
+            }
+        }
+        rstorage->addQueueOpRecordHandle(handle);
+    } break;
+    case RecordType::e_JOURNAL_OP:
+    case RecordType::e_UNDEFINED:
+    default:
+        BSLS_ASSERT_SAFE(!handle.isValid());
+        break;
+    }
+}
+
+void FileStore::onRecordCommittedPrimary(unsigned int        primaryLeaseId,
+                                          bsls::Types::Uint64 sequenceNumber)
+{
+    // TODO: for strong consistency, find in d_unreceipted and call
+    // queue->onReceipt(). For weak consistency, no-op.
+    (void)primaryLeaseId;
+    (void)sequenceNumber;
 }
 
 void FileStore::removeRecordRaw(const DataStoreRecordHandle& handle)

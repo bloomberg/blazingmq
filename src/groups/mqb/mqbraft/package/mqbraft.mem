@@ -1,3 +1,6 @@
 mqbraft_clusterstateraft
 mqbraft_cslraftlog
+mqbraft_partitionraft
+mqbraft_partitionraftlog
+mqbraft_partitionraftmanager
 mqbraft_raftnode

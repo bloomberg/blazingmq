@@ -268,15 +268,14 @@ bool StorageUtil::loadUpdatedAppInfos(AppInfos*       addedAppInfos,
     return true;
 }
 
-int StorageUtil::registerQueueDispatched(mqbs::FileStore*         fs,
+int StorageUtil::registerQueueDispatched(mqbs::RecordStore*       rs,
                                          mqbs::ReplicatedStorage* storage,
                                          const AppInfos& appIdKeyPairs)
 {
     // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(fs->inDispatcherThread());
-    BSLS_ASSERT_SAFE(fs);
+    BSLS_ASSERT_SAFE(rs);
     BSLS_ASSERT_SAFE(storage);
 
     // Irrespective of the type of 'storage' (in-memory vs file-backed), the
@@ -291,7 +290,7 @@ int StorageUtil::registerQueueDispatched(mqbs::FileStore*         fs,
 
     // TODO_CSL Do not write this record when we logically delete the QLIST
     // file
-    int rc = fs->writeQueueCreationRecord(&handle,
+    int rc = rs->writeQueueCreationRecord(&handle,
                                           storage->queueUri(),
                                           storage->queueKey(),
                                           appIdKeyPairs,
@@ -299,7 +298,7 @@ int StorageUtil::registerQueueDispatched(mqbs::FileStore*         fs,
                                           true);  // Is new storage?
     if (0 != rc) {
         BMQTSK_ALARMLOG_ALARM("FILE_IO")
-            << fs->description()
+            << rs->description()
             << ": failed to write QueueCreationRecord for queue ["
             << storage->queueUri() << "] queueKey [" << storage->queueKey()
             << "], rc: " << rc << BMQTSK_ALARMLOG_END;
@@ -307,7 +306,7 @@ int StorageUtil::registerQueueDispatched(mqbs::FileStore*         fs,
     }
 
     storage->addQueueOpRecordHandle(handle);
-    fs->registerStorage(storage);
+    rs->registerStorage(storage);
 
     // Flush the partition.  This routine ('registerQueue[Dispatched]') is
     // invoked only at the primary (we can assert that using
@@ -316,9 +315,9 @@ int StorageUtil::registerQueueDispatched(mqbs::FileStore*         fs,
     // partition, we want to make sure that queue creation record written to
     // the partition above is sent to the replicas as soon as possible.
 
-    fs->flushStorage();
+    rs->flushStorage();
 
-    BALL_LOG_INFO << fs->description() << ": registered ["
+    BALL_LOG_INFO << rs->description() << ": registered ["
                   << storage->queueUri() << "], queueKey ["
                   << storage->queueKey() << "] with the storage as primary.";
 
@@ -328,15 +327,14 @@ int StorageUtil::registerQueueDispatched(mqbs::FileStore*         fs,
 void StorageUtil::updateQueuePrimaryDispatched(
     mqbs::ReplicatedStorage* storage,
     bslmt::Mutex*            storagesLock,
-    mqbs::FileStore*         fs,
+    mqbs::RecordStore*       rs,
     const AppInfos&          appIdKeyPairs,
     bool                     isFanout)
 {
     // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(fs);
-    BSLS_ASSERT_SAFE(fs->inDispatcherThread());
+    BSLS_ASSERT_SAFE(rs);
     BSLS_ASSERT_SAFE(storage);
 
     bslmt::LockGuard<bslmt::Mutex> guard(storagesLock);  // LOCK
@@ -346,7 +344,7 @@ void StorageUtil::updateQueuePrimaryDispatched(
 
     bmqu::Printer<AppInfos> printer2(&existingAppInfos);
 
-    BALL_LOG_INFO << fs->description() << ": updating queue '"
+    BALL_LOG_INFO << rs->description() << ": updating queue '"
                   << storage->queueUri() << "', queueKey: '"
                   << storage->queueKey() << "' " << printer2
                   << " in the storage.";
@@ -363,14 +361,14 @@ void StorageUtil::updateQueuePrimaryDispatched(
     }
     // Simply forward to 'updateQueuePrimaryRaw'.
     updateQueuePrimaryRaw(storage,
-                          fs,
+                          rs,
                           addedAppInfos,
                           removedAppInfos,
                           isFanout);
 }
 
 int StorageUtil::updateQueuePrimaryRaw(mqbs::ReplicatedStorage* storage,
-                                       mqbs::FileStore*         fs,
+                                       mqbs::RecordStore*       rs,
                                        const AppInfos& addedIdKeyPairs,
                                        const AppInfos& removedIdKeyPairs,
                                        bool            isFanout)
@@ -378,8 +376,7 @@ int StorageUtil::updateQueuePrimaryRaw(mqbs::ReplicatedStorage* storage,
     // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(fs);
-    BSLS_ASSERT_SAFE(fs->inDispatcherThread());
+    BSLS_ASSERT_SAFE(rs);
     BSLS_ASSERT_SAFE(storage);
 
     int                 rc        = 0;
@@ -393,7 +390,7 @@ int StorageUtil::updateQueuePrimaryRaw(mqbs::ReplicatedStorage* storage,
         // file
 
         mqbs::DataStoreRecordHandle handle;
-        rc = fs->writeQueueCreationRecord(&handle,
+        rc = rs->writeQueueCreationRecord(&handle,
                                           storage->queueUri(),
                                           storage->queueKey(),
                                           addedIdKeyPairs,
@@ -401,7 +398,7 @@ int StorageUtil::updateQueuePrimaryRaw(mqbs::ReplicatedStorage* storage,
                                           false);  // is new queue?
         if (0 != rc) {
             BMQTSK_ALARMLOG_ALARM("FILE_IO")
-                << fs->description()
+                << rs->description()
                 << ": failed to write App QueueCreationRecord for queue ["
                 << storage->queueUri() << "] queueKey [" << storage->queueKey()
                 << "], rc: " << rc << BMQTSK_ALARMLOG_END;
@@ -412,7 +409,7 @@ int StorageUtil::updateQueuePrimaryRaw(mqbs::ReplicatedStorage* storage,
 
         rc = addVirtualStoragesInternal(storage,
                                         addedIdKeyPairs,
-                                        fs->description(),
+                                        rs->description(),
                                         isFanout);
         if (0 != rc) {
             // In the transition phase, App creation trigger can be either
@@ -426,7 +423,7 @@ int StorageUtil::updateQueuePrimaryRaw(mqbs::ReplicatedStorage* storage,
             bmqu::Printer<AppInfos> printer(&addedIdKeyPairs);
 
             BALL_LOG_OUTPUT_STREAM
-                << fs->description() << ": for an already registered queue ["
+                << rs->description() << ": for an already registered queue ["
                 << storage->queueUri() << "], queueKey ["
                 << storage->queueKey() << "], added ["
                 << addedIdKeyPairs.size() << "] new appId/appKey "
@@ -442,7 +439,7 @@ int StorageUtil::updateQueuePrimaryRaw(mqbs::ReplicatedStorage* storage,
                                               cit->second,
                                               true);  // asPrimary
             if (0 != rc) {
-                BALL_LOG_ERROR << fs->description()
+                BALL_LOG_ERROR << rs->description()
                                << ": failed to remove storage for  appKey ["
                                << cit->second << "], appId [" << cit->first
                                << "], for queue [" << storage->queueUri()
@@ -457,7 +454,7 @@ int StorageUtil::updateQueuePrimaryRaw(mqbs::ReplicatedStorage* storage,
             bmqu::Printer<AppInfos> printer(&removedIdKeyPairs);
 
             BALL_LOG_OUTPUT_STREAM
-                << fs->description() << ": for an already registered queue ["
+                << rs->description() << ": for an already registered queue ["
                 << storage->queueUri() << "], queueKey ["
                 << storage->queueKey() << "], removed ["
                 << removedIdKeyPairs.size()
@@ -467,11 +464,11 @@ int StorageUtil::updateQueuePrimaryRaw(mqbs::ReplicatedStorage* storage,
 
     // Flush the partition for records written above to reach replicas right
     // away.
-    fs->flushStorage();
+    rs->flushStorage();
 
     bmqu::Printer<AppInfos> printer1(&addedIdKeyPairs);
     bmqu::Printer<AppInfos> printer2(&removedIdKeyPairs);
-    BALL_LOG_INFO << fs->description() << ": updated [" << storage->queueUri()
+    BALL_LOG_INFO << rs->description() << ": updated [" << storage->queueUri()
                   << "], queueKey [" << storage->queueKey()
                   << "] with the storage as primary: addedIdKeyPairs:"
                   << printer1 << ", removedIdKeyPairs:" << printer2;
@@ -2425,26 +2422,21 @@ void StorageUtil::shutdown(int                              partitionId,
     latch->arrive();
 }
 
-void StorageUtil::registerQueueAsPrimary(const mqbi::Cluster*    cluster,
-                                         StorageSpMap*           storageMap,
+void StorageUtil::registerQueueAsPrimary(StorageSpMap*           storageMap,
                                          bslmt::Mutex*           storagesLock,
-                                         mqbs::FileStore*        fs,
+                                         mqbs::RecordStore*      rs,
                                          const bmqt::Uri&        uri,
                                          const mqbu::StorageKey& queueKey,
                                          const AppInfos&         appIdKeyPairs,
                                          mqbi::Domain*           domain)
 {
-    // executed by the *CLUSTER DISPATCHER* thread
+    // executed by the partition *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(cluster);
-    BSLS_ASSERT_SAFE(cluster->inDispatcherThread());
     BSLS_ASSERT_SAFE(storageMap);
-    BSLS_ASSERT_SAFE(fs);
+    BSLS_ASSERT_SAFE(rs);
     BSLS_ASSERT_SAFE(uri.isValid());
     BSLS_ASSERT_SAFE(domain);
-
-    mqbi::Dispatcher* dispatcher = fs->dispatcher();
 
     // StorageMgr is either aware of the queue (the 'uri') or it isn't.  If it
     // is already aware, either this queue was registered earlier or it was
@@ -2465,40 +2457,36 @@ void StorageUtil::registerQueueAsPrimary(const mqbi::Cluster*    cluster,
     // If StorageMgr is not aware of the queue, then its a simpler process --
     // simply register it and its associated appIds, if any.
 
+    // Already on partition dispatcher thread — no dispatch needed.
+
     bsl::shared_ptr<const mqbconfm::Domain> domainCfg  = domain->config();
     const mqbconfm::StorageDefinition&      storageDef = domainCfg->storage();
     const mqbconfm::QueueMode&              queueMode  = domainCfg->mode();
 
     bmqu::Printer<AppInfos> printer1(&appIdKeyPairs);
 
-    BALL_LOG_INFO << fs->description() << ": registering queue '" << uri
+    BALL_LOG_INFO << rs->description() << ": registering queue '" << uri
                   << "', queueKey: '" << queueKey << "' " << printer1
                   << " to the storage.";
 
     if (queueMode.isUndefinedValue()) {
         BMQTSK_ALARMLOG_ALARM("STORAGE")
-            << fs->description()
+            << rs->description()
             << ": invalid queue-mode in the domain configuration while "
             << "attempting to register queue '" << uri << "', queueKey '"
             << queueKey << "'." << BMQTSK_ALARMLOG_END;
         return;  // RETURN
     }
 
-    if (!cluster->isLocal()) {
-        // Its a multi-node cluster.  Queue mode and storage type should be
-        // compatible.  This sanity check should be done at the time of queue
-        // creation, and StorageMgr should assume that queue is correctly
-        // configured.
-        if (storageDef.config().isInMemoryValue() !=
-            queueMode.isBroadcastValue()) {
-            BMQTSK_ALARMLOG_ALARM("STORAGE")
-                << fs->description() << ": incompatible queue mode ("
-                << queueMode.selectionName() << ") and storage type ("
-                << storageDef.config().selectionName()
-                << ") while attempting to register clustered queue '" << uri
-                << "', queueKey '" << queueKey << "'." << BMQTSK_ALARMLOG_END;
-            return;  // RETURN
-        }
+    if (storageDef.config().isInMemoryValue() !=
+        queueMode.isBroadcastValue()) {
+        BMQTSK_ALARMLOG_ALARM("STORAGE")
+            << rs->description() << ": incompatible queue mode ("
+            << queueMode.selectionName() << ") and storage type ("
+            << storageDef.config().selectionName()
+            << ") while attempting to register queue '" << uri
+            << "', queueKey '" << queueKey << "'." << BMQTSK_ALARMLOG_END;
+        return;  // RETURN
     }
 
     BSLS_ASSERT_SAFE(storageDef.config().isInMemoryValue() ||
@@ -2513,90 +2501,45 @@ void StorageUtil::registerQueueAsPrimary(const mqbi::Cluster*    cluster,
         BSLS_ASSERT_SAFE(storageSp->queueKey() == queueKey);
         BSLS_ASSERT_SAFE(storageSp);
 
-        if (storageDef.config().isInMemoryValue()) {
-            BSLS_ASSERT_SAFE(!storageSp->isPersistent());
-        }
-        else {
-            BSLS_ASSERT_SAFE(storageSp->isPersistent());
-        }
-
         if (queueMode.isFanoutValue()) {
-            // Queue in fanout mode.  Need to check for any appIds which need
-            // to be added or removed (see comments at the beginning of this
-            // routine for explanation).
-
-            // Invoke
-            // 'updateQueuePrimaryDispatched' in the right thread to carry out
-            // the addition/removal of those pairs.
-
-            bsl::shared_ptr<mqbevt::DispatcherEvent> event_sp =
-                cluster->getEvent<mqbevt::DispatcherEvent>();
-            (*event_sp).setCallback(
-                bdlf::BindUtil::bind(updateQueuePrimaryDispatched,
-                                     storageSp.get(),
-                                     storagesLock,
-                                     fs,
-                                     appIdKeyPairs,
-                                     true /* isFanout */));
-
-            dispatcher->dispatchEvent(bslmf::MovableRefUtil::move(event_sp),
-                                      fs);
-
-            // Wait for 'updateQueuePrimaryDispatched' operation to complete.
-            // We need to wait because 'updateQueuePrimaryDispatched' creates
-            // virtual storages corresponding to 'addedAppInfos' (if any),
-            // and the caller of 'registerQueue' expects these virtual storages
-            // to be created this routine or its caller returns.  Before
-            // waiting, release the 'storagesLock' guard and unlock it to avoid
-            // any deadlock b/w cluster and partition dispatcher threads.
-
+            // Queue in fanout mode — update appIds directly (already on
+            // partition thread, no dispatch needed).
             guard.release()->unlock();
-
-            dispatcher->synchronize(fs);
+            updateQueuePrimaryDispatched(storageSp.get(),
+                                         storagesLock,
+                                         rs,
+                                         appIdKeyPairs,
+                                         true /* isFanout */);
         }
 
         return;  // RETURN
     }
 
-    // We are here means that StorageMgr is not aware of the queue.  Create an
-    // appropriate storage and insert it in 'storageMap'.
-
-    // Dispatch the registration of storage with the partition in appropriate
-    // thread.
-
-    bsl::shared_ptr<mqbevt::DispatcherEvent> event_sp =
-        cluster->getEvent<mqbevt::DispatcherEvent>();
-
-    (*event_sp).setCallback(bdlf::BindUtil::bind(&createQueueStorageAsPrimary,
-                                                 storageMap,
-                                                 storagesLock,
-                                                 fs,
-                                                 uri,
-                                                 queueKey,
-                                                 appIdKeyPairs,
-                                                 domain));
-
-    fs->dispatchEvent(bslmf::MovableRefUtil::move(event_sp));
-
-    // Not checking the result.  If not successful, storage is not in the
-    // 'storageMap'.  Subsequent queue configure will then fail.
+    // Queue not yet known — create storage directly on partition thread.
+    guard.release()->unlock();
+    createQueueStorageAsPrimary(storageMap,
+                                storagesLock,
+                                rs,
+                                uri,
+                                queueKey,
+                                appIdKeyPairs,
+                                domain);
 }
 
-void StorageUtil::createQueueStorageAsPrimary(StorageSpMap*    storageMap,
-                                              bslmt::Mutex*    storagesLock,
-                                              mqbs::FileStore* fs,
-                                              const bmqt::Uri& uri,
+void StorageUtil::createQueueStorageAsPrimary(StorageSpMap*       storageMap,
+                                              bslmt::Mutex*       storagesLock,
+                                              mqbs::RecordStore*  rs,
+                                              const bmqt::Uri&    uri,
                                               const mqbu::StorageKey& queueKey,
-                                              const AppInfos& appIdKeyPairs,
-                                              mqbi::Domain*   domain)
+                                              const AppInfos&     appIdKeyPairs,
+                                              mqbi::Domain*       domain)
 {
     // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(storageMap);
     BSLS_ASSERT_SAFE(storagesLock);
-    BSLS_ASSERT_SAFE(fs);
-    BSLS_ASSERT_SAFE(fs->inDispatcherThread());
+    BSLS_ASSERT_SAFE(rs);
     BSLS_ASSERT_SAFE(uri.isValid());
     BSLS_ASSERT_SAFE(!appIdKeyPairs.empty());
     BSLS_ASSERT_SAFE(domain);
@@ -2607,7 +2550,7 @@ void StorageUtil::createQueueStorageAsPrimary(StorageSpMap*    storageMap,
 
     bmqu::Printer<AppInfos> printer(&appIdKeyPairs);
 
-    BALL_LOG_INFO << fs->description() << ": creating storage for queue '"
+    BALL_LOG_INFO << rs->description() << ": creating storage for queue '"
                   << uri << "', queueKey: '" << queueKey << "' apps ["
                   << printer << "].";
 
@@ -2622,10 +2565,10 @@ void StorageUtil::createQueueStorageAsPrimary(StorageSpMap*    storageMap,
     // appropriate storage and insert it in 'storageMap'.
 
     StorageSp storageSp =
-        createQueueStorageImpl(fs, uri, queueKey, appIdKeyPairs, domain);
+        createQueueStorageImpl(rs, uri, queueKey, appIdKeyPairs, domain);
 
     if (storageSp) {
-        if (0 == registerQueueDispatched(fs, storageSp.get(), appIdKeyPairs)) {
+        if (0 == registerQueueDispatched(rs, storageSp.get(), appIdKeyPairs)) {
             // Only after everything succeeds, insert the storage
             BSLS_ASSERT_SAFE(storageMap->end() == storageMap->find(uri));
             storageMap->insert(bsl::make_pair(uri, storageSp));
@@ -2634,7 +2577,7 @@ void StorageUtil::createQueueStorageAsPrimary(StorageSpMap*    storageMap,
     }
 }
 
-void StorageUtil::unregisterQueueDispatched(mqbs::FileStore*     fs,
+void StorageUtil::unregisterQueueDispatched(mqbs::RecordStore*   rs,
                                             StorageSpMap*        storageMap,
                                             bslmt::Mutex*        storagesLock,
                                             const ClusterData*   clusterData,
@@ -2642,11 +2585,10 @@ void StorageUtil::unregisterQueueDispatched(mqbs::FileStore*     fs,
                                             const PartitionInfo& pinfo,
                                             const bmqt::Uri&     uri)
 {
-    // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
+    // executed by the partition *DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(fs);
-    BSLS_ASSERT_SAFE(fs->inDispatcherThread());
+    BSLS_ASSERT_SAFE(rs);
     BSLS_ASSERT_SAFE(storageMap);
     BSLS_ASSERT_SAFE(
         0 <= partitionId &&
@@ -2732,7 +2674,7 @@ void StorageUtil::unregisterQueueDispatched(mqbs::FileStore*     fs,
 
     // TODO_CSL Do not write this record when we logically delete the QLIST
     // file
-    int rc = fs->writeQueueDeletionRecord(
+    int rc = rs->writeQueueDeletionRecord(
         &handle,
         storage->queueKey(),
         mqbu::StorageKey(),  // AppKey
@@ -2756,16 +2698,16 @@ void StorageUtil::unregisterQueueDispatched(mqbs::FileStore*     fs,
     const mqbs::ReplicatedStorage::RecordHandles& recHandles =
         storage->queueOpRecordHandles();
     for (size_t idx = 0; idx < recHandles.size(); ++idx) {
-        fs->removeRecordRaw(recHandles[idx]);
+        rs->removeRecordRaw(recHandles[idx]);
     }
 
     // Delete the QueueOpRecord.DELETE record written above.
 
-    fs->removeRecordRaw(handle);
+    rs->removeRecordRaw(handle);
 
     // Unregister storage from the partition, and finally get rid of it.
 
-    fs->unregisterStorage(storage.get());
+    rs->unregisterStorage(storage.get());
     storageMap->erase(it);  // will invalidate 'storage'
 
     // Ok to release lock now.
@@ -2778,21 +2720,20 @@ void StorageUtil::unregisterQueueDispatched(mqbs::FileStore*     fs,
     // that the partition is flushed and the QueueDeletion record reaches
     // replicas.
 
-    fs->flushStorage();
+    rs->flushStorage();
 }
 
-int StorageUtil::updateQueuePrimary(StorageSpMap*    storageMap,
-                                    bslmt::Mutex*    storagesLock,
-                                    mqbs::FileStore* fs,
-                                    const bmqt::Uri& uri,
-                                    const AppInfos&  addedIdKeyPairs,
-                                    const AppInfos&  removedIdKeyPairs)
+int StorageUtil::updateQueuePrimary(StorageSpMap*       storageMap,
+                                    bslmt::Mutex*       storagesLock,
+                                    mqbs::RecordStore*  rs,
+                                    const bmqt::Uri&    uri,
+                                    const AppInfos&     addedIdKeyPairs,
+                                    const AppInfos&     removedIdKeyPairs)
 {
     // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(fs);
-    BSLS_ASSERT_SAFE(fs->inDispatcherThread());
+    BSLS_ASSERT_SAFE(rs);
     BSLS_ASSERT_SAFE(storageMap);
 
     if (addedIdKeyPairs.empty() && removedIdKeyPairs.empty()) {
@@ -2805,7 +2746,7 @@ int StorageUtil::updateQueuePrimary(StorageSpMap*    storageMap,
     if (storageMap->end() == it) {
         bmqu::Printer<AppInfos> printer1(&addedIdKeyPairs);
         bmqu::Printer<AppInfos> printer2(&removedIdKeyPairs);
-        BALL_LOG_ERROR << fs->description() << ": error when updating queue '"
+        BALL_LOG_ERROR << rs->description() << ": error when updating queue '"
                        << uri << "' with addedAppIds: [" << printer1
                        << "], removedAppIds: [" << printer2
                        << "]: Failed to find associated queue storage.";
@@ -2817,7 +2758,7 @@ int StorageUtil::updateQueuePrimary(StorageSpMap*    storageMap,
     BSLS_ASSERT_SAFE(storageSp);
 
     return updateQueuePrimaryRaw(storageSp.get(),
-                                 fs,
+                                 rs,
                                  addedIdKeyPairs,
                                  removedIdKeyPairs,
                                  true);  // isFanout
@@ -2933,7 +2874,7 @@ void StorageUtil::createQueueStorageAsReplica(
 }
 
 bsl::shared_ptr<mqbs::ReplicatedStorage>
-StorageUtil::createQueueStorageImpl(mqbs::FileStore*        fs,
+StorageUtil::createQueueStorageImpl(mqbs::RecordStore*      rs,
                                     const bmqt::Uri&        uri,
                                     const mqbu::StorageKey& queueKey,
                                     const AppInfos&         appIdKeyPairs,
@@ -2942,44 +2883,43 @@ StorageUtil::createQueueStorageImpl(mqbs::FileStore*        fs,
     // executed by *QUEUE_DISPATCHER* thread
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(fs);
-    BSLS_ASSERT_SAFE(fs->inDispatcherThread());
+    BSLS_ASSERT_SAFE(rs);
     BSLS_ASSERT_SAFE(domain);
     BSLS_ASSERT_SAFE(uri.isValid());
     BSLS_ASSERT_SAFE(!queueKey.isNull());
 
     bsl::shared_ptr<const mqbconfm::Domain>  domainCfg  = domain->config();
     const mqbconfm::StorageDefinition&       storageDef = domainCfg->storage();
-    bsl::shared_ptr<mqbs::ReplicatedStorage> rs_sp;
+    bsl::shared_ptr<mqbs::ReplicatedStorage> storageSp;
 
     if (domainCfg->mode().isUndefinedValue()) {
-        BALL_LOG_ERROR << fs->description()
+        BALL_LOG_ERROR << rs->description()
                        << ": undefined domain mode for the queue '" << uri
                        << "', queueKey: [" << queueKey << "].";
 
-        return rs_sp;  // RETURN
+        return storageSp;  // RETURN
     }
 
     if (storageDef.config().isUndefinedValue()) {
-        BALL_LOG_ERROR << fs->description()
+        BALL_LOG_ERROR << rs->description()
                        << ": undefined storage config for the queue '" << uri
                        << "', queueKey: [" << queueKey << "].";
 
-        return rs_sp;  // RETURN
+        return storageSp;  // RETURN
     }
 
-    fs->createStorage(&rs_sp, uri, queueKey, domain);
-    BSLS_ASSERT_SAFE(rs_sp);
+    rs->createStorage(&storageSp, uri, queueKey, domain);
+    BSLS_ASSERT_SAFE(storageSp);
 
-    if (0 != addVirtualStoragesInternal(rs_sp.get(),
+    if (0 != addVirtualStoragesInternal(storageSp.get(),
                                         appIdKeyPairs,
-                                        fs->description(),
+                                        rs->description(),
                                         domainCfg->mode().isFanoutValue())) {
         // Discard
-        rs_sp.reset();
+        storageSp.reset();
     }
 
-    return rs_sp;
+    return storageSp;
 }
 
 void StorageUtil::removeQueueStorageDispatched(

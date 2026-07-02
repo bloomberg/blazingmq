@@ -102,7 +102,7 @@ void FileBackedStorage::purgeCommon(const mqbu::StorageKey& appKey,
 
 // CREATORS
 FileBackedStorage::FileBackedStorage(
-    DataStore*                     dataStore,
+    RecordStore*                   dataStore,
     const bmqt::Uri&               queueUri,
     const mqbu::StorageKey&        queueKey,
     mqbi::Domain*                  domain,
