@@ -356,6 +356,7 @@ class Tester {
             true,  // isFSMWorkflow
             true,  // doesFSMwriteQLIST
             1);    // replicationFactor
+                                         0,     // storagesMonitor
 
         // To pass `inDispatcherThread` checks:
         d_fs_mp->setThreadId(bslmt::ThreadUtil::selfId());
