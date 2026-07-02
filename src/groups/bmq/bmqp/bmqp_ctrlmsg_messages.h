@@ -46,11 +46,9 @@
 
 #include <bsl_iosfwd.h>
 #include <bsl_limits.h>
-#include <bsl_type_traits.h>
 
 #include <bsl_ostream.h>
 #include <bsl_string.h>
-#include <bsl_type_traits.h>
 
 namespace BloombergLP {
 
@@ -1236,17 +1234,9 @@ struct ClientLanguage {
 
   public:
     // TYPES
-    enum Value {
-        e_E_UNKNOWN = 0,
-        e_E_CPP     = 1,
-        e_E_JAVA    = 2,
+    enum Value { E_UNKNOWN = 0, E_CPP = 1, E_JAVA = 2 };
 
-        E_UNKNOWN = e_E_UNKNOWN,
-        E_CPP     = e_E_CPP,
-        E_JAVA    = e_E_JAVA
-    };
-
-    enum { k_NUM_ENUMERATORS = 3, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
+    enum { NUM_ENUMERATORS = 3 };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -1309,18 +1299,13 @@ struct ClientType {
   public:
     // TYPES
     enum Value {
-        e_E_UNKNOWN   = 0,
-        e_E_TCPCLIENT = 1,
-        e_E_TCPBROKER = 2,
-        e_E_TCPADMIN  = 3,
-
-        E_UNKNOWN   = e_E_UNKNOWN,
-        E_TCPCLIENT = e_E_TCPCLIENT,
-        E_TCPBROKER = e_E_TCPBROKER,
-        E_TCPADMIN  = e_E_TCPADMIN
+        E_UNKNOWN   = 0,
+        E_TCPCLIENT = 1,
+        E_TCPBROKER = 2,
+        E_TCPADMIN  = 3
     };
 
-    enum { k_NUM_ENUMERATORS = 4, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
+    enum { NUM_ENUMERATORS = 4 };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -2216,18 +2201,13 @@ struct DumpActionType {
   public:
     // TYPES
     enum Value {
-        e_E_ON              = 0,
-        e_E_OFF             = 1,
-        e_E_MESSAGE_COUNT   = 2,
-        e_E_TIME_IN_SECONDS = 3,
-
-        E_ON              = e_E_ON,
-        E_OFF             = e_E_OFF,
-        E_MESSAGE_COUNT   = e_E_MESSAGE_COUNT,
-        E_TIME_IN_SECONDS = e_E_TIME_IN_SECONDS
+        E_ON              = 0,
+        E_OFF             = 1,
+        E_MESSAGE_COUNT   = 2,
+        E_TIME_IN_SECONDS = 3
     };
 
-    enum { k_NUM_ENUMERATORS = 4, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
+    enum { NUM_ENUMERATORS = 4 };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -2287,22 +2267,15 @@ struct DumpMsgType {
   public:
     // TYPES
     enum Value {
-        e_E_INCOMING = 0,
-        e_E_OUTGOING = 1,
-        e_E_PUSH     = 2,
-        e_E_ACK      = 3,
-        e_E_PUT      = 4,
-        e_E_CONFIRM  = 5,
-
-        E_INCOMING = e_E_INCOMING,
-        E_OUTGOING = e_E_OUTGOING,
-        E_PUSH     = e_E_PUSH,
-        E_ACK      = e_E_ACK,
-        E_PUT      = e_E_PUT,
-        E_CONFIRM  = e_E_CONFIRM
+        E_INCOMING = 0,
+        E_OUTGOING = 1,
+        E_PUSH     = 2,
+        E_ACK      = 3,
+        E_PUT      = 4,
+        E_CONFIRM  = 5
     };
 
-    enum { k_NUM_ENUMERATORS = 6, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
+    enum { NUM_ENUMERATORS = 6 };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -2845,15 +2818,9 @@ struct ExpressionVersion {
 
   public:
     // TYPES
-    enum Value {
-        e_E_UNDEFINED = 0,
-        e_E_VERSION_1 = 1,
+    enum Value { E_UNDEFINED = 0, E_VERSION_1 = 1 };
 
-        E_UNDEFINED = e_E_UNDEFINED,
-        E_VERSION_1 = e_E_VERSION_1
-    };
-
-    enum { k_NUM_ENUMERATORS = 2, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
+    enum { NUM_ENUMERATORS = 2 };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -4566,20 +4533,14 @@ struct NodeStatus {
   public:
     // TYPES
     enum Value {
-        e_E_UNKNOWN     = 0,
-        e_E_STARTING    = 10,
-        e_E_AVAILABLE   = 20,
-        e_E_STOPPING    = 30,
-        e_E_UNAVAILABLE = 40,
-
-        E_UNKNOWN     = e_E_UNKNOWN,
-        E_STARTING    = e_E_STARTING,
-        E_AVAILABLE   = e_E_AVAILABLE,
-        E_STOPPING    = e_E_STOPPING,
-        E_UNAVAILABLE = e_E_UNAVAILABLE
+        E_UNKNOWN     = 0,
+        E_STARTING    = 10,
+        E_AVAILABLE   = 20,
+        E_STOPPING    = 30,
+        E_UNAVAILABLE = 40
     };
 
-    enum { k_NUM_ENUMERATORS = 5, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
+    enum { NUM_ENUMERATORS = 5 };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -5417,17 +5378,9 @@ struct PrimaryStatus {
 
   public:
     // TYPES
-    enum Value {
-        e_E_UNDEFINED = 0,
-        e_E_PASSIVE   = 1,
-        e_E_ACTIVE    = 5,
+    enum Value { E_UNDEFINED = 0, E_PASSIVE = 1, E_ACTIVE = 5 };
 
-        E_UNDEFINED = e_E_UNDEFINED,
-        E_PASSIVE   = e_E_PASSIVE,
-        E_ACTIVE    = e_E_ACTIVE
-    };
-
-    enum { k_NUM_ENUMERATORS = 3, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
+    enum { NUM_ENUMERATORS = 3 };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -6106,19 +6059,9 @@ struct ReplicaDataType {
 
   public:
     // TYPES
-    enum Value {
-        e_E_UNKNOWN = 0,
-        e_E_PULL    = 10,
-        e_E_PUSH    = 20,
-        e_E_DROP    = 30,
+    enum Value { E_UNKNOWN = 0, E_PULL = 10, E_PUSH = 20, E_DROP = 30 };
 
-        E_UNKNOWN = e_E_UNKNOWN,
-        E_PULL    = e_E_PULL,
-        E_PUSH    = e_E_PUSH,
-        E_DROP    = e_E_DROP
-    };
-
-    enum { k_NUM_ENUMERATORS = 4, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
+    enum { NUM_ENUMERATORS = 4 };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -6371,18 +6314,13 @@ struct RoutingConfigurationFlags {
   public:
     // TYPES
     enum Value {
-        e_E_AT_MOST_ONCE              = 0,
-        e_E_DELIVER_CONSUMER_PRIORITY = 1,
-        e_E_DELIVER_ALL               = 2,
-        e_E_HAS_MULTIPLE_SUB_STREAMS  = 3,
-
-        E_AT_MOST_ONCE              = e_E_AT_MOST_ONCE,
-        E_DELIVER_CONSUMER_PRIORITY = e_E_DELIVER_CONSUMER_PRIORITY,
-        E_DELIVER_ALL               = e_E_DELIVER_ALL,
-        E_HAS_MULTIPLE_SUB_STREAMS  = e_E_HAS_MULTIPLE_SUB_STREAMS
+        E_AT_MOST_ONCE              = 0,
+        E_DELIVER_CONSUMER_PRIORITY = 1,
+        E_DELIVER_ALL               = 2,
+        E_HAS_MULTIPLE_SUB_STREAMS  = 3
     };
 
-    enum { k_NUM_ENUMERATORS = 4, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
+    enum { NUM_ENUMERATORS = 4 };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -6780,28 +6718,18 @@ struct StatusCategory {
   public:
     // TYPES
     enum Value {
-        e_E_SUCCESS          = 0,
-        e_E_UNKNOWN          = -1,
-        e_E_TIMEOUT          = -2,
-        e_E_NOT_CONNECTED    = -3,
-        e_E_CANCELED         = -4,
-        e_E_NOT_SUPPORTED    = -5,
-        e_E_REFUSED          = -6,
-        e_E_INVALID_ARGUMENT = -7,
-        e_E_NOT_READY        = -8,
-
-        E_SUCCESS          = e_E_SUCCESS,
-        E_UNKNOWN          = e_E_UNKNOWN,
-        E_TIMEOUT          = e_E_TIMEOUT,
-        E_NOT_CONNECTED    = e_E_NOT_CONNECTED,
-        E_CANCELED         = e_E_CANCELED,
-        E_NOT_SUPPORTED    = e_E_NOT_SUPPORTED,
-        E_REFUSED          = e_E_REFUSED,
-        E_INVALID_ARGUMENT = e_E_INVALID_ARGUMENT,
-        E_NOT_READY        = e_E_NOT_READY
+        E_SUCCESS          = 0,
+        E_UNKNOWN          = -1,
+        E_TIMEOUT          = -2,
+        E_NOT_CONNECTED    = -3,
+        E_CANCELED         = -4,
+        E_NOT_SUPPORTED    = -5,
+        E_REFUSED          = -6,
+        E_INVALID_ARGUMENT = -7,
+        E_NOT_READY        = -8
     };
 
-    enum { k_NUM_ENUMERATORS = 9, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
+    enum { NUM_ENUMERATORS = 9 };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -7301,20 +7229,14 @@ struct StorageSyncResponseType {
   public:
     // TYPES
     enum Value {
-        e_E_UNDEFINED = 0,
-        e_E_PATCH     = 1,
-        e_E_FILE      = 2,
-        e_E_IN_SYNC   = 3,
-        e_E_EMPTY     = 4,
-
-        E_UNDEFINED = e_E_UNDEFINED,
-        E_PATCH     = e_E_PATCH,
-        E_FILE      = e_E_FILE,
-        E_IN_SYNC   = e_E_IN_SYNC,
-        E_EMPTY     = e_E_EMPTY
+        E_UNDEFINED = 0,
+        E_PATCH     = 1,
+        E_FILE      = 2,
+        E_IN_SYNC   = 3,
+        E_EMPTY     = 4
     };
 
-    enum { k_NUM_ENUMERATORS = 5, NUM_ENUMERATORS = k_NUM_ENUMERATORS };
+    enum { NUM_ENUMERATORS = 5 };
 
     // CONSTANTS
     static const char CLASS_NAME[];
@@ -12131,16 +12053,18 @@ namespace bmqp_ctrlmsg {
 class ReplicaDataRequest {
     // This type represents a request sent to the replica by the primary to
     // start the synchronization of data.
-    // replicaDataType:     type of request i.e.  PULL, PUSH or DROP for
-    // corresponding partition.  partitionId:         partition id for
-    // corresponding partition.  beginSequenceNumber: Primary's begin sequence
-    // number for corresponding partition for corresponding data chunks.
-    // endSequenceNumber:   Primary's end sequence number for corresponding
-    // partition for corresponding data chunks.
+    // partitionId:         partition id for corresponding partition.
+    // primaryLeaseId:      lease id of the current primary.  replicaDataType:
+    //    type of request i.e.  PULL, PUSH or DROP for corresponding partition.
+    //  beginSequenceNumber: Primary's begin sequence number for corresponding
+    // partition for corresponding data chunks.  endSequenceNumber:   Primary's
+    // end sequence number for corresponding partition for corresponding data
+    // chunks.
 
     // INSTANCE DATA
     PartitionSequenceNumber d_beginSequenceNumber;
     PartitionSequenceNumber d_endSequenceNumber;
+    unsigned int            d_primaryLeaseId;
     int                     d_partitionId;
     ReplicaDataType::Value  d_replicaDataType;
 
@@ -12153,19 +12077,21 @@ class ReplicaDataRequest {
   public:
     // TYPES
     enum {
-        ATTRIBUTE_ID_REPLICA_DATA_TYPE     = 0,
-        ATTRIBUTE_ID_PARTITION_ID          = 1,
-        ATTRIBUTE_ID_BEGIN_SEQUENCE_NUMBER = 2,
-        ATTRIBUTE_ID_END_SEQUENCE_NUMBER   = 3
+        ATTRIBUTE_ID_PARTITION_ID          = 0,
+        ATTRIBUTE_ID_PRIMARY_LEASE_ID      = 1,
+        ATTRIBUTE_ID_REPLICA_DATA_TYPE     = 2,
+        ATTRIBUTE_ID_BEGIN_SEQUENCE_NUMBER = 3,
+        ATTRIBUTE_ID_END_SEQUENCE_NUMBER   = 4
     };
 
-    enum { NUM_ATTRIBUTES = 4 };
+    enum { NUM_ATTRIBUTES = 5 };
 
     enum {
-        ATTRIBUTE_INDEX_REPLICA_DATA_TYPE     = 0,
-        ATTRIBUTE_INDEX_PARTITION_ID          = 1,
-        ATTRIBUTE_INDEX_BEGIN_SEQUENCE_NUMBER = 2,
-        ATTRIBUTE_INDEX_END_SEQUENCE_NUMBER   = 3
+        ATTRIBUTE_INDEX_PARTITION_ID          = 0,
+        ATTRIBUTE_INDEX_PRIMARY_LEASE_ID      = 1,
+        ATTRIBUTE_INDEX_REPLICA_DATA_TYPE     = 2,
+        ATTRIBUTE_INDEX_BEGIN_SEQUENCE_NUMBER = 3,
+        ATTRIBUTE_INDEX_END_SEQUENCE_NUMBER   = 4
     };
 
     // CONSTANTS
@@ -12224,13 +12150,17 @@ class ReplicaDataRequest {
     // returned from the invocation of 'manipulator' if 'name' identifies
     // an attribute of this class, and -1 otherwise.
 
-    ReplicaDataType::Value& replicaDataType();
-    // Return a reference to the modifiable "ReplicaDataType" attribute of
-    // this object.
-
     int& partitionId();
     // Return a reference to the modifiable "PartitionId" attribute of this
     // object.
+
+    unsigned int& primaryLeaseId();
+    // Return a reference to the modifiable "PrimaryLeaseId" attribute of
+    // this object.
+
+    ReplicaDataType::Value& replicaDataType();
+    // Return a reference to the modifiable "ReplicaDataType" attribute of
+    // this object.
 
     PartitionSequenceNumber& beginSequenceNumber();
     // Return a reference to the modifiable "BeginSequenceNumber" attribute
@@ -12283,11 +12213,14 @@ class ReplicaDataRequest {
     // invocation of 'accessor' if 'name' identifies an attribute of this
     // class, and -1 otherwise.
 
-    ReplicaDataType::Value replicaDataType() const;
-    // Return the value of the "ReplicaDataType" attribute of this object.
-
     int partitionId() const;
     // Return the value of the "PartitionId" attribute of this object.
+
+    unsigned int primaryLeaseId() const;
+    // Return the value of the "PrimaryLeaseId" attribute of this object.
+
+    ReplicaDataType::Value replicaDataType() const;
+    // Return the value of the "ReplicaDataType" attribute of this object.
 
     const PartitionSequenceNumber& beginSequenceNumber() const;
     // Return a reference offering non-modifiable access to the
@@ -12353,18 +12286,20 @@ namespace bmqp_ctrlmsg {
 class ReplicaDataResponse {
     // This type represents a response sent by a replica to the primary for the
     // data synchronization request received by it.
-    // replicaDataType:     type of request received i.e.  PULL, PUSH or DROP
-    // for corresponding partition.  Note, this field will be set as per the
-    // request received and the primary purpose of sending this field back in
-    // response is for debugging and sanity checking.  partitionId:
-    // partition id for corresponding partition.  beginSequenceNumber:
-    // Replica's begin sequence number for corresponding partition for
-    // corresponding data chunks.  endSequenceNumber:   Replica's end sequence
-    // number for corresponding partition for corresponding data chunks.
+    // partitionId:         partition id for corresponding partition.
+    // primaryLeaseId:      lease id of the current primary.  replicaDataType:
+    //    type of request received i.e.  PULL, PUSH or DROP for corresponding
+    // partition.  Note, this field will be set as per the request received and
+    // the primary purpose of sending this field back in response is for
+    // debugging and sanity checking.  beginSequenceNumber: Replica's begin
+    // sequence number for corresponding partition for corresponding data
+    // chunks.  endSequenceNumber:   Replica's end sequence number for
+    // corresponding partition for corresponding data chunks.
 
     // INSTANCE DATA
     PartitionSequenceNumber d_beginSequenceNumber;
     PartitionSequenceNumber d_endSequenceNumber;
+    unsigned int            d_primaryLeaseId;
     int                     d_partitionId;
     ReplicaDataType::Value  d_replicaDataType;
 
@@ -12377,19 +12312,21 @@ class ReplicaDataResponse {
   public:
     // TYPES
     enum {
-        ATTRIBUTE_ID_REPLICA_DATA_TYPE     = 0,
-        ATTRIBUTE_ID_PARTITION_ID          = 1,
-        ATTRIBUTE_ID_BEGIN_SEQUENCE_NUMBER = 2,
-        ATTRIBUTE_ID_END_SEQUENCE_NUMBER   = 3
+        ATTRIBUTE_ID_PARTITION_ID          = 0,
+        ATTRIBUTE_ID_PRIMARY_LEASE_ID      = 1,
+        ATTRIBUTE_ID_REPLICA_DATA_TYPE     = 2,
+        ATTRIBUTE_ID_BEGIN_SEQUENCE_NUMBER = 3,
+        ATTRIBUTE_ID_END_SEQUENCE_NUMBER   = 4
     };
 
-    enum { NUM_ATTRIBUTES = 4 };
+    enum { NUM_ATTRIBUTES = 5 };
 
     enum {
-        ATTRIBUTE_INDEX_REPLICA_DATA_TYPE     = 0,
-        ATTRIBUTE_INDEX_PARTITION_ID          = 1,
-        ATTRIBUTE_INDEX_BEGIN_SEQUENCE_NUMBER = 2,
-        ATTRIBUTE_INDEX_END_SEQUENCE_NUMBER   = 3
+        ATTRIBUTE_INDEX_PARTITION_ID          = 0,
+        ATTRIBUTE_INDEX_PRIMARY_LEASE_ID      = 1,
+        ATTRIBUTE_INDEX_REPLICA_DATA_TYPE     = 2,
+        ATTRIBUTE_INDEX_BEGIN_SEQUENCE_NUMBER = 3,
+        ATTRIBUTE_INDEX_END_SEQUENCE_NUMBER   = 4
     };
 
     // CONSTANTS
@@ -12448,13 +12385,17 @@ class ReplicaDataResponse {
     // returned from the invocation of 'manipulator' if 'name' identifies
     // an attribute of this class, and -1 otherwise.
 
-    ReplicaDataType::Value& replicaDataType();
-    // Return a reference to the modifiable "ReplicaDataType" attribute of
-    // this object.
-
     int& partitionId();
     // Return a reference to the modifiable "PartitionId" attribute of this
     // object.
+
+    unsigned int& primaryLeaseId();
+    // Return a reference to the modifiable "PrimaryLeaseId" attribute of
+    // this object.
+
+    ReplicaDataType::Value& replicaDataType();
+    // Return a reference to the modifiable "ReplicaDataType" attribute of
+    // this object.
 
     PartitionSequenceNumber& beginSequenceNumber();
     // Return a reference to the modifiable "BeginSequenceNumber" attribute
@@ -12507,11 +12448,14 @@ class ReplicaDataResponse {
     // invocation of 'accessor' if 'name' identifies an attribute of this
     // class, and -1 otherwise.
 
-    ReplicaDataType::Value replicaDataType() const;
-    // Return the value of the "ReplicaDataType" attribute of this object.
-
     int partitionId() const;
     // Return the value of the "PartitionId" attribute of this object.
+
+    unsigned int primaryLeaseId() const;
+    // Return the value of the "PrimaryLeaseId" attribute of this object.
+
+    ReplicaDataType::Value replicaDataType() const;
+    // Return the value of the "ReplicaDataType" attribute of this object.
 
     const PartitionSequenceNumber& beginSequenceNumber() const;
     // Return a reference offering non-modifiable access to the
@@ -30950,16 +30894,18 @@ template <typename t_HASH_ALGORITHM>
 void ReplicaDataRequest::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
 {
     using bslh::hashAppend;
-    hashAppend(hashAlgorithm, this->replicaDataType());
     hashAppend(hashAlgorithm, this->partitionId());
+    hashAppend(hashAlgorithm, this->primaryLeaseId());
+    hashAppend(hashAlgorithm, this->replicaDataType());
     hashAppend(hashAlgorithm, this->beginSequenceNumber());
     hashAppend(hashAlgorithm, this->endSequenceNumber());
 }
 
 inline bool ReplicaDataRequest::isEqualTo(const ReplicaDataRequest& rhs) const
 {
-    return this->replicaDataType() == rhs.replicaDataType() &&
-           this->partitionId() == rhs.partitionId() &&
+    return this->partitionId() == rhs.partitionId() &&
+           this->primaryLeaseId() == rhs.primaryLeaseId() &&
+           this->replicaDataType() == rhs.replicaDataType() &&
            this->beginSequenceNumber() == rhs.beginSequenceNumber() &&
            this->endSequenceNumber() == rhs.endSequenceNumber();
 }
@@ -30971,14 +30917,20 @@ int ReplicaDataRequest::manipulateAttributes(t_MANIPULATOR& manipulator)
 {
     int ret;
 
-    ret = manipulator(&d_replicaDataType,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_REPLICA_DATA_TYPE]);
+    ret = manipulator(&d_partitionId,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID]);
     if (ret) {
         return ret;
     }
 
-    ret = manipulator(&d_partitionId,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID]);
+    ret = manipulator(&d_primaryLeaseId,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRIMARY_LEASE_ID]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_replicaDataType,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_REPLICA_DATA_TYPE]);
     if (ret) {
         return ret;
     }
@@ -31006,14 +30958,19 @@ int ReplicaDataRequest::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
     enum { NOT_FOUND = -1 };
 
     switch (id) {
+    case ATTRIBUTE_ID_PARTITION_ID: {
+        return manipulator(&d_partitionId,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID]);
+    }
+    case ATTRIBUTE_ID_PRIMARY_LEASE_ID: {
+        return manipulator(
+            &d_primaryLeaseId,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRIMARY_LEASE_ID]);
+    }
     case ATTRIBUTE_ID_REPLICA_DATA_TYPE: {
         return manipulator(
             &d_replicaDataType,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_REPLICA_DATA_TYPE]);
-    }
-    case ATTRIBUTE_ID_PARTITION_ID: {
-        return manipulator(&d_partitionId,
-                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID]);
     }
     case ATTRIBUTE_ID_BEGIN_SEQUENCE_NUMBER: {
         return manipulator(
@@ -31045,14 +31002,19 @@ int ReplicaDataRequest::manipulateAttribute(t_MANIPULATOR& manipulator,
     return manipulateAttribute(manipulator, attributeInfo->d_id);
 }
 
-inline ReplicaDataType::Value& ReplicaDataRequest::replicaDataType()
-{
-    return d_replicaDataType;
-}
-
 inline int& ReplicaDataRequest::partitionId()
 {
     return d_partitionId;
+}
+
+inline unsigned int& ReplicaDataRequest::primaryLeaseId()
+{
+    return d_primaryLeaseId;
+}
+
+inline ReplicaDataType::Value& ReplicaDataRequest::replicaDataType()
+{
+    return d_replicaDataType;
 }
 
 inline PartitionSequenceNumber& ReplicaDataRequest::beginSequenceNumber()
@@ -31071,14 +31033,20 @@ int ReplicaDataRequest::accessAttributes(t_ACCESSOR& accessor) const
 {
     int ret;
 
-    ret = accessor(d_replicaDataType,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_REPLICA_DATA_TYPE]);
+    ret = accessor(d_partitionId,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID]);
     if (ret) {
         return ret;
     }
 
-    ret = accessor(d_partitionId,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID]);
+    ret = accessor(d_primaryLeaseId,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRIMARY_LEASE_ID]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_replicaDataType,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_REPLICA_DATA_TYPE]);
     if (ret) {
         return ret;
     }
@@ -31105,14 +31073,19 @@ int ReplicaDataRequest::accessAttribute(t_ACCESSOR& accessor, int id) const
     enum { NOT_FOUND = -1 };
 
     switch (id) {
+    case ATTRIBUTE_ID_PARTITION_ID: {
+        return accessor(d_partitionId,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID]);
+    }
+    case ATTRIBUTE_ID_PRIMARY_LEASE_ID: {
+        return accessor(
+            d_primaryLeaseId,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRIMARY_LEASE_ID]);
+    }
     case ATTRIBUTE_ID_REPLICA_DATA_TYPE: {
         return accessor(
             d_replicaDataType,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_REPLICA_DATA_TYPE]);
-    }
-    case ATTRIBUTE_ID_PARTITION_ID: {
-        return accessor(d_partitionId,
-                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID]);
     }
     case ATTRIBUTE_ID_BEGIN_SEQUENCE_NUMBER: {
         return accessor(
@@ -31144,14 +31117,19 @@ int ReplicaDataRequest::accessAttribute(t_ACCESSOR& accessor,
     return accessAttribute(accessor, attributeInfo->d_id);
 }
 
-inline ReplicaDataType::Value ReplicaDataRequest::replicaDataType() const
-{
-    return d_replicaDataType;
-}
-
 inline int ReplicaDataRequest::partitionId() const
 {
     return d_partitionId;
+}
+
+inline unsigned int ReplicaDataRequest::primaryLeaseId() const
+{
+    return d_primaryLeaseId;
+}
+
+inline ReplicaDataType::Value ReplicaDataRequest::replicaDataType() const
+{
+    return d_replicaDataType;
 }
 
 inline const PartitionSequenceNumber&
@@ -31175,8 +31153,9 @@ template <typename t_HASH_ALGORITHM>
 void ReplicaDataResponse::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
 {
     using bslh::hashAppend;
-    hashAppend(hashAlgorithm, this->replicaDataType());
     hashAppend(hashAlgorithm, this->partitionId());
+    hashAppend(hashAlgorithm, this->primaryLeaseId());
+    hashAppend(hashAlgorithm, this->replicaDataType());
     hashAppend(hashAlgorithm, this->beginSequenceNumber());
     hashAppend(hashAlgorithm, this->endSequenceNumber());
 }
@@ -31184,8 +31163,9 @@ void ReplicaDataResponse::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
 inline bool
 ReplicaDataResponse::isEqualTo(const ReplicaDataResponse& rhs) const
 {
-    return this->replicaDataType() == rhs.replicaDataType() &&
-           this->partitionId() == rhs.partitionId() &&
+    return this->partitionId() == rhs.partitionId() &&
+           this->primaryLeaseId() == rhs.primaryLeaseId() &&
+           this->replicaDataType() == rhs.replicaDataType() &&
            this->beginSequenceNumber() == rhs.beginSequenceNumber() &&
            this->endSequenceNumber() == rhs.endSequenceNumber();
 }
@@ -31197,14 +31177,20 @@ int ReplicaDataResponse::manipulateAttributes(t_MANIPULATOR& manipulator)
 {
     int ret;
 
-    ret = manipulator(&d_replicaDataType,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_REPLICA_DATA_TYPE]);
+    ret = manipulator(&d_partitionId,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID]);
     if (ret) {
         return ret;
     }
 
-    ret = manipulator(&d_partitionId,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID]);
+    ret = manipulator(&d_primaryLeaseId,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRIMARY_LEASE_ID]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = manipulator(&d_replicaDataType,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_REPLICA_DATA_TYPE]);
     if (ret) {
         return ret;
     }
@@ -31233,14 +31219,19 @@ int ReplicaDataResponse::manipulateAttribute(t_MANIPULATOR& manipulator,
     enum { NOT_FOUND = -1 };
 
     switch (id) {
+    case ATTRIBUTE_ID_PARTITION_ID: {
+        return manipulator(&d_partitionId,
+                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID]);
+    }
+    case ATTRIBUTE_ID_PRIMARY_LEASE_ID: {
+        return manipulator(
+            &d_primaryLeaseId,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRIMARY_LEASE_ID]);
+    }
     case ATTRIBUTE_ID_REPLICA_DATA_TYPE: {
         return manipulator(
             &d_replicaDataType,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_REPLICA_DATA_TYPE]);
-    }
-    case ATTRIBUTE_ID_PARTITION_ID: {
-        return manipulator(&d_partitionId,
-                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID]);
     }
     case ATTRIBUTE_ID_BEGIN_SEQUENCE_NUMBER: {
         return manipulator(
@@ -31272,14 +31263,19 @@ int ReplicaDataResponse::manipulateAttribute(t_MANIPULATOR& manipulator,
     return manipulateAttribute(manipulator, attributeInfo->d_id);
 }
 
-inline ReplicaDataType::Value& ReplicaDataResponse::replicaDataType()
-{
-    return d_replicaDataType;
-}
-
 inline int& ReplicaDataResponse::partitionId()
 {
     return d_partitionId;
+}
+
+inline unsigned int& ReplicaDataResponse::primaryLeaseId()
+{
+    return d_primaryLeaseId;
+}
+
+inline ReplicaDataType::Value& ReplicaDataResponse::replicaDataType()
+{
+    return d_replicaDataType;
 }
 
 inline PartitionSequenceNumber& ReplicaDataResponse::beginSequenceNumber()
@@ -31298,14 +31294,20 @@ int ReplicaDataResponse::accessAttributes(t_ACCESSOR& accessor) const
 {
     int ret;
 
-    ret = accessor(d_replicaDataType,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_REPLICA_DATA_TYPE]);
+    ret = accessor(d_partitionId,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID]);
     if (ret) {
         return ret;
     }
 
-    ret = accessor(d_partitionId,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID]);
+    ret = accessor(d_primaryLeaseId,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRIMARY_LEASE_ID]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_replicaDataType,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_REPLICA_DATA_TYPE]);
     if (ret) {
         return ret;
     }
@@ -31332,14 +31334,19 @@ int ReplicaDataResponse::accessAttribute(t_ACCESSOR& accessor, int id) const
     enum { NOT_FOUND = -1 };
 
     switch (id) {
+    case ATTRIBUTE_ID_PARTITION_ID: {
+        return accessor(d_partitionId,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID]);
+    }
+    case ATTRIBUTE_ID_PRIMARY_LEASE_ID: {
+        return accessor(
+            d_primaryLeaseId,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRIMARY_LEASE_ID]);
+    }
     case ATTRIBUTE_ID_REPLICA_DATA_TYPE: {
         return accessor(
             d_replicaDataType,
             ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_REPLICA_DATA_TYPE]);
-    }
-    case ATTRIBUTE_ID_PARTITION_ID: {
-        return accessor(d_partitionId,
-                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID]);
     }
     case ATTRIBUTE_ID_BEGIN_SEQUENCE_NUMBER: {
         return accessor(
@@ -31371,14 +31378,19 @@ int ReplicaDataResponse::accessAttribute(t_ACCESSOR& accessor,
     return accessAttribute(accessor, attributeInfo->d_id);
 }
 
-inline ReplicaDataType::Value ReplicaDataResponse::replicaDataType() const
-{
-    return d_replicaDataType;
-}
-
 inline int ReplicaDataResponse::partitionId() const
 {
     return d_partitionId;
+}
+
+inline unsigned int ReplicaDataResponse::primaryLeaseId() const
+{
+    return d_primaryLeaseId;
+}
+
+inline ReplicaDataType::Value ReplicaDataResponse::replicaDataType() const
+{
+    return d_replicaDataType;
 }
 
 inline const PartitionSequenceNumber&
@@ -39013,6 +39025,6 @@ inline const ControlMessageChoice& ControlMessage::choice() const
 }  // close enterprise namespace
 #endif
 
-// GENERATED BY BLP_BAS_CODEGEN_2026.05.21
+// GENERATED BY BLP_BAS_CODEGEN_9999.99.99
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package bmqp_ctrlmsg --msgComponent messages bmqp_ctrlmsg.xsd
