@@ -278,6 +278,24 @@ static void test1_staticMethods()
             bmqt::SessionEventType::e_CONNECTED,
             bmqt::CorrelationId(1),
             0,
+            errorDescription,
+            bmqtst::TestHelperUtil::allocator());
+        bmqa::SessionEvent sessionEvent = event.sessionEvent();
+
+        BMQTST_ASSERT_EQ(sessionEvent.type(),
+                         bmqt::SessionEventType::e_CONNECTED);
+        BMQTST_ASSERT_EQ(sessionEvent.statusCode(), 0);
+        BMQTST_ASSERT_EQ(sessionEvent.errorDescription(), errorDescription);
+        BMQTST_ASSERT_EQ(sessionEvent.correlationId(), bmqt::CorrelationId(1));
+    }
+
+    {
+        PVV("Create Session Event With Result");
+        bsl::string errorDescription("some random description");
+        bmqa::Event event = bmqa::MockSessionUtil::createSessionEvent(
+            bmqt::SessionEventType::e_CONNECTED,
+            bmqt::CorrelationId(1),
+            0,
             bmqt::GenericResult::e_SUCCESS,
             errorDescription,
             bmqtst::TestHelperUtil::allocator());
@@ -335,6 +353,29 @@ static void test1_staticMethods()
 
     {
         PVV("Create Queue Session Event");
+        bsl::string errorDescription("some random description");
+
+        bmqa::QueueId       queueId(1);
+        bmqt::CorrelationId corrId(1);
+
+        bmqa::Event event = bmqa::MockSessionUtil::createQueueSessionEvent(
+            bmqt::SessionEventType::e_QUEUE_OPEN_RESULT,
+            &queueId,
+            corrId,
+            0,
+            "",
+            bmqtst::TestHelperUtil::allocator());
+
+        bmqa::SessionEvent openQueueEvent = event.sessionEvent();
+        BMQTST_ASSERT_EQ(openQueueEvent.type(),
+                         bmqt::SessionEventType::e_QUEUE_OPEN_RESULT);
+        BMQTST_ASSERT_EQ(openQueueEvent.statusCode(), 0);
+        BMQTST_ASSERT_EQ(openQueueEvent.errorDescription(), "");
+        BMQTST_ASSERT_EQ(openQueueEvent.correlationId(), corrId);
+    }
+
+    {
+        PVV("Create Queue Session Event With Result");
         bsl::string errorDescription("some random description");
 
         bmqa::QueueId       queueId(1);

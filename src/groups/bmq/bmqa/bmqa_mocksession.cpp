@@ -16,6 +16,7 @@
 #include <bmqa_mocksession.h>
 
 #include <bmqscm_version.h>
+
 // BMQ
 #include <bmqa_confirmeventbuilder.h>
 #include <bmqa_message.h>
@@ -37,6 +38,7 @@
 #include <bmqp_pusheventbuilder.h>
 #include <bmqst_statcontext.h>
 #include <bmqt_messageguid.h>
+#include <bmqt_resultcode.h>
 #include <bmqt_uri.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_time.h>
@@ -340,6 +342,22 @@ MockSessionUtil::PushMessageParams::PushMessageParams(
 // ---------------------
 
 // CLASS METHODS
+Event MockSessionUtil::createSessionEvent(
+    bmqt::SessionEventType::Enum sessionEventType,
+    const bmqt::CorrelationId&   correlationId,
+    const int                    errorCode,
+    const bslstl::StringRef&     errorDescription,
+    bslma::Allocator*            allocator)
+{
+    return MockSessionUtil::createSessionEvent(
+        sessionEventType,
+        correlationId,
+        errorCode,
+        bmqt::GenericResult::fromStatusCode(errorCode),
+        errorDescription,
+        allocator);
+}
+
 Event MockSessionUtil::createSessionEvent(
     bmqt::SessionEventType::Enum sessionEventType,
     const bmqt::CorrelationId&   correlationId,
