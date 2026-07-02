@@ -1,18 +1,3 @@
-// Copyright 2026 Bloomberg Finance L.P.
-// SPDX-License-Identifier: Apache-2.0
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 // bmqp_ctrlmsg_messages.cpp         *DO NOT EDIT*         @generated -*-C++-*-
 
 #include <bmqp_ctrlmsg_messages.h>
@@ -90,13 +75,11 @@ AdminCommand::AdminCommand(bslma::Allocator* basicAllocator)
 
 AdminCommand::AdminCommand(const AdminCommand& original,
                            bslma::Allocator*   basicAllocator)
-: d_command(original.d_command, basicAllocator)
-{
-}
+: d_command(original.d_command, basicAllocator){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-AdminCommand::AdminCommand(AdminCommand&& original) noexcept
+AdminCommand::AdminCommand(AdminCommand && original) noexcept
 : d_command(bsl::move(original.d_command))
 {
 }
@@ -203,14 +186,13 @@ AdminCommandResponse::AdminCommandResponse(bslma::Allocator* basicAllocator)
 AdminCommandResponse::AdminCommandResponse(
     const AdminCommandResponse& original,
     bslma::Allocator*           basicAllocator)
-: d_text(original.d_text, basicAllocator)
-{
-}
+: d_text(original.d_text, basicAllocator){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-AdminCommandResponse::AdminCommandResponse(AdminCommandResponse&& original)
-    noexcept : d_text(bsl::move(original.d_text))
+AdminCommandResponse::AdminCommandResponse(AdminCommandResponse &&
+                                           original) noexcept
+: d_text(bsl::move(original.d_text))
 {
 }
 
@@ -328,13 +310,11 @@ AppIdInfo::AppIdInfo(bslma::Allocator* basicAllocator)
 AppIdInfo::AppIdInfo(const AppIdInfo&  original,
                      bslma::Allocator* basicAllocator)
 : d_appKey(original.d_appKey, basicAllocator)
-, d_appId(original.d_appId, basicAllocator)
-{
-}
+, d_appId(original.d_appId, basicAllocator){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-AppIdInfo::AppIdInfo(AppIdInfo&& original) noexcept
+AppIdInfo::AppIdInfo(AppIdInfo && original) noexcept
 : d_appKey(bsl::move(original.d_appKey)),
   d_appId(bsl::move(original.d_appId))
 {
@@ -464,15 +444,14 @@ AuthenticationRequest::AuthenticationRequest(
     const AuthenticationRequest& original,
     bslma::Allocator*            basicAllocator)
 : d_mechanism(original.d_mechanism, basicAllocator)
-, d_data(original.d_data, basicAllocator)
-{
-}
+, d_data(original.d_data, basicAllocator){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-AuthenticationRequest::AuthenticationRequest(AuthenticationRequest&& original)
-    noexcept : d_mechanism(bsl::move(original.d_mechanism)),
-               d_data(bsl::move(original.d_data))
+AuthenticationRequest::AuthenticationRequest(AuthenticationRequest &&
+                                             original) noexcept
+: d_mechanism(bsl::move(original.d_mechanism)),
+  d_data(bsl::move(original.d_data))
 {
 }
 
@@ -544,18 +523,18 @@ bsl::ostream& AuthenticationRequest::print(bsl::ostream& stream,
 const char ClientLanguage::CLASS_NAME[] = "ClientLanguage";
 
 const bdlat_EnumeratorInfo ClientLanguage::ENUMERATOR_INFO_ARRAY[] = {
-    {ClientLanguage::e_E_UNKNOWN, "E_UNKNOWN", sizeof("E_UNKNOWN") - 1, ""},
-    {ClientLanguage::e_E_CPP, "E_CPP", sizeof("E_CPP") - 1, ""},
-    {ClientLanguage::e_E_JAVA, "E_JAVA", sizeof("E_JAVA") - 1, ""}};
+    {ClientLanguage::E_UNKNOWN, "E_UNKNOWN", sizeof("E_UNKNOWN") - 1, ""},
+    {ClientLanguage::E_CPP, "E_CPP", sizeof("E_CPP") - 1, ""},
+    {ClientLanguage::E_JAVA, "E_JAVA", sizeof("E_JAVA") - 1, ""}};
 
 // CLASS METHODS
 
 int ClientLanguage::fromInt(ClientLanguage::Value* result, int number)
 {
     switch (number) {
-    case ClientLanguage::e_E_UNKNOWN:
-    case ClientLanguage::e_E_CPP:
-    case ClientLanguage::e_E_JAVA:
+    case ClientLanguage::E_UNKNOWN:
+    case ClientLanguage::E_CPP:
+    case ClientLanguage::E_JAVA:
         *result = static_cast<ClientLanguage::Value>(number);
         return 0;
     default: return -1;
@@ -584,13 +563,13 @@ int ClientLanguage::fromString(ClientLanguage::Value* result,
 const char* ClientLanguage::toString(ClientLanguage::Value value)
 {
     switch (value) {
-    case e_E_UNKNOWN: {
+    case E_UNKNOWN: {
         return "E_UNKNOWN";
     }
-    case e_E_CPP: {
+    case E_CPP: {
         return "E_CPP";
     }
-    case e_E_JAVA: {
+    case E_JAVA: {
         return "E_JAVA";
     }
     }
@@ -608,20 +587,20 @@ const char* ClientLanguage::toString(ClientLanguage::Value value)
 const char ClientType::CLASS_NAME[] = "ClientType";
 
 const bdlat_EnumeratorInfo ClientType::ENUMERATOR_INFO_ARRAY[] = {
-    {ClientType::e_E_UNKNOWN, "E_UNKNOWN", sizeof("E_UNKNOWN") - 1, ""},
-    {ClientType::e_E_TCPCLIENT, "E_TCPCLIENT", sizeof("E_TCPCLIENT") - 1, ""},
-    {ClientType::e_E_TCPBROKER, "E_TCPBROKER", sizeof("E_TCPBROKER") - 1, ""},
-    {ClientType::e_E_TCPADMIN, "E_TCPADMIN", sizeof("E_TCPADMIN") - 1, ""}};
+    {ClientType::E_UNKNOWN, "E_UNKNOWN", sizeof("E_UNKNOWN") - 1, ""},
+    {ClientType::E_TCPCLIENT, "E_TCPCLIENT", sizeof("E_TCPCLIENT") - 1, ""},
+    {ClientType::E_TCPBROKER, "E_TCPBROKER", sizeof("E_TCPBROKER") - 1, ""},
+    {ClientType::E_TCPADMIN, "E_TCPADMIN", sizeof("E_TCPADMIN") - 1, ""}};
 
 // CLASS METHODS
 
 int ClientType::fromInt(ClientType::Value* result, int number)
 {
     switch (number) {
-    case ClientType::e_E_UNKNOWN:
-    case ClientType::e_E_TCPCLIENT:
-    case ClientType::e_E_TCPBROKER:
-    case ClientType::e_E_TCPADMIN:
+    case ClientType::E_UNKNOWN:
+    case ClientType::E_TCPCLIENT:
+    case ClientType::E_TCPBROKER:
+    case ClientType::E_TCPADMIN:
         *result = static_cast<ClientType::Value>(number);
         return 0;
     default: return -1;
@@ -649,16 +628,16 @@ int ClientType::fromString(ClientType::Value* result,
 const char* ClientType::toString(ClientType::Value value)
 {
     switch (value) {
-    case e_E_UNKNOWN: {
+    case E_UNKNOWN: {
         return "E_UNKNOWN";
     }
-    case e_E_TCPCLIENT: {
+    case E_TCPCLIENT: {
         return "E_TCPCLIENT";
     }
-    case e_E_TCPBROKER: {
+    case E_TCPBROKER: {
         return "E_TCPBROKER";
     }
-    case e_E_TCPADMIN: {
+    case E_TCPADMIN: {
         return "E_TCPADMIN";
     }
     }
@@ -730,22 +709,22 @@ const bdlat_AttributeInfo ConsumerInfo::ATTRIBUTE_INFO_ARRAY[] = {
      "maxUnconfirmedMessages",
      sizeof("maxUnconfirmedMessages") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_DEC},
     {ATTRIBUTE_ID_MAX_UNCONFIRMED_BYTES,
      "maxUnconfirmedBytes",
      sizeof("maxUnconfirmedBytes") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_DEC},
     {ATTRIBUTE_ID_CONSUMER_PRIORITY,
      "consumerPriority",
      sizeof("consumerPriority") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_DEC},
     {ATTRIBUTE_ID_CONSUMER_PRIORITY_COUNT,
      "consumerPriorityCount",
      sizeof("consumerPriorityCount") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
+     bdlat_FormattingMode::e_DEC}};
 
 // CLASS METHODS
 
@@ -946,13 +925,13 @@ bsl::ostream& DummyType::print(bsl::ostream& stream, int, int) const
 const char DumpActionType::CLASS_NAME[] = "DumpActionType";
 
 const bdlat_EnumeratorInfo DumpActionType::ENUMERATOR_INFO_ARRAY[] = {
-    {DumpActionType::e_E_ON, "E_ON", sizeof("E_ON") - 1, ""},
-    {DumpActionType::e_E_OFF, "E_OFF", sizeof("E_OFF") - 1, ""},
-    {DumpActionType::e_E_MESSAGE_COUNT,
+    {DumpActionType::E_ON, "E_ON", sizeof("E_ON") - 1, ""},
+    {DumpActionType::E_OFF, "E_OFF", sizeof("E_OFF") - 1, ""},
+    {DumpActionType::E_MESSAGE_COUNT,
      "E_MESSAGE_COUNT",
      sizeof("E_MESSAGE_COUNT") - 1,
      ""},
-    {DumpActionType::e_E_TIME_IN_SECONDS,
+    {DumpActionType::E_TIME_IN_SECONDS,
      "E_TIME_IN_SECONDS",
      sizeof("E_TIME_IN_SECONDS") - 1,
      ""}};
@@ -962,10 +941,10 @@ const bdlat_EnumeratorInfo DumpActionType::ENUMERATOR_INFO_ARRAY[] = {
 int DumpActionType::fromInt(DumpActionType::Value* result, int number)
 {
     switch (number) {
-    case DumpActionType::e_E_ON:
-    case DumpActionType::e_E_OFF:
-    case DumpActionType::e_E_MESSAGE_COUNT:
-    case DumpActionType::e_E_TIME_IN_SECONDS:
+    case DumpActionType::E_ON:
+    case DumpActionType::E_OFF:
+    case DumpActionType::E_MESSAGE_COUNT:
+    case DumpActionType::E_TIME_IN_SECONDS:
         *result = static_cast<DumpActionType::Value>(number);
         return 0;
     default: return -1;
@@ -994,16 +973,16 @@ int DumpActionType::fromString(DumpActionType::Value* result,
 const char* DumpActionType::toString(DumpActionType::Value value)
 {
     switch (value) {
-    case e_E_ON: {
+    case E_ON: {
         return "E_ON";
     }
-    case e_E_OFF: {
+    case E_OFF: {
         return "E_OFF";
     }
-    case e_E_MESSAGE_COUNT: {
+    case E_MESSAGE_COUNT: {
         return "E_MESSAGE_COUNT";
     }
-    case e_E_TIME_IN_SECONDS: {
+    case E_TIME_IN_SECONDS: {
         return "E_TIME_IN_SECONDS";
     }
     }
@@ -1021,24 +1000,24 @@ const char* DumpActionType::toString(DumpActionType::Value value)
 const char DumpMsgType::CLASS_NAME[] = "DumpMsgType";
 
 const bdlat_EnumeratorInfo DumpMsgType::ENUMERATOR_INFO_ARRAY[] = {
-    {DumpMsgType::e_E_INCOMING, "E_INCOMING", sizeof("E_INCOMING") - 1, ""},
-    {DumpMsgType::e_E_OUTGOING, "E_OUTGOING", sizeof("E_OUTGOING") - 1, ""},
-    {DumpMsgType::e_E_PUSH, "E_PUSH", sizeof("E_PUSH") - 1, ""},
-    {DumpMsgType::e_E_ACK, "E_ACK", sizeof("E_ACK") - 1, ""},
-    {DumpMsgType::e_E_PUT, "E_PUT", sizeof("E_PUT") - 1, ""},
-    {DumpMsgType::e_E_CONFIRM, "E_CONFIRM", sizeof("E_CONFIRM") - 1, ""}};
+    {DumpMsgType::E_INCOMING, "E_INCOMING", sizeof("E_INCOMING") - 1, ""},
+    {DumpMsgType::E_OUTGOING, "E_OUTGOING", sizeof("E_OUTGOING") - 1, ""},
+    {DumpMsgType::E_PUSH, "E_PUSH", sizeof("E_PUSH") - 1, ""},
+    {DumpMsgType::E_ACK, "E_ACK", sizeof("E_ACK") - 1, ""},
+    {DumpMsgType::E_PUT, "E_PUT", sizeof("E_PUT") - 1, ""},
+    {DumpMsgType::E_CONFIRM, "E_CONFIRM", sizeof("E_CONFIRM") - 1, ""}};
 
 // CLASS METHODS
 
 int DumpMsgType::fromInt(DumpMsgType::Value* result, int number)
 {
     switch (number) {
-    case DumpMsgType::e_E_INCOMING:
-    case DumpMsgType::e_E_OUTGOING:
-    case DumpMsgType::e_E_PUSH:
-    case DumpMsgType::e_E_ACK:
-    case DumpMsgType::e_E_PUT:
-    case DumpMsgType::e_E_CONFIRM:
+    case DumpMsgType::E_INCOMING:
+    case DumpMsgType::E_OUTGOING:
+    case DumpMsgType::E_PUSH:
+    case DumpMsgType::E_ACK:
+    case DumpMsgType::E_PUT:
+    case DumpMsgType::E_CONFIRM:
         *result = static_cast<DumpMsgType::Value>(number);
         return 0;
     default: return -1;
@@ -1066,22 +1045,22 @@ int DumpMsgType::fromString(DumpMsgType::Value* result,
 const char* DumpMsgType::toString(DumpMsgType::Value value)
 {
     switch (value) {
-    case e_E_INCOMING: {
+    case E_INCOMING: {
         return "E_INCOMING";
     }
-    case e_E_OUTGOING: {
+    case E_OUTGOING: {
         return "E_OUTGOING";
     }
-    case e_E_PUSH: {
+    case E_PUSH: {
         return "E_PUSH";
     }
-    case e_E_ACK: {
+    case E_ACK: {
         return "E_ACK";
     }
-    case e_E_PUT: {
+    case E_PUT: {
         return "E_PUT";
     }
-    case e_E_CONFIRM: {
+    case E_CONFIRM: {
         return "E_CONFIRM";
     }
     }
@@ -1248,11 +1227,11 @@ bsl::ostream& ElectorNodeStatus::print(bsl::ostream& stream,
 const char ExpressionVersion::CLASS_NAME[] = "ExpressionVersion";
 
 const bdlat_EnumeratorInfo ExpressionVersion::ENUMERATOR_INFO_ARRAY[] = {
-    {ExpressionVersion::e_E_UNDEFINED,
+    {ExpressionVersion::E_UNDEFINED,
      "E_UNDEFINED",
      sizeof("E_UNDEFINED") - 1,
      ""},
-    {ExpressionVersion::e_E_VERSION_1,
+    {ExpressionVersion::E_VERSION_1,
      "E_VERSION_1",
      sizeof("E_VERSION_1") - 1,
      ""}};
@@ -1262,8 +1241,8 @@ const bdlat_EnumeratorInfo ExpressionVersion::ENUMERATOR_INFO_ARRAY[] = {
 int ExpressionVersion::fromInt(ExpressionVersion::Value* result, int number)
 {
     switch (number) {
-    case ExpressionVersion::e_E_UNDEFINED:
-    case ExpressionVersion::e_E_VERSION_1:
+    case ExpressionVersion::E_UNDEFINED:
+    case ExpressionVersion::E_VERSION_1:
         *result = static_cast<ExpressionVersion::Value>(number);
         return 0;
     default: return -1;
@@ -1292,10 +1271,10 @@ int ExpressionVersion::fromString(ExpressionVersion::Value* result,
 const char* ExpressionVersion::toString(ExpressionVersion::Value value)
 {
     switch (value) {
-    case e_E_UNDEFINED: {
+    case E_UNDEFINED: {
         return "E_UNDEFINED";
     }
-    case e_E_VERSION_1: {
+    case E_VERSION_1: {
         return "E_VERSION_1";
     }
     }
@@ -1406,12 +1385,12 @@ const bdlat_AttributeInfo GuidInfo::ATTRIBUTE_INFO_ARRAY[] = {
      "clientId",
      sizeof("clientId") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_TEXT},
     {ATTRIBUTE_ID_NANO_SECONDS_FROM_EPOCH,
      "nanoSecondsFromEpoch",
      sizeof("nanoSecondsFromEpoch") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
+     bdlat_FormattingMode::e_DEC}};
 
 // CLASS METHODS
 
@@ -1452,13 +1431,11 @@ GuidInfo::GuidInfo(bslma::Allocator* basicAllocator)
 
 GuidInfo::GuidInfo(const GuidInfo& original, bslma::Allocator* basicAllocator)
 : d_nanoSecondsFromEpoch(original.d_nanoSecondsFromEpoch)
-, d_clientId(original.d_clientId, basicAllocator)
-{
-}
+, d_clientId(original.d_clientId, basicAllocator){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-GuidInfo::GuidInfo(GuidInfo&& original) noexcept
+GuidInfo::GuidInfo(GuidInfo && original) noexcept
 : d_nanoSecondsFromEpoch(bsl::move(original.d_nanoSecondsFromEpoch)),
   d_clientId(bsl::move(original.d_clientId))
 {
@@ -1852,11 +1829,11 @@ LeadershipCessionNotification::print(bsl::ostream& stream, int, int) const
 const char NodeStatus::CLASS_NAME[] = "NodeStatus";
 
 const bdlat_EnumeratorInfo NodeStatus::ENUMERATOR_INFO_ARRAY[] = {
-    {NodeStatus::e_E_UNKNOWN, "E_UNKNOWN", sizeof("E_UNKNOWN") - 1, ""},
-    {NodeStatus::e_E_STARTING, "E_STARTING", sizeof("E_STARTING") - 1, ""},
-    {NodeStatus::e_E_AVAILABLE, "E_AVAILABLE", sizeof("E_AVAILABLE") - 1, ""},
-    {NodeStatus::e_E_STOPPING, "E_STOPPING", sizeof("E_STOPPING") - 1, ""},
-    {NodeStatus::e_E_UNAVAILABLE,
+    {NodeStatus::E_UNKNOWN, "E_UNKNOWN", sizeof("E_UNKNOWN") - 1, ""},
+    {NodeStatus::E_STARTING, "E_STARTING", sizeof("E_STARTING") - 1, ""},
+    {NodeStatus::E_AVAILABLE, "E_AVAILABLE", sizeof("E_AVAILABLE") - 1, ""},
+    {NodeStatus::E_STOPPING, "E_STOPPING", sizeof("E_STOPPING") - 1, ""},
+    {NodeStatus::E_UNAVAILABLE,
      "E_UNAVAILABLE",
      sizeof("E_UNAVAILABLE") - 1,
      ""}};
@@ -1866,11 +1843,11 @@ const bdlat_EnumeratorInfo NodeStatus::ENUMERATOR_INFO_ARRAY[] = {
 int NodeStatus::fromInt(NodeStatus::Value* result, int number)
 {
     switch (number) {
-    case NodeStatus::e_E_UNKNOWN:
-    case NodeStatus::e_E_STARTING:
-    case NodeStatus::e_E_AVAILABLE:
-    case NodeStatus::e_E_STOPPING:
-    case NodeStatus::e_E_UNAVAILABLE:
+    case NodeStatus::E_UNKNOWN:
+    case NodeStatus::E_STARTING:
+    case NodeStatus::E_AVAILABLE:
+    case NodeStatus::E_STOPPING:
+    case NodeStatus::E_UNAVAILABLE:
         *result = static_cast<NodeStatus::Value>(number);
         return 0;
     default: return -1;
@@ -1898,19 +1875,19 @@ int NodeStatus::fromString(NodeStatus::Value* result,
 const char* NodeStatus::toString(NodeStatus::Value value)
 {
     switch (value) {
-    case e_E_UNKNOWN: {
+    case E_UNKNOWN: {
         return "E_UNKNOWN";
     }
-    case e_E_STARTING: {
+    case E_STARTING: {
         return "E_STARTING";
     }
-    case e_E_AVAILABLE: {
+    case E_AVAILABLE: {
         return "E_AVAILABLE";
     }
-    case e_E_STOPPING: {
+    case E_STOPPING: {
         return "E_STOPPING";
     }
-    case e_E_UNAVAILABLE: {
+    case E_UNAVAILABLE: {
         return "E_UNAVAILABLE";
     }
     }
@@ -2195,7 +2172,7 @@ const bdlat_AttributeInfo PartitionSyncStateQuery::ATTRIBUTE_INFO_ARRAY[] = {
      "partitionId",
      sizeof("partitionId") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
+     bdlat_FormattingMode::e_DEC}};
 
 // CLASS METHODS
 
@@ -2260,21 +2237,18 @@ bsl::ostream& PartitionSyncStateQuery::print(bsl::ostream& stream,
 const char PrimaryStatus::CLASS_NAME[] = "PrimaryStatus";
 
 const bdlat_EnumeratorInfo PrimaryStatus::ENUMERATOR_INFO_ARRAY[] = {
-    {PrimaryStatus::e_E_UNDEFINED,
-     "E_UNDEFINED",
-     sizeof("E_UNDEFINED") - 1,
-     ""},
-    {PrimaryStatus::e_E_PASSIVE, "E_PASSIVE", sizeof("E_PASSIVE") - 1, ""},
-    {PrimaryStatus::e_E_ACTIVE, "E_ACTIVE", sizeof("E_ACTIVE") - 1, ""}};
+    {PrimaryStatus::E_UNDEFINED, "E_UNDEFINED", sizeof("E_UNDEFINED") - 1, ""},
+    {PrimaryStatus::E_PASSIVE, "E_PASSIVE", sizeof("E_PASSIVE") - 1, ""},
+    {PrimaryStatus::E_ACTIVE, "E_ACTIVE", sizeof("E_ACTIVE") - 1, ""}};
 
 // CLASS METHODS
 
 int PrimaryStatus::fromInt(PrimaryStatus::Value* result, int number)
 {
     switch (number) {
-    case PrimaryStatus::e_E_UNDEFINED:
-    case PrimaryStatus::e_E_PASSIVE:
-    case PrimaryStatus::e_E_ACTIVE:
+    case PrimaryStatus::E_UNDEFINED:
+    case PrimaryStatus::E_PASSIVE:
+    case PrimaryStatus::E_ACTIVE:
         *result = static_cast<PrimaryStatus::Value>(number);
         return 0;
     default: return -1;
@@ -2303,13 +2277,13 @@ int PrimaryStatus::fromString(PrimaryStatus::Value* result,
 const char* PrimaryStatus::toString(PrimaryStatus::Value value)
 {
     switch (value) {
-    case e_E_UNDEFINED: {
+    case E_UNDEFINED: {
         return "E_UNDEFINED";
     }
-    case e_E_PASSIVE: {
+    case E_PASSIVE: {
         return "E_PASSIVE";
     }
-    case e_E_ACTIVE: {
+    case E_ACTIVE: {
         return "E_ACTIVE";
     }
     }
@@ -2371,14 +2345,12 @@ QueueAssignmentRequest::QueueAssignmentRequest(
 QueueAssignmentRequest::QueueAssignmentRequest(
     const QueueAssignmentRequest& original,
     bslma::Allocator*             basicAllocator)
-: d_queueUri(original.d_queueUri, basicAllocator)
-{
-}
+: d_queueUri(original.d_queueUri, basicAllocator){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-QueueAssignmentRequest::QueueAssignmentRequest(
-    QueueAssignmentRequest&& original) noexcept
+QueueAssignmentRequest::QueueAssignmentRequest(QueueAssignmentRequest &&
+                                               original) noexcept
 : d_queueUri(bsl::move(original.d_queueUri))
 {
 }
@@ -2510,14 +2482,12 @@ QueueUnassignmentRequest::QueueUnassignmentRequest(
     bslma::Allocator*               basicAllocator)
 : d_queueKey(original.d_queueKey, basicAllocator)
 , d_queueUri(original.d_queueUri, basicAllocator)
-, d_partitionId(original.d_partitionId)
-{
-}
+, d_partitionId(original.d_partitionId){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-QueueUnassignmentRequest::QueueUnassignmentRequest(
-    QueueUnassignmentRequest&& original) noexcept
+QueueUnassignmentRequest::QueueUnassignmentRequest(QueueUnassignmentRequest &&
+                                                   original) noexcept
 : d_queueKey(bsl::move(original.d_queueKey)),
   d_queueUri(bsl::move(original.d_queueUri)),
   d_partitionId(bsl::move(original.d_partitionId))
@@ -2598,6 +2568,442 @@ bsl::ostream& QueueUnassignmentRequest::print(bsl::ostream& stream,
     return stream;
 }
 
+// -------------------------------
+// class RaftAppendEntriesResponse
+// -------------------------------
+
+// CONSTANTS
+
+const char RaftAppendEntriesResponse::CLASS_NAME[] =
+    "RaftAppendEntriesResponse";
+
+const bdlat_AttributeInfo RaftAppendEntriesResponse::ATTRIBUTE_INFO_ARRAY[] = {
+    {ATTRIBUTE_ID_SUCCESS,
+     "success",
+     sizeof("success") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT},
+    {ATTRIBUTE_ID_MATCH_INDEX,
+     "matchIndex",
+     sizeof("matchIndex") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC}};
+
+// CLASS METHODS
+
+const bdlat_AttributeInfo*
+RaftAppendEntriesResponse::lookupAttributeInfo(const char* name,
+                                               int         nameLength)
+{
+    for (int i = 0; i < 2; ++i) {
+        const bdlat_AttributeInfo& attributeInfo =
+            RaftAppendEntriesResponse::ATTRIBUTE_INFO_ARRAY[i];
+
+        if (nameLength == attributeInfo.d_nameLength &&
+            0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength)) {
+            return &attributeInfo;
+        }
+    }
+
+    return 0;
+}
+
+const bdlat_AttributeInfo*
+RaftAppendEntriesResponse::lookupAttributeInfo(int id)
+{
+    switch (id) {
+    case ATTRIBUTE_ID_SUCCESS:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SUCCESS];
+    case ATTRIBUTE_ID_MATCH_INDEX:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MATCH_INDEX];
+    default: return 0;
+    }
+}
+
+// CREATORS
+
+RaftAppendEntriesResponse::RaftAppendEntriesResponse()
+: d_matchIndex()
+, d_success()
+{
+}
+
+// MANIPULATORS
+
+void RaftAppendEntriesResponse::reset()
+{
+    bdlat_ValueTypeFunctions::reset(&d_success);
+    bdlat_ValueTypeFunctions::reset(&d_matchIndex);
+}
+
+// ACCESSORS
+
+bsl::ostream& RaftAppendEntriesResponse::print(bsl::ostream& stream,
+                                               int           level,
+                                               int spacesPerLevel) const
+{
+    bslim::Printer printer(&stream, level, spacesPerLevel);
+    printer.start();
+    printer.printAttribute("success", this->success());
+    printer.printAttribute("matchIndex", this->matchIndex());
+    printer.end();
+    return stream;
+}
+
+// -------------------------
+// class RaftInstallSnapshot
+// -------------------------
+
+// CONSTANTS
+
+const char RaftInstallSnapshot::CLASS_NAME[] = "RaftInstallSnapshot";
+
+const bdlat_AttributeInfo RaftInstallSnapshot::ATTRIBUTE_INFO_ARRAY[] = {
+    {ATTRIBUTE_ID_LAST_INCLUDED_INDEX,
+     "lastIncludedIndex",
+     sizeof("lastIncludedIndex") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC},
+    {ATTRIBUTE_ID_LAST_INCLUDED_TERM,
+     "lastIncludedTerm",
+     sizeof("lastIncludedTerm") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC},
+    {ATTRIBUTE_ID_OFFSET,
+     "offset",
+     sizeof("offset") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC},
+    {ATTRIBUTE_ID_DONE,
+     "done",
+     sizeof("done") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT}};
+
+// CLASS METHODS
+
+const bdlat_AttributeInfo*
+RaftInstallSnapshot::lookupAttributeInfo(const char* name, int nameLength)
+{
+    for (int i = 0; i < 4; ++i) {
+        const bdlat_AttributeInfo& attributeInfo =
+            RaftInstallSnapshot::ATTRIBUTE_INFO_ARRAY[i];
+
+        if (nameLength == attributeInfo.d_nameLength &&
+            0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength)) {
+            return &attributeInfo;
+        }
+    }
+
+    return 0;
+}
+
+const bdlat_AttributeInfo* RaftInstallSnapshot::lookupAttributeInfo(int id)
+{
+    switch (id) {
+    case ATTRIBUTE_ID_LAST_INCLUDED_INDEX:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LAST_INCLUDED_INDEX];
+    case ATTRIBUTE_ID_LAST_INCLUDED_TERM:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LAST_INCLUDED_TERM];
+    case ATTRIBUTE_ID_OFFSET:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_OFFSET];
+    case ATTRIBUTE_ID_DONE: return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DONE];
+    default: return 0;
+    }
+}
+
+// CREATORS
+
+RaftInstallSnapshot::RaftInstallSnapshot()
+: d_lastIncludedIndex()
+, d_lastIncludedTerm()
+, d_offset()
+, d_done()
+{
+}
+
+// MANIPULATORS
+
+void RaftInstallSnapshot::reset()
+{
+    bdlat_ValueTypeFunctions::reset(&d_lastIncludedIndex);
+    bdlat_ValueTypeFunctions::reset(&d_lastIncludedTerm);
+    bdlat_ValueTypeFunctions::reset(&d_offset);
+    bdlat_ValueTypeFunctions::reset(&d_done);
+}
+
+// ACCESSORS
+
+bsl::ostream& RaftInstallSnapshot::print(bsl::ostream& stream,
+                                         int           level,
+                                         int           spacesPerLevel) const
+{
+    bslim::Printer printer(&stream, level, spacesPerLevel);
+    printer.start();
+    printer.printAttribute("lastIncludedIndex", this->lastIncludedIndex());
+    printer.printAttribute("lastIncludedTerm", this->lastIncludedTerm());
+    printer.printAttribute("offset", this->offset());
+    printer.printAttribute("done", this->done());
+    printer.end();
+    return stream;
+}
+
+// ---------------------------------
+// class RaftInstallSnapshotResponse
+// ---------------------------------
+
+// CONSTANTS
+
+const char RaftInstallSnapshotResponse::CLASS_NAME[] =
+    "RaftInstallSnapshotResponse";
+
+// CLASS METHODS
+
+const bdlat_AttributeInfo*
+RaftInstallSnapshotResponse::lookupAttributeInfo(const char* name,
+                                                 int         nameLength)
+{
+    (void)name;
+    (void)nameLength;
+    return 0;
+}
+
+const bdlat_AttributeInfo*
+RaftInstallSnapshotResponse::lookupAttributeInfo(int id)
+{
+    switch (id) {
+    default: return 0;
+    }
+}
+
+// CREATORS
+
+// MANIPULATORS
+
+void RaftInstallSnapshotResponse::reset()
+{
+}
+
+// ACCESSORS
+
+bsl::ostream&
+RaftInstallSnapshotResponse::print(bsl::ostream& stream, int, int) const
+{
+    return stream;
+}
+
+// ---------------------
+// class RaftRequestVote
+// ---------------------
+
+// CONSTANTS
+
+const char RaftRequestVote::CLASS_NAME[] = "RaftRequestVote";
+
+const bool RaftRequestVote::DEFAULT_INITIALIZER_PRE_VOTE = false;
+
+const bdlat_AttributeInfo RaftRequestVote::ATTRIBUTE_INFO_ARRAY[] = {
+    {ATTRIBUTE_ID_LAST_LOG_INDEX,
+     "lastLogIndex",
+     sizeof("lastLogIndex") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC},
+    {ATTRIBUTE_ID_LAST_LOG_TERM,
+     "lastLogTerm",
+     sizeof("lastLogTerm") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC},
+    {ATTRIBUTE_ID_PRE_VOTE,
+     "preVote",
+     sizeof("preVote") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT}};
+
+// CLASS METHODS
+
+const bdlat_AttributeInfo*
+RaftRequestVote::lookupAttributeInfo(const char* name, int nameLength)
+{
+    for (int i = 0; i < 3; ++i) {
+        const bdlat_AttributeInfo& attributeInfo =
+            RaftRequestVote::ATTRIBUTE_INFO_ARRAY[i];
+
+        if (nameLength == attributeInfo.d_nameLength &&
+            0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength)) {
+            return &attributeInfo;
+        }
+    }
+
+    return 0;
+}
+
+const bdlat_AttributeInfo* RaftRequestVote::lookupAttributeInfo(int id)
+{
+    switch (id) {
+    case ATTRIBUTE_ID_LAST_LOG_INDEX:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LAST_LOG_INDEX];
+    case ATTRIBUTE_ID_LAST_LOG_TERM:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LAST_LOG_TERM];
+    case ATTRIBUTE_ID_PRE_VOTE:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRE_VOTE];
+    default: return 0;
+    }
+}
+
+// CREATORS
+
+RaftRequestVote::RaftRequestVote()
+: d_lastLogIndex()
+, d_lastLogTerm()
+, d_preVote(DEFAULT_INITIALIZER_PRE_VOTE)
+{
+}
+
+// MANIPULATORS
+
+void RaftRequestVote::reset()
+{
+    bdlat_ValueTypeFunctions::reset(&d_lastLogIndex);
+    bdlat_ValueTypeFunctions::reset(&d_lastLogTerm);
+    d_preVote = DEFAULT_INITIALIZER_PRE_VOTE;
+}
+
+// ACCESSORS
+
+bsl::ostream& RaftRequestVote::print(bsl::ostream& stream,
+                                     int           level,
+                                     int           spacesPerLevel) const
+{
+    bslim::Printer printer(&stream, level, spacesPerLevel);
+    printer.start();
+    printer.printAttribute("lastLogIndex", this->lastLogIndex());
+    printer.printAttribute("lastLogTerm", this->lastLogTerm());
+    printer.printAttribute("preVote", this->preVote());
+    printer.end();
+    return stream;
+}
+
+// -----------------------------
+// class RaftRequestVoteResponse
+// -----------------------------
+
+// CONSTANTS
+
+const char RaftRequestVoteResponse::CLASS_NAME[] = "RaftRequestVoteResponse";
+
+const bool RaftRequestVoteResponse::DEFAULT_INITIALIZER_PRE_VOTE = false;
+
+const bdlat_AttributeInfo RaftRequestVoteResponse::ATTRIBUTE_INFO_ARRAY[] = {
+    {ATTRIBUTE_ID_VOTE_GRANTED,
+     "voteGranted",
+     sizeof("voteGranted") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT},
+    {ATTRIBUTE_ID_PRE_VOTE,
+     "preVote",
+     sizeof("preVote") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT}};
+
+// CLASS METHODS
+
+const bdlat_AttributeInfo*
+RaftRequestVoteResponse::lookupAttributeInfo(const char* name, int nameLength)
+{
+    for (int i = 0; i < 2; ++i) {
+        const bdlat_AttributeInfo& attributeInfo =
+            RaftRequestVoteResponse::ATTRIBUTE_INFO_ARRAY[i];
+
+        if (nameLength == attributeInfo.d_nameLength &&
+            0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength)) {
+            return &attributeInfo;
+        }
+    }
+
+    return 0;
+}
+
+const bdlat_AttributeInfo* RaftRequestVoteResponse::lookupAttributeInfo(int id)
+{
+    switch (id) {
+    case ATTRIBUTE_ID_VOTE_GRANTED:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_VOTE_GRANTED];
+    case ATTRIBUTE_ID_PRE_VOTE:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRE_VOTE];
+    default: return 0;
+    }
+}
+
+// CREATORS
+
+RaftRequestVoteResponse::RaftRequestVoteResponse()
+: d_voteGranted()
+, d_preVote(DEFAULT_INITIALIZER_PRE_VOTE)
+{
+}
+
+// MANIPULATORS
+
+void RaftRequestVoteResponse::reset()
+{
+    bdlat_ValueTypeFunctions::reset(&d_voteGranted);
+    d_preVote = DEFAULT_INITIALIZER_PRE_VOTE;
+}
+
+// ACCESSORS
+
+bsl::ostream& RaftRequestVoteResponse::print(bsl::ostream& stream,
+                                             int           level,
+                                             int spacesPerLevel) const
+{
+    bslim::Printer printer(&stream, level, spacesPerLevel);
+    printer.start();
+    printer.printAttribute("voteGranted", this->voteGranted());
+    printer.printAttribute("preVote", this->preVote());
+    printer.end();
+    return stream;
+}
+
+// --------------------
+// class RaftTimeoutNow
+// --------------------
+
+// CONSTANTS
+
+const char RaftTimeoutNow::CLASS_NAME[] = "RaftTimeoutNow";
+
+// CLASS METHODS
+
+const bdlat_AttributeInfo*
+RaftTimeoutNow::lookupAttributeInfo(const char* name, int nameLength)
+{
+    (void)name;
+    (void)nameLength;
+    return 0;
+}
+
+const bdlat_AttributeInfo* RaftTimeoutNow::lookupAttributeInfo(int id)
+{
+    switch (id) {
+    default: return 0;
+    }
+}
+
+// CREATORS
+
+// MANIPULATORS
+
+void RaftTimeoutNow::reset()
+{
+}
+
+// ACCESSORS
+
+bsl::ostream& RaftTimeoutNow::print(bsl::ostream& stream, int, int) const
+{
+    return stream;
+}
+
 // --------------------------
 // class RegistrationResponse
 // --------------------------
@@ -2647,20 +3053,20 @@ bsl::ostream& RegistrationResponse::print(bsl::ostream& stream, int, int) const
 const char ReplicaDataType::CLASS_NAME[] = "ReplicaDataType";
 
 const bdlat_EnumeratorInfo ReplicaDataType::ENUMERATOR_INFO_ARRAY[] = {
-    {ReplicaDataType::e_E_UNKNOWN, "E_UNKNOWN", sizeof("E_UNKNOWN") - 1, ""},
-    {ReplicaDataType::e_E_PULL, "E_PULL", sizeof("E_PULL") - 1, ""},
-    {ReplicaDataType::e_E_PUSH, "E_PUSH", sizeof("E_PUSH") - 1, ""},
-    {ReplicaDataType::e_E_DROP, "E_DROP", sizeof("E_DROP") - 1, ""}};
+    {ReplicaDataType::E_UNKNOWN, "E_UNKNOWN", sizeof("E_UNKNOWN") - 1, ""},
+    {ReplicaDataType::E_PULL, "E_PULL", sizeof("E_PULL") - 1, ""},
+    {ReplicaDataType::E_PUSH, "E_PUSH", sizeof("E_PUSH") - 1, ""},
+    {ReplicaDataType::E_DROP, "E_DROP", sizeof("E_DROP") - 1, ""}};
 
 // CLASS METHODS
 
 int ReplicaDataType::fromInt(ReplicaDataType::Value* result, int number)
 {
     switch (number) {
-    case ReplicaDataType::e_E_UNKNOWN:
-    case ReplicaDataType::e_E_PULL:
-    case ReplicaDataType::e_E_PUSH:
-    case ReplicaDataType::e_E_DROP:
+    case ReplicaDataType::E_UNKNOWN:
+    case ReplicaDataType::E_PULL:
+    case ReplicaDataType::E_PUSH:
+    case ReplicaDataType::E_DROP:
         *result = static_cast<ReplicaDataType::Value>(number);
         return 0;
     default: return -1;
@@ -2689,16 +3095,16 @@ int ReplicaDataType::fromString(ReplicaDataType::Value* result,
 const char* ReplicaDataType::toString(ReplicaDataType::Value value)
 {
     switch (value) {
-    case e_E_UNKNOWN: {
+    case E_UNKNOWN: {
         return "E_UNKNOWN";
     }
-    case e_E_PULL: {
+    case E_PULL: {
         return "E_PULL";
     }
-    case e_E_PUSH: {
+    case E_PUSH: {
         return "E_PUSH";
     }
-    case e_E_DROP: {
+    case E_DROP: {
         return "E_DROP";
     }
     }
@@ -2786,19 +3192,19 @@ const char RoutingConfigurationFlags::CLASS_NAME[] =
     "RoutingConfigurationFlags";
 
 const bdlat_EnumeratorInfo RoutingConfigurationFlags::ENUMERATOR_INFO_ARRAY[] =
-    {{RoutingConfigurationFlags::e_E_AT_MOST_ONCE,
+    {{RoutingConfigurationFlags::E_AT_MOST_ONCE,
       "E_AT_MOST_ONCE",
       sizeof("E_AT_MOST_ONCE") - 1,
       ""},
-     {RoutingConfigurationFlags::e_E_DELIVER_CONSUMER_PRIORITY,
+     {RoutingConfigurationFlags::E_DELIVER_CONSUMER_PRIORITY,
       "E_DELIVER_CONSUMER_PRIORITY",
       sizeof("E_DELIVER_CONSUMER_PRIORITY") - 1,
       ""},
-     {RoutingConfigurationFlags::e_E_DELIVER_ALL,
+     {RoutingConfigurationFlags::E_DELIVER_ALL,
       "E_DELIVER_ALL",
       sizeof("E_DELIVER_ALL") - 1,
       ""},
-     {RoutingConfigurationFlags::e_E_HAS_MULTIPLE_SUB_STREAMS,
+     {RoutingConfigurationFlags::E_HAS_MULTIPLE_SUB_STREAMS,
       "E_HAS_MULTIPLE_SUB_STREAMS",
       sizeof("E_HAS_MULTIPLE_SUB_STREAMS") - 1,
       ""}};
@@ -2810,10 +3216,10 @@ int RoutingConfigurationFlags::fromInt(
     int                               number)
 {
     switch (number) {
-    case RoutingConfigurationFlags::e_E_AT_MOST_ONCE:
-    case RoutingConfigurationFlags::e_E_DELIVER_CONSUMER_PRIORITY:
-    case RoutingConfigurationFlags::e_E_DELIVER_ALL:
-    case RoutingConfigurationFlags::e_E_HAS_MULTIPLE_SUB_STREAMS:
+    case RoutingConfigurationFlags::E_AT_MOST_ONCE:
+    case RoutingConfigurationFlags::E_DELIVER_CONSUMER_PRIORITY:
+    case RoutingConfigurationFlags::E_DELIVER_ALL:
+    case RoutingConfigurationFlags::E_HAS_MULTIPLE_SUB_STREAMS:
         *result = static_cast<RoutingConfigurationFlags::Value>(number);
         return 0;
     default: return -1;
@@ -2844,16 +3250,16 @@ const char*
 RoutingConfigurationFlags::toString(RoutingConfigurationFlags::Value value)
 {
     switch (value) {
-    case e_E_AT_MOST_ONCE: {
+    case E_AT_MOST_ONCE: {
         return "E_AT_MOST_ONCE";
     }
-    case e_E_DELIVER_CONSUMER_PRIORITY: {
+    case E_DELIVER_CONSUMER_PRIORITY: {
         return "E_DELIVER_CONSUMER_PRIORITY";
     }
-    case e_E_DELIVER_ALL: {
+    case E_DELIVER_ALL: {
         return "E_DELIVER_ALL";
     }
-    case e_E_HAS_MULTIPLE_SUB_STREAMS: {
+    case E_HAS_MULTIPLE_SUB_STREAMS: {
         return "E_HAS_MULTIPLE_SUB_STREAMS";
     }
     }
@@ -2980,24 +3386,24 @@ bsl::ostream& ScoutingResponse::print(bsl::ostream& stream,
 const char StatusCategory::CLASS_NAME[] = "StatusCategory";
 
 const bdlat_EnumeratorInfo StatusCategory::ENUMERATOR_INFO_ARRAY[] = {
-    {StatusCategory::e_E_SUCCESS, "E_SUCCESS", sizeof("E_SUCCESS") - 1, ""},
-    {StatusCategory::e_E_UNKNOWN, "E_UNKNOWN", sizeof("E_UNKNOWN") - 1, ""},
-    {StatusCategory::e_E_TIMEOUT, "E_TIMEOUT", sizeof("E_TIMEOUT") - 1, ""},
-    {StatusCategory::e_E_NOT_CONNECTED,
+    {StatusCategory::E_SUCCESS, "E_SUCCESS", sizeof("E_SUCCESS") - 1, ""},
+    {StatusCategory::E_UNKNOWN, "E_UNKNOWN", sizeof("E_UNKNOWN") - 1, ""},
+    {StatusCategory::E_TIMEOUT, "E_TIMEOUT", sizeof("E_TIMEOUT") - 1, ""},
+    {StatusCategory::E_NOT_CONNECTED,
      "E_NOT_CONNECTED",
      sizeof("E_NOT_CONNECTED") - 1,
      ""},
-    {StatusCategory::e_E_CANCELED, "E_CANCELED", sizeof("E_CANCELED") - 1, ""},
-    {StatusCategory::e_E_NOT_SUPPORTED,
+    {StatusCategory::E_CANCELED, "E_CANCELED", sizeof("E_CANCELED") - 1, ""},
+    {StatusCategory::E_NOT_SUPPORTED,
      "E_NOT_SUPPORTED",
      sizeof("E_NOT_SUPPORTED") - 1,
      ""},
-    {StatusCategory::e_E_REFUSED, "E_REFUSED", sizeof("E_REFUSED") - 1, ""},
-    {StatusCategory::e_E_INVALID_ARGUMENT,
+    {StatusCategory::E_REFUSED, "E_REFUSED", sizeof("E_REFUSED") - 1, ""},
+    {StatusCategory::E_INVALID_ARGUMENT,
      "E_INVALID_ARGUMENT",
      sizeof("E_INVALID_ARGUMENT") - 1,
      ""},
-    {StatusCategory::e_E_NOT_READY,
+    {StatusCategory::E_NOT_READY,
      "E_NOT_READY",
      sizeof("E_NOT_READY") - 1,
      ""}};
@@ -3007,15 +3413,15 @@ const bdlat_EnumeratorInfo StatusCategory::ENUMERATOR_INFO_ARRAY[] = {
 int StatusCategory::fromInt(StatusCategory::Value* result, int number)
 {
     switch (number) {
-    case StatusCategory::e_E_SUCCESS:
-    case StatusCategory::e_E_UNKNOWN:
-    case StatusCategory::e_E_TIMEOUT:
-    case StatusCategory::e_E_NOT_CONNECTED:
-    case StatusCategory::e_E_CANCELED:
-    case StatusCategory::e_E_NOT_SUPPORTED:
-    case StatusCategory::e_E_REFUSED:
-    case StatusCategory::e_E_INVALID_ARGUMENT:
-    case StatusCategory::e_E_NOT_READY:
+    case StatusCategory::E_SUCCESS:
+    case StatusCategory::E_UNKNOWN:
+    case StatusCategory::E_TIMEOUT:
+    case StatusCategory::E_NOT_CONNECTED:
+    case StatusCategory::E_CANCELED:
+    case StatusCategory::E_NOT_SUPPORTED:
+    case StatusCategory::E_REFUSED:
+    case StatusCategory::E_INVALID_ARGUMENT:
+    case StatusCategory::E_NOT_READY:
         *result = static_cast<StatusCategory::Value>(number);
         return 0;
     default: return -1;
@@ -3044,31 +3450,31 @@ int StatusCategory::fromString(StatusCategory::Value* result,
 const char* StatusCategory::toString(StatusCategory::Value value)
 {
     switch (value) {
-    case e_E_SUCCESS: {
+    case E_SUCCESS: {
         return "E_SUCCESS";
     }
-    case e_E_UNKNOWN: {
+    case E_UNKNOWN: {
         return "E_UNKNOWN";
     }
-    case e_E_TIMEOUT: {
+    case E_TIMEOUT: {
         return "E_TIMEOUT";
     }
-    case e_E_NOT_CONNECTED: {
+    case E_NOT_CONNECTED: {
         return "E_NOT_CONNECTED";
     }
-    case e_E_CANCELED: {
+    case E_CANCELED: {
         return "E_CANCELED";
     }
-    case e_E_NOT_SUPPORTED: {
+    case E_NOT_SUPPORTED: {
         return "E_NOT_SUPPORTED";
     }
-    case e_E_REFUSED: {
+    case E_REFUSED: {
         return "E_REFUSED";
     }
-    case e_E_INVALID_ARGUMENT: {
+    case E_INVALID_ARGUMENT: {
         return "E_INVALID_ARGUMENT";
     }
-    case e_E_NOT_READY: {
+    case E_NOT_READY: {
         return "E_NOT_READY";
     }
     }
@@ -3097,7 +3503,7 @@ const bdlat_AttributeInfo StopRequest::ATTRIBUTE_INFO_ARRAY[] = {
      "version",
      sizeof("version") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
+     bdlat_FormattingMode::e_DEC}};
 
 // CLASS METHODS
 
@@ -3139,13 +3545,11 @@ StopRequest::StopRequest(bslma::Allocator* basicAllocator)
 StopRequest::StopRequest(const StopRequest& original,
                          bslma::Allocator*  basicAllocator)
 : d_clusterName(original.d_clusterName, basicAllocator)
-, d_version(original.d_version)
-{
-}
+, d_version(original.d_version){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-StopRequest::StopRequest(StopRequest&& original) noexcept
+StopRequest::StopRequest(StopRequest && original) noexcept
 : d_clusterName(bsl::move(original.d_clusterName)),
   d_version(bsl::move(original.d_version))
 {
@@ -3258,13 +3662,11 @@ StopResponse::StopResponse(bslma::Allocator* basicAllocator)
 
 StopResponse::StopResponse(const StopResponse& original,
                            bslma::Allocator*   basicAllocator)
-: d_clusterName(original.d_clusterName, basicAllocator)
-{
-}
+: d_clusterName(original.d_clusterName, basicAllocator){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-StopResponse::StopResponse(StopResponse&& original) noexcept
+StopResponse::StopResponse(StopResponse && original) noexcept
 : d_clusterName(bsl::move(original.d_clusterName))
 {
 }
@@ -3329,20 +3731,17 @@ StopResponse::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 const char StorageSyncResponseType::CLASS_NAME[] = "StorageSyncResponseType";
 
 const bdlat_EnumeratorInfo StorageSyncResponseType::ENUMERATOR_INFO_ARRAY[] = {
-    {StorageSyncResponseType::e_E_UNDEFINED,
+    {StorageSyncResponseType::E_UNDEFINED,
      "E_UNDEFINED",
      sizeof("E_UNDEFINED") - 1,
      ""},
-    {StorageSyncResponseType::e_E_PATCH, "E_PATCH", sizeof("E_PATCH") - 1, ""},
-    {StorageSyncResponseType::e_E_FILE, "E_FILE", sizeof("E_FILE") - 1, ""},
-    {StorageSyncResponseType::e_E_IN_SYNC,
+    {StorageSyncResponseType::E_PATCH, "E_PATCH", sizeof("E_PATCH") - 1, ""},
+    {StorageSyncResponseType::E_FILE, "E_FILE", sizeof("E_FILE") - 1, ""},
+    {StorageSyncResponseType::E_IN_SYNC,
      "E_IN_SYNC",
      sizeof("E_IN_SYNC") - 1,
      ""},
-    {StorageSyncResponseType::e_E_EMPTY,
-     "E_EMPTY",
-     sizeof("E_EMPTY") - 1,
-     ""}};
+    {StorageSyncResponseType::E_EMPTY, "E_EMPTY", sizeof("E_EMPTY") - 1, ""}};
 
 // CLASS METHODS
 
@@ -3350,11 +3749,11 @@ int StorageSyncResponseType::fromInt(StorageSyncResponseType::Value* result,
                                      int                             number)
 {
     switch (number) {
-    case StorageSyncResponseType::e_E_UNDEFINED:
-    case StorageSyncResponseType::e_E_PATCH:
-    case StorageSyncResponseType::e_E_FILE:
-    case StorageSyncResponseType::e_E_IN_SYNC:
-    case StorageSyncResponseType::e_E_EMPTY:
+    case StorageSyncResponseType::E_UNDEFINED:
+    case StorageSyncResponseType::E_PATCH:
+    case StorageSyncResponseType::E_FILE:
+    case StorageSyncResponseType::E_IN_SYNC:
+    case StorageSyncResponseType::E_EMPTY:
         *result = static_cast<StorageSyncResponseType::Value>(number);
         return 0;
     default: return -1;
@@ -3384,19 +3783,19 @@ const char*
 StorageSyncResponseType::toString(StorageSyncResponseType::Value value)
 {
     switch (value) {
-    case e_E_UNDEFINED: {
+    case E_UNDEFINED: {
         return "E_UNDEFINED";
     }
-    case e_E_PATCH: {
+    case E_PATCH: {
         return "E_PATCH";
     }
-    case e_E_FILE: {
+    case E_FILE: {
         return "E_FILE";
     }
-    case e_E_IN_SYNC: {
+    case E_IN_SYNC: {
         return "E_IN_SYNC";
     }
-    case e_E_EMPTY: {
+    case E_EMPTY: {
         return "E_EMPTY";
     }
     }
@@ -3422,12 +3821,12 @@ const bdlat_AttributeInfo SubQueueIdInfo::ATTRIBUTE_INFO_ARRAY[] = {
      "subId",
      sizeof("subId") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_DEC},
     {ATTRIBUTE_ID_APP_ID,
      "appId",
      sizeof("appId") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE}};
+     bdlat_FormattingMode::e_TEXT}};
 
 // CLASS METHODS
 
@@ -3469,13 +3868,11 @@ SubQueueIdInfo::SubQueueIdInfo(bslma::Allocator* basicAllocator)
 SubQueueIdInfo::SubQueueIdInfo(const SubQueueIdInfo& original,
                                bslma::Allocator*     basicAllocator)
 : d_appId(original.d_appId, basicAllocator)
-, d_subId(original.d_subId)
-{
-}
+, d_subId(original.d_subId){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-SubQueueIdInfo::SubQueueIdInfo(SubQueueIdInfo&& original) noexcept
+SubQueueIdInfo::SubQueueIdInfo(SubQueueIdInfo && original) noexcept
 : d_appId(bsl::move(original.d_appId)),
   d_subId(bsl::move(original.d_subId))
 {
@@ -3677,7 +4074,7 @@ const bdlat_AttributeInfo ClientIdentity::ATTRIBUTE_INFO_ARRAY[] = {
      "sdkVersion",
      sizeof("sdkVersion") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_DEC},
     {ATTRIBUTE_ID_CLIENT_TYPE,
      "clientType",
      sizeof("clientType") - 1,
@@ -3687,42 +4084,42 @@ const bdlat_AttributeInfo ClientIdentity::ATTRIBUTE_INFO_ARRAY[] = {
      "processName",
      sizeof("processName") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_TEXT},
     {ATTRIBUTE_ID_PID,
      "pid",
      sizeof("pid") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_DEC},
     {ATTRIBUTE_ID_SESSION_ID,
      "sessionId",
      sizeof("sessionId") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_DEC},
     {ATTRIBUTE_ID_HOST_NAME,
      "hostName",
      sizeof("hostName") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_TEXT},
     {ATTRIBUTE_ID_FEATURES,
      "features",
      sizeof("features") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_TEXT},
     {ATTRIBUTE_ID_CLUSTER_NAME,
      "clusterName",
      sizeof("clusterName") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_TEXT},
     {ATTRIBUTE_ID_CLUSTER_NODE_ID,
      "clusterNodeId",
      sizeof("clusterNodeId") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_DEC},
     {ATTRIBUTE_ID_SDK_LANGUAGE,
      "sdkLanguage",
      sizeof("sdkLanguage") - 1,
      "",
-     bdlat_FormattingMode::e_DEFAULT | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_DEFAULT},
     {ATTRIBUTE_ID_GUID_INFO,
      "guidInfo",
      sizeof("guidInfo") - 1,
@@ -3732,7 +4129,7 @@ const bdlat_AttributeInfo ClientIdentity::ATTRIBUTE_INFO_ARRAY[] = {
      "userAgent",
      sizeof("userAgent") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE}};
+     bdlat_FormattingMode::e_TEXT}};
 
 // CLASS METHODS
 
@@ -3817,13 +4214,11 @@ ClientIdentity::ClientIdentity(const ClientIdentity& original,
 , d_sessionId(original.d_sessionId)
 , d_clusterNodeId(original.d_clusterNodeId)
 , d_clientType(original.d_clientType)
-, d_sdkLanguage(original.d_sdkLanguage)
-{
-}
+, d_sdkLanguage(original.d_sdkLanguage){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ClientIdentity::ClientIdentity(ClientIdentity&& original) noexcept
+ClientIdentity::ClientIdentity(ClientIdentity && original) noexcept
 : d_processName(bsl::move(original.d_processName)),
   d_hostName(bsl::move(original.d_hostName)),
   d_features(bsl::move(original.d_features)),
@@ -3977,7 +4372,7 @@ const bdlat_AttributeInfo DumpMessages::ATTRIBUTE_INFO_ARRAY[] = {
      "dumpActionValue",
      sizeof("dumpActionValue") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
+     bdlat_FormattingMode::e_DEC}};
 
 // CLASS METHODS
 
@@ -4857,7 +5252,7 @@ const bdlat_AttributeInfo Expression::ATTRIBUTE_INFO_ARRAY[] = {
      "version",
      sizeof("version") - 1,
      "",
-     bdlat_FormattingMode::e_DEFAULT | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_DEFAULT},
     {ATTRIBUTE_ID_TEXT,
      "text",
      sizeof("text") - 1,
@@ -4903,13 +5298,11 @@ Expression::Expression(bslma::Allocator* basicAllocator)
 Expression::Expression(const Expression& original,
                        bslma::Allocator* basicAllocator)
 : d_text(original.d_text, basicAllocator)
-, d_version(original.d_version)
-{
-}
+, d_version(original.d_version){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-Expression::Expression(Expression&& original) noexcept
+Expression::Expression(Expression && original) noexcept
 : d_text(bsl::move(original.d_text)),
   d_version(bsl::move(original.d_version))
 {
@@ -5395,14 +5788,12 @@ PartitionPrimaryAdvisory::PartitionPrimaryAdvisory(
     const PartitionPrimaryAdvisory& original,
     bslma::Allocator*               basicAllocator)
 : d_partitions(original.d_partitions, basicAllocator)
-, d_sequenceNumber(original.d_sequenceNumber)
-{
-}
+, d_sequenceNumber(original.d_sequenceNumber){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-PartitionPrimaryAdvisory::PartitionPrimaryAdvisory(
-    PartitionPrimaryAdvisory&& original) noexcept
+PartitionPrimaryAdvisory::PartitionPrimaryAdvisory(PartitionPrimaryAdvisory &&
+                                                   original) noexcept
 : d_partitions(bsl::move(original.d_partitions)),
   d_sequenceNumber(bsl::move(original.d_sequenceNumber))
 {
@@ -5700,7 +6091,7 @@ const bdlat_AttributeInfo PrimaryStatusAdvisory::ATTRIBUTE_INFO_ARRAY[] = {
      "status",
      sizeof("status") - 1,
      "",
-     bdlat_FormattingMode::e_DEFAULT | bdlat_FormattingMode::e_DEFAULT_VALUE}};
+     bdlat_FormattingMode::e_DEFAULT}};
 
 // CLASS METHODS
 
@@ -5805,17 +6196,17 @@ const bdlat_AttributeInfo QueueHandleParameters::ATTRIBUTE_INFO_ARRAY[] = {
      "readCount",
      sizeof("readCount") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_DEC},
     {ATTRIBUTE_ID_WRITE_COUNT,
      "writeCount",
      sizeof("writeCount") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_DEC},
     {ATTRIBUTE_ID_ADMIN_COUNT,
      "adminCount",
      sizeof("adminCount") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
+     bdlat_FormattingMode::e_DEC}};
 
 // CLASS METHODS
 
@@ -5876,20 +6267,19 @@ QueueHandleParameters::QueueHandleParameters(
 , d_qId(original.d_qId)
 , d_readCount(original.d_readCount)
 , d_writeCount(original.d_writeCount)
-, d_adminCount(original.d_adminCount)
-{
-}
+, d_adminCount(original.d_adminCount){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-QueueHandleParameters::QueueHandleParameters(QueueHandleParameters&& original)
-    noexcept : d_flags(bsl::move(original.d_flags)),
-               d_uri(bsl::move(original.d_uri)),
-               d_subIdInfo(bsl::move(original.d_subIdInfo)),
-               d_qId(bsl::move(original.d_qId)),
-               d_readCount(bsl::move(original.d_readCount)),
-               d_writeCount(bsl::move(original.d_writeCount)),
-               d_adminCount(bsl::move(original.d_adminCount))
+QueueHandleParameters::QueueHandleParameters(QueueHandleParameters &&
+                                             original) noexcept
+: d_flags(bsl::move(original.d_flags)),
+  d_uri(bsl::move(original.d_uri)),
+  d_subIdInfo(bsl::move(original.d_subIdInfo)),
+  d_qId(bsl::move(original.d_qId)),
+  d_readCount(bsl::move(original.d_readCount)),
+  d_writeCount(bsl::move(original.d_writeCount)),
+  d_adminCount(bsl::move(original.d_adminCount))
 {
 }
 
@@ -6053,13 +6443,11 @@ QueueInfo::QueueInfo(const QueueInfo&  original,
 : d_key(original.d_key, basicAllocator)
 , d_appIds(original.d_appIds, basicAllocator)
 , d_uri(original.d_uri, basicAllocator)
-, d_partitionId(original.d_partitionId)
-{
-}
+, d_partitionId(original.d_partitionId){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-QueueInfo::QueueInfo(QueueInfo&& original) noexcept
+QueueInfo::QueueInfo(QueueInfo && original) noexcept
 : d_key(bsl::move(original.d_key)),
   d_appIds(bsl::move(original.d_appIds)),
   d_uri(bsl::move(original.d_uri)),
@@ -6235,13 +6623,11 @@ QueueInfoUpdate::QueueInfoUpdate(const QueueInfoUpdate& original,
 , d_removedAppIds(original.d_removedAppIds, basicAllocator)
 , d_uri(original.d_uri, basicAllocator)
 , d_domain(original.d_domain, basicAllocator)
-, d_partitionId(original.d_partitionId)
-{
-}
+, d_partitionId(original.d_partitionId){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-QueueInfoUpdate::QueueInfoUpdate(QueueInfoUpdate&& original) noexcept
+QueueInfoUpdate::QueueInfoUpdate(QueueInfoUpdate && original) noexcept
 : d_key(bsl::move(original.d_key)),
   d_addedAppIds(bsl::move(original.d_addedAppIds)),
   d_removedAppIds(bsl::move(original.d_removedAppIds)),
@@ -6367,22 +6753,22 @@ const bdlat_AttributeInfo QueueStreamParameters::ATTRIBUTE_INFO_ARRAY[] = {
      "maxUnconfirmedMessages",
      sizeof("maxUnconfirmedMessages") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_DEC},
     {ATTRIBUTE_ID_MAX_UNCONFIRMED_BYTES,
      "maxUnconfirmedBytes",
      sizeof("maxUnconfirmedBytes") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_DEC},
     {ATTRIBUTE_ID_CONSUMER_PRIORITY,
      "consumerPriority",
      sizeof("consumerPriority") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_DEC},
     {ATTRIBUTE_ID_CONSUMER_PRIORITY_COUNT,
      "consumerPriorityCount",
      sizeof("consumerPriorityCount") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
+     bdlat_FormattingMode::e_DEC}};
 
 // CLASS METHODS
 
@@ -6437,14 +6823,12 @@ QueueStreamParameters::QueueStreamParameters(
 , d_maxUnconfirmedBytes(original.d_maxUnconfirmedBytes)
 , d_subIdInfo(original.d_subIdInfo, basicAllocator)
 , d_consumerPriority(original.d_consumerPriority)
-, d_consumerPriorityCount(original.d_consumerPriorityCount)
-{
-}
+, d_consumerPriorityCount(original.d_consumerPriorityCount){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-QueueStreamParameters::QueueStreamParameters(
-    QueueStreamParameters&& original) noexcept
+QueueStreamParameters::QueueStreamParameters(QueueStreamParameters &&
+                                             original) noexcept
 : d_maxUnconfirmedMessages(bsl::move(original.d_maxUnconfirmedMessages)),
   d_maxUnconfirmedBytes(bsl::move(original.d_maxUnconfirmedBytes)),
   d_subIdInfo(bsl::move(original.d_subIdInfo)),
@@ -6527,6 +6911,635 @@ bsl::ostream& QueueStreamParameters::print(bsl::ostream& stream,
                            this->consumerPriorityCount());
     printer.end();
     return stream;
+}
+
+// -----------------------
+// class RaftMessageChoice
+// -----------------------
+
+// CONSTANTS
+
+const char RaftMessageChoice::CLASS_NAME[] = "RaftMessageChoice";
+
+const bdlat_SelectionInfo RaftMessageChoice::SELECTION_INFO_ARRAY[] = {
+    {SELECTION_ID_REQUEST_VOTE,
+     "requestVote",
+     sizeof("requestVote") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT},
+    {SELECTION_ID_REQUEST_VOTE_RESPONSE,
+     "requestVoteResponse",
+     sizeof("requestVoteResponse") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT},
+    {SELECTION_ID_APPEND_ENTRIES_RESPONSE,
+     "appendEntriesResponse",
+     sizeof("appendEntriesResponse") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT},
+    {SELECTION_ID_INSTALL_SNAPSHOT,
+     "installSnapshot",
+     sizeof("installSnapshot") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT},
+    {SELECTION_ID_INSTALL_SNAPSHOT_RESPONSE,
+     "installSnapshotResponse",
+     sizeof("installSnapshotResponse") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT},
+    {SELECTION_ID_TIMEOUT_NOW,
+     "timeoutNow",
+     sizeof("timeoutNow") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT}};
+
+// CLASS METHODS
+
+const bdlat_SelectionInfo*
+RaftMessageChoice::lookupSelectionInfo(const char* name, int nameLength)
+{
+    for (int i = 0; i < 6; ++i) {
+        const bdlat_SelectionInfo& selectionInfo =
+            RaftMessageChoice::SELECTION_INFO_ARRAY[i];
+
+        if (nameLength == selectionInfo.d_nameLength &&
+            0 == bsl::memcmp(selectionInfo.d_name_p, name, nameLength)) {
+            return &selectionInfo;
+        }
+    }
+
+    return 0;
+}
+
+const bdlat_SelectionInfo* RaftMessageChoice::lookupSelectionInfo(int id)
+{
+    switch (id) {
+    case SELECTION_ID_REQUEST_VOTE:
+        return &SELECTION_INFO_ARRAY[SELECTION_INDEX_REQUEST_VOTE];
+    case SELECTION_ID_REQUEST_VOTE_RESPONSE:
+        return &SELECTION_INFO_ARRAY[SELECTION_INDEX_REQUEST_VOTE_RESPONSE];
+    case SELECTION_ID_APPEND_ENTRIES_RESPONSE:
+        return &SELECTION_INFO_ARRAY[SELECTION_INDEX_APPEND_ENTRIES_RESPONSE];
+    case SELECTION_ID_INSTALL_SNAPSHOT:
+        return &SELECTION_INFO_ARRAY[SELECTION_INDEX_INSTALL_SNAPSHOT];
+    case SELECTION_ID_INSTALL_SNAPSHOT_RESPONSE:
+        return &SELECTION_INFO_ARRAY
+            [SELECTION_INDEX_INSTALL_SNAPSHOT_RESPONSE];
+    case SELECTION_ID_TIMEOUT_NOW:
+        return &SELECTION_INFO_ARRAY[SELECTION_INDEX_TIMEOUT_NOW];
+    default: return 0;
+    }
+}
+
+// CREATORS
+
+RaftMessageChoice::RaftMessageChoice(const RaftMessageChoice& original)
+: d_selectionId(original.d_selectionId)
+{
+    switch (d_selectionId) {
+    case SELECTION_ID_REQUEST_VOTE: {
+        new (d_requestVote.buffer())
+            RaftRequestVote(original.d_requestVote.object());
+    } break;
+    case SELECTION_ID_REQUEST_VOTE_RESPONSE: {
+        new (d_requestVoteResponse.buffer())
+            RaftRequestVoteResponse(original.d_requestVoteResponse.object());
+    } break;
+    case SELECTION_ID_APPEND_ENTRIES_RESPONSE: {
+        new (d_appendEntriesResponse.buffer()) RaftAppendEntriesResponse(
+            original.d_appendEntriesResponse.object());
+    } break;
+    case SELECTION_ID_INSTALL_SNAPSHOT: {
+        new (d_installSnapshot.buffer())
+            RaftInstallSnapshot(original.d_installSnapshot.object());
+    } break;
+    case SELECTION_ID_INSTALL_SNAPSHOT_RESPONSE: {
+        new (d_installSnapshotResponse.buffer()) RaftInstallSnapshotResponse(
+            original.d_installSnapshotResponse.object());
+    } break;
+    case SELECTION_ID_TIMEOUT_NOW: {
+        new (d_timeoutNow.buffer())
+            RaftTimeoutNow(original.d_timeoutNow.object());
+    } break;
+    default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
+    }
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+RaftMessageChoice::RaftMessageChoice(RaftMessageChoice&& original) noexcept
+: d_selectionId(original.d_selectionId)
+{
+    switch (d_selectionId) {
+    case SELECTION_ID_REQUEST_VOTE: {
+        new (d_requestVote.buffer())
+            RaftRequestVote(bsl::move(original.d_requestVote.object()));
+    } break;
+    case SELECTION_ID_REQUEST_VOTE_RESPONSE: {
+        new (d_requestVoteResponse.buffer()) RaftRequestVoteResponse(
+            bsl::move(original.d_requestVoteResponse.object()));
+    } break;
+    case SELECTION_ID_APPEND_ENTRIES_RESPONSE: {
+        new (d_appendEntriesResponse.buffer()) RaftAppendEntriesResponse(
+            bsl::move(original.d_appendEntriesResponse.object()));
+    } break;
+    case SELECTION_ID_INSTALL_SNAPSHOT: {
+        new (d_installSnapshot.buffer()) RaftInstallSnapshot(
+            bsl::move(original.d_installSnapshot.object()));
+    } break;
+    case SELECTION_ID_INSTALL_SNAPSHOT_RESPONSE: {
+        new (d_installSnapshotResponse.buffer()) RaftInstallSnapshotResponse(
+            bsl::move(original.d_installSnapshotResponse.object()));
+    } break;
+    case SELECTION_ID_TIMEOUT_NOW: {
+        new (d_timeoutNow.buffer())
+            RaftTimeoutNow(bsl::move(original.d_timeoutNow.object()));
+    } break;
+    default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
+    }
+}
+#endif
+
+// MANIPULATORS
+
+RaftMessageChoice& RaftMessageChoice::operator=(const RaftMessageChoice& rhs)
+{
+    if (this != &rhs) {
+        switch (rhs.d_selectionId) {
+        case SELECTION_ID_REQUEST_VOTE: {
+            makeRequestVote(rhs.d_requestVote.object());
+        } break;
+        case SELECTION_ID_REQUEST_VOTE_RESPONSE: {
+            makeRequestVoteResponse(rhs.d_requestVoteResponse.object());
+        } break;
+        case SELECTION_ID_APPEND_ENTRIES_RESPONSE: {
+            makeAppendEntriesResponse(rhs.d_appendEntriesResponse.object());
+        } break;
+        case SELECTION_ID_INSTALL_SNAPSHOT: {
+            makeInstallSnapshot(rhs.d_installSnapshot.object());
+        } break;
+        case SELECTION_ID_INSTALL_SNAPSHOT_RESPONSE: {
+            makeInstallSnapshotResponse(
+                rhs.d_installSnapshotResponse.object());
+        } break;
+        case SELECTION_ID_TIMEOUT_NOW: {
+            makeTimeoutNow(rhs.d_timeoutNow.object());
+        } break;
+        default:
+            BSLS_ASSERT(SELECTION_ID_UNDEFINED == rhs.d_selectionId);
+            reset();
+        }
+    }
+
+    return *this;
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+RaftMessageChoice& RaftMessageChoice::operator=(RaftMessageChoice&& rhs)
+{
+    if (this != &rhs) {
+        switch (rhs.d_selectionId) {
+        case SELECTION_ID_REQUEST_VOTE: {
+            makeRequestVote(bsl::move(rhs.d_requestVote.object()));
+        } break;
+        case SELECTION_ID_REQUEST_VOTE_RESPONSE: {
+            makeRequestVoteResponse(
+                bsl::move(rhs.d_requestVoteResponse.object()));
+        } break;
+        case SELECTION_ID_APPEND_ENTRIES_RESPONSE: {
+            makeAppendEntriesResponse(
+                bsl::move(rhs.d_appendEntriesResponse.object()));
+        } break;
+        case SELECTION_ID_INSTALL_SNAPSHOT: {
+            makeInstallSnapshot(bsl::move(rhs.d_installSnapshot.object()));
+        } break;
+        case SELECTION_ID_INSTALL_SNAPSHOT_RESPONSE: {
+            makeInstallSnapshotResponse(
+                bsl::move(rhs.d_installSnapshotResponse.object()));
+        } break;
+        case SELECTION_ID_TIMEOUT_NOW: {
+            makeTimeoutNow(bsl::move(rhs.d_timeoutNow.object()));
+        } break;
+        default:
+            BSLS_ASSERT(SELECTION_ID_UNDEFINED == rhs.d_selectionId);
+            reset();
+        }
+    }
+
+    return *this;
+}
+#endif
+
+void RaftMessageChoice::reset()
+{
+    switch (d_selectionId) {
+    case SELECTION_ID_REQUEST_VOTE: {
+        d_requestVote.object().~RaftRequestVote();
+    } break;
+    case SELECTION_ID_REQUEST_VOTE_RESPONSE: {
+        d_requestVoteResponse.object().~RaftRequestVoteResponse();
+    } break;
+    case SELECTION_ID_APPEND_ENTRIES_RESPONSE: {
+        d_appendEntriesResponse.object().~RaftAppendEntriesResponse();
+    } break;
+    case SELECTION_ID_INSTALL_SNAPSHOT: {
+        d_installSnapshot.object().~RaftInstallSnapshot();
+    } break;
+    case SELECTION_ID_INSTALL_SNAPSHOT_RESPONSE: {
+        d_installSnapshotResponse.object().~RaftInstallSnapshotResponse();
+    } break;
+    case SELECTION_ID_TIMEOUT_NOW: {
+        d_timeoutNow.object().~RaftTimeoutNow();
+    } break;
+    default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
+    }
+
+    d_selectionId = SELECTION_ID_UNDEFINED;
+}
+
+int RaftMessageChoice::makeSelection(int selectionId)
+{
+    switch (selectionId) {
+    case SELECTION_ID_REQUEST_VOTE: {
+        makeRequestVote();
+    } break;
+    case SELECTION_ID_REQUEST_VOTE_RESPONSE: {
+        makeRequestVoteResponse();
+    } break;
+    case SELECTION_ID_APPEND_ENTRIES_RESPONSE: {
+        makeAppendEntriesResponse();
+    } break;
+    case SELECTION_ID_INSTALL_SNAPSHOT: {
+        makeInstallSnapshot();
+    } break;
+    case SELECTION_ID_INSTALL_SNAPSHOT_RESPONSE: {
+        makeInstallSnapshotResponse();
+    } break;
+    case SELECTION_ID_TIMEOUT_NOW: {
+        makeTimeoutNow();
+    } break;
+    case SELECTION_ID_UNDEFINED: {
+        reset();
+    } break;
+    default: return -1;
+    }
+    return 0;
+}
+
+int RaftMessageChoice::makeSelection(const char* name, int nameLength)
+{
+    const bdlat_SelectionInfo* selectionInfo = lookupSelectionInfo(name,
+                                                                   nameLength);
+    if (0 == selectionInfo) {
+        return -1;
+    }
+
+    return makeSelection(selectionInfo->d_id);
+}
+
+RaftRequestVote& RaftMessageChoice::makeRequestVote()
+{
+    if (SELECTION_ID_REQUEST_VOTE == d_selectionId) {
+        bdlat_ValueTypeFunctions::reset(&d_requestVote.object());
+    }
+    else {
+        reset();
+        new (d_requestVote.buffer()) RaftRequestVote();
+        d_selectionId = SELECTION_ID_REQUEST_VOTE;
+    }
+
+    return d_requestVote.object();
+}
+
+RaftRequestVote&
+RaftMessageChoice::makeRequestVote(const RaftRequestVote& value)
+{
+    if (SELECTION_ID_REQUEST_VOTE == d_selectionId) {
+        d_requestVote.object() = value;
+    }
+    else {
+        reset();
+        new (d_requestVote.buffer()) RaftRequestVote(value);
+        d_selectionId = SELECTION_ID_REQUEST_VOTE;
+    }
+
+    return d_requestVote.object();
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+RaftRequestVote& RaftMessageChoice::makeRequestVote(RaftRequestVote&& value)
+{
+    if (SELECTION_ID_REQUEST_VOTE == d_selectionId) {
+        d_requestVote.object() = bsl::move(value);
+    }
+    else {
+        reset();
+        new (d_requestVote.buffer()) RaftRequestVote(bsl::move(value));
+        d_selectionId = SELECTION_ID_REQUEST_VOTE;
+    }
+
+    return d_requestVote.object();
+}
+#endif
+
+RaftRequestVoteResponse& RaftMessageChoice::makeRequestVoteResponse()
+{
+    if (SELECTION_ID_REQUEST_VOTE_RESPONSE == d_selectionId) {
+        bdlat_ValueTypeFunctions::reset(&d_requestVoteResponse.object());
+    }
+    else {
+        reset();
+        new (d_requestVoteResponse.buffer()) RaftRequestVoteResponse();
+        d_selectionId = SELECTION_ID_REQUEST_VOTE_RESPONSE;
+    }
+
+    return d_requestVoteResponse.object();
+}
+
+RaftRequestVoteResponse& RaftMessageChoice::makeRequestVoteResponse(
+    const RaftRequestVoteResponse& value)
+{
+    if (SELECTION_ID_REQUEST_VOTE_RESPONSE == d_selectionId) {
+        d_requestVoteResponse.object() = value;
+    }
+    else {
+        reset();
+        new (d_requestVoteResponse.buffer()) RaftRequestVoteResponse(value);
+        d_selectionId = SELECTION_ID_REQUEST_VOTE_RESPONSE;
+    }
+
+    return d_requestVoteResponse.object();
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+RaftRequestVoteResponse&
+RaftMessageChoice::makeRequestVoteResponse(RaftRequestVoteResponse&& value)
+{
+    if (SELECTION_ID_REQUEST_VOTE_RESPONSE == d_selectionId) {
+        d_requestVoteResponse.object() = bsl::move(value);
+    }
+    else {
+        reset();
+        new (d_requestVoteResponse.buffer())
+            RaftRequestVoteResponse(bsl::move(value));
+        d_selectionId = SELECTION_ID_REQUEST_VOTE_RESPONSE;
+    }
+
+    return d_requestVoteResponse.object();
+}
+#endif
+
+RaftAppendEntriesResponse& RaftMessageChoice::makeAppendEntriesResponse()
+{
+    if (SELECTION_ID_APPEND_ENTRIES_RESPONSE == d_selectionId) {
+        bdlat_ValueTypeFunctions::reset(&d_appendEntriesResponse.object());
+    }
+    else {
+        reset();
+        new (d_appendEntriesResponse.buffer()) RaftAppendEntriesResponse();
+        d_selectionId = SELECTION_ID_APPEND_ENTRIES_RESPONSE;
+    }
+
+    return d_appendEntriesResponse.object();
+}
+
+RaftAppendEntriesResponse& RaftMessageChoice::makeAppendEntriesResponse(
+    const RaftAppendEntriesResponse& value)
+{
+    if (SELECTION_ID_APPEND_ENTRIES_RESPONSE == d_selectionId) {
+        d_appendEntriesResponse.object() = value;
+    }
+    else {
+        reset();
+        new (d_appendEntriesResponse.buffer())
+            RaftAppendEntriesResponse(value);
+        d_selectionId = SELECTION_ID_APPEND_ENTRIES_RESPONSE;
+    }
+
+    return d_appendEntriesResponse.object();
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+RaftAppendEntriesResponse&
+RaftMessageChoice::makeAppendEntriesResponse(RaftAppendEntriesResponse&& value)
+{
+    if (SELECTION_ID_APPEND_ENTRIES_RESPONSE == d_selectionId) {
+        d_appendEntriesResponse.object() = bsl::move(value);
+    }
+    else {
+        reset();
+        new (d_appendEntriesResponse.buffer())
+            RaftAppendEntriesResponse(bsl::move(value));
+        d_selectionId = SELECTION_ID_APPEND_ENTRIES_RESPONSE;
+    }
+
+    return d_appendEntriesResponse.object();
+}
+#endif
+
+RaftInstallSnapshot& RaftMessageChoice::makeInstallSnapshot()
+{
+    if (SELECTION_ID_INSTALL_SNAPSHOT == d_selectionId) {
+        bdlat_ValueTypeFunctions::reset(&d_installSnapshot.object());
+    }
+    else {
+        reset();
+        new (d_installSnapshot.buffer()) RaftInstallSnapshot();
+        d_selectionId = SELECTION_ID_INSTALL_SNAPSHOT;
+    }
+
+    return d_installSnapshot.object();
+}
+
+RaftInstallSnapshot&
+RaftMessageChoice::makeInstallSnapshot(const RaftInstallSnapshot& value)
+{
+    if (SELECTION_ID_INSTALL_SNAPSHOT == d_selectionId) {
+        d_installSnapshot.object() = value;
+    }
+    else {
+        reset();
+        new (d_installSnapshot.buffer()) RaftInstallSnapshot(value);
+        d_selectionId = SELECTION_ID_INSTALL_SNAPSHOT;
+    }
+
+    return d_installSnapshot.object();
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+RaftInstallSnapshot&
+RaftMessageChoice::makeInstallSnapshot(RaftInstallSnapshot&& value)
+{
+    if (SELECTION_ID_INSTALL_SNAPSHOT == d_selectionId) {
+        d_installSnapshot.object() = bsl::move(value);
+    }
+    else {
+        reset();
+        new (d_installSnapshot.buffer()) RaftInstallSnapshot(bsl::move(value));
+        d_selectionId = SELECTION_ID_INSTALL_SNAPSHOT;
+    }
+
+    return d_installSnapshot.object();
+}
+#endif
+
+RaftInstallSnapshotResponse& RaftMessageChoice::makeInstallSnapshotResponse()
+{
+    if (SELECTION_ID_INSTALL_SNAPSHOT_RESPONSE == d_selectionId) {
+        bdlat_ValueTypeFunctions::reset(&d_installSnapshotResponse.object());
+    }
+    else {
+        reset();
+        new (d_installSnapshotResponse.buffer()) RaftInstallSnapshotResponse();
+        d_selectionId = SELECTION_ID_INSTALL_SNAPSHOT_RESPONSE;
+    }
+
+    return d_installSnapshotResponse.object();
+}
+
+RaftInstallSnapshotResponse& RaftMessageChoice::makeInstallSnapshotResponse(
+    const RaftInstallSnapshotResponse& value)
+{
+    if (SELECTION_ID_INSTALL_SNAPSHOT_RESPONSE == d_selectionId) {
+        d_installSnapshotResponse.object() = value;
+    }
+    else {
+        reset();
+        new (d_installSnapshotResponse.buffer())
+            RaftInstallSnapshotResponse(value);
+        d_selectionId = SELECTION_ID_INSTALL_SNAPSHOT_RESPONSE;
+    }
+
+    return d_installSnapshotResponse.object();
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+RaftInstallSnapshotResponse& RaftMessageChoice::makeInstallSnapshotResponse(
+    RaftInstallSnapshotResponse&& value)
+{
+    if (SELECTION_ID_INSTALL_SNAPSHOT_RESPONSE == d_selectionId) {
+        d_installSnapshotResponse.object() = bsl::move(value);
+    }
+    else {
+        reset();
+        new (d_installSnapshotResponse.buffer())
+            RaftInstallSnapshotResponse(bsl::move(value));
+        d_selectionId = SELECTION_ID_INSTALL_SNAPSHOT_RESPONSE;
+    }
+
+    return d_installSnapshotResponse.object();
+}
+#endif
+
+RaftTimeoutNow& RaftMessageChoice::makeTimeoutNow()
+{
+    if (SELECTION_ID_TIMEOUT_NOW == d_selectionId) {
+        bdlat_ValueTypeFunctions::reset(&d_timeoutNow.object());
+    }
+    else {
+        reset();
+        new (d_timeoutNow.buffer()) RaftTimeoutNow();
+        d_selectionId = SELECTION_ID_TIMEOUT_NOW;
+    }
+
+    return d_timeoutNow.object();
+}
+
+RaftTimeoutNow& RaftMessageChoice::makeTimeoutNow(const RaftTimeoutNow& value)
+{
+    if (SELECTION_ID_TIMEOUT_NOW == d_selectionId) {
+        d_timeoutNow.object() = value;
+    }
+    else {
+        reset();
+        new (d_timeoutNow.buffer()) RaftTimeoutNow(value);
+        d_selectionId = SELECTION_ID_TIMEOUT_NOW;
+    }
+
+    return d_timeoutNow.object();
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+RaftTimeoutNow& RaftMessageChoice::makeTimeoutNow(RaftTimeoutNow&& value)
+{
+    if (SELECTION_ID_TIMEOUT_NOW == d_selectionId) {
+        d_timeoutNow.object() = bsl::move(value);
+    }
+    else {
+        reset();
+        new (d_timeoutNow.buffer()) RaftTimeoutNow(bsl::move(value));
+        d_selectionId = SELECTION_ID_TIMEOUT_NOW;
+    }
+
+    return d_timeoutNow.object();
+}
+#endif
+
+// ACCESSORS
+
+bsl::ostream& RaftMessageChoice::print(bsl::ostream& stream,
+                                       int           level,
+                                       int           spacesPerLevel) const
+{
+    bslim::Printer printer(&stream, level, spacesPerLevel);
+    printer.start();
+    switch (d_selectionId) {
+    case SELECTION_ID_REQUEST_VOTE: {
+        printer.printAttribute("requestVote", d_requestVote.object());
+    } break;
+    case SELECTION_ID_REQUEST_VOTE_RESPONSE: {
+        printer.printAttribute("requestVoteResponse",
+                               d_requestVoteResponse.object());
+    } break;
+    case SELECTION_ID_APPEND_ENTRIES_RESPONSE: {
+        printer.printAttribute("appendEntriesResponse",
+                               d_appendEntriesResponse.object());
+    } break;
+    case SELECTION_ID_INSTALL_SNAPSHOT: {
+        printer.printAttribute("installSnapshot", d_installSnapshot.object());
+    } break;
+    case SELECTION_ID_INSTALL_SNAPSHOT_RESPONSE: {
+        printer.printAttribute("installSnapshotResponse",
+                               d_installSnapshotResponse.object());
+    } break;
+    case SELECTION_ID_TIMEOUT_NOW: {
+        printer.printAttribute("timeoutNow", d_timeoutNow.object());
+    } break;
+    default: stream << "SELECTION UNDEFINED\n";
+    }
+    printer.end();
+    return stream;
+}
+
+const char* RaftMessageChoice::selectionName() const
+{
+    switch (d_selectionId) {
+    case SELECTION_ID_REQUEST_VOTE:
+        return SELECTION_INFO_ARRAY[SELECTION_INDEX_REQUEST_VOTE].name();
+    case SELECTION_ID_REQUEST_VOTE_RESPONSE:
+        return SELECTION_INFO_ARRAY[SELECTION_INDEX_REQUEST_VOTE_RESPONSE]
+            .name();
+    case SELECTION_ID_APPEND_ENTRIES_RESPONSE:
+        return SELECTION_INFO_ARRAY[SELECTION_INDEX_APPEND_ENTRIES_RESPONSE]
+            .name();
+    case SELECTION_ID_INSTALL_SNAPSHOT:
+        return SELECTION_INFO_ARRAY[SELECTION_INDEX_INSTALL_SNAPSHOT].name();
+    case SELECTION_ID_INSTALL_SNAPSHOT_RESPONSE:
+        return SELECTION_INFO_ARRAY[SELECTION_INDEX_INSTALL_SNAPSHOT_RESPONSE]
+            .name();
+    case SELECTION_ID_TIMEOUT_NOW:
+        return SELECTION_INFO_ARRAY[SELECTION_INDEX_TIMEOUT_NOW].name();
+    default:
+        BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
+        return "(* UNDEFINED *)";
+    }
 }
 
 // -------------------------
@@ -7252,7 +8265,7 @@ const bdlat_AttributeInfo Status::ATTRIBUTE_INFO_ARRAY[] = {
      "message",
      sizeof("message") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE}};
+     bdlat_FormattingMode::e_TEXT}};
 
 // CLASS METHODS
 
@@ -7296,13 +8309,11 @@ Status::Status(bslma::Allocator* basicAllocator)
 Status::Status(const Status& original, bslma::Allocator* basicAllocator)
 : d_message(original.d_message, basicAllocator)
 , d_code(original.d_code)
-, d_category(original.d_category)
-{
-}
+, d_category(original.d_category){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-Status::Status(Status&& original) noexcept
+Status::Status(Status && original) noexcept
 : d_message(bsl::move(original.d_message)),
   d_code(bsl::move(original.d_code)),
   d_category(bsl::move(original.d_category))
@@ -7611,14 +8622,12 @@ AuthenticationResponse::AuthenticationResponse(
     const AuthenticationResponse& original,
     bslma::Allocator*             basicAllocator)
 : d_lifetimeMs(original.d_lifetimeMs)
-, d_status(original.d_status, basicAllocator)
-{
-}
+, d_status(original.d_status, basicAllocator){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-AuthenticationResponse::AuthenticationResponse(
-    AuthenticationResponse&& original) noexcept
+AuthenticationResponse::AuthenticationResponse(AuthenticationResponse &&
+                                               original) noexcept
 : d_lifetimeMs(bsl::move(original.d_lifetimeMs)),
   d_status(bsl::move(original.d_status))
 {
@@ -7718,7 +8727,7 @@ const bdlat_AttributeInfo BrokerResponse::ATTRIBUTE_INFO_ARRAY[] = {
      "isDeprecatedSdk",
      sizeof("isDeprecatedSdk") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_TEXT},
     {ATTRIBUTE_ID_BROKER_IDENTITY,
      "brokerIdentity",
      sizeof("brokerIdentity") - 1,
@@ -7728,12 +8737,12 @@ const bdlat_AttributeInfo BrokerResponse::ATTRIBUTE_INFO_ARRAY[] = {
      "heartbeatIntervalMs",
      sizeof("heartbeatIntervalMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_DEC},
     {ATTRIBUTE_ID_MAX_MISSED_HEARTBEATS,
      "maxMissedHeartbeats",
      sizeof("maxMissedHeartbeats") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
+     bdlat_FormattingMode::e_DEC}};
 
 // CLASS METHODS
 
@@ -7795,13 +8804,11 @@ BrokerResponse::BrokerResponse(const BrokerResponse& original,
 , d_brokerVersion(original.d_brokerVersion)
 , d_heartbeatIntervalMs(original.d_heartbeatIntervalMs)
 , d_maxMissedHeartbeats(original.d_maxMissedHeartbeats)
-, d_isDeprecatedSdk(original.d_isDeprecatedSdk)
-{
-}
+, d_isDeprecatedSdk(original.d_isDeprecatedSdk){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-BrokerResponse::BrokerResponse(BrokerResponse&& original) noexcept
+BrokerResponse::BrokerResponse(BrokerResponse && original) noexcept
 : d_result(bsl::move(original.d_result)),
   d_brokerIdentity(bsl::move(original.d_brokerIdentity)),
   d_protocolVersion(bsl::move(original.d_protocolVersion)),
@@ -7914,7 +8921,7 @@ const bdlat_AttributeInfo CloseQueue::ATTRIBUTE_INFO_ARRAY[] = {
      "isFinal",
      sizeof("isFinal") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE}};
+     bdlat_FormattingMode::e_TEXT}};
 
 // CLASS METHODS
 
@@ -7956,13 +8963,11 @@ CloseQueue::CloseQueue(bslma::Allocator* basicAllocator)
 CloseQueue::CloseQueue(const CloseQueue& original,
                        bslma::Allocator* basicAllocator)
 : d_handleParameters(original.d_handleParameters, basicAllocator)
-, d_isFinal(original.d_isFinal)
-{
-}
+, d_isFinal(original.d_isFinal){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-CloseQueue::CloseQueue(CloseQueue&& original) noexcept
+CloseQueue::CloseQueue(CloseQueue && original) noexcept
 : d_handleParameters(bsl::move(original.d_handleParameters)),
   d_isFinal(bsl::move(original.d_isFinal))
 {
@@ -8083,15 +9088,14 @@ ConfigureQueueStream::ConfigureQueueStream(
     const ConfigureQueueStream& original,
     bslma::Allocator*           basicAllocator)
 : d_streamParameters(original.d_streamParameters, basicAllocator)
-, d_qId(original.d_qId)
-{
-}
+, d_qId(original.d_qId){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ConfigureQueueStream::ConfigureQueueStream(ConfigureQueueStream&& original)
-    noexcept : d_streamParameters(bsl::move(original.d_streamParameters)),
-               d_qId(bsl::move(original.d_qId))
+ConfigureQueueStream::ConfigureQueueStream(ConfigureQueueStream &&
+                                           original) noexcept
+: d_streamParameters(bsl::move(original.d_streamParameters)),
+  d_qId(bsl::move(original.d_qId))
 {
 }
 
@@ -8339,13 +9343,11 @@ LeaderAdvisory::LeaderAdvisory(const LeaderAdvisory& original,
                                bslma::Allocator*     basicAllocator)
 : d_queues(original.d_queues, basicAllocator)
 , d_partitions(original.d_partitions, basicAllocator)
-, d_sequenceNumber(original.d_sequenceNumber)
-{
-}
+, d_sequenceNumber(original.d_sequenceNumber){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-LeaderAdvisory::LeaderAdvisory(LeaderAdvisory&& original) noexcept
+LeaderAdvisory::LeaderAdvisory(LeaderAdvisory && original) noexcept
 : d_queues(bsl::move(original.d_queues)),
   d_partitions(bsl::move(original.d_partitions)),
   d_sequenceNumber(bsl::move(original.d_sequenceNumber))
@@ -8465,13 +9467,11 @@ OpenQueue::OpenQueue(bslma::Allocator* basicAllocator)
 
 OpenQueue::OpenQueue(const OpenQueue&  original,
                      bslma::Allocator* basicAllocator)
-: d_handleParameters(original.d_handleParameters, basicAllocator)
-{
-}
+: d_handleParameters(original.d_handleParameters, basicAllocator){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-OpenQueue::OpenQueue(OpenQueue&& original) noexcept
+OpenQueue::OpenQueue(OpenQueue && original) noexcept
 : d_handleParameters(bsl::move(original.d_handleParameters))
 {
 }
@@ -9357,14 +10357,12 @@ PartitionSyncDataQueryStatus::PartitionSyncDataQueryStatus(
     const PartitionSyncDataQueryStatus& original,
     bslma::Allocator*                   basicAllocator)
 : d_status(original.d_status, basicAllocator)
-, d_partitionId(original.d_partitionId)
-{
-}
+, d_partitionId(original.d_partitionId){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
 PartitionSyncDataQueryStatus::PartitionSyncDataQueryStatus(
-    PartitionSyncDataQueryStatus&& original) noexcept
+    PartitionSyncDataQueryStatus && original) noexcept
 : d_status(bsl::move(original.d_status)),
   d_partitionId(bsl::move(original.d_partitionId))
 {
@@ -9597,14 +10595,12 @@ QueueAssignmentAdvisory::QueueAssignmentAdvisory(
     const QueueAssignmentAdvisory& original,
     bslma::Allocator*              basicAllocator)
 : d_queues(original.d_queues, basicAllocator)
-, d_sequenceNumber(original.d_sequenceNumber)
-{
-}
+, d_sequenceNumber(original.d_sequenceNumber){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-QueueAssignmentAdvisory::QueueAssignmentAdvisory(
-    QueueAssignmentAdvisory&& original) noexcept
+QueueAssignmentAdvisory::QueueAssignmentAdvisory(QueueAssignmentAdvisory &&
+                                                 original) noexcept
 : d_queues(bsl::move(original.d_queues)),
   d_sequenceNumber(bsl::move(original.d_sequenceNumber))
 {
@@ -9762,14 +10758,12 @@ QueueUnAssignmentAdvisory::QueueUnAssignmentAdvisory(
 , d_sequenceNumber(original.d_sequenceNumber)
 , d_primaryLeaseId(original.d_primaryLeaseId)
 , d_partitionId(original.d_partitionId)
-, d_primaryNodeId(original.d_primaryNodeId)
-{
-}
+, d_primaryNodeId(original.d_primaryNodeId){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
 QueueUnAssignmentAdvisory::QueueUnAssignmentAdvisory(
-    QueueUnAssignmentAdvisory&& original) noexcept
+    QueueUnAssignmentAdvisory && original) noexcept
 : d_queues(bsl::move(original.d_queues)),
   d_sequenceNumber(bsl::move(original.d_sequenceNumber)),
   d_primaryLeaseId(bsl::move(original.d_primaryLeaseId)),
@@ -9913,15 +10907,14 @@ QueueUpdateAdvisory::QueueUpdateAdvisory(bslma::Allocator* basicAllocator)
 QueueUpdateAdvisory::QueueUpdateAdvisory(const QueueUpdateAdvisory& original,
                                          bslma::Allocator* basicAllocator)
 : d_queueUpdates(original.d_queueUpdates, basicAllocator)
-, d_sequenceNumber(original.d_sequenceNumber)
-{
-}
+, d_sequenceNumber(original.d_sequenceNumber){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-QueueUpdateAdvisory::QueueUpdateAdvisory(QueueUpdateAdvisory&& original)
-    noexcept : d_queueUpdates(bsl::move(original.d_queueUpdates)),
-               d_sequenceNumber(bsl::move(original.d_sequenceNumber))
+QueueUpdateAdvisory::QueueUpdateAdvisory(QueueUpdateAdvisory &&
+                                         original) noexcept
+: d_queueUpdates(bsl::move(original.d_queueUpdates)),
+  d_sequenceNumber(bsl::move(original.d_sequenceNumber))
 {
 }
 
@@ -9979,6 +10972,113 @@ bsl::ostream& QueueUpdateAdvisory::print(bsl::ostream& stream,
     printer.start();
     printer.printAttribute("sequenceNumber", this->sequenceNumber());
     printer.printAttribute("queueUpdates", this->queueUpdates());
+    printer.end();
+    return stream;
+}
+
+// -----------------
+// class RaftMessage
+// -----------------
+
+// CONSTANTS
+
+const char RaftMessage::CLASS_NAME[] = "RaftMessage";
+
+const bdlat_AttributeInfo RaftMessage::ATTRIBUTE_INFO_ARRAY[] = {
+    {ATTRIBUTE_ID_TERM,
+     "term",
+     sizeof("term") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC},
+    {ATTRIBUTE_ID_CHOICE,
+     "Choice",
+     sizeof("Choice") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT | bdlat_FormattingMode::e_UNTAGGED}};
+
+// CLASS METHODS
+
+const bdlat_AttributeInfo* RaftMessage::lookupAttributeInfo(const char* name,
+                                                            int nameLength)
+{
+    if (bdlb::String::areEqualCaseless("requestVote", name, nameLength)) {
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CHOICE];
+    }
+
+    if (bdlb::String::areEqualCaseless("requestVoteResponse",
+                                       name,
+                                       nameLength)) {
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CHOICE];
+    }
+
+    if (bdlb::String::areEqualCaseless("appendEntriesResponse",
+                                       name,
+                                       nameLength)) {
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CHOICE];
+    }
+
+    if (bdlb::String::areEqualCaseless("installSnapshot", name, nameLength)) {
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CHOICE];
+    }
+
+    if (bdlb::String::areEqualCaseless("installSnapshotResponse",
+                                       name,
+                                       nameLength)) {
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CHOICE];
+    }
+
+    if (bdlb::String::areEqualCaseless("timeoutNow", name, nameLength)) {
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CHOICE];
+    }
+
+    for (int i = 0; i < 2; ++i) {
+        const bdlat_AttributeInfo& attributeInfo =
+            RaftMessage::ATTRIBUTE_INFO_ARRAY[i];
+
+        if (nameLength == attributeInfo.d_nameLength &&
+            0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength)) {
+            return &attributeInfo;
+        }
+    }
+
+    return 0;
+}
+
+const bdlat_AttributeInfo* RaftMessage::lookupAttributeInfo(int id)
+{
+    switch (id) {
+    case ATTRIBUTE_ID_TERM: return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TERM];
+    case ATTRIBUTE_ID_CHOICE:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CHOICE];
+    default: return 0;
+    }
+}
+
+// CREATORS
+
+RaftMessage::RaftMessage()
+: d_term()
+, d_choice()
+{
+}
+
+// MANIPULATORS
+
+void RaftMessage::reset()
+{
+    bdlat_ValueTypeFunctions::reset(&d_term);
+    bdlat_ValueTypeFunctions::reset(&d_choice);
+}
+
+// ACCESSORS
+
+bsl::ostream&
+RaftMessage::print(bsl::ostream& stream, int level, int spacesPerLevel) const
+{
+    bslim::Printer printer(&stream, level, spacesPerLevel);
+    printer.start();
+    printer.printAttribute("term", this->term());
+    printer.printAttribute("choice", this->choice());
     printer.end();
     return stream;
 }
@@ -10217,13 +11317,11 @@ Subscription::Subscription(const Subscription& original,
                            bslma::Allocator*   basicAllocator)
 : d_consumers(original.d_consumers, basicAllocator)
 , d_expression(original.d_expression, basicAllocator)
-, d_sId(original.d_sId)
-{
-}
+, d_sId(original.d_sId){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-Subscription::Subscription(Subscription&& original) noexcept
+Subscription::Subscription(Subscription && original) noexcept
 : d_consumers(bsl::move(original.d_consumers)),
   d_expression(bsl::move(original.d_expression)),
   d_sId(bsl::move(original.d_sId))
@@ -10690,14 +11788,12 @@ ConfigureQueueStreamResponse::ConfigureQueueStreamResponse(
 ConfigureQueueStreamResponse::ConfigureQueueStreamResponse(
     const ConfigureQueueStreamResponse& original,
     bslma::Allocator*                   basicAllocator)
-: d_request(original.d_request, basicAllocator)
-{
-}
+: d_request(original.d_request, basicAllocator){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
 ConfigureQueueStreamResponse::ConfigureQueueStreamResponse(
-    ConfigureQueueStreamResponse&& original) noexcept
+    ConfigureQueueStreamResponse && original) noexcept
 : d_request(bsl::move(original.d_request))
 {
 }
@@ -10814,14 +11910,12 @@ FollowerClusterStateResponse::FollowerClusterStateResponse(
 FollowerClusterStateResponse::FollowerClusterStateResponse(
     const FollowerClusterStateResponse& original,
     bslma::Allocator*                   basicAllocator)
-: d_clusterStateSnapshot(original.d_clusterStateSnapshot, basicAllocator)
-{
-}
+: d_clusterStateSnapshot(original.d_clusterStateSnapshot, basicAllocator){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
 FollowerClusterStateResponse::FollowerClusterStateResponse(
-    FollowerClusterStateResponse&& original) noexcept
+    FollowerClusterStateResponse && original) noexcept
 : d_clusterStateSnapshot(bsl::move(original.d_clusterStateSnapshot))
 {
 }
@@ -10939,14 +12033,12 @@ LeaderSyncDataQueryResponse::LeaderSyncDataQueryResponse(
 LeaderSyncDataQueryResponse::LeaderSyncDataQueryResponse(
     const LeaderSyncDataQueryResponse& original,
     bslma::Allocator*                  basicAllocator)
-: d_leaderSyncData(original.d_leaderSyncData, basicAllocator)
-{
-}
+: d_leaderSyncData(original.d_leaderSyncData, basicAllocator){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
 LeaderSyncDataQueryResponse::LeaderSyncDataQueryResponse(
-    LeaderSyncDataQueryResponse&& original) noexcept
+    LeaderSyncDataQueryResponse && original) noexcept
 : d_leaderSyncData(bsl::move(original.d_leaderSyncData))
 {
 }
@@ -11439,7 +12531,7 @@ const bdlat_AttributeInfo OpenQueueResponse::ATTRIBUTE_INFO_ARRAY[] = {
      "deduplicationTimeMs",
      sizeof("deduplicationTimeMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
+     bdlat_FormattingMode::e_DEC}};
 
 // CLASS METHODS
 
@@ -11485,13 +12577,11 @@ OpenQueueResponse::OpenQueueResponse(const OpenQueueResponse& original,
                                      bslma::Allocator*        basicAllocator)
 : d_routingConfiguration(original.d_routingConfiguration)
 , d_originalRequest(original.d_originalRequest, basicAllocator)
-, d_deduplicationTimeMs(original.d_deduplicationTimeMs)
-{
-}
+, d_deduplicationTimeMs(original.d_deduplicationTimeMs){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-OpenQueueResponse::OpenQueueResponse(OpenQueueResponse&& original) noexcept
+OpenQueueResponse::OpenQueueResponse(OpenQueueResponse && original) noexcept
 : d_routingConfiguration(bsl::move(original.d_routingConfiguration)),
   d_originalRequest(bsl::move(original.d_originalRequest)),
   d_deduplicationTimeMs(bsl::move(original.d_deduplicationTimeMs))
@@ -11681,7 +12771,7 @@ const bdlat_AttributeInfo StreamParameters::ATTRIBUTE_INFO_ARRAY[] = {
      "appId",
      sizeof("appId") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_TEXT},
     {ATTRIBUTE_ID_SUBSCRIPTIONS,
      "subscriptions",
      sizeof("subscriptions") - 1,
@@ -11728,13 +12818,11 @@ StreamParameters::StreamParameters(bslma::Allocator* basicAllocator)
 StreamParameters::StreamParameters(const StreamParameters& original,
                                    bslma::Allocator*       basicAllocator)
 : d_subscriptions(original.d_subscriptions, basicAllocator)
-, d_appId(original.d_appId, basicAllocator)
-{
-}
+, d_appId(original.d_appId, basicAllocator){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-StreamParameters::StreamParameters(StreamParameters&& original) noexcept
+StreamParameters::StreamParameters(StreamParameters && original) noexcept
 : d_subscriptions(bsl::move(original.d_subscriptions)),
   d_appId(bsl::move(original.d_appId))
 {
@@ -12571,13 +13659,11 @@ ConfigureStream::ConfigureStream(bslma::Allocator* basicAllocator)
 ConfigureStream::ConfigureStream(const ConfigureStream& original,
                                  bslma::Allocator*      basicAllocator)
 : d_streamParameters(original.d_streamParameters, basicAllocator)
-, d_qId(original.d_qId)
-{
-}
+, d_qId(original.d_qId){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ConfigureStream::ConfigureStream(ConfigureStream&& original) noexcept
+ConfigureStream::ConfigureStream(ConfigureStream && original) noexcept
 : d_streamParameters(bsl::move(original.d_streamParameters)),
   d_qId(bsl::move(original.d_qId))
 {
@@ -12729,14 +13815,12 @@ ClusterStateFSMMessage::ClusterStateFSMMessage(
 ClusterStateFSMMessage::ClusterStateFSMMessage(
     const ClusterStateFSMMessage& original,
     bslma::Allocator*             basicAllocator)
-: d_choice(original.d_choice, basicAllocator)
-{
-}
+: d_choice(original.d_choice, basicAllocator){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ClusterStateFSMMessage::ClusterStateFSMMessage(
-    ClusterStateFSMMessage&& original) noexcept
+ClusterStateFSMMessage::ClusterStateFSMMessage(ClusterStateFSMMessage &&
+                                               original) noexcept
 : d_choice(bsl::move(original.d_choice))
 {
 }
@@ -12849,14 +13933,12 @@ ConfigureStreamResponse::ConfigureStreamResponse(
 ConfigureStreamResponse::ConfigureStreamResponse(
     const ConfigureStreamResponse& original,
     bslma::Allocator*              basicAllocator)
-: d_request(original.d_request, basicAllocator)
-{
-}
+: d_request(original.d_request, basicAllocator){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ConfigureStreamResponse::ConfigureStreamResponse(
-    ConfigureStreamResponse&& original) noexcept
+ConfigureStreamResponse::ConfigureStreamResponse(ConfigureStreamResponse &&
+                                                 original) noexcept
 : d_request(bsl::move(original.d_request))
 {
 }
@@ -16008,13 +17090,11 @@ ClusterMessage::ClusterMessage(bslma::Allocator* basicAllocator)
 
 ClusterMessage::ClusterMessage(const ClusterMessage& original,
                                bslma::Allocator*     basicAllocator)
-: d_choice(original.d_choice, basicAllocator)
-{
-}
+: d_choice(original.d_choice, basicAllocator){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ClusterMessage::ClusterMessage(ClusterMessage&& original) noexcept
+ClusterMessage::ClusterMessage(ClusterMessage && original) noexcept
 : d_choice(bsl::move(original.d_choice))
 {
 }
@@ -16149,6 +17229,11 @@ const bdlat_SelectionInfo ControlMessageChoice::SELECTION_INFO_ARRAY[] = {
      "configureStreamResponse",
      sizeof("configureStreamResponse") - 1,
      "",
+     bdlat_FormattingMode::e_DEFAULT},
+    {SELECTION_ID_RAFT_MESSAGE,
+     "raftMessage",
+     sizeof("raftMessage") - 1,
+     "",
      bdlat_FormattingMode::e_DEFAULT}};
 
 // CLASS METHODS
@@ -16156,7 +17241,7 @@ const bdlat_SelectionInfo ControlMessageChoice::SELECTION_INFO_ARRAY[] = {
 const bdlat_SelectionInfo*
 ControlMessageChoice::lookupSelectionInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 14; ++i) {
+    for (int i = 0; i < 15; ++i) {
         const bdlat_SelectionInfo& selectionInfo =
             ControlMessageChoice::SELECTION_INFO_ARRAY[i];
 
@@ -16202,6 +17287,8 @@ const bdlat_SelectionInfo* ControlMessageChoice::lookupSelectionInfo(int id)
     case SELECTION_ID_CONFIGURE_STREAM_RESPONSE:
         return &SELECTION_INFO_ARRAY
             [SELECTION_INDEX_CONFIGURE_STREAM_RESPONSE];
+    case SELECTION_ID_RAFT_MESSAGE:
+        return &SELECTION_INFO_ARRAY[SELECTION_INDEX_RAFT_MESSAGE];
     default: return 0;
     }
 }
@@ -16276,6 +17363,10 @@ ControlMessageChoice::ControlMessageChoice(
         new (d_configureStreamResponse.buffer()) ConfigureStreamResponse(
             original.d_configureStreamResponse.object(),
             d_allocator_p);
+    } break;
+    case SELECTION_ID_RAFT_MESSAGE: {
+        new (d_raftMessage.buffer())
+            RaftMessage(original.d_raftMessage.object());
     } break;
     default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
     }
@@ -16354,6 +17445,10 @@ ControlMessageChoice::ControlMessageChoice(ControlMessageChoice&& original)
             bsl::move(original.d_configureStreamResponse.object()),
             d_allocator_p);
     } break;
+    case SELECTION_ID_RAFT_MESSAGE: {
+        new (d_raftMessage.buffer())
+            RaftMessage(bsl::move(original.d_raftMessage.object()));
+    } break;
     default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
     }
 }
@@ -16430,6 +17525,10 @@ ControlMessageChoice::ControlMessageChoice(ControlMessageChoice&& original,
             bsl::move(original.d_configureStreamResponse.object()),
             d_allocator_p);
     } break;
+    case SELECTION_ID_RAFT_MESSAGE: {
+        new (d_raftMessage.buffer())
+            RaftMessage(bsl::move(original.d_raftMessage.object()));
+    } break;
     default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
     }
 }
@@ -16485,6 +17584,9 @@ ControlMessageChoice::operator=(const ControlMessageChoice& rhs)
         case SELECTION_ID_CONFIGURE_STREAM_RESPONSE: {
             makeConfigureStreamResponse(
                 rhs.d_configureStreamResponse.object());
+        } break;
+        case SELECTION_ID_RAFT_MESSAGE: {
+            makeRaftMessage(rhs.d_raftMessage.object());
         } break;
         default:
             BSLS_ASSERT(SELECTION_ID_UNDEFINED == rhs.d_selectionId);
@@ -16550,6 +17652,9 @@ ControlMessageChoice::operator=(ControlMessageChoice&& rhs)
             makeConfigureStreamResponse(
                 bsl::move(rhs.d_configureStreamResponse.object()));
         } break;
+        case SELECTION_ID_RAFT_MESSAGE: {
+            makeRaftMessage(bsl::move(rhs.d_raftMessage.object()));
+        } break;
         default:
             BSLS_ASSERT(SELECTION_ID_UNDEFINED == rhs.d_selectionId);
             reset();
@@ -16606,6 +17711,9 @@ void ControlMessageChoice::reset()
     case SELECTION_ID_CONFIGURE_STREAM_RESPONSE: {
         d_configureStreamResponse.object().~ConfigureStreamResponse();
     } break;
+    case SELECTION_ID_RAFT_MESSAGE: {
+        d_raftMessage.object().~RaftMessage();
+    } break;
     default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
     }
 
@@ -16656,6 +17764,9 @@ int ControlMessageChoice::makeSelection(int selectionId)
     } break;
     case SELECTION_ID_CONFIGURE_STREAM_RESPONSE: {
         makeConfigureStreamResponse();
+    } break;
+    case SELECTION_ID_RAFT_MESSAGE: {
+        makeRaftMessage();
     } break;
     case SELECTION_ID_UNDEFINED: {
         reset();
@@ -17348,6 +18459,51 @@ ConfigureStreamResponse& ControlMessageChoice::makeConfigureStreamResponse(
 }
 #endif
 
+RaftMessage& ControlMessageChoice::makeRaftMessage()
+{
+    if (SELECTION_ID_RAFT_MESSAGE == d_selectionId) {
+        bdlat_ValueTypeFunctions::reset(&d_raftMessage.object());
+    }
+    else {
+        reset();
+        new (d_raftMessage.buffer()) RaftMessage();
+        d_selectionId = SELECTION_ID_RAFT_MESSAGE;
+    }
+
+    return d_raftMessage.object();
+}
+
+RaftMessage& ControlMessageChoice::makeRaftMessage(const RaftMessage& value)
+{
+    if (SELECTION_ID_RAFT_MESSAGE == d_selectionId) {
+        d_raftMessage.object() = value;
+    }
+    else {
+        reset();
+        new (d_raftMessage.buffer()) RaftMessage(value);
+        d_selectionId = SELECTION_ID_RAFT_MESSAGE;
+    }
+
+    return d_raftMessage.object();
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+RaftMessage& ControlMessageChoice::makeRaftMessage(RaftMessage&& value)
+{
+    if (SELECTION_ID_RAFT_MESSAGE == d_selectionId) {
+        d_raftMessage.object() = bsl::move(value);
+    }
+    else {
+        reset();
+        new (d_raftMessage.buffer()) RaftMessage(bsl::move(value));
+        d_selectionId = SELECTION_ID_RAFT_MESSAGE;
+    }
+
+    return d_raftMessage.object();
+}
+#endif
+
 // ACCESSORS
 
 bsl::ostream& ControlMessageChoice::print(bsl::ostream& stream,
@@ -17406,6 +18562,9 @@ bsl::ostream& ControlMessageChoice::print(bsl::ostream& stream,
         printer.printAttribute("configureStreamResponse",
                                d_configureStreamResponse.object());
     } break;
+    case SELECTION_ID_RAFT_MESSAGE: {
+        printer.printAttribute("raftMessage", d_raftMessage.object());
+    } break;
     default: stream << "SELECTION UNDEFINED\n";
     }
     printer.end();
@@ -17451,6 +18610,8 @@ const char* ControlMessageChoice::selectionName() const
     case SELECTION_ID_CONFIGURE_STREAM_RESPONSE:
         return SELECTION_INFO_ARRAY[SELECTION_INDEX_CONFIGURE_STREAM_RESPONSE]
             .name();
+    case SELECTION_ID_RAFT_MESSAGE:
+        return SELECTION_INFO_ARRAY[SELECTION_INDEX_RAFT_MESSAGE].name();
     default:
         BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
         return "(* UNDEFINED *)";
@@ -17552,6 +18713,10 @@ ControlMessage::lookupAttributeInfo(const char* name, int nameLength)
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CHOICE];
     }
 
+    if (bdlb::String::areEqualCaseless("raftMessage", name, nameLength)) {
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CHOICE];
+    }
+
     for (int i = 0; i < 2; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             ControlMessage::ATTRIBUTE_INFO_ARRAY[i];
@@ -17586,13 +18751,11 @@ ControlMessage::ControlMessage(bslma::Allocator* basicAllocator)
 ControlMessage::ControlMessage(const ControlMessage& original,
                                bslma::Allocator*     basicAllocator)
 : d_choice(original.d_choice, basicAllocator)
-, d_rId(original.d_rId)
-{
-}
+, d_rId(original.d_rId){}
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-ControlMessage::ControlMessage(ControlMessage&& original) noexcept
+ControlMessage::ControlMessage(ControlMessage && original) noexcept
 : d_choice(bsl::move(original.d_choice)),
   d_rId(bsl::move(original.d_rId))
 {
@@ -17658,6 +18821,13 @@ bsl::ostream& ControlMessage::print(bsl::ostream& stream,
 }  // close package namespace
 }  // close enterprise namespace
 
-// GENERATED BY BLP_BAS_CODEGEN_2026.05.21
+// GENERATED BY @BLP_BAS_CODEGEN_VERSION@
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package bmqp_ctrlmsg --msgComponent messages bmqp_ctrlmsg.xsd
+// ----------------------------------------------------------------------------
+// NOTICE:
+//      Copyright 2026 Bloomberg Finance L.P. All rights reserved.
+//      Property of Bloomberg Finance L.P. (BFLP)
+//      This software is made available solely pursuant to the
+//      terms of a BFLP license agreement which governs its use.
+// ------------------------------- END-OF-FILE --------------------------------

@@ -19,6 +19,16 @@
 namespace BloombergLP {
 namespace mqbi {
 
+// --------------------------
+// class ClusterStateUpdater
+// --------------------------
+
+// CREATORS
+ClusterStateUpdater::~ClusterStateUpdater()
+{
+    // NOTHING (pure interface)
+}
+
 // -------------------------
 // class ClusterStateManager
 // -------------------------

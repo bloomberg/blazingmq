@@ -82,6 +82,11 @@ struct LogTestImp : bsls::ProtocolTestImp<mqbsi::Log> {
         return markDone();
     }
 
+    int truncate(mqbsi::Log::Offset offset) BSLS_KEYWORD_OVERRIDE
+    {
+        return markDone();
+    }
+
     void
     updateOutstandingNumBytes(bsls::Types::Int64 value) BSLS_KEYWORD_OVERRIDE
     {

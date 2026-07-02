@@ -481,6 +481,12 @@ struct EventType {
 
         // Authentication event
         e_AUTHENTICATION = 15,
+
+        // Raft AppendEntries (cluster metadata)
+        e_RAFT_CLUSTER = 16,
+
+        // Raft AppendEntries (partition data)
+        e_RAFT_PARTITION = 17,
     };
 
     // CONSTANTS
@@ -493,7 +499,7 @@ struct EventType {
     /// NOTE: This value must always be equal to the highest type in the
     /// enum because it is being used as an upper bound to verify an
     /// Event's `type` field is a supported type.
-    static const int k_HIGHEST_SUPPORTED_EVENT_TYPE = e_AUTHENTICATION;
+    static const int k_HIGHEST_SUPPORTED_EVENT_TYPE = e_RAFT_PARTITION;
 
     // CLASS METHODS
 
@@ -5068,6 +5074,147 @@ inline bool StorageHeaderFlagUtil::isSet(unsigned char            flags,
                                          StorageHeaderFlags::Enum flag)
 {
     return (0 != (flags & flag));
+}
+
+// =================
+// struct RaftHeader
+// =================
+
+/// This struct represents the header for Raft AppendEntries messages,
+/// used by both `e_RAFT_CLUSTER` and `e_RAFT_PARTITION` event types.
+/// It is followed by zero or more entry blobs (CSL records for cluster,
+/// journal records + payloads for partition).
+struct RaftHeader {
+    // RaftHeader structure datagram [36 bytes]:
+    //..
+    //   +---------------+---------------+---------------+---------------+
+    //   |0|1|2|3|4|5|6|7|0|1|2|3|4|5|6|7|0|1|2|3|4|5|6|7|0|1|2|3|4|5|6|7|
+    //   +---------------+---------------+---------------+---------------+
+    //   |                      Term Upper Bits                          |
+    //   +---------------+---------------+---------------+---------------+
+    //   |                      Term Lower Bits                          |
+    //   +---------------+---------------+---------------+---------------+
+    //   |                   PrevLogIndex Upper Bits                     |
+    //   +---------------+---------------+---------------+---------------+
+    //   |                   PrevLogIndex Lower Bits                     |
+    //   +---------------+---------------+---------------+---------------+
+    //   |                   PrevLogTerm Upper Bits                      |
+    //   +---------------+---------------+---------------+---------------+
+    //   |                   PrevLogTerm Lower Bits                      |
+    //   +---------------+---------------+---------------+---------------+
+    //   |                   LeaderCommit Upper Bits                     |
+    //   +---------------+---------------+---------------+---------------+
+    //   |                   LeaderCommit Lower Bits                     |
+    //   +---------------+---------------+---------------+---------------+
+    //   |                         EntryCount                            |
+    //   +---------------+---------------+---------------+---------------+
+    //
+    //  Term...........: Sender's current Raft term
+    //  PrevLogIndex...: Index of entry immediately preceding new entries
+    //  PrevLogTerm....: Term of the PrevLogIndex entry
+    //  LeaderCommit...: Leader's commit index
+    //  EntryCount.....: Number of entry blobs following this header
+    //..
+
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(RaftHeader, bsl::is_trivially_copyable)
+
+  private:
+    // DATA
+    bdlb::BigEndianUint32 d_termUpperBits;
+    bdlb::BigEndianUint32 d_termLowerBits;
+    bdlb::BigEndianUint32 d_prevLogIndexUpperBits;
+    bdlb::BigEndianUint32 d_prevLogIndexLowerBits;
+    bdlb::BigEndianUint32 d_prevLogTermUpperBits;
+    bdlb::BigEndianUint32 d_prevLogTermLowerBits;
+    bdlb::BigEndianUint32 d_leaderCommitUpperBits;
+    bdlb::BigEndianUint32 d_leaderCommitLowerBits;
+    bdlb::BigEndianUint32 d_entryCount;
+
+  public:
+    // CREATORS
+    RaftHeader();
+
+    // MANIPULATORS
+    RaftHeader& setTerm(bsls::Types::Uint64 value);
+    RaftHeader& setPrevLogIndex(bsls::Types::Uint64 value);
+    RaftHeader& setPrevLogTerm(bsls::Types::Uint64 value);
+    RaftHeader& setLeaderCommit(bsls::Types::Uint64 value);
+    RaftHeader& setEntryCount(unsigned int value);
+
+    // ACCESSORS
+    bsls::Types::Uint64 term() const;
+    bsls::Types::Uint64 prevLogIndex() const;
+    bsls::Types::Uint64 prevLogTerm() const;
+    bsls::Types::Uint64 leaderCommit() const;
+    unsigned int        entryCount() const;
+};
+
+// -----------------
+// struct RaftHeader
+// -----------------
+
+// CREATORS
+inline RaftHeader::RaftHeader()
+{
+    bsl::memset(this, 0, sizeof(RaftHeader));
+}
+
+// MANIPULATORS
+inline RaftHeader& RaftHeader::setTerm(bsls::Types::Uint64 value)
+{
+    Protocol::split(&d_termUpperBits, &d_termLowerBits, value);
+    return *this;
+}
+
+inline RaftHeader& RaftHeader::setPrevLogIndex(bsls::Types::Uint64 value)
+{
+    Protocol::split(&d_prevLogIndexUpperBits, &d_prevLogIndexLowerBits, value);
+    return *this;
+}
+
+inline RaftHeader& RaftHeader::setPrevLogTerm(bsls::Types::Uint64 value)
+{
+    Protocol::split(&d_prevLogTermUpperBits, &d_prevLogTermLowerBits, value);
+    return *this;
+}
+
+inline RaftHeader& RaftHeader::setLeaderCommit(bsls::Types::Uint64 value)
+{
+    Protocol::split(&d_leaderCommitUpperBits, &d_leaderCommitLowerBits, value);
+    return *this;
+}
+
+inline RaftHeader& RaftHeader::setEntryCount(unsigned int value)
+{
+    d_entryCount = value;
+    return *this;
+}
+
+// ACCESSORS
+inline bsls::Types::Uint64 RaftHeader::term() const
+{
+    return Protocol::combine(d_termUpperBits, d_termLowerBits);
+}
+
+inline bsls::Types::Uint64 RaftHeader::prevLogIndex() const
+{
+    return Protocol::combine(d_prevLogIndexUpperBits, d_prevLogIndexLowerBits);
+}
+
+inline bsls::Types::Uint64 RaftHeader::prevLogTerm() const
+{
+    return Protocol::combine(d_prevLogTermUpperBits, d_prevLogTermLowerBits);
+}
+
+inline bsls::Types::Uint64 RaftHeader::leaderCommit() const
+{
+    return Protocol::combine(d_leaderCommitUpperBits, d_leaderCommitLowerBits);
+}
+
+inline unsigned int RaftHeader::entryCount() const
+{
+    return d_entryCount;
 }
 
 // ---------------------
