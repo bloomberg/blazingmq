@@ -47,32 +47,33 @@ const bsls::Types::Int64 k_NS_PER_MESSAGE =
 const char* PartitionFSM::k_PFSM_DEFECT_LOG_TAG = "[PFSM_DEFECT]";
 
 // PRIVATE MANIPULATORS
-void PartitionFSM::processEvent(const EventWithData& event)
+void PartitionFSM::processEvent(PartitionStateTableEvent::Enum eventType,
+                                const PartitionFSMEventData&   eventData)
 {
     // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
 
-    const int partitionId = event.second.partitionId();
+    const int partitionId = eventData.partitionId();
 
     State::Enum oldState   = d_state;
-    Transition  transition = d_stateTable.transition(oldState, event.first);
+    Transition  transition = d_stateTable.transition(oldState, eventType);
     // Transition state
     d_state = static_cast<State::Enum>(transition.first);
 
-    if (event.first == PartitionStateTableEvent::e_RECOVERY_DATA ||
-        event.first == PartitionStateTableEvent::e_LIVE_DATA) {
+    if (eventType == PartitionStateTableEvent::e_RECOVERY_DATA ||
+        eventType == PartitionStateTableEvent::e_LIVE_DATA) {
         BMQ_LOGTHROTTLE_INFO << "Partition FSM for Partition [" << partitionId
-                             << "] on Event '" << event.first
+                             << "] on Event '" << eventType
                              << "', transition: State '" << oldState
                              << "' =>  State '" << d_state << "'";
     }
     else {
         BALL_LOG_INFO << "Partition FSM for Partition [" << partitionId
-                      << "] on Event '" << event.first
+                      << "] on Event '" << eventType
                       << "', transition: State '" << oldState
                       << "' =>  State '" << d_state << "'";
     }
 
-    (d_actions.*(transition.second))(event);
+    (d_actions.*(transition.second))(eventType, eventData);
 
     // Notify observers
     if (d_state != oldState) {
@@ -159,18 +160,20 @@ PartitionFSM& PartitionFSM::unregisterObserver(PartitionFSMObserver* observer)
     return *this;
 }
 
-void PartitionFSM::enqueueEvent(const EventWithData& event)
+void PartitionFSM::enqueueEvent(PartitionStateTableEvent::Enum eventType,
+                                const PartitionFSMEventData&   eventData)
 {
     // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
 
-    d_eventsQueue.push(event);
+    d_eventsQueue.push(EventEntry(eventType, eventData));
     if (d_eventsQueue.size() > 1) {
         // There is already an ongoing processing, so just return.
         return;
     }
 
     while (!d_eventsQueue.empty()) {
-        processEvent(d_eventsQueue.front());
+        const EventEntry& front = d_eventsQueue.front();
+        processEvent(front.first, front.second);
         d_eventsQueue.pop();
     }
 }

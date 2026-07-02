@@ -15,6 +15,7 @@
 
 #include <mqbc_partitionstatetable.h>
 
+#include <mqbc_partitionfsm.h>
 #include <mqbscm_version.h>
 // BDE
 #include <bdlb_print.h>
@@ -141,6 +142,26 @@ PartitionStateTableEvent::toAscii(PartitionStateTableEvent::Enum value)
     }
 
 #undef CASE
+}
+
+// --------------------------------
+// class PartitionStateTableActions
+// --------------------------------
+
+// CREATORS
+PartitionStateTableActions::~PartitionStateTableActions()
+{
+    // NOTHING (pure interface)
+}
+
+void PartitionStateTableActions::do_none(
+    PartitionStateTableEvent::Enum eventType,
+    const PartitionFSMEventData&   eventData)
+{
+    (void)eventType;
+    const int partitionId = eventData.partitionId();
+    BALL_LOG_INFO << "Partition FSM for Partition [" << partitionId
+                  << "]: NO ACTION PERFORMED.";
 }
 
 }  // close package namespace
