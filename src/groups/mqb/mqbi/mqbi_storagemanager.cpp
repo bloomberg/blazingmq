@@ -39,15 +39,5 @@ StorageManager::~StorageManager()
     // NOTHING (pure interface)
 }
 
-// ----------------------------
-// class StorageManagerIterator
-// ----------------------------
-
-// CREATORS
-StorageManagerIterator::~StorageManagerIterator()
-{
-    // NOTHING (pure interface)
-}
-
 }  // close package namespace
 }  // close enterprise namespace

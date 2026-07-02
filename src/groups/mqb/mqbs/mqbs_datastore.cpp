@@ -183,6 +183,11 @@ RecoveryRecordInfo::RecoveryRecordInfo(bsls::Types::Uint64          sequenceNum,
 {
 }
 
+StoragesMonitor::~StoragesMonitor()
+{
+    // NOTHING
+}
+
 RecordStore::~RecordStore()
 {
     // NOTHING

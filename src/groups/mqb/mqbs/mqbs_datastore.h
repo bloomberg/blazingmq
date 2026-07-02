@@ -593,6 +593,44 @@ struct RecoveryRecordInfo {
                        const DataStoreRecordHandle& handle = DataStoreRecordHandle());
 };
 
+// ======================
+// class StoragesMonitor
+// ======================
+
+class StoragesMonitor {
+  public:
+    // TYPES
+    typedef bsl::shared_ptr<ReplicatedStorage> StorageSp;
+
+  public:
+    // CREATORS
+    virtual ~StoragesMonitor();
+
+    // MANIPULATORS
+    virtual void onStorageRegistered(int              partitionId,
+                                     const bmqt::Uri& uri,
+                                     const StorageSp& storageSp) = 0;
+
+    virtual void onStorageUnregistered(int              partitionId,
+                                       const bmqt::Uri& uri) = 0;
+
+    virtual void onStoragesCleared(int partitionId) = 0;
+
+    virtual void onRecovered(int partitionId) = 0;
+
+    // ACCESSORS
+
+    virtual StorageSp find(const bmqt::Uri& queueUri) = 0;
+
+    virtual void loadAllStorages(bsl::vector<StorageSp>* result,
+                                 int                     partitionId) = 0;
+
+    /// Return true if the queue having the specified `uri` and assigned to
+    /// the specified `partitionId` has no messages, false in any other case.
+    virtual bool isStorageEmpty(const bmqt::Uri& uri,
+                                int              partitionId) const = 0;
+};
+
 // =================
 // class RecordStore
 // =================
@@ -717,6 +755,8 @@ class RecordStore {
 
     /// Return the partition id associated with this record store.
     virtual int partitionId() const = 0;
+
+    virtual StoragesMonitor* storagesMonitor() = 0;
 
     /// Return a printable description of the client (e.g., for logging).
     /// The returned view is valid for the lifetime of this object and must
