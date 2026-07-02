@@ -67,7 +67,7 @@ namespace mqbi {
 class Storage;
 }
 namespace mqbi {
-class StorageManager;
+class StorageProvider;
 }
 namespace mqbi {
 class Queue;
@@ -138,7 +138,7 @@ class QueueState {
     mqbi::Domain* d_domain_p;
 
     /// Storage manager to use.
-    mqbi::StorageManager* d_storageManager_p;
+    mqbi::StorageProvider* d_storageManager_p;
 
     const mqbi::ClusterResources d_resources;
 
@@ -205,7 +205,7 @@ class QueueState {
     QueueState& setKey(const mqbu::StorageKey& key);
     QueueState& setPartitionId(int value);
     QueueState& setStorage(const bsl::shared_ptr<mqbi::Storage>& value);
-    QueueState& setStorageManager(mqbi::StorageManager* value);
+    QueueState& setStorageManager(mqbi::StorageProvider* value);
     QueueState&
     setRoutingConfig(const bmqp_ctrlmsg::RoutingConfiguration& routingConfig);
     QueueState& setMessageThrottleConfig(
@@ -295,7 +295,7 @@ class QueueState {
     int                                       partitionId() const;
     mqbi::Queue*                              queue() const;
     mqbi::Storage*                            storage() const;
-    mqbi::StorageManager*                     storageManager() const;
+    mqbi::StorageProvider*                    storageManager() const;
     const bmqp_ctrlmsg::RoutingConfiguration& routingConfig() const;
     const mqbcfg::MessageThrottleConfig&      messageThrottleConfig() const;
     const bmqt::Uri&                          uri() const;
@@ -403,7 +403,7 @@ QueueState::setStorage(const bsl::shared_ptr<mqbi::Storage>& value)
     return *this;
 }
 
-inline QueueState& QueueState::setStorageManager(mqbi::StorageManager* value)
+inline QueueState& QueueState::setStorageManager(mqbi::StorageProvider* value)
 {
     d_storageManager_p = value;
     return *this;
@@ -598,7 +598,7 @@ inline mqbi::Storage* QueueState::storage() const
     return d_storage_sp.get();
 }
 
-inline mqbi::StorageManager* QueueState::storageManager() const
+inline mqbi::StorageProvider* QueueState::storageManager() const
 {
     return d_storageManager_p;
 }

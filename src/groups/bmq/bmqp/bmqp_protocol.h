@@ -487,6 +487,9 @@ struct EventType {
 
         // Raft AppendEntries (partition data)
         e_RAFT_PARTITION = 17,
+
+        // Raft InstallSnapshot (partition file chunks)
+        e_RAFT_SNAPSHOT = 18,
     };
 
     // CONSTANTS
@@ -499,7 +502,7 @@ struct EventType {
     /// NOTE: This value must always be equal to the highest type in the
     /// enum because it is being used as an upper bound to verify an
     /// Event's `type` field is a supported type.
-    static const int k_HIGHEST_SUPPORTED_EVENT_TYPE = e_RAFT_PARTITION;
+    static const int k_HIGHEST_SUPPORTED_EVENT_TYPE = e_RAFT_SNAPSHOT;
 
     // CLASS METHODS
 
@@ -5085,7 +5088,7 @@ inline bool StorageHeaderFlagUtil::isSet(unsigned char            flags,
 /// It is followed by zero or more entry blobs (CSL records for cluster,
 /// journal records + payloads for partition).
 struct RaftHeader {
-    // RaftHeader structure datagram [36 bytes]:
+    // RaftHeader structure datagram [40 bytes]:
     //..
     //   +---------------+---------------+---------------+---------------+
     //   |0|1|2|3|4|5|6|7|0|1|2|3|4|5|6|7|0|1|2|3|4|5|6|7|0|1|2|3|4|5|6|7|
@@ -5108,12 +5111,15 @@ struct RaftHeader {
     //   +---------------+---------------+---------------+---------------+
     //   |                         EntryCount                            |
     //   +---------------+---------------+---------------+---------------+
+    //   |                        PartitionId                            |
+    //   +---------------+---------------+---------------+---------------+
     //
     //  Term...........: Sender's current Raft term
     //  PrevLogIndex...: Index of entry immediately preceding new entries
     //  PrevLogTerm....: Term of the PrevLogIndex entry
     //  LeaderCommit...: Leader's commit index
     //  EntryCount.....: Number of entry blobs following this header
+    //  PartitionId....: Partition ID (0 for e_RAFT_CLUSTER events)
     //..
 
     // TRAITS
@@ -5130,6 +5136,7 @@ struct RaftHeader {
     bdlb::BigEndianUint32 d_leaderCommitUpperBits;
     bdlb::BigEndianUint32 d_leaderCommitLowerBits;
     bdlb::BigEndianUint32 d_entryCount;
+    bdlb::BigEndianUint32 d_partitionId;
 
   public:
     // CREATORS
@@ -5141,6 +5148,7 @@ struct RaftHeader {
     RaftHeader& setPrevLogTerm(bsls::Types::Uint64 value);
     RaftHeader& setLeaderCommit(bsls::Types::Uint64 value);
     RaftHeader& setEntryCount(unsigned int value);
+    RaftHeader& setPartitionId(unsigned int value);
 
     // ACCESSORS
     bsls::Types::Uint64 term() const;
@@ -5148,6 +5156,7 @@ struct RaftHeader {
     bsls::Types::Uint64 prevLogTerm() const;
     bsls::Types::Uint64 leaderCommit() const;
     unsigned int        entryCount() const;
+    unsigned int        partitionId() const;
 };
 
 // -----------------
@@ -5191,6 +5200,12 @@ inline RaftHeader& RaftHeader::setEntryCount(unsigned int value)
     return *this;
 }
 
+inline RaftHeader& RaftHeader::setPartitionId(unsigned int value)
+{
+    d_partitionId = value;
+    return *this;
+}
+
 // ACCESSORS
 inline bsls::Types::Uint64 RaftHeader::term() const
 {
@@ -5215,6 +5230,11 @@ inline bsls::Types::Uint64 RaftHeader::leaderCommit() const
 inline unsigned int RaftHeader::entryCount() const
 {
     return d_entryCount;
+}
+
+inline unsigned int RaftHeader::partitionId() const
+{
+    return d_partitionId;
 }
 
 // ---------------------
@@ -5327,6 +5347,206 @@ inline unsigned int RecoveryHeader::chunkSequenceNumber() const
 inline const char* RecoveryHeader::md5Digest() const
 {
     return d_md5Digest;
+}
+
+// ==========================
+// struct SnapshotChunkHeader
+// ==========================
+
+/// Header for Raft InstallSnapshot chunk events (e_RAFT_SNAPSHOT).
+/// Each event carries one chunk of a partition snapshot file.
+/// Multiple events are sent until 'done' is set.  The receiver writes
+/// 'chunkLength' bytes of raw file data that follows this header
+/// directly to the target file at 'offset'.
+struct SnapshotChunkHeader {
+    // SnapshotChunkHeader structure datagram [32 bytes]:
+    //..
+    //   +---------------+---------------+---------------+---------------+
+    //   |0|1|2|3|4|5|6|7|0|1|2|3|4|5|6|7|0|1|2|3|4|5|6|7|0|1|2|3|4|5|6|7|
+    //   +---------------+---------------+---------------+---------------+
+    //   |             PartitionId               |  FileType |D| Reserved|
+    //   +---------------+---------------+---------------+---------------+
+    //   |                    LastIncludedIndex Upper Bits                |
+    //   +---------------+---------------+---------------+---------------+
+    //   |                    LastIncludedIndex Lower Bits                |
+    //   +---------------+---------------+---------------+---------------+
+    //   |                       Offset Upper Bits                       |
+    //   +---------------+---------------+---------------+---------------+
+    //   |                       Offset Lower Bits                       |
+    //   +---------------+---------------+---------------+---------------+
+    //   |                       TotalSize Upper Bits                    |
+    //   +---------------+---------------+---------------+---------------+
+    //   |                       TotalSize Lower Bits                    |
+    //   +---------------+---------------+---------------+---------------+
+    //   |                         ChunkLength                           |
+    //   +---------------+---------------+---------------+---------------+
+    //
+    //  PartitionId...........: Partition this snapshot belongs to
+    //  FileType..............: 0 = journal, 1 = data
+    //  D.....................: 1 if this is the last chunk
+    //  LastIncludedIndex.....: Raft log index of the snapshot boundary
+    //  Offset................: Byte offset of this chunk in the file
+    //  TotalSize.............: Total size of this file in bytes
+    //  ChunkLength...........: Number of raw bytes following this header
+    //..
+
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(SnapshotChunkHeader,
+                                   bsl::is_trivially_copyable)
+
+    // CONSTANTS
+    static const unsigned int k_FILE_TYPE_DATA    = 0;
+    static const unsigned int k_FILE_TYPE_QLIST   = 1;
+    static const unsigned int k_FILE_TYPE_JOURNAL = 2;
+
+  private:
+    // DATA
+    bdlb::BigEndianUint32 d_partitionIdAndFlags;
+    bdlb::BigEndianUint32 d_lastIncludedIndexUpperBits;
+    bdlb::BigEndianUint32 d_lastIncludedIndexLowerBits;
+    bdlb::BigEndianUint32 d_offsetUpperBits;
+    bdlb::BigEndianUint32 d_offsetLowerBits;
+    bdlb::BigEndianUint32 d_totalSizeUpperBits;
+    bdlb::BigEndianUint32 d_totalSizeLowerBits;
+    bdlb::BigEndianUint32 d_chunkLength;
+
+    static const unsigned int k_PARTITION_ID_SHIFT = 16;
+    static const unsigned int k_FILE_TYPE_SHIFT    = 8;
+    static const unsigned int k_DONE_SHIFT         = 7;
+
+  public:
+    // CREATORS
+    SnapshotChunkHeader();
+
+    // MANIPULATORS
+    SnapshotChunkHeader& setPartitionId(unsigned int value);
+    SnapshotChunkHeader& setFileType(unsigned int value);
+    SnapshotChunkHeader& setDone(bool value);
+    SnapshotChunkHeader& setLastIncludedIndex(bsls::Types::Uint64 value);
+    SnapshotChunkHeader& setOffset(bsls::Types::Uint64 value);
+    SnapshotChunkHeader& setTotalSize(bsls::Types::Uint64 value);
+    SnapshotChunkHeader& setChunkLength(unsigned int value);
+
+    // ACCESSORS
+    unsigned int        partitionId() const;
+    unsigned int        fileType() const;
+    bool                done() const;
+    bsls::Types::Uint64 lastIncludedIndex() const;
+    bsls::Types::Uint64 offset() const;
+    bsls::Types::Uint64 totalSize() const;
+    unsigned int        chunkLength() const;
+};
+
+// --------------------------
+// struct SnapshotChunkHeader
+// --------------------------
+
+inline SnapshotChunkHeader::SnapshotChunkHeader()
+{
+    bsl::memset(this, 0, sizeof(SnapshotChunkHeader));
+}
+
+inline SnapshotChunkHeader&
+SnapshotChunkHeader::setPartitionId(unsigned int value)
+{
+    d_partitionIdAndFlags =
+        (d_partitionIdAndFlags & ~(0xFFFFU << k_PARTITION_ID_SHIFT)) |
+        ((value & 0xFFFFU) << k_PARTITION_ID_SHIFT);
+    return *this;
+}
+
+inline SnapshotChunkHeader&
+SnapshotChunkHeader::setFileType(unsigned int value)
+{
+    d_partitionIdAndFlags =
+        (d_partitionIdAndFlags & ~(0x7U << k_FILE_TYPE_SHIFT)) |
+        ((value & 0x7U) << k_FILE_TYPE_SHIFT);
+    return *this;
+}
+
+inline SnapshotChunkHeader& SnapshotChunkHeader::setDone(bool value)
+{
+    if (value) {
+        d_partitionIdAndFlags = d_partitionIdAndFlags | (1U << k_DONE_SHIFT);
+    }
+    else {
+        d_partitionIdAndFlags =
+            d_partitionIdAndFlags & ~(1U << k_DONE_SHIFT);
+    }
+    return *this;
+}
+
+inline SnapshotChunkHeader&
+SnapshotChunkHeader::setLastIncludedIndex(bsls::Types::Uint64 value)
+{
+    Protocol::split(&d_lastIncludedIndexUpperBits,
+                    &d_lastIncludedIndexLowerBits,
+                    value);
+    return *this;
+}
+
+inline SnapshotChunkHeader&
+SnapshotChunkHeader::setOffset(bsls::Types::Uint64 value)
+{
+    Protocol::split(&d_offsetUpperBits, &d_offsetLowerBits, value);
+    return *this;
+}
+
+inline SnapshotChunkHeader&
+SnapshotChunkHeader::setTotalSize(bsls::Types::Uint64 value)
+{
+    Protocol::split(&d_totalSizeUpperBits, &d_totalSizeLowerBits, value);
+    return *this;
+}
+
+inline SnapshotChunkHeader&
+SnapshotChunkHeader::setChunkLength(unsigned int value)
+{
+    d_chunkLength = value;
+    return *this;
+}
+
+inline unsigned int SnapshotChunkHeader::partitionId() const
+{
+    return (static_cast<unsigned int>(d_partitionIdAndFlags) >>
+            k_PARTITION_ID_SHIFT) & 0xFFFFU;
+}
+
+inline unsigned int SnapshotChunkHeader::fileType() const
+{
+    return (static_cast<unsigned int>(d_partitionIdAndFlags) >>
+            k_FILE_TYPE_SHIFT) & 0x7U;
+}
+
+inline bool SnapshotChunkHeader::done() const
+{
+    return (static_cast<unsigned int>(d_partitionIdAndFlags) >>
+            k_DONE_SHIFT) & 0x1U;
+}
+
+inline bsls::Types::Uint64 SnapshotChunkHeader::lastIncludedIndex() const
+{
+    return Protocol::combine(
+        static_cast<unsigned int>(d_lastIncludedIndexUpperBits),
+        d_lastIncludedIndexLowerBits);
+}
+
+inline bsls::Types::Uint64 SnapshotChunkHeader::offset() const
+{
+    return Protocol::combine(static_cast<unsigned int>(d_offsetUpperBits),
+                             d_offsetLowerBits);
+}
+
+inline bsls::Types::Uint64 SnapshotChunkHeader::totalSize() const
+{
+    return Protocol::combine(
+        static_cast<unsigned int>(d_totalSizeUpperBits),
+        d_totalSizeLowerBits);
+}
+
+inline unsigned int SnapshotChunkHeader::chunkLength() const
+{
+    return static_cast<unsigned int>(d_chunkLength);
 }
 
 }  // close package namespace

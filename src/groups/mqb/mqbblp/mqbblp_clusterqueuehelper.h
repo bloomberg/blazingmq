@@ -77,7 +77,7 @@ class ClusterQueueHelper;
 class StorageContent;
 }
 namespace mqbi {
-class StorageManager;
+class StorageProvider;
 }
 namespace mqbnet {
 class ClusterNode;
@@ -478,8 +478,9 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// ClusterStateRaft)
     mqbi::ClusterStateUpdater* d_clusterStateManager_p;
 
-    /// Storage manager to use
-    mqbi::StorageManager* d_storageManager_p;
+    /// Storage provider (legacy: StorageManager, Raft:
+    /// PartitionRaftManager)
+    mqbi::StorageProvider* d_storageManager_p;
 
     /// Map of all queues.
     QueueContextMap d_queues;
@@ -1031,9 +1032,9 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     ClusterQueueHelper&
     setClusterStateUpdater(mqbi::ClusterStateUpdater* value);
 
-    /// Set the storage manager to the specified `value` and return a
+    /// Set the storage provider to the specified `value` and return a
     /// reference offering modifiable access to this object.
-    ClusterQueueHelper& setStorageManager(mqbi::StorageManager* value);
+    ClusterQueueHelper& setStorageManager(mqbi::StorageProvider* value);
 
     /// Process the open queue in the specified `request` received from the
     /// specified `requester`.
@@ -1402,7 +1403,7 @@ ClusterQueueHelper::loadUpstreamAndGenCount(mqbnet::ClusterNode** upstreamNode,
 }
 
 inline ClusterQueueHelper&
-ClusterQueueHelper::setStorageManager(mqbi::StorageManager* value)
+ClusterQueueHelper::setStorageManager(mqbi::StorageProvider* value)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!value || !d_storageManager_p);

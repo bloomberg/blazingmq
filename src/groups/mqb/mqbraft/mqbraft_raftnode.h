@@ -117,23 +117,23 @@ bsl::ostream& operator<<(bsl::ostream& stream, RaftMessageType::Enum value);
 // struct LogEntry
 // ==============
 
-/// VST representing a single entry in the Raft log.
+/// VST representing a single entry in the Raft log.  'd_data' holds the
+/// primary record blob (journal record for partitions, CSL record for
+/// cluster).  'd_auxiliary' holds the optional supplementary payload
+/// (data-file or qlist-file content for partition MESSAGE/QUEUE_OP
+/// entries); null for all other record types.
 struct LogEntry {
     // DATA
-    bsls::Types::Uint64 d_term;
-    bdlbb::Blob         d_data;
-
-    // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(LogEntry, bslma::UsesBslmaAllocator)
+    bsls::Types::Uint64          d_term;
+    bsls::Types::Uint64          d_index;
+    bsl::shared_ptr<bdlbb::Blob> d_data;
 
     // CREATORS
-    explicit LogEntry(bslma::Allocator* allocator = 0);
+    LogEntry();
 
-    LogEntry(bsls::Types::Uint64 term,
-             const bdlbb::Blob&  data,
-             bslma::Allocator*   allocator = 0);
-
-    LogEntry(const LogEntry& other, bslma::Allocator* allocator = 0);
+    LogEntry(bsls::Types::Uint64                  term,
+             bsls::Types::Uint64                  index,
+             const bsl::shared_ptr<bdlbb::Blob>&  data);
 };
 
 // =============
@@ -149,7 +149,14 @@ class RaftLog {
     virtual ~RaftLog();
 
     // MANIPULATORS
-    virtual int append(bsls::Types::Uint64 term, const bdlbb::Blob& data) = 0;
+
+    /// Append a new log entry with the specified 'term' and record blob
+    /// 'data'.  The optionally specified 'id' is an opaque token set by
+    /// 'PartitionRaft' on the primary path to route to a pre-registered
+    /// 'PendingWrite'; zero on the replica path and for CSL.
+    virtual int append(bsls::Types::Uint64                  term,
+                       const bsl::shared_ptr<bdlbb::Blob>&  data,
+                       bsls::Types::Uint64                  id = 0) = 0;
 
     virtual int truncateFrom(bsls::Types::Uint64 index) = 0;
 
@@ -167,6 +174,14 @@ class RaftLog {
     virtual bsls::Types::Uint64 snapshotIndex() const = 0;
 
     virtual bsls::Types::Uint64 snapshotTerm() const = 0;
+
+    /// Reset the log to the specified snapshot state.  Set
+    /// `d_snapshotIndex` to `lastIncludedIndex` and `d_snapshotTerm` to
+    /// `lastIncludedTerm`, clear all in-memory log entries, and invalidate
+    /// any cached state.  Called after the application has applied a
+    /// received snapshot.
+    virtual void applySnapshot(bsls::Types::Uint64 lastIncludedIndex,
+                                bsls::Types::Uint64 lastIncludedTerm) = 0;
 };
 
 // =================
@@ -243,6 +258,8 @@ struct RaftNodeOutput {
     bsl::vector<LogEntry>    d_committed;
     bool                     d_stateChanged;
     bool                     d_leaderChanged;
+    bool                     d_hasInstallSnapshot;
+    RaftMessage              d_installSnapshot;
 
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(RaftNodeOutput, bslma::UsesBslmaAllocator)
@@ -329,6 +346,13 @@ class RaftNode {
 
     void handleTimeoutNow(RaftNodeOutput* output, const RaftMessage& msg);
 
+    /// Handle an InstallSnapshot request on a follower.
+    void handleInstallSnapshot(RaftNodeOutput* output, const RaftMessage& msg);
+
+    /// Handle an InstallSnapshot response on a leader.
+    void handleInstallSnapshotResp(RaftNodeOutput*    output,
+                                   const RaftMessage& msg);
+
     void sendAppendEntries(RaftNodeOutput* output, int peerId);
 
     void advanceCommitIndex(RaftNodeOutput* output);
@@ -358,9 +382,12 @@ class RaftNode {
     /// Process the specified incoming 'message' from a peer.
     void step(RaftNodeOutput* output, const RaftMessage& message);
 
-    /// Propose the specified 'data' as a new log entry.  Return 0 on
-    /// success, non-zero if this node is not the leader.
-    int propose(RaftNodeOutput* output, const bdlbb::Blob& data);
+    /// Propose the specified 'data' as a new log entry.  The optionally
+    /// specified 'id' is passed through to the log's 'append()' for primary
+    /// path routing.  Return 0 on success, non-zero if not the leader.
+    int propose(RaftNodeOutput*                      output,
+                const bsl::shared_ptr<bdlbb::Blob>&  data,
+                bsls::Types::Uint64                  id = 0);
 
     /// Initiate leadership transfer to the specified 'targetNodeId'.
     /// Return 0 on success, non-zero if this node is not the leader.
@@ -385,23 +412,19 @@ class RaftNode {
 // --------------
 
 // CREATORS
-inline LogEntry::LogEntry(bslma::Allocator* allocator)
+inline LogEntry::LogEntry()
 : d_term(0)
-, d_data(allocator)
+, d_index(0)
+, d_data()
 {
 }
 
-inline LogEntry::LogEntry(bsls::Types::Uint64 term,
-                          const bdlbb::Blob&  data,
-                          bslma::Allocator*   allocator)
+inline LogEntry::LogEntry(bsls::Types::Uint64                  term,
+                          bsls::Types::Uint64                  index,
+                          const bsl::shared_ptr<bdlbb::Blob>&  data)
 : d_term(term)
-, d_data(data, allocator)
-{
-}
-
-inline LogEntry::LogEntry(const LogEntry& other, bslma::Allocator* allocator)
-: d_term(other.d_term)
-, d_data(other.d_data, allocator)
+, d_index(index)
+, d_data(data)
 {
 }
 
@@ -478,6 +501,8 @@ inline RaftNodeOutput::RaftNodeOutput(bslma::Allocator* allocator)
 , d_committed(allocator)
 , d_stateChanged(false)
 , d_leaderChanged(false)
+, d_hasInstallSnapshot(false)
+, d_installSnapshot(allocator)
 {
 }
 
@@ -487,6 +512,8 @@ inline RaftNodeOutput::RaftNodeOutput(const RaftNodeOutput& other,
 , d_committed(other.d_committed, allocator)
 , d_stateChanged(other.d_stateChanged)
 , d_leaderChanged(other.d_leaderChanged)
+, d_hasInstallSnapshot(other.d_hasInstallSnapshot)
+, d_installSnapshot(other.d_installSnapshot, allocator)
 {
 }
 
@@ -494,8 +521,9 @@ inline void RaftNodeOutput::reset()
 {
     d_messages.clear();
     d_committed.clear();
-    d_stateChanged  = false;
-    d_leaderChanged = false;
+    d_stateChanged        = false;
+    d_leaderChanged       = false;
+    d_hasInstallSnapshot  = false;
 }
 
 // --------------

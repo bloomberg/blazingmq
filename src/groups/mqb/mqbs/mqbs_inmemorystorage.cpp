@@ -47,7 +47,7 @@ const int k_GC_HISTORY_BATCH_SIZE = 1000;
 // ---------------------
 
 // CREATORS
-InMemoryStorage::InMemoryStorage(DataStore*              dataStore_p,
+InMemoryStorage::InMemoryStorage(RecordStore*            dataStore_p,
                                  const bmqt::Uri&        uri,
                                  const mqbu::StorageKey& queueKey,
                                  mqbi::Domain*           domain,
