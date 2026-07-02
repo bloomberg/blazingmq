@@ -293,6 +293,7 @@ struct Tester {
                                          true,  // isFSMWorkflow
                                          true,  // doesFSMwriteQLIST
                                          1,     // replicationFactor
+                                         0,     // storagesMonitor
                                          bmqtst::TestHelperUtil::allocator()),
                      bmqtst::TestHelperUtil::allocator());
 

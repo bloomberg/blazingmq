@@ -1748,28 +1748,29 @@ void Cluster::onRecoveryStatusDispatched(
         // StorageMgr and register the recovered queue uri/key info with
         // 'ClusterOrchestrator'.
         for (size_t pid = 0; pid < d_state.partitions().size(); ++pid) {
-            bslma::ManagedPtr<mqbi::StorageManagerIterator> itMp;
             BSLS_ASSERT_SAFE(d_storageManager_mp);
-            itMp = d_storageManager_mp->getIterator(pid);
-            while (itMp && *itMp) {
-                const bmqt::Uri uri(itMp->uri().canonical());
-                BSLS_ASSERT_SAFE(itMp->storage()->partitionId() ==
+
+            bsl::vector<bsl::shared_ptr<mqbs::ReplicatedStorage> > storages;
+            d_storageManager_mp->loadAllStorages(&storages, pid);
+
+            for (size_t i = 0; i < storages.size(); ++i) {
+                const mqbs::ReplicatedStorage* storage = storages[i].get();
+                const bmqt::Uri uri(storage->queueUri().canonical());
+                BSLS_ASSERT_SAFE(storage->partitionId() ==
                                  static_cast<int>(pid));
 
                 // TODO:  wrong thread to call 'loadVirtualStorageDetails'
                 // but 'onRecoveryStatusDispatched' should not be concurrent
                 // with any of 'add/removeVirtualStorage' calls.
                 AppInfos appIdInfos;
-                itMp->storage()->loadVirtualStorageDetails(&appIdInfos);
+                storage->loadVirtualStorageDetails(&appIdInfos);
 
                 d_clusterOrchestrator.registerQueueInfo(
                     uri,
                     pid,
-                    itMp->storage()->queueKey(),
+                    storage->queueKey(),
                     appIdInfos,
                     false);  // Force-update?
-
-                ++(*itMp);
             }
         }
     }

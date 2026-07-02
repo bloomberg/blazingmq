@@ -280,9 +280,10 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager {
     /// partition id.
     mqbs::FileStore& fileStore(int partitionId) const BSLS_KEYWORD_OVERRIDE;
 
-    /// Return a StorageManagerIterator for the specified `partitionId`.
-    bslma::ManagedPtr<mqbi::StorageManagerIterator>
-    getIterator(int partitionId) const BSLS_KEYWORD_OVERRIDE;
+    /// Load into the specified `result` all the storages of the specified
+    /// `partitionId`.
+    void loadAllStorages(bsl::vector<StorageSp>* result,
+                         int partitionId) BSLS_KEYWORD_OVERRIDE;
 };
 
 }  // close package namespace

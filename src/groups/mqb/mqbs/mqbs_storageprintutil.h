@@ -53,6 +53,7 @@ class Storage;
 }
 namespace mqbs {
 class FileStore;
+class StoragesMonitor;
 }
 
 namespace mqbs {
@@ -69,6 +70,7 @@ struct StoragePrintUtil {
 
   public:
     // TYPES
+    typedef mqbi::StorageManager::StorageSp             StorageSp;
     typedef mqbi::StorageManager::StorageSpMap          StorageSpMap;
     typedef mqbi::StorageManager::StorageSpMapConstIter StorageSpMapConstIter;
 
@@ -101,14 +103,13 @@ struct StoragePrintUtil {
                             bsls::Types::Int64     count,
                             mqbi::Storage*         storage);
 
-    /// Print to the specified `out` a summary of the recovered storages of
-    /// the specified `storageMap` belonging to the specified `partitionId`,
-    /// locking the specified `storagesLock` and using the specified
-    /// `clusterDescription` and `recoveryStartTime`.
+    /// Print to the specified `out` a summary of the recovered storages
+    /// belonging to the specified `partitionId` managed by the specified
+    /// `storagesMonitor`, using the specified `clusterDescription` and
+    /// `recoveryStartTime`.
     static void
     printRecoveredStorages(bsl::ostream&            out,
-                           bslmt::Mutex*            storagesLock,
-                           const StorageSpMap&      storageMap,
+                           StoragesMonitor*         storagesMonitor,
                            int                      partitionId,
                            const bsl::string&       clusterDescription,
                            const bsls::Types::Int64 recoveryStartTime);

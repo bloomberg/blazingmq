@@ -5415,6 +5415,7 @@ FileStore::FileStore(
     bool                                            isFSMWorkflow,
     bool                                            doesFSMwriteQLIST,
     int                                             replicationFactor,
+    StoragesMonitor*                                storagesMonitor,
     bslma::Allocator*                               allocator)
 : d_allocator_p(allocator)
 , d_allocators(allocator)
@@ -5445,6 +5446,7 @@ FileStore::FileStore(
 , d_primaryLeaseId(0)
 , d_syncPoints(allocator)
 , d_storages(allocator)
+, d_storagesMonitor_p(storagesMonitor)
 , d_isFSMWorkflow(isFSMWorkflow)
 , d_qListAware(!d_isFSMWorkflow || doesFSMwriteQLIST)
 , d_storageEventBuilder(FileStoreProtocol::k_VERSION,
@@ -8037,6 +8039,11 @@ void FileStore::unregisterStorage(const ReplicatedStorage* storage)
     size_t count = d_storages.erase(storage->queueKey());
     BSLS_ASSERT_SAFE(1 == count);
     static_cast<void>(count);
+}
+
+StoragesMonitor* FileStore::storagesMonitor()
+{
+    return d_storagesMonitor_p;
 }
 
 void FileStore::cancelTimersAndWait()

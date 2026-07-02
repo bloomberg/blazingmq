@@ -137,46 +137,6 @@ class StorageManager_PartitionInfo {
     bmqp_ctrlmsg::PrimaryStatus::Value primaryStatus() const;
 };
 
-// ============================
-// class StorageManagerIterator
-// ============================
-
-/// Interface to provide a way for iteration through all the storages of a
-/// partition in the storage manager.
-class StorageManagerIterator {
-  public:
-    // CREATORS
-
-    /// Destroy this iterator and unlock the storage manager associated with
-    /// it.
-    virtual ~StorageManagerIterator();
-
-    // MANIPULATORS
-
-    /// Advance this iterator to refer to the next storage of the associated
-    /// partition; if there is no next storage in the associated partition,
-    /// then this iterator becomes *invalid*.  The behavior is undefined
-    /// unless this iterator is valid.  Note that the order of the iteration
-    /// is not specified.
-    virtual void operator++() = 0;
-
-    // ACCESSORS
-
-    /// Return non-zero if the iterator is *valid*, and 0 otherwise.
-    virtual operator const void*() const = 0;
-
-    /// Return a reference offering non-modifiable access to the queue URI
-    /// being pointed by this iterator.  The behavior is undefined unless
-    /// the iterator is *valid*.
-    virtual const bmqt::Uri& uri() const = 0;
-
-    /// Return a reference offering non-modifiable access to the storage
-    /// being pointed by this iterator.  The behavior is undefined unless
-    /// the iterator is *valid*. Note that since iterator is not a first
-    /// class object, its okay to pass a raw pointer.
-    virtual const mqbi::Storage* storage() const = 0;
-};
-
 // =====================
 // class StorageProvider
 // =====================
@@ -452,9 +412,10 @@ class StorageManager : public StorageProvider {
     /// partition id.
     virtual mqbs::FileStore& fileStore(int partitionId) const = 0;
 
-    /// Return a StorageManagerIterator for the specified `partitionId`.
-    virtual bslma::ManagedPtr<StorageManagerIterator>
-    getIterator(int partitionId) const = 0;
+    /// Load into the specified `result` all the storages of the specified
+    /// `partitionId`.
+    virtual void loadAllStorages(bsl::vector<StorageSp>* result,
+                                 int                     partitionId) = 0;
 };
 
 // ============================================================================

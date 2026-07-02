@@ -402,6 +402,8 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     StoragesMap d_storages;
     // Map [QueueKey->ReplicatedStorage*]
 
+    StoragesMonitor* d_storagesMonitor_p;
+
     bdlmt::Throttle d_alarmSoftLimiter;
     // Throttler for alarming on soft
     // limits of partition files
@@ -781,6 +783,7 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
               bool                    isFSMWorkflow,
               bool                    doesFSMwriteQLIST,
               int                     replicationFactor,
+              StoragesMonitor*        storagesMonitor,
               bslma::Allocator*       allocator);
 
     /// Destroy this instance.  The behavior is undefined unless this
@@ -1078,6 +1081,8 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     void unregisterStorage(const ReplicatedStorage* storage)
         BSLS_KEYWORD_OVERRIDE;
+
+    StoragesMonitor* storagesMonitor() BSLS_KEYWORD_OVERRIDE;
 
     void cancelTimersAndWait();
 
