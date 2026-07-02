@@ -247,6 +247,12 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
     void do_logFailRegistrationResponse(const EventWithMetadata& event)
         BSLS_KEYWORD_OVERRIDE;
 
+    void do_logUnexpectedRegistrationResponse(const EventWithMetadata& event)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void do_logUnexpectedFailureRegistrationResponse(
+        const EventWithMetadata& event) BSLS_KEYWORD_OVERRIDE;
+
     void do_reapplyEvent(const EventWithMetadata& event) BSLS_KEYWORD_OVERRIDE;
 
     void do_reapplySelectLeader(const EventWithMetadata& event)

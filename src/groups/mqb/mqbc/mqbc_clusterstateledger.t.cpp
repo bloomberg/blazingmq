@@ -106,14 +106,22 @@ struct ClusterStateLedgerTestImp
         return markDone();
     }
 
-    // ACCESSORS
     void
     setCommitCb(BSLA_MAYBE_UNUSED const CommitCb& value) BSLS_KEYWORD_OVERRIDE
     {
         markDone();
     }
 
+    void setIsHealedCb(const IsHealedCb&) BSLS_KEYWORD_OVERRIDE { markDone(); }
+
+    // ACCESSORS
     bool isOpen() const BSLS_KEYWORD_OVERRIDE { return markDone(); }
+
+    void
+    uncommittedAdvisories(ClusterMessageCRefList*) const BSLS_KEYWORD_OVERRIDE
+    {
+        markDone();
+    }
 
     bslma::ManagedPtr<mqbc::ClusterStateLedgerIterator>
     getIterator() const BSLS_KEYWORD_OVERRIDE
@@ -200,7 +208,15 @@ static void test1_clusterStateLedger_protocol()
         BSLS_PROTOCOLTEST_ASSERT(
             testObj,
             setCommitCb(mqbc::ClusterStateLedger::CommitCb()));
+        BSLS_PROTOCOLTEST_ASSERT(
+            testObj,
+            setIsHealedCb(mqbc::ClusterStateLedger::IsHealedCb()));
         BSLS_PROTOCOLTEST_ASSERT(testObj, isOpen());
+        BSLS_PROTOCOLTEST_ASSERT(
+            testObj,
+            uncommittedAdvisories(
+                static_cast<mqbc::ClusterStateLedger::ClusterMessageCRefList*>(
+                    0)));
         BSLS_PROTOCOLTEST_ASSERT(testObj, getIterator());
     }
 

@@ -90,9 +90,13 @@ struct IncoreClusterStateLedger_ClusterMessageInfo {
     ///   - `QueueUnAssignmentAdvisory`.
     bmqp_ctrlmsg::ClusterMessage d_clusterMessage;
 
+    /// Timestamp (seconds since epoch, UTC) written to the CSL record header
+    /// when this advisory was created.
+    bsls::Types::Uint64 d_recordTimestamp;
+
     /// Timestamp in nanoseconds at the moment when the replication of this
     /// `ClusterMessage` started.
-    bsls::Types::Uint64 d_timestampNs;
+    bsls::Types::Uint64 d_replicationTimestampNs;
 
     /// Number of ACKs received for this `ClusterMessage`.
     unsigned int d_ackCount;
@@ -178,6 +182,9 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     /// Callback invoked when the status of a commit operation becomes
     /// available.
     CommitCb d_commitCb;
+
+    /// Callback returning true if this node is healed, false otherwise.
+    IsHealedCb d_isHealedCb;
 
     /// Cluster's transient state.
     ClusterData* d_clusterData_p;
@@ -380,6 +387,9 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     /// Set the commit callback to the specified `value`.
     void setCommitCb(const CommitCb& value) BSLS_KEYWORD_OVERRIDE;
 
+    /// Set the callback used to determine if this node is healed to `value`.
+    void setIsHealedCb(const IsHealedCb& value) BSLS_KEYWORD_OVERRIDE;
+
     // ACCESSORS
     //   (virtual mqbc::ClusterStateLedger)
 
@@ -388,6 +398,14 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
     bool isOpen() const BSLS_KEYWORD_OVERRIDE;
+
+    /// Load into the specified `out` the list of uncommitted advisories as
+    /// const references.
+    ///
+    /// THREAD: This method can be invoked only in the associated cluster's
+    ///         dispatcher thread.
+    void uncommittedAdvisories(ClusterMessageCRefList* out) const
+        BSLS_KEYWORD_OVERRIDE;
 
     /// Return an iterator to this ledger.
     ///
@@ -421,7 +439,8 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
 inline IncoreClusterStateLedger_ClusterMessageInfo ::
     IncoreClusterStateLedger_ClusterMessageInfo(bslma::Allocator* allocator)
 : d_clusterMessage(bslma::Default::allocator(allocator))
-, d_timestampNs(0)
+, d_recordTimestamp(0)
+, d_replicationTimestampNs(0)
 , d_ackCount(0)
 {
     // NOTHING
@@ -432,7 +451,8 @@ inline IncoreClusterStateLedger_ClusterMessageInfo ::
         const IncoreClusterStateLedger_ClusterMessageInfo& other,
         bslma::Allocator*                                  allocator)
 : d_clusterMessage(other.d_clusterMessage, allocator)
-, d_timestampNs(other.d_timestampNs)
+, d_recordTimestamp(other.d_recordTimestamp)
+, d_replicationTimestampNs(other.d_replicationTimestampNs)
 , d_ackCount(other.d_ackCount)
 {
     // NOTHING
@@ -463,6 +483,11 @@ inline unsigned int IncoreClusterStateLedger::getAckQuorum() const
 inline void IncoreClusterStateLedger::setCommitCb(const CommitCb& value)
 {
     d_commitCb = value;
+}
+
+inline void IncoreClusterStateLedger::setIsHealedCb(const IsHealedCb& value)
+{
+    d_isHealedCb = value;
 }
 
 // ACCESSORS

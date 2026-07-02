@@ -253,6 +253,9 @@ class ClusterStateLedger {
         bsl::reference_wrapper<const bmqp_ctrlmsg::ClusterMessage> >
         ClusterMessageCRefList;
 
+    /// Callback returning true if this node is healed, false otherwise.
+    typedef bsl::function<bool()> IsHealedCb;
+
   public:
     // CREATORS
 
@@ -317,6 +320,9 @@ class ClusterStateLedger {
     /// Set the commit callback to the specified `value`.
     virtual void setCommitCb(const CommitCb& value) = 0;
 
+    /// Set the callback used to determine if this node is healed to `value`.
+    virtual void setIsHealedCb(const IsHealedCb& value) = 0;
+
     // ACCESSORS
 
     /// Return true if this ledger is opened, false otherwise.
@@ -324,6 +330,13 @@ class ClusterStateLedger {
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
     virtual bool isOpen() const = 0;
+
+    /// Load into the specified `out` the list of uncommitted advisories as
+    /// const references.
+    ///
+    /// THREAD: This method can be invoked only in the associated cluster's
+    ///         dispatcher thread.
+    virtual void uncommittedAdvisories(ClusterMessageCRefList* out) const = 0;
 
     /// Return an iterator to this ledger.
     ///

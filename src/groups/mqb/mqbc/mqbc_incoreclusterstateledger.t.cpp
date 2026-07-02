@@ -98,6 +98,12 @@ namespace {
 
 // FUNCTIONS
 
+/// Return the value of the bool pointed to by the specified `flag`.
+bool isHealedFn(const bool* flag)
+{
+    return *flag;
+}
+
 /// Verify that the record header at the specified `cslIter` position has
 /// the specified `recordType` and `sequenceNumber`.
 void verifyRecordHeader(
@@ -186,6 +192,7 @@ struct Tester {
   public:
     // PUBLIC DATA
     bool                                              d_isLeader;
+    bool                                              d_isHealed;
     bmqu::TempDirectory                               d_tempDir;
     bsl::string                                       d_location;
     bslma::ManagedPtr<mqbmock::Cluster>               d_cluster_mp;
@@ -195,8 +202,11 @@ struct Tester {
 
   public:
     // CREATORS
-    Tester(bool isLeader = true, const bslstl::StringRef& location = "")
+    Tester(bool isLeader =  // NOLINT(cppcoreguidelines-pro-type-member-init)
+           true,
+           const bslstl::StringRef& location = "")
     : d_isLeader(isLeader)
+    , d_isHealed(true)
     , d_tempDir(bmqtst::TestHelperUtil::allocator())
     , d_location(
           !location.empty()
@@ -298,6 +308,8 @@ struct Tester {
                                  this,
                                  bdlf::PlaceHolders::_1,    // advisory
                                  bdlf::PlaceHolders::_2));  // status
+        d_clusterStateLedger_mp->setIsHealedCb(
+            bdlf::BindUtil::bind(&isHealedFn, &d_isHealed));
 
         bmqp_ctrlmsg::LeaderMessageSequence leaderSeqNum;
         leaderSeqNum.electorTerm()    = 1;
@@ -307,6 +319,8 @@ struct Tester {
     }
 
     // MANIPULATORS
+    void setHealed(bool value) { d_isHealed = value; }
+
     void onCommitCb(const bmqp_ctrlmsg::ControlMessage&        advisory,
                     mqbc::ClusterStateLedgerCommitStatus::Enum status)
     {
@@ -975,7 +989,91 @@ static void test7_apply_ClusterStateRecord()
     BMQTST_ASSERT_EQ(msg.choice().leaderAdvisory(), leaderAdvisory);
 }
 
-static void test8_apply_ClusterStateRecordCommit()
+static void test8_healingFollowerRejectsUpdate()
+// ------------------------------------------------------------------------
+// HEALING FOLLOWER REJECTS UPDATE
+//
+// Concerns:
+//   When self follower is not healed, applying an e_UPDATE record from the
+//   leader should fail, and the record should be ignored.
+//
+// Testing:
+//   int apply(const bdlbb::Blob& record, mqbnet::ClusterNode* source)
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName(
+        "APPLY - HEALING FOLLOWER REJECTS UPDATE");
+
+    Tester                          tester(false);  // isLeader
+    mqbc::IncoreClusterStateLedger* obj = tester.d_clusterStateLedger_mp.get();
+    BSLS_ASSERT_OPT(obj->open() == 0);
+
+    // Self is not healed
+    tester.setHealed(false);
+
+    // Create an e_UPDATE record (QueueAssignmentAdvisory)
+    bmqp_ctrlmsg::QueueAssignmentAdvisory qadvisory;
+    tester.d_cluster_mp->_clusterData()
+        ->electorInfo()
+        .nextLeaderMessageSequence(&qadvisory.sequenceNumber());
+
+    bmqp_ctrlmsg::QueueInfo qinfo;
+    qinfo.uri()         = "bmq://bmq.test.mmap.priority/q1";
+    qinfo.partitionId() = 1U;
+    mqbu::StorageKey key(mqbu::StorageKey::BinaryRepresentation(), "7777");
+    key.loadBinary(&qinfo.key());
+    qadvisory.queues().push_back(qinfo);
+
+    bmqp_ctrlmsg::ClusterMessage updateMessage;
+    updateMessage.choice().makeQueueAssignmentAdvisory(qadvisory);
+
+    bdlbb::Blob               updateEvent(tester.d_cluster_mp->bufferFactory(),
+                            bmqtst::TestHelperUtil::allocator());
+    const bsls::Types::Uint64 arbitraryTimestamp = 123456;
+    tester.constructEventBlob(&updateEvent,
+                              updateMessage,
+                              qadvisory.sequenceNumber(),
+                              arbitraryTimestamp,
+                              mqbc::ClusterStateRecordType::e_UPDATE);
+
+    // Apply the update record — should fail
+    BMQTST_ASSERT_NE(obj->apply(updateEvent,
+                                tester.d_cluster_mp->netCluster().lookupNode(
+                                    mqbmock::Cluster::k_LEADER_NODE_ID)),
+                     0);
+
+    // Verify no ack was sent (record was not written)
+    BMQTST_ASSERT(tester.hasSentMessagesToLeader(0));
+
+    // Now set healed and verify the update is accepted
+    tester.setHealed(true);
+
+    // Need a new LSN since the old one might be considered stale
+    tester.d_cluster_mp->_clusterData()
+        ->electorInfo()
+        .nextLeaderMessageSequence(&qadvisory.sequenceNumber());
+    updateMessage.choice().makeQueueAssignmentAdvisory(qadvisory);
+
+    bdlbb::Blob updateEvent2(tester.d_cluster_mp->bufferFactory(),
+                             bmqtst::TestHelperUtil::allocator());
+    tester.constructEventBlob(&updateEvent2,
+                              updateMessage,
+                              qadvisory.sequenceNumber(),
+                              arbitraryTimestamp + 1,
+                              mqbc::ClusterStateRecordType::e_UPDATE);
+
+    BMQTST_ASSERT_EQ(obj->apply(updateEvent2,
+                                tester.d_cluster_mp->netCluster().lookupNode(
+                                    mqbmock::Cluster::k_LEADER_NODE_ID)),
+                     0);
+
+    // Now an ack should have been sent
+    BMQTST_ASSERT(tester.hasSentMessagesToLeader(1));
+
+    BMQTST_ASSERT_EQ(obj->close(), 0);
+}
+
+static void test9_apply_ClusterStateRecordCommit()
 // ------------------------------------------------------------------------
 // CLUSTER STATE RECORD COMMIT
 //
@@ -1091,7 +1189,7 @@ static void test8_apply_ClusterStateRecordCommit()
     BMQTST_ASSERT(tester.hasNoMoreBroadcastedMessages(1));
 }
 
-static void test9_persistanceLeader()
+static void test10_persistanceLeader()
 // ------------------------------------------------------------------------
 // PERSISTENCE LEADER
 //
@@ -1314,7 +1412,7 @@ static void test9_persistanceLeader()
     BMQTST_ASSERT(!cslIter->isValid());
 }
 
-static void test10_persistanceFollower()
+static void test11_persistanceFollower()
 // ------------------------------------------------------------------------
 // PERSISTENCE FOLLOWER
 //
@@ -1605,7 +1703,7 @@ static void test10_persistanceFollower()
 }
 
 BSLA_MAYBE_UNUSED
-static void test11_persistanceAcrossRolloverLeader()
+static void test12_persistanceAcrossRolloverLeader()
 // ------------------------------------------------------------------------
 // PERSISTENCE ACROSS ROLLOVER LEADER
 //
@@ -2021,7 +2119,7 @@ static void test11_persistanceAcrossRolloverLeader()
     BSLS_ASSERT_OPT(obj->close() == 0);
 }
 
-static void test12_quorumChangeCb()
+static void test13_quorumChangeCb()
 // ------------------------------------------------------------------------
 // QUORUM CHANGE CALLBACK
 //
@@ -2104,17 +2202,19 @@ int main(int argc, char* argv[])
 
     bmqu::Time::initialize(bmqtst::TestHelperUtil::allocator());
 
+    // NOLINTBEGIN(cppcoreguidelines-avoid-magic-numbers)
     switch (_testCase) {
     case 0:
-    case 12: test12_quorumChangeCb(); break;
+    case 13: test13_quorumChangeCb(); break;
     // @TODO RENABLE AND FIX THIS TEST
     //
     // The following test consistently fails in CI.  It should be fixed,
     // but until then we want to avoid the noise.
-    //    case 11: test11_persistanceAcrossRolloverLeader(); break;
-    case 10: test10_persistanceFollower(); break;
-    case 9: test9_persistanceLeader(); break;
-    case 8: test8_apply_ClusterStateRecordCommit(); break;
+    //    case 12: test11_persistanceAcrossRolloverLeader(); break;
+    case 11: test11_persistanceFollower(); break;
+    case 10: test10_persistanceLeader(); break;
+    case 9: test9_apply_ClusterStateRecordCommit(); break;
+    case 8: test8_healingFollowerRejectsUpdate(); break;
     case 7: test7_apply_ClusterStateRecord(); break;
     case 6: test6_apply_LeaderAdvisory(); break;
     case 5: test5_apply_QueueUpdateAdvisory(); break;
@@ -2123,10 +2223,11 @@ int main(int argc, char* argv[])
     case 2: test2_apply_PartitionPrimaryAdvisory(); break;
     case 1: test1_breathingTest(); break;
     default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
+        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND.\n";
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
+    // NOLINTEND(cppcoreguidelines-avoid-magic-numbers)
 
     bmqu::Time::shutdown();
 

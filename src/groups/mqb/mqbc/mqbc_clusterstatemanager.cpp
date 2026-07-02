@@ -95,6 +95,9 @@ ClusterStateManager::ClusterStateManager(
                              this,
                              bdlf::PlaceHolders::_1,    // advisory
                              bdlf::PlaceHolders::_2));  // status
+
+    d_clusterStateLedger_mp->setIsHealedCb(
+        bdlf::BindUtil::bind(&ClusterFSM::isSelfHealed, &d_clusterFSM));
 }
 
 ClusterStateManager::~ClusterStateManager()
@@ -266,10 +269,34 @@ void ClusterStateManager::do_applyCSLSelf(const EventWithMetadata& event)
     d_clusterData_p->electorInfo().nextLeaderMessageSequence(
         &clusterStateSnapshot.sequenceNumber());
 
-    if (d_clusterFSM.isSelfLeader() && d_clusterFSM.isSelfHealed()) {
-        // Self is healed leader. We are simply broadcasting cluster state
-        // snapshot to newcoming follower nodes. No need to re-assign
-        // partitions.
+    ClusterStateLedger::ClusterMessageCRefList uncommitted(d_allocator_p);
+    d_clusterStateLedger_mp->uncommittedAdvisories(&uncommitted);
+
+    // We already have a valid partition assignment if either:
+    //   (a) self is healed (committed advisory exists), or
+    //   (b) we have an uncommitted LeaderAdvisory from our own elector term,
+    //       meaning we already called 'assignPartitions' earlier in this
+    //       leadership session and are re-entering due to a late-joining
+    //       follower.
+    // In case (b), we must verify the elector term matches: an uncommitted
+    // advisory from a *previous* leader's term is stale and its partition
+    // assignment must not be reused.  We iterate because stale advisories
+    // from an old leader may precede ours in the list (they are not cancelled
+    // on leader switch).
+    bool hasOwnUncommittedAdvisory = false;
+    for (size_t i = 0; i < uncommitted.size(); ++i) {
+        const bmqp_ctrlmsg::ClusterMessageChoice& choice =
+            uncommitted[i].get().choice();
+        if (choice.isLeaderAdvisoryValue() &&
+            choice.leaderAdvisory().sequenceNumber().electorTerm() ==
+                d_clusterData_p->electorInfo().electorTerm()) {
+            hasOwnUncommittedAdvisory = true;
+            break;  // BREAK
+        }
+    }
+
+    if (d_clusterFSM.isSelfLeader() &&
+        (d_clusterFSM.isSelfHealed() || hasOwnUncommittedAdvisory)) {
         ClusterUtil::loadPartitionsInfo(&clusterStateSnapshot.partitions(),
                                         tempState);
     }
@@ -500,20 +527,42 @@ void ClusterStateManager::do_sendFailureFollowerLSNResponse(
     const InputMessage&            inputMessage = metadata.inputMessage();
 
     bmqp_ctrlmsg::ControlMessage controlMsg;
-    controlMsg.rId() = inputMessage.requestId();
-
+    controlMsg.rId()               = inputMessage.requestId();
     bmqp_ctrlmsg::Status& response = controlMsg.choice().makeStatus();
-    response.category()            = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
-    response.code()                = mqbi::ClusterErrorCode::e_NOT_FOLLOWER;
-    response.message()             = "Not a follower";
+
+    if (!d_clusterFSM.isSelfFollower()) {
+        response.category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+        response.code()     = mqbi::ClusterErrorCode::e_NOT_FOLLOWER;
+        response.message()  = "Not a follower";
+
+        BALL_LOG_INFO
+            << d_clusterData_p->identity().description()
+            << ": Self not follower! Sent failure response " << controlMsg
+            << " to FollowerLSNRequest from node claiming to be leader: "
+            << inputMessage.source()->nodeDescription() << ".";
+    }
+    else {
+        BSLS_ASSERT_SAFE(d_clusterFSM.state() ==
+                         ClusterFSM::State::e_FOL_WAITING);
+        BSLS_ASSERT_SAFE(d_clusterData_p->electorInfo().leaderNode());
+        BSLS_ASSERT_SAFE(inputMessage.source()->nodeId() ==
+                         d_clusterData_p->electorInfo().leaderNodeId());
+
+        response.category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+        response.code()     = mqbi::ClusterErrorCode::e_FOLLOWER_WAITING;
+        response.message()  = "Self follower waiting for RegistrationResponse";
+
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << ": Self is waiting for RegistrationResponse, and "
+                      << "**must** reject the FollowerLSNRequest to prevent "
+                      << "leader from healing us twice in a row, leading to "
+                      << "duplicate work.  Sent failure response "
+                      << controlMsg << " to FollowerLSNRequest from leader "
+                      << inputMessage.source()->nodeDescription() << ".";
+    }
 
     d_clusterData_p->messageTransmitter().sendMessage(controlMsg,
                                                       inputMessage.source());
-
-    BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << ": Sent failure response " << controlMsg
-                  << " to follower LSN request from "
-                  << inputMessage.source()->nodeDescription();
 }
 
 void ClusterStateManager::do_findHighestLSN(
@@ -1030,6 +1079,51 @@ void ClusterStateManager::do_logFailFollowerClusterStateResponse(
     }
 }
 
+void ClusterStateManager::do_logUnexpectedRegistrationResponse(
+    const EventWithMetadata& event)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster().isLocal());
+
+    const mqbnet::ClusterNode* source = event.second.inputMessage().source();
+    BSLS_ASSERT_SAFE(source);
+
+    BSLS_ASSERT_SAFE(d_clusterFSM.state() != ClusterFSM::State::e_FOL_WAITING);
+
+    BALL_LOG_WARN << d_clusterData_p->identity().description()
+                  << ": Received unexpected RegistrationResponse from node "
+                  << source->nodeDescription() << ", while self is in "
+                  << d_clusterFSM.state()
+                  << " state.  Self should only receive RegistrationResponse "
+                  << "when in FOL_WAITING state.";
+}
+
+void ClusterStateManager::do_logUnexpectedFailureRegistrationResponse(
+    const EventWithMetadata& event)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster().isLocal());
+
+    const mqbnet::ClusterNode* source = event.second.inputMessage().source();
+    BSLS_ASSERT_SAFE(source);
+
+    BSLS_ASSERT_SAFE(d_clusterFSM.state() != ClusterFSM::State::e_FOL_WAITING);
+
+    BALL_LOG_WARN
+        << d_clusterData_p->identity().description()
+        << ": Received unexpected failure RegistrationResponse from node "
+        << source->nodeDescription() << ", while self is in "
+        << d_clusterFSM.state()
+        << " state.  Self should only receive failure RegistrationResponse "
+        << "when in FOL_WAITING state.";
+}
+
 void ClusterStateManager::do_logFailRegistrationResponse(
     const EventWithMetadata& event)
 {
@@ -1388,8 +1482,8 @@ void ClusterStateManager::onFollowerLSNResponse(
     inputMessage.setSource(source).setLeaderSequenceNumber(
         resp.sequenceNumber());
 
-    mqbnet::ClusterNode* highestLSNNode =
-        (d_clusterFSM.isSelfLeader() && d_clusterFSM.isSelfHealed())
+    mqbnet::ClusterNode* const highestLSNNode =
+        d_clusterFSM.isSelfHighestLSNLeader()
             ? d_clusterData_p->membership().selfNode()
             : 0;
     applyFSMEvent(ClusterFSM::Event::e_FOL_LSN_RSPN,
@@ -1841,8 +1935,8 @@ void ClusterStateManager::processRegistrationRequest(
                                      .registrationRequest()
                                      .sequenceNumber());
 
-    mqbnet::ClusterNode* highestLSNNode =
-        (d_clusterFSM.isSelfLeader() && d_clusterFSM.isSelfHealed())
+    mqbnet::ClusterNode* const highestLSNNode =
+        d_clusterFSM.isSelfHighestLSNLeader()
             ? d_clusterData_p->membership().selfNode()
             : 0;
     applyFSMEvent(ClusterFSM::Event::e_REGISTRATION_RQST,

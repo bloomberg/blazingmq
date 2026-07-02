@@ -515,6 +515,16 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
         ClusterMessageInfo info;
         info.d_clusterMessage = clusterMessage;
         info.d_ackCount       = 0;
+
+        bmqu::BlobObjectProxy<ClusterStateRecordHeader> recordHeader(
+            &record,
+            recordPosition,
+            -ClusterStateRecordHeader::k_HEADER_NUM_WORDS,
+            true,
+            false);
+        BSLS_ASSERT_SAFE(recordHeader.isSet());
+        info.d_recordTimestamp = recordHeader->timestamp();
+
         const AdvisoriesMap::iterator advIt =
             d_uncommittedAdvisories.insert(bsl::make_pair(lsn, info)).first;
 
@@ -535,7 +545,7 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
             BSLS_ASSERT_SAFE(recordOffset == 0);
 
             // Save the replication start time
-            advIt->second.d_timestampNs =
+            advIt->second.d_replicationTimestampNs =
                 bdlt::CurrentTime::now().totalNanoseconds();
 
             bsl::shared_ptr<bdlbb::Blob> advisoryEvent =
@@ -648,7 +658,7 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
         if (isSelfLeader()) {
             bsls::Types::Int64 replicationTimeNs =
                 bdlt::CurrentTime::now().totalNanoseconds() -
-                iter->second.d_timestampNs;
+                iter->second.d_replicationTimestampNs;
             d_clusterData_p->stats().setCslReplicationTime(replicationTimeNs);
 
             bsl::shared_ptr<bdlbb::Blob> commitEvent =
@@ -908,16 +918,18 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
         rc_INVALID_HEADER = -3,
         /// Unexpected record type
         rc_UNEXPECTED_RECORD_TYPE = -4,
+        /// Record is of type e_UPDATE while self follower is not healed
+        rc_UPDATE_WHILE_NOT_HEALED = -5,
         /// Record was already applied
-        rc_RECORD_ALREADY_APPLIED = -5,
+        rc_RECORD_ALREADY_APPLIED = -6,
         /// Record is stale
-        rc_RECORD_STALE = -6,
+        rc_RECORD_STALE = -7,
         /// Fail to load cluster message
-        rc_LOAD_MESSAGE_FAILURE = -7,
+        rc_LOAD_MESSAGE_FAILURE = -8,
         /// Advisory is invalid, as determined by type-specific validation
-        rc_ADVISORY_INVALID = -8,
+        rc_ADVISORY_INVALID = -9,
         /// Fail to apply record
-        rc_APPLY_RECORD_FAILURE = -9
+        rc_APPLY_RECORD_FAILURE = -10
     };
 
     BALL_LOG_INFO << "Applying cluster state record event from node '"
@@ -1040,6 +1052,16 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
                    "commits, but we received record of type: "
                 << recordHeader->recordType();
             return rc_UNEXPECTED_RECORD_TYPE;  // RETURN
+        }
+
+        if (recordHeader->recordType() == ClusterStateRecordType::e_UPDATE &&
+            !d_isHealedCb()) {
+            BALL_LOG_WARN << description()
+                          << ": Ignoring e_UPDATE record with LSN = "
+                          << printLSN(lsn) << " from '"
+                          << source->nodeDescription()
+                          << "' because self follower is not healed.";
+            return rc_UPDATE_WHILE_NOT_HEALED;  // RETURN
         }
 
         if (d_uncommittedAdvisories.find(lsn) !=
@@ -1242,6 +1264,7 @@ IncoreClusterStateLedger::IncoreClusterStateLedger(
 , d_blobSpPool_p(blobSpPool_p)
 , d_description(allocator)
 , d_commitCb()
+, d_isHealedCb()
 , d_clusterData_p(clusterData)
 , d_clusterState_p(clusterState)
 , d_ledgerConfig(allocator)
@@ -1311,6 +1334,7 @@ int IncoreClusterStateLedger::open()
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
+    BSLS_ASSERT_SAFE(d_isHealedCb);
 
     BALL_LOG_INFO << description()
                   << ": Opening IncoreCSL with config: " << d_ledgerConfig;
@@ -1535,6 +1559,24 @@ int IncoreClusterStateLedger::apply(const bdlbb::Blob&   event,
 
 // ACCESSORS
 //   (virtual mqbc::ClusterStateLedger)
+void IncoreClusterStateLedger::uncommittedAdvisories(
+    ClusterMessageCRefList* out) const
+{
+    // executed by the *CLUSTER DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
+    BSLS_ASSERT_SAFE(out);
+
+    out->clear();
+    out->reserve(d_uncommittedAdvisories.size());
+    for (AdvisoriesMapCIter it = d_uncommittedAdvisories.cbegin();
+         it != d_uncommittedAdvisories.cend();
+         ++it) {
+        out->emplace_back(bsl::cref(it->second.d_clusterMessage));
+    }
+}
+
 bslma::ManagedPtr<ClusterStateLedgerIterator>
 IncoreClusterStateLedger::getIterator() const
 {

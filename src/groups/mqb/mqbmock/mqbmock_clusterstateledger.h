@@ -69,27 +69,28 @@ class ClusterStateLedger : public mqbc::ClusterStateLedger {
 
   private:
     // DATA
+
+    /// Allocator used to supply memory.
     bslma::Allocator* d_allocator_p;
-    // Allocator used to supply memory.
 
+    /// Flag to indicate open/close status of this object.
     bool d_isOpen;
-    // Flag to indicate open/close status of this object.
 
+    /// Flag to indicate whether to pause commit callback.
     bool d_pauseCommitCb;
-    // Flag to indicate whether to pause commit callback.
 
+    /// Callback invoked when the status of a commit
+    /// operation becomes available.
     CommitCb d_commitCb;
-    // Callback invoked when the status of a commit
-    // operation becomes available.
 
+    /// Cluster's transient state.
     mqbc::ClusterData* d_clusterData_p;
-    // Cluster's transient state.
 
+    /// List of records stored in this ledger, including uncommitted ones.
     LedgerRecords d_records;
-    // List of records stored in this ledger.
 
+    /// List of uncommitted (but not canceled) advisories.
     Advisories d_uncommittedAdvisories;
-    // List of uncommitted (but not canceled) advisories.
 
   private:
     // PRIVATE MANIPULATORS
@@ -190,6 +191,9 @@ class ClusterStateLedger : public mqbc::ClusterStateLedger {
     /// Set the commit callback to the specified `value`.
     void setCommitCb(const CommitCb& value) BSLS_KEYWORD_OVERRIDE;
 
+    /// Set the callback used to determine if this node is healed to `value`.
+    void setIsHealedCb(const IsHealedCb& value) BSLS_KEYWORD_OVERRIDE;
+
     // MANIPULATORS
 
     /// Set the pause commit callback flag to the specified `value`.
@@ -213,18 +217,20 @@ class ClusterStateLedger : public mqbc::ClusterStateLedger {
     ///         dispatcher thread.
     bool isOpen() const BSLS_KEYWORD_OVERRIDE;
 
+    /// Load into the specified `out` the list of uncommitted advisories as
+    /// const references.
+    ///
+    /// THREAD: This method can be invoked only in the associated cluster's
+    ///         dispatcher thread.
+    void uncommittedAdvisories(ClusterMessageCRefList* out) const
+        BSLS_KEYWORD_OVERRIDE;
+
     /// Return an iterator to this ledger.
     ///
     /// THREAD: This method can be invoked only in the associated cluster's
     ///         dispatcher thread.
     bslma::ManagedPtr<mqbc::ClusterStateLedgerIterator>
     getIterator() const BSLS_KEYWORD_OVERRIDE;
-
-    /// Load into `out` the list of uncommitted advisories as const references.
-    ///
-    /// THREAD: This method can be invoked only in the associated cluster's
-    ///         dispatcher thread.
-    void _uncommittedAdvisories(ClusterMessageCRefList* out) const;
 };
 
 // ============================================================================
@@ -253,6 +259,11 @@ inline void ClusterStateLedger::setCommitCb(const CommitCb& value)
     d_commitCb = value;
 }
 
+inline void ClusterStateLedger::setIsHealedCb(const IsHealedCb&)
+{
+    // NOTHING
+}
+
 // MANIPULATORS
 inline void ClusterStateLedger::_setPauseCommitCb(bool value)
 {
@@ -277,7 +288,7 @@ inline bool ClusterStateLedger::isOpen() const
 }
 
 inline void
-ClusterStateLedger::_uncommittedAdvisories(ClusterMessageCRefList* out) const
+ClusterStateLedger::uncommittedAdvisories(ClusterMessageCRefList* out) const
 {
     // executed by the *CLUSTER DISPATCHER* thread
 
@@ -285,6 +296,7 @@ ClusterStateLedger::_uncommittedAdvisories(ClusterMessageCRefList* out) const
     BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
     BSLS_ASSERT_SAFE(out);
 
+    out->clear();
     out->assign(d_uncommittedAdvisories.begin(),
                 d_uncommittedAdvisories.end());
 }
