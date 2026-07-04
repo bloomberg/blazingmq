@@ -195,6 +195,11 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
                      const AppInfos*         appIdKeyPairs,
                      bsls::Types::Uint64     timestamp,
                      bool                    isNewQueue);
+
+        /// Sync-point record constructor.  'd_primaryLeaseId' (term) and
+        /// 'd_sequenceNumber' (index) are filled in by
+        /// 'PartitionRaftLog::append'.
+        explicit PendingWrite(bsls::Types::Uint64 id);
     };
 
     /// Type of the functor required by `applyForEachQueue`.
@@ -922,7 +927,10 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
                         bsls::Types::Uint64 timestamp) BSLS_KEYWORD_OVERRIDE;
 
     int writeSyncPointRecord(const bmqp_ctrlmsg::SyncPoint& syncPoint,
-                             SyncPointType::Enum type) BSLS_KEYWORD_OVERRIDE;
+                             SyncPointType::Enum            type,
+                             unsigned int                   primaryLeaseId,
+                             bsls::Types::Uint64            sequenceNumber)
+        BSLS_KEYWORD_OVERRIDE;
 
     /// Raft integration
     /// -----------------
@@ -1004,6 +1012,13 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// d_isNewQueue).  Fills 'pw->d_journalOffset', 'pw->d_entryBlob'
     /// (journal record + qlist bytes), and 'pw->d_handle'.
     int formatQueueCreationRecord(PendingWrite* pw);
+
+    /// Raft primary path: write a regular sync-point journal record directly
+    /// to mmap for the specified 'pw' (using its 'd_primaryLeaseId' = term and
+    /// 'd_sequenceNumber' = index for the record header PSN, and the active
+    /// file set's current offsets).  Fills 'pw->d_journalOffset' and
+    /// 'pw->d_entryBlob' (zero-copy mmap alias of the journal record).
+    int formatSyncPointRecord(PendingWrite* pw);
 
     /// Remove the record identified by the specified `handle`.  The
     /// behavior is undefined unless `handle` is valid and represents a
@@ -1205,6 +1220,12 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     /// Return the replication factor for strong consistency.
     int replicationFactor() const;
+
+    /// Return the current write position (in bytes) of the active data file.
+    bsls::Types::Uint64 dataFilePosition() const;
+
+    /// Return the current write position (in bytes) of the active qlist file.
+    bsls::Types::Uint64 qlistFilePosition() const;
 
     /// Return the first sync point after rollover sequence number.
     const bmqp_ctrlmsg::PartitionSequenceNumber&

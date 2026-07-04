@@ -175,6 +175,29 @@ FileStore::PendingWrite::PendingWrite(bsls::Types::Uint64     id,
 {
 }
 
+FileStore::PendingWrite::PendingWrite(bsls::Types::Uint64 id)
+: d_id(id)
+, d_recordType(RecordType::e_JOURNAL_OP)
+, d_primaryLeaseId(0)
+, d_sequenceNumber(0)
+, d_queueKey()
+, d_attributes_p(0)
+, d_handle()
+, d_guid()
+, d_appData()
+, d_options()
+, d_queueUri()
+, d_appIdKeyPairs_p(0)
+, d_timestamp(0)
+, d_isNewQueue(false)
+, d_journalOffset(0)
+, d_dataOffset(0)
+, d_entryBlob()
+, d_qlistOffset(0)
+, d_qlistRecTotalLength(0)
+{
+}
+
 namespace {
 
 typedef bsl::pair<unsigned int, bsls::Types::Uint64> MessageByteCounter;
@@ -4239,8 +4262,13 @@ int FileStore::issueSyncPointInternal(SyncPointType::Enum            type,
                           2 * FileStoreProtocol::k_JOURNAL_RECORD_SIZE));
     }
 
-    // Write to self.
-    int rc = writeSyncPointRecord(syncPoint, type);
+    // Write to self.  The record header carries this (current) primary's PSN;
+    // the sync point's own fields carry 'syncPoint's PSN, which may differ
+    // (e.g. when issuing a sync point on behalf of a previous primary).
+    int rc = writeSyncPointRecord(syncPoint,
+                                  type,
+                                  d_primaryLeaseId,
+                                  currentSeqNumRef() + 1);
     if (0 != rc) {
         BMQTSK_ALARMLOG_ALARM("FILE_IO")
             << partitionDesc() << "Failed to write sync point: " << syncPoint
@@ -6362,7 +6390,9 @@ int FileStore::writeDeletionRecord(const bmqt::MessageGUID& guid,
 }
 
 int FileStore::writeSyncPointRecord(const bmqp_ctrlmsg::SyncPoint& syncPoint,
-                                    SyncPointType::Enum            type)
+                                    SyncPointType::Enum            type,
+                                    unsigned int        primaryLeaseId,
+                                    bsls::Types::Uint64 sequenceNumber)
 {
     enum { rc_SUCCESS = 0, rc_UNAVAILABLE = -1 };
 
@@ -6376,7 +6406,10 @@ int FileStore::writeSyncPointRecord(const bmqp_ctrlmsg::SyncPoint& syncPoint,
         return rc_UNAVAILABLE;  // RETURN
     }
 
-    // Update the PSN only when record writing is guaranteed.
+    // Advance the legacy PSN counter only when record writing is guaranteed.
+    // In Raft mode the header PSN comes from the 'primaryLeaseId' and
+    // 'sequenceNumber' parameters (the term and log index), so this counter is
+    // not consulted for the record's PSN.
     ++currentSeqNumRef();
 
     // Local refs for convenience.
@@ -6402,8 +6435,8 @@ int FileStore::writeSyncPointRecord(const bmqp_ctrlmsg::SyncPoint& syncPoint,
                         d_qListAware ? syncPoint.qlistFileOffsetWords() : 0,
                         RecordHeader::k_MAGIC);
     journalOpRec->header()
-        .setPrimaryLeaseId(d_primaryLeaseId)
-        .setSequenceNumber(sequenceNumber())
+        .setPrimaryLeaseId(primaryLeaseId)
+        .setSequenceNumber(sequenceNumber)
         .setTimestamp(
             bdlt::EpochUtil::convertToTimeT64(bdlt::CurrentTime::utc()));
     journalPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
@@ -6417,6 +6450,67 @@ int FileStore::writeSyncPointRecord(const bmqp_ctrlmsg::SyncPoint& syncPoint,
                   << ", journal offset: " << recordOffset << "]";
 
     return rc_SUCCESS;
+}
+
+bsls::Types::Uint64 FileStore::dataFilePosition() const
+{
+    BSLS_ASSERT_SAFE(0 < d_fileSets.size());
+    return d_fileSets[0]->d_dataFilePosition;
+}
+
+bsls::Types::Uint64 FileStore::qlistFilePosition() const
+{
+    BSLS_ASSERT_SAFE(0 < d_fileSets.size());
+    return d_fileSets[0]->d_qlistFilePosition;
+}
+
+int FileStore::formatSyncPointRecord(PendingWrite* pw)
+{
+    BSLS_ASSERT_SAFE(pw);
+    BSLS_ASSERT_SAFE(0 < d_fileSets.size());
+
+    FileSet* activeFileSet = d_fileSets[0].get();
+    BSLS_ASSERT_SAFE(activeFileSet);
+
+    MappedFileDescriptor&     journal = activeFileSet->d_journalFile;
+    const bsls::Types::Uint64 journalOffset =
+        activeFileSet->d_journalFilePosition;
+
+    // The sync point's PSN is the Raft (term, index) carried in 'pw'; its
+    // offsets are the current write positions of the active file set.
+    bmqp_ctrlmsg::SyncPoint syncPoint;
+    syncPoint.primaryLeaseId() = static_cast<unsigned int>(
+        pw->d_primaryLeaseId);
+    syncPoint.sequenceNum()          = pw->d_sequenceNumber;
+    syncPoint.dataFileOffsetDwords() = static_cast<unsigned int>(
+        dataFilePosition() / bmqp::Protocol::k_DWORD_SIZE);
+    syncPoint.qlistFileOffsetWords() = d_qListAware
+                                           ? static_cast<unsigned int>(
+                                                 qlistFilePosition() /
+                                                 bmqp::Protocol::k_WORD_SIZE)
+                                           : 0;
+
+    int rc = writeSyncPointRecord(
+        syncPoint,
+        SyncPointType::e_REGULAR,
+        static_cast<unsigned int>(pw->d_primaryLeaseId),
+        pw->d_sequenceNumber);
+    if (0 != rc) {
+        return rc;  // RETURN
+    }
+
+    pw->d_journalOffset = journalOffset;
+    pw->d_dataOffset    = 0;
+
+    // Build zero-copy mmap alias of the journal record for replication.
+    pw->d_entryBlob = d_blobSpPool_p->getObject();
+    bsl::shared_ptr<char> jrecSp(activeFileSet->d_aliasedChunk_sp,
+                                 journal.mapping() + journalOffset);
+    pw->d_entryBlob->appendDataBuffer(
+        bdlbb::BlobBuffer(bslmf::MovableRefUtil::move(jrecSp),
+                          FileStoreProtocol::k_JOURNAL_RECORD_SIZE));
+
+    return 0;
 }
 
 int FileStore::writeFormattedRecord(const bdlbb::Blob&                   data,

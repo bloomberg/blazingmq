@@ -448,7 +448,9 @@ class MockDataStore : public mqbs::DataStore {
     }
 
     int writeSyncPointRecord(const bmqp_ctrlmsg::SyncPoint&,
-                             mqbs::SyncPointType::Enum) BSLS_KEYWORD_OVERRIDE
+                             mqbs::SyncPointType::Enum,
+                             unsigned int,
+                             bsls::Types::Uint64) BSLS_KEYWORD_OVERRIDE
     {
         return 0;
     }

@@ -800,7 +800,9 @@ class DataStore : public RecordStore, public mqbi::DispatcherClient {
     /// ---------------
 
     virtual int writeSyncPointRecord(const bmqp_ctrlmsg::SyncPoint& syncPoint,
-                                     SyncPointType::Enum            type) = 0;
+                                     SyncPointType::Enum            type,
+                                     unsigned int        primaryLeaseId,
+                                     bsls::Types::Uint64 sequenceNumber) = 0;
 
     /// Process the specified storage event `blob` containing one or more
     /// storage messages.  The behavior is undefined unless each message in
