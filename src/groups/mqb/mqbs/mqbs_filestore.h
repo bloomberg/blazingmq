@@ -218,15 +218,9 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
                                                LeaseIdToSeqNumMap;
     typedef LeaseIdToSeqNumMap::const_iterator LeaseIdToSeqNumMapCIter;
 
-  private:
-    // PRIVATE TYPES
-    typedef DataStoreConfig::Records             Records;
-    typedef DataStoreConfig::RecordIterator      RecordIterator;
-    typedef DataStoreConfig::RecordConstIterator RecordConstIterator;
-
-    typedef bsl::pair<RecordIterator, bool> InsertRc;
-
-    /// Counter for the number of messages and bytes in a queue
+    /// Counter for the number of messages and bytes in a queue.  Public
+    /// because 'writeRolledOverRecord'/'writeRolledOverRecords' (used by
+    /// the Raft rollover orchestration in 'PartitionRaftLog') take it.
     typedef bsl::pair<unsigned int, bsls::Types::Uint64> MessageByteCounter;
 
     typedef bsl::unordered_map<mqbu::StorageKey,
@@ -239,6 +233,14 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     typedef bsl::vector<bsl::pair<mqbu::StorageKey, MessageByteCounter> >
                                                 QueueKeyCounterList;
     typedef QueueKeyCounterList::const_iterator QueueKeyCounterListCIter;
+
+  private:
+    // PRIVATE TYPES
+    typedef DataStoreConfig::Records             Records;
+    typedef DataStoreConfig::RecordIterator      RecordIterator;
+    typedef DataStoreConfig::RecordConstIterator RecordConstIterator;
+
+    typedef bsl::pair<RecordIterator, bool> InsertRc;
 
     typedef bdlmt::EventScheduler::RecurringEventHandle RecurringEventHandle;
 
@@ -588,15 +590,6 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
                                 bsls::Types::Uint64     timestamp,
                                 unsigned int            startPrimaryLeaseId,
                                 bsls::Types::Uint64     startSequenceNum);
-
-    /// Rollover over the specified `record` from `oldFileSet` to the
-    /// `newFileSet`, and if it is a message record, update the counter of
-    /// the corresponding queue by one in the specified
-    /// `queueKeyCounterMap`.
-    void writeRolledOverRecord(DataStoreRecord*    record,
-                               QueueKeyCounterMap* queueKeyCounterMap,
-                               FileSet*            oldFileSet,
-                               FileSet*            newFileSet);
 
     /// Write qlist and journal records for a queue creation/addition.
     /// Use the specified 'primaryLeaseId' and 'sequenceNumber'.  Load the
@@ -1019,6 +1012,30 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// file set's current offsets).  Fills 'pw->d_journalOffset' and
     /// 'pw->d_entryBlob' (zero-copy mmap alias of the journal record).
     int formatSyncPointRecord(PendingWrite* pw);
+
+    /// Rollover the specified `record` from `oldFileSet` to the `newFileSet`,
+    /// and if it is a message record, update the counter of the corresponding
+    /// queue by one in the specified `queueKeyCounterMap`.  Updates
+    /// `record`'s offsets in place to the new file set.  The behavior is
+    /// undefined unless `record` is not a JOURNAL_OP record.  (Public so the
+    /// Raft rollover orchestration in `PartitionRaftLog` can drive the copy
+    /// loop itself, in strict index order.)
+    void writeRolledOverRecord(DataStoreRecord*    record,
+                               QueueKeyCounterMap* queueKeyCounterMap,
+                               FileSet*            oldFileSet,
+                               FileSet*            newFileSet);
+
+    /// Copy every outstanding record in `d_records` whose sequence number is
+    /// at most the specified `maxSequenceNum` into the specified `newFileSet`
+    /// (via `writeRolledOverRecord`), accumulating per-queue counters into
+    /// the specified `queueKeyCounterMap`.  Used for the committed-prefix
+    /// portion of a rollover; the uncommitted tail is driven separately by
+    /// the caller in strict index order.  Legacy `rolloverImpl` calls this
+    /// with `sequenceNumber()` (the current/highest sequence number) to copy
+    /// all outstanding records.
+    void writeRolledOverRecords(FileSet*            newFileSet,
+                                    QueueKeyCounterMap* queueKeyCounterMap,
+                                    bsls::Types::Uint64 maxSequenceNum);
 
     /// Remove the record identified by the specified `handle`.  The
     /// behavior is undefined unless `handle` is valid and represents a

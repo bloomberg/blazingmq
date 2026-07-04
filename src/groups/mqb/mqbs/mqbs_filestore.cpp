@@ -2837,6 +2837,36 @@ int FileStore::create(FileSetSp* fileSetSp)
     return rc;
 }
 
+void FileStore::writeRolledOverRecords(
+    FileSet*            newFileSet,
+    QueueKeyCounterMap* queueKeyCounterMap,
+    bsls::Types::Uint64 maxSequenceNum)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(newFileSet);
+    BSLS_ASSERT_SAFE(queueKeyCounterMap);
+    BSLS_ASSERT_SAFE(0 < d_fileSets.size());
+
+    FileSet* activeFileSet = d_fileSets[0].get();
+    BSLS_ASSERT_SAFE(activeFileSet);
+
+    // 'd_records' is insertion-ordered (records are inserted in sequence-number
+    // order), so this copies the outstanding records into 'newFileSet' in
+    // sequence-number order, preserving the monotonic offset<->sequenceNumber
+    // relationship that 'truncateRecords' relies on.
+    for (RecordIterator recordIt = d_records.begin();
+         recordIt != d_records.end();
+         ++recordIt) {
+        if (recordIt->first.d_sequenceNum > maxSequenceNum) {
+            continue;  // CONTINUE
+        }
+        writeRolledOverRecord(&(recordIt->second),
+                              queueKeyCounterMap,
+                              activeFileSet,
+                              newFileSet);
+    }
+}
+
 int FileStore::rolloverImpl(bsls::Types::Uint64 timestamp)
 {
     // PRECONDITIONS
@@ -2874,14 +2904,9 @@ int FileStore::rolloverImpl(bsls::Types::Uint64 timestamp)
     // rollover set.
 
     QueueKeyCounterMap queueKeyCounterMap;
-    for (RecordIterator recordIt = d_records.begin();
-         recordIt != d_records.end();
-         ++recordIt) {
-        writeRolledOverRecord(&(recordIt->second),
-                              &queueKeyCounterMap,
-                              activeFileSet,
-                              newActiveFileSetSp.get());
-    }
+    writeRolledOverRecords(newActiveFileSetSp.get(),
+                               &queueKeyCounterMap,
+                               sequenceNumber());
 
     // Print summary of rolled over queues.
     bmqu::MemOutStream outStream;
