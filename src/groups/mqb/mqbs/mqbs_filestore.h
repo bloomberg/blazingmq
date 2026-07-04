@@ -928,23 +928,20 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// Raft integration
     /// -----------------
 
-    /// Write a pre-formatted record from the specified 'entryBlob' to the
-    /// journal and (for DATA/QLIST types) the data file.  Load the
-    /// resulting journal offset into the specified 'journalOffset' and the
-    /// data file offset (0 if not applicable) into the specified
-    /// 'dataOffset'.  Update file positions and insert into 'd_records'.
-    /// Return 0 on success, non-zero on error.
-    /// Write a pre-formatted record to the appropriate mmap files.  'data'
-    /// contains the journal record (and, on the replica path, the payload
-    /// appended after it).  On the primary path the optionally specified
-    /// 'payload' carries the data-file or qlist content separately,
-    /// avoiding an intermediate combined blob; when 'payload' is null the
-    /// payload bytes are read from 'data' starting after the journal record.
-    int writeFormattedRecord(const bdlbb::Blob&                   data,
-                             bsls::Types::Uint64*                 journalOffset,
-                             bsls::Types::Uint64*                 dataOffset,
-                             DataStoreRecordHandle*               handle = 0,
-                             const bsl::shared_ptr<bdlbb::Blob>&  payload = {});
+    /// Write a pre-formatted record to the appropriate mmap files and load
+    /// its physical metadata (journal offset, data/qlist offset, record type,
+    /// and record handle) into the specified 'info'.  'data' contains the
+    /// journal record (and, on the replica path, the payload appended after
+    /// it).  On the primary path the optionally specified 'payload' carries
+    /// the data-file or qlist content separately, avoiding an intermediate
+    /// combined blob; when 'payload' is null the payload bytes are read from
+    /// 'data' starting after the journal record.  'info's sequence number and
+    /// primary lease id are owned by the Raft layer and are *not* touched
+    /// here.  Update file positions and insert into 'd_records'.  Return 0 on
+    /// success, non-zero on error.
+    int writeFormattedRecord(const bdlbb::Blob&                  data,
+                             RecoveryRecordInfo*                 info,
+                             const bsl::shared_ptr<bdlbb::Blob>& payload = {});
 
     /// Notify that a record has been committed by Raft quorum on a replica.
     /// The specified `data` blob contains the journal record (and optional
@@ -1036,6 +1033,28 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     void writeRolledOverRecords(FileSet*            newFileSet,
                                     QueueKeyCounterMap* queueKeyCounterMap,
                                     bsls::Types::Uint64 maxSequenceNum);
+
+    /// Create and open a new file set to receive the rolled-over records,
+    /// loading it into the specified `newFileSet` (BlazingMQ and
+    /// file-specific headers are written).  Return zero on success and a
+    /// non-zero value otherwise.  This is the "prepare" step of a rollover:
+    /// it is invoked both by legacy `rolloverImpl` and (public) by the Raft
+    /// rollover orchestration in `PartitionRaftLog`, which then drives the
+    /// record-copy loop and `writeFirstSyncPointAfterRollover` itself.
+    int prepareRolloverFileSet(FileSetSp* newFileSet);
+
+    /// Write the first (marker) sync point into the JOURNAL of the specified
+    /// `newFileSet` at the end of a rollover, deriving its PSN and file
+    /// offsets from the last sync point recorded against the specified
+    /// `oldActiveFileSet` and stamping the specified `timestamp`.  This
+    /// updates `JournalFileHeader.d_firstSyncPointAfterRolloverOffset` (whose
+    /// non-zero value marks the rollover as successfully finished, aiding
+    /// crash recovery) and resets `d_syncPoints` to hold only this marker.
+    /// This must be the last write to occur in a rollover.  (Public so the
+    /// Raft rollover orchestration in `PartitionRaftLog` can drive it itself.)
+    void writeFirstSyncPointAfterRollover(FileSet*            newFileSet,
+                                          FileSet*            oldActiveFileSet,
+                                          bsls::Types::Uint64 timestamp);
 
     /// Remove the record identified by the specified `handle`.  The
     /// behavior is undefined unless `handle` is valid and represents a
