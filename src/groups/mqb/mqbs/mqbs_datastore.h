@@ -582,15 +582,24 @@ struct RecoveryRecordInfo {
     bsls::Types::Uint64 d_primaryLeaseId;
     bsls::Types::Uint64 d_journalOffset;
     bsls::Types::Uint64 d_dataOffset;
+
+    /// Type of the journal record this entry describes.  The Raft rollover
+    /// orchestration uses this to route each log entry: normal records are
+    /// copied via `FileStore::writeRolledOverRecord`, whereas `e_JOURNAL_OP`
+    /// entries (sync points) are handled separately.
+    RecordType::Enum d_recordType;
+
     DataStoreRecordHandle d_handle;
 
     RecoveryRecordInfo();
 
-    RecoveryRecordInfo(bsls::Types::Uint64          sequenceNum,
-                       bsls::Types::Uint64          primaryLeaseId,
-                       bsls::Types::Uint64          journalOffset,
-                       bsls::Types::Uint64          dataOffset,
-                       const DataStoreRecordHandle& handle = DataStoreRecordHandle());
+    RecoveryRecordInfo(
+        bsls::Types::Uint64          sequenceNum,
+        bsls::Types::Uint64          primaryLeaseId,
+        bsls::Types::Uint64          journalOffset,
+        bsls::Types::Uint64          dataOffset,
+        RecordType::Enum             recordType,
+        const DataStoreRecordHandle& handle = DataStoreRecordHandle());
 };
 
 // ======================
