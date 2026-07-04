@@ -152,6 +152,7 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
         // INPUT — common
         bsls::Types::Uint64              d_id;
         RecordType::Enum                 d_recordType;
+        SyncPointType::Enum              d_syncPointType;  // e_JOURNAL_OP only
         bsls::Types::Uint64              d_primaryLeaseId;
         bsls::Types::Uint64              d_sequenceNumber;
         mqbu::StorageKey                 d_queueKey;
@@ -556,11 +557,6 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// on success, non-zero value otherwise.  Note that in its *current*
     /// implementation, this routine has no side-effect in case of failure.
     int rolloverImpl(bsls::Types::Uint64 timestamp);
-
-    /// Log a per-queue summary (message and byte counts) of a rollover from
-    /// the specified `queueKeyCounterMap` accumulated by
-    /// `writeRolledOverRecord`.
-    void logRolloverQueueSummary(const QueueKeyCounterMap& queueKeyCounterMap);
 
     int rolloverIfNeeded(FileType::Enum           fileType,
                          const FileSet::FileInfo& fileInfo,
@@ -1013,14 +1009,15 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     /// Rollover the specified `record` from `oldFileSet` to the `newFileSet`,
     /// and if it is a message record, update the counter of the corresponding
-    /// queue by one in the specified `queueKeyCounterMap`.  Updates
-    /// `record`'s offsets in place to the new file set.  The behavior is
-    /// undefined unless `record` is not a JOURNAL_OP record.  (Public so the
-    /// Raft rollover orchestration in `PartitionRaftLog` can drive the copy
-    /// loop itself, in strict index order.)
+    /// queue by one in the specified `queueKeyCounterMap`.  The record is
+    /// copied from the current active (front) file set into the specified
+    /// `newFileSet`, and `record`'s offsets are updated in place to the new
+    /// file set.  The behavior is undefined unless `record` is not a
+    /// JOURNAL_OP record.  (Public so the Raft rollover orchestration in
+    /// `PartitionRaftLog` can drive the copy loop itself, in strict index
+    /// order.)
     void writeRolledOverRecord(DataStoreRecord*    record,
                                QueueKeyCounterMap* queueKeyCounterMap,
-                               FileSet*            oldFileSet,
                                FileSet*            newFileSet);
 
     /// Copy every outstanding record in `d_records` whose sequence number is
@@ -1047,9 +1044,9 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// Write the first (marker) sync point into the JOURNAL of the specified
     /// `newFileSet` at the end of a rollover, deriving its PSN and
     /// `primaryNodeId` from the `e_ROLLOVER` sync point located at the
-    /// specified `rolloverSyncPointOffset` in the specified
-    /// `oldActiveFileSet`, using the new file's positions for the DATA/QLIST
-    /// offsets, and stamping the specified `timestamp`.  This updates
+    /// specified `rolloverSyncPointOffset` in the current active (front) file
+    /// set, using the new file's positions for the DATA/QLIST offsets, and
+    /// stamping the specified `timestamp`.  This updates
     /// `JournalFileHeader.d_firstSyncPointAfterRolloverOffset` (whose non-zero
     /// value marks the rollover as successfully finished, aiding crash
     /// recovery) and resets `d_syncPoints` to hold only this marker.  This
@@ -1059,39 +1056,41 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// not maintained on the Raft write path).
     void writeFirstSyncPointAfterRollover(
         FileSet*            newFileSet,
-        FileSet*            oldActiveFileSet,
         bsls::Types::Uint64 rolloverSyncPointOffset,
         bsls::Types::Uint64 timestamp);
 
     /// Complete a rollover once the specified `newActiveFileSetSp` has been
-    /// fully populated: truncate the specified (old) `activeFileSet`,
+    /// fully populated: truncate the current active (old, front) file set,
     /// garbage-collect it if it holds no outstanding aliased references
     /// (otherwise drop its aliased chunk), insert `newActiveFileSetSp` as the
     /// new front of `d_fileSets`, and schedule deletion of any archived file
-    /// sets.  The behavior is undefined unless `activeFileSet` is the current
-    /// front of `d_fileSets`.  (Public so the Raft rollover orchestration in
-    /// `PartitionRaftLog` can drive it itself.)
-    void finalizeRolloverFileSet(const FileSetSp& newActiveFileSetSp,
-                                 FileSet*         activeFileSet);
+    /// sets.  (Public so the Raft rollover orchestration in `PartitionRaftLog`
+    /// can drive it itself.)
+    void finalizeRolloverFileSet(const FileSetSp& newActiveFileSetSp);
 
-    /// Perform a Raft-driven rollover.  The committed prefix (all outstanding
-    /// records up to the specified `commitIndex`) is copied from `d_records`;
-    /// the specified `tail` (the uncommitted log entries
-    /// `[commitIndex+1 .. lastIndex()]`, in strict index order) is then
-    /// replayed into the new file set with a three-way branch -- normal
-    /// records are copied, the triggering `e_ROLLOVER` (the entry whose
-    /// sequence number equals the specified `rolloverIndex`) is skipped, and
-    /// any other journal-op is copied verbatim.  Each `tail` entry's offsets
-    /// are updated in place to their new-file positions (the `e_ROLLOVER`
-    /// entry gets the pre-marker position).  Finally the marker sync point is
-    /// written (stamped with the specified `timestamp`) and the rollover is
-    /// finalized.  Return 0 on success, non-zero otherwise.  Note that, unlike
-    /// legacy `rolloverImpl`, this does *not* touch `d_journalFileAvailable`:
-    /// in Raft it stays `false` until `e_ROLLOVER` commits.
-    int rolloverForRaft(bsls::Types::Uint64              commitIndex,
-                        bsls::Types::Uint64              rolloverIndex,
-                        bsl::vector<RecoveryRecordInfo>* tail,
-                        bsls::Types::Uint64              timestamp);
+    /// Log a per-queue summary (message and byte counts) of a rollover from
+    /// the specified `queueKeyCounterMap` accumulated by
+    /// `writeRolledOverRecord`.
+    void logRolloverQueueSummary(const QueueKeyCounterMap& queueKeyCounterMap);
+
+    /// Return a pointer to the in-memory `DataStoreRecord` identified by the
+    /// specified `sequenceNum` and `primaryLeaseId`.  The behavior is
+    /// undefined unless such a record exists in `d_records`.  (Used by the
+    /// Raft rollover orchestration to obtain the `DataStoreRecord*` argument
+    /// to `writeRolledOverRecord`.)
+    DataStoreRecord* recordForKey(bsls::Types::Uint64 sequenceNum,
+                                  unsigned int        primaryLeaseId);
+
+    /// Construct a fresh, verbatim copy of the journal-op record located at
+    /// the specified `oldJournalOffset` in the current active (front) file set
+    /// into the specified `newFileSet` at its current journal write position,
+    /// advance that position, and return the new journal offset of the copy.
+    /// Sync points are not counted in outstanding journal bytes.  (Used by the
+    /// Raft rollover orchestration for surviving journal-ops other than the
+    /// triggering `e_ROLLOVER`.)
+    bsls::Types::Uint64
+    writeRolledOverJournalOpRecord(FileSet*            newFileSet,
+                                   bsls::Types::Uint64 oldJournalOffset);
 
     /// Remove the record identified by the specified `handle`.  The
     /// behavior is undefined unless `handle` is valid and represents a

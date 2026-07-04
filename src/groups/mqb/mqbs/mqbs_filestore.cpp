@@ -98,6 +98,7 @@ namespace mqbs {
 FileStore::PendingWrite::PendingWrite()
 : d_id(0)
 , d_recordType(RecordType::e_UNDEFINED)
+, d_syncPointType(SyncPointType::e_REGULAR)
 , d_primaryLeaseId(0)
 , d_sequenceNumber(0)
 , d_queueKey()
@@ -119,16 +120,17 @@ FileStore::PendingWrite::PendingWrite()
 }
 
 FileStore::PendingWrite::PendingWrite(
-    bsls::Types::Uint64                  id,
-    unsigned int                         primaryLeaseId,
-    bsls::Types::Uint64                  sequenceNumber,
-    mqbi::StorageMessageAttributes*      attributes,
-    const bmqt::MessageGUID&             guid,
-    const bsl::shared_ptr<bdlbb::Blob>&  appData,
-    const bsl::shared_ptr<bdlbb::Blob>&  options,
-    const mqbu::StorageKey&              queueKey)
+    bsls::Types::Uint64                 id,
+    unsigned int                        primaryLeaseId,
+    bsls::Types::Uint64                 sequenceNumber,
+    mqbi::StorageMessageAttributes*     attributes,
+    const bmqt::MessageGUID&            guid,
+    const bsl::shared_ptr<bdlbb::Blob>& appData,
+    const bsl::shared_ptr<bdlbb::Blob>& options,
+    const mqbu::StorageKey&             queueKey)
 : d_id(id)
 , d_recordType(RecordType::e_MESSAGE)
+, d_syncPointType(SyncPointType::e_REGULAR)
 , d_primaryLeaseId(primaryLeaseId)
 , d_sequenceNumber(sequenceNumber)
 , d_queueKey(queueKey)
@@ -157,6 +159,7 @@ FileStore::PendingWrite::PendingWrite(bsls::Types::Uint64     id,
                                       bool                    isNewQueue)
 : d_id(id)
 , d_recordType(RecordType::e_QUEUE_OP)
+, d_syncPointType(SyncPointType::e_REGULAR)
 , d_primaryLeaseId(0)
 , d_sequenceNumber(0)
 , d_queueKey(queueKey)
@@ -178,6 +181,7 @@ FileStore::PendingWrite::PendingWrite(bsls::Types::Uint64     id,
 FileStore::PendingWrite::PendingWrite(bsls::Types::Uint64 id)
 : d_id(id)
 , d_recordType(RecordType::e_JOURNAL_OP)
+, d_syncPointType(SyncPointType::e_REGULAR)
 , d_primaryLeaseId(0)
 , d_sequenceNumber(0)
 , d_queueKey()
@@ -2848,9 +2852,6 @@ void FileStore::writeRolledOverRecords(
     BSLS_ASSERT_SAFE(queueKeyCounterMap);
     BSLS_ASSERT_SAFE(0 < d_fileSets.size());
 
-    FileSet* activeFileSet = d_fileSets[0].get();
-    BSLS_ASSERT_SAFE(activeFileSet);
-
     // 'd_records' is insertion-ordered (records are inserted in sequence-number
     // order), so this copies the outstanding records into 'newFileSet' in
     // sequence-number order, preserving the monotonic offset<->sequenceNumber
@@ -2863,7 +2864,6 @@ void FileStore::writeRolledOverRecords(
         }
         writeRolledOverRecord(&(recordIt->second),
                               queueKeyCounterMap,
-                              activeFileSet,
                               newFileSet);
     }
 }
@@ -2885,13 +2885,15 @@ int FileStore::prepareRolloverFileSet(FileSetSp* newFileSet)
 
 void FileStore::writeFirstSyncPointAfterRollover(
     FileSet*            newFileSet,
-    FileSet*            oldActiveFileSet,
     bsls::Types::Uint64 rolloverSyncPointOffset,
     bsls::Types::Uint64 timestamp)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(newFileSet);
-    BSLS_ASSERT_SAFE(oldActiveFileSet);
+    BSLS_ASSERT_SAFE(0 < d_fileSets.size());
+
+    // The old (source) file set is always the current active/front file set.
+    FileSet* oldActiveFileSet = d_fileSets[0].get();
 
     // Local refs for convenience.
 
@@ -3080,7 +3082,6 @@ int FileStore::rolloverImpl(bsls::Types::Uint64 timestamp)
     // 'd_syncPoints'.
     BSLS_ASSERT_SAFE(!d_syncPoints.empty());
     writeFirstSyncPointAfterRollover(newActiveFileSetSp.get(),
-                                     activeFileSet,
                                      d_syncPoints.back().offset(),
                                      timestamp);
 
@@ -3131,7 +3132,7 @@ int FileStore::rolloverImpl(bsls::Types::Uint64 timestamp)
 
     // Truncate/gc the old file set, swap the new one in, and schedule archive
     // cleanup.
-    finalizeRolloverFileSet(newActiveFileSetSp, activeFileSet);
+    finalizeRolloverFileSet(newActiveFileSetSp);
 
     BALL_LOG_INFO_BLOCK
     {
@@ -3143,14 +3144,14 @@ int FileStore::rolloverImpl(bsls::Types::Uint64 timestamp)
     return 0;
 }
 
-void FileStore::finalizeRolloverFileSet(const FileSetSp& newActiveFileSetSp,
-                                        FileSet*         activeFileSet)
+void FileStore::finalizeRolloverFileSet(const FileSetSp& newActiveFileSetSp)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(newActiveFileSetSp);
-    BSLS_ASSERT_SAFE(activeFileSet);
     BSLS_ASSERT_SAFE(0 < d_fileSets.size());
-    BSLS_ASSERT_SAFE(d_fileSets.begin()->get() == activeFileSet);
+
+    // The old file set being finalized is the current active/front file set.
+    FileSet* activeFileSet = d_fileSets[0].get();
 
     // Irrespective of the aliased blob buffer counter, file set can be
     // truncated because nothing else will be written to the file.
@@ -3228,142 +3229,40 @@ void FileStore::finalizeRolloverFileSet(const FileSetSp& newActiveFileSetSp,
         bdlf::BindUtil::bind(&FileStore::deleteArchiveFilesCb, this));
 }
 
-int FileStore::rolloverForRaft(bsls::Types::Uint64              commitIndex,
-                               bsls::Types::Uint64              rolloverIndex,
-                               bsl::vector<RecoveryRecordInfo>* tail,
-                               bsls::Types::Uint64              timestamp)
+DataStoreRecord* FileStore::recordForKey(bsls::Types::Uint64 sequenceNum,
+                                         unsigned int        primaryLeaseId)
+{
+    RecordIterator it = d_records.find(
+        DataStoreRecordKey(sequenceNum, primaryLeaseId));
+    BSLS_ASSERT_SAFE(it != d_records.end());
+    return &it->second;
+}
+
+bsls::Types::Uint64
+FileStore::writeRolledOverJournalOpRecord(FileSet*            newFileSet,
+                                          bsls::Types::Uint64 oldJournalOffset)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(tail);
+    BSLS_ASSERT_SAFE(newFileSet);
     BSLS_ASSERT_SAFE(0 < d_fileSets.size());
 
-    FileSet* activeFileSet = d_fileSets[0].get();
-    BSLS_ASSERT_SAFE(activeFileSet);
+    // The old (source) file set is always the current active/front file set.
+    FileSet* oldFileSet = d_fileSets[0].get();
 
-    BALL_LOG_INFO_BLOCK
-    {
-        BALL_LOG_OUTPUT_STREAM
-            << partitionDesc() << "Initiating Raft rollover for data file ["
-            << activeFileSet->d_dataFileName << "], journal file ["
-            << activeFileSet->d_journalFileName << "]";
-        if (d_qListAware) {
-            BALL_LOG_OUTPUT_STREAM << ", qlist file ["
-                                   << activeFileSet->d_qlistFileName << "]";
-        }
-        BALL_LOG_OUTPUT_STREAM
-            << ". commitIndex=" << commitIndex
-            << ", rolloverIndex=" << rolloverIndex
-            << ", uncommitted tail entries=" << tail->size();
-    }
+    // Construct a fresh, verbatim copy of the journal-op record (e.g. a
+    // regular sync point in the uncommitted tail) into the new file at the
+    // current write position, preserving its exact bytes (and thus PSN).  Sync
+    // points are not counted in outstanding journal bytes.
+    MappedFileDescriptor&     rJournal    = newFileSet->d_journalFile;
+    bsls::Types::Uint64&      rJournalPos = newFileSet->d_journalFilePosition;
+    const bsls::Types::Uint64 newOffset   = rJournalPos;
 
-    mqbstat::StatMonitorSnapshotRecorder statRecorder(partitionDesc(),
-                                                      d_allocator_p);
+    bsl::memcpy(rJournal.block().base() + rJournalPos,
+                oldFileSet->d_journalFile.block().base() + oldJournalOffset,
+                FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
+    rJournalPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
 
-    // Create new files, add header etc.
-    FileSetSp newActiveFileSetSp;
-    int       rc = prepareRolloverFileSet(&newActiveFileSetSp);
-    if (0 != rc) {
-        // 'prepareRolloverFileSet' will log error
-        return rc;  // RETURN
-    }
-    FileSet* newFileSet = newActiveFileSetSp.get();
-
-    QueueKeyCounterMap queueKeyCounterMap;
-
-    // 1. Committed prefix: copy every outstanding record up to 'commitIndex'
-    //    from 'd_records'.  A committed journal-op has already been compacted
-    //    out of the log and needs no representation in the new file, so this
-    //    straight 'd_records' walk (which never contains journal-ops) is
-    //    sufficient and correct for this portion.
-    writeRolledOverRecords(newFileSet, &queueKeyCounterMap, commitIndex);
-
-    // 2. Uncommitted tail [commitIndex+1 .. lastIndex()], in strict index
-    //    order -- this is what preserves the monotonic offset<->sequenceNumber
-    //    relationship that 'truncateRecords' relies on.
-    bsls::Types::Uint64 rolloverSyncPointOldOffset = 0;
-    bool                foundRolloverEntry         = false;
-
-    for (bsl::size_t i = 0; i < tail->size(); ++i) {
-        RecoveryRecordInfo& entry = (*tail)[i];
-
-        if (RecordType::e_JOURNAL_OP != entry.d_recordType) {
-            // Normal record (message/queue-op/confirm/deletion): copy it and
-            // record its new offsets.  A record can't be both uncommitted and
-            // deleted, so its 'd_records' entry is guaranteed to exist.
-            DataStoreRecordKey key(
-                entry.d_sequenceNum,
-                static_cast<unsigned int>(entry.d_primaryLeaseId));
-            RecordIterator it = d_records.find(key);
-            BSLS_ASSERT_SAFE(it != d_records.end());
-
-            writeRolledOverRecord(&(it->second),
-                                  &queueKeyCounterMap,
-                                  activeFileSet,
-                                  newFileSet);
-
-            entry.d_journalOffset = it->second.d_recordOffset;
-            entry.d_dataOffset    = it->second.d_messageOffset;
-        }
-        else if (entry.d_sequenceNum == rolloverIndex) {
-            // The triggering 'e_ROLLOVER': never copied into the new file (so
-            // a legacy binary never sees it reappear).  Remember its old-file
-            // offset for marker (i), and point its log entry at the current
-            // (pre-marker) new-file position so that a later 'truncateFrom' at
-            // its index uniformly discards marker (i) too.
-            rolloverSyncPointOldOffset = entry.d_journalOffset;
-            foundRolloverEntry         = true;
-
-            entry.d_journalOffset = newFileSet->d_journalFilePosition;
-            entry.d_dataOffset    = 0;
-        }
-        else {
-            // Any other journal-op in the uncommitted tail (e.g. a regular
-            // sync point): construct a fresh copy into the new file at the
-            // current write position, preserving its exact bytes (and thus
-            // PSN).  Sync points are not counted in outstanding journal bytes.
-            const bsls::Types::Uint64 newOffset =
-                newFileSet->d_journalFilePosition;
-            bsl::memcpy(newFileSet->d_journalFile.block().base() + newOffset,
-                        activeFileSet->d_journalFile.block().base() +
-                            entry.d_journalOffset,
-                        FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
-            newFileSet->d_journalFilePosition +=
-                FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
-
-            entry.d_journalOffset = newOffset;
-            entry.d_dataOffset    = 0;
-        }
-    }
-
-    BSLS_ASSERT_SAFE(foundRolloverEntry &&
-                     "e_ROLLOVER must be present in the uncommitted tail");
-    (void)foundRolloverEntry;
-
-    logRolloverQueueSummary(queueKeyCounterMap);
-
-    // 3. Marker (i): built from 'e_ROLLOVER' at its old-file offset.
-    writeFirstSyncPointAfterRollover(newFileSet,
-                                     activeFileSet,
-                                     rolloverSyncPointOldOffset,
-                                     timestamp);
-
-    BALL_LOG_INFO_BLOCK
-    {
-        statRecorder.print(BALL_LOG_OUTPUT_STREAM,
-                           "RAFT ROLLOVER - STEP 1 (COMPACTION)");
-    }
-
-    // 4. Truncate/gc the old file set, swap the new one in, schedule archive.
-    finalizeRolloverFileSet(newActiveFileSetSp, activeFileSet);
-
-    BALL_LOG_INFO_BLOCK
-    {
-        statRecorder.print(BALL_LOG_OUTPUT_STREAM, "RAFT ROLLOVER COMPLETE");
-    }
-
-    d_partitionStats_sp->setRoloverTime(statRecorder.totalElapsed());
-
-    return 0;
+    return newOffset;
 }
 
 int FileStore::rolloverIfNeeded(FileType::Enum           fileType,
@@ -4103,13 +4002,16 @@ void FileStore::writeQueueOpRecordImpl(DataStoreRecordHandle*  handle,
 
 void FileStore::writeRolledOverRecord(DataStoreRecord*    record,
                                       QueueKeyCounterMap* queueKeyCounterMap,
-                                      FileSet*            oldFileSet,
                                       FileSet*            newFileSet)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(0 != record->d_recordOffset);
     BSLS_ASSERT_SAFE(RecordType::e_UNDEFINED != record->d_recordType &&
                      RecordType::e_JOURNAL_OP != record->d_recordType);
+    BSLS_ASSERT_SAFE(0 < d_fileSets.size());
+
+    // The old (source) file set is always the current active/front file set.
+    FileSet* oldFileSet = d_fileSets[0].get();
 
     // Local refs for convenience
     MappedFileDescriptor& rDataFile     = newFileSet->d_data.d_file;
@@ -6695,7 +6597,7 @@ int FileStore::formatSyncPointRecord(PendingWrite* pw)
 
     int rc = writeSyncPointRecord(
         syncPoint,
-        SyncPointType::e_REGULAR,
+        pw->d_syncPointType,
         static_cast<unsigned int>(pw->d_primaryLeaseId),
         pw->d_sequenceNumber);
     if (0 != rc) {
