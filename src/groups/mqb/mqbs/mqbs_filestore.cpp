@@ -3238,6 +3238,29 @@ DataStoreRecord* FileStore::recordForKey(bsls::Types::Uint64 sequenceNum,
     return &it->second;
 }
 
+bool FileStore::primaryNeedsRollover(bsls::Types::Uint64 dataBytes,
+                                     bsls::Types::Uint64 qlistBytes) const
+{
+    BSLS_ASSERT_SAFE(0 < d_fileSets.size());
+    const FileSet* fs = d_fileSets[0].get();
+
+    // The JOURNAL must always be able to hold the next common record (plus its
+    // reserved areas); DATA/QLIST are only needed when the record writes them.
+    if (fs->d_journalFile.fileSize() <
+        (fs->d_journalFilePosition + k_REQUESTED_JOURNAL_SPACE)) {
+        return true;  // RETURN
+    }
+    if (0 < dataBytes &&
+        fs->d_dataFile.fileSize() < (fs->d_dataFilePosition + dataBytes)) {
+        return true;  // RETURN
+    }
+    if (d_qListAware && 0 < qlistBytes &&
+        fs->d_qlistFile.fileSize() < (fs->d_qlistFilePosition + qlistBytes)) {
+        return true;  // RETURN
+    }
+    return false;
+}
+
 bsls::Types::Uint64
 FileStore::writeRolledOverJournalOpRecord(FileSet*            newFileSet,
                                           bsls::Types::Uint64 oldJournalOffset)
@@ -5963,20 +5986,8 @@ int FileStore::writeMessageRecord(mqbi::StorageMessageAttributes* attributes,
         return rc_NOT_PRIMARY;  // RETURN
     }
 
-    int optionsSize = 0;
-    if (options) {
-        optionsSize = options->length();
-    }
-
-    int numBytesPadding = 0;
-    bmqp::ProtocolUtil::calcNumDwordsAndPadding(
-        &numBytesPadding,
-        sizeof(DataHeader) + optionsSize + appData->length());
-
-    unsigned int totalLength = sizeof(DataHeader) +
-                               static_cast<unsigned int>(optionsSize) +
-                               static_cast<unsigned int>(appData->length()) +
-                               static_cast<unsigned int>(numBytesPadding);
+    unsigned int totalLength = static_cast<unsigned int>(
+        FileStoreProtocolUtil::messageDataFileSize(appData, options));
 
     // Roll over data file if needed.
     int rc = rolloverIfNeeded(FileType::e_DATA,
@@ -6093,30 +6104,17 @@ int FileStore::writeQueueCreationRecordImpl(PendingWrite* pw)
     unsigned int qlistRecTotalLength = 0;
     int          rc                  = 0;
 
-    bsl::vector<int> appIdPaddings(appIdKeyPairs.size(), 0, d_allocator_p);
-    bsl::vector<int> appIdWords(appIdKeyPairs.size(), 0, d_allocator_p);
-
     if (d_qListAware) {
         queueUriWords = bmqp::ProtocolUtil::calcNumWordsAndPadding(
             &queueUriPadding,
             queueUri.asString().length());
-        qlistRecTotalLength = sizeof(QueueRecordHeader) +
-                              queueUri.asString().length() + queueUriPadding +
-                              FileStoreProtocol::k_HASH_LENGTH;
-        size_t i = 0;
-        for (AppInfos::const_iterator cit = appIdKeyPairs.cbegin();
-             cit != appIdKeyPairs.cend();
-             ++cit, ++i) {
-            BSLS_ASSERT_SAFE(!cit->first.empty());
-            BSLS_ASSERT_SAFE(!cit->second.isNull());
-            appIdWords[i] = bmqp::ProtocolUtil::calcNumWordsAndPadding(
-                &appIdPaddings[i],
-                cit->first.length());
-            qlistRecTotalLength +=
-                sizeof(AppIdHeader) + cit->first.length() + appIdPaddings[i] +
-                FileStoreProtocol::k_HASH_LENGTH;
-        }
-        qlistRecTotalLength += sizeof(unsigned int);  // magic
+
+        // The total record size is computed by the single-source
+        // 'queueCreationQlistFileSize' (also used by the Raft capacity check);
+        // per-app word counts / paddings are computed inline while writing.
+        qlistRecTotalLength = static_cast<unsigned int>(
+            FileStoreProtocolUtil::queueCreationQlistFileSize(queueUri,
+                                                              appIdKeyPairs));
 
         rc = rolloverIfNeeded(FileType::e_QLIST,
                               activeFileSet->d_qlist,
@@ -6180,13 +6178,20 @@ int FileStore::writeQueueCreationRecordImpl(PendingWrite* pw)
         bsl::memcpy(quriHash.get(), queueHash, FileStoreProtocol::k_HASH_LENGTH);
         qlistFilePos += FileStoreProtocol::k_HASH_LENGTH;
 
-        size_t i = 0;
         for (AppInfos::const_iterator cit = appIdKeyPairs.cbegin();
              cit != appIdKeyPairs.cend();
-             ++cit, ++i) {
+             ++cit) {
+            BSLS_ASSERT_SAFE(!cit->first.empty());
+            BSLS_ASSERT_SAFE(!cit->second.isNull());
+
+            int       appIdPadding = 0;
+            const int appIdWords = bmqp::ProtocolUtil::calcNumWordsAndPadding(
+                &appIdPadding,
+                cit->first.length());
+
             OffsetPtr<AppIdHeader> appIdHeader(qlistFile.block(), qlistFilePos);
             new (appIdHeader.get()) AppIdHeader;
-            appIdHeader->setAppIdLengthWords(appIdWords[i]);
+            appIdHeader->setAppIdLengthWords(appIdWords);
             qlistFilePos += sizeof(AppIdHeader);
 
             OffsetPtr<char> appId(qlistFile.block(), qlistFilePos);
@@ -6195,8 +6200,8 @@ int FileStore::writeQueueCreationRecordImpl(PendingWrite* pw)
 
             bmqp::ProtocolUtil::appendPaddingRaw(qlistFile.mapping() +
                                                      qlistFilePos,
-                                                 appIdPaddings[i]);
-            qlistFilePos += appIdPaddings[i];
+                                                 appIdPadding);
+            qlistFilePos += appIdPadding;
 
             char appIdHash[mqbs::FileStoreProtocol::k_HASH_LENGTH] = {0};
             bsl::memcpy(appIdHash, cit->second.data(), k_KEY_LEN);
@@ -6819,16 +6824,15 @@ int FileStore::formatMessageRecord(PendingWrite* pw)
 
     const int optionsSize = pw->d_options ? pw->d_options->length() : 0;
 
-    int numBytesPadding = 0;
-    bmqp::ProtocolUtil::calcNumDwordsAndPadding(
-        &numBytesPadding,
-        sizeof(DataHeader) + optionsSize + pw->d_appData->length());
+    const unsigned int totalLength = static_cast<unsigned int>(
+        FileStoreProtocolUtil::messageDataFileSize(pw->d_appData,
+                                                   pw->d_options));
 
-    const unsigned int totalLength =
-        sizeof(DataHeader) +
-        static_cast<unsigned int>(optionsSize) +
-        static_cast<unsigned int>(pw->d_appData->length()) +
-        static_cast<unsigned int>(numBytesPadding);
+    // Padding is whatever 'messageDataFileSize' added on top of the content.
+    const int numBytesPadding = static_cast<int>(totalLength) -
+                                static_cast<int>(sizeof(DataHeader)) -
+                                optionsSize -
+                                static_cast<int>(pw->d_appData->length());
 
     MappedFileDescriptor& dataFile    = activeFileSet->d_dataFile;
     bsls::Types::Uint64&  dataFilePos = activeFileSet->d_dataFilePosition;

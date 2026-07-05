@@ -85,6 +85,15 @@ class PartitionRaft : public mqbs::RecordStore {
     bslma::ManagedPtr<RaftNode>                 d_raftNode_mp;
     bdlmt::EventScheduler::RecurringEventHandle d_tickHandle;
     bsls::Types::Uint64                         d_writeIdCounter;
+
+    /// Index of the most recently proposed `e_ROLLOVER` entry (0 if none).
+    /// A new rollover must not be proposed while this one is still
+    /// uncommitted (`RaftNode::commitIndex() < d_uncommittedRolloverIndex`),
+    /// because the single-scalar `e_ROLLOVER` resend slot in
+    /// `PartitionRaftLog` can hold only one at a time.  Self-clearing: once
+    /// `commitIndex` reaches it, the gate opens.
+    bsls::Types::Uint64 d_uncommittedRolloverIndex;
+
     bool                                        d_isStarted;
     bslma::Allocator*                           d_allocator_p;
 
@@ -125,6 +134,17 @@ class PartitionRaft : public mqbs::RecordStore {
     /// is treated as part of the uncommitted tail even in a single-node
     /// cluster (where `propose()` commits synchronously).
     void proposeRollover();
+
+    /// If this node is the leader and the active file set cannot accommodate a
+    /// record needing the specified `dataBytes` in the DATA file and
+    /// `qlistBytes` in the QLIST file (the JOURNAL reserve is always checked;
+    /// pass 0 where DATA/QLIST are not written), trigger `proposeRollover()`
+    /// before the record is written.  Called first thing by each write-path
+    /// method.  Return 0 to proceed, or non-zero if the write cannot proceed
+    /// because a rollover is required but a previous `e_ROLLOVER` is still
+    /// uncommitted (at most one uncommitted rollover is allowed at a time).
+    int rolloverIfNeeded(bsls::Types::Uint64 dataBytes,
+                         bsls::Types::Uint64 qlistBytes);
 
     /// Send an AppendEntries message via binary e_RAFT_PARTITION event.
     void sendAppendEntries(const RaftMessage& msg);
@@ -298,6 +318,17 @@ class PartitionRaft : public mqbs::RecordStore {
     /// Remove the record identified by the specified `handle`.
     void removeRecordRaw(const mqbs::DataStoreRecordHandle& handle)
         BSLS_KEYWORD_OVERRIDE;
+
+    /// Execute the specified `functor` on this partition's dispatcher thread
+    /// by delegating to the owned `FileStore`.
+    void execute(const mqbi::Dispatcher::VoidFunction& functor)
+        BSLS_KEYWORD_OVERRIDE;
+
+    /// Drive a Raft rollover (admin `rollover` command): if this node is the
+    /// leader and no previous `e_ROLLOVER` is still uncommitted, propose
+    /// `e_ROLLOVER` and orchestrate the rollover.  Return zero on success,
+    /// non-zero if rejected (not leader, or a rollover is already in flight).
+    int rollover() BSLS_KEYWORD_OVERRIDE;
 
     /// Attempt to rollover the journal if needed after a purge has cleared
     /// outstanding records.

@@ -33,11 +33,13 @@
 #include <mqbs_mappedfiledescriptor.h>
 #include <mqbu_storagekey.h>
 
+#include <bmqt_uri.h>
 #include <bmqu_blob.h>
 
 // BDE
 #include <bdlbb_blob.h>
 #include <bdlde_md5.h>
+#include <bsl_memory.h>
 #include <bsl_string.h>
 #include <bsl_unordered_set.h>
 #include <bsl_utility.h>
@@ -110,6 +112,21 @@ struct FileStoreProtocolUtil {
     static void loadAppInfos(mqbi::Storage::AppInfos* appIdKeyPairs,
                              const MemoryBlock&       appIdsBlock,
                              unsigned int             numAppIds);
+
+    /// Return the number of bytes a message with the specified `appData` and
+    /// `options` occupies in the DATA file: `DataHeader` + options + appData,
+    /// padded up to a DWORD boundary.
+    static bsls::Types::Uint64
+    messageDataFileSize(const bsl::shared_ptr<bdlbb::Blob>& appData,
+                        const bsl::shared_ptr<bdlbb::Blob>& options);
+
+    /// Return the number of bytes a queue-creation record for the specified
+    /// `queueUri` and `appIdKeyPairs` occupies in the QLIST file:
+    /// `QueueRecordHeader` + queue URI (word-padded) + hash, then per app
+    /// (`AppIdHeader` + appId (word-padded) + hash), then the trailing magic.
+    static bsls::Types::Uint64
+    queueCreationQlistFileSize(const bmqt::Uri&               queueUri,
+                               const mqbi::Storage::AppInfos& appIdKeyPairs);
 };
 
 }  // close package namespace

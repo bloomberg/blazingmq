@@ -823,7 +823,8 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     /// Execute the specified `functor`, using the `e_CALLBACK` event
     /// type, in the processor associated to this object.
-    void execute(const mqbi::Dispatcher::VoidFunction& functor);
+    void execute(const mqbi::Dispatcher::VoidFunction& functor)
+        BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
 
@@ -1092,6 +1093,16 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     writeRolledOverJournalOpRecord(FileSet*            newFileSet,
                                    bsls::Types::Uint64 oldJournalOffset);
 
+    /// Return `true` if the active (front) file set cannot physically
+    /// accommodate the next record, i.e. a rollover is required before it can
+    /// be written.  The JOURNAL is always required to hold the next common
+    /// record (plus reserved areas); the specified `dataBytes` and
+    /// `qlistBytes` are the additional DATA and QLIST space the record needs
+    /// (pass 0 where not applicable).  Has no side effects.  (Used by the Raft
+    /// write path to decide when to trigger `PartitionRaft::proposeRollover`.)
+    bool primaryNeedsRollover(bsls::Types::Uint64 dataBytes,
+                              bsls::Types::Uint64 qlistBytes) const;
+
     /// Remove the record identified by the specified `handle`.  The
     /// behavior is undefined unless `handle` is valid and represents a
     /// record in the data store.
@@ -1162,7 +1173,7 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     /// Perform complete rollover of this partition and issue necessary sync
     /// points.
-    int rollover();
+    int rollover() BSLS_KEYWORD_OVERRIDE;
 
     void registerStorage(ReplicatedStorage* storage) BSLS_KEYWORD_OVERRIDE;
 

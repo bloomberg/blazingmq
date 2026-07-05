@@ -21,6 +21,7 @@
 #include <mqbs_filebackedstorage.h>
 #include <mqbs_filestore.h>
 #include <mqbs_filestoreprotocol.h>
+#include <mqbs_filestoreprotocolutil.h>
 #include <mqbs_filestoreutil.h>
 #include <mqbs_inmemorystorage.h>
 
@@ -149,6 +150,7 @@ PartitionRaft::PartitionRaft(int partitionId,
 , d_raftNode_mp()
 , d_tickHandle()
 , d_writeIdCounter(0)
+, d_uncommittedRolloverIndex(0)
 , d_isStarted(false)
 , d_allocator_p(bslma::Default::allocator(allocator))
 , d_receivingSnapshot(false)
@@ -772,6 +774,12 @@ void PartitionRaft::proposeSyncPoint()
     // executed by the partition *DISPATCHER* thread
     BSLS_ASSERT_SAFE(isLeader());
 
+    // Skip issuing the sync point if a rollover is required but blocked by an
+    // uncommitted 'e_ROLLOVER'; it will be re-issued on a later tick.
+    if (0 != rolloverIfNeeded(0, 0)) {
+        return;  // RETURN
+    }
+
     const bsls::Types::Uint64 writeId = ++d_writeIdCounter;
 
     d_raftLog_mp->setPendingWrite(mqbs::FileStore::PendingWrite(writeId));
@@ -820,10 +828,80 @@ void PartitionRaft::proposeRollover()
         return;
     }
 
+    // 'e_ROLLOVER' is the just-appended entry; remember its index so a second
+    // rollover is not proposed until this one commits (the single-scalar
+    // resend slot holds only one).
+    d_uncommittedRolloverIndex = d_raftLog_mp->lastIndex();
+
     d_raftLog_mp->rollover(commitIndex, timestamp);
 
     dispatchOutput(&output);
     d_raftLog_mp->clearCache();
+}
+
+int PartitionRaft::rolloverIfNeeded(bsls::Types::Uint64 dataBytes,
+                                    bsls::Types::Uint64 qlistBytes)
+{
+    // executed by the partition *DISPATCHER* thread
+    enum { rc_SUCCESS = 0, rc_ROLLOVER_PENDING = -1 };
+
+    if (!isLeader() ||
+        !d_fileStore_sp->primaryNeedsRollover(dataBytes, qlistBytes)) {
+        return rc_SUCCESS;  // RETURN
+    }
+
+    // A rollover is required.  Enforce at-most-one uncommitted rollover: if
+    // the previous 'e_ROLLOVER' has not committed yet, we cannot propose
+    // another (nor write into the already-full file), so reject the write; the
+    // caller retries once the outstanding rollover commits.
+    if (0 != d_uncommittedRolloverIndex &&
+        d_raftNode_mp->commitIndex() < d_uncommittedRolloverIndex) {
+        BALL_LOG_WARN
+            << "Partition [" << d_partitionId
+            << "] rollover required but previous e_ROLLOVER at index "
+            << d_uncommittedRolloverIndex
+            << " is not yet committed (commitIndex="
+            << d_raftNode_mp->commitIndex()
+            << "); rejecting write until it commits.";
+        return rc_ROLLOVER_PENDING;  // RETURN
+    }
+
+    proposeRollover();
+    return rc_SUCCESS;
+}
+
+void PartitionRaft::execute(const mqbi::Dispatcher::VoidFunction& functor)
+{
+    // Delegate to the owned FileStore, which dispatches on this partition's
+    // dispatcher thread.
+    d_fileStore_sp->execute(functor);
+}
+
+int PartitionRaft::rollover()
+{
+    // executed by the partition *DISPATCHER* thread (admin 'rollover'
+    // command). Route the admin rollover through the Raft mechanism instead of
+    // legacy FileStore::rollover (which would write an e_ROLLOVER + trailing
+    // sync point outside the Raft log).
+    enum { rc_SUCCESS = 0, rc_NOT_LEADER = -1, rc_ROLLOVER_PENDING = -2 };
+
+    if (!isLeader()) {
+        BALL_LOG_WARN << "Partition [" << d_partitionId
+                      << "] admin rollover rejected: not the Raft leader.";
+        return rc_NOT_LEADER;  // RETURN
+    }
+
+    if (0 != d_uncommittedRolloverIndex &&
+        d_raftNode_mp->commitIndex() < d_uncommittedRolloverIndex) {
+        BALL_LOG_WARN << "Partition [" << d_partitionId
+                      << "] admin rollover rejected: previous e_ROLLOVER at "
+                      << "index " << d_uncommittedRolloverIndex
+                      << " not yet committed.";
+        return rc_ROLLOVER_PENDING;  // RETURN
+    }
+
+    proposeRollover();
+    return rc_SUCCESS;
 }
 
 void PartitionRaft::appendEntries(const bdlbb::Blob&   event,
@@ -936,6 +1014,13 @@ int PartitionRaft::writeMessageRecord(
     BSLS_ASSERT_SAFE(handle);
     BSLS_ASSERT_SAFE(appData);
 
+    int rc = rolloverIfNeeded(
+        mqbs::FileStoreProtocolUtil::messageDataFileSize(appData, options),
+        0);
+    if (0 != rc) {
+        return rc;  // RETURN
+    }
+
     const bsls::Types::Uint64 writeId = ++d_writeIdCounter;
 
     d_raftLog_mp->setPendingWrite(
@@ -948,7 +1033,7 @@ int PartitionRaft::writeMessageRecord(
                                       options,
                                       queueKey));
 
-    int rc = propose(bsl::shared_ptr<bdlbb::Blob>(), writeId);
+    rc = propose(bsl::shared_ptr<bdlbb::Blob>(), writeId);
     if (rc != 0) {
         return rc;
     }
@@ -964,6 +1049,11 @@ int PartitionRaft::writeConfirmRecord(mqbs::DataStoreRecordHandle* handle,
                                       mqbs::ConfirmReason::Enum    reason)
 {
     BSLS_ASSERT_SAFE(handle);
+
+    int rc = rolloverIfNeeded(0, 0);  // journal-only record
+    if (0 != rc) {
+        return rc;  // RETURN
+    }
 
     char buf[mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE];
     bsl::memset(buf, 0, sizeof(buf));
@@ -986,7 +1076,7 @@ int PartitionRaft::writeConfirmRecord(mqbs::DataStoreRecordHandle* handle,
                 buf,
                 mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
 
-    int rc = propose(blob);
+    rc = propose(blob);
     if (rc != 0) {
         return rc;
     }
@@ -1000,6 +1090,11 @@ int PartitionRaft::writeDeletionRecord(
     mqbs::DeletionRecordFlag::Enum deletionFlag,
     bsls::Types::Uint64            timestamp)
 {
+    int rc = rolloverIfNeeded(0, 0);  // journal-only record
+    if (0 != rc) {
+        return rc;  // RETURN
+    }
+
     char buf[mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE];
     bsl::memset(buf, 0, sizeof(buf));
     mqbs::DeletionRecord* rec = new (buf) mqbs::DeletionRecord();
@@ -1020,7 +1115,7 @@ int PartitionRaft::writeDeletionRecord(
                 buf,
                 mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
 
-    return propose(blob);
+    return propose(blob);  // 'rc' already checked above
 }
 
 int PartitionRaft::writeQueuePurgeRecord(
@@ -1031,6 +1126,11 @@ int PartitionRaft::writeQueuePurgeRecord(
     const mqbs::DataStoreRecordHandle& start)
 {
     BSLS_ASSERT_SAFE(handle);
+
+    int rc = rolloverIfNeeded(0, 0);  // journal-only record
+    if (0 != rc) {
+        return rc;  // RETURN
+    }
 
     unsigned int        startLeaseId = 0;
     bsls::Types::Uint64 startSeqNo   = 0;
@@ -1063,7 +1163,7 @@ int PartitionRaft::writeQueuePurgeRecord(
                 buf,
                 mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
 
-    int rc = propose(blob);
+    rc = propose(blob);
     if (rc != 0) {
         return rc;
     }
@@ -1078,6 +1178,11 @@ int PartitionRaft::writeQueueDeletionRecord(
     bsls::Types::Uint64          timestamp)
 {
     BSLS_ASSERT_SAFE(handle);
+
+    int rc = rolloverIfNeeded(0, 0);  // journal-only record
+    if (0 != rc) {
+        return rc;  // RETURN
+    }
 
     char buf[mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE];
     bsl::memset(buf, 0, sizeof(buf));
@@ -1100,7 +1205,7 @@ int PartitionRaft::writeQueueDeletionRecord(
                 buf,
                 mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
 
-    int rc = propose(blob);
+    rc = propose(blob);
     if (rc != 0) {
         return rc;
     }
@@ -1118,6 +1223,15 @@ int PartitionRaft::writeQueueCreationRecord(
 {
     BSLS_ASSERT_SAFE(handle);
 
+    int rc = rolloverIfNeeded(
+        0,
+        mqbs::FileStoreProtocolUtil::queueCreationQlistFileSize(
+            queueUri,
+            appIdKeyPairs));
+    if (0 != rc) {
+        return rc;  // RETURN
+    }
+
     const bsls::Types::Uint64 writeId = ++d_writeIdCounter;
 
     d_raftLog_mp->setPendingWrite(mqbs::FileStore::PendingWrite(writeId,
@@ -1127,7 +1241,7 @@ int PartitionRaft::writeQueueCreationRecord(
                                                                 timestamp,
                                                                 isNewQueue));
 
-    int rc = propose(bsl::shared_ptr<bdlbb::Blob>(), writeId);
+    rc = propose(bsl::shared_ptr<bdlbb::Blob>(), writeId);
     if (rc != 0) {
         return rc;
     }
