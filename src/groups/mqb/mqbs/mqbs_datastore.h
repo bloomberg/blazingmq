@@ -729,6 +729,22 @@ class RecordStore {
     /// data store.
     virtual void removeRecordRaw(const DataStoreRecordHandle& handle) = 0;
 
+    /// Execute the specified `functor` on the dispatcher thread associated
+    /// with this record store's partition.  Used to hop onto the partition
+    /// thread for operations such as rollover.  Legacy `FileStore` dispatches
+    /// via its own `DispatcherClient`; `PartitionRaft` delegates to its
+    /// `FileStore`.
+    virtual void execute(const mqbi::Dispatcher::VoidFunction& functor) = 0;
+
+    /// Roll over the partition's files: start a new file set carrying the
+    /// outstanding records and archive the current one.  Return zero on
+    /// success, non-zero otherwise.  Legacy `FileStore` performs the rollover
+    /// directly; `PartitionRaft` drives it through Raft (propose `e_ROLLOVER`
+    /// then orchestrate).  Used by the admin `rollover` command so it routes
+    /// to the correct mechanism per mode.  The behavior is undefined unless
+    /// called on this record store's dispatcher thread (see `execute`).
+    virtual int rollover() = 0;
+
     /// Attempt to rollover the journal if needed after a purge has cleared
     /// outstanding records.
     virtual void onPurgeComplete() = 0;
