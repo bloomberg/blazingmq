@@ -170,6 +170,14 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
         bsls::Types::Uint64              d_timestamp;
         bool                             d_isNewQueue;
 
+        // INPUT — e_CONFIRM / e_DELETION / e_QUEUE_OP (purge, deletion)
+        mqbu::StorageKey         d_appKey;
+        ConfirmReason::Enum      d_confirmReason;        // e_CONFIRM
+        DeletionRecordFlag::Enum d_deletionFlag;         // e_DELETION
+        QueueOpType::Enum        d_queueOpType;          // e_QUEUE_OP
+        unsigned int             d_startPrimaryLeaseId;  // e_PURGE
+        bsls::Types::Uint64      d_startSequenceNumber;  // e_PURGE
+
         // OUTPUT (set by formatMessageRecord / formatQueueCreationRecord)
         bsls::Types::Uint64              d_journalOffset;
         bsls::Types::Uint64              d_dataOffset;
@@ -201,6 +209,32 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
         /// 'd_sequenceNumber' (index) are filled in by
         /// 'PartitionRaftLog::append'.
         explicit PendingWrite(bsls::Types::Uint64 id);
+
+        /// Confirm record constructor.
+        PendingWrite(bsls::Types::Uint64      id,
+                     const bmqt::MessageGUID& guid,
+                     const mqbu::StorageKey&  queueKey,
+                     const mqbu::StorageKey&  appKey,
+                     bsls::Types::Uint64      timestamp,
+                     ConfirmReason::Enum      reason);
+
+        /// Message-deletion record constructor.
+        PendingWrite(bsls::Types::Uint64      id,
+                     const bmqt::MessageGUID& guid,
+                     const mqbu::StorageKey&  queueKey,
+                     DeletionRecordFlag::Enum deletionFlag,
+                     bsls::Types::Uint64      timestamp);
+
+        /// Queue-op (purge/deletion) record constructor.  For a purge,
+        /// 'startPrimaryLeaseId' / 'startSequenceNumber' identify the start
+        /// position; for a deletion they are 0.
+        PendingWrite(bsls::Types::Uint64     id,
+                     QueueOpType::Enum       queueOpType,
+                     const mqbu::StorageKey& queueKey,
+                     const mqbu::StorageKey& appKey,
+                     bsls::Types::Uint64     timestamp,
+                     unsigned int            startPrimaryLeaseId,
+                     bsls::Types::Uint64     startSequenceNumber);
     };
 
     /// Type of the functor required by `applyForEachQueue`.
@@ -994,6 +1028,38 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// file set's current offsets).  Fills 'pw->d_journalOffset' and
     /// 'pw->d_entryBlob' (zero-copy mmap alias of the journal record).
     int formatSyncPointRecord(PendingWrite* pw);
+
+    /// Raft primary path: write a confirm record (journal only) directly to
+    /// mmap using the input fields of the specified 'pw' (d_queueKey,
+    /// d_appKey, d_guid, d_timestamp, d_confirmReason), stamping the record
+    /// header PSN from 'pw->d_primaryLeaseId' / 'pw->d_sequenceNumber'.  Fills
+    /// 'pw->d_journalOffset', 'pw->d_entryBlob' (zero-copy mmap alias of the
+    /// journal record), and 'pw->d_handle'.
+    int formatConfirmRecord(PendingWrite* pw);
+
+    /// Raft primary path: write a message-deletion record (journal only)
+    /// directly to mmap using the input fields of the specified 'pw'
+    /// (d_queueKey, d_guid, d_timestamp, d_deletionFlag), stamping the record
+    /// header PSN from 'pw->d_primaryLeaseId' / 'pw->d_sequenceNumber'.  Fills
+    /// 'pw->d_journalOffset' and 'pw->d_entryBlob' (zero-copy mmap alias of
+    /// the journal record).  Does not produce a handle (no DataStoreRecord).
+    int formatDeletionRecord(PendingWrite* pw);
+
+    /// Raft primary path: write a queue-purge record (journal only) directly
+    /// to mmap using the input fields of the specified 'pw' (d_queueKey,
+    /// d_appKey, d_timestamp, d_startPrimaryLeaseId, d_startSequenceNumber),
+    /// stamping the record header PSN from 'pw->d_primaryLeaseId' /
+    /// 'pw->d_sequenceNumber'.  Fills 'pw->d_journalOffset', 'pw->d_entryBlob'
+    /// (zero-copy mmap alias of the journal record), and 'pw->d_handle'.
+    int formatQueuePurgeRecord(PendingWrite* pw);
+
+    /// Raft primary path: write a queue-deletion record (journal only)
+    /// directly to mmap using the input fields of the specified 'pw'
+    /// (d_queueKey, d_appKey, d_timestamp), stamping the record header PSN
+    /// from 'pw->d_primaryLeaseId' / 'pw->d_sequenceNumber'.  Fills
+    /// 'pw->d_journalOffset', 'pw->d_entryBlob' (zero-copy mmap alias of the
+    /// journal record), and 'pw->d_handle'.
+    int formatQueueDeletionRecord(PendingWrite* pw);
 
     /// Rollover the specified `record` from `oldFileSet` to the `newFileSet`,
     /// and if it is a message record, update the counter of the corresponding

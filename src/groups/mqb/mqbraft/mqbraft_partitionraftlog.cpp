@@ -96,8 +96,26 @@ int PartitionRaftLog::append(bsls::Types::Uint64                 term,
         if (d_pendingWrite.d_recordType == mqbs::RecordType::e_MESSAGE) {
             rc = d_fileStore_p->formatMessageRecord(&d_pendingWrite);
         }
+        else if (d_pendingWrite.d_recordType == mqbs::RecordType::e_CONFIRM) {
+            rc = d_fileStore_p->formatConfirmRecord(&d_pendingWrite);
+        }
+        else if (d_pendingWrite.d_recordType == mqbs::RecordType::e_DELETION) {
+            rc = d_fileStore_p->formatDeletionRecord(&d_pendingWrite);
+        }
         else if (d_pendingWrite.d_recordType == mqbs::RecordType::e_QUEUE_OP) {
-            rc = d_fileStore_p->formatQueueCreationRecord(&d_pendingWrite);
+            if (d_pendingWrite.d_queueOpType ==
+                mqbs::QueueOpType::e_CREATION) {
+                rc = d_fileStore_p->formatQueueCreationRecord(&d_pendingWrite);
+            }
+            else if (d_pendingWrite.d_queueOpType ==
+                     mqbs::QueueOpType::e_PURGE) {
+                rc = d_fileStore_p->formatQueuePurgeRecord(&d_pendingWrite);
+            }
+            else {
+                BSLS_ASSERT_SAFE(d_pendingWrite.d_queueOpType ==
+                                 mqbs::QueueOpType::e_DELETION);
+                rc = d_fileStore_p->formatQueueDeletionRecord(&d_pendingWrite);
+            }
         }
         else {
             BSLS_ASSERT_SAFE(d_pendingWrite.d_recordType ==

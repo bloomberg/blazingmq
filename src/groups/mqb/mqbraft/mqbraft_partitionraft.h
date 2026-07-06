@@ -225,13 +225,17 @@ class PartitionRaft : public mqbs::RecordStore {
     /// Stop: cancel tick timer.
     void stop();
 
-    /// Propose a new log entry for replication.  'data' is the primary
-    /// record blob (from pool); 'auxiliary' is the optional data/qlist
-    /// payload (null for journal-only records).  Return 0 on success,
-    /// non-zero if not the primary.  On success the caller may retrieve the
-    /// DataStoreRecordHandle from 'd_raftLog_mp->cachedHandle()'.
-    int propose(const bsl::shared_ptr<bdlbb::Blob>& data,
-                bsls::Types::Uint64                 id = 0);
+    /// Propose the write described by the specified `pw` for replication.
+    /// This is the single entry point for every Raft partition write: it
+    /// computes the rollover footprint from `pw`, runs `rolloverIfNeeded`
+    /// (returning non-zero if the write must be deferred because a previous
+    /// `e_ROLLOVER` is still uncommitted), assigns the write id, hands `pw`
+    /// to the log, and drives the Raft propose sequence.  The record's
+    /// sequence number (log index) is stamped in `PartitionRaftLog::append`
+    /// at append time (not baked in here).  Return 0 on success, non-zero
+    /// otherwise.  On success the caller may retrieve the
+    /// DataStoreRecordHandle from `d_raftLog_mp->cachedHandle()`.
+    int propose(mqbs::FileStore::PendingWrite& pw);
 
     /// Handle an incoming binary AppendEntries event (e_RAFT_PARTITION)
     /// from the specified 'source' node.

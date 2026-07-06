@@ -111,6 +111,12 @@ FileStore::PendingWrite::PendingWrite()
 , d_appIdKeyPairs_p(0)
 , d_timestamp(0)
 , d_isNewQueue(false)
+, d_appKey()
+, d_confirmReason(ConfirmReason::e_CONFIRMED)
+, d_deletionFlag(DeletionRecordFlag::e_NONE)
+, d_queueOpType(QueueOpType::e_UNDEFINED)
+, d_startPrimaryLeaseId(0)
+, d_startSequenceNumber(0)
 , d_journalOffset(0)
 , d_dataOffset(0)
 , d_entryBlob()
@@ -143,6 +149,12 @@ FileStore::PendingWrite::PendingWrite(
 , d_appIdKeyPairs_p(0)
 , d_timestamp(0)
 , d_isNewQueue(false)
+, d_appKey()
+, d_confirmReason(ConfirmReason::e_CONFIRMED)
+, d_deletionFlag(DeletionRecordFlag::e_NONE)
+, d_queueOpType(QueueOpType::e_UNDEFINED)
+, d_startPrimaryLeaseId(0)
+, d_startSequenceNumber(0)
 , d_journalOffset(0)
 , d_dataOffset(0)
 , d_entryBlob()
@@ -172,9 +184,17 @@ FileStore::PendingWrite::PendingWrite(bsls::Types::Uint64     id,
 , d_appIdKeyPairs_p(appIdKeyPairs)
 , d_timestamp(timestamp)
 , d_isNewQueue(isNewQueue)
+, d_appKey()
+, d_confirmReason(ConfirmReason::e_CONFIRMED)
+, d_deletionFlag(DeletionRecordFlag::e_NONE)
+, d_queueOpType(QueueOpType::e_CREATION)
+, d_startPrimaryLeaseId(0)
+, d_startSequenceNumber(0)
 , d_journalOffset(0)
 , d_dataOffset(0)
 , d_entryBlob()
+, d_qlistOffset(0)
+, d_qlistRecTotalLength(0)
 {
 }
 
@@ -194,6 +214,117 @@ FileStore::PendingWrite::PendingWrite(bsls::Types::Uint64 id)
 , d_appIdKeyPairs_p(0)
 , d_timestamp(0)
 , d_isNewQueue(false)
+, d_appKey()
+, d_confirmReason(ConfirmReason::e_CONFIRMED)
+, d_deletionFlag(DeletionRecordFlag::e_NONE)
+, d_queueOpType(QueueOpType::e_UNDEFINED)
+, d_startPrimaryLeaseId(0)
+, d_startSequenceNumber(0)
+, d_journalOffset(0)
+, d_dataOffset(0)
+, d_entryBlob()
+, d_qlistOffset(0)
+, d_qlistRecTotalLength(0)
+{
+}
+
+FileStore::PendingWrite::PendingWrite(bsls::Types::Uint64      id,
+                                      const bmqt::MessageGUID& guid,
+                                      const mqbu::StorageKey&  queueKey,
+                                      const mqbu::StorageKey&  appKey,
+                                      bsls::Types::Uint64      timestamp,
+                                      ConfirmReason::Enum      reason)
+: d_id(id)
+, d_recordType(RecordType::e_CONFIRM)
+, d_syncPointType(SyncPointType::e_REGULAR)
+, d_primaryLeaseId(0)
+, d_sequenceNumber(0)
+, d_queueKey(queueKey)
+, d_attributes_p(0)
+, d_handle()
+, d_guid(guid)
+, d_appData()
+, d_options()
+, d_queueUri()
+, d_appIdKeyPairs_p(0)
+, d_timestamp(timestamp)
+, d_isNewQueue(false)
+, d_appKey(appKey)
+, d_confirmReason(reason)
+, d_deletionFlag(DeletionRecordFlag::e_NONE)
+, d_queueOpType(QueueOpType::e_UNDEFINED)
+, d_startPrimaryLeaseId(0)
+, d_startSequenceNumber(0)
+, d_journalOffset(0)
+, d_dataOffset(0)
+, d_entryBlob()
+, d_qlistOffset(0)
+, d_qlistRecTotalLength(0)
+{
+}
+
+FileStore::PendingWrite::PendingWrite(bsls::Types::Uint64      id,
+                                      const bmqt::MessageGUID& guid,
+                                      const mqbu::StorageKey&  queueKey,
+                                      DeletionRecordFlag::Enum deletionFlag,
+                                      bsls::Types::Uint64      timestamp)
+: d_id(id)
+, d_recordType(RecordType::e_DELETION)
+, d_syncPointType(SyncPointType::e_REGULAR)
+, d_primaryLeaseId(0)
+, d_sequenceNumber(0)
+, d_queueKey(queueKey)
+, d_attributes_p(0)
+, d_handle()
+, d_guid(guid)
+, d_appData()
+, d_options()
+, d_queueUri()
+, d_appIdKeyPairs_p(0)
+, d_timestamp(timestamp)
+, d_isNewQueue(false)
+, d_appKey()
+, d_confirmReason(ConfirmReason::e_CONFIRMED)
+, d_deletionFlag(deletionFlag)
+, d_queueOpType(QueueOpType::e_UNDEFINED)
+, d_startPrimaryLeaseId(0)
+, d_startSequenceNumber(0)
+, d_journalOffset(0)
+, d_dataOffset(0)
+, d_entryBlob()
+, d_qlistOffset(0)
+, d_qlistRecTotalLength(0)
+{
+}
+
+FileStore::PendingWrite::PendingWrite(bsls::Types::Uint64     id,
+                                      QueueOpType::Enum       queueOpType,
+                                      const mqbu::StorageKey& queueKey,
+                                      const mqbu::StorageKey& appKey,
+                                      bsls::Types::Uint64     timestamp,
+                                      unsigned int        startPrimaryLeaseId,
+                                      bsls::Types::Uint64 startSequenceNumber)
+: d_id(id)
+, d_recordType(RecordType::e_QUEUE_OP)
+, d_syncPointType(SyncPointType::e_REGULAR)
+, d_primaryLeaseId(0)
+, d_sequenceNumber(0)
+, d_queueKey(queueKey)
+, d_attributes_p(0)
+, d_handle()
+, d_guid()
+, d_appData()
+, d_options()
+, d_queueUri()
+, d_appIdKeyPairs_p(0)
+, d_timestamp(timestamp)
+, d_isNewQueue(false)
+, d_appKey(appKey)
+, d_confirmReason(ConfirmReason::e_CONFIRMED)
+, d_deletionFlag(DeletionRecordFlag::e_NONE)
+, d_queueOpType(queueOpType)
+, d_startPrimaryLeaseId(startPrimaryLeaseId)
+, d_startSequenceNumber(startSequenceNumber)
 , d_journalOffset(0)
 , d_dataOffset(0)
 , d_entryBlob()
@@ -6785,6 +6916,215 @@ int FileStore::formatSyncPointRecord(PendingWrite* pw)
     pw->d_entryBlob = d_blobSpPool_p->getObject();
     bsl::shared_ptr<char> jrecSp(activeFileSet->d_aliasedChunk_sp,
                                  journal.mapping() + journalOffset);
+    pw->d_entryBlob->appendDataBuffer(
+        bdlbb::BlobBuffer(bslmf::MovableRefUtil::move(jrecSp),
+                          FileStoreProtocol::k_JOURNAL_RECORD_SIZE));
+
+    return 0;
+}
+
+int FileStore::formatConfirmRecord(PendingWrite* pw)
+{
+    BSLS_ASSERT_SAFE(pw);
+    BSLS_ASSERT_SAFE(pw->d_recordType == RecordType::e_CONFIRM);
+    BSLS_ASSERT_SAFE(0 < d_fileSets.size());
+
+    FileSet* activeFileSet = d_fileSets[0].get();
+    BSLS_ASSERT_SAFE(activeFileSet);
+
+    MappedFileDescriptor& journal    = activeFileSet->d_journalFile;
+    bsls::Types::Uint64&  journalPos = activeFileSet->d_journalFilePosition;
+
+    // The Raft path must never roll over; assert the journal has room.
+    BSLS_ASSERT_SAFE(journal.fileSize() >=
+                     (journalPos + k_REQUESTED_JOURNAL_SPACE));
+
+    // Append confirm record to journal.
+    const bsls::Types::Uint64 recordOffset = journalPos;
+    OffsetPtr<ConfirmRecord>  confRec(journal.block(), journalPos);
+    new (confRec.get()) ConfirmRecord();
+    confRec->header()
+        .setPrimaryLeaseId(static_cast<unsigned int>(pw->d_primaryLeaseId))
+        .setSequenceNumber(pw->d_sequenceNumber)
+        .setTimestamp(pw->d_timestamp);
+    confRec->setQueueKey(pw->d_queueKey).setMessageGUID(pw->d_guid);
+    confRec->setReason(pw->d_confirmReason);
+    if (!pw->d_appKey.isNull()) {
+        confRec->setAppKey(pw->d_appKey);
+    }
+    confRec->setMagic(RecordHeader::k_MAGIC);
+    journalPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+
+    DataStoreRecordKey key(pw->d_sequenceNumber, pw->d_primaryLeaseId);
+    DataStoreRecord    record(RecordType::e_CONFIRM, recordOffset);
+    insertDataStoreRecord(&pw->d_handle, key, record);
+
+    activeFileSet->d_outstandingBytesJournal +=
+        FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+
+    pw->d_journalOffset = recordOffset;
+    pw->d_dataOffset    = 0;
+
+    // Build zero-copy mmap alias of the journal record for replication.
+    pw->d_entryBlob = d_blobSpPool_p->getObject();
+    bsl::shared_ptr<char> jrecSp(activeFileSet->d_aliasedChunk_sp,
+                                 journal.mapping() + recordOffset);
+    pw->d_entryBlob->appendDataBuffer(
+        bdlbb::BlobBuffer(bslmf::MovableRefUtil::move(jrecSp),
+                          FileStoreProtocol::k_JOURNAL_RECORD_SIZE));
+
+    return 0;
+}
+
+int FileStore::formatDeletionRecord(PendingWrite* pw)
+{
+    BSLS_ASSERT_SAFE(pw);
+    BSLS_ASSERT_SAFE(pw->d_recordType == RecordType::e_DELETION);
+    BSLS_ASSERT_SAFE(0 < d_fileSets.size());
+
+    FileSet* activeFileSet = d_fileSets[0].get();
+    BSLS_ASSERT_SAFE(activeFileSet);
+
+    MappedFileDescriptor& journal    = activeFileSet->d_journalFile;
+    bsls::Types::Uint64&  journalPos = activeFileSet->d_journalFilePosition;
+
+    // The Raft path must never roll over; assert the journal has room.
+    BSLS_ASSERT_SAFE(journal.fileSize() >=
+                     (journalPos + k_REQUESTED_JOURNAL_SPACE));
+
+    // Append deletion record to journal.
+    const bsls::Types::Uint64 recordOffset = journalPos;
+    OffsetPtr<DeletionRecord> delRec(journal.block(), journalPos);
+    new (delRec.get()) DeletionRecord();
+    delRec->header()
+        .setPrimaryLeaseId(static_cast<unsigned int>(pw->d_primaryLeaseId))
+        .setSequenceNumber(pw->d_sequenceNumber)
+        .setTimestamp(pw->d_timestamp);
+    delRec->setDeletionRecordFlag(pw->d_deletionFlag)
+        .setQueueKey(pw->d_queueKey)
+        .setMessageGUID(pw->d_guid)
+        .setMagic(RecordHeader::k_MAGIC);
+    journalPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+
+    // A deletion record produces no handle and no DataStoreRecord (mirroring
+    // the legacy 'writeDeletionRecord', which neither inserts a record nor
+    // updates outstanding journal bytes).
+
+    pw->d_journalOffset = recordOffset;
+    pw->d_dataOffset    = 0;
+
+    // Build zero-copy mmap alias of the journal record for replication.
+    pw->d_entryBlob = d_blobSpPool_p->getObject();
+    bsl::shared_ptr<char> jrecSp(activeFileSet->d_aliasedChunk_sp,
+                                 journal.mapping() + recordOffset);
+    pw->d_entryBlob->appendDataBuffer(
+        bdlbb::BlobBuffer(bslmf::MovableRefUtil::move(jrecSp),
+                          FileStoreProtocol::k_JOURNAL_RECORD_SIZE));
+
+    return 0;
+}
+
+int FileStore::formatQueuePurgeRecord(PendingWrite* pw)
+{
+    BSLS_ASSERT_SAFE(pw);
+    BSLS_ASSERT_SAFE(pw->d_recordType == RecordType::e_QUEUE_OP);
+    BSLS_ASSERT_SAFE(pw->d_queueOpType == QueueOpType::e_PURGE);
+    BSLS_ASSERT_SAFE(0 < d_fileSets.size());
+
+    FileSet* activeFileSet = d_fileSets[0].get();
+    BSLS_ASSERT_SAFE(activeFileSet);
+
+    MappedFileDescriptor& journal    = activeFileSet->d_journalFile;
+    bsls::Types::Uint64&  journalPos = activeFileSet->d_journalFilePosition;
+
+    // The Raft path must never roll over; assert the journal has room.
+    BSLS_ASSERT_SAFE(journal.fileSize() >=
+                     (journalPos + k_REQUESTED_JOURNAL_SPACE));
+
+    // Append queue-op (purge) record to journal.
+    const bsls::Types::Uint64 recordOffset = journalPos;
+    OffsetPtr<QueueOpRecord>  qRec(journal.block(), journalPos);
+    new (qRec.get()) QueueOpRecord();
+    qRec->header()
+        .setPrimaryLeaseId(static_cast<unsigned int>(pw->d_primaryLeaseId))
+        .setSequenceNumber(pw->d_sequenceNumber)
+        .setTimestamp(pw->d_timestamp);
+    qRec->setQueueKey(pw->d_queueKey).setType(QueueOpType::e_PURGE);
+    qRec->setStartPrimaryLeaseId(pw->d_startPrimaryLeaseId)
+        .setStartSequenceNumber(pw->d_startSequenceNumber);
+    if (!pw->d_appKey.isNull()) {
+        qRec->setAppKey(pw->d_appKey);
+    }
+    qRec->setMagic(RecordHeader::k_MAGIC);
+    journalPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+
+    DataStoreRecordKey key(pw->d_sequenceNumber, pw->d_primaryLeaseId);
+    DataStoreRecord    record(RecordType::e_QUEUE_OP, recordOffset);
+    insertDataStoreRecord(&pw->d_handle, key, record);
+
+    activeFileSet->d_outstandingBytesJournal +=
+        FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+
+    pw->d_journalOffset = recordOffset;
+    pw->d_dataOffset    = 0;
+
+    // Build zero-copy mmap alias of the journal record for replication.
+    pw->d_entryBlob = d_blobSpPool_p->getObject();
+    bsl::shared_ptr<char> jrecSp(activeFileSet->d_aliasedChunk_sp,
+                                 journal.mapping() + recordOffset);
+    pw->d_entryBlob->appendDataBuffer(
+        bdlbb::BlobBuffer(bslmf::MovableRefUtil::move(jrecSp),
+                          FileStoreProtocol::k_JOURNAL_RECORD_SIZE));
+
+    return 0;
+}
+
+int FileStore::formatQueueDeletionRecord(PendingWrite* pw)
+{
+    BSLS_ASSERT_SAFE(pw);
+    BSLS_ASSERT_SAFE(pw->d_recordType == RecordType::e_QUEUE_OP);
+    BSLS_ASSERT_SAFE(pw->d_queueOpType == QueueOpType::e_DELETION);
+    BSLS_ASSERT_SAFE(0 < d_fileSets.size());
+
+    FileSet* activeFileSet = d_fileSets[0].get();
+    BSLS_ASSERT_SAFE(activeFileSet);
+
+    MappedFileDescriptor& journal    = activeFileSet->d_journalFile;
+    bsls::Types::Uint64&  journalPos = activeFileSet->d_journalFilePosition;
+
+    // The Raft path must never roll over; assert the journal has room.
+    BSLS_ASSERT_SAFE(journal.fileSize() >=
+                     (journalPos + k_REQUESTED_JOURNAL_SPACE));
+
+    // Append queue-op (deletion) record to journal.
+    const bsls::Types::Uint64 recordOffset = journalPos;
+    OffsetPtr<QueueOpRecord>  qRec(journal.block(), journalPos);
+    new (qRec.get()) QueueOpRecord();
+    qRec->header()
+        .setPrimaryLeaseId(static_cast<unsigned int>(pw->d_primaryLeaseId))
+        .setSequenceNumber(pw->d_sequenceNumber)
+        .setTimestamp(pw->d_timestamp);
+    qRec->setQueueKey(pw->d_queueKey).setType(QueueOpType::e_DELETION);
+    if (!pw->d_appKey.isNull()) {
+        qRec->setAppKey(pw->d_appKey);
+    }
+    qRec->setMagic(RecordHeader::k_MAGIC);
+    journalPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+
+    DataStoreRecordKey key(pw->d_sequenceNumber, pw->d_primaryLeaseId);
+    DataStoreRecord    record(RecordType::e_QUEUE_OP, recordOffset);
+    insertDataStoreRecord(&pw->d_handle, key, record);
+
+    activeFileSet->d_outstandingBytesJournal +=
+        FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+
+    pw->d_journalOffset = recordOffset;
+    pw->d_dataOffset    = 0;
+
+    // Build zero-copy mmap alias of the journal record for replication.
+    pw->d_entryBlob = d_blobSpPool_p->getObject();
+    bsl::shared_ptr<char> jrecSp(activeFileSet->d_aliasedChunk_sp,
+                                 journal.mapping() + recordOffset);
     pw->d_entryBlob->appendDataBuffer(
         bdlbb::BlobBuffer(bslmf::MovableRefUtil::move(jrecSp),
                           FileStoreProtocol::k_JOURNAL_RECORD_SIZE));
