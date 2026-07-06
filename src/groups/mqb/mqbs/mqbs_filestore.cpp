@@ -6065,7 +6065,263 @@ int FileStore::writeMessageRecord(mqbi::StorageMessageAttributes* attributes,
     return rc_SUCCESS;
 }
 
-int FileStore::writeQueueCreationRecordImpl(PendingWrite* pw)
+int FileStore::writeQueueCreationRecord(DataStoreRecordHandle*  handle,
+                                        const bmqt::Uri&        queueUri,
+                                        const mqbu::StorageKey& queueKey,
+                                        const AppInfos&         appIdKeyPairs,
+                                        bsls::Types::Uint64     timestamp,
+                                        bool                    isNewQueue)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(handle);
+    BSLS_ASSERT_SAFE(!queueUri.asString().empty());
+    BSLS_ASSERT_SAFE(!queueKey.isNull());
+    BSLS_ASSERT_SAFE(d_fileSets.size() > 0);
+
+    enum {
+        rc_SUCCESS          = 0,
+        rc_STOPPING         = -1,
+        rc_UNAVAILABLE      = -2,
+        rc_NOT_PRIMARY      = -3,
+        rc_ROLLOVER_FAILURE = -4,
+        rc_PARTITION_FULL   = -5
+    };
+
+    FileSet* activeFileSet = d_fileSets[0].get();
+    BSLS_ASSERT_SAFE(activeFileSet);
+
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(d_isStopping)) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        return rc_STOPPING;  // RETURN
+    }
+
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
+            !activeFileSet->d_journalFileAvailable)) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        return rc_UNAVAILABLE;  // RETURN
+    }
+
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!d_isPrimary)) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        BMQTSK_ALARMLOG_ALARM("REPLICATION")
+            << partitionDesc()
+            << "Not the primary. Not writing & replicating QueueUriRecord for "
+            << "uri: " << queueUri << " and queueKey [" << queueKey << "]"
+            << BMQTSK_ALARMLOG_END;
+        return rc_NOT_PRIMARY;  // RETURN
+    }
+
+    int          queueUriPadding     = 0;
+    int          queueUriWords       = 0;
+    unsigned int qlistRecTotalLength = 0;
+    int          rc                  = 0;
+
+    // AppIds and AppKeys.
+    bsl::vector<int> appIdPaddings(appIdKeyPairs.size(), 0);
+    bsl::vector<int> appIdWords(appIdKeyPairs.size(), 0);
+
+    if (d_qListAware) {
+        // QueueUri and QueueKey
+        queueUriWords = bmqp::ProtocolUtil::calcNumWordsAndPadding(
+            &queueUriPadding,
+            queueUri.asString().length());
+
+        qlistRecTotalLength = sizeof(QueueRecordHeader) +
+                              queueUri.asString().length() + queueUriPadding +
+                              FileStoreProtocol::k_HASH_LENGTH;
+        size_t i = 0;
+        for (AppInfos::const_iterator cit = appIdKeyPairs.cbegin();
+             cit != appIdKeyPairs.cend();
+             ++cit, ++i) {
+            BSLS_ASSERT_SAFE(!cit->first.empty());
+            BSLS_ASSERT_SAFE(!cit->second.isNull());
+            appIdWords[i] = bmqp::ProtocolUtil::calcNumWordsAndPadding(
+                &appIdPaddings[i],
+                cit->first.length());
+            qlistRecTotalLength +=
+                sizeof(AppIdHeader) + cit->first.length() + appIdPaddings[i] +
+                FileStoreProtocol::k_HASH_LENGTH;  // for AppKey
+        }
+
+        qlistRecTotalLength += sizeof(unsigned int);  // magic length
+
+        // Roll over QLIST file if needed.
+
+        rc = rolloverIfNeeded(FileType::e_QLIST,
+                              activeFileSet->d_qlist,
+                              qlistRecTotalLength);
+        if (0 != rc) {
+            return 10 * rc + rc_ROLLOVER_FAILURE;  // RETURN
+        }
+    }
+
+    // Update 'activeFileSet' as it may have rolled over above.
+
+    activeFileSet = d_fileSets[0].get();
+    if (d_qListAware) {
+        BSLS_ASSERT_SAFE(
+            activeFileSet->d_qlistFile.fileSize() >=
+            (activeFileSet->d_qlistFilePosition + qlistRecTotalLength));
+    }
+
+    // Roll over journal if needed.
+
+    rc = rolloverIfNeeded(FileType::e_JOURNAL,
+                          activeFileSet->d_journal,
+                          k_REQUESTED_JOURNAL_SPACE);
+    if (0 != rc) {
+        return 10 * rc + rc_ROLLOVER_FAILURE;  // RETURN
+    }
+
+    // Update 'activeFileSet' as it may have rolled over above.
+
+    activeFileSet = d_fileSets[0].get();
+
+    // Local refs for convenience.
+
+    MappedFileDescriptor& journal    = activeFileSet->d_journalFile;
+    bsls::Types::Uint64&  journalPos = activeFileSet->d_journalFilePosition;
+    MappedFileDescriptor  nullMfd;
+
+    BSLS_ASSERT_SAFE(journal.fileSize() >=
+                     (journalPos + k_REQUESTED_JOURNAL_SPACE));
+
+    // All good.  Take current offset in QLIST file.
+
+    bsls::Types::Uint64 qlistOffset = d_qListAware ? qlistFilePos : 0;
+    BSLS_ASSERT_SAFE(0 == qlistOffset % bmqp::Protocol::k_WORD_SIZE);
+
+    if (d_qListAware) {
+        // Append QueueRecordHeader to QLIST file.
+
+        OffsetPtr<QueueRecordHeader> qrh(qlistFile.block(), qlistFilePos);
+        new (qrh.get()) QueueRecordHeader();
+        qrh->setQueueUriLengthWords(queueUriWords)
+            .setNumAppIds(appIdKeyPairs.size())
+            .setQueueRecordWords(qlistRecTotalLength /
+                                 bmqp::Protocol::k_WORD_SIZE);
+        qlistFilePos += sizeof(QueueRecordHeader);
+
+        // Append QueueRecord to QLIST file.
+
+        // 1) Append QueueUri
+        OffsetPtr<char> quri(qlistFile.block(), qlistFilePos);
+        bsl::memcpy(quri.get(),
+                    queueUri.asString().c_str(),
+                    queueUri.asString().length());
+        qlistFilePos += queueUri.asString().length();
+
+        // 2) Append padding after QueueUri
+        bmqp::ProtocolUtil::appendPaddingRaw(qlistFile.mapping() +
+                                                 qlistFilePos,
+                                             queueUriPadding);
+        qlistFilePos += queueUriPadding;
+
+        // 3) Append QueueUriHash.  QueueUriRecord needs
+        // 'mqbs::FileStoreProtocol::k_HASH_LENGTH' characters for queue uri
+        // hash and appId hash but 'queueKey' is only
+        // mqbu::StorageKey::e_KEY_LENGTH_BINARY' long.  So we create an array
+        // of the right length, zero it out, and copy only 'queueKey' worth of
+        // data.
+
+        char queueHash[mqbs::FileStoreProtocol::k_HASH_LENGTH] = {0};
+        bsl::memcpy(queueHash, queueKey.data(), k_KEY_LEN);
+        OffsetPtr<char> quriHash(qlistFile.block(), qlistFilePos);
+        bsl::memcpy(quriHash.get(),
+                    queueHash,
+                    FileStoreProtocol::k_HASH_LENGTH);
+        qlistFilePos += FileStoreProtocol::k_HASH_LENGTH;
+
+        // 3) Append AppIds and AppKeys
+        size_t i = 0;
+        for (AppInfos::const_iterator cit = appIdKeyPairs.cbegin();
+             cit != appIdKeyPairs.cend();
+             ++cit, ++i) {
+            // Append AppIdHeader.
+
+            OffsetPtr<AppIdHeader> appIdHeader(qlistFile.block(),
+                                               qlistFilePos);
+            new (appIdHeader.get()) AppIdHeader;
+            appIdHeader->setAppIdLengthWords(appIdWords[i]);
+            qlistFilePos += sizeof(AppIdHeader);
+
+            // Append AppId.
+
+            OffsetPtr<char> appId(qlistFile.block(), qlistFilePos);
+            bsl::memcpy(appId.get(), cit->first.c_str(), cit->first.length());
+            qlistFilePos += cit->first.length();
+
+            // Append padding after AppId.
+
+            bmqp::ProtocolUtil::appendPaddingRaw(qlistFile.mapping() +
+                                                     qlistFilePos,
+                                                 appIdPaddings[i]);
+            qlistFilePos += appIdPaddings[i];
+
+            // Append AppIdHash (see 'Append QueueUriHash' comments section
+            // above for explanation).
+
+            char appIdHash[mqbs::FileStoreProtocol::k_HASH_LENGTH] = {0};
+            bsl::memcpy(appIdHash, cit->second.data(), k_KEY_LEN);
+            OffsetPtr<char> appHash(qlistFile.block(), qlistFilePos);
+            bsl::memcpy(appHash.get(),
+                        appIdHash,
+                        FileStoreProtocol::k_HASH_LENGTH);
+            qlistFilePos += FileStoreProtocol::k_HASH_LENGTH;
+        }
+
+        // 4) Append magic bits
+        OffsetPtr<bdlb::BigEndianUint32> magic(qlistFile.block(),
+                                               qlistFilePos);
+        *magic = QueueRecordHeader::k_MAGIC;
+        qlistFilePos += sizeof(QueueRecordHeader::k_MAGIC);
+    }
+
+    // Append QueueOpRecord to JOURNAL file.
+
+    bsls::Types::Uint64      recordOffset = journalPos;
+    OffsetPtr<QueueOpRecord> queueOpRec(journal.block(), journalPos);
+    new (queueOpRec.get()) QueueOpRecord();
+    queueOpRec->header()
+        .setPrimaryLeaseId(d_primaryLeaseId)
+        .setSequenceNumber(++currentSeqNumRef())
+        .setTimestamp(timestamp);
+    queueOpRec->setQueueKey(queueKey).setType(
+        isNewQueue ? QueueOpType::e_CREATION : QueueOpType::e_ADDITION);
+    queueOpRec->setQueueUriRecordOffsetWords(
+        d_qListAware ? (qlistOffset / bmqp::Protocol::k_WORD_SIZE) : 0);
+
+    // Note that we don't write any appKey to the QueueOpRecord in the journal,
+    // because there could be multiple appKeys specified, and its not possible
+    // to capture all of them in the journal.  We could specify the appKey if
+    // 'appKeys.size() == 1', but that may lead to confusion.
+
+    queueOpRec->setMagic(RecordHeader::k_MAGIC);
+    journalPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+
+    replicateRecord(bmqp::StorageMessageType::e_QLIST,
+                    0,  // flags
+                    recordOffset,
+                    qlistOffset,
+                    qlistRecTotalLength);
+
+    DataStoreRecordKey key(sequenceNumber(), d_primaryLeaseId);
+    DataStoreRecord    record(RecordType::e_QUEUE_OP,
+                           recordOffset,
+                           qlistRecTotalLength);
+    insertDataStoreRecord(handle, key, record);
+
+    // Update outstanding JOURNAL and QLIST bytes.
+    activeFileSet->d_outstandingBytesJournal +=
+        FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+    if (d_qListAware) {
+        activeFileSet->d_outstandingBytesQlist += qlistRecTotalLength;
+    }
+
+    return rc_SUCCESS;
+}
+
+int FileStore::formatQueueCreationRecord(PendingWrite* pw)
 {
     BSLS_ASSERT_SAFE(pw);
     BSLS_ASSERT_SAFE(pw->d_recordType == RecordType::e_QUEUE_OP);
@@ -6078,12 +6334,7 @@ int FileStore::writeQueueCreationRecordImpl(PendingWrite* pw)
     const mqbu::StorageKey& queueKey      = pw->d_queueKey;
     const AppInfos&         appIdKeyPairs = *pw->d_appIdKeyPairs_p;
 
-    enum {
-        rc_SUCCESS          = 0,
-        rc_STOPPING         = -1,
-        rc_UNAVAILABLE      = -2,
-        rc_ROLLOVER_FAILURE = -3
-    };
+    enum { rc_SUCCESS = 0, rc_STOPPING = -1, rc_UNAVAILABLE = -2 };
 
     FileSet* activeFileSet = d_fileSets[0].get();
     BSLS_ASSERT_SAFE(activeFileSet);
@@ -6099,10 +6350,9 @@ int FileStore::writeQueueCreationRecordImpl(PendingWrite* pw)
         return rc_UNAVAILABLE;
     }
 
-    int          queueUriPadding     = 0;
-    int          queueUriWords       = 0;
-    unsigned int qlistRecTotalLength = 0;
-    int          rc                  = 0;
+    int                 queueUriPadding     = 0;
+    int                 queueUriWords       = 0;
+    bsls::Types::Uint64 qlistRecTotalLength = 0;
 
     if (d_qListAware) {
         queueUriWords = bmqp::ProtocolUtil::calcNumWordsAndPadding(
@@ -6112,42 +6362,25 @@ int FileStore::writeQueueCreationRecordImpl(PendingWrite* pw)
         // The total record size is computed by the single-source
         // 'queueCreationQlistFileSize' (also used by the Raft capacity check);
         // per-app word counts / paddings are computed inline while writing.
-        qlistRecTotalLength = static_cast<unsigned int>(
+        qlistRecTotalLength =
             FileStoreProtocolUtil::queueCreationQlistFileSize(queueUri,
-                                                              appIdKeyPairs));
+                                                              appIdKeyPairs);
 
-        rc = rolloverIfNeeded(FileType::e_QLIST,
-                              activeFileSet->d_qlist,
-                              qlistRecTotalLength);
-        if (0 != rc) {
-            return 10 * rc + rc_ROLLOVER_FAILURE;
-        }
-    }
-
-    // Update 'activeFileSet' as it may have rolled over above.
-
-    activeFileSet = d_fileSets[0].get();
-    if (d_qListAware) {
+        // The Raft path must never roll over; assert the qlist file has room.
         BSLS_ASSERT_SAFE(
-            activeFileSet->d_qlist.d_file.fileSize() >=
-            (activeFileSet->d_qlist.d_filePosition + qlistRecTotalLength));
+            activeFileSet->d_qlistFile.fileSize() >=
+            (activeFileSet->d_qlistFilePosition + qlistRecTotalLength));
     }
 
-    rc = rolloverIfNeeded(FileType::e_JOURNAL,
-                          activeFileSet->d_journal,
-                          k_REQUESTED_JOURNAL_SPACE);
-    if (0 != rc) {
-        return 10 * rc + rc_ROLLOVER_FAILURE;
-    }
-    activeFileSet = d_fileSets[0].get();
+    // The Raft path must never roll over; assert the journal has room.
+    BSLS_ASSERT_SAFE(
+        activeFileSet->d_journalFile.fileSize() >=
+        (activeFileSet->d_journalFilePosition + k_REQUESTED_JOURNAL_SPACE));
 
-    MappedFileDescriptor& journal    = activeFileSet->d_journal.d_file;
-    bsls::Types::Uint64&  journalPos = activeFileSet->d_journal.d_filePosition;
-    MappedFileDescriptor& qlistFile    = activeFileSet->d_qlist.d_file;
-    bsls::Types::Uint64&  qlistFilePos = activeFileSet->d_qlist.d_filePosition;
-
-    BSLS_ASSERT_SAFE(journal.fileSize() >=
-                     (journalPos + k_REQUESTED_JOURNAL_SPACE));
+    MappedFileDescriptor& journal      = activeFileSet->d_journalFile;
+    bsls::Types::Uint64&  journalPos   = activeFileSet->d_journalFilePosition;
+    MappedFileDescriptor& qlistFile    = activeFileSet->d_qlistFile;
+    bsls::Types::Uint64&  qlistFilePos = activeFileSet->d_qlistFilePosition;
 
     const bsls::Types::Uint64 qlistOffset = d_qListAware ? qlistFilePos : 0;
     BSLS_ASSERT_SAFE(0 == qlistOffset % bmqp::Protocol::k_WORD_SIZE);
@@ -6243,76 +6476,12 @@ int FileStore::writeQueueCreationRecordImpl(PendingWrite* pw)
         activeFileSet->d_qlist.d_outstandingBytes += qlistRecTotalLength;
     }
 
-    pw->d_journalOffset      = recordOffset;
-    pw->d_qlistOffset        = qlistOffset;
+    pw->d_journalOffset       = recordOffset;
+    pw->d_qlistOffset         = qlistOffset;
     pw->d_qlistRecTotalLength = qlistRecTotalLength;
 
-    return rc_SUCCESS;
-}
-
-int FileStore::writeQueueCreationRecord(DataStoreRecordHandle*  handle,
-                                        const bmqt::Uri&        queueUri,
-                                        const mqbu::StorageKey& queueKey,
-                                        const AppInfos&         appIdKeyPairs,
-                                        bsls::Types::Uint64     timestamp,
-                                        bool                    isNewQueue)
-{
-    BSLS_ASSERT_SAFE(handle);
-    BSLS_ASSERT_SAFE(!queueUri.asString().empty());
-    BSLS_ASSERT_SAFE(!queueKey.isNull());
-    BSLS_ASSERT_SAFE(0 < d_fileSets.size());
-
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!d_isPrimary)) {
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        BMQTSK_ALARMLOG_ALARM("REPLICATION")
-            << partitionDesc()
-            << "Not the primary. Not writing & replicating QueueUriRecord for "
-            << "uri: " << queueUri << " and queueKey [" << queueKey << "]"
-            << BMQTSK_ALARMLOG_END;
-        return -1;
-    }
-
-    PendingWrite pw(0,
-                    queueUri,
-                    queueKey,
-                    &appIdKeyPairs,
-                    timestamp,
-                    isNewQueue);
-    pw.d_primaryLeaseId = d_primaryLeaseId;
-    pw.d_sequenceNumber = ++currentSeqNumRef();
-
-    int rc = writeQueueCreationRecordImpl(&pw);
-    if (rc != 0) {
-        return rc;
-    }
-
-    *handle = pw.d_handle;
-
-    replicateRecord(bmqp::StorageMessageType::e_QLIST,
-                    0,
-                    pw.d_journalOffset,
-                    pw.d_qlistOffset,
-                    pw.d_qlistRecTotalLength);
-    return 0;
-}
-
-int FileStore::formatQueueCreationRecord(PendingWrite* pw)
-{
-    BSLS_ASSERT_SAFE(pw);
-    BSLS_ASSERT_SAFE(pw->d_recordType == RecordType::e_QUEUE_OP);
-    BSLS_ASSERT_SAFE(!pw->d_queueUri.asString().empty());
-    BSLS_ASSERT_SAFE(!pw->d_queueKey.isNull());
-    BSLS_ASSERT_SAFE(pw->d_appIdKeyPairs_p);
-    BSLS_ASSERT_SAFE(0 < d_fileSets.size());
-
-    int rc = writeQueueCreationRecordImpl(pw);
-    if (rc != 0) {
-        return rc;
-    }
-
     // Build entry blob: [journal record][qlist bytes] for AppendEntries.
-    FileSet* activeFileSet = d_fileSets[0].get();
-    pw->d_entryBlob        = d_blobSpPool_p->getObject();
+    pw->d_entryBlob = d_blobSpPool_p->getObject();
     bdlbb::BlobUtil::append(pw->d_entryBlob.get(),
                             activeFileSet->d_journalFile.block().base() +
                                 pw->d_journalOffset,
@@ -6324,7 +6493,7 @@ int FileStore::formatQueueCreationRecord(PendingWrite* pw)
                                 pw->d_qlistRecTotalLength);
     }
 
-    return 0;
+    return rc_SUCCESS;
 }
 
 int FileStore::writeQueuePurgeRecord(DataStoreRecordHandle*       handle,

@@ -170,7 +170,7 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
         bsls::Types::Uint64              d_timestamp;
         bool                             d_isNewQueue;
 
-        // OUTPUT (set by formatMessageRecord / writeQueueCreationRecordImpl)
+        // OUTPUT (set by formatMessageRecord / formatQueueCreationRecord)
         bsls::Types::Uint64              d_journalOffset;
         bsls::Types::Uint64              d_dataOffset;
         bsl::shared_ptr<bdlbb::Blob>     d_entryBlob;
@@ -587,19 +587,6 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
                                 bsls::Types::Uint64     timestamp,
                                 unsigned int            startPrimaryLeaseId,
                                 bsls::Types::Uint64     startSequenceNum);
-
-    /// Write qlist and journal records for a queue creation/addition.
-    /// Use the specified 'primaryLeaseId' and 'sequenceNumber'.  Load the
-    /// journal record offset into the specified 'journalOffset', the qlist
-    /// offset into 'qlistOffset', and the qlist record length into
-    /// 'qlistRecTotalLength'.  Insert the record into 'd_records' and
-    /// update outstanding byte counters.  Return 0 on success.
-    /// Core implementation for queue creation/addition record write.
-    /// All inputs and outputs are passed via the specified 'pw'.  Fills
-    /// 'pw->d_handle', 'pw->d_journalOffset', 'pw->d_qlistOffset', and
-    /// 'pw->d_qlistRecTotalLength'.  Callers are responsible for
-    /// post-processing (replication for legacy, entry blob for Raft).
-    int writeQueueCreationRecordImpl(PendingWrite* pw);
 
     /// Issue a sync point.
     ///
