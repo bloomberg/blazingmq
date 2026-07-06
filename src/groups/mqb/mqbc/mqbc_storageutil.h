@@ -165,6 +165,13 @@ struct StorageUtil {
     typedef bsl::shared_ptr<mqbs::FileStore> FileStoreSp;
     typedef bsl::vector<FileStoreSp>         FileStores;
 
+    /// Per-partition record stores (indexed by partitionId).  The record
+    /// store for a partition is its `mqbs::FileStore` in legacy mode and its
+    /// `mqbraft::PartitionRaft` in Raft mode.  Admin `processCommand`
+    /// operations are driven through this narrow interface so they route to
+    /// the correct mechanism per mode.
+    typedef bsl::vector<mqbs::RecordStore*> RecordStores;
+
     typedef bdlcc::SharedObjectPool<
         bdlbb::Blob,
         bdlcc::ObjectPoolFunctors::DefaultCreator,
@@ -269,7 +276,7 @@ struct StorageUtil {
     ///         `partitionId`.
     static void getStoragesDispatched(StorageLists*         storageLists,
                                       bslmt::Latch*         latch,
-                                      const FileStores&     fileStores,
+                                      const RecordStores&   recordStores,
                                       int                   partitionId,
                                       const StorageFilters& filters);
 
@@ -280,7 +287,7 @@ struct StorageUtil {
     /// THREAD: Executed by the cluster-dispatcher thread.
     static void loadStorages(bsl::vector<mqbcmd::StorageQueueInfo>* storages,
                              const bsl::string&                     domainName,
-                             const FileStores& fileStores);
+                             const RecordStores& recordStores);
 
     /// Load the summary of the partition out of the specified `fileStores`
     /// having the specified `partitionId` and `partitionLocation` into the
@@ -289,7 +296,7 @@ struct StorageUtil {
     /// THREAD: Executed by the cluster-dispatcher thread.
     static void
     loadPartitionStorageSummary(mqbcmd::StorageResult*   result,
-                                const FileStores&        fileStores,
+                                const RecordStores&      recordStores,
                                 int                      partitionId,
                                 const bslstl::StringRef& partitionLocation);
 
@@ -300,7 +307,7 @@ struct StorageUtil {
     ///
     /// THREAD: Executed by the cluster-dispatcher thread.
     static void doRollover(mqbcmd::StorageResult* result,
-                           FileStores*            fileStores,
+                           const RecordStores&    recordStores,
                            int                    partitionId,
                            bslma::Allocator*      allocator);
 
@@ -311,17 +318,16 @@ struct StorageUtil {
     ///
     /// THREAD: Executed by the Queue's dispatcher thread for the specified
     ///         `partitionId`.
-    static void doRolloverDispatched(bslmt::Latch* latch,
-                                     int*          rc,
-                                     int           partitionId,
-                                     FileStores*   fileStores);
+    static void doRolloverDispatched(bslmt::Latch*      latch,
+                                     int*               rc,
+                                     mqbs::RecordStore* recordStore);
 
     /// Load the summary of the partitions of the spcified `fileStores` at
     /// the specified `location` to the specified `result` object.
     ///
     /// THREAD: Executed by the cluster-dispatcher thread.
     static void loadStorageSummary(mqbcmd::StorageResult*  result,
-                                   const FileStores&       fileStores,
+                                   const RecordStores&     recordStores,
                                    const bslstl::StringRef location);
 
     /// Load the summary of the partition out of the specified `fileStores`
@@ -335,15 +341,15 @@ struct StorageUtil {
     loadStorageSummaryDispatched(mqbcmd::ClusterStorageSummary* summary,
                                  bslmt::Latch*                  latch,
                                  int                            partitionId,
-                                 const FileStores&              fileStores);
+                                 const RecordStores&            recordStores);
 
     static void
     purgeDomainDispatched(bsl::vector<bsl::vector<mqbcmd::PurgeQueueResult> >*
-                                             purgedQueuesResultsVec,
-                          bslmt::Latch*      latch,
-                          int                partitionId,
-                          const FileStores*  fileStores,
-                          const bsl::string& domainName);
+                                              purgedQueuesResultsVec,
+                          bslmt::Latch*       latch,
+                          int                 partitionId,
+                          const RecordStores* recordStores,
+                          const bsl::string&  domainName);
     /// Execute the domain purge command for the specified `domainName` within
     /// the specified `partitionId`.  The specified `storageMapVec` contains
     /// mutable storages to search for domain's queues, while the specified
@@ -364,7 +370,7 @@ struct StorageUtil {
     purgeQueueDispatched(mqbcmd::PurgeQueueResult* purgedQueueResult,
                          bslmt::Semaphore*         purgeFinishedSemaphore,
                          const StorageSp&          storage,
-                         const mqbs::FileStore*    fileStore,
+                         const mqbs::RecordStore*  recordStore,
                          const bsl::string&        appId);
     /// Execute the queue purge command for the specified `storage` with
     /// the specified `appId`.  The optionally specified
@@ -384,7 +390,7 @@ struct StorageUtil {
     ///
     /// THREAD: Executed by the cluster-dispatcher thread.
     static void executeForEachPartitions(const PerPartitionFunctor& job,
-                                         const FileStores& fileStores);
+                                         const RecordStores& recordStores);
 
     /// For each partition which has the current node as the primary,
     /// Execute the specified `job` in the specified `fileStores`.
@@ -394,7 +400,7 @@ struct StorageUtil {
     ///
     /// THREAD: Executed by the cluster-dispatcher thread.
     static void executeForValidPartitions(const PerPartitionFunctor& job,
-                                          const FileStores& fileStores);
+                                          const RecordStores& recordStores);
 
     /// Process the specified `command`, and load the result to the
     /// specified `replicationResult`.  The command might modify the
@@ -406,7 +412,7 @@ struct StorageUtil {
     static int
     processReplicationCommand(mqbcmd::ReplicationResult* replicationResult,
                               int*                       replicationFactor,
-                              FileStores*                fileStores,
+                              const RecordStores&        recordStores,
                               const mqbcmd::ReplicationCommand& command);
 
   public:
@@ -724,9 +730,17 @@ struct StorageUtil {
     /// allocations.  This function can be invoked from any thread, and will
     /// block until the potentially asynchronous operation is complete.
     //
+    /// Load into the specified `recordStores` a `RecordStore*` (upcast from
+    /// `mqbs::FileStore*`) for every element of the specified `fileStores`,
+    /// in the same order.  Convenience for legacy/FSM managers (whose record
+    /// store *is* the `FileStore`) to call the `RecordStore`-based command
+    /// functions below.
+    static void recordStoresFromFileStores(RecordStores*     recordStores,
+                                           const FileStores& fileStores);
+
     /// THREAD: Executed by the cluster-dispatcher thread.
     static void processCommand(mqbcmd::StorageResult*        result,
-                               FileStores*                   fileStores,
+                               const RecordStores&           recordStores,
                                const mqbi::DomainFactory*    domainFactory,
                                int*                          replicationFactor,
                                const mqbcmd::StorageCommand& command,
@@ -743,7 +757,7 @@ struct StorageUtil {
     /// Purge the queues on a given domain.
     static void purgeQueueOnDomain(mqbcmd::StorageResult* result,
                                    const bsl::string&     domainName,
-                                   FileStores*            fileStores);
+                                   const RecordStores&    recordStores);
 };
 
 // =====================
