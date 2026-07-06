@@ -54,6 +54,7 @@ struct TestClock {
     : d_scheduler_p(scheduler)
     , d_timeSource(scheduler, allocator)
     {
+        BSLS_ASSERT_OPT(scheduler);
     }
 
     bsls::TimeInterval realtimeClock() { return d_timeSource.now(); }
@@ -69,6 +70,9 @@ struct TestBench {
     bdlmt::EventScheduler               d_scheduler;
     TestClock                           d_testClock;
     bslma::Allocator*                   d_allocator_p;
+
+    TestBench(const TestBench&) BSLS_KEYWORD_DELETED;
+    TestBench& operator=(const TestBench&) BSLS_KEYWORD_DELETED;
 
     explicit TestBench(bslma::Allocator* allocator)
     : d_channel(bsl::allocate_shared<bmqio::TestChannel>(allocator))
@@ -321,7 +325,7 @@ static void test4_reauthenticationBeforeTimeout()
     BMQTST_ASSERT_EQ(tb.d_channel->numCloseCalls(), 0u);
 
     // 4) Simulate reauthentication starting
-    bool started = ctx->tryStartReauthentication();
+    const bool started = ctx->tryStartReauthentication();
     BMQTST_ASSERT(started);
 
     // 5) Reauthenticate with a new lifetime
