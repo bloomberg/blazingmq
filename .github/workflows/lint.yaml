@@ -216,6 +216,7 @@ jobs:
           lines-changed-only: diff
           version: '21'
           database: build/blazingmq
+          ignore: '.github|src/standalones/s_bmqfuzz'
       - name: Fail fast?!
         if: steps.linter.outputs.checks-failed > 0
         run: exit 1
