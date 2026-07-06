@@ -754,12 +754,42 @@ void PartitionRaft::stop()
     BALL_LOG_INFO << "PartitionRaft stopped for partition " << d_partitionId;
 }
 
-int PartitionRaft::propose(const bsl::shared_ptr<bdlbb::Blob>& data,
-                           bsls::Types::Uint64                 id)
+int PartitionRaft::propose(mqbs::FileStore::PendingWrite& pw)
 {
     // executed by the partition *DISPATCHER* thread
+
+    // Compute the rollover footprint (DATA and QLIST bytes) from the write.
+    // The JOURNAL reserve is always checked by 'rolloverIfNeeded'; only
+    // messages consume DATA and only queue creations consume QLIST.
+    bsls::Types::Uint64 dataBytes  = 0;
+    bsls::Types::Uint64 qlistBytes = 0;
+    if (pw.d_recordType == mqbs::RecordType::e_MESSAGE) {
+        dataBytes = mqbs::FileStoreProtocolUtil::messageDataFileSize(
+            pw.d_appData,
+            pw.d_options);
+    }
+    else if (pw.d_recordType == mqbs::RecordType::e_QUEUE_OP &&
+             pw.d_queueOpType == mqbs::QueueOpType::e_CREATION) {
+        qlistBytes = mqbs::FileStoreProtocolUtil::queueCreationQlistFileSize(
+            pw.d_queueUri,
+            *pw.d_appIdKeyPairs_p);
+    }
+
+    int rc = rolloverIfNeeded(dataBytes, qlistBytes);
+    if (0 != rc) {
+        return rc;  // RETURN
+    }
+
+    // Assign the write id and hand the fully-populated 'pw' to the log; the
+    // record's sequence number (index) is stamped in 'append()'.
+    const bsls::Types::Uint64 writeId = ++d_writeIdCounter;
+    pw.d_id                           = writeId;
+    d_raftLog_mp->setPendingWrite(pw);
+
     RaftNodeOutput output(d_allocator_p);
-    int            rc = d_raftNode_mp->propose(&output, data, id);
+    rc = d_raftNode_mp->propose(&output,
+                                bsl::shared_ptr<bdlbb::Blob>(),
+                                writeId);
     if (rc != 0) {
         return rc;
     }
@@ -774,17 +804,12 @@ void PartitionRaft::proposeSyncPoint()
     // executed by the partition *DISPATCHER* thread
     BSLS_ASSERT_SAFE(isLeader());
 
-    // Skip issuing the sync point if a rollover is required but blocked by an
-    // uncommitted 'e_ROLLOVER'; it will be re-issued on a later tick.
-    if (0 != rolloverIfNeeded(0, 0)) {
-        return;  // RETURN
-    }
+    // A sync point is journal-only; 'propose()' runs 'rolloverIfNeeded' and
+    // skips issuing it if a rollover is required but blocked by an uncommitted
+    // 'e_ROLLOVER' (it will be re-issued on a later tick).
+    mqbs::FileStore::PendingWrite pw(0);  // sync-point ctor; id set in propose
 
-    const bsls::Types::Uint64 writeId = ++d_writeIdCounter;
-
-    d_raftLog_mp->setPendingWrite(mqbs::FileStore::PendingWrite(writeId));
-
-    int rc = propose(bsl::shared_ptr<bdlbb::Blob>(), writeId);
+    int rc = propose(pw);
     if (rc != 0) {
         BALL_LOG_ERROR << "Partition [" << d_partitionId
                        << "] failed to propose sync point upon becoming "
@@ -1014,26 +1039,16 @@ int PartitionRaft::writeMessageRecord(
     BSLS_ASSERT_SAFE(handle);
     BSLS_ASSERT_SAFE(appData);
 
-    int rc = rolloverIfNeeded(
-        mqbs::FileStoreProtocolUtil::messageDataFileSize(appData, options),
-        0);
-    if (0 != rc) {
-        return rc;  // RETURN
-    }
+    mqbs::FileStore::PendingWrite pw(0,  // id set in propose()
+                                     0,  // primaryLeaseId set in append()
+                                     0,  // sequenceNumber set in append()
+                                     attributes,
+                                     guid,
+                                     appData,
+                                     options,
+                                     queueKey);
 
-    const bsls::Types::Uint64 writeId = ++d_writeIdCounter;
-
-    d_raftLog_mp->setPendingWrite(
-        mqbs::FileStore::PendingWrite(writeId,
-                                      0,  // primaryLeaseId set in append()
-                                      0,  // sequenceNumber set in append()
-                                      attributes,
-                                      guid,
-                                      appData,
-                                      options,
-                                      queueKey));
-
-    rc = propose(bsl::shared_ptr<bdlbb::Blob>(), writeId);
+    int rc = propose(pw);
     if (rc != 0) {
         return rc;
     }
@@ -1050,33 +1065,14 @@ int PartitionRaft::writeConfirmRecord(mqbs::DataStoreRecordHandle* handle,
 {
     BSLS_ASSERT_SAFE(handle);
 
-    int rc = rolloverIfNeeded(0, 0);  // journal-only record
-    if (0 != rc) {
-        return rc;  // RETURN
-    }
+    mqbs::FileStore::PendingWrite pw(0,  // id set in propose()
+                                     guid,
+                                     queueKey,
+                                     appKey,
+                                     timestamp,
+                                     reason);
 
-    char buf[mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE];
-    bsl::memset(buf, 0, sizeof(buf));
-    mqbs::ConfirmRecord* rec = new (buf) mqbs::ConfirmRecord();
-    rec->header()
-        .setPrimaryLeaseId(
-            static_cast<unsigned int>(d_raftNode_mp->currentTerm()))
-        .setSequenceNumber(d_raftLog_mp->lastIndex() + 1)
-        .setTimestamp(timestamp);
-    rec->setQueueKey(queueKey).setMessageGUID(guid).setReason(reason);
-    if (!appKey.isNull()) {
-        rec->setAppKey(appKey);
-    }
-    rec->setMagic(mqbs::RecordHeader::k_MAGIC);
-
-    bsl::shared_ptr<bdlbb::Blob> blob =
-        d_clusterData_p->blobSpPool().getObject();
-    blob->setLength(mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
-    bsl::memcpy(blob->buffer(0).data(),
-                buf,
-                mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
-
-    rc = propose(blob);
+    int rc = propose(pw);
     if (rc != 0) {
         return rc;
     }
@@ -1090,32 +1086,13 @@ int PartitionRaft::writeDeletionRecord(
     mqbs::DeletionRecordFlag::Enum deletionFlag,
     bsls::Types::Uint64            timestamp)
 {
-    int rc = rolloverIfNeeded(0, 0);  // journal-only record
-    if (0 != rc) {
-        return rc;  // RETURN
-    }
+    mqbs::FileStore::PendingWrite pw(0,  // id set in propose()
+                                     guid,
+                                     queueKey,
+                                     deletionFlag,
+                                     timestamp);
 
-    char buf[mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE];
-    bsl::memset(buf, 0, sizeof(buf));
-    mqbs::DeletionRecord* rec = new (buf) mqbs::DeletionRecord();
-    rec->header()
-        .setPrimaryLeaseId(
-            static_cast<unsigned int>(d_raftNode_mp->currentTerm()))
-        .setSequenceNumber(d_raftLog_mp->lastIndex() + 1)
-        .setTimestamp(timestamp);
-    rec->setDeletionRecordFlag(deletionFlag)
-        .setQueueKey(queueKey)
-        .setMessageGUID(guid)
-        .setMagic(mqbs::RecordHeader::k_MAGIC);
-
-    bsl::shared_ptr<bdlbb::Blob> blob =
-        d_clusterData_p->blobSpPool().getObject();
-    blob->setLength(mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
-    bsl::memcpy(blob->buffer(0).data(),
-                buf,
-                mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
-
-    return propose(blob);  // 'rc' already checked above
+    return propose(pw);
 }
 
 int PartitionRaft::writeQueuePurgeRecord(
@@ -1127,11 +1104,6 @@ int PartitionRaft::writeQueuePurgeRecord(
 {
     BSLS_ASSERT_SAFE(handle);
 
-    int rc = rolloverIfNeeded(0, 0);  // journal-only record
-    if (0 != rc) {
-        return rc;  // RETURN
-    }
-
     unsigned int        startLeaseId = 0;
     bsls::Types::Uint64 startSeqNo   = 0;
     if (!appKey.isNull()) {
@@ -1140,30 +1112,15 @@ int PartitionRaft::writeQueuePurgeRecord(
         startSeqNo   = start.sequenceNum();
     }
 
-    char buf[mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE];
-    bsl::memset(buf, 0, sizeof(buf));
-    mqbs::QueueOpRecord* rec = new (buf) mqbs::QueueOpRecord();
-    rec->header()
-        .setPrimaryLeaseId(
-            static_cast<unsigned int>(d_raftNode_mp->currentTerm()))
-        .setSequenceNumber(d_raftLog_mp->lastIndex() + 1)
-        .setTimestamp(timestamp);
-    rec->setQueueKey(queueKey).setType(mqbs::QueueOpType::e_PURGE);
-    rec->setStartPrimaryLeaseId(startLeaseId)
-        .setStartSequenceNumber(startSeqNo);
-    if (!appKey.isNull()) {
-        rec->setAppKey(appKey);
-    }
-    rec->setMagic(mqbs::RecordHeader::k_MAGIC);
+    mqbs::FileStore::PendingWrite pw(0,  // id set in propose()
+                                     mqbs::QueueOpType::e_PURGE,
+                                     queueKey,
+                                     appKey,
+                                     timestamp,
+                                     startLeaseId,
+                                     startSeqNo);
 
-    bsl::shared_ptr<bdlbb::Blob> blob =
-        d_clusterData_p->blobSpPool().getObject();
-    blob->setLength(mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
-    bsl::memcpy(blob->buffer(0).data(),
-                buf,
-                mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
-
-    rc = propose(blob);
+    int rc = propose(pw);
     if (rc != 0) {
         return rc;
     }
@@ -1179,33 +1136,15 @@ int PartitionRaft::writeQueueDeletionRecord(
 {
     BSLS_ASSERT_SAFE(handle);
 
-    int rc = rolloverIfNeeded(0, 0);  // journal-only record
-    if (0 != rc) {
-        return rc;  // RETURN
-    }
+    mqbs::FileStore::PendingWrite pw(0,  // id set in propose()
+                                     mqbs::QueueOpType::e_DELETION,
+                                     queueKey,
+                                     appKey,
+                                     timestamp,
+                                     0,   // startPrimaryLeaseId
+                                     0);  // startSequenceNumber
 
-    char buf[mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE];
-    bsl::memset(buf, 0, sizeof(buf));
-    mqbs::QueueOpRecord* rec = new (buf) mqbs::QueueOpRecord();
-    rec->header()
-        .setPrimaryLeaseId(
-            static_cast<unsigned int>(d_raftNode_mp->currentTerm()))
-        .setSequenceNumber(d_raftLog_mp->lastIndex() + 1)
-        .setTimestamp(timestamp);
-    rec->setQueueKey(queueKey).setType(mqbs::QueueOpType::e_DELETION);
-    if (!appKey.isNull()) {
-        rec->setAppKey(appKey);
-    }
-    rec->setMagic(mqbs::RecordHeader::k_MAGIC);
-
-    bsl::shared_ptr<bdlbb::Blob> blob =
-        d_clusterData_p->blobSpPool().getObject();
-    blob->setLength(mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
-    bsl::memcpy(blob->buffer(0).data(),
-                buf,
-                mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
-
-    rc = propose(blob);
+    int rc = propose(pw);
     if (rc != 0) {
         return rc;
     }
@@ -1223,25 +1162,14 @@ int PartitionRaft::writeQueueCreationRecord(
 {
     BSLS_ASSERT_SAFE(handle);
 
-    int rc = rolloverIfNeeded(
-        0,
-        mqbs::FileStoreProtocolUtil::queueCreationQlistFileSize(
-            queueUri,
-            appIdKeyPairs));
-    if (0 != rc) {
-        return rc;  // RETURN
-    }
+    mqbs::FileStore::PendingWrite pw(0,  // id set in propose()
+                                     queueUri,
+                                     queueKey,
+                                     &appIdKeyPairs,
+                                     timestamp,
+                                     isNewQueue);
 
-    const bsls::Types::Uint64 writeId = ++d_writeIdCounter;
-
-    d_raftLog_mp->setPendingWrite(mqbs::FileStore::PendingWrite(writeId,
-                                                                queueUri,
-                                                                queueKey,
-                                                                &appIdKeyPairs,
-                                                                timestamp,
-                                                                isNewQueue));
-
-    rc = propose(bsl::shared_ptr<bdlbb::Blob>(), writeId);
+    int rc = propose(pw);
     if (rc != 0) {
         return rc;
     }
