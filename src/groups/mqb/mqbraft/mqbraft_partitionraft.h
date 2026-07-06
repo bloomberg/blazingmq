@@ -330,6 +330,14 @@ class PartitionRaft : public mqbs::RecordStore {
     /// non-zero if rejected (not leader, or a rollover is already in flight).
     int rollover() BSLS_KEYWORD_OVERRIDE;
 
+    /// Enable or disable writing to this partition per the specified
+    /// `enable`, by delegating to the owned `FileStore`.
+    void setAvailabilityStatus(bool enable) BSLS_KEYWORD_OVERRIDE;
+
+    /// Set the strong-consistency replication factor to the specified
+    /// `factor`, by delegating to the owned `FileStore`.
+    void setReplicationFactor(int factor) BSLS_KEYWORD_OVERRIDE;
+
     /// Attempt to rollover the journal if needed after a purge has cleared
     /// outstanding records.
     void onPurgeComplete() BSLS_KEYWORD_OVERRIDE;
@@ -338,6 +346,16 @@ class PartitionRaft : public mqbs::RecordStore {
     void flushStorage() BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS (RecordStore)
+
+    /// Load a summary of this partition into the specified `summary` by
+    /// delegating to the owned `FileStore`.
+    void loadSummary(mqbcmd::FileStore* summary) const BSLS_KEYWORD_OVERRIDE;
+
+    /// Load into the specified `storages` the list of storages matching every
+    /// predicate in `filters`, by delegating to the owned `FileStore`.
+    void getStorages(mqbs::RecordStore::StorageList*          storages,
+                     const mqbs::RecordStore::StorageFilters& filters) const
+        BSLS_KEYWORD_OVERRIDE;
 
     void loadMessageRaw(bsl::shared_ptr<bdlbb::Blob>*      appData,
                         bsl::shared_ptr<bdlbb::Blob>*      options,
@@ -366,7 +384,7 @@ class PartitionRaft : public mqbs::RecordStore {
 
     // ACCESSORS
     int                 partitionId() const BSLS_KEYWORD_OVERRIDE;
-    bool                isLeader() const;
+    bool                isLeader() const BSLS_KEYWORD_OVERRIDE;
     int                 leaderId() const;
     bsls::Types::Uint64 currentTerm() const;
 

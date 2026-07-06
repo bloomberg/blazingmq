@@ -1309,6 +1309,16 @@ void PartitionRaft::removeRecordRaw(const mqbs::DataStoreRecordHandle& handle)
     d_fileStore_sp->removeRecordRaw(handle);
 }
 
+void PartitionRaft::setAvailabilityStatus(bool enable)
+{
+    d_fileStore_sp->setAvailabilityStatus(enable);
+}
+
+void PartitionRaft::setReplicationFactor(int factor)
+{
+    d_fileStore_sp->setReplicationFactor(factor);
+}
+
 void PartitionRaft::onPurgeComplete()
 {
     d_fileStore_sp->onPurgeComplete();
@@ -1317,6 +1327,18 @@ void PartitionRaft::onPurgeComplete()
 void PartitionRaft::flushStorage()
 {
     d_fileStore_sp->flushStorage();
+}
+
+void PartitionRaft::loadSummary(mqbcmd::FileStore* summary) const
+{
+    d_fileStore_sp->loadSummary(summary);
+}
+
+void PartitionRaft::getStorages(
+    mqbs::RecordStore::StorageList*          storages,
+    const mqbs::RecordStore::StorageFilters& filters) const
+{
+    d_fileStore_sp->getStorages(storages, filters);
 }
 
 void PartitionRaft::loadMessageRaw(

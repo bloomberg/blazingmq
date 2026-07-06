@@ -83,6 +83,9 @@ class Domain;
 namespace bmqp_ctrlmsg {
 class SyncPoint;
 }
+namespace mqbcmd {
+class FileStore;
+}
 namespace mqbnet {
 class ClusterNode;
 }
@@ -652,6 +655,14 @@ class RecordStore {
     // TYPES
     typedef mqbi::Storage::AppInfos AppInfos;
 
+    /// A filtered list of storages and the filter predicates applied to
+    /// produce it (structurally identical to the `mqbs::StorageCollectionUtil`
+    /// types; spelled out here to avoid an include cycle via
+    /// `mqbs_replicatedstorage.h`).
+    typedef bsl::vector<const ReplicatedStorage*>         StorageList;
+    typedef bsl::function<bool(const ReplicatedStorage*)> StorageFilter;
+    typedef bsl::vector<StorageFilter>                    StorageFilters;
+
   public:
     // CREATORS
     virtual ~RecordStore();
@@ -745,6 +756,14 @@ class RecordStore {
     /// called on this record store's dispatcher thread (see `execute`).
     virtual int rollover() = 0;
 
+    /// Enable or disable writing to this partition per the specified
+    /// `enable`.  Used by the admin partition enable/disable command.
+    virtual void setAvailabilityStatus(bool enable) = 0;
+
+    /// Set the strong-consistency replication factor (quorum) to the
+    /// specified `factor`.  Used by the admin replication QUORUM tunable.
+    virtual void setReplicationFactor(int factor) = 0;
+
     /// Attempt to rollover the journal if needed after a purge has cleared
     /// outstanding records.
     virtual void onPurgeComplete() = 0;
@@ -780,6 +799,19 @@ class RecordStore {
 
     /// Return the partition id associated with this record store.
     virtual int partitionId() const = 0;
+
+    /// Return `true` if this node is the leader/primary for this partition.
+    virtual bool isLeader() const = 0;
+
+    /// Load a summary of this partition into the specified `summary`.  Used by
+    /// the admin partition/cluster summary command.
+    virtual void loadSummary(mqbcmd::FileStore* summary) const = 0;
+
+    /// Load into the specified `storages` the list of storages of this
+    /// partition matching every predicate in the specified `filters`.  Used
+    /// by the admin domain queue-status command.
+    virtual void getStorages(StorageList*          storages,
+                             const StorageFilters& filters) const = 0;
 
     virtual StoragesMonitor* storagesMonitor() = 0;
 
