@@ -530,9 +530,17 @@ void PartitionRaftManager::processCommand(
 
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
 
+    mqbc::StorageUtil::RecordStores recordStores(d_allocator_p);
+    recordStores.reserve(d_partitionRafts.size());
+    for (PartitionRafts::iterator it = d_partitionRafts.begin();
+         it != d_partitionRafts.end();
+         ++it) {
+        recordStores.push_back(it->get());
+    }
+
     mqbc::StorageUtil::processCommand(
         result,
-        &d_fileStores,
+        recordStores,
         d_domainFactory_p,
         &d_replicationFactor,
         command,
@@ -548,7 +556,15 @@ int PartitionRaftManager::purgeQueueOnDomain(mqbcmd::StorageResult* result,
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
 
-    mqbc::StorageUtil::purgeQueueOnDomain(result, domainName, &d_fileStores);
+    mqbc::StorageUtil::RecordStores recordStores(d_allocator_p);
+    recordStores.reserve(d_partitionRafts.size());
+    for (PartitionRafts::iterator it = d_partitionRafts.begin();
+         it != d_partitionRafts.end();
+         ++it) {
+        recordStores.push_back(it->get());
+    }
+
+    mqbc::StorageUtil::purgeQueueOnDomain(result, domainName, recordStores);
 
     return 0;
 }

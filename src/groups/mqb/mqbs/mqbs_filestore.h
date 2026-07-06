@@ -1188,10 +1188,10 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     /// Set the availability of this partition to the specified boolean
     /// `value`.
-    void setAvailabilityStatus(bool value);
+    void setAvailabilityStatus(bool value) BSLS_KEYWORD_OVERRIDE;
 
     /// Set the replication factor for strong consistency to `factor`.
-    void setReplicationFactor(int factor);
+    void setReplicationFactor(int factor) BSLS_KEYWORD_OVERRIDE;
 
     /// This will be used as Implicit Receipt
     void setLastStrongConsistency(unsigned int        primaryLeaseId,
@@ -1207,15 +1207,19 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     /// Load into the specified `storages` the list of queue storages for
     /// which all filters from the specified `filters` are returning true.
-    void getStorages(StorageList*          storages,
-                     const StorageFilters& filters) const;
+    void
+    getStorages(StorageList*          storages,
+                const StorageFilters& filters) const BSLS_KEYWORD_OVERRIDE;
 
     /// Load the summary of this partition to the specified `fileStore`
     /// object.
     ///
     /// THREAD: Executed by the queue dispatcher thread associated with the
     ///         specified `fileStore`'s partitionId.
-    void loadSummary(mqbcmd::FileStore* fileStore) const;
+    void loadSummary(mqbcmd::FileStore* fileStore) const BSLS_KEYWORD_OVERRIDE;
+
+    /// Return `true` if this node is the active primary for this partition.
+    bool isLeader() const BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
 
@@ -1605,6 +1609,12 @@ inline const FileStore::SyncPointOffsetPairs& FileStore::syncPoints() const
 inline mqbnet::ClusterNode* FileStore::primaryNode() const
 {
     return d_primaryNode_p;
+}
+
+inline bool FileStore::isLeader() const
+{
+    return 0 != d_primaryNode_p &&
+           d_primaryNode_p->nodeId() == d_config.nodeId();
 }
 
 inline unsigned int FileStore::primaryLeaseId() const

@@ -4830,8 +4830,11 @@ void StorageManager::processCommand(mqbcmd::StorageResult*        result,
         return;  // RETURN
     }
 
+    StorageUtil::RecordStores recordStores(d_allocator_p);
+    StorageUtil::recordStoresFromFileStores(&recordStores, d_fileStores);
+
     StorageUtil::processCommand(result,
-                                &d_fileStores,
+                                recordStores,
                                 d_domainFactory_p,
                                 &d_replicationFactor,
                                 command,
@@ -4859,7 +4862,10 @@ int StorageManager::purgeQueueOnDomain(mqbcmd::StorageResult* result,
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
 
-    StorageUtil::purgeQueueOnDomain(result, domainName, &d_fileStores);
+    StorageUtil::RecordStores recordStores(d_allocator_p);
+    StorageUtil::recordStoresFromFileStores(&recordStores, d_fileStores);
+
+    StorageUtil::purgeQueueOnDomain(result, domainName, recordStores);
 
     return 0;
 }

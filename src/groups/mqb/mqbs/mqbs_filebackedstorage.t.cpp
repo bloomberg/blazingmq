@@ -498,9 +498,31 @@ class MockDataStore : public mqbs::DataStore {
 
     void clearPrimary() BSLS_KEYWORD_OVERRIDE {}
 
+    void execute(const mqbi::Dispatcher::VoidFunction& functor)
+        BSLS_KEYWORD_OVERRIDE
+    {
+        functor();
+    }
+
+    int rollover() BSLS_KEYWORD_OVERRIDE { return 0; }
+
+    void setAvailabilityStatus(bool) BSLS_KEYWORD_OVERRIDE {}
+
+    void setReplicationFactor(int) BSLS_KEYWORD_OVERRIDE {}
+
     void flushStorage() BSLS_KEYWORD_OVERRIDE {}
 
     bool isOpen() const BSLS_KEYWORD_OVERRIDE { return true; }
+
+    bool isLeader() const BSLS_KEYWORD_OVERRIDE { return true; }
+
+    void loadSummary(mqbcmd::FileStore*) const BSLS_KEYWORD_OVERRIDE {}
+
+    void getStorages(mqbs::RecordStore::StorageList*,
+                     const mqbs::RecordStore::StorageFilters&) const
+        BSLS_KEYWORD_OVERRIDE
+    {
+    }
 
     const mqbs::DataStoreConfig& config() const BSLS_KEYWORD_OVERRIDE
     {
