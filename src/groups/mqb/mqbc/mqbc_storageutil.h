@@ -827,6 +827,10 @@ class StoragesMonitor : public mqbs::StoragesMonitor {
 
     bool isStorageEmpty(const bmqt::Uri& uri,
                         int partitionId) const BSLS_KEYWORD_OVERRIDE;
+
+    /// Return false: the legacy storage path.  `PartitionRaftManager`
+    /// overrides this to return true.
+    bool isRaft() const BSLS_KEYWORD_OVERRIDE;
 };
 
 template <>

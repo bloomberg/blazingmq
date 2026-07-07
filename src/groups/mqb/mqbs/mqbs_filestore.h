@@ -165,8 +165,8 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
         // only guaranteed for the duration of the synchronous write call.
         // When a 'PendingWrite' is buffered (Raft on-commit-rollover window),
         // the borrow would dangle by drain time, so
-        // 'PartitionRaft::bufferWrite' copies the attributes here and repoints
-        // 'd_attributes_p' at this owned slot.  Unused (and left
+        // 'PartitionRaftLog::bufferPendingWrite' copies the attributes here
+        // and repoints 'd_attributes_p' at this owned slot.  Unused (and left
         // default-constructed) on the normal, non-buffered path.
         mqbi::StorageMessageAttributes d_ownedAttributes;
 
@@ -246,9 +246,6 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
         /// clean when reused.
         void reset();
     };
-
-    /// Type of the functor required by `applyForEachQueue`.
-    typedef bsl::function<void(mqbi::Queue*)> QueueFunctor;
 
     typedef bsl::shared_ptr<FileSet> FileSetSp;
     typedef bsl::vector<FileSetSp>   FileSets;
@@ -1171,25 +1168,6 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// `writeRolledOverRecord`.
     void logRolloverQueueSummary(const QueueKeyCounterMap& queueKeyCounterMap);
 
-    /// Return a pointer to the in-memory `DataStoreRecord` identified by the
-    /// specified `sequenceNum` and `primaryLeaseId`.  The behavior is
-    /// undefined unless such a record exists in `d_records`.  (Used by the
-    /// Raft rollover orchestration to obtain the `DataStoreRecord*` argument
-    /// to `writeRolledOverRecord`.)
-    DataStoreRecord* recordForKey(bsls::Types::Uint64 sequenceNum,
-                                  unsigned int        primaryLeaseId);
-
-    /// Construct a fresh, verbatim copy of the journal-op record located at
-    /// the specified `oldJournalOffset` in the current active (front) file set
-    /// into the specified `newFileSet` at its current journal write position,
-    /// advance that position, and return the new journal offset of the copy.
-    /// Sync points are not counted in outstanding journal bytes.  (Used by the
-    /// Raft rollover orchestration for surviving journal-ops other than the
-    /// triggering `e_ROLLOVER`.)
-    bsls::Types::Uint64
-    writeRolledOverJournalOpRecord(FileSet*            newFileSet,
-                                   bsls::Types::Uint64 oldJournalOffset);
-
     /// Return the record-header timestamp of the JournalOpRecord located at
     /// the specified `journalOffset` in the current active (front) file
     /// set's journal.  Read-only; no side effects.  (Used by the Raft
@@ -1268,12 +1246,6 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// undefined unless this cluster node is the primary for this partition.
     void notifyQueuesOnReplicatedBatch();
 
-    /// Invoke the specified `functor` with each queue associated to the
-    /// partition represented by this FileStore if the partition was
-    /// successfully opened.  The behavior is undefined unless invoked from
-    /// the queue thread corresponding to this partition.
-    void applyForEachQueue(const QueueFunctor& functor) const;
-
     /// mqbs::FileStore specific MANIPULATORS
 
     /// Perform complete rollover of this partition and issue necessary sync
@@ -1286,6 +1258,11 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
         BSLS_KEYWORD_OVERRIDE;
 
     StoragesMonitor* storagesMonitor() BSLS_KEYWORD_OVERRIDE;
+
+    /// Return `true` if this partition is Raft-replicated, `false` for the
+    /// legacy path.  Safe to call even when no `StoragesMonitor` is set (e.g.
+    /// in tests): returns `false` in that case.
+    bool isRaft() const;
 
     void cancelTimersAndWait();
 
@@ -1720,6 +1697,11 @@ inline bool FileStore::isLeader() const
 {
     return 0 != d_primaryNode_p &&
            d_primaryNode_p->nodeId() == d_config.nodeId();
+}
+
+inline bool FileStore::isRaft() const
+{
+    return d_storagesMonitor_p && d_storagesMonitor_p->isRaft();
 }
 
 inline unsigned int FileStore::primaryLeaseId() const

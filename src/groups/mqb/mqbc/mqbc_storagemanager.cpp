@@ -4798,23 +4798,6 @@ void StorageManager::processShutdownEvent()
     }
 }
 
-void StorageManager::applyForEachQueue(int                 partitionId,
-                                       const QueueFunctor& functor) const
-{
-    // executed by the *QUEUE DISPATCHER* thread associated with
-    // 'paritionId'
-
-    // PRECONDITIONS
-    const mqbs::FileStore& fs = fileStore(partitionId);
-    BSLS_ASSERT_SAFE(fs.inDispatcherThread());
-
-    if (!fs.isOpen()) {
-        return;  // RETURN
-    }
-
-    fs.applyForEachQueue(functor);
-}
-
 void StorageManager::processCommand(mqbcmd::StorageResult*        result,
                                     const mqbcmd::StorageCommand& command)
 {

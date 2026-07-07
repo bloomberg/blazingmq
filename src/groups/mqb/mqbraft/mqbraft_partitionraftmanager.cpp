@@ -482,6 +482,11 @@ bool PartitionRaftManager::isStorageEmpty(const bmqt::Uri& uri,
     return mqbc::StoragesMonitor::isStorageEmpty(uri, partitionId);
 }
 
+bool PartitionRaftManager::isRaft() const
+{
+    return true;
+}
+
 void PartitionRaftManager::processShutdownEventDispatched(int partitionId)
 {
     // executed by *QUEUE_DISPATCHER* thread

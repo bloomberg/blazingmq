@@ -586,14 +586,6 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager,
     /// Executed by any thread.
     void processShutdownEvent() BSLS_KEYWORD_OVERRIDE;
 
-    /// Invoke the specified `functor` with each queue associated to the
-    /// partition identified by the specified `partitionId` if that
-    /// partition has been successfully opened.  The behavior is undefined
-    /// unless invoked from the queue thread corresponding to `partitionId`.
-    void
-    applyForEachQueue(int                 partitionId,
-                      const QueueFunctor& functor) const BSLS_KEYWORD_OVERRIDE;
-
     /// Process the specified `command`, and load the result to the
     /// specified `result`.  This function can be invoked from any thread,
     /// and will block until the potentially asynchronous operation is

@@ -546,20 +546,6 @@ void StorageManager::forceFlushFileStores()
     mqbc::StorageUtil::forceFlushFileStores(&d_fileStores);
 }
 
-void StorageManager::applyForEachQueue(int                 partitionId,
-                                       const QueueFunctor& functor) const
-{
-    // executed by the *DISPATCHER* thread
-
-    const mqbs::FileStore& fs = fileStore(partitionId);
-
-    if (!fs.isOpen()) {
-        return;  // RETURN
-    }
-
-    fs.applyForEachQueue(functor);
-}
-
 void StorageManager::setPrimaryForPartitionDispatched(
     int                  partitionId,
     mqbnet::ClusterNode* primaryNode,
