@@ -167,6 +167,7 @@ RecoveryRecordInfo::RecoveryRecordInfo()
 , d_journalOffset(0)
 , d_dataOffset(0)
 , d_recordType(RecordType::e_UNDEFINED)
+, d_syncPointType(SyncPointType::e_UNDEFINED)
 , d_handle()
 {
 }
@@ -176,12 +177,14 @@ RecoveryRecordInfo::RecoveryRecordInfo(bsls::Types::Uint64 sequenceNum,
                                        bsls::Types::Uint64 journalOffset,
                                        bsls::Types::Uint64 dataOffset,
                                        RecordType::Enum    recordType,
-                                       const DataStoreRecordHandle& handle)
+                                       const DataStoreRecordHandle& handle,
+                                       SyncPointType::Enum syncPointType)
 : d_sequenceNum(sequenceNum)
 , d_primaryLeaseId(primaryLeaseId)
 , d_journalOffset(journalOffset)
 , d_dataOffset(dataOffset)
 , d_recordType(recordType)
+, d_syncPointType(syncPointType)
 , d_handle(handle)
 {
 }

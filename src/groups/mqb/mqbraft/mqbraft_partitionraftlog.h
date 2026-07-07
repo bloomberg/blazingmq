@@ -51,6 +51,8 @@
 // BDE
 #include <ball_log.h>
 #include <bdlbb_blob.h>
+#include <bsl_deque.h>
+#include <bsl_memory.h>
 #include <bsl_vector.h>
 #include <bslma_allocator.h>
 #include <bslma_usesbslmaallocator.h>
@@ -85,32 +87,17 @@ class PartitionRaftLog : public RaftLog {
     bsls::Types::Uint64    d_snapshotTerm;
     bslma::Allocator*      d_allocator_p;
 
-    struct CachedEntry {
-        bsl::shared_ptr<bdlbb::Blob> d_blob;
-        mqbs::DataStoreRecordHandle  d_handle;
-        bsls::Types::Uint64          d_index;
-        bool                         d_valid;
+    /// FIFO of writes to append.  During normal operation this holds at most
+    /// one entry (enqueued by `setPendingWrite`, consumed by `append`). During
+    /// a rollover window it holds every write buffered by `setPendingWrite`,
+    /// drained once the `e_ROLLOVER` commits (see `takePendingWrites`).
+    bsl::deque<bsl::shared_ptr<PendingWrite> > d_pendingWrites;
 
-        CachedEntry()
-        : d_blob()
-        , d_handle()
-        , d_index(0)
-        , d_valid(false)
-        {
-        }
-    };
-
-    PendingWrite d_pendingWrite;
-    CachedEntry  d_cache;
-
-    // Single-scalar resend slot for the 'e_ROLLOVER' entry.  Because
-    // 'e_ROLLOVER' is deliberately excluded from the new file set during a
-    // rollover, it cannot be served from mmap by 'entries()' afterwards; its
-    // blob is kept here instead.  At most one rollover is ever outstanding
-    // (enforced by 'd_journalFileAvailable' staying false until commit), so a
-    // single slot suffices.  'd_pendingRolloverIndex' is 0 when empty.
-    bsl::shared_ptr<bdlbb::Blob> d_pendingRolloverBlob;
-    bsls::Types::Uint64          d_pendingRolloverIndex;
+    /// Single-entry cache: the most recently appended write on the primary
+    /// path, retained (a cheap pooled shared_ptr copy) so `entries()` can
+    /// serve its `d_entryBlob` to peers without re-reading mmap.  Null when
+    /// empty (e.g. on the replica path, or after `clearCache`).
+    bsl::shared_ptr<PendingWrite> d_cached;
 
     // NOT IMPLEMENTED
     PartitionRaftLog(const PartitionRaftLog&);
@@ -159,30 +146,53 @@ class PartitionRaftLog : public RaftLog {
     /// on error.
     int truncateFrom(bsls::Types::Uint64 index) BSLS_KEYWORD_OVERRIDE;
 
-    /// Set the pending write for the primary path.  Called by
-    /// 'PartitionRaft' before 'propose()'.  'append()' calls
-    /// 'FileStore::formatMessageRecord' with this when the id matches.
-    void setPendingWrite(const PendingWrite& pw);
+    /// Enqueue the specified `pw` as the next write for `append()` to consume
+    /// from the front (matching by id, calling the corresponding
+    /// `FileStore::format*Record`).  Called by `PartitionRaft` when no
+    /// rollover is in flight; the behavior is undefined unless
+    /// `!isBuffering()`.
+    void setPendingWrite(const bsl::shared_ptr<PendingWrite>& pw);
+
+    /// Buffer the specified `pw` for replay after the in-flight `e_ROLLOVER`
+    /// commits, instead of appending it now (which would place it after
+    /// `e_ROLLOVER`, breaking the invariant that nothing follows a pending
+    /// rollover).  Reserve a placeholder record for its future log index using
+    /// the specified `term` and set `pw->d_handle` (except for record types
+    /// that produce no handle, e.g. message-deletion), and deep-copy any
+    /// borrowed attributes into the buffered entry.  Return 0 on success, or a
+    /// non-zero backstop code if the buffer is at capacity
+    /// (`k_MAX_PENDING_WRITES`).  The behavior is undefined unless
+    /// `isBuffering()`.
+    int bufferPendingWrite(const bsl::shared_ptr<PendingWrite>& pw,
+                           bsls::Types::Uint64                  term);
+
+    /// Hand ownership of the buffered writes to the specified `out` for
+    /// drain-replay, leaving the log's buffer empty.  Uses `swap` so the
+    /// buffered shared_ptrs (and thus the pooled objects and their
+    /// `d_attributes_p`->`d_ownedAttributes` self-pointers) stay valid.
+    void takePendingWrites(bsl::deque<bsl::shared_ptr<PendingWrite> >* out);
+
+    /// Drop all buffered writes without replaying them, erasing each reserved
+    /// placeholder record.  Called on leadership loss: these writes were never
+    /// acknowledged or committed, so discarding them is safe.
+    void dropPendingWrites();
 
     /// Release the single-entry cache.  Must be called after
     /// processOutput() completes.
     void clearCache();
 
-    /// Perform a Raft-driven file rollover triggered by the `e_ROLLOVER`
-    /// entry just appended at `lastIndex()`.  Orchestrates the `FileStore`
-    /// rollover pieces directly: prepare a new file set, copy the committed
-    /// prefix `[snapshotIndex+1 .. commitIndex]` (`writeRolledOverRecords`),
-    /// replay the uncommitted tail `[commitIndex+1 .. lastIndex()]` in index
-    /// order (`writeRolledOverRecord` for normal records, verbatim copy for
-    /// journal-ops, skip for the triggering `e_ROLLOVER`), write marker (i)
-    /// (`writeFirstSyncPointAfterRollover`) and finalize
-    /// (`finalizeRolloverFileSet`).  Then rebuild `d_index` with the surviving
-    /// tail's new offsets, advance the snapshot boundary to the specified
-    /// `commitIndex`, and stash `e_ROLLOVER`'s blob in the single-scalar
-    /// resend slot (it is deliberately excluded from the new file).  Marker
-    /// (i) is stamped with the specified `timestamp`.
-    void rollover(bsls::Types::Uint64 commitIndex,
-                  bsls::Types::Uint64 timestamp);
+    /// Perform a Raft-driven file rollover for the committed `e_ROLLOVER`
+    /// entry at the specified `rolloverIndex`.  Because window writes NACK in
+    /// phase 1, `e_ROLLOVER` is the last log entry when it commits, so there
+    /// is no uncommitted tail.  Orchestrates the `FileStore` rollover pieces
+    /// directly: prepare a new file set, compact every live record with
+    /// sequence number at most `rolloverIndex` into it
+    /// (`writeRolledOverRecords`; the `e_ROLLOVER` journal-op is naturally
+    /// excluded), write marker (i) (`writeFirstSyncPointAfterRollover`,
+    /// stamped with the `e_ROLLOVER` record's own timestamp) and finalize
+    /// (`finalizeRolloverFileSet`).  Then empty `d_index` and advance the
+    /// snapshot boundary to `rolloverIndex`.
+    void rollover(bsls::Types::Uint64 rolloverIndex);
 
     /// Process a committed entry at the specified `index` on a replica.
     /// For application records delegate to
@@ -217,8 +227,14 @@ class PartitionRaftLog : public RaftLog {
 
     bsls::Types::Uint64 snapshotTerm() const BSLS_KEYWORD_OVERRIDE;
 
-    /// Return the DataStoreRecordHandle from the last successful append.
-    const mqbs::DataStoreRecordHandle& cachedHandle() const;
+    /// Return whether a rollover is in flight, derived from the log: the last
+    /// appended entry is a committed-pending `e_ROLLOVER`.  While buffering,
+    /// `e_ROLLOVER` is always the last appended entry (nothing appends after
+    /// it); once it commits and `rollover()` compacts it away, this is false.
+    bool isBuffering() const;
+
+    /// Return whether there are buffered writes awaiting drain or drop.
+    bool hasPendingWrites() const;
 };
 
 }  // close package namespace

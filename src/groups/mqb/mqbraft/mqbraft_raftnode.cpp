@@ -656,7 +656,7 @@ void RaftNode::advanceCommitIndex(RaftNodeOutput* output)
 
     // The median (index at quorum-1 from the end) is the highest N
     // replicated on a majority.
-    int quorumIdx = static_cast<int>(matchIndices.size()) - quorum();
+    unsigned int        quorumIdx = matchIndices.size() - quorum();
     bsls::Types::Uint64 newCommit = matchIndices[quorumIdx];
 
     if (newCommit > d_commitIndex &&
@@ -772,7 +772,23 @@ int RaftNode::propose(RaftNodeOutput*                      output,
         sendAppendEntries(output, it->first);
     }
 
+    // Advance the commit index (leader-guarded above).  In a single-node
+    // cluster this commits the just-appended entry synchronously via
+    // self-quorum; in a multi-node cluster it is a no-op here because peers'
+    // matchIndex has not yet advanced.
+    advanceCommitIndex(output);
+
     return 0;
+}
+
+void RaftNode::initAppliedState(bsls::Types::Uint64 index)
+{
+    if (index > d_commitIndex) {
+        d_commitIndex = index;
+    }
+    if (index > d_lastApplied) {
+        d_lastApplied = index;
+    }
 }
 
 int RaftNode::transferLeadership(RaftNodeOutput* output, int targetNodeId)

@@ -393,6 +393,14 @@ class RaftNode {
     /// Return 0 on success, non-zero if this node is not the leader.
     int transferLeadership(RaftNodeOutput* output, int targetNodeId);
 
+    /// Initialize the applied state from a recovered snapshot boundary:
+    /// raise 'd_commitIndex' and 'd_lastApplied' to at least the specified
+    /// 'index'.  Called at startup after the log's snapshot index is known;
+    /// without this a restarted node that ever rolled over would stall
+    /// because 'entries()' cannot serve indices at or below the snapshot
+    /// floor.
+    void initAppliedState(bsls::Types::Uint64 index);
+
     // ACCESSORS
     RaftState::Enum       state() const;
     int                   leaderId() const;
