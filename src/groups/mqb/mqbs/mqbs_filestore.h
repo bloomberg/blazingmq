@@ -159,6 +159,17 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
         // INPUT — e_MESSAGE
         mqbi::StorageMessageAttributes*  d_attributes_p;
+
+        // Owned deep-copy of the attributes pointed to by 'd_attributes_p'.
+        // 'd_attributes_p' is normally a *borrowed* pointer whose lifetime is
+        // only guaranteed for the duration of the synchronous write call.
+        // When a 'PendingWrite' is buffered (Raft on-commit-rollover window),
+        // the borrow would dangle by drain time, so
+        // 'PartitionRaft::bufferWrite' copies the attributes here and repoints
+        // 'd_attributes_p' at this owned slot.  Unused (and left
+        // default-constructed) on the normal, non-buffered path.
+        mqbi::StorageMessageAttributes d_ownedAttributes;
+
         DataStoreRecordHandle            d_handle;
         bmqt::MessageGUID                d_guid;
         bsl::shared_ptr<bdlbb::Blob>     d_appData;
@@ -188,18 +199,14 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
         PendingWrite();
 
         /// Message record constructor.
-        PendingWrite(bsls::Types::Uint64                  id,
-                     unsigned int                         primaryLeaseId,
-                     bsls::Types::Uint64                  sequenceNumber,
-                     mqbi::StorageMessageAttributes*      attributes,
-                     const bmqt::MessageGUID&             guid,
-                     const bsl::shared_ptr<bdlbb::Blob>&  appData,
-                     const bsl::shared_ptr<bdlbb::Blob>&  options,
-                     const mqbu::StorageKey&              queueKey);
+        PendingWrite(mqbi::StorageMessageAttributes*     attributes,
+                     const bmqt::MessageGUID&            guid,
+                     const bsl::shared_ptr<bdlbb::Blob>& appData,
+                     const bsl::shared_ptr<bdlbb::Blob>& options,
+                     const mqbu::StorageKey&             queueKey);
 
         /// Queue creation record constructor.
-        PendingWrite(bsls::Types::Uint64     id,
-                     const bmqt::Uri&        queueUri,
+        PendingWrite(const bmqt::Uri&        queueUri,
                      const mqbu::StorageKey& queueKey,
                      const AppInfos*         appIdKeyPairs,
                      bsls::Types::Uint64     timestamp,
@@ -208,19 +215,17 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
         /// Sync-point record constructor.  'd_primaryLeaseId' (term) and
         /// 'd_sequenceNumber' (index) are filled in by
         /// 'PartitionRaftLog::append'.
-        explicit PendingWrite(bsls::Types::Uint64 id);
+        explicit PendingWrite(SyncPointType::Enum syncPointType);
 
         /// Confirm record constructor.
-        PendingWrite(bsls::Types::Uint64      id,
-                     const bmqt::MessageGUID& guid,
+        PendingWrite(const bmqt::MessageGUID& guid,
                      const mqbu::StorageKey&  queueKey,
                      const mqbu::StorageKey&  appKey,
                      bsls::Types::Uint64      timestamp,
                      ConfirmReason::Enum      reason);
 
         /// Message-deletion record constructor.
-        PendingWrite(bsls::Types::Uint64      id,
-                     const bmqt::MessageGUID& guid,
+        PendingWrite(const bmqt::MessageGUID& guid,
                      const mqbu::StorageKey&  queueKey,
                      DeletionRecordFlag::Enum deletionFlag,
                      bsls::Types::Uint64      timestamp);
@@ -228,13 +233,18 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
         /// Queue-op (purge/deletion) record constructor.  For a purge,
         /// 'startPrimaryLeaseId' / 'startSequenceNumber' identify the start
         /// position; for a deletion they are 0.
-        PendingWrite(bsls::Types::Uint64     id,
-                     QueueOpType::Enum       queueOpType,
+        PendingWrite(QueueOpType::Enum       queueOpType,
                      const mqbu::StorageKey& queueKey,
                      const mqbu::StorageKey& appKey,
                      bsls::Types::Uint64     timestamp,
                      unsigned int            startPrimaryLeaseId,
                      bsls::Types::Uint64     startSequenceNumber);
+
+        /// Return this object to a clean default state, releasing any owned
+        /// blobs/attributes/handle and zeroing scalars.  Required by the
+        /// `bdlcc::SharedObjectPool` `Reset` functor so a pooled object is
+        /// clean when reused.
+        void reset();
     };
 
     /// Type of the functor required by `applyForEachQueue`.
@@ -734,6 +744,19 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     void insertDataStoreRecord(DataStoreRecordHandle*    handle,
                                const DataStoreRecordKey& key,
                                const DataStoreRecord&    record);
+
+    /// Bind the specified `record` (with all offsets filled in by a
+    /// `format*Record`) to `d_records` under the specified `key`, updating
+    /// the specified `pw`'s handle to identify it.  If `pw->d_handle` is
+    /// already valid it refers to a *placeholder* record previously created
+    /// by `reservePendingRecord` (Raft on-commit-rollover drain): update that
+    /// entry in place (preserving its `d_hasReceipt`) rather than inserting a
+    /// new one, so the handle already returned to the caller stays valid.
+    /// Otherwise insert a fresh entry (the normal, non-buffered path).
+    void bindOrUpdateRecord(PendingWrite*             pw,
+                            const DataStoreRecordKey& key,
+                            const DataStoreRecord&    record);
+
     void recordIteratorToHandle(DataStoreRecordHandle* handle,
                                 const RecordIterator   recordIt) const;
 
@@ -1009,6 +1032,27 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
                      unsigned int         primaryLeaseId,
                      bsls::Types::Uint64  sequenceNumber) const;
 
+    /// Raft on-commit-rollover buffering: reserve a *placeholder*
+    /// `DataStoreRecord` in `d_records` keyed by the specified
+    /// `primaryLeaseId` and `sequenceNumber`, with a placeholder offset (0),
+    /// `d_hasReceipt = false`, and the specified `recordType`; load into the
+    /// specified `handleOut` an iterator to the reserved entry.  The physical
+    /// offsets are patched in later by `bindOrUpdateRecord` when the buffered
+    /// write drains into the new file after rollover.  Because the underlying
+    /// container keeps iterators/references stable across inserts, the handle
+    /// returned here can be handed to the caller immediately and remains valid
+    /// until the drain patches (or `dropPendingRecord` erases) the entry.
+    void reservePendingRecord(DataStoreRecordHandle* handleOut,
+                              unsigned int           primaryLeaseId,
+                              bsls::Types::Uint64    sequenceNumber,
+                              RecordType::Enum       recordType);
+
+    /// Erase the placeholder `DataStoreRecord` identified by the specified
+    /// `handle` (previously created by `reservePendingRecord`).  Used to clean
+    /// up buffered writes that are dropped without being committed (e.g. on
+    /// leadership loss).  No-op if `handle` is invalid.
+    void dropPendingRecord(const DataStoreRecordHandle& handle);
+
     /// Raft primary path: write a message record directly to mmap using the
     /// input fields of the specified 'pw'.  No StorageEvent replication is
     /// performed.  Fills 'pw->d_journalOffset', 'pw->d_dataOffset',
@@ -1145,6 +1189,14 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     bsls::Types::Uint64
     writeRolledOverJournalOpRecord(FileSet*            newFileSet,
                                    bsls::Types::Uint64 oldJournalOffset);
+
+    /// Return the record-header timestamp of the JournalOpRecord located at
+    /// the specified `journalOffset` in the current active (front) file
+    /// set's journal.  Read-only; no side effects.  (Used by the Raft
+    /// rollover orchestration to stamp the rollover marker with the
+    /// `e_ROLLOVER` record's own timestamp.)
+    bsls::Types::Uint64
+    journalOpTimestampAt(bsls::Types::Uint64 journalOffset) const;
 
     /// Return `true` if the active (front) file set cannot physically
     /// accommodate the next record, i.e. a rollover is required before it can

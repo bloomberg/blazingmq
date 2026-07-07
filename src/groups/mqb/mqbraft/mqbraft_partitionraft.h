@@ -48,7 +48,10 @@
 // BDE
 #include <ball_log.h>
 #include <bdlbb_blob.h>
+#include <bdlcc_objectpool.h>
+#include <bdlcc_sharedobjectpool.h>
 #include <bdlmt_eventscheduler.h>
+#include <bsl_deque.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
 #include <bslma_usesbslmaallocator.h>
@@ -76,6 +79,17 @@ class PartitionRaft : public mqbs::RecordStore {
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("MQBRAFT.PARTITIONRAFT");
 
+    // TYPES
+
+    /// Pool of shared pointers to `PendingWrite`, so the (large) struct is
+    /// heap-allocated once and threaded through the write path by shared_ptr
+    /// instead of being copied into the log's pending-write deque.
+    typedef bdlcc::SharedObjectPool<
+        mqbs::FileStore::PendingWrite,
+        bdlcc::ObjectPoolFunctors::DefaultCreator,
+        bdlcc::ObjectPoolFunctors::Reset<mqbs::FileStore::PendingWrite> >
+        PendingWriteSpPool;
+
     // DATA
     int                                         d_partitionId;
     bsl::shared_ptr<mqbs::FileStore>            d_fileStore_sp;
@@ -86,13 +100,8 @@ class PartitionRaft : public mqbs::RecordStore {
     bdlmt::EventScheduler::RecurringEventHandle d_tickHandle;
     bsls::Types::Uint64                         d_writeIdCounter;
 
-    /// Index of the most recently proposed `e_ROLLOVER` entry (0 if none).
-    /// A new rollover must not be proposed while this one is still
-    /// uncommitted (`RaftNode::commitIndex() < d_uncommittedRolloverIndex`),
-    /// because the single-scalar `e_ROLLOVER` resend slot in
-    /// `PartitionRaftLog` can hold only one at a time.  Self-clearing: once
-    /// `commitIndex` reaches it, the gate opens.
-    bsls::Types::Uint64 d_uncommittedRolloverIndex;
+    /// Pool from which each `PendingWrite` shared_ptr is allocated.
+    PendingWriteSpPool d_pendingWritePool;
 
     bool                                        d_isStarted;
     bslma::Allocator*                           d_allocator_p;
@@ -127,24 +136,34 @@ class PartitionRaft : public mqbs::RecordStore {
     /// active primary", and doubles as a legacy-recovery checkpoint.
     void proposeSyncPoint();
 
-    /// Propose an `e_ROLLOVER` sync-point log entry under the current term and
-    /// then drive the file rollover (`PartitionRaftLog::rollover`).  Called
-    /// from the write path when the active file set has reached capacity.  The
-    /// commit boundary is captured *before* the proposal so that `e_ROLLOVER`
-    /// is treated as part of the uncommitted tail even in a single-node
-    /// cluster (where `propose()` commits synchronously).
+    /// Propose an `e_ROLLOVER` sync-point log entry under the current term.
+    /// Called from the write path when the active file set has reached
+    /// capacity.  The physical rollover is *not* done here: it happens
+    /// deterministically on every node when the committed `e_ROLLOVER` is
+    /// applied (see `PartitionRaftLog::rollover`, driven from
+    /// `applyCommittedEntry`).  Writes arriving between this proposal and that
+    /// commit are buffered by the log (`PartitionRaftLog::setPendingWrite`)
+    /// and drained into the new file set afterwards.
     void proposeRollover();
 
     /// If this node is the leader and the active file set cannot accommodate a
     /// record needing the specified `dataBytes` in the DATA file and
     /// `qlistBytes` in the QLIST file (the JOURNAL reserve is always checked;
     /// pass 0 where DATA/QLIST are not written), trigger `proposeRollover()`
-    /// before the record is written.  Called first thing by each write-path
-    /// method.  Return 0 to proceed, or non-zero if the write cannot proceed
-    /// because a rollover is required but a previous `e_ROLLOVER` is still
-    /// uncommitted (at most one uncommitted rollover is allowed at a time).
+    /// (unless a rollover is already in flight -- at most one uncommitted
+    /// rollover at a time) before the record is written.  Called first thing
+    /// by each write-path method.  Returns 0; the triggering write and any
+    /// that follow while the rollover is in flight are then buffered by
+    /// `propose()` rather than appended after `e_ROLLOVER`.
     int rolloverIfNeeded(bsls::Types::Uint64 dataBytes,
                          bsls::Types::Uint64 qlistBytes);
+
+    /// Drain the buffered writes (taken from the log) into the freshly rolled
+    /// over file set, in FIFO order, each through the normal Raft append path
+    /// so it receives the next contiguous log index.  Called once, from
+    /// `dispatchOutput`, after the committed-entry loop that performed the
+    /// physical rollover.
+    void drainPendingWrites();
 
     /// Send an AppendEntries message via binary e_RAFT_PARTITION event.
     void sendAppendEntries(const RaftMessage& msg);
@@ -233,9 +252,9 @@ class PartitionRaft : public mqbs::RecordStore {
     /// to the log, and drives the Raft propose sequence.  The record's
     /// sequence number (log index) is stamped in `PartitionRaftLog::append`
     /// at append time (not baked in here).  Return 0 on success, non-zero
-    /// otherwise.  On success the caller may retrieve the
-    /// DataStoreRecordHandle from `d_raftLog_mp->cachedHandle()`.
-    int propose(mqbs::FileStore::PendingWrite& pw);
+    /// otherwise.  On success the write's DataStoreRecordHandle is available
+    /// directly on the passed-in `pw` (`pw->d_handle`).
+    int propose(const bsl::shared_ptr<mqbs::FileStore::PendingWrite>& pw);
 
     /// Handle an incoming binary AppendEntries event (e_RAFT_PARTITION)
     /// from the specified 'source' node.
