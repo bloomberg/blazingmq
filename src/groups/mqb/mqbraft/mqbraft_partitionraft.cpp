@@ -36,8 +36,6 @@
 #include <ball_log.h>
 #include <bdlbb_blobutil.h>
 #include <bdlf_bind.h>
-#include <bdlt_currenttime.h>
-#include <bdlt_epochutil.h>
 #include <bsl_vector.h>
 #include <bslmf_movableref.h>
 #include <bsls_assert.h>
@@ -150,7 +148,7 @@ PartitionRaft::PartitionRaft(int partitionId,
 , d_raftNode_mp()
 , d_tickHandle()
 , d_writeIdCounter(0)
-, d_uncommittedRolloverIndex(0)
+, d_pendingWritePool(1024, bslma::Default::allocator(allocator))
 , d_isStarted(false)
 , d_allocator_p(bslma::Default::allocator(allocator))
 , d_receivingSnapshot(false)
@@ -214,6 +212,27 @@ void PartitionRaft::dispatchOutput(RaftNodeOutput* output)
          i < output->d_committed.size();
          ++i) {
         applyCommittedEntry(output->d_committed[i]);
+    }
+
+    // Resolve buffered writes once the rollover outcome is known.  This runs
+    // after the apply loop (not inside it) because draining re-enters
+    // 'propose()'/'dispatchOutput()' and would otherwise recurse.  Buffered
+    // writes exist only during/after a rollover window, so during normal
+    // writes the buffer is empty here and neither branch fires.
+    if (isLeader()) {
+        if (!d_raftLog_mp->isBuffering() && d_raftLog_mp->hasPendingWrites()) {
+            // The 'e_ROLLOVER' just committed and rolled over in the loop
+            // above
+            // ('isBuffering()' flipped false once 'rollover()' compacted it
+            // away).  Drain the buffered writes into the new file set.
+            drainPendingWrites();
+        }
+    }
+    else if (d_raftLog_mp->hasPendingWrites()) {
+        // Lost leadership: the uncommitted 'e_ROLLOVER' is (or will be)
+        // truncated by the new leader -- it never rolled over.  The buffered
+        // writes were never acked, so drop them and their placeholder records.
+        d_raftLog_mp->dropPendingWrites();
     }
 
     if (output->d_stateChanged && isLeader()) {
@@ -726,6 +745,12 @@ int PartitionRaft::start(bsl::ostream& errorDescription)
         return rc;
     }
 
+    // Seed the applied state from the recovered snapshot boundary.  A node
+    // that ever rolled over has 'snapshotIndex > 0'; without this the
+    // hardcoded 'commitIndex/lastApplied = 0' from the RaftNode ctor would
+    // stall it (entries below the snapshot floor cannot be served).
+    d_raftNode_mp->initAppliedState(d_raftLog_mp->snapshotIndex());
+
     bsls::TimeInterval tickInterval;
     tickInterval.setTotalMilliseconds(k_TICK_INTERVAL_MS);
 
@@ -754,7 +779,8 @@ void PartitionRaft::stop()
     BALL_LOG_INFO << "PartitionRaft stopped for partition " << d_partitionId;
 }
 
-int PartitionRaft::propose(mqbs::FileStore::PendingWrite& pw)
+int PartitionRaft::propose(
+    const bsl::shared_ptr<mqbs::FileStore::PendingWrite>& pw)
 {
     // executed by the partition *DISPATCHER* thread
 
@@ -763,16 +789,16 @@ int PartitionRaft::propose(mqbs::FileStore::PendingWrite& pw)
     // messages consume DATA and only queue creations consume QLIST.
     bsls::Types::Uint64 dataBytes  = 0;
     bsls::Types::Uint64 qlistBytes = 0;
-    if (pw.d_recordType == mqbs::RecordType::e_MESSAGE) {
+    if (pw->d_recordType == mqbs::RecordType::e_MESSAGE) {
         dataBytes = mqbs::FileStoreProtocolUtil::messageDataFileSize(
-            pw.d_appData,
-            pw.d_options);
+            pw->d_appData,
+            pw->d_options);
     }
-    else if (pw.d_recordType == mqbs::RecordType::e_QUEUE_OP &&
-             pw.d_queueOpType == mqbs::QueueOpType::e_CREATION) {
+    else if (pw->d_recordType == mqbs::RecordType::e_QUEUE_OP &&
+             pw->d_queueOpType == mqbs::QueueOpType::e_CREATION) {
         qlistBytes = mqbs::FileStoreProtocolUtil::queueCreationQlistFileSize(
-            pw.d_queueUri,
-            *pw.d_appIdKeyPairs_p);
+            pw->d_queueUri,
+            *pw->d_appIdKeyPairs_p);
     }
 
     int rc = rolloverIfNeeded(dataBytes, qlistBytes);
@@ -780,21 +806,31 @@ int PartitionRaft::propose(mqbs::FileStore::PendingWrite& pw)
         return rc;  // RETURN
     }
 
-    // Assign the write id and hand the fully-populated 'pw' to the log; the
-    // record's sequence number (index) is stamped in 'append()'.
-    const bsls::Types::Uint64 writeId = ++d_writeIdCounter;
-    pw.d_id                           = writeId;
+    // If a rollover is in flight, buffer the write for replay into the new
+    // file once the rollover commits ('bufferPendingWrite' reserves
+    // 'pw->d_handle').
+    if (d_raftLog_mp->isBuffering()) {
+        return d_raftLog_mp->bufferPendingWrite(pw,
+                                                d_raftNode_mp->currentTerm());
+    }
+
+    // Otherwise enqueue it for 'append()'; the record's sequence number
+    // (index) is stamped there.  'setPendingWrite' stores this same
+    // shared_ptr, so 'append()' sets 'pw->d_handle' on the very object the
+    // caller holds -- no separate step to surface the handle back is needed.
+    pw->d_id = ++d_writeIdCounter;
     d_raftLog_mp->setPendingWrite(pw);
 
     RaftNodeOutput output(d_allocator_p);
     rc = d_raftNode_mp->propose(&output,
                                 bsl::shared_ptr<bdlbb::Blob>(),
-                                writeId);
+                                pw->d_id);
     if (rc != 0) {
         return rc;
     }
 
     dispatchOutput(&output);
+
     d_raftLog_mp->clearCache();
     return 0;
 }
@@ -807,7 +843,9 @@ void PartitionRaft::proposeSyncPoint()
     // A sync point is journal-only; 'propose()' runs 'rolloverIfNeeded' and
     // skips issuing it if a rollover is required but blocked by an uncommitted
     // 'e_ROLLOVER' (it will be re-issued on a later tick).
-    mqbs::FileStore::PendingWrite pw(0);  // sync-point ctor; id set in propose
+    bsl::shared_ptr<mqbs::FileStore::PendingWrite> pw =
+        d_pendingWritePool.getObject();
+    *pw = mqbs::FileStore::PendingWrite(mqbs::SyncPointType::e_REGULAR);
 
     int rc = propose(pw);
     if (rc != 0) {
@@ -822,27 +860,25 @@ void PartitionRaft::proposeRollover()
     // executed by the partition *DISPATCHER* thread
     BSLS_ASSERT_SAFE(isLeader());
 
-    // Capture the commit boundary *before* proposing 'e_ROLLOVER'.  In a
-    // single-node cluster 'propose()' commits synchronously, which would
-    // otherwise pull 'e_ROLLOVER' into the committed prefix and break the
-    // uncommitted-tail invariant 'PartitionRaftLog::rollover()' relies on.
-    const bsls::Types::Uint64 commitIndex = d_raftNode_mp->commitIndex();
-
-    const bsls::Types::Uint64 timestamp = bdlt::EpochUtil::convertToTimeT64(
-        bdlt::CurrentTime::utc());
-
     const bsls::Types::Uint64 writeId = ++d_writeIdCounter;
 
-    mqbs::FileStore::PendingWrite pw(writeId);
-    pw.d_syncPointType = mqbs::SyncPointType::e_ROLLOVER;
+    bsl::shared_ptr<mqbs::FileStore::PendingWrite> pw =
+        d_pendingWritePool.getObject();
+    *pw      = mqbs::FileStore::PendingWrite(mqbs::SyncPointType::e_ROLLOVER);
+    pw->d_id = writeId;
+    // Not buffering here (this is what *starts* the rollover), so this simply
+    // enqueues 'e_ROLLOVER' for 'append()'.
     d_raftLog_mp->setPendingWrite(pw);
 
-    // Inline the 'propose()' sequence (rather than calling it) so that
-    // 'rollover()' runs *before* 'clearCache()': 'rollover()' captures
-    // 'e_ROLLOVER's blob from the log's single-entry cache for its resend
-    // slot. The AppendEntries messages in 'output' already carry the
-    // 'e_ROLLOVER' bytes (snapshotted during 'propose'), so dispatching them
-    // after the rollover is correct.
+    // Buffering state is now derived by the log: once 'e_ROLLOVER' is appended
+    // it becomes the last log entry, so 'isBuffering()' returns true.  In a
+    // single-node cluster 'propose()' commits (and applies, hence rolls over)
+    // synchronously, at which point 'isBuffering()' flips back to false and
+    // the triggering write appends straight into the new file.
+
+    // Inline the 'propose()' sequence (rather than calling it) to keep the
+    // AppendEntries dispatch and cache clearing local.  The physical rollover
+    // is now driven by the apply hook when 'e_ROLLOVER' commits, not here.
     RaftNodeOutput output(d_allocator_p);
     int            rc = d_raftNode_mp->propose(&output,
                                     bsl::shared_ptr<bdlbb::Blob>(),
@@ -853,13 +889,6 @@ void PartitionRaft::proposeRollover()
         return;
     }
 
-    // 'e_ROLLOVER' is the just-appended entry; remember its index so a second
-    // rollover is not proposed until this one commits (the single-scalar
-    // resend slot holds only one).
-    d_uncommittedRolloverIndex = d_raftLog_mp->lastIndex();
-
-    d_raftLog_mp->rollover(commitIndex, timestamp);
-
     dispatchOutput(&output);
     d_raftLog_mp->clearCache();
 }
@@ -868,31 +897,84 @@ int PartitionRaft::rolloverIfNeeded(bsls::Types::Uint64 dataBytes,
                                     bsls::Types::Uint64 qlistBytes)
 {
     // executed by the partition *DISPATCHER* thread
-    enum { rc_SUCCESS = 0, rc_ROLLOVER_PENDING = -1 };
+    enum { rc_SUCCESS = 0 };
 
     if (!isLeader() ||
         !d_fileStore_sp->primaryNeedsRollover(dataBytes, qlistBytes)) {
         return rc_SUCCESS;  // RETURN
     }
 
-    // A rollover is required.  Enforce at-most-one uncommitted rollover: if
-    // the previous 'e_ROLLOVER' has not committed yet, we cannot propose
-    // another (nor write into the already-full file), so reject the write; the
-    // caller retries once the outstanding rollover commits.
-    if (0 != d_uncommittedRolloverIndex &&
-        d_raftNode_mp->commitIndex() < d_uncommittedRolloverIndex) {
-        BALL_LOG_WARN
-            << "Partition [" << d_partitionId
-            << "] rollover required but previous e_ROLLOVER at index "
-            << d_uncommittedRolloverIndex
-            << " is not yet committed (commitIndex="
-            << d_raftNode_mp->commitIndex()
-            << "); rejecting write until it commits.";
-        return rc_ROLLOVER_PENDING;  // RETURN
+    // A rollover is required.  Rather than NACK the triggering write, propose
+    // 'e_ROLLOVER' (unless one is already in flight -- at most one uncommitted
+    // rollover at a time) and return success.  'setPendingWrite()' then
+    // buffers this triggering write, and every subsequent one, until the
+    // rollover commits.
+    if (!d_raftLog_mp->isBuffering()) {
+        proposeRollover();
     }
 
-    proposeRollover();
     return rc_SUCCESS;
+}
+
+void PartitionRaft::drainPendingWrites()
+{
+    // executed by the partition *DISPATCHER* thread
+    BSLS_ASSERT_SAFE(isLeader());
+
+    // Take ownership of the buffered writes from the log.  This empties the
+    // log's queue first, so the 'setPendingWrite'+'append' cycle below cycles
+    // it 0->1->0 per write with no circularity.
+    bsl::deque<bsl::shared_ptr<mqbs::FileStore::PendingWrite> > toReplay(
+        d_allocator_p);
+    d_raftLog_mp->takePendingWrites(&toReplay);
+
+    if (toReplay.empty()) {
+        return;  // RETURN
+    }
+
+    BALL_LOG_INFO << "Partition [" << d_partitionId << "] draining "
+                  << toReplay.size() << " buffered write(s) after rollover.";
+
+    // Feed each buffered write through the normal append path into a single
+    // shared output, so each gets the next contiguous log index in the new
+    // file, then dispatch the accumulated output once.
+    RaftNodeOutput output(d_allocator_p);
+
+    for (bsl::deque<bsl::shared_ptr<mqbs::FileStore::PendingWrite> >::iterator
+             it = toReplay.begin();
+         it != toReplay.end();
+         ++it) {
+        const bsl::shared_ptr<mqbs::FileStore::PendingWrite>& sp = *it;
+
+        // The index this write will now receive must equal the one reserved
+        // when it was buffered (the term is unchanged for the whole window).
+        const bsls::Types::Uint64 expectedIndex = d_raftLog_mp->lastIndex() +
+                                                  1;
+        if (sp->d_handle.isValid()) {
+            BSLS_ASSERT_SAFE(sp->d_handle.sequenceNum() == expectedIndex);
+            BSLS_ASSERT_SAFE(
+                sp->d_handle.primaryLeaseId() ==
+                static_cast<unsigned int>(d_raftNode_mp->currentTerm()));
+        }
+        (void)expectedIndex;
+
+        const bsls::Types::Uint64 writeId = ++d_writeIdCounter;
+        sp->d_id                          = writeId;
+        // Not buffering during drain (the rollover already committed), so this
+        // enqueues the write for 'append()' into the new file set.
+        d_raftLog_mp->setPendingWrite(sp);
+
+        int rc = d_raftNode_mp->propose(&output,
+                                        bsl::shared_ptr<bdlbb::Blob>(),
+                                        writeId);
+        if (rc != 0) {
+            BALL_LOG_ERROR << "Partition [" << d_partitionId
+                           << "] failed to drain buffered write, rc: " << rc;
+        }
+    }
+
+    dispatchOutput(&output);
+    d_raftLog_mp->clearCache();
 }
 
 void PartitionRaft::execute(const mqbi::Dispatcher::VoidFunction& functor)
@@ -916,12 +998,10 @@ int PartitionRaft::rollover()
         return rc_NOT_LEADER;  // RETURN
     }
 
-    if (0 != d_uncommittedRolloverIndex &&
-        d_raftNode_mp->commitIndex() < d_uncommittedRolloverIndex) {
+    if (d_raftLog_mp->isBuffering()) {
         BALL_LOG_WARN << "Partition [" << d_partitionId
-                      << "] admin rollover rejected: previous e_ROLLOVER at "
-                      << "index " << d_uncommittedRolloverIndex
-                      << " not yet committed.";
+                      << "] admin rollover rejected: a previous e_ROLLOVER is "
+                      << "not yet committed.";
         return rc_ROLLOVER_PENDING;  // RETURN
     }
 
@@ -1039,20 +1119,19 @@ int PartitionRaft::writeMessageRecord(
     BSLS_ASSERT_SAFE(handle);
     BSLS_ASSERT_SAFE(appData);
 
-    mqbs::FileStore::PendingWrite pw(0,  // id set in propose()
-                                     0,  // primaryLeaseId set in append()
-                                     0,  // sequenceNumber set in append()
-                                     attributes,
-                                     guid,
-                                     appData,
-                                     options,
-                                     queueKey);
+    bsl::shared_ptr<mqbs::FileStore::PendingWrite> pw =
+        d_pendingWritePool.getObject();
+    *pw = mqbs::FileStore::PendingWrite(attributes,
+                                        guid,
+                                        appData,
+                                        options,
+                                        queueKey);
 
     int rc = propose(pw);
     if (rc != 0) {
         return rc;
     }
-    *handle = d_raftLog_mp->cachedHandle();
+    *handle = pw->d_handle;
     return 0;
 }
 
@@ -1065,18 +1144,19 @@ int PartitionRaft::writeConfirmRecord(mqbs::DataStoreRecordHandle* handle,
 {
     BSLS_ASSERT_SAFE(handle);
 
-    mqbs::FileStore::PendingWrite pw(0,  // id set in propose()
-                                     guid,
-                                     queueKey,
-                                     appKey,
-                                     timestamp,
-                                     reason);
+    bsl::shared_ptr<mqbs::FileStore::PendingWrite> pw =
+        d_pendingWritePool.getObject();
+    *pw = mqbs::FileStore::PendingWrite(guid,
+                                        queueKey,
+                                        appKey,
+                                        timestamp,
+                                        reason);
 
     int rc = propose(pw);
     if (rc != 0) {
         return rc;
     }
-    *handle = d_raftLog_mp->cachedHandle();
+    *handle = pw->d_handle;
     return 0;
 }
 
@@ -1086,11 +1166,10 @@ int PartitionRaft::writeDeletionRecord(
     mqbs::DeletionRecordFlag::Enum deletionFlag,
     bsls::Types::Uint64            timestamp)
 {
-    mqbs::FileStore::PendingWrite pw(0,  // id set in propose()
-                                     guid,
-                                     queueKey,
-                                     deletionFlag,
-                                     timestamp);
+    bsl::shared_ptr<mqbs::FileStore::PendingWrite> pw =
+        d_pendingWritePool.getObject();
+    *pw =
+        mqbs::FileStore::PendingWrite(guid, queueKey, deletionFlag, timestamp);
 
     return propose(pw);
 }
@@ -1112,19 +1191,20 @@ int PartitionRaft::writeQueuePurgeRecord(
         startSeqNo   = start.sequenceNum();
     }
 
-    mqbs::FileStore::PendingWrite pw(0,  // id set in propose()
-                                     mqbs::QueueOpType::e_PURGE,
-                                     queueKey,
-                                     appKey,
-                                     timestamp,
-                                     startLeaseId,
-                                     startSeqNo);
+    bsl::shared_ptr<mqbs::FileStore::PendingWrite> pw =
+        d_pendingWritePool.getObject();
+    *pw = mqbs::FileStore::PendingWrite(mqbs::QueueOpType::e_PURGE,
+                                        queueKey,
+                                        appKey,
+                                        timestamp,
+                                        startLeaseId,
+                                        startSeqNo);
 
     int rc = propose(pw);
     if (rc != 0) {
         return rc;
     }
-    *handle = d_raftLog_mp->cachedHandle();
+    *handle = pw->d_handle;
     return 0;
 }
 
@@ -1136,19 +1216,20 @@ int PartitionRaft::writeQueueDeletionRecord(
 {
     BSLS_ASSERT_SAFE(handle);
 
-    mqbs::FileStore::PendingWrite pw(0,  // id set in propose()
-                                     mqbs::QueueOpType::e_DELETION,
-                                     queueKey,
-                                     appKey,
-                                     timestamp,
-                                     0,   // startPrimaryLeaseId
-                                     0);  // startSequenceNumber
+    bsl::shared_ptr<mqbs::FileStore::PendingWrite> pw =
+        d_pendingWritePool.getObject();
+    *pw = mqbs::FileStore::PendingWrite(mqbs::QueueOpType::e_DELETION,
+                                        queueKey,
+                                        appKey,
+                                        timestamp,
+                                        0,   // startPrimaryLeaseId
+                                        0);  // startSequenceNumber
 
     int rc = propose(pw);
     if (rc != 0) {
         return rc;
     }
-    *handle = d_raftLog_mp->cachedHandle();
+    *handle = pw->d_handle;
     return 0;
 }
 
@@ -1162,18 +1243,19 @@ int PartitionRaft::writeQueueCreationRecord(
 {
     BSLS_ASSERT_SAFE(handle);
 
-    mqbs::FileStore::PendingWrite pw(0,  // id set in propose()
-                                     queueUri,
-                                     queueKey,
-                                     &appIdKeyPairs,
-                                     timestamp,
-                                     isNewQueue);
+    bsl::shared_ptr<mqbs::FileStore::PendingWrite> pw =
+        d_pendingWritePool.getObject();
+    *pw = mqbs::FileStore::PendingWrite(queueUri,
+                                        queueKey,
+                                        &appIdKeyPairs,
+                                        timestamp,
+                                        isNewQueue);
 
     int rc = propose(pw);
     if (rc != 0) {
         return rc;
     }
-    *handle = d_raftLog_mp->cachedHandle();
+    *handle = pw->d_handle;
     return 0;
 }
 

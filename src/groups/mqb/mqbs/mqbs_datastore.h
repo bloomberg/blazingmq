@@ -173,6 +173,12 @@ struct DataStoreRecord {
     DataStoreRecord(RecordType::Enum    recordType,
                     bsls::Types::Uint64 recordOffset,
                     unsigned int        dataOrQlistRecordPaddedLen);
+
+    /// Create a placeholder record of the specified `recordType` with a zero
+    /// offset and `d_hasReceipt` set to `false`.  Used to reserve a record
+    /// (and thus a handle) for a write buffered during a rollover window; its
+    /// offsets are patched in place when the write later drains to disk.
+    explicit DataStoreRecord(RecordType::Enum recordType);
 };
 
 // =========================
@@ -592,6 +598,12 @@ struct RecoveryRecordInfo {
     /// entries (sync points) are handled separately.
     RecordType::Enum d_recordType;
 
+    /// Sync-point sub-type of the journal record this entry describes.  Only
+    /// meaningful when `d_recordType == e_JOURNAL_OP`; `e_UNDEFINED`
+    /// otherwise.  The Raft apply hook uses this to detect a committed
+    /// `e_ROLLOVER` and trigger the file rollover.
+    SyncPointType::Enum d_syncPointType;
+
     DataStoreRecordHandle d_handle;
 
     RecoveryRecordInfo();
@@ -602,7 +614,8 @@ struct RecoveryRecordInfo {
         bsls::Types::Uint64          journalOffset,
         bsls::Types::Uint64          dataOffset,
         RecordType::Enum             recordType,
-        const DataStoreRecordHandle& handle = DataStoreRecordHandle());
+        const DataStoreRecordHandle& handle = DataStoreRecordHandle(),
+        SyncPointType::Enum syncPointType   = SyncPointType::e_UNDEFINED);
 };
 
 // ======================
@@ -971,6 +984,20 @@ inline DataStoreRecord::DataStoreRecord(
 , d_messageOffset(0)
 , d_appDataUnpaddedLen(0)
 , d_dataOrQlistRecordPaddedLen(dataOrQlistRecordPaddedLen)
+, d_messagePropertiesInfo()
+, d_arrivalTimepoint(0LL)
+, d_arrivalTimestamp(0LL)
+{
+    // NOTHING
+}
+
+inline DataStoreRecord::DataStoreRecord(RecordType::Enum recordType)
+: d_recordType(recordType)
+, d_hasReceipt(false)
+, d_recordOffset(0)
+, d_messageOffset(0)
+, d_appDataUnpaddedLen(0)
+, d_dataOrQlistRecordPaddedLen(0)
 , d_messagePropertiesInfo()
 , d_arrivalTimepoint(0LL)
 , d_arrivalTimestamp(0LL)
