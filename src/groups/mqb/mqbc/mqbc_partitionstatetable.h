@@ -526,7 +526,7 @@ class PartitionStateTableActions {
         PartitionStateTableEvent::Enum eventType,
         const PartitionFSMEventData&   eventData);
 
-    void do_closeRecoveryFileSet_attemptOpenStorage_sendDataToPrimary(
+    void do_sendDataToPrimary_closeRecoveryFileSet_attemptOpenStorage(
         PartitionStateTableEvent::Enum eventType,
         const PartitionFSMEventData&   eventData);
 
@@ -858,7 +858,7 @@ class PartitionStateTable
                 REPLICA_HEALING);
         PST_CFG(REPLICA_HEALING,
                 REPLICA_DATA_RQST_PULL,
-                closeRecoveryFileSet_attemptOpenStorage_sendDataToPrimary,
+                sendDataToPrimary_closeRecoveryFileSet_attemptOpenStorage,
                 REPLICA_HEALING);
         PST_CFG(
             REPLICA_HEALING,
@@ -1177,13 +1177,13 @@ PartitionStateTableActions::do_resetReceiveDataCtx_closeRecoveryFileSet(
 }
 
 inline void PartitionStateTableActions::
-    do_closeRecoveryFileSet_attemptOpenStorage_sendDataToPrimary(
+    do_sendDataToPrimary_closeRecoveryFileSet_attemptOpenStorage(
         PartitionStateTableEvent::Enum eventType,
         const PartitionFSMEventData&   eventData)
 {
+    do_sendDataToPrimary(eventType, eventData);
     do_closeRecoveryFileSet(eventType, eventData);
     do_attemptOpenStorage(eventType, eventData);
-    do_sendDataToPrimary(eventType, eventData);
 }
 
 inline void PartitionStateTableActions::
