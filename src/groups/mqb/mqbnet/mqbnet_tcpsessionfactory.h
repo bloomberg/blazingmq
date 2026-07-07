@@ -139,6 +139,7 @@ class StatController;
 namespace mqbnet {
 
 // FORWARD DECLARATION
+class AuthenticationClient;
 class AuthenticationContext;
 class Cluster;
 class InitialConnectionContext;
@@ -211,8 +212,14 @@ class TCPSessionFactory {
         /// The channel
         bsl::shared_ptr<bmqio::Channel> d_channel_sp;
 
-        // The context of authentication
+        /// The authentication context for an incoming connection.  Null for
+        /// outbound connections.
         bsl::shared_ptr<AuthenticationContext> d_authenticationCtx_sp;
+
+        /// Per-connection client for outbound authentication and
+        /// reauthentication.  Non-null for outbound connections if broker
+        /// has a credential provider.  Null for inbound connections.
+        bsl::shared_ptr<AuthenticationClient> d_authenticationClient_sp;
 
         /// The session tied to the channel
         bsl::shared_ptr<Session> d_session_sp;
@@ -221,6 +228,10 @@ class TCPSessionFactory {
         SessionEventProcessor* d_eventProcessor_p;
 
         bslma::ManagedPtr<bmqp::HeartbeatMonitor> d_monitor_mp;
+
+        /// True if this channel is from an incoming (listen) connection;
+        /// false if it is an outbound (connect) connection.
+        bool d_isIncoming;
 
         // CREATORS
 
@@ -234,14 +245,19 @@ class TCPSessionFactory {
         /// missed heartbeats on this channel.
         /// @param initialMissedHeartbeatCounter The initial missed heartbeats
         /// for this channel.
-        explicit ChannelInfo(const bsl::shared_ptr<bmqio::Channel>& channel_sp,
-                             const bsl::shared_ptr<AuthenticationContext>&
-                                 authenticationContext,
-                             const bsl::shared_ptr<Session>& session,
-                             SessionEventProcessor*          eventProcessor,
-                             int               maxMissedHeartbeats,
-                             int               initialMissedHeartbeatCounter,
-                             bslma::Allocator* allocator);
+        /// @param isIncoming True if the channel is from an incoming
+        /// connection.
+        explicit ChannelInfo(
+            const bsl::shared_ptr<bmqio::Channel>& channel_sp,
+            const bsl::shared_ptr<AuthenticationContext>&
+                                                         authenticationContext,
+            const bsl::shared_ptr<AuthenticationClient>& authenticationClient,
+            const bsl::shared_ptr<Session>&              session,
+            SessionEventProcessor*                       eventProcessor,
+            int                                          maxMissedHeartbeats,
+            int               initialMissedHeartbeatCounter,
+            bool              isIncoming,
+            bslma::Allocator* allocator);
 
       private:
         // NOT IMPLEMENTED
@@ -566,11 +582,11 @@ class TCPSessionFactory {
     /// @returns 0 on success, nonzero on failure.
     int validateTcpInterfaces() const;
 
-    /// Handle an authentication event for the specified `event` by
-    /// performing reauthentication using the authentication context stored
-    /// in the specified `channelInfo`.
-    void reauthnOnAuthenticationEvent(const bmqp::Event& event,
-                                      const ChannelInfo* channelInfo) const;
+    /// Handle an authentication event for the specified `event` on the
+    /// specified `channelInfo`.  Decodes the message and dispatches to the
+    /// appropriate inbound or outbound handler.
+    void handleAuthenticationEvent(const bmqp::Event& event,
+                                   const ChannelInfo* channelInfo) const;
 
   private:
     // NOT IMPLEMENTED

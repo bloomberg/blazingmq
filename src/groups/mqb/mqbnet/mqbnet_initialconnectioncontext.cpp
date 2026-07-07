@@ -19,6 +19,7 @@
 
 // MQB
 #include <mqbcfg_messages.h>
+#include <mqbnet_authenticationclient.h>
 #include <mqbnet_authenticationcontext.h>
 #include <mqbnet_negotiationcontext.h>
 
@@ -83,6 +84,7 @@ const char* InitialConnectionState::toAscii(InitialConnectionState::Enum value)
         CASE(ANON_AUTHENTICATING)
         CASE(NEGOTIATING_OUTBOUND)
         CASE(NEGOTIATED)
+        CASE(AUTHENTICATING_OUTBOUND)
         CASE(FAILED)
     default: return "(* UNKNOWN *)";
     }
@@ -108,6 +110,7 @@ bool InitialConnectionState::fromAscii(InitialConnectionState::Enum* out,
     CHECKVALUE(ANON_AUTHENTICATING)
     CHECKVALUE(NEGOTIATING_OUTBOUND)
     CHECKVALUE(NEGOTIATED)
+    CHECKVALUE(AUTHENTICATING_OUTBOUND)
     CHECKVALUE(FAILED)
 
     // Invalid string
@@ -148,9 +151,10 @@ const char* InitialConnectionEvent::toAscii(InitialConnectionEvent::Enum value)
         CASE(NONE)
         CASE(OUTBOUND_NEGOTIATION)
         CASE(INCOMING)
-        CASE(AUTHN_REQUEST)
+        CASE(AUTHN_MESSAGE)
         CASE(NEGOTIATION_MESSAGE)
         CASE(AUTHN_SUCCESS)
+        CASE(OUTBOUND_AUTHENTICATION)
         CASE(ERROR)
     default: return "(* UNKNOWN *)";
     }
@@ -173,9 +177,10 @@ bool InitialConnectionEvent::fromAscii(InitialConnectionEvent::Enum* out,
     CHECKVALUE(NONE)
     CHECKVALUE(OUTBOUND_NEGOTIATION)
     CHECKVALUE(INCOMING)
-    CHECKVALUE(AUTHN_REQUEST)
+    CHECKVALUE(AUTHN_MESSAGE)
     CHECKVALUE(NEGOTIATION_MESSAGE)
     CHECKVALUE(AUTHN_SUCCESS)
+    CHECKVALUE(OUTBOUND_AUTHENTICATION)
     CHECKVALUE(ERROR)
 
     // Invalid string
@@ -206,6 +211,7 @@ InitialConnectionContext::InitialConnectionContext(
 , d_userData_p(userData)
 , d_channelSp(channel)
 , d_authenticationCtxSp()
+, d_authenticationClientSp()
 , d_negotiationCtxSp()
 , d_initialConnectionCompleteCb(initialConnectionCompleteCb)
 , d_authenticationEncodingType(bmqp::EncodingType::e_BER)
@@ -308,7 +314,7 @@ int InitialConnectionContext::processBlob(bsl::ostream&      errorDescription,
     else if (bsl::holds_alternative<bmqp_ctrlmsg::AuthenticationMessage>(
                  message)) {
         handleEvent(bsl::string(),
-                    InitialConnectionEvent::e_AUTHN_REQUEST,
+                    InitialConnectionEvent::e_AUTHN_MESSAGE,
                     message);
     }
     else {
@@ -497,11 +503,16 @@ void InitialConnectionContext::readCallback(const bmqio::Status& status,
 void InitialConnectionContext::handleInitialConnection()
 {
     if (!isIncoming()) {
-        // TODO: When we are ready to move on to the next step, we should
-        // call `authenticationOutbound` here instead before calling
-        // `negotiateOutbound`.
-        handleEvent(bsl::string(),
-                    mqbnet::InitialConnectionEvent::e_OUTBOUND_NEGOTIATION);
+        if (d_authenticator_p->hasOutboundAuthentication()) {
+            handleEvent(
+                bsl::string(),
+                mqbnet::InitialConnectionEvent::e_OUTBOUND_AUTHENTICATION);
+        }
+        else {
+            handleEvent(
+                bsl::string(),
+                mqbnet::InitialConnectionEvent::e_OUTBOUND_NEGOTIATION);
+        }
     }
     else {
         handleEvent(bsl::string(), mqbnet::InitialConnectionEvent::e_INCOMING);
@@ -554,6 +565,29 @@ void InitialConnectionContext::handleEvent(
         }
         break;
     }
+    case InitialConnectionEvent::e_OUTBOUND_AUTHENTICATION: {
+        if (oldState == InitialConnectionState::e_INITIAL) {
+            setState(InitialConnectionState::e_AUTHENTICATING_OUTBOUND, event);
+
+            // Initialize an authentication client for this outbound connection
+            // to a broker.  This will be stored and if needed, reused for the
+            // lifetime of this connection for reauthentication.
+            d_authenticationClientSp =
+                d_authenticator_p->createAuthenticationClient(d_channelSp,
+                                                              d_allocator_p);
+            rc = d_authenticationClientSp->authenticate(errStream);
+            if (rc == rc_SUCCESS) {
+                rc = scheduleRead(errStream);
+            }
+        }
+        else {
+            errStream << "Unexpected event received: " << oldState << " -> "
+                      << event;
+            BALL_LOG_ERROR << "#UNEXPECTED_STATE " << errStream.str()
+                           << " [peer: " << channel().get() << "]";
+        }
+        break;
+    }
     case InitialConnectionEvent::e_INCOMING: {
         if (oldState == InitialConnectionState::e_INITIAL) {
             // For incoming connections, start reading the first message
@@ -567,7 +601,7 @@ void InitialConnectionContext::handleEvent(
         }
         break;
     }
-    case InitialConnectionEvent::e_AUTHN_REQUEST: {
+    case InitialConnectionEvent::e_AUTHN_MESSAGE: {
         BSLS_ASSERT_SAFE(
             bsl::holds_alternative<bmqp_ctrlmsg::AuthenticationMessage>(
                 message));
@@ -583,6 +617,27 @@ void InitialConnectionContext::handleEvent(
             rc = d_authenticator_p->handleAuthentication(errStream,
                                                          this,
                                                          authenticationMsg);
+        }
+        else if (oldState ==
+                 InitialConnectionState::e_AUTHENTICATING_OUTBOUND) {
+            BSLS_ASSERT_SAFE(d_authenticationClientSp);
+            rc = d_authenticationClientSp->handleResponse(errStream,
+                                                          authenticationMsg);
+            if (rc != rc_SUCCESS) {
+                break;
+            }
+
+            setState(InitialConnectionState::e_NEGOTIATING_OUTBOUND, event);
+
+            // Send negotiation directly instead of calling 'handleEvent'
+            // with e_OUTBOUND_NEGOTIATION, as 'd_mutex' is currently held
+            // and calling 'handleEvent' would attempt to acquire it again.
+            createNegotiationContext();
+
+            rc = d_negotiator_p->negotiateOutbound(errStream, this);
+            if (rc == rc_SUCCESS) {
+                rc = scheduleRead(errStream);
+            }
         }
         else {
             errStream << "Unexpected event received: " << oldState << " -> "
@@ -734,6 +789,12 @@ const bsl::shared_ptr<AuthenticationContext>&
 InitialConnectionContext::authenticationContext() const
 {
     return d_authenticationCtxSp;
+}
+
+const bsl::shared_ptr<AuthenticationClient>&
+InitialConnectionContext::authenticationClient() const
+{
+    return d_authenticationClientSp;
 }
 
 const bsl::shared_ptr<NegotiationContext>&

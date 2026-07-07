@@ -16,12 +16,14 @@
 #include <mqbnet_initialconnectioncontext.h>
 
 // MQB
+#include <mqbnet_authenticationclient.h>
 #include <mqbnet_initialconnectioncontext.h>
 #include <mqbnet_negotiationcontext.h>
 #include <mqbnet_session.h>
 
 // BMQ
 #include <bmqio_testchannel.h>
+#include <bmqp_ctrlmsg_messages.h>
 
 // BDE
 #include <bsl_memory.h>
@@ -55,12 +57,38 @@ void complete(const bsl::shared_ptr<int>&             check,
     (void)channel;
 }
 
+// Mock authentication client
+struct MockAuthenticationClient : public mqbnet::AuthenticationClient {
+    bool d_authenticateCalled;
+    int  d_authenticateRc;
+    bool d_handleResponseCalled;
+    int  d_handleResponseRc;
+    bool d_stopCalled;
+
+    int authenticate(bsl::ostream&) BSLS_KEYWORD_OVERRIDE
+    {
+        d_authenticateCalled = true;
+        return d_authenticateRc;
+    }
+
+    int handleResponse(bsl::ostream&,
+                       const bmqp_ctrlmsg::AuthenticationMessage&)
+        BSLS_KEYWORD_OVERRIDE
+    {
+        d_handleResponseCalled = true;
+        return d_handleResponseRc;
+    }
+};
+
 // Mock authenticator
 struct MockAuthenticator : public mqbnet::Authenticator {
-  private:
-    bsl::optional<mqbcfg::Credential> d_anonymousCredential;
+    bsl::optional<mqbcfg::Credential>         d_anonymousCredential;
+    bool                                      d_hasOutboundAuthentication;
+    int                                       d_authenticateRc;
+    int                                       d_handleResponseRc;
+    bsl::shared_ptr<MockAuthenticationClient> d_mockClient;
+    bool                                      d_negotiateOutboundCalled;
 
-  public:
     int  start(bsl::ostream&) BSLS_KEYWORD_OVERRIDE { return 0; }
     void stop() BSLS_KEYWORD_OVERRIDE {}
     int  handleAuthentication(bsl::ostream&,
@@ -77,13 +105,26 @@ struct MockAuthenticator : public mqbnet::Authenticator {
     {
         return 0;
     }
-    int authenticationOutbound(
-        bsl::ostream&,
-        const bsl::shared_ptr<mqbnet::AuthenticationContext>&)
-        BSLS_KEYWORD_OVERRIDE
+
+    bool hasOutboundAuthentication() const BSLS_KEYWORD_OVERRIDE
     {
-        return 0;
+        return d_hasOutboundAuthentication;
     }
+
+    bsl::shared_ptr<mqbnet::AuthenticationClient> createAuthenticationClient(
+        const bsl::shared_ptr<bmqio::Channel>&,
+        bslma::Allocator* allocator) const BSLS_KEYWORD_OVERRIDE
+    {
+        // const_cast because the mock needs to store the client for later
+        // inspection by the test, but the interface is const.
+        MockAuthenticator* self = const_cast<MockAuthenticator*>(this);
+        self->d_mockClient = bsl::allocate_shared<MockAuthenticationClient>(
+            allocator);
+        self->d_mockClient->d_authenticateRc   = d_authenticateRc;
+        self->d_mockClient->d_handleResponseRc = d_handleResponseRc;
+        return self->d_mockClient;
+    }
+
     const bsl::optional<mqbcfg::Credential>&
     anonymousCredential() const BSLS_KEYWORD_OVERRIDE
     {
@@ -93,6 +134,8 @@ struct MockAuthenticator : public mqbnet::Authenticator {
 
 // Mock negotiator
 struct MockNegotiator : public mqbnet::Negotiator {
+    bool d_negotiateOutboundCalled;
+
     int createSessionOnMsgType(bsl::ostream&,
                                bsl::shared_ptr<mqbnet::Session>*,
                                mqbnet::InitialConnectionContext*)
@@ -103,7 +146,31 @@ struct MockNegotiator : public mqbnet::Negotiator {
     int negotiateOutbound(bsl::ostream&, mqbnet::InitialConnectionContext*)
         BSLS_KEYWORD_OVERRIDE
     {
+        d_negotiateOutboundCalled = true;
         return 0;
+    }
+};
+
+struct TestBench {
+    bsl::shared_ptr<MockAuthenticator>  d_authenticator;
+    bsl::shared_ptr<MockNegotiator>     d_negotiator;
+    bsl::shared_ptr<bmqio::TestChannel> d_channel;
+    bsl::shared_ptr<int>                d_completionStatus;
+
+    mqbnet::InitialConnectionContext::InitialConnectionCompleteCb d_completeCb;
+
+    explicit TestBench(bslma::Allocator* allocator)
+    : d_authenticator(bsl::allocate_shared<MockAuthenticator>(allocator))
+    , d_negotiator(bsl::allocate_shared<MockNegotiator>(allocator))
+    , d_channel(bsl::allocate_shared<bmqio::TestChannel>(allocator))
+    , d_completionStatus(bsl::allocate_shared<int>(allocator, 0))
+    , d_completeCb(bdlf::BindUtil::bind(&complete,
+                                        d_completionStatus,
+                                        bdlf::PlaceHolders::_1,
+                                        bdlf::PlaceHolders::_2,
+                                        bdlf::PlaceHolders::_3,
+                                        bdlf::PlaceHolders::_4))
+    {
     }
 };
 
@@ -116,33 +183,19 @@ struct MockNegotiator : public mqbnet::Negotiator {
 static void test1_initialConnectionContext()
 {
     bslma::Allocator* alloc = bmqtst::TestHelperUtil::allocator();
-    bsl::shared_ptr<MockAuthenticator> authenticator =
-        bsl::allocate_shared<MockAuthenticator>(alloc);
-    bsl::shared_ptr<MockNegotiator> negotiator =
-        bsl::allocate_shared<MockNegotiator>(alloc);
-    bsl::shared_ptr<bmqio::TestChannel> channel =
-        bsl::allocate_shared<bmqio::TestChannel>(alloc);
-
-    bsl::shared_ptr<int> check = bsl::allocate_shared<int>(alloc, 0);
-    mqbnet::InitialConnectionContext::InitialConnectionCompleteCb completeCb =
-        bdlf::BindUtil::bind(&complete,
-                             check,
-                             bdlf::PlaceHolders::_1,  // status
-                             bdlf::PlaceHolders::_2,  // errorDescription
-                             bdlf::PlaceHolders::_3,  // session
-                             bdlf::PlaceHolders::_4   // channel
-        );
+    TestBench         tb(alloc);
 
     bmqtst::TestHelper::printTestName("test1_basicConstruction");
     {
         PV("Constructor");
         mqbnet::InitialConnectionContext obj1(false,
-                                              authenticator.get(),
-                                              negotiator.get(),
+                                              0,
+                                              0,
                                               static_cast<void*>(0),
                                               static_cast<void*>(0),
-                                              channel,
-                                              completeCb);
+                                              tb.d_channel,
+                                              tb.d_completeCb,
+                                              alloc);
         BMQTST_ASSERT_EQ(obj1.isIncoming(), false);
         BMQTST_ASSERT_EQ(obj1.resultState(), static_cast<void*>(0));
         BMQTST_ASSERT_EQ(obj1.userData(), static_cast<void*>(0));
@@ -152,12 +205,13 @@ static void test1_initialConnectionContext()
         PV("Manipulators/Accessors");
 
         mqbnet::InitialConnectionContext obj(true,
-                                             authenticator.get(),
-                                             negotiator.get(),
+                                             tb.d_authenticator.get(),
+                                             tb.d_negotiator.get(),
                                              static_cast<void*>(0),
                                              static_cast<void*>(0),
-                                             channel,
-                                             completeCb);
+                                             tb.d_channel,
+                                             tb.d_completeCb,
+                                             alloc);
 
         {  // ResultState
             int value = 9;
@@ -186,9 +240,224 @@ static void test1_initialConnectionContext()
                          bsl::string(),
                          bsl::shared_ptr<mqbnet::Session>());
 
-            BMQTST_ASSERT_EQ(*check, rc);
+            BMQTST_ASSERT_EQ(*tb.d_completionStatus, rc);
         }
     }
+}
+
+static void test2_outboundAuthenticate()
+// ------------------------------------------------------------------------
+// OUTBOUND AUTHENTICATE
+//
+// Concerns:
+//   - 'handleInitialConnection()' on an outbound context with
+//     authentication enters 'e_AUTHENTICATING_OUTBOUND'.
+//   - 'authenticate()' is called on the created client.
+//   - After receiving a successful 'e_AUTHN_MESSAGE', the FSM
+//     transitions to 'e_NEGOTIATING_OUTBOUND'.
+//   - 'handleResponse()' is called on the client.
+//   - 'negotiateOutbound()' is called on the negotiator.
+//
+// Plan:
+//   1) Configure MockAuthenticator with hasOutboundAuthentication = true.
+//   2) Construct an outbound context, call 'handleInitialConnection()'.
+//   3) Verify state is e_AUTHENTICATING_OUTBOUND and authenticate() was
+//      called.
+//   4) Fire e_AUTHN_MESSAGE event with a success AuthenticationResponse.
+//   5) Verify state is e_NEGOTIATING_OUTBOUND, handleResponse() was
+//      called, and negotiateOutbound() was called.
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("OUTBOUND AUTHENTICATE");
+
+    bslma::Allocator* alloc = bmqtst::TestHelperUtil::allocator();
+    TestBench         tb(alloc);
+
+    // 1)
+    tb.d_authenticator->d_hasOutboundAuthentication = true;
+
+    // 2)
+    mqbnet::InitialConnectionContext ctx(false,
+                                         tb.d_authenticator.get(),
+                                         tb.d_negotiator.get(),
+                                         static_cast<void*>(0),
+                                         static_cast<void*>(0),
+                                         tb.d_channel,
+                                         tb.d_completeCb,
+                                         alloc);
+    ctx.handleInitialConnection();
+
+    // 3)
+    BMQTST_ASSERT_EQ(
+        ctx.state(),
+        mqbnet::InitialConnectionState::e_AUTHENTICATING_OUTBOUND);
+    BMQTST_ASSERT(tb.d_authenticator->d_mockClient);
+    BMQTST_ASSERT(tb.d_authenticator->d_mockClient->d_authenticateCalled);
+
+    // 4)
+    bmqp_ctrlmsg::AuthenticationMessage   response;
+    bmqp_ctrlmsg::AuthenticationResponse& resp =
+        response.makeAuthenticationResponse();
+    resp.status().category() = bmqp_ctrlmsg::StatusCategory::E_SUCCESS;
+    resp.status().code()     = 0;
+    resp.status().message()  = "OK";
+
+    ctx.handleEvent(bsl::string(),
+                    mqbnet::InitialConnectionEvent::e_AUTHN_MESSAGE,
+                    response);
+
+    // 5)
+    BMQTST_ASSERT_EQ(ctx.state(),
+                     mqbnet::InitialConnectionState::e_NEGOTIATING_OUTBOUND);
+    BMQTST_ASSERT(tb.d_authenticator->d_mockClient->d_handleResponseCalled);
+    BMQTST_ASSERT(tb.d_negotiator->d_negotiateOutboundCalled);
+}
+
+static void test3_outboundAuthenticateFailure()
+// ------------------------------------------------------------------------
+// OUTBOUND AUTHENTICATE FAILURE
+//
+// Concerns:
+//   - When 'authenticate()' fails, the FSM transitions to 'e_FAILED'.
+//   - The completion callback is invoked with a non-zero status.
+//   - 'negotiateOutbound()' is never called.
+//
+// Plan:
+//   1) Configure MockAuthenticator with hasOutboundAuthentication = true
+//      and the mock client's authenticateRc = -1.
+//   2) Construct an outbound context, call 'handleInitialConnection()'.
+//   3) Verify state is e_FAILED, the completion callback fired with
+//      non-zero status, and negotiateOutbound() was not called.
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("OUTBOUND AUTHENTICATE FAILURE");
+
+    bslma::Allocator* alloc = bmqtst::TestHelperUtil::allocator();
+    TestBench         tb(alloc);
+
+    // 1)
+    tb.d_authenticator->d_hasOutboundAuthentication = true;
+    tb.d_authenticator->d_authenticateRc            = -1;
+
+    // 2)
+    mqbnet::InitialConnectionContext ctx(false,
+                                         tb.d_authenticator.get(),
+                                         tb.d_negotiator.get(),
+                                         static_cast<void*>(0),
+                                         static_cast<void*>(0),
+                                         tb.d_channel,
+                                         tb.d_completeCb,
+                                         alloc);
+    ctx.handleInitialConnection();
+
+    // 3)
+    BMQTST_ASSERT_EQ(ctx.state(), mqbnet::InitialConnectionState::e_FAILED);
+    BMQTST_ASSERT_NE(*tb.d_completionStatus, 0);
+    BMQTST_ASSERT(!tb.d_negotiator->d_negotiateOutboundCalled);
+}
+
+static void test4_outboundHandleResponseFailure()
+// ------------------------------------------------------------------------
+// OUTBOUND HANDLE RESPONSE FAILURE
+//
+// Concerns:
+//   - When 'authenticate()' succeeds but 'handleResponse()' fails, the
+//     FSM transitions to 'e_FAILED'.
+//   - The completion callback is invoked with a non-zero status.
+//   - 'negotiateOutbound()' is never called.
+//
+// Plan:
+//   1) Configure MockAuthenticator with hasOutboundAuthentication = true
+//      and the mock client's handleResponseRc = -1.
+//   2) Construct an outbound context, call 'handleInitialConnection()'.
+//   3) Verify state is e_AUTHENTICATING_OUTBOUND (authenticate succeeded).
+//   4) Fire e_AUTHN_MESSAGE with an AuthenticationResponse.
+//   5) Verify state is e_FAILED, completion callback fired with non-zero
+//      status, and negotiateOutbound() was not called.
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("OUTBOUND HANDLE RESPONSE FAILURE");
+
+    bslma::Allocator* alloc = bmqtst::TestHelperUtil::allocator();
+    TestBench         tb(alloc);
+
+    // 1)
+    tb.d_authenticator->d_hasOutboundAuthentication = true;
+    tb.d_authenticator->d_handleResponseRc          = -1;
+
+    // 2)
+    mqbnet::InitialConnectionContext ctx(false,
+                                         tb.d_authenticator.get(),
+                                         tb.d_negotiator.get(),
+                                         static_cast<void*>(0),
+                                         static_cast<void*>(0),
+                                         tb.d_channel,
+                                         tb.d_completeCb,
+                                         alloc);
+    ctx.handleInitialConnection();
+
+    // 3)
+    BMQTST_ASSERT_EQ(
+        ctx.state(),
+        mqbnet::InitialConnectionState::e_AUTHENTICATING_OUTBOUND);
+    BMQTST_ASSERT(tb.d_authenticator->d_mockClient->d_authenticateCalled);
+
+    // 4)
+    bmqp_ctrlmsg::AuthenticationMessage response;
+    response.makeAuthenticationResponse();
+
+    ctx.handleEvent(bsl::string(),
+                    mqbnet::InitialConnectionEvent::e_AUTHN_MESSAGE,
+                    response);
+
+    // 5)
+    BMQTST_ASSERT_EQ(ctx.state(), mqbnet::InitialConnectionState::e_FAILED);
+    BMQTST_ASSERT(tb.d_authenticator->d_mockClient->d_handleResponseCalled);
+    BMQTST_ASSERT_NE(*tb.d_completionStatus, 0);
+    BMQTST_ASSERT(!tb.d_negotiator->d_negotiateOutboundCalled);
+}
+
+static void test5_outboundNoAuthentication()
+// ------------------------------------------------------------------------
+// OUTBOUND NO AUTHENTICATION
+//
+// Concerns:
+//   - When 'hasOutboundAuthentication()' is false,
+//     'handleInitialConnection()' skips authentication and goes directly
+//     to 'e_NEGOTIATING_OUTBOUND'.
+//   - No AuthenticationClient is created.
+//   - 'negotiateOutbound()' is called.
+//
+// Plan:
+//   1) Configure MockAuthenticator with hasOutboundAuthentication = false.
+//   2) Construct an outbound context, call 'handleInitialConnection()'.
+//   3) Verify state is e_NEGOTIATING_OUTBOUND, authenticationClient() is
+//      null, and negotiateOutbound() was called.
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("OUTBOUND NO AUTHENTICATION");
+
+    bslma::Allocator* alloc = bmqtst::TestHelperUtil::allocator();
+    TestBench         tb(alloc);
+
+    // 1) d_hasOutboundAuthentication defaults to false
+
+    // 2)
+    mqbnet::InitialConnectionContext ctx(false,
+                                         tb.d_authenticator.get(),
+                                         tb.d_negotiator.get(),
+                                         static_cast<void*>(0),
+                                         static_cast<void*>(0),
+                                         tb.d_channel,
+                                         tb.d_completeCb,
+                                         alloc);
+    ctx.handleInitialConnection();
+
+    // 3)
+    BMQTST_ASSERT_EQ(ctx.state(),
+                     mqbnet::InitialConnectionState::e_NEGOTIATING_OUTBOUND);
+    BMQTST_ASSERT(!ctx.authenticationClient());
+    BMQTST_ASSERT(tb.d_negotiator->d_negotiateOutboundCalled);
 }
 
 // ============================================================================
@@ -201,6 +470,10 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 5: test5_outboundNoAuthentication(); break;
+    case 4: test4_outboundHandleResponseFailure(); break;
+    case 3: test3_outboundAuthenticateFailure(); break;
+    case 2: test2_outboundAuthenticate(); break;
     case 1: test1_initialConnectionContext(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;

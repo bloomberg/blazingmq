@@ -87,9 +87,12 @@ struct InitialConnectionState {
         e_AUTHENTICATING      = 1,  // First message is authentication Request.
         e_AUTHENTICATED       = 2,  // Authentication success.
         e_ANON_AUTHENTICATING = 3,  // First message is Negotiation Request.
-        e_NEGOTIATING_OUTBOUND = 4,  // Outbound negotiation.
-        e_NEGOTIATED           = 5,  // Negotiation success.  Final state.
-        e_FAILED               = 6   // Final state.
+        e_NEGOTIATING_OUTBOUND    = 4,  // Outbound negotiation.
+        e_NEGOTIATED              = 5,  // Negotiation success.  Final state.
+        e_AUTHENTICATING_OUTBOUND = 6,  // Outbound authentication in progress.
+        // Note: 'e_AUTHENTICATED_OUTBOUND' is omitted as outbound authn
+        // directly transitions to e_NEGOTIATING_OUTBOUND or e_FAILED.
+        e_FAILED = 7  // Final state.
     };
 
     // CLASS METHODS
@@ -143,13 +146,20 @@ bsl::ostream& operator<<(bsl::ostream&                stream,
 struct InitialConnectionEvent {
     // TYPES
     enum Enum {
-        e_NONE                 = 0,
+        e_NONE = 0,
+        /// Negotiate session with a server (as a client)
         e_OUTBOUND_NEGOTIATION = 1,
-        e_INCOMING             = 2,
-        e_AUTHN_REQUEST        = 3,
-        e_NEGOTIATION_MESSAGE  = 4,
-        e_AUTHN_SUCCESS        = 5,
-        e_ERROR                = 6
+        /// New connection from a client
+        e_INCOMING = 2,
+        /// Received authentication message from client or server
+        e_AUTHN_MESSAGE = 3,
+        /// Received negotiation message from client or server
+        e_NEGOTIATION_MESSAGE = 4,
+        /// Client authenticated, proceed to negotiation
+        e_AUTHN_SUCCESS = 5,
+        /// Send authentication message as client
+        e_OUTBOUND_AUTHENTICATION = 6,
+        e_ERROR                   = 7
     };
 
     // CLASS METHODS
@@ -269,6 +279,11 @@ class InitialConnectionContext {
     /// The AuthenticationContext updated upon receiving an
     /// authentication message.
     bsl::shared_ptr<AuthenticationContext> d_authenticationCtxSp;
+
+    /// Per-connection client for outbound authentication and
+    /// reauthentication.  Non-null for outbound connections if broker
+    /// has a credential provider configured.  Null for inbound connections.
+    bsl::shared_ptr<AuthenticationClient> d_authenticationClientSp;
 
     /// The NegotiationContext updated upon receiving a negotiation message.
     bsl::shared_ptr<NegotiationContext> d_negotiationCtxSp;
@@ -415,6 +430,7 @@ class InitialConnectionContext {
     bmqp::EncodingType::Enum               authenticationEncodingType() const;
     const bsl::shared_ptr<AuthenticationContext>&
                                                authenticationContext() const;
+    const bsl::shared_ptr<AuthenticationClient>& authenticationClient() const;
     const bsl::shared_ptr<NegotiationContext>& negotiationContext() const;
     bool                                       isClosed() const;
     InitialConnectionState::Enum               state() const;
