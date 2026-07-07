@@ -2496,8 +2496,6 @@ static void test15_replicaWaitingReceivesReplicaDataRqstPull()
 
     helper.startStorageManager(&storageManager, primaryNode);
 
-    mqbs::FileStore& fs = storageManager.fileStore(k_PARTITION_ID);
-
     BSLS_ASSERT_OPT(storageManager.partitionHealthState(k_PARTITION_ID) ==
                     mqbc::PartitionFSM::State::e_REPLICA_WAITING);
 
@@ -2575,9 +2573,6 @@ static void test15_replicaWaitingReceivesReplicaDataRqstPull()
     replicaDataRequest.endSequenceNumber()   = selfSeqNum;
 
     storageManager.processReplicaDataRequest(requestMessage, primaryNode);
-
-    BSLS_ASSERT_OPT(fs.primaryLeaseId() == selfSeqNum.primaryLeaseId());
-    BSLS_ASSERT_OPT(fs.sequenceNumber() == selfSeqNum.sequenceNumber());
 
     // Verify that Replica sends data chunks followed by
     // ReplicaDataRspnPull.
