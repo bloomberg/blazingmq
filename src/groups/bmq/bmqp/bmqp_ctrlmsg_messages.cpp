@@ -544,18 +544,18 @@ bsl::ostream& AuthenticationRequest::print(bsl::ostream& stream,
 const char ClientLanguage::CLASS_NAME[] = "ClientLanguage";
 
 const bdlat_EnumeratorInfo ClientLanguage::ENUMERATOR_INFO_ARRAY[] = {
-    {ClientLanguage::e_E_UNKNOWN, "E_UNKNOWN", sizeof("E_UNKNOWN") - 1, ""},
-    {ClientLanguage::e_E_CPP, "E_CPP", sizeof("E_CPP") - 1, ""},
-    {ClientLanguage::e_E_JAVA, "E_JAVA", sizeof("E_JAVA") - 1, ""}};
+    {ClientLanguage::E_UNKNOWN, "E_UNKNOWN", sizeof("E_UNKNOWN") - 1, ""},
+    {ClientLanguage::E_CPP, "E_CPP", sizeof("E_CPP") - 1, ""},
+    {ClientLanguage::E_JAVA, "E_JAVA", sizeof("E_JAVA") - 1, ""}};
 
 // CLASS METHODS
 
 int ClientLanguage::fromInt(ClientLanguage::Value* result, int number)
 {
     switch (number) {
-    case ClientLanguage::e_E_UNKNOWN:
-    case ClientLanguage::e_E_CPP:
-    case ClientLanguage::e_E_JAVA:
+    case ClientLanguage::E_UNKNOWN:
+    case ClientLanguage::E_CPP:
+    case ClientLanguage::E_JAVA:
         *result = static_cast<ClientLanguage::Value>(number);
         return 0;
     default: return -1;
@@ -584,13 +584,13 @@ int ClientLanguage::fromString(ClientLanguage::Value* result,
 const char* ClientLanguage::toString(ClientLanguage::Value value)
 {
     switch (value) {
-    case e_E_UNKNOWN: {
+    case E_UNKNOWN: {
         return "E_UNKNOWN";
     }
-    case e_E_CPP: {
+    case E_CPP: {
         return "E_CPP";
     }
-    case e_E_JAVA: {
+    case E_JAVA: {
         return "E_JAVA";
     }
     }
@@ -608,20 +608,20 @@ const char* ClientLanguage::toString(ClientLanguage::Value value)
 const char ClientType::CLASS_NAME[] = "ClientType";
 
 const bdlat_EnumeratorInfo ClientType::ENUMERATOR_INFO_ARRAY[] = {
-    {ClientType::e_E_UNKNOWN, "E_UNKNOWN", sizeof("E_UNKNOWN") - 1, ""},
-    {ClientType::e_E_TCPCLIENT, "E_TCPCLIENT", sizeof("E_TCPCLIENT") - 1, ""},
-    {ClientType::e_E_TCPBROKER, "E_TCPBROKER", sizeof("E_TCPBROKER") - 1, ""},
-    {ClientType::e_E_TCPADMIN, "E_TCPADMIN", sizeof("E_TCPADMIN") - 1, ""}};
+    {ClientType::E_UNKNOWN, "E_UNKNOWN", sizeof("E_UNKNOWN") - 1, ""},
+    {ClientType::E_TCPCLIENT, "E_TCPCLIENT", sizeof("E_TCPCLIENT") - 1, ""},
+    {ClientType::E_TCPBROKER, "E_TCPBROKER", sizeof("E_TCPBROKER") - 1, ""},
+    {ClientType::E_TCPADMIN, "E_TCPADMIN", sizeof("E_TCPADMIN") - 1, ""}};
 
 // CLASS METHODS
 
 int ClientType::fromInt(ClientType::Value* result, int number)
 {
     switch (number) {
-    case ClientType::e_E_UNKNOWN:
-    case ClientType::e_E_TCPCLIENT:
-    case ClientType::e_E_TCPBROKER:
-    case ClientType::e_E_TCPADMIN:
+    case ClientType::E_UNKNOWN:
+    case ClientType::E_TCPCLIENT:
+    case ClientType::E_TCPBROKER:
+    case ClientType::E_TCPADMIN:
         *result = static_cast<ClientType::Value>(number);
         return 0;
     default: return -1;
@@ -649,16 +649,16 @@ int ClientType::fromString(ClientType::Value* result,
 const char* ClientType::toString(ClientType::Value value)
 {
     switch (value) {
-    case e_E_UNKNOWN: {
+    case E_UNKNOWN: {
         return "E_UNKNOWN";
     }
-    case e_E_TCPCLIENT: {
+    case E_TCPCLIENT: {
         return "E_TCPCLIENT";
     }
-    case e_E_TCPBROKER: {
+    case E_TCPBROKER: {
         return "E_TCPBROKER";
     }
-    case e_E_TCPADMIN: {
+    case E_TCPADMIN: {
         return "E_TCPADMIN";
     }
     }
@@ -946,13 +946,13 @@ bsl::ostream& DummyType::print(bsl::ostream& stream, int, int) const
 const char DumpActionType::CLASS_NAME[] = "DumpActionType";
 
 const bdlat_EnumeratorInfo DumpActionType::ENUMERATOR_INFO_ARRAY[] = {
-    {DumpActionType::e_E_ON, "E_ON", sizeof("E_ON") - 1, ""},
-    {DumpActionType::e_E_OFF, "E_OFF", sizeof("E_OFF") - 1, ""},
-    {DumpActionType::e_E_MESSAGE_COUNT,
+    {DumpActionType::E_ON, "E_ON", sizeof("E_ON") - 1, ""},
+    {DumpActionType::E_OFF, "E_OFF", sizeof("E_OFF") - 1, ""},
+    {DumpActionType::E_MESSAGE_COUNT,
      "E_MESSAGE_COUNT",
      sizeof("E_MESSAGE_COUNT") - 1,
      ""},
-    {DumpActionType::e_E_TIME_IN_SECONDS,
+    {DumpActionType::E_TIME_IN_SECONDS,
      "E_TIME_IN_SECONDS",
      sizeof("E_TIME_IN_SECONDS") - 1,
      ""}};
@@ -962,10 +962,10 @@ const bdlat_EnumeratorInfo DumpActionType::ENUMERATOR_INFO_ARRAY[] = {
 int DumpActionType::fromInt(DumpActionType::Value* result, int number)
 {
     switch (number) {
-    case DumpActionType::e_E_ON:
-    case DumpActionType::e_E_OFF:
-    case DumpActionType::e_E_MESSAGE_COUNT:
-    case DumpActionType::e_E_TIME_IN_SECONDS:
+    case DumpActionType::E_ON:
+    case DumpActionType::E_OFF:
+    case DumpActionType::E_MESSAGE_COUNT:
+    case DumpActionType::E_TIME_IN_SECONDS:
         *result = static_cast<DumpActionType::Value>(number);
         return 0;
     default: return -1;
@@ -994,16 +994,16 @@ int DumpActionType::fromString(DumpActionType::Value* result,
 const char* DumpActionType::toString(DumpActionType::Value value)
 {
     switch (value) {
-    case e_E_ON: {
+    case E_ON: {
         return "E_ON";
     }
-    case e_E_OFF: {
+    case E_OFF: {
         return "E_OFF";
     }
-    case e_E_MESSAGE_COUNT: {
+    case E_MESSAGE_COUNT: {
         return "E_MESSAGE_COUNT";
     }
-    case e_E_TIME_IN_SECONDS: {
+    case E_TIME_IN_SECONDS: {
         return "E_TIME_IN_SECONDS";
     }
     }
@@ -1021,24 +1021,24 @@ const char* DumpActionType::toString(DumpActionType::Value value)
 const char DumpMsgType::CLASS_NAME[] = "DumpMsgType";
 
 const bdlat_EnumeratorInfo DumpMsgType::ENUMERATOR_INFO_ARRAY[] = {
-    {DumpMsgType::e_E_INCOMING, "E_INCOMING", sizeof("E_INCOMING") - 1, ""},
-    {DumpMsgType::e_E_OUTGOING, "E_OUTGOING", sizeof("E_OUTGOING") - 1, ""},
-    {DumpMsgType::e_E_PUSH, "E_PUSH", sizeof("E_PUSH") - 1, ""},
-    {DumpMsgType::e_E_ACK, "E_ACK", sizeof("E_ACK") - 1, ""},
-    {DumpMsgType::e_E_PUT, "E_PUT", sizeof("E_PUT") - 1, ""},
-    {DumpMsgType::e_E_CONFIRM, "E_CONFIRM", sizeof("E_CONFIRM") - 1, ""}};
+    {DumpMsgType::E_INCOMING, "E_INCOMING", sizeof("E_INCOMING") - 1, ""},
+    {DumpMsgType::E_OUTGOING, "E_OUTGOING", sizeof("E_OUTGOING") - 1, ""},
+    {DumpMsgType::E_PUSH, "E_PUSH", sizeof("E_PUSH") - 1, ""},
+    {DumpMsgType::E_ACK, "E_ACK", sizeof("E_ACK") - 1, ""},
+    {DumpMsgType::E_PUT, "E_PUT", sizeof("E_PUT") - 1, ""},
+    {DumpMsgType::E_CONFIRM, "E_CONFIRM", sizeof("E_CONFIRM") - 1, ""}};
 
 // CLASS METHODS
 
 int DumpMsgType::fromInt(DumpMsgType::Value* result, int number)
 {
     switch (number) {
-    case DumpMsgType::e_E_INCOMING:
-    case DumpMsgType::e_E_OUTGOING:
-    case DumpMsgType::e_E_PUSH:
-    case DumpMsgType::e_E_ACK:
-    case DumpMsgType::e_E_PUT:
-    case DumpMsgType::e_E_CONFIRM:
+    case DumpMsgType::E_INCOMING:
+    case DumpMsgType::E_OUTGOING:
+    case DumpMsgType::E_PUSH:
+    case DumpMsgType::E_ACK:
+    case DumpMsgType::E_PUT:
+    case DumpMsgType::E_CONFIRM:
         *result = static_cast<DumpMsgType::Value>(number);
         return 0;
     default: return -1;
@@ -1066,22 +1066,22 @@ int DumpMsgType::fromString(DumpMsgType::Value* result,
 const char* DumpMsgType::toString(DumpMsgType::Value value)
 {
     switch (value) {
-    case e_E_INCOMING: {
+    case E_INCOMING: {
         return "E_INCOMING";
     }
-    case e_E_OUTGOING: {
+    case E_OUTGOING: {
         return "E_OUTGOING";
     }
-    case e_E_PUSH: {
+    case E_PUSH: {
         return "E_PUSH";
     }
-    case e_E_ACK: {
+    case E_ACK: {
         return "E_ACK";
     }
-    case e_E_PUT: {
+    case E_PUT: {
         return "E_PUT";
     }
-    case e_E_CONFIRM: {
+    case E_CONFIRM: {
         return "E_CONFIRM";
     }
     }
@@ -1248,11 +1248,11 @@ bsl::ostream& ElectorNodeStatus::print(bsl::ostream& stream,
 const char ExpressionVersion::CLASS_NAME[] = "ExpressionVersion";
 
 const bdlat_EnumeratorInfo ExpressionVersion::ENUMERATOR_INFO_ARRAY[] = {
-    {ExpressionVersion::e_E_UNDEFINED,
+    {ExpressionVersion::E_UNDEFINED,
      "E_UNDEFINED",
      sizeof("E_UNDEFINED") - 1,
      ""},
-    {ExpressionVersion::e_E_VERSION_1,
+    {ExpressionVersion::E_VERSION_1,
      "E_VERSION_1",
      sizeof("E_VERSION_1") - 1,
      ""}};
@@ -1262,8 +1262,8 @@ const bdlat_EnumeratorInfo ExpressionVersion::ENUMERATOR_INFO_ARRAY[] = {
 int ExpressionVersion::fromInt(ExpressionVersion::Value* result, int number)
 {
     switch (number) {
-    case ExpressionVersion::e_E_UNDEFINED:
-    case ExpressionVersion::e_E_VERSION_1:
+    case ExpressionVersion::E_UNDEFINED:
+    case ExpressionVersion::E_VERSION_1:
         *result = static_cast<ExpressionVersion::Value>(number);
         return 0;
     default: return -1;
@@ -1292,10 +1292,10 @@ int ExpressionVersion::fromString(ExpressionVersion::Value* result,
 const char* ExpressionVersion::toString(ExpressionVersion::Value value)
 {
     switch (value) {
-    case e_E_UNDEFINED: {
+    case E_UNDEFINED: {
         return "E_UNDEFINED";
     }
-    case e_E_VERSION_1: {
+    case E_VERSION_1: {
         return "E_VERSION_1";
     }
     }
@@ -1852,11 +1852,11 @@ LeadershipCessionNotification::print(bsl::ostream& stream, int, int) const
 const char NodeStatus::CLASS_NAME[] = "NodeStatus";
 
 const bdlat_EnumeratorInfo NodeStatus::ENUMERATOR_INFO_ARRAY[] = {
-    {NodeStatus::e_E_UNKNOWN, "E_UNKNOWN", sizeof("E_UNKNOWN") - 1, ""},
-    {NodeStatus::e_E_STARTING, "E_STARTING", sizeof("E_STARTING") - 1, ""},
-    {NodeStatus::e_E_AVAILABLE, "E_AVAILABLE", sizeof("E_AVAILABLE") - 1, ""},
-    {NodeStatus::e_E_STOPPING, "E_STOPPING", sizeof("E_STOPPING") - 1, ""},
-    {NodeStatus::e_E_UNAVAILABLE,
+    {NodeStatus::E_UNKNOWN, "E_UNKNOWN", sizeof("E_UNKNOWN") - 1, ""},
+    {NodeStatus::E_STARTING, "E_STARTING", sizeof("E_STARTING") - 1, ""},
+    {NodeStatus::E_AVAILABLE, "E_AVAILABLE", sizeof("E_AVAILABLE") - 1, ""},
+    {NodeStatus::E_STOPPING, "E_STOPPING", sizeof("E_STOPPING") - 1, ""},
+    {NodeStatus::E_UNAVAILABLE,
      "E_UNAVAILABLE",
      sizeof("E_UNAVAILABLE") - 1,
      ""}};
@@ -1866,11 +1866,11 @@ const bdlat_EnumeratorInfo NodeStatus::ENUMERATOR_INFO_ARRAY[] = {
 int NodeStatus::fromInt(NodeStatus::Value* result, int number)
 {
     switch (number) {
-    case NodeStatus::e_E_UNKNOWN:
-    case NodeStatus::e_E_STARTING:
-    case NodeStatus::e_E_AVAILABLE:
-    case NodeStatus::e_E_STOPPING:
-    case NodeStatus::e_E_UNAVAILABLE:
+    case NodeStatus::E_UNKNOWN:
+    case NodeStatus::E_STARTING:
+    case NodeStatus::E_AVAILABLE:
+    case NodeStatus::E_STOPPING:
+    case NodeStatus::E_UNAVAILABLE:
         *result = static_cast<NodeStatus::Value>(number);
         return 0;
     default: return -1;
@@ -1898,19 +1898,19 @@ int NodeStatus::fromString(NodeStatus::Value* result,
 const char* NodeStatus::toString(NodeStatus::Value value)
 {
     switch (value) {
-    case e_E_UNKNOWN: {
+    case E_UNKNOWN: {
         return "E_UNKNOWN";
     }
-    case e_E_STARTING: {
+    case E_STARTING: {
         return "E_STARTING";
     }
-    case e_E_AVAILABLE: {
+    case E_AVAILABLE: {
         return "E_AVAILABLE";
     }
-    case e_E_STOPPING: {
+    case E_STOPPING: {
         return "E_STOPPING";
     }
-    case e_E_UNAVAILABLE: {
+    case E_UNAVAILABLE: {
         return "E_UNAVAILABLE";
     }
     }
@@ -2260,21 +2260,18 @@ bsl::ostream& PartitionSyncStateQuery::print(bsl::ostream& stream,
 const char PrimaryStatus::CLASS_NAME[] = "PrimaryStatus";
 
 const bdlat_EnumeratorInfo PrimaryStatus::ENUMERATOR_INFO_ARRAY[] = {
-    {PrimaryStatus::e_E_UNDEFINED,
-     "E_UNDEFINED",
-     sizeof("E_UNDEFINED") - 1,
-     ""},
-    {PrimaryStatus::e_E_PASSIVE, "E_PASSIVE", sizeof("E_PASSIVE") - 1, ""},
-    {PrimaryStatus::e_E_ACTIVE, "E_ACTIVE", sizeof("E_ACTIVE") - 1, ""}};
+    {PrimaryStatus::E_UNDEFINED, "E_UNDEFINED", sizeof("E_UNDEFINED") - 1, ""},
+    {PrimaryStatus::E_PASSIVE, "E_PASSIVE", sizeof("E_PASSIVE") - 1, ""},
+    {PrimaryStatus::E_ACTIVE, "E_ACTIVE", sizeof("E_ACTIVE") - 1, ""}};
 
 // CLASS METHODS
 
 int PrimaryStatus::fromInt(PrimaryStatus::Value* result, int number)
 {
     switch (number) {
-    case PrimaryStatus::e_E_UNDEFINED:
-    case PrimaryStatus::e_E_PASSIVE:
-    case PrimaryStatus::e_E_ACTIVE:
+    case PrimaryStatus::E_UNDEFINED:
+    case PrimaryStatus::E_PASSIVE:
+    case PrimaryStatus::E_ACTIVE:
         *result = static_cast<PrimaryStatus::Value>(number);
         return 0;
     default: return -1;
@@ -2303,13 +2300,13 @@ int PrimaryStatus::fromString(PrimaryStatus::Value* result,
 const char* PrimaryStatus::toString(PrimaryStatus::Value value)
 {
     switch (value) {
-    case e_E_UNDEFINED: {
+    case E_UNDEFINED: {
         return "E_UNDEFINED";
     }
-    case e_E_PASSIVE: {
+    case E_PASSIVE: {
         return "E_PASSIVE";
     }
-    case e_E_ACTIVE: {
+    case E_ACTIVE: {
         return "E_ACTIVE";
     }
     }
@@ -2647,20 +2644,20 @@ bsl::ostream& RegistrationResponse::print(bsl::ostream& stream, int, int) const
 const char ReplicaDataType::CLASS_NAME[] = "ReplicaDataType";
 
 const bdlat_EnumeratorInfo ReplicaDataType::ENUMERATOR_INFO_ARRAY[] = {
-    {ReplicaDataType::e_E_UNKNOWN, "E_UNKNOWN", sizeof("E_UNKNOWN") - 1, ""},
-    {ReplicaDataType::e_E_PULL, "E_PULL", sizeof("E_PULL") - 1, ""},
-    {ReplicaDataType::e_E_PUSH, "E_PUSH", sizeof("E_PUSH") - 1, ""},
-    {ReplicaDataType::e_E_DROP, "E_DROP", sizeof("E_DROP") - 1, ""}};
+    {ReplicaDataType::E_UNKNOWN, "E_UNKNOWN", sizeof("E_UNKNOWN") - 1, ""},
+    {ReplicaDataType::E_PULL, "E_PULL", sizeof("E_PULL") - 1, ""},
+    {ReplicaDataType::E_PUSH, "E_PUSH", sizeof("E_PUSH") - 1, ""},
+    {ReplicaDataType::E_DROP, "E_DROP", sizeof("E_DROP") - 1, ""}};
 
 // CLASS METHODS
 
 int ReplicaDataType::fromInt(ReplicaDataType::Value* result, int number)
 {
     switch (number) {
-    case ReplicaDataType::e_E_UNKNOWN:
-    case ReplicaDataType::e_E_PULL:
-    case ReplicaDataType::e_E_PUSH:
-    case ReplicaDataType::e_E_DROP:
+    case ReplicaDataType::E_UNKNOWN:
+    case ReplicaDataType::E_PULL:
+    case ReplicaDataType::E_PUSH:
+    case ReplicaDataType::E_DROP:
         *result = static_cast<ReplicaDataType::Value>(number);
         return 0;
     default: return -1;
@@ -2689,16 +2686,16 @@ int ReplicaDataType::fromString(ReplicaDataType::Value* result,
 const char* ReplicaDataType::toString(ReplicaDataType::Value value)
 {
     switch (value) {
-    case e_E_UNKNOWN: {
+    case E_UNKNOWN: {
         return "E_UNKNOWN";
     }
-    case e_E_PULL: {
+    case E_PULL: {
         return "E_PULL";
     }
-    case e_E_PUSH: {
+    case E_PUSH: {
         return "E_PUSH";
     }
-    case e_E_DROP: {
+    case E_DROP: {
         return "E_DROP";
     }
     }
@@ -2786,19 +2783,19 @@ const char RoutingConfigurationFlags::CLASS_NAME[] =
     "RoutingConfigurationFlags";
 
 const bdlat_EnumeratorInfo RoutingConfigurationFlags::ENUMERATOR_INFO_ARRAY[] =
-    {{RoutingConfigurationFlags::e_E_AT_MOST_ONCE,
+    {{RoutingConfigurationFlags::E_AT_MOST_ONCE,
       "E_AT_MOST_ONCE",
       sizeof("E_AT_MOST_ONCE") - 1,
       ""},
-     {RoutingConfigurationFlags::e_E_DELIVER_CONSUMER_PRIORITY,
+     {RoutingConfigurationFlags::E_DELIVER_CONSUMER_PRIORITY,
       "E_DELIVER_CONSUMER_PRIORITY",
       sizeof("E_DELIVER_CONSUMER_PRIORITY") - 1,
       ""},
-     {RoutingConfigurationFlags::e_E_DELIVER_ALL,
+     {RoutingConfigurationFlags::E_DELIVER_ALL,
       "E_DELIVER_ALL",
       sizeof("E_DELIVER_ALL") - 1,
       ""},
-     {RoutingConfigurationFlags::e_E_HAS_MULTIPLE_SUB_STREAMS,
+     {RoutingConfigurationFlags::E_HAS_MULTIPLE_SUB_STREAMS,
       "E_HAS_MULTIPLE_SUB_STREAMS",
       sizeof("E_HAS_MULTIPLE_SUB_STREAMS") - 1,
       ""}};
@@ -2810,10 +2807,10 @@ int RoutingConfigurationFlags::fromInt(
     int                               number)
 {
     switch (number) {
-    case RoutingConfigurationFlags::e_E_AT_MOST_ONCE:
-    case RoutingConfigurationFlags::e_E_DELIVER_CONSUMER_PRIORITY:
-    case RoutingConfigurationFlags::e_E_DELIVER_ALL:
-    case RoutingConfigurationFlags::e_E_HAS_MULTIPLE_SUB_STREAMS:
+    case RoutingConfigurationFlags::E_AT_MOST_ONCE:
+    case RoutingConfigurationFlags::E_DELIVER_CONSUMER_PRIORITY:
+    case RoutingConfigurationFlags::E_DELIVER_ALL:
+    case RoutingConfigurationFlags::E_HAS_MULTIPLE_SUB_STREAMS:
         *result = static_cast<RoutingConfigurationFlags::Value>(number);
         return 0;
     default: return -1;
@@ -2844,16 +2841,16 @@ const char*
 RoutingConfigurationFlags::toString(RoutingConfigurationFlags::Value value)
 {
     switch (value) {
-    case e_E_AT_MOST_ONCE: {
+    case E_AT_MOST_ONCE: {
         return "E_AT_MOST_ONCE";
     }
-    case e_E_DELIVER_CONSUMER_PRIORITY: {
+    case E_DELIVER_CONSUMER_PRIORITY: {
         return "E_DELIVER_CONSUMER_PRIORITY";
     }
-    case e_E_DELIVER_ALL: {
+    case E_DELIVER_ALL: {
         return "E_DELIVER_ALL";
     }
-    case e_E_HAS_MULTIPLE_SUB_STREAMS: {
+    case E_HAS_MULTIPLE_SUB_STREAMS: {
         return "E_HAS_MULTIPLE_SUB_STREAMS";
     }
     }
@@ -2980,24 +2977,24 @@ bsl::ostream& ScoutingResponse::print(bsl::ostream& stream,
 const char StatusCategory::CLASS_NAME[] = "StatusCategory";
 
 const bdlat_EnumeratorInfo StatusCategory::ENUMERATOR_INFO_ARRAY[] = {
-    {StatusCategory::e_E_SUCCESS, "E_SUCCESS", sizeof("E_SUCCESS") - 1, ""},
-    {StatusCategory::e_E_UNKNOWN, "E_UNKNOWN", sizeof("E_UNKNOWN") - 1, ""},
-    {StatusCategory::e_E_TIMEOUT, "E_TIMEOUT", sizeof("E_TIMEOUT") - 1, ""},
-    {StatusCategory::e_E_NOT_CONNECTED,
+    {StatusCategory::E_SUCCESS, "E_SUCCESS", sizeof("E_SUCCESS") - 1, ""},
+    {StatusCategory::E_UNKNOWN, "E_UNKNOWN", sizeof("E_UNKNOWN") - 1, ""},
+    {StatusCategory::E_TIMEOUT, "E_TIMEOUT", sizeof("E_TIMEOUT") - 1, ""},
+    {StatusCategory::E_NOT_CONNECTED,
      "E_NOT_CONNECTED",
      sizeof("E_NOT_CONNECTED") - 1,
      ""},
-    {StatusCategory::e_E_CANCELED, "E_CANCELED", sizeof("E_CANCELED") - 1, ""},
-    {StatusCategory::e_E_NOT_SUPPORTED,
+    {StatusCategory::E_CANCELED, "E_CANCELED", sizeof("E_CANCELED") - 1, ""},
+    {StatusCategory::E_NOT_SUPPORTED,
      "E_NOT_SUPPORTED",
      sizeof("E_NOT_SUPPORTED") - 1,
      ""},
-    {StatusCategory::e_E_REFUSED, "E_REFUSED", sizeof("E_REFUSED") - 1, ""},
-    {StatusCategory::e_E_INVALID_ARGUMENT,
+    {StatusCategory::E_REFUSED, "E_REFUSED", sizeof("E_REFUSED") - 1, ""},
+    {StatusCategory::E_INVALID_ARGUMENT,
      "E_INVALID_ARGUMENT",
      sizeof("E_INVALID_ARGUMENT") - 1,
      ""},
-    {StatusCategory::e_E_NOT_READY,
+    {StatusCategory::E_NOT_READY,
      "E_NOT_READY",
      sizeof("E_NOT_READY") - 1,
      ""}};
@@ -3007,15 +3004,15 @@ const bdlat_EnumeratorInfo StatusCategory::ENUMERATOR_INFO_ARRAY[] = {
 int StatusCategory::fromInt(StatusCategory::Value* result, int number)
 {
     switch (number) {
-    case StatusCategory::e_E_SUCCESS:
-    case StatusCategory::e_E_UNKNOWN:
-    case StatusCategory::e_E_TIMEOUT:
-    case StatusCategory::e_E_NOT_CONNECTED:
-    case StatusCategory::e_E_CANCELED:
-    case StatusCategory::e_E_NOT_SUPPORTED:
-    case StatusCategory::e_E_REFUSED:
-    case StatusCategory::e_E_INVALID_ARGUMENT:
-    case StatusCategory::e_E_NOT_READY:
+    case StatusCategory::E_SUCCESS:
+    case StatusCategory::E_UNKNOWN:
+    case StatusCategory::E_TIMEOUT:
+    case StatusCategory::E_NOT_CONNECTED:
+    case StatusCategory::E_CANCELED:
+    case StatusCategory::E_NOT_SUPPORTED:
+    case StatusCategory::E_REFUSED:
+    case StatusCategory::E_INVALID_ARGUMENT:
+    case StatusCategory::E_NOT_READY:
         *result = static_cast<StatusCategory::Value>(number);
         return 0;
     default: return -1;
@@ -3044,31 +3041,31 @@ int StatusCategory::fromString(StatusCategory::Value* result,
 const char* StatusCategory::toString(StatusCategory::Value value)
 {
     switch (value) {
-    case e_E_SUCCESS: {
+    case E_SUCCESS: {
         return "E_SUCCESS";
     }
-    case e_E_UNKNOWN: {
+    case E_UNKNOWN: {
         return "E_UNKNOWN";
     }
-    case e_E_TIMEOUT: {
+    case E_TIMEOUT: {
         return "E_TIMEOUT";
     }
-    case e_E_NOT_CONNECTED: {
+    case E_NOT_CONNECTED: {
         return "E_NOT_CONNECTED";
     }
-    case e_E_CANCELED: {
+    case E_CANCELED: {
         return "E_CANCELED";
     }
-    case e_E_NOT_SUPPORTED: {
+    case E_NOT_SUPPORTED: {
         return "E_NOT_SUPPORTED";
     }
-    case e_E_REFUSED: {
+    case E_REFUSED: {
         return "E_REFUSED";
     }
-    case e_E_INVALID_ARGUMENT: {
+    case E_INVALID_ARGUMENT: {
         return "E_INVALID_ARGUMENT";
     }
-    case e_E_NOT_READY: {
+    case E_NOT_READY: {
         return "E_NOT_READY";
     }
     }
@@ -3329,20 +3326,17 @@ StopResponse::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 const char StorageSyncResponseType::CLASS_NAME[] = "StorageSyncResponseType";
 
 const bdlat_EnumeratorInfo StorageSyncResponseType::ENUMERATOR_INFO_ARRAY[] = {
-    {StorageSyncResponseType::e_E_UNDEFINED,
+    {StorageSyncResponseType::E_UNDEFINED,
      "E_UNDEFINED",
      sizeof("E_UNDEFINED") - 1,
      ""},
-    {StorageSyncResponseType::e_E_PATCH, "E_PATCH", sizeof("E_PATCH") - 1, ""},
-    {StorageSyncResponseType::e_E_FILE, "E_FILE", sizeof("E_FILE") - 1, ""},
-    {StorageSyncResponseType::e_E_IN_SYNC,
+    {StorageSyncResponseType::E_PATCH, "E_PATCH", sizeof("E_PATCH") - 1, ""},
+    {StorageSyncResponseType::E_FILE, "E_FILE", sizeof("E_FILE") - 1, ""},
+    {StorageSyncResponseType::E_IN_SYNC,
      "E_IN_SYNC",
      sizeof("E_IN_SYNC") - 1,
      ""},
-    {StorageSyncResponseType::e_E_EMPTY,
-     "E_EMPTY",
-     sizeof("E_EMPTY") - 1,
-     ""}};
+    {StorageSyncResponseType::E_EMPTY, "E_EMPTY", sizeof("E_EMPTY") - 1, ""}};
 
 // CLASS METHODS
 
@@ -3350,11 +3344,11 @@ int StorageSyncResponseType::fromInt(StorageSyncResponseType::Value* result,
                                      int                             number)
 {
     switch (number) {
-    case StorageSyncResponseType::e_E_UNDEFINED:
-    case StorageSyncResponseType::e_E_PATCH:
-    case StorageSyncResponseType::e_E_FILE:
-    case StorageSyncResponseType::e_E_IN_SYNC:
-    case StorageSyncResponseType::e_E_EMPTY:
+    case StorageSyncResponseType::E_UNDEFINED:
+    case StorageSyncResponseType::E_PATCH:
+    case StorageSyncResponseType::E_FILE:
+    case StorageSyncResponseType::E_IN_SYNC:
+    case StorageSyncResponseType::E_EMPTY:
         *result = static_cast<StorageSyncResponseType::Value>(number);
         return 0;
     default: return -1;
@@ -3384,19 +3378,19 @@ const char*
 StorageSyncResponseType::toString(StorageSyncResponseType::Value value)
 {
     switch (value) {
-    case e_E_UNDEFINED: {
+    case E_UNDEFINED: {
         return "E_UNDEFINED";
     }
-    case e_E_PATCH: {
+    case E_PATCH: {
         return "E_PATCH";
     }
-    case e_E_FILE: {
+    case E_FILE: {
         return "E_FILE";
     }
-    case e_E_IN_SYNC: {
+    case E_IN_SYNC: {
         return "E_IN_SYNC";
     }
-    case e_E_EMPTY: {
+    case E_EMPTY: {
         return "E_EMPTY";
     }
     }
@@ -6607,16 +6601,21 @@ bsl::ostream& RegistrationRequest::print(bsl::ostream& stream,
 const char ReplicaDataRequest::CLASS_NAME[] = "ReplicaDataRequest";
 
 const bdlat_AttributeInfo ReplicaDataRequest::ATTRIBUTE_INFO_ARRAY[] = {
-    {ATTRIBUTE_ID_REPLICA_DATA_TYPE,
-     "replicaDataType",
-     sizeof("replicaDataType") - 1,
-     "",
-     bdlat_FormattingMode::e_DEFAULT},
     {ATTRIBUTE_ID_PARTITION_ID,
      "partitionId",
      sizeof("partitionId") - 1,
      "",
      bdlat_FormattingMode::e_DEC},
+    {ATTRIBUTE_ID_PRIMARY_LEASE_ID,
+     "primaryLeaseId",
+     sizeof("primaryLeaseId") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC},
+    {ATTRIBUTE_ID_REPLICA_DATA_TYPE,
+     "replicaDataType",
+     sizeof("replicaDataType") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT},
     {ATTRIBUTE_ID_BEGIN_SEQUENCE_NUMBER,
      "beginSequenceNumber",
      sizeof("beginSequenceNumber") - 1,
@@ -6633,7 +6632,7 @@ const bdlat_AttributeInfo ReplicaDataRequest::ATTRIBUTE_INFO_ARRAY[] = {
 const bdlat_AttributeInfo*
 ReplicaDataRequest::lookupAttributeInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 4; ++i) {
+    for (int i = 0; i < 5; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             ReplicaDataRequest::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -6649,10 +6648,12 @@ ReplicaDataRequest::lookupAttributeInfo(const char* name, int nameLength)
 const bdlat_AttributeInfo* ReplicaDataRequest::lookupAttributeInfo(int id)
 {
     switch (id) {
-    case ATTRIBUTE_ID_REPLICA_DATA_TYPE:
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_REPLICA_DATA_TYPE];
     case ATTRIBUTE_ID_PARTITION_ID:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID];
+    case ATTRIBUTE_ID_PRIMARY_LEASE_ID:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRIMARY_LEASE_ID];
+    case ATTRIBUTE_ID_REPLICA_DATA_TYPE:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_REPLICA_DATA_TYPE];
     case ATTRIBUTE_ID_BEGIN_SEQUENCE_NUMBER:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_BEGIN_SEQUENCE_NUMBER];
     case ATTRIBUTE_ID_END_SEQUENCE_NUMBER:
@@ -6666,6 +6667,7 @@ const bdlat_AttributeInfo* ReplicaDataRequest::lookupAttributeInfo(int id)
 ReplicaDataRequest::ReplicaDataRequest()
 : d_beginSequenceNumber()
 , d_endSequenceNumber()
+, d_primaryLeaseId()
 , d_partitionId()
 , d_replicaDataType(static_cast<ReplicaDataType::Value>(0))
 {
@@ -6675,8 +6677,9 @@ ReplicaDataRequest::ReplicaDataRequest()
 
 void ReplicaDataRequest::reset()
 {
-    bdlat_ValueTypeFunctions::reset(&d_replicaDataType);
     bdlat_ValueTypeFunctions::reset(&d_partitionId);
+    bdlat_ValueTypeFunctions::reset(&d_primaryLeaseId);
+    bdlat_ValueTypeFunctions::reset(&d_replicaDataType);
     bdlat_ValueTypeFunctions::reset(&d_beginSequenceNumber);
     bdlat_ValueTypeFunctions::reset(&d_endSequenceNumber);
 }
@@ -6689,8 +6692,9 @@ bsl::ostream& ReplicaDataRequest::print(bsl::ostream& stream,
 {
     bslim::Printer printer(&stream, level, spacesPerLevel);
     printer.start();
-    printer.printAttribute("replicaDataType", this->replicaDataType());
     printer.printAttribute("partitionId", this->partitionId());
+    printer.printAttribute("primaryLeaseId", this->primaryLeaseId());
+    printer.printAttribute("replicaDataType", this->replicaDataType());
     printer.printAttribute("beginSequenceNumber", this->beginSequenceNumber());
     printer.printAttribute("endSequenceNumber", this->endSequenceNumber());
     printer.end();
@@ -6706,16 +6710,21 @@ bsl::ostream& ReplicaDataRequest::print(bsl::ostream& stream,
 const char ReplicaDataResponse::CLASS_NAME[] = "ReplicaDataResponse";
 
 const bdlat_AttributeInfo ReplicaDataResponse::ATTRIBUTE_INFO_ARRAY[] = {
-    {ATTRIBUTE_ID_REPLICA_DATA_TYPE,
-     "replicaDataType",
-     sizeof("replicaDataType") - 1,
-     "",
-     bdlat_FormattingMode::e_DEFAULT},
     {ATTRIBUTE_ID_PARTITION_ID,
      "partitionId",
      sizeof("partitionId") - 1,
      "",
      bdlat_FormattingMode::e_DEC},
+    {ATTRIBUTE_ID_PRIMARY_LEASE_ID,
+     "primaryLeaseId",
+     sizeof("primaryLeaseId") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC},
+    {ATTRIBUTE_ID_REPLICA_DATA_TYPE,
+     "replicaDataType",
+     sizeof("replicaDataType") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT},
     {ATTRIBUTE_ID_BEGIN_SEQUENCE_NUMBER,
      "beginSequenceNumber",
      sizeof("beginSequenceNumber") - 1,
@@ -6732,7 +6741,7 @@ const bdlat_AttributeInfo ReplicaDataResponse::ATTRIBUTE_INFO_ARRAY[] = {
 const bdlat_AttributeInfo*
 ReplicaDataResponse::lookupAttributeInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 4; ++i) {
+    for (int i = 0; i < 5; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             ReplicaDataResponse::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -6748,10 +6757,12 @@ ReplicaDataResponse::lookupAttributeInfo(const char* name, int nameLength)
 const bdlat_AttributeInfo* ReplicaDataResponse::lookupAttributeInfo(int id)
 {
     switch (id) {
-    case ATTRIBUTE_ID_REPLICA_DATA_TYPE:
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_REPLICA_DATA_TYPE];
     case ATTRIBUTE_ID_PARTITION_ID:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID];
+    case ATTRIBUTE_ID_PRIMARY_LEASE_ID:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRIMARY_LEASE_ID];
+    case ATTRIBUTE_ID_REPLICA_DATA_TYPE:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_REPLICA_DATA_TYPE];
     case ATTRIBUTE_ID_BEGIN_SEQUENCE_NUMBER:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_BEGIN_SEQUENCE_NUMBER];
     case ATTRIBUTE_ID_END_SEQUENCE_NUMBER:
@@ -6765,6 +6776,7 @@ const bdlat_AttributeInfo* ReplicaDataResponse::lookupAttributeInfo(int id)
 ReplicaDataResponse::ReplicaDataResponse()
 : d_beginSequenceNumber()
 , d_endSequenceNumber()
+, d_primaryLeaseId()
 , d_partitionId()
 , d_replicaDataType(static_cast<ReplicaDataType::Value>(0))
 {
@@ -6774,8 +6786,9 @@ ReplicaDataResponse::ReplicaDataResponse()
 
 void ReplicaDataResponse::reset()
 {
-    bdlat_ValueTypeFunctions::reset(&d_replicaDataType);
     bdlat_ValueTypeFunctions::reset(&d_partitionId);
+    bdlat_ValueTypeFunctions::reset(&d_primaryLeaseId);
+    bdlat_ValueTypeFunctions::reset(&d_replicaDataType);
     bdlat_ValueTypeFunctions::reset(&d_beginSequenceNumber);
     bdlat_ValueTypeFunctions::reset(&d_endSequenceNumber);
 }
@@ -6788,8 +6801,9 @@ bsl::ostream& ReplicaDataResponse::print(bsl::ostream& stream,
 {
     bslim::Printer printer(&stream, level, spacesPerLevel);
     printer.start();
-    printer.printAttribute("replicaDataType", this->replicaDataType());
     printer.printAttribute("partitionId", this->partitionId());
+    printer.printAttribute("primaryLeaseId", this->primaryLeaseId());
+    printer.printAttribute("replicaDataType", this->replicaDataType());
     printer.printAttribute("beginSequenceNumber", this->beginSequenceNumber());
     printer.printAttribute("endSequenceNumber", this->endSequenceNumber());
     printer.end();
@@ -17658,6 +17672,6 @@ bsl::ostream& ControlMessage::print(bsl::ostream& stream,
 }  // close package namespace
 }  // close enterprise namespace
 
-// GENERATED BY BLP_BAS_CODEGEN_2026.05.21
+// GENERATED BY BLP_BAS_CODEGEN_9999.99.99
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package bmqp_ctrlmsg --msgComponent messages bmqp_ctrlmsg.xsd

@@ -1706,7 +1706,8 @@ void RecoveryManager::clearBufferedStorageEvent(int partitionId)
 // ACCESSORS
 void RecoveryManager::loadReplicaDataResponsePush(
     bmqp_ctrlmsg::ControlMessage* out,
-    int                           partitionId) const
+    int                           partitionId,
+    unsigned int                  primaryLeaseId) const
 {
     // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
 
@@ -1727,8 +1728,9 @@ void RecoveryManager::loadReplicaDataResponsePush(
             .choice()
             .makeReplicaDataResponse();
 
-    response.replicaDataType()     = bmqp_ctrlmsg::ReplicaDataType::E_PUSH;
     response.partitionId()         = partitionId;
+    response.primaryLeaseId()      = primaryLeaseId;
+    response.replicaDataType()     = bmqp_ctrlmsg::ReplicaDataType::E_PUSH;
     response.beginSequenceNumber() = receiveDataCtx.d_beginPSN;
     response.endSequenceNumber()   = receiveDataCtx.d_endPSN;
 }

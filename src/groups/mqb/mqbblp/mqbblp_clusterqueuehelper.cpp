@@ -1111,10 +1111,10 @@ void ClusterQueueHelper::processOpenQueueRequest(
         return;  // RETURN
     }
 
-    const int pid = context->queueContext()->partitionId();
+    const int  pid = context->queueContext()->partitionId();
     const bool isSelfAvailable =
         d_clusterData_p->membership().selfNodeStatus() ==
-        bmqp_ctrlmsg::NodeStatus::e_E_AVAILABLE;
+        bmqp_ctrlmsg::NodeStatus::E_AVAILABLE;
     if (hasActiveAvailablePrimary(pid) && isSelfAvailable) {
         if (d_clusterState_p->isSelfPrimary(pid)) {
             // At primary.

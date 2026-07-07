@@ -750,7 +750,7 @@ def test_sync_after_primary_extra_records(
     # consumption issues.
     matches = leader.capture_n(
         [
-            r"Sending request to '\[(\w+), \d+\]'.*replicaDataRequest = \[ replicaDataType = E_PULL",
+            r"Sending request to '\[(\w+), \d+\]'.*replicaDataRequest = \[ partitionId = \d+ primaryLeaseId = \d+ replicaDataType = E_PULL",
             r"Removing entire storage and requesting it from replica",
             r"Cluster \(itCluster\) is available",
         ],
