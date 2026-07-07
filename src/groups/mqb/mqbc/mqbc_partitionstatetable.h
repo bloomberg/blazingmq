@@ -526,10 +526,6 @@ class PartitionStateTableActions {
         PartitionStateTableEvent::Enum eventType,
         const PartitionFSMEventData&   eventData);
 
-    void do_closeRecoveryFileSet_attemptOpenStorage_sendDataToPrimary(
-        PartitionStateTableEvent::Enum eventType,
-        const PartitionFSMEventData&   eventData);
-
     void
     do_closeRecoveryFileSet_attemptOpenStorage_sendDataToReplicas_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
         PartitionStateTableEvent::Enum eventType,
@@ -559,11 +555,6 @@ class PartitionStateTableActions {
         const PartitionFSMEventData&   eventData);
 
     void do_replicaStateResponse_storePrimarySeq(
-        PartitionStateTableEvent::Enum eventType,
-        const PartitionFSMEventData&   eventData);
-
-    void
-    do_replicaDataResponsePull_processBufferedLiveData_processBufferedPrimaryStatusAdvisories_stopWatchdog(
         PartitionStateTableEvent::Enum eventType,
         const PartitionFSMEventData&   eventData);
 
@@ -858,13 +849,12 @@ class PartitionStateTable
                 REPLICA_HEALING);
         PST_CFG(REPLICA_HEALING,
                 REPLICA_DATA_RQST_PULL,
-                closeRecoveryFileSet_attemptOpenStorage_sendDataToPrimary,
+                sendDataToPrimary,
                 REPLICA_HEALING);
-        PST_CFG(
-            REPLICA_HEALING,
-            DONE_SENDING_DATA_CHUNKS,
-            replicaDataResponsePull_processBufferedLiveData_processBufferedPrimaryStatusAdvisories_stopWatchdog,
-            REPLICA_HEALED);
+        PST_CFG(REPLICA_HEALING,
+                DONE_SENDING_DATA_CHUNKS,
+                replicaDataResponsePull,
+                REPLICA_HEALING);
         PST_CFG(REPLICA_HEALING,
                 ERROR_SENDING_DATA_CHUNKS,
                 failureReplicaDataResponsePull_reapplyDetectSelfReplica,
@@ -1177,16 +1167,6 @@ PartitionStateTableActions::do_resetReceiveDataCtx_closeRecoveryFileSet(
 }
 
 inline void PartitionStateTableActions::
-    do_closeRecoveryFileSet_attemptOpenStorage_sendDataToPrimary(
-        PartitionStateTableEvent::Enum eventType,
-        const PartitionFSMEventData&   eventData)
-{
-    do_closeRecoveryFileSet(eventType, eventData);
-    do_attemptOpenStorage(eventType, eventData);
-    do_sendDataToPrimary(eventType, eventData);
-}
-
-inline void PartitionStateTableActions::
     do_closeRecoveryFileSet_attemptOpenStorage_sendDataToReplicas_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
         PartitionStateTableEvent::Enum eventType,
         const PartitionFSMEventData&   eventData)
@@ -1258,17 +1238,6 @@ PartitionStateTableActions::do_replicaStateResponse_storePrimarySeq(
 {
     do_replicaStateResponse(eventType, eventData);
     do_storePrimarySeq(eventType, eventData);
-}
-
-inline void PartitionStateTableActions::
-    do_replicaDataResponsePull_processBufferedLiveData_processBufferedPrimaryStatusAdvisories_stopWatchdog(
-        PartitionStateTableEvent::Enum eventType,
-        const PartitionFSMEventData&   eventData)
-{
-    do_replicaDataResponsePull(eventType, eventData);
-    do_processBufferedLiveData(eventType, eventData);
-    do_processBufferedPrimaryStatusAdvisories(eventType, eventData);
-    do_stopWatchdog(eventType, eventData);
 }
 
 inline void PartitionStateTableActions::

@@ -392,6 +392,19 @@ class RecoveryManager {
                    int                                    partitionId,
                    bool firstSyncPointAfterRolllover = false);
 
+    /// Load into the specified `out` the map of primaryLeaseId to highest
+    /// sequence number observed, by scanning the recovery journal file set
+    /// of the specified `partitionId`.  Return 0 on success and non-zero
+    /// otherwise.  This provides the same information as
+    /// @bbref{mqbs::FileStore::highestSeqNums} when the FileStore is not
+    /// yet open.  The behavior is undefined unless the recovery file set for
+    /// `partitionId` is open.
+    ///
+    /// THREAD: Executed in the dispatcher thread associated with the
+    /// specified `partitionId`.
+    int loadHighestSeqNums(mqbs::FileStore::LeaseIdToSeqNumMap* out,
+                           int                                  partitionId);
+
     /// Set the live data source of the specified 'partitionId' to the
     /// specified 'source', and clear any existing buffered storage events.
     ///

@@ -2745,9 +2745,6 @@ void StorageManager::do_sendDataToPrimary(
                      PartitionFSM::Event::e_REPLICA_DATA_RQST_PULL);
     BSLS_ASSERT_SAFE(d_partitionFSMVec.at(partitionId)->isSelfReplica());
 
-    const mqbs::FileStore& fs = fileStore(partitionId);
-    BSLS_ASSERT_SAFE(fs.isOpen());
-
     mqbnet::ClusterNode* selfNode = d_clusterData_p->membership().selfNode();
 
     mqbnet::ClusterNode* const destNode = eventData.source();
@@ -2777,8 +2774,26 @@ void StorageManager::do_sendDataToPrimary(
 
     // Check if the primary's PSN (beginSeqNum) is irreconcilable with
     // replica's known highest PSNs.
-    const mqbs::FileStore::LeaseIdToSeqNumMap& highestPSNs =
-        fs.highestSeqNums();
+    mqbs::FileStore::LeaseIdToSeqNumMap highestPSNs;
+    const mqbs::FileStore&              fs = fileStore(partitionId);
+    if (fs.isOpen()) {
+        highestPSNs = fs.highestSeqNums();
+    }
+    else {
+        const int rc = d_recoveryManager_mp->loadHighestSeqNums(&highestPSNs,
+                                                                partitionId);
+        if (rc != 0) {
+            BALL_LOG_ERROR << d_clusterData_p->identity().description()
+                           << " Partition [" << partitionId << "]: "
+                           << "Failed to load highest sequence numbers from "
+                           << "recovery file set, rc = " << rc;
+
+            enqueuePartitionFSMEvent(
+                PartitionFSM::Event::e_ERROR_SENDING_DATA_CHUNKS,
+                sendPartitionFSMEventData);
+            return;  // RETURN
+        }
+    }
     mqbs::FileStore::LeaseIdToSeqNumMapCIter PSNCit = highestPSNs.find(
         beginSeqNum.primaryLeaseId());
     if (PSNCit != highestPSNs.end() &&

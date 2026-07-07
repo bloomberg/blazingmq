@@ -280,7 +280,10 @@ int RecoveryManager::processSendDataChunks(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(destination);
     BSLS_ASSERT_SAFE(fs.inDispatcherThread());
-    BSLS_ASSERT_SAFE(fs.isOpen());
+    // Either the FileStore is open, or the recovery file set is open.
+    BSLS_ASSERT_SAFE(
+        fs.isOpen() ||
+        d_recoveryContextVec[partitionId].d_mappedJournalFd.isValid());
 
     enum RcEnum {
         // Value for the various RC error categories
@@ -302,7 +305,12 @@ int RecoveryManager::processSendDataChunks(
                   << ". Peer: " << destination->nodeDescription() << ".";
 
     mqbs::FileStoreSet fileSet;
-    fs.loadCurrentFiles(&fileSet);
+    if (fs.isOpen()) {
+        fs.loadCurrentFiles(&fileSet);
+    }
+    else {
+        fileSet = d_recoveryContextVec[partitionId].d_recoveryFileSet;
+    }
 
     bsl::shared_ptr<mqbs::MappedFileDescriptor> mappedJournalFd =
         bsl::make_shared<mqbs::MappedFileDescriptor>();
@@ -1580,6 +1588,47 @@ int RecoveryManager::recoverPSN(bmqp_ctrlmsg::PartitionSequenceNumber* psn,
                       << mqbs::printPSN(0, 0) << " as self PSN.";
 
         psn->reset();
+    }
+
+    return rc_SUCCESS;
+}
+
+int RecoveryManager::loadHighestSeqNums(
+    mqbs::FileStore::LeaseIdToSeqNumMap* out,
+    int                                  partitionId)
+{
+    // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(out);
+    validatePartitionId(partitionId);
+
+    enum RcEnum {
+        // Value for the various RC error categories
+        rc_SUCCESS               = 0,
+        rc_FILE_ITERATOR_FAILURE = -1
+    };
+
+    RecoveryContext& recoveryCtx = d_recoveryContextVec[partitionId];
+    BSLS_ASSERT_SAFE(recoveryCtx.d_mappedJournalFd.isValid());
+
+    mqbs::JournalFileIterator journalIt;
+    int                       rc = journalIt.reset(
+        &recoveryCtx.d_mappedJournalFd,
+        mqbs::FileStoreProtocolUtil::bmqHeader(recoveryCtx.d_mappedJournalFd));
+    if (0 != rc) {
+        BALL_LOG_ERROR << d_clusterData.identity().description()
+                       << " Partition [" << partitionId << "]: "
+                       << "While loading highest sequence numbers, failed to "
+                       << "reset journal iterator, rc: " << rc;
+        return 10 * rc + rc_FILE_ITERATOR_FAILURE;  // RETURN
+    }
+
+    // Journal records are laid out in ascending PSN order, so the last
+    // sequence number seen for each lease id is the highest one.
+    while (1 == journalIt.nextRecord()) {
+        const mqbs::RecordHeader& recHeader = journalIt.recordHeader();
+        (*out)[recHeader.primaryLeaseId()]  = recHeader.sequenceNumber();
     }
 
     return rc_SUCCESS;
