@@ -272,6 +272,11 @@ class PartitionRaftManager : public mqbi::StorageProvider,
     bool isStorageEmpty(const bmqt::Uri& uri,
                         int partitionId) const BSLS_KEYWORD_OVERRIDE;
 
+    /// Return true: this manager drives Raft-replicated partitions.  Used to
+    /// assert that legacy-only `FileStore` methods are never invoked on a Raft
+    /// partition.
+    bool isRaft() const BSLS_KEYWORD_OVERRIDE;
+
     /// Return the number of partitions.
     int numPartitions() const;
 };

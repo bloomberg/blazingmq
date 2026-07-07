@@ -654,6 +654,12 @@ class StoragesMonitor {
     /// the specified `partitionId` has no messages, false in any other case.
     virtual bool isStorageEmpty(const bmqt::Uri& uri,
                                 int              partitionId) const = 0;
+
+    /// Return true if this monitor drives a Raft-replicated partition (i.e.
+    /// the owning `FileStore` is on the Raft write path), false for the legacy
+    /// path.  Used to assert that legacy-only `FileStore` methods are never
+    /// invoked on a Raft partition.
+    virtual bool isRaft() const = 0;
 };
 
 // =================

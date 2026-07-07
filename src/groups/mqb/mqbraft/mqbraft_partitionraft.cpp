@@ -860,6 +860,16 @@ void PartitionRaft::proposeRollover()
     // executed by the partition *DISPATCHER* thread
     BSLS_ASSERT_SAFE(isLeader());
 
+    // Disable the (old) file set at the trigger point, mirroring legacy's
+    // 'rolloverIfNeeded': if the physical rollover subsequently fails, the
+    // partition is left unavailable rather than silently accepting writes
+    // past capacity.  Harmless on the success path -- every write during the
+    // pending-rollover window is buffered (never reaches 'format*Record',
+    // which is the only place this flag is read), and a successful rollover
+    // implicitly re-enables it (the fresh 'FileSet' swapped in by
+    // 'finalizeRolloverFileSet' defaults to available).
+    d_fileStore_sp->setAvailabilityStatus(false);
+
     const bsls::Types::Uint64 writeId = ++d_writeIdCounter;
 
     bsl::shared_ptr<mqbs::FileStore::PendingWrite> pw =
@@ -1331,7 +1341,18 @@ void PartitionRaft::setReplicationFactor(int factor)
 
 void PartitionRaft::onPurgeComplete()
 {
-    d_fileStore_sp->onPurgeComplete();
+    // executed by the partition *DISPATCHER* thread
+
+    // Reclaim the space a purge freed through the Raft rollover mechanism
+    // (propose 'e_ROLLOVER'; the physical rollover happens deterministically
+    // on commit), NOT the legacy 'FileStore::onPurgeComplete' path, which
+    // would drive 'rolloverImpl' directly -- outside the Raft log.  Only the
+    // leader proposes, and only if the file set is at capacity;
+    // 'rolloverIfNeeded' is a no-op otherwise, so this is safe on replicas too
+    // (they roll over via the committed 'e_ROLLOVER' apply hook).  The legacy
+    // 'd_journalFileAvailable' re-enable is not needed here: its false-setters
+    // (legacy 'rolloverIfNeeded' / 'setActivePrimary') are legacy-only.
+    rolloverIfNeeded(0, 0);
 }
 
 void PartitionRaft::flushStorage()
