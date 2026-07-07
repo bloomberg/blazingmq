@@ -152,15 +152,16 @@ void AuthenticationContext::resetAuthenticationMessage()
 }
 
 int AuthenticationContext::setAuthenticatedAndScheduleReauthn(
-    bsl::ostream&           errorDescription,
-    bdlmt::EventScheduler*  scheduler_p,
-    BSLA_MAYBE_UNUSED const bsl::optional<bsls::Types::Uint64>& lifetimeMs,
-    BSLA_MAYBE_UNUSED const bsl::shared_ptr<bmqio::Channel>& channel)
+    bsl::ostream&                             errorDescription,
+    bdlmt::EventScheduler*                    scheduler_p,
+    const bsl::optional<bsls::Types::Uint64>& lifetimeMs,
+    const bsl::shared_ptr<bmqio::Channel>&    channel_sp)
 {
     // executed by an *AUTHENTICATION* thread
 
     // PRECONDITION
     BSLS_ASSERT_SAFE(scheduler_p);
+    BSLS_ASSERT_SAFE(channel_sp);
 
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
 
@@ -174,59 +175,35 @@ int AuthenticationContext::setAuthenticatedAndScheduleReauthn(
 
     d_state = AuthenticationState::e_AUTHENTICATED;
 
-    /*
-    // TODO: Reauthentication is disabled for now.  Uncomment once we're ready
-    // to enable reauthentication.
+    scheduler_p->cancelEventAndWait(&d_timeoutHandle);
 
-    if (d_timeoutHandle) {
-        scheduler_p->cancelEventAndWait(&d_timeoutHandle);
+    if (!lifetimeMs.has_value()) {
+        return 0;
     }
+    const bsls::Types::Uint64 lifetime = lifetimeMs.value();
 
-    if (lifetimeMs.has_value()) {
-        bsls::Types::Int64 lifetime = lifetimeMs.value();
-
-        if (lifetime < 0) {
-            BALL_LOG_WARN
-                << "Authenticator returned negative remaining lifetime: "
-                << bsl::to_string(lifetime)
-                << ". Schedule reauthentication timer with lifetime set to 0.";
-            lifetime = 0;
-        }
-
-        // Prepare error description for timeout event
-        bmqu::MemOutStream errorStream;
-        errorStream << "Reauthentication not received within authenticated "
-                       "lifetime of "
-                    << lifetime << " ms";
-
-        scheduler_p->scheduleEvent(
-            &d_timeoutHandle,
-            bsls::TimeInterval(bmqu::Time::nowMonotonicClock())
-                .addMilliseconds(lifetime),
-            bdlf::BindUtil::bind(
-                bmqu::WeakMemFnUtil::weakMemFn(
-                    &AuthenticationContext::onReauthenticateErrorOrTimeout,
-                    d_self.acquireWeak()),
-                -1,                       // errorCode
-                "authenticationTimeout",  // errorName
-                errorStream.str(),        // errorDescription
-                channel                   // channel
-                ));
-    }
-
-    */
+    scheduler_p->scheduleEvent(
+        &d_timeoutHandle,
+        bsls::TimeInterval(bmqu::Time::nowMonotonicClock())
+            .addMilliseconds(lifetime),
+        bdlf::BindUtil::bindS(
+            d_allocator_p,
+            bmqu::WeakMemFnUtil::weakMemFn(
+                &AuthenticationContext::onReauthenticationTimeout,
+                d_self.acquireWeak()),
+            channel_sp,  // channel_sp
+            lifetime     // timeoutMs
+            ));
 
     return 0;
 }
 
-void AuthenticationContext::onReauthenticateErrorOrTimeout(
-    int                                    errorCode,
-    const bsl::string&                     errorName,
-    const bsl::string&                     errorDescription,
-    const bsl::shared_ptr<bmqio::Channel>& channel)
+void AuthenticationContext::onReauthenticationTimeout(
+    const bsl::shared_ptr<bmqio::Channel>& channel_sp,
+    bsls::Types::Uint64                    timeoutMs)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(channel);
+    BSLS_ASSERT_SAFE(channel_sp);
 
     {
         bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
@@ -236,20 +213,49 @@ void AuthenticationContext::onReauthenticateErrorOrTimeout(
         }
     }  // UNLOCK
 
-    BALL_LOG_ERROR << "Reauthentication error or timeout for '"
-                   << channel->peerUri() << "' [error: " << errorDescription
-                   << ", code: " << errorCode << "]";
+    BALL_LOG_ERROR << "Reauthentication timeout for '" << channel_sp->peerUri()
+                   << "': not received within " << timeoutMs << " ms";
 
     bmqio::Status status(bmqio::StatusCategory::e_CANCELED,
-                         errorName,
+                         "reauthenticationTimeout",
+                         -1,
+                         d_allocator_p);
+    channel_sp->close(status);
+}
+
+void AuthenticationContext::onReauthenticationError(
+    const bsl::shared_ptr<bmqio::Channel>& channel_sp,
+    int                                    errorCode,
+    const bsl::string&                     errorDescription)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(channel_sp);
+
+    {
+        bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
+
+        if (d_state == AuthenticationState::e_CLOSED) {
+            return;
+        }
+    }  // UNLOCK
+
+    BALL_LOG_ERROR << "Reauthentication error for '" << channel_sp->peerUri()
+                   << "' [rc: " << errorCode
+                   << ", description: " << errorDescription << "]";
+
+    bmqio::Status status(bmqio::StatusCategory::e_CANCELED,
+                         "reauthenticationError",
                          errorCode,
                          d_allocator_p);
-    channel->close(status);
+    channel_sp->close(status);
 }
 
 void AuthenticationContext::onClose(bdlmt::EventScheduler* scheduler_p)
 {
     // executed by *ANY* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(scheduler_p);
 
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
 
@@ -258,9 +264,7 @@ void AuthenticationContext::onClose(bdlmt::EventScheduler* scheduler_p)
     }
     d_state = AuthenticationState::e_CLOSED;
 
-    if (d_timeoutHandle) {
-        scheduler_p->cancelEventAndWait(&d_timeoutHandle);
-    }
+    scheduler_p->cancelEventAndWait(&d_timeoutHandle);
 }
 
 bool AuthenticationContext::tryStartReauthentication()
