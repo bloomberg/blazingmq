@@ -38,7 +38,7 @@
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
 #include <bsls_atomic.h>
-#include <bsls_cpp11.h>
+#include <bsls_keyword.h>
 #include <bsls_types.h>
 
 namespace BloombergLP {
@@ -53,36 +53,39 @@ class FileStore;
 // ==============
 
 /// Value-semantic type representing a set of BlazingMQ data store files.
-struct FileSet BSLS_CPP11_FINAL {
+struct FileSet BSLS_KEYWORD_FINAL {
   public:
+    // PUBLIC TYPES
+
+    /// Per-file-type information aggregated into a single struct.
+    struct FileInfo {
+        MappedFileDescriptor d_file;
+        bsl::string          d_fileName;
+        bsls::Types::Uint64  d_filePosition;
+        bsls::Types::Uint64  d_outstandingBytes;
+
+        // TRAITS
+        BSLMF_NESTED_TRAIT_DECLARATION(FileInfo, bslma::UsesBslmaAllocator)
+
+        // CREATORS
+        explicit FileInfo(bslma::Allocator* allocator);
+
+      private:
+        // NOT IMPLEMENTED
+        FileInfo(const FileInfo&) BSLS_KEYWORD_DELETED;
+        FileInfo& operator=(const FileInfo&) BSLS_KEYWORD_DELETED;
+    };
+
     // PUBLIC DATA
     FileStore* d_store_p;
 
     mqbu::StorageKey d_dataFileKey;
 
-    MappedFileDescriptor d_dataFile;
+    FileInfo d_data;
 
-    MappedFileDescriptor d_journalFile;
+    FileInfo d_journal;
 
-    MappedFileDescriptor d_qlistFile;
-
-    bsls::Types::Uint64 d_dataFilePosition;
-
-    bsls::Types::Uint64 d_journalFilePosition;
-
-    bsls::Types::Uint64 d_qlistFilePosition;
-
-    bsl::string d_dataFileName;
-
-    bsl::string d_journalFileName;
-
-    bsl::string d_qlistFileName;
-
-    bsls::Types::Uint64 d_outstandingBytesJournal;
-
-    bsls::Types::Uint64 d_outstandingBytesData;
-
-    bsls::Types::Uint64 d_outstandingBytesQlist;
+    FileInfo d_qlist;
 
     bool d_journalFileAvailable;
 
@@ -105,8 +108,8 @@ struct FileSet BSLS_CPP11_FINAL {
 
   private:
     // NOT IMPLEMENTED
-    FileSet(const FileSet&) BSLS_CPP11_DELETED;
-    FileSet& operator=(const FileSet&) BSLS_CPP11_DELETED;
+    FileSet(const FileSet&) BSLS_KEYWORD_DELETED;
+    FileSet& operator=(const FileSet&) BSLS_KEYWORD_DELETED;
 
   public:
     // TRAITS
@@ -130,21 +133,20 @@ struct FileSet BSLS_CPP11_FINAL {
 // -------------
 
 // CREATORS
+inline FileSet::FileInfo::FileInfo(bslma::Allocator* allocator)
+: d_file()
+, d_fileName(allocator)
+, d_filePosition(0)
+, d_outstandingBytes(0)
+{
+}
+
 inline FileSet::FileSet(FileStore* store, bslma::Allocator* allocator)
 : d_store_p(store)
 , d_dataFileKey()
-, d_dataFile()
-, d_journalFile()
-, d_qlistFile()
-, d_dataFilePosition(0)
-, d_journalFilePosition(0)
-, d_qlistFilePosition(0)
-, d_dataFileName(allocator)
-, d_journalFileName(allocator)
-, d_qlistFileName(allocator)
-, d_outstandingBytesJournal(0)
-, d_outstandingBytesData(0)
-, d_outstandingBytesQlist(0)
+, d_data(allocator)
+, d_journal(allocator)
+, d_qlist(allocator)
 , d_journalFileAvailable(true)
 , d_fileSetRolloverPolicyAlarm(false)
 , d_inlineGc(false)
