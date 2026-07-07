@@ -3172,6 +3172,8 @@ int FileStore::rolloverImpl(bsls::Types::Uint64 timestamp)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(0 < d_fileSets.size());
+    // Legacy-only: never invoked on a Raft partition.
+    BSLS_ASSERT(!isRaft());
 
     FileSet* activeFileSet = d_fileSets[0].get();
     BSLS_ASSERT_SAFE(activeFileSet);
@@ -3364,15 +3366,6 @@ void FileStore::finalizeRolloverFileSet(const FileSetSp& newActiveFileSetSp)
         bdlf::BindUtil::bind(&FileStore::deleteArchiveFilesCb, this));
 }
 
-DataStoreRecord* FileStore::recordForKey(bsls::Types::Uint64 sequenceNum,
-                                         unsigned int        primaryLeaseId)
-{
-    RecordIterator it = d_records.find(
-        DataStoreRecordKey(sequenceNum, primaryLeaseId));
-    BSLS_ASSERT_SAFE(it != d_records.end());
-    return &it->second;
-}
-
 bool FileStore::primaryNeedsRollover(bsls::Types::Uint64 dataBytes,
                                      bsls::Types::Uint64 qlistBytes) const
 {
@@ -3394,33 +3387,6 @@ bool FileStore::primaryNeedsRollover(bsls::Types::Uint64 dataBytes,
         return true;  // RETURN
     }
     return false;
-}
-
-bsls::Types::Uint64
-FileStore::writeRolledOverJournalOpRecord(FileSet*            newFileSet,
-                                          bsls::Types::Uint64 oldJournalOffset)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(newFileSet);
-    BSLS_ASSERT_SAFE(0 < d_fileSets.size());
-
-    // The old (source) file set is always the current active/front file set.
-    FileSet* oldFileSet = d_fileSets[0].get();
-
-    // Construct a fresh, verbatim copy of the journal-op record (e.g. a
-    // regular sync point in the uncommitted tail) into the new file at the
-    // current write position, preserving its exact bytes (and thus PSN).  Sync
-    // points are not counted in outstanding journal bytes.
-    MappedFileDescriptor&     rJournal    = newFileSet->d_journalFile;
-    bsls::Types::Uint64&      rJournalPos = newFileSet->d_journalFilePosition;
-    const bsls::Types::Uint64 newOffset   = rJournalPos;
-
-    bsl::memcpy(rJournal.block().base() + rJournalPos,
-                oldFileSet->d_journalFile.block().base() + oldJournalOffset,
-                FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
-    rJournalPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
-
-    return newOffset;
 }
 
 bsls::Types::Uint64
@@ -3449,6 +3415,9 @@ int FileStore::rolloverIfNeeded(FileType::Enum           fileType,
     BSLS_ASSERT_SAFE(activeFileSet->d_journalFileAvailable);
     // If JOURNAL is full, it must be marked so, and this routine should
     // not be invoked.
+
+    // Legacy-only: never invoked on a Raft partition.
+    BSLS_ASSERT(!isRaft());
 
     enum {
         rc_SUCCESS                         = 0,
@@ -3673,6 +3642,9 @@ int FileStore::rolloverIfNeeded(FileType::Enum           fileType,
 
 int FileStore::rollover()
 {
+    // Legacy-only: never invoked on a Raft partition.
+    BSLS_ASSERT(!isRaft());
+
     enum {
         rc_SUCCESS                        = 0,
         rc_SYNC_POINT_FAILURE             = -1,
@@ -3877,6 +3849,9 @@ int FileStore::close(FileSet& fileSetRef, bool flush)
 
 int FileStore::archive(FileSet* fileSet)
 {
+    // Legacy-only: never invoked on a Raft partition.
+    BSLS_ASSERT(!isRaft());
+
     enum rcEnum { rc_SUCCESS = 0, rc_FILE_MOVE_FAILURE = -1 };
 
     int rc = FileStoreUtil::archiveFileSet(fileSet->d_data.d_fileName,
@@ -3901,6 +3876,9 @@ int FileStore::archive(FileSet* fileSet)
 void FileStore::gc(FileSet* fileSet)
 {
     // executed by *ANY* thread
+
+    // Legacy-only: never invoked on a Raft partition.
+    BSLS_ASSERT(!isRaft());
 
     if (fileSet->d_inlineGc) {
         return;  // RETURN
@@ -3929,6 +3907,8 @@ void FileStore::gcDispatched(BSLA_MAYBE_UNUSED int partitionId,
     BSLS_ASSERT_SAFE(partitionId == d_config.partitionId());
     BSLS_ASSERT_SAFE(fileSet);
     BSLS_ASSERT_SAFE(0 < d_fileSets.size());
+    // Legacy-only: never invoked on a Raft partition.
+    BSLS_ASSERT(!isRaft());
 
     if (fileSet == d_fileSets[0].get()) {
         // This occurs when FileStore::close() has happened.
@@ -3986,6 +3966,8 @@ void FileStore::gcWorkerDispatched(const bsl::shared_ptr<FileSet>& fileSet)
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(fileSet);
+    // Legacy-only: never invoked on a Raft partition.
+    BSLS_ASSERT(!isRaft());
 
     // Files have already been truncated.  Can safely close and archive.
     BALL_LOG_INFO_BLOCK
@@ -4047,6 +4029,8 @@ int FileStore::writeQueueOpRecord(DataStoreRecordHandle*  handle,
     BSLS_ASSERT_SAFE(QueueOpType::e_CREATION != queueOpFlag &&
                      QueueOpType::e_ADDITION != queueOpFlag);
     BSLS_ASSERT_SAFE(0 < d_fileSets.size());
+    // Legacy-only: never invoked on a Raft partition.
+    BSLS_ASSERT(!isRaft());
 
     enum {
         rc_SUCCESS          = 0,
@@ -4135,6 +4119,9 @@ void FileStore::writeQueueOpRecordImpl(DataStoreRecordHandle*  handle,
                                        unsigned int        startPrimaryLeaseId,
                                        bsls::Types::Uint64 startSequenceNum)
 {
+    // Legacy-only: never invoked on a Raft partition.
+    BSLS_ASSERT(!isRaft());
+
     FileSet* activeFileSet = d_fileSets[0].get();
     BSLS_ASSERT_SAFE(activeFileSet);
 
@@ -4353,6 +4340,9 @@ void FileStore::issueSyncPointCb()
 
     // This routine is invoked *only* by the scheduled recurring event.
 
+    // Legacy-only: never invoked on a Raft partition.
+    BSLS_ASSERT(!isRaft());
+
     if (!d_isOpen) {
         return;  // RETURN
     }
@@ -4367,6 +4357,10 @@ void FileStore::alarmHighwatermarkIfNeededCb()
     // executed by the *SCHEDULER* thread
 
     // This routine is invoked *only* by the scheduled recurring event
+
+    // Legacy-only: never invoked on a Raft partition.
+    BSLS_ASSERT(!isRaft());
+
     if (!d_isOpen) {
         return;  // RETURN
     }
@@ -4379,6 +4373,9 @@ void FileStore::alarmHighwatermarkIfNeededCb()
 void FileStore::alarmHighwatermarkIfNeededDispatched()
 {
     // executed by the *DISPATCHER* thread
+
+    // Legacy-only: never invoked on a Raft partition.
+    BSLS_ASSERT(!isRaft());
 
     if (!d_isOpen || !d_isPrimary) {
         return;  // RETURN
@@ -4464,6 +4461,9 @@ void FileStore::issueSyncPointDispatched(BSLA_MAYBE_UNUSED int partitionId)
 {
     // executed by the *DISPATCHER* thread
 
+    // Legacy-only: never invoked on a Raft partition.
+    BSLS_ASSERT(!isRaft());
+
     if (!d_isOpen || !d_isPrimary || d_isStopping) {
         return;  // RETURN
     }
@@ -4479,6 +4479,8 @@ void FileStore::issueSyncPointIfNeeded()
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(inDispatcherThread());
+    // Legacy-only: never invoked on a Raft partition.
+    BSLS_ASSERT(!isRaft());
 
     if (!d_syncPoints.empty()) {
         const bmqp_ctrlmsg::SyncPoint& syncPt =
@@ -4591,6 +4593,8 @@ void FileStore::processReceiptEvent(unsigned int         primaryLeaseId,
                                     mqbnet::ClusterNode* source)
 {
     BSLS_ASSERT_SAFE(source);
+    // Legacy-only: never invoked on a Raft partition.
+    BSLS_ASSERT(!isRaft());
 
     if (!d_isPrimary || d_isStopping) {
         return;  // RETURN
@@ -4697,6 +4701,8 @@ int FileStore::writeMessageRecord(const bmqp::StorageHeader& header,
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(0 < d_fileSets.size());
+    // Legacy-only: never invoked on a Raft partition.
+    BSLS_ASSERT(!isRaft());
 
     enum {
         rc_SUCCESS                    = 0,
@@ -4834,6 +4840,9 @@ int FileStore::writeQueueCreationRecord(
     const bsl::shared_ptr<bdlbb::Blob>& event,
     const bmqu::BlobPosition&           recordPosition)
 {
+    // Legacy-only: never invoked on a Raft partition.
+    BSLS_ASSERT(!isRaft());
+
     enum {
         rc_SUCCESS                           = 0,
         rc_UNAVAILABLE                       = -1,
@@ -4965,6 +4974,9 @@ int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
                                   const bmqu::BlobPosition& recordPosition,
                                   bmqp::StorageMessageType::Enum messageType)
 {
+    // Legacy-only: never invoked on a Raft partition.
+    BSLS_ASSERT(!isRaft());
+
     enum {
         rc_SUCCESS                = 0,
         rc_UNAVAILABLE            = -1,
@@ -5409,6 +5421,9 @@ void FileStore::replicateRecord(bmqp::StorageMessageType::Enum type,
                      bmqp::StorageMessageType::e_DATA != type);
     BSLS_ASSERT_SAFE(d_fileSets.size() > 0);
 
+    // Legacy-only: never invoked on a Raft partition.
+    BSLS_ASSERT(!isRaft());
+
     if (clusterSize() == 1) {
         return;  // RETURN
     }
@@ -5475,6 +5490,9 @@ void FileStore::replicateRecord(bmqp::StorageMessageType::Enum type,
 {
     BSLS_ASSERT_SAFE(bmqp::StorageMessageType::e_DATA == type ||
                      bmqp::StorageMessageType::e_QLIST == type);
+
+    // Legacy-only: never invoked on a Raft partition.
+    BSLS_ASSERT(!isRaft());
 
     if (1 == clusterSize()) {
         return;  // RETURN
@@ -5580,6 +5598,9 @@ void FileStore::deleteArchiveFilesCb()
 {
     // executed by the scheduler's *DISPATCHER* thread
 
+    // Legacy-only: never invoked on a Raft partition.
+    BSLS_ASSERT(!isRaft());
+
     FileStoreUtil::deleteArchiveFiles(d_config.partitionId(),
                                       d_config.archiveLocation(),
                                       d_config.maxArchivedFileSets(),
@@ -5589,6 +5610,9 @@ void FileStore::deleteArchiveFilesCb()
 int FileStore::validateWritingRecord(const bmqt::MessageGUID& guid,
                                      const mqbu::StorageKey&  queueKey)
 {
+    // Legacy-only: never invoked on a Raft partition.
+    BSLS_ASSERT(!isRaft());
+
     enum {
         rc_SUCCESS     = 0,
         rc_STOPPING    = -1,
@@ -5632,6 +5656,8 @@ void FileStore::replicateAndInsertDataStoreRecord(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(handle);
     BSLS_ASSERT_SAFE(d_fileSets.size() > 0);
+    // Legacy-only: never invoked on a Raft partition.
+    BSLS_ASSERT(!isRaft());
 
     replicateRecord(messageType, recordOffset);
 
@@ -5798,6 +5824,8 @@ int FileStore::open(QueueKeyInfoMap* queueKeyInfoMap)
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(inDispatcherThread());
+    // Legacy-only: never invoked on a Raft partition.
+    BSLS_ASSERT(!isRaft());
 
     enum {
         rc_SUCCESS                   = 0,
@@ -6055,6 +6083,8 @@ void FileStore::createStorage(bsl::shared_ptr<ReplicatedStorage>* storageSp,
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(storageSp);
     BSLS_ASSERT_SAFE(domain);
+    // Legacy-only: never invoked on a Raft partition.
+    BSLS_ASSERT(!isRaft());
 
     bsl::shared_ptr<const mqbconfm::Domain> domainCfg  = domain->config();
     const mqbconfm::StorageDefinition&      storageDef = domainCfg->storage();
@@ -6103,6 +6133,8 @@ int FileStore::writeMessageRecord(mqbi::StorageMessageAttributes* attributes,
     BSLS_ASSERT_SAFE(handle);
     BSLS_ASSERT_SAFE(!queueKey.isNull());
     BSLS_ASSERT_SAFE(0 < d_fileSets.size());
+    // Legacy-only: never invoked on a Raft partition.
+    BSLS_ASSERT(!isRaft());
 
     enum {
         rc_SUCCESS          = 0,
@@ -6224,6 +6256,8 @@ int FileStore::writeQueueCreationRecord(DataStoreRecordHandle*  handle,
     BSLS_ASSERT_SAFE(!queueUri.asString().empty());
     BSLS_ASSERT_SAFE(!queueKey.isNull());
     BSLS_ASSERT_SAFE(d_fileSets.size() > 0);
+    // Legacy-only: never invoked on a Raft partition.
+    BSLS_ASSERT(!isRaft());
 
     enum {
         rc_SUCCESS          = 0,
@@ -6649,6 +6683,9 @@ int FileStore::writeQueuePurgeRecord(DataStoreRecordHandle*       handle,
                                      bsls::Types::Uint64          timestamp,
                                      const DataStoreRecordHandle& start)
 {
+    // Legacy-only: never invoked on a Raft partition.
+    BSLS_ASSERT(!isRaft());
+
     unsigned int        startPrimaryLeaseId = 0;
     bsls::Types::Uint64 startSequenceNum    = 0;
 
@@ -6673,6 +6710,9 @@ int FileStore::writeQueueDeletionRecord(DataStoreRecordHandle*  handle,
                                         const mqbu::StorageKey& appKey,
                                         bsls::Types::Uint64     timestamp)
 {
+    // Legacy-only: never invoked on a Raft partition.
+    BSLS_ASSERT(!isRaft());
+
     return writeQueueOpRecord(handle,
                               queueKey,
                               appKey,
@@ -6693,6 +6733,8 @@ int FileStore::writeConfirmRecord(DataStoreRecordHandle*   handle,
     BSLS_ASSERT_SAFE(handle);
     BSLS_ASSERT_SAFE(!queueKey.isNull());
     BSLS_ASSERT_SAFE(0 < d_fileSets.size());
+    // Legacy-only: never invoked on a Raft partition.
+    BSLS_ASSERT(!isRaft());
 
     enum {
         rc_SUCCESS            = 0,
@@ -6762,6 +6804,8 @@ int FileStore::writeDeletionRecord(const bmqt::MessageGUID& guid,
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!queueKey.isNull());
     BSLS_ASSERT_SAFE(0 < d_fileSets.size());
+    // Legacy-only: never invoked on a Raft partition.
+    BSLS_ASSERT(!isRaft());
 
     enum {
         rc_SUCCESS            = 0,
@@ -7708,6 +7752,8 @@ int FileStore::lookupRecord(bsls::Types::Uint64* journalOffset,
 {
     BSLS_ASSERT_SAFE(journalOffset);
     BSLS_ASSERT_SAFE(dataOffset);
+    // Legacy-only: never invoked on a Raft partition.
+    BSLS_ASSERT(!isRaft());
 
     DataStoreRecordKey  key(sequenceNumber, primaryLeaseId);
     RecordConstIterator it = d_records.find(key);
@@ -7748,9 +7794,9 @@ void FileStore::onRecordCommittedReplica(const bdlbb::Blob&           data,
             return;
         }
         sit->second->processMessageRecord(msgRec->messageGUID(),
-                record.d_appDataUnpaddedLen,
-                                           msgRec->refCount(),
-                                           handle);
+                                          record.d_appDataUnpaddedLen,
+                                          msgRec->refCount(),
+                                          handle);
     } break;
 
     case RecordType::e_CONFIRM: {
@@ -7859,6 +7905,11 @@ void FileStore::onPurgeComplete()
 {
     BSLS_ASSERT_SAFE(0 < d_fileSets.size());
 
+    // Legacy-only: a Raft partition reclaims via
+    // 'PartitionRaft::onPurgeComplete' (proposes 'e_ROLLOVER'), not this
+    // in-place 'rolloverImpl' path.
+    BSLS_ASSERT(!isRaft());
+
     FileSet* activeFileSet = d_fileSets[0].get();
     BSLS_ASSERT_SAFE(activeFileSet);
 
@@ -7879,6 +7930,8 @@ void FileStore::processStorageEvent(const bsl::shared_ptr<bdlbb::Blob>& blob,
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(blob);
+    // Legacy-only: never invoked on a Raft partition.
+    BSLS_ASSERT(!isRaft());
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(d_isStopping &&
                                               d_lastSyncPtReceived)) {
@@ -8059,6 +8112,8 @@ int FileStore::processRecoveryEvent(const bsl::shared_ptr<bdlbb::Blob>& blob)
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(inDispatcherThread());
     BSLS_ASSERT_SAFE(blob);
+    // Legacy-only: never invoked on a Raft partition.
+    BSLS_ASSERT(!isRaft());
 
     enum {
         rc_SUCCESS                  = 0,
@@ -8233,6 +8288,10 @@ FileStore::generateReceipt(NodeContext*         nodeContext,
                            unsigned int         primaryLeaseId,
                            bsls::Types::Uint64  sequenceNumber)
 {
+    // Legacy-only: never invoked on a Raft partition.
+    
+    BSLS_ASSERT(!isRaft());
+
     const DataStoreRecordKey key(primaryLeaseId, sequenceNumber);
 
     if (nodeContext == 0) {
@@ -8288,6 +8347,9 @@ FileStore::generateReceipt(NodeContext*         nodeContext,
 void FileStore::sendReceipt(mqbnet::ClusterNode* node,
                             NodeContext*         nodeContext)
 {
+    // Legacy-only: never invoked on a Raft partition.
+    BSLS_ASSERT(!isRaft());
+
     if (nodeContext == 0) {
         return;  // RETURN
     }
@@ -8316,6 +8378,9 @@ void FileStore::sendReceipt(mqbnet::ClusterNode* node,
 
 void FileStore::sendImplicitReceipt()
 {
+    // Legacy-only: never invoked on a Raft partition.
+    BSLS_ASSERT(!isRaft());
+
     if (!d_primaryNode_p) {
         return;  // RETURN
     }
@@ -8340,6 +8405,9 @@ void FileStore::sendImplicitReceipt()
 
 int FileStore::issueSyncPoint()
 {
+    // Legacy-only: never invoked on a Raft partition.
+    BSLS_ASSERT(!isRaft());
+
     enum { rc_SUCCESS = 0, rc_UNAVAILABLE = -1, rc_MISC_FAILURE = -2 };
 
     // This routine is invoked out-of-band (by a higher level component, or by
@@ -8498,6 +8566,9 @@ void FileStore::setActivePrimary(mqbnet::ClusterNode* primaryNode,
 
 void FileStore::clearPrimary()
 {
+    // Legacy-only: never invoked on a Raft partition.
+    BSLS_ASSERT(!isRaft());
+
     if (!d_isOpen) {
         return;  // RETURN
     }
@@ -8597,6 +8668,9 @@ void FileStore::notifyQueuesOnReplicatedBatch()
 
 void FileStore::gcExpiredMessages()
 {
+    // Legacy-only: never invoked on a Raft partition.
+    BSLS_ASSERT(!isRaft());
+
     if (!d_isOpen) {
         return;  // RETURN
     }
@@ -8649,6 +8723,9 @@ void FileStore::gcExpiredMessages()
 
 void FileStore::gcHistory()
 {
+    // Legacy-only: never invoked on a Raft partition.
+    BSLS_ASSERT(!isRaft());
+
     if (!d_isOpen) {
         return;  // RETURN
     }
@@ -8665,24 +8742,6 @@ void FileStore::gcHistory()
     for (StorageMapIter it = d_storages.begin(); it != d_storages.end();
          ++it) {
         it->second->gcHistory(now);
-    }
-}
-
-void FileStore::applyForEachQueue(const QueueFunctor& functor) const
-{
-    // executed by the *DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(inDispatcherThread());
-    if (!d_isOpen) {
-        return;  // RETURN
-    }
-
-    for (StorageMapConstIter it = d_storages.begin(); it != d_storages.end();
-         ++it) {
-        if (it->second->queue()) {
-            functor(it->second->queue());
-        }
     }
 }
 
@@ -8708,6 +8767,11 @@ void FileStore::unregisterStorage(const ReplicatedStorage* storage)
 
 StoragesMonitor* FileStore::storagesMonitor()
 {
+    // Never invoked on a Raft partition: PartitionRaft::storagesMonitor()
+    // returns its own independently-held pointer rather than delegating
+    // here. Not asserted since this FileStore's own d_storagesMonitor_p is
+    // still valid and identical; calling it would not be wrong, merely
+    // unused.
     return d_storagesMonitor_p;
 }
 
@@ -8721,6 +8785,9 @@ void FileStore::cancelTimersAndWait()
 
 void FileStore::processShutdownEvent()
 {
+    // Not currently invoked on a Raft partition (PartitionRaft has its own
+    // shutdown path); not asserted since shutdown handling here is not
+    // itself unsafe.
     BALL_LOG_INFO << partitionDesc()
                   << "Partition notified that self node is shutting down.";
 
@@ -8756,6 +8823,9 @@ void FileStore::onDispatcherEvent(const mqbi::DispatcherEvent& event)
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(inDispatcherThread());
+    // Not currently invoked on a Raft partition (Raft events are
+    // dispatched via PartitionRaft, not this generic entry point); not
+    // asserted since dispatching here is not itself unsafe.
 
     BALL_LOG_TRACE << description() << ": processing dispatcher event '"
                    << event << "'";
@@ -8793,6 +8863,8 @@ void FileStore::flush()
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(inDispatcherThread());
+    // Legacy-only: never invoked on a Raft partition.
+    BSLS_ASSERT(!isRaft());
 }
 
 void FileStore::scheduledCleanupStorages()
@@ -8803,6 +8875,8 @@ void FileStore::scheduledCleanupStorages()
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(inDispatcherThread());
+    // Legacy-only: never invoked on a Raft partition.
+    BSLS_ASSERT(!isRaft());
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(d_isStopping)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
@@ -8931,6 +9005,9 @@ void FileStore::loadMessageRecordRaw(MessageRecord*               buffer,
                                      const DataStoreRecordHandle& handle) const
 {
     BSLS_ASSERT_SAFE(handle.isValid());
+    // Legacy-only: never invoked on a Raft partition.
+    BSLS_ASSERT(!isRaft());
+
     FileSet* activeFileSet = d_fileSets[0].get();
     BSLS_ASSERT_SAFE(activeFileSet);
 
@@ -8951,6 +9028,9 @@ void FileStore::loadConfirmRecordRaw(ConfirmRecord*               buffer,
                                      const DataStoreRecordHandle& handle) const
 {
     BSLS_ASSERT_SAFE(handle.isValid());
+    // Legacy-only: never invoked on a Raft partition.
+    BSLS_ASSERT(!isRaft());
+
     FileSet* activeFileSet = d_fileSets[0].get();
     BSLS_ASSERT_SAFE(activeFileSet);
 
@@ -8969,6 +9049,9 @@ void FileStore::loadDeletionRecordRaw(
     const DataStoreRecordHandle& handle) const
 {
     BSLS_ASSERT_SAFE(handle.isValid());
+    // Legacy-only: never invoked on a Raft partition.
+    BSLS_ASSERT(!isRaft());
+
     FileSet* activeFileSet = d_fileSets[0].get();
     BSLS_ASSERT_SAFE(activeFileSet);
 

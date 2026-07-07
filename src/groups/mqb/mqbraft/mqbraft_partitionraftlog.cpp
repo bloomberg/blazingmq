@@ -339,8 +339,20 @@ void PartitionRaftLog::rollover(bsls::Types::Uint64 rolloverIndex)
     // Prepare the new file set (FileStore creates the files and headers).
     mqbs::FileStore::FileSetSp newFileSetSp;
     int rc = d_fileStore_p->prepareRolloverFileSet(&newFileSetSp);
-    BSLS_ASSERT_SAFE(rc == 0);
-    (void)rc;
+    if (0 != rc) {
+        // Nothing has been mutated yet ('d_index'/'d_snapshotIndex' are still
+        // consistent with the committed log), so it is safe to bail out here.
+        // Matching legacy's "mark unavailable, alarm, no automated recovery"
+        // rollover-failure behavior: this node is now stuck on this partition
+        // (disabled for further local writes) until manually fixed and
+        // restarted, while the rest of the Raft cluster continues -- 'commit'
+        // + 'apply' bookkeeping does not retry a failed local apply.
+        BALL_LOG_ERROR << "PartitionRaftLog: failed to prepare rollover file "
+                       << "set at index " << rolloverIndex << ", rc: " << rc
+                       << ". Partition left unavailable.";
+        d_fileStore_p->setAvailabilityStatus(false);
+        return;  // RETURN
+    }
     mqbs::FileSet* newFileSet = newFileSetSp.get();
 
     // Compact every live record with sequence number at most 'rolloverIndex'

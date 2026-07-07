@@ -265,9 +265,6 @@ class StorageManager : public StorageProvider {
     typedef StorageSpMapVec::iterator       StorageSpMapVecIter;
     typedef StorageSpMapVec::const_iterator StorageSpMapVecConstIter;
 
-    /// Type of the functor required by `applyForEachQueue`.
-    typedef bsl::function<void(mqbi::Queue*)> QueueFunctor;
-
     typedef bsl::function<
         void(int partitionId, int status, unsigned int primaryLeaseId)>
         PartitionPrimaryStatusCb;
@@ -394,13 +391,6 @@ class StorageManager : public StorageProvider {
     processReplicaStatusAdvisory(int                             partitionId,
                                  mqbnet::ClusterNode*            source,
                                  bmqp_ctrlmsg::NodeStatus::Value status) = 0;
-
-    /// Invoke the specified `functor` with each queue associated to the
-    /// partition identified by the specified `partitionId` if that
-    /// partition has been successfully opened.  The behavior is undefined
-    /// unless invoked from the queue thread corresponding to `partitionId`.
-    virtual void applyForEachQueue(int                 partitionId,
-                                   const QueueFunctor& functor) const = 0;
 
     /// GC the queues from unrecognized domains, if any.
     virtual void gcUnrecognizedDomainQueues() = 0;

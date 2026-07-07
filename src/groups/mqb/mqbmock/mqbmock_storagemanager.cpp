@@ -230,13 +230,6 @@ void StorageManager::processShutdownEvent()
     // NOTHING
 }
 
-void StorageManager::applyForEachQueue(
-    BSLA_MAYBE_UNUSED int                 partitionId,
-    BSLA_MAYBE_UNUSED const QueueFunctor& functor) const
-{
-    // NOTHING
-}
-
 void StorageManager::processCommand(
     BSLA_MAYBE_UNUSED mqbcmd::StorageResult* result,
     BSLA_MAYBE_UNUSED const mqbcmd::StorageCommand& command)

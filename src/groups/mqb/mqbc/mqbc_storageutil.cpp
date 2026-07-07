@@ -3748,5 +3748,10 @@ bool StoragesMonitor::isStorageEmpty(const bmqt::Uri& uri,
     return cit->second->isEmpty();
 }
 
+bool StoragesMonitor::isRaft() const
+{
+    return false;
+}
+
 }  // close package namespace
 }  // close enterprise namespace
