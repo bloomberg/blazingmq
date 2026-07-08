@@ -99,6 +99,13 @@ class PartitionRaftLog : public RaftLog {
     /// empty (e.g. on the replica path, or after `clearCache`).
     bsl::shared_ptr<PendingWrite> d_cached;
 
+    /// Count of appended writes at the front of `d_pendingWrites`.  Writes in
+    /// [0, d_appendedCount) have been formatted and appended to the log,
+    /// waiting for commit/application and removal.  Writes in
+    /// [d_appendedCount, end) are buffered (not yet appended, e.g. during a
+    /// rollover window).
+    size_t d_appendedCount;
+
     // NOT IMPLEMENTED
     PartitionRaftLog(const PartitionRaftLog&);
     PartitionRaftLog& operator=(const PartitionRaftLog&);
@@ -177,6 +184,13 @@ class PartitionRaftLog : public RaftLog {
     /// acknowledged or committed, so discarding them is safe.
     void dropPendingWrites();
 
+    /// If the specified `handle` was reserved by a pending write currently in
+    /// the buffer, invalidate its handle so application becomes a no-op.
+    /// Otherwise the caller is responsible for removing it.  O(1) via position
+    /// computation.
+    void
+    invalidatePendingWriteHandle(const mqbs::DataStoreRecordHandle& handle);
+
     /// Release the single-entry cache.  Must be called after
     /// processOutput() completes.
     void clearCache();
@@ -227,11 +241,7 @@ class PartitionRaftLog : public RaftLog {
 
     bsls::Types::Uint64 snapshotTerm() const BSLS_KEYWORD_OVERRIDE;
 
-    /// Return whether a rollover is in flight, derived from the log: the last
-    /// appended entry is a committed-pending `e_ROLLOVER`.  While buffering,
-    /// `e_ROLLOVER` is always the last appended entry (nothing appends after
-    /// it); once it commits and `rollover()` compacts it away, this is false.
-    bool isBuffering() const;
+    bool isRollover(bsls::Types::Uint64 index) const;
 
     /// Return whether there are buffered writes awaiting drain or drop.
     bool hasPendingWrites() const;

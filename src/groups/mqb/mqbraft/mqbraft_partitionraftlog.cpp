@@ -52,6 +52,7 @@ PartitionRaftLog::PartitionRaftLog(mqbs::FileStore*  fileStore,
 , d_allocator_p(bslma::Default::allocator(allocator))
 , d_pendingWrites(d_allocator_p)
 , d_cached()
+, d_appendedCount(0)
 {
     BSLS_ASSERT_SAFE(fileStore);
 }
@@ -79,14 +80,12 @@ int PartitionRaftLog::open()
                   << ", lastIndex=" << lastIndex()
                   << ", lastTerm=" << lastTerm();
 
+    d_appendedCount = 0;
     return 0;
 }
 
 void PartitionRaftLog::setPendingWrite(const bsl::shared_ptr<PendingWrite>& pw)
 {
-    // No rollover in flight: this write is about to be appended by 'append()',
-    // so just enqueue it.
-    BSLS_ASSERT_SAFE(!isBuffering());
     d_pendingWrites.push_back(pw);
 }
 
@@ -95,7 +94,6 @@ int PartitionRaftLog::bufferPendingWrite(
     bsls::Types::Uint64                  term)
 {
     BSLS_ASSERT_SAFE(pw);
-    BSLS_ASSERT_SAFE(isBuffering());
     enum { rc_SUCCESS = 0, rc_ROLLOVER_PENDING = -1 };
 
     // A rollover is in flight ('e_ROLLOVER' proposed but not yet committed):
@@ -155,6 +153,7 @@ void PartitionRaftLog::takePendingWrites(
     // (and their 'd_attributes_p'->'d_ownedAttributes' self-pointers) stay
     // valid.
     out->swap(d_pendingWrites);
+    d_appendedCount = 0;
 }
 
 void PartitionRaftLog::dropPendingWrites()
@@ -177,6 +176,27 @@ void PartitionRaftLog::dropPendingWrites()
     }
 
     d_pendingWrites.clear();
+    d_appendedCount = 0;
+}
+
+void PartitionRaftLog::invalidatePendingWriteHandle(
+    const mqbs::DataStoreRecordHandle& handle)
+{
+    if (d_pendingWrites.empty()) {
+        return;  // RETURN (not in buffer)
+    }
+
+    bsls::Types::Uint64 firstSeqNum = d_pendingWrites[0]->d_sequenceNumber;
+    if (handle.sequenceNum() < firstSeqNum) {
+        return;  // RETURN (already removed or never buffered)
+    }
+
+    // Handle claims a future index beyond the buffer — bug if true.
+    BSLS_ASSERT_SAFE(handle.sequenceNum() <
+                     firstSeqNum + d_pendingWrites.size());
+
+    bsls::Types::Uint64 pos        = handle.sequenceNum() - firstSeqNum;
+    d_pendingWrites[pos]->d_handle = mqbs::DataStoreRecordHandle();
 }
 
 int PartitionRaftLog::append(bsls::Types::Uint64                 term,
@@ -186,7 +206,8 @@ int PartitionRaftLog::append(bsls::Types::Uint64                 term,
     if (id != 0) {
         // Primary path: format directly in mmap via PendingWrite.
         BSLS_ASSERT_SAFE(!d_pendingWrites.empty());
-        PendingWrite& pw = *d_pendingWrites.front();
+        BSLS_ASSERT_SAFE(d_appendedCount < d_pendingWrites.size());
+        PendingWrite& pw = *d_pendingWrites[d_appendedCount];
         BSLS_ASSERT_SAFE(id == pw.d_id);
 
         pw.d_primaryLeaseId = term;
@@ -236,8 +257,8 @@ int PartitionRaftLog::append(bsls::Types::Uint64                 term,
         // 'entries()' can serve its 'd_entryBlob' to peers without re-reading
         // mmap.  It is a pooled shared_ptr, so retaining it is cheap; released
         // by 'clearCache()' back to the pool.
-        d_cached = d_pendingWrites.front();
-        d_pendingWrites.pop_front();
+        d_cached = d_pendingWrites[d_appendedCount];
+        d_appendedCount++;
         return 0;
     }
 
@@ -271,6 +292,11 @@ int PartitionRaftLog::append(bsls::Types::Uint64                 term,
 
 int PartitionRaftLog::truncateFrom(bsls::Types::Uint64 index)
 {
+    // truncateFrom only happens after drop (leadership loss), which clears
+    // d_pendingWrites and d_appendedCount. Assert this invariant.
+    BSLS_ASSERT(d_pendingWrites.empty());
+    BSLS_ASSERT(0 == d_appendedCount);
+
     if (index <= d_snapshotIndex || index > lastIndex()) {
         return -1;
     }
@@ -381,34 +407,37 @@ void PartitionRaftLog::rollover(bsls::Types::Uint64 rolloverIndex)
     d_snapshotTerm  = newSnapshotTerm;
 
     clearCache();
+
+    // On the primary, the committed 'e_ROLLOVER' is a pending write that was
+    // appended but is handled here rather than by
+    // 'applyCommittedEntryAsPrimary', so it is never popped there.  Remove it
+    // now to keep 'takePendingWrites' (drain) from replaying it into the new
+    // file set.  It is the sole appended pending write at this point (all
+    // earlier entries were applied and popped before it in commit order, and
+    // window writes are buffered behind it).  On the replica path
+    // 'd_pendingWrites' is empty ('d_appendedCount == 0'), so this is skipped.
+    if (0 < d_appendedCount) {
+        BSLS_ASSERT_SAFE(1 == d_appendedCount);
+        BSLS_ASSERT_SAFE(d_pendingWrites.front()->d_syncPointType ==
+                         mqbs::SyncPointType::e_ROLLOVER);
+
+        d_pendingWrites.pop_front();
+        d_appendedCount--;
+    }
 }
 
 void PartitionRaftLog::applyCommittedEntryAsPrimary(bsls::Types::Uint64 index)
 {
-    const EntryInfo& entryInfo = d_index[index - d_snapshotIndex - 1];
+    BSLS_ASSERT_SAFE(!d_pendingWrites.empty());
+    BSLS_ASSERT_SAFE(0 < d_appendedCount);
+    BSLS_ASSERT_SAFE(d_pendingWrites.front()->d_sequenceNumber == index);
+    (void)index;
 
-    // TODO (raft): do we need entryInfo.d_sequenceNum?
-    BSLS_ASSERT_SAFE(entryInfo.d_sequenceNum == index);
+    d_fileStore_p->onRecordCommittedPrimary(*d_pendingWrites.front());
 
-    // Capture the routing fields FIRST: 'rollover()' compacts this entry away
-    // and invalidates the reference into 'd_index'.
-    const mqbs::RecordType::Enum    recordType    = entryInfo.d_recordType;
-    const mqbs::SyncPointType::Enum syncPointType = entryInfo.d_syncPointType;
-    const bsls::Types::Uint64 primaryLeaseId      = entryInfo.d_primaryLeaseId;
-
-    if (recordType == mqbs::RecordType::e_JOURNAL_OP &&
-        syncPointType == mqbs::SyncPointType::e_ROLLOVER) {
-        // The committed 'e_ROLLOVER' triggers the physical file rollover; the
-        // entry itself is compacted away and has no 'onRecordCommitted*'.
-        rollover(index);
-        return;  // RETURN
-    }
-
-    // TODO(raft): on commit, set the record's d_hasReceipt = true (receipt
-    // lifecycle; separate item).  Records drained into a new file after an
-    // on-commit rollover are reserved with d_hasReceipt = false and must be
-    // flipped to true here once they commit.
-    d_fileStore_p->onRecordCommittedPrimary(primaryLeaseId, index);
+    // Remove the committed write from the buffer (it was kept until apply).
+    d_pendingWrites.pop_front();
+    d_appendedCount--;
 }
 
 void PartitionRaftLog::applyCommittedEntryAsReplica(bsls::Types::Uint64 index,
@@ -419,19 +448,7 @@ void PartitionRaftLog::applyCommittedEntryAsReplica(bsls::Types::Uint64 index,
     // TODO (raft): do we need entryInfo.d_sequenceNum?
     BSLS_ASSERT_SAFE(entryInfo.d_sequenceNum == index);
 
-    // Capture the routing fields FIRST: 'rollover()' compacts this entry away
-    // and invalidates the reference into 'd_index'.
-    const mqbs::RecordType::Enum    recordType    = entryInfo.d_recordType;
-    const mqbs::SyncPointType::Enum syncPointType = entryInfo.d_syncPointType;
     const mqbs::DataStoreRecordHandle handle      = entryInfo.d_handle;
-
-    if (recordType == mqbs::RecordType::e_JOURNAL_OP &&
-        syncPointType == mqbs::SyncPointType::e_ROLLOVER) {
-        // The committed 'e_ROLLOVER' triggers the physical file rollover; the
-        // entry itself is compacted away and has no 'onRecordCommitted*'.
-        rollover(index);
-        return;  // RETURN
-    }
 
     d_fileStore_p->onRecordCommittedReplica(data, handle);
 }
@@ -520,11 +537,18 @@ bsls::Types::Uint64 PartitionRaftLog::snapshotTerm() const
     return d_snapshotTerm;
 }
 
-bool PartitionRaftLog::isBuffering() const
+bool PartitionRaftLog::isRollover(bsls::Types::Uint64 index) const
 {
-    return !d_index.empty() &&
-           d_index.back().d_recordType == mqbs::RecordType::e_JOURNAL_OP &&
-           d_index.back().d_syncPointType == mqbs::SyncPointType::e_ROLLOVER;
+    const EntryInfo& entryInfo = d_index[index - d_snapshotIndex - 1];
+
+    // TODO (raft): do we need entryInfo.d_sequenceNum?
+    BSLS_ASSERT_SAFE(entryInfo.d_sequenceNum == index);
+
+    const mqbs::RecordType::Enum    recordType    = entryInfo.d_recordType;
+    const mqbs::SyncPointType::Enum syncPointType = entryInfo.d_syncPointType;
+
+    return (recordType == mqbs::RecordType::e_JOURNAL_OP &&
+            syncPointType == mqbs::SyncPointType::e_ROLLOVER);
 }
 
 bool PartitionRaftLog::hasPendingWrites() const
