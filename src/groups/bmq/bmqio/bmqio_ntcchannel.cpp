@@ -57,15 +57,6 @@ const int k_MAX_BYTES_DUMP = 512;
 
 #define BMQIO_UNUSED(parameter) (void)(parameter)
 
-// Define and set to 1 to enable resolution of a listener's source endpoint
-// through the asynchronous bind operation, but note that this implementation
-// must artificially block until the asynchronous bind operation completes,
-// because the contract of bmqio::ChannelFactory::listen is expected to
-// bind and listen synchronously. This configuration option should be set to
-// 0 until the channel factory supports some notion of a listener starting
-// asynchronously.
-#define BMQIO_NTCLISTENER_BIND_ASYNC 0
-
 struct AddressFormatter {
     void* d_address_p;
     explicit AddressFormatter(void* address)
@@ -293,44 +284,12 @@ struct AddressFormatter {
                        << " closed: " << (status) << BALL_LOG_END;            \
     } while (false)
 
-#if BMQIO_NTCLISTENER_BIND_ASYNC
-
-#define BMQIO_NTCLISTENER_LOG_BIND_START(address,                             \
-                                         listenerSocket,                      \
-                                         sourceEndpoint)                      \
-    do {                                                                      \
-        BALL_LOG_TRACE << "NTC listener " << AddressFormatter(address)        \
-                       << " at " << (sourceEndpoint) << " bind initiated"     \
-                       << BALL_LOG_END;                                       \
-    } while (false)
-
-#define BMQIO_NTCLISTENER_LOG_BIND_COMPLETE(address, listenerSocket, event)   \
-    do {                                                                      \
-        BALL_LOG_TRACE << "NTC listener " << AddressFormatter(address)        \
-                       << " at " << (listenerSocket)->sourceEndpoint()        \
-                       << " bind complete: " << (event) << BALL_LOG_END;      \
-    } while (false)
-
-#define BMQIO_NTCLISTENER_LOG_BIND_FAILED(address,                            \
-                                          listenerSocket,                     \
-                                          sourceEndpoint,                     \
-                                          event)                              \
-    do {                                                                      \
-        BALL_LOG_TRACE << "NTC listener " << AddressFormatter(address)        \
-                       << " at " << (sourceEndpoint)                          \
-                       << " bind failed: " << (event) << BALL_LOG_END;        \
-    } while (false)
-
-#else
-
 #define BMQIO_NTCLISTENER_LOG_RESOLVE_FAILED(address, endpointString, error)  \
     do {                                                                      \
         BALL_LOG_TRACE << "NTC listener " << AddressFormatter(address)        \
                        << " resolution of '" << (endpointString)              \
                        << " failed: " << (error) << BALL_LOG_END;             \
     } while (false)
-
-#endif
 
 #define BMQIO_NTCLISTENER_LOG_ACCEPT_COMPLETE(address, streamSocket, event)   \
     do {                                                                      \
@@ -1617,8 +1576,6 @@ int NtcListener::listen(bmqio::Status*              status,
     listenerSocketOptions.setKeepHalfOpen(false);
     listenerSocketOptions.setBacklog(backlog);
 
-#if BMQIO_NTCLISTENER_BIND_ASYNC == 0
-
     bsl::shared_ptr<ntsi::Resolver> resolver = ntsf::System::createResolver(
         d_allocator_p);
 
@@ -1638,8 +1595,6 @@ int NtcListener::listen(bmqio::Status*              status,
 
     listenerSocketOptions.setSourceEndpoint(endpoint);
 
-#endif
-
     bsl::shared_ptr<ntci::ListenerSocket> listenerSocket =
         d_interface_sp->createListenerSocket(listenerSocketOptions,
                                              d_allocator_p);
@@ -1654,53 +1609,6 @@ int NtcListener::listen(bmqio::Status*              status,
                                      error);
         return 4;
     }
-
-#if BMQIO_NTCLISTENER_BIND_ASYNC
-
-    BMQIO_NTCLISTENER_LOG_BIND_START(this, listenerSocket, endpointString);
-
-    ntca::BindOptions bindOptions;
-    bindOptions.setIpAddressType(ntsa::IpAddressType::e_V4);
-
-    ntci::BindFuture bindFuture;
-
-    error = listenerSocket->bind(endpointString, bindOptions, bindFuture);
-    if (error) {
-        bmqio::NtcListenerUtil::fail(status,
-                                     bmqio::StatusCategory::e_GENERIC_ERROR,
-                                     "bind",
-                                     error);
-        return 5;
-    }
-
-    ntci::BindResult bindResult;
-    error = bindFuture.wait(&bindResult);
-    if (error) {
-        bmqio::NtcListenerUtil::fail(status,
-                                     bmqio::StatusCategory::e_GENERIC_ERROR,
-                                     "bind",
-                                     error);
-        return 6;
-    }
-
-    if (bindResult.event().context().error()) {
-        BMQIO_NTCLISTENER_LOG_BIND_FAILED(this,
-                                          listenerSocket,
-                                          options.endpoint(),
-                                          bindResult.event());
-
-        bmqio::NtcListenerUtil::fail(status,
-                                     bmqio::StatusCategory::e_GENERIC_ERROR,
-                                     "bind",
-                                     bindResult.event().context().error());
-        return 7;
-    }
-
-    BMQIO_NTCLISTENER_LOG_BIND_COMPLETE(this,
-                                        listenerSocket,
-                                        bindResult.event());
-
-#endif
 
     error = listenerSocket->listen(backlog);
     if (error) {
