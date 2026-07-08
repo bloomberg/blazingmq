@@ -55,6 +55,7 @@
 #include <ball_log.h>
 #include <bdlbb_blob.h>
 #include <bdlmt_fixedthreadpool.h>
+#include <bsl_functional.h>
 #include <bsl_memory.h>
 #include <bsl_vector.h>
 #include <bslma_allocator.h>
@@ -87,6 +88,13 @@ namespace mqbraft {
 
 class PartitionRaftManager : public mqbi::StorageProvider,
                              public mqbc::StoragesMonitor {
+  public:
+    // TYPES
+
+    /// Callback forwarded to each `PartitionRaft` to signal Raft leadership
+    /// changes (see `PartitionRaft::PartitionLeadershipCb`).
+    typedef PartitionRaft::PartitionLeadershipCb PartitionLeadershipCb;
+
   private:
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("MQBRAFT.PARTITIONRAFTMANAGER");
@@ -113,6 +121,7 @@ class PartitionRaftManager : public mqbi::StorageProvider,
     const mqbcfg::ClusterDefinition& d_clusterConfig;
     int                              d_replicationFactor;
     int                              d_numPartitionsRecoveredQueues;
+    PartitionLeadershipCb            d_leadershipCb;
     bslma::Allocator*                d_allocator_p;
 
     // NOT IMPLEMENTED
@@ -163,6 +172,7 @@ class PartitionRaftManager : public mqbi::StorageProvider,
                          mqbi::DomainFactory*             domainFactory,
                          mqbc::ClusterState*              clusterState,
                          const mqbcfg::ClusterDefinition& clusterConfig,
+                         const PartitionLeadershipCb&     leadershipCb,
                          bslma::Allocator*                allocator = 0);
 
     ~PartitionRaftManager() BSLS_KEYWORD_OVERRIDE;

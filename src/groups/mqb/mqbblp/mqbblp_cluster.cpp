@@ -3320,7 +3320,7 @@ bool Cluster::isFSMWorkflow() const
 
 bool Cluster::isRaftEnabled() const
 {
-    return false;  // can hijack isFSMWorkflow();
+    return isFSMWorkflow();
 }
 
 bool Cluster::doesFSMwriteQLIST() const
