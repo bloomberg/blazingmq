@@ -548,6 +548,12 @@ class DataStoreRecordHandle {
     /// Create an invalid handle. `isValid` returns false.
     DataStoreRecordHandle();
 
+    // MANIPULATORS
+
+    /// Mark the referenced record as having received quorum receipt.  The
+    /// behavior is undefined unless `isValid()`.
+    void setHasReceipt();
+
     // ACCESSORS
 
     /// Return true if this instance is valid, false otherwise.
@@ -1355,6 +1361,14 @@ inline DataStoreRecordHandle::DataStoreRecordHandle(
 inline DataStoreRecordHandle::DataStoreRecordHandle()
 : d_iterator()
 {
+}
+
+// MANIPULATORS
+
+inline void DataStoreRecordHandle::setHasReceipt()
+{
+    BSLS_ASSERT_SAFE(isValid());
+    d_iterator->second.d_hasReceipt = true;
 }
 
 // ACCESSORS

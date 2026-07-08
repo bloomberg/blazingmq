@@ -7873,13 +7873,23 @@ void FileStore::onRecordCommittedReplica(const bdlbb::Blob&           data,
     }
 }
 
-void FileStore::onRecordCommittedPrimary(unsigned int        primaryLeaseId,
-                                          bsls::Types::Uint64 sequenceNumber)
+void FileStore::onRecordCommittedPrimary(PendingWrite& pw)
 {
-    // TODO: for strong consistency, find in d_unreceipted and call
-    // queue->onReceipt(). For weak consistency, no-op.
-    (void)primaryLeaseId;
-    (void)sequenceNumber;
+    if (pw.d_recordType != RecordType::e_MESSAGE) {
+        return;  // non-MESSAGE records don't produce handles or need receipt
+    }
+
+    BSLS_ASSERT_SAFE(pw.d_handle.isValid());
+
+    StorageMapIter sit = d_storages.find(pw.d_queueKey);
+    if (sit != d_storages.end()) {
+        mqbi::Queue* queue = sit->second->queue();
+        BSLS_ASSERT_SAFE(queue);
+
+        pw.d_handle.setHasReceipt();
+
+        queue->onReceipt(pw.d_guid, pw.d_attributes_p->queueHandle());
+    }
 }
 
 void FileStore::removeRecordRaw(const DataStoreRecordHandle& handle)

@@ -991,12 +991,12 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     void onRecordCommittedReplica(const bdlbb::Blob&           data,
                                   const DataStoreRecordHandle& handle);
 
-    /// Notify that the record identified by the specified 'primaryLeaseId'
-    /// and 'sequenceNumber' has been committed by Raft quorum on the
-    /// primary.  For strong consistency: find in 'd_unreceipted' and call
-    /// queue->onReceipt().
-    void onRecordCommittedPrimary(unsigned int        primaryLeaseId,
-                                  bsls::Types::Uint64 sequenceNumber);
+    /// Notify that the record described by the specified 'pw' has been
+    /// committed by Raft quorum on the primary.  For a MESSAGE record, mark
+    /// its handle as receipted and, if the queue still exists, invoke
+    /// 'queue->onReceipt()'.  Non-MESSAGE records produce no handle and are
+    /// ignored.
+    void onRecordCommittedPrimary(PendingWrite& pw);
 
     /// Read the record at the specified 'journalOffset' (and any
     /// associated data payload) into the specified 'out' blob using
