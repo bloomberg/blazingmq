@@ -25,7 +25,8 @@ using namespace BloombergLP;
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 {
-    if (size < sizeof(bmqp::EventHeader)) {
+    if (size < sizeof(bmqp::EventHeader) ||
+        size > bsl::numeric_limits<int>::max()) {
         return 0;
     }
 
