@@ -52,6 +52,7 @@
 #include <bdlcc_sharedobjectpool.h>
 #include <bdlmt_eventscheduler.h>
 #include <bsl_deque.h>
+#include <bsl_functional.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
 #include <bslma_usesbslmaallocator.h>
@@ -75,6 +76,18 @@ namespace mqbraft {
 // ====================
 
 class PartitionRaft : public mqbs::RecordStore {
+  public:
+    // TYPES
+
+    /// Callback invoked on the partition dispatcher thread whenever this
+    /// partition's Raft leadership changes (self became/lost leader, or a
+    /// follower observed a new leader).  `leaderNodeId` is the current
+    /// leader's node id, or `RaftNode::k_INVALID_NODE_ID` when there is no
+    /// leader; `term` is the current Raft term (maps to the primary lease id).
+    typedef bsl::function<
+        void(int partitionId, int leaderNodeId, bsls::Types::Uint64 term)>
+        PartitionLeadershipCb;
+
   private:
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("MQBRAFT.PARTITIONRAFT");
@@ -119,6 +132,11 @@ class PartitionRaft : public mqbs::RecordStore {
 
     /// `true` if an `e_ROLLOVER` has been proposed but not yet committed.
     bool d_isRolloverPending;
+
+    /// Invoked on every Raft leadership change to signal the cluster (see
+    /// `PartitionLeadershipCb`).  Required (asserted non-empty at
+    /// construction).
+    PartitionLeadershipCb d_leadershipCb;
 
     // NOT IMPLEMENTED
     PartitionRaft(const PartitionRaft&);
@@ -236,6 +254,7 @@ class PartitionRaft : public mqbs::RecordStore {
                   const bsl::shared_ptr<mqbs::FileStore>& fileStore,
                   mqbc::ClusterData*                      clusterData,
                   mqbs::StoragesMonitor*                  storagesMonitor,
+                  const PartitionLeadershipCb&            leadershipCb,
                   bslma::Allocator*                       allocator = 0);
 
     ~PartitionRaft() BSLS_KEYWORD_OVERRIDE;

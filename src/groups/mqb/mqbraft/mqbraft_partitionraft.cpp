@@ -137,9 +137,10 @@ int computeEntrySize(const bdlbb::Blob& blob, int offset)
 // CREATORS
 PartitionRaft::PartitionRaft(int partitionId,
                              const bsl::shared_ptr<mqbs::FileStore>& fileStore,
-                             mqbc::ClusterData*     clusterData,
-                             mqbs::StoragesMonitor* storagesMonitor,
-                             bslma::Allocator*      allocator)
+                             mqbc::ClusterData*           clusterData,
+                             mqbs::StoragesMonitor*       storagesMonitor,
+                             const PartitionLeadershipCb& leadershipCb,
+                             bslma::Allocator*            allocator)
 : d_partitionId(partitionId)
 , d_fileStore_sp(fileStore)
 , d_clusterData_p(clusterData)
@@ -161,10 +162,12 @@ PartitionRaft::PartitionRaft(int partitionId,
 , d_snapshotLastIncludedIndex(0)
 , d_snapshotLastIncludedTerm(0)
 , d_isRolloverPending(false)
+, d_leadershipCb(leadershipCb)
 {
     BSLS_ASSERT_SAFE(d_fileStore_sp);
     BSLS_ASSERT_SAFE(clusterData);
     BSLS_ASSERT_SAFE(storagesMonitor);
+    BSLS_ASSERT_SAFE(d_leadershipCb);
 
     d_raftLog_mp.load(new (*d_allocator_p)
                           PartitionRaftLog(d_fileStore_sp.get(),
@@ -265,6 +268,16 @@ void PartitionRaft::dispatchOutput(RaftNodeOutput* output)
                 d_raftLog_mp->dropPendingWrites();
             }
         }
+    }
+
+    // Signal the cluster of any leadership change so it can (re)compute this
+    // partition's primary/gate state.  'd_stateChanged' covers self
+    // becoming/losing leader; 'd_leaderChanged' additionally covers a follower
+    // observing a new leader identity.
+    if (output->d_stateChanged || output->d_leaderChanged) {
+        d_leadershipCb(d_partitionId,
+                       d_raftNode_mp->leaderId(),
+                       d_raftNode_mp->currentTerm());
     }
 }
 

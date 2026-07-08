@@ -47,6 +47,7 @@ PartitionRaftManager::PartitionRaftManager(
     mqbi::DomainFactory*             domainFactory,
     mqbc::ClusterState*              clusterState,
     const mqbcfg::ClusterDefinition& clusterConfig,
+    const PartitionLeadershipCb&     leadershipCb,
     bslma::Allocator*                allocator)
 : mqbc::StoragesMonitor(allocator)
 , d_partitionRafts(allocator)
@@ -62,6 +63,7 @@ PartitionRaftManager::PartitionRaftManager(
 , d_replicationFactor(
       static_cast<int>(cluster->netCluster().nodes().size() / 2) + 1)
 , d_numPartitionsRecoveredQueues(0)
+, d_leadershipCb(leadershipCb)
 , d_allocator_p(bslma::Default::allocator(allocator))
 {
     BSLS_ASSERT_SAFE(clusterData);
@@ -228,6 +230,7 @@ int PartitionRaftManager::start(bsl::ostream& errorDescription)
                                                    d_fileStores[i],
                                                    d_clusterData_p,
                                                    this,
+                                                   d_leadershipCb,
                                                    d_allocator_p),
                                  d_allocator_p);
 
