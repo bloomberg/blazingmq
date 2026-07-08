@@ -261,9 +261,14 @@ class PartitionRaft : public mqbs::RecordStore {
 
     // MANIPULATORS
 
-    /// Start: create PartitionRaftLog and RaftNode, schedule tick timer.
-    /// Return 0 on success.
-    int start(bsl::ostream& errorDescription);
+    /// Open and recover the FileStore-backed Raft log, seed the applied state,
+    /// and schedule the tick timer.  FileStore open/recovery is unrecoverable
+    /// on failure, so this ALARMs and terminates the process rather than
+    /// returning an error, matching legacy
+    /// `StorageManager::do_attemptOpenStorage`.
+    ///
+    /// THREAD: Executed by this partition's dispatcher thread.
+    void start();
 
     /// Stop: cancel tick timer.
     void stop();

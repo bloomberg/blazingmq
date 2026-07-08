@@ -30,6 +30,7 @@
 #include <ball_log.h>
 #include <bdlf_bind.h>
 #include <bdlf_placeholder.h>
+#include <bslmt_latch.h>
 #include <bsls_assert.h>
 
 namespace BloombergLP {
@@ -43,32 +44,28 @@ namespace mqbraft {
 PartitionRaftManager::PartitionRaftManager(
     mqbc::ClusterData*               clusterData,
     mqbi::Cluster*                   cluster,
-    mqbi::Dispatcher*                dispatcher,
     mqbi::DomainFactory*             domainFactory,
     mqbc::ClusterState*              clusterState,
     const mqbcfg::ClusterDefinition& clusterConfig,
     const PartitionLeadershipCb&     leadershipCb,
     bslma::Allocator*                allocator)
 : mqbc::StoragesMonitor(allocator)
-, d_partitionRafts(allocator)
-, d_fileStores(allocator)
-, d_miscWorkThreadPool(1, 1, allocator)
 , d_allocators(allocator)
 , d_clusterData_p(clusterData)
 , d_cluster_p(cluster)
-, d_dispatcher_p(dispatcher)
 , d_domainFactory_p(domainFactory)
 , d_clusterState_p(clusterState)
 , d_clusterConfig(clusterConfig)
 , d_replicationFactor(
       static_cast<int>(cluster->netCluster().nodes().size() / 2) + 1)
-, d_numPartitionsRecoveredQueues(0)
 , d_leadershipCb(leadershipCb)
 , d_allocator_p(bslma::Default::allocator(allocator))
+, d_partitionRafts(allocator)
+, d_fileStores(allocator)
+, d_miscWorkThreadPool(1, 1, allocator)
 {
     BSLS_ASSERT_SAFE(clusterData);
     BSLS_ASSERT_SAFE(cluster);
-    BSLS_ASSERT_SAFE(dispatcher);
     BSLS_ASSERT_SAFE(domainFactory);
     BSLS_ASSERT_SAFE(clusterState);
 
@@ -115,8 +112,6 @@ void PartitionRaftManager::recoveredQueuesCb(
         partitionId,
         queueKeyInfoMap,
         d_allocator_p);
-
-    ++d_numPartitionsRecoveredQueues;
 }
 
 void PartitionRaftManager::queueCreationCb(
@@ -195,7 +190,7 @@ int PartitionRaftManager::start(bsl::ostream& errorDescription)
         &d_miscWorkThreadPool,
         d_clusterData_p,
         *d_cluster_p,
-        d_dispatcher_p,
+        d_clusterData_p->dispatcherClientData().dispatcher(),
         partitionCfg,
         &d_fileStores,
         this,
@@ -233,31 +228,67 @@ int PartitionRaftManager::start(bsl::ostream& errorDescription)
                                                    d_leadershipCb,
                                                    d_allocator_p),
                                  d_allocator_p);
-
-        rc = d_partitionRafts[i]->start(errorDescription);
-        if (rc != 0) {
-            errorDescription << "Failed to start PartitionRaft for partition "
-                             << i << ", rc=" << rc;
-            for (int j = i - 1; j >= 0; --j) {
-                d_partitionRafts[j]->stop();
-            }
-            return rc;
-        }
     }
 
-    BALL_LOG_INFO << "PartitionRaftManager started " << numPartitions
-                  << " partitions";
+    // 'PartitionRaft::start' opens (and recovers) the FileStore, which must
+    // run on that partition's dispatcher thread.  'start()' here runs on the
+    // cluster dispatcher thread, so dispatch each partition's start to its own
+    // thread; open/recovery failures are handled in-thread by 'start()' (ALARM
+    // + terminate).
+    for (int i = 0; i < numPartitions; ++i) {
+        d_fileStores[i]->execute(
+            bdlf::BindUtil::bind(&PartitionRaft::start,
+                                 d_partitionRafts[i].get()));
+    }
+
+    BALL_LOG_INFO << "PartitionRaftManager dispatched start for "
+                  << numPartitions << " partitions";
 
     return 0;
 }
 
 void PartitionRaftManager::stop()
 {
+    // Cancel each partition's Raft tick timer first (waits for any in-flight
+    // tick to finish), so no further proposals/writes occur once closing the
+    // FileStores below.
     for (int i = 0; i < static_cast<int>(d_partitionRafts.size()); ++i) {
         if (d_partitionRafts[i]) {
             d_partitionRafts[i]->stop();
         }
     }
+
+    // Close each FileStore on its own dispatcher thread, mirroring legacy
+    // 'StorageUtil::stop'/'shutdown' (a generic close, not FSM/advisory
+    // specific -- safe to reuse).  'FileStore::~FileStore()' asserts
+    // '!d_isOpen', so this must complete before the FileStores are destroyed.
+    bslmt::Latch latch(d_fileStores.size());
+    for (unsigned int i = 0; i < d_fileStores.size(); ++i) {
+        const FileStoreSp& fs = d_fileStores[i];
+        // 'fs' could be null if the partition was never created (start()
+        // failed partway, or was never called).
+        if (fs) {
+            fs->execute(
+                bdlf::BindUtil::bind(&mqbc::StorageUtil::shutdown,
+                                     static_cast<int>(i),
+                                     &latch,
+                                     &d_fileStores,
+                                     d_clusterData_p->identity().description(),
+                                     d_clusterConfig));
+        }
+        else {
+            latch.arrive();
+        }
+    }
+    latch.wait();
+
+    // Stop the misc work thread pool last, mirroring legacy
+    // 'StorageManager::stop()'.  Closing FileStores above (or a
+    // deferred-alias release, e.g. 'FileStore::gc') may have enqueued
+    // 'gcWorkerDispatched' jobs onto this pool; 'stop()' blocks until the
+    // queue drains and all worker threads join, so no job referencing a
+    // FileStore is still in flight when the FileStores are later destroyed.
+    d_miscWorkThreadPool.stop();
 
     BALL_LOG_INFO << "PartitionRaftManager stopped";
 }
@@ -490,43 +521,48 @@ bool PartitionRaftManager::isRaft() const
     return true;
 }
 
-void PartitionRaftManager::processShutdownEventDispatched(int partitionId)
-{
-    // executed by *QUEUE_DISPATCHER* thread
-
-    BSLS_ASSERT_SAFE(partitionId >= 0 &&
-                     partitionId < static_cast<int>(d_fileStores.size()));
-    BSLS_ASSERT_SAFE(d_fileStores[partitionId]->inDispatcherThread());
-
-    mqbs::FileStore* fs = d_fileStores[partitionId].get();
-
-    PartitionRaft* pr = d_partitionRafts[partitionId].get();
-    BSLS_ASSERT_SAFE(pr);
-
-    mqbi::StorageManager_PartitionInfo pinfo;
-    if (pr->isLeader()) {
-        pinfo.setPrimary(d_clusterData_p->membership().selfNode());
-        pinfo.setPrimaryLeaseId(static_cast<unsigned int>(pr->currentTerm()));
-        pinfo.setPrimaryStatus(bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE);
-    }
-
-    mqbc::StorageUtil::processShutdownEventDispatched(d_clusterData_p,
-                                                      &pinfo,
-                                                      fs,
-                                                      partitionId);
-}
-
 void PartitionRaftManager::processShutdownEvent()
 {
     // executed by the *CLUSTER DISPATCHER* thread
 
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
 
-    for (int i = 0; i < static_cast<int>(d_fileStores.size()); ++i) {
-        d_fileStores[i]->execute(bdlf::BindUtil::bind(
-            &PartitionRaftManager::processShutdownEventDispatched,
-            this,
-            i));
+    // This is the early "notify" event (graceful-drain phase), distinct from
+    // the later 'stop()' (final teardown, right before closing FileStores).
+    // Unlike legacy ('mqbc::StorageUtil::processShutdownEventDispatched'),
+    // Raft needs neither a forced final sync point nor a
+    // 'PrimaryStatusAdvisory' broadcast here:
+    //  - A forced sync point exists in legacy so a replica knows exactly where
+    //    to stop applying storage events; Raft replicas already derive the
+    //    commit boundary from 'AppendEntries' (leaderCommit,
+    //    prevLogIndex/prevLogTerm), so no special last-entry convention is
+    //    needed.  'FileStore::issueSyncPoint()' is a direct, non-replicated
+    //    write and asserts '!isRaft()' -- calling it here would be both
+    //    unnecessary and illegal.
+    //  - Every node derives partition-primary/gate readiness locally from Raft
+    //    leadership (see the leadership-change block in
+    //    'PartitionRaft::dispatchOutput'), not from an advisory broadcast by
+    //    the (soon-gone) primary.  Once this node stops sending heartbeats,
+    //    followers' election timers naturally trigger a new election, and
+    //    every node -- including this one -- updates its own 'ClusterState'
+    //    from that.
+    // Also note this must NOT cancel the Raft tick ('PartitionRaft::stop()'):
+    // that would silence this node's heartbeats immediately, forcing an
+    // avoidable early election on other nodes well before the actual drain
+    // completes.  'stop()' remains reserved for final teardown, immediately
+    // before 'FileStore::close()' (see 'stop()' below).
+    //
+    // What Raft does need here: 'd_isStopping' set on the FileStore, since it
+    // gates the write path (e.g. 'formatQueueCreationRecord' rejects writes
+    // once stopping).  'FileStore::processShutdownEvent()' sets exactly that
+    // and is already Raft-safe (no '!isRaft()' assertion).
+    for (unsigned int i = 0; i < d_fileStores.size(); ++i) {
+        const FileStoreSp& fs = d_fileStores[i];
+        if (fs) {
+            fs->execute(
+                bdlf::BindUtil::bind(&mqbs::FileStore::processShutdownEvent,
+                                     fs.get()));
+        }
     }
 }
 

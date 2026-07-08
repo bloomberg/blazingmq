@@ -642,7 +642,10 @@ inline ClusterQueueHelper& ClusterOrchestrator::queueHelper()
 // ACCESSORS
 inline const mqbc::ClusterState* ClusterOrchestrator::clusterState() const
 {
-    return d_stateManager_mp->clusterState();
+    // Held directly (set in 'init()') rather than via 'd_stateManager_mp',
+    // which is null in Raft mode.  It is the same object the state manager was
+    // constructed with in legacy mode.
+    return d_clusterState_p;
 }
 
 inline const ClusterQueueHelper& ClusterOrchestrator::queueHelper() const
