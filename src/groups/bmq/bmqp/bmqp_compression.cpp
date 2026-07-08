@@ -255,6 +255,7 @@ int ZLib::writeOutput(bdlbb::Blob*              output,
                      "Error processing stream",
                      result,
                      stream->msg);
+            zlibEndMethod(stream);
             return rc_STREAM_PROCESS_FAILURE;  // RETURN
         }
     }
