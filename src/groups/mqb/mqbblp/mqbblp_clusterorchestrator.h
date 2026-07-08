@@ -183,6 +183,11 @@ class ClusterOrchestrator {
 
     bslma::ManagedPtr<mqbraft::PartitionRaftManager> d_partitionRaftManager_mp;
 
+    /// Cluster state.  Held directly (not via `d_stateManager_mp`, which is
+    /// null in Raft mode) so the Raft leadership path can update partition
+    /// primary state.  Set in `init()`.
+    mqbc::ClusterState* d_clusterState_p;
+
     mqbi::StorageManager* d_storageManager_p;
 
     RecurringEventHandle d_consumptionMonitorEventHandle;
@@ -244,6 +249,28 @@ class ClusterOrchestrator {
     void onPartitionPrimaryStatusDispatched(int          partitionId,
                                             int          status,
                                             unsigned int primaryLeaseId);
+
+    /// Apply a Raft leadership change for the specified `partitionId`: record
+    /// the specified `leaderNodeId` (or `RaftNode::k_INVALID_NODE_ID` for no
+    /// leader) as the partition primary with the specified `term` as its lease
+    /// id, and open (E_ACTIVE) or close (E_PASSIVE) the partition gate in
+    /// `ClusterState` accordingly.  Raft-mode only.
+    ///
+    /// THREAD: This method is invoked in the associated cluster's
+    ///         dispatcher thread.
+    void onPartitionRaftLeadershipDispatched(int                 partitionId,
+                                             int                 leaderNodeId,
+                                             bsls::Types::Uint64 term);
+
+    /// Transition the self node to `E_AVAILABLE` if, and only if, every
+    /// partition has an active primary (FSM-parity readiness).  A partition
+    /// cannot become active before its local journal is recovered, so this
+    /// subsumes the recovery precondition.  One-shot; a no-op once already
+    /// available.  Raft-mode only.
+    ///
+    /// THREAD: This method is invoked in the associated cluster's
+    ///         dispatcher thread.
+    void maybeTransitionToAvailable();
 
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
@@ -540,6 +567,16 @@ class ClusterOrchestrator {
     void onPartitionPrimaryStatus(int          partitionId,
                                   int          status,
                                   unsigned int primaryLeaseId);
+
+    /// Signal a Raft leadership change for the specified `partitionId`: the
+    /// current leader is the specified `leaderNodeId` (or
+    /// `RaftNode::k_INVALID_NODE_ID` if none) at the specified `term`.  Wired
+    /// as `PartitionRaft`'s leadership callback (Raft-mode only).
+    ///
+    /// THREAD: Executed by the partition dispatcher thread.
+    void onPartitionRaftLeadership(int                 partitionId,
+                                   int                 leaderNodeId,
+                                   bsls::Types::Uint64 term);
 
     /// PFSM signals when it is `e_DONE_RECEIVING_DATA_CHUNKS`.  Previously
     /// buffered PrimaryStatusAdvisories should be reread.

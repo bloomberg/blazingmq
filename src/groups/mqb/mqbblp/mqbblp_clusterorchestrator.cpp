@@ -579,6 +579,7 @@ ClusterOrchestrator::ClusterOrchestrator(
                 d_stateManager_mp.get(),
                 allocator)
 , d_elector_mp()
+, d_clusterState_p(clusterState)
 , d_storageManager_p(0)
 , d_bufferedPrimaryStatusAdvisoryInfosVec(allocator)
 {
@@ -622,15 +623,20 @@ void ClusterOrchestrator::init(mqbc::ClusterState* clusterState)
         d_queueHelper.setClusterStateUpdater(d_clusterStateRaft_mp.get());
 
         d_partitionRaftManager_mp.load(
-            new (*d_allocator_p)
-                mqbraft::PartitionRaftManager(
-                    d_clusterData_p,
-                    d_cluster_p,
-                    dispatcher(),
-                    d_clusterData_p->domainFactory(),
-                    clusterState,
-                    d_clusterConfig,
-                    d_allocators.get("PartitionRaftManager")),
+            new (*d_allocator_p) mqbraft::PartitionRaftManager(
+                d_clusterData_p,
+                d_cluster_p,
+                dispatcher(),
+                d_clusterData_p->domainFactory(),
+                clusterState,
+                d_clusterConfig,
+                bdlf::BindUtil::bind(
+                    &ClusterOrchestrator::onPartitionRaftLeadership,
+                    this,
+                    bdlf::PlaceHolders::_1,   // partitionId
+                    bdlf::PlaceHolders::_2,   // leaderNodeId
+                    bdlf::PlaceHolders::_3),  // term
+                d_allocators.get("PartitionRaftManager")),
             d_allocator_p);
 
         d_queueHelper.setStorageManager(d_partitionRaftManager_mp.get());
@@ -2014,6 +2020,129 @@ void ClusterOrchestrator::onPartitionPrimaryStatus(int          partitionId,
             status,
             primaryLeaseId),
         d_cluster_p);
+}
+
+void ClusterOrchestrator::onPartitionRaftLeadership(int partitionId,
+                                                    int leaderNodeId,
+                                                    bsls::Types::Uint64 term)
+{
+    // executed by the partition *DISPATCHER* thread
+
+    dispatcher()->execute(
+        bdlf::BindUtil::bind(
+            &ClusterOrchestrator::onPartitionRaftLeadershipDispatched,
+            this,
+            partitionId,
+            leaderNodeId,
+            term),
+        d_cluster_p);
+}
+
+void ClusterOrchestrator::onPartitionRaftLeadershipDispatched(
+    int                 partitionId,
+    int                 leaderNodeId,
+    bsls::Types::Uint64 term)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+    BSLS_ASSERT_SAFE(0 <= partitionId);
+    BSLS_ASSERT_SAFE(static_cast<size_t>(partitionId) <
+                     d_clusterState_p->partitions().size());
+
+    if (bmqp_ctrlmsg::NodeStatus::E_STOPPING ==
+        d_clusterData_p->membership().selfNodeStatus()) {
+        return;  // RETURN
+    }
+
+    if (mqbraft::RaftNode::k_INVALID_NODE_ID == leaderNodeId) {
+        // No leader for this partition: close the gate until one emerges.
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << " Partition [" << partitionId
+                      << "]: Raft reports no leader; marking primary PASSIVE.";
+        d_clusterState_p->setPartitionPrimaryStatus(
+            partitionId,
+            bmqp_ctrlmsg::PrimaryStatus::E_PASSIVE);
+        return;  // RETURN
+    }
+
+    // Resolve the leader node id to its ClusterNode / ClusterNodeSession.
+    mqbnet::ClusterNode* leaderNode =
+        (leaderNodeId == d_clusterData_p->membership().selfNode()->nodeId())
+            ? d_clusterData_p->membership().selfNode()
+            : d_clusterData_p->membership().netCluster()->lookupNode(
+                  leaderNodeId);
+    if (0 == leaderNode) {
+        BALL_LOG_WARN << d_clusterData_p->identity().description()
+                      << " Partition [" << partitionId
+                      << "]: Raft leader node " << leaderNodeId
+                      << " is unknown; ignoring leadership notification.";
+        return;  // RETURN
+    }
+
+    mqbc::ClusterNodeSession* ns =
+        d_clusterData_p->membership().getClusterNodeSession(leaderNode);
+    BSLS_ASSERT_SAFE(ns);
+
+    const unsigned int leaseId = static_cast<unsigned int>(term);
+
+    // Update the partition->primary mapping if it changed (this closes the
+    // gate as a side effect), then open the gate by marking the primary
+    // ACTIVE.
+    const mqbc::ClusterStatePartitionInfo& pinfo = d_clusterState_p->partition(
+        partitionId);
+    if (pinfo.primaryNode() != leaderNode ||
+        pinfo.primaryLeaseId() != leaseId) {
+        d_clusterState_p->setPartitionPrimary(partitionId, leaseId, ns);
+    }
+
+    d_clusterState_p->setPartitionPrimaryStatus(
+        partitionId,
+        bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE);
+
+    // A partition just became active; this may complete the set required for
+    // the node to advertise availability.
+    maybeTransitionToAvailable();
+}
+
+void ClusterOrchestrator::maybeTransitionToAvailable()
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+
+    // One-shot, and never while shutting down: nothing to do unless the node
+    // is still in a pre-available (starting) state.
+    const bmqp_ctrlmsg::NodeStatus::Value selfStatus =
+        d_clusterData_p->membership().selfNodeStatus();
+    if (bmqp_ctrlmsg::NodeStatus::E_AVAILABLE == selfStatus ||
+        bmqp_ctrlmsg::NodeStatus::E_STOPPING == selfStatus) {
+        return;  // RETURN
+    }
+
+    // FSM parity: hold availability until every partition has an active
+    // primary (a recognized Raft leader).  A partition cannot reach E_ACTIVE
+    // before its local journal is recovered -- 'PartitionRaft::start()' opens
+    // (and recovers) the FileStore synchronously before the election tick is
+    // scheduled -- so an all-active set already implies recovery is done; no
+    // separate recovery signal is needed (and a fresh cluster has no recovery
+    // callback at all).
+    const mqbc::ClusterState::PartitionsInfo& partitions =
+        d_clusterState_p->partitions();
+    for (size_t pid = 0; pid < partitions.size(); ++pid) {
+        if (bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE !=
+            partitions[pid].primaryStatus()) {
+            return;  // RETURN
+        }
+    }
+
+    BALL_LOG_INFO << d_clusterData_p->identity().description()
+                  << ": all partitions recovered and have an active primary. "
+                  << "Transitioning to AVAILABLE.";
+
+    transitionToAvailable();
 }
 
 void ClusterOrchestrator::processBufferedPrimaryStatusAdvisories(
