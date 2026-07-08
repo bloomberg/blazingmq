@@ -1,4 +1,4 @@
-// Copyright 2025 Bloomberg Finance L.P.
+// Copyright 2026 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -13,20 +13,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <bmqio_channelutil.h>
 #include <bdlbb_blob.h>
 #include <bdlbb_blobutil.h>
 #include <bdlbb_pooledblobbufferfactory.h>
+#include <bmqio_channelutil.h>
 
 using namespace BloombergLP;
 
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t *Data, size_t Size) {
+extern "C" int LLVMFuzzerTestOneInput(const uint8_t* Data, size_t Size)
+{
     bdlbb::PooledBlobBufferFactory factory(1024);
     bdlbb::Blob                    inBlob(&factory);
     bdlbb::Blob                    outPacket(&factory);
     int                            numNeeded = 0;
 
-    bdlbb::BlobUtil::append(&inBlob, reinterpret_cast<const char*>(Data), Size);
+    bdlbb::BlobUtil::append(&inBlob,
+                            reinterpret_cast<const char*>(Data),
+                            Size);
 
     bmqio::ChannelUtil::handleRead(&outPacket, &numNeeded, &inBlob);
 
