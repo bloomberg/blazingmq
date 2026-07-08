@@ -3889,8 +3889,11 @@ void FileStore::gc(FileSet* fileSet)
 {
     // executed by *ANY* thread
 
-    // Legacy-only: never invoked on a Raft partition.
-    BSLS_ASSERT(!isRaft());
+    // Shared by both legacy and Raft: this is the deferred-cleanup deleter for
+    // 'FileSet::d_aliasedChunk_sp', invoked whenever the last outstanding
+    // aliased reference into a file set's mmap'd memory is released.  Raft's
+    // own 'finalizeRolloverFileSet' relies on this exact mechanism when the
+    // old file set still has outstanding aliases at rollover time.
 
     if (fileSet->d_inlineGc) {
         return;  // RETURN
@@ -3919,8 +3922,6 @@ void FileStore::gcDispatched(BSLA_MAYBE_UNUSED int partitionId,
     BSLS_ASSERT_SAFE(partitionId == d_config.partitionId());
     BSLS_ASSERT_SAFE(fileSet);
     BSLS_ASSERT_SAFE(0 < d_fileSets.size());
-    // Legacy-only: never invoked on a Raft partition.
-    BSLS_ASSERT(!isRaft());
 
     if (fileSet == d_fileSets[0].get()) {
         // This occurs when FileStore::close() has happened.
@@ -3978,8 +3979,6 @@ void FileStore::gcWorkerDispatched(const bsl::shared_ptr<FileSet>& fileSet)
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(fileSet);
-    // Legacy-only: never invoked on a Raft partition.
-    BSLS_ASSERT(!isRaft());
 
     // Files have already been truncated.  Can safely close and archive.
     BALL_LOG_INFO_BLOCK
@@ -8475,7 +8474,8 @@ int FileStore::issueSyncPoint()
 }
 
 void FileStore::setActivePrimary(mqbnet::ClusterNode* primaryNode,
-                                 unsigned int         primaryLeaseId)
+                                 unsigned int         primaryLeaseId,
+                                 bool                 isRaft)
 {
     // executed by the *DISPATCHER* thread
 
@@ -8519,7 +8519,12 @@ void FileStore::setActivePrimary(mqbnet::ClusterNode* primaryNode,
             mqbstat::PartitionStats::PrimaryStatus::e_REPLICA);
         cancelTimersAndWait();
 
-        sendImplicitReceipt();
+        // On the Raft path receipts are driven by the committed log
+        // ('onCommit'), not implicit receipts; 'sendImplicitReceipt' also
+        // asserts '!isRaft()'.
+        if (!isRaft) {
+            sendImplicitReceipt();
+        }
 
         return;  // RETURN
     }
@@ -8531,6 +8536,16 @@ void FileStore::setActivePrimary(mqbnet::ClusterNode* primaryNode,
     for (StorageMapIter sIt = d_storages.begin(); sIt != d_storages.end();
          ++sIt) {
         sIt->second->setPrimary();
+    }
+
+    if (isRaft) {
+        // Raft drives all sync-point activity through its own log
+        // ('PartitionRaft::proposeSyncPoint' on becoming leader, periodic sync
+        // points, and rollover), so skip the legacy machinery below: the
+        // recurring sync-point/highwatermark timers, the "issue a sync point
+        // on behalf of the previous primary" step, and the immediate sync
+        // point.
+        return;  // RETURN
     }
 
     // Schedule recurring timers only if not already scheduled.  This avoids
@@ -9009,8 +9024,6 @@ void FileStore::flush()
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(inDispatcherThread());
-    // Legacy-only: never invoked on a Raft partition.
-    BSLS_ASSERT(!isRaft());
 }
 
 void FileStore::scheduledCleanupStorages()

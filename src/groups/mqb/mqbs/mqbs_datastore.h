@@ -914,9 +914,16 @@ class DataStore : public RecordStore, public mqbi::DispatcherClient {
 
     /// Set the specified `primaryNode` with the specified `primaryLeaseId`
     /// as the active primary for this data store partition.  Note that
-    /// `primaryNode` could refer to the node which owns this data store.
+    /// `primaryNode` could refer to the node which owns this data store.  If
+    /// the specified `isRaft` is true, only the primary-identity bookkeeping
+    /// is performed; the legacy sync-point machinery (recurring sync-point/
+    /// highwatermark timers, the "issue a sync point on behalf of the previous
+    /// primary" step, the immediate sync point, and the replica implicit
+    /// receipt) is skipped because Raft drives all of that through its own
+    /// log.
     virtual void setActivePrimary(mqbnet::ClusterNode* primaryNode,
-                                  unsigned int         primaryLeaseId) = 0;
+                                  unsigned int         primaryLeaseId,
+                                  bool                 isRaft = false) = 0;
 
     /// Clear the current primary associated with this partition.
     virtual void clearPrimary() = 0;

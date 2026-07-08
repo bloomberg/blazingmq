@@ -299,7 +299,7 @@ class TestCluster {
     bsl::shared_ptr<bdlbb::Blob> makeBlob(const char* data)
     {
         bsl::shared_ptr<bdlbb::Blob> blob =
-            bsl::make_shared<bdlbb::Blob>(&d_bufferFactory, d_allocator_p);
+            bsl::allocate_shared<bdlbb::Blob>(d_allocator_p, &d_bufferFactory);
         bdlbb::BlobUtil::append(blob.get(),
                                 data,
                                 static_cast<int>(bsl::strlen(data)));
@@ -419,7 +419,7 @@ static void test4_electionWithLogRestriction()
 
     // Give nodes 1 and 2 a log entry that node 0 doesn't have
     bsl::shared_ptr<bdlbb::Blob> data =
-        bsl::make_shared<bdlbb::Blob>(&factory, &alloc);
+        bsl::allocate_shared<bdlbb::Blob>(&alloc, &factory);
     bdlbb::BlobUtil::append(data.get(), "entry1", 6);
     cluster.log(1)->append(1, data);
     cluster.log(2)->append(1, data);
@@ -499,7 +499,7 @@ static void test6_logConsistencyCheck()
 
     MemoryRaftLog log(&alloc);
     bsl::shared_ptr<bdlbb::Blob> data =
-        bsl::make_shared<bdlbb::Blob>(&factory, &alloc);
+        bsl::allocate_shared<bdlbb::Blob>(&alloc, &factory);
     bdlbb::BlobUtil::append(data.get(), "x", 1);
     log.append(1, data);  // index 1, term 1
 
@@ -550,7 +550,7 @@ static void test7_logConflictResolution()
 
     MemoryRaftLog log(&alloc);
     bsl::shared_ptr<bdlbb::Blob> data1 =
-        bsl::make_shared<bdlbb::Blob>(&factory, &alloc);
+        bsl::allocate_shared<bdlbb::Blob>(&alloc, &factory);
     bdlbb::BlobUtil::append(data1.get(), "old", 3);
     log.append(1, data1);  // index 1, term 1
     log.append(1, data1);  // index 2, term 1
@@ -573,7 +573,7 @@ static void test7_logConflictResolution()
     // Leader sends entry at index 1 with term 2 (conflict with existing
     // term 1)
     bsl::shared_ptr<bdlbb::Blob> newData =
-        bsl::make_shared<bdlbb::Blob>(&factory, &alloc);
+        bsl::allocate_shared<bdlbb::Blob>(&alloc, &factory);
     bdlbb::BlobUtil::append(newData.get(), "new", 3);
 
     LogEntry leaderEntry(2, 1, newData);

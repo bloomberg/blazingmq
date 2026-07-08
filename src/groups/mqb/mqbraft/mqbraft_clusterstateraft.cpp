@@ -49,13 +49,19 @@ RaftNodeConfig makeRaftConfig(const mqbc::ClusterData& clusterData,
 
     config.d_selfId = netCluster->selfNodeId();
 
+    // 'd_peerIds' holds the *full* membership including self: 'quorum()' is
+    // 'peerIds.size()/2 + 1' (== majority of the whole cluster for both odd
+    // and even sizes), and 'becomeCandidate'/'becomeLeader' skip self while
+    // iterating.  'netCluster->nodes()' already includes self, so add each
+    // node exactly once (the previous code additionally pushed self a second
+    // time, which made a single-node cluster size 2 -> quorum 2 -> never
+    // elects).
     const mqbnet::Cluster::NodesList& nodes = netCluster->nodes();
     for (mqbnet::Cluster::NodesList::const_iterator it = nodes.begin();
          it != nodes.end();
          ++it) {
         config.d_peerIds.push_back((*it)->nodeId());
     }
-    config.d_peerIds.push_back(config.d_selfId);
 
     config.d_electionTimeoutMin = 10;
     config.d_electionTimeoutMax = 20;
@@ -432,6 +438,11 @@ int ClusterStateRaft::start(bsl::ostream& errorDescription)
                            d_cslLog_mp.get(),
                            d_allocator_p),
                        d_allocator_p);
+
+    // Seed the recovered term and applied state; see
+    // 'PartitionRaft::start()' for why this is needed.
+    d_raftNode_mp->initRecoveredState(d_cslLog_mp->lastTerm(),
+                                      d_cslLog_mp->snapshotIndex());
 
     bsls::TimeInterval tickInterval;
     tickInterval.setTotalMilliseconds(k_TICK_INTERVAL_MS);

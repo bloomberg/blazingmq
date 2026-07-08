@@ -626,7 +626,6 @@ void ClusterOrchestrator::init(mqbc::ClusterState* clusterState)
             new (*d_allocator_p) mqbraft::PartitionRaftManager(
                 d_clusterData_p,
                 d_cluster_p,
-                dispatcher(),
                 d_clusterData_p->domainFactory(),
                 clusterState,
                 d_clusterConfig,
@@ -895,7 +894,10 @@ void ClusterOrchestrator::transitionToAvailable()
 
     BALL_LOG_INFO << d_cluster_p->description() << " is available";
 
-    if (isLocal()) {
+    if (isLocal() && d_storageManager_p) {
+        // 'd_storageManager_p' is null in Raft mode (the storage layer is the
+        // 'PartitionRaftManager', a 'StorageProvider' held by the queue
+        // helper, not a 'StorageManager').
         d_storageManager_p->gcUnrecognizedDomainQueues();
     }
 }
@@ -1100,27 +1102,35 @@ void ClusterOrchestrator::processNodeStoppingNotification(
 
     // For each partition for which self is primary, notify the StorageMgr
     // about the status of a peer node.  Self may end up issuing a
-    // (non-scheduled) sync point to the node.
+    // (non-scheduled) sync point to the node.  Legacy-only
+    // ('d_storageManager_p' is null in Raft mode): Raft has no equivalent
+    // notification -- a stopping peer is naturally detected via missed
+    // heartbeats/AppendEntries, and reconnection catch-up is handled by
+    // Raft's own protocol (leader/nextIndex backtracking), so no explicit
+    // sync point or per-partition flush wait is needed here.
 
     // 'processNodeStoppingNotification' is blocking for Primary (non-blocking)
     // for Replicas.
-    const bsl::vector<int>& partitions =
-        d_clusterData_p->membership().selfNodeSession()->primaryPartitions();
-    for (int i = static_cast<int>(partitions.size()) - 1; 0 <= i; --i) {
-        d_storageManager_p->processReplicaStatusAdvisory(
-            partitions[i],
-            ns->clusterNode(),
-            bmqp_ctrlmsg::NodeStatus::E_STOPPING);
+    if (!d_cluster_p->isRaftEnabled()) {
+        const bsl::vector<int>& partitions = d_clusterData_p->membership()
+                                                 .selfNodeSession()
+                                                 ->primaryPartitions();
+        for (int i = static_cast<int>(partitions.size()) - 1; 0 <= i; --i) {
+            d_storageManager_p->processReplicaStatusAdvisory(
+                partitions[i],
+                ns->clusterNode(),
+                bmqp_ctrlmsg::NodeStatus::E_STOPPING);
+        }
+
+        bslmt::Latch latch(partitions.size());
+
+        for (int i = static_cast<int>(partitions.size()) - 1; 0 <= i; --i) {
+            d_storageManager_p->fileStore(partitions[i])
+                .execute(bdlf::BindUtil::bind(&bslmt::Latch::arrive, &latch));
+        }
+
+        latch.wait();
     }
-
-    bslmt::Latch latch(partitions.size());
-
-    for (int i = static_cast<int>(partitions.size()) - 1; 0 <= i; --i) {
-        d_storageManager_p->fileStore(partitions[i])
-            .execute(bdlf::BindUtil::bind(&bslmt::Latch::arrive, &latch));
-    }
-
-    latch.wait();
 
     context_sp.reset();
 }
@@ -1253,9 +1263,13 @@ void ClusterOrchestrator::processNodeStateChangeEvent(
                   << (isAvailable ? "available" : "unavailable");
 
     // Forward the event to elector.  If self is leader, elector will issue an
-    // immediate hearbeat.
+    // immediate hearbeat.  Legacy-only ('d_elector_mp' is null in Raft mode):
+    // Raft has no elector and detects peer unavailability itself via its own
+    // heartbeat/election-timeout mechanism.
 
-    d_elector_mp->processNodeStatus(node, isAvailable);
+    if (!d_cluster_p->isRaftEnabled()) {
+        d_elector_mp->processNodeStatus(node, isAvailable);
+    }
 
     // Update self's view of the 'node'.
 

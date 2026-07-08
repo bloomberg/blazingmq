@@ -1231,7 +1231,8 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// as the active primary for this data store partition.  Note that
     /// `primaryNode` could refer to the node which owns this data store.
     void setActivePrimary(mqbnet::ClusterNode* primaryNode,
-                          unsigned int primaryLeaseId) BSLS_KEYWORD_OVERRIDE;
+                          unsigned int         primaryLeaseId,
+                          bool isRaft = false) BSLS_KEYWORD_OVERRIDE;
 
     /// Clear the current primary associated with this partition.
     void clearPrimary() BSLS_KEYWORD_OVERRIDE;

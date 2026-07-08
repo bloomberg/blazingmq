@@ -108,21 +108,30 @@ class PartitionRaftManager : public mqbi::StorageProvider,
     typedef bsl::vector<FileStoreSp>         FileStores;
 
     // DATA
-    PartitionRafts d_partitionRafts;
-    FileStores     d_fileStores;
 
-    bdlmt::FixedThreadPool           d_miscWorkThreadPool;
+    /// Allocator store used to hand out named sub-allocators (e.g. one per
+    /// partition, for its 'FileStore') -- see
+    /// 'assignPartitionDispatcherThreads'. Declared (and thus destroyed) after
+    /// 'd_partitionRafts'/'d_fileStores' below: those 'FileStore's are
+    /// placement-new'd with allocators obtained from this store, so this must
+    /// outlive them.  Members are destroyed in reverse declaration order, so
+    /// declaring it *first* here is what makes it destroyed *last*.
     bmqma::CountingAllocatorStore    d_allocators;
     mqbc::ClusterData*               d_clusterData_p;
     mqbi::Cluster*                   d_cluster_p;
-    mqbi::Dispatcher*                d_dispatcher_p;
     mqbi::DomainFactory*             d_domainFactory_p;
     mqbc::ClusterState*              d_clusterState_p;
     const mqbcfg::ClusterDefinition& d_clusterConfig;
     int                              d_replicationFactor;
-    int                              d_numPartitionsRecoveredQueues;
     PartitionLeadershipCb            d_leadershipCb;
     bslma::Allocator*                d_allocator_p;
+
+    /// Must be declared after 'd_allocators' (see above) so it is destroyed
+    /// first, before the allocators its 'FileStore's depend on are gone.
+    PartitionRafts d_partitionRafts;
+    FileStores     d_fileStores;
+
+    bdlmt::FixedThreadPool d_miscWorkThreadPool;
 
     // NOT IMPLEMENTED
     PartitionRaftManager(const PartitionRaftManager&);
@@ -152,10 +161,6 @@ class PartitionRaftManager : public mqbi::StorageProvider,
 
     /// Executed by the partition *DISPATCHER* thread for the specified
     /// 'partitionId'.
-    void processShutdownEventDispatched(int partitionId);
-
-    /// Executed by the partition *DISPATCHER* thread for the specified
-    /// 'partitionId'.
     void unregisterQueueDispatched(int partitionId, const bmqt::Uri& uri);
 
     bool validate(unsigned int partitionId) const;
@@ -168,7 +173,6 @@ class PartitionRaftManager : public mqbi::StorageProvider,
     // CREATORS
     PartitionRaftManager(mqbc::ClusterData*               clusterData,
                          mqbi::Cluster*                   cluster,
-                         mqbi::Dispatcher*                dispatcher,
                          mqbi::DomainFactory*             domainFactory,
                          mqbc::ClusterState*              clusterState,
                          const mqbcfg::ClusterDefinition& clusterConfig,

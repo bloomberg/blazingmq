@@ -492,7 +492,8 @@ class MockDataStore : public mqbs::DataStore {
     }
 
     void setActivePrimary(mqbnet::ClusterNode*,
-                          unsigned int) BSLS_KEYWORD_OVERRIDE
+                          unsigned int,
+                          bool = false) BSLS_KEYWORD_OVERRIDE
     {
     }
 

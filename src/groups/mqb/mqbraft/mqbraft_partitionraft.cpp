@@ -24,6 +24,7 @@
 #include <mqbs_filestoreprotocolutil.h>
 #include <mqbs_filestoreutil.h>
 #include <mqbs_inmemorystorage.h>
+#include <mqbu_exit.h>
 
 // BMQ
 #include <bmqp_protocol.h>
@@ -55,14 +56,17 @@ RaftNodeConfig makeRaftConfig(mqbc::ClusterData& clusterData,
     RaftNodeConfig config(allocator);
     config.d_selfId = clusterData.membership().selfNode()->nodeId();
 
+    // 'd_peerIds' is the *full* membership including self:
+    // 'RaftNode::quorum()' is 'peerIds.size()/2 + 1' (majority of the whole
+    // cluster for both odd and even sizes) and
+    // 'becomeCandidate'/'becomeLeader' skip self while iterating.
+    // 'netCluster->nodes()' already includes self.
     const mqbnet::Cluster::NodesList& nodes =
         clusterData.membership().netCluster()->nodes();
     for (mqbnet::Cluster::NodesList::const_iterator it = nodes.begin();
          it != nodes.end();
          ++it) {
-        if ((*it)->nodeId() != config.d_selfId) {
-            config.d_peerIds.push_back((*it)->nodeId());
-        }
+        config.d_peerIds.push_back((*it)->nodeId());
     }
 
     config.d_electionTimeoutMin = 10;
@@ -270,14 +274,39 @@ void PartitionRaft::dispatchOutput(RaftNodeOutput* output)
         }
     }
 
-    // Signal the cluster of any leadership change so it can (re)compute this
-    // partition's primary/gate state.  'd_stateChanged' covers self
-    // becoming/losing leader; 'd_leaderChanged' additionally covers a follower
-    // observing a new leader identity.
+    // On any leadership change record the primary identity on the FileStore
+    // and signal the cluster.  'd_stateChanged' covers self becoming/losing
+    // leader; 'd_leaderChanged' additionally covers a follower observing a new
+    // leader identity.
     if (output->d_stateChanged || output->d_leaderChanged) {
-        d_leadershipCb(d_partitionId,
-                       d_raftNode_mp->leaderId(),
-                       d_raftNode_mp->currentTerm());
+        const int                 leaderNodeId = d_raftNode_mp->leaderId();
+        const bsls::Types::Uint64 term         = d_raftNode_mp->currentTerm();
+
+        // Record the primary identity on the FileStore so 'fs->primaryNode()',
+        // 'primaryLeaseId()' and 'd_isPrimary' reflect Raft leadership (the
+        // primary sets self, replicas set the remote leader).  This runs on
+        // this partition's dispatcher thread, as 'setActivePrimary' requires,
+        // so no dispatch is needed.  'isRaft=true' keeps only the identity
+        // bookkeeping and skips the legacy sync-point machinery (Raft drives
+        // sync points through its own log).
+        if (RaftNode::k_INVALID_NODE_ID != leaderNodeId) {
+            mqbnet::ClusterNode* leaderNode =
+                (leaderNodeId ==
+                 d_clusterData_p->membership().selfNode()->nodeId())
+                    ? d_clusterData_p->membership().selfNode()
+                    : d_clusterData_p->membership().netCluster()->lookupNode(
+                          leaderNodeId);
+            if (leaderNode) {
+                d_fileStore_sp->setActivePrimary(
+                    leaderNode,
+                    static_cast<unsigned int>(term),
+                    /* isRaft */ true);
+            }
+        }
+
+        // Signal the cluster so it can (re)compute this partition's
+        // primary/gate state.
+        d_leadershipCb(d_partitionId, leaderNodeId, term);
     }
 }
 
@@ -344,7 +373,14 @@ void PartitionRaft::sendControlMessage(const RaftMessage& msg)
     bmqp_ctrlmsg::RaftMessage& raftMsg = controlMsg.choice().makeRaftMessage();
     toCtrlMsg(&raftMsg, msg);
 
-    d_clusterData_p->messageTransmitter().sendMessage(controlMsg, destNode);
+    // Use this partition's own 'FileStore::sendMessage' (backed by its
+    // per-partition 'ControlMessageTransmitter'), NOT
+    // 'd_clusterData_p->messageTransmitter()': that shared, cluster-level
+    // transmitter's 'SchemaEventBuilder' is documented as usable only from the
+    // cluster dispatcher thread, but this method runs on the partition
+    // dispatcher thread.  With multiple partitions (each own thread) this
+    // would race on the transmitter's shared blob-building state.
+    d_fileStore_sp->sendMessage(controlMsg, destNode);
 }
 
 void PartitionRaft::applyCommittedEntry(const LogEntry& entry)
@@ -773,20 +809,34 @@ void PartitionRaft::tickDispatched()
 }
 
 // MANIPULATORS
-int PartitionRaft::start(bsl::ostream& errorDescription)
+void PartitionRaft::start()
 {
-    int rc = d_raftLog_mp->open();
-    if (rc != 0) {
-        errorDescription << "Failed to open PartitionRaftLog for partition "
-                         << d_partitionId << ", rc: " << rc;
-        return rc;
+    // executed by this partition's dispatcher thread
+    BSLS_ASSERT_SAFE(d_fileStore_sp->inDispatcherThread());
+
+    const int rc = d_raftLog_mp->open();
+    if (0 != rc) {
+        // FileStore open/recovery failure is unrecoverable; ALARM and
+        // terminate, matching legacy 'StorageManager::do_attemptOpenStorage'.
+        BMQTSK_ALARMLOG_ALARM("FILE_IO")
+            << d_clusterData_p->identity().description() << " Partition ["
+            << d_partitionId
+            << "]: failed to open/recover PartitionRaftLog, rc: " << rc << "."
+            << BMQTSK_ALARMLOG_END;
+
+        mqbu::ExitUtil::terminate(mqbu::ExitCode::e_RECOVERY_FAILURE);  // EXIT
     }
 
-    // Seed the applied state from the recovered snapshot boundary.  A node
-    // that ever rolled over has 'snapshotIndex > 0'; without this the
-    // hardcoded 'commitIndex/lastApplied = 0' from the RaftNode ctor would
-    // stall it (entries below the snapshot floor cannot be served).
-    d_raftNode_mp->initAppliedState(d_raftLog_mp->snapshotIndex());
+    // Seed the recovered term and applied state.  The term (or legacy-written
+    // journal's leaseId, since the on-disk field is the same) must never
+    // regress across a restart per Raft's persistent-state contract; the
+    // applied state must be raised to the snapshot boundary -- a node that
+    // ever rolled over has 'snapshotIndex > 0', and without this the
+    // hardcoded 'currentTerm/commitIndex/lastApplied = 0' from the RaftNode
+    // ctor would let this node re-propose a stale term and would stall on
+    // indices at or below the snapshot floor.
+    d_raftNode_mp->initRecoveredState(d_raftLog_mp->lastTerm(),
+                                      d_raftLog_mp->snapshotIndex());
 
     bsls::TimeInterval tickInterval;
     tickInterval.setTotalMilliseconds(k_TICK_INTERVAL_MS);
@@ -800,8 +850,6 @@ int PartitionRaft::start(bsl::ostream& errorDescription)
 
     BALL_LOG_INFO << "PartitionRaft started for partition " << d_partitionId
                   << ", node " << d_raftNode_mp->selfId();
-
-    return 0;
 }
 
 void PartitionRaft::stop()

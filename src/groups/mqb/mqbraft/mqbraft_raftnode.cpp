@@ -147,7 +147,8 @@ RaftNode::RaftNode(const RaftNodeConfig& config,
 {
     BSLS_ASSERT_SAFE(log);
     BSLS_ASSERT_SAFE(config.d_selfId != k_INVALID_NODE_ID);
-    BSLS_ASSERT_SAFE(!config.d_peerIds.empty());
+    // Note: 'config.d_peerIds' may be empty -- a single-node cluster has no
+    // peers and elects itself (see 'maybeCompleteElection').
     BSLS_ASSERT_SAFE(config.d_electionTimeoutMin > 0);
     BSLS_ASSERT_SAFE(config.d_electionTimeoutMax >=
                      config.d_electionTimeoutMin);
@@ -345,14 +346,28 @@ void RaftNode::handleRequestVoteResp(RaftNodeOutput*    output,
         d_votesReceived.insert(msg.d_sourceNodeId);
     }
 
-    if (static_cast<int>(d_votesReceived.size()) >= quorum()) {
-        if (msg.d_preVote) {
-            becomeCandidate(output, false);
-        }
-        else {
-            becomeLeader(output);
-            output->d_stateChanged = true;
-        }
+    maybeCompleteElection(output, msg.d_preVote);
+}
+
+void RaftNode::maybeCompleteElection(RaftNodeOutput* output, bool preVote)
+{
+    BSLS_ASSERT_SAFE(output);
+
+    if (static_cast<int>(d_votesReceived.size()) < quorum()) {
+        return;  // RETURN
+    }
+
+    if (preVote) {
+        // Won the pre-vote round; begin the real election.  'becomeCandidate'
+        // re-seeds 'd_votesReceived' with just the self vote, so re-evaluate:
+        // in a single-node cluster the real round is also immediately decided,
+        // while in a multi-node cluster this returns to await vote responses.
+        becomeCandidate(output, false);
+        maybeCompleteElection(output, false);
+    }
+    else {
+        becomeLeader(output);
+        output->d_stateChanged = true;
     }
 }
 
@@ -526,6 +541,8 @@ void RaftNode::handleTimeoutNow(RaftNodeOutput* output, const RaftMessage& msg)
 
     becomeCandidate(output, false);
     output->d_stateChanged = true;
+    // Single-node clusters have no peers to respond; self-elect immediately.
+    maybeCompleteElection(output, false);
 }
 
 void RaftNode::handleInstallSnapshot(RaftNodeOutput*    output,
@@ -695,13 +712,12 @@ void RaftNode::tick(RaftNodeOutput* output)
     else {
         d_electionTicks++;
         if (d_electionTicks >= d_electionTimeout) {
-            if (d_config.d_preVote) {
-                becomeCandidate(output, true);
-            }
-            else {
-                becomeCandidate(output, false);
-            }
+            const bool preVote = d_config.d_preVote;
+            becomeCandidate(output, preVote);
             output->d_stateChanged = true;
+            // A single-node cluster has no peers to respond, so complete the
+            // election immediately from the self vote.
+            maybeCompleteElection(output, preVote);
         }
     }
 }
@@ -781,8 +797,12 @@ int RaftNode::propose(RaftNodeOutput*                      output,
     return 0;
 }
 
-void RaftNode::initAppliedState(bsls::Types::Uint64 index)
+void RaftNode::initRecoveredState(bsls::Types::Uint64 term,
+                                  bsls::Types::Uint64 index)
 {
+    if (term > d_currentTerm) {
+        d_currentTerm = term;
+    }
     if (index > d_commitIndex) {
         d_commitIndex = index;
     }

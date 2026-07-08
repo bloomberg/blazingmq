@@ -335,6 +335,14 @@ class RaftNode {
 
     void becomeLeader(RaftNodeOutput* output);
 
+    /// If the votes gathered so far meet `quorum()`, advance the election: on
+    /// a pre-vote win start the real election (and re-evaluate), on a
+    /// real-vote win become leader.  The specified `preVote` indicates which
+    /// round just gathered a vote.  This is what lets a single-node cluster
+    /// (no peers, so no vote responses ever arrive) elect itself from its own
+    /// vote.
+    void maybeCompleteElection(RaftNodeOutput* output, bool preVote);
+
     void handleRequestVote(RaftNodeOutput* output, const RaftMessage& msg);
 
     void handleRequestVoteResp(RaftNodeOutput* output, const RaftMessage& msg);
@@ -393,13 +401,19 @@ class RaftNode {
     /// Return 0 on success, non-zero if this node is not the leader.
     int transferLeadership(RaftNodeOutput* output, int targetNodeId);
 
-    /// Initialize the applied state from a recovered snapshot boundary:
-    /// raise 'd_commitIndex' and 'd_lastApplied' to at least the specified
-    /// 'index'.  Called at startup after the log's snapshot index is known;
-    /// without this a restarted node that ever rolled over would stall
-    /// because 'entries()' cannot serve indices at or below the snapshot
-    /// floor.
-    void initAppliedState(bsls::Types::Uint64 index);
+    /// Initialize recovered state at startup: raise 'd_currentTerm' to at
+    /// least the specified 'term' (the recovered log's last term), and raise
+    /// 'd_commitIndex'/'d_lastApplied' to at least the specified 'index' (the
+    /// recovered log's snapshot index).  Per the Raft persistent-state
+    /// contract (Figure 2), 'currentTerm' must never regress across a
+    /// restart; without seeding it here, the constructor's
+    /// 'd_currentTerm(0)' would let a restarted node re-propose a term
+    /// already present in the recovered log.  Without seeding
+    /// 'd_commitIndex'/'d_lastApplied', a node that ever rolled over/snapshot
+    /// would stall because 'entries()' cannot serve indices at or below the
+    /// snapshot floor.
+    void initRecoveredState(bsls::Types::Uint64 term,
+                            bsls::Types::Uint64 index);
 
     // ACCESSORS
     RaftState::Enum       state() const;
