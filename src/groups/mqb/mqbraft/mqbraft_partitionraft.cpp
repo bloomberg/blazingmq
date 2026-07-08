@@ -160,6 +160,7 @@ PartitionRaft::PartitionRaft(int partitionId,
 , d_snapshotQlistPath(d_allocator_p)
 , d_snapshotLastIncludedIndex(0)
 , d_snapshotLastIncludedTerm(0)
+, d_isRolloverPending(false)
 {
     BSLS_ASSERT_SAFE(d_fileStore_sp);
     BSLS_ASSERT_SAFE(clusterData);
@@ -208,10 +209,24 @@ void PartitionRaft::dispatchOutput(RaftNodeOutput* output)
         }
     }
 
+    bool hadRollover = false;
+
     for (bsl::vector<LogEntry>::size_type i = 0;
          i < output->d_committed.size();
          ++i) {
-        applyCommittedEntry(output->d_committed[i]);
+        const LogEntry& entry = output->d_committed[i];
+
+        if (d_raftLog_mp->isRollover(entry.d_index)) {
+            // 'rollover()' also removes the committed 'e_ROLLOVER' from the
+            // pending-write buffer on the primary (it is never popped via
+            // 'applyCommittedEntryAsPrimary'), keeping 'drainPendingWrites'
+            // from replaying it into the new file set.
+            d_raftLog_mp->rollover(entry.d_index);
+            hadRollover = true;
+        }
+        else {
+            applyCommittedEntry(entry);
+        }
     }
 
     // Resolve buffered writes once the rollover outcome is known.  This runs
@@ -219,27 +234,37 @@ void PartitionRaft::dispatchOutput(RaftNodeOutput* output)
     // 'propose()'/'dispatchOutput()' and would otherwise recurse.  Buffered
     // writes exist only during/after a rollover window, so during normal
     // writes the buffer is empty here and neither branch fires.
-    if (isLeader()) {
-        if (!d_raftLog_mp->isBuffering() && d_raftLog_mp->hasPendingWrites()) {
+    if (hadRollover) {
+        if (isLeader()) {
+            BSLS_ASSERT_SAFE(d_isRolloverPending);
+
             // The 'e_ROLLOVER' just committed and rolled over in the loop
-            // above
-            // ('isBuffering()' flipped false once 'rollover()' compacted it
-            // away).  Drain the buffered writes into the new file set.
+            // above.  Drain the buffered writes into the new file set, and
+            // clear the in-flight flag so the next rollover can be proposed.
             drainPendingWrites();
+
+            d_isRolloverPending = false;
         }
     }
-    else if (d_raftLog_mp->hasPendingWrites()) {
-        // Lost leadership: the uncommitted 'e_ROLLOVER' is (or will be)
-        // truncated by the new leader -- it never rolled over.  The buffered
-        // writes were never acked, so drop them and their placeholder records.
-        d_raftLog_mp->dropPendingWrites();
-    }
 
-    if (output->d_stateChanged && isLeader()) {
-        // Just became leader (RaftNode::propose() never sets
-        // 'd_stateChanged', so this cannot recurse via 'proposeSyncPoint()'
-        // below).
-        proposeSyncPoint();
+    if (output->d_stateChanged) {
+        if (isLeader()) {
+            // Just became leader (RaftNode::propose() never sets
+            // 'd_stateChanged', so this cannot recurse via
+            // 'proposeSyncPoint()' below).
+            proposeSyncPoint();
+        }
+        else {
+            // Lost leadership: any in-flight rollover is abandoned.  The
+            // uncommitted 'e_ROLLOVER' is (or will be) truncated by the new
+            // leader -- it never rolled over.  Reset the flag so a future
+            // leadership term is not stuck buffering every write, and drop the
+            // buffered writes (never acked) and their placeholder records.
+            d_isRolloverPending = false;
+            if (d_raftLog_mp->hasPendingWrites()) {
+                d_raftLog_mp->dropPendingWrites();
+            }
+        }
     }
 }
 
@@ -312,7 +337,6 @@ void PartitionRaft::sendControlMessage(const RaftMessage& msg)
 void PartitionRaft::applyCommittedEntry(const LogEntry& entry)
 {
     // executed by the partition *DISPATCHER* thread
-
     if (isLeader()) {
         d_raftLog_mp->applyCommittedEntryAsPrimary(entry.d_index);
     }
@@ -809,7 +833,7 @@ int PartitionRaft::propose(
     // If a rollover is in flight, buffer the write for replay into the new
     // file once the rollover commits ('bufferPendingWrite' reserves
     // 'pw->d_handle').
-    if (d_raftLog_mp->isBuffering()) {
+    if (d_isRolloverPending) {
         return d_raftLog_mp->bufferPendingWrite(pw,
                                                 d_raftNode_mp->currentTerm());
     }
@@ -919,7 +943,8 @@ int PartitionRaft::rolloverIfNeeded(bsls::Types::Uint64 dataBytes,
     // rollover at a time) and return success.  'setPendingWrite()' then
     // buffers this triggering write, and every subsequent one, until the
     // rollover commits.
-    if (!d_raftLog_mp->isBuffering()) {
+    if (!d_isRolloverPending) {
+        d_isRolloverPending = true;
         proposeRollover();
     }
 
@@ -1008,7 +1033,7 @@ int PartitionRaft::rollover()
         return rc_NOT_LEADER;  // RETURN
     }
 
-    if (d_raftLog_mp->isBuffering()) {
+    if (d_isRolloverPending) {
         BALL_LOG_WARN << "Partition [" << d_partitionId
                       << "] admin rollover rejected: a previous e_ROLLOVER is "
                       << "not yet committed.";
@@ -1326,6 +1351,10 @@ void PartitionRaft::createStorage(
 
 void PartitionRaft::removeRecordRaw(const mqbs::DataStoreRecordHandle& handle)
 {
+    // If this handle belongs to a pending write still in the buffer,
+    // invalidate it so application becomes a no-op.  Otherwise proceed with
+    // normal removal.
+    d_raftLog_mp->invalidatePendingWriteHandle(handle);
     d_fileStore_sp->removeRecordRaw(handle);
 }
 

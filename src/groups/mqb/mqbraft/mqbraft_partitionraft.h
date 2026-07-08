@@ -117,9 +117,14 @@ class PartitionRaft : public mqbs::RecordStore {
     bsls::Types::Uint64 d_snapshotLastIncludedIndex;
     bsls::Types::Uint64 d_snapshotLastIncludedTerm;
 
+    /// `true` if an `e_ROLLOVER` has been proposed but not yet committed.
+    bool d_isRolloverPending;
+
     // NOT IMPLEMENTED
     PartitionRaft(const PartitionRaft&);
     PartitionRaft& operator=(const PartitionRaft&);
+
+    // PRIVATE ACCESSORS
 
     // PRIVATE MANIPULATORS
 
