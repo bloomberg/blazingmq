@@ -51,9 +51,10 @@ const int k_JREC_SIZE        = mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
 const bsls::Types::Uint64 k_CHUNK_SIZE = 4ULL * 1024 * 1024;
 
 RaftNodeConfig makeRaftConfig(mqbc::ClusterData& clusterData,
+                              int                partitionId,
                               bslma::Allocator*  allocator)
 {
-    RaftNodeConfig config(allocator);
+    RaftNodeConfig config(partitionId, allocator);
     config.d_selfId = clusterData.membership().selfNode()->nodeId();
 
     // 'd_peerIds' is the *full* membership including self:
@@ -178,11 +179,12 @@ PartitionRaft::PartitionRaft(int partitionId,
                                            d_allocator_p),
                       d_allocator_p);
 
-    d_raftNode_mp.load(new (*d_allocator_p) RaftNode(
-                           makeRaftConfig(*d_clusterData_p, d_allocator_p),
-                           d_raftLog_mp.get(),
-                           d_allocator_p),
-                       d_allocator_p);
+    d_raftNode_mp.load(
+        new (*d_allocator_p) RaftNode(
+            makeRaftConfig(*d_clusterData_p, d_partitionId, d_allocator_p),
+            d_raftLog_mp.get(),
+            d_allocator_p),
+        d_allocator_p);
 
     BSLS_ASSERT_SAFE(d_raftLog_mp);
     BSLS_ASSERT_SAFE(d_raftNode_mp);
@@ -329,9 +331,11 @@ void PartitionRaft::sendAppendEntries(const RaftMessage& msg)
 
     event.setLength(sizeof(bmqp::EventHeader) + sizeof(bmqp::RaftHeader));
 
-    bmqu::BlobObjectProxy<bmqp::RaftHeader> rh(&event,
-                                               true,
-                                               sizeof(bmqp::EventHeader));
+    bmqu::BlobObjectProxy<bmqp::RaftHeader> rh(
+        &event,
+        bmqu::BlobPosition(0, static_cast<int>(sizeof(bmqp::EventHeader))),
+        true,   // read
+        true);  // write
     (*rh)
         .setTerm(msg.d_term)
         .setPrevLogIndex(msg.d_prevLogIndex)
@@ -494,8 +498,11 @@ void PartitionRaft::sendSnapshot(int                 destNodeId,
 
             bmqu::BlobObjectProxy<bmqp::SnapshotChunkHeader> hdr(
                 &event,
-                true,
-                sizeof(bmqp::EventHeader));
+                bmqu::BlobPosition(
+                    0,
+                    static_cast<int>(sizeof(bmqp::EventHeader))),
+                true,   // read
+                true);  // write
             (*hdr)
                 .setPartitionId(static_cast<unsigned int>(d_partitionId))
                 .setFileType(allFiles[f].d_fileType)
@@ -591,10 +598,21 @@ void PartitionRaft::applySnapshotChunk(const bdlbb::Blob& event)
     // executed by the partition *DISPATCHER* thread
     BSLS_ASSERT_SAFE(d_receivingSnapshot);
 
-    bmqu::BlobObjectProxy<bmqp::SnapshotChunkHeader> hdr(
-        &event,
-        true,
-        sizeof(bmqp::EventHeader));
+    bmqu::BlobPosition position;
+
+    if (0 != bmqu::BlobUtil::findOffsetSafe(&position,
+                                            event,
+                                            sizeof(bmqp::EventHeader))) {
+        BALL_LOG_ERROR
+            << "Failed to locate RaftHeader in e_RAFT_PARTITION event";
+        return;
+    }
+
+    bmqu::BlobObjectProxy<bmqp::SnapshotChunkHeader> hdr(&event,
+                                                         position,
+                                                         true,    // read
+                                                         false);  // write
+
     if (!hdr.isSet()) {
         BALL_LOG_ERROR << "Partition [" << d_partitionId
                        << "] failed to read SnapshotChunkHeader";
@@ -1111,9 +1129,21 @@ void PartitionRaft::appendEntries(const bdlbb::Blob&   event,
     // executed by the partition *DISPATCHER* thread
     BSLS_ASSERT_SAFE(source);
 
+    bmqu::BlobPosition position;
+
+    if (0 != bmqu::BlobUtil::findOffsetSafe(&position,
+                                            event,
+                                            sizeof(bmqp::EventHeader))) {
+        BALL_LOG_ERROR
+            << "Failed to locate RaftHeader in e_RAFT_PARTITION event";
+        return;
+    }
+
     bmqu::BlobObjectProxy<bmqp::RaftHeader> rh(&event,
-                                               false,
-                                               sizeof(bmqp::EventHeader));
+                                               position,
+                                               true,    // read
+                                               false);  // write
+
     if (!rh.isSet()) {
         BALL_LOG_ERROR << "Partition [" << d_partitionId
                        << "] failed to read RaftHeader";
