@@ -684,7 +684,7 @@
         static void run()                                                     \
         {                                                                     \
             FIXTURE##NAME test;                                               \
-            bmqtst::TestHelper::printTestName(#NAME);                         \
+            bmqtst::TestHelper::printTestName(#FIXTURE "::" #NAME);           \
             test.SetUp();                                                     \
             test.body();                                                      \
             test.TearDown();                                                  \
