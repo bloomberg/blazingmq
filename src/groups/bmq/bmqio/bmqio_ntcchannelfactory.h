@@ -37,6 +37,7 @@
 // NTF
 #include <ntca_interfaceconfig.h>
 #include <ntci_interface.h>
+#include <ntci_upgradecallback.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -79,6 +80,21 @@ class NtcChannelFactory : public bmqio::ChannelFactory {
     /// been reached.
     typedef bsl::function<LimitFnType> LimitFn;
 
+    /// This typedef defines the signature of a function invoked when a
+    /// channel has been upgraded
+    typedef void
+    UpgradeFnType(const bsl::shared_ptr<bmqio::NtcChannel>& channel,
+                  const bsl::shared_ptr<ntci::Upgradable>&  upgradable,
+                  const ntca::UpgradeEvent&                 event);
+
+    /// This typedef defines a function invoked when a channel has been
+    /// upgraded.
+    typedef bsl::function<UpgradeFnType> UpgradeFn;
+
+    typedef bsl::shared_ptr<ntci::EncryptionServer> EncryptionServerSp;
+
+    typedef bsl::shared_ptr<ntci::EncryptionClient> EncryptionClientSp;
+
   private:
     // PRIVATE TYPES
 
@@ -110,6 +126,10 @@ class NtcChannelFactory : public bmqio::ChannelFactory {
     bmqu::AtomicValidator            d_validator;
     bmqu::AtomicValidator            d_resourceMonitor;
     bsls::AtomicBool                 d_isInterfaceStarted;
+    EncryptionServerSp               d_encryptionServer_sp;
+    EncryptionClientSp               d_encryptionClient_sp;
+    bdlmt::Signaler<UpgradeFnType>   d_upgradeSignaler;
+    ntca::UpgradeOptions             d_upgradeOptions;
     bslma::Allocator*                d_allocator_p;
 
   private:
@@ -127,6 +147,7 @@ class NtcChannelFactory : public bmqio::ChannelFactory {
         bmqio::ChannelFactoryEvent::Enum             event,
         const bmqio::Status&                         status,
         const bsl::shared_ptr<bmqio::Channel>&       channel,
+        bool                                         shouldUpgrade,
         const bmqio::ChannelFactory::ResultCallback& callback);
 
     /// Process the specified `event` having the specified `status` for
@@ -135,6 +156,7 @@ class NtcChannelFactory : public bmqio::ChannelFactory {
         bmqio::ChannelFactoryEvent::Enum             event,
         const bmqio::Status&                         status,
         const bsl::shared_ptr<bmqio::Channel>&       channel,
+        bool                                         shouldUpgrade,
         const bmqio::ChannelFactory::ResultCallback& callback);
 
     /// @brief Remove the listener identified by the specified @p handle
@@ -162,6 +184,14 @@ class NtcChannelFactory : public bmqio::ChannelFactory {
     /// @param channel Shared pointer to the channel to add.
     /// @return Catalog handle for the added channel.
     int addChannel(const bsl::shared_ptr<bmqio::NtcChannel>& channel);
+
+    /// Process a TLS upgrade
+    void processUpgrade(bmqio::ChannelFactoryEvent::Enum          event,
+                        const bmqio::Status&                      status,
+                        const bsl::shared_ptr<bmqio::NtcChannel>& channel,
+                        const bsl::shared_ptr<ntci::Upgradable>&  upgradable,
+                        const ntca::UpgradeEvent&                 upgradeEvent,
+                        const bmqio::ChannelFactory::ResultCallback& callback);
 
   public:
     // PUBLIC TYPES
@@ -212,6 +242,9 @@ class NtcChannelFactory : public bmqio::ChannelFactory {
     /// this operation.  Return `e_SUCCESS` on success or a failure
     /// StatusCategory on error, populating the optionally-specified
     /// `status` with more detailed error information.
+    ///
+    /// If `encryptionServer()` is not null, the listener will use it to
+    /// upgrade to a TLS connection.
     void listen(Status*                      status,
                 bslma::ManagedPtr<OpHandle>* handle,
                 const ListenOptions&         options,
@@ -231,6 +264,9 @@ class NtcChannelFactory : public bmqio::ChannelFactory {
     /// `options.autoReconnect()` is `true` and the implementing
     /// `ChannelFactory` doesn't provide this behavior, it must fail the
     /// connection immediately.
+    ///
+    /// If `encryptionClient()` is not null, the connection will use it to
+    /// upgrade to a TLS connection.
     void connect(Status*                      status,
                  bslma::ManagedPtr<OpHandle>* handle,
                  const ConnectOptions&        options,
@@ -246,18 +282,72 @@ class NtcChannelFactory : public bmqio::ChannelFactory {
     /// used to unregister the callback.
     bdlmt::SignalerConnection onLimit(const LimitFn& cb);
 
+    /// Register the specified `cb` to be invoked when a channel is
+    /// upgraded. Return a `bdlmt::SignalerConnection` object than can be
+    /// used to unregister the callback.
+    bdlmt::SignalerConnection onUpgrade(const UpgradeFn& cb);
+
     /// Load into the specified `result` the channel having the specified
     /// `channelId`. Return 0 on success and a non-zero value otherwise.
     int lookupChannel(bsl::shared_ptr<bmqio::NtcChannel>* result,
-                      int                                 channelId);
+                      int                                 channelId) const;
 
     /// Invoke the specified `visitor` once for every currently active
     /// channel managed by this object.  The `visitor` will be invoked with
-    /// a single argument, `const bsl::shared_ptr<bmqio::NtzChannel>&`.
+    /// a single argument, `const bsl::shared_ptr<bmqio::NtcChannel>&`.
     /// Note that it is unspecified whether channels created or closed
     /// during the execution of this function will be included.
     template <typename VISITOR>
     void visitChannels(VISITOR& visitor);
+
+    /// @brief Modify the factory's encryption server.
+    ///
+    /// The behavior is undefined unless this channel factory
+    /// is stopped.
+    void setEncryptionServer(const EncryptionServerSp& encryptionServer);
+
+    /// @brief Initailze this factory's encryption server using `options`.
+    ///
+    /// The behavior is undefined unless this channel factory is stopped.
+    ntsa::Error
+    configureEncryptionServer(const ntca::EncryptionServerOptions& options);
+
+    /// @brief Modify this factory's encryption client.
+    ///
+    /// The behavior is undefined unless this channel factory is stopped.
+    void setEncryptionClient(const EncryptionClientSp& encryptionClient);
+
+    /// @brief Initailze this factory's encryption server using `options`.
+    ///
+    /// The behavior is undefined unless this channel factory is stopped.
+    ntsa::Error
+    configureEncryptionClient(const ntca::EncryptionClientOptions& options);
+
+    /// @brief Modify the upgrade options used for listener and connect
+    /// operations. The default value is the default initialized
+    /// `ntca::UpgradeOptions`.
+    ///
+    /// The behavior is undefined unless this channel factory is stopped.
+    void setUpgradeOptions(const ntca::UpgradeOptions& options);
+
+    // ACCESSORS
+
+    /// @brief Access the factory's encryption server.
+    ///
+    /// The behavior of is undefined unless the encryption client was
+    /// initialized with either `configureEncryptionServer` or
+    /// `setEncryptionServer`.
+    const ntci::EncryptionServer& encryptionServer() const;
+
+    /// @brief Access this factory's encryption client.
+    ///
+    /// The behavior of is undefined unless the encryption client was
+    /// initialized with either `configureEncryptionClient` or
+    /// `setEncryptionClient`.
+    const ntci::EncryptionClient& encryptionClient() const;
+
+    /// @brief Access this factory's upgrade options.
+    const ntca::UpgradeOptions& upgradeOptions() const;
 };
 
 // ============================
