@@ -301,9 +301,20 @@ void PartitionRaftManager::appendEntries(
     BSLS_ASSERT_SAFE(blob);
     BSLS_ASSERT_SAFE(source);
 
+    bmqu::BlobPosition position;
+
+    if (0 != bmqu::BlobUtil::findOffsetSafe(&position,
+                                            *blob,
+                                            sizeof(bmqp::EventHeader))) {
+        BALL_LOG_ERROR
+            << "Failed to locate RaftHeader in e_RAFT_PARTITION event";
+        return;
+    }
+
     bmqu::BlobObjectProxy<bmqp::RaftHeader> rh(blob.get(),
-                                               false,
-                                               sizeof(bmqp::EventHeader));
+                                               position,
+                                               true,    // read
+                                               false);  // write
     if (!rh.isSet()) {
         BALL_LOG_ERROR << "Failed to read RaftHeader from "
                        << "e_RAFT_PARTITION event";
@@ -332,10 +343,21 @@ void PartitionRaftManager::appendSnapshotChunk(
     BSLS_ASSERT_SAFE(blob);
     BSLS_ASSERT_SAFE(source);
 
-    bmqu::BlobObjectProxy<bmqp::SnapshotChunkHeader> hdr(
-        blob.get(),
-        false,
-        sizeof(bmqp::EventHeader));
+    bmqu::BlobPosition position;
+
+    if (0 != bmqu::BlobUtil::findOffsetSafe(&position,
+                                            *blob,
+                                            sizeof(bmqp::EventHeader))) {
+        BALL_LOG_ERROR
+            << "Failed to locate RaftHeader in e_RAFT_PARTITION event";
+        return;
+    }
+
+    bmqu::BlobObjectProxy<bmqp::SnapshotChunkHeader> hdr(blob.get(),
+                                                         position,
+                                                         true,    // read
+                                                         false);  // write
+
     if (!hdr.isSet()) {
         BALL_LOG_ERROR << "Failed to read SnapshotChunkHeader from "
                        << "e_RAFT_SNAPSHOT event";

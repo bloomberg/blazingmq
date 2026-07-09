@@ -24,6 +24,8 @@
 #include <mqbnet_controlmessagetransmitter.h>
 #include <mqbsl_memorymappedondisklog.h>
 
+#include <bmqt_uri.h>
+
 #include <bmqu_blobobjectproxy.h>
 
 // BDE
@@ -43,7 +45,7 @@ const int k_TICK_INTERVAL_MS = 100;
 RaftNodeConfig makeRaftConfig(const mqbc::ClusterData& clusterData,
                               bslma::Allocator*        allocator)
 {
-    RaftNodeConfig config(allocator);
+    RaftNodeConfig config(RaftNodeConfig::k_CSL_PARTITION_ID, allocator);
 
     mqbnet::Cluster* netCluster = clusterData.membership().netCluster();
 
@@ -127,7 +129,7 @@ void ClusterStateRaft::dispatchOutput(RaftNodeOutput* output)
         applyCommittedEntry(output->d_committed[i]);
     }
 
-    if (output->d_stateChanged) {
+    if (output->d_stateChanged || output->d_leaderChanged) {
         updateElectorInfo();
     }
 }
@@ -151,9 +153,11 @@ void ClusterStateRaft::sendAppendEntries(const RaftMessage& msg)
     event.setLength(sizeof(bmqp::EventHeader) + sizeof(bmqp::RaftHeader));
 
     // Write RaftHeader
-    bmqu::BlobObjectProxy<bmqp::RaftHeader> rh(&event,
-                                               true,
-                                               sizeof(bmqp::EventHeader));
+    bmqu::BlobObjectProxy<bmqp::RaftHeader> rh(
+        &event,
+        bmqu::BlobPosition(0, static_cast<int>(sizeof(bmqp::EventHeader))),
+        true,   // read
+        true);  // write
     (*rh)
         .setTerm(msg.d_term)
         .setPrevLogIndex(msg.d_prevLogIndex)
@@ -329,7 +333,16 @@ void ClusterStateRaft::updateElectorInfo()
 {
     int leaderId = d_raftNode_mp->leaderId();
 
+    BALL_LOG_INFO << "ClusterStateRaft::updateElectorInfo (node "
+                  << d_clusterData_p->membership().selfNode()->nodeId()
+                  << "): raftState=" << d_raftNode_mp->state()
+                  << ", leaderId=" << leaderId
+                  << ", currentTerm=" << d_raftNode_mp->currentTerm();
+
     if (leaderId == RaftNode::k_INVALID_NODE_ID) {
+        BALL_LOG_INFO << "ClusterStateRaft::updateElectorInfo (node "
+                      << d_clusterData_p->membership().selfNode()->nodeId()
+                      << "): no leader -> DORMANT/UNDEFINED";
         d_clusterData_p->electorInfo().setElectorInfo(mqbnet::ElectorState::e_DORMANT,
                                                       d_raftNode_mp->currentTerm(),
                                                       0,
@@ -342,7 +355,13 @@ void ClusterStateRaft::updateElectorInfo()
     mqbnet::ClusterNode* leaderNode = d_clusterData_p->membership().netCluster()->lookupNode(
         leaderId);
 
-    BSLS_ASSERT_SAFE(leaderNode);
+    if (!leaderNode) {
+        BALL_LOG_WARN << "ClusterStateRaft::updateElectorInfo (node "
+                      << d_clusterData_p->membership().selfNode()->nodeId()
+                      << "): leaderId=" << leaderId
+                      << " not found in netCluster; skipping elector update";
+        return;  // RETURN
+    }
 
     bool                        isActive;
     mqbnet::ElectorState::Enum  electorState;
@@ -363,6 +382,15 @@ void ClusterStateRaft::updateElectorInfo()
         isActive = true;
         break;
     }
+
+    BALL_LOG_INFO << "ClusterStateRaft::updateElectorInfo (node "
+                  << d_clusterData_p->membership().selfNode()->nodeId()
+                  << "): leader=" << leaderNode->nodeDescription()
+                  << ", electorState=" << electorState
+                  << ", term=" << d_raftNode_mp->currentTerm()
+                  << " -> setElectorInfo(PASSIVE)"
+                  << (isActive ? ", then setLeaderStatus(ACTIVE)"
+                               : ", staying PASSIVE (not active)");
 
     d_clusterData_p->electorInfo().setElectorInfo(electorState,
                                                   d_raftNode_mp->currentTerm(),
@@ -496,9 +524,20 @@ void ClusterStateRaft::appendEntries(const bdlbb::Blob&   event,
     BSLS_ASSERT_SAFE(source);
 
     // Parse RaftHeader after EventHeader
+    bmqu::BlobPosition position;
+
+    if (0 != bmqu::BlobUtil::findOffsetSafe(&position,
+                                            event,
+                                            sizeof(bmqp::EventHeader))) {
+        BALL_LOG_ERROR
+            << "Failed to locate RaftHeader in e_RAFT_CLUSTER event";
+        return;
+    }
+
     bmqu::BlobObjectProxy<bmqp::RaftHeader> rh(&event,
-                                               false,
-                                               sizeof(bmqp::EventHeader));
+                                               position,
+                                               true,    // read
+                                               false);  // write
     if (!rh.isSet()) {
         BALL_LOG_ERROR << "Failed to read RaftHeader from event";
         return;
@@ -518,11 +557,18 @@ void ClusterStateRaft::appendEntries(const bdlbb::Blob&   event,
     unsigned int entryCount = rh->entryCount();
 
     for (unsigned int i = 0; i < entryCount && remaining > 0; ++i) {
+        // Resolve the absolute byte offset of this entry across blob buffers.
+        bmqu::BlobPosition recPos;
+        if (0 != bmqu::BlobUtil::findOffsetSafe(&recPos, event, offset)) {
+            break;
+        }
+
         // Each entry is a CSL record blob; read its header to get size
         bmqu::BlobObjectProxy<mqbc::ClusterStateRecordHeader> recHeader(
             &event,
-            false,
-            offset);
+            recPos,
+            true,    // read
+            false);  // write
         if (!recHeader.isSet()) {
             break;
         }
@@ -536,9 +582,7 @@ void ClusterStateRaft::appendEntries(const bdlbb::Blob&   event,
         // Extract the CSL record blob
         bsl::shared_ptr<bdlbb::Blob> entryBlob =
             d_clusterData_p->blobSpPool().getObject();
-        bmqu::BlobPosition startPos;
-        bmqu::BlobUtil::findOffsetSafe(&startPos, event, offset);
-        bmqu::BlobUtil::appendToBlob(entryBlob.get(), event, startPos, recSize);
+        bmqu::BlobUtil::appendToBlob(entryBlob.get(), event, recPos, recSize);
 
         internalMsg.d_entries.push_back(
             LogEntry(recHeader->electorTerm(),
@@ -616,6 +660,69 @@ bool ClusterStateRaft::assignQueue(const bmqt::Uri&      uri,
     }
 
     return result;
+}
+
+void ClusterStateRaft::processQueueAssignmentRequest(
+    const bmqp_ctrlmsg::ControlMessage& request,
+    mqbnet::ClusterNode*                requester)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    BSLS_ASSERT_SAFE(requester);
+    BSLS_ASSERT_SAFE(request.choice().isClusterMessageValue());
+    BSLS_ASSERT_SAFE(request.choice()
+                         .clusterMessage()
+                         .choice()
+                         .isQueueAssignmentRequestValue());
+
+    BALL_LOG_INFO << "ClusterStateRaft: processing queueAssignment request "
+                  << "from '" << requester->nodeDescription()
+                  << "': " << request;
+
+    bmqp_ctrlmsg::ControlMessage response(d_allocator_p);
+    response.rId() = request.rId();
+
+    // Only the active CSL leader can assign queues.  'startQueueAssignment'
+    // (reached via 'assignQueue') asserts 'isSelfActiveLeader()', so these
+    // guards must run first; a failure here tells the requester to retry or
+    // wait for a new leader.
+    if (!d_clusterData_p->electorInfo().isSelfLeader() ||
+        !d_clusterData_p->electorInfo().isSelfActiveLeader()) {
+        bmqp_ctrlmsg::Status& failure = response.choice().makeStatus();
+        failure.category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+        failure.code()     = mqbi::ClusterErrorCode::e_NOT_LEADER;
+        failure.message()  = "Not an active leader";
+
+        d_clusterData_p->messageTransmitter().sendMessage(response, requester);
+        return;  // RETURN
+    }
+
+    if (bmqp_ctrlmsg::NodeStatus::E_STOPPING ==
+        d_clusterData_p->membership().selfNodeStatus()) {
+        bmqp_ctrlmsg::Status& failure = response.choice().makeStatus();
+        failure.category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+        failure.code()     = mqbi::ClusterErrorCode::e_STOPPING;
+        failure.message()  = "Leader is stopping";
+
+        d_clusterData_p->messageTransmitter().sendMessage(response, requester);
+        return;  // RETURN
+    }
+
+    const bmqp_ctrlmsg::QueueAssignmentRequest& assignment =
+        request.choice().clusterMessage().choice().queueAssignmentRequest();
+    bmqt::Uri uri(assignment.queueUri(), d_allocator_p);
+
+    // Domain/limit/duplicate checks and the CSL Raft propose all happen inside
+    // 'assignQueue' (via 'ClusterUtil::startQueueAssignment'); it populates
+    // 'status' accordingly.
+    bmqp_ctrlmsg::Status& status = response.choice().makeStatus();
+    status.category()            = bmqp_ctrlmsg::StatusCategory::E_SUCCESS;
+    status.code()                = 0;
+    status.message()             = "";
+
+    assignQueue(uri, &status);
+
+    d_clusterData_p->messageTransmitter().sendMessage(response, requester);
 }
 
 void ClusterStateRaft::unassignQueue(
