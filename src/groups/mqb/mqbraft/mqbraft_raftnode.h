@@ -227,6 +227,12 @@ struct RaftMessage {
 
 /// VST for RaftNode configuration parameters.
 struct RaftNodeConfig {
+    // PUBLIC CONSTANTS
+
+    /// Value of `d_partitionId` identifying the cluster-state (CSL) Raft
+    /// group, as opposed to a per-partition Raft group.
+    static const int k_CSL_PARTITION_ID = -1;
+
     // DATA
     int              d_selfId;
     bsl::vector<int> d_peerIds;
@@ -235,11 +241,16 @@ struct RaftNodeConfig {
     int              d_heartbeatInterval;
     bool             d_preVote;
 
+    /// Identifier of the Raft group this node belongs to: a partition id for
+    /// per-partition Raft, or `k_CSL_PARTITION_ID` for the cluster-state Raft.
+    /// Used only to disambiguate log output.
+    int d_partitionId;
+
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(RaftNodeConfig, bslma::UsesBslmaAllocator)
 
     // CREATORS
-    explicit RaftNodeConfig(bslma::Allocator* allocator = 0);
+    explicit RaftNodeConfig(int partition, bslma::Allocator* allocator = 0);
 
     RaftNodeConfig(const RaftNodeConfig& other,
                    bslma::Allocator*     allocator = 0);
@@ -493,13 +504,15 @@ inline RaftMessage::RaftMessage(const RaftMessage& other,
 // struct RaftNodeConfig
 // --------------------
 
-inline RaftNodeConfig::RaftNodeConfig(bslma::Allocator* allocator)
+inline RaftNodeConfig::RaftNodeConfig(int               partition,
+                                      bslma::Allocator* allocator)
 : d_selfId(RaftNode::k_INVALID_NODE_ID)
 , d_peerIds(allocator)
 , d_electionTimeoutMin(10)
 , d_electionTimeoutMax(20)
 , d_heartbeatInterval(3)
 , d_preVote(true)
+, d_partitionId(partition)
 {
 }
 
@@ -511,6 +524,7 @@ inline RaftNodeConfig::RaftNodeConfig(const RaftNodeConfig& other,
 , d_electionTimeoutMax(other.d_electionTimeoutMax)
 , d_heartbeatInterval(other.d_heartbeatInterval)
 , d_preVote(other.d_preVote)
+, d_partitionId(other.d_partitionId)
 {
 }
 

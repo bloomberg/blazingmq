@@ -474,6 +474,19 @@ void ClusterOrchestrator::onNodeUnavailable(mqbnet::ClusterNode* node)
 
     dropPeerQueues(ns);
 
+    if (d_cluster_p->isRaftEnabled()) {
+        // Raft owns partition-primary (re)assignment via
+        // 'onPartitionRaftLeadership', driven by the election timeout and
+        // stamped with the Raft term.  A raw TCP disconnect must not orphan or
+        // reassign primaries: doing so would bypass Raft's own peer-down
+        // conclusion (and 'd_stateManager_mp' is not even loaded in Raft
+        // mode). Only the socket-tied cleanup above ('dropPeerQueues', plus
+        // the request cancellation in 'processNodeStateChangeEvent') applies
+        // here.
+
+        return;  // RETURN
+    }
+
     if (ns->primaryPartitions().empty()) {
         // Node was not primary for any partition.  Nothing else to do.
 
@@ -1430,7 +1443,13 @@ void ClusterOrchestrator::processQueueAssignmentRequest(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
 
-    d_stateManager_mp->processQueueAssignmentRequest(request, requester);
+    if (d_cluster_p->isRaftEnabled()) {
+        d_clusterStateRaft_mp->processQueueAssignmentRequest(request,
+                                                             requester);
+    }
+    else {
+        d_stateManager_mp->processQueueAssignmentRequest(request, requester);
+    }
 }
 
 void ClusterOrchestrator::processLeaderSyncDataQuery(

@@ -155,6 +155,17 @@ class ClusterStateRaft : public mqbi::ClusterStateUpdater {
     /// Return 0 on success, non-zero if not the leader.
     int propose(const bmqp_ctrlmsg::ClusterMessage& advisory);
 
+    /// Process the queue-assignment `request` received from the specified
+    /// `requester` node.  Reply with a failure status if self is not the
+    /// active leader or is stopping; otherwise assign the queue (which
+    /// proposes the assignment advisory to the CSL Raft, applying the same
+    /// domain/limit/duplicate checks as the legacy path) and reply with the
+    /// resulting status.  This is the Raft-mode counterpart of
+    /// `mqbc::ClusterUtil::processQueueAssignmentRequest`.
+    void
+    processQueueAssignmentRequest(const bmqp_ctrlmsg::ControlMessage& request,
+                                  mqbnet::ClusterNode* requester);
+
     // ClusterStateUpdater interface
 
 

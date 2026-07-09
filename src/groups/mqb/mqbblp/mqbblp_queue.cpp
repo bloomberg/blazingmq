@@ -341,7 +341,12 @@ void Queue::closeDispatched(const bsl::function<void(void)>& callback)
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(inDispatcherThread());
 
-    queueEngine()->close();
+    // The engine may not exist if the queue is being torn down after a failed
+    // 'configure' (e.g. a RemoteQueue whose storage could not be retrieved):
+    // in that case there is nothing to close on the engine.
+    if (mqbi::QueueEngine* engine = queueEngine()) {
+        engine->close();
+    }
 
     if (d_localQueue_mp) {
         d_localQueue_mp->close();
