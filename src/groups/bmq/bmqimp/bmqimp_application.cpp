@@ -15,7 +15,6 @@
 
 #include <bmqimp_application.h>
 
-#include <bmqscm_version.h>
 // BMQ
 #include <bmqex_executionpolicy.h>
 #include <bmqex_systemexecutor.h>
@@ -37,11 +36,15 @@
 #include <bmqst_statvalue.h>
 #include <bmqst_tableutil.h>
 #include <bmqt_resultcode.h>
+#include <bmqt_sessionoptions.h>
+#include <bmqt_tlsprotocolversion.h>
 #include <bmqt_uri.h>
 #include <bmqu_blob.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_printutil.h>
+#include <bmqu_stringutil.h>
 #include <bmqu_time.h>
+#include <bmqvt_valueorerror.h>
 
 // BDE
 #include <ball_log.h>
@@ -58,6 +61,8 @@
 #include <bsl_limits.h>
 #include <bsl_string.h>
 #include <bsl_vector.h>
+#include <bsla_unreachable.h>
+#include <bsla_unused.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
 #include <bslmf_movableref.h>
@@ -143,6 +148,45 @@ ntcCreateInterfaceConfig(const bmqt::SessionOptions& sessionOptions,
     config.setKeepHalfOpen(false);
 
     return config;
+}
+
+/// Convert a `bmqt::ProtocolVersion::Value` into its equivalent
+/// `ntca::EncryptionMethod::Value` value.
+///
+/// @param version A TLS protocol version value
+ntca::EncryptionMethod::Value
+toNtcEncryptionMethod(bmqt::TlsProtocolVersion::Value version)
+{
+    switch (version) {
+    case bmqt::TlsProtocolVersion::e_TLS1_3: {
+        return ntca::EncryptionMethod::e_TLS_V1_3;
+    } break;
+    default:
+        BSLS_ASSERT_OPT(false && "Missing conversion case");
+        BSLA_UNREACHABLE;
+    }
+}
+
+/// Get the minimum TLS version specified in the set of specified TLS
+/// versions.
+///
+/// Currently, only `TLSv1.3` is supported, and the empty set results
+/// in an error.
+///
+/// @param versions A set of versions to find the minimum in
+///
+/// @returns The minimum version found or bsl::nullopt if the set is empty
+bsl::optional<bmqt::TlsProtocolVersion::Value> findMinTlsVersion(
+    const bsl::unordered_set<bmqt::TlsProtocolVersion::Value>& versions)
+{
+    bsl::optional<bmqt::TlsProtocolVersion::Value> result;
+    if (versions.empty()) {
+        return result;
+    }
+
+    // We only support TLS v1.3
+    result.emplace(bmqt::TlsProtocolVersion::e_TLS1_3);
+    return result;
 }
 
 bslma::ManagedPtr<bmqio::ChannelFactoryPipeline> makeChannelFactoryPipeline(
@@ -232,9 +276,26 @@ bslma::ManagedPtr<bmqio::ChannelFactoryPipeline> makeChannelFactoryPipeline(
             blobBufferFactory,
             allocator);
 
+    // Check if we should use TLS sessions or not
+    if (sessionOptions.isTlsSession()) {
+        ntca::EncryptionClientOptions                  options;
+        bsl::optional<bmqt::TlsProtocolVersion::Value> minTlsVersion =
+            findMinTlsVersion(sessionOptions.protocolVersions());
+
+        BSLS_ASSERT(minTlsVersion.has_value());
+
+        options.setMinMethod(toNtcEncryptionMethod(minTlsVersion.value()));
+        options.setMaxMethod(ntca::EncryptionMethod::e_DEFAULT);
+        options.setAuthentication(ntca::EncryptionAuthentication::e_VERIFY);
+        options.addAuthorityFile(sessionOptions.certificateAuthority());
+
+        channelFactory->configureEncryptionClient(options);
+    }
+
     using bdlf::PlaceHolders::_1;
     bmqio::ChannelFactoryPipeline::Config builder(channelFactory, allocator);
-    builder
+
+    builder.add(channelFactory)
         .addWith(bdlf::BindUtil::bind(Builders::resolvingChannelFactory,
                                       allocator,
                                       _1))
