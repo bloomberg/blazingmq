@@ -553,7 +553,12 @@ void LocalQueue::onPushMessage(
 void LocalQueue::onReceipt(const bmqt::MessageGUID& msgGUID,
                            mqbi::QueueHandle*       qH)
 {
+    BALL_LOG_WARN << "LocalQueue::onReceipt " << msgGUID << " " << qH;
+
     if (d_state_p->handleCatalog().hasHandle(qH)) {
+        BALL_LOG_WARN << "LocalQueue::onReceipt sending ack" << msgGUID << " "
+                      << qH;
+
         // Send acknowledgement
         bmqp::AckMessage ackMessage;
         ackMessage

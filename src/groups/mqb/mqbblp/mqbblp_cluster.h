@@ -569,6 +569,14 @@ class Cluster : public mqbi::Cluster,
                               const mqbconfm::Domain& newDefn)
         BSLS_KEYWORD_OVERRIDE;
 
+    /// Invoked (from any thread) whenever the local storage/app state for
+    /// the queue having the specified `uri` on the specified `partitionId`
+    /// changes.  Hops to the cluster dispatcher thread and asks
+    /// `ClusterQueueHelper` to re-check any locally-parked queue-open for
+    /// that uri.
+    void onQueueStorageReady(int              partitionId,
+                             const bmqt::Uri& uri) BSLS_KEYWORD_OVERRIDE;
+
     /// Process the specified `command`, and load the result in the
     /// specified `result`. Return 0 if the command was successfully
     /// processed, or a non-zero value otherwise.

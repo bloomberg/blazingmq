@@ -237,6 +237,15 @@ class StorageProvider {
     /// dispatcher thread.
     virtual bool isStorageEmpty(const bmqt::Uri& uri,
                                 int              partitionId) const = 0;
+
+    /// Return true if the queue having the specified `uri` and assigned to
+    /// the specified `partitionId` has a registered storage *and*, if the
+    /// specified `appId` is non-empty, that `appId` is registered on it.
+    /// Safe to call from any thread, in particular the cluster dispatcher
+    /// thread.
+    virtual bool hasStorage(const bmqt::Uri&   uri,
+                            const bsl::string& appId,
+                            int                partitionId) const = 0;
 };
 
 // ====================
@@ -255,15 +264,6 @@ class StorageManager : public StorageProvider {
     typedef bsl::pair<AppIdsIter, bool>     AppIdsInsertRc;
 
     typedef bsl::shared_ptr<mqbs::ReplicatedStorage> StorageSp;
-
-    /// Map of QueueUri -> ReplicatedStorageSp
-    typedef bsl::unordered_map<bmqt::Uri, StorageSp> StorageSpMap;
-    typedef StorageSpMap::iterator                   StorageSpMapIter;
-    typedef StorageSpMap::const_iterator             StorageSpMapConstIter;
-
-    typedef bsl::vector<StorageSpMap>       StorageSpMapVec;
-    typedef StorageSpMapVec::iterator       StorageSpMapVecIter;
-    typedef StorageSpMapVec::const_iterator StorageSpMapVecConstIter;
 
     typedef bsl::function<
         void(int partitionId, int status, unsigned int primaryLeaseId)>

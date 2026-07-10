@@ -106,7 +106,7 @@ struct DataStoreRecord {
     // PUBLIC DATA
     RecordType::Enum d_recordType;  // Type of the journal record
 
-    bool d_hasReceipt;
+    mutable bool d_hasReceipt;
     // Strong consistency receipt.
 
     bsls::Types::Uint64 d_recordOffset;  // Offset of record in journal
@@ -179,6 +179,9 @@ struct DataStoreRecord {
     /// (and thus a handle) for a write buffered during a rollover window; its
     /// offsets are patched in place when the write later drains to disk.
     explicit DataStoreRecord(RecordType::Enum recordType);
+
+    // ACCESSORS
+    RecordType::Enum type() const;
 };
 
 // =========================
@@ -223,6 +226,8 @@ struct DataStoreRecordKey {
 
 /// Format the specified `value` to the specified output `stream` and return
 /// a reference to the modifiable `stream`.
+bsl::ostream& operator<<(bsl::ostream& stream, const DataStoreRecord& value);
+
 bsl::ostream& operator<<(bsl::ostream&             stream,
                          const DataStoreRecordKey& value);
 
@@ -537,16 +542,15 @@ class DataStoreRecordHandle {
 
   private:
     // DATA
-    RecordIterator d_iterator;
-
-    // PRIVATE CREATORS
-    explicit DataStoreRecordHandle(const RecordIterator& iterator);
+    DataStoreConfig::Records::const_iterator d_iterator;
 
   public:
     // CREATORS
 
     /// Create an invalid handle. `isValid` returns false.
     DataStoreRecordHandle();
+    explicit DataStoreRecordHandle(
+        const DataStoreConfig::Records::const_iterator& iterator);
 
     // MANIPULATORS
 
@@ -632,15 +636,23 @@ class StoragesMonitor {
   public:
     // TYPES
     typedef bsl::shared_ptr<ReplicatedStorage> StorageSp;
+    typedef mqbi::Storage::AppInfos            Apps;
 
   public:
     // CREATORS
     virtual ~StoragesMonitor();
 
     // MANIPULATORS
+    virtual void
+    onStorageRegistered(int                                       partitionId,
+                        const bmqt::Uri&                          uri,
+                        const StorageSp&                          storageSp,
+                        const DataStoreConfigQueueInfo::AppInfos& apps) = 0;
+
     virtual void onStorageRegistered(int              partitionId,
                                      const bmqt::Uri& uri,
-                                     const StorageSp& storageSp) = 0;
+                                     const StorageSp& storageSp,
+                                     const mqbi::Storage::AppInfos& apps) = 0;
 
     virtual void onStorageUnregistered(int              partitionId,
                                        const bmqt::Uri& uri) = 0;
@@ -797,6 +809,11 @@ class RecordStore {
     /// undefined unless this cluster node is the primary for this partition.
     virtual void flushStorage() = 0;
 
+    /// Set the last strong consistency point (primary lease id and sequence
+    /// number) for this partition. Used during recovery.
+    virtual void setLastStrongConsistency(unsigned int        primaryLeaseId,
+                                          bsls::Types::Uint64 sequenceNum) = 0;
+
     // ACCESSORS
 
     virtual void loadMessageRaw(bsl::shared_ptr<bdlbb::Blob>*   appData,
@@ -839,6 +856,32 @@ class RecordStore {
                              const StorageFilters& filters) const = 0;
 
     virtual StoragesMonitor* storagesMonitor() = 0;
+
+    /// Return the records container for this partition.
+    virtual const DataStoreConfig::Records& records() const = 0;
+
+    /// Return the total number of records in this partition.
+    virtual bsls::Types::Uint64 numRecords() const = 0;
+
+    /// Load message record data for the specified iterator.
+    virtual void loadMessageRecord(
+        MessageRecord*                                  buffer,
+        const DataStoreConfig::Records::const_iterator& it) const = 0;
+
+    /// Load confirm record data for the specified iterator.
+    virtual void loadConfirmRecord(
+        ConfirmRecord*                                  buffer,
+        const DataStoreConfig::Records::const_iterator& it) const = 0;
+
+    /// Load queue op record data for the specified iterator.
+    virtual void loadQueueOpRecord(
+        QueueOpRecord*                                  buffer,
+        const DataStoreConfig::Records::const_iterator& it) const = 0;
+
+    /// Convert a Records::iterator to a DataStoreRecordHandle.
+    virtual void recordIteratorToHandle(
+        DataStoreRecordHandle*                          handle,
+        const DataStoreConfig::Records::const_iterator& it) const = 0;
 
     /// Return a printable description of the client (e.g., for logging).
     /// The returned view is valid for the lifetime of this object and must
@@ -938,9 +981,6 @@ class DataStore : public RecordStore, public mqbi::DispatcherClient {
 
     /// Return the replication factor associated with this data store.
     virtual unsigned int clusterSize() const = 0;
-
-    /// Return total number of records currently present in the data store.
-    virtual bsls::Types::Uint64 numRecords() const = 0;
 
     virtual void
     loadMessageRecordRaw(MessageRecord*               buffer,
@@ -1359,7 +1399,7 @@ inline int DataStoreConfig::maxArchivedFileSets() const
 
 // PRIVATE CREATORS
 inline DataStoreRecordHandle::DataStoreRecordHandle(
-    const RecordIterator& iterator)
+    const DataStoreConfig::Records::const_iterator& iterator)
 : d_iterator(iterator)
 {
 }
@@ -1420,6 +1460,15 @@ inline bsls::Types::Uint64 DataStoreRecordHandle::sequenceNum() const
     return d_iterator->first.d_sequenceNum;
 }
 
+// =======================
+// struct DataStoreRecord
+// =======================
+
+inline RecordType::Enum DataStoreRecord::type() const
+{
+    return d_recordType;
+}
+
 }  // close package namespace
 
 // -------------------------
@@ -1427,6 +1476,20 @@ inline bsls::Types::Uint64 DataStoreRecordHandle::sequenceNum() const
 // -------------------------
 
 // FREE OPERATORS
+inline bsl::ostream& mqbs::operator<<(bsl::ostream&                stream,
+                                      const mqbs::DataStoreRecord& value)
+{
+    stream << "DataStoreRecord[type=" << value.d_recordType
+           << " offset=" << value.d_recordOffset
+           << " hasReceipt=" << bsl::boolalpha << value.d_hasReceipt
+           << " msgOffset=" << value.d_messageOffset
+           << " appDataLen=" << value.d_appDataUnpaddedLen
+           << " padLen=" << value.d_dataOrQlistRecordPaddedLen
+           << " timepoint=" << value.d_arrivalTimepoint
+           << " timestamp=" << value.d_arrivalTimestamp << "]";
+    return stream;
+}
+
 inline bsl::ostream& mqbs::operator<<(bsl::ostream&                   stream,
                                       const mqbs::DataStoreRecordKey& value)
 {

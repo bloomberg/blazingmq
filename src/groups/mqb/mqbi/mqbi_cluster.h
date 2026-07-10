@@ -355,6 +355,15 @@ class Cluster : public DispatcherClient {
                                       const mqbconfm::Domain& oldDefn,
                                       const mqbconfm::Domain& newDefn) = 0;
 
+    /// Invoked whenever the local storage (or a locally-registered app) for
+    /// the queue having the specified `uri`, assigned to the specified
+    /// `partitionId`, is registered, updated, or unregistered.  Implementors
+    /// should re-check readiness of any queue-open that was locally parked
+    /// waiting for this queue's storage/app to become available (see
+    /// `mqbc::StoragesMonitor::hasStorage`).  A no-op default is provided
+    /// since only cluster-member implementations own a `ClusterQueueHelper`.
+    virtual void onQueueStorageReady(int partitionId, const bmqt::Uri& uri);
+
     /// Process the specified `command`, and load the result in the
     /// specified `result`.  Return 0 if the command was successfully
     /// processed, or a non-zero value otherwise.

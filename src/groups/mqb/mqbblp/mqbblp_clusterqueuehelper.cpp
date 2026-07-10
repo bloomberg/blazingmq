@@ -265,6 +265,26 @@ void ClusterQueueHelper::finishAllOpening(const QueueContextSp& queueContext,
                       bmqp_ctrlmsg::OpenQueueResponse(),
                       mqbi::OpenQueueConfirmationCookieSp());
     }
+
+    // Also fail any replica-side 'createQueue' calls parked awaiting local
+    // storage/app readiness (see 'QueueLiveState::StoragePendingContext'):
+    // this queue is being torn down (unassigned, primary changed, node
+    // stopping, ...), so they must not be left to hang until the client's
+    // open-queue timeout.
+    bsl::vector<QueueLiveState::StoragePendingContext> storagePending(
+        d_allocator_p);
+    storagePending.swap(queueContext->d_liveQInfo.d_storagePendingContexts);
+
+    for (bsl::vector<QueueLiveState::StoragePendingContext>::const_iterator
+             cIt = storagePending.begin();
+         cIt != storagePending.end();
+         ++cIt) {
+        finishOpening(cIt->d_context,
+                      status,
+                      0,
+                      bmqp_ctrlmsg::OpenQueueResponse(),
+                      mqbi::OpenQueueConfirmationCookieSp());
+    }
 }
 
 void ClusterQueueHelper::OpenQueueContext::setQueueContext(
@@ -300,6 +320,7 @@ ClusterQueueHelper::QueueLiveState::QueueLiveState(bslma::Allocator* allocator)
 , d_numHandleCreationsInProgress(0)
 , d_queueExpirationTimestampMs(0)
 , d_pending(allocator)
+, d_storagePendingContexts(allocator)
 , d_pendingUpdates(allocator)
 , d_inFlight(0)
 , d_numReopenQueueRequests(0)
@@ -1035,6 +1056,45 @@ void ClusterQueueHelper::processPendingContexts(QueueContext* queueContext)
          it != contexts.end();
          ++it) {
         processOpenQueueRequest(*it);
+    }
+}
+
+void ClusterQueueHelper::onStorageReady(int partitionId, const bmqt::Uri& uri)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+
+    (void)partitionId;  // only used for the log line below
+
+    QueueContextMapIter qit = d_queues.find(uri);
+    if (qit == d_queues.end()) {
+        return;  // RETURN
+    }
+
+    QueueLiveState& qinfo = qit->second->d_liveQInfo;
+    if (qinfo.d_storagePendingContexts.empty()) {
+        return;  // RETURN
+    }
+
+    // Swap out to re-attempt one by one; a re-attempt that is still not
+    // ready will re-park itself into (the now-empty)
+    // 'd_storagePendingContexts' via 'createQueue'.
+    bsl::vector<QueueLiveState::StoragePendingContext> pending(d_allocator_p);
+    pending.swap(qinfo.d_storagePendingContexts);
+
+    BALL_LOG_INFO << d_cluster_p->description() << ": storage/app ready for '"
+                  << uri << "' (partitionId: " << partitionId << "); resuming "
+                  << pending.size() << " parked createQueue call(s)";
+
+    for (bsl::vector<QueueLiveState::StoragePendingContext>::const_iterator
+             it = pending.cbegin();
+         it != pending.cend();
+         ++it) {
+        createQueue(it->d_context,
+                    it->d_openQueueResponse,
+                    it->d_upstreamNode);
     }
 }
 
@@ -2134,6 +2194,34 @@ bool ClusterQueueHelper::createQueue(
     const bmqp_ctrlmsg::QueueHandleParameters& parameters =
         openQueueResponse.originalRequest().handleParameters();
     const unsigned int upstreamQueueId = parameters.qId();
+
+    if (result == mqbi::ClusterErrorCode::e_OK && !isPrimary &&
+        !d_cluster_p->isRemote()) {
+        // Replica: unlike the primary (whose 'registerQueue' call further
+        // down synchronously registers storage on the partition thread,
+        // strictly before 'configure()' runs there too), this node's local
+        // storage/app for the queue may not exist yet -- in Raft mode,
+        // storage is only created once the underlying log entry commits,
+        // which can lag this openQueue response arriving.  Park until
+        // 'StoragesMonitor' reports it ready instead of failing with
+        // "Unknown queue".
+        const bsl::string appId(
+            bmqp::QueueUtil::extractAppId(context->d_handleParameters),
+            d_allocator_p);
+        if (!d_storageManager_p->hasStorage(queueContext->uri(), appId, pid)) {
+            BALL_LOG_INFO << d_cluster_p->description()
+                          << ": parking createQueue for '"
+                          << queueContext->uri() << "' (app '" << appId
+                          << "') until local storage is ready";
+
+            QueueLiveState::StoragePendingContext pendingContext;
+            pendingContext.d_context           = context;
+            pendingContext.d_openQueueResponse = openQueueResponse;
+            pendingContext.d_upstreamNode      = upstreamNode;
+            qinfo.d_storagePendingContexts.push_back(pendingContext);
+            return false;  // RETURN -- parked; no response sent (yet)
+        }
+    }
 
     if (result == mqbi::ClusterErrorCode::e_OK) {
         BMQ_LOGTHROTTLE_INFO

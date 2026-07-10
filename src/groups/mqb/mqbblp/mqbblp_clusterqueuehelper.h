@@ -260,6 +260,22 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
         // List of all open queue pending contexts which are awaiting for a
         // next step on the queue (assignment, ...).
 
+        /// A replica-side open-queue call parked in `createQueue` because this
+        /// node's local storage/app for the queue was not yet registered
+        /// (Raft-mode: storage creation is only applied once the underlying
+        /// log entry commits, which can lag the upstream openQueue response).
+        /// Re-attempted in full from `ClusterQueueHelper::onStorageReady` once
+        /// `StorageProvider::hasStorage` reports readiness.
+        struct StoragePendingContext {
+            bsl::shared_ptr<OpenQueueContext> d_context;
+            bmqp_ctrlmsg::OpenQueueResponse   d_openQueueResponse;
+            mqbnet::ClusterNode*              d_upstreamNode;
+        };
+
+        bsl::vector<StoragePendingContext> d_storagePendingContexts;
+        // List of replica-side 'createQueue' calls parked awaiting local
+        // storage/app readiness.  See 'StoragePendingContext'.
+
         bsl::vector<VoidFunctor> d_pendingUpdates;
         // Operations pending QueueUpdate.
 
@@ -999,6 +1015,16 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// performed during `initialize` and restore that object to a default
     /// constructed state.
     void teardown();
+
+    /// Re-attempt any replica-side `createQueue` call parked (see
+    /// `QueueLiveState::StoragePendingContext`) on the queue having the
+    /// specified `uri` and assigned to the specified `partitionId`, because
+    /// its local storage/app was not yet ready.  A no-op if there is no such
+    /// queue or no parked context for it.
+    ///
+    /// THREAD: This method is invoked in the associated cluster's dispatcher
+    ///         thread.
+    void onStorageReady(int partitionId, const bmqt::Uri& uri);
 
     /// Initiate the open queue sequence for the queue having the specified
     /// `uri`, on the specified `domain` and using the specified

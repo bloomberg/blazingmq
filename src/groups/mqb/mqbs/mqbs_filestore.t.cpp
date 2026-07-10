@@ -911,11 +911,6 @@ static void test1_breathingTest()
     }
     BMQTST_ASSERT_EQ(numRecordsWritten, fs.numRecords());
 
-    mqbs::FileStoreIterator fsIt(&fs);
-    while (fsIt.next()) {
-        // TBD: verify
-    }
-
     fs.close();
 
     BMQTST_ASSERT_EQ(false, fs.isOpen());
@@ -1001,21 +996,17 @@ static void test2_printTest()
         bdlpcre::RegEx::k_FLAG_MULTILINE);
     BSLS_ASSERT_OPT(expectedOut.isPrepared());
 
-    mqbs::FileStoreIterator fsIt(&fs);
+    typedef mqbs::DataStoreConfig::Records Records;
+    const Records&                         actualRecords = fs.records();
     bmqu::MemOutStream      stream(bmqtst::TestHelperUtil::allocator());
-    while (fsIt.next()) {
-        stream << fsIt << "\n";
+    for (Records::const_iterator it = actualRecords.begin();
+         it != actualRecords.end();
+         ++it) {
+        stream << it->second << "\n";
     }
     BMQTST_ASSERT_EQ(expectedOut.match(stream.str().data(),
                                        stream.str().length()),
                      0);
-
-    PV("Bad stream test");
-    stream.reset();
-    stream << "INVALID";
-    stream.clear(bsl::ios_base::badbit);
-    stream << fsIt;
-    BMQTST_ASSERT_EQ(stream.str(), "INVALID");
 
     fs.close();
 }

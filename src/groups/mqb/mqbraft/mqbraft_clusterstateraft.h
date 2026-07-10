@@ -185,6 +185,7 @@ class ClusterStateRaft : public mqbi::ClusterStateUpdater {
     bool                isLeader() const;
     int                 leaderId() const;
     bsls::Types::Uint64 currentTerm() const;
+    int                 quorum() const;
 };
 
 }  // close package namespace

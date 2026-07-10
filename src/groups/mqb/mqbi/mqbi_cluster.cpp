@@ -118,5 +118,12 @@ Cluster::~Cluster()
     // NOTHING (pure interface)
 }
 
+void Cluster::onQueueStorageReady(int partitionId, const bmqt::Uri& uri)
+{
+    // NOTHING (default: not all implementations own a ClusterQueueHelper)
+    (void)partitionId;
+    (void)uri;
+}
+
 }  // close package namespace
 }  // close enterprise namespace

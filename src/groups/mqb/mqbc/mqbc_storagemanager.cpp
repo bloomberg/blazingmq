@@ -3786,7 +3786,7 @@ StorageManager::StorageManager(
     const RecoveryStatusCb&          recoveryStatusCb,
     const PartitionPrimaryStatusCb&  partitionPrimaryStatusCb,
     bslma::Allocator*                allocator)
-: mqbc::StoragesMonitor(allocator)
+: mqbc::StoragesMonitor(cluster, allocator)
 , d_allocator_p(allocator)
 , d_allocators(d_allocator_p)
 , d_isStarted(false)
@@ -3867,7 +3867,7 @@ StorageManager::~StorageManager()
     // derived member 'd_fileStores', which is destroyed after this body but
     // before the 'StoragesMonitor' base subobject that owns the storages.
     for (size_t i = 0; i < d_fileStores.size(); ++i) {
-        mqbc::StoragesMonitor::onStoragesCleared(static_cast<int>(i));
+        mqbc::StoragesMonitor::releaseStorages(static_cast<int>(i));
     }
 }
 
@@ -4874,6 +4874,13 @@ bool StorageManager::isStorageEmpty(const bmqt::Uri& uri,
                      partitionId < static_cast<int>(d_fileStores.size()));
 
     return mqbc::StoragesMonitor::isStorageEmpty(uri, partitionId);
+}
+
+bool StorageManager::hasStorage(const bmqt::Uri&   uri,
+                                const bsl::string& appId,
+                                int                partitionId) const
+{
+    return mqbc::StoragesMonitor::hasStorage(uri, appId, partitionId);
 }
 
 mqbs::FileStore& StorageManager::fileStore(int partitionId) const

@@ -20,7 +20,6 @@
 //
 //@CLASSES:
 //  mqbs::FileStore:         File-backed BlazingMQ data store.
-//  mqbs::FileStoreIterator: Iterator over records in a 'mqbs::FileStore'
 //
 //@SEE ALSO: mqbs::FileStoreProtocol
 //
@@ -158,17 +157,7 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
         mqbu::StorageKey                 d_queueKey;
 
         // INPUT — e_MESSAGE
-        mqbi::StorageMessageAttributes*  d_attributes_p;
-
-        // Owned deep-copy of the attributes pointed to by 'd_attributes_p'.
-        // 'd_attributes_p' is normally a *borrowed* pointer whose lifetime is
-        // only guaranteed for the duration of the synchronous write call.
-        // When a 'PendingWrite' is buffered (Raft on-commit-rollover window),
-        // the borrow would dangle by drain time, so
-        // 'PartitionRaftLog::bufferPendingWrite' copies the attributes here
-        // and repoints 'd_attributes_p' at this owned slot.  Unused (and left
-        // default-constructed) on the normal, non-buffered path.
-        mqbi::StorageMessageAttributes d_ownedAttributes;
+        mqbi::StorageMessageAttributes d_attributes;
 
         DataStoreRecordHandle            d_handle;
         bmqt::MessageGUID                d_guid;
@@ -754,9 +743,6 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
                             const DataStoreRecordKey& key,
                             const DataStoreRecord&    record);
 
-    void recordIteratorToHandle(DataStoreRecordHandle* handle,
-                                const RecordIterator   recordIt) const;
-
     const RecordIterator& handleTorRecordIterator(const DataStoreRecordHandle& handle) const;
 
     /// Replicate a record having the specified `messageType` and
@@ -990,6 +976,17 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// method.
     void onRecordCommittedReplica(const bdlbb::Blob&           data,
                                   const DataStoreRecordHandle& handle);
+
+    /// Reconstruct the queue URI and appId/appKey pairs of a locally-written,
+    /// Raft-committed `e_QUEUE_OP` (CREATION or ADDITION) record identified by
+    /// the specified `handle`, by reading the local journal (for the QLIST
+    /// offset patched in at append time) and local QLIST file.  Load the
+    /// results into the specified `uri` and `appIdKeyPairs`.  Return 0 on
+    /// success, and a non-zero value if the local QLIST record cannot be read
+    /// (e.g. this node is not QLIST-aware).
+    int loadQueueCreationInfo(bmqt::Uri*                   uri,
+                              AppInfos*                    appIdKeyPairs,
+                              const DataStoreRecordHandle& handle) const;
 
     /// Notify that the record described by the specified 'pw' has been
     /// committed by Raft quorum on the primary.  For a MESSAGE record, mark
@@ -1260,6 +1257,24 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     StoragesMonitor* storagesMonitor() BSLS_KEYWORD_OVERRIDE;
 
+    const DataStoreConfig::Records& records() const BSLS_KEYWORD_OVERRIDE;
+
+    void loadMessageRecord(MessageRecord* buffer,
+                           const DataStoreConfig::Records::const_iterator& it)
+        const BSLS_KEYWORD_OVERRIDE;
+
+    void loadConfirmRecord(ConfirmRecord* buffer,
+                           const DataStoreConfig::Records::const_iterator& it)
+        const BSLS_KEYWORD_OVERRIDE;
+
+    void loadQueueOpRecord(QueueOpRecord* buffer,
+                           const DataStoreConfig::Records::const_iterator& it)
+        const BSLS_KEYWORD_OVERRIDE;
+
+    void recordIteratorToHandle(DataStoreRecordHandle* handle,
+                                const DataStoreConfig::Records::const_iterator&
+                                    it) const BSLS_KEYWORD_OVERRIDE;
+
     /// Return `true` if this partition is Raft-replicated, `false` for the
     /// legacy path.  Safe to call even when no `StoragesMonitor` is set (e.g.
     /// in tests): returns `false` in that case.
@@ -1278,7 +1293,8 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     /// This will be used as Implicit Receipt
     void setLastStrongConsistency(unsigned int        primaryLeaseId,
-                                  bsls::Types::Uint64 sequenceNum);
+                                  bsls::Types::Uint64 sequenceNum)
+        BSLS_KEYWORD_OVERRIDE;
 
     /// Encode and broadcast the specified `message` to all cluster nodes.
     void broadcastMessage(const bmqp_ctrlmsg::ControlMessage& message);
@@ -1406,73 +1422,6 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     const LeaseIdToSeqNumMap& highestSeqNums() const;
 };
 
-// =======================
-// class FileStoreIterator
-// =======================
-
-/// Mechanism to iterate over records in a `mqbs::FileStore`.
-class FileStoreIterator {
-  private:
-    // PRIVATE TYPES
-    typedef DataStoreConfig::RecordIterator RecordIterator;
-
-  private:
-    // DATA
-    FileStore* d_store_p;  // Held
-
-    bool d_firstInvocation;
-
-    RecordIterator d_iterator;
-
-  public:
-    // CREATORS
-
-    /// Behavior is undefined unless specified `store` outlives this
-    /// instance.
-    explicit FileStoreIterator(FileStore* store);
-
-    // MANIPULATORS
-    bool next();
-
-    // ACCESSORS
-
-    /// Behavior undefined unless last call to `next` returned true.
-    RecordType::Enum type() const;
-
-    /// Behavior undefined unless last call to `next` returned true.
-    DataStoreRecordHandle handle() const;
-
-    /// Behavior undefined unless last call to `next` returned true.
-    void loadMessageRecord(MessageRecord* buffer) const;
-
-    /// Behavior undefined unless last call to `next` returned true.
-    void loadConfirmRecord(ConfirmRecord* buffer) const;
-
-    /// Behavior undefined unless last call to `next` returned true.
-    void loadDeletionRecord(DeletionRecord* buffer) const;
-
-    /// Behavior undefined unless last call to `next` returned true.
-    void loadQueueOpRecord(QueueOpRecord* buffer) const;
-
-    /// Format this object to the specified output `stream` at the (absolute
-    /// value of) the optionally specified indentation `level` and return a
-    /// reference to `stream`.  If `level` is specified, optionally specify
-    /// `spacesPerLevel`, the number of spaces per indentation level for
-    /// this and all of its nested objects.  If `level` is negative,
-    /// suppress indentation of the first line.  If `spacesPerLevel` is
-    /// negative format the entire output on one line, suppressing all but
-    /// the initial indentation (as governed by `level`).  If `stream` is
-    /// not valid on entry, this operation has no effect.
-    bsl::ostream&
-    print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
-};
-
-// FREE OPERATORS
-
-/// Format the specified `rhs` to the specified output `stream` and return a
-/// reference to the modifiable `stream`.
-bsl::ostream& operator<<(bsl::ostream& stream, const FileStoreIterator& rhs);
-
 // ============================================================================
 //                             INLINE DEFINITIONS
 // ============================================================================
@@ -1541,16 +1490,6 @@ inline void FileStore::insertDataStoreRecord(DataStoreRecordHandle*    handle,
     insertDataStoreRecord(&recordIt, key, record);
 
     recordIteratorToHandle(handle, recordIt);
-}
-
-inline void FileStore::recordIteratorToHandle(DataStoreRecordHandle* handle,
-                                              const RecordIterator   recordIt) const
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(handle);
-
-    RecordIterator& recordItRef = *reinterpret_cast<RecordIterator*>(handle);
-    recordItRef                 = recordIt;
 }
 
 inline const FileStore::RecordIterator& FileStore::handleTorRecordIterator(
@@ -1674,6 +1613,21 @@ inline unsigned int FileStore::clusterSize() const
     return static_cast<unsigned int>(d_cluster_p->nodes().size());
 }
 
+inline StoragesMonitor* FileStore::storagesMonitor()
+{
+    // Never invoked on a Raft partition: PartitionRaft::storagesMonitor()
+    // returns its own independently-held pointer rather than delegating
+    // here. Not asserted since this FileStore's own d_storagesMonitor_p is
+    // still valid and identical; calling it would not be wrong, merely
+    // unused.
+    return d_storagesMonitor_p;
+}
+
+inline const DataStoreConfig::Records& FileStore::records() const
+{
+    return d_records;
+}
+
 inline bsls::Types::Uint64 FileStore::numRecords() const
 {
     return d_records.size();
@@ -1732,42 +1686,7 @@ inline const FileStore::LeaseIdToSeqNumMap& FileStore::highestSeqNums() const
     return d_highestSeqNums;
 }
 
-// -----------------------
-// class FileStoreIterator
-// -----------------------
-
-// CREATORS
-inline FileStoreIterator::FileStoreIterator(FileStore* store)
-: d_store_p(store)
-, d_firstInvocation(true)
-, d_iterator()
-{
-    BSLS_ASSERT_SAFE(d_store_p);
-}
-
-// ACCESSORS
-inline RecordType::Enum FileStoreIterator::type() const
-{
-    return d_iterator->second.d_recordType;
-}
-
-inline DataStoreRecordHandle FileStoreIterator::handle() const
-{
-    // Here we use our knowledge of internal layout of 'DataStoreRecordHandle'.
-    DataStoreRecordHandle result;
-    RecordIterator& recordItRef = *reinterpret_cast<RecordIterator*>(&result);
-    recordItRef                 = d_iterator;
-    return result;
-}
-
 }  // close package namespace
-
-// FREE OPERATORS
-inline bsl::ostream& mqbs::operator<<(bsl::ostream&            stream,
-                                      const FileStoreIterator& rhs)
-{
-    return rhs.print(stream, 0, -1);
-}
 
 }  // close enterprise namespace
 

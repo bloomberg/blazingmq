@@ -578,6 +578,15 @@ class ClusterOrchestrator {
                                    int                 leaderNodeId,
                                    bsls::Types::Uint64 term);
 
+    /// Re-check readiness of any queue-open locally parked on the storage/app
+    /// for the specified `uri` on the specified `partitionId` becoming
+    /// available.  Wired as `Cluster::onQueueStorageReady`'s cluster-thread
+    /// continuation (see `mqbi::Cluster::onQueueStorageReady`).
+    ///
+    /// THREAD: This method is invoked in the associated cluster's dispatcher
+    ///         thread (the caller is responsible for the hop).
+    void onQueueStorageReady(int partitionId, const bmqt::Uri& uri);
+
     /// PFSM signals when it is `e_DONE_RECEIVING_DATA_CHUNKS`.  Previously
     /// buffered PrimaryStatusAdvisories should be reread.
     void processBufferedPrimaryStatusAdvisories(int partitionId);

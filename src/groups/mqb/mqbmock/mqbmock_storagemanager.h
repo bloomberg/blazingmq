@@ -267,6 +267,13 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager {
     bool isStorageEmpty(const bmqt::Uri& uri,
                         int partitionId) const BSLS_KEYWORD_OVERRIDE;
 
+    /// Return true if the queue having the specified `uri` and assigned to
+    /// the specified `partitionId` has a registered storage *and*, if the
+    /// specified `appId` is non-empty, that `appId` is registered on it.
+    bool hasStorage(const bmqt::Uri&   uri,
+                    const bsl::string& appId,
+                    int partitionId) const BSLS_KEYWORD_OVERRIDE;
+
     /// Return partition corresponding to the specified `partitionId`.  The
     /// behavior is undefined if `partitionId` does not represent a valid
     /// partition id.

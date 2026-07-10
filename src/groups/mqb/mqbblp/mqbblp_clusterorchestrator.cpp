@@ -38,6 +38,7 @@
 #include <bmqu_time.h>
 
 // BDE
+#include <bdlb_stringrefutil.h>
 #include <bdld_datummapbuilder.h>
 #include <bdlf_bind.h>
 #include <bdlf_placeholder.h>
@@ -2033,6 +2034,13 @@ mqbi::ClusterErrorCode::Enum ClusterOrchestrator::updateAppIds(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
 
+    if (d_cluster_p->isRaftEnabled()) {
+        return d_clusterStateRaft_mp->updateAppIds(*added,
+                                                   *removed,
+                                                   domainName,
+                                                   "");  // for all queues
+    }
+
     return d_stateManager_mp->updateAppIds(*added,
                                            *removed,
                                            domainName,
@@ -2139,6 +2147,16 @@ void ClusterOrchestrator::onPartitionRaftLeadershipDispatched(
     maybeTransitionToAvailable();
 }
 
+void ClusterOrchestrator::onQueueStorageReady(int              partitionId,
+                                              const bmqt::Uri& uri)
+{
+    // executed by the cluster *DISPATCHER* thread (caller already hopped)
+
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+
+    d_queueHelper.onStorageReady(partitionId, uri);
+}
+
 void ClusterOrchestrator::maybeTransitionToAvailable()
 {
     // executed by the cluster *DISPATCHER* thread
@@ -2232,7 +2250,63 @@ int ClusterOrchestrator::processCommand(
 
     if (command.isElectorValue()) {
         mqbcmd::ElectorResult electorResult;
-        int                   rc = d_elector_mp->processCommand(&electorResult,
+
+        if (d_cluster_p->isRaftEnabled()) {
+            // Raft mode: elector not used, respond with set/get values
+            const mqbcmd::ElectorCommand& cmd = command.elector();
+            if (cmd.isSetTunableValue()) {
+                const mqbcmd::SetTunable& tunable = cmd.setTunable();
+                if (bdlb::StringRefUtil::areEqualCaseless(tunable.name(),
+                                                          "QUORUM")) {
+                    const bsls::Types::Int64 quorumValue =
+                        tunable.value().theInteger();
+
+                    mqbcmd::TunableConfirmation& tc =
+                        electorResult.makeTunableConfirmation();
+                    tc.name() = "Quorum";
+                    tc.oldValue().makeTheInteger(quorumValue);
+                    tc.newValue().makeTheInteger(quorumValue);
+                }
+            }
+            else if (cmd.isGetTunableValue()) {
+                const bsl::string& tunableName = cmd.getTunable().name();
+                if (bdlb::StringRefUtil::areEqualCaseless(tunableName,
+                                                          "QUORUM")) {
+                    mqbcmd::Tunable& tunable = electorResult.makeTunable();
+                    tunable.name()           = "Quorum";
+                    tunable.value().makeTheInteger(
+                        d_clusterStateRaft_mp->quorum());
+                }
+                else {
+                    bmqu::MemOutStream output;
+                    output << "Unsupported tunable '" << tunableName
+                           << "': Issue the "
+                           << "LIST_TUNABLES command for the list of "
+                              "supported tunables.";
+                    electorResult.makeError();
+                    electorResult.error().message() = output.str();
+                    result->makeElectorResult(electorResult);
+                    return -1;  // RETURN
+                }
+            }
+            else {
+                // isListTunablesValue
+                mqbcmd::Tunables& tunables = electorResult.makeTunables();
+                tunables.tunables().resize(1);
+                tunables.tunables()[0].name() = "QUORUM";
+                tunables.tunables()[0].value().makeTheInteger(
+                    d_clusterStateRaft_mp->quorum());
+                tunables.tunables()[0].description() =
+                    "non-negative integer count of the number of"
+                    " peers required to have consensus";
+            }
+            result->makeElectorResult(electorResult);
+            return 0;  // RETURN
+        }
+
+        BSLS_ASSERT_SAFE(d_elector_mp);
+
+        int rc = d_elector_mp->processCommand(&electorResult,
                                               command.elector());
 
         if (electorResult.isErrorValue()) {

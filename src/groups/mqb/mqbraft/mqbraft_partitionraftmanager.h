@@ -286,6 +286,13 @@ class PartitionRaftManager : public mqbi::StorageProvider,
     bool isStorageEmpty(const bmqt::Uri& uri,
                         int partitionId) const BSLS_KEYWORD_OVERRIDE;
 
+    /// Return true if the queue having the specified `uri` and assigned to
+    /// the specified `partitionId` has a registered storage *and*, if the
+    /// specified `appId` is non-empty, that `appId` is registered on it.
+    bool hasStorage(const bmqt::Uri&   uri,
+                    const bsl::string& appId,
+                    int partitionId) const BSLS_KEYWORD_OVERRIDE;
+
     /// Return true: this manager drives Raft-replicated partitions.  Used to
     /// assert that legacy-only `FileStore` methods are never invoked on a Raft
     /// partition.
