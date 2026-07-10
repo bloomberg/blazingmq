@@ -437,6 +437,13 @@ class RaftNode {
     int                   selfId() const;
     bsls::Types::Uint64   currentTerm() const;
     bsls::Types::Uint64   commitIndex() const;
+
+    /// Return the term of the log entry at the current commit index (0 if
+    /// nothing is committed).  Used to check whether a current-term entry
+    /// has committed, which under Raft 5.4.2 implies all prior committed
+    /// entries are also committed (and, once applied, present in state).
+    bsls::Types::Uint64 commitTerm() const;
+
     bsls::Types::Uint64   lastApplied() const;
     const RaftNodeConfig& config() const;
     int                   quorum() const;
@@ -612,6 +619,11 @@ inline bsls::Types::Uint64 RaftNode::currentTerm() const
 inline bsls::Types::Uint64 RaftNode::commitIndex() const
 {
     return d_commitIndex;
+}
+
+inline bsls::Types::Uint64 RaftNode::commitTerm() const
+{
+    return d_log_p->term(d_commitIndex);
 }
 
 inline bsls::Types::Uint64 RaftNode::lastApplied() const

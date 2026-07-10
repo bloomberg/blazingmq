@@ -879,7 +879,20 @@ int RaftNode::propose(RaftNodeOutput*                      output,
         return -1;
     }
 
-    d_log_p->append(d_currentTerm, data, id);
+    int rc = d_log_p->append(d_currentTerm, data, id);
+    if (rc != 0) {
+        // The log refused the entry (e.g. 'format*Record' failed because the
+        // active file set is out of space or unavailable).  Do NOT proceed to
+        // replicate/commit a non-existent entry -- surface the failure so the
+        // caller can react instead of silently stalling (an unappended entry
+        // never commits, so any state keyed on it would deadlock).
+        BALL_LOG_ERROR << "[partition " << d_config.d_partitionId << "] Node "
+                       << d_config.d_selfId << " [term " << d_currentTerm
+                       << "] PROPOSE id=" << id
+                       << " FAILED to append to log, rc=" << rc
+                       << " (lastIndex=" << d_log_p->lastIndex() << ")";
+        return rc;  // RETURN
+    }
 
     BALL_LOG_INFO << "[partition " << d_config.d_partitionId << "] Node "
                   << d_config.d_selfId << " [term " << d_currentTerm
