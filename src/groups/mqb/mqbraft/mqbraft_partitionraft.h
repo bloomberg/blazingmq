@@ -464,6 +464,8 @@ class PartitionRaft : public mqbs::RecordStore {
     bool hasReceipt(const mqbs::DataStoreRecordHandle& handle) const
         BSLS_KEYWORD_OVERRIDE;
 
+    bool isFileSetAvailable() const BSLS_KEYWORD_OVERRIDE;
+
     // ACCESSORS
     int                 partitionId() const BSLS_KEYWORD_OVERRIDE;
     bool                isLeader() const BSLS_KEYWORD_OVERRIDE;

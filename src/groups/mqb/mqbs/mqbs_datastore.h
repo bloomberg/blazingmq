@@ -887,6 +887,8 @@ class RecordStore {
     /// The returned view is valid for the lifetime of this object and must
     /// be copied before any deferred use.
     virtual bsl::string_view description() const = 0;
+
+    virtual bool isFileSetAvailable() const = 0;
 };
 
 // ===============
