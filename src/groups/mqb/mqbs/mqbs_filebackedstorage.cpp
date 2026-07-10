@@ -779,6 +779,9 @@ int FileBackedStorage::gcExpiredMessages(const bdlt::Datetime& currentTimeUtc,
     // Executed by QUEUE dispatcher thread
     BSLS_ASSERT_SAFE(d_store_p);
 
+    if (!d_store_p->isFileSetAvailable()) {
+        return 0;
+    }
     bsls::Types::Uint64 latestMsgTimestampEpoch = 0;
 
     int                numMsgsDeleted     = 0;

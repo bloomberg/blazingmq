@@ -3012,6 +3012,25 @@ int FileStore::prepareRolloverFileSet(FileSetSp* newFileSet)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(newFileSet);
+    BSLS_ASSERT_SAFE(0 < d_fileSets.size());
+
+    // The (old) file set being rolled over is still the current active/front
+    // file set at this point.  Logged here (rather than in the callers) so
+    // both the legacy 'rolloverImpl' and the Raft 'PartitionRaftLog::rollover'
+    // emit the same "Initiating rollover" line, which tooling and integration
+    // tests watch for.
+    const FileSet* oldActiveFileSet = d_fileSets[0].get();
+    BALL_LOG_INFO_BLOCK
+    {
+        BALL_LOG_OUTPUT_STREAM
+            << partitionDesc() << "Initiating rollover for data file ["
+            << oldActiveFileSet->d_dataFileName << "], journal file ["
+            << oldActiveFileSet->d_journalFileName << "]";
+        if (d_qListAware) {
+            BALL_LOG_OUTPUT_STREAM << ", qlist file ["
+                                   << oldActiveFileSet->d_qlistFileName << "]";
+        }
+    }
 
     // Create new files, add header etc.
     int rc = create(newFileSet);
@@ -3183,20 +3202,9 @@ int FileStore::rolloverImpl(bsls::Types::Uint64 timestamp)
     FileSet* activeFileSet = d_fileSets[0].get();
     BSLS_ASSERT_SAFE(activeFileSet);
 
-    BALL_LOG_INFO_BLOCK
-    {
-        BALL_LOG_OUTPUT_STREAM
-            << partitionDesc() << "Initiating rollover for data file ["
-            << activeFileSet->d_dataFileName << "], journal file ["
-            << activeFileSet->d_journalFileName << "]";
-        if (d_qListAware) {
-            BALL_LOG_OUTPUT_STREAM << ", qlist file ["
-                                   << activeFileSet->d_qlistFileName << "]";
-        }
-    }
-
     // Start a StatMonitorSnapshotRecorder to track system stats during
-    // rollover
+    // rollover.  ('prepareRolloverFileSet' logs the "Initiating rollover"
+    // line, shared with the Raft path.)
     mqbstat::StatMonitorSnapshotRecorder statRecorder(partitionDesc(),
                                                       d_allocator_p);
 
@@ -5602,8 +5610,11 @@ void FileStore::deleteArchiveFilesCb()
 {
     // executed by the scheduler's *DISPATCHER* thread
 
-    // Legacy-only: never invoked on a Raft partition.
-    BSLS_ASSERT(!isRaft());
+    // Invoked in both modes: legacy schedules this both periodically (via the
+    // StorageMgr) and on rollover, whereas Raft has no periodic cleanup and
+    // relies solely on the on-rollover schedule from
+    // 'finalizeRolloverFileSet'. The body is mode-agnostic (it only honors
+    // 'maxArchivedFileSets'), so no Raft guard is needed here.
 
     FileStoreUtil::deleteArchiveFiles(d_config.partitionId(),
                                       d_config.archiveLocation(),
@@ -7195,12 +7206,12 @@ int FileStore::formatQueueDeletionRecord(PendingWrite* pw)
     return 0;
 }
 
-void FileStore::reservePendingRecord(DataStoreRecordHandle* handleOut,
-                                     unsigned int           primaryLeaseId,
-                                     bsls::Types::Uint64    sequenceNumber,
-                                     RecordType::Enum       recordType)
+void FileStore::reservePendingRecord(PendingWrite*       pw,
+                                     unsigned int        primaryLeaseId,
+                                     bsls::Types::Uint64 sequenceNumber,
+                                     RecordType::Enum    recordType)
 {
-    BSLS_ASSERT_SAFE(handleOut);
+    BSLS_ASSERT_SAFE(pw);
 
     // Placeholder entry: real offsets are unknown until the buffered write
     // drains into the new file post-rollover ('bindOrUpdateRecord' patches
@@ -7209,7 +7220,12 @@ void FileStore::reservePendingRecord(DataStoreRecordHandle* handleOut,
     DataStoreRecordKey key(sequenceNumber, primaryLeaseId);
     DataStoreRecord    record(recordType);
 
-    insertDataStoreRecord(handleOut, key, record);
+    record.d_messagePropertiesInfo = pw->d_attributes.messagePropertiesInfo();
+    record.d_hasReceipt            = pw->d_attributes.hasReceipt();
+    record.d_arrivalTimepoint      = pw->d_attributes.arrivalTimepoint();
+    record.d_arrivalTimestamp      = pw->d_attributes.arrivalTimestamp();
+
+    insertDataStoreRecord(&pw->d_handle, key, record);
 }
 
 void FileStore::dropPendingRecord(const DataStoreRecordHandle& handle)

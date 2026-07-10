@@ -965,16 +965,6 @@ void PartitionRaft::proposeRollover()
     // executed by the partition *DISPATCHER* thread
     BSLS_ASSERT_SAFE(isLeader());
 
-    // Disable the (old) file set at the trigger point, mirroring legacy's
-    // 'rolloverIfNeeded': if the physical rollover subsequently fails, the
-    // partition is left unavailable rather than silently accepting writes
-    // past capacity.  Harmless on the success path -- every write during the
-    // pending-rollover window is buffered (never reaches 'format*Record',
-    // which is the only place this flag is read), and a successful rollover
-    // implicitly re-enables it (the fresh 'FileSet' swapped in by
-    // 'finalizeRolloverFileSet' defaults to available).
-    d_fileStore_sp->setAvailabilityStatus(false);
-
     const bsls::Types::Uint64 writeId = ++d_writeIdCounter;
 
     bsl::shared_ptr<mqbs::FileStore::PendingWrite> pw =
@@ -1003,6 +993,23 @@ void PartitionRaft::proposeRollover()
                        << "] failed to propose e_ROLLOVER, rc: " << rc;
         return;
     }
+
+    // Disable the (old) file set now that the 'e_ROLLOVER' marker has been
+    // appended to it (the marker write itself must NOT be blocked, so this
+    // cannot precede 'propose()' -- 'formatSyncPointRecord' rejects any write
+    // to an unavailable set).  This must also precede 'dispatchOutput()':  in
+    // a single-node cluster 'dispatchOutput()' applies the just-committed
+    // 'e_ROLLOVER' and performs the physical rollover synchronously, swapping
+    // in a fresh (available) 'FileSet'; disabling afterwards would wrongly
+    // mark that new set unavailable.
+    //
+    // The flag is defensive here: every regular write during the pending-
+    // rollover window is already buffered upstream ('d_isRolloverPending' gate
+    // in 'propose()') and never reaches 'format*Record'.  It mirrors legacy's
+    // "leave the partition unavailable rather than silently accept writes past
+    // capacity" on rollover failure -- a guarantee also enforced by
+    // 'PartitionRaftLog::rollover()' on its own failure path.
+    d_fileStore_sp->setAvailabilityStatus(false);
 
     dispatchOutput(&output);
     d_raftLog_mp->clearCache();
@@ -1577,6 +1584,11 @@ unsigned int PartitionRaft::primaryLeaseId() const
 bool PartitionRaft::hasReceipt(const mqbs::DataStoreRecordHandle& handle) const
 {
     return d_fileStore_sp->hasReceipt(handle);
+}
+
+bool PartitionRaft::isFileSetAvailable() const
+{
+    return d_fileStore_sp->isFileSetAvailable();
 }
 
 bsl::string_view PartitionRaft::description() const

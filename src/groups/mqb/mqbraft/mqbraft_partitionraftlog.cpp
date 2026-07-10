@@ -18,6 +18,7 @@
 
 // MQB
 #include <mqbs_filestore.h>
+#include <mqbstat_statmonitorsnapshotrecorder.h>
 
 // BDE
 #include <ball_log.h>
@@ -122,7 +123,7 @@ int PartitionRaftLog::bufferPendingWrite(
     const bool producesHandle = pw->d_recordType !=
                                 mqbs::RecordType::e_DELETION;
     if (producesHandle) {
-        d_fileStore_p->reservePendingRecord(&pw->d_handle,
+        d_fileStore_p->reservePendingRecord(pw.get(),
                                             static_cast<unsigned int>(term),
                                             futureIndex,
                                             pw->d_recordType);
@@ -239,6 +240,15 @@ int PartitionRaftLog::append(bsls::Types::Uint64                 term,
             rc = d_fileStore_p->formatSyncPointRecord(&pw);
         }
         if (rc != 0) {
+            // The FileStore refused the record (e.g. the active file set is
+            // out of journal space or has been marked unavailable).  The entry
+            // is NOT appended (lastIndex unchanged), so it can never commit;
+            // log loudly rather than fail silently.
+            BALL_LOG_ERROR << "PartitionRaftLog: failed to format primary "
+                           << "record (recordType=" << pw.d_recordType
+                           << ", syncPointType=" << pw.d_syncPointType
+                           << ") for id=" << id << " at index "
+                           << pw.d_sequenceNumber << ", rc=" << rc;
             return rc;
         }
 
@@ -265,6 +275,13 @@ int PartitionRaftLog::append(bsls::Types::Uint64                 term,
     EntryInfo info;
     int       rc = d_fileStore_p->writeFormattedRecord(*data, &info);
     if (rc != 0) {
+        // Replica could not write the replicated record to its file set (out
+        // of space / unavailable).  The entry is not appended, so this replica
+        // will diverge from the leader; surface it rather than stalling
+        // mutely.
+        BALL_LOG_ERROR
+            << "PartitionRaftLog: failed to write replicated record "
+            << "at index " << (lastIndex() + 1) << ", rc=" << rc;
         return rc;
     }
 
@@ -359,6 +376,12 @@ void PartitionRaftLog::rollover(bsls::Types::Uint64 rolloverIndex)
     const bsls::Types::Uint64 timestamp = d_fileStore_p->journalOpTimestampAt(
         eRolloverOldOffset);
 
+    // Track system stats across the rollover, mirroring legacy 'rolloverImpl'.
+    // ('prepareRolloverFileSet' logs the "Initiating rollover" line.)
+    mqbstat::StatMonitorSnapshotRecorder statRecorder(
+        d_fileStore_p->partitionDesc(),
+        d_allocator_p);
+
     // Prepare the new file set (FileStore creates the files and headers).
     mqbs::FileStore::FileSetSp newFileSetSp;
     int rc = d_fileStore_p->prepareRolloverFileSet(&newFileSetSp);
@@ -393,8 +416,19 @@ void PartitionRaftLog::rollover(bsls::Types::Uint64 rolloverIndex)
                                                     eRolloverOldOffset,
                                                     timestamp);
 
+    BALL_LOG_INFO_BLOCK
+    {
+        statRecorder.print(BALL_LOG_OUTPUT_STREAM,
+                           "ROLLOVER - STEP 1 (COMPACTION)");
+    }
+
     // Truncate/gc the old file set, swap the new one in, schedule archive.
     d_fileStore_p->finalizeRolloverFileSet(newFileSetSp);
+
+    BALL_LOG_INFO_BLOCK
+    {
+        statRecorder.print(BALL_LOG_OUTPUT_STREAM, "ROLLOVER COMPLETE");
+    }
 
     // Empty 'd_index' and advance the snapshot boundary: the committed prefix
     // now lives compacted in the rolled-over file and is served to lagging

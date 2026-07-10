@@ -762,9 +762,6 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     // PRIVATE ACCESSORS
 
-    /// Return a brief description of the partition for logging purposes.
-    const bsl::string& partitionDesc() const;
-
     /// Return true if the specified BlazingMQ `file` needs to be rollover
     /// if it is desired to write data of specified `length` at the
     /// specified `position` in the file, false otherwise.
@@ -1036,10 +1033,10 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// container keeps iterators/references stable across inserts, the handle
     /// returned here can be handed to the caller immediately and remains valid
     /// until the drain patches (or `dropPendingRecord` erases) the entry.
-    void reservePendingRecord(DataStoreRecordHandle* handleOut,
-                              unsigned int           primaryLeaseId,
-                              bsls::Types::Uint64    sequenceNumber,
-                              RecordType::Enum       recordType);
+    void reservePendingRecord(PendingWrite*       pw,
+                              unsigned int        primaryLeaseId,
+                              bsls::Types::Uint64 sequenceNumber,
+                              RecordType::Enum    recordType);
 
     /// Erase the placeholder `DataStoreRecord` identified by the specified
     /// `handle` (previously created by `reservePendingRecord`).  Used to clean
@@ -1401,6 +1398,8 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     bool hasReceipt(const DataStoreRecordHandle& handle) const
         BSLS_KEYWORD_OVERRIDE;
 
+    bool isFileSetAvailable() const BSLS_KEYWORD_OVERRIDE;
+
     /// Return the current sequence number for this partition.
     bsls::Types::Uint64 sequenceNumber() const;
 
@@ -1420,6 +1419,9 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// Return the map of primaryLeaseId to highest sequence number, including
     /// the current primary.
     const LeaseIdToSeqNumMap& highestSeqNums() const;
+
+    /// Return a brief description of the partition for logging purposes.
+    const bsl::string& partitionDesc() const;
 };
 
 // ============================================================================
@@ -1684,6 +1686,15 @@ FileStore::firstSyncPointAfterRolloverSeqNum() const
 inline const FileStore::LeaseIdToSeqNumMap& FileStore::highestSeqNums() const
 {
     return d_highestSeqNums;
+}
+
+inline bool FileStore::isFileSetAvailable() const
+{
+    BSLS_ASSERT_SAFE(0 < d_fileSets.size());
+
+    FileSet* activeFileSet = d_fileSets[0].get();
+
+    return activeFileSet->d_journalFileAvailable;
 }
 
 }  // close package namespace
