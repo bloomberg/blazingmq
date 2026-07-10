@@ -184,7 +184,7 @@ void RaftNode::becomeFollower(bsls::Types::Uint64 term, int leaderId)
     d_transferTargetId = k_INVALID_NODE_ID;
     resetElectionTimer();
 
-    BALL_LOG_INFO << "[grp " << d_config.d_partitionId << "] Node "
+    BALL_LOG_INFO << "[partition " << d_config.d_partitionId << "] Node "
                   << d_config.d_selfId << " became FOLLOWER in term "
                   << d_currentTerm << ", leader=" << d_leaderId;
 }
@@ -207,7 +207,7 @@ void RaftNode::becomeCandidate(RaftNodeOutput* output, bool preVote)
     d_votesReceived.insert(d_config.d_selfId);
     resetElectionTimer();
 
-    BALL_LOG_INFO << "[grp " << d_config.d_partitionId << "] Node "
+    BALL_LOG_INFO << "[partition " << d_config.d_partitionId << "] Node "
                   << d_config.d_selfId << " became "
                   << (preVote ? "PRE_CANDIDATE" : "CANDIDATE") << " in term "
                   << (preVote ? d_currentTerm + 1 : d_currentTerm);
@@ -260,7 +260,7 @@ void RaftNode::becomeLeader(RaftNodeOutput* output)
 
     d_heartbeatTicks = 0;
 
-    BALL_LOG_INFO << "[grp " << d_config.d_partitionId << "] Node "
+    BALL_LOG_INFO << "[partition " << d_config.d_partitionId << "] Node "
                   << d_config.d_selfId << " became LEADER in term "
                   << d_currentTerm
                   << " with log lastIndex=" << d_log_p->lastIndex()
@@ -269,12 +269,7 @@ void RaftNode::becomeLeader(RaftNodeOutput* output)
                   << ", peers=" << d_peerStates.size()
                   << " (no become-leader no-op appended)";
 
-    for (bsl::unordered_map<int, PeerState>::const_iterator it =
-             d_peerStates.begin();
-         it != d_peerStates.end();
-         ++it) {
-        sendAppendEntries(output, it->first);
-    }
+    broadcastAppendEntries(output);
 }
 
 void RaftNode::handleRequestVote(RaftNodeOutput*    output,
@@ -316,7 +311,7 @@ void RaftNode::handleRequestVote(RaftNodeOutput*    output,
         }
     }
 
-    BALL_LOG_INFO << "[grp " << d_config.d_partitionId << "] Node "
+    BALL_LOG_INFO << "[partition " << d_config.d_partitionId << "] Node "
                   << d_config.d_selfId << " [term " << d_currentTerm << "] "
                   << (grant ? "GRANTS" : "DENIES") << " "
                   << (msg.d_preVote ? "pre-vote" : "vote") << " to node "
@@ -394,7 +389,7 @@ void RaftNode::handleAppendEntries(RaftNodeOutput*    output,
     BSLS_ASSERT_SAFE(output);
 
     if (msg.d_term < d_currentTerm) {
-        BALL_LOG_INFO << "[grp " << d_config.d_partitionId << "] Node "
+        BALL_LOG_INFO << "[partition " << d_config.d_partitionId << "] Node "
                       << d_config.d_selfId << " [term " << d_currentTerm
                       << "] REJECT AppendEntries (stale term) from node "
                       << msg.d_sourceNodeId << ", msgTerm=" << msg.d_term;
@@ -424,8 +419,9 @@ void RaftNode::handleAppendEntries(RaftNodeOutput*    output,
     // Log consistency check
     if (msg.d_prevLogIndex > 0) {
         if (msg.d_prevLogIndex > d_log_p->lastIndex()) {
-            BALL_LOG_INFO << "[grp " << d_config.d_partitionId << "] Node "
-                          << d_config.d_selfId << " [term " << d_currentTerm
+            BALL_LOG_INFO << "[partition " << d_config.d_partitionId
+                          << "] Node " << d_config.d_selfId << " [term "
+                          << d_currentTerm
                           << "] REJECT AppendEntries (log gap) from node "
                           << msg.d_sourceNodeId
                           << ", prevLogIndex=" << msg.d_prevLogIndex
@@ -443,8 +439,9 @@ void RaftNode::handleAppendEntries(RaftNodeOutput*    output,
 
         bsls::Types::Uint64 existingTerm = d_log_p->term(msg.d_prevLogIndex);
         if (existingTerm != msg.d_prevLogTerm) {
-            BALL_LOG_INFO << "[grp " << d_config.d_partitionId << "] Node "
-                          << d_config.d_selfId << " [term " << d_currentTerm
+            BALL_LOG_INFO << "[partition " << d_config.d_partitionId
+                          << "] Node " << d_config.d_selfId << " [term "
+                          << d_currentTerm
                           << "] REJECT AppendEntries (prevLogTerm mismatch) "
                           << "from node " << msg.d_sourceNodeId
                           << ", prevLogIndex=" << msg.d_prevLogIndex
@@ -467,7 +464,7 @@ void RaftNode::handleAppendEntries(RaftNodeOutput*    output,
     }
 
     if (!msg.d_entries.empty()) {
-        BALL_LOG_INFO << "[grp " << d_config.d_partitionId << "] Node "
+        BALL_LOG_INFO << "[partition " << d_config.d_partitionId << "] Node "
                       << d_config.d_selfId << " [term " << d_currentTerm
                       << "] APPEND " << msg.d_entries.size()
                       << " ent  from node " << msg.d_sourceNodeId
@@ -497,10 +494,10 @@ void RaftNode::handleAppendEntries(RaftNodeOutput*    output,
         bsls::Types::Uint64 newCommit = bsl::min(msg.d_leaderCommit,
                                                  d_log_p->lastIndex());
         if (newCommit > d_commitIndex) {
-            BALL_LOG_INFO << "[grp " << d_config.d_partitionId << "] Node "
-                          << d_config.d_selfId << " [term " << d_currentTerm
-                          << "] FOLLOWER commit advance " << d_commitIndex
-                          << " -> " << newCommit
+            BALL_LOG_INFO << "[partition " << d_config.d_partitionId
+                          << "] Node " << d_config.d_selfId << " [term "
+                          << d_currentTerm << "] FOLLOWER commit advance "
+                          << d_commitIndex << " -> " << newCommit
                           << " (leaderCommit=" << msg.d_leaderCommit << ")";
             d_commitIndex = newCommit;
 
@@ -545,11 +542,12 @@ void RaftNode::handleAppendEntriesResp(RaftNodeOutput*    output,
 
     if (msg.d_success) {
         if (msg.d_matchIndex > it->second.d_matchIndex) {
-            BALL_LOG_INFO << "[grp " << d_config.d_partitionId << "] Node "
-                          << d_config.d_selfId << " [term " << d_currentTerm
-                          << "] LEADER peer " << msg.d_sourceNodeId
-                          << " matchIndex " << it->second.d_matchIndex
-                          << " -> " << msg.d_matchIndex;
+            BALL_LOG_INFO << "[partition " << d_config.d_partitionId
+                          << "] Node " << d_config.d_selfId << " [term "
+                          << d_currentTerm << "] LEADER peer "
+                          << msg.d_sourceNodeId << " matchIndex "
+                          << it->second.d_matchIndex << " -> "
+                          << msg.d_matchIndex;
             it->second.d_matchIndex = msg.d_matchIndex;
             it->second.d_nextIndex  = msg.d_matchIndex + 1;
         }
@@ -570,7 +568,7 @@ void RaftNode::handleAppendEntriesResp(RaftNodeOutput*    output,
     }
     else {
         // Decrement nextIndex and retry
-        BALL_LOG_INFO << "[grp " << d_config.d_partitionId << "] Node "
+        BALL_LOG_INFO << "[partition " << d_config.d_partitionId << "] Node "
                       << d_config.d_selfId << " [term " << d_currentTerm
                       << "] LEADER got REJECT from peer " << msg.d_sourceNodeId
                       << " (peerMatchIndex=" << msg.d_matchIndex
@@ -596,7 +594,7 @@ void RaftNode::handleTimeoutNow(RaftNodeOutput* output, const RaftMessage& msg)
         return;
     }
 
-    BALL_LOG_INFO << "[grp " << d_config.d_partitionId << "] Node "
+    BALL_LOG_INFO << "[partition " << d_config.d_partitionId << "] Node "
                   << d_config.d_selfId
                   << " received TimeoutNow, starting immediate election";
 
@@ -612,7 +610,7 @@ void RaftNode::handleInstallSnapshot(RaftNodeOutput*    output,
     BSLS_ASSERT_SAFE(output);
 
     if (msg.d_term < d_currentTerm) {
-        BALL_LOG_INFO << "[grp " << d_config.d_partitionId << "] Node "
+        BALL_LOG_INFO << "[partition " << d_config.d_partitionId << "] Node "
                       << d_config.d_selfId
                       << " rejecting stale InstallSnapshot from "
                       << msg.d_sourceNodeId << ", term " << msg.d_term << " < "
@@ -633,7 +631,7 @@ void RaftNode::handleInstallSnapshot(RaftNodeOutput*    output,
     d_leaderId = msg.d_sourceNodeId;
     resetElectionTimer();
 
-    BALL_LOG_INFO << "[grp " << d_config.d_partitionId << "] Node "
+    BALL_LOG_INFO << "[partition " << d_config.d_partitionId << "] Node "
                   << d_config.d_selfId << " received InstallSnapshot from "
                   << msg.d_sourceNodeId
                   << ", lastIncludedIndex=" << msg.d_lastLogIndex
@@ -658,7 +656,7 @@ void RaftNode::handleInstallSnapshotResp(RaftNodeOutput*    output,
         return;
     }
 
-    BALL_LOG_INFO << "[grp " << d_config.d_partitionId << "] Node "
+    BALL_LOG_INFO << "[partition " << d_config.d_partitionId << "] Node "
                   << d_config.d_selfId
                   << " received InstallSnapshot response from "
                   << msg.d_sourceNodeId
@@ -670,6 +668,19 @@ void RaftNode::handleInstallSnapshotResp(RaftNodeOutput*    output,
     }
 
     advanceCommitIndex(output);
+}
+
+void RaftNode::broadcastAppendEntries(RaftNodeOutput* output)
+{
+    BSLS_ASSERT_SAFE(output);
+    BSLS_ASSERT_SAFE(d_state == RaftState::e_LEADER);
+
+    for (bsl::unordered_map<int, PeerState>::const_iterator it =
+             d_peerStates.begin();
+         it != d_peerStates.end();
+         ++it) {
+        sendAppendEntries(output, it->first);
+    }
 }
 
 void RaftNode::sendAppendEntries(RaftNodeOutput* output, int peerId)
@@ -743,10 +754,10 @@ void RaftNode::advanceCommitIndex(RaftNodeOutput* output)
     if (newCommit > d_commitIndex) {
         const bsls::Types::Uint64 commitTerm = d_log_p->term(newCommit);
         if (commitTerm == d_currentTerm) {
-            BALL_LOG_INFO << "[grp " << d_config.d_partitionId << "] Node "
-                          << d_config.d_selfId << " [term " << d_currentTerm
-                          << "] LEADER commit advance " << d_commitIndex
-                          << " -> " << newCommit;
+            BALL_LOG_INFO << "[partition " << d_config.d_partitionId
+                          << "] Node " << d_config.d_selfId << " [term "
+                          << d_currentTerm << "] LEADER commit advance "
+                          << d_commitIndex << " -> " << newCommit;
             d_commitIndex = newCommit;
 
             bsl::vector<LogEntry> committed(d_allocator_p);
@@ -760,11 +771,19 @@ void RaftNode::advanceCommitIndex(RaftNodeOutput* output)
                  ++i) {
                 output->d_committed.push_back(committed[i]);
             }
+
+            // Immediately broadcast AppendEntries to followers to notify them
+            // of the new commitIndex, minimizing the window where they're
+            // unaware of committed entries.
+            if (d_config.d_broadcastHeartbeatOnCommit) {
+                broadcastAppendEntries(output);
+            }
         }
         else {
             // Raft §5.4.2: a leader only commits an entry from its own term.
-            BALL_LOG_INFO << "[grp " << d_config.d_partitionId << "] Node "
-                          << d_config.d_selfId << " [term " << d_currentTerm
+            BALL_LOG_INFO << "[partition " << d_config.d_partitionId
+                          << "] Node " << d_config.d_selfId << " [term "
+                          << d_currentTerm
                           << "] LEADER commit BLOCKED: majority at index "
                           << newCommit << " but term(" << newCommit
                           << ")=" << commitTerm
@@ -782,12 +801,7 @@ void RaftNode::tick(RaftNodeOutput* output)
         d_heartbeatTicks++;
         if (d_heartbeatTicks >= d_config.d_heartbeatInterval) {
             d_heartbeatTicks = 0;
-            for (bsl::unordered_map<int, PeerState>::const_iterator it =
-                     d_peerStates.begin();
-                 it != d_peerStates.end();
-                 ++it) {
-                sendAppendEntries(output, it->first);
-            }
+            broadcastAppendEntries(output);
         }
     }
     else {
@@ -844,7 +858,7 @@ void RaftNode::step(RaftNodeOutput* output, const RaftMessage& message)
         handleInstallSnapshotResp(output, message);
     } break;
     default: {
-        BALL_LOG_WARN << "[grp " << d_config.d_partitionId << "] Node "
+        BALL_LOG_WARN << "[partition " << d_config.d_partitionId << "] Node "
                       << d_config.d_selfId
                       << " received unknown message type: " << message.d_type;
     } break;
@@ -858,7 +872,7 @@ int RaftNode::propose(RaftNodeOutput*                      output,
     BSLS_ASSERT_SAFE(output);
 
     if (d_state != RaftState::e_LEADER) {
-        BALL_LOG_INFO << "[grp " << d_config.d_partitionId << "] Node "
+        BALL_LOG_INFO << "[partition " << d_config.d_partitionId << "] Node "
                       << d_config.d_selfId << " [term " << d_currentTerm
                       << "] PROPOSE rejected: not leader (state=" << d_state
                       << "), id=" << id;
@@ -867,18 +881,13 @@ int RaftNode::propose(RaftNodeOutput*                      output,
 
     d_log_p->append(d_currentTerm, data, id);
 
-    BALL_LOG_INFO << "[grp " << d_config.d_partitionId << "] Node "
+    BALL_LOG_INFO << "[partition " << d_config.d_partitionId << "] Node "
                   << d_config.d_selfId << " [term " << d_currentTerm
                   << "] PROPOSE id=" << id
                   << " -> newLastIndex=" << d_log_p->lastIndex()
                   << ", replicating to " << d_peerStates.size() << " peer(s)";
 
-    for (bsl::unordered_map<int, PeerState>::const_iterator it =
-             d_peerStates.begin();
-         it != d_peerStates.end();
-         ++it) {
-        sendAppendEntries(output, it->first);
-    }
+    broadcastAppendEntries(output);
 
     // Advance the commit index (leader-guarded above).  In a single-node
     // cluster this commits the just-appended entry synchronously via

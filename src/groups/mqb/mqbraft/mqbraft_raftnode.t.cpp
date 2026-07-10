@@ -183,7 +183,7 @@ class TestCluster {
                 MemoryRaftLog(d_allocator_p);
             d_logs.push_back(log);
 
-            RaftNodeConfig config(d_allocator_p);
+            RaftNodeConfig config(true, d_allocator_p);
             config.d_selfId             = i;
             config.d_peerIds            = peerIds;
             config.d_electionTimeoutMin = 10;
@@ -345,7 +345,7 @@ static void test1_breathingTest()
     peers.push_back(1);
     peers.push_back(2);
 
-    RaftNodeConfig config(&alloc);
+    RaftNodeConfig config(true, &alloc);
     config.d_selfId             = 0;
     config.d_peerIds            = peers;
     config.d_electionTimeoutMin = 10;
@@ -508,7 +508,7 @@ static void test6_logConsistencyCheck()
     peers.push_back(1);
     peers.push_back(2);
 
-    RaftNodeConfig config(&alloc);
+    RaftNodeConfig config(true, &alloc);
     config.d_selfId             = 1;
     config.d_peerIds            = peers;
     config.d_electionTimeoutMin = 10;
@@ -560,7 +560,7 @@ static void test7_logConflictResolution()
     peers.push_back(1);
     peers.push_back(2);
 
-    RaftNodeConfig config(&alloc);
+    RaftNodeConfig config(true, &alloc);
     config.d_selfId             = 1;
     config.d_peerIds            = peers;
     config.d_electionTimeoutMin = 10;

@@ -367,6 +367,31 @@ class PartitionRaft : public mqbs::RecordStore {
 
     mqbs::StoragesMonitor* storagesMonitor() BSLS_KEYWORD_OVERRIDE;
 
+    const mqbs::DataStoreConfig::Records&
+    records() const BSLS_KEYWORD_OVERRIDE;
+
+    bsls::Types::Uint64 numRecords() const BSLS_KEYWORD_OVERRIDE;
+
+    void
+    loadMessageRecord(mqbs::MessageRecord* buffer,
+                      const mqbs::DataStoreConfig::Records::const_iterator& it)
+        const BSLS_KEYWORD_OVERRIDE;
+
+    void
+    loadConfirmRecord(mqbs::ConfirmRecord* buffer,
+                      const mqbs::DataStoreConfig::Records::const_iterator& it)
+        const BSLS_KEYWORD_OVERRIDE;
+
+    void
+    loadQueueOpRecord(mqbs::QueueOpRecord* buffer,
+                      const mqbs::DataStoreConfig::Records::const_iterator& it)
+        const BSLS_KEYWORD_OVERRIDE;
+
+    void recordIteratorToHandle(
+        mqbs::DataStoreRecordHandle*                          handle,
+        const mqbs::DataStoreConfig::Records::const_iterator& it) const
+        BSLS_KEYWORD_OVERRIDE;
+
     /// Remove the record identified by the specified `handle`.
     void removeRecordRaw(const mqbs::DataStoreRecordHandle& handle)
         BSLS_KEYWORD_OVERRIDE;
@@ -396,6 +421,11 @@ class PartitionRaft : public mqbs::RecordStore {
 
     /// Flush any buffered replication messages to the peers.
     void flushStorage() BSLS_KEYWORD_OVERRIDE;
+
+    /// Set the last strong consistency point. No-op for Raft partitions.
+    void setLastStrongConsistency(unsigned int        primaryLeaseId,
+                                  bsls::Types::Uint64 sequenceNum)
+        BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS (RecordStore)
 

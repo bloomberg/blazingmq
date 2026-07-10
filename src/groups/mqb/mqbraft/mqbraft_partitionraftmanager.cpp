@@ -49,7 +49,7 @@ PartitionRaftManager::PartitionRaftManager(
     const mqbcfg::ClusterDefinition& clusterConfig,
     const PartitionLeadershipCb&     leadershipCb,
     bslma::Allocator*                allocator)
-: mqbc::StoragesMonitor(allocator)
+: mqbc::StoragesMonitor(cluster, allocator)
 , d_allocators(allocator)
 , d_clusterData_p(clusterData)
 , d_cluster_p(cluster)
@@ -81,7 +81,7 @@ PartitionRaftManager::~PartitionRaftManager()
     // derived member 'd_fileStores', which is destroyed after this body but
     // before the 'StoragesMonitor' base subobject that owns the storages.
     for (size_t i = 0; i < d_fileStores.size(); ++i) {
-        mqbc::StoragesMonitor::onStoragesCleared(static_cast<int>(i));
+        mqbc::StoragesMonitor::releaseStorages(static_cast<int>(i));
     }
 }
 
@@ -100,10 +100,8 @@ void PartitionRaftManager::recoveredQueuesCb(
         return;
     }
 
-    mqbs::FileStore* fs = d_partitionRafts[partitionId]->fileStore();
-
     mqbc::StorageUtil::recoveredQueuesCb(
-        fs,
+        d_partitionRafts[partitionId].get(),
         d_domainFactory_p,
         0,  // unrecognizedDomainsLock
         0,  // unrecognizedDomains
@@ -483,7 +481,7 @@ int PartitionRaftManager::updateQueuePrimary(const bmqt::Uri& uri,
     BSLS_ASSERT_SAFE(d_fileStores[partitionId]->inDispatcherThread());
 
     return mqbc::StorageUtil::updateQueuePrimary(
-        d_fileStores[partitionId].get(),
+        d_partitionRafts[partitionId].get(),
         uri,
         addedIdKeyPairs,
         removedIdKeyPairs);
@@ -536,6 +534,13 @@ bool PartitionRaftManager::isStorageEmpty(const bmqt::Uri& uri,
                      partitionId < static_cast<int>(d_fileStores.size()));
 
     return mqbc::StoragesMonitor::isStorageEmpty(uri, partitionId);
+}
+
+bool PartitionRaftManager::hasStorage(const bmqt::Uri&   uri,
+                                      const bsl::string& appId,
+                                      int                partitionId) const
+{
+    return mqbc::StoragesMonitor::hasStorage(uri, appId, partitionId);
 }
 
 bool PartitionRaftManager::isRaft() const

@@ -54,7 +54,9 @@ RaftNodeConfig makeRaftConfig(mqbc::ClusterData& clusterData,
                               int                partitionId,
                               bslma::Allocator*  allocator)
 {
-    RaftNodeConfig config(partitionId, allocator);
+    RaftNodeConfig config(partitionId,
+                          true,  // broadcastHeartbeatOnCommit
+                          allocator);
     config.d_selfId = clusterData.membership().selfNode()->nodeId();
 
     // 'd_peerIds' is the *full* membership including self:
@@ -1400,6 +1402,44 @@ mqbs::StoragesMonitor* PartitionRaft::storagesMonitor()
     return d_storagesMonitor_p;
 }
 
+const mqbs::DataStoreConfig::Records& PartitionRaft::records() const
+{
+    return d_fileStore_sp->records();
+}
+
+bsls::Types::Uint64 PartitionRaft::numRecords() const
+{
+    return d_fileStore_sp->numRecords();
+}
+
+void PartitionRaft::loadMessageRecord(
+    mqbs::MessageRecord*                                  buffer,
+    const mqbs::DataStoreConfig::Records::const_iterator& it) const
+{
+    d_fileStore_sp->loadMessageRecord(buffer, it);
+}
+
+void PartitionRaft::loadConfirmRecord(
+    mqbs::ConfirmRecord*                                  buffer,
+    const mqbs::DataStoreConfig::Records::const_iterator& it) const
+{
+    d_fileStore_sp->loadConfirmRecord(buffer, it);
+}
+
+void PartitionRaft::loadQueueOpRecord(
+    mqbs::QueueOpRecord*                                  buffer,
+    const mqbs::DataStoreConfig::Records::const_iterator& it) const
+{
+    d_fileStore_sp->loadQueueOpRecord(buffer, it);
+}
+
+void PartitionRaft::recordIteratorToHandle(
+    mqbs::DataStoreRecordHandle*                          handle,
+    const mqbs::DataStoreConfig::Records::const_iterator& it) const
+{
+    d_fileStore_sp->recordIteratorToHandle(handle, it);
+}
+
 void PartitionRaft::createStorage(
     bsl::shared_ptr<mqbs::ReplicatedStorage>* storageSp,
     const bmqt::Uri&                          queueUri,
@@ -1478,6 +1518,14 @@ void PartitionRaft::onPurgeComplete()
 void PartitionRaft::flushStorage()
 {
     d_fileStore_sp->flushStorage();
+}
+
+void PartitionRaft::setLastStrongConsistency(unsigned int primaryLeaseId,
+                                             bsls::Types::Uint64 sequenceNum)
+{
+    // No-op for Raft partitions; consistency is managed by Raft protocol
+    (void)primaryLeaseId;
+    (void)sequenceNum;
 }
 
 void PartitionRaft::loadSummary(mqbcmd::FileStore* summary) const

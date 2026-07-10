@@ -240,6 +240,7 @@ struct RaftNodeConfig {
     int              d_electionTimeoutMax;
     int              d_heartbeatInterval;
     bool             d_preVote;
+    bool             d_broadcastHeartbeatOnCommit;
 
     /// Identifier of the Raft group this node belongs to: a partition id for
     /// per-partition Raft, or `k_CSL_PARTITION_ID` for the cluster-state Raft.
@@ -251,6 +252,10 @@ struct RaftNodeConfig {
 
     // CREATORS
     explicit RaftNodeConfig(int partition, bslma::Allocator* allocator = 0);
+
+    RaftNodeConfig(int               partition,
+                   bool              broadcastHeartbeatOnCommit,
+                   bslma::Allocator* allocator = 0);
 
     RaftNodeConfig(const RaftNodeConfig& other,
                    bslma::Allocator*     allocator = 0);
@@ -374,11 +379,11 @@ class RaftNode {
 
     void sendAppendEntries(RaftNodeOutput* output, int peerId);
 
+    void broadcastAppendEntries(RaftNodeOutput* output);
+
     void advanceCommitIndex(RaftNodeOutput* output);
 
     void resetElectionTimer();
-
-    int quorum() const;
 
     bool isLogUpToDate(bsls::Types::Uint64 lastLogTerm,
                        bsls::Types::Uint64 lastLogIndex) const;
@@ -434,6 +439,7 @@ class RaftNode {
     bsls::Types::Uint64   commitIndex() const;
     bsls::Types::Uint64   lastApplied() const;
     const RaftNodeConfig& config() const;
+    int                   quorum() const;
 };
 
 // ============================================================================
@@ -512,6 +518,21 @@ inline RaftNodeConfig::RaftNodeConfig(int               partition,
 , d_electionTimeoutMax(20)
 , d_heartbeatInterval(3)
 , d_preVote(true)
+, d_broadcastHeartbeatOnCommit(false)
+, d_partitionId(partition)
+{
+}
+
+inline RaftNodeConfig::RaftNodeConfig(int  partition,
+                                      bool broadcastHeartbeatOnCommit,
+                                      bslma::Allocator* allocator)
+: d_selfId(RaftNode::k_INVALID_NODE_ID)
+, d_peerIds(allocator)
+, d_electionTimeoutMin(10)
+, d_electionTimeoutMax(20)
+, d_heartbeatInterval(3)
+, d_preVote(true)
+, d_broadcastHeartbeatOnCommit(broadcastHeartbeatOnCommit)
 , d_partitionId(partition)
 {
 }
@@ -524,6 +545,7 @@ inline RaftNodeConfig::RaftNodeConfig(const RaftNodeConfig& other,
 , d_electionTimeoutMax(other.d_electionTimeoutMax)
 , d_heartbeatInterval(other.d_heartbeatInterval)
 , d_preVote(other.d_preVote)
+, d_broadcastHeartbeatOnCommit(other.d_broadcastHeartbeatOnCommit)
 , d_partitionId(other.d_partitionId)
 {
 }
