@@ -37,14 +37,14 @@ BSLMF_ASSERT(sizeof(DataStoreRecordHandle) ==
 
 void DataStoreConfigQueueInfo::addAppInfo(const bsl::string&      appId,
                                           const mqbu::StorageKey& appKey,
-                                          bool                    withCSL)
+                                          bool withClusterState)
 {
     // Comparing ages of Apps and messages relies on chronological order
     // (hence 'OrderedHashMap'.
     // The Legacy mode recreates Apps by reverse iterating Journal (w/ QList)
     // The FSM node recreates Apps in chronological order.
 
-    if (withCSL) {
+    if (withClusterState) {
         d_appIdKeyPairs.insert(bsl::make_pair(appKey, appId));
     }
     else {

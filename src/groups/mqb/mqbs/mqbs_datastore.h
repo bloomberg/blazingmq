@@ -333,7 +333,7 @@ class DataStoreConfigQueueInfo {
     /// Apps.
     void addAppInfo(const bsl::string&      appId,
                     const mqbu::StorageKey& appKey,
-                    bool                    withCSL);
+                    bool                    withClusterState);
 
     /// Cache the Purge interval from the specified `start` to the specified
     /// `end` for the specified `key` unless the `key` was specified in a
