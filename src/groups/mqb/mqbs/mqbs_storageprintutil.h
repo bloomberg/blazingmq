@@ -70,10 +70,7 @@ struct StoragePrintUtil {
 
   public:
     // TYPES
-    typedef mqbi::StorageManager::StorageSp             StorageSp;
-    typedef mqbi::StorageManager::StorageSpMap          StorageSpMap;
-    typedef mqbi::StorageManager::StorageSpMapConstIter StorageSpMapConstIter;
-
+    typedef mqbi::StorageManager::StorageSp  StorageSp;
     typedef bsl::shared_ptr<mqbs::FileStore> FileStoreSp;
     typedef bsl::vector<FileStoreSp>         FileStores;
 

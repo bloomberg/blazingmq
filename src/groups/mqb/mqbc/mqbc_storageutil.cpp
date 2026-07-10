@@ -1514,7 +1514,7 @@ void StorageUtil::onPartitionPrimarySync(
 }
 
 void StorageUtil::recoveredQueuesCb(
-    mqbs::FileStore*             fs,
+    mqbs::RecordStore*           recordStore,
     mqbi::DomainFactory*         domainFactory,
     bslmt::Mutex*                unrecognizedDomainsLock,
     DomainQueueMessagesCountMap* unrecognizedDomains,
@@ -1527,14 +1527,13 @@ void StorageUtil::recoveredQueuesCb(
     // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(fs);
-    BSLS_ASSERT_SAFE(unrecognizedDomainsLock);
-    BSLS_ASSERT_SAFE(unrecognizedDomains && unrecognizedDomains->empty());
+    BSLS_ASSERT_SAFE(recordStore);
+    // unrecognizedDomainsLock and unrecognizedDomains may be null in Raft mode
+
     BSLS_ASSERT_SAFE(clusterState);
     BSLS_ASSERT_SAFE(0 <= partitionId);
     BSLS_ASSERT_SAFE(queueKeyInfoMap);
-    BSLS_ASSERT_SAFE(fs->inDispatcherThread());
-    BSLS_ASSERT_SAFE(fs->storagesMonitor());
+    BSLS_ASSERT_SAFE(recordStore->storagesMonitor());
 
     BALL_LOG_INFO << clusterDescription << " Partition [" << partitionId
                   << "]: " << "Recovered [" << queueKeyInfoMap->size()
@@ -1653,7 +1652,7 @@ void StorageUtil::recoveredQueuesCb(
                                  bdlf::PlaceHolders::_2,  // domain*
                                  &(dit->second),
                                  &latch,
-                                 fs,
+                                 recordStore,
                                  dit->first));
     }
 
@@ -1668,7 +1667,10 @@ void StorageUtil::recoveredQueuesCb(
 
     DomainMap recognizedDomains(allocator);
 
-    {
+    if (unrecognizedDomains) {
+        BSLS_ASSERT_SAFE(unrecognizedDomainsLock);
+        BSLS_ASSERT_SAFE(unrecognizedDomains->empty());
+
         bslmt::LockGuard<bslmt::Mutex> unrecognizedDomainsLockGuard(
             unrecognizedDomainsLock);  // LOCK
 
@@ -1690,6 +1692,10 @@ void StorageUtil::recoveredQueuesCb(
                 recognizedDomains.insert(*dit);
             }
         }
+    }
+    else {
+        // In Raft mode, unrecognized domains are not tracked
+        recognizedDomains = domainMap;
     }
 
     // Notify 'ClusterState' about the recognized domains to initialize the
@@ -1736,7 +1742,8 @@ void StorageUtil::recoveredQueuesCb(
 
         // Ensure queueURI uniqueness, for this partition only though.
 
-        const StorageSp& rstorage = fs->storagesMonitor()->find(queueUri);
+        const StorageSp& rstorage = recordStore->storagesMonitor()->find(
+            queueUri);
         if (rstorage) {
             // Already created ReplicatedStorage for this queueURI.
             // This can happen in CSL mode so we will just log it after
@@ -1761,7 +1768,7 @@ void StorageUtil::recoveredQueuesCb(
                 BSLS_ASSERT_SAFE(appKey == existingAppKey);
             }
 
-            {
+            if (unrecognizedDomains && unrecognizedDomainsLock) {
                 bslmt::LockGuard<bslmt::Mutex> unrecognizedDomainsLockGuard(
                     unrecognizedDomainsLock);  // LOCK
 
@@ -1782,8 +1789,9 @@ void StorageUtil::recoveredQueuesCb(
         }
 
         // If domain name is unrecognized, do not create storage.
+        // Skip this check in Raft mode when unrecognizedDomains is null.
         const bslstl::StringRef& domainName = queueUri.qualifiedDomain();
-        {
+        if (unrecognizedDomains && unrecognizedDomainsLock) {
             bslmt::LockGuard<bslmt::Mutex> unrecognizedDomainsLockGuard(
                 unrecognizedDomainsLock);  // LOCK
 
@@ -1861,15 +1869,16 @@ void StorageUtil::recoveredQueuesCb(
         }
 
         StorageSp rs_sp;
-        fs->createStorage(&rs_sp, queueUri, queueKey, domain);
+        recordStore->createStorage(&rs_sp, queueUri, queueKey, domain);
         BSLS_ASSERT_SAFE(rs_sp);
 
-        BSLS_ASSERT_SAFE(!fs->storagesMonitor()->find(queueUri));
+        BSLS_ASSERT_SAFE(!recordStore->storagesMonitor()->find(queueUri));
 
-        fs->storagesMonitor()->onStorageRegistered(partitionId,
-                                                   queueUri,
-                                                   rs_sp);
-        fs->registerStorage(rs_sp.get());
+        recordStore->storagesMonitor()->onStorageRegistered(partitionId,
+                                                            queueUri,
+                                                            rs_sp,
+                                                            appIdKeyPairs);
+        recordStore->registerStorage(rs_sp.get());
         queueKeyStorageMap.insert(bsl::make_pair(queueKey, rs_sp.get()));
 
         // Create and add virtual storages, if any.
@@ -1948,18 +1957,21 @@ void StorageUtil::recoveredQueuesCb(
 
     BALL_LOG_INFO << clusterDescription << ": Partition [" << partitionId
                   << "], total number of "
-                  << "records found during recovery: " << fs->numRecords();
+                  << "records found during recovery: "
+                  << recordStore->numRecords();
 
     typedef bsl::vector<mqbs::DataStoreRecordHandle> DataStoreRecordHandles;
     typedef DataStoreRecordHandles::iterator DataStoreRecordHandlesIter;
-
-    mqbs::FileStoreIterator fsIt(fs);
+    typedef mqbs::DataStoreConfig::Records   Records;
     DataStoreRecordHandles  recordsToPurge;  // TODO: allocator
 
     bsls::Types::Uint64 lastStrongConsistencySequenceNum    = 0;
     unsigned int        lastStrongConsistencyPrimaryLeaseId = 0;
 
-    while (fsIt.next()) {
+    const Records& records = recordStore->records();
+    for (Records::const_iterator it = records.begin(); it != records.end();
+         ++it) {
+        const mqbs::DataStoreRecord& record = it->second;
         mqbu::StorageKey          appKey;
         mqbu::StorageKey          queueKey;
         bmqt::MessageGUID         guid;
@@ -1968,26 +1980,26 @@ void StorageUtil::recoveredQueuesCb(
         mqbs::ConfirmReason::Enum confirmReason =
             mqbs::ConfirmReason::e_CONFIRMED;
 
-        if (mqbs::RecordType::e_MESSAGE == fsIt.type()) {
+        if (mqbs::RecordType::e_MESSAGE == record.type()) {
             mqbs::MessageRecord msgRec;
-            fsIt.loadMessageRecord(&msgRec);
+            recordStore->loadMessageRecord(&msgRec, it);
             queueKey = msgRec.queueKey();
             guid     = msgRec.messageGUID();
             refCount = msgRec.refCount();
         }
-        else if (mqbs::RecordType::e_CONFIRM == fsIt.type()) {
+        else if (mqbs::RecordType::e_CONFIRM == record.type()) {
             mqbs::ConfirmRecord confRec;
-            fsIt.loadConfirmRecord(&confRec);
+            recordStore->loadConfirmRecord(&confRec, it);
             queueKey      = confRec.queueKey();
             appKey        = confRec.appKey();
             guid          = confRec.messageGUID();
             confirmReason = confRec.reason();
         }
-        else if (mqbs::RecordType::e_QUEUE_OP == fsIt.type()) {
+        else if (mqbs::RecordType::e_QUEUE_OP == record.type()) {
             // TODO_CSL When we logically delete the QLIST file, we do not need
             // 'e_DELETION/e_ADDITION' for Apps but we still need 'e_PURGE'
             mqbs::QueueOpRecord qOpRec;
-            fsIt.loadQueueOpRecord(&qOpRec);
+            recordStore->loadQueueOpRecord(&qOpRec, it);
             queueKey    = qOpRec.queueKey();
             appKey      = qOpRec.appKey();
             queueOpType = qOpRec.type();
@@ -2001,7 +2013,8 @@ void StorageUtil::recoveredQueuesCb(
         QueueKeyStorageMapIter storageMapIt = queueKeyStorageMap.find(
             queueKey);
 
-        const mqbs::DataStoreRecordHandle& handle = fsIt.handle();
+        mqbs::DataStoreRecordHandle handle;
+        recordStore->recordIteratorToHandle(&handle, it);
 
         // If queue is either not recovered or belongs to an unrecognized
         // domain.
@@ -2013,14 +2026,20 @@ void StorageUtil::recoveredQueuesCb(
             if (infoMapCit != queueKeyInfoMap->cend()) {
                 const bmqt::Uri uri(infoMapCit->second.canonicalQueueUri());
 
-                DomainQueueMessagesCountMap::iterator domIt =
-                    unrecognizedDomains->find(uri.qualifiedDomain());
-                BSLS_ASSERT_SAFE(domIt != unrecognizedDomains->end());
+                if (unrecognizedDomains && unrecognizedDomainsLock) {
+                    bslmt::LockGuard<bslmt::Mutex>
+                        unrecognizedDomainsLockGuard(
+                            unrecognizedDomainsLock);  // LOCK
 
-                mqbs::StorageUtil::QueueMessagesCountMap::iterator countMapIt =
-                    domIt->second.find(uri);
-                BSLS_ASSERT_SAFE(countMapIt != domIt->second.end());
-                ++countMapIt->second;
+                    DomainQueueMessagesCountMap::iterator domIt =
+                        unrecognizedDomains->find(uri.qualifiedDomain());
+                    BSLS_ASSERT_SAFE(domIt != unrecognizedDomains->end());
+
+                    mqbs::StorageUtil::QueueMessagesCountMap::iterator
+                        countMapIt = domIt->second.find(uri);
+                    BSLS_ASSERT_SAFE(countMapIt != domIt->second.end());
+                    ++countMapIt->second;
+                }
                 recordsToPurge.push_back(handle);
                 continue;  // CONTINUE
             }
@@ -2030,7 +2049,7 @@ void StorageUtil::recoveredQueuesCb(
                 << clusterDescription << ": Partition [" << partitionId
                 << "], dropping record " << "because queue key '" << queueKey
                 << "' not found in the "
-                << "list of recovered queues, record: " << fsIt
+                << "list of recovered queues, record: " << record
                 << BMQTSK_ALARMLOG_END;
             continue;  // CONTINUE
         }
@@ -2040,7 +2059,7 @@ void StorageUtil::recoveredQueuesCb(
 
         const bool isStrongConsistency = rs->isStrongConsistency();
 
-        if (mqbs::RecordType::e_QUEUE_OP != fsIt.type()) {
+        if (mqbs::RecordType::e_QUEUE_OP != record.type()) {
             // It's one of MESSAGE/CONFIRM/DELETION records, which means it
             // must be a file-backed storage.
 
@@ -2051,7 +2070,7 @@ void StorageUtil::recoveredQueuesCb(
                     << queueKey
                     << "] which is configured with in-memory storage, "
                     << " encountered a record of incompatible type ["
-                    << fsIt.type() << "] during recovery at startup. "
+                    << record.type() << "] during recovery at startup. "
                     << "Skipping this record." << BMQTSK_ALARMLOG_END;
                 continue;  // CONTINUE
             }
@@ -2059,7 +2078,7 @@ void StorageUtil::recoveredQueuesCb(
 
         // TODO_CSL When we logically delete the QLIST file, we do not need
         // 'e_DELETION' / 'e_ADDITION' for Apps but we still need 'e_PURGE'
-        if (mqbs::RecordType::e_QUEUE_OP == fsIt.type()) {
+        if (mqbs::RecordType::e_QUEUE_OP == record.type()) {
             BSLS_ASSERT_SAFE(guid.isUnset());
             BSLS_ASSERT_SAFE(mqbs::QueueOpType::e_UNDEFINED != queueOpType);
 
@@ -2089,7 +2108,7 @@ void StorageUtil::recoveredQueuesCb(
             // current logic, virtual storages may not be removed at recovery
             // even if indicated by the storage record.
         }
-        else if (mqbs::RecordType::e_MESSAGE == fsIt.type()) {
+        else if (mqbs::RecordType::e_MESSAGE == record.type()) {
             QueueKeyInfoMapConstIter infoMapCit = queueKeyInfoMap->find(
                 queueKey);
             BSLS_ASSERT_SAFE(infoMapCit != queueKeyInfoMap->end());
@@ -2115,7 +2134,7 @@ void StorageUtil::recoveredQueuesCb(
 
             BSLS_ASSERT_SAFE(false == guid.isUnset());
             rs->processMessageRecord(guid,
-                                     fs->getMessageLenRaw(handle),
+                                     recordStore->getMessageLenRaw(handle),
                                      refCount - numGhosts,
                                      handle);
             if (isStrongConsistency) {
@@ -2123,7 +2142,7 @@ void StorageUtil::recoveredQueuesCb(
                 lastStrongConsistencyPrimaryLeaseId = handle.primaryLeaseId();
             }
         }
-        else if (mqbs::RecordType::e_CONFIRM == fsIt.type()) {
+        else if (mqbs::RecordType::e_CONFIRM == record.type()) {
             BSLS_ASSERT_SAFE(false == guid.isUnset());
             // If appKey is non-null, ensure that the 'rs' is already aware of
             // the appKey.  Note that this check should not be done for the
@@ -2134,7 +2153,7 @@ void StorageUtil::recoveredQueuesCb(
                 BMQTSK_ALARMLOG_ALARM("STORAGE")
                     << clusterDescription << ": Partition [" << partitionId
                     << "], appKey [" << appKey << "] specified in "
-                    << fsIt.type() << " record, with guid [" << guid
+                    << record.type() << " record, with guid [" << guid
                     << "] not found in the list of virtual "
                     << "storages associated with file-backed "
                     << "storage for queue [" << rs->queueUri()
@@ -2153,14 +2172,14 @@ void StorageUtil::recoveredQueuesCb(
     for (DataStoreRecordHandlesIter it = recordsToPurge.begin();
          it != recordsToPurge.end();
          ++it) {
-        fs->removeRecordRaw(*it);
+        recordStore->removeRecordRaw(*it);
     }
 
-    fs->setLastStrongConsistency(lastStrongConsistencyPrimaryLeaseId,
-                                 lastStrongConsistencySequenceNum);
+    recordStore->setLastStrongConsistency(lastStrongConsistencyPrimaryLeaseId,
+                                          lastStrongConsistencySequenceNum);
 
     // Calculate offsets
-    fs->storagesMonitor()->onRecovered(partitionId);
+    recordStore->storagesMonitor()->onRecovered(partitionId);
     //    for (StorageSpMapIter it = storageMap->begin(); it !=
     //    storageMap->end();
     //         ++it) {
@@ -2517,7 +2536,8 @@ void StorageUtil::createQueueStorageAsPrimary(mqbs::RecordStore*      rs,
             BSLS_ASSERT_SAFE(!rs->storagesMonitor()->find(uri));
             rs->storagesMonitor()->onStorageRegistered(rs->partitionId(),
                                                        uri,
-                                                       storageSp);
+                                                       storageSp,
+                                                       appIdKeyPairs);
         }
         // else discard
     }
@@ -2792,7 +2812,8 @@ void StorageUtil::createQueueStorageAsReplica(
         BSLS_ASSERT_SAFE(!storage);
         rs->storagesMonitor()->onStorageRegistered(rs->partitionId(),
                                                    uri,
-                                                   rs_sp);
+                                                   rs_sp,
+                                                   appIdKeyPairs);
         rs->registerStorage(rs_sp.get());
 
         BALL_LOG_INFO << rs->description() << ": updated [" << uri
@@ -2985,6 +3006,11 @@ void StorageUtil::updateQueueStorageDispatched(
                       << ".";
     }
     else {
+        rs->storagesMonitor()->onStorageRegistered(rs->partitionId(),
+                                                   uri,
+                                                   storage,
+                                                   appIdKeyPairs);
+
         BALL_LOG_INFO << rs->description() << " updated [" << uri
                       << "], queueKey [" << queueKey
                       << "] with the storage as replica: "
@@ -3624,17 +3650,20 @@ void StorageUtil::purgeQueueOnDomain(mqbcmd::StorageResult* result,
 // ---------------------
 
 // CREATORS
-StoragesMonitor::StoragesMonitor(bslma::Allocator* allocator)
+StoragesMonitor::StoragesMonitor(mqbi::Cluster*    cluster,
+                                 bslma::Allocator* allocator)
 : d_storages(allocator)
 , d_storageLockVec(allocator)
+, d_cluster_p(cluster)
 , d_allocator_p(bslma::Default::allocator(allocator))
 {
-    // NOTHING
+    BSLS_ASSERT_SAFE(d_cluster_p);
 }
 
 void StoragesMonitor::resize(int numPartitions)
 {
     d_storages.resize(numPartitions);
+
     d_storageLockVec.resize(numPartitions);
     for (int i = 0; i < numPartitions; ++i) {
         d_storageLockVec[i].createInplace(d_allocator_p);
@@ -3647,16 +3676,45 @@ StoragesMonitor::~StoragesMonitor()
 }
 
 // MANIPULATORS
+void StoragesMonitor::onStorageRegistered(
+    int                                             partitionId,
+    const bmqt::Uri&                                uri,
+    const StorageSp&                                storageSp,
+    const mqbs::DataStoreConfigQueueInfo::AppInfos& apps)
+{
+    mqbi::Storage::AppInfos translation(d_allocator_p);
+
+    for (mqbs::DataStoreConfigQueueInfo::AppInfos::const_iterator cit =
+             apps.begin();
+         cit != apps.end();
+         ++cit) {
+        translation.insert(bsl::make_pair(cit->second, cit->first));
+    }
+
+    onStorageRegistered(partitionId, uri, storageSp, translation);
+}
+
 void StoragesMonitor::onStorageRegistered(int              partitionId,
                                           const bmqt::Uri& uri,
-                                          const StorageSp& storageSp)
+                                          const StorageSp& storageSp,
+                                          const mqbi::Storage::AppInfos& apps)
 {
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_storages.size()));
 
-    bslmt::LockGuard<bslmt::Mutex> guard(
-        d_storageLockVec[partitionId].get());  // LOCK
-    d_storages[partitionId].insert(bsl::make_pair(uri, storageSp));
+    bmqu::Printer<mqbi::Storage::AppInfos> printer(&apps);
+    BALL_LOG_WARN << "StoragesMonitor registering storage for " << uri
+                  << " with apps " << printer;
+
+    {
+        bslmt::LockGuard<bslmt::Mutex> guard(
+            d_storageLockVec[partitionId].get());  // LOCK
+        StorageWithApps& what = d_storages[partitionId][uri];
+
+        what.d_storage_sp = storageSp;
+        what.d_apps       = apps;
+    }
+    d_cluster_p->onQueueStorageReady(partitionId, uri);
 }
 
 void StoragesMonitor::onStorageUnregistered(int              partitionId,
@@ -3665,18 +3723,53 @@ void StoragesMonitor::onStorageUnregistered(int              partitionId,
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_storages.size()));
 
-    bslmt::LockGuard<bslmt::Mutex> guard(
-        d_storageLockVec[partitionId].get());  // LOCK
-    d_storages[partitionId].erase(uri);
+    BALL_LOG_WARN << "StoragesMonitor unregistering storage for " << uri;
+
+    {
+        bslmt::LockGuard<bslmt::Mutex> guard(
+            d_storageLockVec[partitionId].get());  // LOCK
+
+        d_storages[partitionId].erase(uri);
+    }
+
+    d_cluster_p->onQueueStorageReady(partitionId, uri);
 }
 
 void StoragesMonitor::onStoragesCleared(int partitionId)
 {
-    BSLS_ASSERT_SAFE(0 <= partitionId &&
-                     partitionId < static_cast<int>(d_storages.size()));
+    bsl::vector<bmqt::Uri> clearedUris(d_allocator_p);
 
+    clearedUris.reserve(d_storages[partitionId].size());
+
+    {
+        bslmt::LockGuard<bslmt::Mutex> guard(
+            d_storageLockVec[partitionId].get());  // LOCK
+
+        for (StorageSpMap::const_iterator cit =
+                 d_storages[partitionId].cbegin();
+             cit != d_storages[partitionId].cend();
+             ++cit) {
+            clearedUris.push_back(cit->first);
+        }
+
+        d_storages[partitionId].clear();
+    }
+
+    for (bsl::vector<bmqt::Uri>::const_iterator cit = clearedUris.cbegin();
+         cit != clearedUris.cend();
+         ++cit) {
+        d_cluster_p->onQueueStorageReady(partitionId, *cit);
+    }
+}
+
+void StoragesMonitor::releaseStorages(int partitionId)
+{
+    // No notification: for use during teardown, when the owning cluster may
+    // already be stopped/partially destroyed.  See 'onStoragesCleared' for
+    // the notifying counterpart.
     bslmt::LockGuard<bslmt::Mutex> guard(
         d_storageLockVec[partitionId].get());  // LOCK
+
     d_storages[partitionId].clear();
 }
 
@@ -3703,7 +3796,7 @@ StoragesMonitor::StorageSp StoragesMonitor::find(const bmqt::Uri& uri)
             d_storageLockVec[i].get());  // LOCK
         StorageSpMap::const_iterator cit = d_storages[i].find(uri);
         if (cit != d_storages[i].end()) {
-            return cit->second;  // RETURN
+            return cit->second.d_storage_sp;  // RETURN
         }
     }
 
@@ -3724,7 +3817,7 @@ void StoragesMonitor::loadAllStorages(bsl::vector<StorageSp>* result,
     for (StorageSpMap::const_iterator it = d_storages[partitionId].cbegin();
          it != d_storages[partitionId].cend();
          ++it) {
-        result->push_back(it->second);
+        result->push_back(it->second.d_storage_sp);
     }
 }
 
@@ -3743,9 +3836,45 @@ bool StoragesMonitor::isStorageEmpty(const bmqt::Uri& uri,
         return true;  // RETURN
     }
 
-    BSLS_ASSERT_SAFE(cit->second);
+    BSLS_ASSERT_SAFE(cit->second.d_storage_sp);
 
-    return cit->second->isEmpty();
+    return cit->second.d_storage_sp->isEmpty();
+}
+
+bool StoragesMonitor::hasStorage(const bmqt::Uri&   uri,
+                                 const bsl::string& appId,
+                                 int                partitionId) const
+{
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(d_storages.size()));
+
+    bslmt::LockGuard<bslmt::Mutex> guard(
+        d_storageLockVec[partitionId].get());  // LOCK
+
+    StorageSpMap::const_iterator cit = d_storages[partitionId].find(uri);
+    if (cit == d_storages[partitionId].end()) {
+        BALL_LOG_WARN << "StoragesMonitor failed to find storage for " << uri;
+
+        return false;  // RETURN
+    }
+
+    if (appId.empty()) {
+        return true;  // RETURN
+    }
+
+    // TODO: double-check __default
+    if (appId == bmqp::ProtocolUtil::k_DEFAULT_APP_ID) {
+        return true;  // RETURN
+    }
+
+    if (cit->second.d_apps.count(appId) == 0) {
+        BALL_LOG_WARN << "StoragesMonitor failed to find storage for " << uri
+                      << " " << appId;
+
+        return false;  // RETURN
+    }
+
+    return true;
 }
 
 bool StoragesMonitor::isRaft() const

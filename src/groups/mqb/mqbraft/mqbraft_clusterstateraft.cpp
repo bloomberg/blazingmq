@@ -45,7 +45,9 @@ const int k_TICK_INTERVAL_MS = 100;
 RaftNodeConfig makeRaftConfig(const mqbc::ClusterData& clusterData,
                               bslma::Allocator*        allocator)
 {
-    RaftNodeConfig config(RaftNodeConfig::k_CSL_PARTITION_ID, allocator);
+    RaftNodeConfig config(RaftNodeConfig::k_CSL_PARTITION_ID,
+                          true,  // broadcastHeartbeatOnCommit
+                          allocator);
 
     mqbnet::Cluster* netCluster = clusterData.membership().netCluster();
 
@@ -444,6 +446,9 @@ int ClusterStateRaft::start(bsl::ostream& errorDescription)
 
     if (cslLog->outstandingNumBytes() == 0) {
         mqbc::ClusterStateFileHeader fh;
+        fh.setProtocolVersion(mqbc::ClusterStateLedgerProtocol::k_VERSION)
+            .setHeaderWords(mqbc::ClusterStateFileHeader::k_HEADER_NUM_WORDS)
+            .setFileKey(logId);
         cslLog->write(&fh,
                       0,
                       static_cast<int>(sizeof(mqbc::ClusterStateFileHeader)));
@@ -779,6 +784,11 @@ int ClusterStateRaft::leaderId() const
 bsls::Types::Uint64 ClusterStateRaft::currentTerm() const
 {
     return d_raftNode_mp->currentTerm();
+}
+
+int ClusterStateRaft::quorum() const
+{
+    return d_raftNode_mp->quorum();
 }
 
 }  // close package namespace

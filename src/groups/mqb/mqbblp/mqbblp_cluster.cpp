@@ -2399,6 +2399,25 @@ void Cluster::onDomainReconfigured(const mqbi::Domain&     domain,
     // Existing queues can function with new apps being unauthorized.
 }
 
+void Cluster::onQueueStorageReady(int partitionId, const bmqt::Uri& uri)
+{
+    // executed by *ANY* thread
+
+    if (!d_isStarted) {
+        // This cluster has already been stopped (e.g. this call originates
+        // from 'PartitionRaftManager's destructor, invoked from '~Cluster()'
+        // well after 'stop()' ran).  Nothing left to notify.
+        return;  // RETURN
+    }
+
+    dispatcher()->execute(
+        bdlf::BindUtil::bind(&ClusterOrchestrator::onQueueStorageReady,
+                             &d_clusterOrchestrator,
+                             partitionId,
+                             uri),
+        this);
+}
+
 int Cluster::processCommand(mqbcmd::ClusterResult*        result,
                             const mqbcmd::ClusterCommand& command)
 {

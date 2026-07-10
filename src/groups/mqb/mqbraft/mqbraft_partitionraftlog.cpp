@@ -135,9 +135,6 @@ int PartitionRaftLog::bufferPendingWrite(
     // deque), so this is done once, before the push_back -- no post-push
     // repoint dance is needed.
     if (pw->d_recordType == mqbs::RecordType::e_MESSAGE) {
-        BSLS_ASSERT_SAFE(pw->d_attributes_p);
-        pw->d_ownedAttributes = *pw->d_attributes_p;
-        pw->d_attributes_p    = &pw->d_ownedAttributes;
     }
 
     d_pendingWrites.push_back(pw);
@@ -428,10 +425,18 @@ void PartitionRaftLog::rollover(bsls::Types::Uint64 rolloverIndex)
 
 void PartitionRaftLog::applyCommittedEntryAsPrimary(bsls::Types::Uint64 index)
 {
-    BSLS_ASSERT_SAFE(!d_pendingWrites.empty());
-    BSLS_ASSERT_SAFE(0 < d_appendedCount);
+    // Become-leader no-op entries are appended by RaftNode automatically but
+    // have no corresponding PendingWrite. Skip them when front pending write's
+    // sequence number is greater than the index being applied.
+    if (d_pendingWrites.empty() || d_appendedCount == 0) {
+        return;  // RETURN
+    }
+
+    if (d_pendingWrites.front()->d_sequenceNumber > index) {
+        return;  // Skip no-op entry
+    }
+
     BSLS_ASSERT_SAFE(d_pendingWrites.front()->d_sequenceNumber == index);
-    (void)index;
 
     d_fileStore_p->onRecordCommittedPrimary(*d_pendingWrites.front());
 

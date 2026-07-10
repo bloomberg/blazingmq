@@ -43,6 +43,7 @@
 #include <bsl_memory.h>
 #include <bsl_ostream.h>
 #include <bsl_string.h>
+#include <bsl_unordered_map.h>
 #include <bsl_unordered_set.h>
 #include <bsl_vector.h>
 #include <bslma_allocator.h>
@@ -124,11 +125,7 @@ struct StorageUtil {
     typedef mqbi::StorageManager::AppIdsIter     AppIdsIter;
     typedef mqbi::StorageManager::AppIdsInsertRc AppIdsInsertRc;
 
-    typedef mqbi::StorageManager::StorageSp             StorageSp;
-    typedef mqbi::StorageManager::StorageSpMap          StorageSpMap;
-    typedef mqbi::StorageManager::StorageSpMapVec       StorageSpMapVec;
-    typedef mqbi::StorageManager::StorageSpMapIter      StorageSpMapIter;
-    typedef mqbi::StorageManager::StorageSpMapConstIter StorageSpMapConstIter;
+    typedef mqbi::StorageManager::StorageSp StorageSp;
 
     typedef mqbi::StorageManager::PartitionPrimaryStatusCb
         PartitionPrimaryStatusCb;
@@ -584,7 +581,7 @@ struct StorageUtil {
     ///
     /// THREAD: Executed by the dispatcher thread of the partition.
     static void
-    recoveredQueuesCb(mqbs::FileStore*             fs,
+    recoveredQueuesCb(mqbs::RecordStore*           recordStore,
                       mqbi::DomainFactory*         domainFactory,
                       bslmt::Mutex*                unrecognizedDomainsLock,
                       DomainQueueMessagesCountMap* unrecognizedDomains,
@@ -769,8 +766,19 @@ struct StorageUtil {
 class StoragesMonitor : public mqbs::StoragesMonitor {
   public:
     // TYPES
-    typedef mqbi::StorageManager::StorageSp    StorageSp;
-    typedef mqbi::StorageManager::StorageSpMap StorageSpMap;
+
+    struct StorageWithApps {
+        StorageSp d_storage_sp;
+        Apps      d_apps;
+    };
+    /// Map of QueueUri -> ReplicatedStorageSp
+    typedef bsl::unordered_map<bmqt::Uri, StorageWithApps> StorageSpMap;
+    typedef StorageSpMap::iterator                         StorageSpMapIter;
+    typedef StorageSpMap::const_iterator StorageSpMapConstIter;
+
+    typedef bsl::vector<StorageSpMap>       StorageSpMapVec;
+    typedef StorageSpMapVec::iterator       StorageSpMapVecIter;
+    typedef StorageSpMapVec::const_iterator StorageSpMapVecConstIter;
 
   private:
     // DATA
@@ -789,6 +797,12 @@ class StoragesMonitor : public mqbs::StoragesMonitor {
     /// one per partition.  See comments for `d_storages`.
     mutable bsl::vector<bsl::shared_ptr<bslmt::Mutex> > d_storageLockVec;
 
+    /// Cluster to notify (via `onQueueStorageReady`) whenever a queue's
+    /// storage is registered/unregistered or its app set changes, so that
+    /// any locally-parked queue-open can re-check readiness.  May be null in
+    /// unit tests that construct a bare `StoragesMonitor`.
+    mqbi::Cluster* d_cluster_p;
+
     bslma::Allocator* d_allocator_p;
 
     // NOT IMPLEMENTED
@@ -800,7 +814,12 @@ class StoragesMonitor : public mqbs::StoragesMonitor {
     BSLMF_NESTED_TRAIT_DECLARATION(StoragesMonitor, bslma::UsesBslmaAllocator)
 
     // CREATORS
-    StoragesMonitor(bslma::Allocator* allocator = 0);
+
+    /// Create a `StoragesMonitor` notifying the optionally specified
+    /// `cluster` (may be null, e.g. in unit tests) of queue storage/app
+    /// availability changes.
+    explicit StoragesMonitor(mqbi::Cluster*    cluster   = 0,
+                             bslma::Allocator* allocator = 0);
 
     ~StoragesMonitor() BSLS_KEYWORD_OVERRIDE;
 
@@ -808,14 +827,32 @@ class StoragesMonitor : public mqbs::StoragesMonitor {
 
     void resize(int numPartitions);
 
-    void onStorageRegistered(int              partitionId,
-                             const bmqt::Uri& uri,
-                             const StorageSp& storageSp) BSLS_KEYWORD_OVERRIDE;
+    void
+    onStorageRegistered(int              partitionId,
+                        const bmqt::Uri& uri,
+                        const StorageSp& storageSp,
+                        const mqbs::DataStoreConfigQueueInfo::AppInfos& apps)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void onStorageRegistered(int                            partitionId,
+                             const bmqt::Uri&               uri,
+                             const StorageSp&               storageSp,
+                             const mqbi::Storage::AppInfos& apps)
+        BSLS_KEYWORD_OVERRIDE;
 
     void onStorageUnregistered(int              partitionId,
                                const bmqt::Uri& uri) BSLS_KEYWORD_OVERRIDE;
 
     void onStoragesCleared(int partitionId) BSLS_KEYWORD_OVERRIDE;
+
+    /// Clear all storages and tracked apps for the specified `partitionId`,
+    /// *without* notifying `d_cluster_p`.  For use during teardown (e.g. a
+    /// manager's destructor releasing storage shared_ptrs before its
+    /// `FileStore`s are destroyed), when the owning cluster may already be
+    /// stopped/partially destroyed and there is nothing left to notify.  See
+    /// `onStoragesCleared` for the notifying counterpart used during normal
+    /// operation.
+    void releaseStorages(int partitionId);
 
     void onRecovered(int partitionId) BSLS_KEYWORD_OVERRIDE;
 
@@ -827,6 +864,15 @@ class StoragesMonitor : public mqbs::StoragesMonitor {
 
     bool isStorageEmpty(const bmqt::Uri& uri,
                         int partitionId) const BSLS_KEYWORD_OVERRIDE;
+
+    /// Return true if the queue having the specified `uri` and assigned to
+    /// the specified `partitionId` has a registered storage *and*, if
+    /// `appId` is non-empty, that `appId` is registered on it.  Safe to call
+    /// from any thread (in particular, the cluster dispatcher thread) --
+    /// unlike querying `ReplicatedStorage`/`find(uri)`'s result directly.
+    bool hasStorage(const bmqt::Uri&   uri,
+                    const bsl::string& appId,
+                    int                partitionId) const;
 
     /// Return false: the legacy storage path.  `PartitionRaftManager`
     /// overrides this to return true.
