@@ -3,6 +3,7 @@ mqbblp_clustercatalog
 mqbblp_clusterorchestrator
 mqbblp_clusterproxy
 mqbblp_clusterqueuehelper
+mqbblp_clusterqueuereopener
 mqbblp_clusterstatemanager
 mqbblp_clusterstatemonitor
 mqbblp_domain

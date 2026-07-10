@@ -35,6 +35,7 @@
 //
 
 // MQB
+#include <mqbblp_clusterqueuereopener.h>
 #include <mqbblp_queue.h>
 #include <mqbblp_storagemanager.h>
 #include <mqbc_clusterdata.h>
@@ -462,7 +463,7 @@ void ClusterQueueHelper::afterPartitionPrimaryAssignment(
 
     if (!d_cluster_p->isFSMWorkflow() ||
         status == bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE) {
-        restoreState(partitionId);
+        d_reopener_mp->restoreState(partitionId);
     }
 
     if (status == bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE) {
@@ -858,158 +859,6 @@ void ClusterQueueHelper::onQueueContextAssigned(
     }
 }
 
-void ClusterQueueHelper::finishReopening(
-    QueueContext*                                queueContext,
-    StreamsMap::iterator                         sqit,
-    mqbnet::ClusterNode*                         activeNode,
-    const bsl::shared_ptr<PartitionReopenCycle>& cycle)
-{
-    // executed by the cluster *DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
-
-    SubQueueContext&      subQueueContext    = sqit->value();
-    SubQueueContext::Enum state              = subQueueContext.d_state;
-    bool                  isValid            = true;
-    const unsigned int    upstreamSubQueueId = sqit->subId();
-
-    bsl::vector<SubQueueContext::PendingClose> pendingClose(d_allocator_p);
-    pendingClose.swap(subQueueContext.d_pendingCloseRequests);
-    for (size_t i = 0; i < pendingClose.size(); ++i) {
-        if (state == SubQueueContext::k_OPEN && isValid) {
-            BMQ_LOGTHROTTLE_INFO
-                << d_cluster_p->description()
-                << ": sending pending Close request with parameters ["
-                << pendingClose[i].d_handleParameters << "].";
-
-            sendCloseQueueRequest(pendingClose[i].d_handleParameters,
-                                  sqit,
-                                  queueContext->partitionId(),
-                                  pendingClose[i].d_callback);
-        }
-        else {
-            // 'sqit' is invalidated or the state is not OPEN.
-            BMQ_LOGTHROTTLE_WARN
-                << d_cluster_p->description()
-                << ": not sending excessive pending Close request"
-                << " with parameters [" << pendingClose[i].d_handleParameters
-                << "].";
-
-            if (pendingClose[i].d_callback) {
-                bmqp_ctrlmsg::Status status;
-
-                status.category() =
-                    bmqp_ctrlmsg::StatusCategory::E_INVALID_ARGUMENT;
-                status.code() = -1;
-                status.message() =
-                    "Attempting to release queue handle for invalid stream.";
-
-                pendingClose[i].d_callback(status);
-            }
-        }
-        if (isValid) {
-            isValid = subtractCounters(&queueContext->d_liveQInfo,
-                                       pendingClose[i].d_handleParameters,
-                                       sqit);
-            // 'false' means 'sqit' is deleted (all counters are zeroes)
-        }
-    }
-    const bsls::Types::Uint64 generationCount = cycle->generationCount();
-
-    if (isValid && state == SubQueueContext::k_OPEN) {
-        // Remains valid if subQueueContext was not erased
-        // after processing all pending close requests.
-
-        QueueLiveState& qinfo = queueContext->d_liveQInfo;
-
-        mqbi::Queue*     queueptr = qinfo.d_queue_sp.get();
-        const bmqt::Uri& uri      = queueContext->uri();
-
-        BSLS_ASSERT_SAFE(queueptr);
-        BSLS_ASSERT_SAFE(isQueueAssigned(*queueContext));
-
-        // We have upstream node.  Send the configure-queue request.
-
-        // Make a copy of the stream parameters, and replace the upstreamSubId
-        // if needed.
-        bmqp_ctrlmsg::StreamParameters streamParamsCopy;
-
-        // TODO: remove this not thread-safe use of 'getUpstreamParameters'.
-        if (!queueptr->getUpstreamParameters(&streamParamsCopy,
-                                             upstreamSubQueueId)) {
-            ball::Severity::Level logSeverity = ball::Severity::e_WARN;
-
-            if (bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID == upstreamSubQueueId) {
-                // There is an optimization in
-                // RelayQueueEngine::configureHandle not to send producer
-                // parameters upstream if they are the same as default
-                // constructed.  In this case the UpstreamParameters cache does
-                // not have parameters for the k_DEFAULT_SUBQUEUE_ID.
-                logSeverity = ball::Severity::e_INFO;
-
-                // Consider this queue successfully reopen
-                notifyQueue(queueContext,
-                            bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID,
-                            generationCount,
-                            true);
-            }
-            BALL_LOGTHROTTLE_INFO_BLOCK(k_MAX_INSTANT_MESSAGES,
-                                        k_NS_PER_MESSAGE)
-            {
-                BALL_LOG_STREAM(logSeverity)
-                    << d_cluster_p->description()
-                    << ": not sending a configure-queue request in response to"
-                    << " ReopenQueue response, for queue [" << uri
-                    << "], as the queue is not configured for upstream "
-                       "subQueue "
-                    << bmqp::QueueId::SubQueueIdInt(upstreamSubQueueId);
-            }
-        }
-        else if (!sendConfigureQueueRequest(
-                     streamParamsCopy,
-                     queueptr->id(),
-                     queueptr->uri(),
-                     bdlf::BindUtil::bindS(
-                         d_allocator_p,
-                         &ClusterQueueHelper::reconfigureCallback,
-                         this,
-                         bdlf::PlaceHolders::_1,
-                         bdlf::PlaceHolders::_2,
-                         cycle),
-                     true,  // is a reconfigure-queue request
-                     activeNode,
-                     generationCount,
-                     sqit->subId())) {
-            // Assume sending has failed due to a disconnect, therefore, there
-            // is no need to roll back the result of ReOpen request. Decrement
-            // all counters. Do not report "state is restored"
-            state = SubQueueContext::k_CLOSED;
-            setStreamState(&subQueueContext, SubQueueContext::k_CLOSED);
-
-            // TBD: Note that invoking 'd_queue_p->streamParameters()' above is
-            // not thread safe as queue's parameteres are supposed to be
-            // read/written only from the queue-dispatcher thread.  This will
-            // be fixed eventually.
-
-            // Abort restore of the state: the channel is no longer valid,
-            // we'll wait for a new one to be active and will restart restoring
-            // the state from the beginning.
-        }
-    }
-    if (state == SubQueueContext::k_FAILED) {
-        notifyQueue(queueContext,
-                    upstreamSubQueueId,
-                    generationCount,
-                    false,
-                    false);  // isWriterOnly
-    }
-
-    if (0 == --queueContext->d_liveQInfo.d_numReopenQueueRequests) {
-        processPendingContexts(queueContext);
-    }
-}
-
 void ClusterQueueHelper::processPendingContexts(QueueContext* queueContext)
 {
     // executed by the cluster *DISPATCHER* thread
@@ -1309,88 +1158,6 @@ void ClusterQueueHelper::sendOpenQueueRequest(
     }
 }
 
-bmqt::GenericResult::Enum ClusterQueueHelper::sendReopenQueueRequest(
-    QueueContext*                                queueContext,
-    SubQueueContext*                             subQueueContext,
-    mqbnet::ClusterNode*                         activeNode,
-    const bsl::shared_ptr<PartitionReopenCycle>& cycle,
-    int                                          numAttempts)
-{
-    // executed by the cluster *DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
-
-    BSLS_ASSERT_SAFE(subQueueContext);
-    BSLS_ASSERT_SAFE(queueContext);
-    BSLS_ASSERT_SAFE(activeNode);
-    BSLS_ASSERT_SAFE(cycle);
-
-    RequestManagerType::RequestSp request =
-        d_cluster_p->requestManager().createRequest();
-    bmqp_ctrlmsg::OpenQueue& openQueue =
-        request->request().choice().makeOpenQueue();
-
-    // Make a copy of upstream parameters, and update the copy with correct
-    // upstream queueId.
-    openQueue.handleParameters()       = subQueueContext->d_parameters;
-    openQueue.handleParameters().qId() = queueContext->d_liveQInfo.d_id;
-
-    bmqt::GenericResult::Enum rc = bmqt::GenericResult::e_SUCCESS;
-
-    if (bmqp::QueueUtil::isEmpty(openQueue.handleParameters())) {
-        BMQ_LOGTHROTTLE_INFO
-            << "#INVALID_REOPENQUEUE_REQ " << d_cluster_p->description()
-            << ": Not sending ReopenQueueRequest to "
-            << activeNode->nodeDescription()
-            << "[request: " << request->request()
-            << ", reason: 'All read,write,admin counts are <= 0]";
-
-        rc = bmqt::GenericResult::e_INVALID_ARGUMENT;
-    }
-    else {
-        request->setResponseCb(
-            bdlf::BindUtil::bindS(d_allocator_p,
-                                  &ClusterQueueHelper::onReopenQueueResponse,
-                                  this,
-                                  bdlf::PlaceHolders::_1,  //  requestContext
-                                  activeNode,
-                                  cycle,
-                                  numAttempts));
-
-        bsls::TimeInterval timeoutMs;
-        timeoutMs.setTotalMilliseconds(d_clusterData_p->clusterConfig()
-                                           .queueOperations()
-                                           .reopenTimeoutMs());
-        rc = d_cluster_p->sendRequest(request, activeNode, timeoutMs);
-    }
-    if (rc == bmqt::GenericResult::e_SUCCESS) {
-        const bsls::Types::Uint64 generationCount = cycle->generationCount();
-
-        // Wait for 'onReopenQueueResponse' to decrement
-        // 'd_numPendingReopenQueueRequests'
-        BMQ_LOGTHROTTLE_INFO << "Sent ReopenQueue request "
-                             << request->request() << " generationCount "
-                             << generationCount;
-        setStreamState(subQueueContext, SubQueueContext::k_REOPENING);
-        subQueueContext->d_generationCount = generationCount;
-
-        ++queueContext->d_liveQInfo.d_numReopenQueueRequests;
-    }
-    else {
-        // Abort restore of the state: if the channel is no longer valid, we'll
-        // wait for a new one to be active and will restart restoring the state
-        // from the beginning.
-        BMQ_LOGTHROTTLE_ERROR
-            << d_cluster_p->description() << ": Error while sending "
-            << "ReopenQueue request: " << request->request() << ", rc: " << rc
-            << ".";
-
-        setStreamState(subQueueContext, SubQueueContext::k_CLOSED);
-    }
-    return rc;
-}
-
 void ClusterQueueHelper::onOpenQueueResponse(
     const RequestManagerType::RequestSp& requestContext,
     const OpenQueueContextSp&            context,
@@ -1584,212 +1351,6 @@ void ClusterQueueHelper::onOpenQueueResponse(
     }
 }
 
-void ClusterQueueHelper::onReopenQueueResponse(
-    const RequestManagerType::RequestSp&         requestContext,
-    mqbnet::ClusterNode*                         activeNode,
-    const bsl::shared_ptr<PartitionReopenCycle>& cycle,
-    int                                          numAttempts)
-{
-    // executed by the cluster *DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
-    BSLS_ASSERT_SAFE(requestContext->request().choice().isOpenQueueValue());
-    BSLS_ASSERT_SAFE(cycle);
-    BSLS_ASSERT_SAFE(0 < numAttempts);
-
-    BMQ_LOGTHROTTLE_INFO << d_cluster_p->description()
-                         << ": Processing ReopenQueue "
-                         << "response [attemptNumber: " << numAttempts
-                         << ", request: " << requestContext->request()
-                         << ", response: " << requestContext->response()
-                         << "]";
-
-    // By default, consider reopen result a success unless `e_CANCELED`
-
-    const bmqp_ctrlmsg::OpenQueue& req =
-        requestContext->request().choice().openQueue();
-    const bmqp_ctrlmsg::QueueHandleParameters& reqParameters =
-        req.handleParameters();
-    const bmqt::Uri uri(reqParameters.uri());
-
-    QueueContextMapIter it = d_queues.find(uri.canonical());
-    if (it == d_queues.end()) {
-        // Can occur if client requested to close the queue or queue was GC'ed
-        // before Reopen response was received.
-
-        BMQ_LOGTHROTTLE_WARN
-            << d_cluster_p->description()
-            << ": ignoring ReopenQueueResponse for queue as it"
-            << " no longer exists in the cluster state. Queue [" << uri
-            << "], response: " << requestContext->response();
-
-        return;  // RETURN
-    }
-
-    QueueContext*      queueContext = it->second.get();
-    QueueLiveState&    qinfo        = queueContext->d_liveQInfo;
-    const bsl::string  appId = bmqp::QueueUtil::extractAppId(reqParameters);
-    const unsigned int upstreamSubQueueId = bmqp::QueueUtil::extractSubQueueId(
-        reqParameters);
-    StreamsMap::iterator sqit = qinfo.d_subQueueIds.findBySubIdSafe(
-        upstreamSubQueueId);
-
-    if (sqit == qinfo.d_subQueueIds.end()) {
-        // REVISIT: This is the result of Close request in between
-        // Reopen request and response.
-        BMQ_LOGTHROTTLE_WARN
-            << d_cluster_p->description()
-            << ": ignoring ReopenQueueResponse for subQueue as it"
-            << " no longer exists in the queue state. [uri: " << uri
-            << ", upstreamSubQueueId: " << upstreamSubQueueId
-            << "], response: " << requestContext->response();
-
-        return;  // RETURN
-    }
-
-    SubQueueContext&          subQueueContext = sqit->value();
-    const bsls::Types::Uint64 generationCount = cycle->generationCount();
-
-    if (subQueueContext.d_generationCount != generationCount) {
-        BMQ_LOGTHROTTLE_WARN
-            << d_cluster_p->description()
-            << ": ignoring stale ReopenQueueResponse for uri '" << uri
-            << "' with upstreamSubQueueId: [" << upstreamSubQueueId
-            << "], response: " << requestContext->response();
-
-        return;  // RETURN
-    }
-
-    // Send Configure request first if any, and then pending Close requests
-    bdlb::ScopeExitAny guard(
-        bdlf::BindUtil::bindS(d_allocator_p,
-                              &ClusterQueueHelper::finishReopening,
-                              this,
-                              queueContext,
-                              sqit,
-                              activeNode,
-                              cycle));
-
-    // Same upstream node, which means num pending request counter must be
-    // non-zero.
-
-    if (bmqt::GenericResult::e_SUCCESS != requestContext->result()) {
-        // Can now process Close requests instead of caching them
-        setStreamState(&subQueueContext, SubQueueContext::k_CLOSED);
-
-        if (bmqt::GenericResult::e_CANCELED == requestContext->result()) {
-            // Connection to upstream has been lost.  Simply decrement the
-            // counter and return.
-
-            cycle->setAsFailed();
-
-            return;  // RETURN
-        }
-
-        // Request failed due to some other reason.
-        if (!d_cluster_p->isRemote() ||
-            d_clusterData_p->clusterConfig()
-                    .queueOperations()
-                    .reopenMaxAttempts() == numAttempts) {
-            // Either we are in the cluster or we have exhausted max number of
-            // attempts for reopen-queue request for this queue.  In either
-            // case, alarm, perform any book-keeping and return.  This error is
-            // non-recoverable.
-
-            BMQTSK_ALARMLOG_ALARM("QUEUE_REOPEN_FAILURE")
-                << d_cluster_p->description()
-                << ": error while reopening queue [" << req
-                << ", response: " << requestContext->response() << "]"
-                << BMQTSK_ALARMLOG_END;
-
-            // Mark the queue's subStream as 'not opened', so that queue
-            // does not issue further reopen-queue request for it.
-
-            BSLS_ASSERT_SAFE(sqit != qinfo.d_subQueueIds.end());
-            BSLS_ASSERT_SAFE(sqit->appId() == appId);
-
-            setStreamState(&subQueueContext, SubQueueContext::k_FAILED);
-
-            // No need to send a configure-queue request for this queue.
-            // Decrement the num pending reopen queue request counter though,
-            // and inform if state has been restored.
-
-            return;  // RETURN
-        }
-
-        if (d_cluster_p->isStopping()) {
-            // Self is stopping.  Drop the response.
-            BMQ_LOGTHROTTLE_INFO
-                << d_cluster_p->description()
-                << ": Not retrying ReopenQueue  [reason: 'stopping'"
-                << ", request: " << requestContext->request()
-                << ", response: " << requestContext->response() << "]";
-
-            return;  // RETURN
-        }
-        // Self node is proxy and we have not yet exhausted max number of
-        // reopen-queue attempts.  Schedule a reopen-queue request after the
-        // configured time interval.
-
-        BMQ_LOGTHROTTLE_WARN
-            << d_cluster_p->description()
-            << ": queue reopen-request failed. Request: "
-            << requestContext->request()
-            << ", error response: " << requestContext->response()
-            << ". Attempt number was: " << numAttempts
-            << ". Attempting again after "
-            << d_clusterData_p->clusterConfig()
-                   .queueOperations()
-                   .reopenRetryIntervalMs()
-            << " milliseconds.";
-
-        bsls::TimeInterval after(bmqu::Time::nowMonotonicClock());
-        after.addMilliseconds(d_clusterData_p->clusterConfig()
-                                  .queueOperations()
-                                  .reopenRetryIntervalMs());
-
-        // Keep the state as 'k_CLOSED'.
-        d_clusterData_p->scheduler().scheduleEvent(
-            &subQueueContext.d_reopenRetryHandle,
-            after,
-            bdlf::BindUtil::bindS(d_allocator_p,
-                                  &ClusterQueueHelper::onReopenQueueRetry,
-                                  this,
-                                  requestContext,
-                                  activeNode,
-                                  cycle,
-                                  numAttempts));
-        return;  // RETURN
-    }
-
-    if (d_cluster_p->isStopping()) {
-        // Self is stopping.  Drop the response.
-        BMQ_LOGTHROTTLE_WARN
-            << d_cluster_p->description()
-            << ": not sending a configure-queue request in response "
-            << "to ReopenQueue response, for queue [" << uri
-            << "], as self is stopping.";
-
-        return;  // RETURN
-    }
-
-    // Queue has been successfully reopened;
-    // send configure-queue request now.
-    BSLS_ASSERT_SAFE(
-        requestContext->response().choice().isOpenQueueResponseValue());
-    BSLS_ASSERT_SAFE(sqit != qinfo.d_subQueueIds.end());
-    BSLS_ASSERT_SAFE(appId == sqit->appId());
-
-    BSLS_ASSERT_SAFE(subQueueContext.d_state == SubQueueContext::k_REOPENING);
-
-    setStreamState(&subQueueContext, SubQueueContext::k_OPEN);
-
-    BMQ_LOGTHROTTLE_INFO << d_cluster_p->description()
-                         << ": queue successfully reopened ["
-                         << requestContext->request() << "].";
-}
-
 void ClusterQueueHelper::onConfigureQueueResponse(
     const RequestManagerType::RequestSp&               requestContext,
     const bmqt::Uri&                                   uri,
@@ -1890,153 +1451,12 @@ void ClusterQueueHelper::onConfigureQueueResponse(
             << "], but will treat it as success.";
     }
     else {
-        notifyQueue(queueContext.get(),
-                    itStream->subId(),
-                    generationCount,
-                    true,
-                    false);  // isWriterOnly
+        d_reopener_mp->notifyQueue(queueContext.get(),
+                                   itStream->subId(),
+                                   generationCount,
+                                   true,
+                                   false);  // isWriterOnly
     }
-}
-
-void ClusterQueueHelper::onReopenQueueRetry(
-    const RequestManagerType::RequestSp&         requestContext,
-    mqbnet::ClusterNode*                         activeNode,
-    const bsl::shared_ptr<PartitionReopenCycle>& cycle,
-    int                                          numAttempts)
-{
-    // executed by *SCHEDULER* thread
-
-    if (d_cluster_p->isStopping()) {
-        return;  // RETURN
-    }
-
-    d_cluster_p->dispatcher()->execute(
-        bdlf::BindUtil::bindS(
-            d_allocator_p,
-            &ClusterQueueHelper::onReopenQueueRetryDispatched,
-            this,
-            requestContext,
-            activeNode,
-            cycle,
-            numAttempts),
-        d_cluster_p);
-}
-
-void ClusterQueueHelper::onReopenQueueRetryDispatched(
-    const RequestManagerType::RequestSp&         requestContext,
-    mqbnet::ClusterNode*                         activeNode,
-    const bsl::shared_ptr<PartitionReopenCycle>& cycle,
-    int                                          numAttempts)
-{
-    // executed by the cluster *DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
-    BSLS_ASSERT_SAFE(d_cluster_p->isRemote());
-    BSLS_ASSERT_SAFE(activeNode);
-    BSLS_ASSERT_SAFE(cycle);
-    BSLS_ASSERT_SAFE(0 < numAttempts);
-
-    if (d_cluster_p->isStopping()) {
-        return;  // RETURN
-    }
-    const bsls::Types::Uint64 generationCount = cycle->generationCount();
-
-    if (activeNode != d_clusterData_p->electorInfo().leaderNode() ||
-        generationCount != d_clusterData_p->electorInfo().electorTerm()) {
-        // Active node has changed or is the same but with a different
-        // generation (i.e., old active node crashed, came back up and became
-        // the active node for this proxy again).  No action needs to be taken
-        // here.
-        BMQ_LOGTHROTTLE_WARN
-            << "#STALE_ACTIVE " << d_clusterData_p->identity().description()
-            << ": not retrying ReopenQueue request as the upstream/active has "
-            << "changed [requestActiveNode: "
-            << (activeNode ? activeNode->nodeDescription() : "** null **")
-            << ":" << generationCount << ", currentActiveNode: "
-            << (d_clusterData_p->electorInfo().leaderNode()
-                    ? d_clusterData_p->electorInfo()
-                          .leaderNode()
-                          ->nodeDescription()
-                    : "** null **")
-            << ":" << d_clusterData_p->electorInfo().electorTerm()
-            << ", request: " << requestContext->request() << "]";
-
-        // Decrement the num pending counter.  Counter is not decremented when
-        // a reopen-queue request is scheduled for a retry.  The counter is
-        // also not decremented or reset to zero when the active node goes
-        // down.
-
-        return;  // RETURN
-    }
-
-    // Active node is unchanged, so following assert must not fire.
-
-    // Issue reopen-queue request for the specified 'requestContext'.
-    const bmqp_ctrlmsg::QueueHandleParameters& reqParameters =
-        requestContext->request().choice().openQueue().handleParameters();
-    const bsl::string&       uriStr = reqParameters.uri();
-    bmqt::Uri                uri(uriStr);
-    QueueContextMapConstIter it = d_queues.find(uri.canonical());
-    if (it == d_queues.end()) {
-        // Can this occur?
-
-        BMQ_LOGTHROTTLE_WARN
-            << d_cluster_p->description()
-            << ": not retrying ReopenQueue request again for queue [" << uri
-            << "], as queue doesn't exist in cluster state.";
-
-        return;  // RETURN
-    }
-
-    const QueueContextSp& queueContext = it->second;
-    if (!queueContext->d_liveQInfo.d_queue_sp) {
-        // Can this occur?
-
-        BMQ_LOGTHROTTLE_WARN
-            << d_cluster_p->description()
-            << ": not retrying ReopenQueue request for queue [" << uri
-            << "], as queue instance has been deleted.";
-
-        return;  // RETURN
-    }
-
-    if (!isQueueAssigned(*queueContext.get())) {
-        // Can this occur?
-
-        BMQ_LOGTHROTTLE_WARN
-            << d_cluster_p->description()
-            << ": not retrying ReopenQueue request for queue [" << uri
-            << "], as queue is not assigned.";
-
-        return;  // RETURN
-    }
-    const unsigned int upstreamSubQueueId = bmqp::QueueUtil::extractSubQueueId(
-        reqParameters);
-    QueueLiveState&      qinfo = queueContext->d_liveQInfo;
-    StreamsMap::iterator sqit  = qinfo.d_subQueueIds.findBySubIdSafe(
-        upstreamSubQueueId);
-
-    if (sqit == qinfo.d_subQueueIds.end()) {
-        BMQ_LOGTHROTTLE_WARN
-            << d_cluster_p->description()
-            << ": not retrying ReopenQueue request as it"
-            << " no longer exists in the queue state. [uri: " << uri
-            << ", upstreamSubQueueId: " << upstreamSubQueueId << "]";
-
-        return;  // RETURN
-    }
-
-    SubQueueContext& subQueueContext = sqit->value();
-
-    if (subQueueContext.d_state == SubQueueContext::k_CLOSED) {
-        sendReopenQueueRequest(queueContext.get(),
-                               &subQueueContext,
-                               activeNode,
-                               cycle,
-                               numAttempts + 1);
-    }
-    // else, this retry must be cancelled
 }
 
 void ClusterQueueHelper::onOpenQueueConfirmationCookieReleased(
@@ -2164,11 +1584,12 @@ bool ClusterQueueHelper::createQueue(
                 // Writer's configure request gets optimized out so notify the
                 // queue now.
 
-                notifyQueue(queueContext,
-                            bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID,
-                            currentGenCount(pid),
-                            true,   // isOpen
-                            true);  // isWriterOnly
+                d_reopener_mp->notifyQueue(
+                    queueContext,
+                    bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID,
+                    currentGenCount(pid),
+                    true,   // isOpen
+                    true);  // isWriterOnly
             }
 
             const unsigned int upstreamSubQueueId =
@@ -2863,53 +2284,6 @@ void ClusterQueueHelper::onGetQueueHandleDispatched(
     d_clusterData_p->messageTransmitter().sendMessage(
         response,
         requester->clusterNode());
-}
-
-void ClusterQueueHelper::notifyQueue(QueueContext*       queueContext,
-                                     unsigned int        upstreamSubQueueId,
-                                     bsls::Types::Uint64 generationCount,
-                                     bool                isOpen,
-                                     bool                isWriterOnly)
-{
-    mqbi::Queue* queue = queueContext->d_liveQInfo.d_queue_sp.get();
-    if (queue == 0) {
-        return;  // RETURN
-    }
-
-    if (isOpen) {
-        if (generationCount == 0) {
-            BMQ_LOGTHROTTLE_INFO << d_cluster_p->description()
-                                 << ": has deconfigured queue ["
-                                 << queueContext->uri() << "], subStream id ["
-                                 << upstreamSubQueueId << "]";
-        }
-        else {
-            queue->dispatcher()->execute(
-                bdlf::BindUtil::bindS(d_allocator_p,
-                                      &mqbi::Queue::onOpenUpstream,
-                                      queue,
-                                      generationCount,
-                                      upstreamSubQueueId,
-                                      isWriterOnly),
-                queue);
-        }
-    }
-    else {
-        queue->dispatcher()->execute(
-            bdlf::BindUtil::bindS(d_allocator_p,
-                                  &mqbi::Queue::onOpenFailure,
-                                  queue,
-                                  upstreamSubQueueId),
-            queue);
-    }
-}
-
-void ClusterQueueHelper::reconfigureCallback(
-    BSLA_MAYBE_UNUSED const bmqp_ctrlmsg::Status& status,
-    BSLA_MAYBE_UNUSED const bmqp_ctrlmsg::StreamParameters& streamParameters,
-    BSLA_MAYBE_UNUSED const bsl::shared_ptr<PartitionReopenCycle>& cycle)
-{
-    // TODO: consider success even before reconfigure response
 }
 
 void ClusterQueueHelper::configureQueueDispatched(
@@ -3625,474 +2999,6 @@ bool ClusterQueueHelper::subtractCounters(
     return true;
 }
 
-void ClusterQueueHelper::restoreState(int partitionId)
-{
-    // executed by the cluster *DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
-    BSLS_ASSERT_SAFE(mqbi::Storage::k_INVALID_PARTITION_ID != partitionId);
-
-    // This routine is invoked in the cluster node as well as cluster proxy.
-
-    if (d_cluster_p->isRemote()) {
-        restoreStateRemote();
-    }
-    else {
-        restoreStateCluster(partitionId);
-    }
-}
-
-void ClusterQueueHelper::restoreStateRemote()
-{
-    // executed by the cluster *DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
-    BSLS_ASSERT_SAFE(d_cluster_p->isRemote());
-
-    BALL_LOG_INFO << d_cluster_p->description()
-                  << ": Received state-restore event.";
-
-    if (!d_clusterData_p->electorInfo().hasActiveLeader()) {
-        BALL_LOG_INFO << d_cluster_p->description()
-                      << ": Not going ahead with state restore since there is "
-                      << "no active leader.";
-        return;  // RETURN
-    }
-
-    // Attempt to re-issue open-queue requests for all applicable queues.
-    bsls::Types::Uint64 generationCount =
-        d_clusterData_p->electorInfo().electorTerm();
-
-    bsl::shared_ptr<PartitionReopenCycle> cycle =
-        startPartitionReopen(0, generationCount);
-
-    ConditionalAdvance<QueueContextMapConstIter> conditional;
-
-    for (QueueContextMapConstIter cit = d_queues.cbegin();
-         cit != d_queues.cend();
-         conditional.advance(cit)) {
-        const QueueContextSp& queueContext = cit->second;
-        QueueLiveState&       liveQInfo    = queueContext->d_liveQInfo;
-
-        if (!liveQInfo.d_queue_sp && liveQInfo.d_inFlight == 0) {
-            // Queue instance does not exist and self node is not waiting for
-            // any pending open-queue responses.  So there is no need to
-            // re-issue an open-queue request for this one.
-
-            BMQ_LOGTHROTTLE_INFO << d_cluster_p->description()
-                                 << ": Not performing restore of queue ["
-                                 << queueContext->uri() << "].";
-            continue;  // CONTINUE
-        }
-
-        if (!isQueueAssigned(*queueContext)) {
-            // Queue is not assigned to a partition; get it assigned.
-
-            if (!assignQueue(queueContext)) {
-                conditional.release();
-                cit = d_queues.erase(cit);
-            }
-
-            continue;  // CONTINUE
-        }
-
-        if (liveQInfo.d_queue_sp) {
-            // Self node is a proxy and has created a queue instance, this
-            // means the queue was successfully opened.  Need to re-issue the
-            // open-queue request unconditionally because in case of proxy,
-            // 'restoreState' is invoked when active node changes.
-            const bmqt::GenericResult::Enum rc = restoreStateHelper(
-                queueContext.get(),
-                d_clusterData_p->electorInfo().leaderNode(),
-                cycle);
-
-            if (rc == bmqt::GenericResult::e_NOT_CONNECTED) {
-                // Abort restore of the state: the channel is no longer valid
-                // or we hit high water mark.  For the case of invalid channel,
-                // we'll wait for a new one to be active and will restart
-                // restoring the state from the beginning.
-                return;  // RETURN
-            }
-            // In case of other type of failure, just continue processing other
-            // queues instead of stopping the 'state restore' sequence.
-        }
-        // Now proceed with any pending contexts for the queue.  There could
-        // be some open-queue requests from the downstream clients enqueued in
-        // the proxy, but not processed because there was no active node.
-        // Since there is one now, try to forward those open-queue requests to
-        // the new active node.
-
-        onQueueContextAssigned(queueContext);
-    }
-}
-
-void ClusterQueueHelper::restoreStateCluster(int partitionId)
-{
-    // executed by the cluster *DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
-    BSLS_ASSERT_SAFE(!d_cluster_p->isRemote());
-    BSLS_ASSERT_SAFE(mqbi::Storage::k_INVALID_PARTITION_ID != partitionId);
-
-    const bool allPartitions = (mqbi::Storage::k_ANY_PARTITION_ID ==
-                                partitionId);
-
-    BALL_LOG_INFO_BLOCK
-    {
-        BALL_LOG_OUTPUT_STREAM
-            << d_cluster_p->description()
-            << ": Received state-restore event for Partition [";
-        if (allPartitions) {
-            BALL_LOG_OUTPUT_STREAM << "ALL";
-        }
-        else {
-            BALL_LOG_OUTPUT_STREAM << partitionId;
-        }
-        BALL_LOG_OUTPUT_STREAM << "].";
-    }
-
-    // A node cannot go out of AVAILABLE state other than by stopping.
-    // A node should not attempt to reopen queues if it is not AVAILABLE.
-    if (d_clusterData_p->membership().selfNodeStatus() !=
-        bmqp_ctrlmsg::NodeStatus::E_AVAILABLE) {
-        BALL_LOG_INFO << d_cluster_p->description()
-                      << ": Not going ahead with restoring partition state "
-                      << "because self is not AVAILABLE.  Self status: "
-                      << d_clusterData_p->membership().selfNodeStatus();
-        return;  // RETURN
-    }
-
-    // TODO: revisit
-    if (!d_clusterData_p->electorInfo().hasActiveLeader() &&
-        (allPartitions || d_cluster_p->isFSMWorkflow())) {
-        // 'allPartitions' indicate this is a transition due to a leader
-        // change, but we don't care if we transitioned to no active leader.
-        BALL_LOG_INFO << d_cluster_p->description()
-                      << ": Not going ahead with restoring partition state "
-                      << "because there is no leader or leader isn't active. "
-                      << "Current leader: "
-                      << (d_clusterData_p->electorInfo().leaderNode()
-                              ? d_clusterData_p->electorInfo()
-                                    .leaderNode()
-                                    ->nodeDescription()
-                              : "** null **")
-                      << ", leader status: "
-                      << d_clusterData_p->electorInfo().leaderStatus();
-        return;  // RETURN
-    }
-
-    // If a specific partitionId is specified, check if partition is assigned
-    // to a primary node, and if that primary is ACTIVE.
-    bool                             isSelfPrimaryAndLeader = false;
-    const ClusterStatePartitionInfo* pinfo                  = 0;
-
-    if (!allPartitions) {
-        pinfo = &(d_clusterState_p->partition(partitionId));
-        BSLS_ASSERT_SAFE(pinfo);
-        if (!hasActiveAvailablePrimary(partitionId)) {
-            BALL_LOG_INFO << d_cluster_p->description() << " Partition ["
-                          << partitionId
-                          << "]: Not restoring partition state because there "
-                          << "is no ACTIVE and AVAIALBLE primary. Current "
-                          << "primary: "
-                          << (pinfo->primaryNode()
-                                  ? pinfo->primaryNode()->nodeDescription()
-                                  : "** null **")
-                          << ", primary status: " << pinfo->primaryStatus();
-            return;  // RETURN
-        }
-
-        // Primary for this partitionId is ACTIVE.  Check if self is the
-        // primary and leader.  If self is primary but not leader, this is
-        // primary-leader divergence and we should not proceed with state
-        // restore.
-
-        isSelfPrimaryAndLeader =
-            pinfo->primaryNode() == d_clusterData_p->membership().selfNode() &&
-            d_clusterData_p->electorInfo().isSelfLeader();
-    }
-
-    /// TODO (FSM); remove after switching to FSM
-    if (!d_cluster_p->isFSMWorkflow() && isSelfPrimaryAndLeader) {
-        // Note that this fails if there are data
-        mqbc::ClusterState::AssignmentVisitor doubleAssignmentVisitor =
-            bdlf::BindUtil::bindS(d_allocator_p,
-                                  &mqbi::StorageManager::unregisterQueue,
-                                  d_storageManager_p,
-                                  bdlf::PlaceHolders::_1,   // uri
-                                  bdlf::PlaceHolders::_2);  // partitionId),
-
-        d_clusterState_p->iterateDoubleAssignments(partitionId,
-                                                   doubleAssignmentVisitor);
-    }
-    ConditionalAdvance<QueueContextMapConstIter> conditional;
-    for (QueueContextMapConstIter cit = d_queues.cbegin();
-         cit != d_queues.cend();
-         conditional.advance(cit)) {
-        const QueueContextSp& queueContext = cit->second;
-        QueueLiveState&       liveQInfo    = queueContext->d_liveQInfo;
-        if (allPartitions) {
-            // Attempt to re-issue open-queue requests for all appropriate
-            // queues across *all* partitions.
-
-            if (!liveQInfo.d_queue_sp && liveQInfo.d_inFlight == 0) {
-                // Queue instance does not exist and self node is not waiting
-                // for any pending open-queue responses.  So there is no need
-                // to re-issue an open-queue request for this one.
-
-                // TBD: Log at INFO level for now, but eventually should be
-                //      lowered to DEBUG/TRACE.
-
-                BMQ_LOGTHROTTLE_INFO << d_cluster_p->description()
-                                     << " Not performing restore of queue "
-                                     << "[" << queueContext->uri() << "].";
-                continue;  // CONTINUE
-            }
-
-            if (!isQueueAssigned(*queueContext)) {
-                // Queue is not assigned to a partition; get it assigned.
-
-                if (!assignQueue(queueContext)) {
-                    conditional.release();
-                    cit = d_queues.erase(cit);
-                }
-
-                continue;  // CONTINUE
-            }
-
-            // Proceed as if a specific partitionId is specified.
-            partitionId = queueContext->partitionId();
-            pinfo       = &(d_clusterState_p->partition(partitionId));
-
-            if (!hasActiveAvailablePrimary(partitionId)) {
-                BMQ_LOGTHROTTLE_INFO
-                    << d_cluster_p->description()
-                    << " Not performing restore of queue ["
-                    << queueContext->uri()
-                    << "] because there is no primary or primary isn't "
-                       "ACTIVE. Current primary: "
-                    << (pinfo->primaryNode()
-                            ? pinfo->primaryNode()->nodeDescription()
-                            : "** null **")
-                    << ", primary status: " << pinfo->primaryStatus();
-                continue;  // CONTINUE
-            }
-            isSelfPrimaryAndLeader =
-                pinfo->primaryNode() ==
-                    d_clusterData_p->membership().selfNode() &&
-                d_clusterData_p->electorInfo().isSelfLeader();
-        }
-        else if (queueContext->partitionId() != partitionId) {
-            // Skip the queue as its assigned to a different partitionId.
-            continue;  // CONTINUE;
-        }
-
-        // Attempt to re-issue open-queue requests for all appropriate queues
-        // assigned to that partition.
-
-        BSLS_ASSERT_SAFE(isQueueAssigned(*queueContext));
-        BSLS_ASSERT_SAFE(isQueuePrimaryAvailable(*queueContext));
-
-        // Start restore cycle
-        bsl::shared_ptr<PartitionReopenCycle> cycle =
-            startPartitionReopen(partitionId, pinfo->primaryLeaseId());
-
-        // Verify the CSL if needed by comparing it with the Domain config
-        if (liveQInfo.d_queue_sp) {
-            if (isSelfPrimaryAndLeader) {
-                // We are assuming that it is not possible for a node to be
-                // primary, lose primary-ship and regain primary-ship;
-                // unless eventually the node went down in which case it
-                // will start from fresh.
-
-                // Moreover, since self node is now the primary, it is
-                // important for it to register the queue with the
-                // StorageManager.  This is logically equivalent to
-                // registering the queue with StorageManager when a primary
-                // node creates a local queue instance (see
-                // 'createQueueFactory').
-
-                bsl::vector<bsl::string> added(d_allocator_p);
-                bsl::vector<bsl::string> removed(d_allocator_p);
-                mqbi::Domain* domain = liveQInfo.d_queue_sp->domain();
-
-                match(&added,
-                      &removed,
-                      *queueContext->d_stateQInfo_sp,
-                      domain->config()->mode());
-
-                if (!removed.empty() || !added.empty()) {
-                    VoidFunctor park = bdlf::BindUtil::bindS(
-                        d_allocator_p,
-                        &ClusterQueueHelper::convertToLocal,
-                        this,
-                        queueContext,
-                        domain);
-
-                    // Add to 'd_pendingUpdates' before calling
-                    // 'updateAppIds' which is asynchronous (CSL commit)
-                    liveQInfo.d_pendingUpdates.push_back(park);
-
-                    mqbi::ClusterErrorCode::Enum result =
-                        d_clusterStateManager_p->updateAppIds(added,
-                                                              removed,
-                                                              domain->name(),
-                                                              "");
-
-                    if (mqbi::ClusterErrorCode::e_OK == result) {
-                        // Cannot continue until 'onQueueUpdated'
-                        // Send QueueUpdateAdvisory and _wait_ for commit
-
-                        continue;  // CONTINUE
-                    }
-
-                    // An update error is CSL error (in
-                    // 'ClusterStateLedger::apply'). This queue cannot
-                    // convertToLocal
-                    // ('RootQueueEngine::initializeAppId' would assert
-                    // if there is no storage for some app).
-
-                    BSLS_ASSERT_SAFE(
-                        false &&
-                        "Failure to update Apps before convertToLocal");
-                }
-                else {
-                    convertToLocal(queueContext, domain);
-                }
-            }
-            else {
-                if (queueContext->d_liveQInfo.d_numQueueHandles != 0) {
-                    const bmqt::GenericResult::Enum rc = restoreStateHelper(
-                        queueContext.get(),
-                        pinfo->primaryNode(),
-                        cycle);
-
-                    if (rc == bmqt::GenericResult::e_NOT_CONNECTED) {
-                        // Abort restore of the state: the channel is no
-                        // longer valid or we hit high water mark.  For the
-                        // case of invalid channel, we'll wait for a new
-                        // one to be active and will restart restoring the
-                        // state from the beginning.
-                        return;  // RETURN
-                    }
-                    // In case of other type of failure, just continue
-                    // processing other queues instead of stopping the
-                    // 'state restore' sequence.
-
-                    // REVISIT: this code sends pending Open Queue requests
-                    // without waiting for the Reopen Queue Response.
-                }
-                else {
-                    // In the case of a cluster member, queues are deleted
-                    // 'lazily' when receiving a notification from the
-                    // primary.  This replica may have fully closed the
-                    // queue, but the queue has not been deleted by the
-                    // primary if another replica still uses it; however
-                    // from this replica's perspective, we don't want to
-                    // reopen the queue.  Transition state back to k_OPEN
-                    // so that any pending open requests can proceed.
-                    BMQ_LOGTHROTTLE_INFO
-                        << d_cluster_p->description()
-                        << ": Skipping restore of " << queueContext->uri()
-                        << " because it has no active queue handles";
-
-                    setStreamState(queueContext, SubQueueContext::k_OPEN);
-                }
-
-                // We also need to issue requests for any pending contexts:
-                // when a primary fails over, the queue may have been
-                // already open on this node, and all clients which were
-                // connected to the old primary will immediately reconnect,
-                // some might connect to this node and will issue an open
-                // queue.  Because primary just got lost, those open queue
-                // requests were not processed, but appended to the pending
-                // context list, so once we have an active primary, we
-                // should process them.
-            }
-            // else, Queue instance is not created, but the queue is assigned.
-            // Proceed ahead.
-        }
-
-        // In all cases, _attempt_ to process pending open queue requests
-        onQueueContextAssigned(queueContext);
-    }
-}
-
-bmqt::GenericResult::Enum ClusterQueueHelper::restoreStateHelper(
-    QueueContext*                                queueContext,
-    mqbnet::ClusterNode*                         activeNode,
-    const bsl::shared_ptr<PartitionReopenCycle>& cycle)
-{
-    // executed by the cluster *DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
-    BSLS_ASSERT_SAFE(queueContext);
-    BSLS_ASSERT_SAFE(activeNode);
-
-    QueueLiveState&           queueInfo = queueContext->d_liveQInfo;
-    bmqt::GenericResult::Enum rc        = bmqt::GenericResult::e_SUCCESS;
-    const mqbi::Queue*        queuePtr  = queueInfo.d_queue_sp.get();
-
-    BSLS_ASSERT_SAFE(queuePtr);
-
-    const bsls::Types::Uint64 generationCount = cycle->generationCount();
-
-    for (StreamsMap::iterator iter = queueInfo.d_subQueueIds.begin();
-         iter != queueInfo.d_subQueueIds.end();
-         ++iter) {
-        SubQueueContext& subQueueContext = iter->value();
-
-        const bmqp_ctrlmsg::QueueHandleParameters& parameters =
-            subQueueContext.d_parameters;
-
-        if (bmqp::QueueUtil::isEmpty(parameters)) {
-            BMQ_LOGTHROTTLE_INFO
-                << "#INVALID_REOPENQUEUE_REQ " << d_cluster_p->description()
-                << ": Not sending ReopenQueue request to "
-                << activeNode->nodeDescription()
-                << "[parameters: " << parameters
-                << ", reason: 'All read,write,admin counts are <= 0]";
-
-            setStreamState(&subQueueContext, SubQueueContext::k_OPEN);
-            continue;  // CONTINUE
-        }
-        const SubQueueContext::Enum state = subQueueContext.d_state;
-        if (subQueueContext.d_generationCount == generationCount) {
-            if (state == SubQueueContext::k_REOPENING ||
-                state == SubQueueContext::k_OPEN ||
-                state == SubQueueContext::k_FAILED) {
-                BMQ_LOGTHROTTLE_INFO
-                    << d_cluster_p->description()
-                    << ": Not sending ReopenQueue request to "
-                    << activeNode->nodeDescription()
-                    << "[parameters: " << parameters << ", state: " << state
-                    << ", reason: the generationCount is the same]";
-                continue;  // CONTINUE
-            }
-        }
-        // else will send new request and drop the pending response
-
-        setStreamState(&subQueueContext, SubQueueContext::k_CLOSED);
-
-        // All pending Open requests must be cancelled by 'cancelAllRequests'
-        // upon node state change or Stop request or active node down.
-        /// Including ReOpen requests.
-        BSLS_ASSERT_SAFE(subQueueContext.d_numOpenRequestsInFlight == 0);
-
-        rc = sendReopenQueueRequest(queueContext,
-                                    &subQueueContext,
-                                    activeNode,
-                                    cycle,
-                                    1);
-    }
-
-    return rc;
-}
-
 void ClusterQueueHelper::deleteQueue(QueueContext* queueContext)
 {
     // executed by the cluster *DISPATCHER* thread
@@ -4243,7 +3149,7 @@ void ClusterQueueHelper::onSelfNodeStatus(
     BALL_LOG_INFO << d_cluster_p->description()
                   << " onSelfNodeStatus: self node status: " << value;
 
-    restoreState(mqbi::Storage::k_ANY_PARTITION_ID);
+    d_reopener_mp->restoreState(mqbi::Storage::k_ANY_PARTITION_ID);
 }
 
 void ClusterQueueHelper::onClusterLeader(
@@ -4267,7 +3173,7 @@ void ClusterQueueHelper::onClusterLeader(
                   << ", leader status: " << status;
 
     if (status == mqbc::ElectorInfoLeaderStatus::e_ACTIVE) {
-        restoreState(mqbi::Storage::k_ANY_PARTITION_ID);
+        d_reopener_mp->restoreState(mqbi::Storage::k_ANY_PARTITION_ID);
     }
 
     if (d_cluster_p->isRemote()) {
@@ -4679,7 +3585,7 @@ ClusterQueueHelper::ClusterQueueHelper(
 , d_storageManager_p(0)
 , d_queues(allocator)
 , d_queuesById(allocator)
-, d_reopenCycles(allocator)
+, d_reopener_mp()
 , d_primaryNotLeaderAlarmRaised(false)
 , d_stopContexts(allocator)
 , d_isShutdownLogicOn(false)
@@ -4721,6 +3627,14 @@ void ClusterQueueHelper::initialize()
     d_clusterData_p->membership().registerObserver(this);
     d_clusterData_p->electorInfo().registerObserver(this);
     d_clusterState_p->registerObserver(this);
+
+    d_reopener_mp.load(new (*d_allocator_p)
+                           ClusterQueueReopener(d_allocator_p),
+                       d_allocator_p);
+    d_reopener_mp->initialize(this,
+                              d_clusterData_p,
+                              d_clusterState_p,
+                              d_cluster_p);
 }
 
 void ClusterQueueHelper::teardown()
@@ -4729,6 +3643,9 @@ void ClusterQueueHelper::teardown()
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+
+    d_reopener_mp->teardown();
+    d_reopener_mp.reset();
 
     d_clusterState_p->unregisterObserver(this);
     d_clusterData_p->electorInfo().unregisterObserver(this);
@@ -5647,7 +4564,7 @@ void ClusterQueueHelper::onLeaderAvailable()
     BALL_LOG_INFO << d_cluster_p->description()
                   << ": On leader available, restoring state.";
 
-    restoreState(mqbi::Storage::k_ANY_PARTITION_ID);
+    d_reopener_mp->restoreState(mqbi::Storage::k_ANY_PARTITION_ID);
 }
 
 bool ClusterQueueHelper::setStopContext(
@@ -6074,15 +4991,14 @@ bool ClusterQueueHelper::hasActiveQueue(const bsl::string& domainName)
     return false;  // RETURN
 }
 
+bool ClusterQueueHelper::isFailoverInProgress() const
+{
+    return d_reopener_mp && d_reopener_mp->isFailoverInProgress();
+}
+
 int ClusterQueueHelper::numPendingReopenQueueRequests() const
 {
-    int sum = 0;
-    for (ReopenCycles::const_iterator cit = d_reopenCycles.begin();
-         cit != d_reopenCycles.end();
-         ++cit) {
-        sum += cit->second.use_count();
-    }
-    return sum;
+    return d_reopener_mp ? d_reopener_mp->numPendingReopenQueueRequests() : 0;
 }
 
 void ClusterQueueHelper::loadQueuesInfo(mqbcmd::StorageContent* out) const
