@@ -260,10 +260,14 @@ void PartitionRaft::dispatchOutput(RaftNodeOutput* output)
 
     if (output->d_stateChanged) {
         if (isLeader()) {
-            // Just became leader (RaftNode::propose() never sets
-            // 'd_stateChanged', so this cannot recurse via
-            // 'proposeSyncPoint()' below).
-            proposeSyncPoint();
+            // Just became leader.  The become-leader sync point is NOT written
+            // here: it is the first journal record under the new leaseId
+            // (== term), and strict ordering requires the CSL's artificial
+            // 'partitionPrimaryAdvisory' (carrying this leaseId) to commit
+            // first.  'proposeDeferredSyncPoint' (driven from the orchestrator
+            // once the advisory commits and the partition reaches E_ACTIVE)
+            // determines eligibility itself, lazily, by comparing the log's
+            // last term to the current term -- no bookkeeping is needed here.
         }
         else {
             // Lost leadership: any in-flight rollover is abandoned.  The
@@ -310,6 +314,9 @@ void PartitionRaft::dispatchOutput(RaftNodeOutput* output)
 
         // Signal the cluster so it can (re)compute this partition's
         // primary/gate state.
+        BALL_LOG_INFO << "Partition [" << d_partitionId
+                      << "] invoking d_leadershipCb with leaderNodeId="
+                      << leaderNodeId << ", term=" << term;
         d_leadershipCb(d_partitionId, leaderNodeId, term);
     }
 }
@@ -940,6 +947,32 @@ int PartitionRaft::propose(
     return 0;
 }
 
+void PartitionRaft::proposeDeferredSyncPoint()
+{
+    // executed by the partition *DISPATCHER* thread
+    BSLS_ASSERT_SAFE(d_fileStore_sp->inDispatcherThread());
+
+    // Idempotent: a no-op unless this node is the leader AND has not yet
+    // appended any entry under its current term.  'lastTerm() ==
+    // currentTerm()' means some current-term entry (in practice, the
+    // become-leader sync point itself, since nothing else can be proposed
+    // before activation) has already been appended -- nothing left to do.
+    // Self-correcting across leadership changes: after losing and regaining
+    // leadership in a new, higher term, 'lastTerm()' still reflects the old
+    // term and will not match the new 'currentTerm()', so no separate
+    // reset-on-leadership-lost is needed.
+    if (!isLeader() ||
+        d_raftLog_mp->lastTerm() == d_raftNode_mp->currentTerm()) {
+        return;  // RETURN
+    }
+
+    BALL_LOG_INFO << "Partition [" << d_partitionId
+                  << "] writing deferred become-leader sync point (partition "
+                  << "activated; CSL advisory for its leaseId has committed).";
+
+    proposeSyncPoint();
+}
+
 void PartitionRaft::proposeSyncPoint()
 {
     // executed by the partition *DISPATCHER* thread
@@ -1010,6 +1043,7 @@ void PartitionRaft::proposeRollover()
     // capacity" on rollover failure -- a guarantee also enforced by
     // 'PartitionRaftLog::rollover()' on its own failure path.
     d_fileStore_sp->setAvailabilityStatus(false);
+    d_isRolloverPending = true;
 
     dispatchOutput(&output);
     d_raftLog_mp->clearCache();
@@ -1032,7 +1066,6 @@ int PartitionRaft::rolloverIfNeeded(bsls::Types::Uint64 dataBytes,
     // buffers this triggering write, and every subsequent one, until the
     // rollover commits.
     if (!d_isRolloverPending) {
-        d_isRolloverPending = true;
         proposeRollover();
     }
 

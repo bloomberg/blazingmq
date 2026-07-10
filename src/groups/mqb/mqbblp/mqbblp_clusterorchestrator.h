@@ -196,6 +196,8 @@ class ClusterOrchestrator {
     /// status advisories and their source.
     PrimaryStatusAdvisoryInfosVec d_bufferedPrimaryStatusAdvisoryInfosVec;
 
+    bool d_isCaughtUp;
+
   private:
     // NOT IMPLEMENTED
     ClusterOrchestrator(const ClusterOrchestrator&);             // = delete;
@@ -261,6 +263,21 @@ class ClusterOrchestrator {
     void onPartitionRaftLeadershipDispatched(int                 partitionId,
                                              int                 leaderNodeId,
                                              bsls::Types::Uint64 term);
+
+    /// If self is the CSL Raft leader, the CSL is caught up, and every
+    /// partition has a leader (leaseId known), propose a combined
+    /// `partitionPrimaryAdvisory` capturing every partition's
+    /// (primaryNodeId, leaseId==Raft term) to the CSL Raft.  This is the
+    /// "artificial" advisory that keeps the CSL's recorded leaseId in step
+    /// with the journal (== term) for legacy-broker interoperability, and
+    /// whose commit is the activation barrier that flips partition primaries
+    /// PASSIVE->ACTIVE.  Idempotent: re-proposes only when the set of
+    /// leaseIds has changed since the last successful proposal.  A no-op in
+    /// legacy mode, on non-leaders, or before the preconditions hold.
+    ///
+    /// THREAD: This method is invoked in the associated cluster's
+    ///         dispatcher thread.
+    void maybeIssuePartitionPrimaryAdvisory();
 
     /// Transition the self node to `E_AVAILABLE` if, and only if, every
     /// partition has an active primary (FSM-parity readiness).  A partition
@@ -577,6 +594,8 @@ class ClusterOrchestrator {
     void onPartitionRaftLeadership(int                 partitionId,
                                    int                 leaderNodeId,
                                    bsls::Types::Uint64 term);
+
+    void onClusterRaftLeadership(bool haveCommit);
 
     /// Re-check readiness of any queue-open locally parked on the storage/app
     /// for the specified `uri` on the specified `partitionId` becoming
