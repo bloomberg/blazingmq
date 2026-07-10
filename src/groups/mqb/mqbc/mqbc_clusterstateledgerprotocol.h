@@ -158,7 +158,11 @@ struct ClusterStateRecordType {
         e_SNAPSHOT  = 1,
         e_UPDATE    = 2,
         e_COMMIT    = 3,
-        e_ACK       = 4
+        e_ACK       = 4,
+        e_NOOP      = 5
+        // A content-less entry a new Raft leader appends to its own term so
+        // it can advance its commit index (Raft 5.4.2) and apply its
+        // committed backlog.  Carries no 'ClusterMessage'; skipped on apply.
     };
 
     // PUBLIC CONSTANTS
@@ -171,7 +175,7 @@ struct ClusterStateRecordType {
     /// @note This value must always be equal to the highest type in the enum
     ///       because it is being used as an upper bound to verify a
     ///       `ClusterStateRecord`'s `type` field is a supported type.
-    static const int k_HIGHEST_SUPPORTED_TYPE = e_ACK;
+    static const int k_HIGHEST_SUPPORTED_TYPE = e_NOOP;
 
     // CLASS METHODS
 

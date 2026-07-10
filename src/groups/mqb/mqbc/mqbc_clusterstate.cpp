@@ -453,6 +453,22 @@ ClusterState& ClusterState::setPartitionPrimaryStatus(
     return *this;
 }
 
+ClusterState&
+ClusterState::setPartitionAdvisoryConfirmedLeaseId(int          partitionId,
+                                                   unsigned int leaseId)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(cluster()->inDispatcherThread());
+    BSLS_ASSERT_SAFE(partitionId >= 0);
+    BSLS_ASSERT_SAFE(partitionId < static_cast<int>(d_partitionsInfo.size()));
+
+    d_partitionsInfo[partitionId].setAdvisoryConfirmedLeaseId(leaseId);
+
+    return *this;
+}
+
 ClusterState& ClusterState::updatePartitionQueueMapped(int partitionId,
                                                        int delta)
 {

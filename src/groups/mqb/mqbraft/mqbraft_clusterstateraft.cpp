@@ -86,6 +86,7 @@ ClusterStateRaft::ClusterStateRaft(
     mqbc::ClusterData*             clusterData,
     mqbc::ClusterState*            clusterState,
     const mqbcfg::PartitionConfig& partitionConfig,
+    const AvailabilityCb&          availabilityCb,
     bslma::Allocator*              allocator)
 : d_partitionConfig(partitionConfig, allocator)
 , d_cslLog_mp()
@@ -93,11 +94,14 @@ ClusterStateRaft::ClusterStateRaft(
 , d_clusterData_p(clusterData)
 , d_clusterState_p(clusterState)
 , d_tickHandle()
+, d_availabilityCb(bsl::allocator_arg, allocator, availabilityCb)
 , d_isStarted(false)
 , d_allocator_p(bslma::Default::allocator(allocator))
+, d_advisedInTerm(0)
 {
     BSLS_ASSERT_SAFE(clusterData);
     BSLS_ASSERT_SAFE(clusterState);
+    BSLS_ASSERT_SAFE(availabilityCb);
 }
 
 ClusterStateRaft::~ClusterStateRaft()
@@ -125,14 +129,33 @@ void ClusterStateRaft::dispatchOutput(RaftNodeOutput* output)
         }
     }
 
+    if (output->d_stateChanged || output->d_leaderChanged) {
+        updateElectorInfo();
+
+        // No separate become-leader no-op is proposed here.  The CSL leader's
+        // first current-term entry is instead the artificial
+        // 'partitionPrimaryAdvisory' issued (via the orchestrator) once every
+        // partition has a leader; committing it both commits/applies the
+        // recovered backlog (Raft 5.4.2, exactly as a no-op would) and
+        // publishes the leaseIds.
+        //
+        // A leadership change is also the trigger to let the orchestrator
+        // re-evaluate/re-issue that advisory (e.g. self just became CSL
+        // leader, or a new leader must be told of updated leaseIds).  Commits
+        // of OTHER entry types (queue assignments, app updates, ...) cannot
+        // affect 'isCaughtUp()' or partition activation, so they do NOT
+        // re-invoke the availability callback here -- see
+        // 'applyCommittedEntry' for the narrower, per-entry trigger on the
+        // partition-primary advisory specifically.
+        if (d_availabilityCb) {
+            d_availabilityCb(false);
+        }
+    }
+
     for (bsl::vector<LogEntry>::size_type i = 0;
          i < output->d_committed.size();
          ++i) {
         applyCommittedEntry(output->d_committed[i]);
-    }
-
-    if (output->d_stateChanged || output->d_leaderChanged) {
-        updateElectorInfo();
     }
 }
 
@@ -205,6 +228,21 @@ void ClusterStateRaft::sendControlMessage(const RaftMessage& msg)
 
 void ClusterStateRaft::applyCommittedEntry(const LogEntry& entry)
 {
+    // A no-op record carries no 'ClusterMessage' body; it exists only to let a
+    // new leader advance its commit index.  Detect it from the record header
+    // and skip -- committing it (which drags the real backlog along) is the
+    // whole point; there is nothing to apply.
+    bmqu::BlobObjectProxy<mqbc::ClusterStateRecordHeader> recHeader(
+        entry.d_data.get(),
+        true,    // read
+        false);  // write
+    if (recHeader.isSet() &&
+        recHeader->recordType() == mqbc::ClusterStateRecordType::e_NOOP) {
+        BALL_LOG_INFO << "Applied committed CSL no-op at term "
+                      << entry.d_term;
+        return;  // RETURN
+    }
+
     bmqp_ctrlmsg::ClusterMessage clusterMessage(d_allocator_p);
 
     int rc = mqbc::ClusterStateLedgerUtil::loadClusterMessage(&clusterMessage,
@@ -214,9 +252,50 @@ void ClusterStateRaft::applyCommittedEntry(const LogEntry& entry)
         return;
     }
 
-    mqbc::ClusterUtil::apply(d_clusterState_p,
-                             clusterMessage,
-                             *d_clusterData_p);
+    if (clusterMessage.choice().selectionId() ==
+        bmqp_ctrlmsg::ClusterMessageChoice::
+            SELECTION_ID_PARTITION_PRIMARY_ADVISORY) {
+        // Skip 'ClusterUtil::apply': for this message type it routes to
+        // 'applyPartitionPrimary', which is an unconditional no-op in Raft
+        // mode (the data-partition Raft, not the CSL, owns primary/leaseId --
+        // 'isRaftEnabled()' early-return) -- true for both our own artificial
+        // advisory and any stale recovered legacy 'partitionPrimaryAdvisory'.
+        // This is Raft-only code (ClusterStateRaft), so that branch is always
+        // taken; nothing is lost by not calling it.  Persistence is already
+        // guaranteed by the Raft commit itself, independent of this call.
+        //
+        // Record the CSL-side half of the two independent signals the
+        // orchestrator's readiness check compares (this committed advisory
+        // vs. local data-partition Raft leadership) in a dedicated field
+        // ('advisoryConfirmedLeaseId'), separate from 'primaryLeaseId' (which
+        // reflects only the locally-observed side), so it can be recorded
+        // regardless of whether this node knows the partition's primary yet.
+        // Monotonic: a stale recovered legacy entry must not regress a
+        // leaseId already confirmed by a fresher commit.  Deciding
+        // activation/availability from this is the orchestrator's job (via
+        // the readiness check below), not this method's.
+        const bmqp_ctrlmsg::PartitionPrimaryAdvisory& adv =
+            clusterMessage.choice().partitionPrimaryAdvisory();
+        for (bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>::const_iterator
+                 it = adv.partitions().cbegin();
+             it != adv.partitions().cend();
+             ++it) {
+            const mqbc::ClusterStatePartitionInfo& pinfo =
+                d_clusterState_p->partition(it->partitionId());
+            if (it->primaryLeaseId() > pinfo.advisoryConfirmedLeaseId()) {
+                d_clusterState_p->setPartitionAdvisoryConfirmedLeaseId(
+                    it->partitionId(),
+                    it->primaryLeaseId());
+            }
+        }
+
+        d_availabilityCb(true);
+    }
+    else {
+        mqbc::ClusterUtil::apply(d_clusterState_p,
+                                 clusterMessage,
+                                 *d_clusterData_p);
+    }
 
     BALL_LOG_INFO << "Applied committed CSL entry at term " << entry.d_term;
 }
@@ -632,8 +711,6 @@ int ClusterStateRaft::propose(const bmqp_ctrlmsg::ClusterMessage& advisory)
     dispatchOutput(&output);
     return 0;
 }
-
-
 
 bool ClusterStateRaft::assignQueue(const bmqt::Uri&      uri,
                                    bmqp_ctrlmsg::Status* status)

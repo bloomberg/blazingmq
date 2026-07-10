@@ -273,6 +273,16 @@ class PartitionRaft : public mqbs::RecordStore {
     /// Stop: cancel tick timer.
     void stop();
 
+    /// Write this partition's deferred become-leader sync point.  Idempotent:
+    /// a no-op unless this node is the leader and has not yet appended any
+    /// entry under its current term.  Called once the partition is activated
+    /// -- i.e. the CSL's artificial `partitionPrimaryAdvisory` carrying this
+    /// leaseId has committed -- so the CSL records the leaseId before this
+    /// first journal record under it.
+    ///
+    /// THREAD: Executed by this partition's dispatcher thread.
+    void proposeDeferredSyncPoint();
+
     /// Propose the write described by the specified `pw` for replication.
     /// This is the single entry point for every Raft partition write: it
     /// computes the rollover footprint from `pw`, runs `rolloverIfNeeded`
