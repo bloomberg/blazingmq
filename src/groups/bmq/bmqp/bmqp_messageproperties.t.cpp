@@ -1395,6 +1395,61 @@ static void test12_emptyPropertyValueStreamOutTest()
     BMQTST_ASSERT_EQ(p2.getPropertyAsBinary("emptyBin"), emptyBin);
 }
 
+static void test13_streamInMalformedHeaderTest()
+// ------------------------------------------------------------------------
+// STREAM IN MALFORMED HEADER TEST
+//
+// Concerns:
+//   'streamIn' must reject a malformed 'MessagePropertiesHeader' whose
+//   'MessagePropertiesAreaWords' field is zero on a non-empty blob
+//   gracefully, by returning an error code.
+//
+// Plan:
+//   1. Build a valid wire representation of a message with properties.
+//   2. Overwrite the 'MessagePropertiesAreaWords' field in the header
+//      with zero, keeping the blob itself non-empty.
+//   3. Call 'streamIn' and verify it returns a non-zero error code.
+//
+// Testing:
+//   int streamIn(const bdlbb::Blob&, bool);
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("STREAM IN MALFORMED HEADER TEST");
+
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        128,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::MessagePropertiesInfo logic =
+        bmqp::MessagePropertiesInfo::makeNoSchema();
+
+    // Build a valid wire representation.
+    bmqp::MessageProperties src(bmqtst::TestHelperUtil::allocator());
+    BMQTST_ASSERT_EQ(0, src.setPropertyAsString("tableName", "mytable"));
+
+    bdlbb::Blob wireRep(&bufferFactory, bmqtst::TestHelperUtil::allocator());
+    wireRep = src.streamOut(&bufferFactory, logic);
+    BMQTST_ASSERT_GT(wireRep.length(), 0);
+
+    // Sanity check: the untouched representation streams in cleanly.
+    {
+        bmqp::MessageProperties ok(bmqtst::TestHelperUtil::allocator());
+        BMQTST_ASSERT_EQ(0, ok.streamIn(wireRep, logic.isExtended()));
+        BMQTST_ASSERT_EQ(1, ok.numProperties());
+    }
+
+    // Corrupt the header: force 'MessagePropertiesAreaWords' to zero while
+    // leaving the blob non-empty.
+    bmqp::MessagePropertiesHeader* mpsh =
+        reinterpret_cast<bmqp::MessagePropertiesHeader*>(
+            wireRep.buffer(0).data());
+    mpsh->setMessagePropertiesAreaWords(0);
+
+    // 'streamIn' must fail gracefully rather than assert/crash.
+    bmqp::MessageProperties dst(bmqtst::TestHelperUtil::allocator());
+    BMQTST_ASSERT_NE(0, dst.streamIn(wireRep, logic.isExtended()));
+    BMQTST_ASSERT_EQ(0, dst.numProperties());
+}
+
 #ifdef BMQTST_BENCHMARK_ENABLED
 
 struct MessagePropertiesBenchmark_getPropertyRef {
@@ -1572,6 +1627,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 13: test13_streamInMalformedHeaderTest(); break;
     case 12: test12_emptyPropertyValueStreamOutTest(); break;
     case 11: test11_binaryPropertyRvalueTest(); break;
     case 10: test10_empty(); break;
