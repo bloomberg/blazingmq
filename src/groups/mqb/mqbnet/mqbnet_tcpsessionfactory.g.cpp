@@ -238,7 +238,7 @@ TEST_F(TCPSessionFactoryTest, setNodeWriteQueueWatermarksFromTcpConfig)
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+    GTEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
     ::testing::InitGoogleTest(&argc, argv);
 
