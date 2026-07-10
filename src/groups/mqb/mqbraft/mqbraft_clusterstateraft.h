@@ -50,6 +50,7 @@
 #include <ball_log.h>
 #include <bdlbb_blob.h>
 #include <bdlmt_eventscheduler.h>
+#include <bsl_functional.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
 #include <bslma_usesbslmaallocator.h>
@@ -68,6 +69,15 @@ namespace mqbraft {
 // ======================
 
 class ClusterStateRaft : public mqbi::ClusterStateUpdater {
+  public:
+    // TYPES
+
+    /// Callback invoked (on the cluster dispatcher thread) whenever the CSL
+    /// Raft state advances -- leadership change or committed entries applied
+    /// -- so the orchestrator can re-evaluate whether it may transition to
+    /// AVAILABLE.  The orchestrator queries `isCaughtUp()` on demand.
+    typedef bsl::function<void(bool)> AvailabilityCb;
+
   private:
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("MQBRAFT.CLUSTERSTATERAFT");
@@ -79,8 +89,18 @@ class ClusterStateRaft : public mqbi::ClusterStateUpdater {
     mqbc::ClusterData*                          d_clusterData_p;
     mqbc::ClusterState*                         d_clusterState_p;
     bdlmt::EventScheduler::RecurringEventHandle d_tickHandle;
+    AvailabilityCb                              d_availabilityCb;
     bool                                        d_isStarted;
     bslma::Allocator*                           d_allocator_p;
+
+    /// The CSL term for which self (as CSL leader) last attempted to propose
+    /// the artificial `partitionPrimaryAdvisory`; 0 (never a real leader
+    /// term) if none attempted yet.  Used by
+    /// `maybeIssuePartitionPrimaryAdvisory` to guarantee it proposes
+    /// unconditionally once per term (Raft 5.4.2 requires some current-term
+    /// entry regardless of whether its content would be unchanged from a
+    /// prior term).
+    bsls::Types::Uint64 d_advisedInTerm;
 
     // NOT IMPLEMENTED
     ClusterStateRaft(const ClusterStateRaft&);
@@ -128,6 +148,7 @@ class ClusterStateRaft : public mqbi::ClusterStateUpdater {
     ClusterStateRaft(mqbc::ClusterData*             clusterData,
                      mqbc::ClusterState*            clusterState,
                      const mqbcfg::PartitionConfig& partitionConfig,
+                     const AvailabilityCb&          availabilityCb,
                      bslma::Allocator*              allocator = 0);
 
     ~ClusterStateRaft() BSLS_KEYWORD_OVERRIDE;
@@ -154,6 +175,22 @@ class ClusterStateRaft : public mqbi::ClusterStateUpdater {
     /// Propose the specified 'advisory' for replication via Raft.
     /// Return 0 on success, non-zero if not the leader.
     int propose(const bmqp_ctrlmsg::ClusterMessage& advisory);
+
+    /// If self is the CSL Raft leader and every partition's (primaryNodeId,
+    /// leaseId) is known (per `ClusterState::partitions()`), propose a
+    /// combined `partitionPrimaryAdvisory` capturing every partition's
+    /// (primaryNodeId, leaseId==Raft term) to the CSL Raft.  This is the
+    /// "artificial" advisory that keeps the CSL's recorded leaseId in step
+    /// with the journal (== term) for legacy-broker interoperability, and
+    /// whose application is what `isCaughtUp()` reports.  Idempotent:
+    /// re-proposes only when the set of leaseIds has changed since the last
+    /// successful proposal.  A no-op on non-leaders or before the
+    /// preconditions hold.  Called by the orchestrator only after it has
+    /// verified every partition has a locally-known leader.
+    ///
+    /// THREAD: This method is invoked in the associated cluster's
+    ///         dispatcher thread.
+    void maybeIssuePartitionPrimaryAdvisory();
 
     /// Process the queue-assignment `request` received from the specified
     /// `requester` node.  Reply with a failure status if self is not the

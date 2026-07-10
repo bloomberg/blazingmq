@@ -95,6 +95,32 @@ void applyPartitionPrimary(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(clusterState);
 
+    BALL_LOG_SET_CATEGORY(k_LOG_CATEGORY);
+
+    // In Raft mode the data-partition Raft is the sole authority for a
+    // partition's primary and leaseId (every node learns the primary via
+    // 'ClusterOrchestrator::onPartitionLeadership', driven by the data-
+    // partition Raft leader/term).  The only partition-primary entries that
+    // reach the CSL apply path in Raft mode are RECOVERED LEGACY
+    // 'leaderAdvisory'/'partitionPrimaryAdvisory' records -- production Raft
+    // never writes them -- carrying the pre-restart leaseId.  Replaying them
+    // would regress the primary/leaseId already re-established by the data-
+    // partition Raft in its new term and trip 'setPartitionPrimary's
+    // monotonicity assert.  Ignore partition-primary info entirely in Raft
+    // mode; any queue assignments carried in the same 'leaderAdvisory' are
+    // applied separately by the caller ('ClusterUtil::apply').
+    if (clusterData.cluster().isRaftEnabled()) {
+        if (!partitions.empty()) {
+            BALL_LOG_ERROR
+                << clusterData.identity().description()
+                << ": Raft mode - ignoring " << partitions.size()
+                << " recovered partition-primary entry(ies) from the "
+                << "CSL; the data-partition Raft owns "
+                << "primary/leaseId.";
+        }
+        return;  // RETURN
+    }
+
     for (int i = 0; i < static_cast<int>(partitions.size()); ++i) {
         const bmqp_ctrlmsg::PartitionPrimaryInfo& info = partitions[i];
 

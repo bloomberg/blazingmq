@@ -548,6 +548,25 @@ bool PartitionRaftManager::isRaft() const
     return true;
 }
 
+void PartitionRaftManager::proposeDeferredSyncPoint(int partitionId)
+{
+    // executed by the *CLUSTER DISPATCHER* thread
+
+    if (!validate(static_cast<unsigned int>(partitionId))) {
+        return;  // RETURN
+    }
+
+    PartitionRaft* raft = d_partitionRafts[partitionId].get();
+    if (0 == raft) {
+        return;  // RETURN
+    }
+
+    // Hop to the partition's dispatcher thread; the sync-point write is a
+    // no-op there unless this node is the leader and deferred one.
+    raft->execute(
+        bdlf::BindUtil::bind(&PartitionRaft::proposeDeferredSyncPoint, raft));
+}
+
 void PartitionRaftManager::processShutdownEvent()
 {
     // executed by the *CLUSTER DISPATCHER* thread

@@ -300,6 +300,16 @@ class PartitionRaftManager : public mqbi::StorageProvider,
 
     /// Return the number of partitions.
     int numPartitions() const;
+
+    /// Trigger the specified `partitionId`'s deferred become-leader sync point
+    /// (a no-op unless this node is that partition's leader and deferred one).
+    /// Hops to the partition's dispatcher thread.  Called by the orchestrator
+    /// once the partition is activated (the CSL's artificial partition-primary
+    /// advisory for its leaseId has committed), enforcing that the CSL records
+    /// the leaseId before the partition's first journal record under it.
+    ///
+    /// THREAD: May be called from the cluster dispatcher thread.
+    void proposeDeferredSyncPoint(int partitionId);
 };
 
 // ============================================================================

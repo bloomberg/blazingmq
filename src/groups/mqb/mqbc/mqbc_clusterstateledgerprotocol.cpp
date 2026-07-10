@@ -84,6 +84,7 @@ const char* ClusterStateRecordType::toAscii(ClusterStateRecordType::Enum value)
         CASE(UPDATE)
         CASE(COMMIT)
         CASE(ACK)
+        CASE(NOOP)
     default: return "(* UNKNOWN *)";
     }
 

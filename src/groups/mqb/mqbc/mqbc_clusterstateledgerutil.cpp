@@ -482,6 +482,58 @@ int ClusterStateLedgerUtil::appendRecord(
     return ClusterStateLedgerUtilRc::e_SUCCESS;
 }
 
+int ClusterStateLedgerUtil::appendNoOpRecord(
+    bdlbb::Blob*                               blob,
+    const bmqp_ctrlmsg::LeaderMessageSequence& sequenceNumber,
+    bsls::Types::Uint64                        timestamp,
+    bslma::Allocator*                          allocator)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(blob);
+
+    // A no-op record has no 'ClusterMessage' body; it is otherwise a normal
+    // CSL record (header + padding + CRC32-C) so it round-trips through the
+    // ledger and 'appendEntries' record parsing like any other record.
+    (void)allocator;
+
+    // Insert record header
+    //
+    // Note: We use placement new to create the object directly in the blob
+    // buffer, because we need to set leaderAdvisoryWords at a later time.
+    blob->setLength(sizeof(ClusterStateRecordHeader));
+    BSLS_ASSERT_SAFE(blob->numDataBuffers() == 1 &&
+                     "The buffers allocated by the supplied bufferFactory "
+                     "are too small");
+
+    ClusterStateRecordHeader* recordHeader = new (blob->buffer(0).data())
+        ClusterStateRecordHeader;
+    const int headerWords = ClusterStateRecordHeader::k_HEADER_NUM_WORDS;
+    recordHeader->setHeaderWords(headerWords)
+        .setRecordType(ClusterStateRecordType::e_NOOP)
+        .setElectorTerm(sequenceNumber.electorTerm())
+        .setSequenceNumber(sequenceNumber.sequenceNumber())
+        .setTimestamp(timestamp);
+
+    // No message body: go straight to padding.
+    const int blobNumWords = bmqp::ProtocolUtil::appendPadding(blob,
+                                                               blob->length());
+
+    // Append CRC32-C
+    BSLMF_ASSERT(
+        (sizeof(bdlb::BigEndianUint32) % bmqp::Protocol::k_WORD_SIZE) == 0);
+    recordHeader->setLeaderAdvisoryWords(
+        blobNumWords +
+        (sizeof(bdlb::BigEndianUint32) / bmqp::Protocol::k_WORD_SIZE) -
+        headerWords);
+    bdlb::BigEndianUint32 crc32c;
+    crc32c = bmqp::Crc32c::calculate(*blob);
+    bdlbb::BlobUtil::append(blob,
+                            reinterpret_cast<const char*>(&crc32c),
+                            sizeof(bdlb::BigEndianUint32));
+
+    return ClusterStateLedgerUtilRc::e_SUCCESS;
+}
+
 int ClusterStateLedgerUtil::loadClusterMessage(
     bmqp_ctrlmsg::ClusterMessage*   message,
     const mqbsi::Ledger&            ledger,

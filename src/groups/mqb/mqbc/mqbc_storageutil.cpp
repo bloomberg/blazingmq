@@ -3701,8 +3701,9 @@ void StoragesMonitor::onStorageRegistered(int              partitionId,
                      partitionId < static_cast<int>(d_storages.size()));
 
     bmqu::Printer<mqbi::Storage::AppInfos> printer(&apps);
-    BALL_LOG_WARN << "StoragesMonitor registering storage for " << uri
-                  << " with apps " << printer;
+    BALL_LOG_WARN << "StoragesMonitor registering storage for queue [" << uri
+                  << "] queueKey [" << storageSp->queueKey() << "], with apps "
+                  << printer;
 
     {
         bslmt::LockGuard<bslmt::Mutex> guard(

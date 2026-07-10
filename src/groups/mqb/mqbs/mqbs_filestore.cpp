@@ -1749,6 +1749,11 @@ int FileStore::recoverMessages(QueueKeyInfoMap*                 queueKeyInfoMap,
             d_firstSyncPointAfterRolloverSeqNum.sequenceNumber();
         bsls::Types::Uint64 numRaftEntries = sequenceNumber() -
                                              snapshotSeqNum;
+        BALL_LOG_INFO << partitionDesc()
+                      << "Raft recovery resize: sequenceNumber()="
+                      << sequenceNumber()
+                      << ", snapshotSeqNum=" << snapshotSeqNum
+                      << ", numRaftEntries=" << numRaftEntries;
         recoveryIndex->resize(numRaftEntries);
     }
 

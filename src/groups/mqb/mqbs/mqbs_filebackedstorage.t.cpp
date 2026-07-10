@@ -391,6 +391,8 @@ class MockDataStore : public mqbs::DataStore {
         return d_description;
     }
 
+    bool isFileSetAvailable() const BSLS_KEYWORD_OVERRIDE { return true; }
+
     int partitionId() const BSLS_KEYWORD_OVERRIDE
     {
         return d_config.partitionId();

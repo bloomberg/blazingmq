@@ -596,6 +596,7 @@ ClusterOrchestrator::ClusterOrchestrator(
 , d_clusterState_p(clusterState)
 , d_storageManager_p(0)
 , d_bufferedPrimaryStatusAdvisoryInfosVec(allocator)
+, d_isCaughtUp(false)
 {
     // executed by *ANY* thread
 
@@ -627,11 +628,19 @@ void ClusterOrchestrator::init(mqbc::ClusterState* clusterState)
         // Skip Elector and ClusterStateManager.
 
         d_clusterStateRaft_mp.load(
-            new (*d_allocator_p)
-                mqbraft::ClusterStateRaft(d_clusterData_p,
-                                          clusterState,
-                                          d_clusterConfig.partitionConfig(),
-                                          d_allocator_p),
+            new (*d_allocator_p) mqbraft::ClusterStateRaft(
+                d_clusterData_p,
+                clusterState,
+                d_clusterConfig.partitionConfig(),
+                // Treat the CSL as an additional partition in the
+                // availability gate: whenever its Raft state advances, poke
+                // the orchestrator to re-evaluate.  Invoked on the cluster
+                // dispatcher thread, so it can call directly.
+                bdlf::BindUtil::bind(
+                    &ClusterOrchestrator::onClusterRaftLeadership,
+                    this,
+                    bdlf::PlaceHolders::_1),  // haveCommit
+                d_allocator_p),
             d_allocator_p);
 
         d_queueHelper.setClusterStateUpdater(d_clusterStateRaft_mp.get());
@@ -2063,6 +2072,23 @@ void ClusterOrchestrator::onPartitionPrimaryStatus(int          partitionId,
         d_cluster_p);
 }
 
+void ClusterOrchestrator::onClusterRaftLeadership(bool haveCommit)
+{
+    BALL_LOG_INFO << d_clusterData_p->identity().description()
+                  << ": onClusterRaftLeadership fired, d_isCaughtUp: "
+                  << d_isCaughtUp << " -> " << haveCommit;
+
+    d_isCaughtUp = haveCommit;
+
+    // Even though we are in the cluster thread, dispatch to avoid re-entrance
+    // as in the single node cluster case, when propose commits immediately and
+    // onClusterRaftLeadership gets called again in the same stack frame.
+    dispatcher()->execute(
+        bdlf::BindUtil::bind(&ClusterOrchestrator::maybeTransitionToAvailable,
+                             this),
+        d_cluster_p);
+}
+
 void ClusterOrchestrator::onPartitionRaftLeadership(int partitionId,
                                                     int leaderNodeId,
                                                     bsls::Types::Uint64 term)
@@ -2092,6 +2118,20 @@ void ClusterOrchestrator::onPartitionRaftLeadershipDispatched(
     BSLS_ASSERT_SAFE(static_cast<size_t>(partitionId) <
                      d_clusterState_p->partitions().size());
 
+    BALL_LOG_INFO
+        << d_clusterData_p->identity().description() << " Partition ["
+        << partitionId << "]: onPartitionRaftLeadershipDispatched fired, "
+        << "leaderNodeId: " << leaderNodeId << ", term: " << term
+        << ", current [primaryNode, primaryLeaseId, primaryStatus]: ["
+        << (d_clusterState_p->partition(partitionId).primaryNode()
+                ? d_clusterState_p->partition(partitionId)
+                      .primaryNode()
+                      ->nodeDescription()
+                : "** NULL **")
+        << ", " << d_clusterState_p->partition(partitionId).primaryLeaseId()
+        << ", " << d_clusterState_p->partition(partitionId).primaryStatus()
+        << "]";
+
     if (bmqp_ctrlmsg::NodeStatus::E_STOPPING ==
         d_clusterData_p->membership().selfNodeStatus()) {
         return;  // RETURN
@@ -2115,10 +2155,10 @@ void ClusterOrchestrator::onPartitionRaftLeadershipDispatched(
             : d_clusterData_p->membership().netCluster()->lookupNode(
                   leaderNodeId);
     if (0 == leaderNode) {
-        BALL_LOG_WARN << d_clusterData_p->identity().description()
-                      << " Partition [" << partitionId
-                      << "]: Raft leader node " << leaderNodeId
-                      << " is unknown; ignoring leadership notification.";
+        BALL_LOG_WARN
+            << d_clusterData_p->identity().description() << " Partition ["
+            << partitionId << "]: Cluster leader node " << leaderNodeId
+            << " is unknown; ignoring partition leadership notification.";
         return;  // RETURN
     }
 
@@ -2129,8 +2169,15 @@ void ClusterOrchestrator::onPartitionRaftLeadershipDispatched(
     const unsigned int leaseId = static_cast<unsigned int>(term);
 
     // Update the partition->primary mapping if it changed (this closes the
-    // gate as a side effect), then open the gate by marking the primary
-    // ACTIVE.
+    // gate as a side effect).  The primary is marked only PASSIVE here: it is
+    // NOT activated until the CSL leader's artificial
+    // 'partitionPrimaryAdvisory' (carrying every partition's leaseId) commits
+    // -- see 'maybeIssuePartitionPrimaryAdvisory' and the activation on commit
+    // in 'ClusterStateRaft::applyCommittedEntry'.  This ordering guarantees
+    // the CSL records the leaseId (== Raft term) BEFORE the partition writes
+    // any journal record under it (the deferred sync point, gated on
+    // availability), so a subsequent restart into a legacy broker recovers a
+    // CSL that is never behind the journal.
     const mqbc::ClusterStatePartitionInfo& pinfo = d_clusterState_p->partition(
         partitionId);
     if (pinfo.primaryNode() != leaderNode ||
@@ -2140,11 +2187,110 @@ void ClusterOrchestrator::onPartitionRaftLeadershipDispatched(
 
     d_clusterState_p->setPartitionPrimaryStatus(
         partitionId,
-        bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE);
+        bmqp_ctrlmsg::PrimaryStatus::E_PASSIVE);
 
-    // A partition just became active; this may complete the set required for
-    // the node to advertise availability.
+    // A partition just learned its leaseId (one of the two independent
+    // signals 'maybeTransitionToAvailable' compares); re-run the unified
+    // readiness check -- it also drives advisory issuance (once every
+    // partition has a leader) and, on a re-election, will close the gate
+    // again above but only fully re-activate once the CSL confirms the new
+    // leaseId via a fresh advisory commit.
     maybeTransitionToAvailable();
+}
+
+void ClusterOrchestrator::maybeIssuePartitionPrimaryAdvisory()
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+
+    // Raft mode and self is the CSL leader.  There is no separate
+    // become-leader no-op: this advisory IS the CSL leader's first
+    // current-term entry, so its commit is what makes 'isCaughtUp()' true
+    // (Raft 5.4.2) -- do NOT gate issuance on 'isCaughtUp()', that would be
+    // circular.  Only the CSL leader publishes the advisory; every node
+    // (including self) activates when it applies the commit.
+    //
+    // Called only from 'maybeTransitionToAvailable', which has already
+    // verified every partition has a locally-known leader (its gate 1) before
+    // calling this -- not re-checked here.
+    if (!d_clusterStateRaft_mp) {
+        return;  // RETURN (legacy mode)
+    }
+    if (bmqp_ctrlmsg::NodeStatus::E_STOPPING ==
+        d_clusterData_p->membership().selfNodeStatus()) {
+        return;  // RETURN (shutting down; do not propose new CSL entries)
+    }
+    if (!d_clusterStateRaft_mp->isLeader()) {
+        return;  // RETURN
+    }
+
+    const mqbc::ClusterState::PartitionsInfo& partitions =
+        d_clusterState_p->partitions();
+
+    // Propose if EITHER:
+    //  (a) self (as this term's CSL leader) has not yet attempted an advisory
+    //      in ITS OWN current term.  Raft 5.4.2 requires some current-term
+    //      entry to exist so this leader can advance its commit index past
+    //      the inherited prior-term tail -- the CONTENT may be unchanged from
+    //      a prior term's advisory (nothing new to publish), but a newly
+    //      elected leader still needs its own term's entry.  Unconditional,
+    //      matching what a become-leader no-op guarantees; tracked via
+    //      'd_advisedInTerm' rather than 'isCaughtUp()'/the log's 'lastTerm()'
+    //      -- both are generic "something committed/appended this term"
+    //      signals that a pre-existing, unrelated race
+    //      ('ClusterQueueHelper::onClusterLeader' -> 'restoreState' proposing
+    //      a queue assignment) can satisfy without this advisory ever having
+    //      been proposed, which would permanently starve
+    //      'advisoryConfirmedLeaseId'.
+    //  (b) the content has genuinely changed (a partition re-elected mid-term)
+    //      -- checked via 'advisoryConfirmedLeaseId', updated only when an
+    //      advisory actually COMMITS, so this self-corrects even if a prior
+    //      proposal attempt never committed.
+
+    for (size_t pid = 0; d_isCaughtUp && pid < partitions.size(); ++pid) {
+        if (partitions[pid].primaryLeaseId() !=
+            partitions[pid].advisoryConfirmedLeaseId()) {
+            d_isCaughtUp = false;
+        }
+    }
+    if (d_isCaughtUp) {
+        return;  // RETURN (already tried this term; CSL reflects current
+                 // leaseIds)
+    }
+
+    // Build the combined artificial 'partitionPrimaryAdvisory'.  The leaseId
+    // is sourced from cluster state (== the data-partition Raft term); the CSL
+    // record's own LeaderMessageSequence is stamped by 'ClusterStateRaft'.
+    bmqp_ctrlmsg::ClusterMessage            clusterMessage(d_allocator_p);
+    bmqp_ctrlmsg::PartitionPrimaryAdvisory& adv =
+        clusterMessage.choice().makePartitionPrimaryAdvisory();
+    adv.sequenceNumber().electorTerm() = d_clusterStateRaft_mp->currentTerm();
+    adv.sequenceNumber().sequenceNumber() = 0;
+    adv.partitions().reserve(partitions.size());
+    for (size_t pid = 0; pid < partitions.size(); ++pid) {
+        bmqp_ctrlmsg::PartitionPrimaryInfo pmi;
+        pmi.partitionId()    = static_cast<int>(pid);
+        pmi.primaryNodeId()  = partitions[pid].primaryNodeId();
+        pmi.primaryLeaseId() = partitions[pid].primaryLeaseId();
+        adv.partitions().push_back(pmi);
+    }
+
+    BALL_LOG_INFO
+        << d_clusterData_p->identity().description()
+        << ": CSL leader publishing artificial partitionPrimaryAdvisory "
+        << "for " << adv.partitions().size()
+        << " partition(s) to keep the CSL leaseIds in step with the "
+        << "journal (term) for legacy interoperability: " << adv;
+
+    int rc = d_clusterStateRaft_mp->propose(clusterMessage);
+    if (0 != rc) {
+        BALL_LOG_WARN
+            << d_clusterData_p->identity().description()
+            << ": failed to propose artificial partitionPrimaryAdvisory"
+            << ", rc: " << rc << ". Will retry on the next leadership "
+            << "or CSL commit event.";
+    }
 }
 
 void ClusterOrchestrator::onQueueStorageReady(int              partitionId,
@@ -2164,33 +2310,115 @@ void ClusterOrchestrator::maybeTransitionToAvailable()
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
 
-    // One-shot, and never while shutting down: nothing to do unless the node
-    // is still in a pre-available (starting) state.
-    const bmqp_ctrlmsg::NodeStatus::Value selfStatus =
-        d_clusterData_p->membership().selfNodeStatus();
-    if (bmqp_ctrlmsg::NodeStatus::E_AVAILABLE == selfStatus ||
-        bmqp_ctrlmsg::NodeStatus::E_STOPPING == selfStatus) {
+    // This is the single unified readiness check, invoked from two
+    // independent triggers: (1) a data-partition's own Raft leadership
+    // changing ('onPartitionRaftLeadershipDispatched'), and (2) the CSL's
+    // leadership/commit events ('ClusterStateRaft's availability callback).
+    // Raft-mode only (this callback is never wired in legacy mode).
+    if (!d_clusterStateRaft_mp) {
+        return;  // RETURN (legacy mode)
+    }
+
+    if (bmqp_ctrlmsg::NodeStatus::E_STOPPING ==
+        d_clusterData_p->membership().selfNodeStatus()) {
+        return;  // RETURN (shutting down)
+    }
+
+    if (bmqp_ctrlmsg::NodeStatus::E_AVAILABLE ==
+        d_clusterData_p->membership().selfNodeStatus()) {
+        return;  // RETURN (recursive)
+    }
+
+    const mqbc::ClusterState::PartitionsInfo& partitions =
+        d_clusterState_p->partitions();
+
+    // every partition must have a locally-known leader (the
+    // data-partition Raft's own leadership signal).  Nothing below --
+    // issuing the combined advisory, or checking it against this node's
+    // knowledge -- can proceed until this holds for all partitions.
+    for (size_t pid = 0; pid < partitions.size(); ++pid) {
+        if (0 == partitions[pid].primaryNode() ||
+            0 == partitions[pid].primaryLeaseId()) {
+            BALL_LOG_INFO << d_clusterData_p->identity().description()
+                          << ": maybeTransitionToAvailable blocked: "
+                          << "partition " << pid << " missing leader "
+                          << "(node=" << partitions[pid].primaryNode()
+                          << ", leaseId=" << partitions[pid].primaryLeaseId()
+                          << ")";
+            return;  // RETURN (not all partitions have leaders yet)
+        }
+    }
+
+    // the CSL must have a recognized leader (self or remote).
+    if (mqbraft::RaftNode::k_INVALID_NODE_ID ==
+        d_clusterStateRaft_mp->leaderId()) {
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << ": maybeTransitionToAvailable blocked: "
+                      << "no CSL leader yet";
+        return;  // RETURN (no recognized CSL leader yet)
+    }
+
+    // If self is the CSL leader, this is the trigger to publish the combined
+    // artificial partition-primary advisory (every partition now has a
+    // leader, per gate 1).  There is no separate become-leader no-op: this
+    // advisory's commit is what makes the CSL 'isCaughtUp()' true (Raft
+    // 5.4.2).  Self-dedups against re-proposing an identical advisory.
+    maybeIssuePartitionPrimaryAdvisory();
+
+    // the full CSL backlog must be applied (original 'isCaughtUp'
+    // purpose, independent of the advisory specifically) -- otherwise this
+    // node could serve queue reopens against a partially-replayed cluster
+    // state, minting conflicting queue/app keys instead of honoring the
+    // recovered state.
+    if (!d_isCaughtUp) {
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << ": maybeTransitionToAvailable blocked: "
+                      << "d_isCaughtUp=" << d_isCaughtUp;
         return;  // RETURN
     }
 
-    // FSM parity: hold availability until every partition has an active
-    // primary (a recognized Raft leader).  A partition cannot reach E_ACTIVE
-    // before its local journal is recovered -- 'PartitionRaft::start()' opens
-    // (and recovers) the FileStore synchronously before the election tick is
-    // scheduled -- so an all-active set already implies recovery is done; no
-    // separate recovery signal is needed (and a fresh cluster has no recovery
-    // callback at all).
-    const mqbc::ClusterState::PartitionsInfo& partitions =
-        d_clusterState_p->partitions();
+    // for every partition, the locally-observed leaseId (from
+    // its own data-partition Raft leadership) must match the leaseId
+    // confirmed by the last-committed CSL advisory.  These are two
+    // independent signals that can arrive in either order; a mismatch means
+    // one is lagging the other -- exit and wait for whichever event
+    // completes the match to re-invoke this same check.  Mirrors legacy's
+    // stale-leaseId bailout pattern.
     for (size_t pid = 0; pid < partitions.size(); ++pid) {
+        if (partitions[pid].primaryLeaseId() !=
+            partitions[pid].advisoryConfirmedLeaseId()) {
+            BALL_LOG_INFO << d_clusterData_p->identity().description()
+                          << ": maybeTransitionToAvailable blocked: "
+                          << "partition " << pid << " leaseId mismatch "
+                          << "(primaryLeaseId="
+                          << partitions[pid].primaryLeaseId()
+                          << ", advisoryConfirmedLeaseId="
+                          << partitions[pid].advisoryConfirmedLeaseId() << ")";
+            return;  // RETURN (lease mismatch; not ready)
+        }
+    }
+
+    // All gates passed: the CSL durably records every partition's current
+    // leaseId.  Activate, and for partitions this node leads, write the
+    // deferred become-leader sync point -- safe now, since the CSL already
+    // recorded this leaseId before this, the first journal record under it.
+    const int selfNodeId = d_clusterData_p->membership().selfNode()->nodeId();
+    for (size_t pid = 0; pid < partitions.size(); ++pid) {
+        if (partitions[pid].primaryNodeId() == selfNodeId &&
+            d_partitionRaftManager_mp) {
+            d_partitionRaftManager_mp->proposeDeferredSyncPoint(
+                static_cast<int>(pid));
+        }
         if (bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE !=
             partitions[pid].primaryStatus()) {
-            return;  // RETURN
+            d_clusterState_p->setPartitionPrimaryStatus(
+                static_cast<int>(pid),
+                bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE);
         }
     }
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << ": all partitions recovered and have an active primary. "
+                  << ": all partitions confirmed via the CSL advisory. "
                   << "Transitioning to AVAILABLE.";
 
     transitionToAvailable();
