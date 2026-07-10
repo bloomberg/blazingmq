@@ -86,7 +86,7 @@ void Routers::Consumer::registerSubscriptions(mqbi::QueueHandle* handle)
 }
 
 // ----------------------
-// struct Routers::Visitor
+// class Routers::Visitor
 // ----------------------
 
 Routers::Visitor::~Visitor()

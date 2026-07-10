@@ -120,7 +120,8 @@ struct TestStorage {
     }
 };
 
-struct Visitor : mqbblp::Routers::Visitor {
+class Visitor : public mqbblp::Routers::Visitor {
+  public:
     mqbi::QueueHandle*         d_handle;
     unsigned int               d_subQueueId;
     mqbblp::Routers::Consumer* d_consumer;

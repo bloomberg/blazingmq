@@ -111,7 +111,8 @@ getMessageQueueTime(const mqbi::StorageMessageAttributes& attributes)
 }
 
 /// Result of a consumer selection, populated by visitors below.
-struct FoundConsumer {
+class FoundConsumer {
+  public:
     mqbi::QueueHandle* d_handle;
     Routers::Consumer* d_consumer;
     unsigned int       d_downstreamSubscriptionId;
@@ -126,13 +127,14 @@ struct FoundConsumer {
 };
 
 /// Visitor that selects the first available consumer.
-struct OneConsumerVisitor : Routers::Visitor {
+class OneConsumerVisitor : public Routers::Visitor {
+  public:
     FoundConsumer* d_result_p;
 
     explicit OneConsumerVisitor(FoundConsumer* result)
     : d_result_p(result)
     {
-        BSLS_ASSERT_SAFE(d_result_p);
+        BSLS_ASSERT(d_result_p);
     }
 
     bool visit(mqbi::QueueHandle* handle,
@@ -149,31 +151,32 @@ struct OneConsumerVisitor : Routers::Visitor {
 
 /// Visitor that selects the first consumer whose message delay has elapsed,
 /// tracking the lowest remaining delay across all consumers.
-struct MinDelayConsumerVisitor : Routers::Visitor {
+class MinDelayConsumerVisitor : public Routers::Visitor {
+  public:
     FoundConsumer*           d_result_p;
     bsls::TimeInterval*      d_delay_p;
     bsls::TimeInterval       d_lowestDelay;
     const bsls::TimeInterval d_delta;
 
-    MinDelayConsumerVisitor(FoundConsumer*            result,
-                            bsls::TimeInterval*       delay,
-                            const bsls::TimeInterval& messageDelay,
-                            const bsls::TimeInterval& now)
+    explicit MinDelayConsumerVisitor(FoundConsumer*            result,
+                                     bsls::TimeInterval*       delay,
+                                     const bsls::TimeInterval& messageDelay,
+                                     const bsls::TimeInterval& now)
     : d_result_p(result)
     , d_delay_p(delay)
     , d_lowestDelay(k_MAX_SECONDS, k_MAX_NANOSECONDS)
     , d_delta(messageDelay - now)
     {
-        BSLS_ASSERT_SAFE(d_result_p);
-        BSLS_ASSERT_SAFE(d_delay_p);
+        BSLS_ASSERT(d_result_p);
+        BSLS_ASSERT(d_delay_p);
     }
 
     bool visit(mqbi::QueueHandle* handle,
                Routers::Consumer* consumer,
                unsigned int downstreamSubscriptionId) BSLS_KEYWORD_OVERRIDE
     {
-        BSLS_ASSERT_SAFE(handle);
-        BSLS_ASSERT_SAFE(consumer);
+        BSLS_ASSERT(handle);
+        BSLS_ASSERT(consumer);
 
         bsls::TimeInterval delayLeft = consumer->d_timeLastMessageSent +
                                        d_delta;
@@ -193,20 +196,22 @@ struct MinDelayConsumerVisitor : Routers::Visitor {
 };
 
 /// Visitor that delivers a message to every consumer without tracking.
-struct BroadcastNoTrackVisitor : Routers::Visitor {
+class BroadcastNoTrackVisitor : public Routers::Visitor {
+  private:
     const mqbi::StorageIterator* d_message_p;
 
+  public:
     explicit BroadcastNoTrackVisitor(const mqbi::StorageIterator* message)
     : d_message_p(message)
     {
-        BSLS_ASSERT_SAFE(d_message_p);
+        BSLS_ASSERT(d_message_p);
     }
 
     bool visit(mqbi::QueueHandle* handle,
                BSLA_MAYBE_UNUSED Routers::Consumer* consumer,
                unsigned int downstreamSubscriptionId) BSLS_KEYWORD_OVERRIDE
     {
-        BSLS_ASSERT_SAFE(handle);
+        BSLS_ASSERT(handle);
 
         handle->deliverMessageNoTrack(
             *d_message_p,
@@ -219,24 +224,27 @@ struct BroadcastNoTrackVisitor : Routers::Visitor {
 };
 
 /// Visitor that collects a consumer for fanout delivery.
-struct FanoutVisitor : Routers::Visitor {
+class FanoutVisitor : public Routers::Visitor {
+  private:
     QueueEngineUtil_AppsDeliveryContext::Consumers* d_consumers_p;
     const mqbi::AppMessage*                         d_appView_p;
 
-    FanoutVisitor(QueueEngineUtil_AppsDeliveryContext::Consumers* consumers,
-                  const mqbi::AppMessage*                         appView)
+  public:
+    explicit FanoutVisitor(
+        QueueEngineUtil_AppsDeliveryContext::Consumers* consumers,
+        const mqbi::AppMessage*                         appView)
     : d_consumers_p(consumers)
     , d_appView_p(appView)
     {
-        BSLS_ASSERT_SAFE(d_consumers_p);
-        BSLS_ASSERT_SAFE(d_appView_p);
+        BSLS_ASSERT(d_consumers_p);
+        BSLS_ASSERT(d_appView_p);
     }
 
     bool visit(mqbi::QueueHandle* handle,
                BSLA_MAYBE_UNUSED Routers::Consumer* consumer,
                unsigned int downstreamSubscriptionId) BSLS_KEYWORD_OVERRIDE
     {
-        BSLS_ASSERT_SAFE(handle);
+        BSLS_ASSERT(handle);
 
         (*d_consumers_p)[handle].push_back(
             bmqp::SubQueueInfo(downstreamSubscriptionId,
@@ -247,21 +255,23 @@ struct FanoutVisitor : Routers::Visitor {
 };
 
 /// Visitor that collects all consumers for broadcast delivery.
-struct BroadcastVisitor : Routers::Visitor {
+class BroadcastVisitor : public Routers::Visitor {
+  private:
     QueueEngineUtil_AppsDeliveryContext::Consumers* d_consumers_p;
 
+  public:
     explicit BroadcastVisitor(
         QueueEngineUtil_AppsDeliveryContext::Consumers* consumers)
     : d_consumers_p(consumers)
     {
-        BSLS_ASSERT_SAFE(d_consumers_p);
+        BSLS_ASSERT(d_consumers_p);
     }
 
     bool visit(mqbi::QueueHandle* handle,
                BSLA_MAYBE_UNUSED Routers::Consumer* consumer,
                unsigned int downstreamSubscriptionId) BSLS_KEYWORD_OVERRIDE
     {
-        BSLS_ASSERT_SAFE(handle);
+        BSLS_ASSERT(handle);
 
         (*d_consumers_p)[handle].push_back(
             bmqp::SubQueueInfo(downstreamSubscriptionId));

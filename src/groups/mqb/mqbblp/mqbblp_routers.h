@@ -639,7 +639,8 @@ class Routers {
         void loadInternals(mqbcmd::Routing* out) const;
     };
 
-    struct Visitor {
+    class Visitor {
+      public:
         virtual ~Visitor();
         virtual bool visit(mqbi::QueueHandle* handle,
                            Consumer*          consumer,
