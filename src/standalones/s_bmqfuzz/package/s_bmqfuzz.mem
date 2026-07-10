@@ -1,3 +1,4 @@
+s_bmqfuzz_bmqp_crc32c.fuzz
 s_bmqfuzz_bmqt_uri.fuzz
 s_bmqfuzz_bmqu_stringutil_match.fuzz
 s_bmqfuzz_eval.fuzz
