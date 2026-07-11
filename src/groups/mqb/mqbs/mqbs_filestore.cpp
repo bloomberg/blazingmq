@@ -584,9 +584,10 @@ int FileStore::openInNonRecoveryMode()
     return rc;
 }
 
-int FileStore::openInRecoveryMode(bsl::ostream&                    errorDescription,
-                                  QueueKeyInfoMap*                 queueKeyInfoMap,
-                                  bsl::vector<RecoveryRecordInfo>* recoveryIndex)
+int FileStore::openInRecoveryMode(
+    bsl::ostream&                   errorDescription,
+    QueueKeyInfoMap*                queueKeyInfoMap,
+    bsl::deque<RecoveryRecordInfo>* recoveryIndex)
 {
     // executed by the *DISPATCHER* thread
 
@@ -1306,15 +1307,15 @@ int FileStore::openInRecoveryMode(bsl::ostream&                    errorDescript
     return rc_SUCCESS;
 }
 
-int FileStore::recoverMessages(QueueKeyInfoMap*                 queueKeyInfoMap,
-                               bsls::Types::Uint64*             journalOffset,
-                               bsls::Types::Uint64*             qlistOffset,
-                               bsls::Types::Uint64*             dataOffset,
-                               JournalFileIterator*             jit,
-                               QlistFileIterator*               qit,
-                               DataFileIterator*                dit,
-                               bool                             withCSL,
-                               bsl::vector<RecoveryRecordInfo>* recoveryIndex)
+int FileStore::recoverMessages(QueueKeyInfoMap*                queueKeyInfoMap,
+                               bsls::Types::Uint64*            journalOffset,
+                               bsls::Types::Uint64*            qlistOffset,
+                               bsls::Types::Uint64*            dataOffset,
+                               JournalFileIterator*            jit,
+                               QlistFileIterator*              qit,
+                               DataFileIterator*               dit,
+                               bool                            withCSL,
+                               bsl::deque<RecoveryRecordInfo>* recoveryIndex)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(queueKeyInfoMap);
@@ -1745,16 +1746,9 @@ int FileStore::recoverMessages(QueueKeyInfoMap*                 queueKeyInfoMap,
 
     bsls::Types::Uint64 snapshotSeqNum = 0;
     if (recoveryIndex) {
-        snapshotSeqNum =
-            d_firstSyncPointAfterRolloverSeqNum.sequenceNumber();
-        bsls::Types::Uint64 numRaftEntries = sequenceNumber() -
-                                             snapshotSeqNum;
+        snapshotSeqNum = d_firstSyncPointAfterRolloverSeqNum.sequenceNumber();
         BALL_LOG_INFO << partitionDesc()
-                      << "Raft recovery resize: sequenceNumber()="
-                      << sequenceNumber()
-                      << ", snapshotSeqNum=" << snapshotSeqNum
-                      << ", numRaftEntries=" << numRaftEntries;
-        recoveryIndex->resize(numRaftEntries);
+                      << "Raft recovery: snapshotSeqNum=" << snapshotSeqNum;
     }
 
     // Second pass.
@@ -1846,14 +1840,13 @@ int FileStore::recoverMessages(QueueKeyInfoMap*                 queueKeyInfoMap,
             if (RecordType::e_JOURNAL_OP == rt) {
                 spType = jit->asJournalOpRecord().syncPointType();
             }
-            (*recoveryIndex)[sequenceNum - snapshotSeqNum - 1] =
-                RecoveryRecordInfo(sequenceNum,
-                                   primaryLeaseId,
+            recoveryIndex->push_front(
+                RecoveryRecordInfo(primaryLeaseId,
                                    jit->recordOffset(),
                                    currentDataOffset,
                                    rt,
                                    DataStoreRecordHandle(),
-                                   spType);
+                                   spType));
         }
 
         // Update journal file offset only if its the last record in the
@@ -5919,7 +5912,7 @@ int FileStore::open(QueueKeyInfoMap* queueKeyInfoMap)
     return rc_SUCCESS;
 }
 
-int FileStore::openForRaft(bsl::vector<RecoveryRecordInfo>* recoveryIndex)
+int FileStore::openForRaft(bsl::deque<RecoveryRecordInfo>* recoveryIndex)
 {
     BSLS_ASSERT_SAFE(inDispatcherThread());
     BSLS_ASSERT_SAFE(recoveryIndex);

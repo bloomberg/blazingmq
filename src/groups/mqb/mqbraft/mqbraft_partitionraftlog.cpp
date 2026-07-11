@@ -252,8 +252,7 @@ int PartitionRaftLog::append(bsls::Types::Uint64                 term,
             return rc;
         }
 
-        d_index.push_back(EntryInfo(pw.d_sequenceNumber,
-                                    term,
+        d_index.push_back(EntryInfo(term,
                                     pw.d_journalOffset,
                                     pw.d_dataOffset,
                                     pw.d_recordType,
@@ -286,8 +285,9 @@ int PartitionRaftLog::append(bsls::Types::Uint64                 term,
     }
 
     // 'writeFormattedRecord' fills the physical metadata; the Raft layer owns
-    // the sequence number (index) and primary lease id (term).
-    info.d_sequenceNum    = lastIndex() + 1;
+    // the primary lease id (term), which 'term()' reads back for the log
+    // consistency check.  Without this the entry reads as term 0 and every
+    // subsequent AppendEntries fails the prevLogTerm check and truncates.
     info.d_primaryLeaseId = term;
     d_index.push_back(info);
 
@@ -484,9 +484,6 @@ void PartitionRaftLog::applyCommittedEntryAsReplica(bsls::Types::Uint64 index,
 {
     const EntryInfo& entryInfo = d_index[index - d_snapshotIndex - 1];
 
-    // TODO (raft): do we need entryInfo.d_sequenceNum?
-    BSLS_ASSERT_SAFE(entryInfo.d_sequenceNum == index);
-
     const mqbs::DataStoreRecordHandle handle      = entryInfo.d_handle;
 
     d_fileStore_p->onRecordCommittedReplica(data, handle);
@@ -579,9 +576,6 @@ bsls::Types::Uint64 PartitionRaftLog::snapshotTerm() const
 bool PartitionRaftLog::isRollover(bsls::Types::Uint64 index) const
 {
     const EntryInfo& entryInfo = d_index[index - d_snapshotIndex - 1];
-
-    // TODO (raft): do we need entryInfo.d_sequenceNum?
-    BSLS_ASSERT_SAFE(entryInfo.d_sequenceNum == index);
 
     const mqbs::RecordType::Enum    recordType    = entryInfo.d_recordType;
     const mqbs::SyncPointType::Enum syncPointType = entryInfo.d_syncPointType;

@@ -162,8 +162,7 @@ bsl::ostream& DataStoreConfig::print(bsl::ostream& stream,
 // -----------------
 
 RecoveryRecordInfo::RecoveryRecordInfo()
-: d_sequenceNum(0)
-, d_primaryLeaseId(0)
+: d_primaryLeaseId(0)
 , d_journalOffset(0)
 , d_dataOffset(0)
 , d_recordType(RecordType::e_UNDEFINED)
@@ -172,15 +171,13 @@ RecoveryRecordInfo::RecoveryRecordInfo()
 {
 }
 
-RecoveryRecordInfo::RecoveryRecordInfo(bsls::Types::Uint64 sequenceNum,
-                                       bsls::Types::Uint64 primaryLeaseId,
+RecoveryRecordInfo::RecoveryRecordInfo(bsls::Types::Uint64 primaryLeaseId,
                                        bsls::Types::Uint64 journalOffset,
                                        bsls::Types::Uint64 dataOffset,
                                        RecordType::Enum    recordType,
                                        const DataStoreRecordHandle& handle,
                                        SyncPointType::Enum syncPointType)
-: d_sequenceNum(sequenceNum)
-, d_primaryLeaseId(primaryLeaseId)
+: d_primaryLeaseId(primaryLeaseId)
 , d_journalOffset(journalOffset)
 , d_dataOffset(dataOffset)
 , d_recordType(recordType)

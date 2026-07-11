@@ -81,11 +81,11 @@ class PartitionRaftLog : public RaftLog {
     typedef mqbs::FileStore::PendingWrite PendingWrite;
 
     // DATA
-    mqbs::FileStore*       d_fileStore_p;
-    bsl::vector<EntryInfo> d_index;
-    bsls::Types::Uint64    d_snapshotIndex;
-    bsls::Types::Uint64    d_snapshotTerm;
-    bslma::Allocator*      d_allocator_p;
+    mqbs::FileStore*      d_fileStore_p;
+    bsl::deque<EntryInfo> d_index;
+    bsls::Types::Uint64   d_snapshotIndex;
+    bsls::Types::Uint64   d_snapshotTerm;
+    bslma::Allocator*     d_allocator_p;
 
     /// FIFO of writes to append.  During normal operation this holds at most
     /// one entry (enqueued by `setPendingWrite`, consumed by `append`). During

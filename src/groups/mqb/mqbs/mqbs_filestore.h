@@ -548,9 +548,9 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// be treated as fatal.  Also note that file store will attempt to
     /// recover any outstanding messages from the files found at the
     /// location indicated by the configuration of this instance.
-    int openInRecoveryMode(bsl::ostream&                    errorDescription,
-                           QueueKeyInfoMap*                 queueKeyInfoMap,
-                           bsl::vector<RecoveryRecordInfo>* recoveryIndex = 0);
+    int openInRecoveryMode(bsl::ostream&                   errorDescription,
+                           QueueKeyInfoMap*                queueKeyInfoMap,
+                           bsl::deque<RecoveryRecordInfo>* recoveryIndex = 0);
 
     /// Make two passes over the journal file iterator `jit` in reverse
     /// iteration.
@@ -571,15 +571,15 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// undefined unless the journal iterator `jit` is in reverse mode.
     ///
     /// WARNING: This method invalidates all iterators.
-    int recoverMessages(QueueKeyInfoMap*                 queueKeyInfoMap,
-                        bsls::Types::Uint64*             journalOffset,
-                        bsls::Types::Uint64*             qlistOffset,
-                        bsls::Types::Uint64*             dataOffset,
-                        JournalFileIterator*             jit,
-                        QlistFileIterator*               qit,
-                        DataFileIterator*                dit,
-                        bool                             withCSL,
-                        bsl::vector<RecoveryRecordInfo>* recoveryIndex = 0);
+    int recoverMessages(QueueKeyInfoMap*                queueKeyInfoMap,
+                        bsls::Types::Uint64*            journalOffset,
+                        bsls::Types::Uint64*            qlistOffset,
+                        bsls::Types::Uint64*            dataOffset,
+                        JournalFileIterator*            jit,
+                        QlistFileIterator*              qit,
+                        DataFileIterator*               dit,
+                        bool                            withCSL,
+                        bsl::deque<RecoveryRecordInfo>* recoveryIndex = 0);
 
     /// Rollover the outstanding messages belonging to the storages mapped
     /// to this file store, from active file set into the rollover file set,
@@ -860,7 +860,7 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// `recoveryIndex` with a `RecoveryRecordInfo` for every journal
     /// record after the rollover boundary, in forward order.  Return zero
     /// on success, non-zero value otherwise.
-    int openForRaft(bsl::vector<RecoveryRecordInfo>* recoveryIndex);
+    int openForRaft(bsl::deque<RecoveryRecordInfo>* recoveryIndex);
 
     /// Close this instance.  If the optional `flush` flag is true, flush
     /// the data store to disk.  If the optional `archive` flag is true,
