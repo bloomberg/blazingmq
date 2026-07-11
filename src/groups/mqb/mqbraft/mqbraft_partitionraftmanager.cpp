@@ -567,6 +567,20 @@ void PartitionRaftManager::proposeDeferredSyncPoint(int partitionId)
         bdlf::BindUtil::bind(&PartitionRaft::proposeDeferredSyncPoint, raft));
 }
 
+void PartitionRaftManager::onPeerNodeStopping()
+{
+    // executed by the *CLUSTER DISPATCHER* thread
+
+    for (unsigned int i = 0; i < d_partitionRafts.size(); ++i) {
+        PartitionRaft* raft = d_partitionRafts[i].get();
+        if (raft) {
+            raft->execute(
+                bdlf::BindUtil::bind(&PartitionRaft::proposeShutdownSyncPoint,
+                                     raft));
+        }
+    }
+}
+
 void PartitionRaftManager::processShutdownEvent()
 {
     // executed by the *CLUSTER DISPATCHER* thread
@@ -576,15 +590,15 @@ void PartitionRaftManager::processShutdownEvent()
     // This is the early "notify" event (graceful-drain phase), distinct from
     // the later 'stop()' (final teardown, right before closing FileStores).
     // Unlike legacy ('mqbc::StorageUtil::processShutdownEventDispatched'),
-    // Raft needs neither a forced final sync point nor a
-    // 'PrimaryStatusAdvisory' broadcast here:
-    //  - A forced sync point exists in legacy so a replica knows exactly where
-    //    to stop applying storage events; Raft replicas already derive the
-    //    commit boundary from 'AppendEntries' (leaderCommit,
-    //    prevLogIndex/prevLogTerm), so no special last-entry convention is
-    //    needed.  'FileStore::issueSyncPoint()' is a direct, non-replicated
-    //    write and asserts '!isRaft()' -- calling it here would be both
-    //    unnecessary and illegal.
+    // Raft needs neither a forced final sync point for intra-Raft replica
+    // consistency nor a 'PrimaryStatusAdvisory' broadcast here:
+    //  - Raft replicas already derive the commit boundary from
+    //    'AppendEntries' (leaderCommit, prevLogIndex/prevLogTerm), so no
+    //    special last-entry convention is needed among Raft nodes themselves.
+    //    'FileStore::issueSyncPoint()' is a direct, non-replicated write and
+    //    asserts '!isRaft()' -- calling it here would be both unnecessary and
+    //    illegal; the Raft-safe equivalent is
+    //    'PartitionRaft::proposeSyncPoint' (see below).
     //  - Every node derives partition-primary/gate readiness locally from Raft
     //    leadership (see the leadership-change block in
     //    'PartitionRaft::dispatchOutput'), not from an advisory broadcast by
@@ -598,17 +612,37 @@ void PartitionRaftManager::processShutdownEvent()
     // completes.  'stop()' remains reserved for final teardown, immediately
     // before 'FileStore::close()' (see 'stop()' below).
     //
-    // What Raft does need here: 'd_isStopping' set on the FileStore, since it
-    // gates the write path (e.g. 'formatQueueCreationRecord' rejects writes
-    // once stopping).  'FileStore::processShutdownEvent()' sets exactly that
-    // and is already Raft-safe (no '!isRaft()' assertion).
+    // What Raft DOES need here, despite the above: a final sync point for
+    // *legacy-recovery interop*.  Legacy's no-peers-available recovery
+    // fallback (and any later restart into the legacy binary) trusts the
+    // journal only up to its last recognized sync point and truncates
+    // anything after it; Raft otherwise only writes one (the become-leader
+    // sync point), so every entry committed since would be silently dropped
+    // on such a restart.  Proposing it here -- before 'd_isStopping' is set
+    // below -- lets it go out immediately via 'dispatchOutput' while the tick
+    // is still alive, so it reaches followers well before channels close.
+    // No-op on a node that isn't the leader for that partition.
+    //
+    // Also needed here: 'd_isStopping' set on the FileStore, since it gates
+    // the write path (e.g. 'formatQueueCreationRecord' rejects writes once
+    // stopping).  'FileStore::processShutdownEvent()' sets exactly that and
+    // is already Raft-safe (no '!isRaft()' assertion).
     for (unsigned int i = 0; i < d_fileStores.size(); ++i) {
         const FileStoreSp& fs = d_fileStores[i];
-        if (fs) {
-            fs->execute(
-                bdlf::BindUtil::bind(&mqbs::FileStore::processShutdownEvent,
-                                     fs.get()));
+        if (!fs) {
+            continue;  // CONTINUE
         }
+
+        PartitionRaft* raft = d_partitionRafts[i].get();
+        if (raft) {
+            raft->execute(
+                bdlf::BindUtil::bind(&PartitionRaft::proposeShutdownSyncPoint,
+                                     raft));
+        }
+
+        fs->execute(
+            bdlf::BindUtil::bind(&mqbs::FileStore::processShutdownEvent,
+                                 fs.get()));
     }
 }
 

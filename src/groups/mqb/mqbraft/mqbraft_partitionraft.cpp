@@ -111,6 +111,22 @@ int computeEntrySize(const bdlbb::Blob& blob, int offset)
         return k_JREC_SIZE + dh->messageWords() * bmqp::Protocol::k_WORD_SIZE;
     }
     case mqbs::RecordType::e_QUEUE_OP: {
+        // A QUEUE_OP carries an inline qlist payload only when its journal
+        // record references one -- i.e. 'queueUriRecordOffsetWords() > 0'
+        // (CREATION/ADDITION when qlist-aware).  PURGE/DELETION ops, and any
+        // op when not qlist-aware, have none.  This mirrors
+        // 'FileStore::readRecord', which appends the qlist under the same
+        // condition.  Without this check a qlist-less QUEUE_OP would blindly
+        // read the *next* entry's journal record as a QueueRecordHeader and
+        // compute a bogus (over-large) size.
+        bmqu::BlobObjectProxy<mqbs::QueueOpRecord> qop(&blob,
+                                                       pos,
+                                                       true,
+                                                       false);
+        if (!qop.isSet() || 0 == qop->queueUriRecordOffsetWords()) {
+            return k_JREC_SIZE;
+        }
+
         bmqu::BlobPosition qrhPos;
         if (0 != bmqu::BlobUtil::findOffsetSafe(&qrhPos,
                                                 blob,
@@ -969,6 +985,21 @@ void PartitionRaft::proposeDeferredSyncPoint()
     BALL_LOG_INFO << "Partition [" << d_partitionId
                   << "] writing deferred become-leader sync point (partition "
                   << "activated; CSL advisory for its leaseId has committed).";
+
+    proposeSyncPoint();
+}
+
+void PartitionRaft::proposeShutdownSyncPoint()
+{
+    // executed by the partition *DISPATCHER* thread
+    BSLS_ASSERT_SAFE(d_fileStore_sp->inDispatcherThread());
+
+    if (!isLeader()) {
+        return;  // RETURN
+    }
+
+    BALL_LOG_INFO << "Partition [" << d_partitionId
+                  << "] writing final sync point on shutdown.";
 
     proposeSyncPoint();
 }

@@ -1133,6 +1133,13 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// Called upon leader becoming available.
     void onLeaderAvailable();
 
+    /// Called (Raft mode only) upon any peer node becoming available.  A
+    /// peer becoming available may be the primary of a partition for which
+    /// self has buffered open-queue requests that were waiting on that
+    /// primary node's availability, so re-drive queue state restore to
+    /// process them.
+    void onNodeAvailable();
+
     /// Invoked after the specified `partitionId` gets assigned to the
     /// specified `primary` with the specified `status`.  Note that null is
     /// a valid value for the `primary`, and it implies that there is no

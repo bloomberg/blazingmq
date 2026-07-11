@@ -2208,11 +2208,25 @@ bool ClusterQueueHelper::createQueue(
         const bsl::string appId(
             bmqp::QueueUtil::extractAppId(context->d_handleParameters),
             d_allocator_p);
-        if (!d_storageManager_p->hasStorage(queueContext->uri(), appId, pid)) {
+        // Gate only on the *queue* storage (empty appId asks 'hasStorage' for
+        // the queue-level check), not per-app storage.  The replica needs the
+        // queue storage to exist -- it can lag this openQueue response until
+        // the raft creation entry commits, so park until it is ready; the
+        // readiness signal ('onQueueStorageReady' -> 'onStorageReady') is
+        // itself per-queue.  It must NOT gate on the app: an unauthorized app
+        // (a removed fanout app, or one a consumer opens that was never
+        // authorized) is legitimately storage-less and would never satisfy a
+        // per-app check -- it would re-park forever on every queue-ready
+        // signal.  Once the queue storage exists, let the app slide:
+        // 'RelayQueueEngine' authorizes apps lazily and unauthorized apps just
+        // relay nothing, mirroring how the primary handles them.
+        if (!d_storageManager_p->hasStorage(queueContext->uri(),
+                                            bsl::string(),
+                                            pid)) {
             BALL_LOG_INFO << d_cluster_p->description()
                           << ": parking createQueue for '"
                           << queueContext->uri() << "' (app '" << appId
-                          << "') until local storage is ready";
+                          << "') until local queue storage is ready";
 
             QueueLiveState::StoragePendingContext pendingContext;
             pendingContext.d_context           = context;
@@ -3931,10 +3945,15 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
             // Attempt to re-issue open-queue requests for all appropriate
             // queues across *all* partitions.
 
-            if (!liveQInfo.d_queue_sp && liveQInfo.d_inFlight == 0) {
-                // Queue instance does not exist and self node is not waiting
-                // for any pending open-queue responses.  So there is no need
-                // to re-issue an open-queue request for this one.
+            if (!liveQInfo.d_queue_sp && liveQInfo.d_inFlight == 0 &&
+                liveQInfo.d_pending.empty()) {
+                // Queue instance does not exist, self node is not waiting for
+                // any pending open-queue responses, and there are no buffered
+                // open-queue contexts awaiting a primary.  So there is no need
+                // to re-issue an open-queue request for this one.  (A queue
+                // with pending contexts must NOT be skipped: those contexts
+                // are buffered opens that only get drained by the restore
+                // reaching 'onQueueContextAssigned' below.)
 
                 // TBD: Log at INFO level for now, but eventually should be
                 //      lowered to DEBUG/TRACE.
@@ -5733,6 +5752,29 @@ void ClusterQueueHelper::onLeaderAvailable()
 
     BALL_LOG_INFO << d_cluster_p->description()
                   << ": On leader available, restoring state.";
+
+    restoreState(mqbi::Storage::k_ANY_PARTITION_ID);
+}
+
+void ClusterQueueHelper::onNodeAvailable()
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+    BSLS_ASSERT_SAFE(!d_cluster_p->isRemote());
+    BSLS_ASSERT_SAFE(d_cluster_p->isRaftEnabled());
+
+    // In Raft a partition primary is reported E_ACTIVE for its partition as
+    // soon as it wins leadership, but its *node* only reaches E_AVAILABLE once
+    // all of its partitions have leaders; 'hasActiveAvailablePrimary' gates on
+    // both.  Open-queue requests that arrive in that window are buffered in
+    // 'd_pending' awaiting the primary node's availability.  Re-drive state
+    // restore on any peer becoming available so those pending contexts get
+    // processed.  Idempotent: restore dedups via reopen cycles / in-flight
+    // tracking, so re-running it for an unrelated peer is a harmless no-op.
+    BALL_LOG_INFO << d_cluster_p->description()
+                  << ": On node available, restoring state.";
 
     restoreState(mqbi::Storage::k_ANY_PARTITION_ID);
 }

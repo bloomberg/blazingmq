@@ -1007,6 +1007,11 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// success, non-zero on error.
     int truncateData(bsls::Types::Uint64 offset);
 
+    /// Truncate the qlist file at the specified 'offset'.  A no-op returning
+    /// 0 when this partition is not qlist-aware.  Return 0 on success,
+    /// non-zero on error.
+    int truncateQlist(bsls::Types::Uint64 offset);
+
     /// Remove from 'd_records' all entries whose journal offset is at or
     /// above the specified 'journalOffset'.  Reverse-walks from the tail,
     /// relying on the monotonic relationship between sequence numbers and

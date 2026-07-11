@@ -310,6 +310,21 @@ class PartitionRaftManager : public mqbi::StorageProvider,
     ///
     /// THREAD: May be called from the cluster dispatcher thread.
     void proposeDeferredSyncPoint(int partitionId);
+
+    /// Called when a peer node has announced it is stopping ('StopRequest' or
+    /// 'NodeStatusAdvisory{E_STOPPING}').  For every partition this node
+    /// leads, propose one more sync point (a no-op on partitions this node
+    /// doesn't lead) -- mirroring legacy's
+    /// 'StorageManager::processReplicaStatusAdvisory' ->
+    /// 'forceIssueAdvisoryAndSyncPt', which force-issues a sync point for the
+    /// same reason: the stopping peer is still connected at this point (this
+    /// notification fires before it tears down its channel), so the resulting
+    /// 'AppendEntries' reaches it and gives its own journal a fresh
+    /// legacy-recognizable checkpoint before it goes down, instead of relying
+    /// solely on the become-leader sync point from potentially long ago.
+    ///
+    /// THREAD: Called from the cluster dispatcher thread.
+    void onPeerNodeStopping();
 };
 
 // ============================================================================

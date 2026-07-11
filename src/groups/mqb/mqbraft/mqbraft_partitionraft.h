@@ -283,6 +283,27 @@ class PartitionRaft : public mqbs::RecordStore {
     /// THREAD: Executed by this partition's dispatcher thread.
     void proposeDeferredSyncPoint();
 
+    /// Write one more sync point, if this node is the leader, so whichever
+    /// node is about to lose contact (self, on its own graceful shutdown, or
+    /// a peer that just announced it is stopping) has a legacy-recognizable
+    /// boundary marker covering everything committed so far.  Unlike
+    /// 'proposeDeferredSyncPoint', this is unconditional (not gated on "no
+    /// entry appended yet this term"). Called from two sites:
+    /// 'PartitionRaftManager::processShutdownEvent' (self is shutting down)
+    /// and 'PartitionRaftManager::onPeerNodeStopping' (a peer announced it is
+    /// stopping, while still connected -- mirroring legacy's
+    /// 'StorageUtil::processShutdownEventDispatched' and
+    /// 'StorageUtil::processReplicaStatusAdvisoryDispatched' respectively).
+    /// Without this, entries committed after the become-leader sync point
+    /// (i.e. essentially all writes in the term) have no trailing sync point,
+    /// so legacy's no-peers-available recovery fallback -- which trusts the
+    /// journal only up to its last recognized sync point -- truncates them
+    /// away on a restart into legacy mode (or Raft's own local-fallback
+    /// path). No-op if not leader.
+    ///
+    /// THREAD: Executed by this partition's dispatcher thread.
+    void proposeShutdownSyncPoint();
+
     /// Propose the write described by the specified `pw` for replication.
     /// This is the single entry point for every Raft partition write: it
     /// computes the rollover footprint from `pw`, runs `rolloverIfNeeded`
