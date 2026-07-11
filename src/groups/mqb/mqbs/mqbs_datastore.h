@@ -599,7 +599,20 @@ bool operator!=(const DataStoreRecordHandle& lhs,
 struct RecoveryRecordInfo {
     bsls::Types::Uint64 d_primaryLeaseId;
     bsls::Types::Uint64 d_journalOffset;
+
+    /// Data-file position as of this entry: the payload start for a MESSAGE
+    /// record, or the current data-file end for a record that writes no data.
+    /// This is the offset the data file is truncated back to when a Raft log
+    /// truncation rolls back to (and including) this entry, so that later
+    /// truncated MESSAGE payloads are removed even when this entry itself
+    /// carries no data.
     bsls::Types::Uint64 d_dataOffset;
+
+    /// Qlist-file position as of this entry, with the same truncation-anchor
+    /// semantics as `d_dataOffset` but for the qlist file (payload start for a
+    /// QUEUE_OP.CREATION/ADDITION record when qlist-aware, else the current
+    /// qlist-file end).
+    bsls::Types::Uint64 d_qlistOffset;
 
     /// Type of the journal record this entry describes.  The Raft rollover
     /// orchestration uses this to route each log entry: normal records are
@@ -621,6 +634,7 @@ struct RecoveryRecordInfo {
         bsls::Types::Uint64          primaryLeaseId,
         bsls::Types::Uint64          journalOffset,
         bsls::Types::Uint64          dataOffset,
+        bsls::Types::Uint64          qlistOffset,
         RecordType::Enum             recordType,
         const DataStoreRecordHandle& handle = DataStoreRecordHandle(),
         SyncPointType::Enum syncPointType   = SyncPointType::e_UNDEFINED);

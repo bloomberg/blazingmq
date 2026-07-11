@@ -1125,12 +1125,7 @@ void ClusterOrchestrator::processNodeStoppingNotification(
 
     // For each partition for which self is primary, notify the StorageMgr
     // about the status of a peer node.  Self may end up issuing a
-    // (non-scheduled) sync point to the node.  Legacy-only
-    // ('d_storageManager_p' is null in Raft mode): Raft has no equivalent
-    // notification -- a stopping peer is naturally detected via missed
-    // heartbeats/AppendEntries, and reconnection catch-up is handled by
-    // Raft's own protocol (leader/nextIndex backtracking), so no explicit
-    // sync point or per-partition flush wait is needed here.
+    // (non-scheduled) sync point to the node.
 
     // 'processNodeStoppingNotification' is blocking for Primary (non-blocking)
     // for Replicas.
@@ -1153,6 +1148,19 @@ void ClusterOrchestrator::processNodeStoppingNotification(
         }
 
         latch.wait();
+    }
+    else if (d_partitionRaftManager_mp) {
+        // Raft equivalent of the legacy branch above: the stopping peer is
+        // still connected at this point (its channel isn't closed until
+        // later in its own shutdown sequence), so proposing one more sync
+        // point now -- for every partition self leads -- reaches it via the
+        // normal 'AppendEntries' path and gives its journal a checkpoint
+        // covering everything committed so far, instead of leaving it to
+        // fall back on a potentially long-stale become-leader sync point.
+        // Non-blocking: the write lands on the partition dispatcher thread
+        // almost immediately, and unlike legacy there is no flush/latch to
+        // wait on here.
+        d_partitionRaftManager_mp->onPeerNodeStopping();
     }
 
     context_sp.reset();
@@ -1241,6 +1249,23 @@ void ClusterOrchestrator::processNodeStatusAdvisory(
                  source->nodeId() ==
                      d_clusterData_p->electorInfo().leaderNodeId()) {
             d_queueHelper.onLeaderAvailable();
+        }
+
+        if (d_cluster_p->isRaftEnabled()) {
+            // Independent of the leader-focused branches above: a peer
+            // transitioning to AVAILABLE may be the primary of a partition for
+            // which self has buffered open-queue requests that were waiting on
+            // that primary node's availability.  In Raft a partition primary
+            // is reported E_ACTIVE for its partition as soon as it wins
+            // leadership, but its *node* only reaches E_AVAILABLE once all of
+            // its partitions have leaders, and 'hasActiveAvailablePrimary'
+            // gates on both.  This must run on *every* node, including the CSL
+            // leader itself (which the first branch above would otherwise
+            // capture), since the leader can be the node holding the pending
+            // contexts.  Idempotent: restore dedups via reopen cycles /
+            // in-flight tracking, so re-running it -- or double-running it
+            // with 'onLeaderAvailable' -- is a harmless no-op.
+            d_queueHelper.onNodeAvailable();
         }
 
         // For each partition for which self is primary, notify the storageMgr

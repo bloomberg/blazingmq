@@ -255,6 +255,7 @@ int PartitionRaftLog::append(bsls::Types::Uint64                 term,
         d_index.push_back(EntryInfo(term,
                                     pw.d_journalOffset,
                                     pw.d_dataOffset,
+                                    pw.d_qlistOffset,
                                     pw.d_recordType,
                                     pw.d_handle,
                                     pw.d_syncPointType));
@@ -315,14 +316,20 @@ int PartitionRaftLog::truncateFrom(bsls::Types::Uint64 index)
         return -1;
     }
 
+    // Each entry caches the data- and qlist-file positions as of that entry,
+    // so the first truncated entry already carries the exact offsets to roll
+    // both files back to -- even when it carries no payload of its own (its
+    // offsets then point at the next payload / file end).  No scan needed.
     bsls::Types::Uint64 vectorIdx     = index - d_snapshotIndex - 1;
     bsls::Types::Uint64 journalOffset = d_index[vectorIdx].d_journalOffset;
     bsls::Types::Uint64 dataOffset    = d_index[vectorIdx].d_dataOffset;
+    bsls::Types::Uint64 qlistOffset   = d_index[vectorIdx].d_qlistOffset;
 
     BALL_LOG_WARN << "Raft log truncation from index " << index
                   << " (lastIndex=" << lastIndex()
                   << ", journalOffset=" << journalOffset
-                  << ", dataOffset=" << dataOffset << "). Removing "
+                  << ", dataOffset=" << dataOffset
+                  << ", qlistOffset=" << qlistOffset << "). Removing "
                   << (d_index.size() - vectorIdx) << " entries.";
 
     d_fileStore_p->truncateRecords(journalOffset);
@@ -334,6 +341,13 @@ int PartitionRaftLog::truncateFrom(bsls::Types::Uint64 index)
 
     if (dataOffset > 0) {
         rc = d_fileStore_p->truncateData(dataOffset);
+        if (rc != 0) {
+            return rc;
+        }
+    }
+
+    if (qlistOffset > 0) {
+        rc = d_fileStore_p->truncateQlist(qlistOffset);
         if (rc != 0) {
             return rc;
         }
