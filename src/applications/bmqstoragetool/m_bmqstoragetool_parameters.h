@@ -29,21 +29,14 @@
 #include <m_bmqstoragetool_compositesequencenumber.h>
 #include <m_bmqstoragetool_queuemap.h>
 
-// MQB
-#include <mqbs_datafileiterator.h>
-#include <mqbs_filestoreprotocol.h>
-#include <mqbs_journalfileiterator.h>
-#include <mqbs_mappedfiledescriptor.h>
-
-// BMQ
-#include <bmqu_stringutil.h>
-
 // BDE
 #include <bsl_iosfwd.h>
 #include <bsl_optional.h>
 #include <bsl_string.h>
 #include <bsl_vector.h>
 #include <bslma_allocator.h>
+#include <bslma_usesbslmaallocator.h>
+#include <bslmf_nestedtraitdeclaration.h>
 #include <bsls_types.h>
 
 namespace BloombergLP {
@@ -58,20 +51,6 @@ class CommandLineArguments {
   public:
     // PUBLIC DATA
 
-    /// Record types constants
-    static const char* k_ALL_TYPE;
-    static const char* k_MESSAGE_TYPE;
-    static const char* k_QUEUEOP_TYPE;
-    static const char* k_JOURNALOP_TYPE;
-    static const char* k_CSL_ALL_TYPE;
-    static const char* k_CSL_SNAPSHOT_TYPE;
-    static const char* k_CSL_UPDATE_TYPE;
-    static const char* k_CSL_COMMIT_TYPE;
-    static const char* k_CSL_ACK_TYPE;
-    /// Print modes constants
-    static const char* k_HUMAN_MODE;
-    static const char* k_JSON_PRETTY_MODE;
-    static const char* k_JSON_LINE_MODE;
     /// List of record types to process (message, journalOp, queueOp)
     bsl::vector<bsl::string> d_recordType;
     /// List of CSL record types to process (snapshot, update, commit, ack)
@@ -131,30 +110,37 @@ class CommandLineArguments {
     int d_cslSummaryQueuesLimit;
 
     // CREATORS
+
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(CommandLineArguments,
+                                   bslma::UsesBslmaAllocator)
+
     explicit CommandLineArguments(bslma::Allocator* allocator = 0);
 
     // MANIPULATORS
     /// Validate the consistency of all settings.
-    bool validate(bsl::string* error, bslma::Allocator* allocator = 0);
+    bool validate(bsl::string* error);
 
   private:
+    // PRIVATE DATA
+
+    /// Allocator used inside the class.
+    bslma::Allocator* d_allocator_p;
+
     // PRIVATE MANIPULATORS
 
     /// Validate journal mode arguments. Write validation error into the
     /// specified `stream`.
-    void validateJournalModeArgs(bsl::ostream&     stream,
-                                 bslma::Allocator* allocator = 0);
+    void validateJournalModeArgs(bsl::ostream& stream);
 
     // PRIVATE ACCESSORS
 
     /// Validate CSL mode arguments. Write validation error into the specified
     /// `stream`.
-    void validateCslModeArgs(bsl::ostream&     stream,
-                             bslma::Allocator* allocator = 0);
+    void validateCslModeArgs(bsl::ostream& stream);
     /// Validate range args. Return true if at least one range argument passed,
     /// false otherwise.
-    bool validateRangeArgs(bsl::ostream&     error,
-                           bslma::Allocator* allocator) const;
+    bool validateRangeArgs(bsl::ostream& error) const;
 
   public:
     // CLASS METHODS
@@ -298,13 +284,19 @@ struct Parameters {
     bsl::optional<bsls::Types::Uint64> d_minRecordsPerQueue;
     /// Limit number of queues to display in CSL file summary
     unsigned int d_cslSummaryQueuesLimit;
+    /// Allocator used inside the class.
+    bslma::Allocator* d_allocator_p;
 
     // CREATORS
+
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(Parameters, bslma::UsesBslmaAllocator)
+
     /// Constructor from the specified 'aruments'
     explicit Parameters(const CommandLineArguments& aruments,
                         bslma::Allocator*           allocator = 0);
 
-    void validateQueueNames(bslma::Allocator* allocator = 0) const;
+    void validateQueueNames() const;
 };
 
 }  // close package namespace

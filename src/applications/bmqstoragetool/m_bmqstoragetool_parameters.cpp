@@ -43,9 +43,11 @@
 #include <bsl_iostream.h>
 #include <bsl_sstream.h>
 #include <bsl_stdexcept.h>
+#include <bsl_string_view.h>
 #include <bsl_vector.h>
 #include <bslim_printer.h>
 #include <bslma_allocator.h>
+#include <bslma_default.h>
 #include <bsls_assert.h>
 #include <bsls_types.h>
 
@@ -81,24 +83,26 @@ bool isValidSequenceNumber(bsl::ostream& error, const bsl::string& seqNumStr)
     return success;
 }
 
+/// Record types constants
+const bsl::string_view k_ALL_TYPE          = "all";
+const bsl::string_view k_MESSAGE_TYPE      = "message";
+const bsl::string_view k_QUEUEOP_TYPE      = "queue-op";
+const bsl::string_view k_JOURNALOP_TYPE    = "journal-op";
+const bsl::string_view k_CSL_ALL_TYPE      = "all";
+const bsl::string_view k_CSL_SNAPSHOT_TYPE = "snapshot";
+const bsl::string_view k_CSL_UPDATE_TYPE   = "update";
+const bsl::string_view k_CSL_COMMIT_TYPE   = "commit";
+const bsl::string_view k_CSL_ACK_TYPE      = "ack";
+/// Print modes constants
+const bsl::string_view k_HUMAN_MODE       = "human";
+const bsl::string_view k_JSON_PRETTY_MODE = "json-pretty";
+const bsl::string_view k_JSON_LINE_MODE   = "json-line";
+
 }  // close unnamed namespace
 
 // ==========================
 // class CommandLineArguments
 // ==========================
-
-const char* CommandLineArguments::k_ALL_TYPE          = "all";
-const char* CommandLineArguments::k_MESSAGE_TYPE      = "message";
-const char* CommandLineArguments::k_QUEUEOP_TYPE      = "queue-op";
-const char* CommandLineArguments::k_JOURNALOP_TYPE    = "journal-op";
-const char* CommandLineArguments::k_CSL_ALL_TYPE      = "all";
-const char* CommandLineArguments::k_CSL_SNAPSHOT_TYPE = "snapshot";
-const char* CommandLineArguments::k_CSL_UPDATE_TYPE   = "update";
-const char* CommandLineArguments::k_CSL_COMMIT_TYPE   = "commit";
-const char* CommandLineArguments::k_CSL_ACK_TYPE      = "ack";
-const char* CommandLineArguments::k_HUMAN_MODE        = "human";
-const char* CommandLineArguments::k_JSON_PRETTY_MODE  = "json-pretty";
-const char* CommandLineArguments::k_JSON_LINE_MODE    = "json-line";
 
 CommandLineArguments::CommandLineArguments(bslma::Allocator* allocator)
 : d_recordType(allocator)
@@ -129,14 +133,14 @@ CommandLineArguments::CommandLineArguments(bslma::Allocator* allocator)
 , d_partiallyConfirmed(false)
 , d_minRecordsPerQueue(0)
 , d_cslSummaryQueuesLimit(0)
+, d_allocator_p(bslma::Default::allocator(allocator))
 {
     // NOTHING
 }
 
-bool CommandLineArguments::validate(bsl::string*      error_p,
-                                    bslma::Allocator* allocator)
+bool CommandLineArguments::validate(bsl::string* error_p)
 {
-    bmqu::MemOutStream ss(allocator);
+    bmqu::MemOutStream ss(d_allocator_p);
 
     // Determine the mode: journal or CSL iteration.
     bool validMode = true;
@@ -149,10 +153,10 @@ bool CommandLineArguments::validate(bsl::string*      error_p,
     if (validMode) {
         if (!d_cslFile.empty() &&
             (d_journalPath.empty() && d_journalFile.empty())) {
-            validateCslModeArgs(ss, allocator);
+            validateCslModeArgs(ss);
         }
         else {
-            validateJournalModeArgs(ss, allocator);
+            validateJournalModeArgs(ss);
         }
     }
 
@@ -160,8 +164,7 @@ bool CommandLineArguments::validate(bsl::string*      error_p,
     return error_p->empty();
 }
 
-void CommandLineArguments::validateCslModeArgs(bsl::ostream&     stream,
-                                               bslma::Allocator* allocator)
+void CommandLineArguments::validateCslModeArgs(bsl::ostream& stream)
 {
     // Validate record types
     if (d_cslRecordType.size() > 4) {
@@ -174,7 +177,7 @@ void CommandLineArguments::validateCslModeArgs(bsl::ostream&     stream,
                   "passed.\n";
     }
 
-    const bool rangeArgPresent = validateRangeArgs(stream, allocator);
+    const bool rangeArgPresent = validateRangeArgs(stream);
 
     // Validate options compatibility
     if (!d_seqNum.empty() &&
@@ -194,7 +197,7 @@ void CommandLineArguments::validateCslModeArgs(bsl::ostream&     stream,
                "specific enough to find a particular record\n";
     }
     if (!d_seqNum.empty()) {
-        bmqu::MemOutStream errorDescr(allocator);
+        bmqu::MemOutStream errorDescr(d_allocator_p);
         for (bsl::vector<bsl::string>::const_iterator cit = d_seqNum.begin();
              cit != d_seqNum.end();
              ++cit) {
@@ -247,8 +250,7 @@ void CommandLineArguments::validateCslModeArgs(bsl::ostream&     stream,
                   "than zero.\n";
 }
 
-void CommandLineArguments::validateJournalModeArgs(bsl::ostream&     stream,
-                                                   bslma::Allocator* allocator)
+void CommandLineArguments::validateJournalModeArgs(bsl::ostream& stream)
 {
     // Validate record types
     if (d_recordType.size() > 3) {
@@ -311,7 +313,7 @@ void CommandLineArguments::validateJournalModeArgs(bsl::ostream&     stream,
     if (d_dataFile.empty() && d_dumpPayload) {
         stream << "Can't dump payload, because data file is not specified\n";
     }
-    if (d_dumpPayload && d_printMode != CommandLineArguments::k_HUMAN_MODE) {
+    if (d_dumpPayload && d_printMode != k_HUMAN_MODE) {
         stream << "Payload dumping is not supported for Json printing mode\n";
     }
     if (d_cslFile.empty() && !d_queueName.empty()) {
@@ -319,7 +321,7 @@ void CommandLineArguments::validateJournalModeArgs(bsl::ostream&     stream,
                   "specified\n";
     }
 
-    const bool rangeArgPresent = validateRangeArgs(stream, allocator);
+    const bool rangeArgPresent = validateRangeArgs(stream);
 
     // Validate options compatibility
     if (!d_guid.empty() &&
@@ -349,7 +351,7 @@ void CommandLineArguments::validateJournalModeArgs(bsl::ostream&     stream,
                "specific enough to find a particular message\n";
     }
     if (!d_seqNum.empty()) {
-        bmqu::MemOutStream errorDescr(allocator);
+        bmqu::MemOutStream errorDescr(d_allocator_p);
         for (bsl::vector<bsl::string>::const_iterator cit = d_seqNum.begin();
              cit != d_seqNum.end();
              ++cit) {
@@ -403,8 +405,7 @@ void CommandLineArguments::validateJournalModeArgs(bsl::ostream&     stream,
         stream << "Dump limit must be positive value greater than zero.\n";
 }
 
-bool CommandLineArguments::validateRangeArgs(bsl::ostream&     error,
-                                             bslma::Allocator* allocator) const
+bool CommandLineArguments::validateRangeArgs(bsl::ostream& error) const
 {
     if (d_timestampLt < 0 || d_timestampGt < 0 ||
         (d_timestampLt > 0 && d_timestampGt >= d_timestampLt)) {
@@ -412,7 +413,7 @@ bool CommandLineArguments::validateRangeArgs(bsl::ostream&     error,
     }
 
     if (!d_seqNumLt.empty() || !d_seqNumGt.empty()) {
-        bmqu::MemOutStream      errorDescr(allocator);
+        bmqu::MemOutStream      errorDescr(d_allocator_p);
         CompositeSequenceNumber seqNumLt, seqNumGt;
         bool                    successLt = false;
         if (!d_seqNumLt.empty()) {
@@ -596,6 +597,7 @@ Parameters::Parameters(const CommandLineArguments& arguments,
 , d_confirmed(arguments.d_confirmed)
 , d_partiallyConfirmed(arguments.d_partiallyConfirmed)
 , d_cslSummaryQueuesLimit(arguments.d_cslSummaryQueuesLimit)
+, d_allocator_p(bslma::Default::allocator(allocator))
 {
     // Determine processing mode: process Journal or CSL file
     if (!arguments.d_cslFile.empty() &&
@@ -604,10 +606,10 @@ Parameters::Parameters(const CommandLineArguments& arguments,
     }
 
     // Check print mode
-    if (arguments.d_printMode == CommandLineArguments::k_JSON_PRETTY_MODE) {
+    if (arguments.d_printMode == k_JSON_PRETTY_MODE) {
         d_printMode = e_JSON_PRETTY;
     }
-    else if (arguments.d_printMode == CommandLineArguments::k_JSON_LINE_MODE) {
+    else if (arguments.d_printMode == k_JSON_LINE_MODE) {
         d_printMode = e_JSON_LINE;
     }
     if (d_printMode != e_HUMAN && d_dumpPayload) {
@@ -625,19 +627,19 @@ Parameters::Parameters(const CommandLineArguments& arguments,
                      arguments.d_cslRecordType.begin();
                  cit != arguments.d_cslRecordType.end();
                  ++cit) {
-                if (*cit == CommandLineArguments::k_CSL_ALL_TYPE) {
+                if (*cit == k_CSL_ALL_TYPE) {
                     d_processCslRecordTypes.setAll();
                 }
-                else if (*cit == CommandLineArguments::k_CSL_SNAPSHOT_TYPE) {
+                else if (*cit == k_CSL_SNAPSHOT_TYPE) {
                     d_processCslRecordTypes.d_snapshot = true;
                 }
-                else if (*cit == CommandLineArguments::k_CSL_UPDATE_TYPE) {
+                else if (*cit == k_CSL_UPDATE_TYPE) {
                     d_processCslRecordTypes.d_update = true;
                 }
-                else if (*cit == CommandLineArguments::k_CSL_COMMIT_TYPE) {
+                else if (*cit == k_CSL_COMMIT_TYPE) {
                     d_processCslRecordTypes.d_commit = true;
                 }
-                else if (*cit == CommandLineArguments::k_CSL_ACK_TYPE) {
+                else if (*cit == k_CSL_ACK_TYPE) {
                     d_processCslRecordTypes.d_ack = true;
                 }
                 else {
@@ -656,17 +658,17 @@ Parameters::Parameters(const CommandLineArguments& arguments,
                      arguments.d_recordType.begin();
                  cit != arguments.d_recordType.end();
                  ++cit) {
-                if (*cit == CommandLineArguments::k_ALL_TYPE) {
+                if (*cit == k_ALL_TYPE) {
                     d_processRecordTypes.setAll();
                     break;  // BREAK
                 }
-                else if (*cit == CommandLineArguments::k_MESSAGE_TYPE) {
+                else if (*cit == k_MESSAGE_TYPE) {
                     d_processRecordTypes.d_message = true;
                 }
-                else if (*cit == CommandLineArguments::k_QUEUEOP_TYPE) {
+                else if (*cit == k_QUEUEOP_TYPE) {
                     d_processRecordTypes.d_queueOp = true;
                 }
-                else if (*cit == CommandLineArguments::k_JOURNALOP_TYPE) {
+                else if (*cit == k_JOURNALOP_TYPE) {
                     d_processRecordTypes.d_journalOp = true;
                 }
                 else {
@@ -737,10 +739,10 @@ Parameters::Parameters(const CommandLineArguments& arguments,
     }
 }
 
-void Parameters::validateQueueNames(bslma::Allocator* allocator) const
+void Parameters::validateQueueNames() const
 {
     // Validate given queue names agains existing in csl file
-    bmqu::MemOutStream                       ss(allocator);
+    bmqu::MemOutStream                       ss(d_allocator_p);
     bsl::vector<bsl::string>::const_iterator it = d_queueName.cbegin();
     for (; it != d_queueName.cend(); ++it) {
         if (!d_queueMap.findKeyByUri(*it).has_value()) {
