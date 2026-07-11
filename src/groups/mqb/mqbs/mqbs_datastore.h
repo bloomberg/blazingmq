@@ -597,7 +597,6 @@ bool operator!=(const DataStoreRecordHandle& lhs,
 /// Lightweight metadata for a journal record, collected during FileStore
 /// recovery and used as the Raft log index entry type.
 struct RecoveryRecordInfo {
-    bsls::Types::Uint64 d_sequenceNum;
     bsls::Types::Uint64 d_primaryLeaseId;
     bsls::Types::Uint64 d_journalOffset;
     bsls::Types::Uint64 d_dataOffset;
@@ -619,7 +618,6 @@ struct RecoveryRecordInfo {
     RecoveryRecordInfo();
 
     RecoveryRecordInfo(
-        bsls::Types::Uint64          sequenceNum,
         bsls::Types::Uint64          primaryLeaseId,
         bsls::Types::Uint64          journalOffset,
         bsls::Types::Uint64          dataOffset,
