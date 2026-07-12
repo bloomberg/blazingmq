@@ -86,6 +86,11 @@ void FileBackedStorage::purgeCommon(const mqbu::StorageKey& appKey,
 
         d_handles.clear();
 
+        // Clear auto-confirm state to prevent dangling references
+        d_autoConfirmHandles.clear();
+        d_autoConfirmApps.clear();
+        d_currentlyAutoConfirming = bmqt::MessageGUID();
+
         // Update stats
         d_capacityMeter.clear();
 

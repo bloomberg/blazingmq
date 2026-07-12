@@ -292,9 +292,8 @@ void PartitionRaft::dispatchOutput(RaftNodeOutput* output)
             // leadership term is not stuck buffering every write, and drop the
             // buffered writes (never acked) and their placeholder records.
             d_isRolloverPending = false;
-            if (d_raftLog_mp->hasPendingWrites()) {
-                d_raftLog_mp->dropPendingWrites();
-            }
+
+            d_raftLog_mp->dropPendingWrites();
         }
     }
 
@@ -827,7 +826,11 @@ void PartitionRaft::fromCtrlMsg(RaftMessage*                     out,
         out->d_type = RaftMessageType::e_TIMEOUT_NOW;
     } break;
     case Choice::SELECTION_ID_INSTALL_SNAPSHOT: {
-        out->d_type = RaftMessageType::e_INSTALL_SNAPSHOT;
+        const bmqp_ctrlmsg::RaftInstallSnapshot& is =
+            msg.choice().installSnapshot();
+        out->d_type         = RaftMessageType::e_INSTALL_SNAPSHOT;
+        out->d_lastLogIndex = is.lastIncludedIndex();
+        out->d_lastLogTerm  = is.lastIncludedTerm();
     } break;
     case Choice::SELECTION_ID_INSTALL_SNAPSHOT_RESPONSE: {
         out->d_type = RaftMessageType::e_INSTALL_SNAPSHOT_RESP;
@@ -1171,6 +1174,21 @@ void PartitionRaft::execute(const mqbi::Dispatcher::VoidFunction& functor)
     d_fileStore_sp->execute(functor);
 }
 
+int PartitionRaft::close(bool flush, bool archive)
+{
+    // executed by the partition *DISPATCHER* thread
+
+    // Any pending write still sitting in the Raft log (e.g. a shutdown sync
+    // point proposed moments ago that never got a chance to commit) holds a
+    // blob aliased into the active file set.  Drop it now, while this
+    // partition's dispatcher is still alive, so 'FileStore::close' below
+    // does not leave that alias for a deferred 'FileStore::gc' to release
+    // later -- by which time the Dispatcher may already be stopped.
+    d_raftLog_mp->dropPendingWrites();
+
+    return d_fileStore_sp->close(flush, archive);
+}
+
 int PartitionRaft::rollover()
 {
     // executed by the partition *DISPATCHER* thread (admin 'rollover'
@@ -1201,6 +1219,18 @@ void PartitionRaft::appendEntries(const bdlbb::Blob&   event,
 {
     // executed by the partition *DISPATCHER* thread
     BSLS_ASSERT_SAFE(source);
+
+    if (d_receivingSnapshot) {
+        // The FileStore is closed for the duration of an InstallSnapshot
+        // transfer ('beginReceiveSnapshot'), so there is nowhere to append
+        // this entry.  Drop it: the leader learns this node's real
+        // 'matchIndex' from the InstallSnapshot response and re-sends
+        // anything past it on its next heartbeat/propose broadcast, so
+        // nothing is lost -- same as a dropped packet in ordinary Raft.
+        BALL_LOG_INFO << "Partition [" << d_partitionId
+                      << "] ignoring AppendEntries while receiving snapshot";
+        return;
+    }
 
     bmqu::BlobPosition position;
 

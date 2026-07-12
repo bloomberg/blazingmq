@@ -432,6 +432,16 @@ class PartitionRaft : public mqbs::RecordStore {
     void execute(const mqbi::Dispatcher::VoidFunction& functor)
         BSLS_KEYWORD_OVERRIDE;
 
+    /// Close this record store.  If the optional `flush` flag is true, flush
+    /// to the backup storage (e.g., disk) if applicable.  If the optional
+    /// `archive` flag is true, archive it.  Return zero on success, non-zero
+    /// value otherwise.  `PartitionRaft` first drops any outstanding pending
+    /// write (e.g. an uncommitted shutdown sync point) before delegating to
+    /// its `FileStore`, so no reference into the file set outlives this call
+    /// on account of Raft bookkeeping.  The behavior is undefined unless
+    /// called on this record store's dispatcher thread (see `execute`).
+    int close(bool flush = false, bool archive = false) BSLS_KEYWORD_OVERRIDE;
+
     /// Drive a Raft rollover (admin `rollover` command): if this node is the
     /// leader and no previous `e_ROLLOVER` is still uncommitted, propose
     /// `e_ROLLOVER` and orchestrate the rollover.  Return zero on success,

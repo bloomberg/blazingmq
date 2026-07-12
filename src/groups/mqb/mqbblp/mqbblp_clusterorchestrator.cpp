@@ -2626,14 +2626,27 @@ void ClusterOrchestrator::processRaftControlMessage(
     const bmqp_ctrlmsg::RaftMessage& message,
     mqbnet::ClusterNode*             source)
 {
-    // executed by the cluster *DISPATCHER* thread
-    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+    // executed by an *IO* thread
 
     if (message.partitionId() == 0) {
+        // CSL / cluster-level Raft: 'ClusterStateRaft' is only safe to
+        // touch from the cluster dispatcher thread (see
+        // 'Cluster::processControlMessage', which dispatches here for this
+        // case).
         BSLS_ASSERT_SAFE(d_clusterStateRaft_mp);
-        d_clusterStateRaft_mp->onRaftControlMessage(message, source);
+
+        dispatcher()->execute(
+            bdlf::BindUtil::bind(
+                &mqbraft::ClusterStateRaft::onRaftControlMessage,
+                d_clusterStateRaft_mp.get(),
+                message,
+                source),
+            d_cluster_p);
     }
     else {
+        // Partition-level: called directly from the *IO* thread (see
+        // 'Cluster::processControlMessage'); forwards straight to the
+        // target partition's own FileStore dispatcher thread below.
         BSLS_ASSERT_SAFE(d_partitionRaftManager_mp);
         d_partitionRaftManager_mp->onRaftControlMessage(
             message,

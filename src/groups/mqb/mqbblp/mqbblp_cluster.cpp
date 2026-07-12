@@ -2528,13 +2528,9 @@ void Cluster::processControlMessage(
     } break;
     case MsgChoice::SELECTION_ID_RAFT_MESSAGE: {
         if (isRaftEnabled()) {
-            dispatcher()->execute(
-                bdlf::BindUtil::bind(
-                    &ClusterOrchestrator::processRaftControlMessage,
-                    &d_clusterOrchestrator,
-                    message.choice().raftMessage(),
-                    source),
-                this);
+            d_clusterOrchestrator.processRaftControlMessage(
+                message.choice().raftMessage(),
+                source);
         }
         else {
             BALL_LOG_WARN << description() << ": Ignoring RAFT_MESSAGE from "

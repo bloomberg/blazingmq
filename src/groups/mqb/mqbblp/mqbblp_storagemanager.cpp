@@ -435,7 +435,7 @@ void StorageManager::shutdownCb(int partitionId, bslmt::Latch* latch)
     // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
     mqbc::StorageUtil::shutdown(partitionId,
                                 latch,
-                                &d_fileStores,
+                                d_fileStores[partitionId].get(),
                                 d_clusterData_p->identity().description(),
                                 d_clusterConfig);
 }

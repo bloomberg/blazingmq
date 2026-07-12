@@ -2374,29 +2374,22 @@ void StorageUtil::stop(FileStores*        fileStores,
 
 void StorageUtil::shutdown(int                              partitionId,
                            bslmt::Latch*                    latch,
-                           FileStores*                      fileStores,
+                           mqbs::RecordStore*               recordStore,
                            const bsl::string&               clusterDescription,
                            const mqbcfg::ClusterDefinition& clusterConfig)
 {
     // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
 
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(0 <= partitionId &&
-                     partitionId < static_cast<int>(fileStores->size()));
-
     // TBD: print a shutdown summary for all file-backed & virtual storages
     //      since storage manager has entire list.
 
-    const bsl::shared_ptr<mqbs::FileStore>& fs = (*fileStores)[partitionId];
-    // 'fs' could be null because partition might not have been created at
-    // broker start up (incorrect location, other errors)
-    if (fs) {
-        BSLS_ASSERT_SAFE(fs->inDispatcherThread());
-
+    // 'recordStore' could be null because partition might not have been
+    // created at broker start up (incorrect location, other errors)
+    if (recordStore) {
         BALL_LOG_INFO << clusterDescription << ": Closing Partition ["
                       << partitionId << "].";
 
-        fs->close(clusterConfig.partitionConfig().flushAtShutdown());
+        recordStore->close(clusterConfig.partitionConfig().flushAtShutdown());
 
         BALL_LOG_INFO << clusterDescription << ": Partition [" << partitionId
                       << "] closed.";
