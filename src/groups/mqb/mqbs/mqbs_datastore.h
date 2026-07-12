@@ -796,6 +796,16 @@ class RecordStore {
     /// `FileStore`.
     virtual void execute(const mqbi::Dispatcher::VoidFunction& functor) = 0;
 
+    /// Close this record store.  If the optional `flush` flag is true, flush
+    /// to the backup storage (e.g., disk) if applicable.  If the optional
+    /// `archive` flag is true, archive it.  Return zero on success, non-zero
+    /// value otherwise.  `PartitionRaft` first drops any outstanding pending
+    /// write (e.g. an uncommitted shutdown sync point) before delegating to
+    /// its `FileStore`, so no reference into the file set outlives this call
+    /// on account of Raft bookkeeping.  The behavior is undefined unless
+    /// called on this record store's dispatcher thread (see `execute`).
+    virtual int close(bool flush = false, bool archive = false) = 0;
+
     /// Roll over the partition's files: start a new file set carrying the
     /// outstanding records and archive the current one.  Return zero on
     /// success, non-zero otherwise.  Legacy `FileStore` performs the rollover
@@ -925,11 +935,7 @@ class DataStore : public RecordStore, public mqbi::DispatcherClient {
     /// Return zero on success, non-zero value otherwise.
     virtual int open(QueueKeyInfoMap* queueKeyInfoMap) = 0;
 
-    /// Close this instance.  If the optional `flush` flag is true, flush
-    /// the data store to the backup storage (e.g., disk) if applicable.
-    /// If the optional `archive` flag is true, archive the data store.  Return
-    /// zero on success, non-zero value otherwise.
-    virtual int close(bool flush = false, bool archive = false) = 0;
+    // 'close()' is inherited from 'RecordStore'.
 
     /// Create and load into the specified `storageSp` an instance of
     /// Queue List related

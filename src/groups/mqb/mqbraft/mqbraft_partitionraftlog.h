@@ -87,6 +87,15 @@ class PartitionRaftLog : public RaftLog {
     bsls::Types::Uint64   d_snapshotTerm;
     bslma::Allocator*     d_allocator_p;
 
+    /// `lastIndex()` as of `open()`, i.e. the last index recovered from local
+    /// disk before this process started applying live commits.  Entries at or
+    /// below this watermark were already materialized into `ReplicatedStorage`
+    /// by `StorageUtil::recoveredQueuesCb` (including its refcount "ghost"
+    /// adjustment for apps added after a message).
+    /// `applyCommittedEntryAsReplica` uses it to avoid re-applying them a
+    /// second time.
+    bsls::Types::Uint64 d_recoveredLastIndex;
+
     /// FIFO of writes to append.  During normal operation this holds at most
     /// one entry (enqueued by `setPendingWrite`, consumed by `append`). During
     /// a rollover window it holds every write buffered by `setPendingWrite`,
@@ -130,9 +139,12 @@ class PartitionRaftLog : public RaftLog {
     /// receipt processing (stub).
     void applyCommittedEntryAsPrimary(bsls::Types::Uint64 index);
 
-    /// Process a committed entry on a replica.  Read the record type from
-    /// the specified `data` blob, look up the handle in `d_index`, and
-    /// delegate to `FileStore::onRecordCommittedReplica`.
+    /// Process a committed entry at the specified `index` on a replica.  A
+    /// no-op if `index` is at or below `d_recoveredLastIndex` (already
+    /// materialized by `StorageUtil::recoveredQueuesCb` at `open()` time).
+    /// Otherwise read the record type from the specified `data` blob, look up
+    /// the handle in `d_index`, and delegate to
+    /// `FileStore::onRecordCommittedReplica`.
     void applyCommittedEntryAsReplica(bsls::Types::Uint64 index,
                                       const bdlbb::Blob&  data);
 
@@ -180,8 +192,9 @@ class PartitionRaftLog : public RaftLog {
     void takePendingWrites(bsl::deque<bsl::shared_ptr<PendingWrite> >* out);
 
     /// Drop all buffered writes without replaying them, erasing each reserved
-    /// placeholder record.  Called on leadership loss: these writes were never
-    /// acknowledged or committed, so discarding them is safe.
+    /// placeholder record.  Called on leadership loss, and on shutdown: in
+    /// both cases these writes were never acknowledged or committed, so
+    /// discarding them is safe.
     void dropPendingWrites();
 
     /// If the specified `handle` was reserved by a pending write currently in
@@ -242,9 +255,6 @@ class PartitionRaftLog : public RaftLog {
     bsls::Types::Uint64 snapshotTerm() const BSLS_KEYWORD_OVERRIDE;
 
     bool isRollover(bsls::Types::Uint64 index) const;
-
-    /// Return whether there are buffered writes awaiting drain or drop.
-    bool hasPendingWrites() const;
 };
 
 }  // close package namespace

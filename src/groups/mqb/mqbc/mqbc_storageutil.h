@@ -617,15 +617,16 @@ struct StorageUtil {
                      const ShutdownCb&  shutdownCb);
 
     /// Shutdown the underlying partition associated with the specified
-    /// `partitionId` from the specified `fileStores` by using the specified
-    /// `latch`, and the specified `clusterConfig`. The cluster information
-    /// is printed using the specified `clusterDescription`.
+    /// `partitionId` by closing the specified `recordStore` (may be null if
+    /// the partition was never created), using the specified `latch`, and
+    /// the specified `clusterConfig`. The cluster information is printed
+    /// using the specified `clusterDescription`.
     ///
     /// THREAD: Executed by *QUEUE_DISPATCHER* thread with the specified
     ///         `partitionId`.
     static void shutdown(int                              partitionId,
                          bslmt::Latch*                    latch,
-                         FileStores*                      fileStores,
+                         mqbs::RecordStore*               recordStore,
                          const bsl::string&               clusterDescription,
                          const mqbcfg::ClusterDefinition& clusterConfig);
 

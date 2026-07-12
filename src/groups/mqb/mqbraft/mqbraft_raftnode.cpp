@@ -253,9 +253,13 @@ void RaftNode::becomeLeader(RaftNodeOutput* output)
             continue;
         }
         PeerState ps;
-        ps.d_nextIndex    = nextIdx;
-        ps.d_matchIndex   = 0;
-        d_peerStates[*it] = ps;
+        ps.d_nextIndex            = nextIdx;
+        ps.d_matchIndex           = 0;
+        ps.d_snapshotPending      = false;
+        ps.d_snapshotPendingTicks = 0;
+        ps.d_snapshotPendingIndex = 0;
+        ps.d_snapshotPendingTerm  = 0;
+        d_peerStates[*it]         = ps;
     }
 
     d_heartbeatTicks = 0;
@@ -656,16 +660,31 @@ void RaftNode::handleInstallSnapshotResp(RaftNodeOutput*    output,
         return;
     }
 
-    BALL_LOG_INFO << "[partition " << d_config.d_partitionId << "] Node "
-                  << d_config.d_selfId
-                  << " received InstallSnapshot response from "
-                  << msg.d_sourceNodeId
-                  << ", lastIncludedIndex=" << msg.d_lastLogIndex;
+    // 'RaftInstallSnapshotResponse' carries no payload on the wire (see
+    // 'PeerState::d_snapshotPendingIndex'), so 'msg.d_lastLogIndex' here is
+    // always 0 and cannot be used -- advance from what we remember sending
+    // instead. Guarded on 'd_snapshotPending' so a stray/duplicate response
+    // with nothing actually pending is a no-op rather than replaying a
+    // stale index.
+    if (it->second.d_snapshotPending) {
+        BALL_LOG_INFO << "[partition " << d_config.d_partitionId << "] Node "
+                      << d_config.d_selfId
+                      << " received InstallSnapshot response from "
+                      << msg.d_sourceNodeId << ", lastIncludedIndex="
+                      << it->second.d_snapshotPendingIndex;
 
-    if (msg.d_lastLogIndex > it->second.d_matchIndex) {
-        it->second.d_matchIndex = msg.d_lastLogIndex;
-        it->second.d_nextIndex  = msg.d_lastLogIndex + 1;
+        if (it->second.d_snapshotPendingIndex > it->second.d_matchIndex) {
+            it->second.d_matchIndex = it->second.d_snapshotPendingIndex;
+            it->second.d_nextIndex  = it->second.d_snapshotPendingIndex + 1;
+        }
     }
+
+    // The peer has responded, so the snapshot is no longer in flight --
+    // un-pause it and immediately resume replication instead of waiting for
+    // the next heartbeat.
+    it->second.d_snapshotPending      = false;
+    it->second.d_snapshotPendingTicks = 0;
+    sendAppendEntries(output, msg.d_sourceNodeId);
 
     advanceCommitIndex(output);
 }
@@ -694,6 +713,16 @@ void RaftNode::sendAppendEntries(RaftNodeOutput* output, int peerId)
         return;
     }
 
+    if (it->second.d_snapshotPending) {
+        // An 'InstallSnapshot' is already in flight to this peer with no
+        // response yet (etcd/raft's 'ProgressStateSnapshot::IsPaused()' is
+        // always true): skip it entirely rather than re-sending a snapshot
+        // or, worse, an AppendEntries built from a 'nextIndex' we know is
+        // stale, since we don't yet know whether the peer applied it.
+        // 'tick()' clears this if it times out with no response.
+        return;
+    }
+
     bsls::Types::Uint64 nextIdx = it->second.d_nextIndex;
 
     if (nextIdx <= d_log_p->snapshotIndex()) {
@@ -705,6 +734,11 @@ void RaftNode::sendAppendEntries(RaftNodeOutput* output, int peerId)
         snap.d_lastLogIndex      = d_log_p->snapshotIndex();
         snap.d_lastLogTerm       = d_log_p->snapshotTerm();
         output->d_messages.push_back(snap);
+
+        it->second.d_snapshotPending      = true;
+        it->second.d_snapshotPendingTicks = 0;
+        it->second.d_snapshotPendingIndex = snap.d_lastLogIndex;
+        it->second.d_snapshotPendingTerm  = snap.d_lastLogTerm;
         return;
     }
 
@@ -798,6 +832,29 @@ void RaftNode::tick(RaftNodeOutput* output)
     BSLS_ASSERT_SAFE(output);
 
     if (d_state == RaftState::e_LEADER) {
+        // Substitute for etcd/raft's transport-level snapshot-status report
+        // (this implementation's snapshot send is synchronous/in-band, so
+        // there is no independent transfer to report failure): if a peer's
+        // 'InstallSnapshotResp' never arrives (e.g. the response was lost),
+        // un-pause it after a timeout so it is not stuck forever.
+        for (bsl::unordered_map<int, PeerState>::iterator it =
+                 d_peerStates.begin();
+             it != d_peerStates.end();
+             ++it) {
+            if (!it->second.d_snapshotPending) {
+                continue;
+            }
+            if (++it->second.d_snapshotPendingTicks >=
+                d_config.d_electionTimeoutMin) {
+                BALL_LOG_INFO << "[partition " << d_config.d_partitionId
+                              << "] Node " << d_config.d_selfId
+                              << " timed out waiting for InstallSnapshotResp "
+                              << "from " << it->first << "; retrying";
+                it->second.d_snapshotPending      = false;
+                it->second.d_snapshotPendingTicks = 0;
+            }
+        }
+
         d_heartbeatTicks++;
         if (d_heartbeatTicks >= d_config.d_heartbeatInterval) {
             d_heartbeatTicks = 0;

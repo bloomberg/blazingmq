@@ -256,10 +256,13 @@ void PartitionRaftManager::stop()
         }
     }
 
-    // Close each FileStore on its own dispatcher thread, mirroring legacy
-    // 'StorageUtil::stop'/'shutdown' (a generic close, not FSM/advisory
-    // specific -- safe to reuse).  'FileStore::~FileStore()' asserts
-    // '!d_isOpen', so this must complete before the FileStores are destroyed.
+    // Close each partition's record store on its own dispatcher thread,
+    // mirroring legacy 'StorageUtil::stop'/'shutdown' (a generic close, not
+    // FSM/advisory specific -- safe to reuse).  This routes through
+    // 'PartitionRaft::close()', which drops any outstanding pending write
+    // before delegating to the underlying FileStore. 'FileStore::~FileStore()'
+    // asserts '!d_isOpen', so this must complete before the FileStores are
+    // destroyed.
     bslmt::Latch latch(d_fileStores.size());
     for (unsigned int i = 0; i < d_fileStores.size(); ++i) {
         const FileStoreSp& fs = d_fileStores[i];
@@ -270,7 +273,7 @@ void PartitionRaftManager::stop()
                 bdlf::BindUtil::bind(&mqbc::StorageUtil::shutdown,
                                      static_cast<int>(i),
                                      &latch,
-                                     &d_fileStores,
+                                     d_partitionRafts[i].get(),
                                      d_clusterData_p->identity().description(),
                                      d_clusterConfig));
         }
@@ -381,9 +384,8 @@ void PartitionRaftManager::onRaftControlMessage(
     int                              partitionId,
     mqbnet::ClusterNode*             source)
 {
-    // executed by the *CLUSTER DISPATCHER* thread
+    // executed by the *IO* thread
 
-    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
     BSLS_ASSERT_SAFE(source);
 
     if (partitionId < 0 ||
