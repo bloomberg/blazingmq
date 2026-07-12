@@ -688,6 +688,15 @@ void Queue::onReplicatedBatch()
     if (d_localQueue_mp) {
         d_localQueue_mp->deliverIfNeeded();
     }
+    else if (d_remoteQueue_mp) {
+        // A replica relaying to downstream consumers: a just-committed message
+        // may be parked in the relay push stream awaiting its receipt (its
+        // PUSH arrived before the Raft commit).  Re-drive delivery so the now
+        // receipted message is pushed downstream.
+        if (d_remoteQueue_mp->queueEngine()) {
+            d_remoteQueue_mp->queueEngine()->afterNewMessage();
+        }
+    }
 }
 
 int Queue::configure(bsl::ostream* errorDescription_p,

@@ -599,6 +599,13 @@ void PartitionRaft::beginReceiveSnapshot(bsls::Types::Uint64 lastIncludedIndex,
     d_snapshotDataPath    = fileSet.dataFile();
     d_snapshotQlistPath   = fileSet.qlistFile();
 
+    // 'onStoragesCleared' above destroyed the partition's storage objects (the
+    // monitor held the owning shared_ptrs).  The FileStore still holds raw
+    // pointers to them in 'd_storages', now dangling; drop them so no
+    // subsequent lookup (e.g. a committed-record apply before the reopen
+    // re-registers fresh storages) touches freed memory.
+    d_fileStore_sp->clearStorages();
+
     // Wipe current FileStore
     d_fileStore_sp->close(false, true);  // flush=false, archive=true
 
@@ -1229,6 +1236,20 @@ void PartitionRaft::appendEntries(const bdlbb::Blob&   event,
         // nothing is lost -- same as a dropped packet in ordinary Raft.
         BALL_LOG_INFO << "Partition [" << d_partitionId
                       << "] ignoring AppendEntries while receiving snapshot";
+        return;
+    }
+
+    if (!d_fileStore_sp->isOpen()) {
+        // Shutdown/teardown: 'StorageUtil::shutdown' -> 'FileStore::close'
+        // runs on this same partition dispatcher thread, so a queued
+        // AppendEntries can be drained *after* the partition has closed.  The
+        // FileStore then has no journal to append to and no storage to apply
+        // committed entries against; applying would touch already-freed
+        // storage (use-after-free in 'onRecordCommittedReplica' ->
+        // 'processMessageRecord').  Drop it -- the leader resends on its next
+        // heartbeat if this node returns.
+        BALL_LOG_INFO << "Partition [" << d_partitionId
+                      << "] ignoring AppendEntries; FileStore is closed.";
         return;
     }
 

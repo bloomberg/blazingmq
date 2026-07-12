@@ -71,6 +71,11 @@ void FileBackedStorage::purgeCommon(const mqbu::StorageKey& appKey,
     // to be purged, otherwise only the virtual storage associated with the
     // specified 'appKey'.
 
+    // Clear auto-confirm state to prevent dangling references
+    d_autoConfirmHandles.clear();
+    d_autoConfirmApps.clear();
+    d_currentlyAutoConfirming = bmqt::MessageGUID();
+
     if (appKey.isNull()) {
         d_virtualStorageCatalog.removeAll();
         // Remove all records from the physical storage as well.
@@ -85,11 +90,6 @@ void FileBackedStorage::purgeCommon(const mqbu::StorageKey& appKey,
         }
 
         d_handles.clear();
-
-        // Clear auto-confirm state to prevent dangling references
-        d_autoConfirmHandles.clear();
-        d_autoConfirmApps.clear();
-        d_currentlyAutoConfirming = bmqt::MessageGUID();
 
         // Update stats
         d_capacityMeter.clear();

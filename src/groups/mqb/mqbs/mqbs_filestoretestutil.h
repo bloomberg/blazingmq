@@ -88,7 +88,7 @@ struct FileStoreTestUtil_Record {
     , d_syncPtType(mqbs::SyncPointType::e_UNDEFINED)
     , d_uri(basicAllocator)
     , d_queueKey()
-    , d_msgAttributes()
+    , d_msgAttributes(true)
     , d_guid()
     , d_timestamp(0)
     , d_syncPoint()

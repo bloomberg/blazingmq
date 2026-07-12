@@ -395,32 +395,10 @@ void RemoteQueue::pushMessage(
             // Insert into the ShortList
         }
 
-        // 'msgGUID' must be present in the storage.
-        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
-                storage->getMessageSize(&msgSize, msgGUID) !=
-                mqbi::StorageResult::e_SUCCESS)) {
-            BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-
-            // This can occur under 2 situations:
-            // 1) The message was deleted by the primary because of TTL
-            //    expiration, *after* that message guid was enqueued in
-            //    primary's cluster-dispatcher thread to be sent to this node
-            //    as PUSH message.  In other words, the guid was sitting in the
-            //    PUSH-event builder for this node in the primary, and the
-            //    builder was flushed after primary replicated message's
-            //    DELETION record due to TTL expiration.
-            // 2) This message was not replicated by primary to this node.
-
-            // (1) is a valid (but extremely rare) scenario and (2) is a bug.
-            // But we have no way to distinguish the two scenarios as of yet.
-            BALL_LOG_ERROR
-                << "#QUEUE_UNKNOWN_MESSAGE "
-                << "Replica remote queue: " << d_state_p->uri()
-                << " (id: " << d_state_p->id()
-                << ") received a PUSH message from primary for guid "
-                << msgGUID << ", which payload does not exist in the storage.";
-            return;  // RETURN
-        }
+        // 'msgGUID' may not be present in the storage as in the case when Raft
+        // still waits for commit.
+        // Keep msgSize as 0. The PUSH should get the size from the real
+        // storage, not the d_pushStream.
     }
 
     bmqp::Protocol::SubQueueInfosArray subQueueInfos;

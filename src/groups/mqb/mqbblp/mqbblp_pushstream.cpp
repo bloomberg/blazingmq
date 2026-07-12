@@ -57,24 +57,22 @@ void PushStreamIterator::clearCache()
 {
     d_appData_sp.reset();
     d_options_sp.reset();
-    d_attributes.reset();
+    d_attributes.reset(false);
 }
 
 // PRIVATE ACCESSORS
-bool PushStreamIterator::loadMessageAndAttributes() const
+mqbi::StorageResult::Enum PushStreamIterator::loadMessageAndAttributes() const
 {
     BSLS_ASSERT_SAFE(!atEnd());
 
+    mqbi::StorageResult::Enum rc = mqbi::StorageResult::e_SUCCESS;
     if (!d_appData_sp) {
-        mqbi::StorageResult::Enum rc = d_storage_p->get(&d_appData_sp,
-                                                        &d_options_sp,
-                                                        &d_attributes,
-                                                        d_iterator->first);
-        BSLS_ASSERT_SAFE(mqbi::StorageResult::e_SUCCESS == rc);
-        static_cast<void>(rc);  // suppress compiler warning
-        return true;            // RETURN
+        rc = d_storage_p->get(&d_appData_sp,
+                              &d_options_sp,
+                              &d_attributes,
+                              d_iterator->first);
     }
-    return false;
+    return rc;
 }
 
 const PushStream::Message& PushStreamIterator::message() const
@@ -88,7 +86,7 @@ PushStreamIterator::PushStreamIterator(
     PushStream*                 owner,
     const PushStream::iterator& initialPosition)
 : d_storage_p(storage)
-, d_attributes()
+, d_attributes(false)
 , d_appData_sp()
 , d_options_sp()
 , d_owner_p(owner)
@@ -224,19 +222,22 @@ mqbi::AppMessage& PushStreamIterator::appMessageState(unsigned int appOrdinal)
 
 const bsl::shared_ptr<bdlbb::Blob>& PushStreamIterator::appData() const
 {
-    loadMessageAndAttributes();
+    mqbi::StorageResult::Enum rc = loadMessageAndAttributes();
+    BSLS_ASSERT_SAFE(mqbi::StorageResult::e_SUCCESS == rc);
     return d_appData_sp;
 }
 
 const bsl::shared_ptr<bdlbb::Blob>& PushStreamIterator::options() const
 {
-    loadMessageAndAttributes();
+    mqbi::StorageResult::Enum rc = loadMessageAndAttributes();
+    BSLS_ASSERT_SAFE(mqbi::StorageResult::e_SUCCESS == rc);
     return d_options_sp;
 }
 
 const mqbi::StorageMessageAttributes& PushStreamIterator::attributes() const
 {
-    loadMessageAndAttributes();
+    mqbi::StorageResult::Enum rc = loadMessageAndAttributes();
+    BSLS_ASSERT_SAFE(mqbi::StorageResult::e_SUCCESS == rc);
     return d_attributes;
 }
 
@@ -247,7 +248,40 @@ bool PushStreamIterator::atEnd() const
 
 bool PushStreamIterator::hasReceipt() const
 {
-    return !atEnd();
+    if (atEnd()) {
+        return false;
+    }
+
+    // Check the receipt which is always there in legacy
+    // Raft sets it upon commit.
+
+    if (d_attributes.hasReceipt()) {
+        return true;
+    }
+
+    // re-query the storage
+    // load everything if needed.
+    const mqbi::StorageResult::Enum rc = loadMessageAndAttributes();
+
+    if (mqbi::StorageResult::e_SUCCESS != rc) {
+        // The record is not there (yet)
+
+        return false;
+    }
+
+    if (d_attributes.hasReceipt()) {
+        return true;
+    }
+
+    // The previously loaded flag in attributes can be stale.
+    // No need to reload everything, but still need to reload the flag.
+    if (d_storage_p->hasReceipt(guid())) {
+        d_attributes.setReceipt(true);
+
+        return true;
+    }
+
+    return false;
 }
 
 // CREATORS
