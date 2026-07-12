@@ -1724,7 +1724,7 @@ int RootQueueEngine::onRejectMessage(
                 if (d_throttledRejectMessageDump.requestPermission()) {
                     bsl::shared_ptr<bdlbb::Blob>   appData;
                     bsl::shared_ptr<bdlbb::Blob>   options;
-                    mqbi::StorageMessageAttributes attributes;
+                    mqbi::StorageMessageAttributes attributes(false);
                     int retrievalRc = d_queueState_p->storage()->get(
                         &appData,
                         &options,

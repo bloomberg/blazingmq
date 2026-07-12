@@ -102,7 +102,7 @@ FileStore::PendingWrite::PendingWrite()
 , d_primaryLeaseId(0)
 , d_sequenceNumber(0)
 , d_queueKey()
-, d_attributes()
+, d_attributes(false)
 , d_handle()
 , d_guid()
 , d_appData()
@@ -171,7 +171,7 @@ FileStore::PendingWrite::PendingWrite(const bmqt::Uri&        queueUri,
 , d_primaryLeaseId(0)
 , d_sequenceNumber(0)
 , d_queueKey(queueKey)
-, d_attributes()
+, d_attributes(false)
 , d_handle()
 , d_guid()
 , d_appData()
@@ -201,7 +201,7 @@ FileStore::PendingWrite::PendingWrite(SyncPointType::Enum syncPointType)
 , d_primaryLeaseId(0)
 , d_sequenceNumber(0)
 , d_queueKey()
-, d_attributes()
+, d_attributes(false)
 , d_handle()
 , d_guid()
 , d_appData()
@@ -235,7 +235,7 @@ FileStore::PendingWrite::PendingWrite(const bmqt::MessageGUID& guid,
 , d_primaryLeaseId(0)
 , d_sequenceNumber(0)
 , d_queueKey(queueKey)
-, d_attributes()
+, d_attributes(false)
 , d_handle()
 , d_guid(guid)
 , d_appData()
@@ -268,7 +268,7 @@ FileStore::PendingWrite::PendingWrite(const bmqt::MessageGUID& guid,
 , d_primaryLeaseId(0)
 , d_sequenceNumber(0)
 , d_queueKey(queueKey)
-, d_attributes()
+, d_attributes(false)
 , d_handle()
 , d_guid(guid)
 , d_appData()
@@ -303,7 +303,7 @@ FileStore::PendingWrite::PendingWrite(QueueOpType::Enum       queueOpType,
 , d_primaryLeaseId(0)
 , d_sequenceNumber(0)
 , d_queueKey(queueKey)
-, d_attributes()
+, d_attributes(false)
 , d_handle()
 , d_guid()
 , d_appData()
@@ -7950,6 +7950,18 @@ void FileStore::onRecordCommittedReplica(const bdlbb::Blob&           data,
                                               record.d_appDataUnpaddedLen,
                                               msgRec->refCount(),
                                               handle);
+
+            record.d_hasReceipt = true;
+
+            // The message is now committed and queryable in storage, so its
+            // receipt gate opens.  Notify the queue so any PUSH that arrived
+            // before this commit -- and is parked in the relay push stream
+            // awaiting the receipt -- is delivered now.  Mirrors
+            // 'onRecordCommittedPrimary'.
+            mqbi::Queue* queue = sit->second->queue();
+            if (queue) {
+                queue->onReplicatedBatch();
+            }
         }
         else {
             // Recovered log entry that recovery superseded (e.g. this MESSAGE
@@ -8074,6 +8086,17 @@ void FileStore::onRecordCommittedReplica(const bdlbb::Blob&           data,
         BSLS_ASSERT_SAFE(!handle.isValid());
         break;
     }
+}
+
+void FileStore::clearStorages()
+{
+    // 'd_storages' holds *raw* pointers to 'ReplicatedStorage' objects owned
+    // by the 'StoragesMonitor' (via shared_ptr).  On a Raft snapshot install
+    // the monitor destroys those objects ('onStoragesCleared'), so drop the
+    // now- dangling raw pointers here to avoid a use-after-free from any
+    // subsequent 'd_storages.find()' before the reopen re-registers fresh
+    // storages.
+    d_storages.clear();
 }
 
 int FileStore::loadQueueCreationInfo(bmqt::Uri* uri,

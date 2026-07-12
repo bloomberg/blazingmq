@@ -974,6 +974,13 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     void onRecordCommittedReplica(const bdlbb::Blob&           data,
                                   const DataStoreRecordHandle& handle);
 
+    /// Drop this FileStore's (raw) references to the partition's storages.
+    /// Invoked on a Raft snapshot install after the `StoragesMonitor` has
+    /// destroyed the storage objects (`onStoragesCleared`): the raw pointers
+    /// in `d_storages` are now dangling and must not be looked up until the
+    /// reopen re-registers fresh storages.
+    void clearStorages();
+
     /// Reconstruct the queue URI and appId/appKey pairs of a locally-written,
     /// Raft-committed `e_QUEUE_OP` (CREATION or ADDITION) record identified by
     /// the specified `handle`, by reading the local journal (for the QLIST

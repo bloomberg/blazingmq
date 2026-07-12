@@ -583,7 +583,7 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
 inline InMemoryStorage_Item::InMemoryStorage_Item()
 : d_appData()
 , d_options()
-, d_attributes()
+, d_attributes(true)
 {
 }
 
