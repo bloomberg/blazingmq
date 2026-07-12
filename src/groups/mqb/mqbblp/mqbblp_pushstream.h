@@ -317,7 +317,7 @@ class PushStreamIterator : public mqbi::StorageIterator {
     /// returns true or if underlying storage does not contain the
     /// MessageGUID being pointed to by this iterator.  Return `false` if
     /// data are already loaded; return `true` otherwise.
-    bool loadMessageAndAttributes() const;
+    mqbi::StorageResult::Enum loadMessageAndAttributes() const;
 
     const PushStream::Message& message() const;
 
