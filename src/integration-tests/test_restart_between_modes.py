@@ -966,10 +966,14 @@ def test_restart_between_legacy_and_fsm_purge_queue_app(
     for queue in [priority_queue, fanout_queue]:
         post_few_messages(producer, queue, ["msg0"])
 
-    # Purge priority queue
-    cluster.last_known_leader.purge(du.domain_priority, test_queue, succeed=True)
-    # Purge fanout queue app "baz"
-    cluster.last_known_leader.purge(du.domain_fanout, test_queue, "baz", succeed=True)
+    # Purge priority queue and fanout queue app "baz".  Look up the
+    # partition-0 primary once and reuse it: 'wait_partition_primary'
+    # consumes the "Primary node is now" line from the node's output, so a
+    # second call here (with no leadership change in between) would just
+    # block waiting for a line that will never come.
+    partition_primary = cluster.last_known_leader.wait_partition_primary()
+    partition_primary.purge(du.domain_priority, test_queue, succeed=True)
+    partition_primary.purge(du.domain_fanout, test_queue, "baz", succeed=True)
 
     # Post two messages
     for queue in [priority_queue, fanout_queue]:
@@ -1016,19 +1020,24 @@ def test_restart_between_legacy_and_fsm_purge_queue_app(
     for queue in [priority_queue, fanout_queue]:
         post_few_messages(producer, queue, ["msg5"])
 
-    # Purge priority queue
-    cluster.last_known_leader.purge(du.domain_priority, test_queue, succeed=True)
+    # Purge priority queue and fanout queue app "quux".  As above, the CSL
+    # leader ('last_known_leader') is not necessarily partition-0's primary
+    # in FSM/Raft mode, so look up the actual primary and direct both the
+    # commands and the completion checks at it.
+    partition_primary = cluster.last_known_leader.wait_partition_primary()
+
+    partition_primary.purge(du.domain_priority, test_queue, succeed=True)
 
     # Need to make sure purge is done before stopping nodes.
     # Otherwise, can end up with a new primary unaware of the purge.
-    assert cluster.last_known_leader.capture(r"Purged 2 message\(s\)", 5)
+    assert partition_primary.capture(r"Purged 2 message\(s\)", 5)
 
     # Purge fanout queue app "quux"
-    cluster.last_known_leader.purge(du.domain_fanout, test_queue, "quux", succeed=True)
+    partition_primary.purge(du.domain_fanout, test_queue, "quux", succeed=True)
 
     # Need to make sure purge is done before stopping nodes.
     # Otherwise, can end up with a new primary unaware of the purge.
-    assert cluster.last_known_leader.capture(r"Purged 3 message\(s\)", 5)
+    assert partition_primary.capture(r"Purged 3 message\(s\)", 5)
 
     # 5. SWITCH BACK
     switch_cluster_mode[1](cluster, producer)

@@ -257,6 +257,48 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
             self._logger.error(error)
             raise RuntimeError(error)
 
+    def wait_partition_primary(self, partition_id=0, timeout=BLOCK_TIMEOUT) -> Self:
+        """
+        Return the Broker object currently primary for the specified
+        'partition_id', polling this node until one is reported (or
+        'timeout' elapses).
+
+        Unlike 'last_known_leader' (the CSL/cluster elector leader), this
+        reflects per-partition Raft leadership: in FSM/Raft mode the CSL
+        leader and a given partition's primary are independently elected and
+        can be different nodes, so commands that must land on the node
+        actually owning a queue's partition (e.g. 'PURGE') should target this
+        instead of 'last_known_leader'.
+
+        This queries a fresh 'CLUSTERS CLUSTER ... STATUS' admin response
+        each time rather than scanning previously-seen broker output: unlike
+        'wait_status'/'last_known_leader', which capture a one-time
+        leadership-change log line, this can be called at any point in a
+        test (even long after that line scrolled by and was consumed by an
+        earlier, unrelated 'capture()' call) and still get a correct answer.
+        """
+
+        admin = self.open_admin_client()
+        primary_name = [None]
+
+        def check():
+            res = admin.send_admin(f"CLUSTERS CLUSTER {self.cluster_name} STATUS")
+            assert isinstance(res, str)
+            m = re.search(
+                rf"PartitionId: {partition_id}\b.*?Primary Node\s*:\s*\[([^,]+),",
+                res,
+                re.DOTALL,
+            )
+            if m:
+                primary_name[0] = m.group(1)
+                return True
+            return False
+
+        wait_until(check, timeout=timeout)
+        if primary_name[0] is None:
+            self._error(f"Could not determine primary for partition {partition_id}")
+        return self.cluster.process(primary_name[0])
+
     def dump_queue_internals(self, domain, queue):
         """
         Dump state of the specified 'queue' in the specified 'domain'.

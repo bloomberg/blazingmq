@@ -51,6 +51,7 @@ PartitionRaftLog::PartitionRaftLog(mqbs::FileStore*  fileStore,
 , d_snapshotIndex(0)
 , d_snapshotTerm(0)
 , d_allocator_p(bslma::Default::allocator(allocator))
+, d_recoveredLastIndex(0)
 , d_pendingWrites(d_allocator_p)
 , d_cached()
 , d_appendedCount(0)
@@ -74,6 +75,13 @@ int PartitionRaftLog::open()
         d_fileStore_p->firstSyncPointAfterRolloverSeqNum();
     d_snapshotIndex = snapshotPSN.sequenceNumber();
     d_snapshotTerm  = snapshotPSN.primaryLeaseId();
+
+    // Everything up to and including 'lastIndex()' at this point was just
+    // recovered from local disk and already materialized into
+    // 'ReplicatedStorage' by 'StorageUtil::recoveredQueuesCb'.
+    // 'applyCommittedEntryAsReplica' uses this watermark to avoid replaying
+    // it a second time.
+    d_recoveredLastIndex = lastIndex();
 
     BALL_LOG_INFO << "PartitionRaftLog::open: recovered " << d_index.size()
                   << " entries, snapshotIndex=" << d_snapshotIndex
@@ -109,11 +117,13 @@ int PartitionRaftLog::bufferPendingWrite(
     }
 
     // While 'e_ROLLOVER' is pending, 'lastIndex()' is fixed at the
-    // 'e_ROLLOVER' index (N); a write buffered at position 'k' (== current
-    // buffer size) will receive log index 'N + 1 + k' when drained in FIFO
-    // order.
+    // 'e_ROLLOVER' index (N); a write buffered at position 'k' (== count of
+    // writes already buffered, i.e. excluding the still-appended-but-
+    // uncommitted 'e_ROLLOVER' itself) will receive log index 'N + 1 + k'
+    // when drained in FIFO order.
     const bsls::Types::Uint64 futureIndex = lastIndex() + 1 +
-                                            d_pendingWrites.size();
+                                            (d_pendingWrites.size() -
+                                             d_appendedCount);
 
     // Reserve a placeholder 'd_records' entry keyed by the future
     // '(term, index)' so callers get a valid handle now; the physical offsets
@@ -161,7 +171,8 @@ void PartitionRaftLog::dropPendingWrites()
     }
 
     BALL_LOG_WARN << "PartitionRaftLog: dropping " << d_pendingWrites.size()
-                  << " buffered write(s) (no longer leader).";
+                  << " buffered write(s) (no longer leader, or shutting "
+                  << "down).";
 
     for (bsl::deque<bsl::shared_ptr<PendingWrite> >::iterator it =
              d_pendingWrites.begin();
@@ -496,6 +507,15 @@ void PartitionRaftLog::applyCommittedEntryAsPrimary(bsls::Types::Uint64 index)
 void PartitionRaftLog::applyCommittedEntryAsReplica(bsls::Types::Uint64 index,
                                                     const bdlbb::Blob&  data)
 {
+    if (index <= d_recoveredLastIndex) {
+        // Already materialized eagerly by 'StorageUtil::recoveredQueuesCb' at
+        // 'open()' time (ghost-adjusted refcounts included).  Applying it
+        // again here would double-process confirms/purges on this replica,
+        // and a whole-queue purge could run ahead of 'd_index' entries this
+        // replay hasn't reached yet, invalidating their handles.
+        return;  // RETURN
+    }
+
     const EntryInfo& entryInfo = d_index[index - d_snapshotIndex - 1];
 
     const mqbs::DataStoreRecordHandle handle      = entryInfo.d_handle;
@@ -596,11 +616,6 @@ bool PartitionRaftLog::isRollover(bsls::Types::Uint64 index) const
 
     return (recordType == mqbs::RecordType::e_JOURNAL_OP &&
             syncPointType == mqbs::SyncPointType::e_ROLLOVER);
-}
-
-bool PartitionRaftLog::hasPendingWrites() const
-{
-    return !d_pendingWrites.empty();
 }
 
 }  // close package namespace

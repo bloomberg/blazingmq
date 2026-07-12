@@ -330,6 +330,34 @@ class RaftNode {
     struct PeerState {
         bsls::Types::Uint64 d_nextIndex;
         bsls::Types::Uint64 d_matchIndex;
+
+        /// True while an 'InstallSnapshot' is in flight to this peer with no
+        /// response yet.  Mirrors etcd/raft's 'ProgressStateSnapshot':
+        /// while set, 'sendAppendEntries' skips this peer entirely instead
+        /// of re-sending a snapshot (or an AppendEntries built from a
+        /// still-stale index) on every subsequent heartbeat/propose
+        /// broadcast.
+        bool d_snapshotPending;
+
+        /// Ticks elapsed since 'd_snapshotPending' was set. Cleared on
+        /// 'InstallSnapshotResp'; if it exceeds a threshold with no
+        /// response (e.g. the response was lost), the pending state is
+        /// dropped so the peer can be retried. Substitutes for etcd's
+        /// transport-level snapshot-status report, since this
+        /// implementation's snapshot send is synchronous/in-band rather
+        /// than an independently-monitored transfer.
+        int d_snapshotPendingTicks;
+
+        /// The snapshot index (and term) sent to this peer when
+        /// 'd_snapshotPending' was last set to true.  'RaftInstallSnapshot
+        /// Response' carries no payload on the wire, so 'handleInstall
+        /// SnapshotResp' cannot learn the applied index from the response
+        /// itself; it advances 'd_matchIndex'/'d_nextIndex' from this
+        /// locally-remembered value instead. Safe because the pending gate
+        /// guarantees at most one snapshot in flight per peer at a time, so
+        /// any response received while pending unambiguously acks this one.
+        bsls::Types::Uint64 d_snapshotPendingIndex;
+        bsls::Types::Uint64 d_snapshotPendingTerm;
     };
 
     bsl::unordered_map<int, PeerState> d_peerStates;
