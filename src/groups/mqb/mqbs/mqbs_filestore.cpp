@@ -7309,13 +7309,18 @@ void FileStore::reservePendingRecord(PendingWrite*       pw,
 
     // Placeholder entry: real offsets are unknown until the buffered write
     // drains into the new file post-rollover ('bindOrUpdateRecord' patches
-    // them).  The single-arg ctor marks it not-yet-durable ('d_hasReceipt =
-    // false') for the duration of the window.
+    // them).  Leave 'd_hasReceipt' at the single-arg ctor's 'false' for the
+    // duration of the window: under eventual consistency the write's
+    // attributes already carry a receipt, and copying that onto this
+    // zero-offset placeholder would let the delivery gate
+    // ('QueueEngineUtil_AppsDeliveryContext::reset') pick it up and read its
+    // (still zero) offset before the write drains -- tripping the offset-0
+    // assertion in 'loadMessageAttributesRaw'.  The receipt is (re)opened when
+    // the drained record commits ('onRecordCommittedPrimary').
     DataStoreRecordKey key(sequenceNumber, primaryLeaseId);
     DataStoreRecord    record(recordType);
 
     record.d_messagePropertiesInfo = pw->d_attributes.messagePropertiesInfo();
-    record.d_hasReceipt            = pw->d_attributes.hasReceipt();
     record.d_arrivalTimepoint      = pw->d_attributes.arrivalTimepoint();
     record.d_arrivalTimestamp      = pw->d_attributes.arrivalTimestamp();
 
@@ -7541,7 +7546,13 @@ int FileStore::writeFormattedRecord(
                                   dataPayloadLen - 1;
                 unsigned int padding = static_cast<unsigned int>(
                     static_cast<unsigned char>(*end));
-                if (padding < bmqp::Protocol::k_DWORD_SIZE) {
+                // Valid DWORD padding is 1..k_DWORD_SIZE: an already-aligned
+                // record still gets a full k_DWORD_SIZE (8) pad whose last
+                // byte is 8, so the bound must be inclusive.  Using '<' here
+                // dropped the subtraction for padding == 8, leaking 8 pad
+                // bytes (each 0x08) into the delivered payload.  (The legacy
+                // write path subtracts the pad-count byte unconditionally.)
+                if (padding <= bmqp::Protocol::k_DWORD_SIZE) {
                     dsRecord.d_appDataUnpaddedLen -= padding;
                 }
             }
@@ -8025,46 +8036,76 @@ void FileStore::onRecordCommittedReplica(const bdlbb::Blob&           data,
             BSLS_ASSERT_SAFE(qOpRec.isSet());
 
             StorageMapIter sit = d_storages.find(qOpRec->queueKey());
-            if (sit == d_storages.end()) {
-                if (QueueOpType::e_CREATION == qOpRec->type() ||
-                    QueueOpType::e_ADDITION == qOpRec->type()) {
-                    // Replica seeing this queue (or these apps) for the first
-                    // time: create/update its storage now, mirroring what the
-                    // legacy replication-stream path does in
-                    // 'processQueueCreationRecord'.
-                    bmqt::Uri uri(d_allocator_p);
-                    AppInfos  appIdKeyPairs(d_allocator_p);
-                    int       rc = loadQueueCreationInfo(&uri,
-                                                   &appIdKeyPairs,
-                                                   handle);
-                    if (0 == rc) {
-                        BSLS_ASSERT_SAFE(d_config.queueCreationCb());
-                        d_config.queueCreationCb()(d_config.partitionId(),
-                                                   uri,
-                                                   qOpRec->queueKey(),
-                                                   appIdKeyPairs,
-                                                   QueueOpType::e_CREATION ==
-                                                       qOpRec->type());
-                        sit = d_storages.find(qOpRec->queueKey());
-                    }
-                    else {
-                        BALL_LOG_ERROR
-                            << partitionDesc()
-                            << "Failed to reconstruct queue creation info for "
-                            << "committed QUEUE_OP, queueKey ["
-                            << qOpRec->queueKey() << "], rc: " << rc;
-                    }
-                }
 
-                if (sit == d_storages.end()) {
-                    BALL_LOG_WARN
+            if (QueueOpType::e_CREATION == qOpRec->type() ||
+                QueueOpType::e_ADDITION == qOpRec->type()) {
+                // Either a replica seeing this queue for the first time, or
+                // an already-known queue getting app(s) added.  Safe to
+                // dispatch unconditionally in both cases: the record only
+                // ever carries the delta (the app(s) actually added at this
+                // point, see 'StorageUtil::updateQueuePrimaryRaw's
+                // 'addedIdKeyPairs'), never the full historical app set, so
+                // there's nothing to collide with on an already-known queue.
+                // 'queueCreationCb' itself branches on 'isNewQueue' between
+                // creating storage from scratch and adding apps to existing
+                // storage, mirroring the legacy replication-stream path in
+                // 'processQueueCreationRecord' (which calls it
+                // unconditionally for the same reason).
+                bmqt::Uri uri(d_allocator_p);
+                AppInfos  appIdKeyPairs(d_allocator_p);
+                int rc = loadQueueCreationInfo(&uri, &appIdKeyPairs, handle);
+                if (0 == rc) {
+                    BSLS_ASSERT_SAFE(d_config.queueCreationCb());
+                    d_config.queueCreationCb()(d_config.partitionId(),
+                                               uri,
+                                               qOpRec->queueKey(),
+                                               appIdKeyPairs,
+                                               QueueOpType::e_CREATION ==
+                                                   qOpRec->type());
+                    sit = d_storages.find(qOpRec->queueKey());
+                }
+                else {
+                    BALL_LOG_ERROR
                         << partitionDesc()
-                        << "Committed QUEUE_OP for unknown queueKey ["
-                        << qOpRec->queueKey() << "]";
-                    return;
+                        << "Failed to reconstruct queue creation info for "
+                        << "committed QUEUE_OP, queueKey ["
+                        << qOpRec->queueKey() << "], rc: " << rc;
                 }
             }
+
+            if (sit == d_storages.end()) {
+                BALL_LOG_WARN << partitionDesc()
+                              << "Committed QUEUE_OP for unknown queueKey ["
+                              << qOpRec->queueKey() << "]";
+                return;
+            }
+
             ReplicatedStorage* rstorage = sit->second;
+
+            if (QueueOpType::e_DELETION == qOpRec->type()) {
+                // Dispatch to the deletion callback so the queue (or the
+                // specific app) is properly deregistered from both
+                // 'd_storages' and the (URI-keyed) StoragesMonitor --
+                // otherwise a whole-queue deletion leaves a stale entry
+                // that collides when the same URI is later reused with a
+                // new queueKey.
+                BSLS_ASSERT_SAFE(d_config.queueDeletionCb());
+                d_config.queueDeletionCb()(d_config.partitionId(),
+                                           rstorage->queueUri(),
+                                           qOpRec->queueKey(),
+                                           qOpRec->appKey());
+
+                if (qOpRec->appKey().isNull()) {
+                    // Whole queue was just unregistered above -- 'rstorage'
+                    // may now be dangling, and there's nothing left to
+                    // attach this record's handle to.
+                    return;
+                }
+                // App-level deletion: the queue's storage itself is still
+                // valid (only the app's virtual storage was removed) --
+                // fall through as usual.
+            }
+
             if (QueueOpType::e_PURGE == qOpRec->type()) {
                 if (qOpRec->appKey().isNull() ||
                     rstorage->hasVirtualStorage(qOpRec->appKey())) {
@@ -8189,6 +8230,11 @@ void FileStore::onRecordCommittedPrimary(PendingWrite& pw)
 
     BSLS_ASSERT_SAFE(pw.d_handle.isValid());
 
+    if (pw.d_attributes.hasReceipt() && pw.d_handle.hasReceipt()) {
+        // already ACKed
+        return;
+    }
+
     StorageMapIter sit = d_storages.find(pw.d_queueKey);
     if (sit != d_storages.end()) {
         mqbi::Queue* queue = sit->second->queue();
@@ -8196,7 +8242,9 @@ void FileStore::onRecordCommittedPrimary(PendingWrite& pw)
 
         pw.d_handle.setHasReceipt();
 
-        queue->onReceipt(pw.d_guid, pw.d_attributes.queueHandle());
+        if (!pw.d_attributes.hasReceipt()) {
+            queue->onReceipt(pw.d_guid, pw.d_attributes.queueHandle());
+        }
         // TODO: Raft batching
         queue->onReplicatedBatch();
     }

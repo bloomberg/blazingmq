@@ -709,16 +709,20 @@ void RelayQueueEngine::deliverMessages()
             BSLS_ASSERT_SAFE(app);
 
             if (!app->isAuthorized()) {
-                // This App got the PUSH (recorded in the PushStream)
+                // This App got the PUSH (recorded in the PushStream), but its
+                // ordinal/key haven't been resolved against local storage
+                // yet.  Not a permanent condition, so leave the element in
+                // place instead of removing it: 'PushStream::removeApp' /
+                // 'removeAll' will still reap it if the app closes before
+                // ever authorizing, and delivery is re-attempted on every
+                // flush once authorization completes.
                 BMQ_LOGTHROTTLE_ERROR
                     << "#NOT AUTHORIZED "
                     << "Remote queue: " << d_queueState_p->uri()
                     << " (id: " << d_queueState_p->id()
-                    << ") discarding a PUSH message for guid "
+                    << ") deferring a PUSH message for guid "
                     << d_storageIter_mp->guid() << ", with NOT AUTHORIZED App "
                     << app->appId();
-
-                d_storageIter_mp->removeCurrentElement();
             }
             else if (element->app().isLastPush(
                          d_storageIter_mp->guid(),
@@ -1835,7 +1839,14 @@ void RelayQueueEngine::registerStorage(const bsl::string&      appId,
                          << ", key: " << appKey << ", ordinal: " << appOrdinal
                          << "]";
 
-    iter->second->authorize(appKey, appOrdinal);
+    App_State* app = iter->second.get();
+    app->authorize(appKey, appOrdinal);
+
+    // This app may have PUSH messages deferred (not authorized yet, see
+    // 'deliverMessages') or GUIDs sitting in its redelivery list (see
+    // 'processDeliveryList') from before it was authorized.  Re-drive
+    // delivery for it now that it's authorized.
+    processAppRedelivery(app->upstreamSubQueueId(), app);
 }
 
 void RelayQueueEngine::unregisterStorage(

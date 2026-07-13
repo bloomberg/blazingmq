@@ -358,6 +358,16 @@ class RaftNode {
         /// any response received while pending unambiguously acks this one.
         bsls::Types::Uint64 d_snapshotPendingIndex;
         bsls::Types::Uint64 d_snapshotPendingTerm;
+
+        /// True once an optimistic boundary AppendEntries (see
+        /// 'sendAppendEntries') has been rejected by this peer -- i.e. the
+        /// peer genuinely lacks 'snapshotIndex' and cannot be caught up from
+        /// the log.  While set, 'sendAppendEntries' skips the optimistic probe
+        /// and goes straight to 'InstallSnapshot', preventing a re-probe loop
+        /// when the reject leaves 'nextIndex' back at 'snapshotIndex'. Cleared
+        /// once the peer advances past the boundary (success or normal-path
+        /// send).
+        bool d_boundaryProbeRejected;
     };
 
     bsl::unordered_map<int, PeerState> d_peerStates;
