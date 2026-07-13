@@ -259,6 +259,7 @@ void RaftNode::becomeLeader(RaftNodeOutput* output)
         ps.d_snapshotPendingTicks = 0;
         ps.d_snapshotPendingIndex = 0;
         ps.d_snapshotPendingTerm  = 0;
+        ps.d_boundaryProbeRejected = false;
         d_peerStates[*it]         = ps;
     }
 
@@ -556,6 +557,11 @@ void RaftNode::handleAppendEntriesResp(RaftNodeOutput*    output,
             it->second.d_nextIndex  = msg.d_matchIndex + 1;
         }
 
+        // The peer accepted (an optimistic boundary probe, or normal
+        // replication): it is at/past the snapshot boundary, so clear any
+        // sticky "probe rejected" state.
+        it->second.d_boundaryProbeRejected = false;
+
         advanceCommitIndex(output);
 
         // Leadership transfer: if target is caught up, send TimeoutNow
@@ -578,6 +584,16 @@ void RaftNode::handleAppendEntriesResp(RaftNodeOutput*    output,
                       << " (peerMatchIndex=" << msg.d_matchIndex
                       << ", nextIndex(before)=" << it->second.d_nextIndex
                       << "); backing off and retrying";
+
+        // If the peer's reported lastIndex is below the snapshot boundary, it
+        // genuinely lacks 'snapshotIndex' -- an optimistic boundary probe
+        // cannot succeed, so remember to go straight to InstallSnapshot on the
+        // retry below (prevents re-probing when the reject leaves 'nextIndex'
+        // back at 'snapshotIndex').
+        if (msg.d_matchIndex < d_log_p->snapshotIndex()) {
+            it->second.d_boundaryProbeRejected = true;
+        }
+
         if (msg.d_matchIndex > 0 &&
             msg.d_matchIndex < it->second.d_nextIndex) {
             it->second.d_nextIndex = msg.d_matchIndex + 1;
@@ -723,24 +739,61 @@ void RaftNode::sendAppendEntries(RaftNodeOutput* output, int peerId)
         return;
     }
 
-    bsls::Types::Uint64 nextIdx = it->second.d_nextIndex;
+    bsls::Types::Uint64 nextIdx       = it->second.d_nextIndex;
+    bsls::Types::Uint64 snapshotIndex = d_log_p->snapshotIndex();
 
-    if (nextIdx <= d_log_p->snapshotIndex()) {
+    if (nextIdx <= snapshotIndex) {
+        // 'prevLogIndex' ('nextIdx - 1') is at or below the compacted snapshot
+        // boundary, so a normal AppendEntries cannot be built from the log.
+        // Before falling back to a full (expensive) InstallSnapshot, try ONE
+        // optimistic AppendEntries anchored *at* the snapshot boundary
+        // ('prevLogIndex == snapshotIndex').  A peer that has itself already
+        // advanced to 'snapshotIndex' -- e.g. it applied the rollover
+        // 'e_ROLLOVER' entry and its ack is merely in flight, leaving our
+        // 'matchIndex' for it one short -- accepts it and catches up in a
+        // single round, avoiding a spurious snapshot at rollover time.  A
+        // genuinely-behind peer (lastIndex < snapshotIndex) rejects it;
+        // 'handleAppendEntriesResp' sets 'd_boundaryProbeRejected' and we
+        // snapshot on the retry (so this cannot loop).
+        if (nextIdx == snapshotIndex && !it->second.d_boundaryProbeRejected) {
+            RaftMessage probe(d_allocator_p);
+            probe.d_type              = RaftMessageType::e_APPEND_ENTRIES;
+            probe.d_term              = d_currentTerm;
+            probe.d_sourceNodeId      = d_config.d_selfId;
+            probe.d_destinationNodeId = peerId;
+            probe.d_prevLogIndex      = snapshotIndex;
+            probe.d_prevLogTerm       = d_log_p->snapshotTerm();
+            probe.d_leaderCommit      = d_commitIndex;
+
+            if (snapshotIndex < d_log_p->lastIndex()) {
+                d_log_p->entries(snapshotIndex + 1,
+                                 d_log_p->lastIndex() + 1,
+                                 &probe.d_entries);
+            }
+
+            output->d_messages.push_back(probe);
+            return;
+        }
+
         RaftMessage snap(d_allocator_p);
         snap.d_type              = RaftMessageType::e_INSTALL_SNAPSHOT;
         snap.d_term              = d_currentTerm;
         snap.d_sourceNodeId      = d_config.d_selfId;
         snap.d_destinationNodeId = peerId;
-        snap.d_lastLogIndex      = d_log_p->snapshotIndex();
+        snap.d_lastLogIndex      = snapshotIndex;
         snap.d_lastLogTerm       = d_log_p->snapshotTerm();
         output->d_messages.push_back(snap);
 
-        it->second.d_snapshotPending      = true;
-        it->second.d_snapshotPendingTicks = 0;
-        it->second.d_snapshotPendingIndex = snap.d_lastLogIndex;
-        it->second.d_snapshotPendingTerm  = snap.d_lastLogTerm;
+        it->second.d_snapshotPending       = true;
+        it->second.d_snapshotPendingTicks  = 0;
+        it->second.d_snapshotPendingIndex  = snap.d_lastLogIndex;
+        it->second.d_snapshotPendingTerm   = snap.d_lastLogTerm;
+        it->second.d_boundaryProbeRejected = false;
         return;
     }
+
+    // Normal path: the peer is caught up past the snapshot boundary.
+    it->second.d_boundaryProbeRejected = false;
 
     bsls::Types::Uint64 prevLogIndex = nextIdx - 1;
     bsls::Types::Uint64 prevLogTerm  = d_log_p->term(prevLogIndex);
