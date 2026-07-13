@@ -452,7 +452,7 @@ void ClusterUtil::assignPartitions(
     BSLS_ASSERT_SAFE(partitions && partitions->empty());
     BSLS_ASSERT_SAFE(mqbnet::ElectorState::e_LEADER ==
                      clusterData.electorInfo().electorState());
-    if (!clusterData.clusterConfig().clusterAttributes().isFSMWorkflow()) {
+    if (!clusterData.cluster().isFSMWorkflow()) {
         BSLS_ASSERT_SAFE(bmqp_ctrlmsg::NodeStatus::E_AVAILABLE ==
                          clusterData.membership().selfNodeStatus());
     }
@@ -627,9 +627,7 @@ void ClusterUtil::onPartitionPrimaryAssignment(
                 clusterData->membership().getClusterNodeSession(primary);
             BSLS_ASSERT_SAFE(ns && ns->isPrimaryForPartition(partitionId));
 
-            if (clusterData->clusterConfig()
-                    .clusterAttributes()
-                    .isFSMWorkflow()) {
+            if (clusterData->cluster().isFSMWorkflow()) {
                 storageManager->setPrimaryStatusForPartition(partitionId,
                                                              status);
             }
@@ -660,26 +658,19 @@ void ClusterUtil::onPartitionPrimaryAssignment(
 
         ns->addPartitionRaw(partitionId);
 
-        if (!clusterData->clusterConfig()
-                 .clusterAttributes()
-                 .isFSMWorkflow()) {
-            // In legacy mode, set primary directly.  In FSM workflow,
-            // setting is done through the Partition FSM's 'do_setPrimary'
-            // action upon processing 'e_DETECT_SELF_REPLICA' or
-            // 'e_DETECT_SELF_PRIMARY', keeping d_partitionInfoVec in sync
-            // with the PFSM state.
+        if (!clusterData->cluster().isFSMWorkflow()) {
+            // In legacy mode, set primary directly.  In FSM or hybrid
+            // workflow, setting is done through detectSelfPrimaryInPFSM /
+            // detectSelfReplicaInPFSM, keeping d_partitionInfoVec in sync.
             storageManager->setPrimaryForPartition(partitionId,
                                                    primary,
                                                    leaseId);
         }
     }
     else {
-        if (!clusterData->clusterConfig()
-                 .clusterAttributes()
-                 .isFSMWorkflow()) {
-            // In legacy mode, clear primary directly.  In FSM workflow,
-            // clearing is done through the Partition FSM's
-            // 'do_cleanupMetadata' action upon processing 'e_RST_UNKNOWN'.
+        if (!clusterData->cluster().isFSMWorkflow()) {
+            // In legacy mode, clear primary directly.  In FSM or hybrid
+            // workflow, clearing is done through detectPrimaryLossInPFSM.
             storageManager->clearPrimaryForPartition(partitionId, oldPrimary);
         }
     }
@@ -1442,7 +1433,7 @@ void ClusterUtil::sendClusterState(
                          clusterState.partitions().size());
     }
 
-    if (clusterData->clusterConfig().clusterAttributes().isFSMWorkflow()) {
+    if (clusterData->cluster().isFSMWorkflow()) {
         // In FSM mode, the *only* possible caller of this method is
         // `onNodeUnavailable()`.  In all other cases, the Cluster FSM is
         // responsible for sending the cluster state updates to followers.
@@ -1465,10 +1456,9 @@ void ClusterUtil::sendClusterState(
         return;  // RETURN
     }
 
-    BSLS_ASSERT_SAFE(
-        clusterData->clusterConfig().clusterAttributes().isFSMWorkflow() ||
-        bmqp_ctrlmsg::NodeStatus::E_AVAILABLE ==
-            clusterData->membership().selfNodeStatus());
+    BSLS_ASSERT_SAFE(clusterData->cluster().isFSMWorkflow() ||
+                     bmqp_ctrlmsg::NodeStatus::E_AVAILABLE ==
+                         clusterData->membership().selfNodeStatus());
 
     bmqp_ctrlmsg::ControlMessage  controlMessage;
     bmqp_ctrlmsg::ClusterMessage& clusterMessage =

@@ -438,6 +438,14 @@ class Cluster : public DispatcherClient {
     /// Return boolean flag indicating if CSL FSM workflow is in effect.
     virtual bool isFSMWorkflow() const;
 
+    /// Return boolean flag indicating if hybrid workflow is in effect
+    /// (Cluster FSM with legacy partition sync).
+    virtual bool isHybridWorkflow() const;
+
+    /// Return true if the self node is ready for partition sync:
+    /// E_AVAILABLE, or E_STARTING when hybrid workflow is in effect.
+    virtual bool isPartitionSyncReady() const;
+
     /// Return boolean flag indicating whether the broker still writes to the
     /// to-be-deprecated QLIST file when FSM workflow is enabled.
     virtual bool doesFSMwriteQLIST() const;
@@ -548,6 +556,16 @@ struct ClusterResources {
 // ============================================================================
 
 inline bool Cluster::isFSMWorkflow() const
+{
+    return false;
+}
+
+inline bool Cluster::isHybridWorkflow() const
+{
+    return false;
+}
+
+inline bool Cluster::isPartitionSyncReady() const
 {
     return false;
 }

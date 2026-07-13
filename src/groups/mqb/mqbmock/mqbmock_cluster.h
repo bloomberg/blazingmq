@@ -545,6 +545,12 @@ class Cluster : public mqbi::Cluster {
     /// Return boolean flag indicating if CSL FSM workflow is in effect.
     bool isFSMWorkflow() const BSLS_KEYWORD_OVERRIDE;
 
+    /// Return boolean flag indicating if hybrid workflow is in effect
+    /// (Cluster FSM with legacy partition sync).
+    bool isHybridWorkflow() const BSLS_KEYWORD_OVERRIDE;
+
+    bool isPartitionSyncReady() const BSLS_KEYWORD_OVERRIDE;
+
     /// Return boolean flag indicating whether the broker still writes to the
     /// to-be-deprecated QLIST file when FSM workflow is enabled.
     bool doesFSMwriteQLIST() const BSLS_KEYWORD_OVERRIDE;
@@ -673,6 +679,16 @@ inline void Cluster::getPartitionPrimaryNode(int*,
 inline bool Cluster::isFSMWorkflow() const
 {
     return d_clusterDefinition.clusterAttributes().isFSMWorkflow();
+}
+
+inline bool Cluster::isHybridWorkflow() const
+{
+    return false;
+}
+
+inline bool Cluster::isPartitionSyncReady() const
+{
+    return false;
 }
 
 inline bool Cluster::doesFSMwriteQLIST() const
