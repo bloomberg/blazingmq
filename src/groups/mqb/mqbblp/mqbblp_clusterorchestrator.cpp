@@ -2337,9 +2337,16 @@ void ClusterOrchestrator::maybeTransitionToAvailable()
 
     // This is the single unified readiness check, invoked from two
     // independent triggers: (1) a data-partition's own Raft leadership
-    // changing ('onPartitionRaftLeadershipDispatched'), and (2) the CSL's
-    // leadership/commit events ('ClusterStateRaft's availability callback).
-    // Raft-mode only (this callback is never wired in legacy mode).
+    // changing ('onPartitionRaftLeadershipDispatched') -- including a
+    // re-election that happens well after this node first became
+    // available -- and (2) the CSL's leadership/commit events
+    // ('ClusterStateRaft's availability callback).  Raft-mode only (this
+    // callback is never wired in legacy mode).  It must keep re-running
+    // after the node is already E_AVAILABLE: a post-availability
+    // re-election closes the gate for just that partition (see
+    // 'onPartitionRaftLeadershipDispatched'), and only the tail of this
+    // function re-opens it, so bailing out early here would leave that
+    // partition's gate permanently closed.
     if (!d_clusterStateRaft_mp) {
         return;  // RETURN (legacy mode)
     }
@@ -2347,11 +2354,6 @@ void ClusterOrchestrator::maybeTransitionToAvailable()
     if (bmqp_ctrlmsg::NodeStatus::E_STOPPING ==
         d_clusterData_p->membership().selfNodeStatus()) {
         return;  // RETURN (shutting down)
-    }
-
-    if (bmqp_ctrlmsg::NodeStatus::E_AVAILABLE ==
-        d_clusterData_p->membership().selfNodeStatus()) {
-        return;  // RETURN (recursive)
     }
 
     const mqbc::ClusterState::PartitionsInfo& partitions =
@@ -2438,6 +2440,20 @@ void ClusterOrchestrator::maybeTransitionToAvailable()
             partitions[pid].primaryStatus()) {
             d_clusterState_p->setPartitionPrimaryStatus(
                 static_cast<int>(pid),
+                bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE);
+
+            // Legacy/FSM mode learns of this transition via the
+            // 'ClusterStateObserver' callback that
+            // 'ClusterStateManager::onPartitionPrimaryAssignment' forwards to
+            // 'ClusterQueueHelper::afterPartitionPrimaryAssignment' -- Raft
+            // mode has no such observer wired up (no 'ClusterStateManager'
+            // is constructed), so drive it directly here.  This retries any
+            // openQueue/reopen contexts that were buffered while this
+            // partition had no active primary, and redirects already-open
+            // queue handles on this partition to the new primary.
+            d_queueHelper.afterPartitionPrimaryAssignment(
+                static_cast<int>(pid),
+                partitions[pid].primaryNode(),
                 bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE);
         }
     }
