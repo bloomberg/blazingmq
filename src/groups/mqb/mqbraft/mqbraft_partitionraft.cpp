@@ -997,6 +997,26 @@ void PartitionRaft::proposeDeferredSyncPoint()
                   << "activated; CSL advisory for its leaseId has committed).";
 
     proposeSyncPoint();
+
+    // The sync point just appended is this term's first entry.  If the log
+    // also holds an uncommitted 'e_ROLLOVER' inherited from a prior leader
+    // (which proposed the rollover but lost leadership before it committed),
+    // that sync point is the current-term entry that will carry the
+    // 'e_ROLLOVER' to commit -- so it will commit and roll over regardless of
+    // this node's own rollover configuration.  Enter the rollover-pending
+    // state now so client writes buffer (keeping the post-'e_ROLLOVER' tail to
+    // journal-op sync points) and no duplicate 'e_ROLLOVER' is proposed; the
+    // buffered writes drain into the new file set once the inherited rollover
+    // commits.  This must not rely on 'rolloverIfNeeded' (a
+    // differently-configured new leader may not re-trigger), hence the direct
+    // log check.
+    if (!d_isRolloverPending &&
+        d_raftLog_mp->hasUncommittedRollover(d_raftNode_mp->commitIndex())) {
+        d_isRolloverPending = true;
+        BALL_LOG_INFO << "Partition [" << d_partitionId
+                      << "] inherited an uncommitted e_ROLLOVER; buffering "
+                      << "writes until it commits and rolls over.";
+    }
 }
 
 void PartitionRaft::proposeShutdownSyncPoint()
