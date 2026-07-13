@@ -1,3 +1,18 @@
+// Copyright 2026 Bloomberg Finance L.P.
+// SPDX-License-Identifier: Apache-2.0
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 // bmqp_ctrlmsg_messages.cpp         *DO NOT EDIT*         @generated -*-C++-*-
 
 #include <bmqp_ctrlmsg_messages.h>
@@ -8565,22 +8580,14 @@ bsl::ostream& RegistrationRequest::print(bsl::ostream& stream,
 const char ReplicaDataRequest::CLASS_NAME[] = "ReplicaDataRequest";
 
 const bdlat_AttributeInfo ReplicaDataRequest::ATTRIBUTE_INFO_ARRAY[] = {
-    {
-        ATTRIBUTE_ID_REPLICA_DATA_TYPE,
-        "replicaDataType",
-        sizeof("replicaDataType") - 1,
-        "",
-        bdlat_FormattingMode::e_DEFAULT
-    },
-    {
-        ATTRIBUTE_ID_PARTITION_ID,
-        "partitionId",
-        sizeof("partitionId") - 1,
-        "",
-        bdlat_FormattingMode::e_DEC
-    },
-    {
-        ATTRIBUTE_ID_BEGIN_SEQUENCE_NUMBER,
+    {ATTRIBUTE_ID_PARTITION_ID,
+     "partitionId",
+     sizeof("partitionId") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC},
+    {ATTRIBUTE_ID_PRIMARY_LEASE_ID,
+     "primaryLeaseId",
+     sizeof("primaryLeaseId") - 1,
      "",
      bdlat_FormattingMode::e_DEC},
     {ATTRIBUTE_ID_REPLICA_DATA_TYPE,
@@ -8588,19 +8595,16 @@ const bdlat_AttributeInfo ReplicaDataRequest::ATTRIBUTE_INFO_ARRAY[] = {
      sizeof("replicaDataType") - 1,
      "",
      bdlat_FormattingMode::e_DEFAULT},
-        "beginSequenceNumber",
-        sizeof("beginSequenceNumber") - 1,
-        "",
-        bdlat_FormattingMode::e_DEFAULT
-    },
-    {
-        ATTRIBUTE_ID_END_SEQUENCE_NUMBER,
-        "endSequenceNumber",
-        sizeof("endSequenceNumber") - 1,
-        "",
-        bdlat_FormattingMode::e_DEFAULT
-    }
-};
+    {ATTRIBUTE_ID_BEGIN_SEQUENCE_NUMBER,
+     "beginSequenceNumber",
+     sizeof("beginSequenceNumber") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT},
+    {ATTRIBUTE_ID_END_SEQUENCE_NUMBER,
+     "endSequenceNumber",
+     sizeof("endSequenceNumber") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT}};
 
 // CLASS METHODS
 
@@ -8625,8 +8629,7 @@ const bdlat_AttributeInfo *ReplicaDataRequest::lookupAttributeInfo(
 const bdlat_AttributeInfo *ReplicaDataRequest::lookupAttributeInfo(int id)
 {
     switch (id) {
-      case ATTRIBUTE_ID_REPLICA_DATA_TYPE:
-      case ATTRIBUTE_ID_PARTITION_ID:
+    case ATTRIBUTE_ID_PARTITION_ID:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID];
     case ATTRIBUTE_ID_PRIMARY_LEASE_ID:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRIMARY_LEASE_ID];
@@ -8638,7 +8641,7 @@ const bdlat_AttributeInfo *ReplicaDataRequest::lookupAttributeInfo(int id)
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_END_SEQUENCE_NUMBER];
       default:
         return 0;
-    }
+      }
 }
 
 // CREATORS
@@ -8691,22 +8694,14 @@ bsl::ostream& ReplicaDataRequest::print(bsl::ostream& stream,
 const char ReplicaDataResponse::CLASS_NAME[] = "ReplicaDataResponse";
 
 const bdlat_AttributeInfo ReplicaDataResponse::ATTRIBUTE_INFO_ARRAY[] = {
-    {
-        ATTRIBUTE_ID_REPLICA_DATA_TYPE,
-        "replicaDataType",
-        sizeof("replicaDataType") - 1,
-        "",
-        bdlat_FormattingMode::e_DEFAULT
-    },
-    {
-        ATTRIBUTE_ID_PARTITION_ID,
-        "partitionId",
-        sizeof("partitionId") - 1,
-        "",
-        bdlat_FormattingMode::e_DEC
-    },
-    {
-        ATTRIBUTE_ID_BEGIN_SEQUENCE_NUMBER,
+    {ATTRIBUTE_ID_PARTITION_ID,
+     "partitionId",
+     sizeof("partitionId") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC},
+    {ATTRIBUTE_ID_PRIMARY_LEASE_ID,
+     "primaryLeaseId",
+     sizeof("primaryLeaseId") - 1,
      "",
      bdlat_FormattingMode::e_DEC},
     {ATTRIBUTE_ID_REPLICA_DATA_TYPE,
@@ -8714,19 +8709,16 @@ const bdlat_AttributeInfo ReplicaDataResponse::ATTRIBUTE_INFO_ARRAY[] = {
      sizeof("replicaDataType") - 1,
      "",
      bdlat_FormattingMode::e_DEFAULT},
-        "beginSequenceNumber",
-        sizeof("beginSequenceNumber") - 1,
-        "",
-        bdlat_FormattingMode::e_DEFAULT
-    },
-    {
-        ATTRIBUTE_ID_END_SEQUENCE_NUMBER,
-        "endSequenceNumber",
-        sizeof("endSequenceNumber") - 1,
-        "",
-        bdlat_FormattingMode::e_DEFAULT
-    }
-};
+    {ATTRIBUTE_ID_BEGIN_SEQUENCE_NUMBER,
+     "beginSequenceNumber",
+     sizeof("beginSequenceNumber") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT},
+    {ATTRIBUTE_ID_END_SEQUENCE_NUMBER,
+     "endSequenceNumber",
+     sizeof("endSequenceNumber") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT}};
 
 // CLASS METHODS
 
@@ -8751,8 +8743,7 @@ const bdlat_AttributeInfo *ReplicaDataResponse::lookupAttributeInfo(
 const bdlat_AttributeInfo *ReplicaDataResponse::lookupAttributeInfo(int id)
 {
     switch (id) {
-      case ATTRIBUTE_ID_REPLICA_DATA_TYPE:
-      case ATTRIBUTE_ID_PARTITION_ID:
+    case ATTRIBUTE_ID_PARTITION_ID:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID];
     case ATTRIBUTE_ID_PRIMARY_LEASE_ID:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRIMARY_LEASE_ID];
@@ -8764,7 +8755,7 @@ const bdlat_AttributeInfo *ReplicaDataResponse::lookupAttributeInfo(int id)
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_END_SEQUENCE_NUMBER];
       default:
         return 0;
-    }
+      }
 }
 
 // CREATORS

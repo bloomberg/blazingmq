@@ -18,6 +18,7 @@
 
 // MQB
 #include <mqbconfm_messages.h>
+#include <mqbi_domain.h>
 #include <mqbs_filebackedstorage.h>
 #include <mqbs_filestore.h>
 #include <mqbs_filestoreprotocol.h>
@@ -40,6 +41,12 @@
 #include <bsl_vector.h>
 #include <bslmf_movableref.h>
 #include <bsls_assert.h>
+
+// SYSTEM
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
 
 namespace BloombergLP {
 namespace mqbraft {
