@@ -1,3 +1,18 @@
+// Copyright 2026 Bloomberg Finance L.P.
+// SPDX-License-Identifier: Apache-2.0
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 // bmqp_ctrlmsg_messages.h          *DO NOT EDIT*          @generated -*-C++-*-
 #ifndef INCLUDED_BMQP_CTRLMSG_MESSAGES
 #define INCLUDED_BMQP_CTRLMSG_MESSAGES
@@ -13801,7 +13816,7 @@ class ReplicaDataRequest {
     // INSTANCE DATA
     PartitionSequenceNumber  d_beginSequenceNumber;
     PartitionSequenceNumber  d_endSequenceNumber;
-    unsigned int            d_primaryLeaseId;
+    unsigned int             d_primaryLeaseId;
     int                      d_partitionId;
     ReplicaDataType::Value   d_replicaDataType;
 
@@ -13814,22 +13829,20 @@ class ReplicaDataRequest {
   public:
     // TYPES
     enum {
-        ATTRIBUTE_ID_REPLICA_DATA_TYPE     = 0
-      , ATTRIBUTE_ID_PARTITION_ID          = 1
-      , ATTRIBUTE_ID_BEGIN_SEQUENCE_NUMBER = 2
-      , ATTRIBUTE_ID_END_SEQUENCE_NUMBER   = 3
+        ATTRIBUTE_ID_PARTITION_ID          = 0,
+        ATTRIBUTE_ID_PRIMARY_LEASE_ID      = 1,
+        ATTRIBUTE_ID_REPLICA_DATA_TYPE     = 2,
+        ATTRIBUTE_ID_BEGIN_SEQUENCE_NUMBER = 3,
         ATTRIBUTE_ID_END_SEQUENCE_NUMBER   = 4
     };
 
-    enum {
-        NUM_ATTRIBUTES = 4
-    };
+    enum { NUM_ATTRIBUTES = 5 };
 
     enum {
-        ATTRIBUTE_INDEX_REPLICA_DATA_TYPE     = 0
-      , ATTRIBUTE_INDEX_PARTITION_ID          = 1
-      , ATTRIBUTE_INDEX_BEGIN_SEQUENCE_NUMBER = 2
-      , ATTRIBUTE_INDEX_END_SEQUENCE_NUMBER   = 3
+        ATTRIBUTE_INDEX_PARTITION_ID          = 0,
+        ATTRIBUTE_INDEX_PRIMARY_LEASE_ID      = 1,
+        ATTRIBUTE_INDEX_REPLICA_DATA_TYPE     = 2,
+        ATTRIBUTE_INDEX_BEGIN_SEQUENCE_NUMBER = 3,
         ATTRIBUTE_INDEX_END_SEQUENCE_NUMBER   = 4
     };
 
@@ -13891,8 +13904,6 @@ class ReplicaDataRequest {
         // returned from the invocation of 'manipulator' if 'name' identifies
         // an attribute of this class, and -1 otherwise.
 
-        // Return a reference to the modifiable "ReplicaDataType" attribute of
-        // this object.
     int& partitionId();
         // Return a reference to the modifiable "PartitionId" attribute of this
         // object.
@@ -13957,7 +13968,6 @@ class ReplicaDataRequest {
         // invocation of 'accessor' if 'name' identifies an attribute of this
         // class, and -1 otherwise.
 
-        // Return the value of the "ReplicaDataType" attribute of this object.
     int partitionId() const;
         // Return the value of the "PartitionId" attribute of this object.
 
@@ -14040,7 +14050,7 @@ class ReplicaDataResponse {
     // INSTANCE DATA
     PartitionSequenceNumber  d_beginSequenceNumber;
     PartitionSequenceNumber  d_endSequenceNumber;
-    unsigned int            d_primaryLeaseId;
+    unsigned int             d_primaryLeaseId;
     int                      d_partitionId;
     ReplicaDataType::Value   d_replicaDataType;
 
@@ -14053,22 +14063,20 @@ class ReplicaDataResponse {
   public:
     // TYPES
     enum {
-        ATTRIBUTE_ID_REPLICA_DATA_TYPE     = 0
-      , ATTRIBUTE_ID_PARTITION_ID          = 1
-      , ATTRIBUTE_ID_BEGIN_SEQUENCE_NUMBER = 2
-      , ATTRIBUTE_ID_END_SEQUENCE_NUMBER   = 3
+        ATTRIBUTE_ID_PARTITION_ID          = 0,
+        ATTRIBUTE_ID_PRIMARY_LEASE_ID      = 1,
+        ATTRIBUTE_ID_REPLICA_DATA_TYPE     = 2,
+        ATTRIBUTE_ID_BEGIN_SEQUENCE_NUMBER = 3,
         ATTRIBUTE_ID_END_SEQUENCE_NUMBER   = 4
     };
 
-    enum {
-        NUM_ATTRIBUTES = 4
-    };
+    enum { NUM_ATTRIBUTES = 5 };
 
     enum {
-        ATTRIBUTE_INDEX_REPLICA_DATA_TYPE     = 0
-      , ATTRIBUTE_INDEX_PARTITION_ID          = 1
-      , ATTRIBUTE_INDEX_BEGIN_SEQUENCE_NUMBER = 2
-      , ATTRIBUTE_INDEX_END_SEQUENCE_NUMBER   = 3
+        ATTRIBUTE_INDEX_PARTITION_ID          = 0,
+        ATTRIBUTE_INDEX_PRIMARY_LEASE_ID      = 1,
+        ATTRIBUTE_INDEX_REPLICA_DATA_TYPE     = 2,
+        ATTRIBUTE_INDEX_BEGIN_SEQUENCE_NUMBER = 3,
         ATTRIBUTE_INDEX_END_SEQUENCE_NUMBER   = 4
     };
 
@@ -14130,8 +14138,6 @@ class ReplicaDataResponse {
         // returned from the invocation of 'manipulator' if 'name' identifies
         // an attribute of this class, and -1 otherwise.
 
-        // Return a reference to the modifiable "ReplicaDataType" attribute of
-        // this object.
     int& partitionId();
         // Return a reference to the modifiable "PartitionId" attribute of this
         // object.
@@ -14196,7 +14202,6 @@ class ReplicaDataResponse {
         // invocation of 'accessor' if 'name' identifies an attribute of this
         // class, and -1 otherwise.
 
-        // Return the value of the "ReplicaDataType" attribute of this object.
     int partitionId() const;
         // Return the value of the "PartitionId" attribute of this object.
 
@@ -34278,12 +34283,14 @@ int ReplicaDataRequest::manipulateAttributes(t_MANIPULATOR& manipulator)
 {
     int ret;
 
-    ret = manipulator(&d_replicaDataType, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_REPLICA_DATA_TYPE]);
+    ret = manipulator(&d_partitionId,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID]);
     if (ret) {
         return ret;
     }
 
-    ret = manipulator(&d_partitionId, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID]);
+    ret = manipulator(&d_primaryLeaseId,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRIMARY_LEASE_ID]);
     if (ret) {
         return ret;
     }
@@ -34314,19 +34321,17 @@ int ReplicaDataRequest::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
 
     switch (id) {
     case ATTRIBUTE_ID_PARTITION_ID: {
-        return manipulator(&d_partitionId,
-                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID]);
-    }
-    case ATTRIBUTE_ID_PRIMARY_LEASE_ID: {
-        return manipulator(
-            &d_primaryLeaseId,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRIMARY_LEASE_ID]);
-    }
-      case ATTRIBUTE_ID_REPLICA_DATA_TYPE: {
-        return manipulator(&d_replicaDataType, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_REPLICA_DATA_TYPE]);
-      }
-      case ATTRIBUTE_ID_PARTITION_ID: {
         return manipulator(&d_partitionId, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID]);
+      }
+      case ATTRIBUTE_ID_PRIMARY_LEASE_ID: {
+          return manipulator(
+              &d_primaryLeaseId,
+              ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRIMARY_LEASE_ID]);
+      }
+      case ATTRIBUTE_ID_REPLICA_DATA_TYPE: {
+          return manipulator(
+              &d_replicaDataType,
+              ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_REPLICA_DATA_TYPE]);
       }
       case ATTRIBUTE_ID_BEGIN_SEQUENCE_NUMBER: {
         return manipulator(&d_beginSequenceNumber, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_BEGIN_SEQUENCE_NUMBER]);
@@ -34336,7 +34341,7 @@ int ReplicaDataRequest::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
       }
       default:
         return NOT_FOUND;
-    }
+      }
 }
 
 template <typename t_MANIPULATOR>
@@ -34356,14 +34361,12 @@ int ReplicaDataRequest::manipulateAttribute(
     return manipulateAttribute(manipulator, attributeInfo->d_id);
 }
 
-inline
-ReplicaDataType::Value& ReplicaDataRequest::replicaDataType()
+inline int& ReplicaDataRequest::partitionId()
 {
     return d_partitionId;
 }
 
-inline
-int& ReplicaDataRequest::partitionId()
+inline unsigned int& ReplicaDataRequest::primaryLeaseId()
 {
     return d_primaryLeaseId;
 }
@@ -34391,12 +34394,14 @@ int ReplicaDataRequest::accessAttributes(t_ACCESSOR& accessor) const
 {
     int ret;
 
-    ret = accessor(d_replicaDataType, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_REPLICA_DATA_TYPE]);
+    ret = accessor(d_partitionId,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID]);
     if (ret) {
         return ret;
     }
 
-    ret = accessor(d_partitionId, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID]);
+    ret = accessor(d_primaryLeaseId,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRIMARY_LEASE_ID]);
     if (ret) {
         return ret;
     }
@@ -34427,19 +34432,17 @@ int ReplicaDataRequest::accessAttribute(t_ACCESSOR& accessor, int id) const
 
     switch (id) {
     case ATTRIBUTE_ID_PARTITION_ID: {
-        return accessor(d_partitionId,
-                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID]);
-    }
-    case ATTRIBUTE_ID_PRIMARY_LEASE_ID: {
-        return accessor(
-            d_primaryLeaseId,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRIMARY_LEASE_ID]);
-    }
-      case ATTRIBUTE_ID_REPLICA_DATA_TYPE: {
-        return accessor(d_replicaDataType, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_REPLICA_DATA_TYPE]);
-      }
-      case ATTRIBUTE_ID_PARTITION_ID: {
         return accessor(d_partitionId, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID]);
+      }
+      case ATTRIBUTE_ID_PRIMARY_LEASE_ID: {
+          return accessor(
+              d_primaryLeaseId,
+              ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRIMARY_LEASE_ID]);
+      }
+      case ATTRIBUTE_ID_REPLICA_DATA_TYPE: {
+          return accessor(
+              d_replicaDataType,
+              ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_REPLICA_DATA_TYPE]);
       }
       case ATTRIBUTE_ID_BEGIN_SEQUENCE_NUMBER: {
         return accessor(d_beginSequenceNumber, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_BEGIN_SEQUENCE_NUMBER]);
@@ -34449,7 +34452,7 @@ int ReplicaDataRequest::accessAttribute(t_ACCESSOR& accessor, int id) const
       }
       default:
         return NOT_FOUND;
-    }
+      }
 }
 
 template <typename t_ACCESSOR>
@@ -34469,14 +34472,12 @@ int ReplicaDataRequest::accessAttribute(
     return accessAttribute(accessor, attributeInfo->d_id);
 }
 
-inline
-ReplicaDataType::Value ReplicaDataRequest::replicaDataType() const
+inline int ReplicaDataRequest::partitionId() const
 {
     return d_partitionId;
 }
 
-inline
-int ReplicaDataRequest::partitionId() const
+inline unsigned int ReplicaDataRequest::primaryLeaseId() const
 {
     return d_primaryLeaseId;
 }
@@ -34533,12 +34534,14 @@ int ReplicaDataResponse::manipulateAttributes(t_MANIPULATOR& manipulator)
 {
     int ret;
 
-    ret = manipulator(&d_replicaDataType, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_REPLICA_DATA_TYPE]);
+    ret = manipulator(&d_partitionId,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID]);
     if (ret) {
         return ret;
     }
 
-    ret = manipulator(&d_partitionId, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID]);
+    ret = manipulator(&d_primaryLeaseId,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRIMARY_LEASE_ID]);
     if (ret) {
         return ret;
     }
@@ -34569,19 +34572,17 @@ int ReplicaDataResponse::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
 
     switch (id) {
     case ATTRIBUTE_ID_PARTITION_ID: {
-        return manipulator(&d_partitionId,
-                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID]);
-    }
-    case ATTRIBUTE_ID_PRIMARY_LEASE_ID: {
-        return manipulator(
-            &d_primaryLeaseId,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRIMARY_LEASE_ID]);
-    }
-      case ATTRIBUTE_ID_REPLICA_DATA_TYPE: {
-        return manipulator(&d_replicaDataType, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_REPLICA_DATA_TYPE]);
-      }
-      case ATTRIBUTE_ID_PARTITION_ID: {
         return manipulator(&d_partitionId, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID]);
+      }
+      case ATTRIBUTE_ID_PRIMARY_LEASE_ID: {
+          return manipulator(
+              &d_primaryLeaseId,
+              ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRIMARY_LEASE_ID]);
+      }
+      case ATTRIBUTE_ID_REPLICA_DATA_TYPE: {
+          return manipulator(
+              &d_replicaDataType,
+              ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_REPLICA_DATA_TYPE]);
       }
       case ATTRIBUTE_ID_BEGIN_SEQUENCE_NUMBER: {
         return manipulator(&d_beginSequenceNumber, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_BEGIN_SEQUENCE_NUMBER]);
@@ -34591,7 +34592,7 @@ int ReplicaDataResponse::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
       }
       default:
         return NOT_FOUND;
-    }
+      }
 }
 
 template <typename t_MANIPULATOR>
@@ -34611,14 +34612,12 @@ int ReplicaDataResponse::manipulateAttribute(
     return manipulateAttribute(manipulator, attributeInfo->d_id);
 }
 
-inline
-ReplicaDataType::Value& ReplicaDataResponse::replicaDataType()
+inline int& ReplicaDataResponse::partitionId()
 {
     return d_partitionId;
 }
 
-inline
-int& ReplicaDataResponse::partitionId()
+inline unsigned int& ReplicaDataResponse::primaryLeaseId()
 {
     return d_primaryLeaseId;
 }
@@ -34646,12 +34645,14 @@ int ReplicaDataResponse::accessAttributes(t_ACCESSOR& accessor) const
 {
     int ret;
 
-    ret = accessor(d_replicaDataType, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_REPLICA_DATA_TYPE]);
+    ret = accessor(d_partitionId,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID]);
     if (ret) {
         return ret;
     }
 
-    ret = accessor(d_partitionId, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID]);
+    ret = accessor(d_primaryLeaseId,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRIMARY_LEASE_ID]);
     if (ret) {
         return ret;
     }
@@ -34682,19 +34683,17 @@ int ReplicaDataResponse::accessAttribute(t_ACCESSOR& accessor, int id) const
 
     switch (id) {
     case ATTRIBUTE_ID_PARTITION_ID: {
-        return accessor(d_partitionId,
-                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID]);
-    }
-    case ATTRIBUTE_ID_PRIMARY_LEASE_ID: {
-        return accessor(
-            d_primaryLeaseId,
-            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRIMARY_LEASE_ID]);
-    }
-      case ATTRIBUTE_ID_REPLICA_DATA_TYPE: {
-        return accessor(d_replicaDataType, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_REPLICA_DATA_TYPE]);
-      }
-      case ATTRIBUTE_ID_PARTITION_ID: {
         return accessor(d_partitionId, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID]);
+      }
+      case ATTRIBUTE_ID_PRIMARY_LEASE_ID: {
+          return accessor(
+              d_primaryLeaseId,
+              ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRIMARY_LEASE_ID]);
+      }
+      case ATTRIBUTE_ID_REPLICA_DATA_TYPE: {
+          return accessor(
+              d_replicaDataType,
+              ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_REPLICA_DATA_TYPE]);
       }
       case ATTRIBUTE_ID_BEGIN_SEQUENCE_NUMBER: {
         return accessor(d_beginSequenceNumber, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_BEGIN_SEQUENCE_NUMBER]);
@@ -34704,7 +34703,7 @@ int ReplicaDataResponse::accessAttribute(t_ACCESSOR& accessor, int id) const
       }
       default:
         return NOT_FOUND;
-    }
+      }
 }
 
 template <typename t_ACCESSOR>
@@ -34724,14 +34723,12 @@ int ReplicaDataResponse::accessAttribute(
     return accessAttribute(accessor, attributeInfo->d_id);
 }
 
-inline
-ReplicaDataType::Value ReplicaDataResponse::replicaDataType() const
+inline int ReplicaDataResponse::partitionId() const
 {
     return d_partitionId;
 }
 
-inline
-int ReplicaDataResponse::partitionId() const
+inline unsigned int ReplicaDataResponse::primaryLeaseId() const
 {
     return d_primaryLeaseId;
 }
