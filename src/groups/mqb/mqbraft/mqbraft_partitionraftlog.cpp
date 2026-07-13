@@ -381,11 +381,16 @@ void PartitionRaftLog::rollover(bsls::Types::Uint64 rolloverIndex)
     BSLS_ASSERT_SAFE(rolloverIndex > d_snapshotIndex &&
                      rolloverIndex <= lastIndex());
 
-    // Number of 'd_index' entries up to and including 'e_ROLLOVER'.  Because
-    // window writes NACK in phase 1, 'e_ROLLOVER' is the last log entry, so
-    // there is no tail: 'prefixCount' must span the whole index.
+    // Number of 'd_index' entries up to and including 'e_ROLLOVER'.  Normally
+    // 'e_ROLLOVER' is the last log entry (window writes buffer behind it), but
+    // a leadership change can leave a tail after it: a new leader must keep
+    // the inherited, still-uncommitted 'e_ROLLOVER' and commit it via a
+    // current-term entry appended above it (the become-leader sync point).
+    // Leader-side rollover-pending buffering (see
+    // 'PartitionRaft::proposeDeferredSyncPoint') bounds that tail to
+    // journal-op sync points, which are rewritten into the new file below.
     const bsls::Types::Uint64 prefixCount = rolloverIndex - d_snapshotIndex;
-    BSLS_ASSERT_SAFE(prefixCount == d_index.size());
+    BSLS_ASSERT_SAFE(prefixCount >= 1 && prefixCount <= d_index.size());
 
     // The 'e_ROLLOVER' log entry.  Capture its old-file journal offset (for
     // marker (i) and the timestamp) and its term (the new snapshot boundary
@@ -441,6 +446,36 @@ void PartitionRaftLog::rollover(bsls::Types::Uint64 rolloverIndex)
                                                     eRolloverOldOffset,
                                                     timestamp);
 
+    // Rewrite the tail -- entries appended after 'e_ROLLOVER' -- into the new
+    // file, in strict index order, right after the marker (exactly where a
+    // normal post-rollover append would land, so recovery re-indexes them
+    // identically).  A tail exists only when a leadership change committed an
+    // inherited 'e_ROLLOVER': committing a prior-term 'e_ROLLOVER' requires a
+    // current-term entry (the new leader's become-leader sync point) committed
+    // above it, so that entry sits above the rollover boundary here.  Leader-
+    // side rollover-pending buffering (see
+    // 'PartitionRaft::proposeDeferredSyncPoint') keeps client writes out of
+    // this window and 'commitIndex == lastIndex' holds at rollover time, so
+    // the tail is exactly the committed become-leader sync point(s) -- one per
+    // intervening election, all journal-ops.  Copy each verbatim (still
+    // reading the old, not-yet-archived front set) and repoint its 'EntryInfo'
+    // at the new file; a journal-op produces no handle, so only the offsets
+    // move.
+    for (bsls::Types::Uint64 i = prefixCount; i < d_index.size(); ++i) {
+        EntryInfo& tailEntry = d_index[i];
+        BSLS_ASSERT_SAFE(tailEntry.d_recordType ==
+                         mqbs::RecordType::e_JOURNAL_OP);
+
+        tailEntry.d_journalOffset =
+            d_fileStore_p->writeRolledOverJournalOpRecord(
+                newFileSet,
+                tailEntry.d_journalOffset);
+        // A journal-op writes no data/qlist; its truncation anchors are the
+        // new file's current ends (mirrors 'formatSyncPointRecord').
+        tailEntry.d_dataOffset  = newFileSet->d_dataFilePosition;
+        tailEntry.d_qlistOffset = newFileSet->d_qlistFilePosition;
+    }
+
     BALL_LOG_INFO_BLOCK
     {
         statRecorder.print(BALL_LOG_OUTPUT_STREAM,
@@ -455,25 +490,28 @@ void PartitionRaftLog::rollover(bsls::Types::Uint64 rolloverIndex)
         statRecorder.print(BALL_LOG_OUTPUT_STREAM, "ROLLOVER COMPLETE");
     }
 
-    // Empty 'd_index' and advance the snapshot boundary: the committed prefix
-    // now lives compacted in the rolled-over file and is served to lagging
-    // peers via snapshot (they request 'rolloverIndex' via InstallSnapshot).
+    // Drop the compacted prefix (up to and including 'e_ROLLOVER') and advance
+    // the snapshot boundary; the tail rewritten above, if any, stays in
+    // 'd_index' as the live log now anchored on the new file.  The compacted
+    // prefix lives in the rolled-over file and is served to lagging peers via
+    // snapshot (they request 'rolloverIndex' via InstallSnapshot).
     d_index.erase(d_index.begin(), d_index.begin() + prefixCount);
     d_snapshotIndex = rolloverIndex;
     d_snapshotTerm  = newSnapshotTerm;
 
     clearCache();
 
-    // On the primary, the committed 'e_ROLLOVER' is a pending write that was
-    // appended but is handled here rather than by
-    // 'applyCommittedEntryAsPrimary', so it is never popped there.  Remove it
-    // now to keep 'takePendingWrites' (drain) from replaying it into the new
-    // file set.  It is the sole appended pending write at this point (all
-    // earlier entries were applied and popped before it in commit order, and
-    // window writes are buffered behind it).  On the replica path
+    // Pop the 'e_ROLLOVER' pending write only if *this* node proposed it (the
+    // same-leader case): it is then the sole appended pending write, handled
+    // here rather than by 'applyCommittedEntryAsPrimary', so removing it now
+    // keeps 'takePendingWrites' (drain) from replaying it into the new file
+    // set.  A node that inherited 'e_ROLLOVER' from a prior leader has no such
+    // pending write; its front appended pending write, if any, is a tail entry
+    // (a become-leader sync point at 'seq > rolloverIndex') that must survive
+    // for its own 'applyCommittedEntryAsPrimary'.  On the replica path
     // 'd_pendingWrites' is empty ('d_appendedCount == 0'), so this is skipped.
-    if (0 < d_appendedCount) {
-        BSLS_ASSERT_SAFE(1 == d_appendedCount);
+    if (0 < d_appendedCount &&
+        d_pendingWrites.front()->d_sequenceNumber == rolloverIndex) {
         BSLS_ASSERT_SAFE(d_pendingWrites.front()->d_syncPointType ==
                          mqbs::SyncPointType::e_ROLLOVER);
 
@@ -616,6 +654,29 @@ bool PartitionRaftLog::isRollover(bsls::Types::Uint64 index) const
 
     return (recordType == mqbs::RecordType::e_JOURNAL_OP &&
             syncPointType == mqbs::SyncPointType::e_ROLLOVER);
+}
+
+bool PartitionRaftLog::hasUncommittedRollover(
+    bsls::Types::Uint64 commitIndex) const
+{
+    // Scan the uncommitted suffix '(commitIndex, lastIndex]' for an
+    // 'e_ROLLOVER' journal-op.  A new leader must buffer purely on the
+    // presence of an uncommitted 'e_ROLLOVER' -- it is a committed cluster
+    // decision that will roll over regardless of this node's own rollover
+    // configuration, so 'rolloverIfNeeded' cannot be relied on to re-trigger
+    // it.  'commitIndex >= d_snapshotIndex' always (the snapshot boundary
+    // never exceeds commit), so the first uncommitted entry maps to vector
+    // index 'commitIndex - d_snapshotIndex'.
+    BSLS_ASSERT_SAFE(commitIndex >= d_snapshotIndex);
+    for (bsls::Types::Uint64 i = commitIndex - d_snapshotIndex;
+         i < d_index.size();
+         ++i) {
+        if (d_index[i].d_recordType == mqbs::RecordType::e_JOURNAL_OP &&
+            d_index[i].d_syncPointType == mqbs::SyncPointType::e_ROLLOVER) {
+            return true;  // RETURN
+        }
+    }
+    return false;
 }
 
 }  // close package namespace

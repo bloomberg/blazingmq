@@ -4419,6 +4419,36 @@ void FileStore::writeRolledOverRecord(DataStoreRecord*    record,
         FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
 }
 
+bsls::Types::Uint64
+FileStore::writeRolledOverJournalOpRecord(FileSet*            newFileSet,
+                                          bsls::Types::Uint64 oldJournalOffset)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(newFileSet);
+    BSLS_ASSERT_SAFE(0 < d_fileSets.size());
+
+    // The old (source) file set is always the current active/front file set.
+    const MappedFileDescriptor& aJournal = d_fileSets[0]->d_journalFile;
+    MappedFileDescriptor&       rJournal = newFileSet->d_journalFile;
+    bsls::Types::Uint64& rJournalPos     = newFileSet->d_journalFilePosition;
+
+    OffsetPtr<const RecordHeader> fromHeader(aJournal.block(),
+                                             oldJournalOffset);
+    BSLS_ASSERT_SAFE(RecordType::e_JOURNAL_OP == fromHeader->type());
+    (void)fromHeader;
+
+    // Raw-copy the journal record verbatim to the new journal; a sync point
+    // has no data/qlist payload and (like the rollover marker) is not counted
+    // in outstanding journal bytes.
+    const bsls::Types::Uint64 newJournalOffset = rJournalPos;
+    bsl::memcpy(rJournal.block().base() + rJournalPos,
+                aJournal.block().base() + oldJournalOffset,
+                FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
+    rJournalPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+
+    return newJournalOffset;
+}
+
 void FileStore::issueSyncPointCb()
 {
     // executed by the *SCHEDULER* thread

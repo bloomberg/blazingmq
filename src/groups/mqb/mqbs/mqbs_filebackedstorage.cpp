@@ -221,11 +221,16 @@ FileBackedStorage::get(mqbi::StorageMessageAttributes* attributes,
 
 bool FileBackedStorage::hasReceipt(const bmqt::MessageGUID& msgGUID) const
 {
-    if (d_hasReceipts) {
-        // Weak consistency
-        return true;  // RETURN
-    }
-
+    // Require record presence and consult the record's durability, uniformly
+    // for both consistency modes -- the record's 'd_hasReceipt' already encodes
+    // consistency.  A normal weak-consistency write is receipted at write time
+    // (its attributes default 'hasReceipt = true', carried onto the record), so
+    // this still returns true immediately; a strong-consistency write's record
+    // stays not-receipted until its receipt arrives.  The case this newly gates
+    // is a write buffered during a rollover window: its placeholder record is
+    // reserved not-yet-durable ('d_hasReceipt = false', zero offset) until it
+    // drains, so it must not be reported as receipted -- otherwise it is
+    // delivered and its zero offset is read in 'loadMessageAttributesRaw'.
     RecordHandleMap::const_iterator it = d_handles.find(msgGUID);
     if (it == d_handles.end()) {
         return false;  // RETURN

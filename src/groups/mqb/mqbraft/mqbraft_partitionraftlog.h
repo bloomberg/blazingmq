@@ -255,6 +255,14 @@ class PartitionRaftLog : public RaftLog {
     bsls::Types::Uint64 snapshotTerm() const BSLS_KEYWORD_OVERRIDE;
 
     bool isRollover(bsls::Types::Uint64 index) const;
+
+    /// Return `true` if the log holds an `e_ROLLOVER` entry above the
+    /// specified `commitIndex` (i.e. an uncommitted rollover, whether
+    /// self-proposed or inherited from a prior leader).  A new leader uses
+    /// this after appending its become-leader sync point to detect an
+    /// inherited rollover it must carry to commit, so it can buffer writes
+    /// until that rollover completes.
+    bool hasUncommittedRollover(bsls::Types::Uint64 commitIndex) const;
 };
 
 }  // close package namespace

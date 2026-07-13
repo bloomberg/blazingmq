@@ -1133,6 +1133,21 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
                                     QueueKeyCounterMap* queueKeyCounterMap,
                                     bsls::Types::Uint64 maxSequenceNum);
 
+    /// Copy the single `JournalOpRecord` (sync point) located at the
+    /// specified `oldJournalOffset` in the current active (front, old) file
+    /// set's journal into the specified `newFileSet`'s journal at its current
+    /// position, bump that position, and return the new journal offset of the
+    /// copied record.  Sync points carry no data/qlist payload and are not
+    /// counted in outstanding bytes (matching
+    /// `writeFirstSyncPointAfterRollover` and `formatSyncPointRecord`).  The
+    /// behavior is undefined unless the record at `oldJournalOffset` is a
+    /// `JournalOpRecord`.  Used by the Raft rollover orchestration to relocate
+    /// the (journal-op only) log tail that a leadership change can leave after
+    /// `e_ROLLOVER`.
+    bsls::Types::Uint64
+    writeRolledOverJournalOpRecord(FileSet*            newFileSet,
+                                   bsls::Types::Uint64 oldJournalOffset);
+
     /// Create and open a new file set to receive the rolled-over records,
     /// loading it into the specified `newFileSet` (BlazingMQ and
     /// file-specific headers are written).  Return zero on success and a
