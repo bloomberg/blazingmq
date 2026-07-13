@@ -143,6 +143,11 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager,
 
   private:
     // PRIVATE TYPES
+
+    /// Disambiguate `StorageSp`, which is inherited from both
+    /// `mqbi::StorageManager` and `mqbc::StoragesMonitor`.
+    typedef mqbi::StorageManager::StorageSp StorageSp;
+
     typedef bdlmt::EventScheduler::RecurringEventHandle RecurringEventHandle;
 
     typedef mqbc::StorageUtil::FileStores FileStores;

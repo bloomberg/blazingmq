@@ -472,8 +472,8 @@ void PartitionRaftLog::rollover(bsls::Types::Uint64 rolloverIndex)
                 tailEntry.d_journalOffset);
         // A journal-op writes no data/qlist; its truncation anchors are the
         // new file's current ends (mirrors 'formatSyncPointRecord').
-        tailEntry.d_dataOffset  = newFileSet->d_dataFilePosition;
-        tailEntry.d_qlistOffset = newFileSet->d_qlistFilePosition;
+        tailEntry.d_dataOffset  = newFileSet->d_data.d_filePosition;
+        tailEntry.d_qlistOffset = newFileSet->d_qlist.d_filePosition;
     }
 
     BALL_LOG_INFO_BLOCK
