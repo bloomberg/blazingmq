@@ -46,16 +46,22 @@ class TestAppSubscriptions:
     def _verify(self, domain, num):
         assert len(self.consumer.list(block=True)) == 0
 
-        self.leader.list_messages(domain, tc.TEST_QUEUE, 0, 2)
-        assert self.leader.outputs_substr(f"Printing {num} message(s)", 1)
+        # 'list_messages' only works against the partition's Raft primary;
+        # in FSM/Raft mode that primary is independent of 'self.leader' (the
+        # CSL leader), so resolve it fresh here. See 'simulate_csl_rollover'
+        # in cluster_util.py for the same pattern.
+        node = self.leader.wait_partition_primary()
+        node.list_messages(domain, tc.TEST_QUEUE, 0, 2)
+        assert node.outputs_substr(f"Printing {num} message(s)", 1)
 
     def _verify_fanout(self, domain, positiveApps, negativeAppIds, num):
         for app in positiveApps:
             self._verify_delivery(app, num)
 
+        node = self.leader.wait_partition_primary()
         for appId in negativeAppIds:
-            self.leader.list_messages(domain, tc.TEST_QUEUE, 0, 2, appId)
-            assert self.leader.outputs_substr("Printing 0 message(s)", 1)
+            node.list_messages(domain, tc.TEST_QUEUE, 0, 2, appId)
+            assert node.outputs_substr("Printing 0 message(s)", 1)
 
     def _verify_delivery(self, consumer, num):
         consumer.wait_push_event()
@@ -431,6 +437,12 @@ class TestAppSubscriptions:
         self._verify(du.domain_fanout, 0)
         self._verify_fanout(du.domain_fanout, [], ["foo", "bar", "baz"], 0)
 
+        # 'force_gc_queues' below only works against the partition's Raft
+        # primary; in FSM/Raft mode that primary is independent of
+        # 'self.leader' (the CSL leader). See 'simulate_csl_rollover' in
+        # cluster_util.py for the same pattern.
+        partition_primary = self.leader.wait_partition_primary()
+
         assert len(self.consumer.list(block=True)) == 0
         assert len(self.consumer_bar.list(block=True)) == 0
         assert len(self.consumer_baz.list(block=True)) == 0
@@ -452,11 +464,11 @@ class TestAppSubscriptions:
         self.consumer_bar.close(du.uri_fanout_bar, block=True)
         self.consumer_baz.close(du.uri_fanout_baz, block=True)
 
-        self.leader.force_gc_queues(block=True, succeed=True)
+        partition_primary.force_gc_queues(block=True, succeed=True)
 
         for node in cluster.nodes():
-            if node != self.leader:
-                assert node.capture(r"Received QueueOpRecord of type \[DELETION\]")
+            if node != partition_primary:
+                node.capture(r"Received QueueOpRecord of type \[DELETION\]")
 
         # In FSM/Raft mode each partition's rollover must be initiated by that
         # partition's Raft leader, which need not be the CSL cluster leader.

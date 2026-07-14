@@ -8109,7 +8109,31 @@ void FileStore::onRecordCommittedReplica(const bdlbb::Blob&           data,
 
             ReplicatedStorage* rstorage = sit->second;
 
+            BALL_LOG_INFO << partitionDesc()
+                          << "Received QueueOpRecord of type ["
+                          << qOpRec->type() << "] for queue ["
+                          << rstorage->queueUri() << "], queueKey ["
+                          << qOpRec->queueKey() << "], appKey ["
+                          << qOpRec->appKey() << "].";
+
             if (QueueOpType::e_DELETION == qOpRec->type()) {
+                if (qOpRec->appKey().isNull()) {
+                    // Entire queue is being deleted.  Remove all of its
+                    // QueueOp record handles from 'd_records' -- including
+                    // this DELETION record itself -- so that a stale (e.g.
+                    // CREATION) record doesn't linger as "outstanding" past
+                    // deletion; otherwise a later rollover would try to
+                    // carry it forward and then fail to find its storage in
+                    // 'd_storages' (already removed by 'queueDeletionCb'
+                    // below).  Mirrors the legacy 'writeJournalRecord' path.
+                    const ReplicatedStorage::RecordHandles& recHandles =
+                        rstorage->queueOpRecordHandles();
+                    for (size_t idx = 0; idx < recHandles.size(); ++idx) {
+                        removeRecordRaw(recHandles[idx]);
+                    }
+                    removeRecordRaw(handle);
+                }
+
                 // Dispatch to the deletion callback so the queue (or the
                 // specific app) is properly deregistered from both
                 // 'd_storages' and the (URI-keyed) storageMonitor --

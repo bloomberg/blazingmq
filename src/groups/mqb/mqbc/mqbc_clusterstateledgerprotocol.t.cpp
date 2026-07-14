@@ -188,15 +188,14 @@ static void test2_enumPrint()
                      mqbc::ClusterStateRecordType::e_SNAPSHOT);
 
         BSLMF_ASSERT(mqbc::ClusterStateRecordType::k_HIGHEST_SUPPORTED_TYPE ==
-                     mqbc::ClusterStateRecordType::e_NOOP);
+                     mqbc::ClusterStateRecordType::e_ACK);
 
         PrintTestData k_DATA[] = {
             {L_, mqbc::ClusterStateRecordType::e_UNDEFINED, "UNDEFINED"},
             {L_, mqbc::ClusterStateRecordType::e_SNAPSHOT, "SNAPSHOT"},
             {L_, mqbc::ClusterStateRecordType::e_UPDATE, "UPDATE"},
             {L_, mqbc::ClusterStateRecordType::e_COMMIT, "COMMIT"},
-            {L_, mqbc::ClusterStateRecordType::e_ACK, "ACK"},
-            {L_, mqbc::ClusterStateRecordType::e_NOOP, "NOOP"}};
+            {L_, mqbc::ClusterStateRecordType::e_ACK, "ACK"}};
 
         printEnumHelper<mqbc::ClusterStateRecordType>(k_DATA);
     }

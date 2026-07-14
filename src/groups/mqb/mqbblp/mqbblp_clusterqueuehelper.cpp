@@ -790,9 +790,8 @@ void ClusterQueueHelper::onQueueContextAssigned(
         const ClusterStatePartitionInfo& pinfo = d_clusterState_p->partition(
             pid);
 
-        if (!d_cluster_p->isFSMWorkflow() &&
-            bmqp_ctrlmsg::NodeStatus::E_AVAILABLE !=
-                d_clusterData_p->membership().selfNodeStatus()) {
+        if (bmqp_ctrlmsg::NodeStatus::E_AVAILABLE !=
+            d_clusterData_p->membership().selfNodeStatus()) {
             // Self is not available, we have to postpone processing the queue
             // opening.
 
@@ -4565,18 +4564,7 @@ void ClusterQueueHelper::onQueueUnassigned(
                              << qinfo.d_numQueueHandles << "].";
     }
 
-    if (d_clusterState_p->isSelfPrimary(info->partitionId())) {
-        // openQueue while queue unassigning cancels the unassigning
-        // so we can safely delete it from the various maps.
-        removeQueueRaw(queueContextIt);
-
-        // Unregister the queue/storage from the partition, which will end up
-        // issuing a QueueDeletion record.  Note that this method is async.
-        d_storageManager_p->unregisterQueue(info->uri(), info->partitionId());
-    }
-    else {
-        // This is a replica node.
-
+    {
         if (qinfo.d_inFlight != 0 || !qinfo.d_pending.empty()) {
             // If we have in flight requests, we can't delete the QueueInfo
             // references; so we simply reset it's members.  This can occur in
@@ -4624,6 +4612,13 @@ void ClusterQueueHelper::onQueueUnassigned(
                                  << " removed.";
 
             removeQueueRaw(queueContextIt);
+        }
+        if (d_clusterState_p->isSelfPrimary(info->partitionId())) {
+            // Unregister the queue/storage from the partition, which will end
+            // up issuing a QueueDeletion record.  Note that this method is
+            // async.
+            d_storageManager_p->unregisterQueue(info->uri(),
+                                                info->partitionId());
         }
         // Replicas create/update/delete storage upon Replication events
         // (queueCreationCb/queueDeletionCb)
