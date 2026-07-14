@@ -36,6 +36,7 @@
 // MQB
 #include <mqbraft_raftnode.h>
 #include <mqbsi_log.h>
+#include <mqbu_storagekey.h>
 
 #include <bmqu_blob.h>
 
@@ -111,6 +112,25 @@ class CslRaftLog : public RaftLog {
 
     int truncateFrom(bsls::Types::Uint64 index) BSLS_KEYWORD_OVERRIDE;
 
+    /// Roll over onto the specified `newLog`, which the caller must have
+    /// opened (empty), identified by the specified `newLogId`.  Seed
+    /// `newLog` with a file header followed by the specified
+    /// `snapshotRecord` -- the base `e_SNAPSHOT` capturing the full
+    /// committed cluster state at the specified `compactIndex` /
+    /// `compactTerm` -- then copy the uncommitted tail (entries with index in
+    /// `(compactIndex, lastIndex]`) from the current log into `newLog`.
+    /// Switch to `newLog`, advance the snapshot boundary to
+    /// `(compactIndex, compactTerm)`, and load the previous underlying log
+    /// into the specified `oldLog` so the caller can close/archive it.
+    /// Return 0 on success and a non-zero value otherwise.  The behavior is
+    /// undefined unless `snapshotIndex() <= compactIndex <= lastIndex()`.
+    int rollover(bsl::shared_ptr<mqbsi::Log>*        oldLog,
+                 const bsl::shared_ptr<mqbsi::Log>&  newLog,
+                 const mqbu::StorageKey&             newLogId,
+                 const bsl::shared_ptr<bdlbb::Blob>& snapshotRecord,
+                 bsls::Types::Uint64                 compactIndex,
+                 bsls::Types::Uint64                 compactTerm);
+
     // ACCESSORS
     bsls::Types::Uint64 lastIndex() const BSLS_KEYWORD_OVERRIDE;
 
@@ -130,6 +150,18 @@ class CslRaftLog : public RaftLog {
     void applySnapshot(bsls::Types::Uint64 lastIncludedIndex,
                        bsls::Types::Uint64 lastIncludedTerm)
         BSLS_KEYWORD_OVERRIDE;
+
+    /// Return true if a record of the specified `recordSize` bytes can be
+    /// appended to the current log without exceeding its configured maximum
+    /// size, and false otherwise (i.e. a rollover is required first).
+    bool canAppend(int recordSize) const;
+
+    /// Load into the specified `out` the base `e_SNAPSHOT` record at the
+    /// start of the current log -- the compacted-state snapshot that must be
+    /// applied to reconstruct `ClusterState` before replaying the tail.
+    /// Return 0 on success, 1 if the current log has no base snapshot (i.e.
+    /// `snapshotIndex() == 0`), and a negative value on error.
+    int loadSnapshotRecord(bsl::shared_ptr<bdlbb::Blob>* out) const;
 };
 
 }  // close package namespace

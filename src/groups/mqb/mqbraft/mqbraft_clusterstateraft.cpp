@@ -22,6 +22,7 @@
 #include <mqbc_clusterutil.h>
 #include <mqbnet_cluster.h>
 #include <mqbnet_controlmessagetransmitter.h>
+#include <mqbs_storageutil.h>
 #include <mqbsl_memorymappedondisklog.h>
 
 #include <bmqt_uri.h>
@@ -31,6 +32,7 @@
 // BDE
 #include <ball_log.h>
 #include <bdlf_bind.h>
+#include <bdls_filesystemutil.h>
 #include <bdlt_datetime.h>
 #include <bsls_assert.h>
 #include <bsls_timeinterval.h>
@@ -228,21 +230,6 @@ void ClusterStateRaft::sendControlMessage(const RaftMessage& msg)
 
 void ClusterStateRaft::applyCommittedEntry(const LogEntry& entry)
 {
-    // A no-op record carries no 'ClusterMessage' body; it exists only to let a
-    // new leader advance its commit index.  Detect it from the record header
-    // and skip -- committing it (which drags the real backlog along) is the
-    // whole point; there is nothing to apply.
-    bmqu::BlobObjectProxy<mqbc::ClusterStateRecordHeader> recHeader(
-        entry.d_data.get(),
-        true,    // read
-        false);  // write
-    if (recHeader.isSet() &&
-        recHeader->recordType() == mqbc::ClusterStateRecordType::e_NOOP) {
-        BALL_LOG_INFO << "Applied committed CSL no-op at term "
-                      << entry.d_term;
-        return;  // RETURN
-    }
-
     bmqp_ctrlmsg::ClusterMessage clusterMessage(d_allocator_p);
 
     int rc = mqbc::ClusterStateLedgerUtil::loadClusterMessage(&clusterMessage,
@@ -297,7 +284,8 @@ void ClusterStateRaft::applyCommittedEntry(const LogEntry& entry)
                                  *d_clusterData_p);
     }
 
-    BALL_LOG_INFO << "Applied committed CSL entry at term " << entry.d_term;
+    BALL_LOG_INFO << "Applied committed CSL entry at term " << entry.d_term
+                  << ": " << clusterMessage;
 }
 
 void ClusterStateRaft::toCtrlMsg(bmqp_ctrlmsg::RaftMessage* out,
@@ -545,6 +533,15 @@ int ClusterStateRaft::start(bsl::ostream& errorDescription)
         return rc;  // RETURN
     }
 
+    // Note: a recovered base snapshot (rolled-over/migration-seeded file) is
+    // NOT applied here.  'CslRaftLog::open' keeps it as the first committed
+    // log entry (snapshot boundary = its index - 1), so it is applied by the
+    // normal commit drain once this node re-commits its backlog -- by which
+    // point the cluster's 'ClusterState' observer is registered, so both
+    // 'ClusterState' and the queue helper's 'd_queues' are populated
+    // consistently.  Applying it here (before observer registration) would
+    // populate 'ClusterState' but not 'd_queues'.
+
     d_raftNode_mp.load(new (*d_allocator_p) RaftNode(
                            makeRaftConfig(*d_clusterData_p, d_allocator_p),
                            d_cslLog_mp.get(),
@@ -637,8 +634,9 @@ void ClusterStateRaft::appendEntries(const bdlbb::Blob&   event,
 
     // Parse entry blobs after RaftHeader
     int          offset = sizeof(bmqp::EventHeader) + sizeof(bmqp::RaftHeader);
-    int          remaining  = event.length() - offset;
-    unsigned int entryCount = rh->entryCount();
+    int          remaining = event.length() - offset;
+    unsigned int entryCount    = rh->entryCount();
+    int          incomingBytes = 0;
 
     for (unsigned int i = 0; i < entryCount && remaining > 0; ++i) {
         // Resolve the absolute byte offset of this entry across blob buffers.
@@ -663,18 +661,55 @@ void ClusterStateRaft::appendEntries(const bdlbb::Blob&   event,
             break;
         }
 
+        if (!d_cslLog_mp->canAppend(incomingBytes + recSize)) {
+            // The next entry would overflow the current CSL file.  Flush the
+            // entries accumulated so far (they fit) via 'step()', then roll
+            // over so the fresh file has room for the rest.  After flushing,
+            // advance the running prev-log marker to the last flushed entry:
+            // 'handleAppendEntries' positions entries at 'prevLogIndex + 1 +
+            // <position in this batch>', so the remaining entries must form a
+            // correctly-anchored follow-on AppendEntries (new prevLogIndex =
+            // last flushed index, new prevLogTerm = its term).
+            if (!internalMsg.d_entries.empty()) {
+                RaftNodeOutput output(d_allocator_p);
+                d_raftNode_mp->step(&output, internalMsg);
+                dispatchOutput(&output);
+
+                internalMsg.d_prevLogIndex += internalMsg.d_entries.size();
+                internalMsg.d_prevLogTerm =
+                    internalMsg.d_entries.back().d_term;
+                internalMsg.d_entries.clear();
+                incomingBytes = 0;
+            }
+
+            // A follower must roll over its own CSL before applying replicated
+            // entries that would overflow the log file.
+            int rrc = rolloverCsl();
+            if (rrc != 0) {
+                BALL_LOG_ERROR
+                    << "Follower CSL rollover failed before applying "
+                    << "replicated entries, rc=" << rrc;
+                return;  // RETURN
+            }
+        }
+
         // Extract the CSL record blob
         bsl::shared_ptr<bdlbb::Blob> entryBlob =
             d_clusterData_p->blobSpPool().getObject();
         bmqu::BlobUtil::appendToBlob(entryBlob.get(), event, recPos, recSize);
 
-        internalMsg.d_entries.push_back(
-            LogEntry(recHeader->electorTerm(),
-                     internalMsg.d_prevLogIndex + 1 + i,
-                     entryBlob));
+        // Index by position within the CURRENT sub-batch: after a mid-batch
+        // flush 'd_prevLogIndex' is advanced and 'd_entries' cleared, so the
+        // outer loop counter 'i' no longer aligns with the log index.  This
+        // matches how 'handleAppendEntries' places entries.
+        internalMsg.d_entries.push_back(LogEntry(
+            recHeader->electorTerm(),
+            internalMsg.d_prevLogIndex + 1 + internalMsg.d_entries.size(),
+            entryBlob));
 
         offset += recSize;
         remaining -= recSize;
+        incomingBytes += recSize;
     }
 
     RaftNodeOutput output(d_allocator_p);
@@ -702,6 +737,18 @@ int ClusterStateRaft::propose(const bmqp_ctrlmsg::ClusterMessage& advisory)
         return rc;
     }
 
+    // If this record would overflow the current CSL file, roll over first --
+    // snapshot the committed state into a fresh file and drop the compacted
+    // prefix -- so the append below has room.  Rollover preserves 'lastIndex'
+    // (only the committed prefix is compacted), so the record's
+    // already-stamped LSN ('lastIndex + 1') remains valid.
+    if (!d_cslLog_mp->canAppend(blob->length())) {
+        rc = rolloverCsl();
+        if (rc != 0) {
+            return rc;  // RETURN
+        }
+    }
+
     RaftNodeOutput output(d_allocator_p);
     rc = d_raftNode_mp->propose(&output, blob);
     if (rc != 0) {
@@ -709,6 +756,132 @@ int ClusterStateRaft::propose(const bmqp_ctrlmsg::ClusterMessage& advisory)
     }
 
     dispatchOutput(&output);
+    return 0;
+}
+
+int ClusterStateRaft::createNewCslLog(bsl::shared_ptr<mqbsi::Log>* logOut,
+                                      mqbu::StorageKey*            logIdOut)
+{
+    BSLS_ASSERT_SAFE(logOut);
+    BSLS_ASSERT_SAFE(logIdOut);
+
+    // Build a fresh CSL file path matching 'k_CSL_FILE_PATTERN' so both the
+    // Raft and legacy readers discover it:
+    //   <location>/bmq_csl_YYYYMMDD_HHMMSS_<LOGID>.bmq_csl
+    // 'generateStorageKey' is time-salted, so the id (and hence the filename)
+    // differs from the current file even within the same second.
+    bsl::string dir(d_partitionConfig.location(), d_allocator_p);
+    if (!dir.empty() && dir[dir.length() - 1] != '/') {
+        dir.append(1, '/');
+    }
+
+    bsl::string filePath(dir, d_allocator_p);
+    filePath.append("bmq_csl_");
+    mqbc::ClusterStateLedgerUtil::appendFormattedDatetime(&filePath);
+    filePath.append("_");
+    mqbs::StorageUtil::generateStorageKey(logIdOut, filePath);
+    char logIdStr[mqbu::StorageKey::e_KEY_LENGTH_HEX + 1];
+    logIdOut->loadHex(logIdStr);
+    logIdStr[mqbu::StorageKey::e_KEY_LENGTH_HEX] = '\0';
+    filePath.append(logIdStr);
+    filePath.append(".bmq_csl");
+
+    mqbsi::LogConfig logConfig(d_partitionConfig.maxCSLFileSize(),
+                               *logIdOut,
+                               filePath,
+                               d_partitionConfig.preallocate(),
+                               d_partitionConfig.prefaultPages(),
+                               d_allocator_p);
+
+    bsl::shared_ptr<mqbsi::Log> log =
+        bsl::allocate_shared<mqbsl::MemoryMappedOnDiskLog>(d_allocator_p,
+                                                           logConfig,
+                                                           d_allocator_p);
+
+    int rc = log->open(mqbsi::Log::e_CREATE_IF_MISSING);
+    if (rc != 0) {
+        return rc;  // RETURN
+    }
+
+    *logOut = log;
+    return 0;
+}
+
+int ClusterStateRaft::rolloverCsl()
+{
+    // Compact up to the last committed (and applied) index: only committed
+    // state is folded into the snapshot; entries above it are the uncommitted
+    // tail and are preserved by 'CslRaftLog::rollover'.
+    const bsls::Types::Uint64 compactIndex = d_raftNode_mp->commitIndex();
+    const bsls::Types::Uint64 compactTerm  = d_cslLog_mp->term(compactIndex);
+
+    // Build the base snapshot: the full committed cluster state serialized as
+    // a 'LeaderAdvisory'.  This mirrors legacy
+    // 'IncoreClusterStateLedger::onLogRolloverCb', which each node writes
+    // locally on its own rollover (never broadcast).
+    bmqp_ctrlmsg::ClusterMessage  clusterMessage(d_allocator_p);
+    bmqp_ctrlmsg::LeaderAdvisory& advisory =
+        clusterMessage.choice().makeLeaderAdvisory();
+    advisory.sequenceNumber().electorTerm()    = compactTerm;
+    advisory.sequenceNumber().sequenceNumber() = compactIndex;
+    mqbc::ClusterUtil::loadPartitionsInfo(&advisory.partitions(),
+                                          *d_clusterState_p);
+    mqbc::ClusterUtil::loadQueuesInfo(&advisory.queues(), *d_clusterState_p);
+
+    bsl::shared_ptr<bdlbb::Blob> snapshotRecord =
+        d_clusterData_p->blobSpPool().getObject();
+    bmqp_ctrlmsg::LeaderMessageSequence lms;
+    lms.electorTerm()    = compactTerm;
+    lms.sequenceNumber() = compactIndex;
+
+    int rc = mqbc::ClusterStateLedgerUtil::appendRecord(
+        snapshotRecord.get(),
+        clusterMessage,
+        lms,
+        0,  // timestamp
+        mqbc::ClusterStateRecordType::e_SNAPSHOT,
+        d_allocator_p);
+    if (rc != 0) {
+        BALL_LOG_ERROR << "Failed to build CSL rollover snapshot, rc=" << rc;
+        return rc;  // RETURN
+    }
+
+    // Create the new (empty) CSL file.
+    bsl::shared_ptr<mqbsi::Log> newLog;
+    mqbu::StorageKey            newLogId;
+    rc = createNewCslLog(&newLog, &newLogId);
+    if (rc != 0) {
+        BALL_LOG_ERROR << "Failed to create new CSL log for rollover, rc="
+                       << rc;
+        return rc;  // RETURN
+    }
+
+    // Roll over: 'newLog' gets [file header | base snapshot | uncommitted
+    // tail], we switch to it, and the old log is handed back for cleanup.
+    bsl::shared_ptr<mqbsi::Log> oldLog;
+    rc = d_cslLog_mp->rollover(&oldLog,
+                               newLog,
+                               newLogId,
+                               snapshotRecord,
+                               compactIndex,
+                               compactTerm);
+    if (rc != 0) {
+        BALL_LOG_ERROR << "CSL rollover failed, rc=" << rc;
+        newLog->close();
+        return rc;  // RETURN
+    }
+
+    const bsl::string oldPath(oldLog->logConfig().location(), d_allocator_p);
+
+    BALL_LOG_INFO << "Rolling over from log with logId; old CSL file '"
+                  << oldPath << "' -> new CSL file '"
+                  << newLog->logConfig().location() << "', compacted at index "
+                  << compactIndex << " (term " << compactTerm << ")";
+
+    // Close and remove the old file so only the new CSL file remains.
+    oldLog->close();
+    bdls::FilesystemUtil::remove(oldPath);
+
     return 0;
 }
 
