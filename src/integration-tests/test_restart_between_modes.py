@@ -744,10 +744,11 @@ def with_rollover_admin_cmd(
     Trigger rollover via admin command
     """
 
-    leader = cluster.last_known_leader
-
-    all_partition_id = -1  # use -1 to rollover all partitions
-    leader.trigger_rollover(all_partition_id)
+    # The admin ROLLOVER must land on the partition's Raft primary, which in
+    # FSM/Raft mode is independent of the CSL cluster leader.  Mirror the PURGE
+    # routing done via wait_partition_primary() elsewhere in this file.
+    partition_primary = cluster.last_known_leader.wait_partition_primary()
+    partition_primary.trigger_rollover(0)
 
     for node in cluster.nodes():
         node.wait_rollover_complete()

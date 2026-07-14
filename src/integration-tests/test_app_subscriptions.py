@@ -458,8 +458,13 @@ class TestAppSubscriptions:
             if node != self.leader:
                 assert node.capture(r"Received QueueOpRecord of type \[DELETION\]")
 
-        all_partition_id = -1  # use -1 to rollover all partitions
-        self.leader.trigger_rollover(all_partition_id)
+        # In FSM/Raft mode each partition's rollover must be initiated by that
+        # partition's Raft leader, which need not be the CSL cluster leader.
+        # Send the roll-all to every node: each rolls the partitions it leads
+        # and harmlessly rejects the rest; the e_ROLLOVER replicates, so every
+        # node ends up logging "ROLLOVER COMPLETE".
+        for node in cluster.nodes():
+            node.trigger_rollover(-1)
 
         for node in cluster.nodes():
             node.wait_rollover_complete()

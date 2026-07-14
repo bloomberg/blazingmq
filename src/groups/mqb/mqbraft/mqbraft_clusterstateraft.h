@@ -122,6 +122,19 @@ class ClusterStateRaft : public mqbi::ClusterStateUpdater {
     /// an e_COMMIT record for rollback compatibility.
     void applyCommittedEntry(const LogEntry& entry);
 
+    /// Roll over the CSL log: snapshot the committed cluster state into a
+    /// fresh file (preserving the uncommitted tail) and remove the old file.
+    /// Invoked when the current log cannot fit the next record.  Mirrors the
+    /// per-node local rollover of `IncoreClusterStateLedger::onLogRolloverCb`.
+    /// Return 0 on success and a non-zero value otherwise.
+    int rolloverCsl();
+
+    /// Create and open a fresh, empty CSL log file in the configured
+    /// location, loading it into the specified `logOut` and its generated id
+    /// into `logIdOut`.  Return 0 on success and a non-zero value otherwise.
+    int createNewCslLog(bsl::shared_ptr<mqbsi::Log>* logOut,
+                        mqbu::StorageKey*            logIdOut);
+
     /// Convert an internal RaftMessage to a bmqp_ctrlmsg::RaftMessage.
     void toCtrlMsg(bmqp_ctrlmsg::RaftMessage* out,
                    const RaftMessage&         msg) const;

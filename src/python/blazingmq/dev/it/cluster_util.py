@@ -89,9 +89,36 @@ def simulate_csl_rollover(du: tc.DomainUrls, leader: Broker, producer: Client):
     Simulate rollover of CSL file by opening and closing many queues.
     """
 
+    ROLLOVER_RE = r"Rolling over from log with logId"
+    UNASSIGN_RE = r"queueUnAssignmentAdvisory"
+
+    # 'FORCE_GC_QUEUES' only unassigns queues on the partition's Raft primary
+    # ('gcExpiredQueues' bails with rc_SELF_IS_NOT_PRIMARY otherwise); in
+    # FSM/Raft mode that primary is independent of 'leader' (the CSL leader).
+    # Dummy queues are assigned round-robin across partitions, so partition
+    # 0's primary will own some of them.
+    partition_primary = leader.wait_partition_primary()
+
     i = 0
-    # Open queues until rollover detected
-    while not leader.outputs_regex(r"Rolling over from log with logId", 0.01):
+    rollover_seen = False
+    unassignment_seen = False
+
+    # The interleaved 'queueUnAssignmentAdvisory' can be logged just before OR
+    # just after "Rolling over": Raft logs an advisory when it commits/applies
+    # -- decoupled from whichever record's write later overflows the log --
+    # while the record that DOES overflow is only applied (and logged) once
+    # its post-rollover append commits, i.e. strictly after the roll. Track
+    # both patterns on every scan so neither is missed regardless of order.
+    while not rollover_seen:
+        rollover, unassignment = leader.capture_n(
+            [ROLLOVER_RE, UNASSIGN_RE],
+            count=1,
+            timeout=0.01,
+            warn_on_timeout=False,
+        )
+        rollover_seen = rollover_seen or rollover is not None
+        unassignment_seen = unassignment_seen or unassignment is not None
+
         producer.open(
             f"bmq://{du.domain_priority}/q_dummy_{i}",
             flags=["write,ack"],
@@ -102,7 +129,7 @@ def simulate_csl_rollover(du: tc.DomainUrls, leader: Broker, producer: Client):
 
         if i % 5 == 0:
             # do not wait for success, otherwise the following capture will fail
-            leader.force_gc_queues(block=False)
+            partition_primary.force_gc_queues(block=False)
 
         assert i < 10000, (
             "Failed to detect rollover after opening a reasonable number of queues"
@@ -110,7 +137,7 @@ def simulate_csl_rollover(du: tc.DomainUrls, leader: Broker, producer: Client):
     test_logger.info(f"Rollover detected after opening {i} queues")
 
     # Rollover and queueUnAssignmentAdvisory interleave
-    assert leader.outputs_regex(r"queueUnAssignmentAdvisory", timeout=5)
+    assert unassignment_seen or leader.outputs_regex(r"queueUnAssignmentAdvisory", timeout=5)
 
 
 def check_if_queue_has_n_messages(consumer: Client, queue: str, expected_count: int):
