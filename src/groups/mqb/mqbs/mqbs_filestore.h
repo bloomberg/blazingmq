@@ -961,9 +961,8 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// primary lease id are owned by the Raft layer and are *not* touched
     /// here.  Update file positions and insert into 'd_records'.  Return 0 on
     /// success, non-zero on error.
-    int writeFormattedRecord(const bdlbb::Blob&                  data,
-                             RecoveryRecordInfo*                 info,
-                             const bsl::shared_ptr<bdlbb::Blob>& payload = {});
+    int writeFormattedRecord(const bdlbb::Blob&  data,
+                             RecoveryRecordInfo* info);
 
     /// Notify that a record has been committed by Raft quorum on a replica.
     /// The specified `data` blob contains the journal record (and optional

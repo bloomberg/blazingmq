@@ -532,13 +532,31 @@ bool ClusterQueueHelper::assignQueue(const QueueContextSp& queueContext)
     }
     else if (d_clusterData_p->electorInfo().hasActiveLeader()) {
         if (d_clusterData_p->electorInfo().isSelfLeader()) {
-            bmqp_ctrlmsg::Status status(d_allocator_p);
+            if (bmqp_ctrlmsg::NodeStatus::E_AVAILABLE !=
+                d_clusterData_p->membership().selfNodeStatus()) {
+                // Self is the leader but has not finished recovering its own
+                // cluster state yet (not AVAILABLE).  Assigning now would act
+                // on a not-yet-replayed cluster state -- e.g. mint a fresh
+                // queue key that conflicts with the recovered assignment once
+                // the CSL backlog is applied.  Leave the queue unassigned; it
+                // is re-driven by 'restoreState' on transition to AVAILABLE.
 
-            result = d_clusterStateManager_p->assignQueue(queueContext->uri(),
-                                                          &status);
+                BMQ_LOGTHROTTLE_INFO
+                    << d_cluster_p->description()
+                    << " Cannot proceed with queueAssignment of '"
+                    << queueContext->uri()
+                    << "' (self is leader but not yet AVAILABLE).";
+            }
+            else {
+                bmqp_ctrlmsg::Status status(d_allocator_p);
 
-            if (result == false) {
-                finishAllOpening(queueContext, status);
+                result = d_clusterStateManager_p->assignQueue(
+                    queueContext->uri(),
+                    &status);
+
+                if (result == false) {
+                    finishAllOpening(queueContext, status);
+                }
             }
         }
         else {

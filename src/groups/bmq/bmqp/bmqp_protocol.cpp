@@ -209,6 +209,7 @@ const char* EventType::toAscii(EventType::Enum value)
         CASE(AUTHENTICATION)
         CASE(RAFT_CLUSTER)
         CASE(RAFT_PARTITION)
+        CASE(RAFT_SNAPSHOT)
     default: return "(* UNKNOWN *)";
     }
 

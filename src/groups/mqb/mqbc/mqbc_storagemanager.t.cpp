@@ -926,8 +926,8 @@ struct TestHelper {
             &threadPool,
             d_cluster_mp->isFSMWorkflow(),
             d_cluster_mp->doesFSMwriteQLIST(),
-            1,        // replicationFactor
-            nullptr,  // storagesMonitor
+            1,                 // replicationFactor
+            bsl::nullptr_t(),  // storagesMonitor
             bmqtst::TestHelperUtil::allocator());
 
         dynamic_cast<mqbnet::MockCluster&>(d_cluster_mp->netCluster())

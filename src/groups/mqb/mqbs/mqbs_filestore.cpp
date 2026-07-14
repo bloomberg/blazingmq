@@ -7394,10 +7394,8 @@ void FileStore::bindOrUpdateRecord(PendingWrite*             pw,
     insertDataStoreRecord(&pw->d_handle, key, record);
 }
 
-int FileStore::writeFormattedRecord(
-    const bdlbb::Blob&                  data,
-    RecoveryRecordInfo*                 info,
-    const bsl::shared_ptr<bdlbb::Blob>& payload)
+int FileStore::writeFormattedRecord(const bdlbb::Blob&  data,
+                                    RecoveryRecordInfo* info)
 {
     BSLS_ASSERT_SAFE(info);
     BSLS_ASSERT_SAFE(data.length() >=
@@ -7414,8 +7412,7 @@ int FileStore::writeFormattedRecord(
     // journal record.  On the replica path the content follows the journal
     // record inside 'data'.
 
-    const bdlbb::Blob& payloadSrc    = payload ? *payload : data;
-    const int          payloadOffset = payload ? 0 : k_JREC_SIZE;
+    const int payloadOffset = k_JREC_SIZE;
 
     FileSet* activeFileSet = d_fileSets[0].get();
     BSLS_ASSERT_SAFE(activeFileSet);
@@ -7434,9 +7431,7 @@ int FileStore::writeFormattedRecord(
     bool      needsRecord  = true;
     bool      hasData      = false;
     bool      needsQList   = false;
-    const int dataPayloadLen = payload
-        ? payload->length()
-        : data.length() - k_JREC_SIZE;
+    const int dataPayloadLen = data.length() - k_JREC_SIZE;
 
     switch (recHeader->type()) {
     case RecordType::e_MESSAGE:
@@ -7494,7 +7489,7 @@ int FileStore::writeFormattedRecord(
 
         info->d_dataOffset = dataFilePos;
         bdlbb::BlobUtil::copy(dataFile.mapping() + dataFilePos,
-                              payloadSrc,
+                              data,
                               payloadOffset,
                               dataPayloadLen);
         dataFilePos += dataPayloadLen;
@@ -7510,7 +7505,7 @@ int FileStore::writeFormattedRecord(
 
         info->d_qlistOffset = qlistPos;
         bdlbb::BlobUtil::copy(qlistFile.mapping() + qlistPos,
-                              payloadSrc,
+                              data,
                               payloadOffset,
                               dataPayloadLen);
         qlistPos += dataPayloadLen;
@@ -7553,18 +7548,18 @@ int FileStore::writeFormattedRecord(
 
         if (hasData) {
             bmqu::BlobPosition dhPos;
-            int rc = bmqu::BlobUtil::findOffsetSafe(&dhPos,
-                                                    payloadSrc,
+            int                rc = bmqu::BlobUtil::findOffsetSafe(&dhPos,
+                                                    data,
                                                     payloadOffset);
             BSLS_ASSERT_SAFE(0 == rc);
             (void)rc;
 
             bmqu::BlobObjectProxy<DataHeader> dh(
-                &payloadSrc,
+                &data,
                 dhPos,
                 -DataHeader::k_MIN_HEADER_SIZE,
-                true,   // read
-                false); // write
+                true,    // read
+                false);  // write
             BSLS_ASSERT_SAFE(dh.isSet());
 
             int optionsSize = dh->optionsWords() * bmqp::Protocol::k_WORD_SIZE;
