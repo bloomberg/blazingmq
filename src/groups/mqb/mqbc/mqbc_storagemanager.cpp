@@ -3912,7 +3912,7 @@ StorageManager::StorageManager(
     const RecoveryStatusCb&          recoveryStatusCb,
     const PartitionPrimaryStatusCb&  partitionPrimaryStatusCb,
     bslma::Allocator*                allocator)
-: mqbc::StoragesMonitor(cluster, allocator)
+: mqbc::StorageMonitor(cluster, allocator)
 , d_allocator_p(allocator)
 , d_allocators(d_allocator_p)
 , d_isStarted(false)
@@ -3965,7 +3965,7 @@ StorageManager::StorageManager(
     }
     d_unrecognizedDomains.resize(partitionCfg.numPartitions());
     d_fileStores.resize(partitionCfg.numPartitions());
-    mqbc::StoragesMonitor::resize(partitionCfg.numPartitions());
+    mqbc::StorageMonitor::resize(partitionCfg.numPartitions());
     d_partitionInfoVec.resize(partitionCfg.numPartitions());
 
     d_recoveryStartTimes.resize(partitionCfg.numPartitions());
@@ -3991,9 +3991,9 @@ StorageManager::~StorageManager()
     // Release the queue storages before the FileStores they reference (via
     // 'RecordStore* d_store_p') are destroyed.  The FileStores are held in the
     // derived member 'd_fileStores', which is destroyed after this body but
-    // before the 'StoragesMonitor' base subobject that owns the storages.
+    // before the 'storageMonitor' base subobject that owns the storages.
     for (size_t i = 0; i < d_fileStores.size(); ++i) {
-        mqbc::StoragesMonitor::releaseStorages(static_cast<int>(i));
+        mqbc::StorageMonitor::releaseStorages(static_cast<int>(i));
     }
 }
 
@@ -5016,14 +5016,14 @@ bool StorageManager::isStorageEmpty(const bmqt::Uri& uri,
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
 
-    return mqbc::StoragesMonitor::isStorageEmpty(uri, partitionId);
+    return mqbc::StorageMonitor::isStorageEmpty(uri, partitionId);
 }
 
 bool StorageManager::hasStorage(const bmqt::Uri&   uri,
                                 const bsl::string& appId,
                                 int                partitionId) const
 {
-    return mqbc::StoragesMonitor::hasStorage(uri, appId, partitionId);
+    return mqbc::StorageMonitor::hasStorage(uri, appId, partitionId);
 }
 
 mqbs::FileStore& StorageManager::fileStore(int partitionId) const

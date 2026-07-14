@@ -5854,7 +5854,7 @@ FileStore::FileStore(
     bool                                            isFSMWorkflow,
     bool                                            doesFSMwriteQLIST,
     int                                             replicationFactor,
-    StoragesMonitor*                                storagesMonitor,
+    StorageMonitor*                                 storageMonitor,
     bslma::Allocator*                               allocator)
 : d_allocator_p(allocator)
 , d_allocators(allocator)
@@ -5885,7 +5885,7 @@ FileStore::FileStore(
 , d_writeHeadLeaseId(0)
 , d_syncPoints(allocator)
 , d_storages(allocator)
-, d_storagesMonitor_p(storagesMonitor)
+, d_storageMonitor_p(storageMonitor)
 , d_isFSMWorkflow(isFSMWorkflow)
 , d_qListAware(!d_isFSMWorkflow || doesFSMwriteQLIST)
 , d_storageEventBuilder(FileStoreProtocol::k_VERSION,
@@ -8102,7 +8102,7 @@ void FileStore::onRecordCommittedReplica(const bdlbb::Blob&           data,
             if (QueueOpType::e_DELETION == qOpRec->type()) {
                 // Dispatch to the deletion callback so the queue (or the
                 // specific app) is properly deregistered from both
-                // 'd_storages' and the (URI-keyed) StoragesMonitor --
+                // 'd_storages' and the (URI-keyed) storageMonitor --
                 // otherwise a whole-queue deletion leaves a stale entry
                 // that collides when the same URI is later reused with a
                 // new queueKey.
@@ -8149,7 +8149,7 @@ void FileStore::onRecordCommittedReplica(const bdlbb::Blob&           data,
 void FileStore::clearStorages()
 {
     // 'd_storages' holds *raw* pointers to 'ReplicatedStorage' objects owned
-    // by the 'StoragesMonitor' (via shared_ptr).  On a Raft snapshot install
+    // by the 'storageMonitor' (via shared_ptr).  On a Raft snapshot install
     // the monitor destroys those objects ('onStoragesCleared'), so drop the
     // now- dangling raw pointers here to avoid a use-after-free from any
     // subsequent 'd_storages.find()' before the reopen re-registers fresh

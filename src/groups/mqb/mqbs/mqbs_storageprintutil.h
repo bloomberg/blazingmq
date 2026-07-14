@@ -53,7 +53,7 @@ class Storage;
 }
 namespace mqbs {
 class FileStore;
-class StoragesMonitor;
+class StorageMonitor;
 }
 
 namespace mqbs {
@@ -102,11 +102,11 @@ struct StoragePrintUtil {
 
     /// Print to the specified `out` a summary of the recovered storages
     /// belonging to the specified `partitionId` managed by the specified
-    /// `storagesMonitor`, using the specified `clusterDescription` and
+    /// `storageMonitor`, using the specified `clusterDescription` and
     /// `recoveryStartTime`.
     static void
     printRecoveredStorages(bsl::ostream&            out,
-                           StoragesMonitor*         storagesMonitor,
+                           StorageMonitor*          storageMonitor,
                            int                      partitionId,
                            const bsl::string&       clusterDescription,
                            const bsls::Types::Int64 recoveryStartTime);

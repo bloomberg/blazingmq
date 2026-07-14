@@ -641,10 +641,10 @@ struct RecoveryRecordInfo {
 };
 
 // ======================
-// class StoragesMonitor
+// class storageMonitor
 // ======================
 
-class StoragesMonitor {
+class StorageMonitor {
   public:
     // TYPES
     typedef bsl::shared_ptr<ReplicatedStorage> StorageSp;
@@ -652,7 +652,7 @@ class StoragesMonitor {
 
   public:
     // CREATORS
-    virtual ~StoragesMonitor();
+    virtual ~StorageMonitor();
 
     // MANIPULATORS
     virtual void
@@ -877,7 +877,7 @@ class RecordStore {
     virtual void getStorages(StorageList*          storages,
                              const StorageFilters& filters) const = 0;
 
-    virtual StoragesMonitor* storagesMonitor() = 0;
+    virtual StorageMonitor* storageMonitor() = 0;
 
     /// Return the records container for this partition.
     virtual const DataStoreConfig::Records& records() const = 0;
