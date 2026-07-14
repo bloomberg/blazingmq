@@ -536,7 +536,7 @@ struct StorageUtil {
         mqbi::Dispatcher*              dispatcher,
         const mqbcfg::PartitionConfig& config,
         FileStores*                    fileStores,
-        mqbs::StoragesMonitor*         storagesMonitor,
+        mqbs::StorageMonitor*          storageMonitor,
         BlobSpPool*                    blobSpPool,
         bmqma::CountingAllocatorStore* allocators,
         bsl::ostream&                  errorDescription,
@@ -759,12 +759,12 @@ struct StorageUtil {
 };
 
 // =====================
-// class StoragesMonitor
+// class storageMonitor
 // =====================
 
-/// Concrete implementation of @bbref{mqbs::StoragesMonitor} which owns the
+/// Concrete implementation of @bbref{mqbs::storageMonitor} which owns the
 /// per-partition map of queue storages.
-class StoragesMonitor : public mqbs::StoragesMonitor {
+class StorageMonitor : public mqbs::StorageMonitor {
   public:
     // TYPES
 
@@ -801,28 +801,28 @@ class StoragesMonitor : public mqbs::StoragesMonitor {
     /// Cluster to notify (via `onQueueStorageReady`) whenever a queue's
     /// storage is registered/unregistered or its app set changes, so that
     /// any locally-parked queue-open can re-check readiness.  May be null in
-    /// unit tests that construct a bare `StoragesMonitor`.
+    /// unit tests that construct a bare `storageMonitor`.
     mqbi::Cluster* d_cluster_p;
 
     bslma::Allocator* d_allocator_p;
 
     // NOT IMPLEMENTED
-    StoragesMonitor(const StoragesMonitor&);
-    StoragesMonitor& operator=(const StoragesMonitor&);
+    StorageMonitor(const StorageMonitor&);
+    StorageMonitor& operator=(const StorageMonitor&);
 
   public:
     // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(StoragesMonitor, bslma::UsesBslmaAllocator)
+    BSLMF_NESTED_TRAIT_DECLARATION(StorageMonitor, bslma::UsesBslmaAllocator)
 
     // CREATORS
 
-    /// Create a `StoragesMonitor` notifying the optionally specified
+    /// Create a `storageMonitor` notifying the optionally specified
     /// `cluster` (may be null, e.g. in unit tests) of queue storage/app
     /// availability changes.
-    explicit StoragesMonitor(mqbi::Cluster*    cluster   = 0,
-                             bslma::Allocator* allocator = 0);
+    explicit StorageMonitor(mqbi::Cluster*    cluster   = 0,
+                            bslma::Allocator* allocator = 0);
 
-    ~StoragesMonitor() BSLS_KEYWORD_OVERRIDE;
+    ~StorageMonitor() BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
 

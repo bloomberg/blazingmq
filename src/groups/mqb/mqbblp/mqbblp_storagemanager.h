@@ -118,7 +118,7 @@ class RecoveryManager;
 
 /// Storage Manager, in charge of all the partitions.
 class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager,
-                                          public mqbc::StoragesMonitor {
+                                          public mqbc::StorageMonitor {
   private:
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("MQBBLP.STORAGEMANAGER");
@@ -145,7 +145,7 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager,
     // PRIVATE TYPES
 
     /// Disambiguate `StorageSp`, which is inherited from both
-    /// `mqbi::StorageManager` and `mqbc::StoragesMonitor`.
+    /// `mqbi::StorageManager` and `mqbc::storageMonitor`.
     typedef mqbi::StorageManager::StorageSp StorageSp;
 
     typedef bdlmt::EventScheduler::RecurringEventHandle RecurringEventHandle;
@@ -671,7 +671,7 @@ inline mqbs::FileStore& StorageManager::fileStore(int partitionId) const
 inline void StorageManager::loadAllStorages(bsl::vector<StorageSp>* result,
                                             int partitionId)
 {
-    mqbc::StoragesMonitor::loadAllStorages(result, partitionId);
+    mqbc::StorageMonitor::loadAllStorages(result, partitionId);
 }
 
 }  // close package namespace

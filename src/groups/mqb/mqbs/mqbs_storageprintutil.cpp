@@ -140,17 +140,17 @@ int StoragePrintUtil::listMessages(mqbcmd::QueueContents* queueContents,
 
 void StoragePrintUtil::printRecoveredStorages(
     bsl::ostream&            out,
-    StoragesMonitor*         storagesMonitor,
+    StorageMonitor*          storageMonitor,
     int                      partitionId,
     const bsl::string&       clusterDescription,
     const bsls::Types::Int64 recoveryStartTime)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(storagesMonitor);
+    BSLS_ASSERT_SAFE(storageMonitor);
     BSLS_ASSERT_SAFE(0 <= partitionId);
 
     bsl::vector<StorageSp> storages;
-    storagesMonitor->loadAllStorages(&storages, partitionId);
+    storageMonitor->loadAllStorages(&storages, partitionId);
 
     out << clusterDescription << ": Partition [" << partitionId
         << "]: Number of recovered storages: " << storages.size()

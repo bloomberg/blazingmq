@@ -101,7 +101,7 @@ class RecoveryManager;
 /// this component.
 class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager,
                                           public PartitionStateTableActions,
-  public mqbc::StoragesMonitor,
+                                          public mqbc::StorageMonitor,
                                           public PartitionFSMObserver {
   private:
     // CLASS-SCOPE CATEGORY
@@ -111,7 +111,7 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager,
     // PRIVATE TYPES
 
     /// Disambiguate `StorageSp`, which is inherited from both
-    /// `mqbi::StorageManager` and `mqbc::StoragesMonitor`.
+    /// `mqbi::StorageManager` and `mqbc::storageMonitor`.
     typedef mqbi::StorageManager::StorageSp StorageSp;
 
     typedef StorageUtil::FileStores FileStores;
@@ -1189,7 +1189,7 @@ StorageManager::processorForPartition(int partitionId) const
 inline void StorageManager::loadAllStorages(bsl::vector<StorageSp>* result,
                                             int partitionId)
 {
-    mqbc::StoragesMonitor::loadAllStorages(result, partitionId);
+    mqbc::StorageMonitor::loadAllStorages(result, partitionId);
 }
 
 inline PartitionFSM::State::Enum

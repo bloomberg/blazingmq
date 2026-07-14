@@ -189,7 +189,7 @@ RecoveryRecordInfo::RecoveryRecordInfo(bsls::Types::Uint64 primaryLeaseId,
 {
 }
 
-StoragesMonitor::~StoragesMonitor()
+StorageMonitor::~StorageMonitor()
 {
     // NOTHING
 }

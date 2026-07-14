@@ -360,7 +360,7 @@ class Cluster : public DispatcherClient {
     /// `partitionId`, is registered, updated, or unregistered.  Implementors
     /// should re-check readiness of any queue-open that was locally parked
     /// waiting for this queue's storage/app to become available (see
-    /// `mqbc::StoragesMonitor::hasStorage`).  A no-op default is provided
+    /// `mqbc::storageMonitor::hasStorage`).  A no-op default is provided
     /// since only cluster-member implementations own a `ClusterQueueHelper`.
     virtual void onQueueStorageReady(int partitionId, const bmqt::Uri& uri);
 

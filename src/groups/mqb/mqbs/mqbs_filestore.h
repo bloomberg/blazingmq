@@ -440,7 +440,7 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     StoragesMap d_storages;
     // Map [QueueKey->ReplicatedStorage*]
 
-    StoragesMonitor* d_storagesMonitor_p;
+    StorageMonitor* d_storageMonitor_p;
 
     bdlmt::Throttle d_alarmSoftLimiter;
     // Throttler for alarming on soft
@@ -802,7 +802,7 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
               bool                    isFSMWorkflow,
               bool                    doesFSMwriteQLIST,
               int                     replicationFactor,
-              StoragesMonitor*        storagesMonitor,
+              StorageMonitor*         storageMonitor,
               bslma::Allocator*       allocator);
 
     /// Destroy this instance.  The behavior is undefined unless this
@@ -974,7 +974,7 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
                                   const DataStoreRecordHandle& handle);
 
     /// Drop this FileStore's (raw) references to the partition's storages.
-    /// Invoked on a Raft snapshot install after the `StoragesMonitor` has
+    /// Invoked on a Raft snapshot install after the `storageMonitor` has
     /// destroyed the storage objects (`onStoragesCleared`): the raw pointers
     /// in `d_storages` are now dangling and must not be looked up until the
     /// reopen re-registers fresh storages.
@@ -1278,7 +1278,7 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     void unregisterStorage(const ReplicatedStorage* storage)
         BSLS_KEYWORD_OVERRIDE;
 
-    StoragesMonitor* storagesMonitor() BSLS_KEYWORD_OVERRIDE;
+    StorageMonitor* storageMonitor() BSLS_KEYWORD_OVERRIDE;
 
     const DataStoreConfig::Records& records() const BSLS_KEYWORD_OVERRIDE;
 
@@ -1299,7 +1299,7 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
                                     it) const BSLS_KEYWORD_OVERRIDE;
 
     /// Return `true` if this partition is Raft-replicated, `false` for the
-    /// legacy path.  Safe to call even when no `StoragesMonitor` is set (e.g.
+    /// legacy path.  Safe to call even when no `storageMonitor` is set (e.g.
     /// in tests): returns `false` in that case.
     bool isRaft() const;
 
@@ -1641,14 +1641,14 @@ inline unsigned int FileStore::clusterSize() const
     return static_cast<unsigned int>(d_cluster_p->nodes().size());
 }
 
-inline StoragesMonitor* FileStore::storagesMonitor()
+inline StorageMonitor* FileStore::storageMonitor()
 {
-    // Never invoked on a Raft partition: PartitionRaft::storagesMonitor()
+    // Never invoked on a Raft partition: PartitionRaft::storageMonitor()
     // returns its own independently-held pointer rather than delegating
-    // here. Not asserted since this FileStore's own d_storagesMonitor_p is
+    // here. Not asserted since this FileStore's own d_storageMonitor_p is
     // still valid and identical; calling it would not be wrong, merely
     // unused.
-    return d_storagesMonitor_p;
+    return d_storageMonitor_p;
 }
 
 inline const DataStoreConfig::Records& FileStore::records() const
@@ -1684,7 +1684,7 @@ inline bool FileStore::isLeader() const
 
 inline bool FileStore::isRaft() const
 {
-    return d_storagesMonitor_p && d_storagesMonitor_p->isRaft();
+    return d_storageMonitor_p && d_storageMonitor_p->isRaft();
 }
 
 inline unsigned int FileStore::primaryLeaseId() const

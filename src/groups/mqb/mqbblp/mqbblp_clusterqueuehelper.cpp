@@ -2221,7 +2221,7 @@ bool ClusterQueueHelper::createQueue(
         // storage/app for the queue may not exist yet -- in Raft mode,
         // storage is only created once the underlying log entry commits,
         // which can lag this openQueue response arriving.  Park until
-        // 'StoragesMonitor' reports it ready instead of failing with
+        // 'storageMonitor' reports it ready instead of failing with
         // "Unknown queue".
         const bsl::string appId(
             bmqp::QueueUtil::extractAppId(context->d_handleParameters),
