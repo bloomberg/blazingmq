@@ -1,4 +1,4 @@
-// Copyright 2025 Bloomberg Finance L.P.
+// Copyright 2026 Bloomberg Finance L.P.
 // SPDX-License-Identifier: Apache-2.0
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,6 +24,10 @@
 #include <bdlbb_pooledblobbufferfactory.h>
 #include <bslma_default.h>
 
+#include <cstddef>
+#include <cstdint>
+#include <vector>
+
 using namespace BloombergLP;
 
 namespace {
@@ -39,7 +43,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 
     bslma::Allocator* alloc = bslma::Default::allocator();
 
-    const int bufferSize = provider.ConsumeIntegralInRange(k_MIN_BUF_SIZE,
+    const int      bufferSize = provider.ConsumeIntegralInRange(k_MIN_BUF_SIZE,
                                                            k_MAX_BUF_SIZE);
     const uint32_t sizeSelector = provider.ConsumeIntegral<uint32_t>();
 
@@ -53,24 +57,23 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
                             static_cast<int>(payload.size()));
 
     const bmqu::BlobPosition optionsAreaPos(0, 0);
-    const int optionsAreaSize = static_cast<int>(
+    const int                optionsAreaSize = static_cast<int>(
         sizeSelector % (static_cast<uint32_t>(blob.length()) + 1));
 
     bmqp::OptionsView view(alloc);
-    view.reset(&blob, optionsAreaPos, optionsAreaSize);
-
-    if (!view.isValid()) {
+    const int         rc = view.reset(&blob, optionsAreaPos, optionsAreaSize);
+    if (rc != 0) {
         return 0;
     }
 
-    for (bmqp::OptionsView::const_iterator it = view.begin();
-         it != view.end();
+    for (bmqp::OptionsView::const_iterator it = view.begin(); it != view.end();
          ++it) {
         (void)*it;
     }
 
-    const bool hasSubQueueInfos =
-        view.find(bmqp::OptionType::e_SUB_QUEUE_INFOS) != view.end();
+    const bool hasSubQueueInfos = view.find(
+                                      bmqp::OptionType::e_SUB_QUEUE_INFOS) !=
+                                  view.end();
     const bool hasSubQueueIdsOld =
         view.find(bmqp::OptionType::e_SUB_QUEUE_IDS_OLD) != view.end();
 
