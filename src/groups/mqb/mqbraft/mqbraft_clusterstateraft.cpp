@@ -276,7 +276,14 @@ void ClusterStateRaft::applyCommittedEntry(const LogEntry& entry)
             }
         }
 
-        d_availabilityCb(true);
+        // Only the CSL leader's *current-term* advisory signals that the
+        // recovered backlog has caught up (Raft 5.4.2): a stale advisory
+        // replayed from a prior term must not flip 'isCaughtUp()' early,
+        // before the rest of that stale backlog (e.g. queue assignments
+        // from before a restart) has finished being applied.
+        if (entry.d_term == d_raftNode_mp->currentTerm()) {
+            d_availabilityCb(true);
+        }
     }
     else {
         mqbc::ClusterUtil::apply(d_clusterState_p,
