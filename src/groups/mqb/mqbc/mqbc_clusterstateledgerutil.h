@@ -239,18 +239,6 @@ struct ClusterStateLedgerUtil {
                  ClusterStateRecordType::Enum               recordType,
                  bslma::Allocator*                          allocator = 0);
 
-    /// Append to the specified `blob` a content-less no-op record of type
-    /// `ClusterStateRecordType::e_NOOP`, with the specified `sequenceNumber`
-    /// and `timestamp`.  Such a record carries no `ClusterMessage`; a newly
-    /// elected Raft leader appends it to its own term so it can advance its
-    /// commit index (Raft 5.4.2) and apply its committed backlog.  Return 0
-    /// on success, and a non-zero error code otherwise.
-    static int
-    appendNoOpRecord(bdlbb::Blob*                               blob,
-                     const bmqp_ctrlmsg::LeaderMessageSequence& sequenceNumber,
-                     bsls::Types::Uint64                        timestamp,
-                     bslma::Allocator*                          allocator = 0);
-
     /// Load the cluster message recorded at the specified `recordId` with
     /// the specified `recordHeader` from the specified `ledger` into the
     /// specified `message`.  Return 0 on success, and a non-zero error code
