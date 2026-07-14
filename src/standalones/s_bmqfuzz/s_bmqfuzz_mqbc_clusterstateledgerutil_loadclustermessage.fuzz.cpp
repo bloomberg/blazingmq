@@ -15,11 +15,11 @@
 
 #include <fuzzer/FuzzedDataProvider.h>
 
-#include <mqbc_clusterstateledgerutil.h>
 #include <bdlbb_blob.h>
 #include <bdlbb_blobutil.h>
 #include <bdlbb_pooledblobbufferfactory.h>
 #include <bmqp_ctrlmsg_messages.h>
+#include <mqbc_clusterstateledgerutil.h>
 
 using namespace BloombergLP;
 
@@ -40,6 +40,8 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
                             static_cast<int>(payload.size()));
 
     bmqp_ctrlmsg::ClusterMessage clusterMessage;
-    mqbc::ClusterStateLedgerUtil::loadClusterMessage(&clusterMessage, blob, offset);
+    mqbc::ClusterStateLedgerUtil::loadClusterMessage(&clusterMessage,
+                                                     blob,
+                                                     offset);
     return 0;
 }
