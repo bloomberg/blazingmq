@@ -25,7 +25,7 @@
 //
 //@DESCRIPTION: This component owns one 'PartitionRaft' per partition, creates
 // and owns FileStores, manages per-partition queue storage maps (via the
-// inherited 'mqbc::StoragesMonitor'), routes incoming 'e_RAFT_PARTITION'
+// inherited 'mqbc::storageMonitor'), routes incoming 'e_RAFT_PARTITION'
 // events and Raft control messages to the correct instance by partition ID,
 // and manages the start/stop lifecycle.  Replaces 'StorageManager' in Raft
 // mode. Owned by 'ClusterOrchestrator'.
@@ -87,7 +87,7 @@ namespace mqbraft {
 // ===========================
 
 class PartitionRaftManager : public mqbi::StorageProvider,
-                             public mqbc::StoragesMonitor {
+                             public mqbc::StorageMonitor {
   public:
     // TYPES
 

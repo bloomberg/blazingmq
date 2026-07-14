@@ -168,13 +168,13 @@ int computeEntrySize(const bdlbb::Blob& blob, int offset)
 PartitionRaft::PartitionRaft(int partitionId,
                              const bsl::shared_ptr<mqbs::FileStore>& fileStore,
                              mqbc::ClusterData*           clusterData,
-                             mqbs::StoragesMonitor*       storagesMonitor,
+                             mqbs::StorageMonitor*        storageMonitor,
                              const PartitionLeadershipCb& leadershipCb,
                              bslma::Allocator*            allocator)
 : d_partitionId(partitionId)
 , d_fileStore_sp(fileStore)
 , d_clusterData_p(clusterData)
-, d_storagesMonitor_p(storagesMonitor)
+, d_storageMonitor_p(storageMonitor)
 , d_raftLog_mp()
 , d_raftNode_mp()
 , d_tickHandle()
@@ -196,7 +196,7 @@ PartitionRaft::PartitionRaft(int partitionId,
 {
     BSLS_ASSERT_SAFE(d_fileStore_sp);
     BSLS_ASSERT_SAFE(clusterData);
-    BSLS_ASSERT_SAFE(storagesMonitor);
+    BSLS_ASSERT_SAFE(storageMonitor);
     BSLS_ASSERT_SAFE(d_leadershipCb);
 
     d_raftLog_mp.load(new (*d_allocator_p)
@@ -583,7 +583,7 @@ void PartitionRaft::beginReceiveSnapshot(bsls::Types::Uint64 lastIncludedIndex,
                   << "] beginning snapshot receive, lastIncludedIndex="
                   << lastIncludedIndex;
 
-    d_storagesMonitor_p->onStoragesCleared(d_partitionId);
+    d_storageMonitor_p->onStoragesCleared(d_partitionId);
 
     // Close any in-progress snapshot fds
     if (d_snapshotJournalFd >= 0) {
@@ -1546,9 +1546,9 @@ void PartitionRaft::unregisterStorage(const mqbs::ReplicatedStorage* storage)
     d_fileStore_sp->unregisterStorage(storage);
 }
 
-mqbs::StoragesMonitor* PartitionRaft::storagesMonitor()
+mqbs::StorageMonitor* PartitionRaft::storageMonitor()
 {
-    return d_storagesMonitor_p;
+    return d_storageMonitor_p;
 }
 
 const mqbs::DataStoreConfig::Records& PartitionRaft::records() const

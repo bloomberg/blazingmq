@@ -49,7 +49,7 @@ PartitionRaftManager::PartitionRaftManager(
     const mqbcfg::ClusterDefinition& clusterConfig,
     const PartitionLeadershipCb&     leadershipCb,
     bslma::Allocator*                allocator)
-: mqbc::StoragesMonitor(cluster, allocator)
+: mqbc::StorageMonitor(cluster, allocator)
 , d_allocators(allocator)
 , d_clusterData_p(clusterData)
 , d_cluster_p(cluster)
@@ -71,7 +71,7 @@ PartitionRaftManager::PartitionRaftManager(
 
     const int numPartitions = clusterConfig.partitionConfig().numPartitions();
     d_partitionRafts.resize(numPartitions);
-    mqbc::StoragesMonitor::resize(numPartitions);
+    mqbc::StorageMonitor::resize(numPartitions);
 }
 
 PartitionRaftManager::~PartitionRaftManager()
@@ -79,9 +79,9 @@ PartitionRaftManager::~PartitionRaftManager()
     // Release the queue storages before the FileStores they reference (via
     // 'RecordStore* d_store_p') are destroyed.  The FileStores are held in the
     // derived member 'd_fileStores', which is destroyed after this body but
-    // before the 'StoragesMonitor' base subobject that owns the storages.
+    // before the 'storageMonitor' base subobject that owns the storages.
     for (size_t i = 0; i < d_fileStores.size(); ++i) {
-        mqbc::StoragesMonitor::releaseStorages(static_cast<int>(i));
+        mqbc::StorageMonitor::releaseStorages(static_cast<int>(i));
     }
 }
 
@@ -535,14 +535,14 @@ bool PartitionRaftManager::isStorageEmpty(const bmqt::Uri& uri,
     BSLS_ASSERT_SAFE(partitionId >= 0 &&
                      partitionId < static_cast<int>(d_fileStores.size()));
 
-    return mqbc::StoragesMonitor::isStorageEmpty(uri, partitionId);
+    return mqbc::StorageMonitor::isStorageEmpty(uri, partitionId);
 }
 
 bool PartitionRaftManager::hasStorage(const bmqt::Uri&   uri,
                                       const bsl::string& appId,
                                       int                partitionId) const
 {
-    return mqbc::StoragesMonitor::hasStorage(uri, appId, partitionId);
+    return mqbc::StorageMonitor::hasStorage(uri, appId, partitionId);
 }
 
 bool PartitionRaftManager::isRaft() const

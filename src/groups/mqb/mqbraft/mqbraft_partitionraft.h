@@ -107,7 +107,7 @@ class PartitionRaft : public mqbs::RecordStore {
     int                                         d_partitionId;
     bsl::shared_ptr<mqbs::FileStore>            d_fileStore_sp;
     mqbc::ClusterData*                          d_clusterData_p;
-    mqbs::StoragesMonitor*                      d_storagesMonitor_p;
+    mqbs::StorageMonitor*                       d_storageMonitor_p;
     bslma::ManagedPtr<PartitionRaftLog>         d_raftLog_mp;
     bslma::ManagedPtr<RaftNode>                 d_raftNode_mp;
     bdlmt::EventScheduler::RecurringEventHandle d_tickHandle;
@@ -253,7 +253,7 @@ class PartitionRaft : public mqbs::RecordStore {
     PartitionRaft(int                                     partitionId,
                   const bsl::shared_ptr<mqbs::FileStore>& fileStore,
                   mqbc::ClusterData*                      clusterData,
-                  mqbs::StoragesMonitor*                  storagesMonitor,
+                  mqbs::StorageMonitor*                   storageMonitor,
                   const PartitionLeadershipCb&            leadershipCb,
                   bslma::Allocator*                       allocator = 0);
 
@@ -396,7 +396,7 @@ class PartitionRaft : public mqbs::RecordStore {
                        const mqbu::StorageKey&                   queueKey,
                        mqbi::Domain* domain) BSLS_KEYWORD_OVERRIDE;
 
-    mqbs::StoragesMonitor* storagesMonitor() BSLS_KEYWORD_OVERRIDE;
+    mqbs::StorageMonitor* storageMonitor() BSLS_KEYWORD_OVERRIDE;
 
     const mqbs::DataStoreConfig::Records&
     records() const BSLS_KEYWORD_OVERRIDE;
