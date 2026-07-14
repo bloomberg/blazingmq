@@ -16,10 +16,10 @@
 #include <bdlbb_blob.h>
 #include <bdlbb_blobutil.h>
 #include <bdlbb_pooledblobbufferfactory.h>
-#include <bslma_default.h>
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_protocolutil.h>
 #include <bmqu_memoutstream.h>
+#include <bslma_default.h>
 
 using namespace BloombergLP;
 
@@ -29,32 +29,37 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
         return 0;
     }
 
-    // First byte selects encoding type
-    bmqp::EncodingType::Enum encodingType =
-        (data[0] & 1) ? bmqp::EncodingType::e_JSON
-                      : bmqp::EncodingType::e_BER;
-    data++;
-    size--;
+    const bmqp::EncodingType::Enum encodingType =
+        (data[0] & 1) ? bmqp::EncodingType::e_JSON : bmqp::EncodingType::e_BER;
+
+    const int bufferSize = 1 + (data[1] % 256);
+
+    data += 2;
+    size -= 2;
 
     bslma::Allocator*              alloc = bslma::Default::defaultAllocator();
-    bdlbb::PooledBlobBufferFactory bufferFactory(32, alloc);
+    bdlbb::PooledBlobBufferFactory bufferFactory(bufferSize, alloc);
 
-    // Feed fuzz data into the blob
     bdlbb::Blob blob(&bufferFactory, alloc);
     bdlbb::BlobUtil::append(&blob,
                             reinterpret_cast<const char*>(data),
                             static_cast<int>(size));
 
-    // Decode into the actual protocol message type used in production
     bmqp_ctrlmsg::ControlMessage message(alloc);
     bmqu::MemOutStream           errorDescription(alloc);
 
-    bmqp::ProtocolUtil::decodeMessage(errorDescription,
-                                      &message,
-                                      blob,
-                                      0,
-                                      encodingType,
-                                      alloc);
+    const int rc = bmqp::ProtocolUtil::decodeMessage(errorDescription,
+                                                     &message,
+                                                     blob,
+                                                     0,
+                                                     encodingType,
+                                                     alloc);
+    if (rc != 0) {
+        return 0;
+    }
+
+    bmqu::MemOutStream printStream(alloc);
+    printStream << message;
 
     return 0;
 }
