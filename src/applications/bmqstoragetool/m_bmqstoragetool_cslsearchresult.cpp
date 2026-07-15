@@ -84,10 +84,10 @@ CslSearchShortResult::CslSearchShortResult(
 
 bool CslSearchShortResult::processRecord(
     const mqbc::ClusterStateRecordHeader& header,
-    BSLA_MAYBE_UNUSED const bmqp_ctrlmsg::ClusterMessage& record,
-    const mqbsi::LedgerRecordId&                          recordId)
+    const bmqp_ctrlmsg::ClusterMessage&   record,
+    const mqbsi::LedgerRecordId&          recordId)
 {
-    printer()->printShortResult(header, recordId);
+    printer()->printShortResult(record, header, recordId);
 
     updateRecordCount(&d_recordCount, header.recordType());
 
