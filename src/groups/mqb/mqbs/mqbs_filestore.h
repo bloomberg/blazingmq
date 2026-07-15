@@ -1427,7 +1427,7 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     bool isFileSetAvailable() const BSLS_KEYWORD_OVERRIDE;
 
     /// Return the current sequence number for this partition.
-    bsls::Types::Uint64 sequenceNumber() const;
+    bsls::Types::Uint64 currentSequenceNumber() const;
 
     /// Return the replication factor for strong consistency.
     int replicationFactor() const;
@@ -1692,7 +1692,7 @@ inline unsigned int FileStore::primaryLeaseId() const
     return d_primaryLeaseId;
 }
 
-inline bsls::Types::Uint64 FileStore::sequenceNumber() const
+inline bsls::Types::Uint64 FileStore::currentSequenceNumber() const
 {
     LeaseIdToSeqNumMapCIter cit = d_highestSeqNums.find(d_primaryLeaseId);
     return (cit != d_highestSeqNums.end()) ? cit->second : 0;

@@ -353,7 +353,7 @@ void StorageManager::onPartitionRecovery(
                                      : "**none**")
                     << ", "
                     << mqbs::printPSN(fs->primaryLeaseId(),
-                                      fs->sequenceNumber())
+                                      fs->currentSequenceNumber())
                     << ")";
             }
         }
