@@ -924,10 +924,10 @@ static void test2_printTest()
 // PRINT TEST
 //
 // Concerns:
-//   Test printing a 'mqbs::FileStoreIterator'
+//   Test printing a 'mqbs::DataStoreRecord' as stored in 'FileStore::records'
 //
 // Testing:
-//   operator<<(bsl::ostream& stream, const FileStoreIterator& rhs
+//   operator<<(bsl::ostream& stream, const DataStoreRecord& rhs)
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("PRINT TEST");
@@ -965,34 +965,25 @@ static void test2_printTest()
     expectedOut.prepare(
         &errorMessage,
         &errorOffset,
-        "\\[ queueOpRecord = \\[ header = \\[ type = QUEUE_OP flags = 0 "
-        "primaryLeaseId = 1 sequenceNumber = 2 timestamp = [0-9]* ] flags = 0 "
-        "queueKey = 3078787878 appKey = 0000000000 type = CREATION "
-        "queueUriRecordOffsetWords = 9 ] ]\\n"
+        "DataStoreRecord\\[type=QUEUE_OP offset=104 hasReceipt=true "
+        "msgOffset=0 appDataLen=0 padLen=72 timepoint=0 timestamp=0]\\n"
 
-        "\\[ messageRecord = \\[ header = \\[ type = MESSAGE flags = 1 "
-        "primaryLeaseId = 1 sequenceNumber = 3 timestamp = [0-9]* ] refCount "
-        "= "
-        "1 queueKey = 3078787878 fileKey = 0000000000 messageOffsetDwords = 5 "
-        "messageGUID = [0-9|A-Z]* crc32c = [0-9]* compressionAlgorithmType = "
-        "NONE ] ]\\n"
+        "DataStoreRecord\\[type=MESSAGE offset=164 hasReceipt=true "
+        "msgOffset=40 appDataLen=10 padLen=24 timepoint=0 "
+        "timestamp=[0-9]*]\\n"
 
-        "\\[ confirmRecord = \\[ header = \\[ type = CONFIRM flags = 0 "
-        "primaryLeaseId = 1 sequenceNumber = 4 timestamp = [0-9]* ] "
-        "reason = CONFIRMED queueKey = 3078787878 appKey = 0000000000 "
-        "messageGUID = [0-9|A-Z]* ] ]\\n"
+        "DataStoreRecord\\[type=CONFIRM offset=224 hasReceipt=true "
+        "msgOffset=0 appDataLen=0 padLen=0 timepoint=0 timestamp=0]\\n"
 
-        "\\[ queueOpRecord = \\[ header = \\[ type = QUEUE_OP flags = 0 "
-        "primaryLeaseId = 1 sequenceNumber = 6 timestamp = [0-9]* ] flags = 0 "
-        "queueKey = 3778787878 appKey = 0000000000 type = CREATION "
-        "queueUriRecordOffsetWords = 27 ] ]\\n"
+        "DataStoreRecord\\[type=QUEUE_OP offset=344 hasReceipt=true "
+        "msgOffset=0 appDataLen=0 padLen=72 timepoint=0 timestamp=0]\\n"
 
-        "\\[ messageRecord = \\[ header = \\[ type = MESSAGE flags = 8 "
-        "primaryLeaseId = 1 sequenceNumber = 7 timestamp = [0-9]* ] refCount "
-        "= "
-        "8 queueKey = 3778787878 fileKey = 0000000000 messageOffsetDwords = 8 "
-        "messageGUID = [0-9|A-Z]* crc32c = [0-9]* compressionAlgorithmType = "
-        "NONE ] ]\\n",
+        "DataStoreRecord\\[type=MESSAGE offset=404 hasReceipt=true "
+        "msgOffset=64 appDataLen=80 padLen=96 timepoint=0 "
+        "timestamp=[0-9]*]\\n"
+
+        "DataStoreRecord\\[type=CONFIRM offset=464 hasReceipt=true "
+        "msgOffset=0 appDataLen=0 padLen=0 timepoint=0 timestamp=0]\\n",
         bdlpcre::RegEx::k_FLAG_MULTILINE);
     BSLS_ASSERT_OPT(expectedOut.isPrepared());
 

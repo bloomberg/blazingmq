@@ -151,9 +151,6 @@ class Tester {
     }
 
     CslRaftLog&                     raftLog() { return d_cslRaftLog; }
-    bsl::shared_ptr<mqbsi::Log>&    log() { return d_log_sp; }
-    bdlbb::PooledBlobBufferFactory& factory()  { return d_bufferFactory; }
-    CslRaftLog::BlobSpPool*         blobPool() { return d_blobSpPool_sp.get(); }
     bslma::Allocator*               allocator() { return d_allocator_p; }
 };
 

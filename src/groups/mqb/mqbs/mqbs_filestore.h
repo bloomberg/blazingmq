@@ -118,11 +118,18 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("MQBS.FILESTORE");
 
-    // FRIENDS
-    friend class FileStoreIterator;
-
   public:
     // TYPES
+
+    /// Rollover requirement of the active file set for a pending write, as
+    /// computed by `primaryRolloverNeed`.
+    enum RolloverNeed {
+        e_ROLLOVER_NONE   = 0,   // active file set has room; write directly
+        e_ROLLOVER_NEEDED = 1,   // out of room; a rollover will reclaim
+                                 // enough space to satisfy the policy
+        e_ROLLOVER_READONLY = 2  // out of room, but a rollover cannot reclaim
+                                 // enough space -- the partition is full
+    };
 
     typedef bmqp::BlobPoolUtil::BlobSpPool BlobSpPool;
 
@@ -1196,15 +1203,34 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     bsls::Types::Uint64
     journalOpTimestampAt(bsls::Types::Uint64 journalOffset) const;
 
-    /// Return `true` if the active (front) file set cannot physically
-    /// accommodate the next record, i.e. a rollover is required before it can
-    /// be written.  The JOURNAL is always required to hold the next common
-    /// record (plus reserved areas); the specified `dataBytes` and
-    /// `qlistBytes` are the additional DATA and QLIST space the record needs
-    /// (pass 0 where not applicable).  Has no side effects.  (Used by the Raft
-    /// write path to decide when to trigger `PartitionRaft::proposeRollover`.)
-    bool primaryNeedsRollover(bsls::Types::Uint64 dataBytes,
-                              bsls::Types::Uint64 qlistBytes) const;
+    /// Return the rollover requirement of the active (front) file set for a
+    /// write that will consume the specified additional `dataBytes` and
+    /// `qlistBytes` (the JOURNAL reserve for the next common record is always
+    /// accounted for; pass 0 where DATA/QLIST are not applicable):
+    /// * `e_ROLLOVER_NONE`     the file set has physical room; write directly.
+    /// * `e_ROLLOVER_NEEDED`   a file is out of room and a rollover will leave
+    ///                         at least the configured minimum available space
+    ///                         in every file; the caller should roll over.
+    /// * `e_ROLLOVER_READONLY` a file is out of room but a rollover cannot
+    ///                         reclaim enough space (outstanding records
+    ///                         exceed the policy threshold).  As a side effect
+    ///                         the partition is marked read-only and the
+    ///                         `PARTITION_READONLY` panic is emitted once per
+    ///                         file set; the caller should refuse (NACK) the
+    ///                         write.
+    /// Merges the physical capacity check and the rollover space policy of the
+    /// legacy `rolloverIfNeeded`; used by the Raft write path.
+    RolloverNeed primaryRolloverNeed(bsls::Types::Uint64 dataBytes,
+                                     bsls::Types::Uint64 qlistBytes);
+
+    /// Return `true` if the active (front) file set's journal still has room
+    /// to write one more record without encroaching on the space reserved for
+    /// sync points, i.e. a full-queue PURGE record can be written into the
+    /// reserved PURGE area even when the journal is otherwise full.  Has no
+    /// side effects.  Mirrors the `useSyncPointReservedArea` guard in the
+    /// legacy `writeQueueOpRecord`; used by the Raft write path to recover a
+    /// read-only partition via a full purge.
+    bool primaryHasPurgeReserve() const;
 
     /// Remove the record identified by the specified `handle`.  The
     /// behavior is undefined unless `handle` is valid and represents a

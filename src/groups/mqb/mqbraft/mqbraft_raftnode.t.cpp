@@ -261,14 +261,6 @@ class TestCluster {
         }
     }
 
-    /// Tick only node 'id', deliver messages until quiet.
-    void tickNode(int id)
-    {
-        RaftNodeOutput output(d_allocator_p);
-        d_nodes[id]->tick(&output);
-        runUntilQuiet(&output);
-    }
-
     /// Find the leader node.  Return -1 if none.
     int findLeader() const
     {
@@ -284,18 +276,6 @@ class TestCluster {
         return leader;
     }
 
-    /// Return count of nodes that think 'nodeId' is the leader.
-    int leaderAgreement(int nodeId) const
-    {
-        int count = 0;
-        for (int i = 0; i < d_numNodes; ++i) {
-            if (d_nodes[i]->leaderId() == nodeId) {
-                ++count;
-            }
-        }
-        return count;
-    }
-
     bsl::shared_ptr<bdlbb::Blob> makeBlob(const char* data)
     {
         bsl::shared_ptr<bdlbb::Blob> blob =
@@ -309,7 +289,6 @@ class TestCluster {
     // ACCESSORS
     RaftNode*      node(int id) { return d_nodes[id]; }
     MemoryRaftLog* log(int id) { return d_logs[id]; }
-    int            numNodes() const { return d_numNodes; }
 };
 
 /// Tick the cluster until a leader emerges or maxTicks is reached.

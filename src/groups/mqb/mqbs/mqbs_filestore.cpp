@@ -3459,27 +3459,173 @@ void FileStore::finalizeRolloverFileSet(const FileSetSp& newActiveFileSetSp)
         bdlf::BindUtil::bind(&FileStore::deleteArchiveFilesCb, this));
 }
 
-bool FileStore::primaryNeedsRollover(bsls::Types::Uint64 dataBytes,
-                                     bsls::Types::Uint64 qlistBytes) const
+/// Evaluate the rollover status of a single file with the specified current
+/// `fileSize` and write `position`, holding `outstanding` bytes of live
+/// records, whose configured maximum is `maxSize`, for a write that will
+/// consume `requested` more bytes.  Set `*needsRollover` to `true` if the file
+/// lacks the physical room to hold `requested` more bytes at its current
+/// position.  Return the percentage of `maxSize` that would remain free after
+/// a rollover carried `outstanding` (plus `requested`) into a fresh file --
+/// i.e. the space a rollover cannot reclaim.
+static unsigned int rolloverFileStatus(bool*               needsRollover,
+                                       bsls::Types::Uint64 fileSize,
+                                       bsls::Types::Uint64 position,
+                                       bsls::Types::Uint64 outstanding,
+                                       bsls::Types::Uint64 maxSize,
+                                       bsls::Types::Uint64 requested)
+{
+    *needsRollover = fileSize < (position + requested);
+
+    const bsls::Types::Uint64 projected = outstanding + requested;
+    if (projected > maxSize || 0 == maxSize) {
+        return 0;
+    }
+    return static_cast<unsigned int>(((maxSize - projected) * 100) / maxSize);
+}
+
+FileStore::RolloverNeed
+FileStore::primaryRolloverNeed(bsls::Types::Uint64 dataBytes,
+                               bsls::Types::Uint64 qlistBytes)
+{
+    BSLS_ASSERT_SAFE(0 < d_fileSets.size());
+    FileSet* fs = d_fileSets[0].get();
+    BSLS_ASSERT_SAFE(fs);
+
+    // The JOURNAL must always be able to hold the next common record (plus its
+    // reserved areas); DATA/QLIST are only consumed when the record writes
+    // them. A rollover reclaims the space of deleted/confirmed records, but
+    // NOT that of outstanding (live) records: when those already leave less
+    // than the configured minimum free space, the file is genuinely full and
+    // rolling over into a same-size file would overflow it.
+    static const unsigned int k_MIN_AVAILABLE_SPACE_PERCENT = 20;
+
+    bool           needsRollover          = false;
+    bool           canRollover            = true;
+    FileType::Enum cannotRolloverFileType = FileType::e_UNDEFINED;
+    unsigned int   availableSpacePercent  = 0;
+    bool           fileNeedsRollover      = false;
+    unsigned int   availablePercent       = 0;
+
+    availablePercent = rolloverFileStatus(&fileNeedsRollover,
+                                          fs->d_journal.d_file.fileSize(),
+                                          fs->d_journal.d_filePosition,
+                                          fs->d_journal.d_outstandingBytes,
+                                          d_config.maxJournalFileSize(),
+                                          k_REQUESTED_JOURNAL_SPACE);
+    needsRollover    = needsRollover || fileNeedsRollover;
+    if (availablePercent < k_MIN_AVAILABLE_SPACE_PERCENT) {
+        canRollover            = false;
+        cannotRolloverFileType = FileType::e_JOURNAL;
+        availableSpacePercent  = availablePercent;
+    }
+
+    availablePercent = rolloverFileStatus(&fileNeedsRollover,
+                                          fs->d_data.d_file.fileSize(),
+                                          fs->d_data.d_filePosition,
+                                          fs->d_data.d_outstandingBytes,
+                                          d_config.maxDataFileSize(),
+                                          dataBytes);
+    needsRollover    = needsRollover || fileNeedsRollover;
+    if (availablePercent < k_MIN_AVAILABLE_SPACE_PERCENT) {
+        canRollover            = false;
+        cannotRolloverFileType = FileType::e_DATA;
+        availableSpacePercent  = availablePercent;
+    }
+
+    if (d_qListAware) {
+        availablePercent = rolloverFileStatus(&fileNeedsRollover,
+                                              fs->d_qlist.d_file.fileSize(),
+                                              fs->d_qlist.d_filePosition,
+                                              fs->d_qlist.d_outstandingBytes,
+                                              d_config.maxQlistFileSize(),
+                                              qlistBytes);
+        needsRollover    = needsRollover || fileNeedsRollover;
+        if (availablePercent < k_MIN_AVAILABLE_SPACE_PERCENT) {
+            canRollover            = false;
+            cannotRolloverFileType = FileType::e_QLIST;
+            availableSpacePercent  = availablePercent;
+        }
+    }
+
+    if (!needsRollover) {
+        return e_ROLLOVER_NONE;  // RETURN
+    }
+    if (canRollover) {
+        return e_ROLLOVER_NEEDED;  // RETURN
+    }
+
+    // A rollover cannot reclaim enough space: take the partition read-only and
+    // panic (once per file set).  'setAvailabilityStatus' is called on every
+    // read-only verdict (not just the first) so a failed purge-recovery
+    // attempt
+    // -- which re-enabled the journal before retrying -- leaves it disabled.
+    setAvailabilityStatus(false);
+
+    if (!fs->d_fileSetRolloverPolicyAlarm) {
+        fs->d_fileSetRolloverPolicyAlarm = true;
+
+        bmqu::MemOutStream out(d_allocator_p);
+        out << partitionDesc() << "[" << cannotRolloverFileType
+            << "] file is full but partition cannot be rolled over because "
+               "the "
+            << "rolled over [" << cannotRolloverFileType
+            << "] file will have [" << availableSpacePercent
+            << "%] available space which is lower than the configured value "
+               "of ["
+            << k_MIN_AVAILABLE_SPACE_PERCENT
+            << "%]. Outstanding bytes of each "
+            << "file:";
+        bdlb::Print::newlineAndIndent(out, 1, 4);
+        printSpaceInUse(out,
+                        "JOURNAL",
+                        fs->d_journal.d_outstandingBytes,
+                        d_config.maxJournalFileSize(),
+                        computePercentage(fs->d_journal.d_outstandingBytes,
+                                          d_config.maxJournalFileSize()));
+        bdlb::Print::newlineAndIndent(out, 1, 4);
+        printSpaceInUse(out,
+                        "DATA",
+                        fs->d_data.d_outstandingBytes,
+                        d_config.maxDataFileSize(),
+                        computePercentage(fs->d_data.d_outstandingBytes,
+                                          d_config.maxDataFileSize()));
+        if (d_qListAware) {
+            bdlb::Print::newlineAndIndent(out, 1, 4);
+            printSpaceInUse(out,
+                            "QLIST",
+                            fs->d_qlist.d_outstandingBytes,
+                            d_config.maxQlistFileSize(),
+                            computePercentage(fs->d_qlist.d_outstandingBytes,
+                                              d_config.maxQlistFileSize()));
+        }
+        out << "\n";
+
+        printTopContributingQueues(out,
+                                   10,
+                                   "rollover failure",
+                                   cannotRolloverFileType,
+                                   d_storages);
+
+        BMQTSK_ALARMLOG_PANIC("PARTITION_READONLY")
+            << out.str() << BMQTSK_ALARMLOG_END;
+    }
+
+    return e_ROLLOVER_READONLY;
+}
+
+bool FileStore::primaryHasPurgeReserve() const
 {
     BSLS_ASSERT_SAFE(0 < d_fileSets.size());
     const FileSet* fs = d_fileSets[0].get();
 
-    // The JOURNAL must always be able to hold the next common record (plus its
-    // reserved areas); DATA/QLIST are only needed when the record writes them.
-    if (fs->d_journal.d_file.fileSize() <
-        (fs->d_journal.d_filePosition + k_REQUESTED_JOURNAL_SPACE)) {
-        return true;  // RETURN
-    }
-    if (0 < dataBytes &&
-        fs->d_data.d_file.fileSize() < (fs->d_data.d_filePosition + dataBytes)) {
-        return true;  // RETURN
-    }
-    if (d_qListAware && 0 < qlistBytes &&
-        fs->d_qlist.d_file.fileSize() < (fs->d_qlist.d_filePosition + qlistBytes)) {
-        return true;  // RETURN
-    }
-    return false;
+    // A PURGE record may consume the space reserved for PURGE records, but
+    // must not encroach on the space reserved for sync points at the very end
+    // of the journal (mirrors 'useSyncPointReservedArea' in legacy
+    // 'writeQueueOpRecord').
+    return fs->d_journal.d_file.fileSize() >=
+           (fs->d_journal.d_filePosition +
+            FileStoreProtocol::k_JOURNAL_RECORD_SIZE +
+            k_RESERVED1_SYNC_POINT_SIZE);
 }
 
 bsls::Types::Uint64
@@ -7239,9 +7385,14 @@ int FileStore::formatQueuePurgeRecord(PendingWrite* pw)
     MappedFileDescriptor& journal    = activeFileSet->d_journal.d_file;
     bsls::Types::Uint64&  journalPos = activeFileSet->d_journal.d_filePosition;
 
-    // The Raft path must never roll over; assert the journal has room.
+    // A PURGE record is written into the space reserved for PURGE records when
+    // the journal is otherwise full (the recovery path for a read-only
+    // partition), so only the sync-point reserve must remain -- not the full
+    // 'k_REQUESTED_JOURNAL_SPACE'.  On an available journal the caller has
+    // already ensured full room via the rollover path.
     BSLS_ASSERT_SAFE(journal.fileSize() >=
-                     (journalPos + k_REQUESTED_JOURNAL_SPACE));
+                     (journalPos + FileStoreProtocol::k_JOURNAL_RECORD_SIZE +
+                      k_RESERVED1_SYNC_POINT_SIZE));
 
     // Append queue-op (purge) record to journal.
     const bsls::Types::Uint64 recordOffset = journalPos;

@@ -1179,23 +1179,27 @@ QueueEngineUtil_AppState::processDeliveryList(bsls::TimeInterval*    delay,
         // Retrieve message from the storage
         reader->reset(*it);
 
-        if (!reader->hasReceipt()) {
+        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(reader->atEnd())) {
+            BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+
+            // The message got gc'ed or purged.  Do not stop the redelivery:
+            // fall through and treat it as sent so it is erased from the list
+            // and the remaining messages still get a chance to be delivered.
+            BMQ_LOGTHROTTLE_INFO << "#STORAGE_UNKNOWN_MESSAGE " << "Queue: '"
+                                 << d_queue_p->description() << "', app: '"
+                                 << appId() << "' could not redeliver GUID: '"
+                                 << *it << "' (not in the storage)";
+        }
+        else if (!reader->hasReceipt()) {
+            // The message is in the storage but not yet committed/receipted
+            // (e.g. Raft has not replicated it to a majority yet).  Stop here
+            // and retry on the next flush.
             // TODO: remove extra logging
             BMQ_LOGTHROTTLE_INFO << "#STORAGE_UNKNOWN_MESSAGE " << "Queue: '"
                                  << d_queue_p->description() << "', app: '"
                                  << appId() << "' has unconfirmed GUID: '"
                                  << *it << "'. Stopping the redelivery now.";
             break;
-        }
-
-        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(reader->atEnd())) {
-            BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-
-            // The message got gc'ed or purged
-            BMQ_LOGTHROTTLE_INFO << "#STORAGE_UNKNOWN_MESSAGE " << "Queue: '"
-                                 << d_queue_p->description() << "', app: '"
-                                 << appId() << "' could not redeliver GUID: '"
-                                 << *it << "' (not in the storage)";
         }
         else if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
                      !reader->appMessageView(ordinal()).isPending())) {

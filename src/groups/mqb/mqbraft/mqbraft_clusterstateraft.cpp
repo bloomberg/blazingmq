@@ -242,25 +242,19 @@ void ClusterStateRaft::applyCommittedEntry(const LogEntry& entry)
     if (clusterMessage.choice().selectionId() ==
         bmqp_ctrlmsg::ClusterMessageChoice::
             SELECTION_ID_PARTITION_PRIMARY_ADVISORY) {
-        // Skip 'ClusterUtil::apply': for this message type it routes to
-        // 'applyPartitionPrimary', which is an unconditional no-op in Raft
-        // mode (the data-partition Raft, not the CSL, owns primary/leaseId --
-        // 'isRaftEnabled()' early-return) -- true for both our own artificial
-        // advisory and any stale recovered legacy 'partitionPrimaryAdvisory'.
-        // This is Raft-only code (ClusterStateRaft), so that branch is always
-        // taken; nothing is lost by not calling it.  Persistence is already
-        // guaranteed by the Raft commit itself, independent of this call.
+        // Don't apply to ClusterState: under Raft the data-partition Raft, not
+        // the CSL, owns partition primary/leaseId, so 'ClusterUtil::apply' ->
+        // 'applyPartitionPrimary' is a no-op ('isRaftEnabled()' early-return)
+        // and the Raft commit already guarantees persistence.
         //
-        // Record the CSL-side half of the two independent signals the
-        // orchestrator's readiness check compares (this committed advisory
-        // vs. local data-partition Raft leadership) in a dedicated field
-        // ('advisoryConfirmedLeaseId'), separate from 'primaryLeaseId' (which
-        // reflects only the locally-observed side), so it can be recorded
-        // regardless of whether this node knows the partition's primary yet.
-        // Monotonic: a stale recovered legacy entry must not regress a
-        // leaseId already confirmed by a fresher commit.  Deciding
-        // activation/availability from this is the orchestrator's job (via
-        // the readiness check below), not this method's.
+        // The orchestrator declares a partition ready only once two leaseIds
+        // agree: the one this CSL advisory just committed, and the one
+        // observed locally from data-partition Raft leadership
+        // ('primaryLeaseId').  The two can arrive in either order, so store
+        // the advisory's leaseId in its own field, 'advisoryConfirmedLeaseId',
+        // rather than overwriting 'primaryLeaseId'.  Update it monotonically
+        // so a stale advisory replayed at recovery can't lower a leaseId a
+        // later commit confirmed.
         const bmqp_ctrlmsg::PartitionPrimaryAdvisory& adv =
             clusterMessage.choice().partitionPrimaryAdvisory();
         for (bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>::const_iterator

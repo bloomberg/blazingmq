@@ -928,6 +928,7 @@ int PartitionRaft::propose(
     const bsl::shared_ptr<mqbs::FileStore::PendingWrite>& pw)
 {
     // executed by the partition *DISPATCHER* thread
+    enum { rc_UNAVAILABLE = -1 };
 
     // Compute the rollover footprint (DATA and QLIST bytes) from the write.
     // The JOURNAL reserve is always checked by 'rolloverIfNeeded'; only
@@ -946,17 +947,45 @@ int PartitionRaft::propose(
             *pw->d_appIdKeyPairs_p);
     }
 
-    int rc = rolloverIfNeeded(dataBytes, qlistBytes);
-    if (0 != rc) {
-        return rc;  // RETURN
-    }
+    if (!d_fileStore_sp->isFileSetAvailable()) {
+        // The journal is read-only: a rollover could not reclaim enough space
+        // (outstanding records exceed the policy threshold).  Mirror legacy
+        // 'FileStore::writeQueueOpRecord': the ONLY write still permitted is a
+        // full-queue PURGE, written into the reserved PURGE area, which frees
+        // outstanding records and lets 'onPurgeComplete' roll over to recover.
+        // A per-appId purge (non-null appKey) writes per-message deletion
+        // records, for which there is no room -- reject it, like any other
+        // write, so the partition stays read-only.
+        const bool isPurge = pw->d_recordType ==
+                                 mqbs::RecordType::e_QUEUE_OP &&
+                             pw->d_queueOpType == mqbs::QueueOpType::e_PURGE &&
+                             pw->d_appKey.isNull();
+        if (!isPurge || !d_fileStore_sp->primaryHasPurgeReserve()) {
+            return rc_UNAVAILABLE;  // RETURN
+        }
 
-    // If a rollover is in flight, buffer the write for replay into the new
-    // file once the rollover commits ('bufferPendingWrite' reserves
-    // 'pw->d_handle').
-    if (d_isRolloverPending) {
-        return d_raftLog_mp->bufferPendingWrite(pw,
-                                                d_raftNode_mp->currentTerm());
+        BALL_LOG_WARN << "Partition [" << d_partitionId
+                      << "] Writing PURGE record for queueKey ["
+                      << pw->d_queueKey
+                      << "] into the reserved journal area despite the "
+                      << "partition being read-only (unavailable).";
+        // Fall through: append the PURGE directly (no rollover); the reserved
+        // area guarantees room.
+    }
+    else {
+        int rc = rolloverIfNeeded(dataBytes, qlistBytes);
+        if (0 != rc) {
+            return rc;  // RETURN
+        }
+
+        // If a rollover is in flight, buffer the write for replay into the new
+        // file once the rollover commits ('bufferPendingWrite' reserves
+        // 'pw->d_handle').
+        if (d_isRolloverPending) {
+            return d_raftLog_mp->bufferPendingWrite(
+                pw,
+                d_raftNode_mp->currentTerm());
+        }
     }
 
     // Otherwise enqueue it for 'append()'; the record's sequence number
@@ -967,9 +996,9 @@ int PartitionRaft::propose(
     d_raftLog_mp->setPendingWrite(pw);
 
     RaftNodeOutput output(d_allocator_p);
-    rc = d_raftNode_mp->propose(&output,
-                                bsl::shared_ptr<bdlbb::Blob>(),
-                                pw->d_id);
+    int            rc = d_raftNode_mp->propose(&output,
+                                    bsl::shared_ptr<bdlbb::Blob>(),
+                                    pw->d_id);
     if (rc != 0) {
         return rc;
     }
@@ -1121,23 +1150,37 @@ int PartitionRaft::rolloverIfNeeded(bsls::Types::Uint64 dataBytes,
                                     bsls::Types::Uint64 qlistBytes)
 {
     // executed by the partition *DISPATCHER* thread
-    enum { rc_SUCCESS = 0 };
+    enum { rc_SUCCESS = 0, rc_READONLY = -1 };
 
-    if (!isLeader() ||
-        !d_fileStore_sp->primaryNeedsRollover(dataBytes, qlistBytes)) {
+    if (!isLeader()) {
         return rc_SUCCESS;  // RETURN
     }
 
-    // A rollover is required.  Rather than NACK the triggering write, propose
-    // 'e_ROLLOVER' (unless one is already in flight -- at most one uncommitted
-    // rollover at a time) and return success.  'setPendingWrite()' then
-    // buffers this triggering write, and every subsequent one, until the
-    // rollover commits.
-    if (!d_isRolloverPending) {
-        proposeRollover();
+    switch (d_fileStore_sp->primaryRolloverNeed(dataBytes, qlistBytes)) {
+    case mqbs::FileStore::e_ROLLOVER_NONE: {
+        return rc_SUCCESS;  // RETURN
     }
-
-    return rc_SUCCESS;
+    case mqbs::FileStore::e_ROLLOVER_READONLY: {
+        // A rollover cannot reclaim enough space -- the partition is full.
+        // 'primaryRolloverNeed' has already marked it read-only and panicked;
+        // NACK the triggering write rather than roll over into a same-size
+        // file and overflow it.  The partition recovers only via a full purge
+        // (see 'onPurgeComplete').
+        return rc_READONLY;  // RETURN
+    }
+    case mqbs::FileStore::e_ROLLOVER_NEEDED:
+    default: {
+        // A rollover is required and will reclaim enough space.  Rather than
+        // NACK the triggering write, propose 'e_ROLLOVER' (unless one is
+        // already in flight -- at most one uncommitted rollover at a time).
+        // 'setPendingWrite()' then buffers this triggering write, and every
+        // subsequent one, until the rollover commits.
+        if (!d_isRolloverPending) {
+            proposeRollover();
+        }
+        return rc_SUCCESS;  // RETURN
+    }
+    }
 }
 
 void PartitionRaft::drainPendingWrites()
@@ -1658,9 +1701,18 @@ void PartitionRaft::onPurgeComplete()
     // would drive 'rolloverImpl' directly -- outside the Raft log.  Only the
     // leader proposes, and only if the file set is at capacity;
     // 'rolloverIfNeeded' is a no-op otherwise, so this is safe on replicas too
-    // (they roll over via the committed 'e_ROLLOVER' apply hook).  The legacy
-    // 'd_journalFileAvailable' re-enable is not needed here: its false-setters
-    // (legacy 'rolloverIfNeeded' / 'setActivePrimary') are legacy-only.
+    // (they roll over via the committed 'e_ROLLOVER' apply hook).
+    //
+    // If a full purge just recovered a read-only partition, the journal is
+    // marked unavailable.  Re-enable it (mirrors legacy
+    // 'FileStore::onPurgeComplete') so the reclaiming rollover's sync-point
+    // marker can be written -- 'writeSyncPointRecord' refuses on an
+    // unavailable journal.  'rolloverIfNeeded' re-disables it if the freed
+    // space is still insufficient (a rollover would still overflow).
+    if (isLeader() && !d_fileStore_sp->isFileSetAvailable()) {
+        d_fileStore_sp->setAvailabilityStatus(true);
+    }
+
     rolloverIfNeeded(0, 0);
 }
 
