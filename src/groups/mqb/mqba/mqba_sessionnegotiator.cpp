@@ -639,56 +639,59 @@ int SessionNegotiator::populateNegotiationContext(
     enum RcEnum {
         // Value for the various RC error categories
         rc_SUCCESS                 = 0,
-        rc_GET_CLUSTER_NODE_FAILED = -1
+        rc_GET_CLUSTER_NODE_FAILED = -1,
+        rc_MALFORMED               = -2
     };
 
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(context_p->negotiationContext());
-    BSLS_ASSERT_SAFE(context_p->negotiationContext()->connectionType() !=
-                     mqbnet::ConnectionType::e_UNKNOWN);
-    BSLS_ASSERT_SAFE(!context_p->negotiationContext()
-                          ->negotiationMessage()
-                          .isUndefinedValue());
-
-    const NegotiationContextSp& negotiationContext =
+    BSLS_ASSERT_SAFE(context_p);
+    const NegotiationContextSp& negotiationContext_sp =
         context_p->negotiationContext();
+    BSLS_ASSERT_SAFE(negotiationContext_sp);
+    BSLS_ASSERT_SAFE(negotiationContext_sp->connectionType() !=
+                     mqbnet::ConnectionType::e_UNKNOWN);
+    const bmqp_ctrlmsg::NegotiationMessage& negotiationMessage =
+        negotiationContext_sp->negotiationMessage();
+    BSLS_ASSERT_SAFE(!negotiationMessage.isUndefinedValue());
 
-    if (negotiationContext->connectionType() ==
+    if (negotiationContext_sp->connectionType() ==
         mqbnet::ConnectionType::e_ADMIN) {
         // Nothing to do for admin connection
         return rc_SUCCESS;  // RETURN
     }
 
-    const bmqp_ctrlmsg::NegotiationMessage& negoMsg =
-        negotiationContext->negotiationMessage();
-    const bmqp_ctrlmsg::ClientIdentity& peerIdentity =
-        negoMsg.isClientIdentityValue()
-            ? negoMsg.clientIdentity()
-            : negoMsg.brokerResponse().brokerIdentity();
     const mqbcfg::AppConfig&         brkrCfg  = mqbcfg::BrokerConfig::get();
     const mqbcfg::NetworkInterfaces& niConfig = brkrCfg.networkInterfaces();
     int                              maxMissedHeartbeats = 0;
 
-    if (negotiationContext->connectionType() ==
+    if (negotiationContext_sp->connectionType() ==
         mqbnet::ConnectionType::e_CLIENT) {
-        // Configure heartbeat
-        if (negoMsg.clientIdentity().clientType() ==
+        if (!negotiationMessage.isClientIdentityValue()) {
+            errorDescription << "Malformed negotiation: 'e_CLIENT' connection "
+                             << "paired with a non-ClientIdentity message";
+            return rc_MALFORMED;  // RETURN
+        }
+
+        const bmqp_ctrlmsg::ClientIdentity& clientIdentity =
+            negotiationMessage.clientIdentity();
+
+        if (clientIdentity.clientType() ==
             bmqp_ctrlmsg::ClientType::E_TCPCLIENT) {
             maxMissedHeartbeats = niConfig.heartbeats().client();
         }
-        else if (negoMsg.clientIdentity().clientType() ==
+        else if (clientIdentity.clientType() ==
                  bmqp_ctrlmsg::ClientType::E_TCPBROKER) {
             maxMissedHeartbeats = niConfig.heartbeats().downstreamBroker();
         }
 
-        const bsl::string& clusterName = peerIdentity.clusterName();
+        const bsl::string& clusterName = clientIdentity.clusterName();
 
         if (!clusterName.empty()) {
             // This is Proxy connection.  Need to inform mqbnet::Cluster
             bsl::shared_ptr<mqbi::Cluster> cluster;
 
             if (d_clusterCatalog_p->findCluster(&cluster, clusterName)) {
-                negotiationContext->setCluster(&cluster->netCluster());
+                negotiationContext_sp->setCluster(&cluster->netCluster());
             }
         }
     }
@@ -698,6 +701,11 @@ int SessionNegotiator::populateNegotiationContext(
         // connection, use the remote peer advertised identity; if this is an
         // outgoing connection, use our own identity (that we embedded in the
         // 'brokerResponse').
+
+        const bmqp_ctrlmsg::ClientIdentity& peerIdentity =
+            negotiationMessage.isClientIdentityValue()
+                ? negotiationMessage.clientIdentity()
+                : negotiationMessage.brokerResponse().brokerIdentity();
 
         mqbnet::ClusterNode* clusterNode = 0;
         clusterNode = d_clusterCatalog_p->onNegotiationForClusterSession(
@@ -720,7 +728,7 @@ int SessionNegotiator::populateNegotiationContext(
         }
     }
 
-    negotiationContext->setMaxMissedHeartbeats(maxMissedHeartbeats);
+    negotiationContext_sp->setMaxMissedHeartbeats(maxMissedHeartbeats);
 
     return rc_SUCCESS;
 }
