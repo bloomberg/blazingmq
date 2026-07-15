@@ -994,8 +994,11 @@ static void test8_healingFollowerRejectsUpdate()
 // HEALING FOLLOWER REJECTS UPDATE
 //
 // Concerns:
-//   When self follower is not healed, applying an e_UPDATE record from the
-//   leader should fail, and the record should be ignored.
+//   - When self follower is not healed, applying an e_UPDATE record from the
+//     leader should fail, and the record should be ignored.
+//   - The commit of such a gated e_UPDATE should be skipped: apply() succeeds,
+//     no commit callback fires, and self LSN is not advanced.
+//   - Once healed, applying an e_UPDATE record should succeed.
 //
 // Testing:
 //   int apply(const bdlbb::Blob& record, mqbnet::ClusterNode* source)
@@ -1045,10 +1048,45 @@ static void test8_healingFollowerRejectsUpdate()
     // Verify no ack was sent (record was not written)
     BMQTST_ASSERT(tester.hasSentMessagesToLeader(0));
 
+    // The commit of such a gated e_UPDATE should be skipped: apply() succeeds,
+    // no commit callback fires, and self LSN is not advanced.
+    bmqp_ctrlmsg::LeaderAdvisoryCommit gatedCommit;
+    tester.d_cluster_mp->_clusterData()
+        ->electorInfo()
+        .nextLeaderMessageSequence(&gatedCommit.sequenceNumber());
+    gatedCommit.sequenceNumberCommitted() = qadvisory.sequenceNumber();
+
+    bmqp_ctrlmsg::ClusterMessage gatedCommitMessage;
+    gatedCommitMessage.choice().makeLeaderAdvisoryCommit(gatedCommit);
+
+    bdlbb::Blob gatedCommitEvent(tester.d_cluster_mp->bufferFactory(),
+                                 bmqtst::TestHelperUtil::allocator());
+    tester.constructEventBlob(&gatedCommitEvent,
+                              gatedCommitMessage,
+                              gatedCommit.sequenceNumber(),
+                              arbitraryTimestamp + 1,
+                              mqbc::ClusterStateRecordType::e_COMMIT);
+
+    const bmqp_ctrlmsg::LeaderMessageSequence lsnBeforeCommit =
+        tester.d_cluster_mp->_clusterData()
+            ->electorInfo()
+            .leaderMessageSequence();
+
+    BMQTST_ASSERT_EQ(obj->apply(gatedCommitEvent,
+                                tester.d_cluster_mp->netCluster().lookupNode(
+                                    mqbmock::Cluster::k_LEADER_NODE_ID)),
+                     0);
+
+    // Commit was skipped: nothing committed and self LSN unchanged.
+    BMQTST_ASSERT_EQ(tester.numCommittedMessages(), 0U);
+    BMQTST_ASSERT_EQ(tester.d_cluster_mp->_clusterData()
+                         ->electorInfo()
+                         .leaderMessageSequence(),
+                     lsnBeforeCommit);
+
     // Now set healed and verify the update is accepted
     tester.setHealed(true);
 
-    // Need a new LSN since the old one might be considered stale
     tester.d_cluster_mp->_clusterData()
         ->electorInfo()
         .nextLeaderMessageSequence(&qadvisory.sequenceNumber());
