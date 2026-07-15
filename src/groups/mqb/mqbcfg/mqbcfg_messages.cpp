@@ -5606,6 +5606,140 @@ bsl::ostream& AuthenticatorPluginConfig::print(bsl::ostream& stream,
     return stream;
 }
 
+// ----------------------------
+// class AuthorizerPluginConfig
+// ----------------------------
+
+// CONSTANTS
+
+const char AuthorizerPluginConfig::CLASS_NAME[] = "AuthorizerPluginConfig";
+
+const bdlat_AttributeInfo AuthorizerPluginConfig::ATTRIBUTE_INFO_ARRAY[] = {
+    {ATTRIBUTE_ID_NAME,
+     "name",
+     sizeof("name") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT},
+    {ATTRIBUTE_ID_SETTINGS,
+     "settings",
+     sizeof("settings") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT}};
+
+// CLASS METHODS
+
+const bdlat_AttributeInfo*
+AuthorizerPluginConfig::lookupAttributeInfo(const char* name, int nameLength)
+{
+    for (int i = 0; i < 2; ++i) {
+        const bdlat_AttributeInfo& attributeInfo =
+            AuthorizerPluginConfig::ATTRIBUTE_INFO_ARRAY[i];
+
+        if (nameLength == attributeInfo.d_nameLength &&
+            0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength)) {
+            return &attributeInfo;
+        }
+    }
+
+    return 0;
+}
+
+const bdlat_AttributeInfo* AuthorizerPluginConfig::lookupAttributeInfo(int id)
+{
+    switch (id) {
+    case ATTRIBUTE_ID_NAME: return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_NAME];
+    case ATTRIBUTE_ID_SETTINGS:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SETTINGS];
+    default: return 0;
+    }
+}
+
+// CREATORS
+
+AuthorizerPluginConfig::AuthorizerPluginConfig(
+    bslma::Allocator* basicAllocator)
+: d_settings(basicAllocator)
+, d_name(basicAllocator)
+{
+}
+
+AuthorizerPluginConfig::AuthorizerPluginConfig(
+    const AuthorizerPluginConfig& original,
+    bslma::Allocator*             basicAllocator)
+: d_settings(original.d_settings, basicAllocator)
+, d_name(original.d_name, basicAllocator)
+{
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+AuthorizerPluginConfig::AuthorizerPluginConfig(
+    AuthorizerPluginConfig&& original) noexcept
+: d_settings(bsl::move(original.d_settings)),
+  d_name(bsl::move(original.d_name))
+{
+}
+
+AuthorizerPluginConfig::AuthorizerPluginConfig(
+    AuthorizerPluginConfig&& original,
+    bslma::Allocator*        basicAllocator)
+: d_settings(bsl::move(original.d_settings), basicAllocator)
+, d_name(bsl::move(original.d_name), basicAllocator)
+{
+}
+#endif
+
+AuthorizerPluginConfig::~AuthorizerPluginConfig()
+{
+}
+
+// MANIPULATORS
+
+AuthorizerPluginConfig&
+AuthorizerPluginConfig::operator=(const AuthorizerPluginConfig& rhs)
+{
+    if (this != &rhs) {
+        d_name     = rhs.d_name;
+        d_settings = rhs.d_settings;
+    }
+
+    return *this;
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+AuthorizerPluginConfig&
+AuthorizerPluginConfig::operator=(AuthorizerPluginConfig&& rhs)
+{
+    if (this != &rhs) {
+        d_name     = bsl::move(rhs.d_name);
+        d_settings = bsl::move(rhs.d_settings);
+    }
+
+    return *this;
+}
+#endif
+
+void AuthorizerPluginConfig::reset()
+{
+    bdlat_ValueTypeFunctions::reset(&d_name);
+    bdlat_ValueTypeFunctions::reset(&d_settings);
+}
+
+// ACCESSORS
+
+bsl::ostream& AuthorizerPluginConfig::print(bsl::ostream& stream,
+                                            int           level,
+                                            int           spacesPerLevel) const
+{
+    bslim::Printer printer(&stream, level, spacesPerLevel);
+    printer.start();
+    printer.printAttribute("name", this->name());
+    printer.printAttribute("settings", this->settings());
+    printer.end();
+    return stream;
+}
+
 // -----------------
 // class ClusterNode
 // -----------------
@@ -6707,6 +6841,120 @@ bsl::ostream& AuthenticatorConfig::print(bsl::ostream& stream,
     return stream;
 }
 
+// ----------------------
+// class AuthorizerConfig
+// ----------------------
+
+// CONSTANTS
+
+const char AuthorizerConfig::CLASS_NAME[] = "AuthorizerConfig";
+
+const bdlat_AttributeInfo AuthorizerConfig::ATTRIBUTE_INFO_ARRAY[] = {
+    {ATTRIBUTE_ID_AUTHORIZER,
+     "authorizer",
+     sizeof("authorizer") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT}};
+
+// CLASS METHODS
+
+const bdlat_AttributeInfo*
+AuthorizerConfig::lookupAttributeInfo(const char* name, int nameLength)
+{
+    for (int i = 0; i < 1; ++i) {
+        const bdlat_AttributeInfo& attributeInfo =
+            AuthorizerConfig::ATTRIBUTE_INFO_ARRAY[i];
+
+        if (nameLength == attributeInfo.d_nameLength &&
+            0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength)) {
+            return &attributeInfo;
+        }
+    }
+
+    return 0;
+}
+
+const bdlat_AttributeInfo* AuthorizerConfig::lookupAttributeInfo(int id)
+{
+    switch (id) {
+    case ATTRIBUTE_ID_AUTHORIZER:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_AUTHORIZER];
+    default: return 0;
+    }
+}
+
+// CREATORS
+
+AuthorizerConfig::AuthorizerConfig(bslma::Allocator* basicAllocator)
+: d_authorizer(basicAllocator)
+{
+}
+
+AuthorizerConfig::AuthorizerConfig(const AuthorizerConfig& original,
+                                   bslma::Allocator*       basicAllocator)
+: d_authorizer(original.d_authorizer, basicAllocator)
+{
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+AuthorizerConfig::AuthorizerConfig(AuthorizerConfig&& original) noexcept
+: d_authorizer(bsl::move(original.d_authorizer))
+{
+}
+
+AuthorizerConfig::AuthorizerConfig(AuthorizerConfig&& original,
+                                   bslma::Allocator*  basicAllocator)
+: d_authorizer(bsl::move(original.d_authorizer), basicAllocator)
+{
+}
+#endif
+
+AuthorizerConfig::~AuthorizerConfig()
+{
+}
+
+// MANIPULATORS
+
+AuthorizerConfig& AuthorizerConfig::operator=(const AuthorizerConfig& rhs)
+{
+    if (this != &rhs) {
+        d_authorizer = rhs.d_authorizer;
+    }
+
+    return *this;
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+AuthorizerConfig& AuthorizerConfig::operator=(AuthorizerConfig&& rhs)
+{
+    if (this != &rhs) {
+        d_authorizer = bsl::move(rhs.d_authorizer);
+    }
+
+    return *this;
+}
+#endif
+
+void AuthorizerConfig::reset()
+{
+    bdlat_ValueTypeFunctions::reset(&d_authorizer);
+}
+
+// ACCESSORS
+
+bsl::ostream& AuthorizerConfig::print(bsl::ostream& stream,
+                                      int           level,
+                                      int           spacesPerLevel) const
+{
+    bslim::Printer printer(&stream, level, spacesPerLevel);
+    printer.start();
+    printer.printAttribute("authorizer", this->authorizer());
+    printer.end();
+    return stream;
+}
+
 // -----------------------
 // class ClusterDefinition
 // -----------------------
@@ -7381,6 +7629,11 @@ const bdlat_AttributeInfo AppConfig::ATTRIBUTE_INFO_ARRAY[] = {
      sizeof("authentication") - 1,
      "",
      bdlat_FormattingMode::e_DEFAULT},
+    {ATTRIBUTE_ID_AUTHORIZATION,
+     "authorization",
+     sizeof("authorization") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT},
     {ATTRIBUTE_ID_TLS_CONFIG,
      "tlsConfig",
      sizeof("tlsConfig") - 1,
@@ -7392,7 +7645,7 @@ const bdlat_AttributeInfo AppConfig::ATTRIBUTE_INFO_ARRAY[] = {
 const bdlat_AttributeInfo* AppConfig::lookupAttributeInfo(const char* name,
                                                           int nameLength)
 {
-    for (int i = 0; i < 20; ++i) {
+    for (int i = 0; i < 21; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             AppConfig::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -7446,6 +7699,8 @@ const bdlat_AttributeInfo* AppConfig::lookupAttributeInfo(int id)
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_ROUTE_COMMAND_TIMEOUT_MS];
     case ATTRIBUTE_ID_AUTHENTICATION:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_AUTHENTICATION];
+    case ATTRIBUTE_ID_AUTHORIZATION:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_AUTHORIZATION];
     case ATTRIBUTE_ID_TLS_CONFIG:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TLS_CONFIG];
     default: return 0;
@@ -7469,6 +7724,7 @@ AppConfig::AppConfig(bslma::Allocator* basicAllocator)
 , d_messagePropertiesV2()
 , d_dispatcherConfig()
 , d_bmqconfConfig()
+, d_authorization(basicAllocator)
 , d_authentication(basicAllocator)
 , d_brokerVersion()
 , d_configVersion()
@@ -7494,6 +7750,7 @@ AppConfig::AppConfig(const AppConfig&  original,
 , d_messagePropertiesV2(original.d_messagePropertiesV2)
 , d_dispatcherConfig(original.d_dispatcherConfig)
 , d_bmqconfConfig(original.d_bmqconfConfig)
+, d_authorization(original.d_authorization, basicAllocator)
 , d_authentication(original.d_authentication, basicAllocator)
 , d_brokerVersion(original.d_brokerVersion)
 , d_configVersion(original.d_configVersion)
@@ -7520,6 +7777,7 @@ AppConfig::AppConfig(AppConfig&& original) noexcept
   d_messagePropertiesV2(bsl::move(original.d_messagePropertiesV2)),
   d_dispatcherConfig(bsl::move(original.d_dispatcherConfig)),
   d_bmqconfConfig(bsl::move(original.d_bmqconfConfig)),
+  d_authorization(bsl::move(original.d_authorization)),
   d_authentication(bsl::move(original.d_authentication)),
   d_brokerVersion(bsl::move(original.d_brokerVersion)),
   d_configVersion(bsl::move(original.d_configVersion)),
@@ -7546,6 +7804,7 @@ AppConfig::AppConfig(AppConfig&& original, bslma::Allocator* basicAllocator)
 , d_messagePropertiesV2(bsl::move(original.d_messagePropertiesV2))
 , d_dispatcherConfig(bsl::move(original.d_dispatcherConfig))
 , d_bmqconfConfig(bsl::move(original.d_bmqconfConfig))
+, d_authorization(bsl::move(original.d_authorization), basicAllocator)
 , d_authentication(bsl::move(original.d_authentication), basicAllocator)
 , d_brokerVersion(bsl::move(original.d_brokerVersion))
 , d_configVersion(bsl::move(original.d_configVersion))
@@ -7585,6 +7844,7 @@ AppConfig& AppConfig::operator=(const AppConfig& rhs)
         d_advertiseSubscriptions = rhs.d_advertiseSubscriptions;
         d_routeCommandTimeoutMs  = rhs.d_routeCommandTimeoutMs;
         d_authentication         = rhs.d_authentication;
+        d_authorization          = rhs.d_authorization;
         d_tlsConfig              = rhs.d_tlsConfig;
     }
 
@@ -7615,6 +7875,7 @@ AppConfig& AppConfig::operator=(AppConfig&& rhs)
         d_advertiseSubscriptions = bsl::move(rhs.d_advertiseSubscriptions);
         d_routeCommandTimeoutMs  = bsl::move(rhs.d_routeCommandTimeoutMs);
         d_authentication         = bsl::move(rhs.d_authentication);
+        d_authorization          = bsl::move(rhs.d_authorization);
         d_tlsConfig              = bsl::move(rhs.d_tlsConfig);
     }
 
@@ -7643,6 +7904,7 @@ void AppConfig::reset()
     d_advertiseSubscriptions = DEFAULT_INITIALIZER_ADVERTISE_SUBSCRIPTIONS;
     d_routeCommandTimeoutMs  = DEFAULT_INITIALIZER_ROUTE_COMMAND_TIMEOUT_MS;
     bdlat_ValueTypeFunctions::reset(&d_authentication);
+    bdlat_ValueTypeFunctions::reset(&d_authorization);
     bdlat_ValueTypeFunctions::reset(&d_tlsConfig);
 }
 
@@ -7675,6 +7937,7 @@ AppConfig::print(bsl::ostream& stream, int level, int spacesPerLevel) const
     printer.printAttribute("routeCommandTimeoutMs",
                            this->routeCommandTimeoutMs());
     printer.printAttribute("authentication", this->authentication());
+    printer.printAttribute("authorization", this->authorization());
     printer.printAttribute("tlsConfig", this->tlsConfig());
     printer.end();
     return stream;
@@ -7956,6 +8219,6 @@ Configuration::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 }  // close package namespace
 }  // close enterprise namespace
 
-// GENERATED BY BLP_BAS_CODEGEN_2026.05.07
+// GENERATED BY BLP_BAS_CODEGEN_2026.06.18
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbcfg --msgComponent messages mqbcfg.xsd

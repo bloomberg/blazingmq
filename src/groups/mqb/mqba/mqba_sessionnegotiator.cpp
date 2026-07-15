@@ -49,14 +49,18 @@
 // MQB
 #include <mqba_adminsession.h>
 #include <mqba_clientsession.h>
+#include <mqbact_actions.h>
 #include <mqbblp_clustercatalog.h>
 #include <mqbcfg_brokerconfig.h>
 #include <mqbcfg_messages.h>
+#include <mqbi_authorizer.h>
 #include <mqbnet_cluster.h>
 #include <mqbnet_dummysession.h>
 #include <mqbnet_initialconnectioncontext.h>
 #include <mqbnet_negotiationcontext.h>
 #include <mqbnet_tcpsessionfactory.h>
+#include <mqbplug_authenticator.h>
+#include <mqbplug_authorizer.h>
 #include <mqbu_sdkversionutil.h>
 
 // BMQ
