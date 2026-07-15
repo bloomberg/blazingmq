@@ -489,6 +489,7 @@ Channel::writeBufferedItem(bool*                                  isConsumed,
     case bmqp::EventType::e_AUTHENTICATION:
     case bmqp::EventType::e_RAFT_CLUSTER:
     case bmqp::EventType::e_RAFT_PARTITION:
+    case bmqp::EventType::e_RAFT_SNAPSHOT:
     default: {
         ControlArgs x(item);
         rc = writeImmediate(isConsumed,

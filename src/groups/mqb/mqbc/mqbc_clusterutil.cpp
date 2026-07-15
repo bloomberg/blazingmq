@@ -1119,7 +1119,17 @@ bool ClusterUtil::assignQueue(ClusterState*         clusterState,
                                        status,
                                        allocator);
 
-    if (status->category() == bmqp_ctrlmsg::StatusCategory::E_SUCCESS) {
+    // Only apply to the CSL if 'startQueueAssignment' actually produced an
+    // advisory.  When the queue is already ASSIGNING or ASSIGNED (e.g. a
+    // concurrent request for the same queue is already in flight or
+    // committed), 'startQueueAssignment' returns success without populating
+    // 'queueAdvisory'. Applying that empty advisory (LSN [ 0, 0 ]) would be
+    // rejected by the ledger as stale and surface to the requester as a
+    // spurious "CSL failure". The already-pending advisory will still commit
+    // and resolve all pending contexts for the queue, so replying success here
+    // is correct.
+    if (status->category() == bmqp_ctrlmsg::StatusCategory::E_SUCCESS &&
+        !queueAdvisory.queues().empty()) {
         BSLS_ASSERT_SAFE(result);
 
         // Apply 'queueAssignmentAdvisory' to CSL
