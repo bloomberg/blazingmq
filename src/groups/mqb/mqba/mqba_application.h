@@ -63,6 +63,9 @@ class InternalResult;
 namespace mqbauthn {
 class AuthenticationController;
 }
+namespace mqbauthz {
+class AuthorizationController;
+}
 namespace mqbblp {
 class ClusterCatalog;
 }
@@ -111,6 +114,8 @@ class Application {
     typedef bslma::ManagedPtr<mqbstat::StatController> StatControllerMp;
     typedef bslma::ManagedPtr<mqbauthn::AuthenticationController>
         AuthenticationControllerMp;
+    typedef bslma::ManagedPtr<mqbauthz::AuthorizationController>
+        AuthorizationControllerMp;
     typedef bslma::ManagedPtr<mqbnet::TransportManager> TransportManagerMp;
     typedef bdlcc::SharedObjectPool<
         bdlbb::Blob,
@@ -154,6 +159,9 @@ class Application {
 
     /// Authentication controller component.
     AuthenticationControllerMp d_authenticationController_mp;
+
+    /// Authentication controller component.
+    AuthorizationControllerMp d_authorizationController_mp;
 
     ConfigProviderMp d_configProvider_mp;
 
