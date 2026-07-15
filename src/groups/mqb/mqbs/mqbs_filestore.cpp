@@ -1000,6 +1000,7 @@ int FileStore::openInRecoveryMode(
 
     BALL_LOG_INFO << partitionDesc() << "Retrieved PSN: "
                   << printPSN(d_writeHeadLeaseId, writeHeadSeqNum()) << ".";
+                  << ".";
 
     // Create file set.
     FileSetSp fileSetSp;
@@ -1105,6 +1106,7 @@ int FileStore::openInRecoveryMode(
         if (0 == writeHeadSeqNum()) {
             BALL_LOG_ERROR << partitionDesc() << "Invalid PSN: "
                            << printPSN(d_writeHeadLeaseId, writeHeadSeqNum())
+                                       currentSequenceNumber())
                            << " while primary leaseId is " << "valid ("
                            << d_writeHeadLeaseId << ").";
             return rc_INVALID_SYNC_PT;  // RETURN
@@ -1117,6 +1119,7 @@ int FileStore::openInRecoveryMode(
                     << "Internal list of SyncPts is empty, while "
                     << "retrieved PSN is valid: "
                     << printPSN(d_writeHeadLeaseId, writeHeadSeqNum()) << ".";
+                    << ".";
                 return rc_INVALID_SYNC_PT;  // RETURN
             }
 
@@ -1127,6 +1130,7 @@ int FileStore::openInRecoveryMode(
                     << partitionDesc() << "Invalid leaseId in the last "
                     << "in-memory SyncPt: " << lastSp << ". Retrieved PSN: "
                     << printPSN(d_writeHeadLeaseId, writeHeadSeqNum()) << ".";
+                    << ".";
                 return rc_INVALID_SYNC_PT;  // RETURN
             }
 
@@ -1136,6 +1140,7 @@ int FileStore::openInRecoveryMode(
                     << partitionDesc() << "Invalid PSN in the last "
                     << "in-memory SyncPt: " << lastSp << ". Retrieved PSN: "
                     << printPSN(d_writeHeadLeaseId, writeHeadSeqNum()) << ".";
+                    << ".";
                 return rc_INVALID_SYNC_PT;  // RETURN
             }
         }
@@ -1232,6 +1237,7 @@ int FileStore::openInRecoveryMode(
         BALL_LOG_INFO
             << partitionDesc() << "Appending a sync point with "
             << "PSN: " << printPSN(d_writeHeadLeaseId, writeHeadSeqNum() + 1)
+            << printPSN(d_primaryLeaseId, currentSequenceNumber() + 1)
             << " since journal does not end with a sync point for this "
             << "partition belonging to a 1-node cluster.";
 
@@ -1284,6 +1290,7 @@ int FileStore::openInRecoveryMode(
     BSLS_ASSERT_SAFE(d_config.recoveredQueuesCb());
     d_config.recoveredQueuesCb()(d_config.partitionId(), queueKeyInfoMap);
 
+                                      currentSequenceNumber())
     return rc_SUCCESS;
 }
 
@@ -1722,14 +1729,14 @@ int FileStore::recoverMessages(QueueKeyInfoMap*                queueKeyInfoMap,
 
     // `+1` so that checks in first iteration in the second pass work
     // correctly.
-    bsls::Types::Uint64 sequenceNum = currentSeqNum + 1;
+    bsls::Types::Uint64 sequenceNum = currentSequenceNumber() + 1;
 
     // Have to clear `d_highestSeqNums` for FSM mode that allows recovery to
     // run multiple times (rebuild `d_highestSeqNums` from scratch).
     // In legacy mode, FileStore is recovered at most once.
     d_highestSeqNums.clear();
     if (primaryLeaseId > 0) {
-        d_highestSeqNums[primaryLeaseId] = currentSeqNum;
+        d_highestSeqNums[primaryLeaseId] = currentSequenceNumber();
     }
 
     bsls::Types::Uint64 snapshotSeqNum = 0;
@@ -3283,7 +3290,7 @@ int FileStore::rolloverImpl(bsls::Types::Uint64 timestamp)
     QueueKeyCounterMap queueKeyCounterMap;
     writeRolledOverRecords(newActiveFileSetSp.get(),
                            &queueKeyCounterMap,
-                           sequenceNumber());
+                           currentSequenceNumber());
 
     // Print summary of rolled over queues.
     logRolloverQueueSummary(queueKeyCounterMap);
@@ -5408,6 +5415,7 @@ int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
                     << "down. No further storage events will be processed by "
                     << "self. Current PSN: "
                     << printPSN(d_writeHeadLeaseId, writeHeadSeqNum()) << ".";
+                    << ".";
             }
         }
     }
@@ -5574,6 +5582,7 @@ void FileStore::replicateRecord(bmqp::StorageMessageType::Enum type,
             << FileStoreProtocol::k_JOURNAL_RECORD_SIZE
             << ", at JOURNAL offset: " << journalOffset << ", rc: " << buildRc
             << ". PSN was: " << printPSN(d_writeHeadLeaseId, writeHeadSeqNum())
+            << printPSN(d_primaryLeaseId, currentSequenceNumber())
             << ". Current storage "
             << "event builder size: " << d_storageEventBuilder.eventSize()
             << ", message count: " << d_storageEventBuilder.messageCount()
@@ -5682,7 +5691,7 @@ void FileStore::replicateRecord(bmqp::StorageMessageType::Enum type,
             << ", at JOURNAL offset: "
             << bmqu::PrintUtil::prettyNumber(
                    static_cast<bsls::Types::Int64>(journalOffset))
-            << ", rc: " << buildRc
+            << ", rc: " << buildRc << ". PSN was: "
             << ". PSN was: " << printPSN(d_writeHeadLeaseId, writeHeadSeqNum())
             << "). Current storage event builder size: "
             << bmqu::PrintUtil::prettyNumber(d_storageEventBuilder.eventSize())
@@ -6072,7 +6081,7 @@ int FileStore::openForRaft(bsl::deque<RecoveryRecordInfo>* recoveryIndex)
                                            fs->d_journal.d_outstandingBytes,
                                            fs->d_data.d_filePosition,
                                            fs->d_journal.d_filePosition,
-                                           sequenceNumber());
+                                           currentSequenceNumber());
 
     BALL_LOG_INFO << partitionDesc() << "Raft recovery index: "
                   << recoveryIndex->size() << " records.";
@@ -6594,7 +6603,7 @@ int FileStore::writeQueueCreationRecord(DataStoreRecordHandle*  handle,
                     qlistOffset,
                     qlistRecTotalLength);
 
-    DataStoreRecordKey key(sequenceNumber(), d_primaryLeaseId);
+    DataStoreRecordKey key(currentSequenceNumber(), d_primaryLeaseId);
     DataStoreRecord    record(RecordType::e_QUEUE_OP,
                            recordOffset,
                            qlistRecTotalLength);
@@ -8656,6 +8665,7 @@ int FileStore::processRecoveryEvent(const bsl::shared_ptr<bdlbb::Blob>& blob)
                         << " with missing sequence number. "
                         << "Expected PSN: "
                         << printPSN(d_writeHeadLeaseId, writeHeadSeqNum() + 1)
+                                    currentSequenceNumber() + 1)
                         << ", received PSN: "
                         << printPSN(recHeader->primaryLeaseId(),
                                     recHeader->sequenceNumber())
@@ -8935,6 +8945,7 @@ void FileStore::setActivePrimary(mqbnet::ClusterNode* primaryNode,
     BALL_LOG_INFO << partitionDesc() << "Primary node is now "
                   << primaryNode->nodeDescription() << " with PSN: "
                   << printPSN(d_writeHeadLeaseId, writeHeadSeqNum()) << ".";
+                  << ".";
 
     if (primaryNode->nodeId() != d_config.nodeId()) {
         d_isPrimary = false;
@@ -9021,6 +9032,7 @@ void FileStore::clearPrimary()
     BALL_LOG_INFO << partitionDesc() << "Clearing current primary: "
                   << d_primaryNode_p->nodeDescription() << ". Current PSN: "
                   << printPSN(d_writeHeadLeaseId, writeHeadSeqNum()) << ".";
+                  << ".";
     d_primaryNode_p = 0;
 
     // If self has a valid leaseId and zero sequence number (ie, previous
