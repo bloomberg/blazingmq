@@ -912,14 +912,14 @@ int SessionNegotiator::negotiateOutbound(
     BSLS_ASSERT_SAFE(!context_p->isIncoming());
 
     const mqbblp::ClusterCatalog::NegotiationUserData* userData =
-        reinterpret_cast<mqbblp::ClusterCatalog::NegotiationUserData*>(
-            context_p->userData());
+        dynamic_cast<const mqbblp::ClusterCatalog::NegotiationUserData*>(
+            context_p->userData().get());
 
     BSLS_ASSERT_SAFE(userData);
 
-    context_p->negotiationContext()->setClusterName(userData->d_clusterName);
+    context_p->negotiationContext()->setClusterName(userData->clusterName());
     context_p->negotiationContext()->setConnectionType(
-        d_clusterCatalog_p->isMemberOf(userData->d_clusterName)
+        d_clusterCatalog_p->isMemberOf(userData->clusterName())
             ? mqbnet::ConnectionType::e_CLUSTER_MEMBER
             : mqbnet::ConnectionType::e_CLUSTER_PROXY);
 
