@@ -59,15 +59,18 @@
 #include <bmqp_heartbeatmonitor.h>
 #include <bmqp_protocol.h>
 #include <bmqp_protocolutil.h>
-#include <bmqst_statcontext.h>
+#include <bmqt_sessionoptions.h>
+#include <bmqt_tlsprotocolversion.h>
 #include <bmqu_blob.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_printutil.h>
+#include <bmqu_stringutil.h>
 #include <bmqu_time.h>
 #include <bmqu_weakmemfn.h>
 
 // BDE
 #include <ball_log.h>
+#include <bdlb_pairutil.h>
 #include <bdlb_scopeexit.h>
 #include <bdlb_string.h>
 #include <bdlbb_blobutil.h>
@@ -98,6 +101,7 @@
 #include <bsls_types.h>
 
 // NTC
+#include <ntca_encryptionmethod.h>
 #include <ntcf_system.h>
 #include <ntsa_error.h>
 #include <ntsa_ipaddress.h>
@@ -290,6 +294,22 @@ struct ChannelFactoryBuilders {
         factory->onCreate(bdlf::BindUtil::bind(&ntcChannelPreCreation,
                                                bdlf::PlaceHolders::_1,
                                                bdlf::PlaceHolders::_2));
+        return factory;
+    }
+
+    static bsl::shared_ptr<bmqio::NtcChannelFactory> ntcChannelFactory(
+        bslma::Allocator*                              allocator,
+        const ntca::InterfaceConfig&                   interfaceConfig,
+        bdlbb::BlobBufferFactory*                      blobBufferFactory,
+        const bsl::shared_ptr<ntci::EncryptionServer>& encryptionServer)
+    {
+        BSLS_ASSERT(encryptionServer);
+        bsl::shared_ptr<bmqio::NtcChannelFactory> factory =
+            ChannelFactoryBuilders::ntcChannelFactory(allocator,
+                                                      interfaceConfig,
+                                                      blobBufferFactory);
+        factory->setEncryptionServer(encryptionServer);
+
         return factory;
     }
 
@@ -913,12 +933,12 @@ void TCPSessionFactory::onClose(const bsl::shared_ptr<bmqio::Channel>& channel,
             if (channelInfo->d_monitor_mp->isHearbeatEnabled() &&
                 d_heartbeatSchedulerActive) {
                 // NOTE: When shutting down, we don't care about heartbeat
-                //       verifying the channel, therefore, as an optimization
-                //       to avoid the one-by-one disable for each channel (as
-                //       they all will get closed at this time), the 'stop()'
-                //       sequence cancels the recurring event and wait before
-                //       closing the channels, so we don't need to
-                //       'disableHeartbeat' in this case.
+                //       verifying the channel, therefore, as an
+                //       optimization to avoid the one-by-one disable for
+                //       each channel (as they all will get closed at this
+                //       time), the 'stop()' sequence cancels the recurring
+                //       event and wait before closing the channels, so we
+                //       don't need to 'disableHeartbeat' in this case.
                 d_scheduler_p->scheduleEvent(
                     bsls::SystemTime::nowMonotonicClock(),
                     bdlf::BindUtil::bind(
@@ -930,13 +950,14 @@ void TCPSessionFactory::onClose(const bsl::shared_ptr<bmqio::Channel>& channel,
         }
 
         d_ports.onDeleteChannelContext(port);
-    }  // close mutex lock guard                                      // UNLOCK
+    }  // close mutex lock guard
+       // UNLOCK
 
     if (!channelInfo) {
         // We register to the close event as soon as the channel is up;
         // however, we insert in the d_channels only upon successful
-        // negotiation; therefore a failed to negotiate channel (like during
-        // intrusion testing) would trigger this trace.
+        // negotiation; therefore a failed to negotiate channel (like
+        // during intrusion testing) would trigger this trace.
         BALL_LOG_INFO << "#TCP_UNEXPECTED_STATE " << d_name
                       << ": onClose channel for an unknown channel '"
                       << channel.get() << "', " << d_nbActiveChannels
@@ -1072,6 +1093,40 @@ int TCPSessionFactory::validateTcpInterfaces() const
     return validator(*d_config_mp);
 }
 
+int TCPSessionFactory::initEncryptionServer(const mqbcfg::TlsConfig& tlsConfig)
+{
+    // We only support TLS 1.3
+    bsl::vector<bslstl::StringRef> vs =
+        bmqu::StringUtil::strTokenizeRef(tlsConfig.versions(), ", \t");
+    for (size_t i = 0; i < vs.size(); i++) {
+        bmqt::TlsProtocolVersion::Value version =
+            bmqt::TlsProtocolVersion::e_TLS1_3;
+
+        if (bmqt::TlsProtocolVersion::fromAscii(&version, vs[i])) {
+            if (version != bmqt::TlsProtocolVersion::e_TLS1_3) {
+                return ntsa::Error::e_NOT_IMPLEMENTED;
+            }
+        }
+    }
+
+    ntca::EncryptionServerOptions encryptionServerOptions;
+    // Set the minimum version to TLS 1.3
+    encryptionServerOptions.setMinMethod(ntca::EncryptionMethod::e_TLS_V1_3);
+    encryptionServerOptions.setMaxMethod(ntca::EncryptionMethod::e_DEFAULT);
+    // Disable client side authentication (mTLS)
+    encryptionServerOptions.setAuthentication(
+        ntca::EncryptionAuthentication::e_NONE);
+
+    encryptionServerOptions.setIdentityFile(tlsConfig.certificate());
+    encryptionServerOptions.setPrivateKeyFile(tlsConfig.key());
+    encryptionServerOptions.addAuthorityFile(tlsConfig.certificateAuthority());
+
+    return ntcf::System::createEncryptionServer(&d_encryptionServer_sp,
+                                                encryptionServerOptions,
+                                                d_allocator_p)
+        .code();
+}
+
 void TCPSessionFactory::reauthnOnAuthenticationEvent(
     const bmqp::Event& event,
     const ChannelInfo* channelInfo) const
@@ -1170,6 +1225,7 @@ TCPSessionFactory::TCPSessionFactory(
 , d_isListening(false)
 , d_listenContexts(allocator)
 , d_timestampMap(allocator)
+, d_encryptionServer_sp()
 , d_allocator_p(allocator)
 {
     // PRECONDITIONS
@@ -1265,21 +1321,37 @@ int TCPSessionFactory::start(bsl::ostream& errorDescription)
     typedef bmqio::ChannelFactoryPipeline::Config::ChannelFactoryBuilder
         ChannelFactoryBuilder;
 
-    bsl::shared_ptr<bmqio::NtcChannelFactory> ntcChannelFactory =
-        ChannelFactoryBuilders::ntcChannelFactory(d_allocator_p,
-                                                  interfaceConfig,
-                                                  d_blobBufferFactory_p);
+    // Initialize encryption if TLS is configured
+    bsl::shared_ptr<bmqio::NtcChannelFactory> ntcChannelFactory;
+    const mqbcfg::AppConfig& appConfig = mqbcfg::BrokerConfig::get();
+    if (appConfig.tlsConfig().has_value()) {
+        initEncryptionServer(appConfig.tlsConfig().value());
+        ntcChannelFactory = ChannelFactoryBuilders::ntcChannelFactory(
+            d_allocator_p,
+            interfaceConfig,
+            d_blobBufferFactory_p,
+            d_encryptionServer_sp);
+    }
+    else {
+        ntcChannelFactory = ChannelFactoryBuilders::ntcChannelFactory(
+            d_allocator_p,
+            interfaceConfig,
+            d_blobBufferFactory_p);
+    }
+
     ChannelFactoryBuilder resolvingChannelFactoryBuilder =
         bdlf::BindUtil::bind(ChannelFactoryBuilders::resolvingChannelFactory,
                              d_allocator_p,
                              bdlf::PlaceHolders::_1,
                              d_resolutionContext_sp);
+
     ChannelFactoryBuilder reconnectingChannelFactoryBuilder =
         bdlf::BindUtil::bind(
             ChannelFactoryBuilders::reconnectingChannelFactory,
             d_allocator_p,
             bdlf::PlaceHolders::_1,
             d_scheduler_p);
+
     ChannelFactoryBuilder statChannelFactoryBuilder = bdlf::BindUtil::bind(
         ChannelFactoryBuilders::statChannelFactory,
         d_allocator_p,
@@ -1386,8 +1458,13 @@ void TCPSessionFactory::stopListening()
     }
     d_isListening = false;
 
-    if (d_reconnectingChannelFactory_mp) {
-        d_reconnectingChannelFactory_mp->disableReconnect();
+    // TODO(tfoxhall): Since this is now shared across two channel factory
+    // pipelines this shoudn't be called twice, but it feels bad to have to
+    // guard against that
+    bmqio::ReconnectingChannelFactory* reconnectingChannelFactory_p =
+        d_channelFactoryPipeline_mp->get<bmqio::ReconnectingChannelFactory>();
+    if (reconnectingChannelFactory_p != NULL) {
+        reconnectingChannelFactory_p->disableReconnect();
     }
 
     cancelListeners();
@@ -1431,7 +1508,8 @@ void TCPSessionFactory::closeClients()
         BALL_LOG_ERROR << d_name << ": timed out while waiting for clients to "
                        << "close, remaining clients: " << d_nbOpenClients;
 
-        // Invalidate the remaining sessions before stopping all Dispatchers.
+        // Invalidate the remaining sessions before stopping all
+        // Dispatchers.
 
         for (size_t i = 0; i < clients.size(); ++i) {
             bsl::shared_ptr<Session> session = clients[i].lock();
@@ -1455,9 +1533,10 @@ void TCPSessionFactory::stop()
                   << " active channels, " << d_nbSessions
                   << " alive sessions]";
 
-    // NOTE: We don't need to manually call 'teardown' on any active session in
-    //       the 'd_channels' map: calling 'stop' on the channel factory will
-    //       invoke the 'onClose' for every sessions.
+    // NOTE: We don't need to manually call 'teardown' on any active
+    // session in
+    //       the 'd_channels' map: calling 'stop' on the channel factory
+    //       will invoke the 'onClose' for every sessions.
 
     // STOP
     d_resolutionContext_sp->stop();
@@ -1481,9 +1560,10 @@ void TCPSessionFactory::stop()
             bmqu::WeakMemFnUtil::weakMemFn(&TCPSessionFactory::stopHeartbeats,
                                            d_self.acquireWeak()));
 
-        // No need to wait for 'stopHeartbeats' because 'd_heartbeatChannels'
-        // keep counted reference to sessions ('ChannelInfo::d_session_sp') and
-        // the code below waits for sessions destruction.
+        // No need to wait for 'stopHeartbeats' because
+        // 'd_heartbeatChannels' keep counted reference to sessions
+        // ('ChannelInfo::d_session_sp') and the code below waits for
+        // sessions destruction.
     }
 
     if (d_nbSessions != 0) {
@@ -1510,6 +1590,8 @@ void TCPSessionFactory::stop()
     d_mutex.unlock();
 
     // DESTROY
+    // We destroy the channel factories here for symmetry since they're
+    // created in 'start'.
     d_channelFactoryPipeline_mp.reset();
 
     BALL_LOG_INFO << d_name << ": stopped";
@@ -1526,8 +1608,8 @@ int TCPSessionFactory::listen(const mqbcfg::TcpInterfaceListener& listener,
 
     // Maintain ownership of 'OperationContext' instead of passing it to
     // 'ChannelFactory::listen' because it may delete the context
-    // (on stopListening) while operation (readCallback / negotiation) is in
-    // progress.
+    // (on stopListening) while operation (readCallback / negotiation) is
+    // in progress.
     bsl::shared_ptr<OperationContext> context =
         bsl::allocate_shared<OperationContext>(d_allocator_p);
     d_listenContexts.emplace(port, context);
@@ -1540,10 +1622,12 @@ int TCPSessionFactory::listen(const mqbcfg::TcpInterfaceListener& listener,
     bmqu::MemOutStream                  endpoint(&localAlloc);
     endpoint << listener.address() << ":" << listener.port();
     bmqio::ListenOptions listenOptions;
-    listenOptions.setEndpoint(endpoint.str());
+    listenOptions.setEndpoint(endpoint.str()).setIsTls(listener.tls());
 
     bslma::ManagedPtr<bmqio::ChannelFactory::OpHandle> listeningHandle_mp;
     bmqio::Status                                      status;
+    BSLS_ASSERT_OPT(d_channelFactoryPipeline_mp != NULL);
+
     d_channelFactoryPipeline_mp->listen(
         &status,
         &listeningHandle_mp,
@@ -1733,7 +1817,8 @@ TCPSessionFactory::PortManager::addChannelContext(bmqst::StatContext* parent,
 
 void TCPSessionFactory::PortManager::onDeleteChannelContext(bsl::uint16_t port)
 {
-    // Lookup the port's StatContext and remove it from the internal containers
+    // Lookup the port's StatContext and remove it from the internal
+    // containers
     PortMap::iterator it = d_portMap.find(port);
     if (it != d_portMap.end() && --it->second.d_numChannels == 0) {
         d_portMap.erase(it);

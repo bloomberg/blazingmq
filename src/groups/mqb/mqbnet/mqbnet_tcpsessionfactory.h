@@ -78,10 +78,14 @@
 
 // MQB
 
+// BMQ
 #include <bmqio_channel.h>
 #include <bmqio_channelfactory.h>
 #include <bmqio_status.h>
 #include <bmqu_sharedresource.h>
+
+// NTF
+#include <ntci_encryptionserver.h>
 
 // BDE
 #include <bdlbb_blob.h>
@@ -107,6 +111,7 @@ namespace BloombergLP {
 namespace mqbcfg {
 class TcpInterfaceConfig;
 class TcpInterfaceListener;
+class TlsConfig;
 }
 
 namespace bmqex {
@@ -365,11 +370,6 @@ class TCPSessionFactory {
     bslma::ManagedPtr<bmqio::ChannelFactoryPipeline>
         d_channelFactoryPipeline_mp;
 
-    bslma::ManagedPtr<bmqio::ReconnectingChannelFactory>
-        d_reconnectingChannelFactory_mp;
-
-    bslma::ManagedPtr<bmqio::StatChannelFactory> d_statChannelFactory_mp;
-
     /// Cache of shared pointers to @bbref{mqbnet::InitialConnectionContext} to
     /// preserve their lifetime while an initial connection
     /// (authentication/negotiation) is in progress.  Each context is added by
@@ -443,6 +443,9 @@ class TCPSessionFactory {
 
     /// Map of HiRes timestamp of the session beginning per channel.
     TimestampMap d_timestampMap;
+
+    /// The encryption server used to authenticate incoming connections
+    bsl::shared_ptr<ntci::EncryptionServer> d_encryptionServer_sp;
 
     /// Allocator to use
     bslma::Allocator* d_allocator_p;
@@ -571,6 +574,13 @@ class TCPSessionFactory {
     /// in the specified `channelInfo`.
     void reauthnOnAuthenticationEvent(const bmqp::Event& event,
                                       const ChannelInfo* channelInfo) const;
+
+    /// Initialize this class's internal encryption server using the
+    /// application TLS config.
+    ///
+    /// @returns 0 on success, and a non-zero error code if `tlsConfig`
+    /// contains an invalid setting.
+    int initEncryptionServer(const mqbcfg::TlsConfig& tlsConfig);
 
   private:
     // NOT IMPLEMENTED

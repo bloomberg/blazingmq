@@ -86,7 +86,14 @@
                 "highWatermark": 1073741824,
                 "nodeLowWatermark": 5242880,
                 "nodeHighWatermark": 10485760,
-                "heartbeatIntervalMs": 3000
+                "heartbeatIntervalMs": 3000,
+                "listeners": [
+                    {
+                        "name": "TCPListener",
+                        "port": 30114,
+                        "tls": false
+                    }
+                ]
             }
         },
         "bmqconfConfig": {

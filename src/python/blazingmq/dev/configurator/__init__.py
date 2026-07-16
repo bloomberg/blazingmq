@@ -27,7 +27,7 @@ import functools
 from dataclasses import dataclass, field
 from decimal import Decimal
 from pathlib import Path
-from typing import Dict, List, Set, Union
+from typing import Dict, List, Set, Union, Optional
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -70,6 +70,7 @@ class Broker:
     )
     domains: Dict[str, "Domain"] = field(default_factory=dict)
     proxy_clusters: Set[str] = field(default_factory=set)
+    inter_broker_listener: Optional[str] = None
 
     def __str__(self) -> str:
         return self.name
@@ -92,13 +93,26 @@ class Broker:
     def instance(self) -> str:
         return self.config.app_config.broker_instance_name  # type: ignore
 
-    @property
-    def host(self) -> str:
-        return self.config.app_config.network_interfaces.tcp_interface.name  # type: ignore
+    def _inter_broker_listener_config(self) -> mqbcfg.TcpInterfaceListener:
+        if self.inter_broker_listener:
+            return next(
+                listener
+                for listener in self.listeners
+                if listener.name == self.inter_broker_listener
+            )
+        return self.listeners[0]
 
     @property
-    def port(self) -> str:
-        return self.config.app_config.network_interfaces.tcp_interface.port  # type: ignore
+    def host(self) -> str:
+        if self.listeners:
+            return self._inter_broker_listener_config().address
+        return self.config.app_config.network_interfaces.tcp_interface.name
+
+    @property
+    def port(self) -> int:
+        if self.listeners:
+            return self._inter_broker_listener_config().port
+        return self.config.app_config.network_interfaces.tcp_interface.port
 
     @property
     def config_dir(self) -> Path:
@@ -410,6 +424,7 @@ class Proto:
                         node_low_watermark=5242880,
                         node_high_watermark=1073741824,
                         heartbeat_interval_ms=3000,
+                        listeners=[],
                     ),
                 ),
                 bmqconf_config=mqbcfg.BmqconfConfig(cache_ttlseconds=30),
