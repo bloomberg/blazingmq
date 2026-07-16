@@ -838,15 +838,12 @@ static void test10_recordSize()
     mqbc::ClusterStateRecordHeader header;
     header.setHeaderWords(mqbc::ClusterStateRecordHeader::k_HEADER_NUM_WORDS)
         .setRecordType(mqbc::ClusterStateRecordType::e_SNAPSHOT)
-        .setLeaderAdvisoryWords(k_LEADER_ADVISORY_WORDS)
-        .setElectorTerm(3)
-        .setSequenceNumber(100)
-        .setTimestamp(123456U);
+        .setLeaderAdvisoryWords(k_LEADER_ADVISORY_WORDS);
 
-    const int expectedRecordSize =
+    const int expectedRecordSize = static_cast<int>(
         (mqbc::ClusterStateRecordHeader::k_HEADER_NUM_WORDS +
          k_LEADER_ADVISORY_WORDS) *
-        bmqp::Protocol::k_WORD_SIZE;
+        bmqp::Protocol::k_WORD_SIZE);
     BMQTST_ASSERT_EQ(mqbc::ClusterStateLedgerUtil::recordSize(header),
                      expectedRecordSize);
 
@@ -858,9 +855,9 @@ static void test10_recordSize()
     header.setHeaderWords(k_MAX_HEADER_WORDS)
         .setLeaderAdvisoryWords(maxLeaderAdvisoryWords);
 
-    const int expectedMaxRecordSize = (k_MAX_HEADER_WORDS +
-                                       maxLeaderAdvisoryWords) *
-                                      bmqp::Protocol::k_WORD_SIZE;
+    const int expectedMaxRecordSize = static_cast<int>(
+        (k_MAX_HEADER_WORDS + maxLeaderAdvisoryWords) *
+        bmqp::Protocol::k_WORD_SIZE);
     BMQTST_ASSERT_EQ(mqbc::ClusterStateLedgerUtil::recordSize(header),
                      expectedMaxRecordSize);
     BMQTST_ASSERT_GT(mqbc::ClusterStateLedgerUtil::recordSize(header), 0);

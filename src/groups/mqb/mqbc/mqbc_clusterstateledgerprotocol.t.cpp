@@ -106,9 +106,10 @@ static void test1_breathingTest()
         BMQTST_ASSERT_EQ(fh.sequenceNumber(), 0ULL);
         BMQTST_ASSERT_EQ(fh.timestamp(), 0ULL);
 
-        // Create ClusterStateRecordHeader, set fields, assert fields
+        // Create ClusterStateRecordHeader, set fields, assert fields.
+        const unsigned int       k_HEADER_WORDS = 15;
         ClusterStateRecordHeader fh2;
-        fh2.setHeaderWords(15)
+        fh2.setHeaderWords(k_HEADER_WORDS)
             .setRecordType(ClusterStateRecordType::e_COMMIT)
             .setLeaderAdvisoryWords(
                 ClusterStateRecordHeader::k_MAX_LEADER_ADVISORY_WORDS)
@@ -116,7 +117,7 @@ static void test1_breathingTest()
             .setSequenceNumber(k_UINT64_MAX)
             .setTimestamp(k_UINT64_MAX);
 
-        BMQTST_ASSERT_EQ(fh2.headerWords(), 15U);
+        BMQTST_ASSERT_EQ(fh2.headerWords(), k_HEADER_WORDS);
         BMQTST_ASSERT_EQ(fh2.recordType(), ClusterStateRecordType::e_COMMIT);
         BMQTST_ASSERT_EQ(
             fh2.leaderAdvisoryWords(),
