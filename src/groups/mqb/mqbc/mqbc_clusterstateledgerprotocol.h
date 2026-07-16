@@ -235,7 +235,7 @@ bsl::ostream& operator<<(bsl::ostream&                stream,
 /// +---------------+---------------+---------------+---------------+
 /// |   HW  |  RT   |                   Reserved                    |
 /// +---------------+---------------+---------------+---------------+
-/// |                       LeaderAdvisoryWords                     |
+/// |Reservd|                  LeaderAdvisoryWords                  |
 /// +---------------+---------------+---------------+---------------+
 /// |                    Elector Term Upper Bits                    |
 /// +---------------+---------------+---------------+---------------+
@@ -272,14 +272,17 @@ bsl::ostream& operator<<(bsl::ostream&                stream,
 struct ClusterStateRecordHeader {
   private:
     // PRIVATE CONSTANTS
-    static const int k_HEADER_WORDS_NUM_BITS = 4;
-    static const int k_RECORD_TYPE_NUM_BITS  = 4;
+    static const int k_HEADER_WORDS_NUM_BITS          = 4;
+    static const int k_RECORD_TYPE_NUM_BITS           = 4;
+    static const int k_LEADER_ADVISORY_WORDS_NUM_BITS = 28;
 
-    static const int k_HEADER_WORDS_START_IDX = 4;
-    static const int k_RECORD_TYPE_START_IDX  = 0;
+    static const int k_HEADER_WORDS_START_IDX          = 4;
+    static const int k_RECORD_TYPE_START_IDX           = 0;
+    static const int k_LEADER_ADVISORY_WORDS_START_IDX = 0;
 
     static const int k_HEADER_WORDS_MASK;
     static const int k_RECORD_TYPE_MASK;
+    static const int k_LEADER_ADVISORY_WORDS_MASK;
 
   private:
     // DATA
@@ -326,6 +329,9 @@ struct ClusterStateRecordHeader {
     /// sufficient to capture header words).  This value should *never*
     /// change.
     static const int k_MIN_HEADER_SIZE = 1;
+
+    /// Maximum value of `leaderAdvisoryWords`.
+    static const unsigned int k_MAX_LEADER_ADVISORY_WORDS;
 
   public:
     // CREATORS
@@ -475,7 +481,7 @@ inline ClusterStateRecordHeader&
 ClusterStateRecordHeader::setHeaderWords(unsigned int value)
 {
     // PRECONDITIONS: protect against overflow
-    BSLS_ASSERT_SAFE(value <= (1 << k_HEADER_WORDS_NUM_BITS) - 1);
+    BSLS_ASSERT_SAFE(value <= (1U << k_HEADER_WORDS_NUM_BITS) - 1);
 
     d_headerWordsAndRecordType = static_cast<unsigned char>(
         (d_headerWordsAndRecordType & k_RECORD_TYPE_MASK) |
@@ -497,6 +503,9 @@ ClusterStateRecordHeader::setRecordType(ClusterStateRecordType::Enum value)
 inline ClusterStateRecordHeader&
 ClusterStateRecordHeader::setLeaderAdvisoryWords(unsigned int value)
 {
+    // PRECONDITIONS: protect against overflow
+    BSLS_ASSERT_SAFE(value <= k_MAX_LEADER_ADVISORY_WORDS);
+
     d_leaderAdvisoryWords = value;
     return *this;
 }
@@ -541,7 +550,8 @@ ClusterStateRecordHeader::recordType() const
 
 inline unsigned int ClusterStateRecordHeader::leaderAdvisoryWords() const
 {
-    return d_leaderAdvisoryWords;
+    return (d_leaderAdvisoryWords & k_LEADER_ADVISORY_WORDS_MASK) >>
+           k_LEADER_ADVISORY_WORDS_START_IDX;
 }
 
 inline bsls::Types::Uint64 ClusterStateRecordHeader::electorTerm() const

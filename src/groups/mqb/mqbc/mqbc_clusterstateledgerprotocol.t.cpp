@@ -18,6 +18,7 @@
 #include <bmqu_memoutstream.h>
 
 // BDE
+#include <bsl_cstring.h>
 #include <bsl_limits.h>
 #include <bsls_assert.h>
 
@@ -32,9 +33,6 @@ using namespace bsl;
 //                            TEST HELPERS UTILITY
 // ----------------------------------------------------------------------------
 namespace {
-
-const unsigned int k_UNSIGNED_INT_MAX =
-    bsl::numeric_limits<unsigned int>::max();
 
 const bsls::Types::Uint64 k_UINT64_MAX =
     bsl::numeric_limits<bsls::Types::Uint64>::max();
@@ -112,14 +110,17 @@ static void test1_breathingTest()
         ClusterStateRecordHeader fh2;
         fh2.setHeaderWords(15)
             .setRecordType(ClusterStateRecordType::e_COMMIT)
-            .setLeaderAdvisoryWords(k_UNSIGNED_INT_MAX)
+            .setLeaderAdvisoryWords(
+                ClusterStateRecordHeader::k_MAX_LEADER_ADVISORY_WORDS)
             .setElectorTerm(k_UINT64_MAX)
             .setSequenceNumber(k_UINT64_MAX)
             .setTimestamp(k_UINT64_MAX);
 
         BMQTST_ASSERT_EQ(fh2.headerWords(), 15U);
         BMQTST_ASSERT_EQ(fh2.recordType(), ClusterStateRecordType::e_COMMIT);
-        BMQTST_ASSERT_EQ(fh2.leaderAdvisoryWords(), k_UNSIGNED_INT_MAX);
+        BMQTST_ASSERT_EQ(
+            fh2.leaderAdvisoryWords(),
+            ClusterStateRecordHeader::k_MAX_LEADER_ADVISORY_WORDS);
         BMQTST_ASSERT_EQ(fh2.electorTerm(), k_UINT64_MAX);
         BMQTST_ASSERT_EQ(fh2.sequenceNumber(), k_UINT64_MAX);
         BMQTST_ASSERT_EQ(fh2.timestamp(), k_UINT64_MAX);
@@ -201,6 +202,41 @@ static void test2_enumPrint()
     }
 }
 
+static void test3_leaderAdvisoryWordsBound()
+// --------------------------------------------------------------------
+// LEADER ADVISORY WORDS BOUND
+//
+// Concerns:
+//   'ClusterStateRecordHeader::leaderAdvisoryWords' is bounded to
+//   'k_LEADER_ADVISORY_WORDS_NUM_BITS' bits so that record-size and
+//   message-length computations cannot overflow.
+//
+// Plan:
+//   1. The setter rejects any value above the maximum.
+//   2. The accessor masks the reserved top bits, so a corrupt/forged record
+//      with those bits set reads back as the bounded maximum.
+//
+// Testing:
+//   ClusterStateRecordHeader::setLeaderAdvisoryWords
+//   ClusterStateRecordHeader::leaderAdvisoryWords
+// --------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("LEADER ADVISORY WORDS BOUND");
+
+    using namespace mqbc;
+
+    // 1. Setter
+    ClusterStateRecordHeader header;
+    BMQTST_ASSERT_SAFE_FAIL(header.setLeaderAdvisoryWords(
+        ClusterStateRecordHeader::k_MAX_LEADER_ADVISORY_WORDS + 1));
+
+    // 2. Accessor
+    ClusterStateRecordHeader forged;
+    bsl::memset(&forged, 0xFF, sizeof(forged));
+    BMQTST_ASSERT_EQ(forged.leaderAdvisoryWords(),
+                     ClusterStateRecordHeader::k_MAX_LEADER_ADVISORY_WORDS);
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -211,6 +247,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 3: test3_leaderAdvisoryWordsBound(); break;
     case 2: test2_enumPrint(); break;
     case 1: test1_breathingTest(); break;
     default: {
