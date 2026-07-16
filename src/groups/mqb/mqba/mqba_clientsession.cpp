@@ -2504,8 +2504,13 @@ void ClientSession::processEvent(const bmqp::Event& event,
 {
     // executed by the *IO* thread
 
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(!event.isAuthenticationEvent());
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(event.isAuthenticationEvent())) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        BALL_LOG_ERROR << "#CLIENT_IMPROPER_BEHAVIOR " << description()
+                       << ": Dropping unexpected AuthenticationEvent in "
+                       << "processEvent: " << event;
+        return;  // RETURN
+    }
 
     if (event.isControlEvent()) {
         bdlma::LocalSequentialAllocator<2048> localAllocator(

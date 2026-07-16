@@ -1,0 +1,65 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<schema xmlns              = 'http://www.w3.org/2001/XMLSchema'
+        xmlns:bdem         = 'http://bloomberg.com/schemas/bdem'
+        xmlns:tns          = 'http://bloomberg.com/schemas/mqbact'
+        targetNamespace    = 'http://bloomberg.com/schemas/mqbact'
+        bdem:package       = 'mqbact'
+        elementFormDefault = 'qualified'>
+
+  <complexType name='ConnectClient'>
+    <sequence>
+    </sequence>
+  </complexType>
+
+  <complexType name='ConnectProxy'>
+    <sequence>
+    </sequence>
+  </complexType>
+
+  <complexType name='ConnectAdmin'>
+    <sequence>
+    </sequence>
+  </complexType>
+
+  <complexType name='ConnectClusterNode'>
+    <sequence>
+      <element name='clusterName' type='string'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='QueueRead'>
+    <sequence>
+      <element name='uri' type='string'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='QueueWrite'>
+    <sequence>
+      <element name='uri' type='string'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='ExecuteAdminCommand'>
+    <sequence>
+      <element name='command' type='string'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='Action'>
+    <annotation>
+      <documentation>
+      This type is used to represent possible cluster actions.
+      </documentation>
+    </annotation>
+    <choice>
+      <element name='connectClient'   type='tns:ConnectClient'/>
+      <element name='connectProxy'   type='tns:ConnectProxy'/>
+      <element name='connectAdmin'   type='tns:ConnectAdmin'/>
+      <element name='connectClusterNode'   type='tns:ConnectClusterNode'/>
+      <element name='queueRead'   type='tns:QueueRead'/>
+      <element name='queueWrite'   type='tns:QueueWrite'/>
+      <element name='executeAdminCommand'   type='tns:ExecuteAdminCommand'/>
+    </choice>
+  </complexType>
+
+</schema>

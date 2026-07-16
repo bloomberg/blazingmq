@@ -137,6 +137,8 @@ struct RecordDetails {
     // URI of the queue.
     bsl::string d_appId;
     // ID of the application.
+    bsl::string d_payloadHex;
+    // Hex-encoded message payload (set when dump-payload is enabled).
 
     // CREATORS
 
@@ -151,6 +153,7 @@ struct RecordDetails {
     , d_recordOffset(recordOffset)
     , d_queueUri(allocator)
     , d_appId(allocator)
+    , d_payloadHex(allocator)
     {
         // NOTHING
     }
@@ -196,6 +199,9 @@ class MessageDetails {
     void addDeleteRecord(const mqbs::DeletionRecord& record,
                          bsls::Types::Uint64         recordIndex,
                          bsls::Types::Uint64         recordOffset);
+
+    /// Set hex-encoded message payload.
+    void setPayloadHex(const bsl::string& payload);
 
     // ACCESSORS
 
