@@ -160,6 +160,11 @@ class Printer {
     /// Print metadata of the specified data file `dataFile_p`.
     virtual void
     printDataFileMeta(const mqbs::DataFileIterator* dataFile_p) const = 0;
+
+    /// Return 'true' if payload should be embedded as hex in record fields
+    /// (JSON mode), 'false' if payload should be dumped separately (human
+    /// mode).
+    virtual bool isPayloadHexMode() const = 0;
 };
 
 /// Create an instance of printer to print data to the specified 'stream'
