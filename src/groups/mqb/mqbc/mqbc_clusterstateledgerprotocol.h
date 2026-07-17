@@ -344,7 +344,8 @@ struct ClusterStateRecordHeader {
 
     /// Set the total size (in words) of this header to the specified
     /// `value` and return a reference offering modifiable access to this
-    /// object.
+    /// object.  The behavior is undefined unless `value` fits in
+    /// `k_HEADER_WORDS_NUM_BITS` bits (i.e. `value <= 15`).
     ClusterStateRecordHeader& setHeaderWords(unsigned int value);
 
     /// Set the record type to the specified `value` and return a reference
@@ -354,7 +355,8 @@ struct ClusterStateRecordHeader {
 
     /// Set the total size (in words) of the leader advisory to the
     /// specified `value` and return a reference offering modifiable access
-    /// to this object.
+    /// to this object.  The behavior is undefined unless
+    /// `value <= k_MAX_LEADER_ADVISORY_WORDS`.
     ClusterStateRecordHeader& setLeaderAdvisoryWords(unsigned int value);
 
     /// Set the leader elector term to the specified `value` and return a
