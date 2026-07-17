@@ -861,6 +861,30 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     void convertToLocal(const QueueContextSp& queueContext,
                         mqbi::Domain*         domain);
 
+    /// Convert the queue identified by the specified `queueContext` from a
+    /// local (primary) to a remote (replica) instance.  This is invoked when
+    /// self is demoted from primary of the partition.
+    void convertToRemote(const QueueContextSp& queueContext);
+
+    /// Callback invoked on the *QUEUE* dispatcher thread once the queue
+    /// identified by the specified `queueContext` has been converted to a
+    /// remote instance, with the specified `seed` of the transferred
+    /// subStreams' aggregated upstream parameters.  Marshals to the cluster
+    /// dispatcher thread.
+    void onQueueConvertedToRemote(
+        const QueueContextSp&                                   queueContext,
+        const bsl::vector<bmqp_ctrlmsg::QueueHandleParameters>& seed);
+
+    /// Seed the reopen state (`d_subQueueIds`) of the queue identified by the
+    /// specified `queueContext` from the specified `seed` so its transferred
+    /// subStreams are re-opened against the new primary.
+    ///
+    /// THREAD: This method is invoked in the associated cluster's dispatcher
+    ///         thread.
+    void onQueueConvertedToRemoteDispatched(
+        const QueueContextSp&                                   queueContext,
+        const bsl::vector<bmqp_ctrlmsg::QueueHandleParameters>& seed);
+
     bsl::shared_ptr<PartitionReopenCycle>
     startPartitionReopen(int partitionId, bsls::Types::Uint64 generationCount);
 

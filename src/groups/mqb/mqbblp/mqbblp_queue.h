@@ -101,6 +101,20 @@ namespace mqbblp {
 
 /// @todo Document this class
 class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
+  public:
+    // TYPES
+
+    /// Callback invoked (on the queue-dispatcher thread) once a queue has been
+    /// converted from local to remote, with the per-subStream aggregated
+    /// upstream `QueueHandleParameters` (carrying the appId and the upstream
+    /// subQueueId in their `subIdInfo`, and the aggregated read/write/admin
+    /// counts) of the transferred handles.  Used by the cluster layer to seed
+    /// the queue's reopen state so the transferred subStreams are re-opened
+    /// against the new primary.
+    typedef bsl::function<void(
+        const bsl::vector<bmqp_ctrlmsg::QueueHandleParameters>&)>
+        ConvertToRemoteSeedCb;
+
   private:
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("MQBBLP.QUEUE");
@@ -153,6 +167,12 @@ class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
 
     void convertToLocalDispatched();
 
+    void convertToRemoteDispatched(unsigned int              queueId,
+                                   int                       deduplicationTimeoutMs,
+                                   int                       ackWindowSize,
+                                   RemoteQueue::StateSpPool* statePool,
+                                   const ConvertToRemoteSeedCb& seedCb);
+
     void updateStats();
 
     void listMessagesDispatched(mqbcmd::QueueResult* result,
@@ -187,7 +207,20 @@ class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
                       RemoteQueue::StateSpPool* statePool);
 
     void convertToLocal() BSLS_KEYWORD_OVERRIDE;
-    void convertToRemote();
+
+    /// Convert this queue from a local (primary) to a remote (replica)
+    /// instance, using the specified `queueId` to address the upstream and
+    /// the specified `deduplicationTimeoutMs`, `ackWindowSize` and `statePool`
+    /// to create the remote queue.  The open handles are transferred (not
+    /// dropped): the remote queue's engine rebuilds its state from them and
+    /// the storage is left intact.  Once the conversion completes, invoke the
+    /// specified `seedCb` with the transferred subStreams' aggregated upstream
+    /// parameters so the cluster can re-open them against the new primary.
+    void convertToRemote(unsigned int                 queueId,
+                         int                          deduplicationTimeoutMs,
+                         int                          ackWindowSize,
+                         RemoteQueue::StateSpPool*    statePool,
+                         const ConvertToRemoteSeedCb& seedCb);
 
     // ACCESSORS
     bool isLocal() const;

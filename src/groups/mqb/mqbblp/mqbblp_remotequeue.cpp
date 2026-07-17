@@ -556,6 +556,16 @@ int RemoteQueue::configure(bsl::ostream& errorDescription, bool isReconfigure)
     }
 }
 
+int RemoteQueue::importState(bsl::ostream& errorDescription)
+{
+    // executed by the *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_state_p->queue()->inDispatcherThread());
+
+    return d_queueEngine_mp->rebuildInternalState(errorDescription);
+}
+
 void RemoteQueue::resetState()
 {
     // executed by the *DISPATCHER* thread

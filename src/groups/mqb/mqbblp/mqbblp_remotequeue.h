@@ -334,6 +334,15 @@ class RemoteQueue {
     /// function is invoked from queue-dispatcher thread.
     int configure(bsl::ostream& errorDescription, bool isReconfigure);
 
+    /// Rebuild the internal state of this queue's engine from the (already
+    /// preserved) queue handles, populating `errorDescription` in case of an
+    /// error.  Return zero on success and non-zero value otherwise.  Invoked
+    /// when a local (primary) queue is converted to this remote (replica)
+    /// instance so the open handles are transferred rather than dropped.
+    /// Behavior is undefined unless invoked from the queue-dispatcher thread
+    /// after `configure`.
+    int importState(bsl::ostream& errorDescription);
+
     /// Return the queue engine used by this queue.
     mqbi::QueueEngine* queueEngine();
 

@@ -3024,16 +3024,18 @@ void Cluster::onClusterLeader(mqbnet::ClusterNode*                node,
             d_clusterData.stats().setIsLeader(
                 mqbstat::ClusterStats::LeaderStatus::e_FOLLOWER);
             if (d_state.isSelfPrimary()) {
-                // We encountered the leader / primary divergence.
-                // Initiate a graceful shutdown of the broker
-                BALL_LOG_ERROR
-                    << "Encountered leader-primary divergence: this node is "
-                       "still the primary but the leadership has gone to "
-                    << (node ? node->hostName() : "UNDEFINED");
-                d_clusterData.membership().setSelfNodeStatus(
-                    bmqp_ctrlmsg::NodeStatus::E_STOPPING);
-                mqbu::ExitUtil::shutdown(
-                    mqbu::ExitCode::e_UNSUPPORTED_SCENARIO);
+                // Leader-primary divergence: a new leader has been elected
+                // while self still believes it is primary for one or more
+                // partitions.  Relinquish the stale primary status so the new
+                // leader can reassign primaries; self remains available and
+                // rejoins as a replica.
+                BALL_LOG_WARN
+                    << d_clusterData.identity().description()
+                    << ": leader-primary divergence: leadership moved to "
+                    << (node ? node->hostName() : "UNDEFINED")
+                    << " while self is still primary; relinquishing primary "
+                       "status and rejoining as replica.";
+                d_clusterOrchestrator.relinquishSelfPrimaryPartitions();
             }
         }
     }

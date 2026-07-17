@@ -534,6 +534,31 @@ void ClusterOrchestrator::onNodeUnavailable(mqbnet::ClusterNode* node)
                                         partitions);
 }
 
+void ClusterOrchestrator::relinquishSelfPrimaryPartitions()
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+
+    mqbc::ClusterNodeSession* selfSession =
+        d_clusterData_p->membership().selfNodeSession();
+    if (!selfSession || selfSession->primaryPartitions().empty()) {
+        // Self is not primary for any partition; nothing to relinquish.
+
+        return;  // RETURN
+    }
+
+    // Clear self as primary for all partitions it currently owns.  This closes
+    // the partitions' primary gates, relinquishes primary on the associated
+    // FileStores, and notifies the queue layer that the primary is gone.  The
+    // leader will subsequently reassign primaries and self rejoins as replica.
+    // 'markOrphan' iterates in reverse because 'setPartitionPrimary' mutates
+    // the same 'primaryPartitions()' vector as it clears each partition.
+    d_stateManager_mp->markOrphan(selfSession->primaryPartitions(),
+                                  d_clusterData_p->membership().selfNode());
+}
+
 void ClusterOrchestrator::dropPeerQueues(mqbc::ClusterNodeSession* ns)
 {
     // executed by the cluster *DISPATCHER* thread

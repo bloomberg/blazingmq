@@ -346,6 +346,15 @@ class RelayQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
 
     App_State* findApp(unsigned int upstreamSubQueueId) const;
 
+    /// Reconstruct and return the per-`(handle, appId)`
+    /// `QueueHandleParameters` for the specified `handle`, `appId` and its
+    /// surviving substream `si`.  Used by `rebuildInternalState` to repopulate
+    /// the per-handle cache when a primary queue is demoted to a replica.
+    bmqp_ctrlmsg::QueueHandleParameters reconstructSubStreamParameters(
+        mqbi::QueueHandle*                   handle,
+        const bsl::string&                   appId,
+        const mqbi::QueueHandle::StreamInfo& si) const;
+
     bool isDuplicate(const App_State*         app,
                      const bmqt::MessageGUID& msgGUID) const;
 

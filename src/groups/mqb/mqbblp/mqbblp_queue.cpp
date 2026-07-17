@@ -38,6 +38,8 @@
 #include <mqbstat_queuestats.h>
 
 // BMQ
+#include <bmqp_protocolutil.h>
+#include <bmqp_queueid.h>
 #include <bmqt_queueflags.h>
 
 #include <bmqu_memoutstream.h>
@@ -50,6 +52,7 @@
 #include <bdlma_localsequentialallocator.h>
 #include <bsl_functional.h>  // for bsl::ref()
 #include <bsl_ios.h>
+#include <bsl_unordered_map.h>
 #include <bsl_iostream.h>
 #include <bsla_annotations.h>
 #include <bsls_assert.h>
@@ -605,17 +608,183 @@ void Queue::convertToLocal()
         this);
 }
 
-void Queue::convertToRemote()
+void Queue::convertToRemote(unsigned int                 queueId,
+                            int                          deduplicationTimeoutMs,
+                            int                          ackWindowSize,
+                            RemoteQueue::StateSpPool*     statePool,
+                            const ConvertToRemoteSeedCb& seedCb)
+{
+    // executed by *ANY* thread
+
+    dispatcher()->execute(
+        bdlf::BindUtil::bind(&Queue::convertToRemoteDispatched,
+                             this,
+                             queueId,
+                             deduplicationTimeoutMs,
+                             ackWindowSize,
+                             statePool,
+                             seedCb),
+        this);
+}
+
+void Queue::convertToRemoteDispatched(
+    unsigned int                 queueId,
+    int                          deduplicationTimeoutMs,
+    int                          ackWindowSize,
+    RemoteQueue::StateSpPool*    statePool,
+    const ConvertToRemoteSeedCb& seedCb)
 {
     // executed by the *QUEUE* dispatcher thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(inDispatcherThread());
+
+    if (d_remoteQueue_mp) {
+        BSLS_ASSERT_SAFE(!d_localQueue_mp);
+
+        BALL_LOG_INFO << d_state.uri() << ": has already converted to remote";
+
+        return;  // RETURN
+    }
+
     BSLS_ASSERT_SAFE(d_localQueue_mp);
+    BSLS_ASSERT_SAFE(!d_remoteQueue_mp);
 
-    BALL_LOG_INFO << d_state.uri() << ": converting to remote";
+    BALL_LOG_INFO << d_state.uri() << ": converting to remote "
+                  << "[handlesCount: "
+                  << d_state.handleCatalog().handlesCount()
+                  << ", handle parameters: " << d_state.handleParameters()
+                  << ", stream parameters: " << d_state.subQueuesParameters()
+                  << "]";
 
-    // TBD: Not yet implemented !
+    // The open client handles are transferred (not dropped) to the new remote
+    // (replica) instance: the shared 'd_state' (handle catalog, subStreams,
+    // storage) survives, and the remote queue's engine rebuilds its internal
+    // state from the surviving handles.  This lets producers/consumers keep
+    // their queues open across the demotion; in-flight and subsequent PUTs are
+    // buffered by the remote queue and relayed to the new primary once the
+    // replica reopen re-establishes the upstream.  Mirrors the reverse
+    // conversion 'convertToLocalDispatched'.
+
+    // Move the local queue to a temporary managed pointer so that we can
+    // bypass all precondition checks (since we are temporarily going to have
+    // both local and remote queue co-existing).
+    bslma::ManagedPtr<LocalQueue> localQueue = d_localQueue_mp;
+
+    // A replica addresses its upstream with a cluster-assigned queue id,
+    // unlike a primary which uses 'k_PRIMARY_QUEUE_ID'.
+    d_state.setId(queueId);
+
+    createRemote(deduplicationTimeoutMs, ackWindowSize, statePool);
+
+    bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
+    bmqu::MemOutStream                    errorDescription(&localAllocator);
+
+    int rc = d_remoteQueue_mp->configure(errorDescription,
+                                         false);  // isReconfigure
+    if (rc != 0) {
+        BALL_LOG_ERROR
+            << "#QUEUE_CONVERTION_FAILURE " << d_state.uri()
+            << ": failed to configure remoteQueue during conversion "
+            << "[rc: " << rc << ", error: '" << errorDescription.str() << "']";
+        BSLS_ASSERT_SAFE(false &&
+                         "Failed to configure remoteQueue during conversion");
+        return;  // RETURN
+    }
+
+    // Rebuild the remote queue engine's internal state from the transferred
+    // handles.
+    rc = d_remoteQueue_mp->importState(errorDescription);
+    if (rc != 0) {
+        BALL_LOG_ERROR
+            << "#QUEUE_CONVERTION_FAILURE " << d_state.uri()
+            << ": failed to import state during conversion "
+            << "[rc: " << rc << ", error: '" << errorDescription.str() << "']";
+        BSLS_ASSERT_SAFE(false &&
+                         "Failed to import state during conversion");
+        return;  // RETURN
+    }
+
+    // Tear down the old local queue engine.  Note that the storage and the
+    // handles are intentionally left intact (owned by the shared 'd_state');
+    // 'resetState' only clears the local engine's own routing/app maps.
+    localQueue->resetState();
+    localQueue.clear();
+
+    updateStats();
+
+    // Report the transferred subStreams' aggregated upstream parameters so the
+    // cluster can seed its reopen state and re-open them against the new
+    // primary.  Aggregate per upstream subQueueId across all handles.
+    if (seedCb) {
+        typedef bsl::unordered_map<unsigned int,
+                                   bmqp_ctrlmsg::QueueHandleParameters>
+            SeedMap;
+        SeedMap seedMap(d_allocator_p);
+
+        bsl::vector<mqbi::QueueHandle*> handles(d_allocator_p);
+        d_state.handleCatalog().loadHandles(&handles);
+
+        for (bsl::vector<mqbi::QueueHandle*>::const_iterator it =
+                 handles.begin();
+             it != handles.end();
+             ++it) {
+            const mqbi::QueueHandle::SubStreams& subStreams =
+                (*it)->subStreamInfos();
+            for (mqbi::QueueHandle::SubStreams::const_iterator sit =
+                     subStreams.begin();
+                 sit != subStreams.end();
+                 ++sit) {
+                const bsl::string&                   appId = sit->first;
+                const mqbi::QueueHandle::StreamInfo& si    = sit->second;
+                const unsigned int upstreamSubQueueId = si.d_upstreamSubQueueId;
+
+                SeedMap::iterator mit = seedMap.find(upstreamSubQueueId);
+                if (mit == seedMap.end()) {
+                    bmqp_ctrlmsg::QueueHandleParameters params(d_allocator_p);
+                    params.uri() = d_state.uri().asString();
+                    params.qId() = d_state.id();
+                    if (appId != bmqp::ProtocolUtil::k_DEFAULT_APP_ID ||
+                        upstreamSubQueueId !=
+                            bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID) {
+                        bmqp_ctrlmsg::SubQueueIdInfo subIdInfo(d_allocator_p);
+                        subIdInfo.appId() = appId;
+                        subIdInfo.subId() = upstreamSubQueueId;
+                        params.subIdInfo().makeValue(subIdInfo);
+                    }
+                    params.readCount()  = 0;
+                    params.writeCount() = 0;
+                    params.adminCount() = 0;
+                    mit = seedMap.insert(bsl::make_pair(upstreamSubQueueId,
+                                                        params))
+                              .first;
+                }
+                mit->second.readCount() += si.d_counts.d_readCount;
+                mit->second.writeCount() += si.d_counts.d_writeCount;
+            }
+        }
+
+        bsl::vector<bmqp_ctrlmsg::QueueHandleParameters> seed(d_allocator_p);
+        seed.reserve(seedMap.size());
+        for (SeedMap::const_iterator mit = seedMap.begin();
+             mit != seedMap.end();
+             ++mit) {
+            bmqp_ctrlmsg::QueueHandleParameters params(mit->second);
+
+            bsls::Types::Uint64 flags = 0;
+            if (params.readCount() > 0) {
+                bmqt::QueueFlagsUtil::setReader(&flags);
+            }
+            if (params.writeCount() > 0) {
+                bmqt::QueueFlagsUtil::setWriter(&flags);
+            }
+            params.flags() = flags;
+
+            seed.push_back(params);
+        }
+
+        seedCb(seed);
+    }
 }
 
 void Queue::onLostUpstream()

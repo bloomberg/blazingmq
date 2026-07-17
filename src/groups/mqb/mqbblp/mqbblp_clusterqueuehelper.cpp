@@ -453,6 +453,20 @@ void ClusterQueueHelper::afterPartitionPrimaryAssignment(
             << d_clusterState_p->partitions()[partitionId].numQueuesMapped()
             << " queues mapped.";
 
+        // If self was the primary of this partition, its queues are local
+        // (primary) instances.  Demote them to remote (replica) instances so
+        // self can rejoin as a replica of the new primary.  'convertToRemote'
+        // is a no-op for queues that are already remote.
+        for (QueueContextMapConstIter cit = d_queues.begin();
+             cit != d_queues.end();
+             ++cit) {
+            const QueueContextSp& queueContextSp = cit->second;
+            if (queueContextSp->partitionId() == partitionId &&
+                queueContextSp->d_liveQInfo.d_queue_sp) {
+                convertToRemote(queueContextSp);
+            }
+        }
+
         onUpstreamNodeChange(0, partitionId);
         return;  // RETURN
     }
@@ -6216,6 +6230,113 @@ void ClusterQueueHelper::convertToLocal(const QueueContextSp& queueContext,
     // Convert the queue from remote to local instance.
     queueContext->d_liveQInfo.d_queue_sp->convertToLocal();
     queueContext->d_liveQInfo.d_id = bmqp::QueueId::k_PRIMARY_QUEUE_ID;
+}
+
+void ClusterQueueHelper::convertToRemote(const QueueContextSp& queueContext)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+    BSLS_ASSERT_SAFE(queueContext->d_liveQInfo.d_queue_sp);
+
+    // All queues created by this component are 'mqbblp::Queue' instances.
+    Queue* queue = static_cast<Queue*>(
+        queueContext->d_liveQInfo.d_queue_sp.get());
+
+    if (!queue->isLocal()) {
+        // Only a local (primary) queue needs to be demoted to remote.
+
+        return;  // RETURN
+    }
+
+    // A replica addresses its upstream with a cluster-assigned queue id,
+    // unlike a primary which uses 'k_PRIMARY_QUEUE_ID' and is not tracked in
+    // 'd_queuesById'.
+    const unsigned int queueId     = getNextQueueId();
+    queueContext->d_liveQInfo.d_id = queueId;
+    d_queuesById[queueId]          = queueContext.get();
+
+    queue->convertToRemote(
+        queueId,
+        queue->domain()->config()->deduplicationTimeMs(),
+        d_clusterData_p->clusterConfig().queueOperations().ackWindowSize(),
+        &d_clusterData_p->stateSpPool(),
+        bdlf::BindUtil::bindS(
+            d_allocator_p,
+            &ClusterQueueHelper::onQueueConvertedToRemote,
+            this,
+            queueContext,
+            bdlf::PlaceHolders::_1));  // seed
+}
+
+void ClusterQueueHelper::onQueueConvertedToRemote(
+    const QueueContextSp&                                   queueContext,
+    const bsl::vector<bmqp_ctrlmsg::QueueHandleParameters>& seed)
+{
+    // executed by the *QUEUE* dispatcher thread
+
+    // Marshal to the cluster dispatcher thread to mutate the queue's live
+    // (cluster-owned) reopen state.
+    d_cluster_p->dispatcher()->execute(
+        bdlf::BindUtil::bindS(
+            d_allocator_p,
+            &ClusterQueueHelper::onQueueConvertedToRemoteDispatched,
+            this,
+            queueContext,
+            seed),
+        d_cluster_p);
+}
+
+void ClusterQueueHelper::onQueueConvertedToRemoteDispatched(
+    const QueueContextSp&                                   queueContext,
+    const bsl::vector<bmqp_ctrlmsg::QueueHandleParameters>& seed)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+
+    QueueLiveState& qinfo = queueContext->d_liveQInfo;
+
+    for (bsl::vector<bmqp_ctrlmsg::QueueHandleParameters>::const_iterator it =
+             seed.begin();
+         it != seed.end();
+         ++it) {
+        const bmqp_ctrlmsg::QueueHandleParameters& params = *it;
+
+        const bsl::string  appId = bmqp::QueueUtil::extractAppId(params);
+        const unsigned int upstreamSubId =
+            params.subIdInfo().isNull()
+                ? bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID
+                : params.subIdInfo().value().subId();
+
+        StreamsMap::iterator sqit = qinfo.d_subQueueIds.findBySubIdSafe(
+            upstreamSubId);
+        if (sqit == qinfo.d_subQueueIds.end()) {
+            sqit = qinfo.d_subQueueIds.insert(
+                appId,
+                upstreamSubId,
+                SubQueueContext(queueContext->uri(),
+                                params.subIdInfo(),
+                                d_allocator_p));
+        }
+
+        // Seed the aggregated upstream parameters used to build the ReopenQueue
+        // request.
+        sqit->value().d_parameters = params;
+
+        // Advance the next upstream subQueueId past any reused id so future
+        // opens do not collide.
+        if (upstreamSubId != bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID &&
+            upstreamSubId >= qinfo.d_nextSubQueueId) {
+            qinfo.d_nextSubQueueId = upstreamSubId + 1;
+        }
+    }
+
+    BALL_LOG_INFO << d_cluster_p->description() << ": seeded reopen state for "
+                  << "converted queue [" << queueContext->uri() << ", id: "
+                  << qinfo.d_id << "] with " << seed.size() << " subStream(s).";
 }
 
 void ClusterQueueHelper::match(bsl::vector<bsl::string>*          added,
