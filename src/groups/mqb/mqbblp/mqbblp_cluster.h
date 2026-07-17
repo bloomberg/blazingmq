@@ -98,6 +98,7 @@ class StorageContent;
 }
 namespace mqbi {
 class StorageManager;
+class StorageProvider;
 }
 namespace mqbnet {
 class TransportManager;
@@ -261,8 +262,12 @@ class Cluster : public mqbi::Cluster,
     /// Cluster's persistent state.
     mqbc::ClusterState d_state;
 
-    /// `StorageManager` associated with this cluster.
+    /// `StorageManager` associated with this cluster (legacy mode only).
     StorageManagerMp d_storageManager_mp;
+
+    /// Active storage provider (legacy: d_storageManager_mp, Raft:
+    /// PartitionRaftManager from orchestrator).
+    mqbi::StorageProvider* d_storageProvider_p;
 
     ClusterOrchestrator d_clusterOrchestrator;
 
@@ -564,6 +569,14 @@ class Cluster : public mqbi::Cluster,
                               const mqbconfm::Domain& newDefn)
         BSLS_KEYWORD_OVERRIDE;
 
+    /// Invoked (from any thread) whenever the local storage/app state for
+    /// the queue having the specified `uri` on the specified `partitionId`
+    /// changes.  Hops to the cluster dispatcher thread and asks
+    /// `ClusterQueueHelper` to re-check any locally-parked queue-open for
+    /// that uri.
+    void onQueueStorageReady(int              partitionId,
+                             const bmqt::Uri& uri) BSLS_KEYWORD_OVERRIDE;
+
     /// Process the specified `command`, and load the result in the
     /// specified `result`. Return 0 if the command was successfully
     /// processed, or a non-zero value otherwise.
@@ -777,6 +790,9 @@ class Cluster : public mqbi::Cluster,
 
     /// Return boolean flag indicating if CSL FSM workflow is in effect.
     bool isFSMWorkflow() const BSLS_KEYWORD_OVERRIDE;
+
+    /// Return boolean flag indicating if Raft consensus is in effect.
+    bool isRaftEnabled() const BSLS_KEYWORD_OVERRIDE;
 
     /// Return boolean flag indicating whether the broker still writes to the
     /// to-be-deprecated QLIST file when FSM workflow is enabled.

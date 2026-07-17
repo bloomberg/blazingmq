@@ -232,7 +232,7 @@ void RecoveryManager::setExpectedDataChunkRange(
         BSLS_ASSERT_SAFE(receiveDataCtx.d_currPSN.primaryLeaseId() ==
                          fs.primaryLeaseId());
         BSLS_ASSERT_SAFE(receiveDataCtx.d_currPSN.sequenceNumber() ==
-                         fs.sequenceNumber());
+                         fs.currentSequenceNumber());
     }
     else {
         BSLS_ASSERT_SAFE(recoveryCtx.d_mappedJournalFd.isValid() &&
@@ -646,12 +646,13 @@ int RecoveryManager::processReceiveDataChunks(
         BSLS_ASSERT_SAFE(receiveDataCtx.d_currPSN.primaryLeaseId() ==
                          fs->primaryLeaseId());
         BSLS_ASSERT_SAFE(receiveDataCtx.d_currPSN.sequenceNumber() ==
-                         fs->sequenceNumber());
+                         fs->currentSequenceNumber());
 
         fs->processStorageEvent(blob, true /* isPartitionSyncEvent */, source);
 
         receiveDataCtx.d_currPSN.primaryLeaseId() = fs->primaryLeaseId();
-        receiveDataCtx.d_currPSN.sequenceNumber() = fs->sequenceNumber();
+        receiveDataCtx.d_currPSN.sequenceNumber() =
+            fs->currentSequenceNumber();
 
         if (receiveDataCtx.d_currPSN == receiveDataCtx.d_endPSN) {
             receiveDataCtx.d_expectChunks = false;

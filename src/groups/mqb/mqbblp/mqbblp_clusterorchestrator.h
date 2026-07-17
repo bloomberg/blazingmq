@@ -40,6 +40,8 @@
 #include <mqbi_clusterstatemanager.h>
 #include <mqbi_dispatcher.h>
 #include <mqbnet_elector.h>
+#include <mqbraft_clusterstateraft.h>
+#include <mqbraft_partitionraftmanager.h>
 
 // BMQ
 #include <bmqma_countingallocatorstore.h>
@@ -177,6 +179,15 @@ class ClusterOrchestrator {
 
     ElectorMp d_elector_mp;
 
+    bslma::ManagedPtr<mqbraft::ClusterStateRaft> d_clusterStateRaft_mp;
+
+    bslma::ManagedPtr<mqbraft::PartitionRaftManager> d_partitionRaftManager_mp;
+
+    /// Cluster state.  Held directly (not via `d_stateManager_mp`, which is
+    /// null in Raft mode) so the Raft leadership path can update partition
+    /// primary state.  Set in `init()`.
+    mqbc::ClusterState* d_clusterState_p;
+
     mqbi::StorageManager* d_storageManager_p;
 
     RecurringEventHandle d_consumptionMonitorEventHandle;
@@ -184,6 +195,8 @@ class ClusterOrchestrator {
     /// Vector, indexed by partitionId, of vectors of pairs of buffered primary
     /// status advisories and their source.
     PrimaryStatusAdvisoryInfosVec d_bufferedPrimaryStatusAdvisoryInfosVec;
+
+    bool d_isCaughtUp;
 
   private:
     // NOT IMPLEMENTED
@@ -193,8 +206,15 @@ class ClusterOrchestrator {
   private:
     // PRIVATE MANIPULATORS
 
+    /// Initialize data members for the given cluster mode
+    void init(mqbc::ClusterState* clusterState);
+
     /// Return the dispatcher of the associated cluster.
     mqbi::Dispatcher* dispatcher();
+
+    void processRaftClusterEventDispatched(
+        const bsl::shared_ptr<const bdlbb::Blob>& blob,
+        mqbnet::ClusterNode*                      source);
 
     void processElectorEventDispatched(const bmqp::Event&   event,
                                        mqbnet::ClusterNode* source);
@@ -231,6 +251,43 @@ class ClusterOrchestrator {
     void onPartitionPrimaryStatusDispatched(int          partitionId,
                                             int          status,
                                             unsigned int primaryLeaseId);
+
+    /// Apply a Raft leadership change for the specified `partitionId`: record
+    /// the specified `leaderNodeId` (or `RaftNode::k_INVALID_NODE_ID` for no
+    /// leader) as the partition primary with the specified `term` as its lease
+    /// id, and open (E_ACTIVE) or close (E_PASSIVE) the partition gate in
+    /// `ClusterState` accordingly.  Raft-mode only.
+    ///
+    /// THREAD: This method is invoked in the associated cluster's
+    ///         dispatcher thread.
+    void onPartitionRaftLeadershipDispatched(int                 partitionId,
+                                             int                 leaderNodeId,
+                                             bsls::Types::Uint64 term);
+
+    /// If self is the CSL Raft leader, the CSL is caught up, and every
+    /// partition has a leader (leaseId known), propose a combined
+    /// `partitionPrimaryAdvisory` capturing every partition's
+    /// (primaryNodeId, leaseId==Raft term) to the CSL Raft.  This is the
+    /// "artificial" advisory that keeps the CSL's recorded leaseId in step
+    /// with the journal (== term) for legacy-broker interoperability, and
+    /// whose commit is the activation barrier that flips partition primaries
+    /// PASSIVE->ACTIVE.  Idempotent: re-proposes only when the set of
+    /// leaseIds has changed since the last successful proposal.  A no-op in
+    /// legacy mode, on non-leaders, or before the preconditions hold.
+    ///
+    /// THREAD: This method is invoked in the associated cluster's
+    ///         dispatcher thread.
+    void maybeIssuePartitionPrimaryAdvisory();
+
+    /// Transition the self node to `E_AVAILABLE` if, and only if, every
+    /// partition has an active primary (FSM-parity readiness).  A partition
+    /// cannot become active before its local journal is recovered, so this
+    /// subsumes the recovery precondition.  One-shot; a no-op once already
+    /// available.  Raft-mode only.
+    ///
+    /// THREAD: This method is invoked in the associated cluster's
+    ///         dispatcher thread.
+    void maybeTransitionToAvailable();
 
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
@@ -352,6 +409,27 @@ class ClusterOrchestrator {
     ///         thread.
     void processElectorEvent(const bmqp::Event&   event,
                              mqbnet::ClusterNode* source);
+
+    /// Process an incoming binary Raft AppendEntries event
+    /// (e_RAFT_CLUSTER) from the specified 'source'.
+    void processRaftClusterEvent(const bmqp::Event&   event,
+                                 mqbnet::ClusterNode* source);
+
+    /// Process an incoming binary Raft AppendEntries event
+    /// (e_RAFT_PARTITION) from the specified 'source'.  Dispatches to the
+    /// partition thread internally.
+    void processRaftPartitionEvent(const bmqp::Event&   event,
+                                   mqbnet::ClusterNode* source);
+
+    /// Process an incoming Raft snapshot chunk event (e_RAFT_SNAPSHOT) from
+    /// the specified 'source'.  Dispatches to the partition thread internally.
+    void processRaftSnapshotEvent(const bmqp::Event&   event,
+                                  mqbnet::ClusterNode* source);
+
+    /// Process an incoming Raft control message (election, response) from
+    /// the specified 'source'.
+    void processRaftControlMessage(const bmqp_ctrlmsg::RaftMessage& message,
+                                   mqbnet::ClusterNode*             source);
 
     /// Process the specified leader-sync-state-query `message` from the
     /// specified `source`.
@@ -507,6 +585,27 @@ class ClusterOrchestrator {
                                   int          status,
                                   unsigned int primaryLeaseId);
 
+    /// Signal a Raft leadership change for the specified `partitionId`: the
+    /// current leader is the specified `leaderNodeId` (or
+    /// `RaftNode::k_INVALID_NODE_ID` if none) at the specified `term`.  Wired
+    /// as `PartitionRaft`'s leadership callback (Raft-mode only).
+    ///
+    /// THREAD: Executed by the partition dispatcher thread.
+    void onPartitionRaftLeadership(int                 partitionId,
+                                   int                 leaderNodeId,
+                                   bsls::Types::Uint64 term);
+
+    void onClusterRaftLeadership(bool haveCommit);
+
+    /// Re-check readiness of any queue-open locally parked on the storage/app
+    /// for the specified `uri` on the specified `partitionId` becoming
+    /// available.  Wired as `Cluster::onQueueStorageReady`'s cluster-thread
+    /// continuation (see `mqbi::Cluster::onQueueStorageReady`).
+    ///
+    /// THREAD: This method is invoked in the associated cluster's dispatcher
+    ///         thread (the caller is responsible for the hop).
+    void onQueueStorageReady(int partitionId, const bmqt::Uri& uri);
+
     /// PFSM signals when it is `e_DONE_RECEIVING_DATA_CHUNKS`.  Previously
     /// buffered PrimaryStatusAdvisories should be reread.
     void processBufferedPrimaryStatusAdvisories(int partitionId);
@@ -522,6 +621,13 @@ class ClusterOrchestrator {
 
     /// Get a modifiable reference to this object's queue helper.
     ClusterQueueHelper& queueHelper();
+
+    /// Get a pointer to the ClusterStateRaft, or null if not in Raft mode.
+    mqbraft::ClusterStateRaft* clusterStateRaft();
+
+    /// Return the active storage provider (legacy: StorageManager, Raft:
+    /// PartitionRaftManager).
+    mqbi::StorageProvider* storageProvider();
 
     // ACCESSORS
     const mqbc::ClusterState* clusterState() const;
@@ -564,7 +670,10 @@ inline ClusterQueueHelper& ClusterOrchestrator::queueHelper()
 // ACCESSORS
 inline const mqbc::ClusterState* ClusterOrchestrator::clusterState() const
 {
-    return d_stateManager_mp->clusterState();
+    // Held directly (set in 'init()') rather than via 'd_stateManager_mp',
+    // which is null in Raft mode.  It is the same object the state manager was
+    // constructed with in legacy mode.
+    return d_clusterState_p;
 }
 
 inline const ClusterQueueHelper& ClusterOrchestrator::queueHelper() const

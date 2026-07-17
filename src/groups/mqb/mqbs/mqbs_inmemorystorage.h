@@ -180,7 +180,7 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     /// Might be NULL:
     /// - On a proxy (in this case `gcExpired` is not called)
     /// - In UTs (in this case `gcExpired` might be called)
-    DataStore* d_store_p;
+    RecordStore* d_store_p;
 
     mqbu::StorageKey d_key;
 
@@ -250,7 +250,7 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     /// Constructor of a new object associated to the queue having specified
     /// `uri` and using the specified `parentCapacityMeter`, and
     /// `allocator`.
-    InMemoryStorage(DataStore*                     dataStore_p,
+    InMemoryStorage(RecordStore*                   dataStore_p,
                     const bmqt::Uri&               uri,
                     const mqbu::StorageKey&        queueKey,
                     mqbi::Domain*                  domain,
@@ -583,7 +583,7 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
 inline InMemoryStorage_Item::InMemoryStorage_Item()
 : d_appData()
 , d_options()
-, d_attributes()
+, d_attributes(true)
 {
 }
 

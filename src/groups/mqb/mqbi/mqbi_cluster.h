@@ -355,6 +355,15 @@ class Cluster : public DispatcherClient {
                                       const mqbconfm::Domain& oldDefn,
                                       const mqbconfm::Domain& newDefn) = 0;
 
+    /// Invoked whenever the local storage (or a locally-registered app) for
+    /// the queue having the specified `uri`, assigned to the specified
+    /// `partitionId`, is registered, updated, or unregistered.  Implementors
+    /// should re-check readiness of any queue-open that was locally parked
+    /// waiting for this queue's storage/app to become available (see
+    /// `mqbc::storageMonitor::hasStorage`).  A no-op default is provided
+    /// since only cluster-member implementations own a `ClusterQueueHelper`.
+    virtual void onQueueStorageReady(int partitionId, const bmqt::Uri& uri);
+
     /// Process the specified `command`, and load the result in the
     /// specified `result`.  Return 0 if the command was successfully
     /// processed, or a non-zero value otherwise.
@@ -437,6 +446,9 @@ class Cluster : public DispatcherClient {
 
     /// Return boolean flag indicating if CSL FSM workflow is in effect.
     virtual bool isFSMWorkflow() const;
+
+    /// Return boolean flag indicating if Raft consensus is in effect.
+    virtual bool isRaftEnabled() const;
 
     /// Return boolean flag indicating whether the broker still writes to the
     /// to-be-deprecated QLIST file when FSM workflow is enabled.
@@ -548,6 +560,11 @@ struct ClusterResources {
 // ============================================================================
 
 inline bool Cluster::isFSMWorkflow() const
+{
+    return false;
+}
+
+inline bool Cluster::isRaftEnabled() const
 {
     return false;
 }

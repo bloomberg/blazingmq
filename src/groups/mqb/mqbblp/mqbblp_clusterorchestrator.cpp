@@ -38,6 +38,7 @@
 #include <bmqu_time.h>
 
 // BDE
+#include <bdlb_stringrefutil.h>
 #include <bdld_datummapbuilder.h>
 #include <bdlf_bind.h>
 #include <bdlf_placeholder.h>
@@ -474,6 +475,19 @@ void ClusterOrchestrator::onNodeUnavailable(mqbnet::ClusterNode* node)
 
     dropPeerQueues(ns);
 
+    if (d_cluster_p->isRaftEnabled()) {
+        // Raft owns partition-primary (re)assignment via
+        // 'onPartitionRaftLeadership', driven by the election timeout and
+        // stamped with the Raft term.  A raw TCP disconnect must not orphan or
+        // reassign primaries: doing so would bypass Raft's own peer-down
+        // conclusion (and 'd_stateManager_mp' is not even loaded in Raft
+        // mode). Only the socket-tied cleanup above ('dropPeerQueues', plus
+        // the request cancellation in 'processNodeStateChangeEvent') applies
+        // here.
+
+        return;  // RETURN
+    }
+
     if (ns->primaryPartitions().empty()) {
         // Node was not primary for any partition.  Nothing else to do.
 
@@ -573,50 +587,16 @@ ClusterOrchestrator::ClusterOrchestrator(
 , d_clusterConfig(clusterConfig)
 , d_cluster_p(cluster)
 , d_clusterData_p(clusterData)
-, d_stateManager_mp(
-      clusterConfig.clusterAttributes().isFSMWorkflow()
-          ? static_cast<mqbi::ClusterStateManager*>(
-                new(*d_allocator_p) mqbc::ClusterStateManager(
-                    clusterConfig,
-                    d_cluster_p,
-                    d_clusterData_p,
-                    clusterState,
-                    ClusterStateManager::ClusterStateLedgerMp(
-                        bslma::ManagedPtrUtil::allocateManaged<
-                            mqbc::IncoreClusterStateLedger>(
-                            d_allocators.get("ClusterStateLedger"),
-                            clusterConfig,
-                            d_clusterData_p,
-                            clusterState,
-                            &d_clusterData_p->blobSpPool())),
-                    clusterConfig.clusterAttributes()
-                        .clusterFsmWatchdogTimeoutSec(),
-                    clusterConfig.clusterAttributes()
-                        .clusterFsmWatchdogNumRetries(),
-                    d_allocators.get("ClusterStateManager")))
-          : static_cast<mqbi::ClusterStateManager*>(
-                new(*d_allocator_p) ClusterStateManager(
-                    clusterConfig,
-                    d_cluster_p,
-                    d_clusterData_p,
-                    clusterState,
-                    ClusterStateManager::ClusterStateLedgerMp(
-                        bslma::ManagedPtrUtil::allocateManaged<
-                            mqbc::IncoreClusterStateLedger>(
-                            d_allocators.get("ClusterStateLedger"),
-                            clusterConfig,
-                            d_clusterData_p,
-                            clusterState,
-                            &d_clusterData_p->blobSpPool())),
-                    d_allocators.get("ClusterStateManager"))),
-      d_allocator_p)
+, d_stateManager_mp()
 , d_queueHelper(d_clusterData_p,
                 clusterState,
                 d_stateManager_mp.get(),
                 allocator)
 , d_elector_mp()
+, d_clusterState_p(clusterState)
 , d_storageManager_p(0)
 , d_bufferedPrimaryStatusAdvisoryInfosVec(allocator)
+, d_isCaughtUp(false)
 {
     // executed by *ANY* thread
 
@@ -624,6 +604,8 @@ ClusterOrchestrator::ClusterOrchestrator(
     BSLS_ASSERT_SAFE(allocator);
     BSLS_ASSERT_SAFE(d_cluster_p);
     BSLS_ASSERT_SAFE(d_clusterData_p);
+
+    init(clusterState);
 
     d_bufferedPrimaryStatusAdvisoryInfosVec.resize(
         d_clusterConfig.partitionConfig().numPartitions(),
@@ -638,6 +620,105 @@ ClusterOrchestrator::~ClusterOrchestrator()
 }
 
 // MANIPULATORS
+
+void ClusterOrchestrator::init(mqbc::ClusterState* clusterState)
+{
+    if (d_cluster_p->isRaftEnabled()) {
+        // Raft mode: create ClusterStateRaft and PartitionRaftManager.
+        // Skip Elector and ClusterStateManager.
+
+        d_clusterStateRaft_mp.load(
+            new (*d_allocator_p) mqbraft::ClusterStateRaft(
+                d_clusterData_p,
+                clusterState,
+                d_clusterConfig.partitionConfig(),
+                // Treat the CSL as an additional partition in the
+                // availability gate: whenever its Raft state advances, poke
+                // the orchestrator to re-evaluate.  Invoked on the cluster
+                // dispatcher thread, so it can call directly.
+                bdlf::BindUtil::bind(
+                    &ClusterOrchestrator::onClusterRaftLeadership,
+                    this,
+                    bdlf::PlaceHolders::_1),  // haveCommit
+                d_allocator_p),
+            d_allocator_p);
+
+        d_queueHelper.setClusterStateUpdater(d_clusterStateRaft_mp.get());
+
+        d_partitionRaftManager_mp.load(
+            new (*d_allocator_p) mqbraft::PartitionRaftManager(
+                d_clusterData_p,
+                d_cluster_p,
+                d_clusterData_p->domainFactory(),
+                clusterState,
+                d_clusterConfig,
+                bdlf::BindUtil::bind(
+                    &ClusterOrchestrator::onPartitionRaftLeadership,
+                    this,
+                    bdlf::PlaceHolders::_1,   // partitionId
+                    bdlf::PlaceHolders::_2,   // leaderNodeId
+                    bdlf::PlaceHolders::_3),  // term
+                d_allocators.get("PartitionRaftManager")),
+            d_allocator_p);
+
+        d_queueHelper.setStorageManager(d_partitionRaftManager_mp.get());
+
+        return;  // RETURN
+    }
+
+    if (d_clusterConfig.clusterAttributes().isFSMWorkflow()) {
+        d_stateManager_mp.load(
+            new (*d_allocator_p) mqbc::ClusterStateManager(
+                d_clusterConfig,
+                d_cluster_p,
+                d_clusterData_p,
+                clusterState,
+                ClusterStateManager::ClusterStateLedgerMp(
+                    bslma::ManagedPtrUtil::allocateManaged<
+                        mqbc::IncoreClusterStateLedger>(
+                        d_allocators.get("ClusterStateLedger"),
+                        d_clusterConfig,
+                        d_clusterData_p,
+                        clusterState,
+                        &d_clusterData_p->blobSpPool())),
+                d_clusterConfig.clusterAttributes()
+                    .clusterFsmWatchdogTimeoutSec(),
+                d_clusterConfig.clusterAttributes()
+                    .clusterFsmWatchdogNumRetries(),
+                d_allocators.get("ClusterStateManager")),
+            d_allocator_p);
+    }
+    else {
+        d_stateManager_mp.load(
+            new (*d_allocator_p) ClusterStateManager(
+                d_clusterConfig,
+                d_cluster_p,
+                d_clusterData_p,
+                clusterState,
+                ClusterStateManager::ClusterStateLedgerMp(
+                    bslma::ManagedPtrUtil::allocateManaged<
+                        mqbc::IncoreClusterStateLedger>(
+                        d_allocators.get("ClusterStateLedger"),
+                        d_clusterConfig,
+                        d_clusterData_p,
+                        clusterState,
+                        &d_clusterData_p->blobSpPool())),
+                d_allocators.get("ClusterStateManager")),
+            d_allocator_p);
+    }
+
+    d_queueHelper.setClusterStateUpdater(d_stateManager_mp.get());
+
+    d_stateManager_mp->setAfterPartitionPrimaryAssignmentCb(
+        bdlf::BindUtil::bindS(
+            d_allocator_p,
+            &ClusterQueueHelper::afterPartitionPrimaryAssignment,
+            &d_queueHelper,
+            bdlf::PlaceHolders::_1,    // partitionId
+            bdlf::PlaceHolders::_2,    // primary
+            bdlf::PlaceHolders::_3));  // status
+}
+
 int ClusterOrchestrator::start(bsl::ostream& errorDescription)
 {
     // executed by the cluster *DISPATCHER* thread
@@ -654,25 +735,35 @@ int ClusterOrchestrator::start(bsl::ostream& errorDescription)
         return rc_SUCCESS;  // RETURN
     }
 
-    // Start the elector.  It must be one of the first things to get started,
-    // so that new node can discover the leader as soon as possible.
+    if (d_cluster_p->isRaftEnabled()) {
+        // Raft mode: start ClusterStateRaft.
+        // Skip Elector and ClusterStateManager start.
+
+        BSLS_ASSERT_SAFE(d_clusterStateRaft_mp);
+
+        int rc = d_clusterStateRaft_mp->start(errorDescription);
+        if (rc != 0) {
+            return rc * 10 + rc_CLUSTER_STATE_MANAGER_FAILURE;  // RETURN
+        }
+
+        d_isStarted = true;
+        return rc_SUCCESS;
+    }
+
+    // Legacy mode: start Elector + ClusterStateManager
 
     if (isLocal()) {
-        // Specify minimum initial wait time and election result wait time in
-        // case of 1-node cluster.
         mqbcfg::ElectorConfig& electorCfg    = d_clusterConfig.elector();
         electorCfg.initialWaitTimeoutMs()    = 0;
         electorCfg.electionResultTimeoutMs() = 0;
     }
 
-    // Start the cluster state manager
     int rc = d_stateManager_mp->start(errorDescription);
 
     if (rc != 0) {
         return rc * 10 + rc_CLUSTER_STATE_MANAGER_FAILURE;  // RETURN
     }
 
-    // Fetch latest LSN from the ledger and supply it to the elector.
     bmqp_ctrlmsg::LeaderMessageSequence ledgerLSN;
     rc = d_stateManager_mp->latestLedgerLSN(&ledgerLSN);
     if (rc == 0) {
@@ -729,6 +820,13 @@ void ClusterOrchestrator::stop()
     BSLS_ASSERT_SAFE(d_clusterData_p);
     d_clusterData_p->scheduler().cancelEventAndWait(
         &d_consumptionMonitorEventHandle);
+
+    if (d_cluster_p->isRaftEnabled()) {
+        if (d_clusterStateRaft_mp) {
+            d_clusterStateRaft_mp->stop();
+        }
+        return;  // RETURN
+    }
 
     d_stateManager_mp->stop();
 
@@ -819,7 +917,10 @@ void ClusterOrchestrator::transitionToAvailable()
 
     BALL_LOG_INFO << d_cluster_p->description() << " is available";
 
-    if (isLocal()) {
+    if (isLocal() && d_storageManager_p) {
+        // 'd_storageManager_p' is null in Raft mode (the storage layer is the
+        // 'PartitionRaftManager', a 'StorageProvider' held by the queue
+        // helper, not a 'StorageManager').
         d_storageManager_p->gcUnrecognizedDomainQueues();
     }
 }
@@ -1028,23 +1129,39 @@ void ClusterOrchestrator::processNodeStoppingNotification(
 
     // 'processNodeStoppingNotification' is blocking for Primary (non-blocking)
     // for Replicas.
-    const bsl::vector<int>& partitions =
-        d_clusterData_p->membership().selfNodeSession()->primaryPartitions();
-    for (int i = static_cast<int>(partitions.size()) - 1; 0 <= i; --i) {
-        d_storageManager_p->processReplicaStatusAdvisory(
-            partitions[i],
-            ns->clusterNode(),
-            bmqp_ctrlmsg::NodeStatus::E_STOPPING);
+    if (!d_cluster_p->isRaftEnabled()) {
+        const bsl::vector<int>& partitions = d_clusterData_p->membership()
+                                                 .selfNodeSession()
+                                                 ->primaryPartitions();
+        for (int i = static_cast<int>(partitions.size()) - 1; 0 <= i; --i) {
+            d_storageManager_p->processReplicaStatusAdvisory(
+                partitions[i],
+                ns->clusterNode(),
+                bmqp_ctrlmsg::NodeStatus::E_STOPPING);
+        }
+
+        bslmt::Latch latch(partitions.size());
+
+        for (int i = static_cast<int>(partitions.size()) - 1; 0 <= i; --i) {
+            d_storageManager_p->fileStore(partitions[i])
+                .execute(bdlf::BindUtil::bind(&bslmt::Latch::arrive, &latch));
+        }
+
+        latch.wait();
     }
-
-    bslmt::Latch latch(partitions.size());
-
-    for (int i = static_cast<int>(partitions.size()) - 1; 0 <= i; --i) {
-        d_storageManager_p->fileStore(partitions[i])
-            .execute(bdlf::BindUtil::bind(&bslmt::Latch::arrive, &latch));
+    else if (d_partitionRaftManager_mp) {
+        // Raft equivalent of the legacy branch above: the stopping peer is
+        // still connected at this point (its channel isn't closed until
+        // later in its own shutdown sequence), so proposing one more sync
+        // point now -- for every partition self leads -- reaches it via the
+        // normal 'AppendEntries' path and gives its journal a checkpoint
+        // covering everything committed so far, instead of leaving it to
+        // fall back on a potentially long-stale become-leader sync point.
+        // Non-blocking: the write lands on the partition dispatcher thread
+        // almost immediately, and unlike legacy there is no flush/latch to
+        // wait on here.
+        d_partitionRaftManager_mp->onPeerNodeStopping();
     }
-
-    latch.wait();
 
     context_sp.reset();
 }
@@ -1134,6 +1251,23 @@ void ClusterOrchestrator::processNodeStatusAdvisory(
             d_queueHelper.onLeaderAvailable();
         }
 
+        if (d_cluster_p->isRaftEnabled()) {
+            // Independent of the leader-focused branches above: a peer
+            // transitioning to AVAILABLE may be the primary of a partition for
+            // which self has buffered open-queue requests that were waiting on
+            // that primary node's availability.  In Raft a partition primary
+            // is reported E_ACTIVE for its partition as soon as it wins
+            // leadership, but its *node* only reaches E_AVAILABLE once all of
+            // its partitions have leaders, and 'hasActiveAvailablePrimary'
+            // gates on both.  This must run on *every* node, including the CSL
+            // leader itself (which the first branch above would otherwise
+            // capture), since the leader can be the node holding the pending
+            // contexts.  Idempotent: restore dedups via reopen cycles /
+            // in-flight tracking, so re-running it -- or double-running it
+            // with 'onLeaderAvailable' -- is a harmless no-op.
+            d_queueHelper.onNodeAvailable();
+        }
+
         // For each partition for which self is primary, notify the storageMgr
         // about the status of a peer node.  Self may end up issuing a primary
         // status advisory and a (non-scheduled) sync point to the node.  Note
@@ -1177,9 +1311,13 @@ void ClusterOrchestrator::processNodeStateChangeEvent(
                   << (isAvailable ? "available" : "unavailable");
 
     // Forward the event to elector.  If self is leader, elector will issue an
-    // immediate hearbeat.
+    // immediate hearbeat.  Legacy-only ('d_elector_mp' is null in Raft mode):
+    // Raft has no elector and detects peer unavailability itself via its own
+    // heartbeat/election-timeout mechanism.
 
-    d_elector_mp->processNodeStatus(node, isAvailable);
+    if (!d_cluster_p->isRaftEnabled()) {
+        d_elector_mp->processNodeStatus(node, isAvailable);
+    }
 
     // Update self's view of the 'node'.
 
@@ -1340,7 +1478,13 @@ void ClusterOrchestrator::processQueueAssignmentRequest(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
 
-    d_stateManager_mp->processQueueAssignmentRequest(request, requester);
+    if (d_cluster_p->isRaftEnabled()) {
+        d_clusterStateRaft_mp->processQueueAssignmentRequest(request,
+                                                             requester);
+    }
+    else {
+        d_stateManager_mp->processQueueAssignmentRequest(request, requester);
+    }
 }
 
 void ClusterOrchestrator::processLeaderSyncDataQuery(
@@ -1924,6 +2068,13 @@ mqbi::ClusterErrorCode::Enum ClusterOrchestrator::updateAppIds(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
 
+    if (d_cluster_p->isRaftEnabled()) {
+        return d_clusterStateRaft_mp->updateAppIds(*added,
+                                                   *removed,
+                                                   domainName,
+                                                   "");  // for all queues
+    }
+
     return d_stateManager_mp->updateAppIds(*added,
                                            *removed,
                                            domainName,
@@ -1944,6 +2095,374 @@ void ClusterOrchestrator::onPartitionPrimaryStatus(int          partitionId,
             status,
             primaryLeaseId),
         d_cluster_p);
+}
+
+void ClusterOrchestrator::onClusterRaftLeadership(bool haveCommit)
+{
+    BALL_LOG_INFO << d_clusterData_p->identity().description()
+                  << ": onClusterRaftLeadership fired, d_isCaughtUp: "
+                  << d_isCaughtUp << " -> " << haveCommit;
+
+    d_isCaughtUp = haveCommit;
+
+    // Even though we are in the cluster thread, dispatch to avoid re-entrance
+    // as in the single node cluster case, when propose commits immediately and
+    // onClusterRaftLeadership gets called again in the same stack frame.
+    dispatcher()->execute(
+        bdlf::BindUtil::bind(&ClusterOrchestrator::maybeTransitionToAvailable,
+                             this),
+        d_cluster_p);
+}
+
+void ClusterOrchestrator::onPartitionRaftLeadership(int partitionId,
+                                                    int leaderNodeId,
+                                                    bsls::Types::Uint64 term)
+{
+    // executed by the partition *DISPATCHER* thread
+
+    dispatcher()->execute(
+        bdlf::BindUtil::bind(
+            &ClusterOrchestrator::onPartitionRaftLeadershipDispatched,
+            this,
+            partitionId,
+            leaderNodeId,
+            term),
+        d_cluster_p);
+}
+
+void ClusterOrchestrator::onPartitionRaftLeadershipDispatched(
+    int                 partitionId,
+    int                 leaderNodeId,
+    bsls::Types::Uint64 term)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+    BSLS_ASSERT_SAFE(0 <= partitionId);
+    BSLS_ASSERT_SAFE(static_cast<size_t>(partitionId) <
+                     d_clusterState_p->partitions().size());
+
+    BALL_LOG_INFO
+        << d_clusterData_p->identity().description() << " Partition ["
+        << partitionId << "]: onPartitionRaftLeadershipDispatched fired, "
+        << "leaderNodeId: " << leaderNodeId << ", term: " << term
+        << ", current [primaryNode, primaryLeaseId, primaryStatus]: ["
+        << (d_clusterState_p->partition(partitionId).primaryNode()
+                ? d_clusterState_p->partition(partitionId)
+                      .primaryNode()
+                      ->nodeDescription()
+                : "** NULL **")
+        << ", " << d_clusterState_p->partition(partitionId).primaryLeaseId()
+        << ", " << d_clusterState_p->partition(partitionId).primaryStatus()
+        << "]";
+
+    if (bmqp_ctrlmsg::NodeStatus::E_STOPPING ==
+        d_clusterData_p->membership().selfNodeStatus()) {
+        return;  // RETURN
+    }
+
+    if (mqbraft::RaftNode::k_INVALID_NODE_ID == leaderNodeId) {
+        // No leader for this partition: close the gate until one emerges.
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << " Partition [" << partitionId
+                      << "]: Raft reports no leader; marking primary PASSIVE.";
+        d_clusterState_p->setPartitionPrimaryStatus(
+            partitionId,
+            bmqp_ctrlmsg::PrimaryStatus::E_PASSIVE);
+        return;  // RETURN
+    }
+
+    // Resolve the leader node id to its ClusterNode / ClusterNodeSession.
+    mqbnet::ClusterNode* leaderNode =
+        (leaderNodeId == d_clusterData_p->membership().selfNode()->nodeId())
+            ? d_clusterData_p->membership().selfNode()
+            : d_clusterData_p->membership().netCluster()->lookupNode(
+                  leaderNodeId);
+    if (0 == leaderNode) {
+        BALL_LOG_WARN
+            << d_clusterData_p->identity().description() << " Partition ["
+            << partitionId << "]: Cluster leader node " << leaderNodeId
+            << " is unknown; ignoring partition leadership notification.";
+        return;  // RETURN
+    }
+
+    mqbc::ClusterNodeSession* ns =
+        d_clusterData_p->membership().getClusterNodeSession(leaderNode);
+    BSLS_ASSERT_SAFE(ns);
+
+    const unsigned int leaseId = static_cast<unsigned int>(term);
+
+    // Update the partition->primary mapping if it changed (this closes the
+    // gate as a side effect).  The primary is marked only PASSIVE here: it is
+    // NOT activated until the CSL leader's artificial
+    // 'partitionPrimaryAdvisory' (carrying every partition's leaseId) commits
+    // -- see 'maybeIssuePartitionPrimaryAdvisory' and the activation on commit
+    // in 'ClusterStateRaft::applyCommittedEntry'.  This ordering guarantees
+    // the CSL records the leaseId (== Raft term) BEFORE the partition writes
+    // any journal record under it (the deferred sync point, gated on
+    // availability), so a subsequent restart into a legacy broker recovers a
+    // CSL that is never behind the journal.
+    const mqbc::ClusterStatePartitionInfo& pinfo = d_clusterState_p->partition(
+        partitionId);
+    if (pinfo.primaryNode() != leaderNode ||
+        pinfo.primaryLeaseId() != leaseId) {
+        d_clusterState_p->setPartitionPrimary(partitionId, leaseId, ns);
+    }
+
+    d_clusterState_p->setPartitionPrimaryStatus(
+        partitionId,
+        bmqp_ctrlmsg::PrimaryStatus::E_PASSIVE);
+
+    // A partition just learned its leaseId (one of the two independent
+    // signals 'maybeTransitionToAvailable' compares); re-run the unified
+    // readiness check -- it also drives advisory issuance (once every
+    // partition has a leader) and, on a re-election, will close the gate
+    // again above but only fully re-activate once the CSL confirms the new
+    // leaseId via a fresh advisory commit.
+    maybeTransitionToAvailable();
+}
+
+void ClusterOrchestrator::maybeIssuePartitionPrimaryAdvisory()
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+
+    // Raft mode and self is the CSL leader.  There is no separate
+    // become-leader no-op: this advisory IS the CSL leader's first
+    // current-term entry, so its commit is what makes 'isCaughtUp()' true
+    // (Raft 5.4.2) -- do NOT gate issuance on 'isCaughtUp()', that would be
+    // circular.  Only the CSL leader publishes the advisory; every node
+    // (including self) activates when it applies the commit.
+    //
+    // Called only from 'maybeTransitionToAvailable', which has already
+    // verified every partition has a locally-known leader (its gate 1) before
+    // calling this -- not re-checked here.
+    if (!d_clusterStateRaft_mp) {
+        return;  // RETURN (legacy mode)
+    }
+    if (bmqp_ctrlmsg::NodeStatus::E_STOPPING ==
+        d_clusterData_p->membership().selfNodeStatus()) {
+        return;  // RETURN (shutting down; do not propose new CSL entries)
+    }
+    if (!d_clusterStateRaft_mp->isLeader()) {
+        return;  // RETURN
+    }
+
+    const mqbc::ClusterState::PartitionsInfo& partitions =
+        d_clusterState_p->partitions();
+
+    // Propose if EITHER:
+    //  (a) self (as this term's CSL leader) has not yet attempted an advisory
+    //      in ITS OWN current term.  Raft 5.4.2 requires some current-term
+    //      entry to exist so this leader can advance its commit index past
+    //      the inherited prior-term tail -- the CONTENT may be unchanged from
+    //      a prior term's advisory (nothing new to publish), but a newly
+    //      elected leader still needs its own term's entry.  Unconditional,
+    //      matching what a become-leader no-op guarantees; tracked via
+    //      'd_advisedInTerm' rather than 'isCaughtUp()'/the log's 'lastTerm()'
+    //      -- both are generic "something committed/appended this term"
+    //      signals that a pre-existing, unrelated race
+    //      ('ClusterQueueHelper::onClusterLeader' -> 'restoreState' proposing
+    //      a queue assignment) can satisfy without this advisory ever having
+    //      been proposed, which would permanently starve
+    //      'advisoryConfirmedLeaseId'.
+    //  (b) the content has genuinely changed (a partition re-elected mid-term)
+    //      -- checked via 'advisoryConfirmedLeaseId', updated only when an
+    //      advisory actually COMMITS, so this self-corrects even if a prior
+    //      proposal attempt never committed.
+
+    for (size_t pid = 0; d_isCaughtUp && pid < partitions.size(); ++pid) {
+        if (partitions[pid].primaryLeaseId() !=
+            partitions[pid].advisoryConfirmedLeaseId()) {
+            d_isCaughtUp = false;
+        }
+    }
+    if (d_isCaughtUp) {
+        return;  // RETURN (already tried this term; CSL reflects current
+                 // leaseIds)
+    }
+
+    // Build the combined artificial 'partitionPrimaryAdvisory'.  The leaseId
+    // is sourced from cluster state (== the data-partition Raft term); the CSL
+    // record's own LeaderMessageSequence is stamped by 'ClusterStateRaft'.
+    bmqp_ctrlmsg::ClusterMessage            clusterMessage(d_allocator_p);
+    bmqp_ctrlmsg::PartitionPrimaryAdvisory& adv =
+        clusterMessage.choice().makePartitionPrimaryAdvisory();
+    adv.sequenceNumber().electorTerm() = d_clusterStateRaft_mp->currentTerm();
+    adv.sequenceNumber().sequenceNumber() = 0;
+    adv.partitions().reserve(partitions.size());
+    for (size_t pid = 0; pid < partitions.size(); ++pid) {
+        bmqp_ctrlmsg::PartitionPrimaryInfo pmi;
+        pmi.partitionId()    = static_cast<int>(pid);
+        pmi.primaryNodeId()  = partitions[pid].primaryNodeId();
+        pmi.primaryLeaseId() = partitions[pid].primaryLeaseId();
+        adv.partitions().push_back(pmi);
+    }
+
+    BALL_LOG_INFO
+        << d_clusterData_p->identity().description()
+        << ": CSL leader publishing artificial partitionPrimaryAdvisory "
+        << "for " << adv.partitions().size()
+        << " partition(s) to keep the CSL leaseIds in step with the "
+        << "journal (term) for legacy interoperability: " << adv;
+
+    int rc = d_clusterStateRaft_mp->propose(clusterMessage);
+    if (0 != rc) {
+        BALL_LOG_WARN
+            << d_clusterData_p->identity().description()
+            << ": failed to propose artificial partitionPrimaryAdvisory"
+            << ", rc: " << rc << ". Will retry on the next leadership "
+            << "or CSL commit event.";
+    }
+}
+
+void ClusterOrchestrator::onQueueStorageReady(int              partitionId,
+                                              const bmqt::Uri& uri)
+{
+    // executed by the cluster *DISPATCHER* thread (caller already hopped)
+
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+
+    d_queueHelper.onStorageReady(partitionId, uri);
+}
+
+void ClusterOrchestrator::maybeTransitionToAvailable()
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+
+    // This is the single unified readiness check, invoked from two
+    // independent triggers: (1) a data-partition's own Raft leadership
+    // changing ('onPartitionRaftLeadershipDispatched') -- including a
+    // re-election that happens well after this node first became
+    // available -- and (2) the CSL's leadership/commit events
+    // ('ClusterStateRaft's availability callback).  Raft-mode only (this
+    // callback is never wired in legacy mode).  It must keep re-running
+    // after the node is already E_AVAILABLE: a post-availability
+    // re-election closes the gate for just that partition (see
+    // 'onPartitionRaftLeadershipDispatched'), and only the tail of this
+    // function re-opens it, so bailing out early here would leave that
+    // partition's gate permanently closed.
+    if (!d_clusterStateRaft_mp) {
+        return;  // RETURN (legacy mode)
+    }
+
+    if (bmqp_ctrlmsg::NodeStatus::E_STOPPING ==
+        d_clusterData_p->membership().selfNodeStatus()) {
+        return;  // RETURN (shutting down)
+    }
+
+    const mqbc::ClusterState::PartitionsInfo& partitions =
+        d_clusterState_p->partitions();
+
+    // every partition must have a locally-known leader (the
+    // data-partition Raft's own leadership signal).  Nothing below --
+    // issuing the combined advisory, or checking it against this node's
+    // knowledge -- can proceed until this holds for all partitions.
+    for (size_t pid = 0; pid < partitions.size(); ++pid) {
+        if (0 == partitions[pid].primaryNode() ||
+            0 == partitions[pid].primaryLeaseId()) {
+            BALL_LOG_INFO << d_clusterData_p->identity().description()
+                          << ": maybeTransitionToAvailable blocked: "
+                          << "partition " << pid << " missing leader "
+                          << "(node=" << partitions[pid].primaryNode()
+                          << ", leaseId=" << partitions[pid].primaryLeaseId()
+                          << ")";
+            return;  // RETURN (not all partitions have leaders yet)
+        }
+    }
+
+    // the CSL must have a recognized leader (self or remote).
+    if (mqbraft::RaftNode::k_INVALID_NODE_ID ==
+        d_clusterStateRaft_mp->leaderId()) {
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << ": maybeTransitionToAvailable blocked: "
+                      << "no CSL leader yet";
+        return;  // RETURN (no recognized CSL leader yet)
+    }
+
+    // If self is the CSL leader, this is the trigger to publish the combined
+    // artificial partition-primary advisory (every partition now has a
+    // leader, per gate 1).  There is no separate become-leader no-op: this
+    // advisory's commit is what makes the CSL 'isCaughtUp()' true (Raft
+    // 5.4.2).  Self-dedups against re-proposing an identical advisory.
+    maybeIssuePartitionPrimaryAdvisory();
+
+    // the full CSL backlog must be applied (original 'isCaughtUp'
+    // purpose, independent of the advisory specifically) -- otherwise this
+    // node could serve queue reopens against a partially-replayed cluster
+    // state, minting conflicting queue/app keys instead of honoring the
+    // recovered state.
+    if (!d_isCaughtUp) {
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << ": maybeTransitionToAvailable blocked: "
+                      << "d_isCaughtUp=" << d_isCaughtUp;
+        return;  // RETURN
+    }
+
+    // for every partition, the locally-observed leaseId (from
+    // its own data-partition Raft leadership) must match the leaseId
+    // confirmed by the last-committed CSL advisory.  These are two
+    // independent signals that can arrive in either order; a mismatch means
+    // one is lagging the other -- exit and wait for whichever event
+    // completes the match to re-invoke this same check.  Mirrors legacy's
+    // stale-leaseId bailout pattern.
+    for (size_t pid = 0; pid < partitions.size(); ++pid) {
+        if (partitions[pid].primaryLeaseId() !=
+            partitions[pid].advisoryConfirmedLeaseId()) {
+            BALL_LOG_INFO << d_clusterData_p->identity().description()
+                          << ": maybeTransitionToAvailable blocked: "
+                          << "partition " << pid << " leaseId mismatch "
+                          << "(primaryLeaseId="
+                          << partitions[pid].primaryLeaseId()
+                          << ", advisoryConfirmedLeaseId="
+                          << partitions[pid].advisoryConfirmedLeaseId() << ")";
+            return;  // RETURN (lease mismatch; not ready)
+        }
+    }
+
+    // All gates passed: the CSL durably records every partition's current
+    // leaseId.  Activate, and for partitions this node leads, write the
+    // deferred become-leader sync point -- safe now, since the CSL already
+    // recorded this leaseId before this, the first journal record under it.
+    const int selfNodeId = d_clusterData_p->membership().selfNode()->nodeId();
+    for (size_t pid = 0; pid < partitions.size(); ++pid) {
+        if (partitions[pid].primaryNodeId() == selfNodeId &&
+            d_partitionRaftManager_mp) {
+            d_partitionRaftManager_mp->proposeDeferredSyncPoint(
+                static_cast<int>(pid));
+        }
+        if (bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE !=
+            partitions[pid].primaryStatus()) {
+            d_clusterState_p->setPartitionPrimaryStatus(
+                static_cast<int>(pid),
+                bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE);
+
+            // Legacy/FSM mode learns of this transition via the
+            // 'ClusterStateObserver' callback that
+            // 'ClusterStateManager::onPartitionPrimaryAssignment' forwards to
+            // 'ClusterQueueHelper::afterPartitionPrimaryAssignment' -- Raft
+            // mode has no such observer wired up (no 'ClusterStateManager'
+            // is constructed), so drive it directly here.  This retries any
+            // openQueue/reopen contexts that were buffered while this
+            // partition had no active primary, and redirects already-open
+            // queue handles on this partition to the new primary.
+            d_queueHelper.afterPartitionPrimaryAssignment(
+                static_cast<int>(pid),
+                partitions[pid].primaryNode(),
+                bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE);
+        }
+    }
+
+    BALL_LOG_INFO << d_clusterData_p->identity().description()
+                  << ": all partitions confirmed via the CSL advisory. "
+                  << "Transitioning to AVAILABLE.";
+
+    transitionToAvailable();
 }
 
 void ClusterOrchestrator::processBufferedPrimaryStatusAdvisories(
@@ -2000,7 +2519,63 @@ int ClusterOrchestrator::processCommand(
 
     if (command.isElectorValue()) {
         mqbcmd::ElectorResult electorResult;
-        int                   rc = d_elector_mp->processCommand(&electorResult,
+
+        if (d_cluster_p->isRaftEnabled()) {
+            // Raft mode: elector not used, respond with set/get values
+            const mqbcmd::ElectorCommand& cmd = command.elector();
+            if (cmd.isSetTunableValue()) {
+                const mqbcmd::SetTunable& tunable = cmd.setTunable();
+                if (bdlb::StringRefUtil::areEqualCaseless(tunable.name(),
+                                                          "QUORUM")) {
+                    const bsls::Types::Int64 quorumValue =
+                        tunable.value().theInteger();
+
+                    mqbcmd::TunableConfirmation& tc =
+                        electorResult.makeTunableConfirmation();
+                    tc.name() = "Quorum";
+                    tc.oldValue().makeTheInteger(quorumValue);
+                    tc.newValue().makeTheInteger(quorumValue);
+                }
+            }
+            else if (cmd.isGetTunableValue()) {
+                const bsl::string& tunableName = cmd.getTunable().name();
+                if (bdlb::StringRefUtil::areEqualCaseless(tunableName,
+                                                          "QUORUM")) {
+                    mqbcmd::Tunable& tunable = electorResult.makeTunable();
+                    tunable.name()           = "Quorum";
+                    tunable.value().makeTheInteger(
+                        d_clusterStateRaft_mp->quorum());
+                }
+                else {
+                    bmqu::MemOutStream output;
+                    output << "Unsupported tunable '" << tunableName
+                           << "': Issue the "
+                           << "LIST_TUNABLES command for the list of "
+                              "supported tunables.";
+                    electorResult.makeError();
+                    electorResult.error().message() = output.str();
+                    result->makeElectorResult(electorResult);
+                    return -1;  // RETURN
+                }
+            }
+            else {
+                // isListTunablesValue
+                mqbcmd::Tunables& tunables = electorResult.makeTunables();
+                tunables.tunables().resize(1);
+                tunables.tunables()[0].name() = "QUORUM";
+                tunables.tunables()[0].value().makeTheInteger(
+                    d_clusterStateRaft_mp->quorum());
+                tunables.tunables()[0].description() =
+                    "non-negative integer count of the number of"
+                    " peers required to have consensus";
+            }
+            result->makeElectorResult(electorResult);
+            return 0;  // RETURN
+        }
+
+        BSLS_ASSERT_SAFE(d_elector_mp);
+
+        int rc = d_elector_mp->processCommand(&electorResult,
                                               command.elector());
 
         if (electorResult.isErrorValue()) {
@@ -2017,6 +2592,96 @@ int ClusterOrchestrator::processCommand(
     mqbcmd::Error& error = result->makeError();
     error.message()      = os.str();
     return -1;
+}
+
+void ClusterOrchestrator::processRaftClusterEvent(const bmqp::Event&   event,
+                                                  mqbnet::ClusterNode* source)
+{
+    // executed by the IO thread — dispatch to cluster dispatcher
+    dispatcher()->execute(
+        bdlf::BindUtil::bind(
+            &ClusterOrchestrator::processRaftClusterEventDispatched,
+            this,
+            event.sharedBlob(),
+            source),
+        d_cluster_p);
+}
+
+void ClusterOrchestrator::processRaftClusterEventDispatched(
+    const bsl::shared_ptr<const bdlbb::Blob>& blob,
+    mqbnet::ClusterNode*                      source)
+{
+    // executed by the cluster *DISPATCHER* thread
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+    BSLS_ASSERT_SAFE(d_clusterStateRaft_mp);
+
+    d_clusterStateRaft_mp->appendEntries(*blob, source);
+}
+
+void ClusterOrchestrator::processRaftPartitionEvent(
+    const bmqp::Event&   event,
+    mqbnet::ClusterNode* source)
+{
+    // executed by the *IO* thread
+    BSLS_ASSERT_SAFE(d_partitionRaftManager_mp);
+
+    d_partitionRaftManager_mp->appendEntries(event.sharedBlob(), source);
+}
+
+void ClusterOrchestrator::processRaftSnapshotEvent(
+    const bmqp::Event&   event,
+    mqbnet::ClusterNode* source)
+{
+    // executed by the *IO* thread
+    BSLS_ASSERT_SAFE(d_partitionRaftManager_mp);
+
+    d_partitionRaftManager_mp->appendSnapshotChunk(event.sharedBlob(), source);
+}
+
+void ClusterOrchestrator::processRaftControlMessage(
+    const bmqp_ctrlmsg::RaftMessage& message,
+    mqbnet::ClusterNode*             source)
+{
+    // executed by an *IO* thread
+
+    if (message.partitionId() == 0) {
+        // CSL / cluster-level Raft: 'ClusterStateRaft' is only safe to
+        // touch from the cluster dispatcher thread (see
+        // 'Cluster::processControlMessage', which dispatches here for this
+        // case).
+        BSLS_ASSERT_SAFE(d_clusterStateRaft_mp);
+
+        dispatcher()->execute(
+            bdlf::BindUtil::bind(
+                &mqbraft::ClusterStateRaft::onRaftControlMessage,
+                d_clusterStateRaft_mp.get(),
+                message,
+                source),
+            d_cluster_p);
+    }
+    else {
+        // Partition-level: called directly from the *IO* thread (see
+        // 'Cluster::processControlMessage'); forwards straight to the
+        // target partition's own FileStore dispatcher thread below.
+        BSLS_ASSERT_SAFE(d_partitionRaftManager_mp);
+        d_partitionRaftManager_mp->onRaftControlMessage(
+            message,
+            message.partitionId() - 1,
+            source);
+    }
+}
+
+mqbraft::ClusterStateRaft* ClusterOrchestrator::clusterStateRaft()
+{
+    return d_clusterStateRaft_mp.get();
+}
+
+mqbi::StorageProvider* ClusterOrchestrator::storageProvider()
+{
+    if (d_partitionRaftManager_mp) {
+        return d_partitionRaftManager_mp.get();
+    }
+    return d_storageManager_p;
 }
 
 }  // close package namespace

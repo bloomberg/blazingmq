@@ -22,6 +22,7 @@
 
 // BMQ
 #include <bmqp_protocol.h>  // for bmqp::Protocol::k_WORD_SIZE
+#include <bmqp_protocolutil.h>
 
 // BDE
 #include <bdlb_bigendian.h>
@@ -363,6 +364,53 @@ void FileStoreProtocolUtil::loadAppInfos(
         offset += sizeof(AppIdHeader) + paddedLen +
                   FileStoreProtocol::k_HASH_LENGTH;  // AppKey
     }
+}
+
+bsls::Types::Uint64 FileStoreProtocolUtil::messageDataFileSize(
+    const bsl::shared_ptr<bdlbb::Blob>& appData,
+    const bsl::shared_ptr<bdlbb::Blob>& options)
+{
+    // DataHeader + options + appData, padded up to a DWORD boundary.
+    const int optionsSize = options ? options->length() : 0;
+    const int appDataSize = appData ? appData->length() : 0;
+
+    int numBytesPadding = 0;
+    bmqp::ProtocolUtil::calcNumDwordsAndPadding(&numBytesPadding,
+                                                sizeof(DataHeader) +
+                                                    optionsSize + appDataSize);
+
+    return sizeof(DataHeader) + static_cast<bsls::Types::Uint64>(optionsSize) +
+           static_cast<bsls::Types::Uint64>(appDataSize) +
+           static_cast<bsls::Types::Uint64>(numBytesPadding);
+}
+
+bsls::Types::Uint64 FileStoreProtocolUtil::queueCreationQlistFileSize(
+    const bmqt::Uri&               queueUri,
+    const mqbi::Storage::AppInfos& appIdKeyPairs)
+{
+    // QueueRecordHeader + queueUri (padded to a WORD) + hash, then per app
+    // (AppIdHeader + appId (padded) + hash), then the trailing magic.
+    int queueUriPadding = 0;
+    bmqp::ProtocolUtil::calcNumWordsAndPadding(&queueUriPadding,
+                                               queueUri.asString().length());
+
+    bsls::Types::Uint64 total = sizeof(QueueRecordHeader) +
+                                queueUri.asString().length() +
+                                queueUriPadding +
+                                FileStoreProtocol::k_HASH_LENGTH;
+
+    for (mqbi::Storage::AppInfos::const_iterator cit = appIdKeyPairs.cbegin();
+         cit != appIdKeyPairs.cend();
+         ++cit) {
+        int appIdPadding = 0;
+        bmqp::ProtocolUtil::calcNumWordsAndPadding(&appIdPadding,
+                                                   cit->first.length());
+        total += sizeof(AppIdHeader) + cit->first.length() + appIdPadding +
+                 FileStoreProtocol::k_HASH_LENGTH;
+    }
+    total += sizeof(unsigned int);  // trailing magic
+
+    return total;
 }
 
 }  // close package namespace

@@ -61,8 +61,12 @@ class TestRolloverJournal:
             f"got {len(journal_files_before_rollover)}"
         )
 
-        all_partitions = -1
-        leader.trigger_rollover(partitionId=all_partitions)
+        # In FSM/Raft mode each partition's rollover must be initiated by that
+        # partition's Raft leader (not necessarily the CSL cluster leader), so
+        # send the roll-all to every node.  The leader, as a replica of every
+        # partition, still logs "ROLLOVER COMPLETE" once all are rolled.
+        for node in cluster.nodes():
+            node.trigger_rollover(partitionId=-1)
         leader.wait_rollover_complete()
 
         # Old files are archived asynchronously by a worker thread after
@@ -94,7 +98,10 @@ class TestRolloverJournal:
         """
 
         def trigger_rollover(leader, producer):  # pylint: disable=unused-argument
-            leader.trigger_rollover(partitionId=-1)
+            # Roll all partitions from their respective Raft leaders (FSM mode);
+            # non-leaders reject harmlessly.
+            for node in cluster.nodes():
+                node.trigger_rollover(partitionId=-1)
             leader.wait_rollover_complete()
 
         rollover_queues_and_apps_test(cluster, domain_urls, trigger_rollover)

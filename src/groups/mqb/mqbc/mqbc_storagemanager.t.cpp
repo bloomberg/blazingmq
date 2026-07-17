@@ -927,6 +927,7 @@ struct TestHelper {
             d_cluster_mp->isFSMWorkflow(),
             d_cluster_mp->doesFSMwriteQLIST(),
             1,  // replicationFactor
+            0,  // storageMonitor
             bmqtst::TestHelperUtil::allocator());
 
         dynamic_cast<mqbnet::MockCluster&>(d_cluster_mp->netCluster())
@@ -2924,7 +2925,7 @@ static void test18_primaryHealingWatchdogRetry()
     const int k_PRIMARY_LEASE_ID =
         storageManager.fileStore(k_PARTITION_ID).primaryLeaseId();
     const int k_PRIMARY_SEQ_NUM =
-        storageManager.fileStore(k_PARTITION_ID).sequenceNumber();
+        storageManager.fileStore(k_PARTITION_ID).currentSequenceNumber();
 
     static const int             k_REQUEST_ID = 1;
     bmqp_ctrlmsg::ControlMessage message;
@@ -3555,7 +3556,7 @@ static void test23_replicaHealingReceivesReplicaDataRqstDropInvalidPid()
 
     // 5. Send a storage event (PUT) and verify it is buffered, not processed
     const bsls::Types::Uint64 seqNumBefore =
-        storageManager.fileStore(k_PARTITION_ID).sequenceNumber();
+        storageManager.fileStore(k_PARTITION_ID).currentSequenceNumber();
 
     bmqp::StorageEventBuilder seb(mqbs::FileStoreProtocol::k_VERSION,
                                   bmqp::EventType::e_STORAGE,
@@ -3593,8 +3594,9 @@ static void test23_replicaHealingReceivesReplicaDataRqstDropInvalidPid()
 
     // Sequence number has not advanced; this proves that we did not process
     // the PUT.
-    BMQTST_ASSERT_EQ(storageManager.fileStore(k_PARTITION_ID).sequenceNumber(),
-                     seqNumBefore);
+    BMQTST_ASSERT_EQ(
+        storageManager.fileStore(k_PARTITION_ID).currentSequenceNumber(),
+        seqNumBefore);
 
     BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
                      mqbc::PartitionFSM::State::e_REPLICA_HEALING);

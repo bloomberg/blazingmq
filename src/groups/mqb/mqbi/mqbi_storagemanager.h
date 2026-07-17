@@ -137,107 +137,29 @@ class StorageManager_PartitionInfo {
     bmqp_ctrlmsg::PrimaryStatus::Value primaryStatus() const;
 };
 
-// ============================
-// class StorageManagerIterator
-// ============================
+// =====================
+// class StorageProvider
+// =====================
 
-/// Interface to provide a way for iteration through all the storages of a
-/// partition in the storage manager.
-class StorageManagerIterator {
-  public:
-    // CREATORS
-
-    /// Destroy this iterator and unlock the storage manager associated with
-    /// it.
-    virtual ~StorageManagerIterator();
-
-    // MANIPULATORS
-
-    /// Advance this iterator to refer to the next storage of the associated
-    /// partition; if there is no next storage in the associated partition,
-    /// then this iterator becomes *invalid*.  The behavior is undefined
-    /// unless this iterator is valid.  Note that the order of the iteration
-    /// is not specified.
-    virtual void operator++() = 0;
-
-    // ACCESSORS
-
-    /// Return non-zero if the iterator is *valid*, and 0 otherwise.
-    virtual operator const void*() const = 0;
-
-    /// Return a reference offering non-modifiable access to the queue URI
-    /// being pointed by this iterator.  The behavior is undefined unless
-    /// the iterator is *valid*.
-    virtual const bmqt::Uri& uri() const = 0;
-
-    /// Return a reference offering non-modifiable access to the storage
-    /// being pointed by this iterator.  The behavior is undefined unless
-    /// the iterator is *valid*. Note that since iterator is not a first
-    /// class object, its okay to pass a raw pointer.
-    virtual const mqbi::Storage* storage() const = 0;
-};
-
-// ====================
-// class StorageManager
-// ====================
-
-/// Storage Manager, in charge of all the partitions.
-class StorageManager {
+/// Narrow interface for queue-infrastructure consumers (ClusterQueueHelper,
+/// QueueState, LocalQueue, RemoteQueue, RootQueueEngine) that need to
+/// register/unregister queues, configure storage, and query partition state.
+/// Both the legacy 'StorageManager' and 'PartitionRaftManager' implement
+/// this interface.
+class StorageProvider {
   public:
     // TYPES
     typedef mqbi::Storage::AppInfos AppInfos;
 
-    typedef bsl::unordered_set<bsl::string> AppIds;
-    typedef AppIds::iterator                AppIdsIter;
-    typedef AppIds::const_iterator          AppIdsConstIter;
-    typedef bsl::pair<AppIdsIter, bool>     AppIdsInsertRc;
-
-    typedef bsl::shared_ptr<mqbs::ReplicatedStorage> StorageSp;
-
-    /// Map of QueueUri -> ReplicatedStorageSp
-    typedef bsl::unordered_map<bmqt::Uri, StorageSp> StorageSpMap;
-    typedef StorageSpMap::iterator                   StorageSpMapIter;
-    typedef StorageSpMap::const_iterator             StorageSpMapConstIter;
-
-    typedef bsl::vector<StorageSpMap>       StorageSpMapVec;
-    typedef StorageSpMapVec::iterator       StorageSpMapVecIter;
-    typedef StorageSpMapVec::const_iterator StorageSpMapVecConstIter;
-
-    /// Type of the functor required by `applyForEachQueue`.
-    typedef bsl::function<void(mqbi::Queue*)> QueueFunctor;
-
-    typedef bsl::function<
-        void(int partitionId, int status, unsigned int primaryLeaseId)>
-        PartitionPrimaryStatusCb;
-
   public:
     // CREATORS
-
-    /// Destructor
-    virtual ~StorageManager();
+    virtual ~StorageProvider();
 
     // MANIPULATORS
 
-    /// Start this storage manager.  Return 0 on success, or a non-zero rc
-    /// otherwise, populating the specified `errorDescription` with a
-    /// description of the error.
-    ///
-    /// THREAD: Executed by the cluster's dispatcher thread.
-    virtual int start(bsl::ostream& errorDescription) = 0;
-
-    /// Stop this storage manager.
-    virtual void stop() = 0;
-
-    /// Initialize the queue key info map based on information in the specified
-    /// `clusterState`.  Note that this method should only be called once;
-    /// subsequent calls will be ignored.
-    virtual void
-    initializeQueueKeyInfoMap(const mqbc::ClusterState& clusterState) = 0;
-
     /// Register a queue with the specified `uri`, `queueKey` and
     /// `partitionId`, having the specified `appIdKeyPairs`, and belonging
-    /// to the specified `domain`.  Load into the specified `storage` the
-    /// associated queue storage created.
+    /// to the specified `domain`.
     ///
     /// THREAD: Executed by the Client's dispatcher thread.
     virtual void registerQueue(const bmqt::Uri&        uri,
@@ -253,19 +175,113 @@ class StorageManager {
     /// THREAD: Executed by the Client's dispatcher thread.
     virtual void unregisterQueue(const bmqt::Uri& uri, int partitionId) = 0;
 
-    /// Configure the fanout queue having specified `uri` and
-    /// assigned to the specified `partitionId` to have the specified
-    /// `addedIdKeyPairs` appId/appKey pairs added and `removedIdKeyPairs`
-    /// appId/appKey pairs removed.  Return zero on success, and non-zero
-    /// value otherwise.  Behavior is undefined unless this function is
-    /// invoked at the primary node.  Behavior is also undefined unless the
-    /// queue is configured in fanout mode.
+    /// Configure the fanout queue having specified `uri` and assigned to
+    /// the specified `partitionId` to have the specified `addedIdKeyPairs`
+    /// appId/appKey pairs added and `removedIdKeyPairs` appId/appKey pairs
+    /// removed.  Return zero on success, and non-zero value otherwise.
+    /// Behavior is undefined unless this function is invoked at the primary
+    /// node.  Behavior is also undefined unless the queue is configured in
+    /// fanout mode.
     ///
     /// THREAD: Executed by the Queue's dispatcher thread.
     virtual int updateQueuePrimary(const bmqt::Uri& uri,
                                    int              partitionId,
                                    const AppInfos&  addedIdKeyPairs,
                                    const AppInfos&  removedIdKeyPairs) = 0;
+
+    virtual int
+    configureStorage(bsl::ostream&                      errorDescription,
+                     bsl::shared_ptr<mqbi::Storage>*    out,
+                     const bmqt::Uri&                   uri,
+                     const mqbu::StorageKey&            queueKey,
+                     int                                partitionId,
+                     const bsls::Types::Int64           messageTtl,
+                     const int                          maxDeliveryAttempts,
+                     const mqbconfm::StorageDefinition& storageDef) = 0;
+
+    /// Start this storage provider.  Return 0 on success, or a non-zero rc
+    /// otherwise, populating the specified `errorDescription` with a
+    /// description of the error.
+    ///
+    /// THREAD: Executed by the cluster's dispatcher thread.
+    virtual int start(bsl::ostream& errorDescription) = 0;
+
+    /// Stop this storage provider.
+    virtual void stop() = 0;
+
+    /// Executed by any thread.
+    virtual void processShutdownEvent() = 0;
+
+    /// Process the specified storage `command`, and load the outcome in the
+    /// specified `result`.  This function can be invoked from any thread,
+    /// and will block until the potentially asynchronous operation is
+    /// complete.
+    virtual void processCommand(mqbcmd::StorageResult*        result,
+                                const mqbcmd::StorageCommand& command) = 0;
+
+    /// Purge the queues on a given domain.
+    virtual int purgeQueueOnDomain(mqbcmd::StorageResult* result,
+                                   const bsl::string&     domainName) = 0;
+
+    // ACCESSORS
+
+    /// Return the processor handle in charge of the specified
+    /// `partitionId`.  The behavior is undefined if `partitionId` does not
+    /// represent a valid partition id.
+    virtual mqbi::Dispatcher::ProcessorHandle
+    processorForPartition(int partitionId) const = 0;
+
+    /// Return true if the queue having specified `uri` and assigned to the
+    /// specified `partitionId` has no messages, false in any other case.
+    /// Behavior is undefined unless this routine is invoked from cluster
+    /// dispatcher thread.
+    virtual bool isStorageEmpty(const bmqt::Uri& uri,
+                                int              partitionId) const = 0;
+
+    /// Return true if the queue having the specified `uri` and assigned to
+    /// the specified `partitionId` has a registered storage *and*, if the
+    /// specified `appId` is non-empty, that `appId` is registered on it.
+    /// Safe to call from any thread, in particular the cluster dispatcher
+    /// thread.
+    virtual bool hasStorage(const bmqt::Uri&   uri,
+                            const bsl::string& appId,
+                            int                partitionId) const = 0;
+};
+
+// ====================
+// class StorageManager
+// ====================
+
+/// Storage Manager, in charge of all the partitions.
+class StorageManager : public StorageProvider {
+  public:
+    // TYPES
+    typedef mqbi::Storage::AppInfos AppInfos;
+
+    typedef bsl::unordered_set<bsl::string> AppIds;
+    typedef AppIds::iterator                AppIdsIter;
+    typedef AppIds::const_iterator          AppIdsConstIter;
+    typedef bsl::pair<AppIdsIter, bool>     AppIdsInsertRc;
+
+    typedef bsl::shared_ptr<mqbs::ReplicatedStorage> StorageSp;
+
+    typedef bsl::function<
+        void(int partitionId, int status, unsigned int primaryLeaseId)>
+        PartitionPrimaryStatusCb;
+
+  public:
+    // CREATORS
+
+    /// Destructor
+    ~StorageManager() BSLS_KEYWORD_OVERRIDE;
+
+    // MANIPULATORS
+
+    /// Initialize the queue key info map based on information in the specified
+    /// `clusterState`.  Note that this method should only be called once;
+    /// subsequent calls will be ignored.
+    virtual void
+    initializeQueueKeyInfoMap(const mqbc::ClusterState& clusterState) = 0;
 
     /// Behavior is undefined unless the specified 'partitionId' is in range
     /// and the specified 'primaryNode' is not null.
@@ -335,16 +351,6 @@ class StorageManager {
     processReplicaDataRequest(const bmqp_ctrlmsg::ControlMessage& message,
                               mqbnet::ClusterNode*                source) = 0;
 
-    virtual int
-    configureStorage(bsl::ostream&                      errorDescription,
-                     bsl::shared_ptr<mqbi::Storage>*    out,
-                     const bmqt::Uri&                   uri,
-                     const mqbu::StorageKey&            queueKey,
-                     int                                partitionId,
-                     const bsls::Types::Int64           messageTtl,
-                     const int                          maxDeliveryAttempts,
-                     const mqbconfm::StorageDefinition& storageDef) = 0;
-
     /// Executed in cluster dispatcher thread.
     virtual void processStorageEvent(const mqbevt::StorageEvent& event) = 0;
 
@@ -386,53 +392,20 @@ class StorageManager {
                                  mqbnet::ClusterNode*            source,
                                  bmqp_ctrlmsg::NodeStatus::Value status) = 0;
 
-    /// Executed by any thread.
-    virtual void processShutdownEvent() = 0;
-
-    /// Invoke the specified `functor` with each queue associated to the
-    /// partition identified by the specified `partitionId` if that
-    /// partition has been successfully opened.  The behavior is undefined
-    /// unless invoked from the queue thread corresponding to `partitionId`.
-    virtual void applyForEachQueue(int                 partitionId,
-                                   const QueueFunctor& functor) const = 0;
-
-    /// Process the specified `command`, and load the result to the
-    /// Process the specified storage `command`, and load the outcome in the
-    /// specified `result`.  This function can be invoked from any thread, and
-    /// will block until the potentially asynchronous operation is complete.
-    virtual void processCommand(mqbcmd::StorageResult*        result,
-                                const mqbcmd::StorageCommand& command) = 0;
-
     /// GC the queues from unrecognized domains, if any.
     virtual void gcUnrecognizedDomainQueues() = 0;
 
-    /// Purge the queues on a given domain.
-    virtual int purgeQueueOnDomain(mqbcmd::StorageResult* result,
-                                   const bsl::string&     domainName) = 0;
-
     // ACCESSORS
-
-    /// Return the processor handle in charge of the specified
-    /// `partitionId`.  The behavior is undefined if `partitionId` does not
-    /// represent a valid partition id.
-    virtual mqbi::Dispatcher::ProcessorHandle
-    processorForPartition(int partitionId) const = 0;
-
-    /// Return true if the queue having specified `uri` and assigned to the
-    /// specified `partitionId` has no messages, false in any other case.
-    /// Behavior is undefined unless this routine is invoked from cluster
-    /// dispatcher thread.
-    virtual bool isStorageEmpty(const bmqt::Uri& uri,
-                                int              partitionId) const = 0;
 
     /// Return partition corresponding to the specified `partitionId`.  The
     /// behavior is undefined if `partitionId` does not represent a valid
     /// partition id.
     virtual mqbs::FileStore& fileStore(int partitionId) const = 0;
 
-    /// Return a StorageManagerIterator for the specified `partitionId`.
-    virtual bslma::ManagedPtr<StorageManagerIterator>
-    getIterator(int partitionId) const = 0;
+    /// Load into the specified `result` all the storages of the specified
+    /// `partitionId`.
+    virtual void loadAllStorages(bsl::vector<StorageSp>* result,
+                                 int                     partitionId) = 0;
 };
 
 // ============================================================================

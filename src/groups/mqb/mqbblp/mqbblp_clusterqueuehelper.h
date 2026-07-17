@@ -77,7 +77,7 @@ class ClusterQueueHelper;
 class StorageContent;
 }
 namespace mqbi {
-class StorageManager;
+class StorageProvider;
 }
 namespace mqbnet {
 class ClusterNode;
@@ -259,6 +259,22 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
         bsl::vector<bsl::shared_ptr<OpenQueueContext> > d_pending;
         // List of all open queue pending contexts which are awaiting for a
         // next step on the queue (assignment, ...).
+
+        /// A replica-side open-queue call parked in `createQueue` because this
+        /// node's local storage/app for the queue was not yet registered
+        /// (Raft-mode: storage creation is only applied once the underlying
+        /// log entry commits, which can lag the upstream openQueue response).
+        /// Re-attempted in full from `ClusterQueueHelper::onStorageReady` once
+        /// `StorageProvider::hasStorage` reports readiness.
+        struct StoragePendingContext {
+            bsl::shared_ptr<OpenQueueContext> d_context;
+            bmqp_ctrlmsg::OpenQueueResponse   d_openQueueResponse;
+            mqbnet::ClusterNode*              d_upstreamNode;
+        };
+
+        bsl::vector<StoragePendingContext> d_storagePendingContexts;
+        // List of replica-side 'createQueue' calls parked awaiting local
+        // storage/app readiness.  See 'StoragePendingContext'.
 
         bsl::vector<VoidFunctor> d_pendingUpdates;
         // Operations pending QueueUpdate.
@@ -477,11 +493,13 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// Just a shortcut alias to `d_clusterState_p->cluster()`
     mqbi::Cluster* d_cluster_p;
 
-    /// Cluster state manager to use
-    mqbi::ClusterStateManager* d_clusterStateManager_p;
+    /// Cluster state updater to use (legacy: ClusterStateManager, Raft:
+    /// ClusterStateRaft)
+    mqbi::ClusterStateUpdater* d_clusterStateManager_p;
 
-    /// Storage manager to use
-    mqbi::StorageManager* d_storageManager_p;
+    /// Storage provider (legacy: StorageManager, Raft:
+    /// PartitionRaftManager)
+    mqbi::StorageProvider* d_storageManager_p;
 
     /// Map of all queues.
     QueueContextMap d_queues;
@@ -517,19 +535,6 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// Get the next subQueueId for a subStream of the queue corresponding
     /// to the specified `context`.
     unsigned int getNextSubQueueId(const OpenQueueContextSp& context);
-
-    /// Invoked after the specified `partitionId` gets assigned to the
-    /// specified `primary` with the specified `status`.  Note that null is
-    /// a valid value for the `primary`, and it implies that there is no
-    /// primary for that partition.  Also note that this method will be
-    /// invoked when the `primary` or the `status` or both change.
-    ///
-    /// THREAD: This method is invoked in the associated cluster's
-    ///         dispatcher thread.
-    void
-    afterPartitionPrimaryAssignment(int                  partitionId,
-                                    mqbnet::ClusterNode* primary,
-                                    bmqp_ctrlmsg::PrimaryStatus::Value status);
 
     /// If not already assigned, try to assign the queue represented by the
     /// specified `queueContext_sp`, that is give it an id and a partition id.
@@ -995,7 +1000,7 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// `allocator`.
     ClusterQueueHelper(mqbc::ClusterData*         clusterData,
                        mqbc::ClusterState*        clusterState,
-                       mqbi::ClusterStateManager* clusterStateManager,
+                       mqbi::ClusterStateUpdater* clusterStateManager,
                        bslma::Allocator*          allocator);
 
     /// Destructor
@@ -1010,6 +1015,16 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// performed during `initialize` and restore that object to a default
     /// constructed state.
     void teardown();
+
+    /// Re-attempt any replica-side `createQueue` call parked (see
+    /// `QueueLiveState::StoragePendingContext`) on the queue having the
+    /// specified `uri` and assigned to the specified `partitionId`, because
+    /// its local storage/app was not yet ready.  A no-op if there is no such
+    /// queue or no parked context for it.
+    ///
+    /// THREAD: This method is invoked in the associated cluster's dispatcher
+    ///         thread.
+    void onStorageReady(int partitionId, const bmqt::Uri& uri);
 
     /// Initiate the open queue sequence for the queue having the specified
     /// `uri`, on the specified `domain` and using the specified
@@ -1044,9 +1059,14 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     // Only used by Cluster
     // - - - - - - - - - -
 
-    /// Set the storage manager to the specified `value` and return a
+    /// Set the cluster state updater to the specified `value` and return a
     /// reference offering modifiable access to this object.
-    ClusterQueueHelper& setStorageManager(mqbi::StorageManager* value);
+    ClusterQueueHelper&
+    setClusterStateUpdater(mqbi::ClusterStateUpdater* value);
+
+    /// Set the storage provider to the specified `value` and return a
+    /// reference offering modifiable access to this object.
+    ClusterQueueHelper& setStorageManager(mqbi::StorageProvider* value);
 
     /// Process the open queue in the specified `request` received from the
     /// specified `requester`.
@@ -1112,6 +1132,26 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
 
     /// Called upon leader becoming available.
     void onLeaderAvailable();
+
+    /// Called (Raft mode only) upon any peer node becoming available.  A
+    /// peer becoming available may be the primary of a partition for which
+    /// self has buffered open-queue requests that were waiting on that
+    /// primary node's availability, so re-drive queue state restore to
+    /// process them.
+    void onNodeAvailable();
+
+    /// Invoked after the specified `partitionId` gets assigned to the
+    /// specified `primary` with the specified `status`.  Note that null is
+    /// a valid value for the `primary`, and it implies that there is no
+    /// primary for that partition.  Also note that this method will be
+    /// invoked when the `primary` or the `status` or both change.
+    ///
+    /// THREAD: This method is invoked in the associated cluster's
+    ///         dispatcher thread.
+    void
+    afterPartitionPrimaryAssignment(int                  partitionId,
+                                    mqbnet::ClusterNode* primary,
+                                    bmqp_ctrlmsg::PrimaryStatus::Value status);
 
     // ACCESSORS
 
@@ -1402,13 +1442,20 @@ ClusterQueueHelper::loadUpstreamAndGenCount(mqbnet::ClusterNode** upstreamNode,
 }
 
 inline ClusterQueueHelper&
-ClusterQueueHelper::setStorageManager(mqbi::StorageManager* value)
+ClusterQueueHelper::setStorageManager(mqbi::StorageProvider* value)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!value || !d_storageManager_p);
     // Prevent setting it twice, but allow to unset.
 
     d_storageManager_p = value;
+    return *this;
+}
+
+inline ClusterQueueHelper&
+ClusterQueueHelper::setClusterStateUpdater(mqbi::ClusterStateUpdater* value)
+{
+    d_clusterStateManager_p = value;
     return *this;
 }
 

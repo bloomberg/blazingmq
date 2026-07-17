@@ -230,13 +230,6 @@ void StorageManager::processShutdownEvent()
     // NOTHING
 }
 
-void StorageManager::applyForEachQueue(
-    BSLA_MAYBE_UNUSED int                 partitionId,
-    BSLA_MAYBE_UNUSED const QueueFunctor& functor) const
-{
-    // NOTHING
-}
-
 void StorageManager::processCommand(
     BSLA_MAYBE_UNUSED mqbcmd::StorageResult* result,
     BSLA_MAYBE_UNUSED const mqbcmd::StorageCommand& command)
@@ -269,16 +262,24 @@ bool StorageManager::isStorageEmpty(BSLA_MAYBE_UNUSED const bmqt::Uri& uri,
     return true;
 }
 
+bool StorageManager::hasStorage(BSLA_MAYBE_UNUSED const bmqt::Uri& uri,
+                                BSLA_MAYBE_UNUSED const bsl::string& appId,
+                                BSLA_MAYBE_UNUSED int partitionId) const
+{
+    return true;
+}
+
 mqbs::FileStore&
 StorageManager::fileStore(BSLA_MAYBE_UNUSED int partitionId) const
 {
     BSLS_ASSERT_INVOKE_NORETURN("Unimplemented");
 }
 
-bslma::ManagedPtr<mqbi::StorageManagerIterator>
-StorageManager::getIterator(BSLA_MAYBE_UNUSED int partitionId) const
+void StorageManager::loadAllStorages(
+    BSLA_MAYBE_UNUSED bsl::vector<StorageSp>* result,
+    BSLA_MAYBE_UNUSED int                     partitionId)
 {
-    return bslma::ManagedPtr<mqbi::StorageManagerIterator>();
+    // NOTHING
 }
 
 }  // close package namespace

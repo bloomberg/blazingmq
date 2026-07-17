@@ -87,7 +87,7 @@ namespace mqbi {
 class Storage;
 }
 namespace mqbi {
-class StorageManager;
+class StorageProvider;
 }
 namespace mqbstat {
 class QueueStatsDomain;
@@ -171,7 +171,7 @@ class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
           const mqbu::StorageKey&                   key,
           int                                       partitionId,
           mqbi::Domain*                             domain,
-          mqbi::StorageManager*                     storageManager,
+          mqbi::StorageProvider*                    storageManager,
           const mqbi::ClusterResources&             resources,
           bdlmt::FixedThreadPool*                   threadPool,
           const bmqp_ctrlmsg::RoutingConfiguration& routingCfg,

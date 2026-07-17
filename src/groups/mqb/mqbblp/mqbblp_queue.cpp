@@ -341,7 +341,12 @@ void Queue::closeDispatched(const bsl::function<void(void)>& callback)
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(inDispatcherThread());
 
-    queueEngine()->close();
+    // The engine may not exist if the queue is being torn down after a failed
+    // 'configure' (e.g. a RemoteQueue whose storage could not be retrieved):
+    // in that case there is nothing to close on the engine.
+    if (mqbi::QueueEngine* engine = queueEngine()) {
+        engine->close();
+    }
 
     if (d_localQueue_mp) {
         d_localQueue_mp->close();
@@ -524,7 +529,7 @@ Queue::Queue(const bmqt::Uri&                          uri,
              const mqbu::StorageKey&                   key,
              int                                       partitionId,
              mqbi::Domain*                             domain,
-             mqbi::StorageManager*                     storageManager,
+             mqbi::StorageProvider*                    storageManager,
              const mqbi::ClusterResources&             resources,
              bdlmt::FixedThreadPool*                   threadPool,
              const bmqp_ctrlmsg::RoutingConfiguration& routingCfg,
@@ -682,6 +687,15 @@ void Queue::onReplicatedBatch()
 
     if (d_localQueue_mp) {
         d_localQueue_mp->deliverIfNeeded();
+    }
+    else if (d_remoteQueue_mp) {
+        // A replica relaying to downstream consumers: a just-committed message
+        // may be parked in the relay push stream awaiting its receipt (its
+        // PUSH arrived before the Raft commit).  Re-drive delivery so the now
+        // receipted message is pushed downstream.
+        if (d_remoteQueue_mp->queueEngine()) {
+            d_remoteQueue_mp->queueEngine()->afterNewMessage();
+        }
     }
 }
 

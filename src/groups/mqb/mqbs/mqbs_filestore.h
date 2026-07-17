@@ -20,7 +20,6 @@
 //
 //@CLASSES:
 //  mqbs::FileStore:         File-backed BlazingMQ data store.
-//  mqbs::FileStoreIterator: Iterator over records in a 'mqbs::FileStore'
 //
 //@SEE ALSO: mqbs::FileStoreProtocol
 //
@@ -119,11 +118,18 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("MQBS.FILESTORE");
 
-    // FRIENDS
-    friend class FileStoreIterator;
-
   public:
     // TYPES
+
+    /// Rollover requirement of the active file set for a pending write, as
+    /// computed by `primaryRolloverNeed`.
+    enum RolloverNeed {
+        e_ROLLOVER_NONE   = 0,   // active file set has room; write directly
+        e_ROLLOVER_NEEDED = 1,   // out of room; a rollover will reclaim
+                                 // enough space to satisfy the policy
+        e_ROLLOVER_READONLY = 2  // out of room, but a rollover cannot reclaim
+                                 // enough space -- the partition is full
+    };
 
     typedef bmqp::BlobPoolUtil::BlobSpPool BlobSpPool;
 
@@ -144,8 +150,98 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     typedef SyncPointOffsetPairs::const_iterator SyncPointOffsetConstIter;
 
-    /// Type of the functor required by `applyForEachQueue`.
-    typedef bsl::function<void(mqbi::Queue*)> QueueFunctor;
+    /// VST holding all parameters for the Raft primary message write path.
+    /// Input fields are set by 'PartitionRaft' before calling
+    /// 'formatMessageRecord'; output fields are filled in by
+    /// 'formatMessageRecord'.
+    struct PendingWrite {
+        // INPUT — common
+        bsls::Types::Uint64              d_id;
+        RecordType::Enum                 d_recordType;
+        SyncPointType::Enum              d_syncPointType;  // e_JOURNAL_OP only
+        bsls::Types::Uint64              d_primaryLeaseId;
+        bsls::Types::Uint64              d_sequenceNumber;
+        mqbu::StorageKey                 d_queueKey;
+
+        // INPUT — e_MESSAGE
+        mqbi::StorageMessageAttributes d_attributes;
+
+        DataStoreRecordHandle            d_handle;
+        bmqt::MessageGUID                d_guid;
+        bsl::shared_ptr<bdlbb::Blob>     d_appData;
+        bsl::shared_ptr<bdlbb::Blob>     d_options;
+
+        // INPUT — e_QUEUE_OP (creation)
+        bmqt::Uri                        d_queueUri;
+        const AppInfos*                  d_appIdKeyPairs_p;
+        bsls::Types::Uint64              d_timestamp;
+        bool                             d_isNewQueue;
+
+        // INPUT — e_CONFIRM / e_DELETION / e_QUEUE_OP (purge, deletion)
+        mqbu::StorageKey         d_appKey;
+        ConfirmReason::Enum      d_confirmReason;        // e_CONFIRM
+        DeletionRecordFlag::Enum d_deletionFlag;         // e_DELETION
+        QueueOpType::Enum        d_queueOpType;          // e_QUEUE_OP
+        unsigned int             d_startPrimaryLeaseId;  // e_PURGE
+        bsls::Types::Uint64      d_startSequenceNumber;  // e_PURGE
+
+        // OUTPUT (set by formatMessageRecord / formatQueueCreationRecord)
+        bsls::Types::Uint64              d_journalOffset;
+        bsls::Types::Uint64              d_dataOffset;
+        bsl::shared_ptr<bdlbb::Blob>     d_entryBlob;
+        bsls::Types::Uint64              d_qlistOffset;
+        unsigned int                     d_qlistRecTotalLength;
+
+        PendingWrite();
+
+        /// Message record constructor.
+        PendingWrite(mqbi::StorageMessageAttributes*     attributes,
+                     const bmqt::MessageGUID&            guid,
+                     const bsl::shared_ptr<bdlbb::Blob>& appData,
+                     const bsl::shared_ptr<bdlbb::Blob>& options,
+                     const mqbu::StorageKey&             queueKey);
+
+        /// Queue creation record constructor.
+        PendingWrite(const bmqt::Uri&        queueUri,
+                     const mqbu::StorageKey& queueKey,
+                     const AppInfos*         appIdKeyPairs,
+                     bsls::Types::Uint64     timestamp,
+                     bool                    isNewQueue);
+
+        /// Sync-point record constructor.  'd_primaryLeaseId' (term) and
+        /// 'd_sequenceNumber' (index) are filled in by
+        /// 'PartitionRaftLog::append'.
+        explicit PendingWrite(SyncPointType::Enum syncPointType);
+
+        /// Confirm record constructor.
+        PendingWrite(const bmqt::MessageGUID& guid,
+                     const mqbu::StorageKey&  queueKey,
+                     const mqbu::StorageKey&  appKey,
+                     bsls::Types::Uint64      timestamp,
+                     ConfirmReason::Enum      reason);
+
+        /// Message-deletion record constructor.
+        PendingWrite(const bmqt::MessageGUID& guid,
+                     const mqbu::StorageKey&  queueKey,
+                     DeletionRecordFlag::Enum deletionFlag,
+                     bsls::Types::Uint64      timestamp);
+
+        /// Queue-op (purge/deletion) record constructor.  For a purge,
+        /// 'startPrimaryLeaseId' / 'startSequenceNumber' identify the start
+        /// position; for a deletion they are 0.
+        PendingWrite(QueueOpType::Enum       queueOpType,
+                     const mqbu::StorageKey& queueKey,
+                     const mqbu::StorageKey& appKey,
+                     bsls::Types::Uint64     timestamp,
+                     unsigned int            startPrimaryLeaseId,
+                     bsls::Types::Uint64     startSequenceNumber);
+
+        /// Return this object to a clean default state, releasing any owned
+        /// blobs/attributes/handle and zeroing scalars.  Required by the
+        /// `bdlcc::SharedObjectPool` `Reset` functor so a pooled object is
+        /// clean when reused.
+        void reset();
+    };
 
     typedef bsl::shared_ptr<FileSet> FileSetSp;
     typedef bsl::vector<FileSetSp>   FileSets;
@@ -160,15 +256,9 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
                                                LeaseIdToSeqNumMap;
     typedef LeaseIdToSeqNumMap::const_iterator LeaseIdToSeqNumMapCIter;
 
-  private:
-    // PRIVATE TYPES
-    typedef DataStoreConfig::Records             Records;
-    typedef DataStoreConfig::RecordIterator      RecordIterator;
-    typedef DataStoreConfig::RecordConstIterator RecordConstIterator;
-
-    typedef bsl::pair<RecordIterator, bool> InsertRc;
-
-    /// Counter for the number of messages and bytes in a queue
+    /// Counter for the number of messages and bytes in a queue.  Public
+    /// because 'writeRolledOverRecord'/'writeRolledOverRecords' (used by
+    /// the Raft rollover orchestration in 'PartitionRaftLog') take it.
     typedef bsl::pair<unsigned int, bsls::Types::Uint64> MessageByteCounter;
 
     typedef bsl::unordered_map<mqbu::StorageKey,
@@ -181,6 +271,14 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     typedef bsl::vector<bsl::pair<mqbu::StorageKey, MessageByteCounter> >
                                                 QueueKeyCounterList;
     typedef QueueKeyCounterList::const_iterator QueueKeyCounterListCIter;
+
+  private:
+    // PRIVATE TYPES
+    typedef DataStoreConfig::Records             Records;
+    typedef DataStoreConfig::RecordIterator      RecordIterator;
+    typedef DataStoreConfig::RecordConstIterator RecordConstIterator;
+
+    typedef bsl::pair<RecordIterator, bool> InsertRc;
 
     typedef bdlmt::EventScheduler::RecurringEventHandle RecurringEventHandle;
 
@@ -349,6 +447,8 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     StoragesMap d_storages;
     // Map [QueueKey->ReplicatedStorage*]
 
+    StorageMonitor* d_storageMonitor_p;
+
     bdlmt::Throttle d_alarmSoftLimiter;
     // Throttler for alarming on soft
     // limits of partition files
@@ -455,8 +555,9 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// be treated as fatal.  Also note that file store will attempt to
     /// recover any outstanding messages from the files found at the
     /// location indicated by the configuration of this instance.
-    int openInRecoveryMode(bsl::ostream&    errorDescription,
-                           QueueKeyInfoMap* queueKeyInfoMap);
+    int openInRecoveryMode(bsl::ostream&                   errorDescription,
+                           QueueKeyInfoMap*                queueKeyInfoMap,
+                           bsl::deque<RecoveryRecordInfo>* recoveryIndex = 0);
 
     /// Make two passes over the journal file iterator `jit` in reverse
     /// iteration.
@@ -477,14 +578,15 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// undefined unless the journal iterator `jit` is in reverse mode.
     ///
     /// WARNING: This method invalidates all iterators.
-    int recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
-                        bsls::Types::Uint64* journalOffset,
-                        bsls::Types::Uint64* qlistOffset,
-                        bsls::Types::Uint64* dataOffset,
-                        JournalFileIterator* jit,
-                        QlistFileIterator*   qit,
-                        DataFileIterator*    dit,
-                        bool                 withCSL);
+    int recoverMessages(QueueKeyInfoMap*                queueKeyInfoMap,
+                        bsls::Types::Uint64*            journalOffset,
+                        bsls::Types::Uint64*            qlistOffset,
+                        bsls::Types::Uint64*            dataOffset,
+                        JournalFileIterator*            jit,
+                        QlistFileIterator*              qit,
+                        DataFileIterator*               dit,
+                        bool                            withCSL,
+                        bsl::deque<RecoveryRecordInfo>* recoveryIndex = 0);
 
     /// Rollover the outstanding messages belonging to the storages mapped
     /// to this file store, from active file set into the rollover file set,
@@ -493,10 +595,6 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// implementation, this routine has no side-effect in case of failure.
     int rolloverImpl(bsls::Types::Uint64 timestamp);
 
-    /// If the specified `fileInfo` cannot accommodate the specified
-    /// `requestedSpace`, roll over.  Return zero on success, non-zero value
-    /// otherwise.  Note that in case roll over is not needed, zero is
-    /// returned.
     int rolloverIfNeeded(FileType::Enum           fileType,
                          const FileSet::FileInfo& fileInfo,
                          bsls::Types::Uint64      requestedSpace);
@@ -526,15 +624,6 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
                                 bsls::Types::Uint64     timestamp,
                                 unsigned int            startPrimaryLeaseId,
                                 bsls::Types::Uint64     startSequenceNum);
-
-    /// Rollover over the specified `record` from `oldFileSet` to the
-    /// `newFileSet`, and if it is a message record, update the counter of
-    /// the corresponding queue by one in the specified
-    /// `queueKeyCounterMap`.
-    void writeRolledOverRecord(DataStoreRecord*    record,
-                               QueueKeyCounterMap* queueKeyCounterMap,
-                               FileSet*            oldFileSet,
-                               FileSet*            newFileSet);
 
     /// Issue a sync point.
     ///
@@ -648,8 +737,20 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     void insertDataStoreRecord(DataStoreRecordHandle*    handle,
                                const DataStoreRecordKey& key,
                                const DataStoreRecord&    record);
-    void recordIteratorToHandle(DataStoreRecordHandle* handle,
-                                const RecordIterator   recordIt);
+
+    /// Bind the specified `record` (with all offsets filled in by a
+    /// `format*Record`) to `d_records` under the specified `key`, updating
+    /// the specified `pw`'s handle to identify it.  If `pw->d_handle` is
+    /// already valid it refers to a *placeholder* record previously created
+    /// by `reservePendingRecord` (Raft on-commit-rollover drain): update that
+    /// entry in place (preserving its `d_hasReceipt`) rather than inserting a
+    /// new one, so the handle already returned to the caller stays valid.
+    /// Otherwise insert a fresh entry (the normal, non-buffered path).
+    void bindOrUpdateRecord(PendingWrite*             pw,
+                            const DataStoreRecordKey& key,
+                            const DataStoreRecord&    record);
+
+    const RecordIterator& handleTorRecordIterator(const DataStoreRecordHandle& handle) const;
 
     /// Replicate a record having the specified `messageType` and
     /// `recordOffset`, insert a corresponding record having the specified
@@ -667,9 +768,6 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     void flushIfNeeded(bool immediateFlush);
 
     // PRIVATE ACCESSORS
-
-    /// Return a brief description of the partition for logging purposes.
-    const bsl::string& partitionDesc() const;
 
     /// Return true if the specified BlazingMQ `file` needs to be rollover
     /// if it is desired to write data of specified `length` at the
@@ -711,6 +809,7 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
               bool                    isFSMWorkflow,
               bool                    doesFSMwriteQLIST,
               int                     replicationFactor,
+              StorageMonitor*         storageMonitor,
               bslma::Allocator*       allocator);
 
     /// Destroy this instance.  The behavior is undefined unless this
@@ -755,13 +854,20 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     /// Execute the specified `functor`, using the `e_CALLBACK` event
     /// type, in the processor associated to this object.
-    void execute(const mqbi::Dispatcher::VoidFunction& functor);
+    void execute(const mqbi::Dispatcher::VoidFunction& functor)
+        BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
 
     /// Open this instance using the optionally specified `queueKeyInfoMap`.
     /// Return zero on success, non-zero value otherwise.
     int open(QueueKeyInfoMap* queueKeyInfoMap) BSLS_KEYWORD_OVERRIDE;
+
+    /// Open this instance for Raft mode.  Populate the specified
+    /// `recoveryIndex` with a `RecoveryRecordInfo` for every journal
+    /// record after the rollover boundary, in forward order.  Return zero
+    /// on success, non-zero value otherwise.
+    int openForRaft(bsl::deque<RecoveryRecordInfo>* recoveryIndex);
 
     /// Close this instance.  If the optional `flush` flag is true, flush
     /// the data store to disk.  If the optional `archive` flag is true,
@@ -843,7 +949,288 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
                         bsls::Types::Uint64 timestamp) BSLS_KEYWORD_OVERRIDE;
 
     int writeSyncPointRecord(const bmqp_ctrlmsg::SyncPoint& syncPoint,
-                             SyncPointType::Enum type) BSLS_KEYWORD_OVERRIDE;
+                             SyncPointType::Enum            type,
+                             unsigned int                   primaryLeaseId,
+                             bsls::Types::Uint64            sequenceNumber)
+        BSLS_KEYWORD_OVERRIDE;
+
+    /// Raft integration
+    /// -----------------
+
+    /// Write a pre-formatted record to the appropriate mmap files and load
+    /// its physical metadata (journal offset, data/qlist offset, record type,
+    /// and record handle) into the specified 'info'.  'data' contains the
+    /// journal record (and, on the replica path, the payload appended after
+    /// it).  On the primary path the optionally specified 'payload' carries
+    /// the data-file or qlist content separately, avoiding an intermediate
+    /// combined blob; when 'payload' is null the payload bytes are read from
+    /// 'data' starting after the journal record.  'info's sequence number and
+    /// primary lease id are owned by the Raft layer and are *not* touched
+    /// here.  Update file positions and insert into 'd_records'.  Return 0 on
+    /// success, non-zero on error.
+    int writeFormattedRecord(const bdlbb::Blob&  data,
+                             RecoveryRecordInfo* info);
+
+    /// Notify that a record has been committed by Raft quorum on a replica.
+    /// The specified `data` blob contains the journal record (and optional
+    /// payload).  The specified `handle` identifies the record in
+    /// `d_records`.  Read queueKey/guid from the blob, look up the
+    /// storage, and call the appropriate `ReplicatedStorage::process*`
+    /// method.
+    void onRecordCommittedReplica(const bdlbb::Blob&           data,
+                                  const DataStoreRecordHandle& handle);
+
+    /// Drop this FileStore's (raw) references to the partition's storages.
+    /// Invoked on a Raft snapshot install after the `storageMonitor` has
+    /// destroyed the storage objects (`onStoragesCleared`): the raw pointers
+    /// in `d_storages` are now dangling and must not be looked up until the
+    /// reopen re-registers fresh storages.
+    void clearStorages();
+
+    /// Reconstruct the queue URI and appId/appKey pairs of a locally-written,
+    /// Raft-committed `e_QUEUE_OP` (CREATION or ADDITION) record identified by
+    /// the specified `handle`, by reading the local journal (for the QLIST
+    /// offset patched in at append time) and local QLIST file.  Load the
+    /// results into the specified `uri` and `appIdKeyPairs`.  Return 0 on
+    /// success, and a non-zero value if the local QLIST record cannot be read
+    /// (e.g. this node is not QLIST-aware).
+    int loadQueueCreationInfo(bmqt::Uri*                   uri,
+                              AppInfos*                    appIdKeyPairs,
+                              const DataStoreRecordHandle& handle) const;
+
+    /// Notify that the record described by the specified 'pw' has been
+    /// committed by Raft quorum on the primary.  For a MESSAGE record, mark
+    /// its handle as receipted and, if the queue still exists, invoke
+    /// 'queue->onReceipt()'.  Non-MESSAGE records produce no handle and are
+    /// ignored.
+    void onRecordCommittedPrimary(PendingWrite& pw);
+
+    /// Read the record at the specified 'journalOffset' (and any
+    /// associated data payload) into the specified 'out' blob using
+    /// zero-copy aliased BlobBuffers from the mmap'd files.  Return 0 on
+    /// success, non-zero on error.
+    int readRecord(bsl::shared_ptr<bdlbb::Blob>* out,
+                   bsls::Types::Uint64           journalOffset) const;
+
+    /// Truncate the journal file at the specified 'offset'.  Return 0 on
+    /// success, non-zero on error.
+    int truncateJournal(bsls::Types::Uint64 offset);
+
+    /// Truncate the data file at the specified 'offset'.  Return 0 on
+    /// success, non-zero on error.
+    int truncateData(bsls::Types::Uint64 offset);
+
+    /// Truncate the qlist file at the specified 'offset'.  A no-op returning
+    /// 0 when this partition is not qlist-aware.  Return 0 on success,
+    /// non-zero on error.
+    int truncateQlist(bsls::Types::Uint64 offset);
+
+    /// Remove from 'd_records' all entries whose journal offset is at or
+    /// above the specified 'journalOffset'.  Reverse-walks from the tail,
+    /// relying on the monotonic relationship between sequence numbers and
+    /// journal offsets.
+    void truncateRecords(bsls::Types::Uint64 journalOffset);
+
+    /// Look up the record identified by the specified 'primaryLeaseId' and
+    /// 'sequenceNumber' in d_records.  Load the journal offset into the
+    /// specified 'journalOffset' and the data/qlist offset into the
+    /// specified 'dataOffset' (0 if not applicable).  Return 0 on
+    /// success, non-zero if not found.
+    int lookupRecord(bsls::Types::Uint64* journalOffset,
+                     bsls::Types::Uint64* dataOffset,
+                     unsigned int         primaryLeaseId,
+                     bsls::Types::Uint64  sequenceNumber) const;
+
+    /// Raft on-commit-rollover buffering: reserve a *placeholder*
+    /// `DataStoreRecord` in `d_records` keyed by the specified
+    /// `primaryLeaseId` and `sequenceNumber`, with a placeholder offset (0),
+    /// `d_hasReceipt = false`, and the specified `recordType`; load into the
+    /// specified `handleOut` an iterator to the reserved entry.  The physical
+    /// offsets are patched in later by `bindOrUpdateRecord` when the buffered
+    /// write drains into the new file after rollover.  Because the underlying
+    /// container keeps iterators/references stable across inserts, the handle
+    /// returned here can be handed to the caller immediately and remains valid
+    /// until the drain patches (or `dropPendingRecord` erases) the entry.
+    void reservePendingRecord(PendingWrite*       pw,
+                              unsigned int        primaryLeaseId,
+                              bsls::Types::Uint64 sequenceNumber,
+                              RecordType::Enum    recordType);
+
+    /// Erase the placeholder `DataStoreRecord` identified by the specified
+    /// `handle` (previously created by `reservePendingRecord`).  Used to clean
+    /// up buffered writes that are dropped without being committed (e.g. on
+    /// leadership loss).  No-op if `handle` is invalid.
+    void dropPendingRecord(const DataStoreRecordHandle& handle);
+
+    /// Raft primary path: write a message record directly to mmap using the
+    /// input fields of the specified 'pw'.  No StorageEvent replication is
+    /// performed.  Fills 'pw->d_journalOffset', 'pw->d_dataOffset',
+    /// 'pw->d_entryBlob' (zero-copy mmap alias), and 'pw->d_handle'.
+    int formatMessageRecord(PendingWrite* pw);
+
+    /// Raft primary path: write a queue creation record (journal + qlist)
+    /// directly to mmap using the input fields of the specified 'pw'
+    /// (d_queueUri, d_queueKey, d_appIdKeyPairs_p, d_timestamp,
+    /// d_isNewQueue).  Fills 'pw->d_journalOffset', 'pw->d_entryBlob'
+    /// (journal record + qlist bytes), and 'pw->d_handle'.
+    int formatQueueCreationRecord(PendingWrite* pw);
+
+    /// Raft primary path: write a regular sync-point journal record directly
+    /// to mmap for the specified 'pw' (using its 'd_primaryLeaseId' = term and
+    /// 'd_sequenceNumber' = index for the record header PSN, and the active
+    /// file set's current offsets).  Fills 'pw->d_journalOffset' and
+    /// 'pw->d_entryBlob' (zero-copy mmap alias of the journal record).
+    int formatSyncPointRecord(PendingWrite* pw);
+
+    /// Raft primary path: write a confirm record (journal only) directly to
+    /// mmap using the input fields of the specified 'pw' (d_queueKey,
+    /// d_appKey, d_guid, d_timestamp, d_confirmReason), stamping the record
+    /// header PSN from 'pw->d_primaryLeaseId' / 'pw->d_sequenceNumber'.  Fills
+    /// 'pw->d_journalOffset', 'pw->d_entryBlob' (zero-copy mmap alias of the
+    /// journal record), and 'pw->d_handle'.
+    int formatConfirmRecord(PendingWrite* pw);
+
+    /// Raft primary path: write a message-deletion record (journal only)
+    /// directly to mmap using the input fields of the specified 'pw'
+    /// (d_queueKey, d_guid, d_timestamp, d_deletionFlag), stamping the record
+    /// header PSN from 'pw->d_primaryLeaseId' / 'pw->d_sequenceNumber'.  Fills
+    /// 'pw->d_journalOffset' and 'pw->d_entryBlob' (zero-copy mmap alias of
+    /// the journal record).  Does not produce a handle (no DataStoreRecord).
+    int formatDeletionRecord(PendingWrite* pw);
+
+    /// Raft primary path: write a queue-purge record (journal only) directly
+    /// to mmap using the input fields of the specified 'pw' (d_queueKey,
+    /// d_appKey, d_timestamp, d_startPrimaryLeaseId, d_startSequenceNumber),
+    /// stamping the record header PSN from 'pw->d_primaryLeaseId' /
+    /// 'pw->d_sequenceNumber'.  Fills 'pw->d_journalOffset', 'pw->d_entryBlob'
+    /// (zero-copy mmap alias of the journal record), and 'pw->d_handle'.
+    int formatQueuePurgeRecord(PendingWrite* pw);
+
+    /// Raft primary path: write a queue-deletion record (journal only)
+    /// directly to mmap using the input fields of the specified 'pw'
+    /// (d_queueKey, d_appKey, d_timestamp), stamping the record header PSN
+    /// from 'pw->d_primaryLeaseId' / 'pw->d_sequenceNumber'.  Fills
+    /// 'pw->d_journalOffset', 'pw->d_entryBlob' (zero-copy mmap alias of the
+    /// journal record), and 'pw->d_handle'.
+    int formatQueueDeletionRecord(PendingWrite* pw);
+
+    /// Rollover the specified `record` from `oldFileSet` to the `newFileSet`,
+    /// and if it is a message record, update the counter of the corresponding
+    /// queue by one in the specified `queueKeyCounterMap`.  The record is
+    /// copied from the current active (front) file set into the specified
+    /// `newFileSet`, and `record`'s offsets are updated in place to the new
+    /// file set.  The behavior is undefined unless `record` is not a
+    /// JOURNAL_OP record.  (Public so the Raft rollover orchestration in
+    /// `PartitionRaftLog` can drive the copy loop itself, in strict index
+    /// order.)
+    void writeRolledOverRecord(DataStoreRecord*    record,
+                               QueueKeyCounterMap* queueKeyCounterMap,
+                               FileSet*            newFileSet);
+
+    /// Copy every outstanding record in `d_records` whose sequence number is
+    /// at most the specified `maxSequenceNum` into the specified `newFileSet`
+    /// (via `writeRolledOverRecord`), accumulating per-queue counters into
+    /// the specified `queueKeyCounterMap`.  Used for the committed-prefix
+    /// portion of a rollover; the uncommitted tail is driven separately by
+    /// the caller in strict index order.  Legacy `rolloverImpl` calls this
+    /// with `sequenceNumber()` (the current/highest sequence number) to copy
+    /// all outstanding records.
+    void writeRolledOverRecords(FileSet*            newFileSet,
+                                    QueueKeyCounterMap* queueKeyCounterMap,
+                                    bsls::Types::Uint64 maxSequenceNum);
+
+    /// Copy the single `JournalOpRecord` (sync point) located at the
+    /// specified `oldJournalOffset` in the current active (front, old) file
+    /// set's journal into the specified `newFileSet`'s journal at its current
+    /// position, bump that position, and return the new journal offset of the
+    /// copied record.  Sync points carry no data/qlist payload and are not
+    /// counted in outstanding bytes (matching
+    /// `writeFirstSyncPointAfterRollover` and `formatSyncPointRecord`).  The
+    /// behavior is undefined unless the record at `oldJournalOffset` is a
+    /// `JournalOpRecord`.  Used by the Raft rollover orchestration to relocate
+    /// the (journal-op only) log tail that a leadership change can leave after
+    /// `e_ROLLOVER`.
+    bsls::Types::Uint64
+    writeRolledOverJournalOpRecord(FileSet*            newFileSet,
+                                   bsls::Types::Uint64 oldJournalOffset);
+
+    /// Create and open a new file set to receive the rolled-over records,
+    /// loading it into the specified `newFileSet` (BlazingMQ and
+    /// file-specific headers are written).  Return zero on success and a
+    /// non-zero value otherwise.  This is the "prepare" step of a rollover:
+    /// it is invoked both by legacy `rolloverImpl` and (public) by the Raft
+    /// rollover orchestration in `PartitionRaftLog`, which then drives the
+    /// record-copy loop and `writeFirstSyncPointAfterRollover` itself.
+    int prepareRolloverFileSet(FileSetSp* newFileSet);
+
+    /// Write the first (marker) sync point into the JOURNAL of the specified
+    /// `newFileSet` at the end of a rollover, deriving its PSN and
+    /// `primaryNodeId` from the `e_ROLLOVER` sync point located at the
+    /// specified `rolloverSyncPointOffset` in the current active (front) file
+    /// set, using the new file's positions for the DATA/QLIST offsets, and
+    /// stamping the specified `timestamp`.  This updates
+    /// `JournalFileHeader.d_firstSyncPointAfterRolloverOffset` (whose non-zero
+    /// value marks the rollover as successfully finished, aiding crash
+    /// recovery) and resets `d_syncPoints` to hold only this marker.  This
+    /// must be the last write to occur in a rollover.  Legacy `rolloverImpl`
+    /// passes `d_syncPoints.back().offset()`; the Raft orchestration passes
+    /// the old-file offset of the `e_ROLLOVER` log entry (`d_syncPoints` is
+    /// not maintained on the Raft write path).
+    void writeFirstSyncPointAfterRollover(
+        FileSet*            newFileSet,
+        bsls::Types::Uint64 rolloverSyncPointOffset,
+        bsls::Types::Uint64 timestamp);
+
+    /// Complete a rollover once the specified `newActiveFileSetSp` has been
+    /// fully populated: truncate the current active (old, front) file set,
+    /// garbage-collect it if it holds no outstanding aliased references
+    /// (otherwise drop its aliased chunk), insert `newActiveFileSetSp` as the
+    /// new front of `d_fileSets`, and schedule deletion of any archived file
+    /// sets.  (Public so the Raft rollover orchestration in `PartitionRaftLog`
+    /// can drive it itself.)
+    void finalizeRolloverFileSet(const FileSetSp& newActiveFileSetSp);
+
+    /// Log a per-queue summary (message and byte counts) of a rollover from
+    /// the specified `queueKeyCounterMap` accumulated by
+    /// `writeRolledOverRecord`.
+    void logRolloverQueueSummary(const QueueKeyCounterMap& queueKeyCounterMap);
+
+    /// Return the record-header timestamp of the JournalOpRecord located at
+    /// the specified `journalOffset` in the current active (front) file
+    /// set's journal.  Read-only; no side effects.  (Used by the Raft
+    /// rollover orchestration to stamp the rollover marker with the
+    /// `e_ROLLOVER` record's own timestamp.)
+    bsls::Types::Uint64
+    journalOpTimestampAt(bsls::Types::Uint64 journalOffset) const;
+
+    /// Return the rollover requirement of the active (front) file set for a
+    /// write that will consume the specified additional `dataBytes` and
+    /// `qlistBytes` (the JOURNAL reserve for the next common record is always
+    /// accounted for; pass 0 where DATA/QLIST are not applicable):
+    /// * `e_ROLLOVER_NONE`     the file set has physical room; write directly.
+    /// * `e_ROLLOVER_NEEDED`   a file is out of room and a rollover will leave
+    ///                         at least the configured minimum available space
+    ///                         in every file; the caller should roll over.
+    /// * `e_ROLLOVER_READONLY` a file is out of room but a rollover cannot
+    ///                         reclaim enough space (outstanding records
+    ///                         exceed the policy threshold).  As a side effect
+    ///                         the partition is marked read-only and the
+    ///                         `PARTITION_READONLY` panic is emitted once per
+    ///                         file set; the caller should refuse (NACK) the
+    ///                         write.
+    /// Merges the physical capacity check and the rollover space policy of the
+    /// legacy `rolloverIfNeeded`; used by the Raft write path.
+    RolloverNeed primaryRolloverNeed(bsls::Types::Uint64 dataBytes,
+                                     bsls::Types::Uint64 qlistBytes);
+
+    /// Return `true` if the active (front) file set's journal still has room
+    /// to write one more record without encroaching on the space reserved for
+    /// sync points, i.e. a full-queue PURGE record can be written into the
+    /// reserved PURGE area even when the journal is otherwise full.  Has no
+    /// side effects.  Mirrors the `useSyncPointReservedArea` guard in the
+    /// legacy `writeQueueOpRecord`; used by the Raft write path to recover a
+    /// read-only partition via a full purge.
+    bool primaryHasPurgeReserve() const;
 
     /// Remove the record identified by the specified `handle`.  The
     /// behavior is undefined unless `handle` is valid and represents a
@@ -890,7 +1277,8 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// as the active primary for this data store partition.  Note that
     /// `primaryNode` could refer to the node which owns this data store.
     void setActivePrimary(mqbnet::ClusterNode* primaryNode,
-                          unsigned int primaryLeaseId) BSLS_KEYWORD_OVERRIDE;
+                          unsigned int         primaryLeaseId,
+                          bool isRaft = false) BSLS_KEYWORD_OVERRIDE;
 
     /// Clear the current primary associated with this partition.
     void clearPrimary() BSLS_KEYWORD_OVERRIDE;
@@ -905,21 +1293,41 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// undefined unless this cluster node is the primary for this partition.
     void notifyQueuesOnReplicatedBatch();
 
-    /// Invoke the specified `functor` with each queue associated to the
-    /// partition represented by this FileStore if the partition was
-    /// successfully opened.  The behavior is undefined unless invoked from
-    /// the queue thread corresponding to this partition.
-    void applyForEachQueue(const QueueFunctor& functor) const;
-
     /// mqbs::FileStore specific MANIPULATORS
 
     /// Perform complete rollover of this partition and issue necessary sync
     /// points.
-    int rollover();
+    int rollover() BSLS_KEYWORD_OVERRIDE;
 
-    void registerStorage(ReplicatedStorage* storage);
+    void registerStorage(ReplicatedStorage* storage) BSLS_KEYWORD_OVERRIDE;
 
-    void unregisterStorage(const ReplicatedStorage* storage);
+    void unregisterStorage(const ReplicatedStorage* storage)
+        BSLS_KEYWORD_OVERRIDE;
+
+    StorageMonitor* storageMonitor() BSLS_KEYWORD_OVERRIDE;
+
+    const DataStoreConfig::Records& records() const BSLS_KEYWORD_OVERRIDE;
+
+    void loadMessageRecord(MessageRecord* buffer,
+                           const DataStoreConfig::Records::const_iterator& it)
+        const BSLS_KEYWORD_OVERRIDE;
+
+    void loadConfirmRecord(ConfirmRecord* buffer,
+                           const DataStoreConfig::Records::const_iterator& it)
+        const BSLS_KEYWORD_OVERRIDE;
+
+    void loadQueueOpRecord(QueueOpRecord* buffer,
+                           const DataStoreConfig::Records::const_iterator& it)
+        const BSLS_KEYWORD_OVERRIDE;
+
+    void recordIteratorToHandle(DataStoreRecordHandle* handle,
+                                const DataStoreConfig::Records::const_iterator&
+                                    it) const BSLS_KEYWORD_OVERRIDE;
+
+    /// Return `true` if this partition is Raft-replicated, `false` for the
+    /// legacy path.  Safe to call even when no `storageMonitor` is set (e.g.
+    /// in tests): returns `false` in that case.
+    bool isRaft() const;
 
     void cancelTimersAndWait();
 
@@ -927,14 +1335,15 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     /// Set the availability of this partition to the specified boolean
     /// `value`.
-    void setAvailabilityStatus(bool value);
+    void setAvailabilityStatus(bool value) BSLS_KEYWORD_OVERRIDE;
 
     /// Set the replication factor for strong consistency to `factor`.
-    void setReplicationFactor(int factor);
+    void setReplicationFactor(int factor) BSLS_KEYWORD_OVERRIDE;
 
     /// This will be used as Implicit Receipt
     void setLastStrongConsistency(unsigned int        primaryLeaseId,
-                                  bsls::Types::Uint64 sequenceNum);
+                                  bsls::Types::Uint64 sequenceNum)
+        BSLS_KEYWORD_OVERRIDE;
 
     /// Encode and broadcast the specified `message` to all cluster nodes.
     void broadcastMessage(const bmqp_ctrlmsg::ControlMessage& message);
@@ -946,15 +1355,19 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     /// Load into the specified `storages` the list of queue storages for
     /// which all filters from the specified `filters` are returning true.
-    void getStorages(StorageList*          storages,
-                     const StorageFilters& filters) const;
+    void
+    getStorages(StorageList*          storages,
+                const StorageFilters& filters) const BSLS_KEYWORD_OVERRIDE;
 
     /// Load the summary of this partition to the specified `fileStore`
     /// object.
     ///
     /// THREAD: Executed by the queue dispatcher thread associated with the
     ///         specified `fileStore`'s partitionId.
-    void loadSummary(mqbcmd::FileStore* fileStore) const;
+    void loadSummary(mqbcmd::FileStore* fileStore) const BSLS_KEYWORD_OVERRIDE;
+
+    /// Return `true` if this node is the active primary for this partition.
+    bool isLeader() const BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
 
@@ -1013,6 +1426,9 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// Return a printable description of the client (e.g. for logging).
     bsl::string_view description() const BSLS_KEYWORD_OVERRIDE;
 
+    /// Return the partition id associated with this record store.
+    int partitionId() const BSLS_KEYWORD_OVERRIDE;
+
     /// Load into the specified `fileStoreSet` the active (current) file
     /// set.  The behavior is undefined unless there is a fileSet in current
     /// use.
@@ -1034,11 +1450,19 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     bool hasReceipt(const DataStoreRecordHandle& handle) const
         BSLS_KEYWORD_OVERRIDE;
 
+    bool isFileSetAvailable() const BSLS_KEYWORD_OVERRIDE;
+
     /// Return the current sequence number for this partition.
-    bsls::Types::Uint64 sequenceNumber() const;
+    bsls::Types::Uint64 currentSequenceNumber() const;
 
     /// Return the replication factor for strong consistency.
     int replicationFactor() const;
+
+    /// Return the current write position (in bytes) of the active data file.
+    bsls::Types::Uint64 dataFilePosition() const;
+
+    /// Return the current write position (in bytes) of the active qlist file.
+    bsls::Types::Uint64 qlistFilePosition() const;
 
     /// Return the first sync point after rollover sequence number.
     const bmqp_ctrlmsg::PartitionSequenceNumber&
@@ -1047,74 +1471,10 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// Return the map of primaryLeaseId to highest sequence number, including
     /// the current primary.
     const LeaseIdToSeqNumMap& highestSeqNums() const;
+
+    /// Return a brief description of the partition for logging purposes.
+    const bsl::string& partitionDesc() const;
 };
-
-// =======================
-// class FileStoreIterator
-// =======================
-
-/// Mechanism to iterate over records in a `mqbs::FileStore`.
-class FileStoreIterator {
-  private:
-    // PRIVATE TYPES
-    typedef DataStoreConfig::RecordIterator RecordIterator;
-
-  private:
-    // DATA
-    FileStore* d_store_p;  // Held
-
-    bool d_firstInvocation;
-
-    RecordIterator d_iterator;
-
-  public:
-    // CREATORS
-
-    /// Behavior is undefined unless specified `store` outlives this
-    /// instance.
-    explicit FileStoreIterator(FileStore* store);
-
-    // MANIPULATORS
-    bool next();
-
-    // ACCESSORS
-
-    /// Behavior undefined unless last call to `next` returned true.
-    RecordType::Enum type() const;
-
-    /// Behavior undefined unless last call to `next` returned true.
-    DataStoreRecordHandle handle() const;
-
-    /// Behavior undefined unless last call to `next` returned true.
-    void loadMessageRecord(MessageRecord* buffer) const;
-
-    /// Behavior undefined unless last call to `next` returned true.
-    void loadConfirmRecord(ConfirmRecord* buffer) const;
-
-    /// Behavior undefined unless last call to `next` returned true.
-    void loadDeletionRecord(DeletionRecord* buffer) const;
-
-    /// Behavior undefined unless last call to `next` returned true.
-    void loadQueueOpRecord(QueueOpRecord* buffer) const;
-
-    /// Format this object to the specified output `stream` at the (absolute
-    /// value of) the optionally specified indentation `level` and return a
-    /// reference to `stream`.  If `level` is specified, optionally specify
-    /// `spacesPerLevel`, the number of spaces per indentation level for
-    /// this and all of its nested objects.  If `level` is negative,
-    /// suppress indentation of the first line.  If `spacesPerLevel` is
-    /// negative format the entire output on one line, suppressing all but
-    /// the initial indentation (as governed by `level`).  If `stream` is
-    /// not valid on entry, this operation has no effect.
-    bsl::ostream&
-    print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
-};
-
-// FREE OPERATORS
-
-/// Format the specified `rhs` to the specified output `stream` and return a
-/// reference to the modifiable `stream`.
-bsl::ostream& operator<<(bsl::ostream& stream, const FileStoreIterator& rhs);
 
 // ============================================================================
 //                             INLINE DEFINITIONS
@@ -1186,15 +1546,21 @@ inline void FileStore::insertDataStoreRecord(DataStoreRecordHandle*    handle,
     recordIteratorToHandle(handle, recordIt);
 }
 
-inline void FileStore::recordIteratorToHandle(DataStoreRecordHandle* handle,
-                                              const RecordIterator   recordIt)
+inline const FileStore::RecordIterator& FileStore::handleTorRecordIterator(
+        const DataStoreRecordHandle& handle) const
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(handle);
+    BSLS_ASSERT_SAFE(handle.isValid());
 
-    RecordIterator& recordItRef = *reinterpret_cast<RecordIterator*>(handle);
-    recordItRef                 = recordIt;
+    const RecordIterator& recordIt = *reinterpret_cast<const RecordIterator*>(
+        &handle);
+    BSLS_ASSERT_SAFE(d_records.end() != d_records.find(recordIt->first));
+
+    return recordIt;
 }
+
+void handleTorRecordIterator();
+
 
 // PRIVATE ACCESSORS
 inline const bsl::string& FileStore::partitionDesc() const
@@ -1281,6 +1647,11 @@ inline bsl::string_view FileStore::description() const
     return partitionDesc();
 }
 
+inline int FileStore::partitionId() const
+{
+    return d_config.partitionId();
+}
+
 inline bool FileStore::isOpen() const
 {
     return d_isOpen;
@@ -1294,6 +1665,21 @@ inline const DataStoreConfig& FileStore::config() const
 inline unsigned int FileStore::clusterSize() const
 {
     return static_cast<unsigned int>(d_cluster_p->nodes().size());
+}
+
+inline StorageMonitor* FileStore::storageMonitor()
+{
+    // Never invoked on a Raft partition: PartitionRaft::storageMonitor()
+    // returns its own independently-held pointer rather than delegating
+    // here. Not asserted since this FileStore's own d_storageMonitor_p is
+    // still valid and identical; calling it would not be wrong, merely
+    // unused.
+    return d_storageMonitor_p;
+}
+
+inline const DataStoreConfig::Records& FileStore::records() const
+{
+    return d_records;
 }
 
 inline bsls::Types::Uint64 FileStore::numRecords() const
@@ -1316,12 +1702,23 @@ inline mqbnet::ClusterNode* FileStore::primaryNode() const
     return d_primaryNode_p;
 }
 
+inline bool FileStore::isLeader() const
+{
+    return 0 != d_primaryNode_p &&
+           d_primaryNode_p->nodeId() == d_config.nodeId();
+}
+
+inline bool FileStore::isRaft() const
+{
+    return d_storageMonitor_p && d_storageMonitor_p->isRaft();
+}
+
 inline unsigned int FileStore::primaryLeaseId() const
 {
     return d_primaryLeaseId;
 }
 
-inline bsls::Types::Uint64 FileStore::sequenceNumber() const
+inline bsls::Types::Uint64 FileStore::currentSequenceNumber() const
 {
     LeaseIdToSeqNumMapCIter cit = d_highestSeqNums.find(d_primaryLeaseId);
     return (cit != d_highestSeqNums.end()) ? cit->second : 0;
@@ -1343,42 +1740,16 @@ inline const FileStore::LeaseIdToSeqNumMap& FileStore::highestSeqNums() const
     return d_highestSeqNums;
 }
 
-// -----------------------
-// class FileStoreIterator
-// -----------------------
-
-// CREATORS
-inline FileStoreIterator::FileStoreIterator(FileStore* store)
-: d_store_p(store)
-, d_firstInvocation(true)
-, d_iterator()
+inline bool FileStore::isFileSetAvailable() const
 {
-    BSLS_ASSERT_SAFE(d_store_p);
-}
+    BSLS_ASSERT_SAFE(0 < d_fileSets.size());
 
-// ACCESSORS
-inline RecordType::Enum FileStoreIterator::type() const
-{
-    return d_iterator->second.d_recordType;
-}
+    FileSet* activeFileSet = d_fileSets[0].get();
 
-inline DataStoreRecordHandle FileStoreIterator::handle() const
-{
-    // Here we use our knowledge of internal layout of 'DataStoreRecordHandle'.
-    DataStoreRecordHandle result;
-    RecordIterator& recordItRef = *reinterpret_cast<RecordIterator*>(&result);
-    recordItRef                 = d_iterator;
-    return result;
+    return activeFileSet->d_journalFileAvailable;
 }
 
 }  // close package namespace
-
-// FREE OPERATORS
-inline bsl::ostream& mqbs::operator<<(bsl::ostream&            stream,
-                                      const FileStoreIterator& rhs)
-{
-    return rhs.print(stream, 0, -1);
-}
 
 }  // close enterprise namespace
 

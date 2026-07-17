@@ -211,7 +211,7 @@ class StorageMessageAttributes {
                                int                             spacesPerLevel);
 
     // CREATORS
-    StorageMessageAttributes();
+    StorageMessageAttributes(bool hasReceipt = true);
 
     StorageMessageAttributes(
         bsls::Types::Uint64                  arrivalTimestamp,
@@ -239,7 +239,7 @@ class StorageMessageAttributes {
     StorageMessageAttributes&
     setMessagePropertiesInfo(const bmqp::MessagePropertiesInfo& value);
 
-    void reset();
+    void reset(bool hasReceipt = true);
 
     // ACCESSORS
     bsls::Types::Uint64                arrivalTimestamp() const;
@@ -794,13 +794,13 @@ DataStreamMessage::app(unsigned int appOrdinal) const
 // ------------------------------
 
 // CREATORS
-inline StorageMessageAttributes::StorageMessageAttributes()
+inline StorageMessageAttributes::StorageMessageAttributes(bool hasReceipt)
 : d_arrivalTimestamp(0)
 , d_arrivalTimepoint(0)
 , d_refCount(0)
 , d_appDataLen(0)
 , d_messagePropertiesInfo()
-, d_hasReceipt(true)
+, d_hasReceipt(hasReceipt)
 , d_queueHandle(0)
 , d_crc32c(0)
 , d_compressionAlgorithmType(bmqt::CompressionAlgorithmType::e_NONE)
@@ -889,7 +889,7 @@ StorageMessageAttributes::setMessagePropertiesInfo(
     return *this;
 }
 
-inline void StorageMessageAttributes::reset()
+inline void StorageMessageAttributes::reset(bool hasReceipt)
 {
     d_arrivalTimestamp         = 0;
     d_arrivalTimepoint         = 0;
@@ -897,7 +897,7 @@ inline void StorageMessageAttributes::reset()
     d_appDataLen               = 0;
     d_messagePropertiesInfo    = bmqp::MessagePropertiesInfo();
     d_queueHandle              = 0;
-    d_hasReceipt               = true;
+    d_hasReceipt               = hasReceipt;
     d_crc32c                   = 0;
     d_compressionAlgorithmType = bmqt::CompressionAlgorithmType::e_NONE;
 }

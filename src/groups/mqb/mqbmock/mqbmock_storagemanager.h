@@ -236,14 +236,6 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager {
     /// Executed by any thread.
     void processShutdownEvent() BSLS_KEYWORD_OVERRIDE;
 
-    /// Invoke the specified `functor` with each queue associated to the
-    /// partition identified by the specified `partitionId` if that
-    /// partition has been successfully opened.  The behavior is undefined
-    /// unless invoked from the queue thread corresponding to `partitionId`.
-    void
-    applyForEachQueue(int                 partitionId,
-                      const QueueFunctor& functor) const BSLS_KEYWORD_OVERRIDE;
-
     /// Process the specified `command`, and load the result to the
     /// specified `result`.  This function can be invoked from any thread,
     /// and will block until the potentially asynchronous operation is
@@ -275,14 +267,22 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager {
     bool isStorageEmpty(const bmqt::Uri& uri,
                         int partitionId) const BSLS_KEYWORD_OVERRIDE;
 
+    /// Return true if the queue having the specified `uri` and assigned to
+    /// the specified `partitionId` has a registered storage *and*, if the
+    /// specified `appId` is non-empty, that `appId` is registered on it.
+    bool hasStorage(const bmqt::Uri&   uri,
+                    const bsl::string& appId,
+                    int partitionId) const BSLS_KEYWORD_OVERRIDE;
+
     /// Return partition corresponding to the specified `partitionId`.  The
     /// behavior is undefined if `partitionId` does not represent a valid
     /// partition id.
     mqbs::FileStore& fileStore(int partitionId) const BSLS_KEYWORD_OVERRIDE;
 
-    /// Return a StorageManagerIterator for the specified `partitionId`.
-    bslma::ManagedPtr<mqbi::StorageManagerIterator>
-    getIterator(int partitionId) const BSLS_KEYWORD_OVERRIDE;
+    /// Load into the specified `result` all the storages of the specified
+    /// `partitionId`.
+    void loadAllStorages(bsl::vector<StorageSp>* result,
+                         int partitionId) BSLS_KEYWORD_OVERRIDE;
 };
 
 }  // close package namespace

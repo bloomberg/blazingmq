@@ -71,6 +71,11 @@ void FileBackedStorage::purgeCommon(const mqbu::StorageKey& appKey,
     // to be purged, otherwise only the virtual storage associated with the
     // specified 'appKey'.
 
+    // Clear auto-confirm state to prevent dangling references
+    d_autoConfirmHandles.clear();
+    d_autoConfirmApps.clear();
+    d_currentlyAutoConfirming = bmqt::MessageGUID();
+
     if (appKey.isNull()) {
         d_virtualStorageCatalog.removeAll();
         // Remove all records from the physical storage as well.
@@ -102,7 +107,7 @@ void FileBackedStorage::purgeCommon(const mqbu::StorageKey& appKey,
 
 // CREATORS
 FileBackedStorage::FileBackedStorage(
-    DataStore*                     dataStore,
+    RecordStore*                   dataStore,
     const bmqt::Uri&               queueUri,
     const mqbu::StorageKey&        queueKey,
     mqbi::Domain*                  domain,
@@ -216,11 +221,16 @@ FileBackedStorage::get(mqbi::StorageMessageAttributes* attributes,
 
 bool FileBackedStorage::hasReceipt(const bmqt::MessageGUID& msgGUID) const
 {
-    if (d_hasReceipts) {
-        // Weak consistency
-        return true;  // RETURN
-    }
-
+    // Require record presence and consult the record's durability, uniformly
+    // for both consistency modes -- the record's 'd_hasReceipt' already encodes
+    // consistency.  A normal weak-consistency write is receipted at write time
+    // (its attributes default 'hasReceipt = true', carried onto the record), so
+    // this still returns true immediately; a strong-consistency write's record
+    // stays not-receipted until its receipt arrives.  The case this newly gates
+    // is a write buffered during a rollover window: its placeholder record is
+    // reserved not-yet-durable ('d_hasReceipt = false', zero offset) until it
+    // drains, so it must not be reported as receipted -- otherwise it is
+    // delivered and its zero offset is read in 'loadMessageAttributesRaw'.
     RecordHandleMap::const_iterator it = d_handles.find(msgGUID);
     if (it == d_handles.end()) {
         return false;  // RETURN
@@ -779,6 +789,9 @@ int FileBackedStorage::gcExpiredMessages(const bdlt::Datetime& currentTimeUtc,
     // Executed by QUEUE dispatcher thread
     BSLS_ASSERT_SAFE(d_store_p);
 
+    if (!d_store_p->isFileSetAvailable()) {
+        return 0;
+    }
     bsls::Types::Uint64 latestMsgTimestampEpoch = 0;
 
     int                numMsgsDeleted     = 0;

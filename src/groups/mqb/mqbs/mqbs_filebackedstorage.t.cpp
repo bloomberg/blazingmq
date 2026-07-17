@@ -391,9 +391,23 @@ class MockDataStore : public mqbs::DataStore {
         return d_description;
     }
 
+    bool isFileSetAvailable() const BSLS_KEYWORD_OVERRIDE { return true; }
+
+    int partitionId() const BSLS_KEYWORD_OVERRIDE
+    {
+        return d_config.partitionId();
+    }
+
     int open(QueueKeyInfoMap*) BSLS_KEYWORD_OVERRIDE { return 0; }
 
     int close(bool, bool) BSLS_KEYWORD_OVERRIDE { return 0; }
+
+    void registerStorage(mqbs::ReplicatedStorage*) BSLS_KEYWORD_OVERRIDE {}
+
+    void
+    unregisterStorage(const mqbs::ReplicatedStorage*) BSLS_KEYWORD_OVERRIDE
+    {
+    }
 
     void createStorage(bsl::shared_ptr<mqbs::ReplicatedStorage>*,
                        const bmqt::Uri&,
@@ -401,6 +415,8 @@ class MockDataStore : public mqbs::DataStore {
                        mqbi::Domain*) BSLS_KEYWORD_OVERRIDE
     {
     }
+
+    mqbs::StorageMonitor* storageMonitor() BSLS_KEYWORD_OVERRIDE { return 0; }
 
     int writeQueueCreationRecord(mqbs::DataStoreRecordHandle*,
                                  const bmqt::Uri&,
@@ -431,7 +447,9 @@ class MockDataStore : public mqbs::DataStore {
     }
 
     int writeSyncPointRecord(const bmqp_ctrlmsg::SyncPoint&,
-                             mqbs::SyncPointType::Enum) BSLS_KEYWORD_OVERRIDE
+                             mqbs::SyncPointType::Enum,
+                             unsigned int,
+                             bsls::Types::Uint64) BSLS_KEYWORD_OVERRIDE
     {
         return 0;
     }
@@ -473,15 +491,38 @@ class MockDataStore : public mqbs::DataStore {
     }
 
     void setActivePrimary(mqbnet::ClusterNode*,
-                          unsigned int) BSLS_KEYWORD_OVERRIDE
+                          unsigned int,
+                          bool = false) BSLS_KEYWORD_OVERRIDE
     {
     }
 
     void clearPrimary() BSLS_KEYWORD_OVERRIDE {}
 
+    void execute(const mqbi::Dispatcher::VoidFunction& functor)
+        BSLS_KEYWORD_OVERRIDE
+    {
+        functor();
+    }
+
+    int rollover() BSLS_KEYWORD_OVERRIDE { return 0; }
+
+    void setAvailabilityStatus(bool) BSLS_KEYWORD_OVERRIDE {}
+
+    void setReplicationFactor(int) BSLS_KEYWORD_OVERRIDE {}
+
     void flushStorage() BSLS_KEYWORD_OVERRIDE {}
 
     bool isOpen() const BSLS_KEYWORD_OVERRIDE { return true; }
+
+    bool isLeader() const BSLS_KEYWORD_OVERRIDE { return true; }
+
+    void loadSummary(mqbcmd::FileStore*) const BSLS_KEYWORD_OVERRIDE {}
+
+    void getStorages(mqbs::RecordStore::StorageList*,
+                     const mqbs::RecordStore::StorageFilters&) const
+        BSLS_KEYWORD_OVERRIDE
+    {
+    }
 
     const mqbs::DataStoreConfig& config() const BSLS_KEYWORD_OVERRIDE
     {
@@ -490,9 +531,47 @@ class MockDataStore : public mqbs::DataStore {
 
     unsigned int clusterSize() const BSLS_KEYWORD_OVERRIDE { return 1U; }
 
+    void setLastStrongConsistency(unsigned int,
+                                  bsls::Types::Uint64) BSLS_KEYWORD_OVERRIDE
+    {
+    }
+
     bsls::Types::Uint64 numRecords() const BSLS_KEYWORD_OVERRIDE
     {
         return d_attributes.size();
+    }
+
+    const mqbs::DataStoreConfig::Records& records() const BSLS_KEYWORD_OVERRIDE
+    {
+        return d_records;
+    }
+
+    void
+    loadMessageRecord(mqbs::MessageRecord*,
+                      const mqbs::DataStoreConfig::Records::const_iterator&)
+        const BSLS_KEYWORD_OVERRIDE
+    {
+    }
+
+    void
+    loadConfirmRecord(mqbs::ConfirmRecord*,
+                      const mqbs::DataStoreConfig::Records::const_iterator&)
+        const BSLS_KEYWORD_OVERRIDE
+    {
+    }
+
+    void
+    loadQueueOpRecord(mqbs::QueueOpRecord*,
+                      const mqbs::DataStoreConfig::Records::const_iterator&)
+        const BSLS_KEYWORD_OVERRIDE
+    {
+    }
+
+    void recordIteratorToHandle(
+        mqbs::DataStoreRecordHandle*,
+        const mqbs::DataStoreConfig::Records::const_iterator&) const
+        BSLS_KEYWORD_OVERRIDE
+    {
     }
 
     void loadMessageRecordRaw(mqbs::MessageRecord*,
