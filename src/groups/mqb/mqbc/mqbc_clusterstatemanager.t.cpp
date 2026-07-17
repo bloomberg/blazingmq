@@ -33,6 +33,7 @@
 #include <bmqio_testchannel.h>
 #include <bmqp_crc32c.h>
 #include <bmqp_ctrlmsg_messages.h>
+#include <bmqtst_schedulerlockguard.h>
 
 #include <bmqu_memoutstream.h>
 #include <bmqu_tempdirectory.h>
@@ -1491,18 +1492,27 @@ static void test14_leaderCSLCommitFailure()
     BSLS_ASSERT_OPT(tester.d_clusterStateManager_mp->healthState() ==
                     mqbc::ClusterStateTableState::e_LDR_HEALING_STG2);
 
-    // 2. Invoke failure commit callback at the CSL
-    tester.d_clusterStateLedger_p->_commitAdvisories(
-        mqbc::ClusterStateLedgerCommitStatus::e_CANCELED);
+    // 2. Invoke failure commit callback at the CSL.
+    //
+    // CSL_CMT_FAIL reschedules the watchdog to fire immediately, and the
+    // scheduler would run it (mutating the Cluster FSM) on its own thread,
+    // racing this thread's `healthState()` reads.  Pause the scheduler so the
+    // watchdog cannot fire while we inspect the FSM state; destroying the
+    // guard resumes the scheduler and drains the now-due watchdog.
+    {
+        bmqtst::SchedulerLockGuard schedulerGuard(
+            &tester.d_cluster_mp->_scheduler());
 
-    // CSL_CMT_FAIL triggers the watchdog (reschedules to now) but stays in
-    // LDR_HEALING_STG2.  Advance time so the triggered watchdog fires.
-    // The e_WATCHDOG transition goes to UNKNOWN, which re-applies
-    // SLCT_LDR, landing in LDR_HEALING_STG1.
-    BSLS_ASSERT_OPT(tester.d_clusterStateManager_mp->healthState() ==
-                    mqbc::ClusterStateTableState::e_LDR_HEALING_STG2);
-    tester.d_cluster_mp->advanceTime(1);
-    tester.d_cluster_mp->waitForScheduler();
+        tester.d_clusterStateLedger_p->_commitAdvisories(
+            mqbc::ClusterStateLedgerCommitStatus::e_CANCELED);
+
+        // The commit failure itself does not change the FSM state.
+        BSLS_ASSERT_OPT(tester.d_clusterStateManager_mp->healthState() ==
+                        mqbc::ClusterStateTableState::e_LDR_HEALING_STG2);
+    }
+    // Guard destroyed: the triggered watchdog fires and is drained.  The
+    // e_WATCHDOG transition goes to UNKNOWN, which re-applies SLCT_LDR,
+    // landing in LDR_HEALING_STG1.
 
     // Verify that self restarts healing
     BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->healthState(),
@@ -1541,18 +1551,27 @@ static void test15_followerCSLCommitFailure()
     BSLS_ASSERT_OPT(tester.d_clusterStateManager_mp->healthState() ==
                     mqbc::ClusterStateTableState::e_FOL_HEALING);
 
-    // 2. Invoke failure commit callback at the CSL
-    tester.d_clusterStateLedger_p->_commitAdvisories(
-        mqbc::ClusterStateLedgerCommitStatus::e_CANCELED);
+    // 2. Invoke failure commit callback at the CSL.
+    //
+    // CSL_CMT_FAIL reschedules the watchdog to fire immediately, and the
+    // scheduler would run it (mutating the Cluster FSM) on its own thread,
+    // racing this thread's `healthState()` reads.  Pause the scheduler so the
+    // watchdog cannot fire while we inspect the FSM state; destroying the
+    // guard resumes the scheduler and drains the now-due watchdog.
+    {
+        bmqtst::SchedulerLockGuard schedulerGuard(
+            &tester.d_cluster_mp->_scheduler());
 
-    // CSL_CMT_FAIL triggers the watchdog (reschedules to now) but stays in
-    // FOL_HEALING.  Advance time so the triggered watchdog fires.
-    // The e_WATCHDOG transition goes to UNKNOWN, which re-applies
-    // SLCT_FOL, landing back in FOL_HEALING.
-    BSLS_ASSERT_OPT(tester.d_clusterStateManager_mp->healthState() ==
-                    mqbc::ClusterStateTableState::e_FOL_HEALING);
-    tester.d_cluster_mp->advanceTime(1);
-    tester.d_cluster_mp->waitForScheduler();
+        tester.d_clusterStateLedger_p->_commitAdvisories(
+            mqbc::ClusterStateLedgerCommitStatus::e_CANCELED);
+
+        // The commit failure itself does not change the FSM state.
+        BSLS_ASSERT_OPT(tester.d_clusterStateManager_mp->healthState() ==
+                        mqbc::ClusterStateTableState::e_FOL_HEALING);
+    }
+    // Guard destroyed: the triggered watchdog fires and is drained.  The
+    // e_WATCHDOG transition goes to UNKNOWN, which re-applies SLCT_FOL,
+    // landing back in FOL_HEALING.
 
     // Verify that self restarts healing
     BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->healthState(),
