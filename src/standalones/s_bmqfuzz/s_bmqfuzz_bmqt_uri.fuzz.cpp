@@ -13,11 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string>
-
 #include <bmqt_uri.h>
+
 #include <bsl_string.h>
 
 using namespace BloombergLP;
@@ -28,13 +25,28 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 
     bmqt::Uri   uri;
     bsl::string error;
-    int         rc = bmqt::UriParser::parse(&uri, &error, fuzz_input);
+    const int   rc = bmqt::UriParser::parse(&uri, &error, fuzz_input);
 
-    // Check it
-    bool valid = uri.isValid();
-    if (valid) {
-        // read out some values
+    if (rc != 0) {
+        return 0;
     }
+
+    bsl::string components;
+    components.append(uri.scheme().data(), uri.scheme().length());
+    components.append(uri.authority().data(), uri.authority().length());
+    components.append(uri.domain().data(), uri.domain().length());
+    components.append(uri.tier().data(), uri.tier().length());
+    components.append(uri.queue().data(), uri.queue().length());
+    components.append(uri.qualifiedDomain().data(),
+                      uri.qualifiedDomain().length());
+    components.append(uri.path().data(), uri.path().length());
+    components.append(uri.id().data(), uri.id().length());
+
+    const bslstl::StringRef canonical = uri.canonical();
+    components.append(canonical.data(), canonical.length());
+
+    (void)uri.isCanonical();
+    (void)uri.asString();
 
     return 0;
 }
