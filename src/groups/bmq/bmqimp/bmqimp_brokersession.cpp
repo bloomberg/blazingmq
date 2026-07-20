@@ -521,16 +521,33 @@ void BrokerSession::SessionFsm::setStopped(FsmEvent::Enum event,
         // The session never reached STARTED
         BSLS_ASSERT_SAFE(!d_onceConnected);
 
-        // Enqueue a connection timeout event
+        // Enqueue a connection timeout event.  A pending async-start
+        // completion callback (if any) is attached to it: it suppresses the
+        // session event and is delivered instead, on the event delivery
+        // thread.
         d_session.enqueueSessionEvent(
             bmqt::SessionEventType::e_CONNECTION_TIMEOUT,
             -1,
             bmqt::GenericResult::e_UNKNOWN,
-            "The connection to bmqbrkr timedout");
+            "The connection to bmqbrkr timedout",
+            bmqt::CorrelationId(),
+            bsl::shared_ptr<Queue>(),
+            d_session.d_startCb);
+        d_session.d_startCb = EventCallback();
     }
     else if (d_onceConnected) {
-        d_session.enqueueSessionEvent(bmqt::SessionEventType::e_DISCONNECTED);
-        d_onceConnected = false;
+        // A pending async-stop completion callback (if any) is attached to the
+        // terminal DISCONNECTED event: it suppresses that session event and is
+        // delivered instead, on the event delivery thread.
+        d_session.enqueueSessionEvent(bmqt::SessionEventType::e_DISCONNECTED,
+                                      0,
+                                      bmqt::GenericResult::e_SUCCESS,
+                                      "",
+                                      bmqt::CorrelationId(),
+                                      bsl::shared_ptr<Queue>(),
+                                      d_session.d_stopCb);
+        d_session.d_stopCb = EventCallback();
+        d_onceConnected    = false;
     }
 
     // Cancel all pending PUT messages, before cancelling any outstanding
@@ -621,7 +638,8 @@ BrokerSession::SessionFsm::SessionFsm(BrokerSession& session)
                                                      d_session.d_allocator_p);
 }
 
-bmqt::GenericResult::Enum BrokerSession::SessionFsm::handleStartRequest()
+bmqt::GenericResult::Enum
+BrokerSession::SessionFsm::handleStartRequest(const EventCallback& startCb)
 {
     // executed by the FSM thread
 
@@ -653,6 +671,18 @@ bmqt::GenericResult::Enum BrokerSession::SessionFsm::handleStartRequest()
     case State::e_STOPPED: {
         d_beginTimestamp = bmqu::Time::highResolutionTimer();
         res              = setStarting(event);
+
+        if (res == bmqt::GenericResult::e_SUCCESS) {
+            // The start request was accepted and the session is now
+            // connecting.  Store the (optional) user completion callback so
+            // that the FSM can attach it to the terminal start event
+            // (CONNECTED on success, or CONNECTION_TIMEOUT on failure).  It
+            // will *not* be invoked here (FSM thread), only later when that
+            // event is delivered.  Storing only on success preserves the
+            // invariant that a synchronous start failure is reported solely
+            // via the return code (no callback).
+            d_session.d_startCb = startCb;
+        }
     } break;
     default: {
         BSLS_ASSERT_SAFE(false && "Unexpected Session state");
@@ -726,7 +756,7 @@ void BrokerSession::SessionFsm::handleStartSynchronousFailure()
     }
 }
 
-void BrokerSession::SessionFsm::handleStopRequest()
+void BrokerSession::SessionFsm::handleStopRequest(const EventCallback& stopCb)
 {
     // executed by the FSM thread
 
@@ -734,9 +764,18 @@ void BrokerSession::SessionFsm::handleStopRequest()
 
     const FsmEvent::Enum event = FsmEvent::e_STOP;
 
+    // Store the (optional) user completion callback only in the states that
+    // actually initiate/reach a stop.  A stop request received while a stop is
+    // already in progress (CLOSING_SESSION / CLOSING_CHANNEL) is a no-op here,
+    // so it neither re-initiates the stop nor overrides the callback that the
+    // original stop request stored.  'setStopped' will attach and clear it on
+    // the terminal DISCONNECTED event.
+
     switch (state()) {
     case State::e_STARTED: {
         d_beginTimestamp = bmqu::Time::highResolutionTimer();
+
+        d_session.d_stopCb = stopCb;
 
         bmqt::GenericResult::Enum res = setClosingSession(event);
         if (res != bmqt::GenericResult::e_SUCCESS) {
@@ -748,11 +787,13 @@ void BrokerSession::SessionFsm::handleStopRequest()
     case State::e_STARTING: {
         // `d_channel_sp` is _not_ set in the STARTING state (only in STARTED).
         // Therefore, simply transition to STOPPED.
+        d_session.d_stopCb = stopCb;
         setStopped(event);
 
         logOperationTime("Start");
     } break;
     case State::e_RECONNECTING: {
+        d_session.d_stopCb = stopCb;
         setStopped(event);
     } break;
     case State::e_CLOSING_SESSION:
@@ -762,6 +803,7 @@ void BrokerSession::SessionFsm::handleStopRequest()
     case State::e_STOPPED: {
         BALL_LOG_INFO << id() << "::: ALREADY STOPPED :::";
         // trigger stateCb
+        d_session.d_stopCb = stopCb;
         setStopped(event);
     } break;
     default: {
@@ -782,7 +824,18 @@ void BrokerSession::SessionFsm::handleChannelUp(
     switch (state()) {
     case State::e_STARTING: {
         setStarted(event, channel);
-        d_session.enqueueSessionEvent(bmqt::SessionEventType::e_CONNECTED);
+        // A pending async-start completion callback (if any) is attached to
+        // the terminal CONNECTED event: it suppresses that session event (the
+        // way 'openQueueAsync' does) and is delivered instead, on the event
+        // delivery thread -- never here on the FSM thread.
+        d_session.enqueueSessionEvent(bmqt::SessionEventType::e_CONNECTED,
+                                      0,
+                                      bmqt::GenericResult::e_SUCCESS,
+                                      "",
+                                      bmqt::CorrelationId(),
+                                      bsl::shared_ptr<Queue>(),
+                                      d_session.d_startCb);
+        d_session.d_startCb = EventCallback();
         logOperationTime("Start");
     } break;
     case State::e_RECONNECTING: {
@@ -4990,6 +5043,7 @@ BrokerSession::enqueueFsmEvent(bsl::shared_ptr<Event>& event)
 void BrokerSession::doStart(
     bslmt::Semaphore*       semaphore,
     int*                    status,
+    const EventCallback&    startCb,
     BSLA_MAYBE_UNUSED const bsl::shared_ptr<Event>& eventSp,
     const bsl::shared_ptr<bmqpi::DTSpan>&           span)
 {
@@ -5025,7 +5079,7 @@ void BrokerSession::doStart(
         }
     }
 
-    *status = d_sessionFsm.handleStartRequest();
+    *status = d_sessionFsm.handleStartRequest(startCb);
     if (*status != 0) {
         // Get out of the STARTING state since there going to be no
         // START_TIMEOUT
@@ -5036,6 +5090,7 @@ void BrokerSession::doStart(
 }
 
 void BrokerSession::doStop(
+    const EventCallback&    stopCb,
     BSLA_MAYBE_UNUSED const bsl::shared_ptr<Event>& eventSp,
     const bsl::shared_ptr<bmqpi::DTSpan>&           span)
 {
@@ -5048,7 +5103,14 @@ void BrokerSession::doStop(
     bslma::ManagedPtr<void> scopedSpan(activateDTSpan(span));
 
     d_hostHealthSignalerConnectionGuard.release().disconnect();
-    d_sessionFsm.handleStopRequest();
+
+    // Pass the (optional) user completion callback to the FSM.  It stores it
+    // only when the request actually initiates/reaches a stop (see
+    // 'handleStopRequest'), so a redundant stop request while a stop is
+    // already in progress cannot clobber the original callback.  The callback
+    // is *not* invoked here (FSM thread), only later when the terminal
+    // DISCONNECTED event is delivered.
+    d_sessionFsm.handleStopRequest(stopCb);
 }
 
 void BrokerSession::doOpenQueue(
@@ -5232,6 +5294,16 @@ void BrokerSession::resetState()
 {
     // Reset the state of the brokerSession, so that start will work again
     d_acceptRequests = false;
+
+    // Drop any async start/stop completion callback that never rode a terminal
+    // event (e.g. a stop requested while the session was still connecting
+    // emits no terminal session event).  This prevents a stale callback from
+    // leaking into a subsequent start/stop cycle.  In the normal paths the
+    // callback has already been consumed (and cleared) when its terminal event
+    // was enqueued.
+    d_startCb = EventCallback();
+    d_stopCb  = EventCallback();
+
     d_messageCorrelationIdContainer.reset();
     d_queueManager.resetState();
     d_numPendingReopenQueues = 0;
@@ -5777,6 +5849,8 @@ BrokerSession::BrokerSession(
 , d_hostHealthState(bmqt::HostHealthState::e_HEALTHY)
 , d_hostHealthSignalerConnectionGuard()
 , d_startSemaphore(bsls::SystemClockType::e_MONOTONIC)
+, d_startCb(bsl::allocator_arg, allocator)
+, d_stopCb(bsl::allocator_arg, allocator)
 , d_inProgressEventHandlerCount(0)
 , d_isStopping(false)
 , d_messageExpirationTimeoutHandle()
@@ -5948,7 +6022,7 @@ int BrokerSession::start(const bsls::TimeInterval& timeout)
     return bmqt::GenericResult::e_SUCCESS;
 }
 
-int BrokerSession::startAsync()
+int BrokerSession::startAsync(const EventCallback& startCb)
 {
     // Use local semaphore to wait until start request is accepted by the FSM.
     // The FSM may return an error code that startAsync will use as its return
@@ -5964,6 +6038,7 @@ int BrokerSession::startAsync()
                               this,
                               &fsmAcceptedSemaphore,
                               &startStatus,
+                              startCb,
                               bdlf::PlaceHolders::_1,  // eventImpl
                               createDTSpan("bmq.session.start")));
 
@@ -6624,7 +6699,7 @@ void BrokerSession::stop()
     d_stopSemaphore.wait();
 }
 
-void BrokerSession::stopAsync()
+void BrokerSession::stopAsync(const EventCallback& stopCb)
 {
     bsl::shared_ptr<bmqpi::DTSpan> span;
     if (d_acceptRequests) {
@@ -6642,6 +6717,7 @@ void BrokerSession::stopAsync()
     queueEvent->configureAsRequestEvent(
         bdlf::BindUtil::bind(&BrokerSession::doStop,
                              this,
+                             stopCb,
                              bdlf::PlaceHolders::_1,  // eventImpl
                              span));
     enqueueFsmEvent(queueEvent);

@@ -54,6 +54,16 @@ int AbstractSession::startAsync(
     return -1;
 }
 
+int AbstractSession::startAsync(
+    BSLA_MAYBE_UNUSED const StartCallback& callback,
+    BSLA_MAYBE_UNUSED const bsls::TimeInterval& timeout)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_OPT(false && "Method is undefined in base protocol");
+
+    return -1;
+}
+
 void AbstractSession::stop()
 {
     // PRECONDITIONS
@@ -61,6 +71,12 @@ void AbstractSession::stop()
 }
 
 void AbstractSession::stopAsync()
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_OPT(false && "Method is undefined in base protocol");
+}
+
+void AbstractSession::stopAsync(BSLA_MAYBE_UNUSED const StopCallback& callback)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(false && "Method is undefined in base protocol");
