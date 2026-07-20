@@ -9751,6 +9751,120 @@ static void test68_queueLateAsyncCanceledHybrid3()
                            bmqimp::QueueState::e_PENDING);
 }
 
+/// Records the terminal session event delivered to an async start/stop
+/// completion callback.  Its `record` method conforms to
+/// `bmqimp::BrokerSession::EventCallback` and is invoked on the event delivery
+/// thread; the timed semaphore lets the test thread wait for it.
+struct SessionCbRecorder {
+    bslmt::TimedSemaphore        d_sem;
+    bmqt::SessionEventType::Enum d_type;
+    int                          d_status;
+
+    SessionCbRecorder()
+    : d_sem(bsls::SystemClockType::e_REALTIME)
+    , d_type(bmqt::SessionEventType::e_UNDEFINED)
+    , d_status(0)
+    {
+    }
+
+    void record(const bsl::shared_ptr<bmqimp::Event>& event)
+    {
+        d_type   = event->sessionEventType();
+        d_status = event->statusCode();
+        d_sem.post();
+    }
+};
+
+static void test71_startStopAsyncCallback()
+// ------------------------------------------------------------------------
+// START / STOP ASYNC CALLBACK
+//
+// Concerns:
+//   The callback flavors of 'startAsync' and 'stopAsync' deliver the
+//   terminal session event (CONNECTED for a successful start, DISCONNECTED
+//   for a graceful stop) to the user-provided completion callback, invoked
+//   on the event delivery thread (not the FSM thread).
+//
+// Plan:
+//   1. Start the session with a completion callback and bring the channel
+//      up; verify the callback fires with a CONNECTED / success event, and
+//      that the CONNECTED session event is suppressed (consumed by the
+//      callback, not delivered to the event handler).
+//   2. Stop the session with a completion callback, answer the disconnect
+//      request; verify the callback fires with a DISCONNECTED / success
+//      event, and that the DISCONNECTED session event is likewise suppressed.
+//
+// Testing:
+//   int  BrokerSession::startAsync(const EventCallback&);
+//   void BrokerSession::stopAsync(const EventCallback&);
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("START / STOP ASYNC CALLBACK");
+
+    bmqt::SessionOptions sessionOptions;
+    sessionOptions.setNumProcessingThreads(1);
+
+    bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
+                                    bmqtst::TestHelperUtil::allocator());
+
+    TestSession obj(sessionOptions,
+                    scheduler,
+                    true,  // useEventHandler
+                    bmqtst::TestHelperUtil::allocator());
+
+    PVV_SAFE("Step 1. Start with a completion callback");
+    SessionCbRecorder startRec;
+    int               rc = obj.session().startAsync(
+        bdlf::MemFnUtil::memFn(&SessionCbRecorder::record, &startRec));
+    BMQTST_ASSERT_EQ(rc, 0);
+
+    PVV_SAFE("Step 2. Bring the channel up and wait for the start callback");
+    obj.setChannel();
+
+    BMQTST_ASSERT(waitRealTime(&startRec.d_sem));
+    BMQTST_ASSERT_EQ(startRec.d_type, bmqt::SessionEventType::e_CONNECTED);
+    BMQTST_ASSERT_EQ(
+        startRec.d_status,
+        static_cast<int>(bmqp_ctrlmsg::StatusCategory::E_SUCCESS));
+
+    // The CONNECTED session event is suppressed: it was consumed by the
+    // callback and must not have been delivered to the event handler.
+    BMQTST_ASSERT(obj.checkNoEvent());
+
+    PVV_SAFE("Step 3. Stop with a completion callback");
+    SessionCbRecorder stopRec;
+    obj.session().stopAsync(
+        bdlf::MemFnUtil::memFn(&SessionCbRecorder::record, &stopRec));
+
+    PVV_SAFE("Step 4. Answer the disconnect request");
+    bmqp_ctrlmsg::ControlMessage disconnectMessage(
+        bmqtst::TestHelperUtil::allocator());
+    obj.getOutboundControlMessage(&disconnectMessage);
+    BMQTST_ASSERT(!disconnectMessage.rId().isNull());
+    BMQTST_ASSERT(disconnectMessage.choice().isDisconnectValue());
+
+    bmqp_ctrlmsg::ControlMessage disconnectResponse(
+        bmqtst::TestHelperUtil::allocator());
+    disconnectResponse.rId().makeValue(disconnectMessage.rId().value());
+    disconnectResponse.choice().makeDisconnectResponse();
+    obj.sendControlMessage(disconnectResponse);
+
+    BMQTST_ASSERT(obj.waitForChannelClose());
+
+    PVV_SAFE("Step 5. Wait for the stop callback");
+    BMQTST_ASSERT(waitRealTime(&stopRec.d_sem));
+    BMQTST_ASSERT_EQ(stopRec.d_type, bmqt::SessionEventType::e_DISCONNECTED);
+    BMQTST_ASSERT_EQ(
+        stopRec.d_status,
+        static_cast<int>(bmqp_ctrlmsg::StatusCategory::E_SUCCESS));
+
+    // The user-facing DISCONNECTED session event is suppressed: it was
+    // consumed by the callback and must not have been delivered to the event
+    // handler (the internal DISCONNECTED used to release the stop semaphore is
+    // never delivered to the handler either).
+    BMQTST_ASSERT(obj.checkNoEvent());
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -9763,6 +9877,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 71: test71_startStopAsyncCallback(); break;
     case 70: /* removed test */ break;
     case 69: /* removed test */ break;
     case 68: test68_queueLateAsyncCanceledHybrid3(); break;

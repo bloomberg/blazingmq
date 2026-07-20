@@ -102,6 +102,10 @@ struct EventHandler : public bmqa::SessionEventHandler {
 
     bsl::deque<Result> d_receivedResults;
 
+    bsl::deque<bmqa::StartStatus> d_receivedStartResults;
+
+    bsl::deque<bmqa::StopStatus> d_receivedStopResults;
+
     bsl::deque<bmqa::MessageEvent> d_receivedMessageEvents;
 
     size_t d_assertsInvoked;
@@ -163,6 +167,9 @@ struct EventHandler : public bmqa::SessionEventHandler {
     // CREATORS
     EventHandler(bslma::Allocator* allocator)
     : d_receivedSessionEvents(allocator)
+    , d_receivedResults(allocator)
+    , d_receivedStartResults(allocator)
+    , d_receivedStopResults(allocator)
     , d_receivedMessageEvents(allocator)
     , d_assertsInvoked(0)
     , d_allocator_p(allocator)
@@ -174,7 +181,9 @@ struct EventHandler : public bmqa::SessionEventHandler {
     {
         size_t unpoppedEvents = d_receivedMessageEvents.size() +
                                 d_receivedSessionEvents.size() +
-                                d_receivedResults.size();
+                                d_receivedResults.size() +
+                                d_receivedStartResults.size() +
+                                d_receivedStopResults.size();
 
         if (unpoppedEvents > 0) {
             bsl::cout << "Un-popped events:\n";
@@ -221,6 +230,16 @@ struct EventHandler : public bmqa::SessionEventHandler {
         d_receivedResults.emplace_back(result);
     }
 
+    void onStartStatus(const bmqa::StartStatus& result)
+    {
+        d_receivedStartResults.push_back(result);
+    }
+
+    void onStopStatus(const bmqa::StopStatus& result)
+    {
+        d_receivedStopResults.push_back(result);
+    }
+
     bmqa::SessionEvent popSessionEvent()
     {
         BSLS_ASSERT(d_receivedSessionEvents.size() > 0);
@@ -248,6 +267,22 @@ struct EventHandler : public bmqa::SessionEventHandler {
         return result;
     }
 
+    bmqa::StartStatus popStartResult()
+    {
+        BSLS_ASSERT(d_receivedStartResults.size() > 0);
+        bmqa::StartStatus result(d_receivedStartResults.front());
+        d_receivedStartResults.pop_front();
+        return result;
+    }
+
+    bmqa::StopStatus popStopResult()
+    {
+        BSLS_ASSERT(d_receivedStopResults.size() > 0);
+        bmqa::StopStatus result(d_receivedStopResults.front());
+        d_receivedStopResults.pop_front();
+        return result;
+    }
+
     void incrementAsserts(BSLA_MAYBE_UNUSED const char* desc,
                           BSLA_MAYBE_UNUSED const char* file,
                           BSLA_MAYBE_UNUSED int         line)
@@ -260,6 +295,8 @@ struct EventHandler : public bmqa::SessionEventHandler {
         d_receivedSessionEvents.clear();
         d_receivedMessageEvents.clear();
         d_receivedResults.clear();
+        d_receivedStartResults.clear();
+        d_receivedStopResults.clear();
     }
 };
 
@@ -1499,6 +1536,92 @@ static void test8_postBlockedToSuspendedQueue()
     builder.reset();
 }
 
+static void test9_startStopAsyncCallback()
+// ------------------------------------------------------------------------
+// START / STOP ASYNC CALLBACK
+//
+// Concerns:
+//   The callback flavors of 'startAsync' and 'stopAsync' deliver the
+//   emitted 'bmqa::StartStatus' / 'bmqa::StopStatus' to the user-provided
+//   completion callback when the corresponding event is emitted.
+//
+// Testing:
+//   int  startAsync(const StartCallback&, const bsls::TimeInterval&);
+//   void stopAsync(const StopCallback&);
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("START / STOP ASYNC CALLBACK");
+
+    EventHandler eventHandler(bmqtst::TestHelperUtil::allocator());
+
+    bslma::ManagedPtr<bmqa::SessionEventHandler> handlerMp;
+    handlerMp.load(&eventHandler, 0, bslma::ManagedPtrUtil::noOpDeleter);
+
+    bmqa::MockSession mockSession(
+        handlerMp,
+        bmqt::SessionOptions(bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
+
+    bmqa::MockSession::StartCallback startCallback =
+        bdlf::MemFnUtil::memFn(&EventHandler::onStartStatus, &eventHandler);
+
+    bmqa::MockSession::StopCallback stopCallback =
+        bdlf::MemFnUtil::memFn(&EventHandler::onStopStatus, &eventHandler);
+
+    {
+        PVV("Successful startAsync response");
+        bmqa::StartStatus startResult(bmqt::GenericResult::e_SUCCESS,
+                                      "",
+                                      bmqtst::TestHelperUtil::allocator());
+        BMQA_EXPECT_CALL(mockSession, startAsync(startCallback))
+            .returning(0)
+            .emitting(startResult);
+
+        BMQTST_ASSERT_EQ(mockSession.startAsync(startCallback), 0);
+        BMQTST_ASSERT_EQ(mockSession.emitEvent(), true);
+
+        bmqa::StartStatus result = eventHandler.popStartResult();
+        BMQTST_ASSERT_EQ(bool(result), true);
+        BMQTST_ASSERT_EQ(result.result(), bmqt::GenericResult::e_SUCCESS);
+        BMQTST_ASSERT_EQ(result.errorDescription(), "");
+    }
+
+    {
+        PVV("Unsuccessful startAsync response (timeout)");
+        bmqa::StartStatus startResult(bmqt::GenericResult::e_TIMEOUT,
+                                      "timed out",
+                                      bmqtst::TestHelperUtil::allocator());
+        BMQA_EXPECT_CALL(mockSession, startAsync(startCallback))
+            .returning(0)
+            .emitting(startResult);
+
+        BMQTST_ASSERT_EQ(mockSession.startAsync(startCallback), 0);
+        BMQTST_ASSERT_EQ(mockSession.emitEvent(), true);
+
+        bmqa::StartStatus result = eventHandler.popStartResult();
+        BMQTST_ASSERT_EQ(bool(result), false);
+        BMQTST_ASSERT_EQ(result.result(), bmqt::GenericResult::e_TIMEOUT);
+        BMQTST_ASSERT_EQ(result.errorDescription(), "timed out");
+    }
+
+    {
+        PVV("Successful stopAsync response");
+        bmqa::StopStatus stopResult(bmqt::GenericResult::e_SUCCESS,
+                                    "",
+                                    bmqtst::TestHelperUtil::allocator());
+        BMQA_EXPECT_CALL(mockSession, stopAsync(stopCallback))
+            .emitting(stopResult);
+
+        mockSession.stopAsync(stopCallback);
+        BMQTST_ASSERT_EQ(mockSession.emitEvent(), true);
+
+        bmqa::StopStatus result = eventHandler.popStopResult();
+        BMQTST_ASSERT_EQ(bool(result), true);
+        BMQTST_ASSERT_EQ(result.result(), bmqt::GenericResult::e_SUCCESS);
+        BMQTST_ASSERT_EQ(result.errorDescription(), "");
+    }
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -1509,6 +1632,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 9: test9_startStopAsyncCallback(); break;
     case 8: test8_postBlockedToSuspendedQueue(); break;
     case 7: test7_postAndAccess(); break;
     case 6: test6_runThrough(); break;
