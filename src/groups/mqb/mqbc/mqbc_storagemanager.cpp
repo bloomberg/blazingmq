@@ -2280,9 +2280,10 @@ void StorageManager::do_logUnexpectedPrimaryStateResponse(
     // partitionId contained in 'eventData'
 
     int                        partitionId = eventData.partitionId();
-    const mqbnet::ClusterNode* sourceNode  = eventData.source();
+    const mqbnet::ClusterNode* source      = eventData.source();
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
+    BSLS_ASSERT_SAFE(source);
 
     BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->state() !=
                      PartitionFSM::State::e_REPLICA_WAITING);
@@ -2290,9 +2291,7 @@ void StorageManager::do_logUnexpectedPrimaryStateResponse(
     BALL_LOG_WARN << d_clusterData_p->identity().description()
                   << " Partition [" << partitionId << "]: "
                   << "Received unexpected PrimaryStateResponse from node "
-                  << (sourceNode ? sourceNode->nodeDescription()
-                                 : "** NULL **")
-                  << ", while self is in "
+                  << source->nodeDescription() << ", while self is in "
                   << d_partitionFSMVec[partitionId]->state()
                   << " state.  Self should only receive PrimaryStateResponse "
                   << "when in REPLICA_WAITING state.";
@@ -2306,9 +2305,10 @@ void StorageManager::do_logUnexpectedFailurePrimaryStateResponse(
     // partitionId contained in 'eventData'
 
     int                        partitionId = eventData.partitionId();
-    const mqbnet::ClusterNode* sourceNode  = eventData.source();
+    const mqbnet::ClusterNode* source      = eventData.source();
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_fileStores.size()));
+    BSLS_ASSERT_SAFE(source);
 
     BSLS_ASSERT_SAFE(d_partitionFSMVec[partitionId]->state() !=
                      PartitionFSM::State::e_REPLICA_WAITING);
@@ -2317,8 +2317,8 @@ void StorageManager::do_logUnexpectedFailurePrimaryStateResponse(
         << d_clusterData_p->identity().description() << " Partition ["
         << partitionId << "]: "
         << "Received unexpected failure PrimaryStateResponse from node "
-        << (sourceNode ? sourceNode->nodeDescription() : "** NULL **")
-        << ", while self is in " << d_partitionFSMVec[partitionId]->state()
+        << source->nodeDescription() << ", while self is in "
+        << d_partitionFSMVec[partitionId]->state()
         << " state.  Self should only receive failure PrimaryStateResponse "
         << "when in REPLICA_WAITING state.";
 }
