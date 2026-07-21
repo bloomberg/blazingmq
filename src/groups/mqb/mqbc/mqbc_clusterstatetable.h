@@ -521,6 +521,10 @@ class ClusterStateTable
                 logFailRegistrationResponse,
                 FOL_HEALING);
         CST_CFG(FOL_WAITING,
+                FOL_CSL_RQST,
+                sendFailureFollowerClusterStateResponse,
+                FOL_WAITING);
+        CST_CFG(FOL_WAITING,
                 CSL_CMT_SUCCESS,
                 stopWatchdog_updatePrimaryInPFSMs,
                 FOL_HEALED);
