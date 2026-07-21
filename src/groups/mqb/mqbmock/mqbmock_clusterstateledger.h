@@ -86,7 +86,7 @@ class ClusterStateLedger : public mqbc::ClusterStateLedger {
     // Cluster's transient state.
 
     LedgerRecords d_records;
-    // List of records stored in this ledger.
+    // List of records stored in this ledger, including uncommitted ones.
 
     Advisories d_uncommittedAdvisories;
     // List of uncommitted (but not canceled) advisories.
