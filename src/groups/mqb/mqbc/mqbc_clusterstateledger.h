@@ -325,6 +325,13 @@ class ClusterStateLedger {
     ///         dispatcher thread.
     virtual bool isOpen() const = 0;
 
+    /// Load into the specified `out` the list of uncommitted advisories as
+    /// const references.
+    ///
+    /// THREAD: This method can be invoked only in the associated cluster's
+    ///         dispatcher thread.
+    virtual void uncommittedAdvisories(ClusterMessageCRefList* out) const = 0;
+
     /// Return an iterator to this ledger.
     ///
     /// THREAD: This method can be invoked only in the associated cluster's

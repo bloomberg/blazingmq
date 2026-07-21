@@ -389,6 +389,14 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     ///         dispatcher thread.
     bool isOpen() const BSLS_KEYWORD_OVERRIDE;
 
+    /// Load into the specified `out` the list of uncommitted advisories as
+    /// const references.
+    ///
+    /// THREAD: This method can be invoked only in the associated cluster's
+    ///         dispatcher thread.
+    void uncommittedAdvisories(ClusterMessageCRefList* out) const
+        BSLS_KEYWORD_OVERRIDE;
+
     /// Return an iterator to this ledger.
     ///
     /// THREAD: This method is invoked in the associated cluster's
