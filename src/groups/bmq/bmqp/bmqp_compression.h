@@ -37,6 +37,7 @@
 #include <bdlbb_blob.h>
 #include <bsl_ostream.h>
 #include <bslma_allocator.h>
+#include <bsls_types.h>
 
 namespace BloombergLP {
 
@@ -88,16 +89,21 @@ struct Compression {
     /// specified `algorithm`, and load the uncompressed data into specified
     /// `output`, using the specified `factory` to supply the needed data
     /// buffers. Return 0 on success, and non-zero otherwise. Optionally
-    /// specify an `errorStream` to record details on any errors that may
-    /// occur during this operation. Also, optionally specify `allocator`
-    /// which will be used to supply memory.  Also note, that any existing
-    /// data in the specified `output` will be preserved.
+    /// specify a `maxOutputSize`, in bytes, beyond which decompression fails
+    /// closed with a non-zero return code rather than continuing to allocate
+    /// output buffers; a value of 0 (the default) means no limit is enforced.
+    /// This bounds the memory consumed when decompressing highly-compressible
+    /// input. Optionally specify an `errorStream` to record details
+    /// on any errors that may occur during this operation. Also, optionally
+    /// specify `allocator` which will be used to supply memory.  Also note,
+    /// that any existing data in the specified `output` will be preserved.
     static int decompress(bdlbb::Blob*                         output,
                           bdlbb::BlobBufferFactory*            factory,
                           bmqt::CompressionAlgorithmType::Enum algorithm,
                           const bdlbb::Blob&                   input,
-                          bsl::ostream*                        errorStream = 0,
-                          bslma::Allocator*                    allocator = 0);
+                          bsls::Types::Uint64 maxOutputSize = 0,
+                          bsl::ostream*       errorStream   = 0,
+                          bslma::Allocator*   allocator     = 0);
 };
 
 // ======================
@@ -131,13 +137,17 @@ struct Compression_Impl {
     /// Decompress the data within the specified `input` as according to the
     /// Zlib algorithm, and load the uncompressed data into the specified
     /// `output` blob, using the specified `factory` to supply needed data
-    /// buffers. Return 0 on success, and non-zero otherwise. Specify an
-    /// `errorStream` to record details on any errors that may occur during
-    /// this operation. Also, specify `allocator` which will be used to
-    /// supply memory. Return 0 on success, and non-zero otherwise.
+    /// buffers. Return 0 on success, and non-zero otherwise. Optionally
+    /// specify a `maxOutputSize`, in bytes, beyond which decompression fails
+    /// closed with a non-zero return code rather than continuing to allocate
+    /// output buffers; a value of 0 (the default) means no limit is enforced.
+    /// Specify an `errorStream` to record details on any errors that may
+    /// occur during this operation. Also, specify `allocator` which will be
+    /// used to supply memory. Return 0 on success, and non-zero otherwise.
     static int decompressZlib(bdlbb::Blob*              output,
                               bdlbb::BlobBufferFactory* factory,
                               const bdlbb::Blob&        input,
+                              bsls::Types::Uint64       maxOutputSize,
                               bsl::ostream*             errorStream,
                               bslma::Allocator*         allocator);
 };

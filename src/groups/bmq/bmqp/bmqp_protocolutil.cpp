@@ -457,6 +457,7 @@ int ProtocolUtil::convertToOld(bdlbb::Blob*                         dst,
                                            factory,
                                            cat,
                                            compressed,
+                                           0,  // no output cap
                                            &error,
                                            allocator);
     }
@@ -518,7 +519,8 @@ int ProtocolUtil::parse(bdlbb::Blob*              messagePropertiesOutput,
                         bool                      haveNewMessageProperties,
                         bmqt::CompressionAlgorithmType::Enum cat,
                         bdlbb::BlobBufferFactory*            blobBufferFactory,
-                        bslma::Allocator*                    allocator)
+                        bslma::Allocator*                    allocator,
+                        bsls::Types::Uint64 maxDecompressedSize)
 {
     // This is to capture parsing and de-compressing MessageProperties in a
     // single place.
@@ -619,6 +621,7 @@ int ProtocolUtil::parse(bdlbb::Blob*              messagePropertiesOutput,
                                        blobBufferFactory,
                                        cat,
                                        bufferCompressed,
+                                       maxDecompressedSize,
                                        &error,
                                        allocator);
 
