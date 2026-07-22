@@ -100,6 +100,7 @@ void ClusterFSM::processEvent(const EventWithMetadata& event)
             BSLS_ASSERT_SAFE(false && "Code unreachable by design");
             break;  // BREAK
         }
+        case State::e_FOL_WAITING: BSLA_FALLTHROUGH;
         case State::e_FOL_HEALING: BSLA_FALLTHROUGH;
         case State::e_LDR_HEALING_STG1: BSLA_FALLTHROUGH;
         case State::e_LDR_HEALING_STG2: BSLA_FALLTHROUGH;

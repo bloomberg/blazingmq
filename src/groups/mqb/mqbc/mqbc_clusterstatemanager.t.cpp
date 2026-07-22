@@ -296,6 +296,28 @@ struct Tester {
         }
     }
 
+    void advanceToFolHealing(int rId = 1)
+    {
+        // Simulate a successful RegistrationResponse to advance the follower
+        // from FOL_WAITING to FOL_HEALING.
+        BSLS_ASSERT_OPT(d_clusterStateManager_mp->healthState() ==
+                        mqbc::ClusterStateTableState::e_FOL_WAITING);
+
+        bmqp_ctrlmsg::ControlMessage response;
+        response.rId() = rId;
+        response.choice()
+            .makeClusterMessage()
+            .choice()
+            .makeClusterStateFSMMessage()
+            .choice()
+            .makeRegistrationResponse();
+
+        d_cluster_mp->requestManager().processResponse(response);
+
+        BSLS_ASSERT_OPT(d_clusterStateManager_mp->healthState() ==
+                        mqbc::ClusterStateTableState::e_FOL_HEALING);
+    }
+
     // ACCESSORS
     bsls::TimeInterval nowMonotonicClock() const
     {
@@ -658,7 +680,7 @@ static void test2_breathingTestFollower()
     tester.electLeader(2U);
 
     BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->healthState(),
-                     mqbc::ClusterStateTableState::e_FOL_HEALING);
+                     mqbc::ClusterStateTableState::e_FOL_WAITING);
     BMQTST_ASSERT(tester.d_clusterStateManager_mp->nodeToLSNMap().empty());
 
     tester.verifyRegistrationRequestSent(selfLSN);
@@ -813,8 +835,9 @@ static void test5_followerLSNRequestHandlingFollower()
 
     tester.electLeader(2U);
     BSLS_ASSERT_OPT(tester.d_clusterStateManager_mp->healthState() ==
-                    mqbc::ClusterStateTableState::e_FOL_HEALING);
+                    mqbc::ClusterStateTableState::e_FOL_WAITING);
     tester.verifyRegistrationRequestSent(selfLSN);
+    tester.advanceToFolHealing();
     tester.clearChannels();
 
     // 1. Receives a follower LSN request from leader
@@ -1149,8 +1172,9 @@ static void test10_followerClusterStateRequestHandlingFollower()
 
     tester.electLeader();
     BSLS_ASSERT_OPT(tester.d_clusterStateManager_mp->healthState() ==
-                    mqbc::ClusterStateTableState::e_FOL_HEALING);
+                    mqbc::ClusterStateTableState::e_FOL_WAITING);
     tester.verifyRegistrationRequestSent(selfLSN);
+    tester.advanceToFolHealing();
     tester.clearChannels();
 
     // 1. Receives a follower cluster state request from leader
@@ -1411,7 +1435,8 @@ static void test13_followerHealed()
 
     tester.electLeader();
     BSLS_ASSERT_OPT(tester.d_clusterStateManager_mp->healthState() ==
-                    mqbc::ClusterStateTableState::e_FOL_HEALING);
+                    mqbc::ClusterStateTableState::e_FOL_WAITING);
+    tester.advanceToFolHealing();
 
     // 1. Receive CSL advisory from leader.  Apply it.
     bmqp_ctrlmsg::LeaderAdvisory cslAdvisory;
@@ -1540,7 +1565,8 @@ static void test15_followerCSLCommitFailure()
 
     tester.electLeader(4U);
     BSLS_ASSERT_OPT(tester.d_clusterStateManager_mp->healthState() ==
-                    mqbc::ClusterStateTableState::e_FOL_HEALING);
+                    mqbc::ClusterStateTableState::e_FOL_WAITING);
+    tester.advanceToFolHealing();
 
     // 1. Receive CSL advisory from leader.  Apply it.
     bmqp_ctrlmsg::LeaderAdvisory cslAdvisory;
@@ -1575,7 +1601,7 @@ static void test15_followerCSLCommitFailure()
 
     // Verify that self restarts healing
     BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->healthState(),
-                     mqbc::ClusterStateTableState::e_FOL_HEALING);
+                     mqbc::ClusterStateTableState::e_FOL_WAITING);
 }
 
 static void test16_followerClusterStateRespFailureLeaderNext()
@@ -1980,7 +2006,7 @@ static void test19_stopNode()
 
     tester2.electLeader();
     BSLS_ASSERT_OPT(tester2.d_clusterStateManager_mp->healthState() ==
-                    mqbc::ClusterStateTableState::e_FOL_HEALING);
+                    mqbc::ClusterStateTableState::e_FOL_WAITING);
 
     tester2.d_clusterStateManager_mp->stop();
 
@@ -1993,6 +2019,7 @@ static void test19_stopNode()
                     mqbc::ClusterStateTableState::e_UNKNOWN);
 
     tester3.electLeader(3U);
+    tester3.advanceToFolHealing();
 
     bmqp_ctrlmsg::LeaderAdvisory cslAdvisory;
     cslAdvisory.sequenceNumber().electorTerm()    = 2U;
@@ -2244,10 +2271,10 @@ static void test21_resetUnknownFollower()
     BSLS_ASSERT_OPT(tester.d_clusterStateManager_mp->healthState() ==
                     mqbc::ClusterStateTableState::e_UNKNOWN);
 
-    // 1.a.) Self transitions to Follower Healing
+    // 1.a.) Self transitions to Follower Waiting
     tester.electLeader(2U);
     BSLS_ASSERT_OPT(tester.d_clusterStateManager_mp->healthState() ==
-                    mqbc::ClusterStateTableState::e_FOL_HEALING);
+                    mqbc::ClusterStateTableState::e_FOL_WAITING);
 
     // 1.b.) Upon leader loss, verify that self goes back to UNKNOWN state
     tester.d_cluster_mp->_clusterData()->electorInfo().setElectorInfo(
@@ -2261,6 +2288,7 @@ static void test21_resetUnknownFollower()
 
     // 2.a.) Self transitions to Follower Healed, upon CSL commit success
     tester.electLeader(3U);
+    tester.advanceToFolHealing(2);
 
     bmqp_ctrlmsg::LeaderAdvisory cslAdvisory;
     cslAdvisory.sequenceNumber().electorTerm()    = 3U;
@@ -2324,7 +2352,7 @@ static void test22_selectFollowerFromLeader()
     tester.transitionToNewLeader(newLeader, 3U);
 
     BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->healthState(),
-                     mqbc::ClusterStateTableState::e_FOL_HEALING);
+                     mqbc::ClusterStateTableState::e_FOL_WAITING);
 
     tester.verifyRegistrationRequestSent(selfLSN);
 
@@ -2375,7 +2403,7 @@ static void test22_selectFollowerFromLeader()
     tester2.transitionToNewLeader(newLeader, 3U);
 
     BMQTST_ASSERT_EQ(tester2.d_clusterStateManager_mp->healthState(),
-                     mqbc::ClusterStateTableState::e_FOL_HEALING);
+                     mqbc::ClusterStateTableState::e_FOL_WAITING);
 
     tester2.verifyRegistrationRequestSent(selfLSN);
 
@@ -2414,7 +2442,7 @@ static void test22_selectFollowerFromLeader()
     tester3.transitionToNewLeader(newLeader, 3U);
 
     BMQTST_ASSERT_EQ(tester3.d_clusterStateManager_mp->healthState(),
-                     mqbc::ClusterStateTableState::e_FOL_HEALING);
+                     mqbc::ClusterStateTableState::e_FOL_WAITING);
 
     // Current self LSN should be (2,2) after becoming healed leader earlier
     bmqp_ctrlmsg::LeaderMessageSequence currentSelfLSN;
@@ -2451,7 +2479,7 @@ static void test23_selectLeaderFromFollower()
     tester.setSelfLedgerLSN(selfLSN);
     tester.electLeader(2U);
     BSLS_ASSERT_OPT(tester.d_clusterStateManager_mp->healthState() ==
-                    mqbc::ClusterStateTableState::e_FOL_HEALING);
+                    mqbc::ClusterStateTableState::e_FOL_WAITING);
     tester.verifyRegistrationRequestSent(selfLSN);
     tester.clearChannels();
 
@@ -2473,6 +2501,7 @@ static void test23_selectLeaderFromFollower()
     tester2.setSelfLedgerLSN(selfLSN);
     tester2.electLeader(2U);
     tester2.verifyRegistrationRequestSent(selfLSN);
+    tester2.advanceToFolHealing();
 
     bmqp_ctrlmsg::LeaderAdvisory cslAdvisory;
     cslAdvisory.sequenceNumber().electorTerm()    = 2U;
@@ -2690,7 +2719,7 @@ static void test25_watchdogFollower()
     // Transition to Follower Healing
     tester.electLeader(2U);
     BSLS_ASSERT_OPT(tester.d_clusterStateManager_mp->healthState() ==
-                    mqbc::ClusterStateTableState::e_FOL_HEALING);
+                    mqbc::ClusterStateTableState::e_FOL_WAITING);
     tester.verifyRegistrationRequestSent(selfLSN);
     tester.clearChannels();
 
@@ -2709,7 +2738,7 @@ static void test25_watchdogFollower()
     // Verify that the watchdog triggers re-transition to Follower Healing.
     // where we send registration request again.
     BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->healthState(),
-                     mqbc::ClusterStateTableState::e_FOL_HEALING);
+                     mqbc::ClusterStateTableState::e_FOL_WAITING);
     tester.verifyRegistrationRequestSent(selfLSN);
     tester.clearChannels();
 
@@ -2722,6 +2751,8 @@ static void test25_watchdogFollower()
                      true);
 
     // Transition to Follower Healed
+    tester.advanceToFolHealing(
+        2);  // rId=2: second RegistrationRequest after watchdog re-entry
     bmqp_ctrlmsg::LeaderAdvisory cslAdvisory;
     cslAdvisory.sequenceNumber().electorTerm()    = 2U;
     cslAdvisory.sequenceNumber().sequenceNumber() = 1U;
@@ -2847,7 +2878,7 @@ static void test27_watchdogFollowerRetryExhaustion()
     // 1.) Transition to Follower Healing
     tester.electLeader(2U);
     BSLS_ASSERT_OPT(tester.d_clusterStateManager_mp->healthState() ==
-                    mqbc::ClusterStateTableState::e_FOL_HEALING);
+                    mqbc::ClusterStateTableState::e_FOL_WAITING);
     tester.verifyRegistrationRequestSent(selfLSN);
     tester.clearChannels();
 
@@ -2855,7 +2886,7 @@ static void test27_watchdogFollowerRetryExhaustion()
     tester.d_cluster_mp->advanceTime(k_WATCHDOG_TIMEOUT_DURATION_SHORT);
     tester.d_cluster_mp->waitForScheduler();
     BMQTST_ASSERT_EQ(tester.d_clusterStateManager_mp->healthState(),
-                     mqbc::ClusterStateTableState::e_FOL_HEALING);
+                     mqbc::ClusterStateTableState::e_FOL_WAITING);
     BMQTST_ASSERT_EQ(
         tester.d_clusterStateManager_mp->watchdogRetriesRemaining(),
         0);
