@@ -523,6 +523,15 @@ class ClusterOrchestrator {
     /// Get a modifiable reference to this object's queue helper.
     ClusterQueueHelper& queueHelper();
 
+    /// Relinquish self's primary status for every partition for which self is
+    /// currently the primary, so that the leader can reassign primaries and
+    /// self rejoins as a replica.  This resolves a leader-primary divergence
+    /// (self is still primary while leadership has moved to another node).
+    ///
+    /// THREAD: This method is invoked in the associated cluster's dispatcher
+    ///         thread.
+    void relinquishSelfPrimaryPartitions();
+
     // ACCESSORS
     const mqbc::ClusterState* clusterState() const;
 

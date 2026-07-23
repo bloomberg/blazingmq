@@ -90,7 +90,7 @@ def test_broker_client(
 @tweak.broker.app_config.network_interfaces.tcp_interface.heartbeat_interval_ms(100)
 def test_force_leader_primary_divergence(
     multi_node: Cluster,
-    sc_domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+    sc_domain_urls: tc.DomainUrls,
 ) -> None:
     """
     Test: connection loss between cluster nodes.
@@ -114,14 +114,19 @@ def test_force_leader_primary_divergence(
     - Kill "tproxy_1" and "tproxy_2". It disconnects "east2" and "west1" from "east1"
     - Leader must become "west2"; it is the only node connected to all other nodes
     - "east1" is not a leader anymore but still primary for the partitions. It detects
-      leader/primary divergence and exits gracefully. So we wait for "east1" to terminate, check
-      the exit code, and restart.
+      leader/primary divergence and, instead of shutting down, relinquishes its primary status
+      and rejoins as a replica in place. So we check that "east1" is still alive.
     - After that cluster is expected to heal. Give it some time and check that primary for all
       partitions is the same as the leader - "west2".
 
     Concerns:
     - The connection loss leads to leader/primary divergence: Leader is "west2", but primary for all
-     partitions is "east1". The node that loses leadership ("east1") terminates itself gracefully.
+     partitions is "east1". The node that loses leadership ("east1") recovers in place by demoting
+     its queues to replicas rather than terminating.
+    - A producer and consumer opened against "east1" before the divergence keep their queues open
+     across the demotion: their handles are transferred (not dropped), so posting keeps succeeding
+     (relayed to the new primary) and delivery survives, rather than crashing the broker on an
+     in-flight PUT or refusing the producer.
     """
 
     cluster = multi_node
@@ -158,6 +163,26 @@ def test_force_leader_primary_divergence(
     # Start "east2" and kill two tproxies disconnecting "east2" and "west1" from "east1".
     east2 = cluster.start_node("east2")
     east2.wait_status(wait_leader=True, wait_ready=True)
+
+    # Open a producer and a consumer directly against "east1" (the leader and
+    # primary) *before* the divergence.  These client connections are direct
+    # (not via the killed inter-node tproxies), so they stay alive across the
+    # demotion.  When "east1" is later demoted to a replica, its open handles
+    # must be transferred (not dropped): posting after the demotion must keep
+    # succeeding (relayed to the new primary) rather than crashing the broker or
+    # getting refused.
+    uri = sc_domain_urls.uri_priority
+    producer = old_leader.create_client("producer")
+    producer.open(uri, flags=["write,ack"], succeed=True)
+    consumer = old_leader.create_client("consumer")
+    consumer.open(uri, flags=["read"], succeed=True)
+
+    # Baseline: posting works while "east1" is still the primary.
+    assert (
+        producer.post(uri, ["before-divergence"], wait_ack=True, succeed=True)
+        == Client.e_SUCCESS
+    )
+
     tproxies["tproxy_east2"].kill()
     tproxies["tproxy_west1"].kill()
 
@@ -166,13 +191,11 @@ def test_force_leader_primary_divergence(
     assert new_leader.name == "west2"
 
     # Now "east1" detects the leader / primary divergence. It is not a leader anymore but
-    # still primary. Hence, it is expected to shutdown itself gracefully.
-    rc = old_leader.wait()
-    assert rc == 0
-
-    # Restart "east1"
-    old_leader.start()
-    old_leader.wait_until_started()
+    # still primary. Instead of shutting down, it relinquishes its primary status and rejoins
+    # as a replica in place. Give it a moment to detect the divergence and demote, then verify
+    # it is still alive.
+    sleep(5)
+    assert old_leader.is_alive()
 
     # Request partitions summary with admin command. Check that primary for all partitions is
     # "west2" - the same as the leader
@@ -211,3 +234,22 @@ def test_force_leader_primary_divergence(
                 raise e
             test_logger.info("Wait primaries for 1 more second...")
             sleep(1)
+
+    # "east1" has been demoted to a replica while keeping its client handles.
+    # The producer's queue is still open; posting must keep succeeding, now
+    # relayed to the new primary "west2".  Before handles were transferred (they
+    # used to be dropped), this either crashed the broker on an in-flight PUT or
+    # got the producer refused.
+    assert (
+        producer.post(uri, ["after-divergence"], wait_ack=True, succeed=True)
+        == Client.e_SUCCESS
+    )
+    assert old_leader.is_alive()
+
+    # The consumer (also kept open on the demoted "east1") receives the message
+    # relayed from the new primary, confirming end-to-end delivery survives the
+    # demotion.
+    consumer.wait_push_event()
+    msgs = consumer.list(uri, block=True)
+    assert len(msgs) >= 1
+    consumer.confirm(uri, "*", succeed=True)

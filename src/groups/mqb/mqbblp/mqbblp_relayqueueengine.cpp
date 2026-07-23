@@ -31,6 +31,7 @@
 
 // BMQ
 #include <bmqp_protocol.h>
+#include <bmqp_protocolutil.h>
 #include <bmqp_queueid.h>
 #include <bmqp_queueutil.h>
 #include <bmqt_queueflags.h>
@@ -1091,11 +1092,167 @@ void RelayQueueEngine::resetState(bool isShuttingDown)
         d_allocator_p);
 }
 
-int RelayQueueEngine::rebuildInternalState(
-    BSLA_MAYBE_UNUSED bsl::ostream& errorDescription)
+int RelayQueueEngine::rebuildInternalState(bsl::ostream& errorDescription)
 {
-    BSLS_ASSERT_OPT(false && "should never be invoked");
+    // executed by the *QUEUE DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
+
+    // This method is invoked when a node that was the primary for the queue is
+    // demoted to a replica.  The node keeps using the same queue handles; the
+    // engine (a freshly constructed 'RelayQueueEngine') must rebuild its
+    // internal state to match the surviving handles, reproducing the end state
+    // that 'getHandle' would have produced for each '(handle, subStream)' pair.
+    //
+    // The surviving handles are the single source of truth: each subStream
+    // already carries its 'upstreamSubQueueId' (assigned while this node was
+    // primary), which we reuse so that engine App_States, handle subStreams and
+    // the cluster's reopen state all agree.  Upstream stream parameters,
+    // subscriptions and generation counts are intentionally NOT rebuilt here;
+    // they are re-established by the reopen/reconfigure flow once a new primary
+    // becomes active.
+
+    if (!d_apps.empty()) {
+        errorDescription << "Engine must have empty state before rebuilding"
+                         << " internal state for queue ["
+                         << d_queueState_p->uri() << "]";
+        return -1;  // RETURN
+    }
+
+    // Abandon the App_States left over from the previous (primary) engine.
+    // They are of the wrong type ('RootQueueEngine' App_States) and must be
+    // replaced by 'RelayQueueEngine_AppState' instances re-derived below.
+    const QueueState::SubQueues& oldSubQueues = d_queueState_p->subQueues();
+    for (unsigned int i = 0; i < oldSubQueues.size(); ++i) {
+        if (oldSubQueues[i]) {
+            d_queueState_p->abandon(i);
+        }
+    }
+
+    bsl::vector<mqbi::QueueHandle*> handles(d_allocator_p);
+    d_queueState_p->handleCatalog().loadHandles(&handles);
+
+    for (bsl::vector<mqbi::QueueHandle*>::const_iterator hit = handles.begin();
+         hit != handles.end();
+         ++hit) {
+        mqbi::QueueHandle* queueHandle = *hit;
+
+        const mqbi::QueueHandle::SubStreams& subStreams =
+            queueHandle->subStreamInfos();
+
+        for (mqbi::QueueHandle::SubStreams::const_iterator sit =
+                 subStreams.begin();
+             sit != subStreams.end();
+             ++sit) {
+            const bsl::string&                  appId = sit->first;
+            const mqbi::QueueHandle::StreamInfo& si   = sit->second;
+            const unsigned int upstreamSubQueueId     = si.d_upstreamSubQueueId;
+
+            // Find-or-create the App_State for this upstream subQueueId,
+            // mirroring 'getHandle'.
+            App_State* app = findApp(upstreamSubQueueId);
+            if (app == 0) {
+                AppStateSp appStateSp(
+                    new (*d_allocator_p)
+                        App_State(upstreamSubQueueId,
+                                  appId,
+                                  d_queueState_p->queue(),
+                                  d_queueState_p->scheduler(),
+                                  d_queueState_p->routingContext(),
+                                  d_allocator_p),
+                    d_allocator_p);
+
+                app = appStateSp.get();
+
+                d_apps.insert(bsl::make_pair(upstreamSubQueueId, appStateSp));
+                d_appIds.insert(bsl::make_pair(appId, appStateSp));
+                d_queueState_p->adopt(appStateSp);
+            }
+
+            if (!app->isAuthorized()) {
+                app->authorize();
+            }
+
+            // Rebuild the per-handle cache entry ('d_streamParameters' is left
+            // default, exactly as 'getHandle' leaves it; it is re-advertised by
+            // the reconfigure that follows reopen).  Note that we deliberately
+            // do NOT call 'registerSubStream' (the subStream already exists on
+            // the surviving handle; re-registering would double its counts) nor
+            // re-'add' the aggregate parameters (they already reflect all
+            // handles on the shared queue state).
+            bmqp_ctrlmsg::QueueHandleParameters perApp =
+                reconstructSubStreamParameters(queueHandle, appId, si);
+
+            bsl::pair<App_State::CachedParametersMap::iterator, bool>
+                insertResult = app->d_cache.insert(bsl::make_pair(
+                    queueHandle,
+                    RelayQueueEngine_AppState::CachedParameters(
+                        perApp,
+                        si.d_downstreamSubQueueId,
+                        d_allocator_p)));
+            if (!insertResult.second) {
+                bmqp::QueueUtil::mergeHandleParameters(
+                    &insertResult.first->second.d_handleParameters,
+                    perApp);
+            }
+        }
+    }
+
+    BALL_LOG_INFO << "Rebuilt internal state of relay queue engine for queue ["
+                  << d_queueState_p->queue()->description() << "] having "
+                  << d_apps.size() << " apps / substreams "
+                  << "[handleParameters: "
+                  << d_queueState_p->handleParameters()
+                  << ", streamParameters: "
+                  << d_queueState_p->subQueuesParameters() << "]";
+
     return 0;
+}
+
+bmqp_ctrlmsg::QueueHandleParameters
+RelayQueueEngine::reconstructSubStreamParameters(
+    mqbi::QueueHandle*                    handle,
+    const bsl::string&                   appId,
+    const mqbi::QueueHandle::StreamInfo& si) const
+{
+    // Reconstruct the per-'(handle, app)' 'QueueHandleParameters' that
+    // 'getHandle' would have cached: the handle-level identity (uri, qId)
+    // projected onto this appId's counts.  For the common single-subStream
+    // handle this equals 'handle->handleParameters()' exactly.
+    bmqp_ctrlmsg::QueueHandleParameters perApp(handle->handleParameters(),
+                                               d_allocator_p);
+
+    perApp.readCount()  = si.d_counts.d_readCount;
+    perApp.writeCount() = si.d_counts.d_writeCount;
+    perApp.adminCount() = (appId == bmqp::ProtocolUtil::k_DEFAULT_APP_ID)
+                              ? handle->handleParameters().adminCount()
+                              : 0;
+
+    if (appId != bmqp::ProtocolUtil::k_DEFAULT_APP_ID ||
+        si.d_downstreamSubQueueId != bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID) {
+        bmqp_ctrlmsg::SubQueueIdInfo subIdInfo(d_allocator_p);
+        subIdInfo.appId() = appId;
+        subIdInfo.subId() = si.d_downstreamSubQueueId;
+        perApp.subIdInfo().makeValue(subIdInfo);
+    }
+    else {
+        perApp.subIdInfo().reset();
+    }
+
+    bsls::Types::Uint64 flags = 0;
+    if (si.d_counts.d_readCount > 0) {
+        bmqt::QueueFlagsUtil::setReader(&flags);
+    }
+    if (si.d_counts.d_writeCount > 0) {
+        bmqt::QueueFlagsUtil::setWriter(&flags);
+    }
+    if (perApp.adminCount() > 0) {
+        bmqt::QueueFlagsUtil::setAdmin(&flags);
+    }
+    perApp.flags() = flags;
+
+    return perApp;
 }
 
 mqbi::QueueHandle* RelayQueueEngine::getHandle(
