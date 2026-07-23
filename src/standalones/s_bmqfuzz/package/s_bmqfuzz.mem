@@ -1,5 +1,6 @@
 s_bmqfuzz_bmqp_ackmessageiterator.fuzz
 s_bmqfuzz_bmqp_event_initialize.fuzz
+s_bmqfuzz_bmqp_pushmessageiterator.fuzz
 s_bmqfuzz_bmqt_uri.fuzz
 s_bmqfuzz_bmqu_stringutil_match.fuzz
 s_bmqfuzz_eval.fuzz
