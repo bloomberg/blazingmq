@@ -111,6 +111,7 @@
       <element name='advertiseSubscriptions' type='boolean' default='false'/>
       <element name='routeCommandTimeoutMs' type='int' default='3000'/>
       <element name='authentication'       type='tns:AuthenticatorConfig'/>
+      <element name='authorization'       type='tns:AuthorizerConfig'/>
       <element name='tlsConfig'            type='tns:TlsConfig' minOccurs='0'/>
     </sequence>
   </complexType>
@@ -450,6 +451,37 @@
       <element name='settings' type='tns:PluginSettingKeyValue' minOccurs='0' maxOccurs='unbounded'/>
     </sequence>
  </complexType>
+
+  <complexType name='AuthorizerConfig'>
+    <annotation>
+      <documentation>
+        Top level type for the broker's authorization configurations.
+
+        authorizer...........:
+            Configuration entries for the authorizer plugin (built-in or external).
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='authorizer' type='tns:AuthorizerPluginConfig' minOccurs='0' />
+    </sequence>
+  </complexType>
+
+  <complexType name="AuthorizerPluginConfig">
+    <annotation>
+      <documentation>
+        The configuration for an authorizer plugin.
+
+        name.....:
+            The name of the authenticator plugin.
+        settings.:
+            Plugin-specific settings.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='name'    type='string'/>
+      <element name='settings' type='tns:PluginSettingKeyValue' minOccurs='0' maxOccurs='unbounded'/>
+    </sequence>
+  </complexType>
 
   <complexType name="PluginSettingKeyValue">
     <annotation>

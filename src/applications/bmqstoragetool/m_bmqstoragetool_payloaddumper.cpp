@@ -20,12 +20,65 @@
 #include <mqbs_filestoreprotocolprinter.h>
 
 // BMQ
+#include <bdlbb_blob.h>
+#include <bmqp_messageproperties.h>
 #include <bmqu_memoutstream.h>
 #include <bsl_algorithm.h>
 #include <bsl_ostream.h>
 
 namespace BloombergLP {
 namespace m_bmqstoragetool {
+
+namespace {
+
+const unsigned int k_MAX_PAYLOAD_HEX_BYTES = 64;
+
+int seekToRecord(mqbs::DataFileIterator* it, bsls::Types::Uint64 recordOffset)
+{
+    if ((it->recordOffset() > recordOffset && !it->isReverseMode()) ||
+        (it->recordOffset() < recordOffset && it->isReverseMode())) {
+        it->flipDirection();
+    }
+    while (it->recordOffset() != recordOffset) {
+        const int rc = it->nextRecord();
+        if (rc != 1) {
+            return -1;
+        }
+    }
+    return 0;
+}
+
+void loadAppData(const char**            appData,
+                 unsigned int*           appDataLen,
+                 unsigned int*           propertiesAreaLen,
+                 mqbs::DataFileIterator* it)
+{
+    *propertiesAreaLen = 0;
+    it->loadApplicationData(appData, appDataLen);
+
+    const mqbs::DataHeader& dh = it->dataHeader();
+    if (mqbs::DataHeaderFlagUtil::isSet(
+            dh.flags(),
+            mqbs::DataHeaderFlags::e_MESSAGE_PROPERTIES)) {
+        bsl::shared_ptr<char> sp(const_cast<char*>(*appData),
+                                 bslstl::SharedPtrNilDeleter(),
+                                 0);
+        bdlbb::BlobBuffer     buf(sp, *appDataLen);
+        bdlbb::Blob           blob;
+        blob.appendDataBuffer(buf);
+
+        bmqp::MessageProperties props;
+        if (0 ==
+            props.streamIn(blob,
+                           bmqp::MessagePropertiesInfo(dh).isExtended())) {
+            *propertiesAreaLen = props.totalSize();
+            *appDataLen -= *propertiesAreaLen;
+            *appData += *propertiesAreaLen;
+        }
+    }
+}
+
+}  // close unnamed namespace
 
 // ===================
 // class PayloadDumper
@@ -47,58 +100,46 @@ void PayloadDumper::outputPayload(bsls::Types::Uint64 messageOffsetDwords)
 {
     const bsls::Types::Uint64 recordOffset = messageOffsetDwords *
                                              bmqp::Protocol::k_DWORD_SIZE;
-    mqbs::DataFileIterator* it = d_dataFile_p;
 
-    // Flip iterator direction depending on recordOffset
-    if ((it->recordOffset() > recordOffset && !it->isReverseMode()) ||
-        (it->recordOffset() < recordOffset && it->isReverseMode())) {
-        it->flipDirection();
-    }
-    // Search record in data file
-    while (it->recordOffset() != recordOffset) {
-        const int rc = it->nextRecord();
-
-        if (rc != 1) {
-            d_ostream << "Failed to retrieve message from DATA "
-                      << "file rc: " << rc << bsl::endl;
-            return;  // RETURN
-        }
+    if (seekToRecord(d_dataFile_p, recordOffset) != 0) {
+        d_ostream << "Failed to retrieve message from DATA file" << bsl::endl;
+        return;
     }
 
     bmqu::MemOutStream dataHeaderOsstr(d_allocator_p);
     bmqu::MemOutStream optionsOsstr(d_allocator_p);
     bmqu::MemOutStream propsOsstr(d_allocator_p);
 
-    dataHeaderOsstr << it->dataHeader();
+    dataHeaderOsstr << d_dataFile_p->dataHeader();
 
     const char*  options    = 0;
     unsigned int optionsLen = 0;
-    it->loadOptions(&options, &optionsLen);
+    d_dataFile_p->loadOptions(&options, &optionsLen);
     mqbs::FileStoreProtocolPrinter::printOptions(optionsOsstr,
                                                  options,
                                                  optionsLen);
 
-    const char*  appData    = 0;
-    unsigned int appDataLen = 0;
-    it->loadApplicationData(&appData, &appDataLen);
+    const char*  appData           = 0;
+    unsigned int appDataLen        = 0;
+    unsigned int propertiesAreaLen = 0;
+    loadAppData(&appData, &appDataLen, &propertiesAreaLen, d_dataFile_p);
 
-    const mqbs::DataHeader& dh                = it->dataHeader();
-    unsigned int            propertiesAreaLen = 0;
+    const mqbs::DataHeader& dh = d_dataFile_p->dataHeader();
     if (mqbs::DataHeaderFlagUtil::isSet(
             dh.flags(),
             mqbs::DataHeaderFlags::e_MESSAGE_PROPERTIES)) {
+        const char*  propsData = 0;
+        unsigned int propsLen  = 0;
+        d_dataFile_p->loadApplicationData(&propsData, &propsLen);
         int rc = mqbs::FileStoreProtocolPrinter::printMessageProperties(
             &propertiesAreaLen,
             propsOsstr,
-            appData,
+            propsData,
             bmqp::MessagePropertiesInfo(dh));
         if (rc) {
             d_ostream << "Failed to retrieve message properties, rc: " << rc
                       << bsl::endl;
         }
-
-        appDataLen -= propertiesAreaLen;
-        appData += propertiesAreaLen;
     }
 
     // Payload
@@ -113,8 +154,8 @@ void PayloadDumper::outputPayload(bsls::Types::Uint64 messageOffsetDwords)
     }
 
     d_ostream << '\n'
-              << "DataRecord index: " << it->recordIndex()
-              << ", offset: " << it->recordOffset() << '\n'
+              << "DataRecord index: " << d_dataFile_p->recordIndex()
+              << ", offset: " << d_dataFile_p->recordOffset() << '\n'
               << "DataHeader: " << '\n'
               << dataHeaderOsstr.str();
 
@@ -127,6 +168,34 @@ void PayloadDumper::outputPayload(bsls::Types::Uint64 messageOffsetDwords)
     }
 
     d_ostream << "\nPayload: " << '\n' << payloadOsstr.str() << '\n';
+}
+
+int PayloadDumper::loadPayloadHex(bsl::string*        result,
+                                  bsls::Types::Uint64 messageOffsetDwords)
+{
+    const bsls::Types::Uint64 recordOffset = messageOffsetDwords *
+                                             bmqp::Protocol::k_DWORD_SIZE;
+
+    if (seekToRecord(d_dataFile_p, recordOffset) != 0) {
+        return -1;
+    }
+
+    const char*  appData           = 0;
+    unsigned int appDataLen        = 0;
+    unsigned int propertiesAreaLen = 0;
+    loadAppData(&appData, &appDataLen, &propertiesAreaLen, d_dataFile_p);
+
+    unsigned int len = bsl::min(appDataLen, k_MAX_PAYLOAD_HEX_BYTES);
+    result->clear();
+    result->reserve(len * 2);
+    for (unsigned int i = 0; i < len; ++i) {
+        const char    hexDigits[] = "0123456789ABCDEF";
+        unsigned char byte        = static_cast<unsigned char>(appData[i]);
+        result->push_back(hexDigits[byte >> 4]);
+        result->push_back(hexDigits[byte & 0x0F]);
+    }
+
+    return 0;
 }
 
 }  // close package namespace
