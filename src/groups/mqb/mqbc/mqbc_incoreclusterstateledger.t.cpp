@@ -324,6 +324,31 @@ struct Tester {
         }
     }
 
+    /// Apply a minimal snapshot record so self follower has a valid base
+    /// state and will accept subsequent `e_UPDATE` records.  Uses the lowest
+    /// LSN so it does not disturb the LSNs of records applied afterwards.
+    void applyPrimingSnapshot()
+    {
+        bmqp_ctrlmsg::LeaderAdvisory snapshot;
+        snapshot.sequenceNumber().electorTerm()    = 1U;
+        snapshot.sequenceNumber().sequenceNumber() = 1U;
+
+        bmqp_ctrlmsg::ClusterMessage message;
+        message.choice().makeLeaderAdvisory(snapshot);
+
+        bdlbb::Blob event(d_cluster_mp->bufferFactory(),
+                          bmqtst::TestHelperUtil::allocator());
+        constructEventBlob(&event,
+                           message,
+                           snapshot.sequenceNumber(),
+                           1U,  // timestamp
+                           mqbc::ClusterStateRecordType::e_SNAPSHOT);
+        BSLS_ASSERT_OPT(d_clusterStateLedger_mp->apply(
+                            event,
+                            d_cluster_mp->netCluster().lookupNode(
+                                mqbmock::Cluster::k_LEADER_NODE_ID)) == 0);
+    }
+
     /// Load into the specified `event` a bmqp::Event of type
     /// `e_CLUSTER_STATE` containing a ledger record of the specified
     /// `clusterMessage` having the specified `sequenceNumber`, `timestamp`
@@ -882,55 +907,13 @@ static void test7_apply_ClusterStateRecord()
     mqbc::IncoreClusterStateLedger* obj = tester.d_clusterStateLedger_mp.get();
     BSLS_ASSERT_OPT(obj->open() == 0);
 
-    // Create an update record
     bmqp_ctrlmsg::PartitionPrimaryInfo pinfo;
     pinfo.primaryNodeId()  = mqbmock::Cluster::k_LEADER_NODE_ID;
     pinfo.partitionId()    = 1U;
     pinfo.primaryLeaseId() = 2U;
 
-    bmqp_ctrlmsg::PartitionPrimaryAdvisory pmAdvisory;
-    pmAdvisory.partitions().push_back(pinfo);
-
-    tester.d_cluster_mp->_clusterData()
-        ->electorInfo()
-        .nextLeaderMessageSequence(&pmAdvisory.sequenceNumber());
-
-    bmqp_ctrlmsg::ClusterMessage updateMessage;
-    updateMessage.choice().makePartitionPrimaryAdvisory(pmAdvisory);
-
-    bdlbb::Blob updateEvent(tester.d_cluster_mp->bufferFactory(),
-                            bmqtst::TestHelperUtil::allocator());
-    tester.constructEventBlob(&updateEvent,
-                              updateMessage,
-                              pmAdvisory.sequenceNumber(),
-                              123456,
-                              mqbc::ClusterStateRecordType::e_UPDATE);
-
-    // Apply the update record
-    BMQTST_ASSERT_EQ(obj->apply(updateEvent,
-                                tester.d_cluster_mp->netCluster().lookupNode(
-                                    mqbmock::Cluster::k_LEADER_NODE_ID)),
-                     0);
-    BMQTST_ASSERT_EQ(tester.numCommittedMessages(), 0U);
-    BMQTST_ASSERT(tester.hasSentMessagesToLeader(1));
-
-    // Verify that the underlying ledger contains the update record
-    bslma::ManagedPtr<mqbc::ClusterStateLedgerIterator> cslIter =
-        obj->getIterator();
-    BMQTST_ASSERT_EQ(cslIter->next(), 0);
-    BMQTST_ASSERT(cslIter->isValid());
-    verifyRecordHeader(*cslIter,
-                       mqbc::ClusterStateRecordType::e_UPDATE,
-                       pmAdvisory.sequenceNumber());
-    BMQTST_ASSERT_EQ(cslIter->header().timestamp(), 123456U);
-
-    bmqp_ctrlmsg::ClusterMessage msg;
-    int                          rc = cslIter->loadClusterMessage(&msg);
-    BMQTST_ASSERT_EQ(rc, 0);
-    BMQTST_ASSERT(msg.choice().isPartitionPrimaryAdvisoryValue());
-    BMQTST_ASSERT_EQ(msg.choice().partitionPrimaryAdvisory(), pmAdvisory);
-
-    // 2. Create a snapshot record
+    // 1. Create and apply a snapshot record first: a follower must have a
+    //    snapshot base before it will accept e_UPDATE records.
     bmqp_ctrlmsg::QueueInfo qinfo;
     qinfo.uri()         = "bmq://bmq.test.mmap.priority/q1";
     qinfo.partitionId() = 1U;
@@ -951,10 +934,9 @@ static void test7_apply_ClusterStateRecord()
     tester.constructEventBlob(&snapshotEvent,
                               snapshotMessage,
                               leaderAdvisory.sequenceNumber(),
-                              123567,
+                              123456,
                               mqbc::ClusterStateRecordType::e_SNAPSHOT);
 
-    // Apply the snapshot record
     BMQTST_ASSERT_EQ(obj->apply(snapshotEvent,
                                 tester.d_cluster_mp->netCluster().lookupNode(
                                     mqbmock::Cluster::k_LEADER_NODE_ID)),
@@ -962,20 +944,203 @@ static void test7_apply_ClusterStateRecord()
     BMQTST_ASSERT_EQ(tester.numCommittedMessages(), 0U);
     BMQTST_ASSERT(tester.hasSentMessagesToLeader(1));
 
+    // Verify that the underlying ledger contains the snapshot record
+    bslma::ManagedPtr<mqbc::ClusterStateLedgerIterator> cslIter =
+        obj->getIterator();
     BMQTST_ASSERT_EQ(cslIter->next(), 0);
     BMQTST_ASSERT(cslIter->isValid());
     verifyRecordHeader(*cslIter,
                        mqbc::ClusterStateRecordType::e_SNAPSHOT,
                        leaderAdvisory.sequenceNumber());
+    BMQTST_ASSERT_EQ(cslIter->header().timestamp(), 123456U);
+
+    bmqp_ctrlmsg::ClusterMessage msg;
+    int                          rc = cslIter->loadClusterMessage(&msg);
+    BMQTST_ASSERT_EQ(rc, 0);
+    BMQTST_ASSERT(msg.choice().isLeaderAdvisoryValue());
+    BMQTST_ASSERT_EQ(msg.choice().leaderAdvisory(), leaderAdvisory);
+
+    // 2. Create and apply an update record on top of the snapshot
+    bmqp_ctrlmsg::PartitionPrimaryAdvisory pmAdvisory;
+    pmAdvisory.partitions().push_back(pinfo);
+
+    tester.d_cluster_mp->_clusterData()
+        ->electorInfo()
+        .nextLeaderMessageSequence(&pmAdvisory.sequenceNumber());
+
+    bmqp_ctrlmsg::ClusterMessage updateMessage;
+    updateMessage.choice().makePartitionPrimaryAdvisory(pmAdvisory);
+
+    bdlbb::Blob updateEvent(tester.d_cluster_mp->bufferFactory(),
+                            bmqtst::TestHelperUtil::allocator());
+    tester.constructEventBlob(&updateEvent,
+                              updateMessage,
+                              pmAdvisory.sequenceNumber(),
+                              123567,
+                              mqbc::ClusterStateRecordType::e_UPDATE);
+
+    BMQTST_ASSERT_EQ(obj->apply(updateEvent,
+                                tester.d_cluster_mp->netCluster().lookupNode(
+                                    mqbmock::Cluster::k_LEADER_NODE_ID)),
+                     0);
+    BMQTST_ASSERT_EQ(tester.numCommittedMessages(), 0U);
+    BMQTST_ASSERT(tester.hasSentMessagesToLeader(2));
+
+    BMQTST_ASSERT_EQ(cslIter->next(), 0);
+    BMQTST_ASSERT(cslIter->isValid());
+    verifyRecordHeader(*cslIter,
+                       mqbc::ClusterStateRecordType::e_UPDATE,
+                       pmAdvisory.sequenceNumber());
     BMQTST_ASSERT_EQ(cslIter->header().timestamp(), 123567U);
 
     rc = cslIter->loadClusterMessage(&msg);
     BMQTST_ASSERT_EQ(rc, 0);
-    BMQTST_ASSERT(msg.choice().isLeaderAdvisoryValue());
-    BMQTST_ASSERT_EQ(msg.choice().leaderAdvisory(), leaderAdvisory);
+    BMQTST_ASSERT(msg.choice().isPartitionPrimaryAdvisoryValue());
+    BMQTST_ASSERT_EQ(msg.choice().partitionPrimaryAdvisory(), pmAdvisory);
 }
 
-static void test8_apply_ClusterStateRecordCommit()
+static void test8_followerGatesUpdatesUntilSnapshot()
+// ------------------------------------------------------------------------
+// FOLLOWER GATES UPDATES UNTIL SNAPSHOT
+//
+// Concerns:
+//   - Before self follower has applied a snapshot, applying an e_UPDATE
+//     record from the leader is rejected: it has no valid base state onto
+//     which to apply an increment, so the record is ignored.
+//   - The commit of such a gated e_UPDATE is skipped: apply() succeeds, no
+//     commit callback fires, and self LSN is not advanced.
+//   - After self follower has applied a snapshot, applying a subsequent
+//     e_UPDATE record (with an LSN above the snapshot) succeeds.
+//
+// Testing:
+//   int apply(const bdlbb::Blob& record, mqbnet::ClusterNode* source)
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName(
+        "APPLY - FOLLOWER GATES UPDATES UNTIL SNAPSHOT");
+
+    Tester                          tester(false);  // isLeader
+    mqbc::IncoreClusterStateLedger* obj = tester.d_clusterStateLedger_mp.get();
+    BSLS_ASSERT_OPT(obj->open() == 0);
+
+    mqbnet::ClusterNode* leaderNode =
+        tester.d_cluster_mp->netCluster().lookupNode(
+            mqbmock::Cluster::k_LEADER_NODE_ID);
+    const bsls::Types::Uint64 arbitraryTimestamp = 123456;
+
+    // 1. An e_UPDATE received before any snapshot is applied is gated, as self
+    //    follower has no valid base state to apply it onto.
+    bmqp_ctrlmsg::QueueInfo qinfo;
+    qinfo.uri()         = "bmq://bmq.test.mmap.priority/q1";
+    qinfo.partitionId() = 1U;
+    mqbu::StorageKey key(mqbu::StorageKey::BinaryRepresentation(), "7777");
+    key.loadBinary(&qinfo.key());
+
+    bmqp_ctrlmsg::QueueAssignmentAdvisory qadvisory;
+    tester.d_cluster_mp->_clusterData()
+        ->electorInfo()
+        .nextLeaderMessageSequence(&qadvisory.sequenceNumber());
+    qadvisory.queues().push_back(qinfo);
+
+    bmqp_ctrlmsg::ClusterMessage updateMessage;
+    updateMessage.choice().makeQueueAssignmentAdvisory(qadvisory);
+
+    bdlbb::Blob updateEvent(tester.d_cluster_mp->bufferFactory(),
+                            bmqtst::TestHelperUtil::allocator());
+    tester.constructEventBlob(&updateEvent,
+                              updateMessage,
+                              qadvisory.sequenceNumber(),
+                              arbitraryTimestamp,
+                              mqbc::ClusterStateRecordType::e_UPDATE);
+
+    // Apply the update record — should fail (gated)
+    BMQTST_ASSERT_NE(obj->apply(updateEvent, leaderNode), 0);
+
+    // No ack was sent (record was not written)
+    BMQTST_ASSERT(tester.hasSentMessagesToLeader(0));
+
+    // 2. The commit of such a gated e_UPDATE is skipped: apply() succeeds, no
+    //    commit callback fires, and self LSN is not advanced.
+    bmqp_ctrlmsg::LeaderAdvisoryCommit gatedCommit;
+    tester.d_cluster_mp->_clusterData()
+        ->electorInfo()
+        .nextLeaderMessageSequence(&gatedCommit.sequenceNumber());
+    gatedCommit.sequenceNumberCommitted() = qadvisory.sequenceNumber();
+
+    bmqp_ctrlmsg::ClusterMessage gatedCommitMessage;
+    gatedCommitMessage.choice().makeLeaderAdvisoryCommit(gatedCommit);
+
+    bdlbb::Blob gatedCommitEvent(tester.d_cluster_mp->bufferFactory(),
+                                 bmqtst::TestHelperUtil::allocator());
+    tester.constructEventBlob(&gatedCommitEvent,
+                              gatedCommitMessage,
+                              gatedCommit.sequenceNumber(),
+                              arbitraryTimestamp + 1,
+                              mqbc::ClusterStateRecordType::e_COMMIT);
+
+    const bmqp_ctrlmsg::LeaderMessageSequence lsnBeforeCommit =
+        tester.d_cluster_mp->_clusterData()
+            ->electorInfo()
+            .leaderMessageSequence();
+
+    BMQTST_ASSERT_EQ(obj->apply(gatedCommitEvent, leaderNode), 0);
+
+    // Commit was skipped: nothing committed and self LSN unchanged.
+    BMQTST_ASSERT_EQ(tester.numCommittedMessages(), 0U);
+    BMQTST_ASSERT_EQ(tester.d_cluster_mp->_clusterData()
+                         ->electorInfo()
+                         .leaderMessageSequence(),
+                     lsnBeforeCommit);
+
+    // 3. Apply the healing snapshot (e_SNAPSHOT); self follower now has a
+    //    valid base state.
+    bmqp_ctrlmsg::PartitionPrimaryInfo pinfo;
+    pinfo.primaryNodeId()  = mqbmock::Cluster::k_LEADER_NODE_ID;
+    pinfo.partitionId()    = 1U;
+    pinfo.primaryLeaseId() = 2U;
+
+    bmqp_ctrlmsg::LeaderAdvisory leaderAdvisory;
+    leaderAdvisory.partitions().push_back(pinfo);
+    tester.d_cluster_mp->_clusterData()
+        ->electorInfo()
+        .nextLeaderMessageSequence(&leaderAdvisory.sequenceNumber());
+
+    bmqp_ctrlmsg::ClusterMessage snapshotMessage;
+    snapshotMessage.choice().makeLeaderAdvisory(leaderAdvisory);
+
+    bdlbb::Blob snapshotEvent(tester.d_cluster_mp->bufferFactory(),
+                              bmqtst::TestHelperUtil::allocator());
+    tester.constructEventBlob(&snapshotEvent,
+                              snapshotMessage,
+                              leaderAdvisory.sequenceNumber(),
+                              arbitraryTimestamp + 2,
+                              mqbc::ClusterStateRecordType::e_SNAPSHOT);
+
+    BMQTST_ASSERT_EQ(obj->apply(snapshotEvent, leaderNode), 0);
+
+    // 4. A subsequent e_UPDATE (LSN above the snapshot) is now accepted.
+    tester.d_cluster_mp->_clusterData()
+        ->electorInfo()
+        .nextLeaderMessageSequence(&qadvisory.sequenceNumber());
+    updateMessage.choice().makeQueueAssignmentAdvisory(qadvisory);
+
+    bdlbb::Blob postSnapshotUpdate(tester.d_cluster_mp->bufferFactory(),
+                                   bmqtst::TestHelperUtil::allocator());
+    tester.constructEventBlob(&postSnapshotUpdate,
+                              updateMessage,
+                              qadvisory.sequenceNumber(),
+                              arbitraryTimestamp + 3,
+                              mqbc::ClusterStateRecordType::e_UPDATE);
+
+    BMQTST_ASSERT_EQ(obj->apply(postSnapshotUpdate, leaderNode), 0);
+
+    // Acks were sent for the snapshot and the post-snapshot update.
+    BMQTST_ASSERT(tester.hasSentMessagesToLeader(2));
+
+    BMQTST_ASSERT_EQ(obj->close(), 0);
+}
+
+static void test9_apply_ClusterStateRecordCommit()
 // ------------------------------------------------------------------------
 // CLUSTER STATE RECORD COMMIT
 //
@@ -995,6 +1160,9 @@ static void test8_apply_ClusterStateRecordCommit()
     Tester                          tester(false);  // isLeader
     mqbc::IncoreClusterStateLedger* obj = tester.d_clusterStateLedger_mp.get();
     BSLS_ASSERT_OPT(obj->open() == 0);
+
+    // Prime self follower with a snapshot so it accepts e_UPDATE records.
+    tester.applyPrimingSnapshot();
 
     // Apply 'PartitionPrimaryAdvisory'
     bmqp_ctrlmsg::PartitionPrimaryInfo pinfo;
@@ -1088,10 +1256,10 @@ static void test8_apply_ClusterStateRecordCommit()
     BMQTST_ASSERT_EQ(tester.numCommittedMessages(), 1U);
 
     BSLS_ASSERT_OPT(obj->close() == 0);
-    BMQTST_ASSERT(tester.hasNoMoreBroadcastedMessages(1));
+    BMQTST_ASSERT(tester.hasNoMoreBroadcastedMessages(2));
 }
 
-static void test9_persistanceLeader()
+static void test10_persistanceLeader()
 // ------------------------------------------------------------------------
 // PERSISTENCE LEADER
 //
@@ -1314,7 +1482,7 @@ static void test9_persistanceLeader()
     BMQTST_ASSERT(!cslIter->isValid());
 }
 
-static void test10_persistanceFollower()
+static void test11_persistanceFollower()
 // ------------------------------------------------------------------------
 // PERSISTENCE FOLLOWER
 //
@@ -1336,6 +1504,9 @@ static void test10_persistanceFollower()
     Tester                          tester(false);  // isLeader
     mqbc::IncoreClusterStateLedger* obj = tester.d_clusterStateLedger_mp.get();
     BSLS_ASSERT_OPT(obj->open() == 0);
+
+    // Prime self follower with a snapshot so it accepts e_UPDATE records.
+    tester.applyPrimingSnapshot();
 
     // 1. Apply advisories of different types
 
@@ -1527,6 +1698,10 @@ static void test10_persistanceFollower()
 
     // 4. Iterate through the records and verify that they are as expected
 
+    // The first record is the priming snapshot applied during setup; skip it.
+    BMQTST_ASSERT_EQ(cslIter->next(), 0);
+    BMQTST_ASSERT(cslIter->isValid());
+
     // Verify 'PartitionPrimaryAdvisory'
     BMQTST_ASSERT_EQ(cslIter->next(), 0);
     BMQTST_ASSERT(cslIter->isValid());
@@ -1605,7 +1780,7 @@ static void test10_persistanceFollower()
 }
 
 BSLA_MAYBE_UNUSED
-static void test11_persistanceAcrossRolloverLeader()
+static void test12_persistanceAcrossRolloverLeader()
 // ------------------------------------------------------------------------
 // PERSISTENCE ACROSS ROLLOVER LEADER
 //
@@ -2021,7 +2196,7 @@ static void test11_persistanceAcrossRolloverLeader()
     BSLS_ASSERT_OPT(obj->close() == 0);
 }
 
-static void test12_quorumChangeCb()
+static void test13_quorumChangeCb()
 // ------------------------------------------------------------------------
 // QUORUM CHANGE CALLBACK
 //
@@ -2106,15 +2281,16 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
-    case 12: test12_quorumChangeCb(); break;
+    case 13: test13_quorumChangeCb(); break;
     // @TODO RENABLE AND FIX THIS TEST
     //
     // The following test consistently fails in CI.  It should be fixed,
     // but until then we want to avoid the noise.
-    //    case 11: test11_persistanceAcrossRolloverLeader(); break;
-    case 10: test10_persistanceFollower(); break;
-    case 9: test9_persistanceLeader(); break;
-    case 8: test8_apply_ClusterStateRecordCommit(); break;
+    //    case 12: test11_persistanceAcrossRolloverLeader(); break;
+    case 11: test11_persistanceFollower(); break;
+    case 10: test10_persistanceLeader(); break;
+    case 9: test9_apply_ClusterStateRecordCommit(); break;
+    case 8: test8_followerGatesUpdatesUntilSnapshot(); break;
     case 7: test7_apply_ClusterStateRecord(); break;
     case 6: test6_apply_LeaderAdvisory(); break;
     case 5: test5_apply_QueueUpdateAdvisory(); break;
@@ -2123,7 +2299,7 @@ int main(int argc, char* argv[])
     case 2: test2_apply_PartitionPrimaryAdvisory(); break;
     case 1: test1_breathingTest(); break;
     default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
+        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND.\n";
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
