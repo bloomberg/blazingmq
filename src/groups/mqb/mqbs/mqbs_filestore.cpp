@@ -1490,12 +1490,20 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
     bool         isLastQlistRecord   = true;  // ie, first in iteration
     unsigned int primaryLeaseId      = d_primaryLeaseId;
 
+    // Highest sequence number recovered so far for 'primaryLeaseId', captured
+    // before 'd_highestSeqNums' is cleared below.
+    const bsls::Types::Uint64 currentSeqNum = sequenceNumber();
+
     // `+1` so that checks in first iteration in the second pass work
     // correctly.
-    bsls::Types::Uint64 sequenceNum = sequenceNumber() + 1;
+    bsls::Types::Uint64 sequenceNum = currentSeqNum + 1;
 
+    // Have to clear `d_highestSeqNums` for FSM mode that allows recovery to
+    // run multiple times (rebuild `d_highestSeqNums` from scratch).
+    // In legacy mode, FileStore is recovered at most once.
+    d_highestSeqNums.clear();
     if (primaryLeaseId > 0) {
-        d_highestSeqNums[primaryLeaseId] = sequenceNumber();
+        d_highestSeqNums[primaryLeaseId] = currentSeqNum;
     }
 
     // Second pass.

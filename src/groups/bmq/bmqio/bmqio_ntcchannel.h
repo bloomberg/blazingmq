@@ -197,7 +197,7 @@ class NtcChannel : public bmqio::Channel,
     };
 
     // INSTANCE DATA
-    bslmt::Mutex                          d_mutex;
+    mutable bslmt::Mutex                  d_mutex;
     bsl::shared_ptr<ntci::Interface>      d_interface_sp;
     bsl::shared_ptr<ntci::StreamSocket>   d_streamSocket_sp;
     bmqio::NtcReadQueue                   d_readQueue;

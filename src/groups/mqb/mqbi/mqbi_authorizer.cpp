@@ -13,20 +13,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <fuzzer/FuzzedDataProvider.h>
-#include <string>
+#include <mqbi_authorizer.h>
 
-#include <bmqu_stringutil.h>
-#include <bsl_string.h>
+#include <mqbscm_version.h>
 
-using namespace BloombergLP;
+namespace BloombergLP {
+namespace mqbi {
 
-extern "C" int LLVMFuzzerTestOneInput(const uint8_t* Data, size_t Size)
+// ----------------
+// class Authorizer
+// ----------------
+
+Authorizer::~Authorizer()
 {
-    FuzzedDataProvider provider(Data, Size);
-    std::string        pattern = provider.ConsumeRandomLengthString();
-    std::string        text    = provider.ConsumeRemainingBytesAsString();
-    bmqu::StringUtil::match(bsl::string(text.data(), text.size()),
-                            bsl::string(pattern.data(), pattern.size()));
-    return 0;
+    // NOTHING: Pure interface
 }
+
+}  // close package namespace
+}  // close enterprise namespace

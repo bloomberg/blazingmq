@@ -9,12 +9,14 @@ writing test drivers.
 
 /Hierarchical Synopsis
 /---------------------
- The bmqtst' package currently has 5 components having 1 level of physical
+ The bmqtst' package currently has 7 components having 1 level of physical
  dependency.  The list below shows the hierarchical ordering of the components.
 ..
   1. bmqtst_blobtestutil
      bmqtst_mocktime
+     bmqtst_schedulerlockguard
      bmqtst_scopedlogobserver
+     bmqtst_table
      bmqtst_tempfile
      bmqtst_testhelper
 ..
@@ -25,8 +27,12 @@ writing test drivers.
 :      Provide blob utilities for use in test drivers.
 : 'bmqtst_mocktime':
 :      Provide a mock of the time accessors usable with 'bmqu::Time'.
+: 'bmqtst_schedulerlockguard':
+:      Provide an RAII guard that pauses a 'bdlmt::EventScheduler'.
 : 'bmqtst_scopedlogobserver':
 :      Provide a scoped tester implementation of the log observer protocol.
+: 'bmqtst_table':
+:      Provide a utility for pretty-printing tabular data.
 : 'bmqtst_tempfile':
 :      Provide a guard for creating a temporary file.
 : 'bmqtst_testhelper':

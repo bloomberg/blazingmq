@@ -55,6 +55,7 @@ namespace mqbauthz {
 class BasicAuthorizer : public mqbplug::Authorizer {
   public:
     // CLASS DATA
+    static bsl::string_view k_NAME;
 
   private:
     // CLASS-SCOPE CATEGORY

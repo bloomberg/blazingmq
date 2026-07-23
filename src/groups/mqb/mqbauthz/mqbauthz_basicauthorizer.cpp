@@ -15,16 +15,23 @@
 
 #include <mqbauthz_basicauthorizer.h>
 
+#include <mqbscm_version.h>
+
 // MQB
+#include <mqbact_actions.h>
 #include <mqbplug_authorizer.h>
 
 // BDE
+#include <ball_log.h>
+#include <bsla_maybeunused.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
 #include <bslmf_movableref.h>
 
 namespace BloombergLP {
 namespace mqbauthz {
+
+bsl::string_view BasicAuthorizer::k_NAME = "BasicAuthorizer";
 
 // -------------------------------------
 // class BasicAuthorizerPluginFactory
@@ -37,13 +44,15 @@ BasicAuthorizer::~BasicAuthorizer()
 
 bsl::string_view BasicAuthorizer::name() const
 {
-    return "BasicAuthorizer";
+    return k_NAME;
 }
 
-bool BasicAuthorizer::authorize(const mqbact::Action&,
-                                const mqbplug::AuthenticationResult&)
+bool BasicAuthorizer::authorize(
+    const mqbact::Action&   action,
+    BSLA_MAYBE_UNUSED const mqbplug::AuthenticationResult& authnResult)
 
 {
+    BALL_LOG_INFO << "Authorize allow on " << action;
     return true;
 }
 
