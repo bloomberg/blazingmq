@@ -266,10 +266,38 @@ void ClusterStateManager::do_applyCSLSelf(const EventWithMetadata& event)
     d_clusterData_p->electorInfo().nextLeaderMessageSequence(
         &clusterStateSnapshot.sequenceNumber());
 
-    if (d_clusterFSM.isSelfLeader() && d_clusterFSM.isSelfHealed()) {
-        // Self is healed leader. We are simply broadcasting cluster state
-        // snapshot to newcoming follower nodes. No need to re-assign
-        // partitions.
+    bool haveValidAssignment = false;
+    if (d_clusterFSM.isSelfLeader()) {
+        // We already have a valid partition assignment if either:
+        //   (a) self is healed (committed advisory exists), or
+        //   (b) we have an uncommitted LeaderAdvisory from our own elector
+        //       term, meaning we already called 'assignPartitions' earlier in
+        //       this leadership session and are re-entering due to a
+        //       late-joining follower.
+        haveValidAssignment = d_clusterFSM.isSelfHealed();
+        if (!haveValidAssignment) {
+            // Case (b): verify the elector term matches -- an uncommitted
+            // advisory from a *previous* leader's term is stale and its
+            // partition assignment must not be reused.  We iterate because
+            // stale advisories from an old leader may precede ours in the list
+            // (they are not cancelled on leader switch).
+            ClusterStateLedger::ClusterMessageCRefList uncommitted(
+                d_allocator_p);
+            d_clusterStateLedger_mp->uncommittedAdvisories(&uncommitted);
+            for (size_t i = 0; i < uncommitted.size(); ++i) {
+                const bmqp_ctrlmsg::ClusterMessageChoice& choice =
+                    uncommitted[i].get().choice();
+                if (choice.isLeaderAdvisoryValue() &&
+                    choice.leaderAdvisory().sequenceNumber().electorTerm() ==
+                        d_clusterData_p->electorInfo().electorTerm()) {
+                    haveValidAssignment = true;
+                    break;  // BREAK
+                }
+            }
+        }
+    }
+
+    if (haveValidAssignment) {
         ClusterUtil::loadPartitionsInfo(&clusterStateSnapshot.partitions(),
                                         tempState);
     }
@@ -998,6 +1026,27 @@ void ClusterStateManager::do_logStaleFollowerClusterStateResponse(
                   << metadata.clusterStateSnapshot();
 }
 
+void ClusterStateManager::do_logStaleFailureFollowerClusterStateResponse(
+    const EventWithMetadata& event)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+    BSLS_ASSERT_SAFE(!d_clusterData_p->cluster().isLocal());
+    BSLS_ASSERT_SAFE(d_clusterFSM.state() !=
+                     ClusterFSM::State::e_LDR_HEALING_STG2);
+
+    const ClusterFSMEventMetadata& metadata     = event.second;
+    const InputMessage&            inputMessage = metadata.inputMessage();
+
+    BALL_LOG_WARN << d_clusterData_p->identity().description()
+                  << ": Failure follower cluster state response from "
+                  << inputMessage.source()->nodeDescription()
+                  << " with rId = " << inputMessage.requestId()
+                  << " is stale.";
+}
+
 void ClusterStateManager::do_logFailFollowerLSNResponses(
     const EventWithMetadata& event)
 {
@@ -1453,8 +1502,8 @@ void ClusterStateManager::onFollowerLSNResponse(
     inputMessage.setSource(source).setLeaderSequenceNumber(
         resp.sequenceNumber());
 
-    mqbnet::ClusterNode* highestLSNNode =
-        (d_clusterFSM.isSelfLeader() && d_clusterFSM.isSelfHealed())
+    mqbnet::ClusterNode* const highestLSNNode =
+        d_clusterFSM.isSelfHighestLSNLeader()
             ? d_clusterData_p->membership().selfNode()
             : 0;
     applyFSMEvent(ClusterFSM::Event::e_FOL_LSN_RSPN,
@@ -1906,8 +1955,8 @@ void ClusterStateManager::processRegistrationRequest(
                                      .registrationRequest()
                                      .sequenceNumber());
 
-    mqbnet::ClusterNode* highestLSNNode =
-        (d_clusterFSM.isSelfLeader() && d_clusterFSM.isSelfHealed())
+    mqbnet::ClusterNode* const highestLSNNode =
+        d_clusterFSM.isSelfHighestLSNLeader()
             ? d_clusterData_p->membership().selfNode()
             : 0;
     applyFSMEvent(ClusterFSM::Event::e_REGISTRATION_RQST,
