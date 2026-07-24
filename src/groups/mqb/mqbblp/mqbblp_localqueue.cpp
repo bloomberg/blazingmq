@@ -158,10 +158,11 @@ int LocalQueue::configure(bsl::ostream& errorDescription, bool isReconfigure)
     // during update of a domain's configuration, this object already exists,
     // and should not be re-created.
     if (!d_queueEngine_mp) {
-        RootQueueEngine::create(&d_queueEngine_mp,
-                                d_state_p,
-                                *domainCfg,
-                                d_allocator_p);
+        d_queueEngine_mp =
+            bslma::ManagedPtrUtil::allocateManaged<RootQueueEngine>(
+                d_allocator_p,
+                d_state_p,
+                *domainCfg);
     }
 
     // Inform the storage about the queue.

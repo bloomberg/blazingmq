@@ -417,6 +417,8 @@ class HumanReadablePrinter : public Printer {
 
     void printCompositesNotFound(const CompositesVec& seqNums) const
         BSLS_KEYWORD_OVERRIDE;
+
+    bool isPayloadHexMode() const BSLS_KEYWORD_OVERRIDE;
 };
 
 // CREATORS
@@ -684,6 +686,11 @@ void HumanReadablePrinter::printRecordDetails(
     d_ostream << "\n";
 }
 
+bool HumanReadablePrinter::isPayloadHexMode() const
+{
+    return false;
+}
+
 class JsonPrinter : public Printer {
   protected:
     bsl::ostream&     d_ostream;
@@ -750,6 +757,8 @@ class JsonPrinter : public Printer {
 
     void printCompositesNotFound(const CompositesVec& seqNums) const
         BSLS_KEYWORD_OVERRIDE;
+
+    bool isPayloadHexMode() const BSLS_KEYWORD_OVERRIDE;
 };
 
 // PROTECTED METHODS
@@ -955,6 +964,11 @@ void JsonPrinter::printCompositesNotFound(const CompositesVec& seqNums) const
                   << "\"}";
     }
     d_ostream << "\n  ]";
+}
+
+bool JsonPrinter::isPayloadHexMode() const
+{
+    return true;
 }
 
 class JsonPrettyPrinter : public JsonPrinter {

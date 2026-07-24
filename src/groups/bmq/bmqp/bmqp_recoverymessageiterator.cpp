@@ -59,7 +59,9 @@ int RecoveryMessageIterator::next()
         rc_NO_RECOVERYHEADER = -2,
         /// The number of bytes in the blob is less than the header size OR
         /// payload size declared in the header
-        rc_NOT_ENOUGH_BYTES = -3
+        rc_NOT_ENOUGH_BYTES = -3,
+        /// The message declares a size smaller than its own header
+        rc_INVALID_MESSAGE_SIZE = -4
     };
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!isValid())) {
@@ -90,6 +92,12 @@ int RecoveryMessageIterator::next()
     }
 
     const int headerSize = d_header->headerWords() * Protocol::k_WORD_SIZE;
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
+            headerSize < RecoveryHeader::k_MIN_HEADER_SIZE)) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        d_advanceLength = -1;
+        return rc_NO_RECOVERYHEADER;  // RETURN
+    }
 
     d_header.resize(headerSize);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!d_header.isSet())) {
@@ -99,6 +107,11 @@ int RecoveryMessageIterator::next()
     }
 
     const int messageSize = d_header->messageWords() * Protocol::k_WORD_SIZE;
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(messageSize < headerSize)) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        d_advanceLength = -1;
+        return rc_INVALID_MESSAGE_SIZE;  // RETURN
+    }
 
     // Validation: make sure blob has enough data as indicated by
     // RecoveryHeader
