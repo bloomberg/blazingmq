@@ -206,8 +206,9 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     /// arrives.
     GatedUpdateLsns d_gatedUpdateLsns;
 
-    /// True once self follower has applied a snapshot.
-    bool d_hasAppliedSnapshot;
+    /// Elector term of the last snapshot self follower applied (0 if none).
+    /// An e_UPDATE whose term differs is gated, re-arming the gate each term.
+    bsls::Types::Uint64 d_appliedSnapshotTerm;
 
   private:
     // NOT IMPLEMENTED

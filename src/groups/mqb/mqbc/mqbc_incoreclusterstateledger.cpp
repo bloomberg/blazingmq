@@ -1080,13 +1080,14 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
         }
 
         if (recordHeader->recordType() == ClusterStateRecordType::e_UPDATE &&
-            !d_hasAppliedSnapshot) {
+            lsn.electorTerm() != d_appliedSnapshotTerm) {
             BALL_LOG_WARN << description()
                           << ": Ignoring e_UPDATE record with LSN = "
                           << printLSN(lsn) << " from '"
                           << source->nodeDescription()
-                          << "' because self follower has not yet applied a "
-                             "snapshot.";
+                          << "' because self follower has not applied a "
+                             "snapshot for term "
+                          << lsn.electorTerm() << ".";
             d_gatedUpdateLsns.insert(lsn);
             return rc_UPDATE_BEFORE_SNAPSHOT;  // RETURN
         }
@@ -1255,7 +1256,14 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
     }
 
     if (recordHeader->recordType() == ClusterStateRecordType::e_SNAPSHOT) {
-        d_hasAppliedSnapshot = true;
+        d_appliedSnapshotTerm = lsn.electorTerm();
+
+        // Drop gated updates from earlier terms.
+        bmqp_ctrlmsg::LeaderMessageSequence termFloor;
+        termFloor.electorTerm()    = lsn.electorTerm();
+        termFloor.sequenceNumber() = 0;
+        d_gatedUpdateLsns.erase(d_gatedUpdateLsns.begin(),
+                                d_gatedUpdateLsns.lower_bound(termFloor));
     }
 
     return rc_SUCCESS;
@@ -1279,7 +1287,7 @@ IncoreClusterStateLedger::IncoreClusterStateLedger(
 , d_ledger_mp(0)
 , d_uncommittedAdvisories(allocator)
 , d_gatedUpdateLsns(allocator)
-, d_hasAppliedSnapshot(false)
+, d_appliedSnapshotTerm(0)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(clusterState);
@@ -1420,7 +1428,7 @@ int IncoreClusterStateLedger::close()
     cancelUncommittedAdvisories();
 
     d_gatedUpdateLsns.clear();
-    d_hasAppliedSnapshot = false;
+    d_appliedSnapshotTerm = 0;
 
     int rc = d_ledger_mp->close();
     if (rc != 0) {

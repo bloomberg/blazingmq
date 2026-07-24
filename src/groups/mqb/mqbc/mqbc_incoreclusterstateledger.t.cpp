@@ -1027,6 +1027,8 @@ static void test8_followerGatesUpdatesUntilSnapshot()
 //     commit callback fires, and self LSN is not advanced.
 //   - After self follower has applied a snapshot, applying a subsequent
 //     e_UPDATE record (with an LSN above the snapshot) succeeds.
+//   - A new elector term re-arms the gate: an e_UPDATE from a later term is
+//     rejected until a snapshot for that term is applied.
 //
 // Testing:
 //   int apply(const bdlbb::Blob& record, mqbnet::ClusterNode* source)
@@ -1152,6 +1154,61 @@ static void test8_followerGatesUpdatesUntilSnapshot()
 
     // Acks were sent for the snapshot and the post-snapshot update.
     BMQTST_ASSERT(tester.hasSentMessagesToLeader(2));
+
+    // 5. A new elector term re-arms the gate: although self is healed for
+    //    term 1, an e_UPDATE from term 2 is gated until a term-2 snapshot.
+    bmqp_ctrlmsg::QueueInfo qinfo2;
+    qinfo2.uri()         = "bmq://bmq.test.mmap.priority/q2";
+    qinfo2.partitionId() = 1U;
+    mqbu::StorageKey key2(mqbu::StorageKey::BinaryRepresentation(), "8888");
+    key2.loadBinary(&qinfo2.key());
+
+    bmqp_ctrlmsg::QueueAssignmentAdvisory newTermUpdate;
+    newTermUpdate.sequenceNumber().electorTerm()    = 2U;
+    newTermUpdate.sequenceNumber().sequenceNumber() = 1U;
+    newTermUpdate.queues().push_back(qinfo2);
+    updateMessage.choice().makeQueueAssignmentAdvisory(newTermUpdate);
+
+    bdlbb::Blob newTermUpdateEvent(tester.d_cluster_mp->bufferFactory(),
+                                   bmqtst::TestHelperUtil::allocator());
+    tester.constructEventBlob(&newTermUpdateEvent,
+                              updateMessage,
+                              newTermUpdate.sequenceNumber(),
+                              arbitraryTimestamp + 4,
+                              mqbc::ClusterStateRecordType::e_UPDATE);
+
+    BMQTST_ASSERT_NE(obj->apply(newTermUpdateEvent, leaderNode), 0);
+
+    // A term-2 snapshot re-establishes the base for term 2.
+    bmqp_ctrlmsg::LeaderAdvisory newTermSnapshot;
+    newTermSnapshot.partitions().push_back(pinfo);
+    newTermSnapshot.sequenceNumber().electorTerm()    = 2U;
+    newTermSnapshot.sequenceNumber().sequenceNumber() = 2U;
+    snapshotMessage.choice().makeLeaderAdvisory(newTermSnapshot);
+
+    bdlbb::Blob newTermSnapshotEvent(tester.d_cluster_mp->bufferFactory(),
+                                     bmqtst::TestHelperUtil::allocator());
+    tester.constructEventBlob(&newTermSnapshotEvent,
+                              snapshotMessage,
+                              newTermSnapshot.sequenceNumber(),
+                              arbitraryTimestamp + 5,
+                              mqbc::ClusterStateRecordType::e_SNAPSHOT);
+
+    BMQTST_ASSERT_EQ(obj->apply(newTermSnapshotEvent, leaderNode), 0);
+
+    // Now a term-2 e_UPDATE is accepted.
+    newTermUpdate.sequenceNumber().sequenceNumber() = 3U;
+    updateMessage.choice().makeQueueAssignmentAdvisory(newTermUpdate);
+
+    bdlbb::Blob newTermUpdate2Event(tester.d_cluster_mp->bufferFactory(),
+                                    bmqtst::TestHelperUtil::allocator());
+    tester.constructEventBlob(&newTermUpdate2Event,
+                              updateMessage,
+                              newTermUpdate.sequenceNumber(),
+                              arbitraryTimestamp + 6,
+                              mqbc::ClusterStateRecordType::e_UPDATE);
+
+    BMQTST_ASSERT_EQ(obj->apply(newTermUpdate2Event, leaderNode), 0);
 
     BMQTST_ASSERT_EQ(obj->close(), 0);
 }
