@@ -169,10 +169,12 @@ static void test1_initialConnectionContext()
         }
 
         {  // AuthenticationContext
+            bdlmt::EventScheduler                          scheduler(alloc);
             bmqp_ctrlmsg::AuthenticationMessage            authnMsg;
             bsl::shared_ptr<mqbnet::AuthenticationContext> authnCtx =
                 bsl::allocate_shared<mqbnet::AuthenticationContext>(
                     alloc,
+                    &scheduler,
                     &obj,
                     "testMechanism",
                     authnMsg,

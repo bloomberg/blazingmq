@@ -100,6 +100,7 @@ bool AuthenticationState::fromAscii(AuthenticationState::Enum* out,
 // ---------------------------
 
 AuthenticationContext::AuthenticationContext(
+    bdlmt::EventScheduler*                     scheduler,
     InitialConnectionContext*                  initialConnectionContext,
     bsl::string_view                           mechanism,
     const bmqp_ctrlmsg::AuthenticationMessage& authenticationMessage,
@@ -107,6 +108,7 @@ AuthenticationContext::AuthenticationContext(
     AuthenticationState::Enum                  state,
     bslma::Allocator*                          allocator)
 : d_allocator_p(allocator)
+, d_scheduler_p(scheduler)
 , d_self(this)  // use default allocator
 , d_mutex()
 , d_authenticationResultSp()
@@ -117,7 +119,8 @@ AuthenticationContext::AuthenticationContext(
 , d_authenticationMessage(authenticationMessage)
 , d_encodingType(authenticationEncodingType)
 {
-    // NOTHING
+    // PRECONDITION
+    BSLS_ASSERT_SAFE(d_scheduler_p);
 }
 
 void AuthenticationContext::setAuthenticationResult(
@@ -153,14 +156,12 @@ void AuthenticationContext::resetAuthenticationMessage()
 
 int AuthenticationContext::setAuthenticatedAndScheduleReauthn(
     bsl::ostream&                             errorDescription,
-    bdlmt::EventScheduler*                    scheduler_p,
     const bsl::optional<bsls::Types::Uint64>& lifetimeMs,
     const bsl::shared_ptr<bmqio::Channel>&    channel_sp)
 {
     // executed by an *AUTHENTICATION* thread
 
     // PRECONDITION
-    BSLS_ASSERT_SAFE(scheduler_p);
     BSLS_ASSERT_SAFE(channel_sp);
 
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
@@ -175,14 +176,14 @@ int AuthenticationContext::setAuthenticatedAndScheduleReauthn(
 
     d_state = AuthenticationState::e_AUTHENTICATED;
 
-    scheduler_p->cancelEventAndWait(&d_timeoutHandle);
+    d_scheduler_p->cancelEventAndWait(&d_timeoutHandle);
 
     if (!lifetimeMs.has_value()) {
         return 0;
     }
     const bsls::Types::Uint64 lifetime = lifetimeMs.value();
 
-    scheduler_p->scheduleEvent(
+    d_scheduler_p->scheduleEvent(
         &d_timeoutHandle,
         bsls::TimeInterval(bmqu::Time::nowMonotonicClock())
             .addMilliseconds(lifetime),
@@ -250,12 +251,9 @@ void AuthenticationContext::onReauthenticationError(
     channel_sp->close(status);
 }
 
-void AuthenticationContext::onClose(bdlmt::EventScheduler* scheduler_p)
+void AuthenticationContext::onClose()
 {
     // executed by *ANY* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(scheduler_p);
 
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
 
@@ -264,7 +262,7 @@ void AuthenticationContext::onClose(bdlmt::EventScheduler* scheduler_p)
     }
     d_state = AuthenticationState::e_CLOSED;
 
-    scheduler_p->cancelEventAndWait(&d_timeoutHandle);
+    d_scheduler_p->cancelEventAndWait(&d_timeoutHandle);
 }
 
 bool AuthenticationContext::tryStartReauthentication()

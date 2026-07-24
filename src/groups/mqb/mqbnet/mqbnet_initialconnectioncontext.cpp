@@ -213,9 +213,9 @@ InitialConnectionContext::InitialConnectionContext(
 , d_negotiator_p(negotiator)
 , d_resultState_p(resultState)
 , d_userData_sp(userData)
-, d_channelSp(channel)
-, d_authenticationCtxSp()
-, d_negotiationCtxSp()
+, d_channel_sp(channel)
+, d_authenticationCtx_sp()
+, d_negotiationCtx_sp()
 , d_initialConnectionCompleteCb(initialConnectionCompleteCb)
 , d_authenticationEncodingType(bmqp::EncodingType::e_BER)
 , d_state(InitialConnectionState::e_INITIAL)
@@ -236,7 +236,7 @@ void InitialConnectionContext::setState(InitialConnectionState::Enum value,
                                         InitialConnectionEvent::Enum event)
 {
     BALL_LOG_DEBUG << "State transition: " << d_state << " -> (" << event
-                   << ") -> " << value << " [peer: " << d_channelSp.get()
+                   << ") -> " << value << " [peer: " << d_channel_sp.get()
                    << "]";
     d_state = value;
 }
@@ -402,11 +402,11 @@ int InitialConnectionContext::decodeInitialConnectionMessage(
 
 void InitialConnectionContext::createNegotiationContext()
 {
-    if (d_negotiationCtxSp) {
+    if (d_negotiationCtx_sp) {
         return;  // RETURN
     }
 
-    d_negotiationCtxSp = bsl::allocate_shared<mqbnet::NegotiationContext>(
+    d_negotiationCtx_sp = bsl::allocate_shared<mqbnet::NegotiationContext>(
         d_allocator_p,
         this  // initialConnectionContext
     );
@@ -455,14 +455,19 @@ void InitialConnectionContext::setAuthenticationContext(
     const bsl::shared_ptr<AuthenticationContext>& value)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(!d_authenticationCtxSp);
+    BSLS_ASSERT_SAFE(!d_authenticationCtx_sp);
 
-    d_authenticationCtxSp = value;
+    d_authenticationCtx_sp = value;
 }
 
 void InitialConnectionContext::onClose()
 {
     d_isClosed = true;
+
+    // Propagate close
+    if (d_authenticationCtx_sp) {
+        d_authenticationCtx_sp->onClose();
+    }
 }
 
 void InitialConnectionContext::readCallback(const bmqio::Status& status,
@@ -539,7 +544,7 @@ void InitialConnectionContext::handleEvent(
 
     BALL_LOG_DEBUG << "Enter InitialConnectionContext::handleEvent: "
                    << "state = " << d_state << ", event = " << event
-                   << " [peer: " << d_channelSp.get() << "]";
+                   << " [peer: " << d_channel_sp.get() << "]";
 
     InitialConnectionState::Enum oldState = d_state;
 
@@ -731,7 +736,7 @@ void* InitialConnectionContext::resultState() const
 const bsl::shared_ptr<bmqio::Channel>&
 InitialConnectionContext::channel() const
 {
-    return d_channelSp;
+    return d_channel_sp;
 }
 
 bmqp::EncodingType::Enum
@@ -743,13 +748,13 @@ InitialConnectionContext::authenticationEncodingType() const
 const bsl::shared_ptr<AuthenticationContext>&
 InitialConnectionContext::authenticationContext() const
 {
-    return d_authenticationCtxSp;
+    return d_authenticationCtx_sp;
 }
 
 const bsl::shared_ptr<NegotiationContext>&
 InitialConnectionContext::negotiationContext() const
 {
-    return d_negotiationCtxSp;
+    return d_negotiationCtx_sp;
 }
 
 InitialConnectionState::Enum InitialConnectionContext::state() const
