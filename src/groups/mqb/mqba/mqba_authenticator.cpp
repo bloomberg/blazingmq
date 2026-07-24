@@ -84,6 +84,7 @@ int Authenticator::onAuthenticationRequest(
     bsl::shared_ptr<mqbnet::AuthenticationContext> authenticationContext =
         bsl::allocate_shared<mqbnet::AuthenticationContext>(
             d_allocator_p,
+            d_scheduler_p,
             context_p,  // initialConnectionContext
             authenticationMsg.authenticationRequest()
                 .mechanism(),   // mechanism
@@ -353,7 +354,6 @@ void Authenticator::authenticate(
     bmqu::MemOutStream scheduleErrStream;
     const int scheduleRc = context_sp->setAuthenticatedAndScheduleReauthn(
         scheduleErrStream,
-        d_scheduler_p,
         result->lifetimeMs(),
         channel);
     if (scheduleRc != 0) {

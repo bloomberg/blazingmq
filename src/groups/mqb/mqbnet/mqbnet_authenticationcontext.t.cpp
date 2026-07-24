@@ -110,6 +110,7 @@ struct TestBench {
         bmqp_ctrlmsg::AuthenticationMessage authnMsg;
         return bsl::allocate_shared<mqbnet::AuthenticationContext>(
             d_allocator_p,
+            &d_scheduler,
             static_cast<mqbnet::InitialConnectionContext*>(0),
             "testMechanism",
             authnMsg,
@@ -150,12 +151,11 @@ static void test1_breathingTest()
     bsl::optional<bsls::Types::Uint64> noLifetime;
 
     int rc = ctx->setAuthenticatedAndScheduleReauthn(errStream,
-                                                     &tb.d_scheduler,
                                                      noLifetime,
                                                      tb.d_channel);
     BMQTST_ASSERT_EQ(rc, 0);
 
-    ctx->onClose(&tb.d_scheduler);
+    ctx->onClose();
 }
 
 static void test2_zeroLifetimeTimeout()
@@ -188,7 +188,6 @@ static void test2_zeroLifetimeTimeout()
 
     bmqu::MemOutStream errStream(alloc);
     int                rc = ctx->setAuthenticatedAndScheduleReauthn(errStream,
-                                                     &tb.d_scheduler,
                                                      lifetime,
                                                      tb.d_channel);
     BMQTST_ASSERT_EQ(rc, 0);
@@ -208,7 +207,7 @@ static void test2_zeroLifetimeTimeout()
         ".*Reauthentication timeout.*",
         alloc));
 
-    ctx->onClose(&tb.d_scheduler);
+    ctx->onClose();
 }
 
 static void test3_reauthenticationTimeout()
@@ -247,7 +246,6 @@ static void test3_reauthenticationTimeout()
 
     bmqu::MemOutStream errStream(alloc);
     int                rc = ctx->setAuthenticatedAndScheduleReauthn(errStream,
-                                                     &tb.d_scheduler,
                                                      lifetime,
                                                      tb.d_channel);
     BMQTST_ASSERT_EQ(rc, 0);
@@ -280,7 +278,7 @@ static void test3_reauthenticationTimeout()
         ".*Reauthentication timeout.*",
         alloc));
 
-    ctx->onClose(&tb.d_scheduler);
+    ctx->onClose();
 }
 
 static void test4_reauthenticationBeforeTimeout()
@@ -316,7 +314,6 @@ static void test4_reauthenticationBeforeTimeout()
 
     // 1) Initial authentication with lifetime
     int rc = ctx->setAuthenticatedAndScheduleReauthn(errStream,
-                                                     &tb.d_scheduler,
                                                      lifetime,
                                                      tb.d_channel);
     BMQTST_ASSERT_EQ(rc, 0);
@@ -338,7 +335,6 @@ static void test4_reauthenticationBeforeTimeout()
     bsl::optional<bsls::Types::Uint64> newLifetime(newLifetimeMs);
 
     rc = ctx->setAuthenticatedAndScheduleReauthn(errStream,
-                                                 &tb.d_scheduler,
                                                  newLifetime,
                                                  tb.d_channel);
     BMQTST_ASSERT_EQ(rc, 0);
@@ -353,7 +349,7 @@ static void test4_reauthenticationBeforeTimeout()
     // 7) Now the new timer fires and closes the channel
     BMQTST_ASSERT_EQ(tb.d_channel->numCloseCalls(), 1u);
 
-    ctx->onClose(&tb.d_scheduler);
+    ctx->onClose();
 }
 
 static void test5_noLifetimeNoTimer()
@@ -381,7 +377,6 @@ static void test5_noLifetimeNoTimer()
     bsl::optional<bsls::Types::Uint64> noLifetime;
 
     int rc = ctx->setAuthenticatedAndScheduleReauthn(errStream,
-                                                     &tb.d_scheduler,
                                                      noLifetime,
                                                      tb.d_channel);
     BMQTST_ASSERT_EQ(rc, 0);
@@ -391,7 +386,7 @@ static void test5_noLifetimeNoTimer()
 
     BMQTST_ASSERT_EQ(tb.d_channel->numCloseCalls(), 0u);
 
-    ctx->onClose(&tb.d_scheduler);
+    ctx->onClose();
 }
 
 static void test6_onCloseBeforeTimeout()
@@ -424,13 +419,12 @@ static void test6_onCloseBeforeTimeout()
 
     bmqu::MemOutStream errStream(alloc);
     int                rc = ctx->setAuthenticatedAndScheduleReauthn(errStream,
-                                                     &tb.d_scheduler,
                                                      lifetime,
                                                      tb.d_channel);
     BMQTST_ASSERT_EQ(rc, 0);
 
     // 2) Close before timeout
-    ctx->onClose(&tb.d_scheduler);
+    ctx->onClose();
 
     // 3) Advance time past the lifetime
     tb.d_testClock.d_timeSource.advanceTime(
@@ -471,7 +465,6 @@ static void test7_contextDestroyedBeforeTimeout()
 
         bmqu::MemOutStream errStream(alloc);
         int rc = ctx->setAuthenticatedAndScheduleReauthn(errStream,
-                                                         &tb.d_scheduler,
                                                          lifetime,
                                                          tb.d_channel);
         BMQTST_ASSERT_EQ(rc, 0);
