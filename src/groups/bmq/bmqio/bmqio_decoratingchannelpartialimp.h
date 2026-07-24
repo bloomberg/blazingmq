@@ -100,7 +100,7 @@ class DecoratingChannelPartialImp : public Channel {
     Channel* base() const;
 
     // Channel
-    const bsl::string& peerUri() const BSLS_KEYWORD_OVERRIDE;
+    bsl::string peerUri() const BSLS_KEYWORD_OVERRIDE;
 
     /// Forward to the underlying base `Channel`.
     const bmqvt::PropertyBag& properties() const BSLS_KEYWORD_OVERRIDE;
@@ -177,7 +177,7 @@ inline Channel* DecoratingChannelPartialImp::base() const
     return d_base.get();
 }
 
-inline const bsl::string& DecoratingChannelPartialImp::peerUri() const
+inline bsl::string DecoratingChannelPartialImp::peerUri() const
 {
     return d_base->peerUri();
 }

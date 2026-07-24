@@ -240,10 +240,10 @@ class Application {
     /// Mark `fromReroute` as true if executing the command from a reroute to
     /// ensure proper routing logic. Returns 0 on success, -1 on early exit,
     /// -2 on error, and some non-zero error code on parse failure.
-    int processCommand(const bslstl::StringRef& source,
-                       const bsl::string&       cmd,
-                       bsl::ostream&            os,
-                       bool                     fromReroute = false);
+    int processCommand(const bsl::string& source,
+                       const bsl::string& cmd,
+                       bsl::ostream&      os,
+                       bool               fromReroute = false);
 
     /// Process the command `cmd` coming from the specified `source` node, and
     /// send the result of the command in the given `onProcessedCb`. Mark
@@ -251,7 +251,7 @@ class Application {
     /// proper routing logic. Returns the error code of calling
     /// `processCommand` with the given `cmd`, `source`, and `fromReroute`.
     int processCommandCb(
-        const bslstl::StringRef&                            source,
+        const bsl::string&                                  source,
         const bsl::string&                                  cmd,
         const bsl::function<void(int, const bsl::string&)>& onProcessedCb,
         bool fromReroute = false);
@@ -262,7 +262,7 @@ class Application {
     /// as true if executing command from a reroute to ensure proper routing
     /// logic.
     int enqueueCommand(
-        const bslstl::StringRef&                            source,
+        const bsl::string&                                  source,
         const bsl::string&                                  cmd,
         const bsl::function<void(int, const bsl::string&)>& onProcessedCb,
         bool fromReroute = false);

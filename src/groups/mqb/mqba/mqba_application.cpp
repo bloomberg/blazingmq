@@ -884,10 +884,10 @@ void Application::executeCommand(const mqbcmd::Command&  command,
     }
 }
 
-int Application::processCommand(const bslstl::StringRef& source,
-                                const bsl::string&       cmd,
-                                bsl::ostream&            os,
-                                bool                     fromReroute)
+int Application::processCommand(const bsl::string& source,
+                                const bsl::string& cmd,
+                                bsl::ostream&      os,
+                                bool               fromReroute)
 {
     enum RcEnum {
         rc_SUCCESS     = 0,
@@ -987,7 +987,7 @@ int Application::processCommand(const bslstl::StringRef& source,
 }
 
 int Application::processCommandCb(
-    const bslstl::StringRef&                            source,
+    const bsl::string&                                  source,
     const bsl::string&                                  cmd,
     const bsl::function<void(int, const bsl::string&)>& onProcessedCb,
     bool                                                fromReroute)
@@ -1008,7 +1008,7 @@ int Application::processCommandCb(
 }
 
 int Application::enqueueCommand(
-    const bslstl::StringRef&                            source,
+    const bsl::string&                                  source,
     const bsl::string&                                  cmd,
     const bsl::function<void(int, const bsl::string&)>& onProcessedCb,
     bool                                                fromReroute)

@@ -136,7 +136,7 @@ class MockChannel : public bmqio::Channel {
 
     MOCK_METHOD1(setWriteQueueHighWatermark, void(int highWatermark));
 
-    MOCK_CONST_METHOD0(peerUri, const bsl::string&());
+    MOCK_CONST_METHOD0(peerUri, bsl::string());
 
     MOCK_CONST_METHOD0(properties, const bmqvt::PropertyBag&());
 };

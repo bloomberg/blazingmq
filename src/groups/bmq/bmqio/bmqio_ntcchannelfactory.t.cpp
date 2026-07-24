@@ -1051,7 +1051,7 @@ void Tester::checkChannelUri(int                      line,
         return;  // RETURN
     }
 
-    bslstl::StringRef uri = info.d_channel->peerUri();
+    bsl::string uri = info.d_channel->peerUri();
     BMQTST_ASSERT_EQ_D(line,
                        uri.data(),
                        bdlb::StringRefUtil::strstr(uri, prefix).data());

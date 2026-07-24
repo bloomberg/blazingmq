@@ -1342,8 +1342,9 @@ ntsa::Endpoint NtcChannel::sourceEndpoint() const
                              : ntsa::Endpoint();
 }
 
-const bsl::string& NtcChannel::peerUri() const
+bsl::string NtcChannel::peerUri() const
 {
+    bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
     return d_peerUri;
 }
 

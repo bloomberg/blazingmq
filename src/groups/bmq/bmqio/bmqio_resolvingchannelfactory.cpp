@@ -95,12 +95,13 @@ ResolvingChannelFactory_Channel::ResolvingChannelFactory_Channel(
     bslma::Allocator*               basicAllocator)
 : DecoratingChannelPartialImp(channel, basicAllocator)
 , d_resolvedPeerUri(basicAllocator)
+, d_basePeerUri(channel->peerUri(), basicAllocator)
 , d_peerUri()
 {
     // PRECONDITIONS
     BSLS_ASSERT(channel);
 
-    d_peerUri = &channel->peerUri();
+    d_peerUri = &d_basePeerUri;
 }
 
 // MANIPULATORS
@@ -117,7 +118,7 @@ void ResolvingChannelFactory_Channel::updatePeerUri()
 }
 
 // ACCESSORS
-const bsl::string& ResolvingChannelFactory_Channel::peerUri() const
+bsl::string ResolvingChannelFactory_Channel::peerUri() const
 {
     return *d_peerUri;
 }
@@ -235,7 +236,7 @@ void ResolvingChannelFactoryUtil::defaultResolutionFn(
     const ResolveFn& resolveFn,
     bool             verbose)
 {
-    bslstl::StringRef peerUri = baseChannel.peerUri();
+    bsl::string       peerUri = baseChannel.peerUri();
     bslstl::StringRef colon   = bdlb::StringRefUtil::strstr(peerUri, ":");
     if (colon.length() == 0) {
         if (verbose) {
@@ -248,7 +249,7 @@ void ResolvingChannelFactoryUtil::defaultResolutionFn(
 
     bdlma::LocalSequentialAllocator<128> arena;
 
-    bsl::string     ipAddrStr(peerUri.data(), colon.data(), &arena);
+    bsl::string     ipAddrStr(peerUri.c_str(), colon.data(), &arena);
     ntsa::IpAddress ipAddr;
 
     if (!ipAddr.parse(ipAddrStr)) {
@@ -277,7 +278,7 @@ void ResolvingChannelFactoryUtil::defaultResolutionFn(
     resolvedUri->append(ipAddrStr);
     resolvedUri->append(1, '~');
     resolvedUri->append(resolvedName);
-    resolvedUri->append(colon.data(), peerUri.end());
+    resolvedUri->append(colon.data(), peerUri.c_str() + peerUri.length());
 }
 
 }  // close package namespace
