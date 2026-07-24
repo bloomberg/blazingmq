@@ -90,6 +90,9 @@ script with the CODEGEN enviornment variable set to the internal codegen tool." 
     mqbconf)
       codegen ./src/groups/mqb/mqbconfm mqbconf.xsd mqbconfm messages
       ;;
+    mqbact)
+      codegen ./src/groups/mqb/mqbact mqbact.xsd mqbact actions
+      ;;
     *)
       usage
       exit 1

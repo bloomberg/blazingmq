@@ -102,8 +102,16 @@ const int ClusterStateRecordHeader::k_RECORD_TYPE_MASK =
     bdlb::BitMaskUtil::one(ClusterStateRecordHeader::k_RECORD_TYPE_START_IDX,
                            ClusterStateRecordHeader::k_RECORD_TYPE_NUM_BITS);
 
+const int ClusterStateRecordHeader::k_LEADER_ADVISORY_WORDS_MASK =
+    bdlb::BitMaskUtil::one(
+        ClusterStateRecordHeader::k_LEADER_ADVISORY_WORDS_START_IDX,
+        ClusterStateRecordHeader::k_LEADER_ADVISORY_WORDS_NUM_BITS);
+
 const unsigned int ClusterStateRecordHeader::k_HEADER_NUM_WORDS =
     sizeof(ClusterStateRecordHeader) / bmqp::Protocol::k_WORD_SIZE;
+
+const unsigned int ClusterStateRecordHeader::k_MAX_LEADER_ADVISORY_WORDS =
+    (1U << ClusterStateRecordHeader::k_LEADER_ADVISORY_WORDS_NUM_BITS) - 1;
 
 }  // close package namespace
 }  // close enterprise namespace

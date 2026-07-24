@@ -151,5 +151,10 @@ MessageDetails::deleteRecord() const
     return d_deleteRecord;
 }
 
+void MessageDetails::setPayloadHex(const bsl::string& payload)
+{
+    d_messageRecord.d_payloadHex = payload;
+}
+
 }  // close package namespace
 }  // close enterprise namespace
