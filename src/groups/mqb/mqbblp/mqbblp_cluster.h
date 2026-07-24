@@ -174,18 +174,6 @@ class Cluster : public mqbi::Cluster,
 
     typedef mqbc::ClusterData::MultiRequestManagerType MultiRequestManagerType;
 
-    typedef MultiRequestManagerType::RequestContextSp RequestContextSp;
-
-    typedef MultiRequestManagerType::NodeResponsePair NodeResponsePair;
-
-    typedef MultiRequestManagerType::NodeResponsePairs NodeResponsePairs;
-
-    typedef MultiRequestManagerType::NodeResponsePairsIter
-        NodeResponsePairsIter;
-
-    typedef MultiRequestManagerType::NodeResponsePairsConstIter
-        NodeResponsePairsConstIter;
-
     typedef bsl::shared_ptr<mqbnet::Cluster> NetClusterSp;
 
     typedef bsl::function<void(void)> VoidFunctor;
@@ -199,9 +187,7 @@ class Cluster : public mqbi::Cluster,
 
     /// Type of the MultiRequestManager used by the cluster to send
     /// StopRequest.
-    typedef mqbnet::MultiRequestManager<bmqp_ctrlmsg::ControlMessage,
-                                        bmqp_ctrlmsg::ControlMessage,
-                                        bsl::shared_ptr<mqbnet::Session> >
+    typedef mqbnet::MultiRequestManager<bsl::shared_ptr<mqbnet::Session> >
         StopRequestManagerType;
 
     struct ValidationResult {

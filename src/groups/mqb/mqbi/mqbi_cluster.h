@@ -99,7 +99,7 @@ namespace mqbnet {
 class ClusterNode;
 }
 namespace mqbnet {
-template <class REQUEST, class RESPONSE, class TARGET>
+template <class TARGET>
 class MultiRequestManager;
 }
 
@@ -248,13 +248,9 @@ class Cluster : public DispatcherClient {
         HandleReleasedCallback;
 
     /// Type of the RequestManager used by the cluster.
-    typedef bmqp::RequestManager<bmqp_ctrlmsg::ControlMessage,
-                                 bmqp_ctrlmsg::ControlMessage>
-        RequestManagerType;
+    typedef bmqp::RequestManager RequestManagerType;
 
-    typedef mqbnet::MultiRequestManager<bmqp_ctrlmsg::ControlMessage,
-                                        bmqp_ctrlmsg::ControlMessage,
-                                        mqbnet::ClusterNode*>
+    typedef mqbnet::MultiRequestManager<mqbnet::ClusterNode*>
         MultiRequestManagerType;
 
     /// Signature of a `void` functor method.
