@@ -429,6 +429,13 @@ struct UriParsingContext {
 // class Uri
 // ---------
 
+int Uri::parse(Uri*                     result,
+               const bslstl::StringRef& uriString,
+               bsl::string*             errorDescription)
+{
+    return UriParser::parse(result, errorDescription, uriString);
+}
+
 Uri::Uri(bslma::Allocator* allocator)
 : d_uri(allocator)
 {
