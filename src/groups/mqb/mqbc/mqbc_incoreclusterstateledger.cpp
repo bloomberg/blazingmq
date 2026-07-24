@@ -493,10 +493,6 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
             return rc * 10 + rc_WRITE_FAILURE;  // RETURN
         }
 
-        if (!isSelfLeader()) {
-            d_clusterData_p->electorInfo().setLeaderMessageSequence(lsn);
-        }
-
         mqbsi::LedgerRecordId recordId;
         rc = d_ledger_mp->writeRecord(&recordId,
                                       record,
@@ -508,6 +504,10 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
                            << "failure, record type: " << recordType
                            << ", rc: " << rc << "]";
             return rc * 10 + rc_WRITE_FAILURE;  // RETURN
+        }
+
+        if (!isSelfLeader()) {
+            d_clusterData_p->electorInfo().setLeaderMessageSequence(lsn);
         }
         d_clusterData_p->stats().addCslOffsetBytes(record.length() -
                                                    recordOffset);
@@ -612,9 +612,6 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
             BSLS_ASSERT_SAFE(
                 lsn == d_clusterData_p->electorInfo().leaderMessageSequence());
         }
-        else {
-            d_clusterData_p->electorInfo().setLeaderMessageSequence(lsn);
-        }
 
         const bmqp_ctrlmsg::LeaderAdvisoryCommit& commit =
             clusterMessage.choice().leaderAdvisoryCommit();
@@ -622,6 +619,17 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
         AdvisoriesMapIter iter = d_uncommittedAdvisories.find(
             commit.sequenceNumberCommitted());
         if (iter == d_uncommittedAdvisories.end()) {
+            GatedUpdateLsnsIter git = d_gatedUpdateLsns.find(
+                commit.sequenceNumberCommitted());
+            if (git != d_gatedUpdateLsns.end()) {
+                BALL_LOG_INFO
+                    << description()
+                    << ": Ignoring 'LeaderAdvisoryCommit': " << commit
+                    << ". Reason: it commits an e_UPDATE that was ignored "
+                       "while self follower was not healed.";
+                d_gatedUpdateLsns.erase(git);
+                return rc_SUCCESS;  // RETURN
+            }
             BALL_LOG_ERROR << description()
                            << ": Failed to apply 'LeaderAdvisoryCommit': "
                            << commit
@@ -641,6 +649,10 @@ int IncoreClusterStateLedger::applyRecordInternalImpl(
                            << "failure, record type: " << recordType
                            << ", rc: " << rc << "]";
             return rc * 10 + rc_WRITE_FAILURE;  // RETURN
+        }
+
+        if (!isSelfLeader()) {
+            d_clusterData_p->electorInfo().setLeaderMessageSequence(lsn);
         }
         d_clusterData_p->stats().addCslOffsetBytes(record.length() -
                                                    recordOffset);
@@ -908,16 +920,19 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
         rc_INVALID_HEADER = -3,
         /// Unexpected record type
         rc_UNEXPECTED_RECORD_TYPE = -4,
+        /// Record is of type e_UPDATE received before self follower applied
+        /// a snapshot
+        rc_UPDATE_BEFORE_SNAPSHOT = -5,
         /// Record was already applied
-        rc_RECORD_ALREADY_APPLIED = -5,
+        rc_RECORD_ALREADY_APPLIED = -6,
         /// Record is stale
-        rc_RECORD_STALE = -6,
+        rc_RECORD_STALE = -7,
         /// Fail to load cluster message
-        rc_LOAD_MESSAGE_FAILURE = -7,
+        rc_LOAD_MESSAGE_FAILURE = -8,
         /// Advisory is invalid, as determined by type-specific validation
-        rc_ADVISORY_INVALID = -8,
+        rc_ADVISORY_INVALID = -9,
         /// Fail to apply record
-        rc_APPLY_RECORD_FAILURE = -9
+        rc_APPLY_RECORD_FAILURE = -10
     };
 
     BALL_LOG_INFO << "Applying cluster state record event from node '"
@@ -1062,6 +1077,19 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
                        d_clusterData_p->electorInfo().leaderMessageSequence())
                 << "].";
             return rc_RECORD_STALE;  // RETURN
+        }
+
+        if (recordHeader->recordType() == ClusterStateRecordType::e_UPDATE &&
+            lsn.electorTerm() != d_appliedSnapshotTerm) {
+            BALL_LOG_WARN << description()
+                          << ": Ignoring e_UPDATE record with LSN = "
+                          << printLSN(lsn) << " from '"
+                          << source->nodeDescription()
+                          << "' because self follower has not applied a "
+                             "snapshot for term "
+                          << lsn.electorTerm() << ".";
+            d_gatedUpdateLsns.insert(lsn);
+            return rc_UPDATE_BEFORE_SNAPSHOT;  // RETURN
         }
     }
 
@@ -1227,6 +1255,17 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
         return rc * 10 + rc_APPLY_RECORD_FAILURE;  // RETURN
     }
 
+    if (recordHeader->recordType() == ClusterStateRecordType::e_SNAPSHOT) {
+        d_appliedSnapshotTerm = lsn.electorTerm();
+
+        // Drop gated updates from earlier terms.
+        bmqp_ctrlmsg::LeaderMessageSequence termFloor;
+        termFloor.electorTerm()    = lsn.electorTerm();
+        termFloor.sequenceNumber() = 0;
+        d_gatedUpdateLsns.erase(d_gatedUpdateLsns.begin(),
+                                d_gatedUpdateLsns.lower_bound(termFloor));
+    }
+
     return rc_SUCCESS;
 }
 
@@ -1247,6 +1286,8 @@ IncoreClusterStateLedger::IncoreClusterStateLedger(
 , d_ledgerConfig(allocator)
 , d_ledger_mp(0)
 , d_uncommittedAdvisories(allocator)
+, d_gatedUpdateLsns(allocator)
+, d_appliedSnapshotTerm(0)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(clusterState);
@@ -1385,6 +1426,9 @@ int IncoreClusterStateLedger::close()
     }
 
     cancelUncommittedAdvisories();
+
+    d_gatedUpdateLsns.clear();
+    d_appliedSnapshotTerm = 0;
 
     int rc = d_ledger_mp->close();
     if (rc != 0) {

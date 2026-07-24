@@ -61,6 +61,7 @@
 // BDE
 #include <ball_log.h>
 #include <bdlbb_blob.h>
+#include <bsl_set.h>
 #include <bsl_string.h>
 #include <bsl_unordered_map.h>
 #include <bslma_allocator.h>
@@ -153,6 +154,11 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     typedef AdvisoriesMap::const_iterator AdvisoriesMapCIter;
     typedef AdvisoriesMap::iterator       AdvisoriesMapIter;
 
+    /// Set of LSNs of gated `e_UPDATE` records, dropped because self follower
+    /// had not applied a snapshot for their term.
+    typedef bsl::set<bmqp_ctrlmsg::LeaderMessageSequence> GatedUpdateLsns;
+    typedef GatedUpdateLsns::iterator                     GatedUpdateLsnsIter;
+
   private:
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("MQBC.INCORECLUSTERSTATELEDGER");
@@ -194,6 +200,15 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     /// Map of uncommitted (but not canceled) advisories and associated record
     /// id from LSN.
     AdvisoriesMap d_uncommittedAdvisories;
+
+    /// LSNs of `e_UPDATE` records gated because self follower had not applied
+    /// a snapshot for their term.  An entry is erased when its matching commit
+    /// arrives, or when a later snapshot supersedes its term.
+    GatedUpdateLsns d_gatedUpdateLsns;
+
+    /// Elector term of the last snapshot self follower applied (0 if none).
+    /// An e_UPDATE whose term differs is gated, re-arming the gate each term.
+    bsls::Types::Uint64 d_appliedSnapshotTerm;
 
   private:
     // NOT IMPLEMENTED
@@ -262,8 +277,7 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     int applyCommit(const bmqp_ctrlmsg::LeaderMessageSequence& lsn,
                     unsigned int                               ackQuorum);
 
-    /// Cancel all uncommitted advisories.  Called upon new leader or term,
-    /// or when this ledger is closed.
+    /// Cancel all uncommitted advisories.
     ///
     /// THREAD: This method can be invoked only in the associated cluster's
     ///         dispatcher thread.
