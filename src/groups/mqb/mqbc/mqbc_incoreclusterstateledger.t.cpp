@@ -195,7 +195,8 @@ struct Tester {
 
   public:
     // CREATORS
-    Tester(bool isLeader = true, const bslstl::StringRef& location = "")
+    explicit Tester(bool                     isLeader = true,
+                    const bslstl::StringRef& location = "")
     : d_isLeader(isLeader)
     , d_tempDir(bmqtst::TestHelperUtil::allocator())
     , d_location(

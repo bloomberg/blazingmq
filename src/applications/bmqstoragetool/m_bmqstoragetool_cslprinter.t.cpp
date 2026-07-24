@@ -73,7 +73,8 @@ static void test1_humanReadableShortResultTest()
     recordId.setLogId(storageKey).setOffset(2);
 
     // Print short result
-    printer->printShortResult(header, recordId);
+    bmqp_ctrlmsg::ClusterMessage msg(bmqtst::TestHelperUtil::allocator());
+    printer->printShortResult(msg, header, recordId);
 
     // Prepare expected output
     bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
@@ -373,7 +374,8 @@ static void test6_prettyShortResultTest()
             bmqtst::TestHelperUtil::allocator());
 
         // Print short result
-        printer->printShortResult(header, recordId);
+        bmqp_ctrlmsg::ClusterMessage msg(bmqtst::TestHelperUtil::allocator());
+        printer->printShortResult(msg, header, recordId);
     }
 
     // Prepare expected output
@@ -416,8 +418,7 @@ static void test7_prettyDetailResultTest()
     bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
     bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
 
-    // Ignore check default allocator due to issue with bslim::Printer::print()
-    // used in recordToJsonString()
+    // Ignore check default allocator due to allocations in baljsn encoder
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
 
     // Create record data
@@ -460,9 +461,15 @@ static void test7_prettyDetailResultTest()
                    << "      \"LeaderAdvisoryWords\": \"10\",\n"
                    << "      \"Timestamp\": \"29NOV1973_21:33:09.000000\",\n"
                    << "      \"Epoch\": \"123456789\",\n"
-                   << "      \"Record\": \"[ choice = [ leaderAdvisory = [ "
-                      "sequenceNumber = [ electorTerm = 0 sequenceNumber = 0 "
-                      "] partitions = [ ] queues = [ ] ] ] \"\n"
+                   << "      \"Record\": {\n"
+                   << "        \"leaderAdvisory\": {\n"
+                   << "          \"sequenceNumber\": {\n"
+                   << "            \"electorTerm\": 0,\n"
+                   << "            \"sequenceNumber\": 0\n"
+                   << "          }\n"
+                   << "        }\n"
+                   << "      }\n"
+                   << "\n"
                    << "    }\n"
                    << "  ]\n"
                    << "}\n";
@@ -538,26 +545,25 @@ static void test8_prettySummaryTest()
 
     // Prepare expected output
     bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
-    expectedStream
-        << "{\n"
-        << "    \"Summary\":\n"
-        << "    {\n"
-        << "      \"SnapshotRecords\": \"2\",\n"
-        << "      \"UpdateRecords\": \"3\",\n"
-        << "      \"queueAssignmentAdvisory\": \"3\",\n"
-        << "      \"leaderAdvisory\": \"2\",\n"
-        << "      \"CommitRecords\": \"4\",\n"
-        << "      \"AckRecords\": \"5\"\n"
-        << "    },\n"
-        << "    \"Queues\": [\n"
-        << "      \"[ uri = "
-           "\\\"bmq://bmq.test.persistent.priority/second-queue\\\" key = [ "
-           "62 ] partitionId = 3 appIds = [ ] ]\",\n"
-        << "      \"[ uri = "
-           "\\\"bmq://bmq.test.persistent.priority/first-queue\\\" key = [ 61 "
-           "] partitionId = 2 appIds = [ ] ]\"\n"
-        << "    ]\n"
-        << "}\n";
+    expectedStream << "{\n"
+                   << "    \"Summary\":\n"
+                   << "    {\n"
+                   << "      \"SnapshotRecords\": \"2\",\n"
+                   << "      \"UpdateRecords\": \"3\",\n"
+                   << "      \"queueAssignmentAdvisory\": \"3\",\n"
+                   << "      \"leaderAdvisory\": \"2\",\n"
+                   << "      \"CommitRecords\": \"4\",\n"
+                   << "      \"AckRecords\": \"5\"\n"
+                   << "    },\n"
+                   << "    \"Queues\": [\n"
+                   << "      "
+                      "{\"uri\":\"bmq:\\/\\/bmq.test.persistent.priority\\/"
+                      "second-queue\",\"key\":\"62\",\"partitionId\":3},\n"
+                   << "      "
+                      "{\"uri\":\"bmq:\\/\\/bmq.test.persistent.priority\\/"
+                      "first-queue\",\"key\":\"61\",\"partitionId\":2}\n"
+                   << "    ]\n"
+                   << "}\n";
 
     BMQTST_ASSERT_EQ(expectedStream.str(), resultStream.str());
 }
@@ -598,7 +604,8 @@ static void test9_lineShortResultTest()
             bmqtst::TestHelperUtil::allocator());
 
         // Print short result
-        printer->printShortResult(header, recordId);
+        bmqp_ctrlmsg::ClusterMessage msg(bmqtst::TestHelperUtil::allocator());
+        printer->printShortResult(msg, header, recordId);
     }
 
     // Prepare expected output
@@ -636,8 +643,7 @@ static void test10_lineDetailResultTest()
     bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
     bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
 
-    // Ignore check default allocator due to issue with bslim::Printer::print()
-    // used in recordToJsonString()
+    // Ignore check default allocator due to allocations in baljsn encoder
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
 
     // Create record data
@@ -675,9 +681,8 @@ static void test10_lineDetailResultTest()
            "\"3000000001\", \"ElectorTerm\": \"1\", \"SequenceNumber\": "
            "\"2\", \"HeaderWords\": \"8\", \"LeaderAdvisoryWords\": \"10\", "
            "\"Timestamp\": \"29NOV1973_21:33:09.000000\", \"Epoch\": "
-           "\"123456789\", \"Record\": \"[ choice = [ leaderAdvisory = [ "
-           "sequenceNumber = [ electorTerm = 0 sequenceNumber = 0 ] "
-           "partitions = [ ] queues = [ ] ] ] \"}\n"
+           "\"123456789\", \"Record\": {\"leaderAdvisory\":"
+           "{\"sequenceNumber\":{\"electorTerm\":0,\"sequenceNumber\":0}}}}\n"
         << "  ]\n"
         << "}\n";
 
@@ -758,12 +763,12 @@ static void test11_lineSummaryTest()
            "\"3\", \"queueAssignmentAdvisory\": \"3\", \"leaderAdvisory\": "
            "\"2\", \"CommitRecords\": \"4\", \"AckRecords\": \"5\"},\n"
         << "    \"Queues\": [\n"
-        << "      \"[ uri = "
-           "\\\"bmq://bmq.test.persistent.priority/second-queue\\\" key = [ "
-           "62 ] partitionId = 3 appIds = [ ] ]\",\n"
-        << "      \"[ uri = "
-           "\\\"bmq://bmq.test.persistent.priority/first-queue\\\" key = [ 61 "
-           "] partitionId = 2 appIds = [ ] ]\"\n"
+        << "      "
+           "{\"uri\":\"bmq:\\/\\/bmq.test.persistent.priority\\/"
+           "second-queue\",\"key\":\"62\",\"partitionId\":3},\n"
+        << "      "
+           "{\"uri\":\"bmq:\\/\\/bmq.test.persistent.priority\\/"
+           "first-queue\",\"key\":\"61\",\"partitionId\":2}\n"
         << "    ]\n"
         << "}\n";
 

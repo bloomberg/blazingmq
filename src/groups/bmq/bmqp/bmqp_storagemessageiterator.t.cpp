@@ -570,7 +570,7 @@ static void test4_corruptedStorageEvent_part2()
 
     bdlbb::BlobUtil::append(&eventBlob, confirmRecord.c_str(), k_RECORD_SIZE);
 
-    // StorageHeader (invalid: missing a byte from the StorageHeader)
+    // StorageHeader (valid, but its declared payload is truncated below)
     bmqp::StorageHeader shd2;
     shd2.setFlags(2)
         .setHeaderWords(sizeof(bmqp::StorageHeader) /
@@ -648,7 +648,73 @@ static void test5_corruptedStorageEvent_part3()
         BMQTST_ASSERT(!iter.isValid());
     }
 }
-static void test6_resetMethod()
+
+static void test6_corruptedStorageEvent_part4()
+{
+    // ------------------------------------------------------------------------
+    // CORRUPTED STORAGE EVENT - PART 4
+    //
+    // Concerns:
+    //   Test iterating over a corrupted STORAGE event whose StorageHeader
+    //   declares a 'messageWords' smaller than 'headerWords'.
+    //
+    // Testing:
+    //   int next() rejects a StorageHeader whose 'messageWords' is smaller
+    //   than 'headerWords'.
+    // ------------------------------------------------------------------------
+    bmqtst::TestHelper::printTestName("CORRUPTED STORAGE EVENT - PART 4");
+
+    const int k_HEADER_WORDS = sizeof(bmqp::StorageHeader) /
+                               bmqp::Protocol::k_WORD_SIZE;
+
+    bsl::vector<int> malformedMessageWords(
+        bmqtst::TestHelperUtil::allocator());
+    malformedMessageWords.push_back(0);
+    malformedMessageWords.push_back(k_HEADER_WORDS - 1);
+
+    for (size_t i = 0; i < malformedMessageWords.size(); ++i) {
+        PVV("MESSAGE WORDS: " << malformedMessageWords[i]);
+
+        bdlbb::PooledBlobBufferFactory bufferFactory(
+            1024,
+            bmqtst::TestHelperUtil::allocator());
+        bdlbb::Blob eventBlob(&bufferFactory,
+                              bmqtst::TestHelperUtil::allocator());
+
+        // BUILD the event blob ...
+        // EventHeader
+        bmqp::EventHeader eh(bmqp::EventType::e_STORAGE);
+        eh.setLength(sizeof(bmqp::EventHeader) + sizeof(bmqp::StorageHeader));
+        bdlbb::BlobUtil::append(&eventBlob,
+                                reinterpret_cast<const char*>(&eh),
+                                sizeof(bmqp::EventHeader));
+
+        // StorageHeader with a valid 'headerWords' but a 'messageWords'
+        // smaller than the header.
+        bmqp::StorageHeader shd;
+        shd.setFlags(1)
+            .setHeaderWords(k_HEADER_WORDS)
+            .setMessageType(bmqp::StorageMessageType::e_CONFIRM)
+            .setPartitionId(0)
+            .setMessageWords(malformedMessageWords[i]);
+
+        bdlbb::BlobUtil::append(&eventBlob,
+                                reinterpret_cast<const char*>(&shd),
+                                sizeof(bmqp::StorageHeader));
+
+        // Iterate and check that 'next()' rejects the message and stays
+        // invalid instead of returning 1.
+        bmqp::StorageMessageIterator iter(&eventBlob, eh);
+        BMQTST_ASSERT_EQ(true, iter.isValid());
+        BMQTST_ASSERT_LT(iter.next(), 0);
+        BMQTST_ASSERT_EQ(false, iter.isValid());
+        BMQTST_ASSERT_LT(iter.next(),
+                         0);  // successive calls keep returning invalid
+        BMQTST_ASSERT_EQ(false, iter.isValid());
+    }
+}
+
+static void test7_resetMethod()
 {
     // --------------------------------------------------------------------
     // RESET
@@ -698,7 +764,7 @@ static void test6_resetMethod()
     }
 }
 
-static void test7_dumpBlob()
+static void test8_dumpBlob()
 {
     // --------------------------------------------------------------------
     // DUMB BLOB
@@ -789,8 +855,9 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
-    case 7: test7_dumpBlob(); break;
-    case 6: test6_resetMethod(); break;
+    case 8: test8_dumpBlob(); break;
+    case 7: test7_resetMethod(); break;
+    case 6: test6_corruptedStorageEvent_part4(); break;
     case 5: test5_corruptedStorageEvent_part3(); break;
     case 4: test4_corruptedStorageEvent_part2(); break;
     case 3: test3_corruptedStorageEvent_part1(); break;

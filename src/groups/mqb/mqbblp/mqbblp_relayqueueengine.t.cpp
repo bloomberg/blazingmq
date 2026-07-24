@@ -25,6 +25,7 @@
 #include <mqbstat_brokerstats.h>
 
 #include <bmqu_memoutstream.h>
+#include <bmqu_time.h>
 
 // BMQ
 #include <bmqp_protocol.h>
@@ -1780,23 +1781,19 @@ static void test20_handleParametersLimits()
             "C4_w consumerPriority=1 consumerPriorityCount=1");
     }
     {
-        // 3. adminCount
+        // 3. adminCount (all admin opens are rejected)
         mqbmock::QueueHandle* C1 = tester.getHandle(
             "C1_a adminCount=1000000000");
-        BMQTST_ASSERT(C1 != NULL);
+        BMQTST_ASSERT(C1 == NULL);
         mqbmock::QueueHandle* C2 = tester.getHandle(
             "C2_a adminCount=1000000000");
-        BMQTST_ASSERT(C2 != NULL);
+        BMQTST_ASSERT(C2 == NULL);
         mqbmock::QueueHandle* C3 = tester.getHandle(
             "C3_a adminCount=1000000000");
         BMQTST_ASSERT(C3 == NULL);
         mqbmock::QueueHandle* C4 = tester.getHandle("C4_a readCount=1");
         BMQTST_ASSERT(C4 != NULL);
 
-        tester.configureHandle(
-            "C1_a consumerPriority=1 consumerPriorityCount=1");
-        tester.configureHandle(
-            "C2_a consumerPriority=1 consumerPriorityCount=1");
         tester.configureHandle(
             "C4_a consumerPriority=1 consumerPriorityCount=1");
     }
@@ -2032,6 +2029,8 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
+    bmqu::Time::initialize(bmqtst::TestHelperUtil::allocator());
+
     {
         mqbcfg::AppConfig brokerConfig(bmqtst::TestHelperUtil::allocator());
         mqbcfg::BrokerConfig::set(brokerConfig);
@@ -2071,6 +2070,8 @@ int main(int argc, char* argv[])
         } break;
         }
     }
+
+    bmqu::Time::shutdown();
 
     // Default allocator check is disabled for all UTs:
     // `mqbblp::QueueEngine` and mocks from `mqbi` methods use ball logging

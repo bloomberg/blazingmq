@@ -1734,9 +1734,14 @@ int FileStoreUtil::writeQueueCreationRecordImpl(
     }
 
     BALL_LOG_INFO << " Partition [" << partitionId
-                  << "]: " << "Received QueueCreationRecord of " << "type ["
-                  << queueRec->type() << "] for " << "queueKey ["
-                  << queueRec->queueKey() << "]" << queueUriAppsStr.str();
+                  << "]: Wrote QueueCreationRecord of type ["
+                  << queueRec->type() << "] for queueKey ["
+                  << queueRec->queueKey()
+                  << "], queueUri: " << queueUriAppsStr.str() << ", PSN ["
+                  << queueRec->header().primaryLeaseId() << ", "
+                  << queueRec->header().sequenceNumber()
+                  << "], journal offset: " << recordOffset
+                  << ", qlist offset: " << qlistOffset;
 
     return rc_SUCCESS;
 }
