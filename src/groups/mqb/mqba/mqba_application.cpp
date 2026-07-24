@@ -18,11 +18,13 @@
 #include <mqbscm_version.h>
 // MQB
 #include <mqba_authenticator.h>
+#include <mqba_authorizer.h>
 #include <mqba_configprovider.h>
 #include <mqba_dispatcher.h>
 #include <mqba_domainmanager.h>
 #include <mqba_sessionnegotiator.h>
 #include <mqbauthn_authenticationcontroller.h>
+#include <mqbauthz_authorizationcontroller.h>
 #include <mqbblp_clustercatalog.h>
 #include <mqbblp_relayqueueengine.h>
 #include <mqbcfg_brokerconfig.h>
@@ -164,6 +166,7 @@ Application::Application(bdlmt::EventScheduler* scheduler,
 , d_pluginManager_mp()
 , d_statController_mp()
 , d_authenticationController_mp()
+, d_authorizationController_mp()
 , d_configProvider_mp()
 , d_dispatcher_mp()
 , d_transportManager_mp()
@@ -253,6 +256,7 @@ int Application::start(bsl::ostream& errorDescription)
         rc_ADMIN_POOL_START_FAILURE          = -10,
         rc_PLUGINMANAGER                     = -11,
         rc_AUTHENTICATIONCONTROLLER          = -12,
+        rc_AUTHORIZATIONCONTROLLER           = -13,
     };
 
     int rc = rc_SUCCESS;
@@ -305,6 +309,18 @@ int Application::start(bsl::ostream& errorDescription)
         return (rc * 100) + rc_AUTHENTICATIONCONTROLLER;  // RETURN
     }
 
+    // Start the AuthorizationController
+    const mqbcfg::AppConfig& brokerConfig = mqbcfg::BrokerConfig::get();
+    rc = mqbauthz::AuthorizationController::allocateManaged(
+        &d_authorizationController_mp,
+        errorDescription,
+        brokerConfig.authorization(),
+        *d_pluginManager_mp,
+        d_allocators.get("AuthorizationController"));
+    if (rc != 0) {
+        return (rc * 100) + rc_AUTHORIZATIONCONTROLLER;  // RETURN
+    }
+
     // Start the config provider
     d_configProvider_mp.load(new (*d_allocator_p) ConfigProvider(
                                  d_allocators.get("ConfigProvider")),
@@ -334,6 +350,11 @@ int Application::start(bsl::ostream& errorDescription)
                                            d_allocators.get("Authenticator")),
         d_allocator_p);
 
+    bslma::ManagedPtr<mqbi::Authorizer> authorizer_mp(
+        bslma::ManagedPtrUtil::allocateManaged<mqba::Authorizer>(
+            d_allocators.get("Authorizer"),
+            d_authorizationController_mp.get()));
+
     SessionNegotiator* sessionNegotiator = new (*d_allocator_p)
         SessionNegotiator(&d_bufferFactory,
                           d_dispatcher_mp.get(),
@@ -346,10 +367,11 @@ int Application::start(bsl::ostream& errorDescription)
         .setAdminCommandEnqueueCallback(
             bdlf::BindUtil::bind(&Application::enqueueCommand,
                                  this,
-                                 bdlf::PlaceHolders::_1,    // source
-                                 bdlf::PlaceHolders::_2,    // cmd
-                                 bdlf::PlaceHolders::_3,    // onProcessedCb
-                                 bdlf::PlaceHolders::_4));  // fromReroute
+                                 bdlf::PlaceHolders::_1,   // source
+                                 bdlf::PlaceHolders::_2,   // cmd
+                                 bdlf::PlaceHolders::_3,   // onProcessedCb
+                                 bdlf::PlaceHolders::_4))  // fromReroute
+        .setAuthorizer(bslmf::MovableRefUtil::move(authorizer_mp));
 
     bslma::ManagedPtr<mqbnet::Negotiator> negotiatorMp(sessionNegotiator,
                                                        d_allocator_p);
@@ -547,6 +569,7 @@ void Application::stop()
     DESTROY_OBJ(d_transportManager_mp, "TransportManager");
     DESTROY_OBJ(d_dispatcher_mp, "Dispatcher");
     DESTROY_OBJ(d_configProvider_mp, "ConfigProvider");
+    DESTROY_OBJ(d_authorizationController_mp, "AuthorizationController");
     DESTROY_OBJ(d_authenticationController_mp, "AuthenticationController");
     DESTROY_OBJ(d_statController_mp, "StatController");
     DESTROY_OBJ(d_pluginManager_mp, "PluginManager");

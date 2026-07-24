@@ -65,10 +65,10 @@ struct PartitionStateTableState {
         /// have synchronized their storage data.
         e_PRIMARY_HEALED = 3,
 
-        /// Self is replica, waiting for either success of failure
+        /// Self is replica, waiting for either success or failure
         /// PrimaryStateResponse.  It **must** reject the ReplicaStateRequest
-        /// to prevent primary from healing us twice in a row, leading to
-        /// duplicate work.
+        /// to prevent the primary from healing self twice in a row, leading
+        /// to duplicate work.
         e_REPLICA_WAITING = 4,
 
         /// Self is healing replica, following instructions from primary to
@@ -527,7 +527,7 @@ class PartitionStateTableActions {
         const PartitionFSMEventData&   eventData);
 
     void
-    do_closeRecoveryFileSet_attemptOpenStorage_sendDataToReplicas_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
+    do_closeRecoveryFileSet_attemptOpenStorage_storeSelfSeq_sendDataToReplicas_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
         PartitionStateTableEvent::Enum eventType,
         const PartitionFSMEventData&   eventData);
 
@@ -546,7 +546,7 @@ class PartitionStateTableActions {
         const PartitionFSMEventData&   eventData);
 
     void
-    do_resetReceiveDataCtx_storeSelfSeq_closeRecoveryFileSet_attemptOpenStorage_sendDataToReplicas_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
+    do_resetReceiveDataCtx_closeRecoveryFileSet_attemptOpenStorage_storeSelfSeq_sendDataToReplicas_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
         PartitionStateTableEvent::Enum eventType,
         const PartitionFSMEventData&   eventData);
 
@@ -676,7 +676,7 @@ class PartitionStateTable
         PST_CFG(
             PRIMARY_HEALING_STG1,
             SELF_HIGHEST_SEQ,
-            closeRecoveryFileSet_attemptOpenStorage_sendDataToReplicas_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn,
+            closeRecoveryFileSet_attemptOpenStorage_storeSelfSeq_sendDataToReplicas_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn,
             PRIMARY_HEALING_STG2);
         PST_CFG(
             PRIMARY_HEALING_STG1,
@@ -747,7 +747,7 @@ class PartitionStateTable
         PST_CFG(
             PRIMARY_HEALING_STG2,
             REPLICA_DATA_RSPN_PULL,
-            resetReceiveDataCtx_storeSelfSeq_closeRecoveryFileSet_attemptOpenStorage_sendDataToReplicas_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn,
+            resetReceiveDataCtx_closeRecoveryFileSet_attemptOpenStorage_storeSelfSeq_sendDataToReplicas_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn,
             PRIMARY_HEALING_STG2);
         PST_CFG(PRIMARY_HEALING_STG2,
                 REPLICA_DATA_RSPN_PUSH,
@@ -1167,12 +1167,13 @@ PartitionStateTableActions::do_resetReceiveDataCtx_closeRecoveryFileSet(
 }
 
 inline void PartitionStateTableActions::
-    do_closeRecoveryFileSet_attemptOpenStorage_sendDataToReplicas_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
+    do_closeRecoveryFileSet_attemptOpenStorage_storeSelfSeq_sendDataToReplicas_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
         PartitionStateTableEvent::Enum eventType,
         const PartitionFSMEventData&   eventData)
 {
     do_closeRecoveryFileSet(eventType, eventData);
     do_attemptOpenStorage(eventType, eventData);
+    do_storeSelfSeq(eventType, eventData);
     do_sendDataToReplicas(eventType, eventData);
     do_incrementNumRplcaDataRspn(eventType, eventData);
     do_checkQuorumRplcaDataRspn(eventType, eventData);
@@ -1209,14 +1210,14 @@ PartitionStateTableActions::do_setExpectedDataChunkRange_clearBufferedLiveData(
 }
 
 inline void PartitionStateTableActions::
-    do_resetReceiveDataCtx_storeSelfSeq_closeRecoveryFileSet_attemptOpenStorage_sendDataToReplicas_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
+    do_resetReceiveDataCtx_closeRecoveryFileSet_attemptOpenStorage_storeSelfSeq_sendDataToReplicas_incrementNumRplcaDataRspn_checkQuorumRplcaDataRspn(
         PartitionStateTableEvent::Enum eventType,
         const PartitionFSMEventData&   eventData)
 {
     do_resetReceiveDataCtx(eventType, eventData);
-    do_storeSelfSeq(eventType, eventData);
     do_closeRecoveryFileSet(eventType, eventData);
     do_attemptOpenStorage(eventType, eventData);
+    do_storeSelfSeq(eventType, eventData);
     do_sendDataToReplicas(eventType, eventData);
     do_incrementNumRplcaDataRspn(eventType, eventData);
     do_checkQuorumRplcaDataRspn(eventType, eventData);

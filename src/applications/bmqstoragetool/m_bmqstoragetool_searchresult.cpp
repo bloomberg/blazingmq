@@ -640,14 +640,23 @@ void SearchDetailResult::addMessageDetails(const mqbs::MessageRecord& record,
     bsl::optional<bmqp_ctrlmsg::QueueInfo> queueInfo =
         d_queueMap.findInfoByKey(record.queueKey());
 
-    d_messageDetailsMap.emplace(
-        record.messageGUID(),
-        d_messageDetailsList.insert(d_messageDetailsList.cend(),
-                                    MessageDetails(record,
-                                                   recordIndex,
-                                                   recordOffset,
-                                                   queueInfo,
-                                                   d_allocator_p)));
+    DetailsList::iterator detailsIt = d_messageDetailsList.insert(
+        d_messageDetailsList.cend(),
+        MessageDetails(record,
+                       recordIndex,
+                       recordOffset,
+                       queueInfo,
+                       d_allocator_p));
+    d_messageDetailsMap.emplace(record.messageGUID(), detailsIt);
+
+    if (d_payloadDumper && d_printer->isPayloadHexMode()) {
+        bsl::string payloadHex(d_allocator_p);
+        if (0 ==
+            d_payloadDumper->loadPayloadHex(&payloadHex,
+                                            record.messageOffsetDwords())) {
+            detailsIt->setPayloadHex(payloadHex);
+        }
+    }
 }
 
 void SearchDetailResult::deleteMessageDetails(DetailsMap::iterator iterator)
@@ -661,10 +670,9 @@ void SearchDetailResult::outputMessageDetails(
     const MessageDetails& messageDetails)
 {
     d_printer->printMessage(messageDetails);
-    if (d_payloadDumper)
+    if (d_payloadDumper && !d_printer->isPayloadHexMode())
         d_payloadDumper->outputPayload(
             messageDetails.messageRecord().d_record.messageOffsetDwords());
-
     d_printedMessagesCount++;
 }
 
@@ -685,13 +693,11 @@ const bsl::shared_ptr<Printer>& SearchDetailResult::printer() const
 SearchExactMatchResult::SearchExactMatchResult(
     const bsl::shared_ptr<Printer>&       printer,
     const Parameters::ProcessRecordTypes& processRecordTypes,
-    bool                                  isDetail,
     const QueueMap&                       queueMap,
     bslma::ManagedPtr<PayloadDumper>&     payloadDumper,
     bslma::Allocator*                     allocator)
 : d_printer(printer)
 , d_processRecordTypes(processRecordTypes)
-, d_isDetail(isDetail)
 , d_queueMap(queueMap)
 , d_payloadDumper(payloadDumper)
 , d_printedMessagesCount(0)
@@ -709,23 +715,24 @@ bool SearchExactMatchResult::processMessageRecord(
     bsls::Types::Uint64        recordIndex,
     bsls::Types::Uint64        recordOffset)
 {
-    if (d_isDetail) {
-        bsl::optional<bmqp_ctrlmsg::QueueInfo> queueInfo =
-            d_queueMap.findInfoByKey(record.queueKey());
-        MessageDetails details(record,
-                               recordIndex,
-                               recordOffset,
-                               queueInfo,
-                               d_allocator_p);
-        d_printer->printMessage(details);
+    bsl::optional<bmqp_ctrlmsg::QueueInfo> queueInfo =
+        d_queueMap.findInfoByKey(record.queueKey());
+    MessageDetails details(record,
+                           recordIndex,
+                           recordOffset,
+                           queueInfo,
+                           d_allocator_p);
+    if (d_payloadDumper && d_printer->isPayloadHexMode()) {
+        bsl::string payloadHex(d_allocator_p);
+        if (0 ==
+            d_payloadDumper->loadPayloadHex(&payloadHex,
+                                            record.messageOffsetDwords())) {
+            details.setPayloadHex(payloadHex);
+        }
     }
-    else {
-        d_printer->printGuid(record.messageGUID());
-    }
-
-    if (d_payloadDumper) {
+    d_printer->printMessage(details);
+    if (d_payloadDumper && !d_printer->isPayloadHexMode())
         d_payloadDumper->outputPayload(record.messageOffsetDwords());
-    }
 
     d_printedMessagesCount++;
 
@@ -737,19 +744,14 @@ bool SearchExactMatchResult::processConfirmRecord(
     bsls::Types::Uint64        recordIndex,
     bsls::Types::Uint64        recordOffset)
 {
-    if (d_isDetail) {
-        RecordDetails<mqbs::ConfirmRecord> details(record,
-                                                   recordIndex,
-                                                   recordOffset,
-                                                   d_allocator_p);
+    RecordDetails<mqbs::ConfirmRecord> details(record,
+                                               recordIndex,
+                                               recordOffset,
+                                               d_allocator_p);
 
-        addQueueInfo(details, record.queueKey(), record.appKey());
+    addQueueInfo(details, record.queueKey(), record.appKey());
 
-        d_printer->printConfirmRecord(details);
-    }
-    else {
-        d_printer->printGuid(record.messageGUID());
-    }
+    d_printer->printConfirmRecord(details);
 
     d_printedConfirmCount++;
 
@@ -761,19 +763,14 @@ bool SearchExactMatchResult::processDeletionRecord(
     bsls::Types::Uint64         recordIndex,
     bsls::Types::Uint64         recordOffset)
 {
-    if (d_isDetail) {
-        RecordDetails<mqbs::DeletionRecord> details(record,
-                                                    recordIndex,
-                                                    recordOffset,
-                                                    d_allocator_p);
+    RecordDetails<mqbs::DeletionRecord> details(record,
+                                                recordIndex,
+                                                recordOffset,
+                                                d_allocator_p);
 
-        addQueueInfo(details, record.queueKey(), mqbu::StorageKey());
+    addQueueInfo(details, record.queueKey(), mqbu::StorageKey());
 
-        d_printer->printDeletionRecord(details);
-    }
-    else {
-        d_printer->printGuid(record.messageGUID());
-    }
+    d_printer->printDeletionRecord(details);
 
     d_printedDeletionCount++;
 

@@ -1535,6 +1535,24 @@ int IncoreClusterStateLedger::apply(const bdlbb::Blob&   event,
 
 // ACCESSORS
 //   (virtual mqbc::ClusterStateLedger)
+void IncoreClusterStateLedger::uncommittedAdvisories(
+    ClusterMessageCRefList* out) const
+{
+    // executed by the *CLUSTER DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
+    BSLS_ASSERT_SAFE(out);
+
+    out->clear();
+    out->reserve(d_uncommittedAdvisories.size());
+    for (AdvisoriesMapCIter it = d_uncommittedAdvisories.cbegin();
+         it != d_uncommittedAdvisories.cend();
+         ++it) {
+        out->emplace_back(bsl::cref(it->second.d_clusterMessage));
+    }
+}
+
 bslma::ManagedPtr<ClusterStateLedgerIterator>
 IncoreClusterStateLedger::getIterator() const
 {

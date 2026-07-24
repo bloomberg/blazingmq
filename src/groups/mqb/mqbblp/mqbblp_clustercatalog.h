@@ -36,6 +36,7 @@
 #include <mqbcfg_messages.h>
 #include <mqbi_cluster.h>
 #include <mqbi_domain.h>
+#include <mqbnet_initialconnectioncontext.h>
 #include <mqbnet_multirequestmanager.h>
 #include <mqbnet_session.h>
 
@@ -49,6 +50,7 @@
 #include <bsl_memory.h>
 #include <bsl_ostream.h>
 #include <bsl_string.h>
+#include <bsl_string_view.h>
 #include <bsl_unordered_map.h>
 #include <bsl_unordered_set.h>
 #include <bsl_vector.h>
@@ -60,6 +62,7 @@
 #include <bslmt_mutex.h>
 #include <bsls_assert.h>
 #include <bsls_cpp11.h>
+#include <bsls_keyword.h>
 
 namespace BloombergLP {
 
@@ -104,15 +107,40 @@ class ClusterCatalog {
   public:
     // TYPES
 
-    /// Struct holding some context state used during negotiation: refer to the
-    /// @bbref{ mqba::SessionNegotiator} for usage of that struct.  This
+    /// Class holding some context state used during negotiation: refer to the
+    /// @bbref{ mqba::SessionNegotiator} for usage of that class.  This
     /// `userData` is created here, passed to `mqbnet` to hold on to it and
-    /// deliver it back to the `Negotiator` ~ this hackery mechanism is needed
-    /// in order to avoid dependency cycles and keep `mqbnet` layer abstracted
-    /// away from this logic.
-    struct NegotiationUserData {
-        bsl::string d_clusterName;
-        int         d_myNodeId;
+    /// deliver it back to the `Negotiator`, which recovers the concrete type
+    /// by downcasting.  Implementing the @bbref{mqbnet::NegotiationUserData}
+    /// protocol keeps the `mqbnet` layer abstracted away from this logic and
+    /// avoids dependency cycles.
+    class NegotiationUserData : public mqbnet::NegotiationUserData {
+      private:
+        // DATA
+
+        /// Name of the cluster to negotiate the connection with.
+        const bsl::string d_clusterName;
+
+      public:
+        // TRAITS
+        BSLMF_NESTED_TRAIT_DECLARATION(NegotiationUserData,
+                                       bslma::UsesBslmaAllocator)
+
+        // CREATORS
+
+        /// Create a `NegotiationUserData` holding the specified `clusterName`.
+        /// Use the optionally specified `allocator` to supply memory; if
+        /// `allocator` is 0, use the currently installed default allocator.
+        explicit NegotiationUserData(bsl::string_view  clusterName,
+                                     bslma::Allocator* allocator = 0);
+
+        /// Destroy this object.
+        ~NegotiationUserData() BSLS_KEYWORD_OVERRIDE;
+
+        // ACCESSORS
+
+        /// Return the name of the cluster to negotiate the connection with.
+        const bsl::string& clusterName() const;
     };
 
     typedef bmqp::RequestManager<bmqp_ctrlmsg::ControlMessage,
@@ -359,6 +387,17 @@ class ClusterCatalog {
 // ============================================================================
 //                             INLINE DEFINITIONS
 // ============================================================================
+
+// ----------------------------------------
+// class ClusterCatalog::NegotiationUserData
+// ----------------------------------------
+
+// ACCESSORS
+inline const bsl::string&
+ClusterCatalog::NegotiationUserData::clusterName() const
+{
+    return d_clusterName;
+}
 
 // --------------------
 // class ClusterCatalog
