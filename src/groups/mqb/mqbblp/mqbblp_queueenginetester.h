@@ -257,17 +257,9 @@ class QueueEngineTester {
   private:
     // PRIVATE MANIPULATORS
 
-    /// Perform any initialization that needs to be done one time only in
-    /// the course of a program's execution (to enable thread-safety of some
-    /// component, etc.).
-    void oneTimeInit();
-
     /// Reset and recreate all objects using the currently set options and
     /// the specific `domainConfig`.
     void init(const mqbconfm::Domain& domainConfig, bool startScheduler);
-
-    /// Pendant operation of the `oneTimeInit` one.
-    void oneTimeShutdown();
 
     void
     handleReleasedCallback(int*  rc,

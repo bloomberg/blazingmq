@@ -36,7 +36,6 @@
 #include <bmqt_uri.h>
 
 #include <bmqu_memoutstream.h>
-#include <bmqu_time.h>
 
 // BDE
 #include <bdlb_string.h>
@@ -49,7 +48,6 @@
 #include <bsl_memory.h>
 #include <bsl_utility.h>
 #include <bsl_vector.h>
-#include <bslmt_once.h>
 #include <bsls_types.h>
 #include <bslstl_stringref.h>
 
@@ -395,8 +393,6 @@ QueueEngineTester::QueueEngineTester(const mqbconfm::Domain& domainConfig,
 , d_messageCount(0)
 , d_allocator_p(allocator)
 {
-    oneTimeInit();
-
     mqbconfm::Domain config = domainConfig;
 
     config.deduplicationTimeMs() = 0;  // No history
@@ -421,18 +417,9 @@ QueueEngineTester::~QueueEngineTester()
     d_mockDomain_mp->unregisterQueue(queue);
 
     d_mockCluster_mp->stop();
-    oneTimeShutdown();
 }
 
 // PRIVATE MANIPULATORS
-void QueueEngineTester::oneTimeInit()
-{
-    BSLMT_ONCE_DO
-    {
-        bmqu::Time::initialize();
-    }
-}
-
 void QueueEngineTester::init(const mqbconfm::Domain& domainConfig,
                              bool                    startScheduler)
 {
@@ -625,14 +612,6 @@ void QueueEngineTester::init(const mqbconfm::Domain& domainConfig,
 
     const_cast<QueueHandleCatalog&>(d_queueState_mp->handleCatalog())
         .setHandleFactory(handleFactory_mp);
-}
-
-void QueueEngineTester::oneTimeShutdown()
-{
-    BSLMT_ONCE_DO
-    {
-        bmqu::Time::shutdown();
-    }
 }
 
 void QueueEngineTester::handleReleasedCallback(

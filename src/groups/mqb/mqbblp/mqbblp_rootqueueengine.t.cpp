@@ -41,6 +41,7 @@
 
 #include <bmqtst_scopedlogobserver.h>
 #include <bmqu_memoutstream.h>
+#include <bmqu_time.h>
 
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
@@ -5122,6 +5123,8 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
+    bmqu::Time::initialize(bmqtst::TestHelperUtil::allocator());
+
     mqbcfg::AppConfig brokerConfig(bmqtst::TestHelperUtil::allocator());
     mqbcfg::BrokerConfig::set(brokerConfig);
 
@@ -5197,6 +5200,8 @@ int main(int argc, char* argv[])
         } break;
         }
     }
+
+    bmqu::Time::shutdown();
 
     // Default allocator check is disabled for all UTs:
     // `mqbblp::QueueEngine` and mocks from `mqbi` methods use ball logging
