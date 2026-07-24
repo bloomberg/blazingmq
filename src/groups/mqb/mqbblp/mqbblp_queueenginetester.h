@@ -642,12 +642,14 @@ inline T* QueueEngineTester::createQueueEngine()
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(!d_queueEngine_mp && "'createQueueEngine()' was called");
-    T* result = new (*d_allocator_p)
-        T(d_queueState_mp.get(),
-          *d_queueState_mp->queue()->domain()->config(),
-          d_allocator_p);
+
     // Create and configure Queue Engine
-    d_queueEngine_mp.load(result, d_allocator_p);
+    d_queueEngine_mp = bslma::ManagedPtrUtil::allocateManaged<T>(
+        d_allocator_p,
+        d_queueState_mp.get(),
+        *d_queueState_mp->queue()->domain()->config());
+
+    T* result = static_cast<T*>(d_queueEngine_mp.get());
 
     createQueueEngineHelper(d_queueEngine_mp.get());
 
