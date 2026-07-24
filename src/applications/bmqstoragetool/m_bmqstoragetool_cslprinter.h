@@ -58,7 +58,8 @@ class CslPrinter {
 
     /// Print the result in a short form.
     virtual void
-    printShortResult(const mqbc::ClusterStateRecordHeader& header,
+    printShortResult(const bmqp_ctrlmsg::ClusterMessage&   record,
+                     const mqbc::ClusterStateRecordHeader& header,
                      const mqbsi::LedgerRecordId&          recordId) const = 0;
 
     /// Print the result in a detail form.

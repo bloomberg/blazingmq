@@ -136,28 +136,31 @@ static void test1_initialConnectionContext()
     bmqtst::TestHelper::printTestName("test1_basicConstruction");
     {
         PV("Constructor");
-        mqbnet::InitialConnectionContext obj1(false,
-                                              authenticator.get(),
-                                              negotiator.get(),
-                                              static_cast<void*>(0),
-                                              static_cast<void*>(0),
-                                              channel,
-                                              completeCb);
+        mqbnet::InitialConnectionContext obj1(
+            false,
+            authenticator.get(),
+            negotiator.get(),
+            bsl::shared_ptr<mqbnet::NegotiationUserData>(),
+            static_cast<void*>(0),
+            channel,
+            completeCb);
         BMQTST_ASSERT_EQ(obj1.isIncoming(), false);
         BMQTST_ASSERT_EQ(obj1.resultState(), static_cast<void*>(0));
-        BMQTST_ASSERT_EQ(obj1.userData(), static_cast<void*>(0));
+        BMQTST_ASSERT_EQ(obj1.userData(),
+                         bsl::shared_ptr<mqbnet::NegotiationUserData>());
     }
 
     {
         PV("Manipulators/Accessors");
 
-        mqbnet::InitialConnectionContext obj(true,
-                                             authenticator.get(),
-                                             negotiator.get(),
-                                             static_cast<void*>(0),
-                                             static_cast<void*>(0),
-                                             channel,
-                                             completeCb);
+        mqbnet::InitialConnectionContext obj(
+            true,
+            authenticator.get(),
+            negotiator.get(),
+            bsl::shared_ptr<mqbnet::NegotiationUserData>(),
+            static_cast<void*>(0),
+            channel,
+            completeCb);
 
         {  // ResultState
             int value = 9;

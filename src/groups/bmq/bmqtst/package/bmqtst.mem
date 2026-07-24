@@ -1,5 +1,6 @@
 bmqtst_blobtestutil
 bmqtst_mocktime
+bmqtst_schedulerlockguard
 bmqtst_scopedlogobserver
 bmqtst_table
 bmqtst_tempfile

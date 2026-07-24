@@ -76,6 +76,13 @@ inline bool addQuotes<bslstl::StringRef>(const bslstl::StringRef& value)
     return (pos == bsl::string::npos || value[pos] != '{');
 }
 
+template <>
+inline bool addQuotes<bsl::string>(const bsl::string& value)
+{
+    bsl::size_t pos = value.find_first_not_of(" \n");
+    return (pos == bsl::string::npos || value[pos] != '{');
+}
+
 // =================
 // class JsonPrinter
 // =================

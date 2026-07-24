@@ -833,19 +833,34 @@ static void test10_recordSize()
 {
     bmqtst::TestHelper::printTestName("RECORD SIZE");
 
+    const int k_LEADER_ADVISORY_WORDS = 17;
+
     mqbc::ClusterStateRecordHeader header;
     header.setHeaderWords(mqbc::ClusterStateRecordHeader::k_HEADER_NUM_WORDS)
         .setRecordType(mqbc::ClusterStateRecordType::e_SNAPSHOT)
-        .setLeaderAdvisoryWords(17)
-        .setElectorTerm(3)
-        .setSequenceNumber(100)
-        .setTimestamp(123456U);
+        .setLeaderAdvisoryWords(k_LEADER_ADVISORY_WORDS);
 
-    bsls::Types::Int64 expectedRecordSize =
-        (mqbc::ClusterStateRecordHeader::k_HEADER_NUM_WORDS + 17) *
-        bmqp::Protocol::k_WORD_SIZE;
+    const int expectedRecordSize = static_cast<int>(
+        (mqbc::ClusterStateRecordHeader::k_HEADER_NUM_WORDS +
+         k_LEADER_ADVISORY_WORDS) *
+        bmqp::Protocol::k_WORD_SIZE);
     BMQTST_ASSERT_EQ(mqbc::ClusterStateLedgerUtil::recordSize(header),
                      expectedRecordSize);
+
+    // Integer overflow prevention: exercise 'recordSize' at the maximum of
+    // both its inputs.
+    const unsigned int k_MAX_HEADER_WORDS = 15;  // 4-bit field
+    const unsigned int maxLeaderAdvisoryWords =
+        mqbc::ClusterStateRecordHeader::k_MAX_LEADER_ADVISORY_WORDS;
+    header.setHeaderWords(k_MAX_HEADER_WORDS)
+        .setLeaderAdvisoryWords(maxLeaderAdvisoryWords);
+
+    const int expectedMaxRecordSize = static_cast<int>(
+        (k_MAX_HEADER_WORDS + maxLeaderAdvisoryWords) *
+        bmqp::Protocol::k_WORD_SIZE);
+    BMQTST_ASSERT_EQ(mqbc::ClusterStateLedgerUtil::recordSize(header),
+                     expectedMaxRecordSize);
+    BMQTST_ASSERT_GT(mqbc::ClusterStateLedgerUtil::recordSize(header), 0);
 }
 
 // ============================================================================

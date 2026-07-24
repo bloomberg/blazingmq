@@ -114,16 +114,20 @@ struct ZLib {
 
     /// Apply the operation given by the specified `zlibMethod` and
     /// `zlibEndMethod` on the specified `input` using the specified
-    /// `stream`, and write the result to the specified `output`.  Return 0
-    /// on success and non-zero otherwise, in which case a message is
-    /// written to the specified `errorStream` if it is non-zero.
+    /// `stream`, and write the result to the specified `output`.  If the
+    /// specified `maxOutputSize` is non-zero, fail as soon as the
+    /// accumulated output would exceed `maxOutputSize` bytes; a value
+    /// of 0 means no limit is enforced.  Return 0 on success and
+    /// non-zero otherwise, in which case a message is written to the
+    /// specified `errorStream` if it is non-zero.
     static int writeOutput(bdlbb::Blob*              output,
                            bdlbb::BlobBufferFactory* factory,
                            z_stream*                 stream,
                            bsl::ostream*             errorStream,
                            const bdlbb::Blob&        input,
                            ZlibStreamMethod          zlibMethod,
-                           ZlibEndStreamMethod       zlibEndMethod);
+                           ZlibEndStreamMethod       zlibEndMethod,
+                           bsls::Types::Uint64       maxOutputSize);
 };
 
 // ===========
@@ -226,13 +230,15 @@ int ZLib::writeOutput(bdlbb::Blob*              output,
                       bsl::ostream*             errorStream,
                       const bdlbb::Blob&        input,
                       ZlibStreamMethod          zlibMethod,
-                      ZlibEndStreamMethod       zlibEndMethod)
+                      ZlibEndStreamMethod       zlibEndMethod,
+                      bsls::Types::Uint64       maxOutputSize)
 {
     enum RcEnum {
         rc_SUCCESS                = 0,
         rc_STREAM_INIT_FAILURE    = -1,
         rc_STREAM_PROCESS_FAILURE = -2,
-        rc_STREAM_END_FAILURE     = -3
+        rc_STREAM_END_FAILURE     = -3,
+        rc_MAX_SIZE_EXCEEDED      = -4
     };
 
     bdlbb::BlobBuffer inBuffer;
@@ -258,6 +264,20 @@ int ZLib::writeOutput(bdlbb::Blob*              output,
             zlibEndMethod(stream);
             return rc_STREAM_PROCESS_FAILURE;  // RETURN
         }
+
+        // Fail if the accumulated output would exceed the cap. The current
+        // 'outBuffer' has not been appended to 'output' yet, so account
+        // for the bytes already written into it.
+        if (maxOutputSize != 0 &&
+            static_cast<bsls::Types::Uint64>(output->length()) +
+                    (outBuffer.size() - stream->avail_out) >
+                maxOutputSize) {
+            setError(errorStream,
+                     "Decompressed output exceeds maximum size",
+                     0);
+            zlibEndMethod(stream);
+            return rc_MAX_SIZE_EXCEEDED;  // RETURN
+        }
     }
 
     // Continue to write output data until the stream reaches its end, or the
@@ -269,6 +289,19 @@ int ZLib::writeOutput(bdlbb::Blob*              output,
         advanceOutput(output, &outBuffer, factory, stream);
         lastSize = stream->avail_out;
         result   = zlibMethod(stream, Z_FINISH);
+
+        // Fail closed if the accumulated output would exceed the cap (see the
+        // explanation above).
+        if (maxOutputSize != 0 &&
+            static_cast<bsls::Types::Uint64>(output->length()) +
+                    (outBuffer.size() - stream->avail_out) >
+                maxOutputSize) {
+            setError(errorStream,
+                     "Decompressed output exceeds maximum size",
+                     0);
+            zlibEndMethod(stream);
+            return rc_MAX_SIZE_EXCEEDED;  // RETURN
+        }
     } while ((Z_BUF_ERROR == result || Z_OK == result) &&
              lastSize != stream->avail_out);
 
@@ -386,6 +419,7 @@ int Compression::decompress(bdlbb::Blob*                         output,
                             bdlbb::BlobBufferFactory*            factory,
                             bmqt::CompressionAlgorithmType::Enum algorithm,
                             const bdlbb::Blob&                   input,
+                            bsls::Types::Uint64                  maxOutputSize,
                             bsl::ostream*                        errorStream,
                             bslma::Allocator*                    allocator)
 {
@@ -396,6 +430,7 @@ int Compression::decompress(bdlbb::Blob*                         output,
         return Compression_Impl::decompressZlib(output,
                                                 factory,
                                                 input,
+                                                maxOutputSize,
                                                 errorStream,
                                                 allocator);  // RETURN
     case bmqt::CompressionAlgorithmType::e_NONE:
@@ -449,12 +484,14 @@ int Compression_Impl::compressZlib(bdlbb::Blob*              output,
                              errorStream,
                              input,
                              &::deflate,
-                             &::deflateEnd);
+                             &::deflateEnd,
+                             0);  // no output cap for compression
 }
 
 int Compression_Impl::decompressZlib(bdlbb::Blob*              output,
                                      bdlbb::BlobBufferFactory* factory,
                                      const bdlbb::Blob&        input,
+                                     bsls::Types::Uint64       maxOutputSize,
                                      bsl::ostream*             errorStream,
                                      bslma::Allocator*         allocator)
 {
@@ -481,7 +518,8 @@ int Compression_Impl::decompressZlib(bdlbb::Blob*              output,
                              errorStream,
                              input,
                              &::inflate,
-                             &::inflateEnd);
+                             &::inflateEnd,
+                             maxOutputSize);
 }
 
 }  // close package namespace

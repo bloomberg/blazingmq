@@ -65,6 +65,7 @@
 #include <bslma_allocator.h>
 #include <bsls_assert.h>
 #include <bsls_performancehint.h>
+#include <bsls_types.h>
 
 namespace BloombergLP {
 
@@ -279,7 +280,12 @@ struct ProtocolUtil {
     /// input is compressed and the specified `decompressFlag` is `false` in
     /// which case parsing of MessageProperties succeeds only if
     /// `haveNewMessageProperties` is `true` (un-compressed) and parsing of
-    /// data does not succeed.  Return negative code on failure.
+    /// data does not succeed.  Return negative code on failure.  If the
+    /// optionally specified `maxDecompressedSize` is non-zero, fail (with a
+    /// negative code) rather than decompressing `input` into more than
+    /// `maxDecompressedSize` bytes; a value of `0` (the default) means no
+    /// limit is enforced.  This bounds the memory consumed when decompressing
+    /// highly-compressible input.
     static int parse(bdlbb::Blob*              messagePropertiesOutput,
                      int*                      messagePropertiesSize,
                      bdlbb::Blob*              dataOutput,
@@ -291,7 +297,8 @@ struct ProtocolUtil {
                      bool                      haveNewMessageProperties,
                      bmqt::CompressionAlgorithmType::Enum cat,
                      bdlbb::BlobBufferFactory*            blobBufferFactory,
-                     bslma::Allocator*                    allocator);
+                     bslma::Allocator*                    allocator,
+                     bsls::Types::Uint64 maxDecompressedSize = 0);
 };
 
 // ============================================================================

@@ -456,7 +456,7 @@ class TestAppSubscriptions:
 
         for node in cluster.nodes():
             if node != self.leader:
-                node.capture(r"Received QueueOpRecord of type DELETION")
+                assert node.capture(r"Received QueueOpRecord of type \[DELETION\]")
 
         all_partition_id = -1  # use -1 to rollover all partitions
         self.leader.trigger_rollover(all_partition_id)

@@ -24,6 +24,7 @@
 #include <mqbcfg_messages.h>
 #include <mqbnet_cluster.h>
 #include <mqbnet_clusterimp.h>
+#include <mqbnet_initialconnectioncontext.h>
 #include <mqbnet_session.h>
 #include <mqbnet_tcpsessionfactory.h>
 
@@ -251,8 +252,6 @@ int TransportManager::connectLocked(ConnectionState* state)
                     // The mutex lock is necessary to ensure the 'state'
                     // doesn't get invalidated while processing this method.
 
-    bslma::ManagedPtr<void> negotiationUserData =
-        state->d_userData_sp.managedPtr();
     return d_tcpSessionFactory_mp->connect(
         state->d_endpoint,
         bdlf::BindUtil::bind(&TransportManager::sessionResult,
@@ -264,7 +263,7 @@ int TransportManager::connectLocked(ConnectionState* state)
                              bdlf::PlaceHolders::_5,  // resultState
                              bdlf::PlaceHolders::_6,  // readCb
                              false),                  // isListen
-        &negotiationUserData,
+        state->d_userData_sp,
         state,
         true);  // shouldAutoReconnect
 }
@@ -467,12 +466,12 @@ void TransportManager::stop()
 }
 
 int TransportManager::createCluster(
-    bsl::ostream&                           errorDescription,
-    bslma::ManagedPtr<mqbnet::Cluster>*     out,
-    const bsl::string&                      name,
-    const bsl::vector<mqbcfg::ClusterNode>& nodes,
-    ConnectionMode                          connectionMode,
-    bslma::ManagedPtr<void>*                userData)
+    bsl::ostream&                               errorDescription,
+    bslma::ManagedPtr<mqbnet::Cluster>*         out,
+    const bsl::string&                          name,
+    const bsl::vector<mqbcfg::ClusterNode>&     nodes,
+    ConnectionMode                              connectionMode,
+    const bsl::shared_ptr<NegotiationUserData>& userData)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(out);
@@ -499,12 +498,6 @@ int TransportManager::createCluster(
                                << " and config: ";
         bmqu::Printer<bsl::vector<mqbcfg::ClusterNode> > printer(&nodes);
         BALL_LOG_OUTPUT_STREAM << printer;
-    }
-
-    // Create a shared pointer to hold the user data, if any
-    bsl::shared_ptr<void> userDataSp;
-    if (userData) {
-        userDataSp = *userData;
     }
 
     bslma::Allocator*          alloc = d_allocators.get(name);
@@ -546,7 +539,7 @@ int TransportManager::createCluster(
 
         connectionState->d_endpoint    = tcpConfig.endpoint();
         connectionState->d_node_p      = node;
-        connectionState->d_userData_sp = userDataSp;
+        connectionState->d_userData_sp = userData;
 
         d_connectionsState[connectionState.get()] = connectionState;
 

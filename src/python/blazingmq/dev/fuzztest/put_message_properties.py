@@ -83,7 +83,7 @@ def _make_mph_fields(prefix, prop_type, name_len, middle_value, fuzzable=False):
 def make_message_properties_area(
     num_properties: int = 2,
     fuzz_header: bool = False,
-    fuzz_mph: bool = False,
+    fuzz_properties: bool = False,
     new_style: bool = False,
 ) -> boofuzz.Request:
     """
@@ -112,7 +112,7 @@ def make_message_properties_area(
             default_value=(area_words >> 16) & 0xFF,
             fuzzable=False,
         ),
-        boofuzz.Word(  # double check
+        boofuzz.Word(
             name="area_words_lower",
             default_value=area_words & 0xFFFF,
             endian=">",
@@ -147,9 +147,7 @@ def make_message_properties_area(
                 prop_type,
                 len(name),
                 middle,
-                fuzzable=(
-                    fuzz_mph and i == 0
-                ),  # only fuzz the first message property header to save time, might want to fuzz more
+                fuzzable=fuzz_properties,
             )
         )
 
@@ -159,7 +157,7 @@ def make_message_properties_area(
                 name=f"prop{i}_name",
                 default_value=name,
                 size=len(name),
-                fuzzable=False,
+                fuzzable=fuzz_properties,
             )
         )
         children.append(
@@ -167,7 +165,7 @@ def make_message_properties_area(
                 name=f"prop{i}_value",
                 default_value=value,
                 size=len(value),
-                fuzzable=False,
+                fuzzable=fuzz_properties,
             )
         )
 
@@ -222,7 +220,7 @@ def make_put_with_fuzzable_properties(
     properties_request = make_message_properties_area(
         num_properties=num_properties,
         fuzz_header=True,
-        fuzz_mph=True,
+        fuzz_properties=True,
         new_style=new_style,
     )
 

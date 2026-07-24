@@ -302,6 +302,10 @@ class ClusterFSM {
 
     /// Return true if self node is healed, false otherwise.
     bool isSelfHealed() const;
+
+    /// Return true if self is a leader that has confirmed itself as a highest
+    /// LSN node (i.e., in STG3 or HEALED), false otherwise.
+    bool isSelfHighestLSNLeader() const;
 };
 
 // ============================================================================
@@ -490,17 +494,25 @@ inline bool ClusterFSM::isSelfLeader() const
 {
     return d_state == State::e_LDR_HEALING_STG1 ||
            d_state == State::e_LDR_HEALING_STG2 ||
+           d_state == State::e_LDR_HEALING_STG3 ||
            d_state == State::e_LDR_HEALED;
 }
 
 inline bool ClusterFSM::isSelfFollower() const
 {
-    return d_state == State::e_FOL_HEALING || d_state == State::e_FOL_HEALED;
+    return d_state == State::e_FOL_WAITING ||
+           d_state == State::e_FOL_HEALING || d_state == State::e_FOL_HEALED;
 }
 
 inline bool ClusterFSM::isSelfHealed() const
 {
     return d_state == State::e_FOL_HEALED || d_state == State::e_LDR_HEALED;
+}
+
+inline bool ClusterFSM::isSelfHighestLSNLeader() const
+{
+    return d_state == State::e_LDR_HEALING_STG3 ||
+           d_state == State::e_LDR_HEALED;
 }
 
 }  // close package namespace

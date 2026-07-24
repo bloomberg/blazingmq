@@ -627,6 +627,7 @@
         "default",                                                            \
         (bmqtst::TestHelperUtil::verbosityLevel() >= 4));                     \
     bslma::DefaultAllocatorGuard _defAllocGuard(&_defAlloc);                  \
+    bmqtst::TestHelperUtil::setDefaultAllocator(_defAlloc);                   \
                                                                               \
     /* Test driver allocator */                                               \
     bslma::TestAllocator _testAlloc(                                          \
@@ -772,6 +773,9 @@ struct TestHelperUtil {
 
     /// Allocator to use by the components under test.
     static bslma::Allocator*& allocator();
+
+    static void setDefaultAllocator(bslma::TestAllocator& defaultAllocator);
+    static bslma::TestAllocator& defaultAllocator();
 
     /// Sanitizers flags
     /// Set to `true` if test built with the specified sanitizer enabled,
