@@ -278,14 +278,14 @@ class InitialConnectionContext {
     bsl::shared_ptr<NegotiationUserData> d_userData_sp;
 
     /// The channel to use for the initial connection.
-    bsl::shared_ptr<bmqio::Channel> d_channelSp;
+    bsl::shared_ptr<bmqio::Channel> d_channel_sp;
 
     /// The AuthenticationContext updated upon receiving an
     /// authentication message.
-    bsl::shared_ptr<AuthenticationContext> d_authenticationCtxSp;
+    bsl::shared_ptr<AuthenticationContext> d_authenticationCtx_sp;
 
     /// The NegotiationContext updated upon receiving a negotiation message.
-    bsl::shared_ptr<NegotiationContext> d_negotiationCtxSp;
+    bsl::shared_ptr<NegotiationContext> d_negotiationCtx_sp;
 
     /// The callback to invoke to notify of the status of the initial
     /// connection.
@@ -394,7 +394,7 @@ class InitialConnectionContext {
     void setAuthenticationContext(
         const bsl::shared_ptr<AuthenticationContext>& value);
 
-    /// Called by the IO upon `onClose` signal
+    /// @brief Called by the IO upon `onClose` signal.
     void onClose();
 
     /// Read callback invoked when data is available on the channel.

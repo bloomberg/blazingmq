@@ -896,12 +896,10 @@ void TCPSessionFactory::onClose(const bsl::shared_ptr<bmqio::Channel>& channel,
 
         // set the 'isClosed' flag under lock to be checked under lock in
         // 'initialConnectionComplete'.
-        bsl::shared_ptr<InitialConnectionContext> initialConnectionContext_sp;
         InitialConnectionContextMp::iterator      iter =
             d_initialConnectionContextCache.find(channel.get());
         if (iter != d_initialConnectionContextCache.end()) {
-            initialConnectionContext_sp = iter->second;
-            initialConnectionContext_sp->onClose();
+            iter->second->onClose();
         }
 
         ChannelMap::const_iterator it = d_channels.find(channel.get());
@@ -951,7 +949,7 @@ void TCPSessionFactory::onClose(const bsl::shared_ptr<bmqio::Channel>& channel,
 
         // Disable reauthentication timer if there's any
         if (channelInfo->d_authenticationCtx_sp) {
-            channelInfo->d_authenticationCtx_sp->onClose(d_scheduler_p);
+            channelInfo->d_authenticationCtx_sp->onClose();
         }
 
         // TearDown the session
