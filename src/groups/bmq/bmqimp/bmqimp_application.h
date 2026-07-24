@@ -297,8 +297,13 @@ class Application {
     /// `SESSION_CONNECTED` event will be enqueued once the session with the
     /// broker has been established; or a `CONNECTION_TIMEOUT` event will be
     /// enqueued if the session failed to establish within the specified
-    /// `timeout` interval.
-    int startAsync(const bsls::TimeInterval& timeout);
+    /// `timeout` interval.  If the optionally specified `startCb` is not
+    /// empty, it is invoked (via the terminal session event, on the event
+    /// delivery thread and never on the FSM thread) upon completion of the
+    /// start operation, unless a non-zero value is returned.
+    int startAsync(const bsls::TimeInterval&           timeout,
+                   const BrokerSession::EventCallback& startCb =
+                       BrokerSession::EventCallback());
 
     /// Gracefully stop the connection, and wait until everything
     /// successfully completes.  Calling stop on an already stopped
@@ -307,8 +312,12 @@ class Application {
     /// used instead.
     void stop();
 
-    /// Asynchronously and gracefully stop the connection.
-    void stopAsync();
+    /// Asynchronously and gracefully stop the connection.  If the optionally
+    /// specified `stopCb` is not empty, it is invoked (via the terminal
+    /// session event, on the event delivery thread and never on the FSM
+    /// thread) upon completion of the stop operation.
+    void stopAsync(const BrokerSession::EventCallback& stopCb =
+                       BrokerSession::EventCallback());
 };
 
 // ============================================================================

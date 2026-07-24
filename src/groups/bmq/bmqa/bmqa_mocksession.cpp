@@ -562,9 +562,13 @@ MockSession::Call::Call(Method method, bslma::Allocator* allocator)
 , d_openQueueCallback(bsl::allocator_arg, allocator)
 , d_configureQueueCallback(bsl::allocator_arg, allocator)
 , d_closeQueueCallback(bsl::allocator_arg, allocator)
+, d_startCallback(bsl::allocator_arg, allocator)
+, d_stopCallback(bsl::allocator_arg, allocator)
 , d_openQueueResult(allocator)
 , d_configureQueueResult(allocator)
 , d_closeQueueResult(allocator)
+, d_startResult(allocator)
+, d_stopResult(allocator)
 , d_emittedEvents(allocator)
 , d_returnEvent()
 , d_messageEvent()
@@ -590,9 +594,13 @@ MockSession::Call::Call(const Call& other, bslma::Allocator* allocator)
 , d_closeQueueCallback(bsl::allocator_arg,
                        allocator,
                        other.d_closeQueueCallback)
+, d_startCallback(bsl::allocator_arg, allocator, other.d_startCallback)
+, d_stopCallback(bsl::allocator_arg, allocator, other.d_stopCallback)
 , d_openQueueResult(other.d_openQueueResult)
 , d_configureQueueResult(other.d_configureQueueResult, allocator)
 , d_closeQueueResult(other.d_closeQueueResult, allocator)
+, d_startResult(other.d_startResult, allocator)
+, d_stopResult(other.d_stopResult, allocator)
 , d_emittedEvents(other.d_emittedEvents, allocator)
 , d_returnEvent(other.d_returnEvent)
 , d_messageEvent(other.d_messageEvent)
@@ -745,6 +753,56 @@ MockSession::Call::emitting(const CloseQueueStatus& closeQueueResult)
     return *this;
 }
 
+MockSession::Call& MockSession::Call::emitting(const StartStatus& startResult)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_method = e_START_ASYNC_CALLBACK);
+    BSLS_ASSERT_SAFE(d_startCallback);
+
+    d_startResult = startResult;
+
+    const CallbackFn callbackFn = bdlf::BindUtil::bindS(d_allocator_p,
+                                                        d_startCallback,
+                                                        startResult);
+
+    // Start is a session-level operation with no associated queue, so
+    // 'processIfQueueJob' will ignore this job (it only acts on queue events).
+    Job job;
+    job.d_callback = callbackFn;
+    job.d_type     = bmqt::SessionEventType::e_CONNECTED;
+    job.d_status   = startResult.result();
+
+    EventOrJob eventOrJob(job, d_allocator_p);
+    d_emittedEvents.push_back(eventOrJob);
+
+    return *this;
+}
+
+MockSession::Call& MockSession::Call::emitting(const StopStatus& stopResult)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_method = e_STOP_ASYNC_CALLBACK);
+    BSLS_ASSERT_SAFE(d_stopCallback);
+
+    d_stopResult = stopResult;
+
+    const CallbackFn callbackFn = bdlf::BindUtil::bindS(d_allocator_p,
+                                                        d_stopCallback,
+                                                        stopResult);
+
+    // Stop is a session-level operation with no associated queue, so
+    // 'processIfQueueJob' will ignore this job (it only acts on queue events).
+    Job job;
+    job.d_callback = callbackFn;
+    job.d_type     = bmqt::SessionEventType::e_DISCONNECTED;
+    job.d_status   = stopResult.result();
+
+    EventOrJob eventOrJob(job, d_allocator_p);
+    d_emittedEvents.push_back(eventOrJob);
+
+    return *this;
+}
+
 const char* MockSession::Call::methodName() const
 {
     return MockSession::toAscii(d_method);
@@ -792,8 +850,13 @@ const char* MockSession::toAscii(const Method method)
     switch (method) {
     case e_START: return "start()";
     case e_START_ASYNC: return "startAsync()";
+    case e_START_ASYNC_CALLBACK:
+        return "int startAsync(const StartCallback&      callback,"
+               "const bsls::TimeInterval& timeout)";
     case e_STOP: return "stop()";
     case e_STOP_ASYNC: return "stopAsync()";
+    case e_STOP_ASYNC_CALLBACK:
+        return "void stopAsync(const StopCallback& callback)";
     case e_FINALIZE_STOP: return "finalizeStop()";
     case e_OPEN_QUEUE:
         return "int openQueue(QueueId                   *queueId,"
@@ -1227,6 +1290,21 @@ MockSession::expect_startAsync(const bsls::TimeInterval& timeout)
     return call;
 }
 
+MockSession::Call&
+MockSession::expect_startAsync(const StartCallback&      callback,
+                               const bsls::TimeInterval& timeout)
+{
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
+
+    d_calls.emplace_back(e_START_ASYNC_CALLBACK);
+    Call& call           = d_calls.back();
+    call.d_startCallback = callback;
+    call.d_timeout       = timeout;
+    call.d_allocator_p   = d_allocator_p;
+
+    return call;
+}
+
 MockSession::Call& MockSession::expect_stop()
 {
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
@@ -1241,6 +1319,18 @@ MockSession::Call& MockSession::expect_stopAsync()
 
     d_calls.emplace_back(e_STOP_ASYNC);
     return d_calls.back();
+}
+
+MockSession::Call& MockSession::expect_stopAsync(const StopCallback& callback)
+{
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
+
+    d_calls.emplace_back(e_STOP_ASYNC_CALLBACK);
+    Call& call          = d_calls.back();
+    call.d_stopCallback = callback;
+    call.d_allocator_p  = d_allocator_p;
+
+    return call;
 }
 
 MockSession::Call& MockSession::expect_finalizeStop()
@@ -1584,6 +1674,27 @@ int MockSession::startAsync(const bsls::TimeInterval& timeout)
     return rc;
 }
 
+int MockSession::startAsync(BSLA_MAYBE_UNUSED const StartCallback& callback,
+                            const bsls::TimeInterval&              timeout)
+{
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
+
+    BMQA_CHECK_CALL(e_START_ASYNC_CALLBACK, { return 0; });
+    BMQA_CHECK_ARG(e_START_ASYNC_CALLBACK,
+                   "timeout",
+                   call.d_timeout,
+                   timeout,
+                   call);
+
+    d_eventsAndJobs.insert(d_eventsAndJobs.end(),
+                           call.d_emittedEvents.begin(),
+                           call.d_emittedEvents.end());
+
+    const int rc = call.d_rc;
+    BMQA_ASSERT_AND_POP_FRONT();
+    return rc;
+}
+
 void MockSession::stop()
 {
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
@@ -1611,6 +1722,28 @@ void MockSession::stopAsync()
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
 
     BMQA_CHECK_CALL(e_STOP_ASYNC, {});
+
+    d_eventsAndJobs.insert(d_eventsAndJobs.end(),
+                           call.d_emittedEvents.begin(),
+                           call.d_emittedEvents.end());
+
+    // Reset all queue's state to 'closed' to mimic the real implementation
+    UriCorrIdToQueueMap& queueMap = uriCorrIdToQueues(d_twoKeyHashMapBuffer);
+    UriCorrIdToQueueMap::iterator qIt = queueMap.begin();
+    while (qIt != queueMap.end()) {
+        QueueImplSp& queueImpl = reinterpret_cast<QueueImplSp&>(qIt->value());
+        queueImpl->setState(bmqimp::QueueState::e_CLOSED);
+        ++qIt;
+    }
+
+    BMQA_ASSERT_AND_POP_FRONT();
+}
+
+void MockSession::stopAsync(BSLA_MAYBE_UNUSED const StopCallback& callback)
+{
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
+
+    BMQA_CHECK_CALL(e_STOP_ASYNC_CALLBACK, {});
 
     d_eventsAndJobs.insert(d_eventsAndJobs.end(),
                            call.d_emittedEvents.begin(),

@@ -30,6 +30,8 @@
 #include <bmqa_messageproperties.h>
 #include <bmqa_openqueuestatus.h>
 #include <bmqa_queueid.h>
+#include <bmqa_startstatus.h>
+#include <bmqa_stopstatus.h>
 #include <bmqt_queueoptions.h>
 #include <bmqt_uri.h>
 
@@ -71,6 +73,16 @@ class AbstractSession {
     typedef bsl::function<void(const bmqa::CloseQueueStatus& result)>
         CloseQueueCallback;
 
+    /// An asynchronous session start operation callback
+    /// that takes as an argument the specified `result`, providing the result
+    /// of the start operation.
+    typedef bsl::function<void(const bmqa::StartStatus& result)> StartCallback;
+
+    /// An asynchronous session stop operation callback
+    /// that takes as an argument the specified `result`, providing the result
+    /// and context of the stop operation.
+    typedef bsl::function<void(const bmqa::StopStatus& result)> StopCallback;
+
   public:
     // CREATORS
 
@@ -104,6 +116,25 @@ class AbstractSession {
     virtual int
     startAsync(const bsls::TimeInterval& timeout = bsls::TimeInterval());
 
+    /// Connect to the BlazingMQ broker and start the message processing for
+    /// this `Session`.  This method returns without blocking.  The result of
+    /// the operation is communicated to the specified `callback` via a
+    /// `bmqa::StartStatus`, providing the status of the operation.
+    /// If the optionally specified `timeout` is not populated, use
+    /// the one defined in the session options.  Return 0 on success (this
+    /// doesn't imply the session is connected!), or a non-zero value
+    /// corresponding to the `bmqt::GenericResult::Enum` enum values otherwise.
+    /// If a non-zero value is returned, the `callback` will *not* be invoked.
+    /// The behavior is undefined if this method is called on an already
+    /// started `Session`.
+    ///
+    /// THREAD: The `callback` will *ALWAYS* be invoked from the EventHandler
+    ///         thread(s) (or if a SessionEventHandler was not specified, from
+    ///         the thread invoking `nextEvent`).
+    virtual int
+    startAsync(const StartCallback&      callback,
+               const bsls::TimeInterval& timeout = bsls::TimeInterval());
+
     /// Gracefully disconnect from the BlazingMQ broker and stop the
     /// operation of this `Session`.  This method blocks waiting for all
     /// already invoked event handlers to exit and all session-related
@@ -118,6 +149,18 @@ class AbstractSession {
     /// nor waits for any already started session-related operation to be
     /// finished.  No method may be used after this method returns.
     virtual void stopAsync();
+
+    /// Disconnect from the BlazingMQ broker and stop the operation of this
+    /// `Session`.  This method returns without blocking and neither enforce
+    /// nor waits for any already started session-related operation to be
+    /// finished.  The result of the operation is communicated to the specified
+    /// `callback` via a `bmqa::StopStatus`, providing the status the
+    /// operation.  No method may be used after this method returns.
+    ///
+    /// THREAD: The `callback` will *ALWAYS* be invoked from the EventHandler
+    ///         thread(s) (or if a SessionEventHandler was not specified, from
+    ///         the thread invoking `nextEvent`).
+    virtual void stopAsync(const StopCallback& callback);
 
     /// **DEPRECATED**
     ///
