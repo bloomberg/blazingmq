@@ -257,17 +257,9 @@ class QueueEngineTester {
   private:
     // PRIVATE MANIPULATORS
 
-    /// Perform any initialization that needs to be done one time only in
-    /// the course of a program's execution (to enable thread-safety of some
-    /// component, etc.).
-    void oneTimeInit();
-
     /// Reset and recreate all objects using the currently set options and
     /// the specific `domainConfig`.
     void init(const mqbconfm::Domain& domainConfig, bool startScheduler);
-
-    /// Pendant operation of the `oneTimeInit` one.
-    void oneTimeShutdown();
 
     void
     handleReleasedCallback(int*  rc,
@@ -642,12 +634,14 @@ inline T* QueueEngineTester::createQueueEngine()
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(!d_queueEngine_mp && "'createQueueEngine()' was called");
-    T* result = new (*d_allocator_p)
-        T(d_queueState_mp.get(),
-          *d_queueState_mp->queue()->domain()->config(),
-          d_allocator_p);
+
     // Create and configure Queue Engine
-    d_queueEngine_mp.load(result, d_allocator_p);
+    d_queueEngine_mp = bslma::ManagedPtrUtil::allocateManaged<T>(
+        d_allocator_p,
+        d_queueState_mp.get(),
+        *d_queueState_mp->queue()->domain()->config());
+
+    T* result = static_cast<T*>(d_queueEngine_mp.get());
 
     createQueueEngineHelper(d_queueEngine_mp.get());
 
