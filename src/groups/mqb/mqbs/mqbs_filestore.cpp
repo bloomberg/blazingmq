@@ -818,6 +818,10 @@ int FileStore::openInRecoveryMode(bsl::ostream&    errorDescription,
         asPrimary       = false;
         queueKeyInfoMap = &temp;
     }
+
+    // As primary, collect extra queueKeys (present in the journal but absent
+    // from cluster state).
+    StorageKeys extraQueueKeys(d_allocator_p);
     BALL_LOG_INFO << partitionDesc()
                   << "Attempting to recover messages from the local storage "
                   << (asPrimary ? "as primary." : "as replica.");
@@ -831,6 +835,7 @@ int FileStore::openInRecoveryMode(bsl::ostream&    errorDescription,
                          &jit,
                          &qit,
                          &dit,
+                         asPrimary ? &extraQueueKeys : 0,
                          asPrimary);
     if (0 != rc) {
         BALL_LOG_ERROR << partitionDesc() << "Failed to recover messages from"
@@ -980,6 +985,31 @@ int FileStore::openInRecoveryMode(bsl::ostream&    errorDescription,
     fileSetSp->d_data.d_filePosition    = dataFileOffset;
     fileSetSp->d_qlist.d_filePosition   = d_qListAware ? qlistFileOffset : 0;
 
+    // Conform the journal to the cluster state: for each "extra" queueKey
+    // found during recovery (present in the journal but absent from the
+    // cluster state), append a corrective QueueOp.DELETION.  These writes
+    // advance the PSN, which is subsequently captured by the Partition FSM and
+    // used to push the corrections to replicas.
+
+    if (!extraQueueKeys.empty()) {
+        BSLS_ASSERT_SAFE(asPrimary);
+        const bsls::Types::Uint64 timestamp =
+            bdlt::EpochUtil::convertToTimeT64(bdlt::CurrentTime::utc());
+        for (StorageKeys::const_iterator it = extraQueueKeys.begin();
+             it != extraQueueKeys.end();
+             ++it) {
+            BALL_LOG_WARN
+                << partitionDesc()
+                << "Conforming journal to cluster state: writing a corrective "
+                << "QueueOp.DELETION for extra queueKey [" << *it << "].";
+            writeCorrectiveQueueDeletionDuringRecovery(*it, timestamp);
+        }
+
+        // Keep the reported journal end offset consistent with the corrective
+        // records just appended.
+        journalFileOffset = fileSetSp->d_journal.d_filePosition;
+    }
+
     // Check if we need to write a sync point in 1-node cluster.  It is
     // important to set the file positions (done above) before this.
 
@@ -1069,11 +1099,15 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                                JournalFileIterator* jit,
                                QlistFileIterator*   qit,
                                DataFileIterator*    dit,
-                               bool                 withCSL)
+                               StorageKeys*         extraQueueKeys,
+                               bool                 withClusterState)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(queueKeyInfoMap);
-    if (!withCSL) {
+    if (withClusterState) {
+        BSLS_ASSERT_SAFE(extraQueueKeys);
+    }
+    else {
         BSLS_ASSERT_SAFE(queueKeyInfoMap->empty());
     }
     BSLS_ASSERT_SAFE(journalOffset);
@@ -1136,9 +1170,13 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
     typedef StorageKeysOffsets::const_iterator StorageKeysOffsetsConstIter;
     typedef bsl::pair<StorageKeysOffsetsIter, bool> StorageKeysOffsetsInsertRc;
 
-    typedef bsl::unordered_set<mqbu::StorageKey,
-                               bslh::Hash<mqbu::StorageKeyHashAlgo> >
-        StorageKeys;
+    // Sentinel deletion-record offset used to mark an extra queueKey as
+    // deleted.  Because no real record offset can equal this value, every one
+    // of the extra queue's records compares as "before the deletion" and is
+    // therefore skipped in the second pass, exactly like a genuinely-deleted
+    // queue.
+    const bsls::Types::Uint64 k_EXTRA_QUEUE_SENTINEL_OFFSET =
+        bsl::numeric_limits<bsls::Types::Uint64>::max();
 
     StorageKeysOffsets  deletedQueueKeysOffsets;
     StorageKeysOffsets  deletedAppKeysOffsets;
@@ -1207,7 +1245,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
         }
 
         if (QueueOpType::e_DELETION == queueOpType) {
-            if (withCSL) {
+            if (withClusterState) {
                 if (appKey.isNull() && queueKeyInfoMap->end() !=
                                            queueKeyInfoMap->find(queueKey)) {
                     BALL_LOG_ERROR
@@ -1344,20 +1382,26 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                 continue;  // CONTINUE
             }
 
-            if (withCSL) {
+            if (withClusterState) {
                 if (queueKeyInfoMap->end() ==
                     queueKeyInfoMap->find(queueKey)) {
-                    BALL_LOG_ERROR
+                    BALL_LOG_WARN
                         << partitionDesc()
-                        << "Encountered a QueueOp.ADDITION record "
-                        << "for queueKey [" << queueKey
-                        << "] during 1st pass reverse iteration, "
-                        << "but the queueKey is not present in "
-                        << "cluster state.  Record offset: "
-                        << journalIt.recordOffset()
+                        << "Encountered "
+                           "a "
+                        << "QueueOp.ADDITION record for queueKey [" << queueKey
+                        << "] during 1st pass reverse iteration, but the "
+                        << "queueKey is not present in cluster state.  Will "
+                        << "remember this extra queue.  "
+                           "Record "
+                        << "offset: " << journalIt.recordOffset()
                         << ", record index: " << journalIt.recordIndex();
 
-                    return rc_INVALID_QUEUE_KEY;  // RETURN
+                    deletedQueueKeysOffsets.insert(
+                        bsl::make_pair(queueKey,
+                                       k_EXTRA_QUEUE_SENTINEL_OFFSET));
+                    extraQueueKeys->insert(queueKey);
+                    continue;  // CONTINUE
                 }
             }
             else if (queueKeyInfoMap->end() !=
@@ -1405,20 +1449,26 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                 continue;  // CONTINUE
             }
 
-            if (withCSL) {
+            if (withClusterState) {
                 if (queueKeyInfoMap->end() ==
                     queueKeyInfoMap->find(queueKey)) {
-                    BALL_LOG_ERROR
+                    BALL_LOG_WARN
                         << partitionDesc()
-                        << "Encountered a QueueOp.CREATION record "
-                        << "for queueKey [" << queueKey
-                        << "] during 1st pass reverse iteration, "
-                        << "but the queueKey is not present in "
-                        << "cluster state.  Record offset: "
-                        << journalIt.recordOffset()
+                        << "Encountered "
+                           "a "
+                        << "QueueOp.CREATION record for queueKey [" << queueKey
+                        << "] during 1st pass reverse iteration, but the "
+                        << "queueKey is not present in cluster state.  Will "
+                        << "remember this extra queue.  "
+                           "Record "
+                        << "offset: " << journalIt.recordOffset()
                         << ", record index: " << journalIt.recordIndex();
 
-                    return rc_INVALID_QUEUE_KEY;  // RETURN
+                    deletedQueueKeysOffsets.insert(
+                        bsl::make_pair(queueKey,
+                                       k_EXTRA_QUEUE_SENTINEL_OFFSET));
+                    extraQueueKeys->insert(queueKey);
+                    continue;  // CONTINUE
                 }
             }
             else {
@@ -1811,15 +1861,24 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                     queueKey);
 
                 if (iter == queueKeyInfoMap->end()) {
-                    if (withCSL) {
-                        BALL_LOG_ERROR
+                    if (withClusterState) {
+                        // An "extra" queue (present in the journal but absent
+                        // from the cluster state) is tracked as deleted in the
+                        // 1st pass and skipped above.  Reaching here means an
+                        // orphan record: the queueKey is absent from the
+                        // cluster state and had no QueueOp.CREATION record in
+                        // the 1st pass.
+                        BMQTSK_ALARMLOG_ALARM("RECOVERY")
                             << partitionDesc()
-                            << "Encountered a QueueOp.PURGE record for "
+                            << "Encountered an orphan QueueOp.PURGE record "
+                               "for "
                             << "queueKey [" << queueKey
                             << "], offset: " << jit->recordOffset()
                             << ", index: " << jit->recordIndex()
-                            << ", but the queueKey is not present in cluster "
-                            << "state.";
+                            << ": the queueKey is not present in the cluster "
+                            << "state and had no QueueOp.CREATION record in "
+                               "the "
+                            << "first pass." << BMQTSK_ALARMLOG_END;
                         continue;  // CONTINUE
                     }
                     else {
@@ -2035,7 +2094,8 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                 QueueKeyInfoMap::iterator iter = queueKeyInfoMap->find(
                     queueKey);
 
-                if (!withCSL && QueueOpType::e_ADDITION == queueOpType &&
+                if (!withClusterState &&
+                    QueueOpType::e_ADDITION == queueOpType &&
                     iter == queueKeyInfoMap->end()) {
                     BMQTSK_ALARMLOG_ALARM("RECOVERY")
                         << partitionDesc()
@@ -2097,7 +2157,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                                           paddedUriLen -
                                               uriBegin[paddedUriLen - 1]);
 
-                    if (withCSL) {
+                    if (withClusterState) {
                         BSLS_ASSERT_SAFE(!qinfo.canonicalQueueUri().empty());
                         if (qinfo.canonicalQueueUri() != uri) {
                             BMQTSK_ALARMLOG_ALARM("RECOVERY")
@@ -2166,7 +2226,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                          cit != appIdKeyPairs.cend();
                          ++cit) {
                         if (0 == deletedAppKeysOffsets.count(cit->second)) {
-                            if (withCSL) {
+                            if (withClusterState) {
                                 DataStoreConfigQueueInfo::AppInfos::
                                     const_iterator qinfoAppCit =
                                         qinfo.appIdKeyPairs().find(
@@ -2218,7 +2278,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
 
                                 qinfo.addAppInfo(cit->first,
                                                  cit->second,
-                                                 withCSL);
+                                                 withClusterState);
                             }
                             BALL_LOG_INFO << partitionDesc()
                                           << "Recovered appId/appKey pair ['"
@@ -2295,15 +2355,23 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
             }
 
             if (0 == queueKeyInfoMap->count(rec.queueKey())) {
-                if (withCSL) {
-                    BALL_LOG_ERROR
+                if (withClusterState) {
+                    // An "extra" queue (present in the journal but absent from
+                    // the cluster state) is tracked as deleted in the 1st pass
+                    // and skipped above.  Reaching here means an orphan
+                    // record: the queueKey is absent from the cluster state
+                    // and had no QueueOp.CREATION record in the 1st pass.
+                    BMQTSK_ALARMLOG_ALARM("RECOVERY")
                         << partitionDesc()
-                        << "Encountered a DELETION record for queueKey ["
+                        << "Encountered an orphan DELETION record for "
+                           "queueKey ["
                         << rec.queueKey()
                         << "], offset: " << jit->recordOffset()
                         << ", index: " << jit->recordIndex()
-                        << ", but the queueKey is not present in cluster "
-                        << "state.";
+                        << ": the queueKey is not present in the cluster "
+                           "state "
+                        << "and had no QueueOp.CREATION record in the first "
+                        << "pass." << BMQTSK_ALARMLOG_END;
                 }
                 else {
                     BMQTSK_ALARMLOG_ALARM("RECOVERY")
@@ -2374,15 +2442,23 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
             }
 
             if (0 == queueKeyInfoMap->count(rec.queueKey())) {
-                if (withCSL) {
-                    BALL_LOG_ERROR
+                if (withClusterState) {
+                    // An "extra" queue (present in the journal but absent from
+                    // the cluster state) is tracked as deleted in the 1st pass
+                    // and skipped above.  Reaching here means an orphan
+                    // record: the queueKey is absent from the cluster state
+                    // and had no QueueOp.CREATION record in the 1st pass.
+                    BMQTSK_ALARMLOG_ALARM("RECOVERY")
                         << partitionDesc()
-                        << "Encountered a CONFIRM record for queueKey ["
+                        << "Encountered an orphan CONFIRM record for queueKey "
+                           "["
                         << rec.queueKey()
                         << "], offset: " << jit->recordOffset()
                         << ", index: " << jit->recordIndex()
-                        << ", but the queueKey is not "
-                        << "present in cluster state.";
+                        << ": the queueKey is not present in the cluster "
+                           "state "
+                        << "and had no QueueOp.CREATION record in the first "
+                        << "pass." << BMQTSK_ALARMLOG_END;
                     continue;  // CONTINUE
                 }
                 else {
@@ -2595,16 +2671,25 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
             }
 
             if (0 == queueKeyInfoMap->count(rec.queueKey())) {
-                if (withCSL) {
-                    BALL_LOG_ERROR
+                if (withClusterState) {
+                    // An "extra" queue (present in the journal but absent from
+                    // the cluster state) is tracked as deleted in the 1st pass
+                    // and skipped above.  Reaching here means an orphan
+                    // record: the queueKey is absent from the cluster state
+                    // and had no QueueOp.CREATION record in the 1st pass.
+                    // Tolerate it defensively rather than failing recovery.
+                    BMQTSK_ALARMLOG_ALARM("RECOVERY")
                         << partitionDesc()
-                        << "Encountered a MESSAGE record for queueKey ["
+                        << "Encountered an orphan MESSAGE record for queueKey "
+                           "["
                         << rec.queueKey()
                         << "], offset: " << jit->recordOffset()
                         << ", index: " << jit->recordIndex()
-                        << ", but the queueKey is not "
-                        << "present in cluster state.";
-                    return rc_INVALID_QUEUE_KEY;  // RETURN
+                        << ": the queueKey is not present in the cluster "
+                           "state "
+                        << "and had no QueueOp.CREATION record in the first "
+                        << "pass." << BMQTSK_ALARMLOG_END;
+                    continue;  // CONTINUE
                 }
                 else {
                     BMQTSK_ALARMLOG_ALARM("RECOVERY")
@@ -3770,6 +3855,33 @@ void FileStore::writeQueueOpRecordImpl(DataStoreRecordHandle*  handle,
                   << ", type: " << queueOpFlag
                   << ", PSN: " << printPSN(d_primaryLeaseId, sequenceNumber())
                   << ", journal offset: " << recordOffset << "]";
+}
+
+void FileStore::writeCorrectiveQueueDeletionDuringRecovery(
+    const mqbu::StorageKey& queueKey,
+    bsls::Types::Uint64     timestamp)
+{
+    FileSet* activeFileSet = d_fileSets[0].get();
+    BSLS_ASSERT_SAFE(activeFileSet);
+
+    MappedFileDescriptor& journal    = activeFileSet->d_journal.d_file;
+    bsls::Types::Uint64&  journalPos = activeFileSet->d_journal.d_filePosition;
+
+    BSLS_ASSERT_SAFE(journalPos + k_RESERVED1_SYNC_POINT_SIZE +
+                         FileStoreProtocol::k_JOURNAL_RECORD_SIZE <=
+                     journal.fileSize());
+
+    OffsetPtr<QueueOpRecord> qRec(journal.block(), journalPos);
+    new (qRec.get()) QueueOpRecord();
+    qRec->header()
+        .setPrimaryLeaseId(d_primaryLeaseId)
+        .setSequenceNumber(++currentSeqNumRef())
+        .setTimestamp(timestamp);
+    qRec->setQueueKey(queueKey).setType(QueueOpType::e_DELETION);
+    qRec->setStartSequenceNumber(0);
+    qRec->setStartPrimaryLeaseId(0);
+    qRec->setMagic(RecordHeader::k_MAGIC);
+    journalPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
 }
 
 void FileStore::writeRolledOverRecord(DataStoreRecord*    record,

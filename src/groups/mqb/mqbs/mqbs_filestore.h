@@ -70,6 +70,7 @@
 #include <bsl_ostream.h>
 #include <bsl_string.h>
 #include <bsl_unordered_map.h>
+#include <bsl_unordered_set.h>
 #include <bsl_utility.h>
 #include <bsl_vector.h>
 #include <bslh_hash.h>
@@ -186,6 +187,10 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     typedef DataStoreConfig::QueueKeyInfoMapConstIter QueueKeyInfoMapConstIter;
     typedef DataStoreConfig::QueueKeyInfoMapInsertRc  QueueKeyInfoMapInsertRc;
+
+    typedef bsl::unordered_set<mqbu::StorageKey,
+                               bslh::Hash<mqbu::StorageKeyHashAlgo> >
+        StorageKeys;
 
     typedef mqbi::Storage::AppInfos AppInfos;
 
@@ -462,9 +467,14 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// iteration.
     ///
     /// - First pass: Retrieve the list of non-deleted queues from `jit`.  If
-    /// the specified `withCSL` is `false`, populate `queueKeyInfoMap` with
-    /// that list; otherwise, use information from `queueKeyInfoMap` already
-    /// populated by the CSL to validate against that list.
+    /// the specified `withClusterState` is `false`, populate `queueKeyInfoMap`
+    /// with that list.  Otherwise, validate that list against the cluster
+    /// state already populated in `queueKeyInfoMap`: a queueKey found in the
+    /// journal but absent from the cluster state is an "extra" queue whose
+    /// records are all ignored and whose queueKey is collected into
+    /// `extraQueueKeys` (which must be non-null), so the caller can conform
+    /// the journal to the cluster state by writing a corrective
+    /// `QueueOp.DELETION` for it.
     ///
     /// - Second pass: Iterate over jit`, `dit`, and optionally `qit` if
     /// `d_qListAware` is true, and retrieve outstanding records for all those
@@ -484,7 +494,8 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
                         JournalFileIterator* jit,
                         QlistFileIterator*   qit,
                         DataFileIterator*    dit,
-                        bool                 withCSL);
+                        StorageKeys*         extraQueueKeys,
+                        bool                 withClusterState);
 
     /// Rollover the outstanding messages belonging to the storages mapped
     /// to this file store, from active file set into the rollover file set,
@@ -526,6 +537,18 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
                                 bsls::Types::Uint64     timestamp,
                                 unsigned int            startPrimaryLeaseId,
                                 bsls::Types::Uint64     startSequenceNum);
+
+    /// Directly append a `QueueOp.DELETION` record for the
+    /// specified `queueKey` with the specified `timestamp` to the journal
+    /// during recovery, in order to conform the journal to the cluster state
+    /// .
+    /// Unlike `writeQueueOpRecordImpl`, this does not replicate the record nor
+    /// insert it into `d_records`; replication to replicas is driven later by
+    /// the Partition FSM via ReplicaDataRequestPush.  Behavior is
+    /// undefined unless the active file set is open in write mode.
+    void writeCorrectiveQueueDeletionDuringRecovery(
+        const mqbu::StorageKey& queueKey,
+        bsls::Types::Uint64     timestamp);
 
     /// Rollover over the specified `record` from `oldFileSet` to the
     /// `newFileSet`, and if it is a message record, update the counter of

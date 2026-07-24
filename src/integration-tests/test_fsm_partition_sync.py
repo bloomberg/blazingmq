@@ -780,3 +780,104 @@ def test_sync_after_primary_extra_records(
     # Check that primary and replicas' journal files are equal
     for replica in cluster.nodes(exclude=leader):
         stop_cluster_and_compare_journal_files(leader.name, replica.name, cluster)
+
+
+def test_sync_after_primary_missed_queue_deletion(
+    fsm_multi_cluster: Cluster,
+    domain_urls: tc.DomainUrls,
+) -> None:
+    """
+    Test that when the primary's journal references a queue that the CSL has
+    deleted (an "extra queue" -- e.g. the queue's QueueOp.DELETION never made it
+    into this primary's journal), the primary conforms its journal to the CSL
+    by writing a corrective QueueOp.DELETION during recovery.
+    - Start cluster
+    - Open a queue and put 2 messages
+    - Snapshot every node's partition files (journal/data/qlist) while the queue
+      is alive
+    - Empty and delete the queue.  The CSL now records the queue as deleted.
+    - Stop all nodes
+    - Restore the snapshot partition files over every node's storage, leaving
+      the up-to-date CSL intact.  Every node's journal now has the queue's
+      CREATION (plus 2 outstanding messages) but no deletion, while the CSL says
+      the queue is gone -- i.e. an extra queue.
+    - Start all nodes
+    - Verify the new primary conforms its journal to the CSL and becomes available
+    - Verify that all nodes are synchronized by examining storage files
+    """
+    cluster: Cluster = fsm_multi_cluster
+    uri_priority = domain_urls.uri_priority
+
+    leader = cluster.last_known_leader
+    proxy = next(cluster.proxy_cycle())
+
+    producer = proxy.create_client("producer")
+    producer.open(uri_priority, flags=["write,ack"], succeed=True)
+
+    consumer = proxy.create_client("consumer")
+    consumer.open(uri_priority, flags=["read"], succeed=True)
+
+    # Put 2 messages
+    for i in range(1, 3):
+        producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
+
+    # Snapshot every node's partition files while the queue is still alive.
+    partition_patterns = ["*.bmq_journal", "*.bmq_data", "*.bmq_qlist"]
+    snapshots = {}  # node.name -> temp dir holding its partition files
+    for node in cluster.nodes():
+        storage_dir = str(cluster.work_dir.joinpath(node.name, "storage"))
+        tmp_dir = tempfile.mkdtemp()
+        for pattern in partition_patterns:
+            for f in glob.glob(os.path.join(storage_dir, pattern)):
+                shutil.copy2(f, tmp_dir)
+        snapshots[node.name] = tmp_dir
+
+    # Empty and delete the queue so the CSL records its deletion.
+    consumer.wait_push_event()
+    consumer.confirm(uri_priority, "*", succeed=True)
+    consumer.close(uri_priority, succeed=True)
+    producer.close(uri_priority, succeed=True)
+    leader.force_gc_queues(succeed=True)
+
+    # Stop all nodes
+    cluster.stop_nodes()
+    for node in cluster.nodes():
+        cluster.make_sure_node_stopped(node)
+        node.drain()
+
+    # Restore the snapshot partition files (queue alive, no deletion) over every
+    # node's storage, leaving the up-to-date CSL intact.
+    for node in cluster.nodes():
+        storage_dir = str(cluster.work_dir.joinpath(node.name, "storage"))
+        for pattern in partition_patterns:
+            for f in glob.glob(os.path.join(storage_dir, pattern)):
+                os.remove(f)
+        tmp_dir = snapshots[node.name]
+        for f in os.listdir(tmp_dir):
+            shutil.copy2(os.path.join(tmp_dir, f), storage_dir)
+        shutil.rmtree(tmp_dir)
+
+    # Start all nodes.
+    cluster.start_nodes(wait_leader=True, wait_ready=False)
+    new_primary = cluster.last_known_leader
+
+    # Verify the new primary conforms its journal to the CSL for the extra
+    # queue and becomes available.
+    matches = new_primary.capture_n(
+        [
+            r"Conforming journal to cluster state",
+            r"Cluster \(itCluster\) is available",
+        ],
+        2,
+        timeout=10,
+    )
+    assert matches[0] is not None, (
+        f"New primary {new_primary} did not conform its journal to the CSL for the extra queue"
+    )
+    assert matches[1] is not None, (
+        f"New primary {new_primary} did not output 'Cluster (itCluster) is available'"
+    )
+
+    # Verify that all nodes are synchronized by examining storage files.
+    for replica in cluster.nodes(exclude=new_primary):
+        stop_cluster_and_compare_journal_files(new_primary.name, replica.name, cluster)
