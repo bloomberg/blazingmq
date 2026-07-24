@@ -219,7 +219,7 @@ class Channel {
 
     /// Return the URI of the "remote" end of this channel.  It is up to the
     /// underlying implementation to define the format of the returned URI.
-    virtual const bsl::string& peerUri() const = 0;
+    virtual bsl::string peerUri() const = 0;
 
     /// Return a reference providing modifiable access to the properties of
     /// this Channel.
