@@ -435,9 +435,9 @@ struct Tester {
         return true;
     }
 
-    /// Return true if we the follower has sent `number` messages to the
-    /// leader, false otherwise.  Behavior is undefined unless the caller is a
-    /// follower node.
+    /// Return true if we the follower has sent at least `number` messages to
+    /// the leader, false otherwise.  Behavior is undefined unless the caller
+    /// is a follower node.
     bool hasSentMessagesToLeader(size_t number) const
     {
         // PRECONDITIONS
@@ -460,6 +460,22 @@ struct Tester {
         }
 
         return true;
+    }
+
+    /// Return the total number of messages self node has written to peers.
+    size_t numMessagesSent() const
+    {
+        // PRECONDITIONS
+        BSLS_ASSERT_OPT(d_cluster_mp->_channels().size() > 0);
+
+        size_t count = 0;
+        for (TestChannelMapCIter citer = d_cluster_mp->_channels().cbegin();
+             citer != d_cluster_mp->_channels().cend();
+             ++citer) {
+            count += citer->second->numWriteCalls();
+        }
+
+        return count;
     }
 
     /// Return true if we the leader has at least `number` broadcast messages,
@@ -1056,8 +1072,8 @@ static void test8_followerGatesUpdatesUntilSnapshot()
     // Apply the update record — should fail (gated)
     BMQTST_ASSERT_NE(obj->apply(updateEvent, leaderNode), 0);
 
-    // No ack was sent (record was not written)
-    BMQTST_ASSERT(tester.hasSentMessagesToLeader(0));
+    // The gated record produced no output: no message was sent to any node.
+    BMQTST_ASSERT_EQ(tester.numMessagesSent(), 0U);
 
     // 2. The commit of such a gated e_UPDATE is skipped: apply() succeeds, no
     //    commit callback fires, and self LSN is not advanced.
