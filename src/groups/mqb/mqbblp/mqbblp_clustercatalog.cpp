@@ -51,6 +51,21 @@
 namespace BloombergLP {
 namespace mqbblp {
 
+// -----------------------------------------
+// class ClusterCatalog::NegotiationUserData
+// -----------------------------------------
+
+ClusterCatalog::NegotiationUserData::NegotiationUserData(
+    bsl::string_view  clusterName,
+    bslma::Allocator* allocator)
+: d_clusterName(clusterName, allocator)
+{
+}
+
+ClusterCatalog::NegotiationUserData::~NegotiationUserData()
+{
+}
+
 // --------------------
 // class ClusterCatalog
 // --------------------
@@ -73,18 +88,15 @@ int ClusterCatalog::createNetCluster(
         connectionMode = mqbnet::TransportManager::e_CONNECT_ALL;
     }
 
-    NegotiationUserData* userData = new (*d_allocator_p) NegotiationUserData;
-    userData->d_clusterName       = name;
-    userData->d_myNodeId          = -1;  // Unused when not reversed connection
-
-    bslma::ManagedPtr<void> userDataMp(userData, d_allocator_p);
+    bsl::shared_ptr<mqbnet::NegotiationUserData> userData =
+        bsl::allocate_shared<NegotiationUserData>(d_allocator_p, name);
 
     return d_transportManager_p->createCluster(errorDescription,
                                                out,
                                                name,
                                                nodes,
                                                connectionMode,
-                                               &userDataMp);
+                                               userData);
 }
 
 struct Named {
