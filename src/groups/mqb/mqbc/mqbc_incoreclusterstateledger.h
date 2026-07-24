@@ -154,8 +154,8 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     typedef AdvisoriesMap::const_iterator AdvisoriesMapCIter;
     typedef AdvisoriesMap::iterator       AdvisoriesMapIter;
 
-    /// Set of LSN of `e_UPDATE` records ignored by self follower who is not
-    /// healed.
+    /// Set of LSNs of gated `e_UPDATE` records, dropped because self follower
+    /// had not applied a snapshot for their term.
     typedef bsl::set<bmqp_ctrlmsg::LeaderMessageSequence> GatedUpdateLsns;
     typedef GatedUpdateLsns::iterator                     GatedUpdateLsnsIter;
 
@@ -201,9 +201,9 @@ class IncoreClusterStateLedger BSLS_KEYWORD_FINAL : public ClusterStateLedger {
     /// id from LSN.
     AdvisoriesMap d_uncommittedAdvisories;
 
-    /// LSNs of `e_UPDATE` records ignored by self follower who has not yet
-    /// applied a snapshot.  An entry is erased when its matching commit
-    /// arrives.
+    /// LSNs of `e_UPDATE` records gated because self follower had not applied
+    /// a snapshot for their term.  An entry is erased when its matching commit
+    /// arrives, or when a later snapshot supersedes its term.
     GatedUpdateLsns d_gatedUpdateLsns;
 
     /// Elector term of the last snapshot self follower applied (0 if none).
