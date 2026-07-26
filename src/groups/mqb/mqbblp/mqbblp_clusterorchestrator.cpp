@@ -60,6 +60,24 @@ class Domain;
 
 namespace mqbblp {
 
+namespace {
+
+void sendNotReadyResponse(mqbc::ClusterData*                  clusterData,
+                          const bmqp_ctrlmsg::ControlMessage& request,
+                          mqbnet::ClusterNode*                destination,
+                          const bsl::string&                  message)
+{
+    bmqp_ctrlmsg::ControlMessage controlMsg;
+    controlMsg.rId()             = request.rId();
+    bmqp_ctrlmsg::Status& status = controlMsg.choice().makeStatus();
+    status.category()            = bmqp_ctrlmsg::StatusCategory::E_NOT_READY;
+    status.code()                = -1;
+    status.message()             = message;
+    clusterData->messageTransmitter().sendMessage(controlMsg, destination);
+}
+
+}  // close unnamed namespace
+
 // ------------------------------------------------
 // class ClusterOrchestrator::OnElectorEventFunctor
 // ------------------------------------------------
@@ -506,7 +524,7 @@ void ClusterOrchestrator::onNodeUnavailable(mqbnet::ClusterNode* node)
             d_clusterData_p->electorInfo().electorState() ||
         mqbc::ElectorInfoLeaderStatus::e_PASSIVE ==
             d_clusterData_p->electorInfo().leaderStatus() ||
-        (!d_clusterConfig.clusterAttributes().isFSMWorkflow() &&
+        (!d_cluster_p->isFSMWorkflow() &&
          bmqp_ctrlmsg::NodeStatus::E_AVAILABLE !=
              d_clusterData_p->membership().selfNodeStatus())) {
         // Nothing to do if self is not active leader, or if self is active
@@ -574,9 +592,9 @@ ClusterOrchestrator::ClusterOrchestrator(
 , d_cluster_p(cluster)
 , d_clusterData_p(clusterData)
 , d_stateManager_mp(
-      clusterConfig.clusterAttributes().isFSMWorkflow()
+      cluster->isFSMWorkflow()
           ? static_cast<mqbi::ClusterStateManager*>(
-                new(*d_allocator_p) mqbc::ClusterStateManager(
+                new (*d_allocator_p) mqbc::ClusterStateManager(
                     clusterConfig,
                     d_cluster_p,
                     d_clusterData_p,
@@ -595,7 +613,7 @@ ClusterOrchestrator::ClusterOrchestrator(
                         .clusterFsmWatchdogNumRetries(),
                     d_allocators.get("ClusterStateManager")))
           : static_cast<mqbi::ClusterStateManager*>(
-                new(*d_allocator_p) ClusterStateManager(
+                new (*d_allocator_p) ClusterStateManager(
                     clusterConfig,
                     d_cluster_p,
                     d_clusterData_p,
@@ -883,7 +901,7 @@ void ClusterOrchestrator::processClusterStateFSMMessage(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
-    BSLS_ASSERT_SAFE(d_clusterConfig.clusterAttributes().isFSMWorkflow());
+    BSLS_ASSERT_SAFE(d_cluster_p->isFSMWorkflow());
     BSLS_ASSERT(message.choice().isClusterMessageValue());
     BSLS_ASSERT(message.choice()
                     .clusterMessage()
@@ -941,7 +959,7 @@ void ClusterOrchestrator::processPartitionMessage(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
-    BSLS_ASSERT_SAFE(d_clusterConfig.clusterAttributes().isFSMWorkflow());
+    BSLS_ASSERT_SAFE(d_cluster_p->isFSMWorkflow());
     BSLS_ASSERT(message.choice().isClusterMessageValue());
     BSLS_ASSERT(
         message.choice().clusterMessage().choice().isPartitionMessageValue());
@@ -1085,7 +1103,9 @@ void ClusterOrchestrator::processNodeStatusAdvisory(
     ns->setNodeStatus(nsAdvisory.status(), selfStatus);
 
     if (bmqp_ctrlmsg::NodeStatus::E_STARTING == nsAdvisory.status()) {
-        return;  // RETURN
+        if (!d_cluster_p->isPartitionSyncReady()) {
+            return;  // RETURN
+        }
     }
 
     if (bmqp_ctrlmsg::NodeStatus::E_UNAVAILABLE == nsAdvisory.status()) {
@@ -1112,7 +1132,7 @@ void ClusterOrchestrator::processNodeStatusAdvisory(
                 d_clusterData_p->electorInfo().leaderStatus()) {
             // In FSM mode, the Cluster FSM will take care of keeping the
             // follower up-to-date.
-            if (!d_clusterConfig.clusterAttributes().isFSMWorkflow()) {
+            if (!d_cluster_p->isFSMWorkflow()) {
                 // Self is ACTIVE leader.  Although self has sent leader
                 // advisory to 'source' when 'source' came up (see
                 // 'processNodeStateChange'), it sends the advisory again, in
@@ -1128,34 +1148,22 @@ void ClusterOrchestrator::processNodeStatusAdvisory(
                     source);
             }
         }
-        else if (d_clusterConfig.clusterAttributes().isFSMWorkflow() &&
+        else if (d_cluster_p->isFSMWorkflow() &&
                  source->nodeId() ==
                      d_clusterData_p->electorInfo().leaderNodeId()) {
             d_queueHelper.onLeaderAvailable();
         }
+    }
 
-        // For each partition for which self is primary, notify the storageMgr
-        // about the status of a peer node.  Self may end up issuing a primary
-        // status advisory and a (non-scheduled) sync point to the node.  Note
-        // that this was done upon receiving the 'STARTING' node status
-        // advisory from the 'source' as well, but given the connection
-        // initiation logic (node with smaller Id initiates the connection to
-        // node with higher Id) plus the amount of time spent by 'source' in
-        // recovery, plus thread-scheduling in the 'source', 'source' may end
-        // up sending only AVAILABLE status advisory (doesn't see STARTING
-        // status advisory).
-
-        const bsl::vector<int>& partitions = d_clusterData_p->membership()
-                                                 .selfNodeSession()
-                                                 ->primaryPartitions();
-        for (int i = static_cast<int>(partitions.size()) - 1; 0 <= i; --i) {
-            d_storageManager_p->processReplicaStatusAdvisory(
-                partitions[i],
-                source,
-                nsAdvisory.status());
-        }
-
-        return;  // RETURN
+    // For each partition for which self is primary, notify the storageMgr
+    // about the status of a peer node.  Self may end up issuing a primary
+    // status advisory and a (non-scheduled) sync point to the node.
+    const bsl::vector<int>& partitions =
+        d_clusterData_p->membership().selfNodeSession()->primaryPartitions();
+    for (int i = static_cast<int>(partitions.size()) - 1; 0 <= i; --i) {
+        d_storageManager_p->processReplicaStatusAdvisory(partitions[i],
+                                                         source,
+                                                         nsAdvisory.status());
     }
 }
 
@@ -1228,7 +1236,7 @@ void ClusterOrchestrator::processNodeStateChangeEvent(
         if (d_clusterData_p->electorInfo().isSelfActiveLeader()) {
             // In FSM mode, the Cluster FSM will take care of keeping the
             // follower up-to-date.
-            if (!d_clusterConfig.clusterAttributes().isFSMWorkflow()) {
+            if (!d_cluster_p->isFSMWorkflow()) {
                 BALL_LOG_INFO
                     << d_clusterData_p->identity().description()
                     << ": leader (self) is ACTIVE; will send leader"
@@ -1391,11 +1399,9 @@ void ClusterOrchestrator::processStorageSyncRequest(
                     .choice()
                     .isStorageSyncRequestValue());
 
-    bmqp_ctrlmsg::ControlMessage controlMsg;
-    controlMsg.rId() = message.rId();
-
-    if (bmqp_ctrlmsg::NodeStatus::E_AVAILABLE !=
-        d_clusterData_p->membership().selfNodeStatus()) {
+    if (!d_cluster_p->isHybridWorkflow() &&
+        bmqp_ctrlmsg::NodeStatus::E_AVAILABLE !=
+            d_clusterData_p->membership().selfNodeStatus()) {
         const bmqp_ctrlmsg::StorageSyncRequest& req =
             message.choice().clusterMessage().choice().storageSyncRequest();
 
@@ -1405,11 +1411,10 @@ void ClusterOrchestrator::processStorageSyncRequest(
                       << " because self is not available. Self status: "
                       << d_clusterData_p->membership().selfNodeStatus();
 
-        bmqp_ctrlmsg::Status& status = controlMsg.choice().makeStatus();
-        status.category() = bmqp_ctrlmsg::StatusCategory::E_NOT_READY;
-        status.code()     = -1;
-        status.message()  = "Node is not available.";
-        d_clusterData_p->messageTransmitter().sendMessage(controlMsg, source);
+        sendNotReadyResponse(d_clusterData_p,
+                             message,
+                             source,
+                             "Node is not available.");
         return;  // RETURN
     }
 
@@ -1430,30 +1435,21 @@ void ClusterOrchestrator::processPartitionSyncStateRequest(
                     .choice()
                     .isPartitionSyncStateQueryValue());
 
-    bmqp_ctrlmsg::ControlMessage controlMsg;
-    controlMsg.rId() = message.rId();
-
-    // Node must be AVAILABLE to serve partition-sync state request.
-
-    if (bmqp_ctrlmsg::NodeStatus::E_AVAILABLE !=
-        d_clusterData_p->membership().selfNodeStatus()) {
-        const bmqp_ctrlmsg::PartitionSyncStateQuery& req =
-            message.choice()
-                .clusterMessage()
-                .choice()
-                .partitionSyncStateQuery();
-
+    if (!d_cluster_p->isPartitionSyncReady()) {
         BALL_LOG_WARN << d_clusterData_p->identity().description()
                       << ": unable to serve partition sync state request: "
-                      << req << " from node " << source->nodeDescription()
+                      << message.choice()
+                             .clusterMessage()
+                             .choice()
+                             .partitionSyncStateQuery()
+                      << " from node " << source->nodeDescription()
                       << " because self is not AVAILABLE. Self status: "
                       << d_clusterData_p->membership().selfNodeStatus();
 
-        bmqp_ctrlmsg::Status& status = controlMsg.choice().makeStatus();
-        status.category() = bmqp_ctrlmsg::StatusCategory::E_NOT_READY;
-        status.code()     = -1;
-        status.message()  = "Node is not available.";
-        d_clusterData_p->messageTransmitter().sendMessage(controlMsg, source);
+        sendNotReadyResponse(d_clusterData_p,
+                             message,
+                             source,
+                             "Node is not available.");
         return;  // RETURN
     }
 
@@ -1474,30 +1470,21 @@ void ClusterOrchestrator::processPartitionSyncDataRequest(
                     .choice()
                     .isPartitionSyncDataQueryValue());
 
-    bmqp_ctrlmsg::ControlMessage controlMsg;
-    controlMsg.rId() = message.rId();
-
-    // Node must be AVAILABLE to serve partition-sync data request.
-
-    if (bmqp_ctrlmsg::NodeStatus::E_AVAILABLE !=
-        d_clusterData_p->membership().selfNodeStatus()) {
-        const bmqp_ctrlmsg::PartitionSyncDataQuery& req =
-            message.choice()
-                .clusterMessage()
-                .choice()
-                .partitionSyncDataQuery();
-
+    if (!d_cluster_p->isPartitionSyncReady()) {
         BALL_LOG_WARN << d_clusterData_p->identity().description()
                       << ": unable to serve partition sync data request: "
-                      << req << " from node " << source->nodeDescription()
+                      << message.choice()
+                             .clusterMessage()
+                             .choice()
+                             .partitionSyncDataQuery()
+                      << " from node " << source->nodeDescription()
                       << " because self is not AVAILABLE. Self status: "
                       << d_clusterData_p->membership().selfNodeStatus();
 
-        bmqp_ctrlmsg::Status& status = controlMsg.choice().makeStatus();
-        status.category() = bmqp_ctrlmsg::StatusCategory::E_NOT_READY;
-        status.code()     = -1;
-        status.message()  = "Node is not available.";
-        d_clusterData_p->messageTransmitter().sendMessage(controlMsg, source);
+        sendNotReadyResponse(d_clusterData_p,
+                             message,
+                             source,
+                             "Node is not available.");
         return;  // RETURN
     }
 
@@ -1521,25 +1508,12 @@ void ClusterOrchestrator::processPartitionSyncDataRequestStatus(
     bmqp_ctrlmsg::ControlMessage controlMsg;
     controlMsg.rId() = message.rId();
 
-    if (bmqp_ctrlmsg::NodeStatus::E_AVAILABLE !=
-        d_clusterData_p->membership().selfNodeStatus()) {
-        const bmqp_ctrlmsg::PartitionSyncDataQueryStatus& req =
-            message.choice()
-                .clusterMessage()
-                .choice()
-                .partitionSyncDataQueryStatus();
-
+    if (!d_cluster_p->isPartitionSyncReady()) {
         BALL_LOG_WARN << d_clusterData_p->identity().description()
-                      << ": unable to serve partition sync data query status: "
-                      << req << " from node " << source->nodeDescription()
+                      << ": unable to serve partition sync data query status "
+                      << "from node " << source->nodeDescription()
                       << " because self is not AVAILABLE. Self status: "
                       << d_clusterData_p->membership().selfNodeStatus();
-
-        bmqp_ctrlmsg::Status& status = controlMsg.choice().makeStatus();
-        status.category() = bmqp_ctrlmsg::StatusCategory::E_NOT_READY;
-        status.code()     = -1;
-        status.message()  = "Node is not available.";
-        d_clusterData_p->messageTransmitter().sendMessage(controlMsg, source);
         return;  // RETURN
     }
 
@@ -1617,7 +1591,7 @@ void ClusterOrchestrator::processPrimaryStatusAdvisoryImpl(
         d_clusterData_p->membership().getClusterNodeSession(source);
     BSLS_ASSERT_SAFE(ns);
 
-    if (d_clusterConfig.clusterAttributes().isFSMWorkflow()) {
+    if (d_cluster_p->isFSMWorkflow()) {
         if (pinfo.primaryNode() != source ||
             pinfo.primaryLeaseId() != primaryAdv.primaryLeaseId()) {
             BALL_LOG_WARN_BLOCK
@@ -1747,6 +1721,9 @@ void ClusterOrchestrator::processPrimaryStatusAdvisoryImpl(
                                         primaryAdv.status());
 
     if (!d_clusterConfig.clusterAttributes().isFSMWorkflow()) {
+        // In legacy and hybrid mode, forward the advisory to the storage
+        // manager so replicas call fs->setActivePrimary() and complete
+        // partition recovery.  In pure FSM mode, the PFSM handles this.
         d_storageManager_p->processPrimaryStatusAdvisory(primaryAdv, source);
     }
 }
@@ -1816,7 +1793,7 @@ void ClusterOrchestrator::processLeaderPassiveNotification(
     BSLS_ASSERT_SAFE(notification.choice().isLeaderPassiveValue());
     BSLS_ASSERT_SAFE(notifier);
 
-    if (d_clusterConfig.clusterAttributes().isFSMWorkflow()) {
+    if (d_cluster_p->isFSMWorkflow()) {
         BALL_LOG_ERROR
             << d_clusterData_p->identity().description()
             << ": In FSM mode, ignoring **deprecated** leader passive "

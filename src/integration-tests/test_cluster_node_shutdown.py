@@ -387,10 +387,8 @@ class TestClusterNodeShutdown:
 
         assert primary.outputs_regex("LEADER lost quorum")
 
-        # After restarting nodes, a different node may win re-election.  If the
-        # old leader is still primary under the new leader, it aborts due to
-        # leader-primary divergence.  This is a known broker limitation.
-        primary.check_exit_code = False
+        # to avoid the divergence
+        primary.set_quorum(1, succeed=True)
 
         # Restart the killed nodes to restore quorum
         for node in all_replicas:

@@ -1206,6 +1206,12 @@ bool StorageUtil::validateStorageEvent(
     BSLS_ASSERT_SAFE(event.isStorageEvent());
     BSLS_ASSERT_SAFE(source);
 
+    BALL_LOG_INFO << clusterDescription << ": Received storage "
+                  << "event from node " << source->nodeDescription() << " for "
+                  << "Partition [" << partitionId << "] with primary "
+                  << (primary ? primary->nodeDescription() : "none")
+                  << " status " << status;
+
     // Ensure that this node still perceives 'source' node as the primary of
     // 'partitionId'.
     if (0 == primary) {
@@ -1485,7 +1491,6 @@ void StorageUtil::onPartitionPrimarySync(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(fs && fs->inDispatcherThread());
-    BSLS_ASSERT_SAFE(fs->isOpen());
     BSLS_ASSERT_SAFE(pinfo);
     BSLS_ASSERT_SAFE(clusterData);
     BSLS_ASSERT_SAFE(0 <= partitionId);
@@ -1497,7 +1502,8 @@ void StorageUtil::onPartitionPrimarySync(
         return;  // RETURN
     }
 
-    if (pinfo->primary() != clusterData->membership().selfNode()) {
+    if (!clusterData->cluster().isHybridWorkflow() &&
+        pinfo->primary() != clusterData->membership().selfNode()) {
         // Looks like a new primary was assigned while self node was performing
         // partition-primary-sync (after being chosen as the primary).  This
         // could occur if this node failed to transition to active primary in
@@ -1538,6 +1544,8 @@ void StorageUtil::onPartitionPrimarySync(
         //      partition.  If chosen node doesn't transition to active primary
         //      during that time, leader should choose a new node as primary.
     }
+
+    BSLS_ASSERT_SAFE(fs->isOpen());
 
     // Broadcast self as active primary of this partition.  This must be done
     // before invoking 'FileStore::setActivePrimary'.
