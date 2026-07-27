@@ -1,0 +1,11 @@
+/**
+@dir mqbact
+
+@brief The `MQBACT` (BlazingMQ Actions) package provides types representing
+authorizable actions.
+
+The `mqbact` package provides value-semantic types representing the actions that
+a principal may be authorized to perform, such as connecting as an admin,
+client, proxy, or cluster node, executing an admin command, and reading from or
+writing to a queue.
+*/
