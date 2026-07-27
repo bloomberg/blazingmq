@@ -1,0 +1,10 @@
+/**
+@dir mqb
+
+@brief The `MQB` (BlazingMQ Broker) package group provides the components
+constituting the BlazingMQ broker.
+
+The `mqb` package group provides the server-side components of the BlazingMQ
+message-queue framework, implementing the broker that manages reliable
+distributed queues.
+*/
