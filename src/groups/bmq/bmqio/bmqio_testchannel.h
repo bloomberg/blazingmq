@@ -308,7 +308,7 @@ class TestChannel : public Channel {
 
     // ACCESSORS
     // Channel
-    const bsl::string&        peerUri() const BSLS_KEYWORD_OVERRIDE;
+    bsl::string               peerUri() const BSLS_KEYWORD_OVERRIDE;
     const bmqvt::PropertyBag& properties() const BSLS_KEYWORD_OVERRIDE;
 };
 
