@@ -212,11 +212,19 @@ class AuthenticationContext {
         const bsl::optional<bsls::Types::Uint64>& lifetimeMs,
         const bsl::shared_ptr<bmqio::Channel>&    channel_sp);
 
-    /// Close the specified `channel_sp` indicating that reauthentication was
-    /// not received within the specified `timeoutMs` (in milliseconds).
-    void onReauthenticationTimeout(
-        const bsl::shared_ptr<bmqio::Channel>& channel_sp,
-        bsls::Types::Uint64                    timeoutMs);
+    /// @brief Close the channel on reauthentication timeout.
+    ///
+    /// Close the channel referenced by `channel_wp`, indicating that
+    /// reauthentication was not received in time.  A weak reference is held so
+    /// the pending timer does not extend the channel's lifetime; do nothing if
+    /// the channel has already been destroyed.
+    ///
+    /// @param channel_wp Weak reference to the channel to close.
+    /// @param timeoutMs  The reauthentication window, in milliseconds, that
+    ///                   elapsed without a reauthentication request.
+    void
+    onReauthenticationTimeout(const bsl::weak_ptr<bmqio::Channel>& channel_wp,
+                              bsls::Types::Uint64                  timeoutMs);
 
     /// Close the specified `channel_sp` with the specified `errorCode` and
     /// `errorDescription`, indicating a reauthentication error for the
