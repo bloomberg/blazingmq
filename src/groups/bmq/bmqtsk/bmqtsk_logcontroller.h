@@ -16,7 +16,7 @@
 #ifndef INCLUDED_BMQTSK_LOGCONTROLLER
 #define INCLUDED_BMQTSK_LOGCONTROLLER
 
-//@PURPOSE: Provide a mechanism to interface with the ball log infrastructure.
+//@PURPOSE: Provide a mechanism to interface with the BALL log infrastructure.
 //
 //@CLASSES:
 //  bmqtsk::LogController:       mechanism to interface with the ball system

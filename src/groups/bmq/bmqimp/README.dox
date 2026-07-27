@@ -1,0 +1,12 @@
+/**
+@dir bmqimp
+
+@brief The `BMQIMP` (BlazingMQ (API) Implementation) package provides the
+implementation of the BlazingMQ SDK API.
+
+[!INTERNAL!] The `bmqimp` package provides the implementation of the API of the
+BlazingMQ SDK.
+
+Note that this package is internal. Clients are not supposed to use any of its
+components directly, but rather use the public APIs from `bmqa`.
+*/

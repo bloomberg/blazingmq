@@ -1,5 +1,0 @@
- bmqst.txt
-
-@PURPOSE: Generic purpose statistics framework.
-
-@MNEMONIC: bmqst

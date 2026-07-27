@@ -1,0 +1,12 @@
+/**
+@dir bmqp
+
+@brief The `BMQP` (BlazingMQ Protocol) package provides the BlazingMQ protocol
+definition, builders and parsers.
+
+[!INTERNAL!] The `bmqp` package provides the definition of the BlazingMQ
+protocol as well as the utilities to manipulate the protocol objects.
+
+Note that this package is internal. Clients are not supposed to use any of its
+components directly, but rather use the public APIs from `bmqa`.
+*/

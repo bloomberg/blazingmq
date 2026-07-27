@@ -1,0 +1,9 @@
+/**
+@dir bmqc
+
+@brief The `BMQC` (BlazingMQ Containers) package provides container
+vocabulary types.
+
+The `bmqc` package provides miscellaneous container vocabulary types to be
+reused through various applications.
+*/
