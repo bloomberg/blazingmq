@@ -23,9 +23,9 @@
 
 // BDE
 #include <ball_log.h>
-#include <bdlb_stringrefutil.h>
 #include <bdlf_bind.h>
 #include <bdlma_localsequentialallocator.h>
+#include <bsl_string_view.h>
 #include <bsls_assert.h>
 
 // NTC
@@ -94,8 +94,8 @@ ResolvingChannelFactory_Channel::ResolvingChannelFactory_Channel(
     const bsl::shared_ptr<Channel>& channel,
     bslma::Allocator*               basicAllocator)
 : DecoratingChannelPartialImp(channel, basicAllocator)
-, d_resolvedPeerUri(basicAllocator)
 , d_basePeerUri(channel->peerUri(), basicAllocator)
+, d_resolvedPeerUri(basicAllocator)
 , d_peerUri()
 {
     // PRECONDITIONS
@@ -236,9 +236,15 @@ void ResolvingChannelFactoryUtil::defaultResolutionFn(
     const ResolveFn& resolveFn,
     bool             verbose)
 {
-    bsl::string       peerUri = baseChannel.peerUri();
-    bslstl::StringRef colon   = bdlb::StringRefUtil::strstr(peerUri, ":");
-    if (colon.length() == 0) {
+    // PRECONDITIONS
+    BSLS_ASSERT(resolvedUri);
+    BSLS_ASSERT(resolveFn);
+
+    const bsl::string      peerUri = baseChannel.peerUri();
+    const bsl::string_view peerUriView(peerUri);
+
+    const bsl::string_view::size_type colonPos = peerUriView.find(':');
+    if (colonPos == bsl::string_view::npos) {
         if (verbose) {
             BALL_LOG_WARN << "Cannot resolve peerUri.  Can't find ':' in "
                           << peerUri;
@@ -247,12 +253,10 @@ void ResolvingChannelFactoryUtil::defaultResolutionFn(
         return;  // RETURN
     }
 
-    bdlma::LocalSequentialAllocator<128> arena;
+    const bsl::string_view ipAddrView = peerUriView.substr(0, colonPos);
+    ntsa::IpAddress        ipAddr;
 
-    bsl::string     ipAddrStr(peerUri.c_str(), colon.data(), &arena);
-    ntsa::IpAddress ipAddr;
-
-    if (!ipAddr.parse(ipAddrStr)) {
+    if (!ipAddr.parse(ipAddrView)) {
         if (verbose) {
             BALL_LOG_WARN << "Cannot resolve peerUri.  Ip address invalid in "
                           << peerUri;
@@ -261,6 +265,7 @@ void ResolvingChannelFactoryUtil::defaultResolutionFn(
         return;  // RETURN
     }
 
+    bdlma::LocalSequentialAllocator<128> arena;
     bsl::string resolvedName(&arena);
     ntsa::Error error = resolveFn(&resolvedName, ipAddr);
     if (error.code() != ntsa::Error::e_OK) {
@@ -275,10 +280,10 @@ void ResolvingChannelFactoryUtil::defaultResolutionFn(
     // Reserve enough room in the resolvedUri for the string we'll return
     resolvedUri->clear();
     resolvedUri->reserve(resolvedName.length() + peerUri.length() + 2);
-    resolvedUri->append(ipAddrStr);
+    resolvedUri->append(ipAddrView);
     resolvedUri->append(1, '~');
     resolvedUri->append(resolvedName);
-    resolvedUri->append(colon.data(), peerUri.c_str() + peerUri.length());
+    resolvedUri->append(peerUriView.substr(colonPos));
 }
 
 }  // close package namespace
