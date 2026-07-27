@@ -2381,7 +2381,7 @@ static void test24_searchConfirmAndDeletionRecordsByOffset()
                 const bsls::Types::Uint64 offset = recordOffset(confirm);
                 params.d_offset.emplace_back(offset);
 
-                EXPECT_CALL(*printer, printGuid(confirm.messageGUID()))
+                EXPECT_CALL(*printer, printConfirmRecord(testing::_))
                     .InSequence(s);
                 ++foundConfirmCnt;
             }
@@ -2394,7 +2394,7 @@ static void test24_searchConfirmAndDeletionRecordsByOffset()
                 const bsls::Types::Uint64 offset = recordOffset(deletion);
                 params.d_offset.emplace_back(offset);
 
-                EXPECT_CALL(*printer, printGuid(deletion.messageGUID()))
+                EXPECT_CALL(*printer, printDeletionRecord(testing::_))
                     .InSequence(s);
                 ++foundDeletionCnt;
             }
@@ -2481,7 +2481,7 @@ static void test25_searchConfirmAndDeletionRecordsBySeqNumber()
                     confirm.header().primaryLeaseId(),
                     confirm.header().sequenceNumber());
                 params.d_seqNum.emplace_back(expectedComposite);
-                EXPECT_CALL(*printer, printGuid(confirm.messageGUID()))
+                EXPECT_CALL(*printer, printConfirmRecord(testing::_))
                     .InSequence(s);
                 ++foundConfirmCnt;
             }
@@ -2495,7 +2495,7 @@ static void test25_searchConfirmAndDeletionRecordsBySeqNumber()
                     deletion.header().primaryLeaseId(),
                     deletion.header().sequenceNumber());
                 params.d_seqNum.emplace_back(expectedComposite);
-                EXPECT_CALL(*printer, printGuid(deletion.messageGUID()))
+                EXPECT_CALL(*printer, printDeletionRecord(testing::_))
                     .InSequence(s);
                 ++foundDeletionCnt;
             }

@@ -1490,12 +1490,20 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
     bool         isLastQlistRecord   = true;  // ie, first in iteration
     unsigned int primaryLeaseId      = d_primaryLeaseId;
 
+    // Highest sequence number recovered so far for 'primaryLeaseId', captured
+    // before 'd_highestSeqNums' is cleared below.
+    const bsls::Types::Uint64 currentSeqNum = sequenceNumber();
+
     // `+1` so that checks in first iteration in the second pass work
     // correctly.
-    bsls::Types::Uint64 sequenceNum = sequenceNumber() + 1;
+    bsls::Types::Uint64 sequenceNum = currentSeqNum + 1;
 
+    // Have to clear `d_highestSeqNums` for FSM mode that allows recovery to
+    // run multiple times (rebuild `d_highestSeqNums` from scratch).
+    // In legacy mode, FileStore is recovered at most once.
+    d_highestSeqNums.clear();
     if (primaryLeaseId > 0) {
-        d_highestSeqNums[primaryLeaseId] = sequenceNumber();
+        d_highestSeqNums[primaryLeaseId] = currentSeqNum;
     }
 
     // Second pass.
@@ -3756,6 +3764,12 @@ void FileStore::writeQueueOpRecordImpl(DataStoreRecordHandle*  handle,
                                       bmqp::StorageMessageType::e_QUEUE_OP,
                                       RecordType::e_QUEUE_OP,
                                       recordOffset);
+
+    BALL_LOG_INFO << partitionDesc() << "Wrote QueueOpRecord to journal"
+                  << " [queueKey: " << queueKey << ", appKey: " << appKey
+                  << ", type: " << queueOpFlag
+                  << ", PSN: " << printPSN(d_primaryLeaseId, sequenceNumber())
+                  << ", journal offset: " << recordOffset << "]";
 }
 
 void FileStore::writeRolledOverRecord(DataStoreRecord*    record,
@@ -4964,6 +4978,15 @@ int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
         }
     }
 
+    if (bmqp::StorageMessageType::e_CONFIRM != messageType &&
+        bmqp::StorageMessageType::e_DELETION != messageType) {
+        BALL_LOG_INFO << partitionDesc() << "Wrote JournalRecord to journal"
+                      << " [type: " << messageType << ", PSN: "
+                      << printPSN(recHeader.primaryLeaseId(),
+                                  recHeader.sequenceNumber())
+                      << ", journal offset: " << recordOffset << "]";
+    }
+
     return rc_SUCCESS;
 }
 
@@ -5230,7 +5253,7 @@ void FileStore::aliasMessage(bsl::shared_ptr<bdlbb::Blob>* appData,
     OffsetPtr<const DataHeader> dataHeader(
         activeFileSet->d_data.d_file.block(),
         record.d_messageOffset);
-    const unsigned int          dataHdrSize = dataHeader->headerWords() *
+    const unsigned int dataHdrSize = dataHeader->headerWords() *
                                      bmqp::Protocol::k_WORD_SIZE;
     const bsls::Types::Uint64 optionsOffset = record.d_messageOffset +
                                               dataHdrSize;
@@ -6042,6 +6065,15 @@ int FileStore::writeQueueCreationRecord(DataStoreRecordHandle*  handle,
         activeFileSet->d_qlist.d_outstandingBytes += qlistRecTotalLength;
     }
 
+    BALL_LOG_INFO << partitionDesc() << "Wrote QueueCreationRecord to journal"
+                  << " [queueUri: " << queueUri << ", queueKey: " << queueKey
+                  << ", isNewQueue: " << isNewQueue << ", appIdKeyPairs: "
+                  << bmqu::Printer<AppInfos>(&appIdKeyPairs)
+                  << ", timestamp: " << timestamp
+                  << ", PSN: " << printPSN(d_primaryLeaseId, sequenceNumber())
+                  << ", journal offset: " << recordOffset
+                  << ", qlist offset: " << qlistOffset << "]";
+
     return rc_SUCCESS;
 }
 
@@ -6246,6 +6278,7 @@ int FileStore::writeSyncPointRecord(const bmqp_ctrlmsg::SyncPoint& syncPoint,
     BSLS_ASSERT_SAFE(journal.fileSize() >=
                      (journalPos + FileStoreProtocol::k_JOURNAL_RECORD_SIZE));
 
+    const bsls::Types::Uint64  recordOffset = journalPos;
     OffsetPtr<JournalOpRecord> journalOpRec(journal.block(), journalPos);
     new (journalOpRec.get())
         JournalOpRecord(JournalOpType::e_SYNCPOINT,
@@ -6265,6 +6298,11 @@ int FileStore::writeSyncPointRecord(const bmqp_ctrlmsg::SyncPoint& syncPoint,
 
     // Don't update outstanding journal bytes because it is a SyncPt, and we
     // don't rollover SyncPts.
+
+    BALL_LOG_INFO << partitionDesc() << "Wrote SyncPointRecord to journal"
+                  << " [type: " << type << ", syncPoint: " << syncPoint
+                  << ", PSN: " << printPSN(d_primaryLeaseId, sequenceNumber())
+                  << ", journal offset: " << recordOffset << "]";
 
     return rc_SUCCESS;
 }

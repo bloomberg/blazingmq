@@ -93,7 +93,9 @@ int IncoreClusterStateLedgerIterator::next()
         /// Invalid record header
         rc_INVALID_RECORD_HEADER = -3,
         /// An offset outside of the ledger's range is reached
-        rc_OUT_OF_LEDGER_RANGE = -4
+        rc_OUT_OF_LEDGER_RANGE = -4,
+        /// Invalid record size
+        rc_INVALID_RECORD_SIZE = -5
     };
 
     bdlb::ScopeExitAny guard(bdlf::BindUtil::bind(onInvalidNext, &d_isValid));
@@ -122,8 +124,13 @@ int IncoreClusterStateLedgerIterator::next()
         incrementOffset(fh->headerWords() * bmqp::Protocol::k_WORD_SIZE);
     }
     else {
-        incrementOffset(
-            ClusterStateLedgerUtil::recordSize(*d_currRecordHeader_p));
+        const int recordSize = ClusterStateLedgerUtil::recordSize(
+            *d_currRecordHeader_p);
+        if (recordSize <= 0) {
+            return rc_INVALID_RECORD_SIZE;  // RETURN
+        }
+
+        incrementOffset(recordSize);
     }
 
     if (d_currRecordId.offset() ==

@@ -523,7 +523,7 @@ static void test1_breathingTest()
         // standardCslIt.header() has no `operator==` defined, so skip it by
         // using `_`
         EXPECT_CALL(*printer,
-                    printShortResult(_, standardCslIt.currRecordId()))
+                    printShortResult(_, _, standardCslIt.currRecordId()))
             .InSequence(s);
 
         if (standardCslIt.header().recordType() ==
@@ -697,7 +697,7 @@ static void test2_searchRecordsByTypeTest()
             // standardCslIt.header() has no `operator==` defined, so skip it
             // by using `_`
             EXPECT_CALL(*printer,
-                        printShortResult(_, standardCslIt.currRecordId()))
+                        printShortResult(_, _, standardCslIt.currRecordId()))
                 .InSequence(s);
             recordCount.d_snapshotCount++;
         }
@@ -706,7 +706,7 @@ static void test2_searchRecordsByTypeTest()
             // standardCslIt.header() has no `operator==` defined, so skip it
             // by using `_`
             EXPECT_CALL(*printer,
-                        printShortResult(_, standardCslIt.currRecordId()))
+                        printShortResult(_, _, standardCslIt.currRecordId()))
                 .InSequence(s);
             recordCount.d_commitCount++;
         }
@@ -870,7 +870,7 @@ static void test3_searchRecordsByQueueKeyTest()
             // standardCslIt.header() has no `operator==` defined, so skip it
             // by using `_`
             EXPECT_CALL(*printer,
-                        printShortResult(_, standardCslIt.currRecordId()))
+                        printShortResult(_, _, standardCslIt.currRecordId()))
                 .InSequence(s);
         }
     }
@@ -1019,7 +1019,7 @@ static void test4_searchRecordsByTimestampRangeTest()
             // standardCslIt.header() has no `operator==` defined, so skip it
             // by using `_`
             EXPECT_CALL(*printer,
-                        printShortResult(_, standardCslIt.currRecordId()))
+                        printShortResult(_, _, standardCslIt.currRecordId()))
                 .InSequence(s);
         }
     }
@@ -1166,7 +1166,7 @@ static void test5_searchRecordsByOffsetRangeTest()
             // standardCslIt.header() has no `operator==` defined, so skip it
             // by using `_`
             EXPECT_CALL(*printer,
-                        printShortResult(_, standardCslIt.currRecordId()))
+                        printShortResult(_, _, standardCslIt.currRecordId()))
                 .InSequence(s);
         }
     }
@@ -1316,7 +1316,7 @@ static void test6_searchRecordsBySeqNumberRangeTest()
             // standardCslIt.header() has no `operator==` defined, so skip it
             // by using `_`
             EXPECT_CALL(*printer,
-                        printShortResult(_, standardCslIt.currRecordId()))
+                        printShortResult(_, _, standardCslIt.currRecordId()))
                 .InSequence(s);
         }
     }
@@ -1462,7 +1462,7 @@ static void test7_searchRecordsByOffsetTest()
             // standardCslIt.header() has no `operator==` defined, so skip it
             // by using `_`
             EXPECT_CALL(*printer,
-                        printShortResult(_, standardCslIt.currRecordId()))
+                        printShortResult(_, _, standardCslIt.currRecordId()))
                 .InSequence(s);
         }
     }
@@ -1610,7 +1610,7 @@ static void test8_searchRecordsBySeqNumberTest()
             // standardCslIt.header() has no `operator==` defined, so skip it
             // by using `_`
             EXPECT_CALL(*printer,
-                        printShortResult(_, standardCslIt.currRecordId()))
+                        printShortResult(_, _, standardCslIt.currRecordId()))
                 .InSequence(s);
         }
     }

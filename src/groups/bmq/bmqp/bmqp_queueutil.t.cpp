@@ -408,11 +408,11 @@ static void test6_isValid()
         {L_, true, bmqt::QueueFlags::e_READ, 1, 0, 0},
         // Valid: WRITE flag with writeCount > 0
         {L_, true, bmqt::QueueFlags::e_WRITE, 0, 1, 0},
-        // Valid: ADMIN flag with adminCount > 0
-        {L_, true, bmqt::QueueFlags::e_ADMIN, 0, 0, 1},
-        // Valid: all flags set
+        // Invalid: ADMIN flag with adminCount > 0
+        {L_, false, bmqt::QueueFlags::e_ADMIN, 0, 0, 1},
+        // Invalid: all flags set (ADMIN flag is rejected)
         {L_,
-         true,
+         false,
          bmqt::QueueFlags::e_READ | bmqt::QueueFlags::e_WRITE |
              bmqt::QueueFlags::e_ADMIN,
          1,

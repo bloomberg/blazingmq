@@ -20,8 +20,6 @@
 #include <mqbblp_queueengineutil.h>
 #include <mqbcfg_brokerconfig.h>
 #include <mqbcfg_messages.h>
-#include <mqbi_queueengine.h>
-#include <mqbi_storage.h>
 #include <mqbmock_queuehandle.h>
 #include <mqbstat_brokerstats.h>
 
@@ -33,26 +31,21 @@
 // BDE
 #include <bdlb_bitutil.h>
 #include <bdlb_tokenizer.h>
-#include <bdlmt_eventscheduler.h>
 #include <bsl_iostream.h>
 #include <bsl_memory.h>
 #include <bsl_string.h>
 #include <bsl_vector.h>
 #include <bsla_annotations.h>
 #include <bslma_allocator.h>
-#include <bslma_managedptr.h>
-#include <bslmf_assert.h>
-#include <bslmt_semaphore.h>
 #include <bsls_timeinterval.h>
 
 #include <bmqtst_scopedlogobserver.h>
 #include <bmqu_memoutstream.h>
+#include <bmqu_time.h>
 
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
-#include <bsl_algorithm.h>
 #include <bsl_functional.h>
-#include <bsl_ios.h>
 #include <bsl_limits.h>
 #include <bsl_map.h>
 
@@ -1367,18 +1360,22 @@ static void test8_priorityBreathingTest()
     tester.confirm("C3", tester.getMessages(C3->_messages(), "0"));
 }
 
-static void test9_priorityCreateAndConfigure()
+static void test9_createAndConfigure()
 // ------------------------------------------------------------------------
 // CREATE AND CONFIGURE
 //
 // Concerns:
 //   Ensure that creating the queue engine results in a functional queue
-//   engine that can be configured successfully.
+//   engine that can be configured successfully, for priority, fanout and
+//   broadcast modes.
 //
 // Plan:
-//  1. Create PriorityQueueEngine
-//  2. Verify that the created PriorityQueueEngine is functional by
-//     configuring it successfully
+//  1. Create a priority RootQueueEngine and verify it is functional by
+//     configuring it successfully.
+//  2. Create a fanout RootQueueEngine and verify it is functional by
+//     configuring it successfully.
+//  3. Create a broadcast RootQueueEngine and verify it is functional by
+//     configuring it successfully.
 //
 // Testing:
 //   create
@@ -1388,52 +1385,50 @@ static void test9_priorityCreateAndConfigure()
 {
     bmqtst::TestHelper::printTestName("CREATE AND CONFIGURE");
 
-    class PriorityQueueEngineTester : public mqbblp::QueueEngineTester {
-      public:
-        // CREATORS
-        PriorityQueueEngineTester(const mqbconfm::Domain& domainConfig,
-                                  bslma::Allocator*       allocator)
-        : mqbblp::QueueEngineTester(domainConfig, true, allocator)
-        {
-        }
+    // 'createQueueEngine' configures the engine and asserts that
+    // configuration succeeds.
 
-        // ACCESSORS
-        void create(bslma::ManagedPtr<mqbi::QueueEngine>* queueEngine,
-                    bslma::Allocator*                     allocator) const
-        {
-            mqbblp::RootQueueEngine::create(
-                queueEngine,
-                d_queueState_mp.get(),
-                *d_queueState_mp->domain()->config(),
-                allocator);
-        }
+    // 1. Priority
+    {
+        mqbconfm::Domain domainConfig;
+        domainConfig.mode().makePriority();
 
-        ~PriorityQueueEngineTester() {}
-    };
+        mqbblp::QueueEngineTester tester(domainConfig,
+                                         true,  // start scheduler
+                                         bmqtst::TestHelperUtil::allocator());
 
-    mqbconfm::Domain domainConfig;
-    domainConfig.mode().makePriority();
+        mqbblp::RootQueueEngine* queueEngine =
+            tester.createQueueEngine<mqbblp::RootQueueEngine>();
 
-    PriorityQueueEngineTester            tester(domainConfig,
-                                     bmqtst::TestHelperUtil::allocator());
-    bslma::ManagedPtr<mqbi::QueueEngine> queueEngineMp;
-    BSLS_ASSERT_OPT(!queueEngineMp);
+        BMQTST_ASSERT(queueEngine != 0);
+        BMQTST_ASSERT_EQ(queueEngine->messageReferenceCount(), 1U);
+    }
 
-    // 1. Create PriorityQueueEngine
-    tester.create(&queueEngineMp, bmqtst::TestHelperUtil::allocator());
+    // 2. Fanout
+    {
+        mqbblp::QueueEngineTester tester(fanoutConfig("a,b,c,d,e"),
+                                         true,  // start scheduler
+                                         bmqtst::TestHelperUtil::allocator());
 
-    BMQTST_ASSERT(queueEngineMp.get() != 0);
+        mqbblp::RootQueueEngine* queueEngine =
+            tester.createQueueEngine<mqbblp::RootQueueEngine>();
 
-    // 2. Verify that the created PriorityQueueEngine is functional by
-    //    configuring it successfully
-    bmqu::MemOutStream errorDescription(bmqtst::TestHelperUtil::allocator());
-    errorDescription.reset();
+        BMQTST_ASSERT(queueEngine != 0);
+        BMQTST_ASSERT_EQ(queueEngine->messageReferenceCount(), 5U);
+    }
 
-    int rc = queueEngineMp->configure(errorDescription, false);
+    // 3. Broadcast
+    {
+        mqbblp::QueueEngineTester tester(broadcastConfig(),
+                                         true,  // start scheduler
+                                         bmqtst::TestHelperUtil::allocator());
 
-    BMQTST_ASSERT_EQ(errorDescription.length(), 0U);
-    BMQTST_ASSERT_EQ(rc, 0);
-    BMQTST_ASSERT_EQ(queueEngineMp->messageReferenceCount(), 1U);
+        mqbblp::RootQueueEngine* queueEngine =
+            tester.createQueueEngine<mqbblp::RootQueueEngine>();
+
+        BMQTST_ASSERT(queueEngine != 0);
+        BMQTST_ASSERT_EQ(queueEngine->messageReferenceCount(), 1U);
+    }
 }
 
 static void test10_priorityAggregateDownstream()
@@ -2572,70 +2567,6 @@ static void test21_breathingTest()
         BMQTST_ASSERT_EQ(C2->_appIds(), "");
         BMQTST_ASSERT_EQ(C3->_appIds(), "");
     }
-}
-
-static void test22_createAndConfigure()
-// ------------------------------------------------------------------------
-// CREATE AND CONFIGURE
-//
-// Concerns:
-//   Ensure that creating the queue engine results in a functional queue
-//   engine that can be configured successfully.
-//
-// Plan:
-//  1. Create FanoutQueueEngine
-//  2. Verify that the created FanoutQueueEngine is functional by
-//     configuring it successfully
-//
-// Testing:
-//   create
-//   configure
-// ------------------------------------------------------------------------
-{
-    bmqtst::TestHelper::printTestName("CREATE AND CONFIGURE");
-
-    class FanoutQueueEngineTester : public mqbblp::QueueEngineTester {
-      public:
-        // CREATORS
-        FanoutQueueEngineTester(const mqbconfm::Domain& domainConfig,
-                                bslma::Allocator*       allocator)
-        : mqbblp::QueueEngineTester(domainConfig, true, allocator)
-        {
-        }
-
-        // ACCESSORS
-        void create(bslma::ManagedPtr<mqbi::QueueEngine>* queueEngine,
-                    bslma::Allocator*                     allocator) const
-        {
-            mqbblp::RootQueueEngine::create(
-                queueEngine,
-                d_queueState_mp.get(),
-                *d_queueState_mp->domain()->config(),
-                allocator);
-        }
-
-        ~FanoutQueueEngineTester() {}
-    };
-
-    FanoutQueueEngineTester              tester(fanoutConfig("a,b,c,d,e"),
-                                   bmqtst::TestHelperUtil::allocator());
-    bslma::ManagedPtr<mqbi::QueueEngine> queueEngineMp;
-    BSLS_ASSERT_OPT(!queueEngineMp);
-
-    // 1. Create FanoutQueueEngine
-    tester.create(&queueEngineMp, bmqtst::TestHelperUtil::allocator());
-
-    BMQTST_ASSERT(queueEngineMp.get() != 0);
-
-    // 2. Verify that the created FanoutQueueEngine is functional by
-    //    configuring it successfully
-    bmqu::MemOutStream errorDescription(bmqtst::TestHelperUtil::allocator());
-    errorDescription.reset();
-    int rc = queueEngineMp->configure(errorDescription, false);
-
-    BMQTST_ASSERT_EQ(errorDescription.length(), 0U);
-    BMQTST_ASSERT_EQ(rc, 0);
-    BMQTST_ASSERT_EQ(queueEngineMp->messageReferenceCount(), 5U);
 }
 
 static void test23_loadRoutingConfiguration()
@@ -5058,23 +4989,19 @@ static void test47_handleParametersLimits()
             "C4_w consumerPriority=1 consumerPriorityCount=1");
     }
     {
-        // 3. adminCount
+        // 3. adminCount (all admin opens are rejected)
         mqbmock::QueueHandle* C1 = tester.getHandle(
             "C1_a adminCount=1000000000");
-        BMQTST_ASSERT(C1 != NULL);
+        BMQTST_ASSERT(C1 == NULL);
         mqbmock::QueueHandle* C2 = tester.getHandle(
             "C2_a adminCount=1000000000");
-        BMQTST_ASSERT(C2 != NULL);
+        BMQTST_ASSERT(C2 == NULL);
         mqbmock::QueueHandle* C3 = tester.getHandle(
             "C3_a adminCount=1000000000");
         BMQTST_ASSERT(C3 == NULL);
         mqbmock::QueueHandle* C4 = tester.getHandle("C4_a readCount=1");
         BMQTST_ASSERT(C4 != NULL);
 
-        tester.configureHandle(
-            "C1_a consumerPriority=1 consumerPriorityCount=1");
-        tester.configureHandle(
-            "C2_a consumerPriority=1 consumerPriorityCount=1");
         tester.configureHandle(
             "C4_a consumerPriority=1 consumerPriorityCount=1");
     }
@@ -5196,6 +5123,8 @@ int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
+    bmqu::Time::initialize(bmqtst::TestHelperUtil::allocator());
+
     mqbcfg::AppConfig brokerConfig(bmqtst::TestHelperUtil::allocator());
     mqbcfg::BrokerConfig::set(brokerConfig);
 
@@ -5234,7 +5163,7 @@ int main(int argc, char* argv[])
         case 25: test25_getHandleSameHandleMultipleAppIds(); break;
         case 24: test24_getHandleDuplicateAppId(); break;
         case 23: test23_loadRoutingConfiguration(); break;
-        case 22: test22_createAndConfigure(); break;
+        case 22: /* vacant */ break;
         case 21: test21_breathingTest(); break;
         case 20: test20_priorityRedeliverAfterGc(); break;
         case 19: test19_priorityReleaseHandle_isDeletedFlag(); break;
@@ -5253,7 +5182,7 @@ int main(int argc, char* argv[])
         case 12: test12_priorityCannotDeliver(); break;
         case 11: test11_priorityReconfigure(); break;
         case 10: test10_priorityAggregateDownstream(); break;
-        case 9: test9_priorityCreateAndConfigure(); break;
+        case 9: test9_createAndConfigure(); break;
         case 8: test8_priorityBreathingTest(); break;
         case 7: test7_broadcastPriorityFailover(); break;
         case 6: test6_broadcastDynamicPriorities(); break;
@@ -5271,6 +5200,8 @@ int main(int argc, char* argv[])
         } break;
         }
     }
+
+    bmqu::Time::shutdown();
 
     // Default allocator check is disabled for all UTs:
     // `mqbblp::QueueEngine` and mocks from `mqbi` methods use ball logging

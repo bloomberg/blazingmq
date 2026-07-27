@@ -19,24 +19,25 @@ jobs:
       cxx_standard: cpp23
 
   fuzz_tests:
-    name: "Fuzz [${{ matrix.request }}]"
+    name: "Fuzz [${{ matrix.fuzztest }}]"
     runs-on: ubuntu-latest
     needs: build
     timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
-        request:
-          - authentication
-          - negotiation
-          - open_queue
-          - configure_stream
-          - configure_queue_stream
-          - put
-          - confirm
-          - close_queue
-          - disconnect
-          - negotiation_bypass_authentication
+        fuzztest:
+          - "test_fuzz_request[authentication]"
+          - "test_fuzz_request[negotiation]"
+          - "test_fuzz_request[open_queue]"
+          - "test_fuzz_request[configure_stream]"
+          - "test_fuzz_request[configure_queue_stream]"
+          - "test_fuzz_request[put]"
+          - "test_fuzz_request[confirm]"
+          - "test_fuzz_request[close_queue]"
+          - "test_fuzz_request[disconnect]"
+          - "test_fuzz_request[negotiation_bypass_authentication]"
+          - "test_fuzz_properties"
     steps:
       - uses: actions/checkout@v6
 
@@ -62,9 +63,8 @@ jobs:
           PYTHONPATH: ${{ github.workspace }}/src/python
           BLAZINGMQ_BUILD_DIR: ${{ github.workspace }}/build/blazingmq
         run: |
-          pytest src/fuzz-tests/test_fuzz.py \
+          pytest "src/fuzz-tests/test_fuzz.py::${{ matrix.fuzztest }}" \
             -m fuzztest \
-            -k "test_fuzz_request[${{ matrix.request }}]" \
             -v \
             --timeout=3600
 
@@ -72,6 +72,7 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v5
         with:
-          name: fuzz-logs-${{ matrix.request }}
+          name: fuzz-logs-${{ matrix.fuzztest }}
           path: |
             src/fuzz-tests/boofuzz-results/
+            build/blazingmq/src/applications/bmqbrkr/localBMQ/logs/

@@ -50,6 +50,7 @@ const char* PluginType::toAscii(PluginType::Enum value)
         CASE(STATS_CONSUMER)
         CASE(AUTHENTICATOR)
         CASE(CREDENTIAL_PROVIDER)
+        CASE(AUTHORIZER)
     default: return "(* UNKNOWN *)";
     }
 

@@ -116,6 +116,7 @@ class PrinterMock : public Printer {
     MOCK_CONST_METHOD1(printGuidsNotFound, void(const GuidsList&));
     MOCK_CONST_METHOD1(printOffsetsNotFound, void(const OffsetsVec&));
     MOCK_CONST_METHOD1(printCompositesNotFound, void(const CompositesVec&));
+    MOCK_CONST_METHOD0(isPayloadHexMode, bool());
 };
 
 // ====================
@@ -131,8 +132,9 @@ class CslPrinterMock : public CslPrinter {
 
     // PUBLIC METHODS
 
-    MOCK_CONST_METHOD2(printShortResult,
-                       void(const mqbc::ClusterStateRecordHeader& header,
+    MOCK_CONST_METHOD3(printShortResult,
+                       void(const bmqp_ctrlmsg::ClusterMessage&   record,
+                            const mqbc::ClusterStateRecordHeader& header,
                             const mqbsi::LedgerRecordId&          recordId));
 
     MOCK_CONST_METHOD3(printDetailResult,

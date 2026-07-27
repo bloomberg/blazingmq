@@ -49,6 +49,9 @@
 namespace BloombergLP {
 
 namespace mqbplug {
+
+class PluginFactory;
+
 // ===================
 // class PluginManager
 // ===================

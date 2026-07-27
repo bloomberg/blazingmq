@@ -163,7 +163,7 @@ bmqvt::PropertyBag& TestChannel::properties()
     return d_properties;
 }
 
-const bsl::string& TestChannel::peerUri() const
+bsl::string TestChannel::peerUri() const
 {
     return d_peerUri;
 }

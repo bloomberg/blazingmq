@@ -32,11 +32,23 @@
 #include <bsl_iostream.h>
 #include <bsla_annotations.h>
 #include <bsls_performancehint.h>
+#include <bsls_types.h>
 
 namespace BloombergLP {
 namespace bmqp {
 
 namespace {
+
+/// Maximum size, in bytes, that a PUT message's application data (message
+/// properties plus payload) may occupy after decompression.  Compressed PUT
+/// payloads are bounded on the wire by `PutHeader::k_MAX_PAYLOAD_SIZE_SOFT`
+/// (64 MB), but zlib can expand highly-compressible input by roughly 1000x,
+/// so this cap (8x the wire limit) bounds the memory used to decompress a
+/// message before any queue-id validation or permission checks occur.
+///
+/// Temporary; shall remove once old-style (v1) message properties are no
+/// longer supported.
+const bsls::Types::Uint64 k_MAX_DECOMPRESSED_SIZE = 512ULL * 1024 * 1024;
 
 inline bool isValidWordPaddingByte(char value)
 {
@@ -646,7 +658,8 @@ int PutMessageIterator::next()
                              haveNewMPs,
                              cat,
                              d_bufferFactory_p,
-                             d_allocator_p);
+                             d_allocator_p,
+                             k_MAX_DECOMPRESSED_SIZE);
 
     if (rc < 0) {
         d_applicationDataPosition = bmqu::BlobPosition();

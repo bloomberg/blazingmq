@@ -433,10 +433,6 @@ struct QueueEngineUtil_AppState {
     /// `appData`, `options`, `guid` and `attributes`.  Behavior is
     /// undefined unless `appData` is non-null.
     void broadcastOneMessage(const mqbi::StorageIterator* storageIter);
-    bool visitBroadcast(const mqbi::StorageIterator* message,
-                        mqbi::QueueHandle*           handle,
-                        Routers::Consumer*           consumer,
-                        unsigned int                 downstreamSubscriptionId);
 
     size_t processDeliveryLists(bsls::TimeInterval*    delay,
                                 mqbi::StorageIterator* reader);
@@ -495,7 +491,7 @@ struct QueueEngineUtil_AppState {
 
     void invalidate(mqbi::QueueHandle* handle);
 
-    Routers::Result selectConsumer(const Routers::Visitor&      visitor,
+    Routers::Result selectConsumer(Routers::Visitor&            visitor,
                                    const mqbi::StorageIterator* currentMessage,
                                    unsigned int                 ordinal);
 
@@ -616,16 +612,6 @@ struct QueueEngineUtil_AppsDeliveryContext {
     mqbi::Queue*                      d_queue_p;
     bsl::optional<bsls::Types::Int64> d_timeDelta;
 
-    /// Mutable additional argument used in `visit()`, when it is called from
-    /// `d_visitVisitor` functor.
-    const mqbi::AppMessage* d_currentAppView_p;
-
-    /// Cached functor to `QueueEngineUtil_AppsDeliveryContext::visit`
-    const Routers::Visitor d_fanoutVisitor;
-
-    /// Cached functor to `QueueEngineUtil_AppsDeliveryContext::visitBroadcast`
-    const Routers::Visitor d_broadcastVisitor;
-
     /// Count delivery attempts (as a means to invalidate `lastPush`)
     int d_revCounter;
 
@@ -670,14 +656,6 @@ struct QueueEngineUtil_AppsDeliveryContext {
     bool processApp(QueueEngineUtil_AppState& app,
                     unsigned int              ordina,
                     bool                      putAsideReturnValue);
-
-    /// Collect and prepare data for the subsequent `deliverMessage` call.
-    bool visit(mqbi::QueueHandle* handle,
-               Routers::Consumer* consumer,
-               unsigned int       downstreamSubscriptionId);
-    bool visitBroadcast(mqbi::QueueHandle* handle,
-                        Routers::Consumer* consumer,
-                        unsigned int       downstreamSubscriptionId);
 
     /// Deliver message to the previously processed handles.
     void deliverMessage();

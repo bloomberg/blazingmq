@@ -150,9 +150,6 @@ void CslRecordPrinter<PRINTER_TYPE>::printRecordDetails(
     d_fields.push_back("LeaderAdvisoryWords");
     d_fields.push_back("Timestamp");
     d_fields.push_back("Epoch");
-    if (!recStr.empty()) {
-        d_fields.push_back("Record");
-    }
     // It's ok to pass a vector by pointer and push elements after that as
     // we've reserved it's capacity in advance. Hense, no reallocations will
     // happen and the pointer won't get invalidated.
@@ -173,12 +170,10 @@ void CslRecordPrinter<PRINTER_TYPE>::printRecordDetails(
         *d_printer_mp << datetime;
     }
     *d_printer_mp << epochValue;
-
     if (!recStr.empty()) {
-        // Print record string.
+        d_fields.push_back("Record");
         *d_printer_mp << recStr;
     }
-
     d_printer_mp.reset();
 }
 

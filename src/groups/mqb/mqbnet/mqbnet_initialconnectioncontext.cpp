@@ -184,26 +184,35 @@ bool InitialConnectionEvent::fromAscii(InitialConnectionEvent::Enum* out,
 #undef CHECKVALUE
 }
 
+// -------------------------
+// class NegotiationUserData
+// -------------------------
+
+NegotiationUserData::~NegotiationUserData()
+{
+    // NOTHING: Pure interface
+}
+
 // ------------------------------
 // class InitialConnectionContext
 // ------------------------------
 
 // CREATORS
 InitialConnectionContext::InitialConnectionContext(
-    bool                                   isIncoming,
-    mqbnet::Authenticator*                 authenticator,
-    mqbnet::Negotiator*                    negotiator,
-    void*                                  userData,
-    void*                                  resultState,
-    const bsl::shared_ptr<bmqio::Channel>& channel,
-    const InitialConnectionCompleteCb&     initialConnectionCompleteCb,
-    bslma::Allocator*                      allocator)
+    bool                                        isIncoming,
+    mqbnet::Authenticator*                      authenticator,
+    mqbnet::Negotiator*                         negotiator,
+    const bsl::shared_ptr<NegotiationUserData>& userData,
+    void*                                       resultState,
+    const bsl::shared_ptr<bmqio::Channel>&      channel,
+    const InitialConnectionCompleteCb&          initialConnectionCompleteCb,
+    bslma::Allocator*                           allocator)
 : d_allocator_p(allocator)
 , d_mutex()
 , d_authenticator_p(authenticator)
 , d_negotiator_p(negotiator)
 , d_resultState_p(resultState)
-, d_userData_p(userData)
+, d_userData_sp(userData)
 , d_channelSp(channel)
 , d_authenticationCtxSp()
 , d_negotiationCtxSp()
@@ -708,9 +717,10 @@ bool InitialConnectionContext::isIncoming() const
     return d_isIncoming;
 }
 
-void* InitialConnectionContext::userData() const
+const bsl::shared_ptr<NegotiationUserData>&
+InitialConnectionContext::userData() const
 {
-    return d_userData_p;
+    return d_userData_sp;
 }
 
 void* InitialConnectionContext::resultState() const

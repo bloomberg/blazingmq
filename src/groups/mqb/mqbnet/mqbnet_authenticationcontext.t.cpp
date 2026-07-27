@@ -175,7 +175,11 @@ static void test2_zeroLifetimeTimeout()
     bmqtst::TestHelper::printTestName("ZERO LIFETIME TIMEOUT");
 
     bslma::Allocator* alloc = bmqtst::TestHelperUtil::allocator();
-    TestBench         tb(alloc);
+
+    // Install log observer before anything else
+    bmqtst::ScopedLogObserver logObserver(ball::Severity::e_ERROR, alloc);
+
+    TestBench tb(alloc);
 
     bsl::shared_ptr<mqbnet::AuthenticationContext> ctx = tb.createContext();
 
@@ -188,8 +192,6 @@ static void test2_zeroLifetimeTimeout()
                                                      lifetime,
                                                      tb.d_channel);
     BMQTST_ASSERT_EQ(rc, 0);
-
-    bmqtst::ScopedLogObserver logObserver(ball::Severity::e_ERROR, alloc);
 
     tb.d_testClock.d_timeSource.advanceTime(
         bsls::TimeInterval().addMilliseconds(1));
@@ -231,7 +233,11 @@ static void test3_reauthenticationTimeout()
     bmqtst::TestHelper::printTestName("REAUTHENTICATION TIMEOUT");
 
     bslma::Allocator* alloc = bmqtst::TestHelperUtil::allocator();
-    TestBench         tb(alloc);
+
+    // Install log observer before anything else
+    bmqtst::ScopedLogObserver logObserver(ball::Severity::e_ERROR, alloc);
+
+    TestBench tb(alloc);
 
     bsl::shared_ptr<mqbnet::AuthenticationContext> ctx = tb.createContext();
 
@@ -247,8 +253,6 @@ static void test3_reauthenticationTimeout()
     BMQTST_ASSERT_EQ(rc, 0);
 
     BMQTST_ASSERT_EQ(tb.d_channel->numCloseCalls(), 0u);
-
-    bmqtst::ScopedLogObserver logObserver(ball::Severity::e_ERROR, alloc);
 
     // 2) Advance in steps, channel must stay open before the lifetime
     for (bsls::Types::Uint64 elapsed = stepMs; elapsed < lifetimeMs;

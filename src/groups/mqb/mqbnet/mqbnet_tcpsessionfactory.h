@@ -142,6 +142,7 @@ namespace mqbnet {
 class AuthenticationContext;
 class Cluster;
 class InitialConnectionContext;
+class NegotiationUserData;
 class Session;
 class SessionEventProcessor;
 class TCPSessionFactoryIterator;
@@ -640,7 +641,7 @@ class TCPSessionFactory {
     /// the connection has successfully been started; with the result being
     /// provided by a call to the specified `resultCallback`; or return a
     /// non-zero code on error, in which case `resultCallback` will never be
-    /// invoked.  The optionally specified `negotiationUserData` will be
+    /// invoked.  The specified `negotiationUserData` will be
     /// passed in to the `handleInitialConnection` method (through the
     /// InitialConnectionContext).  The optionally specified `resultState` will
     /// be used to set the initial value of the corresponding member of the
@@ -649,11 +650,12 @@ class TCPSessionFactory {
     /// callback method.  The optionally specified `shouldAutoReconnect` will
     /// be used to determine if the factory should attempt to reconnect upon
     /// loss of connection.
-    int connect(bsl::string_view         endpoint,
-                const ResultCallback&    resultCallback,
-                bslma::ManagedPtr<void>* negotiationUserData = 0,
-                void*                    resultState         = 0,
-                bool                     shouldAutoReconnect = false);
+    int
+    connect(bsl::string_view                            endpoint,
+            const ResultCallback&                       resultCallback,
+            const bsl::shared_ptr<NegotiationUserData>& negotiationUserData,
+            void*                                       resultState = 0,
+            bool shouldAutoReconnect                                = false);
 
     /// Set the write queue low and high watermarks for the specified
     /// `session` to the configured `nodeLowWatermark` and

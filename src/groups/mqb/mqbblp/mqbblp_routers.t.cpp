@@ -34,7 +34,6 @@
 #include <bdlbb_blob.h>
 #include <bdlbb_blobutil.h>
 #include <bdlbb_pooledblobbufferfactory.h>
-#include <bdlf_bind.h>
 #include <bsla_annotations.h>
 #include <bsls_platform.h>
 #include <bsls_protocoltest.h>
@@ -121,7 +120,8 @@ struct TestStorage {
     }
 };
 
-struct Visitor {
+class Visitor : public mqbblp::Routers::Visitor {
+  public:
     mqbi::QueueHandle*         d_handle;
     unsigned int               d_subQueueId;
     mqbblp::Routers::Consumer* d_consumer;
@@ -133,9 +133,11 @@ struct Visitor {
     {
         // NOTHING
     }
+    ~Visitor() BSLS_KEYWORD_OVERRIDE;
+
     bool visit(mqbi::QueueHandle*         handle,
                mqbblp::Routers::Consumer* consumer,
-               unsigned int               downstreamSubscriptionId)
+               unsigned int downstreamSubscriptionId) BSLS_KEYWORD_OVERRIDE
     {
         d_subQueueId = downstreamSubscriptionId;
         d_consumer   = consumer;
@@ -144,6 +146,11 @@ struct Visitor {
         return true;
     }
 };
+
+Visitor::~Visitor()
+{
+    // NOTHING
+}
 
 struct Item {
     int d_i;
@@ -312,12 +319,7 @@ static void test3_parse()
             appContext.registerSubscriptions();
 
             mqbblp::Routers::RoundRobin router(appContext.d_priorities);
-            BMQTST_ASSERT_EQ(router.iterateGroups(
-                                 bdlf::BindUtil::bind(&Visitor::visit,
-                                                      &visitor1,
-                                                      bdlf::PlaceHolders::_1,
-                                                      bdlf::PlaceHolders::_2,
-                                                      bdlf::PlaceHolders::_3)),
+            BMQTST_ASSERT_EQ(router.iterateGroups(visitor1),
                              mqbblp::Routers::e_SUCCESS);
 
             BMQTST_ASSERT_EQ(&handle1, visitor1.d_handle);
@@ -352,12 +354,7 @@ static void test3_parse()
 
             mqbblp::Routers::RoundRobin router(appContext.d_priorities);
 
-            BMQTST_ASSERT_EQ(router.iterateGroups(
-                                 bdlf::BindUtil::bind(&Visitor::visit,
-                                                      &visitor1,
-                                                      bdlf::PlaceHolders::_1,
-                                                      bdlf::PlaceHolders::_2,
-                                                      bdlf::PlaceHolders::_3)),
+            BMQTST_ASSERT_EQ(router.iterateGroups(visitor1),
                              mqbblp::Routers::e_SUCCESS);
 
             BMQTST_ASSERT_EQ(&handle1, visitor1.d_handle);
@@ -403,31 +400,16 @@ static void test3_parse()
             BMQTST_ASSERT_EQ(appContext.finalize(), size_t(2 * priorityCount));
             appContext.registerSubscriptions();
 
-            BMQTST_ASSERT_EQ(router.iterateGroups(
-                                 bdlf::BindUtil::bind(&Visitor::visit,
-                                                      &visitor1,
-                                                      bdlf::PlaceHolders::_1,
-                                                      bdlf::PlaceHolders::_2,
-                                                      bdlf::PlaceHolders::_3)),
+            BMQTST_ASSERT_EQ(router.iterateGroups(visitor1),
                              mqbblp::Routers::e_SUCCESS);
 
-            BMQTST_ASSERT_EQ(router.iterateGroups(
-                                 bdlf::BindUtil::bind(&Visitor::visit,
-                                                      &visitor2,
-                                                      bdlf::PlaceHolders::_1,
-                                                      bdlf::PlaceHolders::_2,
-                                                      bdlf::PlaceHolders::_3)),
+            BMQTST_ASSERT_EQ(router.iterateGroups(visitor2),
                              mqbblp::Routers::e_SUCCESS);
 
             BMQTST_ASSERT_EQ(visitor2.d_handle, visitor1.d_handle);
             BMQTST_ASSERT_EQ(visitor2.d_subQueueId, visitor1.d_subQueueId);
 
-            BMQTST_ASSERT_EQ(router.iterateGroups(
-                                 bdlf::BindUtil::bind(&Visitor::visit,
-                                                      &visitor2,
-                                                      bdlf::PlaceHolders::_1,
-                                                      bdlf::PlaceHolders::_2,
-                                                      bdlf::PlaceHolders::_3)),
+            BMQTST_ASSERT_EQ(router.iterateGroups(visitor2),
                              mqbblp::Routers::e_SUCCESS);
 
             if (visitor1.d_handle == &handle1) {

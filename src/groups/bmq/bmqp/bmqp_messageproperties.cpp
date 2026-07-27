@@ -569,7 +569,7 @@ int MessageProperties::streamInHeader(const bdlbb::Blob& blob)
     const int msgPropsAreaSize = msgPropsHeader->messagePropertiesAreaWords() *
                                  Protocol::k_WORD_SIZE;
 
-    if (msgPropsAreaSize > blob.length()) {
+    if (msgPropsAreaSize <= 0 || blob.length() < msgPropsAreaSize) {
         return rc_INCORRECT_LENGTH;  // RETURN
     }
 

@@ -68,6 +68,7 @@ const char* ClusterErrorCode::toAscii(ClusterErrorCode::Enum value)
         CASE(SOURCE_NOT_LEADER)
         CASE(SOURCE_NOT_PRIMARY)
         CASE(IRRECONCILABLE_DATA)
+        CASE(FOLLOWER_WAITING)
     default: return "(* UNKNOWN *)";
     }
 
@@ -102,7 +103,7 @@ bool ClusterErrorCode::fromAscii(ClusterErrorCode::Enum*  out,
     CHECKVALUE(SOURCE_NOT_LEADER)
     CHECKVALUE(SOURCE_NOT_PRIMARY)
     CHECKVALUE(IRRECONCILABLE_DATA)
-
+    CHECKVALUE(FOLLOWER_WAITING)
     // Invalid string
     return false;
 

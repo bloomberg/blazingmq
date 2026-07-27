@@ -85,6 +85,15 @@ void Routers::Consumer::registerSubscriptions(mqbi::QueueHandle* handle)
     }
 }
 
+// ----------------------
+// class Routers::Visitor
+// ----------------------
+
+Routers::Visitor::~Visitor()
+{
+    // NOTHING
+}
+
 // =======================================
 // struct Routers::MessagePropertiesReader
 // =======================================
@@ -632,7 +641,7 @@ void Routers::AppContext::reset()
 }
 
 Routers::Result Routers::AppContext::selectConsumer(
-    const Visitor&               visitor,
+    Visitor&                     visitor,
     const mqbi::StorageIterator* currentMessage,
     unsigned int                 subscriptionId)
 {
@@ -675,7 +684,7 @@ Routers::Result Routers::AppContext::selectConsumer(
 // class Routers::RoundRobin
 // -------------------------
 
-Routers::Result Routers::RoundRobin::iterateGroups(const Visitor& visitor)
+Routers::Result Routers::RoundRobin::iterateGroups(Visitor& visitor)
 {
     bool haveMatch        = false;
     bool noneHaveCapacity = true;
@@ -722,7 +731,7 @@ Routers::Result Routers::RoundRobin::iterateGroups(const Visitor& visitor)
     }
 }
 
-bool Routers::RoundRobin::iterateSubscriptions(const Visitor& visitor,
+bool Routers::RoundRobin::iterateSubscriptions(Visitor&       visitor,
                                                PriorityGroup& group)
 {
     SubscriptionList& subscriptions = group.d_highestSubscriptions;
@@ -736,9 +745,9 @@ bool Routers::RoundRobin::iterateSubscriptions(const Visitor& visitor,
 
         if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(handle->canDeliver(
                 subscription->d_downstreamSubscriptionId))) {
-            if (visitor(handle,
-                        subscription->consumer(),
-                        subscription->d_downstreamSubscriptionId)) {
+            if (visitor.visit(handle,
+                              subscription->consumer(),
+                              subscription->d_downstreamSubscriptionId)) {
                 // Before returning, move the subscription to the end if needed
                 // for the round-robin.
                 if (subscription->advance()) {
@@ -755,7 +764,7 @@ bool Routers::RoundRobin::iterateSubscriptions(const Visitor& visitor,
 }
 
 bool Routers::AppContext::iterateConsumers(
-    const Visitor&               visitor,
+    Visitor&                     visitor,
     const mqbi::StorageIterator* message)
 {
     // PRECONDITIONS
@@ -777,9 +786,9 @@ bool Routers::AppContext::iterateConsumers(
             if (!consumer.d_highestSubscriptions.empty()) {
                 // If this is not SDK, ignore subscriptions and PUSH
                 // unconditionally.
-                if (visitor(cit->first,
-                            &consumer,
-                            bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID)) {
+                if (visitor.visit(cit->first,
+                                  &consumer,
+                                  bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID)) {
                     return true;  // RETURN
                 }
             }
@@ -790,9 +799,9 @@ bool Routers::AppContext::iterateConsumers(
             const Routers::Subscription* subscription = selectSubscription(
                 itConsumer);
             if (subscription) {
-                if (visitor(cit->first,
-                            &consumer,
-                            subscription->d_downstreamSubscriptionId)) {
+                if (visitor.visit(cit->first,
+                                  &consumer,
+                                  subscription->d_downstreamSubscriptionId)) {
                     return true;  // RETURN
                 }
             }

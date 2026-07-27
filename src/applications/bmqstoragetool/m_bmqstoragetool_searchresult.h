@@ -414,8 +414,6 @@ class SearchExactMatchResult : public SearchResult {
     // Pointer to 'Printer' instance.
     Parameters::ProcessRecordTypes d_processRecordTypes;
     // Record types to process
-    const bool d_isDetail;
-    // If 'true', output detail result, otherwise output short result.
     const QueueMap& d_queueMap;
     // Reference to 'QueueMap' instance.
     const bslma::ManagedPtr<PayloadDumper> d_payloadDumper;
@@ -454,7 +452,6 @@ class SearchExactMatchResult : public SearchResult {
     explicit SearchExactMatchResult(
         const bsl::shared_ptr<Printer>&       printer,
         const Parameters::ProcessRecordTypes& processRecordTypes,
-        bool                                  isDetail,
         const QueueMap&                       queueMap,
         bslma::ManagedPtr<PayloadDumper>&     payloadDumper,
         bslma::Allocator*                     allocator);

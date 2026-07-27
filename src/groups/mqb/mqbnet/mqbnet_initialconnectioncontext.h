@@ -196,6 +196,23 @@ struct InitialConnectionEvent {
 bsl::ostream& operator<<(bsl::ostream&                stream,
                          InitialConnectionEvent::Enum value);
 
+// =========================
+// class NegotiationUserData
+// =========================
+
+/// Protocol for a caller-supplied, opaque piece of data carried through the
+/// negotiation of a session and handed back to the negotiator implementation.
+/// The `mqbnet` layer holds an instance purely as an owned lifetime handle and
+/// never interprets its contents; the concrete type is defined and recovered
+/// by the application layer.
+class NegotiationUserData {
+  public:
+    // CREATORS
+
+    /// Destroy this object.
+    virtual ~NegotiationUserData();
+};
+
 // ==============================
 // class InitialConnectionContext
 // ==============================
@@ -247,21 +264,18 @@ class InitialConnectionContext {
     /// data).
     void* d_resultState_p;
 
-    /// Raw pointer, held not owned, to some user data
-    /// the InitialConnectionContext can use
-    /// while negotiating the session.  This may or may
-    /// not be set by the caller, during
-    /// 'TcpSessionFactory::handleInitialConnection()';
-    /// and should not be changed during negotiation (this data is not
-    /// used by the session factory, so changing it will
-    /// have no effect).  This is used to bind high
-    /// level data (from application layer) to the
-    /// application layer (the negotiator concrete
-    /// implementation) (typically for the case of
-    /// 'connect' sessions to provide information to use
-    /// for negotiating the session with the remote
-    /// peer).
-    void* d_userData_p;
+    /// Shared pointer to caller-supplied user data the
+    /// InitialConnectionContext carries while negotiating
+    /// the session.  This may or may not be set by the
+    /// caller, during
+    /// 'TcpSessionFactory::handleInitialConnection()'.
+    /// This is used to bind high level data (from
+    /// application layer) to the application layer (the
+    /// negotiator concrete implementation) (typically for
+    /// the case of 'connect' sessions to provide
+    /// information to use for negotiating the session with
+    /// the remote peer).
+    bsl::shared_ptr<NegotiationUserData> d_userData_sp;
 
     /// The channel to use for the initial connection.
     bsl::shared_ptr<bmqio::Channel> d_channelSp;
@@ -310,14 +324,14 @@ class InitialConnectionContext {
 
     /// Create a new object having the specified `isIncoming` value.
     InitialConnectionContext(
-        bool                                   isIncoming,
-        mqbnet::Authenticator*                 authenticator,
-        mqbnet::Negotiator*                    negotiator,
-        void*                                  userData,
-        void*                                  resultState,
-        const bsl::shared_ptr<bmqio::Channel>& channel,
-        const InitialConnectionCompleteCb&     initialConnectionCompleteCb,
-        bslma::Allocator*                      allocator = 0);
+        bool                                        isIncoming,
+        mqbnet::Authenticator*                      authenticator,
+        mqbnet::Negotiator*                         negotiator,
+        const bsl::shared_ptr<NegotiationUserData>& userData,
+        void*                                       resultState,
+        const bsl::shared_ptr<bmqio::Channel>&      channel,
+        const InitialConnectionCompleteCb& initialConnectionCompleteCb,
+        bslma::Allocator*                  allocator = 0);
 
     ~InitialConnectionContext();
 
@@ -408,10 +422,10 @@ class InitialConnectionContext {
     // ACCESSORS
 
     /// Return the value of the corresponding field.
-    bool                                   isIncoming() const;
-    void*                                  userData() const;
-    void*                                  resultState() const;
-    const bsl::shared_ptr<bmqio::Channel>& channel() const;
+    bool                                        isIncoming() const;
+    const bsl::shared_ptr<NegotiationUserData>& userData() const;
+    void*                                       resultState() const;
+    const bsl::shared_ptr<bmqio::Channel>&      channel() const;
     bmqp::EncodingType::Enum               authenticationEncodingType() const;
     const bsl::shared_ptr<AuthenticationContext>&
                                                authenticationContext() const;

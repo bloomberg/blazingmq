@@ -44,7 +44,8 @@ struct PluginType {
     enum Enum {
         e_STATS_CONSUMER      = 0,
         e_AUTHENTICATOR       = 1,
-        e_CREDENTIAL_PROVIDER = 2
+        e_CREDENTIAL_PROVIDER = 2,
+        e_AUTHORIZER          = 3
     };
 
     // CLASS METHODS

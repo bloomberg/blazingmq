@@ -99,7 +99,7 @@ class Session : public SessionEventProcessor {
     /// executed.  The execution result (structured, non-structured text or
     /// possible error message) is expected to be passed to the specified
     /// `onProcessed` callback.
-    typedef bsl::function<void(const bslstl::StringRef&       source,
+    typedef bsl::function<void(const bsl::string&             source,
                                const bsl::string&             command,
                                const AdminCommandProcessedCb& onProcessed,
                                bool                           fromReroute)>

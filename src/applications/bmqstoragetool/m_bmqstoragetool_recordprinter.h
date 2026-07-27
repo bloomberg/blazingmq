@@ -88,6 +88,9 @@ class RecordDetailsPrinter {
     template <typename RECORD_TYPE>
     void printQueueInfo(const RecordDetails<RECORD_TYPE>& rec);
 
+    template <typename RECORD_TYPE>
+    void printCommonHeader(const RecordDetails<RECORD_TYPE>& details);
+
   public:
     // CREATORS
     RecordDetailsPrinter(bsl::ostream& stream, bslma::Allocator* allocator);
@@ -126,12 +129,7 @@ void RecordDetailsPrinter<PRINTER_TYPE>::printAppInfo(
 {
     d_fields.push_back("AppKey");
     bmqu::MemOutStream appKeyStr(d_allocator_p);
-    if (rec.d_record.appKey().isNull()) {
-        appKeyStr << "** NULL **";
-    }
-    else {
-        appKeyStr << rec.d_record.appKey();
-    }
+    appKeyStr << rec.d_record.appKey();
     *d_printer_mp << appKeyStr.str();
 
     if (!rec.d_appId.empty()) {
@@ -169,11 +167,11 @@ inline void printDelimeter<bmqu::AlignedPrinter>(bsl::ostream& ostream)
 
 template <typename PRINTER_TYPE>
 template <typename RECORD_TYPE>
-void RecordDetailsPrinter<PRINTER_TYPE>::printRecordDetails(
+void RecordDetailsPrinter<PRINTER_TYPE>::printCommonHeader(
     const RecordDetails<RECORD_TYPE>& details)
 {
     d_fields.clear();
-    d_fields.reserve(14);  // max number of fields
+    d_fields.reserve(15);
     d_fields.push_back("RecordType");
     d_fields.push_back("Index");
     d_fields.push_back("Offset");
@@ -183,7 +181,7 @@ void RecordDetailsPrinter<PRINTER_TYPE>::printRecordDetails(
     d_fields.push_back("Epoch");
 
     // It's ok to pass a vector by pointer and push elements after that as
-    // we've reserved it's capacity in advance. Hense, no reallocations will
+    // we've reserved its capacity in advance. Hence, no reallocations will
     // happen and the pointer won't get invalidated.
     d_printer_mp.load(new (*d_allocator_p) PRINTER_TYPE(d_ostream, &d_fields),
                       d_allocator_p);
@@ -203,7 +201,14 @@ void RecordDetailsPrinter<PRINTER_TYPE>::printRecordDetails(
         *d_printer_mp << datetime;
     }
     *d_printer_mp << epochValue;
+}
 
+template <typename PRINTER_TYPE>
+template <typename RECORD_TYPE>
+void RecordDetailsPrinter<PRINTER_TYPE>::printRecordDetails(
+    const RecordDetails<RECORD_TYPE>& details)
+{
+    printCommonHeader(details);
     printRecord(details);
     d_printer_mp.reset();
 }
@@ -226,6 +231,11 @@ void RecordDetailsPrinter<PRINTER_TYPE>::printRecord(
     *d_printer_mp << fileKeyStr.str() << rec.d_record.refCount()
                   << rec.d_record.messageOffsetDwords()
                   << rec.d_record.messageGUID() << rec.d_record.crc32c();
+
+    if (!rec.d_payloadHex.empty()) {
+        d_fields.push_back("Payload");
+        *d_printer_mp << rec.d_payloadHex;
+    }
 }
 
 template <typename PRINTER_TYPE>

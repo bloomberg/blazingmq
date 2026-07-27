@@ -600,6 +600,8 @@ static void test6_nextMethod()
     //       2.2. number of bytes in the blob is less than event header plus
     //            full size of message header.
     //       2.3. number of bytes in the blob not enough for expected payload.
+    //       2.4. the message declares a size smaller than its own header
+    //            (including zero), which would prevent forward progress.
     //
     // Plan:
     //   1. Create and init iterator by blob.
@@ -615,6 +617,9 @@ static void test6_nextMethod()
     //      second message payload.
     //   9. First time iterate successfully, then expect that second
     //      invocation of next method will return error code
+    //   10. Create and init iterator by a blob whose message header declares
+    //       a 'messageWords' smaller than 'headerWords' (as described in 2.4),
+    //       and expect that next method returns error code and stays invalid.
     //
     // Testing:
     //   int next();
@@ -726,6 +731,65 @@ static void test6_nextMethod()
         BMQTST_ASSERT(iter.isValid());
         BMQTST_ASSERT_LT(iter.next(), 0);  // rc_NOT_ENOUGH_BYTES
         BMQTST_ASSERT(!iter.isValid());
+    }
+
+    // Next method. Message smaller than its header (no forward progress).
+    {
+        PVV("MESSAGE SMALLER THAN HEADER - NO FORWARD PROGRESS");
+
+        const int k_HEADER_WORDS = sizeof(bmqp::RecoveryHeader) /
+                                   bmqp::Protocol::k_WORD_SIZE;
+
+        bsl::vector<int> malformedMessageWords(
+            bmqtst::TestHelperUtil::allocator());
+        malformedMessageWords.push_back(0);
+        malformedMessageWords.push_back(k_HEADER_WORDS - 1);
+
+        for (size_t i = 0; i < malformedMessageWords.size(); ++i) {
+            PVV("MESSAGE WORDS: " << malformedMessageWords[i]);
+
+            bdlbb::PooledBlobBufferFactory bufferFactory(
+                1024,
+                bmqtst::TestHelperUtil::allocator());
+            bdlbb::Blob blob(&bufferFactory,
+                             bmqtst::TestHelperUtil::allocator());
+
+            // EventHeader
+            bmqp::EventHeader eh;
+            eh.setType(bmqp::EventType::e_RECOVERY);
+            eh.setHeaderWords(sizeof(bmqp::EventHeader) /
+                              bmqp::Protocol::k_WORD_SIZE);
+            bdlbb::BlobUtil::append(&blob,
+                                    reinterpret_cast<const char*>(&eh),
+                                    eh.headerWords() *
+                                        bmqp::Protocol::k_WORD_SIZE);
+
+            // RecoveryHeader with a valid 'headerWords' but a 'messageWords'
+            // smaller than the header.
+            bmqp::RecoveryHeader rhdr;
+            rhdr.setHeaderWords(k_HEADER_WORDS)
+                .setPartitionId(0)
+                .setChunkSequenceNumber(1)
+                .setFileChunkType(bmqp::RecoveryFileChunkType::e_JOURNAL)
+                .setMessageWords(malformedMessageWords[i]);
+            bdlbb::BlobUtil::append(&blob,
+                                    reinterpret_cast<const char*>(&rhdr),
+                                    rhdr.headerWords() *
+                                        bmqp::Protocol::k_WORD_SIZE);
+
+            // Set EventHeader length
+            bmqp::EventHeader* e = reinterpret_cast<bmqp::EventHeader*>(
+                blob.buffer(0).data());
+            e->setLength(sizeof(bmqp::EventHeader) +
+                         sizeof(bmqp::RecoveryHeader));
+
+            bmqp::RecoveryMessageIterator iter(&blob, eh);
+            BMQTST_ASSERT(iter.isValid());
+            BMQTST_ASSERT_LT(iter.next(), 0);  // rc_INVALID_MESSAGE_SIZE
+            BMQTST_ASSERT(!iter.isValid());
+            BMQTST_ASSERT_LT(iter.next(), 0);  // stays invalid, does not loop
+            BMQTST_ASSERT(!iter.isValid());
+        }
     }
 }
 

@@ -8,7 +8,7 @@
     Timestamp       : 29OCT2024_14:01:06.000000
     Epoch           : 1730210466
     QueueKey        : 26DACDC974
-    AppKey          : ** NULL **
+    AppKey          : 0000000000
     QueueOpType     : CREATION
     QLIST OffsetWords: 9
 
