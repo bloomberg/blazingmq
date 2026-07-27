@@ -1,0 +1,9 @@
+/**
+@dir mqbauthz
+
+@brief The `MQBAUTHZ` (BlazingMQ Authorization) package provides broker
+authorization mechanisms.
+
+The `mqbauthz` package provides the broker's built-in authorizers, such as a
+basic authorizer, along with a controller that orchestrates authorization.
+*/
