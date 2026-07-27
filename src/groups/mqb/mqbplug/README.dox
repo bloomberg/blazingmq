@@ -1,0 +1,9 @@
+/**
+@dir mqbplug
+
+@brief The `MQBPLUG` (BlazingMQ Plugins) package provides the broker's plugin
+infrastructure.
+
+The `mqbplug` package provides base classes for each plugin type, along with the
+plugin factories, libraries, and manager used to load them.
+*/
