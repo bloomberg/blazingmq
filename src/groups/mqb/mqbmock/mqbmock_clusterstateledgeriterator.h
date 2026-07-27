@@ -16,7 +16,8 @@
 #ifndef INCLUDED_MQBMOCK_CLUSTERSTATELEDGERITERATOR
 #define INCLUDED_MQBMOCK_CLUSTERSTATELEDGERITERATOR
 
-//@PURPOSE: Provide mock implementation of 'mqbc::ClusterStateLedgerIterator'.
+//@PURPOSE: Provide a mock implementation of
+//'mqbc::ClusterStateLedgerIterator'.
 //
 //@CLASSES:
 //  mqbmock::ClusterStateLedgerIterator: Mock implementation of

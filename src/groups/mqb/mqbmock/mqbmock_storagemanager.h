@@ -16,7 +16,8 @@
 #ifndef INCLUDED_MQBMOCK_STORAGEMANAGER
 #define INCLUDED_MQBMOCK_STORAGEMANAGER
 
-//@PURPOSE: Provide a mock implementation of 'mqbi::StorageManager' interface.
+//@PURPOSE: Provide a mock implementation of the 'mqbi::StorageManager'
+// interface.
 //
 //@CLASSES:
 //  mqbmock::StorageManager: Mock impl of 'mqbi::StorageManager'

@@ -1,0 +1,8 @@
+/**
+@dir mqbstat
+
+@brief The `MQBSTAT` (BlazingMQ Broker Statistics) package provides broker
+statistics management components.
+
+This package provides components for reporting broker statistics.
+*/

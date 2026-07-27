@@ -1,0 +1,8 @@
+/**
+@dir mqbs
+
+@brief The `MQBS` (BlazingMQ Broker Storage) package provides storage
+facilities.
+
+This package provides interfaces and components to manipulate storage.
+*/
