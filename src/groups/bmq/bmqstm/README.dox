@@ -1,0 +1,6 @@
+/**
+@dir bmqstm
+
+@brief The `BMQSTM` (BlazingMQ Statistics Messages) package provides
+value-semantic types for a generic statistics framework.
+*/

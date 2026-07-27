@@ -1,0 +1,8 @@
+/**
+@dir bmqvt
+
+@brief The `BMQVT` (BlazingMQ priVate Types) package provides internal
+value-semantic vocabulary types.
+
+The `bmqvt` package provides internal value-semantic vocabulary types.
+*/

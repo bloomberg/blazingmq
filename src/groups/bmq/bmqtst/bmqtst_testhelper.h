@@ -16,7 +16,7 @@
 #ifndef INCLUDED_BMQTST_TESTHELPER
 #define INCLUDED_BMQTST_TESTHELPER
 
-//@PURPOSE: Provide macros and utilities to assist in writting test drivers.
+//@PURPOSE: Provide macros and utilities to assist in writing test drivers.
 //
 //@CLASSES:
 //  MACROS:             see macros definitions and descriptions below
