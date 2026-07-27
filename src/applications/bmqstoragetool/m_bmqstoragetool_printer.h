@@ -27,10 +27,6 @@
 #include <m_bmqstoragetool_messagedetails.h>
 #include <m_bmqstoragetool_parameters.h>
 
-// MQB
-#include <mqbs_datafileiterator.h>
-#include <mqbs_journalfileiterator.h>
-
 // BMQ
 #include <bmqt_messageguid.h>
 
@@ -43,6 +39,12 @@
 #include <bslma_managedptr.h>
 
 namespace BloombergLP {
+
+// FORWARD DECLARATIONS
+namespace mqbs {
+class DataFileIterator;
+class JournalFileIterator;
+}
 
 namespace m_bmqstoragetool {
 

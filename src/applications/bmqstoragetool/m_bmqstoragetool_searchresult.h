@@ -60,10 +60,7 @@
 #include <m_bmqstoragetool_payloaddumper.h>
 #include <m_bmqstoragetool_printer.h>
 
-// MQB
-#include <mqbs_datafileiterator.h>
 #include <mqbs_filestoreprotocolprinter.h>
-#include <mqbs_journalfileiterator.h>
 
 // BDE
 #include <bsl_iostream.h>
@@ -79,7 +76,12 @@
 #include <bsls_keyword.h>
 
 namespace BloombergLP {
-namespace m_bmqstoragetool {
+
+// FORWARD DECLARATIONS
+namespace mqbs {
+class DataFileIterator;
+class JournalFileIterator;
+}
 
 // ==================
 // class SearchResult
