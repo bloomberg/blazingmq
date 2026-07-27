@@ -138,7 +138,7 @@ class ResolvingChannelFactoryConfig {
 class ResolvingChannelFactory_Channel : public DecoratingChannelPartialImp {
   private:
     // PRIVATE DATA
-    const bsl::string d_basePeerUri;
+    bsl::string d_basePeerUri;
 
     bsl::string d_resolvedPeerUri;
 
