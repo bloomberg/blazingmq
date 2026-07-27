@@ -192,19 +192,22 @@ int AuthenticationContext::setAuthenticatedAndScheduleReauthn(
             bmqu::WeakMemFnUtil::weakMemFn(
                 &AuthenticationContext::onReauthenticationTimeout,
                 d_self.acquireWeak()),
-            channel_sp,  // channel_sp
-            lifetime     // timeoutMs
+            bsl::weak_ptr<bmqio::Channel>(channel_sp),  // channel_wp
+            lifetime                                    // timeoutMs
             ));
 
     return 0;
 }
 
 void AuthenticationContext::onReauthenticationTimeout(
-    const bsl::shared_ptr<bmqio::Channel>& channel_sp,
-    bsls::Types::Uint64                    timeoutMs)
+    const bsl::weak_ptr<bmqio::Channel>& channel_wp,
+    bsls::Types::Uint64                  timeoutMs)
 {
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(channel_sp);
+    bsl::shared_ptr<bmqio::Channel> channel_sp = channel_wp.lock();
+    if (!channel_sp) {
+        // The channel has already been destroyed; nothing to close.
+        return;
+    }
 
     {
         bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
