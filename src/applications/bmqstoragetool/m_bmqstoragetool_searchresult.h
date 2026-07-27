@@ -83,6 +83,8 @@ class DataFileIterator;
 class JournalFileIterator;
 }
 
+namespace m_bmqstoragetool {
+
 // ==================
 // class SearchResult
 // ==================
