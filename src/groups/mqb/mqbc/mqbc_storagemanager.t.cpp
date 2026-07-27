@@ -931,14 +931,16 @@ struct TestHelper {
 
         dynamic_cast<mqbnet::MockCluster&>(d_cluster_mp->netCluster())
             ._setDisableBroadcast(true);
-        fs.open(0);
+
+        const unsigned int k_PRIMARY_LEASE_ID = 1U;
+        fs.open(0, k_PRIMARY_LEASE_ID);
         // TODO: clean this up since its a hack to set replica node as primary!
         // had to explicitly setActivePrimary for fileStore because of the
         // assert in writeRecords which allows writes only if current node is
         // primary for the fileStore.
         // TODO: set primary to self but also correct it to the right node
         // after writing 'numRecords' records.
-        fs.setActivePrimary(selfNode, 1U);
+        fs.setActivePrimary(selfNode, k_PRIMARY_LEASE_ID);
 
         const mqbu::StorageKey& queueKey =
             writeQueueCreationRecord(handle, &fs, k_PARTITION_ID);
@@ -951,7 +953,7 @@ struct TestHelper {
             ._setDisableBroadcast(false);
 
         if (selfSeqNum) {
-            selfSeqNum->primaryLeaseId() = 1U;
+            selfSeqNum->primaryLeaseId() = k_PRIMARY_LEASE_ID;
 
             // One sync point, one queue creation record, and 'numRecords'
             // message records

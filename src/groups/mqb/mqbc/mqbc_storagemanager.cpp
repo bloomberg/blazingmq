@@ -3244,7 +3244,8 @@ void StorageManager::do_attemptOpenStorage(
         return;  // RETURN
     }
 
-    const int rc = fs->open(d_queueKeyInfoMapVec.at(partitionId).get());
+    const int rc = fs->open(d_queueKeyInfoMapVec.at(partitionId).get(),
+                            d_partitionInfoVec[partitionId].primaryLeaseId());
     if (0 != rc) {
         BMQTSK_ALARMLOG_ALARM("FILE_IO")
             << d_clusterData_p->identity().description() << " Partition ["

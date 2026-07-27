@@ -590,8 +590,10 @@ class DataStore : public mqbi::DispatcherClient {
     // MANIPULATORS
 
     /// Open this instance using the optionally specified `queueKeyInfoMap`.
+    /// The specified `primaryLeaseId` is the leaseId of current primary.
     /// Return zero on success, non-zero value otherwise.
-    virtual int open(QueueKeyInfoMap* queueKeyInfoMap) = 0;
+    virtual int open(QueueKeyInfoMap* queueKeyInfoMap,
+                     unsigned int     primaryLeaseId) = 0;
 
     /// Close this instance.  If the optional `flush` flag is true, flush
     /// the data store to the backup storage (e.g., disk) if applicable.

@@ -343,7 +343,8 @@ int FileStore::openInNonRecoveryMode()
 }
 
 int FileStore::openInRecoveryMode(bsl::ostream&    errorDescription,
-                                  QueueKeyInfoMap* queueKeyInfoMap)
+                                  QueueKeyInfoMap* queueKeyInfoMap,
+                                  unsigned int     primaryLeaseId)
 {
     // executed by the *DISPATCHER* thread
 
@@ -1032,11 +1033,21 @@ int FileStore::openInRecoveryMode(bsl::ostream&    errorDescription,
     BSLS_ASSERT_SAFE(d_config.recoveredQueuesCb());
     d_config.recoveredQueuesCb()(d_config.partitionId(), queueKeyInfoMap);
 
-    // Conform the journal to the cluster state.  Each "extra" queueKey found
-    // during recovery (present in the journal but absent from the cluster
-    // state) must be removed.
-    if (!extraQueueKeys.empty()) {
+    // Conform the journal to the cluster state.
+    const bool needsConform = !extraQueueKeys.empty();
+    if (needsConform) {
         BSLS_ASSERT_SAFE(asPrimary);
+        BSLS_ASSERT_SAFE(0 != primaryLeaseId);
+        BSLS_ASSERT_SAFE(primaryLeaseId >= d_writeHeadLeaseId);
+
+        if (primaryLeaseId > d_writeHeadLeaseId) {
+            setWriteHead(primaryLeaseId, 0);
+        }
+    }
+
+    // Each "extra" queueKey found during recovery (present in the journal but
+    // absent from the cluster state) must be removed.
+    if (!extraQueueKeys.empty()) {
         const bsls::Types::Uint64 timestamp =
             bdlt::EpochUtil::convertToTimeT64(bdlt::CurrentTime::utc());
 
@@ -5565,7 +5576,8 @@ FileStore::~FileStore()
 }
 
 // MANIPULATORS
-int FileStore::open(QueueKeyInfoMap* queueKeyInfoMap)
+int FileStore::open(QueueKeyInfoMap* queueKeyInfoMap,
+                    unsigned int     primaryLeaseId)
 {
     // executed by the *DISPATCHER* thread
 
@@ -5603,7 +5615,9 @@ int FileStore::open(QueueKeyInfoMap* queueKeyInfoMap)
     }
 
     bmqu::MemOutStream errorDescription;
-    int rc = openInRecoveryMode(errorDescription, queueKeyInfoMap);
+    int                rc = openInRecoveryMode(errorDescription,
+                                queueKeyInfoMap,
+                                primaryLeaseId);
     if (rc == 0) {
         d_isOpen = true;
     }

@@ -28,6 +28,10 @@
 #include <mqbs_filestoreprotocol.h>
 #include <mqbs_filestoreset.h>
 #include <mqbs_filestoretestutil.h>
+#include <mqbs_filestoreutil.h>
+#include <mqbs_filesystemutil.h>
+#include <mqbs_journalfileiterator.h>
+#include <mqbs_mappedfiledescriptor.h>
 #include <mqbstat_clusterstats.h>
 #include <mqbu_messageguidutil.h>
 #include <mqbu_storagekey.h>
@@ -163,6 +167,81 @@ void recoveredQueuesCb(
     static_cast<void>(queueKeyInfoMap);
 }
 
+/// Return true if the journal file at the specified `journalFilePath` holds at
+/// least one sync point record of the specified `subtype`.
+static bool journalHasSyncPoint(const bsl::string&        journalFilePath,
+                                mqbs::SyncPointType::Enum subtype)
+{
+    mqbs::FileStoreSet fileSet(bmqtst::TestHelperUtil::allocator());
+    fileSet.setJournalFile(journalFilePath)
+        .setJournalFileSize(
+            bdls::FilesystemUtil::getFileSize(journalFilePath));
+
+    mqbs::MappedFileDescriptor journalFd;
+    bmqu::MemOutStream         errDesc(bmqtst::TestHelperUtil::allocator());
+    int rc = mqbs::FileStoreUtil::openFileSetReadMode(errDesc,
+                                                      fileSet,
+                                                      &journalFd);
+    BMQTST_ASSERT_EQ(0, rc);
+    if (0 != rc) {
+        return false;  // RETURN
+    }
+
+    mqbs::JournalFileIterator jit;
+    rc = mqbs::FileStoreUtil::loadIterators(errDesc, fileSet, &jit, journalFd);
+    BMQTST_ASSERT_EQ(0, rc);
+
+    bool found = false;
+    while (1 == jit.nextRecord()) {
+        if (mqbs::RecordType::e_JOURNAL_OP == jit.recordType()) {
+            const mqbs::JournalOpRecord& rec = jit.asJournalOpRecord();
+            if (mqbs::JournalOpType::e_SYNCPOINT == rec.type() &&
+                subtype == rec.syncPointType()) {
+                found = true;
+                break;
+            }
+        }
+    }
+
+    mqbs::FileSystemUtil::close(&journalFd);
+    return found;
+}
+
+/// Return the number of QueueOp.DELETION records in the journal file at the
+/// specified `journalFilePath`, or -1 if it could not be opened.
+static int journalDeletionCount(const bsl::string& journalFilePath)
+{
+    mqbs::FileStoreSet fileSet(bmqtst::TestHelperUtil::allocator());
+    fileSet.setJournalFile(journalFilePath)
+        .setJournalFileSize(
+            bdls::FilesystemUtil::getFileSize(journalFilePath));
+
+    mqbs::MappedFileDescriptor journalFd;
+    bmqu::MemOutStream         errDesc(bmqtst::TestHelperUtil::allocator());
+    int rc = mqbs::FileStoreUtil::openFileSetReadMode(errDesc,
+                                                      fileSet,
+                                                      &journalFd);
+    BMQTST_ASSERT_EQ(0, rc);
+    if (0 != rc) {
+        return -1;  // RETURN
+    }
+
+    mqbs::JournalFileIterator jit;
+    rc = mqbs::FileStoreUtil::loadIterators(errDesc, fileSet, &jit, journalFd);
+    BMQTST_ASSERT_EQ(0, rc);
+
+    int count = 0;
+    while (1 == jit.nextRecord()) {
+        if (mqbs::RecordType::e_QUEUE_OP == jit.recordType() &&
+            mqbs::QueueOpType::e_DELETION == jit.asQueueOpRecord().type()) {
+            ++count;
+        }
+    }
+
+    mqbs::FileSystemUtil::close(&journalFd);
+    return count;
+}
+
 /// Build a storage event carrying a single regular SyncPt journal record with
 /// the specified `leaseId`, `seqNum`, `journalOffsetWords`, `dataOffsetDwords`
 /// and `qlistOffsetWords`, and apply it to the specified `fs` as a
@@ -254,7 +333,8 @@ class Tester {
 
   public:
     // CREATORS
-    explicit Tester(bsl::string_view location)
+    explicit Tester(bsl::string_view    location,
+                    bsls::Types::Uint64 maxJournalFileSize = 1 * 1024 * 1024)
     : d_allocator_p(bmqtst::TestHelperUtil::allocator())
     , d_scheduler(bsls::SystemClockType::e_MONOTONIC, d_allocator_p)
     , d_bufferFactory(1024, d_allocator_p)
@@ -294,7 +374,7 @@ class Tester {
         d_partitionCfg.maxDataFileSize()     = 100 * 1024 * 1024;
         d_partitionCfg.maxQlistFileSize()    = 1 * 1024 * 1024;
         d_partitionCfg.maxCSLFileSize()      = 1 * 1024 * 1024;
-        d_partitionCfg.maxJournalFileSize()  = 1 * 1024 * 1024;
+        d_partitionCfg.maxJournalFileSize()  = maxJournalFileSize;
         d_partitionCfg.location()            = d_clusterLocation;
         d_partitionCfg.archiveLocation()     = d_clusterArchiveLocation;
         d_partitionCfg.numPartitions()       = 1;
@@ -374,7 +454,7 @@ class Tester {
     bool writeRecords(mqbs::FileStore*               fs,
                       bsl::vector<HandleRecordPair>* records,
                       SyncPointOffsetPairs*          spOffsetPairs,
-                      unsigned int*                  leaseId,
+                      unsigned int                   leaseId,
                       bsls::Types::Uint64*           seqNum,
                       bsls::Types::Uint64*           numRecordsWritten,
                       bsls::Types::Uint64            numRecords)
@@ -703,7 +783,7 @@ class Tester {
                 rec.d_journalOpType = mqbs::JournalOpType::e_SYNCPOINT;
                 rec.d_syncPtType    = mqbs::SyncPointType::e_REGULAR;
 
-                rec.d_syncPoint.primaryLeaseId() = *leaseId;
+                rec.d_syncPoint.primaryLeaseId() = leaseId;
                 rec.d_syncPoint.sequenceNum()    = ++(*seqNum);
                 rec.d_syncPoint.dataFileOffsetDwords() =
                     fileSet.dataFileSize() / bmqp::Protocol::k_DWORD_SIZE;
@@ -848,6 +928,8 @@ class Tester {
     mqbmock::Dispatcher& dispatcher() { return d_dispatcher; }
 
     bdlmt::EventScheduler& scheduler() { return d_scheduler; }
+
+    bdlbb::BlobBufferFactory& bufferFactory() { return d_bufferFactory; }
 };
 
 // ============================================================================
@@ -867,10 +949,11 @@ static void test1_breathingTest()
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
 
-    Tester           tester("./test-cluster123-1");
-    mqbs::FileStore& fs = tester.fileStore();
+    Tester             tester("./test-cluster123-1");
+    mqbs::FileStore&   fs             = tester.fileStore();
+    const unsigned int primaryLeaseId = 1U;
 
-    int rc = fs.open(0);
+    int rc = fs.open(0, primaryLeaseId);
     BMQTST_ASSERT_EQ(0, rc);
     if (rc) {
         cout << "Failed to open partition, rc: " << rc << endl;
@@ -894,12 +977,9 @@ static void test1_breathingTest()
             bslmf::NestedTraitDeclaration<Record, bslma::UsesBslmaAllocator> >(
             dummy));
 
-    // Set primary.
-    unsigned int        primaryLeaseId = 1;
-    bsls::Types::Uint64 seqNum         = 1;
-
     fs.setActivePrimary(tester.node(), primaryLeaseId);
 
+    bsls::Types::Uint64 seqNum = 1;
     BMQTST_ASSERT_EQ(primaryLeaseId, fs.writeHeadLeaseId());
     BMQTST_ASSERT_EQ(seqNum, fs.writeHeadSeqNum());
     BMQTST_ASSERT_EQ(tester.node(), fs.primaryNode());
@@ -946,7 +1026,7 @@ static void test1_breathingTest()
     bool                success           = tester.writeRecords(&fs,
                                        &records,
                                        &spOffsetPairs,
-                                       &primaryLeaseId,
+                                       primaryLeaseId,
                                        &seqNum,
                                        &numRecordsWritten,
                                        k_NUM_RECORDS);
@@ -998,13 +1078,12 @@ static void test2_printTest()
 
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
 
-    Tester           tester("./test-cluster123-2");
-    mqbs::FileStore& fs = tester.fileStore();
-    BSLS_ASSERT_OPT(fs.open(0) == 0);
+    Tester             tester("./test-cluster123-2");
+    mqbs::FileStore&   fs             = tester.fileStore();
+    const unsigned int primaryLeaseId = 1;
 
-    // Set primary.
-    unsigned int        primaryLeaseId = 1;
-    bsls::Types::Uint64 seqNum         = 1;
+    int rc = fs.open(0, primaryLeaseId);
+    BSLS_ASSERT_OPT(rc == 0);
     fs.setActivePrimary(tester.node(), primaryLeaseId);
 
     // Write various records to the partition.
@@ -1013,17 +1092,18 @@ static void test2_printTest()
 
     const size_t        k_NUM_RECORDS     = 10;
     bsls::Types::Uint64 numRecordsWritten = 0;
+    bsls::Types::Uint64 seqNum            = 1;
     BSLS_ASSERT_OPT(tester.writeRecords(&fs,
                                         &records,
                                         &spOffsetPairs,
-                                        &primaryLeaseId,
+                                        primaryLeaseId,
                                         &seqNum,
                                         &numRecordsWritten,
                                         k_NUM_RECORDS));
 
     bdlpcre::RegEx expectedOut(bmqtst::TestHelperUtil::allocator());
     bsl::string    errorMessage(bmqtst::TestHelperUtil::allocator());
-    size_t         errorOffset;
+    size_t         errorOffset = 0;
     expectedOut.prepare(
         &errorMessage,
         &errorOffset,
@@ -1074,7 +1154,7 @@ static void test2_printTest()
     stream << fsIt;
     BMQTST_ASSERT_EQ(stream.str(), "INVALID");
 
-    const int rc = fs.close();
+    rc = fs.close();
     BMQTST_ASSERT_EQ(0, rc);
 }
 
@@ -1094,22 +1174,21 @@ static void test3_partitionFullAlarm()
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
 
     Tester           tester("./test-cluster123-3");
-    mqbs::FileStore& fs = tester.fileStore();
+    mqbs::FileStore& fs             = tester.fileStore();
+    unsigned int     primaryLeaseId = 1;
 
     // Disable in-place callback execution in mock dispatcher to prevent
     // thread races between the main thread (that modifies FileStore) and
     // scheduler thread (that performs gc on FileStore).
     tester.dispatcher().setEnqueueOnly(true);
 
-    int rc = fs.open(0);
+    int rc = fs.open(0, primaryLeaseId);
     BMQTST_ASSERT_EQ(0, rc);
     if (rc) {
         cout << "Failed to open partition, rc: " << rc << endl;
         return;  // RETURN
     }
 
-    // Set primary.
-    unsigned int primaryLeaseId = 1;
     fs.setActivePrimary(tester.node(), primaryLeaseId);
 
     // Create a storage and register it with the FileStore.
@@ -1208,7 +1287,7 @@ static void test3_partitionFullAlarm()
     fs.close();
     BMQTST_ASSERT_EQ(false, fs.isOpen());
 
-    rc = fs.open(0);
+    rc = fs.open(0, 2);
     BMQTST_ASSERT_EQ(0, rc);
     BMQTST_ASSERT_EQ(true, fs.isOpen());
 
@@ -1241,22 +1320,21 @@ static void test4_recoverMessagesAcrossLeaseIds()
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
 
     Tester           tester("./test-cluster123-4");
-    mqbs::FileStore& fs = tester.fileStore();
+    mqbs::FileStore& fs             = tester.fileStore();
+    unsigned int     primaryLeaseId = 1;
 
     // Disable in-place callback execution in mock dispatcher to prevent
     // thread races between the main thread (that modifies FileStore) and
     // scheduler thread (that performs gc on FileStore).
     tester.dispatcher().setEnqueueOnly(true);
 
-    int rc = fs.open(0);
+    int rc = fs.open(0, primaryLeaseId);
     BMQTST_ASSERT_EQ(0, rc);
     if (rc) {
         cout << "Failed to open partition, rc: " << rc << endl;
         return;  // RETURN
     }
 
-    // Set primary with leaseId 1.
-    unsigned int primaryLeaseId = 1;
     fs.setActivePrimary(tester.node(), primaryLeaseId);
 
     // Create a storage and register it with the FileStore.
@@ -1331,7 +1409,7 @@ static void test4_recoverMessagesAcrossLeaseIds()
     fs.close();
     BMQTST_ASSERT_EQ(false, fs.isOpen());
 
-    rc = fs.open(0);
+    rc = fs.open(0, primaryLeaseId);
     BMQTST_ASSERT_EQ(0, rc);
     BMQTST_ASSERT_EQ(true, fs.isOpen());
 
@@ -1358,9 +1436,10 @@ static void test5_writeHeadFollowsAppliedLease()
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
 
     Tester           tester("./test-cluster123-5");
-    mqbs::FileStore& fs = tester.fileStore();
+    mqbs::FileStore& fs             = tester.fileStore();
+    unsigned int     primaryLeaseId = 1;
 
-    int rc = fs.open(0);
+    int rc = fs.open(0, primaryLeaseId);
     BMQTST_ASSERT_EQ(0, rc);
 
     bdlbb::PooledBlobBufferFactory bufferFactory(
@@ -1383,7 +1462,7 @@ static void test5_writeHeadFollowsAppliedLease()
         mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE /
         bmqp::Protocol::k_WORD_SIZE;
 
-    fs.setActivePrimary(tester.node(), 1);
+    fs.setActivePrimary(tester.node(), primaryLeaseId);
     // A sync point is issued -> [1, 1]
     journalOffsetWords += k_RECORD_WORDS;
     BMQTST_ASSERT_EQ(1U, fs.writeHeadLeaseId());
@@ -1394,38 +1473,39 @@ static void test5_writeHeadFollowsAppliedLease()
                              &bufferFactory,
                              tester.node(),
                              k_PARTITION_ID,
-                             1,  // leaseId
+                             primaryLeaseId,
                              2,  // seqNum
                              journalOffsetWords,
                              dataOffsetDwords,
                              qlistOffsetWords,
                              bmqtst::TestHelperUtil::allocator());
     journalOffsetWords += k_RECORD_WORDS;
-    BMQTST_ASSERT_EQ(1U, fs.writeHeadLeaseId());
+    BMQTST_ASSERT_EQ(primaryLeaseId, fs.writeHeadLeaseId());
     BMQTST_ASSERT_EQ(2ULL, fs.writeHeadSeqNum());
 
+    primaryLeaseId = 2;
     for (bsls::Types::Uint64 seqNum = 1; seqNum <= 4; ++seqNum) {
         applyReplicatedSyncPoint(&fs,
                                  blobSpPool.get(),
                                  &bufferFactory,
                                  tester.node(),
                                  k_PARTITION_ID,
-                                 2,  // leaseId
+                                 primaryLeaseId,
                                  seqNum,
                                  journalOffsetWords,
                                  dataOffsetDwords,
                                  qlistOffsetWords,
                                  bmqtst::TestHelperUtil::allocator());
         journalOffsetWords += k_RECORD_WORDS;
-        BMQTST_ASSERT_EQ(2U, fs.writeHeadLeaseId());
+        BMQTST_ASSERT_EQ(primaryLeaseId, fs.writeHeadLeaseId());
         BMQTST_ASSERT_EQ(seqNum, fs.writeHeadSeqNum());
     }
 
     // The delayed 'setActivePrimary' for leaseId 2 now arrives.  Verify it
     // does not reset the sequence number of leaseId 2 back to zero.
-    fs.setActivePrimary(tester.node(), 2);
+    fs.setActivePrimary(tester.node(), primaryLeaseId);
     // A sync point is issued -> [2, 5]
-    BMQTST_ASSERT_EQ(2U, fs.writeHeadLeaseId());
+    BMQTST_ASSERT_EQ(primaryLeaseId, fs.writeHeadLeaseId());
     BMQTST_ASSERT_GE(5ULL, fs.writeHeadSeqNum());
     BMQTST_ASSERT_EQ(tester.node(), fs.primaryNode());
 
@@ -1451,14 +1531,15 @@ static void test6_leaseTransitionWithoutSeal()
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
 
     Tester           tester("./test-cluster123-6");
-    mqbs::FileStore& fs = tester.fileStore();
+    mqbs::FileStore& fs             = tester.fileStore();
+    unsigned int     primaryLeaseId = 1;
 
-    int rc = fs.open(0);
+    int rc = fs.open(0, primaryLeaseId);
     BMQTST_ASSERT_EQ(0, rc);
 
     // Set primary with leaseId 1; a sync point is issued -> [1, 1].
-    fs.setActivePrimary(tester.node(), 1);
-    BMQTST_ASSERT_EQ(1U, fs.writeHeadLeaseId());
+    fs.setActivePrimary(tester.node(), primaryLeaseId);
+    BMQTST_ASSERT_EQ(primaryLeaseId, fs.writeHeadLeaseId());
     BMQTST_ASSERT_EQ(1ULL, fs.writeHeadSeqNum());
 
     // Create a storage and register it with the FileStore.
@@ -1515,15 +1596,16 @@ static void test6_leaseTransitionWithoutSeal()
 
     // Bump the primary leaseId to 2.  A single sync point [2, 1] is issued for
     // the new lease.
-    fs.setActivePrimary(tester.node(), 2);
-    BMQTST_ASSERT_EQ(2U, fs.writeHeadLeaseId());
+    primaryLeaseId = 2;
+    fs.setActivePrimary(tester.node(), primaryLeaseId);
+    BMQTST_ASSERT_EQ(primaryLeaseId, fs.writeHeadLeaseId());
     BMQTST_ASSERT_EQ(1ULL, fs.writeHeadSeqNum());
 
     // Write a few more message records under leaseId 2.
     for (size_t i = 0; i < 3; ++i) {
         BMQTST_ASSERT_EQ(poster.postMessage(), mqbi::StorageResult::e_SUCCESS);
     }
-    BMQTST_ASSERT_EQ(2U, fs.writeHeadLeaseId());
+    BMQTST_ASSERT_EQ(primaryLeaseId, fs.writeHeadLeaseId());
 
     const bsls::Types::Uint64 numRecords = fs.numRecords();
     BMQTST_ASSERT_D("records should exist before reopen", numRecords > 0);
@@ -1532,12 +1614,260 @@ static void test6_leaseTransitionWithoutSeal()
     rc = fs.close();
     BMQTST_ASSERT_EQ(0, rc);
 
-    rc = fs.open(0);
+    rc = fs.open(0, primaryLeaseId);
     BMQTST_ASSERT_EQ(0, rc);
     BMQTST_ASSERT_EQ(true, fs.isOpen());
 
     // Every record from both leaseIds should have been recovered.
     BMQTST_ASSERT_EQ(fs.numRecords(), numRecords);
+
+    rc = fs.close();
+    BMQTST_ASSERT_EQ(0, rc);
+}
+
+static void test7_conformExtraQueueWithoutRollover()
+// ------------------------------------------------------------------------
+// CONFORM EXTRA QUEUE WITHOUT ROLLOVER
+//
+// Concerns:
+//   When the primary conforms its journal to the cluster state and the
+//   corrective QueueOp.DELETION fits without rolling over, it is appended in
+//   place (no rollover) to mark the extra queue deleted.
+//
+// Testing:
+//   Corrective QueueOp.DELETION during conform without rollover
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("CONFORM EXTRA QUEUE WITHOUT ROLLOVER");
+
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
+
+    const char k_FILE_STORE_LOCATION[] = "./test-cluster123-6";
+
+    Tester           tester(k_FILE_STORE_LOCATION);
+    mqbs::FileStore& fs = tester.fileStore();
+
+    const unsigned int k_OLD_LEASE = 1;
+
+    // --- Phase 1: write a journal containing queue 'extraQ'.
+    int rc = fs.open(0, k_OLD_LEASE);
+    BMQTST_ASSERT_EQ(0, rc);
+    BMQTST_ASSERT_EQ(true, fs.isOpen());
+
+    fs.setActivePrimary(tester.node(), k_OLD_LEASE);
+
+    const bmqt::Uri        queueUri("bmq://si.amw.bmq.stats/extraQ",
+                             bmqtst::TestHelperUtil::allocator());
+    const mqbu::StorageKey queueKey(mqbu::StorageKey::BinaryRepresentation(),
+                                    "ABCDE");
+    mqbs::DataStoreRecordHandle queueHandle;
+    BMQTST_ASSERT_EQ(
+        0,
+        fs.writeQueueCreationRecord(
+            &queueHandle,
+            queueUri,
+            queueKey,
+            AppInfos(),
+            bdlt::EpochUtil::convertToTimeT64(bdlt::CurrentTime::utc()),
+            true));  // isNewQueue
+
+    mqbs::FileStoreSet fileSet(bmqtst::TestHelperUtil::allocator());
+    fs.loadCurrentFiles(&fileSet);
+    const bsl::string journalFileBefore(fileSet.journalFile(),
+                                        bmqtst::TestHelperUtil::allocator());
+
+    rc = fs.close();
+    BMQTST_ASSERT_EQ(0, rc);
+    BMQTST_ASSERT_EQ(false, fs.isOpen());
+
+    // --- Phase 2: reopen as the new primary with an empty cluster state.
+    // 'extraQ' is extra and the corrective QueueOp.DELETION fits, so it is
+    // appended in place without rolling over.
+    const unsigned int                     k_NEW_LEASE = k_OLD_LEASE + 1;
+    mqbs::DataStoreConfig::QueueKeyInfoMap clusterState(
+        bmqtst::TestHelperUtil::allocator());
+    BMQTST_ASSERT_EQ(0, fs.open(&clusterState, k_NEW_LEASE));
+    BMQTST_ASSERT_EQ(true, fs.isOpen());
+
+    fs.loadCurrentFiles(&fileSet);
+
+    // No rollover: same journal file.
+    BMQTST_ASSERT_EQ(journalFileBefore, fileSet.journalFile());
+
+    // Exactly one corrective QueueOp.DELETION was appended.
+    BMQTST_ASSERT_EQ(1, journalDeletionCount(fileSet.journalFile()));
+
+    // Write head reflects the new lease at (2, 1).
+    BMQTST_ASSERT_EQ(k_NEW_LEASE, fs.writeHeadLeaseId());
+    BMQTST_ASSERT_EQ(1ULL, fs.writeHeadSeqNum());
+
+    rc = fs.close();
+    BMQTST_ASSERT_EQ(0, rc);
+}
+
+static void test8_conformExtraQueueCausesRollover()
+// ------------------------------------------------------------------------
+// CONFORM EXTRA QUEUE CAUSES ROLLOVER
+//
+// Concerns:
+//   When the primary conforms its journal to the cluster state and the
+//   corrective QueueOp.DELETIONs do not fit on a near-full journal, conform
+//   rolls over once.  Rollover compacts away every extra queue, so no
+//   corrective DELETION is written.
+//
+// Testing:
+//   Corrective QueueOp.DELETION during conform causes rollover
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("CONFORM EXTRA QUEUE CAUSES ROLLOVER");
+
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
+
+    const char k_FILE_STORE_LOCATION[] = "./test-cluster123-4";
+
+    const bsls::Types::Uint64 k_MAX_JOURNAL = 8 * 1024;
+
+    const bsls::Types::Uint64 k_REQUESTED_JOURNAL_SPACE =
+        static_cast<bsls::Types::Uint64>(
+            mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE) *
+        (1 + 2 + 16);
+
+    Tester           tester(k_FILE_STORE_LOCATION, k_MAX_JOURNAL);
+    mqbs::FileStore& fs = tester.fileStore();
+    tester.dispatcher().setEnqueueOnly(true);
+
+    const unsigned int k_OLD_LEASE = 1;
+
+    // --- Phase 1: build a near-full journal containing queues 'extraQ' and
+    // 'extraQ2'.
+    int rc = fs.open(0, k_OLD_LEASE);
+    BMQTST_ASSERT_EQ(0, rc);
+    BMQTST_ASSERT_EQ(true, fs.isOpen());
+
+    fs.setActivePrimary(tester.node(), k_OLD_LEASE);
+
+    const bmqt::Uri        queueUri("bmq://si.amw.bmq.stats/extraQ",
+                             bmqtst::TestHelperUtil::allocator());
+    const mqbu::StorageKey queueKey(mqbu::StorageKey::BinaryRepresentation(),
+                                    "ABCDE");
+    mqbs::DataStoreRecordHandle queueHandle;
+    BMQTST_ASSERT_EQ(
+        0,
+        fs.writeQueueCreationRecord(
+            &queueHandle,
+            queueUri,
+            queueKey,
+            AppInfos(),
+            bdlt::EpochUtil::convertToTimeT64(bdlt::CurrentTime::utc()),
+            true));  // isNewQueue
+
+    // A second extra queue: both extra queues are compacted away together by
+    // the single rollover, so neither yields a corrective DELETION.
+    const bmqt::Uri        queueUri2("bmq://si.amw.bmq.stats/extraQ2",
+                              bmqtst::TestHelperUtil::allocator());
+    const mqbu::StorageKey queueKey2(mqbu::StorageKey::BinaryRepresentation(),
+                                     "FGHIJ");
+    mqbs::DataStoreRecordHandle queueHandle2;
+    BMQTST_ASSERT_EQ(
+        0,
+        fs.writeQueueCreationRecord(
+            &queueHandle2,
+            queueUri2,
+            queueKey2,
+            AppInfos(),
+            bdlt::EpochUtil::convertToTimeT64(bdlt::CurrentTime::utc()),
+            true));  // isNewQueue
+
+    mqbs::FileStoreSet fileSet(bmqtst::TestHelperUtil::allocator());
+    fs.loadCurrentFiles(&fileSet);
+    const bsl::string journalFileBefore(fileSet.journalFile(),
+                                        bmqtst::TestHelperUtil::allocator());
+
+    // Fill with message records until the journal's near-full.
+    const bsls::Types::Uint64 k_FILL_UNTIL_POS = k_MAX_JOURNAL -
+                                                 k_REQUESTED_JOURNAL_SPACE;
+
+    bsl::size_t guard = 0;
+    while (true) {
+        BSLS_ASSERT_OPT(++guard < 100000);
+        fs.loadCurrentFiles(&fileSet);
+        if (fileSet.journalFileSize() >= k_FILL_UNTIL_POS) {
+            break;
+        }
+
+        mqbs::DataStoreRecordHandle msgHandle;
+        bmqt::MessageGUID           guid;
+        mqbu::MessageGUIDUtil::generateGUID(&guid);
+
+        bsl::shared_ptr<bdlbb::Blob> appData;
+        appData.createInplace(bmqtst::TestHelperUtil::allocator(),
+                              &tester.bufferFactory(),
+                              bmqtst::TestHelperUtil::allocator());
+        bdlbb::BlobUtil::append(appData.get(), "x", 1);
+        bsl::shared_ptr<bdlbb::Blob> options;
+
+        mqbi::StorageMessageAttributes attributes(
+            bdlt::EpochUtil::convertToTimeT64(bdlt::CurrentTime::utc()),
+            1,  // refCount
+            static_cast<unsigned int>(appData->length()),
+            bmqp::MessagePropertiesInfo(),
+            bmqt::CompressionAlgorithmType::e_NONE,
+            0U);  // crc32c
+
+        rc = fs.writeMessageRecord(&attributes,
+                                   &msgHandle,
+                                   guid,
+                                   appData,
+                                   options,
+                                   queueKey);
+        BMQTST_ASSERT_EQ(0, rc);
+        if (0 != rc) {
+            fs.close();
+            return;  // RETURN
+        }
+    }
+
+    // Phase 1 must not have rolled over: same journal file, near-full.
+    fs.loadCurrentFiles(&fileSet);
+    BMQTST_ASSERT_EQ(journalFileBefore, fileSet.journalFile());
+    BMQTST_ASSERT_GE(fileSet.journalFileSize(), k_FILL_UNTIL_POS);
+    const bsls::Types::Uint64 nearFullPos = fileSet.journalFileSize();
+
+    rc = fs.close();
+    BMQTST_ASSERT_EQ(0, rc);
+    BMQTST_ASSERT_EQ(false, fs.isOpen());
+
+    // --- Phase 2: reopen as primary with an empty cluster state, so both
+    // 'extraQ' and 'extraQ2' are extra queues.  The corrective DELETIONs do
+    // not fit on the near-full journal, so conform rolls over once.  Rollover
+    // compacts away both extra queues (their records are never outstanding),
+    // so NO corrective DELETION is written.
+    const unsigned int                     k_NEW_LEASE = 2;
+    mqbs::DataStoreConfig::QueueKeyInfoMap clusterState(
+        bmqtst::TestHelperUtil::allocator());
+    BMQTST_ASSERT_EQ(0, fs.open(&clusterState, k_NEW_LEASE));
+    BMQTST_ASSERT_EQ(true, fs.isOpen());
+
+    fs.loadCurrentFiles(&fileSet);
+
+    // Conform rolled the journal over to a fresh, smaller file.
+    BMQTST_ASSERT_NE(journalFileBefore, fileSet.journalFile());
+    BMQTST_ASSERT_LT(fileSet.journalFileSize(), nearFullPos);
+    BMQTST_ASSERT_LT(fileSet.journalFileSize(), k_FILL_UNTIL_POS);
+
+    // The rollover produced a well-formed new journal: it begins with an
+    // e_REGULAR sync point.
+    BMQTST_ASSERT(journalHasSyncPoint(fileSet.journalFile(),
+                                      mqbs::SyncPointType::e_REGULAR));
+
+    // The extra queues were compacted away by the rollover, so no corrective
+    // QueueOp.DELETION was written.
+    BMQTST_ASSERT_EQ(0, journalDeletionCount(fileSet.journalFile()));
+
+    // The rollover sync point is stamped under the NEW lease at (2, 1), so the
+    // write head reflects the new lease.
+    BMQTST_ASSERT_EQ(k_NEW_LEASE, fs.writeHeadLeaseId());
+    BMQTST_ASSERT_EQ(1ULL, fs.writeHeadSeqNum());
 
     rc = fs.close();
     BMQTST_ASSERT_EQ(0, rc);
@@ -1557,6 +1887,8 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 8: test8_conformExtraQueueCausesRollover(); break;
+    case 7: test7_conformExtraQueueWithoutRollover(); break;
     case 6: test6_leaseTransitionWithoutSeal(); break;
     case 5: test5_writeHeadFollowsAppliedLease(); break;
     case 4: test4_recoverMessagesAcrossLeaseIds(); break;
