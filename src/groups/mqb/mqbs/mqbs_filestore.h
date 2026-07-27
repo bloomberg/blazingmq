@@ -459,14 +459,16 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     int openInNonRecoveryMode();
 
     /// Open this instance in recovery mode using the specified
-    /// `queueKeyInfoMap`.  Return zero on success and a non-zero value
-    /// otherwise.  Note that return value of `1` indicates no files were
-    /// found to recover messages from.  All other failure conditions should
-    /// be treated as fatal.  Also note that file store will attempt to
-    /// recover any outstanding messages from the files found at the
-    /// location indicated by the configuration of this instance.
+    /// `queueKeyInfoMap`.  The specified `primaryLeaseId` is the leaseId of
+    /// current primary.  Return zero on success and a non-zero value
+    /// otherwise.  Note that return value of `1` indicates no files were found
+    /// to recover messages from.  All other failure conditions should be
+    /// treated as fatal.  Also note that file store will attempt to recover
+    /// any outstanding messages from the files found at the location indicated
+    /// by the configuration of this instance. `queueKeyInfoMap`.
     int openInRecoveryMode(bsl::ostream&    errorDescription,
-                           QueueKeyInfoMap* queueKeyInfoMap);
+                           QueueKeyInfoMap* queueKeyInfoMap,
+                           unsigned int     primaryLeaseId);
 
     /// Make two passes over the journal file iterator `jit` in reverse
     /// iteration.
@@ -795,8 +797,10 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     // MANIPULATORS
 
     /// Open this instance using the optionally specified `queueKeyInfoMap`.
+    /// The specified `primaryLeaseId` is the leaseId of current primary.
     /// Return zero on success, non-zero value otherwise.
-    int open(QueueKeyInfoMap* queueKeyInfoMap) BSLS_KEYWORD_OVERRIDE;
+    int open(QueueKeyInfoMap* queueKeyInfoMap,
+             unsigned int     primaryLeaseId) BSLS_KEYWORD_OVERRIDE;
 
     /// Close this instance.  If the optional `flush` flag is true, flush
     /// the data store to disk.  If the optional `archive` flag is true,
