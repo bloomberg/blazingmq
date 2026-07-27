@@ -15,33 +15,23 @@
 
 #include <bmqc_monitoredqueue_bdlccfixedqueue.h>
 
-#include <bmqu_memoutstream.h>
-#include <bmqu_printutil.h>
-
 // BDE
-#include <bdlcc_objectpool.h>
 #include <bdlf_bind.h>
 #include <bdlmt_threadpool.h>
 #include <bdlt_timeunitratio.h>
-#include <bsl_functional.h>
 #include <bsl_iostream.h>
 #include <bsl_limits.h>
-#include <bsl_string.h>
 #include <bsla_annotations.h>
-#include <bslmt_semaphore.h>
+#include <bslmt_barrier.h>
+#include <bslmt_latch.h>
 #include <bslmt_threadattributes.h>
-#include <bslmt_threadutil.h>
 #include <bsls_timeinterval.h>
 #include <bsls_timeutil.h>
 #include <bsls_types.h>
 
 // TEST DRIVER
+#include <bmqtst_table.h>
 #include <bmqtst_testhelper.h>
-
-// BENCHMARKING LIBRARY
-#ifdef BMQTST_BENCHMARK_ENABLED
-#include <benchmark/benchmark.h>
-#endif
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -53,69 +43,156 @@ using namespace bsl;
 
 namespace {
 
-const int           k_BUSY_WORK        = 3;
-static unsigned int s_antiOptimization = 0;
+/// Value pushed onto the queue for each measured element.
+const int k_ITEM = 1;
 
-static inline void busyWork(int load)
-{
-    int j = 1;
-    for (int i = 0; i < load; ++i) {
-        j = j * 3 % 7;
-    }
-    s_antiOptimization += j;
-}
+/// Sentinel value pushed after all producers are done, signaling the
+/// consumer thread to stop.
+const int k_SENTINEL = 0;
 
-struct PerformanceTestObject {
-    int d_value;
-};
-
-typedef bdlcc::ObjectPool<PerformanceTestObject> PerformanceTestObjectPool;
-
-typedef bmqc::MonitoredQueue<bdlcc::FixedQueue<PerformanceTestObject*> >
-    PerformanceTestObjectQueue;
-
+/// Wait on the specified `startBarrier`, pop elements from the specified
+/// `queue` until the sentinel value is dequeued, then arrive at the
+/// specified `doneLatch`.
 template <class QUEUE>
-static void performanceTestPopper(QUEUE*                     queue,
-                                  PerformanceTestObjectPool* pool)
+static void queuePopper(QUEUE*          queue,
+                        bslmt::Barrier* startBarrier,
+                        bslmt::Latch*   doneLatch)
 {
-    while (true) {
-        PerformanceTestObject* obj = 0;
-        queue->popFront(&obj);
+    startBarrier->wait();
 
-        if (!obj) {
+    while (true) {
+        int value = k_ITEM;
+        queue->popFront(&value);
+
+        if (value == k_SENTINEL) {
             break;  // BREAK
         }
-
-        busyWork(k_BUSY_WORK);
-        pool->releaseObject(obj);
     }
+
+    doneLatch->arrive();
 }
 
+/// Wait on the specified `startBarrier`, push the specified `iterations`
+/// number of elements onto the specified `queue`, then arrive at the
+/// specified `doneLatch`.
 template <class QUEUE>
-static void performanceTestPusher(int                        iterations,
-                                  QUEUE*                     queue,
-                                  PerformanceTestObjectPool* pool,
-                                  bslmt::Semaphore*          sem)
+static void queuePusher(int             iterations,
+                        QUEUE*          queue,
+                        bslmt::Barrier* startBarrier,
+                        bslmt::Latch*   doneLatch)
 {
+    startBarrier->wait();
+
     for (int i = 0; i < iterations; ++i) {
-        PerformanceTestObject* obj = pool->getObject();
-        obj->d_value               = 0;
-        queue->pushBack(obj);
+        queue->pushBack(k_ITEM);
     }
 
-    sem->post();
+    doneLatch->arrive();
 }
 
-static void printProcessedItems(int numItems, bsls::Types::Int64 elapsedTime)
+/// Append a row to the specified `table` reporting that a queue named
+/// `queueName` driven by `numPushers` producer threads processed
+/// `numItems` elements in `elapsedTime` nanoseconds.
+static void addResult(bmqtst::Table*     table,
+                      const char*        queueName,
+                      int                numPushers,
+                      int                numItems,
+                      bsls::Types::Int64 elapsedTime)
 {
     const double numSeconds = static_cast<double>(elapsedTime) / 1000000000LL;
-    const bsls::Types::Int64 itemsPerSec = static_cast<bsls::Types::Int64>(
+    const bsls::Types::Uint64 itemsPerSec = static_cast<bsls::Types::Uint64>(
         numItems / numSeconds);
 
-    bsl::cout << "Processed " << numItems << " items in "
-              << bmqu::PrintUtil::prettyTimeInterval(elapsedTime) << ". "
-              << bmqu::PrintUtil::prettyNumber(itemsPerSec) << "/s"
-              << bsl::endl;
+    table->column("Queue").insertValue(queueName);
+    table->column("Pushers").insertValue(
+        static_cast<bsls::Types::Uint64>(numPushers));
+    table->column("Items").insertValue(
+        static_cast<bsls::Types::Uint64>(numItems));
+    table->column("Time (ns)")
+        .insertValue(static_cast<bsls::Types::Uint64>(elapsedTime));
+    table->column("Per op (ns)")
+        .insertValue(static_cast<bsls::Types::Uint64>(elapsedTime / numItems));
+    table->column("Items/s").insertValue(itemsPerSec);
+}
+
+/// @brief Measure concurrent push/pop throughput of a queue and record it.
+///
+/// Push `numIterations` elements onto `queue` using `numPushers` producer
+/// threads, all drained by a single consumer thread, and append the measured
+/// results to `table`.  A synchronous warmup, whose cost is not measured,
+/// fills and drains the queue first so that the measured round is not skewed
+/// by the underlying queue's internal allocations or cold caches.
+///
+/// @param table         Table to which the measured row is appended.
+/// @param queueName     Display name of the queue under test.
+/// @param queue         Queue to exercise; empty on entry and on return.
+/// @param queueSize     Working size used to size the warmup fill/drain.
+/// @param numIterations Total number of elements to push in the measured run.
+/// @param numPushers    Number of concurrent producer threads.
+template <class QUEUE>
+static void runPerformanceTest(bmqtst::Table* table,
+                               const char*    queueName,
+                               QUEUE*         queue,
+                               int            queueSize,
+                               int            numIterations,
+                               int            numPushers)
+{
+    // Warmup: fill the queue to its working size then drain it, so that the
+    // underlying queue's internal structures are allocated and the caches are
+    // warm before the measured round.  This leaves the queue empty.
+    for (int i = 0; i < queueSize; ++i) {
+        queue->pushBack(k_ITEM);
+    }
+    for (int i = 0; i < queueSize; ++i) {
+        int value = k_ITEM;
+        queue->popFront(&value);
+    }
+
+    bdlmt::ThreadPool threadPool(
+        bslmt::ThreadAttributes(),        // default
+        numPushers + 1,                   // minThreads (pushers + popper)
+        numPushers + 1,                   // maxThreads
+        bsl::numeric_limits<int>::max(),  // maxIdleTime
+        bmqtst::TestHelperUtil::allocator());
+    BSLS_ASSERT_OPT(threadPool.start() == 0);
+
+    // The popper, all pushers and this thread rendezvous on the barrier so
+    // that the timing below excludes thread startup latency and every worker
+    // begins at the same instant.
+    bslmt::Barrier startBarrier(numPushers + 2);
+
+    bslmt::Latch popperDone(1);
+    threadPool.enqueueJob(
+        bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
+                              &queuePopper<QUEUE>,
+                              queue,
+                              &startBarrier,
+                              &popperDone));
+
+    bslmt::Latch pushersDone(numPushers);
+
+    for (int i = 0; i < numPushers; ++i) {
+        threadPool.enqueueJob(
+            bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
+                                  &queuePusher<QUEUE>,
+                                  numIterations / numPushers,
+                                  queue,
+                                  &startBarrier,
+                                  &pushersDone));
+    }
+
+    startBarrier.wait();
+    const bsls::Types::Int64 startTime = bsls::TimeUtil::getTimer();
+
+    pushersDone.wait();
+
+    queue->pushBack(k_SENTINEL);
+
+    popperDone.wait();
+
+    const bsls::Types::Int64 elapsed = bsls::TimeUtil::getTimer() - startTime;
+
+    addResult(table, queueName, numPushers, numIterations, elapsed);
 }
 
 }  // Close anonymous namespace
@@ -125,7 +202,7 @@ static void printProcessedItems(int numItems, bsls::Types::Int64 elapsedTime)
 namespace BloombergLP {
 namespace bmqc {
 
-template class MonitoredQueue<bdlcc::FixedQueue<PerformanceTestObject*> >;
+template class MonitoredQueue<bdlcc::FixedQueue<int> >;
 
 }  // close package namespace
 }  // close enterprise namespace
@@ -343,19 +420,20 @@ static void test2_MonitoredQueue_reset()
     BMQTST_ASSERT_EQ(queue.state(), bmqc::MonitoredQueueState::e_NORMAL);
 }
 
-BSLA_MAYBE_UNUSED
-static void testN1_MonitoredQueue_performance()
+static void testN1_performance()
 // ------------------------------------------------------------------------
-// MONITORED QUEUE - PERFORMANCE TEST
+// PERFORMANCE TEST
 //
 // Concerns:
-//  a) Check the overhead of the MonitoredQueue over a
-//     bdlcc::Queue
+//  a) Check the overhead of the 'bmqc::MonitoredQueue' over a raw
+//     'bdlcc::FixedQueue' for concurrent push/pop, varying the number of
+//     producer threads.
 //
 // Plan:
-//  1) Create a MonitoredQueue and enqueue events as quickly as
-//     possible on it.  See how many we can process in a few seconds.
-//  2) Do the same with a bdlcc::Queue
+//  1) For each queue type and each producer-thread count, push a fixed
+//     number of elements as quickly as possible while a single consumer
+//     drains the queue, and measure the elapsed time.
+//  2) Tabulate the results.
 //
 // Testing:
 //  Performance
@@ -363,458 +441,47 @@ static void testN1_MonitoredQueue_performance()
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
 
-    bmqtst::TestHelper::printTestName("MONITORED QUEUE "
-                                      "- PERFORMANCE TEST");
+    bmqtst::TestHelper::printTestName("PERFORMANCE TEST");
 
     // CONSTANTS
-    const int k_NUM_ITERATIONS = 10 * 1000 * 1000;  // 10 M
-    const int k_QUEUE_SIZE     = 250 * 1000;        // 250K
-    const int k_NUM_PUSHERS    = 5;
+    const int k_NUM_ITERATIONS  = 10 * 1000 * 1000;  // 10 M
+    const int k_QUEUE_SIZE      = 250 * 1000;        // 250K
+    const int k_PUSHERS[]       = {1, 5};
+    const int k_NUM_PUSHER_SETS = sizeof(k_PUSHERS) / sizeof(k_PUSHERS[0]);
 
-    PRINT("===================");
-    PRINT("MonitoredFixedQueue");
-    PRINT("===================");
-    PerformanceTestObjectPool  objectPool1(-1,
-                                          bmqtst::TestHelperUtil::allocator());
-    PerformanceTestObjectQueue monitoredQueue(
-        k_QUEUE_SIZE,
-        bmqtst::TestHelperUtil::allocator());
+    typedef bmqc::MonitoredQueue<bdlcc::FixedQueue<int> > MonitoredIntQueue;
+    typedef bdlcc::FixedQueue<int>                        FixedIntQueue;
 
-    // #1
-    {
-        bdlmt::ThreadPool threadPool(
-            bslmt::ThreadAttributes(),        // default
-            1,                                // minThreads
-            1,                                // maxThreads
-            bsl::numeric_limits<int>::max(),  // maxIdleTime
-            bmqtst::TestHelperUtil::allocator());
-        BSLS_ASSERT_OPT(threadPool.start() == 0);
+    bmqtst::Table table(bmqtst::TestHelperUtil::allocator());
 
-        threadPool.enqueueJob(bdlf::BindUtil::bindS(
-            bmqtst::TestHelperUtil::allocator(),
-            &performanceTestPopper<PerformanceTestObjectQueue>,
-            &monitoredQueue,
-            &objectPool1));
+    for (int i = 0; i < k_NUM_PUSHER_SETS; ++i) {
+        const int numPushers = k_PUSHERS[i];
 
-        bsls::Types::Int64 startTime = bsls::TimeUtil::getTimer();
-        PRINT("Enqueuing " << k_NUM_ITERATIONS << " items.");
-        for (int i = 0; i < k_NUM_ITERATIONS; ++i) {
-            PerformanceTestObject* obj = objectPool1.getObject();
-            obj->d_value               = 0;
-            monitoredQueue.pushBack(obj);
+        {
+            MonitoredIntQueue queue(k_QUEUE_SIZE,
+                                    bmqtst::TestHelperUtil::allocator());
+            runPerformanceTest(&table,
+                               "bmqc::MonitoredQueue",
+                               &queue,
+                               k_QUEUE_SIZE,
+                               k_NUM_ITERATIONS,
+                               numPushers);
         }
-        monitoredQueue.pushBack(0);
-        PRINT("Enqueued " << k_NUM_ITERATIONS << " items.");
 
-        while (!monitoredQueue.isEmpty()) {
-            bslmt::ThreadUtil::yield();
+        {
+            FixedIntQueue queue(k_QUEUE_SIZE,
+                                bmqtst::TestHelperUtil::allocator());
+            runPerformanceTest(&table,
+                               "bdlcc::FixedQueue",
+                               &queue,
+                               k_QUEUE_SIZE,
+                               k_NUM_ITERATIONS,
+                               numPushers);
         }
-        bsls::Types::Int64 endTime = bsls::TimeUtil::getTimer();
-
-        printProcessedItems(k_NUM_ITERATIONS, endTime - startTime);
     }
 
-    // #2 .. using multiple producer threads
-    {
-        bdlmt::ThreadPool threadPool(
-            bslmt::ThreadAttributes(),        // default
-            k_NUM_PUSHERS + 1,                // minThreads
-            k_NUM_PUSHERS + 1,                // maxThreads
-            bsl::numeric_limits<int>::max(),  // maxIdleTime
-            bmqtst::TestHelperUtil::allocator());
-        BSLS_ASSERT_OPT(threadPool.start() == 0);
-
-        threadPool.enqueueJob(bdlf::BindUtil::bindS(
-            bmqtst::TestHelperUtil::allocator(),
-            &performanceTestPopper<PerformanceTestObjectQueue>,
-            &monitoredQueue,
-            &objectPool1));
-
-        bsls::Types::Int64 startTime = bsls::TimeUtil::getTimer();
-        PRINT("Enqueuing " << k_NUM_ITERATIONS << " items using "
-                           << k_NUM_PUSHERS << " threads.");
-
-        bslmt::Semaphore pushersDone;
-
-        for (int i = 0; i < k_NUM_PUSHERS; ++i) {
-            threadPool.enqueueJob(bdlf::BindUtil::bindS(
-                bmqtst::TestHelperUtil::allocator(),
-                &performanceTestPusher<PerformanceTestObjectQueue>,
-                k_NUM_ITERATIONS / k_NUM_PUSHERS,
-                &monitoredQueue,
-                &objectPool1,
-                &pushersDone));
-        }
-
-        for (int i = 0; i < k_NUM_PUSHERS; ++i) {
-            pushersDone.wait();
-        }
-
-        monitoredQueue.pushBack(0);
-        PRINT("Enqueued " << k_NUM_ITERATIONS << " items.");
-
-        while (!monitoredQueue.isEmpty()) {
-            bslmt::ThreadUtil::yield();
-        }
-
-        bsls::Types::Int64 endTime = bsls::TimeUtil::getTimer();
-
-        printProcessedItems(k_NUM_ITERATIONS, endTime - startTime);
-    }
-
-    PRINT("=================");
-    PRINT("bdlcc::FixedQueue");
-    PRINT("=================");
-
-    PerformanceTestObjectPool                         objectPool2(-1,
-                                          bmqtst::TestHelperUtil::allocator());
-    typedef bdlcc::FixedQueue<PerformanceTestObject*> UnmonitoredQueue;
-    UnmonitoredQueue queue(k_QUEUE_SIZE, bmqtst::TestHelperUtil::allocator());
-
-    // #1
-    {
-        bdlmt::ThreadPool threadPool(
-            bslmt::ThreadAttributes(),        // default
-            k_NUM_PUSHERS + 1,                // minThreads
-            k_NUM_PUSHERS + 1,                // maxThreads
-            bsl::numeric_limits<int>::max(),  // maxIdleTime
-            bmqtst::TestHelperUtil::allocator());
-        BSLS_ASSERT_OPT(threadPool.start() == 0);
-
-        threadPool.enqueueJob(
-            bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
-                                  &performanceTestPopper<UnmonitoredQueue>,
-                                  &queue,
-                                  &objectPool2));
-
-        PRINT("Enqueuing " << k_NUM_ITERATIONS << " items ...");
-        bsls::Types::Int64 startTime = bsls::TimeUtil::getTimer();
-        for (int i = 0; i < k_NUM_ITERATIONS; ++i) {
-            PerformanceTestObject* obj = objectPool2.getObject();
-            obj->d_value               = 0;
-            queue.pushBack(obj);
-        }
-        queue.pushBack(0);
-        PRINT("Enqueued " << k_NUM_ITERATIONS << " items.");
-
-        while (!queue.isEmpty()) {
-            bslmt::ThreadUtil::yield();
-        }
-        bsls::Types::Int64 endTime = bsls::TimeUtil::getTimer();
-
-        printProcessedItems(k_NUM_ITERATIONS, endTime - startTime);
-    }
-
-    // #2 .. again
-    {
-        bdlmt::ThreadPool threadPool(
-            bslmt::ThreadAttributes(),        // default
-            k_NUM_PUSHERS + 1,                // minThreads
-            k_NUM_PUSHERS + 1,                // maxThreads
-            bsl::numeric_limits<int>::max(),  // maxIdleTime
-            bmqtst::TestHelperUtil::allocator());
-        BSLS_ASSERT_OPT(threadPool.start() == 0);
-        threadPool.enqueueJob(
-            bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
-                                  &performanceTestPopper<UnmonitoredQueue>,
-                                  &queue,
-                                  &objectPool2));
-
-        PRINT("Enqueuing " << k_NUM_ITERATIONS << " items using "
-                           << k_NUM_PUSHERS << " threads.");
-
-        bslmt::Semaphore   pushersDone;
-        bsls::Types::Int64 startTime = bsls::TimeUtil::getTimer();
-
-        for (int i = 0; i < k_NUM_PUSHERS; ++i) {
-            threadPool.enqueueJob(
-                bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
-                                      &performanceTestPusher<UnmonitoredQueue>,
-                                      k_NUM_ITERATIONS / k_NUM_PUSHERS,
-                                      &queue,
-                                      &objectPool2,
-                                      &pushersDone));
-        }
-
-        for (int i = 0; i < k_NUM_PUSHERS; ++i) {
-            pushersDone.wait();
-        }
-
-        queue.pushBack(0);
-        PRINT("Enqueued " << k_NUM_ITERATIONS << " items.");
-
-        while (!queue.isEmpty()) {
-            bslmt::ThreadUtil::yield();
-        }
-        bsls::Types::Int64 endTime = bsls::TimeUtil::getTimer();
-
-        printProcessedItems(k_NUM_ITERATIONS, endTime - startTime);
-    }
-
-    PRINT("s_antiOptimization = " << s_antiOptimization);
+    table.print(bsl::cout);
 }
-
-#ifdef BMQTST_BENCHMARK_ENABLED
-static void
-testN1_MonitoredQueue_performance_GoogleBenchmark(benchmark::State& state)
-// ------------------------------------------------------------------------
-// MONITORED QUEUE - PERFORMANCE TEST
-//
-// Concerns:
-//  a) Check the overhead of the MonitoredQueue
-//
-// Plan:
-//  1) Create a MonitoredQueue and enqueue events as quickly as
-//     possible on it.  See how many we can process in a few seconds.
-//
-// Testing:
-//  Performance
-// ------------------------------------------------------------------------
-{
-    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
-
-    bmqtst::TestHelper::printTestName("MONITORED QUEUE "
-                                      "- PERFORMANCE TEST");
-
-    // CONSTANTS
-    const int k_NUM_ITERATIONS = 10 * 1000 * 1000;  // 10 M
-    const int k_QUEUE_SIZE     = 250 * 1000;        // 250K
-
-    PRINT("===================");
-    PRINT("MonitoredFixedQueue");
-    PRINT("===================");
-    PerformanceTestObjectPool  objectPool1(-1,
-                                          bmqtst::TestHelperUtil::allocator());
-    PerformanceTestObjectQueue monitoredQueue(
-        k_QUEUE_SIZE,
-        bmqtst::TestHelperUtil::allocator());
-
-    // #1
-    {
-        bdlmt::ThreadPool threadPool(
-            bslmt::ThreadAttributes(),        // default
-            1,                                // minThreads
-            1,                                // maxThreads
-            bsl::numeric_limits<int>::max(),  // maxIdleTime
-            bmqtst::TestHelperUtil::allocator());
-        BSLS_ASSERT_OPT(threadPool.start() == 0);
-
-        threadPool.enqueueJob(bdlf::BindUtil::bindS(
-            bmqtst::TestHelperUtil::allocator(),
-            &performanceTestPopper<PerformanceTestObjectQueue>,
-            &monitoredQueue,
-            &objectPool1));
-        for (auto _ : state) {
-            for (int i = 0; i < k_NUM_ITERATIONS; ++i) {
-                PerformanceTestObject* obj = objectPool1.getObject();
-                obj->d_value               = 0;
-                monitoredQueue.pushBack(obj);
-            }
-            monitoredQueue.pushBack(0);
-
-            while (!monitoredQueue.isEmpty()) {
-                bslmt::ThreadUtil::yield();
-            }
-        }
-    }
-}
-
-static void testN1_MonitoredQueueThreaded_performance_GoogleBenchmark(
-    benchmark::State& state)
-// ------------------------------------------------------------------------
-// MONITORED QUEUE - THREADED PERFORMANCE TEST
-//
-// Concerns:
-//  a) Check the overhead of the MonitoredQueue with multithreading
-//
-// Plan:
-//  1) Create a MonitoredQueue and enqueue events as quickly as
-//     possible on it.  See how many we can process in a few seconds.
-//
-// Testing:
-//  Performance
-// ------------------------------------------------------------------------
-{
-    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
-
-    bmqtst::TestHelper::printTestName("MONITORED QUEUE "
-                                      "- PERFORMANCE TEST");
-
-    // CONSTANTS
-    const int k_NUM_ITERATIONS = 10 * 1000 * 1000;  // 10 M
-    const int k_QUEUE_SIZE     = 250 * 1000;        // 250K
-    const int k_NUM_PUSHERS    = 5;
-
-    PerformanceTestObjectPool  objectPool1(-1,
-                                          bmqtst::TestHelperUtil::allocator());
-    PerformanceTestObjectQueue monitoredQueue(
-        k_QUEUE_SIZE,
-        bmqtst::TestHelperUtil::allocator());
-    // #2 .. using multiple producer threads
-    {
-        bdlmt::ThreadPool threadPool(
-            bslmt::ThreadAttributes(),        // default
-            k_NUM_PUSHERS + 1,                // minThreads
-            k_NUM_PUSHERS + 1,                // maxThreads
-            bsl::numeric_limits<int>::max(),  // maxIdleTime
-            bmqtst::TestHelperUtil::allocator());
-        BSLS_ASSERT_OPT(threadPool.start() == 0);
-
-        threadPool.enqueueJob(bdlf::BindUtil::bindS(
-            bmqtst::TestHelperUtil::allocator(),
-            &performanceTestPopper<PerformanceTestObjectQueue>,
-            &monitoredQueue,
-            &objectPool1));
-        for (auto _ : state) {
-            bslmt::Semaphore pushersDone;
-
-            for (int i = 0; i < k_NUM_PUSHERS; ++i) {
-                threadPool.enqueueJob(bdlf::BindUtil::bindS(
-                    bmqtst::TestHelperUtil::allocator(),
-                    &performanceTestPusher<PerformanceTestObjectQueue>,
-                    k_NUM_ITERATIONS / k_NUM_PUSHERS,
-                    &monitoredQueue,
-                    &objectPool1,
-                    &pushersDone));
-            }
-
-            for (int i = 0; i < k_NUM_PUSHERS; ++i) {
-                pushersDone.wait();
-            }
-
-            monitoredQueue.pushBack(0);
-
-            while (!monitoredQueue.isEmpty()) {
-                bslmt::ThreadUtil::yield();
-            }
-        }
-    }
-}
-
-static void
-testN1_bdlccFixedQueue_performance_GoogleBenchmark(benchmark::State& state)
-// ------------------------------------------------------------------------
-//  bdlcc::FIXED QUEUE - PERFORMANCE TEST
-//
-// Concerns:
-//  a) Check the overhead of the bdlcc::Queue
-//
-// Plan:
-//  1) Create a bdlcc::Queue and enqueue events as quickly as
-//     possible on it.  See how many we can process in a few seconds.
-//
-// Testing:
-//  Performance
-// ------------------------------------------------------------------------
-
-{
-    const int k_NUM_ITERATIONS = 10 * 1000 * 1000;  // 10 M
-    const int k_NUM_PUSHERS    = 5;
-    const int k_QUEUE_SIZE     = 250 * 1000;  // 250K
-    PRINT("=================");
-    PRINT("bdlcc::FixedQueue");
-    PRINT("=================");
-
-    PerformanceTestObjectPool                         objectPool2(-1,
-                                          bmqtst::TestHelperUtil::allocator());
-    typedef bdlcc::FixedQueue<PerformanceTestObject*> UnmonitoredQueue;
-    UnmonitoredQueue queue(k_QUEUE_SIZE, bmqtst::TestHelperUtil::allocator());
-
-    // #1
-    {
-        bdlmt::ThreadPool threadPool(
-            bslmt::ThreadAttributes(),        // default
-            k_NUM_PUSHERS + 1,                // minThreads
-            k_NUM_PUSHERS + 1,                // maxThreads
-            bsl::numeric_limits<int>::max(),  // maxIdleTime
-            bmqtst::TestHelperUtil::allocator());
-        BSLS_ASSERT_OPT(threadPool.start() == 0);
-
-        threadPool.enqueueJob(
-            bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
-                                  &performanceTestPopper<UnmonitoredQueue>,
-                                  &queue,
-                                  &objectPool2));
-
-        for (auto _ : state) {
-            for (int i = 0; i < k_NUM_ITERATIONS; ++i) {
-                PerformanceTestObject* obj = objectPool2.getObject();
-                obj->d_value               = 0;
-                queue.pushBack(obj);
-            }
-            queue.pushBack(0);
-
-            while (!queue.isEmpty()) {
-                bslmt::ThreadUtil::yield();
-            }
-        }
-    }
-}
-
-static void testN1_bdlccFixedQueueThreaded_performance_GoogleBenchmark(
-    benchmark::State& state)
-// ------------------------------------------------------------------------
-// bdlcc::FIXED QUEUE - THREADED PERFORMANCE TEST
-//
-// Concerns:
-//  a) Check the overhead of the bdlcc::Queue with multithreading
-//
-// Plan:
-//  1) Create a bdlcc::Queue and enqueue events as quickly as
-//     possible on it.  See how many we can process in a few seconds.
-//
-// Testing:
-//  Performance
-// ------------------------------------------------------------------------
-
-{
-    const int                 k_NUM_ITERATIONS = 10 * 1000 * 1000;  // 10 M
-    const int                 k_QUEUE_SIZE     = 250 * 1000;        // 250K
-    const int                 k_NUM_PUSHERS    = 5;
-    PerformanceTestObjectPool objectPool2(-1,
-                                          bmqtst::TestHelperUtil::allocator());
-    typedef bdlcc::FixedQueue<PerformanceTestObject*> UnmonitoredQueue;
-    UnmonitoredQueue queue(k_QUEUE_SIZE, bmqtst::TestHelperUtil::allocator());
-    // #2 .. again
-    {
-        bdlmt::ThreadPool threadPool(
-            bslmt::ThreadAttributes(),        // default
-            k_NUM_PUSHERS + 1,                // minThreads
-            k_NUM_PUSHERS + 1,                // maxThreads
-            bsl::numeric_limits<int>::max(),  // maxIdleTime
-            bmqtst::TestHelperUtil::allocator());
-        BSLS_ASSERT_OPT(threadPool.start() == 0);
-        threadPool.enqueueJob(
-            bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
-                                  &performanceTestPopper<UnmonitoredQueue>,
-                                  &queue,
-                                  &objectPool2));
-
-        bslmt::Semaphore pushersDone;
-        for (auto _ : state) {
-            for (int i = 0; i < k_NUM_PUSHERS; ++i) {
-                threadPool.enqueueJob(bdlf::BindUtil::bindS(
-                    bmqtst::TestHelperUtil::allocator(),
-                    &performanceTestPusher<UnmonitoredQueue>,
-                    k_NUM_ITERATIONS / k_NUM_PUSHERS,
-                    &queue,
-                    &objectPool2,
-                    &pushersDone));
-            }
-
-            for (int i = 0; i < k_NUM_PUSHERS; ++i) {
-                pushersDone.wait();
-            }
-
-            queue.pushBack(0);
-
-            while (!queue.isEmpty()) {
-                bslmt::ThreadUtil::yield();
-            }
-        }
-    }
-}
-#endif  // BMQTST_BENCHMARK_ENABLED
 
 //=============================================================================
 //                                MAIN PROGRAM
@@ -828,22 +495,7 @@ int main(int argc, char* argv[])
     case 0:
     case 2: test2_MonitoredQueue_reset(); break;
     case 1: test1_MonitoredQueue_breathingTest(); break;
-    case -1:
-#ifdef BMQTST_BENCHMARK_ENABLED
-        BENCHMARK(testN1_MonitoredQueue_performance_GoogleBenchmark)
-            ->Unit(benchmark::kMillisecond);
-        BENCHMARK(testN1_MonitoredQueueThreaded_performance_GoogleBenchmark)
-            ->Unit(benchmark::kMillisecond);
-        BENCHMARK(testN1_bdlccFixedQueue_performance_GoogleBenchmark)
-            ->Unit(benchmark::kMillisecond);
-        BENCHMARK(testN1_bdlccFixedQueueThreaded_performance_GoogleBenchmark)
-            ->Unit(benchmark::kMillisecond);
-        benchmark::Initialize(&argc, argv);
-        benchmark::RunSpecifiedBenchmarks();
-#else
-        testN1_MonitoredQueue_performance();
-#endif
-        break;
+    case -1: testN1_performance(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
         bmqtst::TestHelperUtil::testStatus() = -1;
