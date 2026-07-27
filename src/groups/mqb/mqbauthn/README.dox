@@ -1,0 +1,10 @@
+/**
+@dir mqbauthn
+
+@brief The `MQBAUTHN` (BlazingMQ Authentication) package provides broker
+authentication mechanisms.
+
+The `mqbauthn` package provides the broker's built-in authenticators, such as
+anonymous, basic username and password, and test authenticators, along with a
+controller that orchestrates authentication and a credential provider.
+*/
