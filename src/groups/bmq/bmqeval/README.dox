@@ -1,0 +1,11 @@
+/**
+@dir bmqeval
+
+@brief The `BMQEVAL` (BlazingMQ Expression Evaluator) package provides a
+mechanism for evaluating subscription expressions.
+
+The `bmqeval` package provides a mechanism for validating, compiling, and
+evaluating subscription expressions.  Such an expression is a simple logical
+expression over a message's named properties, evaluated against each message to
+determine whether it should be delivered to a consumer.
+*/
