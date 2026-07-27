@@ -1,0 +1,10 @@
+/**
+@dir mqbevt
+
+@brief The `MQBEVT` (BlazingMQ Broker Events) package provides broker
+dispatcher event types.
+
+The `mqbevt` package provides implementations of the `mqbi::DispatcherEvent`
+interface, one for each type of event dispatched within the broker, such as
+PUT, PUSH, ACK, CONFIRM, REJECT, and STORAGE events.
+*/
