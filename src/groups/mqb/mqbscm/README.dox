@@ -1,0 +1,11 @@
+/**
+@dir mqbscm
+
+@brief The `MQBSCM` (BlazingMQ Source Control Management) package provides
+versioning information for `mqb` library components.
+
+This package provides versioning information that is incorporated into every
+release of the `mqb` package group library. This versioning information is in
+turn available to all clients of `mqb` both at run time and by inspection of
+appropriate .o files.
+*/

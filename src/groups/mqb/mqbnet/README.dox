@@ -1,0 +1,8 @@
+/**
+@dir mqbnet
+
+@brief The `MQBNET` (BlazingMQ Broker Transport) package provides network
+transport components.
+
+This package provides transport components used by the broker.
+*/

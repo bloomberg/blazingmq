@@ -1,0 +1,9 @@
+/**
+@dir mqbsl
+
+@brief The `MQBSL` (BlazingMQ Broker Storage Ledger) package provides storage
+ledger functionalities.
+
+[!INTERNAL!] This package provides implementations to the log and ledger
+interfaces in the storage layer.
+*/

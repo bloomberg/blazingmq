@@ -1,0 +1,9 @@
+/**
+@dir mqbsi
+
+@brief The `MQBSI` (BlazingMQ Broker Storage Interface) package provides
+storage layer interfaces.
+
+[!INTERNAL!] This package provides interfaces for log, ledger and partition in
+the storage layer.
+*/

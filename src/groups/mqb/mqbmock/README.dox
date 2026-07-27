@@ -1,0 +1,7 @@
+/**
+@dir mqbmock
+
+@brief The `MQBMOCK` (BlazingMQ Mocks) package provides mock components.
+
+This package provides mocks of components.
+*/
