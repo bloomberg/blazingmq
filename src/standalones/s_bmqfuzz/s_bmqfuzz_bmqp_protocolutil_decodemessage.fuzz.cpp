@@ -21,11 +21,13 @@
 #include <bmqu_memoutstream.h>
 #include <bslma_default.h>
 
+#include <bsl_limits.h>
+
 using namespace BloombergLP;
 
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 {
-    if (size < 2) {
+    if (size < 2 || size > bsl::numeric_limits<int>::max()) {
         return 0;
     }
 
