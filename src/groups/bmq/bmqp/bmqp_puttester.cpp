@@ -156,6 +156,7 @@ void PutTester::populateBlob(bdlbb::Blob*              blob,
                                               bufferFactory,
                                               cat,
                                               compressed,
+                                              0,  // no output cap
                                               &error,
                                               allocator);
                 BSLA_MAYBE_UNUSED int compare =

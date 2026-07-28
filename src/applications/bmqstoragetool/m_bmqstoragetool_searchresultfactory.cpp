@@ -70,11 +70,10 @@ bsl::shared_ptr<SearchResult> SearchResultFactory::createSearchResult(
             allocator,
             printer,
             params->d_processRecordTypes,
-            details,
             params->d_queueMap,
             payloadDumper);
     }
-    else if (details) {
+    else if (details || params->d_printMode != Parameters::e_HUMAN) {
         searchResult = bsl::allocate_shared<SearchDetailResult>(
             allocator,
             printer,

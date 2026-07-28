@@ -311,9 +311,6 @@ void CommandLineArguments::validateJournalModeArgs(bsl::ostream&     stream,
     if (d_dataFile.empty() && d_dumpPayload) {
         stream << "Can't dump payload, because data file is not specified\n";
     }
-    if (d_dumpPayload && d_printMode != CommandLineArguments::k_HUMAN_MODE) {
-        stream << "Payload dumping is not supported for Json printing mode\n";
-    }
     if (d_cslFile.empty() && !d_queueName.empty()) {
         stream << "Can't search by queue name, because csl file is not "
                   "specified\n";
@@ -610,10 +607,6 @@ Parameters::Parameters(const CommandLineArguments& arguments,
     else if (arguments.d_printMode == CommandLineArguments::k_JSON_LINE_MODE) {
         d_printMode = e_JSON_LINE;
     }
-    if (d_printMode != e_HUMAN && d_dumpPayload) {
-        BSLS_ASSERT(false && "Payload dumping is not supported for Json mode");
-    }
-
     // Set record types to process
     if (d_cslMode) {
         if (arguments.d_cslRecordType.empty()) {

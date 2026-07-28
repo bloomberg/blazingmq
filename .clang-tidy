@@ -1,9 +1,10 @@
-Checks: bugprone-*,cert-*,clang-analyzer-*,clang-diagnostic-*,cppcoreguidelines-*,modernize-make-*,performance-*,modernize-use-emplace,-bugprone-easily-swappable-parameters,-cppcoreguidelines-avoid-const-or-ref-data-members,-cppcoreguidelines-owning-memory,-cppcoreguidelines-use-default-member-init,-,-performance-enum-size
+Checks: bugprone-*,cert-*,clang-analyzer-*,clang-diagnostic-*,cppcoreguidelines-*,modernize-make-*,performance-*,modernize-use-emplace,-bugprone-easily-swappable-parameters,-cppcoreguidelines-avoid-const-or-ref-data-members,-cppcoreguidelines-owning-memory,-cppcoreguidelines-use-default-member-init,-,-performance-enum-size,-performance-noexcept-move-constructor,-cppcoreguidelines-noexcept-move-operations
 CheckOptions:
   cppcoreguidelines-special-member-functions.AllowSoleDefaultDtor: true
   bugprone-string-constructor.StringNames: ::bsl::basic_string; ::std::basic_string; ::std::basic_string_view
   bugprone-optional-value-conversion.OptionalTypes: ::bsl::optional; ::BloombergLP::bdlb::NullableValue; ::std::optional; ::absl::optional; ::boost::optional
-  bugprone-capturing-this-in-member-variable.FunctionWrapperTypes: ::bsl::function; ::bsl::move_only_function; ::std::function; ::std::move_only_function;
+  bugprone-capturing-this-in-member-variable.FunctionWrapperTypes:
+    ::bsl::function; ::bsl::move_only_function; ::std::function; ::std::move_only_function;
     ::boost::function
   modernize-make-shared.MakeSmartPtrFunction: bsl::make_shared
   modernize-make-shared.MakeSmartPtrFunctionHeader: bsl_memory.h
@@ -12,7 +13,8 @@ CheckOptions:
   modernize-use-emplace.ContainersWithPushBack: ::bsl::vector; ::bsl::list; ::bsl::deque; ::std::vector; ::std::list; ::std::deque
   modernize-use-emplace.ContainersWithPush: ::bsl::stack; ::bsl::queue; ::bsl::priority_queue; ::std::stack; ::std::queue; ::std::priority_queue
   modernize-use-emplace.ContainersWithPushFront: ::bsl::forward_list; ::bsl::list; ::bsl::deque; ::std::forward_list; ::std::list; ::std::deque
-  modernize-use-emplace.SmartPointers: ::bsl::shared_ptr; ::bsl::unique_ptr; ::bsl::auto_ptr; ::bsl::weak_ptr; ::std::shared_ptr; ::std::unique_ptr; ::std::auto_ptr;
+  modernize-use-emplace.SmartPointers:
+    ::bsl::shared_ptr; ::bsl::unique_ptr; ::bsl::auto_ptr; ::bsl::weak_ptr; ::std::shared_ptr; ::std::unique_ptr; ::std::auto_ptr;
     ::std::weak_ptr
   modernize-use-emplace.TupleMakeFunctions: ::bsl::make_pair; ::bsl::make_tuple; ::std::make_pair; ::std::make_tuple
   modernize-use-emplace.TupleTypes: ::bsl::pair; ::bsl::tuple; ::std::pair; ::std::tuple
@@ -21,7 +23,7 @@ CheckOptions:
   performance-inefficient-vector-operation.VectorLikeClasses: ::bsl::vector; ::std::vector
   modernize-use-override.OverrideSpelling: BSLS_KEYWORD_OVERRIDE
   modernize-use-noexcept.ReplacementString: BSLS_KEYWORD_NOEXCEPT
-WarningsAsErrors: '*'
+WarningsAsErrors: "*"
 ExtraArgs:
-- -Wno-unknown-warning-option
+  - -Wno-unknown-warning-option
 HeaderFilterRegex: .*,.*,.*

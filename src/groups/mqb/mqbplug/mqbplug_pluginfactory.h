@@ -26,6 +26,9 @@
 
 // MQB
 
+#include <bsl_cstddef.h>
+#include <bsl_optional.h>
+
 namespace BloombergLP {
 namespace mqbplug {
 
@@ -42,6 +45,18 @@ class PluginFactory {
     virtual ~PluginFactory();
 };
 
+// =======================
+// class PluginFactoryUtil
+// =======================
+
+/// Base class solely used for having a common type for the factories.
+struct PluginFactoryUtil {
+    /// Search a range for a PluginFactory that has the subtype t_ITERATOR.
+    /// Return `end` if no such value was found.
+    template <typename t_TARGET, typename t_ITERATOR>
+    static bsl::optional<t_TARGET*> findType(t_ITERATOR begin, t_ITERATOR end);
+};
+
 // ============================================================================
 //                             INLINE DEFINITIONS
 // ============================================================================
@@ -54,6 +69,23 @@ class PluginFactory {
 inline PluginFactory::PluginFactory()
 {
     // NOTHING
+}
+
+// -----------------------
+// class PluginFactoryUtil
+// -----------------------
+
+template <typename t_TARGET, typename t_ITERATOR>
+bsl::optional<t_TARGET*> PluginFactoryUtil::findType(t_ITERATOR begin,
+                                                     t_ITERATOR end)
+{
+    for (t_ITERATOR factoryIt = begin; factoryIt != end; ++factoryIt) {
+        t_TARGET* candidateFactory = dynamic_cast<t_TARGET*>(*factoryIt);
+        if (candidateFactory) {
+            return bsl::make_optional(candidateFactory);
+        }
+    }
+    return bsl::nullopt;
 }
 
 }  // close package namespace

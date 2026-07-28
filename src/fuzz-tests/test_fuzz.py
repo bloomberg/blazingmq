@@ -23,6 +23,7 @@ to the broker to verify it handles malformed input without crashing.
 import pytest
 
 from blazingmq.dev import fuzztest
+from blazingmq.dev.fuzztest.put_message_properties import fuzz_properties
 
 REQUESTS = [
     "authentication",
@@ -42,3 +43,8 @@ REQUESTS = [
 @pytest.mark.parametrize("request_name", REQUESTS)
 def test_fuzz_request(broker, request_name):
     fuzztest.fuzz(broker.host, broker.port, request=request_name)
+
+
+@pytest.mark.fuzztest
+def test_fuzz_properties(broker):
+    fuzz_properties(broker.host, broker.port)

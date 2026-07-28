@@ -288,10 +288,9 @@ int ClusterStateLedgerUtil::validateLog(mqbsi::Log::Offset* offset,
         }
 
         // Validate CRC32-C on header + payload
-        const bsls::Types::Int64 recordSize =
-            ClusterStateLedgerUtil::recordSize(*recHeader);
+        const int recordSize = ClusterStateLedgerUtil::recordSize(*recHeader);
         bdlbb::Blob blob;
-        rc = log->alias(&blob, static_cast<int>(recordSize), currOffset);
+        rc = log->alias(&blob, recordSize, currOffset);
         if (rc != 0) {
             BALL_LOG_ERROR << "Unable to read header and record in log '"
                            << log->logConfig().location() << "' at offset "

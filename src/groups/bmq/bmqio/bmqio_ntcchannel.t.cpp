@@ -88,7 +88,7 @@ void executeOnClosedChannelFunc(bmqio::NtcChannel*              channel,
     BSLA_MAYBE_UNUSED ntsa::Endpoint peerEndpoint = channel->peerEndpoint();
     BSLA_MAYBE_UNUSED ntsa::Endpoint sourceEndpoint =
         channel->sourceEndpoint();
-    BSLA_MAYBE_UNUSED const bsl::string& peerUri     = channel->peerUri();
+    BSLA_MAYBE_UNUSED bsl::string peerUri            = channel->peerUri();
     BSLA_MAYBE_UNUSED bmqvt::PropertyBag& properties = channel->properties();
 
     channel->setChannelId(id);

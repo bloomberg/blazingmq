@@ -261,9 +261,8 @@ struct ClusterStateLedgerUtil {
                                   const bdlbb::Blob&            record,
                                   int                           offset = 0);
 
-    /// Return the size in bytes of the specified `header`.
-    static bsls::Types::Int64
-    recordSize(const ClusterStateRecordHeader& header);
+    /// Return the size in bytes of the record described by `header`.
+    static int recordSize(const ClusterStateRecordHeader& header);
 };
 
 // ============================================================================
@@ -274,7 +273,7 @@ struct ClusterStateLedgerUtil {
 // struct ClusterStateLedgerUtil
 // -----------------------------
 
-inline bsls::Types::Int64
+inline int
 ClusterStateLedgerUtil::recordSize(const ClusterStateRecordHeader& header)
 {
     return (header.headerWords() + header.leaderAdvisoryWords()) *

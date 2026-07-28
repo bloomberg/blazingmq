@@ -127,6 +127,9 @@ class AuthenticationContext {
     /// Allocator to use.
     bslma::Allocator* d_allocator_p;
 
+    /// Scheduler used to schedule and cancel the reauthentication timer.
+    bdlmt::EventScheduler* d_scheduler_p;
+
     /// Used to make sure no callback is invoked on a destroyed object.
     bmqu::SharedResource<AuthenticationContext> d_self;
 
@@ -179,6 +182,7 @@ class AuthenticationContext {
                                    bslma::UsesBslmaAllocator)
     // CREATORS
     AuthenticationContext(
+        bdlmt::EventScheduler*                     scheduler,
         InitialConnectionContext*                  initialConnectionContext,
         bsl::string_view                           mechanism,
         const bmqp_ctrlmsg::AuthenticationMessage& authenticationMessage,
@@ -201,22 +205,29 @@ class AuthenticationContext {
 
     void resetAuthenticationMessage();
 
-    /// Schedule a reauthentication timer using the specified `scheduler_p`
-    /// with the specified `lifetimeMs`.  The specified `channel_sp` is used to
-    /// close the connection in case of reauthentication timeout or error.
-    /// Return 0 on success, and a non-zero value populating the specified
-    /// `errorDescription` with details on failure.
+    /// @brief Mark as authenticated and schedule a reauthentication timer.
+    /// @param[out] errorDescription Populated with details on failure.
+    /// @param lifetimeMs Duration after which reauthentication is required.
+    /// @param channel_sp Channel closed on reauthentication timeout or error.
+    /// @return 0 on success, and a non-zero value on failure.
     int setAuthenticatedAndScheduleReauthn(
         bsl::ostream&                             errorDescription,
-        bdlmt::EventScheduler*                    scheduler_p,
         const bsl::optional<bsls::Types::Uint64>& lifetimeMs,
         const bsl::shared_ptr<bmqio::Channel>&    channel_sp);
 
-    /// Close the specified `channel_sp` indicating that reauthentication was
-    /// not received within the specified `timeoutMs` (in milliseconds).
-    void onReauthenticationTimeout(
-        const bsl::shared_ptr<bmqio::Channel>& channel_sp,
-        bsls::Types::Uint64                    timeoutMs);
+    /// @brief Close the channel on reauthentication timeout.
+    ///
+    /// Close the channel referenced by `channel_wp`, indicating that
+    /// reauthentication was not received in time.  A weak reference is held so
+    /// the pending timer does not extend the channel's lifetime; do nothing if
+    /// the channel has already been destroyed.
+    ///
+    /// @param channel_wp Weak reference to the channel to close.
+    /// @param timeoutMs  The reauthentication window, in milliseconds, that
+    ///                   elapsed without a reauthentication request.
+    void
+    onReauthenticationTimeout(const bsl::weak_ptr<bmqio::Channel>& channel_wp,
+                              bsls::Types::Uint64                  timeoutMs);
 
     /// Close the specified `channel_sp` with the specified `errorCode` and
     /// `errorDescription`, indicating a reauthentication error for the
@@ -226,9 +237,9 @@ class AuthenticationContext {
                             int                                    errorCode,
                             const bsl::string& errorDescription);
 
-    /// Called when a channel is closing.  Cancel any outstanding
-    /// reauthentication timer using the specified `scheduler_p`.
-    void onClose(bdlmt::EventScheduler* scheduler_p);
+    /// @brief Cancel any outstanding reauthentication timer when the channel
+    ///        is closing.
+    void onClose();
 
     /// Attempt to begin reauthentication by transitioning the state from
     /// AUTHENTICATED to AUTHENTICATING.

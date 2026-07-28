@@ -32,6 +32,7 @@
 /// are called only from there.  It is not thread safe.
 
 // MQB
+#include <bslmf_movableref.h>
 #include <mqbconfm_messages.h>
 #include <mqbnet_negotiationcontext.h>
 #include <mqbnet_negotiator.h>
@@ -62,6 +63,7 @@ class ClusterCatalog;
 }
 namespace mqbi {
 class Dispatcher;
+class Authorizer;
 }
 namespace mqbi {
 class DomainFactory;
@@ -95,7 +97,8 @@ class SessionNegotiator : public mqbnet::Negotiator {
     // PRIVATE TYPES
     typedef bsl::shared_ptr<mqbnet::NegotiationContext> NegotiationContextSp;
     typedef bsl::shared_ptr<mqbnet::InitialConnectionContext>
-        InitialConnectionContextSp;
+                                                InitialConnectionContextSp;
+    typedef bslma::ManagedPtr<mqbi::Authorizer> AuthorizerMp;
 
   private:
     // DATA
@@ -129,6 +132,9 @@ class SessionNegotiator : public mqbnet::Negotiator {
 
     /// The callback to invoke on received admin command.
     mqbnet::Session::AdminCommandEnqueueCb d_adminCb;
+
+    /// The authorizer
+    AuthorizerMp d_authorizer_mp;
 
   private:
     // NOT IMPLEMENTED
@@ -233,6 +239,11 @@ class SessionNegotiator : public mqbnet::Negotiator {
     /// reference offering modifiable access to this object.
     SessionNegotiator& setDomainFactory(mqbi::DomainFactory* value);
 
+    /// Set the authorizer that will be used to authorize sessions and actions
+    /// that can occur in those sessions.
+    SessionNegotiator&
+    setAuthorizer(bslmf::MovableRef<AuthorizerMp> authorizer);
+
     // MANIPULATORS
     //   (virtual: mqbnet::Negotiator)
 
@@ -279,6 +290,13 @@ inline SessionNegotiator&
 SessionNegotiator::setDomainFactory(mqbi::DomainFactory* value)
 {
     d_domainFactory_p = value;
+    return *this;
+}
+
+inline SessionNegotiator&
+SessionNegotiator::setAuthorizer(bslmf::MovableRef<AuthorizerMp> authorizer)
+{
+    d_authorizer_mp = bslmf::MovableRefUtil::move(authorizer);
     return *this;
 }
 

@@ -65,10 +65,10 @@ struct PartitionStateTableState {
         /// have synchronized their storage data.
         e_PRIMARY_HEALED = 3,
 
-        /// Self is replica, waiting for either success of failure
+        /// Self is replica, waiting for either success or failure
         /// PrimaryStateResponse.  It **must** reject the ReplicaStateRequest
-        /// to prevent primary from healing us twice in a row, leading to
-        /// duplicate work.
+        /// to prevent the primary from healing self twice in a row, leading
+        /// to duplicate work.
         e_REPLICA_WAITING = 4,
 
         /// Self is healing replica, following instructions from primary to

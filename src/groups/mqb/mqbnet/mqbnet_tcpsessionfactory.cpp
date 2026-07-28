@@ -361,7 +361,7 @@ struct TCPSessionFactory_OperationContext {
     // session (i.e., associated to a 'connect'
     // operation).
 
-    bsl::shared_ptr<void> d_negotiationUserData_sp;
+    bsl::shared_ptr<NegotiationUserData> d_negotiationUserData_sp;
     // The negotiation user data, if any, provided by
     // the caller (for the 'connect' operation); unused
     // for a 'listen' operation.  This is the user data
@@ -441,7 +441,7 @@ void TCPSessionFactory::handleInitialConnection(
             context->d_isIncoming,
             d_authenticator_p,
             d_negotiator_p,
-            context->d_negotiationUserData_sp.get(),
+            context->d_negotiationUserData_sp,
             context->d_resultState_p,
             channel,
             bdlf::BindUtil::bindS(
@@ -896,12 +896,10 @@ void TCPSessionFactory::onClose(const bsl::shared_ptr<bmqio::Channel>& channel,
 
         // set the 'isClosed' flag under lock to be checked under lock in
         // 'initialConnectionComplete'.
-        bsl::shared_ptr<InitialConnectionContext> initialConnectionContext_sp;
         InitialConnectionContextMp::iterator      iter =
             d_initialConnectionContextCache.find(channel.get());
         if (iter != d_initialConnectionContextCache.end()) {
-            initialConnectionContext_sp = iter->second;
-            initialConnectionContext_sp->onClose();
+            iter->second->onClose();
         }
 
         ChannelMap::const_iterator it = d_channels.find(channel.get());
@@ -951,7 +949,7 @@ void TCPSessionFactory::onClose(const bsl::shared_ptr<bmqio::Channel>& channel,
 
         // Disable reauthentication timer if there's any
         if (channelInfo->d_authenticationCtx_sp) {
-            channelInfo->d_authenticationCtx_sp->onClose(d_scheduler_p);
+            channelInfo->d_authenticationCtx_sp->onClose();
         }
 
         // TearDown the session
@@ -1573,21 +1571,19 @@ int TCPSessionFactory::listen(const mqbcfg::TcpInterfaceListener& listener,
     return 0;
 }
 
-int TCPSessionFactory::connect(bsl::string_view         endpoint,
-                               const ResultCallback&    resultCallback,
-                               bslma::ManagedPtr<void>* negotiationUserData,
-                               void*                    resultState,
-                               bool                     shouldAutoReconnect)
+int TCPSessionFactory::connect(
+    bsl::string_view                            endpoint,
+    const ResultCallback&                       resultCallback,
+    const bsl::shared_ptr<NegotiationUserData>& negotiationUserData,
+    void*                                       resultState,
+    bool                                        shouldAutoReconnect)
 {
     bsl::shared_ptr<OperationContext> context;
     context.createInplace(d_allocator_p);
-    context->d_resultCb      = resultCallback;
-    context->d_isIncoming    = false;
-    context->d_resultState_p = resultState;
-
-    if (negotiationUserData) {
-        context->d_negotiationUserData_sp = *negotiationUserData;
-    }
+    context->d_resultCb               = resultCallback;
+    context->d_isIncoming             = false;
+    context->d_resultState_p          = resultState;
+    context->d_negotiationUserData_sp = negotiationUserData;
 
     bsl::string                         endpointStr(endpoint, d_allocator_p);
     bmqio::TCPEndpoint                  tcpEndpoint(endpointStr);

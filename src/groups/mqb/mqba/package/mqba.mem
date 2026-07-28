@@ -2,6 +2,7 @@ mqba_adminsession
 mqba_application
 mqba_authenticationclient
 mqba_authenticator
+mqba_authorizer
 mqba_clientsession
 mqba_commandrouter
 mqba_configprovider

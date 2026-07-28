@@ -300,19 +300,6 @@ void RootQueueEngine::onHandleCreation(void* ptr, void* cookie)
                                                      hndlCreated);
 }
 
-void RootQueueEngine::create(bslma::ManagedPtr<mqbi::QueueEngine>* queueEngine,
-                             QueueState*                           queueState,
-                             const mqbconfm::Domain& domainConfig,
-                             bslma::Allocator*       allocator)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(queueEngine);
-
-    queueEngine->load(new (*allocator)
-                          RootQueueEngine(queueState, domainConfig, allocator),
-                      allocator);
-}
-
 void RootQueueEngine::FanoutConfiguration::loadRoutingConfiguration(
     bmqp_ctrlmsg::RoutingConfiguration* config)
 {

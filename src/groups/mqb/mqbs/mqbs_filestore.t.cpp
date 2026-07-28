@@ -60,6 +60,7 @@
 #include <bsl_iostream.h>
 #include <bsl_map.h>
 #include <bsl_memory.h>
+#include <bsl_string_view.h>
 #include <bsl_vector.h>
 #include <bslma_default.h>
 #include <bslma_managedptr.h>
@@ -160,12 +161,13 @@ void recoveredQueuesCb(
 }
 
 // CLASSES
-// =============
-// struct Tester
-// =============
-struct Tester {
+// ============
+// class Tester
+// ============
+class Tester {
   private:
     // DATA
+    bslma::Allocator*                      d_allocator_p;
     bdlmt::EventScheduler                  d_scheduler;
     bdlbb::PooledBlobBufferFactory         d_bufferFactory;
     bsl::string                            d_clusterLocation;
@@ -188,28 +190,26 @@ struct Tester {
 
   public:
     // CREATORS
-    Tester(const char* location, const char* archiveLocation = 0)
-    : d_scheduler(bsls::SystemClockType::e_MONOTONIC,
-                  bmqtst::TestHelperUtil::allocator())
-    , d_bufferFactory(1024, bmqtst::TestHelperUtil::allocator())
-    , d_clusterLocation(location, bmqtst::TestHelperUtil::allocator())
-    , d_clusterArchiveLocation(archiveLocation ? archiveLocation : location,
-                               bmqtst::TestHelperUtil::allocator())
-    , d_blobSpPool_sp(bmqp::BlobPoolUtil::createBlobPool(
-          &d_bufferFactory,
-          bmqtst::TestHelperUtil::allocator()))
-    , d_partitionCfg(bmqtst::TestHelperUtil::allocator())
-    , d_clusterCfg(bmqtst::TestHelperUtil::allocator())
-    , d_clusterNodesCfg(bmqtst::TestHelperUtil::allocator())
-    , d_clusterNodeCfg(bmqtst::TestHelperUtil::allocator())
+    explicit Tester(bsl::string_view location)
+    : d_allocator_p(bmqtst::TestHelperUtil::allocator())
+    , d_scheduler(bsls::SystemClockType::e_MONOTONIC, d_allocator_p)
+    , d_bufferFactory(1024, d_allocator_p)
+    , d_clusterLocation(location, d_allocator_p)
+    , d_clusterArchiveLocation(location, d_allocator_p)
+    , d_blobSpPool_sp(
+          bmqp::BlobPoolUtil::createBlobPool(&d_bufferFactory, d_allocator_p))
+    , d_partitionCfg(d_allocator_p)
+    , d_clusterCfg(d_allocator_p)
+    , d_clusterNodesCfg(d_allocator_p)
+    , d_clusterNodeCfg(d_allocator_p)
     , d_clusterStatsRootContext_sp(
           mqbstat::ClusterStatsUtil::initializeStatContextCluster(
               2,
-              bmqtst::TestHelperUtil::allocator()))
-    , d_clusterStats(bmqtst::TestHelperUtil::allocator())
-    , d_miscWorkThreadPool(1, 1, bmqtst::TestHelperUtil::allocator())
-    , d_dispatcher(bmqtst::TestHelperUtil::allocator())
-    , d_statePool(1024, bmqtst::TestHelperUtil::allocator())
+              d_allocator_p))
+    , d_clusterStats(d_allocator_p)
+    , d_miscWorkThreadPool(1, 1, d_allocator_p)
+    , d_dispatcher(d_allocator_p)
+    , d_statePool(1024, d_allocator_p)
     {
         bdls::FilesystemUtil::remove(d_clusterLocation, true);
         bdls::FilesystemUtil::remove(d_clusterArchiveLocation, true);
@@ -250,12 +250,11 @@ struct Tester {
 
         d_clusterCfg.nodes() = d_clusterNodesCfg;
 
-        d_cluster_mp.load(
-            new (*bmqtst::TestHelperUtil::allocator())
-                mqbnet::MockCluster(d_clusterCfg,
-                                    &d_bufferFactory,
-                                    bmqtst::TestHelperUtil::allocator()),
-            bmqtst::TestHelperUtil::allocator());
+        d_cluster_mp =
+            bslma::ManagedPtrUtil::allocateManaged<mqbnet::MockCluster>(
+                d_allocator_p,
+                d_clusterCfg,
+                &d_bufferFactory);
         d_node_p = d_cluster_mp->lookupNode(k_NODE_ID);
 
         d_dsCfg
@@ -279,22 +278,20 @@ struct Tester {
         d_clusterStats.initialize("testCluster",
                                   1,  // numPartitions
                                   d_clusterStatsRootContext_sp.get(),
-                                  bmqtst::TestHelperUtil::allocator());
-        d_fs_mp.load(new (*bmqtst::TestHelperUtil::allocator())
-                         mqbs::FileStore(d_dsCfg,
-                                         0,  // processorId
-                                         &d_dispatcher,
-                                         d_cluster_mp.get(),
-                                         d_clusterStats.getPartitionStats(
-                                             d_dsCfg.partitionId()),
-                                         d_blobSpPool_sp.get(),
-                                         &d_statePool,
-                                         &d_miscWorkThreadPool,
-                                         true,  // isFSMWorkflow
-                                         true,  // doesFSMwriteQLIST
-                                         1,     // replicationFactor
-                                         bmqtst::TestHelperUtil::allocator()),
-                     bmqtst::TestHelperUtil::allocator());
+                                  d_allocator_p);
+        d_fs_mp = bslma::ManagedPtrUtil::allocateManaged<mqbs::FileStore>(
+            d_allocator_p,
+            d_dsCfg,
+            0,  // processorId
+            &d_dispatcher,
+            d_cluster_mp.get(),
+            d_clusterStats.getPartitionStats(d_dsCfg.partitionId()),
+            d_blobSpPool_sp.get(),
+            &d_statePool,
+            &d_miscWorkThreadPool,
+            true,  // isFSMWorkflow
+            true,  // doesFSMwriteQLIST
+            1);    // replicationFactor
 
         // To pass `inDispatcherThread` checks:
         d_fs_mp->setThreadId(bslmt::ThreadUtil::selfId());
@@ -806,9 +803,7 @@ static void test1_breathingTest()
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
 
-    const char k_FILE_STORE_LOCATION[] = "./test-cluster123-1";
-
-    Tester           tester(k_FILE_STORE_LOCATION);
+    Tester           tester("./test-cluster123-1");
     mqbs::FileStore& fs = tester.fileStore();
 
     int rc = fs.open(0);
@@ -938,9 +933,7 @@ static void test2_printTest()
 
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
 
-    const char k_FILE_STORE_LOCATION[] = "./test-cluster123-2";
-
-    Tester           tester(k_FILE_STORE_LOCATION);
+    Tester           tester("./test-cluster123-2");
     mqbs::FileStore& fs = tester.fileStore();
     BSLS_ASSERT_OPT(fs.open(0) == 0);
 
@@ -1034,9 +1027,7 @@ static void test3_partitionFullAlarm()
 {
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
 
-    const char k_FILE_STORE_LOCATION[] = "./test-cluster123-3";
-
-    Tester           tester(k_FILE_STORE_LOCATION);
+    Tester           tester("./test-cluster123-3");
     mqbs::FileStore& fs = tester.fileStore();
 
     // Disable in-place callback execution in mock dispatcher to prevent
@@ -1165,6 +1156,124 @@ static void test3_partitionFullAlarm()
     fs.close();
 }
 
+static void test4_recoverMessagesAcrossLeaseIds()
+// ------------------------------------------------------------------------
+// RECOVER MESSAGES ACROSS MULTIPLE PRIMARY LEASE IDS
+//
+// Concerns:
+//   In the FSM workflow a live partition can be sent back through recovery,
+//   re-opening the same FileStore in recovery mode.  Verify that recovering
+//   a FileStore whose journal spans multiple primary leaseIds succeeds when
+//   its 'd_highestSeqNums' already holds entries for those leaseIds (as it
+//   does once the partition has been live under several primary terms).
+//
+// Testing:
+//   recoverMessages (re-recovery across leaseIds)
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
+
+    Tester           tester("./test-cluster123-4");
+    mqbs::FileStore& fs = tester.fileStore();
+
+    // Disable in-place callback execution in mock dispatcher to prevent
+    // thread races between the main thread (that modifies FileStore) and
+    // scheduler thread (that performs gc on FileStore).
+    tester.dispatcher().setEnqueueOnly(true);
+
+    int rc = fs.open(0);
+    BMQTST_ASSERT_EQ(0, rc);
+    if (rc) {
+        cout << "Failed to open partition, rc: " << rc << endl;
+        return;  // RETURN
+    }
+
+    // Set primary with leaseId 1.
+    unsigned int primaryLeaseId = 1;
+    fs.setActivePrimary(tester.node(), primaryLeaseId);
+
+    // Create a storage and register it with the FileStore.
+    bmqt::Uri        queueUri("bmq://si.amw.bmq.stats/testQueue",
+                       bmqtst::TestHelperUtil::allocator());
+    mqbu::StorageKey queueKey(mqbu::StorageKey::BinaryRepresentation(),
+                              "ABCDE");
+
+    mqbmock::Cluster mockCluster(bmqtst::TestHelperUtil::allocator());
+    mqbmock::Domain  mockDomain(&mockCluster,
+                               bmqtst::TestHelperUtil::allocator());
+    mqbconfm::Domain domainCfg(bmqtst::TestHelperUtil::allocator());
+    domainCfg.messageTtl() = bsl::numeric_limits<bsls::Types::Int64>::max();
+    domainCfg.storage().config().makeFileBacked();
+    bmqu::MemOutStream errDesc(bmqtst::TestHelperUtil::allocator());
+    mockDomain.configure(errDesc, domainCfg);
+
+    bsl::shared_ptr<mqbs::ReplicatedStorage> storage_sp;
+    fs.createStorage(&storage_sp, queueUri, queueKey, &mockDomain);
+
+    mqbconfm::Limits limits;
+    limits.messages() = bsl::numeric_limits<bsls::Types::Int64>::max();
+    limits.bytes()    = bsl::numeric_limits<bsls::Types::Int64>::max();
+    limits.messagesWatermarkRatio() = 0.8;
+    limits.bytesWatermarkRatio()    = 0.8;
+    storage_sp->configure(domainCfg.storage().config(),
+                          limits,
+                          domainCfg.messageTtl(),
+                          0);  // maxDeliveryAttempts
+
+    fs.registerStorage(storage_sp.get());
+
+    mqbmock::Queue mockQueue(&mockDomain, bmqtst::TestHelperUtil::allocator());
+    storage_sp->setQueue(&mockQueue);
+
+    // Write the queue creation record and a few messages under leaseId 1.
+    mqbs::DataStoreRecordHandle queueHandle;
+    bsls::Types::Uint64         timestamp = bdlt::EpochUtil::convertToTimeT64(
+        bdlt::CurrentTime::utc());
+    rc = fs.writeQueueCreationRecord(&queueHandle,
+                                     queueUri,
+                                     queueKey,
+                                     AppInfos(),
+                                     timestamp,
+                                     true);  // isNewQueue
+    BMQTST_ASSERT_EQ(0, rc);
+
+    StoragePoster poster(storage_sp, bmqtst::TestHelperUtil::allocator());
+    const size_t  k_NUM_MSGS_PER_LEASE = 5;
+    for (size_t i = 0; i < k_NUM_MSGS_PER_LEASE; ++i) {
+        BMQTST_ASSERT_EQ(poster.postMessage(), mqbi::StorageResult::e_SUCCESS);
+    }
+
+    // Bump the primary leaseId and write more messages, so that the journal
+    // spans two distinct leaseIds and 'd_highestSeqNums' holds an entry for
+    // each.
+    fs.setActivePrimary(tester.node(), ++primaryLeaseId);
+    for (size_t i = 0; i < k_NUM_MSGS_PER_LEASE; ++i) {
+        BMQTST_ASSERT_EQ(poster.postMessage(), mqbi::StorageResult::e_SUCCESS);
+    }
+
+    const bsls::Types::Uint64 numRecords = fs.numRecords();
+    BMQTST_ASSERT_D("records should exist before reopen", numRecords > 0);
+
+    // Close and reopen.  The reopen re-runs 'recoverMessages' on the same
+    // FileStore, whose 'd_highestSeqNums' still holds entries for both
+    // leaseIds.
+    tester.miscWorkThreadPool().drain();
+    tester.scheduler().cancelAllEventsAndWait();
+    tester.dispatcher().processQueue();
+    fs.unregisterStorage(storage_sp.get());
+    fs.close();
+    BMQTST_ASSERT_EQ(false, fs.isOpen());
+
+    rc = fs.open(0);
+    BMQTST_ASSERT_EQ(0, rc);
+    BMQTST_ASSERT_EQ(true, fs.isOpen());
+
+    // All records from both leaseIds should have been recovered.
+    BMQTST_ASSERT_EQ(fs.numRecords(), numRecords);
+
+    fs.close();
+}
+
 }  // close unnamed namespace
 
 // ============================================================================
@@ -1179,6 +1288,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 4: test4_recoverMessagesAcrossLeaseIds(); break;
     case 3: test3_partitionFullAlarm(); break;
     case 2: test2_printTest(); break;
     case 1: test1_breathingTest(); break;

@@ -220,14 +220,6 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     /// to a boolean flag indicating whether the handle was created or not.
     static void onHandleCreation(void* ptr, void* cookie);
 
-    /// Loads the specified `queueEngine` with a new `RootQueueEngine`
-    /// initialized using the specified `queueState`, `domainConfig`,
-    /// `scheduler` and `allocator`.
-    static void create(bslma::ManagedPtr<mqbi::QueueEngine>* queueEngine,
-                       QueueState*                           queueState,
-                       const mqbconfm::Domain&               domainConfig,
-                       bslma::Allocator*                     allocator);
-
     /// Loads the specified `config` with the appropriate values for
     /// fanout delivery mode.
     struct FanoutConfiguration {

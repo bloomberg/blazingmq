@@ -19,6 +19,7 @@
 // BDE
 #include <bsl_cmath.h>
 #include <bsl_limits.h>
+#include <bslma_testallocator.h>
 
 namespace BloombergLP {
 namespace bmqtst {
@@ -28,38 +29,47 @@ namespace {
 // ============================================================================
 //                              GLOBAL VARIABLES
 // ----------------------------------------------------------------------------
-int               s_testStatus          = 0;
-int               s_verbosityLevel      = 0;
-bool              s_ignoreCheckDefAlloc = false;
-bool              s_ignoreCheckGblAlloc = false;
-bslmt::QLock      s_serializePrintLock  = BSLMT_QLOCK_INITIALIZER;
-bslma::Allocator* s_allocator_p         = 0;
-
+int                   s_testStatus          = 0;
+int                   s_verbosityLevel      = 0;
+bool                  s_ignoreCheckDefAlloc = false;
+bool                  s_ignoreCheckGblAlloc = false;
+bslmt::QLock          s_serializePrintLock  = BSLMT_QLOCK_INITIALIZER;
+bslma::Allocator*     s_allocator_p         = 0;
+bslma::TestAllocator* s_defaultAllocator_p  = 0;
 }
 
-int& bmqtst::TestHelperUtil::testStatus()
+int& TestHelperUtil::testStatus()
 {
     return s_testStatus;
 }
-int& bmqtst::TestHelperUtil::verbosityLevel()
+int& TestHelperUtil::verbosityLevel()
 {
     return s_verbosityLevel;
 }
-bool& bmqtst::TestHelperUtil::ignoreCheckDefAlloc()
+bool& TestHelperUtil::ignoreCheckDefAlloc()
 {
     return s_ignoreCheckDefAlloc;
 }
-bool& bmqtst::TestHelperUtil::ignoreCheckGblAlloc()
+bool& TestHelperUtil::ignoreCheckGblAlloc()
 {
     return s_ignoreCheckGblAlloc;
 }
-bslmt::QLock& bmqtst::TestHelperUtil::serializePrintLock()
+bslmt::QLock& TestHelperUtil::serializePrintLock()
 {
     return s_serializePrintLock;
 }
-bslma::Allocator*& bmqtst::TestHelperUtil::allocator()
+bslma::Allocator*& TestHelperUtil::allocator()
 {
     return s_allocator_p;
+}
+void TestHelperUtil::setDefaultAllocator(
+    bslma::TestAllocator& defaultAllocator)
+{
+    s_defaultAllocator_p = &defaultAllocator;
+}
+bslma::TestAllocator& TestHelperUtil::defaultAllocator()
+{
+    return *s_defaultAllocator_p;
 }
 
 // -----------------

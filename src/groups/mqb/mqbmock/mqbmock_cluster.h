@@ -64,7 +64,7 @@
 #include <bslma_managedptr.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
-#include <bsls_cpp11.h>
+#include <bsls_keyword.h>
 #include <bsls_timeinterval.h>
 #include <bsls_types.h>
 
@@ -246,8 +246,8 @@ class Cluster : public mqbi::Cluster {
 
   private:
     // NOT IMPLEMENTED
-    Cluster(const Cluster&) BSLS_CPP11_DELETED;
-    Cluster& operator=(const Cluster&) BSLS_CPP11_DELETED;
+    Cluster(const Cluster&) BSLS_KEYWORD_DELETED;
+    Cluster& operator=(const Cluster&) BSLS_KEYWORD_DELETED;
 
   private:
     // PRIVATE MANIPULATORS

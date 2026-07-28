@@ -293,6 +293,7 @@ static void eZlibCompressDecompressHelper(
                                        &bufferFactory,
                                        algorithm,
                                        compressed,
+                                       0,  // no output cap
                                        &error,
                                        bmqtst::TestHelperUtil::allocator());
     *decompressionTime = bsls::TimeUtil::getTimer() - startTime;
@@ -336,6 +337,7 @@ eZlibCompressDecompressHelper(bsls::Types::Int64* compressionTime,
         &decompressed,
         &bufferFactory,
         compressed,
+        0,  // no output cap
         &error,
         bmqtst::TestHelperUtil::allocator());
     *decompressionTime = bsls::TimeUtil::getTimer() - startTime;
@@ -377,6 +379,7 @@ static void eZlibCompressionRatioHelper(bsls::Types::Int64* inputSize,
         &decompressed,
         &bufferFactory,
         compressed,
+        0,  // no output cap
         &error,
         bmqtst::TestHelperUtil::allocator());
     BMQTST_ASSERT_EQ(rc, 0);
@@ -544,6 +547,7 @@ static void test1_breathingTest()
             &decompressed,
             &bufferFactory,
             compressed,
+            0,  // no output cap
             &error,
             bmqtst::TestHelperUtil::allocator());
         BMQTST_ASSERT_EQ(rc, 0);
@@ -613,6 +617,7 @@ static void test1_breathingTest()
             &decompressed,
             &bufferFactory,
             compressed,
+            0,  // no output cap
             &error,
             bmqtst::TestHelperUtil::allocator());
         BMQTST_ASSERT_EQ(rc, 0);
@@ -692,6 +697,7 @@ static void test2_compression_cluster_message()
             &decompressed,
             &bufferFactory,
             compressed,
+            0,  // no output cap
             &error,
             bmqtst::TestHelperUtil::allocator());
         BMQTST_ASSERT_EQ(rc, 0);
@@ -749,6 +755,116 @@ static void test3_compression_decompression_none()
                 test.d_expected,
                 bmqt::CompressionAlgorithmType::e_NONE);
         }
+    }
+}
+
+static void test4_decompressionSizeLimit()
+// ------------------------------------------------------------------------
+// DECOMPRESSION OUTPUT SIZE LIMIT
+//
+// Concerns:
+//   A highly-compressible input must not be allowed to expand without
+//   bound.  When a maximum output size is supplied, decompression must fail
+//   closed once the accumulated output would exceed the cap, rather than
+//   continuing to allocate memory.
+//
+// Plan:
+//   - Compress a large run of zero bytes (which zlib shrinks dramatically).
+//   - Decompress with no cap and confirm the full round-trip (control).
+//   - Decompress with a cap below the true output size and confirm it fails
+//     with a non-zero code while producing output bounded near the cap (not
+//     the full expansion).
+//   - Decompress with a cap above the true output size and confirm success.
+//
+// Testing:
+//   bmqp::Compression::decompress with a non-zero maxOutputSize
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("DECOMPRESSION SIZE LIMIT TEST");
+
+    // Use small blob buffers so the enforced cap is tight (the overrun beyond
+    // the cap is bounded by a single buffer).
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+
+    bmqu::MemOutStream error(bmqtst::TestHelperUtil::allocator());
+
+    // Build a large, highly-compressible input (all zero bytes) that expands
+    // far beyond the cap we will impose.
+    const int   k_INPUT_SIZE = 8 * 1024 * 1024;  // 8 MB
+    bsl::string zeros(k_INPUT_SIZE, '\0', bmqtst::TestHelperUtil::allocator());
+
+    bdlbb::Blob input(&bufferFactory, bmqtst::TestHelperUtil::allocator());
+    bdlbb::BlobUtil::append(&input, zeros.data(), k_INPUT_SIZE);
+
+    bdlbb::Blob compressed(&bufferFactory,
+                           bmqtst::TestHelperUtil::allocator());
+    int         rc = bmqp::Compression::compress(
+        &compressed,
+        &bufferFactory,
+        bmqt::CompressionAlgorithmType::e_ZLIB,
+        input,
+        &error,
+        bmqtst::TestHelperUtil::allocator());
+    BMQTST_ASSERT_EQ(rc, 0);
+    // Highly-compressible: compressed form is a tiny fraction of the input.
+    BMQTST_ASSERT_LT(compressed.length(), k_INPUT_SIZE);
+
+    {
+        PVV("Control: no cap decompresses fully");
+        bdlbb::Blob decompressed(&bufferFactory,
+                                 bmqtst::TestHelperUtil::allocator());
+        rc = bmqp::Compression::decompress(
+            &decompressed,
+            &bufferFactory,
+            bmqt::CompressionAlgorithmType::e_ZLIB,
+            compressed,
+            0,  // no cap
+            &error,
+            bmqtst::TestHelperUtil::allocator());
+        BMQTST_ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(decompressed.length(), k_INPUT_SIZE);
+    }
+
+    {
+        PVV("Cap below decompressed size fails closed");
+        const bsls::Types::Uint64 k_CAP = 1024 * 1024;  // 1 MB < 8 MB
+        bdlbb::Blob               decompressed(&bufferFactory,
+                                 bmqtst::TestHelperUtil::allocator());
+        rc = bmqp::Compression::decompress(
+            &decompressed,
+            &bufferFactory,
+            bmqt::CompressionAlgorithmType::e_ZLIB,
+            compressed,
+            k_CAP,
+            &error,
+            bmqtst::TestHelperUtil::allocator());
+        // Fails with a non-zero code ...
+        BMQTST_ASSERT_NE(rc, 0);
+        // ... and stops well short of fully expanding the input, bounded
+        // near the cap rather than the full 8 MB.
+        BMQTST_ASSERT_LT(decompressed.length(), k_INPUT_SIZE);
+        BMQTST_ASSERT_LE(
+            static_cast<bsls::Types::Uint64>(decompressed.length()),
+            k_CAP + 1024);
+    }
+
+    {
+        PVV("Cap above decompressed size succeeds");
+        const bsls::Types::Uint64 k_CAP = 64 * 1024 * 1024;  // 64 MB > 8 MB
+        bdlbb::Blob               decompressed(&bufferFactory,
+                                 bmqtst::TestHelperUtil::allocator());
+        rc = bmqp::Compression::decompress(
+            &decompressed,
+            &bufferFactory,
+            bmqt::CompressionAlgorithmType::e_ZLIB,
+            compressed,
+            k_CAP,
+            &error,
+            bmqtst::TestHelperUtil::allocator());
+        BMQTST_ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(decompressed.length(), k_INPUT_SIZE);
     }
 }
 
@@ -1113,6 +1229,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     case 2: test2_compression_cluster_message(); break;
     case 3: test3_compression_decompression_none(); break;
+    case 4: test4_decompressionSizeLimit(); break;
     case -1:
         BMQTST_BENCHMARK_WITH_ARGS(
             testN1_performanceCompressionDecompressionDefault,

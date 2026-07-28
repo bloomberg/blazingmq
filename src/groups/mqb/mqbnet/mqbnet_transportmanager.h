@@ -92,6 +92,7 @@ namespace mqbnet {
 // FORWARD DECLARATION
 class Cluster;
 class ClusterNode;
+class NegotiationUserData;
 class Negotiator;
 class Session;
 class SessionEventProcessor;
@@ -149,7 +150,7 @@ class TransportManager {
         // is invalidated when the cluster is
         // destroyed.
 
-        bsl::shared_ptr<void> d_userData_sp;
+        bsl::shared_ptr<NegotiationUserData> d_userData_sp;
         // The user data, if any, provided
         // to the 'createCluster' method.
         // This correspond to the negotiator
@@ -346,7 +347,7 @@ class TransportManager {
     ///   the other end will be connecting to us; this is to prevent
     ///   double connections); this is the case when the node is part of a
     ///   cluster.
-    /// The optionally specified `userData` will be passed in to the
+    /// The specified `userData` will be passed in to the
     /// `negotiate` method of the negotiator (through the
     /// InitialConnectionContext) for any connections being established
     /// as a result of this cluster creation.  Return 0 on success, or a
@@ -357,7 +358,7 @@ class TransportManager {
                       const bsl::string&                      name,
                       const bsl::vector<mqbcfg::ClusterNode>& nodes,
                       ConnectionMode                          connectionMode,
-                      bslma::ManagedPtr<void>*                userData = 0);
+                      const bsl::shared_ptr<NegotiationUserData>& userData);
 
     /// Return the raw pointer `cookie handle` to the internal state
     /// associated to the specified `nodeId` in the specified `clusterName`,

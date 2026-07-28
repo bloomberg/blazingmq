@@ -1,5 +1,6 @@
 mqbplug_authenticator
 mqbplug_authncredential
+mqbplug_authorizer
 mqbplug_credentialprovider
 mqbplug_pluginfactory
 mqbplug_plugininfo

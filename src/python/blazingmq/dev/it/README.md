@@ -135,36 +135,35 @@ Here is a complete example, followed by a breakdown:
 ```python
 # 99doc_test.py                                                              #1
 
-from blazingmq.dev.it.fixtures import cluster, local_cluster                 #2
-from blazingmq.dev.it.testconstants import *                                 #3
+from blazingmq.dev.it.fixtures import cluster, local_cluster  # 2
+from blazingmq.dev.it.testconstants import *  # 3
 
-class TestDemo:                                                              #4
-    def setup_cluster(self, cluster):                                        #5
-        proxies = cluster.proxy_cycle()                                      #6
-        self.producer = next(proxies).create_client('producer')              #7
-        self.consumer = next(proxies).create_client('consumer')              #8
 
-    def test_post_message_priority(self, cluster):                           #9
-        self.producer.open(
-            URI_PRIORITY, flags=['write', 'ack'], succeed=True)             #10
-        payload = 'foobar'
-        self.producer.post(
-            URI_PRIORITY, payload=[payload], succeed=True, wait_ack=True)
+class TestDemo:  # 4
+    def setup_cluster(self, cluster):  # 5
+        proxies = cluster.proxy_cycle()  # 6
+        self.producer = next(proxies).create_client("producer")  # 7
+        self.consumer = next(proxies).create_client("consumer")  # 8
 
-        self.consumer.open(URI_PRIORITY, flags=['read'], succeed=True)
+    def test_post_message_priority(self, cluster):  # 9
+        self.producer.open(URI_PRIORITY, flags=["write", "ack"], succeed=True)  # 10
+        payload = "foobar"
+        self.producer.post(URI_PRIORITY, payload=[payload], succeed=True, wait_ack=True)
 
-        self.consumer.wait_push_event()                                     #11
+        self.consumer.open(URI_PRIORITY, flags=["read"], succeed=True)
 
-        msgs = self.consumer.list(URI_PRIORITY, block=True)                 #12
-        assert len(msgs) == 1                                               #12
-        assert msgs[0].payload == payload                                   #12
+        self.consumer.wait_push_event()  # 11
 
-        self.consumer.confirm(URI_PRIORITY, '*', succeed=True)              #13
-        msgs = self.consumer.list(URI_PRIORITY, block=True)                 #13
-        assert len(msgs) == 0                                               #13
+        msgs = self.consumer.list(URI_PRIORITY, block=True)  # 12
+        assert len(msgs) == 1  # 12
+        assert msgs[0].payload == payload  # 12
 
-    def test_post_message_fanout(self, local_cluster):                      #14
-        self.consumer.open(URI_PRIORITY, flags=['read'], succeed=True)
+        self.consumer.confirm(URI_PRIORITY, "*", succeed=True)  # 13
+        msgs = self.consumer.list(URI_PRIORITY, block=True)  # 13
+        assert len(msgs) == 0  # 13
+
+    def test_post_message_fanout(self, local_cluster):  # 14
+        self.consumer.open(URI_PRIORITY, flags=["read"], succeed=True)
         self.consumer.wait_push_event()
         msgs = self.consumer.list(URI_PRIORITY, block=True)
         assert len(msgs) == 1
@@ -224,13 +223,10 @@ class TestDemo:                                                              #4
    consistency modes:
 
 ```python
-    def test_post_message_priority(self, cluster, domain_urls: tc.DomainUrls):
-        du = domain_urls
-        self.producer.open(
-            du.uri_priority, flags=['write', 'ack'], succeed=True)
-        self.producer.post(
-            du.uri_priority, payload=[payload], succeed=True, wait_ack=True)
-
+def test_post_message_priority(self, cluster, domain_urls: tc.DomainUrls):
+    du = domain_urls
+    self.producer.open(du.uri_priority, flags=["write", "ack"], succeed=True)
+    self.producer.post(du.uri_priority, payload=[payload], succeed=True, wait_ack=True)
 ```
 ### Tweaking the configuration
 
@@ -250,22 +246,40 @@ however, a tweak will just perform a few adjustments.  For example:
 
 ```python
 def limit_consumers(ws):
-    ws.domain_catalog[DOMAIN_PRIORITY]['*']['limit.consumers'] = 1
+    ws.domain_catalog[DOMAIN_PRIORITY]["*"]["limit.consumers"] = 1
+
 
 def limit_producers(ws):
-    ws.domain_catalog[DOMAIN_PRIORITY]['*']['limit.producers'] = 1
+    ws.domain_catalog[DOMAIN_PRIORITY]["*"]["limit.producers"] = 1
+
 
 @tweak(limit_consumers, limit_producers)
 def test_tweak(cluster):
     proxy = next(cluster.proxy_cycle())
-    assert proxy.create_client('producer1').open(
-        URI_PRIORITY, flags=['write,ack'], block=True) == Client.e_SUCCESS
-    assert proxy.create_client('producer2').open(
-        URI_PRIORITY, flags=['write,ack'], block=True) != Client.e_SUCCESS
-    assert proxy.create_client('consumer1').open(
-        URI_PRIORITY, flags=['read,ack'], block=True) == Client.e_SUCCESS
-    assert proxy.create_client('consumer2').open(
-        URI_PRIORITY, flags=['read,ack'], block=True) != Client.e_SUCCESS
+    assert (
+        proxy.create_client("producer1").open(
+            URI_PRIORITY, flags=["write,ack"], block=True
+        )
+        == Client.e_SUCCESS
+    )
+    assert (
+        proxy.create_client("producer2").open(
+            URI_PRIORITY, flags=["write,ack"], block=True
+        )
+        != Client.e_SUCCESS
+    )
+    assert (
+        proxy.create_client("consumer1").open(
+            URI_PRIORITY, flags=["read,ack"], block=True
+        )
+        == Client.e_SUCCESS
+    )
+    assert (
+        proxy.create_client("consumer2").open(
+            URI_PRIORITY, flags=["read,ack"], block=True
+        )
+        != Client.e_SUCCESS
+    )
 ```
 
 `@tweak` may be applied more than once to the same entity, in which case the
@@ -280,68 +294,121 @@ parameterized.  For example:
 ```python
 def limit_consumers(num):
     def tweaker(ws):
-        ws.domain_catalog[DOMAIN_PRIORITY]['*']['limit.consumers'] = num
+        ws.domain_catalog[DOMAIN_PRIORITY]["*"]["limit.consumers"] = num
 
     return tweak(tweaker)
+
 
 def limit_producers(num):
     def tweaker(ws):
-        ws.domain_catalog[DOMAIN_PRIORITY]['*']['limit.producers'] = num
+        ws.domain_catalog[DOMAIN_PRIORITY]["*"]["limit.producers"] = num
 
     return tweak(tweaker)
+
 
 @limit_producers(1)
 def test_exceed_max_producers(cluster):
     proxy = next(cluster.proxy_cycle())
-    assert proxy.create_client('producer1').open(
-        URI_PRIORITY, flags=['write,ack'], block=True) == Client.e_SUCCESS
-    assert proxy.create_client('producer2').open(
-        URI_PRIORITY, flags=['write,ack'], block=True) != Client.e_SUCCESS
-    assert proxy.create_client('consumer1').open(
-        URI_PRIORITY, flags=['read,ack'], block=True) == Client.e_SUCCESS
-    assert proxy.create_client('consumer2').open(
-        URI_PRIORITY, flags=['read,ack'], block=True) == Client.e_SUCCESS
+    assert (
+        proxy.create_client("producer1").open(
+            URI_PRIORITY, flags=["write,ack"], block=True
+        )
+        == Client.e_SUCCESS
+    )
+    assert (
+        proxy.create_client("producer2").open(
+            URI_PRIORITY, flags=["write,ack"], block=True
+        )
+        != Client.e_SUCCESS
+    )
+    assert (
+        proxy.create_client("consumer1").open(
+            URI_PRIORITY, flags=["read,ack"], block=True
+        )
+        == Client.e_SUCCESS
+    )
+    assert (
+        proxy.create_client("consumer2").open(
+            URI_PRIORITY, flags=["read,ack"], block=True
+        )
+        == Client.e_SUCCESS
+    )
+
 
 @limit_consumers(1)
 @limit_producers(1)
 def test_exceed_both(cluster):
     proxy = next(cluster.proxy_cycle())
-    assert proxy.create_client('producer1').open(
-        URI_PRIORITY, flags=['write,ack'], block=True) == Client.e_SUCCESS
-    assert proxy.create_client('producer2').open(
-        URI_PRIORITY, flags=['write,ack'], block=True) != Client.e_SUCCESS
-    assert proxy.create_client('consumer1').open(
-        URI_PRIORITY, flags=['read,ack'], block=True) == Client.e_SUCCESS
-    assert proxy.create_client('consumer2').open(
-        URI_PRIORITY, flags=['read,ack'], block=True) != Client.e_SUCCESS
+    assert (
+        proxy.create_client("producer1").open(
+            URI_PRIORITY, flags=["write,ack"], block=True
+        )
+        == Client.e_SUCCESS
+    )
+    assert (
+        proxy.create_client("producer2").open(
+            URI_PRIORITY, flags=["write,ack"], block=True
+        )
+        != Client.e_SUCCESS
+    )
+    assert (
+        proxy.create_client("consumer1").open(
+            URI_PRIORITY, flags=["read,ack"], block=True
+        )
+        == Client.e_SUCCESS
+    )
+    assert (
+        proxy.create_client("consumer2").open(
+            URI_PRIORITY, flags=["read,ack"], block=True
+        )
+        != Client.e_SUCCESS
+    )
 ```
 
 Simple tweaks can be implemented easily via `tweak_value`.  It takes a
 XmlPath-like path in the `Workspace` object and a value:
 
 ```python
-@tweak_value(f'domain_catalog/{DOMAIN_PRIORITY}/*/limit.producers', 1)
+@tweak_value(f"domain_catalog/{DOMAIN_PRIORITY}/*/limit.producers", 1)
 def test_tweak(cluster):
     proxy = next(cluster.proxy_cycle())
-    assert proxy.create_client('producer1').open(
-        URI_PRIORITY, flags=['write,ack'], block=True) == Client.e_SUCCESS
-    assert proxy.create_client('producer2').open(
-        URI_PRIORITY, flags=['write,ack'], block=True) != Client.e_SUCCESS
+    assert (
+        proxy.create_client("producer1").open(
+            URI_PRIORITY, flags=["write,ack"], block=True
+        )
+        == Client.e_SUCCESS
+    )
+    assert (
+        proxy.create_client("producer2").open(
+            URI_PRIORITY, flags=["write,ack"], block=True
+        )
+        != Client.e_SUCCESS
+    )
 ```
 
 Again, it is easy to factorize tweaks:
 
 ```python
 one_producer_only = tweak_value(
-    f'domain_catalog/{DOMAIN_PRIORITY}/*/limit.producers', 1)
+    f"domain_catalog/{DOMAIN_PRIORITY}/*/limit.producers", 1
+)
+
 
 @one_producer_only
 def test_tweak(cluster):
     proxy = next(cluster.proxy_cycle())
-    assert proxy.create_client('producer1').open(
-        URI_PRIORITY, flags=['write,ack'], block=True) == Client.e_SUCCESS
-    assert proxy.create_client('producer2').open(
-        URI_PRIORITY, flags=['write,ack'], block=True) != Client.e_SUCCESS
+    assert (
+        proxy.create_client("producer1").open(
+            URI_PRIORITY, flags=["write,ack"], block=True
+        )
+        == Client.e_SUCCESS
+    )
+    assert (
+        proxy.create_client("producer2").open(
+            URI_PRIORITY, flags=["write,ack"], block=True
+        )
+        != Client.e_SUCCESS
+    )
 ```
 
 ## Running Tests

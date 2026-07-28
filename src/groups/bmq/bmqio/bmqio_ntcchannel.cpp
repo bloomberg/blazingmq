@@ -1308,6 +1308,7 @@ void NtcChannel::setChannelId(int channelId)
 
 void NtcChannel::setWriteQueueLowWatermark(int lowWatermark)
 {
+    bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
     if (d_streamSocket_sp) {
         d_streamSocket_sp->setWriteQueueLowWatermark(lowWatermark);
     }
@@ -1315,6 +1316,7 @@ void NtcChannel::setWriteQueueLowWatermark(int lowWatermark)
 
 void NtcChannel::setWriteQueueHighWatermark(int highWatermark)
 {
+    bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
     if (d_streamSocket_sp) {
         d_streamSocket_sp->setWriteQueueHighWatermark(highWatermark);
     }
@@ -1328,18 +1330,21 @@ int NtcChannel::channelId() const
 
 ntsa::Endpoint NtcChannel::peerEndpoint() const
 {
+    bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
     return d_streamSocket_sp ? d_streamSocket_sp->remoteEndpoint()
                              : ntsa::Endpoint();
 }
 
 ntsa::Endpoint NtcChannel::sourceEndpoint() const
 {
+    bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
     return d_streamSocket_sp ? d_streamSocket_sp->sourceEndpoint()
                              : ntsa::Endpoint();
 }
 
-const bsl::string& NtcChannel::peerUri() const
+bsl::string NtcChannel::peerUri() const
 {
+    bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
     return d_peerUri;
 }
 
