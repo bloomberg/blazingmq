@@ -32,9 +32,9 @@ namespace mqbu {
 namespace {
 
 // C++
-const int k_MINIMUM_SDK_VERSION_SUPPORTED_CPP = BMQ_MAKE_EXT_VERSION(1, 5, 0);
+const int k_MINIMUM_SDK_VERSION_SUPPORTED_CPP = BMQ_MAKE_EXT_VERSION(1, 12, 0);
 const int k_MINIMUM_SDK_VERSION_RECOMMENDED_CPP = BMQ_MAKE_EXT_VERSION(1,
-                                                                       9,
+                                                                       12,
                                                                        0);
 
 BSLMF_ASSERT(k_MINIMUM_SDK_VERSION_SUPPORTED_CPP <=
