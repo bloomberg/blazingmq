@@ -35,9 +35,9 @@ def test_print_help(storagetool):
     This test checks that storage tool could print help info.
     """
 
-    res = subprocess.run([storagetool, "-h"], capture_output=True, check=False)
-    assert res.returncode != EX_OK
-    assert re.search(r"--help\s+print usage", res.stderr.decode()) is not None
+    res = subprocess.run([storagetool, "--help"], capture_output=True, check=False)
+    assert res.returncode == EX_OK
+    assert re.search(r"--help\s+show usage", res.stderr.decode()) is not None
 
 
 def test_wrong_argument(storagetool):

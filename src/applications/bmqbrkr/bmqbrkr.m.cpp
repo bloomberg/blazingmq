@@ -14,13 +14,13 @@
 // limitations under the License.
 
 // Application
-#include <bmqbrkrscm_version.h>
 #include <m_bmqbrkr_task.h>
 
 // MQB
 #include <mqba_application.h>
 #include <mqbcfg_brokerconfig.h>
 #include <mqbcfg_messages.h>
+#include <mqbscm_version.h>
 #include <mqbu_exit.h>
 #include <mqbu_messageguidutil.h>
 
@@ -291,7 +291,7 @@ static int getConfig(bsl::ostream&          errorDescription,
     }
 
     config->appConfig().etcDir()        = configDir;
-    config->appConfig().brokerVersion() = bmqbrkrscm::Version::versionAsInt();
+    config->appConfig().brokerVersion() = mqbscm::Version::versionAsInt();
 
     return rc_SUCCESS;
 }
@@ -588,8 +588,9 @@ int main(int argc, const char* argv[])
     bsl::string hostName;
     bsl::string hostTags;
     bsl::string hostDataCenter;
-    int         port    = 0;
-    bool        version = false;
+    int         port     = 0;
+    bool        version  = false;
+    bool        showHelp = false;
 
     {
         balcl::OptionInfo specTable[] = {
@@ -623,10 +624,15 @@ int main(int argc, const char* argv[])
              "Override port",
              balcl::TypeInfo(&port),
              balcl::OccurrenceInfo::e_OPTIONAL},
-            {"v|version",
+            {"version",
              "version",
-             "Show broker version number",
+             "show version number",
              balcl::TypeInfo(&version),
+             balcl::OccurrenceInfo::e_OPTIONAL},
+            {"help",
+             "help",
+             "show usage",
+             balcl::TypeInfo(&showHelp),
              balcl::OccurrenceInfo::e_OPTIONAL},
         };
 
@@ -639,9 +645,14 @@ int main(int argc, const char* argv[])
             return mqbu::ExitCode::e_COMMAND_LINE;  // RETURN
         }
 
+        if (showHelp) {
+            commandLine.printUsage();
+            return 0;
+        }
+
         if (version) {
             bsl::cout << "BlazingMQ broker version: "
-                      << bmqbrkrscm::Version::version() << "\n";
+                      << mqbscm::Version::s_versionDotString << "\n";
             return 0;
         }
 
