@@ -338,9 +338,12 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     mqbnet::ClusterNode* d_primaryNode_p;
 
-    /// Lease id of the current primary.  The current sequence number is
-    /// always `d_highestSeqNums[d_primaryLeaseId]`.
-    unsigned int d_primaryLeaseId;
+    /// Lease id of the active write cursor: the lease id of the next record
+    /// this store writes or applies, and the key for the current sequence
+    /// number (`d_highestSeqNums[d_writeHeadLeaseId]`).  Advanced when a new
+    /// primary is assigned (`setActivePrimary`) or when applying a record that
+    /// carries a higher lease id.
+    unsigned int d_writeHeadLeaseId;
 
     SyncPointOffsetPairs d_syncPoints;
     // List of (syncPoints, offset) pairs,
@@ -389,7 +392,7 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     // PRIVATE MANIPULATORS
 
     /// Return a mutable reference to the current sequence number entry in
-    /// `d_highestSeqNums`, i.e., `d_highestSeqNums[d_primaryLeaseId]`.
+    /// `d_highestSeqNums`, i.e., `d_highestSeqNums[d_writeHeadLeaseId]`.
     /// Note that this will insert a zero entry if one does not exist.
     bsls::Types::Uint64& currentSeqNumRef();
 
@@ -1158,7 +1161,7 @@ inline FileStore::NodeContext::NodeContext(BlobSpPool* blobSpPool_p,
 // PRIVATE MANIPULATORS
 inline bsls::Types::Uint64& FileStore::currentSeqNumRef()
 {
-    return d_highestSeqNums[d_primaryLeaseId];
+    return d_highestSeqNums[d_writeHeadLeaseId];
 }
 
 inline void FileStore::insertDataStoreRecord(RecordIterator* recordIt,
@@ -1318,12 +1321,12 @@ inline mqbnet::ClusterNode* FileStore::primaryNode() const
 
 inline unsigned int FileStore::primaryLeaseId() const
 {
-    return d_primaryLeaseId;
+    return d_writeHeadLeaseId;
 }
 
 inline bsls::Types::Uint64 FileStore::sequenceNumber() const
 {
-    LeaseIdToSeqNumMapCIter cit = d_highestSeqNums.find(d_primaryLeaseId);
+    LeaseIdToSeqNumMapCIter cit = d_highestSeqNums.find(d_writeHeadLeaseId);
     return (cit != d_highestSeqNums.end()) ? cit->second : 0;
 }
 
