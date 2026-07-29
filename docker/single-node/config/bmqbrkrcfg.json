@@ -13,9 +13,7 @@
             "categories": [
                 "BMQBRKR:INFO:green",
                 "BMQ*:INFO:green",
-                "MQB*:INFO:green",
-                "SIM*:INFO:gray",
-                "BAEA.PERFORMANCEMONITOR:INFO:white"
+                "MQB*:INFO:green"
             ],
             "syslog": {
                 "enabled": false,

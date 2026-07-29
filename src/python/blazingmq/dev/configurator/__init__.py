@@ -338,8 +338,6 @@ class Proto:
                         "BMQBRKR:INFO:green",
                         "BMQ*:INFO:green",
                         "MQB*:INFO:green",
-                        "SIM*:INFO:gray",
-                        "BAEA.PERFORMANCEMONITOR:INFO:white",
                     ],
                     syslog=mqbcfg.SyslogConfig(
                         enabled=False,
