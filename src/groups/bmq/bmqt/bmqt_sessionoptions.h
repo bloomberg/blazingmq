@@ -143,6 +143,7 @@
 #include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bslma_usesbslmaallocator.h>
+#include <bslmf_movableref.h>
 #include <bslmf_nestedtraitdeclaration.h>
 #include <bsls_assert.h>
 #include <bsls_timeinterval.h>
@@ -272,6 +273,13 @@ class SessionOptions {
     /// `other`, using the optionally specified `allocator`.
     SessionOptions(const SessionOptions& other,
                    bslma::Allocator*     allocator = 0);
+
+    /// Assign to this object the value of the specified `other`, and return
+    /// a reference providing modifiable access to this object.
+    SessionOptions& operator=(const SessionOptions& other);
+
+    /// Destroy this object.
+    ~SessionOptions();
 
     // MANIPULATORS
 

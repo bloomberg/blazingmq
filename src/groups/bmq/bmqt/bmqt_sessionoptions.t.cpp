@@ -186,6 +186,70 @@ static void test3_setterGetterAndCopyTest()
                      eventQueueHighWatermark);
     BMQTST_ASSERT_EQ(objCopy.userAgentPrefix(), userAgentPrefix);
 }
+
+static void test4_copyAssignmentTest()
+{
+    bmqtst::TestHelper::printTestName("MOVE AND ASSIGNMENT");
+
+    const char* const        brokerUri            = "tcp://localhost:30116";
+    const char* const        processNameOverride  = "sessionoptions-test";
+    const int                numProcessingThreads = 7;
+    const int                blobBufferSize       = 16 * 1024;
+    const bsls::Types::Int64 channelHighWatermark = 512 * 1024 * 1024;
+    const bsls::TimeInterval statsDumpInterval(9 * 60.0);
+    const bsls::TimeInterval connectTimeout(77);
+    const bsls::TimeInterval disconnectTimeout(33);
+    const bsls::TimeInterval openQueueTimeout(
+        bmqt::SessionOptions::k_QUEUE_OPERATION_DEFAULT_TIMEOUT + 10);
+    const bsls::TimeInterval configureQueueTimeout(
+        bmqt::SessionOptions::k_QUEUE_OPERATION_DEFAULT_TIMEOUT + 11);
+    const bsls::TimeInterval closeQueueTimeout(
+        bmqt::SessionOptions::k_QUEUE_OPERATION_DEFAULT_TIMEOUT + 12);
+    const int                eventQueueLowWatermark  = 71;
+    const int                eventQueueHighWatermark = 3001;
+    const char* const        userAgentPrefix         = "wrapper-lib/1.2.3";
+    const bsls::TimeInterval channelWriteTimeout(8);
+
+    bmqt::SessionOptions source(bmqtst::TestHelperUtil::allocator());
+    source.setBrokerUri(brokerUri)
+        .setProcessNameOverride(processNameOverride)
+        .setNumProcessingThreads(numProcessingThreads)
+        .setBlobBufferSize(blobBufferSize)
+        .setChannelHighWatermark(channelHighWatermark)
+        .setStatsDumpInterval(statsDumpInterval)
+        .setConnectTimeout(connectTimeout)
+        .setDisconnectTimeout(disconnectTimeout)
+        .setOpenQueueTimeout(openQueueTimeout)
+        .setConfigureQueueTimeout(configureQueueTimeout)
+        .setCloseQueueTimeout(closeQueueTimeout)
+        .configureEventQueue(eventQueueLowWatermark, eventQueueHighWatermark)
+        .setUserAgentPrefix(userAgentPrefix)
+        .setChannelWriteTimeout(channelWriteTimeout);
+
+    PVV("Copy assignment");
+    bmqt::SessionOptions copyAssigned(bmqtst::TestHelperUtil::allocator());
+    copyAssigned = source;
+    BMQTST_ASSERT_EQ(copyAssigned.brokerUri(), brokerUri);
+    BMQTST_ASSERT_EQ(copyAssigned.processNameOverride(), processNameOverride);
+    BMQTST_ASSERT_EQ(copyAssigned.numProcessingThreads(),
+                     numProcessingThreads);
+    BMQTST_ASSERT_EQ(copyAssigned.blobBufferSize(), blobBufferSize);
+    BMQTST_ASSERT_EQ(copyAssigned.channelHighWatermark(),
+                     channelHighWatermark);
+    BMQTST_ASSERT_EQ(copyAssigned.statsDumpInterval(), statsDumpInterval);
+    BMQTST_ASSERT_EQ(copyAssigned.connectTimeout(), connectTimeout);
+    BMQTST_ASSERT_EQ(copyAssigned.disconnectTimeout(), disconnectTimeout);
+    BMQTST_ASSERT_EQ(copyAssigned.openQueueTimeout(), openQueueTimeout);
+    BMQTST_ASSERT_EQ(copyAssigned.configureQueueTimeout(),
+                     configureQueueTimeout);
+    BMQTST_ASSERT_EQ(copyAssigned.closeQueueTimeout(), closeQueueTimeout);
+    BMQTST_ASSERT_EQ(copyAssigned.eventQueueLowWatermark(),
+                     eventQueueLowWatermark);
+    BMQTST_ASSERT_EQ(copyAssigned.eventQueueHighWatermark(),
+                     eventQueueHighWatermark);
+    BMQTST_ASSERT_EQ(copyAssigned.userAgentPrefix(), userAgentPrefix);
+    BMQTST_ASSERT_EQ(copyAssigned.channelWriteTimeout(), channelWriteTimeout);
+}
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -196,6 +260,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 4: test4_copyAssignmentTest(); break;
     case 3: test3_setterGetterAndCopyTest(); break;
     case 2: test2_printTest(); break;
     case 1: test1_breathingTest(); break;

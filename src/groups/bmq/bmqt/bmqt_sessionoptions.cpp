@@ -19,6 +19,7 @@
 // BDE
 #include <bslim_printer.h>
 #include <bslma_allocator.h>
+#include <bslmf_allocatorargt.h>
 
 namespace BloombergLP {
 namespace bmqt {
@@ -44,7 +45,7 @@ SessionOptions::SessionOptions(bslma::Allocator* allocator)
 , d_eventQueueLowWatermark(50)
 , d_eventQueueHighWatermark(2 * 1000)
 , d_eventQueueSize(-1)  // DEPRECATED: will be removed in future release
-, d_authnCredentialCb()
+, d_authnCredentialCb(bsl::allocator_arg, allocator)
 , d_hostHealthMonitor_sp()
 , d_dtContext_sp()
 , d_dtTracer_sp()
@@ -70,7 +71,7 @@ SessionOptions::SessionOptions(const SessionOptions& other,
 , d_eventQueueLowWatermark(other.eventQueueLowWatermark())
 , d_eventQueueHighWatermark(other.eventQueueHighWatermark())
 , d_eventQueueSize(-1)  // DEPRECATED: will be removed in future release
-, d_authnCredentialCb(other.authnCredentialCb())
+, d_authnCredentialCb(bsl::allocator_arg, allocator, other.authnCredentialCb())
 , d_hostHealthMonitor_sp(other.hostHealthMonitor())
 , d_dtContext_sp(other.traceContext())
 , d_dtTracer_sp(other.tracer())
@@ -79,6 +80,43 @@ SessionOptions::SessionOptions(const SessionOptions& other,
 {
     // NOTHING
 }
+
+SessionOptions& SessionOptions::operator=(const SessionOptions& other)
+{
+    if (this != &other) {
+        d_brokerUri               = other.d_brokerUri;
+        d_processNameOverride     = other.d_processNameOverride;
+        d_numProcessingThreads    = other.d_numProcessingThreads;
+        d_blobBufferSize          = other.d_blobBufferSize;
+        d_channelHighWatermark    = other.d_channelHighWatermark;
+        d_statsDumpInterval       = other.d_statsDumpInterval;
+        d_connectTimeout          = other.d_connectTimeout;
+        d_disconnectTimeout       = other.d_disconnectTimeout;
+        d_openQueueTimeout        = other.d_openQueueTimeout;
+        d_configureQueueTimeout   = other.d_configureQueueTimeout;
+        d_closeQueueTimeout       = other.d_closeQueueTimeout;
+        d_eventQueueLowWatermark  = other.d_eventQueueLowWatermark;
+        d_eventQueueHighWatermark = other.d_eventQueueHighWatermark;
+        d_authnCredentialCb       = other.d_authnCredentialCb;
+        d_hostHealthMonitor_sp    = other.d_hostHealthMonitor_sp;
+        d_dtContext_sp            = other.d_dtContext_sp;
+        d_dtTracer_sp             = other.d_dtTracer_sp;
+        d_userAgentPrefix         = other.d_userAgentPrefix;
+        d_channelWriteTimeout     = other.d_channelWriteTimeout;
+
+        // DEPRECATED: preserve current behavior from constructors.
+        d_eventQueueSize = -1;
+    }
+
+    return *this;
+}
+
+SessionOptions::~SessionOptions()
+{
+    // NOTHING
+}
+
+// MANIPULATORS
 
 bsl::ostream& SessionOptions::print(bsl::ostream& stream,
                                     int           level,
