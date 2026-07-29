@@ -6792,9 +6792,11 @@ void FileStore::sendImplicitReceipt()
     if (!d_lastRecoveredStrongConsistency.d_primaryLeaseId) {
         return;  // RETURN
     }
-    BALL_LOG_INFO << partitionDesc() << "Issuing Implicit Receipt ["
-                  << "primaryLeaseId = " << d_writeHeadLeaseId
-                  << ", d_sequenceNum = " << sequenceNumber() << "].";
+    BALL_LOG_INFO << partitionDesc() << "Issuing Implicit Receipt with PSN: "
+                  << printPSN(
+                         d_lastRecoveredStrongConsistency.d_primaryLeaseId,
+                         d_lastRecoveredStrongConsistency.d_sequenceNum)
+                  << ".";
 
     FileStore::NodeContext* nodeContext = generateReceipt(
         0,
