@@ -13,12 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "bmqu_atomicvalidator.h"
 #include <bmqio_reconnectingchannelfactory.h>
 
 #include <bmqscm_version.h>
 
 #include <bmqio_resolveutil.h>
+#include <bmqu_atomicvalidator.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_printutil.h>
 #include <bmqu_time.h>
@@ -518,6 +518,8 @@ void ReconnectingChannelFactory::cancelAllHandles()
          ++iter) {
         iter->second->cancel();
     }
+
+    d_config.d_base_p->stop();
 }
 
 void ReconnectingChannelFactory::disableReconnect()

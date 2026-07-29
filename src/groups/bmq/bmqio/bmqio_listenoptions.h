@@ -47,8 +47,12 @@ namespace bmqio {
 class ListenOptions {
   private:
     // DATA
-    bsl::string d_endpoint;  // implementation-defined endpoint
-                             // to listen on
+
+    /// implementation-defined endpoint to listen on
+    bsl::string d_endpoint;
+
+    /// TLS mode
+    bool d_isTls;
 
     bmqvt::PropertyBag d_properties;  // additional properties
 
@@ -74,6 +78,10 @@ class ListenOptions {
     /// providing modifiable access to this object.
     ListenOptions& setEndpoint(const bslstl::StringRef& value);
 
+    /// Set the `isTls` property of this object and return a reference
+    /// providing modifiable access to this object.
+    ListenOptions& setIsTls(bool value);
+
     /// Return a reference providing modifiable access to the `properties`
     /// property of this object.
     bmqvt::PropertyBag& properties();
@@ -83,6 +91,10 @@ class ListenOptions {
     /// Return a reference providing const access to the `endpoint` property
     /// of this object.
     const bsl::string& endpoint() const;
+
+    /// Return a reference providing const access to the `isTls` property
+    /// of this object.
+    bool isTls() const;
 
     /// Return a reference providing const access to the `properties`
     /// property of this object.
@@ -118,6 +130,7 @@ bsl::ostream& operator<<(bsl::ostream& stream, const ListenOptions& obj);
 // CREATORS
 inline ListenOptions::ListenOptions(bslma::Allocator* basicAllocator)
 : d_endpoint(basicAllocator)
+, d_isTls(false)
 , d_properties(basicAllocator)
 {
 }
@@ -125,6 +138,7 @@ inline ListenOptions::ListenOptions(bslma::Allocator* basicAllocator)
 inline ListenOptions::ListenOptions(const ListenOptions& original,
                                     bslma::Allocator*    basicAllocator)
 : d_endpoint(original.d_endpoint, basicAllocator)
+, d_isTls(false)
 , d_properties(original.d_properties, basicAllocator)
 {
 }
@@ -137,6 +151,12 @@ ListenOptions::setEndpoint(const bslstl::StringRef& value)
     return *this;
 }
 
+inline ListenOptions& ListenOptions::setIsTls(bool value)
+{
+    d_isTls = value;
+    return *this;
+}
+
 inline bmqvt::PropertyBag& ListenOptions::properties()
 {
     return d_properties;
@@ -146,6 +166,11 @@ inline bmqvt::PropertyBag& ListenOptions::properties()
 inline const bsl::string& ListenOptions::endpoint() const
 {
     return d_endpoint;
+}
+
+inline bool ListenOptions::isTls() const
+{
+    return d_isTls;
 }
 
 inline const bmqvt::PropertyBag& ListenOptions::properties() const

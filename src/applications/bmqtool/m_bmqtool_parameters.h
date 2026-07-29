@@ -284,7 +284,14 @@ class Parameters {
     // authentication callback is set.
 
     bsl::string d_authnData;
+
     // Authentication data/credentials string.
+    /// A path to the FILE, containing concatenation of known certificates
+    /// the client can use to reference as its certificate store.
+    bsl::string d_tlsAuthority;
+
+    /// A string with a comma-separated list of supported TLS versions.
+    bsl::string d_tlsVersions;
 
   public:
     // CREATORS
@@ -325,6 +332,8 @@ class Parameters {
     Parameters& setTimeout(const bsls::TimeInterval& value);
     Parameters& setAuthnMechanism(const bsl::string& value);
     Parameters& setAuthnData(const bsl::string& value);
+    Parameters& setTlsAuthority(const bsl::string& value);
+    Parameters& setTlsVersions(const bsl::string& value);
 
     // Set the corresponding member to the specified 'value' and return a
     // reference offering modifiable access to this object.
@@ -389,6 +398,8 @@ class Parameters {
     const bsl::string&                  authnData() const;
 
     const char* autoPubSubPropertyName() const;
+    const bsl::string& tlsAuthority() const;
+    const bsl::string& tlsVersions() const;
 };
 
 // FREE OPERATORS
@@ -608,7 +619,18 @@ inline Parameters& Parameters::setAutoPubSubModulo(int autoPubSubModulo)
 inline Parameters& Parameters::setTimeout(const bsls::TimeInterval& value)
 {
     d_timeout = value;
+    return *this;
+}
 
+inline Parameters& Parameters::setTlsAuthority(const bsl::string& value)
+{
+    d_tlsAuthority = value;
+    return *this;
+}
+
+inline Parameters& Parameters::setTlsVersions(const bsl::string& value)
+{
+    d_tlsVersions = value;
     return *this;
 }
 
@@ -789,6 +811,16 @@ inline const bsl::string& Parameters::authnMechanism() const
 inline const bsl::string& Parameters::authnData() const
 {
     return d_authnData;
+}
+
+inline const bsl::string& Parameters::tlsAuthority() const
+{
+    return d_tlsAuthority;
+}
+
+inline const bsl::string& Parameters::tlsVersions() const
+{
+    return d_tlsVersions;
 }
 
 }  // close package namespace

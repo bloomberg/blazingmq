@@ -48,20 +48,24 @@ namespace bmqio {
 class ConnectOptions {
   private:
     // DATA
-    bsl::string d_endpoint;  // implementation-defined endpoint to
-                             // connect to
 
-    int d_numAttempts;  // number of connection attempts to
-                        // make before failing the connection
+    /// implementation-defined endpoint to connect to
+    bsl::string d_endpoint;
 
+    /// number of connection attempts to make before failing the connection
+    int d_numAttempts;
+
+    /// time to wait between successive connection attempts
     bsls::TimeInterval d_attemptInterval;
-    // time to wait between successive
-    // connection attempts
 
-    bool d_autoReconnect;  // should this connection be
-                           // auto-reconnected when it goes down
+    /// should this connection be auto-reconnected when it goes down
+    bool d_autoReconnect;
 
-    bmqvt::PropertyBag d_properties;  // additional properties
+    /// should this connection be upgraded to TLS
+    bool d_isTls;
+
+    /// additional properties
+    bmqvt::PropertyBag d_properties;
 
   public:
     // TRAITS
@@ -101,6 +105,10 @@ class ConnectOptions {
     /// established.  By default, this is `false`.
     ConnectOptions& setAutoReconnect(bool value);
 
+    /// Set whether this connection should be upgraded to a TLS connection once
+    /// established.  By default, this is `false`.
+    ConnectOptions& setIsTls(bool value);
+
     /// Return a reference providing modifiable access to the `properties`
     /// property of this object.
     bmqvt::PropertyBag& properties();
@@ -120,6 +128,9 @@ class ConnectOptions {
 
     /// Return the `autoReconnect` property of this object.
     bool autoReconnect() const;
+
+    /// Return the `isTls` property of this object.
+    bool isTls() const;
 
     /// Return a reference providing const access to the `properties`
     /// property of this object.
@@ -199,6 +210,12 @@ inline ConnectOptions& ConnectOptions::setAutoReconnect(bool value)
     return *this;
 }
 
+inline ConnectOptions& ConnectOptions::setIsTls(bool value)
+{
+    d_isTls = value;
+    return *this;
+}
+
 inline bmqvt::PropertyBag& ConnectOptions::properties()
 {
     return d_properties;
@@ -223,6 +240,11 @@ inline const bsls::TimeInterval& ConnectOptions::attemptInterval() const
 inline bool ConnectOptions::autoReconnect() const
 {
     return d_autoReconnect;
+}
+
+inline bool ConnectOptions::isTls() const
+{
+    return d_isTls;
 }
 
 inline const bmqvt::PropertyBag& ConnectOptions::properties() const

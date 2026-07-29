@@ -27,12 +27,16 @@ import json
 import re
 import subprocess
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional, List, NamedTuple
+from typing import Any, Callable, Dict, Optional, List, NamedTuple, Tuple
 
 from blazingmq.dev.it.process import bmqproc
 from blazingmq.dev.it.process.bmqproc import BMQProcess
 
-from blazingmq.dev.it.testconstants import *
+from blazingmq.dev.it.testconstants import (
+    URI_BROADCAST,
+    URI_FANOUT,
+    URI_PRIORITY,
+)
 from blazingmq.dev.it.util import internal_use, ListContextManager, Queue
 
 Message = namedtuple("Message", "guid, uri, correlationId, payload")
@@ -98,10 +102,10 @@ class Client(BMQProcess):
     def __init__(
         self,
         name,
-        broker: (str, int),
+        broker: Tuple[str, int],
         tool_path: Path,
-        options=None,
-        dump_messages=True,
+        options: Optional[str] = None,
+        dump_messages: bool = True,
         **kwargs,
     ):
         if options is None:

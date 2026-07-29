@@ -12,5 +12,6 @@ bmqt_resultcode
 bmqt_sessioneventtype
 bmqt_sessionoptions
 bmqt_subscription
+bmqt_tlsprotocolversion
 bmqt_uri
 bmqt_version
