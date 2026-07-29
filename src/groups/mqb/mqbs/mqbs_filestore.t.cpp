@@ -817,7 +817,7 @@ static void test1_breathingTest()
     BMQTST_ASSERT_EQ(1U, fs.clusterSize());
     BMQTST_ASSERT_EQ(0ULL, fs.numRecords());
     BMQTST_ASSERT_EQ(true, fs.syncPoints().empty());
-    BMQTST_ASSERT_EQ(0U, fs.primaryLeaseId());
+    BMQTST_ASSERT_EQ(0U, fs.writeHeadLeaseId());
     BMQTST_ASSERT_EQ(0ULL, fs.sequenceNumber());
 
     // Temporary workaround to suppress the 'unused operator
@@ -836,7 +836,7 @@ static void test1_breathingTest()
 
     fs.setActivePrimary(tester.node(), primaryLeaseId);
 
-    BMQTST_ASSERT_EQ(primaryLeaseId, fs.primaryLeaseId());
+    BMQTST_ASSERT_EQ(primaryLeaseId, fs.writeHeadLeaseId());
     BMQTST_ASSERT_EQ(seqNum, fs.sequenceNumber());
     BMQTST_ASSERT_EQ(tester.node(), fs.primaryNode());
 

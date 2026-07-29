@@ -2922,7 +2922,7 @@ static void test18_primaryHealingWatchdogRetry()
                     1);
 
     const int k_PRIMARY_LEASE_ID =
-        storageManager.fileStore(k_PARTITION_ID).primaryLeaseId();
+        storageManager.fileStore(k_PARTITION_ID).writeHeadLeaseId();
     const int k_PRIMARY_SEQ_NUM =
         storageManager.fileStore(k_PARTITION_ID).sequenceNumber();
 

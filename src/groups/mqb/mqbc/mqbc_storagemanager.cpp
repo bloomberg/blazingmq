@@ -1924,7 +1924,7 @@ void StorageManager::do_storeSelfSeq(
     mqbs::FileStore* fs = d_fileStores[partitionId].get();
     BSLS_ASSERT_SAFE(fs);
     if (fs->isOpen()) {
-        nodePSNCtx.d_PSN.primaryLeaseId() = fs->primaryLeaseId();
+        nodePSNCtx.d_PSN.primaryLeaseId() = fs->writeHeadLeaseId();
         nodePSNCtx.d_PSN.sequenceNumber() = fs->sequenceNumber();
     }
     else {

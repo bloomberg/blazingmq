@@ -2010,7 +2010,7 @@ int RecoveryManager::syncPeerPartition(PrimarySyncContext* primarySyncCtx,
     int                    pid = fs->config().partitionId();
 
     bmqp_ctrlmsg::PartitionSequenceNumber selfSequenceNum;
-    selfSequenceNum.primaryLeaseId() = fs->primaryLeaseId();
+    selfSequenceNum.primaryLeaseId() = fs->writeHeadLeaseId();
     selfSequenceNum.sequenceNumber() = fs->sequenceNumber();
 
     const FileTransferInfo& fti = primarySyncCtx->fileTransferInfo();
@@ -4372,7 +4372,7 @@ void RecoveryManager::startPartitionPrimarySync(
     primarySyncCtx.setPartitionPrimarySyncCb(partitionPrimarySyncCb);
 
     bmqp_ctrlmsg::PartitionSequenceNumber tmp;
-    tmp.primaryLeaseId() = fs->primaryLeaseId();
+    tmp.primaryLeaseId() = fs->writeHeadLeaseId();
     tmp.sequenceNumber() = fs->sequenceNumber();
     primarySyncCtx.setSelfPartitionSequenceNum(tmp);
 
@@ -4468,7 +4468,7 @@ void RecoveryManager::processPartitionSyncStateRequest(
         clusterMsg.choice().makePartitionSyncStateQueryResponse();
 
     response.partitionId()    = req.partitionId();
-    response.primaryLeaseId() = fs->primaryLeaseId();
+    response.primaryLeaseId() = fs->writeHeadLeaseId();
     response.sequenceNum()    = fs->sequenceNumber();
     if (!fs->syncPoints().empty()) {
         response.lastSyncPointOffsetPair() = fs->syncPoints().back();
@@ -4577,7 +4577,7 @@ void RecoveryManager::processPartitionSyncDataRequest(
     requesterUptoPSN.sequenceNumber() = req.uptoSequenceNum();
 
     bmqp_ctrlmsg::PartitionSequenceNumber selfPSN;
-    selfPSN.primaryLeaseId() = fs->primaryLeaseId();
+    selfPSN.primaryLeaseId() = fs->writeHeadLeaseId();
     selfPSN.sequenceNumber() = fs->sequenceNumber();
 
     if (requesterUptoPSN <= requesterPSN) {

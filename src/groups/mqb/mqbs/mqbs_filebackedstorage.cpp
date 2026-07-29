@@ -173,7 +173,7 @@ FileBackedStorage::get(bsl::shared_ptr<bdlbb::Blob>*   appData,
 
     d_store_p->loadMessageRaw(appData, options, attributes, handles[0]);
 
-    if (handles[0].primaryLeaseId() < d_store_p->primaryLeaseId()) {
+    if (handles[0].primaryLeaseId() < d_store_p->writeHeadLeaseId()) {
         // Consider this the past that needs translation
         bmqp::SchemaLearner& learner = queue()->schemaLearner();
 
@@ -201,7 +201,7 @@ FileBackedStorage::get(mqbi::StorageMessageAttributes* attributes,
     BSLS_ASSERT(!handles.empty());
     d_store_p->loadMessageAttributesRaw(attributes, handles[0]);
 
-    if (handles[0].primaryLeaseId() < d_store_p->primaryLeaseId()) {
+    if (handles[0].primaryLeaseId() < d_store_p->writeHeadLeaseId()) {
         // Consider this the past that needs translation
         bmqp::SchemaLearner& learner = queue()->schemaLearner();
 

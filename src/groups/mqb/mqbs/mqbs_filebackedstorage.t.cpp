@@ -526,7 +526,7 @@ class MockDataStore : public mqbs::DataStore {
         return sizeof(int);
     }
 
-    unsigned int primaryLeaseId() const BSLS_KEYWORD_OVERRIDE { return 0U; }
+    unsigned int writeHeadLeaseId() const BSLS_KEYWORD_OVERRIDE { return 0U; }
 
     bool
     hasReceipt(const mqbs::DataStoreRecordHandle&) const BSLS_KEYWORD_OVERRIDE

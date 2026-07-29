@@ -1029,8 +1029,9 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// Return the current primary node for this partition.
     mqbnet::ClusterNode* primaryNode() const;
 
-    /// Return the current primary leaseId for this partition.
-    unsigned int primaryLeaseId() const BSLS_KEYWORD_OVERRIDE;
+    /// Return the write-head leaseId for this partition: the lease id of the
+    /// next record this store writes or applies (see `d_writeHeadLeaseId`).
+    unsigned int writeHeadLeaseId() const BSLS_KEYWORD_OVERRIDE;
 
     /// Return `true` if there was Replication Receipt for the specified
     /// `handle`.
@@ -1319,7 +1320,7 @@ inline mqbnet::ClusterNode* FileStore::primaryNode() const
     return d_primaryNode_p;
 }
 
-inline unsigned int FileStore::primaryLeaseId() const
+inline unsigned int FileStore::writeHeadLeaseId() const
 {
     return d_writeHeadLeaseId;
 }
