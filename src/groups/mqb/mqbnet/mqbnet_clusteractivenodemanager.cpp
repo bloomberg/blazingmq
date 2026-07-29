@@ -212,8 +212,9 @@ void ClusterActiveNodeManager::onNewActiveNode(ClusterNode* node)
     if (!node) {
         // No nodes are available, that is a major issue!  However, no need to
         // alarm in the case of single-node cluster, as this is bound to happen
-        // when that node bounces.
-        if (d_nodes.size() > 1) {
+        // when that node bounces; nor when the cluster is stopping, as all
+        // nodes are expected to go down during shutdown.
+        if (d_nodes.size() > 1 && !d_isStopping) {
             BMQTSK_ALARMLOG_PANIC("CLUSTER_ACTIVE_NODE")
                 << d_description << ": no node available !!!"
                 << BMQTSK_ALARMLOG_END;
@@ -244,6 +245,7 @@ ClusterActiveNodeManager::ClusterActiveNodeManager(
 , d_activeNodeIt(d_nodes.end())
 , d_ignoreDataCenter(false)
 , d_useExtendedSelection(false)
+, d_isStopping(false)
 {
     bool clusterHasNodeInLocalDC = false;
     for (mqbnet::Cluster::NodesList::const_iterator it = nodes.begin();

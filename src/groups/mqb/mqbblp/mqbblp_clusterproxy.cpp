@@ -138,8 +138,9 @@ void ClusterProxy::initiateShutdownDispatched(const VoidFunctor& callback)
 
     BALL_LOG_INFO << "Shutting down ClusterProxy: [name: '" << name() << "']";
 
-    // Mark self as stopping.
+    // Mark self as stopping and notify active node manager.
     d_isStopping = true;
+    d_activeNodeManager.onClusterStopping();
 
     d_queueHelper.requestToStopQueues();
     // 'checkUnconfirmedV2' serves as synchronization.

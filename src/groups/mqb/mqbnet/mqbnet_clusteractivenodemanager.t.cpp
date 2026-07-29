@@ -316,6 +316,88 @@ static void test4_panicInExtendedMode()
     }
 }
 
+static void test5_noPanicWhenStopping()
+// Validate that once the cluster is marked as stopping, failing to select an
+// active node does NOT emit a PANIC log (all nodes are expected to go down
+// during shutdown).
+{
+    bmqtst::TestHelper::printTestName("NO PANIC WHEN STOPPING");
+
+    bmqtst::ScopedLogObserver logObserver(ball::Severity::e_ERROR,
+                                          bmqtst::TestHelperUtil::allocator());
+
+    // Set up mock cluster
+    mqbcfg::ClusterDefinition clusterConfig(
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    mqbnet::MockCluster mockCluster(clusterConfig,
+                                    &bufferFactory,
+                                    bmqtst::TestHelperUtil::allocator());
+
+    // Populate cluster nodes
+    // - 1 node in "east" data center
+    // - 1 node in "west" data center
+    mqbnet::Cluster::NodesList nodes(bmqtst::TestHelperUtil::allocator());
+    mqbcfg::ClusterNode clusterNodeConfig(bmqtst::TestHelperUtil::allocator());
+
+    clusterNodeConfig.dataCenter() = "east";
+    clusterNodeConfig.name()       = "east-1";
+    mqbnet::MockClusterNode east1(&mockCluster,
+                                  clusterNodeConfig,
+                                  &bufferFactory,
+                                  bmqtst::TestHelperUtil::allocator());
+    nodes.push_back(&east1);
+
+    clusterNodeConfig.dataCenter() = "west";
+    clusterNodeConfig.name()       = "west-1";
+    mqbnet::MockClusterNode west1(&mockCluster,
+                                  clusterNodeConfig,
+                                  &bufferFactory,
+                                  bmqtst::TestHelperUtil::allocator());
+    nodes.push_back(&west1);
+
+    // Create ClusterActiveNodeManager
+    bsl::string                      description = "dummy";
+    bsl::string                      dataCenter  = "east";
+    mqbnet::ClusterActiveNodeManager mgr =
+        mqbnet::ClusterActiveNodeManager(nodes, description, dataCenter);
+    BMQTST_ASSERT(!mgr.activeNode());
+
+    bmqp_ctrlmsg::NegotiationMessage negotiationMessage(
+        bmqtst::TestHelperUtil::allocator());
+    negotiationMessage.makeClientIdentity().hostName() = "dummyIdentity";
+
+    // Mark the cluster as stopping.
+    mgr.onClusterStopping();
+
+    // "east" node up, it should become active
+    {
+        int rc = mgr.onNodeUp(&east1, negotiationMessage.clientIdentity());
+        BMQTST_ASSERT_EQ(rc, mqbnet::ClusterActiveNodeManager::e_NEW_ACTIVE);
+        BMQTST_ASSERT_EQ(mgr.activeNode(), &east1);
+    }
+
+    // "east" node down, no active node -- but NO PANIC because stopping
+    {
+        int rc = mgr.onNodeDown(&east1);
+        BMQTST_ASSERT_EQ(rc, mqbnet::ClusterActiveNodeManager::e_LOST_ACTIVE);
+        BMQTST_ASSERT(!mgr.activeNode());
+    }
+
+    // Refresh in extended mode with no available nodes -- still NO PANIC.
+    {
+        mgr.enableExtendedSelection();
+        int rc = mgr.refresh();
+        BMQTST_ASSERT_EQ(rc, mqbnet::ClusterActiveNodeManager::e_NO_CHANGE);
+        BMQTST_ASSERT(!mgr.activeNode());
+    }
+
+    // No PANIC (or any ERROR) should have been logged while stopping.
+    BMQTST_ASSERT(logObserver.records().empty());
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -326,6 +408,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 5: test5_noPanicWhenStopping(); break;
     case 4: test4_panicInExtendedMode(); break;
     case 3: test3_activeNodeOutsideDC(); break;
     case 2: test2_activeNodeWithinDC(); break;

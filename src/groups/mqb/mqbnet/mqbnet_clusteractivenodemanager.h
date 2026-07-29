@@ -265,6 +265,10 @@ class ClusterActiveNodeManager {
     /// node.
     bool d_useExtendedSelection;
 
+    /// If true, the associated cluster is shutting down.  In this state,
+    /// it is okay to not have an active node.
+    bool d_isStopping;
+
   private:
     // PRIVATE MANIPULATORS
 
@@ -303,6 +307,11 @@ class ClusterActiveNodeManager {
     /// drop the `same DataCenter` requirement for all subsequent active
     /// node selections.
     void enableExtendedSelection();
+
+    /// Notify this object that the associated cluster is stopping (during
+    /// broker shutdown, when all clusters are stopped) and suppresses
+    /// alarms related to active node selection.
+    void onClusterStopping();
 
     /// Initialize this object.  Iterate sessions from the specified
     /// `transportManager` and update corresponding nodes status.
@@ -349,6 +358,11 @@ class ClusterActiveNodeManager {
 inline void ClusterActiveNodeManager::enableExtendedSelection()
 {
     d_useExtendedSelection = true;
+}
+
+inline void ClusterActiveNodeManager::onClusterStopping()
+{
+    d_isStopping = true;
 }
 
 inline mqbnet::ClusterNode* ClusterActiveNodeManager::activeNode() const
