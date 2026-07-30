@@ -391,10 +391,8 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
   private:
     // PRIVATE MANIPULATORS
 
-    /// Return a mutable reference to the current sequence number entry in
-    /// `d_highestSeqNums`, i.e., `d_highestSeqNums[d_writeHeadLeaseId]`.
-    /// Note that this will insert a zero entry if one does not exist.
-    bsls::Types::Uint64& currentSeqNumRef();
+    /// Increment the write head's sequence number and return its new value.
+    bsls::Types::Uint64 incrementWriteHeadSeqNum();
 
     /// Move the internal write cursor to the specified `leaseId` and `seqNum`.
     void setWriteHead(unsigned int leaseId, bsls::Types::Uint64 seqNum);
@@ -1163,9 +1161,9 @@ inline FileStore::NodeContext::NodeContext(BlobSpPool* blobSpPool_p,
 // ---------------
 
 // PRIVATE MANIPULATORS
-inline bsls::Types::Uint64& FileStore::currentSeqNumRef()
+inline bsls::Types::Uint64 FileStore::incrementWriteHeadSeqNum()
 {
-    return d_highestSeqNums[d_writeHeadLeaseId];
+    return ++d_highestSeqNums.at(d_writeHeadLeaseId);
 }
 
 inline void FileStore::setWriteHead(unsigned int        leaseId,

@@ -1007,7 +1007,7 @@ int FileStore::openInRecoveryMode(bsl::ostream&    errorDescription,
 
         bmqp_ctrlmsg::SyncPoint syncPoint;
         syncPoint.primaryLeaseId()       = d_writeHeadLeaseId;
-        syncPoint.sequenceNum()          = currentSeqNumRef() + 1;
+        syncPoint.sequenceNum()          = writeHeadSeqNum() + 1;
         syncPoint.dataFileOffsetDwords() = fileSetSp->d_data.d_filePosition /
                                            bmqp::Protocol::k_DWORD_SIZE;
         syncPoint.qlistFileOffsetWords() =
@@ -3300,7 +3300,7 @@ int FileStore::rollover()
 
     bmqp_ctrlmsg::SyncPoint syncPt;
     syncPt.primaryLeaseId()       = d_writeHeadLeaseId;
-    syncPt.sequenceNum()          = currentSeqNumRef() + 1;
+    syncPt.sequenceNum()          = writeHeadSeqNum() + 1;
     syncPt.dataFileOffsetDwords() = activeFileSet->d_data.d_filePosition /
                                     bmqp::Protocol::k_DWORD_SIZE;
     syncPt.qlistFileOffsetWords() =
@@ -3747,7 +3747,7 @@ void FileStore::writeQueueOpRecordImpl(DataStoreRecordHandle*  handle,
     new (qRec.get()) QueueOpRecord();
     qRec->header()
         .setPrimaryLeaseId(d_writeHeadLeaseId)
-        .setSequenceNumber(++currentSeqNumRef())
+        .setSequenceNumber(incrementWriteHeadSeqNum())
         .setTimestamp(timestamp);
     qRec->setQueueKey(queueKey).setType(queueOpFlag);
     qRec->setStartSequenceNumber(startSequenceNum);
@@ -4104,7 +4104,7 @@ void FileStore::issueSyncPointIfNeeded()
 
     bmqp_ctrlmsg::SyncPoint sp;
     sp.primaryLeaseId()       = d_writeHeadLeaseId;
-    sp.sequenceNum()          = currentSeqNumRef() + 1;
+    sp.sequenceNum()          = writeHeadSeqNum() + 1;
     sp.dataFileOffsetDwords() = fs->d_data.d_filePosition /
                                 bmqp::Protocol::k_DWORD_SIZE;
     if (d_qListAware) {
@@ -5752,7 +5752,7 @@ int FileStore::writeMessageRecord(mqbi::StorageMessageAttributes* attributes,
     new (msgRec.get()) MessageRecord();
     msgRec->header()
         .setPrimaryLeaseId(d_writeHeadLeaseId)
-        .setSequenceNumber(++currentSeqNumRef())
+        .setSequenceNumber(incrementWriteHeadSeqNum())
         .setTimestamp(attributes->arrivalTimestamp());
     msgRec->setRefCount(attributes->refCount())
         .setQueueKey(queueKey)
@@ -6030,7 +6030,7 @@ int FileStore::writeQueueCreationRecord(DataStoreRecordHandle*  handle,
     new (queueOpRec.get()) QueueOpRecord();
     queueOpRec->header()
         .setPrimaryLeaseId(d_writeHeadLeaseId)
-        .setSequenceNumber(++currentSeqNumRef())
+        .setSequenceNumber(incrementWriteHeadSeqNum())
         .setTimestamp(timestamp);
     queueOpRec->setQueueKey(queueKey).setType(
         isNewQueue ? QueueOpType::e_CREATION : QueueOpType::e_ADDITION);
@@ -6167,7 +6167,7 @@ int FileStore::writeConfirmRecord(DataStoreRecordHandle*   handle,
     new (confRec.get()) ConfirmRecord();
     confRec->header()
         .setPrimaryLeaseId(d_writeHeadLeaseId)
-        .setSequenceNumber(++currentSeqNumRef())
+        .setSequenceNumber(incrementWriteHeadSeqNum())
         .setTimestamp(timestamp);
     confRec->setQueueKey(queueKey).setMessageGUID(guid);
 
@@ -6235,7 +6235,7 @@ int FileStore::writeDeletionRecord(const bmqt::MessageGUID& guid,
     new (delRec.get()) DeletionRecord();
     delRec->header()
         .setPrimaryLeaseId(d_writeHeadLeaseId)
-        .setSequenceNumber(++currentSeqNumRef())
+        .setSequenceNumber(incrementWriteHeadSeqNum())
         .setTimestamp(timestamp);
     delRec->setDeletionRecordFlag(deletionFlag)
         .setQueueKey(queueKey)
@@ -6264,7 +6264,7 @@ int FileStore::writeSyncPointRecord(const bmqp_ctrlmsg::SyncPoint& syncPoint,
     }
 
     // Update the PSN only when record writing is guaranteed.
-    ++currentSeqNumRef();
+    incrementWriteHeadSeqNum();
 
     // Local refs for convenience.
 
@@ -6655,7 +6655,7 @@ int FileStore::processRecoveryEvent(const bsl::shared_ptr<bdlbb::Blob>& blob)
                     return rc_INVALID_SEQ_NUM;  // RETURN
                 }
 
-                ++currentSeqNumRef();
+                incrementWriteHeadSeqNum();
             }
         }
 
@@ -6855,7 +6855,7 @@ int FileStore::issueSyncPoint()
 
     bmqp_ctrlmsg::SyncPoint syncPoint;
     syncPoint.primaryLeaseId()       = d_writeHeadLeaseId;
-    syncPoint.sequenceNum()          = currentSeqNumRef() + 1;
+    syncPoint.sequenceNum()          = writeHeadSeqNum() + 1;
     syncPoint.dataFileOffsetDwords() = fs->d_data.d_filePosition /
                                        bmqp::Protocol::k_DWORD_SIZE;
     syncPoint.qlistFileOffsetWords() = d_qListAware
