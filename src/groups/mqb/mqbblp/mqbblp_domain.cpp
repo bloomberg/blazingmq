@@ -577,6 +577,8 @@ int Domain::registerQueue(const bsl::shared_ptr<mqbi::Queue>& queueSp)
     // invoke 'Queue.configure' outside of the lock scope, and in case it
     // fails, we rollback.
 
+    size_t count = 0;
+
     {
         bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
 
@@ -597,20 +599,22 @@ int Domain::registerQueue(const bsl::shared_ptr<mqbi::Queue>& queueSp)
         d_queues[queueSp->uri().queue()] = queueSp;
 
         d_numQueues.add(1);
+
+        count = d_queues.size();
     }
 
     BALL_LOG_INFO << "Registered queue to domain '" << d_name << "' "
                   << "[canonicalURI: " << queueSp->uri().canonical()
                   << ", qId: " << bmqp::QueueId::QueueIdInt(queueSp->id())
                   << "]. Total number of registered queues in the domain: "
-                  << d_queues.size() << ".";
+                  << count << ".";
 
     return rc_SUCCESS;
 }
 
 void Domain::unregisterQueue(mqbi::Queue* queue)
 {
-    // executed by the associated CLUSTER's DISPATCHER thread
+    // Thread: CLUSTER DISPATCHER
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_sp->inDispatcherThread());
