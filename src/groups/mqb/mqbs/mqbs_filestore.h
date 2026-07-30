@@ -396,6 +396,9 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// Note that this will insert a zero entry if one does not exist.
     bsls::Types::Uint64& currentSeqNumRef();
 
+    /// Move the internal write cursor to the specified `leaseId` and `seqNum`.
+    void setWriteHead(unsigned int leaseId, bsls::Types::Uint64 seqNum);
+
     /// Create all the relevant files names, open them for writing and
     /// populate the specified `fileSetSp` with relevant information.
     /// Return zero on success and non-zero value otherwise.  Note that all
@@ -1163,6 +1166,13 @@ inline FileStore::NodeContext::NodeContext(BlobSpPool* blobSpPool_p,
 inline bsls::Types::Uint64& FileStore::currentSeqNumRef()
 {
     return d_highestSeqNums[d_writeHeadLeaseId];
+}
+
+inline void FileStore::setWriteHead(unsigned int        leaseId,
+                                    bsls::Types::Uint64 seqNum)
+{
+    d_writeHeadLeaseId        = leaseId;
+    d_highestSeqNums[leaseId] = seqNum;
 }
 
 inline void FileStore::insertDataStoreRecord(RecordIterator* recordIt,

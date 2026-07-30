@@ -514,8 +514,8 @@ int FileStore::openInRecoveryMode(bsl::ostream&    errorDescription,
             BSLS_ASSERT_SAFE(0 != jit.lastRecordPosition());
 
             const RecordHeader& recHeader = jit.lastRecordHeader();
-            d_writeHeadLeaseId            = recHeader.primaryLeaseId();
-            currentSeqNumRef()            = recHeader.sequenceNumber();
+            setWriteHead(recHeader.primaryLeaseId(),
+                         recHeader.sequenceNumber());
         }
     }
     else {
@@ -585,8 +585,8 @@ int FileStore::openInRecoveryMode(bsl::ostream&    errorDescription,
                 // can differ in case last SyncPt was issued by new
                 // primary on behalf of the old one, and we always use the
                 // PSN present in the RecordHeader.
-                d_writeHeadLeaseId = lsp.header().primaryLeaseId();
-                currentSeqNumRef() = lsp.header().sequenceNumber();
+                setWriteHead(lsp.header().primaryLeaseId(),
+                             lsp.header().sequenceNumber());
 
                 journalOffset = jit.lastSyncPointPosition() +
                                 FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
@@ -615,8 +615,8 @@ int FileStore::openInRecoveryMode(bsl::ostream&    errorDescription,
 
                 needTruncation             = false;
                 const JournalOpRecord& lsp = jit.lastSyncPoint();
-                d_writeHeadLeaseId         = lsp.header().primaryLeaseId();
-                currentSeqNumRef()         = lsp.header().sequenceNumber();
+                setWriteHead(lsp.header().primaryLeaseId(),
+                             lsp.header().sequenceNumber());
             }
 
             if (needTruncation) {
@@ -738,8 +738,8 @@ int FileStore::openInRecoveryMode(bsl::ostream&    errorDescription,
                 // Last record is a sync point.  Extract PSN from it's header.
 
                 const JournalOpRecord& lsp = jit.lastSyncPoint();
-                d_writeHeadLeaseId         = lsp.header().primaryLeaseId();
-                currentSeqNumRef()         = lsp.header().sequenceNumber();
+                setWriteHead(lsp.header().primaryLeaseId(),
+                             lsp.header().sequenceNumber());
             }
             else {
                 // Last record is not a sync point.  This is ok for a single
@@ -750,8 +750,8 @@ int FileStore::openInRecoveryMode(bsl::ostream&    errorDescription,
 
                 appendSyncPoint               = true;
                 const RecordHeader& recHeader = jit.lastRecordHeader();
-                d_writeHeadLeaseId            = recHeader.primaryLeaseId();
-                currentSeqNumRef()            = recHeader.sequenceNumber();
+                setWriteHead(recHeader.primaryLeaseId(),
+                             recHeader.sequenceNumber());
             }
         }
     }
@@ -1054,8 +1054,7 @@ int FileStore::openInRecoveryMode(bsl::ostream&    errorDescription,
                           << "before opening FileStore.  Thus, we keep current"
                           << " PSN.";
 
-            d_writeHeadLeaseId = primaryLeaseIdCurr;
-            currentSeqNumRef() = sequenceNumcurr;
+            setWriteHead(primaryLeaseIdCurr, sequenceNumcurr);
         }
     }
 
@@ -6597,8 +6596,8 @@ int FileStore::processRecoveryEvent(const bsl::shared_ptr<bdlbb::Blob>& blob)
 
         if (!hasValidLeaseIdSeqNum) {
             hasValidLeaseIdSeqNum = true;
-            d_writeHeadLeaseId    = recHeader->primaryLeaseId();
-            currentSeqNumRef()    = recHeader->sequenceNumber();
+            setWriteHead(recHeader->primaryLeaseId(),
+                         recHeader->sequenceNumber());
         }
         else {
             // Validate PSN
@@ -6621,8 +6620,8 @@ int FileStore::processRecoveryEvent(const bsl::shared_ptr<bdlbb::Blob>& blob)
             else if (d_writeHeadLeaseId < recHeader->primaryLeaseId()) {
                 // LeaseId was bumped up.
 
-                d_writeHeadLeaseId = recHeader->primaryLeaseId();
-                currentSeqNumRef() = recHeader->sequenceNumber();
+                setWriteHead(recHeader->primaryLeaseId(),
+                             recHeader->sequenceNumber());
             }
             else {
                 if (recHeader->sequenceNumber() <= sequenceNumber()) {
@@ -7156,8 +7155,7 @@ void FileStore::clearPrimary()
             fs->d_journal.d_filePosition -
                 FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
 
-        d_writeHeadLeaseId = recHeader->primaryLeaseId();
-        currentSeqNumRef() = recHeader->sequenceNumber();
+        setWriteHead(recHeader->primaryLeaseId(), recHeader->sequenceNumber());
         BSLS_ASSERT_SAFE(0 != d_writeHeadLeaseId);
         BSLS_ASSERT_SAFE(0 != sequenceNumber());
 
