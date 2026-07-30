@@ -357,14 +357,17 @@ jobs:
           cmake --build --preset gh-prometheus-ubuntu-latest-cpp23
           echo "::remove-matcher owner=cpp-prometheus"
 
-      - name: Create prometheus dir
-        run:  mkdir -p prometheus_dir
+      - name: Create prometheus dirs
+        run:  mkdir -p prometheus_dir/pull prometheus_dir/push
 
       - name: Download Prometheus
         run:  curl -SL "https://github.com/prometheus/prometheus/releases/download/v2.45.1/prometheus-2.45.1.linux-amd64.tar.gz" | tar -xzC prometheus_dir/
 
-      - name: Run Prometheus
-        run:  ./prometheus_dir/prometheus-2.45.1.linux-amd64/prometheus --config.file=${{ github.workspace }}/src/plugins/bmqprometheus/tests/prometheus_localhost.yaml --web.enable-lifecycle --storage.tsdb.path=${{ github.workspace }}/prometheus_dir/data &
+      - name: Run Prometheus for "pull" mode
+        run:  ./prometheus_dir/prometheus-2.45.1.linux-amd64/prometheus --config.file=${{ github.workspace }}/.github/workflows/ext/prometheus_localhost_pull.yaml --web.listen-address=0.0.0.0:9090 --storage.tsdb.path=${{ github.workspace }}/prometheus_dir/pull &
+
+      - name: Run Prometheus for "push" mode
+        run:  ./prometheus_dir/prometheus-2.45.1.linux-amd64/prometheus --config.file=${{ github.workspace }}/.github/workflows/ext/prometheus_localhost_push.yaml --web.listen-address=0.0.0.0:9092 --storage.tsdb.path=${{ github.workspace }}/prometheus_dir/push &
 
       - name: Run Pushgateway
         run: |
@@ -372,17 +375,11 @@ jobs:
           docker pull prom/pushgateway@sha256:c835998819105d84d484918908df132807c78c05f3e0e649df0c0479c6780d98
           docker run -d -p 9091:9091 prom/pushgateway
 
-      - name: Run BMQPrometheus plugin integration test in "pull" mode
-        run: ${{ github.workspace }}/src/plugins/bmqprometheus/tests/bmqprometheus_prometheusstatconsumer_test.py -p ${{ github.workspace }}/build/blazingmq -m pull --no-docker
+      - name: Prometheus plugin IT[pull]
+        run: ${{ github.workspace }}/src/plugins/bmqprometheus/tests/bmqprometheus_prometheusstatconsumer_test.py -p ${{ github.workspace }}/build/blazingmq -m pull --no-docker --prometheus-host localhost:9090
 
-      - name: Clear Prometheus database and restart
-        run: |
-          curl -X POST "http://localhost:9090/-/quit"
-          rm -rf prometheus_dir/data
-          ./prometheus_dir/prometheus-2.45.1.linux-amd64/prometheus --config.file=${{ github.workspace }}/src/plugins/bmqprometheus/tests/prometheus_localhost.yaml --web.enable-lifecycle --storage.tsdb.path=${{ github.workspace }}/prometheus_dir/data &
-
-      - name: Run Prometheus plugin integration test in "push" mode
-        run: ${{ github.workspace }}/src/plugins/bmqprometheus/tests/bmqprometheus_prometheusstatconsumer_test.py -p ${{ github.workspace }}/build/blazingmq -m push --no-docker
+      - name: Prometheus plugin IT[push]
+        run: ${{ github.workspace }}/src/plugins/bmqprometheus/tests/bmqprometheus_prometheusstatconsumer_test.py -p ${{ github.workspace }}/build/blazingmq -m push --no-docker --prometheus-host localhost:9092
 
   documentation:
     name: "Documentation"
