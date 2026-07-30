@@ -1041,8 +1041,8 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     bool hasReceipt(const DataStoreRecordHandle& handle) const
         BSLS_KEYWORD_OVERRIDE;
 
-    /// Return the current sequence number for this partition.
-    bsls::Types::Uint64 sequenceNumber() const;
+    /// Return the write head's sequence number for this partition.
+    bsls::Types::Uint64 writeHeadSeqNum() const;
 
     /// Return the replication factor for strong consistency.
     int replicationFactor() const;
@@ -1335,7 +1335,7 @@ inline unsigned int FileStore::writeHeadLeaseId() const
     return d_writeHeadLeaseId;
 }
 
-inline bsls::Types::Uint64 FileStore::sequenceNumber() const
+inline bsls::Types::Uint64 FileStore::writeHeadSeqNum() const
 {
     LeaseIdToSeqNumMapCIter cit = d_highestSeqNums.find(d_writeHeadLeaseId);
     return (cit != d_highestSeqNums.end()) ? cit->second : 0;

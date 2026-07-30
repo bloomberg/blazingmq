@@ -3735,7 +3735,7 @@ void StorageUtil::forceIssueAdvisoryAndSyncPt(mqbc::ClusterData*   clusterData,
                       << fs->config().partitionId()
                       << "]: successfully issued a forced SyncPt: "
                       << mqbs::printPSN(fs->writeHeadLeaseId(),
-                                        fs->sequenceNumber())
+                                        fs->writeHeadSeqNum())
                       << ".";
     }
     else {
@@ -3744,7 +3744,7 @@ void StorageUtil::forceIssueAdvisoryAndSyncPt(mqbc::ClusterData*   clusterData,
                        << "]: failed to force-issue SyncPt, rc: " << rc
                        << ", current PSN: "
                        << mqbs::printPSN(fs->writeHeadLeaseId(),
-                                         fs->sequenceNumber());
+                                         fs->writeHeadSeqNum());
     }
 }
 

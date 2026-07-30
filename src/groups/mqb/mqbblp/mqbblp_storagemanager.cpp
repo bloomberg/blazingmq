@@ -364,7 +364,7 @@ void StorageManager::onPartitionRecovery(
                                      : "**none**")
                     << ", "
                     << mqbs::printPSN(fs->writeHeadLeaseId(),
-                                      fs->sequenceNumber())
+                                      fs->writeHeadSeqNum())
                     << ")";
             }
         }
