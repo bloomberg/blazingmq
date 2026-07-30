@@ -20,8 +20,10 @@
 #include <m_bmqstoragetool_searchresult.h>
 
 // MQB
+#include <mqbs_datafileiterator.h>
 #include <mqbs_filestoreprotocolprinter.h>
 #include <mqbs_filestoreprotocolutil.h>
+#include <mqbs_journalfileiterator.h>
 
 // BMQ
 #include <bmqu_alignedprinter.h>
