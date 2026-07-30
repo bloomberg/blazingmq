@@ -36,7 +36,10 @@
 #include <bmqp_blobpoolutil.h>
 #include <bmqp_crc32c.h>
 #include <bmqp_ctrlmsg_messages.h>
+#include <bmqp_protocol.h>
+#include <bmqp_storageeventbuilder.h>
 #include <bmqt_messageguid.h>
+#include <bmqt_resultcode.h>
 #include <bmqt_uri.h>
 
 #include <bmqu_memoutstream.h>
@@ -158,6 +161,67 @@ void recoveredQueuesCb(
 {
     static_cast<void>(partitionId);
     static_cast<void>(queueKeyInfoMap);
+}
+
+/// Build a storage event carrying a single regular SyncPt journal record with
+/// the specified `leaseId`, `seqNum`, `journalOffsetWords`, `dataOffsetDwords`
+/// and `qlistOffsetWords`, and apply it to the specified `fs` as a
+/// partition-sync event received from `source`.  Use the specified
+/// `blobSpPool`, `bufferFactory`, `partitionId` and `allocator`.
+void applyReplicatedSyncPoint(mqbs::FileStore*                fs,
+                              bmqp::BlobPoolUtil::BlobSpPool* blobSpPool,
+                              bdlbb::BlobBufferFactory*       bufferFactory,
+                              mqbnet::ClusterNode*            source,
+                              int                             partitionId,
+                              unsigned int                    leaseId,
+                              bsls::Types::Uint64             seqNum,
+                              unsigned int      journalOffsetWords,
+                              unsigned int      dataOffsetDwords,
+                              unsigned int      qlistOffsetWords,
+                              bslma::Allocator* allocator)
+{
+    // Lay out a regular SyncPt journal record in a fresh blob buffer.  The
+    // RecordHeader carries the PSN that 'processStorageEvent' validates.
+    bdlbb::BlobBuffer recBuf;
+    bufferFactory->allocate(&recBuf);
+    bsl::memset(recBuf.data(),
+                0,
+                mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
+
+    mqbs::JournalOpRecord* rec = new (recBuf.data())
+        mqbs::JournalOpRecord(mqbs::JournalOpType::e_SYNCPOINT,
+                              mqbs::SyncPointType::e_REGULAR,
+                              seqNum,
+                              k_NODE_ID,
+                              leaseId,
+                              dataOffsetDwords,
+                              qlistOffsetWords,
+                              mqbs::RecordHeader::k_MAGIC);
+    rec->header()
+        .setPrimaryLeaseId(leaseId)
+        .setSequenceNumber(seqNum)
+        .setTimestamp(
+            bdlt::EpochUtil::convertToTimeT64(bdlt::CurrentTime::utc()));
+
+    bdlbb::BlobBuffer journalRecBuf(
+        recBuf.buffer(),
+        mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
+
+    bmqp::StorageEventBuilder      builder(mqbs::FileStoreProtocol::k_VERSION,
+                                      bmqp::EventType::e_PARTITION_SYNC,
+                                      blobSpPool,
+                                      allocator);
+    bmqt::EventBuilderResult::Enum brc = builder.packMessage(
+        bmqp::StorageMessageType::e_JOURNAL_OP,
+        static_cast<unsigned int>(partitionId),
+        0,  // flags
+        journalOffsetWords,
+        journalRecBuf);
+    BMQTST_ASSERT_EQ(brc, bmqt::EventBuilderResult::e_SUCCESS);
+
+    fs->processStorageEvent(builder.blob(),
+                            true,  // isPartitionSyncEvent
+                            source);
 }
 
 // CLASSES
@@ -910,7 +974,8 @@ static void test1_breathingTest()
         // TBD: verify
     }
 
-    fs.close();
+    rc = fs.close();
+    BMQTST_ASSERT_EQ(0, rc);
 
     BMQTST_ASSERT_EQ(false, fs.isOpen());
 
@@ -1009,7 +1074,8 @@ static void test2_printTest()
     stream << fsIt;
     BMQTST_ASSERT_EQ(stream.str(), "INVALID");
 
-    fs.close();
+    const int rc = fs.close();
+    BMQTST_ASSERT_EQ(0, rc);
 }
 
 static void test3_partitionFullAlarm()
@@ -1153,7 +1219,8 @@ static void test3_partitionFullAlarm()
                     poster.postMessage() == mqbi::StorageResult::e_SUCCESS);
 
     fs.unregisterStorage(storage_sp.get());
-    fs.close();
+    rc = fs.close();
+    BMQTST_ASSERT_EQ(0, rc);
 }
 
 static void test4_recoverMessagesAcrossLeaseIds()
@@ -1271,7 +1338,99 @@ static void test4_recoverMessagesAcrossLeaseIds()
     // All records from both leaseIds should have been recovered.
     BMQTST_ASSERT_EQ(fs.numRecords(), numRecords);
 
-    fs.close();
+    rc = fs.close();
+    BMQTST_ASSERT_EQ(0, rc);
+}
+
+static void test5_writeHeadFollowsAppliedLease()
+// ------------------------------------------------------------------------
+// WRITE HEAD FOLLOWS APPLIED LEASE ID
+//
+// Concerns:
+//   When a replica applies a record whose primary leaseId is higher than its
+//   current write head via a partition-sync event, the write head must advance
+//   to that leaseId (together with the sequence number).
+//
+// Testing:
+//   processStorageEvent
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
+
+    Tester           tester("./test-cluster123-5");
+    mqbs::FileStore& fs = tester.fileStore();
+
+    int rc = fs.open(0);
+    BMQTST_ASSERT_EQ(0, rc);
+
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool =
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator());
+
+    const int          k_PARTITION_ID   = 0;
+    const unsigned int dataOffsetDwords = k_SIZEOF_HEADERS_DATA_FILE /
+                                          bmqp::Protocol::k_DWORD_SIZE;
+    const unsigned int qlistOffsetWords = k_SIZEOF_HEADERS_QLIST_FILE /
+                                          bmqp::Protocol::k_WORD_SIZE;
+
+    unsigned int journalOffsetWords = k_SIZEOF_HEADERS_JOURNAL_FILE /
+                                      bmqp::Protocol::k_WORD_SIZE;
+    const unsigned int k_RECORD_WORDS =
+        mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE /
+        bmqp::Protocol::k_WORD_SIZE;
+
+    fs.setActivePrimary(tester.node(), 1);
+    // A sync point is issued -> [1, 1]
+    journalOffsetWords += k_RECORD_WORDS;
+    BMQTST_ASSERT_EQ(1U, fs.writeHeadLeaseId());
+    BMQTST_ASSERT_EQ(1ULL, fs.writeHeadSeqNum());
+
+    applyReplicatedSyncPoint(&fs,
+                             blobSpPool.get(),
+                             &bufferFactory,
+                             tester.node(),
+                             k_PARTITION_ID,
+                             1,  // leaseId
+                             2,  // seqNum
+                             journalOffsetWords,
+                             dataOffsetDwords,
+                             qlistOffsetWords,
+                             bmqtst::TestHelperUtil::allocator());
+    journalOffsetWords += k_RECORD_WORDS;
+    BMQTST_ASSERT_EQ(1U, fs.writeHeadLeaseId());
+    BMQTST_ASSERT_EQ(2ULL, fs.writeHeadSeqNum());
+
+    for (bsls::Types::Uint64 seqNum = 1; seqNum <= 4; ++seqNum) {
+        applyReplicatedSyncPoint(&fs,
+                                 blobSpPool.get(),
+                                 &bufferFactory,
+                                 tester.node(),
+                                 k_PARTITION_ID,
+                                 2,  // leaseId
+                                 seqNum,
+                                 journalOffsetWords,
+                                 dataOffsetDwords,
+                                 qlistOffsetWords,
+                                 bmqtst::TestHelperUtil::allocator());
+        journalOffsetWords += k_RECORD_WORDS;
+        BMQTST_ASSERT_EQ(2U, fs.writeHeadLeaseId());
+        BMQTST_ASSERT_EQ(seqNum, fs.writeHeadSeqNum());
+    }
+
+    // The delayed 'setActivePrimary' for leaseId 2 now arrives.  Verify it
+    // does not reset the sequence number of leaseId 2 back to zero.
+    fs.setActivePrimary(tester.node(), 2);
+    // A sync point is issued -> [2, 5]
+    BMQTST_ASSERT_EQ(2U, fs.writeHeadLeaseId());
+    BMQTST_ASSERT_GE(5ULL, fs.writeHeadSeqNum());
+    BMQTST_ASSERT_EQ(tester.node(), fs.primaryNode());
+
+    rc = fs.close();
+    BMQTST_ASSERT_EQ(0, rc);
 }
 
 }  // close unnamed namespace
@@ -1288,6 +1447,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 5: test5_writeHeadFollowsAppliedLease(); break;
     case 4: test4_recoverMessagesAcrossLeaseIds(); break;
     case 3: test3_partitionFullAlarm(); break;
     case 2: test2_printTest(); break;
