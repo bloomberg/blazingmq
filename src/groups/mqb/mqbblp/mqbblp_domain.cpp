@@ -652,7 +652,7 @@ void Domain::unregisterQueue(mqbi::Queue* queue)
 int Domain::processCommand(mqbcmd::DomainResult*        result,
                            const mqbcmd::DomainCommand& command)
 {
-    // executed by *any* thread
+    // Thread: ADMIN
 
     if (command.isPurgeValue()) {
         // Some queues might be inactive.  They don't have associated
@@ -717,10 +717,15 @@ int Domain::processCommand(mqbcmd::DomainResult*        result,
                                                 OrderedQueueMap;
         typedef OrderedQueueMap::const_iterator OrderedQueueMapCIter;
 
-        // sort by queue name
-        OrderedQueueMap      map(d_queues.cbegin(), d_queues.cend());
+        // Make a snapshot of queues.
+        OrderedQueueMap map(d_allocator_p);
+        {
+            bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
+            map.insert(d_queues.cbegin(), d_queues.cend());
+        }
+
         OrderedQueueMapCIter cit;
-        domainInfo.queueUris().reserve(d_queues.size());
+        domainInfo.queueUris().reserve(map.size());
         for (cit = map.cbegin(); cit != map.cend(); ++cit) {
             domainInfo.queueUris().push_back(cit->second->uri().asString());
         }
