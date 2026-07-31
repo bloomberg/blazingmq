@@ -445,6 +445,10 @@ class PartitionStateTableActions {
                                  const PartitionFSMEventData&   eventData) = 0;
 
     virtual void
+    do_sendPrimaryStatusAdvisory(PartitionStateTableEvent::Enum eventType,
+                                 const PartitionFSMEventData&   eventData) = 0;
+
+    virtual void
     do_reapplyDetectSelfPrimary(PartitionStateTableEvent::Enum eventType,
                                 const PartitionFSMEventData&   eventData) = 0;
 
@@ -576,7 +580,7 @@ class PartitionStateTableActions {
         const PartitionFSMEventData&   eventData);
 
     void
-    do_storeSelfSeq_storeReplicaSeq_primaryStateResponse_sendDataToReplicas(
+    do_storeSelfSeq_storeReplicaSeq_primaryStateResponse_sendDataToReplicas_sendPrimaryStatusAdvisory(
         PartitionStateTableEvent::Enum eventType,
         const PartitionFSMEventData&   eventData);
 
@@ -952,7 +956,7 @@ class PartitionStateTable
         PST_CFG(
             PRIMARY_HEALED,
             PRIMARY_STATE_RQST,
-            storeSelfSeq_storeReplicaSeq_primaryStateResponse_sendDataToReplicas,
+            storeSelfSeq_storeReplicaSeq_primaryStateResponse_sendDataToReplicas_sendPrimaryStatusAdvisory,
             PRIMARY_HEALED);
         PST_CFG(PRIMARY_HEALED,
                 RST_UNKNOWN,
@@ -1283,16 +1287,11 @@ inline void PartitionStateTableActions::
     do_sendDataToReplicas(eventType, eventData);
 }
 
-inline void PartitionStateTableActions::
-    do_storeSelfSeq_storeReplicaSeq_primaryStateResponse_sendDataToReplicas(
-        PartitionStateTableEvent::Enum eventType,
-        const PartitionFSMEventData&   eventData)
-{
-    do_storeSelfSeq(eventType, eventData);
-    do_storeReplicaSeq(eventType, eventData);
-    do_primaryStateResponse(eventType, eventData);
-    do_sendDataToReplicas(eventType, eventData);
-}
+PST_COMPOSITE_5(storeSelfSeq,
+                storeReplicaSeq,
+                primaryStateResponse,
+                sendDataToReplicas,
+                sendPrimaryStatusAdvisory)
 
 inline void PartitionStateTableActions::do_storeReplicaSeq_sendDataToReplicas(
     PartitionStateTableEvent::Enum eventType,
