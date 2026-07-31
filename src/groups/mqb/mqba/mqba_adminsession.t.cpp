@@ -18,6 +18,7 @@
 // MQB
 #include <mqbcfg_brokerconfig.h>
 #include <mqbcfg_messages.h>
+#include <mqbi_dispatcher.h>
 #include <mqbmock_dispatcher.h>
 #include <mqbu_messageguidutil.h>
 
@@ -39,10 +40,15 @@
 #include <bdlcc_objectpool.h>
 #include <bdlcc_sharedobjectpool.h>
 #include <bdlf_bind.h>
+#include <bdlmt_threadpool.h>
 #include <bsl_memory.h>
 #include <bsl_string.h>
 #include <bsl_vector.h>
 #include <bsla_annotations.h>
+#include <bslmt_semaphore.h>
+#include <bslmt_threadutil.h>
+#include <bsls_atomic.h>
+#include <bsls_timeinterval.h>
 
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
@@ -192,6 +198,117 @@ class TestBench {
     }
 };
 
+// ============================================================================
+//              HELPERS FOR THE CONCURRENT TEARDOWN TEST
+// ----------------------------------------------------------------------------
+
+/// Drives a `mqbmock::Dispatcher` (configured in `enqueueOnly` mode) from a
+/// dedicated thread, emulating the broker's single-threaded dispatcher
+/// processor.
+/// This ensures that dispatcher callbacks (such as `finalizeAdminCommand`,
+/// enqueued by `onProcessedAdminCommand` from the admin execution pool) run on
+/// a thread distinct from the one that tears down and destroys the
+/// `AdminSession`, as they do in the broker.
+class QueueProcessor {
+  private:
+    // DATA
+    mqbmock::Dispatcher*      d_dispatcher_p;
+    bsls::AtomicBool          d_running;
+    bslmt::ThreadUtil::Handle d_handle;
+
+    // NOT IMPLEMENTED
+    QueueProcessor(const QueueProcessor&);
+    QueueProcessor& operator=(const QueueProcessor&);
+
+  public:
+    // CREATORS
+
+    /// Create a processor draining the specified `dispatcher`.
+    explicit QueueProcessor(mqbmock::Dispatcher* dispatcher)
+    : d_dispatcher_p(dispatcher)
+    , d_running(true)
+    , d_handle(bslmt::ThreadUtil::invalidHandle())
+    {
+        // PRECONDITIONS
+        BSLS_ASSERT_OPT(d_dispatcher_p);
+    }
+
+    // MANIPULATORS
+
+    /// Spawn the processor thread.
+    void start()
+    {
+        int rc = bslmt::ThreadUtil::create(
+            &d_handle,
+            bdlf::BindUtil::bind(&QueueProcessor::run, this));
+        BMQTST_ASSERT_EQ(rc, 0);
+    }
+
+    /// Body of the processor thread: repeatedly drain the dispatcher queue
+    /// until stopped, then perform one final drain.
+    void run()
+    {
+        while (d_running.load()) {
+            d_dispatcher_p->processQueue();
+            bslmt::ThreadUtil::yield();
+        }
+        d_dispatcher_p->processQueue();
+    }
+
+    /// Signal the processor thread to stop and join it.
+    void stop()
+    {
+        d_running.store(false);
+        if (d_handle != bslmt::ThreadUtil::invalidHandle()) {
+            bslmt::ThreadUtil::join(d_handle);
+            d_handle = bslmt::ThreadUtil::invalidHandle();
+        }
+    }
+};
+
+/// Admin command enqueue callback that completes commands asynchronously on a
+/// separate thread pool.
+class AsyncAdminExecutor {
+  private:
+    // DATA
+    bdlmt::ThreadPool* d_pool_p;
+
+  public:
+    // CREATORS
+    explicit AsyncAdminExecutor(bdlmt::ThreadPool* pool)
+    : d_pool_p(pool)
+    {
+        // PRECONDITIONS
+        BSLS_ASSERT_OPT(d_pool_p);
+    }
+
+    // MANIPULATORS
+
+    /// Post the completion of the specified `cmd` (with the specified
+    /// `onProcessedCb`) to the thread pool.
+    void enqueueCommand(
+        BSLA_MAYBE_UNUSED const bsl::string&            source,
+        const bsl::string&                              cmd,
+        const mqbnet::Session::AdminCommandProcessedCb& onProcessedCb)
+    {
+        // PRECONDITIONS
+        BSLS_ASSERT_OPT(onProcessedCb);
+
+        d_pool_p->enqueueJob(bdlf::BindUtil::bind(&AsyncAdminExecutor::invoke,
+                                                  onProcessedCb,
+                                                  cmd));
+    }
+
+  private:
+    /// Invoke the specified `onProcessedCb` with the specified `cmd`.
+    static void
+    invoke(const mqbnet::Session::AdminCommandProcessedCb& onProcessedCb,
+           const bsl::string&                              cmd)
+    {
+        onProcessedCb(0, cmd);
+    }
+};
+
 }  // close unnamed namespace
 
 // ============================================================================
@@ -285,6 +402,141 @@ static void test1_watermark()
     BMQTST_ASSERT_EQ(response.choice().adminCommandResponse().text(), command);
 }
 
+static void test2_safeConcurrentTeardown()
+// ------------------------------------------------------------------------
+// SAFE CONCURRENT TEARDOWN
+//
+// Concerns:
+//   - An admin command submitted to an `AdminSession` is executed
+//     asynchronously (on the broker's admin execution pool), and its
+//     completion callback is delivered on a separate thread.  Tearing down
+//     and destroying the session concurrently with such an in-flight
+//     completion must be safe: the session must remain valid until every
+//     callback it has dispatched to the client dispatcher has been processed,
+//     so that no callback ever runs on a destroyed session.
+//
+// Plan:
+//   Faithfully emulate the broker's threading model:
+//     - a `mqbmock::Dispatcher` in `enqueueOnly` mode drained by a dedicated
+//       `QueueProcessor` thread (so dispatched callbacks run on a thread
+//       distinct from the destroying thread, as in the broker);
+//     - an `AsyncAdminExecutor` that completes admin commands on a thread pool
+//       (as `mqba::Application`'s admin execution pool does).
+//   For a number of iterations: create an `AdminSession`, submit an admin
+//   command (whose completion is delivered asynchronously), then tear down and
+//   release the session while the completion may still be in flight.  The
+//   session must be destroyed safely in every iteration.  Running under
+//   ThreadSanitizer or AddressSanitizer additionally verifies the absence of
+//   data races and invalid memory accesses.
+//
+// Testing:
+//   AdminSession::tearDown
+//   AdminSession::onProcessedAdminCommand
+//   AdminSession::finalizeAdminCommand
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("SAFE CONCURRENT TEARDOWN");
+
+    bslma::Allocator* alloc = bmqtst::TestHelperUtil::allocator();
+
+    // Number of teardown iterations to exercise.
+    const int k_NUM_ITERATIONS = 1000;
+
+    // Shared blob infrastructure.
+    bdlbb::PooledBlobBufferFactory bufferFactory(256, alloc);
+    BlobSpPool                     blobSpPool(bdlf::BindUtil::bind(&createBlob,
+                                               &bufferFactory,
+                                               bdlf::PlaceHolders::_1,
+                                               bdlf::PlaceHolders::_2),
+                          1024,
+                          alloc);
+
+    bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC, alloc);
+
+    // Dispatcher driven by a dedicated processor thread.
+    mqbmock::Dispatcher dispatcher(alloc);
+    dispatcher.setEnqueueOnly(true);
+    QueueProcessor processor(&dispatcher);
+    processor.start();
+
+    // Thread pool emulating the asynchronous admin execution pool.
+    bdlmt::ThreadPool pool(bslmt::ThreadAttributes(),
+                           1,  // minThreads
+                           2,  // maxThreads
+                           bsls::TimeInterval(120).totalMilliseconds(),
+                           alloc);
+    int               rc = pool.start();
+    BMQTST_ASSERT_EQ(rc, 0);
+
+    AsyncAdminExecutor                     executor(&pool);
+    mqbnet::Session::AdminCommandEnqueueCb adminCb = bdlf::BindUtil::bind(
+        &AsyncAdminExecutor::enqueueCommand,
+        &executor,
+        bdlf::PlaceHolders::_1,   // source
+        bdlf::PlaceHolders::_2,   // cmd
+        bdlf::PlaceHolders::_3);  // onProcessedCb
+
+    // Build a single admin command event, reused across iterations.  The
+    // builder is kept alive for the whole loop so that `adminEvent`'s
+    // underlying blob remains valid.
+    bmqp_ctrlmsg::ControlMessage admin(alloc);
+    admin.rId() = 1;
+    admin.choice().makeAdminCommand();
+    admin.choice().adminCommand().command() = "sample command";
+
+    bmqp::SchemaEventBuilder builder(&blobSpPool,
+                                     bmqp::EncodingType::e_BER,
+                                     alloc);
+    rc = builder.setMessage(admin, bmqp::EventType::e_CONTROL);
+    BMQTST_ASSERT_EQ(rc, 0);
+
+    bmqp::Event adminEvent(builder.blob().get(), alloc);
+    const bmqp_ctrlmsg::NegotiationMessage negotiationMessage = client();
+    const bsl::string                      description("adminSession", alloc);
+
+    for (int i = 0; i < k_NUM_ITERATIONS; ++i) {
+        bsl::shared_ptr<bmqio::TestChannel> channel;
+        channel.createInplace(alloc, alloc);
+
+        bsl::shared_ptr<mqba::AdminSession> session =
+            bsl::allocate_shared<mqba::AdminSession>(alloc,
+                                                     channel,
+                                                     negotiationMessage,
+                                                     description,
+                                                     &dispatcher,
+                                                     &blobSpPool,
+                                                     &scheduler,
+                                                     adminCb);
+
+        // All dispatched callbacks may run on the processor thread; allow
+        // `inDispatcherThread()` preconditions to pass regardless of thread.
+        session->setThreadId(mqbi::DispatcherClient::k_ANY_THREAD_ID);
+        session->dispatcherClientData().setDispatcher(&dispatcher);
+
+        // Feed an admin command.  This enqueues `enqueueAdminCommand`, which
+        // the processor thread runs, invoking `adminCb`, which posts the
+        // completion to the pool.  The completion will call
+        // `onProcessedAdminCommand`, potentially concurrently with the
+        // teardown below.
+        session->processEvent(adminEvent);
+
+        // Tear the session down and release it while the asynchronous
+        // completion may still be in flight (or a callback it dispatched may
+        // still be pending on the processor).  This must be safe.
+        bsl::shared_ptr<void> handle = session;
+        session->tearDown(handle, false);
+        handle.reset();
+        session.reset();  // destroy the session
+    }
+
+    // Ensure no more completions are posted, then drain everything still in
+    // flight before tearing down the shared infrastructure.
+    pool.drain();
+    pool.stop();
+    processor.stop();
+    scheduler.stop();
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -302,6 +554,7 @@ int main(int argc, char* argv[])
         switch (_testCase) {
         case 0:
         case 1: test1_watermark(); break;
+        case 2: test2_safeConcurrentTeardown(); break;
         default: {
             cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
             bmqtst::TestHelperUtil::testStatus() = -1;
