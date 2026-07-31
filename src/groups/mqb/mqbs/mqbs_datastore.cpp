@@ -176,8 +176,8 @@ bsl::ostream& DataStoreRecordKey::print(bsl::ostream& stream,
 
     bslim::Printer printer(&stream, level, spacesPerLevel);
     printer.start();
-    printer.printAttribute("sequenceNum", d_sequenceNum);
     printer.printAttribute("primaryLeaseId", d_primaryLeaseId);
+    printer.printAttribute("sequenceNum", d_sequenceNum);
     printer.end();
 
     return stream;

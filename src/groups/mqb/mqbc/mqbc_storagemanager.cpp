@@ -1925,7 +1925,7 @@ void StorageManager::do_storeSelfSeq(
     BSLS_ASSERT_SAFE(fs);
     if (fs->isOpen()) {
         nodePSNCtx.d_PSN.primaryLeaseId() = fs->writeHeadLeaseId();
-        nodePSNCtx.d_PSN.sequenceNumber() = fs->sequenceNumber();
+        nodePSNCtx.d_PSN.sequenceNumber() = fs->writeHeadSeqNum();
     }
     else {
         const int rc = d_recoveryManager_mp->recoverPSN(&nodePSNCtx.d_PSN,

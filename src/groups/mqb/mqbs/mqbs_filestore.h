@@ -158,6 +158,7 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// Map of primaryLeaseId -> highest sequence number
     typedef bsl::unordered_map<unsigned int, bsls::Types::Uint64>
                                                LeaseIdToSeqNumMap;
+    typedef LeaseIdToSeqNumMap::iterator       LeaseIdToSeqNumMapIter;
     typedef LeaseIdToSeqNumMap::const_iterator LeaseIdToSeqNumMapCIter;
 
   private:
@@ -391,10 +392,11 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
   private:
     // PRIVATE MANIPULATORS
 
-    /// Return a mutable reference to the current sequence number entry in
-    /// `d_highestSeqNums`, i.e., `d_highestSeqNums[d_writeHeadLeaseId]`.
-    /// Note that this will insert a zero entry if one does not exist.
-    bsls::Types::Uint64& currentSeqNumRef();
+    /// Increment the write head's sequence number and return its new value.
+    bsls::Types::Uint64 incrementWriteHeadSeqNum();
+
+    /// Move the internal write cursor to the specified `leaseId` and `seqNum`.
+    void setWriteHead(unsigned int leaseId, bsls::Types::Uint64 seqNum);
 
     /// Create all the relevant files names, open them for writing and
     /// populate the specified `fileSetSp` with relevant information.
@@ -1038,8 +1040,8 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     bool hasReceipt(const DataStoreRecordHandle& handle) const
         BSLS_KEYWORD_OVERRIDE;
 
-    /// Return the current sequence number for this partition.
-    bsls::Types::Uint64 sequenceNumber() const;
+    /// Return the write head's sequence number for this partition.
+    bsls::Types::Uint64 writeHeadSeqNum() const;
 
     /// Return the replication factor for strong consistency.
     int replicationFactor() const;
@@ -1160,9 +1162,18 @@ inline FileStore::NodeContext::NodeContext(BlobSpPool* blobSpPool_p,
 // ---------------
 
 // PRIVATE MANIPULATORS
-inline bsls::Types::Uint64& FileStore::currentSeqNumRef()
+inline bsls::Types::Uint64 FileStore::incrementWriteHeadSeqNum()
 {
-    return d_highestSeqNums[d_writeHeadLeaseId];
+    LeaseIdToSeqNumMapIter it = d_highestSeqNums.find(d_writeHeadLeaseId);
+    BSLS_ASSERT_SAFE(it != d_highestSeqNums.end());
+    return ++(it->second);
+}
+
+inline void FileStore::setWriteHead(unsigned int        leaseId,
+                                    bsls::Types::Uint64 seqNum)
+{
+    d_writeHeadLeaseId        = leaseId;
+    d_highestSeqNums[leaseId] = seqNum;
 }
 
 inline void FileStore::insertDataStoreRecord(RecordIterator* recordIt,
@@ -1325,7 +1336,7 @@ inline unsigned int FileStore::writeHeadLeaseId() const
     return d_writeHeadLeaseId;
 }
 
-inline bsls::Types::Uint64 FileStore::sequenceNumber() const
+inline bsls::Types::Uint64 FileStore::writeHeadSeqNum() const
 {
     LeaseIdToSeqNumMapCIter cit = d_highestSeqNums.find(d_writeHeadLeaseId);
     return (cit != d_highestSeqNums.end()) ? cit->second : 0;

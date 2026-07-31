@@ -275,7 +275,7 @@ class MockDataStore : public mqbs::DataStore {
             reinterpret_cast<mqbs::DataStoreConfig::RecordIterator*>(handle);
 
         InsertRc insertRc = d_records.insert(bsl::make_pair(
-            mqbs::DataStoreRecordKey(sequenceNum, primaryLeaseId),
+            mqbs::DataStoreRecordKey(primaryLeaseId, sequenceNum),
             mqbs::DataStoreRecord(recType, recOffset)));
 
         // Needed for FileBackedStorage::gcExpiredMessages
@@ -316,7 +316,7 @@ class MockDataStore : public mqbs::DataStore {
             reinterpret_cast<mqbs::DataStoreConfig::RecordIterator*>(handle);
 
         InsertRc insertRc = d_records.insert(bsl::make_pair(
-            mqbs::DataStoreRecordKey(sequenceNum, primaryLeaseId),
+            mqbs::DataStoreRecordKey(primaryLeaseId, sequenceNum),
             mqbs::DataStoreRecord(recType, recOffset)));
 
         *iter = insertRc.first;
@@ -860,7 +860,7 @@ BMQTST_TEST_F(Test, supportedOperations)
 
     {
         const bsls::Types::Uint64    k_SEQUENCE_NUM = 1024;
-        mqbs::DataStoreRecordKey     key(k_SEQUENCE_NUM, k_PRIMARY_LEASE_ID);
+        mqbs::DataStoreRecordKey     key(k_PRIMARY_LEASE_ID, k_SEQUENCE_NUM);
         const mqbs::RecordType::Enum k_RECORD_TYPE =
             mqbs::RecordType::e_MESSAGE;
         mqbs::DataStoreRecord       record(k_RECORD_TYPE, k_RECORD_OFFSET);
@@ -873,7 +873,7 @@ BMQTST_TEST_F(Test, supportedOperations)
 
     {
         const bsls::Types::Uint64    k_SEQUENCE_NUM = 1025;
-        mqbs::DataStoreRecordKey     key(k_SEQUENCE_NUM, k_PRIMARY_LEASE_ID);
+        mqbs::DataStoreRecordKey     key(k_PRIMARY_LEASE_ID, k_SEQUENCE_NUM);
         const mqbs::RecordType::Enum k_RECORD_TYPE =
             mqbs::RecordType::e_CONFIRM;
         mqbs::DataStoreRecord       record(k_RECORD_TYPE, k_RECORD_OFFSET);
@@ -889,7 +889,7 @@ BMQTST_TEST_F(Test, supportedOperations)
 
     {
         const bsls::Types::Uint64    k_SEQUENCE_NUM = 1026;
-        mqbs::DataStoreRecordKey     key(k_SEQUENCE_NUM, k_PRIMARY_LEASE_ID);
+        mqbs::DataStoreRecordKey     key(k_PRIMARY_LEASE_ID, k_SEQUENCE_NUM);
         const mqbs::RecordType::Enum k_RECORD_TYPE =
             mqbs::RecordType::e_DELETION;
         mqbs::DataStoreRecord       record(k_RECORD_TYPE, k_RECORD_OFFSET);
@@ -1865,7 +1865,7 @@ BMQTST_TEST_F(Test, addQueueOpRecordHandle)
     const mqbs::RecordType::Enum k_RECORD_TYPE = mqbs::RecordType::e_QUEUE_OP;
     const bsls::Types::Uint64    k_RECORD_OFFSET = 4096;
 
-    mqbs::DataStoreRecordKey    key(k_SEQUENCE_NUM, k_PRIMARY_LEASE_ID);
+    mqbs::DataStoreRecordKey    key(k_PRIMARY_LEASE_ID, k_SEQUENCE_NUM);
     mqbs::DataStoreRecord       record(k_RECORD_TYPE, k_RECORD_OFFSET);
     mqbs::DataStoreRecordHandle handle;
     d_tester.insertDataStoreRecord(&handle, key, record);
