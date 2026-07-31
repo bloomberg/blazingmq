@@ -232,7 +232,7 @@ QueueInfo<VALUE>::iterator::operator->()
 template <class VALUE>
 inline bool QueueInfo<VALUE>::iterator::operator!=(const iterator& other) const
 {
-    return d_iterator != other.d_iterator;
+    return !(*this == other);
 }
 
 template <class VALUE>
@@ -305,7 +305,7 @@ template <class VALUE>
 inline bool
 QueueInfo<VALUE>::const_iterator::operator!=(const const_iterator& other) const
 {
-    return d_iterator != other.d_iterator;
+    return !(*this == other);
 }
 
 template <class VALUE>

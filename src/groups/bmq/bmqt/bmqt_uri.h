@@ -524,7 +524,7 @@ inline bool bmqt::operator==(const bmqt::Uri& lhs, const bmqt::Uri& rhs)
 
 inline bool bmqt::operator!=(const bmqt::Uri& lhs, const bmqt::Uri& rhs)
 {
-    return (lhs.asString() != rhs.asString());
+    return !(lhs == rhs);
 }
 
 inline bool bmqt::operator<(const bmqt::Uri& lhs, const bmqt::Uri& rhs)

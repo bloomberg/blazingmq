@@ -192,7 +192,7 @@ inline bool bmqa::operator==(const bmqa::QueueId& lhs,
 inline bool bmqa::operator!=(const bmqa::QueueId& lhs,
                              const bmqa::QueueId& rhs)
 {
-    return rhs.d_impl_sp.get() != lhs.d_impl_sp.get();
+    return !(lhs == rhs);
 }
 
 inline bool bmqa::operator<(const bmqa::QueueId& lhs, const bmqa::QueueId& rhs)

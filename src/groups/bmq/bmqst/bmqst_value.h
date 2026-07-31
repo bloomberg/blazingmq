@@ -274,11 +274,7 @@ inline bool bmqst::operator==(const bmqst::Value& lhs, const bmqst::Value& rhs)
 
 inline bool bmqst::operator!=(const bmqst::Value& lhs, const bmqst::Value& rhs)
 {
-    if (lhs.hash() != rhs.hash()) {
-        return true;
-    }
-
-    return lhs.d_value != rhs.d_value;
+    return !(lhs == rhs);
 }
 
 }  // close enterprise namespace
