@@ -497,8 +497,9 @@ class PartitionRaft : public mqbs::RecordStore {
     unsigned int getMessageLenRaw(
         const mqbs::DataStoreRecordHandle& handle) const BSLS_KEYWORD_OVERRIDE;
 
-    /// Return the current primary leaseId for this partition.
-    unsigned int primaryLeaseId() const BSLS_KEYWORD_OVERRIDE;
+    /// Return the write-head leaseId for this partition: the lease id of the
+    /// next record this store writes or applies.
+    virtual unsigned int writeHeadLeaseId() const BSLS_KEYWORD_OVERRIDE;
 
     /// Return `true` if there was Replication Receipt for the specified
     /// `handle`.

@@ -854,8 +854,9 @@ class RecordStore {
     virtual unsigned int
     getMessageLenRaw(const DataStoreRecordHandle& handle) const = 0;
 
-    /// Return the current primary leaseId for this partition.
-    virtual unsigned int primaryLeaseId() const = 0;
+    /// Return the write-head leaseId for this partition: the lease id of the
+    /// next record this store writes or applies.
+    virtual unsigned int writeHeadLeaseId() const = 0;
 
     /// Return `true` if there was Replication Receipt for the specified
     /// `handle`.
