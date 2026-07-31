@@ -343,6 +343,7 @@ class Tester {
                                   1,  // numPartitions
                                   d_clusterStatsRootContext_sp.get(),
                                   d_allocator_p);
+        mqbs::StorageMonitor* storageMonitor = 0;
         d_fs_mp = bslma::ManagedPtrUtil::allocateManaged<mqbs::FileStore>(
             d_allocator_p,
             d_dsCfg,
@@ -353,10 +354,10 @@ class Tester {
             d_blobSpPool_sp.get(),
             &d_statePool,
             &d_miscWorkThreadPool,
-            true,  // isFSMWorkflow
-            true,  // doesFSMwriteQLIST
-            1);    // replicationFactor
-                                         0,     // storageMonitor
+            true,             // isFSMWorkflow
+            true,             // doesFSMwriteQLIST
+            1,                // replicationFactor
+            storageMonitor);  // storageMonitor
 
         // To pass `inDispatcherThread` checks:
         d_fs_mp->setThreadId(bslmt::ThreadUtil::selfId());

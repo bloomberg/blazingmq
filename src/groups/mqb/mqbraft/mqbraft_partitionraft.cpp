@@ -1770,7 +1770,7 @@ unsigned int PartitionRaft::getMessageLenRaw(
     return d_fileStore_sp->getMessageLenRaw(handle);
 }
 
-unsigned int PartitionRaft::primaryLeaseId() const
+unsigned int PartitionRaft::writeHeadLeaseId() const
 {
     return static_cast<unsigned int>(d_raftNode_mp->currentTerm());
 }
