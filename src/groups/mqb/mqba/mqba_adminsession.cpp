@@ -102,6 +102,20 @@ bmqp_ctrlmsg::ClientIdentity* extractClientIdentity(
     };
 }
 
+/// @brief Keep the specified `session` alive for the duration of a dispatcher
+/// event.
+///
+/// This function does nothing on its own; it exists only so that a keep-alive
+/// handle to the session can be bound into a dispatcher event, delaying the
+/// session's destruction until all events enqueued before it have been
+/// processed.
+///
+/// @param session A keep-alive handle to the session being torn down.
+void sessionHolderDummy(BSLA_MAYBE_UNUSED const bsl::shared_ptr<void>& session)
+{
+    // NOTHING
+}
+
 }  // close unnamed namespace
 
 // -------------------------
@@ -372,7 +386,8 @@ void AdminSession::processEvent(const bmqp::Event& event,
         this);
 }
 
-void AdminSession::tearDownImpl(bslmt::Semaphore* semaphore)
+void AdminSession::tearDownImpl(bslmt::Semaphore*            semaphore,
+                                const bsl::shared_ptr<void>& session)
 {
     // executed by the *CLIENT* dispatcher thread
     // PRECONDITIONS
@@ -380,34 +395,55 @@ void AdminSession::tearDownImpl(bslmt::Semaphore* semaphore)
 
     d_self.invalidate();
 
+    // An in-flight admin command completion may have acquired 'd_self' just
+    // before the 'invalidate' above and enqueued a 'finalizeAdminCommand'
+    // event onto this client's dispatcher queue.  Because 'invalidate' does
+    // not return until all such acquisitions have been released, any such
+    // event is now guaranteed to sit ahead of the event we enqueue next.
+    // Enqueue a final event holding the 'session' handle alive: only once it
+    // is processed is the client dispatcher queue guaranteed drained, and only
+    // then do we let the last reference to the session be released, so no
+    // callback ever runs on a destroyed session.
+    //
+    // NOTE: We use the e_DISPATCHER type because this Client is dying, and the
+    //       process of this event by the dispatcher should not add it to the
+    //       flush list.
+    dispatcher()->execute(bdlf::BindUtil::bind(&sessionHolderDummy, session),
+                          this,
+                          mqbi::DispatcherEventType::e_DISPATCHER);
+
     // We can now wake up the IO thread, and let the channel be destroyed
     semaphore->post();
 }
 
-void AdminSession::tearDown(
-    BSLA_MAYBE_UNUSED const bsl::shared_ptr<void>& session,
-    BSLA_MAYBE_UNUSED bool                         isBrokerShutdown)
+void AdminSession::tearDown(const bsl::shared_ptr<void>& session,
+                            BSLA_MAYBE_UNUSED bool       isBrokerShutdown)
 {
     // executed by the *IO* thread
 
     // Enqueue an event to the client dispatcher thread and wait for it to
     // finish; only after this will we have the guarantee that no method will
-    // try to use the channel.
+    // try to use the channel.  The 'session' handle is threaded through to
+    // 'tearDownImpl' so that it can keep the session alive until the client
+    // dispatcher queue has been fully drained.
     bslmt::Semaphore semaphore;
 
     // NOTE: We use the e_DISPATCHER type because this Client is dying, and the
     //       process of this event by the dispatcher should not add it to the
     //       flush list.
-    dispatcher()->execute(
-        bdlf::BindUtil::bind(&AdminSession::tearDownImpl, this, &semaphore),
-        this,
-        mqbi::DispatcherEventType::e_DISPATCHER);
+    dispatcher()->execute(bdlf::BindUtil::bind(&AdminSession::tearDownImpl,
+                                               this,
+                                               &semaphore,
+                                               session),
+                          this,
+                          mqbi::DispatcherEventType::e_DISPATCHER);
     semaphore.wait();
 
     // At this point, we are sure the client dispatcher thread has no pending
     // processing that could be using the channel, so we can return, which will
     // destroy the channel.  The session will die when all references to the
-    // 'session' go out of scope.
+    // 'session' go out of scope, including the one held by the final drain
+    // event enqueued in 'tearDownImpl'.
 }
 
 void AdminSession::initiateShutdown(const ShutdownCb& callback)

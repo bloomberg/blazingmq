@@ -261,9 +261,20 @@ class AdminSession : public mqbnet::Session, public mqbi::DispatcherClient {
     void tearDown(const bsl::shared_ptr<void>& session,
                   bool isBrokerShutdown) BSLS_KEYWORD_OVERRIDE;
 
-    /// Implementation of the teardown process, posting on the specified
-    /// `semaphore` once processing is done.
-    void tearDownImpl(bslmt::Semaphore* semaphore);
+    /// @brief Implementation of the teardown process on the client dispatcher
+    /// thread.
+    ///
+    /// Invalidate the session so that no further asynchronous callback is
+    /// dispatched, then enqueue a final dispatcher event holding the specified
+    /// `session` alive so that any callback that was dispatched before
+    /// invalidation is processed before the session is destroyed, and post on
+    /// the specified `semaphore` once done.
+    ///
+    /// @param semaphore The semaphore to post once the teardown work is done.
+    /// @param session   A keep-alive handle to this session, kept alive until
+    ///                  the client dispatcher queue has been drained.
+    void tearDownImpl(bslmt::Semaphore*            semaphore,
+                      const bsl::shared_ptr<void>& session);
 
     // MANIPULATORS
     //   (virtual: mqbi::DispatcherClient)
