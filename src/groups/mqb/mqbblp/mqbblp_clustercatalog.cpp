@@ -662,6 +662,9 @@ mqbnet::ClusterNode* ClusterCatalog::onNegotiationForClusterSession(
 int ClusterCatalog::processCommand(mqbcmd::ClustersResult*        result,
                                    const mqbcmd::ClustersCommand& command)
 {
+    // PRECONDITIONS
+    BSLS_ASSERT(result);
+
     if (command.isListValue()) {
         bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
 
