@@ -179,9 +179,9 @@ struct DataStoreRecord {
 struct DataStoreRecordKey {
   public:
     // PUBLIC DATA
-    bsls::Types::Uint64 d_sequenceNum;
-
     unsigned int d_primaryLeaseId;
+
+    bsls::Types::Uint64 d_sequenceNum;
 
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(DataStoreRecordKey,
@@ -192,8 +192,8 @@ struct DataStoreRecordKey {
     // CREATORS
     DataStoreRecordKey();
 
-    DataStoreRecordKey(const bsls::Types::Uint64 sequenceNum,
-                       unsigned int              primaryLeaseId);
+    DataStoreRecordKey(unsigned int              primaryLeaseId,
+                       const bsls::Types::Uint64 sequenceNum);
 
     // ACCESSORS
 
@@ -831,17 +831,17 @@ inline DataStoreRecord::DataStoreRecord(
 
 // CREATORS
 inline DataStoreRecordKey::DataStoreRecordKey()
-: d_sequenceNum(0)
-, d_primaryLeaseId(0)
+: d_primaryLeaseId(0)
+, d_sequenceNum(0)
 {
     // NOTHING
 }
 
 inline DataStoreRecordKey::DataStoreRecordKey(
-    const bsls::Types::Uint64 sequenceNum,
-    unsigned int              primaryLeaseId)
-: d_sequenceNum(sequenceNum)
-, d_primaryLeaseId(primaryLeaseId)
+    unsigned int              primaryLeaseId,
+    const bsls::Types::Uint64 sequenceNum)
+: d_primaryLeaseId(primaryLeaseId)
+, d_sequenceNum(sequenceNum)
 {
     // NOTHING
 }
@@ -851,8 +851,8 @@ template <class HASH_ALGORITHM>
 void hashAppend(HASH_ALGORITHM& hashAlgo, const mqbs::DataStoreRecordKey& key)
 {
     using bslh::hashAppend;  // for ADL
-    hashAppend(hashAlgo, key.d_sequenceNum);
     hashAppend(hashAlgo, key.d_primaryLeaseId);
+    hashAppend(hashAlgo, key.d_sequenceNum);
 }
 
 // --------------------------------
@@ -864,8 +864,8 @@ template <class TYPE>
 inline DataStoreRecordKeyHashAlgo::result_type
 DataStoreRecordKeyHashAlgo::operator()(const TYPE& type) const
 {
-    return type.d_sequenceNum +
-           (static_cast<bsls::Types::Uint64>(type.d_primaryLeaseId) << 32);
+    return (static_cast<bsls::Types::Uint64>(type.d_primaryLeaseId) << 32) +
+           type.d_sequenceNum;
 }
 
 // -----------------------------

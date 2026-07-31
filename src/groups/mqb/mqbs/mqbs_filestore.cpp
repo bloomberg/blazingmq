@@ -1775,7 +1775,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                 // Need to keep track of this record (AppKey deletion record)
                 // in 'd_records'.
 
-                DataStoreRecordKey key(sequenceNum, primaryLeaseId);
+                DataStoreRecordKey key(primaryLeaseId, sequenceNum);
                 DataStoreRecord    record(RecordType::e_QUEUE_OP,
                                        jit->recordOffset());
                 d_records.rinsert(bsl::make_pair(key, record));
@@ -1786,12 +1786,12 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                     FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
             }
             else if (QueueOpType::e_PURGE == queueOpType) {
-                DataStoreRecordKey key(sequenceNum, primaryLeaseId);
+                DataStoreRecordKey key(primaryLeaseId, sequenceNum);
 
                 BALL_LOG_INFO << partitionDesc() << "PurgeOp for " << appKey
                               << " from "
-                              << DataStoreRecordKey(rec.startSequenceNumber(),
-                                                    rec.startPrimaryLeaseId())
+                              << DataStoreRecordKey(rec.startPrimaryLeaseId(),
+                                                    rec.startSequenceNumber())
                               << " to " << key;
 
                 StorageKeysOffsetsConstIter queueIt =
@@ -1843,14 +1843,14 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                     BALL_LOG_INFO
                         << partitionDesc() << "Adding PurgeOp for " << appKey
                         << " from "
-                        << DataStoreRecordKey(rec.startSequenceNumber(),
-                                              rec.startPrimaryLeaseId())
+                        << DataStoreRecordKey(rec.startPrimaryLeaseId(),
+                                              rec.startSequenceNumber())
                         << " to " << key;
 
                     iter->second.addPurgeOp(
                         appKey,
-                        DataStoreRecordKey(rec.startSequenceNumber(),
-                                           rec.startPrimaryLeaseId()),
+                        DataStoreRecordKey(rec.startPrimaryLeaseId(),
+                                           rec.startSequenceNumber()),
                         key);
                 }
 
@@ -2233,7 +2233,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
 
                 // Update 'd_records'.
 
-                DataStoreRecordKey key(sequenceNum, primaryLeaseId);
+                DataStoreRecordKey key(primaryLeaseId, sequenceNum);
                 DataStoreRecord    record(RecordType::e_QUEUE_OP,
                                        jit->recordOffset(),
                                        queueRecLength);
@@ -2398,7 +2398,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                 }
             }
 
-            DataStoreRecordKey key(sequenceNum, primaryLeaseId);
+            DataStoreRecordKey key(primaryLeaseId, sequenceNum);
             DataStoreRecord record(RecordType::e_CONFIRM, jit->recordOffset());
             d_records.rinsert(bsl::make_pair(key, record));
 
@@ -2643,7 +2643,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                     << BMQTSK_ALARMLOG_END;
             }
 
-            DataStoreRecordKey key(sequenceNum, primaryLeaseId);
+            DataStoreRecordKey key(primaryLeaseId, sequenceNum);
             DataStoreRecord record(RecordType::e_MESSAGE, jit->recordOffset());
             record.d_messageOffset              = dataHeaderOffset;
             record.d_appDataUnpaddedLen         = appDataLen;
@@ -4185,7 +4185,7 @@ void FileStore::processReceiptEvent(unsigned int         primaryLeaseId,
         return;  // RETURN
     }
 
-    const DataStoreRecordKey recordKey(sequenceNumber, primaryLeaseId);
+    const DataStoreRecordKey recordKey(primaryLeaseId, sequenceNumber);
     Unreceipted::iterator    to = d_unreceipted.find(recordKey);
     // end of of Receipt range
 
@@ -5225,7 +5225,7 @@ void FileStore::replicateAndInsertDataStoreRecord(
     replicateRecord(messageType, recordOffset);
 
     // Insert (key, record)
-    DataStoreRecordKey key(writeHeadSeqNum(), d_writeHeadLeaseId);
+    DataStoreRecordKey key(d_writeHeadLeaseId, writeHeadSeqNum());
     DataStoreRecord    record(recordType, recordOffset);
     insertDataStoreRecord(handle, key, record);
 
@@ -5764,7 +5764,7 @@ int FileStore::writeMessageRecord(mqbi::StorageMessageAttributes* attributes,
         .setMagic(RecordHeader::k_MAGIC);
     journalPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
 
-    DataStoreRecordKey key(writeHeadSeqNum(), d_writeHeadLeaseId);
+    DataStoreRecordKey key(d_writeHeadLeaseId, writeHeadSeqNum());
     DataStoreRecord    record(RecordType::e_MESSAGE, journalOffset);
     record.d_messageOffset      = dataOffset;
     record.d_appDataUnpaddedLen = static_cast<unsigned int>(appData->length());
@@ -6051,7 +6051,7 @@ int FileStore::writeQueueCreationRecord(DataStoreRecordHandle*  handle,
                     qlistOffset,
                     qlistRecTotalLength);
 
-    DataStoreRecordKey key(writeHeadSeqNum(), d_writeHeadLeaseId);
+    DataStoreRecordKey key(d_writeHeadLeaseId, writeHeadSeqNum());
     DataStoreRecord    record(RecordType::e_QUEUE_OP,
                            recordOffset,
                            qlistRecTotalLength);
@@ -6701,7 +6701,7 @@ FileStore::generateReceipt(NodeContext*         nodeContext,
                            unsigned int         primaryLeaseId,
                            bsls::Types::Uint64  sequenceNumber)
 {
-    const DataStoreRecordKey key(sequenceNumber, primaryLeaseId);
+    const DataStoreRecordKey key(primaryLeaseId, sequenceNumber);
 
     if (nodeContext == 0) {
         const int                     nodeId = node->nodeId();

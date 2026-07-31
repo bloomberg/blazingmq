@@ -2134,8 +2134,8 @@ void StorageUtil::recoveredQueuesCb(
                 queueKey);
             BSLS_ASSERT_SAFE(infoMapCit != queueKeyInfoMap->end());
 
-            const mqbs::DataStoreRecordKey current(handle.sequenceNum(),
-                                                   handle.primaryLeaseId());
+            const mqbs::DataStoreRecordKey current(handle.primaryLeaseId(),
+                                                   handle.sequenceNum());
 
             const unsigned int numGhosts = infoMapCit->second.advanceAndCount(
                 current);

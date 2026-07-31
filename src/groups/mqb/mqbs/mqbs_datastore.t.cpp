@@ -50,7 +50,7 @@ static mqbs::DataStoreRecordKey makeBrokerLikeKey(bsls::Types::Int64 index)
                                                 index % k_KEYS_PER_LEASE) +
                                             1;
 
-    return mqbs::DataStoreRecordKey(sequenceNum, primaryLeaseId);
+    return mqbs::DataStoreRecordKey(primaryLeaseId, sequenceNum);
 }
 
 static void test1_breathingTest()
@@ -78,7 +78,7 @@ static void test1_breathingTest()
         BMQTST_ASSERT_EQ(keyDefault.d_primaryLeaseId, 0U);
 
         // Valued constructor
-        mqbs::DataStoreRecordKey keyValued(k_SEQUENCE_NUM, k_PRIMARY_LEASE_ID);
+        mqbs::DataStoreRecordKey keyValued(k_PRIMARY_LEASE_ID, k_SEQUENCE_NUM);
         BMQTST_ASSERT_EQ(keyValued.d_sequenceNum, k_SEQUENCE_NUM);
         BMQTST_ASSERT_EQ(keyValued.d_primaryLeaseId, k_PRIMARY_LEASE_ID);
     }
@@ -324,7 +324,7 @@ static void testN1_defaultHashBenchmark()
 
     bsls::Types::Int64 begin = bsls::TimeUtil::getTimer();
     for (size_t i = 0; i < k_NUM_ITERATIONS; ++i) {
-        hasher(mqbs::DataStoreRecordKey(i, 7));
+        hasher(mqbs::DataStoreRecordKey(7, i));
     }
     bsls::Types::Int64 end = bsls::TimeUtil::getTimer();
 
@@ -357,7 +357,7 @@ static void testN2_customHashBenchmark()
 
     bsls::Types::Int64 begin = bsls::TimeUtil::getTimer();
     for (size_t i = 0; i < k_NUM_ITERATIONS; ++i) {
-        hasher(mqbs::DataStoreRecordKey(i, 7));
+        hasher(mqbs::DataStoreRecordKey(7, i));
     }
     bsls::Types::Int64 end = bsls::TimeUtil::getTimer();
 
@@ -391,14 +391,14 @@ static void testN3_orderedMapWithDefaultHashBenchmark()
         bmqtst::TestHelperUtil::allocator());
     // Warmup
     for (size_t i = 1; i <= 1000; ++i) {
-        ht.insert(bsl::make_pair(mqbs::DataStoreRecordKey(i, 7), i));
+        ht.insert(bsl::make_pair(mqbs::DataStoreRecordKey(7, i), i));
     }
 
     ht.clear();
 
     bsls::Types::Int64 begin = bsls::TimeUtil::getTimer();
     for (size_t i = 1; i <= k_NUM_ELEMS; ++i) {
-        ht.insert(bsl::make_pair(mqbs::DataStoreRecordKey(i, 7), i));
+        ht.insert(bsl::make_pair(mqbs::DataStoreRecordKey(7, i), i));
     }
     bsls::Types::Int64 end = bsls::TimeUtil::getTimer();
 
@@ -435,14 +435,14 @@ static void testN4_orderedMapWithCustomHashBenchmark()
 
     // Warmup
     for (size_t i = 1; i <= 1000; ++i) {
-        ht.insert(bsl::make_pair(mqbs::DataStoreRecordKey(i, 7), i));
+        ht.insert(bsl::make_pair(mqbs::DataStoreRecordKey(7, i), i));
     }
 
     ht.clear();
 
     bsls::Types::Int64 begin = bsls::TimeUtil::getTimer();
     for (size_t i = 1; i <= k_NUM_ELEMS; ++i) {
-        ht.insert(bsl::make_pair(mqbs::DataStoreRecordKey(i, 7), i));
+        ht.insert(bsl::make_pair(mqbs::DataStoreRecordKey(7, i), i));
     }
     bsls::Types::Int64 end = bsls::TimeUtil::getTimer();
 
@@ -479,7 +479,7 @@ testN1_defaultHashBenchmark_GoogleBenchmark(benchmark::State& state)
     // same as: bslh::Hash<> hasher;
     for (auto _ : state) {
         for (int i = 0; i < state.range(); ++i) {
-            hasher(mqbs::DataStoreRecordKey(i, 7));
+            hasher(mqbs::DataStoreRecordKey(7, i));
         }
     }
 }
@@ -503,7 +503,7 @@ static void testN2_customHashBenchmark_GoogleBenchmark(benchmark::State& state)
 
     for (auto _ : state) {
         for (int i = 0; i < state.range(0); ++i) {
-            hasher(mqbs::DataStoreRecordKey(i, 7));
+            hasher(mqbs::DataStoreRecordKey(7, i));
         }
     }
 }
@@ -529,14 +529,14 @@ static void testN3_orderedMapWithDefaultHashBenchmark_GoogleBenchmark(
         bmqtst::TestHelperUtil::allocator());
     // Warmup
     for (size_t i = 1; i <= 1000; ++i) {
-        ht.insert(bsl::make_pair(mqbs::DataStoreRecordKey(i, 7), i));
+        ht.insert(bsl::make_pair(mqbs::DataStoreRecordKey(7, i), i));
     }
 
     ht.clear();
 
     for (auto _ : state) {
         for (int i = 1; i <= state.range(0); ++i) {
-            ht.insert(bsl::make_pair(mqbs::DataStoreRecordKey(i, 7), i));
+            ht.insert(bsl::make_pair(mqbs::DataStoreRecordKey(7, i), i));
         }
     }
 }
@@ -564,13 +564,13 @@ static void testN4_orderedMapWithCustomHashBenchmark_GoogleBenchmark(
 
     // Warmup
     for (size_t i = 1; i <= 1000; ++i) {
-        ht.insert(bsl::make_pair(mqbs::DataStoreRecordKey(i, 7), i));
+        ht.insert(bsl::make_pair(mqbs::DataStoreRecordKey(7, i), i));
     }
 
     ht.clear();
     for (auto _ : state) {
         for (int i = 1; i <= state.range(0); ++i) {
-            ht.insert(bsl::make_pair(mqbs::DataStoreRecordKey(i, 7), i));
+            ht.insert(bsl::make_pair(mqbs::DataStoreRecordKey(7, i), i));
         }
     }
 }
