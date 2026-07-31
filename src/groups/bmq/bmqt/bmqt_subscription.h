@@ -498,7 +498,7 @@ inline bool operator==(const SubscriptionHandle& lhs,
 inline bool operator!=(const SubscriptionHandle& lhs,
                        const SubscriptionHandle& rhs)
 {
-    return lhs.d_id != rhs.d_id;
+    return !(lhs == rhs);
 }
 
 inline bsl::ostream& operator<<(bsl::ostream&             stream,

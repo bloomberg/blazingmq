@@ -354,10 +354,7 @@ inline bool bmqt::operator==(const bmqt::QueueOptions& lhs,
 inline bool bmqt::operator!=(const bmqt::QueueOptions& lhs,
                              const bmqt::QueueOptions& rhs)
 {
-    return lhs.maxUnconfirmedMessages() != rhs.maxUnconfirmedMessages() ||
-           lhs.maxUnconfirmedBytes() != rhs.maxUnconfirmedBytes() ||
-           lhs.consumerPriority() != rhs.consumerPriority() ||
-           lhs.suspendsOnBadHostHealth() != rhs.suspendsOnBadHostHealth();
+    return !(lhs == rhs);
 }
 
 inline bsl::ostream& bmqt::operator<<(bsl::ostream&             stream,

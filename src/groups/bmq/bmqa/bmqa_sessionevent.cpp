@@ -160,11 +160,7 @@ bool operator==(const SessionEvent& lhs, const SessionEvent& rhs)
 
 bool operator!=(const SessionEvent& lhs, const SessionEvent& rhs)
 {
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(lhs.d_impl_sp);
-    BSLS_ASSERT_SAFE(rhs.d_impl_sp);
-
-    return *lhs.d_impl_sp != *rhs.d_impl_sp;
+    return !(lhs == rhs);
 }
 
 }  // close package namespace

@@ -751,21 +751,7 @@ inline bool bmqt::operator==(const bmqt::SessionOptions& lhs,
 inline bool bmqt::operator!=(const bmqt::SessionOptions& lhs,
                              const bmqt::SessionOptions& rhs)
 {
-    return lhs.brokerUri() != rhs.brokerUri() ||
-           lhs.numProcessingThreads() != rhs.numProcessingThreads() ||
-           lhs.blobBufferSize() != rhs.blobBufferSize() ||
-           lhs.channelHighWatermark() != rhs.channelHighWatermark() ||
-           lhs.statsDumpInterval() != rhs.statsDumpInterval() ||
-           lhs.connectTimeout() != rhs.connectTimeout() ||
-           lhs.openQueueTimeout() != rhs.openQueueTimeout() ||
-           lhs.configureQueueTimeout() != rhs.configureQueueTimeout() ||
-           lhs.closeQueueTimeout() != rhs.closeQueueTimeout() ||
-           lhs.eventQueueLowWatermark() != rhs.eventQueueLowWatermark() ||
-           lhs.eventQueueHighWatermark() != rhs.eventQueueHighWatermark() ||
-           lhs.hostHealthMonitor() != rhs.hostHealthMonitor() ||
-           lhs.traceContext() != rhs.traceContext() ||
-           lhs.tracer() != rhs.tracer() ||
-           lhs.userAgentPrefix() != rhs.userAgentPrefix();
+    return !(lhs == rhs);
 }
 
 inline bsl::ostream& bmqt::operator<<(bsl::ostream&               stream,

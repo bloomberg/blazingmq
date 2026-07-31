@@ -188,7 +188,7 @@ inline bool bmqt::operator==(const bmqt::Version& lhs,
 inline bool bmqt::operator!=(const bmqt::Version& lhs,
                              const bmqt::Version& rhs)
 {
-    return lhs.major() != rhs.major() || lhs.minor() != rhs.minor();
+    return !(lhs == rhs);
 }
 
 inline bool bmqt::operator<(const bmqt::Version& lhs, const bmqt::Version& rhs)

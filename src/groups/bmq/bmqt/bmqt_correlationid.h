@@ -582,7 +582,7 @@ inline bool bmqt::operator==(const bmqt::CorrelationId& lhs,
 inline bool bmqt::operator!=(const bmqt::CorrelationId& lhs,
                              const bmqt::CorrelationId& rhs)
 {
-    return lhs.d_variant != rhs.d_variant;
+    return !(lhs == rhs);
 }
 
 inline bool bmqt::operator<(const bmqt::CorrelationId& lhs,
