@@ -524,6 +524,60 @@ static void test9_squeeze()
     }
 }
 
+static void test10_isPrintable()
+// ------------------------------------------------------------------------
+// bmqu::StringUtil::isPrintable
+//
+// Concerns:
+//   Ensure proper behavior of the 'isPrintable' method.
+//
+// Plan:
+//   Test printable strings and the empty string, plus strings containing
+//   various non-printable bytes (control characters, DEL, and high-bit
+//   bytes), including one with an embedded NUL.
+//
+// Testing:
+//   Proper behavior of the 'isPrintable(str)' method.
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("isPrintable");
+
+    struct Test {
+        int         d_line;
+        const char* d_str;
+        bool        d_result;
+    } k_DATA[] = {{L_, "", true},
+                  {L_, "hello world", true},
+                  {L_, " ", true},  // 0x20, first printable
+                  {L_, "~", true},  // 0x7e, last printable
+                  {L_, "abc\ndef", false},
+                  {L_, "abc\tdef", false},
+                  {L_, "\r", false},
+                  {L_, "\x1f", false},   // just below first printable
+                  {L_, "\x7f", false},   // DEL
+                  {L_, "\x80", false},   // high-bit byte
+                  {L_, "\xff", false}};  // high-bit byte
+
+    const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
+
+    for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        const Test& test = k_DATA[idx];
+
+        PVV(test.d_line << ": checking printability of line");
+        BMQTST_ASSERT_EQ_D("line " << test.d_line,
+                           bmqu::StringUtil::isPrintable(test.d_str),
+                           test.d_result);
+    }
+
+    // A NUL embedded mid-string must be detected, so pass an explicit length
+    // rather than relying on NUL-termination.
+    const char k_EMBEDDED_NUL[] = {'a', '\0', 'b'};
+    BMQTST_ASSERT_EQ(
+        bmqu::StringUtil::isPrintable(
+            bslstl::StringRef(k_EMBEDDED_NUL, sizeof(k_EMBEDDED_NUL))),
+        false);
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -534,6 +588,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 10: test10_isPrintable(); break;
     case 9: test9_squeeze(); break;
     case 8: test8_match(); break;
     case 7: test7_strTokenizeRef(); break;

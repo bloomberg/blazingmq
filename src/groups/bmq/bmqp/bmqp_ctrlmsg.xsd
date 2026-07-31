@@ -1674,6 +1674,8 @@
         userAgent.........: a string identifying the agent the client is using
                             to connect.  Should include the SDK name/language
                             and version.
+
+        String fields must only contain printable ASCII characters.
       </documentation>
     </annotation>
     <sequence>

@@ -73,10 +73,12 @@
 #include <bmqst_statcontext.h>
 #include <bmqu_blob.h>
 #include <bmqu_memoutstream.h>
+#include <bmqu_stringutil.h>
 #include <bmqu_time.h>
 
 // BDE
 #include <ball_log.h>
+#include <bdlb_chartype.h>
 #include <bdlf_bind.h>
 #include <bdlf_placeholder.h>
 #include <bdlma_localsequentialallocator.h>
@@ -88,6 +90,8 @@
 #include <bslma_managedptr.h>
 #include <bsls_assert.h>
 #include <bsls_atomic.h>
+#include <bsls_performancehint.h>
+#include <bsls_review.h>
 #include <bsls_timeinterval.h>
 
 // NTC
@@ -196,12 +200,51 @@ void loadBrokerIdentity(bmqp_ctrlmsg::ClientIdentity* identity,
     identity->clusterNodeId() = nodeId;
 }
 
+/// Replace every non-printable character in `*str` with `?`, in place.
+void sanitize(bsl::string* str)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT(str);
+
+    for (bsl::string::iterator it = str->begin(); it != str->end(); ++it) {
+        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
+                !bdlb::CharType::isPrint(*it))) {
+            BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+            *it = '?';
+        }
+    }
+}
+
+/// Return the streamed representation of `obj`, safe to log (non-printable
+/// characters replaced with `?`).
+template <class TYPE>
+bsl::string logSafe(const TYPE& obj)
+{
+    bmqu::MemOutStream os;
+    os << obj;
+
+    bsl::string result(os.str().data(), os.str().length());
+    sanitize(&result);
+    return result;
+}
+
+/// Return `true` if the streamed representation of `obj` contains only
+/// printable characters, and `false` otherwise.
+template <class TYPE>
+bool isPrintable(const TYPE& obj)
+{
+    bmqu::MemOutStream os;
+    os << obj;
+
+    return bmqu::StringUtil::isPrintable(os.str());
+}
+
 /// Load in the specified `out` the short description representing the
 /// specified `identity` from the specified `peerChannel`.  The format is as
 /// follow:
 ///    tskName:pid.sessionId[\@hostId]
 /// Where:
-///  - tskName   : the task name, without any optional leading path
+///  - tskName   : the process/task name, without any optional leading path
 ///  - pid       : the pid of the task
 ///  - sessionId : the sessionId, omitted if 1
 ///  - hostId    : the identity of the host where the peer is running
@@ -209,6 +252,8 @@ void loadBrokerIdentity(bmqp_ctrlmsg::ClientIdentity* identity,
 ///                `ip:port`, or `ip~resolvedHostname:port` depending on
 ///                whether the async DNS resolution already took place or
 ///                not.
+///
+/// Note: the result is sanitized as it derives from untrusted input.
 void loadSessionDescription(bsl::string*                        out,
                             const bmqp_ctrlmsg::ClientIdentity& identity,
                             const bmqio::Channel&               peerChannel)
@@ -246,6 +291,7 @@ void loadSessionDescription(bsl::string*                        out,
     }
 
     out->assign(os.str().data(), os.str().length());
+    sanitize(out);
 }
 }  // close unnamed namespace
 
@@ -274,6 +320,10 @@ int SessionNegotiator::createSessionOnMsgType(
 
     const NegotiationContextSp& negotiationContext =
         context_p->negotiationContext();
+
+    // Detect non-printable characters in negotiation messages.
+    // TODO: fail negotiation if message contains non-printable characters
+    BSLS_REVIEW_OPT(isPrintable(negotiationContext->negotiationMessage()));
 
     switch (negotiationContext->negotiationMessage().selectionId()) {
     case bmqp_ctrlmsg::NegotiationMessage::SELECTION_INDEX_CLIENT_IDENTITY: {
@@ -371,7 +421,8 @@ bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onClientIdentityMessage(
         negotiationMessage.clientIdentity();
 
     BALL_LOG_INFO << "Handle negotiation message received from '"
-                  << context_p->channel().get() << "': " << clientIdentity;
+                  << context_p->channel().get()
+                  << "': " << logSafe(clientIdentity);
 
     bsl::shared_ptr<mqbnet::Session> session;
 
@@ -389,7 +440,7 @@ bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onClientIdentityMessage(
     case bmqp_ctrlmsg::ClientType::E_UNKNOWN:
     default: {
         errorDescription << "Unknown ClientIdentity client type: "
-                         << clientIdentity;
+                         << logSafe(clientIdentity);
         return session;  // RETURN
     }
     }
@@ -442,9 +493,10 @@ bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onClientIdentityMessage(
             // but we are not member of that cluster; emit an error (but
             // still accept the connection).
             BALL_LOG_ERROR << "#CONNECTION_UNEXPECTED Client '"
-                           << clientIdentity
+                           << logSafe(clientIdentity)
                            << "' connected to me as part of cluster '"
-                           << clusterName << "' to which I do not belong!";
+                           << logSafe(clusterName)
+                           << "' to which I do not belong!";
         }
         // Virtual clusters do not advertise node status.  Therefore, the
         // identity should not advertise k_BROADCAST_TO_PROXIES feature.
@@ -537,14 +589,15 @@ bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onBrokerResponseMessage(
         negotiationMessage.brokerResponse();
 
     BALL_LOG_DEBUG << "Received negotiation message from '"
-                   << context_p->channel().get() << "': " << brokerResponse;
+                   << context_p->channel().get()
+                   << "': " << logSafe(brokerResponse);
 
     bsl::shared_ptr<mqbnet::Session> session;
 
     if (brokerResponse.result().category() !=
         bmqp_ctrlmsg::StatusCategory::E_SUCCESS) {
-        errorDescription << "Failure broker's response [" << brokerResponse
-                         << "]";
+        errorDescription << "Failure broker's response ["
+                         << logSafe(brokerResponse) << "]";
         return session;  // RETURN
     }
 
@@ -830,7 +883,7 @@ bool SessionNegotiator::checkIsDeprecatedSdkVersion(
     // keep a central location of all deprecated clients.
     BALL_LOG_WARN << "#CLIENT_SDKVERSION_DEPRECATED "
                   << "Client is using a deprecated SDK: "
-                  << "[client: " << clientIdentity
+                  << "[client: " << logSafe(clientIdentity)
                   << ", minimumSDKVersionRecommended: "
                   << mqbu::SDKVersionUtil::minSdkVersionRecommended(
                          clientIdentity.sdkLanguage())
@@ -858,7 +911,7 @@ bool SessionNegotiator::checkIsUnsupportedSdkVersion(
     // keep a central location of all rejected clients.
     BALL_LOG_WARN << "#CLIENT_SDKVERSION_UNSUPPORTED "
                   << "Client is using an unsupported SDK: "
-                  << "[client: " << clientIdentity
+                  << "[client: " << logSafe(clientIdentity)
                   << ", minimumSDKVersionSupported: "
                   << mqbu::SDKVersionUtil::minSdkVersionSupported(
                          clientIdentity.sdkLanguage())
