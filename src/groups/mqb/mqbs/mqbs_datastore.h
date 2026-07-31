@@ -179,9 +179,9 @@ struct DataStoreRecord {
 struct DataStoreRecordKey {
   public:
     // PUBLIC DATA
-    unsigned int d_primaryLeaseId;
-
     bsls::Types::Uint64 d_sequenceNum;
+
+    unsigned int d_primaryLeaseId;
 
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(DataStoreRecordKey,
@@ -192,8 +192,8 @@ struct DataStoreRecordKey {
     // CREATORS
     DataStoreRecordKey();
 
-    DataStoreRecordKey(unsigned int              primaryLeaseId,
-                       const bsls::Types::Uint64 sequenceNum);
+    DataStoreRecordKey(unsigned int        primaryLeaseId,
+                       bsls::Types::Uint64 sequenceNum);
 
     // ACCESSORS
 
@@ -831,17 +831,16 @@ inline DataStoreRecord::DataStoreRecord(
 
 // CREATORS
 inline DataStoreRecordKey::DataStoreRecordKey()
-: d_primaryLeaseId(0)
-, d_sequenceNum(0)
+: d_sequenceNum(0)
+, d_primaryLeaseId(0)
 {
     // NOTHING
 }
 
-inline DataStoreRecordKey::DataStoreRecordKey(
-    unsigned int              primaryLeaseId,
-    const bsls::Types::Uint64 sequenceNum)
-: d_primaryLeaseId(primaryLeaseId)
-, d_sequenceNum(sequenceNum)
+inline DataStoreRecordKey::DataStoreRecordKey(unsigned int primaryLeaseId,
+                                              bsls::Types::Uint64 sequenceNum)
+: d_sequenceNum(sequenceNum)
+, d_primaryLeaseId(primaryLeaseId)
 {
     // NOTHING
 }

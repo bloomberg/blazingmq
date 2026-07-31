@@ -158,6 +158,7 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// Map of primaryLeaseId -> highest sequence number
     typedef bsl::unordered_map<unsigned int, bsls::Types::Uint64>
                                                LeaseIdToSeqNumMap;
+    typedef LeaseIdToSeqNumMap::iterator       LeaseIdToSeqNumMapIter;
     typedef LeaseIdToSeqNumMap::const_iterator LeaseIdToSeqNumMapCIter;
 
   private:
@@ -1163,11 +1164,9 @@ inline FileStore::NodeContext::NodeContext(BlobSpPool* blobSpPool_p,
 // PRIVATE MANIPULATORS
 inline bsls::Types::Uint64 FileStore::incrementWriteHeadSeqNum()
 {
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_highestSeqNums.find(d_writeHeadLeaseId) !=
-                     d_highestSeqNums.end());
-
-    return ++d_highestSeqNums[d_writeHeadLeaseId];
+    LeaseIdToSeqNumMapIter it = d_highestSeqNums.find(d_writeHeadLeaseId);
+    BSLS_ASSERT_SAFE(it != d_highestSeqNums.end());
+    return ++(it->second);
 }
 
 inline void FileStore::setWriteHead(unsigned int        leaseId,
