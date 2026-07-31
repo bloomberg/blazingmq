@@ -57,6 +57,10 @@ struct StringUtil {
     static bool endsWith(const bslstl::StringRef& str,
                          const bslstl::StringRef& suffix);
 
+    /// Return `true` if every character in the specified string `str` is
+    /// printable, and `false` otherwise.  An empty string is printable.
+    static bool isPrintable(const bslstl::StringRef& str);
+
     /// Perform an in-place white spaces trimming at the beginning and the
     /// end of the specified string `str` and return a reference offering
     /// modifiable access to it.

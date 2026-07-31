@@ -17,12 +17,14 @@
 
 #include <bmqscm_version.h>
 // BDE
+#include <bdlb_chartype.h>
 #include <bsl_algorithm.h>
 #include <bsl_bitset.h>
 #include <bsl_cctype.h>
 #include <bsl_climits.h>
 #include <bsl_functional.h>
 #include <bsls_assert.h>
+#include <bsls_performancehint.h>
 
 namespace BloombergLP {
 namespace bmqu {
@@ -110,6 +112,20 @@ bool StringUtil::endsWith(const bslstl::StringRef& str,
     int j = static_cast<int>(suffix.length() - 1);
     while ((i >= 0) && (j >= 0)) {
         if (str[i--] != suffix[j--]) {
+            return false;  // RETURN
+        }
+    }
+
+    return true;
+}
+
+bool StringUtil::isPrintable(const bslstl::StringRef& str)
+{
+    for (bslstl::StringRef::const_iterator it = str.begin(); it != str.end();
+         ++it) {
+        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
+                !bdlb::CharType::isPrint(*it))) {
+            BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
             return false;  // RETURN
         }
     }

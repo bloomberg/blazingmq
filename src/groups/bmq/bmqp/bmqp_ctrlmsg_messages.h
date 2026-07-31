@@ -7763,6 +7763,7 @@ class ClientIdentity {
     // Contains clientId, current timer tick and number of seconds from epoch.
     // userAgent.........: a string identifying the agent the client is using
     // to connect.  Should include the SDK name/language and version.
+    // String fields must only contain printable ASCII characters.
 
     // INSTANCE DATA
     bsl::string           d_processName;
