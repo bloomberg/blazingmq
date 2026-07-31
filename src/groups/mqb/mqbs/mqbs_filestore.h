@@ -1163,7 +1163,11 @@ inline FileStore::NodeContext::NodeContext(BlobSpPool* blobSpPool_p,
 // PRIVATE MANIPULATORS
 inline bsls::Types::Uint64 FileStore::incrementWriteHeadSeqNum()
 {
-    return ++d_highestSeqNums.at(d_writeHeadLeaseId);
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_highestSeqNums.find(d_writeHeadLeaseId) !=
+                     d_highestSeqNums.end());
+
+    return ++d_highestSeqNums[d_writeHeadLeaseId];
 }
 
 inline void FileStore::setWriteHead(unsigned int        leaseId,
