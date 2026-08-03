@@ -50,6 +50,7 @@
 //
 
 // BDE
+#include <bsl_cstddef.h>
 #include <bsl_iomanip.h>
 #include <bsl_iostream.h>
 #include <bsl_ostream.h>
