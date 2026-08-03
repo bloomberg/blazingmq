@@ -108,6 +108,27 @@ bmqp_ctrlmsg::NegotiationMessage client()
     return negotiationMessage;
 }
 
+/// Create a `NegotiationMessage` for an admin client that advertises JSON (and
+/// only JSON) as its supported encoding, so that the `AdminSession` selects
+/// JSON when encoding its responses.
+bmqp_ctrlmsg::NegotiationMessage clientJson()
+{
+    bmqp_ctrlmsg::NegotiationMessage negotiationMessage;
+    bmqp_ctrlmsg::ClientIdentity&    clientIdentity =
+        negotiationMessage.makeClientIdentity();
+    clientIdentity.clientType() = bmqp_ctrlmsg::ClientType::E_TCPADMIN;
+    clientIdentity.guidInfo().clientId()             = "0A0B0C0D0E0F";
+    clientIdentity.guidInfo().nanoSecondsFromEpoch() = 1261440000;
+
+    bsl::string features;
+    features.append(bmqp::EncodingFeature::k_FIELD_NAME)
+        .append(":")
+        .append(bmqp::EncodingFeature::k_ENCODING_JSON);
+    clientIdentity.features() = features;
+
+    return negotiationMessage;
+}
+
 /// Create a new blob at the specified `arena` address, using the specified
 /// `bufferFactory` and `allocator`.
 void createBlob(bdlbb::BlobBufferFactory* bufferFactory,
@@ -537,6 +558,115 @@ static void test2_safeConcurrentTeardown()
     scheduler.stop();
 }
 
+static void test3_responseEncodeFailureDoesNotWedgeSession()
+// ------------------------------------------------------------------------
+// RESPONSE ENCODE FAILURE DOES NOT WEDGE THE SESSION
+//
+// Concerns:
+//   - A response's text can carry arbitrary bytes derived from the admin
+//     command input (the broker's command handlers echo the offending input
+//     back in their diagnostics).  For a client whose responses are
+//     JSON-encoded, such bytes may not be valid UTF-8 and the response then
+//     fails to encode.
+//   - When a response fails to encode it is dropped, but the session's schema
+//     event builder must be left clean so that the *next* command's response
+//     encodes and is delivered normally.
+//
+// Plan:
+//   Instantiate a testbench for a JSON-encoding admin client with a handler
+//   that echoes each command's input back as its result (modeling the broker's
+//   diagnostics, which quote the input).  Submit a command whose input
+//   contains invalid UTF-8 (its response therefore fails to encode and is not
+//   written), then submit a well-formed command and assert that exactly one
+//   response - the response to the well-formed command - is written to the
+//   channel.
+//
+// Testing:
+//   AdminSession::finalizeAdminCommand
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName(
+        "RESPONSE ENCODE FAILURE DOES NOT WEDGE SESSION");
+
+    // A command whose input is not valid UTF-8; echoed back, its response
+    // fails to JSON-encode.
+    const bsl::string badCommand("\xff\xfe",
+                                 2,
+                                 bmqtst::TestHelperUtil::allocator());
+    // A command whose input is valid UTF-8; its response encodes normally.
+    const bsl::string okCommand("ok", bmqtst::TestHelperUtil::allocator());
+    const int         badRId = 42;
+    const int         okRId  = 43;
+
+    TestAdminRetranslator retranslator;
+    TestBench             tb(
+        clientJson(),
+        bdlf::BindUtil::bind(&TestAdminRetranslator::enqueueCommand,
+                             &retranslator,
+                             bdlf::PlaceHolders::_1,  // source
+                             bdlf::PlaceHolders::_2,  // cmd
+                             bdlf::PlaceHolders::_3),  // onProcessedCb
+        bmqtst::TestHelperUtil::allocator());
+
+    // Build the two admin command events.  The requests are BER-encoded: BER
+    // carries arbitrary bytes verbatim, so the malformed request's invalid
+    // UTF-8 reaches the handler intact (the response encoding, chosen from the
+    // client's advertised features, is independently JSON).  Each builder is
+    // kept alive until after the corresponding 'processEvent' so that the
+    // event's underlying blob remains valid.
+    bmqp_ctrlmsg::ControlMessage badCmd(tb.d_allocator_p);
+    badCmd.rId() = badRId;
+    badCmd.choice().makeAdminCommand();
+    badCmd.choice().adminCommand().command() = badCommand;
+
+    bmqp::SchemaEventBuilder badBuilder(&tb.d_blobSpPool,
+                                        bmqp::EncodingType::e_BER,
+                                        tb.d_allocator_p);
+    int rc = badBuilder.setMessage(badCmd, bmqp::EventType::e_CONTROL);
+    BMQTST_ASSERT_EQ(rc, 0);
+    bmqp::Event badEvent(badBuilder.blob().get(), tb.d_allocator_p);
+
+    bmqp_ctrlmsg::ControlMessage okCmd(tb.d_allocator_p);
+    okCmd.rId() = okRId;
+    okCmd.choice().makeAdminCommand();
+    okCmd.choice().adminCommand().command() = okCommand;
+
+    bmqp::SchemaEventBuilder okBuilder(&tb.d_blobSpPool,
+                                       bmqp::EncodingType::e_BER,
+                                       tb.d_allocator_p);
+    rc = okBuilder.setMessage(okCmd, bmqp::EventType::e_CONTROL);
+    BMQTST_ASSERT_EQ(rc, 0);
+    bmqp::Event okEvent(okBuilder.blob().get(), tb.d_allocator_p);
+
+    // The response to the malformed command fails to encode and is dropped: no
+    // data is written to the channel for it.
+    tb.d_as.processEvent(badEvent);
+
+    // The following well-formed command must encode and be delivered.
+    tb.d_as.processEvent(okEvent);
+
+    // Exactly one response - the one for the well-formed command - is written.
+    BMQTST_ASSERT(tb.d_channel->waitFor(1));
+
+    bmqio::TestChannel::WriteCall writeCall;
+    BMQTST_ASSERT(tb.d_channel->getWriteCall(&writeCall, 0));
+
+    bmqp::Event responseEvent(&writeCall.d_blob,
+                              bmqtst::TestHelperUtil::allocator());
+    BMQTST_ASSERT(responseEvent.isValid());
+    BMQTST_ASSERT(responseEvent.isControlEvent());
+
+    bdlma::LocalSequentialAllocator<2048> localAllocator(
+        bmqtst::TestHelperUtil::allocator());
+    bmqp_ctrlmsg::ControlMessage response(&localAllocator);
+    rc = responseEvent.loadControlEvent(&response);
+    BMQTST_ASSERT_EQ(rc, 0);
+    BMQTST_ASSERT_EQ(response.rId(), okRId);
+    BMQTST_ASSERT(response.choice().isAdminCommandResponseValue());
+    BMQTST_ASSERT_EQ(response.choice().adminCommandResponse().text(),
+                     okCommand);
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -555,6 +685,7 @@ int main(int argc, char* argv[])
         case 0:
         case 1: test1_watermark(); break;
         case 2: test2_safeConcurrentTeardown(); break;
+        case 3: test3_responseEncodeFailureDoesNotWedgeSession(); break;
         default: {
             cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
             bmqtst::TestHelperUtil::testStatus() = -1;
