@@ -36,6 +36,12 @@
 namespace BloombergLP {
 namespace mqbraft {
 
+namespace {
+/// Interval at which TTL message GC is driven across partitions (mirrors the
+/// legacy 'k_GC_MESSAGES_INTERVAL_SECONDS' in 'mqbc::StorageManager').
+const int k_GC_MESSAGES_INTERVAL_SECONDS = 5;
+}  // close unnamed namespace
+
 // ===========================
 // class PartitionRaftManager
 // ===========================
@@ -63,6 +69,7 @@ PartitionRaftManager::PartitionRaftManager(
 , d_partitionRafts(allocator)
 , d_fileStores(allocator)
 , d_miscWorkThreadPool(1, 1, allocator)
+, d_gcMessagesEventHandle()
 {
     BSLS_ASSERT_SAFE(clusterData);
     BSLS_ASSERT_SAFE(cluster);
@@ -239,14 +246,50 @@ int PartitionRaftManager::start(bsl::ostream& errorDescription)
                                  d_partitionRafts[i].get()));
     }
 
+    // Schedule a periodic event which enqueues a TTL message-GC pass in each
+    // partition's dispatcher thread.  Legacy drives the equivalent from
+    // 'mqbc::StorageManager'; that path does not cover Raft partitions, so it
+    // is driven here instead.
+    d_clusterData_p->scheduler().scheduleRecurringEvent(
+        &d_gcMessagesEventHandle,
+        bsls::TimeInterval(k_GC_MESSAGES_INTERVAL_SECONDS),
+        bdlf::BindUtil::bind(&PartitionRaftManager::gcExpiredMessages, this));
+
     BALL_LOG_INFO << "PartitionRaftManager dispatched start for "
                   << numPartitions << " partitions";
 
     return 0;
 }
 
+void PartitionRaftManager::gcExpiredMessages()
+{
+    // executed by the scheduler's *DISPATCHER* thread
+
+    // Enqueue a cleanup pass (TTL message GC + history trim) on each
+    // partition's own dispatcher thread.  The FileStore GCs expired messages
+    // only if this node is that partition's Raft leader (its '!d_isPrimary'
+    // guard), and those deletions replicate through the Raft log (the
+    // storages' RecordStore is the 'PartitionRaft'); the history trim is an
+    // in-memory operation, safe on any node.
+    for (unsigned int i = 0; i < d_partitionRafts.size(); ++i) {
+        PartitionRaft* pr = d_partitionRafts[i].get();
+        if (!pr) {
+            continue;  // CONTINUE
+        }
+
+        pr->execute(
+            bdlf::BindUtil::bind(&mqbs::FileStore::scheduledCleanupStorages,
+                                 pr->fileStore()));
+    }
+}
+
 void PartitionRaftManager::stop()
 {
+    // Stop the periodic TTL message-GC event first, waiting for any in-flight
+    // pass to finish, so no GC proposal/write occurs once the FileStores are
+    // closed below.
+    d_clusterData_p->scheduler().cancelEventAndWait(&d_gcMessagesEventHandle);
+
     // Cancel each partition's Raft tick timer first (waits for any in-flight
     // tick to finish), so no further proposals/writes occur once closing the
     // FileStores below.
