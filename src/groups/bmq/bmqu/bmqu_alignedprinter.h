@@ -136,8 +136,8 @@ inline AlignedPrinter& AlignedPrinter::operator<<(const TYPE& value)
     BSLS_ASSERT_SAFE(d_counter < d_fields.size());
 
     d_ostream << bsl::setw(d_indent) << ' ' << d_fields[d_counter]
-              << bsl::setw(static_cast<int>(
-                     d_width - d_fields[d_counter].length()))
+              << bsl::setw(
+                     static_cast<int>(d_width - d_fields[d_counter].length()))
               << ": " << value << '\n';
 
     ++d_counter;
