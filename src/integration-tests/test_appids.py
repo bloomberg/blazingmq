@@ -460,9 +460,12 @@ def test_deauthorized_appid_doesnt_hold_messages(
     producer = next(proxies).create_client("producer")
     producer.open(uri_fanout, flags=["write,ack"], succeed=True)
 
-    # 'force_gc_queues' only unassigns queues on the partition's Raft primary
-    # ('gcExpiredQueues' bails with rc_SELF_IS_NOT_PRIMARY otherwise); in
-    # FSM/Raft mode that primary is independent of the CSL primary.
+    # 'FORCE_GC_QUEUES' must run on the queue's partition primary -- it is the
+    # node that detects the queue as GC-able ('gcExpiredQueues' bails with
+    # rc_SELF_IS_NOT_PRIMARY on a non-primary).  In FSM/Raft mode that primary
+    # need not be the CSL leader; when it isn't, the primary asks the leader to
+    # broadcast the QueueUnAssignmentAdvisory (the leader alone can), so the
+    # queue is unassigned regardless of primary/leader placement.
     primary = cluster.last_known_leader.wait_queue_primary(uri_fanout)
 
     # ---------------------------------------------------------------------

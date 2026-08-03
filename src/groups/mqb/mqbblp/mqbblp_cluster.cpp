@@ -2637,6 +2637,15 @@ void Cluster::processClusterControlMessage(
                 source),
             this);
     } break;  // BREAK
+    case MsgChoice::SELECTION_ID_QUEUE_UNASSIGNMENT_REQUEST: {
+        dispatcher()->execute(
+            bdlf::BindUtil::bind(
+                &ClusterOrchestrator::processQueueUnassignmentRequest,
+                &d_clusterOrchestrator,
+                message,
+                source),
+            this);
+    } break;  // BREAK
     case MsgChoice::SELECTION_ID_STORAGE_SYNC_REQUEST: {
         dispatcher()->execute(
             bdlf::BindUtil::bind(

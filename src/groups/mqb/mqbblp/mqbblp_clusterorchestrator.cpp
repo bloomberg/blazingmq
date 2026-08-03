@@ -1487,6 +1487,21 @@ void ClusterOrchestrator::processQueueAssignmentRequest(
     }
 }
 
+void ClusterOrchestrator::processQueueUnassignmentRequest(
+    const bmqp_ctrlmsg::ControlMessage& request,
+    mqbnet::ClusterNode*                requester)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+
+    // Unassignment is driven through the mode-agnostic 'unassignQueue'
+    // interface, so -- unlike assignment -- this is handled uniformly by the
+    // queue helper in all modes (legacy/FSM/Raft).
+    queueHelper().processQueueUnassignmentRequest(request, requester);
+}
+
 void ClusterOrchestrator::processLeaderSyncDataQuery(
     const bmqp_ctrlmsg::ControlMessage& message,
     mqbnet::ClusterNode*                source)
