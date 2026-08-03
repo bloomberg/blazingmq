@@ -54,6 +54,7 @@
 
 #include <ball_log.h>
 #include <bdlbb_blob.h>
+#include <bdlmt_eventscheduler.h>
 #include <bdlmt_fixedthreadpool.h>
 #include <bsl_functional.h>
 #include <bsl_memory.h>
@@ -133,6 +134,10 @@ class PartitionRaftManager : public mqbi::StorageProvider,
 
     bdlmt::FixedThreadPool d_miscWorkThreadPool;
 
+    /// Recurring event that periodically drives TTL message GC across all
+    /// partitions (legacy's equivalent lives in 'mqbc::StorageManager').
+    bdlmt::EventScheduler::RecurringEventHandle d_gcMessagesEventHandle;
+
     // NOT IMPLEMENTED
     PartitionRaftManager(const PartitionRaftManager&);
     PartitionRaftManager& operator=(const PartitionRaftManager&);
@@ -162,6 +167,13 @@ class PartitionRaftManager : public mqbi::StorageProvider,
     /// Executed by the partition *DISPATCHER* thread for the specified
     /// 'partitionId'.
     void unregisterQueueDispatched(int partitionId, const bmqt::Uri& uri);
+
+    /// Enqueue a TTL message-GC pass on every partition's dispatcher thread.
+    /// Invoked periodically by 'd_gcMessagesEventHandle' from the scheduler
+    /// thread; only the partition's Raft leader actually GCs (the FileStore's
+    /// '!d_isPrimary' guard), and expired-message deletions replicate via the
+    /// Raft log.
+    void gcExpiredMessages();
 
     bool validate(unsigned int partitionId) const;
 

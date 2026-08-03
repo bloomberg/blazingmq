@@ -9262,8 +9262,10 @@ void FileStore::notifyQueuesOnReplicatedBatch()
 
 void FileStore::gcExpiredMessages()
 {
-    // Legacy-only: never invoked on a Raft partition.
-    BSLS_ASSERT(!isRaft());
+    // Invoked in both modes.  On a Raft partition, the storages route their
+    // deletion records through 'PartitionRaft' (their RecordStore), so those
+    // deletions replicate via the Raft log; the trailing 'flushStorage()' is a
+    // no-op there (nothing is added to the legacy 'd_storageEventBuilder').
 
     if (!d_isOpen) {
         return;  // RETURN
@@ -9317,8 +9319,8 @@ void FileStore::gcExpiredMessages()
 
 void FileStore::gcHistory()
 {
-    // Legacy-only: never invoked on a Raft partition.
-    BSLS_ASSERT(!isRaft());
+    // Invoked in both modes: trims the in-memory dedup history (no journal
+    // writes, no replication), so it is safe on a Raft partition too.
 
     if (!d_isOpen) {
         return;  // RETURN
@@ -9511,11 +9513,11 @@ void FileStore::scheduledCleanupStorages()
     // executed by the *DISPATCHER* thread
     // This is scheduled for execution every k_GC_MESSAGES_INTERVAL_SECONDS
     // seconds, or rescheduled immediately if there is more GC work to do.
+    // Invoked in both modes: legacy schedules it via 'mqbc::StorageManager',
+    // Raft via 'PartitionRaftManager'.
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(inDispatcherThread());
-    // Legacy-only: never invoked on a Raft partition.
-    BSLS_ASSERT(!isRaft());
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(d_isStopping)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
