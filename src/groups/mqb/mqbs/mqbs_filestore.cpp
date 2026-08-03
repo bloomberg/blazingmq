@@ -548,7 +548,7 @@ int FileStore::openInRecoveryMode(bsl::ostream&    errorDescription,
             if (0 == jit.lastSyncPointPosition()) {
                 // Scenario (3) from above.
 
-                needTruncation   = true;
+                needTruncation     = true;
                 d_writeHeadLeaseId = 0;
 
                 journalOffset = (FileStoreProtocolUtil::bmqHeader(journalFd)
@@ -6485,23 +6485,34 @@ void FileStore::processStorageEvent(const bsl::shared_ptr<bdlbb::Blob>& blob,
         // successfully, raise alarm otherwise.
 
         if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(0 == rc)) {
-            d_highestSeqNums[recHeader->primaryLeaseId()] =
-                recHeader->sequenceNumber();
+            // Advance the write cursor to the record just applied.
 
-            if (isPartitionSyncEvent) {
-                // If we are processing a partition-sync event, we have to
-                // bump up the leaseId to that of the message, because we don't
-                // get a separate notification about leaseId (unlike in steady
-                // state when StorageMgr invokes fs.setActivePrimary()).
+            const bool bumpedLeaseId = d_writeHeadLeaseId <
+                                       recHeader->primaryLeaseId();
+            setWriteHead(recHeader->primaryLeaseId(),
+                         recHeader->sequenceNumber());
 
-                d_writeHeadLeaseId = recHeader->primaryLeaseId();
-
-                BALL_LOG_INFO
-                    << partitionDesc()
-                    << "Bumped up primaryLeaseId to: " << d_writeHeadLeaseId
-                    << " while processing a "
-                    << "partition-sync storage message. " << "New PSN: "
-                    << printPSN(d_writeHeadLeaseId, writeHeadSeqNum()) << ")";
+            if (bumpedLeaseId) {
+                if (isPartitionSyncEvent) {
+                    BALL_LOG_INFO
+                        << partitionDesc()
+                        << "Bumped up leaseId while processing a "
+                        << "partition-sync event. New PSN: "
+                        << printPSN(d_writeHeadLeaseId, writeHeadSeqNum())
+                        << ".";
+                }
+                else {
+                    // Apply the record to stay in sync, but alarm since the
+                    // ordering was violated.
+                    BMQTSK_ALARMLOG_ALARM("REPLICATION")
+                        << partitionDesc()
+                        << "Applied a record whose leaseId is higher than the "
+                        << "write head in a non partition-sync event, before "
+                        << "the primary's active-status advisory was "
+                        << "processed. New PSN: "
+                        << printPSN(d_writeHeadLeaseId, writeHeadSeqNum())
+                        << "." << BMQTSK_ALARMLOG_END;
+                }
             }
         }
         else {
@@ -6906,7 +6917,7 @@ void FileStore::setActivePrimary(mqbnet::ClusterNode* primaryNode,
         d_highestSeqNums[primaryLeaseId] = 0;
     }
     d_writeHeadLeaseId = primaryLeaseId;
-    d_primaryNode_p  = primaryNode;
+    d_primaryNode_p    = primaryNode;
 
     BALL_LOG_INFO << partitionDesc() << "Primary node is now "
                   << primaryNode->nodeDescription() << " with PSN: "
