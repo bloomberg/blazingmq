@@ -1652,8 +1652,7 @@ void StorageManager::processStorageEvent(const mqbevt::StorageEvent& event)
             pinfo.primaryNode(),
             pinfo.primaryStatus(),
             d_clusterData_p->identity().description(),
-            skipAlarm,
-            false)) {  // isFSMWorkflow
+            skipAlarm)) {
         return;        // RETURN
     }
 
