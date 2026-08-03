@@ -3703,6 +3703,43 @@ void StorageManager::do_transitionToActivePrimary(
                                         0);  // status
 }
 
+void StorageManager::do_sendPrimaryStatusAdvisory(
+    BSLA_MAYBE_UNUSED PartitionStateTableEvent::Enum eventType,
+    const PartitionFSMEventData&                     eventData)
+{
+    // executed by the *QUEUE DISPATCHER* thread associated with the
+    // partitionId contained in 'eventData'
+
+    const int partitionId = eventData.partitionId();
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(d_fileStores.size()));
+    BSLS_ASSERT_SAFE(eventData.source());
+
+    const PartitionInfo& pinfo = d_partitionInfoVec[partitionId];
+    BSLS_ASSERT_SAFE(pinfo.primary() ==
+                     d_clusterData_p->membership().selfNode());
+    BSLS_ASSERT_SAFE(pinfo.primaryStatus() ==
+                     bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE);
+
+    bmqp_ctrlmsg::ControlMessage         controlMsg;
+    bmqp_ctrlmsg::PrimaryStatusAdvisory& primaryAdv =
+        controlMsg.choice()
+            .makeClusterMessage()
+            .choice()
+            .makePrimaryStatusAdvisory();
+    primaryAdv.partitionId()    = partitionId;
+    primaryAdv.primaryLeaseId() = pinfo.primaryLeaseId();
+    primaryAdv.status()         = bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE;
+
+    fileStore(partitionId).sendMessage(controlMsg, eventData.source());
+
+    BALL_LOG_INFO << d_clusterData_p->identity().description()
+                  << " Partition [" << partitionId
+                  << "]: sent primary status advisory " << controlMsg
+                  << " to replica node "
+                  << eventData.source()->nodeDescription() << ".";
+}
+
 void StorageManager::do_reapplyDetectSelfPrimary(
     BSLA_MAYBE_UNUSED PartitionStateTableEvent::Enum eventType,
     const PartitionFSMEventData&                     eventData)

@@ -800,6 +800,10 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager,
                                       const PartitionFSMEventData&   eventData)
         BSLS_KEYWORD_OVERRIDE;
 
+    void do_sendPrimaryStatusAdvisory(PartitionStateTableEvent::Enum eventType,
+                                      const PartitionFSMEventData&   eventData)
+        BSLS_KEYWORD_OVERRIDE;
+
     void do_reapplyDetectSelfPrimary(PartitionStateTableEvent::Enum eventType,
                                      const PartitionFSMEventData&   eventData)
         BSLS_KEYWORD_OVERRIDE;
