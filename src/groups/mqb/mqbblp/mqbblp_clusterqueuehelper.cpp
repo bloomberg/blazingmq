@@ -2185,22 +2185,15 @@ bool ClusterQueueHelper::createQueue(
               domain->config()->mode());
 
         if (!removed.empty() || !added.empty()) {
-            // Add to 'd_pending' before calling 'updateAppIds' which is
-            // asynchronous (CSL commit)
+            // Apps drifted from the domain config.  Park and wait for the CSL
+            // to be reconciled; 'onQueueUpdated' resumes this via
+            // 'processPendingContexts'.  The primary never proposes the update
+            // itself; reconciliation is leader-driven ('onDomainReconfigured'
+            // for a live change, 'reconcileLeaderQueuesAppIds' on becoming the
+            // active leader).
             queueContext->d_liveQInfo.d_pending.push_back(context);
 
-            result = d_clusterStateManager_p->updateAppIds(added,
-                                                           removed,
-                                                           domain->name(),
-                                                           "");
-            if (result == mqbi::ClusterErrorCode::e_OK) {
-                // Wait for 'onQueueUpdated'
-
-                return false;  // RETURN
-            }
-
-            // Fall through to the failure handling at the end of the method.
-            errorDescription << "failure updating Apps";
+            return false;  // RETURN
         }
     }
 
@@ -3841,6 +3834,114 @@ void ClusterQueueHelper::restoreStateRemote()
     }
 }
 
+void ClusterQueueHelper::reconcileLeaderQueuesAppIds()
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+    BSLS_ASSERT_SAFE(!d_cluster_p->isRemote());
+    BSLS_ASSERT_SAFE(d_clusterData_p->electorInfo().isSelfActiveLeader());
+
+    // For every domain known to the cluster state, asynchronously load it (to
+    // obtain its config) and then reconcile each of its assigned queues' App
+    // set.  Mode-agnostic: the reconcile ultimately issues 'updateAppIds',
+    // which resolves to the legacy/FSM/Raft cluster state manager.
+    for (mqbc::ClusterState::DomainStatesCIter domCit =
+             d_clusterState_p->domainStates().cbegin();
+         domCit != d_clusterState_p->domainStates().cend();
+         ++domCit) {
+        if (domCit->second->queuesInfo().empty()) {
+            continue;  // CONTINUE
+        }
+
+        d_clusterData_p->domainFactory()->createDomain(
+            domCit->first,
+            bdlf::BindUtil::bindS(d_allocator_p,
+                                  &ClusterQueueHelper::onReconcileDomain,
+                                  this,
+                                  bdlf::PlaceHolders::_1,    // status
+                                  bdlf::PlaceHolders::_2));  // domain
+    }
+}
+
+void ClusterQueueHelper::onReconcileDomain(const bmqp_ctrlmsg::Status& status,
+                                           mqbi::Domain*               domain)
+{
+    // executed by *ANY* thread
+
+    if (status.category() != bmqp_ctrlmsg::StatusCategory::E_SUCCESS) {
+        return;  // RETURN
+    }
+
+    d_cluster_p->dispatcher()->execute(
+        bdlf::BindUtil::bindS(
+            d_allocator_p,
+            &ClusterQueueHelper::reconcileDomainQueuesAppIdsDispatched,
+            this,
+            domain),
+        d_cluster_p);
+}
+
+void ClusterQueueHelper::reconcileDomainQueuesAppIdsDispatched(
+    mqbi::Domain* domain)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+    BSLS_ASSERT_SAFE(domain);
+
+    // Leadership/availability may have changed since the (asynchronous) domain
+    // load was kicked off; only the caught-up active leader may reconcile.
+    if (bmqp_ctrlmsg::NodeStatus::E_AVAILABLE !=
+            d_clusterData_p->membership().selfNodeStatus() ||
+        !d_clusterData_p->electorInfo().isSelfActiveLeader()) {
+        return;  // RETURN
+    }
+
+    mqbc::ClusterState::DomainStatesCIter domCit =
+        d_clusterState_p->domainStates().find(domain->name());
+    if (domCit == d_clusterState_p->domainStates().cend()) {
+        return;  // RETURN
+    }
+
+    // 'updateAppIds' changes only the App content of an existing queue's
+    // cluster-state entry (it never inserts/erases queues), so iterating the
+    // map while issuing updates is safe.
+    for (mqbc::ClusterState::UriToQueueInfoMapCIter qCit =
+             domCit->second->queuesInfo().cbegin();
+         qCit != domCit->second->queuesInfo().cend();
+         ++qCit) {
+        const mqbc::ClusterStateQueueInfo& queueInfo = *qCit->second;
+
+        if (queueInfo.state() !=
+                mqbc::ClusterStateQueueInfo::State::k_ASSIGNED ||
+            queueInfo.pendingUnassignment()) {
+            continue;  // CONTINUE
+        }
+
+        bsl::vector<bsl::string> added(d_allocator_p);
+        bsl::vector<bsl::string> removed(d_allocator_p);
+        match(&added, &removed, queueInfo, domain->config()->mode());
+
+        if (added.empty() && removed.empty()) {
+            continue;  // CONTINUE
+        }
+
+        BALL_LOG_INFO << d_cluster_p->description()
+                      << ": leader reconciling Apps for queue '"
+                      << queueInfo.uri() << "' in domain '" << domain->name()
+                      << "': added " << added.size() << ", removed "
+                      << removed.size();
+
+        d_clusterStateManager_p->updateAppIds(added,
+                                              removed,
+                                              domain->name(),
+                                              queueInfo.uri().asString());
+    }
+}
+
 void ClusterQueueHelper::restoreStateCluster(int partitionId)
 {
     // executed by the cluster *DISPATCHER* thread
@@ -3895,6 +3996,16 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
                       << ", leader status: "
                       << d_clusterData_p->electorInfo().leaderStatus();
         return;  // RETURN
+    }
+
+    // As the (caught-up) active leader, reconcile every assigned queue's
+    // cluster-state App set against its domain config, repairing drift that no
+    // live 'onDomainReconfigured' covered (an App changed while stopped, or
+    // while there was no active leader).  Gated on 'allPartitions' so it runs
+    // on leader/availability transitions, not on per-partition primary
+    // advisories.
+    if (allPartitions && d_clusterData_p->electorInfo().isSelfActiveLeader()) {
+        reconcileLeaderQueuesAppIds();
     }
 
     // If a specific partitionId is specified, check if partition is assigned
@@ -4060,32 +4171,16 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
                         queueContext,
                         domain);
 
-                    // Add to 'd_pendingUpdates' before calling
-                    // 'updateAppIds' which is asynchronous (CSL commit)
+                    // Apps drifted from the domain config.  Defer the
+                    // conversion until the CSL is reconciled and
+                    // 'onQueueUpdated' resumes it.  The primary never proposes
+                    // the update itself; reconciliation is leader-driven
+                    // ('onDomainReconfigured' for a live change,
+                    // 'reconcileLeaderQueuesAppIds' on becoming active
+                    // leader).
                     liveQInfo.d_pendingUpdates.push_back(park);
 
-                    mqbi::ClusterErrorCode::Enum result =
-                        d_clusterStateManager_p->updateAppIds(added,
-                                                              removed,
-                                                              domain->name(),
-                                                              "");
-
-                    if (mqbi::ClusterErrorCode::e_OK == result) {
-                        // Cannot continue until 'onQueueUpdated'
-                        // Send QueueUpdateAdvisory and _wait_ for commit
-
-                        continue;  // CONTINUE
-                    }
-
-                    // An update error is CSL error (in
-                    // 'ClusterStateLedger::apply'). This queue cannot
-                    // convertToLocal
-                    // ('RootQueueEngine::initializeAppId' would assert
-                    // if there is no storage for some app).
-
-                    BSLS_ASSERT_SAFE(
-                        false &&
-                        "Failure to update Apps before convertToLocal");
+                    continue;  // CONTINUE
                 }
                 else {
                     convertToLocal(queueContext, domain);
