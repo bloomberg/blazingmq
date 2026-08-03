@@ -6362,7 +6362,7 @@ int ClusterQueueHelper::gcExpiredQueues(bool               immediate,
 
     if (!d_clusterData_p->electorInfo().isSelfActiveLeader()) {
         // Only the leader can broadcast a QueueUnAssignmentAdvisory (it
-        // generates the sequence numbers).  In FSM/Raft mode the partition
+        // generates the sequence numbers).  In Raft mode the partition
         // primary need not be the leader, so a non-leader primary -- which is
         // the node that detects a queue as GC-able -- asks the leader to
         // unassign each expired queue.  The queue is removed locally when the
