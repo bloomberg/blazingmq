@@ -13,11 +13,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include <bsla_maybeunused.h>
 #include <mqba_adminsession.h>
 
 // MQB
 #include <mqbcfg_brokerconfig.h>
 #include <mqbcfg_messages.h>
+#include <mqbi_authorizer.h>
 #include <mqbi_dispatcher.h>
 #include <mqbmock_dispatcher.h>
 #include <mqbu_messageguidutil.h>
@@ -132,6 +134,20 @@ struct TestAdminRetranslator {
     }
 };
 
+/// Authorizer for testing that allows all
+class TestAuthorizer : public mqbi::Authorizer {
+  public:
+    TestAuthorizer() {}
+
+    bool
+    authorize(BSLA_UNUSED const mqbact::Action& action,
+              BSLA_UNUSED const mqbplug::AuthenticationResult& authnResult)
+        BSLS_KEYWORD_OVERRIDE
+    {
+        return true;
+    }
+};
+
 /// The `TestBench` holds system components together.
 class TestBench {
   public:
@@ -142,6 +158,7 @@ class TestBench {
     mqbmock::Dispatcher                 d_mockDispatcher;
     bdlmt::EventScheduler               d_scheduler;
     TestClock                           d_testClock;
+    bsl::shared_ptr<TestAuthorizer>     d_authorizer;
     mqba::AdminSession                  d_as;
     bslma::Allocator*                   d_allocator_p;
 
@@ -163,6 +180,7 @@ class TestBench {
     , d_mockDispatcher(allocator)
     , d_scheduler(bsls::SystemClockType::e_MONOTONIC, allocator)
     , d_testClock(d_scheduler)
+    , d_authorizer(bsl::allocate_shared<TestAuthorizer>(allocator))
     , d_as(d_channel,
            negotiationMessage,
            "sessionDescription",
@@ -170,6 +188,7 @@ class TestBench {
            &d_blobSpPool,
            &d_scheduler,
            adminEnqueueCb,
+           d_authorizer,
            allocator)
     , d_allocator_p(allocator)
     {
@@ -493,6 +512,8 @@ static void test2_safeConcurrentTeardown()
     bmqp::Event adminEvent(builder.blob().get(), alloc);
     const bmqp_ctrlmsg::NegotiationMessage negotiationMessage = client();
     const bsl::string                      description("adminSession", alloc);
+    bsl::shared_ptr<TestAuthorizer>        authorizer =
+        bsl::allocate_shared<TestAuthorizer>(alloc);
 
     for (int i = 0; i < k_NUM_ITERATIONS; ++i) {
         bsl::shared_ptr<bmqio::TestChannel> channel;
@@ -506,7 +527,8 @@ static void test2_safeConcurrentTeardown()
                                                      &dispatcher,
                                                      &blobSpPool,
                                                      &scheduler,
-                                                     adminCb);
+                                                     adminCb,
+                                                     authorizer);
 
         // All dispatched callbacks may run on the processor thread; allow
         // `inDispatcherThread()` preconditions to pass regardless of thread.

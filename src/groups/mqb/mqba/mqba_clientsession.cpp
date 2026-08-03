@@ -147,6 +147,7 @@
 //     the 'd_operationState' is set to 'e_DISCONNECTED'.
 
 // MQB
+#include <mqbact_actions.h>
 #include <mqbblp_clustercatalog.h>
 #include <mqbblp_queueengineutil.h>
 #include <mqbcfg_brokerconfig.h>
@@ -156,6 +157,7 @@
 #include <mqbevt_pushevent.h>
 #include <mqbevt_putevent.h>
 #include <mqbevt_rejectevent.h>
+#include <mqbi_authorizer.h>
 #include <mqbi_cluster.h>
 #include <mqbi_queue.h>
 #include <mqbnet_tcpsessionfactory.h>
@@ -2417,17 +2419,18 @@ bool ClientSession::validatePutMessage(QueueState**   queueState,
 
 // CREATORS
 ClientSession::ClientSession(
-    const bsl::shared_ptr<bmqio::Channel>&     channel,
-    const bmqp_ctrlmsg::NegotiationMessage&    negotiationMessage,
-    const bsl::string&                         sessionDescription,
-    mqbi::Dispatcher*                          dispatcher,
-    mqbblp::ClusterCatalog*                    clusterCatalog,
-    mqbi::DomainFactory*                       domainFactory,
-    const bsl::shared_ptr<bmqst::StatContext>& clientStatContext,
-    ClientSessionState::BlobSpPool*            blobSpPool,
-    bdlbb::BlobBufferFactory*                  bufferFactory,
-    bdlmt::EventScheduler*                     scheduler,
-    bslma::Allocator*                          allocator)
+    const bsl::shared_ptr<bmqio::Channel>&         channel,
+    const bmqp_ctrlmsg::NegotiationMessage&        negotiationMessage,
+    const bsl::string&                             sessionDescription,
+    mqbi::Dispatcher*                              dispatcher,
+    mqbblp::ClusterCatalog*                        clusterCatalog,
+    mqbi::DomainFactory*                           domainFactory,
+    const bsl::shared_ptr<bmqst::StatContext>&     clientStatContext,
+    ClientSessionState::BlobSpPool*                blobSpPool,
+    bdlbb::BlobBufferFactory*                      bufferFactory,
+    bdlmt::EventScheduler*                         scheduler,
+    const bsl::shared_ptr<const mqbi::Authorizer>& authorizer,
+    bslma::Allocator*                              allocator)
 : d_self(this)  // use default allocator
 , d_operationState(e_RUNNING)
 , d_isDisconnecting(false)
@@ -2455,6 +2458,7 @@ ClientSession::ClientSession(
 , d_scheduler_p(scheduler)
 , d_periodicUnconfirmedCheckHandler()
 , d_shutdownChain(allocator)
+, d_authorizer_sp(authorizer)
 {
     // Register this client to the dispatcher
     mqbi::Dispatcher::ProcessorHandle processor = dispatcher->registerClient(

@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#include "mqbi_authorizer.h"
 #include <mqba_clientsession.h>
 
 // MQB
@@ -643,13 +644,27 @@ T assertFail()
     return T();
 }
 
+/// Authorizer for testing that allows all
+class TestAuthorizer : public mqbi::Authorizer {
+  public:
+    TestAuthorizer() {}
+
+    bool
+    authorize(BSLA_UNUSED const mqbact::Action& action,
+              BSLA_UNUSED const mqbplug::AuthenticationResult& authnResult)
+        BSLS_KEYWORD_OVERRIDE
+    {
+        return true;
+    }
+};
+
 /// The `TestBench` holds system components together.
 class TestBench {
   public:
     // DATA
     bdlbb::PooledBlobBufferFactory            d_bufferFactory;
     BlobSpPool                                d_blobSpPool;
-    bsl::shared_ptr<bmqio::TestChannel>   d_channel;
+    bsl::shared_ptr<bmqio::TestChannel>       d_channel;
     mqbmock::Cluster                          d_cluster;
     mqbmock::Dispatcher                       d_mockDispatcher;
     MyMockDomain                              d_domain;
@@ -657,6 +672,7 @@ class TestBench {
     const bsl::shared_ptr<bmqst::StatContext> d_clientStatContext_sp;
     bdlmt::EventScheduler                     d_scheduler;
     TestClock                                 d_testClock;
+    bsl::shared_ptr<TestAuthorizer>           d_authorizer;
     mqba::ClientSession                       d_cs;
     bslma::Allocator*                         d_allocator_p;
 
@@ -685,6 +701,7 @@ class TestBench {
           mqbstat::QueueStatsUtil::initializeStatContextClients(10, allocator))
     , d_scheduler(bsls::SystemClockType::e_MONOTONIC, allocator)
     , d_testClock(d_scheduler)
+    , d_authorizer(bsl::allocate_shared<TestAuthorizer>(allocator))
     , d_cs(d_channel,
            negotiationMessage,
            "sessionDescription",
@@ -695,6 +712,7 @@ class TestBench {
            &d_blobSpPool,
            &d_bufferFactory,
            &d_scheduler,
+           d_authorizer,
            allocator)
     , d_allocator_p(allocator)
     {
@@ -937,7 +955,7 @@ class TestBench {
         bmqio::TestChannel::WriteCall openQueueCall;
         BMQTST_ASSERT(d_channel->getWriteCall(&openQueueCall, 0));
 
-        bmqp::Event     openQueueEvent(&openQueueCall.d_blob,
+        bmqp::Event openQueueEvent(&openQueueCall.d_blob,
                                    bmqtst::TestHelperUtil::allocator());
         PVV("Event 1: " << openQueueEvent);
         BMQTST_ASSERT(openQueueEvent.isControlEvent());
@@ -974,7 +992,7 @@ class TestBench {
         bmqio::TestChannel::WriteCall ackCall;
         BMQTST_ASSERT(d_channel->getWriteCall(&ackCall, eventIndex));
 
-        bmqp::Event     ackEvent(&ackCall.d_blob,
+        bmqp::Event ackEvent(&ackCall.d_blob,
                              bmqtst::TestHelperUtil::allocator());
         PVV("Event " << eventIndex + 1 << ": " << ackEvent);
         BMQTST_ASSERT(ackEvent.isAckEvent());
@@ -1937,7 +1955,7 @@ static void test9_newStylePush()
 
     BMQTST_ASSERT_EQ(bmqt::EventBuilderResult::e_SUCCESS, rc);
 
-    bmqp::Event           rawEvent(peb.blob().get(),
+    bmqp::Event rawEvent(peb.blob().get(),
                          bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT(rawEvent.isValid());
@@ -2052,7 +2070,7 @@ static void test10_newStyleCompressedPush()
 
     BMQTST_ASSERT_EQ(bmqt::EventBuilderResult::e_SUCCESS, rc);
 
-    bmqp::Event           rawEvent(peb.blob().get(),
+    bmqp::Event rawEvent(peb.blob().get(),
                          bmqtst::TestHelperUtil::allocator());
 
     BSLS_ASSERT(rawEvent.isValid());
@@ -2128,8 +2146,8 @@ static void test11_initiateShutdown()
     const bsl::string uri("bmq://my.domain/queue-foo-bar",
                           bmqtst::TestHelperUtil::allocator());
 
-    const int                queueId          = 4;  // A queue number
-    const bool                 isAtMostOnce     = false;
+    const int                  queueId      = 4;  // A queue number
+    const bool                 isAtMostOnce = false;
     bslmt::TimedSemaphore      semaphore;
     bmqp::Protocol::MsgGroupId msgGroupId(bmqtst::TestHelperUtil::allocator());
     const unsigned int         subscriptionId =

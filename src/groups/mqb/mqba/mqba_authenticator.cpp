@@ -305,6 +305,10 @@ void Authenticator::authenticate(
         else {
             event.value() = InitialConnectionEvent::e_AUTHN_SUCCESS;
         }
+
+        // Set authentication result
+        context_sp->setAuthenticationResult(result);
+
         return;  // RETURN
     }
 

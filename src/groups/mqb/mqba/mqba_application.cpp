@@ -350,10 +350,10 @@ int Application::start(bsl::ostream& errorDescription)
                                            d_allocators.get("Authenticator")),
         d_allocator_p);
 
-    bslma::ManagedPtr<mqbi::Authorizer> authorizer_mp(
-        bslma::ManagedPtrUtil::allocateManaged<mqba::Authorizer>(
+    bsl::shared_ptr<mqbi::Authorizer> authorizer_sp =
+        bsl::allocate_shared<mqba::Authorizer>(
             d_allocators.get("Authorizer"),
-            d_authorizationController_mp.get()));
+            d_authorizationController_mp.get());
 
     SessionNegotiator* sessionNegotiator = new (*d_allocator_p)
         SessionNegotiator(&d_bufferFactory,
@@ -371,7 +371,7 @@ int Application::start(bsl::ostream& errorDescription)
                                  bdlf::PlaceHolders::_2,   // cmd
                                  bdlf::PlaceHolders::_3,   // onProcessedCb
                                  bdlf::PlaceHolders::_4))  // fromReroute
-        .setAuthorizer(bslmf::MovableRefUtil::move(authorizer_mp));
+        .setAuthorizer(authorizer_sp);
 
     bslma::ManagedPtr<mqbnet::Negotiator> negotiatorMp(sessionNegotiator,
                                                        d_allocator_p);

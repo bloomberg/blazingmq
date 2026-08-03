@@ -48,6 +48,7 @@
 #include <bdlcc_sharedobjectpool.h>
 #include <bsl_memory.h>
 #include <bsl_ostream.h>
+#include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
@@ -97,8 +98,8 @@ class SessionNegotiator : public mqbnet::Negotiator {
     // PRIVATE TYPES
     typedef bsl::shared_ptr<mqbnet::NegotiationContext> NegotiationContextSp;
     typedef bsl::shared_ptr<mqbnet::InitialConnectionContext>
-                                                InitialConnectionContextSp;
-    typedef bslma::ManagedPtr<mqbi::Authorizer> AuthorizerMp;
+                                              InitialConnectionContextSp;
+    typedef bsl::shared_ptr<mqbi::Authorizer> AuthorizerSp;
 
   private:
     // DATA
@@ -134,7 +135,7 @@ class SessionNegotiator : public mqbnet::Negotiator {
     mqbnet::Session::AdminCommandEnqueueCb d_adminCb;
 
     /// The authorizer
-    AuthorizerMp d_authorizer_mp;
+    AuthorizerSp d_authorizer_sp;
 
   private:
     // NOT IMPLEMENTED
@@ -182,9 +183,10 @@ class SessionNegotiator : public mqbnet::Negotiator {
     /// specified `context_p` and `description`; or leave `out` untouched and
     /// populate the specified `errorDescription` with a description of the
     /// error in case of failure.
-    void createSession(bsl::shared_ptr<mqbnet::Session>* out,
-                       mqbnet::InitialConnectionContext* context_p,
-                       const bsl::string&                description);
+    BSLA_NODISCARD
+    int createSession(bsl::shared_ptr<mqbnet::Session>* out,
+                      mqbnet::InitialConnectionContext* context_p,
+                      const bsl::string&                description);
 
     /// Return true if the negotiation message in the specified `context` is
     /// for a client using a deprecated version of the libbmq SDK.
@@ -241,8 +243,7 @@ class SessionNegotiator : public mqbnet::Negotiator {
 
     /// Set the authorizer that will be used to authorize sessions and actions
     /// that can occur in those sessions.
-    SessionNegotiator&
-    setAuthorizer(bslmf::MovableRef<AuthorizerMp> authorizer);
+    SessionNegotiator& setAuthorizer(const AuthorizerSp& authorizer);
 
     // MANIPULATORS
     //   (virtual: mqbnet::Negotiator)
@@ -294,9 +295,9 @@ SessionNegotiator::setDomainFactory(mqbi::DomainFactory* value)
 }
 
 inline SessionNegotiator&
-SessionNegotiator::setAuthorizer(bslmf::MovableRef<AuthorizerMp> authorizer)
+SessionNegotiator::setAuthorizer(const AuthorizerSp& authorizer)
 {
-    d_authorizer_mp = bslmf::MovableRefUtil::move(authorizer);
+    d_authorizer_sp = authorizer;
     return *this;
 }
 
