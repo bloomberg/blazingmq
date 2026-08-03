@@ -650,6 +650,171 @@ void ClusterQueueHelper::requestQueueAssignment(const bmqt::Uri& uri)
     }
 }
 
+void ClusterQueueHelper::requestQueueUnassignment(const bmqt::Uri&        uri,
+                                                  const mqbu::StorageKey& key,
+                                                  int partitionId)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+    BSLS_ASSERT_SAFE(d_clusterData_p->electorInfo().hasActiveLeader());
+    BSLS_ASSERT_SAFE(!d_clusterData_p->electorInfo().isSelfLeader());
+    BSLS_ASSERT_SAFE(!d_cluster_p->isRemote());
+    BSLS_ASSERT_SAFE(uri.isCanonical());
+
+    mqbc::ClusterNodeSession* leader =
+        d_clusterData_p->membership().getClusterNodeSession(
+            d_clusterData_p->electorInfo().leaderNode());
+
+    if (bmqp_ctrlmsg::NodeStatus::E_AVAILABLE != leader->nodeStatus()) {
+        BMQ_LOGTHROTTLE_INFO << d_cluster_p->description()
+                             << " Cannot proceed with queueUnassignment of '"
+                             << uri << "' because the leader is "
+                             << leader->nodeStatus();
+        return;  // RETURN
+    }
+
+    RequestManagerType::RequestSp request =
+        d_cluster_p->requestManager().createRequest();
+    bmqp_ctrlmsg::QueueUnassignmentRequest& queueUnassignmentRequest =
+        request->request()
+            .choice()
+            .makeClusterMessage()
+            .choice()
+            .makeQueueUnassignmentRequest();
+    queueUnassignmentRequest.queueUri()    = uri.asString();
+    queueUnassignmentRequest.partitionId() = partitionId;
+    key.loadBinary(&queueUnassignmentRequest.queueKey());
+
+    request->setResponseCb(
+        bdlf::BindUtil::bindS(d_allocator_p,
+                              &ClusterQueueHelper::onQueueUnassignmentResponse,
+                              this,
+                              bdlf::PlaceHolders::_1,  // requestContext
+                              uri,
+                              d_clusterData_p->electorInfo().leaderNode()));
+
+    bsls::TimeInterval timeoutMs;
+    timeoutMs.setTotalMilliseconds(d_clusterData_p->clusterConfig()
+                                       .queueOperations()
+                                       .assignmentTimeoutMs());
+    bmqt::GenericResult::Enum rc = d_cluster_p->sendRequest(
+        request,
+        0,  // target (i.e., leader)
+        timeoutMs);
+
+    if (rc == bmqt::GenericResult::e_NOT_CONNECTED) {
+        // Lost connection with the leader; the queue will be re-considered for
+        // GC later.
+        return;  // RETURN
+    }
+
+    if (rc != bmqt::GenericResult::e_SUCCESS) {
+        BMQ_LOGTHROTTLE_ERROR
+            << d_cluster_p->description()
+            << " Error while sending queueUnassignment request to leader "
+            << "[rc: " << rc << ", request: " << request->request() << "]";
+    }
+}
+
+void ClusterQueueHelper::onQueueUnassignmentResponse(
+    const RequestManagerType::RequestSp& requestContext,
+    const bmqt::Uri&                     uri,
+    mqbnet::ClusterNode*                 responder)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+
+    // Best-effort: the queue is actually removed only when the leader's
+    // QueueUnAssignmentAdvisory commits ('onQueueUnassigned').  A failure here
+    // just means this GC attempt did not take; the queue will be re-considered
+    // on a subsequent GC.  Log failures for diagnostics.
+    const bmqp_ctrlmsg::ControlMessage& response = requestContext->response();
+    if (!response.choice().isStatusValue() ||
+        response.choice().status().category() !=
+            bmqp_ctrlmsg::StatusCategory::E_SUCCESS) {
+        BMQ_LOGTHROTTLE_WARN
+            << d_cluster_p->description() << " queueUnassignment request for ["
+            << uri << "] to "
+            << (responder ? responder->nodeDescription() : "** none **")
+            << " did not succeed: " << response;
+    }
+}
+
+void ClusterQueueHelper::processQueueUnassignmentRequest(
+    const bmqp_ctrlmsg::ControlMessage& request,
+    mqbnet::ClusterNode*                requester)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+    BSLS_ASSERT_SAFE(!d_cluster_p->isRemote());
+    BSLS_ASSERT_SAFE(requester);
+    BSLS_ASSERT_SAFE(request.choice().isClusterMessageValue());
+    BSLS_ASSERT_SAFE(request.choice()
+                         .clusterMessage()
+                         .choice()
+                         .isQueueUnassignmentRequestValue());
+
+    bmqp_ctrlmsg::ControlMessage response(d_allocator_p);
+    response.rId()               = request.rId();
+    bmqp_ctrlmsg::Status& status = response.choice().makeStatus();
+    status.category()            = bmqp_ctrlmsg::StatusCategory::E_SUCCESS;
+    status.code()                = 0;
+
+    // Only the active leader may broadcast a QueueUnAssignmentAdvisory.
+    if (!d_clusterData_p->electorInfo().isSelfActiveLeader()) {
+        status.category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+        status.code()     = mqbi::ClusterErrorCode::e_NOT_LEADER;
+        status.message()  = "Not an active leader";
+        d_clusterData_p->messageTransmitter().sendMessage(response, requester);
+        return;  // RETURN
+    }
+
+    const bmqp_ctrlmsg::QueueUnassignmentRequest& req =
+        request.choice().clusterMessage().choice().queueUnassignmentRequest();
+    bmqt::Uri uri(req.queueUri(), d_allocator_p);
+
+    // Use the authoritative cluster-state values for the advisory.  If the
+    // queue is no longer assigned (already gc'd, or a stale/duplicate
+    // request), treat it as success -- there is nothing to unassign.
+    mqbc::ClusterStateQueueInfo* qinfo = d_clusterState_p->getAssigned(uri);
+    if (qinfo == 0) {
+        d_clusterData_p->messageTransmitter().sendMessage(response, requester);
+        return;  // RETURN
+    }
+
+    BMQ_LOGTHROTTLE_INFO << d_cluster_p->description()
+                         << ": leader unassigning queue [" << uri
+                         << "] on request from "
+                         << requester->nodeDescription();
+
+    mqbc::ClusterUtil::setPendingUnassignment(d_clusterState_p, uri);
+
+    bdlma::LocalSequentialAllocator<1024>    localAlloc(d_allocator_p);
+    bmqp_ctrlmsg::ControlMessage             controlMsg(&localAlloc);
+    bmqp_ctrlmsg::QueueUnAssignmentAdvisory& queueAdvisory =
+        controlMsg.choice()
+            .makeClusterMessage()
+            .choice()
+            .makeQueueUnAssignmentAdvisory();
+
+    mqbc::ClusterUtil::populateQueueUnAssignmentAdvisory(&queueAdvisory,
+                                                         d_clusterData_p,
+                                                         uri,
+                                                         qinfo->key(),
+                                                         qinfo->partitionId(),
+                                                         *d_clusterState_p);
+
+    d_clusterStateManager_p->unassignQueue(queueAdvisory);
+
+    d_clusterData_p->messageTransmitter().sendMessage(response, requester);
+}
+
 void ClusterQueueHelper::onQueueAssignmentResponse(
     const RequestSp&     requestContext,
     const bmqt::Uri&     uri,
@@ -4899,7 +5064,6 @@ ClusterQueueHelper::ClusterQueueHelper(
 , d_queues(allocator)
 , d_queuesById(allocator)
 , d_reopenCycles(allocator)
-, d_primaryNotLeaderAlarmRaised(false)
 , d_stopContexts(allocator)
 , d_isShutdownLogicOn(false)
 {
@@ -6197,29 +6361,37 @@ int ClusterQueueHelper::gcExpiredQueues(bool               immediate,
     }
 
     if (!d_clusterData_p->electorInfo().isSelfActiveLeader()) {
-        // As part of implementing leader managed cluster state (and using
-        // CSL), only leader node should be generating advisories (involves
-        // generating sequence numbers).  In the current scheme of things,
-        // primary and leader nodes can be different (even if cluster is
-        // configured with 'leader-is-primary-for-all-partitions' flag).  If
-        // this occurs, primary cannot broadcast a QueueUnAssignmentAdvisory
-        // since only leader can do so.  So for now, queue gc logic is
-        // suppressed if leader and primary nodes are different.  This logic
-        // will be updated such that primary will send a QueueUnassignedRequest
-        // to the leader, and then leader will broadcast
-        // QueueUnAssignmentAdvisory.
-
-        if (!d_primaryNotLeaderAlarmRaised) {
-            BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
-                << d_cluster_p->description() << " Cannot gc "
-                << queuesToGc.size() << " expired queues "
-                << "since primary and leader nodes are different."
-                << BMQTSK_ALARMLOG_END;
-
-            d_primaryNotLeaderAlarmRaised = true;
+        // Only the leader can broadcast a QueueUnAssignmentAdvisory (it
+        // generates the sequence numbers).  In FSM/Raft mode the partition
+        // primary need not be the leader, so a non-leader primary -- which is
+        // the node that detects a queue as GC-able -- asks the leader to
+        // unassign each expired queue.  The queue is removed locally when the
+        // leader's advisory commits ('onQueueUnassigned').
+        //
+        // If there is no active leader to ask (or self is the not-yet-active
+        // leader), there is nothing to do now; GC will be retried once an
+        // active leader is present.
+        if (!d_clusterData_p->electorInfo().hasActiveLeader() ||
+            d_clusterData_p->electorInfo().isSelfLeader()) {
+            return rc_SELF_IS_NOT_LEADER;  // RETURN
         }
 
-        return rc_SELF_IS_NOT_LEADER;  // RETURN
+        for (size_t i = 0; i < queuesToGc.size(); ++i) {
+            QueueContextMapIter&  qit            = queuesToGc[i];
+            const QueueContextSp& queueContextSp = qit->second;
+
+            BMQ_LOGTHROTTLE_INFO
+                << d_cluster_p->description()
+                << ": requesting leader to unassign expired queue ["
+                << qit->first << "] assigned to Partition ["
+                << queueContextSp->partitionId() << "].";
+
+            requestQueueUnassignment(qit->first,
+                                     queueContextSp->key(),
+                                     queueContextSp->partitionId());
+        }
+
+        return rc_SUCCESS;  // RETURN
     }
 
     for (size_t i = 0; i < queuesToGc.size(); ++i) {

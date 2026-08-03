@@ -511,11 +511,6 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// In the latter case, cluster needs another `restoreState` to heal.
     ReopenCycles d_reopenCycles;
 
-    // Whether the alarm for primary and leader nodes being different has been
-    // raised at least once when gc'ing expired queues.  This is important
-    // because we only want to raise such alarm once.
-    bool d_primaryNotLeaderAlarmRaised;
-
     StopContexts d_stopContexts;
 
     /// When `true`, this node is shutting down using new shutdown logic.
@@ -554,6 +549,23 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     void onQueueAssignmentResponse(const RequestSp&     requestContext,
                                    const bmqt::Uri&     uri,
                                    mqbnet::ClusterNode* responder);
+
+    /// Send a queueUnassignment request to the leader, requesting unassignment
+    /// of the queue with the specified `uri`, `key` and `partitionId`.  This
+    /// is called only on a non-leader active primary (which detects the queue
+    /// as GC-able but cannot broadcast the QueueUnAssignmentAdvisory itself).
+    void requestQueueUnassignment(const bmqt::Uri&        uri,
+                                  const mqbu::StorageKey& key,
+                                  int                     partitionId);
+
+    /// QueueUnassignment request response handler, for a queue with the
+    /// specified `uri`, and with the request and its associated response in
+    /// the specified `requestContext`.  Best-effort: the queue is actually
+    /// removed only when the leader's advisory commits (`onQueueUnassigned`).
+    void onQueueUnassignmentResponse(
+        const RequestManagerType::RequestSp& requestContext,
+        const bmqt::Uri&                     uri,
+        mqbnet::ClusterNode*                 responder);
 
     /// Method invoked when the queue in the specified `queueContext` has
     /// been assigned; to resume the operation on any pending contexts.
@@ -1100,6 +1112,14 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     void
     processPeerCloseQueueRequest(const bmqp_ctrlmsg::ControlMessage& request,
                                  mqbc::ClusterNodeSession* requester);
+
+    /// Process, on the leader, the queueUnassignment `request` from the
+    /// specified `requester` (a primary asking this leader to GC a queue whose
+    /// primary is not the leader): broadcast a QueueUnAssignmentAdvisory for
+    /// the requested queue.  Mode-agnostic (legacy/FSM/Raft).
+    void processQueueUnassignmentRequest(
+        const bmqp_ctrlmsg::ControlMessage& request,
+        mqbnet::ClusterNode*                requester);
 
     /// Delete and unregister all queues which have no clients.
     void processShutdownEvent();

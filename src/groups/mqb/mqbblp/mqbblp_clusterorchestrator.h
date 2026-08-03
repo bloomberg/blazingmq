@@ -464,6 +464,16 @@ class ClusterOrchestrator {
     processQueueAssignmentRequest(const bmqp_ctrlmsg::ControlMessage& request,
                                   mqbnet::ClusterNode* requester);
 
+    /// Process the queue unassignment in the specified `request`, received
+    /// from the specified `requester` (a primary asking this leader to gc a
+    /// queue).
+    ///
+    /// THREAD: This method is invoked in the associated cluster's
+    ///         dispatcher thread.
+    void processQueueUnassignmentRequest(
+        const bmqp_ctrlmsg::ControlMessage& request,
+        mqbnet::ClusterNode*                requester);
+
     /// Process the specified storage sync request `message` from the
     /// specified `source`.
     ///
