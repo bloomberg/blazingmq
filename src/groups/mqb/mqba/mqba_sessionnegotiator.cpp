@@ -424,8 +424,6 @@ bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onClientIdentityMessage(
                   << context_p->channel().get()
                   << "': " << logSafe(clientIdentity);
 
-    bsl::shared_ptr<mqbnet::Session> session;
-
     // Inject the hostName in the negotiation message if not provided by the
     // connecting peer.
     switch (clientIdentity.clientType()) {
@@ -441,7 +439,7 @@ bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onClientIdentityMessage(
     default: {
         errorDescription << "Unknown ClientIdentity client type: "
                          << logSafe(clientIdentity);
-        return session;  // RETURN
+        return NULL;  // RETURN
     }
     }
 
@@ -539,7 +537,7 @@ bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onClientIdentityMessage(
     // Populate the negotiation context based on the received client identity.
     int rc = populateNegotiationContext(errorDescription, context_p);
     if (rc != 0) {
-        return session;  // RETURN
+        return NULL;  // RETURN
     }
 
     // Communicate heartbeat settings.  Currently, only for SDK use
@@ -556,7 +554,7 @@ bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onClientIdentityMessage(
                                 negotiationResponse,
                                 negotiationContext);
     if (rc != 0) {
-        return session;  // RETURN
+        return NULL;  // RETURN
     }
 
     // Create the session.
@@ -565,7 +563,11 @@ bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onClientIdentityMessage(
                            clientIdentity,
                            *(context_p->channel().get()));
 
-    createSession(&session, context_p, description);
+    bsl::shared_ptr<mqbnet::Session> session;
+    rc = createSession(&session, context_p, description);
+    if (rc != 0) {
+        return NULL;
+    }
 
     return session;
 }
@@ -592,13 +594,11 @@ bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onBrokerResponseMessage(
                    << context_p->channel().get()
                    << "': " << logSafe(brokerResponse);
 
-    bsl::shared_ptr<mqbnet::Session> session;
-
     if (brokerResponse.result().category() !=
         bmqp_ctrlmsg::StatusCategory::E_SUCCESS) {
         errorDescription << "Failure broker's response ["
                          << logSafe(brokerResponse) << "]";
-        return session;  // RETURN
+        return NULL;  // RETURN
     }
 
     // Resolve 'hostName' of the brokerIdentity
@@ -611,11 +611,20 @@ bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onBrokerResponseMessage(
                            brokerResponse.brokerIdentity(),
                            *(context_p->channel().get()));
 
-    const int rc = populateNegotiationContext(errorDescription, context_p);
-    if (rc != 0) {
-        return session;  // RETURN
+    {
+        const int rc = populateNegotiationContext(errorDescription, context_p);
+        if (rc != 0) {
+            return NULL;  // RETURN
+        }
     }
-    createSession(&session, context_p, description);
+
+    bsl::shared_ptr<mqbnet::Session> session;
+    {
+        const int rc = createSession(&session, context_p, description);
+        if (rc != 0) {
+            return NULL;  // RETURN
+        }
+    }
 
     return session;
 }
@@ -786,7 +795,7 @@ int SessionNegotiator::populateNegotiationContext(
     return rc_SUCCESS;
 }
 
-void SessionNegotiator::createSession(
+int SessionNegotiator::createSession(
     bsl::shared_ptr<mqbnet::Session>* out,
     mqbnet::InitialConnectionContext* context_p,
     const bsl::string&                description)
@@ -801,6 +810,11 @@ void SessionNegotiator::createSession(
                           ->negotiationMessage()
                           .isUndefinedValue());
 
+    enum {
+        e_OK                    = 0,
+        e_AUTHORIZATION_FAILURE = 1,
+    };
+
     const NegotiationContextSp& negotiationContext =
         context_p->negotiationContext();
 
@@ -810,6 +824,20 @@ void SessionNegotiator::createSession(
 
     if (negotiationContext->connectionType() ==
         mqbnet::ConnectionType::e_ADMIN) {
+        // Authorize
+        if (context_p->isIncoming()) {
+            BSLS_ASSERT(
+                context_p->authenticationContext() &&
+                context_p->authenticationContext()->authenticationResult());
+            const mqbplug::AuthenticationResult& authnResult =
+                *context_p->authenticationContext()->authenticationResult();
+            mqbact::Action action;
+            action.makeConnectAdmin();
+            if (!d_authorizer_sp->authorize(action, authnResult)) {
+                return e_AUTHORIZATION_FAILURE;  // RETURN
+            }
+        }
+
         mqba::AdminSession* session = new (*d_allocator_p)
             AdminSession(channel,
                          negoMsg,
@@ -818,12 +846,27 @@ void SessionNegotiator::createSession(
                          d_blobSpPool_p,
                          d_scheduler_p,
                          d_adminCb,
+                         d_authorizer_sp,
                          d_allocator_p);
 
         out->reset(session, d_allocator_p);
     }
     else if (negotiationContext->connectionType() ==
              mqbnet::ConnectionType::e_CLIENT) {
+        // Authorize
+        if (context_p->isIncoming()) {
+            BSLS_ASSERT(
+                context_p->authenticationContext() &&
+                context_p->authenticationContext()->authenticationResult());
+            const mqbplug::AuthenticationResult& authnResult =
+                *context_p->authenticationContext()->authenticationResult();
+            mqbact::Action action;
+            action.makeConnectClient();
+            if (!d_authorizer_sp->authorize(action, authnResult)) {
+                return e_AUTHORIZATION_FAILURE;  // RETURN
+            }
+        }
+
         // Create a dedicated stats subcontext for this client
         bmqst::StatContextConfiguration statContextCfg(description);
         statContextCfg.storeExpiredSubcontextValues(true);
@@ -841,6 +884,7 @@ void SessionNegotiator::createSession(
                           d_blobSpPool_p,
                           d_bufferFactory_p,
                           d_scheduler_p,
+                          d_authorizer_sp,
                           d_allocator_p);
 
         out->reset(session, d_allocator_p);
@@ -862,6 +906,8 @@ void SessionNegotiator::createSession(
                                                              d_allocator_p),
                    d_allocator_p);
     }
+
+    return e_OK;
 }
 
 bool SessionNegotiator::checkIsDeprecatedSdkVersion(

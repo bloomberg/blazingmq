@@ -61,6 +61,9 @@ class Semaphore;
 namespace bmqp {
 class Event;
 }
+namespace mqbi {
+class Authorizer;
+}
 
 namespace mqba {
 
@@ -158,6 +161,9 @@ class AdminSession : public mqbnet::Session, public mqbi::DispatcherClient {
     /// The callback to invoke on received admin command.
     mqbnet::Session::AdminCommandEnqueueCb d_adminCb;
 
+    /// The authorizer to use for this session
+    bsl::shared_ptr<mqbi::Authorizer> d_authorizer_sp;
+
   private:
     // NOT IMPLEMENTED
 
@@ -224,6 +230,7 @@ class AdminSession : public mqbnet::Session, public mqbi::DispatcherClient {
                  AdminSessionState::BlobSpPool*          blobSpPool,
                  bdlmt::EventScheduler*                  scheduler,
                  const mqbnet::Session::AdminCommandEnqueueCb& adminEnqueueCb,
+                 const bsl::shared_ptr<mqbi::Authorizer>&      authorizer,
                  bslma::Allocator*                             allocator);
 
     /// Destructor

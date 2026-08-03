@@ -288,6 +288,7 @@ AdminSession::AdminSession(
     AdminSessionState::BlobSpPool*                blobSpPool,
     bdlmt::EventScheduler*                        scheduler,
     const mqbnet::Session::AdminCommandEnqueueCb& adminCb,
+    const bsl::shared_ptr<mqbi::Authorizer>&      authorizer,
     bslma::Allocator*                             allocator)
 : d_self(this)  // use default allocator
 , d_running(true)
@@ -301,6 +302,7 @@ AdminSession::AdminSession(
           allocator)
 , d_scheduler_p(scheduler)
 , d_adminCb(adminCb)
+, d_authorizer_sp(authorizer)
 {
     // Register this client to the dispatcher
     mqbi::Dispatcher::ProcessorHandle processor = dispatcher->registerClient(
