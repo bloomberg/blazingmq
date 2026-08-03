@@ -340,6 +340,10 @@ class TestPutsRetransmission:
         leader = self.active_node.last_known_leader
         assert leader
 
+        # INTERNALS/LIST must be issued on the queue's partition primary, which
+        # in Raft mode need not be the CSL leader.
+        leader = leader.wait_queue_primary(f"bmq://{self.domain}/{tc.TEST_QUEUE}")
+
         assert wait_until(
             lambda: self.capture_number_of_consumed_messages(2 * NUM_MESSAGES), 40
         )

@@ -101,8 +101,13 @@ class TestMaxQueues:
         # they're not GCed yet, thus opening a new queue still fails
         assert replica_client.open(q6, flags=["read"], block=True) == Client.e_REFUSED
 
-        # GC; now we can open a new queue
-        leader.force_gc_queues(succeed=True)
+        # GC; now we can open a new queue.  The closed queues may be assigned
+        # to any partition, and 'force_gc_queues' only acts on partitions the
+        # receiving node is primary for -- so run it on every partition's
+        # primary (which in Raft mode need not be the CSL leader).
+        num_partitions = cluster.config.definition.partition_config.num_partitions
+        for pid in range(num_partitions):
+            leader.wait_partition_primary(pid).force_gc_queues(succeed=True)
         check_num_assigned_queues(3, leader, active_replica, du=du)
 
         assert replica_client.open(q6, flags=["read"], block=True) == Client.e_SUCCESS

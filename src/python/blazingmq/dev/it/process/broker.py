@@ -264,7 +264,7 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
         'timeout' elapses).
 
         Unlike 'last_known_leader' (the CSL/cluster elector leader), this
-        reflects per-partition Raft leadership: in FSM/Raft mode the CSL
+        reflects per-partition Raft leadership: in Raft mode the CSL
         leader and a given partition's primary are independently elected and
         can be different nodes, so commands that must land on the node
         actually owning a queue's partition (e.g. 'PURGE') should target this
@@ -344,8 +344,16 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
         'CLUSTERS CLUSTER ... STATUS' admin response 'status_res', or None if
         the partition has no reported primary.
         """
+        # Match only within this partition's own block: the tempered dot
+        # '(?:(?!PartitionId:).)*?' stops at the next 'PartitionId:' so the
+        # search can't drift into a later partition's block.  The node field is
+        # '[<name>, <nodeId>]'; excluding ']' from the captured name means a
+        # partition with no primary ('[ ** NONE ** ]', no ',' inside the
+        # brackets) does not match -- so this returns None (keep polling)
+        # rather than garbage or a different partition's primary.
         m = re.search(
-            rf"PartitionId: {partition_id}\b.*?Primary Node\s*:\s*\[([^,]+),",
+            rf"PartitionId: {partition_id}\b(?:(?!PartitionId:).)*?"
+            rf"Primary Node\s*:\s*\[([^,\]]+),",
             status_res,
             re.DOTALL,
         )

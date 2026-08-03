@@ -286,27 +286,25 @@ def _change_leader(cluster: Cluster) -> Broker:
     # We cannot change leader for 1-node cluster
 
     leader = cluster.last_known_leader
-    next_leader = None
-    for node in cluster.nodes():
-        if node != leader:
-            node.set_quorum(99)
-            next_leader = node
-    assert leader != next_leader
 
-    # Kill the leader
+    # Kill the leader; whichever surviving node wins the resulting election
+    # becomes the new leader.  (Biasing the winner via 'STATE ELECTOR SET
+    # quorum' only affects the legacy bully elector's ClusterQuorumManager --
+    # Raft's CSL quorum is a fixed majority-of-peers value
+    # ('RaftNode::quorum()'), so under Raft the winner is whichever survivor's
+    # independent randomized election timeout fires first, unbiased by that
+    # command.)  Callers only need *some* new leader, distinct from the killed
+    # one, to verify behavior persists across a leadership change -- not this
+    # specific node's identity.
     cluster.drain()
     leader.check_exit_code = False
     leader.kill()
     leader.wait()
 
-    # Make the quorum for selected node be 1, so it becomes a new leader
-    next_leader.set_quorum(1)
-
-    # Wait for the new leader
     cluster.wait_leader()
-    assert cluster.last_known_leader == next_leader
+    assert cluster.last_known_leader != leader
 
-    return next_leader
+    return cluster.last_known_leader
 
 
 def test_app_id_stats(multi_node: Cluster, domain_urls: tc.DomainUrls) -> None:
@@ -347,10 +345,6 @@ def test_app_id_stats(multi_node: Cluster, domain_urls: tc.DomainUrls) -> None:
     ].definition.parameters.mode.fanout.publish_app_id_metrics = True
     cluster.deploy_domains()
 
-    # Preconditions
-    admin = AdminClient()
-    admin.connect(*cluster.admin_endpoint)
-
     # Stage 1: check stats after posting messages
     proxies = cluster.proxy_cycle()
     proxy = next(proxies)
@@ -358,6 +352,13 @@ def test_app_id_stats(multi_node: Cluster, domain_urls: tc.DomainUrls) -> None:
 
     task = PostRecord(domain_fanout, "test_stats", num=32)
     post_n_msgs(producer, task)
+
+    # Per-queue event counters (put/ack/confirm/...) are only tracked on the
+    # node that actually processed them -- the queue's partition primary --
+    # unlike storage-derived fields (content/bytes) which every replica has.
+    # In Raft mode that primary need not be the CSL leader, so connect the
+    # admin session directly to it rather than 'cluster.admin_endpoint'.
+    admin = cluster.last_known_leader.wait_queue_primary(task.uri).open_admin_client()
 
     stats = extract_stats(admin.send_admin("encoding json_pretty stat show"))
     queue_stats = stats["domainQueues"]["domains"][domain_fanout][task.uri]
@@ -387,7 +388,10 @@ def test_app_id_stats(multi_node: Cluster, domain_urls: tc.DomainUrls) -> None:
     # wait for at least one snapshot to initialize stats
     time.sleep(1)
 
-    admin.connect(*cluster.admin_endpoint)
+    # Re-resolve the queue's primary: '_change_leader' kills the old CSL
+    # leader, which may or may not have also been this queue's partition
+    # primary, so the primary could have changed independently of leadership.
+    admin = cluster.last_known_leader.wait_queue_primary(task.uri).open_admin_client()
 
     stats = extract_stats(admin.send_admin("encoding json_pretty stat show"))
     queue_stats = stats["domainQueues"]["domains"][domain_fanout][task.uri]

@@ -41,7 +41,7 @@ def test_list_messages_fanout(cluster: Cluster, domain_urls: tc.DomainUrls):
     producer = next(proxies).create_client("producer")
     producer.open(du.uri_fanout, flags=["write,ack"], succeed=True)
 
-    # In FSM/Raft mode the CSL leader need not own the queue's partition; the
+    # In Raft mode the CSL leader need not own the queue's partition; the
     # 'LIST' admin command must be issued on that partition's primary.  Resolve
     # it after the queue is assigned (i.e. after the producer opened it).
     primary = cluster.last_known_leader.wait_queue_primary(du.uri_fanout)
@@ -121,7 +121,7 @@ def test_list_messages_priority(cluster: Cluster, domain_urls: tc.DomainUrls):
     producer = next(proxies).create_client("producer")
     producer.open(du.uri_priority, flags=["write,ack"], succeed=True)
 
-    # In FSM/Raft mode the CSL leader need not own the queue's partition; the
+    # In Raft mode the CSL leader need not own the queue's partition; the
     # 'LIST' admin command must be issued on that partition's primary.  Resolve
     # it after the queue is assigned (i.e. after the producer opened it).
     primary = cluster.last_known_leader.wait_queue_primary(du.uri_priority)

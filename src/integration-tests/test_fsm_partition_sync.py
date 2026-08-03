@@ -403,10 +403,13 @@ def test_sync_if_leader_missed_rollover(
     for i in range(3, 5):
         producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
 
-    # Initiate rollover via admin command
-    leader.trigger_rollover(0)
+    # Initiate rollover via admin command on partition 0's primary: in Raft
+    # mode the CSL leader need not be that primary, and it may have just changed
+    # if the killed node was partition 0's primary.  ('leader' is the CSL leader
+    # and is still alive -- 'next_leader' was excluded from it.)
+    leader.wait_partition_primary(0).trigger_rollover(0)
 
-    # Wait until rollover completed for other nodes
+    # Wait until rollover completed for other nodes (they roll via replication)
     for node in cluster.nodes(exclude=[next_leader]):
         node.wait_rollover_complete()
 

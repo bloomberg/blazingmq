@@ -182,10 +182,17 @@ class Cluster(contextlib.AbstractContextManager):
 
             if self.is_single_node:
                 self._proxies = self._nodes
-                self.last_known_leader = self.nodes()[0]
-            else:
-                self.wait_status(wait_leader, wait_ready)
-                self.drain()
+
+            # In Raft mode, even a single-node cluster must wait for its
+            # per-partition Raft elections (each partition is its own Raft
+            # group with a randomized election timeout, so partition primaries
+            # are established asynchronously, not synchronously at startup as
+            # in legacy mode).  'wait_status' already short-circuits the
+            # 'wait_leader' capture for a single node (no election to observe
+            # for the CSL leader itself), so this adds no latency unless the
+            # caller explicitly requested 'wait_ready'.
+            self.wait_status(wait_leader, wait_ready)
+            self.drain()
 
             # Reset quorum to default
             if need_preset_leader:
