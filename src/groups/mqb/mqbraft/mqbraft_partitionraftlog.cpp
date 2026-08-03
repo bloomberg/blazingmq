@@ -318,10 +318,17 @@ int PartitionRaftLog::append(bsls::Types::Uint64                 term,
 
 int PartitionRaftLog::truncateFrom(bsls::Types::Uint64 index)
 {
-    // truncateFrom only happens after drop (leadership loss), which clears
-    // d_pendingWrites and d_appendedCount. Assert this invariant.
-    BSLS_ASSERT(d_pendingWrites.empty());
-    BSLS_ASSERT(0 == d_appendedCount);
+    // 'truncateFrom' is only ever invoked from 'RaftNode::handleAppendEntries'
+    // when this node's own logged suffix conflicts with the (new) leader's.
+    // If this node was itself leader until this very same message, its
+    // still-buffered 'd_pendingWrites' reference the exact 'd_records'
+    // entries about to be erased by 'd_fileStore_p->truncateRecords()'
+    // below.  Drop them here, first: 'dropPendingWrites()' erases their
+    // placeholder records via 'dropPendingRecord()' up front, so
+    // 'truncateRecords()' never has to (which would otherwise leave
+    // 'dropPendingWrites()', called later by 'PartitionRaft::dispatchOutput'
+    // on leadership loss, erasing an already-erased/dangling handle).
+    dropPendingWrites();
 
     if (index <= d_snapshotIndex || index > lastIndex()) {
         return -1;
