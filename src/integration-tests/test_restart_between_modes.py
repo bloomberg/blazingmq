@@ -441,7 +441,9 @@ def close_and_unassign_queue(queueUri: str, client: Client, leader: Broker):
     """
     assert client.close(queueUri, succeed=True) == Client.e_SUCCESS
 
-    leader.force_gc_queues(succeed=True)
+    # 'force_gc_queues' acts on the queue's partition primary, which in Raft
+    # mode need not be the CSL leader.
+    leader.wait_queue_primary(queueUri).force_gc_queues(succeed=True)
 
 
 def assignUnassignNewQueues(

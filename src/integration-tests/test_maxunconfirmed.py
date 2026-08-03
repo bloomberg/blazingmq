@@ -149,7 +149,9 @@ def test_stuck_downstream(multi_node: Cluster, domain_urls: tc.DomainUrls):
     consumers[8].confirm(uri, "+2", succeed=True)
     consumers[9].confirm(uri, "+10", succeed=True)
 
-    leader = multi_node.last_known_leader
+    # LIST must be issued on the queue's partition primary, which in Raft
+    # mode need not be the CSL leader.
+    leader = multi_node.last_known_leader.wait_queue_primary(uri)
 
     # 80 messages are unconfirmed
     # Confirms propagate asynchronously from the proxy to the primary; retry

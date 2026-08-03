@@ -42,7 +42,7 @@ def test_open_alarm_authorize_post(cluster: Cluster, domain_urls: tc.DomainUrls)
     producer = next(proxies).create_client("producer")
     producer.open(du.uri_fanout, flags=["write,ack"], succeed=True)
 
-    # In FSM/Raft mode the CSL leader need not own the queue's partition; queue
+    # In Raft mode the CSL leader need not own the queue's partition; queue
     # admin commands (INTERNALS) and the queue engine's ALARMs originate on the
     # partition primary, so resolve and target it here (after the queue is
     # opened, hence assigned).
@@ -462,7 +462,7 @@ def test_deauthorized_appid_doesnt_hold_messages(
 
     # 'FORCE_GC_QUEUES' must run on the queue's partition primary -- it is the
     # node that detects the queue as GC-able ('gcExpiredQueues' bails with
-    # rc_SELF_IS_NOT_PRIMARY on a non-primary).  In FSM/Raft mode that primary
+    # rc_SELF_IS_NOT_PRIMARY on a non-primary).  In Raft mode that primary
     # need not be the CSL leader; when it isn't, the primary asks the leader to
     # broadcast the QueueUnAssignmentAdvisory (the leader alone can), so the
     # queue is unassigned regardless of primary/leader placement.
@@ -572,7 +572,7 @@ def test_two_consumers_of_unauthorized_app(
     # shutdown and wait
 
     # The scenario under test is the queue's *primary* shutting down, which in
-    # FSM/Raft mode need not be the CSL leader; resolve and stop it (the queue
+    # Raft mode need not be the CSL leader; resolve and stop it (the queue
     # was assigned when the consumers opened it above).
     primary = leader.wait_queue_primary(du.uri_fanout)
     primary.stop()
@@ -735,7 +735,7 @@ def test_open_authorize_change_primary(multi_node: Cluster, domain_urls: tc.Doma
     producer = next(proxies).create_client("producer")
     producer.open(du.uri_fanout, flags=["write,ack"], succeed=True)
 
-    # In FSM/Raft mode the CSL leader need not own the queue's partition; target
+    # In Raft mode the CSL leader need not own the queue's partition; target
     # the partition primary (this test then kills it to force a new primary).
     primary = multi_node.last_known_leader.wait_queue_primary(du.uri_fanout)
 
