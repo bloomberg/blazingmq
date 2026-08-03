@@ -37,11 +37,16 @@ set_max_messages = tweak.domain.storage.queue_limits.messages(max_msgs)
 
 def test_open_alarm_authorize_post(cluster: Cluster, domain_urls: tc.DomainUrls):
     du = domain_urls
-    leader = cluster.last_known_leader
     proxies = cluster.proxy_cycle()
 
     producer = next(proxies).create_client("producer")
     producer.open(du.uri_fanout, flags=["write,ack"], succeed=True)
+
+    # In FSM/Raft mode the CSL leader need not own the queue's partition; queue
+    # admin commands (INTERNALS) and the queue engine's ALARMs originate on the
+    # partition primary, so resolve and target it here (after the queue is
+    # opened, hence assigned).
+    primary = cluster.last_known_leader.wait_queue_primary(du.uri_fanout)
 
     all_app_ids = DEFAULT_APP_IDS + ["quux"]
 
@@ -65,16 +70,16 @@ def test_open_alarm_authorize_post(cluster: Cluster, domain_urls: tc.DomainUrls)
         quux.open(f"{du.uri_fanout}?id=quux", flags=["read"], block=True)
         == Client.e_SUCCESS
     )
-    assert leader.alarms("FANOUT_UNREGISTERED_APPID")
+    assert primary.alarms("FANOUT_UNREGISTERED_APPID")
 
     # ---------------------------------------------------------------------
     # Check that authorized substreams are alive and 'quux' is unauthorized.
 
-    leader.dump_queue_internals(du.domain_fanout, tc.TEST_QUEUE)
+    primary.dump_queue_internals(du.domain_fanout, tc.TEST_QUEUE)
 
     bar_status, baz_status, foo_status, quuxStatus = sorted(
         [
-            leader.capture(r"(\w+).*: status=(\w+)(?:, StorageIter.atEnd=(\w+))?", 60)
+            primary.capture(r"(\w+).*: status=(\w+)(?:, StorageIter.atEnd=(\w+))?", 60)
             for i in all_app_ids
         ],
         key=lambda match: match[1],
@@ -108,11 +113,11 @@ def test_open_alarm_authorize_post(cluster: Cluster, domain_urls: tc.DomainUrls)
     # ---------------------------------------------------------------------
     # Check that all substreams are alive.
 
-    leader.dump_queue_internals(du.domain_fanout, tc.TEST_QUEUE)
+    primary.dump_queue_internals(du.domain_fanout, tc.TEST_QUEUE)
 
     for app_id in all_app_ids:
         test_logger.info(f"Check that {app_id} is alive")
-        leader.outputs_regex(r"(\w+).*: status=alive", timeout)
+        primary.outputs_regex(r"(\w+).*: status=alive", timeout)
 
     # ---------------------------------------------------------------------
     # Post a second message.
@@ -124,7 +129,7 @@ def test_open_alarm_authorize_post(cluster: Cluster, domain_urls: tc.DomainUrls)
     # Ensure that previously authorized substreams get 2 messages and the
     # newly authorized gets one.
 
-    leader.dump_queue_internals(du.domain_fanout, tc.TEST_QUEUE)
+    primary.dump_queue_internals(du.domain_fanout, tc.TEST_QUEUE)
     # pylint: disable=cell-var-from-loop; passing lambda to 'wait_until' is safe
     for app_id in DEFAULT_APP_IDS:
         test_logger.info(f"Check if {app_id} has seen 2 messages")
@@ -152,16 +157,19 @@ def test_open_alarm_authorize_post(cluster: Cluster, domain_urls: tc.DomainUrls)
     # stopped and started.
 
     quux.open(f"{du.uri_fanout}?id=quux", flags=["read"], succeed=True)
-    assert not leader.alarms("FANOUT_UNREGISTERED_APPID")
+    assert not primary.alarms("FANOUT_UNREGISTERED_APPID")
 
 
 def test_create_authorize_open_post(cluster: Cluster, domain_urls: tc.DomainUrls):
     du = domain_urls
-    leader = cluster.last_known_leader
     proxies = cluster.proxy_cycle()
 
     producer = next(proxies).create_client("producer")
     producer.open(du.uri_fanout, flags=["write"], succeed=True)
+
+    # Queue INTERNALS must be issued on the partition primary (see note in
+    # test_open_alarm_authorize_post).
+    primary = cluster.last_known_leader.wait_queue_primary(du.uri_fanout)
 
     # ---------------------------------------------------------------------
     # Authorize 'quux'.
@@ -179,13 +187,12 @@ def test_create_authorize_open_post(cluster: Cluster, domain_urls: tc.DomainUrls
     # ---------------------------------------------------------------------
     # Check that all substreams are alive.
 
-    leader.dump_queue_internals(du.domain_fanout, tc.TEST_QUEUE)
-    leader.outputs_regex(r"quux.*: status=alive", timeout)
+    primary.dump_queue_internals(du.domain_fanout, tc.TEST_QUEUE)
+    primary.outputs_regex(r"quux.*: status=alive", timeout)
 
 
 def test_load_domain_authorize_open_post(cluster: Cluster, domain_urls: tc.DomainUrls):
     du = domain_urls
-    leader = cluster.last_known_leader
     proxies = cluster.proxy_cycle()
 
     producer = next(proxies).create_client("producer")
@@ -204,8 +211,10 @@ def test_load_domain_authorize_open_post(cluster: Cluster, domain_urls: tc.Domai
     # ---------------------------------------------------------------------
     # Check that all substreams are alive.
 
-    leader.dump_queue_internals(du.domain_fanout, tc.TEST_QUEUE)
-    leader.outputs_regex(r"quux.*: status=alive", timeout)
+    # INTERNALS for the fanout queue must target its partition primary.
+    primary = cluster.last_known_leader.wait_queue_primary(du.uri_fanout)
+    primary.dump_queue_internals(du.domain_fanout, tc.TEST_QUEUE)
+    primary.outputs_regex(r"quux.*: status=alive", timeout)
 
 
 # following test cannot run yet, because domain manager claims domain
@@ -252,14 +261,17 @@ def _test_command_errors(cluster, domain_urls: tc.DomainUrls):
 
 def test_unregister_in_presence_of_queues(cluster: Cluster, domain_urls: tc.DomainUrls):
     du = domain_urls
-    leader = cluster.last_known_leader
     proxies = cluster.proxy_cycle()
 
     producer = next(proxies).create_client("producer")
     producer.open(du.uri_fanout, flags=["write,ack"], succeed=True)
 
+    # Queue INTERNALS must be issued on the partition primary (see note in
+    # test_open_alarm_authorize_post).
+    primary = cluster.last_known_leader.wait_queue_primary(du.uri_fanout)
+
     producer.post(du.uri_fanout, ["before-unregister"], block=True)
-    leader.dump_queue_internals(du.domain_fanout, tc.TEST_QUEUE)
+    primary.dump_queue_internals(du.domain_fanout, tc.TEST_QUEUE)
 
     foo = next(proxies).create_client("foo")
     foo.open(du.uri_fanout_foo, flags=["read"], succeed=True)
@@ -277,9 +289,9 @@ def test_unregister_in_presence_of_queues(cluster: Cluster, domain_urls: tc.Doma
 
     @attempt(3)
     def _():
-        leader.dump_queue_internals(du.domain_fanout, tc.TEST_QUEUE)
-        assert leader.outputs_substr("Num virtual storages: 2")
-        assert leader.outputs_substr("foo: status=unauthorized")
+        primary.dump_queue_internals(du.domain_fanout, tc.TEST_QUEUE)
+        assert primary.outputs_substr("Num virtual storages: 2")
+        assert primary.outputs_substr("foo: status=unauthorized")
 
     test_logger.info("confirm msg 1 for bar, expecting 1 msg in storage")
     time.sleep(1)  # Let the message reach the proxy
@@ -287,8 +299,8 @@ def test_unregister_in_presence_of_queues(cluster: Cluster, domain_urls: tc.Doma
 
     @attempt(3)
     def _():
-        leader.dump_queue_internals(du.domain_fanout, tc.TEST_QUEUE)
-        assert leader.outputs_regex("Storage.*: 1 messages")
+        primary.dump_queue_internals(du.domain_fanout, tc.TEST_QUEUE)
+        assert primary.outputs_regex("Storage.*: 1 messages")
 
     test_logger.info("confirm msg 1 for baz, expecting 0 msg in storage")
     time.sleep(1)  # Let the message reach the proxy
@@ -296,8 +308,8 @@ def test_unregister_in_presence_of_queues(cluster: Cluster, domain_urls: tc.Doma
 
     @attempt(3)
     def _():
-        leader.dump_queue_internals(du.domain_fanout, tc.TEST_QUEUE)
-        assert leader.outputs_regex("Storage.*: 0 messages")
+        primary.dump_queue_internals(du.domain_fanout, tc.TEST_QUEUE)
+        assert primary.outputs_regex("Storage.*: 0 messages")
 
     producer.post(du.uri_fanout, ["after-unregister"], block=True)
 
@@ -324,8 +336,8 @@ def test_unregister_in_presence_of_queues(cluster: Cluster, domain_urls: tc.Doma
 
     @attempt(3)
     def _():
-        leader.dump_queue_internals(du.domain_fanout, tc.TEST_QUEUE)
-        leader.outputs_regex(r"foo.*: status=alive")
+        primary.dump_queue_internals(du.domain_fanout, tc.TEST_QUEUE)
+        primary.outputs_regex(r"foo.*: status=alive")
 
     assert foo.wait_push_event()
     foo_msgs = foo.list(du.uri_fanout_foo, block=True)
@@ -335,11 +347,14 @@ def test_unregister_in_presence_of_queues(cluster: Cluster, domain_urls: tc.Doma
 
 def test_dynamic_twice_alarm_once(cluster: Cluster, domain_urls: tc.DomainUrls):
     uri_fanout = domain_urls.uri_fanout
-    leader = cluster.last_known_leader
     proxies = cluster.proxy_cycle()
 
     producer = next(proxies).create_client("producer")
     producer.open(uri_fanout, flags=["write,ack"], succeed=True)
+
+    # The queue engine's ALARMs originate on the partition primary (see note in
+    # test_open_alarm_authorize_post).
+    primary = cluster.last_known_leader.wait_queue_primary(uri_fanout)
 
     # ---------------------------------------------------------------------
     # Create a consumer for the unauthorized substream. This should succeed
@@ -350,19 +365,19 @@ def test_dynamic_twice_alarm_once(cluster: Cluster, domain_urls: tc.DomainUrls):
         consumer1.open(f"{uri_fanout}?id=quux", flags=["read"], block=True)
         == Client.e_SUCCESS
     )
-    assert leader.alarms("FANOUT_UNREGISTERED_APPID")
+    assert primary.alarms("FANOUT_UNREGISTERED_APPID")
 
     # ---------------------------------------------------------------------
     # Create a consumer for the same unauthorized substream. This should
     # succeed and no ALARM should be generated.
 
-    leader.drain()
+    primary.drain()
     consumer2 = next(proxies).create_client("consumer2")
     assert (
         consumer2.open(f"{uri_fanout}?id=quux", flags=["read"], block=True)
         == Client.e_SUCCESS
     )
-    assert not leader.alarms("FANOUT_UNREGISTERED_APPID")
+    assert not primary.alarms("FANOUT_UNREGISTERED_APPID")
 
     # ---------------------------------------------------------------------
     # Close both unauthorized substreams and re-open new one.  It should
@@ -375,7 +390,7 @@ def test_dynamic_twice_alarm_once(cluster: Cluster, domain_urls: tc.DomainUrls):
         consumer2.open(f"{uri_fanout}?id=quux", flags=["read"], block=True)
         == Client.e_SUCCESS
     )
-    assert leader.alarms("FANOUT_UNREGISTERED_APPID")
+    assert primary.alarms("FANOUT_UNREGISTERED_APPID")
 
 
 @set_max_messages
@@ -385,11 +400,14 @@ def test_unauthorized_appid_doesnt_hold_messages(
     # Goal: check that dynamically allocated, but not yet authorized,
     # substreams do not hold messages in fanout queues.
     uri_fanout = domain_urls.uri_fanout
-    leader = cluster.last_known_leader
     proxies = cluster.proxy_cycle()
 
     producer = next(proxies).create_client("producer")
     producer.open(uri_fanout, flags=["write,ack"], succeed=True)
+
+    # The queue engine's ALARMs originate on the partition primary (see note in
+    # test_open_alarm_authorize_post).
+    primary = cluster.last_known_leader.wait_queue_primary(uri_fanout)
 
     # ---------------------------------------------------------------------
     # fill queue to capacity
@@ -403,7 +421,7 @@ def test_unauthorized_appid_doesnt_hold_messages(
     # dynamically create a substream
     unauthorized_consumer = next(proxies).create_client("unauthorized_consumer")
     unauthorized_consumer.open(f"{uri_fanout}?id=unauthorized", flags=["read"])
-    assert leader.alarms("FANOUT_UNREGISTERED_APPID")
+    assert primary.alarms("FANOUT_UNREGISTERED_APPID")
 
     # ---------------------------------------------------------------------
     # consume all the messages in all the authorized substreams
@@ -435,7 +453,6 @@ def test_deauthorized_appid_doesnt_hold_messages(
     # Goal: check that dynamically de-authorized substreams do not hold
     # messages in fanout queues.
     uri_fanout = domain_urls.uri_fanout
-    leader = cluster.last_known_leader
     proxies = cluster.proxy_cycle()
 
     # ---------------------------------------------------------------------
@@ -443,10 +460,15 @@ def test_deauthorized_appid_doesnt_hold_messages(
     producer = next(proxies).create_client("producer")
     producer.open(uri_fanout, flags=["write,ack"], succeed=True)
 
+    # 'force_gc_queues' only unassigns queues on the partition's Raft primary
+    # ('gcExpiredQueues' bails with rc_SELF_IS_NOT_PRIMARY otherwise); in
+    # FSM/Raft mode that primary is independent of the CSL primary.
+    primary = cluster.last_known_leader.wait_queue_primary(uri_fanout)
+
     # ---------------------------------------------------------------------
     # and remove all the queues otherwise unregistration will fail
     producer.close(uri_fanout, succeed=True)
-    leader.force_gc_queues(succeed=True)
+    primary.force_gc_queues(succeed=True)
 
     # ---------------------------------------------------------------------
     # unauthorize 'bar' and 'baz'
@@ -546,7 +568,11 @@ def test_two_consumers_of_unauthorized_app(
     # ---------------------------------------------------------------------
     # shutdown and wait
 
-    leader.stop()
+    # The scenario under test is the queue's *primary* shutting down, which in
+    # FSM/Raft mode need not be the CSL leader; resolve and stop it (the queue
+    # was assigned when the consumers opened it above).
+    primary = leader.wait_queue_primary(du.uri_fanout)
+    primary.stop()
 
 
 @tweak.cluster.cluster_attributes.is_cslmode_enabled(False)
@@ -555,11 +581,14 @@ def test_open_authorize_restart_from_non_FSM_to_FSM(
     cluster: Cluster, domain_urls: tc.DomainUrls
 ):
     du = domain_urls
-    leader = cluster.last_known_leader
     proxies = cluster.proxy_cycle()
 
     producer = next(proxies).create_client("producer")
     producer.open(du.uri_fanout, flags=["write,ack"], succeed=True)
+
+    # Queue INTERNALS must be issued on the partition primary (see note in
+    # test_open_alarm_authorize_post).
+    primary = cluster.last_known_leader.wait_queue_primary(du.uri_fanout)
 
     all_app_ids = DEFAULT_APP_IDS + ["quux"]
 
@@ -590,7 +619,7 @@ def test_open_authorize_restart_from_non_FSM_to_FSM(
     # ---------------------------------------------------------------------
     # Ensure that all substreams get 2 messages
 
-    leader.dump_queue_internals(du.domain_fanout, tc.TEST_QUEUE)
+    primary.dump_queue_internals(du.domain_fanout, tc.TEST_QUEUE)
     # pylint: disable=cell-var-from-loop; passing lambda to 'wait_until' is safe
     for app_id in all_app_ids:
         test_logger.info(f"Check if {app_id} has seen 2 messages")
@@ -698,11 +727,14 @@ def test_open_authorize_change_primary(multi_node: Cluster, domain_urls: tc.Doma
     before becoming Primary.
     """
     du = domain_urls
-    leader = multi_node.last_known_leader
     proxies = multi_node.proxy_cycle()
 
     producer = next(proxies).create_client("producer")
     producer.open(du.uri_fanout, flags=["write,ack"], succeed=True)
+
+    # In FSM/Raft mode the CSL leader need not own the queue's partition; target
+    # the partition primary (this test then kills it to force a new primary).
+    primary = multi_node.last_known_leader.wait_queue_primary(du.uri_fanout)
 
     all_app_ids = DEFAULT_APP_IDS + ["new_app"]
 
@@ -723,7 +755,7 @@ def test_open_authorize_change_primary(multi_node: Cluster, domain_urls: tc.Doma
     # ---------------------------------------------------------------------
     # Ensure that all substreams get 2 messages
 
-    leader.dump_queue_internals(du.domain_fanout, tc.TEST_QUEUE)
+    primary.dump_queue_internals(du.domain_fanout, tc.TEST_QUEUE)
 
     assert wait_until(
         lambda: len(consumer.list(f"{du.uri_fanout}?id={app_id}", block=True)) == 1,
@@ -732,12 +764,15 @@ def test_open_authorize_change_primary(multi_node: Cluster, domain_urls: tc.Doma
 
     consumer.close(f"{du.uri_fanout}?id={app_id}", block=True, succeed=True)
 
-    leader.check_exit_code = False
-    leader.kill()
-    leader.wait()
+    primary.check_exit_code = False
+    primary.kill()
+    primary.wait()
 
-    # wait for new leader
-    leader = multi_node.wait_leader()
+    # Killing the primary forces the partition to elect a new one (a Replica
+    # takes over); wait for the new leader and the queue's new primary before
+    # opening the new consumer.  Query a surviving node (the killed primary may
+    # or may not have been the CSL leader).
+    multi_node.wait_leader().wait_queue_primary(du.uri_fanout)
 
     consumer = next(proxies).create_client(app_id)
     consumer.open(f"{du.uri_fanout}?id=new_app", flags=["read"], succeed=True)
@@ -849,10 +884,11 @@ def test_old_data_new_app(
                 f"{tc.URI_FANOUT_SC}?id={app_id}", flags=["read"], succeed=True
             )
 
-        # Once queue is created
-        leader = cluster.last_known_leader
-        leader.list_messages(tc.DOMAIN_FANOUT_SC, tc.TEST_QUEUE, 0, 100)
-        assert leader.outputs_substr("Printing 5 message(s)", 5)
+        # Once queue is created, resolve its partition primary: the LIST/
+        # INTERNALS admin commands must land there, not on the CSL leader.
+        primary = cluster.last_known_leader.wait_queue_primary(tc.URI_FANOUT_SC)
+        primary.list_messages(tc.DOMAIN_FANOUT_SC, tc.TEST_QUEUE, 0, 100)
+        assert primary.outputs_substr("Printing 5 message(s)", 5)
 
         new_consumer_1 = next(proxies).create_client(new_app_1)
         new_consumer_1.open(
@@ -869,7 +905,7 @@ def test_old_data_new_app(
             f"{tc.URI_FANOUT_SC}?id={new_app_3}", flags=["read"], succeed=True
         )
 
-        leader.dump_queue_internals(tc.DOMAIN_FANOUT_SC, tc.TEST_QUEUE)
+        primary.dump_queue_internals(tc.DOMAIN_FANOUT_SC, tc.TEST_QUEUE)
 
         for app_id in DEFAULT_APP_IDS:
             test_logger.info(f"Check if {app_id} has seen 5 messages")
@@ -914,12 +950,13 @@ def test_old_data_new_app(
 
     cluster.start_nodes(wait_leader=True, wait_ready=True)
 
-    leader = cluster.last_known_leader
-
     _verify_clients(andConfirm=True)
 
-    leader.list_messages(tc.DOMAIN_FANOUT_SC, tc.TEST_QUEUE, 0, 100)
-    assert leader.outputs_substr("Printing 0 message(s)", 5)
+    # LIST must target the queue's partition primary (see note in
+    # test_open_alarm_authorize_post).
+    primary = cluster.last_known_leader.wait_queue_primary(tc.URI_FANOUT_SC)
+    primary.list_messages(tc.DOMAIN_FANOUT_SC, tc.TEST_QUEUE, 0, 100)
+    assert primary.outputs_substr("Printing 0 message(s)", 5)
 
 
 def test_proxy_partial_push(
@@ -964,12 +1001,15 @@ def test_gc_old_data_new_app(cluster: Cluster, domain_urls: tc.DomainUrls):
     Apps states first.
     """
     du = domain_urls
-    leader = cluster.last_known_leader
     proxies = cluster.proxy_cycle()
     proxy = next(proxies)
 
     producer = proxy.create_client("producer")
     producer.open(du.uri_fanout, flags=["write,ack"], succeed=True)
+
+    # GC, storage LIST and the 'garbage-collected' log all originate on the
+    # queue's partition primary (see note in test_open_alarm_authorize_post).
+    primary = cluster.last_known_leader.wait_queue_primary(du.uri_fanout)
 
     app_id = DEFAULT_APP_IDS[0]
     consumer = proxy.create_client(app_id)
@@ -997,21 +1037,21 @@ def test_gc_old_data_new_app(cluster: Cluster, domain_urls: tc.DomainUrls):
 
     time.sleep(1)
     # Need to make FileStore idle to trigger GC, otherwise it will run in 5 secs
-    leader.command(f"CLUSTERS CLUSTER {leader.cluster_name} STORAGE SUMMARY")
+    primary.command(f"CLUSTERS CLUSTER {primary.cluster_name} STORAGE SUMMARY")
 
     # Observe that the message was GC'd from the queue.
-    assert leader.capture(
+    assert primary.capture(
         f"queue \\[{du.uri_fanout}\\].*garbage-collected \\[1\\] messages", timeout=10
     )
 
-    leader.list_messages(du.domain_fanout, tc.TEST_QUEUE, 0, 100)
-    assert leader.outputs_substr("Printing 0 message(s)", 5)
+    primary.list_messages(du.domain_fanout, tc.TEST_QUEUE, 0, 100)
+    assert primary.outputs_substr("Printing 0 message(s)", 5)
 
-    leader.list_messages(du.domain_fanout, tc.TEST_QUEUE, 0, 100, appid=app_id)
-    assert leader.outputs_substr("Printing 0 message(s)", 5)
+    primary.list_messages(du.domain_fanout, tc.TEST_QUEUE, 0, 100, appid=app_id)
+    assert primary.outputs_substr("Printing 0 message(s)", 5)
 
-    leader.list_messages(du.domain_fanout, tc.TEST_QUEUE, 0, 100, appid=new_app_1)
-    assert leader.outputs_substr("Printing 0 message(s)", 5)
+    primary.list_messages(du.domain_fanout, tc.TEST_QUEUE, 0, 100, appid=new_app_1)
+    assert primary.outputs_substr("Printing 0 message(s)", 5)
 
 
 @tweak.cluster.queue_operations.shutdown_timeout_ms(1)

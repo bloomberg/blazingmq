@@ -816,6 +816,27 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
 
     void restoreStateCluster(int partitionId);
 
+    /// As the active leader, reconcile every assigned queue's cluster-state
+    /// App set against its domain config, repairing drift that no live
+    /// `onDomainReconfigured` covered (an App changed while stopped, or while
+    /// there was no active leader).  Loads each domain asynchronously.
+    ///
+    /// THREAD: This method is called from the Cluster's dispatcher thread.
+    void reconcileLeaderQueuesAppIds();
+
+    /// Callback for the (asynchronous) domain load kicked off by
+    /// `reconcileLeaderQueuesAppIds`; re-dispatches to the cluster dispatcher.
+    ///
+    /// THREAD: This method can be called from any thread.
+    void onReconcileDomain(const bmqp_ctrlmsg::Status& status,
+                           mqbi::Domain*               domain);
+
+    /// Reconcile the App set of each assigned queue in the specified `domain`
+    /// against its config, issuing a `QueueUpdateAdvisory` per drifting queue.
+    ///
+    /// THREAD: This method is called from the Cluster's dispatcher thread.
+    void reconcileDomainQueuesAppIdsDispatched(mqbi::Domain* domain);
+
     bmqt::GenericResult::Enum
     restoreStateHelper(QueueContext*        queueContext,
                        mqbnet::ClusterNode* activeNode,

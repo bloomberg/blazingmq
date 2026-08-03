@@ -284,20 +284,72 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
         def check():
             res = admin.send_admin(f"CLUSTERS CLUSTER {self.cluster_name} STATUS")
             assert isinstance(res, str)
-            m = re.search(
-                rf"PartitionId: {partition_id}\b.*?Primary Node\s*:\s*\[([^,]+),",
-                res,
-                re.DOTALL,
-            )
-            if m:
-                primary_name[0] = m.group(1)
-                return True
-            return False
+            primary_name[0] = self._parse_partition_primary(res, partition_id)
+            return primary_name[0] is not None
 
         wait_until(check, timeout=timeout)
         if primary_name[0] is None:
             self._error(f"Could not determine primary for partition {partition_id}")
         return self.cluster.process(primary_name[0])
+
+    def wait_queue_primary(self, uri, timeout=BLOCK_TIMEOUT) -> Self:
+        """
+        Return the Broker object currently primary for the partition that
+        owns the queue identified by 'uri', polling this node until both the
+        queue's partition assignment and that partition's primary are
+        reported (or 'timeout' elapses).
+
+        Convenience wrapper over 'wait_partition_primary' for tests that know
+        a queue URI but not its partition: partition assignment is chosen by
+        the leader and stored in the CSL, so it is not derivable client-side.
+
+        A single 'CLUSTERS CLUSTER ... STATUS' response already carries both
+        the queue->partition mapping (Queues section) and the
+        partition->primary mapping (Partitions section), so this needs no
+        separate 'INTERNALS' lookup and gets both from one atomic snapshot
+        (avoiding a race between two admin commands).  It also reflects
+        cluster-wide CSL assignment rather than whether this particular node
+        has locally created the queue object.
+        """
+
+        admin = self.open_admin_client()
+        primary_name = [None]
+
+        def check():
+            res = admin.send_admin(f"CLUSTERS CLUSTER {self.cluster_name} STATUS")
+            assert isinstance(res, str)
+            # Queues section line layout (humanprinter.cpp printQueuesInfo):
+            #   <QueueKey>   <Partition>   <Internal QueueId>   <QueueUri>
+            # URI is last on the line, so anchor to end-of-line to avoid
+            # matching a queue whose URI is a prefix of another's.
+            m = re.search(
+                rf"^\s*\S+\s+(\d+)\b.*{re.escape(uri)}\s*$",
+                res,
+                re.MULTILINE,
+            )
+            if m is None:
+                return False
+            primary_name[0] = self._parse_partition_primary(res, m.group(1))
+            return primary_name[0] is not None
+
+        wait_until(check, timeout=timeout)
+        if primary_name[0] is None:
+            self._error(f"Could not determine primary for queue {uri}")
+        return self.cluster.process(primary_name[0])
+
+    @staticmethod
+    def _parse_partition_primary(status_res, partition_id):
+        """
+        Extract the primary node name for 'partition_id' from a
+        'CLUSTERS CLUSTER ... STATUS' admin response 'status_res', or None if
+        the partition has no reported primary.
+        """
+        m = re.search(
+            rf"PartitionId: {partition_id}\b.*?Primary Node\s*:\s*\[([^,]+),",
+            status_res,
+            re.DOTALL,
+        )
+        return m.group(1) if m else None
 
     def dump_queue_internals(self, domain, queue):
         """
