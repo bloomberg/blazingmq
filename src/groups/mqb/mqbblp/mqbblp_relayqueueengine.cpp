@@ -336,22 +336,25 @@ void RelayQueueEngine::onHandleConfigured(
 {
     // executed by *ANY* thread
 
-    bsl::shared_ptr<RelayQueueEngine> strongSelf = self.lock();
-    if (!strongSelf) {
-        // The engine was destroyed.
-        return;  // RETURN
-    }
+    // NOTE: 'this' must not be dereferenced here: the engine may already be
+    // in the process of being destroyed, concurrently, on the queue's
+    // dispatcher thread.  Use 'handle' (valid independently of the engine's
+    // lifetime) to reach the queue, and forward 'self' as-is instead of
+    // re-deriving it from 'd_self'.  'onHandleConfiguredDispatched' performs
+    // the liveness check, once truly running on the queue's dispatcher
+    // thread.  This also guarantees 'context' -- whose destructor invokes
+    // the completion callback -- is always destroyed on that same thread.
 
-    d_queueState_p->queue()->dispatcher()->execute(
+    handle->queue()->dispatcher()->execute(
         bdlf::BindUtil::bind(&RelayQueueEngine::onHandleConfiguredDispatched,
                              this,
-                             d_self.acquireWeak(),
+                             self,
                              status,
                              upStreamParameters,
                              handle,
                              downStreamParameters,
                              context),
-        d_queueState_p->queue());
+        handle->queue());
 
     // 'onHandleConfiguredDispatched' is now responsible for calling the
     // callback: either 'ClusterQueueHelper::onHandleConfigured' or
