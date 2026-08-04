@@ -85,11 +85,14 @@ class TestPoisonMessages:
             consumers.append(consumer)
 
         replica = multi_node.process(proxy.get_active_node())
-        leader = multi_node.last_known_leader
+        # 'LIST' must be issued on the queue's partition primary, which in Raft
+        # mode need not be the CSL leader.  The proxy's active node is in the
+        # datacenter opposite the primary, so it stays up and can be queried.
+        primary = replica.wait_queue_primary(uri)
 
         self._list_messages(proxy, domain, ["1"])
         self._list_messages(replica, domain, ["1"])
-        self._list_messages(leader, domain, ["1"])
+        self._list_messages(primary, domain, ["1"])
 
         new_consumers = []
 
@@ -109,7 +112,7 @@ class TestPoisonMessages:
                 # should not remove the message if there are other subStreams
                 self._list_messages(proxy, domain, ["1"])
                 self._list_messages(replica, domain, ["1"])
-                self._list_messages(leader, domain, ["1"])
+                self._list_messages(primary, domain, ["1"])
 
         # post a new message to the apps and verify the old message is gone
         producer.post(uri, payload=["2"], succeed=True)
@@ -121,25 +124,21 @@ class TestPoisonMessages:
 
         self._list_messages(proxy, domain, ["2"])
         self._list_messages(replica, domain, ["2"])
-        self._list_messages(leader, domain, ["2"])
+        self._list_messages(primary, domain, ["2"])
 
-        # change the leader and check if the original message ('1') is still
-        # gone
-        replica.set_quorum(1)
-        nodes = multi_node.nodes(exclude=[replica, leader])
-        for node in nodes:
-            node.set_quorum(4)
-        leader.stop()
-        leader = replica
-        assert leader == multi_node.wait_leader()
+        # Change the primary and check that the original message ('1') is still
+        # gone.  Which node takes over is immaterial to poison handling, so
+        # fail over the queue's current primary and discover its replacement.
+        primary.stop()
 
-        # Wait for new leader to become active primary by opening a queue from
-        # a new producer for synchronization.
+        # Wait for the new primary to become active by opening a queue from a
+        # new producer for synchronization.
         producer2 = proxy.create_client("producer2")
         producer2.open(uri, flags=["write", "ack"], succeed=True)
 
+        primary = replica.wait_queue_primary(uri)
         self._list_messages(proxy, domain, ["2"])
-        self._list_messages(leader, domain, ["2"])
+        self._list_messages(primary, domain, ["2"])
 
         producer.exit_gracefully()
         producer2.exit_gracefully()
