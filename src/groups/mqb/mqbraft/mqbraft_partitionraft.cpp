@@ -243,6 +243,19 @@ void PartitionRaft::dispatchOutput(RaftNodeOutput* output)
         }
     }
 
+    // If this node just lost leadership, discard any writes it had buffered as
+    // leader (e.g. an in-flight rollover) BEFORE applying committed entries
+    // below.  The apply loop runs 'applyCommittedEntryAsReplica' (state is
+    // already FOLLOWER here), whose deletion path reaches
+    // 'invalidatePendingWriteHandle'; against a stale buffer -- whose sequence
+    // numbers no longer match the new leader's committed records -- that trips
+    // a range assertion.  These buffered writes never committed (the new
+    // leader truncates them), so dropping them now is safe.
+    if (output->d_stateChanged && !isLeader()) {
+        d_isRolloverPending = false;
+        d_raftLog_mp->dropPendingWrites();
+    }
+
     bool hadRollover = false;
 
     for (bsl::vector<LogEntry>::size_type i = 0;
@@ -281,28 +294,14 @@ void PartitionRaft::dispatchOutput(RaftNodeOutput* output)
         }
     }
 
-    if (output->d_stateChanged) {
-        if (isLeader()) {
-            // Just became leader.  The become-leader sync point is NOT written
-            // here: it is the first journal record under the new leaseId
-            // (== term), and strict ordering requires the CSL's artificial
-            // 'partitionPrimaryAdvisory' (carrying this leaseId) to commit
-            // first.  'proposeDeferredSyncPoint' (driven from the orchestrator
-            // once the advisory commits and the partition reaches E_ACTIVE)
-            // determines eligibility itself, lazily, by comparing the log's
-            // last term to the current term -- no bookkeeping is needed here.
-        }
-        else {
-            // Lost leadership: any in-flight rollover is abandoned.  The
-            // uncommitted 'e_ROLLOVER' is (or will be) truncated by the new
-            // leader -- it never rolled over.  Reset the flag so a future
-            // leadership term is not stuck buffering every write, and drop the
-            // buffered writes (never acked) and their placeholder records.
-            d_isRolloverPending = false;
-
-            d_raftLog_mp->dropPendingWrites();
-        }
-    }
+    // Note on leadership changes: becoming leader needs no action here.  The
+    // become-leader sync point is NOT written here -- it is the first journal
+    // record under the new leaseId (== term), and strict ordering requires the
+    // CSL's artificial 'partitionPrimaryAdvisory' (carrying this leaseId) to
+    // commit first.  'proposeDeferredSyncPoint' (driven from the orchestrator
+    // once the advisory commits and the partition reaches E_ACTIVE) handles it
+    // lazily.  Losing leadership (dropping any buffered writes from an
+    // abandoned rollover) is handled before the apply loop above.
 
     // On any leadership change record the primary identity on the FileStore
     // and signal the cluster.  'd_stateChanged' covers self becoming/losing
