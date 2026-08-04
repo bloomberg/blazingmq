@@ -68,20 +68,24 @@ class TestMaxunconfirmed:
         self.consumer.wait_push_event()
         assert len(self.consumer.list(uri_priority, block=True)) == 1
 
-        # Shutdown the primary
-        leader = multi_node.last_known_leader
+        # Fail over the queue's primary and verify that maxUnconfirmed
+        # delivery survives, regardless of which node takes over.  In Raft mode
+        # the CSL leader and a queue's partition primary are elected
+        # independently, so target the queue's primary directly rather than the
+        # cluster leader.
         active_node = multi_node.process(self.proxy.get_active_node())
+        primary = active_node.wait_queue_primary(uri_priority)
 
-        active_node.set_quorum(1)
-        nodes = multi_node.nodes(exclude=[active_node, leader])
-        for node in nodes:
-            node.set_quorum(4)
+        primary.stop()
 
-        leader.stop()
-
-        # Make sure the active node is new primary
-        leader = active_node
-        assert leader == multi_node.wait_leader()
+        # A surviving node must take over the queue's partition.  The proxy's
+        # active node is in the datacenter opposite the primary, so it stays up
+        # and can be queried.  Right after the stop the CSL still reports the
+        # stopped node as primary until the partition's Raft group re-elects, so
+        # poll until the reported primary actually changes.
+        assert wait_until(
+            lambda: active_node.wait_queue_primary(uri_priority) != primary, 30
+        )
 
         # Confirm 1 message
         self.consumer.confirm(uri_priority, "*", succeed=True)
