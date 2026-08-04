@@ -19,16 +19,13 @@ if(DEFINED ENV{CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES})
   set(CMAKE_C_STANDARD_INCLUDE_DIRECTORIES $ENV{CMAKE_CXX_STANDARD_INCLUDE_DIRECTORIES})
 endif()
 
-# The toolchain file is re-evaluated on every `cmake` configure. Because the
-# flag construction below seeds itself from CMAKE_CXX_FLAGS_DEBUG and then
-# FORCE-writes the result back into that same cache variable (via
-# set_build_type), a naive re-run would append the flags again and again,
-# changing the compile flags of every translation unit and triggering a full
-# rebuild. Guard the construction so it only runs once per cache.
-if(NOT DEFINED _BMQ_SANITIZER_TOOLCHAIN_APPLIED)
+if(NOT DEFINED _BMQ_BASE_CXX_FLAGS_DEBUG)
+  set(_BMQ_BASE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG}" CACHE INTERNAL "")
+  set(_BMQ_BASE_C_FLAGS_DEBUG   "${CMAKE_C_FLAGS_DEBUG}"   CACHE INTERNAL "")
+endif()
 
-set(TOOLCHAIN_CXX_FLAGS "${CMAKE_CXX_FLAGS_DEBUG}")
-set(TOOLCHAIN_C_FLAGS   "${CMAKE_C_FLAGS_DEBUG}")
+set(TOOLCHAIN_CXX_FLAGS "${_BMQ_BASE_CXX_FLAGS_DEBUG}")
+set(TOOLCHAIN_C_FLAGS   "${_BMQ_BASE_C_FLAGS_DEBUG}")
 
 # Build shared flags.
 string(CONCAT TOOLCHAIN_SHARED_FLAGS
@@ -144,8 +141,3 @@ set_build_type(DEBUG)
 
 # Disable GNU c++ extensions.
 set(CMAKE_CXX_EXTENSIONS OFF)
-
-# Mark the flags as applied so subsequent configure runs don't re-append them.
-set(_BMQ_SANITIZER_TOOLCHAIN_APPLIED ON CACHE INTERNAL "sanitizer toolchain flags applied")
-
-endif()
