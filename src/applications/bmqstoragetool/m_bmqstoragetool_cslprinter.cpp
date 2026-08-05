@@ -339,7 +339,7 @@ void HumanReadableCslPrinter::printSummaryResult(
             d_ostream << '\n'
                       << recordCount.d_updateCount
                       << " update record(s) found, including:" << '\n';
-            bsl::vector<const char*>           fields(d_allocator_p);
+            bsl::vector<bsl::string>           fields(d_allocator_p);
             bmqp_ctrlmsg::ClusterMessageChoice clusterMessageChoice(
                 d_allocator_p);
             for (CslUpdateChoiceMap::const_iterator it =
@@ -349,7 +349,7 @@ void HumanReadableCslPrinter::printSummaryResult(
                 clusterMessageChoice.makeSelection(it->first);
                 fields.push_back(clusterMessageChoice.selectionName());
             }
-            bmqu::AlignedPrinter printer(d_ostream, &fields);
+            bmqu::AlignedPrinter printer(d_ostream, fields);
             for (CslUpdateChoiceMap::const_iterator it =
                      updateChoiceMap.begin();
                  it != updateChoiceMap.end();
