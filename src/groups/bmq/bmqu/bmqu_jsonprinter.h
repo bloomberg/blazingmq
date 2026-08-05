@@ -37,7 +37,7 @@
 // Next, create an instance of bmqu::JsonPrinter:
 //..
 //  bsl::stringstream             output;
-//  bmqu::JsonPrinter<true, 0, 4> printer(output, fields);
+//  bmqu::JsonPrinter<true, true, 0, 4> printer(output, fields);
 //..
 //
 // Last, print field values accordingly:

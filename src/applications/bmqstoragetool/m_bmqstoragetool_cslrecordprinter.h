@@ -151,9 +151,8 @@ void CslRecordPrinter<PRINTER_TYPE>::printRecordDetails(
     d_fields.push_back("LeaderAdvisoryWords");
     d_fields.push_back("Timestamp");
     d_fields.push_back("Epoch");
-    // It's ok to pass a vector by reference and push elements after that as
-    // we've reserved it's capacity in advance. Hense, no reallocations will
-    // happen and the reference remains valid.
+    // The printer holds a reference to this vector, so appending fields
+    // afterwards is safe; the reference stays valid even across reallocation.
     d_printer_mp.load(new (*d_allocator_p) PRINTER_TYPE(d_ostream, d_fields),
                       d_allocator_p);
 
@@ -198,9 +197,8 @@ void CslRecordPrinter<PRINTER_TYPE>::printRecordsSummary(
     d_fields.push_back("CommitRecords");
     d_fields.push_back("AckRecords");
 
-    // It's ok to pass a vector by reference and push elements after that as
-    // we've reserved it's capacity in advance. Hense, no reallocations will
-    // happen and the reference remains valid.
+    // The printer holds a reference to this vector, so appending fields
+    // afterwards is safe; the reference stays valid even across reallocation.
     d_printer_mp.load(new (*d_allocator_p) PRINTER_TYPE(d_ostream, d_fields),
                       d_allocator_p);
 
