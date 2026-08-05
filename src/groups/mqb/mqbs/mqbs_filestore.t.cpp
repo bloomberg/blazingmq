@@ -1433,6 +1433,116 @@ static void test5_writeHeadFollowsAppliedLease()
     BMQTST_ASSERT_EQ(0, rc);
 }
 
+static void test6_leaseTransitionWithoutSeal()
+// ------------------------------------------------------------------------
+// LEASE TRANSITION WITHOUT OLD-LEASE SYNC POINT
+//
+// Concerns:
+//   'setActivePrimary' does not write a sync point on behalf of the previous
+//   primary at the primary-switch boundary.  Verify that a journal whose
+//   lease transition is *not* separated by an old-lease sync point (the last
+//   record of the previous lease is a non-sync-point record) recovers
+//   cleanly when the FileStore is closed and re-opened.
+//
+// Testing:
+//   setActivePrimary (no old-lease seal), openInRecoveryMode
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
+
+    Tester           tester("./test-cluster123-6");
+    mqbs::FileStore& fs = tester.fileStore();
+
+    int rc = fs.open(0);
+    BMQTST_ASSERT_EQ(0, rc);
+
+    // Set primary with leaseId 1; a sync point is issued -> [1, 1].
+    fs.setActivePrimary(tester.node(), 1);
+    BMQTST_ASSERT_EQ(1U, fs.writeHeadLeaseId());
+    BMQTST_ASSERT_EQ(1ULL, fs.writeHeadSeqNum());
+
+    // Create a storage and register it with the FileStore.
+    bmqt::Uri        queueUri("bmq://si.amw.bmq.stats/testQueue",
+                       bmqtst::TestHelperUtil::allocator());
+    mqbu::StorageKey queueKey(mqbu::StorageKey::BinaryRepresentation(),
+                              "ABCDE");
+
+    mqbmock::Cluster mockCluster(bmqtst::TestHelperUtil::allocator());
+    mqbmock::Domain  mockDomain(&mockCluster,
+                               bmqtst::TestHelperUtil::allocator());
+    mqbconfm::Domain domainCfg(bmqtst::TestHelperUtil::allocator());
+    domainCfg.messageTtl() = bsl::numeric_limits<bsls::Types::Int64>::max();
+    domainCfg.storage().config().makeFileBacked();
+    bmqu::MemOutStream errDesc(bmqtst::TestHelperUtil::allocator());
+    mockDomain.configure(errDesc, domainCfg);
+
+    bsl::shared_ptr<mqbs::ReplicatedStorage> storage_sp;
+    fs.createStorage(&storage_sp, queueUri, queueKey, &mockDomain);
+
+    mqbconfm::Limits limits;
+    limits.messages() = bsl::numeric_limits<bsls::Types::Int64>::max();
+    limits.bytes()    = bsl::numeric_limits<bsls::Types::Int64>::max();
+    limits.messagesWatermarkRatio() = 0.8;
+    limits.bytesWatermarkRatio()    = 0.8;
+    storage_sp->configure(domainCfg.storage().config(),
+                          limits,
+                          domainCfg.messageTtl(),
+                          0);  // maxDeliveryAttempts
+
+    fs.registerStorage(storage_sp.get());
+
+    mqbmock::Queue mockQueue(&mockDomain, bmqtst::TestHelperUtil::allocator());
+    storage_sp->setQueue(&mockQueue);
+
+    // Write non-sync-point records under leaseId 1.
+    mqbs::DataStoreRecordHandle queueHandle;
+    bsls::Types::Uint64         timestamp = bdlt::EpochUtil::convertToTimeT64(
+        bdlt::CurrentTime::utc());
+    rc = fs.writeQueueCreationRecord(&queueHandle,
+                                     queueUri,
+                                     queueKey,
+                                     AppInfos(),
+                                     timestamp,
+                                     true);  // isNewQueue
+    BMQTST_ASSERT_EQ(0, rc);
+
+    StoragePoster poster(storage_sp, bmqtst::TestHelperUtil::allocator());
+    for (size_t i = 0; i < 3; ++i) {
+        BMQTST_ASSERT_EQ(poster.postMessage(), mqbi::StorageResult::e_SUCCESS);
+    }
+    BMQTST_ASSERT_EQ(1U, fs.writeHeadLeaseId());
+    BMQTST_ASSERT_EQ(5ULL, fs.writeHeadSeqNum());
+
+    // Bump the primary leaseId to 2.  A single sync point [2, 1] is issued for
+    // the new lease.
+    fs.setActivePrimary(tester.node(), 2);
+    BMQTST_ASSERT_EQ(2U, fs.writeHeadLeaseId());
+    BMQTST_ASSERT_EQ(1ULL, fs.writeHeadSeqNum());
+
+    // Write a few more message records under leaseId 2.
+    for (size_t i = 0; i < 3; ++i) {
+        BMQTST_ASSERT_EQ(poster.postMessage(), mqbi::StorageResult::e_SUCCESS);
+    }
+    BMQTST_ASSERT_EQ(2U, fs.writeHeadLeaseId());
+
+    const bsls::Types::Uint64 numRecords = fs.numRecords();
+    BMQTST_ASSERT_D("records should exist before reopen", numRecords > 0);
+
+    // Close and reopen
+    rc = fs.close();
+    BMQTST_ASSERT_EQ(0, rc);
+
+    rc = fs.open(0);
+    BMQTST_ASSERT_EQ(0, rc);
+    BMQTST_ASSERT_EQ(true, fs.isOpen());
+
+    // Every record from both leaseIds should have been recovered.
+    BMQTST_ASSERT_EQ(fs.numRecords(), numRecords);
+
+    rc = fs.close();
+    BMQTST_ASSERT_EQ(0, rc);
+}
+
 }  // close unnamed namespace
 
 // ============================================================================
@@ -1447,6 +1557,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 6: test6_leaseTransitionWithoutSeal(); break;
     case 5: test5_writeHeadFollowsAppliedLease(); break;
     case 4: test4_recoverMessagesAcrossLeaseIds(); break;
     case 3: test3_partitionFullAlarm(); break;
