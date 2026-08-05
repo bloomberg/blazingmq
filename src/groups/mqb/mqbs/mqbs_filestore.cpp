@@ -493,9 +493,7 @@ int FileStore::openInRecoveryMode(bsl::ostream&    errorDescription,
         BALL_LOG_INFO << out.str();
     }
 
-    bool                appendSyncPoint    = false;
-    unsigned int        primaryLeaseIdCurr = d_writeHeadLeaseId;
-    bsls::Types::Uint64 sequenceNumcurr    = writeHeadSeqNum();
+    bool appendSyncPoint = false;
 
     if (d_isFSMWorkflow) {
         // In FSM workflow, we always point to last record regardless of sync
@@ -1040,23 +1038,6 @@ int FileStore::openInRecoveryMode(bsl::ostream&    errorDescription,
     // been successfully opened.
     BSLS_ASSERT_SAFE(d_config.recoveredQueuesCb());
     d_config.recoveredQueuesCb()(d_config.partitionId(), queueKeyInfoMap);
-
-    if (d_isFSMWorkflow) {
-        if (primaryLeaseIdCurr > d_writeHeadLeaseId ||
-            (primaryLeaseIdCurr == d_writeHeadLeaseId &&
-             sequenceNumcurr > writeHeadSeqNum())) {
-            BALL_LOG_INFO << partitionDesc() << "Current PSN: "
-                          << printPSN(primaryLeaseIdCurr, sequenceNumcurr)
-                          << " is higher than storage-retrieved " << "PSN: "
-                          << printPSN(d_writeHeadLeaseId, writeHeadSeqNum())
-                          << ".  This is possible if self "
-                          << "replica has received primary status advisory "
-                          << "before opening FileStore.  Thus, we keep current"
-                          << " PSN.";
-
-            setWriteHead(primaryLeaseIdCurr, sequenceNumcurr);
-        }
-    }
 
     return rc_SUCCESS;
 }
@@ -5477,6 +5458,7 @@ int FileStore::close(bool flush, bool archive)
     d_isStopping         = false;
     d_flushWhenClosing   = flush;
     d_lastSyncPtReceived = false;
+    d_writeHeadLeaseId   = 0;
 
     BALL_LOG_INFO << partitionDesc() << "Closing partition. ";
 
