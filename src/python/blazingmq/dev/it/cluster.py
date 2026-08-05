@@ -665,7 +665,7 @@ class Cluster(contextlib.AbstractContextManager):
         client.add_sync_log_hook(lambda _: self.check_processes())
         client.start()
         self._clients.append(client)
-        self._logger.debug("%s pid = %s", client._process.pid)
+        self._logger.debug("%s pid = %s", client.name, client._process.pid)
 
         with internal_use(client):
             if start:
