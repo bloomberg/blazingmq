@@ -108,14 +108,12 @@ bool StringUtil::endsWith(const bslstl::StringRef& str,
         return false;  // RETURN
     }
 
-    int i = static_cast<int>(str.length() - 1);
-    int j = static_cast<int>(suffix.length() - 1);
-    while ((i >= 0) && (j >= 0)) {
-        if (str[i--] != suffix[j--]) {
+    const bsl::size_t offset = str.length() - suffix.length();
+    for (bsl::size_t i = 0; i < suffix.length(); ++i) {
+        if (str[offset + i] != suffix[i]) {
             return false;  // RETURN
         }
     }
-
     return true;
 }
 
