@@ -368,6 +368,23 @@ class RaftNode {
         /// once the peer advances past the boundary (success or normal-path
         /// send).
         bool d_boundaryProbeRejected;
+
+        /// True while an AppendEntries is in flight to this peer with no
+        /// response yet.  Mirrors etcd/raft's 'ProgressStateProbe': while
+        /// set, 'sendAppendEntries' skips this peer instead of re-sending --
+        /// since 'nextIndex' only advances on an acked/rejected response, an
+        /// unconditional resend on every 'propose()' would rebuild and
+        /// re-transmit the same not-yet-acked entries (plus every new one
+        /// proposed meanwhile), i.e. an ever-growing, overlapping range,
+        /// instead of the single incremental catch-up 'sendAppendEntries'
+        /// already builds once it is actually allowed to send.
+        bool d_appendEntriesPending;
+
+        /// Ticks elapsed since 'd_appendEntriesPending' was set.  Cleared on
+        /// 'AppendEntriesResp'; if it exceeds a threshold with no response
+        /// (e.g. the response was lost), the pending state is dropped so the
+        /// peer is not stalled forever.  Mirrors 'd_snapshotPendingTicks'.
+        int d_appendEntriesPendingTicks;
     };
 
     bsl::unordered_map<int, PeerState> d_peerStates;

@@ -667,6 +667,7 @@ void RelayQueueEngine::onHandleReleasedDispatched(
         BSLS_ASSERT_SAFE(app->d_cache.empty());
 
         // Remove and delete empty App_State
+        d_appsPendingRedelivery.erase(upstreamSubQueueId);
         d_apps.erase(appStateIt);
         d_appIds.erase(app->appId());
         d_queueState_p->removeUpstreamParameters(upstreamSubQueueId);
@@ -770,11 +771,20 @@ void RelayQueueEngine::processAppRedelivery(unsigned int upstreamSubQueueId,
     }
 
     bsls::TimeInterval delay;
-    app->processDeliveryLists(&delay, d_realStorageIter_mp.get());
+    app->processDeliveryLists(&delay,
+                              d_realStorageIter_mp.get(),
+                              true);  // keepUnavailable: on a replica relay an
+                                      // out-of-order PUSH can arrive before
+                                      // its payload is replicated; keep the
+                                      // entry instead of dropping it
 
     if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(0 == app->redeliveryListSize())) {
         // We only attempt to deliver new messages if we successfully
         // redelivered all messages in the redelivery list.
+
+        // Nothing is parked awaiting its (out-of-order) payload anymore; stop
+        // tracking this App for the `onReplicatedBatch` re-drive.
+        d_appsPendingRedelivery.erase(upstreamSubQueueId);
 
         // Always start with the first element in the App and always stop at
         // the d_storageIter_mp (the start of all Apps processing).
@@ -1038,6 +1048,8 @@ RelayQueueEngine::RelayQueueEngine(QueueState*             queueState,
 , d_appsDeliveryContext(d_queueState_p->queue(), allocator)
 , d_storageIter_mp()
 , d_realStorageIter_mp()
+, d_appsPendingRedelivery(allocator)
+, d_drainingPendingRedelivery(false)
 , d_allocator_p(allocator)
 {
     // PRECONDITIONS
@@ -1540,6 +1552,33 @@ void RelayQueueEngine::afterNewMessage()
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
+    // Re-drive Apps whose out-of-order redelivery PUSHes were parked awaiting
+    // their (replicated) payload: `Queue::onReplicatedBatch` routes here when
+    // a record commits.  Redelivery first, then delivery.  No-op in steady
+    // state (the set is empty).  The guard breaks the recursion through
+    // `processAppRedelivery` -> `afterNewMessage`.
+    if (!d_drainingPendingRedelivery && !d_appsPendingRedelivery.empty()) {
+        d_drainingPendingRedelivery = true;
+
+        // Iterate a copy: `processAppRedelivery` mutates the set.
+        const bsl::unordered_set<unsigned int> pending(d_appsPendingRedelivery,
+                                                       d_allocator_p);
+        for (bsl::unordered_set<unsigned int>::const_iterator it =
+                 pending.begin();
+             it != pending.end();
+             ++it) {
+            App_State* app = findApp(*it);
+            if (app) {
+                processAppRedelivery(*it, app);  // erases *it if it drains
+            }
+            else {
+                d_appsPendingRedelivery.erase(*it);
+            }
+        }
+
+        d_drainingPendingRedelivery = false;
+    }
+
     deliverMessages();
 }
 
@@ -1683,6 +1722,26 @@ void RelayQueueEngine::beforeMessageRemoved(const bmqt::MessageGUID& msgGUID)
             del.removeAllElements();
 
             del.advance();
+        }
+    }
+
+    // The message is leaving storage; drop it from the redelivery list of any
+    // App still awaiting its out-of-order payload, so a parked entry does not
+    // linger once its message is gc'ed/purged.  Only these Apps can hold a
+    // no-data entry (put-aside entries always have their payload), and the set
+    // is empty in steady state.
+    for (bsl::unordered_set<unsigned int>::iterator it =
+             d_appsPendingRedelivery.begin();
+         it != d_appsPendingRedelivery.end();) {
+        App_State* app = findApp(*it);
+        if (app) {
+            app->removeFromRedelivery(msgGUID);
+        }
+        if (app == 0 || 0 == app->redeliveryListSize()) {
+            it = d_appsPendingRedelivery.erase(it);
+        }
+        else {
+            ++it;
         }
     }
 }
@@ -1985,6 +2044,12 @@ void RelayQueueEngine::push(mqbi::StorageMessageAttributes*     attributes,
             }
 
             app->putForRedelivery(msgGUID);
+
+            // Track this App: if its payload has not been replicated/committed
+            // here yet, the entry stays parked and `afterNewMessage` (driven
+            // by `Queue::onReplicatedBatch`) re-drives it once the data
+            // commits.  `processAppRedelivery` below erases it if it delivers.
+            d_appsPendingRedelivery.insert(subQueueId);
 
             // Reusing 'subscriptions' to 'setPushState()' below.
             ordinalPlusOne = 1 + app->ordinal();

@@ -253,13 +253,15 @@ void RaftNode::becomeLeader(RaftNodeOutput* output)
             continue;
         }
         PeerState ps;
-        ps.d_nextIndex            = nextIdx;
-        ps.d_matchIndex           = 0;
-        ps.d_snapshotPending      = false;
-        ps.d_snapshotPendingTicks = 0;
-        ps.d_snapshotPendingIndex = 0;
-        ps.d_snapshotPendingTerm  = 0;
-        ps.d_boundaryProbeRejected = false;
+        ps.d_nextIndex                 = nextIdx;
+        ps.d_matchIndex                = 0;
+        ps.d_snapshotPending           = false;
+        ps.d_snapshotPendingTicks      = 0;
+        ps.d_snapshotPendingIndex      = 0;
+        ps.d_snapshotPendingTerm       = 0;
+        ps.d_boundaryProbeRejected     = false;
+        ps.d_appendEntriesPending      = false;
+        ps.d_appendEntriesPendingTicks = 0;
         d_peerStates[*it]         = ps;
     }
 
@@ -468,15 +470,6 @@ void RaftNode::handleAppendEntries(RaftNodeOutput*    output,
         }
     }
 
-    if (!msg.d_entries.empty()) {
-        BALL_LOG_INFO << "[partition " << d_config.d_partitionId << "] Node "
-                      << d_config.d_selfId << " [term " << d_currentTerm
-                      << "] APPEND " << msg.d_entries.size()
-                      << " ent  from node " << msg.d_sourceNodeId
-                      << ", prevLogIndex=" << msg.d_prevLogIndex
-                      << ", myLastIndex(before)=" << d_log_p->lastIndex();
-    }
-
     // Append new entries (skip entries already present)
     for (bsl::vector<LogEntry>::size_type i = 0; i < msg.d_entries.size();
          ++i) {
@@ -499,11 +492,6 @@ void RaftNode::handleAppendEntries(RaftNodeOutput*    output,
         bsls::Types::Uint64 newCommit = bsl::min(msg.d_leaderCommit,
                                                  d_log_p->lastIndex());
         if (newCommit > d_commitIndex) {
-            BALL_LOG_INFO << "[partition " << d_config.d_partitionId
-                          << "] Node " << d_config.d_selfId << " [term "
-                          << d_currentTerm << "] FOLLOWER commit advance "
-                          << d_commitIndex << " -> " << newCommit
-                          << " (leaderCommit=" << msg.d_leaderCommit << ")";
             d_commitIndex = newCommit;
 
             bsl::vector<LogEntry> committed(d_allocator_p);
@@ -545,14 +533,14 @@ void RaftNode::handleAppendEntriesResp(RaftNodeOutput*    output,
         return;
     }
 
+    // Whatever the outcome, the AppendEntries this responds to is no longer
+    // in flight: clear the guard so a send below (the reject-path retry, or
+    // a commit-triggered broadcast from 'advanceCommitIndex') is not skipped.
+    it->second.d_appendEntriesPending      = false;
+    it->second.d_appendEntriesPendingTicks = 0;
+
     if (msg.d_success) {
         if (msg.d_matchIndex > it->second.d_matchIndex) {
-            BALL_LOG_INFO << "[partition " << d_config.d_partitionId
-                          << "] Node " << d_config.d_selfId << " [term "
-                          << d_currentTerm << "] LEADER peer "
-                          << msg.d_sourceNodeId << " matchIndex "
-                          << it->second.d_matchIndex << " -> "
-                          << msg.d_matchIndex;
             it->second.d_matchIndex = msg.d_matchIndex;
             it->second.d_nextIndex  = msg.d_matchIndex + 1;
         }
@@ -739,6 +727,18 @@ void RaftNode::sendAppendEntries(RaftNodeOutput* output, int peerId)
         return;
     }
 
+    if (it->second.d_appendEntriesPending) {
+        // An AppendEntries is already in flight to this peer with no
+        // response yet (etcd/raft's 'ProgressStateProbe::IsPaused()'):
+        // skip re-sending.  'nextIndex' only advances on that response, so
+        // an unconditional resend here would rebuild the same not-yet-acked
+        // range (plus anything newly proposed since), i.e. retransmit an
+        // ever-growing, overlapping range instead of letting the single
+        // incremental catch-up below cover everything once we may send
+        // again.  'tick()' clears this if it times out with no response.
+        return;
+    }
+
     bsls::Types::Uint64 nextIdx       = it->second.d_nextIndex;
     bsls::Types::Uint64 snapshotIndex = d_log_p->snapshotIndex();
 
@@ -772,6 +772,8 @@ void RaftNode::sendAppendEntries(RaftNodeOutput* output, int peerId)
             }
 
             output->d_messages.push_back(probe);
+            it->second.d_appendEntriesPending      = true;
+            it->second.d_appendEntriesPendingTicks = 0;
             return;
         }
 
@@ -812,6 +814,18 @@ void RaftNode::sendAppendEntries(RaftNodeOutput* output, int peerId)
     }
 
     output->d_messages.push_back(msg);
+
+    if (!msg.d_entries.empty()) {
+        // Only entry-carrying sends set the in-flight guard: an empty
+        // (heartbeat) AppendEntries carries nothing that a resend could
+        // redundantly retransmit, so there is no need for it to gate the
+        // *next* send to this peer (e.g. a data send triggered moments later
+        // by a new 'propose()').  A data send still blocks subsequent sends
+        // -- including heartbeats -- until acked/rejected/timed out, exactly
+        // like 'd_snapshotPending' above.
+        it->second.d_appendEntriesPending      = true;
+        it->second.d_appendEntriesPendingTicks = 0;
+    }
 }
 
 void RaftNode::advanceCommitIndex(RaftNodeOutput* output)
@@ -840,11 +854,9 @@ void RaftNode::advanceCommitIndex(RaftNodeOutput* output)
 
     if (newCommit > d_commitIndex) {
         const bsls::Types::Uint64 commitTerm = d_log_p->term(newCommit);
+
+        // Raft §5.4.2: a leader only commits an entry from its own term.
         if (commitTerm == d_currentTerm) {
-            BALL_LOG_INFO << "[partition " << d_config.d_partitionId
-                          << "] Node " << d_config.d_selfId << " [term "
-                          << d_currentTerm << "] LEADER commit advance "
-                          << d_commitIndex << " -> " << newCommit;
             d_commitIndex = newCommit;
 
             bsl::vector<LogEntry> committed(d_allocator_p);
@@ -866,16 +878,6 @@ void RaftNode::advanceCommitIndex(RaftNodeOutput* output)
                 broadcastAppendEntries(output);
             }
         }
-        else {
-            // Raft §5.4.2: a leader only commits an entry from its own term.
-            BALL_LOG_INFO << "[partition " << d_config.d_partitionId
-                          << "] Node " << d_config.d_selfId << " [term "
-                          << d_currentTerm
-                          << "] LEADER commit BLOCKED: majority at index "
-                          << newCommit << " but term(" << newCommit
-                          << ")=" << commitTerm
-                          << " != currentTerm=" << d_currentTerm;
-        }
     }
 }
 
@@ -894,17 +896,34 @@ void RaftNode::tick(RaftNodeOutput* output)
                  d_peerStates.begin();
              it != d_peerStates.end();
              ++it) {
-            if (!it->second.d_snapshotPending) {
-                continue;
+            if (it->second.d_snapshotPending) {
+                if (++it->second.d_snapshotPendingTicks >=
+                    d_config.d_electionTimeoutMin) {
+                    BALL_LOG_INFO
+                        << "[partition " << d_config.d_partitionId << "] Node "
+                        << d_config.d_selfId
+                        << " timed out waiting for InstallSnapshotResp "
+                        << "from " << it->first << "; retrying";
+                    it->second.d_snapshotPending      = false;
+                    it->second.d_snapshotPendingTicks = 0;
+                }
             }
-            if (++it->second.d_snapshotPendingTicks >=
-                d_config.d_electionTimeoutMin) {
-                BALL_LOG_INFO << "[partition " << d_config.d_partitionId
-                              << "] Node " << d_config.d_selfId
-                              << " timed out waiting for InstallSnapshotResp "
-                              << "from " << it->first << "; retrying";
-                it->second.d_snapshotPending      = false;
-                it->second.d_snapshotPendingTicks = 0;
+
+            // Same idea for a data AppendEntries: if its response never
+            // arrives (e.g. lost), do not leave this peer permanently
+            // un-sendable -- drop the guard so the next heartbeat/propose
+            // broadcast can retry it.
+            if (it->second.d_appendEntriesPending) {
+                if (++it->second.d_appendEntriesPendingTicks >=
+                    d_config.d_electionTimeoutMin) {
+                    BALL_LOG_INFO
+                        << "[partition " << d_config.d_partitionId << "] Node "
+                        << d_config.d_selfId
+                        << " timed out waiting for AppendEntriesResp from "
+                        << it->first << "; retrying";
+                    it->second.d_appendEntriesPending      = false;
+                    it->second.d_appendEntriesPendingTicks = 0;
+                }
             }
         }
 
@@ -1003,12 +1022,6 @@ int RaftNode::propose(RaftNodeOutput*                      output,
                        << " (lastIndex=" << d_log_p->lastIndex() << ")";
         return rc;  // RETURN
     }
-
-    BALL_LOG_INFO << "[partition " << d_config.d_partitionId << "] Node "
-                  << d_config.d_selfId << " [term " << d_currentTerm
-                  << "] PROPOSE id=" << id
-                  << " -> newLastIndex=" << d_log_p->lastIndex()
-                  << ", replicating to " << d_peerStates.size() << " peer(s)";
 
     broadcastAppendEntries(output);
 
