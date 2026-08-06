@@ -8122,11 +8122,6 @@ void FileStore::onRecordCommittedReplica(const bdlbb::Blob&           data,
                               << msgRec->messageGUID() << "]";
                 return;
             }
-            BALL_LOG_WARN << partitionDesc()
-                          << "Committed MESSAGE for queueKey ["
-                          << msgRec->queueKey() << "], GUID ["
-                          << msgRec->messageGUID() << "]"
-                          << " hasReceipt " << handle.hasReceipt();
 
             sit->second->processMessageRecord(msgRec->messageGUID(),
                                               record.d_appDataUnpaddedLen,

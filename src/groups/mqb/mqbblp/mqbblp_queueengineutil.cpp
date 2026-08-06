@@ -1126,14 +1126,19 @@ void QueueEngineUtil_AppState::broadcastOneMessage(
 
 size_t
 QueueEngineUtil_AppState::processDeliveryLists(bsls::TimeInterval*    delay,
-                                               mqbi::StorageIterator* reader)
+                                               mqbi::StorageIterator* reader,
+                                               bool keepUnavailable)
 {
     BSLS_ASSERT_SAFE(delay);
 
-    size_t numMessages = processDeliveryList(delay, reader, d_redeliveryList);
+    size_t numMessages =
+        processDeliveryList(delay, reader, d_redeliveryList, keepUnavailable);
     if (*delay == bsls::TimeInterval()) {
         // The only excuse for stopping the iteration is poisonous message
-        numMessages += processDeliveryList(delay, reader, d_putAsideList);
+        numMessages += processDeliveryList(delay,
+                                           reader,
+                                           d_putAsideList,
+                                           keepUnavailable);
     }
 
     // `reader` might keep a shared pointer to a memory mapped file area, and
@@ -1148,7 +1153,8 @@ QueueEngineUtil_AppState::processDeliveryLists(bsls::TimeInterval*    delay,
 size_t
 QueueEngineUtil_AppState::processDeliveryList(bsls::TimeInterval*    delay,
                                               mqbi::StorageIterator* reader,
-                                              RedeliveryList&        list)
+                                              RedeliveryList&        list,
+                                              bool keepUnavailable)
 {
     if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(list.empty())) {
         return 0;  // RETURN
@@ -1181,6 +1187,25 @@ QueueEngineUtil_AppState::processDeliveryList(bsls::TimeInterval*    delay,
 
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(reader->atEnd())) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+
+            if (keepUnavailable) {
+                // Replica relay: the record is not in storage yet.  An
+                // out-of-order PUSH can arrive before its payload is
+                // replicated/applied via Raft, so this is not necessarily a
+                // gc'ed/purged message -- keep the entry and retry on the
+                // next attempt (driven by 'onReplicatedBatch' when the record
+                // commits).  If it really was removed, it is erased from this
+                // list at removal time via 'removeFromRedelivery'.  Skip to
+                // the next entry rather than stopping, so later already-
+                // arrived entries still get delivered on this pass.
+                BMQ_LOGTHROTTLE_INFO
+                    << "#STORAGE_UNKNOWN_MESSAGE " << "Queue: '"
+                    << d_queue_p->description() << "', app: '" << appId()
+                    << "' cannot redeliver GUID: '" << *it
+                    << "' yet (not in the storage); keeping for retry.";
+                list.next(&it);
+                continue;  // CONTINUE
+            }
 
             // The message got gc'ed or purged.  Do not stop the redelivery:
             // fall through and treat it as sent so it is erased from the list
@@ -1496,6 +1521,13 @@ void QueueEngineUtil_AppState::clear()
     d_resumePoint = bmqt::MessageGUID();
     d_redeliveryList.clear();
     d_putAsideList.clear();
+}
+
+void QueueEngineUtil_AppState::removeFromRedelivery(
+    const bmqt::MessageGUID& msgGUID)
+{
+    d_redeliveryList.erase(msgGUID);
+    d_putAsideList.erase(msgGUID);
 }
 
 void QueueEngineUtil_AppState::loadInternals(mqbcmd::AppState* out) const

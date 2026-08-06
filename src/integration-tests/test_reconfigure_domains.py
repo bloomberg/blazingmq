@@ -236,11 +236,23 @@ class TestReconfigureDomains:
         assert ad_client.open(uri_priority_1, flags=["write"], block=True) != 0
         assert ad_client.open(uri_priority_2, flags=["read"], block=True) != 0
 
+        # Producer/consumer limits are enforced by the queue engine on the
+        # queue's partition primary, which in Raft mode may differ from the
+        # cluster leader (and the two queues may have different primaries).
+        # Reconfigure the relevant primary so each new limit takes effect where
+        # it is enforced; a 'leader_only' reconfigure would miss it.  (In legacy
+        # mode the primary is the leader, so this is correct in both.)  The
+        # queues are already assigned (opened above and by 'setup_cluster').
+        leader = multi_node.last_known_leader
+        primary_1 = leader.wait_queue_primary(uri_priority_1)
+        primary_2 = leader.wait_queue_primary(uri_priority_2)
+
         # Reconfigure the domain to allow for one more producer to connect.
         multi_node.config.domains[
             domain_priority
         ].definition.parameters.max_producers = 2
-        multi_node.reconfigure_domain(domain_priority, leader_only=True, succeed=True)
+        multi_node.reconfigure_domain(domain_priority, write_only=True)
+        assert primary_1.reconfigure_domain(domain_priority, succeed=True) == 0
 
         # Confirm that the queue can be opened for writing, but not reading.
         assert ad_client.open(uri_priority_1, flags=["write"], block=True) == 0
@@ -250,7 +262,8 @@ class TestReconfigureDomains:
         multi_node.config.domains[
             domain_priority
         ].definition.parameters.max_consumers = 2
-        multi_node.reconfigure_domain(domain_priority, leader_only=True, succeed=True)
+        multi_node.reconfigure_domain(domain_priority, write_only=True)
+        assert primary_2.reconfigure_domain(domain_priority, succeed=True) == 0
 
         # Confirm that the queue can be opened for reading.
         assert ad_client.open(uri_priority_2, flags=["read"], block=True) == 0
@@ -292,7 +305,11 @@ class TestReconfigureDomains:
         self, multi_node: Cluster, domain_urls: tc.DomainUrls
     ):
         uri_priority_1 = f"bmq://{domain_urls.domain_priority}/abcd-queue"
-        leader = multi_node.last_known_leader
+        # QUEUE_STUCK is raised by the consumption monitor on the queue's
+        # partition primary.  In Raft mode the cluster leader and a partition's
+        # primary are independently elected and can differ, so target the
+        # partition primary (in legacy mode they coincide).
+        primary = multi_node.last_known_leader.wait_queue_primary(uri_priority_1)
 
         # Configure reader to have at most one outstanding unconfirmed message.
         self.reader.configure(uri_priority_1, block=True, maxUnconfirmedMessages=1)
@@ -302,7 +319,7 @@ class TestReconfigureDomains:
 
         # Sleep for long enough to trigger an alarm.
         time.sleep(1.5)
-        assert leader.alarms("QUEUE_STUCK", 1)
+        assert primary.alarms("QUEUE_STUCK", 1)
 
         # Confirm all messages in the queue when they are received.
         self.reader.wait_push_event()
@@ -311,11 +328,16 @@ class TestReconfigureDomains:
         self.reader.confirm(uri_priority_1, "+1", succeed=True)
 
         # Reconfigure domain to tolerate as much as two seconds of idleness.
+        # Deploy the new config to every node, but only issue the reconfigure
+        # command to the partition primary: the new setting takes effect on a
+        # node once it processes 'DOMAINS RECONFIGURE', and the consumption
+        # monitor runs on the partition primary (not necessarily the leader).
         multi_node.config.domains[
             domain_urls.domain_priority
         ].definition.parameters.max_idle_time = 2
-        multi_node.reconfigure_domain(
-            domain_urls.domain_priority, leader_only=True, succeed=True
+        multi_node.reconfigure_domain(domain_urls.domain_priority, write_only=True)
+        assert (
+            primary.reconfigure_domain(domain_urls.domain_priority, succeed=True) == 0
         )
 
         # Write two further messages to the queue.
@@ -331,14 +353,19 @@ class TestReconfigureDomains:
         self.reader.confirm(uri_priority_1, "+1", succeed=True)
 
         # Ensure that no alarm was issued.
-        assert not leader.alarms("QUEUE_STUCK", 1)
+        assert not primary.alarms("QUEUE_STUCK", 1)
 
     @tweak.domain.message_ttl(1)
     def test_reconfigure_message_ttl(
         self, multi_node: Cluster, domain_urls: tc.DomainUrls
     ):
         uri_priority_1 = f"bmq://{domain_urls.domain_priority}/abcd-queue"
-        leader = multi_node.last_known_leader
+        # TTL GC of expired messages runs on the queue's partition primary.  In
+        # Raft mode the cluster (CSL) leader and a partition's primary are
+        # independently elected and can be different nodes, so target the
+        # partition primary here rather than 'last_known_leader' (in legacy mode
+        # they coincide, so this is correct in both).
+        primary = multi_node.last_known_leader.wait_queue_primary(uri_priority_1)
 
         # Write one message to the queue
         assert self.post_n_msgs(uri_priority_1, 1)
@@ -350,14 +377,19 @@ class TestReconfigureDomains:
         assert self.post_n_msgs(uri_priority_1, 1)
 
         # Observe that the oldest message was GC'ed from the queue.
-        assert leader.erases_messages(uri_priority_1, msgs=1, timeout=1)
+        assert primary.erases_messages(uri_priority_1, msgs=1, timeout=1)
 
         # Reconfigure the domain to wait 10 seconds before GC'ing messages.
+        # Deploy the new config to every node, but only issue the reconfigure
+        # command to the partition primary: the new TTL takes effect on a node
+        # once it processes 'DOMAINS RECONFIGURE', and TTL GC runs on the
+        # partition primary, which in Raft mode may not be the cluster leader.
         multi_node.config.domains[
             domain_urls.domain_priority
         ].definition.parameters.message_ttl = 10
-        multi_node.reconfigure_domain(
-            domain_urls.domain_priority, leader_only=True, succeed=True
+        multi_node.reconfigure_domain(domain_urls.domain_priority, write_only=True)
+        assert (
+            primary.reconfigure_domain(domain_urls.domain_priority, succeed=True) == 0
         )
 
         # Write one more message to the queue.
@@ -371,7 +403,7 @@ class TestReconfigureDomains:
         assert self.post_n_msgs(uri_priority_1, 1)
 
         # Observe that no messages were GC'ed.
-        assert not leader.erases_messages(uri_priority_1, timeout=1)
+        assert not primary.erases_messages(uri_priority_1, timeout=1)
 
     @tweak.domain.max_delivery_attempts(0)
     def test_reconfigure_max_delivery_attempts(

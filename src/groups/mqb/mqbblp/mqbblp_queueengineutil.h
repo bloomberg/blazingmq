@@ -435,15 +435,26 @@ struct QueueEngineUtil_AppState {
     void broadcastOneMessage(const mqbi::StorageIterator* storageIter);
 
     size_t processDeliveryLists(bsls::TimeInterval*    delay,
-                                mqbi::StorageIterator* reader);
+                                mqbi::StorageIterator* reader,
+                                bool                   keepUnavailable);
 
     /// Process delivery of messages in the redelivery list.  The specified
     /// `getMessageCb` provides message details for redelivery.  Load the
-    /// lowest handle delay into the specified `delay`. Return number of
-    /// re-delivered messages.
+    /// lowest handle delay into the specified `delay`.  If the specified
+    /// `keepUnavailable` is `true` (replica relay), an entry whose record is
+    /// not (yet) in storage is kept for a later attempt rather than erased,
+    /// because an out-of-order PUSH can arrive before its replicated payload;
+    /// such an entry is erased at removal time via `removeFromRedelivery`.
+    /// Return number of re-delivered messages.
     size_t processDeliveryList(bsls::TimeInterval*    delay,
                                mqbi::StorageIterator* reader,
-                               RedeliveryList&        list);
+                               RedeliveryList&        list,
+                               bool                   keepUnavailable);
+
+    /// Remove the specified `msgGUID` from this App's redelivery and
+    /// put-aside lists, if present.  Invoked when the message is removed from
+    /// storage (GC / purge) so a parked out-of-order entry does not linger.
+    void removeFromRedelivery(const bmqt::MessageGUID& msgGUID);
 
     /// Load into the specified `out` object' internal information about
     /// this consumers group and associated queue handles.

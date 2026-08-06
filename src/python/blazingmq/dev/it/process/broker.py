@@ -295,41 +295,35 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
     def wait_queue_primary(self, uri, timeout=BLOCK_TIMEOUT) -> Self:
         """
         Return the Broker object currently primary for the partition that
-        owns the queue identified by 'uri', polling this node until both the
-        queue's partition assignment and that partition's primary are
-        reported (or 'timeout' elapses).
+        owns the queue identified by 'uri', polling this node until the queue
+        is assigned and its partition has a primary (or 'timeout' elapses).
 
-        Convenience wrapper over 'wait_partition_primary' for tests that know
-        a queue URI but not its partition: partition assignment is chosen by
-        the leader and stored in the CSL, so it is not derivable client-side.
-
-        A single 'CLUSTERS CLUSTER ... STATUS' response already carries both
-        the queue->partition mapping (Queues section) and the
-        partition->primary mapping (Partitions section), so this needs no
-        separate 'INTERNALS' lookup and gets both from one atomic snapshot
-        (avoiding a race between two admin commands).  It also reflects
-        cluster-wide CSL assignment rather than whether this particular node
-        has locally created the queue object.
+        Uses 'QUEUEHELPER', which prints each queue's 'partitionId' with the
+        primary appended as '(primary: [<name>, <id>])'.
         """
 
         admin = self.open_admin_client()
         primary_name = [None]
 
         def check():
-            res = admin.send_admin(f"CLUSTERS CLUSTER {self.cluster_name} STATUS")
+            res = admin.send_admin(
+                f"CLUSTERS CLUSTER {self.cluster_name} QUEUEHELPER"
+            )
             assert isinstance(res, str)
-            # Queues section line layout (humanprinter.cpp printQueuesInfo):
-            #   <QueueKey>   <Partition>   <Internal QueueId>   <QueueUri>
-            # URI is last on the line, so anchor to end-of-line to avoid
-            # matching a queue whose URI is a prefix of another's.
+            # QUEUEHELPER prints each queue's URI on its own line, then its
+            # fields; the 'partitionId' line carries '(primary: [<name>, ...])'
+            # (or '(*NO* primary)' when unset).  Anchor the URI to end-of-line
+            # so a prefix URI can't match, then take that queue's first
+            # 'partitionId' line.
             m = re.search(
-                rf"^\s*\S+\s+(\d+)\b.*{re.escape(uri)}\s*$",
+                rf"^\s*{re.escape(uri)}\s*$.*?partitionId\.*:\s*\d+([^\n]*)",
                 res,
-                re.MULTILINE,
+                re.MULTILINE | re.DOTALL,
             )
             if m is None:
                 return False
-            primary_name[0] = self._parse_partition_primary(res, m.group(1))
+            primary = re.search(r"\(primary:\s*\[([^,\]]+),", m.group(1))
+            primary_name[0] = primary.group(1) if primary else None
             return primary_name[0] is not None
 
         wait_until(check, timeout=timeout)

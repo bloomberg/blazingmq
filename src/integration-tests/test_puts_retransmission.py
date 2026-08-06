@@ -333,16 +333,45 @@ class TestPutsRetransmission:
 
     work_dir: Path
 
+    def wait_live_queue_primary(self, timeout=60):
+        """
+        Return the queue's partition primary once it is a LIVE node.  In Raft
+        the primary is per-partition and need not be the CSL leader, so shutting
+        down the primary does not change the CSL leader and the partition's
+        primary is reassigned asynchronously; the old (dead) primary may still
+        be reported briefly.  Poll (querying a live node) until the reported
+        primary is up.
+        """
+        uri = f"bmq://{self.domain}/{tc.TEST_QUEUE}"
+        primary = None
+
+        def check():
+            nonlocal primary
+            live = self.cluster.nodes(alive=True)[0]
+            try:
+                # During failover the cluster is briefly leaderless/unstable, so
+                # 'open_admin_client' can transiently refuse; retry rather than
+                # propagate.
+                candidate = live.wait_queue_primary(uri, timeout=5)
+            except Exception:  # pylint: disable=broad-except
+                return False
+            if candidate is not None and candidate.is_alive():
+                primary = candidate
+                return True
+            return False
+
+        assert wait_until(check, timeout)
+        return primary
+
     def inspect_results(self, allow_duplicates=False, allow_out_of_order=False):
         if self.active_node in self.cluster.virtual_nodes():
             self.active_node.wait_status(wait_leader=True, wait_ready=False)
 
-        leader = self.active_node.last_known_leader
-        assert leader
-
-        # INTERNALS/LIST must be issued on the queue's partition primary, which
-        # in Raft mode need not be the CSL leader.
-        leader = leader.wait_queue_primary(f"bmq://{self.domain}/{tc.TEST_QUEUE}")
+        # INTERNALS/LIST run on the queue's partition primary (in Raft not the
+        # CSL leader).  After a primary shutdown the partition primary is
+        # reassigned asynchronously and the old (dead) one can still be reported
+        # briefly, so wait until it resolves to a live node.
+        primary = self.wait_live_queue_primary()
 
         assert wait_until(
             lambda: self.capture_number_of_consumed_messages(2 * NUM_MESSAGES), 40
@@ -352,10 +381,10 @@ class TestPutsRetransmission:
             test_logger.info(f"{uri[0]}: received {consumer[1]} messages")
             # assert consumer[1] == NUM_MESSAGES
 
-        leader.command(f"DOMAINS DOMAIN {self.domain} QUEUE {tc.TEST_QUEUE} INTERNALS")
+        primary.command(f"DOMAINS DOMAIN {self.domain} QUEUE {tc.TEST_QUEUE} INTERNALS")
 
-        leader.list_messages(self.domain, tc.TEST_QUEUE, 0, NUM_MESSAGES)
-        assert leader.outputs_substr("Printing 0 message(s)", 10)
+        primary.list_messages(self.domain, tc.TEST_QUEUE, 0, NUM_MESSAGES)
+        assert primary.outputs_substr("Printing 0 message(s)", 10)
 
         self.producer.force_stop()
 
@@ -447,10 +476,19 @@ class TestPutsRetransmission:
     def set_proxy(self, cluster):
         self.cluster = cluster
         self.work_dir = cluster.work_dir
-        proxies = cluster.proxy_cycle()
-        # pick proxy in datacenter opposite to the primary's
-        next(proxies)
-        self.replica_proxy = next(proxies)
+
+        # Chain must be Client -> proxy -> replica -> primary: the proxy's
+        # upstream (active node) must be a REPLICA of the queue's partition, not
+        # its primary.  A proxy only connects within its own data center, so pick
+        # the proxy in the data center opposite the partition primary's.  (In
+        # Raft the primary need not share the leader's data center, so 'opposite
+        # the leader' is not enough.)
+        probe = cluster.last_known_leader.create_client("primary-probe")
+        probe.open(self.uri, flags=["write,ack"], succeed=True)  # assign queue
+        primary = cluster.last_known_leader.wait_queue_primary(self.uri)
+        probe.stop_session(block=True)
+
+        self.replica_proxy = cluster.proxies(near=primary, invert=True)[0]
 
     def capture_number_of_produced_messages(self, producer, timeout=20):
         capture = producer.capture(r"produced \|.*\| \s*(\d+) \|", timeout=timeout)
@@ -551,18 +589,23 @@ class TestPutsRetransmission:
     ):
         self.setup_cluster_fanout(multi_node, domain_urls)
 
+        # Shut down the queue's partition primary (in Raft not necessarily the
+        # CSL leader); resolve it while all nodes are still alive.
+        primary = self.cluster.last_known_leader.wait_queue_primary(self.uri)
+
         # make the 'active_node' new primary
         for node in multi_node.nodes(exclude=self.active_node):
             node.set_quorum(4)
 
         self.active_node.drain()
         # Start graceful shutdown
-        self.leader.exit_gracefully()
+        primary.exit_gracefully()
         # Wait for the subprocess to terminate
-        self.leader.wait()
+        primary.wait()
 
-        # If shutting down primary, the replica needs to wait for new primary.
-        self.active_node.wait_status(wait_leader=True, wait_ready=False)
+        # A new partition primary is elected asynchronously (in Raft the CSL
+        # leader does not change when only the primary is shut down);
+        # 'inspect_results' waits for it via 'wait_live_queue_primary'.
 
         self.inspect_results(allow_duplicates=False)
 
@@ -571,17 +614,22 @@ class TestPutsRetransmission:
     ):
         self.setup_cluster_fanout(multi_node, domain_urls)
 
+        # Shut down the queue's partition primary (in Raft not necessarily the
+        # CSL leader); resolve it while all nodes are still alive.
+        primary = self.cluster.last_known_leader.wait_queue_primary(self.uri)
+
         # prevent 'active_node' from becoming new primary
         self.active_node.set_quorum(4)
 
         self.active_node.drain()
         # Start graceful shutdown
-        self.leader.exit_gracefully()
+        primary.exit_gracefully()
         # Wait for the subprocess to terminate
-        self.leader.wait()
+        primary.wait()
 
-        # If shutting down primary, the replica needs to wait for new primary.
-        self.active_node.wait_status(wait_leader=True, wait_ready=False)
+        # A new partition primary is elected asynchronously (in Raft the CSL
+        # leader does not change when only the primary is shut down);
+        # 'inspect_results' waits for it via 'wait_live_queue_primary'.
 
         # Do allow duplicates for the scenario when a CONFIRM had passed Proxy
         # but did not reach the replication.  New Primary then redelivers and
@@ -613,17 +661,22 @@ class TestPutsRetransmission:
     ):
         self.setup_cluster_fanout(multi_node, domain_urls)
 
+        # Kill the queue's partition primary (in Raft not necessarily the CSL
+        # leader); resolve it while all nodes are still alive.
+        primary = self.cluster.last_known_leader.wait_queue_primary(self.uri)
+
         # make the 'active_node' new primary
         nodes = multi_node.nodes(exclude=self.active_node)
         for node in nodes:
             node.set_quorum(4)
 
         self.active_node.drain()
-        # Kill leader.
-        self.leader.force_stop()
+        # Kill primary.
+        primary.force_stop()
 
-        # If shutting down primary, the replica needs to wait for new primary.
-        self.active_node.wait_status(wait_leader=True, wait_ready=False)
+        # A new partition primary is elected asynchronously (in Raft the CSL
+        # leader does not change when only the primary is shut down);
+        # 'inspect_results' waits for it via 'wait_live_queue_primary'.
 
         self.inspect_results(allow_duplicates=True)
 
@@ -632,15 +685,20 @@ class TestPutsRetransmission:
     ):
         self.setup_cluster_fanout(multi_node, sc_domain_urls)
 
+        # Kill the queue's partition primary (in Raft not necessarily the CSL
+        # leader); resolve it while all nodes are still alive.
+        primary = self.cluster.last_known_leader.wait_queue_primary(self.uri)
+
         # prevent 'active_node' from becoming new primary
         self.active_node.set_quorum(4)
 
         self.active_node.drain()
-        # Kill leader.
-        self.leader.force_stop()
+        # Kill primary.
+        primary.force_stop()
 
-        # If shutting down primary, the replica needs to wait for new primary.
-        self.active_node.wait_status(wait_leader=True, wait_ready=False)
+        # A new partition primary is elected asynchronously (in Raft the CSL
+        # leader does not change when only the primary is shut down);
+        # 'inspect_results' waits for it via 'wait_live_queue_primary'.
 
         self.inspect_results(allow_duplicates=True)
 
