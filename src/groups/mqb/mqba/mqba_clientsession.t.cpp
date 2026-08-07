@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "mqbi_authorizer.h"
 #include <mqba_clientsession.h>
 
 // MQB
@@ -22,6 +21,7 @@
 #include <mqbevt_ackevent.h>
 #include <mqbevt_pushevent.h>
 #include <mqbevt_putevent.h>
+#include <mqbi_authorizer.h>
 #include <mqbi_queue.h>
 #include <mqbmock_cluster.h>
 #include <mqbmock_dispatcher.h>
