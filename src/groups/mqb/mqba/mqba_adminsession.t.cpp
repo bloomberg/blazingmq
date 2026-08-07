@@ -154,11 +154,11 @@ class TestBench {
     // DATA
     bdlbb::PooledBlobBufferFactory      d_bufferFactory;
     BlobSpPool                          d_blobSpPool;
-    bsl::shared_ptr<bmqio::TestChannel> d_channel;
+    bsl::shared_ptr<bmqio::TestChannel> d_channel_sp;
     mqbmock::Dispatcher                 d_mockDispatcher;
     bdlmt::EventScheduler               d_scheduler;
     TestClock                           d_testClock;
-    bsl::shared_ptr<TestAuthorizer>     d_authorizer;
+    bsl::shared_ptr<TestAuthorizer>     d_authorizer_sp;
     mqba::AdminSession                  d_as;
     bslma::Allocator*                   d_allocator_p;
 
@@ -176,19 +176,19 @@ class TestBench {
                                         bdlf::PlaceHolders::_2),  // alloc
                    1024,  // blob pool growth strategy
                    allocator)
-    , d_channel(new bmqio::TestChannel(allocator))
+    , d_channel_sp(new bmqio::TestChannel(allocator))
     , d_mockDispatcher(allocator)
     , d_scheduler(bsls::SystemClockType::e_MONOTONIC, allocator)
     , d_testClock(d_scheduler)
-    , d_authorizer(bsl::allocate_shared<TestAuthorizer>(allocator))
-    , d_as(d_channel,
+    , d_authorizer_sp(bsl::allocate_shared<TestAuthorizer>(allocator))
+    , d_as(d_channel_sp,
            negotiationMessage,
            "sessionDescription",
            &d_mockDispatcher,
            &d_blobSpPool,
            &d_scheduler,
            adminEnqueueCb,
-           d_authorizer,
+           d_authorizer_sp,
            allocator)
     , d_allocator_p(allocator)
     {
@@ -392,20 +392,20 @@ static void test1_watermark()
     // Set high watermark status for the test channel
     bmqio::Status status;
     status.setCategory(bmqio::StatusCategory::e_LIMIT);
-    tb.d_channel->setWriteStatus(status);
+    tb.d_channel_sp->setWriteStatus(status);
 
     // Send the sample admin event multiple times to the admin session
     for (size_t i = 0; i < numMessages; i++) {
         tb.d_as.processEvent(adminEvent);
-        BSLS_ASSERT(tb.d_channel->waitFor(i + 1));
+        BSLS_ASSERT(tb.d_channel_sp->waitFor(i + 1));
     }
 
     // Check that we have the needed number of write calls after all admin
     // commands were sent.
-    BMQTST_ASSERT(tb.d_channel->waitFor(numMessages));
+    BMQTST_ASSERT(tb.d_channel_sp->waitFor(numMessages));
 
     bmqio::TestChannel::WriteCall writeCall;
-    BMQTST_ASSERT(tb.d_channel->getWriteCall(&writeCall, 0));
+    BMQTST_ASSERT(tb.d_channel_sp->getWriteCall(&writeCall, 0));
 
     // Sanity check for the first admin response
     bmqp::Event adminResponseEvent(&writeCall.d_blob,
