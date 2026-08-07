@@ -497,8 +497,9 @@ struct StorageUtil {
     /// 'source' is the specified 'primary' with the specified 'status'
     /// which needs to be ACTIVE.  Use the specified 'clusterData' to help
     /// with validation.  The specified 'skipAlarm' flag determines whether
-    /// to skip alarming if 'source' is not active primary.  Return true if
-    /// valid, false otherwise.
+    /// to skip alarming if 'source' is not active primary.  Use the
+    /// specified 'isFSMWorkflow' flag to help with validation.  Return true
+    /// if valid, false otherwise.
     ///
     /// THREAD: Executed by the Queue's dispatcher thread for the specified
     ///         `partitionId` or by the cluster dispatcher thread.
@@ -508,7 +509,8 @@ struct StorageUtil {
                                      const mqbnet::ClusterNode* primary,
                                      bmqp_ctrlmsg::PrimaryStatus::Value status,
                                      const bsl::string& clusterDescription,
-                                     bool               skipAlarm);
+                                     bool               skipAlarm,
+                                     bool               isFSMWorkflow);
 
     /// Validate that every partition sync message in the specified `event`
     /// have the same specified `partitionId`, and that ether self or the
