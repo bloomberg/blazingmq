@@ -2886,7 +2886,8 @@ void StorageManager::do_bufferLiveData(
             pinfo.primary(),
             pinfo.primaryStatus(),
             d_clusterData_p->identity().description(),
-            skipAlarm)) {
+            skipAlarm,
+            true)) {  // isFSMWorkflow
         return;       // RETURN
     }
 
@@ -3042,7 +3043,8 @@ void StorageManager::do_processLiveData(
             pinfo.primary(),
             pinfo.primaryStatus(),
             d_clusterData_p->identity().description(),
-            skipAlarm)) {
+            skipAlarm,
+            true)) {  // isFSMWorkflow
         return;       // RETURN
     }
 

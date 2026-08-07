@@ -1196,7 +1196,8 @@ bool StorageUtil::validateStorageEvent(
     const mqbnet::ClusterNode*           primary,
     bmqp_ctrlmsg::PrimaryStatus::Value   status,
     const bsl::string&                   clusterDescription,
-    bool                                 skipAlarm)
+    bool                                 skipAlarm,
+    bool                                 isFSMWorkflow)
 {
     // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId' or
     // by the *CLUSTER DISPATCHER* thread
@@ -1237,7 +1238,7 @@ bool StorageUtil::validateStorageEvent(
     }
 
     // Ensure that primary is perceived as active.
-    if (bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE != status) {
+    if (!isFSMWorkflow && bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE != status) {
         if (skipAlarm) {
             return false;  // RETURN
         }
