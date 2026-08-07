@@ -557,6 +557,10 @@ bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onClientIdentityMessage(
         return NULL;  // RETURN
     }
 
+    if (!authorizeIncomingConnection(errorDescription, context_p)) {
+        return NULL;  // RETURN
+    }
+
     // Create the session.
     bsl::string description;
     loadSessionDescription(&description,
@@ -564,10 +568,7 @@ bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onClientIdentityMessage(
                            *(context_p->channel().get()));
 
     bsl::shared_ptr<mqbnet::Session> session;
-    rc = createSession(&session, context_p, description);
-    if (rc != 0) {
-        return NULL;
-    }
+    createSession(&session, context_p, description);
 
     return session;
 }
@@ -619,12 +620,7 @@ bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onBrokerResponseMessage(
     }
 
     bsl::shared_ptr<mqbnet::Session> session;
-    {
-        const int rc = createSession(&session, context_p, description);
-        if (rc != 0) {
-            return NULL;  // RETURN
-        }
-    }
+    createSession(&session, context_p, description);
 
     return session;
 }
@@ -795,7 +791,62 @@ int SessionNegotiator::populateNegotiationContext(
     return rc_SUCCESS;
 }
 
-int SessionNegotiator::createSession(
+bool SessionNegotiator::authorizeIncomingConnection(
+    bsl::ostream&                     errorDescription,
+    mqbnet::InitialConnectionContext* context_p)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(context_p);
+    BSLS_ASSERT_SAFE(context_p->negotiationContext());
+    BSLS_ASSERT_SAFE(context_p->negotiationContext()->connectionType() !=
+                     mqbnet::ConnectionType::e_UNKNOWN);
+
+    const NegotiationContextSp& negotiationContext =
+        context_p->negotiationContext();
+
+    BSLS_ASSERT(context_p->authenticationContext() &&
+                context_p->authenticationContext()->authenticationResult());
+    const mqbplug::AuthenticationResult& authnResult =
+        *context_p->authenticationContext()->authenticationResult();
+
+    mqbact::Action action;
+    switch (negotiationContext->connectionType()) {
+    case mqbnet::ConnectionType::e_ADMIN: {
+        action.makeConnectAdmin();
+    } break;
+    case mqbnet::ConnectionType::e_CLIENT: {
+        action.makeConnectClient();
+    } break;
+    case mqbnet::ConnectionType::e_CLUSTER_MEMBER: {
+        action.makeConnectClusterNode().clusterName() =
+            negotiationContext->negotiationMessage()
+                .clientIdentity()
+                .clusterName();
+    } break;
+    // An incoming connection (this method's precondition) can never be of
+    // type 'e_CLUSTER_PROXY': it is only used for a broker's own outbound
+    // connections (see 'negotiateOutbound').
+    case mqbnet::ConnectionType::e_CLUSTER_PROXY:
+    case mqbnet::ConnectionType::e_UNKNOWN:
+    default: {
+        // Fail the connection and log an error (rather than assert).
+        BALL_LOG_ERROR << "#CONNECTION_UNEXPECTED Unexpected connection "
+                       << "type for an incoming connection: "
+                       << negotiationContext->connectionType();
+        errorDescription << "Unexpected connection type";
+        return false;  // RETURN
+    }
+    }
+
+    if (!d_authorizer_sp->authorize(action, authnResult)) {
+        errorDescription << "Connection not authorized";
+        return false;  // RETURN
+    }
+
+    return true;
+}
+
+void SessionNegotiator::createSession(
     bsl::shared_ptr<mqbnet::Session>* out,
     mqbnet::InitialConnectionContext* context_p,
     const bsl::string&                description)
@@ -810,11 +861,6 @@ int SessionNegotiator::createSession(
                           ->negotiationMessage()
                           .isUndefinedValue());
 
-    enum {
-        e_OK                    = 0,
-        e_AUTHORIZATION_FAILURE = 1,
-    };
-
     const NegotiationContextSp& negotiationContext =
         context_p->negotiationContext();
 
@@ -824,20 +870,6 @@ int SessionNegotiator::createSession(
 
     if (negotiationContext->connectionType() ==
         mqbnet::ConnectionType::e_ADMIN) {
-        // Authorize
-        if (context_p->isIncoming()) {
-            BSLS_ASSERT(
-                context_p->authenticationContext() &&
-                context_p->authenticationContext()->authenticationResult());
-            const mqbplug::AuthenticationResult& authnResult =
-                *context_p->authenticationContext()->authenticationResult();
-            mqbact::Action action;
-            action.makeConnectAdmin();
-            if (!d_authorizer_sp->authorize(action, authnResult)) {
-                return e_AUTHORIZATION_FAILURE;  // RETURN
-            }
-        }
-
         mqba::AdminSession* session = new (*d_allocator_p)
             AdminSession(channel,
                          negoMsg,
@@ -853,20 +885,6 @@ int SessionNegotiator::createSession(
     }
     else if (negotiationContext->connectionType() ==
              mqbnet::ConnectionType::e_CLIENT) {
-        // Authorize
-        if (context_p->isIncoming()) {
-            BSLS_ASSERT(
-                context_p->authenticationContext() &&
-                context_p->authenticationContext()->authenticationResult());
-            const mqbplug::AuthenticationResult& authnResult =
-                *context_p->authenticationContext()->authenticationResult();
-            mqbact::Action action;
-            action.makeConnectClient();
-            if (!d_authorizer_sp->authorize(action, authnResult)) {
-                return e_AUTHORIZATION_FAILURE;  // RETURN
-            }
-        }
-
         // Create a dedicated stats subcontext for this client
         bmqst::StatContextConfiguration statContextCfg(description);
         statContextCfg.storeExpiredSubcontextValues(true);
@@ -906,8 +924,6 @@ int SessionNegotiator::createSession(
                                                              d_allocator_p),
                    d_allocator_p);
     }
-
-    return e_OK;
 }
 
 bool SessionNegotiator::checkIsDeprecatedSdkVersion(

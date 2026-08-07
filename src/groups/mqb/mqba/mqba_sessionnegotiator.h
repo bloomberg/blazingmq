@@ -179,14 +179,20 @@ class SessionNegotiator : public mqbnet::Negotiator {
     populateNegotiationContext(bsl::ostream& errorDescription,
                                mqbnet::InitialConnectionContext* context_p);
 
-    /// Load into the specified `out` a new session created using the
-    /// specified `context_p` and `description`; or leave `out` untouched and
-    /// populate the specified `errorDescription` with a description of the
-    /// error in case of failure.
+    /// Authorize the incoming connection described by the specified
+    /// `context_p`, based on its connection type.  Return true if the
+    /// connection is authorized, or false otherwise and populate the
+    /// specified `errorDescription` with a description of the error.
     BSLA_NODISCARD
-    int createSession(bsl::shared_ptr<mqbnet::Session>* out,
-                      mqbnet::InitialConnectionContext* context_p,
-                      const bsl::string&                description);
+    bool
+    authorizeIncomingConnection(bsl::ostream& errorDescription,
+                                mqbnet::InitialConnectionContext* context_p);
+
+    /// Load into the specified `out` a new session created using the
+    /// specified `context_p` and `description`.
+    void createSession(bsl::shared_ptr<mqbnet::Session>* out,
+                       mqbnet::InitialConnectionContext* context_p,
+                       const bsl::string&                description);
 
     /// Return true if the negotiation message in the specified `context` is
     /// for a client using a deprecated version of the libbmq SDK.
