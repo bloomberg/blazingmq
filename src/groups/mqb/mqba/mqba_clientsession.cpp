@@ -2460,6 +2460,16 @@ ClientSession::ClientSession(
 , d_shutdownChain(allocator)
 , d_authorizer_sp(authorizer)
 {
+    // PRECONDITIONS
+    BSLS_ASSERT(channel);
+    BSLS_ASSERT(dispatcher);
+    BSLS_ASSERT(domainFactory);
+    BSLS_ASSERT(clientStatContext);
+    BSLS_ASSERT(blobSpPool);
+    BSLS_ASSERT(bufferFactory);
+    BSLS_ASSERT(scheduler);
+    BSLS_ASSERT(authorizer);
+
     // Register this client to the dispatcher
     mqbi::Dispatcher::ProcessorHandle processor = dispatcher->registerClient(
         this,
