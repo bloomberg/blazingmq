@@ -664,7 +664,7 @@ class TestBench {
     // DATA
     bdlbb::PooledBlobBufferFactory            d_bufferFactory;
     BlobSpPool                                d_blobSpPool;
-    bsl::shared_ptr<bmqio::TestChannel>       d_channel;
+    bsl::shared_ptr<bmqio::TestChannel>       d_channel_sp;
     mqbmock::Cluster                          d_cluster;
     mqbmock::Dispatcher                       d_mockDispatcher;
     MyMockDomain                              d_domain;
@@ -672,7 +672,7 @@ class TestBench {
     const bsl::shared_ptr<bmqst::StatContext> d_clientStatContext_sp;
     bdlmt::EventScheduler                     d_scheduler;
     TestClock                                 d_testClock;
-    bsl::shared_ptr<TestAuthorizer>           d_authorizer;
+    bsl::shared_ptr<TestAuthorizer>           d_authorizer_sp;
     mqba::ClientSession                       d_cs;
     bslma::Allocator*                         d_allocator_p;
 
@@ -692,7 +692,7 @@ class TestBench {
                                         bdlf::PlaceHolders::_2),  // alloc
                    1024,  // blob pool growth strategy
                    allocator)
-    , d_channel(new bmqio::TestChannel(allocator))
+    , d_channel_sp(new bmqio::TestChannel(allocator))
     , d_cluster(allocator)
     , d_mockDispatcher(allocator)
     , d_domain(&d_mockDispatcher, &d_cluster, atMostOnce, allocator)
@@ -701,8 +701,8 @@ class TestBench {
           mqbstat::QueueStatsUtil::initializeStatContextClients(10, allocator))
     , d_scheduler(bsls::SystemClockType::e_MONOTONIC, allocator)
     , d_testClock(d_scheduler)
-    , d_authorizer(bsl::allocate_shared<TestAuthorizer>(allocator))
-    , d_cs(d_channel,
+    , d_authorizer_sp(bsl::allocate_shared<TestAuthorizer>(allocator))
+    , d_cs(d_channel_sp,
            negotiationMessage,
            "sessionDescription",
            &d_mockDispatcher,
@@ -712,7 +712,7 @@ class TestBench {
            &d_blobSpPool,
            &d_bufferFactory,
            &d_scheduler,
-           d_authorizer,
+           d_authorizer_sp,
            allocator)
     , d_allocator_p(allocator)
     {
@@ -953,7 +953,7 @@ class TestBench {
     void assertOpenQueueResponse()
     {
         bmqio::TestChannel::WriteCall openQueueCall;
-        BMQTST_ASSERT(d_channel->getWriteCall(&openQueueCall, 0));
+        BMQTST_ASSERT(d_channel_sp->getWriteCall(&openQueueCall, 0));
 
         bmqp::Event openQueueEvent(&openQueueCall.d_blob,
                                    bmqtst::TestHelperUtil::allocator());
@@ -975,8 +975,8 @@ class TestBench {
         if (ackResult == e_AckResultNone) {
             // If no ack expected we shouldn't have more events than
             // 'eventIndex'.
-            BMQTST_ASSERT(d_channel->waitFor(eventIndex));
-            BMQTST_ASSERT_EQ(d_channel->numWriteCalls(), eventIndex);
+            BMQTST_ASSERT(d_channel_sp->waitFor(eventIndex));
+            BMQTST_ASSERT_EQ(d_channel_sp->numWriteCalls(), eventIndex);
 
             return;  // RETURN
         }
@@ -990,7 +990,7 @@ class TestBench {
         // If we expect acks, then the event with corresponding number
         // should exist and be of type Ack.
         bmqio::TestChannel::WriteCall ackCall;
-        BMQTST_ASSERT(d_channel->getWriteCall(&ackCall, eventIndex));
+        BMQTST_ASSERT(d_channel_sp->getWriteCall(&ackCall, eventIndex));
 
         bmqp::Event ackEvent(&ackCall.d_blob,
                              bmqtst::TestHelperUtil::allocator());
@@ -1016,7 +1016,7 @@ class TestBench {
         BMQTST_ASSERT(!iter.isValid());
 
         if (isFinal) {
-            BMQTST_ASSERT_EQ(d_channel->numWriteCalls(), eventIndex + 1);
+            BMQTST_ASSERT_EQ(d_channel_sp->numWriteCalls(), eventIndex + 1);
         }
     }
 
@@ -1037,7 +1037,7 @@ class TestBench {
         d_cs.flush();
 
         bmqio::TestChannel::WriteCall writeCall;
-        BMQTST_ASSERT(d_channel->getWriteCall(&writeCall, pushIndex));
+        BMQTST_ASSERT(d_channel_sp->getWriteCall(&writeCall, pushIndex));
 
         bmqp::Event pushEvent(&writeCall.d_blob,
                               bmqtst::TestHelperUtil::allocator());
@@ -1802,7 +1802,7 @@ static void test7_oldStylePut()
     BMQTST_ASSERT(
         tb.validateData(*postMessages[0].d_appData, msgPropsAreaSize));
 
-    const size_t pushIndex = tb.d_channel->numWriteCalls();
+    const size_t pushIndex = tb.d_channel_sp->numWriteCalls();
 
     // Turn around and send PUSH
     tb.sendPush(queueId,
@@ -1887,7 +1887,7 @@ static void test8_oldStyleCompressedPut()
     BMQTST_ASSERT(
         tb.validateData(*postMessages[0].d_appData, msgPropsAreaSize));
 
-    const size_t pushIndex = tb.d_channel->numWriteCalls();
+    const size_t pushIndex = tb.d_channel_sp->numWriteCalls();
 
     // Turn around and send PUSH
     tb.sendPush(queueId,
@@ -2002,7 +2002,7 @@ static void test9_newStylePush()
     BMQTST_ASSERT(
         tb.validateData(*postMessages[0].d_appData, msgPropsAreaSize, 99));
 
-    const size_t pushIndex = tb.d_channel->numWriteCalls();
+    const size_t pushIndex = tb.d_channel_sp->numWriteCalls();
 
     // Turn around and send PUSH
     tb.sendPush(queueId,
@@ -2112,7 +2112,7 @@ static void test10_newStyleCompressedPush()
 
     // No payload validation, it is compressed.
 
-    const size_t pushIndex = tb.d_channel->numWriteCalls();
+    const size_t pushIndex = tb.d_channel_sp->numWriteCalls();
 
     // Turn around and send PUSH
     tb.sendPush(queueId,
