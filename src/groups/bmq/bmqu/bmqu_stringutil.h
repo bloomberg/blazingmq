@@ -45,18 +45,6 @@ struct StringUtil {
     static bool contains(const bsl::string&       str,
                          const bslstl::StringRef& substr);
 
-    /// Return `true` if the specified string `str` contains the specified
-    /// `prefix` substring starting from the optionally specified `offset`,
-    /// return `false` otherwise.
-    static bool startsWith(const bslstl::StringRef& str,
-                           const bslstl::StringRef& prefix,
-                           size_t                   offset = 0);
-
-    /// Return `true` if the specified string `str` ends with the specified
-    /// `suffix` string, return `false` otherwise.
-    static bool endsWith(const bslstl::StringRef& str,
-                         const bslstl::StringRef& suffix);
-
     /// Return `true` if every character in the specified string `str` is
     /// printable, and `false` otherwise.  An empty string is printable.
     static bool isPrintable(const bslstl::StringRef& str);

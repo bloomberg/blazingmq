@@ -22,6 +22,7 @@
 
 // BDE
 #include <bdlb_print.h>
+#include <bdlb_stringviewutil.h>
 #include <bdlma_localsequentialallocator.h>
 #include <bsl_cstdlib.h>
 #include <bsl_ostream.h>
@@ -71,7 +72,7 @@ bool TCPEndpoint::fromUri(const bsl::string& uri)
     d_uri.clear();
 
     // Check 'uri' starts by the proper expected scheme
-    if (!bmqu::StringUtil::startsWith(uri, k_SCHEME)) {
+    if (!bdlb::StringViewUtil::startsWith(uri, k_SCHEME)) {
         return false;  // RETURN
     }
 

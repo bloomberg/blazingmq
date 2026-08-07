@@ -31,6 +31,7 @@
 #include <m_bmqtool_messages.h>
 
 // BDE
+#include <bdlb_stringviewutil.h>
 #include <bsl_iosfwd.h>
 #include <bsl_string.h>
 #include <bslma_allocator.h>
@@ -551,13 +552,13 @@ inline Parameters& Parameters::setStoragePath(const bsl::string& value)
             d_dataFilePath.assign(substr);
             d_dataFilePath.append(dataExt);
         }
-        else if (bmqu::StringUtil::endsWith(value, qlistExt)) {
+        else if (bdlb::StringViewUtil::endsWith(value, qlistExt)) {
             d_qlistFilePath = value;
         }
-        else if (bmqu::StringUtil::endsWith(value, journalExt)) {
+        else if (bdlb::StringViewUtil::endsWith(value, journalExt)) {
             d_journalFilePath = value;
         }
-        else if (bmqu::StringUtil::endsWith(value, dataExt)) {
+        else if (bdlb::StringViewUtil::endsWith(value, dataExt)) {
             d_dataFilePath = value;
         }
     }
