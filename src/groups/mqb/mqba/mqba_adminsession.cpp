@@ -301,8 +301,8 @@ AdminSession::AdminSession(
               d_clientIdentity_p->features()),
           allocator)
 , d_scheduler_p(scheduler)
-, d_adminCb(adminCb)
 , d_authorizer_sp(authorizer)
+, d_adminCb(adminCb)
 {
     // Register this client to the dispatcher
     mqbi::Dispatcher::ProcessorHandle processor = dispatcher->registerClient(

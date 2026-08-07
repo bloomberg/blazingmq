@@ -158,11 +158,11 @@ class AdminSession : public mqbnet::Session, public mqbi::DispatcherClient {
     /// Pointer to the event scheduler to use (held, not owned).
     bdlmt::EventScheduler* d_scheduler_p;
 
-    /// The callback to invoke on received admin command.
-    mqbnet::Session::AdminCommandEnqueueCb d_adminCb;
-
     /// The authorizer to use for this session
     bsl::shared_ptr<mqbi::Authorizer> d_authorizer_sp;
+
+    /// The callback to invoke on received admin command.
+    mqbnet::Session::AdminCommandEnqueueCb d_adminCb;
 
   private:
     // NOT IMPLEMENTED
