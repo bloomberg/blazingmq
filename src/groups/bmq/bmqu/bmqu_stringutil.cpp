@@ -18,7 +18,6 @@
 #include <bmqscm_version.h>
 // BDE
 #include <bdlb_chartype.h>
-#include <bdlb_stringviewutil.h>
 #include <bsl_algorithm.h>
 #include <bsl_bitset.h>
 #include <bsl_cctype.h>
