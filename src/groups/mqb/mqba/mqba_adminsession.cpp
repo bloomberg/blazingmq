@@ -304,6 +304,14 @@ AdminSession::AdminSession(
 , d_authorizer_sp(authorizer)
 , d_adminCb(adminCb)
 {
+    // PRECONDITIONS
+    BSLS_ASSERT(channel);
+    BSLS_ASSERT(dispatcher);
+    BSLS_ASSERT(blobSpPool);
+    BSLS_ASSERT(scheduler);
+    BSLS_ASSERT(adminCb);
+    BSLS_ASSERT(authorizer);
+
     // Register this client to the dispatcher
     mqbi::Dispatcher::ProcessorHandle processor = dispatcher->registerClient(
         this,
