@@ -52,6 +52,7 @@
 #include <bslma_allocator.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
+#include <bsls_assert.h>
 
 namespace BloombergLP {
 
@@ -289,6 +290,9 @@ inline SessionNegotiator& SessionNegotiator::setAdminCommandEnqueueCallback(
 inline SessionNegotiator&
 SessionNegotiator::setClusterCatalog(mqbblp::ClusterCatalog* value)
 {
+    // PRECONDITIONS
+    BSLS_ASSERT(value);
+
     d_clusterCatalog_p = value;
     return *this;
 }
@@ -296,6 +300,9 @@ SessionNegotiator::setClusterCatalog(mqbblp::ClusterCatalog* value)
 inline SessionNegotiator&
 SessionNegotiator::setDomainFactory(mqbi::DomainFactory* value)
 {
+    // PRECONDITIONS
+    BSLS_ASSERT(value);
+
     d_domainFactory_p = value;
     return *this;
 }
@@ -303,6 +310,9 @@ SessionNegotiator::setDomainFactory(mqbi::DomainFactory* value)
 inline SessionNegotiator&
 SessionNegotiator::setAuthorizer(const AuthorizerSp& authorizer)
 {
+    // PRECONDITIONS
+    BSLS_ASSERT(authorizer);
+
     d_authorizer_sp = authorizer;
     return *this;
 }
