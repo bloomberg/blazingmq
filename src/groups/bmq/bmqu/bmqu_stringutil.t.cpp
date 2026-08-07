@@ -71,105 +71,7 @@ static void test1_contains()
     }
 }
 
-static void test2_startsWith()
-// ------------------------------------------------------------------------
-// bmqu::StringUtil::startsWith
-//
-// Concerns:
-//   Ensure proper behavior of the 'startsWith' method.
-//
-// Plan:
-//   Test various strings, focusing on edge cases.
-//
-// Testing:
-//   Proper behavior of the 'startsWith(str, prefix, offset)' method.
-// ------------------------------------------------------------------------
-{
-    bmqtst::TestHelper::printTestName("startsWith");
-
-    struct Test {
-        int         d_line;
-        const char* d_str;
-        const char* d_prefix;
-        size_t      d_offset;
-        bool        d_result;
-    } k_DATA[] = {{L_, "", "", 0, true},
-                  {L_, "", "", 1, false},
-                  {L_, "", "a", 0, false},
-                  {L_, "", "a", 1, false},
-                  {L_, "a", "", 0, true},
-                  {L_, "a", "", 1, true},
-                  {L_, "abc", "ab", 0, true},
-                  {L_, "abc", "ab", 1, false},
-                  {L_, "abab", "ab", 1, false},
-                  {L_, "abab", "ab", 2, true},
-                  {L_, "abc", "abcd", 0, false},
-                  {L_, "abc", "abc", 0, true}};
-
-    const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
-
-    for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
-        const Test& test = k_DATA[idx];
-
-        PVV(test.d_line << ": checking if '" << test.d_str << "' "
-                        << "starts with '" << test.d_prefix << "' "
-                        << "from offset " << test.d_offset);
-
-        BMQTST_ASSERT_EQ_D("line " << test.d_line,
-                           bmqu::StringUtil::startsWith(test.d_str,
-                                                        test.d_prefix,
-                                                        test.d_offset),
-                           test.d_result);
-    }
-}
-
-static void test3_endsWith()
-// ------------------------------------------------------------------------
-// bmqu::StringUtil::endsWith
-//
-// Concerns:
-//   Ensure proper behavior of the 'endsWith' method.
-//
-// Plan:
-//   Test various strings, focusing on edge cases.
-//
-// Testing:
-//   Proper behavior of the 'endsWith(str, suffix)' method.
-// ------------------------------------------------------------------------
-{
-    bmqtst::TestHelper::printTestName("endsWith");
-
-    struct Test {
-        int         d_line;
-        const char* d_str;
-        const char* d_suffix;
-        bool        d_result;
-    } k_DATA[] = {{L_, "", "", true},
-                  {L_, "", "a", false},
-                  {L_, "a", "", true},
-                  {L_, "abc", "bc", true},
-                  {L_, "abc", "ab", false},
-                  {L_, "abab", "ab", true},
-                  {L_, "abab", "ba", false},
-                  {L_, "abc", "abcd", false},
-                  {L_, "abc", "abc", true}};
-
-    const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
-
-    for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
-        const Test& test = k_DATA[idx];
-
-        PVV(test.d_line << ": checking if '" << test.d_str << "' "
-                        << "ends with '" << test.d_suffix << "'");
-
-        BMQTST_ASSERT_EQ_D("line " << test.d_line,
-                           bmqu::StringUtil::endsWith(test.d_str,
-                                                      test.d_suffix),
-                           test.d_result);
-    }
-}
-
-static void test4_trim()
+static void test2_trim()
 // ------------------------------------------------------------------------
 // bmqu::StringUtil::trim
 //
@@ -210,7 +112,7 @@ static void test4_trim()
     }
 }
 
-static void test5_ltrim()
+static void test3_ltrim()
 // ------------------------------------------------------------------------
 // bmqu::StringUtil::ltrim
 //
@@ -251,7 +153,7 @@ static void test5_ltrim()
     }
 }
 
-static void test6_rtrim()
+static void test4_rtrim()
 // ------------------------------------------------------------------------
 // bmqu::StringUtil::rtrim
 //
@@ -292,7 +194,7 @@ static void test6_rtrim()
     }
 }
 
-static void test7_strTokenizeRef()
+static void test5_strTokenizeRef()
 // ------------------------------------------------------------------------
 // bmqu::StringUtil::strTokenizeRef
 //
@@ -367,7 +269,7 @@ static void test7_strTokenizeRef()
     }
 }
 
-static void test8_match()
+static void test6_match()
 // ------------------------------------------------------------------------
 // bmqu::StringUtil::match
 //
@@ -470,7 +372,7 @@ static void test8_match()
     }
 }
 
-static void test9_squeeze()
+static void test7_squeeze()
 // ------------------------------------------------------------------------
 // bmqu::StringUtil::squeeze
 //
@@ -524,7 +426,7 @@ static void test9_squeeze()
     }
 }
 
-static void test10_isPrintable()
+static void test8_isPrintable()
 // ------------------------------------------------------------------------
 // bmqu::StringUtil::isPrintable
 //
@@ -588,15 +490,13 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
-    case 10: test10_isPrintable(); break;
-    case 9: test9_squeeze(); break;
-    case 8: test8_match(); break;
-    case 7: test7_strTokenizeRef(); break;
-    case 6: test6_rtrim(); break;
-    case 5: test5_ltrim(); break;
-    case 4: test4_trim(); break;
-    case 3: test3_endsWith(); break;
-    case 2: test2_startsWith(); break;
+    case 8: test8_isPrintable(); break;
+    case 7: test7_squeeze(); break;
+    case 6: test6_match(); break;
+    case 5: test5_strTokenizeRef(); break;
+    case 4: test4_rtrim(); break;
+    case 3: test3_ltrim(); break;
+    case 2: test2_trim(); break;
     case 1: test1_contains(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;

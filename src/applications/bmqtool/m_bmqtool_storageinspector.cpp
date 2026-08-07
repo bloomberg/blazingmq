@@ -38,6 +38,7 @@
 // BDE
 #include <ball_log.h>
 #include <bdlb_print.h>
+#include <bdlb_stringviewutil.h>
 #include <bdlbb_blob.h>
 #include <bdls_filesystemutil.h>
 #include <bdlt_datetime.h>
@@ -361,7 +362,7 @@ void StorageInspector::processCommand(const OpenStorageCommand& command)
                       << d_journalFile << "] Qlist file: [" << d_qlistFile
                       << "]";
     }
-    else if (bmqu::StringUtil::endsWith(
+    else if (bdlb::StringViewUtil::endsWith(
                  path,
                  mqbs::FileStoreProtocol::k_DATA_FILE_EXTENSION)) {
         if (!resetIterator(&d_dataFd, &d_dataFileIter, path.c_str())) {
@@ -370,7 +371,7 @@ void StorageInspector::processCommand(const OpenStorageCommand& command)
 
         d_dataFile = path;
     }
-    else if (bmqu::StringUtil::endsWith(
+    else if (bdlb::StringViewUtil::endsWith(
                  path,
                  mqbs::FileStoreProtocol::k_JOURNAL_FILE_EXTENSION)) {
         if (!resetIterator(&d_journalFd, &d_journalFileIter, path.c_str())) {
@@ -379,7 +380,7 @@ void StorageInspector::processCommand(const OpenStorageCommand& command)
 
         d_journalFile = path;
     }
-    else if (bmqu::StringUtil::endsWith(
+    else if (bdlb::StringViewUtil::endsWith(
                  path,
                  mqbs::FileStoreProtocol::k_QLIST_FILE_EXTENSION)) {
         if (!resetIterator(&d_qlistFd, &d_qlistFileIter, path.c_str())) {

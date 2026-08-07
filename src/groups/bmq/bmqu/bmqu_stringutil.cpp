@@ -18,6 +18,7 @@
 #include <bmqscm_version.h>
 // BDE
 #include <bdlb_chartype.h>
+#include <bdlb_stringviewutil.h>
 #include <bsl_algorithm.h>
 #include <bsl_bitset.h>
 #include <bsl_cctype.h>
@@ -76,47 +77,6 @@ bool StringUtil::contains(const bsl::string&       str,
                           const bslstl::StringRef& substr)
 {
     return str.find(substr, 0) != bsl::string::npos;
-}
-
-bool StringUtil::startsWith(const bslstl::StringRef& str,
-                            const bslstl::StringRef& prefix,
-                            size_t                   offset)
-{
-    if (offset > str.length() || ((str.length() - offset) < prefix.length())) {
-        // There is not enough characters in 'str' after 'offset' to contain
-        // the full 'prefix' string.  Note that the first check is covered by
-        // the second, but needed due to unsigned operation.
-        return false;  // RETURN
-    }
-
-    size_t idx = 0;
-    while (idx < prefix.length()) {
-        if (str[offset++] != prefix[idx++]) {
-            return false;  // RETURN
-        }
-    }
-
-    return true;
-}
-
-bool StringUtil::endsWith(const bslstl::StringRef& str,
-                          const bslstl::StringRef& suffix)
-{
-    if (str.length() < suffix.length()) {
-        // There is not enough characters in 'str' to contain the full 'suffix'
-        // string.
-        return false;  // RETURN
-    }
-
-    int i = static_cast<int>(str.length() - 1);
-    int j = static_cast<int>(suffix.length() - 1);
-    while ((i >= 0) && (j >= 0)) {
-        if (str[i--] != suffix[j--]) {
-            return false;  // RETURN
-        }
-    }
-
-    return true;
 }
 
 bool StringUtil::isPrintable(const bslstl::StringRef& str)

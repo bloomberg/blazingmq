@@ -37,6 +37,7 @@
 // BDE
 #include <bdlb_scopeexit.h>
 #include <bdlb_string.h>
+#include <bdlb_stringviewutil.h>
 #include <bdlf_bind.h>
 #include <bdls_filesystemutil.h>
 #include <bdlt_currenttime.h>
@@ -409,21 +410,21 @@ void FileStoreUtil::createQlistFileName(bsl::string*             filename,
 
 bool FileStoreUtil::hasDataFileExtension(const bsl::string& filename)
 {
-    return bmqu::StringUtil::endsWith(
+    return bdlb::StringViewUtil::endsWith(
         filename,
         FileStoreProtocol::k_DATA_FILE_EXTENSION);
 }
 
 bool FileStoreUtil::hasJournalFileExtension(const bsl::string& filename)
 {
-    return bmqu::StringUtil::endsWith(
+    return bdlb::StringViewUtil::endsWith(
         filename,
         FileStoreProtocol::k_JOURNAL_FILE_EXTENSION);
 }
 
 bool FileStoreUtil::hasQlistFileExtension(const bsl::string& filename)
 {
-    return bmqu::StringUtil::endsWith(
+    return bdlb::StringViewUtil::endsWith(
         filename,
         FileStoreProtocol::k_QLIST_FILE_EXTENSION);
 }

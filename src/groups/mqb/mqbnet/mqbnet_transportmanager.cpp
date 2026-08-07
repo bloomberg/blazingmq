@@ -34,6 +34,7 @@
 #include <bmqu_time.h>
 
 // BDE
+#include <bdlb_stringviewutil.h>
 #include <bdlf_bind.h>
 #include <bdlf_placeholder.h>
 #include <bsl_functional.h>
@@ -626,7 +627,7 @@ void* TransportManager::getClusterNodeAndState(
 
 bool TransportManager::isEndpointLoopback(const bslstl::StringRef& uri) const
 {
-    if (bmqu::StringUtil::startsWith(uri, "tcp://")) {
+    if (bdlb::StringViewUtil::startsWith(uri, "tcp://")) {
         return d_tcpSessionFactory_mp &&
                d_tcpSessionFactory_mp->isEndpointLoopback(uri);  // RETURN
     }
