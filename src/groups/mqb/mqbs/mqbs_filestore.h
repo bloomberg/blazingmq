@@ -1132,6 +1132,18 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
                                QueueKeyCounterMap* queueKeyCounterMap,
                                FileSet*            newFileSet);
 
+    /// Rollover the committed tail record referenced by the specified `handle`
+    /// (resolved to its in-memory `DataStoreRecord`) into the specified
+    /// `newFileSet`, updating the specified `queueKeyCounterMap`; see the
+    /// `DataStoreRecord*` overload.  Used by the Raft rollover orchestration
+    /// in `PartitionRaftLog` for regular (non-journal-op) log entries that a
+    /// batched `appendEntries` left above `e_ROLLOVER`.  The behavior is
+    /// undefined unless `handle` is valid and does not reference a JOURNAL_OP
+    /// record.
+    void writeRolledOverRecord(const DataStoreRecordHandle& handle,
+                               QueueKeyCounterMap*          queueKeyCounterMap,
+                               FileSet*                     newFileSet);
+
     /// Copy every outstanding record in `d_records` whose sequence number is
     /// at most the specified `maxSequenceNum` into the specified `newFileSet`
     /// (via `writeRolledOverRecord`), accumulating per-queue counters into
@@ -1144,19 +1156,23 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
                                     QueueKeyCounterMap* queueKeyCounterMap,
                                     bsls::Types::Uint64 maxSequenceNum);
 
-    /// Copy the single `JournalOpRecord` (sync point) located at the
+    /// Copy the single fixed-size, no-payload journal record located at the
     /// specified `oldJournalOffset` in the current active (front, old) file
     /// set's journal into the specified `newFileSet`'s journal at its current
     /// position, bump that position, and return the new journal offset of the
-    /// copied record.  Sync points carry no data/qlist payload and are not
-    /// counted in outstanding bytes (matching
-    /// `writeFirstSyncPointAfterRollover` and `formatSyncPointRecord`).  The
-    /// behavior is undefined unless the record at `oldJournalOffset` is a
-    /// `JournalOpRecord`.  Used by the Raft rollover orchestration to relocate
-    /// the (journal-op only) log tail that a leadership change can leave after
-    /// `e_ROLLOVER`.
+    /// copied record.  Covers the two `RecordType`s that
+    /// `writeFormattedRecord` never inserts into `d_records` (so have no
+    /// `DataStoreRecordHandle` to route through `writeRolledOverRecord`):
+    /// `e_JOURNAL_OP` (sync points) and `e_DELETION`.  Neither carries a
+    /// data/qlist payload nor is counted in outstanding bytes (matching
+    /// `writeFirstSyncPointAfterRollover` / `formatSyncPointRecord` and
+    /// `formatDeletionRecord` respectively).  The behavior is undefined unless
+    /// the record at `oldJournalOffset` is one of these two types.  Used by
+    /// the Raft rollover orchestration to relocate the untracked log tail that
+    /// a leadership change, or a follower applying a batched `appendEntries`,
+    /// can leave after `e_ROLLOVER`.
     bsls::Types::Uint64
-    writeRolledOverJournalOpRecord(FileSet*            newFileSet,
+    writeRolledOverUntrackedRecord(FileSet*            newFileSet,
                                    bsls::Types::Uint64 oldJournalOffset);
 
     /// Create and open a new file set to receive the rolled-over records,

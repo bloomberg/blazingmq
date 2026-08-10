@@ -446,42 +446,61 @@ void PartitionRaftLog::rollover(bsls::Types::Uint64 rolloverIndex)
                                           &queueKeyCounterMap,
                                           rolloverIndex);
 
-    d_fileStore_p->logRolloverQueueSummary(queueKeyCounterMap);
-
     // Marker (i): built from 'e_ROLLOVER' at its old-file offset.
     d_fileStore_p->writeFirstSyncPointAfterRollover(newFileSet,
                                                     eRolloverOldOffset,
                                                     timestamp);
 
-    // Rewrite the tail -- entries appended after 'e_ROLLOVER' -- into the new
-    // file, in strict index order, right after the marker (exactly where a
-    // normal post-rollover append would land, so recovery re-indexes them
-    // identically).  A tail exists only when a leadership change committed an
-    // inherited 'e_ROLLOVER': committing a prior-term 'e_ROLLOVER' requires a
-    // current-term entry (the new leader's become-leader sync point) committed
-    // above it, so that entry sits above the rollover boundary here.  Leader-
-    // side rollover-pending buffering (see
-    // 'PartitionRaft::proposeDeferredSyncPoint') keeps client writes out of
-    // this window and 'commitIndex == lastIndex' holds at rollover time, so
-    // the tail is exactly the committed become-leader sync point(s) -- one per
-    // intervening election, all journal-ops.  Copy each verbatim (still
-    // reading the old, not-yet-archived front set) and repoint its 'EntryInfo'
-    // at the new file; a journal-op produces no handle, so only the offsets
-    // move.
+    // Rewrite the tail -- log entries above 'e_ROLLOVER' -- into the new file,
+    // in strict index order, right after the marker: exactly where a normal
+    // post-rollover append would land, so recovery re-indexes them identically
+    // and a node that rolled over *before* receiving these entries (appending
+    // them normally afterwards) produces a byte-identical file.
+    //
+    // Two independent sources leave a tail, and both must be relocated:
+    //  - Leadership change: committing an inherited prior-term 'e_ROLLOVER'
+    //    requires a current-term entry (the new leader's become-leader sync
+    //    point) committed above it -- a journal-op.
+    //  - A follower applying a batched 'appendEntries' that carried committed
+    //    regular records (e.g. QueueOp app add/remove, or a message DELETION)
+    //    after 'e_ROLLOVER' before this node applied the rollover.
+    // Each is copied verbatim from the old (front, not-yet-archived) file set.
+    // Route by handle validity, not record type: 'writeFormattedRecord' only
+    // inserts a 'd_records'/handle entry for types it tracks going forward
+    // (MESSAGE, QUEUE_OP, CONFIRM) -- 'e_JOURNAL_OP' and 'e_DELETION' are both
+    // untracked (fixed-size, no data/qlist payload, nothing to reference
+    // afterwards) and so never have one.
     for (bsls::Types::Uint64 i = prefixCount; i < d_index.size(); ++i) {
         EntryInfo& tailEntry = d_index[i];
-        BSLS_ASSERT_SAFE(tailEntry.d_recordType ==
-                         mqbs::RecordType::e_JOURNAL_OP);
 
-        tailEntry.d_journalOffset =
-            d_fileStore_p->writeRolledOverJournalOpRecord(
-                newFileSet,
-                tailEntry.d_journalOffset);
-        // A journal-op writes no data/qlist; its truncation anchors are the
-        // new file's current ends (mirrors 'formatSyncPointRecord').
-        tailEntry.d_dataOffset  = newFileSet->d_data.d_filePosition;
-        tailEntry.d_qlistOffset = newFileSet->d_qlist.d_filePosition;
+        if (!tailEntry.d_handle.isValid()) {
+            tailEntry.d_journalOffset =
+                d_fileStore_p->writeRolledOverUntrackedRecord(
+                    newFileSet,
+                    tailEntry.d_journalOffset);
+            // Neither type writes data/qlist; their truncation anchors are the
+            // new file's current ends (mirrors 'formatSyncPointRecord' /
+            // 'formatDeletionRecord').
+            tailEntry.d_dataOffset  = newFileSet->d_data.d_filePosition;
+            tailEntry.d_qlistOffset = newFileSet->d_qlist.d_filePosition;
+        }
+        else {
+            // A tracked record.  Its truncation anchors are the new file's
+            // current ends captured BEFORE the copy -- which are the payload
+            // starts for MESSAGE (data) and QUEUE_OP CREATION/ADDITION
+            // (qlist).
+            tailEntry.d_journalOffset = newFileSet->d_journal.d_filePosition;
+            tailEntry.d_dataOffset    = newFileSet->d_data.d_filePosition;
+            tailEntry.d_qlistOffset   = newFileSet->d_qlist.d_filePosition;
+
+            d_fileStore_p->writeRolledOverRecord(tailEntry.d_handle,
+                                                 &queueKeyCounterMap,
+                                                 newFileSet);
+        }
     }
+
+    // Summarize after the tail so any tail records are counted too.
+    d_fileStore_p->logRolloverQueueSummary(queueKeyCounterMap);
 
     BALL_LOG_INFO_BLOCK
     {
