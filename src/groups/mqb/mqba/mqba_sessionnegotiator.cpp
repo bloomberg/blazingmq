@@ -1015,12 +1015,12 @@ SessionNegotiator::SessionNegotiator(bdlbb::BlobBufferFactory* bufferFactory,
 , d_authorizer_sp(authorizer)
 {
     // PRECONDITIONS
-    BSLS_ASSERT(bufferFactory);
-    BSLS_ASSERT(dispatcher);
-    BSLS_ASSERT(statContext);
-    BSLS_ASSERT(blobSpPool);
-    BSLS_ASSERT(scheduler);
-    BSLS_ASSERT(authorizer);
+    BSLS_ASSERT(d_bufferFactory_p);
+    BSLS_ASSERT(d_dispatcher_p);
+    BSLS_ASSERT(d_statContext_p);
+    BSLS_ASSERT(d_blobSpPool_p);
+    BSLS_ASSERT(d_scheduler_p);
+    BSLS_ASSERT(d_authorizer_sp);
 }
 
 SessionNegotiator::~SessionNegotiator()
