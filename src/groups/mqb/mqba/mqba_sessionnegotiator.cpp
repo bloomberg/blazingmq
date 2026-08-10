@@ -443,6 +443,24 @@ bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onClientIdentityMessage(
     }
     }
 
+    // Authorize the incoming connection before sending the normal
+    // negotiation response.  If authorization fails, send a minimal refusal
+    // response and terminate negotiation.
+    if (!authorizeIncomingConnection(errorDescription, context_p)) {
+        bmqp_ctrlmsg::NegotiationMessage refusedMessage;
+        bmqp_ctrlmsg::BrokerResponse&    refused =
+            refusedMessage.makeBrokerResponse();
+        refused.result().category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+        refused.result().code()     = -1;
+        refused.result().message()  = "Connection not authorized";
+        refused.protocolVersion()   = bmqp::Protocol::k_VERSION;
+        refused.brokerVersion() = mqbcfg::BrokerConfig::get().brokerVersion();
+
+        bmqu::MemOutStream sendError;
+        sendNegotiationMessage(sendError, refusedMessage, negotiationContext);
+        return NULL;  // RETURN
+    }
+
     bmqp_ctrlmsg::NegotiationMessage negotiationResponse;
     bmqp_ctrlmsg::BrokerResponse&    response =
         negotiationResponse.makeBrokerResponse();
@@ -554,10 +572,6 @@ bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onClientIdentityMessage(
                                 negotiationResponse,
                                 negotiationContext);
     if (rc != 0) {
-        return NULL;  // RETURN
-    }
-
-    if (!authorizeIncomingConnection(errorDescription, context_p)) {
         return NULL;  // RETURN
     }
 
