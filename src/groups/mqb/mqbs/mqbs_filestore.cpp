@@ -8435,7 +8435,14 @@ void FileStore::onRecordCommittedPrimary(PendingWrite& pw)
         return;  // non-MESSAGE records don't produce handles or need receipt
     }
 
-    BSLS_ASSERT_SAFE(pw.d_handle.isValid());
+    if (!pw.d_handle.isValid()) {
+        // Already deleted (e.g. GC'd for lack of SC-quorum receipt) before
+        // this write's own commit landed.  Nothing to apply.
+        BALL_LOG_INFO << partitionDesc()
+                      << "Skipping commit of already-deleted MESSAGE, GUID ["
+                      << pw.d_guid << "].";
+        return;  // RETURN
+    }
 
     if (pw.d_attributes.hasReceipt() && pw.d_handle.hasReceipt()) {
         // already ACKed
