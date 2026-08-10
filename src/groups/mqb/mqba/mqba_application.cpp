@@ -361,17 +361,17 @@ int Application::start(bsl::ostream& errorDescription)
                           d_statController_mp->clientsStatContext(),
                           &d_blobSpPool,
                           d_scheduler_p,
+                          authorizer_sp,
                           d_allocators.get("SessionNegotiator"));
 
     (*sessionNegotiator)
         .setAdminCommandEnqueueCallback(
             bdlf::BindUtil::bind(&Application::enqueueCommand,
                                  this,
-                                 bdlf::PlaceHolders::_1,   // source
-                                 bdlf::PlaceHolders::_2,   // cmd
-                                 bdlf::PlaceHolders::_3,   // onProcessedCb
-                                 bdlf::PlaceHolders::_4))  // fromReroute
-        .setAuthorizer(authorizer_sp);
+                                 bdlf::PlaceHolders::_1,    // source
+                                 bdlf::PlaceHolders::_2,    // cmd
+                                 bdlf::PlaceHolders::_3,    // onProcessedCb
+                                 bdlf::PlaceHolders::_4));  // fromReroute
 
     bslma::ManagedPtr<mqbnet::Negotiator> negotiatorMp(sessionNegotiator,
                                                        d_allocator_p);
