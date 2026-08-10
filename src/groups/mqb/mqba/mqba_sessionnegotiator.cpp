@@ -1002,6 +1002,7 @@ SessionNegotiator::SessionNegotiator(bdlbb::BlobBufferFactory* bufferFactory,
                                      bmqst::StatContext*       statContext,
                                      BlobSpPool*               blobSpPool,
                                      bdlmt::EventScheduler*    scheduler,
+                                     const AuthorizerSp&       authorizer,
                                      bslma::Allocator*         allocator)
 : d_allocator_p(allocator)
 , d_bufferFactory_p(bufferFactory)
@@ -1011,8 +1012,15 @@ SessionNegotiator::SessionNegotiator(bdlbb::BlobBufferFactory* bufferFactory,
 , d_blobSpPool_p(blobSpPool)
 , d_clusterCatalog_p(0)
 , d_scheduler_p(scheduler)
+, d_authorizer_sp(authorizer)
 {
-    // NOTHING
+    // PRECONDITIONS
+    BSLS_ASSERT(bufferFactory);
+    BSLS_ASSERT(dispatcher);
+    BSLS_ASSERT(statContext);
+    BSLS_ASSERT(blobSpPool);
+    BSLS_ASSERT(scheduler);
+    BSLS_ASSERT(authorizer);
 }
 
 SessionNegotiator::~SessionNegotiator()

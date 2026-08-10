@@ -221,13 +221,15 @@ class SessionNegotiator : public mqbnet::Negotiator {
 
     /// Create a new `SessionNegotiator` using the specified
     /// `bufferFactory`, `dispatcher`, `statContext`, `scheduler` and
-    /// `blobSpPool` to inject in the negotiated sessions.  Use the
-    /// specified `allocator` for all memory allocations.
+    /// `blobSpPool` to inject in the negotiated sessions, and the specified
+    /// `authorizer` to authorize incoming connections.  Use the specified
+    /// `allocator` for all memory allocations.
     SessionNegotiator(bdlbb::BlobBufferFactory* bufferFactory,
                       mqbi::Dispatcher*         dispatcher,
                       bmqst::StatContext*       statContext,
                       BlobSpPool*               blobSpPool,
                       bdlmt::EventScheduler*    scheduler,
+                      const AuthorizerSp&       authorizer,
                       bslma::Allocator*         allocator);
 
     /// Destructor
@@ -247,10 +249,6 @@ class SessionNegotiator : public mqbnet::Negotiator {
     /// Set the domain factory to the specified `value` and return a
     /// reference offering modifiable access to this object.
     SessionNegotiator& setDomainFactory(mqbi::DomainFactory* value);
-
-    /// Set the authorizer that will be used to authorize sessions and actions
-    /// that can occur in those sessions.
-    SessionNegotiator& setAuthorizer(const AuthorizerSp& authorizer);
 
     // MANIPULATORS
     //   (virtual: mqbnet::Negotiator)
@@ -304,16 +302,6 @@ SessionNegotiator::setDomainFactory(mqbi::DomainFactory* value)
     BSLS_ASSERT(value);
 
     d_domainFactory_p = value;
-    return *this;
-}
-
-inline SessionNegotiator&
-SessionNegotiator::setAuthorizer(const AuthorizerSp& authorizer)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT(authorizer);
-
-    d_authorizer_sp = authorizer;
     return *this;
 }
 
