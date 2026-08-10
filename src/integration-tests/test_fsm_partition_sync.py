@@ -65,8 +65,12 @@ def test_sync_after_missed_rollover(
     consumer = proxy.create_client("consumer")
     consumer.open(uri_priority, flags=["read"], succeed=True)
 
-    replicas = cluster.nodes(exclude=leader)
-    replica = replicas[0]
+    # 'Initiating rollover'/'ROLLOVER COMPLETE' are logged by the queue's
+    # partition primary, which in Raft need not be the CSL leader ('leader').
+    # Poll that primary, and pick 'replica' from the remaining nodes so
+    # stopping it doesn't force a real primary failover.
+    primary = leader.wait_queue_primary(uri_priority)
+    replica = cluster.nodes(exclude=primary)[0]
 
     # Put 2 messages with confirms
     for i in range(1, 3):
@@ -82,14 +86,14 @@ def test_sync_after_missed_rollover(
 
     # Put more messages w/o confirm to initiate the rollover
     i = 3
-    while not leader.outputs_substr("Initiating rollover", 0.01):
+    while not primary.outputs_substr("Initiating rollover", 0.01):
         assert i < 8, f"Rollover was not initiated after {i - 1} messages"
         producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
         i += 1
 
     # Wait until rollover completed
-    assert leader.outputs_substr("ROLLOVER COMPLETE", 10), (
-        f"Leader {leader} did not output 'ROLLOVER COMPLETE' within 10s"
+    assert primary.outputs_substr("ROLLOVER COMPLETE", 10), (
+        f"Primary {primary} did not output 'ROLLOVER COMPLETE' within 10s"
     )
 
     # Restart the stopped replica which missed rollover
@@ -101,12 +105,12 @@ def test_sync_after_missed_rollover(
         f"Replica {replica} did not output 'Cluster (itCluster) is available' within 10s"
     )
 
-    assert leader == cluster.last_known_leader, (
-        f"Leader {leader} is not cluster.last_known_leader {cluster.last_known_leader}"
+    assert primary == primary.wait_queue_primary(uri_priority), (
+        f"Primary {primary} is no longer the partition primary"
     )
 
-    # Check that leader and replica journal files are equal, after stopping all nodes
-    stop_cluster_and_compare_journal_files(leader.name, replica.name, cluster)
+    # Check that primary and replica journal files are equal, after stopping all nodes
+    stop_cluster_and_compare_journal_files(primary.name, replica.name, cluster)
 
 
 @start_cluster(False)

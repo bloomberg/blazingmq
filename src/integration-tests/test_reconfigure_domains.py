@@ -77,10 +77,17 @@ class TestReconfigureDomains:
         )
 
     # Verify that reconfiguring domain message limits works as expected.
+    #
+    # Requires strong consistency: 'domain_limits' are enforced per partition
+    # primary, and in Raft the domain's queues can live on different primaries,
+    # so the domain-wide count is only consistent across them under synchronous
+    # replication.  In eventual consistency the count lags and the cross-queue
+    # capacity assertions race (over-admit).
     @tweak.domain.storage.domain_limits.messages(INITIAL_MSG_QUOTA)
     def test_reconfigure_domain_message_limits(
-        self, multi_node: Cluster, domain_urls: tc.DomainUrls
+        self, multi_node: Cluster, sc_domain_urls: tc.DomainUrls
     ):
+        domain_urls = sc_domain_urls
         uri_priority_1 = f"bmq://{domain_urls.domain_priority}/abcd-queue"
         uri_priority_2 = f"bmq://{domain_urls.domain_priority}/qrst-queue"
 
@@ -129,6 +136,13 @@ class TestReconfigureDomains:
         # Confirm one more message, and observe that posting then succeeds.
         self.reader.confirm(uri_priority_1, "+1", succeed=True)
         assert self.post_n_msgs(uri_priority_1, 1)
+
+        # In Raft the two queues have different partition primaries, so the
+        # domain-wide usage is only consistent across them once replication
+        # catches up.  The post above (on queue 1's primary) must be reflected on
+        # queue 2's primary before we assert capacity; force a blocking
+        # round-trip (a real config change, since post/confirm are non-blocking).
+        self.reader.configure(uri_priority_1, maxUnconfirmedMessages=50, block=True)
 
         # Confirm that we are again at capacity, but that reading a message
         # from one queue unblocks posting on the other.
@@ -179,10 +193,16 @@ class TestReconfigureDomains:
         assert not self.post_n_msgs(uri_priority_2, 1)
 
     # Verify that domain reconfiguration persists after leader change.
+    #
+    # Requires strong consistency: a confirm acked by the old primary must
+    # survive the primary/leader failover.  In eventual consistency it may not
+    # be replicated before the kill, so the freed slot is lost and the post
+    # after failover is wrongly rejected.
     @tweak.domain.storage.domain_limits.messages(1)
     def test_reconfigure_with_leader_change(
-        self, multi_node: Cluster, domain_urls: tc.DomainUrls
+        self, multi_node: Cluster, sc_domain_urls: tc.DomainUrls
     ):
+        domain_urls = sc_domain_urls
         uri_priority_1 = f"bmq://{domain_urls.domain_priority}/abcd-queue"
 
         leader = multi_node.last_known_leader

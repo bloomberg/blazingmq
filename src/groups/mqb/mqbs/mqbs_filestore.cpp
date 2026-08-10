@@ -3046,6 +3046,22 @@ int FileStore::create(FileSetSp* fileSetSp)
     return rc;
 }
 
+void FileStore::writeRolledOverRecord(const DataStoreRecordHandle& handle,
+                                      QueueKeyCounterMap* queueKeyCounterMap,
+                                      FileSet*            newFileSet)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(handle.isValid());
+
+    // Resolve the handle to its (mutable) 'DataStoreRecord' and copy it
+    // through the same path as the committed prefix, so that a tail record
+    // here and the same record appended after a rollover on another node land
+    // identically.
+    writeRolledOverRecord(&handleTorRecordIterator(handle)->second,
+                          queueKeyCounterMap,
+                          newFileSet);
+}
+
 void FileStore::writeRolledOverRecords(
     FileSet*            newFileSet,
     QueueKeyCounterMap* queueKeyCounterMap,
@@ -4557,7 +4573,7 @@ void FileStore::writeRolledOverRecord(DataStoreRecord*    record,
 }
 
 bsls::Types::Uint64
-FileStore::writeRolledOverJournalOpRecord(FileSet*            newFileSet,
+FileStore::writeRolledOverUntrackedRecord(FileSet*            newFileSet,
                                           bsls::Types::Uint64 oldJournalOffset)
 {
     // PRECONDITIONS
@@ -4571,12 +4587,13 @@ FileStore::writeRolledOverJournalOpRecord(FileSet*            newFileSet,
 
     OffsetPtr<const RecordHeader> fromHeader(aJournal.block(),
                                              oldJournalOffset);
-    BSLS_ASSERT_SAFE(RecordType::e_JOURNAL_OP == fromHeader->type());
+    BSLS_ASSERT_SAFE(RecordType::e_JOURNAL_OP == fromHeader->type() ||
+                     RecordType::e_DELETION == fromHeader->type());
     (void)fromHeader;
 
-    // Raw-copy the journal record verbatim to the new journal; a sync point
-    // has no data/qlist payload and (like the rollover marker) is not counted
-    // in outstanding journal bytes.
+    // Raw-copy the journal record verbatim to the new journal; neither type
+    // has a data/qlist payload and (like the rollover marker) neither is
+    // counted in outstanding journal bytes.
     const bsls::Types::Uint64 newJournalOffset = rJournalPos;
     bsl::memcpy(rJournal.block().base() + rJournalPos,
                 aJournal.block().base() + oldJournalOffset,

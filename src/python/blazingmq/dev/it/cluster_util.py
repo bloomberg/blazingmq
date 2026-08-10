@@ -66,9 +66,15 @@ def ensure_message_at_storage_layer(
 
         def check(node=node):
             node.command(f"CLUSTERS CLUSTER {node.cluster_name} STORAGE SUMMARY")
+            # Use a short per-attempt timeout so a stale snapshot (taken just
+            # before the message replicates) doesn't consume the entire
+            # 'wait_until' budget on a single command -- without this, the
+            # outer retry loop below never gets a chance to re-send
+            # 'STORAGE SUMMARY' and observe a fresher count.
             return node.outputs_regex(
                 r"\w{10}\s+%s\s+%s\s+\d+\s+B\s+" % (partition_id, expected_count)
-                + re.escape(queue_uri)
+                + re.escape(queue_uri),
+                timeout=1,
             )
 
         assert wait_until(
