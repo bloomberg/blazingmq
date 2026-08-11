@@ -596,7 +596,7 @@ ClusterOrchestrator::ClusterOrchestrator(
 , d_clusterState_p(clusterState)
 , d_storageManager_p(0)
 , d_bufferedPrimaryStatusAdvisoryInfosVec(allocator)
-, d_isCaughtUp(false)
+, d_caughtUpTerm(0)
 {
     // executed by *ANY* thread
 
@@ -2114,11 +2114,22 @@ void ClusterOrchestrator::onPartitionPrimaryStatus(int          partitionId,
 
 void ClusterOrchestrator::onClusterRaftLeadership(bool haveCommit)
 {
-    BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << ": onClusterRaftLeadership fired, d_isCaughtUp: "
-                  << d_isCaughtUp << " -> " << haveCommit;
+    const bsls::Types::Uint64 term = d_clusterStateRaft_mp->currentTerm();
 
-    d_isCaughtUp = haveCommit;
+    BALL_LOG_INFO << d_clusterData_p->identity().description()
+                  << ": onClusterRaftLeadership fired, haveCommit: "
+                  << haveCommit << ", term: " << term
+                  << ", d_caughtUpTerm: " << d_caughtUpTerm;
+
+    // Ignore a haveCommit=false for a term that has not advanced past
+    // d_caughtUpTerm, so a same-term leader flicker does not invalidate an
+    // already-confirmed term.
+    if (haveCommit) {
+        d_caughtUpTerm = term;
+    }
+    else if (term > d_caughtUpTerm) {
+        d_caughtUpTerm = 0;
+    }
 
     // Even though we are in the cluster thread, dispatch to avoid re-entrance
     // as in the single node cluster case, when propose commits immediately and
@@ -2244,12 +2255,11 @@ void ClusterOrchestrator::maybeIssuePartitionPrimaryAdvisory()
 
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
 
-    // Raft mode and self is the CSL leader.  There is no separate
-    // become-leader no-op: this advisory IS the CSL leader's first
-    // current-term entry, so its commit is what makes 'isCaughtUp()' true
-    // (Raft 5.4.2) -- do NOT gate issuance on 'isCaughtUp()', that would be
-    // circular.  Only the CSL leader publishes the advisory; every node
-    // (including self) activates when it applies the commit.
+    // Raft mode and self is the CSL leader.  Per Raft 5.4.2, a new leader
+    // commits inherited prior-term entries only by committing an entry of its
+    // own term; this advisory is that entry.  Only the CSL leader publishes
+    // it; on applying the commit, every node (including self) sets
+    // d_caughtUpTerm and marks its partition primaries E_ACTIVE.
     //
     // Called only from 'maybeTransitionToAvailable', which has already
     // verified every partition has a locally-known leader (its gate 1) before
@@ -2268,33 +2278,20 @@ void ClusterOrchestrator::maybeIssuePartitionPrimaryAdvisory()
     const mqbc::ClusterState::PartitionsInfo& partitions =
         d_clusterState_p->partitions();
 
-    // Propose if EITHER:
-    //  (a) self (as this term's CSL leader) has not yet attempted an advisory
-    //      in ITS OWN current term.  Raft 5.4.2 requires some current-term
-    //      entry to exist so this leader can advance its commit index past
-    //      the inherited prior-term tail -- the CONTENT may be unchanged from
-    //      a prior term's advisory (nothing new to publish), but a newly
-    //      elected leader still needs its own term's entry.  Unconditional,
-    //      matching what a become-leader no-op guarantees; tracked via
-    //      'd_advisedInTerm' rather than 'isCaughtUp()'/the log's 'lastTerm()'
-    //      -- both are generic "something committed/appended this term"
-    //      signals that a pre-existing, unrelated race
-    //      ('ClusterQueueHelper::onClusterLeader' -> 'restoreState' proposing
-    //      a queue assignment) can satisfy without this advisory ever having
-    //      been proposed, which would permanently starve
-    //      'advisoryConfirmedLeaseId'.
-    //  (b) the content has genuinely changed (a partition re-elected mid-term)
-    //      -- checked via 'advisoryConfirmedLeaseId', updated only when an
-    //      advisory actually COMMITS, so this self-corrects even if a prior
-    //      proposal attempt never committed.
+    // Propose the partitionPrimaryAdvisory when d_caughtUpTerm is 0: no
+    // advisory for currentTerm() has committed yet, either because this
+    // leader has not proposed one for currentTerm(), or because the loop
+    // below just found a partition's leaseId ahead of
+    // advisoryConfirmedLeaseId.
 
-    for (size_t pid = 0; d_isCaughtUp && pid < partitions.size(); ++pid) {
+    for (size_t pid = 0; d_caughtUpTerm != 0 && pid < partitions.size();
+         ++pid) {
         if (partitions[pid].primaryLeaseId() !=
             partitions[pid].advisoryConfirmedLeaseId()) {
-            d_isCaughtUp = false;
+            d_caughtUpTerm = 0;
         }
     }
-    if (d_isCaughtUp) {
+    if (d_caughtUpTerm != 0) {
         return;  // RETURN (already tried this term; CSL reflects current
                  // leaseIds)
     }
@@ -2402,20 +2399,17 @@ void ClusterOrchestrator::maybeTransitionToAvailable()
 
     // If self is the CSL leader, this is the trigger to publish the combined
     // artificial partition-primary advisory (every partition now has a
-    // leader, per gate 1).  There is no separate become-leader no-op: this
-    // advisory's commit is what makes the CSL 'isCaughtUp()' true (Raft
-    // 5.4.2).  Self-dedups against re-proposing an identical advisory.
+    // leader, per gate 1).  Its commit sets d_caughtUpTerm.  Self-dedups
+    // against re-proposing an identical advisory.
     maybeIssuePartitionPrimaryAdvisory();
 
-    // the full CSL backlog must be applied (original 'isCaughtUp'
-    // purpose, independent of the advisory specifically) -- otherwise this
-    // node could serve queue reopens against a partially-replayed cluster
-    // state, minting conflicting queue/app keys instead of honoring the
-    // recovered state.
-    if (!d_isCaughtUp) {
+    // The full CSL backlog must be applied -- otherwise this node could serve
+    // queue reopens against a partially-replayed cluster state, minting
+    // conflicting queue/app keys instead of honoring the recovered state.
+    if (0 == d_caughtUpTerm) {
         BALL_LOG_INFO << d_clusterData_p->identity().description()
                       << ": maybeTransitionToAvailable blocked: "
-                      << "d_isCaughtUp=" << d_isCaughtUp;
+                      << "d_caughtUpTerm=" << d_caughtUpTerm;
         return;  // RETURN
     }
 

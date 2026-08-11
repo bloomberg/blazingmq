@@ -75,7 +75,8 @@ class ClusterStateRaft : public mqbi::ClusterStateUpdater {
     /// Callback invoked (on the cluster dispatcher thread) whenever the CSL
     /// Raft state advances -- leadership change or committed entries applied
     /// -- so the orchestrator can re-evaluate whether it may transition to
-    /// AVAILABLE.  The orchestrator queries `isCaughtUp()` on demand.
+    /// AVAILABLE.  The bool argument is true when a current-term
+    /// partitionPrimaryAdvisory has committed.
     typedef bsl::function<void(bool)> AvailabilityCb;
 
   private:
@@ -92,15 +93,6 @@ class ClusterStateRaft : public mqbi::ClusterStateUpdater {
     AvailabilityCb                              d_availabilityCb;
     bool                                        d_isStarted;
     bslma::Allocator*                           d_allocator_p;
-
-    /// The CSL term for which self (as CSL leader) last attempted to propose
-    /// the artificial `partitionPrimaryAdvisory`; 0 (never a real leader
-    /// term) if none attempted yet.  Used by
-    /// `maybeIssuePartitionPrimaryAdvisory` to guarantee it proposes
-    /// unconditionally once per term (Raft 5.4.2 requires some current-term
-    /// entry regardless of whether its content would be unchanged from a
-    /// prior term).
-    bsls::Types::Uint64 d_advisedInTerm;
 
     // NOT IMPLEMENTED
     ClusterStateRaft(const ClusterStateRaft&);
@@ -195,7 +187,7 @@ class ClusterStateRaft : public mqbi::ClusterStateUpdater {
     /// (primaryNodeId, leaseId==Raft term) to the CSL Raft.  This is the
     /// "artificial" advisory that keeps the CSL's recorded leaseId in step
     /// with the journal (== term) for legacy-broker interoperability, and
-    /// whose application is what `isCaughtUp()` reports.  Idempotent:
+    /// whose commit fires the availability callback with true.  Idempotent:
     /// re-proposes only when the set of leaseIds has changed since the last
     /// successful proposal.  A no-op on non-leaders or before the
     /// preconditions hold.  Called by the orchestrator only after it has

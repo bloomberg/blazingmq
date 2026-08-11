@@ -448,14 +448,19 @@ void RelayQueueEngine::onHandleConfiguredDispatched(
     handle->setStreamParameters(downStreamParameters);
 
     // Rebuild consumers for routing
-    const mqbi::QueueCounts& counts = it->second.d_counts;
-    App_State*               app    = 0;
+    const mqbi::QueueCounts& counts       = it->second.d_counts;
+    App_State*               app          = 0;
+    bool                     hasConsumers = false;
     if (counts.d_readCount > 0) {
         app = findApp(upstreamSubQueueId);
         BSLS_ASSERT_SAFE(app);
 
         // This also validates the context by checking for missing handles.
         applyConfiguration(*app, *context);
+
+        // Capture while valid: 'invokeCallback' may erase 'app'; a non-empty
+        // consumer set keeps it alive.
+        hasConsumers = app->hasConsumers();
 
         BALL_LOGTHROTTLE_INFO_BLOCK(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)
         {
@@ -483,7 +488,7 @@ void RelayQueueEngine::onHandleConfiguredDispatched(
     // Invoke callback sending ConfigureQueue response before PUSHing.
     context->invokeCallback();
 
-    if (app) {
+    if (hasConsumers) {
         processAppRedelivery(upstreamSubQueueId, app);
     }
 }

@@ -196,7 +196,9 @@ class ClusterOrchestrator {
     /// status advisories and their source.
     PrimaryStatusAdvisoryInfosVec d_bufferedPrimaryStatusAdvisoryInfosVec;
 
-    bool d_isCaughtUp;
+    /// CSL term whose combined partitionPrimaryAdvisory has committed; 0 if
+    /// none.
+    bsls::Types::Uint64 d_caughtUpTerm;
 
   private:
     // NOT IMPLEMENTED
