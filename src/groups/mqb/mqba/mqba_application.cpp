@@ -475,29 +475,8 @@ int Application::start(bsl::ostream& errorDescription)
     return rc_SUCCESS;
 }
 
-void Application::stop()
+void Application::stopTransportAndClusters()
 {
-    BALL_LOG_INFO << bsl::endl
-                  << "========== ============================== =========="
-                  << bsl::endl
-                  << "                      Stopping                      "
-                  << bsl::endl
-                  << "========== ============================== ==========";
-
-    bsls::TimeInterval startTime = bdlt::CurrentTime::now();
-
-#define STOP_OBJ(OBJ, NAME)                                                   \
-    if (OBJ) {                                                                \
-        BALL_LOG_INFO << "Stopping " NAME "...";                              \
-        OBJ->stop();                                                          \
-    }
-
-#define DESTROY_OBJ(OBJ, NAME)                                                \
-    if (OBJ) {                                                                \
-        BALL_LOG_INFO << "Destroying " NAME "...";                            \
-        OBJ.reset();                                                          \
-    }
-
     // Stop listening so that any new connections are refused.
     BALL_LOG_INFO << "Stopping listening for new connections...";
 
@@ -549,6 +528,35 @@ void Application::stop()
     // and destructed, make sure that Dispatcher will not call `flush` for
     // any DispatcherClient that might be in the middle of its destruction.
     d_dispatcher_mp->disableFlushClients();
+}
+
+void Application::stop()
+{
+    BALL_LOG_INFO << bsl::endl
+                  << "========== ============================== =========="
+                  << bsl::endl
+                  << "                      Stopping                      "
+                  << bsl::endl
+                  << "========== ============================== ==========";
+
+    bsls::TimeInterval startTime = bdlt::CurrentTime::now();
+
+#define STOP_OBJ(OBJ, NAME)                                                   \
+    if (OBJ) {                                                                \
+        BALL_LOG_INFO << "Stopping " NAME "...";                              \
+        OBJ->stop();                                                          \
+    }
+
+#define DESTROY_OBJ(OBJ, NAME)                                                \
+    if (OBJ) {                                                                \
+        BALL_LOG_INFO << "Destroying " NAME "...";                            \
+        OBJ.reset();                                                          \
+    }
+
+    // Only if 'start()' got far enough to construct the transport manager.
+    if (d_transportManager_mp) {
+        stopTransportAndClusters();
+    }
 
     // 'Application::initiateShutdown' had closed all client sessions.
     // 'Cluster::initiateShutdown' had drained and closed all cluster nodes
