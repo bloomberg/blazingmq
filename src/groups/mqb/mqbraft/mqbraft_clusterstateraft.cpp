@@ -99,7 +99,6 @@ ClusterStateRaft::ClusterStateRaft(
 , d_availabilityCb(bsl::allocator_arg, allocator, availabilityCb)
 , d_isStarted(false)
 , d_allocator_p(bslma::Default::allocator(allocator))
-, d_advisedInTerm(0)
 {
     BSLS_ASSERT_SAFE(clusterData);
     BSLS_ASSERT_SAFE(clusterState);
@@ -141,14 +140,10 @@ void ClusterStateRaft::dispatchOutput(RaftNodeOutput* output)
         // recovered backlog (Raft 5.4.2, exactly as a no-op would) and
         // publishes the leaseIds.
         //
-        // A leadership change is also the trigger to let the orchestrator
-        // re-evaluate/re-issue that advisory (e.g. self just became CSL
-        // leader, or a new leader must be told of updated leaseIds).  Commits
-        // of OTHER entry types (queue assignments, app updates, ...) cannot
-        // affect 'isCaughtUp()' or partition activation, so they do NOT
-        // re-invoke the availability callback here -- see
-        // 'applyCommittedEntry' for the narrower, per-entry trigger on the
-        // partition-primary advisory specifically.
+        // A leadership change also lets the orchestrator re-evaluate/re-issue
+        // that advisory.  Other entry commits (queue assignments, app
+        // updates, ...) do not re-invoke the callback here; see
+        // 'applyCommittedEntry' for the per-advisory trigger.
         if (d_availabilityCb) {
             d_availabilityCb(false);
         }
@@ -272,7 +267,7 @@ void ClusterStateRaft::applyCommittedEntry(const LogEntry& entry)
 
         // Only the CSL leader's *current-term* advisory signals that the
         // recovered backlog has caught up (Raft 5.4.2): a stale advisory
-        // replayed from a prior term must not flip 'isCaughtUp()' early,
+        // replayed from a prior term must not fire the callback early,
         // before the rest of that stale backlog (e.g. queue assignments
         // from before a restart) has finished being applied.
         if (entry.d_term == d_raftNode_mp->currentTerm()) {

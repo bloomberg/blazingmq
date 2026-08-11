@@ -284,16 +284,20 @@ class TestGracefulShutdown:
         consumer.wait_push_event()
         assert wait_until(lambda: len(consumer.list(uriRead, block=True)) == 2, 2)
 
-        # start graceful shutdown
-        leader.exit_gracefully()
+        # The node tracking this queue's unconfirmed messages is its partition
+        # primary, which in Raft mode need not be the CSL leader.
+        primary = leader.wait_queue_primary(uriWrite)
 
-        capture = leader.capture(r"waiting for 2 unconfirmed message", timeout=2)
+        # start graceful shutdown
+        primary.exit_gracefully()
+
+        capture = primary.capture(r"waiting for 2 unconfirmed message", timeout=2)
         assert capture
 
         capture = replica.capture(r"giving up on 2 unconfirmed message", timeout=2)
         assert not capture
 
-        leader.force_stop()
+        primary.force_stop()
 
         # wait for the queue to recover
         self.producer.post(uriWrite, payload=["msg3"], succeed=True)
