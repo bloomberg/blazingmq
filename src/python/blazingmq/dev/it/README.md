@@ -38,7 +38,7 @@ provides methods for opening and closing queues, posting messages, etc.
 
 `blazingmq.dev.it.fixtures` provides the following fixtures:
 
-* `single_node`: a local "cluster" setup, consisting of a standalone broker
+* `single_node`: a 1-node cluster setup, consisting of a standalone broker
   and no proxies.
 
 * `multi_node`: a multi-node cluster setup, consisting of four nodes
@@ -186,16 +186,16 @@ class TestDemo:  # 4
 
 6. Get a cyclic list of "proxies".
 
-7. Fetch the next "proxy".  If the cluster is local, this returns the broker;
+7. Fetch the next "proxy".  If the cluster is a 1-node, this returns the broker;
    otherwise, this returns a proxy connected to a node in the same data center
    as the leader.  Create a client connected to that proxy.
 
-8. Fetch the next "proxy".  If the cluster is local, this returns the broker;
+8. Fetch the next "proxy".  If the cluster is a 1-node, this returns the broker;
    otherwise, this returns a proxy connected to a node in the data center after
    the leader's.  Create a client connected to that proxy.
 
 9. Define a test method.  Its name has to begin with `test_` for `pytest` to
-   pick it.  It is executed twice: once with a local cluster, and once with a
+   pick it.  It is executed twice: once with a 1-node cluster, and once with a
    standard cluster.  In both cases, the cluster is passed in the `cluster`
    argument.
 
@@ -213,7 +213,7 @@ class TestDemo:  # 4
 
 13. This is the beginning of a second test.
 
-14. Another test method.  This one runs only once, using a local cluster
+14. Another test method.  This one runs only once, using a 1-node cluster
     (obviously it fails).
 
 **NOTE**: To test with different domain consistencies, add one of the URL
@@ -356,9 +356,9 @@ Tests can be selected using keywords (using the `-k` switch) and/or markers
 |                         |                                                                           |
 |-------------------------|---------------------------------------------------------------------------|
 | `integrationtest`       | all integration tests                                                     |
-| `quick_integrationtest` | integration tests that run with a local cluster                           |
+| `quick_integrationtest` | integration tests that run with a 1-node cluster                          |
 | `pr_integrationtest`    | integration tests to be run as part of a Jenkins PR (currently all tests) |
-| `single`                | tests that use a local cluster fixture                                    |
+| `single`                | tests that use a 1-node cluster fixture                                   |
 | `multi`                 | tests that use a 4-node, 2-proxy cluster fixture                          |
 | `multi7`                | tests that use a 7-node, 4-proxy cluster fixture                          |
 | `legacy_mode`           | tests using a cluster in legacy mode (CSL and FSM workflow disabled)      |
@@ -479,7 +479,7 @@ nodes start up!
 NOTE: parallel test execution is incompatible with `BMQIT_PORT_BASE`.
 
 Before submitting changes for review, it is a good idea to run all the
-integration tests.  Tests that use a local cluster execute quickly.  Tests that
+integration tests.  Tests that use a 1-node cluster execute quickly.  Tests that
 use a multi-node cluster, on the other hand, have to go through the election
 procedure before actual testing can begin.  Running just one test during the
 development cycle is bearable.  However, it is a good idea to periodically run
