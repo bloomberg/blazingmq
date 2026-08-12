@@ -59,6 +59,7 @@ AuthorizationController::AuthorizationController(
 void AuthorizationController::collectAvailablePluginFactories(
     PluginFactories*              pluginFactories,
     const mqbplug::PluginManager& pluginManager,
+    const PluginLibrary&          builtInPlugins,
     mqbplug::PluginType::Enum     type)
 {
     // PRECONDITIONS
@@ -68,7 +69,6 @@ void AuthorizationController::collectAvailablePluginFactories(
     pluginManager.get(pluginFactories, type);
 
     // Add built-in plugin factories
-    PluginLibrary                                    builtInPlugins;
     bsl::vector<mqbplug::PluginInfo>::const_iterator it =
         builtInPlugins.plugins().cbegin();
     for (; it != builtInPlugins.plugins().cend(); ++it) {
@@ -107,18 +107,31 @@ int AuthorizationController::createConfiguredAuthorizer(
                   << "'";
 
     // Try to create the authorizer for this plugin name
-    bsl::optional<mqbplug::AuthorizerPluginFactory*> factoryOpt =
-        mqbplug::PluginFactoryUtil::findType<mqbplug::AuthorizerPluginFactory>(
-            pluginFactories.cbegin(),
-            pluginFactories.cend());
-    if (!factoryOpt.has_value()) {
+    AuthorizerMp                    authorizer;
+    PluginFactories::const_iterator factoryIt = pluginFactories.cbegin();
+    for (; factoryIt != pluginFactories.cend(); ++factoryIt) {
+        mqbplug::AuthorizerPluginFactory* candidateFactory =
+            dynamic_cast<mqbplug::AuthorizerPluginFactory*>(*factoryIt);
+        if (!candidateFactory) {
+            continue;  // CONTINUE
+        }
+        AuthorizerMp candidate = candidateFactory->create(
+            allocator.mechanism());
+        if (candidate && candidate->name() == pluginName) {
+            authorizer = bslmf::MovableRefUtil::move(candidate);
+            break;  // BREAK
+        }
+    }
+
+    if (!authorizer) {
         errorDescription
             << "authorizer plugin '" << pluginName
             << "' not found. Ensure the plugin is either built-in or listed "
                "in plugins.enabled[], or its configuration is correct.";
         return rc_PLUGIN_NOT_FOUND;  // RETURN
     }
-    *result = (*factoryOpt)->create(allocator.mechanism());
+
+    *result = bslmf::MovableRefUtil::move(authorizer);
 
     return rc_SUCCESS;
 }
@@ -162,10 +175,14 @@ int AuthorizationController::allocateManaged(
 
     BALL_LOG_INFO << "Starting AuthorizationController";
 
-    // Step 1: Collect all available plugin factories (built-in + external)
+    // Step 1: Collect all available plugin factories (built-in + external).
+    // 'builtInPlugins' must outlive 'pluginFactories', which holds raw
+    // pointers into it.
+    PluginLibrary   builtInPlugins;
     PluginFactories pluginFactories;
     collectAvailablePluginFactories(&pluginFactories,
                                     pluginManager,
+                                    builtInPlugins,
                                     mqbplug::PluginType::e_AUTHORIZER);
 
     // Step 2: Create authorizers based on configuration
