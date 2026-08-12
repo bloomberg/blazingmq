@@ -38,17 +38,18 @@ provides methods for opening and closing queues, posting messages, etc.
 
 `blazingmq.dev.it.fixtures` provides the following fixtures:
 
-* `local_cluster`: a local "cluster" setup, consisting of a standalone broker
-  and no proxies. The fixture is parameterized by the mode, with three
-  possible values: CSL mode, FSM mode or legacy mode.
+* `single_node`: a local "cluster" setup, consisting of a standalone broker
+  and no proxies.
 
-* `standard_cluster`: a multi-node cluster setup, consisting of four nodes
+* `multi_node`: a multi-node cluster setup, consisting of four nodes
   in two data centers of two nodes each, and two proxies (one in each
-  data center). The fixture is parameterized by the mode, with three
-  possible values: CSL mode, FSM mode or legacy mode.
+  data center).
 
-* `cluster`: a parametric fixture that combines `local_cluster` and
-  `standard_cluster`
+* `multi7_node`: a multi-node cluster setup, consisting of seven nodes across
+  four data centers and four proxies (one in each data center).
+
+* `cluster`: a parametric fixture that combines `single_node` and
+  `multi_node`
 
 When used as method arguments, these fixtures check for the presence of a
   `setup_cluster` instance method. If it is found, it is called with the
@@ -135,7 +136,7 @@ Here is a complete example, followed by a breakdown:
 ```python
 # 99doc_test.py                                                              #1
 
-from blazingmq.dev.it.fixtures import cluster, local_cluster  # 2
+from blazingmq.dev.it.fixtures import cluster, single_node  # 2
 from blazingmq.dev.it.testconstants import *  # 3
 
 
@@ -162,7 +163,7 @@ class TestDemo:  # 4
         msgs = self.consumer.list(URI_PRIORITY, block=True)  # 13
         assert len(msgs) == 0  # 13
 
-    def test_post_message_fanout(self, local_cluster):  # 14
+    def test_post_message_fanout(self, single_node):  # 14
         self.consumer.open(URI_PRIORITY, flags=["read"], succeed=True)
         self.consumer.wait_push_event()
         msgs = self.consumer.list(URI_PRIORITY, block=True)
@@ -171,7 +172,7 @@ class TestDemo:  # 4
 
 1. The file name has to end in `_test.py` for `pytest` to pick it.
 
-2. Import the `cluster` and `local_cluster` fixtures.
+2. Import the `cluster` and `single_node` fixtures.
 
 3. Import all the constants.  In this test could also just import
    `URI_PRIORITY`.
@@ -230,30 +231,21 @@ def test_post_message_priority(self, cluster, domain_urls: tc.DomainUrls):
 ```
 ### Tweaking the configuration
 
-Test code can add its own tweaks to the stock configurations, by applying the
-`@tweak` and `@tweak_value` decorators, at the function, method, or class
-level, as needed.
+Test code can add its own tweaks to the stock configurations by applying the
+`tweak` decorators, at the function, method, or class level, as needed.  Import
+`tweak` from `blazingmq.dev.it.fixtures`.
 
-`@tweak` takes a list of functions and calls them on the `Configurator` object,
-before it is deployed.  The `Configurator` has three attributes -
-`cluster_catalog`, `domain_catalog`, and `routing`.  For stock configurations,
-they are loaded, respectively, with the content of the `clusters.json`,
-`domains.json`, and `domains_routing.json` from `etc`.
-
-A tweak can make arbitrary modifications to the `Configurator` before it is
-deployed.  It can even replace the configurations entirely.  Most of the time,
-however, a tweak will just perform a few adjustments.  For example:
+`tweak` is a factory of decorators generated from the configuration schema.  It
+exposes three roots - `tweak.broker`, `tweak.domain`, and `tweak.cluster` -
+which mirror the `broker`, `domain`, and `cluster` definitions of the
+`Configurator`.  Navigate the attribute path in snake_case to reach the field
+you want to change, then call the leaf with the desired value.  The result is a
+decorator that sets that field on the `Configurator` before it is deployed.  For
+example:
 
 ```python
-def limit_consumers(ws):
-    ws.domain_catalog[DOMAIN_PRIORITY]["*"]["limit.consumers"] = 1
-
-
-def limit_producers(ws):
-    ws.domain_catalog[DOMAIN_PRIORITY]["*"]["limit.producers"] = 1
-
-
-@tweak(limit_consumers, limit_producers)
+@tweak.domain.max_consumers(1)
+@tweak.domain.max_producers(1)
 def test_tweak(cluster):
     proxy = next(cluster.proxy_cycle())
     assert (
@@ -282,116 +274,18 @@ def test_tweak(cluster):
     )
 ```
 
-`@tweak` may be applied more than once to the same entity, in which case the
-effect is cumulative.  Tweaks may also be applied at different levels
-(e.g. class and test method).  In this case, the tweaks are applied from
-outside in.
+Nested fields are reached by chaining attributes, e.g.
+`@tweak.domain.storage.queue_limits.messages(2)` or
+`@tweak.broker.app_config.configure_stream(True)`.
 
-Since tweaks are decorators, i.e. functions that take functions and return
-functions, it is easy to write functions that return tweaks, possibly
-parameterized.  For example:
+Tweaks may be applied more than once to the same entity, in which case the
+effect is cumulative.  They may also be applied at different levels (e.g. class
+and test method).  In this case, the tweaks are applied from outside in.
 
-```python
-def limit_consumers(num):
-    def tweaker(ws):
-        ws.domain_catalog[DOMAIN_PRIORITY]["*"]["limit.consumers"] = num
-
-    return tweak(tweaker)
-
-
-def limit_producers(num):
-    def tweaker(ws):
-        ws.domain_catalog[DOMAIN_PRIORITY]["*"]["limit.producers"] = num
-
-    return tweak(tweaker)
-
-
-@limit_producers(1)
-def test_exceed_max_producers(cluster):
-    proxy = next(cluster.proxy_cycle())
-    assert (
-        proxy.create_client("producer1").open(
-            URI_PRIORITY, flags=["write,ack"], block=True
-        )
-        == Client.e_SUCCESS
-    )
-    assert (
-        proxy.create_client("producer2").open(
-            URI_PRIORITY, flags=["write,ack"], block=True
-        )
-        != Client.e_SUCCESS
-    )
-    assert (
-        proxy.create_client("consumer1").open(
-            URI_PRIORITY, flags=["read,ack"], block=True
-        )
-        == Client.e_SUCCESS
-    )
-    assert (
-        proxy.create_client("consumer2").open(
-            URI_PRIORITY, flags=["read,ack"], block=True
-        )
-        == Client.e_SUCCESS
-    )
-
-
-@limit_consumers(1)
-@limit_producers(1)
-def test_exceed_both(cluster):
-    proxy = next(cluster.proxy_cycle())
-    assert (
-        proxy.create_client("producer1").open(
-            URI_PRIORITY, flags=["write,ack"], block=True
-        )
-        == Client.e_SUCCESS
-    )
-    assert (
-        proxy.create_client("producer2").open(
-            URI_PRIORITY, flags=["write,ack"], block=True
-        )
-        != Client.e_SUCCESS
-    )
-    assert (
-        proxy.create_client("consumer1").open(
-            URI_PRIORITY, flags=["read,ack"], block=True
-        )
-        == Client.e_SUCCESS
-    )
-    assert (
-        proxy.create_client("consumer2").open(
-            URI_PRIORITY, flags=["read,ack"], block=True
-        )
-        != Client.e_SUCCESS
-    )
-```
-
-Simple tweaks can be implemented easily via `tweak_value`.  It takes a
-XmlPath-like path in the `Workspace` object and a value:
+Since a tweak is just a decorator, it can be bound to a name and reused:
 
 ```python
-@tweak_value(f"domain_catalog/{DOMAIN_PRIORITY}/*/limit.producers", 1)
-def test_tweak(cluster):
-    proxy = next(cluster.proxy_cycle())
-    assert (
-        proxy.create_client("producer1").open(
-            URI_PRIORITY, flags=["write,ack"], block=True
-        )
-        == Client.e_SUCCESS
-    )
-    assert (
-        proxy.create_client("producer2").open(
-            URI_PRIORITY, flags=["write,ack"], block=True
-        )
-        != Client.e_SUCCESS
-    )
-```
-
-Again, it is easy to factorize tweaks:
-
-```python
-one_producer_only = tweak_value(
-    f"domain_catalog/{DOMAIN_PRIORITY}/*/limit.producers", 1
-)
+one_producer_only = tweak.domain.max_producers(1)
 
 
 @one_producer_only
@@ -409,6 +303,19 @@ def test_tweak(cluster):
         )
         != Client.e_SUCCESS
     )
+```
+
+For changes that the generated attribute paths do not cover, `tweak` can also be
+called directly with a function that receives the `Configurator` and makes
+arbitrary modifications before deployment:
+
+```python
+def raise_max_queues(configurator):
+    configurator.proto.domain.max_queues = 1000
+
+
+@tweak(raise_max_queues)
+def test_tweak(cluster): ...
 ```
 
 ## Running Tests
@@ -454,8 +361,10 @@ Tests can be selected using keywords (using the `-k` switch) and/or markers
 | `single`                | tests that use a local cluster fixture                                    |
 | `multi`                 | tests that use a 4-node, 2-proxy cluster fixture                          |
 | `multi7`                | tests that use a 7-node, 4-proxy cluster fixture                          |
-| `legacy_mode`           | choice between: legacy, FSM (with CSL)                                    |
-| `fsm_mode`              | choice between: legacy, FSM (with CSL)                                    |
+| `legacy_mode`           | tests using a cluster in legacy mode (CSL and FSM workflow disabled)      |
+| `fsm_mode`              | tests using a cluster in FSM mode (CSL and FSM workflow enabled)          |
+| `eventual_consistency`  | tests using an eventually consistent domain                               |
+| `strong_consistency`    | tests using a strongly consistent domain                                  |
 | `flakey`                | tests that occasionally fail; excluded from the Jenkins PR check          |
 
 ### Erroneous Exits
@@ -526,7 +435,7 @@ so, we insert `breakpoint()` inside `restart_nodes()` in `cluster.py`:
 Now, we open a terminal and from the BlazingMQ root directory:
 
 ```
-$ rit.sh --pdb -s -x -k migrate_domain --log-cli-level info
+$ src/integration-tests/run-tests --pdb -s -x -k migrate_domain --log-cli-level info
 ```
 
 `pdb`, the Python Debugger, will run until it hits the `breakpoint()`. Then, we
@@ -586,8 +495,8 @@ documentation](https://pypi.org/project/pytest-xdist/) for more information.
 
 Example:
 
-```python
-rit.sh -n 16
+```
+src/integration-tests/run-tests -n 16
 ```
 
 When parallelism is used, The `--bmq-log-dir DIR` switch should be used in
