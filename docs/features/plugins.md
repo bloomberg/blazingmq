@@ -16,6 +16,9 @@ nav_order: 9
 BlazingMQ brokers support a pluggable extension system for running custom code
 inside the broker process.
 
+{: .important }
+> If a configured plugin fails to load, the broker will refuse to start.
+
 ### Stats and Metrics Consumers
 
 Plugins in this category export broker metrics and statistics (for example, the
@@ -39,10 +42,10 @@ configuration file (`bmqbrkcfg.json`):
 
 ```json
 "appConfig": {
-    "plugins": {
-        "libraries": ["<path-to-plugin-library-directory>"],
-        "enabled": ["<PluginName>"]
-    }
+  "plugins": {
+    "libraries": ["<path-to-plugin-library-directory>"],
+    "enabled": ["<PluginName>"]
+  }
 }
 ```
 
@@ -51,35 +54,31 @@ broker can load it via `dlopen`.
 
 ## Writing a Custom Authenticator Plugin
 
-Custom authenticators are dynamically loaded shared libraries.  A plugin
-provides three pieces:
+Custom authenticators are dynamically loaded shared libraries. To use one in
+the broker, provide three pieces:
 
-1. An **`Authenticator`** -- subclass of `mqbplug::Authenticator` that
-   implements `authenticate()`, `name()`, `mechanism()`, `start()`, and
-   `stop()`.
-2. An **`AuthenticatorPluginFactory`** -- creates instances of your
-   authenticator.
-3. A **`PluginLibrary`** -- exports the `instantiatePluginLibrary` C symbol
-   so the broker can load the plugin via `dlopen`.
+1. An **`Authenticator`** implementation.
+2. An **`AuthenticatorPluginFactory`** that creates authenticator instances.
+3. A **`PluginLibrary`** that exports `instantiatePluginLibrary` so the
+  broker can load the plugin via `dlopen`.
 
 See
 [`mqbplug_authenticator.h`](https://github.com/bloomberg/blazingmq/blob/main/src/groups/mqb/mqbplug/mqbplug_authenticator.h)
-for the full interface documentation.  The built-in
+for the full interface. The built-in
 [`BasicAuthenticator`](https://github.com/bloomberg/blazingmq/blob/main/src/groups/mqb/mqbauthn/mqbauthn_basicauthenticator.cpp)
 and
 [`AnonAuthenticator`](https://github.com/bloomberg/blazingmq/blob/main/src/groups/mqb/mqbauthn/mqbauthn_anonauthenticator.cpp)
 serve as working reference implementations.
 
-A few things to keep in mind:
+For your implementation, the key behavior to get right is:
 
 {: .important }
 > `authenticate()` is called from the broker's authentication thread pool.
 > Your implementation **must be thread-safe** (the method is `const`).
 
-- The `authenticate()` method receives the raw credential bytes and the
-  client's IP address.  On success, return 0 and populate the result with a
-  `principal` and an optional `lifetimeMs`.  On failure, return non-zero and
-  write a reason to `errorDescription`.
+- In `authenticate()`, return 0 on success and set the result `principal`
+  (optionally `lifetimeMs`). Return non-zero on failure and set
+  `errorDescription` with a useful reason.
 
 - Plugin settings are passed as key-value pairs from the broker config.  Use
   `AuthenticatorUtil::findAuthenticatorConfig()` to look up your plugin's
