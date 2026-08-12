@@ -18,7 +18,7 @@
 #include <mqbscm_version.h>
 
 // MQB
-#include <mqbauthz_basicauthorizer.h>
+#include <mqbauthz_defaultauthorizer.h>
 
 namespace BloombergLP {
 namespace mqbauthz {
@@ -30,13 +30,13 @@ namespace mqbauthz {
 PluginLibrary::PluginLibrary(const allocator_type& allocator)
 : d_plugins(allocator)
 {
-    // BasicAuthorizer
-    mqbplug::PluginInfo& basicPluginInfo = d_plugins.emplace_back(
+    // DefaultAuthorizer
+    mqbplug::PluginInfo& defaultPluginInfo = d_plugins.emplace_back(
         mqbplug::PluginType::e_AUTHORIZER,
-        mqbauthz::BasicAuthorizer::k_NAME);
-    basicPluginInfo.setFactory(
-        bsl::allocate_shared<BasicAuthorizerPluginFactory>(allocator));
-    basicPluginInfo.setDescription("Built-in Basic Allow-All Authorizer");
+        mqbauthz::DefaultAuthorizer::k_NAME);
+    defaultPluginInfo.setFactory(
+        bsl::allocate_shared<DefaultAuthorizerPluginFactory>(allocator));
+    defaultPluginInfo.setDescription("Built-in Default Allow-All Authorizer");
 }
 
 PluginLibrary::~PluginLibrary()

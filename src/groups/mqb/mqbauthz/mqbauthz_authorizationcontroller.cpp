@@ -18,7 +18,7 @@
 #include <mqbscm_version.h>
 
 // MQB
-#include <mqbauthz_basicauthorizer.h>
+#include <mqbauthz_defaultauthorizer.h>
 #include <mqbauthz_pluginlibrary.h>
 #include <mqbcfg_messages.h>
 #include <mqbplug_authorizer.h>
@@ -148,13 +148,13 @@ void AuthorizationController::ensureDefaultAuthorizer(
         return;
     }
 
-    // If no authenticators are configured, use BasicAuthorizer for allow-all
+    // If no authenticators are configured, use DefaultAuthorizer for allow-all
     // authorization
     BALL_LOG_INFO << "No authorizer configured, using "
-                     "BasicAuthorizer as default";
+                     "DefaultAuthorizer as default";
 
-    BasicAuthorizerPluginFactory basicAuthzFactory;
-    *result = basicAuthzFactory.create(allocator.mechanism());
+    DefaultAuthorizerPluginFactory defaultAuthzFactory;
+    *result = defaultAuthzFactory.create(allocator.mechanism());
 }
 
 int AuthorizationController::allocateManaged(
