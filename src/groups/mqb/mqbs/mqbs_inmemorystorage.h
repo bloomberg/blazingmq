@@ -227,6 +227,9 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     AutoConfirms d_autoConfirms;
     // Current auto confirmed Apps for 'd_currentlyAutoConfirming'.
 
+    /// `true` if the associated queue is in broadcast mode.
+    const bool d_isBroadcast;
+
   private:
     // NOT IMPLEMENTED
     InMemoryStorage(const InMemoryStorage&) BSLS_KEYWORD_DELETED;
@@ -387,7 +390,8 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     /// Return the resource capacity meter associated to this storage.
     mqbu::CapacityMeter* capacityMeter() BSLS_KEYWORD_OVERRIDE;
 
-    /// Attempt to garbage-collect messages for which TTL has expired.
+    /// Attempt to garbage-collect messages for which TTL has expired.  This is
+    /// a no-op for broadcast queues, which never expire messages via TTL.
     /// @param currentTimeUtc The current time.
     /// @param secondsFromEpoch The time in seconds from the epoch start.
     /// @param limit The maximum number of messages to expire, negative value
