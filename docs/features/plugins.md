@@ -11,6 +11,108 @@ nav_order: 9
 * toc
 {:toc}
 
+## Plugin Types and Loading
+
+BlazingMQ brokers support a pluggable extension system for running custom code
+inside the broker process.
+
+{: .important }
+> If a configured plugin fails to load, the broker will refuse to start.
+
+### Stats and Metrics Consumers
+
+Plugins in this category export broker metrics and statistics (for example, the
+[Prometheus plugin](#prometheus-plugin) below).
+
+### Authenticators
+
+Plugins in this category authenticate client credentials during connection setup.
+
+- **Built-in authenticators** are provided by the broker task and do not
+  require external plugin libraries (see
+  [Built-in Authenticators](security.md#built-in-authenticators)).
+- **Custom authenticators** are loaded from external shared libraries via
+  plugin configuration (see [Writing a Custom Authenticator
+  Plugin](#writing-a-custom-authenticator-plugin)).
+
+### Loading and Enabling Plugins
+
+Plugin libraries are loaded as shared libraries and enabled in the broker
+configuration file (`bmqbrkcfg.json`):
+
+```json
+"appConfig": {
+  "plugins": {
+    "libraries": ["<path-to-plugin-library-directory>"],
+    "enabled": ["<PluginName>"]
+  }
+}
+```
+
+Every plugin library exports an `instantiatePluginLibrary` C symbol so the
+broker can load it via `dlopen`.
+
+## Writing a Custom Authenticator Plugin
+
+Custom authenticators are dynamically loaded shared libraries. To use one in
+the broker, provide three pieces:
+
+1. An **`Authenticator`** implementation.
+2. An **`AuthenticatorPluginFactory`** that creates authenticator instances.
+3. A **`PluginLibrary`** that exports `instantiatePluginLibrary` so the
+  broker can load the plugin via `dlopen`.
+
+See
+[`mqbplug_authenticator.h`](https://github.com/bloomberg/blazingmq/blob/main/src/groups/mqb/mqbplug/mqbplug_authenticator.h)
+for the full interface. The built-in
+[`BasicAuthenticator`](https://github.com/bloomberg/blazingmq/blob/main/src/groups/mqb/mqbauthn/mqbauthn_basicauthenticator.cpp)
+and
+[`AnonAuthenticator`](https://github.com/bloomberg/blazingmq/blob/main/src/groups/mqb/mqbauthn/mqbauthn_anonauthenticator.cpp)
+serve as working reference implementations.
+
+For your implementation, the key behavior to get right is:
+
+{: .important }
+> `authenticate()` is called from the broker's authentication thread pool.
+> Your implementation **must be thread-safe** (the method is `const`).
+
+- In `authenticate()`, return 0 on success and set the result `principal`
+  (optionally `lifetimeMs`). Return non-zero on failure and set
+  `errorDescription` with a useful reason.
+
+- Plugin settings are passed as key-value pairs from the broker config.  Use
+  `AuthenticatorUtil::findAuthenticatorConfig()` to look up your plugin's
+  config by name.
+
+### Deploying an authenticator plugin
+
+Compile the plugin as a shared library (`.so` / `.dylib`) and configure the
+broker to load it:
+
+```json
+{
+  "appConfig": {
+    "plugins": {
+      "libraries": ["/path/to/plugin/directory/"],
+      "enabled": ["MyJwtAuthenticator"]
+    },
+    "authentication": {
+      "authenticators": [
+        {
+          "name": "MyJwtAuthenticator",
+          "settings": []
+        }
+      ]
+    }
+  }
+}
+```
+
+For background on how authentication works in BlazingMQ, see
+[Security](security.md).
+
+---
+
 ## Prometheus plugin
 
 ### Overview
