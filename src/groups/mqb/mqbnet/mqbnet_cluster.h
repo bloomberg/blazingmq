@@ -157,7 +157,7 @@ class ClusterNode {
     // ACCESSORS
 
     /// Return identity from the last received negotiation message.
-    virtual const bmqp_ctrlmsg::ClientIdentity& identity() const = 0;
+    virtual bmqp_ctrlmsg::ClientIdentity identity() const = 0;
 
     /// Return the id of this node.
     virtual int nodeId() const = 0;
