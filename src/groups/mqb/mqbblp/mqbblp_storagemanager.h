@@ -165,19 +165,6 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager {
 
     typedef mqbc::ClusterStatePartitionInfo ClusterStatePartitionInfo;
 
-    typedef mqbc::ClusterData::RequestManagerType RequestManagerType;
-
-    typedef mqbc::ClusterData::MultiRequestManagerType MultiRequestManagerType;
-
-    typedef MultiRequestManagerType::RequestContextSp RequestContextSp;
-
-    typedef MultiRequestManagerType::NodeResponsePair  NodeResponsePair;
-    typedef MultiRequestManagerType::NodeResponsePairs NodeResponsePairs;
-    typedef MultiRequestManagerType::NodeResponsePairsIter
-        NodeResponsePairsIter;
-    typedef MultiRequestManagerType::NodeResponsePairsConstIter
-        NodeResponsePairsConstIter;
-
     typedef mqbc::StorageUtil::DomainQueueMessagesCountMaps
         DomainQueueMessagesCountMaps;
 

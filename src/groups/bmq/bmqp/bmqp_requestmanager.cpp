@@ -19,7 +19,7 @@
 namespace BloombergLP {
 namespace bmqp {
 
-// NOTHING: Template
+// NOTHING
 
 }  // close package namespace
 }  // close enterprise namespace

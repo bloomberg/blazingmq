@@ -1011,9 +1011,8 @@ void BrokerSession::QueueFsm::setQueueState(
     queue->setState(value);
 }
 
-void BrokerSession::QueueFsm::setQueueId(
-    const bsl::shared_ptr<Queue>&        queue,
-    const RequestManagerType::RequestSp& context)
+void BrokerSession::QueueFsm::setQueueId(const bsl::shared_ptr<Queue>& queue,
+                                         const RequestSp&              context)
 {
     // executed by the FSM thread
 
@@ -1042,9 +1041,9 @@ void BrokerSession::QueueFsm::setQueueId(
 }
 
 void BrokerSession::QueueFsm::injectErrorResponse(
-    const RequestManagerType::RequestSp& context,
-    int                                  status,
-    const bslstl::StringRef&             reason)
+    const RequestSp&         context,
+    int                      status,
+    const bslstl::StringRef& reason)
 {
     // executed by the FSM thread
 
@@ -1059,10 +1058,10 @@ void BrokerSession::QueueFsm::injectErrorResponse(
                                          reason);
 }
 
-bmqt::OpenQueueResult::Enum BrokerSession::QueueFsm::actionOpenQueue(
-    const bsl::shared_ptr<Queue>&        queue,
-    const RequestManagerType::RequestSp& context,
-    const bsls::TimeInterval&            timeout)
+bmqt::OpenQueueResult::Enum
+BrokerSession::QueueFsm::actionOpenQueue(const bsl::shared_ptr<Queue>& queue,
+                                         const RequestSp&              context,
+                                         const bsls::TimeInterval&     timeout)
 {
     // executed by the FSM thread
 
@@ -1082,10 +1081,10 @@ bmqt::OpenQueueResult::Enum BrokerSession::QueueFsm::actionOpenQueue(
     return res;
 }
 
-bmqt::OpenQueueResult::Enum BrokerSession::QueueFsm::actionReopenQueue(
-    const bsl::shared_ptr<Queue>&        queue,
-    const RequestManagerType::RequestSp& context,
-    const bsls::TimeInterval&            timeout)
+bmqt::OpenQueueResult::Enum
+BrokerSession::QueueFsm::actionReopenQueue(const bsl::shared_ptr<Queue>& queue,
+                                           const RequestSp&          context,
+                                           const bsls::TimeInterval& timeout)
 {
     // executed by the FSM thread
 
@@ -1105,9 +1104,9 @@ bmqt::OpenQueueResult::Enum BrokerSession::QueueFsm::actionReopenQueue(
 
 bmqt::ConfigureQueueResult::Enum
 BrokerSession::QueueFsm::actionDeconfigureQueue(
-    const bsl::shared_ptr<Queue>&        queue,
-    const RequestManagerType::RequestSp& closeContext,
-    const bsls::TimeInterval&            timeout)
+    const bsl::shared_ptr<Queue>& queue,
+    const RequestSp&              closeContext,
+    const bsls::TimeInterval&     timeout)
 {
     // executed by the FSM thread
 
@@ -1186,11 +1185,11 @@ void BrokerSession::QueueFsm::actionRemoveQueue(
 
 bmqt::ConfigureQueueResult::Enum
 BrokerSession::QueueFsm::actionOpenConfigureQueue(
-    const RequestManagerType::RequestSp& openContext,
-    const RequestManagerType::RequestSp& configContext,
-    const bsl::shared_ptr<Queue>&        queue,
-    const bsls::TimeInterval&            timeout,
-    bool                                 isReopenRequest)
+    const RequestSp&              openContext,
+    const RequestSp&              configContext,
+    const bsl::shared_ptr<Queue>& queue,
+    const bsls::TimeInterval&     timeout,
+    bool                          isReopenRequest)
 {
     // executed by the FSM thread
 
@@ -1211,8 +1210,7 @@ void BrokerSession::QueueFsm::actionCloseQueue(
     BSLS_ASSERT_SAFE(d_session.d_fsmThreadChecker.inSameThread());
 
     // Prepare "empty" closeQueue request
-    RequestManagerType::RequestSp context =
-        d_session.d_requestManager.createRequest();
+    RequestSp context = d_session.d_requestManager.createRequest();
     context->request().choice().makeCloseQueue();
     context->setGroupId(k_NON_BUFFERED_REQUEST_GROUP_ID);
 
@@ -1223,10 +1221,10 @@ void BrokerSession::QueueFsm::actionCloseQueue(
     actionCloseQueue(context, queue, absTimeout);
 }
 
-bmqt::GenericResult::Enum BrokerSession::QueueFsm::actionCloseQueue(
-    const RequestManagerType::RequestSp& context,
-    const bsl::shared_ptr<Queue>&        queue,
-    const bsls::TimeInterval&            absTimeout)
+bmqt::GenericResult::Enum
+BrokerSession::QueueFsm::actionCloseQueue(const RequestSp& context,
+                                          const bsl::shared_ptr<Queue>& queue,
+                                          const bsls::TimeInterval& absTimeout)
 {
     // executed by the FSM thread
 
@@ -1241,9 +1239,9 @@ bmqt::GenericResult::Enum BrokerSession::QueueFsm::actionCloseQueue(
 }
 
 void BrokerSession::QueueFsm::actionInitQueue(
-    const bsl::shared_ptr<Queue>&        queue,
-    const RequestManagerType::RequestSp& openQueueContext,
-    bool                                 isReopenRequest)
+    const bsl::shared_ptr<Queue>& queue,
+    const RequestSp&              openQueueContext,
+    bool                          isReopenRequest)
 {
     // executed by the FSM thread
 
@@ -1274,10 +1272,10 @@ void BrokerSession::QueueFsm::actionInitQueue(
 }
 
 bmqt::ConfigureQueueResult::Enum BrokerSession::QueueFsm::actionConfigureQueue(
-    const bsl::shared_ptr<Queue>&  queue,
-    const bmqt::QueueOptions&      options,
-    const bsls::TimeInterval&      timeout,
-    RequestManagerType::RequestSp& context)
+    const bsl::shared_ptr<Queue>& queue,
+    const bmqt::QueueOptions&     options,
+    const bsls::TimeInterval&     timeout,
+    RequestSp&                    context)
 {
     // executed by the FSM thread
 
@@ -1380,11 +1378,11 @@ void BrokerSession::QueueFsm::actionInitiateQueueSuspend(
     suspendOptions.setMaxUnconfirmedMessages(0).setMaxUnconfirmedBytes(0);
 
     // Create request context.
-    RequestManagerType::RequestSp context =
-        d_session.createConfigureQueueContext(queue,
-                                              suspendOptions,
-                                              true,    // isDeconfigure
-                                              false);  // isBuffered
+    RequestSp context = d_session.createConfigureQueueContext(
+        queue,
+        suspendOptions,
+        true,    // isDeconfigure
+        false);  // isBuffered
 
     // Deconfigure queue to stop messages from being sent by the broker.
     d_session.sendSuspendRequest(
@@ -1402,11 +1400,11 @@ void BrokerSession::QueueFsm::actionInitiateQueueResume(
     BSLS_ASSERT_SAFE(d_session.d_fsmThreadChecker.inSameThread());
 
     // Create request context.
-    RequestManagerType::RequestSp context =
-        d_session.createConfigureQueueContext(queue,
-                                              queue->options(),
-                                              false,   // isDeconfigure
-                                              false);  // isBuffered
+    RequestSp context = d_session.createConfigureQueueContext(
+        queue,
+        queue->options(),
+        false,   // isDeconfigure
+        false);  // isBuffered
 
     // Reconfigure queue to resume receiving messages from the broker.
     d_session.sendResumeRequest(
@@ -1521,10 +1519,10 @@ BrokerSession::QueueFsm::QueueFsm(BrokerSession& session)
 }
 
 // MANIPULATORS
-bmqt::OpenQueueResult::Enum BrokerSession::QueueFsm::handleOpenRequest(
-    const bsl::shared_ptr<Queue>&        queue,
-    const bsls::TimeInterval&            timeout,
-    const RequestManagerType::RequestSp& context)
+bmqt::OpenQueueResult::Enum
+BrokerSession::QueueFsm::handleOpenRequest(const bsl::shared_ptr<Queue>& queue,
+                                           const bsls::TimeInterval& timeout,
+                                           const RequestSp&          context)
 {
     // executed by the FSM thread
 
@@ -1582,9 +1580,9 @@ bmqt::OpenQueueResult::Enum BrokerSession::QueueFsm::handleOpenRequest(
 }
 
 void BrokerSession::QueueFsm::handleRequestNotSent(
-    const bsl::shared_ptr<Queue>&        queue,
-    const RequestManagerType::RequestSp& context,
-    int                                  status)
+    const bsl::shared_ptr<Queue>& queue,
+    const RequestSp&              context,
+    int                           status)
 {
     // executed by the FSM thread
 
@@ -1599,9 +1597,9 @@ void BrokerSession::QueueFsm::handleRequestNotSent(
 }
 
 void BrokerSession::QueueFsm::handleRequestWriteError(
-    const bsl::shared_ptr<Queue>&        queue,
-    const RequestManagerType::RequestSp& context,
-    int                                  status)
+    const bsl::shared_ptr<Queue>& queue,
+    const RequestSp&              context,
+    int                           status)
 {
     // executed by the FSM thread
 
@@ -1687,9 +1685,9 @@ void BrokerSession::QueueFsm::handleRequestWriteError(
 }
 
 void BrokerSession::QueueFsm::handleRequestBad(
-    const bsl::shared_ptr<Queue>&        queue,
-    const RequestManagerType::RequestSp& context,
-    int                                  status)
+    const bsl::shared_ptr<Queue>& queue,
+    const RequestSp&              context,
+    int                           status)
 {
     // executed by the FSM thread
 
@@ -1875,9 +1873,9 @@ void BrokerSession::QueueFsm::handleRequestBad(
 }
 
 void BrokerSession::QueueFsm::handleReopenRequest(
-    const bsl::shared_ptr<Queue>&        queue,
-    const bsls::TimeInterval&            timeout,
-    const RequestManagerType::RequestSp& context)
+    const bsl::shared_ptr<Queue>& queue,
+    const bsls::TimeInterval&     timeout,
+    const RequestSp&              context)
 {
     // executed by the FSM thread
 
@@ -1925,10 +1923,10 @@ void BrokerSession::QueueFsm::handleReopenRequest(
 
 bmqt::ConfigureQueueResult::Enum
 BrokerSession::QueueFsm::handleConfigureRequest(
-    const bsl::shared_ptr<Queue>&  queue,
-    const bmqt::QueueOptions&      options,
-    const bsls::TimeInterval&      timeout,
-    RequestManagerType::RequestSp& context)
+    const bsl::shared_ptr<Queue>& queue,
+    const bmqt::QueueOptions&     options,
+    const bsls::TimeInterval&     timeout,
+    RequestSp&                    context)
 {
     // executed by the FSM thread
 
@@ -1991,9 +1989,9 @@ BrokerSession::QueueFsm::handleConfigureRequest(
 }
 
 bmqt::CloseQueueResult::Enum BrokerSession::QueueFsm::handleCloseRequest(
-    const bsl::shared_ptr<Queue>&        queue,
-    const bsls::TimeInterval&            timeout,
-    const RequestManagerType::RequestSp& context)
+    const bsl::shared_ptr<Queue>& queue,
+    const bsls::TimeInterval&     timeout,
+    const RequestSp&              context)
 {
     // executed by the FSM thread
 
@@ -2094,9 +2092,9 @@ bmqt::CloseQueueResult::Enum BrokerSession::QueueFsm::handleCloseRequest(
 }
 
 void BrokerSession::QueueFsm::handleResponseError(
-    const bsl::shared_ptr<Queue>&        queue,
-    const RequestManagerType::RequestSp& context,
-    const bsls::TimeInterval&            absTimeout)
+    const bsl::shared_ptr<Queue>& queue,
+    const RequestSp&              context,
+    const bsls::TimeInterval&     absTimeout)
 {
     // executed by the FSM thread
 
@@ -2260,8 +2258,8 @@ void BrokerSession::QueueFsm::handleResponseError(
 }
 
 void BrokerSession::QueueFsm::handleSessionDown(
-    const bsl::shared_ptr<Queue>&        queue,
-    const RequestManagerType::RequestSp& context)
+    const bsl::shared_ptr<Queue>& queue,
+    const RequestSp&              context)
 {
     // executed by the FSM thread
 
@@ -2366,8 +2364,8 @@ void BrokerSession::QueueFsm::handleSessionDown(
 }
 
 void BrokerSession::QueueFsm::handleRequestCanceled(
-    const bsl::shared_ptr<Queue>&        queue,
-    const RequestManagerType::RequestSp& context)
+    const bsl::shared_ptr<Queue>& queue,
+    const RequestSp&              context)
 {
     // executed by the FSM thread
 
@@ -2470,8 +2468,8 @@ void BrokerSession::QueueFsm::handleRequestCanceled(
 }
 
 void BrokerSession::QueueFsm::handleResponseTimeout(
-    const bsl::shared_ptr<Queue>&        queue,
-    const RequestManagerType::RequestSp& context)
+    const bsl::shared_ptr<Queue>& queue,
+    const RequestSp&              context)
 {
     // executed by the FSM thread
 
@@ -2641,8 +2639,8 @@ void BrokerSession::QueueFsm::handleResponseTimeout(
 }
 
 void BrokerSession::QueueFsm::handleResponseExpired(
-    const bsl::shared_ptr<Queue>&        queue,
-    const RequestManagerType::RequestSp& context)
+    const bsl::shared_ptr<Queue>& queue,
+    const RequestSp&              context)
 {
     // executed by the FSM thread
 
@@ -2708,9 +2706,9 @@ void BrokerSession::QueueFsm::handleResponseExpired(
 }
 
 void BrokerSession::QueueFsm::handleResponseOk(
-    const bsl::shared_ptr<Queue>&        queue,
-    const RequestManagerType::RequestSp& context,
-    const bsls::TimeInterval&            timeout)
+    const bsl::shared_ptr<Queue>& queue,
+    const RequestSp&              context,
+    const bsls::TimeInterval&     timeout)
 {
     // executed by the FSM thread
 
@@ -2764,7 +2762,7 @@ void BrokerSession::QueueFsm::handleResponseOk(
         bslma::ManagedPtr<void> scopedSpan(
             d_session.activateDTSpan(configureSpan));
 
-        RequestManagerType::RequestSp configureQueueContext =
+        RequestSp configureQueueContext =
             d_session.createConfigureQueueContext(queue,
                                                   queue->options(),
                                                   false,  // isDeconfigure
@@ -2803,7 +2801,7 @@ void BrokerSession::QueueFsm::handleResponseOk(
             break;  // BREAK
         }
 
-        RequestManagerType::RequestSp configureQueueContext =
+        RequestSp configureQueueContext =
             d_session.createConfigureQueueContext(queue,
                                                   queue->options(),
                                                   false,   // isDeconfigure
@@ -2901,8 +2899,8 @@ void BrokerSession::QueueFsm::handleResponseOk(
 }
 
 void BrokerSession::QueueFsm::handleLateResponse(
-    const bsl::shared_ptr<Queue>&        queue,
-    const RequestManagerType::RequestSp& context)
+    const bsl::shared_ptr<Queue>& queue,
+    const RequestSp&              context)
 {
     // executed by the FSM thread
 
@@ -3110,9 +3108,9 @@ void BrokerSession_Executor::post(const bsl::function<void()>& f) const
 // -------------------
 
 bmqt::GenericResult::Enum
-BrokerSession::sendRequest(const RequestManagerType::RequestSp& context,
-                           const bmqp::QueueId&                 queueId,
-                           bsls::TimeInterval                   timeout)
+BrokerSession::sendRequest(const RequestSp&     context,
+                           const bmqp::QueueId& queueId,
+                           bsls::TimeInterval   timeout)
 {
     // executed by the FSM thread
 
@@ -3276,11 +3274,11 @@ void BrokerSession::eventHandlerCbWrapper(
 }
 
 void BrokerSession::asyncRequestNotifier(
-    const RequestManagerType::RequestSp& context,
-    bmqt::SessionEventType::Enum         eventType,
-    const bmqt::CorrelationId&           correlationId,
-    const bsl::shared_ptr<Queue>&        queue,
-    const EventCallback&                 eventCallback)
+    const RequestSp&              context,
+    bmqt::SessionEventType::Enum  eventType,
+    const bmqt::CorrelationId&    correlationId,
+    const bsl::shared_ptr<Queue>& queue,
+    const EventCallback&          eventCallback)
 {
     // executed by *ANY* thread
 
@@ -3320,10 +3318,9 @@ void BrokerSession::asyncRequestNotifier(
     }
 }
 
-void BrokerSession::syncRequestNotifier(
-    bslmt::Semaphore*                    semaphore,
-    int*                                 status,
-    const RequestManagerType::RequestSp& context)
+void BrokerSession::syncRequestNotifier(bslmt::Semaphore* semaphore,
+                                        int*              status,
+                                        const RequestSp&  context)
 {
     // executed by *ANY* thread
     // PRECONDITIONS
@@ -3357,11 +3354,11 @@ void BrokerSession::syncRequestNotifier(
 }
 
 void BrokerSession::manualSyncRequestNotifier(
-    const RequestManagerType::RequestSp& context,
-    bmqt::SessionEventType::Enum         eventType,
-    const bmqt::CorrelationId&           correlationId,
-    const bsl::shared_ptr<Queue>&        queue,
-    const EventCallback&                 eventCallback)
+    const RequestSp&              context,
+    bmqt::SessionEventType::Enum  eventType,
+    const bmqt::CorrelationId&    correlationId,
+    const bsl::shared_ptr<Queue>& queue,
+    const EventCallback&          eventCallback)
 {
     // executed by *ANY* thread
 
@@ -3809,9 +3806,9 @@ void BrokerSession::processAckEvent(const bmqp::Event& event)
 }
 
 bmqt::OpenQueueResult::Enum
-BrokerSession::openQueueImp(const bsl::shared_ptr<Queue>&  queue,
-                            bsls::TimeInterval             timeout,
-                            RequestManagerType::RequestSp& context)
+BrokerSession::openQueueImp(const bsl::shared_ptr<Queue>& queue,
+                            bsls::TimeInterval            timeout,
+                            RequestSp&                    context)
 {
     // executed by the FSM thread
     // PRECONDITIONS
@@ -3850,10 +3847,10 @@ BrokerSession::openQueueImp(const bsl::shared_ptr<Queue>&  queue,
     return d_queueFsm.handleOpenRequest(queueLookup, timeout, context);
 }
 
-bmqt::OpenQueueResult::Enum BrokerSession::sendOpenQueueRequest(
-    const RequestManagerType::RequestSp& context,
-    const bsl::shared_ptr<Queue>&        queue,
-    bsls::TimeInterval                   timeout)
+bmqt::OpenQueueResult::Enum
+BrokerSession::sendOpenQueueRequest(const RequestSp&              context,
+                                    const bsl::shared_ptr<Queue>& queue,
+                                    bsls::TimeInterval            timeout)
 {
     // executed by the FSM thread
     // PRECONDITIONS
@@ -3863,12 +3860,12 @@ bmqt::OpenQueueResult::Enum BrokerSession::sendOpenQueueRequest(
     const bsls::TimeInterval absTimeout = bmqu::Time::nowMonotonicClock() +
                                           timeout;
 
-    RequestManagerType::RequestType::ResponseCb response =
-        bdlf::BindUtil::bind(&BrokerSession::onOpenQueueResponse,
-                             this,
-                             bdlf::PlaceHolders::_1,  // context
-                             queue,
-                             absTimeout);
+    bmqp::RequestManagerRequest::ResponseCb response = bdlf::BindUtil::bind(
+        &BrokerSession::onOpenQueueResponse,
+        this,
+        bdlf::PlaceHolders::_1,  // context
+        queue,
+        absTimeout);
     context->setResponseCb(response);
 
     bmqt::GenericResult::Enum rc = sendRequest(
@@ -3880,8 +3877,8 @@ bmqt::OpenQueueResult::Enum BrokerSession::sendOpenQueueRequest(
 }
 
 bmqt::ConfigureQueueResult::Enum
-BrokerSession::configureQueueImp(const RequestManagerType::RequestSp& context,
-                                 const bsl::shared_ptr<Queue>&        queue,
+BrokerSession::configureQueueImp(const RequestSp&              context,
+                                 const bsl::shared_ptr<Queue>& queue,
                                  const bmqt::QueueOptions& newClientOptions,
                                  const bsls::TimeInterval  timeout,
                                  const ConfiguredCallback& configuredCb,
@@ -3931,13 +3928,13 @@ BrokerSession::configureQueueImp(const RequestManagerType::RequestSp& context,
     queue->setOptions(newClientOptions);
 
     // Set the response callback
-    RequestManagerType::RequestType::ResponseCb response =
-        bdlf::BindUtil::bind(&BrokerSession::onConfigureQueueResponse,
-                             this,
-                             bdlf::PlaceHolders::_1,  // context
-                             queue,
-                             previousOptions,
-                             configuredCb);
+    bmqp::RequestManagerRequest::ResponseCb response = bdlf::BindUtil::bind(
+        &BrokerSession::onConfigureQueueResponse,
+        this,
+        bdlf::PlaceHolders::_1,  // context
+        queue,
+        previousOptions,
+        configuredCb);
     context->setResponseCb(response);
 
     bmqt::GenericResult::Enum rc = sendRequest(
@@ -3963,10 +3960,10 @@ BrokerSession::configureQueueImp(const RequestManagerType::RequestSp& context,
 }
 
 bmqt::ConfigureQueueResult::Enum
-BrokerSession::sendConfigureRequest(const bsl::shared_ptr<Queue>&  queue,
-                                    const bmqt::QueueOptions&      options,
-                                    const bsls::TimeInterval       timeout,
-                                    RequestManagerType::RequestSp& context)
+BrokerSession::sendConfigureRequest(const bsl::shared_ptr<Queue>& queue,
+                                    const bmqt::QueueOptions&     options,
+                                    const bsls::TimeInterval      timeout,
+                                    RequestSp&                    context)
 {
     // executed by the FSM thread
     // PRECONDITIONS
@@ -4008,11 +4005,10 @@ BrokerSession::sendReconfigureRequest(const bsl::shared_ptr<Queue>& queue)
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_fsmThreadChecker.inSameThread());
 
-    RequestManagerType::RequestSp context = createConfigureQueueContext(
-        queue,
-        queue->options(),
-        false,   // isDeconfigure
-        false);  // isBuffered
+    RequestSp context = createConfigureQueueContext(queue,
+                                                    queue->options(),
+                                                    false,   // isDeconfigure
+                                                    false);  // isBuffered
     if (queue->isSuspended()) {
         context->signal();
         return bmqt::ConfigureQueueResult::e_SUCCESS;  // RETURN
@@ -4032,10 +4028,10 @@ BrokerSession::sendReconfigureRequest(const bsl::shared_ptr<Queue>& queue)
 }
 
 bmqt::ConfigureQueueResult::Enum
-BrokerSession::sendSuspendRequest(const bsl::shared_ptr<Queue>&  queueSp,
-                                  const bmqt::QueueOptions&      options,
-                                  const bsls::TimeInterval       timeout,
-                                  RequestManagerType::RequestSp& context)
+BrokerSession::sendSuspendRequest(const bsl::shared_ptr<Queue>& queueSp,
+                                  const bmqt::QueueOptions&     options,
+                                  const bsls::TimeInterval      timeout,
+                                  RequestSp&                    context)
 {
     // executed by the FSM thread
 
@@ -4091,10 +4087,10 @@ BrokerSession::sendSuspendRequest(const bsl::shared_ptr<Queue>&  queueSp,
 }
 
 bmqt::ConfigureQueueResult::Enum
-BrokerSession::sendResumeRequest(const bsl::shared_ptr<Queue>&  queueSp,
-                                 const bmqt::QueueOptions&      options,
-                                 const bsls::TimeInterval       timeout,
-                                 RequestManagerType::RequestSp& context)
+BrokerSession::sendResumeRequest(const bsl::shared_ptr<Queue>& queueSp,
+                                 const bmqt::QueueOptions&     options,
+                                 const bsls::TimeInterval      timeout,
+                                 RequestSp&                    context)
 {
     // executed by the FSM thread
 
@@ -4162,8 +4158,7 @@ BrokerSession::sendDeconfigureRequest(const bsl::shared_ptr<Queue>& queue)
         .setConsumerPriority(bmqp::Protocol::k_CONSUMER_PRIORITY_INVALID);
 
     // Set the configure callback
-    RequestManagerType::RequestSp closeQueueContext =
-        d_requestManager.createRequest();
+    RequestSp closeQueueContext = d_requestManager.createRequest();
     closeQueueContext->request().choice().makeCloseQueue();
     closeQueueContext->setGroupId(k_NON_BUFFERED_REQUEST_GROUP_ID);
 
@@ -4179,11 +4174,11 @@ BrokerSession::sendDeconfigureRequest(const bsl::shared_ptr<Queue>& queue)
         absTimeout,
         true);  // isFinal
 
-    RequestManagerType::RequestSp configureQueueContext =
-        createConfigureQueueContext(queue,
-                                    options,
-                                    true,    // isDeconfigure
-                                    false);  // isBuffered
+    RequestSp configureQueueContext = createConfigureQueueContext(
+        queue,
+        options,
+        true,    // isDeconfigure
+        false);  // isBuffered
 
     return configureQueueImp(configureQueueContext,
                              queue,
@@ -4192,10 +4187,10 @@ BrokerSession::sendDeconfigureRequest(const bsl::shared_ptr<Queue>& queue)
                              configuredCb);
 }
 
-bmqt::ConfigureQueueResult::Enum BrokerSession::sendDeconfigureRequest(
-    const bsl::shared_ptr<Queue>&        queue,
-    const RequestManagerType::RequestSp& closeContext,
-    bsls::TimeInterval                   timeout)
+bmqt::ConfigureQueueResult::Enum
+BrokerSession::sendDeconfigureRequest(const bsl::shared_ptr<Queue>& queue,
+                                      const RequestSp&   closeContext,
+                                      bsls::TimeInterval timeout)
 {
     // executed by the FSM thread
     // PRECONDITIONS
@@ -4232,11 +4227,11 @@ bmqt::ConfigureQueueResult::Enum BrokerSession::sendDeconfigureRequest(
         createDTSpan("bmq.queue.closeConfigure", baggage));
     bslma::ManagedPtr<void> scopedSpan(activateDTSpan(configureSpan));
 
-    RequestManagerType::RequestSp configureQueueContext =
-        createConfigureQueueContext(queue,
-                                    options,
-                                    true,    // isDeconfigure
-                                    false);  // isBuffered
+    RequestSp configureQueueContext = createConfigureQueueContext(
+        queue,
+        options,
+        true,    // isDeconfigure
+        false);  // isBuffered
     configureQueueContext->setDTSpan(configureSpan);
 
     return configureQueueImp(configureQueueContext,
@@ -4371,9 +4366,9 @@ void BrokerSession::enqueueStateRestoredIfNeeded()
 }
 
 void BrokerSession::onSuspendQueueConfigured(
-    const RequestManagerType::RequestSp& context,
-    const bsl::shared_ptr<Queue>&        queueSp,
-    const bool                           deferred)
+    const RequestSp&              context,
+    const bsl::shared_ptr<Queue>& queueSp,
+    const bool                    deferred)
 {
     // executed by the FSM thread
 
@@ -4456,9 +4451,9 @@ void BrokerSession::onSuspendQueueConfigured(
 }
 
 void BrokerSession::onResumeQueueConfigured(
-    const RequestManagerType::RequestSp& context,
-    const bsl::shared_ptr<Queue>&        queueSp,
-    const bool                           deferred)
+    const RequestSp&              context,
+    const bsl::shared_ptr<Queue>& queueSp,
+    const bool                    deferred)
 {
     // executed by the FSM thread
 
@@ -5069,10 +5064,9 @@ void BrokerSession::doOpenQueue(
 
     // Create request and mark it as buffered so that it could be retransmitted
     // if it is not sent due to the session is not connected.
-    RequestManagerType::RequestSp context = createOpenQueueContext(
-        queue,
-        fsmCallback,
-        true);  // isBuffered
+    RequestSp context = createOpenQueueContext(queue,
+                                               fsmCallback,
+                                               true);  // isBuffered
     context->setDTSpan(span);
 
     bmqt::OpenQueueResult::Enum rc = openQueueImp(queue, timeout, context);
@@ -5113,10 +5107,9 @@ void BrokerSession::doConfigureQueue(
     bmqt::QueueOptions updatedOptions(queue->options());
     updatedOptions.merge(options);
 
-    RequestManagerType::RequestSp context =
-        createStandaloneConfigureQueueContext(queue,
-                                              updatedOptions,
-                                              fsmCallback);
+    RequestSp context = createStandaloneConfigureQueueContext(queue,
+                                                              updatedOptions,
+                                                              fsmCallback);
     context->setDTSpan(span);
 
     bmqt::ConfigureQueueResult::Enum rc = d_queueFsm.handleConfigureRequest(
@@ -5159,8 +5152,7 @@ void BrokerSession::doCloseQueue(
     BALL_LOG_INFO << id() << "Close queue [queue: " << *queue
                   << ", timeout: " << timeout << "]";
 
-    RequestManagerType::RequestSp closeContext = createCloseQueueContext(
-        fsmCallback);
+    RequestSp closeContext = createCloseQueueContext(fsmCallback);
     closeContext->setDTSpan(span);
 
     bmqt::CloseQueueResult::Enum res =
@@ -5267,14 +5259,14 @@ bmqt::GenericResult::Enum BrokerSession::disconnectBroker()
 
     BSLS_ASSERT_SAFE(d_fsmThreadChecker.inSameThread());
 
-    RequestManagerType::RequestSp context = d_requestManager.createRequest();
+    RequestSp context = d_requestManager.createRequest();
     context->request().choice().makeDisconnect();
     context->setGroupId(k_NON_BUFFERED_REQUEST_GROUP_ID);
 
-    RequestManagerType::RequestType::ResponseCb response =
-        bdlf::BindUtil::bind(&BrokerSession::onDisconnectResponse,
-                             this,
-                             bdlf::PlaceHolders::_1);  // context
+    bmqp::RequestManagerRequest::ResponseCb response = bdlf::BindUtil::bind(
+        &BrokerSession::onDisconnectResponse,
+        this,
+        bdlf::PlaceHolders::_1);  // context
     context->setResponseCb(response);
 
     bmqp::QueueId queueId(bmqimp::Queue::k_INVALID_QUEUE_ID);
@@ -5284,7 +5276,7 @@ bmqt::GenericResult::Enum BrokerSession::disconnectBroker()
     return rc;
 }
 
-BrokerSession::RequestManagerType::RequestSp
+BrokerSession::RequestSp
 BrokerSession::createOpenQueueContext(const bsl::shared_ptr<Queue>& queue,
                                       const FsmCallback& fsmCallback,
                                       bool               isBuffered)
@@ -5297,7 +5289,7 @@ BrokerSession::createOpenQueueContext(const bsl::shared_ptr<Queue>& queue,
     queue->setRequestGroupId(++d_nextRequestGroupId);
 
     // Prepare the request context
-    RequestManagerType::RequestSp context = d_requestManager.createRequest();
+    RequestSp context = d_requestManager.createRequest();
     if (isBuffered) {
         grId = queue->requestGroupId().value();
     }
@@ -5316,7 +5308,7 @@ BrokerSession::createOpenQueueContext(const bsl::shared_ptr<Queue>& queue,
     return context;
 }
 
-BrokerSession::RequestManagerType::RequestSp
+BrokerSession::RequestSp
 BrokerSession::createConfigureQueueContext(const bsl::shared_ptr<Queue>& queue,
                                            const bmqt::QueueOptions& options,
                                            bool isDeconfigure,
@@ -5330,7 +5322,7 @@ BrokerSession::createConfigureQueueContext(const bsl::shared_ptr<Queue>& queue,
     int grId = k_NON_BUFFERED_REQUEST_GROUP_ID;
 
     // Prepare the request context
-    RequestManagerType::RequestSp context = d_requestManager.createRequest();
+    RequestSp context = d_requestManager.createRequest();
     if (isBuffered) {
         grId = queue->requestGroupId().value();
     }
@@ -5459,8 +5451,7 @@ BrokerSession::createConfigureQueueContext(const bsl::shared_ptr<Queue>& queue,
     return context;
 }
 
-BrokerSession::RequestManagerType::RequestSp
-BrokerSession::createStandaloneConfigureQueueContext(
+BrokerSession::RequestSp BrokerSession::createStandaloneConfigureQueueContext(
     const bsl::shared_ptr<Queue>& queue,
     const bmqt::QueueOptions&     options,
     const FsmCallback&            fsmCallback)
@@ -5470,11 +5461,10 @@ BrokerSession::createStandaloneConfigureQueueContext(
     BSLS_ASSERT_SAFE(d_fsmThreadChecker.inSameThread());
 
     // Prepare the request context
-    RequestManagerType::RequestSp context = createConfigureQueueContext(
-        queue,
-        options,
-        false,  // isDeconfigure
-        true);  // isBuffered
+    RequestSp context = createConfigureQueueContext(queue,
+                                                    options,
+                                                    false,  // isDeconfigure
+                                                    true);  // isBuffered
 
     // The result of this operation needs to be processed after all
     // pending/enqueued events in the event buffer.  The request may be
@@ -5484,11 +5474,10 @@ BrokerSession::createStandaloneConfigureQueueContext(
     return context;
 }
 
-BrokerSession::RequestManagerType::RequestSp
+BrokerSession::RequestSp
 BrokerSession::createCloseQueueContext(const FsmCallback& fsmCallback)
 {
-    RequestManagerType::RequestSp closeContext =
-        d_requestManager.createRequest();
+    RequestSp closeContext = d_requestManager.createRequest();
     closeContext->setGroupId(k_NON_BUFFERED_REQUEST_GROUP_ID);
     closeContext->request().choice().makeCloseQueue();
 
@@ -5611,10 +5600,10 @@ void BrokerSession::actionResumeHealthSensitiveQueues()
 }
 
 bmqt::GenericResult::Enum
-BrokerSession::requestWriterCb(const RequestManagerType::RequestSp& context,
-                               const bmqp::QueueId&                 queueId,
-                               const bsl::shared_ptr<bdlbb::Blob>&  blob_sp,
-                               bsls::Types::Int64                   watermark)
+BrokerSession::requestWriterCb(const RequestSp&                    context,
+                               const bmqp::QueueId&                queueId,
+                               const bsl::shared_ptr<bdlbb::Blob>& blob_sp,
+                               bsls::Types::Int64                  watermark)
 {
     // executed by the FSM thread
 
@@ -5976,8 +5965,7 @@ int BrokerSession::startAsync()
     return startStatus;
 }
 
-void BrokerSession::onDisconnectResponse(
-    const RequestManagerType::RequestSp& context)
+void BrokerSession::onDisconnectResponse(const RequestSp& context)
 {
     // executed by the FSM thread
     // PRECONDITIONS
@@ -6009,12 +5997,11 @@ void BrokerSession::onDisconnectResponse(
     d_sessionFsm.handleSessionClosed();
 }
 
-void BrokerSession::handleQueueFsmEvent(
-    const RequestManagerType::RequestSp& context,
-    const bsl::shared_ptr<Queue>&        queue,
-    bool                                 isLocalTimeout,
-    bool                                 isLateResponse,
-    const bsls::TimeInterval             absTimeout)
+void BrokerSession::handleQueueFsmEvent(const RequestSp&              context,
+                                        const bsl::shared_ptr<Queue>& queue,
+                                        bool isLocalTimeout,
+                                        bool isLateResponse,
+                                        const bsls::TimeInterval absTimeout)
 {
     // executed by the FSM thread
 
@@ -6055,10 +6042,9 @@ void BrokerSession::handleQueueFsmEvent(
     }
 }
 
-void BrokerSession::onOpenQueueResponse(
-    const RequestManagerType::RequestSp& context,
-    const bsl::shared_ptr<Queue>&        queue,
-    const bsls::TimeInterval             absTimeout)
+void BrokerSession::onOpenQueueResponse(const RequestSp&              context,
+                                        const bsl::shared_ptr<Queue>& queue,
+                                        const bsls::TimeInterval absTimeout)
 {
     // executed by the FSM thread
 
@@ -6098,9 +6084,8 @@ void BrokerSession::onOpenQueueResponse(
                         absTimeout);
 }
 
-void BrokerSession::onCloseQueueResponse(
-    const RequestManagerType::RequestSp& context,
-    const bsl::shared_ptr<Queue>&        queue)
+void BrokerSession::onCloseQueueResponse(const RequestSp&              context,
+                                         const bsl::shared_ptr<Queue>& queue)
 {
     // executed by the FSM thread
     // PRECONDITIONS
@@ -6126,12 +6111,12 @@ void BrokerSession::onCloseQueueResponse(
                         bsls::TimeInterval(0));
 }
 
-bmqt::ConfigureQueueResult::Enum BrokerSession::sendOpenConfigureQueue(
-    const RequestManagerType::RequestSp& openQueueContext,
-    const RequestManagerType::RequestSp& configQueueContext,
-    const bsl::shared_ptr<Queue>&        queue,
-    const bsls::TimeInterval             absTimeout,
-    bool                                 isReopenRequest)
+bmqt::ConfigureQueueResult::Enum
+BrokerSession::sendOpenConfigureQueue(const RequestSp& openQueueContext,
+                                      const RequestSp& configQueueContext,
+                                      const bsl::shared_ptr<Queue>& queue,
+                                      const bsls::TimeInterval      absTimeout,
+                                      bool isReopenRequest)
 {
     // executed by the FSM thread
     // PRECONDITIONS
@@ -6165,11 +6150,11 @@ bmqt::ConfigureQueueResult::Enum BrokerSession::sendOpenConfigureQueue(
     // reopening.
 }
 
-bmqt::GenericResult::Enum BrokerSession::sendCloseQueue(
-    const RequestManagerType::RequestSp& closeQueueContext,
-    const bsl::shared_ptr<Queue>&        queue,
-    const bsls::TimeInterval             absTimeout,
-    bool                                 isFinal)
+bmqt::GenericResult::Enum
+BrokerSession::sendCloseQueue(const RequestSp&              closeQueueContext,
+                              const bsl::shared_ptr<Queue>& queue,
+                              const bsls::TimeInterval      absTimeout,
+                              bool                          isFinal)
 {
     // executed by the FSM thread
     // PRECONDITIONS
@@ -6183,11 +6168,11 @@ bmqt::GenericResult::Enum BrokerSession::sendCloseQueue(
     // Set the 'isFinal' flag only before closing the last subStream for
     // this canonical uri.
 
-    RequestManagerType::RequestType::ResponseCb response =
-        bdlf::BindUtil::bind(&BrokerSession::onCloseQueueResponse,
-                             this,
-                             bdlf::PlaceHolders::_1,  // context
-                             queue);
+    bmqp::RequestManagerRequest::ResponseCb response = bdlf::BindUtil::bind(
+        &BrokerSession::onCloseQueueResponse,
+        this,
+        bdlf::PlaceHolders::_1,  // context
+        queue);
     closeQueueContext->setResponseCb(response);
 
     const bsls::TimeInterval timeout = absTimeout -
@@ -6198,10 +6183,10 @@ bmqt::GenericResult::Enum BrokerSession::sendCloseQueue(
 }
 
 void BrokerSession::onOpenQueueConfigured(
-    const RequestManagerType::RequestSp& configureQueueContext,
-    const bsl::shared_ptr<Queue>&        queue,
-    const RequestManagerType::RequestSp& openQueueContext,
-    bool                                 isReopenRequest)
+    const RequestSp&              configureQueueContext,
+    const bsl::shared_ptr<Queue>& queue,
+    const RequestSp&              openQueueContext,
+    bool                          isReopenRequest)
 {
     // executed by the FSM thread
 
@@ -6269,10 +6254,10 @@ void BrokerSession::onOpenQueueConfigured(
 }
 
 void BrokerSession::onConfigureQueueResponse(
-    const RequestManagerType::RequestSp& context,
-    const bsl::shared_ptr<Queue>&        queue,
-    const bmqt::QueueOptions&            previousOptions,
-    const ConfiguredCallback&            configuredCb)
+    const RequestSp&              context,
+    const bsl::shared_ptr<Queue>& queue,
+    const bmqt::QueueOptions&     previousOptions,
+    const ConfiguredCallback&     configuredCb)
 {
     // executed by the FSM thread
 
@@ -6400,8 +6385,8 @@ void BrokerSession::onConfigureQueueResponse(
 }
 
 void BrokerSession::onConfigureQueueConfigured(
-    const RequestManagerType::RequestSp& context,
-    const bsl::shared_ptr<Queue>&        queue)
+    const RequestSp&              context,
+    const bsl::shared_ptr<Queue>& queue)
 {
     // executed by the FSM thread
 
@@ -6445,11 +6430,11 @@ void BrokerSession::onConfigureQueueConfigured(
 }
 
 void BrokerSession::onCloseQueueConfigured(
-    const RequestManagerType::RequestSp& configureQueueContext,
-    const bsl::shared_ptr<Queue>&        queue,
-    const RequestManagerType::RequestSp& closeQueueContext,
-    const bsls::TimeInterval             absTimeout,
-    bool                                 isFinal)
+    const RequestSp&              configureQueueContext,
+    const bsl::shared_ptr<Queue>& queue,
+    const RequestSp&              closeQueueContext,
+    const bsls::TimeInterval      absTimeout,
+    bool                          isFinal)
 {
     // executed by the FSM thread
     // PRECONDITIONS
@@ -6465,7 +6450,7 @@ void BrokerSession::onCloseQueueConfigured(
     // empty if the queue has locally expired standalone configure request.
     queue->setPendingConfigureId(Queue::k_INVALID_CONFIGURE_ID);
 
-    RequestManagerType::RequestSp context = closeQueueContext;
+    RequestSp context = closeQueueContext;
 
     if (configureQueueContext->isLateResponse()) {
         context = configureQueueContext;
@@ -6581,10 +6566,9 @@ void BrokerSession::reopenQueues()
             pendingQueues[idx],
             EventCallback());
 
-        RequestManagerType::RequestSp context = createOpenQueueContext(
-            pendingQueues[idx],
-            fsmCallback,
-            false);  // isBuffered
+        RequestSp context = createOpenQueueContext(pendingQueues[idx],
+                                                   fsmCallback,
+                                                   false);  // isBuffered
         d_queueFsm.handleReopenRequest(pendingQueues[idx],
                                        d_sessionOptions.openQueueTimeout(),
                                        context);
@@ -7166,8 +7150,7 @@ void BrokerSession::setupPutExpirationTimer(const bsls::TimeInterval& timeout)
                              this));
 }
 
-void BrokerSession::removePendingControlMessage(
-    const RequestManagerType::RequestSp& context)
+void BrokerSession::removePendingControlMessage(const RequestSp& context)
 {
     // Remove the request from the retransmission buffer
     bmqt::MessageGUID guid;

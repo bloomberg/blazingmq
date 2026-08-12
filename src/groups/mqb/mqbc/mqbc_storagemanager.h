@@ -121,8 +121,7 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager,
 
     typedef bsl::function<void(int)> RecoveryStatusCb;
 
-    typedef ClusterData::RequestManagerType RequestManagerType;
-    typedef RequestManagerType::RequestSp   RequestContextSp;
+    typedef bmqp::RequestManager::RequestSp RequestSp;
 
     typedef bdlmt::EventScheduler::RecurringEventHandle RecurringEventHandle;
 
@@ -556,53 +555,48 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager,
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
-    void processPrimaryStateResponseDispatched(
-        const RequestManagerType::RequestSp& context,
-        mqbnet::ClusterNode*                 responder);
+    void processPrimaryStateResponseDispatched(const RequestSp&     context,
+                                               mqbnet::ClusterNode* responder);
 
     /// Process the PrimaryStateResponse contained in the specified
     /// `context` from the specified `responder`.
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread or scheduler thread.
-    void
-    processPrimaryStateResponse(const RequestManagerType::RequestSp& context,
-                                mqbnet::ClusterNode* responder);
+    void processPrimaryStateResponse(const RequestSp&     context,
+                                     mqbnet::ClusterNode* responder);
 
     /// Process the ReplicaStateResponse contained in the specified
     /// `requestContext`.
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
-    void processReplicaStateResponseDispatched(
-        const RequestContextSp& requestContext,
-        mqbnet::ClusterNode*    responder);
+    void processReplicaStateResponseDispatched(const RequestSp& requestContext,
+                                               mqbnet::ClusterNode* responder);
 
     /// Process the ReplicaStateResponse contained in the specified
     /// `requestContext` from the specified `responder`.
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread or scheduler thread.
-    void processReplicaStateResponse(const RequestContextSp& requestContext,
-                                     mqbnet::ClusterNode*    responder);
+    void processReplicaStateResponse(const RequestSp&     requestContext,
+                                     mqbnet::ClusterNode* responder);
 
     /// Process the ReplicaDataResponse contained in the specified
     /// `requestContext` from the specified `responder`.
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
-    void processReplicaDataResponseDispatched(
-        const RequestManagerType::RequestSp& context,
-        mqbnet::ClusterNode*                 responder);
+    void processReplicaDataResponseDispatched(const RequestSp&     context,
+                                              mqbnet::ClusterNode* responder);
 
     /// Process the ReplicaDataResponse contained in the specified
     /// `requestContext` from the specified `responder`.
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread or scheduler thread.
-    void
-    processReplicaDataResponse(const RequestManagerType::RequestSp& context,
-                               mqbnet::ClusterNode*                 responder);
+    void processReplicaDataResponse(const RequestSp&     context,
+                                    mqbnet::ClusterNode* responder);
 
     /// THREAD: Executed by the dispatcher thread for the specified
     ///         `partitionId`.
