@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <mqbauthz_basicauthorizer.h>
+#include <mqbauthz_defaultauthorizer.h>
 
 #include <mqbscm_version.h>
 
@@ -31,23 +31,23 @@
 namespace BloombergLP {
 namespace mqbauthz {
 
-bsl::string_view BasicAuthorizer::k_NAME = "BasicAuthorizer";
+bsl::string_view DefaultAuthorizer::k_NAME = "DefaultAuthorizer";
 
-// -------------------------------------
-// class BasicAuthorizerPluginFactory
-// -------------------------------------
+// -----------------------
+// class DefaultAuthorizer
+// -----------------------
 
-BasicAuthorizer::~BasicAuthorizer()
+DefaultAuthorizer::~DefaultAuthorizer()
 {
     // NOTHING
 }
 
-bsl::string_view BasicAuthorizer::name() const
+bsl::string_view DefaultAuthorizer::name() const
 {
     return k_NAME;
 }
 
-bool BasicAuthorizer::authorize(
+bool DefaultAuthorizer::authorize(
     const mqbact::Action&   action,
     BSLA_MAYBE_UNUSED const mqbplug::AuthenticationResult& authnResult)
 
@@ -56,22 +56,22 @@ bool BasicAuthorizer::authorize(
     return true;
 }
 
-// -------------------------------------
-// class BasicAuthorizerPluginFactory
-// -------------------------------------
+// ------------------------------------
+// class DefaultAuthorizerPluginFactory
+// ------------------------------------
 
-BasicAuthorizerPluginFactory::~BasicAuthorizerPluginFactory()
+DefaultAuthorizerPluginFactory::~DefaultAuthorizerPluginFactory()
 {
     // NOTHING
 }
 
 bslma::ManagedPtr<mqbplug::Authorizer>
-BasicAuthorizerPluginFactory::create(bslma::Allocator* allocator)
+DefaultAuthorizerPluginFactory::create(bslma::Allocator* allocator)
 {
-    bslma::ManagedPtr<BasicAuthorizer> basicAuthorizer =
-        bslma::ManagedPtrUtil::allocateManaged<BasicAuthorizer>(allocator);
+    bslma::ManagedPtr<DefaultAuthorizer> defaultAuthorizer =
+        bslma::ManagedPtrUtil::allocateManaged<DefaultAuthorizer>(allocator);
     bslma::ManagedPtr<mqbplug::Authorizer> authorizer(
-        bslmf::MovableRefUtil::move(basicAuthorizer));
+        bslmf::MovableRefUtil::move(defaultAuthorizer));
     return authorizer;
 }
 

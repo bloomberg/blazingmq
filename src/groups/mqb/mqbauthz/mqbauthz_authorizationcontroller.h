@@ -106,7 +106,7 @@ class AuthorizationController {
         bsl::allocator<>                allocator);
 
     /// Ensure at least one authorizer is available for default
-    /// Authorization, adding default BasicAuthorizer if none are
+    /// Authorization, adding default DefaultAuthorizer if none are
     /// configured.
     static void ensureDefaultAuthorizer(AuthorizerMp*    result,
                                         bsl::allocator<> allocator);

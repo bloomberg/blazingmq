@@ -63,7 +63,7 @@ TEST(AuthorizationController, configuredWithKnownNameSucceeds)
     bmqu::MemOutStream       errDesc;
 
     authzConfig.authorizer().makeValue();
-    authzConfig.authorizer().value().name() = "BasicAuthorizer";
+    authzConfig.authorizer().value().name() = "DefaultAuthorizer";
 
     int rc = mqbauthz::AuthorizationController::allocateManaged(&controller_mp,
                                                                 errDesc,
@@ -73,7 +73,7 @@ TEST(AuthorizationController, configuredWithKnownNameSucceeds)
 
     EXPECT_EQ(0, rc);
     ASSERT_TRUE(controller_mp);
-    EXPECT_EQ("BasicAuthorizer", controller_mp->authorizer().name());
+    EXPECT_EQ("DefaultAuthorizer", controller_mp->authorizer().name());
 }
 
 TEST(AuthorizationController, configuredWithUnknownNameFails)

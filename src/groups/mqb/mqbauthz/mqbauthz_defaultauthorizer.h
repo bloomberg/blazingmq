@@ -13,20 +13,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef INCLUDED_MQBAUTHN_BASICAUTHORIZER
-#define INCLUDED_MQBAUTHN_BASICAUTHORIZER
+#ifndef INCLUDED_MQBAUTHZ_DEFAULTAUTHORIZER
+#define INCLUDED_MQBAUTHZ_DEFAULTAUTHORIZER
 
-/// @file mqbauthn_basicauthorizer.h
+/// @file mqbauthz_defaultauthorizer.h
 ///
-/// @brief Provide a basic authorizer plugin that uses username and
-/// password.
+/// @brief Provide the built-in default authorizer plugin.
 ///
-/// @bbref{mqbauthn::BasicAuthorizer} provides a built-in authorizer
-/// plugin that authorizes all actions. It's designed to represent the current
-/// authorization policy, which allows all clients access.
+/// @bbref{mqbauthz::DefaultAuthorizer} provides the built-in default
+/// authorizer plugin that authorizes all actions. It's designed to
+/// represent the current authorization policy, which allows all access.
 ///
-/// @bbref{mqbauthn::BasicAuthorizerPluginFactory} is the corresponding factory
-/// classes for the Authorizer plugin.
+/// @bbref{mqbauthz::DefaultAuthorizerPluginFactory} is the corresponding
+/// factory class for the Authorizer plugin.
 
 // MQB
 #include <mqbplug_authenticator.h>
@@ -48,24 +47,24 @@ class Action;
 
 namespace mqbauthz {
 
-// ========================
-// class BasicAuthorizer
-// ========================
+// =======================
+// class DefaultAuthorizer
+// =======================
 
-class BasicAuthorizer : public mqbplug::Authorizer {
+class DefaultAuthorizer : public mqbplug::Authorizer {
   public:
     // CLASS DATA
     static bsl::string_view k_NAME;
 
   private:
     // CLASS-SCOPE CATEGORY
-    BALL_LOG_SET_CLASS_CATEGORY("MQBAUTHN.BASICAUTHORIZER");
+    BALL_LOG_SET_CLASS_CATEGORY("MQBAUTHZ.DEFAULTAUTHORIZER");
 
   public:
     // CREATORS
 
     /// Destructor.
-    ~BasicAuthorizer() BSLS_KEYWORD_OVERRIDE;
+    ~DefaultAuthorizer() BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
 
@@ -83,18 +82,19 @@ class BasicAuthorizer : public mqbplug::Authorizer {
         BSLS_KEYWORD_OVERRIDE;
 };
 
-// =====================================
-// class BasicAuthorizerPluginFactory
-// =====================================
+// ====================================
+// class DefaultAuthorizerPluginFactory
+// ====================================
 
-class BasicAuthorizerPluginFactory : public mqbplug::AuthorizerPluginFactory {
+class DefaultAuthorizerPluginFactory
+: public mqbplug::AuthorizerPluginFactory {
   public:
     // CREATORS
-    ~BasicAuthorizerPluginFactory() BSLS_KEYWORD_OVERRIDE;
+    ~DefaultAuthorizerPluginFactory() BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
 
-    /// Create a `BasicAuthorizer` using the supplied allocator.
+    /// Create a `DefaultAuthorizer` using the supplied allocator.
     bslma::ManagedPtr<mqbplug::Authorizer>
     create(bslma::Allocator* allocator) BSLS_KEYWORD_OVERRIDE;
 };
