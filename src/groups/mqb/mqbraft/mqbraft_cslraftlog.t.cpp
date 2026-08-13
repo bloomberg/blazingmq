@@ -53,9 +53,9 @@ const mqbu::StorageKey k_LOG_KEY(mqbu::StorageKey::BinaryRepresentation(),
 /// Build a CSL record blob for a PartitionPrimaryAdvisory with the
 /// specified 'term' and 'seqNum'.
 bsl::shared_ptr<bdlbb::Blob> makeRecord(bsls::Types::Uint64       term,
-                                         bsls::Types::Uint64       seqNum,
-                                         bdlbb::BlobBufferFactory* factory,
-                                         bslma::Allocator*         allocator)
+                                        bsls::Types::Uint64       seqNum,
+                                        bdlbb::BlobBufferFactory* factory,
+                                        bslma::Allocator*         allocator)
 {
     bmqp_ctrlmsg::ClusterMessage        clusterMessage(allocator);
     bmqp_ctrlmsg::LeaderMessageSequence lms;
@@ -68,7 +68,7 @@ bsl::shared_ptr<bdlbb::Blob> makeRecord(bsls::Types::Uint64       term,
 
     bsl::shared_ptr<bdlbb::Blob> record =
         bsl::make_shared<bdlbb::Blob>(factory, allocator);
-    int         rc = mqbc::ClusterStateLedgerUtil::appendRecord(
+    int rc = mqbc::ClusterStateLedgerUtil::appendRecord(
         record.get(),
         clusterMessage,
         lms,
@@ -86,14 +86,14 @@ bsl::shared_ptr<bdlbb::Blob> makeRecord(bsls::Types::Uint64       term,
 /// CslRaftLog for testing.
 class Tester {
   private:
-    bmqu::TempDirectory            d_tempDir;
-    bsl::string                    d_logPath;
-    mqbsi::LogConfig               d_logConfig;
-    bsl::shared_ptr<mqbsi::Log>    d_log_sp;
-    bdlbb::PooledBlobBufferFactory       d_bufferFactory;
-    bmqp::BlobPoolUtil::BlobSpPoolSp     d_blobSpPool_sp;
-    CslRaftLog                           d_cslRaftLog;
-    bslma::Allocator*              d_allocator_p;
+    bmqu::TempDirectory              d_tempDir;
+    bsl::string                      d_logPath;
+    mqbsi::LogConfig                 d_logConfig;
+    bsl::shared_ptr<mqbsi::Log>      d_log_sp;
+    bdlbb::PooledBlobBufferFactory   d_bufferFactory;
+    bmqp::BlobPoolUtil::BlobSpPoolSp d_blobSpPool_sp;
+    CslRaftLog                       d_cslRaftLog;
+    bslma::Allocator*                d_allocator_p;
 
     // NOT IMPLEMENTED
     Tester(const Tester&);
@@ -117,8 +117,8 @@ class Tester {
                                                                   d_logConfig,
                                                                   allocator))
     , d_bufferFactory(256, allocator)
-    , d_blobSpPool_sp(bmqp::BlobPoolUtil::createBlobPool(&d_bufferFactory,
-                                                          allocator))
+    , d_blobSpPool_sp(
+          bmqp::BlobPoolUtil::createBlobPool(&d_bufferFactory, allocator))
     , d_cslRaftLog(d_log_sp, d_blobSpPool_sp.get(), allocator)
     , d_allocator_p(allocator)
     {
@@ -145,13 +145,13 @@ class Tester {
     }
 
     bsl::shared_ptr<bdlbb::Blob> makeUpdateRecord(bsls::Types::Uint64 term,
-                                                   bsls::Types::Uint64 seqNum)
+                                                  bsls::Types::Uint64 seqNum)
     {
         return makeRecord(term, seqNum, &d_bufferFactory, d_allocator_p);
     }
 
-    CslRaftLog&                     raftLog() { return d_cslRaftLog; }
-    bslma::Allocator*               allocator() { return d_allocator_p; }
+    CslRaftLog&       raftLog() { return d_cslRaftLog; }
+    bslma::Allocator* allocator() { return d_allocator_p; }
 };
 
 }  // close unnamed namespace
@@ -265,8 +265,8 @@ static void test5_openPrePopulated()
 
     bslma::Allocator*              alloc = bmqtst::TestHelperUtil::allocator();
     bmqu::TempDirectory            tempDir(alloc);
-    bdlbb::PooledBlobBufferFactory       factory(256, alloc);
-    bmqp::BlobPoolUtil::BlobSpPoolSp     poolSp =
+    bdlbb::PooledBlobBufferFactory factory(256, alloc);
+    bmqp::BlobPoolUtil::BlobSpPoolSp poolSp =
         bmqp::BlobPoolUtil::createBlobPool(&factory, alloc);
 
     bsl::string      logPath = tempDir.path() + "/csl_prepop.bmq";
@@ -291,7 +291,8 @@ static void test5_openPrePopulated()
                    static_cast<int>(sizeof(mqbc::ClusterStateFileHeader)));
 
         for (bsls::Types::Uint64 i = 1; i <= 3; ++i) {
-            bsl::shared_ptr<bdlbb::Blob> rec = makeRecord(i, i, &factory, alloc);
+            bsl::shared_ptr<bdlbb::Blob> rec =
+                makeRecord(i, i, &factory, alloc);
             log->write(*rec, bmqu::BlobPosition(), rec->length());
         }
 

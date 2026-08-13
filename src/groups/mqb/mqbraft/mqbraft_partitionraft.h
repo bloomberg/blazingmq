@@ -116,8 +116,8 @@ class PartitionRaft : public mqbs::RecordStore {
     /// Pool from which each `PendingWrite` shared_ptr is allocated.
     PendingWriteSpPool d_pendingWritePool;
 
-    bool                                        d_isStarted;
-    bslma::Allocator*                           d_allocator_p;
+    bool              d_isStarted;
+    bslma::Allocator* d_allocator_p;
 
     // Snapshot transfer state (receiver side)
     bool                d_receivingSnapshot;

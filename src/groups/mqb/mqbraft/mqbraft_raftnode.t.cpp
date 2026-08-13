@@ -61,10 +61,9 @@ class MemoryRaftLog : public RaftLog {
 
     ~MemoryRaftLog() BSLS_KEYWORD_OVERRIDE {}
 
-    int append(bsls::Types::Uint64                  term,
-               const bsl::shared_ptr<bdlbb::Blob>&  data,
-               bsls::Types::Uint64                  id = 0)
-        BSLS_KEYWORD_OVERRIDE
+    int append(bsls::Types::Uint64                 term,
+               const bsl::shared_ptr<bdlbb::Blob>& data,
+               bsls::Types::Uint64 id = 0) BSLS_KEYWORD_OVERRIDE
     {
         (void)id;
         d_entries.push_back(LogEntry(term, lastIndex() + 1, data));
@@ -137,9 +136,9 @@ class MemoryRaftLog : public RaftLog {
         return d_snapshotTerm;
     }
 
-    void applySnapshot(bsls::Types::Uint64 lastIncludedIndex,
-                       bsls::Types::Uint64 lastIncludedTerm)
-        BSLS_KEYWORD_OVERRIDE
+    void
+    applySnapshot(bsls::Types::Uint64 lastIncludedIndex,
+                  bsls::Types::Uint64 lastIncludedTerm) BSLS_KEYWORD_OVERRIDE
     {
         d_snapshotIndex = lastIncludedIndex;
         d_snapshotTerm  = lastIncludedTerm;
@@ -449,8 +448,8 @@ static void test5_logReplication()
 
     // Propose an entry
     bsl::shared_ptr<bdlbb::Blob> data = cluster.makeBlob("hello");
-    RaftNodeOutput proposeOutput(&alloc);
-    int            rc = cluster.node(leader)->propose(&proposeOutput, data);
+    RaftNodeOutput               proposeOutput(&alloc);
+    int rc = cluster.node(leader)->propose(&proposeOutput, data);
     BMQTST_ASSERT_EQ(rc, 0);
 
     // Deliver messages until quiet
@@ -476,7 +475,7 @@ static void test6_logConsistencyCheck()
     bslma::TestAllocator           alloc("test", false);
     bdlbb::PooledBlobBufferFactory factory(256, &alloc);
 
-    MemoryRaftLog log(&alloc);
+    MemoryRaftLog                log(&alloc);
     bsl::shared_ptr<bdlbb::Blob> data =
         bsl::allocate_shared<bdlbb::Blob>(&alloc, &factory);
     bdlbb::BlobUtil::append(data.get(), "x", 1);
@@ -527,7 +526,7 @@ static void test7_logConflictResolution()
     bslma::TestAllocator           alloc("test", false);
     bdlbb::PooledBlobBufferFactory factory(256, &alloc);
 
-    MemoryRaftLog log(&alloc);
+    MemoryRaftLog                log(&alloc);
     bsl::shared_ptr<bdlbb::Blob> data1 =
         bsl::allocate_shared<bdlbb::Blob>(&alloc, &factory);
     bdlbb::BlobUtil::append(data1.get(), "old", 3);

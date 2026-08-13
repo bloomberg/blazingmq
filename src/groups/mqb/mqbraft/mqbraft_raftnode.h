@@ -131,9 +131,9 @@ struct LogEntry {
     // CREATORS
     LogEntry();
 
-    LogEntry(bsls::Types::Uint64                  term,
-             bsls::Types::Uint64                  index,
-             const bsl::shared_ptr<bdlbb::Blob>&  data);
+    LogEntry(bsls::Types::Uint64                 term,
+             bsls::Types::Uint64                 index,
+             const bsl::shared_ptr<bdlbb::Blob>& data);
 };
 
 // =============
@@ -154,9 +154,9 @@ class RaftLog {
     /// 'data'.  The optionally specified 'id' is an opaque token set by
     /// 'PartitionRaft' on the primary path to route to a pre-registered
     /// 'PendingWrite'; zero on the replica path and for CSL.
-    virtual int append(bsls::Types::Uint64                  term,
-                       const bsl::shared_ptr<bdlbb::Blob>&  data,
-                       bsls::Types::Uint64                  id = 0) = 0;
+    virtual int append(bsls::Types::Uint64                 term,
+                       const bsl::shared_ptr<bdlbb::Blob>& data,
+                       bsls::Types::Uint64                 id = 0) = 0;
 
     virtual int truncateFrom(bsls::Types::Uint64 index) = 0;
 
@@ -181,7 +181,7 @@ class RaftLog {
     /// any cached state.  Called after the application has applied a
     /// received snapshot.
     virtual void applySnapshot(bsls::Types::Uint64 lastIncludedIndex,
-                                bsls::Types::Uint64 lastIncludedTerm) = 0;
+                               bsls::Types::Uint64 lastIncludedTerm) = 0;
 };
 
 // =================
@@ -464,9 +464,9 @@ class RaftNode {
     /// Propose the specified 'data' as a new log entry.  The optionally
     /// specified 'id' is passed through to the log's 'append()' for primary
     /// path routing.  Return 0 on success, non-zero if not the leader.
-    int propose(RaftNodeOutput*                      output,
-                const bsl::shared_ptr<bdlbb::Blob>&  data,
-                bsls::Types::Uint64                  id = 0);
+    int propose(RaftNodeOutput*                     output,
+                const bsl::shared_ptr<bdlbb::Blob>& data,
+                bsls::Types::Uint64                 id = 0);
 
     /// Initiate leadership transfer to the specified 'targetNodeId'.
     /// Return 0 on success, non-zero if this node is not the leader.
@@ -487,11 +487,11 @@ class RaftNode {
                             bsls::Types::Uint64 index);
 
     // ACCESSORS
-    RaftState::Enum       state() const;
-    int                   leaderId() const;
-    int                   selfId() const;
-    bsls::Types::Uint64   currentTerm() const;
-    bsls::Types::Uint64   commitIndex() const;
+    RaftState::Enum     state() const;
+    int                 leaderId() const;
+    int                 selfId() const;
+    bsls::Types::Uint64 currentTerm() const;
+    bsls::Types::Uint64 commitIndex() const;
 
     /// Return the term of the log entry at the current commit index (0 if
     /// nothing is committed).  Used to check whether a current-term entry
@@ -520,9 +520,9 @@ inline LogEntry::LogEntry()
 {
 }
 
-inline LogEntry::LogEntry(bsls::Types::Uint64                  term,
-                          bsls::Types::Uint64                  index,
-                          const bsl::shared_ptr<bdlbb::Blob>&  data)
+inline LogEntry::LogEntry(bsls::Types::Uint64                 term,
+                          bsls::Types::Uint64                 index,
+                          const bsl::shared_ptr<bdlbb::Blob>& data)
 : d_term(term)
 , d_index(index)
 , d_data(data)
@@ -641,9 +641,9 @@ inline void RaftNodeOutput::reset()
 {
     d_messages.clear();
     d_committed.clear();
-    d_stateChanged        = false;
-    d_leaderChanged       = false;
-    d_hasInstallSnapshot  = false;
+    d_stateChanged       = false;
+    d_leaderChanged      = false;
+    d_hasInstallSnapshot = false;
 }
 
 // --------------

@@ -91,8 +91,8 @@ class CslRaftLog : public RaftLog {
 
     // CREATORS
     CslRaftLog(const bsl::shared_ptr<mqbsi::Log>& log,
-               BlobSpPool*                       blobSpPool,
-               bslma::Allocator*                 allocator = 0);
+               BlobSpPool*                        blobSpPool,
+               bslma::Allocator*                  allocator = 0);
 
     ~CslRaftLog() BSLS_KEYWORD_OVERRIDE;
 
@@ -105,10 +105,9 @@ class CslRaftLog : public RaftLog {
     /// Close the underlying log.
     int close();
 
-    int append(bsls::Types::Uint64                  term,
-               const bsl::shared_ptr<bdlbb::Blob>&  data,
-               bsls::Types::Uint64                  id = 0)
-        BSLS_KEYWORD_OVERRIDE;
+    int append(bsls::Types::Uint64                 term,
+               const bsl::shared_ptr<bdlbb::Blob>& data,
+               bsls::Types::Uint64 id = 0) BSLS_KEYWORD_OVERRIDE;
 
     int truncateFrom(bsls::Types::Uint64 index) BSLS_KEYWORD_OVERRIDE;
 
@@ -147,9 +146,9 @@ class CslRaftLog : public RaftLog {
 
     bsls::Types::Uint64 snapshotTerm() const BSLS_KEYWORD_OVERRIDE;
 
-    void applySnapshot(bsls::Types::Uint64 lastIncludedIndex,
-                       bsls::Types::Uint64 lastIncludedTerm)
-        BSLS_KEYWORD_OVERRIDE;
+    void
+    applySnapshot(bsls::Types::Uint64 lastIncludedIndex,
+                  bsls::Types::Uint64 lastIncludedTerm) BSLS_KEYWORD_OVERRIDE;
 
     /// Return true if a record of the specified `recordSize` bytes can be
     /// appended to the current log without exceeding its configured maximum
