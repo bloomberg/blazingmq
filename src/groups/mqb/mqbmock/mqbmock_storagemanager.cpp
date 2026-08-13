@@ -263,10 +263,17 @@ bool StorageManager::isStorageEmpty(BSLA_MAYBE_UNUSED const bmqt::Uri& uri,
 }
 
 bool StorageManager::hasStorage(BSLA_MAYBE_UNUSED const bmqt::Uri& uri,
-                                BSLA_MAYBE_UNUSED const bsl::string& appId,
                                 BSLA_MAYBE_UNUSED int partitionId) const
 {
     return true;
+}
+
+bool StorageManager::loadAppIds(
+    BSLA_MAYBE_UNUSED bsl::unordered_set<bsl::string>* out,
+    BSLA_MAYBE_UNUSED const bmqt::Uri& uri,
+    BSLA_MAYBE_UNUSED int              partitionId) const
+{
+    return false;
 }
 
 mqbs::FileStore&

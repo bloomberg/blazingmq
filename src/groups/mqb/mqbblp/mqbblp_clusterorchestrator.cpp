@@ -2539,6 +2539,56 @@ int ClusterOrchestrator::processCommand(
                     const bsls::Types::Int64 quorumValue =
                         tunable.value().theInteger();
 
+                    // Reproduce the legacy per-node quorum knob (tests use it
+                    // to pin/exclude a node as primary/leader) as a Raft
+                    // leadership-eligibility override.  Raft has no per-node
+                    // vote-count quorum, but the tests only ever use the value
+                    // three ways: 1 to force this node leader, > majority to
+                    // exclude it, otherwise normal.  Apply to this node's CSL
+                    // Raft group and every partition Raft group.
+                    const int nodeCount = static_cast<int>(
+                        d_clusterData_p->membership()
+                            .netCluster()
+                            ->nodes()
+                            .size());
+                    const int majority = nodeCount / 2 + 1;
+
+                    mqbraft::ElectionMode::Enum mode =
+                        mqbraft::ElectionMode::e_NORMAL;
+                    if (quorumValue <= 1) {
+                        mode = mqbraft::ElectionMode::e_FORCE;
+                    }
+                    else if (quorumValue > majority) {
+                        mode = mqbraft::ElectionMode::e_NEVER;
+                    }
+
+                    // Partition-primary pinning is driven by EXCLUSION, not
+                    // forcing: 'e_NEVER' on the other nodes (step down + stop
+                    // competing) leaves the target as the sole eligible node,
+                    // which then wins each partition's election naturally.  So
+                    // 'e_NEVER' and 'e_NORMAL' (restore) apply to both CSL and
+                    // partitions, but 'e_FORCE' maps to 'e_NORMAL' for
+                    // partitions: arming a node to actively campaign for
+                    // partitions it is not already primary of buys nothing
+                    // (natural election already picks it) and is net-harmful
+                    // -- when 'set_quorum(1)' targets the CSL leader (a
+                    // different node than the partition primary, e.g.
+                    // test_strong_ consistency), it makes that node join
+                    // pre-vote storms / churn on partitions it should not own.
+                    // Mapping 'e_FORCE' to 'e_NORMAL' on partitions also
+                    // clears a prior 'e_NEVER' so a re-forced node can compete
+                    // again.
+                    d_clusterStateRaft_mp->setElectionMode(mode);
+
+                    const mqbraft::ElectionMode::Enum partitionMode =
+                        (mode == mqbraft::ElectionMode::e_FORCE)
+                            ? mqbraft::ElectionMode::e_NORMAL
+                            : mode;
+                    if (d_partitionRaftManager_mp) {
+                        d_partitionRaftManager_mp->setElectionMode(
+                            partitionMode);
+                    }
+
                     mqbcmd::TunableConfirmation& tc =
                         electorResult.makeTunableConfirmation();
                     tc.name() = "Quorum";

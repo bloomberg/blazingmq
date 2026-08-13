@@ -237,7 +237,7 @@ bool StorageUtil::loadUpdatedAppInfos(AppInfos*       addedAppInfos,
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(addedAppInfos);
     BSLS_ASSERT_SAFE(removedAppInfos);
-    BSLS_ASSERT_SAFE(!newAppInfos.empty());
+    // 'newAppInfos' can be empty: a fanout domain reconfigured to zero appIds.
 
     // This function is invoked by 'StorageManager::registerQueue' if the queue
     // with specified 'storage' is in fanout mode, in order to add or remove
@@ -427,6 +427,10 @@ int StorageUtil::updateQueuePrimaryRaw(mqbs::ReplicatedStorage* storage,
                 << addedIdKeyPairs.size() << "] new appId/appKey "
                 << "pairs:" << printer;
         }
+
+        rs->storageMonitor()->onStorageAppsAdded(rs->partitionId(),
+                                                 storage->queueUri(),
+                                                 addedIdKeyPairs);
     }
 
     if (!removedIdKeyPairs.empty()) {
@@ -445,6 +449,10 @@ int StorageUtil::updateQueuePrimaryRaw(mqbs::ReplicatedStorage* storage,
                                << "], rc: " << rc << ".";
                 return rc;  // RETURN
             }
+
+            rs->storageMonitor()->onStorageAppRemoved(rs->partitionId(),
+                                                      storage->queueUri(),
+                                                      cit->second);
         }
 
         BALL_LOG_INFO_BLOCK
@@ -2937,6 +2945,8 @@ void StorageUtil::removeQueueStorageDispatched(
         return;  // RETURN
     }
 
+    rs->storageMonitor()->onStorageAppRemoved(rs->partitionId(), uri, appKey);
+
     BALL_LOG_INFO << rs->description()
                   << ": removed virtual storage for appKey [" << appKey
                   << "] for queue [" << uri << "], queueKey [" << queueKey
@@ -2999,10 +3009,9 @@ void StorageUtil::updateQueueStorageDispatched(
                       << ".";
     }
     else {
-        rs->storageMonitor()->onStorageRegistered(rs->partitionId(),
-                                                  uri,
-                                                  storage,
-                                                  appIdKeyPairs);
+        rs->storageMonitor()->onStorageAppsAdded(rs->partitionId(),
+                                                 uri,
+                                                 appIdKeyPairs);
 
         BALL_LOG_INFO << rs->description() << " updated [" << uri
                       << "], queueKey [" << queueKey
@@ -3675,16 +3684,18 @@ void StorageMonitor::onStorageRegistered(
     const StorageSp&                                storageSp,
     const mqbs::DataStoreConfigQueueInfo::AppInfos& apps)
 {
-    mqbi::Storage::AppInfos translation(d_allocator_p);
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(d_storages.size()));
 
-    for (mqbs::DataStoreConfigQueueInfo::AppInfos::const_iterator cit =
-             apps.begin();
-         cit != apps.end();
-         ++cit) {
-        translation.insert(bsl::make_pair(cit->second, cit->first));
+    {
+        bslmt::LockGuard<bslmt::Mutex> guard(
+            d_storageLockVec[partitionId].get());  // LOCK
+        StorageWithApps& what = d_storages[partitionId][uri];
+
+        what.d_storage_sp = storageSp;
+        what.d_apps       = apps;  // appKey -> appId
     }
-
-    onStorageRegistered(partitionId, uri, storageSp, translation);
+    d_cluster_p->onQueueStorageReady(partitionId, uri);
 }
 
 void StorageMonitor::onStorageRegistered(int              partitionId,
@@ -3706,8 +3717,65 @@ void StorageMonitor::onStorageRegistered(int              partitionId,
         StorageWithApps& what = d_storages[partitionId][uri];
 
         what.d_storage_sp = storageSp;
-        what.d_apps       = apps;
+        what.d_apps.clear();
+        for (mqbi::Storage::AppInfos::const_iterator cit = apps.cbegin();
+             cit != apps.cend();
+             ++cit) {
+            what.d_apps.insert(bsl::make_pair(cit->second, cit->first));
+        }
     }
+    d_cluster_p->onQueueStorageReady(partitionId, uri);
+}
+
+void StorageMonitor::onStorageAppsAdded(int              partitionId,
+                                        const bmqt::Uri& uri,
+                                        const mqbi::Storage::AppInfos& apps)
+{
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(d_storages.size()));
+
+    {
+        bslmt::LockGuard<bslmt::Mutex> guard(
+            d_storageLockVec[partitionId].get());  // LOCK
+
+        StorageSpMap::iterator it = d_storages[partitionId].find(uri);
+        if (it == d_storages[partitionId].end()) {
+            BALL_LOG_WARN << "storageMonitor failed to find storage for "
+                          << uri << " while adding apps";
+            return;  // RETURN
+        }
+
+        for (mqbi::Storage::AppInfos::const_iterator cit = apps.cbegin();
+             cit != apps.cend();
+             ++cit) {
+            it->second.d_apps.insert(bsl::make_pair(cit->second, cit->first));
+        }
+    }
+
+    d_cluster_p->onQueueStorageReady(partitionId, uri);
+}
+
+void StorageMonitor::onStorageAppRemoved(int                     partitionId,
+                                         const bmqt::Uri&        uri,
+                                         const mqbu::StorageKey& appKey)
+{
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(d_storages.size()));
+
+    {
+        bslmt::LockGuard<bslmt::Mutex> guard(
+            d_storageLockVec[partitionId].get());  // LOCK
+
+        StorageSpMap::iterator it = d_storages[partitionId].find(uri);
+        if (it == d_storages[partitionId].end()) {
+            BALL_LOG_WARN << "storageMonitor failed to find storage for "
+                          << uri << " while removing app " << appKey;
+            return;  // RETURN
+        }
+
+        it->second.d_apps.erase(appKey);
+    }
+
     d_cluster_p->onQueueStorageReady(partitionId, uri);
 }
 
@@ -3835,10 +3903,28 @@ bool StorageMonitor::isStorageEmpty(const bmqt::Uri& uri,
     return cit->second.d_storage_sp->isEmpty();
 }
 
-bool StorageMonitor::hasStorage(const bmqt::Uri&   uri,
-                                const bsl::string& appId,
-                                int                partitionId) const
+bool StorageMonitor::hasStorage(const bmqt::Uri& uri, int partitionId) const
 {
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(d_storages.size()));
+
+    bslmt::LockGuard<bslmt::Mutex> guard(
+        d_storageLockVec[partitionId].get());  // LOCK
+
+    if (d_storages[partitionId].count(uri) == 0) {
+        BALL_LOG_WARN << "storageMonitor failed to find storage for " << uri;
+
+        return false;  // RETURN
+    }
+
+    return true;
+}
+
+bool StorageMonitor::loadAppIds(bsl::unordered_set<bsl::string>* out,
+                                const bmqt::Uri&                 uri,
+                                int partitionId) const
+{
+    BSLS_ASSERT_SAFE(out);
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_storages.size()));
 
@@ -3847,25 +3933,14 @@ bool StorageMonitor::hasStorage(const bmqt::Uri&   uri,
 
     StorageSpMap::const_iterator cit = d_storages[partitionId].find(uri);
     if (cit == d_storages[partitionId].end()) {
-        BALL_LOG_WARN << "storageMonitor failed to find storage for " << uri;
-
         return false;  // RETURN
     }
 
-    if (appId.empty()) {
-        return true;  // RETURN
-    }
-
-    // TODO: double-check __default
-    if (appId == bmqp::ProtocolUtil::k_DEFAULT_APP_ID) {
-        return true;  // RETURN
-    }
-
-    if (cit->second.d_apps.count(appId) == 0) {
-        BALL_LOG_WARN << "storageMonitor failed to find storage for " << uri
-                      << " " << appId;
-
-        return false;  // RETURN
+    // 'd_apps' is keyed by appKey; the appId is the value.
+    for (AppKeyToIdMap::const_iterator ait = cit->second.d_apps.cbegin();
+         ait != cit->second.d_apps.cend();
+         ++ait) {
+        out->insert(ait->second);
     }
 
     return true;

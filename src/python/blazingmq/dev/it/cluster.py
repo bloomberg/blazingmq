@@ -268,7 +268,7 @@ class Cluster(contextlib.AbstractContextManager):
                         self._logger.warning("could not find core for %s", process.name)
                 bad_exit_code = True
                 self._logger.error(
-                    "%s [%d] exited with rc = %s",
+                    "%s [%s] exited with rc = %s",
                     process.name,
                     process.pid,
                     _format_rc(process.returncode),

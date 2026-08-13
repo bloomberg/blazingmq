@@ -562,10 +562,9 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// specified `uri`, and with the request and its associated response in
     /// the specified `requestContext`.  Best-effort: the queue is actually
     /// removed only when the leader's advisory commits (`onQueueUnassigned`).
-    void onQueueUnassignmentResponse(
-        const RequestManagerType::RequestSp& requestContext,
-        const bmqt::Uri&                     uri,
-        mqbnet::ClusterNode*                 responder);
+    void onQueueUnassignmentResponse(const RequestSp&     requestContext,
+                                     const bmqt::Uri&     uri,
+                                     mqbnet::ClusterNode* responder);
 
     /// Method invoked when the queue in the specified `queueContext` has
     /// been assigned; to resume the operation on any pending contexts.

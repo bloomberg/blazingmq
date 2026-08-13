@@ -137,8 +137,10 @@ class TestGracefulShutdown:
 
         consumer.open(du.uri_priority, flags=["read"], block=False, async_=True)
 
+        # block=False: a blocking confirm() could consume the async open's
+        # completion line below; num_broker_messages verifies confirms landed.
         for uri in uris:
-            assert consumer.confirm(uri, "*", block=True) == Client.e_SUCCESS
+            consumer.confirm(uri, "*", block=False)
 
         assert wait_until(lambda: num_broker_messages(du) == 0, 5)
 
@@ -216,10 +218,25 @@ class TestGracefulShutdown:
 
     def setup_cluster(self, cluster, domain_urls: tc.DomainUrls):
         self.cluster = cluster
-        proxies = cluster.proxy_cycle()
-        # pick proxy in datacenter opposite to the primary's
-        next(proxies)
-        self.replica_proxy = next(proxies)
+
+        if cluster.virtual_nodes():
+            # A proxy's upstream is a virtual node, not a cluster member, so
+            # the primary's data center says nothing about it.
+            proxies = cluster.proxy_cycle()
+            next(proxies)
+            self.replica_proxy = next(proxies)
+        else:
+            # Pick the proxy in the data center opposite the queue's partition
+            # primary, so its active node is a replica.  In Raft the primary
+            # need not share the leader's data center.
+            leader = cluster.last_known_leader
+            probe = leader.create_client("primary-probe")
+            probe.open(domain_urls.uri_fanout, flags=["write,ack"], succeed=True)
+            primary = leader.wait_queue_primary(domain_urls.uri_fanout)
+            probe.stop_session(block=True)
+
+            self.replica_proxy = cluster.proxies(near=primary, invert=True)[0]
+
         self.producer = self.replica_proxy.create_client("producer")
         self.producer.open(domain_urls.uri_fanout, flags=["write,ack"], succeed=True)
 
@@ -228,18 +245,23 @@ class TestGracefulShutdown:
         self, multi_node: Cluster, domain_urls: tc.DomainUrls
     ):
         cluster = multi_node
-        leader = cluster.last_known_leader
+        # the queue's primary, which is not the leader in FSM mode
+        primary = cluster.last_known_leader.wait_queue_primary(
+            domain_urls.uri_fanout
+        )
         active_node = cluster.process(self.replica_proxy.get_active_node())
-        self.post_kill_confirm(leader, active_node, domain_urls)
+        self.post_kill_confirm(primary, active_node, domain_urls)
 
     @tweak.cluster.queue_operations.stop_timeout_ms(1000)
     def test_shutting_down_replica(
         self, multi_node: Cluster, domain_urls: tc.DomainUrls
     ):
         cluster = multi_node
-        leader = cluster.last_known_leader
+        primary = cluster.last_known_leader.wait_queue_primary(
+            domain_urls.uri_fanout
+        )
         active_node = cluster.process(self.replica_proxy.get_active_node())
-        self.post_kill_confirm(active_node, leader, domain_urls)
+        self.post_kill_confirm(active_node, primary, domain_urls)
 
     @tweak.cluster.queue_operations.stop_timeout_ms(1000)
     @tweak.cluster.queue_operations.shutdown_timeout_ms(5000)

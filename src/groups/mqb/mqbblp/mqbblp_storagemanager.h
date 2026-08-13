@@ -56,6 +56,7 @@
 #include <bsl_memory.h>
 #include <bsl_ostream.h>
 #include <bsl_string.h>
+#include <bsl_unordered_set.h>
 #include <bsl_vector.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
@@ -610,10 +611,16 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager,
                         int partitionId) const BSLS_KEYWORD_OVERRIDE;
 
     /// Return true if the queue having the specified `uri` and assigned to
-    /// the specified `partitionId` has a registered storage *and*, if the
-    /// specified `appId` is non-empty, that `appId` is registered on it.
-    bool hasStorage(const bmqt::Uri&   uri,
-                    const bsl::string& appId,
+    /// the specified `partitionId` has a registered storage.
+    bool hasStorage(const bmqt::Uri& uri,
+                    int              partitionId) const BSLS_KEYWORD_OVERRIDE;
+
+    /// Load into the specified `out` the set of appIds registered on the
+    /// storage for the queue having the specified `uri` and assigned to the
+    /// specified `partitionId`, returning true; return false if no such
+    /// storage exists.
+    bool loadAppIds(bsl::unordered_set<bsl::string>* out,
+                    const bmqt::Uri&                 uri,
                     int partitionId) const BSLS_KEYWORD_OVERRIDE;
 
     /// Return partition corresponding to the specified `partitionId`.  The

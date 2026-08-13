@@ -29,10 +29,17 @@ pytestmark = order(4)
 class TestMaxunconfirmed:
     def setup_cluster(self, multi_node, domain_urls: tc.DomainUrls):
         uri_priority = domain_urls.uri_priority
-        proxies = multi_node.proxy_cycle()
-        # pick proxy in datacenter opposite to the primary's
-        next(proxies)
-        self.proxy = next(proxies)
+
+        # Pick the proxy in the data center opposite the queue's partition
+        # primary, so its active node is a replica that survives the failover
+        # below.  In Raft the primary need not share the leader's data center.
+        leader = multi_node.last_known_leader
+        probe = leader.create_client("primary-probe")
+        probe.open(uri_priority, flags=["write,ack"], succeed=True)  # assign queue
+        primary = leader.wait_queue_primary(uri_priority)
+        probe.stop_session(block=True)
+
+        self.proxy = multi_node.proxies(near=primary, invert=True)[0]
 
         self.producer = self.proxy.create_client("producer")
         self.producer.open(uri_priority, flags=["write,ack"], succeed=True)
@@ -192,9 +199,20 @@ def test_stuck_downstream(multi_node: Cluster, domain_urls: tc.DomainUrls):
     for i in range(0, 10):
         consumers[i].confirm(uri, "*", succeed=True)
 
-    # one more round of confirms for messages deleivered after the first round
+    # the confirms above reached the primary, so the proxy has delivered the 8
+    # messages it was holding
+    assert wait_until(lambda: check_message_count(8), 5)
+
+    # confirm them; 'confirm' on a consumer with nothing pending never
+    # completes ("No messages to confirm")
+    delivered = 0
     for i in range(0, 10):
-        consumers[i].confirm(uri, "*", succeed=True)
+        count = len(consumers[i].list(uri, block=True))
+        if count:
+            delivered += count
+            consumers[i].confirm(uri, "*", succeed=True)
+
+    assert delivered == 8
 
     # The bmqtool does not actually wait and check that confirm command was
     # completed: 'success' is returned just when the command is enqueued

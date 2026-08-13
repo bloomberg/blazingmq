@@ -71,6 +71,30 @@ bsl::ostream& operator<<(bsl::ostream& stream, RaftState::Enum value)
     return RaftState::print(stream, value, 0, -1);
 }
 
+// =================
+// struct ElectionMode
+// =================
+
+const char* ElectionMode::toAscii(ElectionMode::Enum value)
+{
+#define CASE(X)                                                               \
+    case e_##X: return #X;
+
+    switch (value) {
+        CASE(NORMAL)
+        CASE(FORCE)
+        CASE(NEVER)
+    default: return "(* UNKNOWN *)";
+    }
+
+#undef CASE
+}
+
+bsl::ostream& operator<<(bsl::ostream& stream, ElectionMode::Enum value)
+{
+    return stream << ElectionMode::toAscii(value);
+}
+
 // =====================
 // struct RaftMessageType
 // =====================
@@ -142,6 +166,7 @@ RaftNode::RaftNode(const RaftNodeConfig& config,
 , d_peerStates(allocator)
 , d_heartbeatTicks(0)
 , d_transferTargetId(k_INVALID_NODE_ID)
+, d_electionMode(ElectionMode::e_NORMAL)
 , d_allocator_p(bslma::Default::allocator(allocator))
 {
     BSLS_ASSERT_SAFE(log);
@@ -600,6 +625,12 @@ void RaftNode::handleTimeoutNow(RaftNodeOutput* output, const RaftMessage& msg)
         return;
     }
 
+    if (d_electionMode == ElectionMode::e_NEVER) {
+        // This node is excluded from leadership; ignore a TimeoutNow (e.g. a
+        // leadership transfer targeting it) rather than campaigning.
+        return;
+    }
+
     BALL_LOG_INFO << "[partition " << d_config.d_partitionId << "] Node "
                   << d_config.d_selfId
                   << " received TimeoutNow, starting immediate election";
@@ -934,6 +965,29 @@ void RaftNode::tick(RaftNodeOutput* output)
     else {
         d_electionTicks++;
         if (d_electionTicks >= d_electionTimeout) {
+            if (d_electionMode == ElectionMode::e_NEVER) {
+                // Excluded from leadership: never campaign.  Also drop any
+                // sticky leader now that it has stopped heartbeating (this
+                // timeout fired), so this node grants pre-votes to an eligible
+                // candidate instead of denying them in 'handleRequestVote' --
+                // otherwise a forced takeover ('e_FORCE' elsewhere) would
+                // stall on the excluded nodes' sticky-leader denial.  It still
+                // does not become a candidate itself.
+                d_leaderId = k_INVALID_NODE_ID;
+                // Publish the loss, else the cluster state keeps reporting the
+                // silent leader as active.
+                output->d_leaderChanged = true;
+                resetElectionTimer();
+                return;  // RETURN
+            }
+            // 'e_NORMAL' and 'e_FORCE' both campaign with pre-vote.  Pre-vote
+            // is what prevents term inflation when a quorum is unreachable
+            // (e.g. the other partition members are down or suspended):
+            // without it, a forced node would bump the term every timeout and
+            // never win, and on a suspended peer's resume that inflated term
+            // causes churn. The excluded voters above drop their sticky leader
+            // on timeout, so they still grant this pre-vote once the old
+            // leader is gone.
             const bool preVote = d_config.d_preVote;
             becomeCandidate(output, preVote);
             output->d_stateChanged = true;
@@ -1075,6 +1129,48 @@ int RaftNode::transferLeadership(RaftNodeOutput* output, int targetNodeId)
     }
 
     return 0;
+}
+
+void RaftNode::setElectionMode(RaftNodeOutput* output, ElectionMode::Enum mode)
+{
+    BSLS_ASSERT_SAFE(output);
+
+    if (d_electionMode == mode) {
+        return;  // RETURN
+    }
+
+    BALL_LOG_INFO << "[partition " << d_config.d_partitionId << "] Node "
+                  << d_config.d_selfId << " [term " << d_currentTerm
+                  << "] election mode " << d_electionMode << " -> " << mode;
+
+    d_electionMode = mode;
+
+    if (mode == ElectionMode::e_FORCE) {
+        // Force this node to become leader, but do NOT disrupt a healthy
+        // existing leader: campaign immediately only when the seat is open
+        // (leaderless).  If another node is currently leading, defer --
+        // 'tick()' campaigns once that leader stops heartbeating (election
+        // timeout), which is the only situation a takeover is wanted (the
+        // prior leader died, or was set 'e_NEVER' and stepped down).  This
+        // keeps 'set_quorum(1)' on the CSL leader (see
+        // 'ClusterOrchestrator::processCommand') from stealing a partition
+        // primary held by another node -- the CSL leader and a partition's
+        // primary are frequently different nodes.
+        //
+        // Campaign with pre-vote (not a bare real election): pre-vote avoids
+        // term inflation if a quorum is momentarily unreachable, and 'e_NEVER'
+        // voters drop their sticky leader on timeout so they grant it.  The
+        // real-vote path still enforces 'isLogUpToDate' (Raft safety).
+        if (d_state != RaftState::e_LEADER &&
+            d_leaderId == k_INVALID_NODE_ID) {
+            const bool preVote = d_config.d_preVote;
+            becomeCandidate(output, preVote);
+            output->d_stateChanged = true;
+            maybeCompleteElection(output, preVote);
+        }
+    }
+    // 'e_NEVER' applies to future elections only (see 'tick' and
+    // 'handleTimeoutNow'); an incumbent leader keeps leading.
 }
 
 }  // close package namespace

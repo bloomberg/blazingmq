@@ -115,8 +115,10 @@ class TestRolloverJournal:
         queue still works).
         """
         leader = multi_node.last_known_leader
-        replicas = multi_node.nodes(exclude=leader)
-        replica = replicas[0]
+
+        # the leader is not partition 0's primary in FSM mode
+        primary = leader.wait_partition_primary(partition_id=0)
+        replica = next(node for node in multi_node.nodes() if node != primary)
 
         proxy = next(multi_node.proxy_cycle())
         producer = proxy.create_client("producer")

@@ -421,7 +421,9 @@ def test_unauthorized_appid_doesnt_hold_messages(
     # dynamically create a substream
     unauthorized_consumer = next(proxies).create_client("unauthorized_consumer")
     unauthorized_consumer.open(f"{uri_fanout}?id=unauthorized", flags=["read"])
-    assert primary.alarms("FANOUT_UNREGISTERED_APPID")
+    # the first client on a proxy pays its cluster-proxy cold start before the
+    # open reaches the primary
+    assert primary.alarms("FANOUT_UNREGISTERED_APPID", timeout=10)
 
     # ---------------------------------------------------------------------
     # consume all the messages in all the authorized substreams
@@ -772,10 +774,17 @@ def test_open_authorize_change_primary(multi_node: Cluster, domain_urls: tc.Doma
     primary.wait()
 
     # Killing the primary forces the partition to elect a new one (a Replica
-    # takes over); wait for the new leader and the queue's new primary before
-    # opening the new consumer.  Query a surviving node (the killed primary may
-    # or may not have been the CSL leader).
-    multi_node.wait_leader().wait_queue_primary(du.uri_fanout)
+    # takes over).  Wait -- on a surviving node -- until the queue's partition
+    # reports a primary other than the killed one before opening the new
+    # consumer.  'wait_queue_primary' polls current cluster state (idempotent),
+    # unlike 'wait_leader()' which waits for a one-shot "new leader ... ACTIVE"
+    # log line and hangs here: killing a *partition* primary need not change the
+    # CSL leader, so that line is never re-emitted.
+    survivor = next(node for node in multi_node.nodes() if node.name != primary.name)
+    wait_until(
+        lambda: survivor.wait_queue_primary(du.uri_fanout).name != primary.name,
+        timeout=60,
+    )
 
     consumer = next(proxies).create_client(app_id)
     consumer.open(f"{du.uri_fanout}?id=new_app", flags=["read"], succeed=True)

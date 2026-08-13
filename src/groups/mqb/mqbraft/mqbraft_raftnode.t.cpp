@@ -260,6 +260,20 @@ class TestCluster {
         }
     }
 
+    /// Tick every node except the specified 'skip', delivering messages after
+    /// each tick.  Models 'skip' being down (it emits no heartbeats).
+    void tickAllExcept(int skip)
+    {
+        for (int i = 0; i < d_numNodes; ++i) {
+            if (i == skip) {
+                continue;  // CONTINUE
+            }
+            RaftNodeOutput output(d_allocator_p);
+            d_nodes[i]->tick(&output);
+            runUntilQuiet(&output);
+        }
+    }
+
     /// Find the leader node.  Return -1 if none.
     int findLeader() const
     {
@@ -723,6 +737,70 @@ static void test12_heartbeatResetsElectionTimer()
     BMQTST_ASSERT_EQ(cluster.findLeader(), leader);
 }
 
+static void test13_electionMode()
+// ELECTION MODE (FORCE / NEVER)
+//
+// Verify that setElectionMode(e_NEVER) leaves an incumbent leader in place but
+// keeps that node from winning any later election, and that
+// setElectionMode(e_FORCE) makes a specific node win leadership once the
+// incumbent is gone.  This backs the legacy 'set_quorum' primary-pinning knob
+// (see 'ClusterOrchestrator::processCommand').
+{
+    bmqtst::TestHelper::printTestName("ELECTION MODE");
+
+    bslma::TestAllocator alloc("test", false);
+    TestCluster          cluster(3, false, &alloc);
+
+    const int leader = electLeader(&cluster);
+    BMQTST_ASSERT_GE(leader, 0);
+
+    const int target = (leader + 1) % 3;
+    const int other  = (leader + 2) % 3;
+
+    // Exclude the third node and the current leader, then force 'target'.
+    // Deliver each mode change's resulting messages before the next.
+    {
+        RaftNodeOutput output(&alloc);
+        cluster.node(other)->setElectionMode(&output, ElectionMode::e_NEVER);
+        cluster.runUntilQuiet(&output);
+    }
+    {
+        RaftNodeOutput output(&alloc);
+        cluster.node(leader)->setElectionMode(&output, ElectionMode::e_NEVER);
+        cluster.runUntilQuiet(&output);
+    }
+    // Excluding the incumbent does not depose it.
+    BMQTST_ASSERT_EQ(cluster.node(leader)->state(), RaftState::e_LEADER);
+    for (int t = 0; t < 50; ++t) {
+        cluster.tickAll();
+    }
+    BMQTST_ASSERT_EQ(cluster.findLeader(), leader);
+
+    {
+        RaftNodeOutput output(&alloc);
+        cluster.node(target)->setElectionMode(&output, ElectionMode::e_FORCE);
+        cluster.runUntilQuiet(&output);
+    }
+
+    // Once the incumbent is gone, the forced node is the only eligible
+    // candidate and takes leadership on its election timeout.
+    for (int t = 0;
+         t < 100 && cluster.node(target)->state() != RaftState::e_LEADER;
+         ++t) {
+        cluster.tickAllExcept(leader);
+    }
+    BMQTST_ASSERT_EQ(cluster.node(target)->state(), RaftState::e_LEADER);
+
+    // Even after many ticks, an excluded node never becomes leader and the
+    // forced node keeps leadership.
+    for (int t = 0; t < 100; ++t) {
+        cluster.tickAll();
+    }
+    BMQTST_ASSERT_EQ(cluster.node(other)->state(), RaftState::e_FOLLOWER);
+    BMQTST_ASSERT_EQ(cluster.node(leader)->state(), RaftState::e_FOLLOWER);
+    BMQTST_ASSERT_EQ(cluster.findLeader(), target);
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ============================================================================
@@ -733,6 +811,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 13: test13_electionMode(); break;
     case 12: test12_heartbeatResetsElectionTimer(); break;
     case 11: test11_leaderStepDown(); break;
     case 10: test10_splitVote(); break;

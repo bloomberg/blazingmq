@@ -2418,6 +2418,19 @@ void Cluster::onQueueStorageReady(int partitionId, const bmqt::Uri& uri)
         this);
 }
 
+bool Cluster::loadAppIds(bsl::unordered_set<bsl::string>* out,
+                         const bmqt::Uri&                 uri,
+                         int                              partitionId) const
+{
+    // executed by *ANY* thread
+
+    if (!d_storageProvider_p) {
+        return false;  // RETURN
+    }
+
+    return d_storageProvider_p->loadAppIds(out, uri, partitionId);
+}
+
 int Cluster::processCommand(mqbcmd::ClusterResult*        result,
                             const mqbcmd::ClusterCommand& command)
 {

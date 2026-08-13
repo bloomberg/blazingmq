@@ -2050,11 +2050,16 @@ bool StorageManager::isStorageEmpty(const bmqt::Uri& uri,
     return mqbc::StorageMonitor::isStorageEmpty(uri, partitionId);
 }
 
-bool StorageManager::hasStorage(const bmqt::Uri&   uri,
-                                const bsl::string& appId,
-                                int                partitionId) const
+bool StorageManager::hasStorage(const bmqt::Uri& uri, int partitionId) const
 {
-    return mqbc::StorageMonitor::hasStorage(uri, appId, partitionId);
+    return mqbc::StorageMonitor::hasStorage(uri, partitionId);
+}
+
+bool StorageManager::loadAppIds(bsl::unordered_set<bsl::string>* out,
+                                const bmqt::Uri&                 uri,
+                                int partitionId) const
+{
+    return mqbc::StorageMonitor::loadAppIds(out, uri, partitionId);
 }
 
 }  // close package namespace
