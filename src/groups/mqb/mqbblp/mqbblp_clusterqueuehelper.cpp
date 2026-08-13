@@ -675,8 +675,7 @@ void ClusterQueueHelper::requestQueueUnassignment(const bmqt::Uri&        uri,
         return;  // RETURN
     }
 
-    RequestManagerType::RequestSp request =
-        d_cluster_p->requestManager().createRequest();
+    RequestSp request = d_cluster_p->requestManager().createRequest();
     bmqp_ctrlmsg::QueueUnassignmentRequest& queueUnassignmentRequest =
         request->request()
             .choice()
@@ -719,9 +718,9 @@ void ClusterQueueHelper::requestQueueUnassignment(const bmqt::Uri&        uri,
 }
 
 void ClusterQueueHelper::onQueueUnassignmentResponse(
-    const RequestManagerType::RequestSp& requestContext,
-    const bmqt::Uri&                     uri,
-    mqbnet::ClusterNode*                 responder)
+    const RequestSp&     requestContext,
+    const bmqt::Uri&     uri,
+    mqbnet::ClusterNode* responder)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -2379,21 +2378,19 @@ bool ClusterQueueHelper::createQueue(
         const bsl::string appId(
             bmqp::QueueUtil::extractAppId(context->d_handleParameters),
             d_allocator_p);
-        // Gate only on the *queue* storage (empty appId asks 'hasStorage' for
-        // the queue-level check), not per-app storage.  The replica needs the
-        // queue storage to exist -- it can lag this openQueue response until
-        // the raft creation entry commits, so park until it is ready; the
-        // readiness signal ('onQueueStorageReady' -> 'onStorageReady') is
-        // itself per-queue.  It must NOT gate on the app: an unauthorized app
-        // (a removed fanout app, or one a consumer opens that was never
-        // authorized) is legitimately storage-less and would never satisfy a
-        // per-app check -- it would re-park forever on every queue-ready
-        // signal.  Once the queue storage exists, let the app slide:
-        // 'RelayQueueEngine' authorizes apps lazily and unauthorized apps just
-        // relay nothing, mirroring how the primary handles them.
-        if (!d_storageManager_p->hasStorage(queueContext->uri(),
-                                            bsl::string(),
-                                            pid)) {
+        // Gate only on the *queue* storage ('hasStorage' is a queue-level
+        // check), not per-app storage.  The replica needs the queue storage to
+        // exist -- it can lag this openQueue response until the raft creation
+        // entry commits, so park until it is ready; the readiness signal
+        // ('onQueueStorageReady' -> 'onStorageReady') is itself per-queue.  It
+        // must NOT gate on the app: an unauthorized app (a removed fanout app,
+        // or one a consumer opens that was never authorized) is legitimately
+        // storage-less and would never satisfy a per-app check -- it would
+        // re-park forever on every queue-ready signal.  Once the queue storage
+        // exists, let the app slide: 'RelayQueueEngine' authorizes apps lazily
+        // and unauthorized apps just relay nothing, mirroring how the primary
+        // handles them.
+        if (!d_storageManager_p->hasStorage(queueContext->uri(), pid)) {
             BALL_LOG_INFO << d_cluster_p->description()
                           << ": parking createQueue for '"
                           << queueContext->uri() << "' (app '" << appId

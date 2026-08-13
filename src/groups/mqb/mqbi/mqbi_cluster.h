@@ -54,6 +54,7 @@
 #include <bsl_optional.h>
 #include <bsl_ostream.h>
 #include <bsl_string.h>
+#include <bsl_unordered_set.h>
 #include <bsl_vector.h>
 #include <bsls_timeinterval.h>
 
@@ -368,6 +369,17 @@ class Cluster : public DispatcherClient {
     /// `mqbc::storageMonitor::hasStorage`).  A no-op default is provided
     /// since only cluster-member implementations own a `ClusterQueueHelper`.
     virtual void onQueueStorageReady(int partitionId, const bmqt::Uri& uri);
+
+    /// Load into the specified `out` the set of appIds currently registered
+    /// on the local storage for the queue having the specified `uri` and
+    /// assigned to the specified `partitionId`, and return true.  Return
+    /// false (leaving `out` unchanged) if no local storage for `uri` exists
+    /// on `partitionId`.  Safe to call from any thread.  A default returning
+    /// false is provided since only cluster-member implementations own a
+    /// local storage.
+    virtual bool loadAppIds(bsl::unordered_set<bsl::string>* out,
+                            const bmqt::Uri&                 uri,
+                            int partitionId) const;
 
     /// Process the specified `command`, and load the result in the
     /// specified `result`.  Return 0 if the command was successfully

@@ -128,5 +128,16 @@ void Cluster::onQueueStorageReady(int partitionId, const bmqt::Uri& uri)
     (void)uri;
 }
 
+bool Cluster::loadAppIds(bsl::unordered_set<bsl::string>* out,
+                         const bmqt::Uri&                 uri,
+                         int                              partitionId) const
+{
+    // Default: not all implementations own a local storage.
+    (void)out;
+    (void)uri;
+    (void)partitionId;
+    return false;
+}
+
 }  // close package namespace
 }  // close enterprise namespace

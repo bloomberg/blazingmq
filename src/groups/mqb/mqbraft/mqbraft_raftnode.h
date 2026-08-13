@@ -85,6 +85,29 @@ struct RaftState {
 // FREE OPERATORS
 bsl::ostream& operator<<(bsl::ostream& stream, RaftState::Enum value);
 
+// =================
+// struct ElectionMode
+// =================
+
+/// Per-node leadership-eligibility override.  Reproduces the legacy Elector's
+/// per-node `quorum` knob (see `ClusterOrchestrator::processCommand`), which
+/// tests use to pin or exclude a node as primary/leader:
+/// * `e_NORMAL`: default Raft eligibility.
+/// * `e_FORCE`:  campaign immediately (real election, skipping pre-vote) and
+///   keep re-campaigning at the election-timeout cadence until leader.
+/// * `e_NEVER`:  never become candidate; an incumbent leader keeps leading.
+///   Still votes and replicates, so it counts toward another node's quorum.
+struct ElectionMode {
+    // TYPES
+    enum Enum { e_NORMAL = 0, e_FORCE = 1, e_NEVER = 2 };
+
+    // CLASS METHODS
+    static const char* toAscii(ElectionMode::Enum value);
+};
+
+// FREE OPERATORS
+bsl::ostream& operator<<(bsl::ostream& stream, ElectionMode::Enum value);
+
 // =====================
 // struct RaftMessageType
 // =====================
@@ -393,6 +416,9 @@ class RaftNode {
     // Leadership transfer
     int d_transferTargetId;
 
+    // Leadership-eligibility override (see 'ElectionMode')
+    ElectionMode::Enum d_electionMode;
+
     bslma::Allocator* d_allocator_p;
 
     // NOT IMPLEMENTED
@@ -472,6 +498,12 @@ class RaftNode {
     /// Return 0 on success, non-zero if this node is not the leader.
     int transferLeadership(RaftNodeOutput* output, int targetNodeId);
 
+    /// Set the leadership-eligibility override to the specified 'mode' (see
+    /// 'ElectionMode').  'e_FORCE' triggers an immediate real election if not
+    /// already leader; 'e_NEVER' takes effect on future elections only.  Any
+    /// resulting messages/committed entries are emitted via 'output'.
+    void setElectionMode(RaftNodeOutput* output, ElectionMode::Enum mode);
+
     /// Initialize recovered state at startup: raise 'd_currentTerm' to at
     /// least the specified 'term' (the recovered log's last term), and raise
     /// 'd_commitIndex'/'d_lastApplied' to at least the specified 'index' (the
@@ -502,6 +534,7 @@ class RaftNode {
     bsls::Types::Uint64   lastApplied() const;
     const RaftNodeConfig& config() const;
     int                   quorum() const;
+    ElectionMode::Enum    electionMode() const;
 };
 
 // ============================================================================
@@ -694,6 +727,11 @@ inline const RaftNodeConfig& RaftNode::config() const
 inline int RaftNode::quorum() const
 {
     return static_cast<int>(d_config.d_peerIds.size()) / 2 + 1;
+}
+
+inline ElectionMode::Enum RaftNode::electionMode() const
+{
+    return d_electionMode;
 }
 
 inline bool RaftNode::isLogUpToDate(bsls::Types::Uint64 lastLogTerm,

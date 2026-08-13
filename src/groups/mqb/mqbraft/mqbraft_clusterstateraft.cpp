@@ -756,6 +756,17 @@ int ClusterStateRaft::propose(const bmqp_ctrlmsg::ClusterMessage& advisory)
     return 0;
 }
 
+void ClusterStateRaft::setElectionMode(ElectionMode::Enum mode)
+{
+    // executed by the cluster *DISPATCHER* thread
+    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
+    BSLS_ASSERT_SAFE(d_raftNode_mp);
+
+    RaftNodeOutput output(d_allocator_p);
+    d_raftNode_mp->setElectionMode(&output, mode);
+    dispatchOutput(&output);
+}
+
 int ClusterStateRaft::createNewCslLog(bsl::shared_ptr<mqbsi::Log>* logOut,
                                       mqbu::StorageKey*            logIdOut)
 {

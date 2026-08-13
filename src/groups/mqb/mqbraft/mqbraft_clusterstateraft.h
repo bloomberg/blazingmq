@@ -180,6 +180,15 @@ class ClusterStateRaft : public mqbi::ClusterStateUpdater {
     /// Return 0 on success, non-zero if not the leader.
     int propose(const bmqp_ctrlmsg::ClusterMessage& advisory);
 
+    /// Set the CSL Raft group's leadership-eligibility override to the
+    /// specified `mode` (see `RaftNode::setElectionMode`) and dispatch any
+    /// resulting Raft messages.  Used to reproduce the legacy per-node
+    /// `set_quorum` leader-pinning knob.
+    ///
+    /// THREAD: This method is invoked in the associated cluster's dispatcher
+    ///         thread.
+    void setElectionMode(ElectionMode::Enum mode);
+
     /// If self is the CSL Raft leader and every partition's (primaryNodeId,
     /// leaseId) is known (per `ClusterState::partitions()`), propose a
     /// combined `partitionPrimaryAdvisory` capturing every partition's

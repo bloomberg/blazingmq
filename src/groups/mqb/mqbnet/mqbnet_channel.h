@@ -326,8 +326,8 @@ class Channel {
     };
 
     struct Stats {
-        static const int k_MAX_ITEM_TYPE =
-            bmqp::EventType::e_REPLICATION_RECEIPT + 1;
+        static const int k_MAX_ITEM_TYPE = bmqp::EventType::e_RAFT_SNAPSHOT +
+                                           1;
 
         bsls::AtomicUint d_numItems[k_MAX_ITEM_TYPE];
 

@@ -239,13 +239,19 @@ class StorageProvider {
                                 int              partitionId) const = 0;
 
     /// Return true if the queue having the specified `uri` and assigned to
-    /// the specified `partitionId` has a registered storage *and*, if the
-    /// specified `appId` is non-empty, that `appId` is registered on it.
-    /// Safe to call from any thread, in particular the cluster dispatcher
-    /// thread.
-    virtual bool hasStorage(const bmqt::Uri&   uri,
-                            const bsl::string& appId,
-                            int                partitionId) const = 0;
+    /// the specified `partitionId` has a registered storage.  Safe to call
+    /// from any thread, in particular the cluster dispatcher thread.
+    virtual bool hasStorage(const bmqt::Uri& uri, int partitionId) const = 0;
+
+    /// Load into the specified `out` the set of appIds currently registered
+    /// on the local storage for the queue having the specified `uri` and
+    /// assigned to the specified `partitionId`, and return true.  Return
+    /// false (leaving `out` unchanged) if no storage for `uri` exists on
+    /// `partitionId`.  Safe to call from any thread, in particular the
+    /// cluster dispatcher thread.
+    virtual bool loadAppIds(bsl::unordered_set<bsl::string>* out,
+                            const bmqt::Uri&                 uri,
+                            int partitionId) const = 0;
 };
 
 // ====================

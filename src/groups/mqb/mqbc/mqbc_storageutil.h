@@ -768,9 +768,12 @@ class StorageMonitor : public mqbs::StorageMonitor {
   public:
     // TYPES
 
+    /// Map of appKey -> appId for a queue's registered apps.
+    typedef mqbs::DataStoreConfigQueueInfo::AppInfos AppKeyToIdMap;
+
     struct StorageWithApps {
-        StorageSp d_storage_sp;
-        Apps      d_apps;
+        StorageSp     d_storage_sp;
+        AppKeyToIdMap d_apps;
     };
     /// Map of QueueUri -> ReplicatedStorageSp
     typedef bsl::unordered_map<bmqt::Uri, StorageWithApps> StorageSpMap;
@@ -841,6 +844,16 @@ class StorageMonitor : public mqbs::StorageMonitor {
                              const mqbi::Storage::AppInfos& apps)
         BSLS_KEYWORD_OVERRIDE;
 
+    void onStorageAppsAdded(int                            partitionId,
+                            const bmqt::Uri&               uri,
+                            const mqbi::Storage::AppInfos& apps)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void
+    onStorageAppRemoved(int                     partitionId,
+                        const bmqt::Uri&        uri,
+                        const mqbu::StorageKey& appKey) BSLS_KEYWORD_OVERRIDE;
+
     void onStorageUnregistered(int              partitionId,
                                const bmqt::Uri& uri) BSLS_KEYWORD_OVERRIDE;
 
@@ -867,13 +880,19 @@ class StorageMonitor : public mqbs::StorageMonitor {
                         int partitionId) const BSLS_KEYWORD_OVERRIDE;
 
     /// Return true if the queue having the specified `uri` and assigned to
-    /// the specified `partitionId` has a registered storage *and*, if
-    /// `appId` is non-empty, that `appId` is registered on it.  Safe to call
+    /// the specified `partitionId` has a registered storage.  Safe to call
     /// from any thread (in particular, the cluster dispatcher thread) --
     /// unlike querying `ReplicatedStorage`/`find(uri)`'s result directly.
-    bool hasStorage(const bmqt::Uri&   uri,
-                    const bsl::string& appId,
-                    int                partitionId) const;
+    bool hasStorage(const bmqt::Uri& uri, int partitionId) const;
+
+    /// Load into the specified `out` the set of appIds currently registered
+    /// on the storage for the queue having the specified `uri` and assigned
+    /// to the specified `partitionId`, and return true.  Return false
+    /// (leaving `out` unchanged) if no storage for `uri` exists on
+    /// `partitionId`.  Safe to call from any thread.
+    bool loadAppIds(bsl::unordered_set<bsl::string>* out,
+                    const bmqt::Uri&                 uri,
+                    int                              partitionId) const;
 
     /// Return false: the legacy storage path.  `PartitionRaftManager`
     /// overrides this to return true.

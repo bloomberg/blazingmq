@@ -666,6 +666,20 @@ class StorageMonitor {
                                      const StorageSp& storageSp,
                                      const mqbi::Storage::AppInfos& apps) = 0;
 
+    /// Notify that the specified `apps` have been added to the already
+    /// registered storage for the queue having the specified `uri` on the
+    /// specified `partitionId`.
+    virtual void onStorageAppsAdded(int                            partitionId,
+                                    const bmqt::Uri&               uri,
+                                    const mqbi::Storage::AppInfos& apps) = 0;
+
+    /// Notify that the app having the specified `appKey` has been removed
+    /// from the storage for the queue having the specified `uri` on the
+    /// specified `partitionId`.
+    virtual void onStorageAppRemoved(int                     partitionId,
+                                     const bmqt::Uri&        uri,
+                                     const mqbu::StorageKey& appKey) = 0;
+
     virtual void onStorageUnregistered(int              partitionId,
                                        const bmqt::Uri& uri) = 0;
 

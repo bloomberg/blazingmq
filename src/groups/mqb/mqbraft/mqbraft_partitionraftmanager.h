@@ -58,6 +58,7 @@
 #include <bdlmt_fixedthreadpool.h>
 #include <bsl_functional.h>
 #include <bsl_memory.h>
+#include <bsl_unordered_set.h>
 #include <bsl_vector.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
@@ -299,10 +300,16 @@ class PartitionRaftManager : public mqbi::StorageProvider,
                         int partitionId) const BSLS_KEYWORD_OVERRIDE;
 
     /// Return true if the queue having the specified `uri` and assigned to
-    /// the specified `partitionId` has a registered storage *and*, if the
-    /// specified `appId` is non-empty, that `appId` is registered on it.
-    bool hasStorage(const bmqt::Uri&   uri,
-                    const bsl::string& appId,
+    /// the specified `partitionId` has a registered storage.
+    bool hasStorage(const bmqt::Uri& uri,
+                    int              partitionId) const BSLS_KEYWORD_OVERRIDE;
+
+    /// Load into the specified `out` the set of appIds registered on the
+    /// storage for the queue having the specified `uri` and assigned to the
+    /// specified `partitionId`, returning true; return false if no such
+    /// storage exists.
+    bool loadAppIds(bsl::unordered_set<bsl::string>* out,
+                    const bmqt::Uri&                 uri,
                     int partitionId) const BSLS_KEYWORD_OVERRIDE;
 
     /// Return true: this manager drives Raft-replicated partitions.  Used to
@@ -337,6 +344,14 @@ class PartitionRaftManager : public mqbi::StorageProvider,
     ///
     /// THREAD: Called from the cluster dispatcher thread.
     void onPeerNodeStopping();
+
+    /// Set the leadership-eligibility override to the specified `mode` (see
+    /// `RaftNode::setElectionMode`) on every partition Raft group, hopping to
+    /// each partition's dispatcher thread.  Used to reproduce the legacy
+    /// per-node `set_quorum` primary-pinning knob.
+    ///
+    /// THREAD: Called from the cluster dispatcher thread.
+    void setElectionMode(ElectionMode::Enum mode);
 };
 
 // ============================================================================

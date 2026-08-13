@@ -292,6 +292,10 @@ void PartitionRaft::dispatchOutput(RaftNodeOutput* output)
 
             d_isRolloverPending = false;
         }
+
+        // After the drain, so the DELETION records authorizing them land in
+        // the new file set first -- the order replicas apply them in.
+        d_raftLog_mp->flushDeferredRemovals();
     }
 
     // Note on leadership changes: becoming leader needs no action here.  The
@@ -420,7 +424,10 @@ void PartitionRaft::sendControlMessage(const RaftMessage& msg)
 void PartitionRaft::applyCommittedEntry(const LogEntry& entry)
 {
     // executed by the partition *DISPATCHER* thread
-    if (isLeader()) {
+
+    // Only entries of the current term were appended by this node as leader
+    // and have a pending write; earlier ones arrived by replication.
+    if (isLeader() && entry.d_term == d_raftNode_mp->currentTerm()) {
         d_raftLog_mp->applyCommittedEntryAsPrimary(entry.d_index);
     }
     else {
@@ -462,8 +469,8 @@ void PartitionRaft::sendSnapshot(int                 destNodeId,
     mqbs::FileStoreSet fileSet;
     d_fileStore_sp->loadCurrentFiles(&fileSet);
 
-    // Send order: data → qlist → journal.  isDone is set on the last chunk
-    // of the journal.  Files with size 0 are skipped.
+    // Send order: data → qlist → journal, followed by a payload-less terminal
+    // chunk carrying the done flag.  Files with size 0 are skipped.
     struct FileDesc {
         unsigned int               d_fileType;
         mqbs::MappedFileDescriptor d_mfd;
@@ -480,12 +487,14 @@ void PartitionRaft::sendSnapshot(int                 destNodeId,
                              mqbs::MappedFileDescriptor(),
                              fileSet.journalFileSize()}};
 
+    // 'allFiles' is in send order; 'openFileSetReadMode' takes journal, data,
+    // qlist.
     bmqu::MemOutStream errorDesc;
     int                rc = mqbs::FileStoreUtil::openFileSetReadMode(errorDesc,
                                                       fileSet,
+                                                      &allFiles[2].d_mfd,
                                                       &allFiles[0].d_mfd,
-                                                      &allFiles[1].d_mfd,
-                                                      &allFiles[2].d_mfd);
+                                                      &allFiles[1].d_mfd);
 
     if (0 != rc) {
         BMQTSK_ALARMLOG_ALARM("FILE_IO")
@@ -512,6 +521,9 @@ void PartitionRaft::sendSnapshot(int                 destNodeId,
         sendControlMessage(metaMsg);
     }
 
+    const int hdrSize = static_cast<int>(sizeof(bmqp::EventHeader) +
+                                         sizeof(bmqp::SnapshotChunkHeader));
+
     for (int f = 0; f < 3; ++f) {
         bsls::Types::Uint64 offset = 0;
         while (offset < allFiles[f].d_size) {
@@ -522,8 +534,6 @@ void PartitionRaft::sendSnapshot(int                 destNodeId,
                 d_clusterData_p->blobSpPool().getObject();
             bdlbb::Blob& event = *event_sp;
 
-            int hdrSize = static_cast<int>(sizeof(bmqp::EventHeader) +
-                                           sizeof(bmqp::SnapshotChunkHeader));
             event.setLength(hdrSize);
 
             bmqu::BlobObjectProxy<bmqp::SnapshotChunkHeader> hdr(
@@ -536,7 +546,7 @@ void PartitionRaft::sendSnapshot(int                 destNodeId,
             (*hdr)
                 .setPartitionId(static_cast<unsigned int>(d_partitionId))
                 .setFileType(allFiles[f].d_fileType)
-                .setDone(chunkLen >= remaining)
+                .setDone(false)
                 .setLastIncludedIndex(lastIncludedIndex)
                 .setOffset(offset)
                 .setTotalSize(allFiles[f].d_size)
@@ -558,9 +568,42 @@ void PartitionRaft::sendSnapshot(int                 destNodeId,
         }
     }
 
+    // The done flag cannot ride on the last chunk of a file: the receiver
+    // finalizes on it, and a file of size 0 emits no chunk to carry it.
+    {
+        bsl::shared_ptr<bdlbb::Blob> event_sp =
+            d_clusterData_p->blobSpPool().getObject();
+        bdlbb::Blob& event = *event_sp;
+
+        event.setLength(hdrSize);
+
+        bmqu::BlobObjectProxy<bmqp::SnapshotChunkHeader> hdr(
+            &event,
+            bmqu::BlobPosition(0, static_cast<int>(sizeof(bmqp::EventHeader))),
+            true,   // read
+            true);  // write
+        (*hdr)
+            .setPartitionId(static_cast<unsigned int>(d_partitionId))
+            .setFileType(bmqp::SnapshotChunkHeader::k_FILE_TYPE_JOURNAL)
+            .setDone(true)
+            .setLastIncludedIndex(lastIncludedIndex)
+            .setOffset(0)
+            .setTotalSize(0)
+            .setChunkLength(0);
+        hdr.reset();
+
+        bmqu::BlobObjectProxy<bmqp::EventHeader> eh(&event);
+        (*eh) = bmqp::EventHeader(bmqp::EventType::e_RAFT_SNAPSHOT);
+        eh->setLength(event.length());
+        eh.reset();
+
+        destNode->write(event_sp, bmqp::EventType::e_RAFT_SNAPSHOT);
+    }
+
+    // 'closePartitionSet' takes data, journal, qlist.
     rc = mqbs::FileStoreUtil::closePartitionSet(&allFiles[0].d_mfd,
-                                                &allFiles[1].d_mfd,
-                                                &allFiles[2].d_mfd);
+                                                &allFiles[2].d_mfd,
+                                                &allFiles[1].d_mfd);
     if (0 != rc) {
         BMQTSK_ALARMLOG_ALARM("FILE_IO")
             << d_clusterData_p->identity().description() << " Partition ["
@@ -582,8 +625,6 @@ void PartitionRaft::beginReceiveSnapshot(bsls::Types::Uint64 lastIncludedIndex,
                   << "] beginning snapshot receive, lastIncludedIndex="
                   << lastIncludedIndex;
 
-    d_storageMonitor_p->onStoragesCleared(d_partitionId);
-
     // Close any in-progress snapshot fds
     if (d_snapshotJournalFd >= 0) {
         ::close(d_snapshotJournalFd);
@@ -598,22 +639,28 @@ void PartitionRaft::beginReceiveSnapshot(bsls::Types::Uint64 lastIncludedIndex,
         d_snapshotQlistFd = -1;
     }
 
-    // Get file paths before wiping
-    mqbs::FileStoreSet fileSet;
-    d_fileStore_sp->loadCurrentFiles(&fileSet);
-    d_snapshotJournalPath = fileSet.journalFile();
-    d_snapshotDataPath    = fileSet.dataFile();
-    d_snapshotQlistPath   = fileSet.qlistFile();
+    // A retry can arrive while the FileStore is still closed from an earlier
+    // attempt, in which case the paths below are already the ones to write.
+    if (d_fileStore_sp->isOpen()) {
+        d_storageMonitor_p->onStoragesCleared(d_partitionId);
 
-    // 'onStoragesCleared' above destroyed the partition's storage objects (the
-    // monitor held the owning shared_ptrs).  The FileStore still holds raw
-    // pointers to them in 'd_storages', now dangling; drop them so no
-    // subsequent lookup (e.g. a committed-record apply before the reopen
-    // re-registers fresh storages) touches freed memory.
-    d_fileStore_sp->clearStorages();
+        // Get file paths before wiping
+        mqbs::FileStoreSet fileSet;
+        d_fileStore_sp->loadCurrentFiles(&fileSet);
+        d_snapshotJournalPath = fileSet.journalFile();
+        d_snapshotDataPath    = fileSet.dataFile();
+        d_snapshotQlistPath   = fileSet.qlistFile();
 
-    // Wipe current FileStore
-    d_fileStore_sp->close(false, true);  // flush=false, archive=true
+        // 'onStoragesCleared' above destroyed the partition's storage objects
+        // (the monitor held the owning shared_ptrs).  The FileStore still
+        // holds raw pointers to them in 'd_storages', now dangling; drop them
+        // so no subsequent lookup (e.g. a committed-record apply before the
+        // reopen re-registers fresh storages) touches freed memory.
+        d_fileStore_sp->clearStorages();
+
+        // Wipe current FileStore
+        d_fileStore_sp->close(false, true);  // flush=false, archive=true
+    }
 
     d_snapshotJournalFd = ::open(d_snapshotJournalPath.c_str(),
                                  O_WRONLY | O_CREAT | O_TRUNC,
@@ -661,44 +708,50 @@ void PartitionRaft::applySnapshotChunk(const bdlbb::Blob& event)
     unsigned int        chunkLength = hdr->chunkLength();
     bool                done        = hdr->done();
 
-    int fd = -1;
-    if (fileType == bmqp::SnapshotChunkHeader::k_FILE_TYPE_JOURNAL) {
-        fd = d_snapshotJournalFd;
-    }
-    else if (fileType == bmqp::SnapshotChunkHeader::k_FILE_TYPE_DATA) {
-        fd = d_snapshotDataFd;
-    }
-    else if (fileType == bmqp::SnapshotChunkHeader::k_FILE_TYPE_QLIST) {
-        fd = d_snapshotQlistFd;
-    }
+    // The terminal chunk carries no payload; it only marks the end of the
+    // snapshot.
+    if (chunkLength > 0) {
+        int fd = -1;
+        if (fileType == bmqp::SnapshotChunkHeader::k_FILE_TYPE_JOURNAL) {
+            fd = d_snapshotJournalFd;
+        }
+        else if (fileType == bmqp::SnapshotChunkHeader::k_FILE_TYPE_DATA) {
+            fd = d_snapshotDataFd;
+        }
+        else if (fileType == bmqp::SnapshotChunkHeader::k_FILE_TYPE_QLIST) {
+            fd = d_snapshotQlistFd;
+        }
 
-    if (fd < 0) {
-        BALL_LOG_ERROR << "Partition [" << d_partitionId
-                       << "] no fd for snapshot chunk fileType=" << fileType;
-        return;
-    }
+        if (fd < 0) {
+            BALL_LOG_ERROR << "Partition [" << d_partitionId
+                           << "] no fd for snapshot chunk fileType="
+                           << fileType;
+            return;
+        }
 
-    if (::lseek(fd, static_cast<off_t>(offset), SEEK_SET) < 0) {
-        BALL_LOG_ERROR << "Partition [" << d_partitionId
-                       << "] lseek failed offset=" << offset;
-        return;
-    }
+        if (::lseek(fd, static_cast<off_t>(offset), SEEK_SET) < 0) {
+            BALL_LOG_ERROR << "Partition [" << d_partitionId
+                           << "] lseek failed offset=" << offset;
+            return;
+        }
 
-    int                dataOff = static_cast<int>(sizeof(bmqp::EventHeader) +
-                                   sizeof(bmqp::SnapshotChunkHeader));
-    bmqu::BlobPosition pos;
-    if (0 != bmqu::BlobUtil::findOffsetSafe(&pos, event, dataOff)) {
-        return;
-    }
-    for (int i = pos.buffer(); i < event.numDataBuffers() && chunkLength > 0;
-         ++i) {
-        const bdlbb::BlobBuffer& buf = event.buffer(i);
-        int          bufStart        = (i == pos.buffer()) ? pos.byte() : 0;
-        unsigned int available       = static_cast<unsigned int>(buf.size() -
-                                                           bufStart);
-        unsigned int toWrite         = bsl::min(available, chunkLength);
-        ::write(fd, buf.data() + bufStart, toWrite);
-        chunkLength -= toWrite;
+        int dataOff = static_cast<int>(sizeof(bmqp::EventHeader) +
+                                       sizeof(bmqp::SnapshotChunkHeader));
+        bmqu::BlobPosition pos;
+        if (0 != bmqu::BlobUtil::findOffsetSafe(&pos, event, dataOff)) {
+            return;
+        }
+        for (int i = pos.buffer();
+             i < event.numDataBuffers() && chunkLength > 0;
+             ++i) {
+            const bdlbb::BlobBuffer& buf = event.buffer(i);
+            int          bufStart  = (i == pos.buffer()) ? pos.byte() : 0;
+            unsigned int available = static_cast<unsigned int>(buf.size() -
+                                                               bufStart);
+            unsigned int toWrite   = bsl::min(available, chunkLength);
+            ::write(fd, buf.data() + bufStart, toWrite);
+            chunkLength -= toWrite;
+        }
     }
 
     if (!done) {
@@ -725,6 +778,21 @@ void PartitionRaft::applySnapshotChunk(const bdlbb::Blob& event)
         BALL_LOG_ERROR << "Partition [" << d_partitionId
                        << "] failed to reopen FileStore after snapshot, rc="
                        << rc;
+        return;
+    }
+
+    // 'open' also succeeds having recovered nothing, so acknowledge only once
+    // the log can serve the installed index.
+    bsls::Types::Uint64 installedIndex = d_raftLog_mp->snapshotIndex();
+    if (d_raftLog_mp->lastIndex() > installedIndex) {
+        installedIndex = d_raftLog_mp->lastIndex();
+    }
+
+    if (installedIndex < d_snapshotLastIncludedIndex) {
+        BALL_LOG_ERROR << "Partition [" << d_partitionId
+                       << "] snapshot apply reached index " << installedIndex
+                       << ", expected " << d_snapshotLastIncludedIndex
+                       << "; not acknowledging InstallSnapshot";
         return;
     }
 
@@ -864,6 +932,16 @@ void PartitionRaft::tickDispatched()
     // executed by the partition *DISPATCHER* thread
     RaftNodeOutput output(d_allocator_p);
     d_raftNode_mp->tick(&output);
+    dispatchOutput(&output);
+}
+
+void PartitionRaft::setElectionMode(ElectionMode::Enum mode)
+{
+    // executed by the partition *DISPATCHER* thread
+    BSLS_ASSERT_SAFE(d_fileStore_sp->inDispatcherThread());
+
+    RaftNodeOutput output(d_allocator_p);
+    d_raftNode_mp->setElectionMode(&output, mode);
     dispatchOutput(&output);
 }
 
@@ -1274,8 +1352,10 @@ int PartitionRaft::rollover()
     enum { rc_SUCCESS = 0, rc_NOT_LEADER = -1, rc_ROLLOVER_PENDING = -2 };
 
     if (!isLeader()) {
+        // Same wording as legacy 'FileStore::rollover'.
         BALL_LOG_WARN << "Partition [" << d_partitionId
-                      << "] admin rollover rejected: not the Raft leader.";
+                      << "] Rollover rejected: node is not primary for this "
+                      << "partition.";
         return rc_NOT_LEADER;  // RETURN
     }
 
@@ -1673,6 +1753,12 @@ void PartitionRaft::createStorage(
 
 void PartitionRaft::removeRecordRaw(const mqbs::DataStoreRecordHandle& handle)
 {
+    // While 'e_ROLLOVER' is in flight, the DELETION authorizing this removal
+    // is buffered behind it, so the record must survive the compaction.
+    if (d_isRolloverPending && d_raftLog_mp->deferRemoval(handle)) {
+        return;  // RETURN
+    }
+
     // If this handle belongs to a pending write still in the buffer,
     // invalidate it so application becomes a no-op.  Otherwise proceed with
     // normal removal.

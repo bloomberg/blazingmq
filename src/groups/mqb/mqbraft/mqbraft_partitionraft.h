@@ -218,19 +218,6 @@ class PartitionRaft : public mqbs::RecordStore {
                       bsls::Types::Uint64 lastIncludedIndex,
                       bsls::Types::Uint64 lastIncludedTerm);
 
-    /// Send one chunk of the specified 'fileType' from the file at the
-    /// specified 'filePath' of the specified 'fileSize', starting at the
-    /// specified 'offset', to the specified 'destNode'.  Set the done flag
-    /// when 'offset + chunkSize >= fileSize'.  Return the number of bytes
-    /// sent, or negative on error.
-    int sendSnapshotChunk(mqbnet::ClusterNode* destNode,
-                          unsigned int         fileType,
-                          const bsl::string&   filePath,
-                          bsls::Types::Uint64  fileSize,
-                          bsls::Types::Uint64  offset,
-                          bsls::Types::Uint64  lastIncludedIndex,
-                          bool                 done);
-
     /// Begin receiving a snapshot: wipe current FileStore and open temp
     /// files for writing.
     void beginReceiveSnapshot(bsls::Types::Uint64 lastIncludedIndex,
@@ -303,6 +290,14 @@ class PartitionRaft : public mqbs::RecordStore {
     ///
     /// THREAD: Executed by this partition's dispatcher thread.
     void proposeShutdownSyncPoint();
+
+    /// Set this partition Raft group's leadership-eligibility override to the
+    /// specified `mode` (see `RaftNode::setElectionMode`) and dispatch any
+    /// resulting Raft messages.  Used to reproduce the legacy per-node
+    /// `set_quorum` primary-pinning knob.
+    ///
+    /// THREAD: Executed by this partition's dispatcher thread.
+    void setElectionMode(ElectionMode::Enum mode);
 
     /// Propose the write described by the specified `pw` for replication.
     /// This is the single entry point for every Raft partition write: it

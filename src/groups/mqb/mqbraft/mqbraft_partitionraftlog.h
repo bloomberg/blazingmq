@@ -115,6 +115,9 @@ class PartitionRaftLog : public RaftLog {
     /// rollover window).
     size_t d_appendedCount;
 
+    /// Removals held back during a rollover window.
+    bsl::vector<mqbs::DataStoreRecordHandle> d_deferredRemovals;
+
     // NOT IMPLEMENTED
     PartitionRaftLog(const PartitionRaftLog&);
     PartitionRaftLog& operator=(const PartitionRaftLog&);
@@ -203,6 +206,15 @@ class PartitionRaftLog : public RaftLog {
     /// computation.
     void
     invalidatePendingWriteHandle(const mqbs::DataStoreRecordHandle& handle);
+
+    /// Hold back removal of the record referenced by the specified `handle`
+    /// until `e_ROLLOVER` is applied and return `true`; return `false` if the
+    /// caller must remove it now.  The compaction copies `d_records`, so a
+    /// record appended before `e_ROLLOVER` must survive it, as on replicas.
+    bool deferRemoval(const mqbs::DataStoreRecordHandle& handle);
+
+    /// Apply the removals held back by `deferRemoval`.
+    void flushDeferredRemovals();
 
     /// Release the single-entry cache.  Must be called after
     /// processOutput() completes.

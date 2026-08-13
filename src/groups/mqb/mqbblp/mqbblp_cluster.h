@@ -63,6 +63,7 @@
 #include <bsl_ostream.h>
 #include <bsl_string.h>
 #include <bsl_unordered_map.h>
+#include <bsl_unordered_set.h>
 #include <bsl_vector.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
@@ -562,6 +563,14 @@ class Cluster : public mqbi::Cluster,
     /// that uri.
     void onQueueStorageReady(int              partitionId,
                              const bmqt::Uri& uri) BSLS_KEYWORD_OVERRIDE;
+
+    /// Load into the specified `out` the set of appIds registered on the
+    /// local storage for the queue having the specified `uri` and assigned
+    /// to the specified `partitionId`, returning true; return false if no
+    /// such local storage exists.  Safe to call from any thread.
+    bool loadAppIds(bsl::unordered_set<bsl::string>* out,
+                    const bmqt::Uri&                 uri,
+                    int partitionId) const BSLS_KEYWORD_OVERRIDE;
 
     /// Process the specified `command`, and load the result in the
     /// specified `result`. Return 0 if the command was successfully

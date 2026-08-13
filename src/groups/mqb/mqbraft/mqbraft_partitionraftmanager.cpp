@@ -581,11 +581,17 @@ bool PartitionRaftManager::isStorageEmpty(const bmqt::Uri& uri,
     return mqbc::StorageMonitor::isStorageEmpty(uri, partitionId);
 }
 
-bool PartitionRaftManager::hasStorage(const bmqt::Uri&   uri,
-                                      const bsl::string& appId,
-                                      int                partitionId) const
+bool PartitionRaftManager::hasStorage(const bmqt::Uri& uri,
+                                      int              partitionId) const
 {
-    return mqbc::StorageMonitor::hasStorage(uri, appId, partitionId);
+    return mqbc::StorageMonitor::hasStorage(uri, partitionId);
+}
+
+bool PartitionRaftManager::loadAppIds(bsl::unordered_set<bsl::string>* out,
+                                      const bmqt::Uri&                 uri,
+                                      int partitionId) const
+{
+    return mqbc::StorageMonitor::loadAppIds(out, uri, partitionId);
 }
 
 bool PartitionRaftManager::isRaft() const
@@ -622,6 +628,20 @@ void PartitionRaftManager::onPeerNodeStopping()
             raft->execute(
                 bdlf::BindUtil::bind(&PartitionRaft::proposeShutdownSyncPoint,
                                      raft));
+        }
+    }
+}
+
+void PartitionRaftManager::setElectionMode(ElectionMode::Enum mode)
+{
+    // executed by the *CLUSTER DISPATCHER* thread
+
+    for (unsigned int i = 0; i < d_partitionRafts.size(); ++i) {
+        PartitionRaft* raft = d_partitionRafts[i].get();
+        if (raft) {
+            raft->execute(bdlf::BindUtil::bind(&PartitionRaft::setElectionMode,
+                                               raft,
+                                               mode));
         }
     }
 }
