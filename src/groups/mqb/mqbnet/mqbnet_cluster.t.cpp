@@ -88,9 +88,9 @@ struct ClusterNodeTestImp : bsls::ProtocolTestImp<mqbnet::ClusterNode> {
 
     mqbnet::Channel& channel() BSLS_KEYWORD_OVERRIDE { return markDoneRef(); }
 
-    const bmqp_ctrlmsg::ClientIdentity& identity() const BSLS_KEYWORD_OVERRIDE
+    bmqp_ctrlmsg::ClientIdentity identity() const BSLS_KEYWORD_OVERRIDE
     {
-        return markDoneRef();
+        return markDone();
     }
 
     int nodeId() const BSLS_KEYWORD_OVERRIDE { return markDone(); }

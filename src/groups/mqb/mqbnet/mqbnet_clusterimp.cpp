@@ -66,6 +66,12 @@ ClusterNodeImp::~ClusterNodeImp()
     // NOTHING: Needed due to inheritance
 }
 
+bmqp_ctrlmsg::ClientIdentity ClusterNodeImp::identity() const
+{
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_identityMutex);
+    return d_identity;
+}
+
 ClusterNode*
 ClusterNodeImp::setChannel(const bsl::weak_ptr<bmqio::Channel>& value,
                            const bmqp_ctrlmsg::ClientIdentity&  identity,
@@ -74,7 +80,10 @@ ClusterNodeImp::setChannel(const bsl::weak_ptr<bmqio::Channel>& value,
     // Save the value
     d_readCb    = readCb;
     d_isReading = false;
-    d_identity  = identity;
+    {
+        bslmt::LockGuard<bslmt::Mutex> guard(&d_identityMutex);
+        d_identity = identity;
+    }
 
     d_channel.setChannel(value);
 
@@ -129,7 +138,10 @@ ClusterNode* ClusterNodeImp::resetChannel(
     }
 
     d_isReading = false;
-    d_identity.reset();
+    {
+        bslmt::LockGuard<bslmt::Mutex> guard(&d_identityMutex);
+        d_identity.reset();
+    }
     d_readCb = bmqio::Channel::ReadCallback();
 
     // Notify the cluster of changes to this node
