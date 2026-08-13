@@ -21,8 +21,12 @@
 #include <bmqp_messageproperties.h>
 #include <bmqp_putmessageiterator.h>
 #include <bmqp_queueid.h>
+#include <bmqp_requestmanagerrequest.h>
 #include <bmqt_queueflags.h>
 #include <bmqt_resultcode.h>
+
+#include <bmqex_systemexecutor.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <bdlbb_blobutil.h>

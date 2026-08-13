@@ -47,6 +47,7 @@
 #include <bmqu_memoutstream.h>
 #include <bmqu_printutil.h>
 #include <bmqu_throttledaction.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <bdlb_print.h>

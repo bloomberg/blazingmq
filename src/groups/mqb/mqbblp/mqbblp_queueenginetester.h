@@ -130,6 +130,7 @@
 // BMQ
 #include <bmqc_orderedhashmap.h>
 #include <bmqt_messageguid.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <ball_log.h>
