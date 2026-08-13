@@ -26,7 +26,6 @@
 namespace BloombergLP {
 namespace mqbraft {
 
-
 // ==============
 // class RaftNode
 // ==============
@@ -262,7 +261,7 @@ void RaftNode::becomeLeader(RaftNodeOutput* output)
         ps.d_boundaryProbeRejected     = false;
         ps.d_appendEntriesPending      = false;
         ps.d_appendEntriesPendingTicks = 0;
-        d_peerStates[*it]         = ps;
+        d_peerStates[*it]              = ps;
     }
 
     d_heartbeatTicks = 0;
@@ -483,8 +482,7 @@ void RaftNode::handleAppendEntries(RaftNodeOutput*    output,
             d_log_p->truncateFrom(entryIndex);
         }
 
-        d_log_p->append(msg.d_entries[i].d_term,
-                        msg.d_entries[i].d_data);
+        d_log_p->append(msg.d_entries[i].d_term, msg.d_entries[i].d_data);
     }
 
     // Advance commit index
@@ -994,9 +992,9 @@ void RaftNode::step(RaftNodeOutput* output, const RaftMessage& message)
     }
 }
 
-int RaftNode::propose(RaftNodeOutput*                      output,
-                      const bsl::shared_ptr<bdlbb::Blob>&  data,
-                      bsls::Types::Uint64                  id)
+int RaftNode::propose(RaftNodeOutput*                     output,
+                      const bsl::shared_ptr<bdlbb::Blob>& data,
+                      bsls::Types::Uint64                 id)
 {
     BSLS_ASSERT_SAFE(output);
 

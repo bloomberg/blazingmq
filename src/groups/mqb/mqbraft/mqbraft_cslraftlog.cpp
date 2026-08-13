@@ -44,8 +44,8 @@ const int k_FILE_HEADER_SIZE = static_cast<int>(
 
 // CREATORS
 CslRaftLog::CslRaftLog(const bsl::shared_ptr<mqbsi::Log>& log,
-                       BlobSpPool*                       blobSpPool,
-                       bslma::Allocator*                 allocator)
+                       BlobSpPool*                        blobSpPool,
+                       bslma::Allocator*                  allocator)
 : d_log_sp(log)
 , d_index(allocator)
 , d_snapshotIndex(0)
@@ -133,14 +133,14 @@ int CslRaftLog::close()
     return 0;
 }
 
-int CslRaftLog::append(bsls::Types::Uint64                  term,
-                       const bsl::shared_ptr<bdlbb::Blob>&  data,
-                       bsls::Types::Uint64                  id)
+int CslRaftLog::append(bsls::Types::Uint64                 term,
+                       const bsl::shared_ptr<bdlbb::Blob>& data,
+                       bsls::Types::Uint64                 id)
 {
     BSLS_ASSERT_SAFE(id == 0);
     mqbsi::Log::Offset writeOffset = d_log_sp->write(*data,
-                                                      bmqu::BlobPosition(),
-                                                      data->length());
+                                                     bmqu::BlobPosition(),
+                                                     data->length());
 
     if (writeOffset < 0) {
         return static_cast<int>(writeOffset);
@@ -329,7 +329,7 @@ bsls::Types::Uint64 CslRaftLog::snapshotTerm() const
 }
 
 void CslRaftLog::applySnapshot(bsls::Types::Uint64 lastIncludedIndex,
-                                bsls::Types::Uint64 lastIncludedTerm)
+                               bsls::Types::Uint64 lastIncludedTerm)
 {
     d_snapshotIndex = lastIncludedIndex;
     d_snapshotTerm  = lastIncludedTerm;

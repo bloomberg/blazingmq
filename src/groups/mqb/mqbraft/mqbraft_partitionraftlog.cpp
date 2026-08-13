@@ -582,7 +582,7 @@ void PartitionRaftLog::applyCommittedEntryAsReplica(bsls::Types::Uint64 index,
 
     const EntryInfo& entryInfo = d_index[index - d_snapshotIndex - 1];
 
-    const mqbs::DataStoreRecordHandle handle      = entryInfo.d_handle;
+    const mqbs::DataStoreRecordHandle handle = entryInfo.d_handle;
 
     d_fileStore_p->onRecordCommittedReplica(data, handle);
 }

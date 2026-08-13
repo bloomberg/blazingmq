@@ -170,12 +170,11 @@ class ClusterStateRaft : public mqbi::ClusterStateUpdater {
     /// Process an incoming Raft control message (election, response) from
     /// the specified 'source' node.
     void onRaftControlMessage(const bmqp_ctrlmsg::RaftMessage& message,
-                            mqbnet::ClusterNode*             source);
+                              mqbnet::ClusterNode*             source);
 
     /// Process an incoming binary AppendEntries event (e_RAFT_CLUSTER)
     /// from the specified 'source' node.
-    void appendEntries(const bdlbb::Blob&   event,
-                                   mqbnet::ClusterNode* source);
+    void appendEntries(const bdlbb::Blob& event, mqbnet::ClusterNode* source);
 
     /// Propose the specified 'advisory' for replication via Raft.
     /// Return 0 on success, non-zero if not the leader.
@@ -209,7 +208,6 @@ class ClusterStateRaft : public mqbi::ClusterStateUpdater {
                                   mqbnet::ClusterNode* requester);
 
     // ClusterStateUpdater interface
-
 
     bool assignQueue(const bmqt::Uri&      uri,
                      bmqp_ctrlmsg::Status* status) BSLS_KEYWORD_OVERRIDE;

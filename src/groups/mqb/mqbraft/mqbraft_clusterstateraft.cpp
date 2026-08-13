@@ -408,17 +408,17 @@ void ClusterStateRaft::updateElectorInfo()
         BALL_LOG_INFO << "ClusterStateRaft::updateElectorInfo (node "
                       << d_clusterData_p->membership().selfNode()->nodeId()
                       << "): no leader -> DORMANT/UNDEFINED";
-        d_clusterData_p->electorInfo().setElectorInfo(mqbnet::ElectorState::e_DORMANT,
-                                                      d_raftNode_mp->currentTerm(),
-                                                      0,
-                                                      mqbc::ElectorInfoLeaderStatus::e_UNDEFINED);
+        d_clusterData_p->electorInfo().setElectorInfo(
+            mqbnet::ElectorState::e_DORMANT,
+            d_raftNode_mp->currentTerm(),
+            0,
+            mqbc::ElectorInfoLeaderStatus::e_UNDEFINED);
 
-        return; // RETURN
+        return;  // RETURN
     }
 
-
-    mqbnet::ClusterNode* leaderNode = d_clusterData_p->membership().netCluster()->lookupNode(
-        leaderId);
+    mqbnet::ClusterNode* leaderNode =
+        d_clusterData_p->membership().netCluster()->lookupNode(leaderId);
 
     if (!leaderNode) {
         BALL_LOG_WARN << "ClusterStateRaft::updateElectorInfo (node "
@@ -428,23 +428,23 @@ void ClusterStateRaft::updateElectorInfo()
         return;  // RETURN
     }
 
-    bool                        isActive;
-    mqbnet::ElectorState::Enum  electorState;
+    bool                       isActive;
+    mqbnet::ElectorState::Enum electorState;
 
     switch (d_raftNode_mp->state()) {
     case RaftState::e_LEADER:
         electorState = mqbnet::ElectorState::e_LEADER;
-        isActive = true;
+        isActive     = true;
         break;
     case RaftState::e_CANDIDATE:
     case RaftState::e_PRE_CANDIDATE:
         electorState = mqbnet::ElectorState::e_CANDIDATE;
-        isActive = false;
+        isActive     = false;
         break;
     case RaftState::e_FOLLOWER:
     default:
         electorState = mqbnet::ElectorState::e_FOLLOWER;
-        isActive = true;
+        isActive     = true;
         break;
     }
 
@@ -457,17 +457,19 @@ void ClusterStateRaft::updateElectorInfo()
                   << (isActive ? ", then setLeaderStatus(ACTIVE)"
                                : ", staying PASSIVE (not active)");
 
-    d_clusterData_p->electorInfo().setElectorInfo(electorState,
-                                                  d_raftNode_mp->currentTerm(),
-                                                  leaderNode,
-                                                  mqbc::ElectorInfoLeaderStatus::e_PASSIVE);
+    d_clusterData_p->electorInfo().setElectorInfo(
+        electorState,
+        d_raftNode_mp->currentTerm(),
+        leaderNode,
+        mqbc::ElectorInfoLeaderStatus::e_PASSIVE);
 
     if (isActive) {
         // Raft doesn't need a healing phase: election safety guarantees
         // the leader has all committed entries. Both leader and followers
         // can immediately proceed with cluster operations.
 
-        d_clusterData_p->electorInfo().setLeaderStatus(mqbc::ElectorInfoLeaderStatus::e_ACTIVE);
+        d_clusterData_p->electorInfo().setLeaderStatus(
+            mqbc::ElectorInfoLeaderStatus::e_ACTIVE);
     }
 }
 
@@ -517,11 +519,10 @@ int ClusterStateRaft::start(bsl::ostream& errorDescription)
                       static_cast<int>(sizeof(mqbc::ClusterStateFileHeader)));
     }
 
-    d_cslLog_mp.load(new (*d_allocator_p)
-                         CslRaftLog(cslLog,
-                                    &d_clusterData_p->blobSpPool(),
-                                    d_allocator_p),
-                     d_allocator_p);
+    d_cslLog_mp.load(
+        new (*d_allocator_p)
+            CslRaftLog(cslLog, &d_clusterData_p->blobSpPool(), d_allocator_p),
+        d_allocator_p);
 
     rc = d_cslLog_mp->open();
     if (rc != 0) {
@@ -596,7 +597,7 @@ void ClusterStateRaft::onRaftControlMessage(
 }
 
 void ClusterStateRaft::appendEntries(const bdlbb::Blob&   event,
-                                                 mqbnet::ClusterNode* source)
+                                     mqbnet::ClusterNode* source)
 {
     BSLS_ASSERT_SAFE(source);
 
@@ -630,7 +631,7 @@ void ClusterStateRaft::appendEntries(const bdlbb::Blob&   event,
 
     // Parse entry blobs after RaftHeader
     int          offset = sizeof(bmqp::EventHeader) + sizeof(bmqp::RaftHeader);
-    int          remaining = event.length() - offset;
+    int          remaining     = event.length() - offset;
     unsigned int entryCount    = rh->entryCount();
     int          incomingBytes = 0;
 
