@@ -33,6 +33,7 @@
 #include <bdlf_placeholder.h>
 #include <bdlmt_eventscheduler.h>
 #include <bsl_utility.h>
+#include <bsl_vector.h>
 #include <bsla_annotations.h>
 #include <bslma_managedptr.h>
 #include <bslmt_lockguard.h>
@@ -469,15 +470,19 @@ void RequestManager::cancelAllRequestsImpl(
     int                                 groupId,
     int                                 componentId)
 {
-    // Note that requests must be cancelled in the same order in which they
-    // were sent.
+    typedef bsl::vector<RequestSp> RequestVec;
 
-    // Create a new map so we can work on it outside the mutex
-    RequestMap requestsCopy(d_requests.bucket_count(),
-                            d_requests.get_allocator());
+    // Note that requests must be cancelled in the same order in which they
+    // were sent.  Since 'd_requests' is traversed in insertion order, simply
+    // appending to a sequence container preserves that order.
+
+    // Collect the requests to cancel so we can work on them outside the mutex
+    RequestVec requestsCopy(d_allocator_p);
 
     {
         bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // MUTEX LOCKED
+
+        requestsCopy.reserve(d_requests.size());
 
         RequestMapIter it = d_requests.begin();
         while (it != d_requests.end()) {
@@ -491,10 +496,7 @@ void RequestManager::cancelAllRequestsImpl(
             if (matchGroup && matchComponent) {
                 // Do not notify about timed out requests.
                 if (!it->second->d_haveTimeout) {
-                    BSLA_MAYBE_UNUSED bsl::pair<RequestMapIter, bool>
-                                      insertRC = requestsCopy.insert(
-                            bsl::make_pair(it->first, it->second));
-                    BSLS_ASSERT_SAFE(insertRC.second);
+                    requestsCopy.push_back(it->second);
                 }
                 d_requests.erase(it++);
             }
@@ -532,10 +534,10 @@ void RequestManager::cancelAllRequestsImpl(
         return;  // RETURN
     }
 
-    for (RequestMapConstIter it = requestsCopy.begin();
+    for (RequestVec::const_iterator it = requestsCopy.begin();
          it != requestsCopy.end();
          ++it) {
-        applyResponse(it->second, reason);
+        applyResponse(*it, reason);
     }
 }
 
