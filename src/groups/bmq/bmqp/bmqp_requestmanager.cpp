@@ -43,6 +43,18 @@
 namespace BloombergLP {
 namespace bmqp {
 
+namespace {
+
+/// Lowest identifier which can be assigned to a request; zero is reserved
+/// to indicate that no request has been sent yet.
+const int k_FIRST_REQUEST_ID = 1;
+
+/// Highest identifier which can be assigned to a request, as dictated by
+/// the type of the identifier field on the wire.
+const int k_LAST_REQUEST_ID = bsl::numeric_limits<int>::max();
+
+}  // close unnamed namespace
+
 // --------------------
 // class RequestManager
 // --------------------
@@ -67,6 +79,22 @@ RequestManager::sendHelper(bmqio::Channel*                     channel,
     case bmqio::StatusCategory::e_CANCELED:
     default: return bmqt::GenericResult::e_UNKNOWN;
     }
+}
+
+int RequestManager::generateRequestId()
+{
+    // executed with 'd_mutex' locked
+
+    // Each iteration considers a distinct identifier, and there are more
+    // identifiers than there can be entries in 'd_requests', hence this loop
+    // terminates.
+    do {
+        d_nextRequestId = (d_nextRequestId == k_LAST_REQUEST_ID)
+                              ? k_FIRST_REQUEST_ID
+                              : d_nextRequestId + 1;
+    } while (d_requests.find(d_nextRequestId) != d_requests.end());
+
+    return d_nextRequestId;
 }
 
 void RequestManager::onRequestTimeout(int requestId)
@@ -320,7 +348,7 @@ RequestManager::sendRequest(const RequestSp&          request,
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // MUTEX LOCKED
 
     // Inject the requestId in the request
-    int requestId = ++d_nextRequestId;
+    const int requestId = generateRequestId();
     request->request().rId().makeValue(requestId);
 
     request->d_nodeDescription = nodeDescription;
@@ -390,7 +418,7 @@ RequestManager::sendRequest(const RequestSp&          request,
     // Insert the request in the map
     BSLA_MAYBE_UNUSED bsl::pair<RequestMapIter, bool> insertRC =
         d_requests.insert(bsl::make_pair(requestId, request));
-    BSLS_ASSERT_SAFE(insertRC.second);
+    BSLS_ASSERT_OPT(insertRC.second);
 
     return bmqt::GenericResult::e_SUCCESS;
 }
