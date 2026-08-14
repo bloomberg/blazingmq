@@ -45,6 +45,10 @@ namespace mqbact {
 class Action;
 }
 
+namespace mqbcfg {
+class AuthorizerPluginConfig;
+}
+
 namespace mqbauthz {
 
 // =======================
@@ -62,6 +66,11 @@ class DefaultAuthorizer : public mqbplug::Authorizer {
 
   public:
     // CREATORS
+
+    /// Create a `DefaultAuthorizer` using the optionally specified
+    /// `config`.
+    explicit DefaultAuthorizer(
+        const mqbcfg::AuthorizerPluginConfig* config = 0);
 
     /// Destructor.
     ~DefaultAuthorizer() BSLS_KEYWORD_OVERRIDE;

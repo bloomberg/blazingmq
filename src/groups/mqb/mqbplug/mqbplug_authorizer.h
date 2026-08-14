@@ -98,6 +98,18 @@ class AuthorizerPluginFactory : public PluginFactory {
     create(bslma::Allocator* allocator) = 0;
 };
 
+// =====================
+// struct AuthorizerUtil
+// =====================
+
+struct AuthorizerUtil {
+    // STATIC CLASS METHODS
+
+    /// Find the authorizer config with the specified `name`.
+    static const mqbcfg::AuthorizerPluginConfig*
+    findAuthorizerConfig(bsl::string_view name);
+};
+
 }  // close package namespace
 }  // close enterprise namespace
 

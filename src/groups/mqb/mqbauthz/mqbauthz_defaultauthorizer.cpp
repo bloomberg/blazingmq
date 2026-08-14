@@ -19,6 +19,7 @@
 
 // MQB
 #include <mqbact_actions.h>
+#include <mqbcfg_messages.h>
 #include <mqbplug_authorizer.h>
 
 // BDE
@@ -36,6 +37,12 @@ bsl::string_view DefaultAuthorizer::k_NAME = "DefaultAuthorizer";
 // -----------------------
 // class DefaultAuthorizer
 // -----------------------
+
+DefaultAuthorizer::DefaultAuthorizer(
+    BSLA_MAYBE_UNUSED const mqbcfg::AuthorizerPluginConfig* config)
+{
+    // NOTHING
+}
 
 DefaultAuthorizer::~DefaultAuthorizer()
 {
@@ -68,8 +75,13 @@ DefaultAuthorizerPluginFactory::~DefaultAuthorizerPluginFactory()
 bslma::ManagedPtr<mqbplug::Authorizer>
 DefaultAuthorizerPluginFactory::create(bslma::Allocator* allocator)
 {
+    const mqbcfg::AuthorizerPluginConfig* config =
+        mqbplug::AuthorizerUtil::findAuthorizerConfig(
+            DefaultAuthorizer::k_NAME);
+
     bslma::ManagedPtr<DefaultAuthorizer> defaultAuthorizer =
-        bslma::ManagedPtrUtil::allocateManaged<DefaultAuthorizer>(allocator);
+        bslma::ManagedPtrUtil::allocateManaged<DefaultAuthorizer>(allocator,
+                                                                  config);
     bslma::ManagedPtr<mqbplug::Authorizer> authorizer(
         bslmf::MovableRefUtil::move(defaultAuthorizer));
     return authorizer;
