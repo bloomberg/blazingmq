@@ -580,9 +580,13 @@ class RequestManager {
                                           const bsls::TimeInterval& timeout,
                                           bsl::string* errorDescription = 0);
 
-    /// Process the specified `response` and return 0 if the response is for
-    /// a valid request, or non-zero otherwise (for example if the request
-    /// has been removed due to timeout).
+    /// @brief Process the specified `response`.
+    ///
+    /// @param response The response to correlate to an outstanding request.
+    ///
+    /// @return 0 if the response is for a valid request, or a non-zero value
+    ///         otherwise; for example if the response carries no request
+    ///         identifier, or if the request has been removed due to timeout.
     int processResponse(const bmqp_ctrlmsg::ControlMessage& response);
 
     /// Cancel all outstanding requests with the specified `reason` response
