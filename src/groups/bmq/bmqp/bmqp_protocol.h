@@ -5449,18 +5449,18 @@ inline SnapshotChunkHeader::SnapshotChunkHeader()
 inline SnapshotChunkHeader&
 SnapshotChunkHeader::setPartitionId(unsigned int value)
 {
-    d_partitionIdAndFlags =
-        (d_partitionIdAndFlags & ~(0xFFFFU << k_PARTITION_ID_SHIFT)) |
-        ((value & 0xFFFFU) << k_PARTITION_ID_SHIFT);
+    d_partitionIdAndFlags = (d_partitionIdAndFlags &
+                             ~(0xFFFFU << k_PARTITION_ID_SHIFT)) |
+                            ((value & 0xFFFFU) << k_PARTITION_ID_SHIFT);
     return *this;
 }
 
 inline SnapshotChunkHeader&
 SnapshotChunkHeader::setFileType(unsigned int value)
 {
-    d_partitionIdAndFlags =
-        (d_partitionIdAndFlags & ~(0x7U << k_FILE_TYPE_SHIFT)) |
-        ((value & 0x7U) << k_FILE_TYPE_SHIFT);
+    d_partitionIdAndFlags = (d_partitionIdAndFlags &
+                             ~(0x7U << k_FILE_TYPE_SHIFT)) |
+                            ((value & 0x7U) << k_FILE_TYPE_SHIFT);
     return *this;
 }
 
@@ -5470,8 +5470,7 @@ inline SnapshotChunkHeader& SnapshotChunkHeader::setDone(bool value)
         d_partitionIdAndFlags = d_partitionIdAndFlags | (1U << k_DONE_SHIFT);
     }
     else {
-        d_partitionIdAndFlags =
-            d_partitionIdAndFlags & ~(1U << k_DONE_SHIFT);
+        d_partitionIdAndFlags = d_partitionIdAndFlags & ~(1U << k_DONE_SHIFT);
     }
     return *this;
 }
@@ -5509,19 +5508,21 @@ SnapshotChunkHeader::setChunkLength(unsigned int value)
 inline unsigned int SnapshotChunkHeader::partitionId() const
 {
     return (static_cast<unsigned int>(d_partitionIdAndFlags) >>
-            k_PARTITION_ID_SHIFT) & 0xFFFFU;
+            k_PARTITION_ID_SHIFT) &
+           0xFFFFU;
 }
 
 inline unsigned int SnapshotChunkHeader::fileType() const
 {
     return (static_cast<unsigned int>(d_partitionIdAndFlags) >>
-            k_FILE_TYPE_SHIFT) & 0x7U;
+            k_FILE_TYPE_SHIFT) &
+           0x7U;
 }
 
 inline bool SnapshotChunkHeader::done() const
 {
-    return (static_cast<unsigned int>(d_partitionIdAndFlags) >>
-            k_DONE_SHIFT) & 0x1U;
+    return (static_cast<unsigned int>(d_partitionIdAndFlags) >> k_DONE_SHIFT) &
+           0x1U;
 }
 
 inline bsls::Types::Uint64 SnapshotChunkHeader::lastIncludedIndex() const
@@ -5539,9 +5540,8 @@ inline bsls::Types::Uint64 SnapshotChunkHeader::offset() const
 
 inline bsls::Types::Uint64 SnapshotChunkHeader::totalSize() const
 {
-    return Protocol::combine(
-        static_cast<unsigned int>(d_totalSizeUpperBits),
-        d_totalSizeLowerBits);
+    return Protocol::combine(static_cast<unsigned int>(d_totalSizeUpperBits),
+                             d_totalSizeLowerBits);
 }
 
 inline unsigned int SnapshotChunkHeader::chunkLength() const

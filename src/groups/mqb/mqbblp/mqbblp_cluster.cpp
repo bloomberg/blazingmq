@@ -255,7 +255,7 @@ void Cluster::startDispatched(bsl::ostream* errorDescription, int* rc)
 
         d_clusterOrchestrator.setStorageManager(d_storageManager_mp.get());
         d_clusterOrchestrator.queueHelper().setStorageManager(
-                d_storageManager_mp.get());
+            d_storageManager_mp.get());
     }
 
     // Start the misc work thread pool
@@ -2939,9 +2939,9 @@ void Cluster::processEvent(const bmqp::Event&   event,
         }
         else {
             BALL_LOG_ERROR << description()
-                          << ": Ignoring RAFT_PARTITION event from "
-                          << source->nodeDescription()
-                          << " because Raft is not enabled.";
+                           << ": Ignoring RAFT_PARTITION event from "
+                           << source->nodeDescription()
+                           << " because Raft is not enabled.";
         }
     } break;  // BREAK
     case bmqp::EventType::e_RAFT_SNAPSHOT: {
@@ -2950,9 +2950,9 @@ void Cluster::processEvent(const bmqp::Event&   event,
         }
         else {
             BALL_LOG_ERROR << description()
-                          << ": Ignoring RAFT_SNAPSHOT event from "
-                          << source->nodeDescription()
-                          << " because Raft is not enabled.";
+                           << ": Ignoring RAFT_SNAPSHOT event from "
+                           << source->nodeDescription()
+                           << " because Raft is not enabled.";
         }
     } break;  // BREAK
     case bmqp::EventType::e_UNDEFINED:
