@@ -1807,7 +1807,8 @@ void StorageManager::do_stopWatchdog(
     ctx.d_retriesRemaining = d_watchdogNumRetries;
     ctx.d_active           = false;
 
-    const int rc = d_clusterData_p->scheduler().cancelEvent(ctx.d_eventHandle);
+    const int rc = d_clusterData_p->scheduler().cancelEventAndWait(
+        ctx.d_eventHandle);
     if (rc != 0) {
         BALL_LOG_ERROR << d_clusterData_p->identity().description()
                        << " Partition [" << partitionId << "]: "
