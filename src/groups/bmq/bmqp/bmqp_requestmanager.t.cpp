@@ -38,6 +38,7 @@
 #include <bsl_vector.h>
 #include <bslmt_barrier.h>
 #include <bslmt_threadgroup.h>
+#include <bsls_assert.h>
 #include <bsls_atomic.h>
 
 // TEST DRIVER
@@ -58,6 +59,7 @@ using namespace bsl;
 // - sendRequestTest
 // - processResponseTest
 // - cancelAllRequestsTest (by groupId and by componentId)
+// - cancelRequestsOrderTest
 //-----------------------------------------------------------------------------
 // ============================================================================
 //                            TEST HELPERS UTILITY
@@ -372,6 +374,44 @@ struct Caller {
     {
         *called = true;
         BMQTST_ASSERT_EQ(request->request(), (*expected)->request());
+    }
+};
+
+/// @brief Response callback recording the identifier of every request it is
+/// invoked for, in invocation order.
+///
+/// Note that this functor is declared at namespace scope because a local
+/// class may not be used as a template argument in C++03.
+class OrderRecorder {
+  private:
+    // DATA
+
+    /// Sequence of recorded identifiers, held not owned.
+    bsl::vector<int>* d_order_p;
+
+  public:
+    // CREATORS
+
+    /// @brief Create an object appending to the specified `order`.
+    ///
+    /// @param order The sequence to append recorded identifiers to.  Must
+    ///              remain valid for the lifetime of this object.
+    explicit OrderRecorder(bsl::vector<int>* order)
+    : d_order_p(order)
+    {
+        // PRECONDITIONS
+        BSLS_ASSERT_SAFE(d_order_p);
+    }
+
+    // ACCESSORS
+
+    /// @brief Append the identifier of the specified `request` to the
+    /// recorded sequence.
+    ///
+    /// @param request The request whose response callback is being invoked.
+    void operator()(const ReqSp& request) const
+    {
+        d_order_p->push_back(request->request().rId().value());
     }
 };
 
@@ -1131,6 +1171,111 @@ static void test8_requestSignalWaitTest()
     }
 }
 
+static void test9_cancelRequestsOrderTest()
+// ------------------------------------------------------------------------
+// Testing:
+//   Response callbacks of cancelled requests are invoked in the order in
+//   which the requests were sent, for each of the three cancellation
+//   flavors.  For the filtered flavors, the relative order of the matching
+//   requests is preserved.
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("CANCEL REQUESTS ORDER TEST");
+
+    bslma::Allocator* alloc = bmqtst::TestHelperUtil::allocator();
+
+    const bsl::size_t k_NUM_REQUESTS = 10;
+
+    // Note that in each scenario below 'order' is declared before the
+    // 'TestContext' on purpose: the context cancels every request still
+    // outstanding upon destruction, which invokes the recording callback
+    // once more, after the expectations have been checked.
+
+    {
+        // Cancel all requests
+        bsl::vector<int> order(alloc);
+        bsl::vector<int> expected(alloc);
+        TestContext      context(false, alloc);
+
+        for (bsl::size_t i = 0; i < k_NUM_REQUESTS; ++i) {
+            ReqSp request = context.createRequest();
+            context.populateRequest(request);
+            request->setResponseCb(OrderRecorder(&order));
+            context.sendChannelRequest(request);
+            expected.push_back(request->request().rId().value());
+        }
+
+        Mes reason = context.createResponseCancel();
+        context.manager().cancelAllRequests(reason);
+
+        BMQTST_ASSERT_EQ(order, expected);
+    }
+
+    {
+        // Cancel a group of requests: the cancelled subset keeps its
+        // relative order, and the requests of the other group are left
+        // untouched.
+        const int k_GROUP_CANCELED = 1;
+        const int k_GROUP_KEPT     = 2;
+
+        bsl::vector<int> order(alloc);
+        bsl::vector<int> expected(alloc);
+        TestContext      context(false, alloc);
+
+        for (bsl::size_t i = 0; i < k_NUM_REQUESTS; ++i) {
+            const int groupId = (i % 2 == 0) ? k_GROUP_CANCELED : k_GROUP_KEPT;
+
+            ReqSp request = context.createRequest();
+            context.populateRequest(request);
+            request->setGroupId(groupId);
+            request->setResponseCb(OrderRecorder(&order));
+            context.sendChannelRequest(request);
+            if (groupId == k_GROUP_CANCELED) {
+                expected.push_back(request->request().rId().value());
+            }
+        }
+
+        Mes reason = context.createResponseCancel();
+        context.manager().cancelGroupRequests(reason, k_GROUP_CANCELED);
+
+        BMQTST_ASSERT_EQ(order, expected);
+    }
+
+    {
+        // Cancel the requests of a component: the cancelled subset keeps
+        // its relative order, and the requests of the other component are
+        // left untouched.
+        const int k_COMPONENT_CANCELED =
+            bmqp::RequestManagerComponentId::k_CLUSTER_FSM;
+        const int k_COMPONENT_KEPT =
+            bmqp::RequestManagerComponentId::partitionFSM(0);
+
+        bsl::vector<int> order(alloc);
+        bsl::vector<int> expected(alloc);
+        TestContext      context(false, alloc);
+
+        for (bsl::size_t i = 0; i < k_NUM_REQUESTS; ++i) {
+            const int componentId = (i % 2 == 0) ? k_COMPONENT_CANCELED
+                                                 : k_COMPONENT_KEPT;
+
+            ReqSp request = context.createRequest();
+            context.populateRequest(request);
+            request->setComponentId(componentId);
+            request->setResponseCb(OrderRecorder(&order));
+            context.sendChannelRequest(request);
+            if (componentId == k_COMPONENT_CANCELED) {
+                expected.push_back(request->request().rId().value());
+            }
+        }
+
+        Mes reason = context.createResponseCancel();
+        context.manager().cancelComponentRequests(reason,
+                                                  k_COMPONENT_CANCELED);
+
+        BMQTST_ASSERT_EQ(order, expected);
+    }
+}
+
 // ============================================================================
 //                                MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -1143,6 +1288,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 9: test9_cancelRequestsOrderTest(); break;
     case 8: test8_requestSignalWaitTest(); break;
     case 7: test7_requestBreathingTest(); break;
     case 6: test6_cancelAllRequestsTest(); break;
