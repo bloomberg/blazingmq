@@ -118,11 +118,8 @@ void RequestManager::onRequestTimeout(int requestId)
     response.choice().status().code() = k_CODE_TIMEOUT_LOCAL;
     response.choice().status().message().assign(os.str().data(),
                                                 os.str().length());
-    reinterpret_cast<int&>(response.choice().status().category()) =
-        static_cast<int>(bmqt::GenericResult::e_TIMEOUT);
-    // Note that above reinterpret & static casts are needed to suppress
-    // compiler diagnostics, because this component does not include
-    // bmqp_ctrlmsg_messages.h on purpose.
+    response.choice().status().category() =
+        bmqp_ctrlmsg::StatusCategory::E_TIMEOUT;
 
     // The lateResponseMode assumes that 'onRequestTimeout' is serialized with
     // 'processResponse' and 'cancelAllRequests' (by using 'd_executor').
