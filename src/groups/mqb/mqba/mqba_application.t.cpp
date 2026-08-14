@@ -19,6 +19,9 @@
 #include <mqbcfg_brokerconfig.h>
 #include <mqbcfg_messages.h>
 
+// BMQ
+#include <bmqu_memoutstream.h>
+
 // BDE
 #include <bdlmt_eventscheduler.h>
 #include <bsls_systemclocktype.h>
@@ -68,6 +71,54 @@ static void test1_breathingTest()
     scheduler.stop();
 }
 
+static void test2_stopAfterStartFailure()
+// ------------------------------------------------------------------------
+// STOP AFTER START FAILURE
+//
+// Concerns:
+//   If 'start()' fails before the transport manager is constructed (e.g.
+//   a misconfigured authenticator plugin name), 'stop()' must not crash.
+//
+// Plan:
+//   Configure a nonexistent authenticator plugin name so 'start()' fails
+//   at the 'AuthenticationController' stage, before the transport manager
+//   is ever created.  Verify 'start()' fails and 'stop()' succeeds.
+// Testing:
+//   Application::start()/stop() on early startup failure
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("stop after start failure");
+
+    mqbcfg::AppConfig cfg(bmqtst::TestHelperUtil::allocator());
+    cfg.networkInterfaces().tcpInterface().makeValue();
+    cfg.stats().snapshotInterval() = 0;
+
+    mqbcfg::AuthenticatorPluginConfig authenticatorCfg(
+        bmqtst::TestHelperUtil::allocator());
+    authenticatorCfg.name() = "NonexistentAuthenticator";
+    cfg.authentication().authenticators().push_back(authenticatorCfg);
+
+    mqbcfg::BrokerConfig::set(cfg);
+
+    bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
+                                    bmqtst::TestHelperUtil::allocator());
+    scheduler.start();
+
+    {
+        mqba::Application obj(&scheduler,
+                              0,
+                              bmqtst::TestHelperUtil::allocator());
+
+        bmqu::MemOutStream error(bmqtst::TestHelperUtil::allocator());
+        int                rc = obj.start(error);
+        BMQTST_ASSERT_NE(rc, 0);
+
+        obj.stop();  // must not crash
+    }
+
+    scheduler.stop();
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -79,6 +130,7 @@ int main(int argc, char* argv[])
     switch (_testCase) {
     case 0:
     case 1: test1_breathingTest(); break;
+    case 2: test2_stopAfterStartFailure(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
         bmqtst::TestHelperUtil::testStatus() = -1;

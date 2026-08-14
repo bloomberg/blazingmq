@@ -85,6 +85,7 @@ class MessageGUID;
 }
 namespace mqbi {
 class QueueHandle;
+class Authorizer;
 }
 namespace mqbblp {
 class ClusterCatalog;
@@ -360,6 +361,9 @@ class ClientSession : public mqbnet::Session,
     /// execution of the queue handle deconfigure callbacks.
     bmqu::OperationChain d_shutdownChain;
 
+    /// Owned handle to the application's authorizer.
+    bsl::shared_ptr<const mqbi::Authorizer> d_authorizer_sp;
+
   private:
     // NOT IMPLEMENTED
 
@@ -593,7 +597,8 @@ class ClientSession : public mqbnet::Session,
                   ClientSessionState::BlobSpPool*            blobSpPool,
                   bdlbb::BlobBufferFactory*                  bufferFactory,
                   bdlmt::EventScheduler*                     scheduler,
-                  bslma::Allocator*                          allocator);
+                  const bsl::shared_ptr<const mqbi::Authorizer>& authorizer,
+                  bslma::Allocator*                              allocator);
 
     /// Destructor
     ~ClientSession() BSLS_KEYWORD_OVERRIDE;

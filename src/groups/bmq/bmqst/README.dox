@@ -1,0 +1,6 @@
+/**
+@dir bmqst
+
+@brief The `BMQST` (BlazingMQ Statistics) package provides a general-purpose
+statistics framework.
+*/

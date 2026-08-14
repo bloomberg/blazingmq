@@ -143,13 +143,9 @@ class ClusterCatalog {
         const bsl::string& clusterName() const;
     };
 
-    typedef bmqp::RequestManager<bmqp_ctrlmsg::ControlMessage,
-                                 bmqp_ctrlmsg::ControlMessage>
-        RequestManagerType;
+    typedef bmqp::RequestManager RequestManagerType;
 
-    typedef mqbnet::MultiRequestManager<bmqp_ctrlmsg::ControlMessage,
-                                        bmqp_ctrlmsg::ControlMessage,
-                                        bsl::shared_ptr<mqbnet::Session> >
+    typedef mqbnet::MultiRequestManager<bsl::shared_ptr<mqbnet::Session> >
         StopRequestManagerType;
 
   private:

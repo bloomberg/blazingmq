@@ -13,12 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import time
 from itertools import islice
 
 import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import (
     Cluster,
     order,
+    tweak,
 )
 from blazingmq.dev.it.process.client import Client
 
@@ -430,3 +432,104 @@ def test_add_variable_priority_consumers(
 
     for consumer in [co1, co2, co3, cr1]:
         assert not consumer.list(tc.URI_BROADCAST, block=True)
+
+
+@tweak.domain.message_ttl(0)
+def test_ttl_zero_delivers_to_subscribed_consumer(
+    cluster: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+):
+    """
+    Verify that a broadcast domain configured with a message TTL of 0 seconds
+    delivers every posted message to a subscribed consumer.
+
+    A broadcast queue delivers a message on a best-effort basis to the
+    consumers subscribed at delivery time, then removes it from its in-memory
+    storage.  A broadcast queue removes messages only after delivery, never via
+    TTL garbage collection, regardless of the configured TTL.
+
+    Messages are posted continuously for several seconds, spanning many
+    one-second boundaries, and the following hold throughout:
+      * no node reports TTL garbage collection for the broadcast queue while a
+        consumer is subscribed; and
+      * the consumer receives every posted message.
+    """
+
+    # Duration of the posting phase.  Posting spans many one-second boundaries
+    # to exercise TTL handling under continuous load.
+    load_duration_seconds = 30
+
+    # Number of messages posted back-to-back before the consumer is drained.
+    post_burst = 50
+
+    uri = tc.URI_BROADCAST
+
+    proxy = next(cluster.proxy_cycle())
+    producer = proxy.create_client("producer")
+    consumer = proxy.create_client("consumer")
+
+    producer.open(uri, flags=["write", "ack"], succeed=True)
+    consumer.open(uri, flags=["read"], succeed=True)
+
+    # Confirm the delivery path before the continuous-posting phase.
+    producer.post(uri, payload=["warmup"], succeed=True, wait_ack=True)
+    assert consumer.wait_push_event()
+    consumer.list(uri, block=True)
+    consumer.confirm(uri, "*", succeed=True)
+
+    posted = []
+    received = set()
+
+    def drain(*, timeout):
+        # Collect everything the consumer has received so far, confirming to
+        # keep the unconfirmed set bounded.  Return as soon as every posted
+        # message has been accounted for, or once the consumer stops pushing
+        # for the specified 'timeout'.
+        while len(received) < len(posted):
+            if not consumer.wait_push_event(timeout=timeout, quiet=True):
+                break
+            msgs = consumer.list(uri, block=True)
+            if not msgs:
+                # The push was announced before the message became listable;
+                # pick it up on the next round.
+                continue
+            for msg in msgs:
+                received.add(msg.payload)
+            # Confirm exactly the listed messages.  Both 'list' and '+N' walk
+            # the unconfirmed messages oldest-first, so this cannot discard a
+            # message that arrived after the listing was taken.
+            consumer.confirm(uri, f"+{len(msgs)}", succeed=True)
+
+    # Post messages continuously so that the broker is kept busy across many
+    # one-second boundaries.
+    deadline = time.time() + load_duration_seconds
+    seq = 0
+    while time.time() < deadline:
+        for _ in range(post_burst):
+            payload = f"m-{seq}"
+            producer.post(uri, payload=[payload])
+            posted.append(payload)
+            seq += 1
+        # The producer keeps the consumer busy, so a short silence means the
+        # backlog is drained.
+        drain(timeout=0.2)
+
+    # Collect the remainder, tolerating a longer silence while in-flight
+    # pushes settle.  In a good scenario it returns almost instantly due to all
+    # messages being received.
+    drain(timeout=2)
+
+    # A broadcast queue removes messages only after delivery, so no node
+    # reports TTL garbage collection for the queue while a consumer is
+    # subscribed.
+    for node in cluster.nodes():
+        assert not node.erases_messages(uri, timeout=1), (
+            f"node '{node.name}' garbage-collected broadcast messages due to "
+            "TTL expiration while a consumer was subscribed"
+        )
+
+    missing = [payload for payload in posted if payload not in received]
+    assert not missing, (
+        f"{len(missing)} of {len(posted)} broadcast messages were never "
+        f"delivered to a subscribed consumer (e.g. {missing[:5]})"
+    )

@@ -16,7 +16,7 @@
 #ifndef INCLUDED_MQBMOCK_QUEUEENGINE
 #define INCLUDED_MQBMOCK_QUEUEENGINE
 
-//@PURPOSE: Provide mock implementation for 'mqbi::QueueEngine' interface.
+//@PURPOSE: Provide a mock implementation for 'mqbi::QueueEngine' interface.
 //
 //@CLASSES:
 //  mqbmock::QueueEngine: mock queue engine implementation

@@ -773,8 +773,7 @@ void StorageManager::sendReplicaDataRequestPush(
         mqbnet::ClusterNode* destNode = (*cit)->first;
         BSLS_ASSERT_SAFE(destNode->nodeId() != selfNode->nodeId());
 
-        RequestManagerType::RequestSp request =
-            d_clusterData_p->requestManager().createRequest();
+        RequestSp request = d_clusterData_p->requestManager().createRequest();
         request->setComponentId(
             bmqp::RequestManagerComponentId::partitionFSM(partitionId));
         bmqp_ctrlmsg::ReplicaDataRequest& replicaDataRqst =
@@ -847,8 +846,7 @@ void StorageManager::sendReplicaDataRequestDrop(
         mqbnet::ClusterNode* destNode = (*cit)->first;
         BSLS_ASSERT_SAFE(destNode->nodeId() != selfNode->nodeId());
 
-        RequestManagerType::RequestSp request =
-            d_clusterData_p->requestManager().createRequest();
+        RequestSp request = d_clusterData_p->requestManager().createRequest();
         request->setComponentId(
             bmqp::RequestManagerComponentId::partitionFSM(partitionId));
         bmqp_ctrlmsg::ReplicaDataRequest& replicaDataRqst =
@@ -1282,8 +1280,8 @@ void StorageManager::processReplicaDataRequestDrop(
 }
 
 void StorageManager::processPrimaryStateResponseDispatched(
-    const RequestManagerType::RequestSp& context,
-    mqbnet::ClusterNode*                 responder)
+    const RequestSp&     context,
+    mqbnet::ClusterNode* responder)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -1401,8 +1399,8 @@ void StorageManager::processPrimaryStateResponseDispatched(
 }
 
 void StorageManager::processPrimaryStateResponse(
-    const RequestManagerType::RequestSp& context,
-    mqbnet::ClusterNode*                 responder)
+    const RequestSp&     context,
+    mqbnet::ClusterNode* responder)
 {
     // executed by *any* thread
     // dispatch to the CLUSTER DISPATCHER
@@ -1422,8 +1420,8 @@ void StorageManager::processPrimaryStateResponse(
 }
 
 void StorageManager::processReplicaStateResponseDispatched(
-    const RequestContextSp& requestContext,
-    mqbnet::ClusterNode*    responder)
+    const RequestSp&     requestContext,
+    mqbnet::ClusterNode* responder)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -1524,8 +1522,8 @@ void StorageManager::processReplicaStateResponseDispatched(
 }
 
 void StorageManager::processReplicaStateResponse(
-    const RequestContextSp& requestContext,
-    mqbnet::ClusterNode*    responder)
+    const RequestSp&     requestContext,
+    mqbnet::ClusterNode* responder)
 {
     // executed by *any* thread
     // dispatch to the CLUSTER DISPATCHER
@@ -1539,8 +1537,8 @@ void StorageManager::processReplicaStateResponse(
 }
 
 void StorageManager::processReplicaDataResponseDispatched(
-    const RequestManagerType::RequestSp& context,
-    mqbnet::ClusterNode*                 responder)
+    const RequestSp&     context,
+    mqbnet::ClusterNode* responder)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -1715,9 +1713,8 @@ void StorageManager::processReplicaDataResponseDispatched(
     }
 }
 
-void StorageManager::processReplicaDataResponse(
-    const RequestManagerType::RequestSp& context,
-    mqbnet::ClusterNode*                 responder)
+void StorageManager::processReplicaDataResponse(const RequestSp&     context,
+                                                mqbnet::ClusterNode* responder)
 {
     // executed by *any* thread
 
@@ -1924,8 +1921,8 @@ void StorageManager::do_storeSelfSeq(
     mqbs::FileStore* fs = d_fileStores[partitionId].get();
     BSLS_ASSERT_SAFE(fs);
     if (fs->isOpen()) {
-        nodePSNCtx.d_PSN.primaryLeaseId() = fs->primaryLeaseId();
-        nodePSNCtx.d_PSN.sequenceNumber() = fs->sequenceNumber();
+        nodePSNCtx.d_PSN.primaryLeaseId() = fs->writeHeadLeaseId();
+        nodePSNCtx.d_PSN.sequenceNumber() = fs->writeHeadSeqNum();
     }
     else {
         const int rc = d_recoveryManager_mp->recoverPSN(&nodePSNCtx.d_PSN,
@@ -2086,7 +2083,7 @@ void StorageManager::do_replicaStateRequest(
          ++it) {
         mqbnet::ClusterNode* replica = *it;
 
-        RequestContextSp contextSp =
+        RequestSp contextSp =
             d_clusterData_p->requestManager().createRequest();
         contextSp->setComponentId(
             bmqp::RequestManagerComponentId::partitionFSM(partitionId));
@@ -2342,8 +2339,7 @@ void StorageManager::do_primaryStateRequest(
 
     d_recoveryManager_mp->setLiveDataSource(primary, partitionId);
 
-    RequestManagerType::RequestSp request =
-        d_clusterData_p->requestManager().createRequest();
+    RequestSp request = d_clusterData_p->requestManager().createRequest();
     request->setComponentId(
         bmqp::RequestManagerComponentId::partitionFSM(partitionId));
 
@@ -2544,8 +2540,7 @@ void StorageManager::do_replicaDataRequestPull(
     BSLS_ASSERT_SAFE(destNode->nodeId() !=
                      d_clusterData_p->membership().selfNode()->nodeId());
 
-    RequestManagerType::RequestSp request =
-        d_clusterData_p->requestManager().createRequest();
+    RequestSp request = d_clusterData_p->requestManager().createRequest();
     request->setComponentId(
         bmqp::RequestManagerComponentId::partitionFSM(partitionId));
     bmqp_ctrlmsg::ReplicaDataRequest& replicaDataRequest =
@@ -3701,6 +3696,43 @@ void StorageManager::do_transitionToActivePrimary(
                                         d_partitionPrimaryStatusCb,
                                         partitionId,
                                         0);  // status
+}
+
+void StorageManager::do_sendPrimaryStatusAdvisory(
+    BSLA_MAYBE_UNUSED PartitionStateTableEvent::Enum eventType,
+    const PartitionFSMEventData&                     eventData)
+{
+    // executed by the *QUEUE DISPATCHER* thread associated with the
+    // partitionId contained in 'eventData'
+
+    const int partitionId = eventData.partitionId();
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(d_fileStores.size()));
+    BSLS_ASSERT_SAFE(eventData.source());
+
+    const PartitionInfo& pinfo = d_partitionInfoVec[partitionId];
+    BSLS_ASSERT_SAFE(pinfo.primary() ==
+                     d_clusterData_p->membership().selfNode());
+    BSLS_ASSERT_SAFE(pinfo.primaryStatus() ==
+                     bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE);
+
+    bmqp_ctrlmsg::ControlMessage         controlMsg;
+    bmqp_ctrlmsg::PrimaryStatusAdvisory& primaryAdv =
+        controlMsg.choice()
+            .makeClusterMessage()
+            .choice()
+            .makePrimaryStatusAdvisory();
+    primaryAdv.partitionId()    = partitionId;
+    primaryAdv.primaryLeaseId() = pinfo.primaryLeaseId();
+    primaryAdv.status()         = bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE;
+
+    fileStore(partitionId).sendMessage(controlMsg, eventData.source());
+
+    BALL_LOG_INFO << d_clusterData_p->identity().description()
+                  << " Partition [" << partitionId
+                  << "]: sent primary status advisory " << controlMsg
+                  << " to replica node "
+                  << eventData.source()->nodeDescription() << ".";
 }
 
 void StorageManager::do_reapplyDetectSelfPrimary(

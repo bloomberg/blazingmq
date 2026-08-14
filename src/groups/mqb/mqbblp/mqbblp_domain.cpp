@@ -211,6 +211,55 @@ int normalizeConfig(mqbconfm::Domain* defn,
     return updatedValues;
 }
 
+/// @brief Function object that reconfigures a snapshot of queues.
+class QueueReconfigureFunctor {
+  public:
+    // TYPES
+
+    /// Snapshot of queues held by weak pointer.
+    typedef bsl::vector<bsl::weak_ptr<mqbi::Queue> > QueueWeakPtrVector;
+
+  private:
+    // DATA
+
+    /// Shared snapshot of the queues to reconfigure.
+    bsl::shared_ptr<QueueWeakPtrVector> d_queues_sp;
+
+  public:
+    // CREATORS
+
+    /// @brief Create a functor owning the specified `queues_sp` snapshot.
+    ///
+    /// @param queues_sp The queues to reconfigure, held by weak pointer.
+    explicit QueueReconfigureFunctor(
+        const bsl::shared_ptr<QueueWeakPtrVector>& queues_sp)
+    : d_queues_sp(queues_sp)
+    {
+        // PRECONDITIONS
+        BSLS_ASSERT(queues_sp);
+    }
+
+    // ACCESSORS
+
+    /// @brief Reconfigure every queue in the snapshot that is still alive.
+    void operator()() const
+    {
+        // Thread: CLUSTER DISPATCHER
+
+        for (QueueWeakPtrVector::const_iterator it = d_queues_sp->begin();
+             it != d_queues_sp->end();
+             ++it) {
+            bsl::shared_ptr<mqbi::Queue> queue = it->lock();
+            if (queue) {
+                queue->configure(
+                    static_cast<bsl::ostream*>(0),  // errorDescription
+                    true,                           // isReconfigure
+                    false);                         // wait
+            }
+        }
+    }
+};
+
 }  // close unnamed namespace
 
 // ------------
@@ -224,7 +273,7 @@ void Domain::onOpenQueueResponse(
     const mqbi::OpenQueueConfirmationCookieSp& confirmationCookie,
     const mqbi::Domain::OpenQueueCallback&     callback)
 {
-    // executed by *ANY* thread
+    // Thread: CLUSTER DISPATCHER
 
     --d_pendingRequests;
     if (status.category() == bmqp_ctrlmsg::StatusCategory::E_SUCCESS) {
@@ -287,6 +336,8 @@ Domain::~Domain()
 int Domain::configure(bsl::ostream&           errorDescription,
                       const mqbconfm::Domain& newConfig)
 {
+    // Thread: ADMIN
+
     enum RcEnum {
         // Value for the various RC error categories
         rc_SUCCESS                  = 0,
@@ -358,6 +409,22 @@ int Domain::configure(bsl::ostream&           errorDescription,
         // any needed update-advisories to the CSL.
         d_cluster_sp->onDomainReconfigured(*this, *oldConfig, finalConfig);
 
+        // Make a snapshot of weak queue pointers for reconfigure.
+        bsl::shared_ptr<QueueReconfigureFunctor::QueueWeakPtrVector>
+            queues_sp = bsl::allocate_shared<
+                QueueReconfigureFunctor::QueueWeakPtrVector>(d_allocator_p);
+        {
+            bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
+            queues_sp->reserve(d_queues.size());
+            for (QueueMapCIter it = d_queues.begin(); it != d_queues.end();
+                 ++it) {
+                queues_sp->push_back(it->second);
+            }
+        }
+
+        BALL_LOG_INFO << "Reconfiguring " << queues_sp->size()
+                      << " queues from domain " << d_name;
+
         // Note: Queues must only be reconfigured AFTER ensuring that virtual
         // storage has been created for any new AppIds. This is done by the
         // 'QueueEngine::afterAppIdRegistered' method, which is invoked on the
@@ -370,19 +437,7 @@ int Domain::configure(bsl::ostream&           errorDescription,
         //  that it happens after 'onDomainReconfigured'; since implementation
         //  of 'Queue::configure' dispatches to the Queue dispatcher thread, it
         //  will also happen after completion of 'afterAppIdRegistered' above.
-        BALL_LOG_INFO << "Reconfiguring " << d_queues.size()
-                      << " queues from domain " << d_name;
-
-        QueueMap::iterator it = d_queues.begin();
-        for (; it != d_queues.end(); it++) {
-            bsl::function<int()> reconfigureQueueFn = bdlf::BindUtil::bind(
-                &mqbi::Queue::configure,
-                it->second.get(),
-                static_cast<bsl::ostream*>(0),  // errorDescription_p
-                true,                           // isReconfigure
-                false);                         // wait
-            d_dispatcher_p->execute(reconfigureQueueFn, cluster());
-        }
+        d_dispatcher_p->execute(QueueReconfigureFunctor(queues_sp), cluster());
     }
     // 'wait==false', so the result of reconfiguration is not known
 
@@ -450,7 +505,7 @@ void Domain::openQueue(
     const bmqp_ctrlmsg::QueueHandleParameters&                handleParameters,
     const mqbi::Domain::OpenQueueCallback&                    callback)
 {
-    // will execute in DomainManager's IO requester thread
+    // Thread: DomainManager's IO requester thread
     // (TBD: for now, in client-session or cluster dispatcher thread)
 
     // PRECONDITIONS
@@ -502,7 +557,7 @@ void Domain::openQueue(
 
 int Domain::registerQueue(const bsl::shared_ptr<mqbi::Queue>& queueSp)
 {
-    // executed by the associated CLUSTER's DISPATCHER thread
+    // Thread: CLUSTER DISPATCHER
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_sp->inDispatcherThread());
@@ -521,6 +576,8 @@ int Domain::registerQueue(const bsl::shared_ptr<mqbi::Queue>& queueSp)
     // b/w this (cluster-dispatcher) thread and queue-dispatcher thread, we
     // invoke 'Queue.configure' outside of the lock scope, and in case it
     // fails, we rollback.
+
+    size_t count = 0;
 
     {
         bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
@@ -542,20 +599,22 @@ int Domain::registerQueue(const bsl::shared_ptr<mqbi::Queue>& queueSp)
         d_queues[queueSp->uri().queue()] = queueSp;
 
         d_numQueues.add(1);
+
+        count = d_queues.size();
     }
 
     BALL_LOG_INFO << "Registered queue to domain '" << d_name << "' "
                   << "[canonicalURI: " << queueSp->uri().canonical()
                   << ", qId: " << bmqp::QueueId::QueueIdInt(queueSp->id())
                   << "]. Total number of registered queues in the domain: "
-                  << d_queues.size() << ".";
+                  << count << ".";
 
     return rc_SUCCESS;
 }
 
 void Domain::unregisterQueue(mqbi::Queue* queue)
 {
-    // executed by the associated CLUSTER's DISPATCHER thread
+    // Thread: CLUSTER DISPATCHER
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_sp->inDispatcherThread());
@@ -597,7 +656,7 @@ void Domain::unregisterQueue(mqbi::Queue* queue)
 int Domain::processCommand(mqbcmd::DomainResult*        result,
                            const mqbcmd::DomainCommand& command)
 {
-    // executed by *any* thread
+    // Thread: ADMIN
 
     if (command.isPurgeValue()) {
         // Some queues might be inactive.  They don't have associated
@@ -662,10 +721,15 @@ int Domain::processCommand(mqbcmd::DomainResult*        result,
                                                 OrderedQueueMap;
         typedef OrderedQueueMap::const_iterator OrderedQueueMapCIter;
 
-        // sort by queue name
-        OrderedQueueMap      map(d_queues.cbegin(), d_queues.cend());
+        // Make a snapshot of queues.
+        OrderedQueueMap map(d_allocator_p);
+        {
+            bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
+            map.insert(d_queues.cbegin(), d_queues.cend());
+        }
+
         OrderedQueueMapCIter cit;
-        domainInfo.queueUris().reserve(d_queues.size());
+        domainInfo.queueUris().reserve(map.size());
         for (cit = map.cbegin(); cit != map.cend(); ++cit) {
             domainInfo.queueUris().push_back(cit->second->uri().asString());
         }
@@ -875,7 +939,7 @@ void Domain::loadAllQueues(bsl::vector<bmqt::Uri>* out) const
 void Domain::loadRoutingConfiguration(
     bmqp_ctrlmsg::RoutingConfiguration* config) const
 {
-    // executed by the associated CLUSTER's DISPATCHER thread
+    // Thread: CLUSTER DISPATCHER
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_sp->inDispatcherThread());

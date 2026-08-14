@@ -1,0 +1,9 @@
+/**
+@dir mqbu
+
+@brief The `MQBU` (BlazingMQ Utility) package provides utility components and
+mechanisms.
+
+This package provides miscellaneous utility components to be used in the
+bmqbrkr.
+*/

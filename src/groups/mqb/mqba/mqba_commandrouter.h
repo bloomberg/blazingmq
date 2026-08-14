@@ -74,7 +74,7 @@ namespace mqbnet {
 class ClusterNode;
 }
 namespace mqbnet {
-template <class REQUEST, class RESPONSE, class TARGET>
+template <class TARGET>
 class MultiRequestManagerRequestContext;
 }
 
@@ -90,9 +90,7 @@ class CommandRouter {
     /// Shared pointer to the correct multirequest context for routing control
     /// messages to @bbref{mqbnet::ClusterNode}s.
     typedef bsl::shared_ptr<
-        mqbnet::MultiRequestManagerRequestContext<bmqp_ctrlmsg::ControlMessage,
-                                                  bmqp_ctrlmsg::ControlMessage,
-                                                  mqbnet::ClusterNode*> >
+        mqbnet::MultiRequestManagerRequestContext<mqbnet::ClusterNode*> >
         MultiRequestContextSp;
 
     /// Vector of @bbref{mqbnet::ClusterNode} pointers used for routing.

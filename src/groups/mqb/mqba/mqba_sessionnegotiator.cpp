@@ -73,10 +73,12 @@
 #include <bmqst_statcontext.h>
 #include <bmqu_blob.h>
 #include <bmqu_memoutstream.h>
+#include <bmqu_stringutil.h>
 #include <bmqu_time.h>
 
 // BDE
 #include <ball_log.h>
+#include <bdlb_chartype.h>
 #include <bdlf_bind.h>
 #include <bdlf_placeholder.h>
 #include <bdlma_localsequentialallocator.h>
@@ -88,6 +90,8 @@
 #include <bslma_managedptr.h>
 #include <bsls_assert.h>
 #include <bsls_atomic.h>
+#include <bsls_performancehint.h>
+#include <bsls_review.h>
 #include <bsls_timeinterval.h>
 
 // NTC
@@ -196,12 +200,51 @@ void loadBrokerIdentity(bmqp_ctrlmsg::ClientIdentity* identity,
     identity->clusterNodeId() = nodeId;
 }
 
+/// Replace every non-printable character in `*str` with `?`, in place.
+void sanitize(bsl::string* str)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT(str);
+
+    for (bsl::string::iterator it = str->begin(); it != str->end(); ++it) {
+        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
+                !bdlb::CharType::isPrint(*it))) {
+            BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+            *it = '?';
+        }
+    }
+}
+
+/// Return the streamed representation of `obj`, safe to log (non-printable
+/// characters replaced with `?`).
+template <class TYPE>
+bsl::string logSafe(const TYPE& obj)
+{
+    bmqu::MemOutStream os;
+    os << obj;
+
+    bsl::string result(os.str().data(), os.str().length());
+    sanitize(&result);
+    return result;
+}
+
+/// Return `true` if the streamed representation of `obj` contains only
+/// printable characters, and `false` otherwise.
+template <class TYPE>
+bool isPrintable(const TYPE& obj)
+{
+    bmqu::MemOutStream os;
+    os << obj;
+
+    return bmqu::StringUtil::isPrintable(os.str());
+}
+
 /// Load in the specified `out` the short description representing the
 /// specified `identity` from the specified `peerChannel`.  The format is as
 /// follow:
 ///    tskName:pid.sessionId[\@hostId]
 /// Where:
-///  - tskName   : the task name, without any optional leading path
+///  - tskName   : the process/task name, without any optional leading path
 ///  - pid       : the pid of the task
 ///  - sessionId : the sessionId, omitted if 1
 ///  - hostId    : the identity of the host where the peer is running
@@ -209,6 +252,8 @@ void loadBrokerIdentity(bmqp_ctrlmsg::ClientIdentity* identity,
 ///                `ip:port`, or `ip~resolvedHostname:port` depending on
 ///                whether the async DNS resolution already took place or
 ///                not.
+///
+/// Note: the result is sanitized as it derives from untrusted input.
 void loadSessionDescription(bsl::string*                        out,
                             const bmqp_ctrlmsg::ClientIdentity& identity,
                             const bmqio::Channel&               peerChannel)
@@ -246,6 +291,7 @@ void loadSessionDescription(bsl::string*                        out,
     }
 
     out->assign(os.str().data(), os.str().length());
+    sanitize(out);
 }
 }  // close unnamed namespace
 
@@ -274,6 +320,10 @@ int SessionNegotiator::createSessionOnMsgType(
 
     const NegotiationContextSp& negotiationContext =
         context_p->negotiationContext();
+
+    // Detect non-printable characters in negotiation messages.
+    // TODO: fail negotiation if message contains non-printable characters
+    BSLS_REVIEW_OPT(isPrintable(negotiationContext->negotiationMessage()));
 
     switch (negotiationContext->negotiationMessage().selectionId()) {
     case bmqp_ctrlmsg::NegotiationMessage::SELECTION_INDEX_CLIENT_IDENTITY: {
@@ -371,9 +421,8 @@ bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onClientIdentityMessage(
         negotiationMessage.clientIdentity();
 
     BALL_LOG_INFO << "Handle negotiation message received from '"
-                  << context_p->channel().get() << "': " << clientIdentity;
-
-    bsl::shared_ptr<mqbnet::Session> session;
+                  << context_p->channel().get()
+                  << "': " << logSafe(clientIdentity);
 
     // Inject the hostName in the negotiation message if not provided by the
     // connecting peer.
@@ -389,9 +438,27 @@ bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onClientIdentityMessage(
     case bmqp_ctrlmsg::ClientType::E_UNKNOWN:
     default: {
         errorDescription << "Unknown ClientIdentity client type: "
-                         << clientIdentity;
-        return session;  // RETURN
+                         << logSafe(clientIdentity);
+        return NULL;  // RETURN
     }
+    }
+
+    // Authorize the incoming connection before sending the normal
+    // negotiation response.  If authorization fails, send a minimal refusal
+    // response and terminate negotiation.
+    if (!authorizeIncomingConnection(errorDescription, context_p)) {
+        bmqp_ctrlmsg::NegotiationMessage refusedMessage;
+        bmqp_ctrlmsg::BrokerResponse&    refused =
+            refusedMessage.makeBrokerResponse();
+        refused.result().category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+        refused.result().code()     = -1;
+        refused.result().message()  = "Connection not authorized";
+        refused.protocolVersion()   = bmqp::Protocol::k_VERSION;
+        refused.brokerVersion() = mqbcfg::BrokerConfig::get().brokerVersion();
+
+        bmqu::MemOutStream sendError;
+        sendNegotiationMessage(sendError, refusedMessage, negotiationContext);
+        return NULL;  // RETURN
     }
 
     bmqp_ctrlmsg::NegotiationMessage negotiationResponse;
@@ -442,9 +509,10 @@ bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onClientIdentityMessage(
             // but we are not member of that cluster; emit an error (but
             // still accept the connection).
             BALL_LOG_ERROR << "#CONNECTION_UNEXPECTED Client '"
-                           << clientIdentity
+                           << logSafe(clientIdentity)
                            << "' connected to me as part of cluster '"
-                           << clusterName << "' to which I do not belong!";
+                           << logSafe(clusterName)
+                           << "' to which I do not belong!";
         }
         // Virtual clusters do not advertise node status.  Therefore, the
         // identity should not advertise k_BROADCAST_TO_PROXIES feature.
@@ -487,7 +555,7 @@ bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onClientIdentityMessage(
     // Populate the negotiation context based on the received client identity.
     int rc = populateNegotiationContext(errorDescription, context_p);
     if (rc != 0) {
-        return session;  // RETURN
+        return NULL;  // RETURN
     }
 
     // Communicate heartbeat settings.  Currently, only for SDK use
@@ -504,7 +572,7 @@ bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onClientIdentityMessage(
                                 negotiationResponse,
                                 negotiationContext);
     if (rc != 0) {
-        return session;  // RETURN
+        return NULL;  // RETURN
     }
 
     // Create the session.
@@ -513,6 +581,7 @@ bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onClientIdentityMessage(
                            clientIdentity,
                            *(context_p->channel().get()));
 
+    bsl::shared_ptr<mqbnet::Session> session;
     createSession(&session, context_p, description);
 
     return session;
@@ -537,15 +606,14 @@ bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onBrokerResponseMessage(
         negotiationMessage.brokerResponse();
 
     BALL_LOG_DEBUG << "Received negotiation message from '"
-                   << context_p->channel().get() << "': " << brokerResponse;
-
-    bsl::shared_ptr<mqbnet::Session> session;
+                   << context_p->channel().get()
+                   << "': " << logSafe(brokerResponse);
 
     if (brokerResponse.result().category() !=
         bmqp_ctrlmsg::StatusCategory::E_SUCCESS) {
-        errorDescription << "Failure broker's response [" << brokerResponse
-                         << "]";
-        return session;  // RETURN
+        errorDescription << "Failure broker's response ["
+                         << logSafe(brokerResponse) << "]";
+        return NULL;  // RETURN
     }
 
     // Resolve 'hostName' of the brokerIdentity
@@ -558,10 +626,14 @@ bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onBrokerResponseMessage(
                            brokerResponse.brokerIdentity(),
                            *(context_p->channel().get()));
 
-    const int rc = populateNegotiationContext(errorDescription, context_p);
-    if (rc != 0) {
-        return session;  // RETURN
+    {
+        const int rc = populateNegotiationContext(errorDescription, context_p);
+        if (rc != 0) {
+            return NULL;  // RETURN
+        }
     }
+
+    bsl::shared_ptr<mqbnet::Session> session;
     createSession(&session, context_p, description);
 
     return session;
@@ -733,6 +805,61 @@ int SessionNegotiator::populateNegotiationContext(
     return rc_SUCCESS;
 }
 
+bool SessionNegotiator::authorizeIncomingConnection(
+    bsl::ostream&                     errorDescription,
+    mqbnet::InitialConnectionContext* context_p)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(context_p);
+    BSLS_ASSERT_SAFE(context_p->negotiationContext());
+    BSLS_ASSERT_SAFE(context_p->negotiationContext()->connectionType() !=
+                     mqbnet::ConnectionType::e_UNKNOWN);
+
+    const NegotiationContextSp& negotiationContext =
+        context_p->negotiationContext();
+
+    BSLS_ASSERT(context_p->authenticationContext() &&
+                context_p->authenticationContext()->authenticationResult());
+    const mqbplug::AuthenticationResult& authnResult =
+        *context_p->authenticationContext()->authenticationResult();
+
+    mqbact::Action action;
+    switch (negotiationContext->connectionType()) {
+    case mqbnet::ConnectionType::e_ADMIN: {
+        action.makeConnectAdmin();
+    } break;
+    case mqbnet::ConnectionType::e_CLIENT: {
+        action.makeConnectClient();
+    } break;
+    case mqbnet::ConnectionType::e_CLUSTER_MEMBER: {
+        action.makeConnectClusterNode().clusterName() =
+            negotiationContext->negotiationMessage()
+                .clientIdentity()
+                .clusterName();
+    } break;
+    // An incoming connection (this method's precondition) can never be of
+    // type 'e_CLUSTER_PROXY': it is only used for a broker's own outbound
+    // connections (see 'negotiateOutbound').
+    case mqbnet::ConnectionType::e_CLUSTER_PROXY:
+    case mqbnet::ConnectionType::e_UNKNOWN:
+    default: {
+        // Fail the connection and log an error (rather than assert).
+        BALL_LOG_ERROR << "#CONNECTION_UNEXPECTED Unexpected connection "
+                       << "type for an incoming connection: "
+                       << negotiationContext->connectionType();
+        errorDescription << "Unexpected connection type";
+        return false;  // RETURN
+    }
+    }
+
+    if (!d_authorizer_sp->authorize(action, authnResult)) {
+        errorDescription << "Connection not authorized";
+        return false;  // RETURN
+    }
+
+    return true;
+}
+
 void SessionNegotiator::createSession(
     bsl::shared_ptr<mqbnet::Session>* out,
     mqbnet::InitialConnectionContext* context_p,
@@ -765,6 +892,7 @@ void SessionNegotiator::createSession(
                          d_blobSpPool_p,
                          d_scheduler_p,
                          d_adminCb,
+                         d_authorizer_sp,
                          d_allocator_p);
 
         out->reset(session, d_allocator_p);
@@ -788,6 +916,7 @@ void SessionNegotiator::createSession(
                           d_blobSpPool_p,
                           d_bufferFactory_p,
                           d_scheduler_p,
+                          d_authorizer_sp,
                           d_allocator_p);
 
         out->reset(session, d_allocator_p);
@@ -830,7 +959,7 @@ bool SessionNegotiator::checkIsDeprecatedSdkVersion(
     // keep a central location of all deprecated clients.
     BALL_LOG_WARN << "#CLIENT_SDKVERSION_DEPRECATED "
                   << "Client is using a deprecated SDK: "
-                  << "[client: " << clientIdentity
+                  << "[client: " << logSafe(clientIdentity)
                   << ", minimumSDKVersionRecommended: "
                   << mqbu::SDKVersionUtil::minSdkVersionRecommended(
                          clientIdentity.sdkLanguage())
@@ -858,7 +987,7 @@ bool SessionNegotiator::checkIsUnsupportedSdkVersion(
     // keep a central location of all rejected clients.
     BALL_LOG_WARN << "#CLIENT_SDKVERSION_UNSUPPORTED "
                   << "Client is using an unsupported SDK: "
-                  << "[client: " << clientIdentity
+                  << "[client: " << logSafe(clientIdentity)
                   << ", minimumSDKVersionSupported: "
                   << mqbu::SDKVersionUtil::minSdkVersionSupported(
                          clientIdentity.sdkLanguage())
@@ -873,6 +1002,7 @@ SessionNegotiator::SessionNegotiator(bdlbb::BlobBufferFactory* bufferFactory,
                                      bmqst::StatContext*       statContext,
                                      BlobSpPool*               blobSpPool,
                                      bdlmt::EventScheduler*    scheduler,
+                                     const AuthorizerSp&       authorizer,
                                      bslma::Allocator*         allocator)
 : d_allocator_p(allocator)
 , d_bufferFactory_p(bufferFactory)
@@ -882,8 +1012,15 @@ SessionNegotiator::SessionNegotiator(bdlbb::BlobBufferFactory* bufferFactory,
 , d_blobSpPool_p(blobSpPool)
 , d_clusterCatalog_p(0)
 , d_scheduler_p(scheduler)
+, d_authorizer_sp(authorizer)
 {
-    // NOTHING
+    // PRECONDITIONS
+    BSLS_ASSERT(d_bufferFactory_p);
+    BSLS_ASSERT(d_dispatcher_p);
+    BSLS_ASSERT(d_statContext_p);
+    BSLS_ASSERT(d_blobSpPool_p);
+    BSLS_ASSERT(d_scheduler_p);
+    BSLS_ASSERT(d_authorizer_sp);
 }
 
 SessionNegotiator::~SessionNegotiator()

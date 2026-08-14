@@ -82,6 +82,7 @@ InMemoryStorage::InMemoryStorage(DataStore*              dataStore_p,
 , d_isEmpty(1)
 , d_currentlyAutoConfirming()
 , d_autoConfirms(d_allocator_p)
+, d_isBroadcast(config.mode().isBroadcastValue())
 {
     BSLS_ASSERT_SAFE(0 <= d_ttlSeconds);  // Broadcast queues can use 0 for TTL
 
@@ -444,6 +445,11 @@ int InMemoryStorage::gcExpiredMessages(const bdlt::Datetime& currentTimeUtc,
                                        bsls::Types::Uint64   secondsFromEpoch,
                                        int                   limit)
 {
+    if (d_isBroadcast) {
+        // Broadcast queues never expire messages via TTL.
+        return 0;  // RETURN
+    }
+
     bsls::Types::Uint64      latestMsgTimestampEpoch = 0;
     int                      numMsgsDeleted = 0;
     const bsls::Types::Int64 now = bmqu::Time::highResolutionTimer();

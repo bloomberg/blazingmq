@@ -40,6 +40,8 @@ options:
   -m {all,pull,push}, --mode {all,pull,push}
                         prometheus mode
   --no-docker           don't run Prometheus in docker, assume it is running on localhost
+  --prometheus-host PROMETHEUS_HOST
+                        Prometheus server host:port to query (default: localhost:9090)
 
 """
 
@@ -99,6 +101,12 @@ def parse_arguments():
         "--no-docker",
         action="store_true",
         help="don't run Prometheus in docker, assume it is running on localhost",
+    )
+    parser.add_argument(
+        "--prometheus-host",
+        type=str,
+        default=PROMETHEUS_HOST,
+        help="Prometheus server host:port to query",
     )
 
     return parser.parse_args()
@@ -245,7 +253,7 @@ def main(args):
             plugin_path,
             broker_path,
             tool_path,
-            PROMETHEUS_HOST,
+            args.prometheus_host,
             prometheus_docker_file_path,
             mode,
         )

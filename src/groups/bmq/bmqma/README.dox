@@ -1,0 +1,9 @@
+/**
+@dir bmqma
+
+@brief The `BMQMA` (BlazingMQ Memory Allocators) package provides allocators
+and other memory-management tools.
+
+The `bmqma` package provides miscellaneous allocators and utility components
+for memory-management to be reused through various applications.
+*/

@@ -199,6 +199,12 @@ class Application {
                           const Sessions& brokers,
                           int             version);
 
+    /// Gracefully shut down the transport layer: stop listening, drain and
+    /// close client/proxy/cluster sessions, and stop the admin thread
+    /// pools.  Must only be called if `start()` succeeded far enough to
+    /// construct the transport manager.
+    void stopTransportAndClusters();
+
   private:
     // NOT IMPLEMENTED
     Application(const Application& other) BSLS_CPP11_DELETED;

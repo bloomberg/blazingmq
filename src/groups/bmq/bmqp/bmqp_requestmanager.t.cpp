@@ -63,7 +63,7 @@ namespace {
 
 typedef bmqp_ctrlmsg::ControlMessage       Mes;
 typedef bsl::queue<Mes>                    MesQue;
-typedef bmqp::RequestManager<Mes, Mes>     ReqManagerType;
+typedef bmqp::RequestManager               ReqManagerType;
 typedef ReqManagerType::RequestType        Req;
 typedef ReqManagerType::RequestSp          ReqSp;
 typedef bsl::vector<ReqSp>                 ReqVec;

@@ -143,8 +143,10 @@
 #include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bslma_usesbslmaallocator.h>
+#include <bslmf_movableref.h>
 #include <bslmf_nestedtraitdeclaration.h>
 #include <bsls_assert.h>
+#include <bsls_deprecate.h>
 #include <bsls_timeinterval.h>
 #include <bsls_types.h>
 
@@ -273,6 +275,13 @@ class SessionOptions {
     SessionOptions(const SessionOptions& other,
                    bslma::Allocator*     allocator = 0);
 
+    /// Assign to this object the value of the specified `other`, and return
+    /// a reference providing modifiable access to this object.
+    SessionOptions& operator=(const SessionOptions& other);
+
+    /// Destroy this object.
+    ~SessionOptions();
+
     // MANIPULATORS
 
     /// Set the broker URI to the specified `value`.
@@ -330,10 +339,10 @@ class SessionOptions {
     setTraceOptions(const bsl::shared_ptr<bmqpi::DTContext>& dtContext,
                     const bsl::shared_ptr<bmqpi::DTTracer>&  dtTracer);
 
-    /// DEPRECATED: Use `configureEventQueue(int lowWatermark,
-    ///                                      int highWatermark)`
-    ///             instead.  This method will be marked as `BSLA_DEPRECATED`
-    ///             in future release of libbmq.
+    BSLS_DEPRECATE_FEATURE("bmqt",
+                           "configureEventQueue",
+                           "Use configureEventQueue(int lowWatermark, int "
+                           "highWatermark) instead.")
     SessionOptions&
     configureEventQueue(int queueSize, int lowWatermark, int highWatermark);
 
@@ -406,8 +415,10 @@ class SessionOptions {
     int eventQueueLowWatermark() const;
     int eventQueueHighWatermark() const;
 
-    /// DEPRECATED: This parameter is no longer relevant and will be removed
-    /// in future release of libbmq.
+    BSLS_DEPRECATE_FEATURE("bmqt",
+                           "eventQueueSize",
+                           "This API is no longer supported and will be "
+                           "removed in future release of libbmq.")
     int eventQueueSize() const;
 
     /// Get the user agent prefix.

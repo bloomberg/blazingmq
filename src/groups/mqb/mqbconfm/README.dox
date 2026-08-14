@@ -1,0 +1,8 @@
+/**
+@dir mqbconfm
+
+@brief The `MQBCONFM` (BlazingMQ Config Message) package provides messages for
+the configuration task.
+
+This package provides the messages used by the broker configuration task.
+*/

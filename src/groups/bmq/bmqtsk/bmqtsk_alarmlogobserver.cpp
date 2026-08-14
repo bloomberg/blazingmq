@@ -22,6 +22,7 @@
 
 // BDE
 #include <ball_severity.h>
+#include <bdlb_stringviewutil.h>
 #include <bdlt_timeunitratio.h>
 #include <bsl_iostream.h>
 #include <bsla_annotations.h>
@@ -82,7 +83,7 @@ void AlarmLogObserver::publish(const ball::Record&     record,
     const bsl::string& alarmType = record.customFields()[0].theString();
 
     // Raw version used, no throttling
-    if (bmqu::StringUtil::startsWith(alarmType, "RAW_")) {
+    if (bdlb::StringViewUtil::startsWith(alarmType, "RAW_")) {
         // We are stripping out the 'RAW_' prefix from the alarm identification
         // string.
         const bslstl::StringRef categoryStr(alarmType.c_str() + 4,

@@ -48,9 +48,11 @@
 #include <bdlcc_sharedobjectpool.h>
 #include <bsl_memory.h>
 #include <bsl_ostream.h>
+#include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
+#include <bsls_assert.h>
 
 namespace BloombergLP {
 
@@ -97,8 +99,8 @@ class SessionNegotiator : public mqbnet::Negotiator {
     // PRIVATE TYPES
     typedef bsl::shared_ptr<mqbnet::NegotiationContext> NegotiationContextSp;
     typedef bsl::shared_ptr<mqbnet::InitialConnectionContext>
-                                                InitialConnectionContextSp;
-    typedef bslma::ManagedPtr<mqbi::Authorizer> AuthorizerMp;
+                                              InitialConnectionContextSp;
+    typedef bsl::shared_ptr<mqbi::Authorizer> AuthorizerSp;
 
   private:
     // DATA
@@ -134,7 +136,7 @@ class SessionNegotiator : public mqbnet::Negotiator {
     mqbnet::Session::AdminCommandEnqueueCb d_adminCb;
 
     /// The authorizer
-    AuthorizerMp d_authorizer_mp;
+    AuthorizerSp d_authorizer_sp;
 
   private:
     // NOT IMPLEMENTED
@@ -178,10 +180,17 @@ class SessionNegotiator : public mqbnet::Negotiator {
     populateNegotiationContext(bsl::ostream& errorDescription,
                                mqbnet::InitialConnectionContext* context_p);
 
+    /// Authorize the incoming connection described by the specified
+    /// `context_p`, based on its connection type.  Return true if the
+    /// connection is authorized, or false otherwise and populate the
+    /// specified `errorDescription` with a description of the error.
+    BSLA_NODISCARD
+    bool
+    authorizeIncomingConnection(bsl::ostream& errorDescription,
+                                mqbnet::InitialConnectionContext* context_p);
+
     /// Load into the specified `out` a new session created using the
-    /// specified `context_p` and `description`; or leave `out` untouched and
-    /// populate the specified `errorDescription` with a description of the
-    /// error in case of failure.
+    /// specified `context_p` and `description`.
     void createSession(bsl::shared_ptr<mqbnet::Session>* out,
                        mqbnet::InitialConnectionContext* context_p,
                        const bsl::string&                description);
@@ -212,13 +221,15 @@ class SessionNegotiator : public mqbnet::Negotiator {
 
     /// Create a new `SessionNegotiator` using the specified
     /// `bufferFactory`, `dispatcher`, `statContext`, `scheduler` and
-    /// `blobSpPool` to inject in the negotiated sessions.  Use the
-    /// specified `allocator` for all memory allocations.
+    /// `blobSpPool` to inject in the negotiated sessions, and the specified
+    /// `authorizer` to authorize incoming connections.  Use the specified
+    /// `allocator` for all memory allocations.
     SessionNegotiator(bdlbb::BlobBufferFactory* bufferFactory,
                       mqbi::Dispatcher*         dispatcher,
                       bmqst::StatContext*       statContext,
                       BlobSpPool*               blobSpPool,
                       bdlmt::EventScheduler*    scheduler,
+                      const AuthorizerSp&       authorizer,
                       bslma::Allocator*         allocator);
 
     /// Destructor
@@ -238,11 +249,6 @@ class SessionNegotiator : public mqbnet::Negotiator {
     /// Set the domain factory to the specified `value` and return a
     /// reference offering modifiable access to this object.
     SessionNegotiator& setDomainFactory(mqbi::DomainFactory* value);
-
-    /// Set the authorizer that will be used to authorize sessions and actions
-    /// that can occur in those sessions.
-    SessionNegotiator&
-    setAuthorizer(bslmf::MovableRef<AuthorizerMp> authorizer);
 
     // MANIPULATORS
     //   (virtual: mqbnet::Negotiator)
@@ -282,6 +288,9 @@ inline SessionNegotiator& SessionNegotiator::setAdminCommandEnqueueCallback(
 inline SessionNegotiator&
 SessionNegotiator::setClusterCatalog(mqbblp::ClusterCatalog* value)
 {
+    // PRECONDITIONS
+    BSLS_ASSERT(value);
+
     d_clusterCatalog_p = value;
     return *this;
 }
@@ -289,14 +298,10 @@ SessionNegotiator::setClusterCatalog(mqbblp::ClusterCatalog* value)
 inline SessionNegotiator&
 SessionNegotiator::setDomainFactory(mqbi::DomainFactory* value)
 {
-    d_domainFactory_p = value;
-    return *this;
-}
+    // PRECONDITIONS
+    BSLS_ASSERT(value);
 
-inline SessionNegotiator&
-SessionNegotiator::setAuthorizer(bslmf::MovableRef<AuthorizerMp> authorizer)
-{
-    d_authorizer_mp = bslmf::MovableRefUtil::move(authorizer);
+    d_domainFactory_p = value;
     return *this;
 }
 

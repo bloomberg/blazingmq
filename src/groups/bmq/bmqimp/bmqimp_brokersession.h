@@ -337,9 +337,7 @@ class BrokerSession BSLS_CPP11_FINAL {
 
   private:
     // TYPES
-    typedef bmqp::RequestManager<bmqp_ctrlmsg::ControlMessage,
-                                 bmqp_ctrlmsg::ControlMessage>
-        RequestManagerType;
+    typedef bmqp::RequestManager::RequestSp RequestSp;
 
     /// This is top-most internal callback to be set as `AsyncNotifierCb` in
     /// all requests.  BS guarantees that 1) the callback will always be
@@ -347,12 +345,11 @@ class BrokerSession BSLS_CPP11_FINAL {
     /// It can be one of two:
     ///  1) for async operations - `asyncRequestNotifier`
     ///  2) for sync operations  - `syncRequestNotifier`
-    typedef bsl::function<void(const RequestManagerType::RequestSp&)>
-        FsmCallback;
+    typedef bsl::function<void(const RequestSp&)> FsmCallback;
 
     /// Signature of the callback to provide to the `configure` method.
-    typedef bsl::function<void(const RequestManagerType::RequestSp& context,
-                               const bsl::shared_ptr<Queue>&        queue)>
+    typedef bsl::function<void(const RequestSp&              context,
+                               const bsl::shared_ptr<Queue>& queue)>
         ConfiguredCallback;
 
     typedef bdlcc::SharedObjectPool<Event,
@@ -497,8 +494,8 @@ class BrokerSession BSLS_CPP11_FINAL {
                            QueueFsmEvent::Enum           event);
 
         /// Generate and set a valid queueId to the specified `queue`.
-        void setQueueId(const bsl::shared_ptr<Queue>&        queue,
-                        const RequestManagerType::RequestSp& context);
+        void setQueueId(const bsl::shared_ptr<Queue>& queue,
+                        const RequestSp&              context);
 
         /// Start opening the specified `queue` with the specified
         /// `timeout` for the operation to complete.  Use the specified
@@ -506,18 +503,18 @@ class BrokerSession BSLS_CPP11_FINAL {
         /// `success` on successful send of the open request, or a reason of
         /// the failure if it couldn't be sent for any reason.
         bmqt::OpenQueueResult::Enum
-        actionOpenQueue(const bsl::shared_ptr<Queue>&        queue,
-                        const RequestManagerType::RequestSp& context,
-                        const bsls::TimeInterval&            timeout);
+        actionOpenQueue(const bsl::shared_ptr<Queue>& queue,
+                        const RequestSp&              context,
+                        const bsls::TimeInterval&     timeout);
 
         /// Start reopening the specified `queue` with the specified
         /// `timeout` for the operation to complete.  Return `success` on
         /// successful send of the open request, or a reason of the failure
         /// if it couldn't be sent for any reason.
         bmqt::OpenQueueResult::Enum
-        actionReopenQueue(const bsl::shared_ptr<Queue>&        queue,
-                          const RequestManagerType::RequestSp& context,
-                          const bsls::TimeInterval&            timeout);
+        actionReopenQueue(const bsl::shared_ptr<Queue>& queue,
+                          const RequestSp&              context,
+                          const bsls::TimeInterval&     timeout);
 
         /// Start the first phase of the closing queue procedure for the
         /// specified `queue` sending a configure request with null
@@ -526,10 +523,10 @@ class BrokerSession BSLS_CPP11_FINAL {
         /// operationon result.  Return `success` on/ successful send of the
         /// configure request, or a reason of the failure if it couldn't be
         /// sent for any reason.
-        bmqt::ConfigureQueueResult::Enum actionDeconfigureQueue(
-            const bsl::shared_ptr<Queue>&        queue,
-            const RequestManagerType::RequestSp& closeContext,
-            const bsls::TimeInterval&            timeout);
+        bmqt::ConfigureQueueResult::Enum
+        actionDeconfigureQueue(const bsl::shared_ptr<Queue>& queue,
+                               const RequestSp&              closeContext,
+                               const bsls::TimeInterval&     timeout);
 
         /// Start the first phase of the closing queue procedure for the
         /// specified expired `queue`.  Return `success` on successful send
@@ -549,12 +546,12 @@ class BrokerSession BSLS_CPP11_FINAL {
         /// performed to reopen the `queue`.  Return `success` on successful
         /// send of the configure request, or a reason of the failure if it
         /// couldn't be sent for any reason.
-        bmqt::ConfigureQueueResult::Enum actionOpenConfigureQueue(
-            const RequestManagerType::RequestSp& openQueueContext,
-            const RequestManagerType::RequestSp& configQueueContext,
-            const bsl::shared_ptr<Queue>&        queue,
-            const bsls::TimeInterval&            timeout,
-            bool                                 isReopenRequest);
+        bmqt::ConfigureQueueResult::Enum
+        actionOpenConfigureQueue(const RequestSp& openQueueContext,
+                                 const RequestSp& configQueueContext,
+                                 const bsl::shared_ptr<Queue>& queue,
+                                 const bsls::TimeInterval&     timeout,
+                                 bool isReopenRequest);
 
         /// Send a close queue request to close the specified `queue`.
         void actionCloseQueue(const bsl::shared_ptr<Queue>& queue);
@@ -563,18 +560,17 @@ class BrokerSession BSLS_CPP11_FINAL {
         /// the specified `context` to the request callback.  Use the
         /// specified `absTimeout` value as a request timeout.
         bmqt::GenericResult::Enum
-        actionCloseQueue(const RequestManagerType::RequestSp& context,
-                         const bsl::shared_ptr<Queue>&        queue,
-                         const bsls::TimeInterval&            absTimeout);
+        actionCloseQueue(const RequestSp&              context,
+                         const bsl::shared_ptr<Queue>& queue,
+                         const bsls::TimeInterval&     absTimeout);
 
         /// Called when the specified `queue` is successfully opened to set
         /// queue configuration parameters provided by the broker and stored
         /// in the specified `openQueueContext`.  If the specified
         /// `isReopenRequest` flag is false enable queue statistics.
-        void
-        actionInitQueue(const bsl::shared_ptr<Queue>&        queue,
-                        const RequestManagerType::RequestSp& openQueueContext,
-                        bool                                 isReopenRequest);
+        void actionInitQueue(const bsl::shared_ptr<Queue>& queue,
+                             const RequestSp&              openQueueContext,
+                             bool                          isReopenRequest);
 
         /// Make configure queue request for the specified `queue` with the
         /// specified `options` with the specified `timeout` for the
@@ -583,10 +579,10 @@ class BrokerSession BSLS_CPP11_FINAL {
         /// send of the configure request, or a reason of the failure if it
         /// couldn't be sent for any reason.
         bmqt::ConfigureQueueResult::Enum
-        actionConfigureQueue(const bsl::shared_ptr<Queue>&  queue,
-                             const bmqt::QueueOptions&      options,
-                             const bsls::TimeInterval&      timeout,
-                             RequestManagerType::RequestSp& context);
+        actionConfigureQueue(const bsl::shared_ptr<Queue>& queue,
+                             const bmqt::QueueOptions&     options,
+                             const bsls::TimeInterval&     timeout,
+                             RequestSp&                    context);
 
         /// Send configure queue request for the specified `queue` taking in
         /// account the specified `response` from the previous configure
@@ -627,81 +623,77 @@ class BrokerSession BSLS_CPP11_FINAL {
         /// return value means that the queue FSM has not accepted the
         /// request.
         bmqt::OpenQueueResult::Enum
-        handleOpenRequest(const bsl::shared_ptr<Queue>&        queue,
-                          const bsls::TimeInterval&            timeout,
-                          const RequestManagerType::RequestSp& context);
+        handleOpenRequest(const bsl::shared_ptr<Queue>& queue,
+                          const bsls::TimeInterval&     timeout,
+                          const RequestSp&              context);
 
         /// Handle queue reopen request initiated by the session.
-        void handleReopenRequest(const bsl::shared_ptr<Queue>&        queue,
-                                 const bsls::TimeInterval&            timeout,
-                                 const RequestManagerType::RequestSp& context);
+        void handleReopenRequest(const bsl::shared_ptr<Queue>& queue,
+                                 const bsls::TimeInterval&     timeout,
+                                 const RequestSp&              context);
 
         /// Handle queue configure request initiated by the user.
         bmqt::ConfigureQueueResult::Enum
-        handleConfigureRequest(const bsl::shared_ptr<Queue>&  queue,
-                               const bmqt::QueueOptions&      options,
-                               const bsls::TimeInterval&      timeout,
-                               RequestManagerType::RequestSp& context);
+        handleConfigureRequest(const bsl::shared_ptr<Queue>& queue,
+                               const bmqt::QueueOptions&     options,
+                               const bsls::TimeInterval&     timeout,
+                               RequestSp&                    context);
 
         /// Handle queue close request initiated by the user.
         bmqt::CloseQueueResult::Enum
-        handleCloseRequest(const bsl::shared_ptr<Queue>&        queue,
-                           const bsls::TimeInterval&            timeout,
-                           const RequestManagerType::RequestSp& context);
+        handleCloseRequest(const bsl::shared_ptr<Queue>& queue,
+                           const bsls::TimeInterval&     timeout,
+                           const RequestSp&              context);
 
         /// Handle a case when a request to the broker has not been sent
         /// due to some error described with the specified `status`.
         /// Dispatches to `handleRequestWriteError` for transport errors
         /// or `handleRequestBad` for non-transport errors.
-        void handleRequestNotSent(const bsl::shared_ptr<Queue>&        queue,
-                                  const RequestManagerType::RequestSp& context,
-                                  int                                  status);
+        void handleRequestNotSent(const bsl::shared_ptr<Queue>& queue,
+                                  const RequestSp&              context,
+                                  int                           status);
 
         /// Handle a transport/write error when sending a request.  The
         /// queue stays in its current state, waiting for CHANNEL_DOWN.
-        void
-        handleRequestWriteError(const bsl::shared_ptr<Queue>&        queue,
-                                const RequestManagerType::RequestSp& context,
-                                int                                  status);
+        void handleRequestWriteError(const bsl::shared_ptr<Queue>& queue,
+                                     const RequestSp&              context,
+                                     int                           status);
 
         /// Handle a non-transport error when sending a request (e.g.,
         /// session stopped, invalid state).
-        void handleRequestBad(const bsl::shared_ptr<Queue>&        queue,
-                              const RequestManagerType::RequestSp& context,
-                              int                                  status);
+        void handleRequestBad(const bsl::shared_ptr<Queue>& queue,
+                              const RequestSp&              context,
+                              int                           status);
 
         /// Handle response error.
-        void handleResponseError(const bsl::shared_ptr<Queue>&        queue,
-                                 const RequestManagerType::RequestSp& context,
-                                 const bsls::TimeInterval& absTimeout);
+        void handleResponseError(const bsl::shared_ptr<Queue>& queue,
+                                 const RequestSp&              context,
+                                 const bsls::TimeInterval&     absTimeout);
 
-        void handleSessionDown(const bsl::shared_ptr<Queue>&        queue,
-                               const RequestManagerType::RequestSp& context);
+        void handleSessionDown(const bsl::shared_ptr<Queue>& queue,
+                               const RequestSp&              context);
 
         /// Handle the request is canceled locally.
-        void
-        handleRequestCanceled(const bsl::shared_ptr<Queue>&        queue,
-                              const RequestManagerType::RequestSp& context);
+        void handleRequestCanceled(const bsl::shared_ptr<Queue>& queue,
+                                   const RequestSp&              context);
 
         /// Handle broker response timeout.
-        void
-        handleResponseTimeout(const bsl::shared_ptr<Queue>&        queue,
-                              const RequestManagerType::RequestSp& context);
+        void handleResponseTimeout(const bsl::shared_ptr<Queue>& queue,
+                                   const RequestSp&              context);
 
         /// Handle broker response timeout while there is no connection.
-        void
-        handleResponseExpired(const bsl::shared_ptr<Queue>&        queue,
-                              const RequestManagerType::RequestSp& context);
+        void handleResponseExpired(const bsl::shared_ptr<Queue>& queue,
+                                   const RequestSp&              context);
 
         /// Handle successful response from the broker.
-        void handleResponseOk(const bsl::shared_ptr<Queue>&        queue,
-                              const RequestManagerType::RequestSp& context,
-                              const bsls::TimeInterval&            timeout);
+        void handleResponseOk(const bsl::shared_ptr<Queue>& queue,
+                              const RequestSp&              context,
+                              const bsls::TimeInterval&     timeout);
 
         /// Process a response received from the broker for a request that
         /// was already timed out internally in the client.
-        void handleLateResponse(const bsl::shared_ptr<Queue>&        queue,
-                                const RequestManagerType::RequestSp& context);
+        void handleLateResponse(const bsl::shared_ptr<Queue>& queue,
+                                const RequestSp&              context);
 
         /// Handle network channel down event.
         void handleChannelDown(const bsl::shared_ptr<Queue>& queue);
@@ -714,8 +706,8 @@ class BrokerSession BSLS_CPP11_FINAL {
 
         /// Create a status response for the specified `context` using the
         /// specified `status` code and error `reason` description.
-        void injectErrorResponse(const RequestManagerType::RequestSp& context,
-                                 int                                  status,
+        void injectErrorResponse(const RequestSp&         context,
+                                 int                      status,
                                  const bslstl::StringRef& reason = "");
     };
 
@@ -818,7 +810,7 @@ class BrokerSession BSLS_CPP11_FINAL {
     // Queue of events to deliver to the
     // application
 
-    RequestManagerType d_requestManager;
+    bmqp::RequestManager d_requestManager;
     // Request manager
 
     QueueManager d_queueManager;
@@ -926,10 +918,9 @@ class BrokerSession BSLS_CPP11_FINAL {
     /// Return `success` on successful send of the request, or a reason of
     /// the failure if it couldn't be sent for any reason (not connected,
     /// unable to serialize the request, ...).
-    bmqt::GenericResult::Enum
-    sendRequest(const RequestManagerType::RequestSp& context,
-                const bmqp::QueueId&                 queueId,
-                bsls::TimeInterval                   timeout);
+    bmqt::GenericResult::Enum sendRequest(const RequestSp&     context,
+                                          const bmqp::QueueId& queueId,
+                                          bsls::TimeInterval   timeout);
 
     /// Send the specified `blob`, representing a `Confirm` packet over the
     /// channel and containing the specified `msgCount` message confirmation
@@ -957,8 +948,8 @@ class BrokerSession BSLS_CPP11_FINAL {
     /// `context`.  Create and enqueue user event with the specified
     /// `eventType`, `queue`, `correlationId`, and `eventCallback`.
     /// Called from either FSM or the caller thread.
-    void asyncRequestNotifier(const RequestManagerType::RequestSp& context,
-                              bmqt::SessionEventType::Enum         eventType,
+    void asyncRequestNotifier(const RequestSp&              context,
+                              bmqt::SessionEventType::Enum  eventType,
                               const bmqt::CorrelationId&    correlationId,
                               const bsl::shared_ptr<Queue>& queue,
                               const EventCallback&          eventCallback);
@@ -966,21 +957,20 @@ class BrokerSession BSLS_CPP11_FINAL {
     /// Callback used as a wrapper for deprecated sync operations.  Set the
     /// specified result `status`, and finally post on the specified
     /// `semaphore`.  Called from either FSM or the caller thread.
-    void syncRequestNotifier(bslmt::Semaphore*                    semaphore,
-                             int*                                 status,
-                             const RequestManagerType::RequestSp& context);
+    void syncRequestNotifier(bslmt::Semaphore* semaphore,
+                             int*              status,
+                             const RequestSp&  context);
 
     /// Callback used as a wrapper for sync operations (from the `xxxSync`
     /// APIs flavors) in the mode where event handler is not used (i.e.
     /// users explicitly controlling calls to `nextEvent`).
     /// Execute the specified `eventCallback` for the specified 'eventType,
     /// `queue`, and `correlationId` in either FSM or the caller thread.
-    void
-    manualSyncRequestNotifier(const RequestManagerType::RequestSp& context,
-                              bmqt::SessionEventType::Enum         eventType,
-                              const bmqt::CorrelationId&    correlationId,
-                              const bsl::shared_ptr<Queue>& queue,
-                              const EventCallback&          eventCallback);
+    void manualSyncRequestNotifier(const RequestSp&              context,
+                                   bmqt::SessionEventType::Enum  eventType,
+                                   const bmqt::CorrelationId&    correlationId,
+                                   const bsl::shared_ptr<Queue>& queue,
+                                   const EventCallback& eventCallback);
 
     /// Process the raw BlazingMQ event represented by the specified
     /// `event`.  This method gets called each time a new event (received
@@ -1016,30 +1006,30 @@ class BrokerSession BSLS_CPP11_FINAL {
 
     /// Callback invoked in reply to a `disconnect` with the specified
     /// `context`.
-    void onDisconnectResponse(const RequestManagerType::RequestSp& context);
+    void onDisconnectResponse(const RequestSp& context);
 
     /// Invoke queue FSM event handler depending on the specified `contex`
     /// state and the specified `isLocalTimeout` and `isLateResponse` flags.
     /// Submit the specified `queue` and `absTimeout` to the FSM handler.
-    void handleQueueFsmEvent(const RequestManagerType::RequestSp& context,
-                             const bsl::shared_ptr<Queue>&        queue,
-                             bool                     isLocalTimeout,
-                             bool                     isLateResponse,
-                             const bsls::TimeInterval absTimeout);
+    void handleQueueFsmEvent(const RequestSp&              context,
+                             const bsl::shared_ptr<Queue>& queue,
+                             bool                          isLocalTimeout,
+                             bool                          isLateResponse,
+                             const bsls::TimeInterval      absTimeout);
 
     /// Callback invoked in reply to an `openQueue` (first part in the
     /// process of opening a queue) for the specified `queue`, with the
     /// specified request `context`.  Wait until the specified `absTimeout`
     /// for the request to complete.
-    void onOpenQueueResponse(const RequestManagerType::RequestSp& context,
-                             const bsl::shared_ptr<Queue>&        queue,
-                             const bsls::TimeInterval             absTimeout);
+    void onOpenQueueResponse(const RequestSp&              context,
+                             const bsl::shared_ptr<Queue>& queue,
+                             const bsls::TimeInterval      absTimeout);
 
     /// Callback invoked in reply to a `closeQueue` (second part in the
     /// process of closing a queue) for the specified `queue`, with the
     /// specified request `context`.
-    void onCloseQueueResponse(const RequestManagerType::RequestSp& context,
-                              const bsl::shared_ptr<Queue>&        queue);
+    void onCloseQueueResponse(const RequestSp&              context,
+                              const bsl::shared_ptr<Queue>& queue);
 
     /// Send configure queue request of the open queue sequence with the
     /// specified `timeout` to complete for the specified `queue` and bind
@@ -1048,12 +1038,12 @@ class BrokerSession BSLS_CPP11_FINAL {
     /// is performed to reopen the `queue`.  Return `success` on successful
     /// send of the configure request, or a reason of the failure if it
     /// couldn't be sent for any reason.
-    bmqt::ConfigureQueueResult::Enum sendOpenConfigureQueue(
-        const RequestManagerType::RequestSp& openQueueContext,
-        const RequestManagerType::RequestSp& configQueueContext,
-        const bsl::shared_ptr<Queue>&        queue,
-        const bsls::TimeInterval             absTimeout,
-        bool                                 isReopenRequest);
+    bmqt::ConfigureQueueResult::Enum
+    sendOpenConfigureQueue(const RequestSp&              openQueueContext,
+                           const RequestSp&              configQueueContext,
+                           const bsl::shared_ptr<Queue>& queue,
+                           const bsls::TimeInterval      absTimeout,
+                           bool                          isReopenRequest);
 
     /// Send a close queue request to close the specified `queue`.
     void sendCloseQueue(const bsl::shared_ptr<Queue>& queue);
@@ -1063,10 +1053,10 @@ class BrokerSession BSLS_CPP11_FINAL {
     /// Use the specified `absTimeout` value as a request timeout, and the
     /// specified `isFinal` flag for the corresponding close request field.
     bmqt::GenericResult::Enum
-    sendCloseQueue(const RequestManagerType::RequestSp& closeQueueRequest,
-                   const bsl::shared_ptr<Queue>&        queue,
-                   const bsls::TimeInterval             absTimeout,
-                   bool                                 isFinal);
+    sendCloseQueue(const RequestSp&              closeQueueRequest,
+                   const bsl::shared_ptr<Queue>& queue,
+                   const bsls::TimeInterval      absTimeout,
+                   bool                          isFinal);
 
     /// Callback invoked after reply to a `configureQueue` that was sent as
     /// the second part in the process of opening the specified `queue`,
@@ -1074,34 +1064,32 @@ class BrokerSession BSLS_CPP11_FINAL {
     /// `configureQueueContext`, and where the `isReopenRequest` flag
     /// indicates if the request was a reopen after connection was
     /// re-established.
-    void onOpenQueueConfigured(
-        const RequestManagerType::RequestSp& configureQueueContext,
-        const bsl::shared_ptr<Queue>&        queue,
-        const RequestManagerType::RequestSp& openQueueContext,
-        bool                                 isReopenRequest);
+    void onOpenQueueConfigured(const RequestSp& configureQueueContext,
+                               const bsl::shared_ptr<Queue>& queue,
+                               const RequestSp&              openQueueContext,
+                               bool                          isReopenRequest);
 
     /// Callback invoked in reply to a `configureQueue` that was configured
     /// with the options `previousOptions` for the specified `queue`, having
     /// the specified `previousOptions`, with the specified request
     /// `context`, and where the specified `configuredCb` is invoked when
     /// finished.
-    void onConfigureQueueResponse(const RequestManagerType::RequestSp& context,
-                                  const bsl::shared_ptr<Queue>&        queue,
+    void onConfigureQueueResponse(const RequestSp&              context,
+                                  const bsl::shared_ptr<Queue>& queue,
                                   const bmqt::QueueOptions& previousOptions,
                                   const ConfiguredCallback& configuredCb);
 
     /// Callback invoked after a standalone configureQueue for the specified
     /// `queue` with the specified request `context`.
-    void
-    onConfigureQueueConfigured(const RequestManagerType::RequestSp& context,
-                               const bsl::shared_ptr<Queue>&        queue);
+    void onConfigureQueueConfigured(const RequestSp&              context,
+                                    const bsl::shared_ptr<Queue>& queue);
 
     /// Callback invoked on completion of a request to suspend a queue.
     /// Enqueues a pair of session-events that will notify client of
     /// suspension and begin rejecting subsequent writes to the queue.
-    void onSuspendQueueConfigured(const RequestManagerType::RequestSp& context,
-                                  const bsl::shared_ptr<Queue>&        queueSp,
-                                  const bool deferred);
+    void onSuspendQueueConfigured(const RequestSp&              context,
+                                  const bsl::shared_ptr<Queue>& queueSp,
+                                  const bool                    deferred);
 
     /// Callback invoked on completion of a request to resume a queue.
     /// Enqueues a pair of session-events that will notify client of
@@ -1109,9 +1097,9 @@ class BrokerSession BSLS_CPP11_FINAL {
     /// there are no other outstanding host-health requests, also enqueues
     /// an `ALL_QUEUES_RESUMED` event to notify the client that ordinary
     /// operation of the application has resumed.
-    void onResumeQueueConfigured(const RequestManagerType::RequestSp& context,
-                                 const bsl::shared_ptr<Queue>&        queueSp,
-                                 const bool deferred);
+    void onResumeQueueConfigured(const RequestSp&              context,
+                                 const bsl::shared_ptr<Queue>& queueSp,
+                                 const bool                    deferred);
 
     /// Callback invoked after reply to a `configureQueue` that was sent as
     /// the first part in the process of closing the specified `queue`, with
@@ -1119,12 +1107,11 @@ class BrokerSession BSLS_CPP11_FINAL {
     /// `closeQueueRequest` is to be prepared and sent along with specified
     /// `isFinal` flag.  Wait until the specified `absTimeout` for the
     /// request to complete.
-    void onCloseQueueConfigured(
-        const RequestManagerType::RequestSp& configureQueueContext,
-        const bsl::shared_ptr<Queue>&        queue,
-        const RequestManagerType::RequestSp& closeQueueRequest,
-        const bsls::TimeInterval             absTimeout,
-        bool                                 isFinal);
+    void onCloseQueueConfigured(const RequestSp& configureQueueContext,
+                                const bsl::shared_ptr<Queue>& queue,
+                                const RequestSp&         closeQueueRequest,
+                                const bsls::TimeInterval absTimeout,
+                                bool                     isFinal);
 
     /// Invoked when a valid channel that was once connected is being set.
     /// Reopen all queues which were opened before connection dropped
@@ -1145,18 +1132,18 @@ class BrokerSession BSLS_CPP11_FINAL {
     /// request, or a reason of the failure if it couldn't be sent for any
     /// reason.
     bmqt::OpenQueueResult::Enum
-    openQueueImp(const bsl::shared_ptr<Queue>&  queue,
-                 bsls::TimeInterval             timeout,
-                 RequestManagerType::RequestSp& context);
+    openQueueImp(const bsl::shared_ptr<Queue>& queue,
+                 bsls::TimeInterval            timeout,
+                 RequestSp&                    context);
 
     /// Helper method to open the specified `queue` using the specified
     /// `context`.  Wait for the specified `timeout` for the request to
     /// complete. Return `success` on successful send of the request, or a
     /// reason of the failure if it couldn't be sent for any reason.
     bmqt::OpenQueueResult::Enum
-    sendOpenQueueRequest(const RequestManagerType::RequestSp& context,
-                         const bsl::shared_ptr<Queue>&        queue,
-                         bsls::TimeInterval                   timeout);
+    sendOpenQueueRequest(const RequestSp&              context,
+                         const bsl::shared_ptr<Queue>& queue,
+                         bsls::TimeInterval            timeout);
 
     /// Configure the specified `queue` using the specified `options`, with
     /// the specified `context`.  If the specified `checkConcurrent` is
@@ -1170,12 +1157,12 @@ class BrokerSession BSLS_CPP11_FINAL {
     /// failure if it couldn't be sent for any reason (not connected, unable
     /// to serialize the request, ...).
     bmqt::ConfigureQueueResult::Enum
-    configureQueueImp(const RequestManagerType::RequestSp& context,
-                      const bsl::shared_ptr<Queue>&        queue,
-                      const bmqt::QueueOptions&            newClientOptions,
-                      const bsls::TimeInterval             timeout,
-                      const ConfiguredCallback&            configuredCb,
-                      const bool checkConcurrent = true);
+    configureQueueImp(const RequestSp&              context,
+                      const bsl::shared_ptr<Queue>& queue,
+                      const bmqt::QueueOptions&     newClientOptions,
+                      const bsls::TimeInterval      timeout,
+                      const ConfiguredCallback&     configuredCb,
+                      const bool                    checkConcurrent = true);
 
     /// Send configure queue request for the specified `queue` with the
     /// specified `options` with the specified `timeout` for the operation
@@ -1184,10 +1171,10 @@ class BrokerSession BSLS_CPP11_FINAL {
     /// the configure request, or a reason of the failure if it couldn't be
     /// sent for any reason.
     bmqt::ConfigureQueueResult::Enum
-    sendConfigureRequest(const bsl::shared_ptr<Queue>&  queue,
-                         const bmqt::QueueOptions&      options,
-                         const bsls::TimeInterval       timeout,
-                         RequestManagerType::RequestSp& context);
+    sendConfigureRequest(const bsl::shared_ptr<Queue>& queue,
+                         const bmqt::QueueOptions&     options,
+                         const bsls::TimeInterval      timeout,
+                         RequestSp&                    context);
 
     /// Send configure queue request for the specified `queue`.  The result
     /// of this request is not provided to the user.
@@ -1200,9 +1187,9 @@ class BrokerSession BSLS_CPP11_FINAL {
     /// Return `success` on successful send of the configure request, or a
     /// reason of the failure if it couldn't be sent for any reason.
     bmqt::ConfigureQueueResult::Enum
-    sendDeconfigureRequest(const bsl::shared_ptr<Queue>&        queue,
-                           const RequestManagerType::RequestSp& closeContext,
-                           bsls::TimeInterval                   timeout);
+    sendDeconfigureRequest(const bsl::shared_ptr<Queue>& queue,
+                           const RequestSp&              closeContext,
+                           bsls::TimeInterval            timeout);
 
     /// For the specified `queue` send a configure request with null
     /// settings.  Return `success` on successful send of the configure
@@ -1213,17 +1200,17 @@ class BrokerSession BSLS_CPP11_FINAL {
 
     /// For the specified `queue` send a suspend request.
     bmqt::ConfigureQueueResult::Enum
-    sendSuspendRequest(const bsl::shared_ptr<Queue>&  queueSp,
-                       const bmqt::QueueOptions&      options,
-                       const bsls::TimeInterval       timeout,
-                       RequestManagerType::RequestSp& context);
+    sendSuspendRequest(const bsl::shared_ptr<Queue>& queueSp,
+                       const bmqt::QueueOptions&     options,
+                       const bsls::TimeInterval      timeout,
+                       RequestSp&                    context);
 
     /// For the specified `queue` send a resume request.
     bmqt::ConfigureQueueResult::Enum
-    sendResumeRequest(const bsl::shared_ptr<Queue>&  queueSp,
-                      const bmqt::QueueOptions&      options,
-                      const bsls::TimeInterval       timeout,
-                      RequestManagerType::RequestSp& context);
+    sendResumeRequest(const bsl::shared_ptr<Queue>& queueSp,
+                      const bmqt::QueueOptions&     options,
+                      const bsls::TimeInterval      timeout,
+                      RequestSp&                    context);
 
     /// Enqueue a `STATE_RESTORED` event if responses for all the
     /// reopen-queue requests have been received from the broker, after the
@@ -1395,33 +1382,30 @@ class BrokerSession BSLS_CPP11_FINAL {
     /// `AsyncNotifierCb`.  The specified `isReopen` flag is used to set
     /// user event type (QUEUE_OPEN_RESULT or QUEUE_REOPEN_RESULT). The
     /// specified `isBuffered` flag is used to set request group id.
-    RequestManagerType::RequestSp
-    createOpenQueueContext(const bsl::shared_ptr<Queue>& queue,
-                           const FsmCallback&            fsmCallback,
-                           bool                          isBuffered);
+    RequestSp createOpenQueueContext(const bsl::shared_ptr<Queue>& queue,
+                                     const FsmCallback&            fsmCallback,
+                                     bool                          isBuffered);
 
     /// Return a configure queue request context for the specified `queue`
     /// and with the specified `options`.  The specified `isDeconfigure`
     /// flag is used to set specific consumer priority settings.  The
     /// specified `isBuffered` flag is used to set request group id.
-    RequestManagerType::RequestSp
-    createConfigureQueueContext(const bsl::shared_ptr<Queue>& queue,
-                                const bmqt::QueueOptions&     options,
-                                bool                          isDeconfigure,
-                                bool                          isBuffered);
+    RequestSp createConfigureQueueContext(const bsl::shared_ptr<Queue>& queue,
+                                          const bmqt::QueueOptions& options,
+                                          bool isDeconfigure,
+                                          bool isBuffered);
 
     /// Return a configure queue request context for the specified `queue`
     /// and with the specified `options` and `fsmCallback` to be called as
     /// the request's `AsyncNotifierCb`.
-    RequestManagerType::RequestSp
+    RequestSp
     createStandaloneConfigureQueueContext(const bsl::shared_ptr<Queue>& queue,
                                           const bmqt::QueueOptions& options,
                                           const FsmCallback& fsmCallback);
 
     /// Return a close queue request context with the specified
     /// `fsmCallback` to be called as the request's `AsyncNotifierCb`.
-    RequestManagerType::RequestSp
-    createCloseQueueContext(const FsmCallback& fsmCallback);
+    RequestSp createCloseQueueContext(const FsmCallback& fsmCallback);
 
     /// Returns whether or not the machine the application is running on is
     /// considered healthy.
@@ -1464,10 +1448,10 @@ class BrokerSession BSLS_CPP11_FINAL {
     /// success.  In all other cases return the result of the write
     /// operation.
     bmqt::GenericResult::Enum
-    requestWriterCb(const RequestManagerType::RequestSp& context,
-                    const bmqp::QueueId&                 queueId,
-                    const bsl::shared_ptr<bdlbb::Blob>&  blob_sp,
-                    bsls::Types::Int64                   highWatermark);
+    requestWriterCb(const RequestSp&                    context,
+                    const bmqp::QueueId&                queueId,
+                    const bsl::shared_ptr<bdlbb::Blob>& blob_sp,
+                    bsls::Types::Int64                  highWatermark);
 
     /// Write the specified `blob` into the channel providing the specified
     /// channel `highWaterMark` value.  If the write operation fails with
@@ -1481,8 +1465,7 @@ class BrokerSession BSLS_CPP11_FINAL {
 
     void setupPutExpirationTimer(const bsls::TimeInterval& timeout);
 
-    void
-    removePendingControlMessage(const RequestManagerType::RequestSp& context);
+    void removePendingControlMessage(const RequestSp& context);
 
     /// If Distributed Trace is configured by the session options, this will
     /// return an object which sets `span` to the active span (as defined by

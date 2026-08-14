@@ -116,26 +116,24 @@
 //
 // First, let's create a 'RequestManager' object:
 //..
-//  bslma::Allocator              allocator = bslma::Default::allocator();
-//  bdlbb::PooledBlobBufferFactory blobBufferFactory(4069, allocator);
-//  bdlmt::EventScheduler         scheduler(bsls::SystemClockType::e_MONOTONIC,
-//                                          allocator);
+//  bslma::Allocator               allocator = bslma::Default::allocator();
+//  bdlbb::PooledBlobBufferFactory blobBufferFactory(4096, &allocator);
+//  bdlmt::EventScheduler          scheduler(
+//                                     bsls::SystemClockType::e_MONOTONIC,
+//                                     allocator);
 //
-//  typedef bmqp::RequestManager<bmqp_ctrlmsg::ControlMessage,
-//                               bmqp_ctrlmsg::ControlMessage>
-//                                                          RequestManagerType;
-// RequestManagerType requestManager(bmqp::EventType::e_CONTROL,
-//                                   &blobBufferFactory,
-//                                   &scheduler,
-//                                   false,  // late response mode
-//                                   &allocator);
+//  bmqp::RequestManager requestManager(bmqp::EventType::e_CONTROL,
+//                                      &blobBufferFactory,
+//                                      &scheduler,
+//                                      false,  // late response mode
+//                                      &allocator);
 //..
 //
 // Then we can use it to create and send a request.  (here we assume that we
 // have an already established and valid 'bmqio::Channel' object to use)
 //..
 //  // We first ask a Request object to the RequestManager
-//  RequestManagerType::RequestSp request = requestManager.createRequest();
+//  bmqp::RequestManager::RequestSp request = requestManager.createRequest();
 //
 //  // Populate the request
 //  bmqp_ctrlmsg::OpenQueue& req = request->request().choice().makeOpenQueue();
@@ -188,7 +186,8 @@
 // invoked, let's look at a typical implementation of such a method:
 //..
 //  void
-//  MyClass::onOpenQueueResponse(const RequestManagerType::RequestSp& context)
+//  MyClass::onOpenQueueResponse(const bmqp::RequestManager::RequestSp&
+//  context)
 //  {
 //    if (context->result() != bmqt::GenericResult::e_SUCCESS) {
 //        // Request failed/timedout/got canceled
@@ -209,7 +208,7 @@
 // handle a request with a response callback.
 //
 //..
-//  RequestManagerType::RequestSp request = requestManager.createRequest();
+//  bmqp::RequestManager::RequestSp request = requestManager.createRequest();
 //  bmqp_ctrlmsg::OpenQueue& req = request->request().choice().makeOpenQueue();
 //  req.uri() = "bmq://bmq.test.mem.priority/myQueue"
 //  [...]
@@ -253,7 +252,7 @@
 // following example:
 //
 //..
-//  RequestManagerType::RequestSp request = requestManager.createRequest();
+//  bmqp::RequestManager::RequestSp request = requestManager.createRequest();
 //  bmqp_ctrlmsg::OpenQueue& req = request->request().choice().makeOpenQueue();
 //  req.uri() = "bmq://bmq.test.mem.priority/myQueue"
 //  [...]
@@ -294,7 +293,7 @@
 // asynchronously processing its response:
 //
 //..
-//  RequestManagerType::RequestSp request = requestManager.createRequest();
+//  bmqp::RequestManager::RequestSp request = requestManager.createRequest();
 //  bmqp_ctrlmsg::OpenQueue& req = request->request().choice().makeOpenQueue();
 //  req.uri() = "bmq://bmq.test.mem.priority/myQueue"
 //  [...]
@@ -378,7 +377,6 @@ namespace BloombergLP {
 namespace bmqp {
 
 // FORWARD DECLARATION
-template <class REQUEST, class RESPONSE>
 class RequestManager;
 
 // ================================
@@ -423,7 +421,6 @@ struct RequestManagerComponentId {
 /// Object representing a request sent, pending response for it; holding the
 /// request and all associated context state.  This allows for both
 /// synchronous and asynchronous response management.
-template <class REQUEST, class RESPONSE>
 class RequestManagerRequest {
   public:
     // PUBLIC CLASS DATA
@@ -431,31 +428,27 @@ class RequestManagerRequest {
 
     // TYPES
 
-    /// SelfType is an alias to this `class`.
-    typedef RequestManagerRequest<REQUEST, RESPONSE> SelfType;
-
-    typedef bsl::shared_ptr<SelfType> SelfTypeSp;
-
-    /// Shared and weak pointer to self type alias
-    typedef bsl::weak_ptr<SelfType> SelfTypeWp;
-
     /// Signature of a callback for delivering the response in the
     /// specified `context`.
-    typedef bsl::function<void(const SelfTypeSp& context)> ResponseCb;
+    typedef bsl::function<void(
+        const bsl::shared_ptr<RequestManagerRequest>& context)>
+        ResponseCb;
 
     /// Signature of a callback for signaling a response in the specified
     /// `context`.
-    typedef bsl::function<void(const SelfTypeSp& context)> AsyncNotifierCb;
+    typedef bsl::function<void(
+        const bsl::shared_ptr<RequestManagerRequest>& context)>
+        AsyncNotifierCb;
 
   private:
     // DATA
-    SelfTypeWp d_self_wp;
+    bsl::weak_ptr<RequestManagerRequest> d_self_wp;
     // Weak pointer to self
 
-    REQUEST d_requestMessage;
+    bmqp_ctrlmsg::ControlMessage d_requestMessage;
     // The request
 
-    RESPONSE d_responseMessage;
+    bmqp_ctrlmsg::ControlMessage d_responseMessage;
     // The response
 
     bslmt::Semaphore d_semaphore;
@@ -520,7 +513,7 @@ class RequestManagerRequest {
     // request.
 
     // FRIENDS
-    friend class RequestManager<REQUEST, RESPONSE>;
+    friend class RequestManager;
 
   private:
     // NOT IMPLEMENTED
@@ -565,11 +558,11 @@ class RequestManagerRequest {
     /// request times out or gets canceled).
     void wait();
 
-    REQUEST& request();
+    bmqp_ctrlmsg::ControlMessage& request();
 
     /// Return a reference offering modifiable access to the corresponding
     /// member of this object.
-    RESPONSE& response();
+    bmqp_ctrlmsg::ControlMessage& response();
 
     RequestManagerRequest& setResponseCb(const ResponseCb& value);
 
@@ -614,11 +607,11 @@ class RequestManagerRequest {
     RequestManagerRequest& adoptUserData(const bdld::Datum& value);
 
     // ACCESSORS
-    bool            isLateResponse() const;
-    bool            isLocalTimeout() const;
-    bool            isError() const;
-    const REQUEST&  request() const;
-    const RESPONSE& response() const;
+    bool                                isLateResponse() const;
+    bool                                isLocalTimeout() const;
+    bool                                isError() const;
+    const bmqp_ctrlmsg::ControlMessage& request() const;
+    const bmqp_ctrlmsg::ControlMessage& response() const;
 
     /// Return the value of the corresponding member.
     const ResponseCb& responseCb() const;
@@ -651,7 +644,6 @@ class RequestManagerRequest {
 // ====================
 
 /// Mechanism to manage requests and their response.
-template <class REQUEST, class RESPONSE>
 class RequestManager {
   public:
     // TYPES
@@ -665,7 +657,7 @@ class RequestManager {
         const bsl::shared_ptr<bdlbb::Blob>& blob)>
         SendFn;
 
-    typedef RequestManagerRequest<REQUEST, RESPONSE> RequestType;
+    typedef RequestManagerRequest RequestType;
 
     /// Shortcut to a Request object
     typedef bsl::shared_ptr<RequestType> RequestSp;
@@ -703,9 +695,9 @@ class RequestManager {
     /// but using an un-ordered map is not an option.
     typedef bmqc::OrderedHashMap<int, RequestSp> RequestMap;
 
-    typedef typename RequestMap::iterator RequestMapIter;
+    typedef RequestMap::iterator RequestMapIter;
 
-    typedef typename RequestMap::const_iterator RequestMapConstIter;
+    typedef RequestMap::const_iterator RequestMapConstIter;
 
     // DATA
     bslma::Allocator* d_allocator_p;
@@ -770,7 +762,8 @@ class RequestManager {
     void onRequestTimeout(int requestId);
 
     /// Apply the specified `response` to the specified `request`.
-    void applyResponse(const RequestSp& request, const RESPONSE& response);
+    void applyResponse(const RequestSp&                    request,
+                       const bmqp_ctrlmsg::ControlMessage& response);
 
     /// Cancel all outstanding requests matching the specified `groupId` and
     /// `componentId` filters, with the specified `reason` response
@@ -779,9 +772,9 @@ class RequestManager {
     /// disables component filtering.  Both filters are applied with AND
     /// semantics.  The corresponding response callbacks will be invoked in
     /// the order in which requests were sent.
-    void cancelAllRequestsImpl(const RESPONSE& reason,
-                               int             groupId,
-                               int             componentId);
+    void cancelAllRequestsImpl(const bmqp_ctrlmsg::ControlMessage& reason,
+                               int                                 groupId,
+                               int componentId);
 
   private:
     // NOT IMPLEMENTED
@@ -866,26 +859,28 @@ class RequestManager {
     /// Process the specified `response` and return 0 if the response is for
     /// a valid request, or non-zero otherwise (for example if the request
     /// has been removed due to timeout).
-    int processResponse(const RESPONSE& response);
+    int processResponse(const bmqp_ctrlmsg::ControlMessage& response);
 
     /// Cancel all outstanding requests with the specified `reason` response
     /// description.  The corresponding response callbacks will be invoked
     /// in the order in which requests were sent.
-    void cancelAllRequests(const RESPONSE& reason);
+    void cancelAllRequests(const bmqp_ctrlmsg::ControlMessage& reason);
 
     /// Cancel all outstanding requests belonging to the specified
     /// `groupId`, with the specified `reason` response description.  The
     /// behavior is undefined if `groupId` is `NO_GROUP_ID`.  The
     /// corresponding response callbacks will be invoked in the order in
     /// which requests were sent.
-    void cancelGroupRequests(const RESPONSE& reason, int groupId);
+    void cancelGroupRequests(const bmqp_ctrlmsg::ControlMessage& reason,
+                             int                                 groupId);
 
     /// Cancel all outstanding requests tagged with the specified
     /// `componentId`, with the specified `reason` response description.
     /// The behavior is undefined if `componentId` is
     /// `k_NO_COMPONENT_ID`.  The corresponding response callbacks will be
     /// invoked in the order in which requests were sent.
-    void cancelComponentRequests(const RESPONSE& reason, int componentId);
+    void cancelComponentRequests(const bmqp_ctrlmsg::ControlMessage& reason,
+                                 int componentId);
 };
 
 // ============================================================================
@@ -916,8 +911,7 @@ inline bool RequestManagerComponentId::isValid(int componentId)
 // class RequestManagerRequest
 // ---------------------------
 
-template <class REQUEST, class RESPONSE>
-RequestManagerRequest<REQUEST, RESPONSE>::RequestManagerRequest(
+inline RequestManagerRequest::RequestManagerRequest(
     bslma::Allocator* allocator)
 : d_requestMessage(allocator)
 , d_responseMessage(allocator)
@@ -938,14 +932,12 @@ RequestManagerRequest<REQUEST, RESPONSE>::RequestManagerRequest(
     // NOTHING
 }
 
-template <class REQUEST, class RESPONSE>
-RequestManagerRequest<REQUEST, RESPONSE>::~RequestManagerRequest()
+inline RequestManagerRequest::~RequestManagerRequest()
 {
     clear();
 }
 
-template <class REQUEST, class RESPONSE>
-void RequestManagerRequest<REQUEST, RESPONSE>::clear()
+inline void RequestManagerRequest::clear()
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!d_timeoutSchedulerHandle);
@@ -968,11 +960,10 @@ void RequestManagerRequest<REQUEST, RESPONSE>::clear()
     d_dtContext_p = NULL;
 }
 
-template <class REQUEST, class RESPONSE>
-void RequestManagerRequest<REQUEST, RESPONSE>::signal()
+inline void RequestManagerRequest::signal()
 {
     if (d_asyncNotifierCb) {
-        SelfTypeSp context = d_self_wp.lock();
+        bsl::shared_ptr<RequestManagerRequest> context = d_self_wp.lock();
         BSLS_ASSERT_SAFE(context);
 
         bslma::ManagedPtr<void> spanToken(context->activateDTSpan());
@@ -982,55 +973,44 @@ void RequestManagerRequest<REQUEST, RESPONSE>::signal()
     d_semaphore.post();
 }
 
-template <class REQUEST, class RESPONSE>
-void RequestManagerRequest<REQUEST, RESPONSE>::wait()
+inline void RequestManagerRequest::wait()
 {
     // No need to timedWait on a timedSemaphore, 'sendRequest()' schedules an
     // event for timeout that will post on the semaphore.
     d_semaphore.wait();
 }
 
-template <class REQUEST, class RESPONSE>
-REQUEST& RequestManagerRequest<REQUEST, RESPONSE>::request()
+inline bmqp_ctrlmsg::ControlMessage& RequestManagerRequest::request()
 {
     return d_requestMessage;
 }
 
-template <class REQUEST, class RESPONSE>
-RESPONSE& RequestManagerRequest<REQUEST, RESPONSE>::response()
+inline bmqp_ctrlmsg::ControlMessage& RequestManagerRequest::response()
 {
     return d_responseMessage;
 }
 
-template <class REQUEST, class RESPONSE>
-RequestManagerRequest<REQUEST, RESPONSE>&
-RequestManagerRequest<REQUEST, RESPONSE>::setResponseCb(
-    const ResponseCb& value)
+inline RequestManagerRequest&
+RequestManagerRequest::setResponseCb(const ResponseCb& value)
 {
     d_responseCb = value;
     return *this;
 }
 
-template <class REQUEST, class RESPONSE>
-RequestManagerRequest<REQUEST, RESPONSE>&
-RequestManagerRequest<REQUEST, RESPONSE>::setAsyncNotifierCb(
-    const AsyncNotifierCb& value)
+inline RequestManagerRequest&
+RequestManagerRequest::setAsyncNotifierCb(const AsyncNotifierCb& value)
 {
     d_asyncNotifierCb = value;
     return *this;
 }
 
-template <class REQUEST, class RESPONSE>
-RequestManagerRequest<REQUEST, RESPONSE>&
-RequestManagerRequest<REQUEST, RESPONSE>::setGroupId(int value)
+inline RequestManagerRequest& RequestManagerRequest::setGroupId(int value)
 {
     d_groupId = value;
     return *this;
 }
 
-template <class REQUEST, class RESPONSE>
-RequestManagerRequest<REQUEST, RESPONSE>&
-RequestManagerRequest<REQUEST, RESPONSE>::setComponentId(int value)
+inline RequestManagerRequest& RequestManagerRequest::setComponentId(int value)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(RequestManagerComponentId::isValid(value));
@@ -1040,35 +1020,28 @@ RequestManagerRequest<REQUEST, RESPONSE>::setComponentId(int value)
     return *this;
 }
 
-template <class REQUEST, class RESPONSE>
-RequestManagerRequest<REQUEST, RESPONSE>&
-RequestManagerRequest<REQUEST, RESPONSE>::setDTSpan(
-    const bsl::shared_ptr<bmqpi::DTSpan>& span)
+inline RequestManagerRequest&
+RequestManagerRequest::setDTSpan(const bsl::shared_ptr<bmqpi::DTSpan>& span)
 {
     d_dtSpan_sp = span;
     return *this;
 }
 
-template <class REQUEST, class RESPONSE>
-RequestManagerRequest<REQUEST, RESPONSE>&
-RequestManagerRequest<REQUEST, RESPONSE>::setDTContext(bmqpi::DTContext* ctx)
+inline RequestManagerRequest&
+RequestManagerRequest::setDTContext(bmqpi::DTContext* ctx)
 {
     d_dtContext_p = ctx;
     return *this;
 }
 
-template <class REQUEST, class RESPONSE>
-RequestManagerRequest<REQUEST, RESPONSE>&
-RequestManagerRequest<REQUEST, RESPONSE>::adoptUserData(
-    const bdld::Datum& value)
+inline RequestManagerRequest&
+RequestManagerRequest::adoptUserData(const bdld::Datum& value)
 {
     d_userData.adopt(value);
     return *this;
 }
 
-template <class REQUEST, class RESPONSE>
-bslma::ManagedPtr<void>
-RequestManagerRequest<REQUEST, RESPONSE>::activateDTSpan() const
+inline bslma::ManagedPtr<void> RequestManagerRequest::activateDTSpan() const
 {
     bslma::ManagedPtr<void> result;
     if (d_dtSpan_sp && d_dtContext_p) {
@@ -1077,46 +1050,40 @@ RequestManagerRequest<REQUEST, RESPONSE>::activateDTSpan() const
     return result;
 }
 
-template <class REQUEST, class RESPONSE>
-bool RequestManagerRequest<REQUEST, RESPONSE>::isLateResponse() const
+inline bool RequestManagerRequest::isLateResponse() const
 {
     return d_haveTimeout && d_haveResponse;
 }
 
-template <class REQUEST, class RESPONSE>
-bool RequestManagerRequest<REQUEST, RESPONSE>::isLocalTimeout() const
+inline bool RequestManagerRequest::isLocalTimeout() const
 {
     return d_haveTimeout && !d_haveResponse;
 }
 
-template <class REQUEST, class RESPONSE>
-bool RequestManagerRequest<REQUEST, RESPONSE>::isError() const
+inline bool RequestManagerRequest::isError() const
 {
     return isLocalTimeout() ? true : response().choice().isStatusValue();
 }
 
-template <class REQUEST, class RESPONSE>
-const REQUEST& RequestManagerRequest<REQUEST, RESPONSE>::request() const
+inline const bmqp_ctrlmsg::ControlMessage&
+RequestManagerRequest::request() const
 {
     return d_requestMessage;
 }
 
-template <class REQUEST, class RESPONSE>
-const RESPONSE& RequestManagerRequest<REQUEST, RESPONSE>::response() const
+inline const bmqp_ctrlmsg::ControlMessage&
+RequestManagerRequest::response() const
 {
     return d_responseMessage;
 }
 
-template <class REQUEST, class RESPONSE>
-const typename RequestManagerRequest<REQUEST, RESPONSE>::ResponseCb&
-RequestManagerRequest<REQUEST, RESPONSE>::responseCb() const
+inline const RequestManagerRequest::ResponseCb&
+RequestManagerRequest::responseCb() const
 {
     return d_responseCb;
 }
 
-template <class REQUEST, class RESPONSE>
-bmqt::GenericResult::Enum
-RequestManagerRequest<REQUEST, RESPONSE>::result() const
+inline bmqt::GenericResult::Enum RequestManagerRequest::result() const
 {
     if (d_responseMessage.choice().isStatusValue()) {
         return static_cast<bmqt::GenericResult::Enum>(
@@ -1126,8 +1093,7 @@ RequestManagerRequest<REQUEST, RESPONSE>::result() const
     return bmqt::GenericResult::e_SUCCESS;
 }
 
-template <class REQUEST, class RESPONSE>
-int RequestManagerRequest<REQUEST, RESPONSE>::statusCode() const
+inline int RequestManagerRequest::statusCode() const
 {
     if (d_responseMessage.choice().isStatusValue()) {
         return d_responseMessage.choice().status().code();  // RETURN
@@ -1136,27 +1102,22 @@ int RequestManagerRequest<REQUEST, RESPONSE>::statusCode() const
     return bmqt::GenericResult::e_SUCCESS;
 }
 
-template <class REQUEST, class RESPONSE>
-const bsl::string&
-RequestManagerRequest<REQUEST, RESPONSE>::nodeDescription() const
+inline const bsl::string& RequestManagerRequest::nodeDescription() const
 {
     return d_nodeDescription;
 }
 
-template <class REQUEST, class RESPONSE>
-int RequestManagerRequest<REQUEST, RESPONSE>::groupId() const
+inline int RequestManagerRequest::groupId() const
 {
     return d_groupId;
 }
 
-template <class REQUEST, class RESPONSE>
-int RequestManagerRequest<REQUEST, RESPONSE>::componentId() const
+inline int RequestManagerRequest::componentId() const
 {
     return d_componentId;
 }
 
-template <class REQUEST, class RESPONSE>
-const bdld::Datum& RequestManagerRequest<REQUEST, RESPONSE>::userData() const
+inline const bdld::Datum& RequestManagerRequest::userData() const
 {
     return d_userData.datum();
 }
@@ -1165,11 +1126,10 @@ const bdld::Datum& RequestManagerRequest<REQUEST, RESPONSE>::userData() const
 // class RequestManager
 // --------------------
 
-template <class REQUEST, class RESPONSE>
-inline bmqt::GenericResult::Enum RequestManager<REQUEST, RESPONSE>::sendHelper(
-    bmqio::Channel*                     channel,
-    const bsl::shared_ptr<bdlbb::Blob>& blob_sp,
-    bsls::Types::Int64                  watermark)
+inline bmqt::GenericResult::Enum
+RequestManager::sendHelper(bmqio::Channel*                     channel,
+                           const bsl::shared_ptr<bdlbb::Blob>& blob_sp,
+                           bsls::Types::Int64                  watermark)
 {
     bmqio::Status status;
     channel->write(&status, *blob_sp, watermark);
@@ -1188,8 +1148,7 @@ inline bmqt::GenericResult::Enum RequestManager<REQUEST, RESPONSE>::sendHelper(
     }
 }
 
-template <class REQUEST, class RESPONSE>
-void RequestManager<REQUEST, RESPONSE>::onRequestTimeout(int requestId)
+inline void RequestManager::onRequestTimeout(int requestId)
 {
     // executed by the thread selected by 'd_executor'
 
@@ -1224,7 +1183,7 @@ void RequestManager<REQUEST, RESPONSE>::onRequestTimeout(int requestId)
                    << "' has timed out: " << request->request();
 
     // Now prepare a response and invoke the callback/signal outside the mutex.
-    RESPONSE& response = request->response();
+    bmqp_ctrlmsg::ControlMessage& response = request->response();
 
     // 1. 'fake' a response, with a Timeout status type
     response.rId().makeValue(requestId);
@@ -1265,9 +1224,9 @@ void RequestManager<REQUEST, RESPONSE>::onRequestTimeout(int requestId)
     }
 }
 
-template <class REQUEST, class RESPONSE>
-void RequestManager<REQUEST, RESPONSE>::applyResponse(const RequestSp& request,
-                                                      const RESPONSE& response)
+inline void
+RequestManager::applyResponse(const RequestSp&                    request,
+                              const bmqp_ctrlmsg::ControlMessage& response)
 {
     // mutex *NOT* locked
 
@@ -1314,13 +1273,11 @@ void RequestManager<REQUEST, RESPONSE>::applyResponse(const RequestSp& request,
     }
 }
 
-template <class REQUEST, class RESPONSE>
-RequestManager<REQUEST, RESPONSE>::RequestManager(
-    bmqp::EventType::Enum  eventType,
-    BlobSpPool*            blobSpPool_p,
-    bdlmt::EventScheduler* scheduler,
-    bool                   lateResponseMode,
-    bslma::Allocator*      allocator)
+inline RequestManager::RequestManager(bmqp::EventType::Enum  eventType,
+                                      BlobSpPool*            blobSpPool_p,
+                                      bdlmt::EventScheduler* scheduler,
+                                      bool                   lateResponseMode,
+                                      bslma::Allocator*      allocator)
 : d_allocator_p(allocator)
 , d_eventType(eventType)
 , d_scheduler_p(scheduler)
@@ -1340,14 +1297,12 @@ RequestManager<REQUEST, RESPONSE>::RequestManager(
                      bsls::SystemClockType::e_MONOTONIC);
 }
 
-template <class REQUEST, class RESPONSE>
-RequestManager<REQUEST, RESPONSE>::RequestManager(
-    bmqp::EventType::Enum  eventType,
-    BlobSpPool*            blobSpPool_p,
-    bdlmt::EventScheduler* scheduler,
-    bool                   lateResponseMode,
-    const bmqex::Executor& executor,
-    bslma::Allocator*      allocator)
+inline RequestManager::RequestManager(bmqp::EventType::Enum  eventType,
+                                      BlobSpPool*            blobSpPool_p,
+                                      bdlmt::EventScheduler* scheduler,
+                                      bool                   lateResponseMode,
+                                      const bmqex::Executor& executor,
+                                      bslma::Allocator*      allocator)
 : d_allocator_p(allocator)
 , d_eventType(eventType)
 , d_scheduler_p(scheduler)
@@ -1364,15 +1319,13 @@ RequestManager<REQUEST, RESPONSE>::RequestManager(
     BSLS_ASSERT_SAFE(executor);
 }
 
-template <class REQUEST, class RESPONSE>
-RequestManager<REQUEST, RESPONSE>::RequestManager(
-    bmqp::EventType::Enum  eventType,
-    BlobSpPool*            blobSpPool_p,
-    bdlmt::EventScheduler* scheduler,
-    bool                   lateResponseMode,
-    const bmqex::Executor& executor,
-    const DTContextSp&     dtContext,
-    bslma::Allocator*      allocator)
+inline RequestManager::RequestManager(bmqp::EventType::Enum  eventType,
+                                      BlobSpPool*            blobSpPool_p,
+                                      bdlmt::EventScheduler* scheduler,
+                                      bool                   lateResponseMode,
+                                      const bmqex::Executor& executor,
+                                      const DTContextSp&     dtContext,
+                                      bslma::Allocator*      allocator)
 : d_allocator_p(allocator)
 , d_eventType(eventType)
 , d_scheduler_p(scheduler)
@@ -1389,8 +1342,7 @@ RequestManager<REQUEST, RESPONSE>::RequestManager(
     BSLS_ASSERT_SAFE(executor);
 }
 
-template <class REQUEST, class RESPONSE>
-RequestManager<REQUEST, RESPONSE>::~RequestManager()
+inline RequestManager::~RequestManager()
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_requests.empty() &&
@@ -1399,17 +1351,14 @@ RequestManager<REQUEST, RESPONSE>::~RequestManager()
                      "this object");
 }
 
-template <class REQUEST, class RESPONSE>
-inline RequestManager<REQUEST, RESPONSE>&
-RequestManager<REQUEST, RESPONSE>::setExecutor(const bmqex::Executor& executor)
+inline RequestManager&
+RequestManager::setExecutor(const bmqex::Executor& executor)
 {
     d_executor = executor;
     return *this;
 }
 
-template <class REQUEST, class RESPONSE>
-typename RequestManager<REQUEST, RESPONSE>::RequestSp
-RequestManager<REQUEST, RESPONSE>::createRequest()
+inline RequestManager::RequestSp RequestManager::createRequest()
 {
     RequestSp request;
     request.createInplace(d_allocator_p, d_allocator_p);
@@ -1423,14 +1372,13 @@ RequestManager<REQUEST, RESPONSE>::createRequest()
     return request;
 }
 
-template <class REQUEST, class RESPONSE>
-bmqt::GenericResult::Enum RequestManager<REQUEST, RESPONSE>::sendRequest(
-    const typename RequestManager::RequestSp& request,
-    bmqio::Channel*                           channel,
-    const bsl::string&                        nodeDescription,
-    const bsls::TimeInterval&                 timeout,
-    bsls::Types::Int64                        watermark,
-    bsl::string*                              errorDescription)
+inline bmqt::GenericResult::Enum
+RequestManager::sendRequest(const RequestSp&          request,
+                            bmqio::Channel*           channel,
+                            const bsl::string&        nodeDescription,
+                            const bsls::TimeInterval& timeout,
+                            bsls::Types::Int64        watermark,
+                            bsl::string*              errorDescription)
 {
     return sendRequest(request,
                        bdlf::BindUtil::bind(&sendHelper,
@@ -1442,13 +1390,12 @@ bmqt::GenericResult::Enum RequestManager<REQUEST, RESPONSE>::sendRequest(
                        errorDescription);
 }
 
-template <class REQUEST, class RESPONSE>
-bmqt::GenericResult::Enum RequestManager<REQUEST, RESPONSE>::sendRequest(
-    const typename RequestManager::RequestSp& request,
-    const SendFn&                             sendFn,
-    const bsl::string&                        nodeDescription,
-    const bsls::TimeInterval&                 timeout,
-    bsl::string*                              errorDescription)
+inline bmqt::GenericResult::Enum
+RequestManager::sendRequest(const RequestSp&          request,
+                            const SendFn&             sendFn,
+                            const bsl::string&        nodeDescription,
+                            const bsls::TimeInterval& timeout,
+                            bsl::string*              errorDescription)
 {
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // MUTEX LOCKED
 
@@ -1528,9 +1475,8 @@ bmqt::GenericResult::Enum RequestManager<REQUEST, RESPONSE>::sendRequest(
     return bmqt::GenericResult::e_SUCCESS;
 }
 
-template <class REQUEST, class RESPONSE>
-int RequestManager<REQUEST, RESPONSE>::processResponse(
-    const RESPONSE& response)
+inline int
+RequestManager::processResponse(const bmqp_ctrlmsg::ControlMessage& response)
 {
     enum RcEnum {
         // Value for the various RC error categories
@@ -1570,19 +1516,17 @@ int RequestManager<REQUEST, RESPONSE>::processResponse(
     return rc_SUCCESS;
 }
 
-template <class REQUEST, class RESPONSE>
-void RequestManager<REQUEST, RESPONSE>::cancelAllRequests(
-    const RESPONSE& reason)
+inline void
+RequestManager::cancelAllRequests(const bmqp_ctrlmsg::ControlMessage& reason)
 {
     cancelAllRequestsImpl(reason,
                           RequestType::k_NO_GROUP_ID,
                           RequestManagerComponentId::k_NO_COMPONENT_ID);
 }
 
-template <class REQUEST, class RESPONSE>
-void RequestManager<REQUEST, RESPONSE>::cancelGroupRequests(
-    const RESPONSE& reason,
-    int             groupId)
+inline void
+RequestManager::cancelGroupRequests(const bmqp_ctrlmsg::ControlMessage& reason,
+                                    int groupId)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(groupId != RequestType::k_NO_GROUP_ID);
@@ -1592,10 +1536,9 @@ void RequestManager<REQUEST, RESPONSE>::cancelGroupRequests(
                           RequestManagerComponentId::k_NO_COMPONENT_ID);
 }
 
-template <class REQUEST, class RESPONSE>
-void RequestManager<REQUEST, RESPONSE>::cancelComponentRequests(
-    const RESPONSE& reason,
-    int             componentId)
+inline void RequestManager::cancelComponentRequests(
+    const bmqp_ctrlmsg::ControlMessage& reason,
+    int                                 componentId)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(componentId !=
@@ -1604,11 +1547,10 @@ void RequestManager<REQUEST, RESPONSE>::cancelComponentRequests(
     cancelAllRequestsImpl(reason, RequestType::k_NO_GROUP_ID, componentId);
 }
 
-template <class REQUEST, class RESPONSE>
-void RequestManager<REQUEST, RESPONSE>::cancelAllRequestsImpl(
-    const RESPONSE& reason,
-    int             groupId,
-    int             componentId)
+inline void RequestManager::cancelAllRequestsImpl(
+    const bmqp_ctrlmsg::ControlMessage& reason,
+    int                                 groupId,
+    int                                 componentId)
 {
     // Note that requests must be cancelled in the same order in which they
     // were sent.

@@ -51,6 +51,9 @@ class AuthorizerConfig;
 
 namespace mqbauthz {
 
+// FORWARD DECLARATION
+class PluginLibrary;
+
 // =============================
 // class AuthorizationController
 // =============================
@@ -82,15 +85,19 @@ class AuthorizationController {
 
     /// Collect all available plugin factories of the specified `type`
     /// (built-in and external).  Load them into the specified
-    /// `pluginFactories` collection.
+    /// `pluginFactories` collection.  The specified `builtInPlugins` must
+    /// outlive any use of the collected factories.
     static void collectAvailablePluginFactories(
         PluginFactories*              pluginFactories,
         const mqbplug::PluginManager& pluginManager,
+        const PluginLibrary&          builtInPlugins,
         mqbplug::PluginType::Enum     type);
 
     /// Create authorizer based on configuration from the specified
-    /// `authorizerConfig` using the specified `pluginFactories`.
-    /// Return 0 on success, non-zero on error.
+    /// `authorizerConfig` using the specified `pluginFactories`.  A
+    /// candidate is only accepted if its constructed instance's name
+    /// matches the name configured in `authorizerConfig`.  Return 0 on
+    /// success, non-zero on error (including no name match).
     static int createConfiguredAuthorizer(
         AuthorizerMp*                   result,
         bsl::ostream&                   errorDescription,
@@ -99,7 +106,7 @@ class AuthorizationController {
         bsl::allocator<>                allocator);
 
     /// Ensure at least one authorizer is available for default
-    /// Authorization, adding default BasicAuthorizer if none are
+    /// Authorization, adding default DefaultAuthorizer if none are
     /// configured.
     static void ensureDefaultAuthorizer(AuthorizerMp*    result,
                                         bsl::allocator<> allocator);

@@ -143,7 +143,7 @@ class MockClusterNode : public ClusterNode {
     //   (virtual mqbnet::ClusterNode)
 
     /// Return identity from the last received negotiation message.
-    const bmqp_ctrlmsg::ClientIdentity& identity() const BSLS_KEYWORD_OVERRIDE;
+    bmqp_ctrlmsg::ClientIdentity identity() const BSLS_KEYWORD_OVERRIDE;
 
     /// Return the id of this node.
     int nodeId() const BSLS_KEYWORD_OVERRIDE;
@@ -338,7 +338,7 @@ inline Channel& MockClusterNode::channel()
     return d_channel;
 }
 
-inline const bmqp_ctrlmsg::ClientIdentity& MockClusterNode::identity() const
+inline bmqp_ctrlmsg::ClientIdentity MockClusterNode::identity() const
 {
     return d_identity;
 }

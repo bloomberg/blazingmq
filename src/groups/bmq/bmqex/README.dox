@@ -1,0 +1,9 @@
+/**
+@dir bmqex
+
+@brief The `BMQEX` (BlazingMQ Executors) package provides executors and other
+async programming utilities and mechanisms.
+
+The `bmqex` package provides executors and other async programming utilities
+and mechanisms to be reused through various applications.
+*/

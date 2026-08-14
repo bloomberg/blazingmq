@@ -662,6 +662,9 @@ mqbnet::ClusterNode* ClusterCatalog::onNegotiationForClusterSession(
 int ClusterCatalog::processCommand(mqbcmd::ClustersResult*        result,
                                    const mqbcmd::ClustersCommand& command)
 {
+    // PRECONDITIONS
+    BSLS_ASSERT(result);
+
     if (command.isListValue()) {
         bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
 
@@ -778,10 +781,10 @@ void ClusterCatalog::getClusters(
     BSLS_ASSERT_SAFE(out);
 
     out->clear();
-    out->reserve(d_clusters.size());
 
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // d_mutex LOCK
 
+    out->reserve(d_clusters.size());
     for (ClustersMapConstIter it = d_clusters.begin(); it != d_clusters.end();
          ++it) {
         out->push_back(it->second.d_cluster_sp);

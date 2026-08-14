@@ -1,0 +1,8 @@
+/**
+@dir bmqtsk
+
+@brief The `BMQTSK` (BlazingMQ Task) package provides application level
+mechanisms.
+
+The `bmqtsk` package provides application level mechanisms.
+*/

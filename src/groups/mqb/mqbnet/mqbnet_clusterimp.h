@@ -93,6 +93,8 @@ class ClusterNodeImp : public ClusterNode {
 
     bmqp_ctrlmsg::ClientIdentity d_identity;
 
+    mutable bslmt::Mutex d_identityMutex;
+
     bmqio::Channel::ReadCallback d_readCb;
 
     bsls::AtomicBool d_isReading;
@@ -155,7 +157,7 @@ class ClusterNodeImp : public ClusterNode {
           bmqp::EventType::Enum               type) BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
-    const bmqp_ctrlmsg::ClientIdentity& identity() const BSLS_KEYWORD_OVERRIDE;
+    bmqp_ctrlmsg::ClientIdentity identity() const BSLS_KEYWORD_OVERRIDE;
     // Return identity from the last received negotiation message.
 
     /// Return the id of this node.
@@ -352,11 +354,6 @@ class ClusterImp : public Cluster {
 inline Channel& ClusterNodeImp::channel()
 {
     return d_channel;
-}
-
-inline const bmqp_ctrlmsg::ClientIdentity& ClusterNodeImp::identity() const
-{
-    return d_identity;
 }
 
 inline int ClusterNodeImp::nodeId() const

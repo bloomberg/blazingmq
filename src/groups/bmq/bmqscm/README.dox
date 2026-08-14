@@ -1,0 +1,11 @@
+/**
+@dir bmqscm
+
+@brief The `BMQSCM` (BlazingMQ Source Control Management) package provides
+versioning information for library components in `bmq`.
+
+The `bmqscm` package provides versioning information that is incorporated into
+every release of the `bmq` package group library. This versioning information
+is in turn available to all clients of `bmq` both at run time and by inspection
+of appropriate .o files.
+*/

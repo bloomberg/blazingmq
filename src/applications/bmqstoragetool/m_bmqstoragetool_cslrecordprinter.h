@@ -35,6 +35,7 @@
 // BDE
 #include <bdlt_epochutil.h>
 #include <bsl_ostream.h>
+#include <bsl_string.h>
 #include <bsl_unordered_map.h>
 #include <bsl_vector.h>
 #include <bslma_allocator.h>
@@ -93,7 +94,7 @@ template <typename PRINTER_TYPE>
 class CslRecordPrinter {
   private:
     bsl::ostream&                   d_ostream;
-    bsl::vector<const char*>        d_fields;
+    bsl::vector<bsl::string>        d_fields;
     bslma::ManagedPtr<PRINTER_TYPE> d_printer_mp;
     bslma::Allocator*               d_allocator_p;
 
@@ -150,10 +151,9 @@ void CslRecordPrinter<PRINTER_TYPE>::printRecordDetails(
     d_fields.push_back("LeaderAdvisoryWords");
     d_fields.push_back("Timestamp");
     d_fields.push_back("Epoch");
-    // It's ok to pass a vector by pointer and push elements after that as
-    // we've reserved it's capacity in advance. Hense, no reallocations will
-    // happen and the pointer won't get invalidated.
-    d_printer_mp.load(new (*d_allocator_p) PRINTER_TYPE(d_ostream, &d_fields),
+    // The printer holds a reference to this vector, so appending fields
+    // afterwards is safe; the reference stays valid even across reallocation.
+    d_printer_mp.load(new (*d_allocator_p) PRINTER_TYPE(d_ostream, d_fields),
                       d_allocator_p);
 
     *d_printer_mp << header.recordType() << recId.offset() << recId.logId()
@@ -197,10 +197,9 @@ void CslRecordPrinter<PRINTER_TYPE>::printRecordsSummary(
     d_fields.push_back("CommitRecords");
     d_fields.push_back("AckRecords");
 
-    // It's ok to pass a vector by pointer and push elements after that as
-    // we've reserved it's capacity in advance. Hense, no reallocations will
-    // happen and the pointer won't get invalidated.
-    d_printer_mp.load(new (*d_allocator_p) PRINTER_TYPE(d_ostream, &d_fields),
+    // The printer holds a reference to this vector, so appending fields
+    // afterwards is safe; the reference stays valid even across reallocation.
+    d_printer_mp.load(new (*d_allocator_p) PRINTER_TYPE(d_ostream, d_fields),
                       d_allocator_p);
 
     *d_printer_mp << recordCount.d_snapshotCount << recordCount.d_updateCount;

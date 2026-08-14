@@ -38,6 +38,7 @@
 // BDE
 #include <ball_log.h>
 #include <bdlb_print.h>
+#include <bdlb_stringviewutil.h>
 #include <bdlbb_blob.h>
 #include <bdls_filesystemutil.h>
 #include <bdlt_datetime.h>
@@ -361,7 +362,7 @@ void StorageInspector::processCommand(const OpenStorageCommand& command)
                       << d_journalFile << "] Qlist file: [" << d_qlistFile
                       << "]";
     }
-    else if (bmqu::StringUtil::endsWith(
+    else if (bdlb::StringViewUtil::endsWith(
                  path,
                  mqbs::FileStoreProtocol::k_DATA_FILE_EXTENSION)) {
         if (!resetIterator(&d_dataFd, &d_dataFileIter, path.c_str())) {
@@ -370,7 +371,7 @@ void StorageInspector::processCommand(const OpenStorageCommand& command)
 
         d_dataFile = path;
     }
-    else if (bmqu::StringUtil::endsWith(
+    else if (bdlb::StringViewUtil::endsWith(
                  path,
                  mqbs::FileStoreProtocol::k_JOURNAL_FILE_EXTENSION)) {
         if (!resetIterator(&d_journalFd, &d_journalFileIter, path.c_str())) {
@@ -379,7 +380,7 @@ void StorageInspector::processCommand(const OpenStorageCommand& command)
 
         d_journalFile = path;
     }
-    else if (bmqu::StringUtil::endsWith(
+    else if (bdlb::StringViewUtil::endsWith(
                  path,
                  mqbs::FileStoreProtocol::k_QLIST_FILE_EXTENSION)) {
         if (!resetIterator(&d_qlistFd, &d_qlistFileIter, path.c_str())) {
@@ -464,7 +465,7 @@ void StorageInspector::processCommand(
 
             // Print journal-specific fields
             BALL_LOG_OUTPUT_STREAM << "Journal SyncPoint:\n";
-            bsl::vector<const char*> fields;
+            bsl::vector<bsl::string> fields;
             fields.push_back("Last Valid Record Offset");
             fields.push_back("Record Type");
             fields.push_back("Record Timestamp");
@@ -478,7 +479,7 @@ void StorageInspector::processCommand(
             fields.push_back("SyncPoint DataFileOffset (DWORDS)");
             fields.push_back("SyncPoint QlistFileOffset (WORDS)");
 
-            bmqu::AlignedPrinter printer(BALL_LOG_OUTPUT_STREAM, &fields);
+            bmqu::AlignedPrinter printer(BALL_LOG_OUTPUT_STREAM, fields);
             bsls::Types::Uint64  lastRecPos =
                 d_journalFileIter.lastRecordPosition();
             printer << lastRecPos;
@@ -577,12 +578,12 @@ void StorageInspector::processCommand(
             BALL_LOG_OUTPUT_STREAM << "Queue #" << qnum << "\n";
             const QueueRecord& qr = cit->second;
 
-            bsl::vector<const char*> fields;
+            bsl::vector<bsl::string> fields;
             fields.push_back("Queue URI");
             fields.push_back("QueueKey");
             fields.push_back("Number of AppIds");
 
-            bmqu::AlignedPrinter printer(BALL_LOG_OUTPUT_STREAM, &fields);
+            bmqu::AlignedPrinter printer(BALL_LOG_OUTPUT_STREAM, fields);
             printer << cit->first << qr.d_queueKey << qr.d_appIds.size();
 
             // 'printer' not to be used beyond this point
@@ -591,12 +592,12 @@ void StorageInspector::processCommand(
             for (unsigned int i = 0; i < appRecs.size(); ++i) {
                 const AppIdRecord& ar = appRecs[i];
                 BALL_LOG_OUTPUT_STREAM << "        AppId #" << i + 1 << "\n";
-                bsl::vector<const char*> f;
+                bsl::vector<bsl::string> f;
                 f.push_back("AppId");
                 f.push_back("AppKey");
 
                 const int            indent = 8;
-                bmqu::AlignedPrinter p(BALL_LOG_OUTPUT_STREAM, &f, indent);
+                bmqu::AlignedPrinter p(BALL_LOG_OUTPUT_STREAM, f, indent);
                 p << ar.d_appId << ar.d_appKey;
             }
 

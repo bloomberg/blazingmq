@@ -16,7 +16,8 @@
 #ifndef INCLUDED_MQBMOCK_LOGIDGENERATOR
 #define INCLUDED_MQBMOCK_LOGIDGENERATOR
 
-//@PURPOSE: Mock implementation of the 'mqbsi::LogIdGenerator' interface.
+//@PURPOSE: Provide a mock implementation of the 'mqbsi::LogIdGenerator'
+// interface.
 //
 //@CLASSES:
 //  mqbmock::LogIdGenerator: Mock log Id generator implementation

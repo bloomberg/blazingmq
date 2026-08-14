@@ -1441,7 +1441,7 @@ BMQTST_TEST_F(Test, addQueueOpRecordHandle)
     const mqbs::RecordType::Enum k_RECORD_TYPE = mqbs::RecordType::e_QUEUE_OP;
     const bsls::Types::Uint64    k_RECORD_OFFSET = 4096;
 
-    mqbs::DataStoreRecordKey    key(k_SEQUENCE_NUM, k_PRIMARY_LEASE_ID);
+    mqbs::DataStoreRecordKey    key(k_PRIMARY_LEASE_ID, k_SEQUENCE_NUM);
     mqbs::DataStoreRecord       record(k_RECORD_TYPE, k_RECORD_OFFSET);
     mqbs::DataStoreRecordHandle handle;
     d_tester.insertDataStoreRecord(&handle, key, record);

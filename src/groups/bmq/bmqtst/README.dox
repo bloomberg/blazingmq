@@ -1,0 +1,9 @@
+/**
+@dir bmqtst
+
+@brief The `BMQTST` (BlazingMQ Test) package provides macros and utilities to
+assist in writing test drivers.
+
+The `bmqtst` package provides macros and utilities to assist in writing test
+drivers.
+*/

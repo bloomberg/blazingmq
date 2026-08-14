@@ -1,0 +1,8 @@
+/**
+@dir bmqio
+
+@brief The `BMQIO` (BlazingMQ IO) package provides network related components.
+
+The `bmqio` package provides interfaces and concrete implementations related to
+TCP communication.
+*/

@@ -54,6 +54,50 @@ TEST(AuthorizationController, breathingTest)
     EXPECT_TRUE(tam.isInUseSame());
 }
 
+TEST(AuthorizationController, configuredWithKnownNameSucceeds)
+{
+    bsl::allocator<> alloc = bmqtst::TestHelperUtil::allocator();
+    bslma::ManagedPtr<mqbauthz::AuthorizationController> controller_mp;
+    mqbplug::PluginManager   pluginManager(alloc.mechanism());
+    mqbcfg::AuthorizerConfig authzConfig;
+    bmqu::MemOutStream       errDesc;
+
+    authzConfig.authorizer().makeValue();
+    authzConfig.authorizer().value().name() = "DefaultAuthorizer";
+
+    int rc = mqbauthz::AuthorizationController::allocateManaged(&controller_mp,
+                                                                errDesc,
+                                                                authzConfig,
+                                                                pluginManager,
+                                                                alloc);
+
+    EXPECT_EQ(0, rc);
+    ASSERT_TRUE(controller_mp);
+    EXPECT_EQ("DefaultAuthorizer", controller_mp->authorizer().name());
+}
+
+TEST(AuthorizationController, configuredWithUnknownNameFails)
+{
+    bsl::allocator<> alloc = bmqtst::TestHelperUtil::allocator();
+    bslma::ManagedPtr<mqbauthz::AuthorizationController> controller_mp;
+    mqbplug::PluginManager   pluginManager(alloc.mechanism());
+    mqbcfg::AuthorizerConfig authzConfig;
+    bmqu::MemOutStream       errDesc;
+
+    authzConfig.authorizer().makeValue();
+    authzConfig.authorizer().value().name() = "NonexistentAuthorizer";
+
+    int rc = mqbauthz::AuthorizationController::allocateManaged(&controller_mp,
+                                                                errDesc,
+                                                                authzConfig,
+                                                                pluginManager,
+                                                                alloc);
+
+    EXPECT_NE(0, rc);
+    EXPECT_FALSE(controller_mp);
+    EXPECT_FALSE(errDesc.str().isEmpty());
+}
+
 // ========================================================================
 //                                  MAIN
 // ------------------------------------------------------------------------

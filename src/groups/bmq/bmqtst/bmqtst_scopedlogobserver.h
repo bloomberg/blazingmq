@@ -16,7 +16,7 @@
 #ifndef INCLUDED_BMQTST_SCOPEDLOGOBSERVER
 #define INCLUDED_BMQTST_SCOPEDLOGOBSERVER
 
-//@PURPOSE: provide a scoped implementation of the log observer protocol.
+//@PURPOSE: Provide a scoped implementation of the log observer protocol.
 //
 //@CLASSES:
 //  bmqtst::ScopedLogObserver:     a scoped log observer for testing purposes

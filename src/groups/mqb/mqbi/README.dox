@@ -1,0 +1,9 @@
+/**
+@dir mqbi
+
+@brief The `MQBI` (BlazingMQ Interfaces) package provides protocol interfaces
+for broker components.
+
+This package provides interfaces for broker components and pluggable modules to
+enhance the bmqbrkr.
+*/

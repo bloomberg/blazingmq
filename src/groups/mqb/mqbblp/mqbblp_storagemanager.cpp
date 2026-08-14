@@ -138,7 +138,8 @@ void processPrimaryStatusAdvisoryDispatched(
         if (!isFSMWorkflow &&
             bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE == pinfo->primaryStatus()) {
             BSLS_ASSERT_SAFE(pinfo->primary() == fs->primaryNode());
-            BSLS_ASSERT_SAFE(pinfo->primaryLeaseId() == fs->primaryLeaseId());
+            BSLS_ASSERT_SAFE(pinfo->primaryLeaseId() ==
+                             fs->writeHeadLeaseId());
         }
     }
     else {
@@ -351,7 +352,8 @@ void StorageManager::onPartitionRecovery(
 
             // Get the latest PSN for this partition.
             if (fs->isOpen()) {
-                d_recoveredPrimaryLeaseIds[partitionId] = fs->primaryLeaseId();
+                d_recoveredPrimaryLeaseIds[partitionId] =
+                    fs->writeHeadLeaseId();
 
                 BALL_LOG_INFO
                     << d_clusterData_p->identity().description()
@@ -361,8 +363,8 @@ void StorageManager::onPartitionRecovery(
                     << (recoveryPeer ? recoveryPeer->nodeDescription()
                                      : "**none**")
                     << ", "
-                    << mqbs::printPSN(fs->primaryLeaseId(),
-                                      fs->sequenceNumber())
+                    << mqbs::printPSN(fs->writeHeadLeaseId(),
+                                      fs->writeHeadSeqNum())
                     << ")";
             }
         }

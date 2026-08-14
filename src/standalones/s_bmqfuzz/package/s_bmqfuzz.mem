@@ -5,6 +5,8 @@ s_bmqfuzz_bmqp_crc32c.fuzz
 s_bmqfuzz_bmqp_event_initialize.fuzz
 s_bmqfuzz_bmqp_messageproperties_streamin.fuzz
 s_bmqfuzz_bmqp_optionsview.fuzz
+s_bmqfuzz_bmqp_protocolutil_decodemessage.fuzz
+s_bmqfuzz_bmqp_protocolutil_parse.fuzz
 s_bmqfuzz_bmqp_pushmessageiterator.fuzz
 s_bmqfuzz_bmqp_putmessageiterator.fuzz
 s_bmqfuzz_bmqp_recoverymessageiterator.fuzz
@@ -12,6 +14,7 @@ s_bmqfuzz_bmqp_rejectmessageiterator.fuzz
 s_bmqfuzz_bmqp_storagemessageiterator.fuzz
 s_bmqfuzz_bmqt_channelutil_handleread.fuzz
 s_bmqfuzz_bmqt_uri.fuzz
+s_bmqfuzz_bmqu_blobutil_readnbytes.fuzz
 s_bmqfuzz_bmqu_stringutil_match.fuzz
 s_bmqfuzz_eval.fuzz
 s_bmqfuzz_mqbc_clusterstateledgerutil_loadclustermessage.fuzz

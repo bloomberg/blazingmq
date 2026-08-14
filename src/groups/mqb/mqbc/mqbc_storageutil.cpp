@@ -2134,8 +2134,8 @@ void StorageUtil::recoveredQueuesCb(
                 queueKey);
             BSLS_ASSERT_SAFE(infoMapCit != queueKeyInfoMap->end());
 
-            const mqbs::DataStoreRecordKey current(handle.sequenceNum(),
-                                                   handle.primaryLeaseId());
+            const mqbs::DataStoreRecordKey current(handle.primaryLeaseId(),
+                                                   handle.sequenceNum());
 
             const unsigned int numGhosts = infoMapCit->second.advanceAndCount(
                 current);
@@ -3265,7 +3265,8 @@ void StorageUtil::processShutdownEventDispatched(ClusterData*     clusterData,
             // partition.
 
             BSLS_ASSERT_SAFE(fs->primaryNode() == pinfo->primary());
-            BSLS_ASSERT_SAFE(fs->primaryLeaseId() == pinfo->primaryLeaseId());
+            BSLS_ASSERT_SAFE(fs->writeHeadLeaseId() ==
+                             pinfo->primaryLeaseId());
 
             int rc = fs->issueSyncPoint();
             if (0 != rc) {
@@ -3708,7 +3709,7 @@ void StorageUtil::forceIssueAdvisoryAndSyncPt(mqbc::ClusterData*   clusterData,
     BSLS_ASSERT_SAFE(clusterData);
     BSLS_ASSERT_SAFE(pinfo.primary() == clusterData->membership().selfNode());
     BSLS_ASSERT_SAFE(pinfo.primary() == fs->primaryNode());
-    BSLS_ASSERT_SAFE(fs->primaryLeaseId() == pinfo.primaryLeaseId());
+    BSLS_ASSERT_SAFE(fs->writeHeadLeaseId() == pinfo.primaryLeaseId());
     BSLS_ASSERT_SAFE(pinfo.primaryStatus() ==
                      bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE);
 
@@ -3733,8 +3734,8 @@ void StorageUtil::forceIssueAdvisoryAndSyncPt(mqbc::ClusterData*   clusterData,
         BALL_LOG_INFO << clusterData->identity().description() << "Partition ["
                       << fs->config().partitionId()
                       << "]: successfully issued a forced SyncPt: "
-                      << mqbs::printPSN(fs->primaryLeaseId(),
-                                        fs->sequenceNumber())
+                      << mqbs::printPSN(fs->writeHeadLeaseId(),
+                                        fs->writeHeadSeqNum())
                       << ".";
     }
     else {
@@ -3742,8 +3743,8 @@ void StorageUtil::forceIssueAdvisoryAndSyncPt(mqbc::ClusterData*   clusterData,
                        << "Partition [" << fs->config().partitionId()
                        << "]: failed to force-issue SyncPt, rc: " << rc
                        << ", current PSN: "
-                       << mqbs::printPSN(fs->primaryLeaseId(),
-                                         fs->sequenceNumber());
+                       << mqbs::printPSN(fs->writeHeadLeaseId(),
+                                         fs->writeHeadSeqNum());
     }
 }
 

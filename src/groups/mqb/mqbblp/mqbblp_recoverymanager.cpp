@@ -770,8 +770,7 @@ void RecoveryManager::sendStorageSyncRequesterHelper(RecoveryContext* context,
     BSLS_ASSERT_SAFE(context);
     BSLS_ASSERT_SAFE(context->recoveryPeer());
 
-    RequestManagerType::RequestSp request =
-        d_clusterData_p->requestManager().createRequest();
+    RequestSp request = d_clusterData_p->requestManager().createRequest();
 
     bmqp_ctrlmsg::StorageSyncRequest& storageSyncReq =
         request->request()
@@ -854,8 +853,8 @@ void RecoveryManager::sendStorageSyncRequesterHelper(RecoveryContext* context,
 }
 
 void RecoveryManager::onStorageSyncResponse(
-    const RequestManagerType::RequestSp& context,
-    const mqbnet::ClusterNode*           responder)
+    const RequestSp&           context,
+    const mqbnet::ClusterNode* responder)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -891,9 +890,9 @@ void RecoveryManager::onStorageSyncResponse(
 }
 
 void RecoveryManager::onStorageSyncResponseDispatched(
-    int                                  partitionId,
-    const RequestManagerType::RequestSp& context,
-    const mqbnet::ClusterNode*           responder)
+    int                        partitionId,
+    const RequestSp&           context,
+    const mqbnet::ClusterNode* responder)
 {
     // executed by each of the *STORAGE (QUEUE) DISPATCHER* threads
 
@@ -2010,8 +2009,8 @@ int RecoveryManager::syncPeerPartition(PrimarySyncContext* primarySyncCtx,
     int                    pid = fs->config().partitionId();
 
     bmqp_ctrlmsg::PartitionSequenceNumber selfSequenceNum;
-    selfSequenceNum.primaryLeaseId() = fs->primaryLeaseId();
-    selfSequenceNum.sequenceNumber() = fs->sequenceNumber();
+    selfSequenceNum.primaryLeaseId() = fs->writeHeadLeaseId();
+    selfSequenceNum.sequenceNumber() = fs->writeHeadSeqNum();
 
     const FileTransferInfo& fti = primarySyncCtx->fileTransferInfo();
 
@@ -2476,7 +2475,10 @@ void RecoveryManager::onPartitionSyncStateQueryResponseDispatched(
                          d_primarySyncContexts.size());
 
     PrimarySyncContext& primarySyncCtx = d_primarySyncContexts[partitionId];
-    const NodeResponsePairs& pairs     = requestContext->response();
+    typedef mqbc::ClusterData::MultiRequestManagerType::NodeResponsePairs
+        NodeResponsePairs;
+
+    const NodeResponsePairs& pairs = requestContext->response();
 
     // A new primary never sends request to zero peers.
 
@@ -2492,7 +2494,8 @@ void RecoveryManager::onPartitionSyncStateQueryResponseDispatched(
                    << " Partition [" << partitionId << "]: processing "
                    << pairs.size() << " partition sync state query responses";
 
-    for (NodeResponsePairsConstIter it = pairs.begin(); it != pairs.end();
+    for (NodeResponsePairs::const_iterator it = pairs.begin();
+         it != pairs.end();
          ++it) {
         BSLS_ASSERT_SAFE(it->first);
 
@@ -2651,8 +2654,7 @@ void RecoveryManager::onPartitionSyncStateQueryResponseDispatched(
 
     // Send PartitionSyncDataQuery to this peer.
 
-    RequestManagerType::RequestSp request =
-        d_clusterData_p->requestManager().createRequest();
+    RequestSp request = d_clusterData_p->requestManager().createRequest();
 
     bmqp_ctrlmsg::PartitionSyncDataQuery& partitionSyncDataReq =
         request->request()
@@ -2708,8 +2710,8 @@ void RecoveryManager::onPartitionSyncStateQueryResponseDispatched(
 }
 
 void RecoveryManager::onPartitionSyncDataQueryResponse(
-    const RequestManagerType::RequestSp& context,
-    const mqbnet::ClusterNode*           responder)
+    const RequestSp&           context,
+    const mqbnet::ClusterNode* responder)
 {
     // executed by *ANY* thread
 
@@ -2740,9 +2742,9 @@ void RecoveryManager::onPartitionSyncDataQueryResponse(
 }
 
 void RecoveryManager::onPartitionSyncDataQueryResponseDispatched(
-    int                                  partitionId,
-    const RequestManagerType::RequestSp& context,
-    const mqbnet::ClusterNode*           responder)
+    int                        partitionId,
+    const RequestSp&           context,
+    const mqbnet::ClusterNode* responder)
 {
     // executed by *DISPATCHER* thread
 
@@ -4372,8 +4374,8 @@ void RecoveryManager::startPartitionPrimarySync(
     primarySyncCtx.setPartitionPrimarySyncCb(partitionPrimarySyncCb);
 
     bmqp_ctrlmsg::PartitionSequenceNumber tmp;
-    tmp.primaryLeaseId() = fs->primaryLeaseId();
-    tmp.sequenceNumber() = fs->sequenceNumber();
+    tmp.primaryLeaseId() = fs->writeHeadLeaseId();
+    tmp.sequenceNumber() = fs->writeHeadSeqNum();
     primarySyncCtx.setSelfPartitionSequenceNum(tmp);
 
     if (!fs->syncPoints().empty()) {
@@ -4413,7 +4415,7 @@ void RecoveryManager::startPartitionPrimarySync(
 
     // Send PartitionSyncStateRequest to all *AVAILABLE* peers.
 
-    MultiRequestManagerType::RequestContextSp contextSp =
+    RequestContextSp contextSp =
         d_clusterData_p->multiRequestManager().createRequestContext();
 
     bmqp_ctrlmsg::PartitionSyncStateQuery& req =
@@ -4468,8 +4470,8 @@ void RecoveryManager::processPartitionSyncStateRequest(
         clusterMsg.choice().makePartitionSyncStateQueryResponse();
 
     response.partitionId()    = req.partitionId();
-    response.primaryLeaseId() = fs->primaryLeaseId();
-    response.sequenceNum()    = fs->sequenceNumber();
+    response.primaryLeaseId() = fs->writeHeadLeaseId();
+    response.sequenceNum()    = fs->writeHeadSeqNum();
     if (!fs->syncPoints().empty()) {
         response.lastSyncPointOffsetPair() = fs->syncPoints().back();
     }
@@ -4577,8 +4579,8 @@ void RecoveryManager::processPartitionSyncDataRequest(
     requesterUptoPSN.sequenceNumber() = req.uptoSequenceNum();
 
     bmqp_ctrlmsg::PartitionSequenceNumber selfPSN;
-    selfPSN.primaryLeaseId() = fs->primaryLeaseId();
-    selfPSN.sequenceNumber() = fs->sequenceNumber();
+    selfPSN.primaryLeaseId() = fs->writeHeadLeaseId();
+    selfPSN.sequenceNumber() = fs->writeHeadSeqNum();
 
     if (requesterUptoPSN <= requesterPSN) {
         BALL_LOG_WARN << d_clusterData_p->identity().description()

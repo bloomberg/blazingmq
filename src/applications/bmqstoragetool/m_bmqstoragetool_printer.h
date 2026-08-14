@@ -40,6 +40,12 @@
 
 namespace BloombergLP {
 
+// FORWARD DECLARATIONS
+namespace mqbs {
+class DataFileIterator;
+class JournalFileIterator;
+}
+
 namespace m_bmqstoragetool {
 
 // =============
