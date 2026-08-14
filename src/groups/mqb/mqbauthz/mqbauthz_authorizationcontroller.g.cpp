@@ -17,6 +17,7 @@
 #include <mqbauthz_authorizationcontroller.h>
 
 // MQB
+#include <mqbcfg_brokerconfig.h>
 #include <mqbcfg_messages.h>
 #include <mqbplug_pluginmanager.h>
 
@@ -105,6 +106,12 @@ TEST(AuthorizationController, configuredWithUnknownNameFails)
 int main(int argc, char* argv[])
 {
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+
+    // 'DefaultAuthorizerPluginFactory::create()' looks up its settings from
+    // the broker's global authorization configuration, so it must be set
+    // before any test constructs an authorizer.
+    mqbcfg::AppConfig brokerConfig(bmqtst::TestHelperUtil::allocator());
+    mqbcfg::BrokerConfig::set(brokerConfig);
 
     ::testing::InitGoogleTest(&argc, argv);
 

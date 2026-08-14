@@ -18,9 +18,11 @@
 #include <mqbscm_version.h>
 
 // MQB
+#include <mqbcfg_brokerconfig.h>
 #include <mqbcfg_messages.h>
 
 // BDE
+#include <bdlb_nullablevalue.h>
 #include <bsl_string_view.h>
 #include <bsl_vector.h>
 
@@ -48,6 +50,22 @@ AuthorizerPluginFactory::AuthorizerPluginFactory()
 AuthorizerPluginFactory::~AuthorizerPluginFactory()
 {
     // NOTHING
+}
+
+// ---------------------
+// struct AuthorizerUtil
+// ---------------------
+
+const mqbcfg::AuthorizerPluginConfig*
+AuthorizerUtil::findAuthorizerConfig(bsl::string_view name)
+{
+    const bdlb::NullableValue<mqbcfg::AuthorizerPluginConfig>& authorizerCfg =
+        mqbcfg::BrokerConfig::get().authorization().authorizer();
+
+    if (!authorizerCfg.isNull() && authorizerCfg.value().name() == name) {
+        return &authorizerCfg.value();  // RETURN
+    }
+    return 0;
 }
 
 }  // close package namespace
