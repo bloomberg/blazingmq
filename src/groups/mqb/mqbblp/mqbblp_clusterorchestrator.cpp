@@ -2687,9 +2687,8 @@ void ClusterOrchestrator::processRaftPartitionEvent(
     d_partitionRaftManager_mp->appendEntries(event.sharedBlob(), source);
 }
 
-void ClusterOrchestrator::processRaftSnapshotEvent(
-    const bmqp::Event&   event,
-    mqbnet::ClusterNode* source)
+void ClusterOrchestrator::processRaftSnapshotEvent(const bmqp::Event&   event,
+                                                   mqbnet::ClusterNode* source)
 {
     // executed by the *IO* thread
     BSLS_ASSERT_SAFE(d_partitionRaftManager_mp);
@@ -2723,10 +2722,10 @@ void ClusterOrchestrator::processRaftControlMessage(
         // 'Cluster::processControlMessage'); forwards straight to the
         // target partition's own FileStore dispatcher thread below.
         BSLS_ASSERT_SAFE(d_partitionRaftManager_mp);
-        d_partitionRaftManager_mp->onRaftControlMessage(
-            message,
-            message.partitionId() - 1,
-            source);
+        d_partitionRaftManager_mp->onRaftControlMessage(message,
+                                                        message.partitionId() -
+                                                            1,
+                                                        source);
     }
 }
 

@@ -1028,7 +1028,6 @@ class DataStore : public RecordStore, public mqbi::DispatcherClient {
     virtual void
     loadDeletionRecordRaw(DeletionRecord*              buffer,
                           const DataStoreRecordHandle& handle) const = 0;
-
 };
 
 // ============================================================================

@@ -156,26 +156,26 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// 'formatMessageRecord'.
     struct PendingWrite {
         // INPUT — common
-        bsls::Types::Uint64              d_id;
-        RecordType::Enum                 d_recordType;
-        SyncPointType::Enum              d_syncPointType;  // e_JOURNAL_OP only
-        bsls::Types::Uint64              d_primaryLeaseId;
-        bsls::Types::Uint64              d_sequenceNumber;
-        mqbu::StorageKey                 d_queueKey;
+        bsls::Types::Uint64 d_id;
+        RecordType::Enum    d_recordType;
+        SyncPointType::Enum d_syncPointType;  // e_JOURNAL_OP only
+        bsls::Types::Uint64 d_primaryLeaseId;
+        bsls::Types::Uint64 d_sequenceNumber;
+        mqbu::StorageKey    d_queueKey;
 
         // INPUT — e_MESSAGE
         mqbi::StorageMessageAttributes d_attributes;
 
-        DataStoreRecordHandle            d_handle;
-        bmqt::MessageGUID                d_guid;
-        bsl::shared_ptr<bdlbb::Blob>     d_appData;
-        bsl::shared_ptr<bdlbb::Blob>     d_options;
+        DataStoreRecordHandle        d_handle;
+        bmqt::MessageGUID            d_guid;
+        bsl::shared_ptr<bdlbb::Blob> d_appData;
+        bsl::shared_ptr<bdlbb::Blob> d_options;
 
         // INPUT — e_QUEUE_OP (creation)
-        bmqt::Uri                        d_queueUri;
-        const AppInfos*                  d_appIdKeyPairs_p;
-        bsls::Types::Uint64              d_timestamp;
-        bool                             d_isNewQueue;
+        bmqt::Uri           d_queueUri;
+        const AppInfos*     d_appIdKeyPairs_p;
+        bsls::Types::Uint64 d_timestamp;
+        bool                d_isNewQueue;
 
         // INPUT — e_CONFIRM / e_DELETION / e_QUEUE_OP (purge, deletion)
         mqbu::StorageKey         d_appKey;
@@ -186,11 +186,11 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
         bsls::Types::Uint64      d_startSequenceNumber;  // e_PURGE
 
         // OUTPUT (set by formatMessageRecord / formatQueueCreationRecord)
-        bsls::Types::Uint64              d_journalOffset;
-        bsls::Types::Uint64              d_dataOffset;
-        bsl::shared_ptr<bdlbb::Blob>     d_entryBlob;
-        bsls::Types::Uint64              d_qlistOffset;
-        unsigned int                     d_qlistRecTotalLength;
+        bsls::Types::Uint64          d_journalOffset;
+        bsls::Types::Uint64          d_dataOffset;
+        bsl::shared_ptr<bdlbb::Blob> d_entryBlob;
+        bsls::Types::Uint64          d_qlistOffset;
+        unsigned int                 d_qlistRecTotalLength;
 
         PendingWrite();
 
@@ -755,7 +755,8 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
                             const DataStoreRecordKey& key,
                             const DataStoreRecord&    record);
 
-    const RecordIterator& handleTorRecordIterator(const DataStoreRecordHandle& handle) const;
+    const RecordIterator&
+    handleTorRecordIterator(const DataStoreRecordHandle& handle) const;
 
     /// Replicate a record having the specified `messageType` and
     /// `recordOffset`, insert a corresponding record having the specified
@@ -1153,8 +1154,8 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// with `sequenceNumber()` (the current/highest sequence number) to copy
     /// all outstanding records.
     void writeRolledOverRecords(FileSet*            newFileSet,
-                                    QueueKeyCounterMap* queueKeyCounterMap,
-                                    bsls::Types::Uint64 maxSequenceNum);
+                                QueueKeyCounterMap* queueKeyCounterMap,
+                                bsls::Types::Uint64 maxSequenceNum);
 
     /// Copy the single fixed-size, no-payload journal record located at the
     /// specified `oldJournalOffset` in the current active (front, old) file
@@ -1322,8 +1323,8 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     void registerStorage(ReplicatedStorage* storage) BSLS_KEYWORD_OVERRIDE;
 
-    void unregisterStorage(const ReplicatedStorage* storage)
-        BSLS_KEYWORD_OVERRIDE;
+    void
+    unregisterStorage(const ReplicatedStorage* storage) BSLS_KEYWORD_OVERRIDE;
 
     StorageMonitor* storageMonitor() BSLS_KEYWORD_OVERRIDE;
 
@@ -1474,9 +1475,8 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     /// Return the write head's sequence number for this partition.
     bsls::Types::Uint64 writeHeadSeqNum() const;
-    
-    bool isFileSetAvailable() const BSLS_KEYWORD_OVERRIDE;
 
+    bool isFileSetAvailable() const BSLS_KEYWORD_OVERRIDE;
 
     /// Return the replication factor for strong consistency.
     int replicationFactor() const;
@@ -1578,8 +1578,8 @@ inline void FileStore::insertDataStoreRecord(DataStoreRecordHandle*    handle,
     recordIteratorToHandle(handle, recordIt);
 }
 
-inline const FileStore::RecordIterator& FileStore::handleTorRecordIterator(
-        const DataStoreRecordHandle& handle) const
+inline const FileStore::RecordIterator&
+FileStore::handleTorRecordIterator(const DataStoreRecordHandle& handle) const
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(handle.isValid());
@@ -1592,7 +1592,6 @@ inline const FileStore::RecordIterator& FileStore::handleTorRecordIterator(
 }
 
 void handleTorRecordIterator();
-
 
 // PRIVATE ACCESSORS
 inline const bsl::string& FileStore::partitionDesc() const

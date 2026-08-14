@@ -246,9 +246,7 @@ class TestGracefulShutdown:
     ):
         cluster = multi_node
         # the queue's primary, which is not the leader in FSM mode
-        primary = cluster.last_known_leader.wait_queue_primary(
-            domain_urls.uri_fanout
-        )
+        primary = cluster.last_known_leader.wait_queue_primary(domain_urls.uri_fanout)
         active_node = cluster.process(self.replica_proxy.get_active_node())
         self.post_kill_confirm(primary, active_node, domain_urls)
 
@@ -257,9 +255,7 @@ class TestGracefulShutdown:
         self, multi_node: Cluster, domain_urls: tc.DomainUrls
     ):
         cluster = multi_node
-        primary = cluster.last_known_leader.wait_queue_primary(
-            domain_urls.uri_fanout
-        )
+        primary = cluster.last_known_leader.wait_queue_primary(domain_urls.uri_fanout)
         active_node = cluster.process(self.replica_proxy.get_active_node())
         self.post_kill_confirm(active_node, primary, domain_urls)
 
