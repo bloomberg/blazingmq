@@ -30,6 +30,7 @@ bmqp_recoverymessageiterator
 bmqp_rejecteventbuilder
 bmqp_rejectmessageiterator
 bmqp_requestmanager
+bmqp_requestmanagerrequest
 bmqp_routingconfigurationutils
 bmqp_schemaeventbuilder
 bmqp_schemagenerator

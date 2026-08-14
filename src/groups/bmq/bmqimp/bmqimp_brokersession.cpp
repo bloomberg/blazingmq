@@ -34,6 +34,7 @@
 #include <bmqp_protocolutil.h>
 #include <bmqp_pushmessageiterator.h>
 #include <bmqp_putmessageiterator.h>
+#include <bmqp_requestmanagerrequest.h>
 #include <bmqp_routingconfigurationutils.h>
 #include <bmqst_statcontext.h>
 #include <bmqt_messageguid.h>

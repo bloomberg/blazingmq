@@ -36,6 +36,7 @@
 #include <bmqt_uri.h>
 
 #include <bmqu_memoutstream.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <ball_log.h>

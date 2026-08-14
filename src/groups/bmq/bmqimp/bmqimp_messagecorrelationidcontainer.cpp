@@ -22,6 +22,7 @@
 #include <bmqp_protocolutil.h>
 #include <bmqp_queueid.h>
 #include <bmqp_requestmanager.h>
+#include <bmqp_requestmanagerrequest.h>
 
 // BDE
 #include <bsl_utility.h>

@@ -30,6 +30,7 @@
 #include <mqbnet_mockcluster.h>
 
 #include <bmqu_tempdirectory.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <bdlbb_blobutil.h>

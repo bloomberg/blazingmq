@@ -37,6 +37,7 @@
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_requestmanager.h>
+#include <bmqp_requestmanagerrequest.h>
 
 #include <bmqu_memoutstream.h>
 

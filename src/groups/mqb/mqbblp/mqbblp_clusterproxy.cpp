@@ -41,6 +41,7 @@
 #include <bmqu_blob.h>
 #include <bmqu_outstreamformatsaver.h>
 #include <bmqu_printutil.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <ball_severity.h>

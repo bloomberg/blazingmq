@@ -30,6 +30,7 @@
 
 #include <bmqu_blob.h>
 #include <bmqu_memoutstream.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <bdlb_chartype.h>
