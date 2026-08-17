@@ -3952,6 +3952,34 @@ int FileStore::rollover()
     return rc_SUCCESS;
 }
 
+int FileStore::transferLeadership(const bsl::string& targetHostName)
+{
+    // Legacy-only: never invoked on a Raft partition.
+    BSLS_ASSERT(!isRaft());
+
+    enum { rc_SUCCESS = 0, rc_NOT_PRIMARY = -1, rc_NOT_SUPPORTED = -2 };
+
+    if (!d_isPrimary || !d_primaryNode_p) {
+        BALL_LOG_ERROR << partitionDesc()
+                       << "Transfer leadership rejected: node is not primary "
+                       << "for this partition.";
+        return rc_NOT_PRIMARY;  // RETURN
+    }
+
+    // Self is the primary, so 'd_primaryNode_p' names this node.
+    if (d_primaryNode_p->hostName() != targetHostName) {
+        BALL_LOG_ERROR << partitionDesc()
+                       << "Transfer leadership rejected: legacy cannot move "
+                       << "primaryship; target '" << targetHostName
+                       << "' is not self ('" << d_primaryNode_p->hostName()
+                       << "').";
+        return rc_NOT_SUPPORTED;  // RETURN
+    }
+
+    // Already in the requested state.
+    return rc_SUCCESS;
+}
+
 void FileStore::truncate(FileSet* fileSet)
 {
     bmqu::MemOutStream errorDesc;

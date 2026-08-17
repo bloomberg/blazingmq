@@ -292,6 +292,26 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
             self._error(f"Could not determine primary for partition {partition_id}")
         return self.cluster.process(primary_name[0])
 
+    def partition_primaries(self, num_partitions: int) -> dict:
+        """
+        Return {partition_id: Broker or None} for partitions 0 to
+        'num_partitions', as reported by a single 'CLUSTERS CLUSTER ... STATUS'
+        query on this node.  None means the partition has no primary yet.
+
+        Unlike calling 'wait_partition_primary' per partition, this costs one
+        admin round trip for the whole cluster and does not wait.
+        """
+
+        admin = self.open_admin_client()
+        res = admin.send_admin(f"CLUSTERS CLUSTER {self.cluster_name} STATUS")
+        assert isinstance(res, str)
+
+        primaries = {}
+        for partition_id in range(num_partitions):
+            name = self._parse_partition_primary(res, partition_id)
+            primaries[partition_id] = self.cluster.process(name) if name else None
+        return primaries
+
     def wait_queue_primary(self, uri, timeout=BLOCK_TIMEOUT) -> Self:
         """
         Return the Broker object currently primary for the partition that
@@ -306,9 +326,7 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
         primary_name = [None]
 
         def check():
-            res = admin.send_admin(
-                f"CLUSTERS CLUSTER {self.cluster_name} QUEUEHELPER"
-            )
+            res = admin.send_admin(f"CLUSTERS CLUSTER {self.cluster_name} QUEUEHELPER")
             assert isinstance(res, str)
             # QUEUEHELPER prints each queue's URI on its own line, then its
             # fields; the 'partitionId' line carries '(primary: [<name>, ...])'
@@ -379,6 +397,33 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
 
         return self.command(
             f"CLUSTERS CLUSTER {cluster} STATE ELECTOR SET quorum {quorum}",
+            succeed=succeed,
+        )
+
+    def transfer_leadership(self, target, partition_id=None, succeed=None):
+        """
+        Ask this node to hand leadership to 'target' (a Broker or a node name).
+        If 'partition_id' is None this transfers cluster (CSL) leadership,
+        otherwise the primaryship of that partition.
+
+        This node must currently be the leader (resp. the primary of
+        'partition_id'); any other node fails the command.  The broker holds
+        the command until leadership has actually landed on 'target', so a
+        success means the transfer completed.  Legacy cannot move leadership
+        at all, so it succeeds only when the requested state already holds,
+        i.e. 'target' is this node.
+        """
+
+        name = target if isinstance(target, str) else target.name
+        scope = (
+            "STATE ELECTOR"
+            if partition_id is None
+            else f"STORAGE PARTITION {partition_id}"
+        )
+
+        return self.command(
+            f"CLUSTERS CLUSTER {self.cluster_name} {scope} "
+            f"TRANSFER_LEADERSHIP {name}",
             succeed=succeed,
         )
 

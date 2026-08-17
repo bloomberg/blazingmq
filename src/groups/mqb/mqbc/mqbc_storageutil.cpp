@@ -727,6 +727,52 @@ void StorageUtil::doRolloverDispatched(bslmt::Latch*      latch,
     latch->arrive();
 }
 
+void StorageUtil::doTransferLeadership(mqbcmd::StorageResult* result,
+                                       const RecordStores&    recordStores,
+                                       int                    partitionId,
+                                       const bsl::string&     targetName)
+{
+    // executed by cluster *DISPATCHER* thread
+
+    BSLS_ASSERT_SAFE(result);
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(recordStores.size()));
+
+    mqbs::RecordStore* rs = recordStores[partitionId];
+    BSLS_ASSERT_SAFE(rs);
+
+    // Read off the partition thread: waiting on it for a return code would
+    // park the cluster dispatcher and starve the Raft heartbeat.
+    if (!rs->isLeader()) {
+        bmqu::MemOutStream output;
+        output << "Transfer leadership of partition " << partitionId
+               << " rejected: this node is not the primary for that "
+               << "partition.";
+        result->makeError().message() = output.str();
+        return;  // RETURN
+    }
+
+    // Only initiated here; the caller waits for the new primary and owns the
+    // verdict.
+    rs->execute(
+        bdlf::BindUtil::bind(&doTransferLeadershipDispatched, rs, targetName));
+
+    result->makeSuccess();
+}
+
+void StorageUtil::doTransferLeadershipDispatched(
+    mqbs::RecordStore* recordStore,
+    const bsl::string& targetHostName)
+{
+    // executed by the record store's *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(recordStore);
+
+    // Nobody is waiting on the outcome; both implementations log a rejection.
+    recordStore->transferLeadership(targetHostName);
+}
+
 void StorageUtil::loadPartitionStorageSummary(
     mqbcmd::StorageResult*   result,
     const RecordStores&      recordStores,
@@ -3427,6 +3473,15 @@ void StorageUtil::processCommand(mqbcmd::StorageResult*     result,
                                         recordStores,
                                         partitionId,
                                         partitionLocation);
+            return;  // RETURN
+        }
+
+        if (command.partition().command().isTransferLeadershipValue()) {
+            doTransferLeadership(
+                result,
+                recordStores,
+                partitionId,
+                command.partition().command().transferLeadership());
             return;  // RETURN
         }
 

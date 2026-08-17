@@ -79,6 +79,12 @@ class ClusterStateRaft : public mqbi::ClusterStateUpdater {
     /// partitionPrimaryAdvisory has committed.
     typedef bsl::function<void(bool)> AvailabilityCb;
 
+    // PUBLIC CONSTANTS
+
+    /// `transferLeadership` return codes.
+    static const int k_TRANSFER_NOT_LEADER     = -1;
+    static const int k_TRANSFER_UNKNOWN_TARGET = -2;
+
   private:
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("MQBRAFT.CLUSTERSTATERAFT");
@@ -188,6 +194,17 @@ class ClusterStateRaft : public mqbi::ClusterStateUpdater {
     /// THREAD: This method is invoked in the associated cluster's dispatcher
     ///         thread.
     void setElectionMode(ElectionMode::Enum mode);
+
+    /// Hand CSL Raft leadership to the node with the specified `targetNodeId`:
+    /// catch the target up and send it a `TimeoutNow`.  Return 0 if the
+    /// transfer was initiated (it completes asynchronously, once the target
+    /// wins the election it starts), `k_TRANSFER_NOT_LEADER` if this node is
+    /// not the leader, or `k_TRANSFER_UNKNOWN_TARGET` if `targetNodeId` is not
+    /// a peer of this Raft group.
+    ///
+    /// THREAD: This method is invoked in the associated cluster's dispatcher
+    ///         thread.
+    int transferLeadership(int targetNodeId);
 
     /// If self is the CSL Raft leader and every partition's (primaryNodeId,
     /// leaseId) is known (per `ClusterState::partitions()`), propose a

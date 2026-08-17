@@ -323,6 +323,17 @@ class ClusterOrchestrator {
         mqbc::ClusterNodeSession*           ns,
         const bmqp_ctrlmsg::ControlMessage* request);
 
+    /// Hand cluster leadership to the node whose host name is the specified
+    /// `targetName`, writing the outcome to the specified `result`.  Return 0
+    /// if the transfer was initiated and non-zero otherwise; the caller waits
+    /// for the target to take over.  Legacy cannot move leadership, so it only
+    /// reports whether self is already the leader and is itself the target.
+    ///
+    /// THREAD: This method is invoked in the associated cluster's
+    ///         dispatcher thread.
+    int processTransferLeadership(mqbcmd::ClusterResult* result,
+                                  const bsl::string&     targetName);
+
     // PRIVATE ACCESSORS
 
     /// Return true if this is a local cluster.

@@ -319,6 +319,26 @@ struct StorageUtil {
                                      int*               rc,
                                      mqbs::RecordStore* recordStore);
 
+    /// Hand the leadership of the partition out of the specified
+    /// `recordStores` having the specified `partitionId` to the node whose
+    /// host name is the specified `targetName`.  Store the result into the
+    /// specified `result` object.
+    ///
+    /// THREAD: Executed by the cluster-dispatcher thread.
+    static void doTransferLeadership(mqbcmd::StorageResult* result,
+                                     const RecordStores&    recordStores,
+                                     int                    partitionId,
+                                     const bsl::string&     targetName);
+
+    /// Hand the leadership of the specified `recordStore` to the node whose
+    /// host name is the specified `targetHostName`.
+    ///
+    /// THREAD: Executed by the Queue's dispatcher thread for the specified
+    ///         `recordStore`.
+    static void
+    doTransferLeadershipDispatched(mqbs::RecordStore* recordStore,
+                                   const bsl::string& targetHostName);
+
     /// Load the summary of the partitions of the spcified `fileStores` at
     /// the specified `location` to the specified `result` object.
     ///

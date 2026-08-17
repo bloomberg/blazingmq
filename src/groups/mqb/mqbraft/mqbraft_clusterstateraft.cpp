@@ -767,6 +767,32 @@ void ClusterStateRaft::setElectionMode(ElectionMode::Enum mode)
     dispatchOutput(&output);
 }
 
+int ClusterStateRaft::transferLeadership(int targetNodeId)
+{
+    // executed by the cluster *DISPATCHER* thread
+    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
+    BSLS_ASSERT_SAFE(d_raftNode_mp);
+
+    if (targetNodeId == d_raftNode_mp->selfId()) {
+        // Already in the requested state.
+        return isLeader() ? 0 : k_TRANSFER_NOT_LEADER;  // RETURN
+    }
+
+    // -1 not the leader, -2 target is not a peer; both propagate as-is.
+    RaftNodeOutput output(d_allocator_p);
+    const int rc = d_raftNode_mp->transferLeadership(&output, targetNodeId);
+    if (rc != 0) {
+        return rc;  // RETURN
+    }
+
+    BALL_LOG_INFO << d_clusterData_p->identity().description()
+                  << ": initiating CSL leadership transfer to node "
+                  << targetNodeId;
+
+    dispatchOutput(&output);
+    return 0;
+}
+
 int ClusterStateRaft::createNewCslLog(bsl::shared_ptr<mqbsi::Log>* logOut,
                                       mqbu::StorageKey*            logIdOut)
 {

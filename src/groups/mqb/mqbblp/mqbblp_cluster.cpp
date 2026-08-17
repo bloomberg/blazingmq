@@ -96,6 +96,11 @@ const double k_LOG_SUMMARY_INTERVAL = 60.0 * 5;  // 5 minutes
 
 const double k_QUEUE_GC_INTERVAL = 60.0;  // 1 minute
 
+/// Deadline (seconds) and poll interval (milliseconds) for waiting on an
+/// admin leadership transfer to land on the target node.
+const int k_TRANSFER_LEADERSHIP_WAIT_SECONDS = 10;
+const int k_TRANSFER_LEADERSHIP_POLL_MS      = 50;
+
 struct ChainNoOp {
     template <class T>
     void operator()(const T& completionCb) const
@@ -2449,7 +2454,146 @@ int Cluster::processCommand(mqbcmd::ClusterResult*        result,
         this);
     dispatcher()->synchronize(this);
 
+    // The dispatcher only starts a leadership transfer; wait for it here, off
+    // the dispatcher.
+
+    bool               isSuccess = result->isSuccessValue();
+    bmqu::MemOutStream os;
+
+    if (isSuccess) {
+        if (command.isStorageValue()) {
+            const mqbcmd::StorageCommand& storage = command.storage();
+            if (storage.isPartitionValue() &&
+                storage.partition().command().isTransferLeadershipValue()) {
+                int partitionId = storage.partition().partitionId();
+                const bsl::string& target =
+                    storage.partition().command().transferLeadership();
+
+                const bsls::TimeInterval deadline =
+                    bmqu::Time::nowMonotonicClock().addSeconds(
+                        k_TRANSFER_LEADERSHIP_WAIT_SECONDS);
+
+                isSuccess = false;
+                while (!isSuccess) {
+                    dispatcher()->execute(
+                        bdlf::BindUtil::bind(
+                            &Cluster::hasPartitionLeadershipDispatched,
+                            this,
+                            &isSuccess,
+                            partitionId,
+                            target),
+                        this);
+                    dispatcher()->synchronize(this);
+
+                    if (!isSuccess) {
+                        if (bmqu::Time::nowMonotonicClock() >= deadline) {
+                            os << "Leadership transfer of  partition "
+                               << partitionId << " to '" << target
+                               << "' was initiated but  did not complete "
+                                  "within "
+                               << k_TRANSFER_LEADERSHIP_WAIT_SECONDS
+                               << " seconds";
+                            BALL_LOG_ERROR << "#TRANSFER_LEADERSHIP_TIMEOUT "
+                                           << description() << ": "
+                                           << os.str();
+                            result->makeError().message() = os.str();
+                            break;  // BREAK
+                        }
+
+                        bslmt::ThreadUtil::microSleep(
+                            k_TRANSFER_LEADERSHIP_POLL_MS * 1000);
+                    }
+                }
+            }
+        }
+        else if (command.isStateValue()) {
+            const mqbcmd::ClusterStateCommand& state = command.state();
+            if (state.isElectorValue() &&
+                state.elector().isTransferLeadershipValue()) {
+                isSuccess = false;
+                const bsl::string& target =
+                    state.elector().transferLeadership();
+
+                const bsls::TimeInterval deadline =
+                    bmqu::Time::nowMonotonicClock().addSeconds(
+                        k_TRANSFER_LEADERSHIP_WAIT_SECONDS);
+
+                while (!isSuccess) {
+                    dispatcher()->execute(
+                        bdlf::BindUtil::bind(
+                            &Cluster::hasClusterLeadershipDispatched,
+                            this,
+                            &isSuccess,
+                            target),
+                        this);
+                    dispatcher()->synchronize(this);
+
+                    if (!isSuccess) {
+                        if (bmqu::Time::nowMonotonicClock() >= deadline) {
+                            os << "Leadership transfer of the cluster to '"
+                               << target
+                               << "' was initiated but  did not complete "
+                                  "within "
+                               << k_TRANSFER_LEADERSHIP_WAIT_SECONDS
+                               << " seconds";
+                            BALL_LOG_ERROR << "#TRANSFER_LEADERSHIP_TIMEOUT "
+                                           << description() << ": "
+                                           << os.str();
+                            result->makeError().message() = os.str();
+                            break;  // BREAK
+                        }
+
+                        bslmt::ThreadUtil::microSleep(
+                            k_TRANSFER_LEADERSHIP_POLL_MS * 1000);
+                    }
+                }
+            }
+        }
+    }
+
     return 0;
+}
+
+void Cluster::hasPartitionLeadershipDispatched(bool*              result,
+                                               int                partitionId,
+                                               const bsl::string& targetName)
+{
+    // executed by the *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(inDispatcherThread());
+    BSLS_ASSERT_SAFE(result);
+
+    *result = false;
+    const mqbnet::ClusterNode* leader =
+        d_state.partition(partitionId).primaryNode();
+
+    if (leader) {
+        if (leader->hostName() == targetName) {
+            *result = true;
+        }
+    }
+}
+
+void Cluster::hasClusterLeadershipDispatched(bool*              result,
+                                             const bsl::string& targetName)
+{
+    // executed by the *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(inDispatcherThread());
+    BSLS_ASSERT_SAFE(result);
+
+    *result = false;
+
+    const mqbnet::ClusterNode* leader =
+        d_clusterData.electorInfo().leaderNode();
+
+    if (leader) {
+        if (leader->hostName() == targetName) {
+            *result = true;
+        }
+    }
 }
 
 void Cluster::processControlMessage(
