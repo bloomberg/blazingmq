@@ -2529,6 +2529,12 @@ int ClusterOrchestrator::processCommand(
     if (command.isElectorValue()) {
         mqbcmd::ElectorResult electorResult;
 
+        if (command.elector().isTransferLeadershipValue()) {
+            return processTransferLeadership(
+                result,
+                command.elector().transferLeadership());  // RETURN
+        }
+
         if (d_cluster_p->isRaftEnabled()) {
             // Raft mode: elector not used, respond with set/get values
             const mqbcmd::ElectorCommand& cmd = command.elector();
@@ -2651,6 +2657,68 @@ int ClusterOrchestrator::processCommand(
     mqbcmd::Error& error = result->makeError();
     error.message()      = os.str();
     return -1;
+}
+
+int ClusterOrchestrator::processTransferLeadership(
+    mqbcmd::ClusterResult* result,
+    const bsl::string&     targetName)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+
+    mqbnet::ClusterNode* target = mqbnet::ClusterUtil::lookupNodeByHostName(
+        d_clusterData_p->membership().netCluster(),
+        targetName);
+    if (!target) {
+        bmqu::MemOutStream os;
+        os << "Unknown node '" << targetName << "'";
+        result->makeError().message() = os.str();
+        return -1;  // RETURN
+    }
+
+    if (d_cluster_p->isRaftEnabled()) {
+        BSLS_ASSERT_SAFE(d_clusterStateRaft_mp);
+
+        const int rc = d_clusterStateRaft_mp->transferLeadership(
+            target->nodeId());
+        if (rc != 0) {
+            bmqu::MemOutStream os;
+            os << "Transfer leadership to '" << targetName << "' rejected: ";
+            if (rc == mqbraft::ClusterStateRaft::k_TRANSFER_UNKNOWN_TARGET) {
+                os << "that node is not a peer of this cluster's Raft group.";
+            }
+            else {
+                os << "this node is not the leader.";
+            }
+            result->makeError().message() = os.str();
+            return rc;  // RETURN
+        }
+
+        // Initiated only; the caller waits for the target to take over.
+        result->makeSuccess();
+        return 0;  // RETURN
+    }
+
+    // Legacy has no leadership transfer: succeed only if the requested state
+    // already holds, i.e. self is the leader and is itself the target.
+    if (!d_clusterData_p->electorInfo().isSelfLeader()) {
+        result->makeError().message() =
+            "Transfer leadership rejected: this node is not the leader.";
+        return -1;  // RETURN
+    }
+
+    if (target != d_clusterData_p->membership().netCluster()->selfNode()) {
+        bmqu::MemOutStream os;
+        os << "Transfer leadership rejected: legacy cannot move leadership; "
+           << "target '" << targetName << "' is not self.";
+        result->makeError().message() = os.str();
+        return -1;  // RETURN
+    }
+
+    result->makeSuccess();
+    return 0;
 }
 
 void ClusterOrchestrator::processRaftClusterEvent(const bmqp::Event&   event,

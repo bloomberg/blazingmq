@@ -284,6 +284,17 @@ const Test k_TESTS[] = {
      "\"storage\": { \"partition\": {\"partitionId\": -1, \"command\": "
      "{\"rollover\": {}}}}}}}}"},
     {__LINE__,
+     "transfer primaryship of a partition on a cluster",
+     "CLUSTERS CLUSTER cloister STORAGE PARTITION 123 TRANSFER_LEADERSHIP "
+     "cloistered",
+     "{\"clusters\": {\"cluster\": {\"name\": \"cloister\", \"command\": {"
+     "\"storage\": { \"partition\": {\"partitionId\": 123, \"command\": "
+     "{\"transferLeadership\": \"cloistered\"}}}}}}}"},
+    {__LINE__,
+     "partition transfer leadership requires a target node",
+     "CLUSTERS CLUSTER cloister STORAGE PARTITION 123 TRANSFER_LEADERSHIP",
+     0},
+    {__LINE__,
      "cluster storage domain command requires domain name",
      "CLUSTERS CLUSTER cloister STORAGE DOMAIN",
      0},
@@ -335,6 +346,16 @@ const Test k_TESTS[] = {
      "CLUSTERS CLUSTER cloister STATE ELECTOR LIST_TUNABLES",
      "{\"clusters\": {\"cluster\": {\"name\": \"cloister\", \"command\": {"
      "\"state\": { \"elector\": {\"listTunables\": {}}}}}}}"},
+    {__LINE__,
+     "transfer leadership of a cluster",
+     "CLUSTERS CLUSTER cloister STATE ELECTOR TRANSFER_LEADERSHIP cloistered",
+     "{\"clusters\": {\"cluster\": {\"name\": \"cloister\", \"command\": {"
+     "\"state\": { \"elector\": {\"transferLeadership\": "
+     "\"cloistered\"}}}}}}}"},
+    {__LINE__,
+     "elector transfer leadership requires a target node",
+     "CLUSTERS CLUSTER cloister STATE ELECTOR TRANSFER_LEADERSHIP",
+     0},
     {__LINE__,
      "Broker Config command",
      "BROKERCONFIG DUMP",

@@ -1321,6 +1321,11 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// points.
     int rollover() BSLS_KEYWORD_OVERRIDE;
 
+    /// Legacy has no leadership transfer: succeed only if the requested state
+    /// already holds, i.e. this node is the primary and is itself the target.
+    int transferLeadership(const bsl::string& targetHostName)
+        BSLS_KEYWORD_OVERRIDE;
+
     void registerStorage(ReplicatedStorage* storage) BSLS_KEYWORD_OVERRIDE;
 
     void

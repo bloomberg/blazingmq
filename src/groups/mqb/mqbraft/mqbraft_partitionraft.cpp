@@ -1370,6 +1370,58 @@ int PartitionRaft::rollover()
     return rc_SUCCESS;
 }
 
+int PartitionRaft::transferLeadership(const bsl::string& targetHostName)
+{
+    // executed by the partition *DISPATCHER* thread (admin
+    // 'transferLeadership' command)
+    enum {
+        rc_SUCCESS        = 0,
+        rc_NOT_LEADER     = -1,
+        rc_UNKNOWN_TARGET = -2,
+        rc_REJECTED       = -3
+    };
+
+    if (!isLeader()) {
+        BALL_LOG_WARN << "Partition [" << d_partitionId
+                      << "] Transfer leadership rejected: node is not primary "
+                      << "for this partition.";
+        return rc_NOT_LEADER;  // RETURN
+    }
+
+    const mqbnet::ClusterNode* target =
+        mqbnet::ClusterUtil::lookupNodeByHostName(
+            d_clusterData_p->membership().netCluster(),
+            targetHostName);
+    if (!target) {
+        BALL_LOG_WARN << "Partition [" << d_partitionId
+                      << "] Transfer leadership rejected: unknown node '"
+                      << targetHostName << "'.";
+        return rc_UNKNOWN_TARGET;  // RETURN
+    }
+
+    if (target->nodeId() == d_raftNode_mp->selfId()) {
+        // Already in the requested state.
+        return rc_SUCCESS;  // RETURN
+    }
+
+    RaftNodeOutput output(d_allocator_p);
+    const int      rc = d_raftNode_mp->transferLeadership(&output,
+                                                     target->nodeId());
+    if (rc != 0) {
+        BALL_LOG_WARN << "Partition [" << d_partitionId
+                      << "] Transfer leadership to '" << targetHostName
+                      << "' rejected, rc: " << rc;
+        return rc_REJECTED;  // RETURN
+    }
+
+    BALL_LOG_INFO << "Partition [" << d_partitionId
+                  << "] initiating leadership transfer to '" << targetHostName
+                  << "'";
+
+    dispatchOutput(&output);
+    return rc_SUCCESS;
+}
+
 void PartitionRaft::appendEntries(const bdlbb::Blob&   event,
                                   mqbnet::ClusterNode* source)
 {

@@ -829,6 +829,17 @@ class RecordStore {
     /// called on this record store's dispatcher thread (see `execute`).
     virtual int rollover() = 0;
 
+    /// Hand this partition's leadership to the node whose host name is the
+    /// specified `targetHostName`.  Return zero if the transfer was initiated
+    /// (or if the target is this node and it already leads), non-zero
+    /// otherwise.  Legacy `FileStore` cannot transfer, so it only reports
+    /// whether the requested state already holds; `PartitionRaft` drives a
+    /// Raft leadership transfer, which completes asynchronously.  Used by the
+    /// admin `transferLeadership` command so it routes to the correct
+    /// mechanism per mode.  The behavior is undefined unless called on this
+    /// record store's dispatcher thread (see `execute`).
+    virtual int transferLeadership(const bsl::string& targetHostName) = 0;
+
     /// Enable or disable writing to this partition per the specified
     /// `enable`.  Used by the admin partition enable/disable command.
     virtual void setAvailabilityStatus(bool enable) = 0;

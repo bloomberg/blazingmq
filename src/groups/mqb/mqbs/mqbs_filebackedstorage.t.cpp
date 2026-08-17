@@ -507,6 +507,11 @@ class MockDataStore : public mqbs::DataStore {
 
     int rollover() BSLS_KEYWORD_OVERRIDE { return 0; }
 
+    int transferLeadership(const bsl::string&) BSLS_KEYWORD_OVERRIDE
+    {
+        return 0;
+    }
+
     void setAvailabilityStatus(bool) BSLS_KEYWORD_OVERRIDE {}
 
     void setReplicationFactor(int) BSLS_KEYWORD_OVERRIDE {}

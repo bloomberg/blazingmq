@@ -143,7 +143,9 @@ def simulate_csl_rollover(du: tc.DomainUrls, leader: Broker, producer: Client):
     test_logger.info(f"Rollover detected after opening {i} queues")
 
     # Rollover and queueUnAssignmentAdvisory interleave
-    assert unassignment_seen or leader.outputs_regex(r"queueUnAssignmentAdvisory", timeout=5)
+    assert unassignment_seen or leader.outputs_regex(
+        r"queueUnAssignmentAdvisory", timeout=5
+    )
 
 
 def check_if_queue_has_n_messages(consumer: Client, queue: str, expected_count: int):

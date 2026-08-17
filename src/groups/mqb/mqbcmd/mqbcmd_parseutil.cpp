@@ -871,6 +871,19 @@ int parseStoragePartition(StoragePartition* partition,
         command.makeRollover();
         return expectEnd(error, next);  // RETURN
     }
+    else if (equalCaseless(subcommand, "TRANSFER_LEADERSHIP")) {
+        const bslstl::StringRef targetNode = next();
+
+        if (targetNode.empty()) {
+            *error = "The command CLUSTERS CLUSTER <name> STORAGE PARTITION "
+                     "<partitionId> TRANSFER_LEADERSHIP must be followed by "
+                     "the host name of the target node.";
+            return -1;  // RETURN
+        }
+
+        command.makeTransferLeadership(targetNode);
+        return expectEnd(error, next);  // RETURN
+    }
 
     *error = "Invalid subcommand after CLUSTERS CLUSTER <name> STORAGE "
              "PARTITION <partitionId>: " +
@@ -1004,6 +1017,19 @@ int parseElector(ElectorCommand* command,
     }
     else if (equalCaseless(subcommand, "LIST_TUNABLES")) {
         command->makeListTunables();
+        return expectEnd(error, next);  // RETURN
+    }
+    else if (equalCaseless(subcommand, "TRANSFER_LEADERSHIP")) {
+        const bslstl::StringRef targetNode = next();
+
+        if (targetNode.empty()) {
+            *error = "The command CLUSTERS CLUSTER <name> STATE ELECTOR "
+                     "TRANSFER_LEADERSHIP must be followed by the host name "
+                     "of the target node.";
+            return -1;  // RETURN
+        }
+
+        command->makeTransferLeadership(targetNode);
         return expectEnd(error, next);  // RETURN
     }
 

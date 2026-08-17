@@ -443,6 +443,15 @@ class PartitionRaft : public mqbs::RecordStore {
     /// non-zero if rejected (not leader, or a rollover is already in flight).
     int rollover() BSLS_KEYWORD_OVERRIDE;
 
+    /// Drive a Raft leadership transfer to the node whose host name is the
+    /// specified `targetHostName` (admin `transferLeadership` command): if
+    /// this node is the leader, catch the target up and send it a
+    /// `TimeoutNow`. Return zero if the transfer was initiated (it completes
+    /// asynchronously, once the target wins the election it starts), non-zero
+    /// if rejected.
+    int transferLeadership(const bsl::string& targetHostName)
+        BSLS_KEYWORD_OVERRIDE;
+
     /// Enable or disable writing to this partition per the specified
     /// `enable`, by delegating to the owned `FileStore`.
     void setAvailabilityStatus(bool enable) BSLS_KEYWORD_OVERRIDE;

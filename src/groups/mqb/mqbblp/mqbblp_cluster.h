@@ -346,6 +346,17 @@ class Cluster : public mqbi::Cluster,
     void processCommandDispatched(mqbcmd::ClusterResult*        result,
                                   const mqbcmd::ClusterCommand& command);
 
+    /// Load into the specified `result` whether the node named `targetName`
+    /// currently leads the specified `partitionId`, or the cluster itself if
+    /// `partitionId` is negative.
+    ///
+    /// THREAD: Executed by the dispatcher thread.
+    void hasPartitionLeadershipDispatched(bool*              result,
+                                          int                partitionId,
+                                          const bsl::string& targetName);
+    void hasClusterLeadershipDispatched(bool*              result,
+                                        const bsl::string& targetName);
+
     /// Executed by dispatcher thread.
     void initiateShutdownDispatched(const VoidFunctor& callback);
 
