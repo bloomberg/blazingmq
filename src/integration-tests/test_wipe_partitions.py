@@ -32,6 +32,10 @@ from blazingmq.dev.it.util import wait_until
 pytestmark = order(4)
 
 
+def setup_cluster(cluster: Cluster, domain_urls: tc.DomainUrls):
+    cluster.pin_all_primaries()
+
+
 @tweak.cluster.queue_operations.shutdown_timeout_ms(100)
 def test_wipe_single_partition_files(
     multi_node: Cluster,

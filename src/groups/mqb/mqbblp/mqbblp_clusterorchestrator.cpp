@@ -597,6 +597,7 @@ ClusterOrchestrator::ClusterOrchestrator(
 , d_storageManager_p(0)
 , d_bufferedPrimaryStatusAdvisoryInfosVec(allocator)
 , d_caughtUpTerm(0)
+, d_partitionCommittedLeaseId(allocator)
 {
     // executed by *ANY* thread
 
@@ -610,6 +611,10 @@ ClusterOrchestrator::ClusterOrchestrator(
     d_bufferedPrimaryStatusAdvisoryInfosVec.resize(
         d_clusterConfig.partitionConfig().numPartitions(),
         PrimaryStatusAdvisoryInfos(allocator));
+
+    d_partitionCommittedLeaseId.resize(
+        d_clusterConfig.partitionConfig().numPartitions(),
+        0);
 }
 
 ClusterOrchestrator::~ClusterOrchestrator()
@@ -657,7 +662,8 @@ void ClusterOrchestrator::init(mqbc::ClusterState* clusterState)
                     this,
                     bdlf::PlaceHolders::_1,   // partitionId
                     bdlf::PlaceHolders::_2,   // leaderNodeId
-                    bdlf::PlaceHolders::_3),  // term
+                    bdlf::PlaceHolders::_3,   // term
+                    bdlf::PlaceHolders::_4),  // haveCommit
                 d_allocators.get("PartitionRaftManager")),
             d_allocator_p);
 
@@ -2142,7 +2148,8 @@ void ClusterOrchestrator::onClusterRaftLeadership(bool haveCommit)
 
 void ClusterOrchestrator::onPartitionRaftLeadership(int partitionId,
                                                     int leaderNodeId,
-                                                    bsls::Types::Uint64 term)
+                                                    bsls::Types::Uint64 term,
+                                                    bool haveCommit)
 {
     // executed by the partition *DISPATCHER* thread
 
@@ -2152,14 +2159,16 @@ void ClusterOrchestrator::onPartitionRaftLeadership(int partitionId,
             this,
             partitionId,
             leaderNodeId,
-            term),
+            term,
+            haveCommit),
         d_cluster_p);
 }
 
 void ClusterOrchestrator::onPartitionRaftLeadershipDispatched(
     int                 partitionId,
     int                 leaderNodeId,
-    bsls::Types::Uint64 term)
+    bsls::Types::Uint64 term,
+    bool                haveCommit)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -2173,6 +2182,7 @@ void ClusterOrchestrator::onPartitionRaftLeadershipDispatched(
         << d_clusterData_p->identity().description() << " Partition ["
         << partitionId << "]: onPartitionRaftLeadershipDispatched fired, "
         << "leaderNodeId: " << leaderNodeId << ", term: " << term
+        << ", haveCommit: " << haveCommit
         << ", current [primaryNode, primaryLeaseId, primaryStatus]: ["
         << (d_clusterState_p->partition(partitionId).primaryNode()
                 ? d_clusterState_p->partition(partitionId)
@@ -2239,6 +2249,10 @@ void ClusterOrchestrator::onPartitionRaftLeadershipDispatched(
     d_clusterState_p->setPartitionPrimaryStatus(
         partitionId,
         bmqp_ctrlmsg::PrimaryStatus::E_PASSIVE);
+
+    if (haveCommit) {
+        d_partitionCommittedLeaseId[partitionId] = leaseId;
+    }
 
     // A partition just learned its leaseId (one of the two independent
     // signals 'maybeTransitionToAvailable' compares); re-run the unified
@@ -2440,31 +2454,42 @@ void ClusterOrchestrator::maybeTransitionToAvailable()
     // recorded this leaseId before this, the first journal record under it.
     const int selfNodeId = d_clusterData_p->membership().selfNode()->nodeId();
     for (size_t pid = 0; pid < partitions.size(); ++pid) {
-        if (partitions[pid].primaryNodeId() == selfNodeId &&
-            d_partitionRaftManager_mp) {
+        const bool isSelfPrimary = partitions[pid].primaryNodeId() ==
+                                   selfNodeId;
+        if (isSelfPrimary && d_partitionRaftManager_mp) {
             d_partitionRaftManager_mp->proposeDeferredSyncPoint(
                 static_cast<int>(pid));
         }
-        if (bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE !=
+        if (bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE ==
             partitions[pid].primaryStatus()) {
-            d_clusterState_p->setPartitionPrimaryStatus(
-                static_cast<int>(pid),
-                bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE);
-
-            // Legacy/FSM mode learns of this transition via the
-            // 'ClusterStateObserver' callback that
-            // 'ClusterStateManager::onPartitionPrimaryAssignment' forwards to
-            // 'ClusterQueueHelper::afterPartitionPrimaryAssignment' -- Raft
-            // mode has no such observer wired up (no 'ClusterStateManager'
-            // is constructed), so drive it directly here.  This retries any
-            // openQueue/reopen contexts that were buffered while this
-            // partition had no active primary, and redirects already-open
-            // queue handles on this partition to the new primary.
-            d_queueHelper.afterPartitionPrimaryAssignment(
-                static_cast<int>(pid),
-                partitions[pid].primaryNode(),
-                bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE);
+            continue;  // CONTINUE
         }
+        if (isSelfPrimary && partitions[pid].primaryLeaseId() !=
+                                 d_partitionCommittedLeaseId[pid]) {
+            BALL_LOG_INFO << d_clusterData_p->identity().description()
+                          << ": maybeTransitionToAvailable blocked: "
+                          << "partition " << pid
+                          << " has not committed its deferred sync point yet";
+            continue;  // CONTINUE
+        }
+
+        d_clusterState_p->setPartitionPrimaryStatus(
+            static_cast<int>(pid),
+            bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE);
+
+        // Legacy/FSM mode learns of this transition via the
+        // 'ClusterStateObserver' callback that
+        // 'ClusterStateManager::onPartitionPrimaryAssignment' forwards to
+        // 'ClusterQueueHelper::afterPartitionPrimaryAssignment' -- Raft
+        // mode has no such observer wired up (no 'ClusterStateManager'
+        // is constructed), so drive it directly here.  This retries any
+        // openQueue/reopen contexts that were buffered while this
+        // partition had no active primary, and redirects already-open
+        // queue handles on this partition to the new primary.
+        d_queueHelper.afterPartitionPrimaryAssignment(
+            static_cast<int>(pid),
+            partitions[pid].primaryNode(),
+            bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE);
     }
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()

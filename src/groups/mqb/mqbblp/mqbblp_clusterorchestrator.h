@@ -200,6 +200,10 @@ class ClusterOrchestrator {
     /// none.
     bsls::Types::Uint64 d_caughtUpTerm;
 
+    /// Per-partition leaseId whose deferred sync point has committed; 0 if
+    /// none. Indexed by partitionId.
+    bsl::vector<unsigned int> d_partitionCommittedLeaseId;
+
   private:
     // NOT IMPLEMENTED
     ClusterOrchestrator(const ClusterOrchestrator&);             // = delete;
@@ -264,7 +268,8 @@ class ClusterOrchestrator {
     ///         dispatcher thread.
     void onPartitionRaftLeadershipDispatched(int                 partitionId,
                                              int                 leaderNodeId,
-                                             bsls::Types::Uint64 term);
+                                             bsls::Types::Uint64 term,
+                                             bool                haveCommit);
 
     /// If self is the CSL Raft leader, the CSL is caught up, and every
     /// partition has a leader (leaseId known), propose a combined
@@ -616,7 +621,8 @@ class ClusterOrchestrator {
     /// THREAD: Executed by the partition dispatcher thread.
     void onPartitionRaftLeadership(int                 partitionId,
                                    int                 leaderNodeId,
-                                   bsls::Types::Uint64 term);
+                                   bsls::Types::Uint64 term,
+                                   bool                haveCommit);
 
     void onClusterRaftLeadership(bool haveCommit);
 

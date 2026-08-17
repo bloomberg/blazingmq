@@ -38,6 +38,10 @@ from blazingmq.dev.it.cluster_util import (
 MAX_JOURNAL_FILE_SIZE = 1844
 
 
+def setup_cluster(cluster: Cluster, domain_urls: tc.DomainUrls):
+    cluster.pin_all_primaries()
+
+
 @tweak.cluster.partition_config.max_journal_file_size(MAX_JOURNAL_FILE_SIZE)
 def test_sync_after_missed_rollover(
     fsm_multi_cluster: Cluster,
@@ -84,11 +88,14 @@ def test_sync_after_missed_rollover(
     cluster.make_sure_node_stopped(replica)
     replica.drain()
 
-    # Put more messages w/o confirm to initiate the rollover
+    # Put more messages with confirms to initiate the rollover
+    # (Raft has no periodic sync points, so confirms generate dead bytes needed for trigger)
     i = 3
     while not primary.outputs_substr("Initiating rollover", 0.01):
         assert i < 8, f"Rollover was not initiated after {i - 1} messages"
         producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
+        consumer.wait_push_event()
+        consumer.confirm(uri_priority, "*", succeed=True)
         i += 1
 
     # Wait until rollover completed
@@ -172,11 +179,14 @@ def test_sync_after_missed_rollover_after_restart(
     cluster.make_sure_node_stopped(east2)
     east2.drain()
 
-    # Put more messages w/o confirm to initiate the rollover
+    # Put more messages with confirms to initiate the rollover
+    # (Raft has no periodic sync points, so confirms generate dead bytes needed for trigger)
     i = 3
     while not east1.outputs_substr("Initiating rollover", 0.01):
         assert i < 8, f"Rollover was not initiated after {i - 1} messages"
         producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
+        consumer.wait_push_event()
+        consumer.confirm(uri_priority, "*", succeed=True)
         i += 1
 
     # Wait until rollover completed on all running nodes
