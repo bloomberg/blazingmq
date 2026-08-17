@@ -192,6 +192,7 @@ PartitionRaft::PartitionRaft(int partitionId,
 , d_snapshotLastIncludedIndex(0)
 , d_snapshotLastIncludedTerm(0)
 , d_isRolloverPending(false)
+, d_isExpectingTermCommit(false)
 , d_leadershipCb(leadershipCb)
 {
     BSLS_ASSERT_SAFE(d_fileStore_sp);
@@ -341,8 +342,9 @@ void PartitionRaft::dispatchOutput(RaftNodeOutput* output)
         // primary/gate state.
         BALL_LOG_INFO << "Partition [" << d_partitionId
                       << "] invoking d_leadershipCb with leaderNodeId="
-                      << leaderNodeId << ", term=" << term;
-        d_leadershipCb(d_partitionId, leaderNodeId, term);
+                      << leaderNodeId << ", term=" << term
+                      << ", haveCommit=false";
+        d_leadershipCb(d_partitionId, leaderNodeId, term, false);
     }
 }
 
@@ -429,6 +431,14 @@ void PartitionRaft::applyCommittedEntry(const LogEntry& entry)
     // and have a pending write; earlier ones arrived by replication.
     if (isLeader() && entry.d_term == d_raftNode_mp->currentTerm()) {
         d_raftLog_mp->applyCommittedEntryAsPrimary(entry.d_index);
+
+        if (d_isExpectingTermCommit) {
+            d_isExpectingTermCommit = false;
+            d_leadershipCb(d_partitionId,
+                           d_raftNode_mp->leaderId(),
+                           d_raftNode_mp->currentTerm(),
+                           true);
+        }
     }
     else {
         d_raftLog_mp->applyCommittedEntryAsReplica(entry.d_index,
@@ -1108,6 +1118,11 @@ void PartitionRaft::proposeDeferredSyncPoint()
     BALL_LOG_INFO << "Partition [" << d_partitionId
                   << "] writing deferred become-leader sync point (partition "
                   << "activated; CSL advisory for its leaseId has committed).";
+
+    // Set before proposing: in a single-node cluster 'propose' commits and
+    // applies synchronously, so 'applyCommittedEntry' runs before this
+    // returns.
+    d_isExpectingTermCommit = true;
 
     proposeSyncPoint();
 

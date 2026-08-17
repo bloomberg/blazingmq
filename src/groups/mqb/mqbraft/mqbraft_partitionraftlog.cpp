@@ -67,6 +67,11 @@ PartitionRaftLog::~PartitionRaftLog()
 // MANIPULATORS
 int PartitionRaftLog::open()
 {
+    // Recovery only appends to 'd_index'.  A reopen (InstallSnapshot replaces
+    // the file set) must not keep entries anchored to the discarded files.
+    d_index.clear();
+    clearCache();
+
     int rc = d_fileStore_p->openForRaft(&d_index);
     if (rc != 0) {
         return rc;

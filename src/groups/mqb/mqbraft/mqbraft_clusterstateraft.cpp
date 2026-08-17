@@ -250,27 +250,21 @@ void ClusterStateRaft::applyCommittedEntry(const LogEntry& entry)
         // rather than overwriting 'primaryLeaseId'.  Update it monotonically
         // so a stale advisory replayed at recovery can't lower a leaseId a
         // later commit confirmed.
-        const bmqp_ctrlmsg::PartitionPrimaryAdvisory& adv =
-            clusterMessage.choice().partitionPrimaryAdvisory();
-        for (bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>::const_iterator
-                 it = adv.partitions().cbegin();
-             it != adv.partitions().cend();
-             ++it) {
-            const mqbc::ClusterStatePartitionInfo& pinfo =
-                d_clusterState_p->partition(it->partitionId());
-            if (it->primaryLeaseId() > pinfo.advisoryConfirmedLeaseId()) {
+        // Only a current-term advisory describes the live epoch (Raft 5.4.2);
+        // one replayed from a prior term confirms nothing.
+        if (entry.d_term == d_raftNode_mp->currentTerm()) {
+            const bmqp_ctrlmsg::PartitionPrimaryAdvisory& adv =
+                clusterMessage.choice().partitionPrimaryAdvisory();
+            for (bsl::vector<
+                     bmqp_ctrlmsg::PartitionPrimaryInfo>::const_iterator it =
+                     adv.partitions().cbegin();
+                 it != adv.partitions().cend();
+                 ++it) {
                 d_clusterState_p->setPartitionAdvisoryConfirmedLeaseId(
                     it->partitionId(),
                     it->primaryLeaseId());
             }
-        }
 
-        // Only the CSL leader's *current-term* advisory signals that the
-        // recovered backlog has caught up (Raft 5.4.2): a stale advisory
-        // replayed from a prior term must not fire the callback early,
-        // before the rest of that stale backlog (e.g. queue assignments
-        // from before a restart) has finished being applied.
-        if (entry.d_term == d_raftNode_mp->currentTerm()) {
             d_availabilityCb(true);
         }
     }

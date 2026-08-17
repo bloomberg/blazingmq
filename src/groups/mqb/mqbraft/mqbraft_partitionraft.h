@@ -79,13 +79,12 @@ class PartitionRaft : public mqbs::RecordStore {
   public:
     // TYPES
 
-    /// Callback invoked on the partition dispatcher thread whenever this
-    /// partition's Raft leadership changes (self became/lost leader, or a
-    /// follower observed a new leader).  `leaderNodeId` is the current
-    /// leader's node id, or `RaftNode::k_INVALID_NODE_ID` when there is no
-    /// leader; `term` is the current Raft term (maps to the primary lease id).
-    typedef bsl::function<
-        void(int partitionId, int leaderNodeId, bsls::Types::Uint64 term)>
+    /// Callback for this partition's Raft leadership changes and for its
+    /// deferred sync point committing (`haveCommit=true`).
+    typedef bsl::function<void(int                 partitionId,
+                               int                 leaderNodeId,
+                               bsls::Types::Uint64 term,
+                               bool                haveCommit)>
         PartitionLeadershipCb;
 
   private:
@@ -132,6 +131,10 @@ class PartitionRaft : public mqbs::RecordStore {
 
     /// `true` if an `e_ROLLOVER` has been proposed but not yet committed.
     bool d_isRolloverPending;
+
+    /// `true` between `proposeDeferredSyncPoint` and the commit of this
+    /// term's first entry.
+    bool d_isExpectingTermCommit;
 
     /// Invoked on every Raft leadership change to signal the cluster (see
     /// `PartitionLeadershipCb`).  Required (asserted non-empty at
