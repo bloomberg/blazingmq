@@ -596,7 +596,6 @@ ClusterOrchestrator::ClusterOrchestrator(
 , d_clusterState_p(clusterState)
 , d_storageManager_p(0)
 , d_bufferedPrimaryStatusAdvisoryInfosVec(allocator)
-, d_caughtUpTerm(0)
 , d_partitionCommittedLeaseId(allocator)
 {
     // executed by *ANY* thread
@@ -643,8 +642,7 @@ void ClusterOrchestrator::init(mqbc::ClusterState* clusterState)
                 // dispatcher thread, so it can call directly.
                 bdlf::BindUtil::bind(
                     &ClusterOrchestrator::onClusterRaftLeadership,
-                    this,
-                    bdlf::PlaceHolders::_1),  // haveCommit
+                    this),
                 d_allocator_p),
             d_allocator_p);
 
@@ -2118,24 +2116,11 @@ void ClusterOrchestrator::onPartitionPrimaryStatus(int          partitionId,
         d_cluster_p);
 }
 
-void ClusterOrchestrator::onClusterRaftLeadership(bool haveCommit)
+void ClusterOrchestrator::onClusterRaftLeadership()
 {
-    const bsls::Types::Uint64 term = d_clusterStateRaft_mp->currentTerm();
-
     BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << ": onClusterRaftLeadership fired, haveCommit: "
-                  << haveCommit << ", term: " << term
-                  << ", d_caughtUpTerm: " << d_caughtUpTerm;
-
-    // Ignore a haveCommit=false for a term that has not advanced past
-    // d_caughtUpTerm, so a same-term leader flicker does not invalidate an
-    // already-confirmed term.
-    if (haveCommit) {
-        d_caughtUpTerm = term;
-    }
-    else if (term > d_caughtUpTerm) {
-        d_caughtUpTerm = 0;
-    }
+                  << ": onClusterRaftLeadership fired, term: "
+                  << d_clusterStateRaft_mp->currentTerm();
 
     // Even though we are in the cluster thread, dispatch to avoid re-entrance
     // as in the single node cluster case, when propose commits immediately and
@@ -2272,8 +2257,8 @@ void ClusterOrchestrator::maybeIssuePartitionPrimaryAdvisory()
     // Raft mode and self is the CSL leader.  Per Raft 5.4.2, a new leader
     // commits inherited prior-term entries only by committing an entry of its
     // own term; this advisory is that entry.  Only the CSL leader publishes
-    // it; on applying the commit, every node (including self) sets
-    // d_caughtUpTerm and marks its partition primaries E_ACTIVE.
+    // it; on applying the commit, every node (including self) promotes its
+    // elector to e_ACTIVE and marks its partition primaries E_ACTIVE.
     //
     // Called only from 'maybeTransitionToAvailable', which has already
     // verified every partition has a locally-known leader (its gate 1) before
@@ -2292,22 +2277,19 @@ void ClusterOrchestrator::maybeIssuePartitionPrimaryAdvisory()
     const mqbc::ClusterState::PartitionsInfo& partitions =
         d_clusterState_p->partitions();
 
-    // Propose the partitionPrimaryAdvisory when d_caughtUpTerm is 0: no
-    // advisory for currentTerm() has committed yet, either because this
-    // leader has not proposed one for currentTerm(), or because the loop
-    // below just found a partition's leaseId ahead of
-    // advisoryConfirmedLeaseId.
+    // Propose when no advisory for currentTerm() has committed yet -- the
+    // elector is still e_PASSIVE -- or when a partition's leaseId has run
+    // ahead of the one the last committed advisory confirmed.
+    bool needsAdvisory = !d_clusterData_p->electorInfo().hasActiveLeader();
 
-    for (size_t pid = 0; d_caughtUpTerm != 0 && pid < partitions.size();
-         ++pid) {
+    for (size_t pid = 0; !needsAdvisory && pid < partitions.size(); ++pid) {
         if (partitions[pid].primaryLeaseId() !=
             partitions[pid].advisoryConfirmedLeaseId()) {
-            d_caughtUpTerm = 0;
+            needsAdvisory = true;
         }
     }
-    if (d_caughtUpTerm != 0) {
-        return;  // RETURN (already tried this term; CSL reflects current
-                 // leaseIds)
+    if (!needsAdvisory) {
+        return;  // RETURN (CSL reflects current leaseIds)
     }
 
     // Build the combined artificial 'partitionPrimaryAdvisory'.  The leaseId
@@ -2413,17 +2395,19 @@ void ClusterOrchestrator::maybeTransitionToAvailable()
 
     // If self is the CSL leader, this is the trigger to publish the combined
     // artificial partition-primary advisory (every partition now has a
-    // leader, per gate 1).  Its commit sets d_caughtUpTerm.  Self-dedups
-    // against re-proposing an identical advisory.
+    // leader, per gate 1).  Its commit promotes the elector to e_ACTIVE.
+    // Self-dedups against re-proposing an identical advisory.
     maybeIssuePartitionPrimaryAdvisory();
 
     // The full CSL backlog must be applied -- otherwise this node could serve
     // queue reopens against a partially-replayed cluster state, minting
     // conflicting queue/app keys instead of honoring the recovered state.
-    if (0 == d_caughtUpTerm) {
+    // 'ClusterStateRaft::promoteToActive' raises this once the first
+    // current-term entry commits.
+    if (!d_clusterData_p->electorInfo().hasActiveLeader()) {
         BALL_LOG_INFO << d_clusterData_p->identity().description()
                       << ": maybeTransitionToAvailable blocked: "
-                      << "d_caughtUpTerm=" << d_caughtUpTerm;
+                      << "not caught up";
         return;  // RETURN
     }
 
@@ -2786,7 +2770,43 @@ void ClusterOrchestrator::processRaftSnapshotEvent(const bmqp::Event&   event,
     // executed by the *IO* thread
     BSLS_ASSERT_SAFE(d_partitionRaftManager_mp);
 
+    // The CSL Raft group shares this event type with the partitions; the
+    // file type tells them apart.
+    bmqu::BlobPosition position;
+    if (0 == bmqu::BlobUtil::findOffsetSafe(&position,
+                                            *event.blob(),
+                                            sizeof(bmqp::EventHeader))) {
+        bmqu::BlobObjectProxy<bmqp::SnapshotChunkHeader> hdr(event.blob(),
+                                                             position,
+                                                             true,    // read
+                                                             false);  // write
+        if (hdr.isSet() &&
+            hdr->fileType() == bmqp::SnapshotChunkHeader::k_FILE_TYPE_CSL) {
+            BSLS_ASSERT_SAFE(d_clusterStateRaft_mp);
+
+            dispatcher()->execute(
+                bdlf::BindUtil::bind(
+                    &ClusterOrchestrator::processRaftCslSnapshotDispatched,
+                    this,
+                    event.sharedBlob(),
+                    source),
+                d_cluster_p);
+            return;  // RETURN
+        }
+    }
+
     d_partitionRaftManager_mp->appendSnapshotChunk(event.sharedBlob(), source);
+}
+
+void ClusterOrchestrator::processRaftCslSnapshotDispatched(
+    const bsl::shared_ptr<const bdlbb::Blob>& blob,
+    mqbnet::ClusterNode*                      source)
+{
+    // executed by the cluster *DISPATCHER* thread
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+    BSLS_ASSERT_SAFE(d_clusterStateRaft_mp);
+
+    d_clusterStateRaft_mp->applySnapshotChunk(*blob, source);
 }
 
 void ClusterOrchestrator::processRaftControlMessage(

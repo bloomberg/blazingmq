@@ -293,6 +293,13 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
         /// response if Reopen request succeeds or Reopen response otherwise.
         int d_numReopenQueueRequests;
 
+        /// `true` while a scheduled event to retry `d_pending` is
+        /// outstanding.  `d_openQueueRetryHandle` stays set after the event
+        /// fires, so it cannot answer this.
+        bool d_openQueueRetryScheduled;
+
+        bdlmt::EventScheduler::EventHandle d_openQueueRetryHandle;
+
       public:
         // TRAITS
         BSLMF_NESTED_TRAIT_DECLARATION(QueueLiveState,
@@ -582,6 +589,18 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
 
     /// Process pending contexts, if any, from the specified `queueContext`.
     void processPendingContexts(QueueContext* queueContext);
+
+    /// Buffer the specified `context` and arrange for the pending contexts
+    /// of the specified `queueContext` to be processed after
+    /// `k_OPEN_QUEUE_RETRY_MS`, unless something else drains them first.
+    void scheduleOpenQueueRetry(QueueContext*             queueContext,
+                                const OpenQueueContextSp& context);
+
+    /// Enqueue `onOpenQueueRetryDispatched` for the queue with the specified
+    /// canonical `uri`.
+    void onOpenQueueRetry(const bmqt::Uri& uri);
+
+    void onOpenQueueRetryDispatched(const bmqt::Uri& uri);
 
     /// Process the open queue request represented by the specified
     /// `context`: that is, depending on the cluster mode and queue

@@ -245,6 +245,43 @@ int CslRaftLog::rollover(bsl::shared_ptr<mqbsi::Log>*        oldLog,
     return 0;
 }
 
+int CslRaftLog::installSnapshot(
+    bsl::shared_ptr<mqbsi::Log>*        oldLog,
+    const bsl::shared_ptr<mqbsi::Log>&  newLog,
+    const mqbu::StorageKey&             newLogId,
+    const bsl::shared_ptr<bdlbb::Blob>& snapshotRecord,
+    bsls::Types::Uint64                 lastIncludedIndex,
+    bsls::Types::Uint64                 lastIncludedTerm)
+{
+    BSLS_ASSERT_SAFE(oldLog);
+    BSLS_ASSERT_SAFE(newLog && newLog->isOpened());
+    BSLS_ASSERT_SAFE(snapshotRecord);
+    BSLS_ASSERT_SAFE(d_snapshotIndex <= lastIncludedIndex);
+
+    mqbc::ClusterStateFileHeader fh;
+    fh.setProtocolVersion(mqbc::ClusterStateLedgerProtocol::k_VERSION)
+        .setHeaderWords(mqbc::ClusterStateFileHeader::k_HEADER_NUM_WORDS)
+        .setFileKey(newLogId);
+    if (newLog->write(&fh, 0, k_FILE_HEADER_SIZE) < 0) {
+        return -1;  // RETURN
+    }
+
+    if (newLog->write(*snapshotRecord,
+                      bmqu::BlobPosition(),
+                      snapshotRecord->length()) < 0) {
+        return -2;  // RETURN
+    }
+
+    // As in 'rollover', the base snapshot is intentionally NOT in 'd_index'.
+    *oldLog  = d_log_sp;
+    d_log_sp = newLog;
+    d_index.clear();
+    d_snapshotIndex = lastIncludedIndex;
+    d_snapshotTerm  = lastIncludedTerm;
+
+    return 0;
+}
+
 // ACCESSORS
 bsls::Types::Uint64 CslRaftLog::lastIndex() const
 {

@@ -366,6 +366,17 @@ class Cluster : public mqbi::Cluster,
     void continueShutdownDispatched(bsls::Types::Int64        startTimeNs,
                                     const CompletionCallback& completionCb);
 
+    /// Wait for the peers to acknowledge what this node has replicated, up
+    /// to the specified `whenToStop`, then finish the shutdown.  Reschedules
+    /// itself while the peers are behind.
+    void waitForReplication(const bsls::TimeInterval& whenToStop,
+                            const CompletionCallback& completionCb);
+    void waitForReplicationDispatched(const bsls::TimeInterval& whenToStop,
+                                      const CompletionCallback& completionCb);
+
+    /// Advertise `E_UNAVAILABLE` to the peers and close the channels.
+    void finishShutdownDispatched(const CompletionCallback& completionCb);
+
     void processControlMessage(const bmqp_ctrlmsg::ControlMessage& message,
                                mqbnet::ClusterNode*                source);
     void

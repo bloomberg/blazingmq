@@ -5382,7 +5382,7 @@ struct SnapshotChunkHeader {
     //   +---------------+---------------+---------------+---------------+
     //
     //  PartitionId...........: Partition this snapshot belongs to
-    //  FileType..............: 0 = journal, 1 = data
+    //  FileType..............: 0 = data, 1 = qlist, 2 = journal, 3 = CSL
     //  D.....................: 1 if this is the last chunk
     //  LastIncludedIndex.....: Raft log index of the snapshot boundary
     //  Offset................: Byte offset of this chunk in the file
@@ -5398,6 +5398,11 @@ struct SnapshotChunkHeader {
     static const unsigned int k_FILE_TYPE_DATA    = 0;
     static const unsigned int k_FILE_TYPE_QLIST   = 1;
     static const unsigned int k_FILE_TYPE_JOURNAL = 2;
+
+    /// The CSL log of the cluster-state Raft group.  Its snapshot is a
+    /// single `e_SNAPSHOT` cluster-state record, not a partition file, and
+    /// `partitionId` is unused.
+    static const unsigned int k_FILE_TYPE_CSL = 3;
 
   private:
     // DATA

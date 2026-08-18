@@ -29,6 +29,12 @@ StorageProvider::~StorageProvider()
     // NOTHING (pure interface)
 }
 
+// MANIPULATORS
+bool StorageProvider::canShutdown()
+{
+    return true;
+}
+
 // --------------------
 // class StorageManager
 // --------------------

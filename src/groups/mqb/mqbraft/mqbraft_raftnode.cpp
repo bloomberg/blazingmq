@@ -655,9 +655,14 @@ void RaftNode::handleInstallSnapshot(RaftNodeOutput*    output,
         return;
     }
 
+    // Report a term advance as a state change even when already a follower:
+    // observers key their per-term state (elector status, and with it the
+    // "CSL backlog applied for this term" signal) off these flags, and a term
+    // advance invalidates it.  Mirrors 'handleAppendEntries'.
     if (msg.d_term > d_currentTerm) {
-        d_currentTerm = msg.d_term;
-        d_votedFor    = k_INVALID_NODE_ID;
+        d_currentTerm          = msg.d_term;
+        d_votedFor             = k_INVALID_NODE_ID;
+        output->d_stateChanged = true;
     }
 
     if (d_state != RaftState::e_FOLLOWER) {
@@ -665,7 +670,11 @@ void RaftNode::handleInstallSnapshot(RaftNodeOutput*    output,
         output->d_stateChanged = true;
     }
 
-    d_leaderId = msg.d_sourceNodeId;
+    if (d_leaderId != msg.d_sourceNodeId) {
+        d_leaderId              = msg.d_sourceNodeId;
+        output->d_leaderChanged = true;
+    }
+
     resetElectionTimer();
 
     BALL_LOG_INFO << "[partition " << d_config.d_partitionId << "] Node "
@@ -693,12 +702,8 @@ void RaftNode::handleInstallSnapshotResp(RaftNodeOutput*    output,
         return;
     }
 
-    // 'RaftInstallSnapshotResponse' carries no payload on the wire (see
-    // 'PeerState::d_snapshotPendingIndex'), so 'msg.d_lastLogIndex' here is
-    // always 0 and cannot be used -- advance from what we remember sending
-    // instead. Guarded on 'd_snapshotPending' so a stray/duplicate response
-    // with nothing actually pending is a no-op rather than replaying a
-    // stale index.
+    // 'msg.d_lastLogIndex' is always 0 on this response; advance from
+    // 'd_snapshotPendingIndex' instead.
     if (it->second.d_snapshotPending) {
         BALL_LOG_INFO << "[partition " << d_config.d_partitionId << "] Node "
                       << d_config.d_selfId
@@ -712,9 +717,6 @@ void RaftNode::handleInstallSnapshotResp(RaftNodeOutput*    output,
         }
     }
 
-    // The peer has responded, so the snapshot is no longer in flight --
-    // un-pause it and immediately resume replication instead of waiting for
-    // the next heartbeat.
     it->second.d_snapshotPending      = false;
     it->second.d_snapshotPendingTicks = 0;
     sendAppendEntries(output, msg.d_sourceNodeId);
@@ -746,25 +748,9 @@ void RaftNode::sendAppendEntries(RaftNodeOutput* output, int peerId)
         return;
     }
 
-    if (it->second.d_snapshotPending) {
-        // An 'InstallSnapshot' is already in flight to this peer with no
-        // response yet (etcd/raft's 'ProgressStateSnapshot::IsPaused()' is
-        // always true): skip it entirely rather than re-sending a snapshot
-        // or, worse, an AppendEntries built from a 'nextIndex' we know is
-        // stale, since we don't yet know whether the peer applied it.
-        // 'tick()' clears this if it times out with no response.
-        return;
-    }
-
-    if (it->second.d_appendEntriesPending) {
-        // An AppendEntries is already in flight to this peer with no
-        // response yet (etcd/raft's 'ProgressStateProbe::IsPaused()'):
-        // skip re-sending.  'nextIndex' only advances on that response, so
-        // an unconditional resend here would rebuild the same not-yet-acked
-        // range (plus anything newly proposed since), i.e. retransmit an
-        // ever-growing, overlapping range instead of letting the single
-        // incremental catch-up below cover everything once we may send
-        // again.  'tick()' clears this if it times out with no response.
+    // Skip a peer with a send already in flight; 'tick()' clears the guard on
+    // timeout.
+    if (it->second.d_snapshotPending || it->second.d_appendEntriesPending) {
         return;
     }
 
@@ -773,17 +759,10 @@ void RaftNode::sendAppendEntries(RaftNodeOutput* output, int peerId)
 
     if (nextIdx <= snapshotIndex) {
         // 'prevLogIndex' ('nextIdx - 1') is at or below the compacted snapshot
-        // boundary, so a normal AppendEntries cannot be built from the log.
-        // Before falling back to a full (expensive) InstallSnapshot, try ONE
-        // optimistic AppendEntries anchored *at* the snapshot boundary
-        // ('prevLogIndex == snapshotIndex').  A peer that has itself already
-        // advanced to 'snapshotIndex' -- e.g. it applied the rollover
-        // 'e_ROLLOVER' entry and its ack is merely in flight, leaving our
-        // 'matchIndex' for it one short -- accepts it and catches up in a
-        // single round, avoiding a spurious snapshot at rollover time.  A
-        // genuinely-behind peer (lastIndex < snapshotIndex) rejects it;
-        // 'handleAppendEntriesResp' sets 'd_boundaryProbeRejected' and we
-        // snapshot on the retry (so this cannot loop).
+        // boundary, so no AppendEntries can be built from the log.  Try one
+        // optimistic AppendEntries anchored at the boundary before falling
+        // back to 'InstallSnapshot': a peer already at 'snapshotIndex' accepts
+        // it, one genuinely behind rejects it and gets the snapshot on retry.
         if (nextIdx == snapshotIndex && !it->second.d_boundaryProbeRejected) {
             RaftMessage probe(d_allocator_p);
             probe.d_type              = RaftMessageType::e_APPEND_ENTRIES;
@@ -844,14 +823,8 @@ void RaftNode::sendAppendEntries(RaftNodeOutput* output, int peerId)
 
     output->d_messages.push_back(msg);
 
+    // An empty (heartbeat) AppendEntries does not set the in-flight guard.
     if (!msg.d_entries.empty()) {
-        // Only entry-carrying sends set the in-flight guard: an empty
-        // (heartbeat) AppendEntries carries nothing that a resend could
-        // redundantly retransmit, so there is no need for it to gate the
-        // *next* send to this peer (e.g. a data send triggered moments later
-        // by a new 'propose()').  A data send still blocks subsequent sends
-        // -- including heartbeats -- until acked/rejected/timed out, exactly
-        // like 'd_snapshotPending' above.
         it->second.d_appendEntriesPending      = true;
         it->second.d_appendEntriesPendingTicks = 0;
     }
@@ -916,11 +889,8 @@ void RaftNode::tick(RaftNodeOutput* output)
     BSLS_ASSERT_SAFE(output);
 
     if (d_state == RaftState::e_LEADER) {
-        // Substitute for etcd/raft's transport-level snapshot-status report
-        // (this implementation's snapshot send is synchronous/in-band, so
-        // there is no independent transfer to report failure): if a peer's
-        // 'InstallSnapshotResp' never arrives (e.g. the response was lost),
-        // un-pause it after a timeout so it is not stuck forever.
+        // Clear the in-flight guard of any peer whose response never arrived,
+        // so it becomes sendable again.
         for (bsl::unordered_map<int, PeerState>::iterator it =
                  d_peerStates.begin();
              it != d_peerStates.end();
@@ -938,10 +908,6 @@ void RaftNode::tick(RaftNodeOutput* output)
                 }
             }
 
-            // Same idea for a data AppendEntries: if its response never
-            // arrives (e.g. lost), do not leave this peer permanently
-            // un-sendable -- drop the guard so the next heartbeat/propose
-            // broadcast can retry it.
             if (it->second.d_appendEntriesPending) {
                 if (++it->second.d_appendEntriesPendingTicks >=
                     d_config.d_electionTimeoutMin) {

@@ -75,9 +75,8 @@ class ClusterStateRaft : public mqbi::ClusterStateUpdater {
     /// Callback invoked (on the cluster dispatcher thread) whenever the CSL
     /// Raft state advances -- leadership change or committed entries applied
     /// -- so the orchestrator can re-evaluate whether it may transition to
-    /// AVAILABLE.  The bool argument is true when a current-term
-    /// partitionPrimaryAdvisory has committed.
-    typedef bsl::function<void(bool)> AvailabilityCb;
+    /// AVAILABLE.
+    typedef bsl::function<void()> AvailabilityCb;
 
     // PUBLIC CONSTANTS
 
@@ -117,8 +116,16 @@ class ClusterStateRaft : public mqbi::ClusterStateUpdater {
     void sendControlMessage(const RaftMessage& msg);
 
     /// Apply a single committed CSL entry to ClusterState and write
-    /// an e_COMMIT record for rollback compatibility.
-    void applyCommittedEntry(const LogEntry& entry);
+    /// an e_COMMIT record for rollback compatibility.  Return true if the
+    /// entry is the first of the current term (the artificial
+    /// `partitionPrimaryAdvisory`), whose commit is what applies the backlog
+    /// inherited from prior terms.
+    bool applyCommittedEntry(const LogEntry& entry);
+
+    /// Move the elector's leader status to `e_ACTIVE` and notify the
+    /// orchestrator.  Call only once the first current-term entry has been
+    /// applied.
+    void promoteToActive();
 
     /// Roll over the CSL log: snapshot the committed cluster state into a
     /// fresh file (preserving the uncommitted tail) and remove the old file.
@@ -151,6 +158,12 @@ class ClusterStateRaft : public mqbi::ClusterStateUpdater {
     /// Update ElectorInfo from RaftNode state after a state change.
     void updateElectorInfo();
 
+    /// Send the base `e_SNAPSHOT` record of the current CSL log to the
+    /// destination of the specified `msg`, as a single `e_RAFT_SNAPSHOT`
+    /// chunk.  The record's own sequence number is the log's snapshot index,
+    /// which is what `msg` announces as `lastIncludedIndex`.
+    void sendSnapshotRecord(const RaftMessage& msg);
+
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(ClusterStateRaft, bslma::UsesBslmaAllocator)
@@ -181,6 +194,13 @@ class ClusterStateRaft : public mqbi::ClusterStateUpdater {
     /// Process an incoming binary AppendEntries event (e_RAFT_CLUSTER)
     /// from the specified 'source' node.
     void appendEntries(const bdlbb::Blob& event, mqbnet::ClusterNode* source);
+
+    /// Install the CSL snapshot carried by the specified `e_RAFT_SNAPSHOT`
+    /// `event` from the specified `source` node: replace `ClusterState` and
+    /// the CSL log with the base `e_SNAPSHOT` record it carries, then
+    /// acknowledge.  The snapshot arrives in a single chunk.
+    void applySnapshotChunk(const bdlbb::Blob&   event,
+                            mqbnet::ClusterNode* source);
 
     /// Propose the specified 'advisory' for replication via Raft.
     /// Return 0 on success, non-zero if not the leader.

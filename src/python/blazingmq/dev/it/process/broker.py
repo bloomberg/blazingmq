@@ -422,8 +422,7 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
         )
 
         return self.command(
-            f"CLUSTERS CLUSTER {self.cluster_name} {scope} "
-            f"TRANSFER_LEADERSHIP {name}",
+            f"CLUSTERS CLUSTER {self.cluster_name} {scope} TRANSFER_LEADERSHIP {name}",
             succeed=succeed,
         )
 

@@ -206,6 +206,13 @@ class PartitionRaftManager : public mqbi::StorageProvider,
     /// Executed by any thread.
     void processShutdownEvent() BSLS_KEYWORD_OVERRIDE;
 
+    /// Return true if every partition reported `PartitionRaft::canShutdown`,
+    /// and request a recomputation from those which did not, hopping to each
+    /// partition's dispatcher thread.
+    ///
+    /// THREAD: Called from the cluster dispatcher thread.
+    bool canShutdown() BSLS_KEYWORD_OVERRIDE;
+
     /// Route an incoming binary AppendEntries event (e_RAFT_PARTITION)
     /// from the specified 'source' to the correct PartitionRaft by
     /// extracting the partition ID from the RaftHeader.

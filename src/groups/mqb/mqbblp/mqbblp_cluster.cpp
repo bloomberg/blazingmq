@@ -101,6 +101,13 @@ const double k_QUEUE_GC_INTERVAL = 60.0;  // 1 minute
 const int k_TRANSFER_LEADERSHIP_WAIT_SECONDS = 10;
 const int k_TRANSFER_LEADERSHIP_POLL_MS      = 50;
 
+/// Deadline and poll interval (milliseconds) for waiting, on shutdown, for
+/// the peers to acknowledge what this node replicated.  This is on top of
+/// 'shutdownTimeoutMs', which the wait for unconfirmed messages can consume
+/// in full.
+const int k_REPLICATION_WAIT_MS = 100;
+const int k_REPLICATION_POLL_MS = 10;
+
 struct ChainNoOp {
     template <class T>
     void operator()(const T& completionCb) const
@@ -725,6 +732,83 @@ void Cluster::continueShutdownDispatched(
         bdlf::BindUtil::bindS(d_allocator_p, &bslmt::Latch::arrive, &latch));
 
     latch.wait();
+
+    // Every partition has appended and sent its last sync point.  Give the
+    // peers a bounded window to acknowledge it before closing the channels:
+    // 'closeChannels' discards whatever the transport has not written yet,
+    // and once this node is gone, nothing retries.
+    bsls::TimeInterval whenToStop(
+        bsls::SystemTime::now(bsls::SystemClockType::e_MONOTONIC));
+    whenToStop.addMilliseconds(k_REPLICATION_WAIT_MS);
+
+    guard.release();
+
+    waitForReplicationDispatched(whenToStop, completionCb);
+}
+
+void Cluster::waitForReplication(const bsls::TimeInterval& whenToStop,
+                                 const CompletionCallback& completionCb)
+{
+    // executed by the *SCHEDULER* thread
+
+    dispatcher()->execute(
+        bdlf::BindUtil::bind(&Cluster::waitForReplicationDispatched,
+                             this,
+                             whenToStop,
+                             completionCb),
+        this);
+}
+
+void Cluster::waitForReplicationDispatched(
+    const bsls::TimeInterval& whenToStop,
+    const CompletionCallback& completionCb)
+{
+    // executed by the *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(inDispatcherThread());
+
+    if (d_storageProvider_p->canShutdown()) {
+        finishShutdownDispatched(completionCb);
+        return;  // RETURN
+    }
+
+    bsls::TimeInterval t = bsls::SystemTime::now(
+        bsls::SystemClockType::e_MONOTONIC);
+
+    if (t >= whenToStop) {
+        BALL_LOG_WARN << description() << ": closing the channels while the "
+                      << "peers are still behind; they may be missing the "
+                      << "last records written by this node.";
+
+        finishShutdownDispatched(completionCb);
+        return;  // RETURN
+    }
+
+    t.addMilliseconds(k_REPLICATION_POLL_MS);
+    if (t > whenToStop) {
+        t = whenToStop;
+    }
+
+    bdlmt::EventScheduler::EventHandle eventHandle;
+    // Never cancel the timer
+    d_clusterData.scheduler().scheduleEvent(
+        &eventHandle,
+        t,
+        bdlf::BindUtil::bind(&Cluster::waitForReplication,
+                             this,
+                             whenToStop,
+                             completionCb));
+}
+
+void Cluster::finishShutdownDispatched(const CompletionCallback& completionCb)
+{
+    // executed by the *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(inDispatcherThread());
+
+    bdlb::ScopeExitAny guard(completionCb);
 
     // Notify peers before going down.  This should be the last message sent
     // out.
