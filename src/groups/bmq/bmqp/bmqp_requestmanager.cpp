@@ -404,6 +404,14 @@ int RequestManager::processResponse(
         rc_NOT_FOUND = -1
     };
 
+    if (response.rId().isNull()) {
+        // The response carries no correlator, so it cannot be matched to an
+        // outstanding request.
+        BALL_LOG_DEBUG << "Received a response without a request id"
+                       << ", dropping it";
+        return rc_NOT_FOUND;  // RETURN
+    }
+
     RequestSp request;
 
     {
