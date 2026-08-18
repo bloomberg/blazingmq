@@ -194,6 +194,7 @@ PartitionRaft::PartitionRaft(int partitionId,
 , d_isRolloverPending(false)
 , d_isExpectingTermCommit(false)
 , d_leadershipCb(leadershipCb)
+, d_canShutdown(false)
 {
     BSLS_ASSERT_SAFE(d_fileStore_sp);
     BSLS_ASSERT_SAFE(clusterData);
@@ -1160,6 +1161,51 @@ void PartitionRaft::proposeShutdownSyncPoint()
                   << "] writing final sync point on shutdown.";
 
     proposeSyncPoint();
+}
+
+bool PartitionRaft::canShutdown()
+{
+    // executed by the *CLUSTER DISPATCHER* thread
+
+    if (d_canShutdown) {
+        return true;  // RETURN
+    }
+
+    execute(bdlf::BindUtil::bind(&PartitionRaft::updateCanShutdown, this));
+
+    return false;
+}
+
+void PartitionRaft::updateCanShutdown()
+{
+    // executed by the partition *DISPATCHER* thread
+    BSLS_ASSERT_SAFE(d_fileStore_sp->inDispatcherThread());
+
+    const bsls::Types::Uint64 lastIndex = d_raftLog_mp->lastIndex();
+
+    const mqbnet::Cluster::NodesList& nodes =
+        d_clusterData_p->membership().netCluster()->nodes();
+
+    for (mqbnet::Cluster::NodesList::const_iterator it = nodes.begin();
+         it != nodes.end();
+         ++it) {
+        mqbnet::ClusterNode* node = *it;
+
+        bsls::Types::Uint64 matchIndex = 0;
+        if (!d_raftNode_mp->matchIndex(&matchIndex, node->nodeId())) {
+            // Self, or no peer state (this node is not the leader).
+            continue;  // CONTINUE
+        }
+
+        // A peer with no channel cannot be reached before the channels
+        // close, so it does not hold the shutdown back.
+        if (node->isAvailable() && matchIndex < lastIndex) {
+            d_canShutdown = false;
+            return;  // RETURN
+        }
+    }
+
+    d_canShutdown = true;
 }
 
 void PartitionRaft::proposeSyncPoint()

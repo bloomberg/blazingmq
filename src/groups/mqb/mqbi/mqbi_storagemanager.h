@@ -212,6 +212,15 @@ class StorageProvider {
     /// Executed by any thread.
     virtual void processShutdownEvent() = 0;
 
+    /// Return true if the peers have acknowledged this node's replicated
+    /// state, so that closing the cluster's channels loses nothing.  Poll:
+    /// each call reports the result computed for the previous one, and
+    /// requests a new one from the partitions not done yet.  The default
+    /// implementation returns true.
+    ///
+    /// THREAD: Executed by the cluster's dispatcher thread.
+    virtual bool canShutdown();
+
     /// Process the specified storage `command`, and load the outcome in the
     /// specified `result`.  This function can be invoked from any thread,
     /// and will block until the potentially asynchronous operation is

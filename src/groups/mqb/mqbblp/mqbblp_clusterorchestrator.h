@@ -196,10 +196,6 @@ class ClusterOrchestrator {
     /// status advisories and their source.
     PrimaryStatusAdvisoryInfosVec d_bufferedPrimaryStatusAdvisoryInfosVec;
 
-    /// CSL term whose combined partitionPrimaryAdvisory has committed; 0 if
-    /// none.
-    bsls::Types::Uint64 d_caughtUpTerm;
-
     /// Per-partition leaseId whose deferred sync point has committed; 0 if
     /// none. Indexed by partitionId.
     bsl::vector<unsigned int> d_partitionCommittedLeaseId;
@@ -219,6 +215,10 @@ class ClusterOrchestrator {
     mqbi::Dispatcher* dispatcher();
 
     void processRaftClusterEventDispatched(
+        const bsl::shared_ptr<const bdlbb::Blob>& blob,
+        mqbnet::ClusterNode*                      source);
+
+    void processRaftCslSnapshotDispatched(
         const bsl::shared_ptr<const bdlbb::Blob>& blob,
         mqbnet::ClusterNode*                      source);
 
@@ -624,7 +624,7 @@ class ClusterOrchestrator {
                                    bsls::Types::Uint64 term,
                                    bool                haveCommit);
 
-    void onClusterRaftLeadership(bool haveCommit);
+    void onClusterRaftLeadership();
 
     /// Re-check readiness of any queue-open locally parked on the storage/app
     /// for the specified `uri` on the specified `partitionId` becoming

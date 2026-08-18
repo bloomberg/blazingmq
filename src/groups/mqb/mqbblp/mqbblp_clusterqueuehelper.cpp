@@ -101,6 +101,10 @@ const bsls::Types::Int64 k_NS_PER_MESSAGE =
     bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MINUTE / k_MAX_INSTANT_MESSAGES;
 // Time interval between messages logged with throttling.
 
+const int k_OPEN_QUEUE_RETRY_MS = 100;
+// Delay before retrying an open-queue request the upstream refused with
+// 'e_UNKNOWN_QUEUE' or 'e_NOT_PRIMARY'.
+
 #define BMQ_LOGTHROTTLE_INFO                                                  \
     BALL_LOGTHROTTLE_INFO(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)           \
         << "[THROTTLED] "
@@ -324,6 +328,7 @@ ClusterQueueHelper::QueueLiveState::QueueLiveState(bslma::Allocator* allocator)
 , d_pendingUpdates(allocator)
 , d_inFlight(0)
 , d_numReopenQueueRequests(0)
+, d_openQueueRetryScheduled(false)
 {
     // NOTHING
 }
@@ -1239,6 +1244,79 @@ void ClusterQueueHelper::processPendingContexts(QueueContext* queueContext)
     }
 }
 
+void ClusterQueueHelper::scheduleOpenQueueRetry(
+    QueueContext*             queueContext,
+    const OpenQueueContextSp& context)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+
+    QueueLiveState& qinfo = queueContext->d_liveQInfo;
+
+    qinfo.d_pending.push_back(context);
+
+    if (qinfo.d_openQueueRetryScheduled || d_cluster_p->isStopping()) {
+        return;  // RETURN
+    }
+
+    BMQ_LOGTHROTTLE_INFO << d_cluster_p->description() << ": retrying open "
+                         << "queue request for " << queueContext->uri()
+                         << " in " << k_OPEN_QUEUE_RETRY_MS << " ms.";
+
+    bsls::TimeInterval after(bmqu::Time::nowMonotonicClock());
+    after.addMilliseconds(k_OPEN_QUEUE_RETRY_MS);
+
+    qinfo.d_openQueueRetryScheduled = true;
+    d_clusterData_p->scheduler().scheduleEvent(
+        &qinfo.d_openQueueRetryHandle,
+        after,
+        bdlf::BindUtil::bindS(d_allocator_p,
+                              &ClusterQueueHelper::onOpenQueueRetry,
+                              this,
+                              queueContext->uri()));
+}
+
+void ClusterQueueHelper::onOpenQueueRetry(const bmqt::Uri& uri)
+{
+    // executed by the *SCHEDULER* thread
+
+    if (d_cluster_p->isStopping()) {
+        return;  // RETURN
+    }
+
+    d_cluster_p->dispatcher()->execute(
+        bdlf::BindUtil::bindS(d_allocator_p,
+                              &ClusterQueueHelper::onOpenQueueRetryDispatched,
+                              this,
+                              uri),
+        d_cluster_p);
+}
+
+void ClusterQueueHelper::onOpenQueueRetryDispatched(const bmqt::Uri& uri)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+
+    // The queue context may have been removed since the event was scheduled,
+    // taking the pending contexts with it.
+    QueueContextMapIter it = d_queues.find(uri);
+    if (it == d_queues.end()) {
+        return;  // RETURN
+    }
+
+    it->second->d_liveQInfo.d_openQueueRetryScheduled = false;
+
+    if (d_cluster_p->isStopping()) {
+        return;  // RETURN
+    }
+
+    processPendingContexts(it->second.get());
+}
+
 void ClusterQueueHelper::onStorageReady(int partitionId, const bmqt::Uri& uri)
 {
     // executed by the cluster *DISPATCHER* thread
@@ -1722,6 +1800,7 @@ void ClusterQueueHelper::onOpenQueueResponse(const RequestSp& requestContext,
     }
 
     bool                 retry     = false;  // retry immediately
+    bool                 delay     = false;  // retry after a delay
     mqbnet::ClusterNode* otherThan = 0;      // retry if the upstream is new
     const int            subCode   = requestContext->statusCode();
 
@@ -1756,15 +1835,12 @@ void ClusterQueueHelper::onOpenQueueResponse(const RequestSp& requestContext,
             // 'responder' node because maybe that same node got elected
             // primary after sending us the response, so we just send it again
             // to the currently known primary, who may reject it, but
-            // eventually this should stabilize.  This potentially could lead
-            // to a storm between those two nodes, but this would be the case
-            // only if the cluster's state went out of sync, which would
-            // already be compromising the integrity of the cluster.  One
-            // solution to mitigate this would be to implement an increasing
-            // delayed response from the responder (because doing it at the
-            // sender here would be tricky as every requests are processed in
-            // an event driven base).
+            // eventually this should stabilize.  Retry after a delay: an
+            // upstream that keeps refusing (its view of the cluster state
+            // lags, or has diverged) would otherwise be hammered, and it is
+            // the same dispatcher thread there that has to catch up.
             retry = true;
+            delay = true;
         }
     }
     else {
@@ -1808,7 +1884,12 @@ void ClusterQueueHelper::onOpenQueueResponse(const RequestSp& requestContext,
     // below.
 
     if (retryNow) {
-        processOpenQueueRequest(context);
+        if (delay) {
+            scheduleOpenQueueRetry(qcontext, context);
+        }
+        else {
+            processOpenQueueRequest(context);
+        }
     }
     else {
         // Buffer this Open request until Reopen response

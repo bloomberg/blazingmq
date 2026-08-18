@@ -57,6 +57,7 @@
 #include <bslma_managedptr.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
+#include <bsls_atomic.h>
 #include <bsls_types.h>
 
 namespace BloombergLP {
@@ -141,6 +142,10 @@ class PartitionRaft : public mqbs::RecordStore {
     /// construction).
     PartitionLeadershipCb d_leadershipCb;
 
+    /// Result of the last `updateCanShutdown`, read by the cluster
+    /// dispatcher thread.  Initially `false`.
+    bsls::AtomicBool d_canShutdown;
+
     // NOT IMPLEMENTED
     PartitionRaft(const PartitionRaft&);
     PartitionRaft& operator=(const PartitionRaft&);
@@ -148,6 +153,12 @@ class PartitionRaft : public mqbs::RecordStore {
     // PRIVATE ACCESSORS
 
     // PRIVATE MANIPULATORS
+
+    /// Recompute `d_canShutdown`: whether every peer that has a channel has
+    /// acknowledged this node's whole log.
+    ///
+    /// THREAD: Executed by this partition's dispatcher thread.
+    void updateCanShutdown();
 
     /// Dispatch RaftNode output: send messages to peers and notify FileStore
     /// of committed entries.
@@ -293,6 +304,13 @@ class PartitionRaft : public mqbs::RecordStore {
     ///
     /// THREAD: Executed by this partition's dispatcher thread.
     void proposeShutdownSyncPoint();
+
+    /// Return true if every peer that has a channel has acknowledged this
+    /// node's whole log, as computed by the previous call.  Request a new
+    /// computation, on this partition's dispatcher thread, if it did not.
+    ///
+    /// THREAD: Called from the cluster dispatcher thread.
+    bool canShutdown();
 
     /// Set this partition Raft group's leadership-eligibility override to the
     /// specified `mode` (see `RaftNode::setElectionMode`) and dispatch any

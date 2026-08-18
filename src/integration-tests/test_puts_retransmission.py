@@ -302,6 +302,10 @@ class DeliveryLog:
 
 @tweak.domain.storage.domain_limits.messages(NUM_MESSAGES)
 @tweak.domain.storage.queue_limits.messages(NUM_MESSAGES)
+# Keep the graceful-shutdown grace period below 'Process.wait's 15s default, so
+# that 'Broker.wait' after 'exit_gracefully' does not return while the broker is
+# still running.
+@tweak.cluster.queue_operations.shutdown_timeout_ms(5000)
 class TestPutsRetransmission:
     """
     This test verifies PUTs retransmission by downstream to new upstream.

@@ -130,6 +130,24 @@ class CslRaftLog : public RaftLog {
                  bsls::Types::Uint64                 compactIndex,
                  bsls::Types::Uint64                 compactTerm);
 
+    /// Replace this log with the specified `newLog`, which the caller must
+    /// have opened (empty), identified by the specified `newLogId`, seeded
+    /// with a file header followed by the specified `snapshotRecord` -- the
+    /// base `e_SNAPSHOT` received from the leader, capturing the full
+    /// committed cluster state at the specified `lastIncludedIndex` /
+    /// `lastIncludedTerm`.  Discard all local entries and load the previous
+    /// underlying log into the specified `oldLog` so the caller can
+    /// close/archive it.  Return 0 on success and a non-zero value
+    /// otherwise.  Unlike `rollover`, `lastIncludedIndex` may exceed
+    /// `lastIndex()` -- that is the case this serves: the leader compacted
+    /// past what this node holds, so there is no tail worth keeping.
+    int installSnapshot(bsl::shared_ptr<mqbsi::Log>*        oldLog,
+                        const bsl::shared_ptr<mqbsi::Log>&  newLog,
+                        const mqbu::StorageKey&             newLogId,
+                        const bsl::shared_ptr<bdlbb::Blob>& snapshotRecord,
+                        bsls::Types::Uint64                 lastIncludedIndex,
+                        bsls::Types::Uint64                 lastIncludedTerm);
+
     // ACCESSORS
     bsls::Types::Uint64 lastIndex() const BSLS_KEYWORD_OVERRIDE;
 

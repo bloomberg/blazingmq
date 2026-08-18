@@ -778,11 +778,15 @@ def test_command_timeout(multi_node: Cluster, domain_urls: tc.DomainUrls):
     )
 
     # the open waits on the queue's partition primary, which is not the leader
-    # in FSM mode
+    # in Raft
     primary = leader.wait_queue_primary(du.uri_fanout)
     host = next(node for node in multi_node.nodes() if node != primary)
 
     client = host.create_client("client")
+
+    # Assign from the host too; without a local assignment the open below takes
+    # the assignment path, which retries the leader instead of timing out.
+    client.open(du.uri_fanout, flags=["write", "ack"], block=True)
 
     primary.suspend()
 

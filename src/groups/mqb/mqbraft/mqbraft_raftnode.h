@@ -355,58 +355,34 @@ class RaftNode {
         bsls::Types::Uint64 d_matchIndex;
 
         /// True while an 'InstallSnapshot' is in flight to this peer with no
-        /// response yet.  Mirrors etcd/raft's 'ProgressStateSnapshot':
-        /// while set, 'sendAppendEntries' skips this peer entirely instead
-        /// of re-sending a snapshot (or an AppendEntries built from a
-        /// still-stale index) on every subsequent heartbeat/propose
-        /// broadcast.
+        /// response yet; 'sendAppendEntries' skips the peer while set.
         bool d_snapshotPending;
 
-        /// Ticks elapsed since 'd_snapshotPending' was set. Cleared on
-        /// 'InstallSnapshotResp'; if it exceeds a threshold with no
-        /// response (e.g. the response was lost), the pending state is
-        /// dropped so the peer can be retried. Substitutes for etcd's
-        /// transport-level snapshot-status report, since this
-        /// implementation's snapshot send is synchronous/in-band rather
-        /// than an independently-monitored transfer.
+        /// Ticks since 'd_snapshotPending' was set.  Cleared on
+        /// 'InstallSnapshotResp'; past 'd_electionTimeoutMin' the pending
+        /// state is dropped and the peer retried.
         int d_snapshotPendingTicks;
 
-        /// The snapshot index (and term) sent to this peer when
-        /// 'd_snapshotPending' was last set to true.  'RaftInstallSnapshot
-        /// Response' carries no payload on the wire, so 'handleInstall
-        /// SnapshotResp' cannot learn the applied index from the response
-        /// itself; it advances 'd_matchIndex'/'d_nextIndex' from this
-        /// locally-remembered value instead. Safe because the pending gate
-        /// guarantees at most one snapshot in flight per peer at a time, so
-        /// any response received while pending unambiguously acks this one.
+        /// The snapshot index and term last sent to this peer.
+        /// 'handleInstallSnapshotResp' advances 'd_matchIndex' and
+        /// 'd_nextIndex' from these.
         bsls::Types::Uint64 d_snapshotPendingIndex;
         bsls::Types::Uint64 d_snapshotPendingTerm;
 
-        /// True once an optimistic boundary AppendEntries (see
-        /// 'sendAppendEntries') has been rejected by this peer -- i.e. the
-        /// peer genuinely lacks 'snapshotIndex' and cannot be caught up from
-        /// the log.  While set, 'sendAppendEntries' skips the optimistic probe
-        /// and goes straight to 'InstallSnapshot', preventing a re-probe loop
-        /// when the reject leaves 'nextIndex' back at 'snapshotIndex'. Cleared
-        /// once the peer advances past the boundary (success or normal-path
-        /// send).
+        /// True once this peer has rejected the optimistic boundary
+        /// AppendEntries (see 'sendAppendEntries'), i.e. it lacks
+        /// 'snapshotIndex' and needs an 'InstallSnapshot'.  Cleared once it
+        /// advances past the boundary.
         bool d_boundaryProbeRejected;
 
-        /// True while an AppendEntries is in flight to this peer with no
-        /// response yet.  Mirrors etcd/raft's 'ProgressStateProbe': while
-        /// set, 'sendAppendEntries' skips this peer instead of re-sending --
-        /// since 'nextIndex' only advances on an acked/rejected response, an
-        /// unconditional resend on every 'propose()' would rebuild and
-        /// re-transmit the same not-yet-acked entries (plus every new one
-        /// proposed meanwhile), i.e. an ever-growing, overlapping range,
-        /// instead of the single incremental catch-up 'sendAppendEntries'
-        /// already builds once it is actually allowed to send.
+        /// True while an entry-carrying AppendEntries is in flight to this
+        /// peer with no response yet; 'sendAppendEntries' skips the peer
+        /// while set.
         bool d_appendEntriesPending;
 
-        /// Ticks elapsed since 'd_appendEntriesPending' was set.  Cleared on
-        /// 'AppendEntriesResp'; if it exceeds a threshold with no response
-        /// (e.g. the response was lost), the pending state is dropped so the
-        /// peer is not stalled forever.  Mirrors 'd_snapshotPendingTicks'.
+        /// Ticks since 'd_appendEntriesPending' was set.  Cleared on
+        /// 'AppendEntriesResp'; past 'd_electionTimeoutMin' the guard is
+        /// dropped and the peer retried.
         int d_appendEntriesPendingTicks;
     };
 
@@ -535,6 +511,14 @@ class RaftNode {
     const RaftNodeConfig& config() const;
     int                   quorum() const;
     ElectionMode::Enum    electionMode() const;
+
+    /// Load into the specified `result` the highest log index known to be
+    /// replicated on the peer having the specified `peerId`, and return
+    /// true.  Return false, leaving `result` untouched, if `peerId` is not
+    /// a peer of this Raft group: that covers self, and every node while
+    /// this node is not leader, since peer state is built by
+    /// `becomeLeader`.
+    bool matchIndex(bsls::Types::Uint64* result, int peerId) const;
 };
 
 // ============================================================================
@@ -732,6 +716,18 @@ inline int RaftNode::quorum() const
 inline ElectionMode::Enum RaftNode::electionMode() const
 {
     return d_electionMode;
+}
+
+inline bool RaftNode::matchIndex(bsls::Types::Uint64* result, int peerId) const
+{
+    bsl::unordered_map<int, PeerState>::const_iterator it = d_peerStates.find(
+        peerId);
+    if (it == d_peerStates.end()) {
+        return false;  // RETURN
+    }
+
+    *result = it->second.d_matchIndex;
+    return true;
 }
 
 inline bool RaftNode::isLogUpToDate(bsls::Types::Uint64 lastLogTerm,
