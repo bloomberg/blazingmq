@@ -431,6 +431,7 @@ void RaftNode::handleAppendEntries(RaftNodeOutput*    output,
         resp.d_destinationNodeId = msg.d_sourceNodeId;
         resp.d_success           = false;
         resp.d_matchIndex        = 0;
+        resp.d_rejectedIndex     = msg.d_prevLogIndex;
         output->d_messages.push_back(resp);
         return;
     }
@@ -464,6 +465,7 @@ void RaftNode::handleAppendEntries(RaftNodeOutput*    output,
             resp.d_destinationNodeId = msg.d_sourceNodeId;
             resp.d_success           = false;
             resp.d_matchIndex        = d_log_p->lastIndex();
+            resp.d_rejectedIndex     = msg.d_prevLogIndex;
             output->d_messages.push_back(resp);
             return;
         }
@@ -489,6 +491,7 @@ void RaftNode::handleAppendEntries(RaftNodeOutput*    output,
             resp.d_destinationNodeId = msg.d_sourceNodeId;
             resp.d_success           = false;
             resp.d_matchIndex        = d_log_p->lastIndex();
+            resp.d_rejectedIndex     = msg.d_prevLogIndex;
             output->d_messages.push_back(resp);
             return;
         }

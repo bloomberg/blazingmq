@@ -983,5 +983,12 @@ const int RecoveryHeader::k_FILE_CHUNK_TYPE_MASK = bdlb::BitMaskUtil::one(
     RecoveryHeader::k_FILE_CHUNK_TYPE_START_IDX,
     RecoveryHeader::k_FILE_CHUNK_TYPE_NUM_BITS);
 
+// -----------------
+// struct RaftHeader
+// -----------------
+
+const unsigned int RaftHeader::k_MSG_TYPE_APPEND_ENTRIES;
+const unsigned int RaftHeader::k_MSG_TYPE_APPEND_ENTRIES_RESP;
+
 }  // close package namespace
 }  // close enterprise namespace

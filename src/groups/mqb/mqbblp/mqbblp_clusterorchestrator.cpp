@@ -2751,7 +2751,7 @@ void ClusterOrchestrator::processRaftClusterEventDispatched(
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
     BSLS_ASSERT_SAFE(d_clusterStateRaft_mp);
 
-    d_clusterStateRaft_mp->appendEntries(*blob, source);
+    d_clusterStateRaft_mp->onRaftEvent(*blob, source);
 }
 
 void ClusterOrchestrator::processRaftPartitionEvent(
@@ -2761,7 +2761,8 @@ void ClusterOrchestrator::processRaftPartitionEvent(
     // executed by the *IO* thread
     BSLS_ASSERT_SAFE(d_partitionRaftManager_mp);
 
-    d_partitionRaftManager_mp->appendEntries(event.sharedBlob(), source);
+    d_partitionRaftManager_mp->onRaftPartitionEvent(event.sharedBlob(),
+                                                    source);
 }
 
 void ClusterOrchestrator::processRaftSnapshotEvent(const bmqp::Event&   event,

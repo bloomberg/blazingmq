@@ -1852,21 +1852,6 @@
     </sequence>
   </complexType>
 
-  <complexType name='RaftAppendEntriesResponse'>
-    <annotation>
-      <documentation>
-        Follower's response to AppendEntries.
-
-        success....: True if log matched and entries were appended
-        matchIndex.: Follower's last log index
-      </documentation>
-    </annotation>
-    <sequence>
-      <element name='success'    type='boolean'/>
-      <element name='matchIndex' type='unsignedLong'/>
-    </sequence>
-  </complexType>
-
   <complexType name='RaftInstallSnapshot'>
     <annotation>
       <documentation>
@@ -1916,10 +1901,11 @@
         Top-level type for Raft consensus messages, carried as
         ControlMessage.raftMessage (bdem:id=18).
 
-        AppendEntries (data path) is NOT represented here — it travels as a
-        binary event (e_RAFT_CLUSTER or e_RAFT_PARTITION) with a RaftHeader
-        followed by raw entry blobs (CSL records or journal records + payloads),
-        for zero-copy efficiency.
+        AppendEntries (data path) and its response are NOT represented here —
+        they travel as binary events (e_RAFT_CLUSTER or e_RAFT_PARTITION) with
+        a RaftHeader followed by a RaftAppendEntriesHeader and raw entry blobs
+        (CSL records or journal records + payloads) for zero-copy efficiency,
+        or by a RaftResponseHeader.
 
         InstallSnapshot data also travels as raw binary blobs appended after
         the BER-encoded RaftMessage.  Only the metadata (lastIncludedIndex,
@@ -1939,7 +1925,6 @@
       <choice>
         <element name='requestVote'              type='tns:RaftRequestVote'/>
         <element name='requestVoteResponse'      type='tns:RaftRequestVoteResponse'/>
-        <element name='appendEntriesResponse'    type='tns:RaftAppendEntriesResponse'/>
         <element name='installSnapshot'          type='tns:RaftInstallSnapshot'/>
         <element name='installSnapshotResponse'  type='tns:RaftInstallSnapshotResponse'/>
         <element name='timeoutNow'               type='tns:RaftTimeoutNow'/>

@@ -112,8 +112,25 @@ class ClusterStateRaft : public mqbi::ClusterStateUpdater {
     /// Send an AppendEntries message via binary e_RAFT_CLUSTER event.
     void sendAppendEntries(const RaftMessage& msg);
 
+    /// Send an AppendEntries response via binary e_RAFT_CLUSTER event.
+    void sendAppendEntriesResponse(const RaftMessage& msg);
+
     /// Send an election/control RaftMessage via ControlMessageTransmitter.
     void sendControlMessage(const RaftMessage& msg);
+
+    /// Process an incoming binary AppendEntries event (e_RAFT_CLUSTER) from
+    /// the specified 'source' node, carrying the specified 'term' read from
+    /// the event's `RaftHeader`.
+    void appendEntries(const bdlbb::Blob&   event,
+                       mqbnet::ClusterNode* source,
+                       bsls::Types::Uint64  term);
+
+    /// Process an incoming binary AppendEntries response event
+    /// (e_RAFT_CLUSTER) from the specified 'source' node, carrying the
+    /// specified 'term' read from the event's `RaftHeader`.
+    void onAppendEntriesResponse(const bdlbb::Blob&   event,
+                                 mqbnet::ClusterNode* source,
+                                 bsls::Types::Uint64  term);
 
     /// Apply a single committed CSL entry to ClusterState and write
     /// an e_COMMIT record for rollback compatibility.  Return true if the
@@ -191,9 +208,10 @@ class ClusterStateRaft : public mqbi::ClusterStateUpdater {
     void onRaftControlMessage(const bmqp_ctrlmsg::RaftMessage& message,
                               mqbnet::ClusterNode*             source);
 
-    /// Process an incoming binary AppendEntries event (e_RAFT_CLUSTER)
-    /// from the specified 'source' node.
-    void appendEntries(const bdlbb::Blob& event, mqbnet::ClusterNode* source);
+    /// Process an incoming binary Raft event (e_RAFT_CLUSTER) from the
+    /// specified 'source' node, routing it to the handler for its message
+    /// type.
+    void onRaftEvent(const bdlbb::Blob& event, mqbnet::ClusterNode* source);
 
     /// Install the CSL snapshot carried by the specified `e_RAFT_SNAPSHOT`
     /// `event` from the specified `source` node: replace `ClusterState` and

@@ -194,10 +194,12 @@ class PartitionRaftLog : public RaftLog {
     /// `d_attributes_p`->`d_ownedAttributes` self-pointers) stay valid.
     void takePendingWrites(bsl::deque<bsl::shared_ptr<PendingWrite> >* out);
 
-    /// Drop all buffered writes without replaying them, erasing each reserved
-    /// placeholder record.  Called on leadership loss, and on shutdown: in
-    /// both cases these writes were never acknowledged or committed, so
-    /// discarding them is safe.
+    /// Stop tracking all buffered writes without replaying them, erasing the
+    /// reserved placeholder record of each one not yet appended.  Called on
+    /// leadership loss, on truncation and on shutdown: in all three cases
+    /// these writes were never acknowledged or committed, so discarding them
+    /// is safe.  The records of the already-appended ones are left in place,
+    /// since their log entries survive and may still commit.
     void dropPendingWrites();
 
     /// If the specified `handle` was reserved by a pending write currently in

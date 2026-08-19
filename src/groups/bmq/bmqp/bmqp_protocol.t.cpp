@@ -1752,6 +1752,102 @@ static void test7_eventHeaderUtil()
         }
     }
 }
+static void test8_raftHeaders()
+// --------------------------------------------------------------------
+// RAFT HEADERS
+//
+// Concerns:
+//   The Raft wire headers preserve every field they carry, and the
+//   fields packed into a shared word do not disturb one another.
+//
+// Plan:
+//   1. Verify the on-the-wire size of each header.
+//   2. Set every field, including 64-bit values above the 32-bit
+//      boundary, and read each one back.
+//
+// Testing:
+//   RaftHeader
+//   RaftAppendEntriesHeader
+//   RaftResponseHeader
+// --------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("RAFT HEADERS");
+
+    // A value straddling the upper/lower 32-bit split.
+    const bsls::Types::Uint64 k_BIG = 0x0000000A00000005ULL;
+
+    PV("Test bmqp::RaftHeader");
+    {
+        BMQTST_ASSERT_EQ(sizeof(bmqp::RaftHeader), 16U);
+
+        bmqp::RaftHeader header;
+        BMQTST_ASSERT_EQ(header.msgType(), 0U);
+        BMQTST_ASSERT_EQ(header.partitionId(), 0U);
+        BMQTST_ASSERT_EQ(header.term(), 0ULL);
+
+        header.setMsgType(bmqp::RaftHeader::k_MSG_TYPE_APPEND_ENTRIES_RESP)
+            .setPartitionId(7)
+            .setTerm(k_BIG);
+
+        BMQTST_ASSERT_EQ(header.msgType(),
+                         bmqp::RaftHeader::k_MSG_TYPE_APPEND_ENTRIES_RESP);
+        BMQTST_ASSERT_EQ(header.partitionId(), 7U);
+        BMQTST_ASSERT_EQ(header.term(), k_BIG);
+
+        // The type shares its word with reserved bits; rewriting it leaves
+        // the other fields alone.
+        header.setMsgType(bmqp::RaftHeader::k_MSG_TYPE_APPEND_ENTRIES);
+        BMQTST_ASSERT_EQ(header.msgType(),
+                         bmqp::RaftHeader::k_MSG_TYPE_APPEND_ENTRIES);
+        BMQTST_ASSERT_EQ(header.partitionId(), 7U);
+        BMQTST_ASSERT_EQ(header.term(), k_BIG);
+    }
+
+    PV("Test bmqp::RaftAppendEntriesHeader");
+    {
+        BMQTST_ASSERT_EQ(sizeof(bmqp::RaftAppendEntriesHeader), 28U);
+
+        bmqp::RaftAppendEntriesHeader header;
+        BMQTST_ASSERT_EQ(header.prevLogIndex(), 0ULL);
+        BMQTST_ASSERT_EQ(header.prevLogTerm(), 0ULL);
+        BMQTST_ASSERT_EQ(header.leaderCommit(), 0ULL);
+        BMQTST_ASSERT_EQ(header.entryCount(), 0U);
+
+        header.setPrevLogIndex(k_BIG)
+            .setPrevLogTerm(k_BIG + 1)
+            .setLeaderCommit(k_BIG + 2)
+            .setEntryCount(42);
+
+        BMQTST_ASSERT_EQ(header.prevLogIndex(), k_BIG);
+        BMQTST_ASSERT_EQ(header.prevLogTerm(), k_BIG + 1);
+        BMQTST_ASSERT_EQ(header.leaderCommit(), k_BIG + 2);
+        BMQTST_ASSERT_EQ(header.entryCount(), 42U);
+    }
+
+    PV("Test bmqp::RaftResponseHeader");
+    {
+        BMQTST_ASSERT_EQ(sizeof(bmqp::RaftResponseHeader), 20U);
+
+        bmqp::RaftResponseHeader header;
+        BMQTST_ASSERT_EQ(header.success(), false);
+        BMQTST_ASSERT_EQ(header.matchIndex(), 0ULL);
+        BMQTST_ASSERT_EQ(header.rejectedIndex(), 0ULL);
+
+        header.setSuccess(true).setMatchIndex(k_BIG).setRejectedIndex(k_BIG +
+                                                                      1);
+        BMQTST_ASSERT_EQ(header.success(), true);
+        BMQTST_ASSERT_EQ(header.matchIndex(), k_BIG);
+        BMQTST_ASSERT_EQ(header.rejectedIndex(), k_BIG + 1);
+
+        // 'success' shares its word with reserved bits, and clearing it must
+        // not touch the indices.
+        header.setSuccess(false);
+        BMQTST_ASSERT_EQ(header.success(), false);
+        BMQTST_ASSERT_EQ(header.matchIndex(), k_BIG);
+        BMQTST_ASSERT_EQ(header.rejectedIndex(), k_BIG + 1);
+    }
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -1762,6 +1858,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 8: test8_raftHeaders(); break;
     case 7: test7_eventHeaderUtil(); break;
     case 6: test6_enumFromString(); break;
     case 5: test5_enumIsomorphism(); break;
