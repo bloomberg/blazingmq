@@ -554,9 +554,13 @@ class MyMockDomain : public mqbmock::Domain {
     mqbmock::Dispatcher*               d_mockDispatcher;
     bmqp_ctrlmsg::RoutingConfiguration d_routingConfiguration;
     bsl::shared_ptr<MyMockQueueHandle> d_queueHandle;
-    MyQueueEngine                      d_mockQueueEngine;
-    const bool                         d_atMostOnce;
-    bslma::Allocator*                  d_allocator_p;
+    // Previously created handles, kept alive so that their addresses remain
+    // distinct across successive `openQueue` calls (tests relying on handle
+    // pointer identity, e.g. duplicate-queueId, depend on this).
+    bsl::vector<bsl::shared_ptr<MyMockQueueHandle> > d_retiredHandles;
+    MyQueueEngine                                    d_mockQueueEngine;
+    const bool                                       d_atMostOnce;
+    bslma::Allocator*                                d_allocator_p;
 
     // CREATORS
 
@@ -568,6 +572,7 @@ class MyMockDomain : public mqbmock::Domain {
     : mqbmock::Domain(cluster, allocator)
     , d_mockDispatcher(dispatcher)
     , d_queueHandle()
+    , d_retiredHandles(allocator)
     , d_mockQueueEngine(allocator)
     , d_atMostOnce(atMostOnce)
     , d_allocator_p(allocator)
@@ -595,6 +600,12 @@ class MyMockDomain : public mqbmock::Domain {
         queue->_setQueueEngine(&d_mockQueueEngine);
         queue->_setAtMostOnce(d_atMostOnce);
         queue->_setDispatcher(d_mockDispatcher);
+
+        // Retain the previously created handle so its address is not reused by
+        // the handle created below.
+        if (d_queueHandle) {
+            d_retiredHandles.push_back(d_queueHandle);
+        }
 
         d_queueHandle.createInplace(d_allocator_p,
                                     queue,
@@ -2280,6 +2291,79 @@ static void test11_initiateShutdown()
     }
 }
 
+static void test12_openQueueDuplicateQueueId()
+// ------------------------------------------------------------------------
+// TESTS OPEN QUEUE WITH A DUPLICATE QUEUE ID
+//
+// Concerns:
+//   - A misbehaving client may send a second openQueue request reusing a
+//     queueId that is already associated with a different queue.  The
+//     broker must reject that request gracefully (returning an error to
+//     the client).
+//
+// Plan:
+//   Instantiate a testbench, open a first queue with a given queueId, then
+//   send a second openQueue for a *different* URI reusing the same
+//   queueId.  Verify the first response is a successful OpenQueueResponse
+//   and the second is an E_INVALID_ARGUMENT Status.
+//
+// Testing:
+//   That reusing a queueId for a different queue is rejected.
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName(
+        "TESTS OPEN QUEUE WITH A DUPLICATE QUEUE ID");
+
+    const bsl::string uri1("bmq://my.domain/queue-first",
+                           bmqtst::TestHelperUtil::allocator());
+    const bsl::string uri2("bmq://my.domain/queue-second",
+                           bmqtst::TestHelperUtil::allocator());
+    const int         queueId = 1;
+
+    TestBench tb(client(e_FirstHop),
+                 false,  // atMostOnce
+                 bmqtst::TestHelperUtil::allocator());
+
+    // Open the first queue: expect a successful OpenQueueResponse.
+    tb.openQueue(uri1, queueId);
+    tb.d_cs.flush();
+
+    {
+        bmqio::TestChannel::WriteCall writeCall;
+        BMQTST_ASSERT(tb.d_channel->getWriteCall(&writeCall, 0));
+
+        bmqp::Event event(&writeCall.d_blob,
+                          bmqtst::TestHelperUtil::allocator());
+        BMQTST_ASSERT(event.isControlEvent());
+
+        bmqp_ctrlmsg::ControlMessage response(
+            bmqtst::TestHelperUtil::allocator());
+        BMQTST_ASSERT_EQ(0, event.loadControlEvent(&response));
+        BMQTST_ASSERT(response.choice().isOpenQueueResponseValue());
+    }
+
+    // Open a *different* queue reusing the same queueId: expect a failure
+    // Status rather than a crash or a silent overwrite.
+    tb.openQueue(uri2, queueId);
+    tb.d_cs.flush();
+
+    {
+        bmqio::TestChannel::WriteCall writeCall;
+        BMQTST_ASSERT(tb.d_channel->getWriteCall(&writeCall, 1));
+
+        bmqp::Event event(&writeCall.d_blob,
+                          bmqtst::TestHelperUtil::allocator());
+        BMQTST_ASSERT(event.isControlEvent());
+
+        bmqp_ctrlmsg::ControlMessage response(
+            bmqtst::TestHelperUtil::allocator());
+        BMQTST_ASSERT_EQ(0, event.loadControlEvent(&response));
+        BMQTST_ASSERT(response.choice().isStatusValue());
+        BMQTST_ASSERT_EQ(response.choice().status().category(),
+                         bmqp_ctrlmsg::StatusCategory::E_INVALID_ARGUMENT);
+    }
+}
+
 static void testN1_ackConfiguration()
 // ------------------------------------------------------------------------
 // TESTS ACK CONFIGURATION FOR CLIENT SESSION
@@ -2530,6 +2614,7 @@ int main(int argc, char* argv[])
 
         switch (_testCase) {
         case 0:
+        case 12: test12_openQueueDuplicateQueueId(); break;
         case 11: test11_initiateShutdown(); break;
         case 10: test10_newStyleCompressedPush(); break;
         case 9: test9_newStylePush(); break;

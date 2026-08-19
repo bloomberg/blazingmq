@@ -282,27 +282,49 @@ void QueueSessionManager::onQueueOpenCbDispatched(
         BSLS_ASSERT_SAFE(confirmationCookie->d_handle);
         // in case of success, the cookie must be a valid shared_ptr
 
-        // Update the cookie to point to a null queue handle, which indicates
-        // that requester (this client session) has successfully received and
-        // processed the open-queue response.
-        confirmationCookie->d_handle = 0;
-
-        // Success, configure the handle and the session
+        // Configure the handle and the session
         bsl::pair<QueueStateMap::iterator, bool> ins = d_queues.emplace(
             bsl::make_pair(queueId.id(), QueueState()));
         QueueState& qs = ins.first->second;
 
         if (ins.second) {
-            // First time we use this queue
+            // First time we use this queueId
             qs.d_handle_p = queueHandle;
         }
-        else {
-            // We've used this queue before.  Search for the subId in the
-            // associated map of substream information.  If it is found, do
-            // nothing; otherwise, insert it into the map of substream
-            // information.
-            BSLS_ASSERT_SAFE(queueHandle == ins.first->second.d_handle_p);
+        else if (qs.d_handle_p != queueHandle) {
+            // The client reused an existing queueId for a different queue
+            // handle (i.e. a queue/URI other than the one already associated
+            // with this queueId).  This is a client protocol violation: reject
+            // the request and roll back the handle that was just opened
+            // upstream.
+            BALL_LOG_ERROR
+                << "#CLIENT_IMPROPER_BEHAVIOR "
+                << d_dispatcherClient_p->description()
+                << ": Rejecting openQueue: queueId " << queueId
+                << " is already in use for a different queue [uri: '"
+                << handleParams.uri() << "'].";
+
+            bmqp_ctrlmsg::Status failure;
+            failure.category() =
+                bmqp_ctrlmsg::StatusCategory::E_INVALID_ARGUMENT;
+            failure.code()    = -1;
+            failure.message() = "queueId is already in use for a different "
+                                "queue";
+
+            responseCallback(failure, queueHandle, openQueueResponse);
+            return;  // RETURN
         }
+
+        // At this point the queueId maps to 'queueHandle': either it was just
+        // recorded above (first use of this queueId), or it was already
+        // associated with the same handle (e.g. a new fan-out substream on an
+        // already-opened queue).  Confirm the response and register the
+        // substream.
+
+        // Update the cookie to point to a null queue handle, which indicates
+        // that requester (this client session) has successfully received and
+        // processed the open-queue response.
+        confirmationCookie->d_handle = 0;
 
         QueueState::StreamsMap::iterator subQueueInfo =
             qs.d_subQueueInfosMap.insert(apppId, queueId.subId(), queueId);
