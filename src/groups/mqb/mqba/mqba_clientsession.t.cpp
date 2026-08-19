@@ -2330,7 +2330,7 @@ static void test12_openQueueDuplicateQueueId()
 
     {
         bmqio::TestChannel::WriteCall writeCall;
-        BMQTST_ASSERT(tb.d_channel->getWriteCall(&writeCall, 0));
+        BMQTST_ASSERT(tb.d_channel_sp->getWriteCall(&writeCall, 0));
 
         bmqp::Event event(&writeCall.d_blob,
                           bmqtst::TestHelperUtil::allocator());
@@ -2349,7 +2349,7 @@ static void test12_openQueueDuplicateQueueId()
 
     {
         bmqio::TestChannel::WriteCall writeCall;
-        BMQTST_ASSERT(tb.d_channel->getWriteCall(&writeCall, 1));
+        BMQTST_ASSERT(tb.d_channel_sp->getWriteCall(&writeCall, 1));
 
         bmqp::Event event(&writeCall.d_blob,
                           bmqtst::TestHelperUtil::allocator());
