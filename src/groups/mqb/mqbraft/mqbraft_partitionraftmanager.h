@@ -213,11 +213,11 @@ class PartitionRaftManager : public mqbi::StorageProvider,
     /// THREAD: Called from the cluster dispatcher thread.
     bool canShutdown() BSLS_KEYWORD_OVERRIDE;
 
-    /// Route an incoming binary AppendEntries event (e_RAFT_PARTITION)
-    /// from the specified 'source' to the correct PartitionRaft by
-    /// extracting the partition ID from the RaftHeader.
-    void appendEntries(const bsl::shared_ptr<const bdlbb::Blob>& blob,
-                       mqbnet::ClusterNode*                      source);
+    /// Route an incoming binary Raft event (e_RAFT_PARTITION) from the
+    /// specified 'source' to the correct PartitionRaft, and to the handler
+    /// for its message type, by reading the RaftHeader.
+    void onRaftPartitionEvent(const bsl::shared_ptr<const bdlbb::Blob>& blob,
+                              mqbnet::ClusterNode* source);
 
     /// Route an incoming snapshot chunk event (e_RAFT_SNAPSHOT) from the
     /// specified 'source' to the correct PartitionRaft by extracting the

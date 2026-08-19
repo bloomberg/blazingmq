@@ -337,7 +337,7 @@ void PartitionRaftManager::stop()
     BALL_LOG_INFO << "PartitionRaftManager stopped";
 }
 
-void PartitionRaftManager::appendEntries(
+void PartitionRaftManager::onRaftPartitionEvent(
     const bsl::shared_ptr<const bdlbb::Blob>& blob,
     mqbnet::ClusterNode*                      source)
 {
@@ -372,11 +372,28 @@ void PartitionRaftManager::appendEntries(
         return;
     }
 
-    d_fileStores[partitionId]->execute(
-        bdlf::BindUtil::bind(&PartitionRaft::appendEntries,
-                             d_partitionRafts[partitionId].get(),
-                             *blob,
-                             source));
+    // Both handlers run on the target partition's dispatcher thread.
+    switch (rh->msgType()) {
+    case bmqp::RaftHeader::k_MSG_TYPE_APPEND_ENTRIES: {
+        d_fileStores[partitionId]->execute(
+            bdlf::BindUtil::bind(&PartitionRaft::appendEntries,
+                                 d_partitionRafts[partitionId].get(),
+                                 *blob,
+                                 source));
+    } break;
+    case bmqp::RaftHeader::k_MSG_TYPE_APPEND_ENTRIES_RESP: {
+        d_fileStores[partitionId]->execute(
+            bdlf::BindUtil::bind(&PartitionRaft::onAppendEntriesResponse,
+                                 d_partitionRafts[partitionId].get(),
+                                 *blob,
+                                 source));
+    } break;
+    default: {
+        BALL_LOG_ERROR << "ignoring e_RAFT_PARTITION event for partitionId "
+                       << partitionId << " with unknown message type "
+                       << rh->msgType();
+    } break;
+    }
 }
 
 void PartitionRaftManager::appendSnapshotChunk(

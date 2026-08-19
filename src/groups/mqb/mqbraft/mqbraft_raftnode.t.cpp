@@ -164,8 +164,9 @@ class TestCluster {
   public:
     // CREATORS
     explicit TestCluster(int               numNodes,
-                         bool              preVote   = true,
-                         bslma::Allocator* allocator = 0)
+                         bool              preVote           = true,
+                         bslma::Allocator* allocator         = 0,
+                         bool              broadcastOnCommit = false)
     : d_nodes(allocator)
     , d_logs(allocator)
     , d_numNodes(numNodes)
@@ -182,7 +183,9 @@ class TestCluster {
                 MemoryRaftLog(d_allocator_p);
             d_logs.push_back(log);
 
-            RaftNodeConfig config(true, d_allocator_p);
+            RaftNodeConfig config(RaftNodeConfig::k_CSL_PARTITION_ID,
+                                  broadcastOnCommit,
+                                  d_allocator_p);
             config.d_selfId             = i;
             config.d_peerIds            = peerIds;
             config.d_electionTimeoutMin = 10;
@@ -801,6 +804,159 @@ static void test13_electionMode()
     BMQTST_ASSERT_EQ(cluster.findLeader(), target);
 }
 
+static void test14_appendEntriesBatching()
+// APPEND ENTRIES BATCHING
+//
+// Verify how many AppendEntries messages (and hence responses) a burst of
+// proposals produces while a send to the peer is in flight.
+{
+    bmqtst::TestHelper::printTestName("APPEND ENTRIES BATCHING");
+
+    bslma::TestAllocator alloc("test", false);
+    // 'broadcastOnCommit' as production configures it for both the CSL and
+    // per-partition Raft groups.
+    TestCluster cluster(3, false, &alloc, true);
+
+    const int leader = electLeader(&cluster);
+    BMQTST_ASSERT_GE(leader, 0);
+
+    const int peer  = (leader + 1) % 3;
+    const int other = (leader + 2) % 3;
+
+    // The first proposal: one AppendEntries per peer, one entry each.
+    RaftNodeOutput first(&alloc);
+    BMQTST_ASSERT_EQ(
+        cluster.node(leader)->propose(&first, cluster.makeBlob("m1"), 1),
+        0);
+    BMQTST_ASSERT_EQ(first.d_messages.size(), 2u);
+    for (size_t i = 0; i < first.d_messages.size(); ++i) {
+        BMQTST_ASSERT_EQ(first.d_messages[i].d_type,
+                         RaftMessageType::e_APPEND_ENTRIES);
+        BMQTST_ASSERT_EQ(first.d_messages[i].d_entries.size(), 1u);
+    }
+
+    // Ten more proposals while that send is in flight: no message at all.
+    for (int i = 0; i < 10; ++i) {
+        RaftNodeOutput burst(&alloc);
+        BMQTST_ASSERT_EQ(cluster.node(leader)->propose(&burst,
+                                                       cluster.makeBlob("m"),
+                                                       i + 2),
+                         0);
+        BMQTST_ASSERT_EQ(burst.d_messages.size(), 0u);
+    }
+    BMQTST_ASSERT_EQ(cluster.log(leader)->lastIndex(), 11ULL);
+
+    // Deliver only the first AppendEntries to 'peer'; it answers once.
+    RaftNodeOutput peerResp(&alloc);
+    for (size_t i = 0; i < first.d_messages.size(); ++i) {
+        if (first.d_messages[i].d_destinationNodeId == peer) {
+            cluster.node(peer)->step(&peerResp, first.d_messages[i]);
+        }
+    }
+    BMQTST_ASSERT_EQ(peerResp.d_messages.size(), 1u);
+    BMQTST_ASSERT_EQ(peerResp.d_messages[0].d_type,
+                     RaftMessageType::e_APPEND_ENTRIES_RESP);
+
+    // The leader handles that one response: it sends the whole backlog to
+    // 'peer' as a single AppendEntries, and nothing to 'other' (whose first
+    // send is still in flight).
+    RaftNodeOutput second(&alloc);
+    cluster.node(leader)->step(&second, peerResp.d_messages[0]);
+
+    size_t toPeer = 0, toOther = 0, entriesToPeer = 0;
+    for (size_t i = 0; i < second.d_messages.size(); ++i) {
+        const RaftMessage& m = second.d_messages[i];
+        BMQTST_ASSERT_EQ(m.d_type, RaftMessageType::e_APPEND_ENTRIES);
+        if (m.d_destinationNodeId == peer) {
+            ++toPeer;
+            entriesToPeer += m.d_entries.size();
+        }
+        else if (m.d_destinationNodeId == other) {
+            ++toOther;
+        }
+    }
+    BMQTST_ASSERT_EQ(toPeer, 1u);
+    BMQTST_ASSERT_EQ(toOther, 0u);
+    BMQTST_ASSERT_EQ(entriesToPeer, 10u);
+
+    // The peer applies all ten and answers once.
+    RaftNodeOutput peerResp2(&alloc);
+    for (size_t i = 0; i < second.d_messages.size(); ++i) {
+        cluster.node(peer)->step(&peerResp2, second.d_messages[i]);
+    }
+    BMQTST_ASSERT_EQ(peerResp2.d_messages.size(), 1u);
+    BMQTST_ASSERT_EQ(cluster.log(peer)->lastIndex(), 11ULL);
+}
+
+static void test15_backlogNotSentWhenCommitStalls()
+// BACKLOG AFTER A RESPONSE THAT DOES NOT ADVANCE THE COMMIT INDEX
+//
+// A successful AppendEntriesResp clears the peer's in-flight guard, but the
+// only thing that then sends the peer its accumulated backlog is the
+// commit-advance broadcast.  When the response does not advance the commit
+// index, the backlog is not sent.
+{
+    bmqtst::TestHelper::printTestName("BACKLOG WHEN COMMIT STALLS");
+
+    bslma::TestAllocator alloc("test", false);
+    TestCluster          cluster(3, false, &alloc, true);
+
+    const int leader = electLeader(&cluster);
+    BMQTST_ASSERT_GE(leader, 0);
+
+    const int peer  = (leader + 1) % 3;
+    const int other = (leader + 2) % 3;
+
+    // Propose one entry; both peers get it and both guards are set.
+    RaftNodeOutput first(&alloc);
+    cluster.node(leader)->propose(&first, cluster.makeBlob("m1"), 1);
+
+    RaftMessage toOther(&alloc);
+    RaftMessage toPeerMsg(&alloc);
+    for (size_t i = 0; i < first.d_messages.size(); ++i) {
+        if (first.d_messages[i].d_destinationNodeId == other) {
+            toOther = first.d_messages[i];
+        }
+        else {
+            toPeerMsg = first.d_messages[i];
+        }
+    }
+
+    // 'peer' answers; that carries the entry to a quorum, so the commit index
+    // advances and the leader broadcasts.
+    RaftNodeOutput peerResp(&alloc);
+    cluster.node(peer)->step(&peerResp, toPeerMsg);
+    RaftNodeOutput afterPeer(&alloc);
+    cluster.node(leader)->step(&afterPeer, peerResp.d_messages[0]);
+    BMQTST_ASSERT_EQ(cluster.node(leader)->commitIndex(), 1ULL);
+
+    // Three more proposals.  'other' is still in flight, so it gets nothing.
+    for (int i = 0; i < 3; ++i) {
+        RaftNodeOutput burst(&alloc);
+        cluster.node(leader)->propose(&burst, cluster.makeBlob("m"), i + 2);
+        for (size_t j = 0; j < burst.d_messages.size(); ++j) {
+            BMQTST_ASSERT_NE(burst.d_messages[j].d_destinationNodeId, other);
+        }
+    }
+    BMQTST_ASSERT_EQ(cluster.log(leader)->lastIndex(), 4ULL);
+
+    // Now 'other' answers the first AppendEntries.  Its matchIndex becomes 1,
+    // which does not move the commit index (already 1), so no broadcast fires.
+    // Entries 2..4 are owed to 'other' and should be sent now.
+    RaftNodeOutput otherResp(&alloc);
+    cluster.node(other)->step(&otherResp, toOther);
+    RaftNodeOutput afterOther(&alloc);
+    cluster.node(leader)->step(&afterOther, otherResp.d_messages[0]);
+
+    size_t sentToOther = 0;
+    for (size_t i = 0; i < afterOther.d_messages.size(); ++i) {
+        if (afterOther.d_messages[i].d_destinationNodeId == other) {
+            ++sentToOther;
+        }
+    }
+    BMQTST_ASSERT_EQ(sentToOther, 1u);
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ============================================================================
@@ -811,6 +967,8 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 15: test15_backlogNotSentWhenCommitStalls(); break;
+    case 14: test14_appendEntriesBatching(); break;
     case 13: test13_electionMode(); break;
     case 12: test12_heartbeatResetsElectionTimer(); break;
     case 11: test11_leaderStepDown(); break;

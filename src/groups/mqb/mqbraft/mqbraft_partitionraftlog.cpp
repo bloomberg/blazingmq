@@ -220,11 +220,17 @@ void PartitionRaftLog::dropPendingWrites()
                   << " buffered write(s) (no longer leader, or shutting "
                   << "down).";
 
-    for (bsl::deque<bsl::shared_ptr<PendingWrite> >::iterator it =
-             d_pendingWrites.begin();
-         it != d_pendingWrites.end();
-         ++it) {
-        const bsl::shared_ptr<PendingWrite>& sp = *it;
+    // Writes below 'd_appendedCount' are real log entries; 'd_index' holds a
+    // handle to each record and the entry can still commit, so their records
+    // stay ('truncateFrom' erases them by journal offset if a new leader
+    // overwrites the entries).  The rest were buffered for a rollover that
+    // never drained: their placeholders belong to no log entry and carry
+    // offset 0, so nothing else would reclaim them.
+    for (bsl::deque<bsl::shared_ptr<PendingWrite> >::size_type i =
+             d_appendedCount;
+         i < d_pendingWrites.size();
+         ++i) {
+        const bsl::shared_ptr<PendingWrite>& sp = d_pendingWrites[i];
         if (sp->d_handle.isValid()) {
             d_fileStore_p->dropPendingRecord(sp->d_handle);
         }
@@ -367,13 +373,9 @@ int PartitionRaftLog::truncateFrom(bsls::Types::Uint64 index)
     // 'truncateFrom' is only ever invoked from 'RaftNode::handleAppendEntries'
     // when this node's own logged suffix conflicts with the (new) leader's.
     // If this node was itself leader until this very same message, its
-    // still-buffered 'd_pendingWrites' reference the exact 'd_records'
-    // entries about to be erased by 'd_fileStore_p->truncateRecords()'
-    // below.  Drop them here, first: 'dropPendingWrites()' erases their
-    // placeholder records via 'dropPendingRecord()' up front, so
-    // 'truncateRecords()' never has to (which would otherwise leave
-    // 'dropPendingWrites()', called later by 'PartitionRaft::dispatchOutput'
-    // on leadership loss, erasing an already-erased/dangling handle).
+    // still-buffered 'd_pendingWrites' reference 'd_records' entries, some of
+    // which 'd_fileStore_p->truncateRecords()' erases below.  Stop tracking
+    // them here, first, so nothing holds a handle to an erased record.
     dropPendingWrites();
 
     if (index <= d_snapshotIndex || index > lastIndex()) {

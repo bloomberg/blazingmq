@@ -205,6 +205,9 @@ class PartitionRaft : public mqbs::RecordStore {
     /// Send an AppendEntries message via binary e_RAFT_PARTITION event.
     void sendAppendEntries(const RaftMessage& msg);
 
+    /// Send an AppendEntries response via binary e_RAFT_PARTITION event.
+    void sendAppendEntriesResponse(const RaftMessage& msg);
+
     /// Send an election/control RaftMessage via ControlMessageTransmitter.
     void sendControlMessage(const RaftMessage& msg);
 
@@ -335,6 +338,11 @@ class PartitionRaft : public mqbs::RecordStore {
     /// Handle an incoming binary AppendEntries event (e_RAFT_PARTITION)
     /// from the specified 'source' node.
     void appendEntries(const bdlbb::Blob& event, mqbnet::ClusterNode* source);
+
+    /// Handle an incoming binary AppendEntries response event
+    /// (e_RAFT_PARTITION) from the specified 'source' node.
+    void onAppendEntriesResponse(const bdlbb::Blob&   event,
+                                 mqbnet::ClusterNode* source);
 
     /// Handle an incoming Raft control message from the specified
     /// 'source' node.

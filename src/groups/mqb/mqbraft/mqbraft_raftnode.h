@@ -235,6 +235,11 @@ struct RaftMessage {
     bool                d_success;
     bsls::Types::Uint64 d_matchIndex;
 
+    /// On a rejected AppendEntries response, the `d_prevLogIndex` of the
+    /// request being rejected; 0 on success.  Lets the leader tell a response
+    /// to its current request from one to a superseded request.
+    bsls::Types::Uint64 d_rejectedIndex;
+
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(RaftMessage, bslma::UsesBslmaAllocator)
 
@@ -564,6 +569,7 @@ inline RaftMessage::RaftMessage(bslma::Allocator* allocator)
 , d_entries(allocator)
 , d_success(false)
 , d_matchIndex(0)
+, d_rejectedIndex(0)
 {
 }
 
@@ -582,6 +588,7 @@ inline RaftMessage::RaftMessage(const RaftMessage& other,
 , d_entries(other.d_entries, allocator)
 , d_success(other.d_success)
 , d_matchIndex(other.d_matchIndex)
+, d_rejectedIndex(other.d_rejectedIndex)
 {
 }
 

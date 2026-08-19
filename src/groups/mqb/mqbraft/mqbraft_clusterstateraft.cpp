@@ -125,6 +125,9 @@ void ClusterStateRaft::dispatchOutput(RaftNodeOutput* output)
         if (msg.d_type == RaftMessageType::e_APPEND_ENTRIES) {
             sendAppendEntries(msg);
         }
+        else if (msg.d_type == RaftMessageType::e_APPEND_ENTRIES_RESP) {
+            sendAppendEntriesResponse(msg);
+        }
         else {
             sendControlMessage(msg);
 
@@ -187,8 +190,9 @@ void ClusterStateRaft::sendAppendEntries(const RaftMessage& msg)
         d_clusterData_p->blobSpPool().getObject();
     bdlbb::Blob& event = *event_sp;
 
-    // Reserve space for EventHeader + RaftHeader
-    event.setLength(sizeof(bmqp::EventHeader) + sizeof(bmqp::RaftHeader));
+    // Reserve space for EventHeader + RaftHeader + RaftAppendEntriesHeader
+    event.setLength(sizeof(bmqp::EventHeader) + sizeof(bmqp::RaftHeader) +
+                    sizeof(bmqp::RaftAppendEntriesHeader));
 
     // Write RaftHeader
     bmqu::BlobObjectProxy<bmqp::RaftHeader> rh(
@@ -197,12 +201,24 @@ void ClusterStateRaft::sendAppendEntries(const RaftMessage& msg)
         true,   // read
         true);  // write
     (*rh)
-        .setTerm(msg.d_term)
+        .setMsgType(bmqp::RaftHeader::k_MSG_TYPE_APPEND_ENTRIES)
+        .setTerm(msg.d_term);
+    rh.reset();
+
+    // Write RaftAppendEntriesHeader
+    bmqu::BlobObjectProxy<bmqp::RaftAppendEntriesHeader> aeh(
+        &event,
+        bmqu::BlobPosition(0,
+                           static_cast<int>(sizeof(bmqp::EventHeader) +
+                                            sizeof(bmqp::RaftHeader))),
+        true,   // read
+        true);  // write
+    (*aeh)
         .setPrevLogIndex(msg.d_prevLogIndex)
         .setPrevLogTerm(msg.d_prevLogTerm)
         .setLeaderCommit(msg.d_leaderCommit)
         .setEntryCount(static_cast<unsigned int>(msg.d_entries.size()));
-    rh.reset();
+    aeh.reset();
 
     // Append entry blobs (CSL record blobs — same as on disk)
     for (bsl::vector<LogEntry>::size_type i = 0; i < msg.d_entries.size();
@@ -213,6 +229,56 @@ void ClusterStateRaft::sendAppendEntries(const RaftMessage& msg)
     }
 
     // Fill EventHeader
+    bmqu::BlobObjectProxy<bmqp::EventHeader> eh(&event);
+    (*eh) = bmqp::EventHeader(bmqp::EventType::e_RAFT_CLUSTER);
+    (*eh).setLength(event.length());
+    eh.reset();
+
+    destNode->write(event_sp, bmqp::EventType::e_RAFT_CLUSTER);
+}
+
+void ClusterStateRaft::sendAppendEntriesResponse(const RaftMessage& msg)
+{
+    mqbnet::ClusterNode* destNode =
+        d_clusterData_p->membership().netCluster()->lookupNode(
+            msg.d_destinationNodeId);
+    if (!destNode) {
+        BALL_LOG_WARN
+            << "Cannot send Raft AppendEntries response to unknown node "
+            << msg.d_destinationNodeId;
+        return;  // RETURN
+    }
+
+    bsl::shared_ptr<bdlbb::Blob> event_sp =
+        d_clusterData_p->blobSpPool().getObject();
+    bdlbb::Blob& event = *event_sp;
+
+    event.setLength(sizeof(bmqp::EventHeader) + sizeof(bmqp::RaftHeader) +
+                    sizeof(bmqp::RaftResponseHeader));
+
+    bmqu::BlobObjectProxy<bmqp::RaftHeader> rh(
+        &event,
+        bmqu::BlobPosition(0, static_cast<int>(sizeof(bmqp::EventHeader))),
+        true,   // read
+        true);  // write
+    (*rh)
+        .setMsgType(bmqp::RaftHeader::k_MSG_TYPE_APPEND_ENTRIES_RESP)
+        .setTerm(msg.d_term);
+    rh.reset();
+
+    bmqu::BlobObjectProxy<bmqp::RaftResponseHeader> resp(
+        &event,
+        bmqu::BlobPosition(0,
+                           static_cast<int>(sizeof(bmqp::EventHeader) +
+                                            sizeof(bmqp::RaftHeader))),
+        true,   // read
+        true);  // write
+    (*resp)
+        .setSuccess(msg.d_success)
+        .setMatchIndex(msg.d_matchIndex)
+        .setRejectedIndex(msg.d_rejectedIndex);
+    resp.reset();
+
     bmqu::BlobObjectProxy<bmqp::EventHeader> eh(&event);
     (*eh) = bmqp::EventHeader(bmqp::EventType::e_RAFT_CLUSTER);
     (*eh).setLength(event.length());
@@ -375,12 +441,6 @@ void ClusterStateRaft::toCtrlMsg(bmqp_ctrlmsg::RaftMessage* out,
         rvr.voteGranted() = msg.d_success;
         rvr.preVote()     = msg.d_preVote;
     } break;
-    case RaftMessageType::e_APPEND_ENTRIES_RESP: {
-        bmqp_ctrlmsg::RaftAppendEntriesResponse& aer =
-            out->choice().makeAppendEntriesResponse();
-        aer.success()    = msg.d_success;
-        aer.matchIndex() = msg.d_matchIndex;
-    } break;
     case RaftMessageType::e_TIMEOUT_NOW: {
         out->choice().makeTimeoutNow();
     } break;
@@ -396,9 +456,10 @@ void ClusterStateRaft::toCtrlMsg(bmqp_ctrlmsg::RaftMessage* out,
         out->choice().makeInstallSnapshotResponse();
     } break;
     case RaftMessageType::e_APPEND_ENTRIES:
+    case RaftMessageType::e_APPEND_ENTRIES_RESP:
     default: {
-        // e_APPEND_ENTRIES goes through the binary path (sendAppendEntries).
-        // Should not reach here.
+        // Both go through the binary path ('sendAppendEntries',
+        // 'sendAppendEntriesResponse').  Should not reach here.
         BSLS_ASSERT_SAFE(false);
     } break;
     }
@@ -429,13 +490,6 @@ void ClusterStateRaft::fromCtrlMsg(RaftMessage*                     out,
         out->d_type    = RaftMessageType::e_REQUEST_VOTE_RESP;
         out->d_success = rvr.voteGranted();
         out->d_preVote = rvr.preVote();
-    } break;
-    case Choice::SELECTION_ID_APPEND_ENTRIES_RESPONSE: {
-        const bmqp_ctrlmsg::RaftAppendEntriesResponse& aer =
-            msg.choice().appendEntriesResponse();
-        out->d_type       = RaftMessageType::e_APPEND_ENTRIES_RESP;
-        out->d_success    = aer.success();
-        out->d_matchIndex = aer.matchIndex();
     } break;
     case Choice::SELECTION_ID_TIMEOUT_NOW: {
         out->d_type = RaftMessageType::e_TIMEOUT_NOW;
@@ -666,8 +720,8 @@ void ClusterStateRaft::onRaftControlMessage(
     dispatchOutput(&output);
 }
 
-void ClusterStateRaft::appendEntries(const bdlbb::Blob&   event,
-                                     mqbnet::ClusterNode* source)
+void ClusterStateRaft::onRaftEvent(const bdlbb::Blob&   event,
+                                   mqbnet::ClusterNode* source)
 {
     BSLS_ASSERT_SAFE(source);
 
@@ -679,7 +733,7 @@ void ClusterStateRaft::appendEntries(const bdlbb::Blob&   event,
                                             sizeof(bmqp::EventHeader))) {
         BALL_LOG_ERROR
             << "Failed to locate RaftHeader in e_RAFT_CLUSTER event";
-        return;
+        return;  // RETURN
     }
 
     bmqu::BlobObjectProxy<bmqp::RaftHeader> rh(&event,
@@ -688,21 +742,106 @@ void ClusterStateRaft::appendEntries(const bdlbb::Blob&   event,
                                                false);  // write
     if (!rh.isSet()) {
         BALL_LOG_ERROR << "Failed to read RaftHeader from event";
-        return;
+        return;  // RETURN
+    }
+
+    const unsigned int        msgType = rh->msgType();
+    const bsls::Types::Uint64 term    = rh->term();
+    rh.reset();
+
+    switch (msgType) {
+    case bmqp::RaftHeader::k_MSG_TYPE_APPEND_ENTRIES: {
+        appendEntries(event, source, term);
+    } break;
+    case bmqp::RaftHeader::k_MSG_TYPE_APPEND_ENTRIES_RESP: {
+        onAppendEntriesResponse(event, source, term);
+    } break;
+    default: {
+        BALL_LOG_ERROR << "Ignoring e_RAFT_CLUSTER event with unknown "
+                       << "message type " << msgType;
+    } break;
+    }
+}
+
+void ClusterStateRaft::onAppendEntriesResponse(const bdlbb::Blob&   event,
+                                               mqbnet::ClusterNode* source,
+                                               bsls::Types::Uint64  term)
+{
+    BSLS_ASSERT_SAFE(source);
+
+    bmqu::BlobPosition position;
+
+    if (0 != bmqu::BlobUtil::findOffsetSafe(&position,
+                                            event,
+                                            sizeof(bmqp::EventHeader) +
+                                                sizeof(bmqp::RaftHeader))) {
+        BALL_LOG_ERROR << "Failed to locate RaftResponseHeader in "
+                       << "e_RAFT_CLUSTER event";
+        return;  // RETURN
+    }
+
+    bmqu::BlobObjectProxy<bmqp::RaftResponseHeader> resp(&event,
+                                                         position,
+                                                         true,    // read
+                                                         false);  // write
+    if (!resp.isSet()) {
+        BALL_LOG_ERROR << "Failed to read RaftResponseHeader from event";
+        return;  // RETURN
+    }
+
+    RaftMessage internalMsg(d_allocator_p);
+    internalMsg.d_type          = RaftMessageType::e_APPEND_ENTRIES_RESP;
+    internalMsg.d_term          = term;
+    internalMsg.d_sourceNodeId  = source->nodeId();
+    internalMsg.d_success       = resp->success();
+    internalMsg.d_matchIndex    = resp->matchIndex();
+    internalMsg.d_rejectedIndex = resp->rejectedIndex();
+    resp.reset();
+
+    RaftNodeOutput output(d_allocator_p);
+    d_raftNode_mp->step(&output, internalMsg);
+    dispatchOutput(&output);
+}
+
+void ClusterStateRaft::appendEntries(const bdlbb::Blob&   event,
+                                     mqbnet::ClusterNode* source,
+                                     bsls::Types::Uint64  term)
+{
+    BSLS_ASSERT_SAFE(source);
+
+    bmqu::BlobPosition aehPosition;
+
+    if (0 != bmqu::BlobUtil::findOffsetSafe(&aehPosition,
+                                            event,
+                                            sizeof(bmqp::EventHeader) +
+                                                sizeof(bmqp::RaftHeader))) {
+        BALL_LOG_ERROR << "Failed to locate RaftAppendEntriesHeader in "
+                       << "e_RAFT_CLUSTER event";
+        return;  // RETURN
+    }
+
+    bmqu::BlobObjectProxy<bmqp::RaftAppendEntriesHeader> aeh(&event,
+                                                             aehPosition,
+                                                             true,    // read
+                                                             false);  // write
+    if (!aeh.isSet()) {
+        BALL_LOG_ERROR << "Failed to read RaftAppendEntriesHeader from event";
+        return;  // RETURN
     }
 
     RaftMessage internalMsg(d_allocator_p);
     internalMsg.d_type         = RaftMessageType::e_APPEND_ENTRIES;
-    internalMsg.d_term         = rh->term();
+    internalMsg.d_term         = term;
     internalMsg.d_sourceNodeId = source->nodeId();
-    internalMsg.d_prevLogIndex = rh->prevLogIndex();
-    internalMsg.d_prevLogTerm  = rh->prevLogTerm();
-    internalMsg.d_leaderCommit = rh->leaderCommit();
+    internalMsg.d_prevLogIndex = aeh->prevLogIndex();
+    internalMsg.d_prevLogTerm  = aeh->prevLogTerm();
+    internalMsg.d_leaderCommit = aeh->leaderCommit();
 
-    // Parse entry blobs after RaftHeader
-    int          offset = sizeof(bmqp::EventHeader) + sizeof(bmqp::RaftHeader);
+    // Parse entry blobs after RaftAppendEntriesHeader
+    int offset = sizeof(bmqp::EventHeader) + sizeof(bmqp::RaftHeader) +
+                 sizeof(bmqp::RaftAppendEntriesHeader);
     int          remaining     = event.length() - offset;
-    unsigned int entryCount    = rh->entryCount();
+    unsigned int entryCount    = aeh->entryCount();
     int          incomingBytes = 0;
 
     for (unsigned int i = 0; i < entryCount && remaining > 0; ++i) {
