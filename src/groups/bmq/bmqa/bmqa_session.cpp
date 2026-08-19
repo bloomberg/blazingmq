@@ -24,6 +24,8 @@
 #include <bmqa_messageproperties.h>
 #include <bmqa_queueid.h>
 #include <bmqa_sessionevent.h>
+#include <bmqa_startstatus.h>
+#include <bmqa_stopstatus.h>
 #include <bmqimp_application.h>
 #include <bmqimp_event.h>
 #include <bmqimp_eventqueue.h>
@@ -197,6 +199,8 @@ struct SessionUtil {
     typedef Session::OpenQueueCallback      OpenQueueCallback;
     typedef Session::ConfigureQueueCallback ConfigureQueueCallback;
     typedef Session::CloseQueueCallback     CloseQueueCallback;
+    typedef Session::StartCallback          StartCallback;
+    typedef Session::StopCallback           StopCallback;
 
     // CLASS METHODS
 
@@ -239,6 +243,22 @@ struct SessionUtil {
     template <typename OPERATION_RESULT_TYPE, typename OPERATION_RESULT_ENUM>
     static void createOperationResult(OPERATION_RESULT_TYPE* status,
                                       const SessionEvent&    event);
+
+    /// Invoked when the specified `eventImpl` is emitted as the terminal
+    /// event of an asynchronous session start operation.  Convert it to a
+    /// `bmqa::StartStatus` and forward it to the specified `callback`.  This
+    /// runs on the event delivery thread, never on the FSM thread.
+    static void
+    startResultCallbackWrapper(const bsl::shared_ptr<bmqimp::Event>& event,
+                               const StartCallback&                  callback);
+
+    /// Invoked when the specified `eventImpl` is emitted as the terminal
+    /// event of an asynchronous session stop operation.  Convert it to a
+    /// `bmqa::StopStatus` and forward it to the specified `callback`.  This
+    /// runs on the event delivery thread, never on the FSM thread.
+    static void
+    stopResultCallbackWrapper(const bsl::shared_ptr<bmqimp::Event>& eventImpl,
+                              const StopCallback&                   callback);
 
     // Queue management helpers
     // ------------------------
@@ -516,6 +536,49 @@ void SessionUtil::operationResultCallbackWrapper(
                                        OPERATION_RESULT_ENUM>(&result, event);
 
     callback(result);
+}
+
+// Session management helpers
+// --------------------------
+void SessionUtil::startResultCallbackWrapper(
+    const bsl::shared_ptr<bmqimp::Event>& event,
+    const StartCallback&                  callback)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(event->type() == bmqimp::Event::EventType::e_SESSION);
+
+    // Map the terminal start event to a (the
+    // event type -- CONNECTED vs CONNECTION_TIMEOUT).
+    bmqt::GenericResult::Enum result;
+    if (event->sessionEventType() == bmqt::SessionEventType::e_CONNECTED) {
+        result = bmqt::GenericResult::e_SUCCESS;
+    }
+    else if (event->sessionEventType() ==
+             bmqt::SessionEventType::e_CONNECTION_TIMEOUT) {
+        result = bmqt::GenericResult::e_TIMEOUT;
+    }
+    else {
+        result = bmqt::GenericResult::e_UNKNOWN;
+    }
+
+    StartStatus status(result, event->errorDescription());
+    callback(status);
+}
+
+void SessionUtil::stopResultCallbackWrapper(
+    const bsl::shared_ptr<bmqimp::Event>& event,
+    const StopCallback&                   callback)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(event->type() == bmqimp::Event::EventType::e_SESSION);
+
+    const bmqt::GenericResult::Enum result =
+        (event->sessionEventType() == bmqt::SessionEventType::e_DISCONNECTED)
+            ? bmqt::GenericResult::e_SUCCESS
+            : bmqt::GenericResult::e_UNKNOWN;
+
+    StopStatus status(result, event->errorDescription());
+    callback(status);
 }
 
 bmqt::OpenQueueResult::Enum SessionUtil::validateAndSetOpenQueueParameters(
@@ -865,6 +928,42 @@ int Session::startAsync(const bsls::TimeInterval& timeout)
     return 0;
 }
 
+int Session::startAsync(const StartCallback&      callback,
+                        const bsls::TimeInterval& timeout)
+{
+    int rc = 0;
+
+    // Create application only once
+    if (!d_impl.d_application_mp) {
+        rc = SessionUtil::createApplication(&d_impl);
+        if (rc != 0) {
+            return rc;  // RETURN
+        }
+    }
+
+    // Use default timeout (from SessionOptions) if none was provided
+    bsls::TimeInterval time = timeout;
+    if (time == bsls::TimeInterval()) {
+        time = d_impl.d_application_mp->sessionOptions().connectTimeout();
+    }
+
+    // Adapt the user callback: the terminal start event (CONNECTED or
+    // CONNECTION_TIMEOUT) is converted to a 'bmqa::StartStatus' and delivered
+    // to 'callback' on the event delivery thread (never the FSM thread).
+    const bmqimp::BrokerSession::EventCallback eventCallback =
+        bdlf::BindUtil::bind(&SessionUtil::startResultCallbackWrapper,
+                             bdlf::PlaceHolders::_1,  // eventImpl
+                             callback);
+
+    // Start the application
+    rc = d_impl.d_application_mp->startAsync(time, eventCallback);
+    if (rc != 0) {
+        return rc;  // RETURN
+    }
+
+    return 0;
+}
+
 void Session::stop()
 {
     if (d_impl.d_application_mp) {
@@ -876,6 +975,20 @@ void Session::stopAsync()
 {
     if (d_impl.d_application_mp) {
         d_impl.d_application_mp->stopAsync();
+    }
+}
+
+void Session::stopAsync(const StopCallback& callback)
+{
+    if (d_impl.d_application_mp) {
+        // Adapt the user callback: the terminal stop event (DISCONNECTED) is
+        // converted to a 'bmqa::StopStatus' and delivered to 'callback' on the
+        // event delivery thread (never the FSM thread).
+        const bmqimp::BrokerSession::EventCallback eventCallback =
+            bdlf::BindUtil::bind(&SessionUtil::stopResultCallbackWrapper,
+                                 bdlf::PlaceHolders::_1,  // eventImpl
+                                 callback);
+        d_impl.d_application_mp->stopAsync(eventCallback);
     }
 }
 
