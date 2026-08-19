@@ -184,6 +184,7 @@ int CslRaftLog::rollover(bsl::shared_ptr<mqbsi::Log>*        oldLog,
     BSLS_ASSERT_SAFE(oldLog);
     BSLS_ASSERT_SAFE(newLog && newLog->isOpened());
     BSLS_ASSERT_SAFE(snapshotRecord);
+    BSLS_ASSERT_SAFE(compactIndex > 0);
     BSLS_ASSERT_SAFE(d_snapshotIndex <= compactIndex);
     BSLS_ASSERT_SAFE(compactIndex <= lastIndex());
 
@@ -209,15 +210,25 @@ int CslRaftLog::rollover(bsl::shared_ptr<mqbsi::Log>*        oldLog,
     }
 
     // Write the base snapshot record (the compacted committed state).
-    if (newLog->write(*snapshotRecord,
-                      bmqu::BlobPosition(),
-                      snapshotRecord->length()) < 0) {
+    const mqbsi::Log::Offset snapshotOffset = newLog->write(
+        *snapshotRecord,
+        bmqu::BlobPosition(),
+        snapshotRecord->length());
+    if (snapshotOffset < 0) {
         return -2;  // RETURN
     }
 
-    // Copy the tail into 'newLog', recording its new offsets.
+    // 'snapshotRecord' is stamped with 'compactIndex' and is the entry at
+    // that index; the tail follows it.
     bsl::vector<RecordInfo> newIndex(d_allocator_p);
-    newIndex.reserve(tail.size());
+    newIndex.reserve(tail.size() + 1);
+
+    RecordInfo snapshotInfo;
+    snapshotInfo.d_offset = snapshotOffset;
+    snapshotInfo.d_term   = compactTerm;
+    newIndex.push_back(snapshotInfo);
+
+    // Copy the tail into 'newLog', recording its new offsets.
     for (bsl::vector<LogEntry>::const_iterator it = tail.begin();
          it != tail.end();
          ++it) {
@@ -233,13 +244,13 @@ int CslRaftLog::rollover(bsl::shared_ptr<mqbsi::Log>*        oldLog,
         newIndex.push_back(info);
     }
 
-    // Switch to the new log and advance the snapshot boundary.  The base
-    // snapshot at the head of 'newLog' is intentionally NOT in 'd_index': it
-    // represents the compacted prefix '<= compactIndex'.
+    // 'd_index[0]' is the entry at 'd_snapshotIndex + 1', so with
+    // 'snapshotRecord' first, 'd_snapshotIndex' is 'compactIndex - 1'.
+    // 'open()' computes the same two values from this file.
     *oldLog         = d_log_sp;
     d_log_sp        = newLog;
     d_index         = newIndex;
-    d_snapshotIndex = compactIndex;
+    d_snapshotIndex = compactIndex - 1;
     d_snapshotTerm  = compactTerm;
 
     return 0;
@@ -250,13 +261,14 @@ int CslRaftLog::installSnapshot(
     const bsl::shared_ptr<mqbsi::Log>&  newLog,
     const mqbu::StorageKey&             newLogId,
     const bsl::shared_ptr<bdlbb::Blob>& snapshotRecord,
-    bsls::Types::Uint64                 lastIncludedIndex,
-    bsls::Types::Uint64                 lastIncludedTerm)
+    bsls::Types::Uint64                 recordIndex,
+    bsls::Types::Uint64                 recordTerm)
 {
     BSLS_ASSERT_SAFE(oldLog);
     BSLS_ASSERT_SAFE(newLog && newLog->isOpened());
     BSLS_ASSERT_SAFE(snapshotRecord);
-    BSLS_ASSERT_SAFE(d_snapshotIndex <= lastIncludedIndex);
+    BSLS_ASSERT_SAFE(recordIndex > 0);
+    BSLS_ASSERT_SAFE(d_snapshotIndex < recordIndex);
 
     mqbc::ClusterStateFileHeader fh;
     fh.setProtocolVersion(mqbc::ClusterStateLedgerProtocol::k_VERSION)
@@ -266,18 +278,30 @@ int CslRaftLog::installSnapshot(
         return -1;  // RETURN
     }
 
-    if (newLog->write(*snapshotRecord,
-                      bmqu::BlobPosition(),
-                      snapshotRecord->length()) < 0) {
+    const mqbsi::Log::Offset snapshotOffset = newLog->write(
+        *snapshotRecord,
+        bmqu::BlobPosition(),
+        snapshotRecord->length());
+    if (snapshotOffset < 0) {
         return -2;  // RETURN
     }
 
-    // As in 'rollover', the base snapshot is intentionally NOT in 'd_index'.
+    // 'd_index[0]' is the entry at 'd_snapshotIndex + 1'.  'snapshotRecord'
+    // is the entry at 'recordIndex', so indexing it puts 'd_snapshotIndex' at
+    // 'recordIndex - 1'.  'open()' computes the same two values from this
+    // file.
     *oldLog  = d_log_sp;
     d_log_sp = newLog;
+
+    RecordInfo info;
+    info.d_offset = snapshotOffset;
+    info.d_term   = recordTerm;
+
     d_index.clear();
-    d_snapshotIndex = lastIncludedIndex;
-    d_snapshotTerm  = lastIncludedTerm;
+    d_index.push_back(info);
+
+    d_snapshotIndex = recordIndex - 1;
+    d_snapshotTerm  = recordTerm;
 
     return 0;
 }
@@ -365,18 +389,27 @@ bsls::Types::Uint64 CslRaftLog::snapshotTerm() const
     return d_snapshotTerm;
 }
 
-void CslRaftLog::applySnapshot(bsls::Types::Uint64 lastIncludedIndex,
-                               bsls::Types::Uint64 lastIncludedTerm)
-{
-    d_snapshotIndex = lastIncludedIndex;
-    d_snapshotTerm  = lastIncludedTerm;
-    d_index.clear();
-}
-
 bool CslRaftLog::canAppend(int recordSize) const
 {
     return d_log_sp->currentOffset() + recordSize <=
            d_log_sp->logConfig().maxSize();
+}
+
+bsls::Types::Uint64
+CslRaftLog::bytesAbove(bsls::Types::Uint64 compactIndex) const
+{
+    BSLS_ASSERT_SAFE(d_snapshotIndex <= compactIndex);
+
+    if (compactIndex >= lastIndex()) {
+        return 0;  // RETURN
+    }
+
+    // Records are contiguous, so the span runs from the first entry above
+    // 'compactIndex' to the end of the log.
+    const bsls::Types::Uint64 vectorIdx = compactIndex - d_snapshotIndex;
+    BSLS_ASSERT_SAFE(vectorIdx < d_index.size());
+
+    return d_log_sp->currentOffset() - d_index[vectorIdx].d_offset;
 }
 
 int CslRaftLog::loadSnapshotRecord(bsl::shared_ptr<bdlbb::Blob>* out) const

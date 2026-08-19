@@ -27,6 +27,7 @@
 
 #include <bmqt_uri.h>
 
+#include <bmqtsk_alarmlog.h>
 #include <bmqu_blobobjectproxy.h>
 
 // BDE
@@ -1003,7 +1004,8 @@ int ClusterStateRaft::transferLeadership(int targetNodeId)
 }
 
 int ClusterStateRaft::createNewCslLog(bsl::shared_ptr<mqbsi::Log>* logOut,
-                                      mqbu::StorageKey*            logIdOut)
+                                      mqbu::StorageKey*            logIdOut,
+                                      bsls::Types::Uint64          minSize)
 {
     BSLS_ASSERT_SAFE(logOut);
     BSLS_ASSERT_SAFE(logIdOut);
@@ -1029,7 +1031,17 @@ int ClusterStateRaft::createNewCslLog(bsl::shared_ptr<mqbsi::Log>* logOut,
     filePath.append(logIdStr);
     filePath.append(".bmq_csl");
 
-    mqbsi::LogConfig logConfig(d_partitionConfig.maxCSLFileSize(),
+    const bsls::Types::Uint64 maxSize =
+        bsl::max(d_partitionConfig.maxCSLFileSize(), minSize);
+    if (maxSize > d_partitionConfig.maxCSLFileSize()) {
+        BALL_LOG_WARN << "Creating CSL file '" << filePath << "' at "
+                      << maxSize << " bytes, above the configured maximum of "
+                      << d_partitionConfig.maxCSLFileSize()
+                      << ": the uncommitted tail it has to carry does not fit "
+                      << "in the configured size.";
+    }
+
+    mqbsi::LogConfig logConfig(maxSize,
                                *logIdOut,
                                filePath,
                                d_partitionConfig.preallocate(),
@@ -1057,6 +1069,14 @@ int ClusterStateRaft::rolloverCsl()
     // tail and are preserved by 'CslRaftLog::rollover'.
     const bsls::Types::Uint64 compactIndex = d_raftNode_mp->commitIndex();
     const bsls::Types::Uint64 compactTerm  = d_cslLog_mp->term(compactIndex);
+
+    if (compactIndex == 0) {
+        // Nothing committed, so there is nothing to compact and a rollover
+        // cannot free anything.  The record would also be the entry at index
+        // 0, which is not an index a log entry can occupy.
+        BALL_LOG_ERROR << "Cannot roll over the CSL: nothing is committed.";
+        return -1;  // RETURN
+    }
 
     // Build the base snapshot: the full committed cluster state serialized as
     // a 'LeaderAdvisory'.  This mirrors legacy
@@ -1089,10 +1109,17 @@ int ClusterStateRaft::rolloverCsl()
         return rc;  // RETURN
     }
 
+    // The new file has to hold its own header, the base snapshot, and every
+    // entry above 'compactIndex' -- only committed entries are compacted
+    // away, so the rest are copied forward.
+    const bsls::Types::Uint64 required = sizeof(mqbc::ClusterStateFileHeader) +
+                                         snapshotRecord->length() +
+                                         d_cslLog_mp->bytesAbove(compactIndex);
+
     // Create the new (empty) CSL file.
     bsl::shared_ptr<mqbsi::Log> newLog;
     mqbu::StorageKey            newLogId;
-    rc = createNewCslLog(&newLog, &newLogId);
+    rc = createNewCslLog(&newLog, &newLogId, required);
     if (rc != 0) {
         BALL_LOG_ERROR << "Failed to create new CSL log for rollover, rc="
                        << rc;
@@ -1109,8 +1136,20 @@ int ClusterStateRaft::rolloverCsl()
                                compactIndex,
                                compactTerm);
     if (rc != 0) {
-        BALL_LOG_ERROR << "CSL rollover failed, rc=" << rc;
+        // The CSL keeps its old file, so it is still readable -- but it is
+        // also still full, and nothing else shrinks it: the append that
+        // needed this rollover keeps failing, so nothing commits, so the
+        // uncommitted tail never gets compacted.  Alarm rather than log.
+        BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
+            << "CSL rollover failed, rc=" << rc << ", compacting at index "
+            << compactIndex << " with " << required
+            << " bytes required.  The CSL cannot accept new records."
+            << BMQTSK_ALARMLOG_END;
+
+        const bsl::string newPath(newLog->logConfig().location(),
+                                  d_allocator_p);
         newLog->close();
+        bdls::FilesystemUtil::remove(newPath);
         return rc;  // RETURN
     }
 
@@ -1136,6 +1175,28 @@ void ClusterStateRaft::applySnapshotChunk(const bdlbb::Blob&   event,
 
     const int recOffset = static_cast<int>(sizeof(bmqp::EventHeader) +
                                            sizeof(bmqp::SnapshotChunkHeader));
+
+    bmqu::BlobPosition hdrPos;
+    if (0 != bmqu::BlobUtil::findOffsetSafe(&hdrPos,
+                                            event,
+                                            sizeof(bmqp::EventHeader))) {
+        BALL_LOG_ERROR << "Failed to locate SnapshotChunkHeader in "
+                       << "e_RAFT_SNAPSHOT event";
+        return;  // RETURN
+    }
+
+    bmqu::BlobObjectProxy<bmqp::SnapshotChunkHeader> hdr(&event,
+                                                         hdrPos,
+                                                         true,    // read
+                                                         false);  // write
+    if (!hdr.isSet()) {
+        BALL_LOG_ERROR << "Failed to read SnapshotChunkHeader from "
+                       << source->nodeDescription();
+        return;  // RETURN
+    }
+
+    const bsls::Types::Uint64 advertisedIndex = hdr->lastIncludedIndex();
+    hdr.reset();
 
     // The record carries its own term and index in the legacy CSL record
     // header, so the chunk is self-describing: it does not depend on the
@@ -1170,10 +1231,38 @@ void ClusterStateRaft::applySnapshotChunk(const bdlbb::Blob&   event,
         return;  // RETURN
     }
 
-    if (lastIncludedIndex <= d_cslLog_mp->snapshotIndex()) {
+    // A base snapshot is the entry at its own sequence number, so index 0 is
+    // not one.  'open()' skips such a record for the same reason.
+    if (lastIncludedIndex == 0) {
+        BALL_LOG_ERROR << "Refusing CSL snapshot from "
+                       << source->nodeDescription()
+                       << ": record has sequence number 0";
+        return;  // RETURN
+    }
+
+    // The sender advertises its own 'snapshotIndex()', which is one below the
+    // record it ships (see 'CslRaftLog::rollover' and '::installSnapshot').
+    // Installing a record the sender frames differently is what leaves the
+    // two disagreeing about 'prevLogIndex' afterwards, so refuse it: no
+    // install and no response, which surfaces as the leader retrying.
+    if (advertisedIndex + 1 != lastIncludedIndex) {
+        BALL_LOG_ERROR << "Refusing CSL snapshot from "
+                       << source->nodeDescription() << ": record is the entry "
+                       << "at index " << lastIncludedIndex
+                       << ", but the sender advertised snapshotIndex "
+                       << advertisedIndex << " (expected "
+                       << (lastIncludedIndex - 1) << ")";
+        return;  // RETURN
+    }
+
+    if (lastIncludedIndex <= d_cslLog_mp->snapshotIndex() + 1) {
+        // Already installed: 'installSnapshot' leaves 'snapshotIndex()' one
+        // below the record's index.  Answer anyway -- the leader resends on
+        // every timeout until it hears back.
         BALL_LOG_INFO << "Ignoring CSL snapshot at index " << lastIncludedIndex
                       << " from " << source->nodeDescription()
                       << ": already at " << d_cslLog_mp->snapshotIndex();
+        sendInstallSnapshotResponse(source, lastIncludedIndex);
         return;  // RETURN
     }
 
@@ -1243,15 +1332,25 @@ void ClusterStateRaft::applySnapshotChunk(const bdlbb::Blob&   event,
     // commitIndex/lastApplied must move up with it.
     d_raftNode_mp->initRecoveredState(lastIncludedTerm, lastIncludedIndex);
 
+    sendInstallSnapshotResponse(source, lastIncludedIndex);
+
+    BALL_LOG_INFO << "CSL snapshot installed at index " << lastIncludedIndex;
+}
+
+void ClusterStateRaft::sendInstallSnapshotResponse(
+    mqbnet::ClusterNode* source,
+    bsls::Types::Uint64  lastIncludedIndex)
+{
+    BSLS_ASSERT_SAFE(source);
+
     RaftMessage resp(d_allocator_p);
     resp.d_type         = RaftMessageType::e_INSTALL_SNAPSHOT_RESP;
     resp.d_term         = d_raftNode_mp->currentTerm();
     resp.d_sourceNodeId = d_clusterData_p->membership().selfNode()->nodeId();
     resp.d_destinationNodeId = source->nodeId();
     resp.d_lastLogIndex      = lastIncludedIndex;
-    sendControlMessage(resp);
 
-    BALL_LOG_INFO << "CSL snapshot installed at index " << lastIncludedIndex;
+    sendControlMessage(resp);
 }
 
 bool ClusterStateRaft::assignQueue(const bmqt::Uri&      uri,

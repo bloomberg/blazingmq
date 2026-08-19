@@ -218,11 +218,18 @@ def rollover_queues_and_apps_test(cluster: Cluster, domain_urls, trigger_rollove
             wait_ack=True,
         )
 
+    # Wait for delivery before confirming: with nothing delivered yet, bmqtool
+    # logs "No messages to confirm" and never calls 'session.confirmMessage()',
+    # which is the line 'confirm(succeed=True)' waits for.
     consumer = proxy.create_client("consumer")
     consumer.open(priority_queue, flags=["read"], succeed=True)
-    consumer.open(fanout_queue + "?id=foo", flags=["read"], succeed=True)
+    consumer.wait_push_event()
     consumer.confirm(priority_queue, "+1", succeed=True)
+
+    consumer.open(fanout_queue + "?id=foo", flags=["read"], succeed=True)
+    consumer.wait_push_event()
     consumer.confirm(fanout_queue + "?id=foo", "+1", succeed=True)
+
     consumer.close(priority_queue, succeed=True)
     consumer.close(fanout_queue + "?id=foo", succeed=True)
 

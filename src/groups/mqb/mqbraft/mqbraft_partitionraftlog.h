@@ -241,12 +241,6 @@ class PartitionRaftLog : public RaftLog {
     /// skipped.
     void onRecordCommitted(bsls::Types::Uint64 index);
 
-    /// Reset the log to the specified snapshot state.  Called after
-    /// receiving and applying an InstallSnapshot from the leader.
-    void
-    applySnapshot(bsls::Types::Uint64 lastIncludedIndex,
-                  bsls::Types::Uint64 lastIncludedTerm) BSLS_KEYWORD_OVERRIDE;
-
     // ACCESSORS
     bsls::Types::Uint64 lastIndex() const BSLS_KEYWORD_OVERRIDE;
 

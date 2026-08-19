@@ -50,6 +50,38 @@ const bsls::Types::Int64 k_LOG_MAX_SIZE = 1024 * 1024;  // 1 MB
 const mqbu::StorageKey k_LOG_KEY(mqbu::StorageKey::BinaryRepresentation(),
                                  "12345");
 
+/// Build a base `e_SNAPSHOT` CSL record blob, as a rollover writes and a
+/// leader ships, with the specified 'term' and 'seqNum'.
+bsl::shared_ptr<bdlbb::Blob>
+makeSnapshotRecord(bsls::Types::Uint64       term,
+                   bsls::Types::Uint64       seqNum,
+                   bdlbb::BlobBufferFactory* factory,
+                   bslma::Allocator*         allocator)
+{
+    bmqp_ctrlmsg::ClusterMessage        clusterMessage(allocator);
+    bmqp_ctrlmsg::LeaderMessageSequence lms;
+    lms.electorTerm()    = term;
+    lms.sequenceNumber() = seqNum;
+
+    bmqp_ctrlmsg::LeaderAdvisory& advisory =
+        clusterMessage.choice().makeLeaderAdvisory();
+    advisory.sequenceNumber() = lms;
+
+    bsl::shared_ptr<bdlbb::Blob> record =
+        bsl::make_shared<bdlbb::Blob>(factory, allocator);
+    const int rc = mqbc::ClusterStateLedgerUtil::appendRecord(
+        record.get(),
+        clusterMessage,
+        lms,
+        0,
+        mqbc::ClusterStateRecordType::e_SNAPSHOT,
+        allocator);
+    BSLS_ASSERT_OPT(rc == 0);
+    (void)rc;
+
+    return record;
+}
+
 /// Build a CSL record blob for a PartitionPrimaryAdvisory with the
 /// specified 'term' and 'seqNum'.
 bsl::shared_ptr<bdlbb::Blob> makeRecord(bsls::Types::Uint64       term,
@@ -318,6 +350,220 @@ static void test5_openPrePopulated()
     }
 }
 
+static void test6_installSnapshotMatchesOpen()
+// INSTALL SNAPSHOT MATCHES OPEN
+//
+// 'installSnapshot' must leave the log in the state 'open()' derives from
+// the file it just wrote, or this node's indexes change when it restarts.
+{
+    bmqtst::TestHelper::printTestName("INSTALL SNAPSHOT MATCHES OPEN");
+
+    bslma::Allocator*              alloc = bmqtst::TestHelperUtil::allocator();
+    bmqu::TempDirectory            tempDir(alloc);
+    bdlbb::PooledBlobBufferFactory factory(256, alloc);
+    bmqp::BlobPoolUtil::BlobSpPoolSp poolSp =
+        bmqp::BlobPoolUtil::createBlobPool(&factory, alloc);
+
+    // The record a leader ships: the entry at index 18, term 1.
+    const bsls::Types::Uint64 k_RECORD_INDEX = 18;
+    const bsls::Types::Uint64 k_RECORD_TERM  = 1;
+
+    const bsl::string oldPath = tempDir.path() + "/csl_old.bmq";
+    const bsl::string newPath = tempDir.path() + "/csl_new.bmq";
+
+    mqbsi::LogConfig oldConfig(k_LOG_MAX_SIZE,
+                               k_LOG_KEY,
+                               oldPath,
+                               true,
+                               false,
+                               alloc);
+    mqbsi::LogConfig newConfig(k_LOG_MAX_SIZE,
+                               k_LOG_KEY,
+                               newPath,
+                               true,
+                               false,
+                               alloc);
+
+    bsls::Types::Uint64 installedSnapshotIndex = 0;
+    bsls::Types::Uint64 installedLastIndex     = 0;
+
+    // Phase 1: install the snapshot over a log holding a couple of entries.
+    {
+        bsl::shared_ptr<mqbsl::MemoryMappedOnDiskLog> oldLog(
+            new (*alloc) mqbsl::MemoryMappedOnDiskLog(oldConfig),
+            alloc);
+        BMQTST_ASSERT_EQ(oldLog->open(mqbsi::Log::e_CREATE_IF_MISSING), 0);
+
+        mqbc::ClusterStateFileHeader fileHeader;
+        oldLog->write(&fileHeader,
+                      0,
+                      static_cast<int>(sizeof(mqbc::ClusterStateFileHeader)));
+
+        CslRaftLog raftLog(oldLog, poolSp.get(), alloc);
+        BMQTST_ASSERT_EQ(raftLog.open(), 0);
+        for (bsls::Types::Uint64 i = 1; i <= 2; ++i) {
+            raftLog.append(1, makeRecord(1, i, &factory, alloc));
+        }
+        BMQTST_ASSERT_EQ(raftLog.lastIndex(), 2ULL);
+
+        bsl::shared_ptr<mqbsl::MemoryMappedOnDiskLog> newLog(
+            new (*alloc) mqbsl::MemoryMappedOnDiskLog(newConfig),
+            alloc);
+        BMQTST_ASSERT_EQ(newLog->open(mqbsi::Log::e_CREATE_IF_MISSING), 0);
+
+        bsl::shared_ptr<mqbsi::Log> replaced;
+        BMQTST_ASSERT_EQ(
+            raftLog.installSnapshot(&replaced,
+                                    newLog,
+                                    k_LOG_KEY,
+                                    makeSnapshotRecord(k_RECORD_TERM,
+                                                       k_RECORD_INDEX,
+                                                       &factory,
+                                                       alloc),
+                                    k_RECORD_INDEX,
+                                    k_RECORD_TERM),
+            0);
+        replaced->close();
+
+        installedSnapshotIndex = raftLog.snapshotIndex();
+        installedLastIndex     = raftLog.lastIndex();
+
+        // The snapshot record is the entry at its own index, and the index
+        // below it is answerable -- that is the 'prevLogIndex' the leader
+        // sends next.
+        BMQTST_ASSERT_EQ(installedSnapshotIndex, k_RECORD_INDEX - 1);
+        BMQTST_ASSERT_EQ(installedLastIndex, k_RECORD_INDEX);
+        BMQTST_ASSERT_EQ(raftLog.term(k_RECORD_INDEX - 1), k_RECORD_TERM);
+        BMQTST_ASSERT_EQ(raftLog.term(k_RECORD_INDEX), k_RECORD_TERM);
+
+        newLog->close();
+    }
+
+    // Phase 2: reopen the file that was just written; it must describe the
+    // same log.
+    {
+        bsl::shared_ptr<mqbsl::MemoryMappedOnDiskLog> log(
+            new (*alloc) mqbsl::MemoryMappedOnDiskLog(newConfig),
+            alloc);
+        BMQTST_ASSERT_EQ(log->open(0), 0);
+
+        CslRaftLog raftLog(log, poolSp.get(), alloc);
+        BMQTST_ASSERT_EQ(raftLog.open(), 0);
+
+        BMQTST_ASSERT_EQ(raftLog.snapshotIndex(), installedSnapshotIndex);
+        BMQTST_ASSERT_EQ(raftLog.lastIndex(), installedLastIndex);
+        BMQTST_ASSERT_EQ(raftLog.term(k_RECORD_INDEX - 1), k_RECORD_TERM);
+        BMQTST_ASSERT_EQ(raftLog.term(k_RECORD_INDEX), k_RECORD_TERM);
+    }
+}
+
+static void test7_rolloverMatchesOpen()
+// ROLLOVER MATCHES OPEN
+//
+// 'rollover' must leave the log in the state 'open()' derives from the file
+// it just wrote, so a leader describes its log the same way before and after
+// a restart.
+{
+    bmqtst::TestHelper::printTestName("ROLLOVER MATCHES OPEN");
+
+    bslma::Allocator*              alloc = bmqtst::TestHelperUtil::allocator();
+    bmqu::TempDirectory            tempDir(alloc);
+    bdlbb::PooledBlobBufferFactory factory(256, alloc);
+    bmqp::BlobPoolUtil::BlobSpPoolSp poolSp =
+        bmqp::BlobPoolUtil::createBlobPool(&factory, alloc);
+
+    // Compact at 3 of 5 entries, leaving 4 and 5 as the uncommitted tail.
+    const bsls::Types::Uint64 k_COMPACT_INDEX = 3;
+    const bsls::Types::Uint64 k_COMPACT_TERM  = 1;
+    const bsls::Types::Uint64 k_LAST_INDEX    = 5;
+
+    const bsl::string oldPath = tempDir.path() + "/csl_ro_old.bmq";
+    const bsl::string newPath = tempDir.path() + "/csl_ro_new.bmq";
+
+    mqbsi::LogConfig oldConfig(k_LOG_MAX_SIZE,
+                               k_LOG_KEY,
+                               oldPath,
+                               true,
+                               false,
+                               alloc);
+    mqbsi::LogConfig newConfig(k_LOG_MAX_SIZE,
+                               k_LOG_KEY,
+                               newPath,
+                               true,
+                               false,
+                               alloc);
+
+    bsls::Types::Uint64 rolledSnapshotIndex = 0;
+    bsls::Types::Uint64 rolledLastIndex     = 0;
+
+    // Phase 1: roll over.
+    {
+        bsl::shared_ptr<mqbsl::MemoryMappedOnDiskLog> oldLog(
+            new (*alloc) mqbsl::MemoryMappedOnDiskLog(oldConfig),
+            alloc);
+        BMQTST_ASSERT_EQ(oldLog->open(mqbsi::Log::e_CREATE_IF_MISSING), 0);
+
+        mqbc::ClusterStateFileHeader fileHeader;
+        oldLog->write(&fileHeader,
+                      0,
+                      static_cast<int>(sizeof(mqbc::ClusterStateFileHeader)));
+
+        CslRaftLog raftLog(oldLog, poolSp.get(), alloc);
+        BMQTST_ASSERT_EQ(raftLog.open(), 0);
+        for (bsls::Types::Uint64 i = 1; i <= k_LAST_INDEX; ++i) {
+            raftLog.append(k_COMPACT_TERM,
+                           makeRecord(k_COMPACT_TERM, i, &factory, alloc));
+        }
+        BMQTST_ASSERT_EQ(raftLog.lastIndex(), k_LAST_INDEX);
+
+        bsl::shared_ptr<mqbsl::MemoryMappedOnDiskLog> newLog(
+            new (*alloc) mqbsl::MemoryMappedOnDiskLog(newConfig),
+            alloc);
+        BMQTST_ASSERT_EQ(newLog->open(mqbsi::Log::e_CREATE_IF_MISSING), 0);
+
+        bsl::shared_ptr<mqbsi::Log> replaced;
+        BMQTST_ASSERT_EQ(raftLog.rollover(&replaced,
+                                          newLog,
+                                          k_LOG_KEY,
+                                          makeSnapshotRecord(k_COMPACT_TERM,
+                                                             k_COMPACT_INDEX,
+                                                             &factory,
+                                                             alloc),
+                                          k_COMPACT_INDEX,
+                                          k_COMPACT_TERM),
+                         0);
+        replaced->close();
+
+        rolledSnapshotIndex = raftLog.snapshotIndex();
+        rolledLastIndex     = raftLog.lastIndex();
+
+        // The tail survives at its original indexes, and the index below the
+        // snapshot record still reports a term.
+        BMQTST_ASSERT_EQ(rolledSnapshotIndex, k_COMPACT_INDEX - 1);
+        BMQTST_ASSERT_EQ(rolledLastIndex, k_LAST_INDEX);
+        BMQTST_ASSERT_EQ(raftLog.term(k_COMPACT_INDEX - 1), k_COMPACT_TERM);
+        BMQTST_ASSERT_EQ(raftLog.term(k_LAST_INDEX), k_COMPACT_TERM);
+
+        newLog->close();
+    }
+
+    // Phase 2: reopen the file that was just written.
+    {
+        bsl::shared_ptr<mqbsl::MemoryMappedOnDiskLog> log(
+            new (*alloc) mqbsl::MemoryMappedOnDiskLog(newConfig),
+            alloc);
+        BMQTST_ASSERT_EQ(log->open(0), 0);
+
+        CslRaftLog raftLog(log, poolSp.get(), alloc);
+        BMQTST_ASSERT_EQ(raftLog.open(), 0);
+
+        BMQTST_ASSERT_EQ(raftLog.snapshotIndex(), rolledSnapshotIndex);
+        BMQTST_ASSERT_EQ(raftLog.lastIndex(), rolledLastIndex);
+        BMQTST_ASSERT_EQ(raftLog.term(k_COMPACT_INDEX - 1), k_COMPACT_TERM);
+        BMQTST_ASSERT_EQ(raftLog.term(k_LAST_INDEX), k_COMPACT_TERM);
+    }
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ============================================================================
@@ -328,6 +574,8 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 7: test7_rolloverMatchesOpen(); break;
+    case 6: test6_installSnapshotMatchesOpen(); break;
     case 5: test5_openPrePopulated(); break;
     case 4: test4_appendAfterTruncate(); break;
     case 3: test3_truncate(); break;

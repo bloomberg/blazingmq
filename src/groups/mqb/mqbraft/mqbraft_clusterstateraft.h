@@ -118,6 +118,11 @@ class ClusterStateRaft : public mqbi::ClusterStateUpdater {
     /// Send an election/control RaftMessage via ControlMessageTransmitter.
     void sendControlMessage(const RaftMessage& msg);
 
+    /// Acknowledge to the specified `source` a CSL snapshot whose record is
+    /// the entry at the specified `lastIncludedIndex`.
+    void sendInstallSnapshotResponse(mqbnet::ClusterNode* source,
+                                     bsls::Types::Uint64  lastIncludedIndex);
+
     /// Process an incoming binary AppendEntries event (e_RAFT_CLUSTER) from
     /// the specified 'source' node, carrying the specified 'term' read from
     /// the event's `RaftHeader`.
@@ -153,9 +158,14 @@ class ClusterStateRaft : public mqbi::ClusterStateUpdater {
 
     /// Create and open a fresh, empty CSL log file in the configured
     /// location, loading it into the specified `logOut` and its generated id
-    /// into `logIdOut`.  Return 0 on success and a non-zero value otherwise.
+    /// into `logIdOut`.  Size it at the configured `maxCSLFileSize`, or at
+    /// the specified `minSize` when that is larger: a rollover has to copy
+    /// the uncommitted tail forward, and the configured maximum is a
+    /// compaction target, not a bound on data that must be kept.  Return 0
+    /// on success and a non-zero value otherwise.
     int createNewCslLog(bsl::shared_ptr<mqbsi::Log>* logOut,
-                        mqbu::StorageKey*            logIdOut);
+                        mqbu::StorageKey*            logIdOut,
+                        bsls::Types::Uint64          minSize = 0);
 
     /// Convert an internal RaftMessage to a bmqp_ctrlmsg::RaftMessage.
     void toCtrlMsg(bmqp_ctrlmsg::RaftMessage* out,

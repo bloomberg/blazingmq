@@ -197,14 +197,6 @@ class RaftLog {
     virtual bsls::Types::Uint64 snapshotIndex() const = 0;
 
     virtual bsls::Types::Uint64 snapshotTerm() const = 0;
-
-    /// Reset the log to the specified snapshot state.  Set
-    /// `d_snapshotIndex` to `lastIncludedIndex` and `d_snapshotTerm` to
-    /// `lastIncludedTerm`, clear all in-memory log entries, and invalidate
-    /// any cached state.  Called after the application has applied a
-    /// received snapshot.
-    virtual void applySnapshot(bsls::Types::Uint64 lastIncludedIndex,
-                               bsls::Types::Uint64 lastIncludedTerm) = 0;
 };
 
 // =================
@@ -380,16 +372,34 @@ class RaftNode {
         /// advances past the boundary.
         bool d_boundaryProbeRejected;
 
-        /// True while an entry-carrying AppendEntries is in flight to this
-        /// peer with no response yet; 'sendAppendEntries' skips the peer
-        /// while set.
-        bool d_appendEntriesPending;
+        /// True while this peer's match index is unknown: right after
+        /// becoming leader, and after a rejection.  Only one entry-carrying
+        /// AppendEntries is in flight while probing; once the peer accepts
+        /// one, replication opens up to `k_MAX_IN_FLIGHT`.
+        bool d_probing;
 
-        /// Ticks since 'd_appendEntriesPending' was set.  Cleared on
-        /// 'AppendEntriesResp'; past 'd_electionTimeoutMin' the guard is
-        /// dropped and the peer retried.
-        int d_appendEntriesPendingTicks;
+        /// Number of entry-carrying AppendEntries in flight to this peer.
+        /// The peer answers each one, so this counts down on response; a
+        /// response that acks everything sent zeroes it, which also recovers
+        /// the slot of a message the peer dropped without answering.
+        int d_inFlightCount;
+
+        /// Ticks since `d_matchIndex` last advanced while sends were
+        /// outstanding.  Past `d_electionTimeoutMin` the peer is presumed to
+        /// have dropped them and is reset to probing.
+        int d_stalledTicks;
+
+        /// Highest `leaderCommit` sent to this peer.  A commit advance needs
+        /// an extra message only for peers this leaves behind; the rest learn
+        /// it from a message they are already getting.
+        bsls::Types::Uint64 d_sentCommit;
     };
+
+    /// Maximum number of entry-carrying AppendEntries in flight to one peer
+    /// while replicating.  Bounds the responses outstanding per round trip;
+    /// past it entries accumulate, so the next send carries them as one
+    /// batch and throughput stays unbounded.
+    static const int k_MAX_IN_FLIGHT = 4;
 
     bsl::unordered_map<int, PeerState> d_peerStates;
     int                                d_heartbeatTicks;
@@ -442,6 +452,12 @@ class RaftNode {
     void sendAppendEntries(RaftNodeOutput* output, int peerId);
 
     void broadcastAppendEntries(RaftNodeOutput* output);
+
+    /// Publish the (just advanced) commit index to the peers that would
+    /// otherwise not hear it, i.e. those whose `d_sentCommit` is behind it.
+    /// A peer that just received, or is about to receive, entries learns the
+    /// new commit from that message instead.
+    void notifyCommit(RaftNodeOutput* output);
 
     void advanceCommitIndex(RaftNodeOutput* output);
 
