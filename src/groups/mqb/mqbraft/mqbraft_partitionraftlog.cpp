@@ -635,15 +635,6 @@ void PartitionRaftLog::applyCommittedEntryAsReplica(bsls::Types::Uint64 index,
     d_fileStore_p->onRecordCommittedReplica(data, handle);
 }
 
-void PartitionRaftLog::applySnapshot(bsls::Types::Uint64 lastIncludedIndex,
-                                     bsls::Types::Uint64 lastIncludedTerm)
-{
-    d_snapshotIndex = lastIncludedIndex;
-    d_snapshotTerm  = lastIncludedTerm;
-    d_index.clear();
-    clearCache();
-}
-
 // ACCESSORS
 bsls::Types::Uint64 PartitionRaftLog::lastIndex() const
 {

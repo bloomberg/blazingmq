@@ -277,16 +277,19 @@ void RaftNode::becomeLeader(RaftNodeOutput* output)
             continue;
         }
         PeerState ps;
-        ps.d_nextIndex                 = nextIdx;
-        ps.d_matchIndex                = 0;
-        ps.d_snapshotPending           = false;
-        ps.d_snapshotPendingTicks      = 0;
-        ps.d_snapshotPendingIndex      = 0;
-        ps.d_snapshotPendingTerm       = 0;
-        ps.d_boundaryProbeRejected     = false;
-        ps.d_appendEntriesPending      = false;
-        ps.d_appendEntriesPendingTicks = 0;
-        d_peerStates[*it]              = ps;
+        ps.d_nextIndex             = nextIdx;
+        ps.d_matchIndex            = 0;
+        ps.d_snapshotPending       = false;
+        ps.d_snapshotPendingTicks  = 0;
+        ps.d_snapshotPendingIndex  = 0;
+        ps.d_snapshotPendingTerm   = 0;
+        ps.d_boundaryProbeRejected = false;
+        // The peer's match index is unknown until it accepts something.
+        ps.d_probing       = true;
+        ps.d_inFlightCount = 0;
+        ps.d_stalledTicks  = 0;
+        ps.d_sentCommit    = 0;
+        d_peerStates[*it]  = ps;
     }
 
     d_heartbeatTicks = 0;
@@ -559,24 +562,46 @@ void RaftNode::handleAppendEntriesResp(RaftNodeOutput*    output,
         return;
     }
 
-    // Whatever the outcome, the AppendEntries this responds to is no longer
-    // in flight: clear the guard so a send below (the reject-path retry, or
-    // a commit-triggered broadcast from 'advanceCommitIndex') is not skipped.
-    it->second.d_appendEntriesPending      = false;
-    it->second.d_appendEntriesPendingTicks = 0;
-
     if (msg.d_success) {
+        // Free the window slot.  A response acking everything sent zeroes the
+        // count outright, which also recovers the slots of any messages the
+        // peer dropped without answering (it does that while receiving a
+        // snapshot, or once its partition has closed).
+        if (msg.d_matchIndex + 1 >= it->second.d_nextIndex) {
+            it->second.d_inFlightCount = 0;
+        }
+        else if (it->second.d_inFlightCount > 0) {
+            it->second.d_inFlightCount--;
+        }
+
         if (msg.d_matchIndex > it->second.d_matchIndex) {
             it->second.d_matchIndex = msg.d_matchIndex;
-            it->second.d_nextIndex  = msg.d_matchIndex + 1;
+            it->second.d_stalledTicks = 0;
+
+            // Only ever move 'nextIndex' forward here: sends advance it
+            // optimistically, so a response to an earlier send reports a
+            // 'matchIndex' behind what has already gone out.
+            if (msg.d_matchIndex + 1 > it->second.d_nextIndex) {
+                it->second.d_nextIndex = msg.d_matchIndex + 1;
+            }
         }
 
         // The peer accepted (an optimistic boundary probe, or normal
-        // replication): it is at/past the snapshot boundary, so clear any
-        // sticky "probe rejected" state.
+        // replication): its match index is now known, so replication can
+        // pipeline, and it is at/past the snapshot boundary.
+        it->second.d_probing               = false;
         it->second.d_boundaryProbeRejected = false;
 
         advanceCommitIndex(output);
+
+        // Entries appended while this response was in flight are still owed
+        // to the peer, and freeing a window slot above is what makes room for
+        // them.  'advanceCommitIndex' sends only when this response moved the
+        // commit index, so without this the backlog would wait for the next
+        // heartbeat whenever another peer already supplied the quorum.
+        if (it->second.d_nextIndex <= d_log_p->lastIndex()) {
+            sendAppendEntries(output, msg.d_sourceNodeId);
+        }
 
         // Leadership transfer: if target is caught up, send TimeoutNow
         if (d_transferTargetId == msg.d_sourceNodeId &&
@@ -591,13 +616,39 @@ void RaftNode::handleAppendEntriesResp(RaftNodeOutput*    output,
         }
     }
     else {
+        // With several sends outstanding, one divergence draws one rejection
+        // per send.  Only the first is news; the rest refer to a request the
+        // retry below already supersedes, and acting on them would walk
+        // 'nextIndex' further back on every one.  While probing, the only
+        // live rejection is the one for the single request in flight.
+        if (msg.d_rejectedIndex <= it->second.d_matchIndex ||
+            (it->second.d_probing &&
+             msg.d_rejectedIndex != it->second.d_nextIndex - 1)) {
+            BALL_LOG_INFO << "[partition " << d_config.d_partitionId
+                          << "] Node " << d_config.d_selfId << " [term "
+                          << d_currentTerm << "] ignoring stale REJECT from "
+                          << "peer " << msg.d_sourceNodeId
+                          << " (rejectedIndex=" << msg.d_rejectedIndex
+                          << ", matchIndex=" << it->second.d_matchIndex
+                          << ", nextIndex=" << it->second.d_nextIndex << ")";
+            return;  // RETURN
+        }
+
         // Decrement nextIndex and retry
         BALL_LOG_INFO << "[partition " << d_config.d_partitionId << "] Node "
                       << d_config.d_selfId << " [term " << d_currentTerm
                       << "] LEADER got REJECT from peer " << msg.d_sourceNodeId
                       << " (peerMatchIndex=" << msg.d_matchIndex
+                      << ", rejectedIndex=" << msg.d_rejectedIndex
                       << ", nextIndex(before)=" << it->second.d_nextIndex
                       << "); backing off and retrying";
+
+        // Everything optimistically sent past the divergence is void.  Go
+        // back to probing so the retry below is the only message in flight
+        // and its response is unambiguous.
+        it->second.d_probing       = true;
+        it->second.d_inFlightCount = 0;
+        it->second.d_stalledTicks  = 0;
 
         // If the peer's reported lastIndex is below the snapshot boundary, it
         // genuinely lacks 'snapshotIndex' -- an optimistic boundary probe
@@ -740,6 +791,21 @@ void RaftNode::broadcastAppendEntries(RaftNodeOutput* output)
     }
 }
 
+void RaftNode::notifyCommit(RaftNodeOutput* output)
+{
+    BSLS_ASSERT_SAFE(output);
+    BSLS_ASSERT_SAFE(d_state == RaftState::e_LEADER);
+
+    for (bsl::unordered_map<int, PeerState>::const_iterator it =
+             d_peerStates.begin();
+         it != d_peerStates.end();
+         ++it) {
+        if (it->second.d_sentCommit < d_commitIndex) {
+            sendAppendEntries(output, it->first);
+        }
+    }
+}
+
 void RaftNode::sendAppendEntries(RaftNodeOutput* output, int peerId)
 {
     BSLS_ASSERT_SAFE(output);
@@ -751,10 +817,19 @@ void RaftNode::sendAppendEntries(RaftNodeOutput* output, int peerId)
         return;
     }
 
-    // Skip a peer with a send already in flight; 'tick()' clears the guard on
-    // timeout.
-    if (it->second.d_snapshotPending || it->second.d_appendEntriesPending) {
-        return;
+    // A snapshot in flight supersedes replication entirely; 'tick()' clears it
+    // on timeout.
+    if (it->second.d_snapshotPending) {
+        return;  // RETURN
+    }
+
+    // While probing, the peer's match index is unknown, so a second send
+    // cannot be built on the first: allow one at a time.  While replicating,
+    // send until the window is full -- past that entries accumulate and the
+    // next send carries them as one batch.
+    const int maxInFlight = it->second.d_probing ? 1 : k_MAX_IN_FLIGHT;
+    if (it->second.d_inFlightCount >= maxInFlight) {
+        return;  // RETURN
     }
 
     bsls::Types::Uint64 nextIdx       = it->second.d_nextIndex;
@@ -783,8 +858,8 @@ void RaftNode::sendAppendEntries(RaftNodeOutput* output, int peerId)
             }
 
             output->d_messages.push_back(probe);
-            it->second.d_appendEntriesPending      = true;
-            it->second.d_appendEntriesPendingTicks = 0;
+            it->second.d_inFlightCount++;
+            it->second.d_sentCommit = probe.d_leaderCommit;
             return;
         }
 
@@ -825,11 +900,17 @@ void RaftNode::sendAppendEntries(RaftNodeOutput* output, int peerId)
     }
 
     output->d_messages.push_back(msg);
+    it->second.d_sentCommit = msg.d_leaderCommit;
 
-    // An empty (heartbeat) AppendEntries does not set the in-flight guard.
+    // An empty (heartbeat) AppendEntries costs no window slot and moves
+    // nothing, so it neither counts as in flight nor advances 'nextIndex'.
     if (!msg.d_entries.empty()) {
-        it->second.d_appendEntriesPending      = true;
-        it->second.d_appendEntriesPendingTicks = 0;
+        it->second.d_inFlightCount++;
+
+        // Advance past what was just sent, so a following 'sendAppendEntries'
+        // builds the next non-overlapping message instead of resending these
+        // entries.  A rejection recomputes 'nextIndex' from 'matchIndex'.
+        it->second.d_nextIndex = msg.d_prevLogIndex + msg.d_entries.size() + 1;
     }
 }
 
@@ -876,11 +957,12 @@ void RaftNode::advanceCommitIndex(RaftNodeOutput* output)
                 output->d_committed.push_back(committed[i]);
             }
 
-            // Immediately broadcast AppendEntries to followers to notify them
-            // of the new commitIndex, minimizing the window where they're
-            // unaware of committed entries.
+            // Tell followers about the new commit index right away, rather
+            // than at the next heartbeat: a replica may not deliver a PUSH
+            // until it has applied the entry carrying its payload.  Only the
+            // peers left behind by this advance need a message of their own.
             if (d_config.d_broadcastHeartbeatOnCommit) {
-                broadcastAppendEntries(output);
+                notifyCommit(output);
             }
         }
     }
@@ -911,16 +993,21 @@ void RaftNode::tick(RaftNodeOutput* output)
                 }
             }
 
-            if (it->second.d_appendEntriesPending) {
-                if (++it->second.d_appendEntriesPendingTicks >=
+            // Sends are outstanding but 'matchIndex' has not moved: presume
+            // they were dropped.  Reset to probing, which both frees the
+            // window and makes the next retry the only message in flight.
+            if (it->second.d_inFlightCount > 0) {
+                if (++it->second.d_stalledTicks >=
                     d_config.d_electionTimeoutMin) {
                     BALL_LOG_INFO
                         << "[partition " << d_config.d_partitionId << "] Node "
                         << d_config.d_selfId
                         << " timed out waiting for AppendEntriesResp from "
                         << it->first << "; retrying";
-                    it->second.d_appendEntriesPending      = false;
-                    it->second.d_appendEntriesPendingTicks = 0;
+                    it->second.d_probing       = true;
+                    it->second.d_inFlightCount = 0;
+                    it->second.d_stalledTicks  = 0;
+                    it->second.d_nextIndex     = it->second.d_matchIndex + 1;
                 }
             }
         }
