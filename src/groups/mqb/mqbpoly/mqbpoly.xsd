@@ -13,7 +13,7 @@
       </documentation>
     </annotation>
     <sequence>
-      <element name='roles'   type='tns:Role' maxOccurrs='unbounded' />
+      <element name='roles'   type='tns:Role' maxOccurs='unbounded' />
     </sequence>
   </complexType>
 
@@ -28,7 +28,7 @@
     </annotation>
     <sequence>
       <element name='id' type='tns:Identity'/>
-      <element name='permissions'   type='tns:Permission' maxOccurrs='unbounded' />
+      <element name='permissions'   type='tns:Permission' maxOccurs='unbounded' />
     </sequence>
   </complexType>
 
