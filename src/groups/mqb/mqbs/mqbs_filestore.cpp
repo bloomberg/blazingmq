@@ -8171,10 +8171,10 @@ void FileStore::onRecordCommittedReplica(const bdlbb::Blob&           data,
             // receipt gate opens.  Notify the queue so any PUSH that arrived
             // before this commit -- and is parked in the relay push stream
             // awaiting the receipt -- is delivered now.  Mirrors
-            // 'onRecordCommittedPrimary'.
-            mqbi::Queue* queue = sit->second->queue();
-            if (queue) {
-                queue->onReplicatedBatch();
+            // 'onRecordCommittedPrimary', including running once per commit
+            // batch rather than per entry.
+            if (sit->second->queue()) {
+                d_replicationNotifications.insert(msgRec->queueKey());
             }
         }
         else {
@@ -8477,8 +8477,12 @@ void FileStore::onRecordCommittedPrimary(PendingWrite& pw)
         if (!pw.d_attributes.hasReceipt()) {
             queue->onReceipt(pw.d_guid, pw.d_attributes.queueHandle());
         }
-        // TODO: Raft batching
-        queue->onReplicatedBatch();
+
+        // 'onReplicatedBatch' re-drives delivery, walking every app of the
+        // queue, so it runs once for the whole commit batch rather than per
+        // entry: 'PartitionRaft::dispatchOutput' drains this at the end of
+        // its apply loop.
+        d_replicationNotifications.insert(pw.d_queueKey);
     }
     else {
         BALL_LOG_INFO << "Unknown queue key in committed message "

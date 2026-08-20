@@ -838,19 +838,25 @@ void ClusterStateRaft::appendEntries(const bdlbb::Blob&   event,
     internalMsg.d_prevLogTerm  = aeh->prevLogTerm();
     internalMsg.d_leaderCommit = aeh->leaderCommit();
 
-    // Parse entry blobs after RaftAppendEntriesHeader
-    int offset = sizeof(bmqp::EventHeader) + sizeof(bmqp::RaftHeader) +
-                 sizeof(bmqp::RaftAppendEntriesHeader);
-    int          remaining     = event.length() - offset;
+    // Parse entry blobs after RaftAppendEntriesHeader.  'skip' hops from one
+    // record to the next, starting past the headers: resolving each record by
+    // its offset from the start of 'event' would rescan the buffer list every
+    // time, which is quadratic in the entries one event carries.
+    int skip = sizeof(bmqp::EventHeader) + sizeof(bmqp::RaftHeader) +
+               sizeof(bmqp::RaftAppendEntriesHeader);
+    int          remaining     = event.length() - skip;
     unsigned int entryCount    = aeh->entryCount();
     int          incomingBytes = 0;
 
+    bmqu::BlobPosition recPos;  // start of 'event'
+
     for (unsigned int i = 0; i < entryCount && remaining > 0; ++i) {
-        // Resolve the absolute byte offset of this entry across blob buffers.
-        bmqu::BlobPosition recPos;
-        if (0 != bmqu::BlobUtil::findOffsetSafe(&recPos, event, offset)) {
+        bmqu::BlobPosition nextPos;
+        if (0 !=
+            bmqu::BlobUtil::findOffsetSafe(&nextPos, event, recPos, skip)) {
             break;
         }
+        recPos = nextPos;
 
         // Each entry is a CSL record blob; read its header to get size
         bmqu::BlobObjectProxy<mqbc::ClusterStateRecordHeader> recHeader(
@@ -914,7 +920,7 @@ void ClusterStateRaft::appendEntries(const bdlbb::Blob&   event,
             internalMsg.d_prevLogIndex + 1 + internalMsg.d_entries.size(),
             entryBlob));
 
-        offset += recSize;
+        skip = recSize;
         remaining -= recSize;
         incomingBytes += recSize;
     }
