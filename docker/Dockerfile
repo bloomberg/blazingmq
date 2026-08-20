@@ -1,4 +1,6 @@
-FROM docker.io/ubuntu:24.04 AS builder
+ARG BASE_IMAGE=docker.io/ubuntu:24.04
+
+FROM ${BASE_IMAGE} AS builder
 
 # Set up CA certificates first before installing other dependencies
 RUN apt-get update && \
@@ -48,7 +50,7 @@ RUN bin/build_deps.sh \
     && mv /bmq/bin/bmqtool.tsk /bmq/bin/bmqtool \
     && rm -rf /workspace
 
-FROM docker.io/ubuntu:24.04
+FROM ${BASE_IMAGE}
 
 COPY --from=builder /bmq /usr/local
 
