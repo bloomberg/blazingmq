@@ -342,8 +342,7 @@ void RelayQueueEngine::onHandleConfigured(
     // lifetime) to reach the queue, and forward 'self' as-is instead of
     // re-deriving it from 'd_self'.  'onHandleConfiguredDispatched' performs
     // the liveness check, once truly running on the queue's dispatcher
-    // thread.  This also guarantees 'context' -- whose destructor invokes
-    // the completion callback -- is always destroyed on that same thread.
+    // thread, and invokes the completion callback of 'context' there.
 
     handle->queue()->dispatcher()->execute(
         bdlf::BindUtil::bind(&RelayQueueEngine::onHandleConfiguredDispatched,
@@ -357,8 +356,7 @@ void RelayQueueEngine::onHandleConfigured(
         handle->queue());
 
     // 'onHandleConfiguredDispatched' is now responsible for calling the
-    // callback: either 'ClusterQueueHelper::onHandleConfigured' or
-    // 'ClientSession::onHandleConfigured'.  Neither one requires queue thread.
+    // callback, on the queue's dispatcher thread.
 }
 
 void RelayQueueEngine::onHandleConfiguredDispatched(
@@ -1303,10 +1301,10 @@ void RelayQueueEngine::configureHandle(
     BSLS_ASSERT_SAFE(handle);
 
     // The 'context' will mirror streamParameters when calling 'configuredCb'
-    bsl::shared_ptr<ConfigureContext> context(
-        new (*d_allocator_p)
-            ConfigureContext(configuredCb, streamParameters, d_allocator_p),
-        d_allocator_p);
+    bsl::shared_ptr<ConfigureContext> context =
+        bsl::allocate_shared<ConfigureContext>(d_allocator_p,
+                                               configuredCb,
+                                               streamParameters);
 
     // Verify handle exists
     if (!d_queueState_p->handleCatalog().hasHandle(handle)) {

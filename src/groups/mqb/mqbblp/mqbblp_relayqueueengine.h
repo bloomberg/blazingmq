@@ -164,10 +164,13 @@ class RelayQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     /// Has to have access to private member variables.
     friend class AutoPurger;
 
-    /// This struct serves as multiplexor when sending configure request(s)
-    /// (plural in the case of wildcard) to upstream.  Once all responses
-    /// are collected (there are no more references), it calls the specified
-    /// callback
+    /// @brief State of one `configure-stream` request sent upstream, along
+    /// with the callback notifying the requester of its outcome.
+    ///
+    /// A context is associated with exactly one upstream request.  Its
+    /// callback is invoked once, on the queue's dispatcher thread, by
+    /// `onHandleConfiguredDispatched`; the destructor invokes it if it has
+    /// not been invoked by then.
     struct ConfigureContext {
         // TRAITS
         BSLMF_NESTED_TRAIT_DECLARATION(ConfigureContext,
@@ -196,6 +199,11 @@ class RelayQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
 
         void setStatus(const bmqp_ctrlmsg::Status& status);
 
+        /// @brief Invoke the completion callback with the current status and
+        /// stream parameters, then release it.
+        ///
+        /// This operation is idempotent: subsequent invocations have no
+        /// effect.
         void invokeCallback();
 
         void resetCallback();
@@ -251,14 +259,18 @@ class RelayQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
   private:
     // PRIVATE MANIPULATORS
 
-    /// Schedule processing of the stream configuration response from
-    /// upstream of the specified `handle` with the specified
-    /// `downStreamParameters` per the specified `status`.  The specified
-    /// `upStreamParameters` is the upstream view of the stream parameters
-    /// of this node.  When the specified `context` reference count drops to
-    /// zero, invoke associated callback. Note that the specified `self`
-    /// must be locked to ensure the engine is still alive at the time the
-    /// callback is invoked.
+    /// @brief Schedule processing of a `configure-stream` response from
+    /// upstream on the queue's dispatcher thread.
+    ///
+    /// @param self Weak reference to this engine, checked for liveness once
+    ///             running on the queue's dispatcher thread.
+    /// @param status Outcome reported by upstream.
+    /// @param upStreamParameters Upstream view of this node's stream
+    ///                           parameters.
+    /// @param handle The handle being configured.
+    /// @param downStreamParameters Stream parameters advertised downstream.
+    /// @param context State of the request; its completion callback is
+    ///                invoked by `onHandleConfiguredDispatched`.
     ///
     /// THREAD: This method is called from any thread.
     void onHandleConfigured(
@@ -269,13 +281,21 @@ class RelayQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
         const bmqp_ctrlmsg::StreamParameters&    downStreamParameters,
         const bsl::shared_ptr<ConfigureContext>& context);
 
-    /// Process stream configuration response from upstream of the specified
-    /// `handle` with the specified `downStreamParameters` per the specified
-    /// `status`.  The specified `upStreamParameters` is the upstream view
-    /// of the stream parameters of this node.  When the specified `context`
-    /// reference count drops to zero, invoke associated callback.  Note
-    /// that the specified `self` must be locked to ensure the engine is
-    /// still alive at the time the callback is invoked.
+    /// @brief Process a `configure-stream` response from upstream and
+    /// notify the requester of the outcome.
+    ///
+    /// Apply the response to the routing of the specified `handle`, then
+    /// invoke the completion callback of the specified `context` on every
+    /// exit path, so that it always runs on this thread.
+    ///
+    /// @param self Weak reference to this engine; nothing but the callback
+    ///             is performed if the engine is no longer alive.
+    /// @param status Outcome reported by upstream.
+    /// @param upStreamParameters Upstream view of this node's stream
+    ///                           parameters.
+    /// @param handle The handle being configured.
+    /// @param downStreamParameters Stream parameters advertised downstream.
+    /// @param context State of the request, holding the completion callback.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
     void onHandleConfiguredDispatched(
