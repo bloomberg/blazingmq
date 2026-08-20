@@ -93,6 +93,9 @@ script with the CODEGEN enviornment variable set to the internal codegen tool." 
     mqbact)
       codegen ./src/groups/mqb/mqbact mqbact.xsd mqbact actions
       ;;
+    mqbpoly)
+      codegen ./src/groups/mqb/mqbpoly mqbpoly.xsd mqbpoly policies
+      ;;
     *)
       usage
       exit 1

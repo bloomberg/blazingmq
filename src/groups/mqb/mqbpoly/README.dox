@@ -1,0 +1,9 @@
+/**
+@dir mqbpoly
+
+@brief The `MQBPOLY` (BlazingMQ Policies) package provides types representing
+simple policy descriptions.
+
+The `mqbpoly` package provides value-semantic types representing the policies that
+can be configured for several roles, which an authorizer can use in its implementation.
+*/
