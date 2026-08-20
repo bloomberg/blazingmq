@@ -33,7 +33,7 @@ COPY CMakeLists.txt srcs/bmq/CMakeLists.txt
 COPY src srcs/bmq/src
 COPY etc srcs/bmq/etc
 
-RUN bin/build_deps.sh \
+RUN GIT_SSL_NO_VERIFY=true bin/build_deps.sh \
     && cd srcs/bmq  \
     && cmake -S . -B cmake.bld/Linux -G Ninja \
         -DCMAKE_TOOLCHAIN_FILE=/workspace/srcs/bde-tools/BdeBuildSystem/toolchains/linux/gcc-default.cmake \
