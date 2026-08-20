@@ -1105,13 +1105,13 @@ struct TestHelper {
                 .choice()
                 .makePrimaryStateResponse();
 
-        bmqp_ctrlmsg::PartitionSequenceNumber PSN;
-        PSN.sequenceNumber() = 1U;
-        PSN.primaryLeaseId() = 1U;
+        bmqp_ctrlmsg::PartitionSequenceNumber psn;
+        psn.sequenceNumber() = 1U;
+        psn.primaryLeaseId() = 1U;
 
         primaryStateResponse.partitionId()          = partitionId;
         primaryStateResponse.primaryLeaseId()       = 1U;
-        primaryStateResponse.latestSequenceNumber() = PSN;
+        primaryStateResponse.latestSequenceNumber() = psn;
 
         d_cluster_mp->requestManager().processResponse(pstMessage);
 

@@ -27,6 +27,7 @@ configured node is taken down first so that its identity can be claimed.
 import os
 import re
 import time
+from typing import Optional, Tuple
 
 import pytest
 
@@ -37,17 +38,22 @@ from blazingmq.dev.it.fixtures import (
 )
 from blazingmq.dev.it.process.admin import AdminClient
 from blazingmq.dev.it.process.rawclient import RawClient
+from blazingmq.dev.it.util import wait_until
 
-pytestmark = order(99)
+pytestmark = order(6)
 
 PARTITION_ID = 0
-NEGOTIATION_ATTEMPTS = 30
+PRIMARY_FAILOVER_SECONDS = 10
+NEGOTIATION_TIMEOUT_SECONDS = 10
+NEGOTIATION_INTERVAL_SECONDS = 0.5
 
 LOG_NAME = {"E_PUSH": "Push", "E_DROP": "Drop"}
 DATA_TYPES = ["E_PUSH", "E_DROP"]
 
 
-def _partition_primary(admin: AdminClient, cluster_name: str, partition_id: int):
+def _partition_primary(
+    admin: AdminClient, cluster_name: str, partition_id: int
+) -> Optional[Tuple[str, int]]:
     """
     Return the (name, id) of the primary of 'partition_id', or None if the
     partition has no primary yet.
@@ -66,20 +72,23 @@ def _partition_primary(admin: AdminClient, cluster_name: str, partition_id: int)
 
 
 def _wait_for_primary(
-    admin: AdminClient, cluster_name: str, partition_id: int, exclude_node_id=None
-):
+    admin: AdminClient,
+    cluster_name: str,
+    partition_id: int,
+    exclude_node_id: Optional[int] = None,
+) -> None:
     """
     Wait for 'partition_id' to have a primary other than the optionally
-    specified 'exclude_node_id', and return it as a (name, id) tuple.
+    specified 'exclude_node_id'.
     """
 
-    for _ in range(30):
+    def _has_usable_primary() -> bool:
         primary = _partition_primary(admin, cluster_name, partition_id)
-        if primary is not None and primary[1] != exclude_node_id:
-            return primary
-        time.sleep(1)
+        return primary is not None and primary[1] != exclude_node_id
 
-    raise AssertionError(f"partition {partition_id} never got a usable primary")
+    assert wait_until(_has_usable_primary, PRIMARY_FAILOVER_SECONDS), (
+        f"partition {partition_id} never got a usable primary"
+    )
 
 
 def _prepare_impersonation(cluster: Cluster):
@@ -126,7 +135,9 @@ def _connect_as_cluster_node(host, port, cluster_name, node_name, node_id):
 
     last_result = None
 
-    for _ in range(NEGOTIATION_ATTEMPTS):
+    attempts = int(NEGOTIATION_TIMEOUT_SECONDS / NEGOTIATION_INTERVAL_SECONDS)
+
+    for _ in range(attempts):
         client = RawClient(verbose=True)
         client.open_channel(host, port)
 
@@ -147,7 +158,7 @@ def _connect_as_cluster_node(host, port, cluster_name, node_name, node_id):
 
         # The victim has not dropped the impersonated node's channel yet.
         client.stop()
-        time.sleep(1)
+        time.sleep(NEGOTIATION_INTERVAL_SECONDS)
 
     raise AssertionError(f"cluster-peer negotiation never succeeded: {last_result}")
 
