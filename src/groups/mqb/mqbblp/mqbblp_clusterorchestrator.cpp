@@ -2185,12 +2185,18 @@ void ClusterOrchestrator::onPartitionRaftLeadershipDispatched(
 
     if (mqbraft::RaftNode::k_INVALID_NODE_ID == leaderNodeId) {
         // No leader for this partition: close the gate until one emerges.
-        BALL_LOG_INFO << d_clusterData_p->identity().description()
-                      << " Partition [" << partitionId
-                      << "]: Raft reports no leader; marking primary PASSIVE.";
-        d_clusterState_p->setPartitionPrimaryStatus(
-            partitionId,
-            bmqp_ctrlmsg::PrimaryStatus::E_PASSIVE);
+        // With no primary recorded there is none to demote, and this fires on
+        // every election timeout, so say nothing rather than logging an error
+        // per partition per timeout.
+        if (d_clusterState_p->partition(partitionId).primaryNodeSession()) {
+            BALL_LOG_INFO << d_clusterData_p->identity().description()
+                          << " Partition [" << partitionId
+                          << "]: Raft reports no leader; marking primary "
+                          << "PASSIVE.";
+            d_clusterState_p->setPartitionPrimaryStatus(
+                partitionId,
+                bmqp_ctrlmsg::PrimaryStatus::E_PASSIVE);
+        }
         return;  // RETURN
     }
 

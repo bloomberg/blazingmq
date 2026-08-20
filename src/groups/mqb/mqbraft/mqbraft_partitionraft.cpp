@@ -86,13 +86,12 @@ RaftNodeConfig makeRaftConfig(mqbc::ClusterData& clusterData,
     return config;
 }
 
-int computeEntrySize(const bdlbb::Blob& blob, int offset)
+/// Every lookup here is relative to the specified `pos`, the record's own
+/// position: resolving from the start of `blob` instead would rescan the
+/// buffer list from the beginning, making a walk over the entries of one
+/// event quadratic in their count.
+int computeEntrySize(const bdlbb::Blob& blob, const bmqu::BlobPosition& pos)
 {
-    bmqu::BlobPosition pos;
-    if (0 != bmqu::BlobUtil::findOffsetSafe(&pos, blob, offset)) {
-        return -1;
-    }
-
     bmqu::BlobObjectProxy<mqbs::RecordHeader> rh(&blob, pos, true, false);
     if (!rh.isSet()) {
         return -1;
@@ -103,7 +102,8 @@ int computeEntrySize(const bdlbb::Blob& blob, int offset)
         bmqu::BlobPosition dhPos;
         if (0 != bmqu::BlobUtil::findOffsetSafe(&dhPos,
                                                 blob,
-                                                offset + k_JREC_SIZE)) {
+                                                pos,
+                                                k_JREC_SIZE)) {
             return -1;
         }
         bmqu::BlobObjectProxy<mqbs::DataHeader> dh(
@@ -137,7 +137,8 @@ int computeEntrySize(const bdlbb::Blob& blob, int offset)
         bmqu::BlobPosition qrhPos;
         if (0 != bmqu::BlobUtil::findOffsetSafe(&qrhPos,
                                                 blob,
-                                                offset + k_JREC_SIZE)) {
+                                                pos,
+                                                k_JREC_SIZE)) {
             return k_JREC_SIZE;
         }
         bmqu::BlobObjectProxy<mqbs::QueueRecordHeader> qrh(&blob,
@@ -302,6 +303,12 @@ void PartitionRaft::dispatchOutput(RaftNodeOutput* output)
         // the new file set first -- the order replicas apply them in.
         d_raftLog_mp->flushDeferredRemovals();
     }
+
+    // Re-drive delivery once for the whole batch applied above.  Each
+    // committed message noted its queue rather than notifying it, so a queue
+    // that took several entries is walked once, and one deleted later in the
+    // same batch is not walked at all.
+    d_fileStore_sp->notifyQueuesOnReplicatedBatch();
 
     // Note on leadership changes: becoming leader needs no action here.  The
     // become-leader sync point is NOT written here -- it is the first journal
@@ -1625,22 +1632,30 @@ void PartitionRaft::appendEntries(const bdlbb::Blob&   event,
     internalMsg.d_prevLogTerm  = aeh->prevLogTerm();
     internalMsg.d_leaderCommit = aeh->leaderCommit();
 
-    int offset = sizeof(bmqp::EventHeader) + sizeof(bmqp::RaftHeader) +
-                 sizeof(bmqp::RaftAppendEntriesHeader);
-    int          remaining  = event.length() - offset;
+    // 'skip' hops from one record to the next, starting past the headers.
+    // Resolving each record by its offset from the start of 'event' would
+    // rescan the buffer list every time, and an event carrying a peer's
+    // backlog holds a buffer or two per entry.
+    int skip = sizeof(bmqp::EventHeader) + sizeof(bmqp::RaftHeader) +
+               sizeof(bmqp::RaftAppendEntriesHeader);
+    int          remaining  = event.length() - skip;
     unsigned int entryCount = aeh->entryCount();
 
+    bmqu::BlobPosition recPos;  // start of 'event'
+
     for (unsigned int i = 0; i < entryCount && remaining >= k_JREC_SIZE; ++i) {
-        int entrySize = computeEntrySize(event, offset);
-        if (entrySize <= 0 || entrySize > remaining) {
-            BALL_LOG_ERROR << "Partition [" << d_partitionId
-                           << "] bad entry size " << entrySize << " at offset "
-                           << offset;
+        bmqu::BlobPosition nextPos;
+        if (0 !=
+            bmqu::BlobUtil::findOffsetSafe(&nextPos, event, recPos, skip)) {
             break;
         }
+        recPos = nextPos;
 
-        bmqu::BlobPosition recPos;
-        if (0 != bmqu::BlobUtil::findOffsetSafe(&recPos, event, offset)) {
+        int entrySize = computeEntrySize(event, recPos);
+        if (entrySize <= 0 || entrySize > remaining) {
+            BALL_LOG_ERROR << "Partition [" << d_partitionId
+                           << "] bad entry size " << entrySize << " for entry "
+                           << i;
             break;
         }
 
@@ -1664,7 +1679,7 @@ void PartitionRaft::appendEntries(const bdlbb::Blob&   event,
                      internalMsg.d_prevLogIndex + 1 + i,
                      entryBlob));
 
-        offset += entrySize;
+        skip = entrySize;
         remaining -= entrySize;
     }
 

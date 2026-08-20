@@ -616,25 +616,10 @@ void RaftNode::handleAppendEntriesResp(RaftNodeOutput*    output,
         }
     }
     else {
-        // With several sends outstanding, one divergence draws one rejection
-        // per send.  Only the first is news; the rest refer to a request the
-        // retry below already supersedes, and acting on them would walk
-        // 'nextIndex' further back on every one.  While probing, the only
-        // live rejection is the one for the single request in flight.
-        if (msg.d_rejectedIndex <= it->second.d_matchIndex ||
-            (it->second.d_probing &&
-             msg.d_rejectedIndex != it->second.d_nextIndex - 1)) {
-            BALL_LOG_INFO << "[partition " << d_config.d_partitionId
-                          << "] Node " << d_config.d_selfId << " [term "
-                          << d_currentTerm << "] ignoring stale REJECT from "
-                          << "peer " << msg.d_sourceNodeId
-                          << " (rejectedIndex=" << msg.d_rejectedIndex
-                          << ", matchIndex=" << it->second.d_matchIndex
-                          << ", nextIndex=" << it->second.d_nextIndex << ")";
-            return;  // RETURN
-        }
-
-        // Decrement nextIndex and retry
+        // Every rejection is acted on, including the several that one
+        // divergence draws when more than one send was outstanding: the
+        // backoff below reads the peer's own last index, so they all land on
+        // the same 'nextIndex'.
         BALL_LOG_INFO << "[partition " << d_config.d_partitionId << "] Node "
                       << d_config.d_selfId << " [term " << d_currentTerm
                       << "] LEADER got REJECT from peer " << msg.d_sourceNodeId
@@ -659,8 +644,11 @@ void RaftNode::handleAppendEntriesResp(RaftNodeOutput*    output,
             it->second.d_boundaryProbeRejected = true;
         }
 
-        if (msg.d_matchIndex > 0 &&
-            msg.d_matchIndex < it->second.d_nextIndex) {
+        // Resume from the peer's own last index rather than stepping down one
+        // at a time.  A peer whose files were wiped reports 0 and is served
+        // its whole log on the next send, and repeating this for a second
+        // rejection of the same divergence computes the same 'nextIndex'.
+        if (msg.d_matchIndex < it->second.d_nextIndex) {
             it->second.d_nextIndex = msg.d_matchIndex + 1;
         }
         else if (it->second.d_nextIndex > 1) {

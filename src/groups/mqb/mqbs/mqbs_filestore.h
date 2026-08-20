@@ -1309,10 +1309,9 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// undefined unless this cluster node is the primary for this partition.
     void flushStorage() BSLS_KEYWORD_OVERRIDE;
 
-    /// Flush weak consistency queues that have replicated messages since the
-    /// last call.  This method has no effect if `d_storageEventBuilder` is not
-    /// empty, and must only be called after `flushStorage`.  Behaviour is
-    /// undefined unless this cluster node is the primary for this partition.
+    /// Re-drive delivery on the queues that have taken replicated messages
+    /// since the last call.  In legacy mode it notifies weak consistency
+    /// queues on the primary, and must only be called after `flushStorage`.
     void notifyQueuesOnReplicatedBatch();
 
     /// mqbs::FileStore specific MANIPULATORS

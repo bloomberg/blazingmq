@@ -812,7 +812,6 @@ static void test14_appendEntriesBatching()
     BMQTST_ASSERT_GE(leader, 0);
 
     const int peer  = (leader + 1) % 3;
-    const int other = (leader + 2) % 3;
 
     // The first proposal: one AppendEntries per peer, one entry each.
     RaftNodeOutput first(&alloc);
@@ -970,12 +969,12 @@ static void test15_backlogSentWhenCommitStalls()
     BMQTST_ASSERT_EQ(sentToOther, 1u);
 }
 
-static void test16_staleRejectionIgnored()
-// STALE REJECTION
+static void test16_rejectionUsesPeerLastIndex()
+// REJECTION USES THE PEER'S LAST INDEX
 //
-// One divergence draws one rejection per outstanding send.  Only the first
-// is news; acting on the rest would walk 'nextIndex' back further on every
-// one.
+// A rejection carries the peer's own last index, so the leader resumes from
+// there in one step rather than walking back one index per round trip.  That
+// also makes the several rejections one divergence draws idempotent.
 {
     bmqtst::TestHelper::printTestName("STALE REJECTION");
 
@@ -1001,13 +1000,8 @@ static void test16_staleRejectionIgnored()
     BMQTST_ASSERT_EQ(toPeer.size(), 4u);
 
     // Hand-build the rejections rather than driving the peer, so several are
-    // outstanding against one divergence.  The first send carried
-    // 'prevLogIndex' 0, which no follower rejects on log-consistency grounds
-    // (the empty prefix always matches), so the divergence shows up on the
-    // sends after it.
-    BMQTST_ASSERT_EQ(toPeer[1].d_prevLogIndex, 1ULL);
-    BMQTST_ASSERT_EQ(toPeer[2].d_prevLogIndex, 2ULL);
-
+    // outstanding against one divergence.  'matchIndex' is what a follower
+    // whose files were wiped reports: its log is empty.
     RaftMessage rej(&alloc);
     rej.d_type              = RaftMessageType::e_APPEND_ENTRIES_RESP;
     rej.d_term              = cluster.node(leader)->currentTerm();
@@ -1015,29 +1009,31 @@ static void test16_staleRejectionIgnored()
     rej.d_destinationNodeId = leader;
     rej.d_success           = false;
     rej.d_matchIndex        = 0;
+    rej.d_rejectedIndex     = toPeer[1].d_prevLogIndex;
 
-    // The live rejection: back off one step and retry, alone in flight.
-    rej.d_rejectedIndex = toPeer[1].d_prevLogIndex;
+    // The leader resumes from the peer's own last index, so one rejection is
+    // enough to rewind all the way -- not one index per round trip.
     RaftNodeOutput first(&alloc);
     cluster.node(leader)->step(&first, rej);
     BMQTST_ASSERT_EQ(first.d_messages.size(), 1u);
     BMQTST_ASSERT_EQ(first.d_messages[0].d_type,
                      RaftMessageType::e_APPEND_ENTRIES);
-    const bsls::Types::Uint64 retryPrev = first.d_messages[0].d_prevLogIndex;
+    BMQTST_ASSERT_EQ(first.d_messages[0].d_prevLogIndex, 0ULL);
+    BMQTST_ASSERT_EQ(first.d_messages[0].d_entries.size(), 4u);
 
-    // The next rejection refers to a send the retry already superseded.
-    // Acting on it would walk 'nextIndex' back a second time.
+    // The other rejections of the same divergence are acted on too, and land
+    // in the same place: the backoff reads 'matchIndex', not a step count.
     rej.d_rejectedIndex = toPeer[2].d_prevLogIndex;
     RaftNodeOutput second(&alloc);
     cluster.node(leader)->step(&second, rej);
-    BMQTST_ASSERT_EQ(second.d_messages.size(), 0u);
+    BMQTST_ASSERT_EQ(second.d_messages.size(), 1u);
+    BMQTST_ASSERT_EQ(second.d_messages[0].d_prevLogIndex, 0ULL);
 
-    // And the retry still stands where the first rejection put it.
-    rej.d_rejectedIndex = toPeer[1].d_prevLogIndex;
+    rej.d_rejectedIndex = toPeer[3].d_prevLogIndex;
     RaftNodeOutput third(&alloc);
     cluster.node(leader)->step(&third, rej);
-    BMQTST_ASSERT_EQ(third.d_messages.size(), 0u);
-    BMQTST_ASSERT_EQ(retryPrev, 3ULL);
+    BMQTST_ASSERT_EQ(third.d_messages.size(), 1u);
+    BMQTST_ASSERT_EQ(third.d_messages[0].d_prevLogIndex, 0ULL);
 }
 
 // ============================================================================
@@ -1050,7 +1046,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
-    case 16: test16_staleRejectionIgnored(); break;
+    case 16: test16_rejectionUsesPeerLastIndex(); break;
     case 15: test15_backlogSentWhenCommitStalls(); break;
     case 14: test14_appendEntriesBatching(); break;
     case 13: test13_electionMode(); break;
