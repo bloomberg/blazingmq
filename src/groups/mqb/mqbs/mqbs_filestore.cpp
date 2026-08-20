@@ -6505,8 +6505,10 @@ void FileStore::processStorageEvent(const bsl::shared_ptr<bdlbb::Blob>& blob,
                 << printPSN(recHeader->primaryLeaseId(),
                             recHeader->sequenceNumber())
                 << "), journal offset words: " << header.journalOffsetWords()
-                << ", rc: " << rc << ". Ignoring this message."
+                << ", rc: " << rc << ". Aborting broker."
                 << BMQTSK_ALARMLOG_END;
+            mqbu::ExitUtil::terminate(mqbu::ExitCode::e_STORAGE_OUT_OF_SYNC);
+            // EXIT
         }
     } while (1 == iter.next());
 
