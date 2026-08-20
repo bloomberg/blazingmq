@@ -342,8 +342,7 @@ void RelayQueueEngine::onHandleConfigured(
     // lifetime) to reach the queue, and forward 'self' as-is instead of
     // re-deriving it from 'd_self'.  'onHandleConfiguredDispatched' performs
     // the liveness check, once truly running on the queue's dispatcher
-    // thread.  This also guarantees 'context' -- whose destructor invokes
-    // the completion callback -- is always destroyed on that same thread.
+    // thread, and invokes the completion callback of 'context' there.
 
     handle->queue()->dispatcher()->execute(
         bdlf::BindUtil::bind(&RelayQueueEngine::onHandleConfiguredDispatched,
@@ -357,8 +356,7 @@ void RelayQueueEngine::onHandleConfigured(
         handle->queue());
 
     // 'onHandleConfiguredDispatched' is now responsible for calling the
-    // callback: either 'ClusterQueueHelper::onHandleConfigured' or
-    // 'ClientSession::onHandleConfigured'.  Neither one requires queue thread.
+    // callback, on the queue's dispatcher thread.
 }
 
 void RelayQueueEngine::onHandleConfiguredDispatched(
@@ -371,15 +369,22 @@ void RelayQueueEngine::onHandleConfiguredDispatched(
 {
     // executed by the *QUEUE DISPATCHER* thread
 
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(context);
+
+    // Notify the requester from this thread, on every exit path.
+    // Make sure the stored callback is called from this thread and cleared.
+    bdlb::ScopeExitAny invokeCallbackGuard(
+        bdlf::BindUtil::bind(&ConfigureContext::invokeCallback,
+                             context.get()));
+
     bsl::shared_ptr<RelayQueueEngine> strongSelf = self.lock();
     if (!strongSelf) {
         // The engine was destroyed.
         return;  // RETURN
     }
 
-    // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
-    BSLS_ASSERT_SAFE(context);
 
     // Force re-delivery
     deliverMessages();
@@ -1296,10 +1301,10 @@ void RelayQueueEngine::configureHandle(
     BSLS_ASSERT_SAFE(handle);
 
     // The 'context' will mirror streamParameters when calling 'configuredCb'
-    bsl::shared_ptr<ConfigureContext> context(
-        new (*d_allocator_p)
-            ConfigureContext(configuredCb, streamParameters, d_allocator_p),
-        d_allocator_p);
+    bsl::shared_ptr<ConfigureContext> context =
+        bsl::allocate_shared<ConfigureContext>(d_allocator_p,
+                                               configuredCb,
+                                               streamParameters);
 
     // Verify handle exists
     if (!d_queueState_p->handleCatalog().hasHandle(handle)) {
