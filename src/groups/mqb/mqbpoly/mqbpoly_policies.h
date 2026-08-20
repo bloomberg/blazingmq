@@ -731,8 +731,8 @@ namespace mqbpoly {
 class Role {
     // INSTANCE DATA
 
-    Permission d_permissions;
-    Identity   d_id;
+    bsl::vector<Permission> d_permissions;
+    Identity                d_id;
 
   public:
     // TYPES
@@ -845,7 +845,7 @@ class Role {
 
     /// Return a reference to the modifiable "Permissions" attribute of this
     /// object.
-    Permission& permissions();
+    bsl::vector<Permission>& permissions();
 
     // ACCESSORS
 
@@ -897,7 +897,7 @@ class Role {
 
     /// Return a reference offering non-modifiable access to the "Permissions"
     /// attribute of this object.
-    const Permission& permissions() const;
+    const bsl::vector<Permission>& permissions() const;
 
     // HIDDEN FRIENDS
 
@@ -954,7 +954,7 @@ namespace mqbpoly {
 class Policy {
     // INSTANCE DATA
 
-    Role d_roles;
+    bsl::vector<Role> d_roles;
 
   public:
     // TYPES
@@ -1063,7 +1063,7 @@ class Policy {
                             int            nameLength);
 
     /// Return a reference to the modifiable "Roles" attribute of this object.
-    Role& roles();
+    bsl::vector<Role>& roles();
 
     // ACCESSORS
 
@@ -1111,7 +1111,7 @@ class Policy {
 
     /// Return a reference offering non-modifiable access to the "Roles"
     /// attribute of this object.
-    const Role& roles() const;
+    const bsl::vector<Role>& roles() const;
 
     // HIDDEN FRIENDS
 
@@ -1561,7 +1561,7 @@ inline Identity& Role::id()
     return d_id;
 }
 
-inline Permission& Role::permissions()
+inline bsl::vector<Permission>& Role::permissions()
 {
     return d_permissions;
 }
@@ -1624,7 +1624,7 @@ inline const Identity& Role::id() const
     return d_id;
 }
 
-inline const Permission& Role::permissions() const
+inline const bsl::vector<Permission>& Role::permissions() const
 {
     return d_permissions;
 }
@@ -1678,7 +1678,7 @@ int Policy::manipulateAttribute(t_MANIPULATOR& manipulator,
     return manipulateAttribute(manipulator, attributeInfo->d_id);
 }
 
-inline Role& Policy::roles()
+inline bsl::vector<Role>& Policy::roles()
 {
     return d_roles;
 }
@@ -1726,7 +1726,7 @@ int Policy::accessAttribute(t_ACCESSOR& accessor,
     return accessAttribute(accessor, attributeInfo->d_id);
 }
 
-inline const Role& Policy::roles() const
+inline const bsl::vector<Role>& Policy::roles() const
 {
     return d_roles;
 }
