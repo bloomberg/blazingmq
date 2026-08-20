@@ -371,15 +371,22 @@ void RelayQueueEngine::onHandleConfiguredDispatched(
 {
     // executed by the *QUEUE DISPATCHER* thread
 
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(context);
+
+    // Notify the requester from this thread, on every exit path.
+    // Make sure the stored callback is called from this thread and cleared.
+    bdlb::ScopeExitAny invokeCallbackGuard(
+        bdlf::BindUtil::bind(&ConfigureContext::invokeCallback,
+                             context.get()));
+
     bsl::shared_ptr<RelayQueueEngine> strongSelf = self.lock();
     if (!strongSelf) {
         // The engine was destroyed.
         return;  // RETURN
     }
 
-    // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
-    BSLS_ASSERT_SAFE(context);
 
     // Force re-delivery
     deliverMessages();
