@@ -4479,15 +4479,6 @@ void StorageManager::processPrimaryStateRequest(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
-    BSLS_ASSERT_SAFE(message.choice().isClusterMessageValue());
-    BSLS_ASSERT_SAFE(
-        message.choice().clusterMessage().choice().isPartitionMessageValue());
-    BSLS_ASSERT_SAFE(message.choice()
-                         .clusterMessage()
-                         .choice()
-                         .partitionMessage()
-                         .choice()
-                         .isPrimaryStateRequestValue());
 
     const bmqp_ctrlmsg::PrimaryStateRequest& primaryStateRequest =
         message.choice()
@@ -4498,8 +4489,26 @@ void StorageManager::processPrimaryStateRequest(
             .primaryStateRequest();
 
     const int partitionId = primaryStateRequest.partitionId();
-    BSLS_ASSERT_SAFE(0 <= partitionId &&
-                     partitionId < static_cast<int>(d_fileStores.size()));
+    if (partitionId < 0 ||
+        partitionId >= static_cast<int>(d_fileStores.size())) {
+        BALL_LOG_ERROR
+            << d_clusterData_p->identity().description()
+            << " Received PrimaryStateRequest: " << message << " from "
+            << source->nodeDescription()
+            << " with invalid partitionId.  Sending failure response.";
+
+        bmqp_ctrlmsg::ControlMessage controlMsg;
+        controlMsg.rId() = message.rId();
+
+        bmqp_ctrlmsg::Status& status = controlMsg.choice().makeStatus();
+        status.category()            = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+        status.code()                = mqbi::ClusterErrorCode::e_NO_PARTITION;
+        status.message()             = "Invalid partitionId";
+
+        d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
+                                                              source);
+        return;  // RETURN
+    }
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << " Partition [" << partitionId << "]: "
@@ -4536,15 +4545,6 @@ void StorageManager::processReplicaStateRequest(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
-    BSLS_ASSERT_SAFE(message.choice().isClusterMessageValue());
-    BSLS_ASSERT_SAFE(
-        message.choice().clusterMessage().choice().isPartitionMessageValue());
-    BSLS_ASSERT_SAFE(message.choice()
-                         .clusterMessage()
-                         .choice()
-                         .partitionMessage()
-                         .choice()
-                         .isReplicaStateRequestValue());
 
     const bmqp_ctrlmsg::ReplicaStateRequest& replicaStateRequest =
         message.choice()
@@ -4555,8 +4555,26 @@ void StorageManager::processReplicaStateRequest(
             .replicaStateRequest();
 
     const int partitionId = replicaStateRequest.partitionId();
-    BSLS_ASSERT_SAFE(0 <= partitionId &&
-                     partitionId < static_cast<int>(d_fileStores.size()));
+    if (partitionId < 0 ||
+        partitionId >= static_cast<int>(d_fileStores.size())) {
+        BALL_LOG_ERROR
+            << d_clusterData_p->identity().description()
+            << " Received ReplicaStateRequest: " << message << " from "
+            << source->nodeDescription()
+            << " with invalid partitionId.  Sending failure response.";
+
+        bmqp_ctrlmsg::ControlMessage controlMsg;
+        controlMsg.rId() = message.rId();
+
+        bmqp_ctrlmsg::Status& status = controlMsg.choice().makeStatus();
+        status.category()            = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+        status.code()                = mqbi::ClusterErrorCode::e_NO_PARTITION;
+        status.message()             = "Invalid partitionId";
+
+        d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
+                                                              source);
+        return;  // RETURN
+    }
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << " Partition [" << partitionId << "]: "
