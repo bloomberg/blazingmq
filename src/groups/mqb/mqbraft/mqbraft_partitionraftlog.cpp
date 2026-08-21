@@ -53,7 +53,9 @@ PartitionRaftLog::PartitionRaftLog(mqbs::FileStore*  fileStore,
 , d_allocator_p(bslma::Default::allocator(allocator))
 , d_recoveredLastIndex(0)
 , d_pendingWrites(d_allocator_p)
-, d_cached()
+, d_cache(allocator)
+, d_cacheBase(0)
+, d_cacheBytes(0)
 , d_appendedCount(0)
 , d_deferredRemovals(d_allocator_p)
 {
@@ -323,11 +325,10 @@ int PartitionRaftLog::append(bsls::Types::Uint64                 term,
                                     pw.d_handle,
                                     pw.d_syncPointType));
 
-        // Retain the just-appended write as the single-entry cache, so
-        // 'entries()' can serve its 'd_entryBlob' to peers without re-reading
-        // mmap.  It is a pooled shared_ptr, so retaining it is cheap; released
-        // by 'clearCache()' back to the pool.
-        d_cached = d_pendingWrites[d_appendedCount];
+        // Retain the entry blob so 'entries()' can serve it to peers without
+        // re-reading mmap.  Only the blob is held, not the pending write, so
+        // the write returns to its pool as usual.
+        cacheEntry(pw.d_sequenceNumber, pw.d_entryBlob);
         d_appendedCount++;
         return 0;
     }
@@ -355,11 +356,13 @@ int PartitionRaftLog::append(bsls::Types::Uint64                 term,
     info.d_primaryLeaseId = term;
     d_index.push_back(info);
 
-    // No cache on the replica path: 'entries()' here serves the follower apply
-    // path, where commit lags append so the fetched entry is rarely the most
-    // recently appended one -- it reads from mmap ('readRecord') instead.
-    // Invalidate any stale cache left from a prior leader stint.
-    d_cached.reset();
+    // Deliberately NOT cached.  'writeFormattedRecord' patches the journal
+    // record it just wrote -- message offset, file key, qlist offset -- to
+    // this node's own file positions, which are not the leader's.  So 'data'
+    // is not what 'readRecord' returns for this index, and serving it to the
+    // apply path would hand it the leader's offsets.  Drop anything held from
+    // a prior leader stint.
+    clearCache();
 
     // The physical rollover for an appended 'e_ROLLOVER' now happens via the
     // apply hook ('applyCommittedEntryAsReplica') when it commits, not eagerly
@@ -421,14 +424,64 @@ int PartitionRaftLog::truncateFrom(bsls::Types::Uint64 index)
 
     d_index.erase(d_index.begin() + vectorIdx, d_index.end());
 
-    clearCache();
+    dropCacheFrom(index);
 
     return 0;
 }
 
+void PartitionRaftLog::cacheEntry(bsls::Types::Uint64 index,
+                                  const EntryBlobSp&  blob)
+{
+    if (!blob) {
+        // Nothing to serve later; a gap would make the window non-contiguous,
+        // so drop what is held and restart the window past this entry.
+        clearCache();
+        return;  // RETURN
+    }
+
+    if (!d_cache.empty() && index != d_cacheBase + d_cache.size()) {
+        // The window has to stay contiguous for the index arithmetic in
+        // 'entries()' to hold.  Restart it here rather than assert: the
+        // assertion is compiled out in an optimized build, where the
+        // arithmetic would then serve the blob of some other index.
+        clearCache();
+    }
+    if (d_cache.empty()) {
+        d_cacheBase = index;
+    }
+
+    d_cache.push_back(blob);
+    d_cacheBytes += blob->length();
+
+    while (d_cache.size() > k_MAX_CACHED_ENTRIES ||
+           (d_cacheBytes > k_MAX_CACHED_BYTES && d_cache.size() > 1)) {
+        d_cacheBytes -= d_cache.front()->length();
+        d_cache.pop_front();
+        ++d_cacheBase;
+    }
+}
+
+void PartitionRaftLog::dropCacheFrom(bsls::Types::Uint64 index)
+{
+    if (d_cache.empty() || index >= d_cacheBase + d_cache.size()) {
+        return;  // RETURN
+    }
+    if (index <= d_cacheBase) {
+        clearCache();
+        return;  // RETURN
+    }
+
+    while (d_cacheBase + d_cache.size() > index) {
+        d_cacheBytes -= d_cache.back()->length();
+        d_cache.pop_back();
+    }
+}
+
 void PartitionRaftLog::clearCache()
 {
-    d_cached.reset();
+    d_cache.clear();
+    d_cacheBase  = 0;
+    d_cacheBytes = 0;
 }
 
 void PartitionRaftLog::rollover(bsls::Types::Uint64 rolloverIndex)
@@ -667,7 +720,9 @@ bsls::Types::Uint64 PartitionRaftLog::term(bsls::Types::Uint64 index) const
 
 int PartitionRaftLog::entries(bsls::Types::Uint64    lo,
                               bsls::Types::Uint64    hi,
-                              bsl::vector<LogEntry>* out) const
+                              bsl::vector<LogEntry>* out,
+                              bsls::Types::Uint64    maxCount,
+                              bsls::Types::Uint64    maxBytes) const
 {
     BSLS_ASSERT_SAFE(out);
 
@@ -677,24 +732,38 @@ int PartitionRaftLog::entries(bsls::Types::Uint64    lo,
 
     out->clear();
 
+    bsls::Types::Uint64 bytes = 0;
+
     for (bsls::Types::Uint64 i = lo; i < hi; ++i) {
         bsls::Types::Uint64 vectorIdx = i - d_snapshotIndex - 1;
         bsls::Types::Uint64 entryTerm = d_index[vectorIdx].d_primaryLeaseId;
 
-        if (d_cached && i == d_cached->d_sequenceNumber) {
-            out->push_back(LogEntry(entryTerm, i, d_cached->d_entryBlob));
-            continue;
+        if (!d_cache.empty() && i >= d_cacheBase &&
+            i < d_cacheBase + d_cache.size()) {
+            const EntryBlobSp& cached = d_cache[i - d_cacheBase];
+            out->push_back(LogEntry(entryTerm, i, cached));
+            bytes += cached->length();
+        }
+        else {
+            // Cache miss: read from mmap'd files
+            bsls::Types::Uint64 journalOffset =
+                d_index[vectorIdx].d_journalOffset;
+            bsl::shared_ptr<bdlbb::Blob> entryBlob;
+            int rc = d_fileStore_p->readRecord(&entryBlob, journalOffset);
+            if (rc != 0) {
+                return rc;
+            }
+
+            out->push_back(LogEntry(entryTerm, i, entryBlob));
+            bytes += entryBlob->length();
         }
 
-        // Cache miss: read from mmap'd files
-        bsls::Types::Uint64 journalOffset = d_index[vectorIdx].d_journalOffset;
-        bsl::shared_ptr<bdlbb::Blob> entryBlob;
-        int rc = d_fileStore_p->readRecord(&entryBlob, journalOffset);
-        if (rc != 0) {
-            return rc;
+        // Checked after the append, so one entry is always loaded even when
+        // it alone exceeds a cap -- otherwise it could never be replicated.
+        if ((maxCount != 0 && out->size() >= maxCount) ||
+            (maxBytes != 0 && bytes >= maxBytes)) {
+            break;
         }
-
-        out->push_back(LogEntry(entryTerm, i, entryBlob));
     }
 
     return 0;

@@ -51,6 +51,7 @@
 #include <bdlbb_blob.h>
 #include <bdlmt_eventscheduler.h>
 #include <bsl_functional.h>
+#include <bsl_unordered_map.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
 #include <bslma_usesbslmaallocator.h>
@@ -99,6 +100,9 @@ class ClusterStateRaft : public mqbi::ClusterStateUpdater {
     bool                                        d_isStarted;
     bslma::Allocator*                           d_allocator_p;
 
+    /// Nodes resolved by `peerNode`, so a linked-list walk is not repeated.
+    bsl::unordered_map<int, mqbnet::ClusterNode*> d_peerNodes;
+
     // NOT IMPLEMENTED
     ClusterStateRaft(const ClusterStateRaft&);
     ClusterStateRaft& operator=(const ClusterStateRaft&);
@@ -107,6 +111,14 @@ class ClusterStateRaft : public mqbi::ClusterStateUpdater {
 
     /// Process RaftNode output: send messages to peers and apply committed
     /// entries to ClusterState.
+    /// Return the node with the specified `nodeId`, or 0 if there is none.
+    /// `mqbnet::Cluster::lookupNode` walks a linked list, so its result is
+    /// resolved once per node and held: the sends of one round would otherwise
+    /// walk it once per peer.  Membership is fixed after construction, so a
+    /// held pointer stays valid; a node added later resolves on first use, but
+    /// node *removal*, if it is ever implemented, has to clear this.
+    mqbnet::ClusterNode* peerNode(int nodeId);
+
     void dispatchOutput(RaftNodeOutput* output);
 
     /// Send an AppendEntries message via binary e_RAFT_CLUSTER event.

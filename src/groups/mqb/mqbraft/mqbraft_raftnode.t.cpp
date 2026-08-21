@@ -112,16 +112,24 @@ class MemoryRaftLog : public RaftLog {
 
     int entries(bsls::Types::Uint64    lo,
                 bsls::Types::Uint64    hi,
-                bsl::vector<LogEntry>* out) const BSLS_KEYWORD_OVERRIDE
+                bsl::vector<LogEntry>* out,
+                bsls::Types::Uint64    maxCount,
+                bsls::Types::Uint64    maxBytes) const BSLS_KEYWORD_OVERRIDE
     {
         BSLS_ASSERT_SAFE(out);
         if (lo > hi || lo <= d_snapshotIndex || hi > lastIndex() + 1) {
             return -1;
         }
         out->clear();
+        bsls::Types::Uint64 bytes = 0;
         for (bsls::Types::Uint64 i = lo; i < hi; ++i) {
             bsls::Types::Uint64 offset = i - d_snapshotIndex - 1;
             out->push_back(d_entries[static_cast<int>(offset)]);
+            bytes += out->back().d_data ? out->back().d_data->length() : 0;
+            if ((maxCount != 0 && out->size() >= maxCount) ||
+                (maxBytes != 0 && bytes >= maxBytes)) {
+                break;
+            }
         }
         return 0;
     }
@@ -134,6 +142,19 @@ class MemoryRaftLog : public RaftLog {
     bsls::Types::Uint64 snapshotTerm() const BSLS_KEYWORD_OVERRIDE
     {
         return d_snapshotTerm;
+    }
+
+    /// Compact at the specified `index` as a rollover does: drop the entries
+    /// at or below it and move the snapshot boundary to `index` / `term`.
+    void setSnapshot(bsls::Types::Uint64 index, bsls::Types::Uint64 term)
+    {
+        BSLS_ASSERT_SAFE(index >= d_snapshotIndex && index <= lastIndex());
+
+        d_entries.erase(d_entries.begin(),
+                        d_entries.begin() +
+                            static_cast<int>(index - d_snapshotIndex));
+        d_snapshotIndex = index;
+        d_snapshotTerm  = term;
     }
 };
 
@@ -154,10 +175,11 @@ class TestCluster {
 
   public:
     // CREATORS
-    explicit TestCluster(int               numNodes,
-                         bool              preVote           = true,
-                         bslma::Allocator* allocator         = 0,
-                         bool              broadcastOnCommit = false)
+    explicit TestCluster(int                 numNodes,
+                         bool                preVote           = true,
+                         bslma::Allocator*   allocator         = 0,
+                         bool                broadcastOnCommit = false,
+                         bsls::Types::Uint64 maxUnacked        = 0)
     : d_nodes(allocator)
     , d_logs(allocator)
     , d_numNodes(numNodes)
@@ -183,6 +205,9 @@ class TestCluster {
             config.d_electionTimeoutMax = 20;
             config.d_heartbeatInterval  = 3;
             config.d_preVote            = preVote;
+            if (maxUnacked != 0) {
+                config.d_maxUnackedEntries = maxUnacked;
+            }
 
             RaftNode* node = new (*d_allocator_p)
                 RaftNode(config, log, d_allocator_p);
@@ -201,17 +226,24 @@ class TestCluster {
     // MANIPULATORS
 
     /// Deliver all messages from 'output' to their destination nodes,
-    /// collecting responses into 'responses'.
+    /// collecting responses into 'responses'.  A message may carry several
+    /// destinations: a round sends one message to every peer at the same log
+    /// position.  Each node is flushed after it steps, the way
+    /// 'ClusterStateRaft' runs a round on every event, since 'step' only moves
+    /// peer state and never sends.
     void deliverMessages(const RaftNodeOutput& output,
                          RaftNodeOutput*       responses)
     {
         for (bsl::vector<RaftMessage>::size_type i = 0;
              i < output.d_messages.size();
              ++i) {
-            const RaftMessage& msg  = output.d_messages[i];
-            int                dest = msg.d_destinationNodeId;
-            if (dest >= 0 && dest < d_numNodes) {
-                d_nodes[dest]->step(responses, msg);
+            const RaftMessage& msg = output.d_messages[i];
+            for (size_t j = 0; j < msg.destinationCount(); ++j) {
+                const int dest = msg.destination(j);
+                if (dest >= 0 && dest < d_numNodes) {
+                    d_nodes[dest]->step(responses, msg);
+                    d_nodes[dest]->flushSends(responses);
+                }
             }
         }
     }
@@ -250,6 +282,7 @@ class TestCluster {
         for (int i = 0; i < d_numNodes; ++i) {
             RaftNodeOutput output(d_allocator_p);
             d_nodes[i]->tick(&output);
+            d_nodes[i]->flushSends(&output);
             runUntilQuiet(&output);
         }
     }
@@ -264,6 +297,7 @@ class TestCluster {
             }
             RaftNodeOutput output(d_allocator_p);
             d_nodes[i]->tick(&output);
+            d_nodes[i]->flushSends(&output);
             runUntilQuiet(&output);
         }
     }
@@ -299,6 +333,19 @@ class TestCluster {
 };
 
 /// Tick the cluster until a leader emerges or maxTicks is reached.
+/// Return `true` if the specified `msg` is addressed to the specified `node`.
+/// A round sends one message to every peer at the same log position, so a
+/// destination is not always `d_destinationNodeId`.
+bool goesTo(const RaftMessage& msg, int node)
+{
+    for (size_t i = 0; i < msg.destinationCount(); ++i) {
+        if (msg.destination(i) == node) {
+            return true;
+        }
+    }
+    return false;
+}
+
 int electLeader(TestCluster* cluster, int maxTicks = 100)
 {
     for (int t = 0; t < maxTicks; ++t) {
@@ -414,6 +461,7 @@ static void test4_electionWithLogRestriction()
     for (int t = 0; t < 25; ++t) {
         RaftNodeOutput output(&alloc);
         cluster.node(0)->tick(&output);
+        cluster.node(0)->flushSends(&output);
         if (!output.d_messages.empty()) {
             // Node 0 started election.  Deliver to nodes 1 and 2.
             // They should reject because node 0's log is behind.
@@ -459,6 +507,7 @@ static void test5_logReplication()
     RaftNodeOutput               proposeOutput(&alloc);
     int rc = cluster.node(leader)->propose(&proposeOutput, data);
     BMQTST_ASSERT_EQ(rc, 0);
+    cluster.node(leader)->flushSends(&proposeOutput);
 
     // Deliver messages until quiet
     cluster.runUntilQuiet(&proposeOutput);
@@ -605,12 +654,14 @@ static void test8_commitIndexAdvancement()
 
     RaftNodeOutput out1(&alloc);
     cluster.node(leader)->propose(&out1, data1);
+    cluster.node(leader)->flushSends(&out1);
     cluster.runUntilQuiet(&out1);
 
     BMQTST_ASSERT_EQ(cluster.node(leader)->commitIndex(), 1ULL);
 
     RaftNodeOutput out2(&alloc);
     cluster.node(leader)->propose(&out2, data2);
+    cluster.node(leader)->flushSends(&out2);
     cluster.runUntilQuiet(&out2);
 
     BMQTST_ASSERT_EQ(cluster.node(leader)->commitIndex(), 2ULL);
@@ -756,11 +807,13 @@ static void test13_electionMode()
     {
         RaftNodeOutput output(&alloc);
         cluster.node(other)->setElectionMode(&output, ElectionMode::e_NEVER);
+        cluster.node(other)->flushSends(&output);
         cluster.runUntilQuiet(&output);
     }
     {
         RaftNodeOutput output(&alloc);
         cluster.node(leader)->setElectionMode(&output, ElectionMode::e_NEVER);
+        cluster.node(leader)->flushSends(&output);
         cluster.runUntilQuiet(&output);
     }
     // Excluding the incumbent does not depose it.
@@ -773,6 +826,7 @@ static void test13_electionMode()
     {
         RaftNodeOutput output(&alloc);
         cluster.node(target)->setElectionMode(&output, ElectionMode::e_FORCE);
+        cluster.node(target)->flushSends(&output);
         cluster.runUntilQuiet(&output);
     }
 
@@ -796,10 +850,13 @@ static void test13_electionMode()
 }
 
 static void test14_appendEntriesBatching()
-// APPEND ENTRIES BATCHING
+// APPEND ENTRIES BATCHING AND SHARING
 //
-// Verify how many AppendEntries messages (and hence responses) a burst of
-// proposals produces while a send to the peer is in flight.
+// Nothing is sent until the caller runs a round, so a burst of proposals
+// leaves the log with one round's worth of entries owed and sends them as one
+// message.  Peers at the same log position are owed identical bytes, so that
+// one message carries both of them as destinations rather than being built
+// and read from the log twice.
 {
     bmqtst::TestHelper::printTestName("APPEND ENTRIES BATCHING");
 
@@ -812,161 +869,123 @@ static void test14_appendEntriesBatching()
     BMQTST_ASSERT_GE(leader, 0);
 
     const int peer  = (leader + 1) % 3;
+    const int other = (leader + 2) % 3;
 
-    // The first proposal: one AppendEntries per peer, one entry each.
+    // One proposal, one round: a single message addressed to both peers.
     RaftNodeOutput first(&alloc);
     BMQTST_ASSERT_EQ(
         cluster.node(leader)->propose(&first, cluster.makeBlob("m1"), 1),
         0);
-    BMQTST_ASSERT_EQ(first.d_messages.size(), 2u);
-    for (size_t i = 0; i < first.d_messages.size(); ++i) {
-        BMQTST_ASSERT_EQ(first.d_messages[i].d_type,
-                         RaftMessageType::e_APPEND_ENTRIES);
-        BMQTST_ASSERT_EQ(first.d_messages[i].d_entries.size(), 1u);
-    }
+    BMQTST_ASSERT_EQ(first.d_messages.size(), 0u);  // deferred
 
-    // Proposals keep going out while earlier sends are unanswered, one entry
-    // each, until the window is full.  'k_MAX_IN_FLIGHT' is 4 and the first
-    // proposal used a slot, so the next three send and the rest do not.
-    RaftMessage firstToPeer(&alloc);
-    for (size_t i = 0; i < first.d_messages.size(); ++i) {
-        if (first.d_messages[i].d_destinationNodeId == peer) {
-            firstToPeer = first.d_messages[i];
-        }
-    }
+    cluster.node(leader)->flushSends(&first);
+    BMQTST_ASSERT_EQ(first.d_messages.size(), 1u);
+    BMQTST_ASSERT_EQ(first.d_messages[0].d_type,
+                     RaftMessageType::e_APPEND_ENTRIES);
+    BMQTST_ASSERT_EQ(first.d_messages[0].d_entries.size(), 1u);
+    BMQTST_ASSERT_EQ(first.d_messages[0].destinationCount(), 2u);
+    BMQTST_ASSERT(goesTo(first.d_messages[0], peer));
+    BMQTST_ASSERT(goesTo(first.d_messages[0], other));
 
-    size_t sentDuringBurst = 0;
+    const RaftMessage firstToPeer(first.d_messages[0], &alloc);
+
+    // Ten more proposals with no round in between send nothing; the round that
+    // follows carries all ten in one message, still shared by both peers.
     for (int i = 0; i < 10; ++i) {
         RaftNodeOutput burst(&alloc);
         BMQTST_ASSERT_EQ(cluster.node(leader)->propose(&burst,
                                                        cluster.makeBlob("m"),
                                                        i + 2),
                          0);
-        for (size_t j = 0; j < burst.d_messages.size(); ++j) {
-            if (burst.d_messages[j].d_destinationNodeId == peer) {
-                ++sentDuringBurst;
-                // Each send carries only what the previous one did not:
-                // 'nextIndex' advanced when it went out.
-                BMQTST_ASSERT_EQ(burst.d_messages[j].d_entries.size(), 1u);
-            }
-        }
+        BMQTST_ASSERT_EQ(burst.d_messages.size(), 0u);
     }
-    BMQTST_ASSERT_EQ(sentDuringBurst, 3u);
     BMQTST_ASSERT_EQ(cluster.log(leader)->lastIndex(), 11ULL);
 
-    // Deliver the first AppendEntries to 'peer'; it answers once.
+    RaftNodeOutput second(&alloc);
+    cluster.node(leader)->flushSends(&second);
+    BMQTST_ASSERT_EQ(second.d_messages.size(), 1u);
+    BMQTST_ASSERT_EQ(second.d_messages[0].d_entries.size(), 10u);
+    BMQTST_ASSERT_EQ(second.d_messages[0].destinationCount(), 2u);
+
+    // The peer answers the first message only; the leader must not treat that
+    // as an ack of the ten sent optimistically after it.
     RaftNodeOutput peerResp(&alloc);
     cluster.node(peer)->step(&peerResp, firstToPeer);
     BMQTST_ASSERT_EQ(peerResp.d_messages.size(), 1u);
     BMQTST_ASSERT_EQ(peerResp.d_messages[0].d_type,
                      RaftMessageType::e_APPEND_ENTRIES_RESP);
+    BMQTST_ASSERT_EQ(peerResp.d_messages[0].d_success, true);
+    BMQTST_ASSERT_EQ(peerResp.d_messages[0].d_matchIndex, 1ULL);
 
-    // Handling it frees a window slot, and the seven entries that piled up
-    // while the window was full go out as ONE message: batching is what the
-    // window does when it saturates.
-    RaftNodeOutput second(&alloc);
-    cluster.node(leader)->step(&second, peerResp.d_messages[0]);
+    RaftNodeOutput afterResp(&alloc);
+    cluster.node(leader)->step(&afterResp, peerResp.d_messages[0]);
+    cluster.node(leader)->flushSends(&afterResp);
 
-    size_t toPeer = 0, entriesToPeer = 0;
-    for (size_t i = 0; i < second.d_messages.size(); ++i) {
-        const RaftMessage& m = second.d_messages[i];
-        if (m.d_destinationNodeId == peer) {
-            ++toPeer;
-            entriesToPeer += m.d_entries.size();
+    // Everything through index 11 already went out, so the peer is owed no
+    // further entries -- only the commit index this response moved.
+    for (size_t i = 0; i < afterResp.d_messages.size(); ++i) {
+        if (afterResp.d_messages[i].d_type ==
+            RaftMessageType::e_APPEND_ENTRIES) {
+            BMQTST_ASSERT_EQ(afterResp.d_messages[i].d_entries.size(), 0u);
         }
     }
-    BMQTST_ASSERT_EQ(toPeer, 1u);
-    BMQTST_ASSERT_EQ(entriesToPeer, 7u);
 }
 
-static void test15_backlogSentWhenCommitStalls()
-// BACKLOG AFTER A RESPONSE THAT DOES NOT ADVANCE THE COMMIT INDEX
+static void test15_unackedEntriesBound()
+// UNACKED ENTRIES BOUND
 //
-// Freeing a peer's window slot is what makes room for the entries that piled
-// up behind it.  When the response that frees the slot does not move the
-// commit index -- another peer already carried the quorum -- nothing else
-// would send them, so the leader must do it off the response itself.
+// Sends are optimistic and the channel buffer neither blocks nor drops, so a
+// peer that stops answering has to stop being sent to.  The bound is on
+// entries outstanding past the peer's own match index, and it lifts as soon as
+// the peer acks.
 {
-    bmqtst::TestHelper::printTestName("BACKLOG WHEN COMMIT STALLS");
+    bmqtst::TestHelper::printTestName("UNACKED ENTRIES BOUND");
 
     bslma::TestAllocator alloc("test", false);
-    TestCluster          cluster(3, false, &alloc, true);
+    TestCluster          cluster(3, false, &alloc, true, 3 /* maxUnacked */);
 
     const int leader = electLeader(&cluster);
     BMQTST_ASSERT_GE(leader, 0);
 
-    const int peer  = (leader + 1) % 3;
-    const int other = (leader + 2) % 3;
+    const int peer = (leader + 1) % 3;
 
-    // Fill both peers' windows and leave one entry over.  Nothing is
-    // delivered yet, so both peers stay at matchIndex 0.
-    bsl::vector<RaftMessage> toPeer(&alloc);
-    bsl::vector<RaftMessage> toOther(&alloc);
-    for (int i = 0; i < 5; ++i) {
+    // Neither peer answers, so each round pushes 'nextIndex' further past a
+    // match index stuck at 0.  Past the bound the rounds send nothing.
+    size_t rounds = 0;
+    for (int i = 0; i < 8; ++i) {
         RaftNodeOutput out(&alloc);
         cluster.node(leader)->propose(&out, cluster.makeBlob("m"), i + 1);
-        for (size_t j = 0; j < out.d_messages.size(); ++j) {
-            if (out.d_messages[j].d_destinationNodeId == peer) {
-                toPeer.push_back(out.d_messages[j]);
-            }
-            else {
-                toOther.push_back(out.d_messages[j]);
-            }
+        cluster.node(leader)->flushSends(&out);
+        if (!out.d_messages.empty()) {
+            ++rounds;
         }
     }
-    BMQTST_ASSERT_EQ(cluster.log(leader)->lastIndex(), 5ULL);
-    BMQTST_ASSERT_EQ(toPeer.size(), 4u);  // k_MAX_IN_FLIGHT
-    BMQTST_ASSERT_EQ(toOther.size(), 4u);
+    BMQTST_ASSERT_EQ(cluster.log(leader)->lastIndex(), 8ULL);
 
-    // Let 'peer' alone catch up: deliver its messages, feed the responses
-    // back, and keep going with whatever the leader sends it next.  'other'
-    // stays silent, so anything addressed to it is set aside undelivered.
-    bsl::vector<RaftMessage> pending(toPeer, &alloc);
-    for (int round = 0; round < 8 && !pending.empty(); ++round) {
-        RaftNodeOutput responses(&alloc);
-        for (size_t i = 0; i < pending.size(); ++i) {
-            cluster.node(peer)->step(&responses, pending[i]);
-        }
-        pending.clear();
+    // Four rounds get through -- indices 1 through 4, the fourth of which
+    // leaves 4 outstanding, one past the bound of 3.
+    BMQTST_ASSERT_EQ(rounds, 4u);
 
-        for (size_t i = 0; i < responses.d_messages.size(); ++i) {
-            RaftNodeOutput out(&alloc);
-            cluster.node(leader)->step(&out, responses.d_messages[i]);
-            for (size_t j = 0; j < out.d_messages.size(); ++j) {
-                if (out.d_messages[j].d_destinationNodeId == peer) {
-                    pending.push_back(out.d_messages[j]);
-                }
-            }
-        }
-    }
+    // The peer acks everything it was sent, and the rest goes out.
+    RaftMessage ack(&alloc);
+    ack.d_type              = RaftMessageType::e_APPEND_ENTRIES_RESP;
+    ack.d_term              = cluster.node(leader)->currentTerm();
+    ack.d_sourceNodeId      = peer;
+    ack.d_destinationNodeId = leader;
+    ack.d_success           = true;
+    ack.d_matchIndex        = 4;
 
-    // 'peer' plus the leader is a quorum, so everything is committed and
-    // 'other' is the only one behind.
-    BMQTST_ASSERT_EQ(cluster.log(peer)->lastIndex(), 5ULL);
-    BMQTST_ASSERT_EQ(cluster.node(leader)->commitIndex(), 5ULL);
+    RaftNodeOutput resumed(&alloc);
+    cluster.node(leader)->step(&resumed, ack);
+    cluster.node(leader)->flushSends(&resumed);
 
-    // Now 'other' answers the first message it ever received.  Its match
-    // index goes to 1, which cannot move the commit index -- it is already at
-    // the log end -- so no commit notification fires.  The freed slot is
-    // still owed the entries the leader has not sent it.
-    RaftNodeOutput otherResp(&alloc);
-    cluster.node(other)->step(&otherResp, toOther[0]);
-    BMQTST_ASSERT_EQ(otherResp.d_messages.size(), 1u);
-    BMQTST_ASSERT_EQ(otherResp.d_messages[0].d_success, true);
-
-    RaftNodeOutput afterOther(&alloc);
-    cluster.node(leader)->step(&afterOther, otherResp.d_messages[0]);
-    BMQTST_ASSERT_EQ(cluster.node(leader)->commitIndex(), 5ULL);
-
-    size_t sentToOther = 0;
-    for (size_t i = 0; i < afterOther.d_messages.size(); ++i) {
-        if (afterOther.d_messages[i].d_destinationNodeId == other) {
-            ++sentToOther;
-            BMQTST_ASSERT_EQ(afterOther.d_messages[i].d_type,
-                             RaftMessageType::e_APPEND_ENTRIES);
+    size_t entriesToPeer = 0;
+    for (size_t i = 0; i < resumed.d_messages.size(); ++i) {
+        if (goesTo(resumed.d_messages[i], peer)) {
+            entriesToPeer += resumed.d_messages[i].d_entries.size();
         }
     }
-    BMQTST_ASSERT_EQ(sentToOther, 1u);
+    BMQTST_ASSERT_EQ(entriesToPeer, 4u);  // indices 5 through 8
 }
 
 static void test16_rejectionUsesPeerLastIndex()
@@ -986,13 +1005,15 @@ static void test16_rejectionUsesPeerLastIndex()
 
     const int peer = (leader + 1) % 3;
 
-    // Fill the window: four sends, none answered.
+    // Four rounds, none answered, so four messages of one entry each went to
+    // the peer and 'nextIndex' ran to 5.
     bsl::vector<RaftMessage> toPeer(&alloc);
     for (int i = 0; i < 4; ++i) {
         RaftNodeOutput out(&alloc);
         cluster.node(leader)->propose(&out, cluster.makeBlob("m"), i + 1);
+        cluster.node(leader)->flushSends(&out);
         for (size_t j = 0; j < out.d_messages.size(); ++j) {
-            if (out.d_messages[j].d_destinationNodeId == peer) {
+            if (goesTo(out.d_messages[j], peer)) {
                 toPeer.push_back(out.d_messages[j]);
             }
         }
@@ -1015,25 +1036,109 @@ static void test16_rejectionUsesPeerLastIndex()
     // enough to rewind all the way -- not one index per round trip.
     RaftNodeOutput first(&alloc);
     cluster.node(leader)->step(&first, rej);
+    cluster.node(leader)->flushSends(&first);
     BMQTST_ASSERT_EQ(first.d_messages.size(), 1u);
     BMQTST_ASSERT_EQ(first.d_messages[0].d_type,
                      RaftMessageType::e_APPEND_ENTRIES);
     BMQTST_ASSERT_EQ(first.d_messages[0].d_prevLogIndex, 0ULL);
     BMQTST_ASSERT_EQ(first.d_messages[0].d_entries.size(), 4u);
 
+    // A diverged peer is sent one message at a time: the second rejection has
+    // not arrived, so the round that follows sends it nothing more.
+    RaftNodeOutput quiet(&alloc);
+    cluster.node(leader)->flushSends(&quiet);
+    BMQTST_ASSERT_EQ(quiet.d_messages.size(), 0u);
+
     // The other rejections of the same divergence are acted on too, and land
     // in the same place: the backoff reads 'matchIndex', not a step count.
     rej.d_rejectedIndex = toPeer[2].d_prevLogIndex;
     RaftNodeOutput second(&alloc);
     cluster.node(leader)->step(&second, rej);
+    cluster.node(leader)->flushSends(&second);
     BMQTST_ASSERT_EQ(second.d_messages.size(), 1u);
     BMQTST_ASSERT_EQ(second.d_messages[0].d_prevLogIndex, 0ULL);
 
     rej.d_rejectedIndex = toPeer[3].d_prevLogIndex;
     RaftNodeOutput third(&alloc);
     cluster.node(leader)->step(&third, rej);
+    cluster.node(leader)->flushSends(&third);
     BMQTST_ASSERT_EQ(third.d_messages.size(), 1u);
     BMQTST_ASSERT_EQ(third.d_messages[0].d_prevLogIndex, 0ULL);
+}
+
+static void test17_rolloverCommitPrecedesEntries()
+// ROLLOVER COMMIT PRECEDES ENTRIES
+//
+// A peer that has not been told the compaction at 'snapshotIndex' committed
+// must apply it before receiving anything past it: a replica appends entries
+// before it applies commits, so entries carried in that same message would
+// land in the file set the rollover is about to replace.  The round sends the
+// commit by itself, and the entries follow in the next one.
+{
+    bmqtst::TestHelper::printTestName("ROLLOVER COMMIT PRECEDES ENTRIES");
+
+    bslma::TestAllocator alloc("test", false);
+    TestCluster          cluster(3, false, &alloc, true);
+
+    const int leader = electLeader(&cluster);
+    BMQTST_ASSERT_GE(leader, 0);
+
+    const int peer  = (leader + 1) % 3;
+    const int other = (leader + 2) % 3;
+
+    // Two entries, delivered and acked by hand so the leader commits them
+    // without a round running afterwards: that leaves the peers' 'sentCommit'
+    // behind the commit index, which is the state a rollover has to survive.
+    RaftNodeOutput sent(&alloc);
+    cluster.node(leader)->propose(&sent, cluster.makeBlob("m1"), 1);
+    cluster.node(leader)->propose(&sent, cluster.makeBlob("m2"), 2);
+    cluster.node(leader)->flushSends(&sent);
+
+    RaftNodeOutput acks(&alloc);
+    for (size_t i = 0; i < sent.d_messages.size(); ++i) {
+        const RaftMessage& m = sent.d_messages[i];
+        for (size_t j = 0; j < m.destinationCount(); ++j) {
+            cluster.node(m.destination(j))->step(&acks, m);
+        }
+    }
+    for (size_t i = 0; i < acks.d_messages.size(); ++i) {
+        RaftNodeOutput ignored(&alloc);
+        cluster.node(leader)->step(&ignored, acks.d_messages[i]);
+    }
+    BMQTST_ASSERT_EQ(cluster.node(leader)->commitIndex(), 2ULL);
+
+    // The leader rolls over at the commit point.
+    const bsls::Types::Uint64 term = cluster.node(leader)->currentTerm();
+    cluster.log(leader)->setSnapshot(2, term);
+
+    // A third entry is owed, but the peers have not heard that 2 committed,
+    // so this round carries the commit alone -- shared, since both are held.
+    RaftNodeOutput held(&alloc);
+    cluster.node(leader)->propose(&held, cluster.makeBlob("m3"), 3);
+    cluster.node(leader)->flushSends(&held);
+
+    BMQTST_ASSERT_EQ(held.d_messages.size(), 1u);
+    BMQTST_ASSERT_EQ(held.d_messages[0].d_type,
+                     RaftMessageType::e_APPEND_ENTRIES);
+    BMQTST_ASSERT_EQ(held.d_messages[0].d_entries.size(), 0u);
+    BMQTST_ASSERT_EQ(held.d_messages[0].d_leaderCommit, 2ULL);
+    BMQTST_ASSERT_EQ(held.d_messages[0].destinationCount(), 2u);
+    BMQTST_ASSERT(goesTo(held.d_messages[0], peer));
+    BMQTST_ASSERT(goesTo(held.d_messages[0], other));
+
+    // The hold is released by that message, so the entry goes out next round.
+    RaftNodeOutput released(&alloc);
+    cluster.node(leader)->flushSends(&released);
+
+    BMQTST_ASSERT_EQ(released.d_messages.size(), 1u);
+    BMQTST_ASSERT_EQ(released.d_messages[0].d_entries.size(), 1u);
+    BMQTST_ASSERT_EQ(released.d_messages[0].d_entries[0].d_index, 3ULL);
+    BMQTST_ASSERT_EQ(released.d_messages[0].destinationCount(), 2u);
+
+    // And it does not repeat once acked.
+    RaftNodeOutput quiet(&alloc);
+    cluster.node(leader)->flushSends(&quiet);
+    BMQTST_ASSERT_EQ(quiet.d_messages.size(), 0u);
 }
 
 // ============================================================================
@@ -1046,8 +1151,9 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 17: test17_rolloverCommitPrecedesEntries(); break;
     case 16: test16_rejectionUsesPeerLastIndex(); break;
-    case 15: test15_backlogSentWhenCommitStalls(); break;
+    case 15: test15_unackedEntriesBound(); break;
     case 14: test14_appendEntriesBatching(); break;
     case 13: test13_electionMode(); break;
     case 12: test12_heartbeatResetsElectionTimer(); break;

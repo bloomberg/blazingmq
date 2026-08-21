@@ -34,10 +34,10 @@
 // leader and follower — the blob passed to 'append()' always contains a
 // fully-formed entry.
 //
-// A single-entry cache avoids re-reading the most recently appended entry
-// from the mmap'd files.  The cache is populated by 'append()' and served by
-// 'entries()'.  The caller must invoke 'clearCache()' after processing the
-// output to release the blob.
+// A bounded cache of recently appended entry blobs avoids re-reading them
+// from the mmap'd files.  It is populated by 'append()' and served by
+// 'entries()', and trims itself; the log invalidates it on truncation and
+// rollover, so callers do not manage it.
 //
 /// Threading
 ///----------
@@ -79,6 +79,14 @@ class PartitionRaftLog : public RaftLog {
     // TYPES
     typedef mqbs::RecoveryRecordInfo      EntryInfo;
     typedef mqbs::FileStore::PendingWrite PendingWrite;
+    typedef bsl::shared_ptr<bdlbb::Blob>  EntryBlobSp;
+
+    // PRIVATE CLASS DATA
+
+    /// Bounds on `d_cache`.  Sized to hold more than a peer can fall behind
+    /// between acks, so a round of replication is served from memory.
+    static const size_t              k_MAX_CACHED_ENTRIES = 4096;
+    static const bsls::Types::Uint64 k_MAX_CACHED_BYTES   = 4 * 1024 * 1024;
 
     // DATA
     mqbs::FileStore*      d_fileStore_p;
@@ -102,11 +110,23 @@ class PartitionRaftLog : public RaftLog {
     /// drained once the `e_ROLLOVER` commits (see `takePendingWrites`).
     bsl::deque<bsl::shared_ptr<PendingWrite> > d_pendingWrites;
 
-    /// Single-entry cache: the most recently appended write on the primary
-    /// path, retained (a cheap pooled shared_ptr copy) so `entries()` can
-    /// serve its `d_entryBlob` to peers without re-reading mmap.  Null when
-    /// empty (e.g. on the replica path, or after `clearCache`).
-    bsl::shared_ptr<PendingWrite> d_cached;
+    /// Blobs of the most recently appended entries, oldest first: the entry
+    /// at index `d_cacheBase + i` is `d_cache[i]`.  `entries()` serves these
+    /// without re-reading mmap, which costs a pooled blob and an aliasing
+    /// pass per entry.  Everything reading the log reads this window: the
+    /// leader replicating to peers that sit within an ack of each other, and
+    /// a replica applying entries as they commit.  Bounded by
+    /// `k_MAX_CACHED_ENTRIES` and `k_MAX_CACHED_BYTES`, and trimmed from the
+    /// front, the end being what is read.  The blobs alias the active file set
+    /// rather than copying it, so the bound is on how much of that set is
+    /// pinned; see `clearCache` for what that costs at close.
+    bsl::deque<EntryBlobSp> d_cache;
+
+    /// Index of `d_cache[0]`; meaningless while `d_cache` is empty.
+    bsls::Types::Uint64 d_cacheBase;
+
+    /// Total length of the blobs in `d_cache`.
+    bsls::Types::Uint64 d_cacheBytes;
 
     /// Count of appended writes at the front of `d_pendingWrites`.  Writes in
     /// [0, d_appendedCount) have been formatted and appended to the log,
@@ -117,6 +137,17 @@ class PartitionRaftLog : public RaftLog {
 
     /// Removals held back during a rollover window.
     bsl::vector<mqbs::DataStoreRecordHandle> d_deferredRemovals;
+
+    // PRIVATE MANIPULATORS
+
+    /// Retain the specified `blob` as the entry at the specified `index`, and
+    /// drop the oldest cached entries until the cache is back within its
+    /// bounds.  The behavior is undefined unless `index` is one past the
+    /// newest cached entry, or the cache is empty.
+    void cacheEntry(bsls::Types::Uint64 index, const EntryBlobSp& blob);
+
+    /// Drop cached entries at or above the specified `index`.
+    void dropCacheFrom(bsls::Types::Uint64 index);
 
     // NOT IMPLEMENTED
     PartitionRaftLog(const PartitionRaftLog&);
@@ -202,6 +233,13 @@ class PartitionRaftLog : public RaftLog {
     /// since their log entries survive and may still commit.
     void dropPendingWrites();
 
+    /// Drop every cached entry.  The cached blobs alias the active file set,
+    /// so the caller must invoke this before closing it: an alias that
+    /// outlives the close is released later by a deferred `FileStore::gc`, by
+    /// which time the dispatcher may be stopped.  `truncateFrom` and
+    /// `rollover` do this for themselves.
+    void clearCache();
+
     /// If the specified `handle` was reserved by a pending write currently in
     /// the buffer, invalidate its handle so application becomes a no-op.
     /// Otherwise the caller is responsible for removing it.  O(1) via position
@@ -217,10 +255,6 @@ class PartitionRaftLog : public RaftLog {
 
     /// Apply the removals held back by `deferRemoval`.
     void flushDeferredRemovals();
-
-    /// Release the single-entry cache.  Must be called after
-    /// processOutput() completes.
-    void clearCache();
 
     /// Perform a Raft-driven file rollover for the committed `e_ROLLOVER`
     /// entry at the specified `rolloverIndex`.  Because window writes NACK in
@@ -256,7 +290,9 @@ class PartitionRaftLog : public RaftLog {
     /// 'FileStore::readRecord()'.  Return 0 on success, non-zero on error.
     int entries(bsls::Types::Uint64    lo,
                 bsls::Types::Uint64    hi,
-                bsl::vector<LogEntry>* out) const BSLS_KEYWORD_OVERRIDE;
+                bsl::vector<LogEntry>* out,
+                bsls::Types::Uint64    maxCount,
+                bsls::Types::Uint64    maxBytes) const BSLS_KEYWORD_OVERRIDE;
 
     bsls::Types::Uint64 snapshotIndex() const BSLS_KEYWORD_OVERRIDE;
 

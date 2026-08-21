@@ -194,7 +194,7 @@ int CslRaftLog::rollover(bsl::shared_ptr<mqbsi::Log>*        oldLog,
     const bsls::Types::Uint64 oldLastIndex = lastIndex();
     bsl::vector<LogEntry>     tail(d_allocator_p);
     if (compactIndex < oldLastIndex) {
-        int rc = entries(compactIndex + 1, oldLastIndex + 1, &tail);
+        int rc = entries(compactIndex + 1, oldLastIndex + 1, &tail, 0, 0);
         if (rc != 0) {
             return rc;  // RETURN
         }
@@ -338,7 +338,9 @@ bsls::Types::Uint64 CslRaftLog::term(bsls::Types::Uint64 index) const
 
 int CslRaftLog::entries(bsls::Types::Uint64    lo,
                         bsls::Types::Uint64    hi,
-                        bsl::vector<LogEntry>* out) const
+                        bsl::vector<LogEntry>* out,
+                        bsls::Types::Uint64    maxCount,
+                        bsls::Types::Uint64    maxBytes) const
 {
     BSLS_ASSERT_SAFE(out);
 
@@ -347,6 +349,8 @@ int CslRaftLog::entries(bsls::Types::Uint64    lo,
     }
 
     out->clear();
+
+    bsls::Types::Uint64 bytes = 0;
 
     for (bsls::Types::Uint64 i = lo; i < hi; ++i) {
         bsls::Types::Uint64 vectorIdx = i - d_snapshotIndex - 1;
@@ -374,6 +378,14 @@ int CslRaftLog::entries(bsls::Types::Uint64    lo,
         out->push_back(LogEntry(d_index[static_cast<int>(vectorIdx)].d_term,
                                 i,
                                 entryBlob));
+        bytes += recSize;
+
+        // Checked after the append, so one entry is always loaded even when
+        // it alone exceeds a cap -- otherwise it could never be replicated.
+        if ((maxCount != 0 && out->size() >= maxCount) ||
+            (maxBytes != 0 && bytes >= maxBytes)) {
+            break;
+        }
     }
 
     return 0;

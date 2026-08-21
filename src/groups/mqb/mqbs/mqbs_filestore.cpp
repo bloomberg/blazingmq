@@ -6082,6 +6082,7 @@ FileStore::FileStore(
 , d_syncPoints(allocator)
 , d_storages(allocator)
 , d_storageMonitor_p(storageMonitor)
+, d_onFlush(bsl::allocator_arg, allocator)
 , d_isFSMWorkflow(isFSMWorkflow)
 , d_qListAware(!d_isFSMWorkflow || doesFSMwriteQLIST)
 , d_storageEventBuilder(FileStoreProtocol::k_VERSION,
@@ -7598,6 +7599,8 @@ int FileStore::writeFormattedRecord(const bdlbb::Blob&  data,
                      FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
     BSLS_ASSERT_SAFE(0 < d_fileSets.size());
 
+    enum { rc_SUCCESS = 0, rc_UNKNOWN_RECORD_TYPE = -1, rc_NO_CAPACITY = -2 };
+
     // This fills the physical metadata of 'info' (journal offset, data/qlist
     // offset, record type, handle) in place.  Its sequence number and primary
     // lease id are owned by the Raft layer and left untouched here.
@@ -7615,8 +7618,6 @@ int FileStore::writeFormattedRecord(const bdlbb::Blob&  data,
 
     MappedFileDescriptor& journal    = activeFileSet->d_journal.d_file;
     bsls::Types::Uint64&  journalPos = activeFileSet->d_journal.d_filePosition;
-
-    BSLS_ASSERT_SAFE(journal.fileSize() >= journalPos + k_JREC_SIZE);
 
     bmqu::BlobObjectProxy<RecordHeader> recHeader(&data,
                                                   true,    // read
@@ -7641,7 +7642,7 @@ int FileStore::writeFormattedRecord(const bdlbb::Blob&  data,
         BALL_LOG_ERROR << partitionDesc()
                        << "writeFormattedRecord: unknown record type "
                        << recHeader->type();
-        return -1;  // RETURN
+        return rc_UNKNOWN_RECORD_TYPE;  // RETURN
     }
 
     info->d_recordType = recHeader->type();
@@ -7665,6 +7666,51 @@ int FileStore::writeFormattedRecord(const bdlbb::Blob&  data,
     info->d_dataOffset  = activeFileSet->d_data.d_filePosition;
     info->d_qlistOffset = activeFileSet->d_qlist.d_filePosition;
 
+    // Every file is checked before anything is written: the payload lands
+    // before the journal record, so a late failure would leave it orphaned.
+    // A replica has no 'primaryRolloverNeed' gate -- it writes what it is
+    // sent.
+    const bool journalFull = journal.fileSize() < journalPos + k_JREC_SIZE;
+    const bool dataFull = hasData && activeFileSet->d_data.d_file.fileSize() <
+                                         activeFileSet->d_data.d_filePosition +
+                                             dataPayloadLen;
+    const bool qlistFull = needsQList &&
+                           activeFileSet->d_qlist.d_file.fileSize() <
+                               activeFileSet->d_qlist.d_filePosition +
+                                   dataPayloadLen;
+
+    // Offset 0 is the file header.  A write landing there destroys the magic
+    // and the file set is unrecoverable at the next restart, so refuse it
+    // here rather than let it reach the mapping.
+    if (journalPos == 0 ||
+        (hasData && activeFileSet->d_data.d_filePosition == 0) ||
+        (needsQList && activeFileSet->d_qlist.d_filePosition == 0)) {
+        BMQTSK_ALARMLOG_ALARM("FILE_IO")
+            << partitionDesc() << "Refusing to write a " << recHeader->type()
+            << " record over a file header (journal " << journalPos
+            << ", data " << activeFileSet->d_data.d_filePosition << ", qlist "
+            << activeFileSet->d_qlist.d_filePosition << ")."
+            << BMQTSK_ALARMLOG_END;
+        return rc_NO_CAPACITY;  // RETURN
+    }
+
+    if (journalFull || dataFull || qlistFull) {
+        activeFileSet->d_journalFileAvailable = false;
+
+        if (!activeFileSet->d_fileSetRolloverPolicyAlarm) {
+            activeFileSet->d_fileSetRolloverPolicyAlarm = true;
+
+            BMQTSK_ALARMLOG_PANIC("PARTITION_READONLY")
+                << partitionDesc() << "Cannot write a replicated "
+                << recHeader->type() << " record: "
+                << (journalFull ? "JOURNAL" : (dataFull ? "DATA" : "QLIST"))
+                << " file is full. Partition is now read-only."
+                << BMQTSK_ALARMLOG_END;
+        }
+
+        return rc_NO_CAPACITY;  // RETURN
+    }
+
     // Phase 1: type-specific data/qlist writes
     if (hasData) {
         BSLS_ASSERT_SAFE(dataPayloadLen > 0);
@@ -7673,8 +7719,6 @@ int FileStore::writeFormattedRecord(const bdlbb::Blob&  data,
         MappedFileDescriptor& dataFile = activeFileSet->d_data.d_file;
         bsls::Types::Uint64&  dataFilePos =
             activeFileSet->d_data.d_filePosition;
-
-        BSLS_ASSERT_SAFE(dataFile.fileSize() >= dataFilePos + dataPayloadLen);
 
         info->d_dataOffset = dataFilePos;
         bdlbb::BlobUtil::copy(dataFile.mapping() + dataFilePos,
@@ -7687,8 +7731,6 @@ int FileStore::writeFormattedRecord(const bdlbb::Blob&  data,
     if (needsQList) {
         MappedFileDescriptor& qlistFile = activeFileSet->d_qlist.d_file;
         bsls::Types::Uint64&  qlistPos = activeFileSet->d_qlist.d_filePosition;
-
-        BSLS_ASSERT_SAFE(qlistFile.fileSize() >= qlistPos + dataPayloadLen);
 
         info->d_qlistOffset = qlistPos;
         bdlbb::BlobUtil::copy(qlistFile.mapping() + qlistPos,
@@ -9547,6 +9589,15 @@ void FileStore::flush()
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(inDispatcherThread());
+
+    if (d_onFlush) {
+        d_onFlush();
+    }
+}
+
+void FileStore::setFlushCallback(const bsl::function<void()>& callback)
+{
+    d_onFlush = callback;
 }
 
 void FileStore::scheduledCleanupStorages()

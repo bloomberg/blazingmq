@@ -181,21 +181,45 @@ class RaftLog {
                        const bsl::shared_ptr<bdlbb::Blob>& data,
                        bsls::Types::Uint64                 id = 0) = 0;
 
+    /// Drop the entry at the specified `index` and everything after it.
+    /// Return 0 on success, non-zero if `index` is not in
+    /// `(snapshotIndex(), lastIndex()]`.
     virtual int truncateFrom(bsls::Types::Uint64 index) = 0;
 
     // ACCESSORS
+
+    /// Return the index of the last entry, or `snapshotIndex()` if the log
+    /// holds none.
     virtual bsls::Types::Uint64 lastIndex() const = 0;
 
+    /// Return the term of the last entry, or `snapshotTerm()` if the log holds
+    /// none.
     virtual bsls::Types::Uint64 lastTerm() const = 0;
 
+    /// Return the term of the entry at the specified `index`, `snapshotTerm()`
+    /// if `index` is `snapshotIndex()`, and 0 if `index` is 0 or outside
+    /// `[snapshotIndex(), lastIndex()]`.  A leader anchors an AppendEntries on
+    /// this, so it must answer for the snapshot boundary as well as for the
+    /// entries the log still holds.
     virtual bsls::Types::Uint64 term(bsls::Types::Uint64 index) const = 0;
 
+    /// Load into the specified `out` the entries in `[lo, hi)`, stopping
+    /// once they reach the specified `maxCount` or total the specified
+    /// `maxBytes`, whichever comes first; 0 means unlimited.  At least one
+    /// entry is always loaded, so a sender makes progress whatever the entry
+    /// size.  Return 0 on success.
     virtual int entries(bsls::Types::Uint64    lo,
                         bsls::Types::Uint64    hi,
-                        bsl::vector<LogEntry>* out) const = 0;
+                        bsl::vector<LogEntry>* out,
+                        bsls::Types::Uint64    maxCount,
+                        bsls::Types::Uint64    maxBytes) const = 0;
 
+    /// Return the highest index the log no longer holds individually: entries
+    /// at or below it have been compacted into a base snapshot.  0 if the log
+    /// has never been compacted, in which case it holds everything from 1.
     virtual bsls::Types::Uint64 snapshotIndex() const = 0;
 
+    /// Return the term of the entry at `snapshotIndex()`.
     virtual bsls::Types::Uint64 snapshotTerm() const = 0;
 };
 
@@ -216,6 +240,16 @@ struct RaftMessage {
     bsls::Types::Uint64 d_lastLogIndex;
     bsls::Types::Uint64 d_lastLogTerm;
     bool                d_preVote;
+
+    /// Destinations past the first, which is `d_destinationNodeId`.  Only an
+    /// `e_APPEND_ENTRIES` ever has any: a round collapses onto one message the
+    /// peers at the same `prevLogIndex`, which are owed identical bytes, so
+    /// the entries are read once and the event is built once.  Held apart from
+    /// `d_destinationNodeId` so the one-destination messages -- every response
+    /// and every vote -- still cost no allocation.  Use `destinationCount` and
+    /// `destination`; a sender that reads only `d_destinationNodeId` silently
+    /// drops peers.
+    bsl::vector<int> d_otherDestinations;
 
     // AppendEntries
     bsls::Types::Uint64   d_prevLogIndex;
@@ -239,6 +273,20 @@ struct RaftMessage {
     explicit RaftMessage(bslma::Allocator* allocator = 0);
 
     RaftMessage(const RaftMessage& other, bslma::Allocator* allocator = 0);
+
+    // MANIPULATORS
+
+    /// Also send this message to the peer with the specified `nodeId`.
+    void addDestination(int nodeId);
+
+    // ACCESSORS
+
+    /// Return the number of peers this message goes to; at least one.
+    size_t destinationCount() const;
+
+    /// Return the destination at the specified `index`.  The behavior is
+    /// undefined unless `index < destinationCount()`.
+    int destination(size_t index) const;
 };
 
 // ====================
@@ -261,6 +309,11 @@ struct RaftNodeConfig {
     int              d_heartbeatInterval;
     bool             d_preVote;
     bool             d_broadcastHeartbeatOnCommit;
+
+    /// Entries this node will send one peer past what that peer has acked,
+    /// before it stops sending to it.  See `k_MAX_UNACKED_ENTRIES`, its
+    /// default.
+    bsls::Types::Uint64 d_maxUnackedEntries;
 
     /// Identifier of the Raft group this node belongs to: a partition id for
     /// per-partition Raft, or `k_CSL_PARTITION_ID` for the cluster-state Raft.
@@ -323,6 +376,16 @@ class RaftNode {
     static const int                 k_INVALID_NODE_ID = -1;
     static const bsls::Types::Uint64 k_INVALID_TERM    = 0;
 
+    /// Maximum number of entries sent to one peer past what it has acked.
+    /// Sends are optimistic, so without a bound a peer that stops answering
+    /// would be streamed the log as fast as it is produced -- the channel
+    /// buffer is unbounded and neither blocks nor drops.  Derived from
+    /// `nextIndex - matchIndex - 1` rather than counted, so it cannot drift
+    /// out of step with the peer's real position.  Set to the ceiling the
+    /// previous four-messages-in-flight window allowed, so it bounds a stalled
+    /// peer without limiting a healthy one.
+    static const bsls::Types::Uint64 k_MAX_UNACKED_ENTRIES = 4 * 4096;
+
   private:
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("MQBRAFT.RAFTNODE");
@@ -373,16 +436,15 @@ class RaftNode {
         bool d_boundaryProbeRejected;
 
         /// True while this peer's match index is unknown: right after
-        /// becoming leader, and after a rejection.  Only one entry-carrying
-        /// AppendEntries is in flight while probing; once the peer accepts
-        /// one, replication opens up to `k_MAX_IN_FLIGHT`.
+        /// becoming leader, and after a rejection.  A probing peer is sent one
+        /// entry-carrying AppendEntries at a time, so a log that has forked is
+        /// not streamed entries it will discard while its rejection is still
+        /// in flight.
         bool d_probing;
 
-        /// Number of entry-carrying AppendEntries in flight to this peer.
-        /// The peer answers each one, so this counts down on response; a
-        /// response that acks everything sent zeroes it, which also recovers
-        /// the slot of a message the peer dropped without answering.
-        int d_inFlightCount;
+        /// True once an entry-carrying AppendEntries has gone to this peer
+        /// while `d_probing`, so the round skips it until the answer arrives.
+        bool d_probeSent;
 
         /// Ticks since `d_matchIndex` last advanced while sends were
         /// outstanding.  Past `d_electionTimeoutMin` the peer is presumed to
@@ -395,14 +457,43 @@ class RaftNode {
         bsls::Types::Uint64 d_sentCommit;
     };
 
-    /// Maximum number of entry-carrying AppendEntries in flight to one peer
-    /// while replicating.  Bounds the responses outstanding per round trip;
-    /// past it entries accumulate, so the next send carries them as one
-    /// batch and throughput stays unbounded.
-    static const int k_MAX_IN_FLIGHT = 4;
+    /// Entries appended since the last round, past which `propose` runs a
+    /// round rather than waiting for the caller to flush.  A dispatcher batch
+    /// is not bounded in time -- it runs until its queue drains -- and the
+    /// tick is far too coarse (100ms) to bound it.  Counted rather than sized
+    /// because the partition primary passes its payload through the pending
+    /// write, not through `propose`.
+    static const bsls::Types::Uint64 k_SEND_TRIGGER_ENTRIES = 64;
+
+    /// Caps on the entries one AppendEntries carries.  A peer catching up on
+    /// a long log is served over several messages rather than one: the count
+    /// bounds how long applying a single message holds the partition's
+    /// dispatcher, the byte total bounds what a message costs in memory when
+    /// the entries carry payloads.
+    static const bsls::Types::Uint64 k_MAX_ENTRIES_PER_MESSAGE     = 4096;
+    static const bsls::Types::Uint64 k_MAX_ENTRY_BYTES_PER_MESSAGE = 1024 *
+                                                                     1024;
 
     bsl::unordered_map<int, PeerState> d_peerStates;
     int                                d_heartbeatTicks;
+
+    /// Set by `tick` when the heartbeat interval elapses, consumed by
+    /// `flushSends`, which then sends to every peer rather than only those
+    /// owed entries or a commit advance.
+    bool d_heartbeatDue;
+
+    /// Entries appended since the last `flushSends`, against
+    /// `k_SEND_TRIGGER_ENTRIES`.
+    bsls::Types::Uint64 d_appendsSinceFlush;
+
+    /// Scratch, members so that the per-response path does not allocate.
+    /// `d_committedScratch` must be left empty at the end of every call that
+    /// fills it: a `LogEntry` holds a blob aliasing the partition's active
+    /// file set, and releasing such an alias schedules `FileStore::gc` on that
+    /// partition's dispatcher -- which, if it happens when this object is
+    /// destroyed, is after the dispatcher has stopped.
+    bsl::vector<bsls::Types::Uint64> d_matchIndices;
+    bsl::vector<LogEntry>            d_committedScratch;
 
     // Leadership transfer
     int d_transferTargetId;
@@ -449,15 +540,16 @@ class RaftNode {
     void handleInstallSnapshotResp(RaftNodeOutput*    output,
                                    const RaftMessage& msg);
 
-    void sendAppendEntries(RaftNodeOutput* output, int peerId);
-
-    void broadcastAppendEntries(RaftNodeOutput* output);
-
-    /// Publish the (just advanced) commit index to the peers that would
-    /// otherwise not hear it, i.e. those whose `d_sentCommit` is behind it.
-    /// A peer that just received, or is about to receive, entries learns the
-    /// new commit from that message instead.
-    void notifyCommit(RaftNodeOutput* output);
+    /// Append to the specified `output` what the peer with the specified
+    /// `peerId` is owed, or nothing if it is owed nothing or is barred from
+    /// receiving right now.  The specified `roundBegin` is where this round's
+    /// messages start in `output->d_messages`: a peer whose anchor matches one
+    /// of those is added to it as a further destination instead of drawing a
+    /// second identical message.
+    void sendAppendEntries(RaftNodeOutput*                     output,
+                           int                                 peerId,
+                           PeerState*                          peer,
+                           bsl::vector<RaftMessage>::size_type roundBegin);
 
     void advanceCommitIndex(RaftNodeOutput* output);
 
@@ -483,6 +575,15 @@ class RaftNode {
 
     /// Process the specified incoming 'message' from a peer.
     void step(RaftNodeOutput* output, const RaftMessage& message);
+
+    /// Append to the specified `output` the AppendEntries this leader owes its
+    /// peers, and nothing if not the leader.  This is where every
+    /// AppendEntries is produced: `propose`, `step` and `tick` only move peer
+    /// state, so a caller decides when a round runs -- `PartitionRaft` at the
+    /// dispatcher's flush, `ClusterStateRaft` on every event.  Peers at the
+    /// same anchor share one message, so their entries are read from the log
+    /// once and their event is built once.
+    void flushSends(RaftNodeOutput* output);
 
     /// Propose the specified 'data' as a new log entry.  The optionally
     /// specified 'id' is passed through to the log's 'append()' for primary
@@ -579,6 +680,7 @@ inline RaftMessage::RaftMessage(bslma::Allocator* allocator)
 , d_lastLogIndex(0)
 , d_lastLogTerm(0)
 , d_preVote(false)
+, d_otherDestinations(allocator)
 , d_prevLogIndex(0)
 , d_prevLogTerm(0)
 , d_leaderCommit(0)
@@ -598,6 +700,7 @@ inline RaftMessage::RaftMessage(const RaftMessage& other,
 , d_lastLogIndex(other.d_lastLogIndex)
 , d_lastLogTerm(other.d_lastLogTerm)
 , d_preVote(other.d_preVote)
+, d_otherDestinations(other.d_otherDestinations, allocator)
 , d_prevLogIndex(other.d_prevLogIndex)
 , d_prevLogTerm(other.d_prevLogTerm)
 , d_leaderCommit(other.d_leaderCommit)
@@ -606,6 +709,21 @@ inline RaftMessage::RaftMessage(const RaftMessage& other,
 , d_matchIndex(other.d_matchIndex)
 , d_rejectedIndex(other.d_rejectedIndex)
 {
+}
+
+inline void RaftMessage::addDestination(int nodeId)
+{
+    d_otherDestinations.push_back(nodeId);
+}
+
+inline size_t RaftMessage::destinationCount() const
+{
+    return 1 + d_otherDestinations.size();
+}
+
+inline int RaftMessage::destination(size_t index) const
+{
+    return index == 0 ? d_destinationNodeId : d_otherDestinations[index - 1];
 }
 
 // --------------------
@@ -621,6 +739,7 @@ inline RaftNodeConfig::RaftNodeConfig(int               partition,
 , d_heartbeatInterval(3)
 , d_preVote(true)
 , d_broadcastHeartbeatOnCommit(false)
+, d_maxUnackedEntries(RaftNode::k_MAX_UNACKED_ENTRIES)
 , d_partitionId(partition)
 {
 }
@@ -635,6 +754,7 @@ inline RaftNodeConfig::RaftNodeConfig(int  partition,
 , d_heartbeatInterval(3)
 , d_preVote(true)
 , d_broadcastHeartbeatOnCommit(broadcastHeartbeatOnCommit)
+, d_maxUnackedEntries(RaftNode::k_MAX_UNACKED_ENTRIES)
 , d_partitionId(partition)
 {
 }
@@ -648,6 +768,7 @@ inline RaftNodeConfig::RaftNodeConfig(const RaftNodeConfig& other,
 , d_heartbeatInterval(other.d_heartbeatInterval)
 , d_preVote(other.d_preVote)
 , d_broadcastHeartbeatOnCommit(other.d_broadcastHeartbeatOnCommit)
+, d_maxUnackedEntries(other.d_maxUnackedEntries)
 , d_partitionId(other.d_partitionId)
 {
 }

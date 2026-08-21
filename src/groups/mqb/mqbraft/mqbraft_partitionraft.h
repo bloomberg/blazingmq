@@ -53,6 +53,7 @@
 #include <bdlmt_eventscheduler.h>
 #include <bsl_deque.h>
 #include <bsl_functional.h>
+#include <bsl_unordered_map.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
 #include <bslma_usesbslmaallocator.h>
@@ -119,6 +120,9 @@ class PartitionRaft : public mqbs::RecordStore {
     bool              d_isStarted;
     bslma::Allocator* d_allocator_p;
 
+    /// Nodes resolved by `peerNode`, so a linked-list walk is not repeated.
+    bsl::unordered_map<int, mqbnet::ClusterNode*> d_peerNodes;
+
     // Snapshot transfer state (receiver side)
     bool                d_receivingSnapshot;
     int                 d_snapshotJournalFd;
@@ -160,9 +164,28 @@ class PartitionRaft : public mqbs::RecordStore {
     /// THREAD: Executed by this partition's dispatcher thread.
     void updateCanShutdown();
 
+    /// Return the node with the specified `nodeId`, or 0 if there is none.
+    /// `mqbnet::Cluster::lookupNode` walks a linked list, so its result is
+    /// resolved once per node and held: the sends of one round would otherwise
+    /// walk it once per peer.  Membership is fixed after construction, so a
+    /// held pointer stays valid; a node added later resolves on first use, but
+    /// node *removal*, if it is ever implemented, has to clear this.
+    mqbnet::ClusterNode* peerNode(int nodeId);
+
+    /// Send every message in the specified `output`.
+    void dispatchMessages(RaftNodeOutput* output);
+
     /// Dispatch RaftNode output: send messages to peers and notify FileStore
     /// of committed entries.
     void dispatchOutput(RaftNodeOutput* output);
+
+    /// Run a Raft send round.  Installed on the `FileStore` as its flush
+    /// callback, so the dispatcher calls this once it has drained this
+    /// partition's queue: a batch of proposals and responses then produces one
+    /// round instead of a send per event, and the peers it serves come out of
+    /// it at the same log position, so the next round can send them one shared
+    /// message.
+    void flush();
 
     /// Propose a sync-point log entry under the current term.  Called once
     /// upon becoming leader: per Raft \S5.4.2, a leader cannot advance
