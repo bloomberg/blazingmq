@@ -168,7 +168,6 @@ RaftNode::RaftNode(const RaftNodeConfig& config,
 , d_heartbeatDue(false)
 , d_appendsSinceFlush(0)
 , d_matchIndices(allocator)
-, d_committedScratch(allocator)
 , d_transferTargetId(k_INVALID_NODE_ID)
 , d_electionMode(ElectionMode::e_NORMAL)
 , d_allocator_p(bslma::Default::allocator(allocator))
@@ -543,28 +542,7 @@ void RaftNode::handleAppendEntries(RaftNodeOutput*    output,
         bsls::Types::Uint64 newCommit = bsl::min(msg.d_leaderCommit,
                                                  lastIndex);
         if (newCommit > d_commitIndex) {
-            d_commitIndex = newCommit;
-
-            d_committedScratch.clear();
-            if (d_lastApplied < d_commitIndex) {
-                d_log_p->entries(d_lastApplied + 1,
-                                 d_commitIndex + 1,
-                                 &d_committedScratch,
-                                 0,   // maxCount: apply everything committed
-                                 0);  // maxBytes
-                d_lastApplied = d_commitIndex;
-            }
-            output->d_committed.reserve(output->d_committed.size() +
-                                        d_committedScratch.size());
-            for (bsl::vector<LogEntry>::size_type j = 0;
-                 j < d_committedScratch.size();
-                 ++j) {
-                output->d_committed.push_back(d_committedScratch[j]);
-            }
-
-            // See 'advanceCommitIndex': these blobs alias the file set and
-            // must not be held past the call.
-            d_committedScratch.clear();
+            commitTo(output, newCommit);
         }
     }
 
@@ -654,6 +632,14 @@ void RaftNode::handleAppendEntriesResp(RaftNodeOutput*    output,
         // back at 'snapshotIndex').
         if (msg.d_matchIndex < d_log_p->snapshotIndex()) {
             it->second.d_boundaryProbeRejected = true;
+        }
+
+        // The peer reports what it actually holds, which a wipe or truncation
+        // can put below what it once acked.  Lowering it keeps
+        // 'advanceCommitIndex' from counting entries this peer no longer has
+        // toward a quorum.
+        if (msg.d_matchIndex < it->second.d_matchIndex) {
+            it->second.d_matchIndex = msg.d_matchIndex;
         }
 
         // Resume from the peer's own last index rather than stepping down one
@@ -837,7 +823,10 @@ void RaftNode::sendAppendEntries(
     // acked.  Stop once too much is outstanding: a peer that has stopped
     // answering would otherwise be queued the log as fast as it is produced,
     // and the channel buffer neither blocks nor drops.
-    if (nextIdx - peer->d_matchIndex - 1 > d_config.d_maxUnackedEntries) {
+    // Added, not subtracted: a rejection can leave 'nextIndex' below
+    // 'matchIndex', and the difference would wrap to a huge unsigned value
+    // that suppresses this peer for good.
+    if (nextIdx > peer->d_matchIndex + 1 + d_config.d_maxUnackedEntries) {
         return;  // RETURN
     }
 
@@ -953,6 +942,32 @@ void RaftNode::sendAppendEntries(
     }
 }
 
+void RaftNode::commitTo(RaftNodeOutput* output, bsls::Types::Uint64 newCommit)
+{
+    BSLS_ASSERT_SAFE(output);
+    BSLS_ASSERT_SAFE(newCommit > d_commitIndex);
+    BSLS_ASSERT_SAFE(newCommit <= d_log_p->lastIndex());
+
+    d_commitIndex = newCommit;
+
+    if (d_lastApplied >= d_commitIndex) {
+        return;  // RETURN
+    }
+
+    const bsl::vector<LogEntry>::size_type before = output->d_committed.size();
+    output->d_committed.reserve(before + d_commitIndex - d_lastApplied);
+
+    d_log_p->entries(d_lastApplied + 1,
+                     d_commitIndex + 1,
+                     &output->d_committed,
+                     0,   // maxCount: apply everything committed
+                     0);  // maxBytes
+
+    // An unreadable entry cuts the range short; the ones past it stay
+    // unapplied and are retried on the next commit.
+    d_lastApplied += output->d_committed.size() - before;
+}
+
 void RaftNode::advanceCommitIndex(RaftNodeOutput* output)
 {
     BSLS_ASSERT_SAFE(output);
@@ -982,29 +997,7 @@ void RaftNode::advanceCommitIndex(RaftNodeOutput* output)
 
         // Raft §5.4.2: a leader only commits an entry from its own term.
         if (commitTerm == d_currentTerm) {
-            d_commitIndex = newCommit;
-
-            d_committedScratch.clear();
-            if (d_lastApplied < d_commitIndex) {
-                d_log_p->entries(d_lastApplied + 1,
-                                 d_commitIndex + 1,
-                                 &d_committedScratch,
-                                 0,   // maxCount: apply everything committed
-                                 0);  // maxBytes
-                d_lastApplied = d_commitIndex;
-            }
-            for (bsl::vector<LogEntry>::size_type i = 0;
-                 i < d_committedScratch.size();
-                 ++i) {
-                output->d_committed.push_back(d_committedScratch[i]);
-            }
-
-            // Release the entries now.  Their blobs alias the active file set,
-            // and dropping such an alias schedules 'FileStore::gc' on the
-            // partition's dispatcher; held until this object is destroyed,
-            // that dispatch would happen after the dispatcher has stopped.
-            // 'clear' keeps the capacity, which is the point of the buffer.
-            d_committedScratch.clear();
+            commitTo(output, newCommit);
 
             // The peers this advance leaves behind learn the new commit index
             // from the next round, which the caller runs as soon as it is done
@@ -1150,8 +1143,7 @@ void RaftNode::step(RaftNodeOutput* output, const RaftMessage& message)
 }
 
 int RaftNode::propose(RaftNodeOutput*                     output,
-                      const bsl::shared_ptr<bdlbb::Blob>& data,
-                      bsls::Types::Uint64                 id)
+                      const bsl::shared_ptr<bdlbb::Blob>& data)
 {
     BSLS_ASSERT_SAFE(output);
 
@@ -1159,11 +1151,11 @@ int RaftNode::propose(RaftNodeOutput*                     output,
         BALL_LOG_INFO << "[partition " << d_config.d_partitionId << "] Node "
                       << d_config.d_selfId << " [term " << d_currentTerm
                       << "] PROPOSE rejected: not leader (state=" << d_state
-                      << "), id=" << id;
+                      << ")";
         return -1;
     }
 
-    int rc = d_log_p->append(d_currentTerm, data, id);
+    int rc = d_log_p->append(d_currentTerm, data);
     if (rc != 0) {
         // The log refused the entry (e.g. 'format*Record' failed because the
         // active file set is out of space or unavailable).  Do NOT proceed to
@@ -1172,17 +1164,18 @@ int RaftNode::propose(RaftNodeOutput*                     output,
         // never commits, so any state keyed on it would deadlock).
         BALL_LOG_ERROR << "[partition " << d_config.d_partitionId << "] Node "
                        << d_config.d_selfId << " [term " << d_currentTerm
-                       << "] PROPOSE id=" << id
-                       << " FAILED to append to log, rc=" << rc
+                       << "] PROPOSE FAILED to append to log, rc=" << rc
                        << " (lastIndex=" << d_log_p->lastIndex() << ")";
         return rc;  // RETURN
     }
 
-    // Advance the commit index (leader-guarded above).  In a single-node
-    // cluster this commits the just-appended entry synchronously via
-    // self-quorum; in a multi-node cluster it is a no-op here because peers'
-    // matchIndex has not yet advanced.
-    advanceCommitIndex(output);
+    // A lone node is its own quorum, so the entry just appended is committed
+    // here.  With peers there is nothing to compute: the leader's index is the
+    // largest in the match set and the quorum order statistic never sits at
+    // the largest, so an append alone cannot move the commit index.
+    if (d_peerStates.empty()) {
+        commitTo(output, d_log_p->lastIndex());
+    }
 
     // Peers are served by the round the caller runs once it is done with the
     // batch this proposal belongs to -- unless enough has piled up that

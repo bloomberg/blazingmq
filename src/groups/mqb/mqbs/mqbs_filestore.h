@@ -156,7 +156,6 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// 'formatMessageRecord'.
     struct PendingWrite {
         // INPUT — common
-        bsls::Types::Uint64 d_id;
         RecordType::Enum    d_recordType;
         SyncPointType::Enum d_syncPointType;  // e_JOURNAL_OP only
         bsls::Types::Uint64 d_primaryLeaseId;
@@ -172,8 +171,11 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
         bsl::shared_ptr<bdlbb::Blob> d_options;
 
         // INPUT — e_QUEUE_OP (creation)
-        bmqt::Uri           d_queueUri;
-        const AppInfos*     d_appIdKeyPairs_p;
+        bmqt::Uri d_queueUri;
+
+        /// Owned, not borrowed: a write buffered during a rollover window is
+        /// formatted at drain, long after the caller's copy is gone.
+        AppInfos            d_appIdKeyPairs;
         bsls::Types::Uint64 d_timestamp;
         bool                d_isNewQueue;
 
@@ -204,7 +206,7 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
         /// Queue creation record constructor.
         PendingWrite(const bmqt::Uri&        queueUri,
                      const mqbu::StorageKey& queueKey,
-                     const AppInfos*         appIdKeyPairs,
+                     const AppInfos&         appIdKeyPairs,
                      bsls::Types::Uint64     timestamp,
                      bool                    isNewQueue);
 
@@ -1024,10 +1026,13 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     /// Read the record at the specified 'journalOffset' (and any
     /// associated data payload) into the specified 'out' blob using
-    /// zero-copy aliased BlobBuffers from the mmap'd files.  Return 0 on
-    /// success, non-zero on error.
+    /// zero-copy aliased BlobBuffers from the mmap'd files.  Load the
+    /// record's primary lease id into the optionally specified 'term', read
+    /// off the header this already maps.  Return 0 on success, non-zero on
+    /// error.
     int readRecord(bsl::shared_ptr<bdlbb::Blob>* out,
-                   bsls::Types::Uint64           journalOffset) const;
+                   bsls::Types::Uint64           journalOffset,
+                   bsls::Types::Uint64*          term = 0) const;
 
     /// Truncate the journal file at the specified 'offset'.  Return 0 on
     /// success, non-zero on error.
@@ -1087,7 +1092,7 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     /// Raft primary path: write a queue creation record (journal + qlist)
     /// directly to mmap using the input fields of the specified 'pw'
-    /// (d_queueUri, d_queueKey, d_appIdKeyPairs_p, d_timestamp,
+    /// (d_queueUri, d_queueKey, d_appIdKeyPairs, d_timestamp,
     /// d_isNewQueue).  Fills 'pw->d_journalOffset', 'pw->d_entryBlob'
     /// (journal record + qlist bytes), and 'pw->d_handle'.
     int formatQueueCreationRecord(PendingWrite* pw);
@@ -1235,6 +1240,16 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// `e_ROLLOVER` record's own timestamp.)
     bsls::Types::Uint64
     journalOpTimestampAt(bsls::Types::Uint64 journalOffset) const;
+
+    /// Return the primary lease id (the Raft term) of the record at the
+    /// specified `journalOffset` in the current active file set's journal.
+    /// Lets `PartitionRaftLog` answer `term()` from the record itself rather
+    /// than from a per-record in-memory index.
+    bsls::Types::Uint64 recordTermAt(bsls::Types::Uint64 journalOffset) const;
+
+    /// Return the journal write position of the current active file set, i.e.
+    /// the offset the next appended record will occupy.
+    bsls::Types::Uint64 journalPosition() const;
 
     /// Return the rollover requirement of the active (front) file set for a
     /// write that will consume the specified additional `dataBytes` and

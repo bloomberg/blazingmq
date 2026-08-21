@@ -20,6 +20,9 @@
 #include <mqbs_filestore.h>
 #include <mqbstat_statmonitorsnapshotrecorder.h>
 
+// BMQ
+#include <bmqtsk_alarmlog.h>
+
 // BDE
 #include <ball_log.h>
 #include <bdlbb_blob.h>
@@ -36,6 +39,10 @@ namespace {
 /// unbounded memory growth if commit is pathologically delayed, at which
 /// point excess writes are NACK-ed as in phase 1.
 const bsl::size_t k_MAX_PENDING_WRITES = 4096;
+
+/// `append` failure code: the journal is no longer where the offset anchor
+/// says it is, so nothing was written.
+const int rc_BAD_OFFSET_ANCHOR = -100;
 
 }  // close unnamed namespace
 
@@ -54,7 +61,11 @@ PartitionRaftLog::PartitionRaftLog(mqbs::FileStore*  fileStore,
 , d_recoveredLastIndex(0)
 , d_pendingWrites(d_allocator_p)
 , d_cache(allocator)
+, d_frontIndex(1)
+, d_firstRecordIndex(0)
+, d_firstRecordOffset(0)
 , d_cacheBase(0)
+, d_cacheTerm(0)
 , d_cacheBytes(0)
 , d_appendedCount(0)
 , d_deferredRemovals(d_allocator_p)
@@ -91,11 +102,25 @@ int PartitionRaftLog::open()
     // it a second time.
     d_recoveredLastIndex = lastIndex();
 
+    d_frontIndex = d_snapshotIndex + 1;
+
+    // Anchor the offset arithmetic on the first record of this file set.
+    d_firstRecordIndex  = d_snapshotIndex + 1;
+    d_firstRecordOffset = d_index.empty() ? d_fileStore_p->journalPosition()
+                                          : d_index.front().d_journalOffset;
+
     BALL_LOG_INFO << "PartitionRaftLog::open: recovered " << d_index.size()
                   << " entries, snapshotIndex=" << d_snapshotIndex
                   << ", snapshotTerm=" << d_snapshotTerm
                   << ", lastIndex=" << lastIndex()
-                  << ", lastTerm=" << lastTerm();
+                  << ", lastTerm=" << lastTerm()
+                  << ", firstRecordIndex=" << d_firstRecordIndex
+                  << ", firstRecordOffset=" << d_firstRecordOffset
+                  << ", journalPosition=" << d_fileStore_p->journalPosition()
+                  << ", frontOffset="
+                  << (d_index.empty() ? 0 : d_index.front().d_journalOffset)
+                  << ", backOffset="
+                  << (d_index.empty() ? 0 : d_index.back().d_journalOffset);
 
     d_appendedCount = 0;
     return 0;
@@ -147,27 +172,25 @@ int PartitionRaftLog::bufferPendingWrite(
                                             pw->d_recordType);
     }
 
-    // Deep-copy the borrowed attributes into the pooled entry and repoint its
-    // pointer at the owned copy: 'd_attributes_p' is only valid for the
-    // duration of the synchronous write call, but the buffered entry outlives
-    // it (until drain).  The object is stable (shared, never copied out of the
-    // deque), so this is done once, before the push_back -- no post-push
-    // repoint dance is needed.
-    if (pw->d_recordType == mqbs::RecordType::e_MESSAGE) {
-    }
-
     d_pendingWrites.push_back(pw);
 
     return rc_SUCCESS;
 }
 
-void PartitionRaftLog::takePendingWrites(
-    bsl::deque<bsl::shared_ptr<PendingWrite> >* out)
+void PartitionRaftLog::takePendingWrites(PendingWrites* out)
 {
     BSLS_ASSERT_SAFE(out);
+
+    // Every write handed over must still be unappended, since the caller
+    // re-proposes each one: an appended write here would be appended a second
+    // time.  Both rollover shapes leave nothing appended by the time the drain
+    // runs -- 'rollover' pops the 'e_ROLLOVER' this node proposed itself, and
+    // an inherited one can only commit under a current-term entry above it,
+    // which the apply loop pops before the drain.
+    BSLS_ASSERT_SAFE(0 == d_appendedCount);
+
     // 'swap' is O(1) and hands over the shared_ptrs, so the pooled objects
-    // (and their 'd_attributes_p'->'d_ownedAttributes' self-pointers) stay
-    // valid.
+    // stay valid.
     out->swap(d_pendingWrites);
     d_appendedCount = 0;
 }
@@ -208,36 +231,57 @@ void PartitionRaftLog::flushDeferredRemovals()
     d_deferredRemovals.clear();
 }
 
-void PartitionRaftLog::dropPendingWrites()
+void PartitionRaftLog::dropBufferedWrites()
 {
     // Before anything erases records: a stale deferred handle is an iterator
     // into 'd_records'.
     flushDeferredRemovals();
+
+    if (d_appendedCount == d_pendingWrites.size()) {
+        return;  // RETURN
+    }
+
+    BALL_LOG_WARN << "PartitionRaftLog: dropping "
+                  << (d_pendingWrites.size() - d_appendedCount)
+                  << " buffered write(s) (no longer leader, or shutting "
+                  << "down).";
+
+    // These were buffered for a rollover that never drained: their
+    // placeholders belong to no log entry and carry offset 0, so nothing else
+    // would reclaim them.
+    while (d_appendedCount < d_pendingWrites.size()) {
+        const bsl::shared_ptr<PendingWrite>& sp = d_pendingWrites.back();
+        if (sp->d_handle.isValid()) {
+            d_fileStore_p->dropPendingRecord(sp->d_handle);
+        }
+        d_pendingWrites.pop_back();
+    }
+}
+
+void PartitionRaftLog::dropAppendedWritesFrom(bsls::Types::Uint64 index)
+{
+    BSLS_ASSERT_SAFE(d_appendedCount == d_pendingWrites.size());
+
+    while (0 < d_appendedCount &&
+           d_pendingWrites.back()->d_sequenceNumber >= index) {
+        d_pendingWrites.pop_back();
+        d_appendedCount--;
+    }
+}
+
+void PartitionRaftLog::dropPendingWrites()
+{
+    dropBufferedWrites();
 
     if (d_pendingWrites.empty()) {
         return;  // RETURN
     }
 
     BALL_LOG_WARN << "PartitionRaftLog: dropping " << d_pendingWrites.size()
-                  << " buffered write(s) (no longer leader, or shutting "
-                  << "down).";
+                  << " appended write(s) (shutting down).";
 
-    // Writes below 'd_appendedCount' are real log entries; 'd_index' holds a
-    // handle to each record and the entry can still commit, so their records
-    // stay ('truncateFrom' erases them by journal offset if a new leader
-    // overwrites the entries).  The rest were buffered for a rollover that
-    // never drained: their placeholders belong to no log entry and carry
-    // offset 0, so nothing else would reclaim them.
-    for (bsl::deque<bsl::shared_ptr<PendingWrite> >::size_type i =
-             d_appendedCount;
-         i < d_pendingWrites.size();
-         ++i) {
-        const bsl::shared_ptr<PendingWrite>& sp = d_pendingWrites[i];
-        if (sp->d_handle.isValid()) {
-            d_fileStore_p->dropPendingRecord(sp->d_handle);
-        }
-    }
-
+    // Their records stay: each is a real log entry, and 'd_index' holds a
+    // handle to it.
     d_pendingWrites.clear();
     d_appendedCount = 0;
 }
@@ -254,24 +298,31 @@ void PartitionRaftLog::invalidatePendingWriteHandle(
         return;  // RETURN (already removed or never buffered)
     }
 
-    // Handle claims a future index beyond the buffer — bug if true.
-    BSLS_ASSERT_SAFE(handle.sequenceNum() <
-                     firstSeqNum + d_pendingWrites.size());
+    if (handle.sequenceNum() >= firstSeqNum + d_pendingWrites.size()) {
+        // Past the buffer: a record the new leader appended after this node's
+        // own writes, which outlive its leadership until they commit.
+        return;  // RETURN
+    }
 
     bsls::Types::Uint64 pos        = handle.sequenceNum() - firstSeqNum;
     d_pendingWrites[pos]->d_handle = mqbs::DataStoreRecordHandle();
 }
 
 int PartitionRaftLog::append(bsls::Types::Uint64                 term,
-                             const bsl::shared_ptr<bdlbb::Blob>& data,
-                             bsls::Types::Uint64                 id)
+                             const bsl::shared_ptr<bdlbb::Blob>& data)
 {
-    if (id != 0) {
+    // Both write paths append at the journal's current position, so the anchor
+    // can be checked before anything is written.
+    if (0 != verifyJournalOffset(lastIndex() + 1,
+                                 d_fileStore_p->journalPosition())) {
+        return rc_BAD_OFFSET_ANCHOR;  // RETURN
+    }
+
+    if (!data) {
         // Primary path: format directly in mmap via PendingWrite.
         BSLS_ASSERT_SAFE(!d_pendingWrites.empty());
         BSLS_ASSERT_SAFE(d_appendedCount < d_pendingWrites.size());
         PendingWrite& pw = *d_pendingWrites[d_appendedCount];
-        BSLS_ASSERT_SAFE(id == pw.d_id);
 
         pw.d_primaryLeaseId = term;
         pw.d_sequenceNumber = lastIndex() + 1;
@@ -312,8 +363,8 @@ int PartitionRaftLog::append(bsls::Types::Uint64                 term,
             BALL_LOG_ERROR << "PartitionRaftLog: failed to format primary "
                            << "record (recordType=" << pw.d_recordType
                            << ", syncPointType=" << pw.d_syncPointType
-                           << ") for id=" << id << " at index "
-                           << pw.d_sequenceNumber << ", rc=" << rc;
+                           << ") at index " << pw.d_sequenceNumber
+                           << ", rc=" << rc;
             return rc;
         }
 
@@ -325,10 +376,6 @@ int PartitionRaftLog::append(bsls::Types::Uint64                 term,
                                     pw.d_handle,
                                     pw.d_syncPointType));
 
-        // Retain the entry blob so 'entries()' can serve it to peers without
-        // re-reading mmap.  Only the blob is held, not the pending write, so
-        // the write returns to its pool as usual.
-        cacheEntry(pw.d_sequenceNumber, pw.d_entryBlob);
         d_appendedCount++;
         return 0;
     }
@@ -356,13 +403,14 @@ int PartitionRaftLog::append(bsls::Types::Uint64                 term,
     info.d_primaryLeaseId = term;
     d_index.push_back(info);
 
-    // Deliberately NOT cached.  'writeFormattedRecord' patches the journal
-    // record it just wrote -- message offset, file key, qlist offset -- to
-    // this node's own file positions, which are not the leader's.  So 'data'
-    // is not what 'readRecord' returns for this index, and serving it to the
-    // apply path would hand it the leader's offsets.  Drop anything held from
-    // a prior leader stint.
-    clearCache();
+    // Cached, so the commit that follows applies these bytes rather than
+    // reading back what was just written.  'data' is self-consistent: its
+    // offsets describe the leader's files and the payload it carries, as the
+    // record written above describes this node's.  Neither reader needs this
+    // node's -- apply locates the record through its handle, and a peer served
+    // this entry frames it by the fields it arrives with.  A term change or a
+    // gap restarts the window, dropping a prior leader stint.
+    cacheEntry(lastIndex(), term, data);
 
     // The physical rollover for an appended 'e_ROLLOVER' now happens via the
     // apply hook ('applyCommittedEntryAsReplica') when it commits, not eagerly
@@ -376,20 +424,24 @@ int PartitionRaftLog::truncateFrom(bsls::Types::Uint64 index)
     // 'truncateFrom' is only ever invoked from 'RaftNode::handleAppendEntries'
     // when this node's own logged suffix conflicts with the (new) leader's.
     // If this node was itself leader until this very same message, its
-    // still-buffered 'd_pendingWrites' reference 'd_records' entries, some of
+    // still-tracked 'd_pendingWrites' reference 'd_records' entries, some of
     // which 'd_fileStore_p->truncateRecords()' erases below.  Stop tracking
-    // them here, first, so nothing holds a handle to an erased record.
-    dropPendingWrites();
+    // those here, first, so nothing holds a handle to an erased record.  The
+    // writes below 'index' keep their records and their provenance: their
+    // entries survive this truncation and can still commit.
+    dropBufferedWrites();
 
     if (index <= d_snapshotIndex || index > lastIndex()) {
         return -1;
     }
 
+    dropAppendedWritesFrom(index);
+
     // Each entry caches the data- and qlist-file positions as of that entry,
     // so the first truncated entry already carries the exact offsets to roll
     // both files back to -- even when it carries no payload of its own (its
     // offsets then point at the next payload / file end).  No scan needed.
-    bsls::Types::Uint64 vectorIdx     = index - d_snapshotIndex - 1;
+    bsls::Types::Uint64 vectorIdx     = index - d_frontIndex;
     bsls::Types::Uint64 journalOffset = d_index[vectorIdx].d_journalOffset;
     bsls::Types::Uint64 dataOffset    = d_index[vectorIdx].d_dataOffset;
     bsls::Types::Uint64 qlistOffset   = d_index[vectorIdx].d_qlistOffset;
@@ -400,6 +452,10 @@ int PartitionRaftLog::truncateFrom(bsls::Types::Uint64 index)
                   << ", dataOffset=" << dataOffset
                   << ", qlistOffset=" << qlistOffset << "). Removing "
                   << (d_index.size() - vectorIdx) << " entries.";
+
+    // Before the files are touched: 'truncateJournal' zeroes the removed
+    // range, so a cached blob left aliasing it would read as zeros.
+    dropCacheFrom(index);
 
     d_fileStore_p->truncateRecords(journalOffset);
 
@@ -424,12 +480,11 @@ int PartitionRaftLog::truncateFrom(bsls::Types::Uint64 index)
 
     d_index.erase(d_index.begin() + vectorIdx, d_index.end());
 
-    dropCacheFrom(index);
-
     return 0;
 }
 
 void PartitionRaftLog::cacheEntry(bsls::Types::Uint64 index,
+                                  bsls::Types::Uint64 term,
                                   const EntryBlobSp&  blob)
 {
     if (!blob) {
@@ -439,15 +494,15 @@ void PartitionRaftLog::cacheEntry(bsls::Types::Uint64 index,
         return;  // RETURN
     }
 
-    if (!d_cache.empty() && index != d_cacheBase + d_cache.size()) {
-        // The window has to stay contiguous for the index arithmetic in
-        // 'entries()' to hold.  Restart it here rather than assert: the
-        // assertion is compiled out in an optimized build, where the
-        // arithmetic would then serve the blob of some other index.
+    if (!d_cache.empty() &&
+        (index != d_cacheBase + d_cache.size() || term != d_cacheTerm)) {
+        // The window has to stay contiguous, and single-term, for what
+        // 'entries()' reads off it to hold.  Restart it rather than assert.
         clearCache();
     }
     if (d_cache.empty()) {
         d_cacheBase = index;
+        d_cacheTerm = term;
     }
 
     d_cache.push_back(blob);
@@ -477,10 +532,70 @@ void PartitionRaftLog::dropCacheFrom(bsls::Types::Uint64 index)
     }
 }
 
+void PartitionRaftLog::dropCacheThrough(bsls::Types::Uint64 index)
+{
+    while (!d_cache.empty() && d_cacheBase < index) {
+        d_cacheBytes -= d_cache.front()->length();
+        d_cache.pop_front();
+        ++d_cacheBase;
+    }
+}
+
+bsls::Types::Uint64
+PartitionRaftLog::journalOffsetAt(bsls::Types::Uint64 index) const
+{
+    BSLS_ASSERT_SAFE(index > d_snapshotIndex && index <= lastIndex());
+    BSLS_ASSERT_SAFE(index >= d_firstRecordIndex);
+
+    return expectedJournalOffset(index);
+}
+
+bsls::Types::Uint64
+PartitionRaftLog::expectedJournalOffset(bsls::Types::Uint64 index) const
+{
+    return d_firstRecordOffset +
+           (index - d_firstRecordIndex) *
+               mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+}
+
+int PartitionRaftLog::verifyJournalOffset(bsls::Types::Uint64 index,
+                                          bsls::Types::Uint64 actualOffset)
+{
+    const bsls::Types::Uint64 expected = expectedJournalOffset(index);
+    if (expected == actualOffset) {
+        return 0;  // RETURN
+    }
+
+    // Every offset derived from here on would read a neighbouring record, so
+    // stop instead of writing on: mirrors the rollover-failure behavior.
+    BMQTSK_ALARMLOG_PANIC("PARTITION_OFFSET_ANCHOR")
+        << d_fileStore_p->partitionDesc() << "Journal record at index "
+        << index << " landed at offset " << actualOffset << ", expected "
+        << expected << " [firstRecordIndex: " << d_firstRecordIndex
+        << ", firstRecordOffset: " << d_firstRecordOffset
+        << ", frontIndex: " << d_frontIndex
+        << ", indexSize: " << d_index.size()
+        << ", snapshotIndex: " << d_snapshotIndex
+        << ", journalPosition: " << d_fileStore_p->journalPosition()
+        << "]. Partition left unavailable." << BMQTSK_ALARMLOG_END;
+
+    d_fileStore_p->setAvailabilityStatus(false);
+    return -1;
+}
+
+void PartitionRaftLog::trimFrontThrough(bsls::Types::Uint64 index)
+{
+    while (!d_index.empty() && d_frontIndex <= index) {
+        d_index.pop_front();
+        ++d_frontIndex;
+    }
+}
+
 void PartitionRaftLog::clearCache()
 {
     d_cache.clear();
     d_cacheBase  = 0;
+    d_cacheTerm  = 0;
     d_cacheBytes = 0;
 }
 
@@ -491,13 +606,13 @@ void PartitionRaftLog::rollover(bsls::Types::Uint64 rolloverIndex)
 
     // Number of 'd_index' entries up to and including 'e_ROLLOVER'.  Normally
     // 'e_ROLLOVER' is the last log entry (window writes buffer behind it), but
-    // a leadership change can leave a tail after it: a new leader must keep
+    // a leadership change can leave entries after it: a new leader must keep
     // the inherited, still-uncommitted 'e_ROLLOVER' and commit it via a
     // current-term entry appended above it (the become-leader sync point).
     // Leader-side rollover-pending buffering (see
-    // 'PartitionRaft::proposeDeferredSyncPoint') bounds that tail to
-    // journal-op sync points, which are rewritten into the new file below.
-    const bsls::Types::Uint64 prefixCount = rolloverIndex - d_snapshotIndex;
+    // 'PartitionRaft::proposeDeferredSyncPoint') bounds those to journal-op
+    // sync points, which are rewritten into the new file below.
+    const bsls::Types::Uint64 prefixCount = rolloverIndex - d_frontIndex + 1;
     BSLS_ASSERT_SAFE(prefixCount >= 1 && prefixCount <= d_index.size());
 
     // The 'e_ROLLOVER' log entry.  Capture its old-file journal offset (for
@@ -552,13 +667,13 @@ void PartitionRaftLog::rollover(bsls::Types::Uint64 rolloverIndex)
                                                     eRolloverOldOffset,
                                                     timestamp);
 
-    // Rewrite the tail -- log entries above 'e_ROLLOVER' -- into the new file,
+    // Rewrite the log entries above 'e_ROLLOVER' into the new file,
     // in strict index order, right after the marker: exactly where a normal
     // post-rollover append would land, so recovery re-indexes them identically
     // and a node that rolled over *before* receiving these entries (appending
     // them normally afterwards) produces a byte-identical file.
     //
-    // Two independent sources leave a tail, and both must be relocated:
+    // Two independent sources leave such entries, and both must be relocated:
     //  - Leadership change: committing an inherited prior-term 'e_ROLLOVER'
     //    requires a current-term entry (the new leader's become-leader sync
     //    point) committed above it -- a journal-op.
@@ -572,35 +687,35 @@ void PartitionRaftLog::rollover(bsls::Types::Uint64 rolloverIndex)
     // untracked (fixed-size, no data/qlist payload, nothing to reference
     // afterwards) and so never have one.
     for (bsls::Types::Uint64 i = prefixCount; i < d_index.size(); ++i) {
-        EntryInfo& tailEntry = d_index[i];
+        EntryInfo& entry = d_index[i];
 
-        if (!tailEntry.d_handle.isValid()) {
-            tailEntry.d_journalOffset =
+        if (!entry.d_handle.isValid()) {
+            entry.d_journalOffset =
                 d_fileStore_p->writeRolledOverUntrackedRecord(
                     newFileSet,
-                    tailEntry.d_journalOffset);
+                    entry.d_journalOffset);
             // Neither type writes data/qlist; their truncation anchors are the
             // new file's current ends (mirrors 'formatSyncPointRecord' /
             // 'formatDeletionRecord').
-            tailEntry.d_dataOffset  = newFileSet->d_data.d_filePosition;
-            tailEntry.d_qlistOffset = newFileSet->d_qlist.d_filePosition;
+            entry.d_dataOffset  = newFileSet->d_data.d_filePosition;
+            entry.d_qlistOffset = newFileSet->d_qlist.d_filePosition;
         }
         else {
             // A tracked record.  Its truncation anchors are the new file's
             // current ends captured BEFORE the copy -- which are the payload
             // starts for MESSAGE (data) and QUEUE_OP CREATION/ADDITION
             // (qlist).
-            tailEntry.d_journalOffset = newFileSet->d_journal.d_filePosition;
-            tailEntry.d_dataOffset    = newFileSet->d_data.d_filePosition;
-            tailEntry.d_qlistOffset   = newFileSet->d_qlist.d_filePosition;
+            entry.d_journalOffset = newFileSet->d_journal.d_filePosition;
+            entry.d_dataOffset    = newFileSet->d_data.d_filePosition;
+            entry.d_qlistOffset   = newFileSet->d_qlist.d_filePosition;
 
-            d_fileStore_p->writeRolledOverRecord(tailEntry.d_handle,
+            d_fileStore_p->writeRolledOverRecord(entry.d_handle,
                                                  &queueKeyCounterMap,
                                                  newFileSet);
         }
     }
 
-    // Summarize after the tail so any tail records are counted too.
+    // Summarize afterwards so the rewritten records are counted too.
     d_fileStore_p->logRolloverQueueSummary(queueKeyCounterMap);
 
     BALL_LOG_INFO_BLOCK
@@ -608,6 +723,13 @@ void PartitionRaftLog::rollover(bsls::Types::Uint64 rolloverIndex)
         statRecorder.print(BALL_LOG_OUTPUT_STREAM,
                            "ROLLOVER - STEP 1 (COMPACTION)");
     }
+
+    // Before the old file set is finalized, not after: a cached blob aliasing
+    // it keeps 'numReferences()' above one, which sends
+    // 'finalizeRolloverFileSet' down its deferred branch -- the old set stays
+    // in 'd_fileSets' until some later 'FileStore::gc', by which time the
+    // dispatcher may be stopped.  Nothing below reads the cache.
+    clearCache();
 
     // Truncate/gc the old file set, swap the new one in, schedule archive.
     d_fileStore_p->finalizeRolloverFileSet(newFileSetSp);
@@ -618,7 +740,7 @@ void PartitionRaftLog::rollover(bsls::Types::Uint64 rolloverIndex)
     }
 
     // Drop the compacted prefix (up to and including 'e_ROLLOVER') and advance
-    // the snapshot boundary; the tail rewritten above, if any, stays in
+    // the snapshot boundary; what was rewritten above, if any, stays in
     // 'd_index' as the live log now anchored on the new file.  The compacted
     // prefix lives in the rolled-over file and is served to lagging peers via
     // snapshot (they request 'rolloverIndex' via InstallSnapshot).
@@ -626,15 +748,27 @@ void PartitionRaftLog::rollover(bsls::Types::Uint64 rolloverIndex)
     d_snapshotIndex = rolloverIndex;
     d_snapshotTerm  = newSnapshotTerm;
 
-    clearCache();
+    // Re-anchor on the new file set; the entries above 'e_ROLLOVER' were
+    // rewritten into it with new offsets by the loop above.
+    d_frontIndex        = rolloverIndex + 1;
+    d_firstRecordIndex  = rolloverIndex + 1;
+    d_firstRecordOffset = d_index.empty() ? d_fileStore_p->journalPosition()
+                                          : d_index.front().d_journalOffset;
+
+    BALL_LOG_INFO
+        << "PartitionRaftLog::rollover: re-anchored at rolloverIndex="
+        << rolloverIndex << ", firstRecordIndex=" << d_firstRecordIndex
+        << ", firstRecordOffset=" << d_firstRecordOffset
+        << ", journalPosition=" << d_fileStore_p->journalPosition()
+        << ", indexSize=" << d_index.size();
 
     // Pop the 'e_ROLLOVER' pending write only if *this* node proposed it (the
     // same-leader case): it is then the sole appended pending write, handled
     // here rather than by 'applyCommittedEntryAsPrimary', so removing it now
     // keeps 'takePendingWrites' (drain) from replaying it into the new file
     // set.  A node that inherited 'e_ROLLOVER' from a prior leader has no such
-    // pending write; its front appended pending write, if any, is a tail entry
-    // (a become-leader sync point at 'seq > rolloverIndex') that must survive
+    // pending write; its front appended pending write, if any, sits above
+    // 'rolloverIndex' (a become-leader sync point) and must survive
     // for its own 'applyCommittedEntryAsPrimary'.  On the replica path
     // 'd_pendingWrites' is empty ('d_appendedCount == 0'), so this is skipped.
     if (0 < d_appendedCount &&
@@ -649,29 +783,37 @@ void PartitionRaftLog::rollover(bsls::Types::Uint64 rolloverIndex)
 
 void PartitionRaftLog::applyCommittedEntryAsPrimary(bsls::Types::Uint64 index)
 {
-    // Become-leader no-op entries are appended by RaftNode automatically but
-    // have no corresponding PendingWrite. Skip them when front pending write's
-    // sequence number is greater than the index being applied.
-    if (d_pendingWrites.empty() || d_appendedCount == 0) {
+    // Callers route here on 'isOwnAppendedEntry', so the front appended write
+    // is this entry's.
+    if (!isOwnAppendedEntry(index)) {
         return;  // RETURN
-    }
-
-    if (d_pendingWrites.front()->d_sequenceNumber > index) {
-        return;  // Skip no-op entry
     }
 
     BSLS_ASSERT_SAFE(d_pendingWrites.front()->d_sequenceNumber == index);
 
-    d_fileStore_p->onRecordCommittedPrimary(*d_pendingWrites.front());
+    const bsl::shared_ptr<PendingWrite>& pw = d_pendingWrites.front();
+
+    d_fileStore_p->onRecordCommittedPrimary(*pw);
+
+    // A peer that has not acked this entry can still ask for it once a quorum
+    // has committed it, so keep what serves it before dropping the rest.
+    cacheEntry(index, pw->d_primaryLeaseId, pw->d_entryBlob);
 
     // Remove the committed write from the buffer (it was kept until apply).
     d_pendingWrites.pop_front();
     d_appendedCount--;
+
+    trimFrontThrough(index);
 }
 
 void PartitionRaftLog::applyCommittedEntryAsReplica(bsls::Types::Uint64 index,
                                                     const bdlbb::Blob&  data)
 {
+    // Never this node's own appended entry: that would re-insert a handle to a
+    // record propose time may already have erased.  Callers route those to
+    // 'applyCommittedEntryAsPrimary'.
+    BSLS_ASSERT_SAFE(!isOwnAppendedEntry(index));
+
     if (index <= d_recoveredLastIndex) {
         // Already materialized eagerly by 'StorageUtil::recoveredQueuesCb' at
         // 'open()' time (ghost-adjusted refcounts included).  Applying it
@@ -681,25 +823,33 @@ void PartitionRaftLog::applyCommittedEntryAsReplica(bsls::Types::Uint64 index,
         return;  // RETURN
     }
 
-    const EntryInfo& entryInfo = d_index[index - d_snapshotIndex - 1];
+    const EntryInfo& entryInfo = d_index[index - d_frontIndex];
 
     const mqbs::DataStoreRecordHandle handle = entryInfo.d_handle;
 
     d_fileStore_p->onRecordCommittedReplica(data, handle);
+
+    trimFrontThrough(index);
+
+    // What this node cached as a replica serves no retransmit -- only a leader
+    // sends -- so the window keeps the entries still awaiting apply, and
+    // 'index', which the next AppendEntries asks 'term' for as its
+    // 'prevLogIndex'.  Nothing below.
+    dropCacheThrough(index);
 }
 
 // ACCESSORS
 bsls::Types::Uint64 PartitionRaftLog::lastIndex() const
 {
-    return d_snapshotIndex + d_index.size();
+    return d_frontIndex + d_index.size() - 1;
 }
 
 bsls::Types::Uint64 PartitionRaftLog::lastTerm() const
 {
-    if (d_index.empty()) {
-        return d_snapshotTerm;
-    }
-    return d_index.back().d_primaryLeaseId;
+    // 'd_index' is empty once every entry has been applied, so this cannot
+    // read its back; 'term' resolves the last index against whichever source
+    // still holds it.
+    return term(lastIndex());
 }
 
 bsls::Types::Uint64 PartitionRaftLog::term(bsls::Types::Uint64 index) const
@@ -714,44 +864,72 @@ bsls::Types::Uint64 PartitionRaftLog::term(bsls::Types::Uint64 index) const
         return 0;
     }
 
-    bsls::Types::Uint64 vectorIdx = index - d_snapshotIndex - 1;
-    return d_index[vectorIdx].d_primaryLeaseId;
-}
-
-int PartitionRaftLog::entries(bsls::Types::Uint64    lo,
-                              bsls::Types::Uint64    hi,
-                              bsl::vector<LogEntry>* out,
-                              bsls::Types::Uint64    maxCount,
-                              bsls::Types::Uint64    maxBytes) const
-{
-    BSLS_ASSERT_SAFE(out);
-
-    if (lo > hi || lo <= d_snapshotIndex || hi > lastIndex() + 1) {
-        return -1;
+    if (index >= d_frontIndex) {
+        return d_index[index - d_frontIndex].d_primaryLeaseId;
     }
 
-    out->clear();
+    // Applied entries leave 'd_index' for 'd_cache', whose window is
+    // single-term.
+    if (!d_cache.empty() && index >= d_cacheBase &&
+        index < d_cacheBase + d_cache.size()) {
+        return d_cacheTerm;
+    }
 
-    bsls::Types::Uint64 bytes = 0;
+    // Held by neither, so whoever wants this entry is reading it from mmap
+    // anyway.
+    return d_fileStore_p->recordTermAt(journalOffsetAt(index));
+}
+
+void PartitionRaftLog::entries(bsls::Types::Uint64    lo,
+                               bsls::Types::Uint64    hi,
+                               bsl::vector<LogEntry>* out,
+                               bsls::Types::Uint64    maxCount,
+                               bsls::Types::Uint64    maxBytes) const
+{
+    BSLS_ASSERT_SAFE(out);
+    BSLS_ASSERT_SAFE(lo <= hi);
+    BSLS_ASSERT_SAFE(lo > d_snapshotIndex);
+    BSLS_ASSERT_SAFE(hi <= lastIndex() + 1);
+
+    const bsl::vector<LogEntry>::size_type loaded = out->size();
+    bsls::Types::Uint64                    bytes  = 0;
+
+    // Index of the oldest write this node appended and has yet to apply; the
+    // appended ones run from there through 'lastIndex()'.
+    const bsls::Types::Uint64 pendingBase =
+        0 < d_appendedCount ? d_pendingWrites.front()->d_sequenceNumber : 0;
 
     for (bsls::Types::Uint64 i = lo; i < hi; ++i) {
-        bsls::Types::Uint64 vectorIdx = i - d_snapshotIndex - 1;
-        bsls::Types::Uint64 entryTerm = d_index[vectorIdx].d_primaryLeaseId;
-
-        if (!d_cache.empty() && i >= d_cacheBase &&
-            i < d_cacheBase + d_cache.size()) {
+        if (0 < d_appendedCount && i >= pendingBase &&
+            i < pendingBase + d_appendedCount &&
+            d_pendingWrites[i - pendingBase]->d_entryBlob) {
+            // Appended here and not yet committed: the write still holds both
+            // the blob and the term.
+            const PendingWrite& pw = *d_pendingWrites[i - pendingBase];
+            out->push_back(LogEntry(pw.d_primaryLeaseId, i, pw.d_entryBlob));
+            bytes += pw.d_entryBlob->length();
+        }
+        else if (!d_cache.empty() && i >= d_cacheBase &&
+                 i < d_cacheBase + d_cache.size()) {
             const EntryBlobSp& cached = d_cache[i - d_cacheBase];
-            out->push_back(LogEntry(entryTerm, i, cached));
+            out->push_back(LogEntry(d_cacheTerm, i, cached));
             bytes += cached->length();
         }
         else {
-            // Cache miss: read from mmap'd files
-            bsls::Types::Uint64 journalOffset =
-                d_index[vectorIdx].d_journalOffset;
+            // Held by neither: read the record, and its term, from mmap.
+            const bsls::Types::Uint64 recordOffset = journalOffsetAt(i);
+
             bsl::shared_ptr<bdlbb::Blob> entryBlob;
-            int rc = d_fileStore_p->readRecord(&entryBlob, journalOffset);
+            bsls::Types::Uint64          entryTerm = 0;
+            int rc = d_fileStore_p->readRecord(&entryBlob,
+                                               recordOffset,
+                                               &entryTerm);
             if (rc != 0) {
-                return rc;
+                // The caller sees a short range and stops there.
+                BALL_LOG_ERROR << "Failed to read log entry " << i
+                               << " at journal offset " << recordOffset
+                               << ", rc=" << rc;
+                break;  // BREAK
             }
 
             out->push_back(LogEntry(entryTerm, i, entryBlob));
@@ -760,13 +938,11 @@ int PartitionRaftLog::entries(bsls::Types::Uint64    lo,
 
         // Checked after the append, so one entry is always loaded even when
         // it alone exceeds a cap -- otherwise it could never be replicated.
-        if ((maxCount != 0 && out->size() >= maxCount) ||
+        if ((maxCount != 0 && out->size() - loaded >= maxCount) ||
             (maxBytes != 0 && bytes >= maxBytes)) {
             break;
         }
     }
-
-    return 0;
 }
 
 bsls::Types::Uint64 PartitionRaftLog::snapshotIndex() const
@@ -779,15 +955,25 @@ bsls::Types::Uint64 PartitionRaftLog::snapshotTerm() const
     return d_snapshotTerm;
 }
 
+bool PartitionRaftLog::isOwnAppendedEntry(bsls::Types::Uint64 index) const
+{
+    // The appended writes sit at the front, at contiguous ascending indices
+    // through 'lastIndex()', and are popped in commit order, so the front's
+    // sequence number is the lowest index this node still owns.
+    return 0 < d_appendedCount &&
+           d_pendingWrites.front()->d_sequenceNumber <= index;
+}
+
 bool PartitionRaftLog::isRollover(bsls::Types::Uint64 index) const
 {
-    const EntryInfo& entryInfo = d_index[index - d_snapshotIndex - 1];
+    BSLS_ASSERT_SAFE(index >= d_frontIndex && index <= lastIndex());
 
-    const mqbs::RecordType::Enum    recordType    = entryInfo.d_recordType;
-    const mqbs::SyncPointType::Enum syncPointType = entryInfo.d_syncPointType;
+    // Both fields are in the index entry, so this reads no journal.  The '&&'
+    // order matters: the sync-point type is only meaningful on a journal-op.
+    const EntryInfo& entry = d_index[index - d_frontIndex];
 
-    return (recordType == mqbs::RecordType::e_JOURNAL_OP &&
-            syncPointType == mqbs::SyncPointType::e_ROLLOVER);
+    return entry.d_recordType == mqbs::RecordType::e_JOURNAL_OP &&
+           entry.d_syncPointType == mqbs::SyncPointType::e_ROLLOVER;
 }
 
 bool PartitionRaftLog::hasUncommittedRollover(
@@ -798,15 +984,10 @@ bool PartitionRaftLog::hasUncommittedRollover(
     // presence of an uncommitted 'e_ROLLOVER' -- it is a committed cluster
     // decision that will roll over regardless of this node's own rollover
     // configuration, so 'rolloverIfNeeded' cannot be relied on to re-trigger
-    // it.  'commitIndex >= d_snapshotIndex' always (the snapshot boundary
-    // never exceeds commit), so the first uncommitted entry maps to vector
-    // index 'commitIndex - d_snapshotIndex'.
+    // it.
     BSLS_ASSERT_SAFE(commitIndex >= d_snapshotIndex);
-    for (bsls::Types::Uint64 i = commitIndex - d_snapshotIndex;
-         i < d_index.size();
-         ++i) {
-        if (d_index[i].d_recordType == mqbs::RecordType::e_JOURNAL_OP &&
-            d_index[i].d_syncPointType == mqbs::SyncPointType::e_ROLLOVER) {
+    for (bsls::Types::Uint64 i = commitIndex + 1; i <= lastIndex(); ++i) {
+        if (isRollover(i)) {
             return true;  // RETURN
         }
     }

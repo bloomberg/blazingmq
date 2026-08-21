@@ -134,10 +134,8 @@ int CslRaftLog::close()
 }
 
 int CslRaftLog::append(bsls::Types::Uint64                 term,
-                       const bsl::shared_ptr<bdlbb::Blob>& data,
-                       bsls::Types::Uint64                 id)
+                       const bsl::shared_ptr<bdlbb::Blob>& data)
 {
-    BSLS_ASSERT_SAFE(id == 0);
     mqbsi::Log::Offset writeOffset = d_log_sp->write(*data,
                                                      bmqu::BlobPosition(),
                                                      data->length());
@@ -194,9 +192,12 @@ int CslRaftLog::rollover(bsl::shared_ptr<mqbsi::Log>*        oldLog,
     const bsls::Types::Uint64 oldLastIndex = lastIndex();
     bsl::vector<LogEntry>     tail(d_allocator_p);
     if (compactIndex < oldLastIndex) {
-        int rc = entries(compactIndex + 1, oldLastIndex + 1, &tail, 0, 0);
-        if (rc != 0) {
-            return rc;  // RETURN
+        entries(compactIndex + 1, oldLastIndex + 1, &tail, 0, 0);
+
+        // The tail is copied into 'newLog', which then replaces the current
+        // log: an entry missing here does not survive the switch.
+        if (tail.size() != oldLastIndex - compactIndex) {
+            return -1;  // RETURN
         }
     }
 
@@ -336,21 +337,19 @@ bsls::Types::Uint64 CslRaftLog::term(bsls::Types::Uint64 index) const
     return d_index[vectorIdx].d_term;
 }
 
-int CslRaftLog::entries(bsls::Types::Uint64    lo,
-                        bsls::Types::Uint64    hi,
-                        bsl::vector<LogEntry>* out,
-                        bsls::Types::Uint64    maxCount,
-                        bsls::Types::Uint64    maxBytes) const
+void CslRaftLog::entries(bsls::Types::Uint64    lo,
+                         bsls::Types::Uint64    hi,
+                         bsl::vector<LogEntry>* out,
+                         bsls::Types::Uint64    maxCount,
+                         bsls::Types::Uint64    maxBytes) const
 {
     BSLS_ASSERT_SAFE(out);
+    BSLS_ASSERT_SAFE(lo <= hi);
+    BSLS_ASSERT_SAFE(lo > d_snapshotIndex);
+    BSLS_ASSERT_SAFE(hi <= lastIndex() + 1);
 
-    if (lo > hi || lo <= d_snapshotIndex || hi > lastIndex() + 1) {
-        return -1;
-    }
-
-    out->clear();
-
-    bsls::Types::Uint64 bytes = 0;
+    const bsl::vector<LogEntry>::size_type loaded = out->size();
+    bsls::Types::Uint64                    bytes  = 0;
 
     for (bsls::Types::Uint64 i = lo; i < hi; ++i) {
         bsls::Types::Uint64 vectorIdx = i - d_snapshotIndex - 1;
@@ -362,7 +361,10 @@ int CslRaftLog::entries(bsls::Types::Uint64    lo,
                                  k_RECORD_HEADER_SIZE,
                                  offset);
         if (rc != 0) {
-            return rc;
+            // The caller sees a short range and stops there.
+            BALL_LOG_ERROR << "Failed to alias log entry " << i
+                           << " at offset " << offset << ", rc=" << rc;
+            break;  // BREAK
         }
 
         int recSize = static_cast<int>(
@@ -372,7 +374,9 @@ int CslRaftLog::entries(bsls::Types::Uint64    lo,
 
         rc = d_log_sp->read(entryBlob.get(), recSize, offset);
         if (rc != 0) {
-            return rc;
+            BALL_LOG_ERROR << "Failed to read log entry " << i << " at offset "
+                           << offset << ", rc=" << rc;
+            break;  // BREAK
         }
 
         out->push_back(LogEntry(d_index[static_cast<int>(vectorIdx)].d_term,
@@ -382,13 +386,11 @@ int CslRaftLog::entries(bsls::Types::Uint64    lo,
 
         // Checked after the append, so one entry is always loaded even when
         // it alone exceeds a cap -- otherwise it could never be replicated.
-        if ((maxCount != 0 && out->size() >= maxCount) ||
+        if ((maxCount != 0 && out->size() - loaded >= maxCount) ||
             (maxBytes != 0 && bytes >= maxBytes)) {
             break;
         }
     }
-
-    return 0;
 }
 
 bsls::Types::Uint64 CslRaftLog::snapshotIndex() const

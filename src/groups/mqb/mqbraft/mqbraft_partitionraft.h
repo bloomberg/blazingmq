@@ -112,7 +112,6 @@ class PartitionRaft : public mqbs::RecordStore {
     bslma::ManagedPtr<PartitionRaftLog>         d_raftLog_mp;
     bslma::ManagedPtr<RaftNode>                 d_raftNode_mp;
     bdlmt::EventScheduler::RecurringEventHandle d_tickHandle;
-    bsls::Types::Uint64                         d_writeIdCounter;
 
     /// Pool from which each `PendingWrite` shared_ptr is allocated.
     PendingWriteSpPool d_pendingWritePool;

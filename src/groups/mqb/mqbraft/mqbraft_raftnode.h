@@ -174,12 +174,10 @@ class RaftLog {
     // MANIPULATORS
 
     /// Append a new log entry with the specified 'term' and record blob
-    /// 'data'.  The optionally specified 'id' is an opaque token set by
-    /// 'PartitionRaft' on the primary path to route to a pre-registered
-    /// 'PendingWrite'; zero on the replica path and for CSL.
+    /// 'data'.  A null 'data' is the primary path: the log takes the entry
+    /// from the 'PendingWrite' registered for it.
     virtual int append(bsls::Types::Uint64                 term,
-                       const bsl::shared_ptr<bdlbb::Blob>& data,
-                       bsls::Types::Uint64                 id = 0) = 0;
+                       const bsl::shared_ptr<bdlbb::Blob>& data) = 0;
 
     /// Drop the entry at the specified `index` and everything after it.
     /// Return 0 on success, non-zero if `index` is not in
@@ -203,16 +201,20 @@ class RaftLog {
     /// entries the log still holds.
     virtual bsls::Types::Uint64 term(bsls::Types::Uint64 index) const = 0;
 
-    /// Load into the specified `out` the entries in `[lo, hi)`, stopping
+    /// Append to the specified `out` the entries in `[lo, hi)`, stopping
     /// once they reach the specified `maxCount` or total the specified
     /// `maxBytes`, whichever comes first; 0 means unlimited.  At least one
     /// entry is always loaded, so a sender makes progress whatever the entry
-    /// size.  Return 0 on success.
-    virtual int entries(bsls::Types::Uint64    lo,
-                        bsls::Types::Uint64    hi,
-                        bsl::vector<LogEntry>* out,
-                        bsls::Types::Uint64    maxCount,
-                        bsls::Types::Uint64    maxBytes) const = 0;
+    /// size.  The behavior is undefined unless `lo <= hi`,
+    /// `lo > snapshotIndex()` and `hi <= lastIndex() + 1`.  Appending fewer
+    /// than `hi - lo` entries means a cap was reached or an entry could not
+    /// be read.  `out` is appended to, not cleared, so a caller can gather
+    /// several ranges into one vector.
+    virtual void entries(bsls::Types::Uint64    lo,
+                         bsls::Types::Uint64    hi,
+                         bsl::vector<LogEntry>* out,
+                         bsls::Types::Uint64    maxCount,
+                         bsls::Types::Uint64    maxBytes) const = 0;
 
     /// Return the highest index the log no longer holds individually: entries
     /// at or below it have been compacted into a base snapshot.  0 if the log
@@ -486,14 +488,8 @@ class RaftNode {
     /// `k_SEND_TRIGGER_ENTRIES`.
     bsls::Types::Uint64 d_appendsSinceFlush;
 
-    /// Scratch, members so that the per-response path does not allocate.
-    /// `d_committedScratch` must be left empty at the end of every call that
-    /// fills it: a `LogEntry` holds a blob aliasing the partition's active
-    /// file set, and releasing such an alias schedules `FileStore::gc` on that
-    /// partition's dispatcher -- which, if it happens when this object is
-    /// destroyed, is after the dispatcher has stopped.
+    /// Scratch, a member so that the per-response path does not allocate.
     bsl::vector<bsls::Types::Uint64> d_matchIndices;
-    bsl::vector<LogEntry>            d_committedScratch;
 
     // Leadership transfer
     int d_transferTargetId;
@@ -551,6 +547,15 @@ class RaftNode {
                            PeerState*                          peer,
                            bsl::vector<RaftMessage>::size_type roundBegin);
 
+    /// Move the commit index to the specified `newCommit` and append the
+    /// entries it newly commits to `output->d_committed`.  The behavior is
+    /// undefined unless `newCommit` is above the current commit index and at
+    /// or below `lastIndex()`.
+    void commitTo(RaftNodeOutput* output, bsls::Types::Uint64 newCommit);
+
+    /// Commit whatever a quorum of peers has acked, if that is more than is
+    /// committed now.  Only meaningful on a leader with peers: a lone node
+    /// commits at `propose` time instead.
     void advanceCommitIndex(RaftNodeOutput* output);
 
     void resetElectionTimer();
@@ -585,12 +590,11 @@ class RaftNode {
     /// once and their event is built once.
     void flushSends(RaftNodeOutput* output);
 
-    /// Propose the specified 'data' as a new log entry.  The optionally
-    /// specified 'id' is passed through to the log's 'append()' for primary
-    /// path routing.  Return 0 on success, non-zero if not the leader.
+    /// Propose the specified 'data' as a new log entry; a null 'data' is the
+    /// primary path, see 'RaftLog::append'.  Return 0 on success, non-zero if
+    /// not the leader.
     int propose(RaftNodeOutput*                     output,
-                const bsl::shared_ptr<bdlbb::Blob>& data,
-                bsls::Types::Uint64                 id = 0);
+                const bsl::shared_ptr<bdlbb::Blob>& data);
 
     /// Initiate leadership transfer to the specified 'targetNodeId'.
     /// Return 0 on success, non-zero if this node is not the leader.

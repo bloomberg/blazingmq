@@ -96,8 +96,7 @@ namespace mqbs {
 // --------------------
 
 FileStore::PendingWrite::PendingWrite()
-: d_id(0)
-, d_recordType(RecordType::e_UNDEFINED)
+: d_recordType(RecordType::e_UNDEFINED)
 , d_syncPointType(SyncPointType::e_REGULAR)
 , d_primaryLeaseId(0)
 , d_sequenceNumber(0)
@@ -108,7 +107,7 @@ FileStore::PendingWrite::PendingWrite()
 , d_appData()
 , d_options()
 , d_queueUri()
-, d_appIdKeyPairs_p(0)
+, d_appIdKeyPairs()
 , d_timestamp(0)
 , d_isNewQueue(false)
 , d_appKey()
@@ -131,8 +130,7 @@ FileStore::PendingWrite::PendingWrite(
     const bsl::shared_ptr<bdlbb::Blob>& appData,
     const bsl::shared_ptr<bdlbb::Blob>& options,
     const mqbu::StorageKey&             queueKey)
-: d_id(0)
-, d_recordType(RecordType::e_MESSAGE)
+: d_recordType(RecordType::e_MESSAGE)
 , d_syncPointType(SyncPointType::e_REGULAR)
 , d_primaryLeaseId(0)
 , d_sequenceNumber(0)
@@ -143,7 +141,7 @@ FileStore::PendingWrite::PendingWrite(
 , d_appData(appData)
 , d_options(options)
 , d_queueUri()
-, d_appIdKeyPairs_p(0)
+, d_appIdKeyPairs()
 , d_timestamp(0)
 , d_isNewQueue(false)
 , d_appKey()
@@ -162,11 +160,10 @@ FileStore::PendingWrite::PendingWrite(
 
 FileStore::PendingWrite::PendingWrite(const bmqt::Uri&        queueUri,
                                       const mqbu::StorageKey& queueKey,
-                                      const AppInfos*         appIdKeyPairs,
+                                      const AppInfos&         appIdKeyPairs,
                                       bsls::Types::Uint64     timestamp,
                                       bool                    isNewQueue)
-: d_id(0)
-, d_recordType(RecordType::e_QUEUE_OP)
+: d_recordType(RecordType::e_QUEUE_OP)
 , d_syncPointType(SyncPointType::e_REGULAR)
 , d_primaryLeaseId(0)
 , d_sequenceNumber(0)
@@ -177,7 +174,7 @@ FileStore::PendingWrite::PendingWrite(const bmqt::Uri&        queueUri,
 , d_appData()
 , d_options()
 , d_queueUri(queueUri)
-, d_appIdKeyPairs_p(appIdKeyPairs)
+, d_appIdKeyPairs(appIdKeyPairs)
 , d_timestamp(timestamp)
 , d_isNewQueue(isNewQueue)
 , d_appKey()
@@ -195,8 +192,7 @@ FileStore::PendingWrite::PendingWrite(const bmqt::Uri&        queueUri,
 }
 
 FileStore::PendingWrite::PendingWrite(SyncPointType::Enum syncPointType)
-: d_id(0)
-, d_recordType(RecordType::e_JOURNAL_OP)
+: d_recordType(RecordType::e_JOURNAL_OP)
 , d_syncPointType(syncPointType)
 , d_primaryLeaseId(0)
 , d_sequenceNumber(0)
@@ -207,7 +203,7 @@ FileStore::PendingWrite::PendingWrite(SyncPointType::Enum syncPointType)
 , d_appData()
 , d_options()
 , d_queueUri()
-, d_appIdKeyPairs_p(0)
+, d_appIdKeyPairs()
 , d_timestamp(0)
 , d_isNewQueue(false)
 , d_appKey()
@@ -229,8 +225,7 @@ FileStore::PendingWrite::PendingWrite(const bmqt::MessageGUID& guid,
                                       const mqbu::StorageKey&  appKey,
                                       bsls::Types::Uint64      timestamp,
                                       ConfirmReason::Enum      reason)
-: d_id(0)
-, d_recordType(RecordType::e_CONFIRM)
+: d_recordType(RecordType::e_CONFIRM)
 , d_syncPointType(SyncPointType::e_REGULAR)
 , d_primaryLeaseId(0)
 , d_sequenceNumber(0)
@@ -241,7 +236,7 @@ FileStore::PendingWrite::PendingWrite(const bmqt::MessageGUID& guid,
 , d_appData()
 , d_options()
 , d_queueUri()
-, d_appIdKeyPairs_p(0)
+, d_appIdKeyPairs()
 , d_timestamp(timestamp)
 , d_isNewQueue(false)
 , d_appKey(appKey)
@@ -262,8 +257,7 @@ FileStore::PendingWrite::PendingWrite(const bmqt::MessageGUID& guid,
                                       const mqbu::StorageKey&  queueKey,
                                       DeletionRecordFlag::Enum deletionFlag,
                                       bsls::Types::Uint64      timestamp)
-: d_id(0)
-, d_recordType(RecordType::e_DELETION)
+: d_recordType(RecordType::e_DELETION)
 , d_syncPointType(SyncPointType::e_REGULAR)
 , d_primaryLeaseId(0)
 , d_sequenceNumber(0)
@@ -274,7 +268,7 @@ FileStore::PendingWrite::PendingWrite(const bmqt::MessageGUID& guid,
 , d_appData()
 , d_options()
 , d_queueUri()
-, d_appIdKeyPairs_p(0)
+, d_appIdKeyPairs()
 , d_timestamp(timestamp)
 , d_isNewQueue(false)
 , d_appKey()
@@ -297,8 +291,7 @@ FileStore::PendingWrite::PendingWrite(QueueOpType::Enum       queueOpType,
                                       bsls::Types::Uint64     timestamp,
                                       unsigned int        startPrimaryLeaseId,
                                       bsls::Types::Uint64 startSequenceNumber)
-: d_id(0)
-, d_recordType(RecordType::e_QUEUE_OP)
+: d_recordType(RecordType::e_QUEUE_OP)
 , d_syncPointType(SyncPointType::e_REGULAR)
 , d_primaryLeaseId(0)
 , d_sequenceNumber(0)
@@ -309,7 +302,7 @@ FileStore::PendingWrite::PendingWrite(QueueOpType::Enum       queueOpType,
 , d_appData()
 , d_options()
 , d_queueUri()
-, d_appIdKeyPairs_p(0)
+, d_appIdKeyPairs()
 , d_timestamp(timestamp)
 , d_isNewQueue(false)
 , d_appKey(appKey)
@@ -1735,11 +1728,17 @@ int FileStore::recoverMessages(QueueKeyInfoMap*                queueKeyInfoMap,
         d_highestSeqNums[primaryLeaseId] = currentSeqNum;
     }
 
-    bsls::Types::Uint64 snapshotSeqNum = 0;
+    // Records at or below this offset were folded into the snapshot by
+    // rollover compaction; those above it are the live log.  Position, not
+    // PSN: a journal segment written by legacy restarts 'sequenceNumber' per
+    // lease, so its records compare as older than the boundary.
+    bsls::Types::Uint64 snapshotOffset = 0;
     if (recoveryIndex) {
-        snapshotSeqNum = d_firstSyncPointAfterRolloverSeqNum.sequenceNumber();
+        snapshotOffset = jit->firstSyncPointAfterRolloverPosition();
         BALL_LOG_INFO << partitionDesc()
-                      << "Raft recovery: snapshotSeqNum=" << snapshotSeqNum;
+                      << "Raft recovery: snapshotOffset=" << snapshotOffset
+                      << ", snapshotPSN="
+                      << d_firstSyncPointAfterRolloverSeqNum;
     }
 
     // Second pass.
@@ -1840,7 +1839,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*                queueKeyInfoMap,
                 bmqp::Protocol::k_WORD_SIZE;
         }
 
-        if (recoveryIndex && sequenceNum > snapshotSeqNum) {
+        if (recoveryIndex && jit->recordOffset() > snapshotOffset) {
             // Carry the sync-point sub-type for journal-ops so a recovered
             // uncommitted 'e_ROLLOVER' is still detectable by the Raft apply
             // hook.
@@ -2962,7 +2961,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*                queueKeyInfoMap,
         // materialize the storage on commit.  'front()' is this record's entry
         // (guard mirrors the push condition), and every 'continue' above
         // precedes its 'rinsert', so an inserted record always reaches here.
-        if (recoveryIndex && sequenceNum > snapshotSeqNum &&
+        if (recoveryIndex && jit->recordOffset() > snapshotOffset &&
             recoveredRecordIt != d_records.end()) {
             BSLS_ASSERT_SAFE(!recoveryIndex->empty());
             recordIteratorToHandle(&recoveryIndex->front().d_handle,
@@ -3643,6 +3642,31 @@ FileStore::journalOpTimestampAt(bsls::Types::Uint64 journalOffset) const
         journalOffset);
 
     return journalOpRec->header().timestamp();
+}
+
+bsls::Types::Uint64
+FileStore::recordTermAt(bsls::Types::Uint64 journalOffset) const
+{
+    BSLS_ASSERT_SAFE(0 < d_fileSets.size());
+
+    const FileSet* activeFileSet = d_fileSets[0].get();
+    BSLS_ASSERT_SAFE(activeFileSet);
+
+    OffsetPtr<const RecordHeader> recHeader(
+        activeFileSet->d_journal.d_file.block(),
+        journalOffset);
+
+    return recHeader->primaryLeaseId();
+}
+
+bsls::Types::Uint64 FileStore::journalPosition() const
+{
+    BSLS_ASSERT_SAFE(0 < d_fileSets.size());
+
+    const FileSet* activeFileSet = d_fileSets[0].get();
+    BSLS_ASSERT_SAFE(activeFileSet);
+
+    return activeFileSet->d_journal.d_filePosition;
 }
 
 int FileStore::rolloverIfNeeded(FileType::Enum           fileType,
@@ -6160,7 +6184,7 @@ int FileStore::open(QueueKeyInfoMap* queueKeyInfoMap)
         return rc_JOURNAL_FILE_TOO_SMALL;  // RETURN
     }
 
-    bmqu::MemOutStream errorDescription;
+    bmqu::MemOutStream errorDescription(d_allocator_p);
     int rc = openInRecoveryMode(errorDescription, queueKeyInfoMap);
     if (rc == 0) {
         d_isOpen = true;
@@ -6237,7 +6261,7 @@ int FileStore::openForRaft(bsl::deque<RecoveryRecordInfo>* recoveryIndex)
         return rc_JOURNAL_FILE_TOO_SMALL;
     }
 
-    bmqu::MemOutStream errorDescription;
+    bmqu::MemOutStream errorDescription(d_allocator_p);
     int rc = openInRecoveryMode(errorDescription, 0, recoveryIndex);
     if (rc == 0) {
         d_isOpen = true;
@@ -6814,12 +6838,11 @@ int FileStore::formatQueueCreationRecord(PendingWrite* pw)
     BSLS_ASSERT_SAFE(pw->d_recordType == RecordType::e_QUEUE_OP);
     BSLS_ASSERT_SAFE(!pw->d_queueUri.asString().empty());
     BSLS_ASSERT_SAFE(!pw->d_queueKey.isNull());
-    BSLS_ASSERT_SAFE(pw->d_appIdKeyPairs_p);
     BSLS_ASSERT_SAFE(0 < d_fileSets.size());
 
     const bmqt::Uri&        queueUri      = pw->d_queueUri;
     const mqbu::StorageKey& queueKey      = pw->d_queueKey;
-    const AppInfos&         appIdKeyPairs = *pw->d_appIdKeyPairs_p;
+    const AppInfos&         appIdKeyPairs = pw->d_appIdKeyPairs;
 
     enum { rc_SUCCESS = 0, rc_STOPPING = -1, rc_UNAVAILABLE = -2 };
 
@@ -7948,7 +7971,8 @@ int FileStore::formatMessageRecord(PendingWrite* pw)
 }
 
 int FileStore::readRecord(bsl::shared_ptr<bdlbb::Blob>* out,
-                          bsls::Types::Uint64           journalOffset) const
+                          bsls::Types::Uint64           journalOffset,
+                          bsls::Types::Uint64*          term) const
 {
     BSLS_ASSERT_SAFE(out);
     BSLS_ASSERT_SAFE(0 < d_fileSets.size());
@@ -7971,6 +7995,10 @@ int FileStore::readRecord(bsl::shared_ptr<bdlbb::Blob>* out,
                                  k_JREC_SIZE);
 
     OffsetPtr<const RecordHeader> recHeader(journal.block(), journalOffset);
+
+    if (term) {
+        *term = recHeader->primaryLeaseId();
+    }
 
     blob->removeAll();
     blob->appendDataBuffer(journalBuf);

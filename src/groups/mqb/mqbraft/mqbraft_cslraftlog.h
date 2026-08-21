@@ -106,8 +106,7 @@ class CslRaftLog : public RaftLog {
     int close();
 
     int append(bsls::Types::Uint64                 term,
-               const bsl::shared_ptr<bdlbb::Blob>& data,
-               bsls::Types::Uint64 id = 0) BSLS_KEYWORD_OVERRIDE;
+               const bsl::shared_ptr<bdlbb::Blob>& data) BSLS_KEYWORD_OVERRIDE;
 
     int truncateFrom(bsls::Types::Uint64 index) BSLS_KEYWORD_OVERRIDE;
 
@@ -160,11 +159,11 @@ class CslRaftLog : public RaftLog {
     bsls::Types::Uint64
     term(bsls::Types::Uint64 index) const BSLS_KEYWORD_OVERRIDE;
 
-    int entries(bsls::Types::Uint64    lo,
-                bsls::Types::Uint64    hi,
-                bsl::vector<LogEntry>* out,
-                bsls::Types::Uint64    maxCount,
-                bsls::Types::Uint64    maxBytes) const BSLS_KEYWORD_OVERRIDE;
+    void entries(bsls::Types::Uint64    lo,
+                 bsls::Types::Uint64    hi,
+                 bsl::vector<LogEntry>* out,
+                 bsls::Types::Uint64    maxCount,
+                 bsls::Types::Uint64    maxBytes) const BSLS_KEYWORD_OVERRIDE;
 
     bsls::Types::Uint64 snapshotIndex() const BSLS_KEYWORD_OVERRIDE;
 
