@@ -453,6 +453,12 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     StorageMonitor* d_storageMonitor_p;
 
+    /// Invoked by `flush()`, i.e. once the dispatcher has drained this
+    /// partition's queue.  Raft installs its send round here so that a batch
+    /// of events produces one round rather than one per event; unset in legacy
+    /// mode, where `flush()` does nothing.
+    bsl::function<void()> d_onFlush;
+
     bdlmt::Throttle d_alarmSoftLimiter;
     // Throttler for alarming on soft
     // limits of partition files
@@ -832,6 +838,11 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     /// Called by the dispatcher to flush any pending operation.
     void flush() BSLS_KEYWORD_OVERRIDE;
+
+    /// Invoke the specified `callback` from `flush()`, i.e. each time the
+    /// dispatcher drains this partition's queue.  Pass an empty callback to
+    /// stop.
+    void setFlushCallback(const bsl::function<void()>& callback);
 
     /// Iterate over all storages and run garbage collection.
     /// Regularily invoked from the scheduler and executed from the dispatcher

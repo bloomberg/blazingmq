@@ -231,7 +231,7 @@ static void test2_appendAndReadBack()
 
     // Read entries back
     bsl::vector<LogEntry> entries(tester.allocator());
-    rc = tester.raftLog().entries(1, 4, &entries);
+    rc = tester.raftLog().entries(1, 4, &entries, 0, 0);
     BMQTST_ASSERT_EQ(rc, 0);
     BMQTST_ASSERT_EQ(entries.size(), 3u);
     BMQTST_ASSERT_EQ(entries[0].d_term, 1ULL);

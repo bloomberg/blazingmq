@@ -165,6 +165,10 @@ RaftNode::RaftNode(const RaftNodeConfig& config,
 , d_electionTimeout(0)
 , d_peerStates(allocator)
 , d_heartbeatTicks(0)
+, d_heartbeatDue(false)
+, d_appendsSinceFlush(0)
+, d_matchIndices(allocator)
+, d_committedScratch(allocator)
 , d_transferTargetId(k_INVALID_NODE_ID)
 , d_electionMode(ElectionMode::e_NORMAL)
 , d_allocator_p(bslma::Default::allocator(allocator))
@@ -285,11 +289,11 @@ void RaftNode::becomeLeader(RaftNodeOutput* output)
         ps.d_snapshotPendingTerm   = 0;
         ps.d_boundaryProbeRejected = false;
         // The peer's match index is unknown until it accepts something.
-        ps.d_probing       = true;
-        ps.d_inFlightCount = 0;
-        ps.d_stalledTicks  = 0;
-        ps.d_sentCommit    = 0;
-        d_peerStates[*it]  = ps;
+        ps.d_probing      = true;
+        ps.d_probeSent    = false;
+        ps.d_stalledTicks = 0;
+        ps.d_sentCommit   = 0;
+        d_peerStates[*it] = ps;
     }
 
     d_heartbeatTicks = 0;
@@ -303,7 +307,9 @@ void RaftNode::becomeLeader(RaftNodeOutput* output)
                   << ", peers=" << d_peerStates.size()
                   << " (no become-leader no-op appended)";
 
-    broadcastAppendEntries(output);
+    // Assert leadership at the next round even though no peer is owed
+    // anything yet; the round itself runs when the caller flushes.
+    d_heartbeatDue = true;
 }
 
 void RaftNode::handleRequestVote(RaftNodeOutput*    output,
@@ -500,12 +506,16 @@ void RaftNode::handleAppendEntries(RaftNodeOutput*    output,
         }
     }
 
-    // Append new entries (skip entries already present)
+    // Append new entries (skip entries already present).  The log's own last
+    // index is tracked here rather than asked for once per entry: entries
+    // arrive in order, so each append leaves it at that entry's index.
+    bsls::Types::Uint64 lastIndex = d_log_p->lastIndex();
+
     for (bsl::vector<LogEntry>::size_type i = 0; i < msg.d_entries.size();
          ++i) {
         bsls::Types::Uint64 entryIndex = msg.d_prevLogIndex + 1 + i;
 
-        if (entryIndex <= d_log_p->lastIndex()) {
+        if (entryIndex <= lastIndex) {
             bsls::Types::Uint64 existingTerm = d_log_p->term(entryIndex);
             if (existingTerm == msg.d_entries[i].d_term) {
                 continue;
@@ -513,27 +523,48 @@ void RaftNode::handleAppendEntries(RaftNodeOutput*    output,
             d_log_p->truncateFrom(entryIndex);
         }
 
-        d_log_p->append(msg.d_entries[i].d_term, msg.d_entries[i].d_data);
+        int rc = d_log_p->append(msg.d_entries[i].d_term,
+                                 msg.d_entries[i].d_data);
+        if (rc != 0) {
+            // The log refused it, so this node does not have it and must not
+            // claim it below.  The leader keeps its optimistically advanced
+            // 'nextIndex', so the retry comes from the tick stall-detector.
+            BALL_LOG_ERROR << "[partition " << d_config.d_partitionId
+                           << "] Node " << d_config.d_selfId
+                           << " failed to append entry at index " << entryIndex
+                           << ", rc=" << rc << "; truncating this batch";
+            break;  // BREAK
+        }
+        lastIndex = entryIndex;
     }
 
     // Advance commit index
     if (msg.d_leaderCommit > d_commitIndex) {
         bsls::Types::Uint64 newCommit = bsl::min(msg.d_leaderCommit,
-                                                 d_log_p->lastIndex());
+                                                 lastIndex);
         if (newCommit > d_commitIndex) {
             d_commitIndex = newCommit;
 
-            bsl::vector<LogEntry> committed(d_allocator_p);
+            d_committedScratch.clear();
             if (d_lastApplied < d_commitIndex) {
                 d_log_p->entries(d_lastApplied + 1,
                                  d_commitIndex + 1,
-                                 &committed);
+                                 &d_committedScratch,
+                                 0,   // maxCount: apply everything committed
+                                 0);  // maxBytes
                 d_lastApplied = d_commitIndex;
             }
-            for (bsl::vector<LogEntry>::size_type j = 0; j < committed.size();
+            output->d_committed.reserve(output->d_committed.size() +
+                                        d_committedScratch.size());
+            for (bsl::vector<LogEntry>::size_type j = 0;
+                 j < d_committedScratch.size();
                  ++j) {
-                output->d_committed.push_back(committed[j]);
+                output->d_committed.push_back(d_committedScratch[j]);
             }
+
+            // See 'advanceCommitIndex': these blobs alias the file set and
+            // must not be held past the call.
+            d_committedScratch.clear();
         }
     }
 
@@ -543,7 +574,7 @@ void RaftNode::handleAppendEntries(RaftNodeOutput*    output,
     resp.d_sourceNodeId      = d_config.d_selfId;
     resp.d_destinationNodeId = msg.d_sourceNodeId;
     resp.d_success           = true;
-    resp.d_matchIndex        = d_log_p->lastIndex();
+    resp.d_matchIndex        = lastIndex;
     output->d_messages.push_back(resp);
 }
 
@@ -563,17 +594,6 @@ void RaftNode::handleAppendEntriesResp(RaftNodeOutput*    output,
     }
 
     if (msg.d_success) {
-        // Free the window slot.  A response acking everything sent zeroes the
-        // count outright, which also recovers the slots of any messages the
-        // peer dropped without answering (it does that while receiving a
-        // snapshot, or once its partition has closed).
-        if (msg.d_matchIndex + 1 >= it->second.d_nextIndex) {
-            it->second.d_inFlightCount = 0;
-        }
-        else if (it->second.d_inFlightCount > 0) {
-            it->second.d_inFlightCount--;
-        }
-
         if (msg.d_matchIndex > it->second.d_matchIndex) {
             it->second.d_matchIndex = msg.d_matchIndex;
             it->second.d_stalledTicks = 0;
@@ -590,18 +610,10 @@ void RaftNode::handleAppendEntriesResp(RaftNodeOutput*    output,
         // replication): its match index is now known, so replication can
         // pipeline, and it is at/past the snapshot boundary.
         it->second.d_probing               = false;
+        it->second.d_probeSent             = false;
         it->second.d_boundaryProbeRejected = false;
 
         advanceCommitIndex(output);
-
-        // Entries appended while this response was in flight are still owed
-        // to the peer, and freeing a window slot above is what makes room for
-        // them.  'advanceCommitIndex' sends only when this response moved the
-        // commit index, so without this the backlog would wait for the next
-        // heartbeat whenever another peer already supplied the quorum.
-        if (it->second.d_nextIndex <= d_log_p->lastIndex()) {
-            sendAppendEntries(output, msg.d_sourceNodeId);
-        }
 
         // Leadership transfer: if target is caught up, send TimeoutNow
         if (d_transferTargetId == msg.d_sourceNodeId &&
@@ -629,11 +641,11 @@ void RaftNode::handleAppendEntriesResp(RaftNodeOutput*    output,
                       << "); backing off and retrying";
 
         // Everything optimistically sent past the divergence is void.  Go
-        // back to probing so the retry below is the only message in flight
-        // and its response is unambiguous.
-        it->second.d_probing       = true;
-        it->second.d_inFlightCount = 0;
-        it->second.d_stalledTicks  = 0;
+        // back to probing so the retry is the only message in flight and its
+        // response is unambiguous.
+        it->second.d_probing      = true;
+        it->second.d_probeSent    = false;
+        it->second.d_stalledTicks = 0;
 
         // If the peer's reported lastIndex is below the snapshot boundary, it
         // genuinely lacks 'snapshotIndex' -- an optimistic boundary probe
@@ -654,7 +666,6 @@ void RaftNode::handleAppendEntriesResp(RaftNodeOutput*    output,
         else if (it->second.d_nextIndex > 1) {
             it->second.d_nextIndex--;
         }
-        sendAppendEntries(output, msg.d_sourceNodeId);
     }
 }
 
@@ -761,144 +772,184 @@ void RaftNode::handleInstallSnapshotResp(RaftNodeOutput*    output,
 
     it->second.d_snapshotPending      = false;
     it->second.d_snapshotPendingTicks = 0;
-    sendAppendEntries(output, msg.d_sourceNodeId);
 
     advanceCommitIndex(output);
 }
 
-void RaftNode::broadcastAppendEntries(RaftNodeOutput* output)
+void RaftNode::flushSends(RaftNodeOutput* output)
 {
     BSLS_ASSERT_SAFE(output);
-    BSLS_ASSERT_SAFE(d_state == RaftState::e_LEADER);
 
-    for (bsl::unordered_map<int, PeerState>::const_iterator it =
+    d_appendsSinceFlush = 0;
+
+    if (d_state != RaftState::e_LEADER) {
+        d_heartbeatDue = false;
+        return;  // RETURN
+    }
+
+    // Where this round starts: 'output' may already carry a response or a vote
+    // from the event that led here, and only messages built below may be
+    // joined by a later peer of this round.
+    const bsl::vector<RaftMessage>::size_type roundBegin =
+        output->d_messages.size();
+
+    // Growing this vector copies the messages already in it, entries and all.
+    output->d_messages.reserve(roundBegin + d_peerStates.size());
+
+    for (bsl::unordered_map<int, PeerState>::iterator it =
              d_peerStates.begin();
          it != d_peerStates.end();
          ++it) {
-        sendAppendEntries(output, it->first);
+        sendAppendEntries(output, it->first, &it->second, roundBegin);
     }
+
+    d_heartbeatDue = false;
 }
 
-void RaftNode::notifyCommit(RaftNodeOutput* output)
+void RaftNode::sendAppendEntries(
+    RaftNodeOutput*                     output,
+    int                                 peerId,
+    PeerState*                          peer,
+    bsl::vector<RaftMessage>::size_type roundBegin)
 {
     BSLS_ASSERT_SAFE(output);
+    BSLS_ASSERT_SAFE(peer);
     BSLS_ASSERT_SAFE(d_state == RaftState::e_LEADER);
-
-    for (bsl::unordered_map<int, PeerState>::const_iterator it =
-             d_peerStates.begin();
-         it != d_peerStates.end();
-         ++it) {
-        if (it->second.d_sentCommit < d_commitIndex) {
-            sendAppendEntries(output, it->first);
-        }
-    }
-}
-
-void RaftNode::sendAppendEntries(RaftNodeOutput* output, int peerId)
-{
-    BSLS_ASSERT_SAFE(output);
-    BSLS_ASSERT_SAFE(d_state == RaftState::e_LEADER);
-
-    bsl::unordered_map<int, PeerState>::iterator it = d_peerStates.find(
-        peerId);
-    if (it == d_peerStates.end()) {
-        return;
-    }
 
     // A snapshot in flight supersedes replication entirely; 'tick()' clears it
     // on timeout.
-    if (it->second.d_snapshotPending) {
+    if (peer->d_snapshotPending) {
         return;  // RETURN
     }
 
-    // While probing, the peer's match index is unknown, so a second send
-    // cannot be built on the first: allow one at a time.  While replicating,
-    // send until the window is full -- past that entries accumulate and the
-    // next send carries them as one batch.
-    const int maxInFlight = it->second.d_probing ? 1 : k_MAX_IN_FLIGHT;
-    if (it->second.d_inFlightCount >= maxInFlight) {
+    // The peer's log has forked and its rejection is still in flight: one
+    // entry-carrying message at a time, so it is not streamed entries it is
+    // going to discard.
+    if (peer->d_probing && peer->d_probeSent) {
         return;  // RETURN
     }
 
-    bsls::Types::Uint64 nextIdx       = it->second.d_nextIndex;
-    bsls::Types::Uint64 snapshotIndex = d_log_p->snapshotIndex();
+    const bsls::Types::Uint64 nextIdx       = peer->d_nextIndex;
+    const bsls::Types::Uint64 snapshotIndex = d_log_p->snapshotIndex();
+    const bsls::Types::Uint64 lastIndex     = d_log_p->lastIndex();
+
+    // Sends are optimistic, so 'nextIndex' runs ahead of what the peer has
+    // acked.  Stop once too much is outstanding: a peer that has stopped
+    // answering would otherwise be queued the log as fast as it is produced,
+    // and the channel buffer neither blocks nor drops.
+    if (nextIdx - peer->d_matchIndex - 1 > d_config.d_maxUnackedEntries) {
+        return;  // RETURN
+    }
+
+    // Anchor first, so that the join below is one test for both the normal
+    // path and the boundary probe.
+    bsls::Types::Uint64 prevLogIndex = 0;
+    bsls::Types::Uint64 prevLogTerm  = 0;
 
     if (nextIdx <= snapshotIndex) {
-        // 'prevLogIndex' ('nextIdx - 1') is at or below the compacted snapshot
-        // boundary, so no AppendEntries can be built from the log.  Try one
-        // optimistic AppendEntries anchored at the boundary before falling
-        // back to 'InstallSnapshot': a peer already at 'snapshotIndex' accepts
-        // it, one genuinely behind rejects it and gets the snapshot on retry.
-        if (nextIdx == snapshotIndex && !it->second.d_boundaryProbeRejected) {
-            RaftMessage probe(d_allocator_p);
-            probe.d_type              = RaftMessageType::e_APPEND_ENTRIES;
-            probe.d_term              = d_currentTerm;
-            probe.d_sourceNodeId      = d_config.d_selfId;
-            probe.d_destinationNodeId = peerId;
-            probe.d_prevLogIndex      = snapshotIndex;
-            probe.d_prevLogTerm       = d_log_p->snapshotTerm();
-            probe.d_leaderCommit      = d_commitIndex;
+        // 'nextIdx - 1' is at or below the compacted snapshot boundary, so no
+        // AppendEntries can be built from the log.  Try one optimistic
+        // AppendEntries anchored at the boundary before falling back to
+        // 'InstallSnapshot': a peer already at 'snapshotIndex' accepts it, one
+        // genuinely behind rejects it and gets the snapshot on retry.
+        if (nextIdx != snapshotIndex || peer->d_boundaryProbeRejected) {
+            RaftMessage snap(d_allocator_p);
+            snap.d_type              = RaftMessageType::e_INSTALL_SNAPSHOT;
+            snap.d_term              = d_currentTerm;
+            snap.d_sourceNodeId      = d_config.d_selfId;
+            snap.d_destinationNodeId = peerId;
+            snap.d_lastLogIndex      = snapshotIndex;
+            snap.d_lastLogTerm       = d_log_p->snapshotTerm();
+            output->d_messages.push_back(snap);
 
-            if (snapshotIndex < d_log_p->lastIndex()) {
-                d_log_p->entries(snapshotIndex + 1,
-                                 d_log_p->lastIndex() + 1,
-                                 &probe.d_entries);
-            }
-
-            output->d_messages.push_back(probe);
-            it->second.d_inFlightCount++;
-            it->second.d_sentCommit = probe.d_leaderCommit;
-            return;
+            peer->d_snapshotPending       = true;
+            peer->d_snapshotPendingTicks  = 0;
+            peer->d_snapshotPendingIndex  = snap.d_lastLogIndex;
+            peer->d_snapshotPendingTerm   = snap.d_lastLogTerm;
+            peer->d_boundaryProbeRejected = false;
+            return;  // RETURN
         }
 
-        RaftMessage snap(d_allocator_p);
-        snap.d_type              = RaftMessageType::e_INSTALL_SNAPSHOT;
-        snap.d_term              = d_currentTerm;
-        snap.d_sourceNodeId      = d_config.d_selfId;
-        snap.d_destinationNodeId = peerId;
-        snap.d_lastLogIndex      = snapshotIndex;
-        snap.d_lastLogTerm       = d_log_p->snapshotTerm();
-        output->d_messages.push_back(snap);
+        prevLogIndex = snapshotIndex;
+        prevLogTerm  = d_log_p->snapshotTerm();
+    }
+    else {
+        peer->d_boundaryProbeRejected = false;
 
-        it->second.d_snapshotPending       = true;
-        it->second.d_snapshotPendingTicks  = 0;
-        it->second.d_snapshotPendingIndex  = snap.d_lastLogIndex;
-        it->second.d_snapshotPendingTerm   = snap.d_lastLogTerm;
-        it->second.d_boundaryProbeRejected = false;
-        return;
+        prevLogIndex = nextIdx - 1;
+        prevLogTerm  = d_log_p->term(prevLogIndex);
     }
 
-    // Normal path: the peer is caught up past the snapshot boundary.
-    it->second.d_boundaryProbeRejected = false;
+    // A peer not yet told that the compaction at 'snapshotIndex' committed
+    // must apply it before receiving anything past it: a replica appends
+    // entries before it applies commits, so entries sent now would land in the
+    // file set its rollover is about to replace.  Send the commit alone.
+    const bool holdEntries = peer->d_sentCommit < snapshotIndex &&
+                             snapshotIndex <= d_commitIndex;
 
-    bsls::Types::Uint64 prevLogIndex = nextIdx - 1;
-    bsls::Types::Uint64 prevLogTerm  = d_log_p->term(prevLogIndex);
+    // What this message carries.  'holdEntries' also forces the commit through
+    // regardless of configuration, since that is what releases the hold.
+    const bool sendEntries = prevLogIndex < lastIndex && !holdEntries;
+    const bool sendCommit  = peer->d_sentCommit < d_commitIndex &&
+                            (d_config.d_broadcastHeartbeatOnCommit ||
+                             holdEntries);
 
-    RaftMessage msg(d_allocator_p);
-    msg.d_type              = RaftMessageType::e_APPEND_ENTRIES;
-    msg.d_term              = d_currentTerm;
-    msg.d_sourceNodeId      = d_config.d_selfId;
-    msg.d_destinationNodeId = peerId;
-    msg.d_prevLogIndex      = prevLogIndex;
-    msg.d_prevLogTerm       = prevLogTerm;
-    msg.d_leaderCommit      = d_commitIndex;
-
-    if (nextIdx <= d_log_p->lastIndex()) {
-        d_log_p->entries(nextIdx, d_log_p->lastIndex() + 1, &msg.d_entries);
+    if (!sendEntries && !sendCommit && !d_heartbeatDue) {
+        return;  // RETURN
     }
 
-    output->d_messages.push_back(msg);
-    it->second.d_sentCommit = msg.d_leaderCommit;
+    // A peer at the same anchor carrying the same entries is owed the same
+    // bytes, so join that message rather than build a second one saying the
+    // same thing.  A held peer must not join one carrying entries, nor a
+    // peer owed entries join a held peer's empty one.
+    RaftMessage* msg_p = 0;
+    for (bsl::vector<RaftMessage>::size_type i = roundBegin;
+         i < output->d_messages.size();
+         ++i) {
+        RaftMessage& m = output->d_messages[i];
+        if (m.d_type == RaftMessageType::e_APPEND_ENTRIES &&
+            m.d_prevLogIndex == prevLogIndex &&
+            m.d_entries.empty() != sendEntries) {
+            m.addDestination(peerId);
+            msg_p = &m;
+            break;
+        }
+    }
 
-    // An empty (heartbeat) AppendEntries costs no window slot and moves
-    // nothing, so it neither counts as in flight nor advances 'nextIndex'.
-    if (!msg.d_entries.empty()) {
-        it->second.d_inFlightCount++;
+    if (!msg_p) {
+        // Built in place: 'RaftMessage' holds the entries by value, so filling
+        // a local and pushing it would copy every one of them.
+        output->d_messages.emplace_back();
+        msg_p = &output->d_messages.back();
 
-        // Advance past what was just sent, so a following 'sendAppendEntries'
-        // builds the next non-overlapping message instead of resending these
-        // entries.  A rejection recomputes 'nextIndex' from 'matchIndex'.
-        it->second.d_nextIndex = msg.d_prevLogIndex + msg.d_entries.size() + 1;
+        msg_p->d_type              = RaftMessageType::e_APPEND_ENTRIES;
+        msg_p->d_term              = d_currentTerm;
+        msg_p->d_sourceNodeId      = d_config.d_selfId;
+        msg_p->d_destinationNodeId = peerId;
+        msg_p->d_prevLogIndex      = prevLogIndex;
+        msg_p->d_prevLogTerm       = prevLogTerm;
+        msg_p->d_leaderCommit      = d_commitIndex;
+
+        if (sendEntries) {
+            d_log_p->entries(prevLogIndex + 1,
+                             lastIndex + 1,
+                             &msg_p->d_entries,
+                             k_MAX_ENTRIES_PER_MESSAGE,
+                             k_MAX_ENTRY_BYTES_PER_MESSAGE);
+        }
+    }
+
+    peer->d_sentCommit = msg_p->d_leaderCommit;
+
+    // An empty (heartbeat) message moves nothing, so it neither draws the
+    // probe guard nor advances 'nextIndex'.
+    if (!msg_p->d_entries.empty()) {
+        peer->d_probeSent = peer->d_probing;
+
+        // Advance past what was just sent, so the next round builds the next
+        // non-overlapping message instead of resending these entries.  A
+        // rejection recomputes 'nextIndex' from the peer's own 'matchIndex'.
+        peer->d_nextIndex = prevLogIndex + msg_p->d_entries.size() + 1;
     }
 }
 
@@ -909,22 +960,22 @@ void RaftNode::advanceCommitIndex(RaftNodeOutput* output)
 
     // Find the highest N such that a majority of matchIndex[i] >= N
     // and log[N].term == currentTerm.
-    bsl::vector<bsls::Types::Uint64> matchIndices(d_allocator_p);
-    matchIndices.push_back(d_log_p->lastIndex());  // leader's own match
+    d_matchIndices.clear();
+    d_matchIndices.push_back(d_log_p->lastIndex());  // leader's own match
 
     for (bsl::unordered_map<int, PeerState>::const_iterator it =
              d_peerStates.begin();
          it != d_peerStates.end();
          ++it) {
-        matchIndices.push_back(it->second.d_matchIndex);
+        d_matchIndices.push_back(it->second.d_matchIndex);
     }
 
-    bsl::sort(matchIndices.begin(), matchIndices.end());
+    bsl::sort(d_matchIndices.begin(), d_matchIndices.end());
 
     // The median (index at quorum-1 from the end) is the highest N
     // replicated on a majority.
-    unsigned int        quorumIdx = matchIndices.size() - quorum();
-    bsls::Types::Uint64 newCommit = matchIndices[quorumIdx];
+    unsigned int        quorumIdx = d_matchIndices.size() - quorum();
+    bsls::Types::Uint64 newCommit = d_matchIndices[quorumIdx];
 
     if (newCommit > d_commitIndex) {
         const bsls::Types::Uint64 commitTerm = d_log_p->term(newCommit);
@@ -933,25 +984,33 @@ void RaftNode::advanceCommitIndex(RaftNodeOutput* output)
         if (commitTerm == d_currentTerm) {
             d_commitIndex = newCommit;
 
-            bsl::vector<LogEntry> committed(d_allocator_p);
+            d_committedScratch.clear();
             if (d_lastApplied < d_commitIndex) {
                 d_log_p->entries(d_lastApplied + 1,
                                  d_commitIndex + 1,
-                                 &committed);
+                                 &d_committedScratch,
+                                 0,   // maxCount: apply everything committed
+                                 0);  // maxBytes
                 d_lastApplied = d_commitIndex;
             }
-            for (bsl::vector<LogEntry>::size_type i = 0; i < committed.size();
+            for (bsl::vector<LogEntry>::size_type i = 0;
+                 i < d_committedScratch.size();
                  ++i) {
-                output->d_committed.push_back(committed[i]);
+                output->d_committed.push_back(d_committedScratch[i]);
             }
 
-            // Tell followers about the new commit index right away, rather
-            // than at the next heartbeat: a replica may not deliver a PUSH
-            // until it has applied the entry carrying its payload.  Only the
-            // peers left behind by this advance need a message of their own.
-            if (d_config.d_broadcastHeartbeatOnCommit) {
-                notifyCommit(output);
-            }
+            // Release the entries now.  Their blobs alias the active file set,
+            // and dropping such an alias schedules 'FileStore::gc' on the
+            // partition's dispatcher; held until this object is destroyed,
+            // that dispatch would happen after the dispatcher has stopped.
+            // 'clear' keeps the capacity, which is the point of the buffer.
+            d_committedScratch.clear();
+
+            // The peers this advance leaves behind learn the new commit index
+            // from the next round, which the caller runs as soon as it is done
+            // with the event that led here.  A replica may not deliver a PUSH
+            // until it has applied the entry carrying its payload, so this
+            // must not wait for the next heartbeat.
         }
     }
 }
@@ -982,9 +1041,9 @@ void RaftNode::tick(RaftNodeOutput* output)
             }
 
             // Sends are outstanding but 'matchIndex' has not moved: presume
-            // they were dropped.  Reset to probing, which both frees the
-            // window and makes the next retry the only message in flight.
-            if (it->second.d_inFlightCount > 0) {
+            // they were dropped.  Rewind to what the peer last acked and go
+            // back to probing, so the retry is the only message in flight.
+            if (it->second.d_nextIndex > it->second.d_matchIndex + 1) {
                 if (++it->second.d_stalledTicks >=
                     d_config.d_electionTimeoutMin) {
                     BALL_LOG_INFO
@@ -992,10 +1051,10 @@ void RaftNode::tick(RaftNodeOutput* output)
                         << d_config.d_selfId
                         << " timed out waiting for AppendEntriesResp from "
                         << it->first << "; retrying";
-                    it->second.d_probing       = true;
-                    it->second.d_inFlightCount = 0;
-                    it->second.d_stalledTicks  = 0;
-                    it->second.d_nextIndex     = it->second.d_matchIndex + 1;
+                    it->second.d_probing      = true;
+                    it->second.d_probeSent    = false;
+                    it->second.d_stalledTicks = 0;
+                    it->second.d_nextIndex    = it->second.d_matchIndex + 1;
                 }
             }
         }
@@ -1003,7 +1062,7 @@ void RaftNode::tick(RaftNodeOutput* output)
         d_heartbeatTicks++;
         if (d_heartbeatTicks >= d_config.d_heartbeatInterval) {
             d_heartbeatTicks = 0;
-            broadcastAppendEntries(output);
+            d_heartbeatDue   = true;
         }
     }
     else {
@@ -1119,13 +1178,19 @@ int RaftNode::propose(RaftNodeOutput*                     output,
         return rc;  // RETURN
     }
 
-    broadcastAppendEntries(output);
-
     // Advance the commit index (leader-guarded above).  In a single-node
     // cluster this commits the just-appended entry synchronously via
     // self-quorum; in a multi-node cluster it is a no-op here because peers'
     // matchIndex has not yet advanced.
     advanceCommitIndex(output);
+
+    // Peers are served by the round the caller runs once it is done with the
+    // batch this proposal belongs to -- unless enough has piled up that
+    // waiting would hold entries back too long.  The caller's flush is not
+    // bounded in time: a dispatcher batch runs until its queue drains.
+    if (++d_appendsSinceFlush >= k_SEND_TRIGGER_ENTRIES) {
+        flushSends(output);
+    }
 
     return 0;
 }
@@ -1169,7 +1234,10 @@ int RaftNode::transferLeadership(RaftNodeOutput* output, int targetNodeId)
         d_transferTargetId = k_INVALID_NODE_ID;
     }
     else {
-        sendAppendEntries(output, targetNodeId);
+        // Catch the target up first; the round that does so runs when the
+        // caller flushes, and 'handleAppendEntriesResp' sends the TimeoutNow
+        // once the target reports it is current.
+        flushSends(output);
     }
 
     return 0;

@@ -112,13 +112,30 @@ ClusterStateRaft::~ClusterStateRaft()
 }
 
 // PRIVATE MANIPULATORS
+mqbnet::ClusterNode* ClusterStateRaft::peerNode(int nodeId)
+{
+    bsl::unordered_map<int, mqbnet::ClusterNode*>::const_iterator it =
+        d_peerNodes.find(nodeId);
+    if (it != d_peerNodes.end()) {
+        return it->second;  // RETURN
+    }
+
+    mqbnet::ClusterNode* node =
+        d_clusterData_p->membership().netCluster()->lookupNode(nodeId);
+    if (node) {
+        d_peerNodes[nodeId] = node;
+    }
+    return node;
+}
+
 void ClusterStateRaft::dispatchOutput(RaftNodeOutput* output)
 {
     BSLS_ASSERT_SAFE(output);
 
-    // TODO: optimize for the normal case when multiple peers need the same
-    // AppendEntries content (all caught up) — build one event blob and
-    // send to all instead of per-peer.
+    // The CSL runs a round on every event: its rate does not justify the
+    // deferral 'PartitionRaft' does, and this keeps the sends where they were.
+    d_raftNode_mp->flushSends(output);
+
     for (bsl::vector<RaftMessage>::size_type i = 0;
          i < output->d_messages.size();
          ++i) {
@@ -178,15 +195,6 @@ void ClusterStateRaft::dispatchOutput(RaftNodeOutput* output)
 
 void ClusterStateRaft::sendAppendEntries(const RaftMessage& msg)
 {
-    mqbnet::ClusterNode* destNode =
-        d_clusterData_p->membership().netCluster()->lookupNode(
-            msg.d_destinationNodeId);
-    if (!destNode) {
-        BALL_LOG_WARN << "Cannot send Raft AppendEntries to unknown node "
-                      << msg.d_destinationNodeId;
-        return;
-    }
-
     bsl::shared_ptr<bdlbb::Blob> event_sp =
         d_clusterData_p->blobSpPool().getObject();
     bdlbb::Blob& event = *event_sp;
@@ -201,8 +209,10 @@ void ClusterStateRaft::sendAppendEntries(const RaftMessage& msg)
         bmqu::BlobPosition(0, static_cast<int>(sizeof(bmqp::EventHeader))),
         true,   // read
         true);  // write
+    *rh = bmqp::RaftHeader();
     (*rh)
         .setMsgType(bmqp::RaftHeader::k_MSG_TYPE_APPEND_ENTRIES)
+        .setPartitionId(0)
         .setTerm(msg.d_term);
     rh.reset();
 
@@ -214,6 +224,7 @@ void ClusterStateRaft::sendAppendEntries(const RaftMessage& msg)
                                             sizeof(bmqp::RaftHeader))),
         true,   // read
         true);  // write
+    *aeh = bmqp::RaftAppendEntriesHeader();
     (*aeh)
         .setPrevLogIndex(msg.d_prevLogIndex)
         .setPrevLogTerm(msg.d_prevLogTerm)
@@ -235,14 +246,23 @@ void ClusterStateRaft::sendAppendEntries(const RaftMessage& msg)
     (*eh).setLength(event.length());
     eh.reset();
 
-    destNode->write(event_sp, bmqp::EventType::e_RAFT_CLUSTER);
+    // One event, every peer at this anchor.  Channels copy the blob's buffer
+    // references on write and never modify it, so it is shared, not rebuilt.
+    for (size_t i = 0; i < msg.destinationCount(); ++i) {
+        const int            nodeId   = msg.destination(i);
+        mqbnet::ClusterNode* destNode = peerNode(nodeId);
+        if (!destNode) {
+            BALL_LOG_WARN << "Cannot send Raft AppendEntries to unknown node "
+                          << nodeId;
+            continue;  // CONTINUE
+        }
+        destNode->write(event_sp, bmqp::EventType::e_RAFT_CLUSTER);
+    }
 }
 
 void ClusterStateRaft::sendAppendEntriesResponse(const RaftMessage& msg)
 {
-    mqbnet::ClusterNode* destNode =
-        d_clusterData_p->membership().netCluster()->lookupNode(
-            msg.d_destinationNodeId);
+    mqbnet::ClusterNode* destNode = peerNode(msg.d_destinationNodeId);
     if (!destNode) {
         BALL_LOG_WARN
             << "Cannot send Raft AppendEntries response to unknown node "
@@ -262,8 +282,10 @@ void ClusterStateRaft::sendAppendEntriesResponse(const RaftMessage& msg)
         bmqu::BlobPosition(0, static_cast<int>(sizeof(bmqp::EventHeader))),
         true,   // read
         true);  // write
+    *rh = bmqp::RaftHeader();
     (*rh)
         .setMsgType(bmqp::RaftHeader::k_MSG_TYPE_APPEND_ENTRIES_RESP)
+        .setPartitionId(0)
         .setTerm(msg.d_term);
     rh.reset();
 
@@ -274,6 +296,7 @@ void ClusterStateRaft::sendAppendEntriesResponse(const RaftMessage& msg)
                                             sizeof(bmqp::RaftHeader))),
         true,   // read
         true);  // write
+    *resp = bmqp::RaftResponseHeader();
     (*resp)
         .setSuccess(msg.d_success)
         .setMatchIndex(msg.d_matchIndex)
@@ -290,9 +313,7 @@ void ClusterStateRaft::sendAppendEntriesResponse(const RaftMessage& msg)
 
 void ClusterStateRaft::sendSnapshotRecord(const RaftMessage& msg)
 {
-    mqbnet::ClusterNode* destNode =
-        d_clusterData_p->membership().netCluster()->lookupNode(
-            msg.d_destinationNodeId);
+    mqbnet::ClusterNode* destNode = peerNode(msg.d_destinationNodeId);
     if (!destNode) {
         BALL_LOG_WARN << "Cannot send CSL snapshot to unknown node "
                       << msg.d_destinationNodeId;
@@ -346,9 +367,7 @@ void ClusterStateRaft::sendSnapshotRecord(const RaftMessage& msg)
 
 void ClusterStateRaft::sendControlMessage(const RaftMessage& msg)
 {
-    mqbnet::ClusterNode* destNode =
-        d_clusterData_p->membership().netCluster()->lookupNode(
-            msg.d_destinationNodeId);
+    mqbnet::ClusterNode* destNode = peerNode(msg.d_destinationNodeId);
     if (!destNode) {
         BALL_LOG_WARN << "Cannot send Raft control message to unknown node "
                       << msg.d_destinationNodeId;
@@ -546,8 +565,7 @@ void ClusterStateRaft::updateElectorInfo()
         return;  // RETURN
     }
 
-    mqbnet::ClusterNode* leaderNode =
-        d_clusterData_p->membership().netCluster()->lookupNode(leaderId);
+    mqbnet::ClusterNode* leaderNode = peerNode(leaderId);
 
     if (!leaderNode) {
         BALL_LOG_WARN << "ClusterStateRaft::updateElectorInfo (node "

@@ -224,7 +224,40 @@ PartitionRaft::~PartitionRaft()
 }
 
 // PRIVATE MANIPULATORS
-void PartitionRaft::dispatchOutput(RaftNodeOutput* output)
+mqbnet::ClusterNode* PartitionRaft::peerNode(int nodeId)
+{
+    bsl::unordered_map<int, mqbnet::ClusterNode*>::const_iterator it =
+        d_peerNodes.find(nodeId);
+    if (it != d_peerNodes.end()) {
+        return it->second;  // RETURN
+    }
+
+    mqbnet::ClusterNode* node =
+        d_clusterData_p->membership().netCluster()->lookupNode(nodeId);
+    if (node) {
+        d_peerNodes[nodeId] = node;
+    }
+    return node;
+}
+
+void PartitionRaft::flush()
+{
+    // executed by the partition *DISPATCHER* thread, from 'FileStore::flush()'
+    // once the dispatcher has drained this partition's queue.  Every
+    // AppendEntries this leader owes is produced here, so a batch of proposals
+    // and responses yields one round rather than one send apiece.
+    BSLS_ASSERT_SAFE(d_fileStore_sp->inDispatcherThread());
+
+    if (!d_isStarted) {
+        return;  // RETURN
+    }
+
+    RaftNodeOutput output(d_allocator_p);
+    d_raftNode_mp->flushSends(&output);
+    dispatchMessages(&output);
+}
+
+void PartitionRaft::dispatchMessages(RaftNodeOutput* output)
 {
     // executed by the partition *DISPATCHER* thread
     BSLS_ASSERT_SAFE(output);
@@ -248,6 +281,14 @@ void PartitionRaft::dispatchOutput(RaftNodeOutput* output)
             sendControlMessage(msg);
         }
     }
+}
+
+void PartitionRaft::dispatchOutput(RaftNodeOutput* output)
+{
+    // executed by the partition *DISPATCHER* thread
+    BSLS_ASSERT_SAFE(output);
+
+    dispatchMessages(output);
 
     // If this node just lost leadership, discard any writes it had buffered as
     // leader (e.g. an in-flight rollover) BEFORE applying committed entries
@@ -339,8 +380,7 @@ void PartitionRaft::dispatchOutput(RaftNodeOutput* output)
                 (leaderNodeId ==
                  d_clusterData_p->membership().selfNode()->nodeId())
                     ? d_clusterData_p->membership().selfNode()
-                    : d_clusterData_p->membership().netCluster()->lookupNode(
-                          leaderNodeId);
+                    : peerNode(leaderNodeId);
             if (leaderNode) {
                 d_fileStore_sp->setActivePrimary(
                     leaderNode,
@@ -362,16 +402,6 @@ void PartitionRaft::dispatchOutput(RaftNodeOutput* output)
 void PartitionRaft::sendAppendEntries(const RaftMessage& msg)
 {
     // executed by the partition *DISPATCHER* thread
-    mqbnet::ClusterNode* destNode =
-        d_clusterData_p->membership().netCluster()->lookupNode(
-            msg.d_destinationNodeId);
-    if (!destNode) {
-        BALL_LOG_WARN << "Partition [" << d_partitionId
-                      << "] cannot send AppendEntries to unknown node "
-                      << msg.d_destinationNodeId;
-        return;
-    }
-
     bsl::shared_ptr<bdlbb::Blob> event_sp =
         d_clusterData_p->blobSpPool().getObject();
     bdlbb::Blob& event = *event_sp;
@@ -384,6 +414,7 @@ void PartitionRaft::sendAppendEntries(const RaftMessage& msg)
         bmqu::BlobPosition(0, static_cast<int>(sizeof(bmqp::EventHeader))),
         true,   // read
         true);  // write
+    *rh = bmqp::RaftHeader();
     (*rh)
         .setMsgType(bmqp::RaftHeader::k_MSG_TYPE_APPEND_ENTRIES)
         .setPartitionId(static_cast<unsigned int>(d_partitionId))
@@ -397,6 +428,7 @@ void PartitionRaft::sendAppendEntries(const RaftMessage& msg)
                                             sizeof(bmqp::RaftHeader))),
         true,   // read
         true);  // write
+    *aeh = bmqp::RaftAppendEntriesHeader();
     (*aeh)
         .setPrevLogIndex(msg.d_prevLogIndex)
         .setPrevLogTerm(msg.d_prevLogTerm)
@@ -416,15 +448,25 @@ void PartitionRaft::sendAppendEntries(const RaftMessage& msg)
     (*eh).setLength(event.length());
     eh.reset();
 
-    destNode->write(event_sp, bmqp::EventType::e_RAFT_PARTITION);
+    // One event, every peer at this anchor.  Channels copy the blob's buffer
+    // references on write and never modify it, so it is shared, not rebuilt.
+    for (size_t i = 0; i < msg.destinationCount(); ++i) {
+        const int            nodeId   = msg.destination(i);
+        mqbnet::ClusterNode* destNode = peerNode(nodeId);
+        if (!destNode) {
+            BALL_LOG_WARN << "Partition [" << d_partitionId
+                          << "] cannot send AppendEntries to unknown node "
+                          << nodeId;
+            continue;  // CONTINUE
+        }
+        destNode->write(event_sp, bmqp::EventType::e_RAFT_PARTITION);
+    }
 }
 
 void PartitionRaft::sendAppendEntriesResponse(const RaftMessage& msg)
 {
     // executed by the partition *DISPATCHER* thread
-    mqbnet::ClusterNode* destNode =
-        d_clusterData_p->membership().netCluster()->lookupNode(
-            msg.d_destinationNodeId);
+    mqbnet::ClusterNode* destNode = peerNode(msg.d_destinationNodeId);
     if (!destNode) {
         BALL_LOG_WARN
             << "Partition [" << d_partitionId
@@ -445,6 +487,7 @@ void PartitionRaft::sendAppendEntriesResponse(const RaftMessage& msg)
         bmqu::BlobPosition(0, static_cast<int>(sizeof(bmqp::EventHeader))),
         true,   // read
         true);  // write
+    *rh = bmqp::RaftHeader();
     (*rh)
         .setMsgType(bmqp::RaftHeader::k_MSG_TYPE_APPEND_ENTRIES_RESP)
         .setPartitionId(static_cast<unsigned int>(d_partitionId))
@@ -458,6 +501,7 @@ void PartitionRaft::sendAppendEntriesResponse(const RaftMessage& msg)
                                             sizeof(bmqp::RaftHeader))),
         true,   // read
         true);  // write
+    *resp = bmqp::RaftResponseHeader();
     (*resp)
         .setSuccess(msg.d_success)
         .setMatchIndex(msg.d_matchIndex)
@@ -475,9 +519,7 @@ void PartitionRaft::sendAppendEntriesResponse(const RaftMessage& msg)
 void PartitionRaft::sendControlMessage(const RaftMessage& msg)
 {
     // executed by the partition *DISPATCHER* thread
-    mqbnet::ClusterNode* destNode =
-        d_clusterData_p->membership().netCluster()->lookupNode(
-            msg.d_destinationNodeId);
+    mqbnet::ClusterNode* destNode = peerNode(msg.d_destinationNodeId);
     if (!destNode) {
         BALL_LOG_WARN << "Partition [" << d_partitionId
                       << "] cannot send Raft control to unknown node "
@@ -539,8 +581,7 @@ void PartitionRaft::sendSnapshot(int                 destNodeId,
                                  bsls::Types::Uint64 lastIncludedTerm)
 {
     // executed by the partition *DISPATCHER* thread
-    mqbnet::ClusterNode* destNode =
-        d_clusterData_p->membership().netCluster()->lookupNode(destNodeId);
+    mqbnet::ClusterNode* destNode = peerNode(destNodeId);
     if (!destNode) {
         BALL_LOG_WARN << "Partition [" << d_partitionId
                       << "] cannot send snapshot to unknown node "
@@ -1063,6 +1104,11 @@ void PartitionRaft::start()
 
     d_isStarted = true;
 
+    // Every AppendEntries goes out from here, once the dispatcher has drained
+    // this partition's queue.
+    d_fileStore_sp->setFlushCallback(
+        bdlf::BindUtil::bind(&PartitionRaft::flush, this));
+
     BALL_LOG_INFO << "PartitionRaft started for partition " << d_partitionId
                   << ", node " << d_raftNode_mp->selfId();
 }
@@ -1072,6 +1118,8 @@ void PartitionRaft::stop()
     if (!d_isStarted) {
         return;
     }
+
+    d_fileStore_sp->setFlushCallback(bsl::function<void()>());
 
     d_clusterData_p->scheduler().cancelEventAndWait(&d_tickHandle);
     d_isStarted = false;
@@ -1102,45 +1150,52 @@ int PartitionRaft::propose(
             *pw->d_appIdKeyPairs_p);
     }
 
-    if (!d_fileStore_sp->isFileSetAvailable()) {
-        // The journal is read-only: a rollover could not reclaim enough space
-        // (outstanding records exceed the policy threshold).  Mirror legacy
-        // 'FileStore::writeQueueOpRecord': the ONLY write still permitted is a
-        // full-queue PURGE, written into the reserved PURGE area, which frees
-        // outstanding records and lets 'onPurgeComplete' roll over to recover.
-        // A per-appId purge (non-null appKey) writes per-message deletion
-        // records, for which there is no room -- reject it, like any other
-        // write, so the partition stays read-only.
-        const bool isPurge = pw->d_recordType ==
-                                 mqbs::RecordType::e_QUEUE_OP &&
-                             pw->d_queueOpType == mqbs::QueueOpType::e_PURGE &&
-                             pw->d_appKey.isNull();
-        if (!isPurge || !d_fileStore_sp->primaryHasPurgeReserve()) {
-            return rc_UNAVAILABLE;  // RETURN
-        }
+    // Skipped while a rollover of this node's own is in flight:
+    // 'proposeRollover' marks the partition unavailable for its duration, so
+    // the read-only branch below would reject every write of that window
+    // instead of letting it buffer.
+    if (!d_isRolloverPending) {
+        if (!d_fileStore_sp->isFileSetAvailable()) {
+            // The journal is read-only: a rollover could not reclaim enough
+            // space (outstanding records exceed the policy threshold).  Mirror
+            // legacy 'FileStore::writeQueueOpRecord': the ONLY write still
+            // permitted is a full-queue PURGE, written into the reserved PURGE
+            // area, which frees outstanding records and lets
+            // 'onPurgeComplete' roll over to recover.  A per-appId purge
+            // (non-null appKey) writes per-message deletion records, for which
+            // there is no room -- reject it, like any other write, so the
+            // partition stays read-only.
+            const bool isPurge = pw->d_recordType ==
+                                     mqbs::RecordType::e_QUEUE_OP &&
+                                 pw->d_queueOpType ==
+                                     mqbs::QueueOpType::e_PURGE &&
+                                 pw->d_appKey.isNull();
+            if (!isPurge || !d_fileStore_sp->primaryHasPurgeReserve()) {
+                return rc_UNAVAILABLE;  // RETURN
+            }
 
-        BALL_LOG_WARN << "Partition [" << d_partitionId
-                      << "] Writing PURGE record for queueKey ["
-                      << pw->d_queueKey
-                      << "] into the reserved journal area despite the "
-                      << "partition being read-only (unavailable).";
-        // Fall through: append the PURGE directly (no rollover); the reserved
-        // area guarantees room.
+            BALL_LOG_WARN << "Partition [" << d_partitionId
+                          << "] Writing PURGE record for queueKey ["
+                          << pw->d_queueKey
+                          << "] into the reserved journal area despite the "
+                          << "partition being read-only (unavailable).";
+            // Fall through: append the PURGE directly (no rollover); the
+            // reserved area guarantees room.
+        }
+        else {
+            int rc = rolloverIfNeeded(dataBytes, qlistBytes);
+            if (0 != rc) {
+                return rc;  // RETURN
+            }
+        }
     }
-    else {
-        int rc = rolloverIfNeeded(dataBytes, qlistBytes);
-        if (0 != rc) {
-            return rc;  // RETURN
-        }
 
-        // If a rollover is in flight, buffer the write for replay into the new
-        // file once the rollover commits ('bufferPendingWrite' reserves
-        // 'pw->d_handle').
-        if (d_isRolloverPending) {
-            return d_raftLog_mp->bufferPendingWrite(
-                pw,
-                d_raftNode_mp->currentTerm());
-        }
+    // Buffer for replay into the new file set once the rollover commits; this
+    // covers both the write that triggered it and every one that follows
+    // while it is in flight.  'bufferPendingWrite' reserves 'pw->d_handle'.
+    if (d_isRolloverPending) {
+        return d_raftLog_mp->bufferPendingWrite(pw,
+                                                d_raftNode_mp->currentTerm());
     }
 
     // Otherwise enqueue it for 'append()'; the record's sequence number
@@ -1160,7 +1215,9 @@ int PartitionRaft::propose(
 
     dispatchOutput(&output);
 
-    d_raftLog_mp->clearCache();
+    // The cache is NOT released here: the round that reads this entry runs at
+    // 'flush()', which releases it once the entry has been served to the
+    // peers.  Clearing it now would send every round to mmap instead.
     return 0;
 }
 
@@ -1348,7 +1405,6 @@ void PartitionRaft::proposeRollover()
     d_isRolloverPending = true;
 
     dispatchOutput(&output);
-    d_raftLog_mp->clearCache();
 }
 
 int PartitionRaft::rolloverIfNeeded(bsls::Types::Uint64 dataBytes,
@@ -1446,7 +1502,6 @@ void PartitionRaft::drainPendingWrites()
     }
 
     dispatchOutput(&output);
-    d_raftLog_mp->clearCache();
 }
 
 void PartitionRaft::execute(const mqbi::Dispatcher::VoidFunction& functor)
@@ -1467,6 +1522,9 @@ int PartitionRaft::close(bool flush, bool archive)
     // does not leave that alias for a deferred 'FileStore::gc' to release
     // later -- by which time the Dispatcher may already be stopped.
     d_raftLog_mp->dropPendingWrites();
+
+    // Same reason: the cached entry blobs alias the active file set too.
+    d_raftLog_mp->clearCache();
 
     return d_fileStore_sp->close(flush, archive);
 }
@@ -1603,6 +1661,20 @@ void PartitionRaft::appendEntries(const bdlbb::Blob&   event,
         return;
     }
 
+    // Applying another partition's entries would write its records into this
+    // partition's files.  Routing already selected this object by the same
+    // field, so a mismatch means the id changed underneath or the event was
+    // misrouted; either way, drop it rather than corrupt the file set.
+    if (rh->partitionId() != static_cast<unsigned int>(d_partitionId)) {
+        BMQTSK_ALARMLOG_ALARM("RAFT_MISROUTE")
+            << "Partition [" << d_partitionId
+            << "] received an AppendEntries addressed to partition "
+            << rh->partitionId() << " from node "
+            << (source ? source->nodeId() : -1) << "; dropping it."
+            << BMQTSK_ALARMLOG_END;
+        return;  // RETURN
+    }
+
     bmqu::BlobPosition aehPosition;
     if (0 != bmqu::BlobUtil::findOffsetSafe(&aehPosition,
                                             event,
@@ -1727,6 +1799,17 @@ void PartitionRaft::onAppendEntriesResponse(const bdlbb::Blob&   event,
     if (!rh.isSet()) {
         BALL_LOG_ERROR << "Partition [" << d_partitionId
                        << "] failed to read RaftHeader";
+        return;  // RETURN
+    }
+
+    // See 'appendEntries': a response for another partition would advance the
+    // wrong peer state.
+    if (rh->partitionId() != static_cast<unsigned int>(d_partitionId)) {
+        BMQTSK_ALARMLOG_ALARM("RAFT_MISROUTE")
+            << "Partition [" << d_partitionId
+            << "] received an AppendEntries response addressed to partition "
+            << rh->partitionId() << " from node " << source->nodeId()
+            << "; dropping it." << BMQTSK_ALARMLOG_END;
         return;  // RETURN
     }
 
