@@ -185,7 +185,7 @@ void StorageIterator::clearCache()
 {
     d_appData_sp.reset();
     d_options_sp.reset();
-    d_attributes.reset();
+    d_attributes.reset(false);
     d_haveReceipt = false;
 }
 
@@ -214,7 +214,7 @@ StorageIterator::StorageIterator(
 : d_storage_p(storage)
 , d_owner_p(owner)
 , d_iterator(initialPosition)
-, d_attributes()
+, d_attributes(false)
 , d_appData_sp()
 , d_options_sp()
 , d_haveReceipt(false)

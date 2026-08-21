@@ -195,8 +195,11 @@ void RootQueueEngine::deliverMessages(AppState* app)
     BSLS_ASSERT_SAFE(d_apps.find(app->appId()) != d_apps.end());
 
     bsls::TimeInterval delay;
-    size_t             numMessages = app->processDeliveryLists(&delay,
-                                                   d_realStorageIter_mp.get());
+    size_t             numMessages = app->processDeliveryLists(
+        &delay,
+        d_realStorageIter_mp.get(),
+        false);  // keepUnavailable: primary has the data locally, an
+                 // 'atEnd' redelivery entry means gc'ed/purged -> erase
 
     if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(0 == app->redeliveryListSize())) {
         if (!app->resumePoint().isUnset()) {
@@ -1709,7 +1712,7 @@ int RootQueueEngine::onRejectMessage(
                 if (d_throttledRejectMessageDump.requestPermission()) {
                     bsl::shared_ptr<bdlbb::Blob>   appData;
                     bsl::shared_ptr<bdlbb::Blob>   options;
-                    mqbi::StorageMessageAttributes attributes;
+                    mqbi::StorageMessageAttributes attributes(false);
                     int retrievalRc = d_queueState_p->storage()->get(
                         &appData,
                         &options,

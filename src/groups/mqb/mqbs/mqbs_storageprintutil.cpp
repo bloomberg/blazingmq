@@ -140,21 +140,20 @@ int StoragePrintUtil::listMessages(mqbcmd::QueueContents* queueContents,
 
 void StoragePrintUtil::printRecoveredStorages(
     bsl::ostream&            out,
-    bslmt::Mutex*            storagesLock,
-    const StorageSpMap&      storageMap,
+    StorageMonitor*          storageMonitor,
     int                      partitionId,
     const bsl::string&       clusterDescription,
     const bsls::Types::Int64 recoveryStartTime)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(storagesLock);
+    BSLS_ASSERT_SAFE(storageMonitor);
     BSLS_ASSERT_SAFE(0 <= partitionId);
 
-    // Needed to protect access to `storageMap` and its elements.
-    bslmt::LockGuard<bslmt::Mutex> guard(storagesLock);  // LOCK
+    bsl::vector<StorageSp> storages;
+    storageMonitor->loadAllStorages(&storages, partitionId);
 
     out << clusterDescription << ": Partition [" << partitionId
-        << "]: Number of recovered storages: " << storageMap.size()
+        << "]: Number of recovered storages: " << storages.size()
         << ". Time taken for recovery: "
         << bmqu::PrintUtil::prettyTimeInterval(
                (bmqu::Time::highResolutionTimer() - recoveryStartTime))
@@ -162,12 +161,11 @@ void StoragePrintUtil::printRecoveredStorages(
         << "[Num Msgs] [Num Virtual Storages] "
         << "[Virtual Storages Details])";
 
-    StorageSpMapConstIter cit = storageMap.begin();
-    while (cit != storageMap.end()) {
-        const mqbs::ReplicatedStorage* rs    = cit->second.get();
+    for (size_t i = 0; i < storages.size(); ++i) {
+        const mqbs::ReplicatedStorage* rs    = storages[i].get();
         const size_t                   numVS = rs->numVirtualStorages();
 
-        out << "\n  [" << cit->first << "] [" << rs->queueKey() << "] ["
+        out << "\n  [" << rs->queueUri() << "] [" << rs->queueKey() << "] ["
             << rs->numMessages(mqbu::StorageKey::k_NULL_KEY) << "] [" << numVS
             << "]";
 
@@ -191,8 +189,6 @@ void StoragePrintUtil::printRecoveredStorages(
         if (numVS) {
             out << " ]";
         }
-
-        ++cit;
     }
 }
 

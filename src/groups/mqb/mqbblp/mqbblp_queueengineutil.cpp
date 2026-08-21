@@ -1126,14 +1126,19 @@ void QueueEngineUtil_AppState::broadcastOneMessage(
 
 size_t
 QueueEngineUtil_AppState::processDeliveryLists(bsls::TimeInterval*    delay,
-                                               mqbi::StorageIterator* reader)
+                                               mqbi::StorageIterator* reader,
+                                               bool keepUnavailable)
 {
     BSLS_ASSERT_SAFE(delay);
 
-    size_t numMessages = processDeliveryList(delay, reader, d_redeliveryList);
+    size_t numMessages =
+        processDeliveryList(delay, reader, d_redeliveryList, keepUnavailable);
     if (*delay == bsls::TimeInterval()) {
         // The only excuse for stopping the iteration is poisonous message
-        numMessages += processDeliveryList(delay, reader, d_putAsideList);
+        numMessages += processDeliveryList(delay,
+                                           reader,
+                                           d_putAsideList,
+                                           keepUnavailable);
     }
 
     // `reader` might keep a shared pointer to a memory mapped file area, and
@@ -1148,9 +1153,24 @@ QueueEngineUtil_AppState::processDeliveryLists(bsls::TimeInterval*    delay,
 size_t
 QueueEngineUtil_AppState::processDeliveryList(bsls::TimeInterval*    delay,
                                               mqbi::StorageIterator* reader,
-                                              RedeliveryList&        list)
+                                              RedeliveryList&        list,
+                                              bool keepUnavailable)
 {
     if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(list.empty())) {
+        return 0;  // RETURN
+    }
+
+    if (!isAuthorized()) {
+        // This app's ordinal/key haven't been resolved against local
+        // storage yet (e.g. the 'QueueOpRecord' that registers it is still
+        // replicating to this node).  Not a per-message condition, so check
+        // once: stop for now rather than misreading an invalid ordinal as
+        // "message doesn't apply to this app" below.  No need to explicitly
+        // reschedule: delivery is re-attempted on every flush.
+        BMQ_LOGTHROTTLE_INFO << "#STORAGE_UNKNOWN_MESSAGE " << "Queue: '"
+                             << d_queue_p->description() << "', app: '"
+                             << appId() << "' is not yet authorized. "
+                             << "Stopping the redelivery now.";
         return 0;  // RETURN
     }
 
@@ -1168,11 +1188,43 @@ QueueEngineUtil_AppState::processDeliveryList(bsls::TimeInterval*    delay,
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(reader->atEnd())) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-            // The message got gc'ed or purged
+            if (keepUnavailable) {
+                // Replica relay: the record is not in storage yet.  An
+                // out-of-order PUSH can arrive before its payload is
+                // replicated/applied via Raft, so this is not necessarily a
+                // gc'ed/purged message -- keep the entry and retry on the
+                // next attempt (driven by 'onReplicatedBatch' when the record
+                // commits).  If it really was removed, it is erased from this
+                // list at removal time via 'removeFromRedelivery'.  Skip to
+                // the next entry rather than stopping, so later already-
+                // arrived entries still get delivered on this pass.
+                BMQ_LOGTHROTTLE_INFO
+                    << "#STORAGE_UNKNOWN_MESSAGE " << "Queue: '"
+                    << d_queue_p->description() << "', app: '" << appId()
+                    << "' cannot redeliver GUID: '" << *it
+                    << "' yet (not in the storage); keeping for retry.";
+                list.next(&it);
+                continue;  // CONTINUE
+            }
+
+            // The message got gc'ed or purged.  Do not stop the redelivery:
+            // fall through and treat it as sent so it is erased from the list
+            // and the remaining messages still get a chance to be delivered.
             BMQ_LOGTHROTTLE_INFO << "#STORAGE_UNKNOWN_MESSAGE " << "Queue: '"
                                  << d_queue_p->description() << "', app: '"
                                  << appId() << "' could not redeliver GUID: '"
                                  << *it << "' (not in the storage)";
+        }
+        else if (!reader->hasReceipt()) {
+            // The message is in the storage but not yet committed/receipted
+            // (e.g. Raft has not replicated it to a majority yet).  Stop here
+            // and retry on the next flush.
+            // TODO: remove extra logging
+            BMQ_LOGTHROTTLE_INFO << "#STORAGE_UNKNOWN_MESSAGE " << "Queue: '"
+                                 << d_queue_p->description() << "', app: '"
+                                 << appId() << "' has unconfirmed GUID: '"
+                                 << *it << "'. Stopping the redelivery now.";
+            break;
         }
         else if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
                      !reader->appMessageView(ordinal()).isPending())) {
@@ -1469,6 +1521,13 @@ void QueueEngineUtil_AppState::clear()
     d_resumePoint = bmqt::MessageGUID();
     d_redeliveryList.clear();
     d_putAsideList.clear();
+}
+
+void QueueEngineUtil_AppState::removeFromRedelivery(
+    const bmqt::MessageGUID& msgGUID)
+{
+    d_redeliveryList.erase(msgGUID);
+    d_putAsideList.erase(msgGUID);
 }
 
 void QueueEngineUtil_AppState::loadInternals(mqbcmd::AppState* out) const

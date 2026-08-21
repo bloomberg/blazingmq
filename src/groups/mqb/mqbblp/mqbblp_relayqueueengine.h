@@ -59,6 +59,7 @@
 #include <bsl_memory.h>
 #include <bsl_ostream.h>
 #include <bsl_unordered_map.h>
+#include <bsl_unordered_set.h>
 #include <bsl_utility.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
@@ -234,6 +235,16 @@ class RelayQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
 
     /// Storage iterator to access storage state.
     bslma::ManagedPtr<mqbi::StorageIterator> d_realStorageIter_mp;
+
+    /// `upstreamSubQueueId`s of Apps that have out-of-order redelivery PUSHes
+    /// parked in their redelivery list awaiting the (replicated) payload.
+    /// Consulted by `afterNewMessage` (driven by `Queue::onReplicatedBatch`)
+    /// to re-drive delivery once the data commits.  Empty in steady state.
+    bsl::unordered_set<unsigned int> d_appsPendingRedelivery;
+
+    /// Re-entrancy guard for draining `d_appsPendingRedelivery` from
+    /// `afterNewMessage` (which `processAppRedelivery` can call back into).
+    bool d_drainingPendingRedelivery;
 
     /// Allocator to use.
     bslma::Allocator* d_allocator_p;

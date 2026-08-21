@@ -25,7 +25,9 @@
 #include <mqbcfg_brokerconfig.h>
 #include <mqbcfg_messages.h>
 #include <mqbcmd_messages.h>
+#include <mqbi_cluster.h>
 #include <mqbi_domain.h>
+#include <mqbi_queue.h>
 
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
@@ -47,10 +49,14 @@
 #include <bsl_cstddef.h>
 #include <bsl_ios.h>
 #include <bsl_iostream.h>
+#include <bsl_memory.h>
+#include <bsl_unordered_set.h>
+#include <bsl_vector.h>
 #include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bslmt_latch.h>
 #include <bslmt_lockguard.h>
+#include <bslmt_threadutil.h>
 #include <bsls_assert.h>
 #include <bsls_systemtime.h>
 #include <bsls_timeinterval.h>
@@ -61,6 +67,11 @@ namespace mqba {
 namespace {
 const int k_MAX_WAIT_SECONDS_AT_SHUTDOWN      = 40;
 const int k_MAX_WAIT_SECONDS_AT_DOMAIN_REMOVE = 5;
+
+/// Deadline (seconds) and poll interval (milliseconds) for waiting on a
+/// domain reconfigure's app set to be applied down to local storage.
+const int k_RECONFIGURE_APPIDS_WAIT_SECONDS = 5;
+const int k_RECONFIGURE_APPIDS_POLL_MS      = 50;
 
 /// This function is a callback passed to domain manager for
 /// synchronization.  The specified 'status' is a return status
@@ -706,10 +717,63 @@ int DomainManager::processCommand(mqbcmd::DomainsResult*        result,
             result->makeError().message() = configureResult.error().d_details;
             return -1;  // RETURN
         }
-        else {
-            result->makeSuccess();
-            return 0;  // RETURN
+
+        // Block until every locally-open queue's registered app set matches
+        // the reconfigured (fanout) app set, or a deadline elapses.
+        bsl::shared_ptr<const mqbconfm::Domain> config    = domainSp->config();
+        bool                                    isSuccess = false;
+        if (config && config->mode().isFanoutValue()) {
+            const bsl::vector<bsl::string>& appIds =
+                config->mode().fanout().appIDs();
+            const bsl::unordered_set<bsl::string> target(appIds.cbegin(),
+                                                         appIds.cend(),
+                                                         d_allocator_p);
+
+            mqbi::Cluster* cluster = domainSp->cluster();
+
+            bsl::vector<bsl::shared_ptr<mqbi::Queue> > queues(d_allocator_p);
+            domainSp->loadAllQueues(&queues);
+
+            const bsls::TimeInterval deadline =
+                bmqu::Time::nowMonotonicClock().addSeconds(
+                    k_RECONFIGURE_APPIDS_WAIT_SECONDS);
+
+            while (!isSuccess) {
+                isSuccess = true;
+                for (size_t i = 0; i < queues.size(); ++i) {
+                    bsl::unordered_set<bsl::string> current(d_allocator_p);
+                    if (!cluster->loadAppIds(&current,
+                                             queues[i]->uri(),
+                                             queues[i]->partitionId()) ||
+                        current != target) {
+                        isSuccess = false;
+                        break;
+                    }
+                }
+
+                if (isSuccess) {
+                    break;  // BREAK
+                }
+
+                if (bmqu::Time::nowMonotonicClock() >= deadline) {
+                    bmqu::MemOutStream os;
+                    os << "Domain '" << name
+                       << "' reconfigured, but its app set was not applied to "
+                          "storage within "
+                       << k_RECONFIGURE_APPIDS_WAIT_SECONDS << " seconds";
+                    BALL_LOG_ERROR << "#DOMAINMANAGER_RECONFIGURE_TIMEOUT "
+                                   << os.str();
+                    result->makeError().message() = os.str();
+                    return -1;  // RETURN
+                }
+
+                bslmt::ThreadUtil::microSleep(k_RECONFIGURE_APPIDS_POLL_MS *
+                                              1000);
+            }
         }
+
+        result->makeSuccess();
+        return 0;  // RETURN
     }
     else if (command.isRemoveValue()) {
         const bsl::string& name = command.remove().domain();

@@ -101,6 +101,10 @@ const bsls::Types::Int64 k_NS_PER_MESSAGE =
     bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MINUTE / k_MAX_INSTANT_MESSAGES;
 // Time interval between messages logged with throttling.
 
+const int k_OPEN_QUEUE_RETRY_MS = 100;
+// Delay before retrying an open-queue request the upstream refused with
+// 'e_UNKNOWN_QUEUE' or 'e_NOT_PRIMARY'.
+
 #define BMQ_LOGTHROTTLE_INFO                                                  \
     BALL_LOGTHROTTLE_INFO(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)           \
         << "[THROTTLED] "
@@ -265,6 +269,26 @@ void ClusterQueueHelper::finishAllOpening(const QueueContextSp& queueContext,
                       bmqp_ctrlmsg::OpenQueueResponse(),
                       mqbi::OpenQueueConfirmationCookieSp());
     }
+
+    // Also fail any replica-side 'createQueue' calls parked awaiting local
+    // storage/app readiness (see 'QueueLiveState::StoragePendingContext'):
+    // this queue is being torn down (unassigned, primary changed, node
+    // stopping, ...), so they must not be left to hang until the client's
+    // open-queue timeout.
+    bsl::vector<QueueLiveState::StoragePendingContext> storagePending(
+        d_allocator_p);
+    storagePending.swap(queueContext->d_liveQInfo.d_storagePendingContexts);
+
+    for (bsl::vector<QueueLiveState::StoragePendingContext>::const_iterator
+             cIt = storagePending.begin();
+         cIt != storagePending.end();
+         ++cIt) {
+        finishOpening(cIt->d_context,
+                      status,
+                      0,
+                      bmqp_ctrlmsg::OpenQueueResponse(),
+                      mqbi::OpenQueueConfirmationCookieSp());
+    }
 }
 
 void ClusterQueueHelper::OpenQueueContext::setQueueContext(
@@ -300,9 +324,11 @@ ClusterQueueHelper::QueueLiveState::QueueLiveState(bslma::Allocator* allocator)
 , d_numHandleCreationsInProgress(0)
 , d_queueExpirationTimestampMs(0)
 , d_pending(allocator)
+, d_storagePendingContexts(allocator)
 , d_pendingUpdates(allocator)
 , d_inFlight(0)
 , d_numReopenQueueRequests(0)
+, d_openQueueRetryScheduled(false)
 {
     // NOTHING
 }
@@ -511,13 +537,31 @@ bool ClusterQueueHelper::assignQueue(const QueueContextSp& queueContext)
     }
     else if (d_clusterData_p->electorInfo().hasActiveLeader()) {
         if (d_clusterData_p->electorInfo().isSelfLeader()) {
-            bmqp_ctrlmsg::Status status(d_allocator_p);
+            if (bmqp_ctrlmsg::NodeStatus::E_AVAILABLE !=
+                d_clusterData_p->membership().selfNodeStatus()) {
+                // Self is the leader but has not finished recovering its own
+                // cluster state yet (not AVAILABLE).  Assigning now would act
+                // on a not-yet-replayed cluster state -- e.g. mint a fresh
+                // queue key that conflicts with the recovered assignment once
+                // the CSL backlog is applied.  Leave the queue unassigned; it
+                // is re-driven by 'restoreState' on transition to AVAILABLE.
 
-            result = d_clusterStateManager_p->assignQueue(queueContext->uri(),
-                                                          &status);
+                BMQ_LOGTHROTTLE_INFO
+                    << d_cluster_p->description()
+                    << " Cannot proceed with queueAssignment of '"
+                    << queueContext->uri()
+                    << "' (self is leader but not yet AVAILABLE).";
+            }
+            else {
+                bmqp_ctrlmsg::Status status(d_allocator_p);
 
-            if (result == false) {
-                finishAllOpening(queueContext, status);
+                result = d_clusterStateManager_p->assignQueue(
+                    queueContext->uri(),
+                    &status);
+
+                if (result == false) {
+                    finishAllOpening(queueContext, status);
+                }
             }
         }
         else {
@@ -609,6 +653,170 @@ void ClusterQueueHelper::requestQueueAssignment(const bmqt::Uri& uri)
             << " Error while sending request to leader [rc: " << rc
             << ", request: " << request->request() << "]";
     }
+}
+
+void ClusterQueueHelper::requestQueueUnassignment(const bmqt::Uri&        uri,
+                                                  const mqbu::StorageKey& key,
+                                                  int partitionId)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+    BSLS_ASSERT_SAFE(d_clusterData_p->electorInfo().hasActiveLeader());
+    BSLS_ASSERT_SAFE(!d_clusterData_p->electorInfo().isSelfLeader());
+    BSLS_ASSERT_SAFE(!d_cluster_p->isRemote());
+    BSLS_ASSERT_SAFE(uri.isCanonical());
+
+    mqbc::ClusterNodeSession* leader =
+        d_clusterData_p->membership().getClusterNodeSession(
+            d_clusterData_p->electorInfo().leaderNode());
+
+    if (bmqp_ctrlmsg::NodeStatus::E_AVAILABLE != leader->nodeStatus()) {
+        BMQ_LOGTHROTTLE_INFO << d_cluster_p->description()
+                             << " Cannot proceed with queueUnassignment of '"
+                             << uri << "' because the leader is "
+                             << leader->nodeStatus();
+        return;  // RETURN
+    }
+
+    RequestSp request = d_cluster_p->requestManager().createRequest();
+    bmqp_ctrlmsg::QueueUnassignmentRequest& queueUnassignmentRequest =
+        request->request()
+            .choice()
+            .makeClusterMessage()
+            .choice()
+            .makeQueueUnassignmentRequest();
+    queueUnassignmentRequest.queueUri()    = uri.asString();
+    queueUnassignmentRequest.partitionId() = partitionId;
+    key.loadBinary(&queueUnassignmentRequest.queueKey());
+
+    request->setResponseCb(
+        bdlf::BindUtil::bindS(d_allocator_p,
+                              &ClusterQueueHelper::onQueueUnassignmentResponse,
+                              this,
+                              bdlf::PlaceHolders::_1,  // requestContext
+                              uri,
+                              d_clusterData_p->electorInfo().leaderNode()));
+
+    bsls::TimeInterval timeoutMs;
+    timeoutMs.setTotalMilliseconds(d_clusterData_p->clusterConfig()
+                                       .queueOperations()
+                                       .assignmentTimeoutMs());
+    bmqt::GenericResult::Enum rc = d_cluster_p->sendRequest(
+        request,
+        0,  // target (i.e., leader)
+        timeoutMs);
+
+    if (rc == bmqt::GenericResult::e_NOT_CONNECTED) {
+        // Lost connection with the leader; the queue will be re-considered for
+        // GC later.
+        return;  // RETURN
+    }
+
+    if (rc != bmqt::GenericResult::e_SUCCESS) {
+        BMQ_LOGTHROTTLE_ERROR
+            << d_cluster_p->description()
+            << " Error while sending queueUnassignment request to leader "
+            << "[rc: " << rc << ", request: " << request->request() << "]";
+    }
+}
+
+void ClusterQueueHelper::onQueueUnassignmentResponse(
+    const RequestSp&     requestContext,
+    const bmqt::Uri&     uri,
+    mqbnet::ClusterNode* responder)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+
+    // Best-effort: the queue is actually removed only when the leader's
+    // QueueUnAssignmentAdvisory commits ('onQueueUnassigned').  A failure here
+    // just means this GC attempt did not take; the queue will be re-considered
+    // on a subsequent GC.  Log failures for diagnostics.
+    const bmqp_ctrlmsg::ControlMessage& response = requestContext->response();
+    if (!response.choice().isStatusValue() ||
+        response.choice().status().category() !=
+            bmqp_ctrlmsg::StatusCategory::E_SUCCESS) {
+        BMQ_LOGTHROTTLE_WARN
+            << d_cluster_p->description() << " queueUnassignment request for ["
+            << uri << "] to "
+            << (responder ? responder->nodeDescription() : "** none **")
+            << " did not succeed: " << response;
+    }
+}
+
+void ClusterQueueHelper::processQueueUnassignmentRequest(
+    const bmqp_ctrlmsg::ControlMessage& request,
+    mqbnet::ClusterNode*                requester)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+    BSLS_ASSERT_SAFE(!d_cluster_p->isRemote());
+    BSLS_ASSERT_SAFE(requester);
+    BSLS_ASSERT_SAFE(request.choice().isClusterMessageValue());
+    BSLS_ASSERT_SAFE(request.choice()
+                         .clusterMessage()
+                         .choice()
+                         .isQueueUnassignmentRequestValue());
+
+    bmqp_ctrlmsg::ControlMessage response(d_allocator_p);
+    response.rId()               = request.rId();
+    bmqp_ctrlmsg::Status& status = response.choice().makeStatus();
+    status.category()            = bmqp_ctrlmsg::StatusCategory::E_SUCCESS;
+    status.code()                = 0;
+
+    // Only the active leader may broadcast a QueueUnAssignmentAdvisory.
+    if (!d_clusterData_p->electorInfo().isSelfActiveLeader()) {
+        status.category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+        status.code()     = mqbi::ClusterErrorCode::e_NOT_LEADER;
+        status.message()  = "Not an active leader";
+        d_clusterData_p->messageTransmitter().sendMessage(response, requester);
+        return;  // RETURN
+    }
+
+    const bmqp_ctrlmsg::QueueUnassignmentRequest& req =
+        request.choice().clusterMessage().choice().queueUnassignmentRequest();
+    bmqt::Uri uri(req.queueUri(), d_allocator_p);
+
+    // Use the authoritative cluster-state values for the advisory.  If the
+    // queue is no longer assigned (already gc'd, or a stale/duplicate
+    // request), treat it as success -- there is nothing to unassign.
+    mqbc::ClusterStateQueueInfo* qinfo = d_clusterState_p->getAssigned(uri);
+    if (qinfo == 0) {
+        d_clusterData_p->messageTransmitter().sendMessage(response, requester);
+        return;  // RETURN
+    }
+
+    BMQ_LOGTHROTTLE_INFO << d_cluster_p->description()
+                         << ": leader unassigning queue [" << uri
+                         << "] on request from "
+                         << requester->nodeDescription();
+
+    mqbc::ClusterUtil::setPendingUnassignment(d_clusterState_p, uri);
+
+    bdlma::LocalSequentialAllocator<1024>    localAlloc(d_allocator_p);
+    bmqp_ctrlmsg::ControlMessage             controlMsg(&localAlloc);
+    bmqp_ctrlmsg::QueueUnAssignmentAdvisory& queueAdvisory =
+        controlMsg.choice()
+            .makeClusterMessage()
+            .choice()
+            .makeQueueUnAssignmentAdvisory();
+
+    mqbc::ClusterUtil::populateQueueUnAssignmentAdvisory(&queueAdvisory,
+                                                         d_clusterData_p,
+                                                         uri,
+                                                         qinfo->key(),
+                                                         qinfo->partitionId(),
+                                                         *d_clusterState_p);
+
+    d_clusterStateManager_p->unassignQueue(queueAdvisory);
+
+    d_clusterData_p->messageTransmitter().sendMessage(response, requester);
 }
 
 void ClusterQueueHelper::onQueueAssignmentResponse(
@@ -750,9 +958,8 @@ void ClusterQueueHelper::onQueueContextAssigned(
         const ClusterStatePartitionInfo& pinfo = d_clusterState_p->partition(
             pid);
 
-        if (!d_cluster_p->isFSMWorkflow() &&
-            bmqp_ctrlmsg::NodeStatus::E_AVAILABLE !=
-                d_clusterData_p->membership().selfNodeStatus()) {
+        if (bmqp_ctrlmsg::NodeStatus::E_AVAILABLE !=
+            d_clusterData_p->membership().selfNodeStatus()) {
             // Self is not available, we have to postpone processing the queue
             // opening.
 
@@ -1034,6 +1241,118 @@ void ClusterQueueHelper::processPendingContexts(QueueContext* queueContext)
          it != contexts.end();
          ++it) {
         processOpenQueueRequest(*it);
+    }
+}
+
+void ClusterQueueHelper::scheduleOpenQueueRetry(
+    QueueContext*             queueContext,
+    const OpenQueueContextSp& context)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+
+    QueueLiveState& qinfo = queueContext->d_liveQInfo;
+
+    qinfo.d_pending.push_back(context);
+
+    if (qinfo.d_openQueueRetryScheduled || d_cluster_p->isStopping()) {
+        return;  // RETURN
+    }
+
+    BMQ_LOGTHROTTLE_INFO << d_cluster_p->description() << ": retrying open "
+                         << "queue request for " << queueContext->uri()
+                         << " in " << k_OPEN_QUEUE_RETRY_MS << " ms.";
+
+    bsls::TimeInterval after(bmqu::Time::nowMonotonicClock());
+    after.addMilliseconds(k_OPEN_QUEUE_RETRY_MS);
+
+    qinfo.d_openQueueRetryScheduled = true;
+    d_clusterData_p->scheduler().scheduleEvent(
+        &qinfo.d_openQueueRetryHandle,
+        after,
+        bdlf::BindUtil::bindS(d_allocator_p,
+                              &ClusterQueueHelper::onOpenQueueRetry,
+                              this,
+                              queueContext->uri()));
+}
+
+void ClusterQueueHelper::onOpenQueueRetry(const bmqt::Uri& uri)
+{
+    // executed by the *SCHEDULER* thread
+
+    if (d_cluster_p->isStopping()) {
+        return;  // RETURN
+    }
+
+    d_cluster_p->dispatcher()->execute(
+        bdlf::BindUtil::bindS(d_allocator_p,
+                              &ClusterQueueHelper::onOpenQueueRetryDispatched,
+                              this,
+                              uri),
+        d_cluster_p);
+}
+
+void ClusterQueueHelper::onOpenQueueRetryDispatched(const bmqt::Uri& uri)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+
+    // The queue context may have been removed since the event was scheduled,
+    // taking the pending contexts with it.
+    QueueContextMapIter it = d_queues.find(uri);
+    if (it == d_queues.end()) {
+        return;  // RETURN
+    }
+
+    it->second->d_liveQInfo.d_openQueueRetryScheduled = false;
+
+    if (d_cluster_p->isStopping()) {
+        return;  // RETURN
+    }
+
+    processPendingContexts(it->second.get());
+}
+
+void ClusterQueueHelper::onStorageReady(int partitionId, const bmqt::Uri& uri)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+
+    (void)partitionId;  // only used for the log line below
+
+    QueueContextMapIter qit = d_queues.find(uri);
+    if (qit == d_queues.end()) {
+        return;  // RETURN
+    }
+
+    QueueLiveState& qinfo = qit->second->d_liveQInfo;
+    if (qinfo.d_storagePendingContexts.empty()) {
+        return;  // RETURN
+    }
+
+    // Swap out to re-attempt one by one; a re-attempt that is still not
+    // ready will re-park itself into (the now-empty)
+    // 'd_storagePendingContexts' via 'createQueue'.
+    bsl::vector<QueueLiveState::StoragePendingContext> pending(d_allocator_p);
+    pending.swap(qinfo.d_storagePendingContexts);
+
+    BALL_LOG_INFO << d_cluster_p->description() << ": storage/app ready for '"
+                  << uri << "' (partitionId: " << partitionId << "); resuming "
+                  << pending.size() << " parked createQueue call(s)";
+
+    for (bsl::vector<QueueLiveState::StoragePendingContext>::const_iterator
+             it = pending.cbegin();
+         it != pending.cend();
+         ++it) {
+        createQueue(it->d_context,
+                    it->d_openQueueResponse,
+                    it->d_upstreamNode);
     }
 }
 
@@ -1481,6 +1800,7 @@ void ClusterQueueHelper::onOpenQueueResponse(const RequestSp& requestContext,
     }
 
     bool                 retry     = false;  // retry immediately
+    bool                 delay     = false;  // retry after a delay
     mqbnet::ClusterNode* otherThan = 0;      // retry if the upstream is new
     const int            subCode   = requestContext->statusCode();
 
@@ -1515,15 +1835,12 @@ void ClusterQueueHelper::onOpenQueueResponse(const RequestSp& requestContext,
             // 'responder' node because maybe that same node got elected
             // primary after sending us the response, so we just send it again
             // to the currently known primary, who may reject it, but
-            // eventually this should stabilize.  This potentially could lead
-            // to a storm between those two nodes, but this would be the case
-            // only if the cluster's state went out of sync, which would
-            // already be compromising the integrity of the cluster.  One
-            // solution to mitigate this would be to implement an increasing
-            // delayed response from the responder (because doing it at the
-            // sender here would be tricky as every requests are processed in
-            // an event driven base).
+            // eventually this should stabilize.  Retry after a delay: an
+            // upstream that keeps refusing (its view of the cluster state
+            // lags, or has diverged) would otherwise be hammered, and it is
+            // the same dispatcher thread there that has to catch up.
             retry = true;
+            delay = true;
         }
     }
     else {
@@ -1567,7 +1884,12 @@ void ClusterQueueHelper::onOpenQueueResponse(const RequestSp& requestContext,
     // below.
 
     if (retryNow) {
-        processOpenQueueRequest(context);
+        if (delay) {
+            scheduleOpenQueueRetry(qcontext, context);
+        }
+        else {
+            processOpenQueueRequest(context);
+        }
     }
     else {
         // Buffer this Open request until Reopen response
@@ -2108,28 +2430,61 @@ bool ClusterQueueHelper::createQueue(
               domain->config()->mode());
 
         if (!removed.empty() || !added.empty()) {
-            // Add to 'd_pending' before calling 'updateAppIds' which is
-            // asynchronous (CSL commit)
+            // Apps drifted from the domain config.  Park and wait for the CSL
+            // to be reconciled; 'onQueueUpdated' resumes this via
+            // 'processPendingContexts'.  The primary never proposes the update
+            // itself; reconciliation is leader-driven ('onDomainReconfigured'
+            // for a live change, 'reconcileLeaderQueuesAppIds' on becoming the
+            // active leader).
             queueContext->d_liveQInfo.d_pending.push_back(context);
 
-            result = d_clusterStateManager_p->updateAppIds(added,
-                                                           removed,
-                                                           domain->name(),
-                                                           "");
-            if (result == mqbi::ClusterErrorCode::e_OK) {
-                // Wait for 'onQueueUpdated'
-
-                return false;  // RETURN
-            }
-
-            // Fall through to the failure handling at the end of the method.
-            errorDescription << "failure updating Apps";
+            return false;  // RETURN
         }
     }
 
     const bmqp_ctrlmsg::QueueHandleParameters& parameters =
         openQueueResponse.originalRequest().handleParameters();
     const unsigned int upstreamQueueId = parameters.qId();
+
+    if (result == mqbi::ClusterErrorCode::e_OK && !isPrimary &&
+        !d_cluster_p->isRemote()) {
+        // Replica: unlike the primary (whose 'registerQueue' call further
+        // down synchronously registers storage on the partition thread,
+        // strictly before 'configure()' runs there too), this node's local
+        // storage/app for the queue may not exist yet -- in Raft mode,
+        // storage is only created once the underlying log entry commits,
+        // which can lag this openQueue response arriving.  Park until
+        // 'storageMonitor' reports it ready instead of failing with
+        // "Unknown queue".
+        const bsl::string appId(
+            bmqp::QueueUtil::extractAppId(context->d_handleParameters),
+            d_allocator_p);
+        // Gate only on the *queue* storage ('hasStorage' is a queue-level
+        // check), not per-app storage.  The replica needs the queue storage to
+        // exist -- it can lag this openQueue response until the raft creation
+        // entry commits, so park until it is ready; the readiness signal
+        // ('onQueueStorageReady' -> 'onStorageReady') is itself per-queue.  It
+        // must NOT gate on the app: an unauthorized app (a removed fanout app,
+        // or one a consumer opens that was never authorized) is legitimately
+        // storage-less and would never satisfy a per-app check -- it would
+        // re-park forever on every queue-ready signal.  Once the queue storage
+        // exists, let the app slide: 'RelayQueueEngine' authorizes apps lazily
+        // and unauthorized apps just relay nothing, mirroring how the primary
+        // handles them.
+        if (!d_storageManager_p->hasStorage(queueContext->uri(), pid)) {
+            BALL_LOG_INFO << d_cluster_p->description()
+                          << ": parking createQueue for '"
+                          << queueContext->uri() << "' (app '" << appId
+                          << "') until local queue storage is ready";
+
+            QueueLiveState::StoragePendingContext pendingContext;
+            pendingContext.d_context           = context;
+            pendingContext.d_openQueueResponse = openQueueResponse;
+            pendingContext.d_upstreamNode      = upstreamNode;
+            qinfo.d_storagePendingContexts.push_back(pendingContext);
+            return false;  // RETURN -- parked; no response sent (yet)
+        }
+    }
 
     if (result == mqbi::ClusterErrorCode::e_OK) {
         BMQ_LOGTHROTTLE_INFO
@@ -3722,6 +4077,114 @@ void ClusterQueueHelper::restoreStateRemote()
     }
 }
 
+void ClusterQueueHelper::reconcileLeaderQueuesAppIds()
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+    BSLS_ASSERT_SAFE(!d_cluster_p->isRemote());
+    BSLS_ASSERT_SAFE(d_clusterData_p->electorInfo().isSelfActiveLeader());
+
+    // For every domain known to the cluster state, asynchronously load it (to
+    // obtain its config) and then reconcile each of its assigned queues' App
+    // set.  Mode-agnostic: the reconcile ultimately issues 'updateAppIds',
+    // which resolves to the legacy/FSM/Raft cluster state manager.
+    for (mqbc::ClusterState::DomainStatesCIter domCit =
+             d_clusterState_p->domainStates().cbegin();
+         domCit != d_clusterState_p->domainStates().cend();
+         ++domCit) {
+        if (domCit->second->queuesInfo().empty()) {
+            continue;  // CONTINUE
+        }
+
+        d_clusterData_p->domainFactory()->createDomain(
+            domCit->first,
+            bdlf::BindUtil::bindS(d_allocator_p,
+                                  &ClusterQueueHelper::onReconcileDomain,
+                                  this,
+                                  bdlf::PlaceHolders::_1,    // status
+                                  bdlf::PlaceHolders::_2));  // domain
+    }
+}
+
+void ClusterQueueHelper::onReconcileDomain(const bmqp_ctrlmsg::Status& status,
+                                           mqbi::Domain*               domain)
+{
+    // executed by *ANY* thread
+
+    if (status.category() != bmqp_ctrlmsg::StatusCategory::E_SUCCESS) {
+        return;  // RETURN
+    }
+
+    d_cluster_p->dispatcher()->execute(
+        bdlf::BindUtil::bindS(
+            d_allocator_p,
+            &ClusterQueueHelper::reconcileDomainQueuesAppIdsDispatched,
+            this,
+            domain),
+        d_cluster_p);
+}
+
+void ClusterQueueHelper::reconcileDomainQueuesAppIdsDispatched(
+    mqbi::Domain* domain)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+    BSLS_ASSERT_SAFE(domain);
+
+    // Leadership/availability may have changed since the (asynchronous) domain
+    // load was kicked off; only the caught-up active leader may reconcile.
+    if (bmqp_ctrlmsg::NodeStatus::E_AVAILABLE !=
+            d_clusterData_p->membership().selfNodeStatus() ||
+        !d_clusterData_p->electorInfo().isSelfActiveLeader()) {
+        return;  // RETURN
+    }
+
+    mqbc::ClusterState::DomainStatesCIter domCit =
+        d_clusterState_p->domainStates().find(domain->name());
+    if (domCit == d_clusterState_p->domainStates().cend()) {
+        return;  // RETURN
+    }
+
+    // 'updateAppIds' changes only the App content of an existing queue's
+    // cluster-state entry (it never inserts/erases queues), so iterating the
+    // map while issuing updates is safe.
+    for (mqbc::ClusterState::UriToQueueInfoMapCIter qCit =
+             domCit->second->queuesInfo().cbegin();
+         qCit != domCit->second->queuesInfo().cend();
+         ++qCit) {
+        const mqbc::ClusterStateQueueInfo& queueInfo = *qCit->second;
+
+        if (queueInfo.state() !=
+                mqbc::ClusterStateQueueInfo::State::k_ASSIGNED ||
+            queueInfo.pendingUnassignment()) {
+            continue;  // CONTINUE
+        }
+
+        bsl::vector<bsl::string> added(d_allocator_p);
+        bsl::vector<bsl::string> removed(d_allocator_p);
+        match(&added, &removed, queueInfo, domain->config()->mode());
+
+        if (added.empty() && removed.empty()) {
+            continue;  // CONTINUE
+        }
+
+        BALL_LOG_INFO << d_cluster_p->description()
+                      << ": leader reconciling Apps for queue '"
+                      << queueInfo.uri() << "' in domain '" << domain->name()
+                      << "': added " << added.size() << ", removed "
+                      << removed.size();
+
+        d_clusterStateManager_p->updateAppIds(added,
+                                              removed,
+                                              domain->name(),
+                                              queueInfo.uri().asString());
+    }
+}
+
 void ClusterQueueHelper::restoreStateCluster(int partitionId)
 {
     // executed by the cluster *DISPATCHER* thread
@@ -3778,9 +4241,19 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
         return;  // RETURN
     }
 
+    // As the (caught-up) active leader, reconcile every assigned queue's
+    // cluster-state App set against its domain config, repairing drift that no
+    // live 'onDomainReconfigured' covered (an App changed while stopped, or
+    // while there was no active leader).  Gated on 'allPartitions' so it runs
+    // on leader/availability transitions, not on per-partition primary
+    // advisories.
+    if (allPartitions && d_clusterData_p->electorInfo().isSelfActiveLeader()) {
+        reconcileLeaderQueuesAppIds();
+    }
+
     // If a specific partitionId is specified, check if partition is assigned
     // to a primary node, and if that primary is ACTIVE.
-    bool                             isSelfPrimaryAndLeader = false;
+    bool                             isSelfPrimary          = false;
     const ClusterStatePartitionInfo* pinfo                  = 0;
 
     if (!allPartitions) {
@@ -3799,22 +4272,27 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
             return;  // RETURN
         }
 
-        // Primary for this partitionId is ACTIVE.  Check if self is the
-        // primary and leader.  If self is primary but not leader, this is
-        // primary-leader divergence and we should not proceed with state
-        // restore.
+        // Primary for this partitionId is ACTIVE.  In Raft mode, check if
+        // self is the primary.  In legacy/FSM mode, also require self to be
+        // leader (leader-primary divergence is unsupported).
 
-        isSelfPrimaryAndLeader =
-            pinfo->primaryNode() == d_clusterData_p->membership().selfNode() &&
-            d_clusterData_p->electorInfo().isSelfLeader();
+        if (d_cluster_p->isRaftEnabled()) {
+            isSelfPrimary = pinfo->primaryNode() ==
+                            d_clusterData_p->membership().selfNode();
+        }
+        else {
+            isSelfPrimary = pinfo->primaryNode() ==
+                                d_clusterData_p->membership().selfNode() &&
+                            d_clusterData_p->electorInfo().isSelfLeader();
+        }
     }
 
     /// TODO (FSM); remove after switching to FSM
-    if (!d_cluster_p->isFSMWorkflow() && isSelfPrimaryAndLeader) {
+    if (!d_cluster_p->isFSMWorkflow() && isSelfPrimary) {
         // Note that this fails if there are data
         mqbc::ClusterState::AssignmentVisitor doubleAssignmentVisitor =
             bdlf::BindUtil::bindS(d_allocator_p,
-                                  &mqbi::StorageManager::unregisterQueue,
+                                  &mqbi::StorageProvider::unregisterQueue,
                                   d_storageManager_p,
                                   bdlf::PlaceHolders::_1,   // uri
                                   bdlf::PlaceHolders::_2);  // partitionId),
@@ -3832,10 +4310,15 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
             // Attempt to re-issue open-queue requests for all appropriate
             // queues across *all* partitions.
 
-            if (!liveQInfo.d_queue_sp && liveQInfo.d_inFlight == 0) {
-                // Queue instance does not exist and self node is not waiting
-                // for any pending open-queue responses.  So there is no need
-                // to re-issue an open-queue request for this one.
+            if (!liveQInfo.d_queue_sp && liveQInfo.d_inFlight == 0 &&
+                liveQInfo.d_pending.empty()) {
+                // Queue instance does not exist, self node is not waiting for
+                // any pending open-queue responses, and there are no buffered
+                // open-queue contexts awaiting a primary.  So there is no need
+                // to re-issue an open-queue request for this one.  (A queue
+                // with pending contexts must NOT be skipped: those contexts
+                // are buffered opens that only get drained by the restore
+                // reaching 'onQueueContextAssigned' below.)
 
                 // TBD: Log at INFO level for now, but eventually should be
                 //      lowered to DEBUG/TRACE.
@@ -3874,10 +4357,15 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
                     << ", primary status: " << pinfo->primaryStatus();
                 continue;  // CONTINUE
             }
-            isSelfPrimaryAndLeader =
-                pinfo->primaryNode() ==
-                    d_clusterData_p->membership().selfNode() &&
-                d_clusterData_p->electorInfo().isSelfLeader();
+            if (d_cluster_p->isRaftEnabled()) {
+                isSelfPrimary = pinfo->primaryNode() ==
+                                d_clusterData_p->membership().selfNode();
+            }
+            else {
+                isSelfPrimary = pinfo->primaryNode() ==
+                                    d_clusterData_p->membership().selfNode() &&
+                                d_clusterData_p->electorInfo().isSelfLeader();
+            }
         }
         else if (queueContext->partitionId() != partitionId) {
             // Skip the queue as its assigned to a different partitionId.
@@ -3896,7 +4384,7 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
 
         // Verify the CSL if needed by comparing it with the Domain config
         if (liveQInfo.d_queue_sp) {
-            if (isSelfPrimaryAndLeader) {
+            if (isSelfPrimary) {
                 // We are assuming that it is not possible for a node to be
                 // primary, lose primary-ship and regain primary-ship;
                 // unless eventually the node went down in which case it
@@ -3926,32 +4414,16 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
                         queueContext,
                         domain);
 
-                    // Add to 'd_pendingUpdates' before calling
-                    // 'updateAppIds' which is asynchronous (CSL commit)
+                    // Apps drifted from the domain config.  Defer the
+                    // conversion until the CSL is reconciled and
+                    // 'onQueueUpdated' resumes it.  The primary never proposes
+                    // the update itself; reconciliation is leader-driven
+                    // ('onDomainReconfigured' for a live change,
+                    // 'reconcileLeaderQueuesAppIds' on becoming active
+                    // leader).
                     liveQInfo.d_pendingUpdates.push_back(park);
 
-                    mqbi::ClusterErrorCode::Enum result =
-                        d_clusterStateManager_p->updateAppIds(added,
-                                                              removed,
-                                                              domain->name(),
-                                                              "");
-
-                    if (mqbi::ClusterErrorCode::e_OK == result) {
-                        // Cannot continue until 'onQueueUpdated'
-                        // Send QueueUpdateAdvisory and _wait_ for commit
-
-                        continue;  // CONTINUE
-                    }
-
-                    // An update error is CSL error (in
-                    // 'ClusterStateLedger::apply'). This queue cannot
-                    // convertToLocal
-                    // ('RootQueueEngine::initializeAppId' would assert
-                    // if there is no storage for some app).
-
-                    BSLS_ASSERT_SAFE(
-                        false &&
-                        "Failure to update Apps before convertToLocal");
+                    continue;  // CONTINUE
                 }
                 else {
                     convertToLocal(queueContext, domain);
@@ -4424,18 +4896,7 @@ void ClusterQueueHelper::onQueueUnassigned(
                              << qinfo.d_numQueueHandles << "].";
     }
 
-    if (d_clusterState_p->isSelfPrimary(info->partitionId())) {
-        // openQueue while queue unassigning cancels the unassigning
-        // so we can safely delete it from the various maps.
-        removeQueueRaw(queueContextIt);
-
-        // Unregister the queue/storage from the partition, which will end up
-        // issuing a QueueDeletion record.  Note that this method is async.
-        d_storageManager_p->unregisterQueue(info->uri(), info->partitionId());
-    }
-    else {
-        // This is a replica node.
-
+    {
         if (qinfo.d_inFlight != 0 || !qinfo.d_pending.empty()) {
             // If we have in flight requests, we can't delete the QueueInfo
             // references; so we simply reset it's members.  This can occur in
@@ -4483,6 +4944,13 @@ void ClusterQueueHelper::onQueueUnassigned(
                                  << " removed.";
 
             removeQueueRaw(queueContextIt);
+        }
+        if (d_clusterState_p->isSelfPrimary(info->partitionId())) {
+            // Unregister the queue/storage from the partition, which will end
+            // up issuing a QueueDeletion record.  Note that this method is
+            // async.
+            d_storageManager_p->unregisterQueue(info->uri(),
+                                                info->partitionId());
         }
         // Replicas create/update/delete storage upon Replication events
         // (queueCreationCb/queueDeletionCb)
@@ -4662,7 +5130,7 @@ void ClusterQueueHelper::setStreamState(const QueueContextSp& queueContextSp,
 ClusterQueueHelper::ClusterQueueHelper(
     mqbc::ClusterData*         clusterData,
     mqbc::ClusterState*        clusterState,
-    mqbi::ClusterStateManager* clusterStateManager,
+    mqbi::ClusterStateUpdater* clusterStateManager,
     bslma::Allocator*          allocator)
 : d_allocator_p(allocator)
 , d_nextQueueId(0)
@@ -4674,7 +5142,6 @@ ClusterQueueHelper::ClusterQueueHelper(
 , d_queues(allocator)
 , d_queuesById(allocator)
 , d_reopenCycles(allocator)
-, d_primaryNotLeaderAlarmRaised(false)
 , d_stopContexts(allocator)
 , d_isShutdownLogicOn(false)
 {
@@ -4687,17 +5154,6 @@ ClusterQueueHelper::ClusterQueueHelper(
     // timeout of closeQueue to prevent out-of-order processing of
     // closeQueue (e.g. closeQueue sent after configureQueue but timeout
     // response processed first for the closeQueue)
-
-    if (d_clusterStateManager_p) {
-        d_clusterStateManager_p->setAfterPartitionPrimaryAssignmentCb(
-            bdlf::BindUtil::bindS(
-                d_allocator_p,
-                &ClusterQueueHelper::afterPartitionPrimaryAssignment,
-                this,
-                bdlf::PlaceHolders::_1,    // partitionId
-                bdlf::PlaceHolders::_2,    // primary
-                bdlf::PlaceHolders::_3));  // status
-    }
 }
 
 ClusterQueueHelper::~ClusterQueueHelper()
@@ -5644,6 +6100,29 @@ void ClusterQueueHelper::onLeaderAvailable()
     restoreState(mqbi::Storage::k_ANY_PARTITION_ID);
 }
 
+void ClusterQueueHelper::onNodeAvailable()
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+    BSLS_ASSERT_SAFE(!d_cluster_p->isRemote());
+    BSLS_ASSERT_SAFE(d_cluster_p->isRaftEnabled());
+
+    // In Raft a partition primary is reported E_ACTIVE for its partition as
+    // soon as it wins leadership, but its *node* only reaches E_AVAILABLE once
+    // all of its partitions have leaders; 'hasActiveAvailablePrimary' gates on
+    // both.  Open-queue requests that arrive in that window are buffered in
+    // 'd_pending' awaiting the primary node's availability.  Re-drive state
+    // restore on any peer becoming available so those pending contexts get
+    // processed.  Idempotent: restore dedups via reopen cycles / in-flight
+    // tracking, so re-running it for an unrelated peer is a harmless no-op.
+    BALL_LOG_INFO << d_cluster_p->description()
+                  << ": On node available, restoring state.";
+
+    restoreState(mqbi::Storage::k_ANY_PARTITION_ID);
+}
+
 bool ClusterQueueHelper::setStopContext(
     const mqbnet::ClusterNode*          clusterNode,
     const bsl::shared_ptr<StopContext>& contextSp)
@@ -5960,29 +6439,37 @@ int ClusterQueueHelper::gcExpiredQueues(bool               immediate,
     }
 
     if (!d_clusterData_p->electorInfo().isSelfActiveLeader()) {
-        // As part of implementing leader managed cluster state (and using
-        // CSL), only leader node should be generating advisories (involves
-        // generating sequence numbers).  In the current scheme of things,
-        // primary and leader nodes can be different (even if cluster is
-        // configured with 'leader-is-primary-for-all-partitions' flag).  If
-        // this occurs, primary cannot broadcast a QueueUnAssignmentAdvisory
-        // since only leader can do so.  So for now, queue gc logic is
-        // suppressed if leader and primary nodes are different.  This logic
-        // will be updated such that primary will send a QueueUnassignedRequest
-        // to the leader, and then leader will broadcast
-        // QueueUnAssignmentAdvisory.
-
-        if (!d_primaryNotLeaderAlarmRaised) {
-            BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
-                << d_cluster_p->description() << " Cannot gc "
-                << queuesToGc.size() << " expired queues "
-                << "since primary and leader nodes are different."
-                << BMQTSK_ALARMLOG_END;
-
-            d_primaryNotLeaderAlarmRaised = true;
+        // Only the leader can broadcast a QueueUnAssignmentAdvisory (it
+        // generates the sequence numbers).  In Raft mode the partition
+        // primary need not be the leader, so a non-leader primary -- which is
+        // the node that detects a queue as GC-able -- asks the leader to
+        // unassign each expired queue.  The queue is removed locally when the
+        // leader's advisory commits ('onQueueUnassigned').
+        //
+        // If there is no active leader to ask (or self is the not-yet-active
+        // leader), there is nothing to do now; GC will be retried once an
+        // active leader is present.
+        if (!d_clusterData_p->electorInfo().hasActiveLeader() ||
+            d_clusterData_p->electorInfo().isSelfLeader()) {
+            return rc_SELF_IS_NOT_LEADER;  // RETURN
         }
 
-        return rc_SELF_IS_NOT_LEADER;  // RETURN
+        for (size_t i = 0; i < queuesToGc.size(); ++i) {
+            QueueContextMapIter&  qit            = queuesToGc[i];
+            const QueueContextSp& queueContextSp = qit->second;
+
+            BMQ_LOGTHROTTLE_INFO
+                << d_cluster_p->description()
+                << ": requesting leader to unassign expired queue ["
+                << qit->first << "] assigned to Partition ["
+                << queueContextSp->partitionId() << "].";
+
+            requestQueueUnassignment(qit->first,
+                                     queueContextSp->key(),
+                                     queueContextSp->partitionId());
+        }
+
+        return rc_SUCCESS;  // RETURN
     }
 
     for (size_t i = 0; i < queuesToGc.size(); ++i) {

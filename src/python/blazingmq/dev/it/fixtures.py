@@ -393,7 +393,8 @@ def cluster_fixture(request, configure) -> Iterator[Cluster]:
                     with internal_use(cluster):
                         logger.debug("starting cluster")
 
-                        if get_cluster_param(request, "_start_cluster", True):
+                        started = get_cluster_param(request, "_start_cluster", True)
+                        if started:
                             with internal_use(cluster):
                                 leader_name = os.environ.get("BLAZINGMQ_LEADER_NAME")
                                 cluster.start(
@@ -406,21 +407,25 @@ def cluster_fixture(request, configure) -> Iterator[Cluster]:
                                     leader_name=leader_name,
                                 )
 
-                        if request.instance is not None and hasattr(
-                            request.instance, "setup_cluster"
-                        ):
+                        # Class-based tests define 'setup_cluster' as a method;
+                        # module-level tests define it as a function.
+                        setup = getattr(request.instance, "setup_cluster", None)
+                        if setup is None:
+                            setup = getattr(request.module, "setup_cluster", None)
+
+                        if setup is not None and started:
                             for urls_fixture in (
                                 "domain_urls",
                                 "sc_domain_urls",
                                 "ec_domain_urls",
                             ):
                                 if urls_fixture in request.fixturenames:
-                                    request.instance.setup_cluster(
+                                    setup(
                                         cluster, request.getfixturevalue(urls_fixture)
                                     )
                                     break
                             else:
-                                request.instance.setup_cluster(cluster)
+                                setup(cluster)
 
                 except Exception as initial_exception:
                     logger.warning(

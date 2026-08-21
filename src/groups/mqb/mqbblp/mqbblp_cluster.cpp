@@ -96,6 +96,18 @@ const double k_LOG_SUMMARY_INTERVAL = 60.0 * 5;  // 5 minutes
 
 const double k_QUEUE_GC_INTERVAL = 60.0;  // 1 minute
 
+/// Deadline (seconds) and poll interval (milliseconds) for waiting on an
+/// admin leadership transfer to land on the target node.
+const int k_TRANSFER_LEADERSHIP_WAIT_SECONDS = 10;
+const int k_TRANSFER_LEADERSHIP_POLL_MS      = 50;
+
+/// Deadline and poll interval (milliseconds) for waiting, on shutdown, for
+/// the peers to acknowledge what this node replicated.  This is on top of
+/// 'shutdownTimeoutMs', which the wait for unconfirmed messages can consume
+/// in full.
+const int k_REPLICATION_WAIT_MS = 100;
+const int k_REPLICATION_POLL_MS = 10;
+
 struct ChainNoOp {
     template <class T>
     void operator()(const T& completionCb) const
@@ -198,58 +210,65 @@ void Cluster::startDispatched(bsl::ostream* errorDescription, int* rc)
     // "uninitialized variable" warning
     mqbi::Dispatcher* clusterDispatcher = dispatcher();
 
-    // Start the StorageManager
-    d_storageManager_mp.load(
-        isFSMWorkflow()
-            ? static_cast<mqbi::StorageManager*>(
-                  new (*storageManagerAllocator) mqbc::StorageManager(
-                      d_clusterData.clusterConfig(),
-                      this,
-                      &d_clusterData,
-                      &d_state,
-                      d_clusterData.domainFactory(),
-                      clusterDispatcher,
-                      d_clusterData.clusterConfig()
-                          .clusterAttributes()
-                          .partitionFsmWatchdogTimeoutSec(),
-                      d_clusterData.clusterConfig()
-                          .clusterAttributes()
-                          .partitionFsmWatchdogNumRetries(),
-                      bdlf::BindUtil::bind(&Cluster::onRecoveryStatus,
-                                           this,
-                                           bdlf::PlaceHolders::_1,  // status
-                                           bsl::vector<unsigned int>(),
-                                           statRecorder),
-                      bdlf::BindUtil::bind(
-                          &ClusterOrchestrator::onPartitionPrimaryStatus,
-                          &d_clusterOrchestrator,
-                          bdlf::PlaceHolders::_1,   // partitionId
-                          bdlf::PlaceHolders::_2,   // status
-                          bdlf::PlaceHolders::_3),  // primary leaseId
-                      storageManagerAllocator))
-            : static_cast<mqbi::StorageManager*>(
-                  new (*storageManagerAllocator) mqbblp::StorageManager(
-                      d_clusterData.clusterConfig(),
-                      this,
-                      &d_clusterData,
-                      &d_state,
-                      bdlf::BindUtil::bind(
-                          &Cluster::onRecoveryStatus,
+    if (!isRaftEnabled()) {
+        // Legacy mode: create and start StorageManager.
+        d_storageManager_mp.load(
+            isFSMWorkflow()
+                ? static_cast<mqbi::StorageManager*>(
+                      new (*storageManagerAllocator) mqbc::StorageManager(
+                          d_clusterData.clusterConfig(),
                           this,
-                          bdlf::PlaceHolders::_1,  // status
-                          bdlf::PlaceHolders::_2,  // vector<leaseId>
-                          statRecorder),
-                      bdlf::BindUtil::bind(
-                          &ClusterOrchestrator::onPartitionPrimaryStatus,
-                          &d_clusterOrchestrator,
-                          bdlf::PlaceHolders::_1,   // partitionId
-                          bdlf::PlaceHolders::_2,   // status
-                          bdlf::PlaceHolders::_3),  // primary leaseId
-                      d_clusterData.domainFactory(),
-                      clusterDispatcher,
-                      &d_clusterData.miscWorkThreadPool(),
-                      storageManagerAllocator)),
-        storageManagerAllocator);
+                          &d_clusterData,
+                          &d_state,
+                          d_clusterData.domainFactory(),
+                          clusterDispatcher,
+                          d_clusterData.clusterConfig()
+                              .clusterAttributes()
+                              .partitionFsmWatchdogTimeoutSec(),
+                          d_clusterData.clusterConfig()
+                              .clusterAttributes()
+                              .partitionFsmWatchdogNumRetries(),
+                          bdlf::BindUtil::bind(
+                              &Cluster::onRecoveryStatus,
+                              this,
+                              bdlf::PlaceHolders::_1,  // status
+                              bsl::vector<unsigned int>(),
+                              statRecorder),
+                          bdlf::BindUtil::bind(
+                              &ClusterOrchestrator::onPartitionPrimaryStatus,
+                              &d_clusterOrchestrator,
+                              bdlf::PlaceHolders::_1,   // partitionId
+                              bdlf::PlaceHolders::_2,   // status
+                              bdlf::PlaceHolders::_3),  // primary leaseId
+                          storageManagerAllocator))
+                : static_cast<mqbi::StorageManager*>(
+                      new (*storageManagerAllocator) mqbblp::StorageManager(
+                          d_clusterData.clusterConfig(),
+                          this,
+                          &d_clusterData,
+                          &d_state,
+                          bdlf::BindUtil::bind(
+                              &Cluster::onRecoveryStatus,
+                              this,
+                              bdlf::PlaceHolders::_1,  // status
+                              bdlf::PlaceHolders::_2,  // vector<leaseId>
+                              statRecorder),
+                          bdlf::BindUtil::bind(
+                              &ClusterOrchestrator::onPartitionPrimaryStatus,
+                              &d_clusterOrchestrator,
+                              bdlf::PlaceHolders::_1,   // partitionId
+                              bdlf::PlaceHolders::_2,   // status
+                              bdlf::PlaceHolders::_3),  // primary leaseId
+                          d_clusterData.domainFactory(),
+                          clusterDispatcher,
+                          &d_clusterData.miscWorkThreadPool(),
+                          storageManagerAllocator)),
+            storageManagerAllocator);
+
+        d_clusterOrchestrator.setStorageManager(d_storageManager_mp.get());
+        d_clusterOrchestrator.queueHelper().setStorageManager(
+            d_storageManager_mp.get());
+    }
 
     // Start the misc work thread pool
     *rc = d_clusterData.miscWorkThreadPool().start();
@@ -259,7 +278,10 @@ void Cluster::startDispatched(bsl::ostream* errorDescription, int* rc)
         return;  // RETURN
     }
 
-    *rc = d_storageManager_mp->start(*errorDescription);
+    d_storageProvider_p = d_clusterOrchestrator.storageProvider();
+    BSLS_ASSERT_SAFE(d_storageProvider_p);
+
+    *rc = d_storageProvider_p->start(*errorDescription);
     if (*rc != 0) {
         d_clusterOrchestrator.stop();
         *rc = *rc * 10 + rc_STORAGE_MGR_FAILURE;
@@ -267,10 +289,6 @@ void Cluster::startDispatched(bsl::ostream* errorDescription, int* rc)
     }
 
     d_clusterOrchestrator.queueHelper().initialize();
-
-    d_clusterOrchestrator.setStorageManager(d_storageManager_mp.get());
-    d_clusterOrchestrator.queueHelper().setStorageManager(
-        d_storageManager_mp.get());
 
     d_clusterData.electorInfo().registerObserver(this);
     d_state.registerObserver(this);
@@ -372,7 +390,7 @@ void Cluster::stopDispatched()
     // Ignore rc
 
     d_clusterOrchestrator.queueHelper().teardown();
-    d_storageManager_mp->stop();
+    d_storageProvider_p->stop();
 
     d_clusterData.membership().selfNodeSession()->removeAllPartitions();
     // TBD: perform above in initiateShutdownDispatched() ?
@@ -541,7 +559,7 @@ void Cluster::processCommandDispatched(mqbcmd::ClusterResult*        result,
     }
     else if (command.isStorageValue()) {
         mqbcmd::StorageResult storageResult;
-        d_storageManager_mp->processCommand(&storageResult, command.storage());
+        d_storageProvider_p->processCommand(&storageResult, command.storage());
         if (storageResult.isErrorValue()) {
             result->makeError(storageResult.error());
             return;  // RETURN
@@ -683,7 +701,7 @@ void Cluster::continueShutdownDispatched(
     // broadcast above.  This is per design and the ordering should not be
     // changed.
 
-    d_storageManager_mp->processShutdownEvent();
+    d_storageProvider_p->processShutdownEvent();
 
     // Also update primary status for those partitions in cluster state.
 
@@ -714,6 +732,83 @@ void Cluster::continueShutdownDispatched(
         bdlf::BindUtil::bindS(d_allocator_p, &bslmt::Latch::arrive, &latch));
 
     latch.wait();
+
+    // Every partition has appended and sent its last sync point.  Give the
+    // peers a bounded window to acknowledge it before closing the channels:
+    // 'closeChannels' discards whatever the transport has not written yet,
+    // and once this node is gone, nothing retries.
+    bsls::TimeInterval whenToStop(
+        bsls::SystemTime::now(bsls::SystemClockType::e_MONOTONIC));
+    whenToStop.addMilliseconds(k_REPLICATION_WAIT_MS);
+
+    guard.release();
+
+    waitForReplicationDispatched(whenToStop, completionCb);
+}
+
+void Cluster::waitForReplication(const bsls::TimeInterval& whenToStop,
+                                 const CompletionCallback& completionCb)
+{
+    // executed by the *SCHEDULER* thread
+
+    dispatcher()->execute(
+        bdlf::BindUtil::bind(&Cluster::waitForReplicationDispatched,
+                             this,
+                             whenToStop,
+                             completionCb),
+        this);
+}
+
+void Cluster::waitForReplicationDispatched(
+    const bsls::TimeInterval& whenToStop,
+    const CompletionCallback& completionCb)
+{
+    // executed by the *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(inDispatcherThread());
+
+    if (d_storageProvider_p->canShutdown()) {
+        finishShutdownDispatched(completionCb);
+        return;  // RETURN
+    }
+
+    bsls::TimeInterval t = bsls::SystemTime::now(
+        bsls::SystemClockType::e_MONOTONIC);
+
+    if (t >= whenToStop) {
+        BALL_LOG_WARN << description() << ": closing the channels while the "
+                      << "peers are still behind; they may be missing the "
+                      << "last records written by this node.";
+
+        finishShutdownDispatched(completionCb);
+        return;  // RETURN
+    }
+
+    t.addMilliseconds(k_REPLICATION_POLL_MS);
+    if (t > whenToStop) {
+        t = whenToStop;
+    }
+
+    bdlmt::EventScheduler::EventHandle eventHandle;
+    // Never cancel the timer
+    d_clusterData.scheduler().scheduleEvent(
+        &eventHandle,
+        t,
+        bdlf::BindUtil::bind(&Cluster::waitForReplication,
+                             this,
+                             whenToStop,
+                             completionCb));
+}
+
+void Cluster::finishShutdownDispatched(const CompletionCallback& completionCb)
+{
+    // executed by the *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(inDispatcherThread());
+
+    bdlb::ScopeExitAny guard(completionCb);
 
     // Notify peers before going down.  This should be the last message sent
     // out.
@@ -1742,27 +1837,29 @@ void Cluster::onRecoveryStatusDispatched(
         // StorageMgr and register the recovered queue uri/key info with
         // 'ClusterOrchestrator'.
         for (size_t pid = 0; pid < d_state.partitions().size(); ++pid) {
-            bslma::ManagedPtr<mqbi::StorageManagerIterator> itMp;
-            itMp = d_storageManager_mp->getIterator(pid);
-            while (itMp && *itMp) {
-                const bmqt::Uri uri(itMp->uri().canonical());
-                BSLS_ASSERT_SAFE(itMp->storage()->partitionId() ==
+            BSLS_ASSERT_SAFE(d_storageManager_mp);
+
+            bsl::vector<bsl::shared_ptr<mqbs::ReplicatedStorage> > storages;
+            d_storageManager_mp->loadAllStorages(&storages, pid);
+
+            for (size_t i = 0; i < storages.size(); ++i) {
+                const mqbs::ReplicatedStorage* storage = storages[i].get();
+                const bmqt::Uri uri(storage->queueUri().canonical());
+                BSLS_ASSERT_SAFE(storage->partitionId() ==
                                  static_cast<int>(pid));
 
                 // TODO:  wrong thread to call 'loadVirtualStorageDetails'
                 // but 'onRecoveryStatusDispatched' should not be concurrent
                 // with any of 'add/removeVirtualStorage' calls.
                 AppInfos appIdInfos;
-                itMp->storage()->loadVirtualStorageDetails(&appIdInfos);
+                storage->loadVirtualStorageDetails(&appIdInfos);
 
                 d_clusterOrchestrator.registerQueueInfo(
                     uri,
                     pid,
-                    itMp->storage()->queueKey(),
+                    storage->queueKey(),
                     appIdInfos,
                     false);  // Force-update?
-
-                ++(*itMp);
             }
         }
     }
@@ -2079,6 +2176,7 @@ Cluster::Cluster(const bslstl::StringRef&           name,
           false,  // isTemporary
           allocator)
 , d_storageManager_mp()
+, d_storageProvider_p(0)
 , d_clusterOrchestrator(d_clusterData.clusterConfig(),
                         this,
                         &d_clusterData,
@@ -2390,6 +2488,38 @@ void Cluster::onDomainReconfigured(const mqbi::Domain&     domain,
     // Existing queues can function with new apps being unauthorized.
 }
 
+void Cluster::onQueueStorageReady(int partitionId, const bmqt::Uri& uri)
+{
+    // executed by *ANY* thread
+
+    if (!d_isStarted) {
+        // This cluster has already been stopped (e.g. this call originates
+        // from 'PartitionRaftManager's destructor, invoked from '~Cluster()'
+        // well after 'stop()' ran).  Nothing left to notify.
+        return;  // RETURN
+    }
+
+    dispatcher()->execute(
+        bdlf::BindUtil::bind(&ClusterOrchestrator::onQueueStorageReady,
+                             &d_clusterOrchestrator,
+                             partitionId,
+                             uri),
+        this);
+}
+
+bool Cluster::loadAppIds(bsl::unordered_set<bsl::string>* out,
+                         const bmqt::Uri&                 uri,
+                         int                              partitionId) const
+{
+    // executed by *ANY* thread
+
+    if (!d_storageProvider_p) {
+        return false;  // RETURN
+    }
+
+    return d_storageProvider_p->loadAppIds(out, uri, partitionId);
+}
+
 int Cluster::processCommand(mqbcmd::ClusterResult*        result,
                             const mqbcmd::ClusterCommand& command)
 {
@@ -2408,7 +2538,146 @@ int Cluster::processCommand(mqbcmd::ClusterResult*        result,
         this);
     dispatcher()->synchronize(this);
 
+    // The dispatcher only starts a leadership transfer; wait for it here, off
+    // the dispatcher.
+
+    bool               isSuccess = result->isSuccessValue();
+    bmqu::MemOutStream os;
+
+    if (isSuccess) {
+        if (command.isStorageValue()) {
+            const mqbcmd::StorageCommand& storage = command.storage();
+            if (storage.isPartitionValue() &&
+                storage.partition().command().isTransferLeadershipValue()) {
+                int partitionId = storage.partition().partitionId();
+                const bsl::string& target =
+                    storage.partition().command().transferLeadership();
+
+                const bsls::TimeInterval deadline =
+                    bmqu::Time::nowMonotonicClock().addSeconds(
+                        k_TRANSFER_LEADERSHIP_WAIT_SECONDS);
+
+                isSuccess = false;
+                while (!isSuccess) {
+                    dispatcher()->execute(
+                        bdlf::BindUtil::bind(
+                            &Cluster::hasPartitionLeadershipDispatched,
+                            this,
+                            &isSuccess,
+                            partitionId,
+                            target),
+                        this);
+                    dispatcher()->synchronize(this);
+
+                    if (!isSuccess) {
+                        if (bmqu::Time::nowMonotonicClock() >= deadline) {
+                            os << "Leadership transfer of  partition "
+                               << partitionId << " to '" << target
+                               << "' was initiated but  did not complete "
+                                  "within "
+                               << k_TRANSFER_LEADERSHIP_WAIT_SECONDS
+                               << " seconds";
+                            BALL_LOG_ERROR << "#TRANSFER_LEADERSHIP_TIMEOUT "
+                                           << description() << ": "
+                                           << os.str();
+                            result->makeError().message() = os.str();
+                            break;  // BREAK
+                        }
+
+                        bslmt::ThreadUtil::microSleep(
+                            k_TRANSFER_LEADERSHIP_POLL_MS * 1000);
+                    }
+                }
+            }
+        }
+        else if (command.isStateValue()) {
+            const mqbcmd::ClusterStateCommand& state = command.state();
+            if (state.isElectorValue() &&
+                state.elector().isTransferLeadershipValue()) {
+                isSuccess = false;
+                const bsl::string& target =
+                    state.elector().transferLeadership();
+
+                const bsls::TimeInterval deadline =
+                    bmqu::Time::nowMonotonicClock().addSeconds(
+                        k_TRANSFER_LEADERSHIP_WAIT_SECONDS);
+
+                while (!isSuccess) {
+                    dispatcher()->execute(
+                        bdlf::BindUtil::bind(
+                            &Cluster::hasClusterLeadershipDispatched,
+                            this,
+                            &isSuccess,
+                            target),
+                        this);
+                    dispatcher()->synchronize(this);
+
+                    if (!isSuccess) {
+                        if (bmqu::Time::nowMonotonicClock() >= deadline) {
+                            os << "Leadership transfer of the cluster to '"
+                               << target
+                               << "' was initiated but  did not complete "
+                                  "within "
+                               << k_TRANSFER_LEADERSHIP_WAIT_SECONDS
+                               << " seconds";
+                            BALL_LOG_ERROR << "#TRANSFER_LEADERSHIP_TIMEOUT "
+                                           << description() << ": "
+                                           << os.str();
+                            result->makeError().message() = os.str();
+                            break;  // BREAK
+                        }
+
+                        bslmt::ThreadUtil::microSleep(
+                            k_TRANSFER_LEADERSHIP_POLL_MS * 1000);
+                    }
+                }
+            }
+        }
+    }
+
     return 0;
+}
+
+void Cluster::hasPartitionLeadershipDispatched(bool*              result,
+                                               int                partitionId,
+                                               const bsl::string& targetName)
+{
+    // executed by the *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(inDispatcherThread());
+    BSLS_ASSERT_SAFE(result);
+
+    *result = false;
+    const mqbnet::ClusterNode* leader =
+        d_state.partition(partitionId).primaryNode();
+
+    if (leader) {
+        if (leader->hostName() == targetName) {
+            *result = true;
+        }
+    }
+}
+
+void Cluster::hasClusterLeadershipDispatched(bool*              result,
+                                             const bsl::string& targetName)
+{
+    // executed by the *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(inDispatcherThread());
+    BSLS_ASSERT_SAFE(result);
+
+    *result = false;
+
+    const mqbnet::ClusterNode* leader =
+        d_clusterData.electorInfo().leaderNode();
+
+    if (leader) {
+        if (leader->hostName() == targetName) {
+            *result = true;
+        }
+    }
 }
 
 void Cluster::processControlMessage(
@@ -2497,6 +2766,18 @@ void Cluster::processControlMessage(
     } break;
     case MsgChoice::SELECTION_ID_ADMIN_COMMAND_RESPONSE: {
         requestManager().processResponse(message);
+    } break;
+    case MsgChoice::SELECTION_ID_RAFT_MESSAGE: {
+        if (isRaftEnabled()) {
+            d_clusterOrchestrator.processRaftControlMessage(
+                message.choice().raftMessage(),
+                source);
+        }
+        else {
+            BALL_LOG_WARN << description() << ": Ignoring RAFT_MESSAGE from "
+                          << source->nodeDescription()
+                          << " because Raft is not enabled.";
+        }
     } break;
     case MsgChoice::SELECTION_ID_UNDEFINED:
     default: {
@@ -2592,6 +2873,15 @@ void Cluster::processClusterControlMessage(
         dispatcher()->execute(
             bdlf::BindUtil::bind(
                 &ClusterOrchestrator::processQueueAssignmentRequest,
+                &d_clusterOrchestrator,
+                message,
+                source),
+            this);
+    } break;  // BREAK
+    case MsgChoice::SELECTION_ID_QUEUE_UNASSIGNMENT_REQUEST: {
+        dispatcher()->execute(
+            bdlf::BindUtil::bind(
+                &ClusterOrchestrator::processQueueUnassignmentRequest,
                 &d_clusterOrchestrator,
                 message,
                 source),
@@ -2779,7 +3069,25 @@ void Cluster::processEvent(const bmqp::Event&   event,
         processControlMessage(message, source);
     } break;  // BREAK
     case bmqp::EventType::e_ELECTOR: {
-        d_clusterOrchestrator.processElectorEvent(event, source);
+        if (!isRaftEnabled()) {
+            d_clusterOrchestrator.processElectorEvent(event, source);
+        }
+        else {
+            BALL_LOG_WARN << description() << ": Ignoring ELECTOR event from "
+                          << source->nodeDescription()
+                          << " because Raft is enabled.";
+        }
+    } break;  // BREAK
+    case bmqp::EventType::e_RAFT_CLUSTER: {
+        if (isRaftEnabled()) {
+            d_clusterOrchestrator.processRaftClusterEvent(event, source);
+        }
+        else {
+            BALL_LOG_WARN << description()
+                          << ": Ignoring RAFT_CLUSTER event from "
+                          << source->nodeDescription()
+                          << " because Raft is not enabled.";
+        }
     } break;  // BREAK
     case bmqp::EventType::e_PUT: {
         // This event arrives from a replica to this node, which should be the
@@ -2844,13 +3152,36 @@ void Cluster::processEvent(const bmqp::Event&   event,
         BSLS_ASSERT_SAFE(false && "Heartbeat are handled at mqbnet layer");
     } break;
     case bmqp::EventType::e_REPLICATION_RECEIPT: {
-        // Receipt event arrives from replication nodes to primary.
-        d_storageManager_mp->processReceiptEvent(event, source);
+        if (d_storageManager_mp) {
+            d_storageManager_mp->processReceiptEvent(event, source);
+        }
     } break;  // BREAK
     case bmqp::EventType::e_AUTHENTICATION: {
         // TODO
         BALL_LOG_ERROR << "Received Authentication Event but reauthentication "
                           "logic is not implemented yet.";
+    } break;  // BREAK
+    case bmqp::EventType::e_RAFT_PARTITION: {
+        if (isRaftEnabled()) {
+            d_clusterOrchestrator.processRaftPartitionEvent(event, source);
+        }
+        else {
+            BALL_LOG_ERROR << description()
+                           << ": Ignoring RAFT_PARTITION event from "
+                           << source->nodeDescription()
+                           << " because Raft is not enabled.";
+        }
+    } break;  // BREAK
+    case bmqp::EventType::e_RAFT_SNAPSHOT: {
+        if (isRaftEnabled()) {
+            d_clusterOrchestrator.processRaftSnapshotEvent(event, source);
+        }
+        else {
+            BALL_LOG_ERROR << description()
+                           << ": Ignoring RAFT_SNAPSHOT event from "
+                           << source->nodeDescription()
+                           << " because Raft is not enabled.";
+        }
     } break;  // BREAK
     case bmqp::EventType::e_UNDEFINED:
     default: {
@@ -2916,14 +3247,18 @@ void Cluster::onDispatcherEvent(const mqbi::DispatcherEvent& event)
         d_clusterOrchestrator.processClusterStateEvent(clusterStateEvt);
     } break;  // BREAK
     case mqbi::DispatcherEventType::e_STORAGE: {
-        const mqbevt::StorageEvent& storageEvt =
-            *event.the<mqbevt::StorageEvent>();
-        d_storageManager_mp->processStorageEvent(storageEvt);
+        if (d_storageManager_mp) {
+            const mqbevt::StorageEvent& storageEvt =
+                *event.the<mqbevt::StorageEvent>();
+            d_storageManager_mp->processStorageEvent(storageEvt);
+        }
     } break;  // BREAK
     case mqbi::DispatcherEventType::e_RECOVERY: {
-        const mqbevt::RecoveryEvent& recoveryEvt =
-            *event.the<mqbevt::RecoveryEvent>();
-        d_storageManager_mp->processRecoveryEvent(recoveryEvt);
+        if (d_storageManager_mp) {
+            const mqbevt::RecoveryEvent& recoveryEvt =
+                *event.the<mqbevt::RecoveryEvent>();
+            d_storageManager_mp->processRecoveryEvent(recoveryEvt);
+        }
     } break;  // BREAK
     case mqbi::DispatcherEventType::e_PUSH: {
         const mqbevt::PushEvent& realEvent = *event.the<mqbevt::PushEvent>();
@@ -3023,9 +3358,10 @@ void Cluster::onClusterLeader(mqbnet::ClusterNode*                node,
         else {
             d_clusterData.stats().setIsLeader(
                 mqbstat::ClusterStats::LeaderStatus::e_FOLLOWER);
-            if (d_state.isSelfPrimary()) {
-                // We encountered the leader / primary divergence.
-                // Initiate a graceful shutdown of the broker
+            if (d_state.isSelfPrimary() && !isRaftEnabled()) {
+                // In legacy/FSM mode, leader != primary is unsupported.
+                // In Raft mode, this is the normal case (each partition
+                // independently elects its primary).
                 BALL_LOG_ERROR
                     << "Encountered leader-primary divergence: this node is "
                        "still the primary but the leadership has gone to "
@@ -3141,7 +3477,7 @@ void Cluster::loadClusterStatus(mqbcmd::ClusterResult* result)
     mqbcmd::StorageCommand cmd;
     cmd.makeSummary();
     mqbcmd::StorageResult storageResult;
-    d_storageManager_mp->processCommand(&storageResult, cmd);
+    d_storageProvider_p->processCommand(&storageResult, cmd);
     clusterStatus.clusterStorageSummary() =
         storageResult.clusterStorageSummary();
 }
@@ -3181,7 +3517,7 @@ void Cluster::purgeAndGCQueueOnDomainDispatched(mqbcmd::ClusterResult* result,
 
     // Purge queues on the given domain
     mqbcmd::StorageResult storageResult;
-    d_storageManager_mp->purgeQueueOnDomain(&storageResult, domainName);
+    d_storageProvider_p->purgeQueueOnDomain(&storageResult, domainName);
     result->makeStorageResult(storageResult);
 
     if (result->isErrorValue()) {
@@ -3245,6 +3581,11 @@ void Cluster::printClusterStateSummary(bsl::ostream& out,
 bool Cluster::isFSMWorkflow() const
 {
     return d_clusterData.clusterConfig().clusterAttributes().isFSMWorkflow();
+}
+
+bool Cluster::isRaftEnabled() const
+{
+    return isFSMWorkflow();
 }
 
 bool Cluster::doesFSMwriteQLIST() const
