@@ -20,6 +20,7 @@ blazingmq.dev.it.process.rawclient
 PURPOSE: Provide a BMQ raw client.
 """
 
+import copy
 import socket
 import json
 from typing import Optional, Tuple, Union
@@ -275,15 +276,23 @@ class RawClient:
         response = self.decode_event_bytes(response_header, response_body)
         return response
 
-    def negotiate(self) -> dict:
+    def send_control_message(self, payload: Union[str, dict]) -> None:
         """
-        Send a negotiation request to the broker.
+        Send the specified control 'payload' to the broker without waiting for a
+        response.
+        """
+        self._send_raw(self._wrap_control_event(payload))
+
+    def negotiate(self, identity: Optional[dict] = None) -> dict:
+        """
+        Send a negotiation request to the broker, overriding the default client
+        identity fields with the optionally specified 'identity'.
         Return the negotiation response from the broker.
         """
-        self._send_negotiation_request()
+        self._send_negotiation_request(identity)
         return self._receive_negotiation_response()
 
-    def _send_negotiation_request(self) -> None:
+    def _send_negotiation_request(self, identity: Optional[dict] = None) -> None:
         """
         Send a negotiation request to the broker without waiting for a response.
         Use this when you need to send the request asynchronously or when you want
@@ -291,8 +300,10 @@ class RawClient:
         """
         assert self._channel is not None
 
-        raw_client_identity = broker.CLIENT_IDENTITY_SCHEMA
+        raw_client_identity = copy.deepcopy(broker.CLIENT_IDENTITY_SCHEMA)
         raw_client_identity["clientIdentity"]["clientType"] = "E_TCPCLIENT"
+        if identity:
+            raw_client_identity["clientIdentity"].update(identity)
 
         self._send_raw(self._wrap_control_event(raw_client_identity))
 
