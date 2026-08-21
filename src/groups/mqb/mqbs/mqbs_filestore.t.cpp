@@ -183,9 +183,6 @@ static bool journalHasSyncPoint(const bsl::string&        journalFilePath,
                                                       fileSet,
                                                       &journalFd);
     BMQTST_ASSERT_EQ(0, rc);
-    if (0 != rc) {
-        return false;  // RETURN
-    }
 
     mqbs::JournalFileIterator jit;
     rc = mqbs::FileStoreUtil::loadIterators(errDesc, fileSet, &jit, journalFd);
@@ -222,9 +219,6 @@ static int journalDeletionCount(const bsl::string& journalFilePath)
                                                       fileSet,
                                                       &journalFd);
     BMQTST_ASSERT_EQ(0, rc);
-    if (0 != rc) {
-        return -1;  // RETURN
-    }
 
     mqbs::JournalFileIterator jit;
     rc = mqbs::FileStoreUtil::loadIterators(errDesc, fileSet, &jit, journalFd);
@@ -1079,12 +1073,12 @@ static void test2_printTest()
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
 
     Tester             tester("./test-cluster123-2");
-    mqbs::FileStore&   fs             = tester.fileStore();
-    const unsigned int primaryLeaseId = 1;
+    mqbs::FileStore&   fs                 = tester.fileStore();
+    const unsigned int k_INITIAL_LEASE_ID = 1;
 
-    int rc = fs.open(0, primaryLeaseId);
+    int rc = fs.open(0, k_INITIAL_LEASE_ID);
     BSLS_ASSERT_OPT(rc == 0);
-    fs.setActivePrimary(tester.node(), primaryLeaseId);
+    fs.setActivePrimary(tester.node(), k_INITIAL_LEASE_ID);
 
     // Write various records to the partition.
     SyncPointOffsetPairs spOffsetPairs(bmqtst::TestHelperUtil::allocator());
@@ -1096,7 +1090,7 @@ static void test2_printTest()
     BSLS_ASSERT_OPT(tester.writeRecords(&fs,
                                         &records,
                                         &spOffsetPairs,
-                                        primaryLeaseId,
+                                        k_INITIAL_LEASE_ID,
                                         &seqNum,
                                         &numRecordsWritten,
                                         k_NUM_RECORDS));
@@ -1287,13 +1281,13 @@ static void test3_partitionFullAlarm()
     fs.close();
     BMQTST_ASSERT_EQ(false, fs.isOpen());
 
-    rc = fs.open(0, 2);
+    rc = fs.open(0, ++primaryLeaseId);
     BMQTST_ASSERT_EQ(0, rc);
     BMQTST_ASSERT_EQ(true, fs.isOpen());
 
     // 8. Verify writes succeed after reopen.
     fs.registerStorage(storage_sp.get());
-    fs.setActivePrimary(tester.node(), ++primaryLeaseId);
+    fs.setActivePrimary(tester.node(), primaryLeaseId);
     BMQTST_ASSERT_D("write after reopen should succeed",
                     poster.postMessage() == mqbi::StorageResult::e_SUCCESS);
 
@@ -1483,7 +1477,7 @@ static void test5_writeHeadFollowsAppliedLease()
     BMQTST_ASSERT_EQ(primaryLeaseId, fs.writeHeadLeaseId());
     BMQTST_ASSERT_EQ(2ULL, fs.writeHeadSeqNum());
 
-    primaryLeaseId = 2;
+    primaryLeaseId = fs.writeHeadLeaseId() + 1;
     for (bsls::Types::Uint64 seqNum = 1; seqNum <= 4; ++seqNum) {
         applyReplicatedSyncPoint(&fs,
                                  blobSpPool.get(),
@@ -1642,7 +1636,7 @@ static void test7_conformExtraQueueWithoutRollover()
 
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
 
-    const char k_FILE_STORE_LOCATION[] = "./test-cluster123-6";
+    const char k_FILE_STORE_LOCATION[] = "./test-cluster123-7";
 
     Tester           tester(k_FILE_STORE_LOCATION);
     mqbs::FileStore& fs = tester.fileStore();
@@ -1723,7 +1717,7 @@ static void test8_conformExtraQueueCausesRollover()
 
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
 
-    const char k_FILE_STORE_LOCATION[] = "./test-cluster123-4";
+    const char k_FILE_STORE_LOCATION[] = "./test-cluster123-8";
 
     const bsls::Types::Uint64 k_MAX_JOURNAL = 8 * 1024;
 

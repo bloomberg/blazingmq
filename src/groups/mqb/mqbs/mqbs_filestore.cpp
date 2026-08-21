@@ -1410,15 +1410,12 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                 if (queueKeyInfoMap->end() ==
                     queueKeyInfoMap->find(queueKey)) {
                     BALL_LOG_WARN
-                        << partitionDesc()
-                        << "Encountered "
-                           "a "
+                        << partitionDesc() << "Encountered a "
                         << "QueueOp.ADDITION record for queueKey [" << queueKey
                         << "] during 1st pass reverse iteration, but the "
                         << "queueKey is not present in cluster state.  Will "
-                        << "remember this extra queue.  "
-                           "Record "
-                        << "offset: " << journalIt.recordOffset()
+                        << "remember this extra queue."
+                        << "  Record offset: " << journalIt.recordOffset()
                         << ", record index: " << journalIt.recordIndex();
 
                     deletedQueueKeysOffsets.insert(
@@ -1477,15 +1474,12 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                 if (queueKeyInfoMap->end() ==
                     queueKeyInfoMap->find(queueKey)) {
                     BALL_LOG_WARN
-                        << partitionDesc()
-                        << "Encountered "
-                           "a "
+                        << partitionDesc() << "Encountered a "
                         << "QueueOp.CREATION record for queueKey [" << queueKey
                         << "] during 1st pass reverse iteration, but the "
                         << "queueKey is not present in cluster state.  Will "
-                        << "remember this extra queue.  "
-                           "Record "
-                        << "offset: " << journalIt.recordOffset()
+                        << "remember this extra queue."
+                        << "  Record offset: " << journalIt.recordOffset()
                         << ", record index: " << journalIt.recordIndex();
 
                     deletedQueueKeysOffsets.insert(
@@ -1895,14 +1889,12 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                         BMQTSK_ALARMLOG_ALARM("RECOVERY")
                             << partitionDesc()
                             << "Encountered an orphan QueueOp.PURGE record "
-                               "for "
-                            << "queueKey [" << queueKey
+                            << "for queueKey [" << queueKey
                             << "], offset: " << jit->recordOffset()
                             << ", index: " << jit->recordIndex()
                             << ": the queueKey is not present in the cluster "
                             << "state and had no QueueOp.CREATION record in "
-                               "the "
-                            << "first pass." << BMQTSK_ALARMLOG_END;
+                            << "the first pass." << BMQTSK_ALARMLOG_END;
                         continue;  // CONTINUE
                     }
                     else {
