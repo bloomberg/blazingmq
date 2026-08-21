@@ -211,8 +211,7 @@ int QlistFileIterator::nextRecord()
             // that this iterator remains valid, as well as
             // `hasRecordSizeRemaining` works correctly in reverse
             // iteration mode.
-            bsls::Types::Uint64 recSize =
-                bsl::numeric_limits<unsigned int>::max();
+            unsigned int recSize = bsl::numeric_limits<unsigned int>::max();
 
             while (position < d_blockIter.position()) {
                 OffsetPtr<const QueueRecordHeader> header(*d_blockIter.block(),
@@ -246,7 +245,7 @@ void QlistFileIterator::flipDirection()
 {
     d_blockIter.flipDirection();
 
-    unsigned int firstRecordPos = firstRecordPosition();
+    bsls::Types::Uint64 firstRecordPos = firstRecordPosition();
     if (d_blockIter.position() < firstRecordPos) {
         return;  // RETURN
     }
