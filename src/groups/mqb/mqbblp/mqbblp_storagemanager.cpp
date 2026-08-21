@@ -319,7 +319,7 @@ void StorageManager::onPartitionRecovery(
                                        : "**NA**")
                       << ", and will now be opened.";
 
-        int rc = fs->open(0);
+        int rc = fs->open(0, pinfo.primaryLeaseId());
         if (0 != rc) {
             BMQTSK_ALARMLOG_ALARM("FILE_IO")
                 << d_clusterData_p->identity().description()
