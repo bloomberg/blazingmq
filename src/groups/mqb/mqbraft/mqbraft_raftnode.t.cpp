@@ -62,10 +62,8 @@ class MemoryRaftLog : public RaftLog {
     ~MemoryRaftLog() BSLS_KEYWORD_OVERRIDE {}
 
     int append(bsls::Types::Uint64                 term,
-               const bsl::shared_ptr<bdlbb::Blob>& data,
-               bsls::Types::Uint64 id = 0) BSLS_KEYWORD_OVERRIDE
+               const bsl::shared_ptr<bdlbb::Blob>& data) BSLS_KEYWORD_OVERRIDE
     {
-        (void)id;
         d_entries.push_back(LogEntry(term, lastIndex() + 1, data));
         return 0;
     }
@@ -110,28 +108,27 @@ class MemoryRaftLog : public RaftLog {
         return d_entries[static_cast<int>(offset)].d_term;
     }
 
-    int entries(bsls::Types::Uint64    lo,
-                bsls::Types::Uint64    hi,
-                bsl::vector<LogEntry>* out,
-                bsls::Types::Uint64    maxCount,
-                bsls::Types::Uint64    maxBytes) const BSLS_KEYWORD_OVERRIDE
+    void entries(bsls::Types::Uint64    lo,
+                 bsls::Types::Uint64    hi,
+                 bsl::vector<LogEntry>* out,
+                 bsls::Types::Uint64    maxCount,
+                 bsls::Types::Uint64    maxBytes) const BSLS_KEYWORD_OVERRIDE
     {
         BSLS_ASSERT_SAFE(out);
-        if (lo > hi || lo <= d_snapshotIndex || hi > lastIndex() + 1) {
-            return -1;
-        }
-        out->clear();
-        bsls::Types::Uint64 bytes = 0;
+        BSLS_ASSERT_SAFE(lo <= hi);
+        BSLS_ASSERT_SAFE(lo > d_snapshotIndex);
+        BSLS_ASSERT_SAFE(hi <= lastIndex() + 1);
+        const bsl::vector<LogEntry>::size_type loaded = out->size();
+        bsls::Types::Uint64                    bytes  = 0;
         for (bsls::Types::Uint64 i = lo; i < hi; ++i) {
             bsls::Types::Uint64 offset = i - d_snapshotIndex - 1;
             out->push_back(d_entries[static_cast<int>(offset)]);
             bytes += out->back().d_data ? out->back().d_data->length() : 0;
-            if ((maxCount != 0 && out->size() >= maxCount) ||
+            if ((maxCount != 0 && out->size() - loaded >= maxCount) ||
                 (maxBytes != 0 && bytes >= maxBytes)) {
                 break;
             }
         }
-        return 0;
     }
 
     bsls::Types::Uint64 snapshotIndex() const BSLS_KEYWORD_OVERRIDE
@@ -873,9 +870,9 @@ static void test14_appendEntriesBatching()
 
     // One proposal, one round: a single message addressed to both peers.
     RaftNodeOutput first(&alloc);
-    BMQTST_ASSERT_EQ(
-        cluster.node(leader)->propose(&first, cluster.makeBlob("m1"), 1),
-        0);
+    BMQTST_ASSERT_EQ(cluster.node(leader)->propose(&first,
+                                                   cluster.makeBlob("m1")),
+                     0);
     BMQTST_ASSERT_EQ(first.d_messages.size(), 0u);  // deferred
 
     cluster.node(leader)->flushSends(&first);
@@ -894,8 +891,7 @@ static void test14_appendEntriesBatching()
     for (int i = 0; i < 10; ++i) {
         RaftNodeOutput burst(&alloc);
         BMQTST_ASSERT_EQ(cluster.node(leader)->propose(&burst,
-                                                       cluster.makeBlob("m"),
-                                                       i + 2),
+                                                       cluster.makeBlob("m")),
                          0);
         BMQTST_ASSERT_EQ(burst.d_messages.size(), 0u);
     }
@@ -954,7 +950,7 @@ static void test15_unackedEntriesBound()
     size_t rounds = 0;
     for (int i = 0; i < 8; ++i) {
         RaftNodeOutput out(&alloc);
-        cluster.node(leader)->propose(&out, cluster.makeBlob("m"), i + 1);
+        cluster.node(leader)->propose(&out, cluster.makeBlob("m"));
         cluster.node(leader)->flushSends(&out);
         if (!out.d_messages.empty()) {
             ++rounds;
@@ -1010,7 +1006,7 @@ static void test16_rejectionUsesPeerLastIndex()
     bsl::vector<RaftMessage> toPeer(&alloc);
     for (int i = 0; i < 4; ++i) {
         RaftNodeOutput out(&alloc);
-        cluster.node(leader)->propose(&out, cluster.makeBlob("m"), i + 1);
+        cluster.node(leader)->propose(&out, cluster.makeBlob("m"));
         cluster.node(leader)->flushSends(&out);
         for (size_t j = 0; j < out.d_messages.size(); ++j) {
             if (goesTo(out.d_messages[j], peer)) {
@@ -1090,8 +1086,8 @@ static void test17_rolloverCommitPrecedesEntries()
     // without a round running afterwards: that leaves the peers' 'sentCommit'
     // behind the commit index, which is the state a rollover has to survive.
     RaftNodeOutput sent(&alloc);
-    cluster.node(leader)->propose(&sent, cluster.makeBlob("m1"), 1);
-    cluster.node(leader)->propose(&sent, cluster.makeBlob("m2"), 2);
+    cluster.node(leader)->propose(&sent, cluster.makeBlob("m1"));
+    cluster.node(leader)->propose(&sent, cluster.makeBlob("m2"));
     cluster.node(leader)->flushSends(&sent);
 
     RaftNodeOutput acks(&alloc);
@@ -1114,7 +1110,7 @@ static void test17_rolloverCommitPrecedesEntries()
     // A third entry is owed, but the peers have not heard that 2 committed,
     // so this round carries the commit alone -- shared, since both are held.
     RaftNodeOutput held(&alloc);
-    cluster.node(leader)->propose(&held, cluster.makeBlob("m3"), 3);
+    cluster.node(leader)->propose(&held, cluster.makeBlob("m3"));
     cluster.node(leader)->flushSends(&held);
 
     BMQTST_ASSERT_EQ(held.d_messages.size(), 1u);
@@ -1141,6 +1137,41 @@ static void test17_rolloverCommitPrecedesEntries()
     BMQTST_ASSERT_EQ(quiet.d_messages.size(), 0u);
 }
 
+static void test18_singleNodeCommitsOnPropose()
+// SINGLE NODE COMMITS ON PROPOSE
+//
+// A node that is its own quorum commits and applies each proposal as it is
+// made, without a round of messages.
+{
+    bmqtst::TestHelper::printTestName("SINGLE NODE COMMITS ON PROPOSE");
+
+    bslma::TestAllocator alloc("test", false);
+    TestCluster          cluster(1, false, &alloc);
+
+    int leader = electLeader(&cluster);
+    BMQTST_ASSERT_EQ(leader, 0);
+
+    RaftNodeOutput out(&alloc);
+    cluster.node(0)->propose(&out, cluster.makeBlob("entry1"));
+
+    BMQTST_ASSERT_EQ(cluster.node(0)->commitIndex(), 1ULL);
+    BMQTST_ASSERT_EQ(out.d_committed.size(), 1u);
+    BMQTST_ASSERT_EQ(out.d_committed[0].d_index, 1ULL);
+
+    // The second proposal appends to the same 'output', so the first entry is
+    // still there and the new one follows it.
+    cluster.node(0)->propose(&out, cluster.makeBlob("entry2"));
+
+    BMQTST_ASSERT_EQ(cluster.node(0)->commitIndex(), 2ULL);
+    BMQTST_ASSERT_EQ(out.d_committed.size(), 2u);
+    BMQTST_ASSERT_EQ(out.d_committed[1].d_index, 2ULL);
+
+    // Nothing to replicate: a lone node owes no peer anything.
+    RaftNodeOutput sends(&alloc);
+    cluster.node(0)->flushSends(&sends);
+    BMQTST_ASSERT_EQ(sends.d_messages.size(), 0u);
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ============================================================================
@@ -1151,6 +1182,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 18: test18_singleNodeCommitsOnPropose(); break;
     case 17: test17_rolloverCommitPrecedesEntries(); break;
     case 16: test16_rejectionUsesPeerLastIndex(); break;
     case 15: test15_unackedEntriesBound(); break;
