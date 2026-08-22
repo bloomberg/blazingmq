@@ -1,0 +1,81 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<schema xmlns              = 'http://www.w3.org/2001/XMLSchema'
+        xmlns:bdem         = 'http://bloomberg.com/schemas/bdem'
+        xmlns:tns          = 'http://bloomberg.com/schemas/mqbpoly'
+        targetNamespace    = 'http://bloomberg.com/schemas/mqbpoly'
+        bdem:package       = 'mqbpoly'
+        elementFormDefault = 'qualified'>
+
+  <complexType name='Policy'>
+    <annotation>
+      <documentation>
+      This type is used by the default authorizer to describe cluster access policies.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='roles'   type='tns:Role' maxOccurrs='unbounded' />
+    </sequence>
+  </complexType>
+
+  <complexType name='Role'>
+    <annotation>
+      <documentation>
+      This type represents a role that describes access levels on the cluster. A role is
+      described by two fields:
+        1. id :: The identity (principle) associated with this role
+        2. permissions :: The list of actions allowed for this identity
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='id' type='tns:Identity'/>
+      <element name='permissions'   type='tns:Permission' maxOccurrs='unbounded' />
+    </sequence>
+  </complexType>
+
+  <complexType name='Identity'>
+    <annotation>
+      <documentation>
+      This type represents an authenticated identity.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='name' type='string'/>
+    </sequence>
+  </complexType>
+
+  <complexType name='Permission'>
+    <annotation>
+      <documentation>
+      This type represents a permission to access a resource. A permission is a simple
+      association of an action identifier with a set of resources related to that
+      action.
+
+      The list of supported actions are:
+      - connectClient
+      - connectProxy
+      - connectAdmin
+      - connectClusterNode
+      - queueRead
+      - queueWrite
+      - executeAdminCommand
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='action' type='string'/>
+      <element name='resources' type='tns:Resource' maxOccurs='unbounded' />
+    </sequence>
+  </complexType>
+
+  <complexType name='Resource'>
+    <annotation>
+      <documentation>
+      This type represents a resource. The meaning of the identifier depends on the
+      context of the action the resource is associated with.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='id' type='string' />
+    </sequence>
+  </complexType>
+
+</schema>
