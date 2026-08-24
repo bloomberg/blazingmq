@@ -41,7 +41,6 @@
 #include <bdlbb_blob.h>
 #include <bdlcc_objectpool.h>
 #include <bdlcc_sharedobjectpool.h>
-#include <bdlmt_eventscheduler.h>
 #include <bsl_functional.h>
 #include <bsl_memory.h>
 #include <bsl_string.h>
@@ -155,9 +154,6 @@ class AdminSession : public mqbnet::Session, public mqbi::DispatcherClient {
     /// The state associated to this session.
     AdminSessionState d_state;
 
-    /// Pointer to the event scheduler to use (held, not owned).
-    bdlmt::EventScheduler* d_scheduler_p;
-
     /// The authorizer to use for this session
     bsl::shared_ptr<mqbi::Authorizer> d_authorizer_sp;
 
@@ -228,7 +224,6 @@ class AdminSession : public mqbnet::Session, public mqbi::DispatcherClient {
                  const bsl::string&                      sessionDescription,
                  mqbi::Dispatcher*                       dispatcher,
                  AdminSessionState::BlobSpPool*          blobSpPool,
-                 bdlmt::EventScheduler*                  scheduler,
                  const mqbnet::Session::AdminCommandEnqueueCb& adminEnqueueCb,
                  const bsl::shared_ptr<mqbi::Authorizer>&      authorizer,
                  bslma::Allocator*                             allocator);

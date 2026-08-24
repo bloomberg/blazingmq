@@ -890,7 +890,6 @@ void SessionNegotiator::createSession(
                          description,
                          d_dispatcher_p,
                          d_blobSpPool_p,
-                         d_scheduler_p,
                          d_adminCb,
                          d_authorizer_sp,
                          d_allocator_p);
