@@ -192,7 +192,7 @@ int CslRaftLog::rollover(bsl::shared_ptr<mqbsi::Log>*        oldLog,
     const bsls::Types::Uint64 oldLastIndex = lastIndex();
     bsl::vector<LogEntry>     tail(d_allocator_p);
     if (compactIndex < oldLastIndex) {
-        entries(compactIndex + 1, oldLastIndex + 1, &tail, 0, 0);
+        entries(compactIndex + 1, oldLastIndex + 1, &tail, 0, 0, false);
 
         // The tail is copied into 'newLog', which then replaces the current
         // log: an entry missing here does not survive the switch.
@@ -341,8 +341,13 @@ void CslRaftLog::entries(bsls::Types::Uint64    lo,
                          bsls::Types::Uint64    hi,
                          bsl::vector<LogEntry>* out,
                          bsls::Types::Uint64    maxCount,
-                         bsls::Types::Uint64    maxBytes) const
+                         bsls::Types::Uint64    maxBytes,
+                         bool                   forApply) const
 {
+    // Every entry here is read from the ledger, whoever appended it, so an
+    // apply gather is owed the same bytes as a replication one.
+    (void)forApply;
+
     BSLS_ASSERT_SAFE(out);
     BSLS_ASSERT_SAFE(lo <= hi);
     BSLS_ASSERT_SAFE(lo > d_snapshotIndex);

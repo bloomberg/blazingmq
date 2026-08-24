@@ -100,10 +100,8 @@ int computeEntrySize(const bdlbb::Blob& blob, const bmqu::BlobPosition& pos)
     switch (rh->type()) {
     case mqbs::RecordType::e_MESSAGE: {
         bmqu::BlobPosition dhPos;
-        if (0 != bmqu::BlobUtil::findOffsetSafe(&dhPos,
-                                                blob,
-                                                pos,
-                                                k_JREC_SIZE)) {
+        if (0 !=
+            bmqu::BlobUtil::findOffsetSafe(&dhPos, blob, pos, k_JREC_SIZE)) {
             return -1;
         }
         bmqu::BlobObjectProxy<mqbs::DataHeader> dh(
@@ -135,10 +133,8 @@ int computeEntrySize(const bdlbb::Blob& blob, const bmqu::BlobPosition& pos)
         }
 
         bmqu::BlobPosition qrhPos;
-        if (0 != bmqu::BlobUtil::findOffsetSafe(&qrhPos,
-                                                blob,
-                                                pos,
-                                                k_JREC_SIZE)) {
+        if (0 !=
+            bmqu::BlobUtil::findOffsetSafe(&qrhPos, blob, pos, k_JREC_SIZE)) {
             return k_JREC_SIZE;
         }
         bmqu::BlobObjectProxy<mqbs::QueueRecordHeader> qrh(&blob,
@@ -822,7 +818,8 @@ void PartitionRaft::beginReceiveSnapshot(bsls::Types::Uint64 lastIncludedIndex,
     d_receivingSnapshot         = true;
 }
 
-void PartitionRaft::applySnapshotChunk(const bdlbb::Blob& event)
+void PartitionRaft::applySnapshotChunk(const bdlbb::Blob&   event,
+                                       mqbnet::ClusterNode* source)
 {
     // executed by the partition *DISPATCHER* thread
     BSLS_ASSERT_SAFE(d_receivingSnapshot);
@@ -946,12 +943,15 @@ void PartitionRaft::applySnapshotChunk(const bdlbb::Blob& event)
     d_raftNode_mp->initRecoveredState(d_raftLog_mp->lastTerm(),
                                       installedIndex);
 
-    // Send response last — after files are fully applied
+    // Answer the node that sent the chunks, not 'leaderId()': that is
+    // 'k_INVALID_NODE_ID' whenever the term advanced during the transfer, and
+    // the response is then dropped -- which the leader sees as a timeout and
+    // answers with another full snapshot.
     RaftMessage resp(d_allocator_p);
     resp.d_type         = RaftMessageType::e_INSTALL_SNAPSHOT_RESP;
     resp.d_term         = d_raftNode_mp->currentTerm();
     resp.d_sourceNodeId = d_clusterData_p->membership().selfNode()->nodeId();
-    resp.d_destinationNodeId = d_raftNode_mp->leaderId();
+    resp.d_destinationNodeId = source->nodeId();
     resp.d_lastLogIndex      = d_snapshotLastIncludedIndex;
     sendControlMessage(resp);
 
@@ -959,11 +959,12 @@ void PartitionRaft::applySnapshotChunk(const bdlbb::Blob& event)
                   << "] snapshot applied, sent InstallSnapshot response";
 }
 
-void PartitionRaft::appendSnapshotChunk(const bdlbb::Blob&   event,
-                                        mqbnet::ClusterNode* source)
+void PartitionRaft::appendSnapshotChunk(
+    const bsl::shared_ptr<const bdlbb::Blob>& event,
+    mqbnet::ClusterNode*                      source)
 {
     // executed by the partition *DISPATCHER* thread
-    (void)source;
+    BSLS_ASSERT_SAFE(source);
 
     if (!d_receivingSnapshot) {
         BALL_LOG_WARN << "Partition [" << d_partitionId
@@ -971,7 +972,7 @@ void PartitionRaft::appendSnapshotChunk(const bdlbb::Blob&   event,
         return;
     }
 
-    applySnapshotChunk(event);
+    applySnapshotChunk(*event, source);
 }
 
 void PartitionRaft::toCtrlMsg(bmqp_ctrlmsg::RaftMessage* out,
@@ -1169,8 +1170,8 @@ int PartitionRaft::propose(
     else if (pw->d_recordType == mqbs::RecordType::e_QUEUE_OP &&
              pw->d_queueOpType == mqbs::QueueOpType::e_CREATION) {
         qlistBytes = mqbs::FileStoreProtocolUtil::queueCreationQlistFileSize(
-            pw->d_queueUri,
-            pw->d_appIdKeyPairs);
+            pw->d_queueInfo->d_queueUri,
+            pw->d_queueInfo->d_appIdKeyPairs);
     }
 
     // Skipped while a rollover of this node's own is in flight:
@@ -1362,7 +1363,7 @@ void PartitionRaft::proposeSyncPoint()
     // 'e_ROLLOVER' (it will be re-issued on a later tick).
     bsl::shared_ptr<mqbs::FileStore::PendingWrite> pw =
         d_pendingWritePool.getObject();
-    *pw = mqbs::FileStore::PendingWrite(mqbs::SyncPointType::e_REGULAR);
+    pw->initSyncPoint(mqbs::SyncPointType::e_REGULAR);
 
     int rc = propose(pw);
     if (rc != 0) {
@@ -1379,7 +1380,7 @@ void PartitionRaft::proposeRollover()
 
     bsl::shared_ptr<mqbs::FileStore::PendingWrite> pw =
         d_pendingWritePool.getObject();
-    *pw = mqbs::FileStore::PendingWrite(mqbs::SyncPointType::e_ROLLOVER);
+    pw->initSyncPoint(mqbs::SyncPointType::e_ROLLOVER);
     // Not buffering here (this is what *starts* the rollover), so this simply
     // enqueues 'e_ROLLOVER' for 'append()'.
     d_raftLog_mp->setPendingWrite(pw);
@@ -1619,11 +1620,14 @@ int PartitionRaft::transferLeadership(const bsl::string& targetHostName)
     return rc_SUCCESS;
 }
 
-void PartitionRaft::appendEntries(const bdlbb::Blob&   event,
-                                  mqbnet::ClusterNode* source)
+void PartitionRaft::appendEntries(
+    const bsl::shared_ptr<const bdlbb::Blob>& event_sp,
+    mqbnet::ClusterNode*                      source)
 {
     // executed by the partition *DISPATCHER* thread
     BSLS_ASSERT_SAFE(source);
+
+    const bdlbb::Blob& event = *event_sp;
 
     if (d_receivingSnapshot) {
         // The FileStore is closed for the duration of an InstallSnapshot
@@ -1777,11 +1781,14 @@ void PartitionRaft::appendEntries(const bdlbb::Blob&   event,
     dispatchOutput(&output);
 }
 
-void PartitionRaft::onAppendEntriesResponse(const bdlbb::Blob&   event,
-                                            mqbnet::ClusterNode* source)
+void PartitionRaft::onAppendEntriesResponse(
+    const bsl::shared_ptr<const bdlbb::Blob>& event_sp,
+    mqbnet::ClusterNode*                      source)
 {
     // executed by the partition *DISPATCHER* thread
     BSLS_ASSERT_SAFE(source);
+
+    const bdlbb::Blob& event = *event_sp;
 
     if (!d_fileStore_sp->isOpen()) {
         // Shutdown/teardown, as in 'appendEntries' above: the partition can
@@ -1866,6 +1873,19 @@ void PartitionRaft::onRaftControlMessage(
     // executed by the partition *DISPATCHER* thread
     BSLS_ASSERT_SAFE(source);
 
+    if (!d_fileStore_sp->isOpen()) {
+        // As in 'appendEntries' and 'onAppendEntriesResponse': the FileStore
+        // is closed for the whole of an InstallSnapshot transfer, and again
+        // from 'FileStore::close' at shutdown, both on this same thread. Every
+        // message handled below reaches the log -- 'handleRequestVote' asks it
+        // for 'lastTerm()' -- and a closed store has no file set to read. Drop
+        // it: the sender retries, as it would for a dropped packet.
+        BALL_LOG_INFO << "Partition [" << d_partitionId
+                      << "] ignoring Raft control message; FileStore is "
+                      << "closed.";
+        return;  // RETURN
+    }
+
     RaftMessage internalMsg(d_allocator_p);
     fromCtrlMsg(&internalMsg, message, source->nodeId());
 
@@ -1895,11 +1915,7 @@ int PartitionRaft::writeMessageRecord(
 
     bsl::shared_ptr<mqbs::FileStore::PendingWrite> pw =
         d_pendingWritePool.getObject();
-    *pw = mqbs::FileStore::PendingWrite(attributes,
-                                        guid,
-                                        appData,
-                                        options,
-                                        queueKey);
+    pw->initMessage(attributes, guid, appData, options, queueKey);
 
     int rc = propose(pw);
     if (rc != 0) {
@@ -1920,11 +1936,7 @@ int PartitionRaft::writeConfirmRecord(mqbs::DataStoreRecordHandle* handle,
 
     bsl::shared_ptr<mqbs::FileStore::PendingWrite> pw =
         d_pendingWritePool.getObject();
-    *pw = mqbs::FileStore::PendingWrite(guid,
-                                        queueKey,
-                                        appKey,
-                                        timestamp,
-                                        reason);
+    pw->initConfirm(guid, queueKey, appKey, timestamp, reason);
 
     int rc = propose(pw);
     if (rc != 0) {
@@ -1942,8 +1954,7 @@ int PartitionRaft::writeDeletionRecord(
 {
     bsl::shared_ptr<mqbs::FileStore::PendingWrite> pw =
         d_pendingWritePool.getObject();
-    *pw =
-        mqbs::FileStore::PendingWrite(guid, queueKey, deletionFlag, timestamp);
+    pw->initDeletion(guid, queueKey, deletionFlag, timestamp);
 
     return propose(pw);
 }
@@ -1967,12 +1978,12 @@ int PartitionRaft::writeQueuePurgeRecord(
 
     bsl::shared_ptr<mqbs::FileStore::PendingWrite> pw =
         d_pendingWritePool.getObject();
-    *pw = mqbs::FileStore::PendingWrite(mqbs::QueueOpType::e_PURGE,
-                                        queueKey,
-                                        appKey,
-                                        timestamp,
-                                        startLeaseId,
-                                        startSeqNo);
+    pw->initQueueOp(mqbs::QueueOpType::e_PURGE,
+                    queueKey,
+                    appKey,
+                    timestamp,
+                    startLeaseId,
+                    startSeqNo);
 
     int rc = propose(pw);
     if (rc != 0) {
@@ -1992,12 +2003,12 @@ int PartitionRaft::writeQueueDeletionRecord(
 
     bsl::shared_ptr<mqbs::FileStore::PendingWrite> pw =
         d_pendingWritePool.getObject();
-    *pw = mqbs::FileStore::PendingWrite(mqbs::QueueOpType::e_DELETION,
-                                        queueKey,
-                                        appKey,
-                                        timestamp,
-                                        0,   // startPrimaryLeaseId
-                                        0);  // startSequenceNumber
+    pw->initQueueOp(mqbs::QueueOpType::e_DELETION,
+                    queueKey,
+                    appKey,
+                    timestamp,
+                    0,   // startPrimaryLeaseId
+                    0);  // startSequenceNumber
 
     int rc = propose(pw);
     if (rc != 0) {
@@ -2019,11 +2030,11 @@ int PartitionRaft::writeQueueCreationRecord(
 
     bsl::shared_ptr<mqbs::FileStore::PendingWrite> pw =
         d_pendingWritePool.getObject();
-    *pw = mqbs::FileStore::PendingWrite(queueUri,
-                                        queueKey,
-                                        appIdKeyPairs,
-                                        timestamp,
-                                        isNewQueue);
+    pw->initQueueCreation(queueUri,
+                          queueKey,
+                          appIdKeyPairs,
+                          timestamp,
+                          isNewQueue);
 
     int rc = propose(pw);
     if (rc != 0) {

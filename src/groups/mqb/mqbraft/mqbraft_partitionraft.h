@@ -263,7 +263,11 @@ class PartitionRaft : public mqbs::RecordStore {
                               bsls::Types::Uint64 lastIncludedTerm);
 
     /// Apply a received snapshot chunk to the appropriate temp file.
-    void applySnapshotChunk(const bdlbb::Blob& event);
+    /// Apply one snapshot chunk from the specified `event`, received from the
+    /// specified `source`, and on the terminal chunk reopen the file set and
+    /// answer `source`.
+    void applySnapshotChunk(const bdlbb::Blob&   event,
+                            mqbnet::ClusterNode* source);
 
     /// Callback invoked by the scheduler. Dispatches to tickDispatched().
     void tickCb();
@@ -359,12 +363,14 @@ class PartitionRaft : public mqbs::RecordStore {
 
     /// Handle an incoming binary AppendEntries event (e_RAFT_PARTITION)
     /// from the specified 'source' node.
-    void appendEntries(const bdlbb::Blob& event, mqbnet::ClusterNode* source);
+    void appendEntries(const bsl::shared_ptr<const bdlbb::Blob>& event,
+                       mqbnet::ClusterNode*                      source);
 
     /// Handle an incoming binary AppendEntries response event
     /// (e_RAFT_PARTITION) from the specified 'source' node.
-    void onAppendEntriesResponse(const bdlbb::Blob&   event,
-                                 mqbnet::ClusterNode* source);
+    void
+    onAppendEntriesResponse(const bsl::shared_ptr<const bdlbb::Blob>& event,
+                            mqbnet::ClusterNode*                      source);
 
     /// Handle an incoming Raft control message from the specified
     /// 'source' node.
@@ -373,8 +379,8 @@ class PartitionRaft : public mqbs::RecordStore {
 
     /// Handle an incoming snapshot chunk event (e_RAFT_SNAPSHOT) from
     /// the specified 'source' node.
-    void appendSnapshotChunk(const bdlbb::Blob&   event,
-                             mqbnet::ClusterNode* source);
+    void appendSnapshotChunk(const bsl::shared_ptr<const bdlbb::Blob>& event,
+                             mqbnet::ClusterNode*                      source);
 
     // RecordStore OVERRIDES
 

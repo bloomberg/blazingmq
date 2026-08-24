@@ -163,7 +163,8 @@ class CslRaftLog : public RaftLog {
                  bsls::Types::Uint64    hi,
                  bsl::vector<LogEntry>* out,
                  bsls::Types::Uint64    maxCount,
-                 bsls::Types::Uint64    maxBytes) const BSLS_KEYWORD_OVERRIDE;
+                 bsls::Types::Uint64    maxBytes,
+                 bool                   forApply) const BSLS_KEYWORD_OVERRIDE;
 
     bsls::Types::Uint64 snapshotIndex() const BSLS_KEYWORD_OVERRIDE;
 

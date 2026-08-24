@@ -112,8 +112,10 @@ class MemoryRaftLog : public RaftLog {
                  bsls::Types::Uint64    hi,
                  bsl::vector<LogEntry>* out,
                  bsls::Types::Uint64    maxCount,
-                 bsls::Types::Uint64    maxBytes) const BSLS_KEYWORD_OVERRIDE
+                 bsls::Types::Uint64    maxBytes,
+                 bool                   forApply) const BSLS_KEYWORD_OVERRIDE
     {
+        (void)forApply;
         BSLS_ASSERT_SAFE(out);
         BSLS_ASSERT_SAFE(lo <= hi);
         BSLS_ASSERT_SAFE(lo > d_snapshotIndex);
@@ -1172,6 +1174,71 @@ static void test18_singleNodeCommitsOnPropose()
     BMQTST_ASSERT_EQ(sends.d_messages.size(), 0u);
 }
 
+static void test19_installSnapshotAlreadyHeld()
+// INSTALL SNAPSHOT ALREADY HELD
+//
+// A follower offered a snapshot whose last included entry it already holds
+// acknowledges it instead of reinstalling.  A leader whose retry timer is far
+// shorter than the install otherwise re-sends the whole file set every
+// timeout, and each retry wipes and re-indexes the follower's partition.
+{
+    bmqtst::TestHelper::printTestName("INSTALL SNAPSHOT ALREADY HELD");
+
+    bslma::TestAllocator alloc("test", false);
+    TestCluster          cluster(3, false, &alloc);
+
+    // Follower 1 holds entries 1..5, compacted through 3 at term 1 -- the
+    // state a node is in once an install has completed.
+    for (int i = 0; i < 5; ++i) {
+        cluster.log(1)->append(1, cluster.makeBlob("e"));
+    }
+    cluster.log(1)->setSnapshot(3, 1);
+    BMQTST_ASSERT_EQ(cluster.log(1)->lastIndex(), 5ULL);
+
+    RaftMessage snap(&alloc);
+    snap.d_type              = RaftMessageType::e_INSTALL_SNAPSHOT;
+    snap.d_term              = 1;
+    snap.d_sourceNodeId      = cluster.node(0)->selfId();
+    snap.d_destinationNodeId = cluster.node(1)->selfId();
+    snap.d_lastLogIndex      = 3;
+    snap.d_lastLogTerm       = 1;
+
+    RaftNodeOutput out(&alloc);
+    cluster.node(1)->step(&out, snap);
+
+    // Acknowledged, not installed.
+    BMQTST_ASSERT(!out.d_hasInstallSnapshot);
+    BMQTST_ASSERT_EQ(out.d_messages.size(), 1u);
+    BMQTST_ASSERT_EQ(out.d_messages[0].d_type,
+                     RaftMessageType::e_INSTALL_SNAPSHOT_RESP);
+    BMQTST_ASSERT_EQ(out.d_messages[0].d_destinationNodeId,
+                     snap.d_sourceNodeId);
+
+    // The log is untouched.
+    BMQTST_ASSERT_EQ(cluster.log(1)->lastIndex(), 5ULL);
+    BMQTST_ASSERT_EQ(cluster.log(1)->snapshotIndex(), 3ULL);
+
+    // Same index at a term this node does not have there: it must install,
+    // since the entry it holds is not the one the snapshot covers.
+    RaftMessage other(snap, &alloc);
+    other.d_term        = 2;
+    other.d_lastLogTerm = 2;
+
+    RaftNodeOutput out2(&alloc);
+    cluster.node(1)->step(&out2, other);
+    BMQTST_ASSERT(out2.d_hasInstallSnapshot);
+
+    // An index past what this node holds must install too.  Carries the term
+    // the step above advanced this node to; a lower one is stale and dropped.
+    RaftMessage ahead(snap, &alloc);
+    ahead.d_term         = 2;
+    ahead.d_lastLogIndex = 9;
+
+    RaftNodeOutput out3(&alloc);
+    cluster.node(1)->step(&out3, ahead);
+    BMQTST_ASSERT(out3.d_hasInstallSnapshot);
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ============================================================================
@@ -1182,6 +1249,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 19: test19_installSnapshotAlreadyHeld(); break;
     case 18: test18_singleNodeCommitsOnPropose(); break;
     case 17: test17_rolloverCommitPrecedesEntries(); break;
     case 16: test16_rejectionUsesPeerLastIndex(); break;

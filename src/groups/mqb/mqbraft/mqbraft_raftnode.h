@@ -209,12 +209,17 @@ class RaftLog {
     /// `lo > snapshotIndex()` and `hi <= lastIndex() + 1`.  Appending fewer
     /// than `hi - lo` entries means a cap was reached or an entry could not
     /// be read.  `out` is appended to, not cleared, so a caller can gather
-    /// several ranges into one vector.
+    /// several ranges into one vector.  The specified `forApply` says the
+    /// caller will hand each entry to the state machine rather than send it
+    /// to a peer, which lets an implementation leave `d_data` null for the
+    /// entries whose apply path does not read it; every entry is still
+    /// appended, so the count is the same either way.
     virtual void entries(bsls::Types::Uint64    lo,
                          bsls::Types::Uint64    hi,
                          bsl::vector<LogEntry>* out,
                          bsls::Types::Uint64    maxCount,
-                         bsls::Types::Uint64    maxBytes) const = 0;
+                         bsls::Types::Uint64    maxBytes,
+                         bool                   forApply) const = 0;
 
     /// Return the highest index the log no longer holds individually: entries
     /// at or below it have been compacted into a base snapshot.  0 if the log
@@ -317,6 +322,13 @@ struct RaftNodeConfig {
     /// default.
     bsls::Types::Uint64 d_maxUnackedEntries;
 
+    /// Ticks a leader waits for an `InstallSnapshotResp` before resending.
+    /// Held apart from `d_electionTimeoutMin`, which is far too short: a peer
+    /// must receive the whole file set, reopen it and re-index every entry
+    /// before it can answer, and a retry costs another full transfer.  See
+    /// `k_SNAPSHOT_TIMEOUT_TICKS`, its default.
+    int d_snapshotTimeoutTicks;
+
     /// Identifier of the Raft group this node belongs to: a partition id for
     /// per-partition Raft, or `k_CSL_PARTITION_ID` for the cluster-state Raft.
     /// Used only to disambiguate log output.
@@ -387,6 +399,12 @@ class RaftNode {
     /// previous four-messages-in-flight window allowed, so it bounds a stalled
     /// peer without limiting a healthy one.
     static const bsls::Types::Uint64 k_MAX_UNACKED_ENTRIES = 4 * 4096;
+
+    /// Default `RaftNodeConfig::d_snapshotTimeoutTicks`.  At the partition
+    /// tick of 100ms this is 30 seconds, sized for a peer installing a full
+    /// file set: a 1GB journal takes seconds to transfer and seconds more to
+    /// re-index, and every premature retry re-sends the whole thing.
+    static const int k_SNAPSHOT_TIMEOUT_TICKS = 300;
 
   private:
     // CLASS-SCOPE CATEGORY
@@ -744,6 +762,7 @@ inline RaftNodeConfig::RaftNodeConfig(int               partition,
 , d_preVote(true)
 , d_broadcastHeartbeatOnCommit(false)
 , d_maxUnackedEntries(RaftNode::k_MAX_UNACKED_ENTRIES)
+, d_snapshotTimeoutTicks(RaftNode::k_SNAPSHOT_TIMEOUT_TICKS)
 , d_partitionId(partition)
 {
 }
@@ -759,6 +778,7 @@ inline RaftNodeConfig::RaftNodeConfig(int  partition,
 , d_preVote(true)
 , d_broadcastHeartbeatOnCommit(broadcastHeartbeatOnCommit)
 , d_maxUnackedEntries(RaftNode::k_MAX_UNACKED_ENTRIES)
+, d_snapshotTimeoutTicks(RaftNode::k_SNAPSHOT_TIMEOUT_TICKS)
 , d_partitionId(partition)
 {
 }
@@ -773,6 +793,7 @@ inline RaftNodeConfig::RaftNodeConfig(const RaftNodeConfig& other,
 , d_preVote(other.d_preVote)
 , d_broadcastHeartbeatOnCommit(other.d_broadcastHeartbeatOnCommit)
 , d_maxUnackedEntries(other.d_maxUnackedEntries)
+, d_snapshotTimeoutTicks(other.d_snapshotTimeoutTicks)
 , d_partitionId(other.d_partitionId)
 {
 }

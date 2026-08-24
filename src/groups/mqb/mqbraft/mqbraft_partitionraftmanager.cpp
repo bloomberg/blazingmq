@@ -378,14 +378,14 @@ void PartitionRaftManager::onRaftPartitionEvent(
         d_fileStores[partitionId]->execute(
             bdlf::BindUtil::bind(&PartitionRaft::appendEntries,
                                  d_partitionRafts[partitionId].get(),
-                                 *blob,
+                                 blob,
                                  source));
     } break;
     case bmqp::RaftHeader::k_MSG_TYPE_APPEND_ENTRIES_RESP: {
         d_fileStores[partitionId]->execute(
             bdlf::BindUtil::bind(&PartitionRaft::onAppendEntriesResponse,
                                  d_partitionRafts[partitionId].get(),
-                                 *blob,
+                                 blob,
                                  source));
     } break;
     default: {
@@ -435,7 +435,7 @@ void PartitionRaftManager::appendSnapshotChunk(
     d_fileStores[partitionId]->execute(
         bdlf::BindUtil::bind(&PartitionRaft::appendSnapshotChunk,
                              d_partitionRafts[partitionId].get(),
-                             *blob,
+                             blob,
                              source));
 }
 

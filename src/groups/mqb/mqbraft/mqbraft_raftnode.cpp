@@ -722,6 +722,30 @@ void RaftNode::handleInstallSnapshot(RaftNodeOutput*    output,
                   << ", lastIncludedIndex=" << msg.d_lastLogIndex
                   << ", lastIncludedTerm=" << msg.d_lastLogTerm;
 
+    // This node already holds the snapshot's last included entry, so
+    // installing it would replace a log that is at or ahead of it (Raft 7).
+    // Acknowledge instead: the leader clears its pending state and resumes
+    // AppendEntries, which reconciles any divergence above this point through
+    // the usual prevLogTerm check.  Both conditions are needed -- the index
+    // alone can be held by an entry of a different term.
+    if (msg.d_lastLogIndex <= d_log_p->lastIndex() &&
+        d_log_p->term(msg.d_lastLogIndex) == msg.d_lastLogTerm) {
+        BALL_LOG_INFO << "[partition " << d_config.d_partitionId << "] Node "
+                      << d_config.d_selfId << " already holds index "
+                      << msg.d_lastLogIndex << " at term " << msg.d_lastLogTerm
+                      << " (lastIndex=" << d_log_p->lastIndex()
+                      << "); acknowledging without installing";
+
+        RaftMessage resp(d_allocator_p);
+        resp.d_type              = RaftMessageType::e_INSTALL_SNAPSHOT_RESP;
+        resp.d_term              = d_currentTerm;
+        resp.d_sourceNodeId      = d_config.d_selfId;
+        resp.d_destinationNodeId = msg.d_sourceNodeId;
+        resp.d_lastLogIndex      = msg.d_lastLogIndex;
+        output->d_messages.push_back(resp);
+        return;  // RETURN
+    }
+
     output->d_hasInstallSnapshot = true;
     output->d_installSnapshot    = msg;
 }
@@ -924,7 +948,8 @@ void RaftNode::sendAppendEntries(
                              lastIndex + 1,
                              &msg_p->d_entries,
                              k_MAX_ENTRIES_PER_MESSAGE,
-                             k_MAX_ENTRY_BYTES_PER_MESSAGE);
+                             k_MAX_ENTRY_BYTES_PER_MESSAGE,
+                             false);  // forApply
         }
     }
 
@@ -960,8 +985,9 @@ void RaftNode::commitTo(RaftNodeOutput* output, bsls::Types::Uint64 newCommit)
     d_log_p->entries(d_lastApplied + 1,
                      d_commitIndex + 1,
                      &output->d_committed,
-                     0,   // maxCount: apply everything committed
-                     0);  // maxBytes
+                     0,      // maxCount: apply everything committed
+                     0,      // maxBytes
+                     true);  // forApply
 
     // An unreadable entry cuts the range short; the ones past it stay
     // unapplied and are retried on the next commit.
@@ -1022,7 +1048,7 @@ void RaftNode::tick(RaftNodeOutput* output)
              ++it) {
             if (it->second.d_snapshotPending) {
                 if (++it->second.d_snapshotPendingTicks >=
-                    d_config.d_electionTimeoutMin) {
+                    d_config.d_snapshotTimeoutTicks) {
                     BALL_LOG_INFO
                         << "[partition " << d_config.d_partitionId << "] Node "
                         << d_config.d_selfId

@@ -92,10 +92,24 @@ namespace BloombergLP {
 namespace mqbs {
 
 // --------------------
+// struct FileStore::QueueInfo
+// --------------------
+
+FileStore::QueueInfo::QueueInfo(const bmqt::Uri&  queueUri,
+                                const AppInfos&   appIdKeyPairs,
+                                bool              isNewQueue,
+                                bslma::Allocator* basicAllocator)
+: d_queueUri(queueUri, basicAllocator)
+, d_appIdKeyPairs(appIdKeyPairs, basicAllocator)
+, d_isNewQueue(isNewQueue)
+{
+}
+
+// --------------------
 // struct FileStore::PendingWrite
 // --------------------
 
-FileStore::PendingWrite::PendingWrite()
+FileStore::PendingWrite::PendingWrite(bslma::Allocator* basicAllocator)
 : d_recordType(RecordType::e_UNDEFINED)
 , d_syncPointType(SyncPointType::e_REGULAR)
 , d_primaryLeaseId(0)
@@ -106,10 +120,8 @@ FileStore::PendingWrite::PendingWrite()
 , d_guid()
 , d_appData()
 , d_options()
-, d_queueUri()
-, d_appIdKeyPairs()
+, d_queueInfo()
 , d_timestamp(0)
-, d_isNewQueue(false)
 , d_appKey()
 , d_confirmReason(ConfirmReason::e_CONFIRMED)
 , d_deletionFlag(DeletionRecordFlag::e_NONE)
@@ -120,210 +132,129 @@ FileStore::PendingWrite::PendingWrite()
 , d_dataOffset(0)
 , d_entryBlob()
 , d_qlistOffset(0)
-, d_qlistRecTotalLength(0)
+, d_allocator_p(bslma::Default::allocator(basicAllocator))
 {
 }
 
-FileStore::PendingWrite::PendingWrite(
+void FileStore::PendingWrite::initMessage(
     mqbi::StorageMessageAttributes*     attributes,
     const bmqt::MessageGUID&            guid,
     const bsl::shared_ptr<bdlbb::Blob>& appData,
     const bsl::shared_ptr<bdlbb::Blob>& options,
     const mqbu::StorageKey&             queueKey)
-: d_recordType(RecordType::e_MESSAGE)
-, d_syncPointType(SyncPointType::e_REGULAR)
-, d_primaryLeaseId(0)
-, d_sequenceNumber(0)
-, d_queueKey(queueKey)
-, d_attributes(*attributes)
-, d_handle()
-, d_guid(guid)
-, d_appData(appData)
-, d_options(options)
-, d_queueUri()
-, d_appIdKeyPairs()
-, d_timestamp(0)
-, d_isNewQueue(false)
-, d_appKey()
-, d_confirmReason(ConfirmReason::e_CONFIRMED)
-, d_deletionFlag(DeletionRecordFlag::e_NONE)
-, d_queueOpType(QueueOpType::e_UNDEFINED)
-, d_startPrimaryLeaseId(0)
-, d_startSequenceNumber(0)
-, d_journalOffset(0)
-, d_dataOffset(0)
-, d_entryBlob()
-, d_qlistOffset(0)
-, d_qlistRecTotalLength(0)
 {
+    reset();
+
+    d_recordType = RecordType::e_MESSAGE;
+    d_queueKey   = queueKey;
+    d_attributes = *attributes;
+    d_guid       = guid;
+    d_appData    = appData;
+    d_options    = options;
 }
 
-FileStore::PendingWrite::PendingWrite(const bmqt::Uri&        queueUri,
-                                      const mqbu::StorageKey& queueKey,
-                                      const AppInfos&         appIdKeyPairs,
-                                      bsls::Types::Uint64     timestamp,
-                                      bool                    isNewQueue)
-: d_recordType(RecordType::e_QUEUE_OP)
-, d_syncPointType(SyncPointType::e_REGULAR)
-, d_primaryLeaseId(0)
-, d_sequenceNumber(0)
-, d_queueKey(queueKey)
-, d_attributes(false)
-, d_handle()
-, d_guid()
-, d_appData()
-, d_options()
-, d_queueUri(queueUri)
-, d_appIdKeyPairs(appIdKeyPairs)
-, d_timestamp(timestamp)
-, d_isNewQueue(isNewQueue)
-, d_appKey()
-, d_confirmReason(ConfirmReason::e_CONFIRMED)
-, d_deletionFlag(DeletionRecordFlag::e_NONE)
-, d_queueOpType(QueueOpType::e_CREATION)
-, d_startPrimaryLeaseId(0)
-, d_startSequenceNumber(0)
-, d_journalOffset(0)
-, d_dataOffset(0)
-, d_entryBlob()
-, d_qlistOffset(0)
-, d_qlistRecTotalLength(0)
+void FileStore::PendingWrite::initQueueCreation(
+    const bmqt::Uri&        queueUri,
+    const mqbu::StorageKey& queueKey,
+    const AppInfos&         appIdKeyPairs,
+    bsls::Types::Uint64     timestamp,
+    bool                    isNewQueue)
 {
+    reset();
+
+    d_recordType  = RecordType::e_QUEUE_OP;
+    d_queueKey    = queueKey;
+    d_timestamp   = timestamp;
+    d_queueOpType = QueueOpType::e_CREATION;
+    d_queueInfo.createInplace(d_allocator_p,
+                              queueUri,
+                              appIdKeyPairs,
+                              isNewQueue,
+                              d_allocator_p);
 }
 
-FileStore::PendingWrite::PendingWrite(SyncPointType::Enum syncPointType)
-: d_recordType(RecordType::e_JOURNAL_OP)
-, d_syncPointType(syncPointType)
-, d_primaryLeaseId(0)
-, d_sequenceNumber(0)
-, d_queueKey()
-, d_attributes(false)
-, d_handle()
-, d_guid()
-, d_appData()
-, d_options()
-, d_queueUri()
-, d_appIdKeyPairs()
-, d_timestamp(0)
-, d_isNewQueue(false)
-, d_appKey()
-, d_confirmReason(ConfirmReason::e_CONFIRMED)
-, d_deletionFlag(DeletionRecordFlag::e_NONE)
-, d_queueOpType(QueueOpType::e_UNDEFINED)
-, d_startPrimaryLeaseId(0)
-, d_startSequenceNumber(0)
-, d_journalOffset(0)
-, d_dataOffset(0)
-, d_entryBlob()
-, d_qlistOffset(0)
-, d_qlistRecTotalLength(0)
+void FileStore::PendingWrite::initSyncPoint(SyncPointType::Enum syncPointType)
 {
+    reset();
+
+    d_recordType    = RecordType::e_JOURNAL_OP;
+    d_syncPointType = syncPointType;
 }
 
-FileStore::PendingWrite::PendingWrite(const bmqt::MessageGUID& guid,
-                                      const mqbu::StorageKey&  queueKey,
-                                      const mqbu::StorageKey&  appKey,
-                                      bsls::Types::Uint64      timestamp,
-                                      ConfirmReason::Enum      reason)
-: d_recordType(RecordType::e_CONFIRM)
-, d_syncPointType(SyncPointType::e_REGULAR)
-, d_primaryLeaseId(0)
-, d_sequenceNumber(0)
-, d_queueKey(queueKey)
-, d_attributes(false)
-, d_handle()
-, d_guid(guid)
-, d_appData()
-, d_options()
-, d_queueUri()
-, d_appIdKeyPairs()
-, d_timestamp(timestamp)
-, d_isNewQueue(false)
-, d_appKey(appKey)
-, d_confirmReason(reason)
-, d_deletionFlag(DeletionRecordFlag::e_NONE)
-, d_queueOpType(QueueOpType::e_UNDEFINED)
-, d_startPrimaryLeaseId(0)
-, d_startSequenceNumber(0)
-, d_journalOffset(0)
-, d_dataOffset(0)
-, d_entryBlob()
-, d_qlistOffset(0)
-, d_qlistRecTotalLength(0)
+void FileStore::PendingWrite::initConfirm(const bmqt::MessageGUID& guid,
+                                          const mqbu::StorageKey&  queueKey,
+                                          const mqbu::StorageKey&  appKey,
+                                          bsls::Types::Uint64      timestamp,
+                                          ConfirmReason::Enum      reason)
 {
+    reset();
+
+    d_recordType    = RecordType::e_CONFIRM;
+    d_queueKey      = queueKey;
+    d_guid          = guid;
+    d_timestamp     = timestamp;
+    d_appKey        = appKey;
+    d_confirmReason = reason;
 }
 
-FileStore::PendingWrite::PendingWrite(const bmqt::MessageGUID& guid,
-                                      const mqbu::StorageKey&  queueKey,
-                                      DeletionRecordFlag::Enum deletionFlag,
-                                      bsls::Types::Uint64      timestamp)
-: d_recordType(RecordType::e_DELETION)
-, d_syncPointType(SyncPointType::e_REGULAR)
-, d_primaryLeaseId(0)
-, d_sequenceNumber(0)
-, d_queueKey(queueKey)
-, d_attributes(false)
-, d_handle()
-, d_guid(guid)
-, d_appData()
-, d_options()
-, d_queueUri()
-, d_appIdKeyPairs()
-, d_timestamp(timestamp)
-, d_isNewQueue(false)
-, d_appKey()
-, d_confirmReason(ConfirmReason::e_CONFIRMED)
-, d_deletionFlag(deletionFlag)
-, d_queueOpType(QueueOpType::e_UNDEFINED)
-, d_startPrimaryLeaseId(0)
-, d_startSequenceNumber(0)
-, d_journalOffset(0)
-, d_dataOffset(0)
-, d_entryBlob()
-, d_qlistOffset(0)
-, d_qlistRecTotalLength(0)
+void FileStore::PendingWrite::initDeletion(
+    const bmqt::MessageGUID& guid,
+    const mqbu::StorageKey&  queueKey,
+    DeletionRecordFlag::Enum deletionFlag,
+    bsls::Types::Uint64      timestamp)
 {
+    reset();
+
+    d_recordType   = RecordType::e_DELETION;
+    d_queueKey     = queueKey;
+    d_guid         = guid;
+    d_timestamp    = timestamp;
+    d_deletionFlag = deletionFlag;
 }
 
-FileStore::PendingWrite::PendingWrite(QueueOpType::Enum       queueOpType,
-                                      const mqbu::StorageKey& queueKey,
-                                      const mqbu::StorageKey& appKey,
-                                      bsls::Types::Uint64     timestamp,
-                                      unsigned int        startPrimaryLeaseId,
-                                      bsls::Types::Uint64 startSequenceNumber)
-: d_recordType(RecordType::e_QUEUE_OP)
-, d_syncPointType(SyncPointType::e_REGULAR)
-, d_primaryLeaseId(0)
-, d_sequenceNumber(0)
-, d_queueKey(queueKey)
-, d_attributes(false)
-, d_handle()
-, d_guid()
-, d_appData()
-, d_options()
-, d_queueUri()
-, d_appIdKeyPairs()
-, d_timestamp(timestamp)
-, d_isNewQueue(false)
-, d_appKey(appKey)
-, d_confirmReason(ConfirmReason::e_CONFIRMED)
-, d_deletionFlag(DeletionRecordFlag::e_NONE)
-, d_queueOpType(queueOpType)
-, d_startPrimaryLeaseId(startPrimaryLeaseId)
-, d_startSequenceNumber(startSequenceNumber)
-, d_journalOffset(0)
-, d_dataOffset(0)
-, d_entryBlob()
-, d_qlistOffset(0)
-, d_qlistRecTotalLength(0)
+void FileStore::PendingWrite::initQueueOp(
+    QueueOpType::Enum       queueOpType,
+    const mqbu::StorageKey& queueKey,
+    const mqbu::StorageKey& appKey,
+    bsls::Types::Uint64     timestamp,
+    unsigned int            startPrimaryLeaseId,
+    bsls::Types::Uint64     startSequenceNumber)
 {
+    reset();
+
+    d_recordType          = RecordType::e_QUEUE_OP;
+    d_queueKey            = queueKey;
+    d_timestamp           = timestamp;
+    d_appKey              = appKey;
+    d_queueOpType         = queueOpType;
+    d_startPrimaryLeaseId = startPrimaryLeaseId;
+    d_startSequenceNumber = startSequenceNumber;
 }
 
 void FileStore::PendingWrite::reset()
 {
-    // Assign a fresh default-constructed instance to release owned
-    // blobs/attributes/handle and zero all scalar fields.
-    *this = PendingWrite();
+    d_recordType     = RecordType::e_UNDEFINED;
+    d_syncPointType  = SyncPointType::e_REGULAR;
+    d_primaryLeaseId = 0;
+    d_sequenceNumber = 0;
+    d_queueKey.reset();
+    d_attributes = mqbi::StorageMessageAttributes(false);
+    d_handle     = DataStoreRecordHandle();
+    d_guid       = bmqt::MessageGUID();
+    d_appData.reset();
+    d_options.reset();
+    d_queueInfo.reset();
+    d_timestamp = 0;
+    d_appKey.reset();
+    d_confirmReason       = ConfirmReason::e_CONFIRMED;
+    d_deletionFlag        = DeletionRecordFlag::e_NONE;
+    d_queueOpType         = QueueOpType::e_UNDEFINED;
+    d_startPrimaryLeaseId = 0;
+    d_startSequenceNumber = 0;
+    d_journalOffset       = 0;
+    d_dataOffset          = 0;
+    d_entryBlob.reset();
+    d_qlistOffset = 0;
 }
 
 namespace {
@@ -3647,6 +3578,13 @@ FileStore::journalOpTimestampAt(bsls::Types::Uint64 journalOffset) const
 bsls::Types::Uint64
 FileStore::recordTermAt(bsls::Types::Uint64 journalOffset) const
 {
+    if (d_fileSets.empty()) {
+        // 'close' leaves no active file set, and the assert below is compiled
+        // out of an optimized build: indexing here would read past the end of
+        // the vector and dereference whatever that produced.
+        return 0;  // RETURN
+    }
+
     BSLS_ASSERT_SAFE(0 < d_fileSets.size());
 
     const FileSet* activeFileSet = d_fileSets[0].get();
@@ -6533,7 +6471,8 @@ int FileStore::writeMessageRecord(mqbi::StorageMessageAttributes* attributes,
     activeFileSet = d_fileSets[0].get();
 
     // Delegate the actual mmap formatting to formatMessageRecord.
-    PendingWrite pw(attributes, guid, appData, options, queueKey);
+    PendingWrite pw(d_allocator_p);
+    pw.initMessage(attributes, guid, appData, options, queueKey);
     pw.d_primaryLeaseId = d_writeHeadLeaseId;
     pw.d_sequenceNumber = incrementWriteHeadSeqNum();
 
@@ -6836,13 +6775,14 @@ int FileStore::formatQueueCreationRecord(PendingWrite* pw)
 {
     BSLS_ASSERT_SAFE(pw);
     BSLS_ASSERT_SAFE(pw->d_recordType == RecordType::e_QUEUE_OP);
-    BSLS_ASSERT_SAFE(!pw->d_queueUri.asString().empty());
+    BSLS_ASSERT_SAFE(pw->d_queueInfo);
+    BSLS_ASSERT_SAFE(!pw->d_queueInfo->d_queueUri.asString().empty());
     BSLS_ASSERT_SAFE(!pw->d_queueKey.isNull());
     BSLS_ASSERT_SAFE(0 < d_fileSets.size());
 
-    const bmqt::Uri&        queueUri      = pw->d_queueUri;
+    const bmqt::Uri&        queueUri      = pw->d_queueInfo->d_queueUri;
     const mqbu::StorageKey& queueKey      = pw->d_queueKey;
-    const AppInfos&         appIdKeyPairs = pw->d_appIdKeyPairs;
+    const AppInfos&         appIdKeyPairs = pw->d_queueInfo->d_appIdKeyPairs;
 
     enum { rc_SUCCESS = 0, rc_STOPPING = -1, rc_UNAVAILABLE = -2 };
 
@@ -6972,8 +6912,9 @@ int FileStore::formatQueueCreationRecord(PendingWrite* pw)
         .setPrimaryLeaseId(pw->d_primaryLeaseId)
         .setSequenceNumber(pw->d_sequenceNumber)
         .setTimestamp(pw->d_timestamp);
-    queueOpRec->setQueueKey(queueKey).setType(
-        pw->d_isNewQueue ? QueueOpType::e_CREATION : QueueOpType::e_ADDITION);
+    queueOpRec->setQueueKey(queueKey).setType(pw->d_queueInfo->d_isNewQueue
+                                                  ? QueueOpType::e_CREATION
+                                                  : QueueOpType::e_ADDITION);
     queueOpRec->setQueueUriRecordOffsetWords(
         d_qListAware ? (qlistOffset / bmqp::Protocol::k_WORD_SIZE) : 0);
     queueOpRec->setMagic(RecordHeader::k_MAGIC);
@@ -6991,10 +6932,9 @@ int FileStore::formatQueueCreationRecord(PendingWrite* pw)
         activeFileSet->d_qlist.d_outstandingBytes += qlistRecTotalLength;
     }
 
-    pw->d_journalOffset       = recordOffset;
-    pw->d_dataOffset          = activeFileSet->d_data.d_filePosition;
-    pw->d_qlistOffset         = qlistOffset;
-    pw->d_qlistRecTotalLength = qlistRecTotalLength;
+    pw->d_journalOffset = recordOffset;
+    pw->d_dataOffset    = activeFileSet->d_data.d_filePosition;
+    pw->d_qlistOffset   = qlistOffset;
 
     // Build entry blob: [journal record][qlist bytes] for AppendEntries.
     pw->d_entryBlob = d_blobSpPool_p->getObject();
@@ -7002,11 +6942,11 @@ int FileStore::formatQueueCreationRecord(PendingWrite* pw)
                             activeFileSet->d_journal.d_file.block().base() +
                                 pw->d_journalOffset,
                             FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
-    if (d_qListAware && pw->d_qlistRecTotalLength > 0) {
+    if (d_qListAware && qlistRecTotalLength > 0) {
         bdlbb::BlobUtil::append(pw->d_entryBlob.get(),
                                 activeFileSet->d_qlist.d_file.block().base() +
                                     pw->d_qlistOffset,
-                                pw->d_qlistRecTotalLength);
+                                qlistRecTotalLength);
     }
 
     return rc_SUCCESS;

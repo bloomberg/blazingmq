@@ -876,7 +876,13 @@ bsls::Types::Uint64 PartitionRaftLog::term(bsls::Types::Uint64 index) const
     }
 
     // Held by neither, so whoever wants this entry is reading it from mmap
-    // anyway.
+    // anyway -- unless there is no file set to read: the store is closed for
+    // the whole of an InstallSnapshot transfer, and at shutdown.  0 is what
+    // this returns for any index it cannot answer for.
+    if (!d_fileStore_p->isOpen()) {
+        return 0;  // RETURN
+    }
+
     return d_fileStore_p->recordTermAt(journalOffsetAt(index));
 }
 
@@ -884,7 +890,8 @@ void PartitionRaftLog::entries(bsls::Types::Uint64    lo,
                                bsls::Types::Uint64    hi,
                                bsl::vector<LogEntry>* out,
                                bsls::Types::Uint64    maxCount,
-                               bsls::Types::Uint64    maxBytes) const
+                               bsls::Types::Uint64    maxBytes,
+                               bool                   forApply) const
 {
     BSLS_ASSERT_SAFE(out);
     BSLS_ASSERT_SAFE(lo <= hi);
@@ -900,9 +907,17 @@ void PartitionRaftLog::entries(bsls::Types::Uint64    lo,
         0 < d_appendedCount ? d_pendingWrites.front()->d_sequenceNumber : 0;
 
     for (bsls::Types::Uint64 i = lo; i < hi; ++i) {
-        if (0 < d_appendedCount && i >= pendingBase &&
-            i < pendingBase + d_appendedCount &&
-            d_pendingWrites[i - pendingBase]->d_entryBlob) {
+        if (forApply && isOwnAppendedEntry(i)) {
+            // 'applyCommittedEntryAsPrimary' routes on the same predicate and
+            // reads nothing from the entry but its index -- propose time
+            // already did the storage-side work, and the write itself still
+            // holds what apply needs.  A committed 'e_ROLLOVER' likewise takes
+            // 'rollover()', which reads the log, not the entry.
+            out->push_back(LogEntry(term(i), i, EntryBlobSp()));
+        }
+        else if (0 < d_appendedCount && i >= pendingBase &&
+                 i < pendingBase + d_appendedCount &&
+                 d_pendingWrites[i - pendingBase]->d_entryBlob) {
             // Appended here and not yet committed: the write still holds both
             // the blob and the term.
             const PendingWrite& pw = *d_pendingWrites[i - pendingBase];

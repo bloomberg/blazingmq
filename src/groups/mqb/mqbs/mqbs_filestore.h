@@ -150,6 +150,28 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     typedef SyncPointOffsetPairs::const_iterator SyncPointOffsetConstIter;
 
+    /// The fields of a `PendingWrite` an `e_QUEUE_OP` creation/addition
+    /// record uses, and no other record type does.  Held by the write
+    /// through a shared pointer that is null for every other type: `AppInfos`
+    /// allocates a bucket array and a node-pool chunk on construction even
+    /// when empty, which no message, confirm or deletion should pay for.
+    struct QueueInfo {
+        /// Owned, not borrowed: a write buffered during a rollover window is
+        /// formatted at drain, long after the caller's copy is gone.
+        bmqt::Uri d_queueUri;
+        AppInfos  d_appIdKeyPairs;
+        bool      d_isNewQueue;
+
+        // TRAITS
+        BSLMF_NESTED_TRAIT_DECLARATION(QueueInfo, bslma::UsesBslmaAllocator)
+
+        // CREATORS
+        QueueInfo(const bmqt::Uri&  queueUri,
+                  const AppInfos&   appIdKeyPairs,
+                  bool              isNewQueue,
+                  bslma::Allocator* basicAllocator = 0);
+    };
+
     /// VST holding all parameters for the Raft primary message write path.
     /// Input fields are set by 'PartitionRaft' before calling
     /// 'formatMessageRecord'; output fields are filled in by
@@ -170,14 +192,10 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
         bsl::shared_ptr<bdlbb::Blob> d_appData;
         bsl::shared_ptr<bdlbb::Blob> d_options;
 
-        // INPUT — e_QUEUE_OP (creation)
-        bmqt::Uri d_queueUri;
+        // INPUT — e_QUEUE_OP (creation); null for every other record type
+        bsl::shared_ptr<QueueInfo> d_queueInfo;
 
-        /// Owned, not borrowed: a write buffered during a rollover window is
-        /// formatted at drain, long after the caller's copy is gone.
-        AppInfos            d_appIdKeyPairs;
         bsls::Types::Uint64 d_timestamp;
-        bool                d_isNewQueue;
 
         // INPUT — e_CONFIRM / e_DELETION / e_QUEUE_OP (purge, deletion)
         mqbu::StorageKey         d_appKey;
@@ -192,56 +210,69 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
         bsls::Types::Uint64          d_dataOffset;
         bsl::shared_ptr<bdlbb::Blob> d_entryBlob;
         bsls::Types::Uint64          d_qlistOffset;
-        unsigned int                 d_qlistRecTotalLength;
 
-        PendingWrite();
+        bslma::Allocator* d_allocator_p;
 
-        /// Message record constructor.
-        PendingWrite(mqbi::StorageMessageAttributes*     attributes,
-                     const bmqt::MessageGUID&            guid,
-                     const bsl::shared_ptr<bdlbb::Blob>& appData,
-                     const bsl::shared_ptr<bdlbb::Blob>& options,
-                     const mqbu::StorageKey&             queueKey);
+        // TRAITS
+        BSLMF_NESTED_TRAIT_DECLARATION(PendingWrite, bslma::UsesBslmaAllocator)
 
-        /// Queue creation record constructor.
-        PendingWrite(const bmqt::Uri&        queueUri,
-                     const mqbu::StorageKey& queueKey,
-                     const AppInfos&         appIdKeyPairs,
-                     bsls::Types::Uint64     timestamp,
-                     bool                    isNewQueue);
+        // CREATORS
+        explicit PendingWrite(bslma::Allocator* basicAllocator = 0);
 
-        /// Sync-point record constructor.  'd_primaryLeaseId' (term) and
-        /// 'd_sequenceNumber' (index) are filled in by
+        // MANIPULATORS
+
+        /// Set this write to a message record for the specified `attributes`,
+        /// `guid`, `appData`, `options` and `queueKey`.  Every other field is
+        /// returned to its default, so a pooled object carries nothing over
+        /// from its previous use.  Each `init*` below has the same contract.
+        void initMessage(mqbi::StorageMessageAttributes*     attributes,
+                         const bmqt::MessageGUID&            guid,
+                         const bsl::shared_ptr<bdlbb::Blob>& appData,
+                         const bsl::shared_ptr<bdlbb::Blob>& options,
+                         const mqbu::StorageKey&             queueKey);
+
+        /// Set this write to a queue creation record.  Allocates the
+        /// `QueueInfo` this is the only record type to carry.
+        void initQueueCreation(const bmqt::Uri&        queueUri,
+                               const mqbu::StorageKey& queueKey,
+                               const AppInfos&         appIdKeyPairs,
+                               bsls::Types::Uint64     timestamp,
+                               bool                    isNewQueue);
+
+        /// Set this write to a sync point record.  'd_primaryLeaseId' (term)
+        /// and 'd_sequenceNumber' (index) are filled in by
         /// 'PartitionRaftLog::append'.
-        explicit PendingWrite(SyncPointType::Enum syncPointType);
+        void initSyncPoint(SyncPointType::Enum syncPointType);
 
-        /// Confirm record constructor.
-        PendingWrite(const bmqt::MessageGUID& guid,
-                     const mqbu::StorageKey&  queueKey,
-                     const mqbu::StorageKey&  appKey,
-                     bsls::Types::Uint64      timestamp,
-                     ConfirmReason::Enum      reason);
+        /// Set this write to a confirm record.
+        void initConfirm(const bmqt::MessageGUID& guid,
+                         const mqbu::StorageKey&  queueKey,
+                         const mqbu::StorageKey&  appKey,
+                         bsls::Types::Uint64      timestamp,
+                         ConfirmReason::Enum      reason);
 
-        /// Message-deletion record constructor.
-        PendingWrite(const bmqt::MessageGUID& guid,
-                     const mqbu::StorageKey&  queueKey,
-                     DeletionRecordFlag::Enum deletionFlag,
-                     bsls::Types::Uint64      timestamp);
+        /// Set this write to a message-deletion record.
+        void initDeletion(const bmqt::MessageGUID& guid,
+                          const mqbu::StorageKey&  queueKey,
+                          DeletionRecordFlag::Enum deletionFlag,
+                          bsls::Types::Uint64      timestamp);
 
-        /// Queue-op (purge/deletion) record constructor.  For a purge,
+        /// Set this write to a queue-op (purge/deletion) record.  For a purge,
         /// 'startPrimaryLeaseId' / 'startSequenceNumber' identify the start
         /// position; for a deletion they are 0.
-        PendingWrite(QueueOpType::Enum       queueOpType,
-                     const mqbu::StorageKey& queueKey,
-                     const mqbu::StorageKey& appKey,
-                     bsls::Types::Uint64     timestamp,
-                     unsigned int            startPrimaryLeaseId,
-                     bsls::Types::Uint64     startSequenceNumber);
+        void initQueueOp(QueueOpType::Enum       queueOpType,
+                         const mqbu::StorageKey& queueKey,
+                         const mqbu::StorageKey& appKey,
+                         bsls::Types::Uint64     timestamp,
+                         unsigned int            startPrimaryLeaseId,
+                         bsls::Types::Uint64     startSequenceNumber);
 
         /// Return this object to a clean default state, releasing any owned
         /// blobs/attributes/handle and zeroing scalars.  Required by the
         /// `bdlcc::SharedObjectPool` `Reset` functor so a pooled object is
-        /// clean when reused.
+        /// clean when reused, and the one place the field list is cleared:
+        /// every `init*` above starts here, so adding a field needs no
+        /// further bookkeeping to keep initialization total.
         void reset();
     };
 

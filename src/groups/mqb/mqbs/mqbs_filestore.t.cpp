@@ -1048,7 +1048,7 @@ static void test2_printTest()
 
     typedef mqbs::DataStoreConfig::Records Records;
     const Records&                         actualRecords = fs.records();
-    bmqu::MemOutStream      stream(bmqtst::TestHelperUtil::allocator());
+    bmqu::MemOutStream stream(bmqtst::TestHelperUtil::allocator());
     for (Records::const_iterator it = actualRecords.begin();
          it != actualRecords.end();
          ++it) {
@@ -1527,6 +1527,92 @@ static void test6_leaseTransitionWithoutSeal()
     BMQTST_ASSERT_EQ(0, rc);
 }
 
+static void test7_pendingWriteReuse()
+// ------------------------------------------------------------------------
+// PENDING WRITE REUSE
+//
+// Concerns:
+//   Every 'init*' leaves the fields of the record types it is not for at
+//   their defaults, so a pooled 'PendingWrite' carries nothing over from
+//   its previous use.
+//
+// Testing:
+//   FileStore::PendingWrite::initMessage
+//   FileStore::PendingWrite::initConfirm
+//   FileStore::PendingWrite::initQueueCreation
+//   FileStore::PendingWrite::reset
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("PENDING WRITE REUSE");
+
+    bslma::Allocator* alloc = bmqtst::TestHelperUtil::allocator();
+
+    const mqbu::StorageKey queueKey(mqbu::StorageKey::BinaryRepresentation(),
+                                    "abcde");
+    const mqbu::StorageKey appKey(mqbu::StorageKey::BinaryRepresentation(),
+                                  "vwxyz");
+
+    bmqt::MessageGUID guid;
+    guid.fromHex("0000000000003039CD8101000000270F");
+
+    mqbs::FileStore::PendingWrite pw(alloc);
+
+    // A queue creation is the only type carrying a 'QueueInfo'.
+    mqbi::Storage::AppInfos appInfos(alloc);
+    appInfos.insert(bsl::make_pair(bsl::string("foo", alloc), appKey));
+
+    pw.initQueueCreation(bmqt::Uri("bmq://bmq.test.local/q1", alloc),
+                         queueKey,
+                         appInfos,
+                         123,  // timestamp
+                         true);
+    BMQTST_ASSERT(pw.d_queueInfo);
+    BMQTST_ASSERT_EQ(1u, pw.d_queueInfo->d_appIdKeyPairs.size());
+    BMQTST_ASSERT_EQ(mqbs::QueueOpType::e_CREATION, pw.d_queueOpType);
+
+    // Reusing it as a confirm must drop the 'QueueInfo' and the queue-op
+    // type, and pick up the confirm fields.
+    pw.initConfirm(guid,
+                   queueKey,
+                   appKey,
+                   456,  // timestamp
+                   mqbs::ConfirmReason::e_AUTO_CONFIRMED);
+    BMQTST_ASSERT(!pw.d_queueInfo);
+    BMQTST_ASSERT_EQ(mqbs::QueueOpType::e_UNDEFINED, pw.d_queueOpType);
+    BMQTST_ASSERT_EQ(mqbs::RecordType::e_CONFIRM, pw.d_recordType);
+    BMQTST_ASSERT_EQ(456u, pw.d_timestamp);
+    BMQTST_ASSERT_EQ(mqbs::ConfirmReason::e_AUTO_CONFIRMED,
+                     pw.d_confirmReason);
+
+    // The output fields and the handle a completed write leaves behind must
+    // not survive into the next use: 'bindOrUpdateRecord' branches on the
+    // handle's validity.
+    pw.d_journalOffset = 64;
+    pw.d_dataOffset    = 128;
+    pw.d_qlistOffset   = 256;
+
+    bsl::shared_ptr<bdlbb::Blob> appData;
+    appData.createInplace(alloc, alloc);
+    pw.initMessage(&pw.d_attributes,
+                   guid,
+                   appData,
+                   bsl::shared_ptr<bdlbb::Blob>(),
+                   queueKey);
+    BMQTST_ASSERT_EQ(mqbs::RecordType::e_MESSAGE, pw.d_recordType);
+    BMQTST_ASSERT_EQ(0u, pw.d_journalOffset);
+    BMQTST_ASSERT_EQ(0u, pw.d_dataOffset);
+    BMQTST_ASSERT_EQ(0u, pw.d_qlistOffset);
+    BMQTST_ASSERT_EQ(0u, pw.d_timestamp);
+    BMQTST_ASSERT(pw.d_appKey.isNull());
+    BMQTST_ASSERT(!pw.d_handle.isValid());
+    BMQTST_ASSERT(!pw.d_options);
+
+    pw.reset();
+    BMQTST_ASSERT_EQ(mqbs::RecordType::e_UNDEFINED, pw.d_recordType);
+    BMQTST_ASSERT(!pw.d_appData);
+    BMQTST_ASSERT(!pw.d_entryBlob);
+}
+
 }  // close unnamed namespace
 
 // ============================================================================
@@ -1541,6 +1627,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 7: test7_pendingWriteReuse(); break;
     case 6: test6_leaseTransitionWithoutSeal(); break;
     case 5: test5_writeHeadFollowsAppliedLease(); break;
     case 4: test4_recoverMessagesAcrossLeaseIds(); break;
