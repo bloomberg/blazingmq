@@ -70,32 +70,6 @@ typedef bdlcc::SharedObjectPool<
     bdlcc::ObjectPoolFunctors::RemoveAll<bdlbb::Blob> >
     BlobSpPool;
 
-/// Struct to initialize system time component
-struct TestClock {
-    // DATA
-    bdlmt::EventScheduler& d_scheduler;
-
-    bdlmt::EventSchedulerTestTimeSource d_timeSource;
-
-    // CREATORS
-    TestClock(bdlmt::EventScheduler& scheduler)
-    : d_scheduler(scheduler)
-    , d_timeSource(&scheduler)
-    {
-        // NOTHING
-    }
-
-    // MANIPULATORS
-    bsls::TimeInterval realtimeClock() { return d_timeSource.now(); }
-
-    bsls::TimeInterval monotonicClock() { return d_timeSource.now(); }
-
-    bsls::Types::Int64 highResTimer()
-    {
-        return d_timeSource.now().totalNanoseconds();
-    }
-};
-
 bmqp_ctrlmsg::NegotiationMessage client()
 // Create a 'NegotiationMessage' that represents a client configuration for
 // the specified 'clientType'.
@@ -156,8 +130,6 @@ class TestBench {
     BlobSpPool                          d_blobSpPool;
     bsl::shared_ptr<bmqio::TestChannel> d_channel_sp;
     mqbmock::Dispatcher                 d_mockDispatcher;
-    bdlmt::EventScheduler               d_scheduler;
-    TestClock                           d_testClock;
     bsl::shared_ptr<TestAuthorizer>     d_authorizer_sp;
     mqba::AdminSession                  d_as;
     bslma::Allocator*                   d_allocator_p;
@@ -178,15 +150,12 @@ class TestBench {
                    allocator)
     , d_channel_sp(new bmqio::TestChannel(allocator))
     , d_mockDispatcher(allocator)
-    , d_scheduler(bsls::SystemClockType::e_MONOTONIC, allocator)
-    , d_testClock(d_scheduler)
     , d_authorizer_sp(bsl::allocate_shared<TestAuthorizer>(allocator))
     , d_as(d_channel_sp,
            negotiationMessage,
            "sessionDescription",
            &d_mockDispatcher,
            &d_blobSpPool,
-           &d_scheduler,
            adminEnqueueCb,
            d_authorizer_sp,
            allocator)
@@ -195,26 +164,10 @@ class TestBench {
         // Typically done during 'Dispatcher::registerClient()'.
         d_as.dispatcherClientData().setDispatcher(&d_mockDispatcher);
         d_as.setThreadId(bslmt::ThreadUtil::selfId());
-
-        // Setup test time source
-        bmqu::Time::shutdown();
-        bmqu::Time::initialize(
-            bdlf::BindUtil::bind(&TestClock::realtimeClock, &d_testClock),
-            bdlf::BindUtil::bind(&TestClock::monotonicClock, &d_testClock),
-            bdlf::BindUtil::bind(&TestClock::highResTimer, &d_testClock),
-            d_allocator_p);
-
-        int rc = d_scheduler.start();
-        BMQTST_ASSERT_EQ(rc, 0);
     }
 
     /// Destructor
-    ~TestBench()
-    {
-        d_as.tearDown(bsl::shared_ptr<void>(), true);
-        d_scheduler.cancelAllEventsAndWait();
-        d_scheduler.stop();
-    }
+    ~TestBench() { d_as.tearDown(bsl::shared_ptr<void>(), true); }
 };
 
 // ============================================================================
@@ -470,8 +423,6 @@ static void test2_safeConcurrentTeardown()
                           1024,
                           alloc);
 
-    bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC, alloc);
-
     // Dispatcher driven by a dedicated processor thread.
     mqbmock::Dispatcher dispatcher(alloc);
     dispatcher.setEnqueueOnly(true);
@@ -526,7 +477,6 @@ static void test2_safeConcurrentTeardown()
                                                      description,
                                                      &dispatcher,
                                                      &blobSpPool,
-                                                     &scheduler,
                                                      adminCb,
                                                      authorizer);
 
@@ -556,7 +506,6 @@ static void test2_safeConcurrentTeardown()
     pool.drain();
     pool.stop();
     processor.stop();
-    scheduler.stop();
 }
 
 // ============================================================================

@@ -286,7 +286,6 @@ AdminSession::AdminSession(
     const bsl::string&                            sessionDescription,
     mqbi::Dispatcher*                             dispatcher,
     AdminSessionState::BlobSpPool*                blobSpPool,
-    bdlmt::EventScheduler*                        scheduler,
     const mqbnet::Session::AdminCommandEnqueueCb& adminCb,
     const bsl::shared_ptr<mqbi::Authorizer>&      authorizer,
     bslma::Allocator*                             allocator)
@@ -300,7 +299,6 @@ AdminSession::AdminSession(
           bmqp::SchemaEventBuilderUtil::bestEncodingSupported(
               d_clientIdentity_p->features()),
           allocator)
-, d_scheduler_p(scheduler)
 , d_authorizer_sp(authorizer)
 , d_adminCb(adminCb)
 {
@@ -308,7 +306,6 @@ AdminSession::AdminSession(
     BSLS_ASSERT(channel);
     BSLS_ASSERT(dispatcher);
     BSLS_ASSERT(blobSpPool);
-    BSLS_ASSERT(scheduler);
     BSLS_ASSERT(adminCb);
     BSLS_ASSERT(authorizer);
 
