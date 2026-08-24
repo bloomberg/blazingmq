@@ -581,10 +581,7 @@ bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onClientIdentityMessage(
                            clientIdentity,
                            *(context_p->channel().get()));
 
-    bsl::shared_ptr<mqbnet::Session> session;
-    createSession(&session, context_p, description);
-
-    return session;
+    return createSession(context_p, description);
 }
 
 bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onBrokerResponseMessage(
@@ -633,10 +630,7 @@ bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onBrokerResponseMessage(
         }
     }
 
-    bsl::shared_ptr<mqbnet::Session> session;
-    createSession(&session, context_p, description);
-
-    return session;
+    return createSession(context_p, description);
 }
 
 int SessionNegotiator::sendNegotiationMessage(
@@ -860,13 +854,11 @@ bool SessionNegotiator::authorizeIncomingConnection(
     return true;
 }
 
-void SessionNegotiator::createSession(
-    bsl::shared_ptr<mqbnet::Session>* out,
-    mqbnet::InitialConnectionContext* context_p,
-    const bsl::string&                description)
+bsl::shared_ptr<mqbnet::Session>
+SessionNegotiator::createSession(mqbnet::InitialConnectionContext* context_p,
+                                 const bsl::string&                description)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(out);
     BSLS_ASSERT_SAFE(context_p);
     BSLS_ASSERT_SAFE(context_p->negotiationContext());
     BSLS_ASSERT_SAFE(context_p->negotiationContext()->connectionType() !=
@@ -884,59 +876,54 @@ void SessionNegotiator::createSession(
 
     if (negotiationContext->connectionType() ==
         mqbnet::ConnectionType::e_ADMIN) {
-        mqba::AdminSession* session = new (*d_allocator_p)
-            AdminSession(channel,
-                         negoMsg,
-                         description,
-                         d_dispatcher_p,
-                         d_blobSpPool_p,
-                         d_adminCb,
-                         d_authorizer_sp,
-                         d_allocator_p);
-
-        out->reset(session, d_allocator_p);
+        return bsl::allocate_shared<AdminSession>(d_allocator_p,
+                                                  channel,
+                                                  negoMsg,
+                                                  description,
+                                                  d_dispatcher_p,
+                                                  d_blobSpPool_p,
+                                                  d_adminCb,
+                                                  d_authorizer_sp);  // RETURN
     }
-    else if (negotiationContext->connectionType() ==
-             mqbnet::ConnectionType::e_CLIENT) {
+
+    if (negotiationContext->connectionType() ==
+        mqbnet::ConnectionType::e_CLIENT) {
         // Create a dedicated stats subcontext for this client
         bmqst::StatContextConfiguration statContextCfg(description);
         statContextCfg.storeExpiredSubcontextValues(true);
-        bslma::ManagedPtr<bmqst::StatContext> statContext =
+        bslma::ManagedPtr<bmqst::StatContext> statContextMp =
             d_statContext_p->addSubcontext(statContextCfg);
+        bsl::shared_ptr<bmqst::StatContext> statContext(statContextMp,
+                                                        d_allocator_p);
 
-        mqba::ClientSession* session = new (*d_allocator_p)
-            ClientSession(channel,
-                          negoMsg,
-                          description,
-                          d_dispatcher_p,
-                          d_clusterCatalog_p,
-                          d_domainFactory_p,
-                          statContext,
-                          d_blobSpPool_p,
-                          d_bufferFactory_p,
-                          d_scheduler_p,
-                          d_authorizer_sp,
-                          d_allocator_p);
-
-        out->reset(session, d_allocator_p);
+        return bsl::allocate_shared<ClientSession>(d_allocator_p,
+                                                   channel,
+                                                   negoMsg,
+                                                   description,
+                                                   d_dispatcher_p,
+                                                   d_clusterCatalog_p,
+                                                   d_domainFactory_p,
+                                                   statContext,
+                                                   d_blobSpPool_p,
+                                                   d_bufferFactory_p,
+                                                   d_scheduler_p,
+                                                   d_authorizer_sp);  // RETURN
     }
-    else {
-        const bmqp_ctrlmsg::ClientIdentity& peerIdentity =
-            negoMsg.isClientIdentityValue()
-                ? negoMsg.clientIdentity()
-                : negoMsg.brokerResponse().brokerIdentity();
 
-        mqbnet::ClusterNode* clusterNode =
-            negotiationContext->cluster()->lookupNode(
-                peerIdentity.clusterNodeId());
+    const bmqp_ctrlmsg::ClientIdentity& peerIdentity =
+        negoMsg.isClientIdentityValue()
+            ? negoMsg.clientIdentity()
+            : negoMsg.brokerResponse().brokerIdentity();
 
-        out->reset(new (*d_allocator_p) mqbnet::DummySession(channel,
-                                                             negoMsg,
-                                                             clusterNode,
-                                                             description,
-                                                             d_allocator_p),
-                   d_allocator_p);
-    }
+    mqbnet::ClusterNode* clusterNode =
+        negotiationContext->cluster()->lookupNode(
+            peerIdentity.clusterNodeId());
+
+    return bsl::allocate_shared<mqbnet::DummySession>(d_allocator_p,
+                                                      channel,
+                                                      negoMsg,
+                                                      clusterNode,
+                                                      description);
 }
 
 bool SessionNegotiator::checkIsDeprecatedSdkVersion(

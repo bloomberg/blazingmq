@@ -189,11 +189,15 @@ class SessionNegotiator : public mqbnet::Negotiator {
     authorizeIncomingConnection(bsl::ostream& errorDescription,
                                 mqbnet::InitialConnectionContext* context_p);
 
-    /// Load into the specified `out` a new session created using the
-    /// specified `context_p` and `description`.
-    void createSession(bsl::shared_ptr<mqbnet::Session>* out,
-                       mqbnet::InitialConnectionContext* context_p,
-                       const bsl::string&                description);
+    /// @brief Create a new session for the specified `context_p`.
+    ///
+    /// @param context_p The initial connection context describing the peer.
+    /// @param description The short form description of the session.
+    ///
+    /// @return The newly created session.
+    bsl::shared_ptr<mqbnet::Session>
+    createSession(mqbnet::InitialConnectionContext* context_p,
+                  const bsl::string&                description);
 
     /// Return true if the negotiation message in the specified `context` is
     /// for a client using a deprecated version of the libbmq SDK.
