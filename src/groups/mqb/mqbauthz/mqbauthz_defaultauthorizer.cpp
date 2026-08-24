@@ -59,8 +59,66 @@ bool DefaultAuthorizer::authorize(
     BSLA_MAYBE_UNUSED const mqbplug::AuthenticationResult& authnResult)
 
 {
-    BALL_LOG_INFO << "Authorize allow on " << action;
-    return true;
+    // BALL_LOG_INFO << "Authorize allow on " << action;
+    // return true;
+
+    bsl::optional<const Policy::Permission*> permission = d_policy.get(authnResult.principal());
+
+    if (!permission) {
+        // TODO(tfoxhall): Maybe fallback to a default policy?
+        return false;
+    }
+
+    struct PolicyHandler {
+        enum { k_DENY, k_ALLOW };
+
+        const Policy::Permission* d_permission;
+
+        PolicyHandler(const Policy::Permission* permission)
+        : d_permission(permission)
+        {
+        }
+
+        int operator()(const mqbact::ConnectClient& action,
+                       const bdlat_SelectionInfo&)
+        {
+            return d_permission->isConnectClientAllowed() ? k_ALLOW : k_DENY;
+        }
+        int operator()(const mqbact::ConnectProxy& action,
+                       const bdlat_SelectionInfo&)
+        {
+            return d_permission->isConnctProxyAllowed() ? k_ALLOW : k_DENY;
+        }
+        int operator()(const mqbact::ConnectAdmin& action,
+                       const bdlat_SelectionInfo&)
+        {
+            return d_permission->isConnctAdminAllowed() ? k_ALLOW : k_DENY;
+        }
+        int operator()(const mqbact::ConnectClusterNode& action,
+                       const bdlat_SelectionInfo&)
+        {
+            return d_permission->isConnctClusterNodeAllowed() ? k_ALLOW : k_DENY;
+        }
+        int operator()(const mqbact::QueueRead& action,
+                       const bdlat_SelectionInfo&)
+        {
+            return d_permission->isQueueReadAllowed(action.uri()) ? k_ALLOW : k_DENY;
+        }
+        int operator()(const mqbact::QueueWrite& action,
+                       const bdlat_SelectionInfo&)
+        {
+            return d_permission->isQueueWriteAllowed(action.uri()) ? k_ALLOW : k_DENY;
+        }
+        int operator()(const mqbact::ExecuteAdminCommand& action,
+                       const bdlat_SelectionInfo&)
+        {
+            return d_permission->isExecuteAdminCommandAllowed(action.command()) ? k_ALLOW : k_DENY;
+        }
+    };
+
+    PolicyHandler handler(*permission);
+    int           rc = action.accessSelection(handler);
+    return rc == PolicyHandler::k_ALLOW;
 }
 
 // ------------------------------------
