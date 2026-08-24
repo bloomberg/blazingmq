@@ -1036,6 +1036,7 @@ int FileStore::openInRecoveryMode(bsl::ostream&    errorDescription,
     // Conform the journal to the cluster state.
     const bool needsConform = !extraQueueKeys.empty();
     if (needsConform) {
+        BSLS_ASSERT_SAFE(d_isFSMWorkflow);
         BSLS_ASSERT_SAFE(asPrimary);
         BSLS_ASSERT_SAFE(0 != primaryLeaseId);
         BSLS_ASSERT_SAFE(primaryLeaseId >= d_writeHeadLeaseId);
@@ -1048,6 +1049,9 @@ int FileStore::openInRecoveryMode(bsl::ostream&    errorDescription,
     // Each "extra" queueKey found during recovery (present in the journal but
     // absent from the cluster state) must be removed.
     if (!extraQueueKeys.empty()) {
+        // Corrective records are written straight to the journal,
+        // unreplicated; the caller propagates them by shipping the delta up to
+        // the write head advanced here.
         const bsls::Types::Uint64 timestamp =
             bdlt::EpochUtil::convertToTimeT64(bdlt::CurrentTime::utc());
 
@@ -1414,8 +1418,8 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                         << "QueueOp.ADDITION record for queueKey [" << queueKey
                         << "] during 1st pass reverse iteration, but the "
                         << "queueKey is not present in cluster state.  Will "
-                        << "remember this extra queue."
-                        << "  Record offset: " << journalIt.recordOffset()
+                        << "remember this extra queue.  Record offset: "
+                        << journalIt.recordOffset()
                         << ", record index: " << journalIt.recordIndex();
 
                     deletedQueueKeysOffsets.insert(
@@ -1478,8 +1482,8 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                         << "QueueOp.CREATION record for queueKey [" << queueKey
                         << "] during 1st pass reverse iteration, but the "
                         << "queueKey is not present in cluster state.  Will "
-                        << "remember this extra queue."
-                        << "  Record offset: " << journalIt.recordOffset()
+                        << "remember this extra queue.  Record offset: "
+                        << journalIt.recordOffset()
                         << ", record index: " << journalIt.recordIndex();
 
                     deletedQueueKeysOffsets.insert(
@@ -2687,38 +2691,14 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
             }
 
             if (0 == queueKeyInfoMap->count(rec.queueKey())) {
-                if (withClusterState) {
-                    // An "extra" queue (present in the journal but absent from
-                    // the cluster state) is tracked as deleted in the 1st pass
-                    // and skipped above.  Reaching here means an orphan
-                    // record: the queueKey is absent from the cluster state
-                    // and had no QueueOp.CREATION record in the 1st pass.
-                    // Tolerate it defensively rather than failing recovery.
-                    BMQTSK_ALARMLOG_ALARM("RECOVERY")
-                        << partitionDesc()
-                        << "Encountered an orphan MESSAGE record for queueKey "
-                           "["
-                        << rec.queueKey()
-                        << "], offset: " << jit->recordOffset()
-                        << ", index: " << jit->recordIndex()
-                        << ": the queueKey is not present in the cluster "
-                           "state "
-                        << "and had no QueueOp.CREATION record in the first "
-                        << "pass." << BMQTSK_ALARMLOG_END;
-                    continue;  // CONTINUE
-                }
-                else {
-                    BMQTSK_ALARMLOG_ALARM("RECOVERY")
-                        << partitionDesc()
-                        << "Encountered a MESSAGE record for queueKey ["
-                        << rec.queueKey()
-                        << "], offset: " << jit->recordOffset()
-                        << ", index: " << jit->recordIndex()
-                        << ", for which a "
-                        << "QueueOp.CREATION record was not seen in first "
-                        << "pass." << BMQTSK_ALARMLOG_END;
-                    return rc_INVALID_QUEUE_KEY;  // RETURN
-                }
+                BMQTSK_ALARMLOG_ALARM("RECOVERY")
+                    << partitionDesc()
+                    << "Encountered a MESSAGE record for queueKey ["
+                    << rec.queueKey() << "], offset: " << jit->recordOffset()
+                    << ", index: " << jit->recordIndex() << ", for which a "
+                    << "QueueOp.CREATION record was not seen in first "
+                    << "pass." << BMQTSK_ALARMLOG_END;
+                return rc_INVALID_QUEUE_KEY;  // RETURN
             }
 
             bsls::Types::Uint64 appDataOffset = dataHeaderOffset + headerSize +

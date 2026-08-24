@@ -1721,6 +1721,8 @@ static void test8_conformExtraQueueCausesRollover()
 
     const bsls::Types::Uint64 k_MAX_JOURNAL = 8 * 1024;
 
+    // Mirrors the file-local 'k_REQUESTED_JOURNAL_SPACE' of
+    // mqbs_filestore.cpp.  Keep in sync with that constant.
     const bsls::Types::Uint64 k_REQUESTED_JOURNAL_SPACE =
         static_cast<bsls::Types::Uint64>(
             mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE) *

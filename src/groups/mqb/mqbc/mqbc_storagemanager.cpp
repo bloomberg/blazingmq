@@ -3275,7 +3275,16 @@ void StorageManager::do_attemptOpenStorage(
         return;  // RETURN
     }
 
-    const int rc = fs->open(d_queueKeyInfoMapVec.at(partitionId).get(),
+    // Hand over the cluster state only when self is the primary.
+    QueueKeyInfoMap* const queueKeyInfoMap =
+        d_partitionFSMVec.at(partitionId)->isSelfPrimary()
+            ? d_queueKeyInfoMapVec.at(partitionId).get()
+            : 0;
+
+    // Conform may append unreplicated corrective records; they reach replicas
+    // only because storeSelfSeq and sendDataToReplicas run right after this
+    // action in the primary transitions.  Keep that order.
+    const int rc = fs->open(queueKeyInfoMap,
                             d_partitionInfoVec[partitionId].primaryLeaseId());
     if (0 != rc) {
         BMQTSK_ALARMLOG_ALARM("FILE_IO")

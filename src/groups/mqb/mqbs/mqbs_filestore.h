@@ -459,13 +459,14 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     int openInNonRecoveryMode();
 
     /// Open this instance in recovery mode using the specified
-    /// `queueKeyInfoMap`.  The specified `primaryLeaseId` is the leaseId of
-    /// current primary.  Return zero on success and a non-zero value
-    /// otherwise.  Note that return value of `1` indicates no files were found
-    /// to recover messages from.  All other failure conditions should be
-    /// treated as fatal.  Also note that file store will attempt to recover
-    /// any outstanding messages from the files found at the location indicated
-    /// by the configuration of this instance. `queueKeyInfoMap`.
+    /// `queueKeyInfoMap`, which is non-null only when self is the primary.
+    /// The specified `primaryLeaseId` is the leaseId of the current primary,
+    /// under which any corrective record is stamped.  Return zero on success
+    /// and a non-zero value otherwise.  Note that return value of `1`
+    /// indicates no files were found to recover messages from.  All other
+    /// failure conditions should be treated as fatal.  Also note that file
+    /// store will attempt to recover any outstanding messages from the files
+    /// found at the location indicated by the configuration of this instance.
     int openInRecoveryMode(bsl::ostream&    errorDescription,
                            QueueKeyInfoMap* queueKeyInfoMap,
                            unsigned int     primaryLeaseId);
@@ -511,10 +512,13 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// implementation, this routine has no side-effect in case of failure.
     int rolloverImpl(bsls::Types::Uint64 timestamp);
 
-    /// Rollover during recovery (while conforming the journal to the cluster
-    /// state), using the specified `timestamp`.  Unlike the live `rollover()`,
-    /// this writes the `e_ROLLOVER` sync point record without network
-    /// replication.  Return zero on success, non-zero value otherwise.
+    /// @brief Rollover while conforming the journal to the cluster state.
+    ///
+    /// @details Unlike the live `rollover()`, this writes the `e_ROLLOVER`
+    /// sync point record without network replication.
+    ///
+    /// @param timestamp Timestamp to stamp on the sync point record.
+    /// @return Zero on success, a non-zero value otherwise.
     int rolloverDuringRecovery(bsls::Types::Uint64 timestamp);
 
     /// If the specified `fileInfo` cannot accommodate the specified
@@ -551,13 +555,18 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
                                 unsigned int            startPrimaryLeaseId,
                                 bsls::Types::Uint64     startSequenceNum);
 
-    /// Directly append a `QueueOp.DELETION` record for the specified
-    /// `queueKey` with the specified `timestamp` to the journal during
-    /// recovery, in order to conform the journal to the cluster state.  Return
-    /// zero on success, non-zero value otherwise.  The caller must ensure the
-    /// record fits without rolling over; a full journal is reported as an
-    /// error.  Behavior is undefined unless the active file set is open in
-    /// write mode.
+    /// @brief Append a corrective `QueueOp.DELETION` record during recovery.
+    ///
+    /// @details Marks an "extra" queue -- present in the journal but absent
+    /// from the cluster state -- as deleted, so that the journal conforms to
+    /// the cluster state.  The record is written directly to the journal,
+    /// without network replication.  The caller must ensure the record fits
+    /// without rolling over; a full journal is reported as an error.
+    /// Behavior is undefined unless the active file set is open in write mode.
+    ///
+    /// @param queueKey  Key of the extra queue to mark deleted.
+    /// @param timestamp Timestamp to stamp on the record.
+    /// @return Zero on success, a non-zero value otherwise.
     int writeCorrectiveQueueDeletionDuringRecovery(
         const mqbu::StorageKey& queueKey,
         bsls::Types::Uint64     timestamp);
@@ -713,7 +722,7 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// specified `position` in the file, false otherwise.
     bool needRollover(const MappedFileDescriptor& file,
                       bsls::Types::Uint64         position,
-                      unsigned int                length) const;
+                      bsls::Types::Uint64         length) const;
 
     void aliasMessage(bsl::shared_ptr<bdlbb::Blob>* appData,
                       bsl::shared_ptr<bdlbb::Blob>* options,
@@ -796,9 +805,11 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     // MANIPULATORS
 
-    /// Open this instance using the optionally specified `queueKeyInfoMap`.
-    /// The specified `primaryLeaseId` is the leaseId of current primary.
-    /// Return zero on success, non-zero value otherwise.
+    /// Open this instance using the optionally specified `queueKeyInfoMap`,
+    /// which must be supplied only when self is the primary.  The specified
+    /// `primaryLeaseId` is the leaseId of the current primary; it is unused
+    /// when `queueKeyInfoMap` is null.  Return zero on success, non-zero value
+    /// otherwise.
     int open(QueueKeyInfoMap* queueKeyInfoMap,
              unsigned int     primaryLeaseId) BSLS_KEYWORD_OVERRIDE;
 
@@ -1253,7 +1264,7 @@ inline const bsl::string& FileStore::partitionDesc() const
 
 inline bool FileStore::needRollover(const MappedFileDescriptor& file,
                                     bsls::Types::Uint64         position,
-                                    unsigned int                length) const
+                                    bsls::Types::Uint64         length) const
 {
     BSLS_ASSERT_SAFE(position <= file.fileSize());
     return file.fileSize() < (position + length);
