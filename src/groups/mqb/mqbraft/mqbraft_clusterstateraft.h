@@ -39,6 +39,7 @@
 #include <mqbc_clusterstate.h>
 #include <mqbcfg_messages.h>
 #include <mqbi_clusterstatemanager.h>
+#include <mqbnet_cluster.h>
 #include <mqbraft_cslraftlog.h>
 #include <mqbraft_raftnode.h>
 
@@ -69,7 +70,8 @@ namespace mqbraft {
 // class ClusterStateRaft
 // ======================
 
-class ClusterStateRaft : public mqbi::ClusterStateUpdater {
+class ClusterStateRaft : public mqbi::ClusterStateUpdater,
+                         public mqbnet::ClusterObserver {
   public:
     // TYPES
 
@@ -118,6 +120,12 @@ class ClusterStateRaft : public mqbi::ClusterStateUpdater {
     /// held pointer stays valid; a node added later resolves on first use, but
     /// node *removal*, if it is ever implemented, has to clear this.
     mqbnet::ClusterNode* peerNode(int nodeId);
+
+    /// Pass the specified `isAvailable` for the peer with the specified
+    /// `nodeId` to the `RaftNode`.
+    ///
+    /// THREAD: Executed by the cluster *DISPATCHER* thread.
+    void setPeerAvailabilityDispatched(int nodeId, bool isAvailable);
 
     void dispatchOutput(RaftNodeOutput* output);
 
@@ -224,6 +232,15 @@ class ClusterStateRaft : public mqbi::ClusterStateUpdater {
 
     /// Stop the Raft node: cancel tick timer, close CSL log.
     void stop();
+
+    // mqbnet::ClusterObserver OVERRIDES
+
+    /// Notification that the specified `node` is available or not, per the
+    /// specified `isAvailable`.
+    ///
+    /// THREAD: Executed by the *CLUSTER* dispatcher thread.
+    void onNodeStateChange(mqbnet::ClusterNode* node,
+                           bool isAvailable) BSLS_KEYWORD_OVERRIDE;
 
     /// Process an incoming Raft control message (election, response) from
     /// the specified 'source' node.

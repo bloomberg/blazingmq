@@ -36,6 +36,7 @@
 
 // MQB
 #include <mqbc_clusterdata.h>
+#include <mqbnet_cluster.h>
 #include <mqbraft_partitionraftlog.h>
 #include <mqbraft_raftnode.h>
 #include <mqbs_datastore.h>
@@ -77,7 +78,8 @@ namespace mqbraft {
 // class PartitionRaft
 // ====================
 
-class PartitionRaft : public mqbs::RecordStore {
+class PartitionRaft : public mqbs::RecordStore,
+                      public mqbnet::ClusterObserver {
   public:
     // TYPES
 
@@ -140,6 +142,10 @@ class PartitionRaft : public mqbs::RecordStore {
     /// term's first entry.
     bool d_isExpectingTermCommit;
 
+    /// `true` from becoming leader until this term's become-leader sync
+    /// point is proposed.
+    bool d_needsBecomeLeaderSyncPoint;
+
     /// Invoked on every Raft leadership change to signal the cluster (see
     /// `PartitionLeadershipCb`).  Required (asserted non-empty at
     /// construction).
@@ -171,12 +177,24 @@ class PartitionRaft : public mqbs::RecordStore {
     /// node *removal*, if it is ever implemented, has to clear this.
     mqbnet::ClusterNode* peerNode(int nodeId);
 
+    /// Pass the specified `isAvailable` for the peer with the specified
+    /// `nodeId` to this partition's `RaftNode`.
+    ///
+    /// THREAD: Executed by this partition's dispatcher thread.
+    void setPeerAvailabilityDispatched(int nodeId, bool isAvailable);
+
     /// Send every message in the specified `output`.
     void dispatchMessages(RaftNodeOutput* output);
 
     /// Dispatch RaftNode output: send messages to peers and notify FileStore
     /// of committed entries.
     void dispatchOutput(RaftNodeOutput* output);
+
+    /// Apply the next batch of committed-but-unapplied entries.  Re-posted to
+    /// this partition's dispatcher between batches so a long replay -- a
+    /// restarted node has everything since the last rollover to apply -- does
+    /// not hold the thread for its whole duration.
+    void applyCommittedBatchDispatched();
 
     /// Run a Raft send round.  Installed on the `FileStore` as its flush
     /// callback, so the dispatcher calls this once it has drained this
@@ -234,7 +252,11 @@ class PartitionRaft : public mqbs::RecordStore {
     void sendControlMessage(const RaftMessage& msg);
 
     /// Notify FileStore of a single committed entry.
-    void applyCommittedEntry(const LogEntry& entry);
+    /// Apply the specified committed `entry`.  The specified
+    /// `commitTimepoint` is when this batch of commits was applied, taken once
+    /// by the caller rather than per entry.
+    void applyCommittedEntry(const LogEntry&    entry,
+                             bsls::Types::Int64 commitTimepoint);
 
     /// Call rstorage methods for entries accepted during step (follower).
     void applyEntriesAsReplica(const RaftMessage&  msg,
@@ -302,6 +324,15 @@ class PartitionRaft : public mqbs::RecordStore {
 
     /// Stop: cancel tick timer.
     void stop();
+
+    // mqbnet::ClusterObserver OVERRIDES
+
+    /// Notification that the specified `node` is available or not, per the
+    /// specified `isAvailable`.
+    ///
+    /// THREAD: Executed by the *IO* thread.
+    void onNodeStateChange(mqbnet::ClusterNode* node,
+                           bool isAvailable) BSLS_KEYWORD_OVERRIDE;
 
     /// Write this partition's deferred become-leader sync point.  Idempotent:
     /// a no-op unless this node is the leader and has not yet appended any

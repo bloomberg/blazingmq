@@ -33,6 +33,7 @@
 #include <bmqtsk_alarmlog.h>
 #include <bmqu_blob.h>
 #include <bmqu_blobobjectproxy.h>
+#include <bmqu_time.h>
 
 // BDE
 #include <ball_log.h>
@@ -189,6 +190,7 @@ PartitionRaft::PartitionRaft(int partitionId,
 , d_snapshotLastIncludedTerm(0)
 , d_isRolloverPending(false)
 , d_isExpectingTermCommit(false)
+, d_needsBecomeLeaderSyncPoint(false)
 , d_leadershipCb(leadershipCb)
 , d_canShutdown(false)
 {
@@ -235,6 +237,27 @@ mqbnet::ClusterNode* PartitionRaft::peerNode(int nodeId)
     return node;
 }
 
+void PartitionRaft::setPeerAvailabilityDispatched(int nodeId, bool isAvailable)
+{
+    // executed by the partition *DISPATCHER* thread
+    BSLS_ASSERT_SAFE(d_fileStore_sp->inDispatcherThread());
+
+    d_raftNode_mp->setPeerAvailability(nodeId, isAvailable);
+}
+
+void PartitionRaft::onNodeStateChange(mqbnet::ClusterNode* node,
+                                      bool                 isAvailable)
+{
+    // executed by the *IO* thread, holding 'ClusterImp::d_mutex': do no work
+    // here beyond handing the change to this partition's dispatcher.
+    BSLS_ASSERT_SAFE(node);
+
+    execute(bdlf::BindUtil::bind(&PartitionRaft::setPeerAvailabilityDispatched,
+                                 this,
+                                 node->nodeId(),
+                                 isAvailable));
+}
+
 void PartitionRaft::flush()
 {
     // executed by the partition *DISPATCHER* thread, from 'FileStore::flush()'
@@ -268,6 +291,12 @@ void PartitionRaft::dispatchMessages(RaftNodeOutput* output)
             sendAppendEntriesResponse(msg);
         }
         else if (msg.d_type == RaftMessageType::e_INSTALL_SNAPSHOT) {
+            // The control message must precede the chunks: it is what puts
+            // the peer into receiving mode ('onRaftControlMessage' ->
+            // 'beginReceiveSnapshot'), and 'appendSnapshotChunk' drops any
+            // chunk that arrives before that.  Both go to the same channel in
+            // enqueue order, so this ordering holds on the wire.
+            sendControlMessage(msg);
             sendSnapshot(msg.d_destinationNodeId,
                          msg.d_lastLogIndex,
                          msg.d_lastLogTerm);
@@ -294,10 +323,21 @@ void PartitionRaft::dispatchOutput(RaftNodeOutput* output)
     // primary path.  'truncateFrom' drops the ones the new leader overwrites.
     if (output->d_stateChanged && !isLeader()) {
         d_isRolloverPending = false;
+
+        // This term's sync point will not commit under this node; leaving the
+        // expectation set would fire the 'haveCommit' callback for the next
+        // term this node leads, on whatever entry commits first.
+        d_isExpectingTermCommit = false;
+
         d_raftLog_mp->dropBufferedWrites();
     }
 
     bool hadRollover = false;
+
+    // Read once for the whole batch: every entry below is applied in this same
+    // call, so they share an apply time to within the loop itself.
+    const bsls::Types::Int64 commitTimepoint =
+        bmqu::Time::highResolutionTimer();
 
     for (bsl::vector<LogEntry>::size_type i = 0;
          i < output->d_committed.size();
@@ -313,7 +353,7 @@ void PartitionRaft::dispatchOutput(RaftNodeOutput* output)
             hadRollover = true;
         }
         else {
-            applyCommittedEntry(entry);
+            applyCommittedEntry(entry, commitTimepoint);
         }
     }
 
@@ -343,6 +383,15 @@ void PartitionRaft::dispatchOutput(RaftNodeOutput* output)
         d_raftLog_mp->flushDeferredRemovals();
     }
 
+    // The gather stopped at its cap; nothing else brings us back, since
+    // 'commitTo' only runs when the commit index advances.  Re-post rather
+    // than loop, so the dispatcher gets a turn between batches.
+    if (output->d_hasMoreToApply) {
+        execute(
+            bdlf::BindUtil::bind(&PartitionRaft::applyCommittedBatchDispatched,
+                                 this));
+    }
+
     // Re-drive delivery once for the whole batch applied above.  Each
     // committed message noted its queue rather than notifying it, so a queue
     // that took several entries is walked once, and one deleted later in the
@@ -353,10 +402,8 @@ void PartitionRaft::dispatchOutput(RaftNodeOutput* output)
     // become-leader sync point is NOT written here -- it is the first journal
     // record under the new leaseId (== term), and strict ordering requires the
     // CSL's artificial 'partitionPrimaryAdvisory' (carrying this leaseId) to
-    // commit first.  'proposeDeferredSyncPoint' (driven from the orchestrator
-    // once the advisory commits and the partition reaches E_ACTIVE) handles it
-    // lazily.  Losing leadership (dropping any buffered writes from an
-    // abandoned rollover) is handled before the apply loop above.
+    // commit first.  See 'proposeDeferredSyncPoint' called by the orchestrator
+    // once the advisory commits and the partition reaches E_ACTIVE.
 
     // On any leadership change record the primary identity on the FileStore
     // and signal the cluster.  'd_stateChanged' covers self becoming/losing
@@ -386,6 +433,13 @@ void PartitionRaft::dispatchOutput(RaftNodeOutput* output)
                     /* isRaft */ true);
             }
         }
+
+        // Arm the become-leader sync point for this leadership.  It cannot be
+        // inferred from 'lastTerm() == currentTerm()': the leader commits and
+        // applies its recovered log on becoming leader, and those applies
+        // propose queue records of their own, so a current-term entry can
+        // exist without this sync point ever having been written.
+        d_needsBecomeLeaderSyncPoint = isLeader();
 
         // Signal the cluster so it can (re)compute this partition's
         // primary/gate state.
@@ -539,7 +593,8 @@ void PartitionRaft::sendControlMessage(const RaftMessage& msg)
     d_fileStore_sp->sendMessage(controlMsg, destNode);
 }
 
-void PartitionRaft::applyCommittedEntry(const LogEntry& entry)
+void PartitionRaft::applyCommittedEntry(const LogEntry&    entry,
+                                        bsls::Types::Int64 commitTimepoint)
 {
     // executed by the partition *DISPATCHER* thread
 
@@ -550,7 +605,8 @@ void PartitionRaft::applyCommittedEntry(const LogEntry& entry)
     // as a replica would redo work propose time did, up to re-inserting a
     // handle to a record already erased.
     if (d_raftLog_mp->isOwnAppendedEntry(entry.d_index)) {
-        d_raftLog_mp->applyCommittedEntryAsPrimary(entry.d_index);
+        d_raftLog_mp->applyCommittedEntryAsPrimary(entry.d_index,
+                                                   commitTimepoint);
 
         if (isLeader() && d_isExpectingTermCommit) {
             d_isExpectingTermCommit = false;
@@ -691,7 +747,22 @@ void PartitionRaft::sendSnapshot(int                 destNodeId,
             eh->setLength(event.length());
             eh.reset();
 
-            destNode->write(event_sp, bmqp::EventType::e_RAFT_SNAPSHOT);
+            const bmqt::GenericResult::Enum writeRc =
+                destNode->write(event_sp, bmqp::EventType::e_RAFT_SNAPSHOT);
+            if (bmqt::GenericResult::e_NOT_CONNECTED == writeRc) {
+                // The channel went away mid-transfer.  Report it: 'RaftNode'
+                // has this snapshot marked in flight, which suppresses
+                // replication to the peer until it times out.
+                BALL_LOG_WARN << "Partition [" << d_partitionId
+                              << "] snapshot to node " << destNodeId
+                              << " aborted: channel is gone";
+                d_raftNode_mp->setPeerAvailability(destNodeId, false);
+
+                mqbs::FileStoreUtil::closePartitionSet(&allFiles[0].d_mfd,
+                                                       &allFiles[2].d_mfd,
+                                                       &allFiles[1].d_mfd);
+                return;  // RETURN
+            }
 
             offset += chunkLen;
         }
@@ -940,6 +1011,8 @@ void PartitionRaft::applySnapshotChunk(const bdlbb::Blob&   event,
 
     // The installed files moved the log's floor, so raise the applied state
     // to match: it would otherwise ask for entries below that floor forever.
+    // A snapshot carries only committed state, so both watermarks move to
+    // what it installed.
     d_raftNode_mp->initRecoveredState(d_raftLog_mp->lastTerm(),
                                       installedIndex);
 
@@ -1070,12 +1143,29 @@ void PartitionRaft::tickCb()
         bdlf::BindUtil::bind(&PartitionRaft::tickDispatched, this));
 }
 
+void PartitionRaft::applyCommittedBatchDispatched()
+{
+    // executed by the partition *DISPATCHER* thread
+    if (!d_isStarted || !d_fileStore_sp->isOpen()) {
+        return;  // RETURN
+    }
+
+    RaftNodeOutput output(d_allocator_p);
+    d_raftNode_mp->loadCommittedBatch(&output);
+    dispatchOutput(&output);
+}
+
 void PartitionRaft::tickDispatched()
 {
     // executed by the partition *DISPATCHER* thread
     RaftNodeOutput output(d_allocator_p);
     d_raftNode_mp->tick(&output);
     dispatchOutput(&output);
+
+    // Legacy refreshes these whenever it issues a sync point; Raft issues none
+    // periodically, so they would otherwise keep the values 'openForRaft' read
+    // off an empty file set.
+    d_fileStore_sp->updatePartitionStats();
 }
 
 void PartitionRaft::setElectionMode(ElectionMode::Enum mode)
@@ -1112,11 +1202,28 @@ void PartitionRaft::start()
     // regress across a restart per Raft's persistent-state contract; the
     // applied state must be raised to the snapshot boundary -- a node that
     // ever rolled over has 'snapshotIndex > 0', and without this the
-    // hardcoded 'currentTerm/commitIndex/lastApplied = 0' from the RaftNode
-    // ctor would let this node re-propose a stale term and would stall on
-    // indices at or below the snapshot floor.
+    // hardcoded 'currentTerm/commitIndex/lastAppliedCommit = 0' from the
+    // RaftNode ctor would let this node re-propose a stale term and would
+    // stall on indices at or below the snapshot floor. Both watermarks take
+    // the snapshot boundary: recovery restores storage to exactly that point,
+    // and the entries above it are applied by the normal commit path once a
+    // leader confirms them.
     d_raftNode_mp->initRecoveredState(d_raftLog_mp->lastTerm(),
                                       d_raftLog_mp->snapshotIndex());
+
+    // Register before seeding: 'onNodeStateChange' reports transitions only,
+    // and it dispatches to this same thread, so an event raised during the
+    // seed below queues behind it and applies after.
+    mqbnet::Cluster* netCluster = d_clusterData_p->membership().netCluster();
+    netCluster->registerObserver(this);
+
+    const mqbnet::Cluster::NodesList& nodes = netCluster->nodes();
+    for (mqbnet::Cluster::NodesList::const_iterator it = nodes.begin();
+         it != nodes.end();
+         ++it) {
+        d_raftNode_mp->setPeerAvailability((*it)->nodeId(),
+                                           (*it)->isAvailable());
+    }
 
     bsls::TimeInterval tickInterval;
     tickInterval.setTotalMilliseconds(k_TICK_INTERVAL_MS);
@@ -1144,6 +1251,8 @@ void PartitionRaft::stop()
     }
 
     d_fileStore_sp->setFlushCallback(bsl::function<void()>());
+
+    d_clusterData_p->membership().netCluster()->unregisterObserver(this);
 
     d_clusterData_p->scheduler().cancelEventAndWait(&d_tickHandle);
     d_isStarted = false;
@@ -1247,19 +1356,15 @@ void PartitionRaft::proposeDeferredSyncPoint()
     // executed by the partition *DISPATCHER* thread
     BSLS_ASSERT_SAFE(d_fileStore_sp->inDispatcherThread());
 
-    // Idempotent: a no-op unless this node is the leader AND has not yet
-    // appended any entry under its current term.  'lastTerm() ==
-    // currentTerm()' means some current-term entry (in practice, the
-    // become-leader sync point itself, since nothing else can be proposed
-    // before activation) has already been appended -- nothing left to do.
-    // Self-correcting across leadership changes: after losing and regaining
-    // leadership in a new, higher term, 'lastTerm()' still reflects the old
-    // term and will not match the new 'currentTerm()', so no separate
-    // reset-on-leadership-lost is needed.
-    if (!isLeader() ||
-        d_raftLog_mp->lastTerm() == d_raftNode_mp->currentTerm()) {
+    // Idempotent: a no-op unless this node is the leader and has not yet
+    // written the sync point for this leadership.
+    // 'd_needsBecomeLeaderSyncPoint' is armed on becoming leader and cleared
+    // here, so it is self-correcting across leadership changes.
+    if (!isLeader() || !d_needsBecomeLeaderSyncPoint) {
         return;  // RETURN
     }
+
+    d_needsBecomeLeaderSyncPoint = false;
 
     BALL_LOG_INFO << "Partition [" << d_partitionId
                   << "] writing deferred become-leader sync point (partition "

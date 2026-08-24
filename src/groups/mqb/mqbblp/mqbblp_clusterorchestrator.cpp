@@ -1061,6 +1061,18 @@ void ClusterOrchestrator::processPartitionMessage(
         return;  // RETURN
     }
 
+    if (d_cluster_p->isRaftEnabled()) {
+        // Raft drives partition sync through its own log, so no partition
+        // message belongs here and no 'StorageManager' exists to handle one
+        // ('mqbblp::Cluster' creates it only when Raft is disabled).
+        BMQTSK_ALARMLOG_ALARM("CLUSTER")
+            << d_clusterData_p->identity().description()
+            << ": unexpected partition message in Raft mode: " << message
+            << " from " << source->nodeDescription() << BMQTSK_ALARMLOG_END;
+
+        return;  // RETURN
+    }
+
     typedef bmqp_ctrlmsg::PartitionMessageChoice MsgChoice;  // shortcut
     switch (message.choice()
                 .clusterMessage()

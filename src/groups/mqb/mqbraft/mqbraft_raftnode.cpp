@@ -144,6 +144,32 @@ RaftLog::~RaftLog()
 {
 }
 
+// =========================
+// struct RaftNode::PeerState
+// =========================
+
+RaftNode::PeerState::PeerState()
+: d_isAvailable(true)
+{
+    reset(0);
+}
+
+void RaftNode::PeerState::reset(bsls::Types::Uint64 nextIndex)
+{
+    d_nextIndex             = nextIndex;
+    d_matchIndex            = 0;
+    d_snapshotPending       = false;
+    d_snapshotPendingTicks  = 0;
+    d_snapshotPendingIndex  = 0;
+    d_snapshotPendingTerm   = 0;
+    d_boundaryProbeRejected = false;
+    // The peer's match index is unknown until it accepts something.
+    d_probing      = true;
+    d_probeSent    = false;
+    d_stalledTicks = 0;
+    d_sentCommit   = 0;
+}
+
 // ==============
 // class RaftNode
 // ==============
@@ -159,7 +185,7 @@ RaftNode::RaftNode(const RaftNodeConfig& config,
 , d_state(RaftState::e_FOLLOWER)
 , d_leaderId(k_INVALID_NODE_ID)
 , d_commitIndex(0)
-, d_lastApplied(0)
+, d_lastAppliedCommit(0)
 , d_votesReceived(allocator)
 , d_electionTicks(0)
 , d_electionTimeout(0)
@@ -180,6 +206,14 @@ RaftNode::RaftNode(const RaftNodeConfig& config,
     BSLS_ASSERT_SAFE(config.d_electionTimeoutMax >=
                      config.d_electionTimeoutMin);
     BSLS_ASSERT_SAFE(config.d_heartbeatInterval > 0);
+
+    for (bsl::vector<int>::const_iterator it = d_config.d_peerIds.begin();
+         it != d_config.d_peerIds.end();
+         ++it) {
+        if (*it != d_config.d_selfId) {
+            d_peerStates.insert(bsl::make_pair(*it, PeerState()));
+        }
+    }
 
     resetElectionTimer();
 }
@@ -207,7 +241,6 @@ void RaftNode::becomeFollower(bsls::Types::Uint64 term, int leaderId)
     }
 
     d_votesReceived.clear();
-    d_peerStates.clear();
     d_transferTargetId = k_INVALID_NODE_ID;
     resetElectionTimer();
 
@@ -221,6 +254,15 @@ void RaftNode::becomeCandidate(RaftNodeOutput* output, bool preVote)
     BSLS_ASSERT_SAFE(output);
 
     if (!preVote) {
+        // A new election's term must exceed every term in the log.
+        // 'initRecoveredState' cannot always supply it: at start the log's
+        // backing files are not mapped yet, so 'lastTerm()' reads 0 and this
+        // node would otherwise re-elect itself in a term a previous
+        // incarnation already used.
+        const bsls::Types::Uint64 lastLogTerm = d_log_p->lastTerm();
+        if (lastLogTerm > d_currentTerm) {
+            d_currentTerm = lastLogTerm;
+        }
         d_currentTerm++;
         d_votedFor = d_config.d_selfId;
         d_state    = RaftState::e_CANDIDATE;
@@ -271,28 +313,12 @@ void RaftNode::becomeLeader(RaftNodeOutput* output)
     d_transferTargetId = k_INVALID_NODE_ID;
 
     bsls::Types::Uint64 nextIdx = d_log_p->lastIndex() + 1;
-    d_peerStates.clear();
 
-    for (bsl::vector<int>::const_iterator it = d_config.d_peerIds.begin();
-         it != d_config.d_peerIds.end();
+    for (bsl::unordered_map<int, PeerState>::iterator it =
+             d_peerStates.begin();
+         it != d_peerStates.end();
          ++it) {
-        if (*it == d_config.d_selfId) {
-            continue;
-        }
-        PeerState ps;
-        ps.d_nextIndex             = nextIdx;
-        ps.d_matchIndex            = 0;
-        ps.d_snapshotPending       = false;
-        ps.d_snapshotPendingTicks  = 0;
-        ps.d_snapshotPendingIndex  = 0;
-        ps.d_snapshotPendingTerm   = 0;
-        ps.d_boundaryProbeRejected = false;
-        // The peer's match index is unknown until it accepts something.
-        ps.d_probing      = true;
-        ps.d_probeSent    = false;
-        ps.d_stalledTicks = 0;
-        ps.d_sentCommit   = 0;
-        d_peerStates[*it] = ps;
+        it->second.reset(nextIdx);
     }
 
     d_heartbeatTicks = 0;
@@ -826,6 +852,10 @@ void RaftNode::sendAppendEntries(
     BSLS_ASSERT_SAFE(peer);
     BSLS_ASSERT_SAFE(d_state == RaftState::e_LEADER);
 
+    if (!peer->d_isAvailable) {
+        return;  // RETURN
+    }
+
     // A snapshot in flight supersedes replication entirely; 'tick()' clears it
     // on timeout.
     if (peer->d_snapshotPending) {
@@ -975,23 +1005,38 @@ void RaftNode::commitTo(RaftNodeOutput* output, bsls::Types::Uint64 newCommit)
 
     d_commitIndex = newCommit;
 
-    if (d_lastApplied >= d_commitIndex) {
+    loadCommittedBatch(output);
+}
+
+void RaftNode::loadCommittedBatch(RaftNodeOutput* output)
+{
+    BSLS_ASSERT_SAFE(output);
+
+    if (d_lastAppliedCommit >= d_commitIndex) {
         return;  // RETURN
     }
 
-    const bsl::vector<LogEntry>::size_type before = output->d_committed.size();
-    output->d_committed.reserve(before + d_commitIndex - d_lastApplied);
+    const bsls::Types::Uint64 cap     = k_MAX_APPLY_PER_BATCH;
+    const bsls::Types::Uint64 pending = d_commitIndex - d_lastAppliedCommit;
+    const bsls::Types::Uint64 count   = bsl::min(pending, cap);
 
-    d_log_p->entries(d_lastApplied + 1,
-                     d_commitIndex + 1,
+    const bsl::vector<LogEntry>::size_type before = output->d_committed.size();
+    output->d_committed.reserve(before + count);
+
+    d_log_p->entries(d_lastAppliedCommit + 1,
+                     d_lastAppliedCommit + 1 + count,
                      &output->d_committed,
-                     0,      // maxCount: apply everything committed
+                     count,  // maxCount
                      0,      // maxBytes
                      true);  // forApply
 
     // An unreadable entry cuts the range short; the ones past it stay
-    // unapplied and are retried on the next commit.
-    d_lastApplied += output->d_committed.size() - before;
+    // unapplied and are retried on the next pass.
+    d_lastAppliedCommit += output->d_committed.size() - before;
+
+    if (d_lastAppliedCommit < d_commitIndex) {
+        output->d_hasMoreToApply = true;
+    }
 }
 
 void RaftNode::advanceCommitIndex(RaftNodeOutput* output)
@@ -1215,17 +1260,42 @@ int RaftNode::propose(RaftNodeOutput*                     output,
 }
 
 void RaftNode::initRecoveredState(bsls::Types::Uint64 term,
-                                  bsls::Types::Uint64 index)
+                                  bsls::Types::Uint64 commitIndex)
 {
     if (term > d_currentTerm) {
         d_currentTerm = term;
     }
-    if (index > d_commitIndex) {
-        d_commitIndex = index;
+    if (commitIndex > d_commitIndex) {
+        d_commitIndex = commitIndex;
     }
-    if (index > d_lastApplied) {
-        d_lastApplied = index;
+    if (commitIndex > d_lastAppliedCommit) {
+        d_lastAppliedCommit = commitIndex;
     }
+}
+
+void RaftNode::setPeerAvailability(int peerNodeId, bool isAvailable)
+{
+    bsl::unordered_map<int, PeerState>::iterator it = d_peerStates.find(
+        peerNodeId);
+    if (it == d_peerStates.end()) {
+        return;  // RETURN
+    }
+
+    if (it->second.d_isAvailable == isAvailable) {
+        return;  // RETURN
+    }
+
+    it->second.d_isAvailable = isAvailable;
+
+    BALL_LOG_INFO << "[partition " << d_config.d_partitionId << "] Node "
+                  << d_config.d_selfId << " peer " << peerNodeId << " is now "
+                  << (isAvailable ? "reachable" : "unreachable");
+
+    // Either direction invalidates what this leader believed about the peer:
+    // nothing survives the channel, and on the way back it may have restarted.
+    // In particular a snapshot left marked in flight would suppress
+    // replication to it until that times out.
+    it->second.reset(d_log_p->lastIndex() + 1);
 }
 
 int RaftNode::transferLeadership(RaftNodeOutput* output, int targetNodeId)

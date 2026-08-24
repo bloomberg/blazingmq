@@ -362,6 +362,13 @@ struct RaftNodeOutput {
     bool                     d_stateChanged;
     bool                     d_leaderChanged;
     bool                     d_hasInstallSnapshot;
+
+    /// `true` when the apply gather stopped at its cap with entries still
+    /// committed-but-unapplied.  The caller must come back for the rest --
+    /// nothing else will, since `commitTo` only runs when the commit index
+    /// advances.
+    bool d_hasMoreToApply;
+
     RaftMessage              d_installSnapshot;
 
     // TRAITS
@@ -422,7 +429,10 @@ class RaftNode {
     RaftState::Enum     d_state;
     int                 d_leaderId;
     bsls::Types::Uint64 d_commitIndex;
-    bsls::Types::Uint64 d_lastApplied;
+
+    /// Highest committed index handed to the caller to apply.  Trails
+    /// `d_commitIndex` while a batch is outstanding.
+    bsls::Types::Uint64 d_lastAppliedCommit;
 
     // Election state
     bsl::unordered_set<int> d_votesReceived;
@@ -475,6 +485,19 @@ class RaftNode {
         /// an extra message only for peers this leaves behind; the rest learn
         /// it from a message they are already getting.
         bsls::Types::Uint64 d_sentCommit;
+
+        /// True while this peer has a channel.  Not reset by
+        /// `becomeLeader`/`becomeFollower`.
+        bool d_isAvailable;
+
+        // CREATORS
+        PeerState();
+
+        // MANIPULATORS
+
+        /// Set every replication field to its start-of-leadership value, with
+        /// `d_nextIndex` the specified `nextIndex`.  Leaves `d_isAvailable`.
+        void reset(bsls::Types::Uint64 nextIndex);
     };
 
     /// Entries appended since the last round, past which `propose` runs a
@@ -490,6 +513,12 @@ class RaftNode {
     /// bounds how long applying a single message holds the partition's
     /// dispatcher, the byte total bounds what a message costs in memory when
     /// the entries carry payloads.
+    /// Entries applied to the state machine in one pass.  A restarted node
+    /// has everything since the last rollover committed-but-unapplied, so an
+    /// uncapped gather would build a vector of millions of entries and hold
+    /// the partition's dispatcher for the whole replay.
+    static const bsls::Types::Uint64 k_MAX_APPLY_PER_BATCH = 4096;
+
     static const bsls::Types::Uint64 k_MAX_ENTRIES_PER_MESSAGE     = 4096;
     static const bsls::Types::Uint64 k_MAX_ENTRY_BYTES_PER_MESSAGE = 1024 *
                                                                      1024;
@@ -599,6 +628,12 @@ class RaftNode {
     /// Process the specified incoming 'message' from a peer.
     void step(RaftNodeOutput* output, const RaftMessage& message);
 
+    /// Append to `output->d_committed` the next batch of committed entries
+    /// that have not been applied, up to `k_MAX_APPLY_PER_BATCH`, and set
+    /// `output->d_hasMoreToApply` if any remain after it.  A no-op when
+    /// everything committed has been applied.
+    void loadCommittedBatch(RaftNodeOutput* output);
+
     /// Append to the specified `output` the AppendEntries this leader owes its
     /// peers, and nothing if not the leader.  This is where every
     /// AppendEntries is produced: `propose`, `step` and `tick` only move peer
@@ -625,18 +660,26 @@ class RaftNode {
     void setElectionMode(RaftNodeOutput* output, ElectionMode::Enum mode);
 
     /// Initialize recovered state at startup: raise 'd_currentTerm' to at
-    /// least the specified 'term' (the recovered log's last term), and raise
-    /// 'd_commitIndex'/'d_lastApplied' to at least the specified 'index' (the
-    /// recovered log's snapshot index).  Per the Raft persistent-state
-    /// contract (Figure 2), 'currentTerm' must never regress across a
-    /// restart; without seeding it here, the constructor's
-    /// 'd_currentTerm(0)' would let a restarted node re-propose a term
-    /// already present in the recovered log.  Without seeding
-    /// 'd_commitIndex'/'d_lastApplied', a node that ever rolled over/snapshot
-    /// would stall because 'entries()' cannot serve indices at or below the
+    /// least the specified 'term' (the recovered log's last term), and both
+    /// 'd_commitIndex' and 'd_lastAppliedCommit' to at least the specified
+    /// 'commitIndex'.  Per the Raft persistent-state contract (Figure 2),
+    /// 'currentTerm' must never regress across a restart; without seeding it
+    /// here, the constructor's 'd_currentTerm(0)' would let a restarted node
+    /// re-propose a term already present in the recovered log.  Without
+    /// seeding 'd_commitIndex', a node that ever rolled over/snapshot would
+    /// stall because 'entries()' cannot serve indices at or below the
     /// snapshot floor.
+    ///
+    /// The applied watermark takes the same value: recovery restores storage
+    /// to the compaction boundary and no further, so entries above it are
+    /// applied by the commit path.
     void initRecoveredState(bsls::Types::Uint64 term,
-                            bsls::Types::Uint64 index);
+                            bsls::Types::Uint64 commitIndex);
+
+    /// Record that the peer with the specified `peerNodeId` is reachable or
+    /// not, per the specified `isAvailable`.  Becoming reachable resets that
+    /// peer back to probing.
+    void setPeerAvailability(int peerNodeId, bool isAvailable);
 
     // ACCESSORS
     RaftState::Enum     state() const;
@@ -651,7 +694,7 @@ class RaftNode {
     /// entries are also committed (and, once applied, present in state).
     bsls::Types::Uint64 commitTerm() const;
 
-    bsls::Types::Uint64   lastApplied() const;
+    bsls::Types::Uint64   lastAppliedCommit() const;
     const RaftNodeConfig& config() const;
     int                   quorum() const;
     ElectionMode::Enum    electionMode() const;
@@ -808,6 +851,7 @@ inline RaftNodeOutput::RaftNodeOutput(bslma::Allocator* allocator)
 , d_stateChanged(false)
 , d_leaderChanged(false)
 , d_hasInstallSnapshot(false)
+, d_hasMoreToApply(false)
 , d_installSnapshot(allocator)
 {
 }
@@ -819,6 +863,7 @@ inline RaftNodeOutput::RaftNodeOutput(const RaftNodeOutput& other,
 , d_stateChanged(other.d_stateChanged)
 , d_leaderChanged(other.d_leaderChanged)
 , d_hasInstallSnapshot(other.d_hasInstallSnapshot)
+, d_hasMoreToApply(other.d_hasMoreToApply)
 , d_installSnapshot(other.d_installSnapshot, allocator)
 {
 }
@@ -830,6 +875,7 @@ inline void RaftNodeOutput::reset()
     d_stateChanged       = false;
     d_leaderChanged      = false;
     d_hasInstallSnapshot = false;
+    d_hasMoreToApply     = false;
 }
 
 // --------------
@@ -867,9 +913,9 @@ inline bsls::Types::Uint64 RaftNode::commitTerm() const
     return d_log_p->term(d_commitIndex);
 }
 
-inline bsls::Types::Uint64 RaftNode::lastApplied() const
+inline bsls::Types::Uint64 RaftNode::lastAppliedCommit() const
 {
-    return d_lastApplied;
+    return d_lastAppliedCommit;
 }
 
 inline const RaftNodeConfig& RaftNode::config() const

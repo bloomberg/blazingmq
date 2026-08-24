@@ -529,6 +529,7 @@ void StorageManager::recoveredQueuesCb(int                    partitionId,
         d_clusterData_p->identity().description(),
         partitionId,
         queueKeyInfoMap,
+        mqbc::StorageUtil::k_NO_SNAPSHOT_BOUNDARY,
         d_allocator_p);
 
     if (++d_numPartitionsRecoveredQueues < numPartitions) {

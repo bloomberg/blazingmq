@@ -116,6 +116,7 @@ void PartitionRaftManager::recoveredQueuesCb(
         d_clusterData_p->identity().description(),
         partitionId,
         queueKeyInfoMap,
+        d_fileStores[partitionId]->snapshotOffset(),
         d_allocator_p);
 }
 

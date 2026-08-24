@@ -1300,11 +1300,39 @@ int FileStore::recoverMessages(QueueKeyInfoMap*                queueKeyInfoMap,
     JournalFileIterator journalIt(*jit);
     BSLS_ASSERT_SAFE(journalIt.isReverseMode());
 
+    // Records at or below this offset were folded into the snapshot by
+    // rollover compaction; those above it are the live log.  Position, not
+    // PSN: a journal segment written by legacy restarts 'sequenceNumber' per
+    // lease, so its records compare as older than the boundary.  Zero means
+    // nothing has rolled over yet, so the whole journal is live log.
+    //
+    // Both passes need it: only a deletion or purge at or below the boundary
+    // may collapse what it removes.  Above the boundary it is itself a log
+    // entry the Raft commit-apply path has yet to apply, and collapsing now
+    // would leave that path with no record to apply it to.  Queue discovery
+    // ('queueKeyInfoMap') is deliberately NOT gated -- the second pass needs
+    // it to interpret every record, whichever side of the boundary it is on.
+    bsls::Types::Uint64 snapshotOffset = 0;
+    if (recoveryIndex) {
+        snapshotOffset = jit->firstSyncPointAfterRolloverPosition();
+        BALL_LOG_INFO << partitionDesc()
+                      << "Raft recovery: snapshotOffset=" << snapshotOffset
+                      << ", snapshotPSN="
+                      << d_firstSyncPointAfterRolloverSeqNum;
+        d_snapshotOffset = snapshotOffset;
+    }
+
     // First pass.
     int rc = 0;
     while ((rc = journalIt.nextRecord()) == 1) {
         const RecordHeader& recHeader = journalIt.recordHeader();
         RecordType::Enum    rt        = recHeader.type();
+
+        // Above the rollover boundary the record is an unapplied log entry,
+        // not recovered state.  Always false in legacy mode.
+        const bool aboveBoundary = recoveryIndex &&
+                                   journalIt.recordOffset() > snapshotOffset;
+
         if (rt == RecordType::e_UNDEFINED) {
             BALL_LOG_ERROR << partitionDesc() << "Encountered invalid JOURNAL "
                            << "record while reverse-iterating JOURNAL during "
@@ -1402,7 +1430,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*                queueKeyInfoMap,
                 }
             }
 
-            if (appKey.isNull()) {
+            if (appKey.isNull() && !aboveBoundary) {
                 StorageKeysOffsetsInsertRc irc =
                     deletedQueueKeysOffsets.insert(
                         bsl::make_pair(queueKey, journalIt.recordOffset()));
@@ -1434,6 +1462,11 @@ int FileStore::recoverMessages(QueueKeyInfoMap*                queueKeyInfoMap,
             else {
                 // TODO_CSL: Remove this block.
                 // CSL does not need 'e_DELETION' for Apps
+
+                // The App stays registered until this deletion commits.
+                if (aboveBoundary) {
+                    continue;  // CONTINUE
+                }
 
                 StorageKeysOffsetsInsertRc irc = deletedAppKeysOffsets.insert(
                     bsl::make_pair(appKey, journalIt.recordOffset()));
@@ -1659,19 +1692,6 @@ int FileStore::recoverMessages(QueueKeyInfoMap*                queueKeyInfoMap,
         d_highestSeqNums[primaryLeaseId] = currentSeqNum;
     }
 
-    // Records at or below this offset were folded into the snapshot by
-    // rollover compaction; those above it are the live log.  Position, not
-    // PSN: a journal segment written by legacy restarts 'sequenceNumber' per
-    // lease, so its records compare as older than the boundary.
-    bsls::Types::Uint64 snapshotOffset = 0;
-    if (recoveryIndex) {
-        snapshotOffset = jit->firstSyncPointAfterRolloverPosition();
-        BALL_LOG_INFO << partitionDesc()
-                      << "Raft recovery: snapshotOffset=" << snapshotOffset
-                      << ", snapshotPSN="
-                      << d_firstSyncPointAfterRolloverSeqNum;
-    }
-
     // Second pass.
     while (1 == (rc = jit->nextRecord())) {
         const RecordHeader& recHeader = jit->recordHeader();
@@ -1685,6 +1705,11 @@ int FileStore::recoverMessages(QueueKeyInfoMap*                queueKeyInfoMap,
         // to fill in the handle of the log-index entry pushed for this record
         // (see the push_front below).
         RecordIterator recoveredRecordIt = d_records.end();
+
+        // Above the rollover boundary the record is an unapplied log entry,
+        // not recovered state.  Always false in legacy mode.
+        const bool aboveBoundary = recoveryIndex &&
+                                   jit->recordOffset() > snapshotOffset;
 
         // Validate PSN in the RecordHeader. Note that leaseId in
         // the RecordHeader can be smaller than 'primaryLeaseId'.
@@ -1770,7 +1795,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*                queueKeyInfoMap,
                 bmqp::Protocol::k_WORD_SIZE;
         }
 
-        if (recoveryIndex && jit->recordOffset() > snapshotOffset) {
+        if (aboveBoundary) {
             // Carry the sync-point sub-type for journal-ops so a recovered
             // uncommitted 'e_ROLLOVER' is still detectable by the Raft apply
             // hook.
@@ -1976,20 +2001,27 @@ int FileStore::recoverMessages(QueueKeyInfoMap*                queueKeyInfoMap,
             BSLS_ASSERT_SAFE(QueueOpType::e_UNDEFINED != queueOpType);
 
             if (QueueOpType::e_DELETION == queueOpType) {
-                if (1 == deletedQueueKeysOffsets.count(queueKey)) {
+                if (!aboveBoundary &&
+                    1 == deletedQueueKeysOffsets.count(queueKey)) {
                     // Entire QueueKey has been deleted.  No need to insert
                     // QueueOpRecord.DELETION in 'd_records'.
 
                     continue;  // CONTINUE
                 }
 
-                // QueueKey has not been deleted, but since this is a deletion
-                // queue op record, a specific appKey of the queue must have
-                // been deleted, which means appKey must be non-null, and must
-                // appear in the 'deleted appKeys' list.
+                if (!aboveBoundary) {
+                    // QueueKey has not been deleted, but since this is a
+                    // deletion queue op record, a specific appKey of the queue
+                    // must have been deleted, which means appKey must be
+                    // non-null, and must appear in the 'deleted appKeys' list.
+                    //
+                    // Above the rollover boundary neither holds: the first
+                    // pass skips those records, so the queue or app they name
+                    // is still alive here and the deletion applies on commit.
 
-                BSLS_ASSERT_SAFE(!appKey.isNull());
-                BSLS_ASSERT_SAFE(1 == deletedAppKeysOffsets.count(appKey));
+                    BSLS_ASSERT_SAFE(!appKey.isNull());
+                    BSLS_ASSERT_SAFE(1 == deletedAppKeysOffsets.count(appKey));
+                }
 
                 // Need to keep track of this record (AppKey deletion record)
                 // in 'd_records'.
@@ -2056,10 +2088,12 @@ int FileStore::recoverMessages(QueueKeyInfoMap*                queueKeyInfoMap,
 
                 if (appKey.isNull()) {
                     // Entire queue is purged.
-                    purgedQueueKeys.insert(queueKey);
+                    if (!aboveBoundary) {
+                        purgedQueueKeys.insert(queueKey);
+                    }
                 }
 
-                else {
+                else if (!aboveBoundary) {
                     BALL_LOG_INFO
                         << partitionDesc() << "Adding PurgeOp for " << appKey
                         << " from "
@@ -2435,6 +2469,12 @@ int FileStore::recoverMessages(QueueKeyInfoMap*                queueKeyInfoMap,
                                 // appId/appKey uniqueness here.  That check is
                                 // done in StorageMgr because we have recovered
                                 // all appId/appKey pairs by that time.
+                                //
+                                // The App is registered when this QueueOp
+                                // commits, through 'queueCreationCb'.
+                                if (aboveBoundary) {
+                                    continue;  // CONTINUE
+                                }
 
                                 qinfo.addAppInfo(cit->first,
                                                  cit->second,
@@ -2540,7 +2580,9 @@ int FileStore::recoverMessages(QueueKeyInfoMap*                queueKeyInfoMap,
                 // Ignore the error and continue tracking the GUID as deleted.
             }
 
-            deletedGuids.insert(rec.messageGUID());
+            if (!aboveBoundary) {
+                deletedGuids.insert(rec.messageGUID());
+            }
 
             // Not need to insert the deleted record in 'd_records'
         }
@@ -2886,14 +2928,12 @@ int FileStore::recoverMessages(QueueKeyInfoMap*                queueKeyInfoMap,
         }
 
         // Fill in the handle of this record's log-index entry (pushed above)
-        // from its 'd_records' entry, if one was inserted this iteration.
-        // FSM recovery is physical-only: recovered log entries are applied
-        // logically by the Raft commit-apply path, which needs this handle to
-        // materialize the storage on commit.  'front()' is this record's entry
-        // (guard mirrors the push condition), and every 'continue' above
-        // precedes its 'rinsert', so an inserted record always reaches here.
-        if (recoveryIndex && jit->recordOffset() > snapshotOffset &&
-            recoveredRecordIt != d_records.end()) {
+        // from its 'd_records' entry, if one was inserted this iteration.  The
+        // commit-apply path needs the handle to reach the record.  'front()'
+        // is this record's entry (guard mirrors the push condition), and every
+        // 'continue' above precedes its 'rinsert', so an inserted record
+        // always reaches here.
+        if (aboveBoundary && recoveredRecordIt != d_records.end()) {
             BSLS_ASSERT_SAFE(!recoveryIndex->empty());
             recordIteratorToHandle(&recoveryIndex->front().d_handle,
                                    recoveredRecordIt);
@@ -6052,6 +6092,7 @@ FileStore::FileStore(
                         d_blobSpPool_p,
                         allocator)
 , d_firstSyncPointAfterRolloverSeqNum()
+, d_snapshotOffset(0)
 , d_highestSeqNums(allocator)
 , d_messageTransmitter(blobSpPool, cluster, allocator)
 {
@@ -8145,6 +8186,122 @@ int FileStore::lookupRecord(bsls::Types::Uint64* journalOffset,
     return 0;
 }
 
+void FileStore::applyCommittedQueueOp(const DataStoreRecordHandle& handle)
+{
+    // Queue lifecycle is applied here for every committed QUEUE_OP, whichever
+    // path delivered it: entries this node proposed as primary and entries it
+    // received or recovered.  The write path only proposes.
+    BSLS_ASSERT_SAFE(handle.isValid());
+
+    QueueOpRecord loaded;
+    loadQueueOpRecordRaw(&loaded, handle);
+    const QueueOpRecord* qOpRec = &loaded;
+
+    StorageMapIter sit = d_storages.find(qOpRec->queueKey());
+
+    if (QueueOpType::e_CREATION == qOpRec->type() ||
+        QueueOpType::e_ADDITION == qOpRec->type()) {
+        // Either a replica seeing this queue for the first time, or
+        // an already-known queue getting app(s) added.  Safe to
+        // dispatch unconditionally in both cases: the record only
+        // ever carries the delta (the app(s) actually added at this
+        // point, see 'StorageUtil::updateQueuePrimaryRaw's
+        // 'addedIdKeyPairs'), never the full historical app set, so
+        // there's nothing to collide with on an already-known queue.
+        // 'queueCreationCb' itself branches on 'isNewQueue' between
+        // creating storage from scratch and adding apps to existing
+        // storage, mirroring the legacy replication-stream path in
+        // 'processQueueCreationRecord' (which calls it
+        // unconditionally for the same reason).
+        bmqt::Uri uri(d_allocator_p);
+        AppInfos  appIdKeyPairs(d_allocator_p);
+        int       rc = loadQueueCreationInfo(&uri, &appIdKeyPairs, handle);
+        if (0 == rc) {
+            // 'isNewQueue' follows whether the storage exists, not the
+            // record type: recovery creates the storage for every
+            // queue in the journal but registers apps only below the
+            // rollover boundary, so an 'e_CREATION' above it lands on
+            // an app-less storage and must take the update branch.
+            BSLS_ASSERT_SAFE(d_config.queueCreationCb());
+            d_config.queueCreationCb()(d_config.partitionId(),
+                                       uri,
+                                       qOpRec->queueKey(),
+                                       appIdKeyPairs,
+                                       sit == d_storages.end());
+            sit = d_storages.find(qOpRec->queueKey());
+        }
+        else {
+            BALL_LOG_ERROR << partitionDesc()
+                           << "Failed to reconstruct queue creation info for "
+                           << "committed QUEUE_OP, queueKey ["
+                           << qOpRec->queueKey() << "], rc: " << rc;
+        }
+    }
+
+    if (sit == d_storages.end()) {
+        BALL_LOG_WARN << partitionDesc()
+                      << "Committed QUEUE_OP for unknown queueKey ["
+                      << qOpRec->queueKey() << "]";
+        return;
+    }
+
+    ReplicatedStorage* rstorage = sit->second;
+
+    BALL_LOG_INFO << partitionDesc() << "Received QueueOpRecord of type ["
+                  << qOpRec->type() << "] for queue [" << rstorage->queueUri()
+                  << "], queueKey [" << qOpRec->queueKey() << "], appKey ["
+                  << qOpRec->appKey() << "].";
+
+    if (QueueOpType::e_DELETION == qOpRec->type()) {
+        if (qOpRec->appKey().isNull()) {
+            // Entire queue is being deleted.  Remove all of its
+            // QueueOp record handles from 'd_records' -- including
+            // this DELETION record itself -- so that a stale (e.g.
+            // CREATION) record doesn't linger as "outstanding" past
+            // deletion; otherwise a later rollover would try to
+            // carry it forward and then fail to find its storage in
+            // 'd_storages' (already removed by 'queueDeletionCb'
+            // below).  Mirrors the legacy 'writeJournalRecord' path.
+            const ReplicatedStorage::RecordHandles& recHandles =
+                rstorage->queueOpRecordHandles();
+            for (size_t idx = 0; idx < recHandles.size(); ++idx) {
+                removeRecordRaw(recHandles[idx]);
+            }
+            removeRecordRaw(handle);
+        }
+
+        // Dispatch to the deletion callback so the queue (or the
+        // specific app) is properly deregistered from both
+        // 'd_storages' and the (URI-keyed) storageMonitor --
+        // otherwise a whole-queue deletion leaves a stale entry
+        // that collides when the same URI is later reused with a
+        // new queueKey.
+        BSLS_ASSERT_SAFE(d_config.queueDeletionCb());
+        d_config.queueDeletionCb()(d_config.partitionId(),
+                                   rstorage->queueUri(),
+                                   qOpRec->queueKey(),
+                                   qOpRec->appKey());
+
+        if (qOpRec->appKey().isNull()) {
+            // Whole queue was just unregistered above -- 'rstorage'
+            // may now be dangling, and there's nothing left to
+            // attach this record's handle to.
+            return;
+        }
+        // App-level deletion: the queue's storage itself is still
+        // valid (only the app's virtual storage was removed) --
+        // fall through as usual.
+    }
+
+    if (QueueOpType::e_PURGE == qOpRec->type()) {
+        if (qOpRec->appKey().isNull() ||
+            rstorage->hasVirtualStorage(qOpRec->appKey())) {
+            rstorage->purge(qOpRec->appKey());
+        }
+    }
+    rstorage->addQueueOpRecordHandle(handle);
+}
+
 void FileStore::onRecordCommittedReplica(const bdlbb::Blob&           data,
                                          const DataStoreRecordHandle& handle)
 {
@@ -8244,112 +8401,7 @@ void FileStore::onRecordCommittedReplica(const bdlbb::Blob&           data,
 
     case RecordType::e_QUEUE_OP: {
         if (handle.isValid()) {
-            bmqu::BlobObjectProxy<QueueOpRecord> qOpRec(&data, true, false);
-
-            BSLS_ASSERT_SAFE(qOpRec.isSet());
-
-            StorageMapIter sit = d_storages.find(qOpRec->queueKey());
-
-            if (QueueOpType::e_CREATION == qOpRec->type() ||
-                QueueOpType::e_ADDITION == qOpRec->type()) {
-                // Either a replica seeing this queue for the first time, or
-                // an already-known queue getting app(s) added.  Safe to
-                // dispatch unconditionally in both cases: the record only
-                // ever carries the delta (the app(s) actually added at this
-                // point, see 'StorageUtil::updateQueuePrimaryRaw's
-                // 'addedIdKeyPairs'), never the full historical app set, so
-                // there's nothing to collide with on an already-known queue.
-                // 'queueCreationCb' itself branches on 'isNewQueue' between
-                // creating storage from scratch and adding apps to existing
-                // storage, mirroring the legacy replication-stream path in
-                // 'processQueueCreationRecord' (which calls it
-                // unconditionally for the same reason).
-                bmqt::Uri uri(d_allocator_p);
-                AppInfos  appIdKeyPairs(d_allocator_p);
-                int rc = loadQueueCreationInfo(&uri, &appIdKeyPairs, handle);
-                if (0 == rc) {
-                    BSLS_ASSERT_SAFE(d_config.queueCreationCb());
-                    d_config.queueCreationCb()(d_config.partitionId(),
-                                               uri,
-                                               qOpRec->queueKey(),
-                                               appIdKeyPairs,
-                                               QueueOpType::e_CREATION ==
-                                                   qOpRec->type());
-                    sit = d_storages.find(qOpRec->queueKey());
-                }
-                else {
-                    BALL_LOG_ERROR
-                        << partitionDesc()
-                        << "Failed to reconstruct queue creation info for "
-                        << "committed QUEUE_OP, queueKey ["
-                        << qOpRec->queueKey() << "], rc: " << rc;
-                }
-            }
-
-            if (sit == d_storages.end()) {
-                BALL_LOG_WARN << partitionDesc()
-                              << "Committed QUEUE_OP for unknown queueKey ["
-                              << qOpRec->queueKey() << "]";
-                return;
-            }
-
-            ReplicatedStorage* rstorage = sit->second;
-
-            BALL_LOG_INFO << partitionDesc()
-                          << "Received QueueOpRecord of type ["
-                          << qOpRec->type() << "] for queue ["
-                          << rstorage->queueUri() << "], queueKey ["
-                          << qOpRec->queueKey() << "], appKey ["
-                          << qOpRec->appKey() << "].";
-
-            if (QueueOpType::e_DELETION == qOpRec->type()) {
-                if (qOpRec->appKey().isNull()) {
-                    // Entire queue is being deleted.  Remove all of its
-                    // QueueOp record handles from 'd_records' -- including
-                    // this DELETION record itself -- so that a stale (e.g.
-                    // CREATION) record doesn't linger as "outstanding" past
-                    // deletion; otherwise a later rollover would try to
-                    // carry it forward and then fail to find its storage in
-                    // 'd_storages' (already removed by 'queueDeletionCb'
-                    // below).  Mirrors the legacy 'writeJournalRecord' path.
-                    const ReplicatedStorage::RecordHandles& recHandles =
-                        rstorage->queueOpRecordHandles();
-                    for (size_t idx = 0; idx < recHandles.size(); ++idx) {
-                        removeRecordRaw(recHandles[idx]);
-                    }
-                    removeRecordRaw(handle);
-                }
-
-                // Dispatch to the deletion callback so the queue (or the
-                // specific app) is properly deregistered from both
-                // 'd_storages' and the (URI-keyed) storageMonitor --
-                // otherwise a whole-queue deletion leaves a stale entry
-                // that collides when the same URI is later reused with a
-                // new queueKey.
-                BSLS_ASSERT_SAFE(d_config.queueDeletionCb());
-                d_config.queueDeletionCb()(d_config.partitionId(),
-                                           rstorage->queueUri(),
-                                           qOpRec->queueKey(),
-                                           qOpRec->appKey());
-
-                if (qOpRec->appKey().isNull()) {
-                    // Whole queue was just unregistered above -- 'rstorage'
-                    // may now be dangling, and there's nothing left to
-                    // attach this record's handle to.
-                    return;
-                }
-                // App-level deletion: the queue's storage itself is still
-                // valid (only the app's virtual storage was removed) --
-                // fall through as usual.
-            }
-
-            if (QueueOpType::e_PURGE == qOpRec->type()) {
-                if (qOpRec->appKey().isNull() ||
-                    rstorage->hasVirtualStorage(qOpRec->appKey())) {
-                    rstorage->purge(qOpRec->appKey());
-                }
-            }
-            rstorage->addQueueOpRecordHandle(handle);
+            applyCommittedQueueOp(handle);
         }
         else {
             // Superseded recovered QUEUE_OP (see MESSAGE note); no-op.
@@ -8457,8 +8509,27 @@ int FileStore::loadQueueCreationInfo(bmqt::Uri* uri,
     return rc_SUCCESS;
 }
 
-void FileStore::onRecordCommittedPrimary(PendingWrite& pw)
+void FileStore::onRecordCommittedPrimary(PendingWrite&      pw,
+                                         bsls::Types::Int64 commitTimepoint)
 {
+    if (pw.d_recordType == RecordType::e_QUEUE_OP) {
+        // Whole-queue teardown applies on commit, so that a deletion this
+        // node proposed and one it recovered or received go through the same
+        // writer -- 'unregisterQueueDispatched' only proposes.  Everything
+        // else about a queue (creation, app addition, app deletion, purge) is
+        // still applied inline by the write path, so re-applying it here
+        // would be a second removal.
+        if (pw.d_handle.isValid()) {
+            QueueOpRecord rec;
+            loadQueueOpRecordRaw(&rec, pw.d_handle);
+            if (QueueOpType::e_DELETION == rec.type() &&
+                rec.appKey().isNull()) {
+                applyCommittedQueueOp(pw.d_handle);
+            }
+        }
+        return;  // RETURN
+    }
+
     if (pw.d_recordType != RecordType::e_MESSAGE) {
         return;  // non-MESSAGE records don't produce handles or need receipt
     }
@@ -8483,6 +8554,14 @@ void FileStore::onRecordCommittedPrimary(PendingWrite& pw)
         BSLS_ASSERT_SAFE(queue);
 
         pw.d_handle.setHasReceipt();
+
+        // The same measurement the legacy receipt path records, so both modes
+        // report store-and-replicate time on one axis.  A zero arrival
+        // timepoint means unset.
+        if (0 != pw.d_attributes.arrivalTimepoint()) {
+            d_partitionStats_sp->setReplicationTime(
+                commitTimepoint - pw.d_attributes.arrivalTimepoint());
+        }
 
         if (!pw.d_attributes.hasReceipt()) {
             queue->onReceipt(pw.d_guid, pw.d_attributes.queueHandle());
@@ -9282,6 +9361,25 @@ void FileStore::flushStorage()
                    << " STORAGE messages.";
     d_cluster_p->broadcast(d_storageEventBuilder.blob());
     d_storageEventBuilder.reset();
+}
+
+void FileStore::updatePartitionStats()
+{
+    if (!d_isOpen || d_fileSets.empty()) {
+        return;  // RETURN
+    }
+
+    const FileSet* fs = d_fileSets[0].get();
+    d_partitionStats_sp->setPartitionBytes(fs->d_data.d_outstandingBytes,
+                                           fs->d_journal.d_outstandingBytes,
+                                           fs->d_data.d_filePosition,
+                                           fs->d_journal.d_filePosition,
+                                           writeHeadSeqNum());
+}
+
+void FileStore::onRolloverComplete(bsls::Types::Int64 elapsedNs)
+{
+    d_partitionStats_sp->setRoloverTime(elapsedNs);
 }
 
 void FileStore::notifyQueuesOnReplicatedBatch()

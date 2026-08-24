@@ -507,6 +507,13 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     // Storage event builder to use.
 
     bmqp_ctrlmsg::PartitionSequenceNumber d_firstSyncPointAfterRolloverSeqNum;
+
+    /// Journal offset of the rollover boundary as of the last recovery.
+    /// Records at or below it were folded into the snapshot; those above it
+    /// are log entries the Raft commit-apply path has yet to apply.  Zero
+    /// when nothing has rolled over, or when this store was not recovered
+    /// for Raft -- see `k_NO_SNAPSHOT_BOUNDARY` for the latter's marker.
+    bsls::Types::Uint64 d_snapshotOffset;
     // First sync point after rollover sequence number, it is set at the last
     // step of rollover, together with journal file header
     // `firstSyncPointOffsetWords`. It is used to determine if cluster node
@@ -1021,6 +1028,12 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     int writeFormattedRecord(const bdlbb::Blob&  data,
                              RecoveryRecordInfo* info);
 
+    /// Apply the committed QUEUE_OP record identified by the specified
+    /// `handle`: create, update, delete or purge the queue's storage.
+    /// Invoked for every committed QUEUE_OP regardless of which path
+    /// delivered it, so that queue lifecycle has a single writer.
+    void applyCommittedQueueOp(const DataStoreRecordHandle& handle);
+
     /// Notify that a record has been committed by Raft quorum on a replica.
     /// The specified `data` blob contains the journal record (and optional
     /// payload).  The specified `handle` identifies the record in
@@ -1053,7 +1066,8 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// its handle as receipted and, if the queue still exists, invoke
     /// 'queue->onReceipt()'.  Non-MESSAGE records produce no handle and are
     /// ignored.
-    void onRecordCommittedPrimary(PendingWrite& pw);
+    void onRecordCommittedPrimary(PendingWrite&      pw,
+                                  bsls::Types::Int64 commitTimepoint);
 
     /// Read the record at the specified 'journalOffset' (and any
     /// associated data payload) into the specified 'out' blob using
@@ -1371,6 +1385,17 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// queues on the primary, and must only be called after `flushStorage`.
     void notifyQueuesOnReplicatedBatch();
 
+    /// Refresh this partition's outstanding-bytes, file-offset and sequence
+    /// number statistics from the active file set.  Legacy refreshes these
+    /// whenever it issues a sync point; Raft issues none periodically, so its
+    /// caller drives this from the partition tick.
+    void updatePartitionStats();
+
+    /// Record the specified `elapsedNs` as the time this partition's last
+    /// rollover took.  Legacy records it from `rolloverImpl`; a Raft rollover
+    /// runs in `PartitionRaftLog` instead, which has no access to the stats.
+    void onRolloverComplete(bsls::Types::Int64 elapsedNs);
+
     /// mqbs::FileStore specific MANIPULATORS
 
     /// Perform complete rollover of this partition and issue necessary sync
@@ -1551,6 +1576,10 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// Return the first sync point after rollover sequence number.
     const bmqp_ctrlmsg::PartitionSequenceNumber&
     firstSyncPointAfterRolloverSeqNum() const;
+
+    /// Return the journal offset of the rollover boundary as of the last
+    /// recovery; 0 if nothing has rolled over.
+    bsls::Types::Uint64 snapshotOffset() const;
 
     /// Return the map of primaryLeaseId to highest sequence number, including
     /// the current primary.
@@ -1825,6 +1854,11 @@ inline const bmqp_ctrlmsg::PartitionSequenceNumber&
 FileStore::firstSyncPointAfterRolloverSeqNum() const
 {
     return d_firstSyncPointAfterRolloverSeqNum;
+}
+
+inline bsls::Types::Uint64 FileStore::snapshotOffset() const
+{
+    return d_snapshotOffset;
 }
 
 inline const FileStore::LeaseIdToSeqNumMap& FileStore::highestSeqNums() const

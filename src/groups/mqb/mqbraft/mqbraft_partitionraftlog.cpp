@@ -58,7 +58,6 @@ PartitionRaftLog::PartitionRaftLog(mqbs::FileStore*  fileStore,
 , d_snapshotIndex(0)
 , d_snapshotTerm(0)
 , d_allocator_p(bslma::Default::allocator(allocator))
-, d_recoveredLastIndex(0)
 , d_pendingWrites(d_allocator_p)
 , d_cache(allocator)
 , d_frontIndex(1)
@@ -94,13 +93,6 @@ int PartitionRaftLog::open()
         d_fileStore_p->firstSyncPointAfterRolloverSeqNum();
     d_snapshotIndex = snapshotPSN.sequenceNumber();
     d_snapshotTerm  = snapshotPSN.primaryLeaseId();
-
-    // Everything up to and including 'lastIndex()' at this point was just
-    // recovered from local disk and already materialized into
-    // 'ReplicatedStorage' by 'StorageUtil::recoveredQueuesCb'.
-    // 'applyCommittedEntryAsReplica' uses this watermark to avoid replaying
-    // it a second time.
-    d_recoveredLastIndex = lastIndex();
 
     d_frontIndex = d_snapshotIndex + 1;
 
@@ -739,6 +731,8 @@ void PartitionRaftLog::rollover(bsls::Types::Uint64 rolloverIndex)
         statRecorder.print(BALL_LOG_OUTPUT_STREAM, "ROLLOVER COMPLETE");
     }
 
+    d_fileStore_p->onRolloverComplete(statRecorder.totalElapsed());
+
     // Drop the compacted prefix (up to and including 'e_ROLLOVER') and advance
     // the snapshot boundary; what was rewritten above, if any, stays in
     // 'd_index' as the live log now anchored on the new file.  The compacted
@@ -781,7 +775,9 @@ void PartitionRaftLog::rollover(bsls::Types::Uint64 rolloverIndex)
     }
 }
 
-void PartitionRaftLog::applyCommittedEntryAsPrimary(bsls::Types::Uint64 index)
+void PartitionRaftLog::applyCommittedEntryAsPrimary(
+    bsls::Types::Uint64 index,
+    bsls::Types::Int64  commitTimepoint)
 {
     // Callers route here on 'isOwnAppendedEntry', so the front appended write
     // is this entry's.
@@ -793,7 +789,7 @@ void PartitionRaftLog::applyCommittedEntryAsPrimary(bsls::Types::Uint64 index)
 
     const bsl::shared_ptr<PendingWrite>& pw = d_pendingWrites.front();
 
-    d_fileStore_p->onRecordCommittedPrimary(*pw);
+    d_fileStore_p->onRecordCommittedPrimary(*pw, commitTimepoint);
 
     // A peer that has not acked this entry can still ask for it once a quorum
     // has committed it, so keep what serves it before dropping the rest.
@@ -813,15 +809,6 @@ void PartitionRaftLog::applyCommittedEntryAsReplica(bsls::Types::Uint64 index,
     // record propose time may already have erased.  Callers route those to
     // 'applyCommittedEntryAsPrimary'.
     BSLS_ASSERT_SAFE(!isOwnAppendedEntry(index));
-
-    if (index <= d_recoveredLastIndex) {
-        // Already materialized eagerly by 'StorageUtil::recoveredQueuesCb' at
-        // 'open()' time (ghost-adjusted refcounts included).  Applying it
-        // again here would double-process confirms/purges on this replica,
-        // and a whole-queue purge could run ahead of 'd_index' entries this
-        // replay hasn't reached yet, invalidating their handles.
-        return;  // RETURN
-    }
 
     const EntryInfo& entryInfo = d_index[index - d_frontIndex];
 

@@ -528,6 +528,30 @@ void ClusterStateRaft::fromCtrlMsg(RaftMessage*                     out,
     }
 }
 
+void ClusterStateRaft::setPeerAvailabilityDispatched(int  nodeId,
+                                                     bool isAvailable)
+{
+    // executed by the cluster *DISPATCHER* thread
+    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
+
+    d_raftNode_mp->setPeerAvailability(nodeId, isAvailable);
+}
+
+void ClusterStateRaft::onNodeStateChange(mqbnet::ClusterNode* node,
+                                         bool                 isAvailable)
+{
+    // executed by the *IO* thread, holding 'ClusterImp::d_mutex': do no work
+    // here beyond handing the change to the cluster dispatcher.
+    BSLS_ASSERT_SAFE(node);
+
+    d_clusterData_p->cluster().dispatcher()->execute(
+        bdlf::BindUtil::bind(&ClusterStateRaft::setPeerAvailabilityDispatched,
+                             this,
+                             node->nodeId(),
+                             isAvailable),
+        &d_clusterData_p->cluster());
+}
+
 void ClusterStateRaft::tickCb()
 {
     d_clusterData_p->cluster().dispatcher()->execute(
@@ -688,8 +712,10 @@ int ClusterStateRaft::start(bsl::ostream& errorDescription)
                            d_allocator_p),
                        d_allocator_p);
 
-    // Seed the recovered term and applied state; see
-    // 'PartitionRaft::start()' for why this is needed.
+    // Seed the recovered term and applied state; see 'PartitionRaft::start()'
+    // for why this is needed.  'commitIndex' and 'lastAppliedCommit' both
+    // start at the snapshot index; entries above it are applied by the commit
+    // path.
     d_raftNode_mp->initRecoveredState(d_cslLog_mp->lastTerm(),
                                       d_cslLog_mp->snapshotIndex());
 
@@ -700,6 +726,20 @@ int ClusterStateRaft::start(bsl::ostream& errorDescription)
         &d_tickHandle,
         tickInterval,
         bdlf::BindUtil::bind(&ClusterStateRaft::tickCb, this));
+
+    // Register before seeding: 'onNodeStateChange' reports transitions only,
+    // and it dispatches to this same thread, so a change raised during the
+    // seed below queues behind it and applies after.
+    mqbnet::Cluster* netCluster = d_clusterData_p->membership().netCluster();
+    netCluster->registerObserver(this);
+
+    const mqbnet::Cluster::NodesList& nodes = netCluster->nodes();
+    for (mqbnet::Cluster::NodesList::const_iterator it = nodes.begin();
+         it != nodes.end();
+         ++it) {
+        d_raftNode_mp->setPeerAvailability((*it)->nodeId(),
+                                           (*it)->isAvailable());
+    }
 
     d_isStarted = true;
 
@@ -714,6 +754,8 @@ void ClusterStateRaft::stop()
     if (!d_isStarted) {
         return;
     }
+
+    d_clusterData_p->membership().netCluster()->unregisterObserver(this);
 
     d_clusterData_p->scheduler().cancelEventAndWait(&d_tickHandle);
     if (d_cslLog_mp) {
@@ -1353,7 +1395,7 @@ void ClusterStateRaft::applySnapshotChunk(const bdlbb::Blob&   event,
                              *d_clusterData_p);
 
     // The log can no longer serve indices at or below the new boundary, so
-    // commitIndex/lastApplied must move up with it.
+    // commitIndex/lastAppliedCommit must move up with it.
     d_raftNode_mp->initRecoveredState(lastIncludedTerm, lastIncludedIndex);
 
     sendInstallSnapshotResponse(source, lastIncludedIndex);

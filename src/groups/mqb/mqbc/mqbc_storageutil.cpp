@@ -62,6 +62,7 @@
 #include <bdlt_epochutil.h>
 #include <bsl_algorithm.h>
 #include <bsl_ios.h>
+#include <bsl_limits.h>
 #include <bsl_unordered_map.h>
 #include <bsl_utility.h>
 #include <bsla_annotations.h>
@@ -1567,6 +1568,9 @@ void StorageUtil::onPartitionPrimarySync(
     fs->setActivePrimary(pinfo->primary(), pinfo->primaryLeaseId());
 }
 
+const bsls::Types::Uint64 StorageUtil::k_NO_SNAPSHOT_BOUNDARY =
+    bsl::numeric_limits<bsls::Types::Uint64>::max();
+
 void StorageUtil::recoveredQueuesCb(
     mqbs::RecordStore*           recordStore,
     mqbi::DomainFactory*         domainFactory,
@@ -1576,6 +1580,7 @@ void StorageUtil::recoveredQueuesCb(
     const bsl::string&           clusterDescription,
     int                          partitionId,
     const QueueKeyInfoMap*       queueKeyInfoMap,
+    bsls::Types::Uint64          snapshotOffset,
     bslma::Allocator*            allocator)
 {
     // executed by *QUEUE_DISPATCHER* thread associated with 'partitionId'
@@ -2026,6 +2031,14 @@ void StorageUtil::recoveredQueuesCb(
     for (Records::const_iterator it = records.begin(); it != records.end();
          ++it) {
         const mqbs::DataStoreRecord& record = it->second;
+
+        if (record.d_recordOffset > snapshotOffset) {
+            // Above the rollover boundary: an unapplied Raft log entry, not
+            // recovered state.  'd_records' is ordered by sequence number and
+            // journal offsets rise with it, so nothing below follows.
+            break;  // BREAK
+        }
+
         mqbu::StorageKey          appKey;
         mqbu::StorageKey          queueKey;
         bmqt::MessageGUID         guid;
@@ -2695,6 +2708,13 @@ void StorageUtil::unregisterQueueDispatched(mqbs::RecordStore*   rs,
             << "] failed to write QueueDeletionRecord for queue [" << uri
             << "], queueKey [" << storage->queueKey() << "], rc: " << rc
             << BMQTSK_ALARMLOG_END;
+        return;  // RETURN
+    }
+
+    // In Raft mode the write above is a propose; the teardown below happens
+    // when that record commits, in 'FileStore::applyCommittedQueueOp', so
+    // that queue lifecycle has a single writer.
+    if (rs->storageMonitor()->isRaft()) {
         return;  // RETURN
     }
 

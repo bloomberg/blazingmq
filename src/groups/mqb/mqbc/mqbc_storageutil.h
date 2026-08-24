@@ -597,9 +597,17 @@ struct StorageUtil {
     /// Callback executed when the partition having the specified
     /// 'partitionId' has performed recovery and recovered file-backed
     /// queues and their virtual storages in the specified
-    /// 'queueKeyInfoMap'.
+    /// 'queueKeyInfoMap'.  Records above the specified 'snapshotOffset' are
+    /// left alone: under Raft those are log entries the commit-apply path has
+    /// yet to apply.  Legacy recovery has no boundary and passes
+    /// 'k_NO_SNAPSHOT_BOUNDARY', which applies every record.
     ///
     /// THREAD: Executed by the dispatcher thread of the partition.
+    /// Value of `recoveredQueuesCb`'s `snapshotOffset` meaning "no boundary":
+    /// every record is recovered state.  Distinct from an offset of 0, which
+    /// under Raft means nothing has rolled over yet, so no record is.
+    static const bsls::Types::Uint64 k_NO_SNAPSHOT_BOUNDARY;
+
     static void
     recoveredQueuesCb(mqbs::RecordStore*           recordStore,
                       mqbi::DomainFactory*         domainFactory,
@@ -609,6 +617,7 @@ struct StorageUtil {
                       const bsl::string&           clusterDescription,
                       int                          partitionId,
                       const QueueKeyInfoMap*       queueKeyInfoMap,
+                      bsls::Types::Uint64          snapshotOffset,
                       bslma::Allocator*            allocator);
 
     /// Print statistics regarding the specified 'unrecognizedDomains',

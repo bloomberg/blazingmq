@@ -103,15 +103,6 @@ class PartitionRaftLog : public RaftLog {
     bsls::Types::Uint64   d_snapshotTerm;
     bslma::Allocator*     d_allocator_p;
 
-    /// `lastIndex()` as of `open()`, i.e. the last index recovered from local
-    /// disk before this process started applying live commits.  Entries at or
-    /// below this watermark were already materialized into `ReplicatedStorage`
-    /// by `StorageUtil::recoveredQueuesCb` (including its refcount "ghost"
-    /// adjustment for apps added after a message).
-    /// `applyCommittedEntryAsReplica` uses it to avoid re-applying them a
-    /// second time.
-    bsls::Types::Uint64 d_recoveredLastIndex;
-
     /// FIFO of writes to append.  During normal operation this holds at most
     /// one entry (enqueued by `setPendingWrite`, consumed by `append`). During
     /// a rollover window it holds every write buffered by `setPendingWrite`,
@@ -223,125 +214,73 @@ class PartitionRaftLog : public RaftLog {
     /// reverse to forward order.  Return 0 on success.
     int open();
 
-    /// Process a committed entry on the primary.  Strong consistency
-    /// receipt processing (stub).
-    void applyCommittedEntryAsPrimary(bsls::Types::Uint64 index);
-
-    /// Process a committed entry at the specified `index` on a replica.  A
-    /// no-op if `index` is at or below `d_recoveredLastIndex` (already
-    /// materialized by `StorageUtil::recoveredQueuesCb` at `open()` time).
-    /// Otherwise read the record type from the specified `data` blob, look up
-    /// the handle in `d_index`, and delegate to
-    /// `FileStore::onRecordCommittedReplica`.
-    void applyCommittedEntryAsReplica(bsls::Types::Uint64 index,
-                                      const bdlbb::Blob&  data);
-
-    /// Append a new log entry with the specified 'term'.  A null 'data' is
-    /// the primary path: the entry is formatted straight into the mmap files
-    /// from the next unappended `PendingWrite`.  Otherwise 'data' is the
-    /// combined blob from AppendEntries, passed to
-    /// 'FileStore::writeFormattedRecord()' unchanged.
-    int append(bsls::Types::Uint64                 term,
-               const bsl::shared_ptr<bdlbb::Blob>& data) BSLS_KEYWORD_OVERRIDE;
-
-    /// Truncate the log from the specified 'index' (inclusive) to the end.
-    /// Remove entries from the in-memory index, truncate the journal and
-    /// data files, and invalidate the cache.  Return 0 on success, non-zero
-    /// on error.
-    int truncateFrom(bsls::Types::Uint64 index) BSLS_KEYWORD_OVERRIDE;
-
-    /// Enqueue the specified `pw` as the next write for `append()` to consume
-    /// from the front (matching by id, calling the corresponding
-    /// `FileStore::format*Record`).  Called by `PartitionRaft` when no
-    /// rollover is in flight; the behavior is undefined unless
-    /// `!isBuffering()`.
+    /// Enqueue the specified `pw` for the next `append`.
     void setPendingWrite(const bsl::shared_ptr<PendingWrite>& pw);
 
-    /// Buffer the specified `pw` for replay after the in-flight `e_ROLLOVER`
-    /// commits, instead of appending it now (which would place it after
-    /// `e_ROLLOVER`, breaking the invariant that nothing follows a pending
-    /// rollover).  Reserve a placeholder record for its future log index using
-    /// the specified `term` and set `pw->d_handle` (except for record types
-    /// that produce no handle, e.g. message-deletion), and deep-copy any
-    /// borrowed attributes into the buffered entry.  Return 0 on success, or a
-    /// non-zero backstop code if the buffer is at capacity
-    /// (`k_MAX_PENDING_WRITES`).  The behavior is undefined unless
-    /// `isBuffering()`.
+    /// Hold the specified `pw`, stamped with the specified `term`, until the
+    /// in-flight `e_ROLLOVER` commits and it can be drained into the new file
+    /// set.  Return 0 on success, non-zero if the buffer is full.
     int bufferPendingWrite(const bsl::shared_ptr<PendingWrite>& pw,
                            bsls::Types::Uint64                  term);
 
-    /// Hand ownership of the buffered writes to the specified `out` for
-    /// drain-replay, leaving the log's buffer empty.  Uses `swap` so the
-    /// buffered shared_ptrs (and thus the pooled objects and their
-    /// `d_attributes_p`->`d_ownedAttributes` self-pointers) stay valid.  The
-    /// behavior is undefined unless no pending write has been appended: the
-    /// caller re-proposes every one it is handed.
+    /// Load into the specified `out` the buffered writes, emptying the queue.
     void takePendingWrites(PendingWrites* out);
 
-    /// Stop tracking all pending writes without replaying them, erasing the
-    /// reserved placeholder record of each one not yet appended.  Called on
-    /// shutdown, where nothing more will commit.  The records of the
-    /// already-appended ones are left in place, since their log entries
-    /// survive on disk.
-    void dropPendingWrites();
+    /// Hold back the removal of the record with the specified `handle` until
+    /// the rollover completes, and return true; return false if it belongs to
+    /// a buffered write, whose record the compaction skips anyway.
+    bool deferRemoval(const mqbs::DataStoreRecordHandle& handle);
 
-    /// Stop tracking the writes that were buffered for a rollover drain that
-    /// will not happen, erasing the reserved placeholder record of each.
-    /// Called on leadership loss: their placeholders belong to no log entry,
-    /// so nothing else would reclaim them.  The appended writes are kept --
-    /// their entries may still commit under the new leader, and
-    /// `isOwnAppendedEntry` is what routes such a commit back through the
-    /// primary apply path.
+    /// Apply the record removals held back during the rollover window.
+    void flushDeferredRemovals();
+
+    /// Drop the writes buffered for a rollover drain that will not happen,
+    /// releasing their reserved records.  The appended ones are kept.
     void dropBufferedWrites();
 
-    /// Return the journal offset of the record at the specified `index`,
-    /// computed from the file set's anchor.  The behavior is undefined unless
-    /// `snapshotIndex() < index <= lastIndex()`.
-    bsls::Types::Uint64 journalOffsetAt(bsls::Types::Uint64 index) const;
+    /// Drop every pending write, buffered and appended.
+    void dropPendingWrites();
 
-    /// Drop every cached entry.  The cached blobs alias the active file set,
-    /// so the caller must invoke this before closing it: an alias that
-    /// outlives the close is released later by a deferred `FileStore::gc`, by
-    /// which time the dispatcher may be stopped.  `truncateFrom` and
-    /// `rollover` do this for themselves.
+    /// Drop every cached entry.  The blobs alias the active file set, so this
+    /// runs before anything that replaces or closes it.
     void clearCache();
 
-    /// If the specified `handle` was reserved by a pending write currently in
-    /// the buffer, invalidate its handle so application becomes a no-op.
-    /// Otherwise the caller is responsible for removing it.  O(1) via position
-    /// computation.
+    /// Clear the handle of the pending write owning the specified `handle`,
+    /// if any, so applying it becomes a no-op.
     void
     invalidatePendingWriteHandle(const mqbs::DataStoreRecordHandle& handle);
 
-    /// Hold back removal of the record referenced by the specified `handle`
-    /// until `e_ROLLOVER` is applied and return `true`; return `false` if the
-    /// caller must remove it now.  The compaction copies `d_records`, so a
-    /// record appended before `e_ROLLOVER` must survive it, as on replicas.
-    bool deferRemoval(const mqbs::DataStoreRecordHandle& handle);
+    int append(bsls::Types::Uint64                 term,
+               const bsl::shared_ptr<bdlbb::Blob>& data) BSLS_KEYWORD_OVERRIDE;
 
-    /// Apply the removals held back by `deferRemoval`.
-    void flushDeferredRemovals();
+    int truncateFrom(bsls::Types::Uint64 index) BSLS_KEYWORD_OVERRIDE;
 
-    /// Perform a Raft-driven file rollover for the committed `e_ROLLOVER`
-    /// entry at the specified `rolloverIndex`.  Because window writes NACK in
-    /// phase 1, `e_ROLLOVER` is the last log entry when it commits, so
-    /// nothing uncommitted follows it.  Orchestrates the `FileStore` rollover
-    /// pieces directly: prepare a new file set, compact every live record with
-    /// sequence number at most `rolloverIndex` into it
-    /// (`writeRolledOverRecords`; the `e_ROLLOVER` journal-op is naturally
-    /// excluded), write marker (i) (`writeFirstSyncPointAfterRollover`,
-    /// stamped with the `e_ROLLOVER` record's own timestamp) and finalize
-    /// (`finalizeRolloverFileSet`).  Then empty `d_index` and advance the
-    /// snapshot boundary to `rolloverIndex`.
+    /// Perform the physical rollover for the committed `e_ROLLOVER` entry at
+    /// the specified `rolloverIndex`: compact the live records into a new file
+    /// set, rewrite the entries above it, and re-anchor on the new set.
     void rollover(bsls::Types::Uint64 rolloverIndex);
 
-    /// Process a committed entry at the specified `index` on a replica.
-    /// For application records delegate to
-    /// `FileStore::onRecordCommittedReplica`.  JOURNAL_OP records are
-    /// skipped.
+    /// Process a committed entry at the specified `index` on a replica: read
+    /// the record type from the specified `data` blob, look up the handle in
+    /// `d_index`, and delegate to `FileStore::onRecordCommittedReplica`.
+    void applyCommittedEntryAsReplica(bsls::Types::Uint64 index,
+                                      const bdlbb::Blob&  data);
+
+    /// Process a committed entry on the primary.  Strong consistency
+    /// receipt processing (stub).
+    void applyCommittedEntryAsPrimary(bsls::Types::Uint64 index,
+                                      bsls::Types::Int64  commitTimepoint);
+
+    /// Process a committed entry at the specified `index`.  For application
+    /// records delegate to `FileStore::onRecordCommittedReplica`; JOURNAL_OP
+    /// records are skipped.
     void onRecordCommitted(bsls::Types::Uint64 index);
 
     // ACCESSORS
+
+    /// Return the journal offset of the record for the specified `index`.
+    bsls::Types::Uint64 journalOffsetAt(bsls::Types::Uint64 index) const;
+
     bsls::Types::Uint64 lastIndex() const BSLS_KEYWORD_OVERRIDE;
 
     bsls::Types::Uint64 lastTerm() const BSLS_KEYWORD_OVERRIDE;

@@ -276,7 +276,14 @@ VirtualStorageCatalog::confirm(const bmqt::MessageGUID& msgGUID,
     }
 
     VirtualStoragesIter it = d_virtualStorages.findByKey2(appKey);
-    BSLS_ASSERT_SAFE(it != d_virtualStorages.end());
+    if (it == d_virtualStorages.end()) {
+        // No virtual storage for this App.  Reachable when a committed CONFIRM
+        // is applied after the App it names has been removed -- the Raft
+        // commit-apply path replays a range that can span the removal.  The
+        // caller logs and ignores it; asserting here would abort a debug build
+        // and dereference an end iterator in an optimized one.
+        return mqbi::StorageResult::e_APPKEY_NOT_FOUND;  // RETURN
+    }
 
     const mqbi::StorageResult::Enum rc = it->value()->confirm(
         data->second.get());
