@@ -34,6 +34,9 @@ jobs:
     name: License Check
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
       - name: license check
         run: |
           python3 ${{ github.workspace }}/.github/workflows/ext/check_license.py --path=${{ github.workspace }} | tee missing_licenses.txt
@@ -44,6 +47,9 @@ jobs:
     name: PR Title Check
     steps:
       - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
       - name: pr title check
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
@@ -56,6 +62,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: Check alphabetical order in .mem files
         run: |
@@ -94,6 +102,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          persist-credentials: false
       - name: clang-format style check
         id: format-check
         run: |
@@ -128,6 +137,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          persist-credentials: false
       - uses: actions/setup-python@v6
       - name: ruff style check
         id: format-check
@@ -159,6 +169,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           fetch-depth: 0
+          persist-credentials: false
       - uses: actions/setup-python@v6
         with:
           python-version: '3.12.4'
@@ -199,6 +210,8 @@ jobs:
     runs-on: ubuntu-slim
     steps:
       - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
       - uses: actions/download-artifact@v5
         with:
           name: ${{ needs.configure_ubuntu.outputs.artifact_key }}

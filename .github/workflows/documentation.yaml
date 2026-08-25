@@ -23,6 +23,8 @@ jobs:
     steps:
       - name: Checkout `main`
         uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: Clear out `docs/` subdirectory
         run: rm -rf docs
@@ -32,6 +34,8 @@ jobs:
         with:
           path: docs
           ref: gh-pages
+          # Needed so the "Commit new API documentation" step below can `git push`.
+          persist-credentials: true
 
       - name: Set up dependencies
         run: |
