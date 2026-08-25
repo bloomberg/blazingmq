@@ -67,6 +67,8 @@ jobs:
     needs: build_ubuntu
     steps:
       - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: Run Python Unit Tests
         env:
@@ -101,6 +103,8 @@ jobs:
         RUN_UID: ${{ matrix.cluster }}_${{ matrix.mode }}_${{ matrix.consistency }}
     steps:
       - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - uses: actions/download-artifact@v5
         with:
@@ -197,6 +201,8 @@ jobs:
     needs: build_ubuntu
     steps:
       - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - uses: actions/download-artifact@v5
         with:
@@ -260,6 +266,8 @@ jobs:
     needs: build_ubuntu
     steps:
       - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - uses: actions/download-artifact@v5
         with:
@@ -286,6 +294,8 @@ jobs:
             arch: arm64
     steps:
       - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: Set up dependencies
         run: |
@@ -311,6 +321,8 @@ jobs:
     needs: get_dependencies
     steps:
       - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - uses: actions/cache/restore@v4
         with:
@@ -386,6 +398,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: Set up dependencies
         run: |
@@ -407,6 +421,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: Run ShellCheck
         uses: ludeeus/action-shellcheck@00b27aa7cb85167568cb48a3838b75f4265f2bca  # 20 Jun 2024
@@ -416,6 +432,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: Docker Single-Node Workflow
         run: docker compose -f docker/single-node/docker-compose.yaml up --build -d

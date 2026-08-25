@@ -58,6 +58,7 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
           fetch-depth: 0
+          persist-credentials: false
 
       # Since input.ref can be a branch, tag or commit SHA,
       # we need to get the commit SHA to use it in the cache key.

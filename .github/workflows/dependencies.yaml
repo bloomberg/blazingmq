@@ -21,6 +21,8 @@ jobs:
       cache_key: ${{ steps.get-cache-key.outputs.cache_key }}
     steps:
       - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
 
       - name: Generate dependencies cache key
         id: get-cache-key
