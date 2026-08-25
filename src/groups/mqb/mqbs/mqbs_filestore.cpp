@@ -4381,8 +4381,8 @@ int FileStore::writeMessageRecord(const bmqp::StorageHeader& header,
 
     BSLS_ASSERT_SAFE(0 < record.d_appDataUnpaddedLen);
 
-    DataStoreRecordKey    key(recHeader.sequenceNumber(),
-                           recHeader.primaryLeaseId());
+    DataStoreRecordKey    key(recHeader.primaryLeaseId(),
+                           recHeader.sequenceNumber());
     DataStoreRecordHandle handle;
     insertDataStoreRecord(&handle, key, record);
 
@@ -4513,8 +4513,8 @@ int FileStore::writeQueueCreationRecord(
     DataStoreRecord       record(RecordType::e_QUEUE_OP,
                            recordOffset,
                            queueRecLength);
-    DataStoreRecordKey    key(recHeader.sequenceNumber(),
-                           recHeader.primaryLeaseId());
+    DataStoreRecordKey    key(recHeader.primaryLeaseId(),
+                           recHeader.sequenceNumber());
 
     insertDataStoreRecord(&handle, key, record);
 
@@ -4711,8 +4711,8 @@ int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
         BSLS_ASSERT_SAFE(queueKey);
         BSLS_ASSERT_SAFE(rstorage);
 
-        DataStoreRecordKey    key(recHeader.sequenceNumber(),
-                               recHeader.primaryLeaseId());
+        DataStoreRecordKey    key(recHeader.primaryLeaseId(),
+                               recHeader.sequenceNumber());
         DataStoreRecord       record(recordType, recordOffset);
         DataStoreRecordHandle handle;
         insertDataStoreRecord(&handle, key, record);
@@ -4894,8 +4894,8 @@ int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
                       << "], queueKey [" << *queueKey << "], appKey ["
                       << *appKey << "].";
 
-        DataStoreRecordKey    key(recHeader.sequenceNumber(),
-                               recHeader.primaryLeaseId());
+        DataStoreRecordKey    key(recHeader.primaryLeaseId(),
+                               recHeader.sequenceNumber());
         DataStoreRecord       record(recordType, recordOffset);
         DataStoreRecordHandle handle;
         insertDataStoreRecord(&handle, key, record);
