@@ -959,11 +959,19 @@ bsls::Types::Uint64 PartitionRaftLog::snapshotTerm() const
 
 bool PartitionRaftLog::isOwnAppendedEntry(bsls::Types::Uint64 index) const
 {
-    // The appended writes sit at the front, at contiguous ascending indices
-    // through 'lastIndex()', and are popped in commit order, so the front's
-    // sequence number is the lowest index this node still owns.
-    return 0 < d_appendedCount &&
-           d_pendingWrites.front()->d_sequenceNumber <= index;
+    // The appended writes sit at the front, at contiguous ascending indices,
+    // and are popped in commit order, so the front's sequence number is the
+    // lowest index this node still owns and the range spans 'd_appendedCount'.
+    // The upper bound is not 'lastIndex()': once leadership moves, the new
+    // leader's entries are appended above this node's own appended writes, and
+    // those are applied as replica.
+    if (0 == d_appendedCount) {
+        return false;  // RETURN
+    }
+
+    const bsls::Types::Uint64 base = d_pendingWrites.front()->d_sequenceNumber;
+
+    return base <= index && index < base + d_appendedCount;
 }
 
 bool PartitionRaftLog::isRollover(bsls::Types::Uint64 index) const

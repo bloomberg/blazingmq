@@ -48,6 +48,7 @@
 #include <ball_log.h>
 #include <bdlbb_blob.h>
 #include <bsl_iosfwd.h>
+#include <bsl_string.h>
 #include <bsl_unordered_map.h>
 #include <bsl_unordered_set.h>
 #include <bsl_vector.h>
@@ -296,6 +297,32 @@ struct RaftMessage {
     int destination(size_t index) const;
 };
 
+// ===================
+// struct RaftNodeInfo
+// ===================
+
+/// VST for one member of a Raft group: its node id, and the cluster name of
+/// the node holding it.  The name is carried for log output: ids and names
+/// share no numbering (`node0` is id 1), so a log printing ids would not line
+/// up with the rest of the broker's output.
+struct RaftNodeInfo {
+    // DATA
+    int         d_id;
+    bsl::string d_name;
+
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(RaftNodeInfo, bslma::UsesBslmaAllocator)
+
+    // CREATORS
+    explicit RaftNodeInfo(bslma::Allocator* allocator = 0);
+
+    RaftNodeInfo(int                     id,
+                 const bsl::string_view& name,
+                 bslma::Allocator*       allocator = 0);
+
+    RaftNodeInfo(const RaftNodeInfo& other, bslma::Allocator* allocator = 0);
+};
+
 // ====================
 // struct RaftNodeConfig
 // ====================
@@ -309,13 +336,17 @@ struct RaftNodeConfig {
     static const int k_CSL_PARTITION_ID = -1;
 
     // DATA
-    int              d_selfId;
-    bsl::vector<int> d_peerIds;
-    int              d_electionTimeoutMin;
-    int              d_electionTimeoutMax;
-    int              d_heartbeatInterval;
-    bool             d_preVote;
-    bool             d_broadcastHeartbeatOnCommit;
+    int d_selfId;
+
+    /// Cluster name of this node, for log output.  See `RaftNodeInfo`.
+    bsl::string d_nodeName;
+
+    bsl::vector<RaftNodeInfo> d_peers;
+    int                       d_electionTimeoutMin;
+    int                       d_electionTimeoutMax;
+    int                       d_heartbeatInterval;
+    bool                      d_preVote;
+    bool                      d_broadcastHeartbeatOnCommit;
 
     /// Entries this node will send one peer past what that peer has acked,
     /// before it stops sending to it.  See `k_MAX_UNACKED_ENTRIES`, its
@@ -334,6 +365,8 @@ struct RaftNodeConfig {
     /// Used only to disambiguate log output.
     int d_partitionId;
 
+    bslma::Allocator* d_allocator_p;
+
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(RaftNodeConfig, bslma::UsesBslmaAllocator)
 
@@ -346,6 +379,17 @@ struct RaftNodeConfig {
 
     RaftNodeConfig(const RaftNodeConfig& other,
                    bslma::Allocator*     allocator = 0);
+
+    // MANIPULATORS
+
+    /// Set this node's id and cluster `name` to the specified `id` and
+    /// `name`.  `addNode` still has to add it to the membership, which
+    /// includes self.
+    void setSelf(int id, const bsl::string_view& name);
+
+    /// Add the node with the specified `id` and cluster `name` to the
+    /// membership.
+    void addNode(int id, const bsl::string_view& name);
 };
 
 // ====================
@@ -441,6 +485,11 @@ class RaftNode {
 
     // Leader state
     struct PeerState {
+        /// Cluster name of this peer, for log output.  Set at construction
+        /// from the membership and never reset: `nodeName` resolves ids
+        /// through it whatever state this node is in.
+        bsl::string d_name;
+
         bsls::Types::Uint64 d_nextIndex;
         bsls::Types::Uint64 d_matchIndex;
 
@@ -490,8 +539,16 @@ class RaftNode {
         /// `becomeLeader`/`becomeFollower`.
         bool d_isAvailable;
 
+        // TRAITS
+        BSLMF_NESTED_TRAIT_DECLARATION(PeerState, bslma::UsesBslmaAllocator)
+
         // CREATORS
-        PeerState();
+        explicit PeerState(bslma::Allocator* allocator = 0);
+
+        PeerState(const bsl::string_view& name,
+                  bslma::Allocator*       allocator = 0);
+
+        PeerState(const PeerState& other, bslma::Allocator* allocator = 0);
 
         // MANIPULATORS
 
@@ -607,8 +664,19 @@ class RaftNode {
 
     void resetElectionTimer();
 
+    // PRIVATE ACCESSORS
     bool isLogUpToDate(bsls::Types::Uint64 lastLogTerm,
                        bsls::Types::Uint64 lastLogIndex) const;
+
+    /// Return the cluster name of the node with the specified `id`, for log
+    /// output: node ids and node names share no numbering (`node0` is id 1),
+    /// so a log printing ids would not line up with the rest of the broker's
+    /// output.  `k_INVALID_NODE_ID` reads "none".  The behavior is undefined
+    /// unless `id` is `k_INVALID_NODE_ID` or a member of this Raft group.
+    const char* nodeName(int id) const;
+
+    /// Return the cluster name of this node.  See `nodeName`.
+    const char* selfName() const;
 
   public:
     // TRAITS
@@ -791,6 +859,31 @@ inline int RaftMessage::destination(size_t index) const
     return index == 0 ? d_destinationNodeId : d_otherDestinations[index - 1];
 }
 
+// -------------------
+// struct RaftNodeInfo
+// -------------------
+
+inline RaftNodeInfo::RaftNodeInfo(bslma::Allocator* allocator)
+: d_id(RaftNode::k_INVALID_NODE_ID)
+, d_name(allocator)
+{
+}
+
+inline RaftNodeInfo::RaftNodeInfo(int                     id,
+                                  const bsl::string_view& name,
+                                  bslma::Allocator*       allocator)
+: d_id(id)
+, d_name(name, allocator)
+{
+}
+
+inline RaftNodeInfo::RaftNodeInfo(const RaftNodeInfo& other,
+                                  bslma::Allocator*   allocator)
+: d_id(other.d_id)
+, d_name(other.d_name, allocator)
+{
+}
+
 // --------------------
 // struct RaftNodeConfig
 // --------------------
@@ -798,7 +891,8 @@ inline int RaftMessage::destination(size_t index) const
 inline RaftNodeConfig::RaftNodeConfig(int               partition,
                                       bslma::Allocator* allocator)
 : d_selfId(RaftNode::k_INVALID_NODE_ID)
-, d_peerIds(allocator)
+, d_nodeName(allocator)
+, d_peers(allocator)
 , d_electionTimeoutMin(10)
 , d_electionTimeoutMax(20)
 , d_heartbeatInterval(3)
@@ -807,6 +901,7 @@ inline RaftNodeConfig::RaftNodeConfig(int               partition,
 , d_maxUnackedEntries(RaftNode::k_MAX_UNACKED_ENTRIES)
 , d_snapshotTimeoutTicks(RaftNode::k_SNAPSHOT_TIMEOUT_TICKS)
 , d_partitionId(partition)
+, d_allocator_p(allocator)
 {
 }
 
@@ -814,7 +909,8 @@ inline RaftNodeConfig::RaftNodeConfig(int  partition,
                                       bool broadcastHeartbeatOnCommit,
                                       bslma::Allocator* allocator)
 : d_selfId(RaftNode::k_INVALID_NODE_ID)
-, d_peerIds(allocator)
+, d_nodeName(allocator)
+, d_peers(allocator)
 , d_electionTimeoutMin(10)
 , d_electionTimeoutMax(20)
 , d_heartbeatInterval(3)
@@ -823,13 +919,15 @@ inline RaftNodeConfig::RaftNodeConfig(int  partition,
 , d_maxUnackedEntries(RaftNode::k_MAX_UNACKED_ENTRIES)
 , d_snapshotTimeoutTicks(RaftNode::k_SNAPSHOT_TIMEOUT_TICKS)
 , d_partitionId(partition)
+, d_allocator_p(allocator)
 {
 }
 
 inline RaftNodeConfig::RaftNodeConfig(const RaftNodeConfig& other,
                                       bslma::Allocator*     allocator)
 : d_selfId(other.d_selfId)
-, d_peerIds(other.d_peerIds, allocator)
+, d_nodeName(other.d_nodeName, allocator)
+, d_peers(other.d_peers, allocator)
 , d_electionTimeoutMin(other.d_electionTimeoutMin)
 , d_electionTimeoutMax(other.d_electionTimeoutMax)
 , d_heartbeatInterval(other.d_heartbeatInterval)
@@ -838,7 +936,19 @@ inline RaftNodeConfig::RaftNodeConfig(const RaftNodeConfig& other,
 , d_maxUnackedEntries(other.d_maxUnackedEntries)
 , d_snapshotTimeoutTicks(other.d_snapshotTimeoutTicks)
 , d_partitionId(other.d_partitionId)
+, d_allocator_p(allocator)
 {
+}
+
+inline void RaftNodeConfig::setSelf(int id, const bsl::string_view& name)
+{
+    d_selfId   = id;
+    d_nodeName = name;
+}
+
+inline void RaftNodeConfig::addNode(int id, const bsl::string_view& name)
+{
+    d_peers.push_back(RaftNodeInfo(id, name, d_allocator_p));
 }
 
 // --------------------
@@ -925,7 +1035,7 @@ inline const RaftNodeConfig& RaftNode::config() const
 
 inline int RaftNode::quorum() const
 {
-    return static_cast<int>(d_config.d_peerIds.size()) / 2 + 1;
+    return static_cast<int>(d_config.d_peers.size()) / 2 + 1;
 }
 
 inline ElectionMode::Enum RaftNode::electionMode() const

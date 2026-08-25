@@ -36,6 +36,17 @@ using namespace bsl;
 // ----------------------------------------------------------------------------
 namespace {
 
+/// Return, using the specified `allocator`, the cluster name of the node
+/// with the specified `id`: a Raft group carries the name of each of its
+/// members, and logs print those rather than ids.
+bsl::string nodeName(int id, bslma::Allocator* allocator)
+{
+    bsl::string name("node", allocator);
+    name += bsl::to_string(id);
+
+    return name;
+}
+
 // ==================
 // class MemoryRaftLog
 // ==================
@@ -185,11 +196,6 @@ class TestCluster {
     , d_allocator_p(bslma::Default::allocator(allocator))
     , d_bufferFactory(256, d_allocator_p)
     {
-        bsl::vector<int> peerIds(d_allocator_p);
-        for (int i = 0; i < numNodes; ++i) {
-            peerIds.push_back(i);
-        }
-
         for (int i = 0; i < numNodes; ++i) {
             MemoryRaftLog* log = new (*d_allocator_p)
                 MemoryRaftLog(d_allocator_p);
@@ -198,8 +204,10 @@ class TestCluster {
             RaftNodeConfig config(RaftNodeConfig::k_CSL_PARTITION_ID,
                                   broadcastOnCommit,
                                   d_allocator_p);
-            config.d_selfId             = i;
-            config.d_peerIds            = peerIds;
+            config.setSelf(i, nodeName(i, d_allocator_p));
+            for (int peer = 0; peer < numNodes; ++peer) {
+                config.addNode(peer, nodeName(peer, d_allocator_p));
+            }
             config.d_electionTimeoutMin = 10;
             config.d_electionTimeoutMax = 20;
             config.d_heartbeatInterval  = 3;
@@ -372,14 +380,12 @@ static void test1_breathingTest()
 
     bslma::TestAllocator alloc("test", false);
     MemoryRaftLog        log(&alloc);
-    bsl::vector<int>     peers(&alloc);
-    peers.push_back(0);
-    peers.push_back(1);
-    peers.push_back(2);
 
     RaftNodeConfig config(true, &alloc);
-    config.d_selfId             = 0;
-    config.d_peerIds            = peers;
+    config.setSelf(0, nodeName(0, &alloc));
+    config.addNode(0, nodeName(0, &alloc));
+    config.addNode(1, nodeName(1, &alloc));
+    config.addNode(2, nodeName(2, &alloc));
     config.d_electionTimeoutMin = 10;
     config.d_electionTimeoutMax = 20;
     config.d_heartbeatInterval  = 3;
@@ -537,14 +543,11 @@ static void test6_logConsistencyCheck()
     bdlbb::BlobUtil::append(data.get(), "x", 1);
     log.append(1, data);  // index 1, term 1
 
-    bsl::vector<int> peers(&alloc);
-    peers.push_back(0);
-    peers.push_back(1);
-    peers.push_back(2);
-
     RaftNodeConfig config(true, &alloc);
-    config.d_selfId             = 1;
-    config.d_peerIds            = peers;
+    config.setSelf(1, nodeName(1, &alloc));
+    config.addNode(0, nodeName(0, &alloc));
+    config.addNode(1, nodeName(1, &alloc));
+    config.addNode(2, nodeName(2, &alloc));
     config.d_electionTimeoutMin = 10;
     config.d_electionTimeoutMax = 20;
     config.d_heartbeatInterval  = 3;
@@ -589,14 +592,11 @@ static void test7_logConflictResolution()
     log.append(1, data1);  // index 1, term 1
     log.append(1, data1);  // index 2, term 1
 
-    bsl::vector<int> peers(&alloc);
-    peers.push_back(0);
-    peers.push_back(1);
-    peers.push_back(2);
-
     RaftNodeConfig config(true, &alloc);
-    config.d_selfId             = 1;
-    config.d_peerIds            = peers;
+    config.setSelf(1, nodeName(1, &alloc));
+    config.addNode(0, nodeName(0, &alloc));
+    config.addNode(1, nodeName(1, &alloc));
+    config.addNode(2, nodeName(2, &alloc));
     config.d_electionTimeoutMin = 10;
     config.d_electionTimeoutMax = 20;
     config.d_heartbeatInterval  = 3;

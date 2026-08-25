@@ -65,10 +65,13 @@ RaftNodeConfig makeRaftConfig(mqbc::ClusterData& clusterData,
     RaftNodeConfig config(partitionId,
                           true,  // broadcastHeartbeatOnCommit
                           allocator);
-    config.d_selfId = clusterData.membership().selfNode()->nodeId();
 
-    // 'd_peerIds' is the *full* membership including self:
-    // 'RaftNode::quorum()' is 'peerIds.size()/2 + 1' (majority of the whole
+    const mqbnet::ClusterNode* selfNode = clusterData.membership().selfNode();
+
+    config.setSelf(selfNode->nodeId(), selfNode->hostName());
+
+    // 'd_peers' is the *full* membership including self:
+    // 'RaftNode::quorum()' is 'peers.size()/2 + 1' (majority of the whole
     // cluster for both odd and even sizes) and
     // 'becomeCandidate'/'becomeLeader' skip self while iterating.
     // 'netCluster->nodes()' already includes self.
@@ -77,7 +80,7 @@ RaftNodeConfig makeRaftConfig(mqbc::ClusterData& clusterData,
     for (mqbnet::Cluster::NodesList::const_iterator it = nodes.begin();
          it != nodes.end();
          ++it) {
-        config.d_peerIds.push_back((*it)->nodeId());
+        config.addNode((*it)->nodeId(), (*it)->hostName());
     }
 
     config.d_electionTimeoutMin = 10;
@@ -297,9 +300,7 @@ void PartitionRaft::dispatchMessages(RaftNodeOutput* output)
             // chunk that arrives before that.  Both go to the same channel in
             // enqueue order, so this ordering holds on the wire.
             sendControlMessage(msg);
-            sendSnapshot(msg.d_destinationNodeId,
-                         msg.d_lastLogIndex,
-                         msg.d_lastLogTerm);
+            sendSnapshot(msg.d_destinationNodeId, msg.d_lastLogIndex);
         }
         else {
             sendControlMessage(msg);
@@ -443,10 +444,12 @@ void PartitionRaft::dispatchOutput(RaftNodeOutput* output)
 
         // Signal the cluster so it can (re)compute this partition's
         // primary/gate state.
+        mqbnet::ClusterNode* leader = peerNode(leaderNodeId);
+
         BALL_LOG_INFO << "Partition [" << d_partitionId
-                      << "] invoking d_leadershipCb with leaderNodeId="
-                      << leaderNodeId << ", term=" << term
-                      << ", haveCommit=false";
+                      << "] invoking d_leadershipCb with leader="
+                      << (leader ? leader->hostName().c_str() : "none")
+                      << ", term=" << term << ", haveCommit=false";
         d_leadershipCb(d_partitionId, leaderNodeId, term, false);
     }
 }
@@ -635,8 +638,7 @@ void PartitionRaft::applyEntriesAsReplica(const RaftMessage&  msg,
 }
 
 void PartitionRaft::sendSnapshot(int                 destNodeId,
-                                 bsls::Types::Uint64 lastIncludedIndex,
-                                 bsls::Types::Uint64 lastIncludedTerm)
+                                 bsls::Types::Uint64 lastIncludedIndex)
 {
     // executed by the partition *DISPATCHER* thread
     mqbnet::ClusterNode* destNode = peerNode(destNodeId);
@@ -648,7 +650,7 @@ void PartitionRaft::sendSnapshot(int                 destNodeId,
     }
 
     BALL_LOG_INFO << "Partition [" << d_partitionId
-                  << "] sending snapshot to node " << destNodeId
+                  << "] sending snapshot to node " << destNode->hostName()
                   << ", lastIncludedIndex=" << lastIncludedIndex;
 
     mqbs::FileStoreSet fileSet;
@@ -693,18 +695,10 @@ void PartitionRaft::sendSnapshot(int                 destNodeId,
         return;  // RETURN
     }
 
-    // Send XSD InstallSnapshot metadata first so the follower can prepare
-    {
-        RaftMessage metaMsg(d_allocator_p);
-        metaMsg.d_type = RaftMessageType::e_INSTALL_SNAPSHOT;
-        metaMsg.d_term = d_raftNode_mp->currentTerm();
-        metaMsg.d_sourceNodeId =
-            d_clusterData_p->membership().selfNode()->nodeId();
-        metaMsg.d_destinationNodeId = destNodeId;
-        metaMsg.d_lastLogIndex      = lastIncludedIndex;
-        metaMsg.d_lastLogTerm       = lastIncludedTerm;
-        sendControlMessage(metaMsg);
-    }
+    // The InstallSnapshot control message that puts the follower into
+    // receiving mode is sent by the caller ('dispatchOutput'), immediately
+    // before this.  Sending a second one here made the follower handle the
+    // same message twice and answer twice.
 
     const int hdrSize = static_cast<int>(sizeof(bmqp::EventHeader) +
                                          sizeof(bmqp::SnapshotChunkHeader));
@@ -754,7 +748,7 @@ void PartitionRaft::sendSnapshot(int                 destNodeId,
                 // has this snapshot marked in flight, which suppresses
                 // replication to the peer until it times out.
                 BALL_LOG_WARN << "Partition [" << d_partitionId
-                              << "] snapshot to node " << destNodeId
+                              << "] snapshot to node " << destNode->hostName()
                               << " aborted: channel is gone";
                 d_raftNode_mp->setPeerAvailability(destNodeId, false);
 
@@ -814,7 +808,7 @@ void PartitionRaft::sendSnapshot(int                 destNodeId,
     }
 
     BALL_LOG_INFO << "Partition [" << d_partitionId
-                  << "] snapshot sent to node " << destNodeId;
+                  << "] snapshot sent to node " << destNode->hostName();
 }
 
 void PartitionRaft::beginReceiveSnapshot(bsls::Types::Uint64 lastIncludedIndex,
@@ -1790,8 +1784,8 @@ void PartitionRaft::appendEntries(
             << "Partition [" << d_partitionId
             << "] received an AppendEntries addressed to partition "
             << rh->partitionId() << " from node "
-            << (source ? source->nodeId() : -1) << "; dropping it."
-            << BMQTSK_ALARMLOG_END;
+            << (source ? source->hostName().c_str() : "unknown")
+            << "; dropping it." << BMQTSK_ALARMLOG_END;
         return;  // RETURN
     }
 
@@ -1931,7 +1925,7 @@ void PartitionRaft::onAppendEntriesResponse(
         BMQTSK_ALARMLOG_ALARM("RAFT_MISROUTE")
             << "Partition [" << d_partitionId
             << "] received an AppendEntries response addressed to partition "
-            << rh->partitionId() << " from node " << source->nodeId()
+            << rh->partitionId() << " from node " << source->hostName()
             << "; dropping it." << BMQTSK_ALARMLOG_END;
         return;  // RETURN
     }

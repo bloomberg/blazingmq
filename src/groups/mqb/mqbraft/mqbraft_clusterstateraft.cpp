@@ -54,10 +54,12 @@ RaftNodeConfig makeRaftConfig(const mqbc::ClusterData& clusterData,
 
     mqbnet::Cluster* netCluster = clusterData.membership().netCluster();
 
-    config.d_selfId = netCluster->selfNodeId();
+    const mqbnet::ClusterNode* selfNode = clusterData.membership().selfNode();
 
-    // 'd_peerIds' holds the *full* membership including self: 'quorum()' is
-    // 'peerIds.size()/2 + 1' (== majority of the whole cluster for both odd
+    config.setSelf(selfNode->nodeId(), selfNode->hostName());
+
+    // 'd_peers' holds the *full* membership including self: 'quorum()' is
+    // 'peers.size()/2 + 1' (== majority of the whole cluster for both odd
     // and even sizes), and 'becomeCandidate'/'becomeLeader' skip self while
     // iterating.  'netCluster->nodes()' already includes self, so add each
     // node exactly once (the previous code additionally pushed self a second
@@ -67,7 +69,7 @@ RaftNodeConfig makeRaftConfig(const mqbc::ClusterData& clusterData,
     for (mqbnet::Cluster::NodesList::const_iterator it = nodes.begin();
          it != nodes.end();
          ++it) {
-        config.d_peerIds.push_back((*it)->nodeId());
+        config.addNode((*it)->nodeId(), (*it)->hostName());
     }
 
     config.d_electionTimeoutMin = 10;
@@ -324,11 +326,11 @@ void ClusterStateRaft::sendSnapshotRecord(const RaftMessage& msg)
     int                          rc = d_cslLog_mp->loadSnapshotRecord(&record);
     if (rc != 0) {
         BALL_LOG_ERROR << "Failed to load CSL snapshot record for node "
-                       << msg.d_destinationNodeId << ", rc=" << rc;
+                       << destNode->hostName() << ", rc=" << rc;
         return;  // RETURN
     }
 
-    BALL_LOG_INFO << "Sending CSL snapshot to node " << msg.d_destinationNodeId
+    BALL_LOG_INFO << "Sending CSL snapshot to node " << destNode->hostName()
                   << ", lastIncludedIndex=" << msg.d_lastLogIndex
                   << ", lastIncludedTerm=" << msg.d_lastLogTerm << ", "
                   << record->length() << " bytes";
@@ -571,14 +573,14 @@ void ClusterStateRaft::updateElectorInfo()
     int leaderId = d_raftNode_mp->leaderId();
 
     BALL_LOG_INFO << "ClusterStateRaft::updateElectorInfo (node "
-                  << d_clusterData_p->membership().selfNode()->nodeId()
+                  << d_clusterData_p->membership().selfNode()->hostName()
                   << "): raftState=" << d_raftNode_mp->state()
                   << ", leaderId=" << leaderId
                   << ", currentTerm=" << d_raftNode_mp->currentTerm();
 
     if (leaderId == RaftNode::k_INVALID_NODE_ID) {
         BALL_LOG_INFO << "ClusterStateRaft::updateElectorInfo (node "
-                      << d_clusterData_p->membership().selfNode()->nodeId()
+                      << d_clusterData_p->membership().selfNode()->hostName()
                       << "): no leader -> DORMANT/UNDEFINED";
         d_clusterData_p->electorInfo().setElectorInfo(
             mqbnet::ElectorState::e_DORMANT,
@@ -593,7 +595,7 @@ void ClusterStateRaft::updateElectorInfo()
 
     if (!leaderNode) {
         BALL_LOG_WARN << "ClusterStateRaft::updateElectorInfo (node "
-                      << d_clusterData_p->membership().selfNode()->nodeId()
+                      << d_clusterData_p->membership().selfNode()->hostName()
                       << "): leaderId=" << leaderId
                       << " not found in netCluster; skipping elector update";
         return;  // RETURN
@@ -614,8 +616,8 @@ void ClusterStateRaft::updateElectorInfo()
     }
 
     BALL_LOG_INFO << "ClusterStateRaft::updateElectorInfo (node "
-                  << d_clusterData_p->membership().selfNode()->nodeId()
-                  << "): leader=" << leaderNode->nodeDescription()
+                  << d_clusterData_p->membership().selfNode()->hostName()
+                  << "): leader=" << leaderNode->hostName()
                   << ", electorState=" << electorState
                   << ", term=" << d_raftNode_mp->currentTerm()
                   << " -> setElectorInfo(PASSIVE)";
@@ -1061,9 +1063,11 @@ int ClusterStateRaft::transferLeadership(int targetNodeId)
         return rc;  // RETURN
     }
 
+    mqbnet::ClusterNode* targetNode = peerNode(targetNodeId);
+
     BALL_LOG_INFO << d_clusterData_p->identity().description()
                   << ": initiating CSL leadership transfer to node "
-                  << targetNodeId;
+                  << (targetNode ? targetNode->hostName().c_str() : "unknown");
 
     dispatchOutput(&output);
     return 0;

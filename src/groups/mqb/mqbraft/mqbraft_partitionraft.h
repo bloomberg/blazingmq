@@ -275,9 +275,7 @@ class PartitionRaft : public mqbs::RecordStore,
     /// Send snapshot file chunks to the peer identified by the specified
     /// 'destNodeId'. Called when 'e_INSTALL_SNAPSHOT' is emitted in
     /// dispatchOutput.
-    void sendSnapshot(int                 destNodeId,
-                      bsls::Types::Uint64 lastIncludedIndex,
-                      bsls::Types::Uint64 lastIncludedTerm);
+    void sendSnapshot(int destNodeId, bsls::Types::Uint64 lastIncludedIndex);
 
     /// Begin receiving a snapshot: wipe current FileStore and open temp
     /// files for writing.
