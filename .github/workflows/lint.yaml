@@ -34,8 +34,6 @@ jobs:
     name: License Check
     steps:
       - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
       - name: license check
         run: |
           python3 ${{ github.workspace }}/.github/workflows/ext/check_license.py --path=${{ github.workspace }} | tee missing_licenses.txt
@@ -46,8 +44,6 @@ jobs:
     name: PR Title Check
     steps:
       - uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
       - name: pr title check
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
