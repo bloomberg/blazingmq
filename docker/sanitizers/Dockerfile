@@ -1,6 +1,10 @@
 # syntax=docker/dockerfile:1
 
-FROM docker.io/ubuntu:24.04
+# Base image shipping a prebuilt Clang toolchain, so that the instrumented
+# build does not have to install one from a package repository on every run.
+ARG BASE_IMAGE=ghcr.io/silkeh/clang:21-trixie
+
+FROM ${BASE_IMAGE}
 
 # Check if SANITIZER_NAME argument is passed
 ARG SANITIZER_NAME

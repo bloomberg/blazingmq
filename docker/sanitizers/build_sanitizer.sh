@@ -9,7 +9,7 @@
 # Clang sanitizers (i.e. Address/Leak, Memory, Thread, UndefinedBehavior).
 #
 # It performs the following:
-# 1) Install clang compiler.
+# 1) Install the build prerequisites absent from the base image.
 # 2) Download llvm-project required for libc++ instrumentation.
 # 3) Download external dependencies required for instrumentation.
 # 4) Build libc++ with the instrumentation specified by <LLVM Sanitizer Name>.
@@ -43,15 +43,13 @@ fi
 SANITIZER_NAME="${1}"
 FUZZER="${2}"
 
+LLVM_TAG="llvmorg-21.1.7"
+
 # Install prerequisites
 # Set up CA certificates first before installing other dependencies
 apt-get update && \
 apt-get install -y ca-certificates && \
 apt-get install -qy --no-install-recommends \
-    lsb-release \
-    wget \
-    software-properties-common \
-    gnupg \
     git \
     curl \
     jq \
@@ -59,27 +57,28 @@ apt-get install -qy --no-install-recommends \
     bison \
     libfl-dev \
     pkg-config \
-    python3.12-venv \
+    python3 \
+    python3-venv \
     && rm -rf /var/lib/apt/lists/*
 
-# Install prerequisites for LLVM: latest cmake version, Ubuntu apt repository contains stale version
-wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null \
-        | gpg --dearmor - \
-        | tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null
-apt-add-repository -y "deb https://apt.kitware.com/ubuntu/ $(lsb_release -cs) main"
-apt-get install -qy cmake
+# The base image supplies the Clang toolchain under version-agnostic names, but
+# the instrumented build needs more of it than the compiler driver: LLD links
+# every artifact, 'llvm-symbolizer' resolves sanitizer stack traces, and the
+# static sanitizer runtimes back the '-static-libsan' link flag.  Refuse to
+# start a build that cannot be correct rather than fail inside a dependency.
+for tool in clang clang++ ld.lld llvm-symbolizer cmake; do
+    if ! command -v "${tool}" > /dev/null; then
+        echo "Error: base image does not provide '${tool}'." >&2
+        exit 1
+    fi
+done
 
-# Install LLVM
-wget https://apt.llvm.org/llvm.sh
-chmod +x llvm.sh
-LLVM_VERSION=21
-LLVM_TAG="llvmorg-21.1.7"
-./llvm.sh ${LLVM_VERSION} all
-
-# Create version-agnostic pointers to required LLVM binaries.
-ln -sf /usr/bin/clang-${LLVM_VERSION} /usr/bin/clang
-ln -sf /usr/bin/clang++-${LLVM_VERSION} /usr/bin/clang++
-ln -sf /usr/bin/llvm-symbolizer-${LLVM_VERSION} /usr/bin/llvm-symbolizer
+CLANG_RUNTIME_DIR="$(clang -print-runtime-dir)"
+if ! compgen -G "${CLANG_RUNTIME_DIR}/libclang_rt.${SANITIZER_NAME}*.a" > /dev/null; then
+    echo "Error: base image does not provide the ${SANITIZER_NAME} runtime in" \
+         "'${CLANG_RUNTIME_DIR}'." >&2
+    exit 1
+fi
 
 # Set some initial constants
 PARALLELISM=$(nproc)
