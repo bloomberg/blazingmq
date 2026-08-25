@@ -17,6 +17,8 @@
 Integration test that tests closing a queue when the broker is down.
 """
 
+import time
+
 import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import (
     Cluster,
@@ -192,3 +194,120 @@ def test_close_while_retrying_reopen(multi_node: Cluster, domain_urls: tc.Domain
 
     # verify new open
     consumer1.open(uri_priority, flags=["read"], succeed=True)
+
+
+@tweak.cluster.queue_operations.configure_timeout_ms(500)
+@tweak.cluster.queue_operations.close_timeout_ms(500)
+@tweak.cluster.queue_operations.keepalive_duration_ms(100)
+def test_upstream_replies_racing_client_teardown(
+    multi_node: Cluster, domain_urls: tc.DomainUrls
+):
+    """
+    A proxy answers its clients only once its upstream has answered it, so an
+    open-queue reply can arrive after the client that asked for it is already
+    gone.  Such a handle is rolled back as soon as it is created, which can
+    retire it -- and the queue holding it -- while the de-configure the proxy
+    issued for that same handle is still outstanding upstream.  The reply to
+    that de-configure then has nothing left to apply, and it arrives on the
+    thread that received it rather than on the one that owns the queue.
+    Applying it, or discarding it, is the queue dispatcher thread's job either
+    way.
+
+    Each round parks a batch of opens on an upstream that cannot answer, then
+    releases the batch at the same moment the clients that issued it are
+    destroyed, so the replies land while the proxy is dismantling their
+    handles.  Every broker must survive every round.
+    """
+    # The two things that have to overlap are a reply arriving and a client
+    # being torn down, and neither side can be pinned down exactly.  Rounds are
+    # cheap and each one throws a whole batch of replies into the window.
+    rounds = 6
+
+    # Clients destroyed together, so that later teardowns overlap the replies
+    # still owed to earlier ones.
+    clients_per_round = 3
+
+    # Opens each client leaves outstanding when it is destroyed.  The batch has
+    # to be long enough to still be arriving once teardown has started.
+    queues_per_client = 15
+
+    cluster = multi_node
+    du = domain_urls
+
+    proxies = cluster.proxy_cycle()
+    # pick the proxy in the data center opposite to the primary's
+    next(proxies)
+    proxy = next(proxies)
+
+    for rnd in range(rounds):
+        # Each round uses queues of its own, so a round's queues are retired
+        # while that round's replies may still be travelling.
+        def held(index, rnd=rnd):
+            return f"{du.uri_priority}r{rnd}h{index}"
+
+        def parked(client_index, index, rnd=rnd):
+            return f"{du.uri_priority}r{rnd}c{client_index}q{index}"
+
+        clients = []
+        for i in range(clients_per_round):
+            client = proxy.create_client(f"consumer{rnd}n{i}")
+            # An established handle, so that losing this client also leaves a
+            # de-configure outstanding upstream.
+            client.open(held(i), flags=["read"], succeed=True)
+            clients.append(client)
+
+        # The proxy names a session after the pid of its client, which is how
+        # this round tells its own teardowns from any other round's.
+        pids = [client.pid for client in clients]
+
+        active_node = cluster.process(proxy.get_active_node())
+
+        # Nothing the proxy forwards from here on can be answered.
+        active_node.suspend()
+
+        for i, client in enumerate(clients):
+            for q in range(queues_per_client):
+                client.open(parked(i, q), flags=["read"], block=False)
+
+        # Release the batch and lose the clients at the same time.  Which of
+        # the two lands first decides whether a reply meets a live handle, a
+        # retired one, or a queue that is already gone, so alternate the order.
+        if rnd % 2:
+            active_node.resume()
+            for client in clients:
+                client.force_stop()
+        else:
+            for client in clients:
+                client.force_stop()
+            active_node.resume()
+
+        # Every client of this round reached teardown.  Each session that goes
+        # away logs this line, and scanning consumes the output, so claim one
+        # line per client: a line left behind here would be matched by a later
+        # round, which would then be looking at a teardown that is not its own.
+        assert all(
+            proxy.capture_n(
+                [rf":{pid}\b.*Dropped \d+ queue handles" for pid in pids],
+                timeout=10,
+            )
+        )
+
+        if rnd == 0:
+            # The batch really did outlive its requesters: replies are being
+            # applied to handles nobody is waiting for any more.
+            assert proxy.capture(
+                r"OpenQueueConfirmationCookie released without", timeout=10
+            )
+
+        # Let the queues nobody holds any more be collected while the rest of
+        # the batch is still being digested.
+        time.sleep(1)
+
+        # The proxy digested the whole batch and still serves clients.
+        witness = proxy.create_client(f"witness{rnd}")
+        witness.open(held(0), flags=["write,ack"], succeed=True)
+        witness.stop()
+
+        assert proxy.is_alive()
+        for node in cluster.nodes():
+            assert node.is_alive()

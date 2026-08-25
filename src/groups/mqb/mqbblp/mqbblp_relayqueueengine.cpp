@@ -55,6 +55,7 @@
 #include <bsl_limits.h>
 #include <bsl_sstream.h>
 #include <bsl_string.h>
+#include <bsl_string_view.h>
 #include <bsl_utility.h>
 #include <bsl_vector.h>
 #include <bsla_annotations.h>
@@ -262,6 +263,109 @@ bool isConfigureErrorPermanent(
     BSLA_UNREACHABLE;
 }
 
+// =======================
+// class ConfigureNotifier
+// =======================
+
+/// @brief Reports the outcome of a `configure-stream` request to the
+/// requester, once.
+///
+/// The callback is released as soon as an outcome is reported, so that a
+/// repeated report has no effect.  It can also be released to another
+/// routine, which then owes the report.  Destroying a notifier that still
+/// holds a callback is a precondition violation: every exit path of the
+/// operation owning a notifier is expected to either report an outcome or
+/// hand the callback over.
+class ConfigureNotifier {
+  private:
+    // DATA
+
+    /// Callback notifying the requester; empty once an outcome has been
+    /// reported.
+    mqbi::QueueHandle::HandleConfiguredCallback d_configuredCb;
+
+    /// Parameters mirrored back to the requester.
+    const bmqp_ctrlmsg::StreamParameters& d_streamParameters;
+
+    /// Allocator to use.
+    bslma::Allocator* d_allocator_p;
+
+  private:
+    // NOT IMPLEMENTED
+    ConfigureNotifier(const ConfigureNotifier&) BSLS_KEYWORD_DELETED;
+
+    /// Copy constructor and assignment operator removed.
+    ConfigureNotifier&
+    operator=(const ConfigureNotifier&) BSLS_KEYWORD_DELETED;
+
+  public:
+    // CREATORS
+
+    /// @brief Create a notifier reporting to the specified `configuredCb`.
+    ///
+    /// @param configuredCb Callback notifying the requester; may be empty,
+    ///                     in which case no outcome is reported.
+    /// @param streamParameters Parameters mirrored back to the requester;
+    ///                         must outlive this object.
+    /// @param allocator Allocator to use.
+    explicit ConfigureNotifier(
+        const mqbi::QueueHandle::HandleConfiguredCallback& configuredCb,
+        const bmqp_ctrlmsg::StreamParameters&              streamParameters,
+        bslma::Allocator*                                  allocator = 0)
+    : d_configuredCb(configuredCb)
+    , d_streamParameters(streamParameters)
+    , d_allocator_p(allocator)
+    {
+        // NOTHING
+    }
+
+    ~ConfigureNotifier()
+    {
+        // PRECONDITIONS
+        BSLS_ASSERT_SAFE(!d_configuredCb &&
+                         "the outcome was never reported to the requester");
+    }
+
+    // MANIPULATORS
+
+    /// @brief Report the specified `status` to the requester and release
+    /// the callback.
+    void notify(const bmqp_ctrlmsg::Status& status)
+    {
+        if (d_configuredCb) {
+            d_configuredCb(status, d_streamParameters);
+
+            d_configuredCb = bsl::nullptr_t();
+        }
+    }
+
+    /// @brief Report a status built from the specified `category`, `code`
+    /// and `message` to the requester, and release the callback.
+    void notify(const bmqp_ctrlmsg::StatusCategory::Value& category,
+                int                                        code,
+                bsl::string_view                           message)
+    {
+        bmqp_ctrlmsg::Status status(d_allocator_p);
+        status.category() = category;
+        status.code()     = code;
+        status.message().assign(message.data(), message.length());
+
+        notify(status);
+    }
+
+    /// @brief Return the callback and release it, transferring the
+    /// obligation to report an outcome to the caller.
+    mqbi::QueueHandle::HandleConfiguredCallback releaseCb()
+    {
+        mqbi::QueueHandle::HandleConfiguredCallback configuredCb(
+            d_configuredCb);
+
+        d_configuredCb = bsl::nullptr_t();
+
+        return configuredCb;
+    }
+};
+
 }  // close unnamed namespace
 
 // ==================================
@@ -327,12 +431,13 @@ void RelayQueueEngine::onHandleCreation(void* ptr, void* cookie)
 
 // PRIVATE MANIPULATORS
 void RelayQueueEngine::onHandleConfigured(
-    const bsl::weak_ptr<RelayQueueEngine>&   self,
-    const bmqp_ctrlmsg::Status&              status,
-    const bmqp_ctrlmsg::StreamParameters&    upStreamParameters,
-    mqbi::QueueHandle*                       handle,
-    const bmqp_ctrlmsg::StreamParameters&    downStreamParameters,
-    const bsl::shared_ptr<ConfigureContext>& context)
+    const bsl::weak_ptr<RelayQueueEngine>&             self,
+    const bmqp_ctrlmsg::Status&                        status,
+    const bmqp_ctrlmsg::StreamParameters&              upStreamParameters,
+    mqbi::QueueHandle*                                 handle,
+    const bmqp_ctrlmsg::StreamParameters&              downStreamParameters,
+    const bsl::shared_ptr<Routers::AppContext>&        routing_sp,
+    const mqbi::QueueHandle::HandleConfiguredCallback& configuredCb)
 {
     // executed by *ANY* thread
 
@@ -342,8 +447,7 @@ void RelayQueueEngine::onHandleConfigured(
     // lifetime) to reach the queue, and forward 'self' as-is instead of
     // re-deriving it from 'd_self'.  'onHandleConfiguredDispatched' performs
     // the liveness check, once truly running on the queue's dispatcher
-    // thread.  This also guarantees 'context' -- whose destructor invokes
-    // the completion callback -- is always destroyed on that same thread.
+    // thread, and invokes 'configuredCb' there.
 
     handle->queue()->dispatcher()->execute(
         bdlf::BindUtil::bind(&RelayQueueEngine::onHandleConfiguredDispatched,
@@ -353,12 +457,12 @@ void RelayQueueEngine::onHandleConfigured(
                              upStreamParameters,
                              handle,
                              downStreamParameters,
-                             context),
+                             routing_sp,
+                             configuredCb),
         handle->queue());
 
     // 'onHandleConfiguredDispatched' is now responsible for calling the
-    // callback: either 'ClusterQueueHelper::onHandleConfigured' or
-    // 'ClientSession::onHandleConfigured'.  Neither one requires queue thread.
+    // callback, on the queue's dispatcher thread.
 }
 
 void RelayQueueEngine::onHandleConfiguredDispatched(
@@ -366,20 +470,29 @@ void RelayQueueEngine::onHandleConfiguredDispatched(
     const bmqp_ctrlmsg::Status&            status,
     BSLA_MAYBE_UNUSED const bmqp_ctrlmsg::StreamParameters& upStreamParameters,
     mqbi::QueueHandle*                                      handle,
-    const bmqp_ctrlmsg::StreamParameters&    downStreamParameters,
-    const bsl::shared_ptr<ConfigureContext>& context)
+    const bmqp_ctrlmsg::StreamParameters&              downStreamParameters,
+    const bsl::shared_ptr<Routers::AppContext>&        routing_sp,
+    const mqbi::QueueHandle::HandleConfiguredCallback& configuredCb)
 {
     // executed by the *QUEUE DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(routing_sp);
+
+    // Every exit path below reports an outcome to the requester, from this
+    // thread.  Note that 'this' must not be dereferenced until 'self' has
+    // been locked, hence the notifier is left with the default allocator.
+    ConfigureNotifier notifier(configuredCb, downStreamParameters);
 
     bsl::shared_ptr<RelayQueueEngine> strongSelf = self.lock();
     if (!strongSelf) {
         // The engine was destroyed.
+        notifier.notify(bmqp_ctrlmsg::StatusCategory::E_SUCCESS, 0, "");
+
         return;  // RETURN
     }
 
-    // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
-    BSLS_ASSERT_SAFE(context);
 
     // Force re-delivery
     deliverMessages();
@@ -394,7 +507,7 @@ void RelayQueueEngine::onHandleConfiguredDispatched(
             << Event(handle, d_queueState_p, isHandleKnown)
             << ", for parameters [" << downStreamParameters << "].";
 
-        context->setStatus(status);
+        notifier.notify(status);
 
         return;  // RETURN
     }
@@ -423,9 +536,9 @@ void RelayQueueEngine::onHandleConfiguredDispatched(
             app.invalidate(handle);
         }
 
-        context->setStatus(bmqp_ctrlmsg::StatusCategory::E_UNKNOWN,
-                           -1,
-                           "Unknown handle.");
+        notifier.notify(bmqp_ctrlmsg::StatusCategory::E_UNKNOWN,
+                        -1,
+                        "Unknown handle.");
 
         return;  // RETURN
     }
@@ -454,8 +567,8 @@ void RelayQueueEngine::onHandleConfiguredDispatched(
         app = findApp(upstreamSubQueueId);
         BSLS_ASSERT_SAFE(app);
 
-        // This also validates the context by checking for missing handles.
-        applyConfiguration(*app, *context);
+        // This also validates the routing by checking for missing handles.
+        applyConfiguration(*app, routing_sp);
 
         BALL_LOGTHROTTLE_INFO_BLOCK(k_MAX_INSTANT_MESSAGES, k_NS_PER_MESSAGE)
         {
@@ -481,7 +594,7 @@ void RelayQueueEngine::onHandleConfiguredDispatched(
     }
 
     // Invoke callback sending ConfigureQueue response before PUSHing.
-    context->invokeCallback();
+    notifier.notify(bmqp_ctrlmsg::StatusCategory::E_SUCCESS, 0, "");
 
     if (app) {
         processAppRedelivery(upstreamSubQueueId, app);
@@ -799,10 +912,10 @@ void RelayQueueEngine::processAppRedelivery(unsigned int upstreamSubQueueId,
 }
 
 void RelayQueueEngine::configureApp(
-    App_State&                               appState,
-    mqbi::QueueHandle*                       handle,
-    const bmqp_ctrlmsg::StreamParameters&    streamParameters,
-    const bsl::shared_ptr<ConfigureContext>& context)
+    App_State&                                         appState,
+    mqbi::QueueHandle*                                 handle,
+    const bmqp_ctrlmsg::StreamParameters&              streamParameters,
+    const mqbi::QueueHandle::HandleConfiguredCallback& configuredCb)
 {
     // Update handle's 'upstream/outstanding' stream parameters.  Note that
     // self node has to send a configure request upstream.  RelayQueueEngine
@@ -811,6 +924,10 @@ void RelayQueueEngine::configureApp(
     // request will not fail.  So, we update the 'effective' stream parameters
     // before sending the request but update the stream parameters of the
     // specified 'handle' only in the response callback.
+
+    // Every exit path below either reports an outcome to the requester, or
+    // hands the callback over to the routine that will.
+    ConfigureNotifier notifier(configuredCb, streamParameters, d_allocator_p);
 
     App_State::CachedParametersMap::iterator itHandle(
         appState.d_cache.find(handle));
@@ -826,6 +943,8 @@ void RelayQueueEngine::configureApp(
             << "ones: " << streamParameters
             << ". Not sending configure-queue request upstream, but "
             << "returning success to downstream client.";
+
+        notifier.notify(bmqp_ctrlmsg::StatusCategory::E_SUCCESS, 0, "");
 
         return;  // RETURN
     }
@@ -848,7 +967,14 @@ void RelayQueueEngine::configureApp(
         << "', about to rebuild upstream state [current stream parameters: "
         << previousParameters << "]";
 
-    rebuildUpstreamState(context->d_routing_sp.get(),
+    // Routing data to advertise upstream (including Subscription Ids).  It
+    // becomes effective either right below, or once upstream has responded.
+    bsl::shared_ptr<Routers::AppContext> routing_sp =
+        bsl::allocate_shared<Routers::AppContext>(
+            d_allocator_p,
+            &d_queueState_p->routingContext());
+
+    rebuildUpstreamState(routing_sp.get(),
                          &appState,
                          upstreamSubQueueId,
                          streamParameters.appId());
@@ -875,9 +1001,13 @@ void RelayQueueEngine::configureApp(
         // Set the parameters and inform downstream client of success
         handle->setStreamParameters(streamParameters);
 
-        applyConfiguration(appState, *context);
+        applyConfiguration(appState, routing_sp);
+
+        notifier.notify(bmqp_ctrlmsg::StatusCategory::E_SUCCESS, 0, "");
+
         return;  // RETURN
     }
+
     const QueueHandle::HandleConfiguredCallback& callback =
         bdlf::BindUtil::bind(&RelayQueueEngine::onHandleConfigured,
                              this,
@@ -886,7 +1016,8 @@ void RelayQueueEngine::configureApp(
                              bdlf::PlaceHolders::_2,  // upStreamParameters
                              handle,
                              streamParameters,  // downStreamParameters
-                             context);
+                             routing_sp,
+                             notifier.releaseCb());
 
     // Send a configure stream request upstream.
     d_queueState_p->domain()->cluster()->configureQueue(
@@ -952,17 +1083,18 @@ void RelayQueueEngine::rebuildUpstreamState(Routers::AppContext* context,
         << upstreamParams << "]";
 }
 
-void RelayQueueEngine::applyConfiguration(App_State&        app,
-                                          ConfigureContext& context)
+void RelayQueueEngine::applyConfiguration(
+    App_State&                                  app,
+    const bsl::shared_ptr<Routers::AppContext>& routing_sp)
 {
     // executed by the *QUEUE DISPATCHER* thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
+    BSLS_ASSERT_SAFE(routing_sp);
 
     app.undoRouting();
-
-    app.routing() = context.d_routing_sp;
+    app.routing() = routing_sp;
 
     if (!d_queueState_p->isDeliverConsumerPriority()) {
         if (d_queueState_p->hasMultipleSubStreams()) {
@@ -1295,11 +1427,9 @@ void RelayQueueEngine::configureHandle(
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
     BSLS_ASSERT_SAFE(handle);
 
-    // The 'context' will mirror streamParameters when calling 'configuredCb'
-    bsl::shared_ptr<ConfigureContext> context(
-        new (*d_allocator_p)
-            ConfigureContext(configuredCb, streamParameters, d_allocator_p),
-        d_allocator_p);
+    // Every exit path below either reports an outcome to the requester, or
+    // hands the callback over to the routine that will.
+    ConfigureNotifier notifier(configuredCb, streamParameters, d_allocator_p);
 
     // Verify handle exists
     if (!d_queueState_p->handleCatalog().hasHandle(handle)) {
@@ -1310,9 +1440,10 @@ void RelayQueueEngine::configureHandle(
             << "', stream params: " << streamParameters << ", handlePtr '"
             << handle << "'.";
 
-        context->setStatus(bmqp_ctrlmsg::StatusCategory::E_UNKNOWN,
-                           -1,
-                           "Attempting to configure unknown handle.");
+        notifier.notify(bmqp_ctrlmsg::StatusCategory::E_UNKNOWN,
+                        -1,
+                        "Attempting to configure unknown handle.");
+
         return;  // RETURN
     }
 
@@ -1328,10 +1459,11 @@ void RelayQueueEngine::configureHandle(
             << "', stream params: " << streamParameters << ", handlePtr '"
             << handle << "'.";
 
-        context->setStatus(
+        notifier.notify(
             bmqp_ctrlmsg::StatusCategory::E_UNKNOWN,
             -1,
             "Attempting to configure unknown substream for the handle.");
+
         return;  // RETURN
     }
 
@@ -1339,9 +1471,7 @@ void RelayQueueEngine::configureHandle(
     App_State*   app                = findApp(upstreamSubQueueId);
     BSLS_ASSERT_SAFE(app);
 
-    context->initializeRouting(d_queueState_p->routingContext());
-
-    configureApp(*app, handle, streamParameters, context);
+    configureApp(*app, handle, streamParameters, notifier.releaseCb());
 }
 
 void RelayQueueEngine::releaseHandle(

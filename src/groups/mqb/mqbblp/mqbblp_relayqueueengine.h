@@ -164,47 +164,6 @@ class RelayQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     /// Has to have access to private member variables.
     friend class AutoPurger;
 
-    /// This struct serves as multiplexor when sending configure request(s)
-    /// (plural in the case of wildcard) to upstream.  Once all responses
-    /// are collected (there are no more references), it calls the specified
-    /// callback
-    struct ConfigureContext {
-        // TRAITS
-        BSLMF_NESTED_TRAIT_DECLARATION(ConfigureContext,
-                                       bslma::UsesBslmaAllocator)
-
-        mqbi::QueueHandle::HandleConfiguredCallback d_configuredCb;
-        bmqp_ctrlmsg::Status                        d_status;
-        const bmqp_ctrlmsg::StreamParameters        d_streamParameters;
-
-        /// Routing data advertised upstream (including Subscription Ids).
-        /// Upon response from upstream, this becomes effective.
-        bsl::shared_ptr<Routers::AppContext> d_routing_sp;
-
-        bslma::Allocator* d_allocator_p;
-
-        ConfigureContext(
-            const mqbi::QueueHandle::HandleConfiguredCallback& configuredCb,
-            const bmqp_ctrlmsg::StreamParameters& streamParameters,
-            bslma::Allocator*                     allocator);
-
-        ~ConfigureContext();
-
-        void setStatus(const bmqp_ctrlmsg::StatusCategory::Value& category,
-                       int                                        code,
-                       const bslstl::StringRef&                   message);
-
-        void setStatus(const bmqp_ctrlmsg::Status& status);
-
-        void invokeCallback();
-
-        void resetCallback();
-
-        void reset();
-
-        void initializeRouting(Routers::QueueRoutingContext& queueContext);
-    };
-
   private:
     // DATA
     QueueState* d_queueState_p;
@@ -251,40 +210,60 @@ class RelayQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
   private:
     // PRIVATE MANIPULATORS
 
-    /// Schedule processing of the stream configuration response from
-    /// upstream of the specified `handle` with the specified
-    /// `downStreamParameters` per the specified `status`.  The specified
-    /// `upStreamParameters` is the upstream view of the stream parameters
-    /// of this node.  When the specified `context` reference count drops to
-    /// zero, invoke associated callback. Note that the specified `self`
-    /// must be locked to ensure the engine is still alive at the time the
-    /// callback is invoked.
+    /// @brief Schedule processing of a `configure-stream` response from
+    /// upstream on the queue's dispatcher thread.
+    ///
+    /// @param self Weak reference to this engine, checked for liveness once
+    ///             running on the queue's dispatcher thread.
+    /// @param status Outcome reported by upstream.
+    /// @param upStreamParameters Upstream view of this node's stream
+    ///                           parameters.
+    /// @param handle The handle being configured.
+    /// @param downStreamParameters Stream parameters advertised downstream.
+    /// @param routing_sp Routing advertised upstream, to be made effective
+    ///                   by `onHandleConfiguredDispatched`.
+    /// @param configuredCb Callback notifying the requester of the outcome,
+    ///                     invoked by `onHandleConfiguredDispatched`; may be
+    ///                     empty.
     ///
     /// THREAD: This method is called from any thread.
     void onHandleConfigured(
-        const bsl::weak_ptr<RelayQueueEngine>&   self,
-        const bmqp_ctrlmsg::Status&              status,
-        const bmqp_ctrlmsg::StreamParameters&    upStreamParameters,
-        mqbi::QueueHandle*                       handle,
-        const bmqp_ctrlmsg::StreamParameters&    downStreamParameters,
-        const bsl::shared_ptr<ConfigureContext>& context);
+        const bsl::weak_ptr<RelayQueueEngine>&      self,
+        const bmqp_ctrlmsg::Status&                 status,
+        const bmqp_ctrlmsg::StreamParameters&       upStreamParameters,
+        mqbi::QueueHandle*                          handle,
+        const bmqp_ctrlmsg::StreamParameters&       downStreamParameters,
+        const bsl::shared_ptr<Routers::AppContext>& routing_sp,
+        const mqbi::QueueHandle::HandleConfiguredCallback& configuredCb);
 
-    /// Process stream configuration response from upstream of the specified
-    /// `handle` with the specified `downStreamParameters` per the specified
-    /// `status`.  The specified `upStreamParameters` is the upstream view
-    /// of the stream parameters of this node.  When the specified `context`
-    /// reference count drops to zero, invoke associated callback.  Note
-    /// that the specified `self` must be locked to ensure the engine is
-    /// still alive at the time the callback is invoked.
+    /// @brief Process a `configure-stream` response from upstream and
+    /// notify the requester of the outcome.
+    ///
+    /// Apply the response to the routing of the specified `handle`, then
+    /// invoke the specified `configuredCb` on every exit path, so that it
+    /// always runs on this thread.
+    ///
+    /// @param self Weak reference to this engine; nothing but the callback
+    ///             is performed if the engine is no longer alive.
+    /// @param status Outcome reported by upstream.
+    /// @param upStreamParameters Upstream view of this node's stream
+    ///                           parameters.
+    /// @param handle The handle being configured.
+    /// @param downStreamParameters Stream parameters advertised downstream,
+    ///                             and mirrored back to the requester.
+    /// @param routing_sp Routing advertised upstream, made effective here.
+    /// @param configuredCb Callback notifying the requester of the outcome;
+    ///                     may be empty.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
     void onHandleConfiguredDispatched(
-        const bsl::weak_ptr<RelayQueueEngine>&   self,
-        const bmqp_ctrlmsg::Status&              status,
-        const bmqp_ctrlmsg::StreamParameters&    upStreamParameters,
-        mqbi::QueueHandle*                       handle,
-        const bmqp_ctrlmsg::StreamParameters&    downStreamParameters,
-        const bsl::shared_ptr<ConfigureContext>& context);
+        const bsl::weak_ptr<RelayQueueEngine>&      self,
+        const bmqp_ctrlmsg::Status&                 status,
+        const bmqp_ctrlmsg::StreamParameters&       upStreamParameters,
+        mqbi::QueueHandle*                          handle,
+        const bmqp_ctrlmsg::StreamParameters&       downStreamParameters,
+        const bsl::shared_ptr<Routers::AppContext>& routing_sp,
+        const mqbi::QueueHandle::HandleConfiguredCallback& configuredCb);
 
     /// Schedule processing of the release response from upstream of the
     /// specified `handle` with the specified `handleParameters` per the
@@ -310,15 +289,21 @@ class RelayQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     void deliverMessages();
     void processAppRedelivery(unsigned int upstreamSubQueueId, App_State* app);
 
-    /// Configure the specified `handle` with the specified
-    /// `streamParameters` for the specified `appState`.  When the specified
-    /// `context` reference count drops to zero, invoke associated callback.
+    /// @brief Configure the specified `handle` with the specified
+    /// `streamParameters` for the specified `appState`.
+    ///
+    /// Consult upstream if the newly advertised parameters differ from the
+    /// ones already in effect, in which case the specified `configuredCb`
+    /// is invoked upon the upstream response; otherwise complete the
+    /// request and invoke `configuredCb` before returning.  `configuredCb`
+    /// may be empty, in which case the outcome is not reported.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
-    void configureApp(App_State&                            appState,
-                      mqbi::QueueHandle*                    handle,
-                      const bmqp_ctrlmsg::StreamParameters& streamParameters,
-                      const bsl::shared_ptr<ConfigureContext>& context);
+    void configureApp(
+        App_State&                                         appState,
+        mqbi::QueueHandle*                                 handle,
+        const bmqp_ctrlmsg::StreamParameters&              streamParameters,
+        const mqbi::QueueHandle::HandleConfiguredCallback& configuredCb);
 
     void releaseHandleImpl(
         mqbi::QueueHandle*                                           handle,
@@ -336,11 +321,16 @@ class RelayQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
                               unsigned int         upstreamSubQueueId,
                               const bsl::string&   appId);
 
-    /// Make effective the previously built routing results containing
-    /// Subscription ids advertised upstream.
+    /// @brief Make the specified `routing_sp` the effective routing of the
+    /// specified `appState`.
+    ///
+    /// `routing_sp` holds the previously built routing results containing
+    /// the Subscription ids advertised upstream.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
-    void applyConfiguration(App_State& appState, ConfigureContext& context);
+    void
+    applyConfiguration(App_State&                                  appState,
+                       const bsl::shared_ptr<Routers::AppContext>& routing_sp);
 
     mqbi::Storage* storage() const;
 
@@ -606,65 +596,6 @@ inline RelayQueueEngine_AppState::CachedParameters::CachedParameters(
 , d_downstreamSubQueueId(downstreamSubQueueId)
 {
     // NOTHING
-}
-
-// -----------------------------------------
-// struct RelayQueueEngine::ConfigureContext
-// -----------------------------------------
-
-inline RelayQueueEngine::ConfigureContext::ConfigureContext(
-    const mqbi::QueueHandle::HandleConfiguredCallback& configuredCb,
-    const bmqp_ctrlmsg::StreamParameters&              streamParameters,
-    bslma::Allocator*                                  allocator)
-: d_configuredCb(configuredCb)
-, d_status()
-, d_streamParameters(streamParameters, allocator)
-, d_routing_sp()
-, d_allocator_p(allocator)
-{
-    d_status.category() = bmqp_ctrlmsg::StatusCategory::E_SUCCESS;
-    d_status.code()     = 0;
-}
-
-inline RelayQueueEngine::ConfigureContext::~ConfigureContext()
-{
-    invokeCallback();
-}
-
-inline void RelayQueueEngine::ConfigureContext::setStatus(
-    const bmqp_ctrlmsg::StatusCategory::Value& category,
-    int                                        code,
-    const bslstl::StringRef&                   message)
-{
-    d_status.category() = category;
-    d_status.code()     = code;
-    d_status.message()  = message;
-}
-
-inline void RelayQueueEngine::ConfigureContext::setStatus(
-    const bmqp_ctrlmsg::Status& status)
-{
-    d_status = status;
-}
-
-inline void RelayQueueEngine::ConfigureContext::invokeCallback()
-{
-    if (d_configuredCb) {
-        d_configuredCb(d_status, d_streamParameters);
-        resetCallback();
-    }
-}
-
-inline void RelayQueueEngine::ConfigureContext::resetCallback()
-{
-    d_configuredCb = bsl::nullptr_t();
-}
-
-inline void RelayQueueEngine::ConfigureContext::initializeRouting(
-    Routers::QueueRoutingContext& queueContext)
-{
-    d_routing_sp = bsl::allocate_shared<Routers::AppContext>(d_allocator_p,
-                                                             &queueContext);
 }
 
 // ----------------------
