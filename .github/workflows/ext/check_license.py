@@ -74,6 +74,7 @@ def main() -> None:
         "*.c": "cxx_license_template.txt",
         "*.hpp": "cxx_license_template.txt",
         "*.py": "python_license_template.txt",
+        "*.sh": "shell_license_template.txt",
     }
 
     script_dir = Path(__file__).absolute().parent
