@@ -52,6 +52,7 @@
 
 // BDE
 #include <ball_log.h>
+#include <bdlb_nullablevalue.h>
 #include <bdlmt_eventscheduler.h>
 #include <bsl_functional.h>
 #include <bsl_memory.h>
@@ -534,33 +535,38 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager,
 
     /// @brief Send a failure response to a cluster peer.
     ///
-    /// @param request The request being answered; supplies the request id
-    /// echoed back to `destination`.
+    /// @param requestId The id of the request being answered, echoed back to
+    /// `destination` so the peer can match the response.
     /// @param destination The node to send the response to.
     /// @param category The status category of the response.
     /// @param code The @bbref{mqbi::ClusterErrorCode} detailing the failure.
     /// @param reason A human readable description of the failure.
-    void sendFailureResponse(const bmqp_ctrlmsg::ControlMessage& request,
+    void sendFailureResponse(int                                 requestId,
                              mqbnet::ClusterNode*                destination,
                              bmqp_ctrlmsg::StatusCategory::Value category,
                              int                                 code,
                              const bslstl::StringRef&            reason);
 
-    /// @brief Check that a replica data request names a known partition and
-    /// was sent by that partition's primary.
+    /// @brief Check that a replica data request carries a request id, names a
+    /// known partition, and was sent by that partition's primary.
     ///
     /// @details On failure a response is sent to `source` bearing
-    /// `e_NO_PARTITION` if the request's partitionId is out of range, or
-    /// `e_SOURCE_NOT_PRIMARY` if `source` is not self's perceived primary
-    /// for that partition.
+    /// `e_NO_PARTITION` if `request`'s partitionId is out of range, or
+    /// `e_SOURCE_NOT_PRIMARY` if `source` is not self's perceived primary for
+    /// that partition.  A request bearing no id is dropped without a
+    /// response, since the peer would have nothing to match one against.
     ///
-    /// @param message The control message holding the replica data request.
-    /// @param source The node which sent `message`.
+    /// @param[out] requestId The request id, loaded only on success.
+    /// @param request The replica data request to check.
+    /// @param rId The request id as received, which may be null.
+    /// @param source The node which sent `request`.
     /// @returns `true` if the request may be processed, and `false`
     /// otherwise.
     bool
-    validateReplicaDataRequest(const bmqp_ctrlmsg::ControlMessage& message,
-                               mqbnet::ClusterNode*                source);
+    validateReplicaDataRequest(int* requestId,
+                               const bmqp_ctrlmsg::ReplicaDataRequest& request,
+                               const bdlb::NullableValue<int>&         rId,
+                               mqbnet::ClusterNode*                    source);
 
     /// Process replica data request of type PULL received from the specified
     /// `source` with the specified `message`.

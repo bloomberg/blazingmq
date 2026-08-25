@@ -763,6 +763,17 @@ struct TestHelper {
         }
     }
 
+    /// Verify that no node in the cluster was written to.
+    void verifyNoResponse()
+    {
+        for (TestChannelMapCIter cit = d_cluster_mp->_channels().cbegin();
+             cit != d_cluster_mp->_channels().cend();
+             ++cit) {
+            const bool wroteAnything = cit->second->waitFor(1);
+            BMQTST_ASSERT(!wroteAnything);
+        }
+    }
+
     /// Send a storage event (PUT) for the specified `partitionId` from the
     /// specified `source` to the specified `storageManager`, and verify that
     /// it is buffered rather than processed.
@@ -3540,9 +3551,10 @@ static void test23_replicaHealingRefusesInvalidReplicaDataRequest()
 // REPLICA HEALING REFUSES INVALID REPLICA DATA REQUEST
 //
 // Concerns:
-//   When a replica in e_REPLICA_HEALING receives a ReplicaDataRequest with an
-//   invalid partitionId or from a non-primary node, it must:
-//     a) Send a failure response.
+//   When a replica in e_REPLICA_HEALING receives a ReplicaDataRequest with no
+//   request id, an invalid partitionId, or from a non-primary node, it must:
+//     a) Send a failure response, or none at all if there is no request id to
+//        match one against.
 //     b) Remain in e_REPLICA_HEALING.
 //     c) Continue to buffer incoming PUT messages.
 //
@@ -3580,6 +3592,9 @@ static void test23_replicaHealingRefusesInvalidReplicaDataRequest()
         /// Type of the ReplicaDataRequest to send.
         bmqp_ctrlmsg::ReplicaDataType::Value d_dataType;
 
+        /// Whether to omit the request id from the request.
+        bool d_nullRequestId;
+
         /// Which partitionId to put in the request.
         PartitionSelector d_partition;
 
@@ -3590,10 +3605,20 @@ static void test23_replicaHealingRefusesInvalidReplicaDataRequest()
         bool d_clearPrimary;
 
         /// Expected 'mqbi::ClusterErrorCode' in the refusal response.
+        /// Ignored when 'd_nullRequestId' is true, since no response is sent.
         int d_expectedCode;
     } k_DATA[] = {{L_,
+                   "PULL with no request id",
+                   bmqp_ctrlmsg::ReplicaDataType::E_PULL,
+                   true,
+                   e_VALID_PID,
+                   true,
+                   false,
+                   -1},
+                  {L_,
                    "PULL with negative partitionId",
                    bmqp_ctrlmsg::ReplicaDataType::E_PULL,
+                   false,
                    e_NEGATIVE_PID,
                    true,
                    false,
@@ -3601,6 +3626,7 @@ static void test23_replicaHealingRefusesInvalidReplicaDataRequest()
                   {L_,
                    "PULL with too large partitionId",
                    bmqp_ctrlmsg::ReplicaDataType::E_PULL,
+                   false,
                    e_TOO_LARGE_PID,
                    true,
                    false,
@@ -3608,6 +3634,7 @@ static void test23_replicaHealingRefusesInvalidReplicaDataRequest()
                   {L_,
                    "PULL from a node which is not the primary",
                    bmqp_ctrlmsg::ReplicaDataType::E_PULL,
+                   false,
                    e_VALID_PID,
                    false,
                    false,
@@ -3615,13 +3642,23 @@ static void test23_replicaHealingRefusesInvalidReplicaDataRequest()
                   {L_,
                    "PULL when the partition has no primary",
                    bmqp_ctrlmsg::ReplicaDataType::E_PULL,
+                   false,
                    e_VALID_PID,
                    true,
                    true,
                    mqbi::ClusterErrorCode::e_SOURCE_NOT_PRIMARY},
                   {L_,
+                   "PUSH with no request id",
+                   bmqp_ctrlmsg::ReplicaDataType::E_PUSH,
+                   true,
+                   e_VALID_PID,
+                   true,
+                   false,
+                   -1},
+                  {L_,
                    "PUSH with negative partitionId",
                    bmqp_ctrlmsg::ReplicaDataType::E_PUSH,
+                   false,
                    e_NEGATIVE_PID,
                    true,
                    false,
@@ -3629,6 +3666,7 @@ static void test23_replicaHealingRefusesInvalidReplicaDataRequest()
                   {L_,
                    "PUSH with too large partitionId",
                    bmqp_ctrlmsg::ReplicaDataType::E_PUSH,
+                   false,
                    e_TOO_LARGE_PID,
                    true,
                    false,
@@ -3636,6 +3674,7 @@ static void test23_replicaHealingRefusesInvalidReplicaDataRequest()
                   {L_,
                    "PUSH from a node which is not the primary",
                    bmqp_ctrlmsg::ReplicaDataType::E_PUSH,
+                   false,
                    e_VALID_PID,
                    false,
                    false,
@@ -3643,13 +3682,23 @@ static void test23_replicaHealingRefusesInvalidReplicaDataRequest()
                   {L_,
                    "PUSH when the partition has no primary",
                    bmqp_ctrlmsg::ReplicaDataType::E_PUSH,
+                   false,
                    e_VALID_PID,
                    true,
                    true,
                    mqbi::ClusterErrorCode::e_SOURCE_NOT_PRIMARY},
                   {L_,
+                   "DROP with no request id",
+                   bmqp_ctrlmsg::ReplicaDataType::E_DROP,
+                   true,
+                   e_VALID_PID,
+                   true,
+                   false,
+                   -1},
+                  {L_,
                    "DROP with negative partitionId",
                    bmqp_ctrlmsg::ReplicaDataType::E_DROP,
+                   false,
                    e_NEGATIVE_PID,
                    true,
                    false,
@@ -3657,6 +3706,7 @@ static void test23_replicaHealingRefusesInvalidReplicaDataRequest()
                   {L_,
                    "DROP with too large partitionId",
                    bmqp_ctrlmsg::ReplicaDataType::E_DROP,
+                   false,
                    e_TOO_LARGE_PID,
                    true,
                    false,
@@ -3664,6 +3714,7 @@ static void test23_replicaHealingRefusesInvalidReplicaDataRequest()
                   {L_,
                    "DROP from a node which is not the primary",
                    bmqp_ctrlmsg::ReplicaDataType::E_DROP,
+                   false,
                    e_VALID_PID,
                    false,
                    false,
@@ -3671,6 +3722,7 @@ static void test23_replicaHealingRefusesInvalidReplicaDataRequest()
                   {L_,
                    "DROP when the partition has no primary",
                    bmqp_ctrlmsg::ReplicaDataType::E_DROP,
+                   false,
                    e_VALID_PID,
                    true,
                    true,
@@ -3741,7 +3793,9 @@ static void test23_replicaHealingRefusesInvalidReplicaDataRequest()
         }
 
         bmqp_ctrlmsg::ControlMessage message;
-        message.rId() = k_REQUEST_ID;
+        if (!test.d_nullRequestId) {
+            message.rId() = k_REQUEST_ID;
+        }
         bmqp_ctrlmsg::ReplicaDataRequest& replicaDataRequest =
             message.choice()
                 .makeClusterMessage()
@@ -3761,10 +3815,17 @@ static void test23_replicaHealingRefusesInvalidReplicaDataRequest()
 
         storageManager.processReplicaDataRequest(message, source);
 
-        // 4. Verify the expected failure response is sent to the source.
-        helper.verifyRefusedResponse(sourceNodeId,
-                                     k_REQUEST_ID,
-                                     test.d_expectedCode);
+        // 4. Verify the expected failure response is sent to the source.  A
+        //    request bearing no id gets no response, since the source would
+        //    have nothing to match one against.
+        if (test.d_nullRequestId) {
+            helper.verifyNoResponse();
+        }
+        else {
+            helper.verifyRefusedResponse(sourceNodeId,
+                                         k_REQUEST_ID,
+                                         test.d_expectedCode);
+        }
 
         helper.clearChannels();
 
