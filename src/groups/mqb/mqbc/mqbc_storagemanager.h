@@ -532,6 +532,36 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager,
     ///         thread for the specified `partitionId`.
     void primaryRemoveStorageImpl(int partitionId);
 
+    /// @brief Send a failure response to a cluster peer.
+    ///
+    /// @param request The request being answered; supplies the request id
+    /// echoed back to `destination`.
+    /// @param destination The node to send the response to.
+    /// @param category The status category of the response.
+    /// @param code The @bbref{mqbi::ClusterErrorCode} detailing the failure.
+    /// @param reason A human readable description of the failure.
+    void sendFailureResponse(const bmqp_ctrlmsg::ControlMessage& request,
+                             mqbnet::ClusterNode*                destination,
+                             bmqp_ctrlmsg::StatusCategory::Value category,
+                             int                                 code,
+                             const bslstl::StringRef&            reason);
+
+    /// @brief Check that a replica data request names a known partition and
+    /// was sent by that partition's primary.
+    ///
+    /// @details On failure a response is sent to `source` bearing
+    /// `e_NO_PARTITION` if the request's partitionId is out of range, or
+    /// `e_SOURCE_NOT_PRIMARY` if `source` is not self's perceived primary
+    /// for that partition.
+    ///
+    /// @param message The control message holding the replica data request.
+    /// @param source The node which sent `message`.
+    /// @returns `true` if the request may be processed, and `false`
+    /// otherwise.
+    bool
+    validateReplicaDataRequest(const bmqp_ctrlmsg::ControlMessage& message,
+                               mqbnet::ClusterNode*                source);
+
     /// Process replica data request of type PULL received from the specified
     /// `source` with the specified `message`.
     void
