@@ -2,7 +2,6 @@ name: Lint
 
 permissions:
   contents: read
-  pull-requests: write
 
 on:
   pull_request:
@@ -18,6 +17,9 @@ jobs:
   commits_check_job:
     runs-on: ubuntu-slim
     name: DCO Check
+    permissions:
+      # Needed to list the commits of the pull request.
+      pull-requests: read
     steps:
       - name: Get PR Commits
         id: "get-pr-commits"
@@ -208,6 +210,10 @@ jobs:
     name: C++ Linter Check
     needs: configure_ubuntu
     runs-on: ubuntu-slim
+    permissions:
+      contents: read
+      # Needed to post/update the linter's thread comments on the pull request.
+      pull-requests: write
     steps:
       - uses: actions/checkout@v6
         with:

@@ -21,6 +21,9 @@ on:
 # Tag names (e.g., v1.2.3)
 # Full commit SHAs (e.g., a1b2c3d4)
 
+permissions:
+  contents: read
+
 jobs:
   get_dependencies:
     name: "Dependencies"
