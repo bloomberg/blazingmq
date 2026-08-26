@@ -42,12 +42,12 @@ jobs:
           - "test_fuzz_request[negotiation_bypass_authentication]"
           - "test_fuzz_properties"
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           persist-credentials: false
 
       - name: Download broker build
-        uses: actions/download-artifact@v5
+        uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
         with:
           name: ${{ needs.build.outputs.artifact_key }}
 
@@ -75,7 +75,7 @@ jobs:
 
       - name: Upload fuzz logs
         if: failure()
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         with:
           name: fuzz-logs-${{ matrix.fuzztest }}
           path: |

@@ -17,3 +17,28 @@ updates:
       interval: "weekly"
     cooldown:
       default-days: 7
+
+  - package-ecosystem: docker
+    directory: /docker
+    schedule:
+      interval: daily
+
+  - package-ecosystem: docker
+    directory: /docker/plugins/bmqprometheus
+    schedule:
+      interval: daily
+
+  - package-ecosystem: docker
+    directory: /docker/sanitizers
+    schedule:
+      interval: daily
+
+  - package-ecosystem: docker
+    directory: /src/plugins/bmqprometheus/tests/docker
+    schedule:
+      interval: daily
+
+  - package-ecosystem: pip
+    directory: /src/python
+    schedule:
+      interval: daily
