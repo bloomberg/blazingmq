@@ -16,9 +16,9 @@
 """
 Regression coverage for ReplicaDataRequest partition and sender validation.
 
-`E_PUSH` and `E_DROP` are only meaningful from the current primary of a
-partition, but any authorized cluster peer can put one on the wire with any
-partitionId.  Both must be refused at runtime, leaving the broker up.
+`E_PULL`, `E_PUSH` and `E_DROP` are only meaningful from the current primary
+of a partition, but any authorized cluster peer can put one on the wire with
+any partitionId.  All must be refused at runtime, leaving the broker up.
 
 The tests establish a real authenticated `E_TCPBROKER` session over TCP.  A
 configured node is taken down first so that its identity can be claimed.
@@ -47,8 +47,8 @@ PRIMARY_FAILOVER_SECONDS = 10
 NEGOTIATION_TIMEOUT_SECONDS = 10
 NEGOTIATION_INTERVAL_SECONDS = 0.5
 
-LOG_NAME = {"E_PUSH": "Push", "E_DROP": "Drop"}
-DATA_TYPES = ["E_PUSH", "E_DROP"]
+LOG_NAME = {"E_PULL": "Pull", "E_PUSH": "Push", "E_DROP": "Drop"}
+DATA_TYPES = ["E_PULL", "E_PUSH", "E_DROP"]
 
 
 def _partition_primary(
@@ -215,15 +215,15 @@ def test_non_primary_replica_data_request_is_refused(
             client.send_control_message(
                 _replica_data_request(4242, PARTITION_ID, data_type)
             )
+
+            # The victim must have refused the request rather than aborted.
+            assert victim.outputs_regex(
+                rf"Received ReplicaDataRequest{LOG_NAME[data_type]}.*"
+                r"but self's perceived primary is.*Sending failure response",
+                timeout=30,
+            )
         finally:
             client.stop()
-
-        # The victim must have refused the request rather than aborted.
-        assert victim.outputs_regex(
-            rf"Received ReplicaDataRequest{LOG_NAME[data_type]}.*"
-            r"but self's perceived primary is.*Sending failure response",
-            timeout=30,
-        )
 
         assert victim.is_alive()
 
@@ -264,13 +264,14 @@ def test_replica_data_request_invalid_partition_is_refused(
                 client.send_control_message(
                     _replica_data_request(4243, invalid_partition_id, data_type)
                 )
+
+            assert victim.outputs_regex(
+                rf"Received ReplicaDataRequest{LOG_NAME[data_type]}.*"
+                r"invalid partitionId",
+                timeout=30,
+            )
         finally:
             client.stop()
-
-        assert victim.outputs_regex(
-            rf"Received ReplicaDataRequest{LOG_NAME[data_type]}.*invalid partitionId",
-            timeout=30,
-        )
 
         assert victim.is_alive()
 
