@@ -29,6 +29,7 @@
 // BDE
 #include <bdlbb_blob.h>
 #include <bdlbb_pooledblobbufferfactory.h>
+#include <bdls_filesystemutil.h>
 #include <bsl_iostream.h>
 #include <bsl_memory.h>
 #include <bslma_testallocator.h>
@@ -563,6 +564,131 @@ static void test7_rolloverMatchesOpen()
     }
 }
 
+static void test8_openAfterCrashRestart()
+// OPEN AFTER CRASH RESTART
+//
+// 'open()' must leave the log positioned at the end of the records it
+// indexed.  A clean 'close()' truncates the file to what was written, so
+// reopening it lands there by accident; a process killed mid-run leaves
+// the file at the size 'open()' grew it to, and then the write position
+// recovered from the file size is the end of the FILE, not the end of the
+// records.  Everything derived from it -- 'canAppend', 'bytesAbove', the
+// offset the next 'append' writes at -- is then wrong.
+{
+    bmqtst::TestHelper::printTestName("OPEN AFTER CRASH RESTART");
+
+    bslma::Allocator*              alloc = bmqtst::TestHelperUtil::allocator();
+    bmqu::TempDirectory            tempDir(alloc);
+    bdlbb::PooledBlobBufferFactory factory(256, alloc);
+    bmqp::BlobPoolUtil::BlobSpPoolSp poolSp =
+        bmqp::BlobPoolUtil::createBlobPool(&factory, alloc);
+
+    bsl::string      logPath = tempDir.path() + "/csl_crash.bmq";
+    mqbsi::LogConfig logConfig(k_LOG_MAX_SIZE,
+                               k_LOG_KEY,
+                               logPath,
+                               false,  // reserveOnDisk
+                               false,
+                               alloc);
+
+    const bsls::Types::Uint64 k_NUM_RECORDS = 3;
+
+    mqbsi::Log::Offset offsetBeforeCrash = 0;
+
+    // Phase 1: populate, then die without closing.  'close()' is what
+    // truncates the file back to the written length, so skipping it is what
+    // a 'kill -9' leaves behind: a file still grown to 'maxSize'.
+    {
+        bsl::shared_ptr<mqbsl::MemoryMappedOnDiskLog> log(
+            new (*alloc) mqbsl::MemoryMappedOnDiskLog(logConfig),
+            alloc);
+        BMQTST_ASSERT_EQ(log->open(mqbsi::Log::e_CREATE_IF_MISSING), 0);
+
+        mqbc::ClusterStateFileHeader fileHeader;
+        log->write(&fileHeader,
+                   0,
+                   static_cast<int>(sizeof(mqbc::ClusterStateFileHeader)));
+
+        CslRaftLog raftLog(log, poolSp.get(), alloc);
+        BMQTST_ASSERT_EQ(raftLog.open(), 0);
+
+        for (bsls::Types::Uint64 i = 1; i <= k_NUM_RECORDS; ++i) {
+            bsl::shared_ptr<bdlbb::Blob> rec =
+                makeRecord(i, i, &factory, alloc);
+            BMQTST_ASSERT_EQ(raftLog.append(i, rec), 0);
+        }
+
+        offsetBeforeCrash = log->currentOffset();
+
+        // No 'close()' and no 'raftLog.close()': the process is gone.
+    }
+
+    // The file is left at its grown size, above what was written.
+    BMQTST_ASSERT_EQ(bdls::FilesystemUtil::getFileSize(logPath),
+                     k_LOG_MAX_SIZE);
+    BMQTST_ASSERT_LT(offsetBeforeCrash, k_LOG_MAX_SIZE);
+
+    // Phase 2: restart on that file.
+    {
+        bsl::shared_ptr<mqbsl::MemoryMappedOnDiskLog> log(
+            new (*alloc) mqbsl::MemoryMappedOnDiskLog(logConfig),
+            alloc);
+        BMQTST_ASSERT_EQ(log->open(mqbsi::Log::e_CREATE_IF_MISSING), 0);
+
+        CslRaftLog raftLog(log, poolSp.get(), alloc);
+        BMQTST_ASSERT_EQ(raftLog.open(), 0);
+
+        // The index is rebuilt from the records -- this part already worked.
+        BMQTST_ASSERT_EQ(raftLog.lastIndex(), k_NUM_RECORDS);
+        BMQTST_ASSERT_EQ(raftLog.term(1), 1ULL);
+        BMQTST_ASSERT_EQ(raftLog.term(2), 2ULL);
+        BMQTST_ASSERT_EQ(raftLog.term(3), 3ULL);
+
+        // The write position must be where the records end, not where the
+        // file does.
+        BMQTST_ASSERT_EQ(log->currentOffset(), offsetBeforeCrash);
+        BMQTST_ASSERT_EQ(log->outstandingNumBytes(), offsetBeforeCrash);
+
+        // 'bytesAbove' measures the uncommitted tail a rollover has to carry
+        // forward; off the file size it reports nearly the whole file.
+        BMQTST_ASSERT_EQ(
+            raftLog.bytesAbove(0),
+            static_cast<bsls::Types::Uint64>(
+                offsetBeforeCrash - sizeof(mqbc::ClusterStateFileHeader)));
+
+        // Replication can proceed: room is judged against the records, and
+        // the next entry lands after them.
+        bsl::shared_ptr<bdlbb::Blob> rec = makeRecord(4, 4, &factory, alloc);
+        BMQTST_ASSERT(raftLog.canAppend(rec->length()));
+        BMQTST_ASSERT_EQ(raftLog.append(4, rec), 0);
+        BMQTST_ASSERT_EQ(raftLog.lastIndex(), k_NUM_RECORDS + 1);
+
+        log->close();
+    }
+
+    // Phase 3: the entry appended after the restart is durable and indexed
+    // where the pre-crash ones are.
+    {
+        bsl::shared_ptr<mqbsl::MemoryMappedOnDiskLog> log(
+            new (*alloc) mqbsl::MemoryMappedOnDiskLog(logConfig),
+            alloc);
+        BMQTST_ASSERT_EQ(log->open(0), 0);
+
+        CslRaftLog raftLog(log, poolSp.get(), alloc);
+        BMQTST_ASSERT_EQ(raftLog.open(), 0);
+
+        BMQTST_ASSERT_EQ(raftLog.lastIndex(), k_NUM_RECORDS + 1);
+        BMQTST_ASSERT_EQ(raftLog.term(4), 4ULL);
+
+        bsl::vector<LogEntry> entries(alloc);
+        raftLog.entries(1, k_NUM_RECORDS + 2, &entries, 0, 0, false);
+        BMQTST_ASSERT_EQ(entries.size(),
+                         static_cast<size_t>(k_NUM_RECORDS + 1));
+
+        log->close();
+    }
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ============================================================================
@@ -573,6 +699,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 8: test8_openAfterCrashRestart(); break;
     case 7: test7_rolloverMatchesOpen(); break;
     case 6: test6_installSnapshotMatchesOpen(); break;
     case 5: test5_openPrePopulated(); break;

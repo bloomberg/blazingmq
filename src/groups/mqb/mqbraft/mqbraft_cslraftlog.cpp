@@ -73,7 +73,7 @@ int CslRaftLog::open()
     d_snapshotTerm  = 0;
 
     const bsls::Types::Int64 numBytes   = d_log_sp->outstandingNumBytes();
-    bsls::Types::Int64       offset     = k_FILE_HEADER_SIZE;
+    mqbsi::Log::Offset       offset     = k_FILE_HEADER_SIZE;
     bool                     firstEntry = true;
 
     while (offset + k_RECORD_HEADER_SIZE <= numBytes) {
@@ -121,7 +121,14 @@ int CslRaftLog::open()
         offset += recSize;
     }
 
-    return 0;
+    // 'offset' is one past the last valid record: the write position.
+    // 'Log::open' derives that from the file size, which is only correct
+    // after a clean 'close()' truncated the file back; a killed process
+    // leaves it at the grown size.  Legacy does this in
+    // 'IncoreClusterStateLedger::open'.
+    d_log_sp->setOutstandingNumBytes(offset);
+
+    return d_log_sp->seek(offset);
 }
 
 int CslRaftLog::close()
