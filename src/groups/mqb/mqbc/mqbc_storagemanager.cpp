@@ -1129,7 +1129,7 @@ void StorageManager::processReplicaDataRequestPull(
     BSLS_ASSERT_SAFE(replicaDataRequest.replicaDataType() ==
                      bmqp_ctrlmsg::ReplicaDataType::E_PULL);
 
-    int requestId;
+    int requestId = 0;
     if (!validateReplicaDataRequest(&requestId,
                                     replicaDataRequest,
                                     message.rId(),
@@ -1158,32 +1158,23 @@ void StorageManager::processReplicaDataRequestPull(
         return;  // RETURN
     }
 
-    mqbnet::ClusterNode* const selfNode =
-        d_clusterData_p->membership().selfNode();
-    const bmqp_ctrlmsg::PartitionSequenceNumber selfPSN =
-        d_nodeToPSNCtxMapVec.at(partitionId).at(selfNode).d_PSN;
-    if (replicaDataRequest.endSequenceNumber() != selfPSN) {
-        bmqp_ctrlmsg::ControlMessage controlMsg;
-        controlMsg.rId() = requestId;
+    if (replicaDataRequest.beginSequenceNumber() >=
+        replicaDataRequest.endSequenceNumber()) {
+        BALL_LOG_ERROR
+            << d_clusterData_p->identity().description() << " Partition ["
+            << partitionId << "]: "
+            << "Received ReplicaDataRequestPull from "
+            << source->nodeDescription() << " with begin PSN: "
+            << mqbs::printPSN(replicaDataRequest.beginSequenceNumber())
+            << " which is not below its end PSN: "
+            << mqbs::printPSN(replicaDataRequest.endSequenceNumber())
+            << ".  Sending failure response.";
 
-        bmqp_ctrlmsg::Status& status = controlMsg.choice().makeStatus();
-        status.category() = bmqp_ctrlmsg::StatusCategory::E_INVALID_ARGUMENT;
-        status.code()     = mqbi::ClusterErrorCode::e_STORAGE_FAILURE;
-        status.message()  = "End PSN mismatch";
-
-        d_clusterData_p->messageTransmitter().sendMessageSafe(controlMsg,
-                                                              source);
-
-        BALL_LOG_ERROR << d_clusterData_p->identity().description()
-                       << " Partition [" << partitionId << "]: "
-                       << "Received ReplicaDataRequestPull from "
-                       << source->nodeDescription() << " with end PSN: "
-                       << mqbs::printPSN(
-                              replicaDataRequest.endSequenceNumber())
-                       << " that does not match self's current PSN: "
-                       << mqbs::printPSN(selfPSN)
-                       << ".  Sent a failure response " << controlMsg << ".";
-
+        sendFailureResponse(requestId,
+                            source,
+                            bmqp_ctrlmsg::StatusCategory::E_INVALID_ARGUMENT,
+                            mqbi::ClusterErrorCode::e_STORAGE_FAILURE,
+                            "Invalid sequence number range");
         return;  // RETURN
     }
 
@@ -1224,7 +1215,7 @@ void StorageManager::processReplicaDataRequestPush(
     BSLS_ASSERT_SAFE(replicaDataRequest.replicaDataType() ==
                      bmqp_ctrlmsg::ReplicaDataType::E_PUSH);
 
-    int requestId;
+    int requestId = 0;
     if (!validateReplicaDataRequest(&requestId,
                                     replicaDataRequest,
                                     message.rId(),
@@ -1250,6 +1241,26 @@ void StorageManager::processReplicaDataRequestPush(
                             bmqp_ctrlmsg::StatusCategory::E_REFUSED,
                             mqbi::ClusterErrorCode::e_STOPPING,
                             "Self node is stopping");
+        return;  // RETURN
+    }
+
+    if (replicaDataRequest.beginSequenceNumber() >
+        replicaDataRequest.endSequenceNumber()) {
+        BALL_LOG_ERROR
+            << d_clusterData_p->identity().description() << " Partition ["
+            << partitionId << "]: "
+            << "Received ReplicaDataRequestPush from "
+            << source->nodeDescription() << " with begin PSN: "
+            << mqbs::printPSN(replicaDataRequest.beginSequenceNumber())
+            << " which is above its end PSN: "
+            << mqbs::printPSN(replicaDataRequest.endSequenceNumber())
+            << ".  Sending failure response.";
+
+        sendFailureResponse(requestId,
+                            source,
+                            bmqp_ctrlmsg::StatusCategory::E_INVALID_ARGUMENT,
+                            mqbi::ClusterErrorCode::e_STORAGE_FAILURE,
+                            "Invalid sequence number range");
         return;  // RETURN
     }
 
@@ -1290,7 +1301,7 @@ void StorageManager::processReplicaDataRequestDrop(
     BSLS_ASSERT_SAFE(replicaDataRequest.replicaDataType() ==
                      bmqp_ctrlmsg::ReplicaDataType::E_DROP);
 
-    int requestId;
+    int requestId = 0;
     if (!validateReplicaDataRequest(&requestId,
                                     replicaDataRequest,
                                     message.rId(),
@@ -2804,8 +2815,6 @@ void StorageManager::do_sendDataToPrimary(
     const bmqp_ctrlmsg::PartitionSequenceNumber endSeqNum =
         eventData.partitionSeqNumDataRange().second;
     BSLS_ASSERT_SAFE(beginSeqNum < endSeqNum);
-    BSLS_ASSERT_SAFE(endSeqNum ==
-                     d_nodeToPSNCtxMapVec[partitionId][selfNode].d_PSN);
 
     PartitionFSMEventData sendPartitionFSMEventData(
         destNode,
@@ -2813,6 +2822,38 @@ void StorageManager::do_sendDataToPrimary(
         partitionId,
         1,
         eventData.partitionSeqNumDataRange());
+
+    const NodeToPSNCtxMap& nodeToPSNCtxMap = d_nodeToPSNCtxMapVec.at(
+        partitionId);
+    const NodeToPSNCtxMapCIter selfCit = nodeToPSNCtxMap.find(selfNode);
+    if (selfCit == nodeToPSNCtxMap.cend()) {
+        BMQTSK_ALARMLOG_ALARM(PartitionFSM::k_PFSM_DEFECT_LOG_TAG)
+            << d_clusterData_p->identity().description() << " Partition ["
+            << partitionId << "]: " << "Self has no stored PSN while healing "
+            << "as a replica.  Please review Partition FSM logic."
+            << BMQTSK_ALARMLOG_END;
+
+        enqueuePartitionFSMEvent(
+            PartitionFSM::Event::e_ERROR_SENDING_DATA_CHUNKS,
+            sendPartitionFSMEventData);
+        return;  // RETURN
+    }
+
+    if (endSeqNum != selfCit->second.d_PSN) {
+        BALL_LOG_ERROR << d_clusterData_p->identity().description()
+                       << " Partition [" << partitionId << "]: "
+                       << "Primary " << destNode->nodeDescription()
+                       << " requested data up to PSN "
+                       << mqbs::printPSN(endSeqNum)
+                       << ", which does not match self's current PSN "
+                       << mqbs::printPSN(selfCit->second.d_PSN)
+                       << ". Reply with a failure ReplicaDataResponsePull.";
+
+        enqueuePartitionFSMEvent(
+            PartitionFSM::Event::e_ERROR_SENDING_DATA_CHUNKS,
+            sendPartitionFSMEventData);
+        return;  // RETURN
+    }
 
     // NOTE: In case the primary has missed rollover, it has already checked
     // during `do_primaryRemoveStorageIfNeeded` and has removed its own
