@@ -13,6 +13,9 @@ on:
         description: "GH Actions Cache key associated with the built dependencies"
         value: ${{ jobs.build_dependencies.outputs.cache_key }}
 
+permissions:
+  contents: read
+
 jobs:
   build_dependencies:
     name: Build and cache dependencies [${{ inputs.cxx_standard }}]

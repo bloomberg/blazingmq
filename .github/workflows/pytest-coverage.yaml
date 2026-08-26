@@ -16,6 +16,9 @@ on:
 
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   python_unit_tests_coverage:
     name: UT coverage [python]
