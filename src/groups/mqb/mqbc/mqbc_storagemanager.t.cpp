@@ -4058,6 +4058,110 @@ static void test24_unknownSurvivesReplicaDataRequestPull()
     helper.d_cluster_mp->stop();
 }
 
+static void test25_replicaHealingRefusesEndPSNMismatch()
+// ------------------------------------------------------------------------
+// REPLICA HEALING REFUSES END PSN MISMATCH
+//
+// Concerns:
+//   An end PSN which does not match self's means the primary is pulling from
+//   a stale healing session, and must be told precisely that.
+//
+// Plan:
+//   1) Transition to REPLICA_HEALING, which stores self's PSN.
+//   2) Send a PULL from the primary whose end PSN is above self's.
+//   3) Verify the refusal names e_END_PSN_MISMATCH.
+//   4) Verify self stayed in e_REPLICA_HEALING.
+//
+// Testing:
+//   do_sendDataToPrimary end PSN validation
+//   do_failureReplicaDataResponsePull e_END_PSN_MISMATCH response
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("REPLICA HEALING REFUSES END PSN "
+                                      "MISMATCH");
+
+    static const int k_PARTITION_ID = 0;
+    static const int k_REQUEST_ID   = 42;
+
+    TestHelper helper;
+
+    mqbc::StorageManager storageManager(
+        helper.d_cluster_mp->_clusterDefinition(),
+        helper.d_cluster_mp.get(),
+        helper.d_cluster_mp->_clusterData(),
+        helper.d_cluster_mp->_state(),
+        helper.d_cluster_mp->_clusterData()->domainFactory(),
+        helper.d_cluster_mp->dispatcher(),
+        k_WATCHDOG_TIMEOUT_DURATION,
+        k_WATCHDOG_NUM_RETRIES,
+        mockOnRecoveryStatus,
+        mockOnPartitionPrimaryStatus,
+        bmqtst::TestHelperUtil::allocator());
+
+    const int selfNodeId = helper.d_cluster_mp->_clusterData()
+                               ->membership()
+                               .netCluster()
+                               ->selfNodeId();
+    const int primaryNodeId = selfNodeId + 1;
+
+    mqbnet::ClusterNode* primaryNode = helper.d_cluster_mp->_clusterData()
+                                           ->membership()
+                                           .netCluster()
+                                           ->lookupNode(primaryNodeId);
+    BSLS_ASSERT_OPT(primaryNode);
+
+    // 1. Transition to REPLICA_HEALING, storing self's PSN.
+    helper.transitionReplicaToHealing(&storageManager,
+                                      primaryNode,
+                                      k_PARTITION_ID);
+
+    // 2. Send a PULL whose end PSN is above the one self stored while healing.
+    bmqp_ctrlmsg::ControlMessage message;
+    message.rId() = k_REQUEST_ID;
+    bmqp_ctrlmsg::ReplicaDataRequest& replicaDataRequest =
+        message.choice()
+            .makeClusterMessage()
+            .choice()
+            .makePartitionMessage()
+            .choice()
+            .makeReplicaDataRequest();
+
+    bmqp_ctrlmsg::PartitionSequenceNumber beginPSN;
+    beginPSN.primaryLeaseId() = 1U;
+    beginPSN.sequenceNumber() = 1U;
+
+    // Self recovers its PSN from empty storage while healing, leaving it at
+    // zero, so this range is well formed yet cannot be served.
+    bmqp_ctrlmsg::PartitionSequenceNumber endPSN;
+    endPSN.primaryLeaseId() = 1U;
+    endPSN.sequenceNumber() = 3U;
+
+    replicaDataRequest.replicaDataType() =
+        bmqp_ctrlmsg::ReplicaDataType::E_PULL;
+    replicaDataRequest.partitionId()         = k_PARTITION_ID;
+    replicaDataRequest.primaryLeaseId()      = 1U;
+    replicaDataRequest.beginSequenceNumber() = beginPSN;
+    replicaDataRequest.endSequenceNumber()   = endPSN;
+
+    storageManager.processReplicaDataRequest(message, primaryNode);
+
+    // 3. The refusal must name the mismatch, not a generic storage failure.
+    helper.verifyFailureResponse(primaryNodeId,
+                                 k_REQUEST_ID,
+                                 bmqp_ctrlmsg::StatusCategory::E_REFUSED,
+                                 mqbi::ClusterErrorCode::e_END_PSN_MISMATCH);
+
+    helper.clearChannels();
+
+    // 4. Self stayed in e_REPLICA_HEALING.
+    BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
+                     mqbc::PartitionFSM::State::e_REPLICA_HEALING);
+
+    storageManager.stopPFSMs();
+    storageManager.stop();
+    helper.d_cluster_mp->stop();
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -4075,6 +4179,7 @@ int main(int argc, char* argv[])
         //      - test21_replicaHealingReceivesReplicaDataRqstDrop();
         //      - test20_replicaHealingReceivesReplicaDataRqstPush();
         //      - test19_primaryHealedSendsDataChunks();
+    case 25: test25_replicaHealingRefusesEndPSNMismatch(); break;
     case 24: test24_unknownSurvivesReplicaDataRequestPull(); break;
     case 23: test23_replicaHealingRefusesInvalidReplicaDataRequest(); break;
     case 22: test22_rstUnknownCancelsInFlightRequests(); break;

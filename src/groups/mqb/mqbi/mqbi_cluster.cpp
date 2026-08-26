@@ -69,6 +69,7 @@ const char* ClusterErrorCode::toAscii(ClusterErrorCode::Enum value)
         CASE(SOURCE_NOT_PRIMARY)
         CASE(IRRECONCILABLE_DATA)
         CASE(FOLLOWER_WAITING)
+        CASE(END_PSN_MISMATCH)
     default: return "(* UNKNOWN *)";
     }
 
@@ -104,6 +105,7 @@ bool ClusterErrorCode::fromAscii(ClusterErrorCode::Enum*  out,
     CHECKVALUE(SOURCE_NOT_PRIMARY)
     CHECKVALUE(IRRECONCILABLE_DATA)
     CHECKVALUE(FOLLOWER_WAITING)
+    CHECKVALUE(END_PSN_MISMATCH)
     // Invalid string
     return false;
 

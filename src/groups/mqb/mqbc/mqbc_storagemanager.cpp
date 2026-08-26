@@ -2722,6 +2722,10 @@ void StorageManager::do_failureReplicaDataResponsePull(
         status.code()    = mqbi::ClusterErrorCode::e_IRRECONCILABLE_DATA;
         status.message() = "Primary has irreconcilable data";
     }
+    else if (eventType == PartitionFSM::Event::e_END_PSN_MISMATCH) {
+        status.code()    = mqbi::ClusterErrorCode::e_END_PSN_MISMATCH;
+        status.message() = "End PSN mismatch";
+    }
     else {
         status.code()    = mqbi::ClusterErrorCode::e_STORAGE_FAILURE;
         status.message() = "Failed to send data chunks";
@@ -2849,9 +2853,8 @@ void StorageManager::do_sendDataToPrimary(
                        << mqbs::printPSN(selfCit->second.d_PSN)
                        << ". Reply with a failure ReplicaDataResponsePull.";
 
-        enqueuePartitionFSMEvent(
-            PartitionFSM::Event::e_ERROR_SENDING_DATA_CHUNKS,
-            sendPartitionFSMEventData);
+        enqueuePartitionFSMEvent(PartitionFSM::Event::e_END_PSN_MISMATCH,
+                                 sendPartitionFSMEventData);
         return;  // RETURN
     }
 

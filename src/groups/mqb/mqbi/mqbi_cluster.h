@@ -168,7 +168,11 @@ struct ClusterErrorCode {
         /// RegistrationResponse, and **must** reject the FollowerLSNRequest
         /// to prevent the leader from healing self twice in a row, leading
         /// to duplicate work.
-        e_FOLLOWER_WAITING = -214
+        e_FOLLOWER_WAITING = -214,
+        /// The end sequence number a primary asked self to send data up to
+        /// does not match self's own, meaning the primary is working from a
+        /// stale view of self and needs to request self's state afresh.
+        e_END_PSN_MISMATCH = -215
     };
 
     // CLASS METHODS
