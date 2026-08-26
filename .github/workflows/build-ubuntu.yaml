@@ -54,7 +54,7 @@ jobs:
       artifact_key: ${{ steps.get_cache_key.outputs.artifact_key }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
         with:
           ref: ${{ inputs.ref }}
           fetch-depth: 0
@@ -73,7 +73,7 @@ jobs:
           COMMIT_SHA=$(git rev-parse HEAD)
           echo "cache_key=cache-${{ inputs.cxx_standard }}-${{ inputs.target }}-${COMMIT_SHA}" >> $GITHUB_OUTPUT
           echo "artifact_key=${{ inputs.name }}-${{ inputs.target }}-${COMMIT_SHA}" >> $GITHUB_OUTPUT
-      - uses: actions/cache/restore@v4
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         id: build-cache-restore-step
         if: inputs.save_build_as_artifacts == true # Variable type is boolean, thus no quotes
         with:
@@ -85,7 +85,7 @@ jobs:
       # The following steps restore cached deps
       # If the cache is not hit, it will build and install the dependencies
       # If the cache is hit, building deps is skipped, only make install is run
-      - uses: actions/cache/restore@v4
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         if: steps.build-cache-restore-step.outputs.cache-hit != 'true' # Variable type is string, thus using quotes
         with:
           path: |
@@ -139,7 +139,7 @@ jobs:
           echo "Please set the target to include 'all.t' to build unit tests."
           exit 1
 
-      - uses: actions/upload-artifact@v5
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
         if: inputs.save_build_as_artifacts == true # Variable type is boolean, thus no quotes
         with:
           path: |
@@ -152,7 +152,7 @@ jobs:
         # Type of "save_build_as_artifacts" variable is boolean, thus no quotes
         # Type of "cache-hit" variable is string, thus using quotes
         if: inputs.save_build_as_artifacts == true && steps.build-cache-restore-step.outputs.cache-hit != 'true'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: |
             build/blazingmq
