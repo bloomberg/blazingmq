@@ -215,15 +215,15 @@ def test_non_primary_replica_data_request_is_refused(
             client.send_control_message(
                 _replica_data_request(4242, PARTITION_ID, data_type)
             )
+
+            # The victim must have refused the request rather than aborted.
+            assert victim.outputs_regex(
+                rf"Received ReplicaDataRequest{LOG_NAME[data_type]}.*"
+                r"but self's perceived primary is.*Sending failure response",
+                timeout=30,
+            )
         finally:
             client.stop()
-
-        # The victim must have refused the request rather than aborted.
-        assert victim.outputs_regex(
-            rf"Received ReplicaDataRequest{LOG_NAME[data_type]}.*"
-            r"but self's perceived primary is.*Sending failure response",
-            timeout=30,
-        )
 
         assert victim.is_alive()
 
@@ -264,13 +264,14 @@ def test_replica_data_request_invalid_partition_is_refused(
                 client.send_control_message(
                     _replica_data_request(4243, invalid_partition_id, data_type)
                 )
+
+            assert victim.outputs_regex(
+                rf"Received ReplicaDataRequest{LOG_NAME[data_type]}.*"
+                r"invalid partitionId",
+                timeout=30,
+            )
         finally:
             client.stop()
-
-        assert victim.outputs_regex(
-            rf"Received ReplicaDataRequest{LOG_NAME[data_type]}.*invalid partitionId",
-            timeout=30,
-        )
 
         assert victim.is_alive()
 
