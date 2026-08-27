@@ -19,26 +19,24 @@ updates:
       default-days: 7
 
   - package-ecosystem: docker
-    directory: /docker
+    directories:
+      - "/**/*"
+    groups:
+      docker:
+        patterns:
+          - "*"
     schedule:
-      interval: daily
-
-  - package-ecosystem: docker
-    directory: /docker/plugins/bmqprometheus
-    schedule:
-      interval: daily
-
-  - package-ecosystem: docker
-    directory: /docker/sanitizers
-    schedule:
-      interval: daily
-
-  - package-ecosystem: docker
-    directory: /src/plugins/bmqprometheus/tests/docker
-    schedule:
-      interval: daily
+      interval: weekly
+    cooldown:
+      default-days: 7
 
   - package-ecosystem: pip
     directory: /src/python
+    groups:
+      pip:
+        patterns:
+          - "*"
     schedule:
-      interval: daily
+      interval: weekly
+    cooldown:
+      default-days: 7
