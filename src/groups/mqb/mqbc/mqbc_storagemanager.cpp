@@ -2827,9 +2827,8 @@ void StorageManager::do_sendDataToPrimary(
         1,
         eventData.partitionSeqNumDataRange());
 
-    const NodeToPSNCtxMap& nodeToPSNCtxMap = d_nodeToPSNCtxMapVec.at(
-        partitionId);
-    const NodeToPSNCtxMapCIter selfCit = nodeToPSNCtxMap.find(selfNode);
+    const NodeToPSNCtxMap& nodeToPSNCtxMap = d_nodeToPSNCtxMapVec[partitionId];
+    const NodeToPSNCtxMapCIter selfCit     = nodeToPSNCtxMap.find(selfNode);
     if (selfCit == nodeToPSNCtxMap.cend()) {
         BMQTSK_ALARMLOG_ALARM(PartitionFSM::k_PFSM_DEFECT_LOG_TAG)
             << d_clusterData_p->identity().description() << " Partition ["
