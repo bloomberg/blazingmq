@@ -71,7 +71,7 @@ jobs:
       RUN_UID: ${{ matrix.cluster }}_${{ matrix.mode }}_${{ matrix.consistency }}
     steps:
       - name: Checkout ITs repo
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # The ref of the workflow that triggered this workflow
           path: repoit
@@ -79,7 +79,7 @@ jobs:
           persist-credentials: false
 
       - name: Checkout repo1
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.inputs.ref1 }}
           path: repo1
@@ -87,18 +87,18 @@ jobs:
           persist-credentials: false
 
       - name: Checkout repo2
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.inputs.ref2 }}
           path: repo2
           fetch-depth: 0
           persist-credentials: false
 
-      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           path: ./repo1
           name: ${{needs.build1.outputs.artifact_key }}
-      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           path: ./repo2
           name: ${{needs.build2.outputs.artifact_key }}
@@ -142,7 +142,7 @@ jobs:
 
       - name: Upload failure-logs as artifacts
         if: failure()
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ${{ github.run_id }}_failure_logs_${{ env.RUN_UID }}
           path: ${{ github.workspace }}/repoit/src/integration-tests/failure-logs
@@ -164,7 +164,7 @@ jobs:
       RUN_UID: ${{ matrix.cluster }}_${{ matrix.mode }}_${{ matrix.consistency }}
     steps:
       - name: Checkout ITs repo
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # The ref of the workflow that triggered this workflow
           path: repoit
@@ -172,7 +172,7 @@ jobs:
           persist-credentials: false
 
       - name: Checkout repo1
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.inputs.ref1 }}
           path: repo1
@@ -180,18 +180,18 @@ jobs:
           persist-credentials: false
 
       - name: Checkout repo2
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.inputs.ref2 }}
           path: repo2
           fetch-depth: 0
           persist-credentials: false
 
-      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           path: ./repo1
           name: ${{needs.build1.outputs.artifact_key }}
-      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
           path: ./repo2
           name: ${{needs.build2.outputs.artifact_key }}
@@ -245,7 +245,7 @@ jobs:
 
       - name: Upload failure-logs as artifacts
         if: failure()
-        uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4 # v5.0.0
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ${{ github.run_id }}_failure_logs_${{ env.RUN_UID }}
           path: ${{ github.workspace }}/repoit/src/integration-tests/failure-logs
