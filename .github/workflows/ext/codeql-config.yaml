@@ -1,0 +1,9 @@
+---
+name: "BlazingMQ CodeQL config"
+
+# Test drivers, fuzzing harnesses and test-only code are not shipped to users.
+paths-ignore:
+  - "**/*.t.cpp"
+  - "src/fuzz-tests"
+  - "src/integration-tests"
+  - "src/standalones/s_bmqfuzz"
