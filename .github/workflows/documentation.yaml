@@ -25,7 +25,7 @@ jobs:
 
     steps:
       - name: Checkout `main`
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
 
@@ -33,7 +33,7 @@ jobs:
         run: rm -rf docs
 
       - name: Checkout `gh-pages` into `docs/`
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           path: docs
           ref: gh-pages
