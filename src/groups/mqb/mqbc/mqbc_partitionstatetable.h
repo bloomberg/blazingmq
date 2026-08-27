@@ -196,9 +196,13 @@ struct PartitionStateTableEvent {
         /// up-to-date replica.
         e_IRRECONCILABLE_REPLICA_DATA_RSPN_PULL = 35,
 
+        /// Self replica detects that the end sequence number a primary asked
+        /// it to send data up to does not match its own.
+        e_END_PSN_MISMATCH = 36,
+
         /// **NOT A VALID STATE**.  This is an artificial enum value to
         /// represent the number of states.
-        e_NUM_EVENTS = 36
+        e_NUM_EVENTS = 37
     };
 
     // CLASS METHODS
@@ -865,6 +869,10 @@ class PartitionStateTable
                 REPLICA_HEALING);
         PST_CFG(REPLICA_HEALING,
                 IRRECONCILABLE_DATA,
+                failureReplicaDataResponsePull,
+                REPLICA_HEALING);
+        PST_CFG(REPLICA_HEALING,
+                END_PSN_MISMATCH,
                 failureReplicaDataResponsePull,
                 REPLICA_HEALING);
         PST_CFG(REPLICA_HEALING,

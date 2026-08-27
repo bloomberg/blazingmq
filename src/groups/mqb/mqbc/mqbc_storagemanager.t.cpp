@@ -727,10 +727,13 @@ struct TestHelper {
         }
     }
 
-    /// Verify that the node having the specified `sourceNodeId` was sent an
-    /// E_REFUSED response bearing the specified `requestId` and `errorCode`,
-    /// and that no other node in the cluster was written to.
-    void verifyRefusedResponse(int sourceNodeId, int requestId, int errorCode)
+    /// Verify that the node having the specified `sourceNodeId` was sent a
+    /// failure response bearing the specified `requestId`, `category` and
+    /// `errorCode`, and that no other node in the cluster was written to.
+    void verifyFailureResponse(int sourceNodeId,
+                               int requestId,
+                               bmqp_ctrlmsg::StatusCategory::Value category,
+                               int                                 errorCode)
     {
         for (TestChannelMapCIter cit = d_cluster_mp->_channels().cbegin();
              cit != d_cluster_mp->_channels().cend();
@@ -752,8 +755,7 @@ struct TestHelper {
 
                 const bmqp_ctrlmsg::Status& status =
                     response.choice().status();
-                BMQTST_ASSERT_EQ(status.category(),
-                                 bmqp_ctrlmsg::StatusCategory::E_REFUSED);
+                BMQTST_ASSERT_EQ(status.category(), category);
                 BMQTST_ASSERT_EQ(status.code(), errorCode);
             }
             else {
@@ -3552,11 +3554,15 @@ static void test23_replicaHealingRefusesInvalidReplicaDataRequest()
 //
 // Concerns:
 //   When a replica in e_REPLICA_HEALING receives a ReplicaDataRequest with no
-//   request id, an invalid partitionId, or from a non-primary node, it must:
+//   request id, an invalid partitionId, an unusable sequence number range, or
+//   from a non-primary node, it must:
 //     a) Send a failure response, or none at all if there is no request id to
 //        match one against.
 //     b) Remain in e_REPLICA_HEALING.
 //     c) Continue to buffer incoming PUT messages.
+//
+//   Note that an empty range is refused for PULL but accepted for PUSH, where
+//   it tells the replica that it is already up to date with the primary.
 //
 // Plan:
 //  For each row of the table below, on a fresh cluster:
@@ -3568,8 +3574,8 @@ static void test23_replicaHealingRefusesInvalidReplicaDataRequest()
 //   6) Verify a subsequent PUT is buffered, not processed.
 //
 // Testing:
-//   processReplicaDataRequestPull partition and source validation
-//   processReplicaDataRequestPush partition and source validation
+//   processReplicaDataRequestPull partition, source and range validation
+//   processReplicaDataRequestPush partition, source and range validation
 //   processReplicaDataRequestDrop partition and source validation
 // ------------------------------------------------------------------------
 {
@@ -3581,6 +3587,9 @@ static void test23_replicaHealingRefusesInvalidReplicaDataRequest()
 
     // Selects the partitionId to put on the wire.
     enum PartitionSelector { e_VALID_PID, e_NEGATIVE_PID, e_TOO_LARGE_PID };
+
+    // Selects the [begin, end) sequence number range to put on the wire.
+    enum RangeSelector { e_VALID_RANGE, e_EMPTY_RANGE, e_REVERSED_RANGE };
 
     struct Test {
         /// Line of this row, reported when an assertion fails.
@@ -3598,11 +3607,18 @@ static void test23_replicaHealingRefusesInvalidReplicaDataRequest()
         /// Which partitionId to put in the request.
         PartitionSelector d_partition;
 
+        /// Which sequence number range to put in the request.
+        RangeSelector d_range;
+
         /// Whether to send from the primary node, or from another replica.
         bool d_fromPrimary;
 
         /// Whether to unassign the partition's primary before sending.
         bool d_clearPrimary;
+
+        /// Expected status category in the refusal response.
+        /// Ignored when 'd_nullRequestId' is true, since no response is sent.
+        bmqp_ctrlmsg::StatusCategory::Value d_expectedCategory;
 
         /// Expected 'mqbi::ClusterErrorCode' in the refusal response.
         /// Ignored when 'd_nullRequestId' is true, since no response is sent.
@@ -3612,120 +3628,180 @@ static void test23_replicaHealingRefusesInvalidReplicaDataRequest()
                    bmqp_ctrlmsg::ReplicaDataType::E_PULL,
                    true,
                    e_VALID_PID,
+                   e_VALID_RANGE,
                    true,
                    false,
+                   bmqp_ctrlmsg::StatusCategory::E_REFUSED,
                    -1},
                   {L_,
                    "PULL with negative partitionId",
                    bmqp_ctrlmsg::ReplicaDataType::E_PULL,
                    false,
                    e_NEGATIVE_PID,
+                   e_VALID_RANGE,
                    true,
                    false,
+                   bmqp_ctrlmsg::StatusCategory::E_REFUSED,
                    mqbi::ClusterErrorCode::e_NO_PARTITION},
                   {L_,
                    "PULL with too large partitionId",
                    bmqp_ctrlmsg::ReplicaDataType::E_PULL,
                    false,
                    e_TOO_LARGE_PID,
+                   e_VALID_RANGE,
                    true,
                    false,
+                   bmqp_ctrlmsg::StatusCategory::E_REFUSED,
                    mqbi::ClusterErrorCode::e_NO_PARTITION},
                   {L_,
                    "PULL from a node which is not the primary",
                    bmqp_ctrlmsg::ReplicaDataType::E_PULL,
                    false,
                    e_VALID_PID,
+                   e_VALID_RANGE,
                    false,
                    false,
+                   bmqp_ctrlmsg::StatusCategory::E_REFUSED,
                    mqbi::ClusterErrorCode::e_SOURCE_NOT_PRIMARY},
                   {L_,
                    "PULL when the partition has no primary",
                    bmqp_ctrlmsg::ReplicaDataType::E_PULL,
                    false,
                    e_VALID_PID,
+                   e_VALID_RANGE,
                    true,
                    true,
+                   bmqp_ctrlmsg::StatusCategory::E_REFUSED,
                    mqbi::ClusterErrorCode::e_SOURCE_NOT_PRIMARY},
+                  {L_,
+                   "PULL with an empty sequence number range",
+                   bmqp_ctrlmsg::ReplicaDataType::E_PULL,
+                   false,
+                   e_VALID_PID,
+                   e_EMPTY_RANGE,
+                   true,
+                   false,
+                   bmqp_ctrlmsg::StatusCategory::E_INVALID_ARGUMENT,
+                   mqbi::ClusterErrorCode::e_STORAGE_FAILURE},
+                  {L_,
+                   "PULL with a reversed sequence number range",
+                   bmqp_ctrlmsg::ReplicaDataType::E_PULL,
+                   false,
+                   e_VALID_PID,
+                   e_REVERSED_RANGE,
+                   true,
+                   false,
+                   bmqp_ctrlmsg::StatusCategory::E_INVALID_ARGUMENT,
+                   mqbi::ClusterErrorCode::e_STORAGE_FAILURE},
                   {L_,
                    "PUSH with no request id",
                    bmqp_ctrlmsg::ReplicaDataType::E_PUSH,
                    true,
                    e_VALID_PID,
+                   e_VALID_RANGE,
                    true,
                    false,
+                   bmqp_ctrlmsg::StatusCategory::E_REFUSED,
                    -1},
                   {L_,
                    "PUSH with negative partitionId",
                    bmqp_ctrlmsg::ReplicaDataType::E_PUSH,
                    false,
                    e_NEGATIVE_PID,
+                   e_VALID_RANGE,
                    true,
                    false,
+                   bmqp_ctrlmsg::StatusCategory::E_REFUSED,
                    mqbi::ClusterErrorCode::e_NO_PARTITION},
                   {L_,
                    "PUSH with too large partitionId",
                    bmqp_ctrlmsg::ReplicaDataType::E_PUSH,
                    false,
                    e_TOO_LARGE_PID,
+                   e_VALID_RANGE,
                    true,
                    false,
+                   bmqp_ctrlmsg::StatusCategory::E_REFUSED,
                    mqbi::ClusterErrorCode::e_NO_PARTITION},
                   {L_,
                    "PUSH from a node which is not the primary",
                    bmqp_ctrlmsg::ReplicaDataType::E_PUSH,
                    false,
                    e_VALID_PID,
+                   e_VALID_RANGE,
                    false,
                    false,
+                   bmqp_ctrlmsg::StatusCategory::E_REFUSED,
                    mqbi::ClusterErrorCode::e_SOURCE_NOT_PRIMARY},
                   {L_,
                    "PUSH when the partition has no primary",
                    bmqp_ctrlmsg::ReplicaDataType::E_PUSH,
                    false,
                    e_VALID_PID,
+                   e_VALID_RANGE,
                    true,
                    true,
+                   bmqp_ctrlmsg::StatusCategory::E_REFUSED,
                    mqbi::ClusterErrorCode::e_SOURCE_NOT_PRIMARY},
+                  {L_,
+                   "PUSH with a reversed sequence number range",
+                   bmqp_ctrlmsg::ReplicaDataType::E_PUSH,
+                   false,
+                   e_VALID_PID,
+                   e_REVERSED_RANGE,
+                   true,
+                   false,
+                   bmqp_ctrlmsg::StatusCategory::E_INVALID_ARGUMENT,
+                   mqbi::ClusterErrorCode::e_STORAGE_FAILURE},
                   {L_,
                    "DROP with no request id",
                    bmqp_ctrlmsg::ReplicaDataType::E_DROP,
                    true,
                    e_VALID_PID,
+                   e_VALID_RANGE,
                    true,
                    false,
+                   bmqp_ctrlmsg::StatusCategory::E_REFUSED,
                    -1},
                   {L_,
                    "DROP with negative partitionId",
                    bmqp_ctrlmsg::ReplicaDataType::E_DROP,
                    false,
                    e_NEGATIVE_PID,
+                   e_VALID_RANGE,
                    true,
                    false,
+                   bmqp_ctrlmsg::StatusCategory::E_REFUSED,
                    mqbi::ClusterErrorCode::e_NO_PARTITION},
                   {L_,
                    "DROP with too large partitionId",
                    bmqp_ctrlmsg::ReplicaDataType::E_DROP,
                    false,
                    e_TOO_LARGE_PID,
+                   e_VALID_RANGE,
                    true,
                    false,
+                   bmqp_ctrlmsg::StatusCategory::E_REFUSED,
                    mqbi::ClusterErrorCode::e_NO_PARTITION},
                   {L_,
                    "DROP from a node which is not the primary",
                    bmqp_ctrlmsg::ReplicaDataType::E_DROP,
                    false,
                    e_VALID_PID,
+                   e_VALID_RANGE,
                    false,
                    false,
+                   bmqp_ctrlmsg::StatusCategory::E_REFUSED,
                    mqbi::ClusterErrorCode::e_SOURCE_NOT_PRIMARY},
                   {L_,
                    "DROP when the partition has no primary",
                    bmqp_ctrlmsg::ReplicaDataType::E_DROP,
                    false,
                    e_VALID_PID,
+                   e_VALID_RANGE,
                    true,
                    true,
+                   bmqp_ctrlmsg::StatusCategory::E_REFUSED,
                    mqbi::ClusterErrorCode::e_SOURCE_NOT_PRIMARY}};
 
     const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
@@ -3808,6 +3884,21 @@ static void test23_replicaHealingRefusesInvalidReplicaDataRequest()
         replicaDataRequest.partitionId()     = partitionId;
         replicaDataRequest.primaryLeaseId()  = 1U;
 
+        // A valid range spans at least one sequence number; an empty one
+        // begins where it ends, and a reversed one begins above its end.
+        bmqp_ctrlmsg::PartitionSequenceNumber beginPSN;
+        beginPSN.primaryLeaseId() = 1U;
+        beginPSN.sequenceNumber() = 1U;
+
+        bmqp_ctrlmsg::PartitionSequenceNumber endPSN;
+        endPSN.primaryLeaseId() = 1U;
+        endPSN.sequenceNumber() = test.d_range == e_VALID_RANGE   ? 2U
+                                  : test.d_range == e_EMPTY_RANGE ? 1U
+                                                                  : 0U;
+
+        replicaDataRequest.beginSequenceNumber() = beginPSN;
+        replicaDataRequest.endSequenceNumber()   = endPSN;
+
         mqbnet::ClusterNode* const source = test.d_fromPrimary ? primaryNode
                                                                : otherNode;
         const int sourceNodeId            = test.d_fromPrimary ? primaryNodeId
@@ -3822,8 +3913,9 @@ static void test23_replicaHealingRefusesInvalidReplicaDataRequest()
             helper.verifyNoResponse();
         }
         else {
-            helper.verifyRefusedResponse(sourceNodeId,
+            helper.verifyFailureResponse(sourceNodeId,
                                          k_REQUEST_ID,
+                                         test.d_expectedCategory,
                                          test.d_expectedCode);
         }
 
@@ -3849,6 +3941,227 @@ static void test23_replicaHealingRefusesInvalidReplicaDataRequest()
     }
 }
 
+static void test24_unknownSurvivesReplicaDataRequestPull()
+// ------------------------------------------------------------------------
+// UNKNOWN SURVIVES REPLICA DATA REQUEST PULL
+//
+// Concerns:
+//   Self's PSN for a partition is stored when its FSM leaves e_UNKNOWN, and
+//   discarded when it returns there.  The cluster state keeps naming the
+//   partition's primary across that transition, so a ReplicaDataRequestPull
+//   from the primary can arrive while self holds no PSN for the partition.
+//   The broker must stay up and keep serving that partition.
+//
+// Plan:
+//   1) Transition to REPLICA_HEALING, which stores self's PSN.
+//   2) Drive the partition FSM back to e_UNKNOWN, which discards it, leaving
+//      the cluster state still naming the primary.
+//   3) Send a well formed ReplicaDataRequestPull from that primary.
+//   4) Verify self is still in e_UNKNOWN and answered nothing.
+//   5) Verify the partition can still heal, and self's PSN is stored again.
+//
+// Testing:
+//   processReplicaDataRequestPull with no stored PSN for the partition
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName(
+        "UNKNOWN SURVIVES REPLICA DATA REQUEST PULL");
+
+    static const int k_PARTITION_ID = 0;
+    static const int k_REQUEST_ID   = 42;
+
+    TestHelper helper;
+
+    mqbc::StorageManager storageManager(
+        helper.d_cluster_mp->_clusterDefinition(),
+        helper.d_cluster_mp.get(),
+        helper.d_cluster_mp->_clusterData(),
+        helper.d_cluster_mp->_state(),
+        helper.d_cluster_mp->_clusterData()->domainFactory(),
+        helper.d_cluster_mp->dispatcher(),
+        k_WATCHDOG_TIMEOUT_DURATION,
+        k_WATCHDOG_NUM_RETRIES,
+        mockOnRecoveryStatus,
+        mockOnPartitionPrimaryStatus,
+        bmqtst::TestHelperUtil::allocator());
+
+    const int selfNodeId = helper.d_cluster_mp->_clusterData()
+                               ->membership()
+                               .netCluster()
+                               ->selfNodeId();
+    const int primaryNodeId = selfNodeId + 1;
+
+    mqbnet::ClusterNode* primaryNode = helper.d_cluster_mp->_clusterData()
+                                           ->membership()
+                                           .netCluster()
+                                           ->lookupNode(primaryNodeId);
+    BSLS_ASSERT_OPT(primaryNode);
+
+    // 1. Transition to REPLICA_HEALING, storing self's PSN.
+    helper.transitionReplicaToHealing(&storageManager,
+                                      primaryNode,
+                                      k_PARTITION_ID);
+
+    BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
+                     mqbc::PartitionFSM::State::e_REPLICA_HEALING);
+
+    // 2. Drive the partition FSM back to e_UNKNOWN, discarding self's PSN.
+    storageManager.detectPrimaryLossInPFSM(k_PARTITION_ID);
+    BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
+                     mqbc::PartitionFSM::State::e_UNKNOWN);
+
+    helper.clearChannels();
+
+    // 3. Send a well formed ReplicaDataRequestPull from the primary.
+    bmqp_ctrlmsg::ControlMessage message;
+    message.rId() = k_REQUEST_ID;
+    bmqp_ctrlmsg::ReplicaDataRequest& replicaDataRequest =
+        message.choice()
+            .makeClusterMessage()
+            .choice()
+            .makePartitionMessage()
+            .choice()
+            .makeReplicaDataRequest();
+
+    bmqp_ctrlmsg::PartitionSequenceNumber beginPSN;
+    beginPSN.primaryLeaseId() = 1U;
+    beginPSN.sequenceNumber() = 1U;
+
+    bmqp_ctrlmsg::PartitionSequenceNumber endPSN;
+    endPSN.primaryLeaseId() = 1U;
+    endPSN.sequenceNumber() = 2U;
+
+    replicaDataRequest.replicaDataType() =
+        bmqp_ctrlmsg::ReplicaDataType::E_PULL;
+    replicaDataRequest.partitionId()         = k_PARTITION_ID;
+    replicaDataRequest.primaryLeaseId()      = 1U;
+    replicaDataRequest.beginSequenceNumber() = beginPSN;
+    replicaDataRequest.endSequenceNumber()   = endPSN;
+
+    storageManager.processReplicaDataRequest(message, primaryNode);
+
+    // 4. Self is still in e_UNKNOWN, where a PULL is not actionable, so the
+    //    primary is left to time out its request.
+    BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
+                     mqbc::PartitionFSM::State::e_UNKNOWN);
+    helper.verifyNoResponse();
+
+    // 5. The partition can still heal, storing self's PSN again.
+    storageManager.detectSelfReplicaInPFSM(k_PARTITION_ID,
+                                           primaryNode,
+                                           1);  // primaryLeaseId
+    BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
+                     mqbc::PartitionFSM::State::e_REPLICA_WAITING);
+
+    storageManager.stopPFSMs();
+    storageManager.stop();
+    helper.d_cluster_mp->stop();
+}
+
+static void test25_replicaHealingRefusesEndPSNMismatch()
+// ------------------------------------------------------------------------
+// REPLICA HEALING REFUSES END PSN MISMATCH
+//
+// Concerns:
+//   An end PSN which does not match self's means the primary is pulling from
+//   a stale healing session, and must be told precisely that.
+//
+// Plan:
+//   1) Transition to REPLICA_HEALING, which stores self's PSN.
+//   2) Send a PULL from the primary whose end PSN is above self's.
+//   3) Verify the refusal names e_END_PSN_MISMATCH.
+//   4) Verify self stayed in e_REPLICA_HEALING.
+//
+// Testing:
+//   do_sendDataToPrimary end PSN validation
+//   do_failureReplicaDataResponsePull e_END_PSN_MISMATCH response
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("REPLICA HEALING REFUSES END PSN "
+                                      "MISMATCH");
+
+    static const int k_PARTITION_ID = 0;
+    static const int k_REQUEST_ID   = 42;
+
+    TestHelper helper;
+
+    mqbc::StorageManager storageManager(
+        helper.d_cluster_mp->_clusterDefinition(),
+        helper.d_cluster_mp.get(),
+        helper.d_cluster_mp->_clusterData(),
+        helper.d_cluster_mp->_state(),
+        helper.d_cluster_mp->_clusterData()->domainFactory(),
+        helper.d_cluster_mp->dispatcher(),
+        k_WATCHDOG_TIMEOUT_DURATION,
+        k_WATCHDOG_NUM_RETRIES,
+        mockOnRecoveryStatus,
+        mockOnPartitionPrimaryStatus,
+        bmqtst::TestHelperUtil::allocator());
+
+    const int selfNodeId = helper.d_cluster_mp->_clusterData()
+                               ->membership()
+                               .netCluster()
+                               ->selfNodeId();
+    const int primaryNodeId = selfNodeId + 1;
+
+    mqbnet::ClusterNode* primaryNode = helper.d_cluster_mp->_clusterData()
+                                           ->membership()
+                                           .netCluster()
+                                           ->lookupNode(primaryNodeId);
+    BSLS_ASSERT_OPT(primaryNode);
+
+    // 1. Transition to REPLICA_HEALING, storing self's PSN.
+    helper.transitionReplicaToHealing(&storageManager,
+                                      primaryNode,
+                                      k_PARTITION_ID);
+
+    // 2. Send a PULL whose end PSN is above the one self stored while healing.
+    bmqp_ctrlmsg::ControlMessage message;
+    message.rId() = k_REQUEST_ID;
+    bmqp_ctrlmsg::ReplicaDataRequest& replicaDataRequest =
+        message.choice()
+            .makeClusterMessage()
+            .choice()
+            .makePartitionMessage()
+            .choice()
+            .makeReplicaDataRequest();
+
+    bmqp_ctrlmsg::PartitionSequenceNumber beginPSN;
+    beginPSN.primaryLeaseId() = 1U;
+    beginPSN.sequenceNumber() = 1U;
+
+    // Self recovers its PSN from empty storage while healing, leaving it at
+    // zero, so this range is well formed yet cannot be served.
+    bmqp_ctrlmsg::PartitionSequenceNumber endPSN;
+    endPSN.primaryLeaseId() = 1U;
+    endPSN.sequenceNumber() = 3U;
+
+    replicaDataRequest.replicaDataType() =
+        bmqp_ctrlmsg::ReplicaDataType::E_PULL;
+    replicaDataRequest.partitionId()         = k_PARTITION_ID;
+    replicaDataRequest.primaryLeaseId()      = 1U;
+    replicaDataRequest.beginSequenceNumber() = beginPSN;
+    replicaDataRequest.endSequenceNumber()   = endPSN;
+
+    storageManager.processReplicaDataRequest(message, primaryNode);
+
+    // 3. The refusal must name the mismatch, not a generic storage failure.
+    helper.verifyFailureResponse(primaryNodeId,
+                                 k_REQUEST_ID,
+                                 bmqp_ctrlmsg::StatusCategory::E_REFUSED,
+                                 mqbi::ClusterErrorCode::e_END_PSN_MISMATCH);
+
+    helper.clearChannels();
+
+    // 4. Self stayed in e_REPLICA_HEALING.
+    BMQTST_ASSERT_EQ(storageManager.partitionHealthState(k_PARTITION_ID),
+                     mqbc::PartitionFSM::State::e_REPLICA_HEALING);
+
+    storageManager.stopPFSMs();
+    storageManager.stop();
+    helper.d_cluster_mp->stop();
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -3866,6 +4179,8 @@ int main(int argc, char* argv[])
         //      - test21_replicaHealingReceivesReplicaDataRqstDrop();
         //      - test20_replicaHealingReceivesReplicaDataRqstPush();
         //      - test19_primaryHealedSendsDataChunks();
+    case 25: test25_replicaHealingRefusesEndPSNMismatch(); break;
+    case 24: test24_unknownSurvivesReplicaDataRequestPull(); break;
     case 23: test23_replicaHealingRefusesInvalidReplicaDataRequest(); break;
     case 22: test22_rstUnknownCancelsInFlightRequests(); break;
     case 21: test21_watchdogMultipleRetries(); break;
