@@ -578,6 +578,23 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
                            const bsl::shared_ptr<bdlbb::Blob>& event,
                            const bmqu::BlobPosition&           recordPosition);
 
+    /// @brief Write the queue creation/addition record contained in a storage
+    /// message received from the primary.
+    ///
+    /// @details Write the queue creation/addition record carried by `event` to
+    /// the JOURNAL file and, if this file store is  QLIST-aware, the queue
+    /// record that follows it to the QLIST file.  Then  invoke the queue
+    /// creation callback and record the resulting handle against the queue's
+    /// storage.
+    ///
+    /// @param header         Storage header of the message.
+    /// @param recHeader      Record header supplying the leaseId and
+    ///                       sequence number the record is keyed on.
+    /// @param event          Blob holding the storage message.
+    /// @param recordPosition Position of the record within `event`.
+    /// @returns 0 on success, `FileStoreUtil::k_MALFORMED_QUEUE_RECORD` if
+    ///          the queue record is structurally invalid, and another non-zero
+    ///          value otherwise.
     int writeQueueCreationRecord(const bmqp::StorageHeader&          header,
                                  const mqbs::RecordHeader&           recHeader,
                                  const bsl::shared_ptr<bdlbb::Blob>& event,

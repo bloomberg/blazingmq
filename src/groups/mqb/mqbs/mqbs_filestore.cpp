@@ -4460,6 +4460,9 @@ int FileStore::writeQueueCreationRecord(
         &quri,
         &queueKey,
         &queueOpType);
+    if (FileStoreUtil::k_MALFORMED_QUEUE_RECORD == rc) {
+        return rc;  // RETURN
+    }
     if (0 != rc) {
         return 10 * rc + rc_WRITE_QUEUE_CREATION_RECORD_ERROR;  // RETURN
     }
@@ -6449,6 +6452,24 @@ void FileStore::processStorageEvent(const bsl::shared_ptr<bdlbb::Blob>& blob,
                                     blob,
                                     recordPosition,
                                     header.messageType());
+        }
+
+        // A record which is not a valid record at all tells us nothing about
+        // whether self and the primary have diverged, so drop the event
+        // instead of aborting.
+
+        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
+                FileStoreUtil::k_MALFORMED_QUEUE_RECORD == rc)) {
+            BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+            BMQTSK_ALARMLOG_ALARM("REPLICATION")
+                << partitionDesc() << "Received a malformed storage msg "
+                << header.messageType() << " from "
+                << source->nodeDescription() << " with PSN ("
+                << printPSN(recHeader->primaryLeaseId(),
+                            recHeader->sequenceNumber())
+                << "), journal offset words: " << header.journalOffsetWords()
+                << ". Ignoring entire event." << BMQTSK_ALARMLOG_END;
+            return;  // RETURN
         }
 
         // Bump up the current PSN if record was written
