@@ -47,6 +47,102 @@ using namespace BloombergLP;
 using namespace bsl;
 
 // ============================================================================
+//                            TEST HELPERS UTILITY
+// ----------------------------------------------------------------------------
+namespace {
+
+// CONSTANTS
+const bsl::size_t MD5_DIGEST_BYTES = 16;
+
+// ALIASES
+typedef bsl::unordered_map<bsl::string, bsl::string> Results;
+typedef Results::const_iterator                      ResultsIt;
+
+// FUNCTIONS
+
+static void bytesFromHex(bsl::string* destination, const bsl::string& source)
+// ------------------------------------------------------------------------
+// Transforms Hex numbers from the specified 'source' string to bytes and
+// stores them in the specified 'destination' string.  Each pair of
+// characters from 'source' will be interpreted like hexadecimal number and
+// stored into 'destination' as a single char.  If length of 'source' is an
+// odd number, the last character will be ignored.
+// ------------------------------------------------------------------------
+{
+    destination->clear();
+    destination->reserve(source.size() / 2);
+    bsl::string::const_iterator src = source.begin();
+    while (src != source.end() && (src + 1) != source.end()) {
+        bslstl::StringRef sub(src, src + 2);
+        destination->push_back(static_cast<char>(bsl::stoi(sub, 0, 16)));
+        src += 2;
+    }
+}
+
+static void jobForThreadPool(const Results* testData, bslmt::Barrier* barrier)
+// ------------------------------------------------------------------------
+// Calculates MD5 hashes from keys of the specified 'testData' object and
+// compares them with corresponding values.  The specified 'barrier' is
+// used to start all the jobs simultaneously in the different threads.
+// ------------------------------------------------------------------------
+{
+    bdlbb::PooledBlobBufferFactory factory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bmqu::BlobPosition startPos;
+
+    barrier->wait();
+    for (int i = 0; i < 1000; ++i) {
+        for (ResultsIt r = testData->begin(); r != testData->end(); ++r) {
+            const bsl::string& source = r->first;
+            const bsl::string& hex    = r->second;
+            bsl::string        expected(bmqtst::TestHelperUtil::allocator());
+            bytesFromHex(&expected, hex);
+
+            bdlbb::Blob localBlob(&factory,
+                                  bmqtst::TestHelperUtil::allocator());
+            localBlob.setLength(source.size());
+            bsl::memcpy(localBlob.buffer(0).data(),
+                        source.c_str(),
+                        source.size());
+            bdlde::Md5::Md5Digest buffer;
+
+            int rc = -1;
+            BMQTST_ASSERT_PASS(
+                rc = mqbs::FileStoreProtocolUtil::calculateMd5Digest(
+                    &buffer,
+                    localBlob,
+                    startPos,
+                    source.size()));
+            BMQTST_ASSERT_EQ(0, rc);
+            bsl::string result(buffer.buffer(),
+                               MD5_DIGEST_BYTES,
+                               bmqtst::TestHelperUtil::allocator());
+            BMQTST_ASSERT_EQ(result, expected);
+        }
+    }
+}
+
+/// Assert that `loadAppInfos` rejects the specified `numAppIds` entries in
+/// the specified `block` without loading any pair, reporting the specified
+/// `description` on failure.
+static void assertAppInfosRejected(const mqbs::MemoryBlock& block,
+                                   unsigned int             numAppIds,
+                                   const char*              description)
+{
+    mqbi::Storage::AppInfos appIdKeyPairs(bmqtst::TestHelperUtil::allocator());
+
+    const int rc = mqbs::FileStoreProtocolUtil::loadAppInfos(&appIdKeyPairs,
+                                                             block,
+                                                             numAppIds);
+
+    BMQTST_ASSERT_NE_D(description, 0, rc);
+    BMQTST_ASSERT_EQ_D(description, 0u, appIdKeyPairs.size());
+}
+
+}  // close unnamed namespace
+
+// ============================================================================
 //                                    TESTS
 // ----------------------------------------------------------------------------
 
@@ -516,12 +612,274 @@ static void test3_lastJournalSyncPoint()
     }
 }
 
-static void test4_loadAppInfos()
+static void test4_loadQueueRecordLayout()
+// ------------------------------------------------------------------------
+// Testing:
+//   loadQueueRecordLayout()
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("LOAD QUEUE RECORD LAYOUT");
+
+    // A 42 character URI padded to 44 bytes, i.e. 11 WORDs.
+    const unsigned int k_URI_LEN   = 44u;
+    const unsigned int k_URI_WORDS = k_URI_LEN / bmqp::Protocol::k_WORD_SIZE;
+    const unsigned int k_HEADER_WORDS = sizeof(mqbs::QueueRecordHeader) /
+                                        bmqp::Protocol::k_WORD_SIZE;
+    // 'QueueRecordHeader' + padded URI + URI hash + magic word.
+    const unsigned int k_RECORD_WORDS = k_HEADER_WORDS + k_URI_WORDS + 4 + 1;
+
+    unsigned int headerLen     = 0;
+    unsigned int paddedUriLen  = 0;
+    unsigned int appIdsAreaLen = 0;
+
+    {
+        // A record with no appIds.
+
+        mqbs::QueueRecordHeader header;
+        header.setQueueUriLengthWords(k_URI_WORDS)
+            .setHeaderWords(k_HEADER_WORDS)
+            .setQueueRecordWords(k_RECORD_WORDS);
+
+        BMQTST_ASSERT_EQ(
+            0,
+            mqbs::FileStoreProtocolUtil::loadQueueRecordLayout(&headerLen,
+                                                               &paddedUriLen,
+                                                               &appIdsAreaLen,
+                                                               header));
+        BMQTST_ASSERT_EQ(sizeof(mqbs::QueueRecordHeader), headerLen);
+        BMQTST_ASSERT_EQ(k_URI_LEN, paddedUriLen);
+        BMQTST_ASSERT_EQ(0u, appIdsAreaLen);
+    }
+
+    {
+        // The same record declaring one appId: the layout is still
+        // consistent, and it is up to 'loadAppInfos' to reject the empty
+        // application-ID area.
+
+        mqbs::QueueRecordHeader header;
+        header.setQueueUriLengthWords(k_URI_WORDS)
+            .setNumAppIds(1)
+            .setHeaderWords(k_HEADER_WORDS)
+            .setQueueRecordWords(k_RECORD_WORDS);
+
+        BMQTST_ASSERT_EQ(
+            0,
+            mqbs::FileStoreProtocolUtil::loadQueueRecordLayout(&headerLen,
+                                                               &paddedUriLen,
+                                                               &appIdsAreaLen,
+                                                               header));
+        BMQTST_ASSERT_EQ(0u, appIdsAreaLen);
+    }
+
+    {
+        // A record with room for one 'AppIdHeader', a one WORD appId and its
+        // appKey.
+        const unsigned int k_APP_IDS_AREA_WORDS =
+            1 + 1 + 4;  // header + appId + appKey
+        const unsigned int k_APP_IDS_AREA_LEN = k_APP_IDS_AREA_WORDS *
+                                                bmqp::Protocol::k_WORD_SIZE;
+
+        mqbs::QueueRecordHeader header;
+        header.setQueueUriLengthWords(k_URI_WORDS)
+            .setNumAppIds(1)
+            .setHeaderWords(k_HEADER_WORDS)
+            .setQueueRecordWords(k_RECORD_WORDS + k_APP_IDS_AREA_WORDS);
+
+        BMQTST_ASSERT_EQ(
+            0,
+            mqbs::FileStoreProtocolUtil::loadQueueRecordLayout(&headerLen,
+                                                               &paddedUriLen,
+                                                               &appIdsAreaLen,
+                                                               header));
+        BMQTST_ASSERT_EQ(k_APP_IDS_AREA_LEN, appIdsAreaLen);
+    }
+
+    {
+        // 'headerWords' below 'QueueRecordHeader::k_MIN_HEADER_SIZE'.
+
+        mqbs::QueueRecordHeader header;
+        header.setQueueUriLengthWords(k_URI_WORDS)
+            .setHeaderWords(mqbs::QueueRecordHeader::k_MIN_HEADER_SIZE - 1)
+            .setQueueRecordWords(k_RECORD_WORDS);
+
+        BMQTST_ASSERT_NE(
+            0,
+            mqbs::FileStoreProtocolUtil::loadQueueRecordLayout(&headerLen,
+                                                               &paddedUriLen,
+                                                               &appIdsAreaLen,
+                                                               header));
+    }
+
+    {
+        // Zero 'queueUriLengthWords'.
+
+        mqbs::QueueRecordHeader header;
+        header.setQueueUriLengthWords(0)
+            .setHeaderWords(k_HEADER_WORDS)
+            .setQueueRecordWords(k_RECORD_WORDS);
+
+        BMQTST_ASSERT_NE(
+            0,
+            mqbs::FileStoreProtocolUtil::loadQueueRecordLayout(&headerLen,
+                                                               &paddedUriLen,
+                                                               &appIdsAreaLen,
+                                                               header));
+    }
+
+    {
+        // 'queueRecordWords' one WORD short of the sections the header
+        // declares: the application-ID area size would underflow.
+
+        mqbs::QueueRecordHeader header;
+        header.setQueueUriLengthWords(k_URI_WORDS)
+            .setHeaderWords(k_HEADER_WORDS)
+            .setQueueRecordWords(k_RECORD_WORDS - 1);
+
+        BMQTST_ASSERT_NE(
+            0,
+            mqbs::FileStoreProtocolUtil::loadQueueRecordLayout(&headerLen,
+                                                               &paddedUriLen,
+                                                               &appIdsAreaLen,
+                                                               header));
+    }
+
+    {
+        // The largest values the header fields can hold.
+
+        mqbs::QueueRecordHeader header;
+        header.setQueueUriLengthWords(0xFFFF)
+            .setHeaderWords(0xFF)
+            .setQueueRecordWords(0xFFFFFF);
+
+        BMQTST_ASSERT_EQ(
+            0,
+            mqbs::FileStoreProtocolUtil::loadQueueRecordLayout(&headerLen,
+                                                               &paddedUriLen,
+                                                               &appIdsAreaLen,
+                                                               header));
+        BMQTST_ASSERT_EQ(0xFF * 4u, headerLen);
+        BMQTST_ASSERT_EQ(0xFFFF * 4u, paddedUriLen);
+        BMQTST_ASSERT_EQ(0xFFFFFF * 4u - 0xFF * 4u - 0xFFFF * 4u - 16u - 4u,
+                         appIdsAreaLen);
+    }
+}
+
+static void test5_loadUnpaddedLength()
+// ------------------------------------------------------------------------
+// Testing:
+//   loadUnpaddedLength()
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("LOAD UNPADDED LENGTH");
+
+    char         buffer[8] = {0};
+    unsigned int length    = 0;
+
+    for (int padding = 1; padding <= 4; ++padding) {
+        buffer[7] = static_cast<char>(padding);
+
+        BMQTST_ASSERT_EQ_D(
+            padding,
+            0,
+            mqbs::FileStoreProtocolUtil::loadUnpaddedLength(&length,
+                                                            buffer,
+                                                            sizeof(buffer)));
+        BMQTST_ASSERT_EQ_D(padding, 8u - padding, length);
+    }
+
+    {
+        // A padding byte of zero.
+
+        buffer[7] = 0;
+
+        BMQTST_ASSERT_NE(
+            0,
+            mqbs::FileStoreProtocolUtil::loadUnpaddedLength(&length,
+                                                            buffer,
+                                                            sizeof(buffer)));
+    }
+
+    {
+        // A padding byte larger than a WORD.
+
+        buffer[7] = bmqp::Protocol::k_WORD_SIZE + 1;
+
+        BMQTST_ASSERT_NE(
+            0,
+            mqbs::FileStoreProtocolUtil::loadUnpaddedLength(&length,
+                                                            buffer,
+                                                            sizeof(buffer)));
+    }
+
+    {
+        // A padding byte which, read as a 'char', would yield a length
+        // greater than the padded one.
+
+        buffer[7] = static_cast<char>(0x80);
+
+        BMQTST_ASSERT_NE(
+            0,
+            mqbs::FileStoreProtocolUtil::loadUnpaddedLength(&length,
+                                                            buffer,
+                                                            sizeof(buffer)));
+    }
+
+    {
+        // A padding byte larger than the field it pads.
+
+        buffer[1] = 4;
+
+        BMQTST_ASSERT_NE(
+            0,
+            mqbs::FileStoreProtocolUtil::loadUnpaddedLength(&length,
+                                                            buffer,
+                                                            2));
+    }
+}
+
+static void test6_hasValidQueueRecordMagic()
+// ------------------------------------------------------------------------
+// Testing:
+//   hasValidQueueRecordMagic()
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("HAS VALID QUEUE RECORD MAGIC");
+
+    bslma::Allocator* alloc = bmqtst::TestHelperUtil::allocator();
+
+    const unsigned int k_RECORD_OFFSET = 8;
+    const unsigned int k_RECORD_LEN    = 16;
+    const unsigned int k_BLOCK_LEN     = k_RECORD_OFFSET + k_RECORD_LEN;
+
+    char* p = static_cast<char*>(alloc->allocate(k_BLOCK_LEN));
+    bsl::memset(p, 0, k_BLOCK_LEN);
+
+    mqbs::MemoryBlock                      block(p, k_BLOCK_LEN);
+    mqbs::OffsetPtr<bdlb::BigEndianUint32> magic(block, k_BLOCK_LEN - 4);
+
+    *magic = mqbs::QueueRecordHeader::k_MAGIC;
+    BMQTST_ASSERT(
+        mqbs::FileStoreProtocolUtil::hasValidQueueRecordMagic(block,
+                                                              k_RECORD_OFFSET,
+                                                              k_RECORD_LEN));
+
+    *magic = mqbs::QueueRecordHeader::k_MAGIC + 1;
+    BMQTST_ASSERT(
+        !mqbs::FileStoreProtocolUtil::hasValidQueueRecordMagic(block,
+                                                               k_RECORD_OFFSET,
+                                                               k_RECORD_LEN));
+
+    alloc->deallocate(p);
+}
+
+static void test7_loadAppInfos()
 // ------------------------------------------------------------------------
 // Testing:
 //   loadAppInfos()
 // ------------------------------------------------------------------------
 {
+    bmqtst::TestHelper::printTestName("LOAD APP INFOS");
+
     typedef mqbi::Storage::AppInfos AppInfos;
 
     bslma::Allocator* alloc = bmqtst::TestHelperUtil::allocator();
@@ -530,12 +888,14 @@ static void test4_loadAppInfos()
         // No appIds.
 
         char*             p = static_cast<char*>(alloc->allocate(1));
-        mqbs::MemoryBlock mb(p, 1);
+        mqbs::MemoryBlock mb(p, 0);
         AppInfos          appIdKeyPairs(alloc);
 
-        mqbs::FileStoreProtocolUtil::loadAppInfos(&appIdKeyPairs,
-                                                  mb,
-                                                  0);  // no appIds
+        BMQTST_ASSERT_EQ(
+            0,
+            mqbs::FileStoreProtocolUtil::loadAppInfos(&appIdKeyPairs,
+                                                      mb,
+                                                      0));  // no appIds
 
         BMQTST_ASSERT_EQ(0u, appIdKeyPairs.size());
 
@@ -555,7 +915,8 @@ static void test4_loadAppInfos()
 
         // Append AppIdHeader.
         mqbs::AppIdHeader header;
-        header.setAppIdLengthWords(paddedAppIdLen / 4);
+        header.setAppIdLengthWords(paddedAppIdLen /
+                                   bmqp::Protocol::k_WORD_SIZE);
         bsl::memcpy(p,
                     reinterpret_cast<const char*>(&header),
                     sizeof(mqbs::AppIdHeader));
@@ -587,9 +948,11 @@ static void test4_loadAppInfos()
         mqbs::MemoryBlock mb(p, totalSize);
         AppInfos          appIdKeyPairs(alloc);
 
-        mqbs::FileStoreProtocolUtil::loadAppInfos(&appIdKeyPairs,
-                                                  mb,
-                                                  1);  // 1 appId
+        BMQTST_ASSERT_EQ(
+            0,
+            mqbs::FileStoreProtocolUtil::loadAppInfos(&appIdKeyPairs,
+                                                      mb,
+                                                      1));  // 1 appId
 
         BMQTST_ASSERT_EQ(1U, appIdKeyPairs.size());
         BMQTST_ASSERT_EQ(appId, appIdKeyPairs.begin()->first);
@@ -599,7 +962,7 @@ static void test4_loadAppInfos()
     }
 
     {
-        // 6 appId/appKey pair.
+        // 6 appId/appKey pairs.
         const int numAppIds = 6;
         size_t    totalSize = 0;
 
@@ -635,7 +998,8 @@ static void test4_loadAppInfos()
 
             new (headerPtr.get()) mqbs::AppIdHeader;
 
-            headerPtr->setAppIdLengthWords(paddedAppIdLenVec[n] / 4);
+            headerPtr->setAppIdLengthWords(paddedAppIdLenVec[n] /
+                                           bmqp::Protocol::k_WORD_SIZE);
             offset += sizeof(mqbs::AppIdHeader);
 
             // Append AppId.
@@ -675,9 +1039,11 @@ static void test4_loadAppInfos()
         mqbs::MemoryBlock mb(p, totalSize);
         AppInfos          appIdKeyPairs(alloc);
 
-        mqbs::FileStoreProtocolUtil::loadAppInfos(&appIdKeyPairs,
-                                                  mb,
-                                                  numAppIds);
+        BMQTST_ASSERT_EQ(
+            0,
+            mqbs::FileStoreProtocolUtil::loadAppInfos(&appIdKeyPairs,
+                                                      mb,
+                                                      numAppIds));
 
         BMQTST_ASSERT_EQ(static_cast<size_t>(numAppIds), appIdKeyPairs.size());
 
@@ -689,80 +1055,142 @@ static void test4_loadAppInfos()
 
         alloc->deallocate(p);
     }
-}
 
-namespace {
+    // A well-formed single entry: an 'AppIdHeader', a one WORD appId and its
+    // appKey.  Each case below corrupts one aspect of it.
 
-typedef bsl::unordered_map<bsl::string, bsl::string> Results;
-typedef Results::const_iterator                      ResultsIt;
-const bsl::size_t                                    MD5_DIGEST_BYTES = 16;
+    const unsigned int k_PADDED_APP_ID_LEN = bmqp::Protocol::k_WORD_SIZE;
+    const unsigned int k_ENTRY_LEN         = sizeof(mqbs::AppIdHeader) +
+                                     k_PADDED_APP_ID_LEN +
+                                     mqbs::FileStoreProtocol::k_HASH_LENGTH;
+    const unsigned int k_TRAILING_BYTES = 4;
 
-static void bytesFromHex(bsl::string* destination, const bsl::string& source)
-// ------------------------------------------------------------------------
-// Transforms Hex numbers from the specified 'source' string to bytes and
-// stores them in the specified 'destination' string.  Each pair of
-// characters from 'source' will be interpreted like hexadecimal number and
-// stored into 'destination' as a single char.  If length of 'source' is an
-// odd number, the last character will be ignored.
-// ------------------------------------------------------------------------
-{
-    destination->clear();
-    destination->reserve(source.size() / 2);
-    bsl::string::const_iterator src = source.begin();
-    while (src != source.end() && (src + 1) != source.end()) {
-        bslstl::StringRef sub(src, src + 2);
-        destination->push_back(static_cast<char>(bsl::stoi(sub, 0, 16)));
-        src += 2;
+    char* p = static_cast<char*>(
+        alloc->allocate(k_ENTRY_LEN + k_TRAILING_BYTES));
+    bsl::memset(p, 0, k_ENTRY_LEN + k_TRAILING_BYTES);
+
+    mqbs::MemoryBlock                  entryBlock(p, k_ENTRY_LEN);
+    mqbs::OffsetPtr<mqbs::AppIdHeader> entryHeader(entryBlock, 0);
+    new (entryHeader.get()) mqbs::AppIdHeader();
+    entryHeader->setAppIdLengthWords(k_PADDED_APP_ID_LEN /
+                                     bmqp::Protocol::k_WORD_SIZE);
+
+    p[sizeof(mqbs::AppIdHeader)] = 'a';  // AppId
+    bmqp::ProtocolUtil::appendPaddingRaw(p + sizeof(mqbs::AppIdHeader) + 1, 3);
+    p[sizeof(mqbs::AppIdHeader) + k_PADDED_APP_ID_LEN] = 'k';  // AppKey
+
+    {
+        // Sanity check.
+
+        AppInfos appIdKeyPairs(alloc);
+
+        BMQTST_ASSERT_EQ(
+            0,
+            mqbs::FileStoreProtocolUtil::loadAppInfos(&appIdKeyPairs,
+                                                      entryBlock,
+                                                      1));
+        BMQTST_ASSERT_EQ(1U, appIdKeyPairs.size());
+        BMQTST_ASSERT_EQ(bsl::string("a", alloc),
+                         appIdKeyPairs.begin()->first);
     }
-}
 
-static void jobForThreadPool(const Results* testData, bslmt::Barrier* barrier)
-// ------------------------------------------------------------------------
-// Calculates MD5 hashes from keys of the specified 'testData' object and
-// compares them with corresponding values.  The specified 'barrier' is
-// used to start all the jobs simultaneously in the different threads.
-// ------------------------------------------------------------------------
-{
-    bdlbb::PooledBlobBufferFactory factory(
-        1024,
-        bmqtst::TestHelperUtil::allocator());
-    bmqu::BlobPosition startPos;
+    {
+        // Empty area.
 
-    barrier->wait();
-    for (int i = 0; i < 1000; ++i) {
-        for (ResultsIt r = testData->begin(); r != testData->end(); ++r) {
-            const bsl::string& source = r->first;
-            const bsl::string& hex    = r->second;
-            bsl::string        expected(bmqtst::TestHelperUtil::allocator());
-            bytesFromHex(&expected, hex);
-
-            bdlbb::Blob localBlob(&factory,
-                                  bmqtst::TestHelperUtil::allocator());
-            localBlob.setLength(source.size());
-            bsl::memcpy(localBlob.buffer(0).data(),
-                        source.c_str(),
-                        source.size());
-            bdlde::Md5::Md5Digest buffer;
-
-            int rc = -1;
-            BMQTST_ASSERT_PASS(
-                rc = mqbs::FileStoreProtocolUtil::calculateMd5Digest(
-                    &buffer,
-                    localBlob,
-                    startPos,
-                    source.size()));
-            BMQTST_ASSERT_EQ(0, rc);
-            bsl::string result(buffer.buffer(),
-                               MD5_DIGEST_BYTES,
-                               bmqtst::TestHelperUtil::allocator());
-            BMQTST_ASSERT_EQ(result, expected);
-        }
+        assertAppInfosRejected(mqbs::MemoryBlock(p, 0), 1, "empty area");
     }
+
+    {
+        // An 'AppIdHeader' truncated by one byte.
+
+        assertAppInfosRejected(
+            mqbs::MemoryBlock(p, sizeof(mqbs::AppIdHeader) - 1),
+            1,
+            "truncated AppIdHeader");
+    }
+
+    {
+        // An appKey truncated by one byte.
+
+        assertAppInfosRejected(mqbs::MemoryBlock(p, k_ENTRY_LEN - 1),
+                               1,
+                               "truncated appKey");
+    }
+
+    {
+        // Bytes left over after the declared number of entries.
+
+        mqbs::MemoryBlock mb(p, k_ENTRY_LEN + k_TRAILING_BYTES);
+        AppInfos          appIdKeyPairs(alloc);
+
+        BMQTST_ASSERT_NE(
+            0,
+            mqbs::FileStoreProtocolUtil::loadAppInfos(&appIdKeyPairs, mb, 1));
+        BMQTST_ASSERT_EQ(1u, appIdKeyPairs.size());
+    }
+
+    {
+        // A non-empty area declaring no appIds.
+
+        assertAppInfosRejected(entryBlock, 0, "no declared appIds");
+    }
+
+    {
+        // An invalid appId padding byte.
+
+        p[sizeof(mqbs::AppIdHeader) + k_PADDED_APP_ID_LEN - 1] = 0;
+
+        assertAppInfosRejected(entryBlock, 1, "invalid appId padding");
+
+        bmqp::ProtocolUtil::appendPaddingRaw(p + sizeof(mqbs::AppIdHeader) + 1,
+                                             3);
+    }
+
+    {
+        // An appId which is all padding.
+
+        bmqp::ProtocolUtil::appendPaddingRaw(p + sizeof(mqbs::AppIdHeader),
+                                             k_PADDED_APP_ID_LEN);
+
+        assertAppInfosRejected(entryBlock, 1, "empty appId");
+
+        p[sizeof(mqbs::AppIdHeader)] = 'a';
+        bmqp::ProtocolUtil::appendPaddingRaw(p + sizeof(mqbs::AppIdHeader) + 1,
+                                             3);
+    }
+
+    {
+        // An all-zero appKey.
+
+        bsl::memset(p + sizeof(mqbs::AppIdHeader) + k_PADDED_APP_ID_LEN,
+                    0,
+                    mqbs::FileStoreProtocol::k_HASH_LENGTH);
+
+        assertAppInfosRejected(entryBlock, 1, "null appKey");
+
+        p[sizeof(mqbs::AppIdHeader) + k_PADDED_APP_ID_LEN] = 'k';
+    }
+
+    {
+        // Zero 'appIdLengthWords'.
+
+        entryHeader->setAppIdLengthWords(0);
+
+        assertAppInfosRejected(entryBlock, 1, "zero appIdLengthWords");
+    }
+
+    {
+        // An 'appIdLengthWords' overrunning the area.
+
+        entryHeader->setAppIdLengthWords(0xFFFF);
+
+        assertAppInfosRejected(entryBlock, 1, "appIdLengthWords overrun");
+    }
+
+    alloc->deallocate(p);
 }
 
-}  // close unnamed namespace
-
-static void test5_calculateMd5Digest()
+static void test8_calculateMd5Digest()
 // ------------------------------------------------------------------------
 // Testing:
 //   calculateMd5Digest()
@@ -952,8 +1380,11 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
-    case 5: test5_calculateMd5Digest(); break;
-    case 4: test4_loadAppInfos(); break;
+    case 8: test8_calculateMd5Digest(); break;
+    case 7: test7_loadAppInfos(); break;
+    case 6: test6_hasValidQueueRecordMagic(); break;
+    case 5: test5_loadUnpaddedLength(); break;
+    case 4: test4_loadQueueRecordLayout(); break;
     case 3: test3_lastJournalSyncPoint(); break;
     case 2: test2_lastJournalRecord(); break;
     case 1: test1_hasBmqHeader(); break;

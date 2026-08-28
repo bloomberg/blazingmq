@@ -107,9 +107,64 @@ struct FileStoreProtocolUtil {
                                   const bmqu::BlobPosition& startPos,
                                   unsigned int              length);
 
-    static void loadAppInfos(mqbi::Storage::AppInfos* appIdKeyPairs,
-                             const MemoryBlock&       appIdsBlock,
-                             unsigned int             numAppIds);
+    /// @brief Derive the byte lengths of the sections of a queue record.
+    ///
+    /// @details A QLIST queue record is laid out as `[QueueRecordHeader]
+    /// [Padded QueueUri][QueueUri Hash][AppId entries...][Magic word]`, and
+    /// the specified `header` declares the length of each of those sections
+    /// as well as of the record as a whole.  The caller remains responsible
+    /// for confirming that the record fits the blob or file holding it.
+    ///
+    /// @param[out] headerLen     Size of the `QueueRecordHeader`.
+    /// @param[out] paddedUriLen  Size of the padded queue URI.
+    /// @param[out] appIdsAreaLen Size of the application-ID area.
+    /// @param header             Header to derive the lengths from.
+    /// @returns 0 if the sections declared by `header` fit within the record
+    ///          length it declares, a non-zero value otherwise.
+    static int loadQueueRecordLayout(unsigned int*            headerLen,
+                                     unsigned int*            paddedUriLen,
+                                     unsigned int*            appIdsAreaLen,
+                                     const QueueRecordHeader& header);
+
+    /// @brief Derive the unpadded length of a WORD-padded field.
+    ///
+    /// @param[out] length   Length of the field excluding its padding.
+    /// @param data          First byte of the padded field.
+    /// @param paddedLength  Length of the field including its padding.
+    /// @returns 0 if the trailing padding byte of the field is valid, a
+    ///          non-zero value otherwise.
+    ///
+    /// The behavior is undefined unless `paddedLength` bytes are readable at
+    /// `data`.
+    static int loadUnpaddedLength(unsigned int* length,
+                                  const char*   data,
+                                  unsigned int  paddedLength);
+
+    /// @brief Return true if a queue record ends with the queue record magic
+    ///        word.
+    ///
+    /// @param block        Memory holding the record.
+    /// @param recordOffset Offset of the record within `block`.
+    /// @param recordLen    Length of the record.
+    ///
+    /// The behavior is undefined unless `block` holds `recordLen` bytes at
+    /// `recordOffset`, and `recordLen` is at least the size of a magic word.
+    static bool hasValidQueueRecordMagic(const MemoryBlock&  block,
+                                         bsls::Types::Uint64 recordOffset,
+                                         unsigned int        recordLen);
+
+    /// @brief Load the appId/appKey pairs of a queue record.
+    ///
+    /// @param[out] appIdKeyPairs Pairs read from `appIdsBlock`.
+    /// @param appIdsBlock        AppId area of a queue record.
+    /// @param numAppIds          Number of pairs the record declares.
+    /// @returns 0 if `appIdsBlock` holds exactly `numAppIds` complete
+    ///          entries, each with a non-empty appId and a non-null appKey,
+    ///          a non-zero value otherwise.  On failure, `appIdKeyPairs`
+    ///          holds the entries read before the offending one.
+    static int loadAppInfos(mqbi::Storage::AppInfos* appIdKeyPairs,
+                            const MemoryBlock&       appIdsBlock,
+                            unsigned int             numAppIds);
 };
 
 }  // close package namespace
