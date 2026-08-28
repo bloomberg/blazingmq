@@ -59,8 +59,8 @@ FUZZER="${2}"
 
 # Install prerequisites
 # Set up CA certificates first before installing other dependencies
-apt-get update && \
-apt-get install -y ca-certificates && \
+apt-get update
+apt-get install -y ca-certificates
 apt-get install -qy --no-install-recommends \
     lsb-release \
     wget \
@@ -73,8 +73,9 @@ apt-get install -qy --no-install-recommends \
     bison \
     libfl-dev \
     pkg-config \
-    python3.12-venv \
-    && rm -rf /var/lib/apt/lists/*
+    python3 \
+    python3-venv
+rm -rf /var/lib/apt/lists/*
 
 # Install prerequisites for LLVM: latest cmake version, Ubuntu apt repository contains stale version
 wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null \
