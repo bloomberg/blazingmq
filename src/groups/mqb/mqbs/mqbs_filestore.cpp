@@ -50,6 +50,7 @@
 #include <bmqp_protocolutil.h>
 #include <bmqp_storagemessageiterator.h>
 #include <bmqt_resultcode.h>
+#include <bmqt_uri.h>
 
 #include <bmqtsk_alarmlog.h>
 #include <bmqu_blobobjectproxy.h>
@@ -1851,6 +1852,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                 unsigned int        queueRecLength    = 0;
                 unsigned int        queueRecHeaderLen = 0;
                 unsigned int        paddedUriLen      = 0;
+                unsigned int        appIdsAreaLen     = 0;
                 unsigned int        numAppIds         = 0;
                 if (d_qListAware) {
                     BSLS_ASSERT_SAFE(0 != rec.queueUriRecordOffsetWords());
@@ -1880,75 +1882,42 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
 
                     // 'queueUriRecOffset' == offset of mqbs::QueueRecordHeader
 
+                    if (qlistFd->fileSize() <
+                        (queueUriRecOffset + sizeof(QueueRecordHeader))) {
+                        BALL_LOG_ERROR
+                            << partitionDesc()
+                            << "For QueueOp record of type [" << queueOpType
+                            << "], the QLIST file has no room for a "
+                            << "QueueRecordHeader. Journal record offset: "
+                            << jit->recordOffset()
+                            << ", journal record index: " << jit->recordIndex()
+                            << ". QLIST record offset: " << queueUriRecOffset
+                            << ". QLIST file size: " << qlistFd->fileSize()
+                            << ", PSN: "
+                            << printPSN(primaryLeaseId, sequenceNum);
+                        return rc_INVALID_QLIST_RECORD;  // RETURN
+                    }
+
                     OffsetPtr<const QueueRecordHeader> queueRecHeader(
                         qlistFd->block(),
                         queueUriRecOffset);
 
-                    if (0 == queueRecHeader->headerWords()) {
+                    const int layoutRc =
+                        FileStoreProtocolUtil::loadQueueRecordLayout(
+                            &queueRecHeaderLen,
+                            &paddedUriLen,
+                            &appIdsAreaLen,
+                            *queueRecHeader);
+                    if (0 != layoutRc) {
                         BALL_LOG_ERROR
                             << partitionDesc()
                             << "For QueueOp record of type [" << queueOpType
-                            << "], the record present in QLIST file has "
-                            << "invalid 'headerWords' field in the header. "
-                            << "Journal record offset: " << jit->recordOffset()
-                            << ", journal record index: " << jit->recordIndex()
-                            << ". QLIST record offset: " << queueUriRecOffset
-                            << ", PSN: "
-                            << printPSN(primaryLeaseId, sequenceNum);
-
-                        return rc_INVALID_QLIST_RECORD;  // RETURN
-                    }
-
-                    queueRecHeaderLen = queueRecHeader->headerWords() *
-                                        bmqp::Protocol::k_WORD_SIZE;
-
-                    if (qlistFd->fileSize() <
-                        (queueUriRecOffset + queueRecHeaderLen)) {
-                        BALL_LOG_ERROR
-                            << partitionDesc()
-                            << "For QueueOp record of type [" << queueOpType
-                            << "], the record present in QLIST file has "
-                            << "invalid header size [" << queueRecHeaderLen
-                            << "]. Journal record offset: "
+                            << "], the record present in QLIST file declares "
+                            << "an inconsistent layout, rc: " << layoutRc
+                            << ". Journal record offset: "
                             << jit->recordOffset()
                             << ", journal record index: " << jit->recordIndex()
                             << ". QLIST record offset: " << queueUriRecOffset
-                            << ". QLIST file size: " << qlistFd->fileSize()
-                            << ", PSN: "
-                            << printPSN(primaryLeaseId, sequenceNum);
-                        return rc_INVALID_QLIST_RECORD;  // RETURN
-                    }
-
-                    if (0 == queueRecHeader->queueUriLengthWords()) {
-                        BALL_LOG_ERROR
-                            << partitionDesc()
-                            << "For QueueOp record of type [" << queueOpType
-                            << "], the record present in QLIST file has "
-                            << "invalid 'queueUriLengthWords' field in the "
-                            << "header. Journal record offset: "
-                            << jit->recordOffset()
-                            << ", journal record index: " << jit->recordIndex()
-                            << ". QLIST record offset: " << queueUriRecOffset
-                            << ", PSN: "
-                            << printPSN(primaryLeaseId, sequenceNum);
-                        return rc_INVALID_QLIST_RECORD;  // RETURN
-                    }
-
-                    paddedUriLen = queueRecHeader->queueUriLengthWords() *
-                                   bmqp::Protocol::k_WORD_SIZE;
-
-                    if (qlistFd->fileSize() <
-                        (queueUriRecOffset + paddedUriLen)) {
-                        BALL_LOG_ERROR
-                            << partitionDesc()
-                            << "For QueueOp record of type [" << queueOpType
-                            << "], the record present in QLIST file has "
-                            << "invalid 'queueUriLengthWords' field in the "
-                            << "header. Journal record offset: "
-                            << jit->recordOffset()
-                            << ", journal record index: " << jit->recordIndex()
-                            << ". QLIST record offset: " << queueUriRecOffset
-                            << ". QLIST file size: " << qlistFd->fileSize()
                             << ", PSN: "
                             << printPSN(primaryLeaseId, sequenceNum);
                         return rc_INVALID_QLIST_RECORD;  // RETURN
@@ -1956,21 +1925,6 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
 
                     queueRecLength = queueRecHeader->queueRecordWords() *
                                      bmqp::Protocol::k_WORD_SIZE;
-
-                    if (0 == queueRecLength) {
-                        BALL_LOG_ERROR
-                            << partitionDesc()
-                            << "For QueueOp record of type [" << queueOpType
-                            << "], the record present in QLIST file has "
-                            << "invalid 'queueRecordWords' field in the "
-                            << "header. Journal record offset: "
-                            << jit->recordOffset()
-                            << ", journal record index: " << jit->recordIndex()
-                            << ". QLIST record offset: " << queueUriRecOffset
-                            << ", PSN: "
-                            << printPSN(primaryLeaseId, sequenceNum);
-                        return rc_INVALID_QLIST_RECORD;  // RETURN
-                    }
 
                     if (qlistFd->fileSize() <
                         (queueUriRecOffset + queueRecLength)) {
@@ -2055,27 +2009,52 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                     const char* uriBegin = qlistFd->block().base() +
                                            queueUriRecOffset +
                                            queueRecHeaderLen;
-                    char lastByte = uriBegin[paddedUriLen - 1];
 
-                    if (paddedUriLen <= static_cast<unsigned int>(lastByte)) {
+                    unsigned int uriLen = 0;
+                    const int    uriRc =
+                        FileStoreProtocolUtil::loadUnpaddedLength(
+                            &uriLen,
+                            uriBegin,
+                            paddedUriLen);
+                    if (0 != uriRc) {
                         BALL_LOG_ERROR
                             << partitionDesc()
                             << "For QueueOp record of type [" << queueOpType
                             << "], the record present in QLIST file has "
-                            << "invalid padding byte for 'QueueUri' field. "
-                            << "Journal record offset: " << jit->recordOffset()
+                            << "invalid padding byte for 'QueueUri' field, "
+                            << "rc: " << uriRc << ". Journal record offset: "
+                            << jit->recordOffset()
                             << ", journal record index: " << jit->recordIndex()
                             << ". QLIST record offset: " << queueUriRecOffset
                             << ". QLIST file size: " << qlistFd->fileSize()
-                            << ". Padded URI length: " << paddedUriLen
-                            << ", last byte value (as int): "
-                            << static_cast<unsigned int>(lastByte) << ".";
+                            << ". Padded URI length: " << paddedUriLen << ".";
                         return rc_INVALID_QLIST_RECORD;  // RETURN
                     }
 
-                    bslstl::StringRef uri(uriBegin,
-                                          paddedUriLen -
-                                              uriBegin[paddedUriLen - 1]);
+                    bslstl::StringRef uri(uriBegin, uriLen);
+
+                    if (!bmqt::Uri(uri).isValid()) {
+                        // The field holds arbitrary bytes bounded only by the
+                        // QLIST file size, so log a prefix of it.
+
+                        const unsigned int k_MAX_LOGGED_URI_LEN = 64;
+
+                        BALL_LOG_ERROR
+                            << partitionDesc()
+                            << "For QueueOp record of type [" << queueOpType
+                            << "], the record present in QLIST file has an "
+                            << "unparsable 'QueueUri' field of " << uriLen
+                            << " bytes, beginning with ["
+                            << bslstl::StringRef(
+                                   uriBegin,
+                                   bsl::min(uriLen, k_MAX_LOGGED_URI_LEN))
+                            << "]. Journal record offset: "
+                            << jit->recordOffset()
+                            << ", journal record index: " << jit->recordIndex()
+                            << ". QLIST record offset: " << queueUriRecOffset
+                            << ".";
+                        return rc_INVALID_QLIST_RECORD;  // RETURN
+                    }
 
                     if (withCSL) {
                         BSLS_ASSERT_SAFE(!qinfo.canonicalQueueUri().empty());
@@ -2126,21 +2105,32 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                                   << "] with queue key [" << queueKey << "].";
 
                     // Retrieve AppId/AppKey pairs
-                    unsigned int appIdsAreaLen =
-                        queueRecLength - queueRecHeaderLen - paddedUriLen -
-                        FileStoreProtocol::k_HASH_LENGTH -
-                        sizeof(unsigned int);  // Magic
-
                     MemoryBlock appIdsBlock(
                         qlistFd->block().base() + queueUriRecOffset +
                             queueRecHeaderLen + paddedUriLen +
                             FileStoreProtocol::k_HASH_LENGTH,
                         appIdsAreaLen);
 
-                    AppInfos appIdKeyPairs(d_allocator_p);
-                    FileStoreProtocolUtil::loadAppInfos(&appIdKeyPairs,
-                                                        appIdsBlock,
-                                                        numAppIds);
+                    AppInfos  appIdKeyPairs(d_allocator_p);
+                    const int appIdsRc = FileStoreProtocolUtil::loadAppInfos(
+                        &appIdKeyPairs,
+                        appIdsBlock,
+                        numAppIds);
+                    if (0 != appIdsRc) {
+                        BALL_LOG_ERROR
+                            << partitionDesc()
+                            << "For QueueOp record of type [" << queueOpType
+                            << "], the record present in QLIST file declares "
+                            << numAppIds << " appIds which do not fit its "
+                            << appIdsAreaLen << " byte application-ID area, "
+                            << "rc: " << appIdsRc
+                            << ". Journal record offset: "
+                            << jit->recordOffset()
+                            << ", journal record index: " << jit->recordIndex()
+                            << ". QLIST record offset: " << queueUriRecOffset
+                            << ".";
+                        return rc_INVALID_QLIST_RECORD;  // RETURN
+                    }
 
                     for (AppInfos::const_iterator cit = appIdKeyPairs.cbegin();
                          cit != appIdKeyPairs.cend();
