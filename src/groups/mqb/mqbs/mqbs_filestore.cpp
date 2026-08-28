@@ -6327,12 +6327,14 @@ void FileStore::onPurgeComplete()
                      k_REQUESTED_JOURNAL_SPACE);
 }
 
-void FileStore::processStorageEvent(const bsl::shared_ptr<bdlbb::Blob>& blob,
-                                    bool                 isPartitionSyncEvent,
-                                    mqbnet::ClusterNode* source)
+int FileStore::processStorageEvent(const bsl::shared_ptr<bdlbb::Blob>& blob,
+                                   bool                 isPartitionSyncEvent,
+                                   mqbnet::ClusterNode* source)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(blob);
+
+    enum { rc_SUCCESS = 0, rc_MALFORMED_QUEUE_RECORD = -1 };
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(d_isStopping &&
                                               d_lastSyncPtReceived)) {
@@ -6341,7 +6343,7 @@ void FileStore::processStorageEvent(const bsl::shared_ptr<bdlbb::Blob>& blob,
         // Self node is stopping and has received the "last" SyncPt.  No need
         // to process any more storage events.
 
-        return;  // RETURN
+        return rc_SUCCESS;  // RETURN
     }
 
     bmqp::Event                  rawEvent(blob, d_allocator_p);
@@ -6351,7 +6353,7 @@ void FileStore::processStorageEvent(const bsl::shared_ptr<bdlbb::Blob>& blob,
     BSLS_ASSERT_SAFE(iter.isValid());
 
     if (1 != iter.next()) {
-        return;  // RETURN
+        return rc_SUCCESS;  // RETURN
     }
     const unsigned int      pid         = iter.header().partitionId();
     FileStore::NodeContext* nodeContext = 0;
@@ -6383,7 +6385,7 @@ void FileStore::processStorageEvent(const bsl::shared_ptr<bdlbb::Blob>& blob,
                                                            blob,
                                                            partitionDesc());
         if (rc != 0) {
-            return;  // RETURN
+            return rc_SUCCESS;  // RETURN
         }
 
         // For the PSN, check sequence number (only if leaseId is same).
@@ -6405,7 +6407,7 @@ void FileStore::processStorageEvent(const bsl::shared_ptr<bdlbb::Blob>& blob,
                 << " Record's journal offset (in words): "
                 << header.journalOffsetWords() << ". Ignoring entire event."
                 << BMQTSK_ALARMLOG_END;
-            return;  // RETURN
+            return rc_SUCCESS;  // RETURN
         }
 
         if (d_writeHeadLeaseId == recHeader->primaryLeaseId()) {
@@ -6469,7 +6471,7 @@ void FileStore::processStorageEvent(const bsl::shared_ptr<bdlbb::Blob>& blob,
                             recHeader->sequenceNumber())
                 << "), journal offset words: " << header.journalOffsetWords()
                 << ". Ignoring entire event." << BMQTSK_ALARMLOG_END;
-            return;  // RETURN
+            return rc_MALFORMED_QUEUE_RECORD;  // RETURN
         }
 
         // Bump up the current PSN if record was written
@@ -6522,6 +6524,8 @@ void FileStore::processStorageEvent(const bsl::shared_ptr<bdlbb::Blob>& blob,
     } while (1 == iter.next());
 
     sendReceipt(source, nodeContext);
+
+    return rc_SUCCESS;
 }
 
 int FileStore::processRecoveryEvent(const bsl::shared_ptr<bdlbb::Blob>& blob)

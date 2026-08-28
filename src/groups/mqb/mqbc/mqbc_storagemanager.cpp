@@ -3140,6 +3140,9 @@ void StorageManager::do_processLiveData(
     mqbs::FileStore* fs = d_fileStores[static_cast<size_t>(partitionId)].get();
     BSLS_ASSERT_SAFE(fs && fs->isOpen());
 
+    // The FileStore alarms on a dropped event, and this layer has no
+    // recovery action to take, so the result is not consulted here.
+
     fs->processStorageEvent(eventData.storageEvent(),
                             false /* isPartitionSyncEvent */,
                             source);

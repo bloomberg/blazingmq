@@ -878,13 +878,14 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     void onPurgeComplete() BSLS_KEYWORD_OVERRIDE;
 
     /// Process the specified storage event `blob` containing one or more
-    /// storage messages.  The behavior is undefined unless each message in
-    /// the event belongs to this partition, and has same primary and
-    /// primary leaseId as expected by this data store instance.
-    void
-    processStorageEvent(const bsl::shared_ptr<bdlbb::Blob>& blob,
-                        bool                 isPartitionSyncEvent,
-                        mqbnet::ClusterNode* source) BSLS_KEYWORD_OVERRIDE;
+    /// storage messages.  Return zero on success, or a non-zero value if the
+    /// event was dropped because one of its records is malformed.  The
+    /// behavior is undefined unless each message in the event belongs to
+    /// this partition, and has same primary and primary leaseId as expected
+    /// by this data store instance.
+    int processStorageEvent(const bsl::shared_ptr<bdlbb::Blob>& blob,
+                            bool                 isPartitionSyncEvent,
+                            mqbnet::ClusterNode* source) BSLS_KEYWORD_OVERRIDE;
 
     /// Process the specified recovery event `blob` containing one or more
     /// storage messages.  Return zero on success, non-zero value otherwise.
