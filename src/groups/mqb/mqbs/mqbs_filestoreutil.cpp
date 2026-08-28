@@ -1556,7 +1556,6 @@ int FileStoreUtil::writeQueueCreationRecordImpl(
     const MappedFileDescriptor& journal,
     bool                        qListAware,
     const MappedFileDescriptor& qlistFile,
-    bsls::Types::Uint64         qlistOffset,
     unsigned int*               queueRecLength,
     bmqt::Uri*                  quri,
     mqbu::StorageKey*           queueKey,
@@ -1571,20 +1570,21 @@ int FileStoreUtil::writeQueueCreationRecordImpl(
     if (qListAware) {
         BSLS_ASSERT_SAFE(qlistFile.isValid());
     }
-    BSLS_ASSERT_SAFE(qlistOffset >= 0);
+
+    const bsls::Types::Uint64 qlistOffset = *qlistFilePos;
 
     enum {
-        rc_SUCCESS                     = 0,
-        rc_MISSING_QUEUE_RECORD        = -1,
-        rc_MISSING_QUEUE_RECORD_HEADER = -2,
-        rc_INCOMPLETE_QUEUE_RECORD     = -3,
-        rc_INVALID_QUEUE_RECORD        = -4,
-        rc_QLIST_OFFSET_MISMATCH       = -5
+        rc_SUCCESS               = 0,
+        rc_QLIST_OFFSET_MISMATCH = -1,
+        rc_JOURNAL_FILE_FULL     = -2
     };
 
     bmqu::BlobObjectProxy<QueueRecordHeader> queueRecHeader;
+    bmqu::BlobPosition                       queueRecBeginPos;
     unsigned int                             queueRecHeaderLen = 0;
     unsigned int                             queueRecLen       = 0;
+    unsigned int                             paddedUriLen      = 0;
+    unsigned int                             appIdsAreaLen     = 0;
     if (qListAware) {
         BSLS_ASSERT_SAFE(qlistFile.isValid());
 
@@ -1593,14 +1593,16 @@ int FileStoreUtil::writeQueueCreationRecordImpl(
         // with journal record followed by queue record.  Queue record already
         // contains 'QueueRecordHeader' and is already WORD aligned.
 
-        bmqu::BlobPosition queueRecBeginPos;
-        int                rc = bmqu::BlobUtil::findOffsetSafe(
+        int rc = bmqu::BlobUtil::findOffsetSafe(
             &queueRecBeginPos,
             event,
             recordPosition,
             FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
         if (0 != rc) {
-            return 10 * rc + rc_MISSING_QUEUE_RECORD;  // RETURN
+            BALL_LOG_ERROR << "Partition [" << partitionId << "]: "
+                           << "Event has no queue record following the "
+                           << "journal record, rc: " << rc << ".";
+            return k_MALFORMED_QUEUE_RECORD;  // RETURN
         }
 
         queueRecHeader.reset(&event,
@@ -1610,21 +1612,27 @@ int FileStoreUtil::writeQueueCreationRecordImpl(
                              false);  // write
         if (!queueRecHeader.isSet()) {
             // Couldn't read QueueRecordHeader
-            return rc_MISSING_QUEUE_RECORD_HEADER;  // RETURN
+            BALL_LOG_ERROR << "Partition [" << partitionId << "]: "
+                           << "Event has no complete QueueRecordHeader.";
+            return k_MALFORMED_QUEUE_RECORD;  // RETURN
         }
+
+        rc = FileStoreProtocolUtil::loadQueueRecordLayout(&queueRecHeaderLen,
+                                                          &paddedUriLen,
+                                                          &appIdsAreaLen,
+                                                          *queueRecHeader);
+        if (0 != rc) {
+            BALL_LOG_ERROR << "Partition [" << partitionId << "]: "
+                           << "QueueRecordHeader declares an inconsistent "
+                           << "layout, rc: " << rc << ".";
+            return k_MALFORMED_QUEUE_RECORD;  // RETURN
+        }
+
+        queueRecLen = queueRecHeader->queueRecordWords() *
+                      bmqp::Protocol::k_WORD_SIZE;
 
         // Ensure that blob has enough data as indicated by length
         // in 'queueRecordHeader'.
-
-        queueRecHeaderLen = queueRecHeader->headerWords() *
-                            bmqp::Protocol::k_WORD_SIZE;
-        queueRecLen = queueRecHeader->queueRecordWords() *
-                      bmqp::Protocol::k_WORD_SIZE;
-        BSLS_ASSERT_SAFE(qlistFile.fileSize() >=
-                         (*qlistFilePos + queueRecLen));
-        if (queueRecLength) {
-            *queueRecLength = queueRecLen;
-        }
 
         bmqu::BlobPosition queueRecEndPos;
         rc = bmqu::BlobUtil::findOffsetSafe(&queueRecEndPos,
@@ -1632,51 +1640,54 @@ int FileStoreUtil::writeQueueCreationRecordImpl(
                                             queueRecBeginPos,
                                             queueRecLen);
         if (0 != rc) {
-            return 10 * rc + rc_INCOMPLETE_QUEUE_RECORD;  // RETURN
+            BALL_LOG_ERROR << "Partition [" << partitionId << "]: "
+                           << "Event holds fewer bytes than the "
+                           << queueRecLen << " declared by the "
+                           << "QueueRecordHeader, rc: " << rc << ".";
+            return k_MALFORMED_QUEUE_RECORD;  // RETURN
         }
 
-        // Append payload to QLIST file.
+        if (qlistFile.fileSize() < (qlistOffset + queueRecLen)) {
+            BALL_LOG_ERROR << "Partition [" << partitionId << "]: "
+                           << "Queue record of " << queueRecLen << " bytes "
+                           << "does not fit in the QLIST file of "
+                           << qlistFile.fileSize() << " bytes at offset "
+                           << qlistOffset << ".";
+            return k_MALFORMED_QUEUE_RECORD;  // RETURN
+        }
+    }
 
-        bmqu::BlobUtil::copyToRawBufferFromIndex(qlistFile.block().base() +
-                                                     *qlistFilePos,
-                                                 event,
-                                                 queueRecBeginPos.buffer(),
-                                                 queueRecBeginPos.byte(),
-                                                 queueRecLen);
-        *qlistFilePos += queueRecLen;
+    if (journal.fileSize() <
+        (*journalPos + 3 * FileStoreProtocol::k_JOURNAL_RECORD_SIZE)) {
+        BALL_LOG_ERROR << "Partition [" << partitionId << "]: "
+                       << "Journal file of " << journal.fileSize()
+                       << " bytes has no room for a record at offset "
+                       << *journalPos << ".";
+        return rc_JOURNAL_FILE_FULL;  // RETURN
     }
 
     // Keep track of journal record's offset.
 
-    bsls::Types::Uint64 recordOffset = *journalPos;
+    const bsls::Types::Uint64 recordOffset = *journalPos;
 
-    // Append QueueOp record to journal.
+    bmqu::BlobObjectProxy<QueueOpRecord> queueRec(&event,
+                                                  recordPosition,
+                                                  true,    // read
+                                                  false);  // write
+    if (!queueRec.isSet()) {
+        BALL_LOG_ERROR << "Partition [" << partitionId << "]: "
+                       << "Event has no complete QueueOp record.";
+        return k_MALFORMED_QUEUE_RECORD;  // RETURN
+    }
 
-    BSLS_ASSERT_SAFE(
-        journal.fileSize() >=
-        (*journalPos + 3 * FileStoreProtocol::k_JOURNAL_RECORD_SIZE));
-    bmqu::BlobUtil::copyToRawBufferFromIndex(
-        journal.block().base() + recordOffset,
-        event,
-        recordPosition.buffer(),
-        recordPosition.byte(),
-        FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
-    *journalPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
-
-    OffsetPtr<const QueueOpRecord> queueRec(journal.block(), recordOffset);
     if (QueueOpType::e_CREATION != queueRec->type() &&
         QueueOpType::e_ADDITION != queueRec->type()) {
         BALL_LOG_ERROR << "Partition [" << partitionId << "]: "
                        << "Unexpected QueueOpType: " << queueRec->type();
-        return rc_INVALID_QUEUE_RECORD;  // RETURN
-    }
-    if (queueKey) {
-        *queueKey = queueRec->queueKey();
-    }
-    if (queueOpType) {
-        *queueOpType = queueRec->type();
+        return k_MALFORMED_QUEUE_RECORD;  // RETURN
     }
 
+    bmqt::Uri          uri;
     bmqu::MemOutStream queueUriAppsStr;
     if (qListAware) {
         // Check qlist offset in the replicated journal record sent
@@ -1691,37 +1702,79 @@ int FileStoreUtil::writeQueueCreationRecordImpl(
             return rc_QLIST_OFFSET_MISMATCH;  // RETURN
         }
 
-        // Retrieve QueueKey & QueueUri from QueueOpRecord and
-        // QueueUriRecord respectively, and notify storage manager.
+        // The remaining checks read the payload back from the QLIST file.
+        // Nothing refers to these bytes until the journal record is written,
+        // so a rejected record leaves only overwritable bytes behind.
 
-        unsigned int paddedUriLen = queueRecHeader->queueUriLengthWords() *
-                                    bmqp::Protocol::k_WORD_SIZE;
+        bmqu::BlobUtil::copyToRawBufferFromIndex(qlistFile.block().base() +
+                                                     qlistOffset,
+                                                 event,
+                                                 queueRecBeginPos.buffer(),
+                                                 queueRecBeginPos.byte(),
+                                                 queueRecLen);
 
-        BSLS_ASSERT_SAFE(0 < paddedUriLen);
-
-        const char* uriBegin = qlistFile.block().base() + qlistOffset +
-                               queueRecHeaderLen;
-        bmqt::Uri uri(
-            bslstl::StringRef(uriBegin,
-                              paddedUriLen - uriBegin[paddedUriLen - 1]));
-        if (quri) {
-            *quri = uri;
+        if (!FileStoreProtocolUtil::hasValidQueueRecordMagic(qlistFile.block(),
+                                                             qlistOffset,
+                                                             queueRecLen)) {
+            BALL_LOG_ERROR << "Partition [" << partitionId << "]: "
+                           << "Queue record has an invalid magic word.";
+            return k_MALFORMED_QUEUE_RECORD;  // RETURN
         }
 
-        unsigned int appIdsAreaSize = queueRecLen - queueRecHeaderLen -
-                                      paddedUriLen -
-                                      FileStoreProtocol::k_HASH_LENGTH -
-                                      sizeof(unsigned int);  // Magic word
+        // Retrieve the QueueUri from the queue record.
+        const char* uriBegin = qlistFile.block().base() + qlistOffset +
+                               queueRecHeaderLen;
+
+        unsigned int uriLen = 0;
+        int          rc = FileStoreProtocolUtil::loadUnpaddedLength(&uriLen,
+                                                           uriBegin,
+                                                           paddedUriLen);
+        if (0 != rc) {
+            BALL_LOG_ERROR << "Partition [" << partitionId << "]: "
+                           << "Queue record has an invalid padding byte for "
+                           << "the 'QueueUri' field, rc: " << rc << ".";
+            return k_MALFORMED_QUEUE_RECORD;  // RETURN
+        }
+
+        rc = bmqt::UriParser::parse(&uri,
+                                    0,  // errorDescription
+                                    bslstl::StringRef(uriBegin, uriLen));
+        if (0 != rc) {
+            // The field holds arbitrary bytes bounded only by the QLIST file
+            // size, so log a prefix of it.
+
+            const unsigned int k_MAX_LOGGED_URI_LEN = 64;
+
+            BALL_LOG_ERROR << "Partition [" << partitionId << "]: "
+                           << "Queue record has an unparsable 'QueueUri' "
+                           << "field of " << uriLen << " bytes, beginning "
+                           << "with ["
+                           << bslstl::StringRef(uriBegin,
+                                                bsl::min(uriLen,
+                                                         k_MAX_LOGGED_URI_LEN))
+                           << "].";
+            return k_MALFORMED_QUEUE_RECORD;  // RETURN
+        }
+
         MemoryBlock appIdsBlock(qlistFile.block().base() + qlistOffset +
                                     queueRecHeaderLen + paddedUriLen +
                                     FileStoreProtocol::k_HASH_LENGTH,
-                                appIdsAreaSize);
+                                appIdsAreaLen);
         // NOTE: `appIdKeyPairs` is only populated if `qListAware` is true.
         // Please handle `appIdKeyPairs` properly if we want to run a cluster
         // with `qListAware = false`.
-        FileStoreProtocolUtil::loadAppInfos(appIdKeyPairs,
-                                            appIdsBlock,
-                                            queueRecHeader->numAppIds());
+        rc = FileStoreProtocolUtil::loadAppInfos(appIdKeyPairs,
+                                                 appIdsBlock,
+                                                 queueRecHeader->numAppIds());
+        if (0 != rc) {
+            BALL_LOG_ERROR << "Partition [" << partitionId << "]: "
+                           << "Queue record declares "
+                           << queueRecHeader->numAppIds() << " appIds which "
+                           << "do not fit its " << appIdsAreaLen
+                           << " byte application-ID area, rc: " << rc << ".";
+            appIdKeyPairs->clear();
+            return k_MALFORMED_QUEUE_RECORD;  // RETURN
+        }
 
         queueUriAppsStr << ", queue [" << uri << "]" << ", with ["
                         << appIdKeyPairs->size() << "] appId/appKey pairs ";
@@ -1732,6 +1785,33 @@ int FileStoreUtil::writeQueueCreationRecordImpl(
             queueUriAppsStr << " [" << cit->first << ", " << cit->second
                             << "]";
         }
+    }
+
+    // The record is valid: commit it.
+
+    bmqu::BlobUtil::copyToRawBufferFromIndex(
+        journal.block().base() + recordOffset,
+        event,
+        recordPosition.buffer(),
+        recordPosition.byte(),
+        FileStoreProtocol::k_JOURNAL_RECORD_SIZE);
+
+    if (qListAware) {
+        *qlistFilePos += queueRecLen;
+    }
+    *journalPos += FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+
+    if (queueRecLength) {
+        *queueRecLength = queueRecLen;
+    }
+    if (quri) {
+        *quri = uri;
+    }
+    if (queueKey) {
+        *queueKey = queueRec->queueKey();
+    }
+    if (queueOpType) {
+        *queueOpType = queueRec->type();
     }
 
     BALL_LOG_INFO << " Partition [" << partitionId

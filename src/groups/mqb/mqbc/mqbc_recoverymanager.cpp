@@ -784,8 +784,7 @@ int RecoveryManager::processReceiveDataChunks(
                 recoveryCtx.d_mappedQlistFd;
             bsls::Types::Uint64& qlistFilePos =
                 recoveryCtx.d_qlistFilePosition;
-            bsls::Types::Uint64 qlistOffset = qlistFilePos;
-            BSLS_ASSERT_SAFE(0 == qlistOffset % bmqp::Protocol::k_WORD_SIZE);
+            BSLS_ASSERT_SAFE(0 == qlistFilePos % bmqp::Protocol::k_WORD_SIZE);
 
             mqbi::Storage::AppInfos appIdKeyPairs;
             rc = mqbs::FileStoreUtil::writeQueueCreationRecordImpl(
@@ -797,8 +796,7 @@ int RecoveryManager::processReceiveDataChunks(
                 recordPosition,
                 journal,
                 d_qListAware,
-                qlistFile,
-                qlistOffset);
+                qlistFile);
             if (0 != rc) {
                 return 10 * rc +
                        rc_WRITE_QUEUE_CREATION_RECORD_ERROR;  // RETURN

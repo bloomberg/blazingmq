@@ -4429,8 +4429,7 @@ int FileStore::writeQueueCreationRecord(
     MappedFileDescriptor& journal      = activeFileSet->d_journal.d_file;
     bsls::Types::Uint64&  journalPos = activeFileSet->d_journal.d_filePosition;
     bsls::Types::Uint64   recordOffset = journalPos;
-    bsls::Types::Uint64   qlistOffset  = qlistFilePos;
-    BSLS_ASSERT_SAFE(0 == qlistOffset % bmqp::Protocol::k_WORD_SIZE);
+    BSLS_ASSERT_SAFE(0 == qlistFilePos % bmqp::Protocol::k_WORD_SIZE);
 
     // Ensure that JOURNAL offset of primary and self match.  Note that QLIST
     // offset is checked later in this routine.
@@ -4467,7 +4466,6 @@ int FileStore::writeQueueCreationRecord(
         journal,
         d_qListAware,
         qlistFile,
-        qlistOffset,
         &queueRecLength,
         &quri,
         &queueKey,

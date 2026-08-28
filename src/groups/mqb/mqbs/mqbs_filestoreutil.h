@@ -84,6 +84,14 @@ struct FileStoreUtil {
   public:
     typedef bsl::shared_ptr<FileSet> FileSetSp;
 
+    // PUBLIC CONSTANTS
+
+    /// Value returned by `writeQueueCreationRecordImpl` when the queue record
+    /// carried by the event is structurally invalid, as opposed to a failure
+    /// to apply a well-formed record.  Callers must translate it into a
+    /// result code of their own rather than propagate it.
+    static const int k_MALFORMED_QUEUE_RECORD = 1;
+
   private:
     // PRIVATE CLASS METHODS
 
@@ -363,12 +371,14 @@ struct FileStoreUtil {
         unsigned int*                refCount              = 0,
         bmqp::MessagePropertiesInfo* messagePropertiesInfo = 0);
 
-    /// Write a queue creation record loaded from `event` at `recordPosition`
-    /// for `partitionId` to the `journal`.  If `qListAware`, also write to
-    /// `qlistFile` currently at `qlistOffset`.  Store the resulting values in
-    /// `journalPos`, `qlistFilePos` and `appIdKeyPairs`, and optionally in
-    /// `queueRecLength`, `quri`, `queueKey`, and `queueOpType` if they are not
-    /// null.  Return 0 on success, non-zero value otherwise.
+    /// Write a queue creation/addition record loaded from `event` at
+    /// `recordPosition` for `partitionId` to the `journal`.  If `qListAware`,
+    /// also write to `qlistFile` at its current position `*qlistFilePos`.
+    /// Store the resulting values in `journalPos`, `qlistFilePos` and
+    /// `appIdKeyPairs`, and optionally in `queueRecLength`, `quri`,
+    /// `queueKey`, and `queueOpType` if they are not null.  Return 0 on
+    /// success, `k_MALFORMED_QUEUE_RECORD` if the record is structurally
+    /// invalid, another non-zero value otherwise.
     static int
     writeQueueCreationRecordImpl(bsls::Types::Uint64*        journalPos,
                                  bsls::Types::Uint64*        qlistFilePos,
@@ -379,7 +389,6 @@ struct FileStoreUtil {
                                  const MappedFileDescriptor& journal,
                                  bool                        qListAware,
                                  const MappedFileDescriptor& qlistFile,
-                                 bsls::Types::Uint64         qlistOffset,
                                  unsigned int*      queueRecLength = 0,
                                  bmqt::Uri*         quri           = 0,
                                  mqbu::StorageKey*  queueKey       = 0,

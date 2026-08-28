@@ -282,8 +282,7 @@ class Tester {
             bmqu::BlobPosition(0, 0),
             d_journal,
             true,  // qListAware
-            d_qlist,
-            0);  // qlistOffset
+            d_qlist);
     }
 
     // ACCESSORS
