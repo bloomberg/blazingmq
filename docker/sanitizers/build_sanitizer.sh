@@ -218,6 +218,11 @@ export DIR_SCRIPTS="${DIR_SCRIPTS}"
 
 TOOLCHAIN_PATH="${DIR_SCRIPTS}/clang-libcxx-sanitizer.cmake"
 export SANITIZER_NAME="${SANITIZER_NAME}"
+# Enable MemorySanitizer origin tracking (origins=2) so reports name where an
+# uninitialized value was created, not just where it was consumed.  The
+# toolchain only acts on this for 'msan' builds.  Override with
+# 'DEBUG_MEMORY_SANITIZER=0' to disable.
+export DEBUG_MEMORY_SANITIZER="${DEBUG_MEMORY_SANITIZER:-1}"
 export CC="clang"
 export CXX="clang++"
 if [ "${FUZZER}" == "on" ]; then

@@ -118,7 +118,10 @@ elseif(SANITIZER_NAME STREQUAL "msan")
   set(MSAN_SUPPRESSION_LIST_PATH "$ENV{DIR_SRC_BMQ}/etc/msansup.txt")
   set(TOOLCHAIN_DEBUG_FLAGS "-fsanitize=memory -fsanitize-blacklist=${MSAN_SUPPRESSION_LIST_PATH} ")
   # Conditionally add flags helpful for debugging MemorySanitizer issues.
-  if (DEBUG_MEMORY_SANITIZER)
+  # Honor either a CMake cache variable or an environment variable so the same
+  # setting propagates to every build that shares this toolchain (BDE, NTF,
+  # BlazingMQ) without threading '-D' through each configure invocation.
+  if (DEBUG_MEMORY_SANITIZER OR "$ENV{DEBUG_MEMORY_SANITIZER}")
       string(CONCAT TOOLCHAIN_DEBUG_FLAGS
             "${TOOLCHAIN_DEBUG_FLAGS} "
             "-fsanitize-memory-track-origins=2 "
