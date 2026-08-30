@@ -421,8 +421,6 @@ class RequestManager {
 
     typedef RequestMap::iterator RequestMapIter;
 
-    typedef RequestMap::const_iterator RequestMapConstIter;
-
     // DATA
     bslma::Allocator* d_allocator_p;
     // Allocator to use.
