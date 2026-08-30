@@ -330,8 +330,8 @@ class Proto:
                     file_name="logs/logs.%T.%p",
                     file_max_age_days=10,
                     rotation_bytes=268435456,
-                    logfile_format="%d (%t) %s %F:%l %m\n\n",
-                    console_format="%d (%t) %s %F:%l %m\n",
+                    logfile_format="%d (%t) %s %F:%l %m %a\n\n",
+                    console_format="%d (%t) %s %F:%l %m %a\n",
                     logging_verbosity="INFO",
                     console_severity_threshold="INFO",
                     categories=[
@@ -342,7 +342,7 @@ class Proto:
                     syslog=mqbcfg.SyslogConfig(
                         enabled=False,
                         app_name="BMQ",
-                        log_format="%d (%t) %s %F:%l %m\n\n",
+                        log_format="%d (%t) %s %F:%l %m %a\n\n",
                         verbosity="",
                     ),
                 ),
