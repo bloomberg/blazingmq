@@ -16,20 +16,13 @@
 #include <bmqst_tableutil.h>
 
 #include <bmqscm_version.h>
-#include <bmqst_basetable.h>
 #include <bmqst_tableinfoprovider.h>
 
-#include <bmqst_value.h>
-
-#include <bmqu_memoutstream.h>
-
-#include <bdlb_stringrefutil.h>
 #include <bdlma_localsequentialallocator.h>
-#include <bdlsb_fixedmemoutstreambuf.h>
 
 #include <bsl_algorithm.h>
 #include <bsl_iomanip.h>
-#include <bsls_alignedbuffer.h>
+#include <bsl_vector.h>
 
 namespace BloombergLP {
 namespace bmqst {
@@ -184,111 +177,6 @@ int TableUtil::printTable(bsl::ostream& stream, const TableInfoProvider& info)
     }
 
     return 0;
-}
-
-int TableUtil::outputToVector(bsl::vector<bsl::vector<bsl::string> >* dest,
-                              const TableInfoProvider&                info)
-{
-    bsls::AlignedBuffer<1024>   buf;
-    bdlsb::FixedMemOutStreamBuf sb(buf.buffer(), sizeof(buf));
-    bsl::ostream                stream(&sb);
-
-    bsl::vector<bsl::vector<bsl::string> >& out = *dest;
-
-    int numRows    = info.numRows();
-    int numColumns = info.numColumns(0);
-
-    out.resize(numRows + 1);
-
-    // Output header
-    out[0].resize(numColumns);
-    for (int col = 0; col < numColumns; ++col) {
-        stream.seekp(0);
-        stream.clear();
-        info.printHeader(stream, 0, col, 0);
-        stream.flush();
-
-        out[0][col].assign(sb.data(), sb.length());
-    }
-
-    // Output rows
-    for (int row = 0; row < numRows; ++row) {
-        out[row + 1].resize(numColumns);
-        for (int col = 0; col < numColumns; ++col) {
-            stream.seekp(0);
-            stream.clear();
-            info.printValue(stream, row, col, 0);
-            stream.flush();
-
-            out[row + 1][col].assign(sb.data(), sb.length());
-        }
-    }
-
-    return 0;
-}
-
-void TableUtil::printCsv(bsl::ostream& stream, const BaseTable& table)
-{
-    int numRows    = table.numRows();
-    int numColumns = table.numColumns();
-
-    for (int col = 0; col < numColumns; ++col) {
-        if (col != 0) {
-            stream << ',';
-        }
-        stream << table.columnName(col);
-    }
-    stream << '\n';
-
-    // Output rows
-    Value value;
-    for (int row = 0; row < numRows; ++row) {
-        for (int col = 0; col < numColumns; ++col) {
-            if (col != 0) {
-                stream << ',';
-            }
-            table.value(&value, row, col);
-            stream << value;
-        }
-        stream << '\n';
-    }
-}
-
-void TableUtil::printCsv(bsl::ostream& stream, const TableInfoProvider& info)
-{
-    int numRows    = info.numRows();
-    int numColumns = info.numColumns(0);
-
-    // Output header
-    for (int col = 0; col < numColumns; ++col) {
-        if (0 < col) {
-            stream << ',';
-        }
-        info.printHeader(stream, 0, col, 0);
-    }
-    stream << '\n';
-
-    // Output rows
-
-    bdlma::LocalSequentialAllocator<128> bsa;
-    bmqu::MemOutStream                   ostream(&bsa);
-
-    for (int row = 0; row < numRows; ++row) {
-        for (int col = 0; col < numColumns; ++col) {
-            if (0 < col) {
-                stream << ',';
-            }
-
-            // Print each value to 'ostream' first, so that we may remove the
-            // level padding added by the info provider.
-
-            ostream.reset();
-            info.printValue(ostream, row, col, 0);
-
-            stream << bdlb::StringRefUtil::trim(ostream.str());
-        }
-        stream << '\n';
-    }
 }
 
 }  // close package namespace

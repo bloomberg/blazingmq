@@ -15,47 +15,36 @@
 
 #include <bmqst_tableutil.h>
 
-#include <bmqst_testutil.h>
+// TEST DRIVER
+#include <bmqtst_testhelper.h>
 
 #include <bmqst_tableinfoprovider.h>
-#include <bmqu_memoutstream.h>
-#include <bslma_testallocator.h>
+
+// BDE
+#include <bdlb_tokenizer.h>
+#include <bsl_iostream.h>
+#include <bsl_vector.h>
 #include <bsls_assert.h>
 
-#include <bsl_iostream.h>
-#include <bsl_sstream.h>
-
+// CONVENIENCE
 using namespace BloombergLP;
 using namespace bsl;
 
-//=============================================================================
-//                                  TEST PLAN
-//-----------------------------------------------------------------------------
-//                              *** Overview ***
-//
-// TODO
-//
-// ----------------------------------------------------------------------------
-// [  ] TODO
-// ----------------------------------------------------------------------------
-// [ 1] Breathing Test
-//=============================================================================
-//                      STANDARD BDE ASSERT TEST MACROS
-//-----------------------------------------------------------------------------
-static int testStatus = 0;
-
-//=============================================================================
-//                       STANDARD BDE TEST DRIVER MACROS
-//-----------------------------------------------------------------------------
-
-#define P BSLS_BSLTESTUTIL_P    // Print identifier and value.
-#define L_ BSLS_BSLTESTUTIL_L_  // current Line number
-
-//=============================================================================
-//                      GLOBAL HELPER FUNCTIONS FOR TESTING
-//-----------------------------------------------------------------------------
-
 namespace {
+
+bsl::vector<bsl::string> stringVector(bsl::string_view s)
+{
+    bslma::Allocator*        alloc = bmqtst::TestHelperUtil::allocator();
+    bsl::vector<bsl::string> ret(alloc);
+    bdlb::Tokenizer          tokenizer(s, " ");
+    for (bdlb::TokenizerIterator iter = tokenizer.begin();
+         iter != tokenizer.end();
+         ++iter) {
+        ret.emplace_back(bsl::string(*iter, alloc));
+    }
+
+    return ret;
+}
 
 // ===========================
 // class TestTableInfoProvider
@@ -176,239 +165,37 @@ class TestTableInfoProvider : public bmqst::TableInfoProvider {
 }  // close unnamed namespace
 
 //=============================================================================
+//                                    TESTS
+//-----------------------------------------------------------------------------
+
+static void test1_usageExample()
+{
+    bmqtst::TestHelper::printTestName("USAGE EXAMPLE");
+
+    TestTableInfoProvider tip(bmqtst::TestHelperUtil::allocator());
+    tip.addHeaderLevel(stringVector("a b c"));
+    tip.addRow(stringVector("1 2 3"));
+    tip.addRow(stringVector("4 5 6"));
+    bmqst::TableUtil::printTable(bsl::cout, tip);
+}
+
+//=============================================================================
 //                                MAIN PROGRAM
 //-----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
 {
-    int test    = argc > 1 ? atoi(argv[1]) : 0;
-    int verbose = argc > 2;
+    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
 
-    cout << "TEST " << __FILE__ << " CASE " << test << endl;
+    switch (_testCase) {
+    case 1: test1_usageExample(); break;
 
-    // Use test allocator
-    bslma::TestAllocator testAllocator;
-    testAllocator.setNoAbort(true);
-    bslma::Default::setDefaultAllocatorRaw(&testAllocator);
-
-    switch (test) {
-    case 0:
-    case 4: {
-        // --------------------------------------------------------------------
-        // PRINT CSV TEST
-        //
-        // Concerns:
-        //  That 'outputToVector' correctly dumps the specified table
-        //
-        // Plan:
-        //  Use a table of tables to be described by a TableInfoProvider, and
-        //  make sure resulting output vector is correct.
-        // --------------------------------------------------------------------
-
-        if (verbose)
-            cout << endl
-                 << "PRINT CSV TEST" << endl
-                 << "==============" << endl;
-
-        const struct TestData {
-            int         d_line;
-            const char* d_header;
-            const char* d_rows[100];
-            const char* d_expected;
-        } DATA[] = {
-            {L_, "a b c", {"1 2 3", "4 5 6"}, "a,b,c\n1,2,3\n4,5,6\n"},
-        };
-        const int NUM_DATA = sizeof(DATA) / sizeof(*DATA);
-
-        for (int dataIdx = 0; dataIdx < NUM_DATA; ++dataIdx) {
-            const TestData& data = DATA[dataIdx];
-            const int       LINE = data.d_line;
-
-            P(LINE);
-
-            TestTableInfoProvider tip;
-
-            tip.addHeaderLevel(bmqst::TestUtil::stringVector(data.d_header));
-
-            const char* const* rows = data.d_rows;
-            while (*rows) {
-                tip.addRow(bmqst::TestUtil::stringVector(*rows));
-                ++rows;
-            }
-
-            bmqu::MemOutStream stream;
-            bmqst::TableUtil::printCsv(stream, tip);
-            ASSERT_EQUALS(stream.str(), data.d_expected);
-        }
-
-    } break;
-    case 3: {
-        // --------------------------------------------------------------------
-        // USAGE EXAMPLE
-        //
-        // Concerns:
-        //   That the usage example builds and works
-        //
-        // Plan:
-        //   Copy usage example
-        //
-        // Testing:
-        //   Usage Example
-        // --------------------------------------------------------------------
-
-        if (verbose)
-            cout << endl << "USAGE EXAMPLE" << endl << "=============" << endl;
-
-        TestTableInfoProvider tip;
-        tip.addHeaderLevel(bmqst::TestUtil::stringVector("a b c"));
-        tip.addRow(bmqst::TestUtil::stringVector("1 2 3"));
-        tip.addRow(bmqst::TestUtil::stringVector("4 5 6"));
-        bmqst::TableUtil::printTable(bsl::cout, tip);
-    } break;
-        /* TODO fix this test once bmqst::TestTable is written
-case 3: {
-  // --------------------------------------------------------------------
-  // PRINT CSV TEST
-  //
-  // Concerns:
-  //  That 'printCsv' correctly prints the table as csv.
-  //
-  // Plan:
-  //  Use a table of tables to be described by a TableInfoProvider, and
-  //  the expected csv output for that table.
-  // --------------------------------------------------------------------
-
-  if (verbose) cout << endl
-                    << "PRINT CSV TEST" << endl
-                    << "==============" << endl;
-
-  const struct TestData {
-      int d_line;
-      const char *d_header;
-      const char *d_rows[100];
-      const char *d_expected;
-  } DATA[] = {
-      { L_, "a b c", { "1 2 3", "4 5 6" },
-          "a,b,c\n"
-          "1,2,3\n"
-          "4,5,6"
-      },
-  };
-  const int NUM_DATA = sizeof(DATA)/sizeof(*DATA);
-
-  for (int dataIdx = 0; dataIdx < NUM_DATA; ++dataIdx) {
-      const TestData& data = DATA[dataIdx];
-      const int LINE = data.d_line;
-
-      P(LINE);
-
-      TestTableInfoProvider tip;
-      tip.addHeaderLevel(bmqst::TestUtil::stringVector(data.d_header));
-      const char * const *rows = data.d_rows;
-      while (*rows) {
-          tip.addRow(bmqst::TestUtil::stringVector(*rows));
-          ++rows;
-      }
-
-      const char *expected = data.d_expected;
-
-      bsl::ostringstream output;
-      int ret = TableUtil::printCsv(output, tip);
-      ASSERT_EQUALS(ret, 0);
-      ASSERT_EQUALS(output.str(), expected);
-  }
-} break;
-*/
-    case 2: {
-        // --------------------------------------------------------------------
-        // OUTPUT TO VECTOR TEST
-        //
-        // Concerns:
-        //  That 'outputToVector' correctly dumps the specified table
-        //
-        // Plan:
-        //  Use a table of tables to be described by a TableInfoProvider, and
-        //  make sure resulting output vector is correct.
-        // --------------------------------------------------------------------
-
-        if (verbose)
-            cout << endl
-                 << "OUTPUT TO VECTOR TEST" << endl
-                 << "=====================" << endl;
-
-        const struct TestData {
-            int         d_line;
-            const char* d_header;
-            const char* d_rows[100];
-        } DATA[] = {
-            {L_, "a b c", {"1 2 3", "4 5 6"}},
-        };
-        const int NUM_DATA = sizeof(DATA) / sizeof(*DATA);
-
-        for (int dataIdx = 0; dataIdx < NUM_DATA; ++dataIdx) {
-            const TestData& data = DATA[dataIdx];
-            const int       LINE = data.d_line;
-
-            P(LINE);
-
-            TestTableInfoProvider tip;
-
-            bsl::vector<bsl::vector<bsl::string> > expected;
-            expected.push_back(bmqst::TestUtil::stringVector(data.d_header));
-            tip.addHeaderLevel(expected.back());
-
-            const char* const* rows = data.d_rows;
-            while (*rows) {
-                expected.push_back(bmqst::TestUtil::stringVector(*rows));
-                tip.addRow(expected.back());
-                ++rows;
-            }
-
-            bsl::vector<bsl::vector<bsl::string> > output;
-            int ret = bmqst::TableUtil::outputToVector(&output, tip);
-            ASSERT_EQUALS(ret, 0);
-            ASSERT_EQUALS(output, expected);
-        }
-
-    } break;
-    case 1: {
-        // --------------------------------------------------------------------
-        // BREATHING TEST
-        //
-        // Concerns:
-        //   Exercise the basic functionality of the component.
-        //
-        // Plan:
-        //   TODO
-        //
-        // Testing:
-        //   Basic functionality
-        // --------------------------------------------------------------------
-
-        if (verbose)
-            cout << endl
-                 << "BREATHING TEST" << endl
-                 << "==============" << endl;
-
-    } break;
     default: {
-        cerr << "WARNING: CASE '" << test << "' NOT FOUND." << endl;
-        testStatus = -1;
-    }
-    }
-
-    if (testStatus != 255) {
-        if ((testAllocator.numMismatches() != 0) ||
-            (testAllocator.numBytesInUse() != 0)) {
-            bsl::cout << "*** Error " << __FILE__ << "(" << __LINE__
-                      << "): test allocator: " << '\n';
-            testAllocator.print();
-            testStatus++;
-        }
+        bsl::cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND."
+                  << bsl::endl;
+        bmqtst::TestHelperUtil::testStatus() = -1;
+    } break;
     }
 
-    if (testStatus > 0) {
-        cerr << "Error, non-zero test status = " << testStatus << "." << endl;
-    }
-    return testStatus;
+    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
 }
