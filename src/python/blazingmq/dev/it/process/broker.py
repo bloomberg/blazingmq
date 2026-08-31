@@ -349,6 +349,35 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
             self._error(f"Could not determine primary for queue {uri}")
         return self.cluster.process(primary_name[0])
 
+    def queue_partition_id(self, uri, timeout=BLOCK_TIMEOUT) -> int:
+        """
+        Return the id of the partition that owns the queue identified by
+        'uri', polling this node until the queue is assigned (or 'timeout'
+        elapses).  Reads the same 'QUEUEHELPER' output as
+        'wait_queue_primary'.
+        """
+
+        admin = self.open_admin_client()
+        partition_id = [None]
+
+        def check():
+            res = admin.send_admin(f"CLUSTERS CLUSTER {self.cluster_name} QUEUEHELPER")
+            assert isinstance(res, str)
+            m = re.search(
+                rf"^\s*{re.escape(uri)}\s*$.*?partitionId\.*:\s*(\d+)",
+                res,
+                re.MULTILINE | re.DOTALL,
+            )
+            if m is None:
+                return False
+            partition_id[0] = int(m.group(1))
+            return True
+
+        wait_until(check, timeout=timeout)
+        if partition_id[0] is None:
+            self._error(f"Could not determine partition for queue {uri}")
+        return partition_id[0]
+
     @staticmethod
     def _parse_partition_primary(status_res, partition_id):
         """

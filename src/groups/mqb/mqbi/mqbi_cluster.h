@@ -370,6 +370,17 @@ class Cluster : public DispatcherClient {
     /// since only cluster-member implementations own a `ClusterQueueHelper`.
     virtual void onQueueStorageReady(int partitionId, const bmqt::Uri& uri);
 
+    /// Set this node's upstream view of the subStream of the specified
+    /// `queue` described by the specified `handleParameters` to those
+    /// parameters.  Invoked once per subStream when a queue this node was
+    /// the primary for becomes remote: the handles survive the role change,
+    /// and what they hold is what this node has to reopen against the new
+    /// primary.  A no-op default is provided since only cluster-member
+    /// implementations own a `ClusterQueueHelper`.
+    virtual void onConversionToRemote(
+        Queue*                                     queue,
+        const bmqp_ctrlmsg::QueueHandleParameters& handleParameters);
+
     /// Load into the specified `out` the set of appIds currently registered
     /// on the local storage for the queue having the specified `uri` and
     /// assigned to the specified `partitionId`, and return true.  Return

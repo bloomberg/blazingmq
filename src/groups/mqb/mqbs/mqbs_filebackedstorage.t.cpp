@@ -208,6 +208,10 @@ class MockDataStore : public mqbs::DataStore {
     bool d_writeMessageRecordFail;
     // If true, writeMessageRecord will fail (return -1).
 
+    mqbs::DataStoreRecordHandle d_lastMessageHandle;
+    // Handle of the last MESSAGE record written.  'put' proposes only, so a
+    // test drives the commit itself via 'processMessageRecord'.
+
   public:
     explicit MockDataStore(int partitionId, bslma::Allocator* allocator)
     : d_allocator_p(bslma::Default::allocator(allocator))
@@ -227,6 +231,13 @@ class MockDataStore : public mqbs::DataStore {
     {
         d_config.setPartitionId(partitionId);
     }
+
+    const mqbs::DataStoreRecordHandle& lastMessageHandle() const
+    {
+        return d_lastMessageHandle;
+    }
+
+    bool isRaft() const BSLS_KEYWORD_OVERRIDE { return false; }
 
     bsls::Types::Uint64 getMessageCounter() const { return d_messageCounter; }
 
@@ -284,6 +295,7 @@ class MockDataStore : public mqbs::DataStore {
             attributes->arrivalTimestamp();
 
         *iter = insertRc.first;
+        d_lastMessageHandle = *handle;
 
         d_attributes.insert({id, *attributes});
         d_appData.insert({id, appData});
@@ -723,10 +735,18 @@ struct Tester {
                 const int                       msgCount,
                 int                             dataOffset   = 0,
                 bool                            useSameGuids = false,
-                int                             refCount     = 1)
+                int                             refCount     = -1)
     {
         // PRECONDITIONS
         BSLS_ASSERT_OPT(guidHolder);
+
+        // The broker sets refCount to the number of Apps that must confirm,
+        // and 'processMessageRecord' derives the message's App count from it,
+        // so a test that registered Apps has to agree with them.
+        if (refCount < 0) {
+            const int numApps = d_replicatedStorage_mp->numVirtualStorages();
+            refCount          = numApps > 0 ? numApps : 1;
+        }
 
         int guidCount = static_cast<int>(guidHolder->size());
 
@@ -952,8 +972,11 @@ BMQTST_TEST_F(Test, supportedOperations)
         mqbs::DataStoreRecordHandle handle;
         d_tester.insertDataStoreRecord(&handle, key, record);
 
-        BMQTST_ASSERT_OPT_PASS(
-            storage.processMessageRecord(guid, msgLen, refCount, handle));
+        BMQTST_ASSERT_OPT_PASS(storage.processMessageRecord(guid,
+                                                            msgLen,
+                                                            refCount,
+                                                            handle,
+                                                            false));
     }
 
     {
@@ -969,7 +992,8 @@ BMQTST_TEST_F(Test, supportedOperations)
             storage.processConfirmRecord(guid,
                                          appKey,
                                          mqbs::ConfirmReason::e_CONFIRMED,
-                                         handle));
+                                         handle,
+                                         false));
     }
 
     {
@@ -2143,6 +2167,7 @@ BMQTST_TEST_F(Test, put_autoConfirmWriteFailure)
 
     rc = storage.put(&attributes2, guid2, appDataPtr, appDataPtr);
     BMQTST_ASSERT_EQ(rc, mqbi::StorageResult::e_SUCCESS);
+
     BMQTST_ASSERT_EQ(storage.numMessages(k_NULL_KEY), 1);
     BMQTST_ASSERT_EQ(data_store.getMessageCounter(), 1ULL);
 }
@@ -2231,6 +2256,7 @@ BMQTST_TEST_F(Test, put_autoConfirmWriteMessageFailure)
 
     rc = storage.put(&attributes2, guid2, appDataPtr, appDataPtr);
     BMQTST_ASSERT_EQ(rc, mqbi::StorageResult::e_SUCCESS);
+
     BMQTST_ASSERT_EQ(storage.numMessages(k_NULL_KEY), 1);
     BMQTST_ASSERT_EQ(data_store.getMessageCounter(), 1ULL);
 }

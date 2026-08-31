@@ -298,6 +298,28 @@ VirtualStorageCatalog::confirm(const bmqt::MessageGUID& msgGUID,
 }
 
 mqbi::StorageResult::Enum
+VirtualStorageCatalog::undoConfirm(const bmqt::MessageGUID& msgGUID,
+                                   const mqbu::StorageKey&  appKey)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(!appKey.isNull());
+
+    VirtualStorage::DataStreamIterator data = get(msgGUID);
+    if (data == d_dataStream.end()) {
+        return mqbi::StorageResult::e_GUID_NOT_FOUND;  // RETURN
+    }
+
+    VirtualStoragesIter it = d_virtualStorages.findByKey2(appKey);
+    if (it == d_virtualStorages.end()) {
+        return mqbi::StorageResult::e_APPKEY_NOT_FOUND;  // RETURN
+    }
+
+    // The 'e_DEL_MESSAGE' 'confirm' emitted is not undone; it is a cumulative
+    // count with no compensating event.
+    return it->value()->undoConfirm(data->second.get());
+}
+
+mqbi::StorageResult::Enum
 VirtualStorageCatalog::remove(const bmqt::MessageGUID& msgGUID)
 {
     if (0 == d_dataStream.erase(msgGUID)) {
@@ -376,23 +398,6 @@ void VirtualStorageCatalog::removeAll()
     d_totalBytes  = 0;
 }
 
-void VirtualStorageCatalog::removeAll(const mqbu::StorageKey& appKey,
-                                      bool                    asPrimary)
-{
-    BSLS_ASSERT_SAFE(!appKey.isNull());
-
-    VirtualStoragesIter itVs = d_virtualStorages.findByKey2(appKey);
-    BSLS_ASSERT_SAFE(itVs != d_virtualStorages.end());
-    VirtualStorage* vs = itVs->value().get();
-
-    DataStreamIterator itData;
-    bsls::Types::Int64 total = d_dataStream.size();
-    if (seek(&itData, vs) < total) {
-        purgeImpl(vs, itData, numVirtualStorages(), asPrimary);
-    }
-    // else, there is nothing to purge; either no messages or all are too old
-}
-
 bsls::Types::Int64 VirtualStorageCatalog::seek(DataStreamIterator*   it,
                                                const VirtualStorage* vs,
                                                bsls::Types::Int64*   bytes)
@@ -427,37 +432,46 @@ bsls::Types::Int64 VirtualStorageCatalog::seek(DataStreamIterator*   it,
 }
 
 mqbi::StorageResult::Enum
-VirtualStorageCatalog::purge(const mqbu::StorageKey& appKey,
-                             const PurgeCallback&    cb)
+VirtualStorageCatalog::firstMessage(DataStreamIterator*     out,
+                                    const mqbu::StorageKey& appKey,
+                                    VirtualStorage**        vs)
 {
+    BSLS_ASSERT_SAFE(out);
     BSLS_ASSERT_SAFE(!appKey.isNull());
 
     VirtualStoragesConstIter it = d_virtualStorages.findByKey2(appKey);
     if (it == d_virtualStorages.end()) {
-        return mqbi::StorageResult::e_APPKEY_NOT_FOUND;
+        return mqbi::StorageResult::e_APPKEY_NOT_FOUND;  // RETURN
     }
 
-    VirtualStorage*    vs = it->value().get();
+    if (vs) {
+        *vs = it->value().get();
+    }
+
+    const bsls::Types::Int64 total = d_dataStream.size();
+    if (seek(out, it->value().get()) >= total) {
+        // Either no messages or all are too old for this App.
+        return mqbi::StorageResult::e_GUID_NOT_FOUND;  // RETURN
+    }
+
+    return mqbi::StorageResult::e_SUCCESS;
+}
+
+mqbi::StorageResult::Enum
+VirtualStorageCatalog::purge(const mqbu::StorageKey& appKey, bool asPrimary)
+{
+    VirtualStorage*    vs = 0;
     DataStreamIterator itData;
-    bsls::Types::Int64 total = d_dataStream.size();
 
-    if (seek(&itData, vs) < total) {
-        if (cb) {
-            mqbi::StorageResult::Enum rc = cb(appKey, itData);
-            if (mqbi::StorageResult::e_SUCCESS != rc) {
-                return rc;
-            }
-        }
-
-        // The caller is `FileBackedStorage::removeAll` where we do want to
-        // `FileBackedStorage::writeAppPurgeRecord`.
-        // The caller of which is `StorageUtil::purgeQueueDispatched`.
-        // Note that `InMemoryStorage` does not call
-        // `VirtualStorageCatalog::purge`.
-
-        purgeImpl(vs, itData, numVirtualStorages(), true);
+    const mqbi::StorageResult::Enum rc = firstMessage(&itData, appKey, &vs);
+    if (mqbi::StorageResult::e_APPKEY_NOT_FOUND == rc) {
+        return rc;  // RETURN
     }
-    // else, there is nothing to purge; either no messages or all are too old
+
+    if (mqbi::StorageResult::e_SUCCESS == rc) {
+        purgeImpl(vs, itData, numVirtualStorages(), asPrimary);
+    }
+    // else, there is nothing to purge
 
     return mqbi::StorageResult::e_SUCCESS;
 }
@@ -471,7 +485,7 @@ VirtualStorageCatalog::purgeImpl(VirtualStorage*     vs,
     BSLS_ASSERT_SAFE(!d_ordinals.empty());
 
     while (itData != d_dataStream.end()) {
-        const bmqt::MessageGUID& msgGUID           = itData->first;
+        const bmqt::MessageGUID  msgGUID           = itData->first;
         mqbi::DataStreamMessage* dataStreamMessage = itData->second.get();
 
         mqbi::StorageResult::Enum result = mqbi::StorageResult::e_SUCCESS;
@@ -479,15 +493,20 @@ VirtualStorageCatalog::purgeImpl(VirtualStorage*     vs,
         // Must call 'seek' before 'purge'
         setup(dataStreamMessage);
 
+        // Dropping the last reference deletes the message, and
+        // 'FileBackedStorage::processDeletionRecord' calls 'gc', which erases
+        // this entry from 'd_dataStream'.  It runs inside 'releaseRef' below
+        // on legacy, and on a single-node Raft cluster too, so read the next
+        // position first and do not erase here.
+        DataStreamIterator next = itData;
+        ++next;
+
         if (vs->remove(dataStreamMessage, replacingOrdinal)) {
             // The 'data' was not already removed or confirmed.
             result = d_storage_p->releaseRef(msgGUID, asPrimary);
         }
 
-        if (result == mqbi::StorageResult::e_ZERO_REFERENCES) {
-            itData = d_dataStream.erase(itData);
-        }
-        else {
+        if (result != mqbi::StorageResult::e_ZERO_REFERENCES) {
             if (result == mqbi::StorageResult::e_GUID_NOT_FOUND) {
                 BALL_LOG_WARN
                     << "#STORAGE_PURGE_ERROR " << "Partition ["
@@ -518,8 +537,9 @@ VirtualStorageCatalog::purgeImpl(VirtualStorage*     vs,
                        "zero)."
                     << BMQTSK_ALARMLOG_END;
             }
-            ++itData;
         }
+
+        itData = next;
     }
 
     d_queueStats_sp->onEvent(mqbstat::QueueStatsDomain::EventType::e_PURGE,
@@ -587,9 +607,7 @@ int VirtualStorageCatalog::addVirtualStorage(bsl::ostream& errorDescription,
 
 mqbi::StorageResult::Enum
 VirtualStorageCatalog::removeVirtualStorage(const mqbu::StorageKey& appKey,
-                                            bool                    asPrimary,
-                                            const PurgeCallback&    onPurge,
-                                            const RemoveCallback&   onRemove)
+                                            bool                    asPrimary)
 {
     BSLS_ASSERT_SAFE(!appKey.isNull());
 
@@ -622,27 +640,7 @@ VirtualStorageCatalog::removeVirtualStorage(const mqbu::StorageKey& appKey,
     // Replace [vs->ordinal()] with [maxVirtualStorageSpOrdinal]
 
     DataStreamIterator itData;
-    bsls::Types::Int64 total = d_dataStream.size();
-
-    bsls::Types::Int64 numMessages = seek(&itData, removing);
-
-    BSLS_ASSERT_SAFE(numMessages <= total);
-
-    if (numMessages < total && onPurge) {
-        mqbi::StorageResult::Enum rc = onPurge(appKey, itData);
-        if (mqbi::StorageResult::e_SUCCESS != rc) {
-            return rc;  // RETURN
-        }
-    }
-    // else, there is nothing to purge; either no messages, or all are too old
-
-    // Need to write DELETION record in any case
-    if (onRemove) {
-        mqbi::StorageResult::Enum rc = onRemove(appKey);
-        if (mqbi::StorageResult::e_SUCCESS != rc) {
-            return rc;  // RETURN
-        }
-    }
+    seek(&itData, removing);
 
     purgeImpl(removing, itData, replacingOrdinal, asPrimary);
 

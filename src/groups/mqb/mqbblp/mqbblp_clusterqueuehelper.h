@@ -488,6 +488,19 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// Not atomic, manipulated only in dispatcher thread.
     unsigned int d_nextQueueId;
 
+    /// Elector term for which `reconcileLeaderQueuesAppIds` has already run,
+    /// or 0.  Its trigger, `restoreStateCluster`, is re-entered on every
+    /// leader *and* peer-availability transition and is documented as safe to
+    /// re-run because the rest of it dedups via reopen cycles.  The reconcile
+    /// does not: it diffs the domain config against the cluster state, which
+    /// an in-flight update has not reached, and each proposal mints a fresh
+    /// appKey (`generateStorageKey` is time-salted and never repeats).  So a
+    /// second pass re-proposes the same repair under a different key, and the
+    /// loser is rejected with rc -2.  One pass per term is all the repair
+    /// needs -- the domain config cannot change while this node leads without
+    /// `onDomainReconfigured` covering it.
+    bsls::Types::Uint64 d_reconciledElectorTerm;
+
     /// The non-persistent state of a cluster.
     mqbc::ClusterData* d_clusterData_p;
 
@@ -799,6 +812,10 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
         const RequestSp&                             requestContext,
         const mqbi::Cluster::HandleReleasedCallback& callback);
 
+    void onConversionToRemoteDispatched(
+        mqbi::Queue*                               queue,
+        const bmqp_ctrlmsg::QueueHandleParameters& handleParameters);
+
     void onQueueHandleCreatedDispatched(mqbi::Queue*     queue,
                                         const bmqt::Uri& uri,
                                         bool             handleCreated);
@@ -1094,6 +1111,13 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
                const bmqp_ctrlmsg::QueueHandleParameters&   handleParameters,
                unsigned int                                 upstreamSubQueueId,
                const mqbi::Cluster::HandleReleasedCallback& callback);
+
+    /// Set the upstream view of the subStream of the specified `queue`
+    /// described by the specified `handleParameters` to those parameters,
+    /// this node having stopped being the primary for `queue`.
+    void onConversionToRemote(
+        mqbi::Queue*                               queue,
+        const bmqp_ctrlmsg::QueueHandleParameters& handleParameters);
 
     void onQueueHandleCreated(mqbi::Queue*     queue,
                               const bmqt::Uri& uri,

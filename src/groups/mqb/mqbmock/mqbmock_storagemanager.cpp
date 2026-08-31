@@ -56,14 +56,14 @@ void StorageManager::initializeQueueKeyInfoMap(
 {
 }
 
-void StorageManager::registerQueue(
+bool StorageManager::registerQueue(
     BSLA_MAYBE_UNUSED const bmqt::Uri& uri,
     BSLA_MAYBE_UNUSED const mqbu::StorageKey& queueKey,
     BSLA_MAYBE_UNUSED int                     partitionId,
     BSLA_MAYBE_UNUSED const AppInfos&         appIdKeyPairs,
     BSLA_MAYBE_UNUSED mqbi::Domain* domain)
 {
-    // NOTHING
+    return true;
 }
 
 void StorageManager::unregisterQueue(BSLA_MAYBE_UNUSED const bmqt::Uri& uri,

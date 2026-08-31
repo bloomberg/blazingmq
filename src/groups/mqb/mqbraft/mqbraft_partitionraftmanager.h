@@ -239,7 +239,7 @@ class PartitionRaftManager : public mqbi::StorageProvider,
     /// to the specified `domain`.
     ///
     /// THREAD: Executed by the Client's dispatcher thread.
-    void registerQueue(const bmqt::Uri&        uri,
+    bool registerQueue(const bmqt::Uri&        uri,
                        const mqbu::StorageKey& queueKey,
                        int                     partitionId,
                        const AppInfos&         appIdKeyPairs,

@@ -423,7 +423,7 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager,
     /// associated queue storage created.
     ///
     /// THREAD: Executed by the Client's dispatcher thread.
-    void registerQueue(const bmqt::Uri&        uri,
+    bool registerQueue(const bmqt::Uri&        uri,
                        const mqbu::StorageKey& queueKey,
                        int                     partitionId,
                        const AppInfos&         appIdKeyPairs,

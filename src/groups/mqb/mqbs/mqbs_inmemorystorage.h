@@ -540,17 +540,24 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     void processMessageRecord(const bmqt::MessageGUID&     guid,
                               unsigned int                 msgLen,
                               unsigned int                 refCount,
-                              const DataStoreRecordHandle& handle)
-        BSLS_KEYWORD_OVERRIDE;
+                              const DataStoreRecordHandle& handle,
+                              bool isOwn) BSLS_KEYWORD_OVERRIDE;
 
     void processConfirmRecord(const bmqt::MessageGUID&     guid,
                               const mqbu::StorageKey&      appKey,
                               ConfirmReason::Enum          reason,
-                              const DataStoreRecordHandle& handle)
-        BSLS_KEYWORD_OVERRIDE;
+                              const DataStoreRecordHandle& handle,
+                              bool isOwn) BSLS_KEYWORD_OVERRIDE;
 
     void
     processDeletionRecord(const bmqt::MessageGUID& guid) BSLS_KEYWORD_OVERRIDE;
+
+    void undoCapacity(unsigned int msgLen) BSLS_KEYWORD_OVERRIDE;
+
+    void undoConfirm(const bmqt::MessageGUID& guid,
+                     const mqbu::StorageKey&  appKey) BSLS_KEYWORD_OVERRIDE;
+
+    int writeAppRemoval(const mqbu::StorageKey& appKey) BSLS_KEYWORD_OVERRIDE;
 
     void addQueueOpRecordHandle(const DataStoreRecordHandle& handle)
         BSLS_KEYWORD_OVERRIDE;

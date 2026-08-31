@@ -905,6 +905,11 @@ class RecordStore {
 
     virtual StorageMonitor* storageMonitor() = 0;
 
+    /// Return `true` if this partition is on the Raft write path, `false`
+    /// for the legacy one.  Records reach the storage on commit in the
+    /// former and at propose in the latter.
+    virtual bool isRaft() const = 0;
+
     /// Return the records container for this partition.
     virtual const DataStoreConfig::Records& records() const = 0;
 

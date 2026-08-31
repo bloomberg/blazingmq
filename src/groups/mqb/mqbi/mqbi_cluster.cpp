@@ -128,6 +128,15 @@ void Cluster::onQueueStorageReady(int partitionId, const bmqt::Uri& uri)
     (void)uri;
 }
 
+void Cluster::onConversionToRemote(
+    Queue*                                     queue,
+    const bmqp_ctrlmsg::QueueHandleParameters& handleParameters)
+{
+    // NOTHING (default: not all implementations own a ClusterQueueHelper)
+    (void)queue;
+    (void)handleParameters;
+}
+
 bool Cluster::loadAppIds(bsl::unordered_set<bsl::string>* out,
                          const bmqt::Uri&                 uri,
                          int                              partitionId) const

@@ -191,6 +191,8 @@ PartitionRaft::PartitionRaft(int partitionId,
 , d_snapshotQlistPath(d_allocator_p)
 , d_snapshotLastIncludedIndex(0)
 , d_snapshotLastIncludedTerm(0)
+, d_isDispatchingOutput(false)
+, d_deferred(d_allocator_p)
 , d_isRolloverPending(false)
 , d_isExpectingTermCommit(false)
 , d_needsBecomeLeaderSyncPoint(false)
@@ -322,7 +324,7 @@ void PartitionRaft::dispatchOutput(RaftNodeOutput* output)
     // stay -- their entries can still commit under the new leader, and
     // 'applyCommittedEntry' needs them to route those commits through the
     // primary path.  'truncateFrom' drops the ones the new leader overwrites.
-    if (output->d_stateChanged && !isLeader()) {
+    if (output->d_lostLeadership) {
         d_isRolloverPending = false;
 
         // This term's sync point will not commit under this node; leaving the
@@ -331,6 +333,20 @@ void PartitionRaft::dispatchOutput(RaftNodeOutput* output)
         d_isExpectingTermCommit = false;
 
         d_raftLog_mp->dropBufferedWrites();
+
+        // The queues of this partition are still local ones.  Convert them
+        // here, at the stepdown, not when the new primary becomes known: a
+        // local queue has no upstream to reach, and every write it proposes
+        // from now on is rejected, so anything arriving during the election
+        // would be lost rather than buffered.
+        //
+        // The uncommitted tail needs no replay.  A committed entry survives
+        // into the new leader's log, and an SC producer is ACKed only on
+        // commit, so the tail holds nothing a producer was told was accepted
+        // -- except under EC, which ACKs at propose by definition.
+        d_fileStore_sp->convertQueuesToRemote(d_clusterData_p->clusterConfig()
+                                                  .queueOperations()
+                                                  .ackWindowSize());
     }
 
     bool hadRollover = false;
@@ -339,6 +355,8 @@ void PartitionRaft::dispatchOutput(RaftNodeOutput* output)
     // call, so they share an apply time to within the loop itself.
     const bsls::Types::Int64 commitTimepoint =
         bmqu::Time::highResolutionTimer();
+
+    d_isDispatchingOutput = true;
 
     for (bsl::vector<LogEntry>::size_type i = 0;
          i < output->d_committed.size();
@@ -358,46 +376,9 @@ void PartitionRaft::dispatchOutput(RaftNodeOutput* output)
         }
     }
 
-    // Resolve buffered writes once the rollover outcome is known.  This runs
-    // after the apply loop (not inside it) because draining re-enters
-    // 'propose()'/'dispatchOutput()' and would otherwise recurse.  Buffered
-    // writes exist only during/after a rollover window, so during normal
-    // writes the buffer is empty here and neither branch fires.
-    if (hadRollover) {
-        if (isLeader()) {
-            BSLS_ASSERT_SAFE(d_isRolloverPending);
+    d_isDispatchingOutput = false;
 
-            // The 'e_ROLLOVER' just committed and rolled over in the loop
-            // above.  Clear the in-flight flag before the drain, not after:
-            // 'drainPendingWrites' runs a nested 'dispatchOutput', which must
-            // not see a rollover still in flight.  The drain loop itself does
-            // not read the flag -- it calls 'setPendingWrite' and
-            // 'RaftNode::propose' directly rather than going through
-            // 'PartitionRaft::propose'.
-            d_isRolloverPending = false;
-
-            drainPendingWrites();
-        }
-
-        // After the drain, so the DELETION records authorizing them land in
-        // the new file set first -- the order replicas apply them in.
-        d_raftLog_mp->flushDeferredRemovals();
-    }
-
-    // The gather stopped at its cap; nothing else brings us back, since
-    // 'commitTo' only runs when the commit index advances.  Re-post rather
-    // than loop, so the dispatcher gets a turn between batches.
-    if (output->d_hasMoreToApply) {
-        execute(
-            bdlf::BindUtil::bind(&PartitionRaft::applyCommittedBatchDispatched,
-                                 this));
-    }
-
-    // Re-drive delivery once for the whole batch applied above.  Each
-    // committed message noted its queue rather than notifying it, so a queue
-    // that took several entries is walked once, and one deleted later in the
-    // same batch is not walked at all.
-    d_fileStore_sp->notifyQueuesOnReplicatedBatch();
+    postDispatch(output, hadRollover);
 
     // Note on leadership changes: becoming leader needs no action here.  The
     // become-leader sync point is NOT written here -- it is the first journal
@@ -452,6 +433,79 @@ void PartitionRaft::dispatchOutput(RaftNodeOutput* output)
                       << ", term=" << term << ", haveCommit=false";
         d_leadershipCb(d_partitionId, leaderNodeId, term, false);
     }
+}
+
+void PartitionRaft::postDispatch(RaftNodeOutput* output, bool hadRollover)
+{
+    // executed by the partition *DISPATCHER* thread
+
+    // Everything here runs after the apply loop of 'dispatchOutput', never
+    // inside it, because it proposes: a propose from within the loop re-enters
+    // 'dispatchOutput' on a frame that is still walking 'd_committed'.
+
+    // Writes the apply loop held back for that reason.  Swap first: 'propose'
+    // runs a nested 'dispatchOutput', so this must not be re-entered on the
+    // same entries.
+    if (!d_deferred.empty()) {
+        bsl::vector<bsl::shared_ptr<mqbs::FileStore::PendingWrite> > deferred(
+            d_allocator_p);
+        deferred.swap(d_deferred);
+
+        for (size_t i = 0; i < deferred.size(); ++i) {
+            const int rc = propose(deferred[i]);
+            if (rc != 0) {
+                BALL_LOG_ERROR << "Partition [" << d_partitionId
+                               << "] failed to propose a deferred "
+                               << deferred[i]->d_recordType
+                               << " record, rc: " << rc;
+            }
+        }
+    }
+
+    // Resolve buffered writes once the rollover outcome is known.  Buffered
+    // writes exist only during/after a rollover window, so during normal
+    // writes the buffer is empty and neither branch fires.
+    if (hadRollover) {
+        if (isLeader()) {
+            BSLS_ASSERT_SAFE(d_isRolloverPending);
+
+            // The 'e_ROLLOVER' just committed and rolled over in the apply
+            // loop.  Clear the in-flight flag before the drain, not after:
+            // 'drainPendingWrites' runs a nested 'dispatchOutput', which must
+            // not see a rollover still in flight.  The drain loop itself does
+            // not read the flag -- it calls 'setPendingWrite' and
+            // 'RaftNode::propose' directly rather than going through
+            // 'PartitionRaft::propose'.
+            d_isRolloverPending = false;
+
+            drainPendingWrites();
+        }
+
+        // After the drain, so the DELETION records authorizing them land in
+        // the new file set first -- the order replicas apply them in.
+        d_raftLog_mp->flushDeferredRemovals();
+    }
+
+    // A committed whole-queue purge freed journal space; reclaim it now.
+    // 'onPurgeComplete' proposes an 'e_ROLLOVER'.
+    if (d_fileStore_sp->takePurgeCompleted()) {
+        onPurgeComplete();
+    }
+
+    // The gather stopped at its cap; nothing else brings us back, since
+    // 'commitTo' only runs when the commit index advances.  Re-post rather
+    // than loop, so the dispatcher gets a turn between batches.
+    if (output->d_hasMoreToApply) {
+        execute(
+            bdlf::BindUtil::bind(&PartitionRaft::applyCommittedBatchDispatched,
+                                 this));
+    }
+
+    // Re-drive delivery once for the whole batch applied above.  Each
+    // committed message noted its queue rather than notifying it, so a queue
+    // that took several entries is walked once, and one deleted later in the
+    // same batch is not walked at all.
+    d_fileStore_sp->notifyQueuesOnReplicatedBatch();
 }
 
 void PartitionRaft::sendAppendEntries(const RaftMessage& msg)
@@ -2054,6 +2108,15 @@ int PartitionRaft::writeDeletionRecord(
     bsl::shared_ptr<mqbs::FileStore::PendingWrite> pw =
         d_pendingWritePool.getObject();
     pw->initDeletion(guid, queueKey, deletionFlag, timestamp);
+
+    if (d_isDispatchingOutput) {
+        // A purge applying at commit writes a DELETION for every message
+        // whose refCount it drops to zero, and 'dispatchOutput' is still
+        // walking its committed entries.  'postDispatch' proposes these.  The
+        // caller needs no handle back, which is what makes deferring safe.
+        d_deferred.push_back(pw);
+        return 0;  // RETURN
+    }
 
     return propose(pw);
 }

@@ -402,6 +402,18 @@ void Queue::convertToLocal()
     // NOTHING
 }
 
+bool Queue::isLocal() const
+{
+    return true;
+}
+
+void Queue::convertToRemote(BSLA_MAYBE_UNUSED int deduplicationTimeoutMs,
+                            BSLA_MAYBE_UNUSED int ackWindowSize,
+                            BSLA_MAYBE_UNUSED StateSpPool* statePool)
+{
+    // NOTHING
+}
+
 // MANIPULATORS
 //   (specific to mqbmock::Queue)
 Queue& Queue::_setDispatcher(mqbi::Dispatcher* value)

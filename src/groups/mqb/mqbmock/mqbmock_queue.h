@@ -352,6 +352,12 @@ class Queue : public mqbi::Queue {
 
     void convertToLocal() BSLS_KEYWORD_OVERRIDE;
 
+    bool isLocal() const BSLS_KEYWORD_OVERRIDE;
+
+    void convertToRemote(int          deduplicationTimeoutMs,
+                         int          ackWindowSize,
+                         StateSpPool* statePool) BSLS_KEYWORD_OVERRIDE;
+
     // MANIPULATORS
     //   (specific to mqbmock::Queue)
     Queue& _setDispatcher(mqbi::Dispatcher* value);

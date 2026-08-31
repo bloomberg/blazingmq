@@ -187,10 +187,18 @@ class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
                       RemoteQueue::StateSpPool* statePool);
 
     void convertToLocal() BSLS_KEYWORD_OVERRIDE;
-    void convertToRemote();
+    /// Replace this queue's local flavor with a remote one, keeping the
+    /// handles, the storage and the queue itself.  The engine is rebuilt from
+    /// the surviving handles and every subStream left buffering, so the
+    /// caller can reopen upstream against the new primary.  The specified
+    /// `deduplicationTimeoutMs`, `ackWindowSize` and `statePool` are those
+    /// `createRemote` takes.
+    void convertToRemote(int          deduplicationTimeoutMs,
+                         int          ackWindowSize,
+                         StateSpPool* statePool) BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
-    bool isLocal() const;
+    bool isLocal() const BSLS_KEYWORD_OVERRIDE;
     bool isRemote() const;
 
     // MANIPULATORS

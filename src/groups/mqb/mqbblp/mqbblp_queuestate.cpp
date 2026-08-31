@@ -101,6 +101,26 @@ QueueState::~QueueState()
         .onEvent<mqbstat::BrokerStats::EventType::e_QUEUE_DESTROYED>();
 }
 
+void QueueState::abandonAll()
+{
+    d_subStreams.clear();
+}
+
+void QueueState::onConversionToRemote()
+{
+    // executed by the *QUEUE DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(queue()->inDispatcherThread());
+
+    for (SubQueuesHandleParameters::const_iterator cit =
+             d_subQueuesHandleParameters.cbegin();
+         cit != d_subQueuesHandleParameters.cend();
+         ++cit) {
+        d_domain_p->cluster()->onConversionToRemote(queue(), cit->second);
+    }
+}
+
 void QueueState::add(const bmqp_ctrlmsg::QueueHandleParameters& params)
 {
     // cumulative across all handles in all subStreams

@@ -3961,14 +3961,13 @@ int FileStore::transferLeadership(const bsl::string& targetHostName)
 
     enum { rc_SUCCESS = 0, rc_NOT_PRIMARY = -1, rc_NOT_SUPPORTED = -2 };
 
-    if (!d_isPrimary || !d_primaryNode_p) {
+    if (!isLeader()) {
         BALL_LOG_ERROR << partitionDesc()
                        << "Transfer leadership rejected: node is not primary "
                        << "for this partition.";
         return rc_NOT_PRIMARY;  // RETURN
     }
 
-    // Self is the primary, so 'd_primaryNode_p' names this node.
     if (d_primaryNode_p->hostName() != targetHostName) {
         BALL_LOG_ERROR << partitionDesc()
                        << "Transfer leadership rejected: legacy cannot move "
@@ -5125,7 +5124,8 @@ int FileStore::writeMessageRecord(const bmqp::StorageHeader& header,
     rstorage->processMessageRecord(messageGuid,
                                    record.d_appDataUnpaddedLen,
                                    refCount,
-                                   handle);
+                                   handle,
+                                   false);
 
     activeFileSet->d_journal.d_outstandingBytes +=
         FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
@@ -5459,7 +5459,11 @@ int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
         DataStoreRecordHandle handle;
         insertDataStoreRecord(&handle, key, record);
 
-        rstorage->processConfirmRecord(*guid, *appKey, confirmReason, handle);
+        rstorage->processConfirmRecord(*guid,
+                                       *appKey,
+                                       confirmReason,
+                                       handle,
+                                       false);
     }
     else if (RecordType::e_DELETION == recordType) {
         // Keep track of record's offset.
@@ -6070,6 +6074,7 @@ FileStore::FileStore(
 , d_records(10000, d_allocators.get("OutstandingRecords"))
 , d_unreceipted(d_allocators.get("UnreceiptedRecords"))
 , d_replicationNotifications(allocator)
+, d_purgeCompleted(false)
 , d_replicationFactor(replicationFactor)
 , d_nodes(allocator)
 , d_lastRecoveredStrongConsistency()
@@ -7570,6 +7575,31 @@ void FileStore::dropPendingRecord(const DataStoreRecordHandle& handle)
     d_records.erase(recordIt);
 }
 
+void FileStore::undoPropose(const PendingWrite& pw)
+{
+    // Nothing was applied to the storage at propose, so all there is to give
+    // back is what propose set aside: a MESSAGE's reserved capacity, a
+    // CONFIRM's place in the in-flight count.
+    if (pw.d_recordType != RecordType::e_MESSAGE &&
+        pw.d_recordType != RecordType::e_CONFIRM) {
+        return;  // RETURN
+    }
+
+    StorageMapIter sit = d_storages.find(pw.d_queueKey);
+    if (sit == d_storages.end()) {
+        return;  // RETURN
+    }
+
+    if (pw.d_recordType == RecordType::e_MESSAGE) {
+        sit->second->undoCapacity(pw.d_attributes.appDataLen());
+    }
+    else if (pw.d_confirmReason != ConfirmReason::e_AUTO_CONFIRMED) {
+        // An auto confirm is not counted: 'put' writes it without going
+        // through 'confirm'.
+        sit->second->undoConfirm(pw.d_guid, pw.d_appKey);
+    }
+}
+
 void FileStore::bindOrUpdateRecord(PendingWrite*             pw,
                                    const DataStoreRecordKey& key,
                                    const DataStoreRecord&    record)
@@ -8297,6 +8327,13 @@ void FileStore::applyCommittedQueueOp(const DataStoreRecordHandle& handle)
         if (qOpRec->appKey().isNull() ||
             rstorage->hasVirtualStorage(qOpRec->appKey())) {
             rstorage->purge(qOpRec->appKey());
+
+            if (qOpRec->appKey().isNull()) {
+                // 'onPurgeComplete' proposes 'e_ROLLOVER' and so cannot run
+                // from inside the apply loop; 'PartitionRaft::dispatchOutput'
+                // drains this once the loop unwinds.
+                d_purgeCompleted = true;
+            }
         }
     }
     rstorage->addQueueOpRecordHandle(handle);
@@ -8330,7 +8367,8 @@ void FileStore::onRecordCommittedReplica(const bdlbb::Blob&           data,
             sit->second->processMessageRecord(msgRec->messageGUID(),
                                               record.d_appDataUnpaddedLen,
                                               msgRec->refCount(),
-                                              handle);
+                                              handle,
+                                              false);
 
             record.d_hasReceipt = true;
 
@@ -8373,7 +8411,8 @@ void FileStore::onRecordCommittedReplica(const bdlbb::Blob&           data,
             sit->second->processConfirmRecord(confRec->messageGUID(),
                                               confRec->appKey(),
                                               confRec->reason(),
-                                              handle);
+                                              handle,
+                                              false);
         }
         else {
             // Superseded recovered CONFIRM (see MESSAGE note); no-op.
@@ -8513,19 +8552,46 @@ void FileStore::onRecordCommittedPrimary(PendingWrite&      pw,
                                          bsls::Types::Int64 commitTimepoint)
 {
     if (pw.d_recordType == RecordType::e_QUEUE_OP) {
-        // Whole-queue teardown applies on commit, so that a deletion this
-        // node proposed and one it recovered or received go through the same
-        // writer -- 'unregisterQueueDispatched' only proposes.  Everything
-        // else about a queue (creation, app addition, app deletion, purge) is
-        // still applied inline by the write path, so re-applying it here
-        // would be a second removal.
+        // A QUEUE_OP applies on commit, so that one this node proposed and
+        // one it recovered or received go through the same writer: the write
+        // path only proposes.  An operation the log later truncates then
+        // leaves no trace in the storage, which is what lets truncation
+        // reason about messages alone.
+        //
+        // A per-app purge emits a DELETION per message whose refCount its
+        // walk drops to zero.  Those cannot propose from inside the apply
+        // loop, so 'PartitionRaft::writeDeletionRecord' holds them and
+        // 'postDispatch' proposes them once it unwinds.
         if (pw.d_handle.isValid()) {
-            QueueOpRecord rec;
-            loadQueueOpRecordRaw(&rec, pw.d_handle);
-            if (QueueOpType::e_DELETION == rec.type() &&
-                rec.appKey().isNull()) {
-                applyCommittedQueueOp(pw.d_handle);
-            }
+            applyCommittedQueueOp(pw.d_handle);
+        }
+        return;  // RETURN
+    }
+
+    if (pw.d_recordType == RecordType::e_CONFIRM ||
+        pw.d_recordType == RecordType::e_DELETION) {
+        // Like a MESSAGE, these apply on commit, so the record this node
+        // proposed and one it received go through the same writer.  'confirm'
+        // and 'remove' only wrote the record; what a truncation would
+        // invalidate -- the handle, the refCount, the removal itself -- is
+        // done here.
+        StorageMapIter sit = d_storages.find(pw.d_queueKey);
+        if (sit == d_storages.end()) {
+            BALL_LOG_INFO << partitionDesc()
+                          << "Unknown queue key in committed record "
+                          << pw.d_queueKey << ", GUID [" << pw.d_guid << "].";
+            return;  // RETURN
+        }
+
+        if (pw.d_recordType == RecordType::e_DELETION) {
+            sit->second->processDeletionRecord(pw.d_guid);
+        }
+        else if (pw.d_handle.isValid()) {
+            sit->second->processConfirmRecord(pw.d_guid,
+                                              pw.d_appKey,
+                                              pw.d_confirmReason,
+                                              pw.d_handle,
+                                              true);
         }
         return;  // RETURN
     }
@@ -8543,13 +8609,35 @@ void FileStore::onRecordCommittedPrimary(PendingWrite&      pw,
         return;  // RETURN
     }
 
-    if (pw.d_attributes.hasReceipt() && pw.d_handle.hasReceipt()) {
-        // already ACKed
-        return;
+    StorageMapIter sit = d_storages.find(pw.d_queueKey);
+    if (sit == d_storages.end()) {
+        BALL_LOG_INFO << "Unknown queue key in committed message "
+                      << pw.d_queueKey;
+        return;  // RETURN
     }
 
-    StorageMapIter sit = d_storages.find(pw.d_queueKey);
-    if (sit != d_storages.end()) {
+    // The message enters the storage here, not at propose -- the same writer
+    // and the same moment a replica uses.  'put' reserved its capacity;
+    // 'isOwn' tells 'processMessageRecord' to convert that reservation into a
+    // charge rather than take a second one.
+    sit->second->processMessageRecord(pw.d_guid,
+                                      pw.d_attributes.appDataLen(),
+                                      pw.d_attributes.refCount(),
+                                      pw.d_handle,
+                                      true);
+
+    // 'onReplicatedBatch' re-drives delivery, walking every app of the queue,
+    // so it runs once for the whole commit batch rather than per entry:
+    // 'PartitionRaft::dispatchOutput' drains this at the end of its apply
+    // loop.
+    d_replicationNotifications.insert(pw.d_queueKey);
+
+    if (pw.d_attributes.hasReceipt() && pw.d_handle.hasReceipt()) {
+        // Eventual consistency: the producer was ACKed at propose.
+        return;  // RETURN
+    }
+
+    {
         mqbi::Queue* queue = sit->second->queue();
         BSLS_ASSERT_SAFE(queue);
 
@@ -8566,16 +8654,6 @@ void FileStore::onRecordCommittedPrimary(PendingWrite&      pw,
         if (!pw.d_attributes.hasReceipt()) {
             queue->onReceipt(pw.d_guid, pw.d_attributes.queueHandle());
         }
-
-        // 'onReplicatedBatch' re-drives delivery, walking every app of the
-        // queue, so it runs once for the whole commit batch rather than per
-        // entry: 'PartitionRaft::dispatchOutput' drains this at the end of
-        // its apply loop.
-        d_replicationNotifications.insert(pw.d_queueKey);
-    }
-    else {
-        BALL_LOG_INFO << "Unknown queue key in committed message "
-                      << pw.d_queueKey;
     }
 }
 
@@ -9380,6 +9458,34 @@ void FileStore::updatePartitionStats()
 void FileStore::onRolloverComplete(bsls::Types::Int64 elapsedNs)
 {
     d_partitionStats_sp->setRoloverTime(elapsedNs);
+}
+
+bool FileStore::takePurgeCompleted()
+{
+    const bool result = d_purgeCompleted;
+    d_purgeCompleted  = false;
+    return result;
+}
+
+void FileStore::convertQueuesToRemote(int ackWindowSize)
+{
+    // Self is no longer the primary for this partition.  Its queues are still
+    // local ones, which have no upstream to reach and would fail every write
+    // proposed from here on; converting them now, rather than when the new
+    // primary is known, is what lets them buffer through the election.
+    for (StoragesMap::iterator it = d_storages.begin(); it != d_storages.end();
+         ++it) {
+        mqbi::Queue* queue = it->second->queue();
+
+        if (queue == 0) {
+            continue;  // CONTINUE
+        }
+
+        queue->convertToRemote(
+            queue->domain()->config()->deduplicationTimeMs(),
+            ackWindowSize,
+            d_statePool_p);
+    }
 }
 
 void FileStore::notifyQueuesOnReplicatedBatch()

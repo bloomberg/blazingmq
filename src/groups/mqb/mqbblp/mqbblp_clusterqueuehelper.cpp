@@ -1437,6 +1437,24 @@ void ClusterQueueHelper::processOpenQueueRequest(
         if (d_clusterState_p->isSelfPrimary(pid)) {
             // At primary.
 
+            // Allocate the upstream subQueueId here too, though there is no
+            // upstream to advertise it to.  It is this node's own id for the
+            // App and it outlives the role: 'convertToLocal' keeps the ones a
+            // replica allocated, and a queue this node has been primary for
+            // since creation needs them just the same if primaryship moves
+            // away.  Without this, such a queue is the one shape that has
+            // none, and its Apps end up numbered by 'QueueState::adopt's
+            // fallback instead.
+            assignUpstreamSubqueueId(context);
+
+            // As for a replica: the id is this node's own and outlives the
+            // role, so a queue that has been local since it was created has
+            // one ready the moment primaryship moves away.
+            if (context->queueContext()->d_liveQInfo.d_id ==
+                bmqp::QueueId::k_UNASSIGNED_QUEUE_ID) {
+                context->queueContext()->d_liveQInfo.d_id = getNextQueueId();
+            }
+
             // Load the routing configuration and inject the downstream
             // handle parameters into the "response"
             BSLS_ASSERT_SAFE(context->d_domain_p);
@@ -1451,7 +1469,7 @@ void ClusterQueueHelper::processOpenQueueRequest(
             openQueueResp.originalRequest().handleParameters() =
                 context->d_handleParameters;
             openQueueResp.originalRequest().handleParameters().qId() =
-                bmqp::QueueId::k_PRIMARY_QUEUE_ID;
+                context->queueContext()->d_liveQInfo.d_id;
 
             bool rc = createQueue(context,
                                   openQueueResp,
@@ -2415,6 +2433,8 @@ bool ClusterQueueHelper::createQueue(
     bdlma::LocalSequentialAllocator<1024> la(d_allocator_p);
     bmqu::MemOutStream                    errorDescription(&la);
 
+    bool isReady = true;
+
     if (isPrimary) {
         // Make sure the Cluster state and the domain config agrees.
         // If there are missing/extra Apps, repair the Cluster state with a
@@ -2440,110 +2460,111 @@ bool ClusterQueueHelper::createQueue(
 
             return false;  // RETURN
         }
+
+        // Registers if anything is missing, and self-dedups: a concurrent
+        // open, or one replayed by 'onQueueStorageReady', will not propose a
+        // second QueueOp for a registration that has not committed yet.
+        isReady = d_storageManager_p->registerQueue(
+            queueContext->uri(),
+            queueContext->key(),
+            pid,
+            queueContext->d_stateQInfo_sp->appInfos(),
+            domain);
+    }
+    else if (!d_cluster_p->isRemote()) {
+        isReady = d_storageManager_p->hasStorage(queueContext->uri(), pid);
+    }
+
+    if (!isReady) {
+        QueueLiveState::StoragePendingContext pendingContext;
+        pendingContext.d_context           = context;
+        pendingContext.d_openQueueResponse = openQueueResponse;
+        pendingContext.d_upstreamNode      = upstreamNode;
+        qinfo.d_storagePendingContexts.push_back(pendingContext);
+
+        const bsl::string appId(
+            bmqp::QueueUtil::extractAppId(context->d_handleParameters),
+            d_allocator_p);
+
+        BALL_LOG_INFO << d_cluster_p->description()
+                      << ": parking createQueue for '" << queueContext->uri()
+                      << "' (app '" << appId
+                      << "') until local queue storage and its Apps are "
+                      << "ready";
+
+        return false;  // RETURN -- parked; no response sent (yet)
     }
 
     const bmqp_ctrlmsg::QueueHandleParameters& parameters =
         openQueueResponse.originalRequest().handleParameters();
     const unsigned int upstreamQueueId = parameters.qId();
 
-    if (result == mqbi::ClusterErrorCode::e_OK && !isPrimary &&
-        !d_cluster_p->isRemote()) {
-        // Replica: unlike the primary (whose 'registerQueue' call further
-        // down synchronously registers storage on the partition thread,
-        // strictly before 'configure()' runs there too), this node's local
-        // storage/app for the queue may not exist yet -- in Raft mode,
-        // storage is only created once the underlying log entry commits,
-        // which can lag this openQueue response arriving.  Park until
-        // 'storageMonitor' reports it ready instead of failing with
-        // "Unknown queue".
-        const bsl::string appId(
-            bmqp::QueueUtil::extractAppId(context->d_handleParameters),
-            d_allocator_p);
-        // Gate only on the *queue* storage ('hasStorage' is a queue-level
-        // check), not per-app storage.  The replica needs the queue storage to
-        // exist -- it can lag this openQueue response until the raft creation
-        // entry commits, so park until it is ready; the readiness signal
-        // ('onQueueStorageReady' -> 'onStorageReady') is itself per-queue.  It
-        // must NOT gate on the app: an unauthorized app (a removed fanout app,
-        // or one a consumer opens that was never authorized) is legitimately
-        // storage-less and would never satisfy a per-app check -- it would
-        // re-park forever on every queue-ready signal.  Once the queue storage
-        // exists, let the app slide: 'RelayQueueEngine' authorizes apps lazily
-        // and unauthorized apps just relay nothing, mirroring how the primary
-        // handles them.
-        if (!d_storageManager_p->hasStorage(queueContext->uri(), pid)) {
-            BALL_LOG_INFO << d_cluster_p->description()
-                          << ": parking createQueue for '"
-                          << queueContext->uri() << "' (app '" << appId
-                          << "') until local queue storage is ready";
+    BMQ_LOGTHROTTLE_INFO << d_cluster_p->description()
+                         << ": createQueue called [upstreamQueueId: "
+                         << upstreamQueueId
+                         << ", openQueueResponse: " << openQueueResponse
+                         << ", context.d_handleParameters: "
+                         << context->d_handleParameters << "]";
 
-            QueueLiveState::StoragePendingContext pendingContext;
-            pendingContext.d_context           = context;
-            pendingContext.d_openQueueResponse = openQueueResponse;
-            pendingContext.d_upstreamNode      = upstreamNode;
-            qinfo.d_storagePendingContexts.push_back(pendingContext);
-            return false;  // RETURN -- parked; no response sent (yet)
+    mqbi::OpenQueueConfirmationCookieSp confirmationCookie(
+        new (*d_allocator_p) mqbi::OpenQueueContext(),
+        bdlf::BindUtil::bindS(
+            d_allocator_p,
+            &ClusterQueueHelper::onOpenQueueConfirmationCookieReleased,
+            this,
+            bdlf::PlaceHolders::_1,  // queue handle*
+            context->d_handleParameters),
+        d_allocator_p);
+
+    bsl::shared_ptr<mqbi::Queue> queue = createQueueFactory(errorDescription,
+                                                            *context,
+                                                            openQueueResponse);
+
+    if (queue) {
+        ++qinfo.d_numHandleCreationsInProgress;
+
+        if (bmqt::QueueFlagsUtil::isWriter(parameters.flags()) &&
+            !bmqt::QueueFlagsUtil::isReader(parameters.flags())) {
+            // Writer's configure request gets optimized out so notify the
+            // queue now.
+
+            notifyQueue(queueContext,
+                        bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID,
+                        currentGenCount(pid),
+                        true,   // isOpen
+                        true);  // isWriterOnly
         }
+
+        // 'assignUpstreamSubqueueId' is the authority, and every path here has
+        // been through it: the three branches of 'processOpenQueueRequest',
+        // the 'd_pending' drain which re-enters it, and the
+        // 'd_storagePendingContexts' replay which reuses the same context.
+        // The id also reaches 'parameters' for a replica, since
+        // 'sendOpenQueueRequest' writes it into the request the response
+        // echoes back, but not for a primary, which sends no request.
+        BSLS_ASSERT_SAFE(context->d_upstreamSubQueueId !=
+                         bmqp::QueueId::k_UNASSIGNED_SUBQUEUE_ID);
+
+        const unsigned int upstreamSubQueueId = context->d_upstreamSubQueueId;
+
+        queue->getHandle(
+            confirmationCookie,
+            context->d_clientContext,
+            context->d_handleParameters,
+            upstreamSubQueueId,
+            bdlf::BindUtil::bindS(d_allocator_p,
+                                  &ClusterQueueHelper::onGetQueueHandle,
+                                  this,
+                                  bdlf::PlaceHolders::_1,  // status
+                                  bdlf::PlaceHolders::_2,  // handle
+                                  context,
+                                  openQueueResponse,
+                                  confirmationCookie));
+
+        return true;  // RETURN
     }
-
-    if (result == mqbi::ClusterErrorCode::e_OK) {
-        BMQ_LOGTHROTTLE_INFO
-            << d_cluster_p->description()
-            << ": createQueue called [upstreamQueueId: " << upstreamQueueId
-            << ", openQueueResponse: " << openQueueResponse
-            << ", context.d_handleParameters: " << context->d_handleParameters
-            << "]";
-
-        mqbi::OpenQueueConfirmationCookieSp confirmationCookie(
-            new (*d_allocator_p) mqbi::OpenQueueContext(),
-            bdlf::BindUtil::bindS(
-                d_allocator_p,
-                &ClusterQueueHelper::onOpenQueueConfirmationCookieReleased,
-                this,
-                bdlf::PlaceHolders::_1,  // queue handle*
-                context->d_handleParameters),
-            d_allocator_p);
-
-        bsl::shared_ptr<mqbi::Queue> queue =
-            createQueueFactory(errorDescription, *context, openQueueResponse);
-
-        if (queue) {
-            ++qinfo.d_numHandleCreationsInProgress;
-
-            if (bmqt::QueueFlagsUtil::isWriter(parameters.flags()) &&
-                !bmqt::QueueFlagsUtil::isReader(parameters.flags())) {
-                // Writer's configure request gets optimized out so notify the
-                // queue now.
-
-                notifyQueue(queueContext,
-                            bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID,
-                            currentGenCount(pid),
-                            true,   // isOpen
-                            true);  // isWriterOnly
-            }
-
-            const unsigned int upstreamSubQueueId =
-                bmqp::QueueUtil::extractSubQueueId(parameters);
-
-            queue->getHandle(
-                confirmationCookie,
-                context->d_clientContext,
-                context->d_handleParameters,
-                upstreamSubQueueId,
-                bdlf::BindUtil::bindS(d_allocator_p,
-                                      &ClusterQueueHelper::onGetQueueHandle,
-                                      this,
-                                      bdlf::PlaceHolders::_1,  // status
-                                      bdlf::PlaceHolders::_2,  // handle
-                                      context,
-                                      openQueueResponse,
-                                      confirmationCookie));
-
-            return true;  // RETURN
-        }
-        // Fall through to the failure handling.
-        result = mqbi::ClusterErrorCode::e_UNKNOWN;
-    }
+    // Fall through to the failure handling.
+    result = mqbi::ClusterErrorCode::e_UNKNOWN;
 
     // Failed to update Apps or to create/register the queue.
     bmqp_ctrlmsg::Status status(d_allocator_p);
@@ -2568,7 +2589,6 @@ bool ClusterQueueHelper::createQueue(
     // rollback i.e., send a close-queue request upstream.
 
     BSLS_ASSERT_SAFE(upstreamNode);
-    BSLS_ASSERT_SAFE(bmqp::QueueId::k_PRIMARY_QUEUE_ID != upstreamQueueId);
 
     // Update _upstream_ view on that particular subQueueId
     StreamsMap::iterator subStreamIt = qinfo.d_subQueueIds.findBySubId(
@@ -2621,8 +2641,13 @@ bsl::shared_ptr<mqbi::Queue> ClusterQueueHelper::createQueueFactory(
     const bool isPrimary = !d_cluster_p->isRemote() &&
                            d_clusterState_p->isSelfPrimary(pid);
 
-    if (isPrimary) {
-        queueContext->d_liveQInfo.d_id = bmqp::QueueId::k_PRIMARY_QUEUE_ID;
+    // Every queue gets an id of this node's own, primary or not.  A local one
+    // has no upstream to use it against, but it outlives the role: the id has
+    // to be there, already allocated, the moment primaryship moves away and
+    // the queue converts to remote on the partition's thread.
+    if (queueContext->d_liveQInfo.d_id ==
+        bmqp::QueueId::k_UNASSIGNED_QUEUE_ID) {
+        queueContext->d_liveQInfo.d_id = getNextQueueId();
     }
 
     // Create the queue
@@ -2652,30 +2677,6 @@ bsl::shared_ptr<mqbi::Queue> ClusterQueueHelper::createQueueFactory(
         BSLS_ASSERT_SAFE(d_clusterState_p->isSelfActivePrimary(pid));
 
         queueSp->createLocal();
-
-        // This is the *only* place where queue is registered with StorageMgr.
-        // Only the primary needs to register the queue with StorageMgr, which
-        // will write as well as replicate a QueueCreationRecord.  If the queue
-        // is already registered with the StorageMgr, this will be a no-op.
-
-        // Note that queue is *not* registered with the StorageMgr upon
-        // receiving a QueueAssignmentAdvisory from the leader.  What this
-        // means is that if a leader issues a QueueAssignmentAdvisory for a
-        // queue but the queue is never opened, it will not be registered with
-        // the StorageMgr.  This is ok.
-
-        // Use keys in the CSL instead of generating new ones to keep CSL and
-        // non-CSL consistent.
-
-        d_storageManager_p->registerQueue(
-            queueContext->uri(),
-            queueContext->key(),
-            queueContext->partitionId(),
-            queueContext->d_stateQInfo_sp->appInfos(),
-            context.d_domain_p);
-
-        // Not checking the result.  If not successful, storage is not in the
-        // 'storageMap'.  Subsequent queue configure will then fail.
 
         // Queue must have been registered with storage manager before
         // registering it with the domain, otherwise Queue.configure() will
@@ -2732,11 +2733,7 @@ bsl::shared_ptr<mqbi::Queue> ClusterQueueHelper::createQueueFactory(
 
     queueContext->d_liveQInfo.d_queue_sp = queueSp;
 
-    if (!isPrimary) {
-        d_queuesById[queueContext->d_liveQInfo.d_id] = queueContext;
-    }
-    // else, no need to insert in d_queuesById since those queues will never
-    // be looked up by id (and all have k_PRIMARY_QUEUE_ID id).
+    d_queuesById[queueContext->d_liveQInfo.d_id] = queueContext;
 
     if (!d_cluster_p->isRemote()) {
         d_clusterState_p->updatePartitionNumActiveQueues(
@@ -4246,9 +4243,17 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
     // live 'onDomainReconfigured' covered (an App changed while stopped, or
     // while there was no active leader).  Gated on 'allPartitions' so it runs
     // on leader/availability transitions, not on per-partition primary
-    // advisories.
+    // advisories -- and once per term, since this function is also re-entered
+    // whenever a *peer* becomes available, which changes neither side of the
+    // comparison.  See 'd_reconciledElectorTerm'.
     if (allPartitions && d_clusterData_p->electorInfo().isSelfActiveLeader()) {
-        reconcileLeaderQueuesAppIds();
+        const bsls::Types::Uint64 electorTerm =
+            d_clusterData_p->electorInfo().electorTerm();
+
+        if (d_reconciledElectorTerm != electorTerm) {
+            d_reconciledElectorTerm = electorTerm;
+            reconcileLeaderQueuesAppIds();
+        }
     }
 
     // If a specific partitionId is specified, check if partition is assigned
@@ -4430,6 +4435,10 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
                 }
             }
             else {
+                // A queue self was the primary for is already remote by now:
+                // 'PartitionRaft' converted it when it stepped down, and its
+                // id was allocated when it was opened, so there is nothing to
+                // fix up before reopening it upstream.
                 if (queueContext->d_liveQInfo.d_numQueueHandles != 0) {
                     const bmqt::GenericResult::Enum rc = restoreStateHelper(
                         queueContext.get(),
@@ -4686,11 +4695,7 @@ void ClusterQueueHelper::removeQueueRaw(const QueueContextMapIter& it)
         deleteQueue(queueContextSp.get());
     }
 
-    // If we are primary, then no need to delete from 'd_queuesById' since it
-    // never was inserted into.
-    if (!d_clusterState_p->isSelfPrimary(queueContextSp->partitionId())) {
-        d_queuesById.erase(queueContextSp->d_liveQInfo.d_id);
-    }
+    d_queuesById.erase(queueContextSp->d_liveQInfo.d_id);
     d_queues.erase(it);
 }
 
@@ -5134,6 +5139,7 @@ ClusterQueueHelper::ClusterQueueHelper(
     bslma::Allocator*          allocator)
 : d_allocator_p(allocator)
 , d_nextQueueId(0)
+, d_reconciledElectorTerm(0)
 , d_clusterData_p(clusterData)
 , d_clusterState_p(clusterState)
 , d_cluster_p(&clusterData->cluster())
@@ -5445,6 +5451,80 @@ void ClusterQueueHelper::closeQueue(
                               upstreamSubQueueId,
                               callback),
         d_cluster_p);
+}
+
+void ClusterQueueHelper::onConversionToRemote(
+    mqbi::Queue*                               queue,
+    const bmqp_ctrlmsg::QueueHandleParameters& handleParameters)
+{
+    // executed by the associated *QUEUE DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(queue->inDispatcherThread());
+
+    d_cluster_p->dispatcher()->execute(
+        bdlf::BindUtil::bindS(
+            d_allocator_p,
+            &ClusterQueueHelper::onConversionToRemoteDispatched,
+            this,
+            queue,
+            handleParameters),
+        d_cluster_p);
+}
+
+void ClusterQueueHelper::onConversionToRemoteDispatched(
+    mqbi::Queue*                               queue,
+    const bmqp_ctrlmsg::QueueHandleParameters& handleParameters)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+
+    const bmqt::Uri     uri(handleParameters.uri());
+    QueueContextMapIter queueContextIt = d_queues.find(uri.canonical());
+
+    if (queueContextIt == d_queues.end()) {
+        BMQ_LOGTHROTTLE_WARN << d_cluster_p->description()
+                             << ": conversion to remote of queue [" << uri
+                             << "] which does not exist in cluster state.";
+        return;  // RETURN
+    }
+
+    QueueLiveState& qinfo = queueContextIt->second->d_liveQInfo;
+
+    if (qinfo.d_queue_sp.get() != queue) {
+        BMQ_LOGTHROTTLE_WARN
+            << d_cluster_p->description()
+            << ": conversion to remote of queue [" << uri << "], queue ptr ["
+            << queue << "] which exists in cluster state, but with a "
+            << "different queue ptr [" << qinfo.d_queue_sp << "].";
+        return;  // RETURN
+    }
+
+    StreamsMap::iterator subStreamIt = qinfo.d_subQueueIds.findByAppIdSafe(
+        bmqp::QueueUtil::extractAppId(handleParameters));
+
+    if (subStreamIt == qinfo.d_subQueueIds.end()) {
+        BMQ_LOGTHROTTLE_ERROR
+            << d_cluster_p->description()
+            << ": conversion to remote of a non-existing stream [" << uri
+            << "], handle parameters: " << handleParameters;
+        return;  // RETURN
+    }
+
+    // Overwrite: as the primary, self had no upstream, so this view is either
+    // zero or, if the queue was remote before, whatever it held then, which
+    // the local opens and closes since have not tracked.  The handles are the
+    // truth.
+    subStreamIt->value().d_parameters = handleParameters;
+
+    BMQ_LOGTHROTTLE_INFO << d_cluster_p->description()
+                         << ": upstream view of stream ["
+                         << subStreamIt->appId() << ", "
+                         << subStreamIt->subId() << "] of queue [" << uri
+                         << "] set to " << handleParameters
+                         << " on conversion to remote.";
 }
 
 void ClusterQueueHelper::onQueueHandleCreated(mqbi::Queue*     queue,
@@ -6015,16 +6095,17 @@ ClusterQueueHelper::processNodeStoppingNotification(
 
             if (!d_cluster_p->isRemote()) {
                 const int pid = queueContextSp->partitionId();
-
-                BSLS_ASSERT_SAFE(ns);
-
-                const bsl::vector<int>& partitions = ns->primaryPartitions();
-                if (partitions.end() ==
-                    bsl::find(partitions.begin(), partitions.end(), pid)) {
-                    continue;  // CONTINUE
-                }
                 const ClusterStatePartitionInfo& pinfo =
                     d_clusterState_p->partition(pid);
+
+                // Ask the cluster state, not
+                // 'ClusterNodeSession::primaryPartitions': Raft never
+                // populates that vector, since its only writer is
+                // 'ClusterUtil::onPartitionPrimaryAssignment', reached from
+                // the ClusterStateManagers that Raft mode does not create.
+                if (pinfo.primaryNode() != clusterNode) {
+                    continue;  // CONTINUE
+                }
 
                 if (bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE !=
                     pinfo.primaryStatus()) {
@@ -6035,7 +6116,6 @@ ClusterQueueHelper::processNodeStoppingNotification(
 
                     continue;  // CONTINUE
                 }
-                BSLS_ASSERT(pinfo.primaryNode() == clusterNode);
             }
             else if (d_clusterData_p->electorInfo().leaderNode() !=
                      clusterNode) {
@@ -6687,6 +6767,10 @@ void ClusterQueueHelper::loadState(
 void ClusterQueueHelper::convertToLocal(const QueueContextSp& queueContext,
                                         mqbi::Domain*         domain)
 {
+    // Unlike 'createQueue', this does not wait for the registration to
+    // complete: 'RootQueueEngine::initializeAppId' creates an App whose
+    // storage has not arrived yet unauthorized and 'registerStorage'
+    // authorizes it when it does.
     d_storageManager_p->registerQueue(
         queueContext->uri(),
         queueContext->key(),
@@ -6694,9 +6778,11 @@ void ClusterQueueHelper::convertToLocal(const QueueContextSp& queueContext,
         queueContext->d_stateQInfo_sp->appInfos(),
         domain);
 
-    // Convert the queue from remote to local instance.
+    // Convert the queue from remote to local instance.  The id and
+    // 'd_subQueueIds' are deliberately kept: both are this node's own and
+    // outlive the role, so the queue can convert back if primaryship moves
+    // away again.
     queueContext->d_liveQInfo.d_queue_sp->convertToLocal();
-    queueContext->d_liveQInfo.d_id = bmqp::QueueId::k_PRIMARY_QUEUE_ID;
 }
 
 void ClusterQueueHelper::match(bsl::vector<bsl::string>*          added,

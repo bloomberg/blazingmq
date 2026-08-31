@@ -246,6 +246,7 @@ void PartitionRaftLog::dropBufferedWrites()
         if (sp->d_handle.isValid()) {
             d_fileStore_p->dropPendingRecord(sp->d_handle);
         }
+        d_fileStore_p->undoPropose(*sp);
         d_pendingWrites.pop_back();
     }
 }
@@ -256,6 +257,8 @@ void PartitionRaftLog::dropAppendedWritesFrom(bsls::Types::Uint64 index)
 
     while (0 < d_appendedCount &&
            d_pendingWrites.back()->d_sequenceNumber >= index) {
+        // The entry is going: whatever its propose set aside is given back.
+        d_fileStore_p->undoPropose(*d_pendingWrites.back());
         d_pendingWrites.pop_back();
         d_appendedCount--;
     }
@@ -273,7 +276,14 @@ void PartitionRaftLog::dropPendingWrites()
                   << " appended write(s) (shutting down).";
 
     // Their records stay: each is a real log entry, and 'd_index' holds a
-    // handle to it.
+    // handle to it.  What their propose set aside does not -- nothing commits
+    // them now, so no apply will ever account for it.
+    for (PendingWrites::const_iterator it = d_pendingWrites.begin();
+         it != d_pendingWrites.end();
+         ++it) {
+        d_fileStore_p->undoPropose(**it);
+    }
+
     d_pendingWrites.clear();
     d_appendedCount = 0;
 }

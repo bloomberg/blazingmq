@@ -418,7 +418,6 @@ void Queue::convertToLocalDispatched()
     // going to have both local and remote queue co-existing).
     bslma::ManagedPtr<RemoteQueue> remoteQueue = d_remoteQueue_mp;
 
-    d_state.setId(bmqp::QueueId::k_PRIMARY_QUEUE_ID);
     createLocal();
     rc = d_localQueue_mp->configure(errorDescription, false);
     if (rc != 0) {
@@ -610,17 +609,87 @@ void Queue::convertToLocal()
         this);
 }
 
-void Queue::convertToRemote()
+void Queue::convertToRemote(int          deduplicationTimeoutMs,
+                            int          ackWindowSize,
+                            StateSpPool* statePool)
 {
     // executed by the *QUEUE* dispatcher thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(inDispatcherThread());
+
+    if (d_remoteQueue_mp) {
+        BSLS_ASSERT_SAFE(!d_localQueue_mp);
+
+        BALL_LOG_INFO << d_state.uri() << ": has already converted to remote "
+                      << "[handlesCount: "
+                      << d_state.handleCatalog().handlesCount()
+                      << ", handle parameters: " << d_state.handleParameters()
+                      << ", stream parameters: "
+                      << d_state.subQueuesParameters() << "]";
+
+        return;  // RETURN
+    }
+
     BSLS_ASSERT_SAFE(d_localQueue_mp);
 
-    BALL_LOG_INFO << d_state.uri() << ": converting to remote";
+    BALL_LOG_INFO << d_state.uri() << ": converting to remote "
+                  << "[handlesCount: "
+                  << d_state.handleCatalog().handlesCount()
+                  << ", handle parameters: " << d_state.handleParameters()
+                  << ", stream parameters: " << d_state.subQueuesParameters()
+                  << "]";
 
-    // TBD: Not yet implemented !
+    int                                   rc;
+    bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
+    bmqu::MemOutStream                    errorDescription(&localAllocator);
+
+    // Move localQueue to a temporary stack based managed pointer, so that
+    // we can bypass all precondition checks (since we are temporarily
+    // going to have both local and remote queue co-existing).
+    bslma::ManagedPtr<LocalQueue> localQueue = d_localQueue_mp;
+
+    // Tear the local queue down first: its engine holds routing over the same
+    // handles the remote one is about to register subscriptions on.
+    localQueue->resetState();
+    localQueue.clear();
+
+    // Drop the Apps the root engine adopted.  'importState' rebuilds them
+    // from the handles, which survive; leaving them would let the next
+    // conversion back to local adopt Apps of an engine two roles ago.
+    d_state.abandonAll();
+
+    createRemote(deduplicationTimeoutMs, ackWindowSize, statePool);
+
+    // Not a reconfigure: this queue has no engine yet.  'configureStorage'
+    // hands back the storage already in place, which is the partition's and
+    // stays the same across the role change.
+    rc = d_remoteQueue_mp->configure(errorDescription, false);
+    if (rc != 0) {
+        BALL_LOG_ERROR
+            << "#QUEUE_CONVERTION_FAILURE " << d_state.uri()
+            << ": failed to configure remoteQueue during conversion [rc: "
+            << rc << ", error: '" << errorDescription.str() << "']";
+        BSLS_ASSERT_SAFE(false &&
+                         "Failed to configure remoteQueue during conversion");
+        return;  // RETURN
+    }
+
+    rc = d_remoteQueue_mp->importState(errorDescription);
+    if (rc != 0) {
+        BALL_LOG_ERROR << "#QUEUE_CONVERTION_FAILURE " << d_state.uri()
+                       << ": failed to import state during conversion [rc: "
+                       << rc << ", error: '" << errorDescription.str() << "']";
+        BSLS_ASSERT_SAFE(false && "Failed to import state during conversion");
+        return;  // RETURN
+    }
+
+    // The cluster's upstream view of these subStreams is empty: as the
+    // primary, this node had no upstream to advertise them to.  Give it what
+    // the handles hold, so the reopen against the new primary asks for it.
+    d_state.onConversionToRemote();
+
+    updateStats();
 }
 
 void Queue::onLostUpstream()

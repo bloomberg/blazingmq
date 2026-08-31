@@ -159,10 +159,14 @@ class StorageProvider {
 
     /// Register a queue with the specified `uri`, `queueKey` and
     /// `partitionId`, having the specified `appIdKeyPairs`, and belonging
-    /// to the specified `domain`.
+    /// to the specified `domain`.  Return true if the local storage already
+    /// carries every App in `appIdKeyPairs`, meaning nothing was registered;
+    /// false if a registration is now outstanding -- issued by this call, or
+    /// by an earlier one that has not taken effect yet.  On the Raft write
+    /// path a registration only takes effect when its QueueOp commits.
     ///
     /// THREAD: Executed by the Client's dispatcher thread.
-    virtual void registerQueue(const bmqt::Uri&        uri,
+    virtual bool registerQueue(const bmqt::Uri&        uri,
                                const mqbu::StorageKey& queueKey,
                                int                     partitionId,
                                const AppInfos&         appIdKeyPairs,

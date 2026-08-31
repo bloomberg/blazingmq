@@ -1541,7 +1541,7 @@ void QueueEngineUtil_AppState::loadInternals(mqbcmd::AppState* out) const
 void QueueEngineUtil_AppState::reportStats(
     const mqbi::StorageIterator* message) const
 {
-    if (bmqp::QueueId::k_PRIMARY_QUEUE_ID == d_queue_p->id()) {
+    if (d_queue_p->isLocal()) {
         const bsls::Types::Int64 timeDelta = getMessageQueueTime(
             message->attributes());
 

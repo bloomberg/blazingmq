@@ -258,8 +258,22 @@ void RaftNode::resetElectionTimer()
     d_electionTicks   = 0;
 }
 
-void RaftNode::becomeFollower(bsls::Types::Uint64 term, int leaderId)
+void RaftNode::becomeFollower(RaftNodeOutput*     output,
+                              bsls::Types::Uint64 term,
+                              int                 leaderId)
 {
+    BSLS_ASSERT_SAFE(output);
+
+    // Reported here rather than by each caller: one of the three used to
+    // forget, and the term is the partition's leaseId, so a missed report
+    // leaves the rest of the broker on a stale one.  This is also the only
+    // exit from leader, so it is where losing leadership is known.
+    output->d_stateChanged = true;
+
+    if (d_state == RaftState::e_LEADER) {
+        output->d_lostLeadership = true;
+    }
+
     if (term > d_currentTerm) {
         d_votedFor = k_INVALID_NODE_ID;
     }
@@ -391,7 +405,7 @@ void RaftNode::handleRequestVote(RaftNodeOutput*    output,
     }
     else {
         if (msg.d_term > d_currentTerm) {
-            becomeFollower(msg.d_term, k_INVALID_NODE_ID);
+            becomeFollower(output, msg.d_term, k_INVALID_NODE_ID);
         }
 
         if (msg.d_term < d_currentTerm) {
@@ -504,8 +518,7 @@ void RaftNode::handleAppendEntries(RaftNodeOutput*    output,
     }
 
     if (msg.d_term > d_currentTerm || d_state != RaftState::e_FOLLOWER) {
-        becomeFollower(msg.d_term, msg.d_sourceNodeId);
-        output->d_stateChanged = true;
+        becomeFollower(output, msg.d_term, msg.d_sourceNodeId);
     }
 
     if (d_leaderId != msg.d_sourceNodeId) {
@@ -1264,8 +1277,7 @@ void RaftNode::step(RaftNodeOutput* output, const RaftMessage& message)
             // Will be handled in handleAppendEntries
         }
         else {
-            becomeFollower(message.d_term, k_INVALID_NODE_ID);
-            output->d_stateChanged = true;
+            becomeFollower(output, message.d_term, k_INVALID_NODE_ID);
         }
     }
 

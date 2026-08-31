@@ -407,6 +407,12 @@ struct RaftNodeOutput {
     bool                     d_leaderChanged;
     bool                     d_hasInstallSnapshot;
 
+    /// `true` when this node was the leader and is not any more.  Not the
+    /// same as `d_stateChanged` with a non-leader state: a follower that has
+    /// just become a candidate satisfies that too, and has no leadership to
+    /// give up.
+    bool d_lostLeadership;
+
     /// `true` when the apply gather stopped at its cap with entries still
     /// committed-but-unapplied.  The caller must come back for the rest --
     /// nothing else will, since `commitTo` only runs when the commit index
@@ -608,7 +614,12 @@ class RaftNode {
     RaftNode& operator=(const RaftNode&);
 
     // PRIVATE MANIPULATORS
-    void becomeFollower(bsls::Types::Uint64 term, int leaderId);
+    /// Step down to follower in the specified `term`, under the leader
+    /// identified by the specified `leaderId`, and record the transition in
+    /// the specified `output`.
+    void becomeFollower(RaftNodeOutput*     output,
+                        bsls::Types::Uint64 term,
+                        int                 leaderId);
 
     void becomeCandidate(RaftNodeOutput* output, bool preVote);
 
@@ -961,6 +972,7 @@ inline RaftNodeOutput::RaftNodeOutput(bslma::Allocator* allocator)
 , d_stateChanged(false)
 , d_leaderChanged(false)
 , d_hasInstallSnapshot(false)
+, d_lostLeadership(false)
 , d_hasMoreToApply(false)
 , d_installSnapshot(allocator)
 {
@@ -973,6 +985,7 @@ inline RaftNodeOutput::RaftNodeOutput(const RaftNodeOutput& other,
 , d_stateChanged(other.d_stateChanged)
 , d_leaderChanged(other.d_leaderChanged)
 , d_hasInstallSnapshot(other.d_hasInstallSnapshot)
+, d_lostLeadership(other.d_lostLeadership)
 , d_hasMoreToApply(other.d_hasMoreToApply)
 , d_installSnapshot(other.d_installSnapshot, allocator)
 {
@@ -985,6 +998,7 @@ inline void RaftNodeOutput::reset()
     d_stateChanged       = false;
     d_leaderChanged      = false;
     d_hasInstallSnapshot = false;
+    d_lostLeadership     = false;
     d_hasMoreToApply     = false;
 }
 

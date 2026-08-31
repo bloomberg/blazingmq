@@ -461,7 +461,6 @@ RemoteQueue::RemoteQueue(QueueState*       state,
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_state_p);
     BSLS_ASSERT_SAFE(d_state_p->id() != bmqp::QueueId::k_UNASSIGNED_QUEUE_ID);
-    BSLS_ASSERT_SAFE(d_state_p->id() != bmqp::QueueId::k_PRIMARY_QUEUE_ID);
     // A RemoteQueue must have an upstream id
 
     d_throttledFailedPutMessages.initialize(
@@ -532,6 +531,46 @@ int RemoteQueue::configure(bsl::ostream& errorDescription, bool isReconfigure)
         // Will print an ALARM on failure
         return configureAsClusterMember(isReconfigure);  // RETURN
     }
+}
+
+int RemoteQueue::importState(bsl::ostream& errorDescription)
+{
+    // executed by the *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_state_p->queue()->inDispatcherThread());
+
+    const int rc = d_queueEngine_mp->rebuildInternalState(errorDescription);
+    if (rc != 0) {
+        return rc;  // RETURN
+    }
+
+    // This queue was serving its clients locally a moment ago and has no
+    // upstream yet.  A fresh context is 'e_NONE', which drops PUTs as
+    // improper client behavior, and 'onOpenUpstream' only moves a context to
+    // buffering from 'e_OPENED' -- a state this queue has never been in.  So
+    // put every subStream straight into 'e_STOPPED': buffer until the reopen
+    // against the new primary supplies a generation count.
+    d_producerState.d_state    = SubStreamContext::e_STOPPED;
+    d_producerState.d_genCount = 0;
+
+    bsl::vector<mqbi::QueueHandle*> handles(d_allocator_p);
+    d_state_p->handleCatalog().loadHandles(&handles);
+
+    for (size_t i = 0; i < handles.size(); ++i) {
+        for (mqbi::QueueHandle::SubStreams::const_iterator cit =
+                 handles[i]->subStreamInfos().begin();
+             cit != handles[i]->subStreamInfos().end();
+             ++cit) {
+            SubStreamContext& ctx = subStreamContext(
+                cit->second.d_upstreamSubQueueId);
+
+            ctx.d_state    = SubStreamContext::e_STOPPED;
+            ctx.d_genCount = 0;
+        }
+    }
+
+    return 0;
 }
 
 void RemoteQueue::resetState()

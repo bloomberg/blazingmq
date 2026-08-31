@@ -357,6 +357,14 @@ class RelayQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
 
     App_State* findApp(unsigned int upstreamSubQueueId) const;
 
+    /// Recreate, for the specified `handle` and its subStream identified by
+    /// the specified `appId` and described by the specified `info`, the App
+    /// and cache entry `getHandle` would have made when the subStream was
+    /// opened.  Used by `rebuildInternalState`.
+    void rebuildApp(mqbi::QueueHandle*                   handle,
+                    const bsl::string&                   appId,
+                    const mqbi::QueueHandle::StreamInfo& info);
+
     bool isDuplicate(const App_State*         app,
                      const bmqt::MessageGUID& msgGUID) const;
 

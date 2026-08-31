@@ -586,6 +586,13 @@ class Cluster : public mqbi::Cluster,
     void onQueueStorageReady(int              partitionId,
                              const bmqt::Uri& uri) BSLS_KEYWORD_OVERRIDE;
 
+    /// Set this node's upstream view of the subStream of the specified
+    /// `queue` described by the specified `handleParameters` to those
+    /// parameters, this node having stopped being the primary for `queue`.
+    void onConversionToRemote(mqbi::Queue* queue,
+                              const bmqp_ctrlmsg::QueueHandleParameters&
+                                  handleParameters) BSLS_KEYWORD_OVERRIDE;
+
     /// Load into the specified `out` the set of appIds registered on the
     /// local storage for the queue having the specified `uri` and assigned
     /// to the specified `partitionId`, returning true; return false if no

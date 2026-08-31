@@ -522,27 +522,32 @@ int RootQueueEngine::initializeAppId(const bsl::string& appId,
     // Do not attempt to find VirtualStorage if this is reconfiguration.
     // Reconfiguration results in 'afterAppIdRegistered' which results in
     // 'registerStorage' which calls 'authorize'.
-    if (!isReconfigure &&
-        !d_queueState_p->storage()->hasVirtualStorage(appId,
-                                                      &appKey,
-                                                      &ordinal)) {
-        BALL_LOG_ERROR << "#QUEUE_STORAGE_NOTFOUND "
-                       << "Virtual storage does not exist for AppId '" << appId
-                       << "', queue: '"
-                       << d_queueState_p->queue()->description() << "'";
+    const bool hasStorage =
+        !isReconfigure &&
+        d_queueState_p->storage()->hasVirtualStorage(appId, &appKey, &ordinal);
 
-        errorDescription << "Virtual storage does not exist for AppId ["
-                         << appId << "], queue: '"
-                         << d_queueState_p->queue()->description() << "'";
-
-        // TODO: handle w/o asserting
-        BSLS_ASSERT_SAFE(false && "Virtual storage does not exist for appId");
-        return -1;  // RETURN
+    if (!isReconfigure && !hasStorage) {
+        // The App has no storage yet.  Not reachable from an open:
+        // 'ClusterQueueHelper::createQueue' parks that until
+        // 'StorageMonitor::registerQueue' reports every App of the queue
+        // registered.  It is reachable from a replica becoming the primary:
+        // 'ClusterQueueHelper::convertToLocal' calls the same 'registerQueue'
+        // and converts without waiting on its result, so the App's
+        // 'e_ADDITION' can still be uncommitted here.  Create the App
+        // unauthorized; 'registerStorage' authorizes it once its virtual
+        // storage appears, and until then it routes nothing.  This mirrors
+        // 'RelayQueueEngine', which has always had to tolerate storage
+        // arriving on commit.
+        BALL_LOG_INFO << "No virtual storage (yet) for AppId '" << appId
+                      << "', queue: '"
+                      << d_queueState_p->queue()->description()
+                      << "'; the App stays unauthorized until its storage is "
+                      << "registered.";
     }
 
     iter = makeSubStream(appId, appKey, upstreamSubQueueId);
 
-    if (!isReconfigure) {
+    if (hasStorage) {
         BSLS_ASSERT_SAFE(!appKey.isNull());
         iter->second->authorize(appKey, ordinal);
 
@@ -636,10 +641,6 @@ void RootQueueEngine::rebuildSelectedApp(
 
 int RootQueueEngine::rebuildInternalState(bsl::ostream& errorDescription)
 {
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->id() ==
-                     bmqp::QueueId::k_PRIMARY_QUEUE_ID);
-
     // This method is called when a node that previously was not the primary
     // for the queue becomes the primary node.  The node continues to use the
     // same queue handles for this queue, and it now needs to rebuild its

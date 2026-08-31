@@ -111,6 +111,24 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
         RecordHandlesArray d_array;
         unsigned int       d_refCount;  // Outstanding reference count
 
+        /// CONFIRM records proposed for this GUID and not yet committed.
+        /// Always zero outside Raft.  `d_refCount` only drops when a CONFIRM
+        /// commits, so `d_refCount - d_pendingConfirms` is the number of apps
+        /// that have yet to confirm.
+        unsigned int d_pendingConfirms;
+
+        /// Lease id under which a DELETION record for this GUID was proposed,
+        /// 0 if none was.  On Raft the entry stays here until that record
+        /// commits, so this is what stops a second DELETION being written in
+        /// the meantime.  A record that never commits is truncated or dropped,
+        /// which takes another node winning an election, so the next lease
+        /// this node sweeps under cannot match a value left behind that way.
+        unsigned int d_deletionProposedLeaseId;
+
+        /// Return true if a DELETION record for this GUID was proposed under
+        /// the specified `leaseId` and has not committed.
+        bool wasDeletionProposed(unsigned int leaseId) const;
+
         void reset();
     };
 
@@ -207,8 +225,10 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
 
     bool d_hasReceipts;
 
+    /// Message the staged 'd_autoConfirmHandles' belong to.  Commit-side
+    /// state: written where those handles are staged, read where
+    /// 'processMessageRecord' consumes them.
     bmqt::MessageGUID d_currentlyAutoConfirming;
-    // Message being evaluated and possibly auto confirmed.
 
     /// Auto CONFIRMs waiting for 'processMessageRecord'
     AutoConfirmHandles d_autoConfirmHandles;
@@ -224,7 +244,23 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
 
   private:
     // PRIVATE MANIPULATORS
-    void purgeCommon(const mqbu::StorageKey& appKey, bool asPrimary);
+
+    /// Remove the message at the specified `it` from every container holding
+    /// it, without writing any record: the apply half of a DELETION.  Erase
+    /// its entry using the specified `now`, or leave its history retention to
+    /// the map's own `gc` if `now` is 0.
+    void removeMessage(RecordHandleMapIter it, bsls::Types::Int64 now);
+
+    /// Drop the staged auto CONFIRMs and the Apps collected for the message
+    /// being put, whose message is going away.
+    void clearAutoConfirming();
+
+    /// Purge the App identified by the specified `appKey`, which must not be
+    /// null.
+    void purgeApp(const mqbu::StorageKey& appKey);
+
+    /// Purge every message of this storage.
+    void purgeQueue();
 
     /// Clear the state created by 'selectForAutoConfirming'.
     void removeAutoConfirmHandles();
@@ -541,17 +577,24 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     void processMessageRecord(const bmqt::MessageGUID&     guid,
                               unsigned int                 msgLen,
                               unsigned int                 refCount,
-                              const DataStoreRecordHandle& handle)
-        BSLS_KEYWORD_OVERRIDE;
+                              const DataStoreRecordHandle& handle,
+                              bool isOwn) BSLS_KEYWORD_OVERRIDE;
 
     void processConfirmRecord(const bmqt::MessageGUID&     guid,
                               const mqbu::StorageKey&      appKey,
                               ConfirmReason::Enum          reason,
-                              const DataStoreRecordHandle& handle)
-        BSLS_KEYWORD_OVERRIDE;
+                              const DataStoreRecordHandle& handle,
+                              bool isOwn) BSLS_KEYWORD_OVERRIDE;
 
     void
     processDeletionRecord(const bmqt::MessageGUID& guid) BSLS_KEYWORD_OVERRIDE;
+
+    void undoCapacity(unsigned int msgLen) BSLS_KEYWORD_OVERRIDE;
+
+    void undoConfirm(const bmqt::MessageGUID& guid,
+                     const mqbu::StorageKey&  appKey) BSLS_KEYWORD_OVERRIDE;
+
+    int writeAppRemoval(const mqbu::StorageKey& appKey) BSLS_KEYWORD_OVERRIDE;
 
     void addQueueOpRecordHandle(const DataStoreRecordHandle& handle)
         BSLS_KEYWORD_OVERRIDE;
@@ -593,10 +636,21 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
 // FileBackedStorage::Item
 // -----------------------
 
+inline bool
+FileBackedStorage::Item::wasDeletionProposed(unsigned int leaseId) const
+{
+    // 0 is both 'never proposed' and the lease id of a partition with no
+    // primary, so it never counts as a match.
+    return 0 != d_deletionProposedLeaseId &&
+           d_deletionProposedLeaseId == leaseId;
+}
+
 inline void FileBackedStorage::Item::reset()
 {
     d_array.clear();
-    d_refCount = 0;
+    d_refCount                = 0;
+    d_pendingConfirms         = 0;
+    d_deletionProposedLeaseId = 0;
 }
 
 inline FileBackedStorage::AutoConfirm::AutoConfirm(

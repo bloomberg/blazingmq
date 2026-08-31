@@ -62,47 +62,68 @@ const int k_GC_HISTORY_BATCH_SIZE = 1000;
 // -----------------------
 
 // PRIVATE MANIPULATORS
-void FileBackedStorage::purgeCommon(const mqbu::StorageKey& appKey,
-                                    bool                    asPrimary)
+void FileBackedStorage::clearAutoConfirming()
 {
-    // This method is common to both primary and replica nodes, when a queue or
-    // a specified virtual storage is purged.  QueueEngine should not be
-    // manipulated in this routine.  If 'appKey' is null, entire storage needs
-    // to be purged, otherwise only the virtual storage associated with the
-    // specified 'appKey'.
-
-    // Clear auto-confirm state to prevent dangling references
+    // Staged auto CONFIRMs whose message is being purged have nothing left to
+    // attach to.
     d_autoConfirmHandles.clear();
     d_autoConfirmApps.clear();
     d_currentlyAutoConfirming = bmqt::MessageGUID();
+}
 
-    if (appKey.isNull()) {
-        d_virtualStorageCatalog.removeAll();
-        // Remove all records from the physical storage as well.
+void FileBackedStorage::purgeApp(const mqbu::StorageKey& appKey)
+{
+    // Purges only the virtual storage of 'appKey'.  QueueEngine should not be
+    // manipulated in this routine.
 
-        for (RecordHandleMapConstIter it = d_handles.begin();
-             it != d_handles.end();
-             ++it) {
-            const RecordHandlesArray& array = it->second->d_array;
-            for (unsigned int i = 0; i < array.size(); ++i) {
-                d_store_p->removeRecordRaw(array[i]);
-            }
+    BSLS_ASSERT_SAFE(!appKey.isNull());
+
+    clearAutoConfirming();
+
+    // The primary writes the DELETION for every message this drops to a zero
+    // refCount; a replica waits for those to replicate.
+    const mqbi::StorageResult::Enum rc =
+        d_virtualStorageCatalog.purge(appKey, d_store_p->isLeader());
+    BSLS_ASSERT_SAFE(mqbi::StorageResult::e_APPKEY_NOT_FOUND != rc);
+    static_cast<void>(rc);
+}
+
+void FileBackedStorage::purgeQueue()
+{
+    // Purges every message of this storage.  QueueEngine should not be
+    // manipulated in this routine.
+
+    clearAutoConfirming();
+
+    // Message by message: 'gc' is what keeps each App's numMessages/numBytes
+    // right, decrementing exactly the messages an App had counted as removed,
+    // so a purge of everything leaves every counter at zero -- where
+    // 'resetStats' would have put them.
+    for (RecordHandleMapIter it = d_handles.begin(); it != d_handles.end();) {
+        const RecordHandlesArray& array = it->second->d_array;
+        BSLS_ASSERT_SAFE(!array.empty());
+
+        d_virtualStorageCatalog.gc(it->first);
+        d_capacityMeter.remove(1,
+                               d_store_p->getMessageLenRaw(array[0]),
+                               true);  // silent
+
+        for (unsigned int i = 0; i < array.size(); ++i) {
+            d_store_p->removeRecordRaw(array[i]);
         }
 
-        d_handles.clear();
-
-        // Update stats
-        d_capacityMeter.clear();
-
-        d_virtualStorageCatalog.stats()
-            ->onEvent<mqbstat::QueueStatsDomain::EventType::e_PURGE>(0);
-        d_virtualStorageCatalog.stats()
-            ->onEvent<mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY>(
-                d_handles.historySize());
+        // 'erase' returns void, so step off the node first.
+        RecordHandleMapIter next = it;
+        ++next;
+        d_handles.erase(it);
+        it = next;
     }
-    else {
-        d_virtualStorageCatalog.removeAll(appKey, asPrimary);
-    }
+
+    d_virtualStorageCatalog.stats()
+        ->onEvent<mqbstat::QueueStatsDomain::EventType::e_PURGE>(0);
+    d_virtualStorageCatalog.stats()
+        ->onEvent<mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY>(
+            d_handles.historySize());
 }
 
 // CREATORS
@@ -311,9 +332,16 @@ FileBackedStorage::put(mqbi::StorageMessageAttributes*     attributes,
         return mqbi::StorageResult::e_DUPLICATE;
     }
 
-    // Verify if we have enough capacity.
-    mqbu::CapacityMeter::CommitResult capacity =
-        d_capacityMeter.commitUnreserved(1, msgSize);
+    // Verify if we have enough capacity.  On Raft the message is not in this
+    // storage yet and will not be until its record commits, so reserve rather
+    // than charge: reservations count against the limit, so back-pressure
+    // still accounts for messages in flight, and 'processMessageRecord'
+    // converts the reservation with 'CapacityMeter::commit'.
+    const bool isRaft = d_store_p->isRaft();
+
+    const mqbu::CapacityMeter::CommitResult capacity =
+        isRaft ? d_capacityMeter.tryReserve(1, msgSize)
+               : d_capacityMeter.commitUnreserved(1, msgSize);
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
             capacity != mqbu::CapacityMeter::e_SUCCESS)) {
@@ -324,62 +352,58 @@ FileBackedStorage::put(mqbi::StorageMessageAttributes*     attributes,
                     : mqbi::StorageResult::e_LIMIT_BYTES);  // RETURN
     }
 
-    // Prepare the item
-    bsl::shared_ptr<Item> item(bsl::allocate_shared<Item>(d_allocator_p));
-
-    item->d_array.resize(1 + d_autoConfirmApps.size());
-
-    bsl::shared_ptr<mqbi::DataStreamMessage> dataStreamMessage =
-        d_virtualStorageCatalog.createDataStreamMessage(
-            msgSize,
-            d_virtualStorageCatalog.numVirtualStorages());
+    // On Raft this call only proposes.  Nothing enters this storage until the
+    // record commits and 'processMessageRecord' inserts it -- the same writer
+    // a replica uses.  A message the log later truncates therefore leaves no
+    // trace here, which is what lets a node that loses primaryship keep
+    // running: it has no storage state to roll back, and no handle into a
+    // record the truncation erased.
 
     DataStoreRecordHandle handle;
     int                   rc = mqbi::StorageResult::e_SUCCESS;
-    // the first element in 'item.d_array' is the PUT
-    int nextHandleIndex = 1;
 
     if (!d_autoConfirmApps.empty()) {
-        BSLS_ASSERT_SAFE(!d_currentlyAutoConfirming.isUnset());
-
-        // Now replicate auto confirms
-        d_virtualStorageCatalog.setup(dataStreamMessage.get());
-
+        // Auto confirms are journaled ahead of the message they belong to.
         for (AutoConfirmApps::const_iterator cit = d_autoConfirmApps.begin();
              cit != d_autoConfirmApps.end();
              ++cit) {
             rc = d_store_p->writeConfirmRecord(
                 &handle,
-                d_currentlyAutoConfirming,
+                msgGUID,
                 d_queueKey,
                 *cit,
                 attributes->arrivalTimestamp(),
                 ConfirmReason::e_AUTO_CONFIRMED);
 
             if (0 != rc) {
-                // rollback
-                d_virtualStorageCatalog.gcAutoConfirms(*dataStreamMessage);
-                // Delete all items pointed by all handles for this GUID.
-                const RecordHandlesArray& handles = item->d_array;
-
-                for (int i = 1; i < nextHandleIndex; ++i) {
-                    d_store_p->removeRecordRaw(handles[i]);
+                if (isRaft) {
+                    d_capacityMeter.release(1, msgSize);
                 }
-
-                // Rollback reserved capacity.
-                d_capacityMeter.remove(1, msgSize);
+                else {
+                    // Roll back the confirms already staged for this message,
+                    // and the charge taken above.  On Raft none are staged,
+                    // and 'd_autoConfirmHandles' may hold an earlier
+                    // message's; those the log sorts out.
+                    removeAutoConfirmHandles();
+                    d_capacityMeter.remove(1, msgSize);
+                }
                 d_autoConfirmApps.clear();
-                d_currentlyAutoConfirming = bmqt::MessageGUID();
                 return mqbi::StorageResult::e_WRITE_FAILURE;  // RETURN
             }
 
-            item->d_array[nextHandleIndex++] = handle;
-            d_virtualStorageCatalog.autoConfirm(dataStreamMessage.get(), *cit);
+            if (!isRaft) {
+                // Legacy applies below, in this same call, so stage the handle
+                // now.  On Raft the commit of this record stages it, through
+                // the branch a replica takes.
+                processConfirmRecord(msgGUID,
+                                     *cit,
+                                     ConfirmReason::e_AUTO_CONFIRMED,
+                                     handle,
+                                     false);
+            }
         }
         d_autoConfirmApps.clear();
     }
-
-    d_currentlyAutoConfirming = bmqt::MessageGUID();
 
     // _After_ autoconfirms, write the PUT
     // If this write fails, the recovery process will ignore orphan confirms.
@@ -392,46 +416,68 @@ FileBackedStorage::put(mqbi::StorageMessageAttributes*     attributes,
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-        d_virtualStorageCatalog.gcAutoConfirms(*dataStreamMessage);
-        // Delete all items pointed by all handles for this GUID.
-        const RecordHandlesArray& handles = item->d_array;
-
-        for (int i = 1; i < nextHandleIndex; ++i) {
-            d_store_p->removeRecordRaw(handles[i]);
+        if (isRaft) {
+            d_capacityMeter.release(1, msgSize);
+        }
+        else {
+            // The auto confirms just staged have no message to attach to.  On
+            // Raft nothing was staged for this message, and
+            // 'd_autoConfirmHandles' may hold an earlier one's; its own commit
+            // sorts them out.
+            removeAutoConfirmHandles();
+            d_capacityMeter.remove(1, msgSize);
         }
 
-        // Rollback reserved capacity.
-        d_capacityMeter.remove(1, msgSize);
         return mqbi::StorageResult::e_WRITE_FAILURE;  // RETURN
     }
 
-    item->d_array[0] = handle;
-    item->d_refCount = attributes->refCount();
-
-    // Looks like extra lookup in
-    // VirtualStorageIterator::loadMessageAndAttributes() can be avoided
-    // if we keep `irc` (like we keep 'DataStoreRecordHandle').
-    d_handles.insert(bsl::make_pair(msgGUID, item),
-                     attributes->arrivalTimepoint());
-
-    dataStreamMessage = d_virtualStorageCatalog.insert(msgGUID,
-                                                       dataStreamMessage);
-
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(out)) {
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        d_virtualStorageCatalog.setup(dataStreamMessage.get());
-        *out = dataStreamMessage.get();
+    if (!isRaft) {
+        // Legacy has no commit point: the record is in the journal and on its
+        // way to the replicas, so the message enters the storage now.  Same
+        // writer, just a different moment -- a Raft partition gets here from
+        // 'FileStore::onRecordCommittedPrimary' instead.
+        processMessageRecord(msgGUID,
+                             msgSize,
+                             attributes->refCount(),
+                             handle,
+                             true);
     }
 
-    BSLS_ASSERT_SAFE(queue());
-    queue()
-        ->stats()
-        ->onEvent<mqbstat::QueueStatsDomain::EventType::e_ADD_MESSAGE>(
-            msgSize);
-
-    d_isEmpty.storeRelaxed(0);
+    // 'out' is only ever requested by 'RelayQueueEngine::storePushIfProxy',
+    // which does not run against this storage.
+    BSLS_ASSERT_SAFE(0 == out);
 
     return mqbi::StorageResult::e_SUCCESS;  // RETURN
+}
+
+void FileBackedStorage::undoCapacity(unsigned int msgLen)
+{
+    // A proposed message that will never commit -- the log truncated it, or
+    // this node lost primaryship before it was replicated.  It never reached
+    // 'processMessageRecord', so the reservation 'put' took is all there is
+    // to give back.
+    d_capacityMeter.release(1, msgLen);
+}
+
+void FileBackedStorage::undoConfirm(const bmqt::MessageGUID& guid,
+                                    const mqbu::StorageKey&  appKey)
+{
+    // 'confirm' moved the App's view of this message when it wrote the
+    // record.  The record will never commit, so the App holds it again: the
+    // new primary still has it outstanding and will deliver it.
+    d_virtualStorageCatalog.undoConfirm(guid, appKey);
+
+    // 'guid' is the message's, and its entry is the one 'confirm' counted
+    // against.  The dropped CONFIRM never made it into 'd_array'.
+    RecordHandleMapIter it = d_handles.find(guid);
+    if (it == d_handles.end()) {
+        // A purge or a storage clear took the entry, count and all, while
+        // this CONFIRM was in flight.
+        return;  // RETURN
+    }
+
+    BSLS_ASSERT_SAFE(0 < it->second->d_pendingConfirms);
+    --it->second->d_pendingConfirms;
 }
 
 bslma::ManagedPtr<mqbi::StorageIterator>
@@ -462,40 +508,59 @@ FileBackedStorage::confirm(const bmqt::MessageGUID& msgGUID,
         return mqbi::StorageResult::e_GUID_NOT_FOUND;  // RETURN
     }
 
+    // The app view moves now rather than at commit.  This CONFIRM came from
+    // the app's own client and the app's iterator has already passed the
+    // message, so it is not state the journal owns -- and dropping the GUID
+    // here is what makes a repeated CONFIRM for the same app a no-op.
     const mqbi::StorageResult::Enum rc =
         d_virtualStorageCatalog.confirm(msgGUID, appKey);
     if (mqbi::StorageResult::e_SUCCESS != rc) {
         return rc;  // RETURN
     }
 
-    RecordHandlesArray& handles = it->second->d_array;
-    BSLS_ASSERT_SAFE(!handles.empty());
+    Item& item = *it->second;
+    BSLS_ASSERT_SAFE(!item.d_array.empty());
+    BSLS_ASSERT_SAFE(item.d_pendingConfirms < item.d_refCount);
 
-    if (0 == --it->second->d_refCount) {
-        // Outstanding refCount for this message is zero now.
-        // In this case we intentionally skip recording the last CONFIRM
-        // due to optimization of journal file usage
-
+    if (1 == item.d_refCount - item.d_pendingConfirms) {
+        // Last app to confirm.  Skip recording this CONFIRM, an optimization
+        // of journal file usage: the caller follows with 'remove' and that
+        // DELETION stands for this CONFIRM too.
         return mqbi::StorageResult::e_ZERO_REFERENCES;  // RETURN
     }
 
-    DataStoreRecordHandle handle;
-    const int             writeResult = d_store_p->writeConfirmRecord(
-        &handle,
-        msgGUID,
-        d_queueKey,
-        appKey,
-        timestamp,
-        onReject ? ConfirmReason::e_REJECTED : ConfirmReason::e_CONFIRMED);
+    // 'processConfirmRecord' decrements 'd_pendingConfirms', and on a
+    // single-node cluster it runs inside 'writeConfirmRecord' below:
+    // 'PartitionRaft::propose' reaches quorum on its own, so 'dispatchOutput'
+    // applies the entry before the write returns.  Increment before the write,
+    // and decrement if the write fails.
+    ++item.d_pendingConfirms;
+
+    DataStoreRecordHandle     handle;
+    const ConfirmReason::Enum reason = onReject ? ConfirmReason::e_REJECTED
+                                                : ConfirmReason::e_CONFIRMED;
+    const int writeResult            = d_store_p->writeConfirmRecord(&handle,
+                                                          msgGUID,
+                                                          d_queueKey,
+                                                          appKey,
+                                                          timestamp,
+                                                          reason);
     if (0 != writeResult) {
         // If 'appKey' isn't null, we have already removed 'msgGUID' from the
         // virtual storage of 'appKey'.  This is ok, because if above 'write'
         // has failed, its game over for this node anyways.
 
+        --item.d_pendingConfirms;
         return mqbi::StorageResult::e_WRITE_FAILURE;  // RETURN
     }
 
-    handles.push_back(handle);
+    if (!d_store_p->isRaft()) {
+        // Legacy has no commit point: the record is in the journal and on its
+        // way to the replicas, so it applies now.  Same writer, just a
+        // different moment -- a Raft partition gets here from
+        // 'FileStore::onRecordCommittedPrimary' instead.
+        processConfirmRecord(msgGUID, appKey, reason, handle, true);
+    }
 
     return mqbi::StorageResult::e_NON_ZERO_REFERENCES;
 }
@@ -522,7 +587,15 @@ FileBackedStorage::releaseRef(const bmqt::MessageGUID& guid, bool asPrimary)
             // This appKey was the last outstanding client for this message.
             // Message can now be deleted.
 
-            unsigned int msgLen = d_store_p->getMessageLenRaw(handles[0]);
+            // Mark before the write: on a single-node cluster the record
+            // commits inside it and erases this entry, after which 'it' is
+            // dangling.  The mark keeps the TTL sweep from writing a second
+            // DELETION while this one is in flight.
+            const bool isRaft = d_store_p->isRaft();
+            if (isRaft) {
+                it->second->d_deletionProposedLeaseId =
+                    d_store_p->writeHeadLeaseId();
+            }
 
             int rc = d_store_p->writeDeletionRecord(
                 guid,
@@ -539,34 +612,18 @@ FileBackedStorage::releaseRef(const bmqt::MessageGUID& guid, bool asPrimary)
                     << BMQTSK_ALARMLOG_END;
             }
 
-            // If a queue is associated, inform it about the message being
-            // deleted, and update queue stats.
-            // The same 'e_DEL_MESSAGE' is about 3 cases: TTL, no SC quorum,
-            // and a purge.
-            if (queue()) {
-                queue()->queueEngine()->beforeMessageRemoved(guid);
+            // The message is removed when the DELETION commits, by
+            // 'FileStore::onRecordCommittedPrimary' calling
+            // 'processDeletionRecord'.  On a single-node cluster that is
+            // inside the write above, so 'it' and 'handles' may already be
+            // erased here.  Legacy has no commit, so it removes now.
+            if (!isRaft) {
+                removeMessage(it, 0);
+
+                d_virtualStorageCatalog.stats()
+                    ->onEvent<mqbstat::QueueStatsDomain::EventType::
+                                  e_UPDATE_HISTORY>(d_handles.historySize());
             }
-            d_virtualStorageCatalog.stats()
-                ->onEvent<mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE>(
-                    msgLen);
-
-            // There is not really a need to remove the guid from all virtual
-            // storages, because we can be here only if guid doesn't exist in
-            // any virtual storage apart from 'vs' (because updated outstanding
-            // refCount is zero).  So we just delete records associated with
-            // the guid from the underlying (this) storage.
-
-            for (unsigned int i = 0; i < handles.size(); ++i) {
-                d_store_p->removeRecordRaw(handles[i]);
-            }
-
-            d_capacityMeter.remove(1, msgLen);
-            d_handles.erase(it);
-
-            d_virtualStorageCatalog.stats()
-                ->onEvent<
-                    mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY>(
-                    d_handles.historySize());
         }
 
         return mqbi::StorageResult::e_ZERO_REFERENCES;
@@ -584,21 +641,45 @@ FileBackedStorage::remove(const bmqt::MessageGUID& msgGUID, int* msgSize)
         return mqbi::StorageResult::e_GUID_NOT_FOUND;  // RETURN
     }
 
-    d_virtualStorageCatalog.remove(msgGUID);
-
     const RecordHandlesArray& handles = it->second->d_array;
     BSLS_ASSERT_SAFE(!handles.empty());
 
     int msgLen = static_cast<int>(d_store_p->getMessageLenRaw(handles[0]));
-    int rc     = d_store_p->writeDeletionRecord(
+    const bool isRaft = d_store_p->isRaft();
+
+    // Mark before the write: on a single-node cluster the record commits
+    // inside it and erases this entry, after which 'it' is dangling.  The mark
+    // keeps the TTL sweep from writing a second DELETION while this one is in
+    // flight.
+    if (isRaft) {
+        it->second->d_deletionProposedLeaseId = d_store_p->writeHeadLeaseId();
+    }
+
+    int rc = d_store_p->writeDeletionRecord(
         msgGUID,
         d_queueKey,
         DeletionRecordFlag::e_NONE,
         bdlt::EpochUtil::convertToTimeT64(bdlt::CurrentTime::utc()));
 
     if (0 != rc) {
+        if (isRaft) {
+            it->second->d_deletionProposedLeaseId = 0;
+        }
         return mqbi::StorageResult::e_WRITE_FAILURE;  // RETURN
     }
+
+    if (msgSize) {
+        *msgSize = msgLen;
+    }
+
+    if (isRaft) {
+        // Propose only.  'processDeletionRecord' removes the message when the
+        // record commits, so a truncation finds nothing to undo -- neither a
+        // handle into a record it erased nor a message already gone.
+        return mqbi::StorageResult::e_SUCCESS;  // RETURN
+    }
+
+    d_virtualStorageCatalog.remove(msgGUID);
 
     // Delete all items pointed by all handles for this GUID.
     for (unsigned int i = 0; i < handles.size(); ++i) {
@@ -624,10 +705,6 @@ FileBackedStorage::remove(const bmqt::MessageGUID& msgGUID, int* msgSize)
 
             d_handles.historySize());
 
-    if (msgSize) {
-        *msgSize = msgLen;
-    }
-
     if (d_handles.empty()) {
         d_isEmpty.storeRelaxed(1);
     }
@@ -643,13 +720,26 @@ FileBackedStorage::removeAll(const mqbu::StorageKey& appKey)
         bdlt::CurrentTime::utc());
 
     if (!appKey.isNull()) {
-        rc = d_virtualStorageCatalog.purge(
-            appKey,
-            bdlf::BindUtil::bind(&FileBackedStorage::writeAppPurgeRecord,
-                                 this,
-                                 timestamp,
-                                 bdlf::PlaceHolders::_1,
-                                 bdlf::PlaceHolders::_2));
+        VirtualStorageCatalog::DataStreamIterator first;
+
+        rc = d_virtualStorageCatalog.firstMessage(&first, appKey);
+        if (mqbi::StorageResult::e_SUCCESS == rc) {
+            rc = writeAppPurgeRecord(timestamp, appKey, first);
+
+            if (mqbi::StorageResult::e_SUCCESS == rc && !d_store_p->isRaft()) {
+                // Legacy has no commit point, so the App is purged now.  On
+                // Raft this is propose only: the purge applies when the
+                // QueueOp commits, through the same writer a replica uses
+                // ('applyCommittedQueueOp' -> 'purge'), so one the log later
+                // truncates leaves the storage untouched.
+                d_virtualStorageCatalog.purge(appKey, true);
+            }
+        }
+        else if (mqbi::StorageResult::e_GUID_NOT_FOUND == rc) {
+            // Nothing for this App to purge.
+            rc = mqbi::StorageResult::e_SUCCESS;
+        }
+
         if (d_handles.empty()) {
             d_isEmpty.storeRelaxed(1);
         }
@@ -661,7 +751,20 @@ FileBackedStorage::removeAll(const mqbu::StorageKey& appKey)
                                   DataStoreRecordHandle());
 
         if (mqbi::StorageResult::e_SUCCESS == rc) {
-            purgeCommon(mqbu::StorageKey::k_NULL_KEY, true);
+            if (d_store_p->isRaft()) {
+                // Propose only.  The purge applies when the QueueOp commits,
+                // through the same writer a replica uses
+                // ('applyCommittedQueueOp' -> 'purge'), so a purge the log
+                // later truncates leaves the storage untouched.  Applying it
+                // here as well would purge twice, and -- since this node
+                // writes messages into the storage at propose time -- would
+                // also purge messages whose log position is after the purge.
+                // 'onPurgeComplete' likewise runs from the apply, out of the
+                // apply loop: it proposes 'e_ROLLOVER'.
+                return mqbi::StorageResult::e_SUCCESS;  // RETURN
+            }
+
+            purgeQueue();
             d_store_p->onPurgeComplete();
 
             d_isEmpty.storeRelaxed(1);
@@ -682,36 +785,45 @@ bool FileBackedStorage::removeVirtualStorage(const mqbu::StorageKey& appKey,
 {
     BSLS_ASSERT_SAFE(!appKey.isNull());
 
-    VirtualStorageCatalog::PurgeCallback  onPurge;
-    VirtualStorageCatalog::RemoveCallback onRemove;
-
-    if (asPrimary) {
-        const bsls::Types::Uint64 timestamp =
-            bdlt::EpochUtil::convertToTimeT64(bdlt::CurrentTime::utc());
-
-        onPurge = bdlf::BindUtil::bind(&FileBackedStorage::writeAppPurgeRecord,
-                                       this,
-                                       timestamp,
-                                       bdlf::PlaceHolders::_1,
-                                       bdlf::PlaceHolders::_2);
-        onRemove = bdlf::BindUtil::bind(
-            &FileBackedStorage::writeAppDeletionRecord,
-            this,
-            timestamp,
-            bdlf::PlaceHolders::_1);
-    }
-
-    mqbi::StorageResult::Enum rc =
-        d_virtualStorageCatalog.removeVirtualStorage(appKey,
-                                                     asPrimary,
-                                                     onPurge,
-                                                     onRemove);
+    // 'asPrimary' governs only whether the walk writes a DELETION for each
+    // message it drops to a zero refCount.  The records that authorize the
+    // removal are written by 'writeAppRemoval', on the propose side.
+    const mqbi::StorageResult::Enum rc =
+        d_virtualStorageCatalog.removeVirtualStorage(appKey, asPrimary);
 
     if (d_handles.empty()) {
         d_isEmpty.storeRelaxed(1);
     }
 
     return mqbi::StorageResult::e_SUCCESS == rc;
+}
+
+int FileBackedStorage::writeAppRemoval(const mqbu::StorageKey& appKey)
+{
+    BSLS_ASSERT_SAFE(!appKey.isNull());
+
+    const bsls::Types::Uint64 timestamp = bdlt::EpochUtil::convertToTimeT64(
+        bdlt::CurrentTime::utc());
+
+    VirtualStorageCatalog::DataStreamIterator first;
+
+    mqbi::StorageResult::Enum rc =
+        d_virtualStorageCatalog.firstMessage(&first, appKey);
+    if (mqbi::StorageResult::e_APPKEY_NOT_FOUND == rc) {
+        return rc;  // RETURN
+    }
+
+    if (mqbi::StorageResult::e_SUCCESS == rc) {
+        rc = writeAppPurgeRecord(timestamp, appKey, first);
+        if (mqbi::StorageResult::e_SUCCESS != rc) {
+            return rc;  // RETURN
+        }
+    }
+    // else, this App can see no message; only the DELETION is needed
+
+    rc = writeAppDeletionRecord(timestamp, appKey);
+
+    return mqbi::StorageResult::e_SUCCESS == rc ? 0 : rc;
 }
 
 mqbi::StorageResult::Enum
@@ -813,6 +925,12 @@ int FileBackedStorage::gcExpiredMessages(const bdlt::Datetime& currentTimeUtc,
         }
         cit = next++;
 
+        if (cit->second->wasDeletionProposed(d_store_p->writeHeadLeaseId())) {
+            // A DELETION for this message is already in the log, waiting to
+            // commit.  Sweeping again before it does would write a second one.
+            continue;  // CONTINUE
+        }
+
         const RecordHandlesArray& handles = cit->second->d_array;
         BSLS_ASSERT_SAFE(!handles.empty());
 
@@ -842,8 +960,18 @@ int FileBackedStorage::gcExpiredMessages(const bdlt::Datetime& currentTimeUtc,
             deletionFlag = DeletionRecordFlag::e_TTL_EXPIRATION;
         }
 
-        int msgLen = static_cast<int>(d_store_p->getMessageLenRaw(handles[0]));
-        int rc     = d_store_p->writeDeletionRecord(cit->first,
+        // Read and mark before the write: on a single-node cluster the record
+        // commits inside it and 'processDeletionRecord' erases this entry,
+        // after which 'cit' is no longer live.
+        const bmqt::MessageGUID guid   = cit->first;
+        const bool              isRaft = d_store_p->isRaft();
+
+        if (isRaft) {
+            cit->second->d_deletionProposedLeaseId =
+                d_store_p->writeHeadLeaseId();
+        }
+
+        int rc = d_store_p->writeDeletionRecord(guid,
                                                 d_queueKey,
                                                 deletionFlag,
                                                 secondsFromEpoch);
@@ -851,37 +979,24 @@ int FileBackedStorage::gcExpiredMessages(const bdlt::Datetime& currentTimeUtc,
             BMQTSK_ALARMLOG_ALARM("FILE_IO")
                 << "Partition [" << partitionId() << "]"
                 << " failed to write DELETION record for "
-                << "GUID: " << cit->first << ", for queue '" << d_queueUri
+                << "GUID: " << guid << ", for queue '" << d_queueUri
                 << "', queueKey '" << d_queueKey << "' while attempting to GC "
                 << "the message due to TTL/ACK expiration, rc: " << rc
                 << BMQTSK_ALARMLOG_END;
+            // Nothing was written, so this message is still to be swept.
+            cit->second->d_deletionProposedLeaseId = 0;
+
             // Do NOT remove the expired record without replicating Deletion.
             return numMsgsDeleted;  // RETURN
         }
 
-        // If a queue is associated, inform it about the message being deleted,
-        // and update queue stats.
-
-        // The same 'e_DEL_MESSAGE' is about 3 cases: TTL, no SC quorum, purge.
-        if (queue()) {
-            queue()->queueEngine()->beforeMessageRemoved(cit->first);
-        }
-        d_virtualStorageCatalog.stats()
-            ->onEvent<mqbstat::QueueStatsDomain::EventType::e_DEL_MESSAGE>(
-                msgLen);
-
-        // Remove message from all virtual storages.
-        d_virtualStorageCatalog.gc(cit->first);
-
-        // Delete all items pointed by all handles for this GUID (i.e., delete
-        // message from the underlying storage).
-
-        for (unsigned int i = 0; i < handles.size(); ++i) {
-            d_store_p->removeRecordRaw(handles[i]);
+        // The message is removed when the DELETION commits, by
+        // 'FileStore::onRecordCommittedPrimary' calling
+        // 'processDeletionRecord'.  Legacy has no commit, so it removes now.
+        if (!isRaft) {
+            removeMessage(cit, now);
         }
 
-        d_capacityMeter.remove(1, msgLen);
-        d_handles.erase(cit, now);
         ++numMsgsDeleted;
     }
 
@@ -939,7 +1054,8 @@ void FileBackedStorage::processMessageRecord(
     const bmqt::MessageGUID&     guid,
     unsigned int                 msgLen,
     unsigned int                 refCount,
-    const DataStoreRecordHandle& handle)
+    const DataStoreRecordHandle& handle,
+    bool                         isOwn)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(RecordType::e_MESSAGE == handle.type());
@@ -986,8 +1102,17 @@ void FileBackedStorage::processMessageRecord(
 
         d_virtualStorageCatalog.insert(guid, dataStreamMessage);
 
-        // Update the messages & bytes monitors, and the stats.
-        d_capacityMeter.forceCommit(1, msgLen);  // Return value ignored.
+        // Update the messages & bytes monitors, and the stats.  A record this
+        // node did not write reserved nothing, so it is charged outright.  One
+        // it did write was accounted for in 'put': on Raft as a reservation,
+        // which 'commit' now converts, and on legacy as a charge already
+        // taken by 'commitUnreserved'.
+        if (!isOwn) {
+            d_capacityMeter.forceCommit(1, msgLen);
+        }
+        else if (d_store_p->isRaft()) {
+            d_capacityMeter.commit(1, msgLen);
+        }
 
         d_virtualStorageCatalog.stats()
             ->onEvent<mqbstat::QueueStatsDomain::EventType::e_ADD_MESSAGE>(
@@ -1012,7 +1137,8 @@ void FileBackedStorage::processConfirmRecord(
     const bmqt::MessageGUID&     guid,
     const mqbu::StorageKey&      appKey,
     ConfirmReason::Enum          reason,
-    const DataStoreRecordHandle& handle)
+    const DataStoreRecordHandle& handle,
+    bool                         isOwn)
 {
     BSLS_ASSERT_SAFE(RecordType::e_CONFIRM == handle.type());
 
@@ -1057,6 +1183,14 @@ void FileBackedStorage::processConfirmRecord(
     handles.push_back(handle);
     --it->second->d_refCount;  // Update outstanding refCount
 
+    if (isOwn) {
+        BSLS_ASSERT_SAFE(0 < it->second->d_pendingConfirms);
+        --it->second->d_pendingConfirms;
+
+        // 'confirm' moved the app view when it wrote this record.
+        return;  // RETURN
+    }
+
     if (!appKey.isNull()) {
         const mqbi::StorageResult::Enum rc =
             d_virtualStorageCatalog.confirm(guid, appKey);
@@ -1087,18 +1221,26 @@ void FileBackedStorage::processDeletionRecord(const bmqt::MessageGUID& guid)
         return;  // RETURN
     }
 
-    // Delete all handles from underlying data store.  Update stats.  Note that
-    // we pass 'silentMode=true' flag to 'CapacityMeter::remove'.  This routine
-    // ('FileBackedStorage::processDeletionRecord()') is only called in
-    // replica nodes, and if its a storage-only node, it will not have the
-    // correct domain limits, and thus on everytime invocation of
-    // 'CapacityMeter::remove', a 'low watermark reached' log at WARN level
-    // will be printed.  Also note that 'appKey' should be null, but we don't
-    // assert it here.
+    // 'silentCapacity' is true here: a replica may be a storage-only node,
+    // where 'configure' never ran and the domain limits are not the correct
+    // ones, so every removal would log a 'low watermark reached' WARN.
+    removeMessage(it, 0);
+
+    d_virtualStorageCatalog.stats()
+        ->onEvent<mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY>(
+            d_handles.historySize());
+}
+
+void FileBackedStorage::removeMessage(RecordHandleMapIter it,
+                                      bsls::Types::Int64  now)
+{
+    // The apply half of a DELETION record: takes the message out of every
+    // container holding it, writing nothing.  Note that 'appKey' should be
+    // null, but we don't assert it here.
 
     // TBD: check that outstanding refCount maintained by self is zero?
 
-    // Update stats.
+    const bmqt::MessageGUID&  guid    = it->first;
     const RecordHandlesArray& handles = it->second->d_array;
     const unsigned int        msgLen = d_store_p->getMessageLenRaw(handles[0]);
 
@@ -1114,7 +1256,7 @@ void FileBackedStorage::processDeletionRecord(const bmqt::MessageGUID& guid)
     // REPLICA needs to find appId that was implicitly confirmed and update it.
     d_virtualStorageCatalog.gc(guid);
 
-    d_capacityMeter.remove(1, msgLen, true /* silent mode; don't log */);
+    d_capacityMeter.remove(1, msgLen, !d_store_p->isLeader());
 
     // Delete all existing handles.
 
@@ -1123,17 +1265,15 @@ void FileBackedStorage::processDeletionRecord(const bmqt::MessageGUID& guid)
     }
 
     // Finally erase entry from 'd_handles' now that all records for the GUID
-    // have been deleted.
+    // have been deleted.  A caller that already holds the current time passes
+    // it, which skips history for an entry whose retention has elapsed rather
+    // than leaving that to the map's own 'gc'; zero leaves it to 'gc'.
 
-    d_handles.erase(it);
+    d_handles.erase(it, now);
 
     if (d_handles.empty()) {
         d_isEmpty.storeRelaxed(1);
     }
-
-    d_virtualStorageCatalog.stats()
-        ->onEvent<mqbstat::QueueStatsDomain::EventType::e_UPDATE_HISTORY>(
-            d_handles.historySize());
 }
 
 void FileBackedStorage::addQueueOpRecordHandle(
@@ -1155,36 +1295,44 @@ void FileBackedStorage::addQueueOpRecordHandle(
 
 void FileBackedStorage::purge(const mqbu::StorageKey& appKey)
 {
-    purgeCommon(appKey, false);
+    bsl::string appId;
+
+    if (appKey.isNull()) {
+        purgeQueue();
+
+        // The propose path used to do this inline; on a Raft partition the
+        // whole-queue purge applies here instead.
+        d_isEmpty.storeRelaxed(d_handles.empty() ? 1 : 0);
+
+        appId = bmqp::ProtocolUtil::k_NULL_APP_ID;
+    }
+    else {
+        purgeApp(appKey);
+
+        const bool rc = d_virtualStorageCatalog.hasVirtualStorage(appKey,
+                                                                  &appId);
+        BSLS_ASSERT_SAFE(rc);
+        static_cast<void>(rc);
+    }
 
     if (queue()) {
-        bsl::string appId;
-        if (appKey.isNull()) {
-            appId = bmqp::ProtocolUtil::k_NULL_APP_ID;
-        }
-        else {
-            const bool rc = d_virtualStorageCatalog.hasVirtualStorage(appKey,
-                                                                      &appId);
-            BSLS_ASSERT_SAFE(rc);
-            static_cast<void>(rc);
-        }
-
         queue()->queueEngine()->afterQueuePurged(appId, appKey);
     }
 }
 
 void FileBackedStorage::selectForAutoConfirming(
-    const bmqt::MessageGUID& msgGUID)
+    BSLA_MAYBE_UNUSED const bmqt::MessageGUID& msgGUID)
 {
+    // 'put' writes the records for 'd_autoConfirmApps' under its own
+    // 'msgGUID', and 'd_currentlyAutoConfirming' names the message whose
+    // records are staged, which is a commit-side question.  So the propose
+    // side needs nothing but the app list.
     d_autoConfirmApps.clear();
-
-    d_currentlyAutoConfirming = msgGUID;
 }
 
 void FileBackedStorage::autoConfirm(const mqbu::StorageKey& appKey)
 {
     BSLS_ASSERT_SAFE(!appKey.isNull());
-    BSLS_ASSERT_SAFE(!d_currentlyAutoConfirming.isUnset());
 
     d_autoConfirmApps.emplace_back(appKey);
 }

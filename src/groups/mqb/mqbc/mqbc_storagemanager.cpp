@@ -4321,7 +4321,7 @@ void StorageManager::initializeQueueKeyInfoMap(
     d_isQueueKeyInfoMapVecInitialized = true;
 }
 
-void StorageManager::registerQueue(const bmqt::Uri&        uri,
+bool StorageManager::registerQueue(const bmqt::Uri&        uri,
                                    const mqbu::StorageKey& queueKey,
                                    int                     partitionId,
                                    const AppInfos&         appIdKeyPairs,
@@ -4336,13 +4336,24 @@ void StorageManager::registerQueue(const bmqt::Uri&        uri,
                      partitionId < static_cast<int>(d_fileStores.size()));
     BSLS_ASSERT_SAFE(domain);
 
-    d_fileStores[partitionId]->execute(
-        bdlf::BindUtil::bind(&StorageUtil::registerQueueAsPrimary,
-                             d_fileStores[partitionId].get(),
-                             uri,
-                             queueKey,
-                             appIdKeyPairs,
-                             domain));
+    const RegistrationState state = StorageMonitor::registerQueue(
+        uri,
+        queueKey,
+        partitionId,
+        appIdKeyPairs,
+        domain);
+
+    if (e_REQUIRED == state) {
+        d_fileStores[partitionId]->execute(
+            bdlf::BindUtil::bind(&StorageUtil::registerQueueAsPrimary,
+                                 d_fileStores[partitionId].get(),
+                                 uri,
+                                 queueKey,
+                                 appIdKeyPairs,
+                                 domain));
+    }
+
+    return e_REGISTERED == state;
 }
 
 void StorageManager::unregisterQueue(const bmqt::Uri& uri, int partitionId)

@@ -796,6 +796,16 @@ struct StorageUtil {
 class StorageMonitor : public mqbs::StorageMonitor {
   public:
     // TYPES
+    enum RegistrationState {
+        /// The storage exists and carries every App asked for.
+        e_REGISTERED = 0,
+        /// A registration is outstanding; wait for it rather than proposing
+        /// a second one.
+        e_PENDING = 1,
+        /// Nothing is outstanding and something is missing; the caller must
+        /// propose.  Marked outstanding by the call.
+        e_REQUIRED = 2
+    };
 
     /// Map of appKey -> appId for a queue's registered apps.
     typedef mqbs::DataStoreConfigQueueInfo::AppInfos AppKeyToIdMap;
@@ -803,6 +813,21 @@ class StorageMonitor : public mqbs::StorageMonitor {
     struct StorageWithApps {
         StorageSp     d_storage_sp;
         AppKeyToIdMap d_apps;
+
+        /// `true` between proposing this queue's registration and the storage
+        /// (or the Apps) actually arriving.  On the Raft write path a
+        /// QueueOp only takes effect when it commits, so without this a
+        /// second `registerQueue` -- a concurrent open, or a parked one
+        /// replayed by `onQueueStorageReady` -- would look at an unchanged
+        /// storage and propose the very same record again.
+        bool d_awaitingRegistration;
+
+        StorageWithApps(bslma::Allocator* basicAllocator = 0)
+        : d_storage_sp()
+        , d_apps(basicAllocator)
+        , d_awaitingRegistration(false)
+        {
+        }
     };
     /// Map of QueueUri -> ReplicatedStorageSp
     typedef bsl::unordered_map<bmqt::Uri, StorageWithApps> StorageSpMap;
@@ -898,6 +923,17 @@ class StorageMonitor : public mqbs::StorageMonitor {
     void releaseStorages(int partitionId);
 
     void onRecovered(int partitionId) BSLS_KEYWORD_OVERRIDE;
+
+    /// Return whether the queue having the specified `uri` and `queueKey` on
+    /// the specified `partitionId` still needs registering with the specified
+    /// `appIdKeyPairs` for the specified `domain`.  `e_REQUIRED` marks it
+    /// outstanding, creating a placeholder if the storage does not exist yet.
+    RegistrationState
+    registerQueue(const bmqt::Uri&               uri,
+                  const mqbu::StorageKey&        queueKey,
+                  int                            partitionId,
+                  const mqbi::Storage::AppInfos& appIdKeyPairs,
+                  mqbi::Domain*                  domain);
 
     // ACCESSORS
     StorageSp find(const bmqt::Uri& uri) BSLS_KEYWORD_OVERRIDE;

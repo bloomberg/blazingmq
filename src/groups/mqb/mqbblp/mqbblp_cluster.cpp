@@ -2421,6 +2421,19 @@ void Cluster::closeQueue(
                                                    callback);
 }
 
+void Cluster::onConversionToRemote(
+    mqbi::Queue*                               queue,
+    const bmqp_ctrlmsg::QueueHandleParameters& handleParameters)
+{
+    // executed by the associated *QUEUE DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(queue->inDispatcherThread());
+
+    d_clusterOrchestrator.queueHelper().onConversionToRemote(queue,
+                                                             handleParameters);
+}
+
 void Cluster::onQueueHandleCreated(mqbi::Queue*     queue,
                                    const bmqt::Uri& uri,
                                    bool             handleCreated)

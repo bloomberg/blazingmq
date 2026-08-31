@@ -264,6 +264,20 @@ class QueueState {
     /// specified `upstreamSubQueueId`.
     void abandon(unsigned int upstreamSubQueueId);
 
+    /// Clear the cached references to every subStream.  Used when the queue
+    /// changes between local and remote: the engine that owned those Apps is
+    /// going away, and the one replacing it rebuilds them from the handles
+    /// that survive.  The aggregated handle parameters are those handles'
+    /// and are left alone.
+    void abandonAll();
+
+    /// Report the aggregated handle parameters of each subStream to the
+    /// cluster, self having stopped being the primary for this queue.  Until
+    /// now those handles were served locally and the cluster's upstream view
+    /// of them was empty; it is what the reopen against the new primary asks
+    /// for.
+    void onConversionToRemote();
+
     /// Return reference to the structures for the queue engine routing.
     Routers::QueueRoutingContext& routingContext();
 

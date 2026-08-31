@@ -404,40 +404,75 @@ int StorageUtil::updateQueuePrimaryRaw(mqbs::ReplicatedStorage* storage,
             return rc;  // RETURN
         }
 
-        storage->addQueueOpRecordHandle(handle);
+        // On a Raft partition the record above is only a proposal: the Apps
+        // are registered when it commits, through 'applyCommittedQueueOp' ->
+        // 'queueCreationCb' -> 'updateQueueStorageDispatched', which performs
+        // exactly the 'addQueueOpRecordHandle' + 'addVirtualStoragesInternal'
+        // + 'onStorageAppsAdded' trio below.  Doing it here as well would
+        // register twice, and an addition the log later truncated would stay
+        // behind.  'DOMAINS RECONFIGURE' still returns only once the App is
+        // registered: its barrier polls 'loadAppIds', which reads what
+        // 'onStorageAppsAdded' writes.
+        //
+        // The removals below are NOT deferred -- their walk writes a DELETION
+        // per message it drops to refCount zero, which cannot be proposed
+        // from inside the apply loop.
+        if (!rs->isRaft()) {
+            storage->addQueueOpRecordHandle(handle);
 
-        rc = addVirtualStoragesInternal(storage,
-                                        addedIdKeyPairs,
-                                        rs->description(),
-                                        isFanout);
-        if (0 != rc) {
-            // In the transition phase, App creation trigger can be either
-            // storage event or CSL commit.
-            // Moreover, some versions have a race.
-            return rc;  // RETURN
+            rc = addVirtualStoragesInternal(storage,
+                                            addedIdKeyPairs,
+                                            rs->description(),
+                                            isFanout);
+            if (0 != rc) {
+                // In the transition phase, App creation trigger can be either
+                // storage event or CSL commit.
+                // Moreover, some versions have a race.
+                return rc;  // RETURN
+            }
+
+            BALL_LOG_INFO_BLOCK
+            {
+                bmqu::Printer<AppInfos> printer(&addedIdKeyPairs);
+
+                BALL_LOG_OUTPUT_STREAM
+                    << rs->description()
+                    << ": for an already registered queue ["
+                    << storage->queueUri() << "], queueKey ["
+                    << storage->queueKey() << "], added ["
+                    << addedIdKeyPairs.size() << "] new appId/appKey "
+                    << "pairs:" << printer;
+            }
+
+            rs->storageMonitor()->onStorageAppsAdded(rs->partitionId(),
+                                                     storage->queueUri(),
+                                                     addedIdKeyPairs);
         }
-
-        BALL_LOG_INFO_BLOCK
-        {
-            bmqu::Printer<AppInfos> printer(&addedIdKeyPairs);
-
-            BALL_LOG_OUTPUT_STREAM
-                << rs->description() << ": for an already registered queue ["
-                << storage->queueUri() << "], queueKey ["
-                << storage->queueKey() << "], added ["
-                << addedIdKeyPairs.size() << "] new appId/appKey "
-                << "pairs:" << printer;
-        }
-
-        rs->storageMonitor()->onStorageAppsAdded(rs->partitionId(),
-                                                 storage->queueUri(),
-                                                 addedIdKeyPairs);
     }
 
     if (!removedIdKeyPairs.empty()) {
         for (AppInfos::const_iterator cit = removedIdKeyPairs.begin();
              cit != removedIdKeyPairs.end();
              ++cit) {
+            rc = storage->writeAppRemoval(cit->second);
+            if (0 != rc) {
+                BALL_LOG_ERROR << rs->description()
+                               << ": failed to write the removal of appKey ["
+                               << cit->second << "], appId [" << cit->first
+                               << "], for queue [" << storage->queueUri()
+                               << "], queueKey [" << storage->queueKey()
+                               << "], rc: " << rc << ".";
+                return rc;  // RETURN
+            }
+
+            if (rs->isRaft()) {
+                // Propose only.  The App is removed, and the monitor told,
+                // when the DELETION QueueOp commits --
+                // 'applyCommittedQueueOp' -> 'queueDeletionCb' ->
+                // 'removeQueueStorageDispatched'.
+                continue;  // CONTINUE
+            }
+
             rc = removeVirtualStorageInternal(storage,
                                               cit->second,
                                               true);  // asPrimary
@@ -2203,7 +2238,8 @@ void StorageUtil::recoveredQueuesCb(
             rs->processMessageRecord(guid,
                                      recordStore->getMessageLenRaw(handle),
                                      refCount - numGhosts,
-                                     handle);
+                                     handle,
+                                     false);
             if (isStrongConsistency) {
                 lastStrongConsistencySequenceNum    = handle.sequenceNum();
                 lastStrongConsistencyPrimaryLeaseId = handle.primaryLeaseId();
@@ -2228,7 +2264,11 @@ void StorageUtil::recoveredQueuesCb(
                     << "]. Dropping this record." << BMQTSK_ALARMLOG_END;
                 continue;  // CONTINUE
             }
-            rs->processConfirmRecord(guid, appKey, confirmReason, handle);
+            rs->processConfirmRecord(guid,
+                                     appKey,
+                                     confirmReason,
+                                     handle,
+                                     false);
         }
         else {
             BSLS_ASSERT(false);
@@ -2587,6 +2627,38 @@ void StorageUtil::createQueueStorageAsPrimary(mqbs::RecordStore*      rs,
     // We are here means that StorageMgr is not aware of the queue.  Create an
     // appropriate storage and insert it in 'storageMap'.
 
+    if (rs->isRaft()) {
+        // Propose only.  The storage is created when the QueueOp commits,
+        // through the same writer a replica uses ('applyCommittedQueueOp' ->
+        // 'queueCreationCb' -> 'createQueueStorageAsReplica'), so a creation
+        // the log later truncates registers no queue at all.
+        // 'ClusterQueueHelper::createQueue' parks the open response until the
+        // commit, the wait a replica already performs.
+        const bsls::Types::Uint64 timestamp =
+            bdlt::EpochUtil::convertToTimeT64(bdlt::CurrentTime::utc());
+        mqbs::DataStoreRecordHandle handle;
+
+        const int rc = rs->writeQueueCreationRecord(&handle,
+                                                    uri,
+                                                    queueKey,
+                                                    appIdKeyPairs,
+                                                    timestamp,
+                                                    true);  // is new queue?
+        if (0 != rc) {
+            BMQTSK_ALARMLOG_ALARM("FILE_IO")
+                << rs->description()
+                << ": failed to write QueueCreationRecord for queue [" << uri
+                << "] queueKey [" << queueKey << "], rc: " << rc
+                << BMQTSK_ALARMLOG_END;
+            return;  // RETURN
+        }
+
+        // As in 'registerQueueDispatched': get the record to the replicas
+        // promptly, since an open is parked behind its commit.
+        rs->flushStorage();
+        return;  // RETURN
+    }
+
     StorageSp storageSp =
         createQueueStorageImpl(rs, uri, queueKey, appIdKeyPairs, domain);
 
@@ -2714,7 +2786,7 @@ void StorageUtil::unregisterQueueDispatched(mqbs::RecordStore*   rs,
     // In Raft mode the write above is a propose; the teardown below happens
     // when that record commits, in 'FileStore::applyCommittedQueueOp', so
     // that queue lifecycle has a single writer.
-    if (rs->storageMonitor()->isRaft()) {
+    if (rs->isRaft()) {
         return;  // RETURN
     }
 
@@ -3000,7 +3072,11 @@ void StorageUtil::removeQueueStorageDispatched(
     // A specific appId is being deleted.
     // No explicit 'purge', storage takes care of that when removing App
 
-    int rc = removeVirtualStorageInternal(storageSp.get(), appKey, false);
+    // The primary writes the DELETION for every message the App's removal
+    // drops to a zero refCount; a replica waits for those to replicate.
+    int rc = removeVirtualStorageInternal(storageSp.get(),
+                                          appKey,
+                                          rs->isLeader());
     if (0 != rc) {
         BMQTSK_ALARMLOG_ALARM("REPLICATION")
             << rs->description() << ": failed to remove virtual storage "
@@ -3767,8 +3843,9 @@ void StorageMonitor::onStorageRegistered(
             d_storageLockVec[partitionId].get());  // LOCK
         StorageWithApps& what = d_storages[partitionId][uri];
 
-        what.d_storage_sp = storageSp;
-        what.d_apps       = apps;  // appKey -> appId
+        what.d_storage_sp           = storageSp;
+        what.d_apps                 = apps;  // appKey -> appId
+        what.d_awaitingRegistration = false;
     }
     d_cluster_p->onQueueStorageReady(partitionId, uri);
 }
@@ -3791,7 +3868,8 @@ void StorageMonitor::onStorageRegistered(int              partitionId,
             d_storageLockVec[partitionId].get());  // LOCK
         StorageWithApps& what = d_storages[partitionId][uri];
 
-        what.d_storage_sp = storageSp;
+        what.d_storage_sp           = storageSp;
+        what.d_awaitingRegistration = false;
         what.d_apps.clear();
         for (mqbi::Storage::AppInfos::const_iterator cit = apps.cbegin();
              cit != apps.cend();
@@ -3825,6 +3903,8 @@ void StorageMonitor::onStorageAppsAdded(int              partitionId,
              ++cit) {
             it->second.d_apps.insert(bsl::make_pair(cit->second, cit->first));
         }
+
+        it->second.d_awaitingRegistration = false;
     }
 
     d_cluster_p->onQueueStorageReady(partitionId, uri);
@@ -3925,6 +4005,12 @@ void StorageMonitor::onRecovered(int partitionId)
     }
 }
 
+void registerQueue(const bmqt::Uri&               uri,
+                   const mqbu::StorageKey&        queueKey,
+                   int                            partitionId,
+                   const mqbi::Storage::AppInfos& appIdKeyPairs,
+                   mqbi::Domain*                  domain);
+
 // ACCESSORS
 StorageMonitor::StorageSp StorageMonitor::find(const bmqt::Uri& uri)
 {
@@ -3954,7 +4040,9 @@ void StorageMonitor::loadAllStorages(bsl::vector<StorageSp>* result,
     for (StorageSpMap::const_iterator it = d_storages[partitionId].cbegin();
          it != d_storages[partitionId].cend();
          ++it) {
-        result->push_back(it->second.d_storage_sp);
+        if (it->second.d_storage_sp) {
+            result->push_back(it->second.d_storage_sp);
+        }
     }
 }
 
@@ -3969,13 +4057,61 @@ bool StorageMonitor::isStorageEmpty(const bmqt::Uri& uri,
         d_storageLockVec[partitionId].get());  // LOCK
 
     StorageSpMap::const_iterator cit = d_storages[partitionId].find(uri);
-    if (cit == d_storages[partitionId].end()) {
+    if (cit == d_storages[partitionId].end() || !cit->second.d_storage_sp) {
         return true;  // RETURN
     }
 
-    BSLS_ASSERT_SAFE(cit->second.d_storage_sp);
-
     return cit->second.d_storage_sp->isEmpty();
+}
+
+StorageMonitor::RegistrationState StorageMonitor::registerQueue(
+    const bmqt::Uri&        uri,
+    BSLA_MAYBE_UNUSED const mqbu::StorageKey& queueKey,
+    int                                       partitionId,
+    const mqbi::Storage::AppInfos&            appIdKeyPairs,
+    BSLA_MAYBE_UNUSED mqbi::Domain* domain)
+{
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(d_storages.size()));
+
+    bslmt::LockGuard<bslmt::Mutex> guard(
+        d_storageLockVec[partitionId].get());  // LOCK
+
+    StorageSpMap::iterator it = d_storages[partitionId].find(uri);
+
+    if (it == d_storages[partitionId].end()) {
+        // Placeholder: somewhere to hold the mark until the storage arrives.
+        StorageWithApps& what       = d_storages[partitionId][uri];
+        what.d_awaitingRegistration = true;
+        return e_REQUIRED;  // RETURN
+    }
+
+    StorageWithApps& what = it->second;
+
+    if (what.d_storage_sp) {
+        // 'd_apps' is keyed by appKey, 'appIdKeyPairs' by appId.
+        bool hasAll = true;
+        for (mqbi::Storage::AppInfos::const_iterator cit =
+                 appIdKeyPairs.cbegin();
+             cit != appIdKeyPairs.cend();
+             ++cit) {
+            if (0 == what.d_apps.count(cit->second)) {
+                hasAll = false;
+                break;  // BREAK
+            }
+        }
+
+        if (hasAll) {
+            return e_REGISTERED;  // RETURN
+        }
+    }
+
+    if (what.d_awaitingRegistration) {
+        return e_PENDING;  // RETURN
+    }
+
+    what.d_awaitingRegistration = true;
+    return e_REQUIRED;
 }
 
 bool StorageMonitor::hasStorage(const bmqt::Uri& uri, int partitionId) const
@@ -3986,7 +4122,10 @@ bool StorageMonitor::hasStorage(const bmqt::Uri& uri, int partitionId) const
     bslmt::LockGuard<bslmt::Mutex> guard(
         d_storageLockVec[partitionId].get());  // LOCK
 
-    if (d_storages[partitionId].count(uri) == 0) {
+    // An entry with no storage is a placeholder holding a pending
+    // registration, not a registered storage.
+    StorageSpMap::const_iterator cit = d_storages[partitionId].find(uri);
+    if (cit == d_storages[partitionId].end() || !cit->second.d_storage_sp) {
         BALL_LOG_WARN << "storageMonitor failed to find storage for " << uri;
 
         return false;  // RETURN

@@ -79,10 +79,6 @@ LocalQueue::LocalQueue(QueueState* state, bslma::Allocator* allocator)
 , d_throttledDuplicateMessages()
 , d_haveStrongConsistency(false)
 {
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_state_p->id() == bmqp::QueueId::k_PRIMARY_QUEUE_ID);
-    // A LocalQueue has no 'upstream', hence no id
-
     d_throttledDuplicateMessages.initialize(
         1,
         1 * bdlt::TimeUnitRatio::k_NS_PER_S);

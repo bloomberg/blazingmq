@@ -438,6 +438,13 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// replication complete, so they change from processing PUTs to PUSHes.
     bsl::unordered_set<mqbu::StorageKey> d_replicationNotifications;
 
+    /// `true` once a committed whole-queue PURGE has been applied in the
+    /// current apply batch.  `onPurgeComplete` reclaims the freed space by
+    /// proposing `e_ROLLOVER`, which cannot happen from inside the apply loop,
+    /// so the loop notes it here and `PartitionRaft::dispatchOutput` acts on
+    /// it afterwards.  Same shape as `d_replicationNotifications`.
+    bool d_purgeCompleted;
+
     int d_replicationFactor;
 
     NodeReceiptContexts d_nodes;
@@ -466,6 +473,10 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     RecurringEventHandle d_partitionHighwatermarkEventHandle;
 
+    /// Whether self is the primary.  Legacy only: `clearPrimary` nulls
+    /// `d_primaryNode_p` without clearing this, so on an ex-primary it stays
+    /// true until the next `setActivePrimary`.  `isLeader()` derives the same
+    /// answer from `d_primaryNode_p` alone and does not go stale.
     bool d_isPrimary;
 
     mqbnet::ClusterNode* d_primaryNode_p;
@@ -1129,6 +1140,12 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// leadership loss).  No-op if `handle` is invalid.
     void dropPendingRecord(const DataStoreRecordHandle& handle);
 
+    /// Undo whatever the propose of the specified `pw` set aside for a commit
+    /// that will never come, because the log truncated the write or this node
+    /// lost primaryship before it was replicated.  Nothing was applied to the
+    /// storage, so there is no storage state to roll back.
+    void undoPropose(const PendingWrite& pw);
+
     /// Raft primary path: write a message record directly to mmap using the
     /// input fields of the specified 'pw'.  No StorageEvent replication is
     /// performed.  Fills 'pw->d_journalOffset', 'pw->d_dataOffset',
@@ -1380,10 +1397,22 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// undefined unless this cluster node is the primary for this partition.
     void flushStorage() BSLS_KEYWORD_OVERRIDE;
 
+    /// Convert every queue of this partition to remote, using the specified
+    /// `ackWindowSize`, self having lost primaryship.  Called on the stepdown
+    /// itself rather than when a new primary is known, so the queues buffer
+    /// through the election instead of failing writes.
+    void convertQueuesToRemote(int ackWindowSize);
+
     /// Re-drive delivery on the queues that have taken replicated messages
     /// since the last call.  In legacy mode it notifies weak consistency
     /// queues on the primary, and must only be called after `flushStorage`.
     void notifyQueuesOnReplicatedBatch();
+
+    /// Return `true` if a committed whole-queue PURGE was applied since the
+    /// last call, clearing the flag.  The caller reclaims the space the purge
+    /// freed (`onPurgeComplete`), which it must do outside the apply loop
+    /// because it proposes an `e_ROLLOVER`.
+    bool takePurgeCompleted();
 
     /// Refresh this partition's outstanding-bytes, file-offset and sequence
     /// number statistics from the active file set.  Legacy refreshes these
@@ -1435,7 +1464,7 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// Return `true` if this partition is Raft-replicated, `false` for the
     /// legacy path.  Safe to call even when no `storageMonitor` is set (e.g.
     /// in tests): returns `false` in that case.
-    bool isRaft() const;
+    bool isRaft() const BSLS_KEYWORD_OVERRIDE;
 
     void cancelTimersAndWait();
 

@@ -56,9 +56,12 @@
 #include <bmqt_compressionalgorithmtype.h>
 #include <bmqt_messageguid.h>
 #include <bmqt_resultcode.h>
+#include <bmqu_atomicstate.h>
 
 // BDE
 #include <bdlbb_blob.h>
+#include <bdlcc_objectpool.h>
+#include <bdlcc_sharedobjectpool.h>
 #include <bsl_functional.h>
 #include <bsl_memory.h>
 #include <bsl_ostream.h>
@@ -808,6 +811,16 @@ class QueueHandle {
 /// Interface for a Queue.
 class Queue : public DispatcherClient {
   public:
+    // TYPES
+
+    /// Pool of shared pointers to the state a remote queue attaches to each
+    /// message it has sent upstream and not yet had ACKed.
+    typedef bdlcc::SharedObjectPool<
+        bmqu::AtomicState,
+        bdlcc::ObjectPoolFunctors::DefaultCreator,
+        bdlcc::ObjectPoolFunctors::Reset<bmqu::AtomicState> >
+        StateSpPool;
+
     // CREATORS
 
     /// Destructor
@@ -993,6 +1006,20 @@ class Queue : public DispatcherClient {
 
     /// Convert this queue to local.
     virtual void convertToLocal() = 0;
+
+    /// Return true if this queue is a local one, that is, if this node is the
+    /// primary for its partition and it therefore has no upstream.
+    virtual bool isLocal() const = 0;
+
+    /// Convert this queue to remote, this node no longer being the primary
+    /// for its partition.  The handles and the storage are kept; the engine
+    /// is rebuilt from those handles and every subStream left buffering,
+    /// until the queue is reopened against the new primary.  Use the
+    /// specified `deduplicationTimeoutMs`, `ackWindowSize` and `statePool`
+    /// for the remote queue.
+    virtual void convertToRemote(int          deduplicationTimeoutMs,
+                                 int          ackWindowSize,
+                                 StateSpPool* statePool) = 0;
 
     // ACCESSORS
 

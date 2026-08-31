@@ -1115,11 +1115,127 @@ void RelayQueueEngine::resetState(bool isShuttingDown)
         d_allocator_p);
 }
 
-int RelayQueueEngine::rebuildInternalState(
-    BSLA_MAYBE_UNUSED bsl::ostream& errorDescription)
+int RelayQueueEngine::rebuildInternalState(bsl::ostream& errorDescription)
 {
-    BSLS_ASSERT_OPT(false && "should never be invoked");
+    // This method is called when a node that was the primary for this queue
+    // becomes a replica.  The node keeps the same queue handles, and this
+    // engine starts empty, so rebuild its Apps and their cached parameters
+    // from those handles.  Every field 'd_cache' holds is on the handle
+    // already, in 'mqbi::QueueHandle::StreamInfo' -- the cache is an index
+    // over the handle catalog rather than state of its own.
+    //
+    // Apps the root engine had that no handle refers to are not recreated: a
+    // relay's Apps exist per opened subStream, not per configured appId.  The
+    // caller clears 'QueueState' first ('abandonAll'), so those do not linger
+    // in 'd_subStreams' for the next conversion to adopt.
+
+    if (!d_apps.empty()) {
+        BALL_LOG_ERROR << "#QUEUE_CONFIGURE_FAILURE "
+                       << "Engine state must be empty before rebuilding it";
+        errorDescription << "Engine state must be empty before rebuilding it";
+        return -1;  // RETURN
+    }
+
+    // Not 'iterateConsumers': it skips handles without the reader flag and
+    // subStreams with no subscription, and both belong in 'd_cache'.
+    bsl::vector<mqbi::QueueHandle*> handles(d_allocator_p);
+    d_queueState_p->handleCatalog().loadHandles(&handles);
+
+    for (size_t i = 0; i < handles.size(); ++i) {
+        mqbi::QueueHandle* handle = handles[i];
+
+        for (mqbi::QueueHandle::SubStreams::const_iterator cit =
+                 handle->subStreamInfos().begin();
+             cit != handle->subStreamInfos().end();
+             ++cit) {
+            rebuildApp(handle, cit->first, cit->second);
+        }
+    }
+
+    // An App starts with an empty 'Routers::AppContext', so with the caches
+    // in place each one still needs the routing built over them: without it
+    // there are no consumers to deliver to, and no upstream parameters to
+    // advertise to the new primary once the reopen succeeds.  Same three
+    // steps 'configureHandle' ends with.
+    for (AppsMap::const_iterator cit = d_apps.cbegin(); cit != d_apps.cend();
+         ++cit) {
+        const AppStateSp& app = cit->second;
+
+        ConfigureContext context(mqbi::QueueHandle::HandleConfiguredCallback(),
+                                 bmqp_ctrlmsg::StreamParameters(),
+                                 d_allocator_p);
+
+        context.initializeRouting(d_queueState_p->routingContext());
+
+        rebuildUpstreamState(context.d_routing_sp.get(),
+                             app.get(),
+                             app->upstreamSubQueueId(),
+                             app->appId());
+
+        applyConfiguration(*app, context);
+    }
+
     return 0;
+}
+
+void RelayQueueEngine::rebuildApp(mqbi::QueueHandle*                   handle,
+                                  const bsl::string&                   appId,
+                                  const mqbi::QueueHandle::StreamInfo& info)
+{
+    // executed by the *QUEUE DISPATCHER* thread
+
+    const unsigned int upstreamSubQueueId = info.d_upstreamSubQueueId;
+
+    App_State* app = findApp(upstreamSubQueueId);
+
+    if (app == 0) {
+        AppStateSp appStateSp(new (*d_allocator_p)
+                                  App_State(upstreamSubQueueId,
+                                            appId,
+                                            d_queueState_p->queue(),
+                                            d_queueState_p->scheduler(),
+                                            d_queueState_p->routingContext(),
+                                            d_allocator_p),
+                              d_allocator_p);
+
+        app = appStateSp.get();
+
+        d_apps.insert(bsl::make_pair(upstreamSubQueueId, appStateSp));
+        d_appIds.insert(bsl::make_pair(appId, appStateSp));
+        d_queueState_p->adopt(appStateSp);
+
+        // Leaves the App unauthorized if its virtual storage is not there --
+        // a removed appId, or one whose 'e_ADDITION' has not committed.  Same
+        // as 'getHandle'; 'registerStorage' authorizes it later if it appears.
+        app->authorize();
+    }
+
+    // The handle's own view of this subStream: its counts, its downstream
+    // subId, and the stream parameters it last advertised.  'getHandle'
+    // caches the parameters of one open, so narrow the handle-wide aggregate
+    // to this subStream -- its 'subIdInfo' is null on a handle that opened
+    // more than one appId.
+    bmqp_ctrlmsg::QueueHandleParameters params(handle->handleParameters(),
+                                               d_allocator_p);
+    params.readCount()  = info.d_counts.d_readCount;
+    params.writeCount() = info.d_counts.d_writeCount;
+
+    if (d_queueState_p->hasMultipleSubStreams()) {
+        bmqp_ctrlmsg::SubQueueIdInfo& subIdInfo =
+            params.subIdInfo().makeValue();
+        subIdInfo.appId() = appId;
+        subIdInfo.subId() = info.d_downstreamSubQueueId;
+    }
+
+    bsl::pair<App_State::CachedParametersMap::iterator, bool> rc =
+        app->d_cache.insert(bsl::make_pair(
+            handle,
+            App_State::CachedParameters(params,
+                                        info.d_downstreamSubQueueId,
+                                        d_allocator_p)));
+    BSLS_ASSERT_SAFE(rc.second);
+
+    rc.first->second.d_streamParameters = info.d_streamParameters;
 }
 
 mqbi::QueueHandle* RelayQueueEngine::getHandle(

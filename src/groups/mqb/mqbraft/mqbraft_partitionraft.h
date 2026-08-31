@@ -135,6 +135,17 @@ class PartitionRaft : public mqbs::RecordStore,
     bsls::Types::Uint64 d_snapshotLastIncludedIndex;
     bsls::Types::Uint64 d_snapshotLastIncludedTerm;
 
+    /// `true` while `dispatchOutput` is walking its committed entries.  A
+    /// propose issued from there would re-enter `dispatchOutput` on a frame
+    /// that has not finished that walk.
+    bool d_isDispatchingOutput;
+
+    /// Writes held back because they were issued while
+    /// `d_isDispatchingOutput`; `postDispatch` proposes them once the walk
+    /// has unwound.  Only writes whose caller does not need a record handle
+    /// can go here, since a deferred write leaves `d_handle` unset.
+    bsl::vector<bsl::shared_ptr<mqbs::FileStore::PendingWrite> > d_deferred;
+
     /// `true` if an `e_ROLLOVER` has been proposed but not yet committed.
     bool d_isRolloverPending;
 
@@ -189,6 +200,13 @@ class PartitionRaft : public mqbs::RecordStore,
     /// Dispatch RaftNode output: send messages to peers and notify FileStore
     /// of committed entries.
     void dispatchOutput(RaftNodeOutput* output);
+
+    /// Run the part of `dispatchOutput` that must follow its apply loop, for
+    /// the specified `output`, `hadRollover` telling whether that loop rolled
+    /// the file set over.  Anything that proposes belongs here: a propose from
+    /// inside the loop re-enters `dispatchOutput` on a frame still walking
+    /// `d_committed`.
+    void postDispatch(RaftNodeOutput* output, bool hadRollover);
 
     /// Apply the next batch of committed-but-unapplied entries.  Re-posted to
     /// this partition's dispatcher between batches so a long replay -- a
@@ -468,6 +486,9 @@ class PartitionRaft : public mqbs::RecordStore,
 
     void
     registerStorage(mqbs::ReplicatedStorage* storage) BSLS_KEYWORD_OVERRIDE;
+
+    /// Every partition served through this object is Raft-replicated.
+    bool isRaft() const BSLS_KEYWORD_OVERRIDE { return true; }
 
     void unregisterStorage(const mqbs::ReplicatedStorage* storage)
         BSLS_KEYWORD_OVERRIDE;
