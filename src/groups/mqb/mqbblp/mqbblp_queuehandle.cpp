@@ -1161,9 +1161,8 @@ void QueueHandle::deconfigureDispatched(
     BSLS_ASSERT_SAFE(d_queue_sp->inDispatcherThread());
     BSLS_ASSERT_SAFE(d_haveClient);
 
-    bsl::shared_ptr<DeconfigureContext> context(
-        new (*d_allocator_p) DeconfigureContext(deconfiguredCb),
-        d_allocator_p);
+    bsl::shared_ptr<DeconfigureContext> context;
+    context.createInplace(d_allocator_p, deconfiguredCb);
 
     mqbi::QueueHandle::SubStreams::const_iterator citer =
         d_subStreamInfos.begin();
