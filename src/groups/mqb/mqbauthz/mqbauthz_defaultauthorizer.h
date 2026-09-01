@@ -28,8 +28,10 @@
 /// factory class for the Authorizer plugin.
 
 // MQB
+#include <mqbauthz_policy.h>
 #include <mqbplug_authenticator.h>
 #include <mqbplug_authorizer.h>
+#include <mqbpoly_policies.h>
 
 // BDE
 #include <ball_log.h>
@@ -59,6 +61,9 @@ class DefaultAuthorizer : public mqbplug::Authorizer {
   public:
     // CLASS DATA
     static bsl::string_view k_NAME;
+
+    // DATA
+    Policy d_policy;
 
   private:
     // CLASS-SCOPE CATEGORY
