@@ -351,7 +351,9 @@ jobs:
             libgtest-dev \
             libz-dev \
             autoconf \
-            libtool
+            libtool \
+            civetweb \
+            libcivetweb-dev
       - name: Install cached non packaged dependencies
         working-directory: deps
         run: ../docker/build_deps.sh
