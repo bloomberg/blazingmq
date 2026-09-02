@@ -117,9 +117,19 @@ extern "C" {
 /// was sent to the application.
 static void appShutdownSignal(int signal)
 {
-    bsl::cout << "Shutting down [received signal '" << strsignal(signal)
-              << "' (" << signal << ")]\n"
-              << bsl::flush;
+    char      buffer[64];
+    const int length = ::snprintf(buffer,
+                                  sizeof(buffer),
+                                  "Shutting down [received signal %d]\n",
+                                  signal);
+
+    if (0 < length) {
+        // Nothing can be done about a failed or partial write from within a
+        // signal handler, so the result is deliberately ignored.
+        const ssize_t rc = ::write(STDOUT_FILENO, buffer, length);
+        static_cast<void>(rc);
+    }
+
     if (s_taskEnv_p) {
         s_taskEnv_p->d_shutdownSemaphore.post();
     }
