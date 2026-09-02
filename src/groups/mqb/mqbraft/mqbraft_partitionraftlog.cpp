@@ -26,6 +26,7 @@
 // BDE
 #include <ball_log.h>
 #include <bdlbb_blob.h>
+#include <bsl_algorithm.h>
 #include <bsls_assert.h>
 
 namespace BloombergLP {
@@ -186,79 +187,84 @@ void PartitionRaftLog::takePendingWrites(PendingWrites* out)
     d_appendedCount = 0;
 }
 
-void PartitionRaftLog::dropBufferedWrites(
-    bsl::vector<bsl::shared_ptr<PendingWrite> >* out)
+void PartitionRaftLog::releaseBufferedRecords()
 {
-    if (d_appendedCount == d_pendingWrites.size()) {
-        return;  // RETURN
-    }
-
-    BALL_LOG_INFO << "PartitionRaftLog: removing "
-                  << (d_pendingWrites.size() - d_appendedCount)
-                  << " buffered write(s) (no longer leader, or shutting "
-                  << "down); " << (out ? "kept by the caller" : "discarded");
-
-    // These were buffered for a rollover that never drained: their
-    // placeholders belong to no log entry and carry offset 0, so nothing else
-    // would reclaim them.  The capacity behind them is released here only
-    // when nobody takes them on -- a caller that does owes it instead, so
-    // that it is released exactly once.
-    const size_t first = d_appendedCount;
-
-    for (size_t i = first; i < d_pendingWrites.size(); ++i) {
+    for (size_t i = d_appendedCount; i < d_pendingWrites.size(); ++i) {
         const bsl::shared_ptr<PendingWrite>& sp = d_pendingWrites[i];
 
         if (sp->d_handle.isValid()) {
             d_fileStore_p->dropPendingRecord(sp->d_handle);
             sp->d_handle = mqbs::DataStoreRecordHandle();
         }
+    }
+}
 
+void PartitionRaftLog::dropWritesFrom(bsls::Types::Uint64 index,
+                                      HeldWrites*         out)
+{
+    const size_t mark     = out ? out->size() : 0;
+    const size_t before   = d_pendingWrites.size();
+    size_t       buffered = 0;
+
+    while (!d_pendingWrites.empty()) {
+        const bsl::shared_ptr<PendingWrite>& sp = d_pendingWrites.back();
+
+        // The buffered ones go whole: they were held for a rollover that will
+        // not drain now, and their reserved indices are all above the log.
+        const bool isBuffered = d_pendingWrites.size() > d_appendedCount;
+
+        if (!isBuffered && sp->d_sequenceNumber < index) {
+            break;  // BREAK
+        }
+
+        if (isBuffered) {
+            // A placeholder belongs to no log entry and carries offset 0, so
+            // nothing else would reclaim it.  An appended write's record is a
+            // real entry, erased by the truncation that erased the entry.
+            if (sp->d_handle.isValid()) {
+                d_fileStore_p->dropPendingRecord(sp->d_handle);
+            }
+            ++buffered;
+        }
+
+        // Whatever propose set aside is given back here, or by the caller
+        // that takes the write on instead, so that it happens once.
         if (out) {
+            // 'd_handle' indexes a record that is gone, and 'd_entryBlob'
+            // aliases a mapping the truncation rolled back.  A re-post reads
+            // neither, and holding the alias would keep the file set
+            // referenced past its close.
+            sp->d_handle = mqbs::DataStoreRecordHandle();
+            sp->d_entryBlob.reset();
+
             out->push_back(sp);
         }
         else {
             d_fileStore_p->undoPropose(*sp);
         }
-    }
 
-    d_pendingWrites.resize(first);
-}
-
-void PartitionRaftLog::dropAppendedWritesFrom(bsls::Types::Uint64 index)
-{
-    BSLS_ASSERT_SAFE(d_appendedCount == d_pendingWrites.size());
-
-    while (0 < d_appendedCount &&
-           d_pendingWrites.back()->d_sequenceNumber >= index) {
-        // The entry is going: whatever its propose set aside is given back.
-        d_fileStore_p->undoPropose(*d_pendingWrites.back());
         d_pendingWrites.pop_back();
-        d_appendedCount--;
+        if (d_appendedCount > d_pendingWrites.size()) {
+            d_appendedCount = d_pendingWrites.size();
+        }
     }
-}
 
-void PartitionRaftLog::dropPendingWrites()
-{
-    dropBufferedWrites();
-
-    if (d_pendingWrites.empty()) {
+    if (before == d_pendingWrites.size()) {
         return;  // RETURN
     }
 
-    BALL_LOG_WARN << "PartitionRaftLog: dropping " << d_pendingWrites.size()
-                  << " appended write(s) (shutting down).";
-
-    // Their records stay: each is a real log entry, and 'd_index' holds a
-    // handle to it.  What their propose set aside does not -- nothing commits
-    // them now, so no apply will ever account for it.
-    for (PendingWrites::const_iterator it = d_pendingWrites.begin();
-         it != d_pendingWrites.end();
-         ++it) {
-        d_fileStore_p->undoPropose(**it);
+    // Popped newest-first; hand them over in the order the producers sent
+    // them.  Only this call's range, since 'out' accumulates across calls.
+    if (out) {
+        bsl::reverse(out->begin() + mark, out->end());
     }
 
-    d_pendingWrites.clear();
-    d_appendedCount = 0;
+    BALL_LOG_INFO << "PartitionRaftLog: removing "
+                  << (before - d_pendingWrites.size()) << " write(s) -- "
+                  << buffered << " buffered, "
+                  << (before - d_pendingWrites.size() - buffered)
+                  << " appended at or above index " << index << "; "
+                  << (out ? "kept by the caller" : "discarded");
 }
 
 void PartitionRaftLog::invalidatePendingWriteHandle(
@@ -398,19 +404,22 @@ int PartitionRaftLog::truncateFrom(bsls::Types::Uint64 index)
 {
     // 'truncateFrom' is only ever invoked from 'RaftNode::handleAppendEntries'
     // when this node's own logged suffix conflicts with the (new) leader's.
-    // If this node was itself leader until this very same message, its
-    // still-tracked 'd_pendingWrites' reference 'd_records' entries, some of
-    // which 'd_fileStore_p->truncateRecords()' erases below.  Stop tracking
-    // those here, first, so nothing holds a handle to an erased record.  The
-    // writes below 'index' keep their records and their provenance: their
-    // entries survive this truncation and can still commit.
-    dropBufferedWrites();
+    // If this node was itself leader until this very same message, it still
+    // tracks the writes behind the entries erased below.  Those stay: their
+    // producers are attached and no entry will ever carry them again, so the
+    // owner takes them off 'dispatchOutput' and re-posts them, clearing the
+    // handle and the entry blob as it does.  The writes below 'index' keep
+    // both, along with their provenance: their entries survive this
+    // truncation and can still commit.
+    //
+    // Only the buffered writes' records go here, because they must: a
+    // placeholder carries offset 0 and the highest key, so 'truncateRecords'
+    // would stop on it and erase nothing.
+    releaseBufferedRecords();
 
     if (index <= d_snapshotIndex || index > lastIndex()) {
         return -1;
     }
-
-    dropAppendedWritesFrom(index);
 
     // Each entry caches the data- and qlist-file positions as of that entry,
     // so the first truncated entry already carries the exact offsets to roll

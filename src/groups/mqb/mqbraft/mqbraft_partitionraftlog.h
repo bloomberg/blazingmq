@@ -80,6 +80,11 @@ class PartitionRaftLog : public RaftLog {
     typedef bsl::deque<bsl::shared_ptr<mqbs::FileStore::PendingWrite> >
         PendingWrites;
 
+    /// Writes taken off the primary path that no log entry will ever carry,
+    /// kept for their producers rather than undone.
+    typedef bsl::vector<bsl::shared_ptr<mqbs::FileStore::PendingWrite> >
+        HeldWrites;
+
   private:
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("MQBRAFT.PARTITIONRAFTLOG");
@@ -175,10 +180,11 @@ class PartitionRaftLog : public RaftLog {
     /// needs neither.
     void trimFrontThrough(bsls::Types::Uint64 index);
 
-    /// Stop tracking the appended writes at or above the specified `index`,
-    /// whose log entries `truncateFrom` is about to erase.  The buffered ones
-    /// must already be gone (see `dropBufferedWrites`).
-    void dropAppendedWritesFrom(bsls::Types::Uint64 index);
+    /// Erase the `d_records` placeholders the buffered writes reserved,
+    /// leaving the writes themselves in place.  A placeholder carries offset
+    /// 0 and the highest key, so `truncateRecords` would stop on it and erase
+    /// nothing.
+    void releaseBufferedRecords();
 
     /// Return the journal offset the anchor predicts for the specified
     /// `index`, without requiring it to be in range.
@@ -223,15 +229,13 @@ class PartitionRaftLog : public RaftLog {
     /// Load into the specified `out` the buffered writes, emptying the queue.
     void takePendingWrites(PendingWrites* out);
 
-    /// Remove the writes buffered for a rollover drain that will not happen,
-    /// releasing the records they reserved.  Move them into the optionally
-    /// specified `out`, whose owner then owes the capacity behind them;
-    /// release that here if `out` is 0.  The appended writes are kept.
-    void
-    dropBufferedWrites(bsl::vector<bsl::shared_ptr<PendingWrite> >* out = 0);
-
-    /// Drop every pending write, buffered and appended.
-    void dropPendingWrites();
+    /// Stop tracking every buffered write -- their rollover will not drain
+    /// now -- and every appended write at or above the specified `index`,
+    /// whose log entry a truncation has erased.  Move them into the
+    /// optionally specified `out`, oldest first, whose owner then owes the
+    /// capacity behind them; release that here if `out` is 0.  The appended
+    /// writes below `index` are kept: their entries can still commit.
+    void dropWritesFrom(bsls::Types::Uint64 index, HeldWrites* out = 0);
 
     /// Drop every cached entry.  The blobs alias the active file set, so this
     /// runs before anything that replaces or closes it.

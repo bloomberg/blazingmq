@@ -317,13 +317,26 @@ void PartitionRaft::dispatchOutput(RaftNodeOutput* output)
 
     dispatchMessages(output);
 
-    // If this node just lost leadership, discard the writes it had buffered
-    // for a rollover drain (which will not happen now) BEFORE applying
-    // committed entries below: their placeholders belong to no log entry, and
-    // the apply loop's deletion path would walk them.  The appended writes
-    // stay -- their entries can still commit under the new leader, and
-    // 'applyCommittedEntry' needs them to route those commits through the
-    // primary path.  'truncateFrom' drops the ones the new leader overwrites.
+    // A node that is not the leader keeps no write the log will ever carry:
+    // the buffered ones await a rollover that will not drain, and a
+    // truncation has erased the entries of any appended above the log end
+    // (that is where 'truncateFrom' leaves them; it releases only their
+    // records, which it must do before 'truncateRecords').  Their producers
+    // are still attached, so they are kept to be re-posted rather than
+    // discarded.  Before applying committed entries below: a placeholder
+    // belongs to no log entry, and the apply loop's deletion path would walk
+    // it.  The appended writes below the end stay -- their entries can still
+    // commit under the new leader, and 'applyCommittedEntry' needs them to
+    // route those commits through the primary path.
+    //
+    // Not under 'd_lostLeadership': the new leader probes backwards, so the
+    // conflicting AppendEntries usually arrives well after the one that
+    // stepped this node down.
+    if (!isLeader()) {
+        d_raftLog_mp->dropWritesFrom(d_raftLog_mp->lastIndex() + 1,
+                                     &d_writesToRepost);
+    }
+
     if (output->d_lostLeadership) {
         d_isRolloverPending = false;
 
@@ -331,13 +344,6 @@ void PartitionRaft::dispatchOutput(RaftNodeOutput* output)
         // expectation set would fire the 'haveCommit' callback for the next
         // term this node leads, on whatever entry commits first.
         d_isExpectingTermCommit = false;
-
-        // Their rollover will not drain now, but their producers are still
-        // attached, so keep them for the conversion to re-post rather than
-        // discarding them.  This must still happen before the apply loop
-        // below: their placeholders belong to no log entry, and its deletion
-        // path would walk them.
-        d_raftLog_mp->dropBufferedWrites(&d_writesToRepost);
 
         // The queues stay local for now.  Converting them is the cluster's
         // call, because the handles the peers opened here have to go first
@@ -468,9 +474,26 @@ void PartitionRaft::repostHeldWrites()
     held.swap(d_writesToRepost);
 
     size_t numReposted = 0;
+    size_t numKept     = 0;
 
     for (size_t i = 0; i < held.size(); ++i) {
         const mqbs::FileStore::PendingWrite& pw = *held[i];
+
+        mqbi::QueueHandle* handle = pw.d_recordType ==
+                                            mqbs::RecordType::e_MESSAGE
+                                        ? pw.d_attributes.queueHandle()
+                                        : 0;
+        mqbi::Queue*       queue  = handle ? handle->queue() : 0;
+
+        // A truncation can land before the conversion the stepdown asked the
+        // cluster for.  Re-posting into a queue that is still local would
+        // only propose the write and hold it again, so leave it for the
+        // conversion, which re-posts too.
+        if (queue && queue->isLocal()) {
+            d_writesToRepost.push_back(held[i]);
+            ++numKept;
+            continue;  // CONTINUE
+        }
 
         // The message never entered this node's storage, so the capacity
         // 'put' set aside for it goes back whether or not it is re-posted.
@@ -479,9 +502,6 @@ void PartitionRaft::repostHeldWrites()
         if (pw.d_recordType != mqbs::RecordType::e_MESSAGE) {
             continue;  // CONTINUE
         }
-
-        mqbi::QueueHandle* handle = pw.d_attributes.queueHandle();
-        mqbi::Queue*       queue  = handle ? handle->queue() : 0;
 
         // Gone means either a cluster peer whose handle the demotion dropped,
         // or a client that has since disconnected.  Either way there is no
@@ -512,9 +532,15 @@ void PartitionRaft::repostHeldWrites()
         ++numReposted;
     }
 
+    if (numKept == held.size()) {
+        // Nothing changed: every one of them is waiting on the conversion.
+        return;  // RETURN
+    }
+
     BALL_LOG_INFO << "Partition [" << d_partitionId << "] re-posted "
                   << numReposted << " of " << held.size()
-                  << " write(s) held while not the leader; the rest had no "
+                  << " write(s) held while not the leader; " << numKept
+                  << " still awaiting the conversion, the rest had no "
                   << "producer left to answer.";
 }
 
@@ -560,6 +586,14 @@ void PartitionRaft::postDispatch(RaftNodeOutput* output, bool hadRollover)
         d_isRolloverPending = false;
 
         drainPendingWrites();
+    }
+
+    // Writes a truncation took off the log on the way in ('truncateFrom' runs
+    // inside 'handleAppendEntries', ahead of this).  Here rather than there
+    // because re-posting proposes, and the conversion may already have run,
+    // in which case nothing else would come back for them.
+    if (!isLeader()) {
+        repostHeldWrites();
     }
 
     // A committed whole-queue purge freed journal space; reclaim it now.
@@ -984,14 +1018,15 @@ void PartitionRaft::beginReceiveSnapshot(bsls::Types::Uint64 lastIncludedIndex,
 
         // This path closes the 'FileStore' directly rather than through
         // 'PartitionRaft::close', so it has to release what aliases the file
-        // set itself: the cached entry blobs, and the pending writes a
-        // leader stint left behind (stepdown keeps the appended ones, and only
-        // 'truncateFrom' drops them -- an InstallSnapshot never truncates).
-        // Their record handles are iterators into 'd_records', which the close
-        // invalidates.  The snapshot replaces the log wholesale, so nothing
-        // this node appended can still commit.  'open()' clears the cache too,
-        // but only after the wipe, and never touches the pending writes.
-        d_raftLog_mp->dropPendingWrites();
+        // set itself: the cached entry blobs, and the pending writes a leader
+        // stint left behind (stepdown keeps the appended ones, and only a
+        // truncation drops them -- an InstallSnapshot never truncates).  Their
+        // record handles are iterators into 'd_records', which the close
+        // invalidates.  From index 0, because the snapshot replaces the log
+        // wholesale: nothing this node appended can still commit.  'open()'
+        // clears the cache too, but only after the wipe, and never touches the
+        // pending writes.
+        d_raftLog_mp->dropWritesFrom(0);
         d_raftLog_mp->clearCache();
 
         // Wipe current FileStore
@@ -1780,8 +1815,9 @@ int PartitionRaft::close(bool flush, bool archive)
     // blob aliased into the active file set.  Drop it now, while this
     // partition's dispatcher is still alive, so 'FileStore::close' below
     // does not leave that alias for a deferred 'FileStore::gc' to release
-    // later -- by which time the Dispatcher may already be stopped.
-    d_raftLog_mp->dropPendingWrites();
+    // later -- by which time the Dispatcher may already be stopped.  From
+    // index 0: this node is closing, so no entry of its own commits again.
+    d_raftLog_mp->dropWritesFrom(0);
 
     // Same reason: the cached entry blobs alias the active file set too.
     d_raftLog_mp->clearCache();
