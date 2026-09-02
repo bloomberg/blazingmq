@@ -6538,7 +6538,8 @@ int FileStore::processRecoveryEvent(const bsl::shared_ptr<bdlbb::Blob>& blob)
         rc_INVALID_PAYLOAD_OFFSET   = -2,
         rc_INVALID_PRIMARY_LEASE_ID = -3,
         rc_INVALID_SEQ_NUM          = -4,
-        rc_WRITE_FAILURE            = -5
+        rc_WRITE_FAILURE            = -5,
+        rc_MALFORMED_QUEUE_RECORD   = -6
     };
 
     bmqp::Event                  rawEvent(blob, d_allocator_p);
@@ -6680,6 +6681,21 @@ int FileStore::processRecoveryEvent(const bsl::shared_ptr<bdlbb::Blob>& blob)
                                     blob,
                                     recordPosition,
                                     header.messageType());
+        }
+
+        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
+                FileStoreUtil::k_MALFORMED_QUEUE_RECORD == rc)) {
+            BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+            BMQTSK_ALARMLOG_ALARM("RECOVERY")
+                << partitionDesc() << "Buffered storage message "
+                << header.messageType() << " with PSN "
+                << printPSN(recHeader->primaryLeaseId(),
+                            recHeader->sequenceNumber())
+                << ", with journal "
+                << "offset (words): " << header.journalOffsetWords()
+                << " carries a malformed queue record. Ignoring entire event."
+                << BMQTSK_ALARMLOG_END;
+            return rc_MALFORMED_QUEUE_RECORD;  // RETURN
         }
 
         if (0 != rc) {
