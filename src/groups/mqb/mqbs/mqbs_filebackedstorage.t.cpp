@@ -517,6 +517,9 @@ class MockDataStore : public mqbs::DataStore {
         functor();
     }
 
+    /// `execute` runs inline, so there is never anything outstanding.
+    void synchronize() BSLS_KEYWORD_OVERRIDE {}
+
     int rollover() BSLS_KEYWORD_OVERRIDE { return 0; }
 
     int transferLeadership(const bsl::string&) BSLS_KEYWORD_OVERRIDE
@@ -624,6 +627,16 @@ class MockDataStore : public mqbs::DataStore {
     }
 
     unsigned int writeHeadLeaseId() const BSLS_KEYWORD_OVERRIDE { return 0U; }
+
+    bsls::Types::Uint64 writeHeadSeqNum() const BSLS_KEYWORD_OVERRIDE
+    {
+        return 0U;
+    }
+
+    bool isApplied(bsls::Types::Uint64) const BSLS_KEYWORD_OVERRIDE
+    {
+        return true;
+    }
 
     bool
     hasReceipt(const mqbs::DataStoreRecordHandle&) const BSLS_KEYWORD_OVERRIDE

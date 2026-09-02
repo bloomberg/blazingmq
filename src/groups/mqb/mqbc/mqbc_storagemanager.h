@@ -389,8 +389,13 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager,
 
     /// Replication factor used to configure `FileStores`.
     ///
-    /// THREAD: **Must** be accessed in the cluster dispatcher thread.
-    int d_replicationFactor;
+    /// THREAD: Read and written by `processCommand` off the cluster
+    ///         dispatcher, from either admin execution pool, so the two can
+    ///         overlap.  `QUORUM SET` reads it and writes it back as two
+    ///         steps, so overlapping sets stay last-writer-wins with a
+    ///         possibly stale reported old value; that is accepted for an
+    ///         operator tunable.
+    bsls::AtomicInt d_replicationFactor;
 
   private:
     // NOT IMPLEMENTED

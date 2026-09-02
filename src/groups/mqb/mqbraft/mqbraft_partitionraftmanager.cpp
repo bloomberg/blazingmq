@@ -743,10 +743,12 @@ void PartitionRaftManager::processCommand(
     mqbcmd::StorageResult*        result,
     const mqbcmd::StorageCommand& command)
 {
-    // executed by the *CLUSTER DISPATCHER* thread
+    // executed by the thread issuing the command (an admin execution pool
+    // thread), or by the *CLUSTER DISPATCHER* thread for the 'SUMMARY' that
+    // 'Cluster::loadClusterStatus' folds into CLUSTER STATUS
 
-    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
-
+    // 'd_partitionRafts' is sized in the constructor and its elements are
+    // loaded once by 'start', so indexing it needs no dispatcher thread.
     mqbc::StorageUtil::RecordStores recordStores(d_allocator_p);
     recordStores.reserve(d_partitionRafts.size());
     for (PartitionRafts::iterator it = d_partitionRafts.begin();

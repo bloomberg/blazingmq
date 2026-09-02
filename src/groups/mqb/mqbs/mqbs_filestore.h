@@ -805,8 +805,8 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// the specified `pw`'s handle to identify it.  If `pw->d_handle` is
     /// already valid it refers to a *placeholder* record previously created
     /// by `reservePendingRecord` (Raft on-commit-rollover drain): update that
-    /// entry in place (preserving its `d_hasReceipt`) rather than inserting a
-    /// new one, so the handle already returned to the caller stays valid.
+    /// entry in place rather than inserting a new one, so the handle already
+    /// returned to the caller stays valid.
     /// Otherwise insert a fresh entry (the normal, non-buffered path).
     void bindOrUpdateRecord(PendingWrite*             pw,
                             const DataStoreRecordKey& key,
@@ -924,6 +924,9 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// type, in the processor associated to this object.
     void execute(const mqbi::Dispatcher::VoidFunction& functor)
         BSLS_KEYWORD_OVERRIDE;
+
+    /// Block until everything `execute` has enqueued so far has run.
+    void synchronize() BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
 
@@ -1121,9 +1124,9 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     /// Raft on-commit-rollover buffering: reserve a *placeholder*
     /// `DataStoreRecord` in `d_records` keyed by the specified
-    /// `primaryLeaseId` and `sequenceNumber`, with a placeholder offset (0),
-    /// `d_hasReceipt = false`, and the specified `recordType`; load into the
-    /// specified `handleOut` an iterator to the reserved entry.  The physical
+    /// `primaryLeaseId` and `sequenceNumber`, with a placeholder offset (0)
+    /// and the specified `recordType`; load into the specified `handleOut` an
+    /// iterator to the reserved entry.  The physical
     /// offsets are patched in later by `bindOrUpdateRecord` when the buffered
     /// write drains into the new file after rollover.  Because the underlying
     /// container keeps iterators/references stable across inserts, the handle
@@ -1589,7 +1592,12 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
         BSLS_KEYWORD_OVERRIDE;
 
     /// Return the write head's sequence number for this partition.
-    bsls::Types::Uint64 writeHeadSeqNum() const;
+    bsls::Types::Uint64 writeHeadSeqNum() const BSLS_KEYWORD_OVERRIDE;
+
+    /// Return true: this store applies every write as it makes it, so there
+    /// is no window in which an accepted record has yet to take effect.
+    bool
+    isApplied(bsls::Types::Uint64 sequenceNumber) const BSLS_KEYWORD_OVERRIDE;
 
     bool isFileSetAvailable() const BSLS_KEYWORD_OVERRIDE;
 
@@ -1739,6 +1747,11 @@ inline void FileStore::execute(const mqbi::Dispatcher::VoidFunction& functor)
                           mqbi::DispatcherEventType::e_CALLBACK);
 }
 
+inline void FileStore::synchronize()
+{
+    dispatcher()->synchronize(this);
+}
+
 // MANIPULATORS
 inline void
 FileStore::setLastStrongConsistency(unsigned int        primaryLeaseId,
@@ -1872,6 +1885,12 @@ inline bsls::Types::Uint64 FileStore::writeHeadSeqNum() const
 {
     LeaseIdToSeqNumMapCIter cit = d_highestSeqNums.find(d_writeHeadLeaseId);
     return (cit != d_highestSeqNums.end()) ? cit->second : 0;
+}
+
+inline bool FileStore::isApplied(
+    BSLA_MAYBE_UNUSED bsls::Types::Uint64 sequenceNumber) const
+{
+    return true;
 }
 
 inline int FileStore::replicationFactor() const

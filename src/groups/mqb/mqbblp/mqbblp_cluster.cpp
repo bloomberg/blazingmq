@@ -557,21 +557,6 @@ void Cluster::processCommandDispatched(mqbcmd::ClusterResult*        result,
 
         return;  // RETURN
     }
-    else if (command.isStorageValue()) {
-        mqbcmd::StorageResult storageResult;
-        d_storageProvider_p->processCommand(&storageResult, command.storage());
-        if (storageResult.isErrorValue()) {
-            result->makeError(storageResult.error());
-            return;  // RETURN
-        }
-        else if (storageResult.isSuccessValue()) {
-            result->makeSuccess(storageResult.success());
-            return;  // RETURN
-        }
-
-        result->makeStorageResult(storageResult);
-        return;  // RETURN
-    }
     else if (command.isStateValue()) {
         d_clusterOrchestrator.processCommand(command.state(), result);
         return;  // RETURN
@@ -2543,13 +2528,35 @@ int Cluster::processCommand(mqbcmd::ClusterResult*        result,
     // addresses is ungainly, it works, and the stream objects are guaranteed
     // to outlive the callback because we synchronize the callback.
 
-    dispatcher()->execute(
-        bdlf::BindUtil::bind(&Cluster::processCommandDispatched,
-                             this,
-                             result,
-                             bsl::ref(command)),
-        this);
-    dispatcher()->synchronize(this);
+    if (command.isStorageValue()) {
+        // Run here rather than on the cluster dispatcher.  A storage command
+        // reads no cluster state: every branch of
+        // 'StorageUtil::processCommand' dispatches into the partition threads
+        // and waits on a latch spanning all of them, so running it on the
+        // cluster dispatcher stalls the cluster for the length of the slowest
+        // partition.
+        mqbcmd::StorageResult storageResult;
+        d_storageProvider_p->processCommand(&storageResult, command.storage());
+
+        if (storageResult.isErrorValue()) {
+            result->makeError(storageResult.error());
+        }
+        else if (storageResult.isSuccessValue()) {
+            result->makeSuccess(storageResult.success());
+        }
+        else {
+            result->makeStorageResult(storageResult);
+        }
+    }
+    else {
+        dispatcher()->execute(
+            bdlf::BindUtil::bind(&Cluster::processCommandDispatched,
+                                 this,
+                                 result,
+                                 bsl::ref(command)),
+            this);
+        dispatcher()->synchronize(this);
+    }
 
     // The dispatcher only starts a leadership transfer; wait for it here, off
     // the dispatcher.

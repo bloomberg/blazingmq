@@ -259,8 +259,10 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager,
 
     bsls::Types::Uint64 d_minimumRequiredDiskSpace;
 
-    /// Replication factor used to configure `FileStores`.
-    int d_replicationFactor;
+    /// Replication factor used to configure `FileStores`.  Atomic because
+    /// `processCommand` reads and writes it off the cluster dispatcher; see
+    /// `mqbc::StorageManager::d_replicationFactor`.
+    bsls::AtomicInt d_replicationFactor;
 
   private:
     /// Not implemented.

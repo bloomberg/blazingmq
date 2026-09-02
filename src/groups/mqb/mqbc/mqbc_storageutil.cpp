@@ -78,12 +78,26 @@ BALL_LOG_SET_NAMESPACE_CATEGORY("MQBC.STORAGEUTIL");
 
 typedef mqbi::StorageManager_PartitionInfo PartitionInfo;
 
-/// Post on the optionally specified `semaphore`.
-void optionalSemaphorePost(bslmt::Semaphore* semaphore)
+/// How long `waitForPurge` sleeps between polls, and how long it polls in
+/// total before giving up on a purge that was accepted but never applied.
+const int k_PURGE_POLL_MS    = 20;
+const int k_PURGE_TIMEOUT_MS = 30 * 1000;
+
+/// Load into the specified `isApplied` whether the specified `recordStore`
+/// has applied the record at the specified `sequenceNumber`, and into the
+/// specified `isLeader` whether it is still the primary.  `isLeader` is read
+/// here rather than by the waiting thread because it reads state this thread
+/// owns ('FileStore::d_primaryNode_p', the Raft node's state); reading both
+/// in one visit also keeps them consistent with each other.
+///
+/// THREAD: Executed by `recordStore`'s dispatcher thread.
+void hasAppliedDispatched(bool*                    isApplied,
+                          bool*                    isLeader,
+                          const mqbs::RecordStore* recordStore,
+                          bsls::Types::Uint64      sequenceNumber)
 {
-    if (semaphore) {
-        semaphore->post();
-    }
+    *isApplied = recordStore->isApplied(sequenceNumber);
+    *isLeader  = recordStore->isLeader();
 }
 
 void transitionToActivePrimary(PartitionInfo*   partitionInfo,
@@ -407,16 +421,14 @@ int StorageUtil::updateQueuePrimaryRaw(mqbs::ReplicatedStorage* storage,
         // On a Raft partition the record above is only a proposal: the Apps
         // are registered when it commits, through 'applyCommittedQueueOp' ->
         // 'queueCreationCb' -> 'updateQueueStorageDispatched', which performs
-        // exactly the 'addQueueOpRecordHandle' + 'addVirtualStoragesInternal'
-        // + 'onStorageAppsAdded' trio below.  Doing it here as well would
+        // the same 'addQueueOpRecordHandle' + 'addVirtualStoragesInternal' +
+        // 'onStorageAppsAdded' trio below.  Doing it here as well would
         // register twice, and an addition the log later truncated would stay
         // behind.  'DOMAINS RECONFIGURE' still returns only once the App is
         // registered: its barrier polls 'loadAppIds', which reads what
         // 'onStorageAppsAdded' writes.
         //
-        // The removals below are NOT deferred -- their walk writes a DELETION
-        // per message it drops to refCount zero, which cannot be proposed
-        // from inside the apply loop.
+        // The removals below are deferred to commit the same way.
         if (!rs->isRaft()) {
             storage->addQueueOpRecordHandle(handle);
 
@@ -628,7 +640,8 @@ void StorageUtil::loadStorages(bsl::vector<mqbcmd::StorageQueueInfo>* storages,
                                const bsl::string&  domainName,
                                const RecordStores& recordStores)
 {
-    // executed by cluster *DISPATCHER* thread
+    // executed by the thread issuing the command
+
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(storages);
 
@@ -685,7 +698,7 @@ void StorageUtil::doRollover(mqbcmd::StorageResult* result,
                              int                    partitionId,
                              bslma::Allocator*      allocator)
 {
-    // executed by cluster *DISPATCHER* thread
+    // executed by the thread issuing the command
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(result);
@@ -815,7 +828,7 @@ void StorageUtil::loadPartitionStorageSummary(
     int                      partitionId,
     const bslstl::StringRef& partitionLocation)
 {
-    // executed by cluster *DISPATCHER* thread
+    // executed by the thread issuing the command
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(result);
@@ -847,7 +860,9 @@ void StorageUtil::loadStorageSummary(mqbcmd::StorageResult*  result,
                                      const RecordStores&     recordStores,
                                      const bslstl::StringRef location)
 {
-    // executed by cluster *DISPATCHER* thread
+    // executed by the thread issuing the command, or by the cluster
+    // *DISPATCHER* thread when 'Cluster::loadClusterStatus' folds a 'SUMMARY'
+    // into CLUSTER STATUS
 
     // This command needs to forward the 'SUMMARY' command to all partitions,
     // wait for all of them to finish executing it, and then aggregate the
@@ -892,7 +907,8 @@ void StorageUtil::loadStorageSummaryDispatched(
 void StorageUtil::executeForEachPartitions(const PerPartitionFunctor& job,
                                            const RecordStores& recordStores)
 {
-    // executed by cluster *DISPATCHER* thread
+    // executed by any thread other than a partition dispatcher one, which
+    // would deadlock on the latch below
 
     bslmt::Latch latch(recordStores.size());
 
@@ -907,7 +923,8 @@ void StorageUtil::executeForEachPartitions(const PerPartitionFunctor& job,
 void StorageUtil::executeForValidPartitions(const PerPartitionFunctor& job,
                                             const RecordStores& recordStores)
 {
-    // executed by cluster *DISPATCHER* thread
+    // executed by any thread other than a partition dispatcher one, which
+    // would deadlock on the latch below
 
     bsl::vector<int> validPartitionIds;
     validPartitionIds.reserve(recordStores.size());
@@ -935,11 +952,11 @@ void StorageUtil::executeForValidPartitions(const PerPartitionFunctor& job,
 
 int StorageUtil::processReplicationCommand(
     mqbcmd::ReplicationResult*        replicationResult,
-    int*                              replicationFactor,
+    bsls::AtomicInt*                  replicationFactor,
     const RecordStores&               recordStores,
     const mqbcmd::ReplicationCommand& command)
 {
-    // executed by cluster *DISPATCHER* thread
+    // executed by the thread issuing the command
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(replicationResult);
@@ -3367,11 +3384,12 @@ void StorageUtil::forceFlushFileStores(FileStores* fileStores)
 
 void StorageUtil::purgeDomainDispatched(
     bsl::vector<bsl::vector<mqbcmd::PurgeQueueResult> >*
-                        purgedQueuesResultsVec,
-    bslmt::Latch*       latch,
-    int                 partitionId,
-    const RecordStores* recordStores,
-    const bsl::string&  domainName)
+                                      purgedQueuesResultsVec,
+    bsl::vector<bsls::Types::Uint64>* purgeSeqNums,
+    bslmt::Latch*                     latch,
+    int                               partitionId,
+    const RecordStores*               recordStores,
+    const bsl::string&                domainName)
 {
     // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
 
@@ -3379,6 +3397,7 @@ void StorageUtil::purgeDomainDispatched(
     BSLS_ASSERT_SAFE(recordStores);
     BSLS_ASSERT_SAFE(latch);
     BSLS_ASSERT_SAFE(purgedQueuesResultsVec);
+    BSLS_ASSERT_SAFE(purgeSeqNums);
     BSLS_ASSERT_SAFE(0 <= partitionId);
     BSLS_ASSERT_SAFE(static_cast<unsigned int>(partitionId) <
                      recordStores->size());
@@ -3405,16 +3424,25 @@ void StorageUtil::purgeDomainDispatched(
         (*purgedQueuesResultsVec)[partitionId];
     purgedQueuesResults.reserve(domainStorages.size());
 
+    // The queues below are purged in order on this one thread, so the last
+    // record written covers them all: waiting for it to apply waits for every
+    // purge in this partition.
+    bsls::Types::Uint64& lastSeqNum = (*purgeSeqNums)[partitionId];
+    lastSeqNum                      = 0;
+
     for (size_t i = 0; i < domainStorages.size(); i++) {
         mqbcmd::PurgeQueueResult result;
-        // No need to pass a Semaphore here because we call it in
-        // a synchronous way
+        bsls::Types::Uint64      seqNum = 0;
         purgeQueueDispatched(&result,
-                             NULL,
+                             &seqNum,
                              domainStorages[i],
                              recordStore,
                              "");
         purgedQueuesResults.push_back(result);
+
+        if (seqNum > lastSeqNum) {
+            lastSeqNum = seqNum;
+        }
     }
 
     latch->arrive();
@@ -3422,7 +3450,7 @@ void StorageUtil::purgeDomainDispatched(
 
 void StorageUtil::purgeQueueDispatched(
     mqbcmd::PurgeQueueResult* purgedQueueResult,
-    bslmt::Semaphore*         purgeFinishedSemaphore,
+    bsls::Types::Uint64*      purgeSeqNum,
     const StorageSp&          storage,
     const mqbs::RecordStore*  recordStore,
     const bsl::string&        appId)
@@ -3432,12 +3460,13 @@ void StorageUtil::purgeQueueDispatched(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(recordStore);
     BSLS_ASSERT_SAFE(purgedQueueResult);
+    BSLS_ASSERT_SAFE(purgeSeqNum);
     BSLS_ASSERT_SAFE(storage);
     BSLS_ASSERT_SAFE(recordStore->partitionId() == storage->partitionId());
 
-    // RAII to ensure we will post on the semaphore no matter how we return
-    bdlb::ScopeExitAny semaphorePost(
-        bdlf::BindUtil::bind(&optionalSemaphorePost, purgeFinishedSemaphore));
+    // Stays 0 unless the purge below writes a record: there is then nothing
+    // for 'waitForPurge' to wait on.
+    *purgeSeqNum = 0;
 
     if (!recordStore->isLeader()) {
         bmqu::MemOutStream errorMsg;
@@ -3482,6 +3511,12 @@ void StorageUtil::purgeQueueDispatched(
         return;  // RETURN
     }
 
+    // The record the purge just wrote.  On a Raft partition it is only
+    // proposed at this point, so the counts below are what *will* be purged;
+    // 'waitForPurge' holds the response until this sequence number applies,
+    // so by the time the caller sees them they are what was.
+    *purgeSeqNum = recordStore->writeHeadSeqNum();
+
     if (storage->queue()) {
         BSLS_ASSERT_SAFE(storage->queue()->queueEngine());
         storage->queue()->queueEngine()->afterQueuePurged(appId, appKey);
@@ -3495,6 +3530,53 @@ void StorageUtil::purgeQueueDispatched(
     queueDetails.appKey()            = appKeyStr.str();
     queueDetails.numMessagesPurged() = numMsgs;
     queueDetails.numBytesPurged()    = numBytes;
+}
+
+bool StorageUtil::waitForPurge(bmqu::MemOutStream*       errorDescription,
+                               mqbs::RecordStore*        recordStore,
+                               bsls::Types::Uint64       purgeSeqNum,
+                               const bsls::TimeInterval& deadline)
+{
+    // executed by the thread issuing the command
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(errorDescription);
+    BSLS_ASSERT_SAFE(recordStore);
+
+    if (0 == purgeSeqNum) {
+        // No record was written, so there is nothing to apply.
+        return true;  // RETURN
+    }
+
+    for (;;) {
+        bool isApplied = false;
+        bool isLeader  = false;
+        recordStore->execute(bdlf::BindUtil::bind(&hasAppliedDispatched,
+                                                  &isApplied,
+                                                  &isLeader,
+                                                  recordStore,
+                                                  purgeSeqNum));
+        recordStore->synchronize();
+
+        if (isApplied) {
+            return true;  // RETURN
+        }
+
+        // A purge applies where it was proposed.  Once this node stops being
+        // the primary, the record it wrote either commits under a successor
+        // -- too late for this response -- or is truncated away.
+        if (!isLeader || bmqu::Time::nowMonotonicClock() >= deadline) {
+            *errorDescription
+                << "Purge on " << recordStore->description()
+                << " was accepted but did not take effect"
+                << (isLeader ? " within the timeout"
+                             : "; this node is no longer the primary")
+                << ". It may still be applied later.";
+            return false;  // RETURN
+        }
+
+        bslmt::ThreadUtil::microSleep(k_PURGE_POLL_MS * 1000);
+    }
 }
 
 void StorageUtil::recordStoresFromFileStores(RecordStores*     recordStores,
@@ -3514,12 +3596,16 @@ void StorageUtil::recordStoresFromFileStores(RecordStores*     recordStores,
 void StorageUtil::processCommand(mqbcmd::StorageResult*     result,
                                  const RecordStores&        recordStores,
                                  const mqbi::DomainFactory* domainFactory,
-                                 int*                       replicationFactor,
+                                 bsls::AtomicInt*           replicationFactor,
                                  const mqbcmd::StorageCommand& command,
                                  const bslstl::StringRef& partitionLocation,
                                  bslma::Allocator*        allocator)
 {
-    // executed by cluster *DISPATCHER* thread
+    // executed by the thread issuing the command -- never a partition
+    // dispatcher thread, since every branch below dispatches into those and
+    // waits.  Nothing here reads cluster state: 'DomainFactory::getDomain' is
+    // mutex-guarded, 'StorageMonitor::find' takes the per-partition lock, and
+    // the record store vector is fixed after 'start'.
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(result);
@@ -3615,6 +3701,10 @@ void StorageUtil::processCommand(mqbcmd::StorageResult*     result,
                 purgedQueuesVec;
             purgedQueuesVec.resize(recordStores.size());
 
+            bsl::vector<bsls::Types::Uint64> purgeSeqNums(recordStores.size(),
+                                                          0,
+                                                          allocator);
+
             // To purge a domain, we have to purge queues in each partition
             // from the correct thread.  This is achieved by parallel launch
             // of `purgeDomainDispatched` across all FileStore's threads.
@@ -3623,11 +3713,32 @@ void StorageUtil::processCommand(mqbcmd::StorageResult*     result,
             executeForEachPartitions(
                 bdlf::BindUtil::bind(&purgeDomainDispatched,
                                      &purgedQueuesVec,
+                                     &purgeSeqNums,
                                      bdlf::PlaceHolders::_2,  // latch
                                      bdlf::PlaceHolders::_1,  // partitionId
                                      &recordStores,
                                      command.domain().name()),
                 recordStores);
+
+            // The purges above are only proposed on a Raft partition; hold
+            // the response until each partition has applied its last one.
+            // One deadline covers them all -- they ran in parallel.
+            bmqu::MemOutStream       errorDescription(allocator);
+            const bsls::TimeInterval deadline =
+                bmqu::Time::nowMonotonicClock().addMilliseconds(
+                    k_PURGE_TIMEOUT_MS);
+
+            for (size_t i = 0; i < recordStores.size(); ++i) {
+                if (!waitForPurge(&errorDescription,
+                                  recordStores[i],
+                                  purgeSeqNums[i],
+                                  deadline)) {
+                    BALL_LOG_WARN << "#QUEUE_PURGE_FAILURE "
+                                  << errorDescription.str();
+                    result->makeError().message() = errorDescription.str();
+                    return;  // RETURN
+                }
+            }
 
             mqbcmd::PurgedQueues& purgedQueues = result->makePurgedQueues();
             for (size_t i = 0; i < purgedQueuesVec.size(); ++i) {
@@ -3678,15 +3789,28 @@ void StorageUtil::processCommand(mqbcmd::StorageResult*     result,
         mqbs::RecordStore* recordStore = recordStores[partitionId];
 
         mqbcmd::PurgeQueueResult purgedQueueResult;
-        bslmt::Semaphore         purgeFinishedSemaphore;
+        bsls::Types::Uint64      purgeSeqNum = 0;
         recordStore->execute(bdlf::BindUtil::bind(&purgeQueueDispatched,
                                                   &purgedQueueResult,
-                                                  &purgeFinishedSemaphore,
+                                                  &purgeSeqNum,
                                                   queueStorage,
                                                   recordStore,
                                                   appId));
 
-        purgeFinishedSemaphore.wait();
+        // The processor's queue is FIFO, so this returns once the purge above
+        // has run and both outputs are written.
+        recordStore->synchronize();
+
+        bmqu::MemOutStream errorDescription(allocator);
+        if (!waitForPurge(&errorDescription,
+                          recordStore,
+                          purgeSeqNum,
+                          bmqu::Time::nowMonotonicClock().addMilliseconds(
+                              k_PURGE_TIMEOUT_MS))) {
+            BALL_LOG_WARN << "#QUEUE_PURGE_FAILURE " << errorDescription.str();
+            result->makeError().message() = errorDescription.str();
+            return;  // RETURN
+        }
 
         result->makePurgedQueues();
         result->purgedQueues().queues().push_back(purgedQueueResult);
@@ -3772,6 +3896,15 @@ void StorageUtil::purgeQueueOnDomain(mqbcmd::StorageResult* result,
     bsl::vector<bsl::vector<mqbcmd::PurgeQueueResult> > purgedQueuesVec;
     purgedQueuesVec.resize(recordStores.size());
 
+    // TODO: unlike the 'DOMAIN PURGE' branch of 'processCommand', this does
+    // not wait for the purges to apply.  It runs on the cluster dispatcher
+    // (via 'Cluster::purgeAndGCQueueOnDomainDispatched'), which must not block
+    // for a commit, and its caller GCs the domain's queues immediately after
+    // -- on a Raft partition, before their purges have committed.  Both need
+    // the purge and the GC split around a wait taken off the cluster
+    // dispatcher.
+    bsl::vector<bsls::Types::Uint64> purgeSeqNums(recordStores.size(), 0);
+
     // To purge a domain, we have to purge queues in each partition
     // where the current node is the primary
     // from the correct thread.  This is achieved by parallel launch
@@ -3781,6 +3914,7 @@ void StorageUtil::purgeQueueOnDomain(mqbcmd::StorageResult* result,
     executeForValidPartitions(
         bdlf::BindUtil::bind(&purgeDomainDispatched,
                              &purgedQueuesVec,
+                             &purgeSeqNums,
                              bdlf::PlaceHolders::_2,  // latch
                              bdlf::PlaceHolders::_1,  // partitionId
                              &recordStores,

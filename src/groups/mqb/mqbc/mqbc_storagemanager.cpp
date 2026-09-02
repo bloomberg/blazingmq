@@ -4956,11 +4956,12 @@ void StorageManager::processShutdownEvent()
 void StorageManager::processCommand(mqbcmd::StorageResult*        result,
                                     const mqbcmd::StorageCommand& command)
 {
-    // executed by cluster *DISPATCHER* thread
+    // executed by the thread issuing the command (an admin execution pool
+    // thread), or by the *CLUSTER DISPATCHER* thread for the 'SUMMARY' that
+    // 'Cluster::loadClusterStatus' folds into CLUSTER STATUS
 
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
-
+    // 'd_fileStores' is sized at construction and its elements are loaded
+    // once by 'start', so indexing it needs no dispatcher thread.
     if (!d_isStarted) {
         result->makeError();
         result->error().message() = "StorageManager not yet started or is "

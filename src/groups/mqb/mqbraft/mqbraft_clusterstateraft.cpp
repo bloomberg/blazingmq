@@ -1437,7 +1437,15 @@ bool ClusterStateRaft::assignQueue(const bmqt::Uri&      uri,
         status,
         d_allocator_p);
 
-    if (status->category() == bmqp_ctrlmsg::StatusCategory::E_SUCCESS) {
+    // Propose only if 'startQueueAssignment' actually produced an advisory.
+    // When the queue is already ASSIGNING or ASSIGNED (e.g. a concurrent
+    // request for the same queue is already in flight or committed), it
+    // returns success without populating 'queueAdvisory'.  Proposing that
+    // empty advisory would burn a Raft entry that assigns nothing.  The
+    // already-pending advisory will still commit and resolve all pending
+    // contexts for the queue, so replying success here is correct.
+    if (status->category() == bmqp_ctrlmsg::StatusCategory::E_SUCCESS &&
+        !queueAdvisory.queues().empty()) {
         BSLS_ASSERT_SAFE(result);
 
         bmqp_ctrlmsg::ClusterMessage clusterMessage(d_allocator_p);

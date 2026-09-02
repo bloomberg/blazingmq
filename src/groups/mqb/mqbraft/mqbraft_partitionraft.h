@@ -558,6 +558,10 @@ class PartitionRaft : public mqbs::RecordStore,
     void execute(const mqbi::Dispatcher::VoidFunction& functor)
         BSLS_KEYWORD_OVERRIDE;
 
+    /// Block until everything `execute` has enqueued so far has run, by
+    /// delegating to the owned `FileStore`, whose processor this shares.
+    void synchronize() BSLS_KEYWORD_OVERRIDE;
+
     /// Close this record store.  If the optional `flush` flag is true, flush
     /// to the backup storage (e.g., disk) if applicable.  If the optional
     /// `archive` flag is true, archive it.  Return zero on success, non-zero
@@ -635,6 +639,20 @@ class PartitionRaft : public mqbs::RecordStore,
     /// Return the write-head leaseId for this partition: the lease id of the
     /// next record this store writes or applies.
     virtual unsigned int writeHeadLeaseId() const BSLS_KEYWORD_OVERRIDE;
+
+    /// Return the log index the most recently accepted write will occupy.
+    /// Counts the writes buffered during a rollover window, whose reserved
+    /// indices are above `lastIndex()` until the drain appends them.
+    ///
+    /// THREAD: Executed by this partition's dispatcher thread.
+    bsls::Types::Uint64 writeHeadSeqNum() const BSLS_KEYWORD_OVERRIDE;
+
+    /// Return true if the entry at the specified `sequenceNumber` (a log
+    /// index) has been applied.
+    ///
+    /// THREAD: Executed by this partition's dispatcher thread.
+    bool
+    isApplied(bsls::Types::Uint64 sequenceNumber) const BSLS_KEYWORD_OVERRIDE;
 
     /// Return `true` if there was Replication Receipt for the specified
     /// `handle`.

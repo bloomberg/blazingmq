@@ -243,16 +243,15 @@ FileBackedStorage::get(mqbi::StorageMessageAttributes* attributes,
 bool FileBackedStorage::hasReceipt(const bmqt::MessageGUID& msgGUID) const
 {
     // Require record presence and consult the record's durability, uniformly
-    // for both consistency modes -- the record's 'd_hasReceipt' already
-    // encodes consistency.  A normal weak-consistency write is receipted at
-    // write time (its attributes default 'hasReceipt = true', carried onto the
-    // record), so this still returns true immediately; a strong-consistency
-    // write's record stays not-receipted until its receipt arrives.  The case
-    // this newly gates is a write buffered during a rollover window: its
-    // placeholder record is reserved not-yet-durable ('d_hasReceipt = false',
-    // zero offset) until it drains, so it must not be reported as receipted --
-    // otherwise it is delivered and its zero offset is read in
-    // 'loadMessageAttributesRaw'.
+    // for both consistency modes and both partition kinds -- 'd_hasReceipt'
+    // already encodes consistency, so 'd_hasReceipts' is not consulted here.
+    //
+    // On Raft, presence *is* the receipt: nothing enters 'd_handles' until
+    // 'processMessageRecord' runs at commit, and a commit means a quorum has
+    // the record, so the record is written receipted.  On legacy the message
+    // enters in 'put' and the flag carries the write's own durability -- a
+    // weak-consistency write is receipted at write time, a strong-consistency
+    // one stays not-receipted until its receipts arrive.
     RecordHandleMap::const_iterator it = d_handles.find(msgGUID);
     if (it == d_handles.end()) {
         return false;  // RETURN

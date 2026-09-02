@@ -32,6 +32,7 @@ from blazingmq.dev.it.data import data_metrics as dt
 from blazingmq.dev.it.process.admin import AdminClient
 from blazingmq.dev.it.process.broker import Broker
 from blazingmq.dev.it.process.client import Client
+from blazingmq.dev.it.util import wait_until
 
 pytestmark = order(1)
 
@@ -280,31 +281,51 @@ def test_queue_stats(single_node: Cluster, domain_urls: tc.DomainUrls) -> None:
     admin.stop()
 
 
-def _change_leader(cluster: Cluster) -> Broker:
+def _change_queue_primary(cluster: Cluster, uri: str) -> Broker:
+    """
+    Kill the node currently primary for the partition that owns 'uri' and
+    return the node that takes over.
+
+    The subject is the *primary*, not the CSL leader: per-queue event counters
+    (put/confirm/ack times) live only on the node that processed them, so only
+    a primary change resets them, while storage-derived fields must survive.
+    Legacy makes the two indistinguishable -- 'E_LEADER_IS_MASTER_ALL' has the
+    leader assign itself primary of every partition -- but under Raft each
+    partition elects its own leader independently of the CSL group, so killing
+    the CSL leader moves this queue's primary only by coincidence.
+    """
     assert cluster.last_known_leader
     assert len(cluster.nodes()) > 1
-    # We cannot change leader for 1-node cluster
+    # We cannot change primary for 1-node cluster
 
-    leader = cluster.last_known_leader
+    old_primary = cluster.last_known_leader.wait_queue_primary(uri)
 
-    # Kill the leader; whichever surviving node wins the resulting election
-    # becomes the new leader.  (Biasing the winner via 'STATE ELECTOR SET
-    # quorum' only affects the legacy bully elector's ClusterQuorumManager --
-    # Raft's CSL quorum is a fixed majority-of-peers value
-    # ('RaftNode::quorum()'), so under Raft the winner is whichever survivor's
-    # independent randomized election timeout fires first, unbiased by that
-    # command.)  Callers only need *some* new leader, distinct from the killed
-    # one, to verify behavior persists across a leadership change -- not this
-    # specific node's identity.
     cluster.drain()
-    leader.check_exit_code = False
-    leader.kill()
-    leader.wait()
+    old_primary.check_exit_code = False
+    old_primary.kill()
+    old_primary.wait()
 
-    cluster.wait_leader()
-    assert cluster.last_known_leader != leader
+    # Ask a survivor rather than 'cluster.last_known_leader', which still
+    # points at the killed node when that node was also the leader.  Only
+    # 'wait_leader' re-resolves it, and 'wait_leader' matches a *new* "new
+    # leader ... ACTIVE" line in each broker's log, so it hangs whenever the
+    # killed primary was not the leader and no election follows.  Any member
+    # can answer: QUEUEHELPER reads cluster state, which they all have.
+    survivor = cluster.nodes(exclude=old_primary, alive=True)[0]
 
-    return cluster.last_known_leader
+    # Partition leadership settles independently of CSL leadership, and
+    # 'wait_queue_primary' reports whatever name the cluster state holds,
+    # whether or not that node is alive.  So keep asking until the killed one
+    # is no longer the answer.
+    wait_until(
+        lambda: survivor.wait_queue_primary(uri) != old_primary,
+        timeout=5,
+    )
+
+    new_primary = survivor.wait_queue_primary(uri)
+    assert new_primary != old_primary
+
+    return new_primary
 
 
 def test_app_id_stats(multi_node: Cluster, domain_urls: tc.DomainUrls) -> None:
@@ -321,7 +342,10 @@ def test_app_id_stats(multi_node: Cluster, domain_urls: tc.DomainUrls) -> None:
     Stage 2: check stats after confirming messages
     - Open a consumer for each appId
     - Confirm a portion of messages for each consumer
-    - Verify stats acquired via admin command with the expected stats
+    - Kill the queue's primary so another node takes over
+    - Verify stats acquired via admin command from the new primary: the
+      storage-derived fields survive the failover, the per-queue event
+      counters start from zero
 
     Stage 3: check stats after purging an appId
     - Purge one appId
@@ -366,32 +390,69 @@ def test_app_id_stats(multi_node: Cluster, domain_urls: tc.DomainUrls) -> None:
     expect_same_structure(queue_stats, dt.TEST_QUEUE_STATS_AFTER_POST, "after-post")
 
     # Stage 2: check stats after confirming messages
-    consumer_foo: Client = proxy.create_client("consumer_foo")
-    consumer_foo.open(f"{task.uri}?id=foo", flags=["read"], succeed=True)
-    consumer_foo.wait_push_event()
+
+    def open_and_await_all(name: str, app_id: str) -> Client:
+        """
+        Open '<task.uri>?id=<app_id>' for reading and return the consumer once
+        it holds every posted message.  'wait_push_event' returns on the first
+        PUSH event, not the last: under strong consistency delivery waits for
+        quorum receipts, so the consumer can still be holding two or three
+        messages at that point and the confirm counts below would then apply
+        to a partial set.
+        """
+        consumer: Client = proxy.create_client(name)
+        uri = f"{task.uri}?id={app_id}"
+        consumer.open(uri, flags=["read"], succeed=True)
+        consumer.wait_push_event()
+        assert wait_until(
+            lambda: len(consumer.list(uri, block=True)) == task.num, timeout=10
+        ), f"app '{app_id}' did not receive all {task.num} messages"
+        return consumer
+
+    consumer_foo = open_and_await_all("consumer_foo", "foo")
     consumer_foo.confirm(f"{task.uri}?id=foo", "*", succeed=True)
 
-    consumer_bar: Client = proxy.create_client("consumer_bar")
-    consumer_bar.open(f"{task.uri}?id=bar", flags=["read"], succeed=True)
-    consumer_bar.wait_push_event()
+    consumer_bar = open_and_await_all("consumer_bar", "bar")
     consumer_bar.confirm(f"{task.uri}?id=bar", "+22", succeed=True)
 
-    consumer_baz: Client = proxy.create_client("consumer_baz")
-    consumer_baz.open(f"{task.uri}?id=baz", flags=["read"], succeed=True)
-    consumer_baz.wait_push_event()
+    consumer_baz = open_and_await_all("consumer_baz", "baz")
     consumer_baz.confirm(f"{task.uri}?id=baz", "+11", succeed=True)
+
+    # 'confirm' returns once the client has issued the CONFIRMs, not once the
+    # broker has applied them.  Killing the primary with any still in flight
+    # hands them to the *new* primary, which then reports storage counters
+    # that are still catching up and a confirm time of its own -- the opposite
+    # of what this stage checks a failover does.  'admin' is still connected to
+    # the current primary, so ask it.
+    def confirms_applied() -> bool:
+        try:
+            stats = extract_stats(
+                admin.send_admin("encoding json_pretty stat show")
+            )
+        except KeyError:
+            # 'stat show' forces a snapshot and refuses when asked more often
+            # than the snapshot interval; that is not an answer, so retry.
+            return False
+
+        apps = stats["domainQueues"]["domains"][domain_fanout][task.uri]["appIds"]
+        return (
+            apps["foo"]["values"]["queue_msgs_current"] == 0
+            and apps["bar"]["values"]["queue_msgs_current"] == 10
+            and apps["baz"]["values"]["queue_msgs_current"] == 21
+        )
+
+    assert wait_until(
+        confirms_applied, timeout=10, interval=2
+    ), "confirms were not applied on the primary before the failover"
 
     admin.stop()
 
-    _ = _change_leader(cluster)
+    primary = _change_queue_primary(cluster, task.uri)
 
     # wait for at least one snapshot to initialize stats
     time.sleep(1)
 
-    # Re-resolve the queue's primary: '_change_leader' kills the old CSL
-    # leader, which may or may not have also been this queue's partition
-    # primary, so the primary could have changed independently of leadership.
-    admin = cluster.last_known_leader.wait_queue_primary(task.uri).open_admin_client()
+    admin = primary.open_admin_client()
 
     stats = extract_stats(admin.send_admin("encoding json_pretty stat show"))
     queue_stats = stats["domainQueues"]["domains"][domain_fanout][task.uri]

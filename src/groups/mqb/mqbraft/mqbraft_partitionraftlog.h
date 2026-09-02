@@ -229,6 +229,12 @@ class PartitionRaftLog : public RaftLog {
     /// Load into the specified `out` the buffered writes, emptying the queue.
     void takePendingWrites(PendingWrites* out);
 
+    /// Return the index the most recently accepted write will occupy: the
+    /// last appended one's, or -- during a rollover window -- the reserved
+    /// index of the last buffered one, which `bufferPendingWrite` derives the
+    /// same way.
+    bsls::Types::Uint64 writeHeadIndex() const;
+
     /// Stop tracking every buffered write -- their rollover will not drain
     /// now -- and every appended write at or above the specified `index`,
     /// whose log entry a truncation has erased.  Move them into the

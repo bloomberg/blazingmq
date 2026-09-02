@@ -187,6 +187,13 @@ void PartitionRaftLog::takePendingWrites(PendingWrites* out)
     d_appendedCount = 0;
 }
 
+bsls::Types::Uint64 PartitionRaftLog::writeHeadIndex() const
+{
+    // The buffered writes are those past 'd_appendedCount'; each takes the
+    // next index above the log when the rollover drains them.
+    return lastIndex() + (d_pendingWrites.size() - d_appendedCount);
+}
+
 void PartitionRaftLog::releaseBufferedRecords()
 {
     for (size_t i = d_appendedCount; i < d_pendingWrites.size(); ++i) {

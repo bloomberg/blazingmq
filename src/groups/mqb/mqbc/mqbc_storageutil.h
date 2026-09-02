@@ -362,11 +362,12 @@ struct StorageUtil {
 
     static void
     purgeDomainDispatched(bsl::vector<bsl::vector<mqbcmd::PurgeQueueResult> >*
-                                              purgedQueuesResultsVec,
-                          bslmt::Latch*       latch,
-                          int                 partitionId,
-                          const RecordStores* recordStores,
-                          const bsl::string&  domainName);
+                              purgedQueuesResultsVec,
+                          bsl::vector<bsls::Types::Uint64>* purgeSeqNums,
+                          bslmt::Latch*                     latch,
+                          int                               partitionId,
+                          const RecordStores*               recordStores,
+                          const bsl::string&                domainName);
     /// Execute the domain purge command for the specified `domainName` within
     /// the specified `partitionId`.  The specified `storageMapVec` contains
     /// mutable storages to search for domain's queues, while the specified
@@ -385,20 +386,38 @@ struct StorageUtil {
 
     static void
     purgeQueueDispatched(mqbcmd::PurgeQueueResult* purgedQueueResult,
-                         bslmt::Semaphore*         purgeFinishedSemaphore,
+                         bsls::Types::Uint64*      purgeSeqNum,
                          const StorageSp&          storage,
                          const mqbs::RecordStore*  recordStore,
                          const bsl::string&        appId);
-    /// Execute the queue purge command for the specified `storage` with
-    /// the specified `appId`.  The optionally specified
-    /// `purgeFinishedSemaphore` used to notify the calling thread that this
-    /// operation has finished. The specified `purgedQueuesResult` is used to
-    /// store execution result. The specified `fileStore` contains FileStore
-    /// object used to verify correctness and thread-safety of calling this
-    /// method.
+    /// Execute the queue purge command for the specified `storage` with the
+    /// specified `appId`.  Load into the specified `purgeSeqNum` the sequence
+    /// number of the purge record, or 0 if none was written; on a Raft
+    /// partition that record is only proposed here, and `waitForPurge` pairs
+    /// the sequence number with `mqbs::RecordStore::isApplied` to tell when
+    /// the purge has taken effect.  The specified `purgedQueuesResult` is
+    /// used to store execution result. The specified `fileStore` contains
+    /// FileStore object used to verify correctness and thread-safety of
+    /// calling this method.
     ///
     /// THREAD: Executed by the Queue's dispatcher thread for the specified
     ///         `fileStore`.
+
+    /// Wait for the record at the specified `purgeSeqNum` -- written by
+    /// `purgeQueueDispatched` on the specified `recordStore` -- to have been
+    /// applied, and return true.  Return true immediately if `purgeSeqNum` is
+    /// 0, meaning no record was written.  Return false, loading a reason into
+    /// the specified `errorDescription`, if it has not applied by the
+    /// specified `deadline` or the node stops being the primary first: a
+    /// purge proposed by a node that loses primaryship never takes effect
+    /// there.
+    ///
+    /// THREAD: Executed by the thread issuing the command; must not be
+    ///         `recordStore`'s own dispatcher thread.
+    static bool waitForPurge(bmqu::MemOutStream*       errorDescription,
+                             mqbs::RecordStore*        recordStore,
+                             bsls::Types::Uint64       purgeSeqNum,
+                             const bsls::TimeInterval& deadline);
 
     /// Execute the specified `job` for each partition in the specified
     /// `fileStores`.  Each partition will receive its partitionId and a
@@ -425,10 +444,10 @@ struct StorageUtil {
     /// partition of the specified `fileStores`.  Return 0 if the command
     /// was successfully processed, or a non-zero value otherwise.
     ///
-    /// THREAD: Executed by the cluster-dispatcher thread.
+    /// THREAD: Executed by the thread issuing the command.
     static int
     processReplicationCommand(mqbcmd::ReplicationResult* replicationResult,
-                              int*                       replicationFactor,
+                              bsls::AtomicInt*           replicationFactor,
                               const RecordStores&        recordStores,
                               const mqbcmd::ReplicationCommand& command);
 
@@ -765,11 +784,13 @@ struct StorageUtil {
     static void recordStoresFromFileStores(RecordStores*     recordStores,
                                            const FileStores& fileStores);
 
-    /// THREAD: Executed by the cluster-dispatcher thread.
+    /// THREAD: Executed by the thread issuing the command; must not be a
+    ///         partition dispatcher thread, since every branch dispatches
+    ///         into those and waits.
     static void processCommand(mqbcmd::StorageResult*        result,
                                const RecordStores&           recordStores,
                                const mqbi::DomainFactory*    domainFactory,
-                               int*                          replicationFactor,
+                               bsls::AtomicInt*              replicationFactor,
                                const mqbcmd::StorageCommand& command,
                                const bslstl::StringRef&      partitionLocation,
                                bslma::Allocator*             allocator);

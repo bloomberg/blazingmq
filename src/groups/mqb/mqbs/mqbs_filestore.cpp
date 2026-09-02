@@ -7547,16 +7547,11 @@ void FileStore::reservePendingRecord(PendingWrite*       pw,
 
     // Placeholder entry: real offsets are unknown until the buffered write
     // drains into the new file post-rollover ('bindOrUpdateRecord' patches
-    // them).  Leave 'd_hasReceipt' at the single-arg ctor's 'false' for the
-    // duration of the window: under eventual consistency the write's
-    // attributes already carry a receipt, and copying that onto this
-    // zero-offset placeholder would let the delivery gate
-    // ('QueueEngineUtil_AppsDeliveryContext::reset') pick it up and read its
-    // (still zero) offset before the write drains -- tripping the offset-0
-    // assertion in 'loadMessageAttributesRaw'.  The receipt is (re)opened when
-    // the drained record commits ('onRecordCommittedPrimary').
+    // them).  Nothing reads it in the meantime -- the message is not in the
+    // storage until its record commits, so the delivery gate cannot reach
+    // this zero offset.
     DataStoreRecordKey key(primaryLeaseId, sequenceNumber);
-    DataStoreRecord    record(recordType);
+    DataStoreRecord    record(recordType, 0);
 
     record.d_messagePropertiesInfo = pw->d_attributes.messagePropertiesInfo();
     record.d_arrivalTimepoint      = pw->d_attributes.arrivalTimepoint();
@@ -7609,15 +7604,13 @@ void FileStore::bindOrUpdateRecord(PendingWrite*             pw,
     if (pw->d_handle.isValid()) {
         // Drain path: 'pw->d_handle' already refers to the placeholder entry
         // reserved by 'reservePendingRecord' (same '(leaseId, seqNum)' key).
-        // Patch its offsets/metadata in place, preserving 'd_hasReceipt' as
-        // set by the reservation, and leave the handle/iterator untouched.
+        // Patch its offsets/metadata in place and leave the handle/iterator
+        // untouched.
         const RecordIterator& recordIt = handleTorRecordIterator(pw->d_handle);
         BSLS_ASSERT_SAFE(recordIt->first == key);
         (void)key;
 
-        const bool hadReceipt         = recordIt->second.d_hasReceipt;
-        recordIt->second              = record;
-        recordIt->second.d_hasReceipt = hadReceipt;
+        recordIt->second = record;
         return;  // RETURN
     }
 
@@ -7944,14 +7937,15 @@ int FileStore::formatMessageRecord(PendingWrite* pw)
     record.d_appDataUnpaddedLen         = pw->d_appData->length();
     record.d_dataOrQlistRecordPaddedLen = totalLength;
     record.d_messagePropertiesInfo = pw->d_attributes.messagePropertiesInfo();
-    record.d_hasReceipt            = pw->d_attributes.hasReceipt();
     record.d_arrivalTimepoint      = pw->d_attributes.arrivalTimepoint();
     record.d_arrivalTimestamp      = pw->d_attributes.arrivalTimestamp();
 
-    // On the drain path a placeholder was reserved with 'd_hasReceipt =
-    // false'; 'bindOrUpdateRecord' preserves that (the receipt lifecycle is a
-    // separate item), overriding the value just computed above.  On the normal
-    // path it inserts a fresh entry with the computed 'd_hasReceipt'.
+    // A Raft record enters the storage only when it commits, and it commits
+    // only once it is durable on a quorum, so presence in the storage is the
+    // receipt.  Legacy has no commit point: the flag carries the write's own
+    // durability, 'false' under strong consistency until the receipts arrive.
+    record.d_hasReceipt = isRaft() || pw->d_attributes.hasReceipt();
+
     bindOrUpdateRecord(pw, key, record);
 
     activeFileSet->d_journal.d_outstandingBytes += k_JREC_SIZE;
@@ -8370,8 +8364,6 @@ void FileStore::onRecordCommittedReplica(const bdlbb::Blob&           data,
                                               handle,
                                               false);
 
-            record.d_hasReceipt = true;
-
             // The message is now committed and queryable in storage, so its
             // receipt gate opens.  Notify the queue so any PUSH that arrived
             // before this commit -- and is parked in the relay push stream
@@ -8632,29 +8624,23 @@ void FileStore::onRecordCommittedPrimary(PendingWrite&      pw,
     // loop.
     d_replicationNotifications.insert(pw.d_queueKey);
 
-    if (pw.d_attributes.hasReceipt() && pw.d_handle.hasReceipt()) {
+    if (pw.d_attributes.hasReceipt()) {
         // Eventual consistency: the producer was ACKed at propose.
         return;  // RETURN
     }
 
-    {
-        mqbi::Queue* queue = sit->second->queue();
-        BSLS_ASSERT_SAFE(queue);
+    mqbi::Queue* queue = sit->second->queue();
+    BSLS_ASSERT_SAFE(queue);
 
-        pw.d_handle.setHasReceipt();
-
-        // The same measurement the legacy receipt path records, so both modes
-        // report store-and-replicate time on one axis.  A zero arrival
-        // timepoint means unset.
-        if (0 != pw.d_attributes.arrivalTimepoint()) {
-            d_partitionStats_sp->setReplicationTime(
-                commitTimepoint - pw.d_attributes.arrivalTimepoint());
-        }
-
-        if (!pw.d_attributes.hasReceipt()) {
-            queue->onReceipt(pw.d_guid, pw.d_attributes.queueHandle());
-        }
+    // The same measurement the legacy receipt path records, so both modes
+    // report store-and-replicate time on one axis.  A zero arrival timepoint
+    // means unset.
+    if (0 != pw.d_attributes.arrivalTimepoint()) {
+        d_partitionStats_sp->setReplicationTime(
+            commitTimepoint - pw.d_attributes.arrivalTimepoint());
     }
+
+    queue->onReceipt(pw.d_guid, pw.d_attributes.queueHandle());
 }
 
 void FileStore::removeRecordRaw(const DataStoreRecordHandle& handle)

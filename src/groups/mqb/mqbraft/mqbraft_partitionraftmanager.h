@@ -124,7 +124,12 @@ class PartitionRaftManager : public mqbi::StorageProvider,
     mqbi::DomainFactory*             d_domainFactory_p;
     mqbc::ClusterState*              d_clusterState_p;
     const mqbcfg::ClusterDefinition& d_clusterConfig;
-    int                              d_replicationFactor;
+
+    /// Replication factor used to configure `FileStores`.  Atomic because
+    /// `processCommand` reads and writes it off the cluster dispatcher; see
+    /// `mqbc::StorageManager::d_replicationFactor`.
+    bsls::AtomicInt d_replicationFactor;
+
     PartitionLeadershipCb            d_leadershipCb;
     bslma::Allocator*                d_allocator_p;
 

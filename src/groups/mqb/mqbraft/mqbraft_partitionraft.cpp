@@ -1806,6 +1806,11 @@ void PartitionRaft::execute(const mqbi::Dispatcher::VoidFunction& functor)
     d_fileStore_sp->execute(functor);
 }
 
+void PartitionRaft::synchronize()
+{
+    d_fileStore_sp->synchronize();
+}
+
 int PartitionRaft::close(bool flush, bool archive)
 {
     // executed by the partition *DISPATCHER* thread
@@ -2532,6 +2537,16 @@ unsigned int PartitionRaft::getMessageLenRaw(
 unsigned int PartitionRaft::writeHeadLeaseId() const
 {
     return static_cast<unsigned int>(d_raftNode_mp->currentTerm());
+}
+
+bsls::Types::Uint64 PartitionRaft::writeHeadSeqNum() const
+{
+    return d_raftLog_mp->writeHeadIndex();
+}
+
+bool PartitionRaft::isApplied(bsls::Types::Uint64 sequenceNumber) const
+{
+    return d_raftNode_mp->lastAppliedCommit() >= sequenceNumber;
 }
 
 bool PartitionRaft::hasReceipt(const mqbs::DataStoreRecordHandle& handle) const

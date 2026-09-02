@@ -106,7 +106,7 @@ struct DataStoreRecord {
     // PUBLIC DATA
     RecordType::Enum d_recordType;  // Type of the journal record
 
-    mutable bool d_hasReceipt;
+    bool d_hasReceipt;
     // Strong consistency receipt.
 
     bsls::Types::Uint64 d_recordOffset;  // Offset of record in journal
@@ -173,12 +173,6 @@ struct DataStoreRecord {
     DataStoreRecord(RecordType::Enum    recordType,
                     bsls::Types::Uint64 recordOffset,
                     unsigned int        dataOrQlistRecordPaddedLen);
-
-    /// Create a placeholder record of the specified `recordType` with a zero
-    /// offset and `d_hasReceipt` set to `false`.  Used to reserve a record
-    /// (and thus a handle) for a write buffered during a rollover window; its
-    /// offsets are patched in place when the write later drains to disk.
-    explicit DataStoreRecord(RecordType::Enum recordType);
 
     // ACCESSORS
     RecordType::Enum type() const;
@@ -552,12 +546,6 @@ class DataStoreRecordHandle {
     explicit DataStoreRecordHandle(
         const DataStoreConfig::Records::const_iterator& iterator);
 
-    // MANIPULATORS
-
-    /// Mark the referenced record as having received quorum receipt.  The
-    /// behavior is undefined unless `isValid()`.
-    void setHasReceipt();
-
     // ACCESSORS
 
     /// Return true if this instance is valid, false otherwise.
@@ -810,6 +798,12 @@ class RecordStore {
     /// `FileStore`.
     virtual void execute(const mqbi::Dispatcher::VoidFunction& functor) = 0;
 
+    /// Block until everything `execute` has enqueued so far has run.  The
+    /// processor's queue is FIFO, so this is how a caller on another thread
+    /// reads back what the functor it just enqueued produced.  The behavior
+    /// is undefined if called from this record store's own dispatcher thread.
+    virtual void synchronize() = 0;
+
     /// Close this record store.  If the optional `flush` flag is true, flush
     /// to the backup storage (e.g., disk) if applicable.  If the optional
     /// `archive` flag is true, archive it.  Return zero on success, non-zero
@@ -882,6 +876,22 @@ class RecordStore {
     /// Return the write-head leaseId for this partition: the lease id of the
     /// next record this store writes or applies.
     virtual unsigned int writeHeadLeaseId() const = 0;
+
+    /// Return the sequence number of the most recent record this store
+    /// accepted.  Pair it with `isApplied` to wait for a write just issued to
+    /// take effect.
+    ///
+    /// THREAD: Executed by this record store's dispatcher thread.
+    virtual bsls::Types::Uint64 writeHeadSeqNum() const = 0;
+
+    /// Return true if the record at the specified `sequenceNumber` has taken
+    /// effect on the storage.  A legacy store applies every write as it makes
+    /// it, so this is always true; a Raft store applies on commit, so a write
+    /// it accepted is not visible yet, and one proposed by a node that then
+    /// loses primaryship never becomes visible at all.
+    ///
+    /// THREAD: Executed by this record store's dispatcher thread.
+    virtual bool isApplied(bsls::Types::Uint64 sequenceNumber) const = 0;
 
     /// Return `true` if there was Replication Receipt for the specified
     /// `handle`.
@@ -1093,20 +1103,6 @@ inline DataStoreRecord::DataStoreRecord(
 , d_messageOffset(0)
 , d_appDataUnpaddedLen(0)
 , d_dataOrQlistRecordPaddedLen(dataOrQlistRecordPaddedLen)
-, d_messagePropertiesInfo()
-, d_arrivalTimepoint(0LL)
-, d_arrivalTimestamp(0LL)
-{
-    // NOTHING
-}
-
-inline DataStoreRecord::DataStoreRecord(RecordType::Enum recordType)
-: d_recordType(recordType)
-, d_hasReceipt(false)
-, d_recordOffset(0)
-, d_messageOffset(0)
-, d_appDataUnpaddedLen(0)
-, d_dataOrQlistRecordPaddedLen(0)
 , d_messagePropertiesInfo()
 , d_arrivalTimepoint(0LL)
 , d_arrivalTimestamp(0LL)
@@ -1457,14 +1453,6 @@ inline DataStoreRecordHandle::DataStoreRecordHandle(
 inline DataStoreRecordHandle::DataStoreRecordHandle()
 : d_iterator()
 {
-}
-
-// MANIPULATORS
-
-inline void DataStoreRecordHandle::setHasReceipt()
-{
-    BSLS_ASSERT_SAFE(isValid());
-    d_iterator->second.d_hasReceipt = true;
 }
 
 // ACCESSORS
