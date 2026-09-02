@@ -528,7 +528,11 @@ void PartitionRaft::repostHeldWrites()
 
         pw.d_attributes.messagePropertiesInfo().applyTo(&header);
 
-        handle->postMessage(header, pw.d_appData, pw.d_options);
+        // Not 'QueueHandle::postMessage': that one hops from the producer's
+        // dispatcher thread onto the queue's, and asserts it is on the
+        // former.  This runs on the partition's dispatcher thread, which is
+        // the queue's, so hand the message straight to the queue.
+        queue->postMessage(header, pw.d_appData, pw.d_options, handle);
         ++numReposted;
     }
 

@@ -274,6 +274,12 @@ class Queue : public mqbi::Queue {
     /// throttle warnings if the `msgGUID` is invalid.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
+    void postMessage(const bmqp::PutHeader&              putHeader,
+                     const bsl::shared_ptr<bdlbb::Blob>& appData,
+                     const bsl::shared_ptr<bdlbb::Blob>& options,
+                     mqbi::QueueHandle* source) BSLS_KEYWORD_OVERRIDE;
+
+    /// THREAD: This method is called from the Queue's dispatcher thread.
     void confirmMessage(const bmqt::MessageGUID& msgGUID,
                         unsigned int             upstreamSubQueueId,
                         mqbi::QueueHandle*       source) BSLS_KEYWORD_OVERRIDE;

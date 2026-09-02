@@ -921,6 +921,18 @@ class Queue : public DispatcherClient {
         bmqt::CompressionAlgorithmType::Enum compressionAlgorithmType,
         bool                                 isOutOfOrder) = 0;
 
+    /// Post the message described by the specified `putHeader`, `appData` and
+    /// `options` on behalf of the client identified by the specified
+    /// `source`.  Unlike `QueueHandle::postMessage`, which hops from the
+    /// client's dispatcher thread onto this one, the caller is already here,
+    /// so the message is handed to the local or remote queue directly.
+    ///
+    /// THREAD: This method is called from the Queue's dispatcher thread.
+    virtual void postMessage(const bmqp::PutHeader&              putHeader,
+                             const bsl::shared_ptr<bdlbb::Blob>& appData,
+                             const bsl::shared_ptr<bdlbb::Blob>& options,
+                             QueueHandle*                        source) = 0;
+
     /// Confirm the message with the specified `msgGUID` for the specified
     /// `upstreamSubQueueId` stream of the queue on behalf of the client
     /// identified by the specified `source`.  Also note that since there

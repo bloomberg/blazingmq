@@ -293,6 +293,16 @@ class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
         bmqt::CompressionAlgorithmType::Enum compressionAlgorithmType,
         bool isOutOfOrder) BSLS_KEYWORD_OVERRIDE;
 
+    /// Post the message described by the specified `putHeader`, `appData` and
+    /// `options` on behalf of the client identified by the specified
+    /// `source`, by handing it to the local or remote queue directly.
+    ///
+    /// THREAD: This method is called from the Queue's dispatcher thread.
+    void postMessage(const bmqp::PutHeader&              putHeader,
+                     const bsl::shared_ptr<bdlbb::Blob>& appData,
+                     const bsl::shared_ptr<bdlbb::Blob>& options,
+                     mqbi::QueueHandle* source) BSLS_KEYWORD_OVERRIDE;
+
     /// Confirm the message with the specified `msgGUID` for the specified
     /// `upstreamSubQueueId` stream of the queue on behalf of the client
     /// identified by the specified `source`.  Also note that since there

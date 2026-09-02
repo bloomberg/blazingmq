@@ -937,6 +937,27 @@ void Queue::onPushMessage(
     dispatcher()->dispatchEvent(bslmf::MovableRefUtil::move(event_sp), this);
 }
 
+void Queue::postMessage(const bmqp::PutHeader&              putHeader,
+                        const bsl::shared_ptr<bdlbb::Blob>& appData,
+                        const bsl::shared_ptr<bdlbb::Blob>& options,
+                        mqbi::QueueHandle*                  source)
+{
+    // executed by the *QUEUE* dispatcher thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(inDispatcherThread());
+
+    if (d_localQueue_mp) {
+        d_localQueue_mp->postMessage(putHeader, appData, options, source);
+    }
+    else if (d_remoteQueue_mp) {
+        d_remoteQueue_mp->postMessage(putHeader, appData, options, source);
+    }
+    else {
+        BSLS_ASSERT_OPT(false && "Uninitialized queue");
+    }
+}
+
 void Queue::confirmMessage(const bmqt::MessageGUID& msgGUID,
                            unsigned int             upstreamSubQueueId,
                            mqbi::QueueHandle*       source)

@@ -275,6 +275,16 @@ void Queue::onPushMessage(
     // NOTHING
 }
 
+void Queue::postMessage(
+    BSLA_MAYBE_UNUSED const bmqp::PutHeader& putHeader,
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<bdlbb::Blob>& appData,
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<bdlbb::Blob>& options,
+    BSLA_MAYBE_UNUSED mqbi::QueueHandle* source)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_OPT(inDispatcherThread());
+}
+
 void Queue::confirmMessage(const bmqt::MessageGUID& msgGUID,
                            unsigned int             upstreamSubQueueId,
                            mqbi::QueueHandle*       source)
