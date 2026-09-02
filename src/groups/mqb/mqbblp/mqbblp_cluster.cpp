@@ -735,31 +735,31 @@ void Cluster::continueShutdownDispatched(
 
     // Every partition has appended and sent its last sync point.  Give the
     // peers a bounded window to acknowledge it before closing the channels:
-    // 'closeChannels' discards whatever the transport has not written yet,
-    // and once this node is gone, nothing retries.
+    // 'closeChannels' discards whatever the transport has not written yet.
+
     bsls::TimeInterval whenToStop(
         bsls::SystemTime::now(bsls::SystemClockType::e_MONOTONIC));
     whenToStop.addMilliseconds(k_REPLICATION_WAIT_MS);
 
     guard.release();
 
-    waitForReplicationDispatched(whenToStop, completionCb);
+    checkIfCanShutdownDispatched(whenToStop, completionCb);
 }
 
-void Cluster::waitForReplication(const bsls::TimeInterval& whenToStop,
+void Cluster::checkIfCanShutdown(const bsls::TimeInterval& whenToStop,
                                  const CompletionCallback& completionCb)
 {
     // executed by the *SCHEDULER* thread
 
     dispatcher()->execute(
-        bdlf::BindUtil::bind(&Cluster::waitForReplicationDispatched,
+        bdlf::BindUtil::bind(&Cluster::checkIfCanShutdownDispatched,
                              this,
                              whenToStop,
                              completionCb),
         this);
 }
 
-void Cluster::waitForReplicationDispatched(
+void Cluster::checkIfCanShutdownDispatched(
     const bsls::TimeInterval& whenToStop,
     const CompletionCallback& completionCb)
 {
@@ -795,7 +795,7 @@ void Cluster::waitForReplicationDispatched(
     d_clusterData.scheduler().scheduleEvent(
         &eventHandle,
         t,
-        bdlf::BindUtil::bind(&Cluster::waitForReplication,
+        bdlf::BindUtil::bind(&Cluster::checkIfCanShutdown,
                              this,
                              whenToStop,
                              completionCb));

@@ -731,7 +731,7 @@ bool PartitionRaftManager::canShutdown()
 
     for (unsigned int i = 0; i < d_partitionRafts.size(); ++i) {
         PartitionRaft* raft = d_partitionRafts[i].get();
-        if (raft && !raft->canShutdown()) {
+        if (raft && !raft->checkIfCanShutdown()) {
             result = false;
         }
     }

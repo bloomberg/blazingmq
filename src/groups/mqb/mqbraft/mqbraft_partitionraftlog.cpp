@@ -67,7 +67,6 @@ PartitionRaftLog::PartitionRaftLog(mqbs::FileStore*  fileStore,
 , d_cacheTerm(0)
 , d_cacheBytes(0)
 , d_appendedCount(0)
-, d_deferredRemovals(d_allocator_p)
 {
     BSLS_ASSERT_SAFE(fileStore);
 }
@@ -187,49 +186,9 @@ void PartitionRaftLog::takePendingWrites(PendingWrites* out)
     d_appendedCount = 0;
 }
 
-bool PartitionRaftLog::deferRemoval(const mqbs::DataStoreRecordHandle& handle)
-{
-    // A buffered write's record is not in the old file set, so the compaction
-    // skips it: remove it now.
-    if (!d_pendingWrites.empty() &&
-        handle.sequenceNum() >= d_pendingWrites[0]->d_sequenceNumber) {
-        return false;  // RETURN
-    }
-
-    d_deferredRemovals.push_back(handle);
-    return true;
-}
-
-void PartitionRaftLog::flushDeferredRemovals()
-{
-    if (d_deferredRemovals.empty()) {
-        return;  // RETURN
-    }
-
-    BALL_LOG_INFO << "PartitionRaftLog: applying " << d_deferredRemovals.size()
-                  << " record removal(s) held back during the rollover "
-                  << "window.";
-
-    // Deferred handles are all below the buffer's first sequence number, so
-    // none of them is a pending write ('invalidatePendingWriteHandle' would be
-    // a no-op).
-    for (bsl::vector<mqbs::DataStoreRecordHandle>::const_iterator it =
-             d_deferredRemovals.begin();
-         it != d_deferredRemovals.end();
-         ++it) {
-        d_fileStore_p->removeRecordRaw(*it);
-    }
-
-    d_deferredRemovals.clear();
-}
-
 void PartitionRaftLog::dropBufferedWrites(
     bsl::vector<bsl::shared_ptr<PendingWrite> >* out)
 {
-    // Before anything erases records: a stale deferred handle is an iterator
-    // into 'd_records'.
-    flushDeferredRemovals();
-
     if (d_appendedCount == d_pendingWrites.size()) {
         return;  // RETURN
     }

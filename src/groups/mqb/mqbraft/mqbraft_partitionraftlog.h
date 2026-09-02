@@ -154,9 +154,6 @@ class PartitionRaftLog : public RaftLog {
     /// rollover window).
     size_t d_appendedCount;
 
-    /// Removals held back during a rollover window.
-    bsl::vector<mqbs::DataStoreRecordHandle> d_deferredRemovals;
-
     // PRIVATE MANIPULATORS
 
     /// Retain the specified `blob` and `term` as the entry at the specified
@@ -225,14 +222,6 @@ class PartitionRaftLog : public RaftLog {
 
     /// Load into the specified `out` the buffered writes, emptying the queue.
     void takePendingWrites(PendingWrites* out);
-
-    /// Hold back the removal of the record with the specified `handle` until
-    /// the rollover completes, and return true; return false if it belongs to
-    /// a buffered write, whose record the compaction skips anyway.
-    bool deferRemoval(const mqbs::DataStoreRecordHandle& handle);
-
-    /// Apply the record removals held back during the rollover window.
-    void flushDeferredRemovals();
 
     /// Remove the writes buffered for a rollover drain that will not happen,
     /// releasing the records they reserved.  Move them into the optionally

@@ -547,26 +547,19 @@ void PartitionRaft::postDispatch(RaftNodeOutput* output, bool hadRollover)
 
     // Resolve buffered writes once the rollover outcome is known.  Buffered
     // writes exist only during/after a rollover window, so during normal
-    // writes the buffer is empty and neither branch fires.
-    if (hadRollover) {
-        if (isLeader()) {
-            BSLS_ASSERT_SAFE(d_isRolloverPending);
+    // writes the buffer is empty and this does not fire.
+    if (hadRollover && isLeader()) {
+        BSLS_ASSERT_SAFE(d_isRolloverPending);
 
-            // The 'e_ROLLOVER' just committed and rolled over in the apply
-            // loop.  Clear the in-flight flag before the drain, not after:
-            // 'drainPendingWrites' runs a nested 'dispatchOutput', which must
-            // not see a rollover still in flight.  The drain loop itself does
-            // not read the flag -- it calls 'setPendingWrite' and
-            // 'RaftNode::propose' directly rather than going through
-            // 'PartitionRaft::propose'.
-            d_isRolloverPending = false;
+        // The 'e_ROLLOVER' just committed and rolled over in the apply loop.
+        // Clear the in-flight flag before the drain, not after:
+        // 'drainPendingWrites' runs a nested 'dispatchOutput', which must not
+        // see a rollover still in flight.  The drain loop itself does not read
+        // the flag -- it calls 'setPendingWrite' and 'RaftNode::propose'
+        // directly rather than going through 'PartitionRaft::propose'.
+        d_isRolloverPending = false;
 
-            drainPendingWrites();
-        }
-
-        // After the drain, so the DELETION records authorizing them land in
-        // the new file set first -- the order replicas apply them in.
-        d_raftLog_mp->flushDeferredRemovals();
+        drainPendingWrites();
     }
 
     // A committed whole-queue purge freed journal space; reclaim it now.
@@ -1562,7 +1555,7 @@ void PartitionRaft::proposeShutdownSyncPoint()
     proposeSyncPoint();
 }
 
-bool PartitionRaft::canShutdown()
+bool PartitionRaft::checkIfCanShutdown()
 {
     // executed by the *CLUSTER DISPATCHER* thread
 
@@ -1570,12 +1563,13 @@ bool PartitionRaft::canShutdown()
         return true;  // RETURN
     }
 
-    execute(bdlf::BindUtil::bind(&PartitionRaft::updateCanShutdown, this));
+    execute(bdlf::BindUtil::bind(&PartitionRaft::checkIfCanShutdownDispatched,
+                                 this));
 
     return false;
 }
 
-void PartitionRaft::updateCanShutdown()
+void PartitionRaft::checkIfCanShutdownDispatched()
 {
     // executed by the partition *DISPATCHER* thread
     BSLS_ASSERT_SAFE(d_fileStore_sp->inDispatcherThread());
@@ -2402,12 +2396,6 @@ void PartitionRaft::createStorage(
 
 void PartitionRaft::removeRecordRaw(const mqbs::DataStoreRecordHandle& handle)
 {
-    // While 'e_ROLLOVER' is in flight, the DELETION authorizing this removal
-    // is buffered behind it, so the record must survive the compaction.
-    if (d_isRolloverPending && d_raftLog_mp->deferRemoval(handle)) {
-        return;  // RETURN
-    }
-
     // If this handle belongs to a pending write still in the buffer,
     // invalidate it so application becomes a no-op.  Otherwise proceed with
     // normal removal.

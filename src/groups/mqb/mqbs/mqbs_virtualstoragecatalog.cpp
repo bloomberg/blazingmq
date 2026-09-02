@@ -280,8 +280,7 @@ VirtualStorageCatalog::confirm(const bmqt::MessageGUID& msgGUID,
         // No virtual storage for this App.  Reachable when a committed CONFIRM
         // is applied after the App it names has been removed -- the Raft
         // commit-apply path replays a range that can span the removal.  The
-        // caller logs and ignores it; asserting here would abort a debug build
-        // and dereference an end iterator in an optimized one.
+        // caller logs and ignores it;
         return mqbi::StorageResult::e_APPKEY_NOT_FOUND;  // RETURN
     }
 

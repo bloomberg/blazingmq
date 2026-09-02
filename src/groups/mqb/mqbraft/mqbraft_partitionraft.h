@@ -172,7 +172,7 @@ class PartitionRaft : public mqbs::RecordStore,
     /// construction).
     PartitionLeadershipCb d_leadershipCb;
 
-    /// Result of the last `updateCanShutdown`, read by the cluster
+    /// Result of the last `checkIfCanShutdown`, read by the cluster
     /// dispatcher thread.  Initially `false`.
     bsls::AtomicBool d_canShutdown;
 
@@ -188,7 +188,7 @@ class PartitionRaft : public mqbs::RecordStore,
     /// acknowledged this node's whole log.
     ///
     /// THREAD: Executed by this partition's dispatcher thread.
-    void updateCanShutdown();
+    void checkIfCanShutdownDispatched();
 
     /// Return the node with the specified `nodeId`, or 0 if there is none.
     /// `mqbnet::Cluster::lookupNode` walks a linked list, so its result is
@@ -410,7 +410,7 @@ class PartitionRaft : public mqbs::RecordStore,
     /// computation, on this partition's dispatcher thread, if it did not.
     ///
     /// THREAD: Called from the cluster dispatcher thread.
-    bool canShutdown();
+    bool checkIfCanShutdown();
 
     /// Set this partition Raft group's leadership-eligibility override to the
     /// specified `mode` (see `RaftNode::setElectionMode`) and dispatch any

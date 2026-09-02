@@ -508,10 +508,8 @@ FileBackedStorage::confirm(const bmqt::MessageGUID& msgGUID,
         return mqbi::StorageResult::e_GUID_NOT_FOUND;  // RETURN
     }
 
-    // The app view moves now rather than at commit.  This CONFIRM came from
-    // the app's own client and the app's iterator has already passed the
-    // message, so it is not state the journal owns -- and dropping the GUID
-    // here is what makes a repeated CONFIRM for the same app a no-op.
+    // The app view must change now rather than at commit to detect duplicate
+    // CONFIRMs.
     const mqbi::StorageResult::Enum rc =
         d_virtualStorageCatalog.confirm(msgGUID, appKey);
     if (mqbi::StorageResult::e_SUCCESS != rc) {
