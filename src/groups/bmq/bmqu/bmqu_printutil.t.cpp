@@ -44,7 +44,7 @@ static void test1_prettyNumberInt64()
 //
 // Testing:
 //   Proper behavior of
-//   'prettyNumber(stream, value, groupSize, separator)'
+//   'prettyNumber(value, groupSize, separator)'
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("prettyNumber (Int64)");
@@ -78,42 +78,23 @@ static void test1_prettyNumberInt64()
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         const Test& test = k_DATA[idx];
 
-        // function
-        {
-            PVV(test.d_line << ": checking value '" << test.d_value << "' "
-                            << "(groupSize: " << test.d_groupSize
-                            << ", separator: '" << test.d_separator
-                            << "', function)");
+        PVV(test.d_line << ": checking value '" << test.d_value << "' "
+                        << "(groupSize: " << test.d_groupSize
+                        << ", separator: '" << test.d_separator << "')");
 
-            bmqu::MemOutStream buf(bmqtst::TestHelperUtil::allocator());
-            bmqu::PrintUtil::prettyNumber(buf,
-                                          test.d_value,
-                                          test.d_groupSize,
-                                          test.d_separator);
-            BMQTST_ASSERT_EQ_D(test.d_line, buf.str(), test.d_expected);
-        }
-
-        // manipulator
-        {
-            PVV(test.d_line << ": checking value '" << test.d_value << "' "
-                            << "(groupSize: " << test.d_groupSize
-                            << ", separator: '" << test.d_separator
-                            << "', manipulator)");
-
-            bmqu::MemOutStream buf(bmqtst::TestHelperUtil::allocator());
-            buf << bmqu::PrintUtil::prettyNumber(test.d_value,
-                                                 test.d_groupSize,
-                                                 test.d_separator);
-            BMQTST_ASSERT_EQ_D(test.d_line, buf.str(), test.d_expected);
-        }
+        bmqu::MemOutStream buf(bmqtst::TestHelperUtil::allocator());
+        buf << bmqu::PrintUtil::prettyNumber(test.d_value,
+                                             test.d_groupSize,
+                                             test.d_separator);
+        BMQTST_ASSERT_EQ_D(test.d_line, buf.str(), test.d_expected);
     }
 
     PV("Ensure assertion when group size <= 0");
     {
         BMQTST_ASSERT_SAFE_FAIL(
-            bmqu::PrintUtil::prettyNumber(bsl::cout, 123, 0, ','));
+            bsl::cout << bmqu::PrintUtil::prettyNumber(1234, 0, ','));
         BMQTST_ASSERT_SAFE_FAIL(
-            bmqu::PrintUtil::prettyNumber(bsl::cout, 123, -2, ','));
+            bsl::cout << bmqu::PrintUtil::prettyNumber(123, -2, ','));
     }
 }
 
@@ -129,7 +110,7 @@ static void test2_prettyNumberDouble()
 //
 // Testing:
 //   Proper behavior of
-//   'prettyNumber(stream, value, precision, groupSize, sep)'
+//   'prettyNumber(value, precision, groupSize, sep)'
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("prettyNumber (Double)");
@@ -159,46 +140,25 @@ static void test2_prettyNumberDouble()
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         const Test& test = k_DATA[idx];
 
-        // function
-        {
-            PVV(test.d_line << ": checking value '" << test.d_value << "' "
-                            << " (precision: " << test.d_precision
-                            << ", groupSize: " << test.d_groupSize
-                            << ", separator: '" << test.d_separator
-                            << "', function)");
+        PVV(test.d_line << ": checking value '" << test.d_value << "' "
+                        << " (precision: " << test.d_precision
+                        << ", groupSize: " << test.d_groupSize
+                        << ", separator: '" << test.d_separator << "')");
 
-            bmqu::MemOutStream buf(bmqtst::TestHelperUtil::allocator());
-            bmqu::PrintUtil::prettyNumber(buf,
-                                          test.d_value,
-                                          test.d_precision,
-                                          test.d_groupSize,
-                                          test.d_separator);
-            BMQTST_ASSERT_EQ_D(test.d_line, buf.str(), test.d_expected);
-        }
-
-        // manipulator
-        {
-            PVV(test.d_line << ": checking value '" << test.d_value << "' "
-                            << " (precision: " << test.d_precision
-                            << ", groupSize: " << test.d_groupSize
-                            << ", separator: '" << test.d_separator
-                            << "', manipulator)");
-
-            bmqu::MemOutStream buf(bmqtst::TestHelperUtil::allocator());
-            buf << bmqu::PrintUtil::prettyNumber(test.d_value,
-                                                 test.d_precision,
-                                                 test.d_groupSize,
-                                                 test.d_separator);
-            BMQTST_ASSERT_EQ_D(test.d_line, buf.str(), test.d_expected);
-        }
+        bmqu::MemOutStream buf(bmqtst::TestHelperUtil::allocator());
+        buf << bmqu::PrintUtil::prettyNumber(test.d_value,
+                                             test.d_precision,
+                                             test.d_groupSize,
+                                             test.d_separator);
+        BMQTST_ASSERT_EQ_D(test.d_line, buf.str(), test.d_expected);
     }
 
     PV("Ensure assertion when group size <= 0");
     {
         BMQTST_ASSERT_SAFE_FAIL(
-            bmqu::PrintUtil::prettyNumber(bsl::cout, 123.0, 0, 0, ','));
+            bsl::cout << bmqu::PrintUtil::prettyNumber(123.0, 0, 0, ','));
         BMQTST_ASSERT_SAFE_FAIL(
-            bmqu::PrintUtil::prettyNumber(bsl::cout, 123.0, 0, -2, ','));
+            bsl::cout << bmqu::PrintUtil::prettyNumber(123.0, 0, -2, ','));
     }
 }
 
@@ -213,7 +173,7 @@ static void test3_prettyBytes()
 //   Test various inputs.
 //
 // Testing:
-//   Proper behavior of 'prettyBytes(stream, bytes, precision)'
+//   Proper behavior of 'prettyBytes(bytes, precision)'
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("prettyBytes");
@@ -266,28 +226,12 @@ static void test3_prettyBytes()
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         const Test& test = k_DATA[idx];
 
-        // function
-        {
-            PVV(test.d_line << ": checking value '" << test.d_value << "' "
-                            << " (precision: " << test.d_precision
-                            << ", function)");
+        PVV(test.d_line << ": checking value '" << test.d_value << "' "
+                        << " (precision: " << test.d_precision << ")");
 
-            bmqu::MemOutStream buf(bmqtst::TestHelperUtil::allocator());
-            bmqu::PrintUtil::prettyBytes(buf, test.d_value, test.d_precision);
-            BMQTST_ASSERT_EQ_D(test.d_line, buf.str(), test.d_expected);
-        }
-
-        // manipulator
-        {
-            PVV(test.d_line << ": checking value '" << test.d_value << "' "
-                            << " (precision: " << test.d_precision
-                            << ", function)");
-
-            bmqu::MemOutStream buf(bmqtst::TestHelperUtil::allocator());
-            buf << bmqu::PrintUtil::prettyBytes(test.d_value,
-                                                test.d_precision);
-            BMQTST_ASSERT_EQ_D(test.d_line, buf.str(), test.d_expected);
-        }
+        bmqu::MemOutStream buf(bmqtst::TestHelperUtil::allocator());
+        buf << bmqu::PrintUtil::prettyBytes(test.d_value, test.d_precision);
+        BMQTST_ASSERT_EQ_D(test.d_line, buf.str(), test.d_expected);
     }
 }
 
@@ -302,7 +246,7 @@ static void test4_prettyTimeInterval()
 //   Test various inputs.
 //
 // Testing:
-//   Proper behavior of 'prettyTimeInterval(stream, timeNs, precision)'
+//   Proper behavior of 'prettyTimeInterval(timeNs, precision)'
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("prettyTimeInterval");
@@ -348,30 +292,13 @@ static void test4_prettyTimeInterval()
     for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
         const Test& test = k_DATA[idx];
 
-        // function
-        {
-            PVV(test.d_line << ": checking value '" << test.d_value << "' "
-                            << " (precision: " << test.d_precision
-                            << ", function)");
+        PVV(test.d_line << ": checking value '" << test.d_value << "' "
+                        << " (precision: " << test.d_precision << ")");
 
-            bmqu::MemOutStream buf(bmqtst::TestHelperUtil::allocator());
-            bmqu::PrintUtil::prettyTimeInterval(buf,
-                                                test.d_value,
-                                                test.d_precision);
-            BMQTST_ASSERT_EQ_D(test.d_line, buf.str(), test.d_expected);
-        }
-
-        // manipulator
-        {
-            PVV(test.d_line << ": checking value '" << test.d_value << "' "
-                            << " (precision: " << test.d_precision
-                            << ", function)");
-
-            bmqu::MemOutStream buf(bmqtst::TestHelperUtil::allocator());
-            buf << bmqu::PrintUtil::prettyTimeInterval(test.d_value,
-                                                       test.d_precision);
-            BMQTST_ASSERT_EQ_D(test.d_line, buf.str(), test.d_expected);
-        }
+        bmqu::MemOutStream buf(bmqtst::TestHelperUtil::allocator());
+        buf << bmqu::PrintUtil::prettyTimeInterval(test.d_value,
+                                                   test.d_precision);
+        BMQTST_ASSERT_EQ_D(test.d_line, buf.str(), test.d_expected);
     }
 }
 
