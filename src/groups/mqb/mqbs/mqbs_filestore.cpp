@@ -77,6 +77,7 @@
 #include <bsl_cstring.h>
 #include <bsl_iomanip.h>
 #include <bsl_iostream.h>
+#include <bsl_limits.h>
 #include <bsl_map.h>
 #include <bsl_unordered_set.h>
 #include <bsl_utility.h>
