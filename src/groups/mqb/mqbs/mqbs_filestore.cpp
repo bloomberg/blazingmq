@@ -1322,6 +1322,10 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                         bsl::make_pair(queueKey, journalIt.recordOffset()));
 
                 if (!irc.second) {
+                    if (k_EXTRA_QUEUE_SENTINEL_OFFSET == irc.first->second) {
+                        continue;  // CONTINUE
+                    }
+
                     const OffsetPtr<const QueueOpRecord> originalRec(
                         MemoryBlock(
                             journalIt.mappedFileDescriptor()->mapping(),
