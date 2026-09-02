@@ -234,9 +234,12 @@ class PartitionRaftLog : public RaftLog {
     /// Apply the record removals held back during the rollover window.
     void flushDeferredRemovals();
 
-    /// Drop the writes buffered for a rollover drain that will not happen,
-    /// releasing their reserved records.  The appended ones are kept.
-    void dropBufferedWrites();
+    /// Remove the writes buffered for a rollover drain that will not happen,
+    /// releasing the records they reserved.  Move them into the optionally
+    /// specified `out`, whose owner then owes the capacity behind them;
+    /// release that here if `out` is 0.  The appended writes are kept.
+    void
+    dropBufferedWrites(bsl::vector<bsl::shared_ptr<PendingWrite> >* out = 0);
 
     /// Drop every pending write, buffered and appended.
     void dropPendingWrites();

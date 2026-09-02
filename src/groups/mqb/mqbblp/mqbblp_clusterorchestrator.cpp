@@ -2195,6 +2195,28 @@ void ClusterOrchestrator::onPartitionRaftLeadershipDispatched(
         return;  // RETURN
     }
 
+    // Self stopped leading a partition it was the primary of.  Not tested
+    // inside the branches below: a primary that misses the election entirely
+    // -- partitioned, or simply not polled because a majority formed without
+    // it -- learns of the new leader from its first AppendEntries and so
+    // steps down straight to a known leader, never reporting none.
+    mqbnet::ClusterNode* const selfNode =
+        d_clusterData_p->membership().selfNode();
+
+    if (d_clusterState_p->partition(partitionId).primaryNode() == selfNode &&
+        leaderNodeId != selfNode->nodeId()) {
+        BSLS_ASSERT_SAFE(d_partitionRaftManager_mp);
+
+        // Let go of the handles the peers opened here -- they reopen against
+        // the new primary themselves -- and only then convert, so the engine
+        // is rebuilt from the directly attached clients alone and the counts
+        // this node reports upstream are theirs.  Both are dispatched to the
+        // partition's thread, the drops first, so each release runs while the
+        // queue is still a local one and sends no close upstream.
+        d_queueHelper.dropPeerHandles(partitionId);
+        d_partitionRaftManager_mp->convertQueuesToRemote(partitionId);
+    }
+
     if (mqbraft::RaftNode::k_INVALID_NODE_ID == leaderNodeId) {
         // No leader for this partition: close the gate until one emerges.
         // With no primary recorded there is none to demote, and this fires on
@@ -2208,6 +2230,19 @@ void ClusterOrchestrator::onPartitionRaftLeadershipDispatched(
             d_clusterState_p->setPartitionPrimaryStatus(
                 partitionId,
                 bmqp_ctrlmsg::PrimaryStatus::E_PASSIVE);
+
+            // Buffer what this node's queues on this partition would send
+            // upstream, as they do when a primary goes down.  A primary that
+            // steps down while running severs nothing, so without this the
+            // queues keep relaying to a node that is no longer the primary
+            // until a new one becomes active -- and every message sent in
+            // that window is one the ex-primary can only reject.  Raft
+            // reports the loss here, ahead of the CSL advisory that names the
+            // successor.
+            d_queueHelper.afterPartitionPrimaryAssignment(
+                partitionId,
+                0,
+                bmqp_ctrlmsg::PrimaryStatus::E_UNDEFINED);
         }
         return;  // RETURN
     }
@@ -2455,6 +2490,7 @@ void ClusterOrchestrator::maybeTransitionToAvailable()
     // deferred become-leader sync point -- safe now, since the CSL already
     // recorded this leaseId before this, the first journal record under it.
     const int selfNodeId = d_clusterData_p->membership().selfNode()->nodeId();
+    bool      allActivated = true;
     for (size_t pid = 0; pid < partitions.size(); ++pid) {
         const bool isSelfPrimary = partitions[pid].primaryNodeId() ==
                                    selfNodeId;
@@ -2472,6 +2508,7 @@ void ClusterOrchestrator::maybeTransitionToAvailable()
                           << ": maybeTransitionToAvailable blocked: "
                           << "partition " << pid
                           << " has not committed its deferred sync point yet";
+            allActivated = false;
             continue;  // CONTINUE
         }
 
@@ -2492,6 +2529,13 @@ void ClusterOrchestrator::maybeTransitionToAvailable()
             static_cast<int>(pid),
             partitions[pid].primaryNode(),
             bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE);
+    }
+
+    if (!allActivated) {
+        // Serving reopens before that sync point commits would serve them
+        // against storage the log has already moved past: the same commit
+        // applies the entries inherited from the prior term.
+        return;  // RETURN (a partition this node leads is not ready)
     }
 
     BALL_LOG_INFO << d_clusterData_p->identity().description()

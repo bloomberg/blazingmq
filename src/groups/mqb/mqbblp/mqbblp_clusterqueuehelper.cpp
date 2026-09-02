@@ -5104,6 +5104,66 @@ void ClusterQueueHelper::onUpstreamNodeChange(mqbnet::ClusterNode* node,
     }
 }
 
+void ClusterQueueHelper::dropPeerHandles(int partitionId)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+
+    // A peer opened these because self was its primary for 'partitionId'.  It
+    // is not anymore, so the peer reopens against the new primary and what it
+    // relayed here and was not acked for is its own to re-send -- the same
+    // position 'ClusterOrchestrator::dropPeerQueues' leaves a peer in when it
+    // goes down, from the other direction.
+    //
+    // Erase the entry before releasing the handle: until the erase, a message
+    // still in flight from that peer finds it and would reach a handle that
+    // is being torn down.  'drop(false)' skips the deconfigure, so the
+    // release runs within the dispatched call rather than after a round trip
+    // upstream, and it runs while the queue is still a local one, so it takes
+    // the root path and sends no close to a new primary that never knew the
+    // handle.
+    size_t numDropped = 0;
+
+    for (ClusterNodeSessionMapIter nit =
+             d_clusterData_p->membership().clusterNodeSessionMap().begin();
+         nit != d_clusterData_p->membership().clusterNodeSessionMap().end();
+         ++nit) {
+        mqbc::ClusterNodeSession* ns    = nit->second.get();
+        CNSQueueHandleMap&        qhMap = ns->queueHandles();
+
+        CNSQueueHandleMapIter qit = qhMap.begin();
+        while (qit != qhMap.end()) {
+            mqbi::QueueHandle* qh = qit->second.d_handle_p;
+            BSLS_ASSERT_SAFE(qh);
+
+            if (qh->queue()->partitionId() != partitionId) {
+                ++qit;
+                continue;  // CONTINUE
+            }
+
+            BMQ_LOGTHROTTLE_INFO
+                << d_cluster_p->description() << ": " << ns->description()
+                << ": dropping the handle it opened on ["
+                << qh->queue()->uri().asString() << "], self no longer the "
+                << "primary of Partition [" << partitionId << "].";
+
+            qhMap.erase(qit++);
+
+            qh->clearClient(false);
+            qh->drop(false);  // no deconfigure: there is no upstream to tell
+            ++numDropped;
+        }
+    }
+
+    if (0 != numDropped) {
+        BALL_LOG_INFO << d_cluster_p->description() << ": dropped "
+                      << numDropped << " peer handle(s) of Partition ["
+                      << partitionId << "].";
+    }
+}
+
 void ClusterQueueHelper::setStreamState(SubQueueContext*      subQueueContext,
                                         SubQueueContext::Enum state)
 {
@@ -5525,6 +5585,14 @@ void ClusterQueueHelper::onConversionToRemoteDispatched(
                          << subStreamIt->subId() << "] of queue [" << uri
                          << "] set to " << handleParameters
                          << " on conversion to remote.";
+
+    // The conversion runs on the partition's thread and the new primary can
+    // become active before it reports, in which case the restore that ran
+    // then found this stream empty and declined to reopen it.  Now that its
+    // counts are known, run it again; it is a no-op until the partition has
+    // an active primary, and one for any stream already reopened under the
+    // current generation.
+    restoreState(queueContextIt->second->partitionId());
 }
 
 void ClusterQueueHelper::onQueueHandleCreated(mqbi::Queue*     queue,

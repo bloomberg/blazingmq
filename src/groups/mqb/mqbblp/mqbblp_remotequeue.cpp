@@ -157,8 +157,7 @@ int RemoteQueue::configureAsProxy(bsl::ostream& errorDescription,
             RelayQueueEngine(d_state_p, mqbconfm::Domain(), d_allocator_p),
         d_allocator_p);
 
-    const int rc = d_queueEngine_mp->configure(errorDescription,
-                                               isReconfigure);
+    const int rc = d_queueEngine_mp->configure(isReconfigure);
     if (rc != 0) {
         return 10 * rc + rc_QUEUE_ENGINE_CFG_FAILURE;  // RETURN
     }
@@ -259,17 +258,14 @@ int RemoteQueue::configureAsClusterMember(bool isReconfigure)
                                         domainCfg->maxDeliveryAttempts());
     }
 
-    bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
-    bmqu::MemOutStream                    errorDesc(&localAllocator);
-    rc = d_queueEngine_mp->configure(errorDesc, isReconfigure);
+    rc = d_queueEngine_mp->configure(isReconfigure);
     if (rc != 0) {
         BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
             << d_state_p->domain()->cluster()->name() << ": Partition ["
             << d_state_p->partitionId()
             << "]: failed to configure queue engine for remote queue ["
             << d_state_p->uri() << "], queueKey [" << d_state_p->key()
-            << "], rc: " << rc << ", reason [" << errorDesc.str() << "]."
-            << BMQTSK_ALARMLOG_END;
+            << "], rc: " << rc << "." << BMQTSK_ALARMLOG_END;
         return 10 * rc + rc_ENGINE_CONFIGURE_FAILURE;  // RETURN
     }
 

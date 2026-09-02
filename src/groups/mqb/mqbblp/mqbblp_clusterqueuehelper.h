@@ -353,6 +353,9 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
 
     typedef mqbc::ClusterNodeSession::QueueHandleMap CNSQueueHandleMap;
     typedef CNSQueueHandleMap::iterator              CNSQueueHandleMapIter;
+
+    typedef mqbc::ClusterMembership::ClusterNodeSessionMapIter
+                                                     ClusterNodeSessionMapIter;
     typedef CNSQueueHandleMap::const_iterator        CNSQueueHandleMapCIter;
 
     /// Structure encapsulating the entire context associated with the open
@@ -1118,6 +1121,12 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     void onConversionToRemote(
         mqbi::Queue*                               queue,
         const bmqp_ctrlmsg::QueueHandleParameters& handleParameters);
+
+    /// Release every handle a cluster peer opened on a queue of the specified
+    /// `partitionId`, self no longer being its primary.  Those peers reopen
+    /// against the new primary themselves, so what they relayed here and were
+    /// not acked for is theirs to re-send.
+    void dropPeerHandles(int partitionId);
 
     void onQueueHandleCreated(mqbi::Queue*     queue,
                               const bmqt::Uri& uri,

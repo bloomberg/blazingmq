@@ -156,12 +156,10 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     // PRIVATE ACCESSORS
 
     /// Set up data structures for the specified `appId`.  Return 0 on
-    /// success otherwise load errors into the specified `errorDescription`
-    /// and return on-zero.
+    /// success and non-zero otherwise.
     ///
     /// THREAD: This method is called from any thread.
     int initializeAppId(const bsl::string& appId,
-                        bsl::ostream&      errorDescription,
                         unsigned int       upstreamSubQueueId,
                         bool               isReconfigure);
 
@@ -251,9 +249,8 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
 
     /// Configure this instance.  The specified `isReconfigure` flag indicates
     /// if queue is being reconfigured. Return zero on success, non-zero value
-    /// otherwise and populate the specified `errorDescription`.
-    int configure(bsl::ostream& errorDescription,
-                  bool          isReconfigure) BSLS_KEYWORD_OVERRIDE;
+    /// otherwise.
+    int configure(bool isReconfigure) BSLS_KEYWORD_OVERRIDE;
 
     /// Prepare this engine for destruction by canceling all scheduled events.
     void close() BSLS_KEYWORD_OVERRIDE;

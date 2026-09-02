@@ -1080,9 +1080,7 @@ RelayQueueEngine::~RelayQueueEngine()
 }
 
 // MANIPULATORS
-int RelayQueueEngine::configure(
-    BSLA_MAYBE_UNUSED bsl::ostream& errorDescription,
-    BSLA_MAYBE_UNUSED bool          isReconfigure)
+int RelayQueueEngine::configure(BSLA_MAYBE_UNUSED bool isReconfigure)
 {
     return 0;
 }

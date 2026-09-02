@@ -74,9 +74,8 @@ class QueueEngine {
 
     /// Configure this instance.  The specified `isReconfigure` flag indicates
     /// if queue is being reconfigured. Return zero on success, non-zero value
-    /// otherwise and populate the specified `errorDescription`.
-    virtual int configure(bsl::ostream& errorDescription,
-                          bool          isReconfigure) = 0;
+    /// otherwise.
+    virtual int configure(bool isReconfigure) = 0;
 
     /// Prepare this engine for destruction by canceling all scheduled events.
     virtual void close() = 0;

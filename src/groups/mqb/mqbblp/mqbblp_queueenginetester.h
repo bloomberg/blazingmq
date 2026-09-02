@@ -619,8 +619,7 @@ QueueEngineTester::createQueueEngineHelper(mqbi::QueueEngine* engine)
     BSLS_ASSERT_OPT(engine);
     BSLS_ASSERT_OPT(d_mockQueue_sp);
 
-    bmqu::MemOutStream errorDescription(d_allocator_p);
-    int                rc = engine->configure(errorDescription, false);
+    const int rc = engine->configure(false);
     BSLS_ASSERT_OPT(rc == 0);
 
     // Set the engine on the Queue

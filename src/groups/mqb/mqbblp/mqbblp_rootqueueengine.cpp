@@ -385,8 +385,7 @@ RootQueueEngine::RootQueueEngine(QueueState*             queueState,
 
 // MANIPULATORS
 //   (virtual mqbi::QueueEngine)
-int RootQueueEngine::configure(bsl::ostream& errorDescription,
-                               bool          isReconfigure)
+int RootQueueEngine::configure(bool isReconfigure)
 {
     enum RcEnum {
         // Return values
@@ -414,7 +413,6 @@ int RootQueueEngine::configure(bsl::ostream& errorDescription,
             domainCfg->mode().fanout().appIDs();
         for (numApps = 0; numApps < cfgAppIds.size(); ++numApps) {
             if (initializeAppId(cfgAppIds[numApps],
-                                errorDescription,
                                 bmqp::QueueId::k_UNASSIGNED_SUBQUEUE_ID,
                                 isReconfigure)) {
                 return rc_APP_INITIALIZATION_ERROR;  // RETURN
@@ -452,7 +450,6 @@ int RootQueueEngine::configure(bsl::ostream& errorDescription,
     else {
         numApps = 1;
         if (initializeAppId(bmqp::ProtocolUtil::k_DEFAULT_APP_ID,
-                            errorDescription,
                             bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID,
                             isReconfigure)) {
             return rc_APP_INITIALIZATION_ERROR;  // RETURN
@@ -502,7 +499,6 @@ int RootQueueEngine::configure(bsl::ostream& errorDescription,
 }
 
 int RootQueueEngine::initializeAppId(const bsl::string& appId,
-                                     bsl::ostream&      errorDescription,
                                      unsigned int       upstreamSubQueueId,
                                      bool               isReconfigure)
 {

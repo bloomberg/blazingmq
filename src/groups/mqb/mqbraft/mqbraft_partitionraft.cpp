@@ -332,21 +332,24 @@ void PartitionRaft::dispatchOutput(RaftNodeOutput* output)
         // term this node leads, on whatever entry commits first.
         d_isExpectingTermCommit = false;
 
-        d_raftLog_mp->dropBufferedWrites();
+        // Their rollover will not drain now, but their producers are still
+        // attached, so keep them for the conversion to re-post rather than
+        // discarding them.  This must still happen before the apply loop
+        // below: their placeholders belong to no log entry, and its deletion
+        // path would walk them.
+        d_raftLog_mp->dropBufferedWrites(&d_writesToRepost);
 
-        // The queues of this partition are still local ones.  Convert them
-        // here, at the stepdown, not when the new primary becomes known: a
-        // local queue has no upstream to reach, and every write it proposes
-        // from now on is rejected, so anything arriving during the election
-        // would be lost rather than buffered.
+        // The queues stay local for now.  Converting them is the cluster's
+        // call, because the handles the peers opened here have to go first
+        // and only it can take those out of their sessions; it drives both
+        // from the leadership change this signals below.  Writes arriving
+        // meanwhile are held by 'propose' rather than rejected, and the
+        // conversion hands them on.
         //
         // The uncommitted tail needs no replay.  A committed entry survives
         // into the new leader's log, and an SC producer is ACKed only on
         // commit, so the tail holds nothing a producer was told was accepted
         // -- except under EC, which ACKs at propose by definition.
-        d_fileStore_sp->convertQueuesToRemote(d_clusterData_p->clusterConfig()
-                                                  .queueOperations()
-                                                  .ackWindowSize());
     }
 
     bool hadRollover = false;
@@ -433,6 +436,86 @@ void PartitionRaft::dispatchOutput(RaftNodeOutput* output)
                       << ", term=" << term << ", haveCommit=false";
         d_leadershipCb(d_partitionId, leaderNodeId, term, false);
     }
+}
+
+void PartitionRaft::convertQueuesToRemote()
+{
+    // executed by the partition *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_fileStore_sp->inDispatcherThread());
+
+    d_fileStore_sp->convertQueuesToRemote(
+        d_clusterData_p->clusterConfig().queueOperations().ackWindowSize());
+
+    // After the conversion, so each write reaches a queue that can relay it,
+    // and after the cluster's handle drops, which it scheduled ahead of this
+    // on the same thread: a write from a peer whose handle is now gone is
+    // that peer's to re-send.
+    repostHeldWrites();
+}
+
+void PartitionRaft::repostHeldWrites()
+{
+    // executed by the partition *DISPATCHER* thread
+
+    if (d_writesToRepost.empty()) {
+        return;  // RETURN
+    }
+
+    bsl::vector<bsl::shared_ptr<mqbs::FileStore::PendingWrite> > held(
+        d_allocator_p);
+    held.swap(d_writesToRepost);
+
+    size_t numReposted = 0;
+
+    for (size_t i = 0; i < held.size(); ++i) {
+        const mqbs::FileStore::PendingWrite& pw = *held[i];
+
+        // The message never entered this node's storage, so the capacity
+        // 'put' set aside for it goes back whether or not it is re-posted.
+        d_fileStore_sp->undoPropose(pw);
+
+        if (pw.d_recordType != mqbs::RecordType::e_MESSAGE) {
+            continue;  // CONTINUE
+        }
+
+        mqbi::QueueHandle* handle = pw.d_attributes.queueHandle();
+        mqbi::Queue*       queue  = handle ? handle->queue() : 0;
+
+        // Gone means either a cluster peer whose handle the demotion dropped,
+        // or a client that has since disconnected.  Either way there is no
+        // producer left here to answer, and a peer re-sends to the new
+        // primary itself.
+        if (!queue || !queue->hasHandle(handle)) {
+            continue;  // CONTINUE
+        }
+
+        // 'Channel::pack' reads only these from the header and recomputes the
+        // word counts from the payload, so the original need not be kept.
+        bmqp::PutHeader header;
+        header.setMessageGUID(pw.d_guid)
+            .setQueueId(static_cast<int>(queue->id()))
+            .setCompressionAlgorithmType(
+                pw.d_attributes.compressionAlgorithmType())
+            .setCrc32c(pw.d_attributes.crc32c());
+
+        int flags = header.flags();
+        bmqp::PutHeaderFlagUtil::setFlag(
+            &flags,
+            bmqp::PutHeaderFlags::e_ACK_REQUESTED);
+        header.setFlags(flags);
+
+        pw.d_attributes.messagePropertiesInfo().applyTo(&header);
+
+        handle->postMessage(header, pw.d_appData, pw.d_options);
+        ++numReposted;
+    }
+
+    BALL_LOG_INFO << "Partition [" << d_partitionId << "] re-posted "
+                  << numReposted << " of " << held.size()
+                  << " write(s) held while not the leader; the rest had no "
+                  << "producer left to answer.";
 }
 
 void PartitionRaft::postDispatch(RaftNodeOutput* output, bool hadRollover)
@@ -1377,6 +1460,24 @@ int PartitionRaft::propose(
     if (d_isRolloverPending) {
         return d_raftLog_mp->bufferPendingWrite(pw,
                                                 d_raftNode_mp->currentTerm());
+    }
+
+    // Only a local queue proposes, and a local queue only exists on the
+    // primary, so the sole way to arrive here without leadership is between
+    // this node's stepdown and the conversion of its queues to remote.  Hold
+    // the write rather than fail it: the caller would have to answer its
+    // producer, and the only answer available would be a NACK for a message
+    // the new primary is about to accept.
+    //
+    // Not 'bufferPendingWrite': that reserves an index and a record handle
+    // for replay into this log, and this write is bound for the new primary
+    // instead.  The new leader is meanwhile appending at real indices, and
+    // 'invalidatePendingWriteHandle' locates a pending write by arithmetic on
+    // them, so a reserved index that is never appended would make it address
+    // the wrong entry.
+    if (!isLeader()) {
+        d_writesToRepost.push_back(pw);
+        return 0;  // RETURN
     }
 
     // Otherwise enqueue it for 'append()'; the record's sequence number

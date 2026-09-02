@@ -1012,7 +1012,7 @@ class Queue : public DispatcherClient {
     virtual bool isLocal() const = 0;
 
     /// Convert this queue to remote, this node no longer being the primary
-    /// for its partition.  The handles and the storage are kept; the engine
+    /// for its partition.  Every handle and the storage are kept; the engine
     /// is rebuilt from those handles and every subStream left buffering,
     /// until the queue is reopened against the new primary.  Use the
     /// specified `deduplicationTimeoutMs`, `ackWindowSize` and `statePool`
@@ -1059,6 +1059,11 @@ class Queue : public DispatcherClient {
     /// parameters of all currently opened queueHandles on this queue.
     virtual const bmqp_ctrlmsg::QueueHandleParameters&
     handleParameters() const = 0;
+
+    /// Return true if the specified `handle` is one this queue currently
+    /// holds.  Compares the pointer without dereferencing it, so it is safe
+    /// to ask about a handle that may already have been released.
+    virtual bool hasHandle(const QueueHandle* handle) const = 0;
 
     /// Return true if the queue has upstream parameters for the specified
     /// `upstreamSubQueueId` in which case load the parameters into the

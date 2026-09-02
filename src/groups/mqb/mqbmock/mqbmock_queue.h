@@ -423,6 +423,11 @@ class Queue : public mqbi::Queue {
     const bmqp_ctrlmsg::QueueHandleParameters&
     handleParameters() const BSLS_KEYWORD_OVERRIDE;
 
+    /// Return true if the specified `handle` is one this queue currently
+    /// holds.
+    bool
+    hasHandle(const mqbi::QueueHandle* handle) const BSLS_KEYWORD_OVERRIDE;
+
     /// Return true if the queue has upstream parameters for the specified
     /// `upstreamSubQueueId` in which case load the parameters into the
     /// specified `value`.  Return false otherwise.

@@ -38,6 +38,7 @@
 #include <mqbstat_queuestats.h>
 
 // BMQ
+#include <bmqp_protocolutil.h>
 #include <bmqt_queueflags.h>
 
 #include <bmqu_memoutstream.h>
@@ -733,9 +734,22 @@ void Queue::onOpenUpstream(bsls::Types::Uint64 genCount,
 void Queue::onReceipt(const bmqt::MessageGUID& msgGUID,
                       mqbi::QueueHandle*       queueHandle)
 {
-    BSLS_ASSERT_SAFE(d_localQueue_mp);
-
-    d_localQueue_mp->onReceipt(msgGUID, queueHandle);
+    // Not on 'LocalQueue': under Raft, an entry this node appended while it
+    // was the primary keeps committing after it steps down (see the stepdown
+    // block in 'PartitionRaft::dispatchOutput'), and by then the queue is a
+    // remote one.  The message did commit and the producer is still attached
+    // here, so it is owed this ACK; the handle catalog and the handle it
+    // needs belong to 'QueueState' and outlive the role change.
+    if (d_state.handleCatalog().hasHandle(queueHandle)) {
+        bmqp::AckMessage ackMessage;
+        ackMessage
+            .setStatus(bmqp::ProtocolUtil::ackResultToCode(
+                bmqt::AckResult::e_SUCCESS))
+            .setMessageGUID(msgGUID);
+        // CorrelationId & QueueId are left unset as those fields will be
+        // filled downstream.
+        queueHandle->onAckMessage(ackMessage);
+    }  // else the handle is gone
 }
 
 void Queue::onRemoval(const bmqt::MessageGUID& msgGUID,

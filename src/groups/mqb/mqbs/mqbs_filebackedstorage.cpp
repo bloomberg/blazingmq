@@ -1124,6 +1124,11 @@ void FileBackedStorage::processMessageRecord(
         // Received a message record for a guid for which an entry already
         // exists.  This is an error.
 
+        if (isOwn && d_store_p->isRaft()) {
+            // 'put' reserved for this record and nothing below charges it.
+            undoCapacity(msgLen);
+        }
+
         BMQTSK_ALARMLOG_ALARM("REPLICATION")
             << "Partition [" << partitionId() << "]"
             << " received MESSAGE record for GUID '" << guid << "' for queue '"

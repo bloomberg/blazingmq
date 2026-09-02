@@ -146,6 +146,16 @@ class PartitionRaft : public mqbs::RecordStore,
     /// can go here, since a deferred write leaves `d_handle` unset.
     bsl::vector<bsl::shared_ptr<mqbs::FileStore::PendingWrite> > d_deferred;
 
+    /// Writes proposed after this node stopped being the leader of this
+    /// partition and before its queues were converted to remote.  They never
+    /// become entries of this log, so they take no index and no record handle
+    /// and stay out of the log's pending writes, whose positional lookup
+    /// assumes a contiguous range the new leader is meanwhile extending.  The
+    /// conversion re-posts the ones whose producer is still attached and
+    /// discards the rest.
+    bsl::vector<bsl::shared_ptr<mqbs::FileStore::PendingWrite> >
+        d_writesToRepost;
+
     /// `true` if an `e_ROLLOVER` has been proposed but not yet committed.
     bool d_isRolloverPending;
 
@@ -208,6 +218,20 @@ class PartitionRaft : public mqbs::RecordStore,
     /// `d_committed`.
     void postDispatch(RaftNodeOutput* output, bool hadRollover);
 
+    /// Give back what `d_writesToRepost` set aside and hand each write whose
+    /// producer is still attached to its queue, now a remote one, to relay to
+    /// the new primary.  Call after the conversion, so the handles a cluster
+    /// peer opened are already gone and their writes are left to that peer to
+    /// re-send.
+    void repostHeldWrites();
+
+  public:
+    /// Convert this partition's queues to remote, self no longer leading it,
+    /// and hand them the writes held since the stepdown.  Called by the
+    /// cluster once it has released the handles the peers opened here.
+    void convertQueuesToRemote();
+
+  private:
     /// Apply the next batch of committed-but-unapplied entries.  Re-posted to
     /// this partition's dispatcher between batches so a long replay -- a
     /// restarted node has everything since the last rollover to apply -- does

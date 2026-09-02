@@ -337,6 +337,14 @@ class PartitionRaftManager : public mqbi::StorageProvider,
     /// THREAD: May be called from the cluster dispatcher thread.
     void proposeDeferredSyncPoint(int partitionId);
 
+    /// Convert the queues of the specified `partitionId` to remote, self no
+    /// longer leading it, and hand the writes held since the stepdown to
+    /// them.  Hops to the partition's dispatcher thread, which is also its
+    /// queues', so it runs after any handle drop the caller scheduled first.
+    ///
+    /// THREAD: May be called from the cluster dispatcher thread.
+    void convertQueuesToRemote(int partitionId);
+
     /// Called when a peer node has announced it is stopping ('StopRequest' or
     /// 'NodeStatusAdvisory{E_STOPPING}').  For every partition this node
     /// leads, propose one more sync point (a no-op on partitions this node

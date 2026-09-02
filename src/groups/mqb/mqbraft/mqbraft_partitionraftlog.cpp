@@ -223,7 +223,8 @@ void PartitionRaftLog::flushDeferredRemovals()
     d_deferredRemovals.clear();
 }
 
-void PartitionRaftLog::dropBufferedWrites()
+void PartitionRaftLog::dropBufferedWrites(
+    bsl::vector<bsl::shared_ptr<PendingWrite> >* out)
 {
     // Before anything erases records: a stale deferred handle is an iterator
     // into 'd_records'.
@@ -233,22 +234,35 @@ void PartitionRaftLog::dropBufferedWrites()
         return;  // RETURN
     }
 
-    BALL_LOG_WARN << "PartitionRaftLog: dropping "
+    BALL_LOG_INFO << "PartitionRaftLog: removing "
                   << (d_pendingWrites.size() - d_appendedCount)
                   << " buffered write(s) (no longer leader, or shutting "
-                  << "down).";
+                  << "down); " << (out ? "kept by the caller" : "discarded");
 
     // These were buffered for a rollover that never drained: their
     // placeholders belong to no log entry and carry offset 0, so nothing else
-    // would reclaim them.
-    while (d_appendedCount < d_pendingWrites.size()) {
-        const bsl::shared_ptr<PendingWrite>& sp = d_pendingWrites.back();
+    // would reclaim them.  The capacity behind them is released here only
+    // when nobody takes them on -- a caller that does owes it instead, so
+    // that it is released exactly once.
+    const size_t first = d_appendedCount;
+
+    for (size_t i = first; i < d_pendingWrites.size(); ++i) {
+        const bsl::shared_ptr<PendingWrite>& sp = d_pendingWrites[i];
+
         if (sp->d_handle.isValid()) {
             d_fileStore_p->dropPendingRecord(sp->d_handle);
+            sp->d_handle = mqbs::DataStoreRecordHandle();
         }
-        d_fileStore_p->undoPropose(*sp);
-        d_pendingWrites.pop_back();
+
+        if (out) {
+            out->push_back(sp);
+        }
+        else {
+            d_fileStore_p->undoPropose(*sp);
+        }
     }
+
+    d_pendingWrites.resize(first);
 }
 
 void PartitionRaftLog::dropAppendedWritesFrom(bsls::Types::Uint64 index)

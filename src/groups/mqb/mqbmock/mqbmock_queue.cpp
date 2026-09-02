@@ -528,6 +528,11 @@ const bmqp_ctrlmsg::QueueHandleParameters& Queue::handleParameters() const
     return d_handleParameters;
 }
 
+bool Queue::hasHandle(BSLA_MAYBE_UNUSED const mqbi::QueueHandle* handle) const
+{
+    return false;
+}
+
 bool Queue::getUpstreamParameters(
     bmqp_ctrlmsg::StreamParameters* value,
     BSLA_MAYBE_UNUSED unsigned int  upstreamSubQueueId) const

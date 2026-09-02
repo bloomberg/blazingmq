@@ -647,6 +647,25 @@ void PartitionRaftManager::proposeDeferredSyncPoint(int partitionId)
         bdlf::BindUtil::bind(&PartitionRaft::proposeDeferredSyncPoint, raft));
 }
 
+void PartitionRaftManager::convertQueuesToRemote(int partitionId)
+{
+    // executed by the *CLUSTER DISPATCHER* thread
+
+    if (!validate(static_cast<unsigned int>(partitionId))) {
+        return;  // RETURN
+    }
+
+    PartitionRaft* raft = d_partitionRafts[partitionId].get();
+    if (0 == raft) {
+        return;  // RETURN
+    }
+
+    // Hop to the partition's dispatcher thread, which is also its queues',
+    // so this lands behind any handle drop the caller scheduled first.
+    raft->execute(
+        bdlf::BindUtil::bind(&PartitionRaft::convertQueuesToRemote, raft));
+}
+
 void PartitionRaftManager::onPeerNodeStopping()
 {
     // executed by the *CLUSTER DISPATCHER* thread

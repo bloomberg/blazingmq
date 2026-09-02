@@ -164,7 +164,7 @@ int LocalQueue::configure(bsl::ostream& errorDescription, bool isReconfigure)
     // Inform the storage about the queue.
     d_state_p->storage()->setQueue(queue);
 
-    rc = d_queueEngine_mp->configure(errorDescription, isReconfigure);
+    rc = d_queueEngine_mp->configure(isReconfigure);
     if (rc != 0) {
         return 10 * rc + rc_QUEUE_ENGINE_CFG_FAILURE;  // RETURN
     }
@@ -545,22 +545,6 @@ void LocalQueue::onPushMessage(
 {
     BSLS_ASSERT_OPT(false &&
                     "onPushMessage should not be called on LocalQueue");
-}
-
-void LocalQueue::onReceipt(const bmqt::MessageGUID& msgGUID,
-                           mqbi::QueueHandle*       qH)
-{
-    if (d_state_p->handleCatalog().hasHandle(qH)) {
-        // Send acknowledgement
-        bmqp::AckMessage ackMessage;
-        ackMessage
-            .setStatus(bmqp::ProtocolUtil::ackResultToCode(
-                bmqt::AckResult::e_SUCCESS))
-            .setMessageGUID(msgGUID);
-        // CorrelationId & QueueId are left unset as those fields will be
-        // filled downstream.
-        qH->onAckMessage(ackMessage);
-    }  // else the handle is gone
 }
 
 void LocalQueue::onRemoval(const bmqt::MessageGUID& msgGUID,
