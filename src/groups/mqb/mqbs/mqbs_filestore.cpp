@@ -6456,10 +6456,6 @@ int FileStore::processStorageEvent(const bsl::shared_ptr<bdlbb::Blob>& blob,
                                     header.messageType());
         }
 
-        // A record which is not a valid record at all tells us nothing about
-        // whether self and the primary have diverged, so drop the event
-        // instead of aborting.
-
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
                 FileStoreUtil::k_MALFORMED_QUEUE_RECORD == rc)) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
