@@ -833,8 +833,7 @@ void printMessageGroupIdManagerIndex(
             bsl::ostringstream key;
             bsl::ostringstream timeDelta;
             key << cit->clientDescription() << "#" << cit->msgGroupId();
-            bmqu::PrintUtil::prettyTimeInterval(
-                timeDelta,
+            timeDelta << bmqu::PrintUtil::prettyTimeInterval(
                 cit->lastSeenDeltaNanoseconds());
             printer.printAttribute(key.str().c_str(), timeDelta.str());
         }
