@@ -2384,14 +2384,12 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                     BMQTSK_ALARMLOG_ALARM("RECOVERY")
                         << partitionDesc()
                         << "Encountered an orphan DELETION record for "
-                           "queueKey ["
-                        << rec.queueKey()
+                        << "queueKey [" << rec.queueKey()
                         << "], offset: " << jit->recordOffset()
                         << ", index: " << jit->recordIndex()
                         << ": the queueKey is not present in the cluster "
-                           "state "
-                        << "and had no QueueOp.CREATION record in the first "
-                        << "pass." << BMQTSK_ALARMLOG_END;
+                        << "state and had no QueueOp.CREATION record in the "
+                        << "first pass." << BMQTSK_ALARMLOG_END;
                 }
                 else {
                     BMQTSK_ALARMLOG_ALARM("RECOVERY")
@@ -2471,14 +2469,12 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                     BMQTSK_ALARMLOG_ALARM("RECOVERY")
                         << partitionDesc()
                         << "Encountered an orphan CONFIRM record for queueKey "
-                           "["
-                        << rec.queueKey()
+                        << "[" << rec.queueKey()
                         << "], offset: " << jit->recordOffset()
                         << ", index: " << jit->recordIndex()
                         << ": the queueKey is not present in the cluster "
-                           "state "
-                        << "and had no QueueOp.CREATION record in the first "
-                        << "pass." << BMQTSK_ALARMLOG_END;
+                        << "state and had no QueueOp.CREATION record in the "
+                        << "first pass." << BMQTSK_ALARMLOG_END;
                     continue;  // CONTINUE
                 }
                 else {
