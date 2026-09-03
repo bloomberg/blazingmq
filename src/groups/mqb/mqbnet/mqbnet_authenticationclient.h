@@ -63,6 +63,9 @@ class AuthenticationClient {
     virtual int
     handleResponse(bsl::ostream&                              errorDescription,
                    const bmqp_ctrlmsg::AuthenticationMessage& response) = 0;
+
+    /// @brief Notify this client that the channel is closing.
+    virtual void onClose() = 0;
 };
 
 }  // close package namespace

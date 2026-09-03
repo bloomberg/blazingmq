@@ -20,15 +20,15 @@
 /// Implementation Notes
 ///====================
 /// The 'Authenticator' class manages both authentication and reauthentication
-/// for connections.  For incoming connections, it authenticates using the
-/// received AuthenticationRequest and responds with an AuthenticationResponse.
-/// For outgoing connections, it initiates authentication by sending an
-/// AuthenticationRequest and awaits an AuthenticationResponse.  Upon
+/// of incoming connections: it authenticates using the received
+/// AuthenticationRequest and responds with an AuthenticationResponse.  Upon
 /// successful authentication during initial connection, the negotiation
 /// process continues.  All authentication operations are performed
-/// asynchronously.
+/// asynchronously.  Outgoing connections are authenticated by the
+/// 'AuthenticationClient' handed out by 'createAuthenticationClient'.
 
 // MQB
+#include <mqba_authenticationclient.h>
 #include <mqbcfg_messages.h>
 #include <mqbnet_authenticationcontext.h>
 #include <mqbnet_initialconnectioncontext.h>
@@ -53,7 +53,6 @@
 #include <bsl_optional.h>
 #include <bsl_ostream.h>
 #include <bsl_vector.h>
-#include <bsla_annotations.h>
 #include <bslmt_threadattributes.h>
 #include <bslmt_threadutil.h>
 #include <bsls_timeinterval.h>
@@ -105,19 +104,6 @@ int Authenticator::onAuthenticationRequest(
         false);
 
     return rc;
-}
-
-int Authenticator::onAuthenticationResponse(
-    BSLA_MAYBE_UNUSED bsl::ostream& errorDescription,
-    BSLA_MAYBE_UNUSED mqbnet::InitialConnectionContext* context_p,
-    BSLA_MAYBE_UNUSED const bmqp_ctrlmsg::AuthenticationMessage&
-                            authenticationMsg)
-{
-    // executed by one of the *IO* threads
-
-    BALL_LOG_ERROR << "Not Implemented";
-
-    return -1;
 }
 
 int Authenticator::sendAuthenticationResponse(
@@ -488,12 +474,6 @@ int Authenticator::handleAuthentication(
                                      context_p,
                                      authenticationMsg);
     } break;  // BREAK
-    case bmqp_ctrlmsg::AuthenticationMessage::
-        SELECTION_ID_AUTHENTICATION_RESPONSE: {
-        rc = onAuthenticationResponse(errorDescription,
-                                      context_p,
-                                      authenticationMsg);
-    } break;  // BREAK
     default: {
         errorDescription
             << "Invalid authentication message received (unknown type): "
@@ -545,13 +525,23 @@ int Authenticator::handleReauthentication(
     return rc;
 }
 
-int Authenticator::authenticationOutbound(
-    BSLA_MAYBE_UNUSED bsl::ostream&                  errorDescription,
-    BSLA_MAYBE_UNUSED const AuthenticationContextSp& context)
+bsl::shared_ptr<mqbnet::AuthenticationClient>
+Authenticator::createAuthenticationClient(
+    const bsl::shared_ptr<bmqio::Channel>& channel)
 {
-    BALL_LOG_ERROR << "Not Implemented";
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(channel);
 
-    return -1;
+    if (!d_authnController_p->hasCredentialProvider()) {
+        return bsl::shared_ptr<mqbnet::AuthenticationClient>();  // RETURN
+    }
+
+    return bsl::allocate_shared<AuthenticationClient>(
+        d_allocator_p,
+        d_authnController_p->credentialCb(),
+        channel,
+        d_blobSpPool_p,
+        d_scheduler_p);
 }
 
 // ACCESSORS

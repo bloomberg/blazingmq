@@ -47,7 +47,7 @@ void AuthenticationClient::onReauthenticate()
 {
     // executed by the *SCHEDULER* thread
 
-    // Skip the authentication call if destructor has been called.
+    // Skip the authentication call if we are closing.
     bmqu::GateKeeper::Status gateStatus(d_gateKeeper);
     if (!gateStatus.isOpen()) {
         return;  // RETURN
@@ -86,11 +86,7 @@ AuthenticationClient::AuthenticationClient(
 
 AuthenticationClient::~AuthenticationClient()
 {
-    d_gateKeeper.close();
-    d_scheduler_p->cancelEventAndWait(&d_reauthHandle);
-
-    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);
-    d_channel_wp.reset();
+    onClose();
 }
 
 // MANIPULATORS
@@ -177,8 +173,7 @@ int AuthenticationClient::handleResponse(
         rc_AUTHENTICATION_FAILURE = -2
     };
 
-    // Prevent scheduling reauthentication if destructor has been called.
-    // The destructor will wait for this function to return.
+    // Prevent scheduling reauthentication if we are closing.
     bmqu::GateKeeper::Status gateStatus(d_gateKeeper);
     if (!gateStatus.isOpen()) {
         return rc_SUCCESS;  // RETURN
@@ -222,6 +217,10 @@ int AuthenticationClient::handleResponse(
 
     // If a lifetime is provided, schedule a reauthentication request to be
     // sent at 80% of the lifetime before the connection expires.
+    //
+    // TODO(678098): handle the case when lifetimeMs is short enough that we
+    // trigger a reauthentication event before we finished establishing a
+    // session.
     if (authnResponse.lifetimeMs().has_value()) {
         const bsls::Types::Int64 lifetimeMs =
             authnResponse.lifetimeMs().value();
@@ -247,6 +246,21 @@ int AuthenticationClient::handleResponse(
     }
 
     return rc_SUCCESS;
+}
+
+void AuthenticationClient::onClose()
+{
+    // executed by *ANY* thread
+
+    // Close the gate first, so no reauthentication events can be scheduled
+    // after this point.
+    d_gateKeeper.close();
+
+    // There still might be a reauthn event, make sure it is cancelled.
+    d_scheduler_p->cancelEventAndWait(&d_reauthHandle);
+
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);
+    d_channel_wp.reset();
 }
 
 }  // close package namespace

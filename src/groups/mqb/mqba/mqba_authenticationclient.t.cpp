@@ -628,6 +628,54 @@ static void test10_reauthChannelGoneAtTimerFire()
         alloc));
 }
 
+static void test11_onCloseCancelsReauthTimer()
+// ------------------------------------------------------------------------
+// ON CLOSE CANCELS REAUTH TIMER
+//
+// Concerns:
+//   - 'onClose()' cancels a pending reauthentication timer, so a closing
+//     channel is not written to.
+//   - 'onClose()' is safe to call before the client is destroyed.
+//
+// Plan:
+//   1) Authenticate and handle a response with a lifetime to schedule
+//      reauthentication.
+//   2) Call 'onClose()'.
+//   3) Advance time past the reauthn point, verify no additional writes.
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("ON CLOSE CANCELS REAUTH TIMER");
+
+    bslma::Allocator* alloc = bmqtst::TestHelperUtil::allocator();
+    TestBench         tb(alloc);
+
+    bslma::ManagedPtr<mqba::AuthenticationClient> client = tb.createClient(
+        SuccessCredentialCb());
+
+    // 1)
+    bmqu::MemOutStream errStream(alloc);
+    int                rc = client->authenticate(errStream);
+    BMQTST_ASSERT_EQ(rc, 0);
+
+    const size_t writeCountAfterAuth = tb.d_channel->numWriteCalls();
+
+    const bsls::Types::Uint64           lifetimeMs = 10000;
+    bmqp_ctrlmsg::AuthenticationMessage response   = makeSuccessResponse(
+        bdlb::NullableValue<bsls::Types::Uint64>(lifetimeMs));
+
+    errStream.reset();
+    rc = client->handleResponse(errStream, response);
+    BMQTST_ASSERT_EQ(rc, 0);
+
+    // 2)
+    client->onClose();
+
+    // 3)
+    tb.d_testClock.d_timeSource.advanceTime(
+        bsls::TimeInterval().addMilliseconds(100000));
+    BMQTST_ASSERT_EQ(tb.d_channel->numWriteCalls(), writeCountAfterAuth);
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -641,6 +689,7 @@ int main(int argc, char* argv[])
 
         switch (_testCase) {
         case 0:
+        case 11: test11_onCloseCancelsReauthTimer(); break;
         case 10: test10_reauthChannelGoneAtTimerFire(); break;
         case 9: test9_destructorCancelsReauthTimer(); break;
         case 8: test8_handleResponseInvalidMessage(); break;

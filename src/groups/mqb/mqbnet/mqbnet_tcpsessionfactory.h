@@ -139,6 +139,7 @@ class StatController;
 namespace mqbnet {
 
 // FORWARD DECLARATION
+class AuthenticationClient;
 class AuthenticationContext;
 class Cluster;
 class InitialConnectionContext;
@@ -215,6 +216,11 @@ class TCPSessionFactory {
         // The context of authentication
         bsl::shared_ptr<AuthenticationContext> d_authenticationCtx_sp;
 
+        /// The client-side authenticator of an outbound channel, which owns
+        /// the reauthentication timer.  Empty for an incoming channel, and for
+        /// an outbound one that was not authenticated.
+        bsl::shared_ptr<AuthenticationClient> d_authenticationClient_sp;
+
         /// The session tied to the channel
         bsl::shared_ptr<Session> d_session_sp;
 
@@ -228,6 +234,8 @@ class TCPSessionFactory {
         /// @param channel_sp The channel
         /// @param authenticationContext The authentication context associated
         /// with this channel.
+        /// @param authenticationClient The client-side authenticator
+        /// associated with this channel.
         /// @param session The session associated with this channel.
         /// @param eventProcessor The event processor of Events received on
         /// this channel.
@@ -235,14 +243,16 @@ class TCPSessionFactory {
         /// missed heartbeats on this channel.
         /// @param initialMissedHeartbeatCounter The initial missed heartbeats
         /// for this channel.
-        explicit ChannelInfo(const bsl::shared_ptr<bmqio::Channel>& channel_sp,
-                             const bsl::shared_ptr<AuthenticationContext>&
-                                 authenticationContext,
-                             const bsl::shared_ptr<Session>& session,
-                             SessionEventProcessor*          eventProcessor,
-                             int               maxMissedHeartbeats,
-                             int               initialMissedHeartbeatCounter,
-                             bslma::Allocator* allocator);
+        explicit ChannelInfo(
+            const bsl::shared_ptr<bmqio::Channel>& channel_sp,
+            const bsl::shared_ptr<AuthenticationContext>&
+                                                         authenticationContext,
+            const bsl::shared_ptr<AuthenticationClient>& authenticationClient,
+            const bsl::shared_ptr<Session>&              session,
+            SessionEventProcessor*                       eventProcessor,
+            int                                          maxMissedHeartbeats,
+            int               initialMissedHeartbeatCounter,
+            bslma::Allocator* allocator);
 
       private:
         // NOT IMPLEMENTED
@@ -567,11 +577,18 @@ class TCPSessionFactory {
     /// @returns 0 on success, nonzero on failure.
     int validateTcpInterfaces() const;
 
-    /// Handle an authentication event for the specified `event` by
-    /// performing reauthentication using the authentication context stored
-    /// in the specified `channelInfo`.
-    void reauthnOnAuthenticationEvent(const bmqp::Event& event,
-                                      const ChannelInfo* channelInfo) const;
+    /// @brief Route the specified authentication `event` received on the
+    ///        established channel of the specified `channelInfo`.
+    ///
+    /// A request is a peer asking this broker to reauthenticate it; a response
+    /// answers a reauthentication request this broker sent on an outbound
+    /// channel.  The channel is closed if reauthentication fails.
+    ///
+    /// @param event       The authentication event received.
+    /// @param channelInfo The channel the event was received on.  The behavior
+    ///                    is undefined if it is NULL.
+    void onAuthenticationEvent(const bmqp::Event& event,
+                               const ChannelInfo* channelInfo) const;
 
   private:
     // NOT IMPLEMENTED
