@@ -249,5 +249,17 @@ int AuthenticationClient::handleResponse(
     return rc_SUCCESS;
 }
 
+void AuthenticationClient::onClose()
+{
+    // executed by the *IO* thread
+
+    // Cancel outside of 'd_mutex': the scheduled callback reaches
+    // 'authenticate', which acquires that same mutex.
+    d_scheduler_p->cancelEventAndWait(&d_reauthHandle);
+
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);
+    d_channel_wp.reset();
+}
+
 }  // close package namespace
 }  // close enterprise namespace

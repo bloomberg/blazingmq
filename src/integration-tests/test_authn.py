@@ -862,3 +862,117 @@ def test_authenticate_client_disconnect_during_auth(
     assert nego_resp["brokerResponse"]["result"]["code"] == 0
 
     new_client.stop()
+
+
+# ==============================================================================
+# Broker-to-Broker Authentication Tests
+# ==============================================================================
+
+
+BROKER_USER = "bmqbrkr"
+BROKER_PASSWORD = "brokerPassword"
+
+
+def broker_authn_config(password: str) -> dict:
+    """
+    Return an authentication config where every broker accepts `BROKER_USER`
+    with `BROKER_PASSWORD`, and presents `BROKER_USER` with the specified
+    `password` when connecting to another broker.
+    """
+    return {
+        "authenticators": [
+            {
+                "name": "BasicAuthenticator",
+                "settings": [
+                    {"key": BROKER_USER, "value": {"stringVal": BROKER_PASSWORD}},
+                ],
+            }
+        ],
+        "credentialProvider": {
+            "name": "BasicCredentialProvider",
+            "settings": [
+                {"key": "username", "value": {"stringVal": BROKER_USER}},
+                {"key": "password", "value": {"stringVal": password}},
+            ],
+        },
+    }
+
+
+@tweak.broker.app_config.authentication(broker_authn_config(BROKER_PASSWORD))
+def test_broker_to_broker_authenticate_success(
+    multi_node: Cluster,
+    sc_domain_urls: tc.DomainUrls,
+) -> None:
+    """
+    Test that brokers authenticate one another when a credential provider is
+    configured, and that the cluster is fully functional over the
+    authenticated connections.
+    """
+    # Reaching this point means a leader was elected, which requires the nodes
+    # to have established sessions with one another.
+    assert multi_node.last_known_leader is not None
+
+    [consumer] = multi_node.open_priority_queues(
+        1, flags=["read"], uri_priority=sc_domain_urls.uri_priority
+    )
+    [producer] = multi_node.open_priority_queues(
+        1, flags=["write"], uri_priority=sc_domain_urls.uri_priority
+    )
+
+    producer.post(payload=["foo"], succeed=True)
+    consumer.client.wait_push_event()
+
+    msgs = consumer.list(block=True)
+    assert len(msgs) == 1
+    assert msgs[0].payload == "foo"
+
+    # Reconnect the nodes without waiting, so that the handshake of each new
+    # inter-broker connection is observable in the log.
+    multi_node.restart_nodes(wait_leader=False)
+
+    # A cluster member only dials peers whose node id is higher than its own,
+    # so the node with the highest id is the one node that never authenticates
+    # outbound.
+    definition = multi_node.configurator.clusters[multi_node.name].definition
+    inbound_only_broker = max(definition.nodes, key=lambda node: node.id).name
+
+    for node in multi_node.nodes():
+        if node.name == inbound_only_broker:
+            continue
+
+        matches = node.capture_n(
+            ["Sending AuthenticationRequest", "Authentication successful"]
+        )
+        assert all(match is not None for match in matches)
+
+
+@start_cluster(True, wait_leader=False)
+@tweak.broker.app_config.authentication(broker_authn_config("wrongPassword"))
+def test_broker_to_broker_authenticate_rejected(
+    multi_node: Cluster,
+    sc_domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+) -> None:
+    """
+    Test that a broker presenting credentials its peers reject cannot
+    establish a session with them, and that the cluster therefore never
+    elects a leader.
+    """
+    # A cluster member is only dialed by peers whose node id is lower than its
+    # own, so the node with the lowest id is the one node that never refuses an
+    # inbound peer connection.
+    definition = multi_node.configurator.clusters[multi_node.name].definition
+    outbound_only_broker = min(definition.nodes, key=lambda node: node.id).name
+
+    for node in multi_node.nodes():
+        # Logged by both ends: the connection is dropped rather than falling
+        # back to an unauthenticated session.
+        assert node.outputs_regex("failed to authenticate/negotiate a session")
+
+        if node.name == outbound_only_broker:
+            continue
+
+        # Logged by the acceptor when it refuses the peer's credentials.
+        assert node.outputs_regex("Authentication failed for connection")
+
+    for node in multi_node.nodes():
+        assert not node.outputs_regex("leader status: ACTIVE", timeout=5)

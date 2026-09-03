@@ -22,7 +22,9 @@
 /// InitialConnectionContext owns the transient state needed while a
 /// connection is performing the initial handshake (authentication followed
 /// by negotiation, or direct negotiation with implicit/anonymous
-/// authentication).
+/// authentication).  An outbound connection authenticates itself first when
+/// this broker is configured to authenticate with other brokers, and
+/// negotiates directly otherwise.
 ///
 /// Responsibilities:
 /// - Hold caller‐supplied opaque pointers (user data / result state) so they
@@ -87,9 +89,10 @@ struct InitialConnectionState {
         e_AUTHENTICATING      = 1,  // First message is authentication Request.
         e_AUTHENTICATED       = 2,  // Authentication success.
         e_ANON_AUTHENTICATING = 3,  // First message is Negotiation Request.
-        e_NEGOTIATING_OUTBOUND = 4,  // Outbound negotiation.
-        e_NEGOTIATED           = 5,  // Negotiation success.  Final state.
-        e_FAILED               = 6   // Final state.
+        e_NEGOTIATING_OUTBOUND    = 4,  // Outbound negotiation.
+        e_NEGOTIATED              = 5,  // Negotiation success.  Final state.
+        e_FAILED                  = 6,  // Final state.
+        e_AUTHENTICATING_OUTBOUND = 7   // Outbound authentication.
     };
 
     // CLASS METHODS
@@ -143,13 +146,15 @@ bsl::ostream& operator<<(bsl::ostream&                stream,
 struct InitialConnectionEvent {
     // TYPES
     enum Enum {
-        e_NONE                 = 0,
-        e_OUTBOUND_NEGOTIATION = 1,
-        e_INCOMING             = 2,
-        e_AUTHN_REQUEST        = 3,
-        e_NEGOTIATION_MESSAGE  = 4,
-        e_AUTHN_SUCCESS        = 5,
-        e_ERROR                = 6
+        e_NONE                    = 0,
+        e_OUTBOUND_NEGOTIATION    = 1,
+        e_INCOMING                = 2,
+        e_AUTHN_REQUEST           = 3,
+        e_NEGOTIATION_MESSAGE     = 4,
+        e_AUTHN_SUCCESS           = 5,
+        e_ERROR                   = 6,
+        e_OUTBOUND_AUTHENTICATION = 7,
+        e_AUTHN_RESPONSE          = 8
     };
 
     // CLASS METHODS
@@ -284,6 +289,11 @@ class InitialConnectionContext {
     /// authentication message.
     bsl::shared_ptr<AuthenticationContext> d_authenticationCtx_sp;
 
+    /// The client-side authenticator driving authentication of an outbound
+    /// connection.  Empty for an incoming connection, and for an outbound one
+    /// when this broker is not configured to authenticate with other brokers.
+    bsl::shared_ptr<AuthenticationClient> d_authenticationClient_sp;
+
     /// The NegotiationContext updated upon receiving a negotiation message.
     bsl::shared_ptr<NegotiationContext> d_negotiationCtx_sp;
 
@@ -380,6 +390,12 @@ class InitialConnectionContext {
     /// Create and initialize a `NegotiationContext`.
     void createNegotiationContext();
 
+    /// Send the outbound negotiation message and schedule a read for the
+    /// peer's response.  Return 0 on success, or a non-zero code and populate
+    /// the specified `errorDescription` with a description of the error
+    /// otherwise.
+    int startOutboundNegotiation(bsl::ostream& errorDescription);
+
     /// Perform anonymous authentication using the anonymous credential for the
     /// current context.  Return a non-zero code on error and
     /// populate the specified `errorDescription` with a description of the
@@ -429,7 +445,8 @@ class InitialConnectionContext {
     bmqp::EncodingType::Enum               authenticationEncodingType() const;
     const bsl::shared_ptr<AuthenticationContext>&
                                                authenticationContext() const;
-    const bsl::shared_ptr<NegotiationContext>& negotiationContext() const;
+    const bsl::shared_ptr<AuthenticationClient>& authenticationClient() const;
+    const bsl::shared_ptr<NegotiationContext>&   negotiationContext() const;
     bool                                       isClosed() const;
     InitialConnectionState::Enum               state() const;
     bool                                       hasFinalState() const;

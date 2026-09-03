@@ -30,6 +30,7 @@
 #include <mqbcfg_brokerconfig.h>
 #include <mqbcfg_messages.h>
 #include <mqbcfg_tcpinterfaceconfigvalidator.h>
+#include <mqbnet_authenticationclient.h>
 #include <mqbnet_authenticationcontext.h>
 #include <mqbnet_authenticator.h>
 #include <mqbnet_cluster.h>
@@ -571,7 +572,7 @@ void TCPSessionFactory::read(ChannelInfo*       channelInfo,
     if (channelInfo->d_monitor_mp->checkData(channelInfo->d_channel_sp.get(),
                                              event)) {
         if (event.isAuthenticationEvent()) {
-            reauthnOnAuthenticationEvent(event, channelInfo);
+            onAuthenticationEvent(event, channelInfo);
         }
         else {
             channelInfo->d_eventProcessor_p->processEvent(
@@ -691,6 +692,7 @@ void TCPSessionFactory::initialConnectionComplete(
             d_allocator_p,
             channel,
             initialConnectionContext_sp->authenticationContext(),
+            initialConnectionContext_sp->authenticationClient(),
             monitoredSession,
             initialConnectionContext_sp->negotiationContext()
                 ->eventProcessor(),
@@ -952,6 +954,10 @@ void TCPSessionFactory::onClose(const bsl::shared_ptr<bmqio::Channel>& channel,
             channelInfo->d_authenticationCtx_sp->onClose();
         }
 
+        if (channelInfo->d_authenticationClient_sp) {
+            channelInfo->d_authenticationClient_sp->onClose();
+        }
+
         // TearDown the session
         int isBrokerShutdown = false;
         if (status.category() == bmqio::StatusCategory::e_SUCCESS) {
@@ -1070,7 +1076,7 @@ int TCPSessionFactory::validateTcpInterfaces() const
     return validator(*d_config_mp);
 }
 
-void TCPSessionFactory::reauthnOnAuthenticationEvent(
+void TCPSessionFactory::onAuthenticationEvent(
     const bmqp::Event& event,
     const ChannelInfo* channelInfo) const
 {
@@ -1078,14 +1084,10 @@ void TCPSessionFactory::reauthnOnAuthenticationEvent(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(channelInfo);
-    BSLS_ASSERT_SAFE(channelInfo->d_authenticationCtx_sp);
     BSLS_ASSERT_SAFE(channelInfo->d_session_sp);
 
-    const bsl::shared_ptr<AuthenticationContext>& context =
-        channelInfo->d_authenticationCtx_sp;
     const bsl::string_view description =
         channelInfo->d_session_sp->description();
-    bmqu::MemOutStream errStream(d_allocator_p);
 
     bmqp_ctrlmsg::AuthenticationMessage authenticationMessage;
     int rc = event.loadAuthenticationEvent(&authenticationMessage);
@@ -1099,6 +1101,43 @@ void TCPSessionFactory::reauthnOnAuthenticationEvent(
     }
 
     BALL_LOG_INFO << description << ": Received an authentication message";
+
+    if (authenticationMessage.isAuthenticationResponseValue()) {
+        const bsl::shared_ptr<AuthenticationClient>& client =
+            channelInfo->d_authenticationClient_sp;
+        if (!client) {
+            BALL_LOG_ERROR << "#CLIENT_IMPROPER_BEHAVIOR " << description
+                           << ": Dropping unsolicited AuthenticationResponse: "
+                           << event;
+            return;  // RETURN
+        }
+
+        bmqu::MemOutStream errorStream(d_allocator_p);
+        rc = client->handleResponse(errorStream, authenticationMessage);
+        if (rc != 0) {
+            BALL_LOG_ERROR << "#AUTHENTICATION_FAILED " << description
+                           << ": Reauthentication failed [reason: '"
+                           << errorStream.str() << "', rc: " << rc << "]";
+
+            bmqio::Status status(bmqio::StatusCategory::e_GENERIC_ERROR,
+                                 "reauthenticationError",
+                                 rc,
+                                 d_allocator_p);
+            channelInfo->d_channel_sp->close(status);
+        }
+
+        return;  // RETURN
+    }
+
+    const bsl::shared_ptr<AuthenticationContext>& context =
+        channelInfo->d_authenticationCtx_sp;
+    if (!context) {
+        BALL_LOG_ERROR << "#CLIENT_IMPROPER_BEHAVIOR " << description
+                       << ": Dropping AuthenticationRequest received on a "
+                          "channel that was not authenticated: "
+                       << event;
+        return;  // RETURN
+    }
 
     context->setAuthenticationMessage(authenticationMessage);
     context->setAuthenticationEncodingType(
@@ -1114,11 +1153,12 @@ void TCPSessionFactory::reauthnOnAuthenticationEvent(
         return;  // RETURN
     }
 
-    bmqu::MemOutStream errorStream;
+    bmqu::MemOutStream errorStream(d_allocator_p);
     rc = d_authenticator_p->handleReauthentication(errorStream,
                                                    context,
                                                    channelInfo->d_channel_sp);
     if (rc != 0) {
+        bmqu::MemOutStream errStream(d_allocator_p);
         errStream << "#AUTHENTICATION_FAILED " << description
                   << ": Authentication failed [reason: '" << errorStream.str()
                   << "', rc: " << rc << "]";
@@ -1665,6 +1705,7 @@ bool TCPSessionFactory::isEndpointLoopback(bsl::string_view uri) const
 TCPSessionFactory::ChannelInfo::ChannelInfo(
     const bsl::shared_ptr<bmqio::Channel>&        channel_sp,
     const bsl::shared_ptr<AuthenticationContext>& authenticationContext,
+    const bsl::shared_ptr<AuthenticationClient>&  authenticationClient,
     const bsl::shared_ptr<Session>&               monitoredSession,
     SessionEventProcessor*                        eventProcessor,
     int                                           maxMissedHeartbeats,
@@ -1672,6 +1713,7 @@ TCPSessionFactory::ChannelInfo::ChannelInfo(
     bslma::Allocator* allocator)
 : d_channel_sp(channel_sp)
 , d_authenticationCtx_sp(authenticationContext)
+, d_authenticationClient_sp(authenticationClient)
 , d_session_sp(monitoredSession)
 , d_eventProcessor_p(eventProcessor)
 , d_monitor_mp(bslma::ManagedPtrUtil::allocateManaged<bmqp::HeartbeatMonitor>(
