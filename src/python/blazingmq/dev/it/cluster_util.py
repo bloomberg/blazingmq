@@ -183,13 +183,17 @@ def rollover_queues_and_apps_test(cluster: Cluster, domain_urls, trigger_rollove
             wait_ack=True,
         )
 
-    consumer = proxy.create_client("consumer")
-    consumer.open(priority_queue, flags=["read"], succeed=True)
-    consumer.open(fanout_queue + "?id=foo", flags=["read"], succeed=True)
-    consumer.confirm(priority_queue, "+1", succeed=True)
-    consumer.confirm(fanout_queue + "?id=foo", "+1", succeed=True)
-    consumer.close(priority_queue, succeed=True)
-    consumer.close(fanout_queue + "?id=foo", succeed=True)
+    consumer_priority = proxy.create_client("consumer_priority")
+    consumer_priority.open(priority_queue, flags=["read"], succeed=True)
+    assert consumer_priority.wait_push_event()
+    consumer_priority.confirm(priority_queue, "+1", succeed=True)
+    consumer_priority.close(priority_queue, succeed=True)
+
+    consumer_fanout = proxy.create_client("consumer_fanout")
+    consumer_fanout.open(fanout_queue + "?id=foo", flags=["read"], succeed=True)
+    assert consumer_fanout.wait_push_event()
+    consumer_fanout.confirm(fanout_queue + "?id=foo", "+1", succeed=True)
+    consumer_fanout.close(fanout_queue + "?id=foo", succeed=True)
 
     current_app_ids = tc.TEST_APPIDS[:] + ["quux"]
     cluster.set_app_ids(current_app_ids, du)
@@ -211,11 +215,11 @@ def rollover_queues_and_apps_test(cluster: Cluster, domain_urls, trigger_rollove
         producer.wait_state_restored()
 
     # EPILOGUE
-    check_if_queue_has_n_messages(consumer, priority_queue, 1)
-    check_if_queue_has_n_messages(consumer, fanout_queue + "?id=foo", 2)
-    check_if_queue_has_n_messages(consumer, fanout_queue + "?id=bar", 0)
-    check_if_queue_has_n_messages(consumer, fanout_queue + "?id=baz", 3)
-    check_if_queue_has_n_messages(consumer, fanout_queue + "?id=quux", 1)
+    check_if_queue_has_n_messages(consumer_priority, priority_queue, 1)
+    check_if_queue_has_n_messages(consumer_fanout, fanout_queue + "?id=foo", 2)
+    check_if_queue_has_n_messages(consumer_fanout, fanout_queue + "?id=bar", 0)
+    check_if_queue_has_n_messages(consumer_fanout, fanout_queue + "?id=baz", 3)
+    check_if_queue_has_n_messages(consumer_fanout, fanout_queue + "?id=quux", 1)
 
 
 def run_storage_tool(journal_file: Path, mode: str) -> subprocess.CompletedProcess:
