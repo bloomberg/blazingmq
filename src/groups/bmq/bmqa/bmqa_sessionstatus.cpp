@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include <bmqa_stopstatus.h>
+#include <bmqa_sessionstatus.h>
 
 #include <bmqscm_version.h>
 
@@ -25,13 +25,13 @@
 namespace BloombergLP {
 namespace bmqa {
 
-// ----------------
-// class StopStatus
-// ----------------
+// -------------------
+// class SessionStatus
+// -------------------
 
 // ACCESSORS
 bsl::ostream&
-StopStatus::print(bsl::ostream& stream, int level, int spacesPerLevel) const
+SessionStatus::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 {
     bslim::Printer printer(&stream, level, spacesPerLevel);
     printer.start();

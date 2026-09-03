@@ -9714,43 +9714,6 @@ static void test60_queueLateAsyncCanceledReader3()
                            bmqimp::QueueState::e_PENDING);
 }
 
-static void test64_queueLateAsyncCanceledWriter3()
-{
-    bmqtst::TestHelper::printTestName(
-        "QUEUE LATE ASYNC CANCELED WRITER TEST 3");
-
-    queueLateAsyncCanceled(L_,
-                           bmqt::QueueFlags::e_WRITE,
-                           TestSession::e_LATE_RECONFIGURING,
-                           bmqimp::QueueState::e_PENDING);
-}
-
-static void test65_queueLateAsyncCanceledWriter4()
-{
-    bmqtst::TestHelper::printTestName(
-        "QUEUE LATE ASYNC CANCELED WRITER TEST 4");
-
-    queueLateAsyncCanceled(L_,
-                           bmqt::QueueFlags::e_WRITE,
-                           TestSession::e_LATE_CLOSE_CONFIGURING,
-                           bmqimp::QueueState::e_PENDING);
-}
-
-static void test68_queueLateAsyncCanceledHybrid3()
-{
-    bmqtst::TestHelper::printTestName(
-        "QUEUE LATE ASYNC CANCELED HYBRID TEST 3");
-
-    bsls::Types::Uint64 flags = 0;
-    bmqt::QueueFlagsUtil::setReader(&flags);
-    bmqt::QueueFlagsUtil::setWriter(&flags);
-
-    queueLateAsyncCanceled(L_,
-                           flags,
-                           TestSession::e_LATE_RECONFIGURING,
-                           bmqimp::QueueState::e_PENDING);
-}
-
 /// Records the terminal session event delivered to an async start/stop
 /// completion callback.  Its `record` method conforms to
 /// `bmqimp::BrokerSession::EventCallback` and is invoked on the event delivery
@@ -9758,11 +9721,13 @@ static void test68_queueLateAsyncCanceledHybrid3()
 struct SessionCbRecorder {
     bslmt::TimedSemaphore        d_sem;
     bmqt::SessionEventType::Enum d_type;
+    bmqt::GenericResult::Enum    d_result;
     int                          d_status;
 
     SessionCbRecorder()
     : d_sem(bsls::SystemClockType::e_REALTIME)
     , d_type(bmqt::SessionEventType::e_UNDEFINED)
+    , d_result(bmqt::GenericResult::e_SUCCESS)
     , d_status(0)
     {
     }
@@ -9770,12 +9735,19 @@ struct SessionCbRecorder {
     void record(const bsl::shared_ptr<bmqimp::Event>& event)
     {
         d_type   = event->sessionEventType();
+        d_result = event->result();
         d_status = event->statusCode();
         d_sem.post();
     }
+
+    /// Return an `EventCallback` bound to this recorder.
+    bmqimp::BrokerSession::EventCallback callback()
+    {
+        return bdlf::MemFnUtil::memFn(&SessionCbRecorder::record, this);
+    }
 };
 
-static void test71_startStopAsyncCallback()
+static void test61_startStopAsyncCallback()
 // ------------------------------------------------------------------------
 // START / STOP ASYNC CALLBACK
 //
@@ -9814,8 +9786,7 @@ static void test71_startStopAsyncCallback()
 
     PVV_SAFE("Step 1. Start with a completion callback");
     SessionCbRecorder startRec;
-    int               rc = obj.session().startAsync(
-        bdlf::MemFnUtil::memFn(&SessionCbRecorder::record, &startRec));
+    int               rc = obj.session().startAsync(startRec.callback());
     BMQTST_ASSERT_EQ(rc, 0);
 
     PVV_SAFE("Step 2. Bring the channel up and wait for the start callback");
@@ -9833,8 +9804,7 @@ static void test71_startStopAsyncCallback()
 
     PVV_SAFE("Step 3. Stop with a completion callback");
     SessionCbRecorder stopRec;
-    obj.session().stopAsync(
-        bdlf::MemFnUtil::memFn(&SessionCbRecorder::record, &stopRec));
+    obj.session().stopAsync(stopRec.callback());
 
     PVV_SAFE("Step 4. Answer the disconnect request");
     bmqp_ctrlmsg::ControlMessage disconnectMessage(
@@ -9865,6 +9835,164 @@ static void test71_startStopAsyncCallback()
     BMQTST_ASSERT(obj.checkNoEvent());
 }
 
+static void test62_startStopAsyncCallbackTerminalPaths()
+// ------------------------------------------------------------------------
+// START / STOP ASYNC CALLBACK TERMINAL PATHS
+//
+// Concerns:
+//   Every terminal path of the session FSM completes a pending async
+//   start/stop callback.  These are the paths that emit no session event of
+//   their own, and on which a stored callback used to be dropped, leaving
+//   the caller waiting forever.
+//
+// Plan:
+//   1. 'stopAsync' with a callback on a session that was never started.
+//   2. 'startAsync' with a callback, then drop the channel while STARTING
+//      (a connect that fails fast rather than timing out).
+//   3. 'startAsync' with a callback, then 'stopAsync' with another one
+//      while still STARTING: both must complete.
+//   4. 'startAsync' with a callback on an already started session.
+//
+// Testing:
+//   int  BrokerSession::startAsync(const EventCallback&);
+//   void BrokerSession::stopAsync(const EventCallback&);
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName(
+        "START / STOP ASYNC CALLBACK TERMINAL PATHS");
+
+    bmqt::SessionOptions sessionOptions;
+    sessionOptions.setNumProcessingThreads(1);
+
+    bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
+                                    bmqtst::TestHelperUtil::allocator());
+
+    {
+        PVV_SAFE("Step 1. Stop a session that was never started");
+        TestSession obj(sessionOptions,
+                        scheduler,
+                        true,  // useEventHandler
+                        bmqtst::TestHelperUtil::allocator());
+
+        SessionCbRecorder stopRec;
+        obj.session().stopAsync(stopRec.callback());
+
+        BMQTST_ASSERT(waitRealTime(&stopRec.d_sem));
+        BMQTST_ASSERT_EQ(stopRec.d_type,
+                         bmqt::SessionEventType::e_DISCONNECTED);
+        BMQTST_ASSERT_EQ(stopRec.d_result, bmqt::GenericResult::e_SUCCESS);
+        BMQTST_ASSERT(obj.verifySessionIsStopped());
+        BMQTST_ASSERT(obj.checkNoEvent());
+    }
+
+    {
+        PVV_SAFE("Step 2. Channel down while still connecting");
+        TestSession obj(sessionOptions,
+                        scheduler,
+                        true,  // useEventHandler
+                        bmqtst::TestHelperUtil::allocator());
+
+        SessionCbRecorder startRec;
+        BMQTST_ASSERT_EQ(obj.session().startAsync(startRec.callback()), 0);
+        BMQTST_ASSERT_EQ(obj.session().state(),
+                         bmqimp::BrokerSession::State::e_STARTING);
+
+        obj.session().setChannel(bsl::shared_ptr<bmqio::Channel>());
+
+        BMQTST_ASSERT(waitRealTime(&startRec.d_sem));
+        BMQTST_ASSERT_EQ(startRec.d_type, bmqt::SessionEventType::e_ERROR);
+        BMQTST_ASSERT_EQ(startRec.d_result,
+                         bmqt::GenericResult::e_NOT_CONNECTED);
+        BMQTST_ASSERT(obj.verifySessionIsStopped());
+        BMQTST_ASSERT(obj.checkNoEvent());
+    }
+
+    {
+        PVV_SAFE("Step 3. Stop requested while still connecting");
+        TestSession obj(sessionOptions,
+                        scheduler,
+                        true,  // useEventHandler
+                        bmqtst::TestHelperUtil::allocator());
+
+        SessionCbRecorder startRec;
+        SessionCbRecorder stopRec;
+        BMQTST_ASSERT_EQ(obj.session().startAsync(startRec.callback()), 0);
+        BMQTST_ASSERT_EQ(obj.session().state(),
+                         bmqimp::BrokerSession::State::e_STARTING);
+
+        obj.session().stopAsync(stopRec.callback());
+
+        BMQTST_ASSERT(waitRealTime(&startRec.d_sem));
+        BMQTST_ASSERT_EQ(startRec.d_type, bmqt::SessionEventType::e_CANCELED);
+        BMQTST_ASSERT_EQ(startRec.d_result, bmqt::GenericResult::e_CANCELED);
+
+        BMQTST_ASSERT(waitRealTime(&stopRec.d_sem));
+        BMQTST_ASSERT_EQ(stopRec.d_type,
+                         bmqt::SessionEventType::e_DISCONNECTED);
+        BMQTST_ASSERT_EQ(stopRec.d_result, bmqt::GenericResult::e_SUCCESS);
+
+        BMQTST_ASSERT(obj.verifySessionIsStopped());
+        BMQTST_ASSERT(obj.checkNoEvent());
+    }
+
+    {
+        PVV_SAFE("Step 4. Start an already started session");
+        TestSession obj(sessionOptions,
+                        scheduler,
+                        true,  // useEventHandler
+                        bmqtst::TestHelperUtil::allocator());
+
+        obj.startAndConnect();
+
+        SessionCbRecorder startRec;
+        BMQTST_ASSERT_EQ(obj.session().startAsync(startRec.callback()), 0);
+
+        BMQTST_ASSERT(waitRealTime(&startRec.d_sem));
+        BMQTST_ASSERT_EQ(startRec.d_type, bmqt::SessionEventType::e_CONNECTED);
+        BMQTST_ASSERT_EQ(startRec.d_result, bmqt::GenericResult::e_SUCCESS);
+        BMQTST_ASSERT(obj.checkNoEvent());
+
+        obj.stopGracefully();
+    }
+}
+
+static void test64_queueLateAsyncCanceledWriter3()
+{
+    bmqtst::TestHelper::printTestName(
+        "QUEUE LATE ASYNC CANCELED WRITER TEST 3");
+
+    queueLateAsyncCanceled(L_,
+                           bmqt::QueueFlags::e_WRITE,
+                           TestSession::e_LATE_RECONFIGURING,
+                           bmqimp::QueueState::e_PENDING);
+}
+
+static void test65_queueLateAsyncCanceledWriter4()
+{
+    bmqtst::TestHelper::printTestName(
+        "QUEUE LATE ASYNC CANCELED WRITER TEST 4");
+
+    queueLateAsyncCanceled(L_,
+                           bmqt::QueueFlags::e_WRITE,
+                           TestSession::e_LATE_CLOSE_CONFIGURING,
+                           bmqimp::QueueState::e_PENDING);
+}
+
+static void test68_queueLateAsyncCanceledHybrid3()
+{
+    bmqtst::TestHelper::printTestName(
+        "QUEUE LATE ASYNC CANCELED HYBRID TEST 3");
+
+    bsls::Types::Uint64 flags = 0;
+    bmqt::QueueFlagsUtil::setReader(&flags);
+    bmqt::QueueFlagsUtil::setWriter(&flags);
+
+    queueLateAsyncCanceled(L_,
+                           flags,
+                           TestSession::e_LATE_RECONFIGURING,
+                           bmqimp::QueueState::e_PENDING);
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -9877,7 +10005,6 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
-    case 71: test71_startStopAsyncCallback(); break;
     case 70: /* removed test */ break;
     case 69: /* removed test */ break;
     case 68: test68_queueLateAsyncCanceledHybrid3(); break;
@@ -9886,8 +10013,8 @@ int main(int argc, char* argv[])
     case 65: test65_queueLateAsyncCanceledWriter4(); break;
     case 64: test64_queueLateAsyncCanceledWriter3(); break;
     case 63: /* removed test */ break;
-    case 62: /* removed test */ break;
-    case 61: /* removed test */ break;
+    case 62: test62_startStopAsyncCallbackTerminalPaths(); break;
+    case 61: test61_startStopAsyncCallback(); break;
     case 60: test60_queueLateAsyncCanceledReader3(); break;
     case 59: /* removed test */ break;
     case 58: test58_queueAsyncCanceled5(); break;

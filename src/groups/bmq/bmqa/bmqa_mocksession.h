@@ -555,8 +555,7 @@
 #include <bmqa_openqueuestatus.h>
 #include <bmqa_queueid.h>
 #include <bmqa_session.h>  // for 'bmqa::SessionEventHandler'
-#include <bmqa_startstatus.h>
-#include <bmqa_stopstatus.h>
+#include <bmqa_sessionstatus.h>
 #include <bmqt_queueoptions.h>
 #include <bmqt_resultcode.h>
 #include <bmqt_sessionoptions.h>
@@ -990,13 +989,9 @@ class MockSession : public AbstractSession {
         /// callback was provided)
         CloseQueueCallback d_closeQueueCallback;
 
-        /// Callback to be invoked upon emission of an async start (if callback
-        /// was provided)
-        StartCallback d_startCallback;
-
-        /// Callback to be invoked upon emission of an async stop (if callback
-        /// was provided)
-        StopCallback d_stopCallback;
+        /// Callback to be invoked upon emission of an async start or stop (if
+        /// callback was provided)
+        SessionCallback d_sessionCallback;
 
         /// The result of an open queue operation
         bmqa::OpenQueueStatus d_openQueueResult;
@@ -1006,12 +1001,6 @@ class MockSession : public AbstractSession {
 
         /// The result of a close queue operation
         bmqa::CloseQueueStatus d_closeQueueResult;
-
-        /// The result of a start operation
-        bmqa::StartStatus d_startResult;
-
-        /// The result of a stop operation
-        bmqa::StopStatus d_stopResult;
 
         /// Events to be emitted on this call
         EventsAndJobs d_emittedEvents;
@@ -1089,15 +1078,10 @@ class MockSession : public AbstractSession {
         /// `closeQueueResult` provided a callback.
         Call& emitting(const CloseQueueStatus& closeQueueResult);
 
-        /// Specify the specified `startResult` to be emitted on this function
-        /// call.  The behavior is undefined unless the call is a `startAsync`
-        /// provided a callback.
-        Call& emitting(const StartStatus& startResult);
-
-        /// Specify the specified `stopResult` to be emitted on this function
-        /// call.  The behavior is undefined unless the call is a `stopAsync`
-        /// provided a callback.
-        Call& emitting(const StopStatus& stopResult);
+        /// Specify the specified `sessionResult` to be emitted on this
+        /// function call.  The behavior is undefined unless the call is a
+        /// `startAsync` or a `stopAsync` provided a callback.
+        Call& emitting(const SessionStatus& sessionResult);
 
         // ACCESSORS
 
@@ -1271,11 +1255,11 @@ class MockSession : public AbstractSession {
     Call& expect_startAsync(
         const bsls::TimeInterval& timeout = bsls::TimeInterval());
     Call& expect_startAsync(
-        const StartCallback&      callback,
+        const SessionCallback&    callback,
         const bsls::TimeInterval& timeout = bsls::TimeInterval());
     Call& expect_stop();
     Call& expect_stopAsync();
-    Call& expect_stopAsync(const StopCallback& callback);
+    Call& expect_stopAsync(const SessionCallback& callback);
     Call& expect_finalizeStop();
     Call&
           expect_openQueue(QueueId*                  queueId,
@@ -1362,25 +1346,12 @@ class MockSession : public AbstractSession {
     int startAsync(const bsls::TimeInterval& timeout = bsls::TimeInterval())
         BSLS_KEYWORD_OVERRIDE;
 
-    /// Start the `MockSession` with an optionally specified `timeout`.  The
-    /// result of the operation is communicated to the specified `callback`
-    /// via a `bmqa::StartStatus` when the emitted terminal start event is
-    /// processed.  The return values are elucidated in `bmqt::GenericResult`.
-    int startAsync(const StartCallback&      callback,
-                   const bsls::TimeInterval& timeout = bsls::TimeInterval())
-        BSLS_KEYWORD_OVERRIDE;
-
     void stop() BSLS_KEYWORD_OVERRIDE;
 
     /// Stop the `MockSession`.  In general a call to `start` or
     /// `startAsync` emits a `SessionEvent` of type `e_DISCONNECTED` or
     /// `e_CONNECTION_TIMEOUT`.
     void stopAsync() BSLS_KEYWORD_OVERRIDE;
-
-    /// Stop the `MockSession`.  The result of the operation is communicated
-    /// to the specified `callback` via a `bmqa::StopStatus` when the emitted
-    /// terminal stop event is processed.
-    void stopAsync(const StopCallback& callback) BSLS_KEYWORD_OVERRIDE;
 
     /// This method is only to be used if the session is in synchronous mode
     /// (i.e., not using the EventHandler): it must be called once all
@@ -1581,6 +1552,19 @@ class MockSession : public AbstractSession {
     int configureMessageDumping(const bslstl::StringRef& command)
         BSLS_KEYWORD_OVERRIDE;
     // NOT IMPLEMENTED
+
+    /// Start the `MockSession` with an optionally specified `timeout`.  The
+    /// result of the operation is communicated to the specified `callback`
+    /// via a `bmqa::SessionStatus` when the emitted terminal start event is
+    /// processed.  The return values are elucidated in `bmqt::GenericResult`.
+    int startAsync(const SessionCallback&    callback,
+                   const bsls::TimeInterval& timeout = bsls::TimeInterval())
+        BSLS_KEYWORD_OVERRIDE;
+
+    /// Stop the `MockSession`.  The result of the operation is communicated
+    /// to the specified `callback` via a `bmqa::SessionStatus` when the
+    /// emitted terminal stop event is processed.
+    void stopAsync(const SessionCallback& callback) BSLS_KEYWORD_OVERRIDE;
 
     /// Set the failure callback of to be the specified `failureCb`.  This
     /// callback is invoked whenever an expectation set by the test driver

@@ -14,5 +14,4 @@ bmqa_openqueuestatus
 bmqa_queueid
 bmqa_session
 bmqa_sessionevent
-bmqa_startstatus
-bmqa_stopstatus
+bmqa_sessionstatus

@@ -431,10 +431,11 @@ class BrokerSession BSLS_CPP11_FINAL {
 
         // MANIPULATORS
 
-        /// Handle user start request event.  If not empty, `startCb` is stored
-        /// (only when the request actually initiates a start) so that
+        /// Handle user start request event.  If not empty, `startCb` is
+        /// stored (only when the request actually initiates a start) so that
         /// `handleChannelUp`/`setStopped` can attach it to the terminal start
-        /// event (CONNECTED on success, CONNECTION_TIMEOUT on failure).
+        /// event.  On an already started session it is attached to a CONNECTED
+        /// event enqueued right away.  It is never invoked on the FSM thread.
         bmqt::GenericResult::Enum
         handleStartRequest(const EventCallback& startCb);
 
@@ -446,7 +447,9 @@ class BrokerSession BSLS_CPP11_FINAL {
 
         /// Handle user stop request event.  If not empty, `stopCb` is stored
         /// (only when the request actually initiates/reaches a stop) so that
-        /// `setStopped` can attach it to the terminal DISCONNECTED event.
+        /// `setStopped` can attach it to the terminal DISCONNECTED event.  A
+        /// stop request arriving while a stop is already in progress drops
+        /// `stopCb`.  It is never invoked on the FSM thread.
         void handleStopRequest(const EventCallback& stopCb);
 
         /// Handle IO channel up event that provides the specified `channel`
@@ -872,19 +875,15 @@ class BrokerSession BSLS_CPP11_FINAL {
     // Semaphore used for making 'sync'
     // stop
 
+    /// Optional user callback carried by the terminal event of an
+    /// asynchronous start operation.  Set and cleared only from the FSM
+    /// thread.
     EventCallback d_startCb;
-    // Optional user callback to invoke
-    // (via the terminal session event)
-    // upon completion of an asynchronous
-    // start operation.  Set and cleared
-    // only from the FSM thread.
 
+    /// Optional user callback carried by the terminal event of an
+    /// asynchronous stop operation.  Set and cleared only from the FSM
+    /// thread.
     EventCallback d_stopCb;
-    // Optional user callback to invoke
-    // (via the terminal session event)
-    // upon completion of an asynchronous
-    // stop operation.  Set and cleared
-    // only from the FSM thread.
 
     bslmt::Mutex d_startStopMutex;
     // Mutex to synchronize the stop and
@@ -1567,7 +1566,9 @@ class BrokerSession BSLS_CPP11_FINAL {
     /// specified `startCb` is not empty, it is invoked (via the terminal
     /// session event, on the event delivery thread and never on the FSM
     /// thread) upon completion of the start operation, unless a non-zero value
-    /// is returned.  Returns 0 on success or non-zero on any case of failure.
+    /// is returned.  That terminal event carries `startCb` and is therefore
+    /// consumed by it instead of being delivered to the event handler.
+    /// Returns 0 on success or non-zero on any case of failure.
     int startAsync(const EventCallback& startCb = EventCallback());
 
     /// Initiate a stop of the broker session.  Return after the session is
@@ -1576,9 +1577,13 @@ class BrokerSession BSLS_CPP11_FINAL {
 
     /// Initiate a stop of the broker session.  Return immediately after
     /// starting the stop process.  If the optionally specified `stopCb` is not
-    /// empty, it is invoked (via the terminal session event, on the event
-    /// delivery thread and never on the FSM thread) upon completion of the
-    /// stop operation.
+    /// empty, it is invoked (via the terminal DISCONNECTED session event, on
+    /// the event delivery thread and never on the FSM thread) upon completion
+    /// of the stop operation.  That event carries `stopCb`, so in EventHandler
+    /// mode it is consumed by the callback instead of being delivered to the
+    /// event handler; in `nextEvent` mode the event is also re-enqueued for
+    /// the application's event loop to pop.  `stopCb` is dropped if a stop is
+    /// already in progress.
     void stopAsync(const EventCallback& stopCb = EventCallback());
 
     /// Return the next event.  If the event queue is empty, block until an

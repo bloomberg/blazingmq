@@ -13,19 +13,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef INCLUDED_BMQA_STARTSTATUS
-#define INCLUDED_BMQA_STARTSTATUS
+#ifndef INCLUDED_BMQA_SESSIONSTATUS
+#define INCLUDED_BMQA_SESSIONSTATUS
 
-/// @file bmqa_startstatus.h
+/// @file bmqa_sessionstatus.h
 ///
-/// @brief Provide Value-Semantic Type for a session start operation status
+/// @brief Provide Value-Semantic Type for a session start/stop operation
+/// status
 ///
 /// This component provides a specific value-semantic type for the result of an
-/// asynchronous start operation of a @bbref{bmqa::Session} with the BlazingMQ
-/// broker, providing applications with the result and context of the requested
-/// operation.
+/// asynchronous start or stop operation of a @bbref{bmqa::Session} with the
+/// BlazingMQ broker, providing applications with the result and context of the
+/// requested operation.
 ///
-/// A @bbref{bmqa::StartStatus} type is composed of 2 attributes:
+/// A @bbref{bmqa::SessionStatus} type is composed of 2 attributes:
 ///
 ///   1. **result**: indicates the status of the operation (success, timeout,
 ///      etc.) as specified in the corresponding result code enum,
@@ -50,13 +51,13 @@
 namespace BloombergLP {
 namespace bmqa {
 
-// =================
-// class StartStatus
-// =================
+// ===================
+// class SessionStatus
+// ===================
 
-/// A value-semantic type for an asynchronous start operation with the message
-/// queue broker.
-class StartStatus {
+/// A value-semantic type for an asynchronous start or stop operation with the
+/// message queue broker.
+class SessionStatus {
   private:
     // DATA
 
@@ -68,36 +69,36 @@ class StartStatus {
 
   public:
     // TRAITS
-    BSLMF_NESTED_TRAIT_DECLARATION(StartStatus, bslma::UsesBslmaAllocator)
+    BSLMF_NESTED_TRAIT_DECLARATION(SessionStatus, bslma::UsesBslmaAllocator)
 
     // TYPES
 
     /// Use of an `UnspecifiedBool` to prevent implicit conversions to
     /// integral values, and comparisons between different classes which
     /// have boolean operators.
-    typedef bsls::UnspecifiedBool<StartStatus>::BoolType BoolType;
+    typedef bsls::UnspecifiedBool<SessionStatus>::BoolType BoolType;
 
     // CREATORS
 
     /// Default constructor, use the optionally specified `allocator`.
-    explicit StartStatus(bslma::Allocator* allocator = 0);
+    explicit SessionStatus(bslma::Allocator* allocator = 0);
 
-    /// Create a new `bmqa::StartStatus` using the optionally specified
+    /// Create a new `bmqa::SessionStatus` using the optionally specified
     /// `allocator`.
-    StartStatus(const bmqa::StartStatus& other,
-                bslma::Allocator*        allocator = 0);
+    SessionStatus(const bmqa::SessionStatus& other,
+                  bslma::Allocator*          allocator = 0);
 
-    /// Create a new `bmqa::StartStatus` object having the specified `result`
-    /// and `errorDescription`, using the optionally specified `allocator` to
-    /// supply memory.
-    StartStatus(bmqt::GenericResult::Enum result,
-                const bsl::string&        errorDescription,
-                bslma::Allocator*         allocator = 0);
+    /// Create a new `bmqa::SessionStatus` object having the specified
+    /// `result` and `errorDescription`, using the optionally specified
+    /// `allocator` to supply memory.
+    SessionStatus(bmqt::GenericResult::Enum result,
+                  const bsl::string&        errorDescription,
+                  bslma::Allocator*         allocator = 0);
 
     // MANIPULATORS
 
     /// Assignment operator from the specified `rhs`.
-    StartStatus& operator=(const StartStatus& rhs);
+    SessionStatus& operator=(const SessionStatus& rhs);
 
     // ACCESSORS
 
@@ -130,44 +131,44 @@ class StartStatus {
 /// Return `true` if the specified `rhs` object contains the value of the
 /// same type as contained in the specified `lhs` object and the value
 /// itself is the same in both objects, return false otherwise.
-bool operator==(const StartStatus& lhs, const StartStatus& rhs);
+bool operator==(const SessionStatus& lhs, const SessionStatus& rhs);
 
 /// Return `false` if the specified `rhs` object contains the value of the
 /// same type as contained in the specified `lhs` object and the value
 /// itself is the same in both objects, return `true` otherwise.
-bool operator!=(const StartStatus& lhs, const StartStatus& rhs);
+bool operator!=(const SessionStatus& lhs, const SessionStatus& rhs);
 
 /// Format the specified `rhs` to the specified output `stream` and return a
 /// reference to the modifiable `stream`.
-bsl::ostream& operator<<(bsl::ostream& stream, const StartStatus& rhs);
+bsl::ostream& operator<<(bsl::ostream& stream, const SessionStatus& rhs);
 
 // ============================================================================
 //                             INLINE DEFINITIONS
 // ============================================================================
 
-// -----------------
-// class StartStatus
-// -----------------
+// -------------------
+// class SessionStatus
+// -------------------
 
 // CREATORS
-inline StartStatus::StartStatus(bslma::Allocator* allocator)
+inline SessionStatus::SessionStatus(bslma::Allocator* allocator)
 : d_result(bmqt::GenericResult::e_SUCCESS)
 , d_errorDescription(allocator)
 {
     // NOTHING
 }
 
-inline StartStatus::StartStatus(const StartStatus& other,
-                                bslma::Allocator*  allocator)
+inline SessionStatus::SessionStatus(const SessionStatus& other,
+                                    bslma::Allocator*    allocator)
 : d_result(other.d_result)
 , d_errorDescription(other.d_errorDescription, allocator)
 {
     // NOTHING
 }
 
-inline StartStatus::StartStatus(bmqt::GenericResult::Enum result,
-                                const bsl::string&        errorDescription,
-                                bslma::Allocator*         allocator)
+inline SessionStatus::SessionStatus(bmqt::GenericResult::Enum result,
+                                    const bsl::string&        errorDescription,
+                                    bslma::Allocator*         allocator)
 : d_result(result)
 , d_errorDescription(errorDescription, allocator)
 {
@@ -175,7 +176,7 @@ inline StartStatus::StartStatus(bmqt::GenericResult::Enum result,
 }
 
 // MANIPULATORS
-inline StartStatus& StartStatus::operator=(const StartStatus& other)
+inline SessionStatus& SessionStatus::operator=(const SessionStatus& other)
 {
     d_result           = other.result();
     d_errorDescription = other.errorDescription();
@@ -183,18 +184,18 @@ inline StartStatus& StartStatus::operator=(const StartStatus& other)
 }
 
 // ACCESSORS
-inline StartStatus::operator BoolType() const
+inline SessionStatus::operator BoolType() const
 {
-    return bsls::UnspecifiedBool<StartStatus>::makeValue(
+    return bsls::UnspecifiedBool<SessionStatus>::makeValue(
         d_result == bmqt::GenericResult::e_SUCCESS);
 }
 
-inline bmqt::GenericResult::Enum StartStatus::result() const
+inline bmqt::GenericResult::Enum SessionStatus::result() const
 {
     return d_result;
 }
 
-inline const bsl::string& StartStatus::errorDescription() const
+inline const bsl::string& SessionStatus::errorDescription() const
 {
     return d_errorDescription;
 }
@@ -202,21 +203,21 @@ inline const bsl::string& StartStatus::errorDescription() const
 }  // close package namespace
 
 // FREE OPERATORS
-inline bsl::ostream& bmqa::operator<<(bsl::ostream&            stream,
-                                      const bmqa::StartStatus& rhs)
+inline bsl::ostream& bmqa::operator<<(bsl::ostream&              stream,
+                                      const bmqa::SessionStatus& rhs)
 {
     return rhs.print(stream, 0, -1);
 }
 
-inline bool bmqa::operator==(const bmqa::StartStatus& lhs,
-                             const bmqa::StartStatus& rhs)
+inline bool bmqa::operator==(const bmqa::SessionStatus& lhs,
+                             const bmqa::SessionStatus& rhs)
 {
     return lhs.result() == rhs.result() &&
            lhs.errorDescription() == rhs.errorDescription();
 }
 
-inline bool bmqa::operator!=(const bmqa::StartStatus& lhs,
-                             const bmqa::StartStatus& rhs)
+inline bool bmqa::operator!=(const bmqa::SessionStatus& lhs,
+                             const bmqa::SessionStatus& rhs)
 {
     return !(lhs == rhs);
 }

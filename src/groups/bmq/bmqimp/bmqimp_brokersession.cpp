@@ -518,37 +518,74 @@ void BrokerSession::SessionFsm::setStopped(FsmEvent::Enum event,
 
     setState(State::e_STOPPED, event);
 
-    if (isStartTimeout) {
-        // The session never reached STARTED
-        BSLS_ASSERT_SAFE(!d_onceConnected);
-
-        // Enqueue a connection timeout event.  A pending async-start
-        // completion callback (if any) is attached to it: it suppresses the
-        // session event and is delivered instead, on the event delivery
-        // thread.
-        d_session.enqueueSessionEvent(
-            bmqt::SessionEventType::e_CONNECTION_TIMEOUT,
-            -1,
-            bmqt::GenericResult::e_UNKNOWN,
-            "The connection to bmqbrkr timedout",
-            bmqt::CorrelationId(),
-            bsl::shared_ptr<Queue>(),
-            d_session.d_startCb);
+    {
+        // Consume the pending async start/stop completion callbacks, if any.
+        // Each is attached to its terminal session event: the event carries
+        // the callback, which suppresses its delivery to the event handler
+        // (the way 'openQueueAsync' does) and is invoked instead, on the event
+        // delivery thread -- never here on the FSM thread.  Every path
+        // reaching STOPPED must emit such an event, otherwise the callback is
+        // dropped and the caller waits forever.
+        const EventCallback startCb(bsl::allocator_arg,
+                                    d_session.d_allocator_p,
+                                    d_session.d_startCb);
+        const EventCallback stopCb(bsl::allocator_arg,
+                                   d_session.d_allocator_p,
+                                   d_session.d_stopCb);
         d_session.d_startCb = EventCallback();
-    }
-    else if (d_onceConnected) {
-        // A pending async-stop completion callback (if any) is attached to the
-        // terminal DISCONNECTED event: it suppresses that session event and is
-        // delivered instead, on the event delivery thread.
-        d_session.enqueueSessionEvent(bmqt::SessionEventType::e_DISCONNECTED,
-                                      0,
-                                      bmqt::GenericResult::e_SUCCESS,
-                                      "",
-                                      bmqt::CorrelationId(),
-                                      bsl::shared_ptr<Queue>(),
-                                      d_session.d_stopCb);
-        d_session.d_stopCb = EventCallback();
-        d_onceConnected    = false;
+        d_session.d_stopCb  = EventCallback();
+
+        if (isStartTimeout) {
+            // The session never reached STARTED
+            BSLS_ASSERT_SAFE(!d_onceConnected);
+
+            // Enqueue a connection timeout event
+            d_session.enqueueSessionEvent(
+                bmqt::SessionEventType::e_CONNECTION_TIMEOUT,
+                -1,
+                bmqt::GenericResult::e_UNKNOWN,
+                "The connection to bmqbrkr timedout",
+                bmqt::CorrelationId(),
+                bsl::shared_ptr<Queue>(),
+                startCb);
+        }
+        else if (startCb) {
+            // The session leaves STARTING for STOPPED without ever reaching
+            // STARTED and without a start timeout: either the channel went
+            // down, or a stop request interrupted the start.  Neither emits a
+            // terminal start event of its own, so emit one for the pending
+            // callback.  This event is only ever enqueued when there is a
+            // callback to consume it, so it never reaches the event handler.
+            const bool canceled = (event == FsmEvent::e_STOP);
+
+            d_session.enqueueSessionEvent(
+                canceled ? bmqt::SessionEventType::e_CANCELED
+                         : bmqt::SessionEventType::e_ERROR,
+                -1,
+                canceled ? bmqt::GenericResult::e_CANCELED
+                         : bmqt::GenericResult::e_NOT_CONNECTED,
+                canceled ? "The start request was canceled by a stop request"
+                         : "The connection to bmqbrkr was not established",
+                bmqt::CorrelationId(),
+                bsl::shared_ptr<Queue>(),
+                startCb);
+        }
+
+        if (d_onceConnected || stopCb) {
+            // 'stopCb' alone is enough: a session that never connected emits
+            // no DISCONNECTED event of its own (stop while STARTING, or stop
+            // of an already stopped session), and the pending callback needs
+            // one.
+            d_session.enqueueSessionEvent(
+                bmqt::SessionEventType::e_DISCONNECTED,
+                0,
+                bmqt::GenericResult::e_SUCCESS,
+                "",
+                bmqt::CorrelationId(),
+                bsl::shared_ptr<Queue>(),
+                stopCb);
+            d_onceConnected = false;
+        }
     }
 
     // Cancel all pending PUT messages, before cancelling any outstanding
@@ -654,6 +691,20 @@ BrokerSession::SessionFsm::handleStartRequest(const EventCallback& startCb)
 
         // Post on the semaphore (to wake-up a sync 'start', if any)
         d_session.d_startSemaphore.post();
+
+        if (startCb) {
+            // Report success right away: this request returns
+            // 'e_SUCCESS', so the caller expects its completion callback to
+            // run.  The event carries the callback and is therefore consumed
+            // by it, not delivered to the event handler.
+            d_session.enqueueSessionEvent(bmqt::SessionEventType::e_CONNECTED,
+                                          0,
+                                          bmqt::GenericResult::e_SUCCESS,
+                                          "",
+                                          bmqt::CorrelationId(),
+                                          bsl::shared_ptr<Queue>(),
+                                          startCb);
+        }
         res = bmqt::GenericResult::e_SUCCESS;
     } break;
     case State::e_STARTING: {
@@ -677,7 +728,7 @@ BrokerSession::SessionFsm::handleStartRequest(const EventCallback& startCb)
             // The start request was accepted and the session is now
             // connecting.  Store the (optional) user completion callback so
             // that the FSM can attach it to the terminal start event
-            // (CONNECTED on success, or CONNECTION_TIMEOUT on failure).  It
+            // ('handleChannelUp' on success, 'setStopped' on failure).  It
             // will *not* be invoked here (FSM thread), only later when that
             // event is delivered.  Storing only on success preserves the
             // invariant that a synchronous start failure is reported solely
@@ -800,6 +851,12 @@ void BrokerSession::SessionFsm::handleStopRequest(const EventCallback& stopCb)
     case State::e_CLOSING_SESSION:
     case State::e_CLOSING_CHANNEL: {
         BALL_LOG_INFO << id() << "::: STOP IN PROGRESS :::";
+        if (stopCb) {
+            BALL_LOG_WARN << id()
+                          << "Dropping the completion callback of a redundant "
+                          << "stop request; the callback of the stop request "
+                          << "in progress is the one that completes";
+        }
     } break;
     case State::e_STOPPED: {
         BALL_LOG_INFO << id() << "::: ALREADY STOPPED :::";
@@ -827,7 +884,7 @@ void BrokerSession::SessionFsm::handleChannelUp(
         setStarted(event, channel);
         // A pending async-start completion callback (if any) is attached to
         // the terminal CONNECTED event: it suppresses that session event (the
-        // way 'openQueueAsync' does) and is delivered instead, on the event
+        // way 'openQueueAsync' does) and is invoked instead, on the event
         // delivery thread -- never here on the FSM thread.
         d_session.enqueueSessionEvent(bmqt::SessionEventType::e_CONNECTED,
                                       0,
@@ -3291,11 +3348,6 @@ void BrokerSession::eventHandlerCbWrapper(
 {
     // executed by one of the *EVENT HANDLER* threads
 
-    if (event->eventCallback()) {
-        event->eventCallback()(event);
-        return;  // RETURN
-    }
-
     // If the current event is a special DISCONNECTED event with the status
     // code set to -1 then do not dispatch it to the user.  Instead check if
     // there are no active handlers and release the stop semaphore.
@@ -3305,12 +3357,22 @@ void BrokerSession::eventHandlerCbWrapper(
                                      bmqt::SessionEventType::e_DISCONNECTED &&
                                  event->statusCode() == -1);
 
+    // Count the user callback invocation too: an event carrying one (an async
+    // operation result, in particular the terminal event of an async stop)
+    // rides immediately ahead of the special DISCONNECTED event, and the stop
+    // semaphore must not be released -- and 'this' possibly destroyed -- while
+    // the callback is still running.
     ++d_inProgressEventHandlerCount;
 
-    if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(!isDisconnected)) {
+    if (event->eventCallback()) {
+        event->eventCallback()(event);
+    }
+    else if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(!isDisconnected)) {
         eventHandlerCb(event);
     }
-    else {
+
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(isDisconnected)) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         d_isStopping = true;
     }
 
@@ -5288,12 +5350,8 @@ void BrokerSession::resetState()
     // Reset the state of the brokerSession, so that start will work again
     d_acceptRequests = false;
 
-    // Drop any async start/stop completion callback that never rode a terminal
-    // event (e.g. a stop requested while the session was still connecting
-    // emits no terminal session event).  This prevents a stale callback from
-    // leaking into a subsequent start/stop cycle.  In the normal paths the
-    // callback has already been consumed (and cleared) when its terminal event
-    // was enqueued.
+    // Every path to STOPPED consumes these in 'setStopped'; clear them anyway
+    // so no stale callback can leak into a subsequent start/stop cycle.
     d_startCb = EventCallback();
     d_stopCb  = EventCallback();
 
@@ -6729,7 +6787,10 @@ BrokerSession::nextEvent(const bsls::TimeInterval& timeout)
         // that their event loop should use to exit.  We have no control over
         // how many threads the user have which are calling 'nextEvent',
         // therefore we automatically immediately re-enqueue a DISCONNECTED
-        // event once we popped one out.
+        // event once we popped one out.  Note that this happens even when the
+        // popped event carries an async-stop completion callback: unlike the
+        // EventHandler mode, where that callback consumes the event, here the
+        // application's event loop still needs it to exit.
         bsl::shared_ptr<Event> disconnectEvent = createEvent();
         disconnectEvent->configureAsSessionEvent(
             bmqt::SessionEventType::e_DISCONNECTED,

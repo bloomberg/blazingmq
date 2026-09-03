@@ -300,7 +300,9 @@ class Application {
     /// `timeout` interval.  If the optionally specified `startCb` is not
     /// empty, it is invoked (via the terminal session event, on the event
     /// delivery thread and never on the FSM thread) upon completion of the
-    /// start operation, unless a non-zero value is returned.
+    /// start operation, unless a non-zero value is returned.  That terminal
+    /// event carries `startCb` and is therefore consumed by it instead of
+    /// being delivered to the event handler.
     int startAsync(const bsls::TimeInterval&           timeout,
                    const BrokerSession::EventCallback& startCb =
                        BrokerSession::EventCallback());
@@ -314,8 +316,9 @@ class Application {
 
     /// Asynchronously and gracefully stop the connection.  If the optionally
     /// specified `stopCb` is not empty, it is invoked (via the terminal
-    /// session event, on the event delivery thread and never on the FSM
-    /// thread) upon completion of the stop operation.
+    /// DISCONNECTED session event, on the event delivery thread and never on
+    /// the FSM thread) upon completion of the stop operation.  `stopCb` is
+    /// dropped if a stop is already in progress.
     void stopAsync(const BrokerSession::EventCallback& stopCb =
                        BrokerSession::EventCallback());
 };
