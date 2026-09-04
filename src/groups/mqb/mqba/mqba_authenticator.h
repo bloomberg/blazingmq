@@ -135,18 +135,6 @@ class Authenticator : public mqbnet::Authenticator {
         mqbnet::InitialConnectionContext*          context_p,
         const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg);
 
-    /// Handle an incoming AuthenticationResponse message by authenticating
-    /// using the specified `authenticationMsg` and `context_p`.  On success,
-    /// create an AuthenticationContext and stores it in `context_p`. The
-    /// behavior of this function is undefined unless `authenticationMsg` is an
-    /// `AuthenticationResponse`.  Return 0 on success; otherwise, return a
-    /// non-zero error code and populate `errorDescription` with details of the
-    /// failure.
-    int onAuthenticationResponse(
-        bsl::ostream&                              errorDescription,
-        mqbnet::InitialConnectionContext*          context_p,
-        const bmqp_ctrlmsg::AuthenticationMessage& authenticationMsg);
-
     /// Send an authentication response message with the specified `authnRc`,
     /// `errorMsg`, and `lifetimeMs` via the specified `channel`, using the
     /// specified `authenticationEncodingType`.  Return 0 on success;
@@ -236,13 +224,15 @@ class Authenticator : public mqbnet::Authenticator {
                                const bsl::shared_ptr<bmqio::Channel>& channel)
         BSLS_KEYWORD_OVERRIDE;
 
-    /// Send out an outbound authentication message with the specified
-    /// `context`.  Return 0 on success, or a non-zero error code and populate
-    /// the specified `errorDescription` with a description of the error
-    /// otherwise.
-    int authenticationOutbound(bsl::ostream&                  errorDescription,
-                               const AuthenticationContextSp& context_sp)
-        BSLS_KEYWORD_OVERRIDE;
+    /// @brief Create a client-side authenticator for the specified outbound
+    ///        `channel`.
+    ///
+    /// @param channel The outbound channel to authenticate.
+    ///
+    /// @return A new AuthenticationClient, or an empty shared pointer if this
+    ///         broker is not configured with a credential provider.
+    bsl::shared_ptr<mqbnet::AuthenticationClient> createAuthenticationClient(
+        const bsl::shared_ptr<bmqio::Channel>& channel) BSLS_KEYWORD_OVERRIDE;
 
     /// ACCESSORS
 
