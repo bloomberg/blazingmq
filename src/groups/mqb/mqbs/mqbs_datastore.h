@@ -333,7 +333,7 @@ class DataStoreConfigQueueInfo {
     /// Apps.
     void addAppInfo(const bsl::string&      appId,
                     const mqbu::StorageKey& appKey,
-                    bool                    withCSL);
+                    bool                    withClusterState);
 
     /// Cache the Purge interval from the specified `start` to the specified
     /// `end` for the specified `key` unless the `key` was specified in a
@@ -589,9 +589,13 @@ class DataStore : public mqbi::DispatcherClient {
 
     // MANIPULATORS
 
-    /// Open this instance using the optionally specified `queueKeyInfoMap`.
-    /// Return zero on success, non-zero value otherwise.
-    virtual int open(QueueKeyInfoMap* queueKeyInfoMap) = 0;
+    /// Open this instance using the optionally specified `queueKeyInfoMap`,
+    /// which must be supplied only when self is the primary.  The specified
+    /// `primaryLeaseId` is the leaseId of the current primary; it is unused
+    /// when `queueKeyInfoMap` is null.  Return zero on success, non-zero value
+    /// otherwise.
+    virtual int open(QueueKeyInfoMap* queueKeyInfoMap,
+                     unsigned int     primaryLeaseId) = 0;
 
     /// Close this instance.  If the optional `flush` flag is true, flush
     /// the data store to the backup storage (e.g., disk) if applicable.

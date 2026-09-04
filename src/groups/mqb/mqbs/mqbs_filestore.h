@@ -70,6 +70,7 @@
 #include <bsl_ostream.h>
 #include <bsl_string.h>
 #include <bsl_unordered_map.h>
+#include <bsl_unordered_set.h>
 #include <bsl_utility.h>
 #include <bsl_vector.h>
 #include <bslh_hash.h>
@@ -187,6 +188,10 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     typedef DataStoreConfig::QueueKeyInfoMapConstIter QueueKeyInfoMapConstIter;
     typedef DataStoreConfig::QueueKeyInfoMapInsertRc  QueueKeyInfoMapInsertRc;
+
+    typedef bsl::unordered_set<mqbu::StorageKey,
+                               bslh::Hash<mqbu::StorageKeyHashAlgo> >
+        StorageKeys;
 
     typedef mqbi::Storage::AppInfos AppInfos;
 
@@ -454,22 +459,30 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     int openInNonRecoveryMode();
 
     /// Open this instance in recovery mode using the specified
-    /// `queueKeyInfoMap`.  Return zero on success and a non-zero value
-    /// otherwise.  Note that return value of `1` indicates no files were
-    /// found to recover messages from.  All other failure conditions should
-    /// be treated as fatal.  Also note that file store will attempt to
-    /// recover any outstanding messages from the files found at the
-    /// location indicated by the configuration of this instance.
+    /// `queueKeyInfoMap`, which is non-null only when self is the primary.
+    /// The specified `primaryLeaseId` is the leaseId of the current primary,
+    /// under which any corrective record is stamped.  Return zero on success
+    /// and a non-zero value otherwise.  Note that return value of `1`
+    /// indicates no files were found to recover messages from.  All other
+    /// failure conditions should be treated as fatal.  Also note that file
+    /// store will attempt to recover any outstanding messages from the files
+    /// found at the location indicated by the configuration of this instance.
     int openInRecoveryMode(bsl::ostream&    errorDescription,
-                           QueueKeyInfoMap* queueKeyInfoMap);
+                           QueueKeyInfoMap* queueKeyInfoMap,
+                           unsigned int     primaryLeaseId);
 
     /// Make two passes over the journal file iterator `jit` in reverse
     /// iteration.
     ///
     /// - First pass: Retrieve the list of non-deleted queues from `jit`.  If
-    /// the specified `withCSL` is `false`, populate `queueKeyInfoMap` with
-    /// that list; otherwise, use information from `queueKeyInfoMap` already
-    /// populated by the CSL to validate against that list.
+    /// the specified `withClusterState` is `false`, populate `queueKeyInfoMap`
+    /// with that list.  Otherwise, validate that list against the cluster
+    /// state already populated in `queueKeyInfoMap`: a queueKey found in the
+    /// journal but absent from the cluster state is an "extra" queue whose
+    /// records are all ignored and whose queueKey is collected into
+    /// `extraQueueKeys` (which must be non-null), so the caller can conform
+    /// the journal to the cluster state by writing a corrective
+    /// `QueueOp.DELETION` for it.
     ///
     /// - Second pass: Iterate over jit`, `dit`, and optionally `qit` if
     /// `d_qListAware` is true, and retrieve outstanding records for all those
@@ -489,7 +502,8 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
                         JournalFileIterator* jit,
                         QlistFileIterator*   qit,
                         DataFileIterator*    dit,
-                        bool                 withCSL);
+                        StorageKeys*         extraQueueKeys,
+                        bool                 withClusterState);
 
     /// Rollover the outstanding messages belonging to the storages mapped
     /// to this file store, from active file set into the rollover file set,
@@ -497,6 +511,15 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// on success, non-zero value otherwise.  Note that in its *current*
     /// implementation, this routine has no side-effect in case of failure.
     int rolloverImpl(bsls::Types::Uint64 timestamp);
+
+    /// @brief Rollover while conforming the journal to the cluster state.
+    ///
+    /// @details Unlike the live `rollover()`, this writes the `e_ROLLOVER`
+    /// sync point record without network replication.
+    ///
+    /// @param timestamp Timestamp to stamp on the sync point record.
+    /// @return Zero on success, a non-zero value otherwise.
+    int rolloverDuringRecovery(bsls::Types::Uint64 timestamp);
 
     /// If the specified `fileInfo` cannot accommodate the specified
     /// `requestedSpace`, roll over.  Return zero on success, non-zero value
@@ -531,6 +554,22 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
                                 bsls::Types::Uint64     timestamp,
                                 unsigned int            startPrimaryLeaseId,
                                 bsls::Types::Uint64     startSequenceNum);
+
+    /// @brief Append a corrective `QueueOp.DELETION` record during recovery.
+    ///
+    /// @details Marks an "extra" queue -- present in the journal but absent
+    /// from the cluster state -- as deleted, so that the journal conforms to
+    /// the cluster state.  The record is written directly to the journal,
+    /// without network replication.  The caller must ensure the record fits
+    /// without rolling over; a full journal is reported as an error.
+    /// Behavior is undefined unless the active file set is open in write mode.
+    ///
+    /// @param queueKey  Key of the extra queue to mark deleted.
+    /// @param timestamp Timestamp to stamp on the record.
+    /// @return Zero on success, a non-zero value otherwise.
+    int writeCorrectiveQueueDeletionDuringRecovery(
+        const mqbu::StorageKey& queueKey,
+        bsls::Types::Uint64     timestamp);
 
     /// Rollover over the specified `record` from `oldFileSet` to the
     /// `newFileSet`, and if it is a message record, update the counter of
@@ -569,9 +608,11 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     void issueSyncPointIfNeeded();
 
     /// Write the specified `syncPoint` of the specified `type` to the
-    /// journal, replicate it to followers, and record it in `d_syncPoints`.
+    /// journal and record it in `d_syncPoints`.  If the specified `replicate`
+    /// is true, also replicate it to followers.
     int issueSyncPointInternal(SyncPointType::Enum            type,
-                               const bmqp_ctrlmsg::SyncPoint& syncPoint);
+                               const bmqp_ctrlmsg::SyncPoint& syncPoint,
+                               bool replicate = true);
 
     int writeMessageRecord(const bmqp::StorageHeader&          header,
                            const mqbs::RecordHeader&           recHeader,
@@ -681,7 +722,7 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// specified `position` in the file, false otherwise.
     bool needRollover(const MappedFileDescriptor& file,
                       bsls::Types::Uint64         position,
-                      unsigned int                length) const;
+                      bsls::Types::Uint64         length) const;
 
     void aliasMessage(bsl::shared_ptr<bdlbb::Blob>* appData,
                       bsl::shared_ptr<bdlbb::Blob>* options,
@@ -764,9 +805,13 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     // MANIPULATORS
 
-    /// Open this instance using the optionally specified `queueKeyInfoMap`.
-    /// Return zero on success, non-zero value otherwise.
-    int open(QueueKeyInfoMap* queueKeyInfoMap) BSLS_KEYWORD_OVERRIDE;
+    /// Open this instance using the optionally specified `queueKeyInfoMap`,
+    /// which must be supplied only when self is the primary.  The specified
+    /// `primaryLeaseId` is the leaseId of the current primary; it is unused
+    /// when `queueKeyInfoMap` is null.  Return zero on success, non-zero value
+    /// otherwise.
+    int open(QueueKeyInfoMap* queueKeyInfoMap,
+             unsigned int     primaryLeaseId) BSLS_KEYWORD_OVERRIDE;
 
     /// Close this instance.  If the optional `flush` flag is true, flush
     /// the data store to disk.  If the optional `archive` flag is true,
@@ -1219,7 +1264,7 @@ inline const bsl::string& FileStore::partitionDesc() const
 
 inline bool FileStore::needRollover(const MappedFileDescriptor& file,
                                     bsls::Types::Uint64         position,
-                                    unsigned int                length) const
+                                    bsls::Types::Uint64         length) const
 {
     BSLS_ASSERT_SAFE(position <= file.fileSize());
     return file.fileSize() < (position + length);
