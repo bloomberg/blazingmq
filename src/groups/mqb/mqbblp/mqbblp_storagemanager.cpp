@@ -771,6 +771,9 @@ void StorageManager::processStorageEventDispatched(
         return;  // RETURN
     }
 
+    // The FileStore alarms on a dropped event, and this layer has no
+    // recovery action to take, so the result is not consulted here.
+
     fs->processStorageEvent(blob, false /* isPartitionSyncEvent */, source);
 }
 
@@ -926,6 +929,9 @@ void StorageManager::processPartitionSyncEventDispatched(
     mqbs::FileStore* fs =
         d_fileStores[static_cast<unsigned int>(partitionId)].get();
     BSLS_ASSERT_SAFE(fs);
+
+    // The FileStore alarms on a dropped event, and this layer has no
+    // recovery action to take, so the result is not consulted here.
 
     fs->processStorageEvent(blob, true /* isPartitionSyncEvent */, source);
 }

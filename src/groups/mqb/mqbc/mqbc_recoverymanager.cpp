@@ -648,7 +648,14 @@ int RecoveryManager::processReceiveDataChunks(
         BSLS_ASSERT_SAFE(receiveDataCtx.d_currPSN.sequenceNumber() ==
                          fs->writeHeadSeqNum());
 
-        fs->processStorageEvent(blob, true /* isPartitionSyncEvent */, source);
+        const int rc = fs->processStorageEvent(blob,
+                                               true /* isPartitionSyncEvent */,
+                                               source);
+        if (0 != rc) {
+            // The FileStore dropped the event and alarmed on it already.
+
+            return rc_INVALID_QUEUE_RECORD;  // RETURN
+        }
 
         receiveDataCtx.d_currPSN.primaryLeaseId() = fs->writeHeadLeaseId();
         receiveDataCtx.d_currPSN.sequenceNumber() = fs->writeHeadSeqNum();
@@ -784,8 +791,7 @@ int RecoveryManager::processReceiveDataChunks(
                 recoveryCtx.d_mappedQlistFd;
             bsls::Types::Uint64& qlistFilePos =
                 recoveryCtx.d_qlistFilePosition;
-            bsls::Types::Uint64 qlistOffset = qlistFilePos;
-            BSLS_ASSERT_SAFE(0 == qlistOffset % bmqp::Protocol::k_WORD_SIZE);
+            BSLS_ASSERT_SAFE(0 == qlistFilePos % bmqp::Protocol::k_WORD_SIZE);
 
             mqbi::Storage::AppInfos appIdKeyPairs;
             rc = mqbs::FileStoreUtil::writeQueueCreationRecordImpl(
@@ -797,8 +803,16 @@ int RecoveryManager::processReceiveDataChunks(
                 recordPosition,
                 journal,
                 d_qListAware,
-                qlistFile,
-                qlistOffset);
+                qlistFile);
+            if (mqbs::FileStoreUtil::k_MALFORMED_QUEUE_RECORD == rc) {
+                BMQTSK_ALARMLOG_ALARM("RECOVERY")
+                    << d_clusterData.identity().description() << " Partition ["
+                    << partitionId << "]: "
+                    << "Received a malformed queue record from node "
+                    << source->nodeDescription() << ". Ignoring this event."
+                    << BMQTSK_ALARMLOG_END;
+                return rc_INVALID_QUEUE_RECORD;  // RETURN
+            }
             if (0 != rc) {
                 return 10 * rc +
                        rc_WRITE_QUEUE_CREATION_RECORD_ERROR;  // RETURN

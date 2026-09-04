@@ -458,10 +458,11 @@ class MockDataStore : public mqbs::DataStore {
         // NOTHING
     }
 
-    void processStorageEvent(const bsl::shared_ptr<bdlbb::Blob>&,
-                             bool,
-                             mqbnet::ClusterNode*) BSLS_KEYWORD_OVERRIDE
+    int processStorageEvent(const bsl::shared_ptr<bdlbb::Blob>&,
+                            bool,
+                            mqbnet::ClusterNode*) BSLS_KEYWORD_OVERRIDE
     {
+        return 0;
     }
 
     int processRecoveryEvent(const bsl::shared_ptr<bdlbb::Blob>&)

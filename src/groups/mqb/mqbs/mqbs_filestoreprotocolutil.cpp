@@ -330,39 +330,179 @@ int FileStoreProtocolUtil::calculateMd5Digest(
     return 0;
 }
 
-void FileStoreProtocolUtil::loadAppInfos(
-    mqbi::Storage::AppInfos* appIdKeyPairs,
-    const MemoryBlock&       appIdsBlock,
-    unsigned int             numAppIds)
+int FileStoreProtocolUtil::loadQueueRecordLayout(
+    unsigned int*            headerLen,
+    unsigned int*            paddedUriLen,
+    unsigned int*            appIdsAreaLen,
+    const QueueRecordHeader& header)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(headerLen);
+    BSLS_ASSERT_SAFE(paddedUriLen);
+    BSLS_ASSERT_SAFE(appIdsAreaLen);
+
+    enum RcEnum {
+        // Value for the various RC error categories
+        rc_SUCCESS             = 0,
+        rc_INVALID_HEADER_SIZE = -1,
+        rc_INVALID_URI_SIZE    = -2,
+        rc_INVALID_RECORD_SIZE = -3
+    };
+
+    const unsigned int hdrLen = header.headerWords() *
+                                bmqp::Protocol::k_WORD_SIZE;
+    if (hdrLen <
+        static_cast<unsigned int>(QueueRecordHeader::k_MIN_HEADER_SIZE)) {
+        return rc_INVALID_HEADER_SIZE;  // RETURN
+    }
+
+    const unsigned int uriLen = header.queueUriLengthWords() *
+                                bmqp::Protocol::k_WORD_SIZE;
+    if (0 == uriLen) {
+        return rc_INVALID_URI_SIZE;  // RETURN
+    }
+
+    // Length of everything but the application-ID area.
+    const unsigned int nonAppIdsAreaLen =
+        hdrLen + uriLen + FileStoreProtocol::k_HASH_LENGTH +  // Queue Key
+        static_cast<unsigned int>(sizeof(unsigned int));      // Magic word
+
+    const unsigned int recordLen = header.queueRecordWords() *
+                                   bmqp::Protocol::k_WORD_SIZE;
+    if (recordLen < nonAppIdsAreaLen) {
+        return rc_INVALID_RECORD_SIZE;  // RETURN
+    }
+
+    *headerLen     = hdrLen;
+    *paddedUriLen  = uriLen;
+    *appIdsAreaLen = recordLen - nonAppIdsAreaLen;
+
+    return rc_SUCCESS;
+}
+
+int FileStoreProtocolUtil::loadUnpaddedLength(unsigned int* length,
+                                              const char*   data,
+                                              unsigned int  paddedLength)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(length);
+    BSLS_ASSERT_SAFE(data);
+    BSLS_ASSERT_SAFE(0 < paddedLength);
+
+    enum RcEnum {
+        // Value for the various RC error categories
+        rc_SUCCESS         = 0,
+        rc_INVALID_PADDING = -1
+    };
+
+    // A WORD-padded field carries between 1 and 'k_WORD_SIZE' padding bytes,
+    // each holding the number of padding bytes.
+    const unsigned int padding = static_cast<unsigned char>(
+        data[paddedLength - 1]);
+
+    if (0 == padding ||
+        padding > static_cast<unsigned int>(bmqp::Protocol::k_WORD_SIZE) ||
+        padding > paddedLength) {
+        return rc_INVALID_PADDING;  // RETURN
+    }
+
+    *length = paddedLength - padding;
+
+    return rc_SUCCESS;
+}
+
+bool FileStoreProtocolUtil::hasValidQueueRecordMagic(
+    const MemoryBlock&  block,
+    bsls::Types::Uint64 recordOffset,
+    unsigned int        recordLen)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(sizeof(unsigned int) <= recordLen);
+    BSLS_ASSERT_SAFE(recordOffset + recordLen <= block.size());
+
+    OffsetPtr<const bdlb::BigEndianUint32> magic(block,
+                                                 recordOffset + recordLen -
+                                                     sizeof(unsigned int));
+
+    return QueueRecordHeader::k_MAGIC == *magic;
+}
+
+int FileStoreProtocolUtil::loadAppInfos(mqbi::Storage::AppInfos* appIdKeyPairs,
+                                        const MemoryBlock&       appIdsBlock,
+                                        unsigned int             numAppIds)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(appIdKeyPairs);
 
-    // 'appIdsAreaBegin' should point to the beginning of 1st 'AppIdHeader'.
-    unsigned int offset = 0;
+    enum RcEnum {
+        // Value for the various RC error categories
+        rc_SUCCESS             = 0,
+        rc_INCOMPLETE_HEADER   = -1,
+        rc_INVALID_APP_ID_SIZE = -2,
+        rc_INCOMPLETE_APP_ID   = -3,
+        rc_INVALID_PADDING     = -4,
+        rc_TRAILING_BYTES      = -5,
+        rc_EMPTY_APP_ID        = -6,
+        rc_NULL_APP_KEY        = -7
+    };
 
-    for (size_t i = 0; i < numAppIds; ++i) {
+    bslma::Allocator* const alloc = appIdKeyPairs->get_allocator();
+
+    bsls::Types::Uint64 offset = 0;
+    for (unsigned int i = 0; i < numAppIds; ++i) {
+        if ((appIdsBlock.size() - offset) < sizeof(AppIdHeader)) {
+            return rc_INCOMPLETE_HEADER;  // RETURN
+        }
+
         OffsetPtr<const AppIdHeader> appIdHeader(appIdsBlock, offset);
 
-        unsigned int paddedLen = appIdHeader->appIdLengthWords() *
-                                 bmqp::Protocol::k_WORD_SIZE;
+        const unsigned int paddedLen = appIdHeader->appIdLengthWords() *
+                                       bmqp::Protocol::k_WORD_SIZE;
+        if (0 == paddedLen) {
+            return rc_INVALID_APP_ID_SIZE;  // RETURN
+        }
+
+        const bsls::Types::Uint64 entryLen =
+            sizeof(AppIdHeader) + paddedLen +
+            FileStoreProtocol::k_HASH_LENGTH;  // AppKey
+        if ((appIdsBlock.size() - offset) < entryLen) {
+            return rc_INCOMPLETE_APP_ID;  // RETURN
+        }
+
         const char* appIdBegin = appIdsBlock.base() + offset +
                                  sizeof(AppIdHeader);
 
-        bslma::Allocator* alloc = appIdKeyPairs->get_allocator();
+        unsigned int appIdLen = 0;
+        const int    rc = loadUnpaddedLength(&appIdLen, appIdBegin, paddedLen);
+        if (0 != rc) {
+            return rc_INVALID_PADDING;  // RETURN
+        }
+
+        if (0 == appIdLen) {
+            return rc_EMPTY_APP_ID;  // RETURN
+        }
+
+        const mqbu::StorageKey appKey(mqbu::StorageKey::BinaryRepresentation(),
+                                      appIdBegin + paddedLen);
+        if (appKey.isNull()) {
+            return rc_NULL_APP_KEY;  // RETURN
+        }
+
         mqbi::Storage::AppInfos::value_type appIdKeyPair(
-            bsl::string(appIdBegin,
-                        paddedLen - appIdBegin[paddedLen - 1],
-                        alloc),
-            mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
-                             appIdBegin + paddedLen),
+            bsl::string(appIdBegin, appIdLen, alloc),
+            appKey,
             alloc);
         appIdKeyPairs->insert(appIdKeyPair);
 
         // Move to beginning of next AppIdHeader.
-        offset += sizeof(AppIdHeader) + paddedLen +
-                  FileStoreProtocol::k_HASH_LENGTH;  // AppKey
+        offset += entryLen;
     }
+
+    if (offset != appIdsBlock.size()) {
+        return rc_TRAILING_BYTES;  // RETURN
+    }
+
+    return rc_SUCCESS;
 }
 
 }  // close package namespace

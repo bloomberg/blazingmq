@@ -686,12 +686,14 @@ class DataStore : public mqbi::DispatcherClient {
     virtual void onPurgeComplete() = 0;
 
     /// Process the specified storage event `blob` containing one or more
-    /// storage messages.  The behavior is undefined unless each message in
-    /// the event belongs to this partition, and has same primary and
-    /// primary leaseId as expected by this data store instance.
-    virtual void processStorageEvent(const bsl::shared_ptr<bdlbb::Blob>& blob,
-                                     bool                 isPartitionSyncEvent,
-                                     mqbnet::ClusterNode* source) = 0;
+    /// storage messages.  Return zero on success, or a non-zero value if the
+    /// event was dropped because one of its records is malformed.  The
+    /// behavior is undefined unless each message in the event belongs to
+    /// this partition, and has same primary and primary leaseId as expected
+    /// by this data store instance.
+    virtual int processStorageEvent(const bsl::shared_ptr<bdlbb::Blob>& blob,
+                                    bool                 isPartitionSyncEvent,
+                                    mqbnet::ClusterNode* source) = 0;
 
     /// Process the specified recovery event `blob` containing one or more
     /// storage messages.  Return zero on success, non-zero value otherwise.
