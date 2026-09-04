@@ -56,9 +56,12 @@
 #include <bmqt_compressionalgorithmtype.h>
 #include <bmqt_messageguid.h>
 #include <bmqt_resultcode.h>
+#include <bmqu_atomicstate.h>
 
 // BDE
 #include <bdlbb_blob.h>
+#include <bdlcc_objectpool.h>
+#include <bdlcc_sharedobjectpool.h>
 #include <bsl_functional.h>
 #include <bsl_memory.h>
 #include <bsl_ostream.h>
@@ -808,6 +811,16 @@ class QueueHandle {
 /// Interface for a Queue.
 class Queue : public DispatcherClient {
   public:
+    // TYPES
+
+    /// Pool of shared pointers to the state a remote queue attaches to each
+    /// message it has sent upstream and not yet had ACKed.
+    typedef bdlcc::SharedObjectPool<
+        bmqu::AtomicState,
+        bdlcc::ObjectPoolFunctors::DefaultCreator,
+        bdlcc::ObjectPoolFunctors::Reset<bmqu::AtomicState> >
+        StateSpPool;
+
     // CREATORS
 
     /// Destructor
@@ -908,6 +921,18 @@ class Queue : public DispatcherClient {
         bmqt::CompressionAlgorithmType::Enum compressionAlgorithmType,
         bool                                 isOutOfOrder) = 0;
 
+    /// Post the message described by the specified `putHeader`, `appData` and
+    /// `options` on behalf of the client identified by the specified
+    /// `source`.  Unlike `QueueHandle::postMessage`, which hops from the
+    /// client's dispatcher thread onto this one, the caller is already here,
+    /// so the message is handed to the local or remote queue directly.
+    ///
+    /// THREAD: This method is called from the Queue's dispatcher thread.
+    virtual void postMessage(const bmqp::PutHeader&              putHeader,
+                             const bsl::shared_ptr<bdlbb::Blob>& appData,
+                             const bsl::shared_ptr<bdlbb::Blob>& options,
+                             QueueHandle*                        source) = 0;
+
     /// Confirm the message with the specified `msgGUID` for the specified
     /// `upstreamSubQueueId` stream of the queue on behalf of the client
     /// identified by the specified `source`.  Also note that since there
@@ -994,6 +1019,20 @@ class Queue : public DispatcherClient {
     /// Convert this queue to local.
     virtual void convertToLocal() = 0;
 
+    /// Return true if this queue is a local one, that is, if this node is the
+    /// primary for its partition and it therefore has no upstream.
+    virtual bool isLocal() const = 0;
+
+    /// Convert this queue to remote, this node no longer being the primary
+    /// for its partition.  Every handle and the storage are kept; the engine
+    /// is rebuilt from those handles and every subStream left buffering,
+    /// until the queue is reopened against the new primary.  Use the
+    /// specified `deduplicationTimeoutMs`, `ackWindowSize` and `statePool`
+    /// for the remote queue.
+    virtual void convertToRemote(int          deduplicationTimeoutMs,
+                                 int          ackWindowSize,
+                                 StateSpPool* statePool) = 0;
+
     // ACCESSORS
 
     /// Return the domain this queue belong to.
@@ -1032,6 +1071,11 @@ class Queue : public DispatcherClient {
     /// parameters of all currently opened queueHandles on this queue.
     virtual const bmqp_ctrlmsg::QueueHandleParameters&
     handleParameters() const = 0;
+
+    /// Return true if the specified `handle` is one this queue currently
+    /// holds.  Compares the pointer without dereferencing it, so it is safe
+    /// to ask about a handle that may already have been released.
+    virtual bool hasHandle(const QueueHandle* handle) const = 0;
 
     /// Return true if the queue has upstream parameters for the specified
     /// `upstreamSubQueueId` in which case load the parameters into the

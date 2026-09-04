@@ -343,6 +343,7 @@ class Tester {
                                   1,  // numPartitions
                                   d_clusterStatsRootContext_sp.get(),
                                   d_allocator_p);
+        mqbs::StorageMonitor* storageMonitor = 0;
         d_fs_mp = bslma::ManagedPtrUtil::allocateManaged<mqbs::FileStore>(
             d_allocator_p,
             d_dsCfg,
@@ -353,9 +354,10 @@ class Tester {
             d_blobSpPool_sp.get(),
             &d_statePool,
             &d_miscWorkThreadPool,
-            true,  // isFSMWorkflow
-            true,  // doesFSMwriteQLIST
-            1);    // replicationFactor
+            true,             // isFSMWorkflow
+            true,             // doesFSMwriteQLIST
+            1,                // replicationFactor
+            storageMonitor);  // storageMonitor
 
         // To pass `inDispatcherThread` checks:
         d_fs_mp->setThreadId(bslmt::ThreadUtil::selfId());
@@ -969,11 +971,6 @@ static void test1_breathingTest()
     }
     BMQTST_ASSERT_EQ(numRecordsWritten, fs.numRecords());
 
-    mqbs::FileStoreIterator fsIt(&fs);
-    while (fsIt.next()) {
-        // TBD: verify
-    }
-
     rc = fs.close();
     BMQTST_ASSERT_EQ(0, rc);
 
@@ -988,10 +985,10 @@ static void test2_printTest()
 // PRINT TEST
 //
 // Concerns:
-//   Test printing a 'mqbs::FileStoreIterator'
+//   Test printing a 'mqbs::DataStoreRecord' as stored in 'FileStore::records'
 //
 // Testing:
-//   operator<<(bsl::ostream& stream, const FileStoreIterator& rhs
+//   operator<<(bsl::ostream& stream, const DataStoreRecord& rhs)
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("PRINT TEST");
@@ -1027,52 +1024,39 @@ static void test2_printTest()
     expectedOut.prepare(
         &errorMessage,
         &errorOffset,
-        "\\[ queueOpRecord = \\[ header = \\[ type = QUEUE_OP flags = 0 "
-        "primaryLeaseId = 1 sequenceNumber = 2 timestamp = [0-9]* ] flags = 0 "
-        "queueKey = 3078787878 appKey = 0000000000 type = CREATION "
-        "queueUriRecordOffsetWords = 9 ] ]\\n"
+        "DataStoreRecord\\[type=QUEUE_OP offset=104 hasReceipt=true "
+        "msgOffset=0 appDataLen=0 padLen=72 timepoint=0 timestamp=0]\\n"
 
-        "\\[ messageRecord = \\[ header = \\[ type = MESSAGE flags = 1 "
-        "primaryLeaseId = 1 sequenceNumber = 3 timestamp = [0-9]* ] refCount "
-        "= "
-        "1 queueKey = 3078787878 fileKey = 0000000000 messageOffsetDwords = 5 "
-        "messageGUID = [0-9|A-Z]* crc32c = [0-9]* compressionAlgorithmType = "
-        "NONE ] ]\\n"
+        "DataStoreRecord\\[type=MESSAGE offset=164 hasReceipt=true "
+        "msgOffset=40 appDataLen=10 padLen=24 timepoint=0 "
+        "timestamp=[0-9]*]\\n"
 
-        "\\[ confirmRecord = \\[ header = \\[ type = CONFIRM flags = 0 "
-        "primaryLeaseId = 1 sequenceNumber = 4 timestamp = [0-9]* ] "
-        "reason = CONFIRMED queueKey = 3078787878 appKey = 0000000000 "
-        "messageGUID = [0-9|A-Z]* ] ]\\n"
+        "DataStoreRecord\\[type=CONFIRM offset=224 hasReceipt=true "
+        "msgOffset=0 appDataLen=0 padLen=0 timepoint=0 timestamp=0]\\n"
 
-        "\\[ queueOpRecord = \\[ header = \\[ type = QUEUE_OP flags = 0 "
-        "primaryLeaseId = 1 sequenceNumber = 6 timestamp = [0-9]* ] flags = 0 "
-        "queueKey = 3778787878 appKey = 0000000000 type = CREATION "
-        "queueUriRecordOffsetWords = 27 ] ]\\n"
+        "DataStoreRecord\\[type=QUEUE_OP offset=344 hasReceipt=true "
+        "msgOffset=0 appDataLen=0 padLen=72 timepoint=0 timestamp=0]\\n"
 
-        "\\[ messageRecord = \\[ header = \\[ type = MESSAGE flags = 8 "
-        "primaryLeaseId = 1 sequenceNumber = 7 timestamp = [0-9]* ] refCount "
-        "= "
-        "8 queueKey = 3778787878 fileKey = 0000000000 messageOffsetDwords = 8 "
-        "messageGUID = [0-9|A-Z]* crc32c = [0-9]* compressionAlgorithmType = "
-        "NONE ] ]\\n",
+        "DataStoreRecord\\[type=MESSAGE offset=404 hasReceipt=true "
+        "msgOffset=64 appDataLen=80 padLen=96 timepoint=0 "
+        "timestamp=[0-9]*]\\n"
+
+        "DataStoreRecord\\[type=CONFIRM offset=464 hasReceipt=true "
+        "msgOffset=0 appDataLen=0 padLen=0 timepoint=0 timestamp=0]\\n",
         bdlpcre::RegEx::k_FLAG_MULTILINE);
     BSLS_ASSERT_OPT(expectedOut.isPrepared());
 
-    mqbs::FileStoreIterator fsIt(&fs);
-    bmqu::MemOutStream      stream(bmqtst::TestHelperUtil::allocator());
-    while (fsIt.next()) {
-        stream << fsIt << "\n";
+    typedef mqbs::DataStoreConfig::Records Records;
+    const Records&                         actualRecords = fs.records();
+    bmqu::MemOutStream stream(bmqtst::TestHelperUtil::allocator());
+    for (Records::const_iterator it = actualRecords.begin();
+         it != actualRecords.end();
+         ++it) {
+        stream << it->second << "\n";
     }
     BMQTST_ASSERT_EQ(expectedOut.match(stream.str().data(),
                                        stream.str().length()),
                      0);
-
-    PV("Bad stream test");
-    stream.reset();
-    stream << "INVALID";
-    stream.clear(bsl::ios_base::badbit);
-    stream << fsIt;
-    BMQTST_ASSERT_EQ(stream.str(), "INVALID");
 
     const int rc = fs.close();
     BMQTST_ASSERT_EQ(0, rc);
@@ -1543,6 +1527,92 @@ static void test6_leaseTransitionWithoutSeal()
     BMQTST_ASSERT_EQ(0, rc);
 }
 
+static void test7_pendingWriteReuse()
+// ------------------------------------------------------------------------
+// PENDING WRITE REUSE
+//
+// Concerns:
+//   Every 'init*' leaves the fields of the record types it is not for at
+//   their defaults, so a pooled 'PendingWrite' carries nothing over from
+//   its previous use.
+//
+// Testing:
+//   FileStore::PendingWrite::initMessage
+//   FileStore::PendingWrite::initConfirm
+//   FileStore::PendingWrite::initQueueCreation
+//   FileStore::PendingWrite::reset
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("PENDING WRITE REUSE");
+
+    bslma::Allocator* alloc = bmqtst::TestHelperUtil::allocator();
+
+    const mqbu::StorageKey queueKey(mqbu::StorageKey::BinaryRepresentation(),
+                                    "abcde");
+    const mqbu::StorageKey appKey(mqbu::StorageKey::BinaryRepresentation(),
+                                  "vwxyz");
+
+    bmqt::MessageGUID guid;
+    guid.fromHex("0000000000003039CD8101000000270F");
+
+    mqbs::FileStore::PendingWrite pw(alloc);
+
+    // A queue creation is the only type carrying a 'QueueInfo'.
+    mqbi::Storage::AppInfos appInfos(alloc);
+    appInfos.insert(bsl::make_pair(bsl::string("foo", alloc), appKey));
+
+    pw.initQueueCreation(bmqt::Uri("bmq://bmq.test.local/q1", alloc),
+                         queueKey,
+                         appInfos,
+                         123,  // timestamp
+                         true);
+    BMQTST_ASSERT(pw.d_queueInfo);
+    BMQTST_ASSERT_EQ(1u, pw.d_queueInfo->d_appIdKeyPairs.size());
+    BMQTST_ASSERT_EQ(mqbs::QueueOpType::e_CREATION, pw.d_queueOpType);
+
+    // Reusing it as a confirm must drop the 'QueueInfo' and the queue-op
+    // type, and pick up the confirm fields.
+    pw.initConfirm(guid,
+                   queueKey,
+                   appKey,
+                   456,  // timestamp
+                   mqbs::ConfirmReason::e_AUTO_CONFIRMED);
+    BMQTST_ASSERT(!pw.d_queueInfo);
+    BMQTST_ASSERT_EQ(mqbs::QueueOpType::e_UNDEFINED, pw.d_queueOpType);
+    BMQTST_ASSERT_EQ(mqbs::RecordType::e_CONFIRM, pw.d_recordType);
+    BMQTST_ASSERT_EQ(456u, pw.d_timestamp);
+    BMQTST_ASSERT_EQ(mqbs::ConfirmReason::e_AUTO_CONFIRMED,
+                     pw.d_confirmReason);
+
+    // The output fields and the handle a completed write leaves behind must
+    // not survive into the next use: 'bindOrUpdateRecord' branches on the
+    // handle's validity.
+    pw.d_journalOffset = 64;
+    pw.d_dataOffset    = 128;
+    pw.d_qlistOffset   = 256;
+
+    bsl::shared_ptr<bdlbb::Blob> appData;
+    appData.createInplace(alloc, alloc);
+    pw.initMessage(&pw.d_attributes,
+                   guid,
+                   appData,
+                   bsl::shared_ptr<bdlbb::Blob>(),
+                   queueKey);
+    BMQTST_ASSERT_EQ(mqbs::RecordType::e_MESSAGE, pw.d_recordType);
+    BMQTST_ASSERT_EQ(0u, pw.d_journalOffset);
+    BMQTST_ASSERT_EQ(0u, pw.d_dataOffset);
+    BMQTST_ASSERT_EQ(0u, pw.d_qlistOffset);
+    BMQTST_ASSERT_EQ(0u, pw.d_timestamp);
+    BMQTST_ASSERT(pw.d_appKey.isNull());
+    BMQTST_ASSERT(!pw.d_handle.isValid());
+    BMQTST_ASSERT(!pw.d_options);
+
+    pw.reset();
+    BMQTST_ASSERT_EQ(mqbs::RecordType::e_UNDEFINED, pw.d_recordType);
+    BMQTST_ASSERT(!pw.d_appData);
+    BMQTST_ASSERT(!pw.d_entryBlob);
+}
+
 }  // close unnamed namespace
 
 // ============================================================================
@@ -1557,6 +1627,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 7: test7_pendingWriteReuse(); break;
     case 6: test6_leaseTransitionWithoutSeal(); break;
     case 5: test5_writeHeadFollowsAppliedLease(); break;
     case 4: test4_recoverMessagesAcrossLeaseIds(); break;

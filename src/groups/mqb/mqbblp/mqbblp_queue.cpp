@@ -38,6 +38,7 @@
 #include <mqbstat_queuestats.h>
 
 // BMQ
+#include <bmqp_protocolutil.h>
 #include <bmqt_queueflags.h>
 
 #include <bmqu_memoutstream.h>
@@ -341,7 +342,12 @@ void Queue::closeDispatched(const bsl::function<void(void)>& callback)
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(inDispatcherThread());
 
-    queueEngine()->close();
+    // The engine may not exist if the queue is being torn down after a failed
+    // 'configure' (e.g. a RemoteQueue whose storage could not be retrieved):
+    // in that case there is nothing to close on the engine.
+    if (mqbi::QueueEngine* engine = queueEngine()) {
+        engine->close();
+    }
 
     if (d_localQueue_mp) {
         d_localQueue_mp->close();
@@ -413,7 +419,6 @@ void Queue::convertToLocalDispatched()
     // going to have both local and remote queue co-existing).
     bslma::ManagedPtr<RemoteQueue> remoteQueue = d_remoteQueue_mp;
 
-    d_state.setId(bmqp::QueueId::k_PRIMARY_QUEUE_ID);
     createLocal();
     rc = d_localQueue_mp->configure(errorDescription, false);
     if (rc != 0) {
@@ -524,7 +529,7 @@ Queue::Queue(const bmqt::Uri&                          uri,
              const mqbu::StorageKey&                   key,
              int                                       partitionId,
              mqbi::Domain*                             domain,
-             mqbi::StorageManager*                     storageManager,
+             mqbi::StorageProvider*                    storageManager,
              const mqbi::ClusterResources&             resources,
              bdlmt::FixedThreadPool*                   threadPool,
              const bmqp_ctrlmsg::RoutingConfiguration& routingCfg,
@@ -605,17 +610,87 @@ void Queue::convertToLocal()
         this);
 }
 
-void Queue::convertToRemote()
+void Queue::convertToRemote(int          deduplicationTimeoutMs,
+                            int          ackWindowSize,
+                            StateSpPool* statePool)
 {
     // executed by the *QUEUE* dispatcher thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(inDispatcherThread());
+
+    if (d_remoteQueue_mp) {
+        BSLS_ASSERT_SAFE(!d_localQueue_mp);
+
+        BALL_LOG_INFO << d_state.uri() << ": has already converted to remote "
+                      << "[handlesCount: "
+                      << d_state.handleCatalog().handlesCount()
+                      << ", handle parameters: " << d_state.handleParameters()
+                      << ", stream parameters: "
+                      << d_state.subQueuesParameters() << "]";
+
+        return;  // RETURN
+    }
+
     BSLS_ASSERT_SAFE(d_localQueue_mp);
 
-    BALL_LOG_INFO << d_state.uri() << ": converting to remote";
+    BALL_LOG_INFO << d_state.uri() << ": converting to remote "
+                  << "[handlesCount: "
+                  << d_state.handleCatalog().handlesCount()
+                  << ", handle parameters: " << d_state.handleParameters()
+                  << ", stream parameters: " << d_state.subQueuesParameters()
+                  << "]";
 
-    // TBD: Not yet implemented !
+    int                                   rc;
+    bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
+    bmqu::MemOutStream                    errorDescription(&localAllocator);
+
+    // Move localQueue to a temporary stack based managed pointer, so that
+    // we can bypass all precondition checks (since we are temporarily
+    // going to have both local and remote queue co-existing).
+    bslma::ManagedPtr<LocalQueue> localQueue = d_localQueue_mp;
+
+    // Tear the local queue down first: its engine holds routing over the same
+    // handles the remote one is about to register subscriptions on.
+    localQueue->resetState();
+    localQueue.clear();
+
+    // Drop the Apps the root engine adopted.  'importState' rebuilds them
+    // from the handles, which survive; leaving them would let the next
+    // conversion back to local adopt Apps of an engine two roles ago.
+    d_state.abandonAll();
+
+    createRemote(deduplicationTimeoutMs, ackWindowSize, statePool);
+
+    // Not a reconfigure: this queue has no engine yet.  'configureStorage'
+    // hands back the storage already in place, which is the partition's and
+    // stays the same across the role change.
+    rc = d_remoteQueue_mp->configure(errorDescription, false);
+    if (rc != 0) {
+        BALL_LOG_ERROR
+            << "#QUEUE_CONVERTION_FAILURE " << d_state.uri()
+            << ": failed to configure remoteQueue during conversion [rc: "
+            << rc << ", error: '" << errorDescription.str() << "']";
+        BSLS_ASSERT_SAFE(false &&
+                         "Failed to configure remoteQueue during conversion");
+        return;  // RETURN
+    }
+
+    rc = d_remoteQueue_mp->importState(errorDescription);
+    if (rc != 0) {
+        BALL_LOG_ERROR << "#QUEUE_CONVERTION_FAILURE " << d_state.uri()
+                       << ": failed to import state during conversion [rc: "
+                       << rc << ", error: '" << errorDescription.str() << "']";
+        BSLS_ASSERT_SAFE(false && "Failed to import state during conversion");
+        return;  // RETURN
+    }
+
+    // The cluster's upstream view of these subStreams is empty: as the
+    // primary, this node had no upstream to advertise them to.  Give it what
+    // the handles hold, so the reopen against the new primary asks for it.
+    d_state.onConversionToRemote();
+
+    updateStats();
 }
 
 void Queue::onLostUpstream()
@@ -659,9 +734,22 @@ void Queue::onOpenUpstream(bsls::Types::Uint64 genCount,
 void Queue::onReceipt(const bmqt::MessageGUID& msgGUID,
                       mqbi::QueueHandle*       queueHandle)
 {
-    BSLS_ASSERT_SAFE(d_localQueue_mp);
-
-    d_localQueue_mp->onReceipt(msgGUID, queueHandle);
+    // Not on 'LocalQueue': under Raft, an entry this node appended while it
+    // was the primary keeps committing after it steps down (see the stepdown
+    // block in 'PartitionRaft::dispatchOutput'), and by then the queue is a
+    // remote one.  The message did commit and the producer is still attached
+    // here, so it is owed this ACK; the handle catalog and the handle it
+    // needs belong to 'QueueState' and outlive the role change.
+    if (d_state.handleCatalog().hasHandle(queueHandle)) {
+        bmqp::AckMessage ackMessage;
+        ackMessage
+            .setStatus(bmqp::ProtocolUtil::ackResultToCode(
+                bmqt::AckResult::e_SUCCESS))
+            .setMessageGUID(msgGUID);
+        // CorrelationId & QueueId are left unset as those fields will be
+        // filled downstream.
+        queueHandle->onAckMessage(ackMessage);
+    }  // else the handle is gone
 }
 
 void Queue::onRemoval(const bmqt::MessageGUID& msgGUID,
@@ -682,6 +770,15 @@ void Queue::onReplicatedBatch()
 
     if (d_localQueue_mp) {
         d_localQueue_mp->deliverIfNeeded();
+    }
+    else if (d_remoteQueue_mp) {
+        // A replica relaying to downstream consumers: a just-committed message
+        // may be parked in the relay push stream awaiting its receipt (its
+        // PUSH arrived before the Raft commit).  Re-drive delivery so the now
+        // receipted message is pushed downstream.
+        if (d_remoteQueue_mp->queueEngine()) {
+            d_remoteQueue_mp->queueEngine()->afterNewMessage();
+        }
     }
 }
 
@@ -838,6 +935,27 @@ void Queue::onPushMessage(
         .setOutOfOrderPush(isOutOfOrder);
 
     dispatcher()->dispatchEvent(bslmf::MovableRefUtil::move(event_sp), this);
+}
+
+void Queue::postMessage(const bmqp::PutHeader&              putHeader,
+                        const bsl::shared_ptr<bdlbb::Blob>& appData,
+                        const bsl::shared_ptr<bdlbb::Blob>& options,
+                        mqbi::QueueHandle*                  source)
+{
+    // executed by the *QUEUE* dispatcher thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(inDispatcherThread());
+
+    if (d_localQueue_mp) {
+        d_localQueue_mp->postMessage(putHeader, appData, options, source);
+    }
+    else if (d_remoteQueue_mp) {
+        d_remoteQueue_mp->postMessage(putHeader, appData, options, source);
+    }
+    else {
+        BSLS_ASSERT_OPT(false && "Uninitialized queue");
+    }
 }
 
 void Queue::confirmMessage(const bmqt::MessageGUID& msgGUID,

@@ -60,6 +60,7 @@
 #include <bsl_ostream.h>
 #include <bsl_string.h>
 #include <bsl_unordered_map.h>
+#include <bsl_unordered_set.h>
 #include <bsl_utility.h>
 #include <bsl_vector.h>
 #include <bslma_allocator.h>
@@ -91,7 +92,6 @@ namespace mqbc {
 // FORWARD DECLARATION
 class PartitionFSMObserver;
 class RecoveryManager;
-class StorageManagerIterator;
 
 // ====================
 // class StorageManager
@@ -103,16 +103,19 @@ class StorageManagerIterator;
 /// this component.
 class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager,
                                           public PartitionStateTableActions,
+                                          public mqbc::StorageMonitor,
                                           public PartitionFSMObserver {
   private:
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("MQBC.STORAGEMANAGER");
 
-    // FRIENDS
-    friend class StorageManagerIterator;
-
   private:
     // PRIVATE TYPES
+
+    /// Disambiguate `StorageSp`, which is inherited from both
+    /// `mqbi::StorageManager` and `mqbc::storageMonitor`.
+    typedef mqbi::StorageManager::StorageSp StorageSp;
+
     typedef StorageUtil::FileStores FileStores;
 
     typedef mqbi::StorageManager_PartitionInfo PartitionInfo;
@@ -308,20 +311,6 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager,
 
     const PartitionPrimaryStatusCb d_partitionPrimaryStatusCb;
 
-    /// Vector of mutexes to protect access to `d_storages` and its elements,
-    /// one per partition.  See comments for `d_storages`.
-    mutable bsl::vector<bsl::shared_ptr<bslmt::Mutex> > d_storageLockVec;
-
-    /// Vector of `(CanonicalQueueUri -> ReplicatedStorage)` maps.  Vector is
-    /// indexed by partitionId.  The maps contains *both* in-memory and
-    /// file-backed storages.  Note that `d_storageLockVec[partitionId]` must
-    /// be held while accessing `d_storages[partitionId]`, because they are
-    /// accessed from partitions' dispatcher threads, as well as cluster
-    /// dispatcher thread.
-    ///
-    /// THREAD: Protected by `d_storageLockVec` (per partition).
-    StorageSpMapVec d_storages;
-
     /// Vector of `PartitionInfo` indexed by partitionId.
     ///
     /// THREAD: Except during the ctor, the i-th index of this data member
@@ -400,8 +389,13 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager,
 
     /// Replication factor used to configure `FileStores`.
     ///
-    /// THREAD: **Must** be accessed in the cluster dispatcher thread.
-    int d_replicationFactor;
+    /// THREAD: Read and written by `processCommand` off the cluster
+    ///         dispatcher, from either admin execution pool, so the two can
+    ///         overlap.  `QUORUM SET` reads it and writes it back as two
+    ///         steps, so overlapping sets stay last-writer-wins with a
+    ///         possibly stale reported old value; that is accepted for an
+    ///         operator tunable.
+    bsls::AtomicInt d_replicationFactor;
 
   private:
     // NOT IMPLEMENTED
@@ -937,7 +931,7 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager,
     /// associated queue storage created.
     ///
     /// THREAD: Executed by the Client's dispatcher thread.
-    void registerQueue(const bmqt::Uri&        uri,
+    bool registerQueue(const bmqt::Uri&        uri,
                        const mqbu::StorageKey& queueKey,
                        int                     partitionId,
                        const AppInfos&         appIdKeyPairs,
@@ -1094,14 +1088,6 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager,
     /// Executed by any thread.
     void processShutdownEvent() BSLS_KEYWORD_OVERRIDE;
 
-    /// Invoke the specified `functor` with each queue associated to the
-    /// partition identified by the specified `partitionId` if that
-    /// partition has been successfully opened.  The behavior is undefined
-    /// unless invoked from the queue thread corresponding to `partitionId`.
-    void
-    applyForEachQueue(int                 partitionId,
-                      const QueueFunctor& functor) const BSLS_KEYWORD_OVERRIDE;
-
     /// Process the specified `command`, and load the result to the
     /// specified `result`.  This function can be invoked from any thread,
     /// and will block until the potentially asynchronous operation is
@@ -1142,14 +1128,28 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager,
     bool isStorageEmpty(const bmqt::Uri& uri,
                         int partitionId) const BSLS_KEYWORD_OVERRIDE;
 
+    /// Return true if the queue having the specified `uri` and assigned to
+    /// the specified `partitionId` has a registered storage.
+    bool hasStorage(const bmqt::Uri& uri,
+                    int              partitionId) const BSLS_KEYWORD_OVERRIDE;
+
+    /// Load into the specified `out` the set of appIds registered on the
+    /// storage for the queue having the specified `uri` and assigned to the
+    /// specified `partitionId`, returning true; return false if no such
+    /// storage exists.
+    bool loadAppIds(bsl::unordered_set<bsl::string>* out,
+                    const bmqt::Uri&                 uri,
+                    int partitionId) const BSLS_KEYWORD_OVERRIDE;
+
     /// Return partition corresponding to the specified `partitionId`.  The
     /// behavior is undefined if `partitionId` does not represent a valid
     /// partition id.
     mqbs::FileStore& fileStore(int partitionId) const BSLS_KEYWORD_OVERRIDE;
 
-    /// Return a StorageManagerIterator for the specified `partitionId`.
-    bslma::ManagedPtr<mqbi::StorageManagerIterator>
-    getIterator(int partitionId) const BSLS_KEYWORD_OVERRIDE;
+    /// Load into the specified `result` all the storages of the specified
+    /// `partitionId`.
+    void loadAllStorages(bsl::vector<StorageSp>* result,
+                         int partitionId) BSLS_KEYWORD_OVERRIDE;
 
     /// Return the health state of the specified `partitionId`.
     PartitionFSM::State::Enum partitionHealthState(int partitionId) const;
@@ -1183,136 +1183,9 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager,
     bool isWatchdogActive(int partitionId) const;
 };
 
-// ============================
-// class StorageManagerIterator
-// ============================
-
-/// Provide thread safe iteration through all the storages of a partition in
-/// the storage manager.  The order of the iteration is implementation
-/// defined.  An iterator is *valid* if it is associated with a storage in
-/// the manager, otherwise it is *invalid*.  Thread-safe iteration is
-/// provided by locking the partition's mutex during the iterator's
-/// construction and unlocking it at the iterator's destruction.  This
-/// guarantees that during the life time of an iterator, the partition's
-/// storage map can't be modified.
-class StorageManagerIterator : public mqbi::StorageManagerIterator {
-  private:
-    // PRIVATE TYPES
-    typedef StorageManager::StorageSpMap          StorageSpMap;
-    typedef StorageManager::StorageSpMapConstIter StorageMapConstIter;
-
-  private:
-    // DATA
-    bslmt::Mutex* d_lock_p;
-
-    const StorageSpMap* d_map_p;
-
-    StorageMapConstIter d_iterator;
-
-  private:
-    // NOT IMPLEMENTED
-    StorageManagerIterator(const StorageManagerIterator&) BSLS_KEYWORD_DELETED;
-    StorageManagerIterator&
-    operator=(const StorageManagerIterator&) BSLS_KEYWORD_DELETED;
-
-  public:
-    // CREATORS
-
-    /// Create an iterator for the specified `partitionId` in the specified
-    /// storage `manager` and associated it with the first storage of the
-    /// `partitionId`.  If the `manager` is empty then the iterator is
-    /// initialized to be invalid.  The partition's lock is held for the
-    /// duration of iterator's life time.  The behavior is undefined unless
-    /// `partitionId` is valid and `manager` is not null.
-    StorageManagerIterator(int partitionId, const StorageManager* manager);
-
-    /// Destroy this iterator and unlock the partition lock associated with
-    /// it.
-    ~StorageManagerIterator() BSLS_KEYWORD_OVERRIDE;
-
-    // MANIPULATORS
-
-    /// Advance this iterator to refer to the next storage of the associated
-    /// partition; if there is no next storage in the associated partition,
-    /// then this iterator becomes *invalid*.  The behavior is undefined
-    /// unless this iterator is valid.  Note that the order of the iteration
-    /// is not specified.
-    void operator++() BSLS_KEYWORD_OVERRIDE;
-
-    // ACCESSORS
-
-    /// Return non-zero if the iterator is *valid*, and 0 otherwise.
-    operator const void*() const BSLS_KEYWORD_OVERRIDE;
-
-    /// Return a reference offering non-modifiable access to the queue URI
-    /// being pointed by this iterator.  The behavior is undefined unless
-    /// the iterator is *valid*.
-    const bmqt::Uri& uri() const BSLS_KEYWORD_OVERRIDE;
-
-    /// Return a reference offering non-modifiable access to the storage
-    /// being pointed by this iterator.  The behavior is undefined unless
-    /// the iterator is *valid*. Note that since iterator is not a first
-    /// class object, its okay to pass a raw pointer.
-    const mqbs::ReplicatedStorage* storage() const BSLS_KEYWORD_OVERRIDE;
-};
-
 // ============================================================================
 //                            INLINE DEFINITIONS
 // ============================================================================
-
-// ----------------------------
-// class StorageManagerIterator
-// ----------------------------
-
-// CREATORS
-inline StorageManagerIterator::StorageManagerIterator(
-    int                   partitionId,
-    const StorageManager* manager)
-: d_lock_p(0)
-, d_map_p(0)
-, d_iterator()
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(manager);
-    BSLS_ASSERT_SAFE(0 <= partitionId);
-
-    d_lock_p = manager->d_storageLockVec[partitionId].get();
-    BSLS_ASSERT_SAFE(d_lock_p);
-
-    d_map_p = &(manager->d_storages[partitionId]);
-    BSLS_ASSERT_SAFE(d_map_p);
-
-    d_lock_p->lock();  // LOCK
-    d_iterator = d_map_p->begin();
-}
-
-// MANIPULATORS
-inline void StorageManagerIterator::operator++()
-{
-    ++d_iterator;
-}
-
-// ACCESSORS
-inline StorageManagerIterator::operator const void*() const
-{
-    return (d_iterator == d_map_p->end())
-               ? 0
-               : const_cast<StorageManagerIterator*>(this);
-}
-
-inline const bmqt::Uri& StorageManagerIterator::uri() const
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(*this);
-    return d_iterator->first;
-}
-
-inline const mqbs::ReplicatedStorage* StorageManagerIterator::storage() const
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(*this);
-    return (d_iterator->second).get();
-}
 
 // ----------------------
 // class DataDestinations
@@ -1359,14 +1232,10 @@ StorageManager::processorForPartition(int partitionId) const
     return d_fileStores[partitionId]->processorId();
 }
 
-inline bslma::ManagedPtr<mqbi::StorageManagerIterator>
-StorageManager::getIterator(int partitionId) const
+inline void StorageManager::loadAllStorages(bsl::vector<StorageSp>* result,
+                                            int partitionId)
 {
-    bslma::ManagedPtr<mqbi::StorageManagerIterator> mp(
-        new (*d_allocator_p) StorageManagerIterator(partitionId, this),
-        d_allocator_p);
-
-    return mp;
+    mqbc::StorageMonitor::loadAllStorages(result, partitionId);
 }
 
 inline PartitionFSM::State::Enum

@@ -845,10 +845,17 @@
   </complexType>
 
   <complexType name="ElectorCommand">
+    <annotation>
+      <documentation>
+        transferLeadership: host name of the node to hand cluster leadership
+        to.  Must be issued to the current leader.
+      </documentation>
+    </annotation>
     <choice>
-      <element name="setTunable"   type="tns:SetTunable"/>
-      <element name="getTunable"   type="tns:GetTunable"/>
-      <element name="listTunables" type="tns:Void"/>
+      <element name="setTunable"         type="tns:SetTunable"/>
+      <element name="getTunable"         type="tns:GetTunable"/>
+      <element name="listTunables"       type="tns:Void"/>
+      <element name="transferLeadership" type="xs:string"/>
     </choice>
 </complexType>
 
@@ -1047,11 +1054,18 @@
   </complexType>
 
   <complexType name="StoragePartitionCommand">
+    <annotation>
+      <documentation>
+        transferLeadership: host name of the node to hand this partition's
+        primaryship to.  Must be issued to the current primary.
+      </documentation>
+    </annotation>
     <choice>
-      <element name="enable"   type="tns:Void"/>
-      <element name="disable"  type="tns:Void"/>
-      <element name="summary"  type="tns:Void"/>
-      <element name="rollover" type="tns:Void"/>
+      <element name="enable"             type="tns:Void"/>
+      <element name="disable"            type="tns:Void"/>
+      <element name="summary"            type="tns:Void"/>
+      <element name="rollover"           type="tns:Void"/>
+      <element name="transferLeadership" type="xs:string"/>
     </choice>
   </complexType>
 

@@ -275,6 +275,16 @@ void Queue::onPushMessage(
     // NOTHING
 }
 
+void Queue::postMessage(
+    BSLA_MAYBE_UNUSED const bmqp::PutHeader& putHeader,
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<bdlbb::Blob>& appData,
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<bdlbb::Blob>& options,
+    BSLA_MAYBE_UNUSED mqbi::QueueHandle* source)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_OPT(inDispatcherThread());
+}
+
 void Queue::confirmMessage(const bmqt::MessageGUID& msgGUID,
                            unsigned int             upstreamSubQueueId,
                            mqbi::QueueHandle*       source)
@@ -402,6 +412,18 @@ void Queue::convertToLocal()
     // NOTHING
 }
 
+bool Queue::isLocal() const
+{
+    return true;
+}
+
+void Queue::convertToRemote(BSLA_MAYBE_UNUSED int deduplicationTimeoutMs,
+                            BSLA_MAYBE_UNUSED int ackWindowSize,
+                            BSLA_MAYBE_UNUSED StateSpPool* statePool)
+{
+    // NOTHING
+}
+
 // MANIPULATORS
 //   (specific to mqbmock::Queue)
 Queue& Queue::_setDispatcher(mqbi::Dispatcher* value)
@@ -514,6 +536,11 @@ bool Queue::hasMultipleSubStreams() const
 const bmqp_ctrlmsg::QueueHandleParameters& Queue::handleParameters() const
 {
     return d_handleParameters;
+}
+
+bool Queue::hasHandle(BSLA_MAYBE_UNUSED const mqbi::QueueHandle* handle) const
+{
+    return false;
 }
 
 bool Queue::getUpstreamParameters(

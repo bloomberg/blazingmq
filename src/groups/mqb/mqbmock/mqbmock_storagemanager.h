@@ -35,6 +35,8 @@
 // BDE
 #include <bsl_memory.h>
 #include <bsl_ostream.h>
+#include <bsl_string.h>
+#include <bsl_unordered_set.h>
 #include <bsls_keyword.h>
 
 namespace BloombergLP {
@@ -79,7 +81,7 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager {
     /// associated queue storage created.
     ///
     /// THREAD: Executed by the Client's dispatcher thread.
-    void registerQueue(const bmqt::Uri&        uri,
+    bool registerQueue(const bmqt::Uri&        uri,
                        const mqbu::StorageKey& queueKey,
                        int                     partitionId,
                        const AppInfos&         appIdKeyPairs,
@@ -237,14 +239,6 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager {
     /// Executed by any thread.
     void processShutdownEvent() BSLS_KEYWORD_OVERRIDE;
 
-    /// Invoke the specified `functor` with each queue associated to the
-    /// partition identified by the specified `partitionId` if that
-    /// partition has been successfully opened.  The behavior is undefined
-    /// unless invoked from the queue thread corresponding to `partitionId`.
-    void
-    applyForEachQueue(int                 partitionId,
-                      const QueueFunctor& functor) const BSLS_KEYWORD_OVERRIDE;
-
     /// Process the specified `command`, and load the result to the
     /// specified `result`.  This function can be invoked from any thread,
     /// and will block until the potentially asynchronous operation is
@@ -276,14 +270,28 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager {
     bool isStorageEmpty(const bmqt::Uri& uri,
                         int partitionId) const BSLS_KEYWORD_OVERRIDE;
 
+    /// Return true if the queue having the specified `uri` and assigned to
+    /// the specified `partitionId` has a registered storage.
+    bool hasStorage(const bmqt::Uri& uri,
+                    int              partitionId) const BSLS_KEYWORD_OVERRIDE;
+
+    /// Load into the specified `out` the set of appIds registered on the
+    /// storage for the queue having the specified `uri` and assigned to the
+    /// specified `partitionId`, returning true; return false if no such
+    /// storage exists.
+    bool loadAppIds(bsl::unordered_set<bsl::string>* out,
+                    const bmqt::Uri&                 uri,
+                    int partitionId) const BSLS_KEYWORD_OVERRIDE;
+
     /// Return partition corresponding to the specified `partitionId`.  The
     /// behavior is undefined if `partitionId` does not represent a valid
     /// partition id.
     mqbs::FileStore& fileStore(int partitionId) const BSLS_KEYWORD_OVERRIDE;
 
-    /// Return a StorageManagerIterator for the specified `partitionId`.
-    bslma::ManagedPtr<mqbi::StorageManagerIterator>
-    getIterator(int partitionId) const BSLS_KEYWORD_OVERRIDE;
+    /// Load into the specified `result` all the storages of the specified
+    /// `partitionId`.
+    void loadAllStorages(bsl::vector<StorageSp>* result,
+                         int partitionId) BSLS_KEYWORD_OVERRIDE;
 };
 
 }  // close package namespace

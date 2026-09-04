@@ -63,6 +63,7 @@
 #include <bsl_ostream.h>
 #include <bsl_string.h>
 #include <bsl_unordered_map.h>
+#include <bsl_unordered_set.h>
 #include <bsl_vector.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
@@ -98,6 +99,7 @@ class StorageContent;
 }
 namespace mqbi {
 class StorageManager;
+class StorageProvider;
 }
 namespace mqbnet {
 class TransportManager;
@@ -247,8 +249,12 @@ class Cluster : public mqbi::Cluster,
     /// Cluster's persistent state.
     mqbc::ClusterState d_state;
 
-    /// `StorageManager` associated with this cluster.
+    /// `StorageManager` associated with this cluster (legacy mode only).
     StorageManagerMp d_storageManager_mp;
+
+    /// Active storage provider (legacy: d_storageManager_mp, Raft:
+    /// PartitionRaftManager from orchestrator).
+    mqbi::StorageProvider* d_storageProvider_p;
 
     ClusterOrchestrator d_clusterOrchestrator;
 
@@ -340,6 +346,17 @@ class Cluster : public mqbi::Cluster,
     void processCommandDispatched(mqbcmd::ClusterResult*        result,
                                   const mqbcmd::ClusterCommand& command);
 
+    /// Load into the specified `result` whether the node named `targetName`
+    /// currently leads the specified `partitionId`, or the cluster itself if
+    /// `partitionId` is negative.
+    ///
+    /// THREAD: Executed by the dispatcher thread.
+    void hasPartitionLeadershipDispatched(bool*              result,
+                                          int                partitionId,
+                                          const bsl::string& targetName);
+    void hasClusterLeadershipDispatched(bool*              result,
+                                        const bsl::string& targetName);
+
     /// Executed by dispatcher thread.
     void initiateShutdownDispatched(const VoidFunctor& callback);
 
@@ -348,6 +365,17 @@ class Cluster : public mqbi::Cluster,
                           const CompletionCallback& completionCb);
     void continueShutdownDispatched(bsls::Types::Int64        startTimeNs,
                                     const CompletionCallback& completionCb);
+
+    /// Wait for the peers to acknowledge what this node has replicated, up
+    /// to the specified `whenToStop`, then finish the shutdown.  Reschedules
+    /// itself while the peers are behind.
+    void checkIfCanShutdown(const bsls::TimeInterval& whenToStop,
+                            const CompletionCallback& completionCb);
+    void checkIfCanShutdownDispatched(const bsls::TimeInterval& whenToStop,
+                                      const CompletionCallback& completionCb);
+
+    /// Advertise `E_UNAVAILABLE` to the peers and close the channels.
+    void finishShutdownDispatched(const CompletionCallback& completionCb);
 
     void processControlMessage(const bmqp_ctrlmsg::ControlMessage& message,
                                mqbnet::ClusterNode*                source);
@@ -549,6 +577,29 @@ class Cluster : public mqbi::Cluster,
                               const mqbconfm::Domain& oldDefn,
                               const mqbconfm::Domain& newDefn)
         BSLS_KEYWORD_OVERRIDE;
+
+    /// Invoked (from any thread) whenever the local storage/app state for
+    /// the queue having the specified `uri` on the specified `partitionId`
+    /// changes.  Hops to the cluster dispatcher thread and asks
+    /// `ClusterQueueHelper` to re-check any locally-parked queue-open for
+    /// that uri.
+    void onQueueStorageReady(int              partitionId,
+                             const bmqt::Uri& uri) BSLS_KEYWORD_OVERRIDE;
+
+    /// Set this node's upstream view of the subStream of the specified
+    /// `queue` described by the specified `handleParameters` to those
+    /// parameters, this node having stopped being the primary for `queue`.
+    void onConversionToRemote(mqbi::Queue* queue,
+                              const bmqp_ctrlmsg::QueueHandleParameters&
+                                  handleParameters) BSLS_KEYWORD_OVERRIDE;
+
+    /// Load into the specified `out` the set of appIds registered on the
+    /// local storage for the queue having the specified `uri` and assigned
+    /// to the specified `partitionId`, returning true; return false if no
+    /// such local storage exists.  Safe to call from any thread.
+    bool loadAppIds(bsl::unordered_set<bsl::string>* out,
+                    const bmqt::Uri&                 uri,
+                    int partitionId) const BSLS_KEYWORD_OVERRIDE;
 
     /// Process the specified `command`, and load the result in the
     /// specified `result`. Return 0 if the command was successfully
@@ -763,6 +814,9 @@ class Cluster : public mqbi::Cluster,
 
     /// Return boolean flag indicating if CSL FSM workflow is in effect.
     bool isFSMWorkflow() const BSLS_KEYWORD_OVERRIDE;
+
+    /// Return boolean flag indicating if Raft consensus is in effect.
+    bool isRaftEnabled() const BSLS_KEYWORD_OVERRIDE;
 
     /// Return boolean flag indicating whether the broker still writes to the
     /// to-be-deprecated QLIST file when FSM workflow is enabled.

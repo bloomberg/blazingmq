@@ -163,6 +163,12 @@ class VirtualStorage {
     mqbi::StorageResult::Enum
     confirm(mqbi::DataStreamMessage* dataStreamMessage);
 
+    /// Undo a `confirm` of this App in the specified `dataStreamMessage`, for
+    /// a CONFIRM record that will never commit.  Return
+    /// `e_INVALID_OPERATION` unless this App is in the CONFIRM state.
+    mqbi::StorageResult::Enum
+    undoConfirm(mqbi::DataStreamMessage* dataStreamMessage);
+
     /// Change the state of this App in the specified 'dataStreamMessage' to
     /// indicate removal (by a purge or unregistration).
     mqbi::StorageResult::Enum

@@ -64,28 +64,54 @@ class ReplicatedStorage : public mqbi::Storage {
 
     /// Process the MESSAGE record having the specified `guid`, `msgLen` and
     /// `refCount`, and use the specified `handle` to retrieve the message
-    /// from the underlying persistent store.  Note that this routine is
-    /// supposed to be invoked at replica nodes, and the record will not be
-    /// replicated to peer nodes.
+    /// from the underlying persistent store.  The record is not replicated to
+    /// peer nodes.  The specified `isOwn` is true when this node wrote the
+    /// record itself, in which case `put` already accounted for the message's
+    /// capacity; false when the record was received or recovered, where it is
+    /// charged here.
     virtual void processMessageRecord(const bmqt::MessageGUID&     guid,
                                       unsigned int                 msgLen,
                                       unsigned int                 refCount,
-                                      const DataStoreRecordHandle& handle) = 0;
+                                      const DataStoreRecordHandle& handle,
+                                      bool                         isOwn) = 0;
 
     /// Process the CONFIRM record having the specified `guid`, `appKey`, and
     /// `reason`.  Use the specified `handle` to retrieve the confirm record
     /// from the underlying persistent store.  Note that `appKey` can be null.
-    /// Also note that this routine is supposed to be invoked at replica
-    /// nodes, and the record will not be replicated to peer nodes.
+    /// The record is not replicated to peer nodes.  The specified `isOwn` is
+    /// true when this node wrote the record itself, in which case the propose
+    /// side has already moved the app view and this call only completes the
+    /// message-level state the journal owns.
     virtual void processConfirmRecord(const bmqt::MessageGUID&     guid,
                                       const mqbu::StorageKey&      appKey,
                                       ConfirmReason::Enum          reason,
-                                      const DataStoreRecordHandle& handle) = 0;
+                                      const DataStoreRecordHandle& handle,
+                                      bool                         isOwn) = 0;
 
     /// Process the DELETION having the specified `guid`.  Note that this
     /// routine is supposed to be invoked at replica nodes, and the record
     /// will not be replicated to peer nodes.
     virtual void processDeletionRecord(const bmqt::MessageGUID& guid) = 0;
+
+    /// Give back the capacity `put` reserved for a proposed message of the
+    /// specified `msgLen`.  Invoked when the message reaches
+    /// `processMessageRecord` -- which charges the capacity for real -- and
+    /// when the write is dropped instead, because the log truncated it or
+    /// this node lost primaryship before it committed.
+    virtual void undoCapacity(unsigned int msgLen) = 0;
+
+    /// Undo what `confirm` did when it wrote a CONFIRM record for the message
+    /// having the specified `guid` and the App identified by the specified
+    /// `appKey`, for a record that will never commit: the place it took in
+    /// the in-flight CONFIRM count, and the move it made in that App's view.
+    virtual void undoConfirm(const bmqt::MessageGUID& guid,
+                             const mqbu::StorageKey&  appKey) = 0;
+
+    /// Write the records that authorize removing the App identified by the
+    /// specified `appKey`: a purge of the messages it can see, and its
+    /// deletion.  Return 0 on success.  The removal itself is applied by
+    /// `removeVirtualStorage`, at commit on a Raft partition.
+    virtual int writeAppRemoval(const mqbu::StorageKey& appKey) = 0;
 
     /// Add the specified `handle` which represents a QUEUEOP record for the
     /// queue associated with this storage.
@@ -94,8 +120,8 @@ class ReplicatedStorage : public mqbi::Storage {
 
     /// Purge the virtual storage associated with the specified `appKey`.
     /// If `appKey` is null, purge the physical as well as all virtual
-    /// storages.  Note that this routine is supposed to be invoked at
-    /// replica nodes, and the record will not be replicated to peer nodes.
+    /// storages.  Note that this routine does not write a record; the caller
+    /// has already written (or received) the QueueOp that authorizes it.
     virtual void purge(const mqbu::StorageKey& appKey) = 0;
 
     /// Notify the storage of node role set to primary

@@ -208,6 +208,10 @@ class MockDataStore : public mqbs::DataStore {
     bool d_writeMessageRecordFail;
     // If true, writeMessageRecord will fail (return -1).
 
+    mqbs::DataStoreRecordHandle d_lastMessageHandle;
+    // Handle of the last MESSAGE record written.  'put' proposes only, so a
+    // test drives the commit itself via 'processMessageRecord'.
+
   public:
     explicit MockDataStore(int partitionId, bslma::Allocator* allocator)
     : d_allocator_p(bslma::Default::allocator(allocator))
@@ -226,6 +230,19 @@ class MockDataStore : public mqbs::DataStore {
     , d_writeMessageRecordFail(false)
     {
         d_config.setPartitionId(partitionId);
+    }
+
+    const mqbs::DataStoreRecordHandle& lastMessageHandle() const
+    {
+        return d_lastMessageHandle;
+    }
+
+    bool isRaft() const BSLS_KEYWORD_OVERRIDE { return false; }
+
+    bool isPendingReplication(mqbi::Storage::DeliveryProbe*) const
+        BSLS_KEYWORD_OVERRIDE
+    {
+        return false;
     }
 
     bsls::Types::Uint64 getMessageCounter() const { return d_messageCounter; }
@@ -284,6 +301,7 @@ class MockDataStore : public mqbs::DataStore {
             attributes->arrivalTimestamp();
 
         *iter = insertRc.first;
+        d_lastMessageHandle = *handle;
 
         d_attributes.insert({id, *attributes});
         d_appData.insert({id, appData});
@@ -392,9 +410,23 @@ class MockDataStore : public mqbs::DataStore {
         return d_description;
     }
 
+    bool isFileSetAvailable() const BSLS_KEYWORD_OVERRIDE { return true; }
+
+    int partitionId() const BSLS_KEYWORD_OVERRIDE
+    {
+        return d_config.partitionId();
+    }
+
     int open(QueueKeyInfoMap*) BSLS_KEYWORD_OVERRIDE { return 0; }
 
     int close(bool, bool) BSLS_KEYWORD_OVERRIDE { return 0; }
+
+    void registerStorage(mqbs::ReplicatedStorage*) BSLS_KEYWORD_OVERRIDE {}
+
+    void
+    unregisterStorage(const mqbs::ReplicatedStorage*) BSLS_KEYWORD_OVERRIDE
+    {
+    }
 
     void createStorage(bsl::shared_ptr<mqbs::ReplicatedStorage>*,
                        const bmqt::Uri&,
@@ -402,6 +434,8 @@ class MockDataStore : public mqbs::DataStore {
                        mqbi::Domain*) BSLS_KEYWORD_OVERRIDE
     {
     }
+
+    mqbs::StorageMonitor* storageMonitor() BSLS_KEYWORD_OVERRIDE { return 0; }
 
     int writeQueueCreationRecord(mqbs::DataStoreRecordHandle*,
                                  const bmqt::Uri&,
@@ -432,7 +466,9 @@ class MockDataStore : public mqbs::DataStore {
     }
 
     int writeSyncPointRecord(const bmqp_ctrlmsg::SyncPoint&,
-                             mqbs::SyncPointType::Enum) BSLS_KEYWORD_OVERRIDE
+                             mqbs::SyncPointType::Enum,
+                             unsigned int,
+                             bsls::Types::Uint64) BSLS_KEYWORD_OVERRIDE
     {
         return 0;
     }
@@ -474,15 +510,46 @@ class MockDataStore : public mqbs::DataStore {
     }
 
     void setActivePrimary(mqbnet::ClusterNode*,
-                          unsigned int) BSLS_KEYWORD_OVERRIDE
+                          unsigned int,
+                          bool = false) BSLS_KEYWORD_OVERRIDE
     {
     }
 
     void clearPrimary() BSLS_KEYWORD_OVERRIDE {}
 
+    void execute(const mqbi::Dispatcher::VoidFunction& functor)
+        BSLS_KEYWORD_OVERRIDE
+    {
+        functor();
+    }
+
+    /// `execute` runs inline, so there is never anything outstanding.
+    void synchronize() BSLS_KEYWORD_OVERRIDE {}
+
+    int rollover() BSLS_KEYWORD_OVERRIDE { return 0; }
+
+    int transferLeadership(const bsl::string&) BSLS_KEYWORD_OVERRIDE
+    {
+        return 0;
+    }
+
+    void setAvailabilityStatus(bool) BSLS_KEYWORD_OVERRIDE {}
+
+    void setReplicationFactor(int) BSLS_KEYWORD_OVERRIDE {}
+
     void flushStorage() BSLS_KEYWORD_OVERRIDE {}
 
     bool isOpen() const BSLS_KEYWORD_OVERRIDE { return true; }
+
+    bool isLeader() const BSLS_KEYWORD_OVERRIDE { return true; }
+
+    void loadSummary(mqbcmd::FileStore*) const BSLS_KEYWORD_OVERRIDE {}
+
+    void getStorages(mqbs::RecordStore::StorageList*,
+                     const mqbs::RecordStore::StorageFilters&) const
+        BSLS_KEYWORD_OVERRIDE
+    {
+    }
 
     const mqbs::DataStoreConfig& config() const BSLS_KEYWORD_OVERRIDE
     {
@@ -491,9 +558,47 @@ class MockDataStore : public mqbs::DataStore {
 
     unsigned int clusterSize() const BSLS_KEYWORD_OVERRIDE { return 1U; }
 
+    void setLastStrongConsistency(unsigned int,
+                                  bsls::Types::Uint64) BSLS_KEYWORD_OVERRIDE
+    {
+    }
+
     bsls::Types::Uint64 numRecords() const BSLS_KEYWORD_OVERRIDE
     {
         return d_attributes.size();
+    }
+
+    const mqbs::DataStoreConfig::Records& records() const BSLS_KEYWORD_OVERRIDE
+    {
+        return d_records;
+    }
+
+    void
+    loadMessageRecord(mqbs::MessageRecord*,
+                      const mqbs::DataStoreConfig::Records::const_iterator&)
+        const BSLS_KEYWORD_OVERRIDE
+    {
+    }
+
+    void
+    loadConfirmRecord(mqbs::ConfirmRecord*,
+                      const mqbs::DataStoreConfig::Records::const_iterator&)
+        const BSLS_KEYWORD_OVERRIDE
+    {
+    }
+
+    void
+    loadQueueOpRecord(mqbs::QueueOpRecord*,
+                      const mqbs::DataStoreConfig::Records::const_iterator&)
+        const BSLS_KEYWORD_OVERRIDE
+    {
+    }
+
+    void recordIteratorToHandle(
+        mqbs::DataStoreRecordHandle*,
+        const mqbs::DataStoreConfig::Records::const_iterator&) const
+        BSLS_KEYWORD_OVERRIDE
+    {
     }
 
     void loadMessageRecordRaw(mqbs::MessageRecord*,
@@ -528,6 +633,16 @@ class MockDataStore : public mqbs::DataStore {
     }
 
     unsigned int writeHeadLeaseId() const BSLS_KEYWORD_OVERRIDE { return 0U; }
+
+    bsls::Types::Uint64 writeHeadSeqNum() const BSLS_KEYWORD_OVERRIDE
+    {
+        return 0U;
+    }
+
+    bool isApplied(bsls::Types::Uint64) const BSLS_KEYWORD_OVERRIDE
+    {
+        return true;
+    }
 
     bool
     hasReceipt(const mqbs::DataStoreRecordHandle&) const BSLS_KEYWORD_OVERRIDE
@@ -639,10 +754,18 @@ struct Tester {
                 const int                       msgCount,
                 int                             dataOffset   = 0,
                 bool                            useSameGuids = false,
-                int                             refCount     = 1)
+                int                             refCount     = -1)
     {
         // PRECONDITIONS
         BSLS_ASSERT_OPT(guidHolder);
+
+        // The broker sets refCount to the number of Apps that must confirm,
+        // and 'processMessageRecord' derives the message's App count from it,
+        // so a test that registered Apps has to agree with them.
+        if (refCount < 0) {
+            const int numApps = d_replicatedStorage_mp->numVirtualStorages();
+            refCount          = numApps > 0 ? numApps : 1;
+        }
 
         int guidCount = static_cast<int>(guidHolder->size());
 
@@ -868,8 +991,11 @@ BMQTST_TEST_F(Test, supportedOperations)
         mqbs::DataStoreRecordHandle handle;
         d_tester.insertDataStoreRecord(&handle, key, record);
 
-        BMQTST_ASSERT_OPT_PASS(
-            storage.processMessageRecord(guid, msgLen, refCount, handle));
+        BMQTST_ASSERT_OPT_PASS(storage.processMessageRecord(guid,
+                                                            msgLen,
+                                                            refCount,
+                                                            handle,
+                                                            false));
     }
 
     {
@@ -885,7 +1011,8 @@ BMQTST_TEST_F(Test, supportedOperations)
             storage.processConfirmRecord(guid,
                                          appKey,
                                          mqbs::ConfirmReason::e_CONFIRMED,
-                                         handle));
+                                         handle,
+                                         false));
     }
 
     {
@@ -2059,6 +2186,7 @@ BMQTST_TEST_F(Test, put_autoConfirmWriteFailure)
 
     rc = storage.put(&attributes2, guid2, appDataPtr, appDataPtr);
     BMQTST_ASSERT_EQ(rc, mqbi::StorageResult::e_SUCCESS);
+
     BMQTST_ASSERT_EQ(storage.numMessages(k_NULL_KEY), 1);
     BMQTST_ASSERT_EQ(data_store.getMessageCounter(), 1ULL);
 }
@@ -2147,6 +2275,7 @@ BMQTST_TEST_F(Test, put_autoConfirmWriteMessageFailure)
 
     rc = storage.put(&attributes2, guid2, appDataPtr, appDataPtr);
     BMQTST_ASSERT_EQ(rc, mqbi::StorageResult::e_SUCCESS);
+
     BMQTST_ASSERT_EQ(storage.numMessages(k_NULL_KEY), 1);
     BMQTST_ASSERT_EQ(data_store.getMessageCounter(), 1ULL);
 }

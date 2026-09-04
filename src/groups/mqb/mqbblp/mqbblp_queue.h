@@ -87,7 +87,7 @@ namespace mqbi {
 class Storage;
 }
 namespace mqbi {
-class StorageManager;
+class StorageProvider;
 }
 namespace mqbstat {
 class QueueStatsDomain;
@@ -171,7 +171,7 @@ class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
           const mqbu::StorageKey&                   key,
           int                                       partitionId,
           mqbi::Domain*                             domain,
-          mqbi::StorageManager*                     storageManager,
+          mqbi::StorageProvider*                    storageManager,
           const mqbi::ClusterResources&             resources,
           bdlmt::FixedThreadPool*                   threadPool,
           const bmqp_ctrlmsg::RoutingConfiguration& routingCfg,
@@ -187,10 +187,18 @@ class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
                       RemoteQueue::StateSpPool* statePool);
 
     void convertToLocal() BSLS_KEYWORD_OVERRIDE;
-    void convertToRemote();
+    /// Replace this queue's local flavor with a remote one, keeping the
+    /// handles, the storage and the queue itself.  The engine is rebuilt from
+    /// the surviving handles and every subStream left buffering, so the
+    /// caller can reopen upstream against the new primary.  The specified
+    /// `deduplicationTimeoutMs`, `ackWindowSize` and `statePool` are those
+    /// `createRemote` takes.
+    void convertToRemote(int          deduplicationTimeoutMs,
+                         int          ackWindowSize,
+                         StateSpPool* statePool) BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
-    bool isLocal() const;
+    bool isLocal() const BSLS_KEYWORD_OVERRIDE;
     bool isRemote() const;
 
     // MANIPULATORS
@@ -284,6 +292,16 @@ class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
         const bmqp::MessagePropertiesInfo&   messagePropertiesInfo,
         bmqt::CompressionAlgorithmType::Enum compressionAlgorithmType,
         bool isOutOfOrder) BSLS_KEYWORD_OVERRIDE;
+
+    /// Post the message described by the specified `putHeader`, `appData` and
+    /// `options` on behalf of the client identified by the specified
+    /// `source`, by handing it to the local or remote queue directly.
+    ///
+    /// THREAD: This method is called from the Queue's dispatcher thread.
+    void postMessage(const bmqp::PutHeader&              putHeader,
+                     const bsl::shared_ptr<bdlbb::Blob>& appData,
+                     const bsl::shared_ptr<bdlbb::Blob>& options,
+                     mqbi::QueueHandle* source) BSLS_KEYWORD_OVERRIDE;
 
     /// Confirm the message with the specified `msgGUID` for the specified
     /// `upstreamSubQueueId` stream of the queue on behalf of the client
@@ -409,6 +427,11 @@ class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
     /// parameters of all currently opened queueHandles on this queue.
     const bmqp_ctrlmsg::QueueHandleParameters&
     handleParameters() const BSLS_KEYWORD_OVERRIDE;
+
+    /// Return true if the specified `handle` is one this queue currently
+    /// holds.
+    bool
+    hasHandle(const mqbi::QueueHandle* handle) const BSLS_KEYWORD_OVERRIDE;
 
     /// Return true if the queue has upstream parameters for the specified
     /// `upstreamSubQueueId` in which case load the parameters into the
@@ -563,6 +586,11 @@ inline const bmqp_ctrlmsg::QueueHandleParameters&
 Queue::handleParameters() const
 {
     return d_state.handleParameters();
+}
+
+inline bool Queue::hasHandle(const mqbi::QueueHandle* handle) const
+{
+    return d_state.handleCatalog().hasHandle(handle);
 }
 
 inline bool Queue::getUpstreamParameters(bmqp_ctrlmsg::StreamParameters* value,

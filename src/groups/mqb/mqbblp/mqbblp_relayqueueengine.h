@@ -59,6 +59,7 @@
 #include <bsl_memory.h>
 #include <bsl_ostream.h>
 #include <bsl_unordered_map.h>
+#include <bsl_unordered_set.h>
 #include <bsl_utility.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
@@ -235,6 +236,16 @@ class RelayQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     /// Storage iterator to access storage state.
     bslma::ManagedPtr<mqbi::StorageIterator> d_realStorageIter_mp;
 
+    /// `upstreamSubQueueId`s of Apps that have out-of-order redelivery PUSHes
+    /// parked in their redelivery list awaiting the (replicated) payload.
+    /// Consulted by `afterNewMessage` (driven by `Queue::onReplicatedBatch`)
+    /// to re-drive delivery once the data commits.  Empty in steady state.
+    bsl::unordered_set<unsigned int> d_appsPendingRedelivery;
+
+    /// Re-entrancy guard for draining `d_appsPendingRedelivery` from
+    /// `afterNewMessage` (which `processAppRedelivery` can call back into).
+    bool d_drainingPendingRedelivery;
+
     /// Allocator to use.
     bslma::Allocator* d_allocator_p;
 
@@ -346,6 +357,14 @@ class RelayQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
 
     App_State* findApp(unsigned int upstreamSubQueueId) const;
 
+    /// Recreate, for the specified `handle` and its subStream identified by
+    /// the specified `appId` and described by the specified `info`, the App
+    /// and cache entry `getHandle` would have made when the subStream was
+    /// opened.  Used by `rebuildInternalState`.
+    void rebuildApp(mqbi::QueueHandle*                   handle,
+                    const bsl::string&                   appId,
+                    const mqbi::QueueHandle::StreamInfo& info);
+
     bool isDuplicate(const App_State*         app,
                      const bmqt::MessageGUID& msgGUID) const;
 
@@ -382,9 +401,8 @@ class RelayQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
 
     /// Configure this instance.  The specified `isReconfigure` flag indicate
     /// if queue is being reconfigured. Return zero on success, non-zero value
-    /// otherwise and populate the specified `errorDescription`.
-    int configure(bsl::ostream& errorDescription,
-                  bool          isReconfigure) BSLS_KEYWORD_OVERRIDE;
+    /// otherwise.
+    int configure(bool isReconfigure) BSLS_KEYWORD_OVERRIDE;
 
     /// Prepare this engine for destruction by canceling all scheduled events.
     void close() BSLS_KEYWORD_OVERRIDE;

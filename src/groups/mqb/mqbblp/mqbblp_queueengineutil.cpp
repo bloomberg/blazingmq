@@ -1126,14 +1126,17 @@ void QueueEngineUtil_AppState::broadcastOneMessage(
 
 size_t
 QueueEngineUtil_AppState::processDeliveryLists(bsls::TimeInterval*    delay,
-                                               mqbi::StorageIterator* reader)
+                                               mqbi::StorageIterator* reader,
+                                               const mqbi::Storage*   storage)
 {
     BSLS_ASSERT_SAFE(delay);
 
-    size_t numMessages = processDeliveryList(delay, reader, d_redeliveryList);
+    size_t numMessages =
+        processDeliveryList(delay, reader, d_redeliveryList, storage);
     if (*delay == bsls::TimeInterval()) {
         // The only excuse for stopping the iteration is poisonous message
-        numMessages += processDeliveryList(delay, reader, d_putAsideList);
+        numMessages +=
+            processDeliveryList(delay, reader, d_putAsideList, storage);
     }
 
     // `reader` might keep a shared pointer to a memory mapped file area, and
@@ -1148,9 +1151,26 @@ QueueEngineUtil_AppState::processDeliveryLists(bsls::TimeInterval*    delay,
 size_t
 QueueEngineUtil_AppState::processDeliveryList(bsls::TimeInterval*    delay,
                                               mqbi::StorageIterator* reader,
-                                              RedeliveryList&        list)
+                                              RedeliveryList&        list,
+                                              const mqbi::Storage*   storage)
 {
+    BSLS_ASSERT_SAFE(storage);
+
     if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(list.empty())) {
+        return 0;  // RETURN
+    }
+
+    if (!isAuthorized()) {
+        // This app's ordinal/key haven't been resolved against local
+        // storage yet (e.g. the 'QueueOpRecord' that registers it is still
+        // replicating to this node).  Not a per-message condition, so check
+        // once: stop for now rather than misreading an invalid ordinal as
+        // "message doesn't apply to this app" below.  No need to explicitly
+        // reschedule: delivery is re-attempted on every flush.
+        BMQ_LOGTHROTTLE_INFO << "#STORAGE_UNKNOWN_MESSAGE " << "Queue: '"
+                             << d_queue_p->description() << "', app: '"
+                             << appId() << "' is not yet authorized. "
+                             << "Stopping the redelivery now.";
         return 0;  // RETURN
     }
 
@@ -1158,6 +1178,7 @@ QueueEngineUtil_AppState::processDeliveryList(bsls::TimeInterval*    delay,
     RedeliveryList::iterator it          = list.begin();
     bmqt::MessageGUID        firstGuid   = *it;
     size_t                   numMessages = 0;
+    size_t                   numParked   = 0;
 
     while (!list.isEnd(it)) {
         Routers::Result result = Routers::e_INVALID;
@@ -1168,11 +1189,42 @@ QueueEngineUtil_AppState::processDeliveryList(bsls::TimeInterval*    delay,
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(reader->atEnd())) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-            // The message got gc'ed or purged
+            if (storage->isPendingReplication(list.probe(it))) {
+                // The record has not reached this node yet: a PUSH commits on
+                // a majority that need not include this node, so it can
+                // outrun the entry carrying its record.  Park the entry and
+                // retry on the next attempt (driven by 'onReplicatedBatch' as
+                // records apply).  Parked entries do not hold up new
+                // messages, and skipping to the next one here lets the
+                // already-arrived entries behind it go out on this pass.
+                BMQ_LOGTHROTTLE_INFO
+                    << "#STORAGE_UNKNOWN_MESSAGE " << "Queue: '"
+                    << d_queue_p->description() << "', app: '" << appId()
+                    << "' cannot redeliver GUID: '" << *it
+                    << "' yet (not in the storage); keeping for retry.";
+                ++numParked;
+                list.next(&it);
+                continue;  // CONTINUE
+            }
+
+            // The message got gc'ed or purged.  Do not stop the redelivery:
+            // fall through and treat it as sent so it is erased from the list
+            // and the remaining messages still get a chance to be delivered.
             BMQ_LOGTHROTTLE_INFO << "#STORAGE_UNKNOWN_MESSAGE " << "Queue: '"
                                  << d_queue_p->description() << "', app: '"
                                  << appId() << "' could not redeliver GUID: '"
                                  << *it << "' (not in the storage)";
+        }
+        else if (!reader->hasReceipt()) {
+            // The message is in the storage but not yet committed/receipted
+            // (e.g. Raft has not replicated it to a majority yet).  Stop here
+            // and retry on the next flush.
+            // TODO: remove extra logging
+            BMQ_LOGTHROTTLE_INFO << "#STORAGE_UNKNOWN_MESSAGE " << "Queue: '"
+                                 << d_queue_p->description() << "', app: '"
+                                 << appId() << "' has unconfirmed GUID: '"
+                                 << *it << "'. Stopping the redelivery now.";
+            break;
         }
         else if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
                      !reader->appMessageView(ordinal()).isPending())) {
@@ -1216,6 +1268,10 @@ QueueEngineUtil_AppState::processDeliveryList(bsls::TimeInterval*    delay,
             list.next(&it);
         }
     };
+
+    // An early 'break' above leaves the entries past it unexamined, so this
+    // can only undercount -- which keeps the App gated, the safe way round.
+    list.setNumParked(numParked);
 
     if (numMessages) {
         BMQ_LOGTHROTTLE_INFO << "Queue '" << d_queue_p->description()
@@ -1482,7 +1538,7 @@ void QueueEngineUtil_AppState::loadInternals(mqbcmd::AppState* out) const
 void QueueEngineUtil_AppState::reportStats(
     const mqbi::StorageIterator* message) const
 {
-    if (bmqp::QueueId::k_PRIMARY_QUEUE_ID == d_queue_p->id()) {
+    if (d_queue_p->isLocal()) {
         const bsls::Types::Int64 timeDelta = getMessageQueueTime(
             message->attributes());
 

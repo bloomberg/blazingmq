@@ -43,6 +43,7 @@
 #include <bsl_memory.h>
 #include <bsl_ostream.h>
 #include <bsl_string.h>
+#include <bsl_unordered_map.h>
 #include <bsl_unordered_set.h>
 #include <bsl_vector.h>
 #include <bslma_allocator.h>
@@ -124,11 +125,7 @@ struct StorageUtil {
     typedef mqbi::StorageManager::AppIdsIter     AppIdsIter;
     typedef mqbi::StorageManager::AppIdsInsertRc AppIdsInsertRc;
 
-    typedef mqbi::StorageManager::StorageSp             StorageSp;
-    typedef mqbi::StorageManager::StorageSpMap          StorageSpMap;
-    typedef mqbi::StorageManager::StorageSpMapVec       StorageSpMapVec;
-    typedef mqbi::StorageManager::StorageSpMapIter      StorageSpMapIter;
-    typedef mqbi::StorageManager::StorageSpMapConstIter StorageSpMapConstIter;
+    typedef mqbi::StorageManager::StorageSp StorageSp;
 
     typedef mqbi::StorageManager::PartitionPrimaryStatusCb
         PartitionPrimaryStatusCb;
@@ -164,6 +161,13 @@ struct StorageUtil {
     // TYPES
     typedef bsl::shared_ptr<mqbs::FileStore> FileStoreSp;
     typedef bsl::vector<FileStoreSp>         FileStores;
+
+    /// Per-partition record stores (indexed by partitionId).  The record
+    /// store for a partition is its `mqbs::FileStore` in legacy mode and its
+    /// `mqbraft::PartitionRaft` in Raft mode.  Admin `processCommand`
+    /// operations are driven through this narrow interface so they route to
+    /// the correct mechanism per mode.
+    typedef bsl::vector<mqbs::RecordStore*> RecordStores;
 
     typedef bdlcc::SharedObjectPool<
         bdlbb::Blob,
@@ -214,23 +218,22 @@ struct StorageUtil {
                                     const AppInfos& newAppInfos);
 
     /// THREAD: Executed by the Queue's dispatcher thread.
-    static int registerQueueDispatched(mqbs::FileStore*         fs,
+    static int registerQueueDispatched(mqbs::RecordStore*       rs,
                                        mqbs::ReplicatedStorage* storage,
                                        const AppInfos&          appIdKeyPairs);
 
     /// THREAD: This method is called from the Queue's dispatcher thread.
     static void updateQueuePrimaryDispatched(mqbs::ReplicatedStorage* storage,
-                                             bslmt::Mutex*    storagesLock,
-                                             mqbs::FileStore* fs,
-                                             const AppInfos&  appIdKeyPairs,
-                                             bool             isFanout);
+                                             mqbs::RecordStore*       rs,
+                                             const AppInfos& appIdKeyPairs,
+                                             bool            isFanout);
 
     /// StorageManager's storages lock must be locked before calling this
     /// method.
     ///
     /// THREAD: Executed by the Queue's dispatcher thread.
     static int updateQueuePrimaryRaw(mqbs::ReplicatedStorage* storage,
-                                     mqbs::FileStore*         fs,
+                                     mqbs::RecordStore*       rs,
                                      const AppInfos&          addedIdKeyPairs,
                                      const AppInfos& removedIdKeyPairs,
                                      bool            isFanout);
@@ -244,16 +247,14 @@ struct StorageUtil {
                                             const mqbu::StorageKey&  appKey,
                                             bool asPrimary);
 
-    static void createQueueStorageAsPrimary(StorageSpMap*    storageMap,
-                                            bslmt::Mutex*    storagesLock,
-                                            mqbs::FileStore* fs,
-                                            const bmqt::Uri& uri,
+    static void createQueueStorageAsPrimary(mqbs::RecordStore*      rs,
+                                            const bmqt::Uri&        uri,
                                             const mqbu::StorageKey& queueKey,
                                             const AppInfos& appIdKeyPairs,
                                             mqbi::Domain*   domain);
 
     static bsl::shared_ptr<mqbs::ReplicatedStorage>
-    createQueueStorageImpl(mqbs::FileStore*        fs,
+    createQueueStorageImpl(mqbs::RecordStore*      rs,
                            const bmqt::Uri&        uri,
                            const mqbu::StorageKey& queueKey,
                            const AppInfos&         appIdKeyPairs,
@@ -272,7 +273,7 @@ struct StorageUtil {
     ///         `partitionId`.
     static void getStoragesDispatched(StorageLists*         storageLists,
                                       bslmt::Latch*         latch,
-                                      const FileStores&     fileStores,
+                                      const RecordStores&   recordStores,
                                       int                   partitionId,
                                       const StorageFilters& filters);
 
@@ -283,7 +284,7 @@ struct StorageUtil {
     /// THREAD: Executed by the cluster-dispatcher thread.
     static void loadStorages(bsl::vector<mqbcmd::StorageQueueInfo>* storages,
                              const bsl::string&                     domainName,
-                             const FileStores& fileStores);
+                             const RecordStores& recordStores);
 
     /// Load the summary of the partition out of the specified `fileStores`
     /// having the specified `partitionId` and `partitionLocation` into the
@@ -292,7 +293,7 @@ struct StorageUtil {
     /// THREAD: Executed by the cluster-dispatcher thread.
     static void
     loadPartitionStorageSummary(mqbcmd::StorageResult*   result,
-                                const FileStores&        fileStores,
+                                const RecordStores&      recordStores,
                                 int                      partitionId,
                                 const bslstl::StringRef& partitionLocation);
 
@@ -303,7 +304,7 @@ struct StorageUtil {
     ///
     /// THREAD: Executed by the cluster-dispatcher thread.
     static void doRollover(mqbcmd::StorageResult* result,
-                           FileStores*            fileStores,
+                           const RecordStores&    recordStores,
                            int                    partitionId,
                            bslma::Allocator*      allocator);
 
@@ -314,17 +315,36 @@ struct StorageUtil {
     ///
     /// THREAD: Executed by the Queue's dispatcher thread for the specified
     ///         `partitionId`.
-    static void doRolloverDispatched(bslmt::Latch* latch,
-                                     int*          rc,
-                                     int           partitionId,
-                                     FileStores*   fileStores);
+    static void doRolloverDispatched(bslmt::Latch*      latch,
+                                     int*               rc,
+                                     mqbs::RecordStore* recordStore);
+
+    /// Hand the leadership of the partition out of the specified
+    /// `recordStores` having the specified `partitionId` to the node whose
+    /// host name is the specified `targetName`.  Store the result into the
+    /// specified `result` object.
+    ///
+    /// THREAD: Executed by the cluster-dispatcher thread.
+    static void doTransferLeadership(mqbcmd::StorageResult* result,
+                                     const RecordStores&    recordStores,
+                                     int                    partitionId,
+                                     const bsl::string&     targetName);
+
+    /// Hand the leadership of the specified `recordStore` to the node whose
+    /// host name is the specified `targetHostName`.
+    ///
+    /// THREAD: Executed by the Queue's dispatcher thread for the specified
+    ///         `recordStore`.
+    static void
+    doTransferLeadershipDispatched(mqbs::RecordStore* recordStore,
+                                   const bsl::string& targetHostName);
 
     /// Load the summary of the partitions of the spcified `fileStores` at
     /// the specified `location` to the specified `result` object.
     ///
     /// THREAD: Executed by the cluster-dispatcher thread.
     static void loadStorageSummary(mqbcmd::StorageResult*  result,
-                                   const FileStores&       fileStores,
+                                   const RecordStores&     recordStores,
                                    const bslstl::StringRef location);
 
     /// Load the summary of the partition out of the specified `fileStores`
@@ -338,17 +358,16 @@ struct StorageUtil {
     loadStorageSummaryDispatched(mqbcmd::ClusterStorageSummary* summary,
                                  bslmt::Latch*                  latch,
                                  int                            partitionId,
-                                 const FileStores&              fileStores);
+                                 const RecordStores&            recordStores);
 
-    static void purgeDomainDispatched(
-        bsl::vector<bsl::vector<mqbcmd::PurgeQueueResult> >*
-                                                     purgedQueuesResultsVec,
-        bslmt::Latch*                                latch,
-        int                                          partitionId,
-        StorageSpMapVec*                             storageMapVec,
-        bsl::vector<bsl::shared_ptr<bslmt::Mutex> >* storageLockVec,
-        const FileStores*                            fileStores,
-        const bsl::string&                           domainName);
+    static void
+    purgeDomainDispatched(bsl::vector<bsl::vector<mqbcmd::PurgeQueueResult> >*
+                              purgedQueuesResultsVec,
+                          bsl::vector<bsls::Types::Uint64>* purgeSeqNums,
+                          bslmt::Latch*                     latch,
+                          int                               partitionId,
+                          const RecordStores*               recordStores,
+                          const bsl::string&                domainName);
     /// Execute the domain purge command for the specified `domainName` within
     /// the specified `partitionId`.  The specified `storageMapVec` contains
     /// mutable storages to search for domain's queues, while the specified
@@ -367,20 +386,38 @@ struct StorageUtil {
 
     static void
     purgeQueueDispatched(mqbcmd::PurgeQueueResult* purgedQueueResult,
-                         bslmt::Semaphore*         purgeFinishedSemaphore,
-                         mqbi::Storage*            storage,
-                         const mqbs::FileStore*    fileStore,
+                         bsls::Types::Uint64*      purgeSeqNum,
+                         const StorageSp&          storage,
+                         const mqbs::RecordStore*  recordStore,
                          const bsl::string&        appId);
-    /// Execute the queue purge command for the specified `storage` with
-    /// the specified `appId`.  The optionally specified
-    /// `purgeFinishedSemaphore` used to notify the calling thread that this
-    /// operation has finished. The specified `purgedQueuesResult` is used to
-    /// store execution result. The specified `fileStore` contains FileStore
-    /// object used to verify correctness and thread-safety of calling this
-    /// method.
+    /// Execute the queue purge command for the specified `storage` with the
+    /// specified `appId`.  Load into the specified `purgeSeqNum` the sequence
+    /// number of the purge record, or 0 if none was written; on a Raft
+    /// partition that record is only proposed here, and `waitForPurge` pairs
+    /// the sequence number with `mqbs::RecordStore::isApplied` to tell when
+    /// the purge has taken effect.  The specified `purgedQueuesResult` is
+    /// used to store execution result. The specified `fileStore` contains
+    /// FileStore object used to verify correctness and thread-safety of
+    /// calling this method.
     ///
     /// THREAD: Executed by the Queue's dispatcher thread for the specified
     ///         `fileStore`.
+
+    /// Wait for the record at the specified `purgeSeqNum` -- written by
+    /// `purgeQueueDispatched` on the specified `recordStore` -- to have been
+    /// applied, and return true.  Return true immediately if `purgeSeqNum` is
+    /// 0, meaning no record was written.  Return false, loading a reason into
+    /// the specified `errorDescription`, if it has not applied by the
+    /// specified `deadline` or the node stops being the primary first: a
+    /// purge proposed by a node that loses primaryship never takes effect
+    /// there.
+    ///
+    /// THREAD: Executed by the thread issuing the command; must not be
+    ///         `recordStore`'s own dispatcher thread.
+    static bool waitForPurge(bmqu::MemOutStream*       errorDescription,
+                             mqbs::RecordStore*        recordStore,
+                             bsls::Types::Uint64       purgeSeqNum,
+                             const bsls::TimeInterval& deadline);
 
     /// Execute the specified `job` for each partition in the specified
     /// `fileStores`.  Each partition will receive its partitionId and a
@@ -389,7 +426,7 @@ struct StorageUtil {
     ///
     /// THREAD: Executed by the cluster-dispatcher thread.
     static void executeForEachPartitions(const PerPartitionFunctor& job,
-                                         const FileStores& fileStores);
+                                         const RecordStores& recordStores);
 
     /// For each partition which has the current node as the primary,
     /// Execute the specified `job` in the specified `fileStores`.
@@ -399,7 +436,7 @@ struct StorageUtil {
     ///
     /// THREAD: Executed by the cluster-dispatcher thread.
     static void executeForValidPartitions(const PerPartitionFunctor& job,
-                                          const FileStores& fileStores);
+                                          const RecordStores& recordStores);
 
     /// Process the specified `command`, and load the result to the
     /// specified `replicationResult`.  The command might modify the
@@ -407,11 +444,11 @@ struct StorageUtil {
     /// partition of the specified `fileStores`.  Return 0 if the command
     /// was successfully processed, or a non-zero value otherwise.
     ///
-    /// THREAD: Executed by the cluster-dispatcher thread.
+    /// THREAD: Executed by the thread issuing the command.
     static int
     processReplicationCommand(mqbcmd::ReplicationResult* replicationResult,
-                              int*                       replicationFactor,
-                              FileStores*                fileStores,
+                              bsls::AtomicInt*           replicationFactor,
+                              const RecordStores&        recordStores,
                               const mqbcmd::ReplicationCommand& command);
 
   public:
@@ -438,14 +475,6 @@ struct StorageUtil {
         bsl::vector<bsl::string>*              removedEntries,
         const bsl::unordered_set<bsl::string>& existingEntries,
         const bsl::unordered_set<bsl::string>& newEntries);
-
-    /// Return true if the queue having specified `uri` has no messages in the
-    /// specified `storageMap`, false in any other case.  If the optionally
-    /// specified `storagesLock` is specified, lock it.  Behavior is undefined
-    /// unless this routine is invoked from cluster dispatcher thread.
-    static bool isStorageEmpty(bslmt::Mutex*       storagesLock,
-                               const StorageSpMap& storageMap,
-                               const bmqt::Uri&    uri);
 
     /// Callback scheduled by the Storage Manager to run every minute which
     /// monitors storage (disk space, archive clean up, etc), using the
@@ -546,6 +575,7 @@ struct StorageUtil {
         mqbi::Dispatcher*              dispatcher,
         const mqbcfg::PartitionConfig& config,
         FileStores*                    fileStores,
+        mqbs::StorageMonitor*          storageMonitor,
         BlobSpPool*                    blobSpPool,
         bmqma::CountingAllocatorStore* allocators,
         bsl::ostream&                  errorDescription,
@@ -586,13 +616,19 @@ struct StorageUtil {
     /// Callback executed when the partition having the specified
     /// 'partitionId' has performed recovery and recovered file-backed
     /// queues and their virtual storages in the specified
-    /// 'queueKeyInfoMap'.
+    /// 'queueKeyInfoMap'.  Records above the specified 'snapshotOffset' are
+    /// left alone: under Raft those are log entries the commit-apply path has
+    /// yet to apply.  Legacy recovery has no boundary and passes
+    /// 'k_NO_SNAPSHOT_BOUNDARY', which applies every record.
     ///
     /// THREAD: Executed by the dispatcher thread of the partition.
+    /// Value of `recoveredQueuesCb`'s `snapshotOffset` meaning "no boundary":
+    /// every record is recovered state.  Distinct from an offset of 0, which
+    /// under Raft means nothing has rolled over yet, so no record is.
+    static const bsls::Types::Uint64 k_NO_SNAPSHOT_BOUNDARY;
+
     static void
-    recoveredQueuesCb(StorageSpMap*                storageMap,
-                      bslmt::Mutex*                storagesLock,
-                      mqbs::FileStore*             fs,
+    recoveredQueuesCb(mqbs::RecordStore*           recordStore,
                       mqbi::DomainFactory*         domainFactory,
                       bslmt::Mutex*                unrecognizedDomainsLock,
                       DomainQueueMessagesCountMap* unrecognizedDomains,
@@ -600,6 +636,7 @@ struct StorageUtil {
                       const bsl::string&           clusterDescription,
                       int                          partitionId,
                       const QueueKeyInfoMap*       queueKeyInfoMap,
+                      bsls::Types::Uint64          snapshotOffset,
                       bslma::Allocator*            allocator);
 
     /// Print statistics regarding the specified 'unrecognizedDomains',
@@ -628,15 +665,16 @@ struct StorageUtil {
                      const ShutdownCb&  shutdownCb);
 
     /// Shutdown the underlying partition associated with the specified
-    /// `partitionId` from the specified `fileStores` by using the specified
-    /// `latch`, and the specified `clusterConfig`. The cluster information
-    /// is printed using the specified `clusterDescription`.
+    /// `partitionId` by closing the specified `recordStore` (may be null if
+    /// the partition was never created), using the specified `latch`, and
+    /// the specified `clusterConfig`. The cluster information is printed
+    /// using the specified `clusterDescription`.
     ///
     /// THREAD: Executed by *QUEUE_DISPATCHER* thread with the specified
     ///         `partitionId`.
     static void shutdown(int                              partitionId,
                          bslmt::Latch*                    latch,
-                         FileStores*                      fileStores,
+                         mqbs::RecordStore*               recordStore,
                          const bsl::string&               clusterDescription,
                          const mqbcfg::ClusterDefinition& clusterConfig);
 
@@ -646,19 +684,19 @@ struct StorageUtil {
     /// Insert the created storage into Load into `storageMap`.
     ///
     /// THREAD: Executed by the Client's dispatcher thread.
-    static void registerQueueAsPrimary(const mqbi::Cluster*    cluster,
-                                       StorageSpMap*           storageMap,
-                                       bslmt::Mutex*           storagesLock,
-                                       mqbs::FileStore*        fs,
+    /// Register the queue having the specified 'uri', 'queueKey',
+    /// 'appIdKeyPairs', and 'domain' as primary using the specified
+    /// 'storageMap', 'storagesLock', and 'rs' (RecordStore).
+    ///
+    /// THREAD: Must be called from the partition's dispatcher thread.
+    static void registerQueueAsPrimary(mqbs::RecordStore*      rs,
                                        const bmqt::Uri&        uri,
                                        const mqbu::StorageKey& queueKey,
                                        const AppInfos&         appIdKeyPairs,
                                        mqbi::Domain*           domain);
 
     /// THREAD: Executed by the Queue's dispatcher thread.
-    static void unregisterQueueDispatched(mqbs::FileStore*     fs,
-                                          StorageSpMap*        storageMap,
-                                          bslmt::Mutex*        storagesLock,
+    static void unregisterQueueDispatched(mqbs::RecordStore*   rs,
                                           const ClusterData*   clusterData,
                                           int                  partitionId,
                                           const PartitionInfo& pinfo,
@@ -673,34 +711,26 @@ struct StorageUtil {
     /// queue is configured in fanout mode.
     ///
     /// THREAD: Executed by the Queue's dispatcher thread.
-    static int updateQueuePrimary(StorageSpMap*    storageMap,
-                                  bslmt::Mutex*    storagesLock,
-                                  mqbs::FileStore* fs,
-                                  const bmqt::Uri& uri,
-                                  const AppInfos&  addedIdKeyPairs,
-                                  const AppInfos&  removedIdKeyPairs);
+    static int updateQueuePrimary(mqbs::RecordStore* rs,
+                                  const bmqt::Uri&   uri,
+                                  const AppInfos&    addedIdKeyPairs,
+                                  const AppInfos&    removedIdKeyPairs);
 
-    static void createQueueStorageAsReplica(StorageSpMap*        storageMap,
-                                            bslmt::Mutex*        storagesLock,
-                                            mqbs::FileStore*     fs,
+    static void createQueueStorageAsReplica(mqbs::RecordStore*   rs,
                                             mqbi::DomainFactory* domainFactory,
                                             const bmqt::Uri&     uri,
                                             const mqbu::StorageKey& queueKey,
                                             const AppInfos& appIdKeyPairs,
                                             mqbi::Domain*   domain);
 
-    static void removeQueueStorageDispatched(StorageSpMap*    storageMap,
-                                             bslmt::Mutex*    storagesLock,
-                                             mqbs::FileStore* fs,
-                                             const bmqt::Uri& uri,
+    static void removeQueueStorageDispatched(mqbs::RecordStore*      rs,
+                                             const bmqt::Uri&        uri,
                                              const mqbu::StorageKey& queueKey,
                                              const mqbu::StorageKey& appKey);
 
     static void
-    updateQueueStorageDispatched(StorageSpMap*           storageMap,
-                                 bslmt::Mutex*           storagesLock,
-                                 mqbi::DomainFactory*    domainFactory,
-                                 bsl::string_view        description,
+    updateQueueStorageDispatched(mqbi::DomainFactory*    domainFactory,
+                                 mqbs::RecordStore*      rs,
                                  const bmqt::Uri&        uri,
                                  const mqbu::StorageKey& queueKey,
                                  const AppInfos&         addedIdKeyPairs,
@@ -708,8 +738,7 @@ struct StorageUtil {
 
     static int configureStorage(bsl::ostream& errorDescription,
                                 bsl::shared_ptr<mqbi::Storage>* out,
-                                StorageSpMap*                   storageMap,
-                                bslmt::Mutex*                   storagesLock,
+                                mqbs::RecordStore*              rs,
                                 const bmqt::Uri&                uri,
                                 const mqbu::StorageKey&         queueKey,
                                 int                             partitionId,
@@ -747,17 +776,24 @@ struct StorageUtil {
     /// allocations.  This function can be invoked from any thread, and will
     /// block until the potentially asynchronous operation is complete.
     //
-    /// THREAD: Executed by the cluster-dispatcher thread.
-    static void
-    processCommand(mqbcmd::StorageResult*                       result,
-                   FileStores*                                  fileStores,
-                   StorageSpMapVec*                             storageMapVec,
-                   bsl::vector<bsl::shared_ptr<bslmt::Mutex> >* storageLockVec,
-                   const mqbi::DomainFactory*                   domainFactory,
-                   int*                          replicationFactor,
-                   const mqbcmd::StorageCommand& command,
-                   const bslstl::StringRef&      partitionLocation,
-                   bslma::Allocator*             allocator);
+    /// Load into the specified `recordStores` a `RecordStore*` (upcast from
+    /// `mqbs::FileStore*`) for every element of the specified `fileStores`,
+    /// in the same order.  Convenience for legacy/FSM managers (whose record
+    /// store *is* the `FileStore`) to call the `RecordStore`-based command
+    /// functions below.
+    static void recordStoresFromFileStores(RecordStores*     recordStores,
+                                           const FileStores& fileStores);
+
+    /// THREAD: Executed by the thread issuing the command; must not be a
+    ///         partition dispatcher thread, since every branch dispatches
+    ///         into those and waits.
+    static void processCommand(mqbcmd::StorageResult*        result,
+                               const RecordStores&           recordStores,
+                               const mqbi::DomainFactory*    domainFactory,
+                               bsls::AtomicInt*              replicationFactor,
+                               const mqbcmd::StorageCommand& command,
+                               const bslstl::StringRef&      partitionLocation,
+                               bslma::Allocator*             allocator);
 
     /// THREAD: Executed by the Queue's dispatcher thread for the partitionId
     ///         of the specified `fs`.
@@ -767,12 +803,186 @@ struct StorageUtil {
                                             const PartitionInfo& pinfo);
 
     /// Purge the queues on a given domain.
-    static void purgeQueueOnDomain(
-        mqbcmd::StorageResult*                       result,
-        const bsl::string&                           domainName,
-        FileStores*                                  fileStores,
-        StorageSpMapVec*                             storageMapVec,
-        bsl::vector<bsl::shared_ptr<bslmt::Mutex> >* storageLockVec);
+    static void purgeQueueOnDomain(mqbcmd::StorageResult* result,
+                                   const bsl::string&     domainName,
+                                   const RecordStores&    recordStores);
+};
+
+// =====================
+// class storageMonitor
+// =====================
+
+/// Concrete implementation of @bbref{mqbs::storageMonitor} which owns the
+/// per-partition map of queue storages.
+class StorageMonitor : public mqbs::StorageMonitor {
+  public:
+    // TYPES
+    enum RegistrationState {
+        /// The storage exists and carries every App asked for.
+        e_REGISTERED = 0,
+        /// A registration is outstanding; wait for it rather than proposing
+        /// a second one.
+        e_PENDING = 1,
+        /// Nothing is outstanding and something is missing; the caller must
+        /// propose.  Marked outstanding by the call.
+        e_REQUIRED = 2
+    };
+
+    /// Map of appKey -> appId for a queue's registered apps.
+    typedef mqbs::DataStoreConfigQueueInfo::AppInfos AppKeyToIdMap;
+
+    struct StorageWithApps {
+        StorageSp     d_storage_sp;
+        AppKeyToIdMap d_apps;
+
+        /// `true` between proposing this queue's registration and the storage
+        /// (or the Apps) actually arriving.  On the Raft write path a
+        /// QueueOp only takes effect when it commits, so without this a
+        /// second `registerQueue` -- a concurrent open, or a parked one
+        /// replayed by `onQueueStorageReady` -- would look at an unchanged
+        /// storage and propose the very same record again.
+        bool d_awaitingRegistration;
+
+        StorageWithApps(bslma::Allocator* basicAllocator = 0)
+        : d_storage_sp()
+        , d_apps(basicAllocator)
+        , d_awaitingRegistration(false)
+        {
+        }
+    };
+    /// Map of QueueUri -> ReplicatedStorageSp
+    typedef bsl::unordered_map<bmqt::Uri, StorageWithApps> StorageSpMap;
+    typedef StorageSpMap::iterator                         StorageSpMapIter;
+    typedef StorageSpMap::const_iterator StorageSpMapConstIter;
+
+    typedef bsl::vector<StorageSpMap>       StorageSpMapVec;
+    typedef StorageSpMapVec::iterator       StorageSpMapVecIter;
+    typedef StorageSpMapVec::const_iterator StorageSpMapVecConstIter;
+
+  private:
+    // DATA
+
+    /// Vector of `(CanonicalQueueUri -> ReplicatedStorage)` maps.  Vector is
+    /// indexed by partitionId.  The maps contains *both* in-memory and
+    /// file-backed storages.  Note that `d_storageLockVec[partitionId]` must
+    /// be held while accessing `d_storages[partitionId]`, because they are
+    /// accessed from partitions' dispatcher threads, as well as cluster
+    /// dispatcher thread.
+    ///
+    /// THREAD: Protected by `d_storageLockVec` (per partition).
+    bsl::vector<StorageSpMap> d_storages;
+
+    /// Vector of mutexes to protect access to `d_storages` and its elements,
+    /// one per partition.  See comments for `d_storages`.
+    mutable bsl::vector<bsl::shared_ptr<bslmt::Mutex> > d_storageLockVec;
+
+    /// Cluster to notify (via `onQueueStorageReady`) whenever a queue's
+    /// storage is registered/unregistered or its app set changes, so that
+    /// any locally-parked queue-open can re-check readiness.  May be null in
+    /// unit tests that construct a bare `storageMonitor`.
+    mqbi::Cluster* d_cluster_p;
+
+    bslma::Allocator* d_allocator_p;
+
+    // NOT IMPLEMENTED
+    StorageMonitor(const StorageMonitor&);
+    StorageMonitor& operator=(const StorageMonitor&);
+
+  public:
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(StorageMonitor, bslma::UsesBslmaAllocator)
+
+    // CREATORS
+
+    /// Create a `storageMonitor` notifying the optionally specified
+    /// `cluster` (may be null, e.g. in unit tests) of queue storage/app
+    /// availability changes.
+    explicit StorageMonitor(mqbi::Cluster*    cluster   = 0,
+                            bslma::Allocator* allocator = 0);
+
+    ~StorageMonitor() BSLS_KEYWORD_OVERRIDE;
+
+    // MANIPULATORS
+
+    void resize(int numPartitions);
+
+    void
+    onStorageRegistered(int              partitionId,
+                        const bmqt::Uri& uri,
+                        const StorageSp& storageSp,
+                        const mqbs::DataStoreConfigQueueInfo::AppInfos& apps)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void onStorageRegistered(int                            partitionId,
+                             const bmqt::Uri&               uri,
+                             const StorageSp&               storageSp,
+                             const mqbi::Storage::AppInfos& apps)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void onStorageAppsAdded(int                            partitionId,
+                            const bmqt::Uri&               uri,
+                            const mqbi::Storage::AppInfos& apps)
+        BSLS_KEYWORD_OVERRIDE;
+
+    void
+    onStorageAppRemoved(int                     partitionId,
+                        const bmqt::Uri&        uri,
+                        const mqbu::StorageKey& appKey) BSLS_KEYWORD_OVERRIDE;
+
+    void onStorageUnregistered(int              partitionId,
+                               const bmqt::Uri& uri) BSLS_KEYWORD_OVERRIDE;
+
+    void onStoragesCleared(int partitionId) BSLS_KEYWORD_OVERRIDE;
+
+    /// Clear all storages and tracked apps for the specified `partitionId`,
+    /// *without* notifying `d_cluster_p`.  For use during teardown (e.g. a
+    /// manager's destructor releasing storage shared_ptrs before its
+    /// `FileStore`s are destroyed), when the owning cluster may already be
+    /// stopped/partially destroyed and there is nothing left to notify.  See
+    /// `onStoragesCleared` for the notifying counterpart used during normal
+    /// operation.
+    void releaseStorages(int partitionId);
+
+    void onRecovered(int partitionId) BSLS_KEYWORD_OVERRIDE;
+
+    /// Return whether the queue having the specified `uri` and `queueKey` on
+    /// the specified `partitionId` still needs registering with the specified
+    /// `appIdKeyPairs` for the specified `domain`.  `e_REQUIRED` marks it
+    /// outstanding, creating a placeholder if the storage does not exist yet.
+    RegistrationState
+    registerQueue(const bmqt::Uri&               uri,
+                  const mqbu::StorageKey&        queueKey,
+                  int                            partitionId,
+                  const mqbi::Storage::AppInfos& appIdKeyPairs,
+                  mqbi::Domain*                  domain);
+
+    // ACCESSORS
+    StorageSp find(const bmqt::Uri& uri) BSLS_KEYWORD_OVERRIDE;
+
+    void loadAllStorages(bsl::vector<StorageSp>* result,
+                         int partitionId) BSLS_KEYWORD_OVERRIDE;
+
+    bool isStorageEmpty(const bmqt::Uri& uri,
+                        int partitionId) const BSLS_KEYWORD_OVERRIDE;
+
+    /// Return true if the queue having the specified `uri` and assigned to
+    /// the specified `partitionId` has a registered storage.  Safe to call
+    /// from any thread (in particular, the cluster dispatcher thread) --
+    /// unlike querying `ReplicatedStorage`/`find(uri)`'s result directly.
+    bool hasStorage(const bmqt::Uri& uri, int partitionId) const;
+
+    /// Load into the specified `out` the set of appIds currently registered
+    /// on the storage for the queue having the specified `uri` and assigned
+    /// to the specified `partitionId`, and return true.  Return false
+    /// (leaving `out` unchanged) if no storage for `uri` exists on
+    /// `partitionId`.  Safe to call from any thread.
+    bool loadAppIds(bsl::unordered_set<bsl::string>* out,
+                    const bmqt::Uri&                 uri,
+                    int                              partitionId) const;
+
+    /// Return false: the legacy storage path.  `PartitionRaftManager`
+    /// overrides this to return true.
+    bool isRaft() const BSLS_KEYWORD_OVERRIDE;
 };
 
 template <>

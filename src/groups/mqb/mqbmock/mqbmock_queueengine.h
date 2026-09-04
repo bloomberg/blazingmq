@@ -84,9 +84,8 @@ class QueueEngine : public mqbi::QueueEngine {
 
     /// Configure this instance.  The specified `isReconfigure` flag indicate
     /// if queue is being reconfigured. Return zero on success, non-zero value
-    /// otherwise and populate the specified `errorDescription`.
-    int configure(bsl::ostream& errorDescription,
-                  bool          isReconfigure) BSLS_KEYWORD_OVERRIDE;
+    /// otherwise.
+    int configure(bool isReconfigure) BSLS_KEYWORD_OVERRIDE;
 
     /// Prepare this engine for destruction by cancelling any scheduled
     /// events.

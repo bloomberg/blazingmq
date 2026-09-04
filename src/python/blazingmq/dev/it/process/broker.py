@@ -257,6 +257,149 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
             self._logger.error(error)
             raise RuntimeError(error)
 
+    def wait_partition_primary(self, partition_id=0, timeout=BLOCK_TIMEOUT) -> Self:
+        """
+        Return the Broker object currently primary for the specified
+        'partition_id', polling this node until one is reported (or
+        'timeout' elapses).
+
+        Unlike 'last_known_leader' (the CSL/cluster elector leader), this
+        reflects per-partition Raft leadership: in Raft mode the CSL
+        leader and a given partition's primary are independently elected and
+        can be different nodes, so commands that must land on the node
+        actually owning a queue's partition (e.g. 'PURGE') should target this
+        instead of 'last_known_leader'.
+
+        This queries a fresh 'CLUSTERS CLUSTER ... STATUS' admin response
+        each time rather than scanning previously-seen broker output: unlike
+        'wait_status'/'last_known_leader', which capture a one-time
+        leadership-change log line, this can be called at any point in a
+        test (even long after that line scrolled by and was consumed by an
+        earlier, unrelated 'capture()' call) and still get a correct answer.
+        """
+
+        admin = self.open_admin_client()
+        primary_name = [None]
+
+        def check():
+            res = admin.send_admin(f"CLUSTERS CLUSTER {self.cluster_name} STATUS")
+            assert isinstance(res, str)
+            primary_name[0] = self._parse_partition_primary(res, partition_id)
+            return primary_name[0] is not None
+
+        wait_until(check, timeout=timeout)
+        if primary_name[0] is None:
+            self._error(f"Could not determine primary for partition {partition_id}")
+        return self.cluster.process(primary_name[0])
+
+    def partition_primaries(self, num_partitions: int) -> dict:
+        """
+        Return {partition_id: Broker or None} for partitions 0 to
+        'num_partitions', as reported by a single 'CLUSTERS CLUSTER ... STATUS'
+        query on this node.  None means the partition has no primary yet.
+
+        Unlike calling 'wait_partition_primary' per partition, this costs one
+        admin round trip for the whole cluster and does not wait.
+        """
+
+        admin = self.open_admin_client()
+        res = admin.send_admin(f"CLUSTERS CLUSTER {self.cluster_name} STATUS")
+        assert isinstance(res, str)
+
+        primaries = {}
+        for partition_id in range(num_partitions):
+            name = self._parse_partition_primary(res, partition_id)
+            primaries[partition_id] = self.cluster.process(name) if name else None
+        return primaries
+
+    def wait_queue_primary(self, uri, timeout=BLOCK_TIMEOUT) -> Self:
+        """
+        Return the Broker object currently primary for the partition that
+        owns the queue identified by 'uri', polling this node until the queue
+        is assigned and its partition has a primary (or 'timeout' elapses).
+
+        Uses 'QUEUEHELPER', which prints each queue's 'partitionId' with the
+        primary appended as '(primary: [<name>, <id>])'.
+        """
+
+        admin = self.open_admin_client()
+        primary_name = [None]
+
+        def check():
+            res = admin.send_admin(f"CLUSTERS CLUSTER {self.cluster_name} QUEUEHELPER")
+            assert isinstance(res, str)
+            # QUEUEHELPER prints each queue's URI on its own line, then its
+            # fields; the 'partitionId' line carries '(primary: [<name>, ...])'
+            # (or '(*NO* primary)' when unset).  Anchor the URI to end-of-line
+            # so a prefix URI can't match, then take that queue's first
+            # 'partitionId' line.
+            m = re.search(
+                rf"^\s*{re.escape(uri)}\s*$.*?partitionId\.*:\s*\d+([^\n]*)",
+                res,
+                re.MULTILINE | re.DOTALL,
+            )
+            if m is None:
+                return False
+            primary = re.search(r"\(primary:\s*\[([^,\]]+),", m.group(1))
+            primary_name[0] = primary.group(1) if primary else None
+            return primary_name[0] is not None
+
+        wait_until(check, timeout=timeout)
+        if primary_name[0] is None:
+            self._error(f"Could not determine primary for queue {uri}")
+        return self.cluster.process(primary_name[0])
+
+    def queue_partition_id(self, uri, timeout=BLOCK_TIMEOUT) -> int:
+        """
+        Return the id of the partition that owns the queue identified by
+        'uri', polling this node until the queue is assigned (or 'timeout'
+        elapses).  Reads the same 'QUEUEHELPER' output as
+        'wait_queue_primary'.
+        """
+
+        admin = self.open_admin_client()
+        partition_id = [None]
+
+        def check():
+            res = admin.send_admin(f"CLUSTERS CLUSTER {self.cluster_name} QUEUEHELPER")
+            assert isinstance(res, str)
+            m = re.search(
+                rf"^\s*{re.escape(uri)}\s*$.*?partitionId\.*:\s*(\d+)",
+                res,
+                re.MULTILINE | re.DOTALL,
+            )
+            if m is None:
+                return False
+            partition_id[0] = int(m.group(1))
+            return True
+
+        wait_until(check, timeout=timeout)
+        if partition_id[0] is None:
+            self._error(f"Could not determine partition for queue {uri}")
+        return partition_id[0]
+
+    @staticmethod
+    def _parse_partition_primary(status_res, partition_id):
+        """
+        Extract the primary node name for 'partition_id' from a
+        'CLUSTERS CLUSTER ... STATUS' admin response 'status_res', or None if
+        the partition has no reported primary.
+        """
+        # Match only within this partition's own block: the tempered dot
+        # '(?:(?!PartitionId:).)*?' stops at the next 'PartitionId:' so the
+        # search can't drift into a later partition's block.  The node field is
+        # '[<name>, <nodeId>]'; excluding ']' from the captured name means a
+        # partition with no primary ('[ ** NONE ** ]', no ',' inside the
+        # brackets) does not match -- so this returns None (keep polling)
+        # rather than garbage or a different partition's primary.
+        m = re.search(
+            rf"PartitionId: {partition_id}\b(?:(?!PartitionId:).)*?"
+            rf"Primary Node\s*:\s*\[([^,\]]+),",
+            status_res,
+            re.DOTALL,
+        )
+        return m.group(1) if m else None
+
     def dump_queue_internals(self, domain, queue):
         """
         Dump state of the specified 'queue' in the specified 'domain'.
@@ -283,6 +426,32 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
 
         return self.command(
             f"CLUSTERS CLUSTER {cluster} STATE ELECTOR SET quorum {quorum}",
+            succeed=succeed,
+        )
+
+    def transfer_leadership(self, target, partition_id=None, succeed=None):
+        """
+        Ask this node to hand leadership to 'target' (a Broker or a node name).
+        If 'partition_id' is None this transfers cluster (CSL) leadership,
+        otherwise the primaryship of that partition.
+
+        This node must currently be the leader (resp. the primary of
+        'partition_id'); any other node fails the command.  The broker holds
+        the command until leadership has actually landed on 'target', so a
+        success means the transfer completed.  Legacy cannot move leadership
+        at all, so it succeeds only when the requested state already holds,
+        i.e. 'target' is this node.
+        """
+
+        name = target if isinstance(target, str) else target.name
+        scope = (
+            "STATE ELECTOR"
+            if partition_id is None
+            else f"STORAGE PARTITION {partition_id}"
+        )
+
+        return self.command(
+            f"CLUSTERS CLUSTER {self.cluster_name} {scope} TRANSFER_LEADERSHIP {name}",
             succeed=succeed,
         )
 

@@ -180,7 +180,7 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     /// Might be NULL:
     /// - On a proxy (in this case `gcExpired` is not called)
     /// - In UTs (in this case `gcExpired` might be called)
-    DataStore* d_store_p;
+    RecordStore* d_store_p;
 
     mqbu::StorageKey d_key;
 
@@ -253,7 +253,7 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     /// Constructor of a new object associated to the queue having specified
     /// `uri` and using the specified `parentCapacityMeter`, and
     /// `allocator`.
-    InMemoryStorage(DataStore*                     dataStore_p,
+    InMemoryStorage(RecordStore*                   dataStore_p,
                     const bmqt::Uri&               uri,
                     const mqbu::StorageKey&        queueKey,
                     mqbi::Domain*                  domain,
@@ -479,6 +479,12 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     bool
     hasMessage(const bmqt::MessageGUID& msgGUID) const BSLS_KEYWORD_OVERRIDE;
 
+    /// Return `false`: this storage is written at propose (proxy `storePush`
+    /// or at-most-once), so a record that is absent is one that was removed,
+    /// never one still on its way.
+    bool isPendingReplication(mqbi::Storage::DeliveryProbe* probe) const
+        BSLS_KEYWORD_OVERRIDE;
+
     /// Retrieve the message and its metadata having the specified `msgGUID`
     /// in the specified `appData`, `options` and `attributes` from this
     /// storage.  Return zero on success or a non-zero error code on
@@ -540,17 +546,24 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     void processMessageRecord(const bmqt::MessageGUID&     guid,
                               unsigned int                 msgLen,
                               unsigned int                 refCount,
-                              const DataStoreRecordHandle& handle)
-        BSLS_KEYWORD_OVERRIDE;
+                              const DataStoreRecordHandle& handle,
+                              bool isOwn) BSLS_KEYWORD_OVERRIDE;
 
     void processConfirmRecord(const bmqt::MessageGUID&     guid,
                               const mqbu::StorageKey&      appKey,
                               ConfirmReason::Enum          reason,
-                              const DataStoreRecordHandle& handle)
-        BSLS_KEYWORD_OVERRIDE;
+                              const DataStoreRecordHandle& handle,
+                              bool isOwn) BSLS_KEYWORD_OVERRIDE;
 
     void
     processDeletionRecord(const bmqt::MessageGUID& guid) BSLS_KEYWORD_OVERRIDE;
+
+    void undoCapacity(unsigned int msgLen) BSLS_KEYWORD_OVERRIDE;
+
+    void undoConfirm(const bmqt::MessageGUID& guid,
+                     const mqbu::StorageKey&  appKey) BSLS_KEYWORD_OVERRIDE;
+
+    int writeAppRemoval(const mqbu::StorageKey& appKey) BSLS_KEYWORD_OVERRIDE;
 
     void addQueueOpRecordHandle(const DataStoreRecordHandle& handle)
         BSLS_KEYWORD_OVERRIDE;
@@ -587,7 +600,7 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
 inline InMemoryStorage_Item::InMemoryStorage_Item()
 : d_appData()
 , d_options()
-, d_attributes()
+, d_attributes(true)
 {
 }
 
@@ -750,6 +763,12 @@ inline bool InMemoryStorage::isEmpty() const
 inline bool InMemoryStorage::hasMessage(const bmqt::MessageGUID& msgGUID) const
 {
     return 1 == d_items.count(msgGUID);
+}
+
+inline bool
+InMemoryStorage::isPendingReplication(mqbi::Storage::DeliveryProbe*) const
+{
+    return false;
 }
 
 inline mqbi::StorageResult::Enum

@@ -78,6 +78,26 @@ VirtualStorage::confirm(mqbi::DataStreamMessage* dataStreamMessage)
 }
 
 mqbi::StorageResult::Enum
+VirtualStorage::undoConfirm(mqbi::DataStreamMessage* dataStreamMessage)
+{
+    mqbi::AppMessage& appMessage = dataStreamMessage->app(ordinal());
+
+    if (mqbi::AppMessage::e_CONFIRM != appMessage.d_state) {
+        // Never confirmed, or removed since.
+        return mqbi::StorageResult::e_INVALID_OPERATION;  // RETURN
+    }
+
+    // 'confirm' is reachable only from a pending state, and a client can only
+    // confirm a message it received, so that state was 'e_PUSH'.
+    appMessage.setPushState();
+
+    d_removedBytes -= dataStreamMessage->d_size;
+    --d_numRemoved;
+
+    return mqbi::StorageResult::e_SUCCESS;
+}
+
+mqbi::StorageResult::Enum
 VirtualStorage::remove(mqbi::DataStreamMessage* dataStreamMessage)
 {
     if (ordinal() < dataStreamMessage->d_numApps) {
@@ -185,7 +205,7 @@ void StorageIterator::clearCache()
 {
     d_appData_sp.reset();
     d_options_sp.reset();
-    d_attributes.reset();
+    d_attributes.reset(false);
     d_haveReceipt = false;
 }
 
@@ -214,7 +234,7 @@ StorageIterator::StorageIterator(
 : d_storage_p(storage)
 , d_owner_p(owner)
 , d_iterator(initialPosition)
-, d_attributes()
+, d_attributes(false)
 , d_appData_sp()
 , d_options_sp()
 , d_haveReceipt(false)

@@ -32,6 +32,7 @@ from blazingmq.dev.it.data import data_metrics as dt
 from blazingmq.dev.it.process.admin import AdminClient
 from blazingmq.dev.it.process.broker import Broker
 from blazingmq.dev.it.process.client import Client
+from blazingmq.dev.it.util import wait_until
 
 pytestmark = order(1)
 
@@ -280,33 +281,51 @@ def test_queue_stats(single_node: Cluster, domain_urls: tc.DomainUrls) -> None:
     admin.stop()
 
 
-def _change_leader(cluster: Cluster) -> Broker:
+def _change_queue_primary(cluster: Cluster, uri: str) -> Broker:
+    """
+    Kill the node currently primary for the partition that owns 'uri' and
+    return the node that takes over.
+
+    The subject is the *primary*, not the CSL leader: per-queue event counters
+    (put/confirm/ack times) live only on the node that processed them, so only
+    a primary change resets them, while storage-derived fields must survive.
+    Legacy makes the two indistinguishable -- 'E_LEADER_IS_MASTER_ALL' has the
+    leader assign itself primary of every partition -- but under Raft each
+    partition elects its own leader independently of the CSL group, so killing
+    the CSL leader moves this queue's primary only by coincidence.
+    """
     assert cluster.last_known_leader
     assert len(cluster.nodes()) > 1
-    # We cannot change leader for 1-node cluster
+    # We cannot change primary for 1-node cluster
 
-    leader = cluster.last_known_leader
-    next_leader = None
-    for node in cluster.nodes():
-        if node != leader:
-            node.set_quorum(99)
-            next_leader = node
-    assert leader != next_leader
+    old_primary = cluster.last_known_leader.wait_queue_primary(uri)
 
-    # Kill the leader
     cluster.drain()
-    leader.check_exit_code = False
-    leader.kill()
-    leader.wait()
+    old_primary.check_exit_code = False
+    old_primary.kill()
+    old_primary.wait()
 
-    # Make the quorum for selected node be 1, so it becomes a new leader
-    next_leader.set_quorum(1)
+    # Ask a survivor rather than 'cluster.last_known_leader', which still
+    # points at the killed node when that node was also the leader.  Only
+    # 'wait_leader' re-resolves it, and 'wait_leader' matches a *new* "new
+    # leader ... ACTIVE" line in each broker's log, so it hangs whenever the
+    # killed primary was not the leader and no election follows.  Any member
+    # can answer: QUEUEHELPER reads cluster state, which they all have.
+    survivor = cluster.nodes(exclude=old_primary, alive=True)[0]
 
-    # Wait for the new leader
-    cluster.wait_leader()
-    assert cluster.last_known_leader == next_leader
+    # Partition leadership settles independently of CSL leadership, and
+    # 'wait_queue_primary' reports whatever name the cluster state holds,
+    # whether or not that node is alive.  So keep asking until the killed one
+    # is no longer the answer.
+    wait_until(
+        lambda: survivor.wait_queue_primary(uri) != old_primary,
+        timeout=5,
+    )
 
-    return next_leader
+    new_primary = survivor.wait_queue_primary(uri)
+    assert new_primary != old_primary
+
+    return new_primary
 
 
 def test_app_id_stats(multi_node: Cluster, domain_urls: tc.DomainUrls) -> None:
@@ -323,7 +342,10 @@ def test_app_id_stats(multi_node: Cluster, domain_urls: tc.DomainUrls) -> None:
     Stage 2: check stats after confirming messages
     - Open a consumer for each appId
     - Confirm a portion of messages for each consumer
-    - Verify stats acquired via admin command with the expected stats
+    - Kill the queue's primary so another node takes over
+    - Verify stats acquired via admin command from the new primary: the
+      storage-derived fields survive the failover, the per-queue event
+      counters start from zero
 
     Stage 3: check stats after purging an appId
     - Purge one appId
@@ -347,10 +369,6 @@ def test_app_id_stats(multi_node: Cluster, domain_urls: tc.DomainUrls) -> None:
     ].definition.parameters.mode.fanout.publish_app_id_metrics = True
     cluster.deploy_domains()
 
-    # Preconditions
-    admin = AdminClient()
-    admin.connect(*cluster.admin_endpoint)
-
     # Stage 1: check stats after posting messages
     proxies = cluster.proxy_cycle()
     proxy = next(proxies)
@@ -359,35 +377,82 @@ def test_app_id_stats(multi_node: Cluster, domain_urls: tc.DomainUrls) -> None:
     task = PostRecord(domain_fanout, "test_stats", num=32)
     post_n_msgs(producer, task)
 
+    # Per-queue event counters (put/ack/confirm/...) are only tracked on the
+    # node that actually processed them -- the queue's partition primary --
+    # unlike storage-derived fields (content/bytes) which every replica has.
+    # In Raft mode that primary need not be the CSL leader, so connect the
+    # admin session directly to it rather than 'cluster.admin_endpoint'.
+    admin = cluster.last_known_leader.wait_queue_primary(task.uri).open_admin_client()
+
     stats = extract_stats(admin.send_admin("encoding json_pretty stat show"))
     queue_stats = stats["domainQueues"]["domains"][domain_fanout][task.uri]
 
     expect_same_structure(queue_stats, dt.TEST_QUEUE_STATS_AFTER_POST, "after-post")
 
     # Stage 2: check stats after confirming messages
-    consumer_foo: Client = proxy.create_client("consumer_foo")
-    consumer_foo.open(f"{task.uri}?id=foo", flags=["read"], succeed=True)
-    consumer_foo.wait_push_event()
+
+    def open_and_await_all(name: str, app_id: str) -> Client:
+        """
+        Open '<task.uri>?id=<app_id>' for reading and return the consumer once
+        it holds every posted message.  'wait_push_event' returns on the first
+        PUSH event, not the last: under strong consistency delivery waits for
+        quorum receipts, so the consumer can still be holding two or three
+        messages at that point and the confirm counts below would then apply
+        to a partial set.
+        """
+        consumer: Client = proxy.create_client(name)
+        uri = f"{task.uri}?id={app_id}"
+        consumer.open(uri, flags=["read"], succeed=True)
+        consumer.wait_push_event()
+        assert wait_until(
+            lambda: len(consumer.list(uri, block=True)) == task.num, timeout=10
+        ), f"app '{app_id}' did not receive all {task.num} messages"
+        return consumer
+
+    consumer_foo = open_and_await_all("consumer_foo", "foo")
     consumer_foo.confirm(f"{task.uri}?id=foo", "*", succeed=True)
 
-    consumer_bar: Client = proxy.create_client("consumer_bar")
-    consumer_bar.open(f"{task.uri}?id=bar", flags=["read"], succeed=True)
-    consumer_bar.wait_push_event()
+    consumer_bar = open_and_await_all("consumer_bar", "bar")
     consumer_bar.confirm(f"{task.uri}?id=bar", "+22", succeed=True)
 
-    consumer_baz: Client = proxy.create_client("consumer_baz")
-    consumer_baz.open(f"{task.uri}?id=baz", flags=["read"], succeed=True)
-    consumer_baz.wait_push_event()
+    consumer_baz = open_and_await_all("consumer_baz", "baz")
     consumer_baz.confirm(f"{task.uri}?id=baz", "+11", succeed=True)
+
+    # 'confirm' returns once the client has issued the CONFIRMs, not once the
+    # broker has applied them.  Killing the primary with any still in flight
+    # hands them to the *new* primary, which then reports storage counters
+    # that are still catching up and a confirm time of its own -- the opposite
+    # of what this stage checks a failover does.  'admin' is still connected to
+    # the current primary, so ask it.
+    def confirms_applied() -> bool:
+        try:
+            stats = extract_stats(
+                admin.send_admin("encoding json_pretty stat show")
+            )
+        except KeyError:
+            # 'stat show' forces a snapshot and refuses when asked more often
+            # than the snapshot interval; that is not an answer, so retry.
+            return False
+
+        apps = stats["domainQueues"]["domains"][domain_fanout][task.uri]["appIds"]
+        return (
+            apps["foo"]["values"]["queue_msgs_current"] == 0
+            and apps["bar"]["values"]["queue_msgs_current"] == 10
+            and apps["baz"]["values"]["queue_msgs_current"] == 21
+        )
+
+    assert wait_until(
+        confirms_applied, timeout=10, interval=2
+    ), "confirms were not applied on the primary before the failover"
 
     admin.stop()
 
-    _ = _change_leader(cluster)
+    primary = _change_queue_primary(cluster, task.uri)
 
     # wait for at least one snapshot to initialize stats
     time.sleep(1)
 
-    admin.connect(*cluster.admin_endpoint)
+    admin = primary.open_admin_client()
 
     stats = extract_stats(admin.send_admin("encoding json_pretty stat show"))
     queue_stats = stats["domainQueues"]["domains"][domain_fanout][task.uri]
