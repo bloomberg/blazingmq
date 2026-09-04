@@ -4464,6 +4464,7 @@ int FileStore::writeMessageRecord(const bmqp::StorageHeader& header,
         rc_WRITE_MESSAGE_RECORD_ERROR = -3,
         rc_UNKNOWN_QUEUE_KEY          = -4,
         rc_INCOMPATIBLE_STORAGE       = -5,
+        rc_INVALID_DATA_HEADER        = -6,
     };
 
     FileSet* activeFileSet = d_fileSets[0].get();
@@ -4531,6 +4532,33 @@ int FileStore::writeMessageRecord(const bmqp::StorageHeader& header,
         return 10 * rc + rc_WRITE_MESSAGE_RECORD_ERROR;  // RETURN
     }
 
+    if (0 == headerSize) {
+        BALL_LOG_ERROR << partitionDesc()
+                       << "Received DATA record with invalid 'headerWords'"
+                       << " field in its DataHeader [queueKey: " << queueKey
+                       << ", GUID: " << messageGuid << "].";
+        return rc_INVALID_DATA_HEADER;  // RETURN
+    }
+
+    if (0 == messageSize) {
+        BALL_LOG_ERROR << partitionDesc()
+                       << "Received DATA record with invalid 'messageWords'"
+                       << " field in its DataHeader [queueKey: " << queueKey
+                       << ", GUID: " << messageGuid << "].";
+        return rc_INVALID_DATA_HEADER;  // RETURN
+    }
+
+    if ((headerSize + optionsSize) >= messageSize) {
+        BALL_LOG_ERROR << partitionDesc()
+                       << "Received DATA record with invalid DataHeader"
+                       << " fields [queueKey: " << queueKey
+                       << ", GUID: " << messageGuid
+                       << ", headerSize: " << headerSize
+                       << ", optionsSize: " << optionsSize
+                       << ", messageSize: " << messageSize << "].";
+        return rc_INVALID_DATA_HEADER;  // RETURN
+    }
+
     // Check if the queueKey is known.  Ideally, this check should occur at the
     // beginning of this routine (before writing the record to file), but if we
     // attempt to read the record and the queueKey in that record (using
@@ -4559,6 +4587,29 @@ int FileStore::writeMessageRecord(const bmqp::StorageHeader& header,
     // For padding.
     const char lastByte =
         dataFile.block().base()[dataOffset + messageSize - 1];
+
+    if (lastByte < 1 || lastByte > bmqp::Protocol::k_DWORD_SIZE) {
+        BALL_LOG_ERROR << partitionDesc()
+                       << "Received DATA record with invalid padding: "
+                       << static_cast<int>(lastByte)
+                       << " [queueKey: " << queueKey
+                       << ", GUID: " << messageGuid << "].";
+        return rc_INVALID_DATA_HEADER;  // RETURN
+    }
+
+    if (messageSize <
+        (headerSize + optionsSize + static_cast<unsigned char>(lastByte))) {
+        BALL_LOG_ERROR << partitionDesc()
+                       << "Received DATA record with invalid"
+                       << " messageWords/headerWords/optionsWords/padding"
+                       << " fields [queueKey: " << queueKey
+                       << ", GUID: " << messageGuid
+                       << ", messageSize: " << messageSize
+                       << ", headerSize: " << headerSize
+                       << ", optionsSize: " << optionsSize
+                       << ", padding: " << static_cast<int>(lastByte) << "].";
+        return rc_INVALID_DATA_HEADER;  // RETURN
+    }
 
     // Create in-memory record
     record.d_messageOffset      = dataOffset;
