@@ -1469,6 +1469,13 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// in tests): returns `false` in that case.
     bool isRaft() const BSLS_KEYWORD_OVERRIDE;
 
+    /// Return `false`: reaching a `FileStore` directly means the legacy write
+    /// path, where a record is in the storage from propose, so one that is
+    /// absent is one that was removed.  On the Raft path the storage's
+    /// `RecordStore` is the `PartitionRaft`, which overrides this.
+    bool isPendingReplication(mqbi::Storage::DeliveryProbe* probe) const
+        BSLS_KEYWORD_OVERRIDE;
+
     void cancelTimersAndWait();
 
     void processShutdownEvent();
@@ -1874,6 +1881,12 @@ inline bool FileStore::isLeader() const
 inline bool FileStore::isRaft() const
 {
     return d_storageMonitor_p && d_storageMonitor_p->isRaft();
+}
+
+inline bool
+FileStore::isPendingReplication(mqbi::Storage::DeliveryProbe*) const
+{
+    return false;
 }
 
 inline unsigned int FileStore::writeHeadLeaseId() const

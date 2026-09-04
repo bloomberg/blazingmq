@@ -920,6 +920,12 @@ class RecordStore {
     /// former and at propose in the latter.
     virtual bool isRaft() const = 0;
 
+    /// Return `true` if the record the specified `probe` tracks, absent from
+    /// this partition, may still arrive, and `false` if it will not.  See
+    /// `mqbi::Storage::isPendingReplication`.
+    virtual bool
+    isPendingReplication(mqbi::Storage::DeliveryProbe* probe) const = 0;
+
     /// Return the records container for this partition.
     virtual const DataStoreConfig::Records& records() const = 0;
 

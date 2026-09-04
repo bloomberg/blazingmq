@@ -195,13 +195,12 @@ void RootQueueEngine::deliverMessages(AppState* app)
     BSLS_ASSERT_SAFE(d_apps.find(app->appId()) != d_apps.end());
 
     bsls::TimeInterval delay;
-    size_t             numMessages = app->processDeliveryLists(
-        &delay,
-        d_realStorageIter_mp.get(),
-        false);  // keepUnavailable: primary has the data locally, an
-                 // 'atEnd' redelivery entry means gc'ed/purged -> erase
+    size_t             numMessages = app->processDeliveryLists(&delay,
+                                                   d_realStorageIter_mp.get(),
+                                                   d_queueState_p->storage());
 
-    if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(0 == app->redeliveryListSize())) {
+    if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(0 ==
+                                            app->numDeliverableRedelivery())) {
         if (!app->resumePoint().isUnset()) {
             // Position to the resumePoint
             bslma::ManagedPtr<mqbi::StorageIterator> start;

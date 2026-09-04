@@ -776,20 +776,20 @@ void RelayQueueEngine::processAppRedelivery(unsigned int upstreamSubQueueId,
     }
 
     bsls::TimeInterval delay;
-    app->processDeliveryLists(&delay,
-                              d_realStorageIter_mp.get(),
-                              true);  // keepUnavailable: on a replica relay an
-                                      // out-of-order PUSH can arrive before
-                                      // its payload is replicated; keep the
-                                      // entry instead of dropping it
+    app->processDeliveryLists(&delay, d_realStorageIter_mp.get(), storage());
 
-    if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(0 == app->redeliveryListSize())) {
+    if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(0 ==
+                                            app->numDeliverableRedelivery())) {
         // We only attempt to deliver new messages if we successfully
-        // redelivered all messages in the redelivery list.
+        // redelivered all messages in the redelivery list.  A parked entry
+        // does not count: its record has not reached this node, so there is
+        // nothing to send and nothing to wait behind.
 
-        // Nothing is parked awaiting its (out-of-order) payload anymore; stop
-        // tracking this App for the `onReplicatedBatch` re-drive.
-        d_appsPendingRedelivery.erase(upstreamSubQueueId);
+        if (0 == app->redeliveryListSize()) {
+            // Nothing is parked awaiting its (out-of-order) payload anymore;
+            // stop tracking this App for the `onReplicatedBatch` re-drive.
+            d_appsPendingRedelivery.erase(upstreamSubQueueId);
+        }
 
         // Always start with the first element in the App and always stop at
         // the d_storageIter_mp (the start of all Apps processing).
@@ -1841,26 +1841,6 @@ void RelayQueueEngine::beforeMessageRemoved(const bmqt::MessageGUID& msgGUID)
             del.removeAllElements();
 
             del.advance();
-        }
-    }
-
-    // The message is leaving storage; drop it from the redelivery list of any
-    // App still awaiting its out-of-order payload, so a parked entry does not
-    // linger once its message is gc'ed/purged.  Only these Apps can hold a
-    // no-data entry (put-aside entries always have their payload), and the set
-    // is empty in steady state.
-    for (bsl::unordered_set<unsigned int>::iterator it =
-             d_appsPendingRedelivery.begin();
-         it != d_appsPendingRedelivery.end();) {
-        App_State* app = findApp(*it);
-        if (app) {
-            app->removeFromRedelivery(msgGUID);
-        }
-        if (app == 0 || 0 == app->redeliveryListSize()) {
-            it = d_appsPendingRedelivery.erase(it);
-        }
-        else {
-            ++it;
         }
     }
 }

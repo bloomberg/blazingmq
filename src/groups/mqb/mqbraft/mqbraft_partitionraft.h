@@ -667,6 +667,15 @@ class PartitionRaft : public mqbs::RecordStore,
     int                 leaderId() const;
     bsls::Types::Uint64 currentTerm() const;
 
+    /// Return `true` if the record for the specified `msgGUID`, absent from
+    /// this partition's storage, may still arrive, using and updating the
+    /// specified `probe`.  A PUSH commits on a majority that need not
+    /// include this node, so it can outrun the entry carrying its record by
+    /// however far this node is behind; this says whether that is what
+    /// happened, or whether the record was here and is gone.
+    bool isPendingReplication(mqbi::Storage::DeliveryProbe* probe) const
+        BSLS_KEYWORD_OVERRIDE;
+
     /// Return a printable description of the client (e.g., for logging).
     bsl::string_view description() const BSLS_KEYWORD_OVERRIDE;
 

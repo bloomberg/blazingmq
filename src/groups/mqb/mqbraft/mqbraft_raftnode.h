@@ -484,6 +484,13 @@ class RaftNode {
     /// `d_commitIndex` while a batch is outstanding.
     bsls::Types::Uint64 d_lastAppliedCommit;
 
+    /// Highest `leaderCommit` seen on an AppendEntries, uncapped.  Unlike
+    /// `d_commitIndex`, which Raft caps at this node's own match index, this
+    /// says how far the leader has committed even while this node is far
+    /// behind -- what a follower needs to tell "not replicated to me yet"
+    /// from "gone".
+    bsls::Types::Uint64 d_lastKnownLeaderCommit;
+
     // Election state
     bsl::unordered_set<int> d_votesReceived;
     int                     d_electionTicks;
@@ -773,7 +780,12 @@ class RaftNode {
     /// entries are also committed (and, once applied, present in state).
     bsls::Types::Uint64 commitTerm() const;
 
-    bsls::Types::Uint64   lastAppliedCommit() const;
+    bsls::Types::Uint64 lastAppliedCommit() const;
+
+    /// Return the highest `leaderCommit` seen on an AppendEntries (0 if
+    /// none has been seen).  See `d_lastKnownLeaderCommit`.
+    bsls::Types::Uint64 lastKnownLeaderCommit() const;
+
     const RaftNodeConfig& config() const;
     int                   quorum() const;
     ElectionMode::Enum    electionMode() const;
@@ -1040,6 +1052,11 @@ inline bsls::Types::Uint64 RaftNode::commitTerm() const
 inline bsls::Types::Uint64 RaftNode::lastAppliedCommit() const
 {
     return d_lastAppliedCommit;
+}
+
+inline bsls::Types::Uint64 RaftNode::lastKnownLeaderCommit() const
+{
+    return d_lastKnownLeaderCommit;
 }
 
 inline const RaftNodeConfig& RaftNode::config() const

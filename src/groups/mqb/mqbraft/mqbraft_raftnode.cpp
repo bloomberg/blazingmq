@@ -213,6 +213,7 @@ RaftNode::RaftNode(const RaftNodeConfig& config,
 , d_leaderId(k_INVALID_NODE_ID)
 , d_commitIndex(0)
 , d_lastAppliedCommit(0)
+, d_lastKnownLeaderCommit(0)
 , d_votesReceived(allocator)
 , d_electionTicks(0)
 , d_electionTimeout(0)
@@ -619,6 +620,13 @@ void RaftNode::handleAppendEntries(RaftNodeOutput*    output,
         }
         lastIndex  = entryIndex;
         matchIndex = entryIndex;
+    }
+
+    // Keep the leader's figure before capping it below: a node that is behind
+    // needs to know how far the leader has committed, not just how far it can
+    // commit itself.
+    if (msg.d_leaderCommit > d_lastKnownLeaderCommit) {
+        d_lastKnownLeaderCommit = msg.d_leaderCommit;
     }
 
     // Advance commit index

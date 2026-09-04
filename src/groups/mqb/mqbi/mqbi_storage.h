@@ -446,6 +446,16 @@ class Storage {
                         bmqp::Protocol::k_SUBID_ARRAY_STATIC_LEN>
         StorageKeys;
 
+    /// Per-message scratch for `isPendingReplication`.  The caller owns it,
+    /// zero-initializes it before the first call for a given message, and
+    /// keeps it across calls; only the storage interprets its contents.
+    struct DeliveryProbe {
+        bsls::Types::Uint64 d_u0;
+        bsls::Types::Uint64 d_u1;
+
+        DeliveryProbe();
+    };
+
   public:
     // CREATORS
 
@@ -660,6 +670,15 @@ class Storage {
     /// `msgGUID`, false otherwise.
     virtual bool hasMessage(const bmqt::MessageGUID& msgGUID) const = 0;
 
+    /// Return `true` if the message the specified `probe` tracks, which the
+    /// caller has found absent from this storage, may still arrive, and
+    /// `false` if it will not -- because it was removed, or was never
+    /// committed.  Use and update `probe`, which the caller keeps across the
+    /// calls made for that one message.  A PUSH can reach a replica ahead of
+    /// the replication carrying its record, so absence alone does not say
+    /// which of the two holds; this does.
+    virtual bool isPendingReplication(DeliveryProbe* probe) const = 0;
+
     /// Retrieve the message and its metadata having the specified `msgGUID`
     /// in the specified `appData`, `options` and `attributes` from this
     /// storage.  Return zero on success or a non-zero error code on
@@ -787,6 +806,18 @@ DataStreamMessage::app(unsigned int appOrdinal) const
     BSLS_ASSERT_SAFE(appOrdinal < d_apps.size());
 
     return d_apps[appOrdinal];
+}
+
+// -------------
+// class Storage
+// -------------
+
+// CREATORS
+inline Storage::DeliveryProbe::DeliveryProbe()
+: d_u0(0)
+, d_u1(0)
+{
+    // NOTHING
 }
 
 // ------------------------------

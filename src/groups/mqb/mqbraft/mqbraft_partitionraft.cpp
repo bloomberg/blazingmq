@@ -2579,6 +2579,47 @@ int PartitionRaft::leaderId() const
     return d_raftNode_mp->leaderId();
 }
 
+bool PartitionRaft::isPendingReplication(
+    mqbi::Storage::DeliveryProbe* probe) const
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(probe);
+
+    if (isLeader()) {
+        // The leader holds every committed record, so nothing is on its way:
+        // one that is absent is one that was removed.
+        return false;  // RETURN
+    }
+
+    const bsls::Types::Uint64 leaderCommit =
+        d_raftNode_mp->lastKnownLeaderCommit();
+
+    if (0 == leaderCommit) {
+        // Nothing heard from a leader yet, so there is no bound to wait on.
+        return true;  // RETURN
+    }
+
+    if (0 == probe->d_u0) {
+        // First look at this message.  The leader sends the PUSH only once
+        // the record has committed, but what is known here may predate that
+        // commit, so it is no upper bound on the record's index yet.  Note it
+        // and wait for a higher figure: the leader can only have reported
+        // that after sending the PUSH, so that one does cover the record.
+        probe->d_u0 = leaderCommit;
+        return true;  // RETURN
+    }
+
+    if (leaderCommit <= probe->d_u0) {
+        // Nothing newer heard from the leader yet.
+        return true;  // RETURN
+    }
+
+    // Applying through a position that covers the record settles it: had it
+    // ever been written here it would be in the storage, so it is either gone
+    // or was never committed.
+    return d_raftNode_mp->lastAppliedCommit() < leaderCommit;
+}
+
 bsls::Types::Uint64 PartitionRaft::currentTerm() const
 {
     return d_raftNode_mp->currentTerm();
