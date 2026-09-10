@@ -2820,6 +2820,47 @@ void FileStore::logQueueRolloverSummary(
     BALL_LOG_INFO << outStream.str();
 }
 
+void FileStore::logCompactionMetrics(const FileSet& activeFileSet,
+                                     const FileSet& newActiveFileSet) const
+{
+    // Print some rollover-related metrics.
+
+    bmqu::MemOutStream out;
+    out << partitionDesc() << "Compaction metrics: \n"
+        << "    DATA file size    (new/old): "
+        << bmqu::PrintUtil::prettyBytes(newActiveFileSet.d_data.d_filePosition)
+        << "/"
+        << bmqu::PrintUtil::prettyBytes(activeFileSet.d_data.d_filePosition)
+        << " ("
+        << ((newActiveFileSet.d_data.d_filePosition * 100) /
+            activeFileSet.d_data.d_filePosition)
+        << "%)\n";
+
+    out << "    JOURNAL file size (new/old): "
+        << bmqu::PrintUtil::prettyBytes(
+               newActiveFileSet.d_journal.d_filePosition)
+        << "/"
+        << bmqu::PrintUtil::prettyBytes(activeFileSet.d_journal.d_filePosition)
+        << " ("
+        << ((newActiveFileSet.d_journal.d_filePosition * 100) /
+            activeFileSet.d_journal.d_filePosition)
+        << "%)\n";
+
+    if (d_qListAware) {
+        out << "    QLIST file size   (new/old): "
+            << bmqu::PrintUtil::prettyBytes(
+                   newActiveFileSet.d_qlist.d_filePosition)
+            << "/"
+            << bmqu::PrintUtil::prettyBytes(
+                   activeFileSet.d_qlist.d_filePosition)
+            << " ("
+            << ((newActiveFileSet.d_qlist.d_filePosition * 100) /
+                activeFileSet.d_qlist.d_filePosition)
+            << "%)";
+    }
+    BALL_LOG_INFO << out.str();
+}
+
 int FileStore::rolloverImpl(bsls::Types::Uint64 timestamp)
 {
     // PRECONDITIONS
@@ -2980,44 +3021,7 @@ int FileStore::rolloverImpl(bsls::Types::Uint64 timestamp)
     // No need to update outstanding bytes for the journal belonging to the new
     // file set, since we don't rollover SyncPts.
 
-    // Print some rollover-related metrics.
-
-    bmqu::MemOutStream out;
-    out << partitionDesc() << "Compaction metrics: \n"
-        << "    DATA file size    (new/old): "
-        << bmqu::PrintUtil::prettyBytes(
-               newActiveFileSetSp->d_data.d_filePosition)
-        << "/"
-        << bmqu::PrintUtil::prettyBytes(activeFileSet->d_data.d_filePosition)
-        << " ("
-        << ((newActiveFileSetSp->d_data.d_filePosition * 100) /
-            activeFileSet->d_data.d_filePosition)
-        << "%)\n";
-
-    out << "    JOURNAL file size (new/old): "
-        << bmqu::PrintUtil::prettyBytes(
-               newActiveFileSetSp->d_journal.d_filePosition)
-        << "/"
-        << bmqu::PrintUtil::prettyBytes(
-               activeFileSet->d_journal.d_filePosition)
-        << " ("
-        << ((newActiveFileSetSp->d_journal.d_filePosition * 100) /
-            activeFileSet->d_journal.d_filePosition)
-        << "%)\n";
-
-    if (d_qListAware) {
-        out << "    QLIST file size   (new/old): "
-            << bmqu::PrintUtil::prettyBytes(
-                   newActiveFileSetSp->d_qlist.d_filePosition)
-            << "/"
-            << bmqu::PrintUtil::prettyBytes(
-                   activeFileSet->d_qlist.d_filePosition)
-            << " ("
-            << ((newActiveFileSetSp->d_qlist.d_filePosition * 100) /
-                activeFileSet->d_qlist.d_filePosition)
-            << "%)";
-    }
-    BALL_LOG_INFO << out.str();
+    logCompactionMetrics(*activeFileSet, *newActiveFileSetSp);
 
     BALL_LOG_INFO_BLOCK
     {
