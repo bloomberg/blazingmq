@@ -603,6 +603,21 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     void logCompactionMetrics(const FileSet& activeFileSet,
                               const FileSet& newActiveFileSet) const;
 
+    /// @brief Copy the outstanding records from the old file set into the
+    /// new (rollover) file set.
+    ///
+    /// @details Iterates the outstanding records and writes each into
+    /// `newFileSet`, accumulating per-queue message and byte counts into
+    /// `queueKeyCounterMap` for the rollover summary.
+    ///
+    /// @param queueKeyCounterMap Populated with per-queue message and byte
+    ///        counts for the copied records.
+    /// @param activeFileSet The old (pre-rollover) file set to copy from.
+    /// @param newFileSet    The new (rollover) file set to copy into.
+    void copyOutstandingRecords(QueueKeyCounterMap* queueKeyCounterMap,
+                                FileSet*            activeFileSet,
+                                FileSet*            newFileSet);
+
     /// Issue a sync point.
     ///
     /// THREAD: This method is called from the scheduler thread.

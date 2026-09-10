@@ -2861,6 +2861,23 @@ void FileStore::logCompactionMetrics(const FileSet& activeFileSet,
     BALL_LOG_INFO << out.str();
 }
 
+void FileStore::copyOutstandingRecords(QueueKeyCounterMap* queueKeyCounterMap,
+                                       FileSet*            activeFileSet,
+                                       FileSet*            newFileSet)
+{
+    // Iterate over outstanding records in the active set, and copy them to the
+    // rollover set.
+
+    for (RecordIterator recordIt = d_records.begin();
+         recordIt != d_records.end();
+         ++recordIt) {
+        writeRolledOverRecord(&(recordIt->second),
+                              queueKeyCounterMap,
+                              activeFileSet,
+                              newFileSet);
+    }
+}
+
 int FileStore::rolloverImpl(bsls::Types::Uint64 timestamp)
 {
     // PRECONDITIONS
@@ -2898,14 +2915,9 @@ int FileStore::rolloverImpl(bsls::Types::Uint64 timestamp)
     // rollover set.
 
     QueueKeyCounterMap queueKeyCounterMap;
-    for (RecordIterator recordIt = d_records.begin();
-         recordIt != d_records.end();
-         ++recordIt) {
-        writeRolledOverRecord(&(recordIt->second),
-                              &queueKeyCounterMap,
-                              activeFileSet,
-                              newActiveFileSetSp.get());
-    }
+    copyOutstandingRecords(&queueKeyCounterMap,
+                           activeFileSet,
+                           newActiveFileSetSp.get());
 
     logQueueRolloverSummary(queueKeyCounterMap);
 
