@@ -7,8 +7,31 @@ permissions:
   contents: read
 
 jobs:
+  build_base_image:
+    name: Base image
+    runs-on: ubuntu-26.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build base image
+        run: |
+          docker build -f ${{ github.workspace }}/docker/sanitizers/Dockerfile \
+          -t sanitizer-base .
+      - name: Save base image
+        run: docker save sanitizer-base | gzip -1 > sanitizer-base.tar.gz
+      - name: Upload base image
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sanitizer-base-image
+          path: sanitizer-base.tar.gz
+          retention-days: 1
+          # The image is already compressed, do not compress it twice.
+          compression-level: 0
+
   build_and_run_sanitizer:
     name: ${{ matrix.mode }}${{ matrix.fuzz == 'on' && '-fuzz' || '' }}
+    needs: build_base_image
     strategy:
       matrix:
         mode: ["asan", "msan", "tsan", "ubsan"]
@@ -17,13 +40,9 @@ jobs:
           - mode: "asan"
             fuzz: "on"
       fail-fast: false
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-26.04
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
       - name: Purge runner
-      # Strip the runner to avoid space quota exceeding
         run: |
           echo "=== Disk usage before purge ==="
           df -h /
@@ -36,15 +55,23 @@ jobs:
           sudo docker image prune --all --force
           echo "=== Disk usage after purge ==="
           df -h /
-      - name: Build [${{ github.job }}]
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: sanitizer-base-image
+      - name: Load base image
         run: |
-          docker build -f ${{ github.workspace }}/docker/sanitizers/Dockerfile \
-          --no-cache --build-arg SANITIZER_NAME=${{ matrix.mode }} --build-arg \
-          FUZZER=${{ matrix.fuzz }} -t sanitizer-${{ github.job }} .
-      - name: UT [c++,${{ github.job }}]
+          docker load < sanitizer-base.tar.gz
+          rm sanitizer-base.tar.gz
+      - name: Start container
+        run: docker run -d --name sanitizer sanitizer-base sleep infinity
+      - name: Build [${{ matrix.mode }}]
+        run: |
+          docker exec sanitizer docker/sanitizers/build_sanitizer.sh \
+          ${{ matrix.mode }} ${{ matrix.fuzz }}
+      - name: UT [c++,${{ matrix.mode }}]
         if: ${{ matrix.fuzz == 'off' }}
-        run: docker run --rm sanitizer-${{ github.job }}
-      - name: IT [c++,${{ github.job }}]
+        run: docker exec sanitizer /blazingmq/cmake.bld/Linux/run-unittests.sh
+      - name: IT [c++,${{ matrix.mode }}]
         if: ${{ matrix.fuzz == 'off' }}
         run: |
-          docker run --rm sanitizer-${{ github.job }} /blazingmq/cmake.bld/Linux/run-it.sh -k breathing --bmq-tolerate-dirty-shutdown
+          docker exec sanitizer /blazingmq/cmake.bld/Linux/run-it.sh -k breathing --bmq-tolerate-dirty-shutdown

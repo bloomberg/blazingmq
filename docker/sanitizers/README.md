@@ -3,32 +3,43 @@ This folder contains scripts to run BlazingMQ and its dependencies under sanitiz
 
 Usually sanitizers check is done on CI, but using Docker it is possible to run sanitizers check in both CI and local environment.
 
+The `Dockerfile` builds a base image with the BlazingMQ sources and the parts of
+the environment which are the same for every sanitizer. The instrumented build
+itself is done by `build_sanitizer.sh`, run in a container started from that
+image. The base image can therefore be built once and reused by all sanitizers.
+
 ## Running sanitizer check in local environment to debug sanitizer issues
  - Prerequisites: docker should be installed;
- - Run docker build from the BlazingMQ root folder:
+ - Build the base image from the BlazingMQ root folder:
  ```
- docker build -f docker/sanitizers/Dockerfile --no-cache --build-arg SANITIZER_NAME=<sanitizer-name> --build-arg FUZZER=off -t sanitizer-<sanitizer-name> .
+ docker build -f docker/sanitizers/Dockerfile -t sanitizer-base .
  ```
- NOTE: `sanitizer-name` is `asan`, `msan`, `tsan` or `ubsan`.
 
-- Run docker container with unit tests
+- Start a container and build with the instrumentation:
 ```
-docker run --rm sanitizer-<sanitizer-name>
+docker run -d --name sanitizer sanitizer-base sleep infinity
+docker exec sanitizer docker/sanitizers/build_sanitizer.sh <sanitizer-name> off
 ```
-NOTE: `sanitizer-name` - sanitizer's name from previous step.
+NOTE: `sanitizer-name` is `asan`, `msan`, `tsan` or `ubsan`. The second argument
+enables the fuzzer, it is `on` or `off`.
 
-For debbugging, it is possible to run docker container with `/bin/bash` option and run desired tests manually, e.g.
+- Run unit tests
 ```
-docker run --rm -it sanitizer-<sanitizer-name> /bin/bash
+docker exec sanitizer /blazingmq/cmake.bld/Linux/run-unittests.sh
+```
+
+For debbugging, it is possible to get a shell in the container and run desired tests manually, e.g.
+```
+docker exec -it sanitizer /bin/bash
 
 root@923efd7529a4:/blazingmq# cd cmake.bld/Linux && ./run-env.sh ctest -R <test-name>
 ```
 
-- Run docker container with integration tests
+- Run integration tests
 
-Start container in interactive mode and run ITs with specified PRESET and extra parameters (see also build.yaml for reference):
+Run ITs with specified PRESET and extra parameters (see also build.yaml for reference):
 ```
-docker run --rm -it sanitizer-<sanitizer-name> /bin/bash
+docker exec -it sanitizer /bin/bash
 
 root@923efd7529a4:/blazingmq# BLAZINGMQ_IT_PRESET="fsm_mode and strong_consistency" /blazingmq/cmake.bld/Linux/run-it.sh \
 --log-level ERROR                   \
