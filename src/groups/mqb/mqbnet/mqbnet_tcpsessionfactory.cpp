@@ -1174,27 +1174,6 @@ TCPSessionFactory::TCPSessionFactory(
     BSLS_ASSERT_SAFE(scheduler->clockType() ==
                      bsls::SystemClockType::e_MONOTONIC);
 
-    // Resolve the default address of this host
-    bsl::string hostname;
-    ntsa::Error error = bmqio::ResolveUtil::getHostname(&hostname);
-    if (error.code() != ntsa::Error::e_OK) {
-        BALL_LOG_ERROR << "Failed to get local hostname, error: " << error;
-        BSLS_ASSERT_OPT(false && "Failed to get local host name");
-        return;  // RETURN
-    }
-
-    ntsa::Ipv4Address defaultIP;
-    error = bmqio::ResolveUtil::getIpAddress(&defaultIP, hostname);
-    if (error.code() != ntsa::Error::e_OK) {
-        BALL_LOG_ERROR << "Failed to get IP address of the host '" << hostname
-                       << "' error: " << error;
-        BSLS_ASSERT_OPT(false && "Failed to get IP address of the host.");
-        return;  // RETURN
-    }
-
-    BALL_LOG_INFO << d_name << " [Hostname: " << hostname
-                  << ", ipAddress: " << defaultIP << "]";
-
     // Thread name
     d_threadName = "bmqIO_" + d_config_mp->name().substr(0, 15 - 6);
     // on Linux, a thread name is limited to 16 characters,
@@ -1233,16 +1212,42 @@ int TCPSessionFactory::start(bsl::ostream& errorDescription)
     BSLS_ASSERT_OPT(!d_isStarted &&
                     "start() can only be called once on this object");
 
+    enum RcEnum {
+        // Value for the various RC error categories
+        rc_SUCCESS                    = 0,
+        rc_HOSTNAME_FAILURE           = -1,
+        rc_IP_RESOLUTION_FAILURE      = -2,
+        rc_INVALID_CONFIG             = -3,
+        rc_RESOLUTION_CONTEXT_FAILURE = -4,
+        rc_CHANNEL_FACTORY_FAILURE    = -5
+    };
+
     BALL_LOG_INFO << d_name << ": starting";
 
-    int rc = 0;
+    // Resolve the default address of this host
+    bsl::string hostname;
+    ntsa::Error error = bmqio::ResolveUtil::getHostname(&hostname);
+    if (error.code() != ntsa::Error::e_OK) {
+        errorDescription << d_name << ": failed to get local hostname "
+                         << "[error: " << error << "]";
+        return rc_HOSTNAME_FAILURE;  // RETURN
+    }
 
-    rc = validateTcpInterfaces();
+    ntsa::Ipv4Address defaultIP;
+    error = bmqio::ResolveUtil::getIpAddress(&defaultIP, hostname);
+    if (error.code() != ntsa::Error::e_OK) {
+        errorDescription << d_name << ": failed to get IP address of the host "
+                         << "'" << hostname << "' [error: " << error << "]";
+        return rc_IP_RESOLUTION_FAILURE;  // RETURN
+    }
 
-    if (rc != 0) {
+    BALL_LOG_INFO << d_name << " [Hostname: " << hostname
+                  << ", ipAddress: " << defaultIP << "]";
+
+    if (const int rc = validateTcpInterfaces()) {
         errorDescription << d_name << ": failed to validate the TCP interface "
                          << "config [rc: " << rc << "]";
-        return rc;  // RETURN
+        return (rc * 10) + rc_INVALID_CONFIG;  // RETURN
     }
 
     ntca::InterfaceConfig interfaceConfig = ntcCreateInterfaceConfig(
@@ -1250,8 +1255,11 @@ int TCPSessionFactory::start(bsl::ostream& errorDescription)
 
     bslmt::ThreadAttributes attributes;
     attributes.setThreadName("bmqDNSResolver");
-    rc = d_resolutionContext_sp->start(attributes);
-    BSLS_ASSERT_SAFE(rc == 0);
+    if (const int rc = d_resolutionContext_sp->start(attributes)) {
+        errorDescription << d_name << ": failed to start the DNS resolution "
+                         << "context [rc: " << rc << "]";
+        return (rc * 10) + rc_RESOLUTION_CONTEXT_FAILURE;  // RETURN
+    }
 
     bmqio::StatChannelFactoryConfig::StatContextCreatorFn statContextCreator(
         bdlf::BindUtil::bind(&TCPSessionFactory::channelStatContextCreator,
@@ -1299,12 +1307,10 @@ int TCPSessionFactory::start(bsl::ostream& errorDescription)
         d_channelFactoryPipeline_mp = channelFactoryPipeline_mp;
     }
 
-    rc = d_channelFactoryPipeline_mp->start();
-
-    if (rc != 0) {
+    if (const int rc = d_channelFactoryPipeline_mp->start()) {
         errorDescription << d_name << ": failed starting stat channel factory "
                          << "[rc: " << rc << "]";
-        return rc;  // RETURN
+        return (rc * 10) + rc_CHANNEL_FACTORY_FAILURE;  // RETURN
     }
 
     if (d_config_mp->heartbeatIntervalMs() != 0) {
@@ -1334,7 +1340,7 @@ int TCPSessionFactory::start(bsl::ostream& errorDescription)
 
     d_isStarted = true;
 
-    return 0;
+    return rc_SUCCESS;
 }
 
 int TCPSessionFactory::startListening(bsl::ostream&         errorDescription,
