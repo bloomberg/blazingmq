@@ -79,7 +79,7 @@ looking through the source code, and can be leveraged in autocompletion by IDEs.
 
 Docstrings use the triple-slash `///` style comments for docstrings and `@` for special commands. Future contributions should make use of the `@brief`, `@details`, `@params`, and `@returns` directives in the docstrings.
 
-Otherwise much of the BlazingMQ codebase is written using the [BDE style guide.](bde-style)
+Otherwise much of the BlazingMQ codebase is written using the [BDE style guide.][bde-style]
 
 ## Tests
 
