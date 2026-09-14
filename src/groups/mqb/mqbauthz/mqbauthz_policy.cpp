@@ -37,6 +37,14 @@
 #include <bslma_constructionutil.h>
 #include <bslmf_movableref.h>
 
+// Helpers for writing AA-aware move constructors
+#define COPY_INIT(OBJ, FIELD) FIELD(OBJ.FIELD)
+#define COPY_INIT_ALLOC(OBJ, FIELD, ALLOC) FIELD(OBJ.FIELD, ALLOC)
+#define MOVE_FIELD(OBJ, FIELD)                                                \
+    bslmf::MovableRefUtil::move(bslmf::MovableRefUtil::access(OBJ).FIELD)
+#define MOVE_INIT(OBJ, FIELD) FIELD(MOVE_FIELD(OBJ, FIELD))
+#define MOVE_INIT_ALLOC(OBJ, FIELD, ALLOC) FIELD(MOVE_FIELD(OBJ, FIELD), ALLOC)
+
 namespace BloombergLP {
 namespace mqbauthz {
 
@@ -90,6 +98,7 @@ const char* Policy_UriResource::k_PATTERN =
 Policy_UriResourceDomain::Policy_UriResourceDomain(bsl::string_view domainName)
 : d_domainName(domainName)
 {
+    // NOTHING
 }
 
 Policy_UriResourceQueue::Policy_UriResourceQueue(bsl::string_view domainName,
@@ -97,10 +106,12 @@ Policy_UriResourceQueue::Policy_UriResourceQueue(bsl::string_view domainName,
 : d_domainName(domainName)
 , d_queueName(queueName)
 {
+    // NOTHING
 }
 
 Policy_UriResource::Policy_UriResource()
 {
+    // NOTHING
 }
 
 BSLA_NODISCARD
@@ -185,14 +196,14 @@ Policy_Permission::Policy_Permission(const allocator_type& allocator)
 
 Policy_Permission::Policy_Permission(const Policy_Permission& other,
                                      const allocator_type&    allocator)
-: d_id(other.d_id, allocator.mechanism())
-, d_connectClient(other.d_connectClient)
-, d_connectProxy(other.d_connectClient)
-, d_connectAdmin(other.d_connectAdmin)
-, d_connectClusterNode(other.d_connectClusterNode)
-, d_queueRead(other.d_queueRead, allocator)
-, d_queueWrite(other.d_queueWrite, allocator)
-, d_executeAdminCommand(other.d_executeAdminCommand)
+: COPY_INIT_ALLOC(other, d_id, allocator.mechanism())
+, COPY_INIT(other, d_connectClient)
+, COPY_INIT(other, d_connectProxy)
+, COPY_INIT(other, d_connectAdmin)
+, COPY_INIT(other, d_connectClusterNode)
+, COPY_INIT_ALLOC(other, d_queueRead, allocator)
+, COPY_INIT_ALLOC(other, d_queueWrite, allocator)
+, COPY_INIT(other, d_executeAdminCommand)
 {
 }
 
@@ -213,11 +224,6 @@ Policy_Permission& Policy_Permission::operator=(const Policy_Permission& other)
 
     return *this;
 }
-
-#define MOVE_FIELD(OBJ, FIELD)                                                \
-    bslmf::MovableRefUtil::move(bslmf::MovableRefUtil::access(OBJ).FIELD)
-#define MOVE_INIT(OBJ, FIELD) FIELD(MOVE_FIELD(OBJ, FIELD))
-#define MOVE_INIT_ALLOC(OBJ, FIELD, ALLOC) FIELD(MOVE_FIELD(OBJ, FIELD), ALLOC)
 
 Policy_Permission::Policy_Permission(
     bslmf::MovableRef<Policy_Permission> other) BSLS_KEYWORD_NOEXCEPT
@@ -245,10 +251,6 @@ Policy_Permission::Policy_Permission(
 , MOVE_INIT(other, d_executeAdminCommand)
 {
 }
-
-#undef MOVE_INIT_ALLOC
-#undef MOVE_INIT
-#undef MOVE_FIELD
 
 Policy_Permission&
 Policy_Permission::operator=(bslmf::MovableRef<Policy_Permission> other)
@@ -441,7 +443,67 @@ bool Policy_Permission::isExecuteAdminCommandAllowed(
 // ======
 
 Policy::Policy()
+: d_rolePermissions()
 {
+    // NOTHING
+}
+
+Policy::Policy(const allocator_type& allocator)
+: d_rolePermissions(allocator)
+{
+    // NOTHING
+}
+
+Policy::Policy(const Policy& other, const allocator_type& allocator)
+: COPY_INIT_ALLOC(other, d_rolePermissions, allocator)
+{
+    // NOTHING
+}
+
+Policy& Policy::operator=(const Policy& other)
+{
+    if (this == &other) {
+        return *this;
+    }
+
+    d_rolePermissions = other.d_rolePermissions;
+
+    return *this;
+}
+
+Policy::Policy(bslmf::MovableRef<Policy> other) BSLS_KEYWORD_NOEXCEPT
+: MOVE_INIT(other, d_rolePermissions)
+{
+    // NOTHING
+}
+
+Policy::Policy(bslmf::MovableRef<Policy> other,
+               const allocator_type&     allocator)
+: MOVE_INIT_ALLOC(other, d_rolePermissions, allocator)
+{
+}
+
+Policy& Policy::operator=(bslmf::MovableRef<Policy> other)
+{
+    Policy& otherRef = other;
+    if (this == &otherRef) {
+        return *this;
+    }
+
+    if (get_allocator() != otherRef.get_allocator()) {
+        *this = otherRef;
+    }
+    else {
+        typedef bslmf::MovableRefUtil Move;
+        d_rolePermissions = Move::move(otherRef.d_rolePermissions);
+    }
+
+    return *this;
+}
+
+Policy::~Policy() BSLS_KEYWORD_NOEXCEPT
+{
+    // NOTHING
 }
 
 int Policy::parse(Policy*                 result,
@@ -498,6 +560,11 @@ bsl::optional<const Policy::Permission*> Policy::get(bsl::string_view role)
         result = &permIt->second;
     }
     return result;
+}
+
+Policy::allocator_type Policy::get_allocator() const
+{
+    return d_rolePermissions.get_allocator();
 }
 
 }  // namespace mqbauthz
