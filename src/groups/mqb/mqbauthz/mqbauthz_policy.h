@@ -18,7 +18,7 @@
 
 /// @file mqbauthz_policy.h
 ///
-/// @brief Provide the built-in default authorizer plugin.
+/// @brief Provide a policy validator and evaluator for the default authorizer.
 ///
 /// @bbref{mqbauthz::Policy} provides a collection for associating policies
 /// with roles. See also: @bbref{mqbauthz::DefaultAuthorizer} See also:
@@ -142,6 +142,7 @@
 /// "valid-queue-name" in the domain "valid-domain-name"
 
 // MQB
+#include <bslma_bslallocator.h>
 #include <mqbpoly_policies.h>
 
 // BMQ
@@ -283,6 +284,7 @@ class Policy {
 
   public:
     // TYPES
+    typedef bsl::allocator<>  allocator_type;
     typedef Policy_Permission Permission;
 
   private:
@@ -295,7 +297,23 @@ class Policy {
   public:
     // CREATORS
 
+    /// Create an empty policy collection
     Policy();
+
+    explicit Policy(const allocator_type& allocator);
+
+    Policy(const Policy&         other,
+           const allocator_type& allocator = allocator_type());
+
+    Policy& operator=(const Policy& other);
+
+    Policy(bslmf::MovableRef<Policy> other) BSLS_KEYWORD_NOEXCEPT;
+
+    Policy(bslmf::MovableRef<Policy> other, const allocator_type& allocator);
+
+    Policy& operator=(bslmf::MovableRef<Policy> other);
+
+    ~Policy() BSLS_KEYWORD_NOEXCEPT;
 
     static int parse(Policy*                 result,
                      const mqbpoly::Policy&  policy,
@@ -306,6 +324,8 @@ class Policy {
     /// Get a handle to the permissions for the role specified by `role`, or
     /// none if none were defined.
     bsl::optional<const Permission*> get(bsl::string_view role);
+
+    allocator_type get_allocator() const;
 };
 
 }  // namespace mqbauthz
