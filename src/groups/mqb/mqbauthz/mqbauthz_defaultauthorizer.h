@@ -37,6 +37,9 @@
 #include <ball_log.h>
 #include <bsl_memory.h>
 #include <bsl_string.h>
+#include <bsla_nodiscard.h>
+#include <bslma_managedptr.h>
+#include <bslmf_movableref.h>
 #include <bsls_keyword.h>
 
 namespace BloombergLP {
@@ -45,6 +48,10 @@ namespace BloombergLP {
 
 namespace mqbact {
 class Action;
+}
+
+namespace mqbpoly {
+class Policy;
 }
 
 namespace mqbcfg {
@@ -59,23 +66,28 @@ namespace mqbauthz {
 
 class DefaultAuthorizer : public mqbplug::Authorizer {
   public:
+    // TYPES
+    typedef bslma::ManagedPtr<Policy> PolicyMP;
+
     // CLASS DATA
     static bsl::string_view k_NAME;
-
-    // DATA
-    Policy d_policy;
 
   private:
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("MQBAUTHZ.DEFAULTAUTHORIZER");
 
+    // DATA
+    PolicyMP d_policy;
+
   public:
     // CREATORS
 
+    /// Create a `DefaultAuthorizer` which allows all access.
+    DefaultAuthorizer();
+
     /// Create a `DefaultAuthorizer` using the optionally specified
-    /// `config`.
-    explicit DefaultAuthorizer(
-        const mqbcfg::AuthorizerPluginConfig* config = 0);
+    /// `policy` to define access rulse.
+    explicit DefaultAuthorizer(bslmf::MovableRef<PolicyMP> policy);
 
     /// Destructor.
     ~DefaultAuthorizer() BSLS_KEYWORD_OVERRIDE;
@@ -102,6 +114,10 @@ class DefaultAuthorizer : public mqbplug::Authorizer {
 
 class DefaultAuthorizerPluginFactory
 : public mqbplug::AuthorizerPluginFactory {
+  private:
+    // CLASS-SCOPE CATEGORY
+    BALL_LOG_SET_CLASS_CATEGORY("MQBAUTHZ.DEFAULTAUTHORIZERPLUGINFACTORY");
+
   public:
     // CREATORS
     ~DefaultAuthorizerPluginFactory() BSLS_KEYWORD_OVERRIDE;
@@ -111,6 +127,12 @@ class DefaultAuthorizerPluginFactory
     /// Create a `DefaultAuthorizer` using the supplied allocator.
     bslma::ManagedPtr<mqbplug::Authorizer>
     create(bslma::Allocator* allocator) BSLS_KEYWORD_OVERRIDE;
+
+  private:
+    BSLA_NODISCARD int
+    createPolicy(bslma::ManagedPtr<Policy>*            res,
+                 const mqbcfg::AuthorizerPluginConfig& config,
+                 bsl::allocator<>                      allocator) const;
 };
 
 }  // close package namespace

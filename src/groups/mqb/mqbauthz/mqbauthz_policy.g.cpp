@@ -73,6 +73,8 @@ int simpleDecode(T*                      obj,
 
 class TestPolicy_UriResource : public BaseTest {
   protected:
+    ~TestPolicy_UriResource() BSLS_KEYWORD_OVERRIDE;
+
     struct TestCase {
         bsl::string_view d_uri;
         bool             d_shouldMatch;
@@ -84,6 +86,10 @@ class TestPolicy_UriResource : public BaseTest {
         }
     };
 };
+
+TestPolicy_UriResource::~TestPolicy_UriResource()
+{
+}
 
 TEST_F(TestPolicy_UriResource, defaultMatchesNone)
 {
@@ -178,6 +184,8 @@ TEST_F(TestPolicy_UriResource, queuePatternMatchesQueue)
 
 class TestPolicy_Permission : public BaseTest {
   protected:
+    ~TestPolicy_Permission() BSLS_KEYWORD_OVERRIDE;
+
     bsl::allocator<> get_allocator() const
     {
         return bmqtst::TestHelperUtil::allocator();
@@ -189,6 +197,10 @@ class TestPolicy_Permission : public BaseTest {
         return simpleDecode(role, roleJson, alloc);
     }
 };
+
+TestPolicy_Permission::~TestPolicy_Permission()
+{
+}
 
 TEST_F(TestPolicy_Permission, emptyPermissionDenysAll)
 {
@@ -716,6 +728,8 @@ TEST_F(TestPolicy_Permission, invalidActionNameFails)
 
 class TestPolicy : public BaseTest {
   protected:
+    ~TestPolicy() BSLS_KEYWORD_OVERRIDE;
+
     bsl::allocator<> get_allocator() const
     {
         return bmqtst::TestHelperUtil::allocator();
@@ -727,6 +741,10 @@ class TestPolicy : public BaseTest {
         return simpleDecode(policy, policyJson, alloc);
     }
 };
+
+TestPolicy::~TestPolicy()
+{
+}
 
 TEST_F(TestPolicy, doctestPolicyDefinition)
 {

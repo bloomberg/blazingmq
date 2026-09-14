@@ -19,11 +19,20 @@
 
 // MQB
 #include <mqbact_actions.h>
+#include <mqbauthz_policy.h>
 #include <mqbcfg_messages.h>
 #include <mqbplug_authorizer.h>
+#include <mqbpoly_policies.h>
+
+// BMQ
+#include <bmqu_memoutstream.h>
 
 // BDE
+#include <baljsn_decoder.h>
+#include <baljsn_decoderoptions.h>
 #include <ball_log.h>
+#include <bdlsb_fixedmeminstreambuf.h>
+#include <bsl_fstream.h>
 #include <bsla_maybeunused.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
@@ -84,6 +93,20 @@ struct DefaultAuthorizer_PolicyHandler {
     }
 };
 
+struct FindKey {
+    bsl::string_view d_key;
+
+    FindKey(bsl::string_view key)
+    : d_key(key)
+    {
+    }
+
+    bool operator()(const mqbcfg::PluginSettingKeyValue& pluginSetting) const
+    {
+        return pluginSetting.key() == d_key;
+    }
+};
+
 }
 
 bsl::string_view DefaultAuthorizer::k_NAME = "DefaultAuthorizer";
@@ -92,8 +115,14 @@ bsl::string_view DefaultAuthorizer::k_NAME = "DefaultAuthorizer";
 // class DefaultAuthorizer
 // -----------------------
 
-DefaultAuthorizer::DefaultAuthorizer(
-    BSLA_MAYBE_UNUSED const mqbcfg::AuthorizerPluginConfig* config)
+DefaultAuthorizer::DefaultAuthorizer()
+: d_policy()
+{
+    // NOTHING
+}
+
+DefaultAuthorizer::DefaultAuthorizer(bslmf::MovableRef<PolicyMP> policy)
+: d_policy(bslmf::MovableRefUtil::move(policy))
 {
     // NOTHING
 }
@@ -113,10 +142,12 @@ bool DefaultAuthorizer::authorize(
     BSLA_MAYBE_UNUSED const mqbplug::AuthenticationResult& authnResult)
 
 {
-    // BALL_LOG_INFO << "Authorize allow on " << action;
-    // return true;
+    if (!d_policy) {
+        BALL_LOG_INFO << "Authorize allow on " << action;
+        return true;
+    }
 
-    bsl::optional<const Policy::Permission*> permission = d_policy.get(
+    bsl::optional<const Policy::Permission*> permission = d_policy->get(
         authnResult.principal());
 
     if (!permission) {
@@ -138,18 +169,122 @@ DefaultAuthorizerPluginFactory::~DefaultAuthorizerPluginFactory()
     // NOTHING
 }
 
+int DefaultAuthorizerPluginFactory::createPolicy(
+    bslma::ManagedPtr<Policy>*            res,
+    const mqbcfg::AuthorizerPluginConfig& config,
+    bsl::allocator<>                      allocator) const
+{
+    enum {
+        k_OK = 0,
+        k_POLICY_CONFIG_NOT_FOUND,
+        k_INCORRECT_POLICY_PATH_TYPE,
+        k_POLICY_DEFINITION_READ_FAILED,
+        k_DECODE_FAILED,
+        k_INVALID_POLICY_DEFINITION
+    };
+
+    // Find the path to the policy document
+    typedef bsl::vector<mqbcfg::PluginSettingKeyValue> PluginSettings;
+    const PluginSettings&          settings = config.settings();
+    PluginSettings::const_iterator it       = bsl::find_if(settings.cbegin(),
+                                                     settings.cend(),
+                                                     FindKey("policyPath"));
+    if (it == settings.cend()) {
+        // No policy set, everything will be denied
+        BALL_LOG_WARN
+            << "No policy document found, all authorized actions will be DENY";
+        return k_POLICY_CONFIG_NOT_FOUND;  // RETURN
+    }
+
+    if (!it->value().isStringValValue()) {
+        BALL_LOG_ERROR << "Unexpected type for policy definition path "
+                          "(expected string, found "
+                       << it->value().selectionName() << ")";
+        return k_INCORRECT_POLICY_PATH_TYPE;
+    }
+
+    // Read the policy definition from the configured path
+    const bsl::string& policyDefPath = it->value().stringVal();
+
+    BALL_LOG_INFO << "Reading policy definition from " << policyDefPath;
+    bsl::ifstream      policyDefStream(policyDefPath.c_str());
+    bmqu::MemOutStream policyDefBuffer;
+    policyDefBuffer << policyDefStream.rdbuf();
+    bsl::string policyDef = policyDefBuffer.str();
+
+    if (!policyDefStream || !policyDefBuffer) {
+        BALL_LOG_ERROR << "Failed to read the policy definition "
+                       << "[file: " << policyDefPath << "]";
+        return k_POLICY_DEFINITION_READ_FAILED;  // RETURN
+    }
+    policyDefStream.close();
+
+    // Decode the policy definition
+    baljsn::Decoder        decoder;
+    baljsn::DecoderOptions options;
+    options.setSkipUnknownElements(true);
+
+    bdlsb::FixedMemInStreamBuf jsonStreamBuf(policyDef.data(),
+                                             policyDef.length());
+    mqbpoly::Policy            policy;
+
+    int rc = decoder.decode(&jsonStreamBuf, &policy, options);
+    if (rc != 0) {
+        BALL_LOG_ERROR << "Error decoding policy definition "
+                       << "[rc: " << rc
+                       << ", error: " << decoder.loggedMessages() << "], "
+                       << "policy definition file (first 1024 characters):\n"
+                       << policyDef.substr(
+                              0,
+                              bsl::min(bsl::string::size_type(1024),
+                                       policyDef.length()));
+        return k_DECODE_FAILED;  // RETURN
+    }
+
+    // Parse the policy document
+    *res = bslma::ManagedPtrUtil::allocateManaged<Policy>(allocator);
+    rc   = Policy::parse(res->get(), policy, allocator);
+    if (rc != 0) {
+        return k_INVALID_POLICY_DEFINITION;
+    }
+
+    return k_OK;
+}
+
 bslma::ManagedPtr<mqbplug::Authorizer>
 DefaultAuthorizerPluginFactory::create(bslma::Allocator* allocator)
 {
+    bslma::ManagedPtr<mqbplug::Authorizer> authorizer;
+
     const mqbcfg::AuthorizerPluginConfig* config =
         mqbplug::AuthorizerUtil::findAuthorizerConfig(
             DefaultAuthorizer::k_NAME);
 
+    if (config == NULL) {
+        BALL_LOG_WARN << "No authorizer is configured";
+        // TODO(tfoxhall): A little unclear what to do here, I think we want to
+        // preserve the old allow-all behavior assuming that this is an older
+        // deployment without any authorization configuration.
+        bslma::ManagedPtr<DefaultAuthorizer> defaultAuthorizer =
+            bslma::ManagedPtrUtil::allocateManaged<DefaultAuthorizer>(
+                allocator);
+        authorizer = bslmf::MovableRefUtil::move(defaultAuthorizer);
+        return authorizer;  // RETURN
+    }
+
+    bslma::ManagedPtr<Policy> policy;
+    int                       rc = createPolicy(&policy, *config, allocator);
+    if (rc != 0) {
+        BALL_LOG_ERROR << "DefaultAuthorizer could not be configured";
+        return authorizer;  // RETURN
+    }
+
     bslma::ManagedPtr<DefaultAuthorizer> defaultAuthorizer =
-        bslma::ManagedPtrUtil::allocateManaged<DefaultAuthorizer>(allocator,
-                                                                  config);
-    bslma::ManagedPtr<mqbplug::Authorizer> authorizer(
-        bslmf::MovableRefUtil::move(defaultAuthorizer));
+        bslma::ManagedPtrUtil::allocateManaged<DefaultAuthorizer>(
+            allocator,
+            bslmf::MovableRefUtil::move(policy));
+    authorizer = bslmf::MovableRefUtil::move(defaultAuthorizer);
+
     return authorizer;
 }
 

@@ -17,16 +17,20 @@
 
 // MQB
 #include <mqbact_actions.h>
+#include <mqbauthz_policy.h>
 #include <mqbcfg_brokerconfig.h>
 #include <mqbcfg_messages.h>
 #include <mqbplug_authenticator.h>
 #include <mqbplug_authorizer.h>
+#include <mqbpoly_policies.h>
 
 // BDE
 #include <bsl_optional.h>
 #include <bsl_string.h>
 #include <bsl_vector.h>
+#include <bsla_nodiscard.h>
 #include <bslma_managedptr.h>
+#include <bslmf_movableref.h>
 
 // TEST_DRIVER
 #include <bmqtst_testhelper.h>
@@ -44,7 +48,7 @@ class TestAuthenticationResult : public mqbplug::AuthenticationResult {
     /// Return the principal in human-readable format.
     bsl::string_view principal() const BSLS_KEYWORD_OVERRIDE
     {
-        return "test:principal";
+        return "anonymous";
     }
 
     /// Return the remaining lifetime of an authenticated session.
@@ -61,18 +65,30 @@ const bsl::optional<bsls::Types::Uint64>
 }
 
 class DefaultAuthorizerTest : public ::testing::Test {
-  private:
-    mqbauthz::DefaultAuthorizer d_authorizer;
-
   protected:
-    DefaultAuthorizerTest()
-    : d_authorizer()
+    DefaultAuthorizerTest() {}
+
+    BSLA_NODISCARD static int
+    makePolicy(bslma::ManagedPtr<mqbauthz::Policy>* res)
     {
+        mqbpoly::Policy policy(bmqtst::TestHelperUtil::allocator());
+        bsl::vector<mqbpoly::Role>& roles = policy.roles();
+
+        mqbpoly::Role& role = roles.emplace_back();
+        role.id().name()    = "anonymous";
+
+        bsl::vector<mqbpoly::Permission>& permissions = role.permissions();
+        mqbpoly::Permission& permission = permissions.emplace_back();
+        permission.action()             = "connectClient";
+
+        *res = bslma::ManagedPtrUtil::allocateManaged<mqbauthz::Policy>(
+            bmqtst::TestHelperUtil::allocator());
+        return mqbauthz::Policy::parse(res->get(),
+                                       policy,
+                                       bmqtst::TestHelperUtil::allocator());
     }
 
     ~DefaultAuthorizerTest() BSLS_KEYWORD_OVERRIDE;
-
-    mqbauthz::DefaultAuthorizer& authorizer() { return d_authorizer; }
 };
 
 DefaultAuthorizerTest::~DefaultAuthorizerTest()
@@ -81,23 +97,17 @@ DefaultAuthorizerTest::~DefaultAuthorizerTest()
 
 TEST_F(DefaultAuthorizerTest, breathingTest)
 {
-    bsl::string name(authorizer().name());
+    mqbauthz::DefaultAuthorizer authorizer;
+    bsl::string                 name(authorizer.name());
     EXPECT_STREQ("DefaultAuthorizer", name.c_str());
 }
 
-TEST(DefaultAuthorizer, acceptsPluginConfig)
+TEST_F(DefaultAuthorizerTest, acceptsPolicy)
 {
-    bslma::Allocator* alloc = bmqtst::TestHelperUtil::allocator();
-
-    mqbcfg::PluginSettingKeyValue setting(alloc);
-    setting.key() = "exampleSetting";
-    setting.value().makeBoolVal(true);
-
-    mqbcfg::AuthorizerPluginConfig config(alloc);
-    config.name() = "DefaultAuthorizer";
-    config.settings().push_back(setting);
-
-    mqbauthz::DefaultAuthorizer authorizer(&config);
+    bslma::ManagedPtr<mqbauthz::Policy> policy;
+    ASSERT_EQ(0, makePolicy(&policy));
+    mqbauthz::DefaultAuthorizer authorizer(
+        bslmf::MovableRefUtil::move(policy));
 
     bsl::string name(authorizer.name());
     EXPECT_STREQ("DefaultAuthorizer", name.c_str());
@@ -108,52 +118,91 @@ TEST(DefaultAuthorizer, acceptsPluginConfig)
     EXPECT_TRUE(authorizer.authorize(connectClient, authnResult));
 }
 
-TEST_F(DefaultAuthorizerTest, allActionsAreAllowed)
-{
-    bslma::Allocator*        alloc = bmqtst::TestHelperUtil::allocator();
-    TestAuthenticationResult authnResult;
-
+class DefaultAuthorizerAccessTest : public DefaultAuthorizerTest {
+  protected:
     typedef bsl::vector<mqbact::Action> TestCases;
+    TestCases                           d_cases;
 
-    TestCases cases(alloc);
+    DefaultAuthorizerAccessTest()
+    : d_cases(bmqtst::TestHelperUtil::allocator())
     {
+        bslma::Allocator* alloc = bmqtst::TestHelperUtil::allocator();
+
         // Build the test data
         bsl::string testNode("testNode", alloc);
         bsl::string testQueue("testQueue", alloc);
         bsl::string testCommand("TEST", alloc);
 
-        mqbact::Action& connectClient = cases.emplace_back();
+        mqbact::Action& connectClient = d_cases.emplace_back();
         connectClient.makeConnectClient();
 
-        mqbact::Action& connectProxy = cases.emplace_back();
+        mqbact::Action& connectProxy = d_cases.emplace_back();
         connectProxy.makeConnectProxy();
 
-        mqbact::Action& connectAdmin = cases.emplace_back();
+        mqbact::Action& connectAdmin = d_cases.emplace_back();
         connectAdmin.makeConnectAdmin();
 
-        mqbact::Action&             connectClusterNode = cases.emplace_back();
+        mqbact::Action& connectClusterNode = d_cases.emplace_back();
         mqbact::ConnectClusterNode& clusterNode =
             connectClusterNode.makeConnectClusterNode();
         clusterNode.clusterName() = testNode;
 
-        mqbact::Action&    actQueueRead = cases.emplace_back();
+        mqbact::Action&    actQueueRead = d_cases.emplace_back();
         mqbact::QueueRead& queueRead    = actQueueRead.makeQueueRead();
         queueRead.uri()                 = testQueue;
 
-        mqbact::Action&     actQueueWrite = cases.emplace_back();
+        mqbact::Action&     actQueueWrite = d_cases.emplace_back();
         mqbact::QueueWrite& queueWrite    = actQueueWrite.makeQueueWrite();
         queueWrite.uri()                  = testQueue;
 
-        mqbact::Action& actExecuteAdminCommand = cases.emplace_back();
+        mqbact::Action& actExecuteAdminCommand = d_cases.emplace_back();
         mqbact::ExecuteAdminCommand& executeAdminCommand =
             actExecuteAdminCommand.makeExecuteAdminCommand();
         executeAdminCommand.command() = testCommand;
     }
 
+    ~DefaultAuthorizerAccessTest() BSLS_KEYWORD_OVERRIDE;
+};
+
+DefaultAuthorizerAccessTest::~DefaultAuthorizerAccessTest()
+{
+}
+
+TEST_F(DefaultAuthorizerAccessTest, allActionsAreAllowedWithDefaultConstructor)
+{
+    TestAuthenticationResult authnResult;
+
+    const TestCases& cases = d_cases;
+
+    mqbauthz::DefaultAuthorizer authorizer;
     for (TestCases::const_iterator it = cases.cbegin(), end = cases.cend();
          it != end;
          ++it) {
-        EXPECT_TRUE(authorizer().authorize(*it, authnResult));
+        EXPECT_TRUE(authorizer.authorize(*it, authnResult));
+    }
+}
+
+TEST_F(DefaultAuthorizerAccessTest, someActionsAreAllowedWithPolicy)
+{
+    TestAuthenticationResult authnResult;
+
+    const TestCases& cases = d_cases;
+
+    bslma::ManagedPtr<mqbauthz::Policy> policy;
+    ASSERT_EQ(0, makePolicy(&policy));
+    mqbauthz::DefaultAuthorizer authorizer(
+        bslmf::MovableRefUtil::move(policy));
+
+    for (TestCases::const_iterator it = cases.cbegin(), end = cases.cend();
+         it != end;
+         ++it) {
+        bool isAuthorized = authorizer.authorize(*it, authnResult);
+        if (it->isConnectClientValue()) {
+            EXPECT_TRUE(isAuthorized);
+        }
+        else {
+            EXPECT_FALSE(isAuthorized);
+        }
     }
 }
 
