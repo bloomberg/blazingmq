@@ -13,9 +13,6 @@ nav_order: 10
 
 ## Introduction
 
-This document describes the security features in BlazingMQ for controlling
-access to the system.
-
 BlazingMQ currently supports authentication. Support for authorization and TLS
 is on our [Roadmap](../introduction/roadmap.md).
 
@@ -23,21 +20,20 @@ is on our [Roadmap](../introduction/roadmap.md).
 
 ## Authentication
 
-BlazingMQ authentication verifies client identity before session negotiation.
-Initial authentication runs at connection time, and client SDKs can
-automatically reauthenticate based on credential lifetime, including short-lived
-tokens.
+BlazingMQ authentication verifies the identity of clients when they connect.
+Client SDKs also support automatic reauthentication for expiring credentials.
 
 Key capabilities:
 
-- **Pluggable mechanisms** -- clients authenticate using a broker-configured
-  mechanism (e.g. `BASIC`, `JWT`).
-- **Automatic reauthentication** -- when credential lifetime is set, client
-  SDKs reauthenticate automatically before expiry.
-- **Configurable anonymous access** -- unauthenticated clients can be rejected
-  or mapped to a configured default mechanism and identity.
-- **Non-blocking** -- broker authentication runs asynchronously on a dedicated
-  thread pool and does not block other clients.
+- **Pluggable authentication mechanisms** -- clients authenticate using a
+  mechanism configured by the broker, such as `BASIC` or `JWT`.
+- **Automatic reauthentication** -- when a credential lifetime is set, client
+  SDKs automatically reauthenticate before the credential expires.
+- **Configurable anonymous access** -- the broker can be configured to reject
+  unauthenticated clients or accept them using a configured anonymous
+  credential.
+- **Non-blocking** -- the broker performs authentication work asynchronously
+  on a dedicated thread pool.
 
 {: .important }
 > Authentication is not enforced by default.  Without explicit configuration,
