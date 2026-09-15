@@ -488,9 +488,10 @@ static void test9_sanitize()
 //   Ensure proper behavior of the 'sanitize' and 'logSafe' methods.
 //
 // Plan:
-//   Sanitize strings made of printable and non-printable bytes and verify
-//   that only the non-printable ones are replaced with '?', the length of
-//   the string being preserved.  Also stream an object holding a
+//   Sanitize the empty string, then a string holding every one of the 256
+//   byte values, repeated twice, and verify that exactly the bytes outside
+//   the printable ASCII range ('0x20' to '0x7e') are replaced with '?', the
+//   length of the string being preserved.  Also stream an object holding a
 //   non-printable character through 'logSafe'.
 //
 // Testing:
@@ -499,41 +500,58 @@ static void test9_sanitize()
 {
     bmqtst::TestHelper::printTestName("sanitize");
 
-    struct Test {
-        int         d_line;
-        const char* d_input;
-        const char* d_expected;
-    } k_DATA[] = {{L_, "", ""},
-                  {L_, "hello world", "hello world"},
-                  {L_, " ~", " ~"},  // first and last printable
-                  {L_, "abc\ndef", "abc?def"},
-                  {L_, "\r\t\x1f", "???"},
-                  {L_, "\x7f", "?"},          // DEL
-                  {L_, "a\x80\xff", "a??"}};  // high-bit bytes
-
-    const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
-
-    for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
-        const Test& test = k_DATA[idx];
-
-        PVV(test.d_line << ": sanitizing '" << test.d_input << "'");
-        bsl::string str(test.d_input, bmqtst::TestHelperUtil::allocator());
-        BMQTST_ASSERT_EQ_D("line " << test.d_line,
-                           bmqu::StringUtil::sanitize(&str),
-                           test.d_expected);
-        // 'sanitize' is in place
-        BMQTST_ASSERT_EQ_D("line " << test.d_line, str, test.d_expected);
+    {
+        // Empty string
+        bsl::string str(bmqtst::TestHelperUtil::allocator());
+        BMQTST_ASSERT_EQ(bmqu::StringUtil::sanitize(&str), "");
     }
 
-    // A NUL embedded mid-string must be replaced as well, so build the string
-    // with an explicit length rather than relying on NUL-termination.
-    const char  k_EMBEDDED_NUL[] = {'a', '\0', 'b'};
-    bsl::string str(k_EMBEDDED_NUL,
-                    sizeof(k_EMBEDDED_NUL),
-                    bmqtst::TestHelperUtil::allocator());
-    BMQTST_ASSERT_EQ(bmqu::StringUtil::sanitize(&str), "a?b");
+    // Every byte value, in order.  Repeated twice so that an implementation
+    // stopping at the first NUL, or at any other byte, is caught.
+    const size_t k_NUM_BYTES = 256;
+    const size_t k_NUM_REPS  = 2;
 
-    // 'logSafe' streams the object, then sanitizes the result.
+    bsl::string input(bmqtst::TestHelperUtil::allocator());
+    input.reserve(k_NUM_BYTES * k_NUM_REPS);
+    for (size_t rep = 0; rep < k_NUM_REPS; ++rep) {
+        for (size_t idx = 0; idx < k_NUM_BYTES; ++idx) {
+            input.push_back(static_cast<char>(idx));
+        }
+    }
+
+    // The expected result for a single pass over the byte values: only
+    // '0x20' to '0x7e' survive.
+    const bslstl::StringRef k_SANITIZED_BYTES =
+        "????????????????"   // 0x00
+        "????????????????"   // 0x10
+        " !\"#$%&'()*+,-./"  // 0x20
+        "0123456789:;<=>?"   // 0x30
+        "@ABCDEFGHIJKLMNO"   // 0x40
+        "PQRSTUVWXYZ[\\]^_"  // 0x50
+        "`abcdefghijklmno"   // 0x60
+        "pqrstuvwxyz{|}~?"   // 0x70, DEL is not printable
+        "????????????????"   // 0x80
+        "????????????????"   // 0x90
+        "????????????????"   // 0xa0
+        "????????????????"   // 0xb0
+        "????????????????"   // 0xc0
+        "????????????????"   // 0xd0
+        "????????????????"   // 0xe0
+        "????????????????";  // 0xf0
+    // Guard against a typo in the table above
+    BMQTST_ASSERT_EQ(k_SANITIZED_BYTES.length(), k_NUM_BYTES);
+
+    bsl::string expected(bmqtst::TestHelperUtil::allocator());
+    for (size_t rep = 0; rep < k_NUM_REPS; ++rep) {
+        expected.append(k_SANITIZED_BYTES.data(), k_SANITIZED_BYTES.length());
+    }
+
+    // 'sanitize' is in place and preserves the length
+    BMQTST_ASSERT_EQ(bmqu::StringUtil::sanitize(&input), expected);
+    BMQTST_ASSERT_EQ(input, expected);
+    BMQTST_ASSERT_EQ(input.length(), k_NUM_BYTES * k_NUM_REPS);
+
+    // 'logSafe' streams the object, then sanitizes the result
     const bsl::string obj("ab\ncd", bmqtst::TestHelperUtil::allocator());
     BMQTST_ASSERT_EQ(
         bmqu::StringUtil::logSafe(obj, bmqtst::TestHelperUtil::allocator()),
