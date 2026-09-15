@@ -22,15 +22,19 @@
 # It is used to build instrumented BlazingMQ binaries for all
 # Clang sanitizers (i.e. Address/Leak, Memory, Thread, UndefinedBehavior).
 #
+# This script relies on the basic environment installed by
+# `install_common.sh`, such as:
+#   - Clang toolchain and CMake
+#   - llvm-project sources at ./deps/srcs/llvm-project
+#   - Python virtual env at ./venv
+#
 # It performs the following:
-# 1) Install clang compiler.
-# 2) Download llvm-project required for libc++ instrumentation.
-# 3) Download external dependencies required for instrumentation.
-# 4) Build libc++ with the instrumentation specified by <LLVM Sanitizer Name>.
-# 5) Build sanitizer-instrumented dependencies including BDE, NTF, GoogleTest,
+# 1) Download external dependencies required for instrumentation.
+# 2) Build libc++ with the instrumentation specified by <LLVM Sanitizer Name>.
+# 3) Build sanitizer-instrumented dependencies including BDE, NTF, GoogleTest,
 #    Google Benchmark and zlib.
-# 6) Build sanitizer-instrumented BlazingMQ unit tests.
-# 7) Generate scripts to run unit tests:
+# 4) Build sanitizer-instrumented BlazingMQ unit tests.
+# 5) Generate scripts to run unit tests:
 #      ./cmake.bld/Linux/run-unittests.sh
 #
 # The script takes two positional arguments that are required: <sanitizer-name>
@@ -42,13 +46,13 @@
 set -eux
 
 # Check required arguments
-if [ -z "${1}" ]; then
+if [ -z "${1:-}" ]; then
     echo 'Error: Missing sanitizer name.' >&2
     echo '  (Usage: build_sanitizer.sh <sanitizer-name> <fuzzer>)' >&2
     exit 1
 fi
 
-if [[ -z "${2}" || ("${2}" != "on" && "${2}" != "off") ]]; then
+if [[ "${2:-}" != "on" && "${2:-}" != "off" ]]; then
     echo 'Error: Wrong fuzzer argument. It can be either "on" or "off"' >&2
     echo '  (Usage: build_sanitizer.sh <sanitizer-name> <fuzzer>)' >&2
     exit 1
@@ -56,45 +60,6 @@ fi
 
 SANITIZER_NAME="${1}"
 FUZZER="${2}"
-
-# Install prerequisites
-# Set up CA certificates first before installing other dependencies
-apt-get update
-apt-get install -y ca-certificates
-apt-get install -qy --no-install-recommends \
-    lsb-release \
-    wget \
-    software-properties-common \
-    gnupg \
-    git \
-    curl \
-    jq \
-    ninja-build \
-    bison \
-    libfl-dev \
-    pkg-config \
-    python3 \
-    python3-venv
-rm -rf /var/lib/apt/lists/*
-
-# Install prerequisites for LLVM: latest cmake version, Ubuntu apt repository contains stale version
-wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null \
-        | gpg --dearmor - \
-        | tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null
-apt-add-repository -y "deb https://apt.kitware.com/ubuntu/ $(lsb_release -cs) main"
-apt-get install -qy cmake
-
-# Install LLVM
-wget https://apt.llvm.org/llvm.sh
-chmod +x llvm.sh
-LLVM_VERSION=21
-LLVM_TAG="llvmorg-21.1.7"
-./llvm.sh ${LLVM_VERSION} all
-
-# Create version-agnostic pointers to required LLVM binaries.
-ln -sf /usr/bin/clang-${LLVM_VERSION} /usr/bin/clang
-ln -sf /usr/bin/clang++-${LLVM_VERSION} /usr/bin/clang++
-ln -sf /usr/bin/llvm-symbolizer-${LLVM_VERSION} /usr/bin/llvm-symbolizer
 
 # Set some initial constants
 PARALLELISM=$(nproc)
@@ -115,17 +80,6 @@ DIR_BUILD_EXT="${DIR_EXTERNAL}/cmake.bld"
 
 DIR_SRC_BMQ="${DIR_ROOT}"
 DIR_BUILD_BMQ="${DIR_SRC_BMQ}/cmake.bld/Linux"
-
-# Create Python venv
-python3 -m venv venv
-if [ -f "venv/bin/activate" ]; then
-    # shellcheck disable=SC1091
-    source venv/bin/activate
-    pip install -r "${DIR_SRC_BMQ}/src/python/requirements-test.txt"
-else
-    echo "Virtual environment not found."
-    exit 1
-fi
 
 # Parse sanitizers config
 cfgquery() {
@@ -151,11 +105,6 @@ github_url() { echo "https://github.com/$1.git"; }
 
 # Download external dependencies
 mkdir -p "${DIR_SRCS_EXT}"
-
-# Download LLVM sources
-curl -SL "https://github.com/llvm/llvm-project/archive/refs/tags/${LLVM_TAG}.tar.gz" \
-    | tar -xzC "${DIR_SRCS_EXT}"
-mv "${DIR_SRCS_EXT}/llvm-project-${LLVM_TAG}" "${DIR_SRCS_EXT}/llvm-project"
 
 # Download google-benchmark sources
 GOOGLE_BENCHMARK_TAG="v1.9.1"
@@ -199,6 +148,8 @@ if [ "${FUZZER}" == "off" ]; then
             -DCMAKE_CXX_FLAGS="-Wno-reserved-macro-identifier" \
             -DLLVM_ENABLE_RUNTIMES="libcxx;libcxxabi;libunwind" \
             -DLLVM_USE_SANITIZER="${LLVM_SANITIZER_NAME}" \
+            -DLLVM_INCLUDE_TESTS=OFF \
+            -DLIBCXX_INCLUDE_TESTS=OFF \
             "${LLVM_SPECIFIC_CMAKE_OPTIONS}"
 
     cmake --build "${LIBCXX_BUILD_PATH}" -j"${PARALLELISM}" --target cxx cxxabi unwind generate-cxx-headers
