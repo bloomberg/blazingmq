@@ -16,6 +16,10 @@
 #include <mqbnet_dummysession.h>
 
 #include <mqbscm_version.h>
+
+// BMQ
+#include <bmqu_stringutil.h>
+
 // BDE
 #include <bsl_iostream.h>
 #include <bsla_annotations.h>
@@ -39,8 +43,11 @@ DummySession::DummySession(
 , d_clusterNode_p(clusterNode)
 , d_description(description, allocator)
 {
+    // The negotiation message derives from untrusted input, sanitize it
+    // before logging it.
     BALL_LOG_INFO << d_description << ": created "
-                  << "[" << negotiationMessage << "]";
+                  << "[" << bmqu::StringUtil::logSafe(negotiationMessage)
+                  << "]";
 }
 
 DummySession::~DummySession()

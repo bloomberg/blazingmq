@@ -480,6 +480,84 @@ static void test8_isPrintable()
         false);
 }
 
+static void test9_sanitize()
+// ------------------------------------------------------------------------
+// bmqu::StringUtil::sanitize
+//
+// Concerns:
+//   Ensure proper behavior of the 'sanitize' and 'logSafe' methods.
+//
+// Plan:
+//   Sanitize the empty string, then a string holding every one of the 256
+//   byte values, repeated twice, and verify that exactly the bytes outside
+//   the printable ASCII range ('0x20' to '0x7e') are replaced with '?', the
+//   length of the string being preserved.  Also stream an object holding a
+//   non-printable character through 'logSafe'.
+//
+// Testing:
+//   Proper behavior of the 'sanitize(str)' and 'logSafe(obj)' methods.
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("sanitize");
+
+    {
+        // Empty string
+        bsl::string str(bmqtst::TestHelperUtil::allocator());
+        BMQTST_ASSERT_EQ(bmqu::StringUtil::sanitize(&str), "");
+    }
+
+    // Every byte value, in order.  Repeated twice so that an implementation
+    // stopping at the first NUL, or at any other byte, is caught.
+    const size_t k_NUM_BYTES = 256;
+    const size_t k_NUM_REPS  = 2;
+
+    bsl::string input(bmqtst::TestHelperUtil::allocator());
+    input.reserve(k_NUM_BYTES * k_NUM_REPS);
+    for (size_t rep = 0; rep < k_NUM_REPS; ++rep) {
+        for (size_t idx = 0; idx < k_NUM_BYTES; ++idx) {
+            input.push_back(static_cast<char>(idx));
+        }
+    }
+
+    // The expected result for a single pass over the byte values: only
+    // '0x20' to '0x7e' survive.
+    const bslstl::StringRef k_SANITIZED_BYTES =
+        "????????????????"   // 0x00
+        "????????????????"   // 0x10
+        " !\"#$%&'()*+,-./"  // 0x20
+        "0123456789:;<=>?"   // 0x30
+        "@ABCDEFGHIJKLMNO"   // 0x40
+        "PQRSTUVWXYZ[\\]^_"  // 0x50
+        "`abcdefghijklmno"   // 0x60
+        "pqrstuvwxyz{|}~?"   // 0x70, DEL is not printable
+        "????????????????"   // 0x80
+        "????????????????"   // 0x90
+        "????????????????"   // 0xa0
+        "????????????????"   // 0xb0
+        "????????????????"   // 0xc0
+        "????????????????"   // 0xd0
+        "????????????????"   // 0xe0
+        "????????????????";  // 0xf0
+    // Guard against a typo in the table above
+    BMQTST_ASSERT_EQ(k_SANITIZED_BYTES.length(), k_NUM_BYTES);
+
+    bsl::string expected(bmqtst::TestHelperUtil::allocator());
+    for (size_t rep = 0; rep < k_NUM_REPS; ++rep) {
+        expected.append(k_SANITIZED_BYTES.data(), k_SANITIZED_BYTES.length());
+    }
+
+    // 'sanitize' is in place and preserves the length
+    BMQTST_ASSERT_EQ(bmqu::StringUtil::sanitize(&input), expected);
+    BMQTST_ASSERT_EQ(input, expected);
+    BMQTST_ASSERT_EQ(input.length(), k_NUM_BYTES * k_NUM_REPS);
+
+    // 'logSafe' streams the object, then sanitizes the result
+    const bsl::string obj("ab\ncd", bmqtst::TestHelperUtil::allocator());
+    BMQTST_ASSERT_EQ(
+        bmqu::StringUtil::logSafe(obj, bmqtst::TestHelperUtil::allocator()),
+        "ab?cd");
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -490,6 +568,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 9: test9_sanitize(); break;
     case 8: test8_isPrintable(); break;
     case 7: test7_squeeze(); break;
     case 6: test6_match(); break;
