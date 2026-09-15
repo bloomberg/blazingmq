@@ -92,6 +92,22 @@ bool StringUtil::isPrintable(const bslstl::StringRef& str)
     return true;
 }
 
+bsl::string& StringUtil::sanitize(bsl::string* str)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT(str);
+
+    for (bsl::string::iterator it = str->begin(); it != str->end(); ++it) {
+        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
+                !bdlb::CharType::isPrint(*it))) {
+            BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+            *it = '?';
+        }
+    }
+
+    return *str;
+}
+
 bsl::string& StringUtil::trim(bsl::string* str)
 {
     return ltrim(&rtrim(str));

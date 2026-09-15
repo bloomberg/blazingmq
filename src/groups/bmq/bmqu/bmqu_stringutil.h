@@ -24,10 +24,14 @@
 //@DESCRIPTION: 'bmqu::StringUtil' provides a utility namespace for string
 // manipulation functions.
 
+// BMQ
+#include <bmqu_memoutstream.h>
+
 // BDE
 #include <bsl_cstddef.h>
 #include <bsl_string.h>
 #include <bsl_vector.h>
+#include <bslma_allocator.h>
 
 namespace BloombergLP {
 namespace bmqu {
@@ -48,6 +52,19 @@ struct StringUtil {
     /// Return `true` if every character in the specified string `str` is
     /// printable, and `false` otherwise.  An empty string is printable.
     static bool isPrintable(const bslstl::StringRef& str);
+
+    /// Replace every non-printable character in the specified string `str`
+    /// with `?`, in place, and return a reference offering modifiable
+    /// access to `*str`.
+    static bsl::string& sanitize(bsl::string* str);
+
+    /// Return the streamed representation of the specified `obj`, safe to
+    /// log (i.e. with every non-printable character replaced with `?`),
+    /// using the optionally specified `allocator`.  This should be used
+    /// whenever logging an object which derives from untrusted input.
+    template <class TYPE>
+    static bsl::string logSafe(const TYPE&       obj,
+                               bslma::Allocator* allocator = 0);
 
     /// Perform an in-place white spaces trimming at the beginning and the
     /// end of the specified string `str` and return a reference offering
@@ -96,6 +113,24 @@ struct StringUtil {
     static bsl::string& squeeze(bsl::string*             str,
                                 const bslstl::StringRef& characters);
 };
+
+// ============================================================================
+//                             INLINE DEFINITIONS
+// ============================================================================
+
+// -----------------
+// struct StringUtil
+// -----------------
+
+template <class TYPE>
+bsl::string StringUtil::logSafe(const TYPE& obj, bslma::Allocator* allocator)
+{
+    MemOutStream os(allocator);
+    os << obj;
+
+    bsl::string result(os.str().data(), os.str().length(), allocator);
+    return sanitize(&result);
+}
 
 }  // close package namespace
 }  // close enterprise namespace
