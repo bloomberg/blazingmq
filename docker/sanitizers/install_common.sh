@@ -60,7 +60,8 @@ apt-get install -qy --no-install-recommends \
 rm -rf /var/lib/apt/lists/*
 
 # First set up app sources and install minimal LLVM: clang, lld, lldb and clangd.
-wget https://apt.llvm.org/llvm.sh
+# Downloads default to IPv4 to avoid possible problems with IPv6 support.
+wget -4 https://apt.llvm.org/llvm.sh
 chmod +x llvm.sh
 ./llvm.sh ${LLVM_VERSION}
 rm -f llvm.sh
@@ -80,7 +81,7 @@ ln -sf /usr/bin/llvm-symbolizer-${LLVM_VERSION} /usr/bin/llvm-symbolizer
 
 # Download LLVM sources, required to build an instrumented libc++.
 mkdir -p "${DIR_SRCS_EXT}"
-curl -SL "https://github.com/llvm/llvm-project/archive/refs/tags/${LLVM_TAG}.tar.gz" \
+curl -4 -SL "https://github.com/llvm/llvm-project/archive/refs/tags/${LLVM_TAG}.tar.gz" \
     | tar -xzC "${DIR_SRCS_EXT}"
 mv "${DIR_SRCS_EXT}/llvm-project-${LLVM_TAG}" "${DIR_SRCS_EXT}/llvm-project"
 
