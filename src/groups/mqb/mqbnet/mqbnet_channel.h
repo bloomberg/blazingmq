@@ -66,6 +66,7 @@
 
 // MQB
 #include <mqbi_dispatcher.h>
+#include <mqbnet_channelitem.h>
 
 // BMQ
 #include <bmqp_ackeventbuilder.h>
@@ -88,10 +89,11 @@
 #include <bdlb_string.h>
 #include <bdlbb_blob.h>
 #include <bdlcc_singleconsumerqueue.h>
-#include <bdlma_concurrentpool.h>
+#include <bdlma_concurrentpoolallocator.h>
 #include <bsl_deque.h>
 #include <bsl_memory.h>
 #include <bslma_allocator.h>
+#include <bslma_managedptr.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
 #include <bslmt_condition.h>
@@ -120,116 +122,23 @@ class Channel {
 
   private:
     // PRIVATE TYPES
-    struct Item;
-
     typedef bmqc::MonitoredQueue<
-        bdlcc::SingleConsumerQueue<bslma::ManagedPtr<Item> > >
+        bdlcc::SingleConsumerQueue<bslma::ManagedPtr<ChannelItem> > >
         ItemQueue;
 
     typedef bmqp::BlobPoolUtil::BlobSpPoolSp BlobSpPoolSp;
 
-    /// Const references to everything needed to writeBufferedItem PUT.
-    /// This is template parameter to generalized writing code.
-    struct PutArgs {
-        const bmqp::PutHeader&              d_putHeader;
-        const bsl::shared_ptr<bdlbb::Blob>& d_data_sp;
+    /// Builder holding a single pre-built event blob.  There is no builder
+    /// for such events, so this simulates a one-time one over the item it
+    /// refers to.  It must not outlive that item.  Used for control, cluster
+    /// state, storage, elector and receipt events.
+    struct BlobBuilder {
+        const ChannelBlobItem& d_item;
+        int                    d_messageCount;
 
-        PutArgs(const Item& item);
+        explicit BlobBuilder(const ChannelBlobItem& item);
 
-        ~PutArgs();
-    };
-
-    /// Const references to generic PUSH data.
-    struct PushArgsBase {
-        const int                                  d_queueId;
-        const bmqt::MessageGUID&                   d_msgId;
-        const int                                  d_flags;
-        const bmqt::CompressionAlgorithmType::Enum d_compressionAlgorithmType;
-        const bmqp::MessagePropertiesInfo          d_messagePropertiesInfo;
-
-        PushArgsBase(
-            int                                  queueId,
-            const bmqt::MessageGUID&             msgId,
-            int                                  flags,
-            bmqt::CompressionAlgorithmType::Enum compressionAlgorithmType,
-            const bmqp::MessagePropertiesInfo&   messagePropertiesInfo);
-
-        ~PushArgsBase();
-    };
-
-    /// Const references to everything needed to writeBufferedItem PUSH with
-    /// data.
-    /// This is template parameter to generalized writing code.
-    struct ExplicitPushArgs : PushArgsBase {
-        const bsl::shared_ptr<bdlbb::Blob>& d_data_sp;
-
-        const bmqp::Protocol::SubQueueInfosArray& d_subQueueInfos;
-
-        ExplicitPushArgs(const Item& item);
-
-        ~ExplicitPushArgs();
-    };
-
-    /// Const references to everything needed to writeBufferedItem PUSH
-    /// without data.
-    /// This is template parameter to generalized writing code.
-    struct ImplicitPushArgs : PushArgsBase {
-        const bmqp::Protocol::SubQueueInfosArray& d_subQueueInfos;
-
-        ImplicitPushArgs(const Item& item);
-
-        ~ImplicitPushArgs();
-    };
-    /// Const references to everything needed to writeBufferedItem ACK.
-    /// This is template parameter to generalized writing code.
-    struct AckArgs {
-        const int                d_status;
-        const int                d_correlationId;
-        const bmqt::MessageGUID& d_guid;
-        const int                d_queueId;
-
-        AckArgs(const Item& item);
-
-        ~AckArgs();
-    };
-
-    /// Const references to everything needed to writeBufferedItem CONFIRM.
-    /// This is template parameter to generalized writing code.
-    struct ConfirmArgs {
-        const int                d_queueId;
-        const int                d_subQueueId;
-        const bmqt::MessageGUID& d_guid;
-
-        ConfirmArgs(const Item& item);
-
-        ~ConfirmArgs();
-    };
-
-    /// Const references to everything needed to writeBufferedItem REJECT.
-    /// This is template parameter to generalized writing code.
-    struct RejectArgs {
-        const int                d_queueId;
-        const int                d_subQueueId;
-        const bmqt::MessageGUID& d_guid;
-
-        RejectArgs(const Item& item);
-
-        ~RejectArgs();
-    };
-
-    /// Const references to everything needed to writeBufferedItem
-    /// bdlbb::Blob.
-    /// This is template parameter to generalized writing code.
-    /// This struct also simulates a (one-time) Builder since there is no
-    /// `control` builder.
-    struct ControlArgs {
-        bmqp::EventType::Enum               d_type;
-        const bsl::shared_ptr<bdlbb::Blob>& d_data_sp;
-        int                                 d_messageCount;
-
-        ControlArgs(const Item& item);
-
-        ~ControlArgs();
+        ~BlobBuilder();
 
         // MANIPULATORS
         void reset();
@@ -238,78 +147,6 @@ class Channel {
         size_t             eventSize() const;
         size_t             messageCount() const;
         const bdlbb::Blob& blob() const;
-    };
-
-    /// VST representing event data buffered (due to high watermark).
-    struct Item {
-        // discriminator
-        bmqp::EventType::Enum d_type;
-
-        // union of event data copies
-        const bmqp::PutHeader                      d_putHeader;
-        const bsl::shared_ptr<bdlbb::Blob>         d_data_sp;
-        const int                                  d_queueId;
-        const int                                  d_subQueueId;
-        const bmqt::MessageGUID                    d_msgId;
-        const int                                  d_flags;
-        const bmqt::CompressionAlgorithmType::Enum d_compressionAlgorithmType;
-        const bmqp::MessagePropertiesInfo          d_messagePropertiesInfo;
-        const bmqp::Protocol::SubQueueInfosArray   d_subQueueInfos;
-        const int                                  d_correlationId;
-        const int                                  d_status;
-
-        const bsl::shared_ptr<bmqu::AtomicState> d_state;
-
-        size_t d_numBytes;
-
-        Item(bslma::Allocator* allocator);
-
-        Item(const bmqp::PutHeader&                    ph,
-             const bsl::shared_ptr<bdlbb::Blob>&       data,
-             const bsl::shared_ptr<bmqu::AtomicState>& state,
-             bslma::Allocator*                         allocator);
-
-        Item(int                                  queueId,
-             const bmqt::MessageGUID&             msgId,
-             int                                  flags,
-             bmqt::CompressionAlgorithmType::Enum compressionAlgorithmType,
-             const bmqp::MessagePropertiesInfo&   messagePropertiesInfo,
-             const bsl::shared_ptr<bdlbb::Blob>&  payload,
-             const bmqp::Protocol::SubQueueInfosArray& subQueueInfos,
-             const bsl::shared_ptr<bmqu::AtomicState>& state,
-             bslma::Allocator*                         allocator);
-
-        Item(int                                  queueId,
-             const bmqt::MessageGUID&             msgId,
-             int                                  flags,
-             bmqt::CompressionAlgorithmType::Enum compressionAlgorithmType,
-             const bmqp::MessagePropertiesInfo&   messagePropertiesInfo,
-             const bmqp::Protocol::SubQueueInfosArray& subQueueInfos,
-             const bsl::shared_ptr<bmqu::AtomicState>& state,
-             bslma::Allocator*                         allocator);
-
-        Item(int                                       status,
-             int                                       correlationId,
-             const bmqt::MessageGUID&                  msgId,
-             int                                       queueId,
-             const bsl::shared_ptr<bmqu::AtomicState>& state,
-             bslma::Allocator*                         allocator);
-
-        Item(int                                       queueId,
-             int                                       subQueueId,
-             const bmqt::MessageGUID&                  guid,
-             const bsl::shared_ptr<bmqu::AtomicState>& state,
-             bmqp::EventType::Enum                     type,
-             bslma::Allocator*                         allocator);
-
-        Item(const bsl::shared_ptr<bdlbb::Blob>&       data,
-             bmqp::EventType::Enum                     type,
-             const bsl::shared_ptr<bmqu::AtomicState>& state,
-             bslma::Allocator*                         allocator);
-
-        ~Item();
-
-        const bsl::shared_ptr<bdlbb::Blob>& data();
     };
 
     enum Mode {
@@ -337,9 +174,27 @@ class Channel {
 
         bsls::AtomicUint64 d_numBytes;
 
-        void addItem(bmqp::EventType::Enum, size_t size);
+        // CLASS METHODS
 
-        void removeItem(bmqp::EventType::Enum, size_t size);
+        /// @brief Return the number of bytes the specified `item` accounts
+        /// for.
+        ///
+        /// @param item The item to measure.
+        ///
+        /// @return The size of the item.
+        static size_t getItemSize(const ChannelItem& item);
+
+        // MANIPULATORS
+
+        /// @brief Account for the specified `item` being buffered.
+        ///
+        /// @param item The item added to the buffer.
+        void onAddItem(const ChannelItem& item);
+
+        /// @brief Stop accounting for the specified `item`.
+        ///
+        /// @param item The item removed from the buffer.
+        void onRemoveItem(const ChannelItem& item);
 
         Stats();
 
@@ -383,8 +238,18 @@ class Channel {
 
     bmqp::RejectEventBuilder d_rejectBuilder;
 
-    bdlma::ConcurrentPool d_itemPool;
-    // Pool of 'Item' objects.
+    /// Pools of items, one per item type.
+    bdlma::ConcurrentPoolAllocator d_putItemPool;
+    bdlma::ConcurrentPoolAllocator d_explicitPayloadPushItemPool;
+    bdlma::ConcurrentPoolAllocator d_implicitPayloadPushItemPool;
+    bdlma::ConcurrentPoolAllocator d_ackItemPool;
+    bdlma::ConcurrentPoolAllocator d_confirmItemPool;
+    bdlma::ConcurrentPoolAllocator d_rejectItemPool;
+    bdlma::ConcurrentPoolAllocator d_blobItemPool;
+
+    /// Item enqueued to wake up the writing thread.  It carries no data, so
+    /// the same one serves every wake up.
+    ChannelWakeUpItem d_wakeUpItem;
 
     ItemQueue d_buffer;
 
@@ -448,7 +313,7 @@ class Channel {
     flushAll(const bsl::shared_ptr<bmqio::Channel>& channel);
 
     /// Enqueue the specified `item`.
-    bmqt::GenericResult::Enum enqueue(bslma::ManagedPtr<Item>& item);
+    bmqt::GenericResult::Enum enqueue(bslma::ManagedPtr<ChannelItem>& item);
 
     /// Pack the specified `item` using builder corresponding to the `item`
     /// type.  Flush the builder if necessary.  Return result and load
@@ -458,7 +323,7 @@ class Channel {
     writeBufferedItem(bool*                                  isConsumed,
                       const bsl::shared_ptr<bmqio::Channel>& channel,
                       const bsl::string&                     description,
-                      Item&                                  item);
+                      const ChannelItem&                     item);
 
     /// Pack the specified `args` using the specified `builder` and flush
     /// the `builder` to the specified `channel` if necessary.  Update the
@@ -476,19 +341,21 @@ class Channel {
 
     /// Overloads to pack events data using corresponding builder.
     bmqt::EventBuilderResult::Enum pack(bmqp::PutEventBuilder& builder,
-                                        const PutArgs&         args);
-    bmqt::EventBuilderResult::Enum pack(bmqp::PushEventBuilder& builder,
-                                        const ExplicitPushArgs& args);
-    bmqt::EventBuilderResult::Enum pack(bmqp::PushEventBuilder& builder,
-                                        const ImplicitPushArgs& args);
+                                        const ChannelPutItem&  item);
+    bmqt::EventBuilderResult::Enum
+    pack(bmqp::PushEventBuilder&               builder,
+         const ChannelExplicitPayloadPushItem& item);
+    bmqt::EventBuilderResult::Enum
+                                   pack(bmqp::PushEventBuilder&               builder,
+                                        const ChannelImplicitPayloadPushItem& item);
     bmqt::EventBuilderResult::Enum pack(bmqp::AckEventBuilder& builder,
-                                        const AckArgs&         args);
+                                        const ChannelAckItem&  item);
     bmqt::EventBuilderResult::Enum pack(bmqp::ConfirmEventBuilder& builder,
-                                        const ConfirmArgs&         args);
+                                        const ChannelConfirmItem&  item);
     bmqt::EventBuilderResult::Enum pack(bmqp::RejectEventBuilder& builder,
-                                        const RejectArgs&         args);
-    bmqt::EventBuilderResult::Enum pack(ControlArgs&       builder,
-                                        const ControlArgs& args);
+                                        const ChannelRejectItem&  item);
+    bmqt::EventBuilderResult::Enum pack(BlobBuilder&           builder,
+                                        const ChannelBlobItem& item);
 
     /// Dedicated thread does all writing.
     void threadFn();
@@ -496,10 +363,6 @@ class Channel {
     /// Callback invoked within the d_buffer when the state of the queue
     /// changes. Currently logs the state of the buffer.
     void onBufferStateChange(bmqc::MonitoredQueueState::Enum state);
-
-  private:
-    // PRIVATE CLASS METHODS
-    static void deleteItem(void* item, void* cookie);
 
   public:
     // TRAITS
@@ -630,358 +493,35 @@ class Channel {
 //                             INLINE DEFINITIONS
 // ============================================================================
 
-// -----------------------
-// struct Channel::PutArgs
-// -----------------------
-
-inline Channel::PutArgs::~PutArgs()
-{
-    // NOTHING
-}
-
-inline Channel::PutArgs::PutArgs(const Item& item)
-: d_putHeader(item.d_putHeader)
-, d_data_sp(item.d_data_sp)
-{
-    // NOTHING
-}
-
-// ------------------------
-// struct Channel::PushArgs
-// ------------------------
-
-inline Channel::PushArgsBase::PushArgsBase(
-    int                                  queueId,
-    const bmqt::MessageGUID&             msgId,
-    int                                  flags,
-    bmqt::CompressionAlgorithmType::Enum compressionAlgorithmType,
-    const bmqp::MessagePropertiesInfo&   messagePropertiesInfo)
-: d_queueId(queueId)
-, d_msgId(msgId)
-, d_flags(flags)
-, d_compressionAlgorithmType(compressionAlgorithmType)
-, d_messagePropertiesInfo(messagePropertiesInfo)
-{
-    // NOTHING
-}
-
-inline Channel::PushArgsBase::~PushArgsBase()
-{
-    // NOTHING
-}
-
-// --------------------------------
-// struct Channel::ExplicitPushArgs
-// --------------------------------
-
-inline Channel::ExplicitPushArgs::ExplicitPushArgs(const Item& item)
-: PushArgsBase(item.d_queueId,
-               item.d_msgId,
-               item.d_flags,
-               item.d_compressionAlgorithmType,
-               item.d_messagePropertiesInfo)
-, d_data_sp(item.d_data_sp)
-, d_subQueueInfos(item.d_subQueueInfos)
-{
-    // NOTHING
-}
-
-inline Channel::ExplicitPushArgs::~ExplicitPushArgs()
-{
-    // NOTHING
-}
-// --------------------------------
-// struct Channel::ImplicitPushArgs
-// --------------------------------
-
-inline Channel::ImplicitPushArgs::ImplicitPushArgs(const Item& item)
-: PushArgsBase(item.d_queueId,
-               item.d_msgId,
-               item.d_flags,
-               item.d_compressionAlgorithmType,
-               item.d_messagePropertiesInfo)
-, d_subQueueInfos(item.d_subQueueInfos)
-{
-    // NOTHING
-}
-
-inline Channel::ImplicitPushArgs::~ImplicitPushArgs()
-{
-    // NOTHING
-}
-
 // --------------------------
-// class Channel::AckArgs
+// class Channel::BlobBuilder
 // --------------------------
 
-inline Channel::AckArgs::AckArgs(const Item& item)
-: d_status(item.d_status)
-, d_correlationId(item.d_correlationId)
-, d_guid(item.d_msgId)
-, d_queueId(item.d_queueId)
-{
-    // NOTHING
-}
-
-inline Channel::AckArgs::~AckArgs()
-{
-    // NOTHING
-}
-
-// --------------------------
-// class Channel::ConfirmArgs
-// --------------------------
-
-inline Channel::ConfirmArgs::ConfirmArgs(const Item& item)
-: d_queueId(item.d_queueId)
-, d_subQueueId(item.d_subQueueId)
-, d_guid(item.d_msgId)
-{
-    // NOTHING
-}
-
-inline Channel::ConfirmArgs::~ConfirmArgs()
-{
-    // NOTHING
-}
-
-// -------------------------
-// class Channel::RejectArgs
-// -------------------------
-
-inline Channel::RejectArgs::RejectArgs(const Item& item)
-: d_queueId(item.d_queueId)
-, d_subQueueId(item.d_subQueueId)
-, d_guid(item.d_msgId)
-{
-    // NOTHING
-}
-
-inline Channel::RejectArgs::~RejectArgs()
-{
-    // NOTHING
-}
-
-// --------------------------
-// class Channel::ControlArgs
-// --------------------------
-
-inline Channel::ControlArgs::ControlArgs(const Item& item)
-: d_type(item.d_type)
-, d_data_sp(item.d_data_sp)
+inline Channel::BlobBuilder::BlobBuilder(const ChannelBlobItem& item)
+: d_item(item)
 , d_messageCount(1)
 {
     // NOTHING
 }
 
-inline Channel::ControlArgs::~ControlArgs()
+inline Channel::BlobBuilder::~BlobBuilder()
 {
     // NOTHING
 }
 
-inline const bdlbb::Blob& Channel::ControlArgs::blob() const
+inline const bdlbb::Blob& Channel::BlobBuilder::blob() const
 {
-    return *d_data_sp;
+    return *d_item.data();
 }
 
-inline size_t Channel::ControlArgs::messageCount() const
+inline size_t Channel::BlobBuilder::messageCount() const
 {
     return d_messageCount;
 }
 
-inline void Channel::ControlArgs::reset()
+inline void Channel::BlobBuilder::reset()
 {
     d_messageCount = 0;
-}
-
-// -------------------
-// class Channel::Item
-// -------------------
-
-// CREATORS
-inline Channel::Item::Item(bslma::Allocator* allocator)
-: d_type(bmqp::EventType::e_UNDEFINED)
-, d_putHeader()
-, d_data_sp(0, allocator)
-, d_queueId(0)
-, d_subQueueId(0)
-, d_msgId()
-, d_flags(0)
-, d_compressionAlgorithmType(bmqt::CompressionAlgorithmType::e_NONE)
-, d_subQueueInfos(allocator)
-, d_correlationId(0)
-, d_status(0)
-, d_state(0)
-, d_numBytes(0)
-{
-    // NOTHING
-}
-
-inline Channel::Item::Item(const bmqp::PutHeader&                    ph,
-                           const bsl::shared_ptr<bdlbb::Blob>&       data,
-                           const bsl::shared_ptr<bmqu::AtomicState>& state,
-                           bslma::Allocator*                         allocator)
-: d_type(bmqp::EventType::e_PUT)
-, d_putHeader(ph)
-, d_data_sp(data)
-, d_queueId(0)
-, d_subQueueId(0)
-, d_msgId()
-, d_flags(0)
-, d_compressionAlgorithmType(bmqt::CompressionAlgorithmType::e_NONE)
-, d_messagePropertiesInfo()
-, d_subQueueInfos(allocator)
-, d_correlationId(0)
-, d_status(0)
-, d_state(state)
-, d_numBytes(sizeof(bmqp::PutHeader) + data->length())
-{
-    // NOTHING
-}
-
-inline Channel::Item::Item(
-    int                                       queueId,
-    const bmqt::MessageGUID&                  msgId,
-    int                                       flags,
-    bmqt::CompressionAlgorithmType::Enum      compressionAlgorithmType,
-    const bmqp::MessagePropertiesInfo&        messagePropertiesInfo,
-    const bsl::shared_ptr<bdlbb::Blob>&       payload,
-    const bmqp::Protocol::SubQueueInfosArray& subQueueInfos,
-    const bsl::shared_ptr<bmqu::AtomicState>& state,
-    bslma::Allocator*                         allocator)
-: d_type(bmqp::EventType::e_PUSH)
-, d_putHeader()
-, d_data_sp(payload)
-, d_queueId(queueId)
-, d_subQueueId(0)
-, d_msgId(msgId)
-, d_flags(flags)
-, d_compressionAlgorithmType(compressionAlgorithmType)
-, d_messagePropertiesInfo(messagePropertiesInfo)
-, d_subQueueInfos(subQueueInfos, allocator)
-, d_correlationId(0)
-, d_status(0)
-, d_state(state)
-, d_numBytes(sizeof(bmqp::PushHeader) + payload->length())
-{
-    // NOTHING
-}
-
-inline Channel::Item::Item(
-    int                                       queueId,
-    const bmqt::MessageGUID&                  msgId,
-    int                                       flags,
-    bmqt::CompressionAlgorithmType::Enum      compressionAlgorithmType,
-    const bmqp::MessagePropertiesInfo&        messagePropertiesInfo,
-    const bmqp::Protocol::SubQueueInfosArray& subQueueInfos,
-    const bsl::shared_ptr<bmqu::AtomicState>& state,
-    bslma::Allocator*                         allocator)
-: d_type(bmqp::EventType::e_PUSH)
-, d_putHeader()
-, d_data_sp(0, allocator)
-, d_queueId(queueId)
-, d_subQueueId(0)
-, d_msgId(msgId)
-, d_flags(flags)
-, d_compressionAlgorithmType(compressionAlgorithmType)
-, d_messagePropertiesInfo(messagePropertiesInfo)
-, d_subQueueInfos(subQueueInfos, allocator)
-, d_correlationId(0)
-, d_status(0)
-, d_state(state)
-, d_numBytes(sizeof(bmqp::PushHeader) +
-             subQueueInfos.size() * bmqp::Protocol::k_WORD_SIZE)
-{
-    // NOTHING
-}
-
-inline Channel::Item::Item(int                      status,
-                           int                      correlationId,
-                           const bmqt::MessageGUID& guid,
-                           int                      queueId,
-                           const bsl::shared_ptr<bmqu::AtomicState>& state,
-                           bslma::Allocator*                         allocator)
-: d_type(bmqp::EventType::e_ACK)
-, d_putHeader()
-, d_data_sp(0, allocator)
-, d_queueId(queueId)
-, d_subQueueId(0)
-, d_msgId(guid)
-, d_flags(0)
-, d_compressionAlgorithmType(bmqt::CompressionAlgorithmType::e_NONE)
-, d_messagePropertiesInfo()
-, d_subQueueInfos(allocator)
-, d_correlationId(correlationId)
-, d_status(status)
-, d_state(state)
-, d_numBytes(sizeof(bmqp::AckMessage))
-{
-    // NOTHING
-}
-
-inline Channel::Item::Item(int                      queueId,
-                           int                      subQueueId,
-                           const bmqt::MessageGUID& guid,
-                           const bsl::shared_ptr<bmqu::AtomicState>& state,
-                           bmqp::EventType::Enum                     type,
-                           bslma::Allocator*                         allocator)
-: d_type(type)
-, d_putHeader()
-, d_data_sp(0, allocator)
-, d_queueId(queueId)
-, d_subQueueId(subQueueId)
-, d_msgId(guid)
-, d_flags(0)
-, d_compressionAlgorithmType(bmqt::CompressionAlgorithmType::e_NONE)
-, d_messagePropertiesInfo()
-, d_subQueueInfos(allocator)
-, d_correlationId(0)
-, d_status(0)
-, d_state(state)
-, d_numBytes(0)
-{
-    if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(type ==
-                                            bmqp::EventType::e_CONFIRM)) {
-        d_numBytes = sizeof(bmqp::ConfirmMessage);
-    }
-    else if (type == bmqp::EventType::e_REJECT) {
-        d_numBytes = sizeof(bmqp::RejectMessage);
-    }
-    else {
-        BSLS_ASSERT_SAFE(false && "Unsupported EventType.");
-    }
-}
-
-inline Channel::Item::Item(const bsl::shared_ptr<bdlbb::Blob>&       data,
-                           bmqp::EventType::Enum                     type,
-                           const bsl::shared_ptr<bmqu::AtomicState>& state,
-                           bslma::Allocator*                         allocator)
-: d_type(type)
-, d_putHeader()
-, d_data_sp(data)
-, d_queueId(0)
-, d_subQueueId(0)
-, d_msgId()
-, d_flags(0)
-, d_compressionAlgorithmType(bmqt::CompressionAlgorithmType::e_NONE)
-, d_messagePropertiesInfo()
-, d_subQueueInfos(allocator)
-, d_correlationId(0)
-, d_status(0)
-, d_state(state)
-, d_numBytes(data->length())
-{
-    // NOTHING
-}
-
-inline Channel::Item::~Item()
-{
-    // NOTHING
-}
-
-inline const bsl::shared_ptr<bdlbb::Blob>& Channel::Item::data()
-{
-    return d_data_sp;
 }
 
 // --------------------
@@ -993,21 +533,64 @@ inline Channel::Stats::Stats()
     reset();
 }
 
-inline void Channel::Stats::addItem(bmqp::EventType::Enum type, size_t size)
+inline size_t Channel::Stats::getItemSize(const ChannelItem& item)
 {
-    ++d_numItemsTotal;
-    d_numBytes += size;
+    switch (item.type()) {
+    case ChannelItemType::e_PUT: {
+        const ChannelPutItem* put = item.the<ChannelPutItem>();
 
-    ++d_numItems[type];
+        return sizeof(bmqp::PutHeader) + put->data()->length();  // RETURN
+    }
+    case ChannelItemType::e_EXPLICIT_PAYLOAD_PUSH: {
+        const ChannelExplicitPayloadPushItem* push =
+            item.the<ChannelExplicitPayloadPushItem>();
+
+        return sizeof(bmqp::PushHeader) + push->data()->length();  // RETURN
+    }
+    case ChannelItemType::e_IMPLICIT_PAYLOAD_PUSH: {
+        const ChannelImplicitPayloadPushItem* push =
+            item.the<ChannelImplicitPayloadPushItem>();
+
+        return sizeof(bmqp::PushHeader) +
+               push->subQueueInfos().size() *
+                   bmqp::Protocol::k_WORD_SIZE;  // RETURN
+    }
+    case ChannelItemType::e_ACK: {
+        return sizeof(bmqp::AckMessage);  // RETURN
+    }
+    case ChannelItemType::e_CONFIRM: {
+        return sizeof(bmqp::ConfirmMessage);  // RETURN
+    }
+    case ChannelItemType::e_REJECT: {
+        return sizeof(bmqp::RejectMessage);  // RETURN
+    }
+    case ChannelItemType::e_BLOB: {
+        return item.the<ChannelBlobItem>()->data()->length();  // RETURN
+    }
+    case ChannelItemType::e_WAKE_UP:
+    default: {
+        return 0;  // RETURN
+    }
+    }
 }
 
-inline void Channel::Stats::removeItem(bmqp::EventType::Enum type, size_t size)
+inline void Channel::Stats::onAddItem(const ChannelItem& item)
 {
+    ++d_numItemsTotal;
+    d_numBytes += getItemSize(item);
+
+    ++d_numItems[item.eventType()];
+}
+
+inline void Channel::Stats::onRemoveItem(const ChannelItem& item)
+{
+    const size_t size = getItemSize(item);
+
     BSLS_ASSERT_SAFE(d_numItemsTotal > 0);
     --d_numItemsTotal;
     BSLS_ASSERT_SAFE(d_numBytes >= size);
     d_numBytes -= size;
-    --d_numItems[type];
+    --d_numItems[item.eventType()];
 }
 
 // -------------
@@ -1015,19 +598,21 @@ inline void Channel::Stats::removeItem(bmqp::EventType::Enum type, size_t size)
 // -------------
 
 template <>
-inline bmqio::StatusCategory::Enum Channel::flushBuilder<Channel::ControlArgs>(
-    ControlArgs&                           args,
+inline bmqio::StatusCategory::Enum Channel::flushBuilder<Channel::BlobBuilder>(
+    BlobBuilder&                           builder,
     const bsl::shared_ptr<bmqio::Channel>& channel)
 {
     bmqio::StatusCategory::Enum rc = bmqio::StatusCategory::e_SUCCESS;
 
-    if (args.d_type == bmqp::EventType::e_CONTROL ||
-        args.d_type == bmqp::EventType::e_CLUSTER_STATE) {
+    const bmqp::EventType::Enum type = builder.d_item.eventType();
+
+    if (type == bmqp::EventType::e_CONTROL ||
+        type == bmqp::EventType::e_CLUSTER_STATE) {
         // 'Control' event requires that everything accumulated so far is
         // flushed first.
         rc = flushAll(channel);
     }
-    else if (args.d_type == bmqp::EventType::e_STORAGE) {
+    else if (type == bmqp::EventType::e_STORAGE) {
         // Flush all (previously) accumulated PUSH data.  Otherwise, PUSH data
         // lag behind replication data.
         rc = flushBuilder(d_pushBuilder, channel);
@@ -1041,13 +626,13 @@ inline bmqio::StatusCategory::Enum Channel::flushBuilder<Channel::ControlArgs>(
 
     bmqio::Status st;
 
-    BSLS_ASSERT_SAFE(args.messageCount());
+    BSLS_ASSERT_SAFE(builder.messageCount());
 
-    channel->write(&st, args.blob());
+    channel->write(&st, builder.blob());
 
     if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(
             st.category() == bmqio::StatusCategory::e_SUCCESS)) {
-        args.reset();
+        builder.reset();
     }
 
     return st.category();
@@ -1075,7 +660,7 @@ Channel::flushBuilder(Builder&                               builder,
 }
 
 inline bmqt::GenericResult::Enum
-Channel::enqueue(bslma::ManagedPtr<Item>& item)
+Channel::enqueue(bslma::ManagedPtr<ChannelItem>& item)
 {
     // This method is called by public write methods.
 
@@ -1083,7 +668,7 @@ Channel::enqueue(bslma::ManagedPtr<Item>& item)
         return bmqt::GenericResult::e_NOT_CONNECTED;  // RETURN
     }
 
-    d_stats.addItem(item->d_type, item->d_numBytes);
+    d_stats.onAddItem(*item);
 
     d_buffer.pushBack(bslmf::MovableRefUtil::move(item));
 
