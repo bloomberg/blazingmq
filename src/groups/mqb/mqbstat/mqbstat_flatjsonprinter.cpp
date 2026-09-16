@@ -118,32 +118,183 @@ inline void DomainQueueStatsTraversal::forEachQueue(
     }
 }
 
-// =========================
-// class DomainQueuesVisitor
-// =========================
+// ==================================
+// class SparseDomainQueueStatsWriter
+// ==================================
 
-class DomainQueuesVisitor {
+/// @brief Write the stats of one queue or queue application as a JSON object.
+///
+/// - Metrics equal to zero are omitted from the output.
+/// - If all metrics are omitted, the JSON object is not written at all.
+class SparseDomainQueueStatsWriter {
   private:
-    bsl::ostream&    d_os;
-    bsl::string_view d_prefix;
+    // PRIVATE TYPES
+    typedef mqbstat::QueueStatsDomain::Stat Stat;
 
+  private:
+    // DATA
+    bsl::ostream&             d_os;
+    bsl::string_view          d_prefix;
+    bsl::string_view          d_domainName;
+    bsl::string_view          d_queueName;
+    bsl::string_view          d_appId;
+    const bmqst::StatContext& d_ctx;
+
+    /// Flag indicating if this writer has written anything.
+    bool d_isDirty;
+
+  private:
+    // PRIVATE ACCESSORS
+
+    /// @brief Write a JSON field.
+    ///
+    /// @param key The field name.
+    /// @param val The field value.
     template <class KEY, class VAL>
     void wrap(const KEY& key, const VAL& val) const
     {
         d_os << ",\"" << key << "\":\"" << val << "\"";
     }
 
-    void metric(const bmqst::StatContext&             ctx,
-                mqbstat::QueueStatsDomain::Stat::Enum stat) const
+    // PRIVATE MANIPULATORS
+
+    /// @brief Open the JSON object and write the prefix together with the
+    /// queue identification fields.
+    void lazyOpenJson()
+    {
+        d_os << "{" << d_prefix;
+        if (d_appId.empty()) {
+            wrap("stat", "queue");
+            wrap("domain", d_domainName);
+            wrap("queue", d_queueName);
+        }
+        else {
+            wrap("stat", "queue_app");
+            wrap("domain", d_domainName);
+            wrap("queue", d_queueName);
+            wrap("app", d_appId);
+        }
+    }
+
+    /// @brief Write a JSON field for the given metric, unless its value is
+    /// zero.  Open the JSON object on the first such field.
+    ///
+    /// @param stat The metric to write.
+    void metric(Stat::Enum stat)
     {
         const bsls::Types::Int64 val =
-            mqbstat::QueueStatsDomain::getValue(ctx, -1, stat);
+            mqbstat::QueueStatsDomain::getValue(d_ctx, -1, stat);
         if (val != 0) {
-            wrap(mqbstat::QueueStatsDomain::Stat::toString(stat), val);
+            // This is the first time we see a non-zero metric, make sure to
+            // open a JSON with the required prefix metrics and flip the flag.
+            if (!d_isDirty) {
+                lazyOpenJson();
+                d_isDirty = true;
+            }
+            wrap(Stat::toString(stat), val);
         }
     }
 
   public:
+    // CREATORS
+
+    /// @brief Create a writer for one queue or queue application.
+    ///
+    /// @param os The stream to write to.
+    /// @param prefix The fields opening the JSON object.
+    /// @param domainName The name of the domain owning the queue.
+    /// @param queueName The name of the queue.
+    /// @param appId The application, or empty for the queue itself.
+    /// @param ctx The stat context holding the metrics to write.
+    explicit SparseDomainQueueStatsWriter(bsl::ostream&             os,
+                                          bsl::string_view          prefix,
+                                          bsl::string_view          domainName,
+                                          bsl::string_view          queueName,
+                                          bsl::string_view          appId,
+                                          const bmqst::StatContext& ctx)
+    : d_os(os)
+    , d_prefix(prefix)
+    , d_domainName(domainName)
+    , d_queueName(queueName)
+    , d_appId(appId)
+    , d_ctx(ctx)
+    , d_isDirty(false)
+    {
+        // NOTHING
+    }
+
+    // MANIPULATORS
+
+    /// @brief Attempt to write the data provided to this writer if it has
+    /// meaningful non-zero metrics.
+    void write()
+    {
+        BSLS_ASSERT_SAFE(!d_isDirty && "'write' can only be invoked once");
+
+        metric(Stat::e_NB_PRODUCER);
+        metric(Stat::e_NB_CONSUMER);
+        metric(Stat::e_MESSAGES_CURRENT);
+        metric(Stat::e_MESSAGES_MAX);
+        metric(Stat::e_MESSAGES_UTILIZATION_MAX);
+        metric(Stat::e_BYTES_CURRENT);
+        metric(Stat::e_BYTES_MAX);
+        metric(Stat::e_BYTES_UTILIZATION_MAX);
+        metric(Stat::e_PUT_MESSAGES_DELTA);
+        metric(Stat::e_PUT_BYTES_DELTA);
+        metric(Stat::e_PUT_MESSAGES_ABS);
+        metric(Stat::e_PUT_BYTES_ABS);
+        metric(Stat::e_PUSH_MESSAGES_DELTA);
+        metric(Stat::e_PUSH_BYTES_DELTA);
+        metric(Stat::e_PUSH_MESSAGES_ABS);
+        metric(Stat::e_PUSH_BYTES_ABS);
+        metric(Stat::e_ACK_DELTA);
+        metric(Stat::e_ACK_ABS);
+        metric(Stat::e_ACK_TIME_AVG);
+        metric(Stat::e_ACK_TIME_MAX);
+        metric(Stat::e_NACK_DELTA);
+        metric(Stat::e_NACK_ABS);
+        metric(Stat::e_CONFIRM_DELTA);
+        metric(Stat::e_CONFIRM_ABS);
+        metric(Stat::e_CONFIRM_TIME_AVG);
+        metric(Stat::e_CONFIRM_TIME_MAX);
+        metric(Stat::e_REJECT_ABS);
+        metric(Stat::e_REJECT_DELTA);
+        metric(Stat::e_QUEUE_TIME_AVG);
+        metric(Stat::e_QUEUE_TIME_MAX);
+        metric(Stat::e_GC_MSGS_DELTA);
+        metric(Stat::e_GC_MSGS_ABS);
+        metric(Stat::e_ROLE);
+        metric(Stat::e_CFG_MSGS);
+        metric(Stat::e_CFG_BYTES);
+        metric(Stat::e_NO_SC_MSGS_DELTA);
+        metric(Stat::e_NO_SC_MSGS_ABS);
+        metric(Stat::e_HISTORY_ABS);
+
+        // Close JSON object if it was lazily opened by `lazyOpenJson`.
+        if (d_isDirty) {
+            d_os << "}" << bsl::endl;
+        }
+    }
+};
+
+// =========================
+// class DomainQueuesVisitor
+// =========================
+
+/// @brief Write one JSON object per visited queue stat context.
+class DomainQueuesVisitor {
+  private:
+    // DATA
+    bsl::ostream&    d_os;
+    bsl::string_view d_prefix;
+
+  public:
+    // CREATORS
+
+    /// @brief Create a visitor writing queue stats as JSON objects.
+    ///
+    /// @param os The stream to write to.
+    /// @param prefix The fields opening every JSON object.
     explicit DomainQueuesVisitor(bsl::ostream& os, bsl::string_view prefix)
     : d_os(os)
     , d_prefix(prefix)
@@ -151,64 +302,27 @@ class DomainQueuesVisitor {
         // NOTHING
     }
 
+    // ACCESSORS
+
+    /// @brief Write a JSON object holding the stats of one queue or queue
+    /// application.
+    ///
+    /// @param domainName The name of the domain owning the queue.
+    /// @param queueName The name of the queue.
+    /// @param appId The application, or empty for the queue itself.
+    /// @param ctx The stat context holding the metrics to write.
     void operator()(bsl::string_view          domainName,
                     bsl::string_view          queueName,
                     bsl::string_view          appId,
                     const bmqst::StatContext& ctx) const
     {
-        typedef mqbstat::QueueStatsDomain::Stat Stat;
-
-        d_os << "{" << d_prefix;
-        if (appId.empty()) {
-            wrap("stat", "queue");
-            wrap("domain", domainName);
-            wrap("queue", queueName);
-        }
-        else {
-            wrap("stat", "queue_app");
-            wrap("domain", domainName);
-            wrap("queue", queueName);
-            wrap("app", appId);
-        }
-        metric(ctx, Stat::e_NB_PRODUCER);
-        metric(ctx, Stat::e_NB_CONSUMER);
-        metric(ctx, Stat::e_MESSAGES_CURRENT);
-        metric(ctx, Stat::e_MESSAGES_MAX);
-        metric(ctx, Stat::e_MESSAGES_UTILIZATION_MAX);
-        metric(ctx, Stat::e_BYTES_CURRENT);
-        metric(ctx, Stat::e_BYTES_MAX);
-        metric(ctx, Stat::e_BYTES_UTILIZATION_MAX);
-        metric(ctx, Stat::e_PUT_MESSAGES_DELTA);
-        metric(ctx, Stat::e_PUT_BYTES_DELTA);
-        metric(ctx, Stat::e_PUT_MESSAGES_ABS);
-        metric(ctx, Stat::e_PUT_BYTES_ABS);
-        metric(ctx, Stat::e_PUSH_MESSAGES_DELTA);
-        metric(ctx, Stat::e_PUSH_BYTES_DELTA);
-        metric(ctx, Stat::e_PUSH_MESSAGES_ABS);
-        metric(ctx, Stat::e_PUSH_BYTES_ABS);
-        metric(ctx, Stat::e_ACK_DELTA);
-        metric(ctx, Stat::e_ACK_ABS);
-        metric(ctx, Stat::e_ACK_TIME_AVG);
-        metric(ctx, Stat::e_ACK_TIME_MAX);
-        metric(ctx, Stat::e_NACK_DELTA);
-        metric(ctx, Stat::e_NACK_ABS);
-        metric(ctx, Stat::e_CONFIRM_DELTA);
-        metric(ctx, Stat::e_CONFIRM_ABS);
-        metric(ctx, Stat::e_CONFIRM_TIME_AVG);
-        metric(ctx, Stat::e_CONFIRM_TIME_MAX);
-        metric(ctx, Stat::e_REJECT_ABS);
-        metric(ctx, Stat::e_REJECT_DELTA);
-        metric(ctx, Stat::e_QUEUE_TIME_AVG);
-        metric(ctx, Stat::e_QUEUE_TIME_MAX);
-        metric(ctx, Stat::e_GC_MSGS_DELTA);
-        metric(ctx, Stat::e_GC_MSGS_ABS);
-        metric(ctx, Stat::e_ROLE);
-        metric(ctx, Stat::e_CFG_MSGS);
-        metric(ctx, Stat::e_CFG_BYTES);
-        metric(ctx, Stat::e_NO_SC_MSGS_DELTA);
-        metric(ctx, Stat::e_NO_SC_MSGS_ABS);
-        metric(ctx, Stat::e_HISTORY_ABS);
-        d_os << "}" << bsl::endl;
+        SparseDomainQueueStatsWriter(d_os,
+                                     d_prefix,
+                                     domainName,
+                                     queueName,
+                                     appId,
+                                     ctx)
+            .write();
     }
 };
 
