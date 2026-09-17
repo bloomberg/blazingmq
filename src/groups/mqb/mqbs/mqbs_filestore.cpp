@@ -4587,7 +4587,7 @@ int FileStore::writeMessageRecord(const bmqp::StorageHeader& header,
         return rc_INVALID_DATA_HEADER;  // RETURN
     }
 
-    if (messageSize <
+    if (messageSize <=
         (headerSize + optionsSize + static_cast<unsigned char>(lastByte))) {
         BALL_LOG_ERROR << partitionDesc()
                        << "Received DATA record with invalid"
