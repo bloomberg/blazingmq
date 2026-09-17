@@ -26,14 +26,14 @@ Plugins in this category export broker metrics and statistics (for example, the
 
 ### Authenticators
 
-Plugins in this category authenticate client credentials during connection setup.
-
-- **Built-in authenticators** are provided by the broker task and do not
-  require external plugin libraries (see
-  [Built-in Authenticators](security.md#built-in-authenticators)).
-- **Custom authenticators** are loaded from external shared libraries via
-  plugin configuration (see [Writing a Custom Authenticator
-  Plugin](#writing-a-custom-authenticator-plugin)).
+Plugins in this category authenticate client credentials during connection
+setup.  The BlazingMQ broker task provides a few [built-in
+authenticators](security.md#built-in-authenticators) that do not require
+external plugin libraries, but a plugin library can provide custom
+authenticators to support additional authentication mechanisms, or to
+implement the built-in mechanisms differently.  See [Writing a Custom
+Authenticator Plugin](#writing-a-custom-authenticator-plugin) for more
+details.
 
 ### Loading and Enabling Plugins
 

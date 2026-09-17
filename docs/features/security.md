@@ -41,20 +41,31 @@ Key capabilities:
 > configure an authenticator and set `anonymousCredential` to `disallow`
 > (see [Configuration](#configuration)).
 
+### Authenticators
+
+Authentication in BlazingMQ is managed by the *authenticators* configured on
+the broker.  Each authenticator implements a specific **mechanism** (e.g.
+`BASIC`, `JWT`), and the set of authenticators configured on a broker
+determines which mechanisms its clients may use to authenticate.
+
+The broker provides a set of [built-in authenticators](#built-in-authenticators);
+additional authenticators can be supplied through the broker's
+[plugin mechanism](plugins.md).
+
 ### How Authentication Works in BlazingMQ
 
 The following sequence shows the authentication and negotiation flow when a
-client connects and provides credentials:
+client connects:
 
 ```mermaid
 sequenceDiagram
     participant Client
     participant Broker
-    participant Plugin as Authenticator Plugin
+    participant Authenticator
 
     Client->>Broker: AuthenticationRequest (mechanism, data)
-    Broker->>Plugin: authenticate(AuthenticationData)
-    Plugin-->>Broker: AuthenticationResult (principal, lifetimeMs)
+    Broker->>Authenticator: authenticate(AuthenticationData)
+    Authenticator-->>Broker: AuthenticationResult (principal, lifetimeMs)
     Broker-->>Client: AuthenticationResponse (status, lifetimeMs)
     Note over Broker,Client: On failure, broker closes connection
 
@@ -64,10 +75,10 @@ sequenceDiagram
     Note over Client,Broker: Session established
 
     opt successful auth result includes lifetimeMs
-        Note over Client: Reauthenticate at 90% of lifetime
+        Note over Client: Reauthenticate before expiry
         Client->>Broker: AuthenticationRequest (refresh)
-        Broker->>Plugin: authenticate(AuthenticationData)
-        Plugin-->>Broker: AuthenticationResult
+        Broker->>Authenticator: authenticate(AuthenticationData)
+        Authenticator-->>Broker: AuthenticationResult
         Broker-->>Client: AuthenticationResponse
     end
 ```
@@ -76,19 +87,18 @@ sequenceDiagram
    name (e.g. `"BASIC"`) and credential data (mechanism-specific binary
    payload).
 
-2. The broker looks up the **authenticator plugin** registered for that
-   mechanism and calls its `authenticate()` method in the authentication thread
-   pool.
+2. The broker looks up the **authenticator** registered for that mechanism and
+   calls its `authenticate()` method in the authentication thread pool.
 
-3. The plugin returns an **`AuthenticationResult`** with a human-readable
-   `principal` and an optional `lifetimeMs`.
+3. The authenticator returns an **`AuthenticationResult`** with a
+   human-readable `principal` and an optional `lifetimeMs`.
 
 4. The broker sends an **`AuthenticationResponse`** back to the client.  On
    success, session negotiation proceeds.  On failure, the broker closes the
    connection (see [Failure Handling](#failure-handling) below).
 
-5. If `lifetimeMs` is present, the client SDK schedules reauthentication at
-  **90 % of the lifetime** so authentication is renewed before expiry.
+5. If `lifetimeMs` is present, the client SDK schedules reauthentication
+  before the lifetime duration expires.
 
 Clients that do not support authentication, or are not configured to
 authenticate, are handled by the **anonymous credential** policy (see
@@ -101,9 +111,9 @@ closes the connection.  The SDK automatically reconnects and retries until it
 succeeds or the configured session connect timeout elapses (see
 `connectTimeout` in `SessionOptions`).
 
-**Reauthentication failure.**  The broker closes the connection if a
-reauthentication attempt is rejected or if the client does not reauthenticate
-before its credential expires.  The SDK reconnects and retries as above.
+**Reauthentication failure.**  If reauthentication is rejected, or the client
+does not reauthenticate before expiry, the broker closes the connection.  The
+client SDK may then reconnect according to its normal retry behavior.
 
 ### Configuration
 
@@ -118,7 +128,7 @@ Authentication is configured in the broker configuration file
     "authentication": {
       "authenticators": [
         {
-          "name": "<plugin-name>",
+          "name": "<authenticator-name>",
           "settings": [
             { "key": "<key>", "value": { "stringVal": "<val>" } }
           ]
@@ -134,51 +144,33 @@ Authentication is configured in the broker configuration file
 
 | Field | Description |
 |-------|-------------|
-| `authenticators` | List of authenticator plugin configurations.  Each entry names a plugin and provides its settings.  All plugins must have unique mechanisms. |
+| `authenticators` | List of authenticator configurations.  Each entry names an authenticator and provides its settings.  All configured authenticators must have unique mechanisms. |
 | `anonymousCredential` | Controls what happens when a client does not authenticate.  See below. |
 | `minThreads` | Minimum number of threads in the authentication thread pool (default: 1). |
 | `maxThreads` | Maximum number of threads in the authentication thread pool (default: 8). |
 
 #### Anonymous credential
 
-The `anonymousCredential` field is a choice between two options:
+`anonymousCredential` controls what the broker does with a client that connects
+and negotiates a session "anonymously" without sending an
+`AuthenticationRequest`.  It may be omitted, or set to one of two options:
 
-| Option | Effect |
-|--------|--------|
-| `"disallow": {}` | Reject all unauthenticated clients.  Every client **must** authenticate. |
-| `"credential": { "mechanism": "<m>", "identity": "<id>" }` | Authenticate unauthenticated clients using the given mechanism and identity.  The broker forwards the identity to the matching authenticator plugin as if the client had sent it. |
+| Setting | Effect |
+|---------|--------|
+| *omitted* | The broker implicitly adds the built-in `AnonAuthenticator` in addition to any configured authenticators, and authenticates these clients with mechanism `ANONYMOUS` and an empty identity.  They are accepted with the principal `"anonymous"`. |
+| `"disallow": {}` | Reject unauthenticated clients.  Every client must authenticate explicitly. |
+| `"credential": { "mechanism": "<m>", "identity": "<id>" }` | Authenticate anonymous clients as if they had sent an `AuthenticationRequest` with `<m>` and `<id>` (e.g. `"BASIC"` and `"alice:<password>"`).  Mechanism `<m>` must be a configured authentication mechanism or the broker will not start. |
 
-When `anonymousCredential` is **omitted entirely**, the built-in
-`AnonAuthenticator` is used and all unauthenticated connections are accepted
-with the principal `"anonymous"`.
+{: .warning }
+> Configuring an authenticator does **not** disable anonymous access.  A broker
+> with `BasicAuthenticator` configured and `anonymousCredential` omitted still
+> accepts unauthenticated clients as `"anonymous"`.  Set
+> `"anonymousCredential": { "disallow": {} }` to require credentials.
 
-#### Example: Basic authenticator with two users
-
-```json
-{
-  "appConfig": {
-    "authentication": {
-      "authenticators": [
-        {
-          "name": "BasicAuthenticator",
-          "settings": [
-            { "key": "alice", "value": { "stringVal": "<password>" } },
-            { "key": "bob",   "value": { "stringVal": "<password>" } }
-          ]
-        }
-      ],
-      "anonymousCredential": { "disallow": {} }
-    }
-  }
-}
-```
-
-This configuration:
-
-- Enables the built-in `BasicAuthenticator` with credentials for `alice` and
-  `bob`.
-- Disallows anonymous connections -- every client must authenticate with a
-  valid username and password.
+{: .note }
+> Listing `AnonAuthenticator` in `authenticators` while `anonymousCredential` is
+> omitted is rejected at startup.  Configure `anonymousCredential` explicitly if
+> you configure `AnonAuthenticator`.
 
 #### Example: external plugin authenticator
 
@@ -212,25 +204,41 @@ one.
 
 ### Built-in Authenticators
 
-BlazingMQ ships with two built-in authenticator plugins.
+BlazingMQ ships with two built-in authenticators.  They are part of the broker
+task and do not require a plugin library.
 
 #### AnonAuthenticator
 
+{: .warning }
+> `AnonAuthenticator` does not verify client identity and is not secure.  It is
+> intended for development and testing only and is not suitable for production
+> use.
+
 | Property | Value |
 |----------|-------|
-| Plugin name | `AnonAuthenticator` |
+| Name | `AnonAuthenticator` |
 | Mechanism | `ANONYMOUS` |
-| Credential format | N/A |
+| Credential format | N/A (the credential payload is ignored) |
 | Session lifetime | None (no reauthentication) |
 
-`AnonAuthenticator` always succeeds, returning the principal `"anonymous"`.
-It is the default authenticator when `anonymousCredential` is not configured.
+`AnonAuthenticator` ignores the credential and returns the principal
+`"anonymous"`.  The broker adds it automatically when `anonymousCredential` is
+omitted, or when no authenticators are configured at all.
+
+It takes one optional setting, `shouldPass` (a `boolVal`, default `true`).
+Setting it to `false` makes the authenticator reject every request, which is
+useful for testing.
 
 #### BasicAuthenticator
 
+{: .warning }
+> `BasicAuthenticator` does not encrypt credentials.  It is not suitable for
+> insecure environments and should only be used over connections protected by
+> TLS.
+
 | Property | Value |
 |----------|-------|
-| Plugin name | `BasicAuthenticator` |
+| Name | `BasicAuthenticator` |
 | Mechanism | `BASIC` |
 | Credential format | `username:password` (UTF-8 bytes) |
 | Session lifetime | 600 seconds (10 minutes), then reauthentication is required |
@@ -255,6 +263,10 @@ reconnection, and credential renewal before the current credentials expire.
 
 If no credential callback is registered, the SDK connects without
 authentication.
+
+The following examples use a `BASIC` credential for demonstration and assume
+the broker is configured with a matching `BasicAuthenticator` username and
+password.
 
 #### C++ SDK
 
