@@ -25,6 +25,7 @@
 
 // MQB
 #include <mqbcfg_messages.h>
+#include <mqbnet_authenticationclient.h>
 #include <mqbnet_authenticationcontext.h>
 
 // BMQ
@@ -36,6 +37,11 @@
 #include <bsl_ostream.h>
 
 namespace BloombergLP {
+
+// FORWARD DECLARATION
+namespace bmqio {
+class Channel;
+}
 
 namespace mqbnet {
 
@@ -86,14 +92,15 @@ class Authenticator {
         const bsl::shared_ptr<AuthenticationContext>& context_sp,
         const bsl::shared_ptr<bmqio::Channel>&        channel) = 0;
 
-    /// Produce and send outbound authentication message with the specified
-    /// `context_sp`.  Return 0 on success, or a non-zero error code and
-    /// populate the specified `errorDescription` with a description of the
-    /// error otherwise.
-    /// TODO: Rethink the need for this method in the interface.
-    virtual int authenticationOutbound(
-        bsl::ostream&                                 errorDescription,
-        const bsl::shared_ptr<AuthenticationContext>& context_sp) = 0;
+    /// @brief Create a client-side authenticator for the specified outbound
+    ///        `channel`.
+    ///
+    /// @param channel The outbound channel to authenticate.
+    ///
+    /// @return A new AuthenticationClient, or an empty shared pointer if this
+    ///         broker is not configured to authenticate with other brokers.
+    virtual bsl::shared_ptr<AuthenticationClient> createAuthenticationClient(
+        const bsl::shared_ptr<bmqio::Channel>& channel) = 0;
 
     // ACCESSORS
 

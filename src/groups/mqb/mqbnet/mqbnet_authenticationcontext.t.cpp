@@ -326,7 +326,9 @@ static void test4_reauthenticationBeforeTimeout()
     BMQTST_ASSERT_EQ(tb.d_channel->numCloseCalls(), 0u);
 
     // 4) Simulate reauthentication starting
-    const bool started = ctx->tryStartReauthentication();
+    bmqp_ctrlmsg::AuthenticationMessage authnMsg;
+    const bool                          started =
+        ctx->tryStartReauthentication(authnMsg, bmqp::EncodingType::e_BER);
     BMQTST_ASSERT(started);
 
     // 5) Reauthenticate with a new lifetime

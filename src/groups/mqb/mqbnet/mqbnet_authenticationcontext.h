@@ -30,6 +30,7 @@
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_protocol.h>
+#include <bmqu_atomicgate.h>
 #include <bmqu_sharedresource.h>
 
 // BDE
@@ -130,6 +131,12 @@ class AuthenticationContext {
     /// Scheduler used to schedule and cancel the reauthentication timer.
     bdlmt::EventScheduler* d_scheduler_p;
 
+    /// Gate entered by the scheduled reauthentication callbacks.  Closed once
+    /// the channel is closing, so that those callbacks can be cancelled and
+    /// drained without contending on `d_mutex`.  Declared before `d_self` so
+    /// that it outlives the callbacks `d_self` waits for.
+    bmqu::GateKeeper d_gateKeeper;
+
     /// Used to make sure no callback is invoked on a destroyed object.
     bmqu::SharedResource<AuthenticationContext> d_self;
 
@@ -194,15 +201,6 @@ class AuthenticationContext {
     void setAuthenticationResult(
         const bsl::shared_ptr<mqbplug::AuthenticationResult>& value);
 
-    // NOTE: AuthenticationMessage and encodingType are set only during
-    // reauthentication when AuthenticationState is e_AUTHENTICATED.
-    // authenticationMessage() and encodingType() are called only when
-    // AuthenticationState is e_AUTHENTICATING.  Hence, no need for mutex
-    // protection.
-    void
-    setAuthenticationMessage(const bmqp_ctrlmsg::AuthenticationMessage& value);
-    void setAuthenticationEncodingType(bmqp::EncodingType::Enum value);
-
     void resetAuthenticationMessage();
 
     /// @brief Mark as authenticated and schedule a reauthentication timer.
@@ -237,16 +235,26 @@ class AuthenticationContext {
                             int                                    errorCode,
                             const bsl::string& errorDescription);
 
-    /// @brief Cancel any outstanding reauthentication timer when the channel
-    ///        is closing.
+    /// @brief Stop reauthenticating the channel that is closing.  This context
+    ///        cannot be reauthenticated afterwards.  May be called more than
+    ///        once.
     void onClose();
 
-    /// Attempt to begin reauthentication by transitioning the state from
-    /// AUTHENTICATED to AUTHENTICATING.
-    /// Return true if the transition occurred (i.e. state was AUTHENTICATED);
-    /// otherwise return false (already authenticating, closed, or not yet
-    /// authenticated).
-    bool tryStartReauthentication();
+    /// @brief Attempt to begin reauthentication with the specified
+    ///        `authenticationMessage` and `encodingType`.
+    ///
+    /// The message and the encoding are adopted only if reauthentication
+    /// starts, so that a request arriving while another one is in flight
+    /// cannot disturb it.
+    ///
+    /// @param authenticationMessage The request to authenticate.
+    /// @param encodingType The encoding to answer the request with.
+    ///
+    /// @return true if reauthentication started, or false if this context is
+    ///         already authenticating, closed, or not yet authenticated.
+    bool tryStartReauthentication(
+        const bmqp_ctrlmsg::AuthenticationMessage& authenticationMessage,
+        bmqp::EncodingType::Enum                   encodingType);
 
     // ACCESSORS
     const bsl::shared_ptr<mqbplug::AuthenticationResult>&

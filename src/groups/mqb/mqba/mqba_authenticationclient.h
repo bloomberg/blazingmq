@@ -149,6 +149,10 @@ class AuthenticationClient : public mqbnet::AuthenticationClient {
     int handleResponse(bsl::ostream& errorDescription,
                        const bmqp_ctrlmsg::AuthenticationMessage& response)
         BSLS_KEYWORD_OVERRIDE;
+
+    /// @brief Stop reauthenticating and release the channel.  This client
+    ///        cannot be used afterwards.  May be called more than once.
+    void onClose() BSLS_KEYWORD_OVERRIDE;
 };
 
 }  // close package namespace

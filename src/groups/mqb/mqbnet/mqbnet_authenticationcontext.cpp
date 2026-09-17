@@ -109,6 +109,7 @@ AuthenticationContext::AuthenticationContext(
     bslma::Allocator*                          allocator)
 : d_allocator_p(allocator)
 , d_scheduler_p(scheduler)
+, d_gateKeeper()
 , d_self(this)  // use default allocator
 , d_mutex()
 , d_authenticationResultSp()
@@ -121,30 +122,14 @@ AuthenticationContext::AuthenticationContext(
 {
     // PRECONDITION
     BSLS_ASSERT_SAFE(d_scheduler_p);
+
+    d_gateKeeper.open();
 }
 
 void AuthenticationContext::setAuthenticationResult(
     const bsl::shared_ptr<mqbplug::AuthenticationResult>& value)
 {
     d_authenticationResultSp = value;
-}
-
-void AuthenticationContext::setAuthenticationMessage(
-    const bmqp_ctrlmsg::AuthenticationMessage& value)
-{
-    // PRECONDITION
-    BSLS_ASSERT_SAFE(d_state == AuthenticationState::e_AUTHENTICATED);
-
-    d_authenticationMessage = value;
-}
-
-void AuthenticationContext::setAuthenticationEncodingType(
-    bmqp::EncodingType::Enum value)
-{
-    // PRECONDITION
-    BSLS_ASSERT_SAFE(d_state == AuthenticationState::e_AUTHENTICATED);
-
-    d_encodingType = value;
 }
 
 void AuthenticationContext::resetAuthenticationMessage()
@@ -203,19 +188,20 @@ void AuthenticationContext::onReauthenticationTimeout(
     const bsl::weak_ptr<bmqio::Channel>& channel_wp,
     bsls::Types::Uint64                  timeoutMs)
 {
+    // executed by the *SCHEDULER* thread
+
+    // Do not take 'd_mutex' here: the callers of 'cancelEventAndWait' hold it
+    // while waiting for this callback to return.
+    bmqu::GateKeeper::Status gateStatus(d_gateKeeper);
+    if (!gateStatus.isOpen()) {
+        return;  // RETURN
+    }
+
     bsl::shared_ptr<bmqio::Channel> channel_sp = channel_wp.lock();
     if (!channel_sp) {
         // The channel has already been destroyed; nothing to close.
-        return;
+        return;  // RETURN
     }
-
-    {
-        bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
-
-        if (d_state == AuthenticationState::e_CLOSED) {
-            return;
-        }
-    }  // UNLOCK
 
     BALL_LOG_ERROR << "Reauthentication timeout for '" << channel_sp->peerUri()
                    << "': not received within " << timeoutMs << " ms";
@@ -258,26 +244,36 @@ void AuthenticationContext::onClose()
 {
     // executed by *ANY* thread
 
-    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
+    {
+        bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
 
-    if (d_state == AuthenticationState::e_CLOSED) {
-        return;  // idempotent
-    }
-    d_state = AuthenticationState::e_CLOSED;
+        if (d_state == AuthenticationState::e_CLOSED) {
+            return;  // RETURN
+        }
+        d_state = AuthenticationState::e_CLOSED;
+    }  // UNLOCK
 
+    // Close the gate first, so that no new reauthentication timeout can start
+    // after the cancel below.
+    d_gateKeeper.close();
     d_scheduler_p->cancelEventAndWait(&d_timeoutHandle);
 }
 
-bool AuthenticationContext::tryStartReauthentication()
+bool AuthenticationContext::tryStartReauthentication(
+    const bmqp_ctrlmsg::AuthenticationMessage& authenticationMessage,
+    bmqp::EncodingType::Enum                   encodingType)
 {
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCKED
 
-    if (d_state == AuthenticationState::e_AUTHENTICATED) {
-        d_state = AuthenticationState::e_AUTHENTICATING;
-        return true;
+    if (d_state != AuthenticationState::e_AUTHENTICATED) {
+        return false;  // RETURN
     }
 
-    return false;
+    d_authenticationMessage = authenticationMessage;
+    d_encodingType          = encodingType;
+    d_state                 = AuthenticationState::e_AUTHENTICATING;
+
+    return true;
 }
 
 const bsl::shared_ptr<mqbplug::AuthenticationResult>&

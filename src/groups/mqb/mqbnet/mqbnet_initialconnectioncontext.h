@@ -22,7 +22,9 @@
 /// InitialConnectionContext owns the transient state needed while a
 /// connection is performing the initial handshake (authentication followed
 /// by negotiation, or direct negotiation with implicit/anonymous
-/// authentication).
+/// authentication).  An outbound connection authenticates itself first when
+/// this broker is configured to authenticate with other brokers, and
+/// negotiates directly otherwise.
 ///
 /// Responsibilities:
 /// - Hold caller‐supplied opaque pointers (user data / result state) so they
@@ -38,6 +40,38 @@
 /// A single instance is created per inbound or outbound connection attempt
 /// and is discarded once the session is fully negotiated or the attempt
 /// fails.
+///
+/// States, with the event driving each transition in brackets:
+///
+/// - Inbound, authentication is ON:
+///
+///   INITIAL        -[AUTHN_REQUEST]->
+///   AUTHENTICATING -[AUTHN_SUCCESS]->
+///   AUTHENTICATED  -[NEGOTIATION_MESSAGE]->
+///   NEGOTIATED
+///
+/// - Inbound, authentication is OFF:
+///
+///   INITIAL             -[NEGOTIATION_MESSAGE]->
+///   ANON_AUTHENTICATING -[AUTHN_SUCCESS]->
+///   NEGOTIATED
+///
+/// - Outbound, authentication is ON:
+///
+///   INITIAL                 -[OUTBOUND_AUTHENTICATION]->
+///   AUTHENTICATING_OUTBOUND -[AUTHN_RESPONSE]->
+///   NEGOTIATING_OUTBOUND    -[NEGOTIATION_MESSAGE]->
+///   NEGOTIATED
+///
+/// - Outbound, authentication is OFF:
+///
+///   INITIAL              -[OUTBOUND_NEGOTIATION]->
+///   NEGOTIATING_OUTBOUND -[NEGOTIATION_MESSAGE]->
+///   NEGOTIATED
+///
+/// Any state moves to `FAILED` on `ERROR`, on an event it does not expect,
+/// or when handling the event fails.  The session is created on reaching
+/// `NEGOTIATED`.
 
 // MQB
 #include <mqbnet_authenticator.h>
@@ -83,13 +117,23 @@ class NegotiationContext;
 struct InitialConnectionState {
     // TYPES
     enum Enum {
-        e_INITIAL             = 0,  // Initial state.
-        e_AUTHENTICATING      = 1,  // First message is authentication Request.
-        e_AUTHENTICATED       = 2,  // Authentication success.
-        e_ANON_AUTHENTICATING = 3,  // First message is Negotiation Request.
-        e_NEGOTIATING_OUTBOUND = 4,  // Outbound negotiation.
-        e_NEGOTIATED           = 5,  // Negotiation success.  Final state.
-        e_FAILED               = 6   // Final state.
+        /// Nothing has been sent or received yet.
+        e_INITIAL = 0,
+        /// Authenticating a peer that sent an AuthenticationRequest.
+        e_AUTHENTICATING = 1,
+        /// The peer is authenticated, its negotiation message is awaited.
+        e_AUTHENTICATED = 2,
+        /// Authenticating a peer that sent a negotiation message without
+        /// authenticating first.
+        e_ANON_AUTHENTICATING = 3,
+        /// Authenticating this broker to the peer it connected to.
+        e_AUTHENTICATING_OUTBOUND = 4,
+        /// Negotiating with the peer this broker connected to.
+        e_NEGOTIATING_OUTBOUND = 5,
+        /// Negotiation succeeded.  Final state.
+        e_NEGOTIATED = 6,
+        /// The initial connection failed.  Final state.
+        e_FAILED = 7
     };
 
     // CLASS METHODS
@@ -143,13 +187,25 @@ bsl::ostream& operator<<(bsl::ostream&                stream,
 struct InitialConnectionEvent {
     // TYPES
     enum Enum {
-        e_NONE                 = 0,
-        e_OUTBOUND_NEGOTIATION = 1,
-        e_INCOMING             = 2,
-        e_AUTHN_REQUEST        = 3,
-        e_NEGOTIATION_MESSAGE  = 4,
-        e_AUTHN_SUCCESS        = 5,
-        e_ERROR                = 6
+        /// No-op for the state machine.
+        e_NONE = 0,
+        /// A peer connected to this broker.
+        e_INCOMING = 1,
+        /// Received an AuthenticationRequest from a peer.
+        e_AUTHN_REQUEST = 2,
+        /// Authentication of a peer succeeded.
+        e_AUTHN_SUCCESS = 3,
+        /// Start authenticating this broker to the peer it connected to.
+        e_OUTBOUND_AUTHENTICATION = 4,
+        /// Received an AuthenticationResponse from the peer this broker
+        /// connected to.
+        e_AUTHN_RESPONSE = 5,
+        /// Start negotiating with the peer this broker connected to.
+        e_OUTBOUND_NEGOTIATION = 6,
+        /// Received a negotiation message from a peer.
+        e_NEGOTIATION_MESSAGE = 7,
+        /// The initial connection failed.
+        e_ERROR = 8
     };
 
     // CLASS METHODS
@@ -284,6 +340,11 @@ class InitialConnectionContext {
     /// authentication message.
     bsl::shared_ptr<AuthenticationContext> d_authenticationCtx_sp;
 
+    /// The client-side authenticator driving authentication of an outbound
+    /// connection.  Empty for an incoming connection, and for an outbound one
+    /// when this broker is not configured to authenticate with other brokers.
+    bsl::shared_ptr<AuthenticationClient> d_authenticationClient_sp;
+
     /// The NegotiationContext updated upon receiving a negotiation message.
     bsl::shared_ptr<NegotiationContext> d_negotiationCtx_sp;
 
@@ -322,7 +383,10 @@ class InitialConnectionContext {
 
     // CREATORS
 
-    /// Create a new object having the specified `isIncoming` value.
+    /// @brief Create a new object having the specified `isIncoming` value.
+    ///
+    /// An outbound connection also gets its client-side authenticator here,
+    /// so that the context is complete before the channel can report a close.
     InitialConnectionContext(
         bool                                        isIncoming,
         mqbnet::Authenticator*                      authenticator,
@@ -380,6 +444,12 @@ class InitialConnectionContext {
     /// Create and initialize a `NegotiationContext`.
     void createNegotiationContext();
 
+    /// Send the outbound negotiation message and schedule a read for the
+    /// peer's response.  Return 0 on success, or a non-zero code and populate
+    /// the specified `errorDescription` with a description of the error
+    /// otherwise.
+    int startOutboundNegotiation(bsl::ostream& errorDescription);
+
     /// Perform anonymous authentication using the anonymous credential for the
     /// current context.  Return a non-zero code on error and
     /// populate the specified `errorDescription` with a description of the
@@ -429,7 +499,8 @@ class InitialConnectionContext {
     bmqp::EncodingType::Enum               authenticationEncodingType() const;
     const bsl::shared_ptr<AuthenticationContext>&
                                                authenticationContext() const;
-    const bsl::shared_ptr<NegotiationContext>& negotiationContext() const;
+    const bsl::shared_ptr<AuthenticationClient>& authenticationClient() const;
+    const bsl::shared_ptr<NegotiationContext>&   negotiationContext() const;
     bool                                       isClosed() const;
     InitialConnectionState::Enum               state() const;
     bool                                       hasFinalState() const;
