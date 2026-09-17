@@ -326,8 +326,10 @@ class Channel {
     };
 
     struct Stats {
+        /// Number of `d_numItems` counters; one per `bmqp::EventType::Enum`
+        /// value, indexed by that value.
         static const int k_MAX_ITEM_TYPE =
-            bmqp::EventType::e_REPLICATION_RECEIPT + 1;
+            bmqp::EventType::k_HIGHEST_SUPPORTED_EVENT_TYPE + 1;
 
         bsls::AtomicUint d_numItems[k_MAX_ITEM_TYPE];
 
