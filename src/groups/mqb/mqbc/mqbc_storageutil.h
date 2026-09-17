@@ -307,17 +307,19 @@ struct StorageUtil {
                            int                    partitionId,
                            bslma::Allocator*      allocator);
 
-    /// Initiate the rollover of the partition out of the specified
-    /// `fileStores` having the specified `partitionId` and arrive on the
-    /// specified `latch` upon completion. Return error code via the specified
-    /// `rc`.
+    /// @brief Roll over the partition with the specified `partitionId` out of
+    /// the specified `fileStores`, and arrive on the specified `latch` upon
+    /// completion.
+    ///
+    /// @param[out] rc 0 on success, or a non-zero code if the rollover did not
+    ///                happen, notably when the partition is not open.
     ///
     /// THREAD: Executed by the Queue's dispatcher thread for the specified
     ///         `partitionId`.
-    static void doRolloverDispatched(bslmt::Latch* latch,
-                                     int*          rc,
-                                     int           partitionId,
-                                     FileStores*   fileStores);
+    static void doRolloverDispatched(int*          rc,
+                                     bslmt::Latch* latch,
+                                     FileStores*   fileStores,
+                                     int           partitionId);
 
     /// Load the summary of the partitions of the spcified `fileStores` at
     /// the specified `location` to the specified `result` object.

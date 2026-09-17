@@ -662,10 +662,10 @@ void StorageUtil::doRollover(mqbcmd::StorageResult* result,
         for (unsigned int i = 0; i < fileStores->size(); ++i) {
             mqbs::FileStore* fs = fileStores->at(i).get();
             fs->execute(bdlf::BindUtil::bind(&doRolloverDispatched,
-                                             &latch,
                                              &rcs[i],
-                                             i,
-                                             fileStores));
+                                             &latch,
+                                             fileStores,
+                                             i));
         }
 
         // Wait
@@ -696,10 +696,10 @@ void StorageUtil::doRollover(mqbcmd::StorageResult* result,
 
         mqbs::FileStore* fs = fileStores->at(partitionId).get();
         fs->execute(bdlf::BindUtil::bind(&doRolloverDispatched,
-                                         &latch,
                                          &rc,
-                                         partitionId,
-                                         fileStores));
+                                         &latch,
+                                         fileStores,
+                                         partitionId));
 
         // Wait
         latch.wait();
@@ -717,22 +717,31 @@ void StorageUtil::doRollover(mqbcmd::StorageResult* result,
     }
 }
 
-void StorageUtil::doRolloverDispatched(bslmt::Latch* latch,
-                                       int*          rc,
-                                       int           partitionId,
-                                       FileStores*   fileStores)
+void StorageUtil::doRolloverDispatched(int*          rc,
+                                       bslmt::Latch* latch,
+                                       FileStores*   fileStores,
+                                       int           partitionId)
 {
     // executed by *QUEUE_DISPATCHER* thread with the specified 'partitionId'
 
     // PRECONDITIONS
+    BSLS_ASSERT_SAFE(rc);
     BSLS_ASSERT_SAFE(latch);
+    BSLS_ASSERT_SAFE(fileStores);
 
     mqbs::FileStore* fs = fileStores->at(partitionId).get();
 
     BSLS_ASSERT_SAFE(fs && fs->inDispatcherThread());
-    BSLS_ASSERT_SAFE(fs->isOpen());
 
-    *rc = fs->rollover();
+    if (fs->isOpen()) {
+        *rc = fs->rollover();
+    }
+    else {
+        BALL_LOG_WARN << fs->description()
+                      << ": rollover rejected because the partition is not "
+                      << "open.";
+        *rc = -1;
+    }
 
     latch->arrive();
 }
