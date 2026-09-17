@@ -3029,8 +3029,18 @@ int FileStore::rolloverImpl(bsls::Types::Uint64 timestamp)
                            "ROLLOVER - STEP 2 (TRUNCATE)");
     }
 
-    const bool lastReference = (activeFileSet->numReferences() == 1);
-    if (lastReference) {
+    // Number of references to the old file set held by anyone other than this
+    // file store.
+    const long numOutstandingRefs = activeFileSet->numReferences() - 1;
+
+    // The reference held by this file store on the old file set.  Dropping it
+    // may start the garbage collection of that file set, which must not happen
+    // while that file set is still the active one.  It is therefore released
+    // only when this routine returns, i.e. once the new file set has been made
+    // active.
+    FileSetSp oldFileSetRef;
+
+    if (0 == numOutstandingRefs) {
         activeFileSet->d_inlineGc = true;
 
         BALL_LOG_INFO_BLOCK
@@ -3062,9 +3072,9 @@ int FileStore::rolloverImpl(bsls::Types::Uint64 timestamp)
         BSLS_ASSERT_SAFE(rc == 0);
     }
     else {
-        activeFileSet->d_aliasedChunk_sp.reset();
+        oldFileSetRef.swap(activeFileSet->d_aliasedChunk_sp);
         BALL_LOG_INFO << partitionDesc() << "Rollover: number of references to"
-                      << " old file set: " << activeFileSet->numReferences();
+                      << " old file set: " << numOutstandingRefs;
         BSLS_ASSERT_SAFE(activeFileSet->d_data.d_file.isValid());
         BSLS_ASSERT_SAFE(activeFileSet->d_journal.d_file.isValid());
         if (d_qListAware) {
@@ -5657,8 +5667,11 @@ int FileStore::close(bool flush, bool archive)
     // Failure to truncate is non-fatal.  No need to check rc.
     truncate(activeFileSet);
 
-    const bool lastReference = (activeFileSet->numReferences() == 1);
-    if (lastReference) {
+    // Number of references to the active file set held by anyone other than
+    // this file store.
+    const long numOutstandingRefs = activeFileSet->numReferences() - 1;
+
+    if (0 == numOutstandingRefs) {
         activeFileSet->d_inlineGc = true;
 
         BALL_LOG_INFO_BLOCK
@@ -5712,10 +5725,14 @@ int FileStore::close(bool flush, bool archive)
         d_fileSets.erase(d_fileSets.begin());
     }
     else {
-        activeFileSet->d_aliasedChunk_sp.reset();
-        BALL_LOG_INFO << partitionDesc() << "Closing: number of references to "
-                      << "active file set: " << activeFileSet->numReferences();
         BSLS_ASSERT_SAFE(!archive);
+
+        BALL_LOG_INFO << partitionDesc() << "Closing: number of references to "
+                      << "active file set: " << numOutstandingRefs;
+
+        // Dropping the last reference garbage-collects the file set, so
+        // 'activeFileSet' must not be used past this point.
+        activeFileSet->d_aliasedChunk_sp.reset();
     }
 
     return rc_SUCCESS;
