@@ -2666,7 +2666,7 @@ int FileStore::recoverMessages(QueueKeyInfoMap*     queueKeyInfoMap,
                 return rc_INVALID_DATA_RECORD;  // RETURN
             }
 
-            if (totalLen < (headerSize + optionsSize + lastByte)) {
+            if (totalLen <= (headerSize + optionsSize + lastByte)) {
                 BALL_LOG_ERROR
                     << partitionDesc() << "MESSAGE record with GUID ["
                     << rec.messageGUID() << "], queueKey [" << rec.queueKey()
