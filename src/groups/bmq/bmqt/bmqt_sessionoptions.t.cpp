@@ -52,6 +52,49 @@ static void test1_breathingTest()
                         bmqtst::TestHelperUtil::allocator());
         BMQTST_ASSERT_EQ(str, sessionOptions.brokerUri());
     }
+
+    // Make sure the remaining default-value constants are in sync with the
+    // values used by the default constructor.
+    {
+        PV("CHECKING remaining default-value constants");
+        const int numProcessingThreads =
+            bmqt::SessionOptions::k_NUM_PROCESSING_THREADS_DEFAULT;
+        BMQTST_ASSERT_EQ(sessionOptions.numProcessingThreads(),
+                         numProcessingThreads);
+
+        const int blobBufferSize =
+            bmqt::SessionOptions::k_BLOB_BUFFER_DEFAULT_SIZE;
+        BMQTST_ASSERT_EQ(sessionOptions.blobBufferSize(), blobBufferSize);
+
+        const bsls::Types::Int64 channelHighWatermark =
+            bmqt::SessionOptions::k_CHANNEL_HIGH_WATERMARK_DEFAULT;
+        BMQTST_ASSERT_EQ(sessionOptions.channelHighWatermark(),
+                         channelHighWatermark);
+
+        const bsls::TimeInterval statsDumpInterval(
+            bmqt::SessionOptions::k_STATS_DUMP_DEFAULT_INTERVAL_SEC);
+        BMQTST_ASSERT_EQ(sessionOptions.statsDumpInterval(),
+                         statsDumpInterval);
+
+        const bsls::TimeInterval connectTimeout(
+            bmqt::SessionOptions::k_CONNECT_DEFAULT_TIMEOUT_SEC);
+        BMQTST_ASSERT_EQ(sessionOptions.connectTimeout(), connectTimeout);
+
+        const bsls::TimeInterval disconnectTimeout(
+            bmqt::SessionOptions::k_DISCONNECT_DEFAULT_TIMEOUT_SEC);
+        BMQTST_ASSERT_EQ(sessionOptions.disconnectTimeout(),
+                         disconnectTimeout);
+
+        const int eventQueueLowWatermark =
+            bmqt::SessionOptions::k_EVENT_QUEUE_LOW_WATERMARK_DEFAULT;
+        BMQTST_ASSERT_EQ(sessionOptions.eventQueueLowWatermark(),
+                         eventQueueLowWatermark);
+
+        const int eventQueueHighWatermark =
+            bmqt::SessionOptions::k_EVENT_QUEUE_HIGH_WATERMARK_DEFAULT;
+        BMQTST_ASSERT_EQ(sessionOptions.eventQueueHighWatermark(),
+                         eventQueueHighWatermark);
+    }
 }
 
 static void test2_printTest()
