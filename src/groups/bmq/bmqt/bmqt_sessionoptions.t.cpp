@@ -66,6 +66,11 @@ static void test1_breathingTest()
             bmqt::SessionOptions::k_BLOB_BUFFER_DEFAULT_SIZE;
         BMQTST_ASSERT_EQ(sessionOptions.blobBufferSize(), blobBufferSize);
 
+        const bsls::Types::Int64 channelLowWatermark =
+            bmqt::SessionOptions::k_CHANNEL_LOW_WATERMARK_DEFAULT;
+        BMQTST_ASSERT_EQ(sessionOptions.channelLowWatermark(),
+                         channelLowWatermark);
+
         const bsls::Types::Int64 channelHighWatermark =
             bmqt::SessionOptions::k_CHANNEL_HIGH_WATERMARK_DEFAULT;
         BMQTST_ASSERT_EQ(sessionOptions.channelHighWatermark(),
