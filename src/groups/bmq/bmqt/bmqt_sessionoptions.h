@@ -63,13 +63,16 @@
 ///   - *blobBufferSize*:
 ///      Size (in bytes) of the blob buffers to use. Default value is 4k.
 ///
-///   - *channelHighWatermark*:
-///      Size (in bytes) to use for write cache high watermark on the
-///      channel. Default value is 128MB. This value is set on the
-///      `writeCacheHiWatermark` of the `btemt_ChannelPoolConfiguration` object
-///      used by the session with the broker. Note that BlazingMQ reserves 4MB
-///      of this value for control message, so the actual watermark for data
-///      published is `channelHighWatermark - 4MB`.
+///   - *channelLowWatermark*,
+///     *channelHighWatermark*:
+///      Size (in bytes) of buffered outbound messages: sends block once
+///      `channelHighWatermark` is reached, and resume once the buffer has
+///      drained back down to `channelLowWatermark`.  The default values are
+///      512KB and 128MB, respectively; the high watermark must be greater
+///      than 8MB, and the low watermark must be less than the high
+///      watermark.  Note that BlazingMQ reserves 4MB of the high watermark
+///      for control messages, so the actual watermark applied to published
+///      data is `channelHighWatermark - 4MB`.
 ///
 ///   - *statsDumpInterval*:
 ///     Interval (in seconds) at which to dump stats in the logs. Set to 0 to
@@ -333,8 +336,17 @@ class SessionOptions {
 
     /// Set the specified `value` (in bytes) for the channel high
     /// watermark.  The behavior is undefined unless
-    /// `8 * 1024 * 1024 < value`.
+    /// `8 * 1024 * 1024 < value` and `channelLowWatermark() < value`.
     SessionOptions& setChannelHighWatermark(bsls::Types::Int64 value);
+
+    /// Set the channel low and high watermarks to the specified
+    /// `lowWatermark` and `highWatermark` values (in bytes), respectively.
+    /// Refer to the component level documentation for an explanation of
+    /// those watermarks.  The behavior is undefined unless
+    /// `0 <= lowWatermark`, `lowWatermark < highWatermark`, and
+    /// `8 * 1024 * 1024 < highWatermark`.
+    SessionOptions& setChannelWatermark(bsls::Types::Int64 lowWatermark,
+                                        bsls::Types::Int64 highWatermark);
 
     /// Set the statsDumpInterval to the specified `value`. The behavior is
     /// undefined unless `value` is a multiple of 30s and less than 60
@@ -534,11 +546,29 @@ SessionOptions::setChannelHighWatermark(bsls::Types::Int64 value)
 {
     // PRECONDITIONS
     BSLS_ASSERT_OPT(8 * 1024 * 1024 < value);
-    // We reserve 4MB for control message (see
-    // 'bmqimp::BrokerSession::k_CONTROL_DATA_WATERMARK_EXTRA') so make
-    // sure the provided value is greater than it.
+    // We reserve 4MB of 'value' for control messages (see
+    // 'bmqimp::BrokerSession::k_CONTROL_DATA_WATERMARK_EXTRA'), so the
+    // data watermark ends up being 'value - 4MB'.  We require 'value' to
+    // be more than double that reservation (i.e. > 8MB, not just > 4MB)
+    // so the data watermark itself keeps at least 4MB of headroom, rather
+    // than merely being positive.
+    BSLS_ASSERT_OPT(d_channelLowWatermark < value);
 
     d_channelHighWatermark = value;
+    return *this;
+}
+
+inline SessionOptions&
+SessionOptions::setChannelWatermark(bsls::Types::Int64 lowWatermark,
+                                    bsls::Types::Int64 highWatermark)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_OPT(0 <= lowWatermark);
+    BSLS_ASSERT_OPT(lowWatermark < highWatermark);
+    BSLS_ASSERT_OPT(8 * 1024 * 1024 < highWatermark);
+
+    d_channelLowWatermark  = lowWatermark;
+    d_channelHighWatermark = highWatermark;
     return *this;
 }
 
