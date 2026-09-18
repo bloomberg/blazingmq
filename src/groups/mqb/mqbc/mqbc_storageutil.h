@@ -382,6 +382,37 @@ struct StorageUtil {
     /// THREAD: Executed by the Queue's dispatcher thread for the specified
     ///         `fileStore`.
 
+    /// @brief Purge the queue with the specified `uri`, if it is registered.
+    ///
+    /// Look the queue up in the specified `storageMap` and purge it.  Load an
+    /// error into `purgedQueueResult` if the queue is not registered.  The
+    /// lookup is performed from the same thread which registers and
+    /// unregisters storages, so that the storage cannot be destroyed while it
+    /// is being purged.
+    ///
+    /// @param[out] purgedQueueResult The result of the operation.
+    /// @param purgeFinishedSemaphore Optional semaphore to notify the calling
+    ///                               thread that this operation has finished.
+    /// @param storageMap The storages of the partition owning the queue.
+    /// @param storagesLock The mutex controlling access to `storageMap`.
+    /// @param fileStore The FileStore of the partition owning the queue, used
+    ///                  to verify correctness and thread-safety of calling
+    ///                  this method.
+    /// @param uri The canonical URI of the queue to purge.
+    /// @param appId The appId to purge, or an empty string for the entire
+    ///              queue.
+    ///
+    /// THREAD: Executed by the Queue's dispatcher thread for the specified
+    ///         `fileStore`.
+    static void
+    purgeQueueByUriDispatched(mqbcmd::PurgeQueueResult* purgedQueueResult,
+                              bslmt::Semaphore*         purgeFinishedSemaphore,
+                              StorageSpMap*             storageMap,
+                              bslmt::Mutex*             storagesLock,
+                              const mqbs::FileStore*    fileStore,
+                              const bmqt::Uri&          uri,
+                              const bsl::string&        appId);
+
     /// Execute the specified `job` for each partition in the specified
     /// `fileStores`.  Each partition will receive its partitionId and a
     /// latch along with the `job`.  Each partition *must* call

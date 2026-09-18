@@ -20,8 +20,10 @@ commands.
 
 import dataclasses
 import json
+import re
+import threading
 import time
-from typing import Dict, Optional, Union
+from typing import Dict, List, Optional, Union
 
 import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import (
@@ -615,6 +617,119 @@ def test_purge_breathing(single_node: Cluster, domain_urls: tc.DomainUrls) -> No
         assert "Purged 0 message(s)" in res
 
     # Stop the admin session
+    admin.stop()
+
+
+def test_purge_and_queue_operations_safety(
+    single_node: Cluster, domain_urls: tc.DomainUrls
+) -> None:
+    """
+    Test: purge a queue concurrently with queue operations on the very same
+    queue.
+
+    Preconditions:
+    - Establish several admin sessions with the cluster: one to drive the
+      queue garbage collection, the others to purge.
+
+    Stage 1, repeat N times:
+    - Open and immediately close a queue, so it is left empty and without
+      handles, which makes it eligible for garbage collection.
+    - Force queue garbage collection, so the queue gets unassigned and its
+      storage unregistered.
+    - Meanwhile, several admin sessions keep purging that very queue, so a
+      purge is always in flight while the queue is created and GCed.
+
+    Stage 2:
+    - Verify that the broker is still alive and that the storage of the queue
+      is functional, by posting messages and purging them.
+
+    Concerns:
+    - Purging a queue and registering/unregistering it are carried out by
+      different threads.  The broker stays healthy under any interleaving of
+      the two.
+    - A purge always yields a well-formed response, whether the queue is
+      registered at the time the purge is executed.
+    """
+    cluster: Cluster = single_node
+    du = domain_urls
+
+    num_purgers = 4
+    num_rounds = 1000
+
+    queue_name = "test_queue_purge_safety"
+    uri = f"bmq://{du.domain_priority}/{queue_name}"
+    purge_command = f"DOMAINS DOMAIN {du.domain_priority} QUEUE {queue_name} PURGE *"
+    gc_command = f"CLUSTERS CLUSTER {cluster.name} FORCE_GC_QUEUES"
+
+    # A purge either reports what it removed, or tells that the queue is not
+    # registered in the storage.  Anything else means the broker mishandled
+    # the command.
+    purge_response_re = re.compile(
+        r"Purged \d+ message\(s\)|Queue was not found in a storage"
+    )
+
+    proxy = next(cluster.proxy_cycle())
+    producer: Client = proxy.create_client("producer")
+
+    stop_purging = threading.Event()
+    failures: List[str] = []
+
+    def purge_until_stopped() -> None:
+        """
+        Purge the queue over a dedicated admin session until told to stop.
+        Record every unexpected response or error in 'failures'.
+        """
+        admin_purger = AdminClient()
+        admin_purger.connect(*cluster.admin_endpoint)
+        try:
+            while not stop_purging.is_set():
+                res = admin_purger.send_admin(purge_command)
+                if not isinstance(res, str) or not purge_response_re.search(res):
+                    failures.append(f"unexpected purge response: {res}")
+                    return
+        except Exception as err:  # pylint: disable=broad-except
+            # The broker went away, or answered something undecodable.
+            failures.append(f"{type(err).__name__}: {err}")
+        finally:
+            admin_purger.stop()
+
+    purgers = [
+        threading.Thread(target=purge_until_stopped, name=f"purger-{i}", daemon=True)
+        for i in range(num_purgers)
+    ]
+
+    admin = AdminClient()
+    admin.connect(*cluster.admin_endpoint)
+
+    for purger in purgers:
+        purger.start()
+
+    try:
+        # Stage 1: purge while the queue is registered and unregistered
+        for _ in range(num_rounds):
+            producer.open(uri, flags=["write,ack"], succeed=True)
+            producer.close(uri, succeed=True)
+
+            res = admin.send_admin(gc_command)
+            assert "SUCCESS" in res
+
+            if failures:
+                break
+    finally:
+        stop_purging.set()
+        for purger in purgers:
+            purger.join(timeout=60)
+
+    assert not failures, failures
+
+    # Stage 2: the broker is alive and its storage is still functional
+    cluster.check_processes()
+
+    post_n_msgs(producer, PostRecord(du.domain_priority, queue_name, num=3))
+
+    res = admin.send_admin(purge_command)
+    assert "Purged 3 message(s)" in res
+
     admin.stop()
 
 

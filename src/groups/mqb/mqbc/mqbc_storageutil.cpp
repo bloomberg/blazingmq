@@ -3496,6 +3496,52 @@ void StorageUtil::purgeQueueDispatched(
     queueDetails.numBytesPurged()    = numBytes;
 }
 
+void StorageUtil::purgeQueueByUriDispatched(
+    mqbcmd::PurgeQueueResult* purgedQueueResult,
+    bslmt::Semaphore*         purgeFinishedSemaphore,
+    StorageSpMap*             storageMap,
+    bslmt::Mutex*             storagesLock,
+    const mqbs::FileStore*    fileStore,
+    const bmqt::Uri&          uri,
+    const bsl::string&        appId)
+{
+    // executed by *QUEUE_DISPATCHER* thread with the specified 'fileStore'
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(fileStore && fileStore->inDispatcherThread());
+    BSLS_ASSERT_SAFE(purgedQueueResult);
+    BSLS_ASSERT_SAFE(storageMap);
+    BSLS_ASSERT_SAFE(storagesLock);
+
+    // Storages are registered and unregistered from this very thread, hence
+    // the storage found here cannot go away until this routine returns.
+
+    StorageSp storage;
+    {
+        bslmt::LockGuard<bslmt::Mutex> guard(storagesLock);  // LOCK
+
+        StorageSpMapIter it = storageMap->find(uri);
+        if (it != storageMap->end()) {
+            storage = it->second;
+        }
+    }
+
+    if (!storage) {
+        bmqu::MemOutStream errorMsg;
+        errorMsg << "Queue was not found in a storage '" << uri << "'";
+        purgedQueueResult->makeError().message() = errorMsg.str();
+
+        optionalSemaphorePost(purgeFinishedSemaphore);
+        return;  // RETURN
+    }
+
+    purgeQueueDispatched(purgedQueueResult,
+                         purgeFinishedSemaphore,
+                         storage.get(),
+                         fileStore,
+                         appId);
+}
+
 void StorageUtil::processCommand(
     mqbcmd::StorageResult*                       result,
     FileStores*                                  fileStores,
@@ -3633,18 +3679,21 @@ void StorageUtil::processCommand(
 
         BSLS_ASSERT_SAFE(uri.isCanonical());
 
-        mqbi::Storage* queueStorage = NULL;
+        // Only resolve the partition owning the queue here: a storage is
+        // destroyed by the dispatcher thread of its partition, so no storage
+        // must outlive the lock in this thread.  The lookup is repeated by
+        // 'purgeQueueByUriDispatched' from that dispatcher thread.
+        int partitionId = mqbi::Storage::k_INVALID_PARTITION_ID;
         for (size_t i = 0; i < storageMapVec->size(); ++i) {
             bslmt::LockGuard<bslmt::Mutex> guard(
                 (*storageLockVec)[i].get());  // LOCK
-            StorageSpMap::iterator storageIter = (*storageMapVec)[i].find(uri);
-            if (storageIter != (*storageMapVec)[i].end()) {
-                queueStorage = storageIter->second.get();
+            if ((*storageMapVec)[i].find(uri) != (*storageMapVec)[i].end()) {
+                partitionId = static_cast<int>(i);
                 break;  // BREAK
             }
         }
 
-        if (!queueStorage) {
+        if (mqbi::Storage::k_INVALID_PARTITION_ID == partitionId) {
             bdlma::LocalSequentialAllocator<256> localAllocator(allocator);
             bmqu::MemOutStream                   os(&localAllocator);
             os << "Queue was not found in a storage '" << uri << "'";
@@ -3658,17 +3707,19 @@ void StorageUtil::processCommand(
         const bsl::string& purgeAppId = command.queue().command().purgeAppId();
         bsl::string        appId      = (purgeAppId == "*") ? "" : purgeAppId;
 
-        const int    partitionId = queueStorage->partitionId();
-        FileStoreSp& fileStore   = (*fileStores)[partitionId];
+        FileStoreSp& fileStore = (*fileStores)[partitionId];
 
         mqbcmd::PurgeQueueResult purgedQueueResult;
         bslmt::Semaphore         purgeFinishedSemaphore;
-        fileStore->execute(bdlf::BindUtil::bind(&purgeQueueDispatched,
-                                                &purgedQueueResult,
-                                                &purgeFinishedSemaphore,
-                                                queueStorage,
-                                                fileStore.get(),
-                                                appId));
+        fileStore->execute(
+            bdlf::BindUtil::bind(&purgeQueueByUriDispatched,
+                                 &purgedQueueResult,
+                                 &purgeFinishedSemaphore,
+                                 &(*storageMapVec)[partitionId],
+                                 (*storageLockVec)[partitionId].get(),
+                                 fileStore.get(),
+                                 uri,
+                                 appId));
 
         purgeFinishedSemaphore.wait();
 
