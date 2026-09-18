@@ -197,6 +197,32 @@ class SessionOptions {
 
     static const unsigned int k_CHANNEL_WRITE_DEFAULT_TIMEOUT_SEC = 5;
 
+    /// Default number of threads used for processing events.
+    static const int k_NUM_PROCESSING_THREADS_DEFAULT = 1;
+
+    /// Default size (in bytes) of the blob buffers to use.
+    static const int k_BLOB_BUFFER_DEFAULT_SIZE = 4 * 1024;
+
+    /// Default value (in bytes) for the channel write cache high watermark.
+    static const bsls::Types::Int64 k_CHANNEL_HIGH_WATERMARK_DEFAULT = 128 *
+                                                                       1024 *
+                                                                       1024;
+
+    /// Default interval (in seconds) at which to dump stats in the logs.
+    static const int k_STATS_DUMP_DEFAULT_INTERVAL_SEC = 5 * 60;
+
+    /// Default timeout (in seconds) for connecting to the broker.
+    static const int k_CONNECT_DEFAULT_TIMEOUT_SEC = 60;
+
+    /// Default timeout (in seconds) for disconnecting from the broker.
+    static const int k_DISCONNECT_DEFAULT_TIMEOUT_SEC = 30;
+
+    /// Default low watermark for the EventQueue notification threshold.
+    static const int k_EVENT_QUEUE_LOW_WATERMARK_DEFAULT = 50;
+
+    /// Default high watermark for the EventQueue notification threshold.
+    static const int k_EVENT_QUEUE_HIGH_WATERMARK_DEFAULT = 2 * 1000;
+
   private:
     // DATA
 
