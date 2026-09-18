@@ -337,6 +337,11 @@ class SessionOptions {
     /// Set the specified `value` (in bytes) for the channel high
     /// watermark.  The behavior is undefined unless
     /// `8 * 1024 * 1024 < value` and `channelLowWatermark() < value`.
+    BSLS_DEPRECATE_FEATURE("bmqt",
+                           "setChannelHighWatermark",
+                           "Use setChannelWatermark(bsls::Types::Int64 "
+                           "lowWatermark, bsls::Types::Int64 highWatermark) "
+                           "instead.")
     SessionOptions& setChannelHighWatermark(bsls::Types::Int64 value);
 
     /// Set the channel low and high watermarks to the specified
