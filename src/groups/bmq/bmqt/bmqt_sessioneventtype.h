@@ -90,6 +90,16 @@
 ///   - *QUEUE_RESUMED*: Indicates that a suspended queue has resumed normal
 ///     operation (i.e., effects of `QUEUE_SUSPENDED` state no longer apply).
 ///
+///   - *CHANNEL_HIGH_WATERMARK*: Notifies that the outbound TCP channel to
+///     the broker has become non-writable because its write buffer has
+///     reached the @bbref{bmqt::SessionOptions} `channelHighWatermark`. Calls
+///     to `post`, `confirmMessages`, etc. may block (up to
+///     `channelWriteTimeout`) or fail until the channel drains.
+///
+///   - *CHANNEL_LOW_WATERMARK*: Notifies that the outbound TCP channel to the
+///     broker has drained below its high watermark and is writable again,
+///     following a `CHANNEL_HIGH_WATERMARK` event.
+///
 ///   - *ERROR*: Indicates a generic error.
 ///
 ///   - *TIMEOUT* Indicates that the specified operation has timed out.
