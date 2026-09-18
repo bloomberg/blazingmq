@@ -30,6 +30,7 @@
 #include <bmqp_protocolutil.h>
 #include <bmqp_queueutil.h>
 #include <bmqt_uri.h>
+#include <bmqu_stringutil.h>
 
 // BDE
 #include <bdld_datum.h>
@@ -581,11 +582,13 @@ void QueueSessionManager::processOpenQueue(
     if (rc != 0) {
         // Invalid URI (should not happen since the SDK validates the URI
         // before sending the request..)
+        // The URI failed to parse, so it may contain arbitrary characters:
+        // sanitize it before logging.
         BALL_LOG_ERROR << "#CLIENT_OPENQUEUE_FAILURE "
                        << d_dispatcherClient_p->description()
                        << ": Error while opening queue: invalid URI [uri: '"
-                       << handleParams.uri() << "' , error: '" << error
-                       << "']";
+                       << bmqu::StringUtil::logSafe(handleParams.uri())
+                       << "' , error: '" << error << "']";
 
         errorCallback(bmqp_ctrlmsg::StatusCategory::E_REFUSED, error, 0);
         return;  // RETURN
