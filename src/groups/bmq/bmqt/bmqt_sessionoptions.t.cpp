@@ -66,6 +66,11 @@ static void test1_breathingTest()
             bmqt::SessionOptions::k_BLOB_BUFFER_DEFAULT_SIZE;
         BMQTST_ASSERT_EQ(sessionOptions.blobBufferSize(), blobBufferSize);
 
+        const bsls::Types::Int64 channelLowWatermark =
+            bmqt::SessionOptions::k_CHANNEL_LOW_WATERMARK_DEFAULT;
+        BMQTST_ASSERT_EQ(sessionOptions.channelLowWatermark(),
+                         channelLowWatermark);
+
         const bsls::Types::Int64 channelHighWatermark =
             bmqt::SessionOptions::k_CHANNEL_HIGH_WATERMARK_DEFAULT;
         BMQTST_ASSERT_EQ(sessionOptions.channelHighWatermark(),
@@ -293,6 +298,60 @@ static void test4_copyAssignmentTest()
     BMQTST_ASSERT_EQ(copyAssigned.userAgentPrefix(), userAgentPrefix);
     BMQTST_ASSERT_EQ(copyAssigned.channelWriteTimeout(), channelWriteTimeout);
 }
+
+static void test5_channelWatermarkTest()
+{
+    bmqtst::TestHelper::printTestName("CHANNEL WATERMARK");
+
+    const bsls::Types::Int64 k_MIN_HIGH_WATERMARK = 8 * 1024 * 1024;
+
+    PVV("Checking setChannelWatermark preconditions and getters");
+    {
+        bmqt::SessionOptions obj(bmqtst::TestHelperUtil::allocator());
+
+        // 'lowWatermark' must be >= 0
+        BMQTST_ASSERT_OPT_FAIL(
+            obj.setChannelWatermark(-1, k_MIN_HIGH_WATERMARK + 1));
+
+        // 'lowWatermark' must be < 'highWatermark'
+        BMQTST_ASSERT_OPT_FAIL(
+            obj.setChannelWatermark(k_MIN_HIGH_WATERMARK + 1,
+                                    k_MIN_HIGH_WATERMARK + 1));
+        BMQTST_ASSERT_OPT_FAIL(
+            obj.setChannelWatermark(k_MIN_HIGH_WATERMARK + 2,
+                                    k_MIN_HIGH_WATERMARK + 1));
+
+        // 'highWatermark' must be > 8MB
+        BMQTST_ASSERT_OPT_FAIL(
+            obj.setChannelWatermark(0, k_MIN_HIGH_WATERMARK));
+        BMQTST_ASSERT_OPT_FAIL(
+            obj.setChannelWatermark(0, k_MIN_HIGH_WATERMARK - 1));
+
+        // A valid combination passes and round-trips through the getters.
+        const bsls::Types::Int64 lowWatermark  = 1 * 1024 * 1024;
+        const bsls::Types::Int64 highWatermark = k_MIN_HIGH_WATERMARK + 1;
+        BMQTST_ASSERT_OPT_PASS(
+            obj.setChannelWatermark(lowWatermark, highWatermark));
+        BMQTST_ASSERT_EQ(obj.channelLowWatermark(), lowWatermark);
+        BMQTST_ASSERT_EQ(obj.channelHighWatermark(), highWatermark);
+    }
+
+    PVV("Checking setChannelHighWatermark preconditions");
+    {
+        bmqt::SessionOptions obj(bmqtst::TestHelperUtil::allocator());
+
+        // 'value' must be > 8MB
+        BMQTST_ASSERT_OPT_FAIL(
+            obj.setChannelHighWatermark(k_MIN_HIGH_WATERMARK));
+
+        // 'value' must be > the current low watermark
+        const bsls::Types::Int64 lowWatermark = 9 * 1024 * 1024;
+        obj.setChannelWatermark(lowWatermark, lowWatermark + 1024);
+        BMQTST_ASSERT_OPT_FAIL(obj.setChannelHighWatermark(lowWatermark));
+        BMQTST_ASSERT_OPT_PASS(
+            obj.setChannelHighWatermark(lowWatermark + 1024 * 1024));
+    }
+}
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -303,6 +362,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 5: test5_channelWatermarkTest(); break;
     case 4: test4_copyAssignmentTest(); break;
     case 3: test3_setterGetterAndCopyTest(); break;
     case 2: test2_printTest(); break;
