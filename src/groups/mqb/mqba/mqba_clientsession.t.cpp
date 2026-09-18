@@ -55,6 +55,8 @@
 #include <bmqu_time.h>
 
 // BDE
+#include <ball_loggermanager.h>
+#include <ball_severity.h>
 #include <bdlbb_blobutil.h>
 #include <bdlbb_pooledblobbufferfactory.h>
 #include <bdlcc_objectpool.h>
@@ -68,6 +70,7 @@
 #include <bslmt_timedsemaphore.h>
 
 // TEST DRIVER
+#include <bmqtst_scopedlogobserver.h>
 #include <bmqtst_testhelper.h>
 #include <bsl_iostream.h>
 
@@ -2364,6 +2367,81 @@ static void test12_openQueueDuplicateQueueId()
     }
 }
 
+static void test13_queueUriLogInjection()
+// ------------------------------------------------------------------------
+// TESTS LOG INJECTION VIA THE QUEUE URI OF OPEN/CLOSE QUEUE
+//
+// Concerns:
+//   - A client can put arbitrary bytes, including newlines, in the queue
+//     URI of an openQueue or closeQueue control message: the URI is logged
+//     before it is parsed (and, for closeQueue, it is never parsed at
+//     all).  Such a URI must not be able to forge log records by splitting
+//     one record into several lines.
+//
+// Plan:
+//   Instantiate a testbench and send an openQueue and a closeQueue request
+//   with a URI embedding newlines.  Verify that none of the emitted log
+//   records contains a newline, and that the non-printable characters were
+//   replaced by '?'.
+//
+// Testing:
+//   That the queue URI is sanitized before being logged.
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName(
+        "TESTS LOG INJECTION VIA THE QUEUE URI OF OPEN/CLOSE QUEUE");
+
+    // The URI is logged at INFO level: lower the pass-through threshold for
+    // the duration of this test, and restore it afterwards.
+    ball::LoggerManager::singleton().setDefaultThresholdLevels(
+        ball::Severity::e_OFF,
+        ball::Severity::e_INFO,
+        ball::Severity::e_OFF,
+        ball::Severity::e_OFF);
+
+    const bsl::string uri("bmq://my.domain/queue\nFORGED LOG RECORD",
+                          bmqtst::TestHelperUtil::allocator());
+    const int         queueId = 1;
+
+    {
+        bmqtst::ScopedLogObserver observer(
+            ball::Severity::e_INFO,
+            bmqtst::TestHelperUtil::allocator());
+
+        TestBench tb(client(e_FirstHop),
+                     false,  // atMostOnce
+                     bmqtst::TestHelperUtil::allocator());
+
+        tb.openQueue(uri, queueId);
+        tb.d_cs.flush();
+
+        tb.closeQueue(uri, queueId);
+        tb.d_cs.flush();
+
+        BMQTST_ASSERT(!observer.records().empty());
+
+        bool sawSanitizedUri = false;
+        for (size_t i = 0; i < observer.records().size(); ++i) {
+            const bslstl::StringRef message =
+                observer.records()[i].fixedFields().messageRef();
+
+            // No log record may be split by the injected newline.
+            BMQTST_ASSERT_EQ(message.find('\n'), bslstl::StringRef::npos);
+
+            if (message.find("queue?FORGED") != bslstl::StringRef::npos) {
+                sawSanitizedUri = true;
+            }
+        }
+        BMQTST_ASSERT(sawSanitizedUri);
+    }
+
+    ball::LoggerManager::singleton().setDefaultThresholdLevels(
+        ball::Severity::e_OFF,
+        ball::Severity::e_WARN,
+        ball::Severity::e_OFF,
+        ball::Severity::e_OFF);
+}
+
 static void testN1_ackConfiguration()
 // ------------------------------------------------------------------------
 // TESTS ACK CONFIGURATION FOR CLIENT SESSION
@@ -2614,6 +2692,7 @@ int main(int argc, char* argv[])
 
         switch (_testCase) {
         case 0:
+        case 13: test13_queueUriLogInjection(); break;
         case 12: test12_openQueueDuplicateQueueId(); break;
         case 11: test11_initiateShutdown(); break;
         case 10: test10_newStyleCompressedPush(); break;

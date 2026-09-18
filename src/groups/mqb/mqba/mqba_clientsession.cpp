@@ -185,6 +185,7 @@
 #include <bmqtsk_alarmlog.h>
 #include <bmqu_blob.h>
 #include <bmqu_printutil.h>
+#include <bmqu_stringutil.h>
 #include <bmqu_time.h>
 #include <bmqu_weakmemfn.h>
 
@@ -2542,8 +2543,9 @@ void ClientSession::processEvent(const bmqp::Event& event,
             return;  // RETURN
         }
 
-        BALL_LOG_INFO << description()
-                      << ": Received control message: " << controlMessage;
+        BALL_LOG_INFO << description() << ": Received control message: "
+                      << bmqu::StringUtil::logSafe(controlMessage,
+                                                   &localAllocator);
 
         rc = bmqp::ControlMessageUtil::validate(controlMessage);
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
@@ -2585,8 +2587,16 @@ void ClientSession::processEvent(const bmqp::Event& event,
                 opLogger);
         } break;
         case MsgChoice::SELECTION_ID_OPEN_QUEUE: {
-            const bsl::string& queueUri =
-                controlMessage.choice().openQueue().handleParameters().uri();
+            // The URI is not validated at this point (it is parsed later, in
+            // the client dispatcher thread), so it must be sanitized before
+            // being logged.
+            const bsl::string queueUri(
+                bmqu::StringUtil::logSafe(controlMessage.choice()
+                                              .openQueue()
+                                              .handleParameters()
+                                              .uri(),
+                                          &localAllocator),
+                &localAllocator);
 
             bsl::shared_ptr<bmqu::OperationLogger> opLogger =
                 bsl::allocate_shared<bmqu::OperationLogger>(
@@ -2601,8 +2611,16 @@ void ClientSession::processEvent(const bmqp::Event& event,
                 opLogger);
         } break;
         case MsgChoice::SELECTION_ID_CLOSE_QUEUE: {
-            const bsl::string& queueUri =
-                controlMessage.choice().closeQueue().handleParameters().uri();
+            // The closeQueue URI is never parsed (the queue is looked up by
+            // its id, and the URI is replaced by the resolved one), so it
+            // must be sanitized before being logged.
+            const bsl::string queueUri(
+                bmqu::StringUtil::logSafe(controlMessage.choice()
+                                              .closeQueue()
+                                              .handleParameters()
+                                              .uri(),
+                                          &localAllocator),
+                &localAllocator);
 
             bsl::shared_ptr<bmqu::OperationLogger> opLogger =
                 bsl::allocate_shared<bmqu::OperationLogger>(
@@ -2638,7 +2656,7 @@ void ClientSession::processEvent(const bmqp::Event& event,
             BALL_LOG_ERROR
                 << "#CLIENT_IMPROPER_BEHAVIOR " << description()
                 << ": received unexpected 'response' controlMessage: "
-                << controlMessage;
+                << bmqu::StringUtil::logSafe(controlMessage, &localAllocator);
             return;  // RETURN
         }
         case MsgChoice::SELECTION_ID_CLUSTER_MESSAGE: {
@@ -2652,7 +2670,8 @@ void ClientSession::processEvent(const bmqp::Event& event,
         default: {
             BALL_LOG_ERROR << "#CLIENT_IMPROPER_BEHAVIOR " << description()
                            << ": unexpected controlMessage: "
-                           << controlMessage;
+                           << bmqu::StringUtil::logSafe(controlMessage,
+                                                        &localAllocator);
             return;  // RETURN
         }
         }
@@ -2662,7 +2681,8 @@ void ClientSession::processEvent(const bmqp::Event& event,
             BALL_LOG_ERROR
                 << "#CLIENT_IMPROPER_BEHAVIOR " << description()
                 << ": Dropping control message received after a Disconnect "
-                << "notification: " << controlMessage;
+                << "notification: "
+                << bmqu::StringUtil::logSafe(controlMessage, &localAllocator);
             return;  // RETURN
         }
 
