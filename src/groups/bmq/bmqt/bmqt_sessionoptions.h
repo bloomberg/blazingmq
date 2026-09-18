@@ -203,6 +203,10 @@ class SessionOptions {
     /// Default size (in bytes) of the blob buffers to use.
     static const int k_BLOB_BUFFER_DEFAULT_SIZE = 4 * 1024;
 
+    /// Default value (in bytes) for the channel write cache low watermark.
+    static const bsls::Types::Int64 k_CHANNEL_LOW_WATERMARK_DEFAULT = 512 *
+                                                                      1024;
+
     /// Default value (in bytes) for the channel write cache high watermark.
     static const bsls::Types::Int64 k_CHANNEL_HIGH_WATERMARK_DEFAULT = 128 *
                                                                        1024 *
@@ -239,6 +243,11 @@ class SessionOptions {
 
     /// Size of the blobs buffer.
     int d_blobBufferSize;
+
+    /// Write cache low watermark to use on the channel: once buffered
+    /// outbound data drains back down to this size, the channel resumes
+    /// accepting writes.
+    bsls::Types::Int64 d_channelLowWatermark;
 
     /// Write cache high watermark to use on the channel
     bsls::Types::Int64 d_channelHighWatermark;
@@ -405,6 +414,9 @@ class SessionOptions {
 
     /// Get the size of the blobs buffer.
     int blobBufferSize() const;
+
+    /// Get the channel low watermark.
+    bsls::Types::Int64 channelLowWatermark() const;
 
     /// Get the channel high watermark.
     bsls::Types::Int64 channelHighWatermark() const;
@@ -663,6 +675,11 @@ inline int SessionOptions::numProcessingThreads() const
 inline int SessionOptions::blobBufferSize() const
 {
     return d_blobBufferSize;
+}
+
+inline bsls::Types::Int64 SessionOptions::channelLowWatermark() const
+{
+    return d_channelLowWatermark;
 }
 
 inline bsls::Types::Int64 SessionOptions::channelHighWatermark() const
