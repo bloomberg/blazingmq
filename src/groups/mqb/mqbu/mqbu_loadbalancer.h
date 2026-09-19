@@ -63,6 +63,7 @@
 
 // BDE
 #include <bsl_algorithm.h>
+#include <bsl_limits.h>
 #include <bsl_unordered_map.h>
 #include <bsl_vector.h>
 #include <bslma_allocator.h>
@@ -176,10 +177,13 @@ int LoadBalancer<TYPE>::findSmallestCounterLocked() const
 {
     // PRECONDITIONS
     BSLMT_MUTEXASSERT_IS_LOCKED_SAFE(&d_mutex);  // d_mutex was LOCKED
+    BSLS_ASSERT_SAFE(d_counters.size() <=
+                     static_cast<bsl::vector<int>::size_type>(
+                         bsl::numeric_limits<int>::max()));
 
-    return bsl::distance(d_counters.begin(),
-                         bsl::min_element(d_counters.begin(),
-                                          d_counters.end()));
+    return static_cast<int>(
+        bsl::distance(d_counters.begin(),
+                      bsl::min_element(d_counters.begin(), d_counters.end())));
 }
 
 template <class TYPE>
@@ -251,14 +255,20 @@ void LoadBalancer<TYPE>::removeClient(const TYPE* client)
 template <class TYPE>
 int LoadBalancer<TYPE>::processorsCount() const
 {
-    return d_counters.size();
+    BSLS_ASSERT_SAFE(d_counters.size() <=
+                     static_cast<bsl::vector<int>::size_type>(
+                         bsl::numeric_limits<int>::max()));
+    return static_cast<int>(d_counters.size());
 }
 
 template <class TYPE>
 int LoadBalancer<TYPE>::clientsCount() const
 {
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // d_mutex LOCKED
-    return d_clients.size();
+    BSLS_ASSERT_SAFE(d_clients.size() <=
+                     static_cast<typename ClientMap::size_type>(
+                         bsl::numeric_limits<int>::max()));
+    return static_cast<int>(d_clients.size());
 }
 
 template <class TYPE>
