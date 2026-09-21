@@ -2254,7 +2254,7 @@ static void test11_initiateShutdown()
 
         bool atEnd() const BSLS_KEYWORD_OVERRIDE { return false; }
 
-        bool hasReceipt() const BSLS_KEYWORD_OVERRIDE { return true; }
+        bool hasReceipt() BSLS_KEYWORD_OVERRIDE { return true; }
     };
 
     MockStorageIterator iter(bmqtst::TestHelperUtil::allocator());

@@ -97,11 +97,13 @@ class DeliveryOptimizationMonitor:
     different order, so we want to memorize it and ensure that no records
     lost."""
 
-    def __init__(self, cluster: Cluster):
+    def __init__(self, cluster: Cluster, uri: str):
         """
-        Construct a DeliveryOptimizationMonitor with the specified 'cluster'.
+        Construct a DeliveryOptimizationMonitor watching the partition primary
+        of the queue at the specified 'uri' in the specified 'cluster'.
         """
         self._cluster: Cluster = cluster
+        self._uri: str = uri
         self._app_id_to_messages: Dict[str, List[re.Match]] = {}
 
     def _try_find_message_in_log(
@@ -116,11 +118,16 @@ class DeliveryOptimizationMonitor:
         leader = self._cluster.last_known_leader
         assert leader is not None
 
+        # the log records are written by the queue's partition primary, which
+        # is not the leader in FSM mode
+        primary = leader.wait_queue_primary(self._uri)
+        assert primary is not None
+
         early_exit_message = r"appId = \'(\w+)\' does not have any subscription capacity; early exits delivery"
         capture_timeout = 5
 
         while True:
-            match = leader.capture(early_exit_message, timeout=capture_timeout)
+            match = primary.capture(early_exit_message, timeout=capture_timeout)
             if match is None:
                 return None
 
@@ -1570,7 +1577,7 @@ def test_no_capacity_all_optimization(cluster: Cluster, domain_urls: tc.DomainUr
     producer = Producer(cluster, uri)
     consumer1 = Consumer(cluster, uri, ["x > 0"], max_unconfirmed_messages=1)
 
-    optimization_monitor = DeliveryOptimizationMonitor(cluster)
+    optimization_monitor = DeliveryOptimizationMonitor(cluster, uri)
 
     # consumer1: capacity 0/1
     # pending messages: []
@@ -1679,7 +1686,7 @@ def test_no_capacity_all_fanout(cluster: Cluster, domain_urls: tc.DomainUrls):
     consumer_foo = Consumer(cluster, uri_foo, ["x > 0"], max_unconfirmed_messages=128)
     consumer_bar = Consumer(cluster, uri_bar, ["x > 0"], max_unconfirmed_messages=1)
 
-    optimization_monitor = DeliveryOptimizationMonitor(cluster)
+    optimization_monitor = DeliveryOptimizationMonitor(cluster, producer_uri)
 
     # consumer_foo: capacity 0/128
     # consumer_bar: capacity 0/1

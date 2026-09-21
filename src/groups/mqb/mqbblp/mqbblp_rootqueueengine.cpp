@@ -196,9 +196,11 @@ void RootQueueEngine::deliverMessages(AppState* app)
 
     bsls::TimeInterval delay;
     size_t             numMessages = app->processDeliveryLists(&delay,
-                                                   d_realStorageIter_mp.get());
+                                                   d_realStorageIter_mp.get(),
+                                                   d_queueState_p->storage());
 
-    if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(0 == app->redeliveryListSize())) {
+    if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(0 ==
+                                            app->numDeliverableRedelivery())) {
         if (!app->resumePoint().isUnset()) {
             // Position to the resumePoint
             bslma::ManagedPtr<mqbi::StorageIterator> start;
@@ -382,8 +384,7 @@ RootQueueEngine::RootQueueEngine(QueueState*             queueState,
 
 // MANIPULATORS
 //   (virtual mqbi::QueueEngine)
-int RootQueueEngine::configure(bsl::ostream& errorDescription,
-                               bool          isReconfigure)
+int RootQueueEngine::configure(bool isReconfigure)
 {
     enum RcEnum {
         // Return values
@@ -411,7 +412,6 @@ int RootQueueEngine::configure(bsl::ostream& errorDescription,
             domainCfg->mode().fanout().appIDs();
         for (numApps = 0; numApps < cfgAppIds.size(); ++numApps) {
             if (initializeAppId(cfgAppIds[numApps],
-                                errorDescription,
                                 bmqp::QueueId::k_UNASSIGNED_SUBQUEUE_ID,
                                 isReconfigure)) {
                 return rc_APP_INITIALIZATION_ERROR;  // RETURN
@@ -449,7 +449,6 @@ int RootQueueEngine::configure(bsl::ostream& errorDescription,
     else {
         numApps = 1;
         if (initializeAppId(bmqp::ProtocolUtil::k_DEFAULT_APP_ID,
-                            errorDescription,
                             bmqp::QueueId::k_DEFAULT_SUBQUEUE_ID,
                             isReconfigure)) {
             return rc_APP_INITIALIZATION_ERROR;  // RETURN
@@ -499,7 +498,6 @@ int RootQueueEngine::configure(bsl::ostream& errorDescription,
 }
 
 int RootQueueEngine::initializeAppId(const bsl::string& appId,
-                                     bsl::ostream&      errorDescription,
                                      unsigned int       upstreamSubQueueId,
                                      bool               isReconfigure)
 {
@@ -519,27 +517,32 @@ int RootQueueEngine::initializeAppId(const bsl::string& appId,
     // Do not attempt to find VirtualStorage if this is reconfiguration.
     // Reconfiguration results in 'afterAppIdRegistered' which results in
     // 'registerStorage' which calls 'authorize'.
-    if (!isReconfigure &&
-        !d_queueState_p->storage()->hasVirtualStorage(appId,
-                                                      &appKey,
-                                                      &ordinal)) {
-        BALL_LOG_ERROR << "#QUEUE_STORAGE_NOTFOUND "
-                       << "Virtual storage does not exist for AppId '" << appId
-                       << "', queue: '"
-                       << d_queueState_p->queue()->description() << "'";
+    const bool hasStorage =
+        !isReconfigure &&
+        d_queueState_p->storage()->hasVirtualStorage(appId, &appKey, &ordinal);
 
-        errorDescription << "Virtual storage does not exist for AppId ["
-                         << appId << "], queue: '"
-                         << d_queueState_p->queue()->description() << "'";
-
-        // TODO: handle w/o asserting
-        BSLS_ASSERT_SAFE(false && "Virtual storage does not exist for appId");
-        return -1;  // RETURN
+    if (!isReconfigure && !hasStorage) {
+        // The App has no storage yet.  Not reachable from an open:
+        // 'ClusterQueueHelper::createQueue' parks that until
+        // 'StorageMonitor::registerQueue' reports every App of the queue
+        // registered.  It is reachable from a replica becoming the primary:
+        // 'ClusterQueueHelper::convertToLocal' calls the same 'registerQueue'
+        // and converts without waiting on its result, so the App's
+        // 'e_ADDITION' can still be uncommitted here.  Create the App
+        // unauthorized; 'registerStorage' authorizes it once its virtual
+        // storage appears, and until then it routes nothing.  This mirrors
+        // 'RelayQueueEngine', which has always had to tolerate storage
+        // arriving on commit.
+        BALL_LOG_INFO << "No virtual storage (yet) for AppId '" << appId
+                      << "', queue: '"
+                      << d_queueState_p->queue()->description()
+                      << "'; the App stays unauthorized until its storage is "
+                      << "registered.";
     }
 
     iter = makeSubStream(appId, appKey, upstreamSubQueueId);
 
-    if (!isReconfigure) {
+    if (hasStorage) {
         BSLS_ASSERT_SAFE(!appKey.isNull());
         iter->second->authorize(appKey, ordinal);
 
@@ -574,6 +577,26 @@ void RootQueueEngine::close()
     d_consumptionMonitor.reset();
 }
 
+void RootQueueEngine::resetStorage()
+{
+    // executed by the *QUEUE DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
+
+    // Both iterators hold a position inside the storage they were built over,
+    // so a replacement leaves them reading an object that receives no further
+    // records.  The Apps and their routing survive: only the storage under
+    // them changed.  See 'mqbi::QueueEngine::resetStorage'.
+    //
+    // A primary does not install snapshots, so this is here for the interface
+    // rather than for a path that runs today.
+    d_storageIter_mp = d_queueState_p->storage()->getIterator(
+        mqbu::StorageKey::k_NULL_KEY);
+    d_realStorageIter_mp = d_queueState_p->storage()->getIterator(
+        mqbu::StorageKey::k_NULL_KEY);
+}
+
 void RootQueueEngine::resetState(bool isShuttingDown)
 {
     // executed by the *QUEUE DISPATCHER* thread
@@ -590,10 +613,7 @@ void RootQueueEngine::resetState(bool isShuttingDown)
 
     if (!isShuttingDown) {
         d_apps.clear();
-        d_storageIter_mp = d_queueState_p->storage()->getIterator(
-            mqbu::StorageKey::k_NULL_KEY);
-        d_realStorageIter_mp = d_queueState_p->storage()->getIterator(
-            mqbu::StorageKey::k_NULL_KEY);
+        resetStorage();
 
         if (!d_storageIter_mp->atEnd()) {
             BALL_LOG_INFO << "Queue [" << d_queueState_p->uri()
@@ -633,10 +653,6 @@ void RootQueueEngine::rebuildSelectedApp(
 
 int RootQueueEngine::rebuildInternalState(bsl::ostream& errorDescription)
 {
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_queueState_p->id() ==
-                     bmqp::QueueId::k_PRIMARY_QUEUE_ID);
-
     // This method is called when a node that previously was not the primary
     // for the queue becomes the primary node.  The node continues to use the
     // same queue handles for this queue, and it now needs to rebuild its
@@ -1709,7 +1725,7 @@ int RootQueueEngine::onRejectMessage(
                 if (d_throttledRejectMessageDump.requestPermission()) {
                     bsl::shared_ptr<bdlbb::Blob>   appData;
                     bsl::shared_ptr<bdlbb::Blob>   options;
-                    mqbi::StorageMessageAttributes attributes;
+                    mqbi::StorageMessageAttributes attributes(false);
                     int retrievalRc = d_queueState_p->storage()->get(
                         &appData,
                         &options,

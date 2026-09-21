@@ -163,6 +163,12 @@ class VirtualStorage {
     mqbi::StorageResult::Enum
     confirm(mqbi::DataStreamMessage* dataStreamMessage);
 
+    /// Undo a `confirm` of this App in the specified `dataStreamMessage`, for
+    /// a CONFIRM record that will never commit.  Return
+    /// `e_INVALID_OPERATION` unless this App is in the CONFIRM state.
+    mqbi::StorageResult::Enum
+    undoConfirm(mqbi::DataStreamMessage* dataStreamMessage);
+
     /// Change the state of this App in the specified 'dataStreamMessage' to
     /// indicate removal (by a purge or unregistration).
     mqbi::StorageResult::Enum
@@ -214,7 +220,7 @@ class StorageIterator : public mqbi::StorageIterator {
 
     mutable bsl::shared_ptr<bdlbb::Blob> d_options_sp;
 
-    mutable bool d_haveReceipt;
+    bool d_haveReceipt;
     // Cached value.
 
   private:
@@ -263,6 +269,11 @@ class StorageIterator : public mqbi::StorageIterator {
     void reset(const bmqt::MessageGUID& where = bmqt::MessageGUID())
         BSLS_KEYWORD_OVERRIDE;
 
+    /// Return `true` if this iterator is currently not at the end of the
+    /// `items` collection and the message currently pointed at by this
+    /// iterator has received replication factor Receipts.
+    bool hasReceipt() BSLS_KEYWORD_OVERRIDE;
+
     // ACCESSORS
 
     /// Return a reference offering non-modifiable access to the guid
@@ -303,11 +314,6 @@ class StorageIterator : public mqbi::StorageIterator {
     /// Return `true` if this iterator is currently at the end of the items'
     /// collection, and hence doesn't reference a valid item.
     bool atEnd() const BSLS_KEYWORD_OVERRIDE;
-
-    /// Return `true` if this iterator is currently not at the end of the
-    /// `items` collection and the message currently pointed at by this
-    /// iterator has received replication factor Receipts.
-    bool hasReceipt() const BSLS_KEYWORD_OVERRIDE;
 };
 
 // ============================

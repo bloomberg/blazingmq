@@ -76,9 +76,6 @@ def test_dead_leader(
 
     replica = multi_node.process(proxy.get_active_node())
 
-    # replica.set_quorum(1, succeed=True)
-    # leader.set_quorum(10, succeed=True)
-
     # imitate dead channel by suspending the leader process
     leader.suspend()
 
