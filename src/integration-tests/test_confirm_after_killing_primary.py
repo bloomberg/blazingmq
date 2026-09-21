@@ -29,12 +29,18 @@ from blazingmq.dev.it.util import wait_until
 
 def test_confirm_after_killing_primary(multi_node: Cluster, domain_urls: tc.DomainUrls):
     uri_priority = domain_urls.uri_priority
-    proxies = multi_node.proxy_cycle()
 
-    # we want proxy connected to a replica
-    next(proxies)
+    # Pick the proxy opposite the queue's partition primary, so its active
+    # node (replica) is guaranteed to not already be the primary.  In Raft,
+    # the CSL leader and a queue's partition primary are elected
+    # independently.
+    leader = multi_node.last_known_leader
+    probe = leader.create_client("primary-probe")
+    probe.open(uri_priority, flags=["write,ack"], succeed=True)
+    primary = leader.wait_queue_primary(uri_priority)
+    probe.stop_session(block=True)
 
-    proxy = next(proxies)
+    proxy = multi_node.proxies(near=primary, invert=True)[0]
     consumer = proxy.create_client("consumer")
     producer = proxy.create_client("producer")
 
@@ -48,25 +54,24 @@ def test_confirm_after_killing_primary(multi_node: Cluster, domain_urls: tc.Doma
     msgs = consumer.list(uri_priority, block=True)
     assert msgs[0].payload == "msg1"
 
-    # make the quorum for replica to be 1 so it becomes new primary
+    # make the quorum for replica to be 1 so it becomes new primary; exclude
+    # every other live node so only replica is eligible to win the election
     replica = multi_node.process(proxy.get_active_node())
     for node in multi_node.nodes():
         if node == replica:
             node.set_quorum(1)
-        else:
+        elif node != primary:
             node.set_quorum(99)
 
-    # kill the primary
+    # kill the queue's actual partition primary, not the CSL leader
     replica.drain()
     multi_node.drain()
-    leader = multi_node.last_known_leader
-    leader.check_exit_code = False
-    leader.kill()
-    leader.wait()
+    primary.check_exit_code = False
+    primary.kill()
+    primary.wait()
 
-    # wait for new leader
-    multi_node.wait_leader()
-    assert multi_node.last_known_leader == replica
+    # wait for replica to become the new partition primary
+    assert wait_until(lambda: replica.wait_queue_primary(uri_priority) == replica, 10)
 
     # need to wait for remote queue converted to local
     # otherwise CONFIRM/PUT can get rejected if happen in between the

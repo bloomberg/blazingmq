@@ -969,7 +969,7 @@ void QueueEngineTester::post(const bslstl::StringRef& messages,
 
         // Put in storage
         bmqt::MessageGUID              msgGUID;
-        mqbi::StorageMessageAttributes msgAttributes;
+        mqbi::StorageMessageAttributes msgAttributes(true);
         bsl::shared_ptr<bdlbb::Blob>   appData;
         bsl::shared_ptr<bdlbb::Blob>   options;
 
@@ -1511,7 +1511,7 @@ void QueueEngineTester::push(RelayQueueEngine*        downstream,
         const bmqt::MessageGUID& msgGUID = it->second;
         BSLS_ASSERT_OPT(!msgGUID.isUnset());
 
-        mqbi::StorageMessageAttributes msgAttributes;
+        mqbi::StorageMessageAttributes msgAttributes(true);
 
         downstream->push(&msgAttributes,
                          msgGUID,

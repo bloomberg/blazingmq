@@ -453,6 +453,22 @@ ClusterState& ClusterState::setPartitionPrimaryStatus(
     return *this;
 }
 
+ClusterState&
+ClusterState::setPartitionAdvisoryConfirmedLeaseId(int          partitionId,
+                                                   unsigned int leaseId)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(cluster()->inDispatcherThread());
+    BSLS_ASSERT_SAFE(partitionId >= 0);
+    BSLS_ASSERT_SAFE(partitionId < static_cast<int>(d_partitionsInfo.size()));
+
+    d_partitionsInfo[partitionId].setAdvisoryConfirmedLeaseId(leaseId);
+
+    return *this;
+}
+
 ClusterState& ClusterState::updatePartitionQueueMapped(int partitionId,
                                                        int delta)
 {
@@ -649,15 +665,30 @@ void ClusterState::clearQueues()
     BALL_LOG_INFO << "Cluster [" << name() << "]: " << "Clearing all "
                   << d_domainStates.size() << " domain states from state.";
 
-    for (DomainStatesCIter domCit = d_domainStates.cbegin();
-         domCit != d_domainStates.cend();
-         ++domCit) {
-        for (UriToQueueInfoMapCIter cit =
-                 domCit->second->queuesInfo().cbegin();
-             cit != domCit->second->queuesInfo().cend();) {
-            unassignQueue((cit++)->first);
+    // 'unassignQueue' erases the domain itself once its last queue goes, and
+    // notifies observers, which may touch the state too.  No iterator into
+    // 'd_domainStates' survives a call, so take one queue at a time from the
+    // front.  Each pass removes either a queue or an (empty) domain, so this
+    // terminates.
+    while (!d_domainStates.empty()) {
+        const DomainStatesIter domIt  = d_domainStates.begin();
+        UriToQueueInfoMap&     queues = domIt->second->queuesInfo();
+
+        if (queues.empty()) {
+            d_domainStates.erase(domIt);
+            continue;  // CONTINUE
         }
-        d_domainStates.erase(domCit);
+
+        // By value: 'unassignQueue' erases the entry holding this key.
+        const bmqt::Uri uri(queues.cbegin()->first, d_allocator_p);
+        if (!unassignQueue(uri)) {
+            // Unreachable -- the key was just read from the map -- but do not
+            // spin on it.
+            BALL_LOG_ERROR << "Cluster [" << name() << "]: "
+                           << "Failed to unassign queue [" << uri
+                           << "] while clearing state.";
+            queues.erase(queues.begin());
+        }
     }
 }
 

@@ -1,18 +1,3 @@
-// Copyright 2025 Bloomberg Finance L.P.
-// SPDX-License-Identifier: Apache-2.0
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 // mqbcmd_messages.cpp            *DO NOT EDIT*            @generated -*-C++-*-
 
 #include <mqbcmd_messages.h>
@@ -1042,9 +1027,9 @@ ConsumerInfo::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 const char ConsumerStatus::CLASS_NAME[] = "ConsumerStatus";
 
 const bdlat_EnumeratorInfo ConsumerStatus::ENUMERATOR_INFO_ARRAY[] = {
-    {ConsumerStatus::e_ALIVE, "alive", sizeof("alive") - 1, ""},
-    {ConsumerStatus::e_REGISTERED, "registered", sizeof("registered") - 1, ""},
-    {ConsumerStatus::e_UNAUTHORIZED,
+    {ConsumerStatus::ALIVE, "alive", sizeof("alive") - 1, ""},
+    {ConsumerStatus::REGISTERED, "registered", sizeof("registered") - 1, ""},
+    {ConsumerStatus::UNAUTHORIZED,
      "unauthorized",
      sizeof("unauthorized") - 1,
      ""}};
@@ -1054,9 +1039,9 @@ const bdlat_EnumeratorInfo ConsumerStatus::ENUMERATOR_INFO_ARRAY[] = {
 int ConsumerStatus::fromInt(ConsumerStatus::Value* result, int number)
 {
     switch (number) {
-    case ConsumerStatus::e_ALIVE:
-    case ConsumerStatus::e_REGISTERED:
-    case ConsumerStatus::e_UNAUTHORIZED:
+    case ConsumerStatus::ALIVE:
+    case ConsumerStatus::REGISTERED:
+    case ConsumerStatus::UNAUTHORIZED:
         *result = static_cast<ConsumerStatus::Value>(number);
         return 0;
     default: return -1;
@@ -1085,13 +1070,13 @@ int ConsumerStatus::fromString(ConsumerStatus::Value* result,
 const char* ConsumerStatus::toString(ConsumerStatus::Value value)
 {
     switch (value) {
-    case e_ALIVE: {
+    case ALIVE: {
         return "alive";
     }
-    case e_REGISTERED: {
+    case REGISTERED: {
         return "registered";
     }
-    case e_UNAUTHORIZED: {
+    case UNAUTHORIZED: {
         return "unauthorized";
     }
     }
@@ -1590,20 +1575,20 @@ DomainRemove::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 const char ElectorState::CLASS_NAME[] = "ElectorState";
 
 const bdlat_EnumeratorInfo ElectorState::ENUMERATOR_INFO_ARRAY[] = {
-    {ElectorState::e_DORMANT, "DORMANT", sizeof("DORMANT") - 1, ""},
-    {ElectorState::e_FOLLOWER, "FOLLOWER", sizeof("FOLLOWER") - 1, ""},
-    {ElectorState::e_CANDIDATE, "CANDIDATE", sizeof("CANDIDATE") - 1, ""},
-    {ElectorState::e_LEADER, "LEADER", sizeof("LEADER") - 1, ""}};
+    {ElectorState::DORMANT, "DORMANT", sizeof("DORMANT") - 1, ""},
+    {ElectorState::FOLLOWER, "FOLLOWER", sizeof("FOLLOWER") - 1, ""},
+    {ElectorState::CANDIDATE, "CANDIDATE", sizeof("CANDIDATE") - 1, ""},
+    {ElectorState::LEADER, "LEADER", sizeof("LEADER") - 1, ""}};
 
 // CLASS METHODS
 
 int ElectorState::fromInt(ElectorState::Value* result, int number)
 {
     switch (number) {
-    case ElectorState::e_DORMANT:
-    case ElectorState::e_FOLLOWER:
-    case ElectorState::e_CANDIDATE:
-    case ElectorState::e_LEADER:
+    case ElectorState::DORMANT:
+    case ElectorState::FOLLOWER:
+    case ElectorState::CANDIDATE:
+    case ElectorState::LEADER:
         *result = static_cast<ElectorState::Value>(number);
         return 0;
     default: return -1;
@@ -1631,16 +1616,16 @@ int ElectorState::fromString(ElectorState::Value* result,
 const char* ElectorState::toString(ElectorState::Value value)
 {
     switch (value) {
-    case e_DORMANT: {
+    case DORMANT: {
         return "DORMANT";
     }
-    case e_FOLLOWER: {
+    case FOLLOWER: {
         return "FOLLOWER";
     }
-    case e_CANDIDATE: {
+    case CANDIDATE: {
         return "CANDIDATE";
     }
-    case e_LEADER: {
+    case LEADER: {
         return "LEADER";
     }
     }
@@ -1658,12 +1643,12 @@ const char* ElectorState::toString(ElectorState::Value value)
 const char EncodingFormat::CLASS_NAME[] = "EncodingFormat";
 
 const bdlat_EnumeratorInfo EncodingFormat::ENUMERATOR_INFO_ARRAY[] = {
-    {EncodingFormat::e_TEXT, "TEXT", sizeof("TEXT") - 1, ""},
-    {EncodingFormat::e_JSON_COMPACT,
+    {EncodingFormat::TEXT, "TEXT", sizeof("TEXT") - 1, ""},
+    {EncodingFormat::JSON_COMPACT,
      "JSON_COMPACT",
      sizeof("JSON_COMPACT") - 1,
      ""},
-    {EncodingFormat::e_JSON_PRETTY,
+    {EncodingFormat::JSON_PRETTY,
      "JSON_PRETTY",
      sizeof("JSON_PRETTY") - 1,
      ""}};
@@ -1673,9 +1658,9 @@ const bdlat_EnumeratorInfo EncodingFormat::ENUMERATOR_INFO_ARRAY[] = {
 int EncodingFormat::fromInt(EncodingFormat::Value* result, int number)
 {
     switch (number) {
-    case EncodingFormat::e_TEXT:
-    case EncodingFormat::e_JSON_COMPACT:
-    case EncodingFormat::e_JSON_PRETTY:
+    case EncodingFormat::TEXT:
+    case EncodingFormat::JSON_COMPACT:
+    case EncodingFormat::JSON_PRETTY:
         *result = static_cast<EncodingFormat::Value>(number);
         return 0;
     default: return -1;
@@ -1704,13 +1689,13 @@ int EncodingFormat::fromString(EncodingFormat::Value* result,
 const char* EncodingFormat::toString(EncodingFormat::Value value)
 {
     switch (value) {
-    case e_TEXT: {
+    case TEXT: {
         return "TEXT";
     }
-    case e_JSON_COMPACT: {
+    case JSON_COMPACT: {
         return "JSON_COMPACT";
     }
-    case e_JSON_PRETTY: {
+    case JSON_PRETTY: {
         return "JSON_PRETTY";
     }
     }
@@ -2055,18 +2040,18 @@ FileSet::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 const char FileStoreState::CLASS_NAME[] = "FileStoreState";
 
 const bdlat_EnumeratorInfo FileStoreState::ENUMERATOR_INFO_ARRAY[] = {
-    {FileStoreState::e_OPEN, "open", sizeof("open") - 1, ""},
-    {FileStoreState::e_CLOSED, "closed", sizeof("closed") - 1, ""},
-    {FileStoreState::e_STOPPING, "stopping", sizeof("stopping") - 1, ""}};
+    {FileStoreState::OPEN, "open", sizeof("open") - 1, ""},
+    {FileStoreState::CLOSED, "closed", sizeof("closed") - 1, ""},
+    {FileStoreState::STOPPING, "stopping", sizeof("stopping") - 1, ""}};
 
 // CLASS METHODS
 
 int FileStoreState::fromInt(FileStoreState::Value* result, int number)
 {
     switch (number) {
-    case FileStoreState::e_OPEN:
-    case FileStoreState::e_CLOSED:
-    case FileStoreState::e_STOPPING:
+    case FileStoreState::OPEN:
+    case FileStoreState::CLOSED:
+    case FileStoreState::STOPPING:
         *result = static_cast<FileStoreState::Value>(number);
         return 0;
     default: return -1;
@@ -2095,13 +2080,13 @@ int FileStoreState::fromString(FileStoreState::Value* result,
 const char* FileStoreState::toString(FileStoreState::Value value)
 {
     switch (value) {
-    case e_OPEN: {
+    case OPEN: {
         return "open";
     }
-    case e_CLOSED: {
+    case CLOSED: {
         return "closed";
     }
-    case e_STOPPING: {
+    case STOPPING: {
         return "stopping";
     }
     }
@@ -2125,7 +2110,7 @@ const bdlat_AttributeInfo HelpCommand::ATTRIBUTE_INFO_ARRAY[] = {
      "plumbing",
      sizeof("plumbing") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE}};
+     bdlat_FormattingMode::e_TEXT}};
 
 // CLASS METHODS
 
@@ -2268,18 +2253,18 @@ bsl::ostream& LeaderMessageSequence::print(bsl::ostream& stream,
 const char LeaderStatus::CLASS_NAME[] = "LeaderStatus";
 
 const bdlat_EnumeratorInfo LeaderStatus::ENUMERATOR_INFO_ARRAY[] = {
-    {LeaderStatus::e_UNDEFINED, "UNDEFINED", sizeof("UNDEFINED") - 1, ""},
-    {LeaderStatus::e_PASSIVE, "PASSIVE", sizeof("PASSIVE") - 1, ""},
-    {LeaderStatus::e_ACTIVE, "ACTIVE", sizeof("ACTIVE") - 1, ""}};
+    {LeaderStatus::UNDEFINED, "UNDEFINED", sizeof("UNDEFINED") - 1, ""},
+    {LeaderStatus::PASSIVE, "PASSIVE", sizeof("PASSIVE") - 1, ""},
+    {LeaderStatus::ACTIVE, "ACTIVE", sizeof("ACTIVE") - 1, ""}};
 
 // CLASS METHODS
 
 int LeaderStatus::fromInt(LeaderStatus::Value* result, int number)
 {
     switch (number) {
-    case LeaderStatus::e_UNDEFINED:
-    case LeaderStatus::e_PASSIVE:
-    case LeaderStatus::e_ACTIVE:
+    case LeaderStatus::UNDEFINED:
+    case LeaderStatus::PASSIVE:
+    case LeaderStatus::ACTIVE:
         *result = static_cast<LeaderStatus::Value>(number);
         return 0;
     default: return -1;
@@ -2307,13 +2292,13 @@ int LeaderStatus::fromString(LeaderStatus::Value* result,
 const char* LeaderStatus::toString(LeaderStatus::Value value)
 {
     switch (value) {
-    case e_UNDEFINED: {
+    case UNDEFINED: {
         return "UNDEFINED";
     }
-    case e_PASSIVE: {
+    case PASSIVE: {
         return "PASSIVE";
     }
-    case e_ACTIVE: {
+    case ACTIVE: {
         return "ACTIVE";
     }
     }
@@ -2627,18 +2612,18 @@ ListMessages::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 const char Locality::CLASS_NAME[] = "Locality";
 
 const bdlat_EnumeratorInfo Locality::ENUMERATOR_INFO_ARRAY[] = {
-    {Locality::e_REMOTE, "remote", sizeof("remote") - 1, ""},
-    {Locality::e_LOCAL, "local", sizeof("local") - 1, ""},
-    {Locality::e_MEMBER, "member", sizeof("member") - 1, ""}};
+    {Locality::REMOTE, "remote", sizeof("remote") - 1, ""},
+    {Locality::LOCAL, "local", sizeof("local") - 1, ""},
+    {Locality::MEMBER, "member", sizeof("member") - 1, ""}};
 
 // CLASS METHODS
 
 int Locality::fromInt(Locality::Value* result, int number)
 {
     switch (number) {
-    case Locality::e_REMOTE:
-    case Locality::e_LOCAL:
-    case Locality::e_MEMBER:
+    case Locality::REMOTE:
+    case Locality::LOCAL:
+    case Locality::MEMBER:
         *result = static_cast<Locality::Value>(number);
         return 0;
     default: return -1;
@@ -2666,13 +2651,13 @@ int Locality::fromString(Locality::Value* result,
 const char* Locality::toString(Locality::Value value)
 {
     switch (value) {
-    case e_REMOTE: {
+    case REMOTE: {
         return "remote";
     }
-    case e_LOCAL: {
+    case LOCAL: {
         return "local";
     }
-    case e_MEMBER: {
+    case MEMBER: {
         return "member";
     }
     }
@@ -2830,11 +2815,11 @@ Message::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 const char NodeStatus::CLASS_NAME[] = "NodeStatus";
 
 const bdlat_EnumeratorInfo NodeStatus::ENUMERATOR_INFO_ARRAY[] = {
-    {NodeStatus::e_E_UNKNOWN, "E_UNKNOWN", sizeof("E_UNKNOWN") - 1, ""},
-    {NodeStatus::e_E_STARTING, "E_STARTING", sizeof("E_STARTING") - 1, ""},
-    {NodeStatus::e_E_AVAILABLE, "E_AVAILABLE", sizeof("E_AVAILABLE") - 1, ""},
-    {NodeStatus::e_E_STOPPING, "E_STOPPING", sizeof("E_STOPPING") - 1, ""},
-    {NodeStatus::e_E_UNAVAILABLE,
+    {NodeStatus::E_UNKNOWN, "E_UNKNOWN", sizeof("E_UNKNOWN") - 1, ""},
+    {NodeStatus::E_STARTING, "E_STARTING", sizeof("E_STARTING") - 1, ""},
+    {NodeStatus::E_AVAILABLE, "E_AVAILABLE", sizeof("E_AVAILABLE") - 1, ""},
+    {NodeStatus::E_STOPPING, "E_STOPPING", sizeof("E_STOPPING") - 1, ""},
+    {NodeStatus::E_UNAVAILABLE,
      "E_UNAVAILABLE",
      sizeof("E_UNAVAILABLE") - 1,
      ""}};
@@ -2844,11 +2829,11 @@ const bdlat_EnumeratorInfo NodeStatus::ENUMERATOR_INFO_ARRAY[] = {
 int NodeStatus::fromInt(NodeStatus::Value* result, int number)
 {
     switch (number) {
-    case NodeStatus::e_E_UNKNOWN:
-    case NodeStatus::e_E_STARTING:
-    case NodeStatus::e_E_AVAILABLE:
-    case NodeStatus::e_E_STOPPING:
-    case NodeStatus::e_E_UNAVAILABLE:
+    case NodeStatus::E_UNKNOWN:
+    case NodeStatus::E_STARTING:
+    case NodeStatus::E_AVAILABLE:
+    case NodeStatus::E_STOPPING:
+    case NodeStatus::E_UNAVAILABLE:
         *result = static_cast<NodeStatus::Value>(number);
         return 0;
     default: return -1;
@@ -2876,19 +2861,19 @@ int NodeStatus::fromString(NodeStatus::Value* result,
 const char* NodeStatus::toString(NodeStatus::Value value)
 {
     switch (value) {
-    case e_E_UNKNOWN: {
+    case E_UNKNOWN: {
         return "E_UNKNOWN";
     }
-    case e_E_STARTING: {
+    case E_STARTING: {
         return "E_STARTING";
     }
-    case e_E_AVAILABLE: {
+    case E_AVAILABLE: {
         return "E_AVAILABLE";
     }
-    case e_E_STOPPING: {
+    case E_STOPPING: {
         return "E_STOPPING";
     }
-    case e_E_UNAVAILABLE: {
+    case E_UNAVAILABLE: {
         return "E_UNAVAILABLE";
     }
     }
@@ -2906,18 +2891,18 @@ const char* NodeStatus::toString(NodeStatus::Value value)
 const char PrimaryStatus::CLASS_NAME[] = "PrimaryStatus";
 
 const bdlat_EnumeratorInfo PrimaryStatus::ENUMERATOR_INFO_ARRAY[] = {
-    {PrimaryStatus::e_UNDEFINED, "UNDEFINED", sizeof("UNDEFINED") - 1, ""},
-    {PrimaryStatus::e_PASSIVE, "PASSIVE", sizeof("PASSIVE") - 1, ""},
-    {PrimaryStatus::e_ACTIVE, "ACTIVE", sizeof("ACTIVE") - 1, ""}};
+    {PrimaryStatus::UNDEFINED, "UNDEFINED", sizeof("UNDEFINED") - 1, ""},
+    {PrimaryStatus::PASSIVE, "PASSIVE", sizeof("PASSIVE") - 1, ""},
+    {PrimaryStatus::ACTIVE, "ACTIVE", sizeof("ACTIVE") - 1, ""}};
 
 // CLASS METHODS
 
 int PrimaryStatus::fromInt(PrimaryStatus::Value* result, int number)
 {
     switch (number) {
-    case PrimaryStatus::e_UNDEFINED:
-    case PrimaryStatus::e_PASSIVE:
-    case PrimaryStatus::e_ACTIVE:
+    case PrimaryStatus::UNDEFINED:
+    case PrimaryStatus::PASSIVE:
+    case PrimaryStatus::ACTIVE:
         *result = static_cast<PrimaryStatus::Value>(number);
         return 0;
     default: return -1;
@@ -2946,13 +2931,13 @@ int PrimaryStatus::fromString(PrimaryStatus::Value* result,
 const char* PrimaryStatus::toString(PrimaryStatus::Value value)
 {
     switch (value) {
-    case e_UNDEFINED: {
+    case UNDEFINED: {
         return "UNDEFINED";
     }
-    case e_PASSIVE: {
+    case PASSIVE: {
         return "PASSIVE";
     }
-    case e_ACTIVE: {
+    case ACTIVE: {
         return "ACTIVE";
     }
     }
@@ -3438,15 +3423,15 @@ const char ResourceUsageMonitorState::CLASS_NAME[] =
     "ResourceUsageMonitorState";
 
 const bdlat_EnumeratorInfo ResourceUsageMonitorState::ENUMERATOR_INFO_ARRAY[] =
-    {{ResourceUsageMonitorState::e_STATE_NORMAL,
+    {{ResourceUsageMonitorState::STATE_NORMAL,
       "STATE_NORMAL",
       sizeof("STATE_NORMAL") - 1,
       ""},
-     {ResourceUsageMonitorState::e_STATE_HIGH_WATERMARK,
+     {ResourceUsageMonitorState::STATE_HIGH_WATERMARK,
       "STATE_HIGH_WATERMARK",
       sizeof("STATE_HIGH_WATERMARK") - 1,
       ""},
-     {ResourceUsageMonitorState::e_STATE_FULL,
+     {ResourceUsageMonitorState::STATE_FULL,
       "STATE_FULL",
       sizeof("STATE_FULL") - 1,
       ""}};
@@ -3458,9 +3443,9 @@ int ResourceUsageMonitorState::fromInt(
     int                               number)
 {
     switch (number) {
-    case ResourceUsageMonitorState::e_STATE_NORMAL:
-    case ResourceUsageMonitorState::e_STATE_HIGH_WATERMARK:
-    case ResourceUsageMonitorState::e_STATE_FULL:
+    case ResourceUsageMonitorState::STATE_NORMAL:
+    case ResourceUsageMonitorState::STATE_HIGH_WATERMARK:
+    case ResourceUsageMonitorState::STATE_FULL:
         *result = static_cast<ResourceUsageMonitorState::Value>(number);
         return 0;
     default: return -1;
@@ -3491,13 +3476,13 @@ const char*
 ResourceUsageMonitorState::toString(ResourceUsageMonitorState::Value value)
 {
     switch (value) {
-    case e_STATE_NORMAL: {
+    case STATE_NORMAL: {
         return "STATE_NORMAL";
     }
-    case e_STATE_HIGH_WATERMARK: {
+    case STATE_HIGH_WATERMARK: {
         return "STATE_HIGH_WATERMARK";
     }
-    case e_STATE_FULL: {
+    case STATE_FULL: {
         return "STATE_FULL";
     }
     }
@@ -8600,14 +8585,19 @@ const bdlat_SelectionInfo StoragePartitionCommand::SELECTION_INFO_ARRAY[] = {
      "rollover",
      sizeof("rollover") - 1,
      "",
-     bdlat_FormattingMode::e_DEFAULT}};
+     bdlat_FormattingMode::e_DEFAULT},
+    {SELECTION_ID_TRANSFER_LEADERSHIP,
+     "transferLeadership",
+     sizeof("transferLeadership") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT}};
 
 // CLASS METHODS
 
 const bdlat_SelectionInfo*
 StoragePartitionCommand::lookupSelectionInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 4; ++i) {
+    for (int i = 0; i < 5; ++i) {
         const bdlat_SelectionInfo& selectionInfo =
             StoragePartitionCommand::SELECTION_INFO_ARRAY[i];
 
@@ -8631,6 +8621,8 @@ const bdlat_SelectionInfo* StoragePartitionCommand::lookupSelectionInfo(int id)
         return &SELECTION_INFO_ARRAY[SELECTION_INDEX_SUMMARY];
     case SELECTION_ID_ROLLOVER:
         return &SELECTION_INFO_ARRAY[SELECTION_INDEX_ROLLOVER];
+    case SELECTION_ID_TRANSFER_LEADERSHIP:
+        return &SELECTION_INFO_ARRAY[SELECTION_INDEX_TRANSFER_LEADERSHIP];
     default: return 0;
     }
 }
@@ -8638,8 +8630,10 @@ const bdlat_SelectionInfo* StoragePartitionCommand::lookupSelectionInfo(int id)
 // CREATORS
 
 StoragePartitionCommand::StoragePartitionCommand(
-    const StoragePartitionCommand& original)
+    const StoragePartitionCommand& original,
+    bslma::Allocator*              basicAllocator)
 : d_selectionId(original.d_selectionId)
+, d_allocator_p(bslma::Default::allocator(basicAllocator))
 {
     switch (d_selectionId) {
     case SELECTION_ID_ENABLE: {
@@ -8654,6 +8648,10 @@ StoragePartitionCommand::StoragePartitionCommand(
     case SELECTION_ID_ROLLOVER: {
         new (d_rollover.buffer()) Void(original.d_rollover.object());
     } break;
+    case SELECTION_ID_TRANSFER_LEADERSHIP: {
+        new (d_transferLeadership.buffer())
+            bsl::string(original.d_transferLeadership.object(), d_allocator_p);
+    } break;
     default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
     }
 }
@@ -8662,7 +8660,8 @@ StoragePartitionCommand::StoragePartitionCommand(
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
 StoragePartitionCommand::StoragePartitionCommand(
     StoragePartitionCommand&& original) noexcept
-: d_selectionId(original.d_selectionId)
+: d_selectionId(original.d_selectionId),
+  d_allocator_p(original.d_allocator_p)
 {
     switch (d_selectionId) {
     case SELECTION_ID_ENABLE: {
@@ -8677,6 +8676,40 @@ StoragePartitionCommand::StoragePartitionCommand(
     case SELECTION_ID_ROLLOVER: {
         new (d_rollover.buffer())
             Void(bsl::move(original.d_rollover.object()));
+    } break;
+    case SELECTION_ID_TRANSFER_LEADERSHIP: {
+        new (d_transferLeadership.buffer())
+            bsl::string(bsl::move(original.d_transferLeadership.object()),
+                        d_allocator_p);
+    } break;
+    default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
+    }
+}
+
+StoragePartitionCommand::StoragePartitionCommand(
+    StoragePartitionCommand&& original,
+    bslma::Allocator*         basicAllocator)
+: d_selectionId(original.d_selectionId)
+, d_allocator_p(bslma::Default::allocator(basicAllocator))
+{
+    switch (d_selectionId) {
+    case SELECTION_ID_ENABLE: {
+        new (d_enable.buffer()) Void(bsl::move(original.d_enable.object()));
+    } break;
+    case SELECTION_ID_DISABLE: {
+        new (d_disable.buffer()) Void(bsl::move(original.d_disable.object()));
+    } break;
+    case SELECTION_ID_SUMMARY: {
+        new (d_summary.buffer()) Void(bsl::move(original.d_summary.object()));
+    } break;
+    case SELECTION_ID_ROLLOVER: {
+        new (d_rollover.buffer())
+            Void(bsl::move(original.d_rollover.object()));
+    } break;
+    case SELECTION_ID_TRANSFER_LEADERSHIP: {
+        new (d_transferLeadership.buffer())
+            bsl::string(bsl::move(original.d_transferLeadership.object()),
+                        d_allocator_p);
     } break;
     default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
     }
@@ -8701,6 +8734,9 @@ StoragePartitionCommand::operator=(const StoragePartitionCommand& rhs)
         } break;
         case SELECTION_ID_ROLLOVER: {
             makeRollover(rhs.d_rollover.object());
+        } break;
+        case SELECTION_ID_TRANSFER_LEADERSHIP: {
+            makeTransferLeadership(rhs.d_transferLeadership.object());
         } break;
         default:
             BSLS_ASSERT(SELECTION_ID_UNDEFINED == rhs.d_selectionId);
@@ -8730,6 +8766,10 @@ StoragePartitionCommand::operator=(StoragePartitionCommand&& rhs)
         case SELECTION_ID_ROLLOVER: {
             makeRollover(bsl::move(rhs.d_rollover.object()));
         } break;
+        case SELECTION_ID_TRANSFER_LEADERSHIP: {
+            makeTransferLeadership(
+                bsl::move(rhs.d_transferLeadership.object()));
+        } break;
         default:
             BSLS_ASSERT(SELECTION_ID_UNDEFINED == rhs.d_selectionId);
             reset();
@@ -8755,6 +8795,10 @@ void StoragePartitionCommand::reset()
     case SELECTION_ID_ROLLOVER: {
         d_rollover.object().~Void();
     } break;
+    case SELECTION_ID_TRANSFER_LEADERSHIP: {
+        typedef bsl::string Type;
+        d_transferLeadership.object().~Type();
+    } break;
     default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
     }
 
@@ -8775,6 +8819,9 @@ int StoragePartitionCommand::makeSelection(int selectionId)
     } break;
     case SELECTION_ID_ROLLOVER: {
         makeRollover();
+    } break;
+    case SELECTION_ID_TRANSFER_LEADERSHIP: {
+        makeTransferLeadership();
     } break;
     case SELECTION_ID_UNDEFINED: {
         reset();
@@ -8975,6 +9022,54 @@ Void& StoragePartitionCommand::makeRollover(Void&& value)
 }
 #endif
 
+bsl::string& StoragePartitionCommand::makeTransferLeadership()
+{
+    if (SELECTION_ID_TRANSFER_LEADERSHIP == d_selectionId) {
+        bdlat_ValueTypeFunctions::reset(&d_transferLeadership.object());
+    }
+    else {
+        reset();
+        new (d_transferLeadership.buffer()) bsl::string(d_allocator_p);
+        d_selectionId = SELECTION_ID_TRANSFER_LEADERSHIP;
+    }
+
+    return d_transferLeadership.object();
+}
+
+bsl::string&
+StoragePartitionCommand::makeTransferLeadership(const bsl::string& value)
+{
+    if (SELECTION_ID_TRANSFER_LEADERSHIP == d_selectionId) {
+        d_transferLeadership.object() = value;
+    }
+    else {
+        reset();
+        new (d_transferLeadership.buffer()) bsl::string(value, d_allocator_p);
+        d_selectionId = SELECTION_ID_TRANSFER_LEADERSHIP;
+    }
+
+    return d_transferLeadership.object();
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+bsl::string&
+StoragePartitionCommand::makeTransferLeadership(bsl::string&& value)
+{
+    if (SELECTION_ID_TRANSFER_LEADERSHIP == d_selectionId) {
+        d_transferLeadership.object() = bsl::move(value);
+    }
+    else {
+        reset();
+        new (d_transferLeadership.buffer())
+            bsl::string(bsl::move(value), d_allocator_p);
+        d_selectionId = SELECTION_ID_TRANSFER_LEADERSHIP;
+    }
+
+    return d_transferLeadership.object();
+}
+#endif
+
 // ACCESSORS
 
 bsl::ostream& StoragePartitionCommand::print(bsl::ostream& stream,
@@ -8996,6 +9091,10 @@ bsl::ostream& StoragePartitionCommand::print(bsl::ostream& stream,
     case SELECTION_ID_ROLLOVER: {
         printer.printAttribute("rollover", d_rollover.object());
     } break;
+    case SELECTION_ID_TRANSFER_LEADERSHIP: {
+        printer.printAttribute("transferLeadership",
+                               d_transferLeadership.object());
+    } break;
     default: stream << "SELECTION UNDEFINED\n";
     }
     printer.end();
@@ -9013,6 +9112,9 @@ const char* StoragePartitionCommand::selectionName() const
         return SELECTION_INFO_ARRAY[SELECTION_INDEX_SUMMARY].name();
     case SELECTION_ID_ROLLOVER:
         return SELECTION_INFO_ARRAY[SELECTION_INDEX_ROLLOVER].name();
+    case SELECTION_ID_TRANSFER_LEADERSHIP:
+        return SELECTION_INFO_ARRAY[SELECTION_INDEX_TRANSFER_LEADERSHIP]
+            .name();
     default:
         BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
         return "(* UNDEFINED *)";
@@ -12782,13 +12884,63 @@ const bdlat_AttributeInfo* StoragePartition::lookupAttributeInfo(int id)
 
 // CREATORS
 
-StoragePartition::StoragePartition()
-: d_command()
+StoragePartition::StoragePartition(bslma::Allocator* basicAllocator)
+: d_command(basicAllocator)
 , d_partitionId()
 {
 }
 
+StoragePartition::StoragePartition(const StoragePartition& original,
+                                   bslma::Allocator*       basicAllocator)
+: d_command(original.d_command, basicAllocator)
+, d_partitionId(original.d_partitionId)
+{
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+StoragePartition::StoragePartition(StoragePartition&& original) noexcept
+: d_command(bsl::move(original.d_command)),
+  d_partitionId(bsl::move(original.d_partitionId))
+{
+}
+
+StoragePartition::StoragePartition(StoragePartition&& original,
+                                   bslma::Allocator*  basicAllocator)
+: d_command(bsl::move(original.d_command), basicAllocator)
+, d_partitionId(bsl::move(original.d_partitionId))
+{
+}
+#endif
+
+StoragePartition::~StoragePartition()
+{
+}
+
 // MANIPULATORS
+
+StoragePartition& StoragePartition::operator=(const StoragePartition& rhs)
+{
+    if (this != &rhs) {
+        d_partitionId = rhs.d_partitionId;
+        d_command     = rhs.d_command;
+    }
+
+    return *this;
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+StoragePartition& StoragePartition::operator=(StoragePartition&& rhs)
+{
+    if (this != &rhs) {
+        d_partitionId = bsl::move(rhs.d_partitionId);
+        d_command     = bsl::move(rhs.d_command);
+    }
+
+    return *this;
+}
+#endif
 
 void StoragePartition::reset()
 {
@@ -13807,14 +13959,19 @@ const bdlat_SelectionInfo ElectorCommand::SELECTION_INFO_ARRAY[] = {
      "listTunables",
      sizeof("listTunables") - 1,
      "",
-     bdlat_FormattingMode::e_DEFAULT}};
+     bdlat_FormattingMode::e_DEFAULT},
+    {SELECTION_ID_TRANSFER_LEADERSHIP,
+     "transferLeadership",
+     sizeof("transferLeadership") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT}};
 
 // CLASS METHODS
 
 const bdlat_SelectionInfo*
 ElectorCommand::lookupSelectionInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 4; ++i) {
         const bdlat_SelectionInfo& selectionInfo =
             ElectorCommand::SELECTION_INFO_ARRAY[i];
 
@@ -13836,6 +13993,8 @@ const bdlat_SelectionInfo* ElectorCommand::lookupSelectionInfo(int id)
         return &SELECTION_INFO_ARRAY[SELECTION_INDEX_GET_TUNABLE];
     case SELECTION_ID_LIST_TUNABLES:
         return &SELECTION_INFO_ARRAY[SELECTION_INDEX_LIST_TUNABLES];
+    case SELECTION_ID_TRANSFER_LEADERSHIP:
+        return &SELECTION_INFO_ARRAY[SELECTION_INDEX_TRANSFER_LEADERSHIP];
     default: return 0;
     }
 }
@@ -13858,6 +14017,10 @@ ElectorCommand::ElectorCommand(const ElectorCommand& original,
     } break;
     case SELECTION_ID_LIST_TUNABLES: {
         new (d_listTunables.buffer()) Void(original.d_listTunables.object());
+    } break;
+    case SELECTION_ID_TRANSFER_LEADERSHIP: {
+        new (d_transferLeadership.buffer())
+            bsl::string(original.d_transferLeadership.object(), d_allocator_p);
     } break;
     default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
     }
@@ -13884,6 +14047,11 @@ ElectorCommand::ElectorCommand(ElectorCommand&& original) noexcept
         new (d_listTunables.buffer())
             Void(bsl::move(original.d_listTunables.object()));
     } break;
+    case SELECTION_ID_TRANSFER_LEADERSHIP: {
+        new (d_transferLeadership.buffer())
+            bsl::string(bsl::move(original.d_transferLeadership.object()),
+                        d_allocator_p);
+    } break;
     default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
     }
 }
@@ -13908,6 +14076,11 @@ ElectorCommand::ElectorCommand(ElectorCommand&&  original,
         new (d_listTunables.buffer())
             Void(bsl::move(original.d_listTunables.object()));
     } break;
+    case SELECTION_ID_TRANSFER_LEADERSHIP: {
+        new (d_transferLeadership.buffer())
+            bsl::string(bsl::move(original.d_transferLeadership.object()),
+                        d_allocator_p);
+    } break;
     default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
     }
 }
@@ -13927,6 +14100,9 @@ ElectorCommand& ElectorCommand::operator=(const ElectorCommand& rhs)
         } break;
         case SELECTION_ID_LIST_TUNABLES: {
             makeListTunables(rhs.d_listTunables.object());
+        } break;
+        case SELECTION_ID_TRANSFER_LEADERSHIP: {
+            makeTransferLeadership(rhs.d_transferLeadership.object());
         } break;
         default:
             BSLS_ASSERT(SELECTION_ID_UNDEFINED == rhs.d_selectionId);
@@ -13952,6 +14128,10 @@ ElectorCommand& ElectorCommand::operator=(ElectorCommand&& rhs)
         case SELECTION_ID_LIST_TUNABLES: {
             makeListTunables(bsl::move(rhs.d_listTunables.object()));
         } break;
+        case SELECTION_ID_TRANSFER_LEADERSHIP: {
+            makeTransferLeadership(
+                bsl::move(rhs.d_transferLeadership.object()));
+        } break;
         default:
             BSLS_ASSERT(SELECTION_ID_UNDEFINED == rhs.d_selectionId);
             reset();
@@ -13974,6 +14154,10 @@ void ElectorCommand::reset()
     case SELECTION_ID_LIST_TUNABLES: {
         d_listTunables.object().~Void();
     } break;
+    case SELECTION_ID_TRANSFER_LEADERSHIP: {
+        typedef bsl::string Type;
+        d_transferLeadership.object().~Type();
+    } break;
     default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
     }
 
@@ -13991,6 +14175,9 @@ int ElectorCommand::makeSelection(int selectionId)
     } break;
     case SELECTION_ID_LIST_TUNABLES: {
         makeListTunables();
+    } break;
+    case SELECTION_ID_TRANSFER_LEADERSHIP: {
+        makeTransferLeadership();
     } break;
     case SELECTION_ID_UNDEFINED: {
         reset();
@@ -14148,6 +14335,52 @@ Void& ElectorCommand::makeListTunables(Void&& value)
 }
 #endif
 
+bsl::string& ElectorCommand::makeTransferLeadership()
+{
+    if (SELECTION_ID_TRANSFER_LEADERSHIP == d_selectionId) {
+        bdlat_ValueTypeFunctions::reset(&d_transferLeadership.object());
+    }
+    else {
+        reset();
+        new (d_transferLeadership.buffer()) bsl::string(d_allocator_p);
+        d_selectionId = SELECTION_ID_TRANSFER_LEADERSHIP;
+    }
+
+    return d_transferLeadership.object();
+}
+
+bsl::string& ElectorCommand::makeTransferLeadership(const bsl::string& value)
+{
+    if (SELECTION_ID_TRANSFER_LEADERSHIP == d_selectionId) {
+        d_transferLeadership.object() = value;
+    }
+    else {
+        reset();
+        new (d_transferLeadership.buffer()) bsl::string(value, d_allocator_p);
+        d_selectionId = SELECTION_ID_TRANSFER_LEADERSHIP;
+    }
+
+    return d_transferLeadership.object();
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+bsl::string& ElectorCommand::makeTransferLeadership(bsl::string&& value)
+{
+    if (SELECTION_ID_TRANSFER_LEADERSHIP == d_selectionId) {
+        d_transferLeadership.object() = bsl::move(value);
+    }
+    else {
+        reset();
+        new (d_transferLeadership.buffer())
+            bsl::string(bsl::move(value), d_allocator_p);
+        d_selectionId = SELECTION_ID_TRANSFER_LEADERSHIP;
+    }
+
+    return d_transferLeadership.object();
+}
+#endif
+
 // ACCESSORS
 
 bsl::ostream& ElectorCommand::print(bsl::ostream& stream,
@@ -14166,6 +14399,10 @@ bsl::ostream& ElectorCommand::print(bsl::ostream& stream,
     case SELECTION_ID_LIST_TUNABLES: {
         printer.printAttribute("listTunables", d_listTunables.object());
     } break;
+    case SELECTION_ID_TRANSFER_LEADERSHIP: {
+        printer.printAttribute("transferLeadership",
+                               d_transferLeadership.object());
+    } break;
     default: stream << "SELECTION UNDEFINED\n";
     }
     printer.end();
@@ -14181,6 +14418,9 @@ const char* ElectorCommand::selectionName() const
         return SELECTION_INFO_ARRAY[SELECTION_INDEX_GET_TUNABLE].name();
     case SELECTION_ID_LIST_TUNABLES:
         return SELECTION_INFO_ARRAY[SELECTION_INDEX_LIST_TUNABLES].name();
+    case SELECTION_ID_TRANSFER_LEADERSHIP:
+        return SELECTION_INFO_ARRAY[SELECTION_INDEX_TRANSFER_LEADERSHIP]
+            .name();
     default:
         BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
         return "(* UNDEFINED *)";
@@ -18268,7 +18508,7 @@ StorageCommand::StorageCommand(const StorageCommand& original,
     } break;
     case SELECTION_ID_PARTITION: {
         new (d_partition.buffer())
-            StoragePartition(original.d_partition.object());
+            StoragePartition(original.d_partition.object(), d_allocator_p);
     } break;
     case SELECTION_ID_DOMAIN: {
         new (d_domain.buffer())
@@ -18298,7 +18538,8 @@ StorageCommand::StorageCommand(StorageCommand&& original) noexcept
     } break;
     case SELECTION_ID_PARTITION: {
         new (d_partition.buffer())
-            StoragePartition(bsl::move(original.d_partition.object()));
+            StoragePartition(bsl::move(original.d_partition.object()),
+                             d_allocator_p);
     } break;
     case SELECTION_ID_DOMAIN: {
         new (d_domain.buffer())
@@ -18329,7 +18570,8 @@ StorageCommand::StorageCommand(StorageCommand&&  original,
     } break;
     case SELECTION_ID_PARTITION: {
         new (d_partition.buffer())
-            StoragePartition(bsl::move(original.d_partition.object()));
+            StoragePartition(bsl::move(original.d_partition.object()),
+                             d_allocator_p);
     } break;
     case SELECTION_ID_DOMAIN: {
         new (d_domain.buffer())
@@ -18524,7 +18766,7 @@ StoragePartition& StorageCommand::makePartition()
     }
     else {
         reset();
-        new (d_partition.buffer()) StoragePartition();
+        new (d_partition.buffer()) StoragePartition(d_allocator_p);
         d_selectionId = SELECTION_ID_PARTITION;
     }
 
@@ -18538,7 +18780,7 @@ StoragePartition& StorageCommand::makePartition(const StoragePartition& value)
     }
     else {
         reset();
-        new (d_partition.buffer()) StoragePartition(value);
+        new (d_partition.buffer()) StoragePartition(value, d_allocator_p);
         d_selectionId = SELECTION_ID_PARTITION;
     }
 
@@ -18554,7 +18796,8 @@ StoragePartition& StorageCommand::makePartition(StoragePartition&& value)
     }
     else {
         reset();
-        new (d_partition.buffer()) StoragePartition(bsl::move(value));
+        new (d_partition.buffer())
+            StoragePartition(bsl::move(value), d_allocator_p);
         d_selectionId = SELECTION_ID_PARTITION;
     }
 
@@ -23776,7 +24019,7 @@ const bdlat_AttributeInfo Command::ATTRIBUTE_INFO_ARRAY[] = {
      "encoding",
      sizeof("encoding") - 1,
      "",
-     bdlat_FormattingMode::e_DEFAULT | bdlat_FormattingMode::e_DEFAULT_VALUE}};
+     bdlat_FormattingMode::e_DEFAULT}};
 
 // CLASS METHODS
 
@@ -30218,6 +30461,13 @@ const char* InternalResult::selectionName() const
 }  // close package namespace
 }  // close enterprise namespace
 
-// GENERATED BY BLP_BAS_CODEGEN_2026.04.30
+// GENERATED BY @BLP_BAS_CODEGEN_VERSION@
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbcmd --msgComponent messages mqbcmd.xsd
+// ----------------------------------------------------------------------------
+// NOTICE:
+//      Copyright 2026 Bloomberg Finance L.P. All rights reserved.
+//      Property of Bloomberg Finance L.P. (BFLP)
+//      This software is made available solely pursuant to the
+//      terms of a BFLP license agreement which governs its use.
+// ------------------------------- END-OF-FILE --------------------------------

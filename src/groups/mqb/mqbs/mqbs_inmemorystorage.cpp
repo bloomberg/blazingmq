@@ -47,7 +47,7 @@ const int k_GC_HISTORY_BATCH_SIZE = 1000;
 // ---------------------
 
 // CREATORS
-InMemoryStorage::InMemoryStorage(DataStore*              dataStore_p,
+InMemoryStorage::InMemoryStorage(RecordStore*            dataStore_p,
                                  const bmqt::Uri&        uri,
                                  const mqbu::StorageKey& queueKey,
                                  mqbi::Domain*           domain,
@@ -423,7 +423,7 @@ InMemoryStorage::removeAll(const mqbu::StorageKey& appKey)
     // `InMemoryStorage::removeAll` is called in primary by
     // `StorageUtil::purgeQueueDispatched`, in broadcast mode, and in proxy.
     // All of which are supposed to remove items.
-    d_virtualStorageCatalog.removeAll(appKey, true);
+    d_virtualStorageCatalog.purge(appKey, true);
 
     if (d_items.empty()) {
         d_isEmpty.storeRelaxed(1);
@@ -577,7 +577,8 @@ void InMemoryStorage::processMessageRecord(
     BSLA_MAYBE_UNUSED const bmqt::MessageGUID&     guid,
     BSLA_MAYBE_UNUSED unsigned int                 msgLen,
     BSLA_MAYBE_UNUSED unsigned int                 refCount,
-    BSLA_MAYBE_UNUSED const DataStoreRecordHandle& handle)
+    BSLA_MAYBE_UNUSED const DataStoreRecordHandle& handle,
+    BSLA_MAYBE_UNUSED bool                         isOwn)
 {
     // Replicated in-memory storage is not yet supported.
 
@@ -588,7 +589,8 @@ void InMemoryStorage::processConfirmRecord(
     BSLA_MAYBE_UNUSED const bmqt::MessageGUID& guid,
     BSLA_MAYBE_UNUSED const mqbu::StorageKey& appKey,
     BSLA_MAYBE_UNUSED ConfirmReason::Enum          reason,
-    BSLA_MAYBE_UNUSED const DataStoreRecordHandle& handle)
+    BSLA_MAYBE_UNUSED const DataStoreRecordHandle& handle,
+    BSLA_MAYBE_UNUSED bool                         isOwn)
 {
     // Replicated in-memory storage is not yet supported.
 
@@ -603,6 +605,13 @@ void InMemoryStorage::processDeletionRecord(
     BSLS_ASSERT_OPT(false && "Invalid operation on in-memory storage");
 }
 
+int InMemoryStorage::writeAppRemoval(
+    BSLA_MAYBE_UNUSED const mqbu::StorageKey& appKey)
+{
+    // In-memory storage writes no records.
+    return 0;
+}
+
 void InMemoryStorage::addQueueOpRecordHandle(
     const DataStoreRecordHandle& handle)
 {
@@ -615,7 +624,26 @@ void InMemoryStorage::addQueueOpRecordHandle(
     d_queueOpRecordHandles.push_back(handle);
 }
 
+void InMemoryStorage::undoCapacity(BSLA_MAYBE_UNUSED unsigned int msgLen)
+{
+    // Replicated in-memory storage is not yet supported; nothing is reserved.
+}
+
+void InMemoryStorage::undoConfirm(
+    BSLA_MAYBE_UNUSED const bmqt::MessageGUID& guid,
+    BSLA_MAYBE_UNUSED const mqbu::StorageKey& appKey)
+{
+    // Replicated in-memory storage is not yet supported; nothing is proposed.
+}
+
 void InMemoryStorage::purge(BSLA_MAYBE_UNUSED const mqbu::StorageKey& appKey)
+{
+    // Replicated in-memory storage is not yet supported.
+
+    BSLS_ASSERT_OPT(false && "Invalid operation on in-memory storage");
+}
+
+void InMemoryStorage::clear()
 {
     // Replicated in-memory storage is not yet supported.
 

@@ -32,10 +32,10 @@ from blazingmq.dev.configurator.localsite import LocalSite
 import blazingmq.dev.it.process.proc
 import blazingmq.dev.it.testconstants as tc
 import blazingmq.dev.configurator.configurator as cfg
-from blazingmq.dev.it.process.broker import Broker
+from blazingmq.dev.it.process.broker import BLOCK_TIMEOUT, Broker
 from blazingmq.dev.it.process.client import Client
 from blazingmq.dev.it.process.proc import Process
-from blazingmq.dev.it.util import ListContextManager, Queue, internal_use
+from blazingmq.dev.it.util import ListContextManager, Queue, internal_use, wait_until
 
 logger = logging.getLogger(__name__)
 
@@ -182,10 +182,17 @@ class Cluster(contextlib.AbstractContextManager):
 
             if self.is_single_node:
                 self._proxies = self._nodes
-                self.last_known_leader = self.nodes()[0]
-            else:
-                self.wait_status(wait_leader, wait_ready)
-                self.drain()
+
+            # In Raft mode, even a single-node cluster must wait for its
+            # per-partition Raft elections (each partition is its own Raft
+            # group with a randomized election timeout, so partition primaries
+            # are established asynchronously, not synchronously at startup as
+            # in legacy mode).  'wait_status' already short-circuits the
+            # 'wait_leader' capture for a single node (no election to observe
+            # for the CSL leader itself), so this adds no latency unless the
+            # caller explicitly requested 'wait_ready'.
+            self.wait_status(wait_leader, wait_ready)
+            self.drain()
 
             # Reset quorum to default
             if need_preset_leader:
@@ -261,7 +268,7 @@ class Cluster(contextlib.AbstractContextManager):
                         self._logger.warning("could not find core for %s", process.name)
                 bad_exit_code = True
                 self._logger.error(
-                    "%s [%d] exited with rc = %s",
+                    "%s [%s] exited with rc = %s",
                     process.name,
                     process.pid,
                     _format_rc(process.returncode),
@@ -710,6 +717,42 @@ class Cluster(contextlib.AbstractContextManager):
         self.wait_status(wait_leader=True, wait_ready=False)
 
         return self.last_known_leader
+
+    def pin_all_primaries(self, node=None, timeout=BLOCK_TIMEOUT) -> Broker:
+        """
+        Bring the cluster to the legacy topology: make 'node' (default: the
+        CSL leader) the primary of every partition, and return it.
+
+        In legacy mode the leader already is the primary of every partition,
+        so this issues no command.  In Raft mode each partition is its own
+        Raft group and elects independently, so tests that assume the legacy
+        topology should call this from 'setup_cluster', before opening any
+        queues.
+        """
+
+        if node is None:
+            node = self.last_known_leader or self.wait_leader()
+            assert node is not None
+
+        num_partitions = self.config.definition.partition_config.num_partitions
+        primaries = {}
+
+        # Partitions elect independently, so one may not have a primary to ask
+        # yet.  This waits for the election, not for a transfer.
+        def all_assigned():
+            primaries.update(node.partition_primaries(num_partitions))
+            return all(primary is not None for primary in primaries.values())
+
+        assert wait_until(all_assigned, timeout=timeout), (
+            f"not every partition has a primary: {primaries}"
+        )
+
+        # No polling: the command fails unless leadership landed on the target.
+        for pid, current in primaries.items():
+            if current is not node:
+                current.transfer_leadership(node, pid, succeed=True)
+
+        return node
 
     def open_priority_queues(
         self, count, start=0, port=None, uri_priority=tc.URI_PRIORITY, **kw

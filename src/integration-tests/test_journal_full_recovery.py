@@ -62,7 +62,10 @@ def test_journal_full_purge_recovery(
     """
     du = domain_urls
 
-    leader = cluster.last_known_leader
+    # Single-partition cluster: the PARTITION_READONLY PANIC, the PURGEs, the
+    # PURGE-record write, and the recovery-after-restart all concern partition
+    # 0's primary, which in Raft mode need not be the CSL leader.
+    leader = cluster.last_known_leader.wait_partition_primary(0)
     proxy = next(cluster.proxy_cycle())
 
     # Open priority queue producer and consumer.  Consumer never confirms,

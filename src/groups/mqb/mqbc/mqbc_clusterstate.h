@@ -109,6 +109,16 @@ class ClusterStatePartitionInfo {
     // Status of the primary.
     bmqp_ctrlmsg::PrimaryStatus::Value d_primaryStatus;
 
+    /// Raft mode only.  The leaseId of the most recent committed CSL
+    /// `partitionPrimaryAdvisory` observed by this node for this partition;
+    /// zero if none observed yet.  Recorded independently of
+    /// `d_primaryLeaseId` (which reflects this node's own, locally-observed
+    /// data-partition Raft leadership) so the two can be compared: they are
+    /// two independently-arriving signals (local partition-Raft election vs.
+    /// CSL advisory commit) that must both agree on the leaseId before the
+    /// partition may be considered ready.
+    unsigned int d_advisoryConfirmedLeaseId;
+
   public:
     // CREATORS
 
@@ -129,6 +139,10 @@ class ClusterStatePartitionInfo {
     ClusterStatePartitionInfo&
     setPrimaryStatus(bmqp_ctrlmsg::PrimaryStatus::Value value);
 
+    /// Set the corresponding member to the specified `value` and return a
+    /// reference offering modifiable access to this object.
+    ClusterStatePartitionInfo& setAdvisoryConfirmedLeaseId(unsigned int value);
+
     // ACCESSORS
     int                  partitionId() const;
     unsigned int         primaryLeaseId() const;
@@ -140,6 +154,9 @@ class ClusterStatePartitionInfo {
 
     /// Return the value of the corresponding member of this object.
     bmqp_ctrlmsg::PrimaryStatus::Value primaryStatus() const;
+
+    /// Return the value of the corresponding member of this object.
+    unsigned int advisoryConfirmedLeaseId() const;
 };
 
 // ===========================
@@ -647,6 +664,19 @@ class ClusterState {
     setPartitionPrimaryStatus(int                                partitionId,
                               bmqp_ctrlmsg::PrimaryStatus::Value value);
 
+    /// Raft mode only.  Record the specified `leaseId` as the one carried by
+    /// the most recent committed CSL `partitionPrimaryAdvisory` observed by
+    /// this node for the specified `partitionId`.  Unlike
+    /// `setPartitionPrimary`, this may be called regardless of whether this
+    /// node has locally observed a primary for the partition yet -- it
+    /// records the CSL-side half of the two independent signals (local
+    /// data-partition Raft leadership vs. CSL advisory commit) that must
+    /// agree before the partition is considered ready.  The behavior is
+    /// undefined unless `partitionId >= 0` and `partitionId <
+    /// partitionsCount`.
+    ClusterState& setPartitionAdvisoryConfirmedLeaseId(int partitionId,
+                                                       unsigned int leaseId);
+
     /// Update the number of queues mapped to the specified `partitionId` by
     /// adjusting the current value with the specified `delta`.  The
     /// bahavior is undefined unless `partitionId >= 0` and 'partitionId <
@@ -790,6 +820,7 @@ inline ClusterStatePartitionInfo::ClusterStatePartitionInfo()
 , d_numActiveQueues(0)
 , d_primaryNodeSession_p(0)
 , d_primaryStatus(bmqp_ctrlmsg::PrimaryStatus::E_UNDEFINED)
+, d_advisoryConfirmedLeaseId(0)
 {
     // NOTHING
 }
@@ -844,6 +875,13 @@ inline ClusterStatePartitionInfo& ClusterStatePartitionInfo::setPrimaryStatus(
     return *this;
 }
 
+inline ClusterStatePartitionInfo&
+ClusterStatePartitionInfo::setAdvisoryConfirmedLeaseId(unsigned int value)
+{
+    d_advisoryConfirmedLeaseId = value;
+    return *this;
+}
+
 // ACCESSORS
 inline int ClusterStatePartitionInfo::partitionId() const
 {
@@ -885,6 +923,11 @@ inline bmqp_ctrlmsg::PrimaryStatus::Value
 ClusterStatePartitionInfo::primaryStatus() const
 {
     return d_primaryStatus;
+}
+
+inline unsigned int ClusterStatePartitionInfo::advisoryConfirmedLeaseId() const
+{
+    return d_advisoryConfirmedLeaseId;
 }
 
 // ---------------------------

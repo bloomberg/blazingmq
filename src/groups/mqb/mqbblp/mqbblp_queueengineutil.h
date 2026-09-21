@@ -248,6 +248,10 @@ class RedeliveryList {
     struct Item {
         unsigned int d_stamp;
 
+        /// Scratch for `mqbi::Storage::isPendingReplication`, carried across
+        /// the attempts made on this message.
+        mqbi::Storage::DeliveryProbe d_probe;
+
         Item();
     };
 
@@ -267,6 +271,11 @@ class RedeliveryList {
   private:
     Map          d_map;
     unsigned int d_stamp;
+
+    /// How many items the last pass left parked -- present but not
+    /// deliverable, awaiting their record.  Kept so `numDeliverable` is O(1):
+    /// it is read per message on the delivery path.
+    size_t d_numParked;
 
   private:
     void trim(iterator* cit) const;
@@ -301,6 +310,12 @@ class RedeliveryList {
     /// (logically re-enable all items).
     void touch();
 
+    /// Return the scratch of the item referenced by the specified `cit`.
+    mqbi::Storage::DeliveryProbe* probe(const iterator& cit);
+
+    /// Record that the last pass left the specified `value` items parked.
+    void setNumParked(size_t value);
+
     /// Return iterator to the first available (not disabled) item or the
     /// iterator referencing the end of the list (for which `isEnd` returns
     /// `true`).
@@ -317,6 +332,11 @@ class RedeliveryList {
 
     /// Return total number of items in the list including disabled ones.
     size_t size() const;
+
+    /// Return the number of items that are not parked.  A parked item awaits
+    /// a record that has not reached this node, so it can be neither
+    /// delivered nor dropped, and must not hold up new messages.
+    size_t numDeliverable() const;
 
     /// Return `true` if there are no (including disabled) items.
     bool empty() const;
@@ -435,15 +455,20 @@ struct QueueEngineUtil_AppState {
     void broadcastOneMessage(const mqbi::StorageIterator* storageIter);
 
     size_t processDeliveryLists(bsls::TimeInterval*    delay,
-                                mqbi::StorageIterator* reader);
+                                mqbi::StorageIterator* reader,
+                                const mqbi::Storage*   storage);
 
-    /// Process delivery of messages in the redelivery list.  The specified
-    /// `getMessageCb` provides message details for redelivery.  Load the
-    /// lowest handle delay into the specified `delay`. Return number of
-    /// re-delivered messages.
+    /// Process delivery of messages in the specified `list`, reading them
+    /// through the specified `reader`.  Load the lowest handle delay into the
+    /// specified `delay`.  Ask the specified `storage` about any entry whose
+    /// record is absent: a PUSH can outrun the replication carrying its
+    /// record, and only the storage can tell that from a record that is gone.
+    /// Park the former and erase the latter.  Return number of re-delivered
+    /// messages.
     size_t processDeliveryList(bsls::TimeInterval*    delay,
                                mqbi::StorageIterator* reader,
-                               RedeliveryList&        list);
+                               RedeliveryList&        list,
+                               const mqbi::Storage*   storage);
 
     /// Load into the specified `out` object' internal information about
     /// this consumers group and associated queue handles.
@@ -552,6 +577,9 @@ struct QueueEngineUtil_AppState {
     size_t putAsideListSize() const;
 
     size_t redeliveryListSize() const;
+
+    /// Return the number of redelivery-list entries that are not parked.
+    size_t numDeliverableRedelivery() const;
 
     Routers::Consumer* findQueueHandleContext(mqbi::QueueHandle* handle);
 
@@ -710,6 +738,7 @@ inline const bmqt::MessageGUID& RedeliveryList::iterator::operator*()
 inline RedeliveryList::RedeliveryList(bslma::Allocator* allocator)
 : d_map(allocator)
 , d_stamp(1)
+, d_numParked(0)
 {
     // NOTHING
 }
@@ -722,6 +751,7 @@ inline void RedeliveryList::add(const bmqt::MessageGUID& guid)
 inline void RedeliveryList::clear()
 {
     d_map.clear();
+    d_numParked = 0;
 }
 
 inline RedeliveryList::iterator RedeliveryList::erase(const iterator& cit)
@@ -770,6 +800,11 @@ inline void RedeliveryList::touch()
     }
 }
 
+inline mqbi::Storage::DeliveryProbe* RedeliveryList::probe(const iterator& cit)
+{
+    return &cit.d_cit->second.d_probe;
+}
+
 inline bool RedeliveryList::isEnd(const iterator& cit) const
 {
     return cit.d_cit == d_map.end();
@@ -778,6 +813,18 @@ inline bool RedeliveryList::isEnd(const iterator& cit) const
 inline size_t RedeliveryList::size() const
 {
     return d_map.size();
+}
+
+inline void RedeliveryList::setNumParked(size_t value)
+{
+    d_numParked = value;
+}
+
+inline size_t RedeliveryList::numDeliverable() const
+{
+    // Items added since the pass that set 'd_numParked' are not parked, and
+    // erases can outpace it the other way.
+    return d_map.size() > d_numParked ? d_map.size() - d_numParked : 0;
 }
 
 inline bool RedeliveryList::empty() const
@@ -818,6 +865,11 @@ inline size_t QueueEngineUtil_AppState::putAsideListSize() const
 inline size_t QueueEngineUtil_AppState::redeliveryListSize() const
 {
     return d_redeliveryList.size();
+}
+
+inline size_t QueueEngineUtil_AppState::numDeliverableRedelivery() const
+{
+    return d_redeliveryList.numDeliverable();
 }
 
 inline Routers::Consumer*
@@ -892,7 +944,9 @@ inline unsigned int QueueEngineUtil_AppState::upstreamSubQueueId() const
 
 inline bool QueueEngineUtil_AppState::isReadyForDelivery() const
 {
-    return d_redeliveryList.size() == 0 && d_isAuthorized &&
+    // A parked entry awaits a record this node does not have; it can never
+    // be sent, so it must not hold up new messages.
+    return d_redeliveryList.numDeliverable() == 0 && d_isAuthorized &&
            d_resumePoint.isUnset();
 }
 
