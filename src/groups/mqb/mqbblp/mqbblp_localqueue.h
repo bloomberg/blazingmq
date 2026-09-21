@@ -182,13 +182,6 @@ class LocalQueue BSLS_CPP11_FINAL {
     void onPushMessage(const bmqt::MessageGUID&            msgGUID,
                        const bsl::shared_ptr<bdlbb::Blob>& blob);
 
-    /// Invoked by the Data Store when it receives quorum Receipts for the
-    /// specified `msgGUID`.  Send ACK to the specified `qH` if it is
-    /// present in the queue handle catalog.
-    ///
-    /// THREAD: This method is called from the Storage dispatcher thread.
-    void onReceipt(const bmqt::MessageGUID& msgGUID, mqbi::QueueHandle* qH);
-
     /// Invoked by the Data Store when it removes (times out waiting for
     /// quorum Receipts for) a message with the specified `msgGUID`.  Send
     /// NACK with the specified `result` to the specified `qH` if it is

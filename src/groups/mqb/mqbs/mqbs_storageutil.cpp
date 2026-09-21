@@ -39,14 +39,52 @@ namespace mqbs {
 // ------------------
 
 // CLASS METHODS
+namespace {
+
+/// Generate a single storage key by updating the specified `md5` with the
+/// current time, loading into the specified `digest`, and populating the
+/// specified `key`.
+void generateStorageKeyImpl(mqbu::StorageKey*      key,
+                            bdlde::Md5*            md5,
+                            bdlde::Md5::Md5Digest* digest)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(key);
+    BSLS_ASSERT_SAFE(md5);
+    BSLS_ASSERT_SAFE(digest);
+
+    bsls::Types::Int64 time = bmqu::Time::highResolutionTimer();
+    md5->update(&time, sizeof(time));
+    md5->loadDigestAndReset(digest);
+    key->fromBinary(digest->buffer());
+}
+
+}  // close unnamed namespace
+
+void StorageUtil::generateStorageKey(mqbu::StorageKey*        key,
+                                     const bslstl::StringRef& value)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(key);
+
+    // Salt the 'value' with the current time to generate a storage key.
+    bdlde::Md5::Md5Digest digest;
+    bdlde::Md5            md5(value.data(), value.length());
+    generateStorageKeyImpl(key, &md5, &digest);
+}
+
 void StorageUtil::generateStorageKey(
     mqbu::StorageKey*                     key,
     bsl::unordered_set<mqbu::StorageKey>* keys,
     const bslstl::StringRef&              value)
 {
-    // In order to generate a storage key for 'value', we salt the 'value' with
-    // the current time.  During subsequent invocations of this routine, this
-    // method is required to generate *different* storage keys than those
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(key);
+    BSLS_ASSERT_SAFE(keys);
+
+    // In order to generate a storage key for 'value', we salt the 'value'
+    // with the current time.  During subsequent invocations of this routine,
+    // this method is required to generate *different* storage keys than those
     // stored in 'keys' (i.e., previously generated), even if the 'value' is
     // the same.  An example: if a queue is created, deleted and then created
     // again, we want a different storage key to be generated for it for its
@@ -55,26 +93,18 @@ void StorageUtil::generateStorageKey(
     bdlde::Md5::Md5Digest digest;
     bdlde::Md5            md5(value.data(), value.length());
 
-    bsls::Types::Int64 time = bmqu::Time::highResolutionTimer();
-    md5.update(&time, sizeof(time));
-
-    md5.loadDigestAndReset(&digest);
-    key->fromBinary(digest.buffer());
+    generateStorageKeyImpl(key, &md5, &digest);
 
     while (keys->find(*key) != keys->end()) {
-        // 'hashKey' already exists. Re-hash the hash, and append the current
-        // time to the md5 input data (so that collisions won't potentially
+        // Key already exists.  Re-hash the hash, and append the current time
+        // to the md5 input data (so that collisions won't potentially
         // degenerate to a long 'linkedList' like, since the hash of the hash
         // has a deterministic value).
-
         md5.update(digest.buffer(), mqbs::FileStoreProtocol::k_HASH_LENGTH);
-        time = bmqu::Time::highResolutionTimer();
-        md5.update(&time, sizeof(time));
-        md5.loadDigestAndReset(&digest);
-        key->fromBinary(digest.buffer());
+        generateStorageKeyImpl(key, &md5, &digest);
     }
 
-    // Found a unique key
+    // Found a unique key.
     keys->insert(*key);
 }
 

@@ -118,13 +118,14 @@ void MemoryMappedOnDiskLog::updateInternalState(int writeLength)
     d_totalNumBytes = bsl::max(d_totalNumBytes, d_currentOffset);
 }
 
-MemoryMappedOnDiskLog::MemoryMappedOnDiskLog(const mqbsi::LogConfig& config)
+MemoryMappedOnDiskLog::MemoryMappedOnDiskLog(const mqbsi::LogConfig& config,
+                                             bslma::Allocator*       allocator)
 : d_isOpened(false)
 , d_isReadOnly(false)
 , d_totalNumBytes(0)
 , d_outstandingNumBytes(0)
 , d_currentOffset(0)
-, d_config(config)
+, d_config(config, allocator)
 , d_mfd()
 {
     // NOTHING
@@ -227,6 +228,28 @@ int MemoryMappedOnDiskLog::seek(Offset offset)
     }
 
     d_currentOffset = offset;
+
+    return LogOpResult::e_SUCCESS;
+}
+
+int MemoryMappedOnDiskLog::truncate(Offset offset)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(offset >= 0);
+
+    if (!d_isOpened) {
+        return LogOpResult::e_UNSUPPORTED_OPERATION;  // RETURN
+    }
+
+    bmqu::MemOutStream errorDescription;
+    int rc = mqbs::FileSystemUtil::truncate(&d_mfd, offset, errorDescription);
+    if (rc != 0) {
+        return LogOpResult::e_FILE_TRUNCATE_FAILURE;  // RETURN
+    }
+
+    d_currentOffset       = offset;
+    d_outstandingNumBytes = offset;
+    d_totalNumBytes       = offset;
 
     return LogOpResult::e_SUCCESS;
 }

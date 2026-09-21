@@ -74,9 +74,8 @@ class QueueEngine {
 
     /// Configure this instance.  The specified `isReconfigure` flag indicates
     /// if queue is being reconfigured. Return zero on success, non-zero value
-    /// otherwise and populate the specified `errorDescription`.
-    virtual int configure(bsl::ostream& errorDescription,
-                          bool          isReconfigure) = 0;
+    /// otherwise.
+    virtual int configure(bool isReconfigure) = 0;
 
     /// Prepare this engine for destruction by canceling all scheduled events.
     virtual void close() = 0;
@@ -85,6 +84,19 @@ class QueueEngine {
     /// 'isShuttingDown' is 'true', clear the routing state but keep the Apps
     /// state for CONFIRMs processing.
     virtual void resetState(bool isShuttingDown = false) = 0;
+
+    /// Re-seat what this engine holds against the queue's storage, which the
+    /// caller has just replaced with a new object.  Unlike `resetState` this
+    /// keeps the Apps and the routing: the queue and its consumers are
+    /// unchanged, only the storage under them is.  Takes no storage: the
+    /// engine reads it from the queue state, so the caller must install it
+    /// there first.
+    ///
+    /// Needed after a partition is rebuilt from an installed snapshot, which
+    /// destroys the storage objects and creates fresh ones.  An iterator left
+    /// over the old object goes on reading something that receives no further
+    /// records, and does so silently.
+    virtual void resetStorage() = 0;
 
     /// Rebuild the internal state of this engine.  This method is invoked
     /// when the queue this engine is associated with is created from an
