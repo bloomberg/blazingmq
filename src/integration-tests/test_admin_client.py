@@ -270,12 +270,21 @@ def test_queue_stats(single_node: Cluster, domain_urls: tc.DomainUrls) -> None:
     consumer_baz.close(f"{task.uri}?id=baz")
 
     # Stage 4: check too-often stats safeguard
-    for _ in range(5):
-        admin.send_admin("encoding json_pretty stat show")
-    res = admin.send_admin("encoding json_pretty stat show")
-    obj = json.loads(res)
+    # We allow at most 4 stat requests every second.
+    # Here, we try to send 10 requests serially.
+    # If we are lucky enough, we might get 4+1 valid responses (+1 because we
+    # arrive at a time when a leaky bucket refills).
+    # In this case, we will get at least 5 rejection responses.
+    num_requests = 10
+    responses = [
+        json.loads(admin.send_admin("encoding json_pretty stat show"))
+        for _ in range(num_requests)
+    ]
+    rejected = [res for res in responses if "error" in res]
 
-    expect_same_structure(obj, dt.TEST_QUEUE_STATS_TOO_OFTEN_SNAPSHOTS, "too-often")
+    assert len(rejected) >= num_requests // 2
+    for res in rejected:
+        expect_same_structure(res, dt.TEST_QUEUE_STATS_TOO_OFTEN_SNAPSHOTS, "too-often")
 
     admin.stop()
 
@@ -330,13 +339,8 @@ def test_app_id_stats(multi_node: Cluster, domain_urls: tc.DomainUrls) -> None:
     - Check that message/byte stats for this appId set to 0, and
     the queue stats in general correctly changed
 
-    Stage 4: check too-often stats safeguard
-    - Send several 'stat show' requests
-    - Verify that the admin session complains about too often stat request
-
     Concerns:
     - The broker is able to report queue metrics for fanout queue.
-    - Safeguarding mechanism prevents from getting stats too often.
     """
     cluster: Cluster = multi_node
     domain_fanout = domain_urls.domain_fanout
@@ -412,14 +416,6 @@ def test_app_id_stats(multi_node: Cluster, domain_urls: tc.DomainUrls) -> None:
     consumer_foo.close(f"{task.uri}?id=foo")
     consumer_bar.close(f"{task.uri}?id=bar")
     consumer_baz.close(f"{task.uri}?id=baz")
-
-    # Stage 4: check too-often stats safeguard
-    for i in range(5):
-        admin.send_admin("encoding json_pretty stat show")
-    res = admin.send_admin("encoding json_pretty stat show")
-    obj = json.loads(res)
-
-    expect_same_structure(obj, dt.TEST_QUEUE_STATS_TOO_OFTEN_SNAPSHOTS, "too-often")
 
     admin.stop()
 
