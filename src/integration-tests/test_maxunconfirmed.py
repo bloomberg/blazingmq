@@ -29,10 +29,17 @@ pytestmark = order(4)
 class TestMaxunconfirmed:
     def setup_cluster(self, multi_node, domain_urls: tc.DomainUrls):
         uri_priority = domain_urls.uri_priority
-        proxies = multi_node.proxy_cycle()
-        # pick proxy in datacenter opposite to the primary's
-        next(proxies)
-        self.proxy = next(proxies)
+
+        # Pick the proxy in the data center opposite the queue's partition
+        # primary, so its active node is a replica that survives the failover
+        # below.  In Raft the primary need not share the leader's data center.
+        leader = multi_node.last_known_leader
+        probe = leader.create_client("primary-probe")
+        probe.open(uri_priority, flags=["write,ack"], succeed=True)  # assign queue
+        primary = leader.wait_queue_primary(uri_priority)
+        probe.stop_session(block=True)
+
+        self.proxy = multi_node.proxies(near=primary, invert=True)[0]
 
         self.producer = self.proxy.create_client("producer")
         self.producer.open(uri_priority, flags=["write,ack"], succeed=True)
@@ -68,20 +75,24 @@ class TestMaxunconfirmed:
         self.consumer.wait_push_event()
         assert len(self.consumer.list(uri_priority, block=True)) == 1
 
-        # Shutdown the primary
-        leader = multi_node.last_known_leader
+        # Fail over the queue's primary and verify that maxUnconfirmed
+        # delivery survives, regardless of which node takes over.  In Raft mode
+        # the CSL leader and a queue's partition primary are elected
+        # independently, so target the queue's primary directly rather than the
+        # cluster leader.
         active_node = multi_node.process(self.proxy.get_active_node())
+        primary = active_node.wait_queue_primary(uri_priority)
 
-        active_node.set_quorum(1)
-        nodes = multi_node.nodes(exclude=[active_node, leader])
-        for node in nodes:
-            node.set_quorum(4)
+        primary.stop()
 
-        leader.stop()
-
-        # Make sure the active node is new primary
-        leader = active_node
-        assert leader == multi_node.wait_leader()
+        # A surviving node must take over the queue's partition.  The proxy's
+        # active node is in the datacenter opposite the primary, so it stays up
+        # and can be queried.  Right after the stop the CSL still reports the
+        # stopped node as primary until the partition's Raft group re-elects, so
+        # poll until the reported primary actually changes.
+        assert wait_until(
+            lambda: active_node.wait_queue_primary(uri_priority) != primary, 30
+        )
 
         # Confirm 1 message
         self.consumer.confirm(uri_priority, "*", succeed=True)
@@ -149,7 +160,9 @@ def test_stuck_downstream(multi_node: Cluster, domain_urls: tc.DomainUrls):
     consumers[8].confirm(uri, "+2", succeed=True)
     consumers[9].confirm(uri, "+10", succeed=True)
 
-    leader = multi_node.last_known_leader
+    # LIST must be issued on the queue's partition primary, which in Raft
+    # mode need not be the CSL leader.
+    leader = multi_node.last_known_leader.wait_queue_primary(uri)
 
     # 80 messages are unconfirmed
     # Confirms propagate asynchronously from the proxy to the primary; retry
@@ -186,9 +199,20 @@ def test_stuck_downstream(multi_node: Cluster, domain_urls: tc.DomainUrls):
     for i in range(0, 10):
         consumers[i].confirm(uri, "*", succeed=True)
 
-    # one more round of confirms for messages deleivered after the first round
+    # the confirms above reached the primary, so the proxy has delivered the 8
+    # messages it was holding
+    assert wait_until(lambda: check_message_count(8), 5)
+
+    # confirm them; 'confirm' on a consumer with nothing pending never
+    # completes ("No messages to confirm")
+    delivered = 0
     for i in range(0, 10):
-        consumers[i].confirm(uri, "*", succeed=True)
+        count = len(consumers[i].list(uri, block=True))
+        if count:
+            delivered += count
+            consumers[i].confirm(uri, "*", succeed=True)
+
+    assert delivered == 8
 
     # The bmqtool does not actually wait and check that confirm command was
     # completed: 'success' is returned just when the command is enqueued

@@ -44,12 +44,18 @@ def test_command_rollover_partitionid(
     res = leader.command(rollover_cmd.format(-2), succeed=False)
     assert res != 0, "Rollover for invalid partition -2 should fail"
 
-    leader.trigger_rollover(-1)
+    # In FSM/Raft mode a partition's rollover must be initiated by that
+    # partition's Raft leader, which need not be the CSL cluster leader.  For
+    # the roll-all, send to every node (each rolls what it leads, rejects the
+    # rest); for a specific partition, target that partition's primary.
+    for node in cluster.nodes():
+        node.trigger_rollover(-1)
     leader.wait_rollover_complete()
 
     for partition_id in range(num_partitions):
-        leader.trigger_rollover(partition_id)
-        leader.wait_rollover_complete()
+        primary = leader.wait_partition_primary(partition_id)
+        primary.trigger_rollover(partition_id)
+        primary.wait_rollover_complete()
 
     res = leader.command(rollover_cmd.format(num_partitions), succeed=False)
     assert res != 0, f"Rollover for invalid partition {num_partitions} should fail"

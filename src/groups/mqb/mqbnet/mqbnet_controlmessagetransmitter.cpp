@@ -67,7 +67,7 @@ void ControlMessageTransmitter::sendMessageHelper(
                        << ", length: " << schemaBuilder->blob()->length()
                        << ", message: " << message;
     }
-    else {
+    else if (!message.choice().isRaftMessageValue()) {
         BALL_LOG_INFO << "Sent message to cluster node [ "
                       << destination->nodeDescription()
                       << " ], message: " << message;
@@ -195,7 +195,7 @@ void ControlMessageTransmitter::sendMessage(
                        << ", length: " << d_schemaBuilder.blob()->length()
                        << ", message: " << message;
     }
-    else {
+    else if (!message.choice().isRaftMessageValue()) {
         BALL_LOG_INFO << "Sent message to session [ " << description
                       << " ], message: " << message;
     }

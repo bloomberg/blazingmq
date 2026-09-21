@@ -211,7 +211,7 @@ class StorageMessageAttributes {
                                int                             spacesPerLevel);
 
     // CREATORS
-    StorageMessageAttributes();
+    StorageMessageAttributes(bool hasReceipt = true);
 
     StorageMessageAttributes(
         bsls::Types::Uint64                  arrivalTimestamp,
@@ -239,7 +239,7 @@ class StorageMessageAttributes {
     StorageMessageAttributes&
     setMessagePropertiesInfo(const bmqp::MessagePropertiesInfo& value);
 
-    void reset();
+    void reset(bool hasReceipt = true);
 
     // ACCESSORS
     bsls::Types::Uint64                arrivalTimestamp() const;
@@ -371,6 +371,13 @@ class StorageIterator {
     virtual void
     reset(const bmqt::MessageGUID& where = bmqt::MessageGUID()) = 0;
 
+    /// Return `true` if this iterator is currently not at the end of the
+    /// `items` collection and the message currently pointed at by this
+    /// iterator has received replication factor Receipts.  An implementation
+    /// may advance past items whose record can no longer arrive, so this can
+    /// move the iterator.
+    virtual bool hasReceipt() = 0;
+
     // ACCESSORS
 
     /// Return a reference offering non-modifiable access to the guid
@@ -407,11 +414,6 @@ class StorageIterator {
     /// Return `true` if this iterator is currently at the end of the items'
     /// collection, and hence doesn't reference a valid item.
     virtual bool atEnd() const = 0;
-
-    /// Return `true` if this iterator is currently not at the end of the
-    /// `items` collection and the message currently pointed at by this
-    /// iterator has received replication factor Receipts.
-    virtual bool hasReceipt() const = 0;
 };
 
 // =============
@@ -445,6 +447,16 @@ class Storage {
     typedef bmqc::Array<mqbu::StorageKey,
                         bmqp::Protocol::k_SUBID_ARRAY_STATIC_LEN>
         StorageKeys;
+
+    /// Per-message scratch for `isPendingReplication`.  The caller owns it,
+    /// zero-initializes it before the first call for a given message, and
+    /// keeps it across calls; only the storage interprets its contents.
+    struct DeliveryProbe {
+        bsls::Types::Uint64 d_u0;
+        bsls::Types::Uint64 d_u1;
+
+        DeliveryProbe();
+    };
 
   public:
     // CREATORS
@@ -660,6 +672,20 @@ class Storage {
     /// `msgGUID`, false otherwise.
     virtual bool hasMessage(const bmqt::MessageGUID& msgGUID) const = 0;
 
+    /// Return `true` if the message the specified `probe` tracks may still
+    /// arrive, and `false` if it will not -- because it was removed, or was
+    /// never committed.  Use and update `probe`, which the caller keeps
+    /// across the calls made for that one message.  A PUSH can reach a
+    /// replica ahead of the replication carrying its record, so absence
+    /// alone does not say which of the two holds; this does.
+    ///
+    /// Set the specified `isAbsent` to `true` only if the caller has
+    /// established that the record is not in this storage.  A caller that
+    /// has only found the message unreceipted cannot tell that from a record
+    /// still awaiting its receipts, and must pass `false`.
+    virtual bool isPendingReplication(DeliveryProbe* probe,
+                                      bool           isAbsent) const = 0;
+
     /// Retrieve the message and its metadata having the specified `msgGUID`
     /// in the specified `appData`, `options` and `attributes` from this
     /// storage.  Return zero on success or a non-zero error code on
@@ -789,18 +815,30 @@ DataStreamMessage::app(unsigned int appOrdinal) const
     return d_apps[appOrdinal];
 }
 
+// -------------
+// class Storage
+// -------------
+
+// CREATORS
+inline Storage::DeliveryProbe::DeliveryProbe()
+: d_u0(0)
+, d_u1(0)
+{
+    // NOTHING
+}
+
 // ------------------------------
 // class StorageMessageAttributes
 // ------------------------------
 
 // CREATORS
-inline StorageMessageAttributes::StorageMessageAttributes()
+inline StorageMessageAttributes::StorageMessageAttributes(bool hasReceipt)
 : d_arrivalTimestamp(0)
 , d_arrivalTimepoint(0)
 , d_refCount(0)
 , d_appDataLen(0)
 , d_messagePropertiesInfo()
-, d_hasReceipt(true)
+, d_hasReceipt(hasReceipt)
 , d_queueHandle(0)
 , d_crc32c(0)
 , d_compressionAlgorithmType(bmqt::CompressionAlgorithmType::e_NONE)
@@ -889,7 +927,7 @@ StorageMessageAttributes::setMessagePropertiesInfo(
     return *this;
 }
 
-inline void StorageMessageAttributes::reset()
+inline void StorageMessageAttributes::reset(bool hasReceipt)
 {
     d_arrivalTimestamp         = 0;
     d_arrivalTimepoint         = 0;
@@ -897,7 +935,7 @@ inline void StorageMessageAttributes::reset()
     d_appDataLen               = 0;
     d_messagePropertiesInfo    = bmqp::MessagePropertiesInfo();
     d_queueHandle              = 0;
-    d_hasReceipt               = true;
+    d_hasReceipt               = hasReceipt;
     d_crc32c                   = 0;
     d_compressionAlgorithmType = bmqt::CompressionAlgorithmType::e_NONE;
 }

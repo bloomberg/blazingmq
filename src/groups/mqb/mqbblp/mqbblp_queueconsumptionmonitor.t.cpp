@@ -150,7 +150,7 @@ struct MockStorageIterator : public mqbi::StorageIterator {
 
     bool atEnd() const BSLS_KEYWORD_OVERRIDE;
 
-    bool hasReceipt() const BSLS_KEYWORD_OVERRIDE;
+    bool hasReceipt() BSLS_KEYWORD_OVERRIDE;
 };
 
 MockStorageIterator::MockStorageIterator()
@@ -218,7 +218,7 @@ bool MockStorageIterator::atEnd() const
     return false;
 }
 
-bool MockStorageIterator::hasReceipt() const
+bool MockStorageIterator::hasReceipt()
 {
     return true;
 }

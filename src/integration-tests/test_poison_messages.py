@@ -25,6 +25,7 @@ from blazingmq.dev.it.fixtures import (
     tweak,
 )
 from blazingmq.dev.configurator.configurator import Configurator
+from blazingmq.dev.it.util import wait_until
 
 pytestmark = order(5)
 
@@ -85,11 +86,21 @@ class TestPoisonMessages:
             consumers.append(consumer)
 
         replica = multi_node.process(proxy.get_active_node())
-        leader = multi_node.last_known_leader
+        # The queue's partition primary in Raft mode need not be the CSL leader,
+        # and its placement is not datacenter-pinned: it may even coincide with
+        # the proxy's active node ('replica').  Discover it explicitly.
+        primary = replica.wait_queue_primary(uri)
+
+        # 'LIST' on the proxy only reflects the message once the round-trip PUSH
+        # has come back down to it, so synchronize on delivery before listing;
+        # otherwise the check races the (slower, in strong-consistency)
+        # replication round-trip and finds an empty proxy.
+        for consumer in consumers:
+            consumer.wait_push_event()
 
         self._list_messages(proxy, domain, ["1"])
         self._list_messages(replica, domain, ["1"])
-        self._list_messages(leader, domain, ["1"])
+        self._list_messages(primary, domain, ["1"])
 
         new_consumers = []
 
@@ -109,7 +120,7 @@ class TestPoisonMessages:
                 # should not remove the message if there are other subStreams
                 self._list_messages(proxy, domain, ["1"])
                 self._list_messages(replica, domain, ["1"])
-                self._list_messages(leader, domain, ["1"])
+                self._list_messages(primary, domain, ["1"])
 
         # post a new message to the apps and verify the old message is gone
         producer.post(uri, payload=["2"], succeed=True)
@@ -121,25 +132,26 @@ class TestPoisonMessages:
 
         self._list_messages(proxy, domain, ["2"])
         self._list_messages(replica, domain, ["2"])
-        self._list_messages(leader, domain, ["2"])
+        self._list_messages(primary, domain, ["2"])
 
-        # change the leader and check if the original message ('1') is still
-        # gone
-        replica.set_quorum(1)
-        nodes = multi_node.nodes(exclude=[replica, leader])
-        for node in nodes:
-            node.set_quorum(4)
-        leader.stop()
-        leader = replica
-        assert leader == multi_node.wait_leader()
+        # Change the primary and check that the original message ('1') is still
+        # gone.  Which node takes over is immaterial to poison handling, so
+        # fail over the queue's current primary and discover its replacement.
+        primary.stop()
 
-        # Wait for new leader to become active primary by opening a queue from
-        # a new producer for synchronization.
+        # Wait for the new primary to become active by opening a queue from a
+        # new producer for synchronization.
         producer2 = proxy.create_client("producer2")
         producer2.open(uri, flags=["write", "ack"], succeed=True)
 
+        # Discover the replacement primary from a node that is guaranteed to be
+        # alive: 'replica' cannot be reused here because in Raft mode it may be
+        # the very node we just stopped (primary co-located with the proxy's
+        # active node).
+        survivor = multi_node.nodes(alive=True, exclude=primary)[0]
+        primary = survivor.wait_queue_primary(uri)
         self._list_messages(proxy, domain, ["2"])
-        self._list_messages(leader, domain, ["2"])
+        self._list_messages(primary, domain, ["2"])
 
         producer.exit_gracefully()
         producer2.exit_gracefully()
@@ -147,37 +159,84 @@ class TestPoisonMessages:
         for count, consumer in enumerate(new_consumers):
             consumer.confirm(f"{uri}{suffixes[count]}", "*", True)
 
-    def _crash_consumer_restart_leader(
-        self, multi_node, proxy, domain, make_active_node_leader
+    def _wait_live_queue_primary(self, multi_node, uri, timeout=60):
+        """
+        Return the queue's partition primary once it is a LIVE node.  In Raft
+        the primary is per-partition and need not be the CSL leader, so shutting
+        down the primary does not change the CSL leader and the partition's
+        primary is reassigned asynchronously; the old (dead) primary may still
+        be reported briefly.  Poll (querying a live node) until the reported
+        primary is up.
+        """
+        primary = [None]
+
+        def check():
+            live = multi_node.nodes(alive=True)[0]
+            try:
+                # During failover the cluster is briefly unstable, so
+                # 'open_admin_client' can transiently refuse; retry rather than
+                # propagate.
+                candidate = live.wait_queue_primary(uri, timeout=5)
+            except Exception:  # pylint: disable=broad-except
+                return False
+            if candidate is not None and candidate.is_alive():
+                primary[0] = candidate
+                return True
+            return False
+
+        assert wait_until(check, timeout)
+        return primary[0]
+
+    def _crash_consumer_restart_primary(
+        self, multi_node, domain, make_active_node_primary
     ):
         # We want to make sure the rda counter resets to the value in the
-        # configuration after losing a leader. Since the rda counter is set to
+        # configuration after a failover. Since the rda counter is set to
         # two, if we:
         # 1. open a producer
         # 2. send a message to the consumer
         # 3. open a consumer
         # 4. kill a consumer
         # 5. open a consumer
-        # 6. force a leader change
+        # 6. force a failover by stopping the queue's partition primary
         # 7. kill a consumer a again
         # 8. open a consumer
         # The message should still exist and be delivered to the consumer (the
-        # counter would have been reset when the leader changed).
+        # counter would have been reset when the primary changed).
 
         uri = f"bmq://{domain}/{tc.TEST_QUEUE}"
+
+        # Resolve the queue's partition primary, then pick the proxy in the data
+        # center opposite it so the chain is Client -> proxy -> replica ->
+        # primary (the proxy's active node must be a REPLICA, not the primary,
+        # otherwise stopping the primary would take the proxy's upstream down).
+        # In Raft the primary need not share the CSL leader's data center, so it
+        # is resolved dynamically rather than assumed.
+        probe = multi_node.last_known_leader.create_client("primary-probe")
+        probe.open(uri, flags=["write", "ack"], succeed=True)  # assign the queue
+        primary = multi_node.last_known_leader.wait_queue_primary(uri)
+        probe.stop_session(block=True)
+
+        proxy = multi_node.proxies(near=primary, invert=True)[0]
+
         producer = proxy.create_client("producer")
         producer.open(uri, flags=["write", "ack"], succeed=True)
         producer.post(uri, payload=["1"], succeed=True)
 
         consumer = proxy.create_client("consumer_0")
         consumer.open(f"{uri}", flags=["read"], succeed=True)
+        # Synchronize on delivery before the first proxy 'LIST', which otherwise
+        # races the round-trip PUSH back down to the proxy.
+        consumer.wait_push_event()
 
         replica = multi_node.process(proxy.get_active_node())
-        leader = multi_node.last_known_leader
 
+        # 'LIST' must be issued on the queue's partition primary, which in Raft
+        # mode need not be the CSL leader (a node that is neither the primary nor
+        # has the queue open reports "Queue not found").
         self._list_messages(proxy, domain, ["1"])
         self._list_messages(replica, domain, ["1"])
-        self._list_messages(leader, domain, ["1"])
+        self._list_messages(primary, domain, ["1"])
 
         consumer.check_exit_code = False
         consumer.kill()
@@ -190,39 +249,44 @@ class TestPoisonMessages:
         # make sure the message is still present
         self._list_messages(proxy, domain, ["1"])
         self._list_messages(replica, domain, ["1"])
-        self._list_messages(leader, domain, ["1"])
+        self._list_messages(primary, domain, ["1"])
 
-        if make_active_node_leader:
-            # make the active replica the new leader
-            replica.set_quorum(1)
-            nodes = multi_node.nodes(exclude=replica)
-            for node in nodes:
+        # Force a failover so the RDA counter resets.  Stopping the queue's
+        # partition primary makes a replacement take over and re-push the
+        # outstanding message downstream with a fresh RDA (the counter is
+        # in-memory delivery state, not persisted).
+        #
+        # 'make_active_node_primary' selects whether the proxy's active node
+        # ('replica') becomes the replacement primary.  In legacy this is
+        # steerable via the partition-election quorum, and it matters: the RDA
+        # only resets when the proxy re-syncs from a *different* primary, so the
+        # non-active case must keep the active node from taking over.  In
+        # FSM/Raft the quorum has no effect (any primary change rebuilds delivery
+        # state and resets the RDA regardless), so the calls are harmless there.
+        if make_active_node_primary:
+            # make the active node the new primary
+            for node in multi_node.nodes(exclude=replica):
                 node.set_quorum(4)
-            leader.stop()
-            leader = replica
         else:
-            # make a replica that isn't the active node the new leader
-            nodes = multi_node.nodes(exclude=[replica, leader])
-            assert nodes
-            leader_candidate = nodes.pop()
-            leader_candidate.set_quorum(1)
+            # prevent the active node from becoming the new primary
             replica.set_quorum(4)
-            for node in nodes:
-                node.set_quorum(4)
-            leader.stop()
-            leader = leader_candidate
-        assert leader == multi_node.wait_leader()
+
+        primary.stop()
+        primary = self._wait_live_queue_primary(multi_node, uri)
 
         consumer.check_exit_code = False
         consumer.kill()
 
-        # start new consumer to synchronize with proxy and replica
+        # Start a new consumer; opening it (with 'succeed') and awaiting its
+        # PUSH synchronizes on the replacement primary being active.  The
+        # message must still be delivered because the failover reset its RDA
+        # counter.
         consumer = proxy.create_client("consumer_2")
         consumer.open(f"{uri}", flags=["read"], succeed=True)
         consumer.wait_push_event()
 
-        self._list_messages(replica, domain, ["1"])
-        self._list_messages(leader, domain, ["1"])
+        self._list_messages(proxy, domain, ["1"])
+        self._list_messages(primary, domain, ["1"])
 
         producer.exit_gracefully()
         consumer.confirm(f"{uri}", "*", True)
@@ -289,10 +353,11 @@ class TestPoisonMessages:
         assert len(consumers[0].list(f"{uri}{suffixes[0]}", True)) == 1
 
         # make sure after the confirms, the first message is gone from
-        # everywhere
-        leader = multi_node.last_known_leader
+        # everywhere.  'LIST' must target the queue's partition primary, which
+        # in Raft need not be the CSL leader.
+        primary = multi_node.last_known_leader.wait_queue_primary(uri)
         self._list_messages(proxy, domain, ["2"])
-        self._list_messages(leader, domain, ["2"])
+        self._list_messages(primary, domain, ["2"])
 
         producer.exit_gracefully()
         for count, consumer in enumerate(consumers):
@@ -322,10 +387,13 @@ class TestPoisonMessages:
         consumer.open(f"{uri}", flags=["read"], succeed=True)
         consumer.wait_push_event()
 
-        leader = multi_node.last_known_leader
+        # 'LIST' must target the queue's partition primary, which in Raft need
+        # not be the CSL leader (a node that is neither the primary nor has the
+        # queue open reports "Queue not found").
+        primary = multi_node.last_known_leader.wait_queue_primary(uri)
 
         self._list_messages(proxy, domain, ["1"])
-        self._list_messages(leader, domain, ["1"])
+        self._list_messages(primary, domain, ["1"])
         consumer.confirm(f"{uri}", "*", True)
 
     def _crash_consumer_connected_to_replica(self, multi_node, proxy, domain):
@@ -346,15 +414,19 @@ class TestPoisonMessages:
         #    synchronize so we can test that the first message won't be
         #    redelivered.
         uri = f"bmq://{domain}/{tc.TEST_QUEUE}"
-        leader = multi_node.last_known_leader
-        potential_replicas = multi_node.nodes(exclude=leader)
+        producer = proxy.create_client("producer")
+        producer.open(uri, flags=["write", "ack"], succeed=True)  # assign the queue
+        producer.post(uri, payload=["1"], succeed=True)
+
+        # Host the consumer on a REPLICA of the queue's partition, i.e. a node
+        # that is not its primary.  In Raft the primary need not be the CSL
+        # leader, so exclude the resolved primary rather than the leader.
+        primary = multi_node.last_known_leader.wait_queue_primary(uri)
+        potential_replicas = multi_node.nodes(exclude=primary)
 
         assert potential_replicas
 
         replica = potential_replicas[0]
-        producer = proxy.create_client("producer")
-        producer.open(uri, flags=["write", "ack"], succeed=True)
-        producer.post(uri, payload=["1"], succeed=True)
 
         consumer_0 = replica.create_client("consumer_0")
         consumer_0.open(f"{uri}", flags=["read"], succeed=True)
@@ -399,12 +471,15 @@ class TestPoisonMessages:
         consumer_0.wait_push_event()
 
         leader = multi_node.last_known_leader
+        # 'LIST' must target the queue's partition primary, which in Raft need
+        # not be the CSL leader.
+        primary = leader.wait_queue_primary(uri)
 
         msgs = consumer_0.list(block=True)
         assert len(msgs) == 1
         assert msgs[0].payload == "1"
         self._list_messages(proxy, domain, ["1"])
-        self._list_messages(leader, domain, ["1"])
+        self._list_messages(primary, domain, ["1"])
 
         if should_kill:
             proxy.check_exit_code = False
@@ -418,7 +493,7 @@ class TestPoisonMessages:
         msgs = consumer_1.list(block=True)
         assert len(msgs) == 1
         assert msgs[0].payload == "1"
-        self._list_messages(leader, domain, ["1"])
+        self._list_messages(primary, domain, ["1"])
 
         consumer_0.confirm(f"{uri}", "*", True)
         consumer_1.confirm(f"{uri}", "*", True)
@@ -454,15 +529,10 @@ class TestPoisonMessages:
     def test_poison_rda_reset_priority_active(
         self, multi_node: Cluster, domain_urls: tc.DomainUrls
     ):
-        proxies = multi_node.proxy_cycle()
-        # pick proxy in datacenter opposite to the primary's
-        next(proxies)
-        proxy = next(proxies)
-        self._crash_consumer_restart_leader(
-            multi_node, proxy, domain_urls.domain_priority, True
-        )  # when set to true, make the
-        # active node of the proxy
-        # the new leader
+        # when set to true, make the proxy's active node the new primary
+        self._crash_consumer_restart_primary(
+            multi_node, domain_urls.domain_priority, True
+        )
 
     @max_delivery_attempts(2)
     @message_throttling(high=1, low=0)
@@ -470,12 +540,8 @@ class TestPoisonMessages:
     def test_poison_rda_reset_priority_non_active(
         self, multi_node: Cluster, domain_urls: tc.DomainUrls
     ):
-        proxies = multi_node.proxy_cycle()
-        # pick proxy in datacenter opposite to the primary's
-        next(proxies)
-        proxy = next(proxies)
-        self._crash_consumer_restart_leader(
-            multi_node, proxy, domain_urls.domain_priority, False
+        self._crash_consumer_restart_primary(
+            multi_node, domain_urls.domain_priority, False
         )
 
     @max_delivery_attempts(2)

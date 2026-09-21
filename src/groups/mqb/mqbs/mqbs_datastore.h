@@ -83,11 +83,15 @@ class Domain;
 namespace bmqp_ctrlmsg {
 class SyncPoint;
 }
+namespace mqbcmd {
+class FileStore;
+}
 namespace mqbnet {
 class ClusterNode;
 }
 namespace mqbs {
 class ReplicatedStorage;
+struct Proposal;
 }
 
 namespace mqbs {
@@ -170,6 +174,9 @@ struct DataStoreRecord {
     DataStoreRecord(RecordType::Enum    recordType,
                     bsls::Types::Uint64 recordOffset,
                     unsigned int        dataOrQlistRecordPaddedLen);
+
+    // ACCESSORS
+    RecordType::Enum type() const;
 };
 
 // =========================
@@ -214,6 +221,8 @@ struct DataStoreRecordKey {
 
 /// Format the specified `value` to the specified output `stream` and return
 /// a reference to the modifiable `stream`.
+bsl::ostream& operator<<(bsl::ostream& stream, const DataStoreRecord& value);
+
 bsl::ostream& operator<<(bsl::ostream&             stream,
                          const DataStoreRecordKey& value);
 
@@ -528,16 +537,15 @@ class DataStoreRecordHandle {
 
   private:
     // DATA
-    RecordIterator d_iterator;
-
-    // PRIVATE CREATORS
-    explicit DataStoreRecordHandle(const RecordIterator& iterator);
+    DataStoreConfig::Records::const_iterator d_iterator;
 
   public:
     // CREATORS
 
     /// Create an invalid handle. `isValid` returns false.
     DataStoreRecordHandle();
+    explicit DataStoreRecordHandle(
+        const DataStoreConfig::Records::const_iterator& iterator);
 
     // ACCESSORS
 
@@ -571,12 +579,427 @@ bool operator==(const DataStoreRecordHandle& lhs,
 bool operator!=(const DataStoreRecordHandle& lhs,
                 const DataStoreRecordHandle& rhs);
 
+// ===========================
+// struct RecoveryRecordInfo
+// ===========================
+
+/// Lightweight metadata for a journal record, collected during FileStore
+/// recovery and used as the Raft log index entry type.
+struct RecoveryRecordInfo {
+    bsls::Types::Uint64 d_primaryLeaseId;
+    bsls::Types::Uint64 d_journalOffset;
+
+    /// Data-file position as of this entry: the payload start for a MESSAGE
+    /// record, or the current data-file end for a record that writes no data.
+    /// This is the offset the data file is truncated back to when a Raft log
+    /// truncation rolls back to (and including) this entry, so that later
+    /// truncated MESSAGE payloads are removed even when this entry itself
+    /// carries no data.
+    bsls::Types::Uint64 d_dataOffset;
+
+    /// Qlist-file position as of this entry, with the same truncation-anchor
+    /// semantics as `d_dataOffset` but for the qlist file (payload start for a
+    /// QUEUE_OP.CREATION/ADDITION record when qlist-aware, else the current
+    /// qlist-file end).
+    bsls::Types::Uint64 d_qlistOffset;
+
+    /// Type of the journal record this entry describes.  The Raft rollover
+    /// orchestration uses this to route each log entry: normal records are
+    /// copied via `FileStore::writeRolledOverRecord`, whereas `e_JOURNAL_OP`
+    /// entries (sync points) are handled separately.
+    RecordType::Enum d_recordType;
+
+    /// Sync-point sub-type of the journal record this entry describes.  Only
+    /// meaningful when `d_recordType == e_JOURNAL_OP`; `e_UNDEFINED`
+    /// otherwise.  The Raft apply hook uses this to detect a committed
+    /// `e_ROLLOVER` and trigger the file rollover.
+    SyncPointType::Enum d_syncPointType;
+
+    DataStoreRecordHandle d_handle;
+
+    RecoveryRecordInfo();
+
+    RecoveryRecordInfo(
+        bsls::Types::Uint64          primaryLeaseId,
+        bsls::Types::Uint64          journalOffset,
+        bsls::Types::Uint64          dataOffset,
+        bsls::Types::Uint64          qlistOffset,
+        RecordType::Enum             recordType,
+        const DataStoreRecordHandle& handle = DataStoreRecordHandle(),
+        SyncPointType::Enum syncPointType   = SyncPointType::e_UNDEFINED);
+};
+
+// ================
+// struct EntryInfo
+// ================
+
+/// A Raft log entry: the metadata of the journal record holding it, plus the
+/// write this node proposed to produce it.  This is what the Raft log indexes
+/// and what recovery fills.
+struct EntryInfo {
+    RecoveryRecordInfo d_info;
+
+    /// The write behind this entry on the Raft primary write path; null on an
+    /// entry that was replicated or recovered.  Such an entry already has its
+    /// record, its handle and its storage-side effects in place from propose
+    /// time, and only the write holds what apply still needs -- the producer
+    /// to answer, the capacity to charge.
+    ///
+    /// It lives in the entry so that erasing the entry erases the write with
+    /// it: a truncation cannot leave a write behind to be taken later for the
+    /// owner of whatever entry replaces it at the same index.  Held by shared
+    /// pointer off a forward declaration -- an entry needs to hold a write,
+    /// not to look inside one; see `mqbs::Proposal`.
+    bsl::shared_ptr<Proposal> d_ownProposal;
+
+    EntryInfo()
+    : d_info()
+    , d_ownProposal()
+    {
+    }
+
+    /// Implicit, so that recovery can go on filling the index with the record
+    /// metadata alone: what it recovers carries no write of this node's.
+    EntryInfo(const RecoveryRecordInfo& info)
+    : d_info(info)
+    , d_ownProposal()
+    {
+    }
+};
+
+// ======================
+// class storageMonitor
+// ======================
+
+class StorageMonitor {
+  public:
+    // TYPES
+    typedef bsl::shared_ptr<ReplicatedStorage> StorageSp;
+    typedef mqbi::Storage::AppInfos            Apps;
+
+  public:
+    // CREATORS
+    virtual ~StorageMonitor();
+
+    // MANIPULATORS
+    virtual void
+    onStorageRegistered(int                                       partitionId,
+                        const bmqt::Uri&                          uri,
+                        const StorageSp&                          storageSp,
+                        const DataStoreConfigQueueInfo::AppInfos& apps) = 0;
+
+    virtual void onStorageRegistered(int              partitionId,
+                                     const bmqt::Uri& uri,
+                                     const StorageSp& storageSp,
+                                     const mqbi::Storage::AppInfos& apps) = 0;
+
+    /// Notify that the specified `apps` have been added to the already
+    /// registered storage for the queue having the specified `uri` on the
+    /// specified `partitionId`.
+    virtual void onStorageAppsAdded(int                            partitionId,
+                                    const bmqt::Uri&               uri,
+                                    const mqbi::Storage::AppInfos& apps) = 0;
+
+    /// Notify that the app having the specified `appKey` has been removed
+    /// from the storage for the queue having the specified `uri` on the
+    /// specified `partitionId`.
+    virtual void onStorageAppRemoved(int                     partitionId,
+                                     const bmqt::Uri&        uri,
+                                     const mqbu::StorageKey& appKey) = 0;
+
+    virtual void onStorageUnregistered(int              partitionId,
+                                       const bmqt::Uri& uri) = 0;
+
+    virtual void onRecovered(int partitionId) = 0;
+
+    // ACCESSORS
+
+    virtual StorageSp find(const bmqt::Uri& queueUri) = 0;
+
+    virtual void loadAllStorages(bsl::vector<StorageSp>* result,
+                                 int                     partitionId) = 0;
+
+    /// Return true if the queue having the specified `uri` and assigned to
+    /// the specified `partitionId` has no messages, false in any other case.
+    virtual bool isStorageEmpty(const bmqt::Uri& uri,
+                                int              partitionId) const = 0;
+
+    /// Return true if this monitor drives a Raft-replicated partition (i.e.
+    /// the owning `FileStore` is on the Raft write path), false for the legacy
+    /// path.  Used to assert that legacy-only `FileStore` methods are never
+    /// invoked on a Raft partition.
+    virtual bool isRaft() const = 0;
+};
+
+// =================
+// class RecordStore
+// =================
+
+/// Narrow interface used by 'FileBackedStorage' to write and read records
+/// for a single partition.  Both the legacy 'FileStore' (via 'DataStore')
+/// and 'PartitionRaft' implement this interface.
+class RecordStore {
+  public:
+    // TYPES
+    typedef mqbi::Storage::AppInfos AppInfos;
+
+    /// A filtered list of storages and the filter predicates applied to
+    /// produce it (structurally identical to the `mqbs::StorageCollectionUtil`
+    /// types; spelled out here to avoid an include cycle via
+    /// `mqbs_replicatedstorage.h`).
+    typedef bsl::vector<const ReplicatedStorage*>         StorageList;
+    typedef bsl::function<bool(const ReplicatedStorage*)> StorageFilter;
+    typedef bsl::vector<StorageFilter>                    StorageFilters;
+
+  public:
+    // CREATORS
+    virtual ~RecordStore();
+
+    // MANIPULATORS
+
+    /// Write the specified `appData` and `options` belonging to specified
+    /// `queueKey` and having specified `guid` and `attributes` to the data
+    /// store, and update the specified `handle` with an identifier which
+    /// can be used to retrieve the message.  Return zero on success,
+    /// non-zero value otherwise.
+    virtual int writeMessageRecord(mqbi::StorageMessageAttributes* attributes,
+                                   DataStoreRecordHandle*          handle,
+                                   const bmqt::MessageGUID&        guid,
+                                   const bsl::shared_ptr<bdlbb::Blob>& appData,
+                                   const bsl::shared_ptr<bdlbb::Blob>& options,
+                                   const mqbu::StorageKey& queueKey) = 0;
+
+    /// Write a CONFIRM record to the data store with the specified
+    /// `queueKey`, optional `appKey`, `guid`, `timestamp` and `reason`.
+    /// Return zero on success, non-zero value otherwise.
+    virtual int writeConfirmRecord(DataStoreRecordHandle*   handle,
+                                   const bmqt::MessageGUID& guid,
+                                   const mqbu::StorageKey&  queueKey,
+                                   const mqbu::StorageKey&  appKey,
+                                   bsls::Types::Uint64      timestamp,
+                                   ConfirmReason::Enum      reason) = 0;
+
+    /// Write a DELETION record to the data store with the specified
+    /// `queueKey`, `flag`, `guid` and `timestamp`.  Return zero on success,
+    /// non-zero value otherwise.
+    virtual int writeDeletionRecord(const bmqt::MessageGUID& guid,
+                                    const mqbu::StorageKey&  queueKey,
+                                    DeletionRecordFlag::Enum deletionFlag,
+                                    bsls::Types::Uint64      timestamp) = 0;
+
+    /// Write a QUEUE_OP creation record for the specified `queueUri` with
+    /// the specified `queueKey`, `appIdKeyPairs` and `timestamp`.  Set
+    /// `isNewQueue` to true for a brand-new queue, false for an app-ID
+    /// addition.  Return zero on success, non-zero otherwise.
+    virtual int writeQueueCreationRecord(DataStoreRecordHandle*  handle,
+                                         const bmqt::Uri&        queueUri,
+                                         const mqbu::StorageKey& queueKey,
+                                         const AppInfos&         appIdKeyPairs,
+                                         bsls::Types::Uint64     timestamp,
+                                         bool isNewQueue) = 0;
+
+    /// Register the specified `storage` with this record store so that
+    /// rollover can copy its outstanding records.
+    virtual void registerStorage(ReplicatedStorage* storage) = 0;
+
+    virtual void unregisterStorage(const ReplicatedStorage* storage) = 0;
+
+    /// Create and load into the specified `storageSp` an instance of
+    /// ReplicatedStorage for the queue having the specified `queueUri`
+    /// and `queueKey` and belonging to the specified `domain`.
+    virtual void createStorage(bsl::shared_ptr<ReplicatedStorage>* storageSp,
+                               const bmqt::Uri&                    queueUri,
+                               const mqbu::StorageKey&             queueKey,
+                               mqbi::Domain*                       domain) = 0;
+
+    virtual int writeQueuePurgeRecord(DataStoreRecordHandle*       handle,
+                                      const mqbu::StorageKey&      queueKey,
+                                      const mqbu::StorageKey&      appKey,
+                                      bsls::Types::Uint64          timestamp,
+                                      const DataStoreRecordHandle& start) = 0;
+
+    virtual int writeQueueDeletionRecord(DataStoreRecordHandle*  handle,
+                                         const mqbu::StorageKey& queueKey,
+                                         const mqbu::StorageKey& appKey,
+                                         bsls::Types::Uint64 timestamp) = 0;
+
+    /// Remove the record identified by the specified `handle`.  Behavior is
+    /// undefined unless `handle` is valid and represents a record in the
+    /// data store.
+    virtual void removeRecordRaw(const DataStoreRecordHandle& handle) = 0;
+
+    /// Close this record store.  If the optional `flush` flag is true, flush
+    /// to the backup storage (e.g., disk) if applicable.  If the optional
+    /// `archive` flag is true, archive it.  Return zero on success, non-zero
+    /// value otherwise.  `PartitionRaft` first drops any outstanding pending
+    /// write (e.g. an uncommitted shutdown sync point) before delegating to
+    /// its `FileStore`, so no reference into the file set outlives this call
+    /// on account of Raft bookkeeping.  The behavior is undefined unless
+    /// called on this record store's dispatcher thread (see `execute`).
+    virtual int close(bool flush = false, bool archive = false) = 0;
+
+    /// Roll over the partition's files: start a new file set carrying the
+    /// outstanding records and archive the current one.  Return zero on
+    /// success, non-zero otherwise.  Legacy `FileStore` performs the rollover
+    /// directly; `PartitionRaft` drives it through Raft (propose `e_ROLLOVER`
+    /// then orchestrate).  Used by the admin `rollover` command so it routes
+    /// to the correct mechanism per mode.  The behavior is undefined unless
+    /// called on this record store's dispatcher thread (see `execute`).
+    virtual int rollover() = 0;
+
+    /// Hand this partition's leadership to the node whose host name is the
+    /// specified `targetHostName`.  Return zero if the transfer was initiated
+    /// (or if the target is this node and it already leads), non-zero
+    /// otherwise.  Legacy `FileStore` cannot transfer, so it only reports
+    /// whether the requested state already holds; `PartitionRaft` drives a
+    /// Raft leadership transfer, which completes asynchronously.  Used by the
+    /// admin `transferLeadership` command so it routes to the correct
+    /// mechanism per mode.  The behavior is undefined unless called on this
+    /// record store's dispatcher thread (see `execute`).
+    virtual int transferLeadership(const bsl::string& targetHostName) = 0;
+
+    /// Enable or disable writing to this partition per the specified
+    /// `enable`.  Used by the admin partition enable/disable command.
+    virtual void setAvailabilityStatus(bool enable) = 0;
+
+    /// Set the strong-consistency replication factor (quorum) to the
+    /// specified `factor`.  Used by the admin replication QUORUM tunable.
+    virtual void setReplicationFactor(int factor) = 0;
+
+    /// Attempt to rollover the journal if needed after a purge has cleared
+    /// outstanding records.
+    virtual void onPurgeComplete() = 0;
+
+    /// Flush any buffered replication messages to the peers.  Behaviour is
+    /// undefined unless this cluster node is the primary for this partition.
+    virtual void flushStorage() = 0;
+
+    /// Set the last strong consistency point (primary lease id and sequence
+    /// number) for this partition. Used during recovery.
+    virtual void setLastStrongConsistency(unsigned int        primaryLeaseId,
+                                          bsls::Types::Uint64 sequenceNum) = 0;
+
+    // ACCESSORS
+
+    virtual void loadMessageRaw(bsl::shared_ptr<bdlbb::Blob>*   appData,
+                                bsl::shared_ptr<bdlbb::Blob>*   options,
+                                mqbi::StorageMessageAttributes* attributes,
+                                const DataStoreRecordHandle& handle) const = 0;
+
+    virtual void
+    loadMessageAttributesRaw(mqbi::StorageMessageAttributes* buffer,
+                             const DataStoreRecordHandle&    handle) const = 0;
+
+    virtual void
+    loadQueueOpRecordRaw(QueueOpRecord*               buffer,
+                         const DataStoreRecordHandle& handle) const = 0;
+
+    virtual unsigned int
+    getMessageLenRaw(const DataStoreRecordHandle& handle) const = 0;
+
+    /// Return the write-head leaseId for this partition: the lease id of the
+    /// next record this store writes or applies.
+    virtual unsigned int writeHeadLeaseId() const = 0;
+
+    /// Return the sequence number of the most recent record this store
+    /// accepted.  Pair it with `isApplied` to wait for a write just issued to
+    /// take effect.
+    ///
+    /// THREAD: Executed by this record store's dispatcher thread.
+    virtual bsls::Types::Uint64 writeHeadSeqNum() const = 0;
+
+    /// Return true if the record at the specified `sequenceNumber` has taken
+    /// effect on the storage.  A legacy store applies every write as it makes
+    /// it, so this is always true; a Raft store applies on commit, so a write
+    /// it accepted is not visible yet, and one proposed by a node that then
+    /// loses primaryship never becomes visible at all.
+    ///
+    /// THREAD: Executed by this record store's dispatcher thread.
+    virtual bool hasApplied(bsls::Types::Uint64 sequenceNumber) const = 0;
+
+    /// Return `true` if there was Replication Receipt for the specified
+    /// `handle`.
+    virtual bool hasReceipt(const DataStoreRecordHandle& handle) const = 0;
+
+    /// Return the partition id associated with this record store.
+    virtual int partitionId() const = 0;
+
+    /// Return `true` if this node is the leader/primary for this partition.
+    virtual bool isLeader() const = 0;
+
+    /// Return `true` if this node is the leader and is handing that over.
+    /// It leads until the target wins the election, but has stopped
+    /// appending so that target can catch up, so a record proposed now is
+    /// held rather than written and may end up belonging to the next
+    /// leader.  Always `false` off the Raft path, which has no transfer.
+    ///
+    /// THREAD: Executed by the dispatcher thread of the partition.
+    virtual bool isTransferringLeadership() const = 0;
+
+    /// Load a summary of this partition into the specified `summary`.  Used by
+    /// the admin partition/cluster summary command.
+    virtual void loadSummary(mqbcmd::FileStore* summary) const = 0;
+
+    /// Load into the specified `storages` the list of storages of this
+    /// partition matching every predicate in the specified `filters`.  Used
+    /// by the admin domain queue-status command.
+    virtual void getStorages(StorageList*          storages,
+                             const StorageFilters& filters) const = 0;
+
+    virtual StorageMonitor* storageMonitor() = 0;
+
+    /// Return `true` if this partition is on the Raft write path, `false`
+    /// for the legacy one.  Records reach the storage on commit in the
+    /// former and at propose in the latter.
+    virtual bool isRaft() const = 0;
+
+    /// Return `true` if the record the specified `probe` tracks may still
+    /// arrive, and `false` if it will not.  Set the specified `isAbsent` to
+    /// `true` only if the caller has established that the record is not in
+    /// this partition.  See `mqbi::Storage::isPendingReplication`.
+    virtual bool isPendingReplication(mqbi::Storage::DeliveryProbe* probe,
+                                      bool isAbsent) const = 0;
+
+    /// Return the records container for this partition.
+    virtual const DataStoreConfig::Records& records() const = 0;
+
+    /// Return the total number of records in this partition.
+    virtual bsls::Types::Uint64 numRecords() const = 0;
+
+    /// Load message record data for the specified iterator.
+    virtual void loadMessageRecord(
+        MessageRecord*                                  buffer,
+        const DataStoreConfig::Records::const_iterator& it) const = 0;
+
+    /// Load confirm record data for the specified iterator.
+    virtual void loadConfirmRecord(
+        ConfirmRecord*                                  buffer,
+        const DataStoreConfig::Records::const_iterator& it) const = 0;
+
+    /// Load queue op record data for the specified iterator.
+    virtual void loadQueueOpRecord(
+        QueueOpRecord*                                  buffer,
+        const DataStoreConfig::Records::const_iterator& it) const = 0;
+
+    /// Convert a Records::iterator to a DataStoreRecordHandle.
+    virtual void recordIteratorToHandle(
+        DataStoreRecordHandle*                          handle,
+        const DataStoreConfig::Records::const_iterator& it) const = 0;
+
+    /// Return a printable description of the client (e.g., for logging).
+    /// The returned view is valid for the lifetime of this object and must
+    /// be copied before any deferred use.
+    virtual bsl::string_view description() const = 0;
+
+    virtual bool isFileSetAvailable() const = 0;
+};
+
 // ===============
 // class DataStore
 // ===============
 
 /// This component provides an interface for a BlazingMQ data store.
-class DataStore : public mqbi::DispatcherClient {
+class DataStore : public RecordStore, public mqbi::DispatcherClient {
   public:
     // TYPES
     typedef mqbi::Storage::AppInfos AppInfos;
@@ -597,93 +1020,19 @@ class DataStore : public mqbi::DispatcherClient {
     virtual int open(QueueKeyInfoMap* queueKeyInfoMap,
                      unsigned int     primaryLeaseId) = 0;
 
-    /// Close this instance.  If the optional `flush` flag is true, flush
-    /// the data store to the backup storage (e.g., disk) if applicable.
-    /// If the optional `archive` flag is true, archive the data store.  Return
-    /// zero on success, non-zero value otherwise.
-    virtual int close(bool flush = false, bool archive = false) = 0;
+    // 'close()' is inherited from 'RecordStore'.
 
     /// Create and load into the specified `storageSp` an instance of
-    /// ReplicatedStorage for the queue having the specified `queueUri` and
-    /// `queueKey` and belonging to the specified `domain`.  Behavior is
-    /// undefined unless `storageSp` and `domain` are non-null.
-    virtual void createStorage(bsl::shared_ptr<ReplicatedStorage>* storageSp,
-                               const bmqt::Uri&                    queueUri,
-                               const mqbu::StorageKey&             queueKey,
-                               mqbi::Domain*                       domain) = 0;
-
-    /// Payload related
-    /// ---------------
-
-    /// Write the specified `appData` and `options` belonging to specified
-    /// `queueKey` and having specified `guid` and `attributes` to the data
-    /// store, and update the specified `handle` with an identifier which
-    /// can be used to retrieve the message.  Return zero on success,
-    /// non-zero value otherwise.
-    virtual int writeMessageRecord(mqbi::StorageMessageAttributes* attributes,
-                                   DataStoreRecordHandle*          handle,
-                                   const bmqt::MessageGUID&        guid,
-                                   const bsl::shared_ptr<bdlbb::Blob>& appData,
-                                   const bsl::shared_ptr<bdlbb::Blob>& options,
-                                   const mqbu::StorageKey& queueKey) = 0;
-
     /// Queue List related
     /// -------------
-
-    /// Write a record for the specified `queueUri` with specified
-    /// `queueKey`, and `timestamp` to the data file.  If the specified
-    /// `appIdKeyPairs` vector is non-empty, write those fields to the
-    /// record as well.  Return zero on success, non-zero value otherwise.
-    virtual int writeQueueCreationRecord(DataStoreRecordHandle*  handle,
-                                         const bmqt::Uri&        queueUri,
-                                         const mqbu::StorageKey& queueKey,
-                                         const AppInfos&         appIdKeyPairs,
-                                         bsls::Types::Uint64     timestamp,
-                                         bool isNewQueue) = 0;
-
-    virtual int writeQueuePurgeRecord(DataStoreRecordHandle*       handle,
-                                      const mqbu::StorageKey&      queueKey,
-                                      const mqbu::StorageKey&      appKey,
-                                      bsls::Types::Uint64          timestamp,
-                                      const DataStoreRecordHandle& start) = 0;
-
-    virtual int writeQueueDeletionRecord(DataStoreRecordHandle*  handle,
-                                         const mqbu::StorageKey& queueKey,
-                                         const mqbu::StorageKey& appKey,
-                                         bsls::Types::Uint64 timestamp) = 0;
 
     /// Journal related
     /// ---------------
 
-    /// Write a CONFIRM record to the data store with the specified
-    /// `queueKey`, optional `appKey`, `guid`, `timestamp` and `reason`.
-    /// Return zero on success, non-zero value otherwise.
-    virtual int writeConfirmRecord(DataStoreRecordHandle*   handle,
-                                   const bmqt::MessageGUID& guid,
-                                   const mqbu::StorageKey&  queueKey,
-                                   const mqbu::StorageKey&  appKey,
-                                   bsls::Types::Uint64      timestamp,
-                                   ConfirmReason::Enum      reason) = 0;
-
-    /// Write a DELETION record to the data store with the specified
-    /// `queueKey`, `flag`, `guid` and `timestamp`.  Return zero on success,
-    /// non-zero value otherwise.
-    virtual int writeDeletionRecord(const bmqt::MessageGUID& guid,
-                                    const mqbu::StorageKey&  queueKey,
-                                    DeletionRecordFlag::Enum deletionFlag,
-                                    bsls::Types::Uint64      timestamp) = 0;
-
     virtual int writeSyncPointRecord(const bmqp_ctrlmsg::SyncPoint& syncPoint,
-                                     SyncPointType::Enum            type) = 0;
-
-    /// Remove the record identified by the specified `handle`.  Behavior is
-    /// undefined unless `handle` is valid and represents a record in the
-    /// data store.
-    virtual void removeRecordRaw(const DataStoreRecordHandle& handle) = 0;
-
-    /// Attempt to rollover the journal if needed after a purge has cleared
-    /// outstanding records.
-    virtual void onPurgeComplete() = 0;
+                                     SyncPointType::Enum            type,
+                                     unsigned int        primaryLeaseId,
+                                     bsls::Types::Uint64 sequenceNumber) = 0;
 
     /// Process the specified storage event `blob` containing one or more
     /// storage messages.  Return zero on success, or a non-zero value if the
@@ -715,16 +1064,19 @@ class DataStore : public mqbi::DispatcherClient {
 
     /// Set the specified `primaryNode` with the specified `primaryLeaseId`
     /// as the active primary for this data store partition.  Note that
-    /// `primaryNode` could refer to the node which owns this data store.
+    /// `primaryNode` could refer to the node which owns this data store.  If
+    /// the specified `isRaft` is true, only the primary-identity bookkeeping
+    /// is performed; the legacy sync-point machinery (recurring sync-point/
+    /// highwatermark timers, the "issue a sync point on behalf of the previous
+    /// primary" step, the immediate sync point, and the replica implicit
+    /// receipt) is skipped because Raft drives all of that through its own
+    /// log.
     virtual void setActivePrimary(mqbnet::ClusterNode* primaryNode,
-                                  unsigned int         primaryLeaseId) = 0;
+                                  unsigned int         primaryLeaseId,
+                                  bool                 isRaft = false) = 0;
 
     /// Clear the current primary associated with this partition.
     virtual void clearPrimary() = 0;
-
-    /// Flush any buffered replication messages to the peers.  Behaviour is
-    /// undefined unless this cluster node is the primary for this partition.
-    virtual void flushStorage() = 0;
 
     // ACCESSORS
 
@@ -737,9 +1089,6 @@ class DataStore : public mqbi::DispatcherClient {
     /// Return the replication factor associated with this data store.
     virtual unsigned int clusterSize() const = 0;
 
-    /// Return total number of records currently present in the data store.
-    virtual bsls::Types::Uint64 numRecords() const = 0;
-
     virtual void
     loadMessageRecordRaw(MessageRecord*               buffer,
                          const DataStoreRecordHandle& handle) const = 0;
@@ -751,30 +1100,6 @@ class DataStore : public mqbi::DispatcherClient {
     virtual void
     loadDeletionRecordRaw(DeletionRecord*              buffer,
                           const DataStoreRecordHandle& handle) const = 0;
-
-    virtual void
-    loadQueueOpRecordRaw(QueueOpRecord*               buffer,
-                         const DataStoreRecordHandle& handle) const = 0;
-
-    virtual void
-    loadMessageAttributesRaw(mqbi::StorageMessageAttributes* buffer,
-                             const DataStoreRecordHandle&    handle) const = 0;
-
-    virtual void loadMessageRaw(bsl::shared_ptr<bdlbb::Blob>*   appData,
-                                bsl::shared_ptr<bdlbb::Blob>*   options,
-                                mqbi::StorageMessageAttributes* attributes,
-                                const DataStoreRecordHandle& handle) const = 0;
-
-    virtual unsigned int
-    getMessageLenRaw(const DataStoreRecordHandle& handle) const = 0;
-
-    /// Return the write-head leaseId for this partition: the lease id of the
-    /// next record this store writes or applies.
-    virtual unsigned int writeHeadLeaseId() const = 0;
-
-    /// Return `true` if there was Replication Receipt for the specified
-    /// `handle`.
-    virtual bool hasReceipt(const DataStoreRecordHandle& handle) const = 0;
 };
 
 // ============================================================================
@@ -1165,7 +1490,7 @@ inline int DataStoreConfig::maxArchivedFileSets() const
 
 // PRIVATE CREATORS
 inline DataStoreRecordHandle::DataStoreRecordHandle(
-    const RecordIterator& iterator)
+    const DataStoreConfig::Records::const_iterator& iterator)
 : d_iterator(iterator)
 {
 }
@@ -1218,6 +1543,15 @@ inline bsls::Types::Uint64 DataStoreRecordHandle::sequenceNum() const
     return d_iterator->first.d_sequenceNum;
 }
 
+// =======================
+// struct DataStoreRecord
+// =======================
+
+inline RecordType::Enum DataStoreRecord::type() const
+{
+    return d_recordType;
+}
+
 }  // close package namespace
 
 // -------------------------
@@ -1225,6 +1559,20 @@ inline bsls::Types::Uint64 DataStoreRecordHandle::sequenceNum() const
 // -------------------------
 
 // FREE OPERATORS
+inline bsl::ostream& mqbs::operator<<(bsl::ostream&                stream,
+                                      const mqbs::DataStoreRecord& value)
+{
+    stream << "DataStoreRecord[type=" << value.d_recordType
+           << " offset=" << value.d_recordOffset
+           << " hasReceipt=" << bsl::boolalpha << value.d_hasReceipt
+           << " msgOffset=" << value.d_messageOffset
+           << " appDataLen=" << value.d_appDataUnpaddedLen
+           << " padLen=" << value.d_dataOrQlistRecordPaddedLen
+           << " timepoint=" << value.d_arrivalTimepoint
+           << " timestamp=" << value.d_arrivalTimestamp << "]";
+    return stream;
+}
+
 inline bsl::ostream& mqbs::operator<<(bsl::ostream&                   stream,
                                       const mqbs::DataStoreRecordKey& value)
 {

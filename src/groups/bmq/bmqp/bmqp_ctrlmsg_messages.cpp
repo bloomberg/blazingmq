@@ -730,22 +730,22 @@ const bdlat_AttributeInfo ConsumerInfo::ATTRIBUTE_INFO_ARRAY[] = {
      "maxUnconfirmedMessages",
      sizeof("maxUnconfirmedMessages") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_DEC},
     {ATTRIBUTE_ID_MAX_UNCONFIRMED_BYTES,
      "maxUnconfirmedBytes",
      sizeof("maxUnconfirmedBytes") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_DEC},
     {ATTRIBUTE_ID_CONSUMER_PRIORITY,
      "consumerPriority",
      sizeof("consumerPriority") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_DEC},
     {ATTRIBUTE_ID_CONSUMER_PRIORITY_COUNT,
      "consumerPriorityCount",
      sizeof("consumerPriorityCount") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
+     bdlat_FormattingMode::e_DEC}};
 
 // CLASS METHODS
 
@@ -1406,12 +1406,12 @@ const bdlat_AttributeInfo GuidInfo::ATTRIBUTE_INFO_ARRAY[] = {
      "clientId",
      sizeof("clientId") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_TEXT},
     {ATTRIBUTE_ID_NANO_SECONDS_FROM_EPOCH,
      "nanoSecondsFromEpoch",
      sizeof("nanoSecondsFromEpoch") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
+     bdlat_FormattingMode::e_DEC}};
 
 // CLASS METHODS
 
@@ -1919,6 +1919,95 @@ const char* NodeStatus::toString(NodeStatus::Value value)
     return 0;
 }
 
+// -----------------------------
+// class PartitionElectionResult
+// -----------------------------
+
+// CONSTANTS
+
+const char PartitionElectionResult::CLASS_NAME[] = "PartitionElectionResult";
+
+const bdlat_AttributeInfo PartitionElectionResult::ATTRIBUTE_INFO_ARRAY[] = {
+    {ATTRIBUTE_ID_PARTITION_ID,
+     "partitionId",
+     sizeof("partitionId") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC},
+    {ATTRIBUTE_ID_PRIMARY_NODE_ID,
+     "primaryNodeId",
+     sizeof("primaryNodeId") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC},
+    {ATTRIBUTE_ID_PRIMARY_LEASE_ID,
+     "primaryLeaseId",
+     sizeof("primaryLeaseId") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC}};
+
+// CLASS METHODS
+
+const bdlat_AttributeInfo*
+PartitionElectionResult::lookupAttributeInfo(const char* name, int nameLength)
+{
+    for (int i = 0; i < 3; ++i) {
+        const bdlat_AttributeInfo& attributeInfo =
+            PartitionElectionResult::ATTRIBUTE_INFO_ARRAY[i];
+
+        if (nameLength == attributeInfo.d_nameLength &&
+            0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength)) {
+            return &attributeInfo;
+        }
+    }
+
+    return 0;
+}
+
+const bdlat_AttributeInfo* PartitionElectionResult::lookupAttributeInfo(int id)
+{
+    switch (id) {
+    case ATTRIBUTE_ID_PARTITION_ID:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID];
+    case ATTRIBUTE_ID_PRIMARY_NODE_ID:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRIMARY_NODE_ID];
+    case ATTRIBUTE_ID_PRIMARY_LEASE_ID:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRIMARY_LEASE_ID];
+    default: return 0;
+    }
+}
+
+// CREATORS
+
+PartitionElectionResult::PartitionElectionResult()
+: d_primaryLeaseId()
+, d_partitionId()
+, d_primaryNodeId()
+{
+}
+
+// MANIPULATORS
+
+void PartitionElectionResult::reset()
+{
+    bdlat_ValueTypeFunctions::reset(&d_partitionId);
+    bdlat_ValueTypeFunctions::reset(&d_primaryNodeId);
+    bdlat_ValueTypeFunctions::reset(&d_primaryLeaseId);
+}
+
+// ACCESSORS
+
+bsl::ostream& PartitionElectionResult::print(bsl::ostream& stream,
+                                             int           level,
+                                             int spacesPerLevel) const
+{
+    bslim::Printer printer(&stream, level, spacesPerLevel);
+    printer.start();
+    printer.printAttribute("partitionId", this->partitionId());
+    printer.printAttribute("primaryNodeId", this->primaryNodeId());
+    printer.printAttribute("primaryLeaseId", this->primaryLeaseId());
+    printer.end();
+    return stream;
+}
+
 // --------------------------
 // class PartitionPrimaryInfo
 // --------------------------
@@ -2195,7 +2284,7 @@ const bdlat_AttributeInfo PartitionSyncStateQuery::ATTRIBUTE_INFO_ARRAY[] = {
      "partitionId",
      sizeof("partitionId") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
+     bdlat_FormattingMode::e_DEC}};
 
 // CLASS METHODS
 
@@ -2592,6 +2681,442 @@ bsl::ostream& QueueUnassignmentRequest::print(bsl::ostream& stream,
         stream << " ]" << (multilineFlag ? "\n" : "");
     }
     printer.end();
+    return stream;
+}
+
+// -------------------------------
+// class RaftAppendEntriesResponse
+// -------------------------------
+
+// CONSTANTS
+
+const char RaftAppendEntriesResponse::CLASS_NAME[] =
+    "RaftAppendEntriesResponse";
+
+const bdlat_AttributeInfo RaftAppendEntriesResponse::ATTRIBUTE_INFO_ARRAY[] = {
+    {ATTRIBUTE_ID_SUCCESS,
+     "success",
+     sizeof("success") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT},
+    {ATTRIBUTE_ID_MATCH_INDEX,
+     "matchIndex",
+     sizeof("matchIndex") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC}};
+
+// CLASS METHODS
+
+const bdlat_AttributeInfo*
+RaftAppendEntriesResponse::lookupAttributeInfo(const char* name,
+                                               int         nameLength)
+{
+    for (int i = 0; i < 2; ++i) {
+        const bdlat_AttributeInfo& attributeInfo =
+            RaftAppendEntriesResponse::ATTRIBUTE_INFO_ARRAY[i];
+
+        if (nameLength == attributeInfo.d_nameLength &&
+            0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength)) {
+            return &attributeInfo;
+        }
+    }
+
+    return 0;
+}
+
+const bdlat_AttributeInfo*
+RaftAppendEntriesResponse::lookupAttributeInfo(int id)
+{
+    switch (id) {
+    case ATTRIBUTE_ID_SUCCESS:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SUCCESS];
+    case ATTRIBUTE_ID_MATCH_INDEX:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MATCH_INDEX];
+    default: return 0;
+    }
+}
+
+// CREATORS
+
+RaftAppendEntriesResponse::RaftAppendEntriesResponse()
+: d_matchIndex()
+, d_success()
+{
+}
+
+// MANIPULATORS
+
+void RaftAppendEntriesResponse::reset()
+{
+    bdlat_ValueTypeFunctions::reset(&d_success);
+    bdlat_ValueTypeFunctions::reset(&d_matchIndex);
+}
+
+// ACCESSORS
+
+bsl::ostream& RaftAppendEntriesResponse::print(bsl::ostream& stream,
+                                               int           level,
+                                               int spacesPerLevel) const
+{
+    bslim::Printer printer(&stream, level, spacesPerLevel);
+    printer.start();
+    printer.printAttribute("success", this->success());
+    printer.printAttribute("matchIndex", this->matchIndex());
+    printer.end();
+    return stream;
+}
+
+// -------------------------
+// class RaftInstallSnapshot
+// -------------------------
+
+// CONSTANTS
+
+const char RaftInstallSnapshot::CLASS_NAME[] = "RaftInstallSnapshot";
+
+const bdlat_AttributeInfo RaftInstallSnapshot::ATTRIBUTE_INFO_ARRAY[] = {
+    {ATTRIBUTE_ID_LAST_INCLUDED_INDEX,
+     "lastIncludedIndex",
+     sizeof("lastIncludedIndex") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC},
+    {ATTRIBUTE_ID_LAST_INCLUDED_TERM,
+     "lastIncludedTerm",
+     sizeof("lastIncludedTerm") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC},
+    {ATTRIBUTE_ID_OFFSET,
+     "offset",
+     sizeof("offset") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC},
+    {ATTRIBUTE_ID_DONE,
+     "done",
+     sizeof("done") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT}};
+
+// CLASS METHODS
+
+const bdlat_AttributeInfo*
+RaftInstallSnapshot::lookupAttributeInfo(const char* name, int nameLength)
+{
+    for (int i = 0; i < 4; ++i) {
+        const bdlat_AttributeInfo& attributeInfo =
+            RaftInstallSnapshot::ATTRIBUTE_INFO_ARRAY[i];
+
+        if (nameLength == attributeInfo.d_nameLength &&
+            0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength)) {
+            return &attributeInfo;
+        }
+    }
+
+    return 0;
+}
+
+const bdlat_AttributeInfo* RaftInstallSnapshot::lookupAttributeInfo(int id)
+{
+    switch (id) {
+    case ATTRIBUTE_ID_LAST_INCLUDED_INDEX:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LAST_INCLUDED_INDEX];
+    case ATTRIBUTE_ID_LAST_INCLUDED_TERM:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LAST_INCLUDED_TERM];
+    case ATTRIBUTE_ID_OFFSET:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_OFFSET];
+    case ATTRIBUTE_ID_DONE: return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_DONE];
+    default: return 0;
+    }
+}
+
+// CREATORS
+
+RaftInstallSnapshot::RaftInstallSnapshot()
+: d_lastIncludedIndex()
+, d_lastIncludedTerm()
+, d_offset()
+, d_done()
+{
+}
+
+// MANIPULATORS
+
+void RaftInstallSnapshot::reset()
+{
+    bdlat_ValueTypeFunctions::reset(&d_lastIncludedIndex);
+    bdlat_ValueTypeFunctions::reset(&d_lastIncludedTerm);
+    bdlat_ValueTypeFunctions::reset(&d_offset);
+    bdlat_ValueTypeFunctions::reset(&d_done);
+}
+
+// ACCESSORS
+
+bsl::ostream& RaftInstallSnapshot::print(bsl::ostream& stream,
+                                         int           level,
+                                         int           spacesPerLevel) const
+{
+    bslim::Printer printer(&stream, level, spacesPerLevel);
+    printer.start();
+    printer.printAttribute("lastIncludedIndex", this->lastIncludedIndex());
+    printer.printAttribute("lastIncludedTerm", this->lastIncludedTerm());
+    printer.printAttribute("offset", this->offset());
+    printer.printAttribute("done", this->done());
+    printer.end();
+    return stream;
+}
+
+// ---------------------------------
+// class RaftInstallSnapshotResponse
+// ---------------------------------
+
+// CONSTANTS
+
+const char RaftInstallSnapshotResponse::CLASS_NAME[] =
+    "RaftInstallSnapshotResponse";
+
+// CLASS METHODS
+
+const bdlat_AttributeInfo*
+RaftInstallSnapshotResponse::lookupAttributeInfo(const char* name,
+                                                 int         nameLength)
+{
+    (void)name;
+    (void)nameLength;
+    return 0;
+}
+
+const bdlat_AttributeInfo*
+RaftInstallSnapshotResponse::lookupAttributeInfo(int id)
+{
+    switch (id) {
+    default: return 0;
+    }
+}
+
+// CREATORS
+
+// MANIPULATORS
+
+void RaftInstallSnapshotResponse::reset()
+{
+}
+
+// ACCESSORS
+
+bsl::ostream&
+RaftInstallSnapshotResponse::print(bsl::ostream& stream, int, int) const
+{
+    return stream;
+}
+
+// ---------------------
+// class RaftRequestVote
+// ---------------------
+
+// CONSTANTS
+
+const char RaftRequestVote::CLASS_NAME[] = "RaftRequestVote";
+
+const bool RaftRequestVote::DEFAULT_INITIALIZER_PRE_VOTE = false;
+
+const bdlat_AttributeInfo RaftRequestVote::ATTRIBUTE_INFO_ARRAY[] = {
+    {ATTRIBUTE_ID_LAST_LOG_INDEX,
+     "lastLogIndex",
+     sizeof("lastLogIndex") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC},
+    {ATTRIBUTE_ID_LAST_LOG_TERM,
+     "lastLogTerm",
+     sizeof("lastLogTerm") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC},
+    {ATTRIBUTE_ID_PRE_VOTE,
+     "preVote",
+     sizeof("preVote") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT}};
+
+// CLASS METHODS
+
+const bdlat_AttributeInfo*
+RaftRequestVote::lookupAttributeInfo(const char* name, int nameLength)
+{
+    for (int i = 0; i < 3; ++i) {
+        const bdlat_AttributeInfo& attributeInfo =
+            RaftRequestVote::ATTRIBUTE_INFO_ARRAY[i];
+
+        if (nameLength == attributeInfo.d_nameLength &&
+            0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength)) {
+            return &attributeInfo;
+        }
+    }
+
+    return 0;
+}
+
+const bdlat_AttributeInfo* RaftRequestVote::lookupAttributeInfo(int id)
+{
+    switch (id) {
+    case ATTRIBUTE_ID_LAST_LOG_INDEX:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LAST_LOG_INDEX];
+    case ATTRIBUTE_ID_LAST_LOG_TERM:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LAST_LOG_TERM];
+    case ATTRIBUTE_ID_PRE_VOTE:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRE_VOTE];
+    default: return 0;
+    }
+}
+
+// CREATORS
+
+RaftRequestVote::RaftRequestVote()
+: d_lastLogIndex()
+, d_lastLogTerm()
+, d_preVote(DEFAULT_INITIALIZER_PRE_VOTE)
+{
+}
+
+// MANIPULATORS
+
+void RaftRequestVote::reset()
+{
+    bdlat_ValueTypeFunctions::reset(&d_lastLogIndex);
+    bdlat_ValueTypeFunctions::reset(&d_lastLogTerm);
+    d_preVote = DEFAULT_INITIALIZER_PRE_VOTE;
+}
+
+// ACCESSORS
+
+bsl::ostream& RaftRequestVote::print(bsl::ostream& stream,
+                                     int           level,
+                                     int           spacesPerLevel) const
+{
+    bslim::Printer printer(&stream, level, spacesPerLevel);
+    printer.start();
+    printer.printAttribute("lastLogIndex", this->lastLogIndex());
+    printer.printAttribute("lastLogTerm", this->lastLogTerm());
+    printer.printAttribute("preVote", this->preVote());
+    printer.end();
+    return stream;
+}
+
+// -----------------------------
+// class RaftRequestVoteResponse
+// -----------------------------
+
+// CONSTANTS
+
+const char RaftRequestVoteResponse::CLASS_NAME[] = "RaftRequestVoteResponse";
+
+const bool RaftRequestVoteResponse::DEFAULT_INITIALIZER_PRE_VOTE = false;
+
+const bdlat_AttributeInfo RaftRequestVoteResponse::ATTRIBUTE_INFO_ARRAY[] = {
+    {ATTRIBUTE_ID_VOTE_GRANTED,
+     "voteGranted",
+     sizeof("voteGranted") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT},
+    {ATTRIBUTE_ID_PRE_VOTE,
+     "preVote",
+     sizeof("preVote") - 1,
+     "",
+     bdlat_FormattingMode::e_TEXT}};
+
+// CLASS METHODS
+
+const bdlat_AttributeInfo*
+RaftRequestVoteResponse::lookupAttributeInfo(const char* name, int nameLength)
+{
+    for (int i = 0; i < 2; ++i) {
+        const bdlat_AttributeInfo& attributeInfo =
+            RaftRequestVoteResponse::ATTRIBUTE_INFO_ARRAY[i];
+
+        if (nameLength == attributeInfo.d_nameLength &&
+            0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength)) {
+            return &attributeInfo;
+        }
+    }
+
+    return 0;
+}
+
+const bdlat_AttributeInfo* RaftRequestVoteResponse::lookupAttributeInfo(int id)
+{
+    switch (id) {
+    case ATTRIBUTE_ID_VOTE_GRANTED:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_VOTE_GRANTED];
+    case ATTRIBUTE_ID_PRE_VOTE:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRE_VOTE];
+    default: return 0;
+    }
+}
+
+// CREATORS
+
+RaftRequestVoteResponse::RaftRequestVoteResponse()
+: d_voteGranted()
+, d_preVote(DEFAULT_INITIALIZER_PRE_VOTE)
+{
+}
+
+// MANIPULATORS
+
+void RaftRequestVoteResponse::reset()
+{
+    bdlat_ValueTypeFunctions::reset(&d_voteGranted);
+    d_preVote = DEFAULT_INITIALIZER_PRE_VOTE;
+}
+
+// ACCESSORS
+
+bsl::ostream& RaftRequestVoteResponse::print(bsl::ostream& stream,
+                                             int           level,
+                                             int spacesPerLevel) const
+{
+    bslim::Printer printer(&stream, level, spacesPerLevel);
+    printer.start();
+    printer.printAttribute("voteGranted", this->voteGranted());
+    printer.printAttribute("preVote", this->preVote());
+    printer.end();
+    return stream;
+}
+
+// --------------------
+// class RaftTimeoutNow
+// --------------------
+
+// CONSTANTS
+
+const char RaftTimeoutNow::CLASS_NAME[] = "RaftTimeoutNow";
+
+// CLASS METHODS
+
+const bdlat_AttributeInfo*
+RaftTimeoutNow::lookupAttributeInfo(const char* name, int nameLength)
+{
+    (void)name;
+    (void)nameLength;
+    return 0;
+}
+
+const bdlat_AttributeInfo* RaftTimeoutNow::lookupAttributeInfo(int id)
+{
+    switch (id) {
+    default: return 0;
+    }
+}
+
+// CREATORS
+
+// MANIPULATORS
+
+void RaftTimeoutNow::reset()
+{
+}
+
+// ACCESSORS
+
+bsl::ostream& RaftTimeoutNow::print(bsl::ostream& stream, int, int) const
+{
     return stream;
 }
 
@@ -3094,7 +3619,7 @@ const bdlat_AttributeInfo StopRequest::ATTRIBUTE_INFO_ARRAY[] = {
      "version",
      sizeof("version") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
+     bdlat_FormattingMode::e_DEC}};
 
 // CLASS METHODS
 
@@ -3416,12 +3941,12 @@ const bdlat_AttributeInfo SubQueueIdInfo::ATTRIBUTE_INFO_ARRAY[] = {
      "subId",
      sizeof("subId") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_DEC},
     {ATTRIBUTE_ID_APP_ID,
      "appId",
      sizeof("appId") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE}};
+     bdlat_FormattingMode::e_TEXT}};
 
 // CLASS METHODS
 
@@ -3671,7 +4196,7 @@ const bdlat_AttributeInfo ClientIdentity::ATTRIBUTE_INFO_ARRAY[] = {
      "sdkVersion",
      sizeof("sdkVersion") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_DEC},
     {ATTRIBUTE_ID_CLIENT_TYPE,
      "clientType",
      sizeof("clientType") - 1,
@@ -3681,42 +4206,42 @@ const bdlat_AttributeInfo ClientIdentity::ATTRIBUTE_INFO_ARRAY[] = {
      "processName",
      sizeof("processName") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_TEXT},
     {ATTRIBUTE_ID_PID,
      "pid",
      sizeof("pid") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_DEC},
     {ATTRIBUTE_ID_SESSION_ID,
      "sessionId",
      sizeof("sessionId") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_DEC},
     {ATTRIBUTE_ID_HOST_NAME,
      "hostName",
      sizeof("hostName") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_TEXT},
     {ATTRIBUTE_ID_FEATURES,
      "features",
      sizeof("features") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_TEXT},
     {ATTRIBUTE_ID_CLUSTER_NAME,
      "clusterName",
      sizeof("clusterName") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_TEXT},
     {ATTRIBUTE_ID_CLUSTER_NODE_ID,
      "clusterNodeId",
      sizeof("clusterNodeId") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_DEC},
     {ATTRIBUTE_ID_SDK_LANGUAGE,
      "sdkLanguage",
      sizeof("sdkLanguage") - 1,
      "",
-     bdlat_FormattingMode::e_DEFAULT | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_DEFAULT},
     {ATTRIBUTE_ID_GUID_INFO,
      "guidInfo",
      sizeof("guidInfo") - 1,
@@ -3726,7 +4251,7 @@ const bdlat_AttributeInfo ClientIdentity::ATTRIBUTE_INFO_ARRAY[] = {
      "userAgent",
      sizeof("userAgent") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE}};
+     bdlat_FormattingMode::e_TEXT}};
 
 // CLASS METHODS
 
@@ -3971,7 +4496,7 @@ const bdlat_AttributeInfo DumpMessages::ATTRIBUTE_INFO_ARRAY[] = {
      "dumpActionValue",
      sizeof("dumpActionValue") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
+     bdlat_FormattingMode::e_DEC}};
 
 // CLASS METHODS
 
@@ -4851,7 +5376,7 @@ const bdlat_AttributeInfo Expression::ATTRIBUTE_INFO_ARRAY[] = {
      "version",
      sizeof("version") - 1,
      "",
-     bdlat_FormattingMode::e_DEFAULT | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_DEFAULT},
     {ATTRIBUTE_ID_TEXT,
      "text",
      sizeof("text") - 1,
@@ -5694,7 +6219,7 @@ const bdlat_AttributeInfo PrimaryStatusAdvisory::ATTRIBUTE_INFO_ARRAY[] = {
      "status",
      sizeof("status") - 1,
      "",
-     bdlat_FormattingMode::e_DEFAULT | bdlat_FormattingMode::e_DEFAULT_VALUE}};
+     bdlat_FormattingMode::e_DEFAULT}};
 
 // CLASS METHODS
 
@@ -5799,17 +6324,17 @@ const bdlat_AttributeInfo QueueHandleParameters::ATTRIBUTE_INFO_ARRAY[] = {
      "readCount",
      sizeof("readCount") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_DEC},
     {ATTRIBUTE_ID_WRITE_COUNT,
      "writeCount",
      sizeof("writeCount") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_DEC},
     {ATTRIBUTE_ID_ADMIN_COUNT,
      "adminCount",
      sizeof("adminCount") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
+     bdlat_FormattingMode::e_DEC}};
 
 // CLASS METHODS
 
@@ -6361,22 +6886,22 @@ const bdlat_AttributeInfo QueueStreamParameters::ATTRIBUTE_INFO_ARRAY[] = {
      "maxUnconfirmedMessages",
      sizeof("maxUnconfirmedMessages") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_DEC},
     {ATTRIBUTE_ID_MAX_UNCONFIRMED_BYTES,
      "maxUnconfirmedBytes",
      sizeof("maxUnconfirmedBytes") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_DEC},
     {ATTRIBUTE_ID_CONSUMER_PRIORITY,
      "consumerPriority",
      sizeof("consumerPriority") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_DEC},
     {ATTRIBUTE_ID_CONSUMER_PRIORITY_COUNT,
      "consumerPriorityCount",
      sizeof("consumerPriorityCount") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
+     bdlat_FormattingMode::e_DEC}};
 
 // CLASS METHODS
 
@@ -6521,6 +7046,635 @@ bsl::ostream& QueueStreamParameters::print(bsl::ostream& stream,
                            this->consumerPriorityCount());
     printer.end();
     return stream;
+}
+
+// -----------------------
+// class RaftMessageChoice
+// -----------------------
+
+// CONSTANTS
+
+const char RaftMessageChoice::CLASS_NAME[] = "RaftMessageChoice";
+
+const bdlat_SelectionInfo RaftMessageChoice::SELECTION_INFO_ARRAY[] = {
+    {SELECTION_ID_REQUEST_VOTE,
+     "requestVote",
+     sizeof("requestVote") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT},
+    {SELECTION_ID_REQUEST_VOTE_RESPONSE,
+     "requestVoteResponse",
+     sizeof("requestVoteResponse") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT},
+    {SELECTION_ID_APPEND_ENTRIES_RESPONSE,
+     "appendEntriesResponse",
+     sizeof("appendEntriesResponse") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT},
+    {SELECTION_ID_INSTALL_SNAPSHOT,
+     "installSnapshot",
+     sizeof("installSnapshot") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT},
+    {SELECTION_ID_INSTALL_SNAPSHOT_RESPONSE,
+     "installSnapshotResponse",
+     sizeof("installSnapshotResponse") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT},
+    {SELECTION_ID_TIMEOUT_NOW,
+     "timeoutNow",
+     sizeof("timeoutNow") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT}};
+
+// CLASS METHODS
+
+const bdlat_SelectionInfo*
+RaftMessageChoice::lookupSelectionInfo(const char* name, int nameLength)
+{
+    for (int i = 0; i < 6; ++i) {
+        const bdlat_SelectionInfo& selectionInfo =
+            RaftMessageChoice::SELECTION_INFO_ARRAY[i];
+
+        if (nameLength == selectionInfo.d_nameLength &&
+            0 == bsl::memcmp(selectionInfo.d_name_p, name, nameLength)) {
+            return &selectionInfo;
+        }
+    }
+
+    return 0;
+}
+
+const bdlat_SelectionInfo* RaftMessageChoice::lookupSelectionInfo(int id)
+{
+    switch (id) {
+    case SELECTION_ID_REQUEST_VOTE:
+        return &SELECTION_INFO_ARRAY[SELECTION_INDEX_REQUEST_VOTE];
+    case SELECTION_ID_REQUEST_VOTE_RESPONSE:
+        return &SELECTION_INFO_ARRAY[SELECTION_INDEX_REQUEST_VOTE_RESPONSE];
+    case SELECTION_ID_APPEND_ENTRIES_RESPONSE:
+        return &SELECTION_INFO_ARRAY[SELECTION_INDEX_APPEND_ENTRIES_RESPONSE];
+    case SELECTION_ID_INSTALL_SNAPSHOT:
+        return &SELECTION_INFO_ARRAY[SELECTION_INDEX_INSTALL_SNAPSHOT];
+    case SELECTION_ID_INSTALL_SNAPSHOT_RESPONSE:
+        return &SELECTION_INFO_ARRAY
+            [SELECTION_INDEX_INSTALL_SNAPSHOT_RESPONSE];
+    case SELECTION_ID_TIMEOUT_NOW:
+        return &SELECTION_INFO_ARRAY[SELECTION_INDEX_TIMEOUT_NOW];
+    default: return 0;
+    }
+}
+
+// CREATORS
+
+RaftMessageChoice::RaftMessageChoice(const RaftMessageChoice& original)
+: d_selectionId(original.d_selectionId)
+{
+    switch (d_selectionId) {
+    case SELECTION_ID_REQUEST_VOTE: {
+        new (d_requestVote.buffer())
+            RaftRequestVote(original.d_requestVote.object());
+    } break;
+    case SELECTION_ID_REQUEST_VOTE_RESPONSE: {
+        new (d_requestVoteResponse.buffer())
+            RaftRequestVoteResponse(original.d_requestVoteResponse.object());
+    } break;
+    case SELECTION_ID_APPEND_ENTRIES_RESPONSE: {
+        new (d_appendEntriesResponse.buffer()) RaftAppendEntriesResponse(
+            original.d_appendEntriesResponse.object());
+    } break;
+    case SELECTION_ID_INSTALL_SNAPSHOT: {
+        new (d_installSnapshot.buffer())
+            RaftInstallSnapshot(original.d_installSnapshot.object());
+    } break;
+    case SELECTION_ID_INSTALL_SNAPSHOT_RESPONSE: {
+        new (d_installSnapshotResponse.buffer()) RaftInstallSnapshotResponse(
+            original.d_installSnapshotResponse.object());
+    } break;
+    case SELECTION_ID_TIMEOUT_NOW: {
+        new (d_timeoutNow.buffer())
+            RaftTimeoutNow(original.d_timeoutNow.object());
+    } break;
+    default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
+    }
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+RaftMessageChoice::RaftMessageChoice(RaftMessageChoice&& original) noexcept
+: d_selectionId(original.d_selectionId)
+{
+    switch (d_selectionId) {
+    case SELECTION_ID_REQUEST_VOTE: {
+        new (d_requestVote.buffer())
+            RaftRequestVote(bsl::move(original.d_requestVote.object()));
+    } break;
+    case SELECTION_ID_REQUEST_VOTE_RESPONSE: {
+        new (d_requestVoteResponse.buffer()) RaftRequestVoteResponse(
+            bsl::move(original.d_requestVoteResponse.object()));
+    } break;
+    case SELECTION_ID_APPEND_ENTRIES_RESPONSE: {
+        new (d_appendEntriesResponse.buffer()) RaftAppendEntriesResponse(
+            bsl::move(original.d_appendEntriesResponse.object()));
+    } break;
+    case SELECTION_ID_INSTALL_SNAPSHOT: {
+        new (d_installSnapshot.buffer()) RaftInstallSnapshot(
+            bsl::move(original.d_installSnapshot.object()));
+    } break;
+    case SELECTION_ID_INSTALL_SNAPSHOT_RESPONSE: {
+        new (d_installSnapshotResponse.buffer()) RaftInstallSnapshotResponse(
+            bsl::move(original.d_installSnapshotResponse.object()));
+    } break;
+    case SELECTION_ID_TIMEOUT_NOW: {
+        new (d_timeoutNow.buffer())
+            RaftTimeoutNow(bsl::move(original.d_timeoutNow.object()));
+    } break;
+    default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
+    }
+}
+#endif
+
+// MANIPULATORS
+
+RaftMessageChoice& RaftMessageChoice::operator=(const RaftMessageChoice& rhs)
+{
+    if (this != &rhs) {
+        switch (rhs.d_selectionId) {
+        case SELECTION_ID_REQUEST_VOTE: {
+            makeRequestVote(rhs.d_requestVote.object());
+        } break;
+        case SELECTION_ID_REQUEST_VOTE_RESPONSE: {
+            makeRequestVoteResponse(rhs.d_requestVoteResponse.object());
+        } break;
+        case SELECTION_ID_APPEND_ENTRIES_RESPONSE: {
+            makeAppendEntriesResponse(rhs.d_appendEntriesResponse.object());
+        } break;
+        case SELECTION_ID_INSTALL_SNAPSHOT: {
+            makeInstallSnapshot(rhs.d_installSnapshot.object());
+        } break;
+        case SELECTION_ID_INSTALL_SNAPSHOT_RESPONSE: {
+            makeInstallSnapshotResponse(
+                rhs.d_installSnapshotResponse.object());
+        } break;
+        case SELECTION_ID_TIMEOUT_NOW: {
+            makeTimeoutNow(rhs.d_timeoutNow.object());
+        } break;
+        default:
+            BSLS_ASSERT(SELECTION_ID_UNDEFINED == rhs.d_selectionId);
+            reset();
+        }
+    }
+
+    return *this;
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+RaftMessageChoice& RaftMessageChoice::operator=(RaftMessageChoice&& rhs)
+{
+    if (this != &rhs) {
+        switch (rhs.d_selectionId) {
+        case SELECTION_ID_REQUEST_VOTE: {
+            makeRequestVote(bsl::move(rhs.d_requestVote.object()));
+        } break;
+        case SELECTION_ID_REQUEST_VOTE_RESPONSE: {
+            makeRequestVoteResponse(
+                bsl::move(rhs.d_requestVoteResponse.object()));
+        } break;
+        case SELECTION_ID_APPEND_ENTRIES_RESPONSE: {
+            makeAppendEntriesResponse(
+                bsl::move(rhs.d_appendEntriesResponse.object()));
+        } break;
+        case SELECTION_ID_INSTALL_SNAPSHOT: {
+            makeInstallSnapshot(bsl::move(rhs.d_installSnapshot.object()));
+        } break;
+        case SELECTION_ID_INSTALL_SNAPSHOT_RESPONSE: {
+            makeInstallSnapshotResponse(
+                bsl::move(rhs.d_installSnapshotResponse.object()));
+        } break;
+        case SELECTION_ID_TIMEOUT_NOW: {
+            makeTimeoutNow(bsl::move(rhs.d_timeoutNow.object()));
+        } break;
+        default:
+            BSLS_ASSERT(SELECTION_ID_UNDEFINED == rhs.d_selectionId);
+            reset();
+        }
+    }
+
+    return *this;
+}
+#endif
+
+void RaftMessageChoice::reset()
+{
+    switch (d_selectionId) {
+    case SELECTION_ID_REQUEST_VOTE: {
+        d_requestVote.object().~RaftRequestVote();
+    } break;
+    case SELECTION_ID_REQUEST_VOTE_RESPONSE: {
+        d_requestVoteResponse.object().~RaftRequestVoteResponse();
+    } break;
+    case SELECTION_ID_APPEND_ENTRIES_RESPONSE: {
+        d_appendEntriesResponse.object().~RaftAppendEntriesResponse();
+    } break;
+    case SELECTION_ID_INSTALL_SNAPSHOT: {
+        d_installSnapshot.object().~RaftInstallSnapshot();
+    } break;
+    case SELECTION_ID_INSTALL_SNAPSHOT_RESPONSE: {
+        d_installSnapshotResponse.object().~RaftInstallSnapshotResponse();
+    } break;
+    case SELECTION_ID_TIMEOUT_NOW: {
+        d_timeoutNow.object().~RaftTimeoutNow();
+    } break;
+    default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
+    }
+
+    d_selectionId = SELECTION_ID_UNDEFINED;
+}
+
+int RaftMessageChoice::makeSelection(int selectionId)
+{
+    switch (selectionId) {
+    case SELECTION_ID_REQUEST_VOTE: {
+        makeRequestVote();
+    } break;
+    case SELECTION_ID_REQUEST_VOTE_RESPONSE: {
+        makeRequestVoteResponse();
+    } break;
+    case SELECTION_ID_APPEND_ENTRIES_RESPONSE: {
+        makeAppendEntriesResponse();
+    } break;
+    case SELECTION_ID_INSTALL_SNAPSHOT: {
+        makeInstallSnapshot();
+    } break;
+    case SELECTION_ID_INSTALL_SNAPSHOT_RESPONSE: {
+        makeInstallSnapshotResponse();
+    } break;
+    case SELECTION_ID_TIMEOUT_NOW: {
+        makeTimeoutNow();
+    } break;
+    case SELECTION_ID_UNDEFINED: {
+        reset();
+    } break;
+    default: return -1;
+    }
+    return 0;
+}
+
+int RaftMessageChoice::makeSelection(const char* name, int nameLength)
+{
+    const bdlat_SelectionInfo* selectionInfo = lookupSelectionInfo(name,
+                                                                   nameLength);
+    if (0 == selectionInfo) {
+        return -1;
+    }
+
+    return makeSelection(selectionInfo->d_id);
+}
+
+RaftRequestVote& RaftMessageChoice::makeRequestVote()
+{
+    if (SELECTION_ID_REQUEST_VOTE == d_selectionId) {
+        bdlat_ValueTypeFunctions::reset(&d_requestVote.object());
+    }
+    else {
+        reset();
+        new (d_requestVote.buffer()) RaftRequestVote();
+        d_selectionId = SELECTION_ID_REQUEST_VOTE;
+    }
+
+    return d_requestVote.object();
+}
+
+RaftRequestVote&
+RaftMessageChoice::makeRequestVote(const RaftRequestVote& value)
+{
+    if (SELECTION_ID_REQUEST_VOTE == d_selectionId) {
+        d_requestVote.object() = value;
+    }
+    else {
+        reset();
+        new (d_requestVote.buffer()) RaftRequestVote(value);
+        d_selectionId = SELECTION_ID_REQUEST_VOTE;
+    }
+
+    return d_requestVote.object();
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+RaftRequestVote& RaftMessageChoice::makeRequestVote(RaftRequestVote&& value)
+{
+    if (SELECTION_ID_REQUEST_VOTE == d_selectionId) {
+        d_requestVote.object() = bsl::move(value);
+    }
+    else {
+        reset();
+        new (d_requestVote.buffer()) RaftRequestVote(bsl::move(value));
+        d_selectionId = SELECTION_ID_REQUEST_VOTE;
+    }
+
+    return d_requestVote.object();
+}
+#endif
+
+RaftRequestVoteResponse& RaftMessageChoice::makeRequestVoteResponse()
+{
+    if (SELECTION_ID_REQUEST_VOTE_RESPONSE == d_selectionId) {
+        bdlat_ValueTypeFunctions::reset(&d_requestVoteResponse.object());
+    }
+    else {
+        reset();
+        new (d_requestVoteResponse.buffer()) RaftRequestVoteResponse();
+        d_selectionId = SELECTION_ID_REQUEST_VOTE_RESPONSE;
+    }
+
+    return d_requestVoteResponse.object();
+}
+
+RaftRequestVoteResponse& RaftMessageChoice::makeRequestVoteResponse(
+    const RaftRequestVoteResponse& value)
+{
+    if (SELECTION_ID_REQUEST_VOTE_RESPONSE == d_selectionId) {
+        d_requestVoteResponse.object() = value;
+    }
+    else {
+        reset();
+        new (d_requestVoteResponse.buffer()) RaftRequestVoteResponse(value);
+        d_selectionId = SELECTION_ID_REQUEST_VOTE_RESPONSE;
+    }
+
+    return d_requestVoteResponse.object();
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+RaftRequestVoteResponse&
+RaftMessageChoice::makeRequestVoteResponse(RaftRequestVoteResponse&& value)
+{
+    if (SELECTION_ID_REQUEST_VOTE_RESPONSE == d_selectionId) {
+        d_requestVoteResponse.object() = bsl::move(value);
+    }
+    else {
+        reset();
+        new (d_requestVoteResponse.buffer())
+            RaftRequestVoteResponse(bsl::move(value));
+        d_selectionId = SELECTION_ID_REQUEST_VOTE_RESPONSE;
+    }
+
+    return d_requestVoteResponse.object();
+}
+#endif
+
+RaftAppendEntriesResponse& RaftMessageChoice::makeAppendEntriesResponse()
+{
+    if (SELECTION_ID_APPEND_ENTRIES_RESPONSE == d_selectionId) {
+        bdlat_ValueTypeFunctions::reset(&d_appendEntriesResponse.object());
+    }
+    else {
+        reset();
+        new (d_appendEntriesResponse.buffer()) RaftAppendEntriesResponse();
+        d_selectionId = SELECTION_ID_APPEND_ENTRIES_RESPONSE;
+    }
+
+    return d_appendEntriesResponse.object();
+}
+
+RaftAppendEntriesResponse& RaftMessageChoice::makeAppendEntriesResponse(
+    const RaftAppendEntriesResponse& value)
+{
+    if (SELECTION_ID_APPEND_ENTRIES_RESPONSE == d_selectionId) {
+        d_appendEntriesResponse.object() = value;
+    }
+    else {
+        reset();
+        new (d_appendEntriesResponse.buffer())
+            RaftAppendEntriesResponse(value);
+        d_selectionId = SELECTION_ID_APPEND_ENTRIES_RESPONSE;
+    }
+
+    return d_appendEntriesResponse.object();
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+RaftAppendEntriesResponse&
+RaftMessageChoice::makeAppendEntriesResponse(RaftAppendEntriesResponse&& value)
+{
+    if (SELECTION_ID_APPEND_ENTRIES_RESPONSE == d_selectionId) {
+        d_appendEntriesResponse.object() = bsl::move(value);
+    }
+    else {
+        reset();
+        new (d_appendEntriesResponse.buffer())
+            RaftAppendEntriesResponse(bsl::move(value));
+        d_selectionId = SELECTION_ID_APPEND_ENTRIES_RESPONSE;
+    }
+
+    return d_appendEntriesResponse.object();
+}
+#endif
+
+RaftInstallSnapshot& RaftMessageChoice::makeInstallSnapshot()
+{
+    if (SELECTION_ID_INSTALL_SNAPSHOT == d_selectionId) {
+        bdlat_ValueTypeFunctions::reset(&d_installSnapshot.object());
+    }
+    else {
+        reset();
+        new (d_installSnapshot.buffer()) RaftInstallSnapshot();
+        d_selectionId = SELECTION_ID_INSTALL_SNAPSHOT;
+    }
+
+    return d_installSnapshot.object();
+}
+
+RaftInstallSnapshot&
+RaftMessageChoice::makeInstallSnapshot(const RaftInstallSnapshot& value)
+{
+    if (SELECTION_ID_INSTALL_SNAPSHOT == d_selectionId) {
+        d_installSnapshot.object() = value;
+    }
+    else {
+        reset();
+        new (d_installSnapshot.buffer()) RaftInstallSnapshot(value);
+        d_selectionId = SELECTION_ID_INSTALL_SNAPSHOT;
+    }
+
+    return d_installSnapshot.object();
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+RaftInstallSnapshot&
+RaftMessageChoice::makeInstallSnapshot(RaftInstallSnapshot&& value)
+{
+    if (SELECTION_ID_INSTALL_SNAPSHOT == d_selectionId) {
+        d_installSnapshot.object() = bsl::move(value);
+    }
+    else {
+        reset();
+        new (d_installSnapshot.buffer()) RaftInstallSnapshot(bsl::move(value));
+        d_selectionId = SELECTION_ID_INSTALL_SNAPSHOT;
+    }
+
+    return d_installSnapshot.object();
+}
+#endif
+
+RaftInstallSnapshotResponse& RaftMessageChoice::makeInstallSnapshotResponse()
+{
+    if (SELECTION_ID_INSTALL_SNAPSHOT_RESPONSE == d_selectionId) {
+        bdlat_ValueTypeFunctions::reset(&d_installSnapshotResponse.object());
+    }
+    else {
+        reset();
+        new (d_installSnapshotResponse.buffer()) RaftInstallSnapshotResponse();
+        d_selectionId = SELECTION_ID_INSTALL_SNAPSHOT_RESPONSE;
+    }
+
+    return d_installSnapshotResponse.object();
+}
+
+RaftInstallSnapshotResponse& RaftMessageChoice::makeInstallSnapshotResponse(
+    const RaftInstallSnapshotResponse& value)
+{
+    if (SELECTION_ID_INSTALL_SNAPSHOT_RESPONSE == d_selectionId) {
+        d_installSnapshotResponse.object() = value;
+    }
+    else {
+        reset();
+        new (d_installSnapshotResponse.buffer())
+            RaftInstallSnapshotResponse(value);
+        d_selectionId = SELECTION_ID_INSTALL_SNAPSHOT_RESPONSE;
+    }
+
+    return d_installSnapshotResponse.object();
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+RaftInstallSnapshotResponse& RaftMessageChoice::makeInstallSnapshotResponse(
+    RaftInstallSnapshotResponse&& value)
+{
+    if (SELECTION_ID_INSTALL_SNAPSHOT_RESPONSE == d_selectionId) {
+        d_installSnapshotResponse.object() = bsl::move(value);
+    }
+    else {
+        reset();
+        new (d_installSnapshotResponse.buffer())
+            RaftInstallSnapshotResponse(bsl::move(value));
+        d_selectionId = SELECTION_ID_INSTALL_SNAPSHOT_RESPONSE;
+    }
+
+    return d_installSnapshotResponse.object();
+}
+#endif
+
+RaftTimeoutNow& RaftMessageChoice::makeTimeoutNow()
+{
+    if (SELECTION_ID_TIMEOUT_NOW == d_selectionId) {
+        bdlat_ValueTypeFunctions::reset(&d_timeoutNow.object());
+    }
+    else {
+        reset();
+        new (d_timeoutNow.buffer()) RaftTimeoutNow();
+        d_selectionId = SELECTION_ID_TIMEOUT_NOW;
+    }
+
+    return d_timeoutNow.object();
+}
+
+RaftTimeoutNow& RaftMessageChoice::makeTimeoutNow(const RaftTimeoutNow& value)
+{
+    if (SELECTION_ID_TIMEOUT_NOW == d_selectionId) {
+        d_timeoutNow.object() = value;
+    }
+    else {
+        reset();
+        new (d_timeoutNow.buffer()) RaftTimeoutNow(value);
+        d_selectionId = SELECTION_ID_TIMEOUT_NOW;
+    }
+
+    return d_timeoutNow.object();
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+RaftTimeoutNow& RaftMessageChoice::makeTimeoutNow(RaftTimeoutNow&& value)
+{
+    if (SELECTION_ID_TIMEOUT_NOW == d_selectionId) {
+        d_timeoutNow.object() = bsl::move(value);
+    }
+    else {
+        reset();
+        new (d_timeoutNow.buffer()) RaftTimeoutNow(bsl::move(value));
+        d_selectionId = SELECTION_ID_TIMEOUT_NOW;
+    }
+
+    return d_timeoutNow.object();
+}
+#endif
+
+// ACCESSORS
+
+bsl::ostream& RaftMessageChoice::print(bsl::ostream& stream,
+                                       int           level,
+                                       int           spacesPerLevel) const
+{
+    bslim::Printer printer(&stream, level, spacesPerLevel);
+    printer.start();
+    switch (d_selectionId) {
+    case SELECTION_ID_REQUEST_VOTE: {
+        printer.printAttribute("requestVote", d_requestVote.object());
+    } break;
+    case SELECTION_ID_REQUEST_VOTE_RESPONSE: {
+        printer.printAttribute("requestVoteResponse",
+                               d_requestVoteResponse.object());
+    } break;
+    case SELECTION_ID_APPEND_ENTRIES_RESPONSE: {
+        printer.printAttribute("appendEntriesResponse",
+                               d_appendEntriesResponse.object());
+    } break;
+    case SELECTION_ID_INSTALL_SNAPSHOT: {
+        printer.printAttribute("installSnapshot", d_installSnapshot.object());
+    } break;
+    case SELECTION_ID_INSTALL_SNAPSHOT_RESPONSE: {
+        printer.printAttribute("installSnapshotResponse",
+                               d_installSnapshotResponse.object());
+    } break;
+    case SELECTION_ID_TIMEOUT_NOW: {
+        printer.printAttribute("timeoutNow", d_timeoutNow.object());
+    } break;
+    default: stream << "SELECTION UNDEFINED\n";
+    }
+    printer.end();
+    return stream;
+}
+
+const char* RaftMessageChoice::selectionName() const
+{
+    switch (d_selectionId) {
+    case SELECTION_ID_REQUEST_VOTE:
+        return SELECTION_INFO_ARRAY[SELECTION_INDEX_REQUEST_VOTE].name();
+    case SELECTION_ID_REQUEST_VOTE_RESPONSE:
+        return SELECTION_INFO_ARRAY[SELECTION_INDEX_REQUEST_VOTE_RESPONSE]
+            .name();
+    case SELECTION_ID_APPEND_ENTRIES_RESPONSE:
+        return SELECTION_INFO_ARRAY[SELECTION_INDEX_APPEND_ENTRIES_RESPONSE]
+            .name();
+    case SELECTION_ID_INSTALL_SNAPSHOT:
+        return SELECTION_INFO_ARRAY[SELECTION_INDEX_INSTALL_SNAPSHOT].name();
+    case SELECTION_ID_INSTALL_SNAPSHOT_RESPONSE:
+        return SELECTION_INFO_ARRAY[SELECTION_INDEX_INSTALL_SNAPSHOT_RESPONSE]
+            .name();
+    case SELECTION_ID_TIMEOUT_NOW:
+        return SELECTION_INFO_ARRAY[SELECTION_INDEX_TIMEOUT_NOW].name();
+    default:
+        BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
+        return "(* UNDEFINED *)";
+    }
 }
 
 // -------------------------
@@ -7266,7 +8420,7 @@ const bdlat_AttributeInfo Status::ATTRIBUTE_INFO_ARRAY[] = {
      "message",
      sizeof("message") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE}};
+     bdlat_FormattingMode::e_TEXT}};
 
 // CLASS METHODS
 
@@ -7732,7 +8886,7 @@ const bdlat_AttributeInfo BrokerResponse::ATTRIBUTE_INFO_ARRAY[] = {
      "isDeprecatedSdk",
      sizeof("isDeprecatedSdk") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_TEXT},
     {ATTRIBUTE_ID_BROKER_IDENTITY,
      "brokerIdentity",
      sizeof("brokerIdentity") - 1,
@@ -7742,12 +8896,12 @@ const bdlat_AttributeInfo BrokerResponse::ATTRIBUTE_INFO_ARRAY[] = {
      "heartbeatIntervalMs",
      sizeof("heartbeatIntervalMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_DEC},
     {ATTRIBUTE_ID_MAX_MISSED_HEARTBEATS,
      "maxMissedHeartbeats",
      sizeof("maxMissedHeartbeats") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
+     bdlat_FormattingMode::e_DEC}};
 
 // CLASS METHODS
 
@@ -7928,7 +9082,7 @@ const bdlat_AttributeInfo CloseQueue::ATTRIBUTE_INFO_ARRAY[] = {
      "isFinal",
      sizeof("isFinal") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE}};
+     bdlat_FormattingMode::e_TEXT}};
 
 // CLASS METHODS
 
@@ -9997,6 +11151,123 @@ bsl::ostream& QueueUpdateAdvisory::print(bsl::ostream& stream,
     return stream;
 }
 
+// -----------------
+// class RaftMessage
+// -----------------
+
+// CONSTANTS
+
+const char RaftMessage::CLASS_NAME[] = "RaftMessage";
+
+const bdlat_AttributeInfo RaftMessage::ATTRIBUTE_INFO_ARRAY[] = {
+    {ATTRIBUTE_ID_TERM,
+     "term",
+     sizeof("term") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC},
+    {ATTRIBUTE_ID_PARTITION_ID,
+     "partitionId",
+     sizeof("partitionId") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC},
+    {ATTRIBUTE_ID_CHOICE,
+     "Choice",
+     sizeof("Choice") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT | bdlat_FormattingMode::e_UNTAGGED}};
+
+// CLASS METHODS
+
+const bdlat_AttributeInfo* RaftMessage::lookupAttributeInfo(const char* name,
+                                                            int nameLength)
+{
+    if (bdlb::String::areEqualCaseless("requestVote", name, nameLength)) {
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CHOICE];
+    }
+
+    if (bdlb::String::areEqualCaseless("requestVoteResponse",
+                                       name,
+                                       nameLength)) {
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CHOICE];
+    }
+
+    if (bdlb::String::areEqualCaseless("appendEntriesResponse",
+                                       name,
+                                       nameLength)) {
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CHOICE];
+    }
+
+    if (bdlb::String::areEqualCaseless("installSnapshot", name, nameLength)) {
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CHOICE];
+    }
+
+    if (bdlb::String::areEqualCaseless("installSnapshotResponse",
+                                       name,
+                                       nameLength)) {
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CHOICE];
+    }
+
+    if (bdlb::String::areEqualCaseless("timeoutNow", name, nameLength)) {
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CHOICE];
+    }
+
+    for (int i = 0; i < 3; ++i) {
+        const bdlat_AttributeInfo& attributeInfo =
+            RaftMessage::ATTRIBUTE_INFO_ARRAY[i];
+
+        if (nameLength == attributeInfo.d_nameLength &&
+            0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength)) {
+            return &attributeInfo;
+        }
+    }
+
+    return 0;
+}
+
+const bdlat_AttributeInfo* RaftMessage::lookupAttributeInfo(int id)
+{
+    switch (id) {
+    case ATTRIBUTE_ID_TERM: return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_TERM];
+    case ATTRIBUTE_ID_PARTITION_ID:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID];
+    case ATTRIBUTE_ID_CHOICE:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CHOICE];
+    default: return 0;
+    }
+}
+
+// CREATORS
+
+RaftMessage::RaftMessage()
+: d_term()
+, d_choice()
+, d_partitionId()
+{
+}
+
+// MANIPULATORS
+
+void RaftMessage::reset()
+{
+    bdlat_ValueTypeFunctions::reset(&d_term);
+    bdlat_ValueTypeFunctions::reset(&d_partitionId);
+    bdlat_ValueTypeFunctions::reset(&d_choice);
+}
+
+// ACCESSORS
+
+bsl::ostream&
+RaftMessage::print(bsl::ostream& stream, int level, int spacesPerLevel) const
+{
+    bslim::Printer printer(&stream, level, spacesPerLevel);
+    printer.start();
+    printer.printAttribute("term", this->term());
+    printer.printAttribute("partitionId", this->partitionId());
+    printer.printAttribute("choice", this->choice());
+    printer.end();
+    return stream;
+}
+
 // -----------------------
 // class StateNotification
 // -----------------------
@@ -11453,7 +12724,7 @@ const bdlat_AttributeInfo OpenQueueResponse::ATTRIBUTE_INFO_ARRAY[] = {
      "deduplicationTimeMs",
      sizeof("deduplicationTimeMs") - 1,
      "",
-     bdlat_FormattingMode::e_DEC | bdlat_FormattingMode::e_DEFAULT_VALUE}};
+     bdlat_FormattingMode::e_DEC}};
 
 // CLASS METHODS
 
@@ -11695,7 +12966,7 @@ const bdlat_AttributeInfo StreamParameters::ATTRIBUTE_INFO_ARRAY[] = {
      "appId",
      sizeof("appId") - 1,
      "",
-     bdlat_FormattingMode::e_TEXT | bdlat_FormattingMode::e_DEFAULT_VALUE},
+     bdlat_FormattingMode::e_TEXT},
     {ATTRIBUTE_ID_SUBSCRIPTIONS,
      "subscriptions",
      sizeof("subscriptions") - 1,
@@ -16163,6 +17434,16 @@ const bdlat_SelectionInfo ControlMessageChoice::SELECTION_INFO_ARRAY[] = {
      "configureStreamResponse",
      sizeof("configureStreamResponse") - 1,
      "",
+     bdlat_FormattingMode::e_DEFAULT},
+    {SELECTION_ID_RAFT_MESSAGE,
+     "raftMessage",
+     sizeof("raftMessage") - 1,
+     "",
+     bdlat_FormattingMode::e_DEFAULT},
+    {SELECTION_ID_PARTITION_ELECTION_RESULT,
+     "partitionElectionResult",
+     sizeof("partitionElectionResult") - 1,
+     "",
      bdlat_FormattingMode::e_DEFAULT}};
 
 // CLASS METHODS
@@ -16170,7 +17451,7 @@ const bdlat_SelectionInfo ControlMessageChoice::SELECTION_INFO_ARRAY[] = {
 const bdlat_SelectionInfo*
 ControlMessageChoice::lookupSelectionInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 14; ++i) {
+    for (int i = 0; i < 16; ++i) {
         const bdlat_SelectionInfo& selectionInfo =
             ControlMessageChoice::SELECTION_INFO_ARRAY[i];
 
@@ -16216,6 +17497,11 @@ const bdlat_SelectionInfo* ControlMessageChoice::lookupSelectionInfo(int id)
     case SELECTION_ID_CONFIGURE_STREAM_RESPONSE:
         return &SELECTION_INFO_ARRAY
             [SELECTION_INDEX_CONFIGURE_STREAM_RESPONSE];
+    case SELECTION_ID_RAFT_MESSAGE:
+        return &SELECTION_INFO_ARRAY[SELECTION_INDEX_RAFT_MESSAGE];
+    case SELECTION_ID_PARTITION_ELECTION_RESULT:
+        return &SELECTION_INFO_ARRAY
+            [SELECTION_INDEX_PARTITION_ELECTION_RESULT];
     default: return 0;
     }
 }
@@ -16290,6 +17576,14 @@ ControlMessageChoice::ControlMessageChoice(
         new (d_configureStreamResponse.buffer()) ConfigureStreamResponse(
             original.d_configureStreamResponse.object(),
             d_allocator_p);
+    } break;
+    case SELECTION_ID_RAFT_MESSAGE: {
+        new (d_raftMessage.buffer())
+            RaftMessage(original.d_raftMessage.object());
+    } break;
+    case SELECTION_ID_PARTITION_ELECTION_RESULT: {
+        new (d_partitionElectionResult.buffer()) PartitionElectionResult(
+            original.d_partitionElectionResult.object());
     } break;
     default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
     }
@@ -16368,6 +17662,14 @@ ControlMessageChoice::ControlMessageChoice(ControlMessageChoice&& original)
             bsl::move(original.d_configureStreamResponse.object()),
             d_allocator_p);
     } break;
+    case SELECTION_ID_RAFT_MESSAGE: {
+        new (d_raftMessage.buffer())
+            RaftMessage(bsl::move(original.d_raftMessage.object()));
+    } break;
+    case SELECTION_ID_PARTITION_ELECTION_RESULT: {
+        new (d_partitionElectionResult.buffer()) PartitionElectionResult(
+            bsl::move(original.d_partitionElectionResult.object()));
+    } break;
     default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
     }
 }
@@ -16444,6 +17746,14 @@ ControlMessageChoice::ControlMessageChoice(ControlMessageChoice&& original,
             bsl::move(original.d_configureStreamResponse.object()),
             d_allocator_p);
     } break;
+    case SELECTION_ID_RAFT_MESSAGE: {
+        new (d_raftMessage.buffer())
+            RaftMessage(bsl::move(original.d_raftMessage.object()));
+    } break;
+    case SELECTION_ID_PARTITION_ELECTION_RESULT: {
+        new (d_partitionElectionResult.buffer()) PartitionElectionResult(
+            bsl::move(original.d_partitionElectionResult.object()));
+    } break;
     default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
     }
 }
@@ -16499,6 +17809,13 @@ ControlMessageChoice::operator=(const ControlMessageChoice& rhs)
         case SELECTION_ID_CONFIGURE_STREAM_RESPONSE: {
             makeConfigureStreamResponse(
                 rhs.d_configureStreamResponse.object());
+        } break;
+        case SELECTION_ID_RAFT_MESSAGE: {
+            makeRaftMessage(rhs.d_raftMessage.object());
+        } break;
+        case SELECTION_ID_PARTITION_ELECTION_RESULT: {
+            makePartitionElectionResult(
+                rhs.d_partitionElectionResult.object());
         } break;
         default:
             BSLS_ASSERT(SELECTION_ID_UNDEFINED == rhs.d_selectionId);
@@ -16564,6 +17881,13 @@ ControlMessageChoice::operator=(ControlMessageChoice&& rhs)
             makeConfigureStreamResponse(
                 bsl::move(rhs.d_configureStreamResponse.object()));
         } break;
+        case SELECTION_ID_RAFT_MESSAGE: {
+            makeRaftMessage(bsl::move(rhs.d_raftMessage.object()));
+        } break;
+        case SELECTION_ID_PARTITION_ELECTION_RESULT: {
+            makePartitionElectionResult(
+                bsl::move(rhs.d_partitionElectionResult.object()));
+        } break;
         default:
             BSLS_ASSERT(SELECTION_ID_UNDEFINED == rhs.d_selectionId);
             reset();
@@ -16620,6 +17944,12 @@ void ControlMessageChoice::reset()
     case SELECTION_ID_CONFIGURE_STREAM_RESPONSE: {
         d_configureStreamResponse.object().~ConfigureStreamResponse();
     } break;
+    case SELECTION_ID_RAFT_MESSAGE: {
+        d_raftMessage.object().~RaftMessage();
+    } break;
+    case SELECTION_ID_PARTITION_ELECTION_RESULT: {
+        d_partitionElectionResult.object().~PartitionElectionResult();
+    } break;
     default: BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
     }
 
@@ -16670,6 +18000,12 @@ int ControlMessageChoice::makeSelection(int selectionId)
     } break;
     case SELECTION_ID_CONFIGURE_STREAM_RESPONSE: {
         makeConfigureStreamResponse();
+    } break;
+    case SELECTION_ID_RAFT_MESSAGE: {
+        makeRaftMessage();
+    } break;
+    case SELECTION_ID_PARTITION_ELECTION_RESULT: {
+        makePartitionElectionResult();
     } break;
     case SELECTION_ID_UNDEFINED: {
         reset();
@@ -17362,6 +18698,100 @@ ConfigureStreamResponse& ControlMessageChoice::makeConfigureStreamResponse(
 }
 #endif
 
+RaftMessage& ControlMessageChoice::makeRaftMessage()
+{
+    if (SELECTION_ID_RAFT_MESSAGE == d_selectionId) {
+        bdlat_ValueTypeFunctions::reset(&d_raftMessage.object());
+    }
+    else {
+        reset();
+        new (d_raftMessage.buffer()) RaftMessage();
+        d_selectionId = SELECTION_ID_RAFT_MESSAGE;
+    }
+
+    return d_raftMessage.object();
+}
+
+RaftMessage& ControlMessageChoice::makeRaftMessage(const RaftMessage& value)
+{
+    if (SELECTION_ID_RAFT_MESSAGE == d_selectionId) {
+        d_raftMessage.object() = value;
+    }
+    else {
+        reset();
+        new (d_raftMessage.buffer()) RaftMessage(value);
+        d_selectionId = SELECTION_ID_RAFT_MESSAGE;
+    }
+
+    return d_raftMessage.object();
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+RaftMessage& ControlMessageChoice::makeRaftMessage(RaftMessage&& value)
+{
+    if (SELECTION_ID_RAFT_MESSAGE == d_selectionId) {
+        d_raftMessage.object() = bsl::move(value);
+    }
+    else {
+        reset();
+        new (d_raftMessage.buffer()) RaftMessage(bsl::move(value));
+        d_selectionId = SELECTION_ID_RAFT_MESSAGE;
+    }
+
+    return d_raftMessage.object();
+}
+#endif
+
+PartitionElectionResult& ControlMessageChoice::makePartitionElectionResult()
+{
+    if (SELECTION_ID_PARTITION_ELECTION_RESULT == d_selectionId) {
+        bdlat_ValueTypeFunctions::reset(&d_partitionElectionResult.object());
+    }
+    else {
+        reset();
+        new (d_partitionElectionResult.buffer()) PartitionElectionResult();
+        d_selectionId = SELECTION_ID_PARTITION_ELECTION_RESULT;
+    }
+
+    return d_partitionElectionResult.object();
+}
+
+PartitionElectionResult& ControlMessageChoice::makePartitionElectionResult(
+    const PartitionElectionResult& value)
+{
+    if (SELECTION_ID_PARTITION_ELECTION_RESULT == d_selectionId) {
+        d_partitionElectionResult.object() = value;
+    }
+    else {
+        reset();
+        new (d_partitionElectionResult.buffer())
+            PartitionElectionResult(value);
+        d_selectionId = SELECTION_ID_PARTITION_ELECTION_RESULT;
+    }
+
+    return d_partitionElectionResult.object();
+}
+
+#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
+    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
+PartitionElectionResult& ControlMessageChoice::makePartitionElectionResult(
+    PartitionElectionResult&& value)
+{
+    if (SELECTION_ID_PARTITION_ELECTION_RESULT == d_selectionId) {
+        d_partitionElectionResult.object() = bsl::move(value);
+    }
+    else {
+        reset();
+        new (d_partitionElectionResult.buffer())
+            PartitionElectionResult(bsl::move(value));
+        d_selectionId = SELECTION_ID_PARTITION_ELECTION_RESULT;
+    }
+
+    return d_partitionElectionResult.object();
+}
+#endif
+
 // ACCESSORS
 
 bsl::ostream& ControlMessageChoice::print(bsl::ostream& stream,
@@ -17420,6 +18850,13 @@ bsl::ostream& ControlMessageChoice::print(bsl::ostream& stream,
         printer.printAttribute("configureStreamResponse",
                                d_configureStreamResponse.object());
     } break;
+    case SELECTION_ID_RAFT_MESSAGE: {
+        printer.printAttribute("raftMessage", d_raftMessage.object());
+    } break;
+    case SELECTION_ID_PARTITION_ELECTION_RESULT: {
+        printer.printAttribute("partitionElectionResult",
+                               d_partitionElectionResult.object());
+    } break;
     default: stream << "SELECTION UNDEFINED\n";
     }
     printer.end();
@@ -17464,6 +18901,11 @@ const char* ControlMessageChoice::selectionName() const
         return SELECTION_INFO_ARRAY[SELECTION_INDEX_CONFIGURE_STREAM].name();
     case SELECTION_ID_CONFIGURE_STREAM_RESPONSE:
         return SELECTION_INFO_ARRAY[SELECTION_INDEX_CONFIGURE_STREAM_RESPONSE]
+            .name();
+    case SELECTION_ID_RAFT_MESSAGE:
+        return SELECTION_INFO_ARRAY[SELECTION_INDEX_RAFT_MESSAGE].name();
+    case SELECTION_ID_PARTITION_ELECTION_RESULT:
+        return SELECTION_INFO_ARRAY[SELECTION_INDEX_PARTITION_ELECTION_RESULT]
             .name();
     default:
         BSLS_ASSERT(SELECTION_ID_UNDEFINED == d_selectionId);
@@ -17561,6 +19003,16 @@ ControlMessage::lookupAttributeInfo(const char* name, int nameLength)
     }
 
     if (bdlb::String::areEqualCaseless("configureStreamResponse",
+                                       name,
+                                       nameLength)) {
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CHOICE];
+    }
+
+    if (bdlb::String::areEqualCaseless("raftMessage", name, nameLength)) {
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CHOICE];
+    }
+
+    if (bdlb::String::areEqualCaseless("partitionElectionResult",
                                        name,
                                        nameLength)) {
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CHOICE];
@@ -17672,6 +19124,13 @@ bsl::ostream& ControlMessage::print(bsl::ostream& stream,
 }  // close package namespace
 }  // close enterprise namespace
 
-// GENERATED BY BLP_BAS_CODEGEN_9999.99.99
+// GENERATED BY @BLP_BAS_CODEGEN_VERSION@
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package bmqp_ctrlmsg --msgComponent messages bmqp_ctrlmsg.xsd
+// ----------------------------------------------------------------------------
+// NOTICE:
+//      Copyright 2026 Bloomberg Finance L.P. All rights reserved.
+//      Property of Bloomberg Finance L.P. (BFLP)
+//      This software is made available solely pursuant to the
+//      terms of a BFLP license agreement which governs its use.
+// ------------------------------- END-OF-FILE --------------------------------

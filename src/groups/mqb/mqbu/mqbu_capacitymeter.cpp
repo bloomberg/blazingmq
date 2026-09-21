@@ -260,12 +260,12 @@ void CapacityMeter::commit(bsls::Types::Int64 messages,
 
     // PRECONDITIONS: Since resources must always be reserved prior to being
     //                committed, we should never be requested to put more than
-    //                has been reserved or more than the configured capacity.
+    //                has been reserved.  The capacity itself is not asserted:
+    //                'tryReserve' does not count the requested amounts in its
+    //                check, so it admits a reservation that takes the usage
+    //                one message past the limit.
     BSLS_ASSERT_SAFE(d_nbMessagesReserved >= messages);
     BSLS_ASSERT_SAFE(d_nbBytesReserved >= bytes);
-    BSLS_ASSERT_SAFE(d_monitor.messages() + messages <=
-                     d_monitor.messageCapacity());
-    BSLS_ASSERT_SAFE(d_monitor.bytes() + bytes <= d_monitor.byteCapacity());
 
     {
         bsls::SpinLockGuard guard(&d_lock);  // d_lock LOCK
@@ -288,6 +288,52 @@ void CapacityMeter::commit(bsls::Types::Int64 messages,
     if (d_parent_p) {
         d_parent_p->commit(messages, bytes);
     }
+}
+
+CapacityMeter::CommitResult
+CapacityMeter::tryReserve(bsls::Types::Int64 messages,
+                          bsls::Types::Int64 bytes)
+{
+    if (d_isDisabled) {
+        return e_SUCCESS;  // RETURN
+    }
+
+    {
+        bsls::SpinLockGuard guard(&d_lock);  // d_lock LOCK
+
+        // Same rule as 'commitUnreserved': the requested amounts are not
+        // counted here, so the capacity may be exceeded exactly once.
+        const bool hasMessagesCapacity = d_monitor.messages() +
+                                             d_nbMessagesReserved <=
+                                         d_monitor.messageCapacity();
+        const bool hasBytesCapacity = d_monitor.bytes() + d_nbBytesReserved <=
+                                      d_monitor.byteCapacity();
+
+        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!hasMessagesCapacity ||
+                                                  !hasBytesCapacity)) {
+            BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+            return !hasMessagesCapacity ? e_LIMIT_MESSAGES
+                                        : e_LIMIT_BYTES;  // RETURN
+        }
+    }  // close lock guard scope
+
+    // Self has enough capacity; claim it on the parent too, so a sibling sees
+    // the resource as taken while this one is in flight.
+    if (d_parent_p) {
+        const CommitResult res = d_parent_p->tryReserve(messages, bytes);
+        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(res != e_SUCCESS)) {
+            BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+            return res;  // RETURN
+        }
+    }
+
+    {
+        bsls::SpinLockGuard guard(&d_lock);  // d_lock LOCK
+        d_nbMessagesReserved += messages;
+        d_nbBytesReserved += bytes;
+    }  // close lock guard scope
+
+    return e_SUCCESS;
 }
 
 CapacityMeter::CommitResult

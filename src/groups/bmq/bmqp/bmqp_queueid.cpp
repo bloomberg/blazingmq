@@ -45,7 +45,6 @@ namespace bmqp {
 // -------------
 
 const unsigned int QueueId::k_RESERVED_QUEUE_ID;
-const unsigned int QueueId::k_PRIMARY_QUEUE_ID;
 const unsigned int QueueId::k_UNASSIGNED_QUEUE_ID;
 
 /// Force variable/symbol definition so that it can be used in other files
@@ -80,9 +79,6 @@ bsl::ostream& operator<<(bsl::ostream&                    stream,
     switch (static_cast<unsigned int>(rhs.d_value)) {
     case bmqp::QueueId::k_RESERVED_QUEUE_ID: {
         stream << "RESERVED";
-    } break;
-    case bmqp::QueueId::k_PRIMARY_QUEUE_ID: {
-        stream << "PRIMARY";
     } break;
     case bmqp::QueueId::k_UNASSIGNED_QUEUE_ID: {
         stream << "UNASSIGNED";

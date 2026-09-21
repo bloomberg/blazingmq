@@ -56,8 +56,9 @@ int ControlMessageUtil::validate(
         rc_INVALID_CHOICE_SELECTION = -2
     };
 
-    if (controlMessage.choice().isClusterMessageValue()) {
-        // ClusterMessages are permitted to not have an id
+    if (controlMessage.choice().isClusterMessageValue() ||
+        controlMessage.choice().isRaftMessageValue()) {
+        // ClusterMessages and RaftMessages are permitted to not have an id
         return rc_SUCCESS;  // RETURN
     }
 
