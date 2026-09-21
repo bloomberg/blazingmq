@@ -84,9 +84,8 @@ class QueueEngine : public mqbi::QueueEngine {
 
     /// Configure this instance.  The specified `isReconfigure` flag indicate
     /// if queue is being reconfigured. Return zero on success, non-zero value
-    /// otherwise and populate the specified `errorDescription`.
-    int configure(bsl::ostream& errorDescription,
-                  bool          isReconfigure) BSLS_KEYWORD_OVERRIDE;
+    /// otherwise.
+    int configure(bool isReconfigure) BSLS_KEYWORD_OVERRIDE;
 
     /// Prepare this engine for destruction by cancelling any scheduled
     /// events.
@@ -96,6 +95,8 @@ class QueueEngine : public mqbi::QueueEngine {
     /// 'keepConfirming' is 'true', keep the data structures for CONFIRMs
     /// processing.
     void resetState(bool keepConfirming = false) BSLS_KEYWORD_OVERRIDE;
+
+    void resetStorage() BSLS_KEYWORD_OVERRIDE;
 
     /// Rebuild the internal state of this engine.  This method is invoked
     /// when the queue this engine is associated with is created from an

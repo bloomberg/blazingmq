@@ -19,10 +19,17 @@
 //@PURPOSE: Provide an interface for mechanism to manage the cluster state.
 //
 //@CLASSES:
+//  mqbi::ClusterStateUpdater:  Minimal interface for publishing queue state
 //  mqbi::ClusterStateManager: Interface for mechanism to manage cluster state
 //
-//@DESCRIPTION: 'mqbi::ClusterStateManager' is an interface for mechanism to
-// manage the state of a cluster.
+//@DESCRIPTION: 'mqbi::ClusterStateUpdater' is the minimal interface used by
+// 'ClusterQueueHelper' to publish queue assignment, unassignment and app-id
+// changes to the cluster.  Both the legacy 'ClusterStateManager' and the
+// Raft-based 'ClusterStateRaft' implement this interface.
+//
+// 'mqbi::ClusterStateManager' inherits from 'ClusterStateUpdater' and extends
+// it with healing, synchronization, and advisory processing methods that are
+// only needed in legacy/FSM mode.
 //
 /// Thread Safety
 ///-------------
@@ -68,22 +75,53 @@ namespace mqbi {
 class Domain;
 class StorageManager;
 
+// ==========================
+// class ClusterStateUpdater
+// ==========================
+
+/// Minimal interface for publishing queue state changes to the cluster.
+/// Used by 'ClusterQueueHelper'; implemented by both legacy
+/// 'ClusterStateManager' and Raft-based 'ClusterStateRaft'.
+class ClusterStateUpdater {
+  public:
+    // CREATORS
+    virtual ~ClusterStateUpdater();
+
+    // MANIPULATORS
+
+    /// Assign a queue key, partition, and appIds to the queue with the
+    /// specified `uri`, applying the corresponding advisory.  Return false
+    /// on permanent failure, true on success or retriable failure.
+    virtual bool assignQueue(const bmqt::Uri&      uri,
+                             bmqp_ctrlmsg::Status* status) = 0;
+
+    /// Unassign the queue in the specified `advisory`.
+    virtual void
+    unassignQueue(const bmqp_ctrlmsg::QueueUnAssignmentAdvisory& advisory) = 0;
+
+    /// Register/unregister the specified `added`/`removed` appIds for
+    /// the specified `domainName` and `uri`.  Return 0 on success.
+    virtual mqbi::ClusterErrorCode::Enum
+    updateAppIds(const bsl::vector<bsl::string>& added,
+                 const bsl::vector<bsl::string>& removed,
+                 const bsl::string&              domainName,
+                 const bsl::string&              uri) = 0;
+};
+
 // =========================
 // class ClusterStateManager
 // =========================
 
 /// This class provides an interface for mechanism to manage the cluster
 /// state.
-class ClusterStateManager {
+class ClusterStateManager : public ClusterStateUpdater {
   public:
     // TYPES
 
     /// Signature of a callback invoked after the specified `partitionId`
     /// gets assigned to the specified `primary` with the specified `status`.
-    /// Note that null is a valid value for the `primary`, and it implies
-    /// that there is no primary for that partition.  Also note that this
-    /// method will be invoked when the `primary` or the `status` or both
-    /// change.
+    /// This callback is specific to legacy ClusterStateManager; Raft-based
+    /// ClusterStateRaft does not support or require this callback.
     typedef bsl::function<void(int                                partitionId,
                                mqbnet::ClusterNode*               primary,
                                bmqp_ctrlmsg::PrimaryStatus::Value status)>
@@ -99,7 +137,7 @@ class ClusterStateManager {
 
     /// Destroy this instance.  Behavior is undefined unless this instance
     /// is stopped.
-    virtual ~ClusterStateManager();
+    ~ClusterStateManager() BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
 
@@ -164,19 +202,6 @@ class ClusterStateManager {
     virtual void assignPartitions(
         bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>* partitions) = 0;
 
-    /// Perform the actual assignment of the queue represented by the
-    /// specified `uri` for a cluster member queue, that is assign it a
-    /// queue key, a partition id, and some appIds; and applying the
-    /// corresponding queue assignment advisory to CSL.  Return `false` in the
-    /// case of permanent failure when need to reject the assignment.  Return
-    /// `true` if the assignment is successful or can be retried.
-    /// This method is called only on the leader node.
-    ///
-    /// THREAD: This method is invoked in the associated cluster's
-    ///         dispatcher thread.
-    virtual bool assignQueue(const bmqt::Uri&      uri,
-                             bmqp_ctrlmsg::Status* status) = 0;
-
     /// Register a queue info for the queue with the specified `advisory`.
     /// If the specified `forceUpdate` flag is true, update queue info even if
     /// it is valid but different from the specified `advisory`.
@@ -185,14 +210,6 @@ class ClusterStateManager {
     ///         dispatcher thread.
     virtual void registerQueueInfo(const bmqp_ctrlmsg::QueueInfo& advisory,
                                    bool forceUpdate) = 0;
-
-    /// Unassign the queue in the specified `advisory` by applying the
-    /// advisory to the cluster state ledger owned by this object.
-    ///
-    /// THREAD: This method is invoked in the associated cluster's
-    ///         dispatcher thread.
-    virtual void
-    unassignQueue(const bmqp_ctrlmsg::QueueUnAssignmentAdvisory& advisory) = 0;
 
     /// Send the current cluster state to follower nodes.  If the specified
     /// `sendPartitionPrimaryInfo` is true, the specified partition-primary
@@ -212,18 +229,6 @@ class ClusterStateManager {
         mqbnet::ClusterNode* node = 0,
         const bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>& partitions =
             bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>()) = 0;
-
-    /// Unregister the specified 'removed' and register the specified `added`
-    /// for the specified  `domainName` and optionally specified `uri`.
-    /// Return `0` on success.
-    ///
-    /// THREAD: This method is invoked in the associated cluster's
-    ///         dispatcher thread.
-    virtual mqbi::ClusterErrorCode::Enum
-    updateAppIds(const bsl::vector<bsl::string>& added,
-                 const bsl::vector<bsl::string>& removed,
-                 const bsl::string&              domainName,
-                 const bsl::string&              uri) = 0;
 
     /// Invoked when a newly elected (i.e. passive) leader node initiates a
     /// sync with followers before transitioning to active leader.

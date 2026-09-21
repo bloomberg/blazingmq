@@ -231,6 +231,18 @@ struct ClusterUtil {
                             bslma::Allocator*     allocator,
                             bmqp_ctrlmsg::Status* status = 0);
 
+    /// Same as above but load the resulting advisory into the specified
+    /// `clusterMessage` instead of applying to a ledger.  The caller is
+    /// responsible for proposing/applying it.
+    static bool
+    startQueueAssignment(bmqp_ctrlmsg::QueueAssignmentAdvisory* queueAdvisory,
+                         ClusterState*                          clusterState,
+                         ClusterData*                           clusterData,
+                         const mqbi::Cluster*                   cluster,
+                         const bmqt::Uri&                       uri,
+                         bmqp_ctrlmsg::Status*                  status,
+                         bslma::Allocator*                      allocator);
+
     /// Register a queue info for the queue with the values in the specified
     /// `advisory` to the specified `clusterState` of the specified `cluster`.
     /// If the specified `forceUpdate` flag is true, update queue info even if
@@ -261,6 +273,20 @@ struct ClusterUtil {
                  const bsl::string&              domainName,
                  const bsl::string&              uri,
                  bslma::Allocator*               allocator);
+
+    /// Build a QueueUpdateAdvisory for registering the specified `added`
+    /// and unregistering the specified `removed` appIds for the specified
+    /// `domainName` and `uri`.  Load the result into the specified
+    /// `queueAdvisory`.  Return e_OK on success.
+    static mqbi::ClusterErrorCode::Enum
+    startQueueUpdate(bmqp_ctrlmsg::QueueUpdateAdvisory* queueAdvisory,
+                     ClusterData*                       clusterData,
+                     ClusterState&                      clusterState,
+                     const bsl::vector<bsl::string>&    added,
+                     const bsl::vector<bsl::string>&    removed,
+                     const bsl::string&                 domainName,
+                     const bsl::string&                 uri,
+                     bslma::Allocator*                  allocator);
 
     /// Send the current cluster state to follower nodes.  If the specified
     /// `sendPartitionPrimaryInfo` is true, the partition-primary assignments
