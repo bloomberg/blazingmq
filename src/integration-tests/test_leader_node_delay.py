@@ -50,8 +50,11 @@ def test_leader_node_delay(
 
     leader.suspend()
 
+    # the elector reason code is legacy-only; Raft reports the loss as no leader
     for follower in followers:
-        assert follower.outputs_substr("new code: LEADER_NO_HEARTBEAT", 120)
+        assert follower.outputs_regex(
+            "new code: LEADER_NO_HEARTBEAT|no leader -> DORMANT/UNDEFINED", 120
+        )
 
     # 2. Resume leader, then verify each follower node recognizes the
     #    transition of the leader from passive to active:

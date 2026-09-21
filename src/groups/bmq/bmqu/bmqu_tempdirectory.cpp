@@ -34,7 +34,7 @@ namespace bmqu {
 TempDirectory::TempDirectory(bslma::Allocator* basicAllocator)
 : d_path(basicAllocator)
 {
-    const bsl::string prefix = bmqu::TempUtil::tempDir();
+    const bsl::string prefix = bmqu::TempUtil::tempDir(basicAllocator);
 
     int rc = bdls::FilesystemUtil::createTemporaryDirectory(&d_path, prefix);
     BSLS_ASSERT_OPT(rc == 0);

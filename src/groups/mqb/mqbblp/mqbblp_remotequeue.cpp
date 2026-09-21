@@ -157,8 +157,7 @@ int RemoteQueue::configureAsProxy(bsl::ostream& errorDescription,
             RelayQueueEngine(d_state_p, mqbconfm::Domain(), d_allocator_p),
         d_allocator_p);
 
-    const int rc = d_queueEngine_mp->configure(errorDescription,
-                                               isReconfigure);
+    const int rc = d_queueEngine_mp->configure(isReconfigure);
     if (rc != 0) {
         return 10 * rc + rc_QUEUE_ENGINE_CFG_FAILURE;  // RETURN
     }
@@ -259,17 +258,14 @@ int RemoteQueue::configureAsClusterMember(bool isReconfigure)
                                         domainCfg->maxDeliveryAttempts());
     }
 
-    bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
-    bmqu::MemOutStream                    errorDesc(&localAllocator);
-    rc = d_queueEngine_mp->configure(errorDesc, isReconfigure);
+    rc = d_queueEngine_mp->configure(isReconfigure);
     if (rc != 0) {
         BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
             << d_state_p->domain()->cluster()->name() << ": Partition ["
             << d_state_p->partitionId()
             << "]: failed to configure queue engine for remote queue ["
             << d_state_p->uri() << "], queueKey [" << d_state_p->key()
-            << "], rc: " << rc << ", reason [" << errorDesc.str() << "]."
-            << BMQTSK_ALARMLOG_END;
+            << "], rc: " << rc << "." << BMQTSK_ALARMLOG_END;
         return 10 * rc + rc_ENGINE_CONFIGURE_FAILURE;  // RETURN
     }
 
@@ -395,32 +391,10 @@ void RemoteQueue::pushMessage(
             // Insert into the ShortList
         }
 
-        // 'msgGUID' must be present in the storage.
-        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
-                storage->getMessageSize(&msgSize, msgGUID) !=
-                mqbi::StorageResult::e_SUCCESS)) {
-            BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-
-            // This can occur under 2 situations:
-            // 1) The message was deleted by the primary because of TTL
-            //    expiration, *after* that message guid was enqueued in
-            //    primary's cluster-dispatcher thread to be sent to this node
-            //    as PUSH message.  In other words, the guid was sitting in the
-            //    PUSH-event builder for this node in the primary, and the
-            //    builder was flushed after primary replicated message's
-            //    DELETION record due to TTL expiration.
-            // 2) This message was not replicated by primary to this node.
-
-            // (1) is a valid (but extremely rare) scenario and (2) is a bug.
-            // But we have no way to distinguish the two scenarios as of yet.
-            BALL_LOG_ERROR
-                << "#QUEUE_UNKNOWN_MESSAGE "
-                << "Replica remote queue: " << d_state_p->uri()
-                << " (id: " << d_state_p->id()
-                << ") received a PUSH message from primary for guid "
-                << msgGUID << ", which payload does not exist in the storage.";
-            return;  // RETURN
-        }
+        // 'msgGUID' may not be present in the storage as in the case when Raft
+        // still waits for commit.
+        // Keep msgSize as 0. The PUSH should get the size from the real
+        // storage, not the d_pushStream.
     }
 
     bmqp::Protocol::SubQueueInfosArray subQueueInfos;
@@ -483,7 +457,6 @@ RemoteQueue::RemoteQueue(QueueState*       state,
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_state_p);
     BSLS_ASSERT_SAFE(d_state_p->id() != bmqp::QueueId::k_UNASSIGNED_QUEUE_ID);
-    BSLS_ASSERT_SAFE(d_state_p->id() != bmqp::QueueId::k_PRIMARY_QUEUE_ID);
     // A RemoteQueue must have an upstream id
 
     d_throttledFailedPutMessages.initialize(
@@ -554,6 +527,46 @@ int RemoteQueue::configure(bsl::ostream& errorDescription, bool isReconfigure)
         // Will print an ALARM on failure
         return configureAsClusterMember(isReconfigure);  // RETURN
     }
+}
+
+int RemoteQueue::importState(bsl::ostream& errorDescription)
+{
+    // executed by the *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_state_p->queue()->inDispatcherThread());
+
+    const int rc = d_queueEngine_mp->rebuildInternalState(errorDescription);
+    if (rc != 0) {
+        return rc;  // RETURN
+    }
+
+    // This queue was serving its clients locally a moment ago and has no
+    // upstream yet.  A fresh context is 'e_NONE', which drops PUTs as
+    // improper client behavior, and 'onOpenUpstream' only moves a context to
+    // buffering from 'e_OPENED' -- a state this queue has never been in.  So
+    // put every subStream straight into 'e_STOPPED': buffer until the reopen
+    // against the new primary supplies a generation count.
+    d_producerState.d_state    = SubStreamContext::e_STOPPED;
+    d_producerState.d_genCount = 0;
+
+    bsl::vector<mqbi::QueueHandle*> handles(d_allocator_p);
+    d_state_p->handleCatalog().loadHandles(&handles);
+
+    for (size_t i = 0; i < handles.size(); ++i) {
+        for (mqbi::QueueHandle::SubStreams::const_iterator cit =
+                 handles[i]->subStreamInfos().begin();
+             cit != handles[i]->subStreamInfos().end();
+             ++cit) {
+            SubStreamContext& ctx = subStreamContext(
+                cit->second.d_upstreamSubQueueId);
+
+            ctx.d_state    = SubStreamContext::e_STOPPED;
+            ctx.d_genCount = 0;
+        }
+    }
+
+    return 0;
 }
 
 void RemoteQueue::resetState()

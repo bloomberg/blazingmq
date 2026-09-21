@@ -95,6 +95,32 @@ void applyPartitionPrimary(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(clusterState);
 
+    BALL_LOG_SET_CATEGORY(k_LOG_CATEGORY);
+
+    // In Raft mode the data-partition Raft is the sole authority for a
+    // partition's primary and leaseId (every node learns the primary via
+    // 'ClusterOrchestrator::onPartitionLeadership', driven by the data-
+    // partition Raft leader/term).  The only partition-primary entries that
+    // reach the CSL apply path in Raft mode are RECOVERED LEGACY
+    // 'leaderAdvisory'/'partitionPrimaryAdvisory' records -- production Raft
+    // never writes them -- carrying the pre-restart leaseId.  Replaying them
+    // would regress the primary/leaseId already re-established by the data-
+    // partition Raft in its new term and trip 'setPartitionPrimary's
+    // monotonicity assert.  Ignore partition-primary info entirely in Raft
+    // mode; any queue assignments carried in the same 'leaderAdvisory' are
+    // applied separately by the caller ('ClusterUtil::apply').
+    if (clusterData.cluster().isRaftEnabled()) {
+        if (!partitions.empty()) {
+            BALL_LOG_ERROR
+                << clusterData.identity().description()
+                << ": Raft mode - ignoring " << partitions.size()
+                << " recovered partition-primary entry(ies) from the "
+                << "CSL; the data-partition Raft owns "
+                << "primary/leaseId.";
+        }
+        return;  // RETURN
+    }
+
     for (int i = 0; i < static_cast<int>(partitions.size()); ++i) {
         const bmqp_ctrlmsg::PartitionPrimaryInfo& info = partitions[i];
 
@@ -850,13 +876,14 @@ void ClusterUtil::populateQueueUnAssignmentAdvisory(
                   << ": Populated QueueUnAssignmentAdvisory: " << *advisory;
 }
 
-bool ClusterUtil::assignQueue(ClusterState*         clusterState,
-                              ClusterData*          clusterData,
-                              ClusterStateLedger*   ledger,
-                              const mqbi::Cluster*  cluster,
-                              const bmqt::Uri&      uri,
-                              bslma::Allocator*     allocator,
-                              bmqp_ctrlmsg::Status* status)
+bool ClusterUtil::startQueueAssignment(
+    bmqp_ctrlmsg::QueueAssignmentAdvisory* queueAdvisory,
+    ClusterState*                          clusterState,
+    ClusterData*                           clusterData,
+    const mqbi::Cluster*                   cluster,
+    const bmqt::Uri&                       uri,
+    bmqp_ctrlmsg::Status*                  status,
+    bslma::Allocator*                      allocator)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -866,7 +893,6 @@ bool ClusterUtil::assignQueue(ClusterState*         clusterState,
     BSLS_ASSERT_SAFE(clusterState);
     BSLS_ASSERT_SAFE(clusterData);
     BSLS_ASSERT_SAFE(clusterData->electorInfo().isSelfActiveLeader());
-    BSLS_ASSERT_SAFE(ledger && ledger->isOpen());
     BSLS_ASSERT_SAFE(uri.isCanonical());
     BSLS_ASSERT_SAFE(allocator);
     BSLS_ASSERT_SAFE(status);
@@ -1038,18 +1064,10 @@ bool ClusterUtil::assignQueue(ClusterState*         clusterState,
                   << "]: Transition: " << previousState << " -> "
                   << ClusterStateQueueInfo::State::k_ASSIGNING << " for ["
                   << uri << "].";
-
     // Populate 'queueAssignmentAdvisory'
-    bdlma::LocalSequentialAllocator<1024>  localAllocator(allocator);
-    bmqp_ctrlmsg::ControlMessage           controlMsg(&localAllocator);
-    bmqp_ctrlmsg::QueueAssignmentAdvisory& queueAdvisory =
-        controlMsg.choice()
-            .makeClusterMessage()
-            .choice()
-            .makeQueueAssignmentAdvisory();
 
     mqbu::StorageKey key;
-    populateQueueAssignmentAdvisory(&queueAdvisory,
+    populateQueueAssignmentAdvisory(queueAdvisory,
                                     &key,
                                     clusterState,
                                     clusterData,
@@ -1061,28 +1079,81 @@ bool ClusterUtil::assignQueue(ClusterState*         clusterState,
 
     clusterState->queueKeys().erase(key);
 
-    // Apply 'queueAssignmentAdvisory' to CSL
-    BALL_LOG_INFO << clusterData->identity().description()
-                  << ": 'QueueAssignmentAdvisory' will be applied to "
-                  << " cluster state ledger: " << queueAdvisory;
+    return true;
+}
 
-    const int rc = ledger->apply(queueAdvisory);
+bool ClusterUtil::assignQueue(ClusterState*         clusterState,
+                              ClusterData*          clusterData,
+                              ClusterStateLedger*   ledger,
+                              const mqbi::Cluster*  cluster,
+                              const bmqt::Uri&      uri,
+                              bslma::Allocator*     allocator,
+                              bmqp_ctrlmsg::Status* status)
+{
+    // executed by the cluster *DISPATCHER* thread
 
-    if (rc == 0) {
-        return true;  // RETURN
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(cluster->inDispatcherThread());
+    BSLS_ASSERT_SAFE(!cluster->isRemote());
+    BSLS_ASSERT_SAFE(clusterState);
+    BSLS_ASSERT_SAFE(clusterData);
+    BSLS_ASSERT_SAFE(clusterData->electorInfo().isSelfActiveLeader());
+    BSLS_ASSERT_SAFE(ledger && ledger->isOpen());
+    BSLS_ASSERT_SAFE(uri.isCanonical());
+    BSLS_ASSERT_SAFE(allocator);
+    BSLS_ASSERT_SAFE(status);
+
+    bdlma::LocalSequentialAllocator<1024>  localAllocator(allocator);
+    bmqp_ctrlmsg::ControlMessage           controlMsg(&localAllocator);
+    bmqp_ctrlmsg::QueueAssignmentAdvisory& queueAdvisory =
+        controlMsg.choice()
+            .makeClusterMessage()
+            .choice()
+            .makeQueueAssignmentAdvisory();
+
+    bool result = startQueueAssignment(&queueAdvisory,
+                                       clusterState,
+                                       clusterData,
+                                       cluster,
+                                       uri,
+                                       status,
+                                       allocator);
+
+    // Only apply to the CSL if 'startQueueAssignment' actually produced an
+    // advisory.  When the queue is already ASSIGNING or ASSIGNED (e.g. a
+    // concurrent request for the same queue is already in flight or
+    // committed), 'startQueueAssignment' returns success without populating
+    // 'queueAdvisory'. Applying that empty advisory (LSN [ 0, 0 ]) would be
+    // rejected by the ledger as stale and surface to the requester as a
+    // spurious "CSL failure". The already-pending advisory will still commit
+    // and resolve all pending contexts for the queue, so replying success here
+    // is correct.
+    if (status->category() == bmqp_ctrlmsg::StatusCategory::E_SUCCESS &&
+        !queueAdvisory.queues().empty()) {
+        BSLS_ASSERT_SAFE(result);
+
+        // Apply 'queueAssignmentAdvisory' to CSL
+        BALL_LOG_INFO << clusterData->identity().description()
+                      << ": 'QueueAssignmentAdvisory' will be applied to "
+                      << " cluster state ledger: " << queueAdvisory;
+
+        const int rc = ledger->apply(queueAdvisory);
+
+        if (rc) {
+            BALL_LOG_ERROR << clusterData->identity().description()
+                           << ": Failed to apply queue assignment advisory: "
+                           << queueAdvisory << ", rc: " << rc;
+
+            status->category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+            status->code()     = mqbi::ClusterErrorCode::e_CSL_FAILURE;
+            status->message()  = k_CSL_FAILURE;
+
+            // Permanent failure, cannot continue
+            result = false;
+        }
     }
-    else {
-        BALL_LOG_ERROR << clusterData->identity().description()
-                       << ": Failed to apply queue assignment advisory: "
-                       << queueAdvisory << ", rc: " << rc;
 
-        status->category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
-        status->code()     = mqbi::ClusterErrorCode::e_CSL_FAILURE;
-        status->message()  = k_CSL_FAILURE;
-
-        // Permanent failure, cannot continue
-        return false;  // RETURN
-    }
+    return result;
 }
 
 void ClusterUtil::registerQueueInfo(ClusterState*        clusterState,
@@ -1241,18 +1312,18 @@ void ClusterUtil::populateAppInfos(
 }
 
 mqbi::ClusterErrorCode::Enum
-ClusterUtil::updateAppIds(ClusterData*                    clusterData,
-                          ClusterStateLedger*             ledger,
-                          ClusterState&                   clusterState,
-                          const bsl::vector<bsl::string>& added,
-                          const bsl::vector<bsl::string>& removed,
-                          const bsl::string&              domainName,
-                          const bsl::string&              uri,
-                          bslma::Allocator*               allocator)
+ClusterUtil::startQueueUpdate(bmqp_ctrlmsg::QueueUpdateAdvisory* queueAdvisory,
+                              ClusterData*                       clusterData,
+                              ClusterState&                      clusterState,
+                              const bsl::vector<bsl::string>&    added,
+                              const bsl::vector<bsl::string>&    removed,
+                              const bsl::string&                 domainName,
+                              const bsl::string&                 uri,
+                              bslma::Allocator*                  allocator)
 {
     // PRECONDITIONS
+    BSLS_ASSERT_SAFE(queueAdvisory);
     BSLS_ASSERT_SAFE(clusterData);
-    BSLS_ASSERT_SAFE(ledger && ledger->isOpen());
     BSLS_ASSERT_SAFE(!domainName.empty());
     BSLS_ASSERT_SAFE(allocator);
 
@@ -1290,10 +1361,8 @@ ClusterUtil::updateAppIds(ClusterData*                    clusterData,
     }
 
     // Populate 'queueUpdateAdvisory'
-    bdlma::LocalSequentialAllocator<1024> localAllocator(allocator);
-    bmqp_ctrlmsg::QueueUpdateAdvisory     queueAdvisory(&localAllocator);
     clusterData->electorInfo().nextLeaderMessageSequence(
-        &queueAdvisory.sequenceNumber());
+        &queueAdvisory->sequenceNumber());
 
     DomainStatesCIter domCit = clusterState.domainStates().find(domainName);
 
@@ -1331,7 +1400,7 @@ ClusterUtil::updateAppIds(ClusterData*                    clusterData,
             queueUpdate.removedAppIds().push_back(appIdInfo);
         }
 
-        queueAdvisory.queueUpdates().push_back(queueUpdate);
+        queueAdvisory->queueUpdates().push_back(queueUpdate);
     }
     else if (uri.empty()) {
         for (UriToQueueInfoMapCIter qinfoCit =
@@ -1341,7 +1410,7 @@ ClusterUtil::updateAppIds(ClusterData*                    clusterData,
             BSLS_ASSERT_SAFE(qinfoCit->second->uri().qualifiedDomain() ==
                              domainName);
 
-            const bool success = populateQueueUpdate(&queueAdvisory,
+            const bool success = populateQueueUpdate(queueAdvisory,
                                                      added,
                                                      removed,
                                                      *qinfoCit->second,
@@ -1369,7 +1438,7 @@ ClusterUtil::updateAppIds(ClusterData*                    clusterData,
             return mqbi::ClusterErrorCode::e_UNKNOWN_QUEUE;  // RETURN
         }
 
-        const bool success = populateQueueUpdate(&queueAdvisory,
+        const bool success = populateQueueUpdate(queueAdvisory,
                                                  added,
                                                  removed,
                                                  *qinfoCit->second,
@@ -1384,35 +1453,71 @@ ClusterUtil::updateAppIds(ClusterData*                    clusterData,
         }
     }
 
+    return mqbi::ClusterErrorCode::e_OK;
+}
+
+mqbi::ClusterErrorCode::Enum
+ClusterUtil::updateAppIds(ClusterData*                    clusterData,
+                          ClusterStateLedger*             ledger,
+                          ClusterState&                   clusterState,
+                          const bsl::vector<bsl::string>& added,
+                          const bsl::vector<bsl::string>& removed,
+                          const bsl::string&              domainName,
+                          const bsl::string&              uri,
+                          bslma::Allocator*               allocator)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(clusterData);
+    BSLS_ASSERT_SAFE(ledger && ledger->isOpen());
+    BSLS_ASSERT_SAFE(!domainName.empty());
+    BSLS_ASSERT_SAFE(allocator);
+
+    bdlma::LocalSequentialAllocator<1024> localAllocator(allocator);
+    bmqp_ctrlmsg::QueueUpdateAdvisory     queueAdvisory(&localAllocator);
+
+    mqbi::ClusterErrorCode::Enum rc = startQueueUpdate(&queueAdvisory,
+                                                       clusterData,
+                                                       clusterState,
+                                                       added,
+                                                       removed,
+                                                       domainName,
+                                                       uri,
+                                                       allocator);
+    if (rc != mqbi::ClusterErrorCode::e_OK) {
+        return rc;  // RETURN
+    }
+
     // Apply 'queueUpdateAdvisory' to CSL
     BALL_LOG_INFO << clusterData->identity().description()
                   << ": 'QueueUpdateAdvisory' will be applied to cluster "
                   << "state ledger: " << queueAdvisory;
 
-    const int rc = ledger->apply(queueAdvisory);
-    if (rc != 0) {
+    const int applyRc = ledger->apply(queueAdvisory);
+    if (applyRc != 0) {
         BALL_LOG_ERROR << clusterData->identity().description()
                        << ": Failed to apply queue update advisory: "
-                       << queueAdvisory << ", rc: " << rc;
+                       << queueAdvisory << ", rc: " << applyRc;
 
         return mqbi::ClusterErrorCode::e_CSL_FAILURE;
     }
-    else {
-        BALL_LOG_INFO_BLOCK
-        {
-            BALL_LOG_OUTPUT_STREAM << "Advisory applied: unregister appIds "
-                                   << printRemoved << " and register appIds "
-                                   << printAdded << " for ";
-            if (uri.empty()) {
-                BALL_LOG_OUTPUT_STREAM << "domain = [" << domainName << "]";
-            }
-            else {
-                BALL_LOG_OUTPUT_STREAM << "uri = [" << uri << "]";
-            }
-        }
 
-        return mqbi::ClusterErrorCode::e_OK;
+    bmqu::Printer<bsl::vector<bsl::string> > printAdded(&added);
+    bmqu::Printer<bsl::vector<bsl::string> > printRemoved(&removed);
+
+    BALL_LOG_INFO_BLOCK
+    {
+        BALL_LOG_OUTPUT_STREAM << "Advisory applied: unregister appIds "
+                               << printRemoved << " and register appIds "
+                               << printAdded << " for ";
+        if (uri.empty()) {
+            BALL_LOG_OUTPUT_STREAM << "domain = [" << domainName << "]";
+        }
+        else {
+            BALL_LOG_OUTPUT_STREAM << "uri = [" << uri << "]";
+        }
     }
+
+    return mqbi::ClusterErrorCode::e_OK;
 }
 
 void ClusterUtil::sendClusterState(

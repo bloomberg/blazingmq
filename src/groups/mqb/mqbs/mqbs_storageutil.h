@@ -94,6 +94,12 @@ struct StorageUtil {
                                    bsl::unordered_set<mqbu::StorageKey>* keys,
                                    const bslstl::StringRef& value);
 
+    /// Generate a unique storage key for the specified `value` into the
+    /// specified `key`.  Unlike the overload taking a `keys` set, this
+    /// variant does not check for uniqueness against existing keys.
+    static void generateStorageKey(mqbu::StorageKey*        key,
+                                   const bslstl::StringRef& value);
+
     /// Return `true` if numMessages in the specified `lhs` is greater than
     /// that of the specified `rhs`.  Return false otherwise.
     static bool queueMessagesCountComparator(const QueueMessagesCount& lhs,
