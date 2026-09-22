@@ -954,6 +954,91 @@ class TweakFactory:
 
             authentication = Authentication()
 
+            class Authorization(metaclass=TweakMetaclass):
+                class Authorizer(metaclass=TweakMetaclass):
+                    class Name(metaclass=TweakMetaclass):
+                        def __call__(
+                            self, value: typing.Union[str, NoneType]
+                        ) -> Callable: ...
+
+                    name = Name()
+
+                    class Settings(metaclass=TweakMetaclass):
+                        class Key(metaclass=TweakMetaclass):
+                            def __call__(
+                                self, value: typing.Union[str, NoneType]
+                            ) -> Callable: ...
+
+                        key = Key()
+
+                        class Value(metaclass=TweakMetaclass):
+                            class BoolVal(metaclass=TweakMetaclass):
+                                def __call__(
+                                    self, value: typing.Union[bool, NoneType]
+                                ) -> Callable: ...
+
+                            bool_val = BoolVal()
+
+                            class IntVal(metaclass=TweakMetaclass):
+                                def __call__(
+                                    self, value: typing.Union[int, NoneType]
+                                ) -> Callable: ...
+
+                            int_val = IntVal()
+
+                            class LongVal(metaclass=TweakMetaclass):
+                                def __call__(
+                                    self, value: typing.Union[int, NoneType]
+                                ) -> Callable: ...
+
+                            long_val = LongVal()
+
+                            class DoubleVal(metaclass=TweakMetaclass):
+                                def __call__(
+                                    self, value: typing.Union[float, NoneType]
+                                ) -> Callable: ...
+
+                            double_val = DoubleVal()
+
+                            class StringVal(metaclass=TweakMetaclass):
+                                def __call__(
+                                    self, value: typing.Union[str, NoneType]
+                                ) -> Callable: ...
+
+                            string_val = StringVal()
+
+                            def __call__(
+                                self,
+                                value: typing.Union[
+                                    blazingmq.schemas.mqbcfg.PluginSettingValue,
+                                    NoneType,
+                                ],
+                            ) -> Callable: ...
+
+                        value = Value()
+
+                        def __call__(self, value: None) -> Callable: ...
+
+                    settings = Settings()
+
+                    def __call__(
+                        self,
+                        value: typing.Union[
+                            blazingmq.schemas.mqbcfg.AuthorizerPluginConfig, NoneType
+                        ],
+                    ) -> Callable: ...
+
+                authorizer = Authorizer()
+
+                def __call__(
+                    self,
+                    value: typing.Union[
+                        blazingmq.schemas.mqbcfg.AuthorizerConfig, NoneType
+                    ],
+                ) -> Callable: ...
+
+            authorization = Authorization()
+
             class TlsConfig(metaclass=TweakMetaclass):
                 class CertificateAuthority(metaclass=TweakMetaclass):
                     def __call__(
