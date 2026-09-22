@@ -283,8 +283,6 @@ int Policy_Permission::updateAction(const bsl::string&  action,
 {
     enum { k_OK = 0, k_INVALID_ACTION };
 
-    // TODO(tfoxhall): Convert resources into a more type-specific value,
-    // depending on the action
     if (action == "connectClient") {
         d_connectClient = true;
     }
@@ -511,7 +509,6 @@ int Policy::parse(Policy*                 result,
         k_INVALID_PERMISSION,
     };
 
-    // TODO(tfoxhall): Validate the policies described by the policy VST
     // 1. each role is unique
     // 2. each resource within a permission has a unique action
     // 3. resource identifiers are valid
