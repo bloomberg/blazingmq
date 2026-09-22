@@ -372,12 +372,42 @@ TEST_QUEUE_STATS_AFTER_CONFIRM_SINGLE_NODE = _deep_merge(
     },
 )
 
+# Counters a node accumulates by *handling* traffic, as opposed to state it
+# derives from the storage.  'QueueHandle' records them before dispatching to
+# the local or the remote queue -- 'updateMonitor' for CONFIRMs, the ACK path
+# for ACKs -- so a node merely relaying for a downstream proxy accumulates
+# them just as the primary does.  After a failover the promoted node may be
+# exactly such a relay and report what it accrued before it was primary, and
+# which survivor wins the partition election is not steerable.  So the
+# multi-node expectations below leave these unconstrained and check only the
+# storage-derived state, which is what the failover is meant to preserve.
+_RELAYED_EVENT_COUNTERS = {
+    "queue_ack_msgs": AnyValue(),
+    "queue_ack_msgs_abs": AnyValue(),
+    "queue_ack_time_avg": AnyValue(),
+    "queue_ack_time_max": AnyValue(),
+    "queue_confirm_msgs": AnyValue(),
+    "queue_confirm_msgs_abs": AnyValue(),
+    "queue_confirm_time_avg": AnyValue(),
+    "queue_confirm_time_max": AnyValue(),
+    "queue_producers_count": AnyValue(),
+    "queue_push_bytes": AnyValue(),
+    "queue_push_bytes_abs": AnyValue(),
+    "queue_push_msgs": AnyValue(),
+    "queue_push_msgs_abs": AnyValue(),
+    "queue_put_bytes": AnyValue(),
+    "queue_put_bytes_abs": AnyValue(),
+    "queue_put_msgs": AnyValue(),
+    "queue_put_msgs_abs": AnyValue(),
+}
+
 TEST_QUEUE_STATS_AFTER_CONFIRM_MULTI_NODE = _deep_merge(
     TEST_QUEUE_STATS_EMPTY,
     {
         "appIds": {
             "bar": {
                 "values": {
+                    **_RELAYED_EVENT_COUNTERS,
                     "queue_bytes_current": 30,
                     "queue_content_bytes": 96,
                     "queue_content_msgs": 32,
@@ -388,6 +418,7 @@ TEST_QUEUE_STATS_AFTER_CONFIRM_MULTI_NODE = _deep_merge(
             },
             "baz": {
                 "values": {
+                    **_RELAYED_EVENT_COUNTERS,
                     "queue_bytes_current": 63,
                     "queue_content_bytes": 96,
                     "queue_content_msgs": 32,
@@ -398,6 +429,7 @@ TEST_QUEUE_STATS_AFTER_CONFIRM_MULTI_NODE = _deep_merge(
             },
             "foo": {
                 "values": {
+                    **_RELAYED_EVENT_COUNTERS,
                     "queue_bytes_current": 0,
                     "queue_content_bytes": 96,
                     "queue_content_msgs": 32,
@@ -408,6 +440,7 @@ TEST_QUEUE_STATS_AFTER_CONFIRM_MULTI_NODE = _deep_merge(
             },
         },
         "values": {
+            **_RELAYED_EVENT_COUNTERS,
             "queue_bytes_current": 63,
             "queue_cfg_bytes": 1048576,
             "queue_cfg_msgs": 1000,
@@ -417,10 +450,6 @@ TEST_QUEUE_STATS_AFTER_CONFIRM_MULTI_NODE = _deep_merge(
             "queue_history_abs": 11,
             "queue_msgs_current": 21,
             "queue_msgs_utilization_max": 3,
-            "queue_push_bytes": AnyValue(),
-            "queue_push_bytes_abs": AnyValue(),
-            "queue_push_msgs": AnyValue(),
-            "queue_push_msgs_abs": AnyValue(),
             "queue_queue_time_avg": GreaterThan(0),
             "queue_queue_time_max": GreaterThan(0),
             "queue_role": 1,
@@ -502,12 +531,14 @@ TEST_QUEUE_STATS_AFTER_PURGE_SINGLE_NODE = _deep_merge(
     },
 )
 
+# Same as above: the node queried here is the one the failover promoted.
 TEST_QUEUE_STATS_AFTER_PURGE_MULTI_NODE = _deep_merge(
     TEST_QUEUE_STATS_EMPTY,
     {
         "appIds": {
             "bar": {
                 "values": {
+                    **_RELAYED_EVENT_COUNTERS,
                     "queue_bytes_current": 30,
                     "queue_content_bytes": 96,
                     "queue_content_msgs": 32,
@@ -518,6 +549,7 @@ TEST_QUEUE_STATS_AFTER_PURGE_MULTI_NODE = _deep_merge(
             },
             "baz": {
                 "values": {
+                    **_RELAYED_EVENT_COUNTERS,
                     "queue_bytes_current": 0,
                     "queue_content_bytes": 96,
                     "queue_content_msgs": 32,
@@ -528,6 +560,7 @@ TEST_QUEUE_STATS_AFTER_PURGE_MULTI_NODE = _deep_merge(
             },
             "foo": {
                 "values": {
+                    **_RELAYED_EVENT_COUNTERS,
                     "queue_bytes_current": 0,
                     "queue_content_bytes": 96,
                     "queue_content_msgs": 32,
@@ -538,6 +571,7 @@ TEST_QUEUE_STATS_AFTER_PURGE_MULTI_NODE = _deep_merge(
             },
         },
         "values": {
+            **_RELAYED_EVENT_COUNTERS,
             "queue_bytes_current": 30,
             "queue_cfg_bytes": 1048576,
             "queue_cfg_msgs": 1000,
@@ -547,10 +581,6 @@ TEST_QUEUE_STATS_AFTER_PURGE_MULTI_NODE = _deep_merge(
             "queue_history_abs": 22,
             "queue_msgs_current": 10,
             "queue_msgs_utilization_max": 3,
-            "queue_push_bytes": 93,
-            "queue_push_bytes_abs": 93,
-            "queue_push_msgs": 31,
-            "queue_push_msgs_abs": 31,
             "queue_queue_time_avg": GreaterThan(0),
             "queue_queue_time_max": GreaterThan(0),
             "queue_role": 1,

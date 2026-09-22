@@ -36,11 +36,15 @@ def expected_header(start, count, total, size):
 
 def test_list_messages_fanout(cluster: Cluster, domain_urls: tc.DomainUrls):
     du = domain_urls
-    leader = cluster.last_known_leader
     proxies = cluster.proxy_cycle()
 
     producer = next(proxies).create_client("producer")
     producer.open(du.uri_fanout, flags=["write,ack"], succeed=True)
+
+    # In Raft mode the CSL leader need not own the queue's partition; the
+    # 'LIST' admin command must be issued on that partition's primary.  Resolve
+    # it after the queue is assigned (i.e. after the producer opened it).
+    primary = cluster.last_known_leader.wait_queue_primary(du.uri_fanout)
 
     for i in range(1, 4):
         producer.post(
@@ -61,62 +65,66 @@ def test_list_messages_fanout(cluster: Cluster, domain_urls: tc.DomainUrls):
     for i, uri in enumerate([du.uri_fanout_foo, du.uri_fanout_bar, du.uri_fanout_baz]):
         consumer.confirm(uri, guids[i], succeed=True)
 
-    leader.list_messages(du.domain_fanout, tc.TEST_QUEUE, 0, 3)
-    assert leader.outputs_substr(expected_header(0, 3, 3, 60), TIMEOUT)
-    assert leader.outputs_substr("10", TIMEOUT)
-    assert leader.outputs_substr("20", TIMEOUT)
-    assert leader.outputs_substr("30", TIMEOUT)
+    primary.list_messages(du.domain_fanout, tc.TEST_QUEUE, 0, 3)
+    assert primary.outputs_substr(expected_header(0, 3, 3, 60), TIMEOUT)
+    assert primary.outputs_substr("10", TIMEOUT)
+    assert primary.outputs_substr("20", TIMEOUT)
+    assert primary.outputs_substr("30", TIMEOUT)
 
-    leader.list_messages(du.domain_fanout, tc.TEST_QUEUE, 0, "UNLIMITED")
-    assert leader.outputs_substr(expected_header(0, 3, 3, 60), TIMEOUT)
-    assert leader.outputs_substr("10", TIMEOUT)
-    assert leader.outputs_substr("20", TIMEOUT)
-    assert leader.outputs_substr("30", TIMEOUT)
+    primary.list_messages(du.domain_fanout, tc.TEST_QUEUE, 0, "UNLIMITED")
+    assert primary.outputs_substr(expected_header(0, 3, 3, 60), TIMEOUT)
+    assert primary.outputs_substr("10", TIMEOUT)
+    assert primary.outputs_substr("20", TIMEOUT)
+    assert primary.outputs_substr("30", TIMEOUT)
 
-    leader.list_messages(du.domain_fanout, tc.TEST_QUEUE, 1, 1)
-    assert leader.outputs_substr(expected_header(1, 1, 3, 20), TIMEOUT)
-    assert leader.outputs_substr("20", TIMEOUT)
+    primary.list_messages(du.domain_fanout, tc.TEST_QUEUE, 1, 1)
+    assert primary.outputs_substr(expected_header(1, 1, 3, 20), TIMEOUT)
+    assert primary.outputs_substr("20", TIMEOUT)
 
-    leader.list_messages(du.domain_fanout, tc.TEST_QUEUE, -1, 1)
-    assert leader.outputs_substr(expected_header(2, 1, 3, 30), TIMEOUT)
-    assert leader.outputs_substr("30", TIMEOUT)
+    primary.list_messages(du.domain_fanout, tc.TEST_QUEUE, -1, 1)
+    assert primary.outputs_substr(expected_header(2, 1, 3, 30), TIMEOUT)
+    assert primary.outputs_substr("30", TIMEOUT)
 
-    leader.list_messages(du.domain_fanout, tc.TEST_QUEUE, 1, -1)
-    assert leader.outputs_substr(expected_header(0, 1, 3, 10), TIMEOUT)
-    assert leader.outputs_substr("10", TIMEOUT)
+    primary.list_messages(du.domain_fanout, tc.TEST_QUEUE, 1, -1)
+    assert primary.outputs_substr(expected_header(0, 1, 3, 10), TIMEOUT)
+    assert primary.outputs_substr("10", TIMEOUT)
 
-    leader.list_messages(du.domain_fanout, tc.TEST_QUEUE, -1, -1)
-    assert leader.outputs_substr(expected_header(1, 1, 3, 20), TIMEOUT)
-    assert leader.outputs_substr("20", TIMEOUT)
+    primary.list_messages(du.domain_fanout, tc.TEST_QUEUE, -1, -1)
+    assert primary.outputs_substr(expected_header(1, 1, 3, 20), TIMEOUT)
+    assert primary.outputs_substr("20", TIMEOUT)
 
-    leader.list_messages(du.domain_fanout, tc.TEST_QUEUE, 0, "UNLIMITED garbage")
-    assert leader.outputs_substr("Error processing command", TIMEOUT)
+    primary.list_messages(du.domain_fanout, tc.TEST_QUEUE, 0, "UNLIMITED garbage")
+    assert primary.outputs_substr("Error processing command", TIMEOUT)
 
     time.sleep(2)  # Allow previous confirmations to complete
     for i, appid in enumerate(["foo", "bar", "baz"]):
-        leader.list_messages(
+        primary.list_messages(
             du.domain_fanout, tc.TEST_QUEUE, 0, "UNLIMITED", appid=appid
         )
-        assert leader.outputs_substr(
+        assert primary.outputs_substr(
             expected_header(0, 2, 2, 60 - (i + 1) * 10), TIMEOUT
         )
         for j in range(0, 3):
             if i != j:
-                assert leader.outputs_regex(f"{guids[j]}.*{(j + 1) * 10}", TIMEOUT)
+                assert primary.outputs_regex(f"{guids[j]}.*{(j + 1) * 10}", TIMEOUT)
 
-    leader.list_messages(
+    primary.list_messages(
         du.domain_fanout, tc.TEST_QUEUE, 0, "UNLIMITED", appid="pikachu"
     )
-    assert leader.outputs_substr("Invalid 'LIST' command: invalid APPID", TIMEOUT)
+    assert primary.outputs_substr("Invalid 'LIST' command: invalid APPID", TIMEOUT)
 
 
 def test_list_messages_priority(cluster: Cluster, domain_urls: tc.DomainUrls):
     du = domain_urls
-    leader = cluster.last_known_leader
     proxies = cluster.proxy_cycle()
 
     producer = next(proxies).create_client("producer")
     producer.open(du.uri_priority, flags=["write,ack"], succeed=True)
+
+    # In Raft mode the CSL leader need not own the queue's partition; the
+    # 'LIST' admin command must be issued on that partition's primary.  Resolve
+    # it after the queue is assigned (i.e. after the producer opened it).
+    primary = cluster.last_known_leader.wait_queue_primary(du.uri_priority)
 
     for i in range(1, 4):
         producer.post(
@@ -132,38 +140,38 @@ def test_list_messages_priority(cluster: Cluster, domain_urls: tc.DomainUrls):
     assert wait_until(lambda: len(client.list(block=True)) == 3, TIMEOUT)
     _ = [msg.guid for msg in client.list(uri=du.uri_priority, block=True)]
 
-    leader.list_messages(du.domain_priority, tc.TEST_QUEUE, 0, 3)
-    assert leader.outputs_substr(expected_header(0, 3, 3, 60), TIMEOUT)
-    assert leader.outputs_substr("10", TIMEOUT)
-    assert leader.outputs_substr("20", TIMEOUT)
-    assert leader.outputs_substr("30", TIMEOUT)
+    primary.list_messages(du.domain_priority, tc.TEST_QUEUE, 0, 3)
+    assert primary.outputs_substr(expected_header(0, 3, 3, 60), TIMEOUT)
+    assert primary.outputs_substr("10", TIMEOUT)
+    assert primary.outputs_substr("20", TIMEOUT)
+    assert primary.outputs_substr("30", TIMEOUT)
 
-    leader.list_messages(du.domain_priority, tc.TEST_QUEUE, 0, "UNLIMITED")
-    assert leader.outputs_substr(expected_header(0, 3, 3, 60), TIMEOUT)
-    assert leader.outputs_substr("10", TIMEOUT)
-    assert leader.outputs_substr("20", TIMEOUT)
-    assert leader.outputs_substr("30", TIMEOUT)
+    primary.list_messages(du.domain_priority, tc.TEST_QUEUE, 0, "UNLIMITED")
+    assert primary.outputs_substr(expected_header(0, 3, 3, 60), TIMEOUT)
+    assert primary.outputs_substr("10", TIMEOUT)
+    assert primary.outputs_substr("20", TIMEOUT)
+    assert primary.outputs_substr("30", TIMEOUT)
 
-    leader.list_messages(du.domain_priority, tc.TEST_QUEUE, 1, 1)
-    assert leader.outputs_substr(expected_header(1, 1, 3, 20), TIMEOUT)
-    assert leader.outputs_substr("20", TIMEOUT)
+    primary.list_messages(du.domain_priority, tc.TEST_QUEUE, 1, 1)
+    assert primary.outputs_substr(expected_header(1, 1, 3, 20), TIMEOUT)
+    assert primary.outputs_substr("20", TIMEOUT)
 
-    leader.list_messages(du.domain_priority, tc.TEST_QUEUE, -1, 1)
-    assert leader.outputs_substr(expected_header(2, 1, 3, 30), TIMEOUT)
-    assert leader.outputs_substr("30", TIMEOUT)
+    primary.list_messages(du.domain_priority, tc.TEST_QUEUE, -1, 1)
+    assert primary.outputs_substr(expected_header(2, 1, 3, 30), TIMEOUT)
+    assert primary.outputs_substr("30", TIMEOUT)
 
-    leader.list_messages(du.domain_priority, tc.TEST_QUEUE, 1, -1)
-    assert leader.outputs_substr(expected_header(0, 1, 3, 10), TIMEOUT)
-    assert leader.outputs_substr("10", TIMEOUT)
+    primary.list_messages(du.domain_priority, tc.TEST_QUEUE, 1, -1)
+    assert primary.outputs_substr(expected_header(0, 1, 3, 10), TIMEOUT)
+    assert primary.outputs_substr("10", TIMEOUT)
 
-    leader.list_messages(du.domain_priority, tc.TEST_QUEUE, -1, -1)
-    assert leader.outputs_substr(expected_header(1, 1, 3, 20), TIMEOUT)
-    assert leader.outputs_substr("20", TIMEOUT)
+    primary.list_messages(du.domain_priority, tc.TEST_QUEUE, -1, -1)
+    assert primary.outputs_substr(expected_header(1, 1, 3, 20), TIMEOUT)
+    assert primary.outputs_substr("20", TIMEOUT)
 
-    leader.list_messages(du.domain_priority, tc.TEST_QUEUE, 0, "UNLIMITED garbage")
-    assert leader.outputs_substr("Error processing command", TIMEOUT)
+    primary.list_messages(du.domain_priority, tc.TEST_QUEUE, 0, "UNLIMITED garbage")
+    assert primary.outputs_substr("Error processing command", TIMEOUT)
 
-    leader.list_messages(
+    primary.list_messages(
         du.domain_priority, tc.TEST_QUEUE, 0, "UNLIMITED", appid="pikachu"
     )
-    assert leader.outputs_substr("Invalid 'LIST' command: invalid APPID", TIMEOUT)
+    assert primary.outputs_substr("Invalid 'LIST' command: invalid APPID", TIMEOUT)

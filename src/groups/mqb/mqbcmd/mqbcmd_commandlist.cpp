@@ -129,6 +129,13 @@ struct CommandDefinition {
      "Rollover the storage files of 'partitionId' of cluster 'name'",
      "Rollover the storage files of 'partitionId' of cluster 'name'. If "
      "'ALL' is used then rollover all partitions."},
+    {"CLUSTERS CLUSTER <name> STORAGE PARTITION <partitionId> "
+     "TRANSFER_LEADERSHIP <targetNode>",
+     "Hand primaryship of the 'partitionId' of cluster 'name' to 'targetNode'",
+     "Hand primaryship of the 'partitionId' of cluster 'name' to the node "
+     "with host name 'targetNode'.  Must be issued to the current primary of "
+     "that partition; any other node fails the command.  Blocks until "
+     "'targetNode' is the primary, and fails if that does not happen."},
     {"CLUSTERS CLUSTER <name> STORAGE DOMAIN <domain_name> QUEUE_STATUS",
      "Show status of queues belonging to 'domain_name' in the storage of "
      "cluster 'name'",
@@ -163,7 +170,13 @@ struct CommandDefinition {
      "Get the supported settable parameters for the elector of cluster "
      "'name'",
      "Get the supported settable parameters for the elector of cluster "
-     "'name'"}};
+     "'name'"},
+    {"CLUSTERS CLUSTER <name> STATE ELECTOR TRANSFER_LEADERSHIP <targetNode>",
+     "Hand leadership of cluster 'name' to 'targetNode'",
+     "Hand leadership of cluster 'name' to the node with host name "
+     "'targetNode'.  Must be issued to the current leader; any other node "
+     "fails the command.  Blocks until 'targetNode' is the leader, and fails "
+     "if that does not happen."}};
 
 }  // close anonymous namespace
 

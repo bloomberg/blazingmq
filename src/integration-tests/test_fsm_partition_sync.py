@@ -38,6 +38,10 @@ from blazingmq.dev.it.cluster_util import (
 MAX_JOURNAL_FILE_SIZE = 1844
 
 
+def setup_cluster(cluster: Cluster, domain_urls: tc.DomainUrls):
+    cluster.pin_all_primaries()
+
+
 @tweak.cluster.partition_config.max_journal_file_size(MAX_JOURNAL_FILE_SIZE)
 def test_sync_after_missed_rollover(
     fsm_multi_cluster: Cluster,
@@ -65,8 +69,12 @@ def test_sync_after_missed_rollover(
     consumer = proxy.create_client("consumer")
     consumer.open(uri_priority, flags=["read"], succeed=True)
 
-    replicas = cluster.nodes(exclude=leader)
-    replica = replicas[0]
+    # 'Initiating rollover'/'ROLLOVER COMPLETE' are logged by the queue's
+    # partition primary, which in Raft need not be the CSL leader ('leader').
+    # Poll that primary, and pick 'replica' from the remaining nodes so
+    # stopping it doesn't force a real primary failover.
+    primary = leader.wait_queue_primary(uri_priority)
+    replica = cluster.nodes(exclude=primary)[0]
 
     # Put 2 messages with confirms
     for i in range(1, 3):
@@ -80,16 +88,19 @@ def test_sync_after_missed_rollover(
     cluster.make_sure_node_stopped(replica)
     replica.drain()
 
-    # Put more messages w/o confirm to initiate the rollover
+    # Put more messages with confirms to initiate the rollover
+    # (Raft has no periodic sync points, so confirms generate dead bytes needed for trigger)
     i = 3
-    while not leader.outputs_substr("Initiating rollover", 0.01):
+    while not primary.outputs_substr("Initiating rollover", 0.01):
         assert i < 8, f"Rollover was not initiated after {i - 1} messages"
         producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
+        consumer.wait_push_event()
+        consumer.confirm(uri_priority, "*", succeed=True)
         i += 1
 
     # Wait until rollover completed
-    assert leader.outputs_substr("ROLLOVER COMPLETE", 10), (
-        f"Leader {leader} did not output 'ROLLOVER COMPLETE' within 10s"
+    assert primary.outputs_substr("ROLLOVER COMPLETE", 10), (
+        f"Primary {primary} did not output 'ROLLOVER COMPLETE' within 10s"
     )
 
     # Restart the stopped replica which missed rollover
@@ -101,12 +112,12 @@ def test_sync_after_missed_rollover(
         f"Replica {replica} did not output 'Cluster (itCluster) is available' within 10s"
     )
 
-    assert leader == cluster.last_known_leader, (
-        f"Leader {leader} is not cluster.last_known_leader {cluster.last_known_leader}"
+    assert primary == primary.wait_queue_primary(uri_priority), (
+        f"Primary {primary} is no longer the partition primary"
     )
 
-    # Check that leader and replica journal files are equal, after stopping all nodes
-    stop_cluster_and_compare_journal_files(leader.name, replica.name, cluster)
+    # Check that primary and replica journal files are equal, after stopping all nodes
+    stop_cluster_and_compare_journal_files(primary.name, replica.name, cluster)
 
 
 @start_cluster(False)
@@ -168,11 +179,14 @@ def test_sync_after_missed_rollover_after_restart(
     cluster.make_sure_node_stopped(east2)
     east2.drain()
 
-    # Put more messages w/o confirm to initiate the rollover
+    # Put more messages with confirms to initiate the rollover
+    # (Raft has no periodic sync points, so confirms generate dead bytes needed for trigger)
     i = 3
     while not east1.outputs_substr("Initiating rollover", 0.01):
         assert i < 8, f"Rollover was not initiated after {i - 1} messages"
         producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
+        consumer.wait_push_event()
+        consumer.confirm(uri_priority, "*", succeed=True)
         i += 1
 
     # Wait until rollover completed on all running nodes
@@ -403,10 +417,13 @@ def test_sync_if_leader_missed_rollover(
     for i in range(3, 5):
         producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
 
-    # Initiate rollover via admin command
-    leader.trigger_rollover(0)
+    # Initiate rollover via admin command on partition 0's primary: in Raft
+    # mode the CSL leader need not be that primary, and it may have just changed
+    # if the killed node was partition 0's primary.  ('leader' is the CSL leader
+    # and is still alive -- 'next_leader' was excluded from it.)
+    leader.wait_partition_primary(0).trigger_rollover(0)
 
-    # Wait until rollover completed for other nodes
+    # Wait until rollover completed for other nodes (they roll via replication)
     for node in cluster.nodes(exclude=[next_leader]):
         node.wait_rollover_complete()
 

@@ -153,8 +153,9 @@ class MemoryMappedOnDiskLog BSLS_KEYWORD_FINAL : public OnDiskLog {
     // CREATORS
 
     /// Create an instance of memory-mapped on-disk log having the specified
-    /// `config`.
-    explicit MemoryMappedOnDiskLog(const mqbsi::LogConfig& config);
+    /// `config` and optionally specified `allocator`.
+    explicit MemoryMappedOnDiskLog(const mqbsi::LogConfig& config,
+                                   bslma::Allocator*       allocator = 0);
 
     /// Destructor
     ~MemoryMappedOnDiskLog() BSLS_KEYWORD_OVERRIDE;
@@ -188,6 +189,9 @@ class MemoryMappedOnDiskLog BSLS_KEYWORD_FINAL : public OnDiskLog {
     /// update the number of outstanding bytes before seeking and
     /// overwriting existing bytes.
     int seek(Offset offset) BSLS_KEYWORD_OVERRIDE;
+
+    /// Truncate the log to the specified `offset`.
+    int truncate(Offset offset) BSLS_KEYWORD_OVERRIDE;
 
     /// Increment the number of outstanding bytes in the log by the
     /// specified `value` (can be negative).

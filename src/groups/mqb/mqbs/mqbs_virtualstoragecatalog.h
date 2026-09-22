@@ -108,15 +108,6 @@ class VirtualStorageCatalog BSLS_KEYWORD_FINAL {
     /// Access to the DataStream
     typedef VirtualStorage::DataStream::iterator DataStreamIterator;
 
-    typedef bsl::function<mqbi::StorageResult::Enum(
-        const mqbu::StorageKey&   appKey,
-        const DataStreamIterator& first)>
-        PurgeCallback;
-
-    typedef bsl::function<mqbi::StorageResult::Enum(
-        const mqbu::StorageKey& appKey)>
-        RemoveCallback;
-
   private:
     // DATA
     /// Allocator to use
@@ -255,20 +246,31 @@ class VirtualStorageCatalog BSLS_KEYWORD_FINAL {
     mqbi::StorageResult::Enum confirm(const bmqt::MessageGUID& msgGUID,
                                       const mqbu::StorageKey&  appKey);
 
-    /// Update all states of the App corresponding to the 'appKey' as purged.
-    /// If the  specified `asPrimary` is `true`, delete the messages data and
-    /// record the event in the storage.
-    void removeAll(const mqbu::StorageKey& appKey, bool asPrimary);
+    /// Undo the `confirm` of the specified `msgGUID` for the App identified
+    /// by the specified `appKey`, for a CONFIRM record that will never
+    /// commit.  Return `e_SUCCESS` if that App was confirmed for `msgGUID`.
+    mqbi::StorageResult::Enum undoConfirm(const bmqt::MessageGUID& msgGUID,
+                                          const mqbu::StorageKey&  appKey);
 
     /// Erase the entire DataStream;
     /// This does not affect the underlying `DataStore`.
     void removeAll();
 
-    /// Prepare to update all states of the App corresponding to the 'appKey'
-    /// as purged.  Invoke the specified the `cb` and if it returns
-    /// `e_SUCCESS`, proceed with the update.
+    /// Load into the specified `out` the oldest message the App identified by
+    /// the specified `appKey` can see, and into the optionally specified `vs`
+    /// that App's virtual storage.  Return `e_APPKEY_NOT_FOUND` if there is no
+    /// such App, `e_GUID_NOT_FOUND` if it can see no message, `e_SUCCESS`
+    /// otherwise.
+    mqbi::StorageResult::Enum firstMessage(DataStreamIterator*     out,
+                                           const mqbu::StorageKey& appKey,
+                                           VirtualStorage**        vs = 0);
+
+    /// Update all states of the App corresponding to the specified `appKey`
+    /// as purged.  If the specified `asPrimary` is `true`, delete the messages
+    /// data and record the event in the storage.  Return `e_APPKEY_NOT_FOUND`
+    /// if there is no such App.
     mqbi::StorageResult::Enum purge(const mqbu::StorageKey& appKey,
-                                    const PurgeCallback&    cb);
+                                    bool                    asPrimary);
 
     /// Return the number of messages in the datastream which are older than
     /// the specified `vs`.  Load into the specified `it` the iterator pointing
@@ -297,10 +299,7 @@ class VirtualStorageCatalog BSLS_KEYWORD_FINAL {
     /// invoke it before purging.  Cancel the purge if `onRemove` does not
     /// return `e_SUCCESS`.
     mqbi::StorageResult::Enum
-    removeVirtualStorage(const mqbu::StorageKey& appKey,
-                         bool                    asPrimary,
-                         const PurgeCallback&    onPurge  = PurgeCallback(),
-                         const RemoveCallback&   onRemove = RemoveCallback());
+    removeVirtualStorage(const mqbu::StorageKey& appKey, bool asPrimary);
 
     /// Return the Virtual Storage instance corresponding to the specified
     /// 'appKey'.

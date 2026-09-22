@@ -71,6 +71,13 @@ struct ClusterUtil {
     /// Return `true` if the specified `negoMsg` is from a client or proxy.
     static bool
     isClientOrProxy(const bmqp_ctrlmsg::NegotiationMessage& negoMsg);
+
+    /// Return the node of the specified `netCluster` whose host name is the
+    /// specified `hostName`, or null if there is no such node.  Used by admin
+    /// commands which name a node by the host name printed in
+    /// `ClusterNode::nodeDescription`.
+    static ClusterNode* lookupNodeByHostName(Cluster*           netCluster,
+                                             const bsl::string& hostName);
 };
 
 // =====================

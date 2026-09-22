@@ -486,10 +486,14 @@ def test_ttl_zero_delivers_to_subscribed_consumer(
         # message has been accounted for, or once the consumer stops pushing
         # for the specified 'timeout'.
         while len(received) < len(posted):
-            if not consumer.wait_push_event(timeout=timeout, quiet=True):
-                break
+            pushed = consumer.wait_push_event(timeout=timeout, quiet=True)
+            # List even when no push was announced: a message delivered
+            # between the previous listing and this wait leaves no new 'PUSH'
+            # line to match, but is still unconfirmed and listable.
             msgs = consumer.list(uri, block=True)
             if not msgs:
+                if not pushed:
+                    break
                 # The push was announced before the message became listable;
                 # pick it up on the next round.
                 continue

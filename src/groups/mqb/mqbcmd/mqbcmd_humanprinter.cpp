@@ -731,6 +731,7 @@ void printQueueHandles(bsl::ostream&                   os,
 
 void printQueueState(bsl::ostream&     os,
                      const QueueState& state,
+                     bool              isLocal,
                      int               level,
                      int               spacesPerLevel)
 {
@@ -749,7 +750,9 @@ void printQueueState(bsl::ostream&     os,
     if (state.id() == bmqp::QueueId::k_UNASSIGNED_QUEUE_ID) {
         os << "unassigned";
     }
-    else if (state.id() == bmqp::QueueId::k_PRIMARY_QUEUE_ID) {
+    else if (isLocal) {
+        // A local queue carries an id of this node's own, for the case it
+        // later converts to remote, but has no upstream to use it against.
         os << "primary";
     }
     else {
@@ -1073,10 +1076,15 @@ void printQueueInternals(bsl::ostream&         os,
        << "---------------\n";
 
     // Print State Object
-    printQueueState(os, queueInternals.state(), level + 1, spacesPerLevel);
+    const Queue& queue = queueInternals.queue();
+
+    printQueueState(os,
+                    queueInternals.state(),
+                    queue.isLocalQueueValue(),
+                    level + 1,
+                    spacesPerLevel);
 
     // Print Queue Object
-    const Queue& queue = queueInternals.queue();
     if (queue.isLocalQueueValue()) {
         printLocalQueue(os, queue.localQueue(), level + 1, spacesPerLevel);
     }
