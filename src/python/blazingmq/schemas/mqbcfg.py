@@ -1787,6 +1787,33 @@ class AuthenticatorPluginConfig:
 
 
 @dataclass
+class AuthorizerPluginConfig:
+    """The configuration for an authorizer plugin.
+
+    name.....:
+    The name of the authenticator plugin.
+    settings.:
+    Plugin-specific settings.
+    """
+
+    name: Optional[str] = field(
+        default=None,
+        metadata={
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    settings: List[PluginSettingKeyValue] = field(
+        default_factory=list,
+        metadata={
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+        },
+    )
+
+
+@dataclass
 class ClusterNode:
     """Type representing the configuration of a node in a cluster.
 
@@ -2100,6 +2127,23 @@ class AuthenticatorConfig:
         default=None,
         metadata={
             "name": "credentialProvider",
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+        },
+    )
+
+
+@dataclass
+class AuthorizerConfig:
+    """Top level type for the broker's authorization configurations.
+
+    authorizer...........:
+    Configuration entries for the authorizer plugin (built-in or external).
+    """
+
+    authorizer: Optional[AuthorizerPluginConfig] = field(
+        default=None,
+        metadata={
             "type": "Element",
             "namespace": "http://bloomberg.com/schemas/mqbcfg",
         },
@@ -2475,6 +2519,14 @@ class AppConfig:
         },
     )
     authentication: Optional[AuthenticatorConfig] = field(
+        default=None,
+        metadata={
+            "type": "Element",
+            "namespace": "http://bloomberg.com/schemas/mqbcfg",
+            "required": True,
+        },
+    )
+    authorization: Optional[AuthorizerConfig] = field(
         default=None,
         metadata={
             "type": "Element",
