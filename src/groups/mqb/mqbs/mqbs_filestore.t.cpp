@@ -333,7 +333,7 @@ class Tester {
     , d_scheduler(bsls::SystemClockType::e_MONOTONIC, d_allocator_p)
     , d_bufferFactory(1024, d_allocator_p)
     , d_clusterLocation(location, d_allocator_p)
-    , d_clusterArchiveLocation(location, d_allocator_p)
+    , d_clusterArchiveLocation(d_allocator_p)
     , d_blobSpPool_sp(
           bmqp::BlobPoolUtil::createBlobPool(&d_bufferFactory, d_allocator_p))
     , d_partitionCfg(d_allocator_p)
@@ -349,8 +349,10 @@ class Tester {
     , d_dispatcher(d_allocator_p)
     , d_statePool(1024, d_allocator_p)
     {
+        d_clusterArchiveLocation = d_clusterLocation;
+        d_clusterArchiveLocation.append("/archive");
+
         bdls::FilesystemUtil::remove(d_clusterLocation, true);
-        bdls::FilesystemUtil::remove(d_clusterArchiveLocation, true);
 
         bdls::FilesystemUtil::createDirectories(d_clusterLocation, true);
         bdls::FilesystemUtil::createDirectories(d_clusterArchiveLocation,
@@ -441,7 +443,6 @@ class Tester {
         d_miscWorkThreadPool.stop();
 
         bdls::FilesystemUtil::remove(d_clusterLocation, true);
-        bdls::FilesystemUtil::remove(d_clusterArchiveLocation, true);
     }
 
     // MANIPULATORS
