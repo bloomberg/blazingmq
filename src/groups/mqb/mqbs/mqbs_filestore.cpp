@@ -1088,8 +1088,8 @@ int FileStore::openInRecoveryMode(bsl::ostream&    errorDescription,
                 BALL_LOG_WARN
                     << partitionDesc()
                     << "Conforming journal to cluster state: writing a "
-                    << "corrective QueueOp.DELETION for extra queueKey "
-                    << "[" << *it << "].";
+                    << "corrective QueueOp.DELETION for extra queueKey " << "["
+                    << *it << "].";
                 rc = writeCorrectiveQueueDeletionDuringRecovery(*it,
                                                                 timestamp);
                 if (0 != rc) {
@@ -2783,6 +2783,101 @@ int FileStore::create(FileSetSp* fileSetSp)
     return rc;
 }
 
+void FileStore::logQueueRolloverSummary(
+    const QueueKeyCounterMap& queueKeyCounterMap) const
+{
+    // Print summary of rolled over queues.
+    bmqu::MemOutStream outStream;
+    outStream << partitionDesc() << "Queue rollover summary:"
+              << "\n      QueueKey    NumMsgs   NumBytes      QueueUri";
+
+    QueueKeyCounterList queueKeyCounters;
+    queueKeyCounters.reserve(queueKeyCounterMap.size());
+    for (QueueKeyCounterMapCIter queueKeyCounterCIter =
+             queueKeyCounterMap.cbegin();
+         queueKeyCounterCIter != queueKeyCounterMap.cend();
+         ++queueKeyCounterCIter) {
+        queueKeyCounters.push_back(*queueKeyCounterCIter);
+    }
+    bsl::sort(queueKeyCounters.begin(), queueKeyCounters.end(), compareByByte);
+
+    for (QueueKeyCounterListCIter queueCountersCIter =
+             queueKeyCounters.cbegin();
+         queueCountersCIter != queueKeyCounters.cend();
+         ++queueCountersCIter) {
+        StorageMapConstIter sit = d_storages.find(queueCountersCIter->first);
+        BSLS_ASSERT_SAFE(sit != d_storages.cend());
+
+        outStream << "\n    [" << queueCountersCIter->first << "] "
+                  << bsl::setw(8)
+                  << bmqu::PrintUtil::prettyNumber(
+                         static_cast<int>(queueCountersCIter->second.first))
+                  << " " << bsl::setw(10)
+                  << bmqu::PrintUtil::prettyBytes(
+                         queueCountersCIter->second.second)
+                  << " " << sit->second->queueUri();
+    }
+    BALL_LOG_INFO << outStream.str();
+}
+
+void FileStore::logCompactionMetrics(const FileSet& activeFileSet,
+                                     const FileSet& newActiveFileSet) const
+{
+    // Print some rollover-related metrics.
+
+    bmqu::MemOutStream out;
+    out << partitionDesc() << "Compaction metrics: \n"
+        << "    DATA file size    (new/old): "
+        << bmqu::PrintUtil::prettyBytes(newActiveFileSet.d_data.d_filePosition)
+        << "/"
+        << bmqu::PrintUtil::prettyBytes(activeFileSet.d_data.d_filePosition)
+        << " ("
+        << ((newActiveFileSet.d_data.d_filePosition * 100) /
+            activeFileSet.d_data.d_filePosition)
+        << "%)\n";
+
+    out << "    JOURNAL file size (new/old): "
+        << bmqu::PrintUtil::prettyBytes(
+               newActiveFileSet.d_journal.d_filePosition)
+        << "/"
+        << bmqu::PrintUtil::prettyBytes(activeFileSet.d_journal.d_filePosition)
+        << " ("
+        << ((newActiveFileSet.d_journal.d_filePosition * 100) /
+            activeFileSet.d_journal.d_filePosition)
+        << "%)\n";
+
+    if (d_qListAware) {
+        out << "    QLIST file size   (new/old): "
+            << bmqu::PrintUtil::prettyBytes(
+                   newActiveFileSet.d_qlist.d_filePosition)
+            << "/"
+            << bmqu::PrintUtil::prettyBytes(
+                   activeFileSet.d_qlist.d_filePosition)
+            << " ("
+            << ((newActiveFileSet.d_qlist.d_filePosition * 100) /
+                activeFileSet.d_qlist.d_filePosition)
+            << "%)";
+    }
+    BALL_LOG_INFO << out.str();
+}
+
+void FileStore::copyOutstandingRecords(QueueKeyCounterMap* queueKeyCounterMap,
+                                       FileSet*            activeFileSet,
+                                       FileSet*            newFileSet)
+{
+    // Iterate over outstanding records in the active set, and copy them to the
+    // rollover set.
+
+    for (RecordIterator recordIt = d_records.begin();
+         recordIt != d_records.end();
+         ++recordIt) {
+        writeRolledOverRecord(&(recordIt->second),
+                              queueKeyCounterMap,
+                              activeFileSet,
+                              newFileSet);
+    }
+}
+
 int FileStore::rolloverImpl(bsls::Types::Uint64 timestamp)
 {
     // PRECONDITIONS
@@ -2820,47 +2915,11 @@ int FileStore::rolloverImpl(bsls::Types::Uint64 timestamp)
     // rollover set.
 
     QueueKeyCounterMap queueKeyCounterMap;
-    for (RecordIterator recordIt = d_records.begin();
-         recordIt != d_records.end();
-         ++recordIt) {
-        writeRolledOverRecord(&(recordIt->second),
-                              &queueKeyCounterMap,
-                              activeFileSet,
-                              newActiveFileSetSp.get());
-    }
+    copyOutstandingRecords(&queueKeyCounterMap,
+                           activeFileSet,
+                           newActiveFileSetSp.get());
 
-    // Print summary of rolled over queues.
-    bmqu::MemOutStream outStream;
-    outStream << partitionDesc() << "Queue rollover summary:"
-              << "\n      QueueKey    NumMsgs   NumBytes      QueueUri";
-
-    QueueKeyCounterList queueKeyCounters;
-    queueKeyCounters.reserve(queueKeyCounterMap.size());
-    for (QueueKeyCounterMapCIter queueKeyCounterCIter =
-             queueKeyCounterMap.cbegin();
-         queueKeyCounterCIter != queueKeyCounterMap.cend();
-         ++queueKeyCounterCIter) {
-        queueKeyCounters.push_back(*queueKeyCounterCIter);
-    }
-    bsl::sort(queueKeyCounters.begin(), queueKeyCounters.end(), compareByByte);
-
-    for (QueueKeyCounterListCIter queueCountersCIter =
-             queueKeyCounters.cbegin();
-         queueCountersCIter != queueKeyCounters.cend();
-         ++queueCountersCIter) {
-        StorageMapConstIter sit = d_storages.find(queueCountersCIter->first);
-        BSLS_ASSERT_SAFE(sit != d_storages.cend());
-
-        outStream << "\n    [" << queueCountersCIter->first << "] "
-                  << bsl::setw(8)
-                  << bmqu::PrintUtil::prettyNumber(
-                         static_cast<int>(queueCountersCIter->second.first))
-                  << " " << bsl::setw(10)
-                  << bmqu::PrintUtil::prettyBytes(
-                         queueCountersCIter->second.second)
-                  << " " << sit->second->queueUri();
-    }
-    BALL_LOG_INFO << outStream.str();
+    logQueueRolloverSummary(queueKeyCounterMap);
 
     // Local refs for convenience.
 
@@ -2974,44 +3033,7 @@ int FileStore::rolloverImpl(bsls::Types::Uint64 timestamp)
     // No need to update outstanding bytes for the journal belonging to the new
     // file set, since we don't rollover SyncPts.
 
-    // Print some rollover-related metrics.
-
-    bmqu::MemOutStream out;
-    out << partitionDesc() << "Compaction metrics: \n"
-        << "    DATA file size    (new/old): "
-        << bmqu::PrintUtil::prettyBytes(
-               newActiveFileSetSp->d_data.d_filePosition)
-        << "/"
-        << bmqu::PrintUtil::prettyBytes(activeFileSet->d_data.d_filePosition)
-        << " ("
-        << ((newActiveFileSetSp->d_data.d_filePosition * 100) /
-            activeFileSet->d_data.d_filePosition)
-        << "%)\n";
-
-    out << "    JOURNAL file size (new/old): "
-        << bmqu::PrintUtil::prettyBytes(
-               newActiveFileSetSp->d_journal.d_filePosition)
-        << "/"
-        << bmqu::PrintUtil::prettyBytes(
-               activeFileSet->d_journal.d_filePosition)
-        << " ("
-        << ((newActiveFileSetSp->d_journal.d_filePosition * 100) /
-            activeFileSet->d_journal.d_filePosition)
-        << "%)\n";
-
-    if (d_qListAware) {
-        out << "    QLIST file size   (new/old): "
-            << bmqu::PrintUtil::prettyBytes(
-                   newActiveFileSetSp->d_qlist.d_filePosition)
-            << "/"
-            << bmqu::PrintUtil::prettyBytes(
-                   activeFileSet->d_qlist.d_filePosition)
-            << " ("
-            << ((newActiveFileSetSp->d_qlist.d_filePosition * 100) /
-                activeFileSet->d_qlist.d_filePosition)
-            << "%)";
-    }
-    BALL_LOG_INFO << out.str();
+    logCompactionMetrics(*activeFileSet, *newActiveFileSetSp);
 
     BALL_LOG_INFO_BLOCK
     {
