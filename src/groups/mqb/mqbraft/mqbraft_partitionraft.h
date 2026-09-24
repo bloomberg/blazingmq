@@ -83,8 +83,10 @@ class PartitionRaft : public mqbs::RecordStore,
   public:
     // TYPES
 
-    /// Callback for this partition's Raft leadership changes and for its
-    /// deferred sync point committing (`haveCommit=true`).
+    /// Callback for this partition's Raft leadership changes and, with
+    /// `haveCommit=true`, for this node applying the first sync point
+    /// committed under `term`.  The latter fires on the leader and on the
+    /// replicas.
     typedef bsl::function<void(int                 partitionId,
                                int                 leaderNodeId,
                                bsls::Types::Uint64 term,
@@ -149,9 +151,10 @@ class PartitionRaft : public mqbs::RecordStore,
     /// `true` if an `e_ROLLOVER` has been proposed but not yet committed.
     bool d_isRolloverPending;
 
-    /// `true` between `proposeDeferredSyncPoint` and the commit of this
-    /// term's first entry.
-    bool d_isExpectingTermCommit;
+    /// Term of the last sync point reported through `d_leadershipCb`.  The
+    /// first sync point committed under a term is the partition's first
+    /// record under that leaseId, and only that one is reported.
+    bsls::Types::Uint64 d_reportedSyncPointTerm;
 
     /// `true` from becoming leader until this term's become-leader sync
     /// point is proposed.
