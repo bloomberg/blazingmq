@@ -120,6 +120,7 @@ struct UriParsingContext {
         //       ^        ^
         //       start    (start + (*length))
         // Allowed characters: [-a-zA-Z0-9\\._]
+        // Consecutive dots are not allowed.
         for (size_t pos = start; pos < d_uri.length(); ++pos) {
             if (isalnum_fast(d_uri[pos])) {
                 continue;
@@ -131,6 +132,13 @@ struct UriParsingContext {
                 continue;
             }
             case '.': {
+                if (pos + 1 < d_uri.length() && d_uri[pos + 1] == '.') {
+                    BMQT_RETURN_WITH_ERROR(
+                        UriParser::UriParseResult::e_UNSUPPORTED_CHAR,
+                        errorDescription,
+                        "Domain parsing failed: consecutive dots are not "
+                        "allowed");  // RETURN
+                }
                 if (pos + 1 < d_uri.length() && d_uri[pos + 1] == '~') {
                     d_hasTier = true;
                     *length   = pos - start;
@@ -521,6 +529,37 @@ Uri::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 // ----------------
 // struct UriParser
 // ----------------
+
+bool UriParser::isValidDomain(const bslstl::StringRef& domain)
+{
+    if (domain.empty()) {
+        return false;
+    }
+
+    for (size_t pos = 0; pos < domain.length(); ++pos) {
+        if (UriParsingContext::isalnum_fast(domain[pos])) {
+            continue;
+        }
+
+        switch (domain[pos]) {
+        case '-': BSLA_FALLTHROUGH;
+        case '_': {
+            continue;
+        }
+        case '.': {
+            if (pos + 1 < domain.length() && domain[pos + 1] == '.') {
+                return false;
+            }
+            continue;
+        }
+        default: {
+            return false;
+        }
+        }
+    }
+
+    return true;
+}
 
 int UriParser::parse(Uri*                     result,
                      bsl::string*             errorDescription,

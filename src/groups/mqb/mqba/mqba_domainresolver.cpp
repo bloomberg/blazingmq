@@ -22,6 +22,7 @@
 #include <mqbconfm_messages.h>
 #include <mqbscm_version.h>
 
+#include <bmqt_uri.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_printutil.h>
 #include <bmqu_stringutil.h>
@@ -129,6 +130,11 @@ int DomainResolver::getOrRead(bsl::ostream&    errorDescription,
     BSLS_ASSERT_SAFE(resolvedDomainName);
     BSLS_ASSERT_SAFE(clusterName);
 
+    if (!bmqt::UriParser::isValidDomain(domainName)) {
+        errorDescription << "Invalid domain name";
+        return -1;  // RETURN
+    }
+
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // mutex LOCKED
 
     // Make sure we have the latest script timestamp
@@ -157,6 +163,11 @@ int DomainResolver::getOrRead(bsl::ostream&    errorDescription,
     bsl::string redirectedDomainName(domainName, d_allocator_p);
 
     for (; redirection < 2; ++redirection) {
+        if (!bmqt::UriParser::isValidDomain(redirectedDomainName)) {
+            errorDescription << "Invalid domain redirect";
+            return rc_REDIRECTION_ERROR;  // RETURN
+        }
+
         // 1. read config
         bsl::string filePath = mqbcfg::BrokerConfig::get().etcDir() +
                                "/domains/" + redirectedDomainName + ".json";
@@ -232,12 +243,12 @@ int DomainResolver::getOrRead(bsl::ostream&    errorDescription,
 
         rc = decoder.decode(jsonStream, &domainVariant, options);
         if (rc != 0) {
+            // Do not include the raw configuration in this client-visible
+            // error because it may contain sensitive information.
             errorDescription << "Error while decoding domain configuration "
                              << "[domain: '" << domainName << "'"
                              << ", rc: " << rc << ", error: '"
-                             << decoder.loggedMessages() << "'"
-                             << ", from content: '" << jsonStream.str()
-                             << "']";
+                             << decoder.loggedMessages() << "']";
             return rc_DECODING_ERROR;  // RETURN
         }
 

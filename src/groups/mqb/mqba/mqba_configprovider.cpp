@@ -24,6 +24,7 @@
 // BMQ
 #include <bmqscm_versiontag.h>
 
+#include <bmqt_uri.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_printutil.h>
 #include <bmqu_stringutil.h>
@@ -121,7 +122,13 @@ void ConfigProvider::getDomainConfig(bsl::string_view         domainName,
         e_SUCCESS       = 0,
         e_FILENOTEXIST  = -1,
         e_FILENOTOPENED = -2,
+        e_INVALIDDOMAIN = -3,
     };
+
+    if (!bmqt::UriParser::isValidDomain(domainName)) {
+        callback(e_INVALIDDOMAIN, "Invalid domain name");
+        return;  // RETURN
+    }
 
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
 
