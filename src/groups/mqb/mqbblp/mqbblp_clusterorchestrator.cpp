@@ -2350,12 +2350,17 @@ void ClusterOrchestrator::onPartitionRaftLeadershipDispatched(
         d_clusterState_p->setPartitionPrimary(partitionId, leaseId, ns);
     }
 
-    d_clusterState_p->setPartitionPrimaryStatus(
-        partitionId,
-        bmqp_ctrlmsg::PrimaryStatus::E_PASSIVE);
-
     if (haveCommit) {
+        // Not a leadership change: the primary and leaseId above are the ones
+        // already recorded, and this node has applied their first sync point.
+        // A node that does not wait for it has the partition E_ACTIVE by now,
+        // and marking it PASSIVE here would take it back.
         d_partitionCommittedLeaseId[partitionId] = leaseId;
+    }
+    else {
+        d_clusterState_p->setPartitionPrimaryStatus(
+            partitionId,
+            bmqp_ctrlmsg::PrimaryStatus::E_PASSIVE);
     }
 
     // A partition just learned its leaseId (one of the two independent
@@ -2567,12 +2572,18 @@ void ClusterOrchestrator::maybeTransitionToAvailable()
             partitions[pid].primaryStatus()) {
             continue;  // CONTINUE
         }
-        if (isSelfPrimary && partitions[pid].primaryLeaseId() !=
-                                 d_partitionCommittedLeaseId[pid]) {
+        const bool isSelfCslLeader = d_clusterStateRaft_mp->leaderId() ==
+                                     selfNodeId;
+
+        if ((isSelfPrimary || isSelfCslLeader) &&
+            partitions[pid].primaryLeaseId() !=
+                d_partitionCommittedLeaseId[pid]) {
             BALL_LOG_INFO << d_clusterData_p->identity().description()
                           << ": maybeTransitionToAvailable blocked: "
                           << "partition " << pid
-                          << " has not committed its deferred sync point yet";
+                          << " sync point for leaseId "
+                          << partitions[pid].primaryLeaseId()
+                          << " not applied here yet";
             allActivated = false;
             continue;  // CONTINUE
         }
