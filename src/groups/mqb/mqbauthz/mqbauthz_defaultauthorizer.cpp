@@ -138,12 +138,11 @@ bsl::string_view DefaultAuthorizer::name() const
 }
 
 bool DefaultAuthorizer::authorize(
-    const mqbact::Action&   action,
-    BSLA_MAYBE_UNUSED const mqbplug::AuthenticationResult& authnResult)
+    const mqbact::Action&                action,
+    const mqbplug::AuthenticationResult& authnResult)
 
 {
     if (!d_policy) {
-        BALL_LOG_INFO << "Authorize allow on " << action;
         return true;
     }
 
