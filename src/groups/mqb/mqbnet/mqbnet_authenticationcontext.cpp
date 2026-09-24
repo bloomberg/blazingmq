@@ -126,6 +126,11 @@ AuthenticationContext::AuthenticationContext(
     d_gateKeeper.open();
 }
 
+AuthenticationContext::~AuthenticationContext()
+{
+    close();
+}
+
 void AuthenticationContext::setAuthenticationResult(
     const bsl::shared_ptr<mqbplug::AuthenticationResult>& value)
 {
@@ -240,7 +245,7 @@ void AuthenticationContext::onReauthenticationError(
     channel_sp->close(status);
 }
 
-void AuthenticationContext::onClose()
+void AuthenticationContext::close()
 {
     // executed by *ANY* thread
 
