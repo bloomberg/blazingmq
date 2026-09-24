@@ -496,7 +496,7 @@ void InitialConnectionContext::onClose()
 
     // Propagate close
     if (d_authenticationCtx_sp) {
-        d_authenticationCtx_sp->onClose();
+        d_authenticationCtx_sp->close();
     }
     if (d_authenticationClient_sp) {
         d_authenticationClient_sp->onClose();

@@ -197,6 +197,8 @@ class AuthenticationContext {
         AuthenticationState::Enum                  state,
         bslma::Allocator*                          allocator = 0);
 
+    ~AuthenticationContext();
+
     // MANIPULATORS
     void setAuthenticationResult(
         const bsl::shared_ptr<mqbplug::AuthenticationResult>& value);
@@ -238,7 +240,7 @@ class AuthenticationContext {
     /// @brief Stop reauthenticating the channel that is closing.  This context
     ///        cannot be reauthenticated afterwards.  May be called more than
     ///        once.
-    void onClose();
+    void close();
 
     /// @brief Attempt to begin reauthentication with the specified
     ///        `authenticationMessage` and `encodingType`.

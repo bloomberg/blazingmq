@@ -155,7 +155,7 @@ static void test1_breathingTest()
                                                      tb.d_channel);
     BMQTST_ASSERT_EQ(rc, 0);
 
-    ctx->onClose();
+    ctx->close();
 }
 
 static void test2_zeroLifetimeTimeout()
@@ -207,7 +207,7 @@ static void test2_zeroLifetimeTimeout()
         ".*Reauthentication timeout.*",
         alloc));
 
-    ctx->onClose();
+    ctx->close();
 }
 
 static void test3_reauthenticationTimeout()
@@ -278,7 +278,7 @@ static void test3_reauthenticationTimeout()
         ".*Reauthentication timeout.*",
         alloc));
 
-    ctx->onClose();
+    ctx->close();
 }
 
 static void test4_reauthenticationBeforeTimeout()
@@ -351,7 +351,7 @@ static void test4_reauthenticationBeforeTimeout()
     // 7) Now the new timer fires and closes the channel
     BMQTST_ASSERT_EQ(tb.d_channel->numCloseCalls(), 1u);
 
-    ctx->onClose();
+    ctx->close();
 }
 
 static void test5_noLifetimeNoTimer()
@@ -388,7 +388,7 @@ static void test5_noLifetimeNoTimer()
 
     BMQTST_ASSERT_EQ(tb.d_channel->numCloseCalls(), 0u);
 
-    ctx->onClose();
+    ctx->close();
 }
 
 static void test6_onCloseBeforeTimeout()
@@ -426,7 +426,7 @@ static void test6_onCloseBeforeTimeout()
     BMQTST_ASSERT_EQ(rc, 0);
 
     // 2) Close before timeout
-    ctx->onClose();
+    ctx->close();
 
     // 3) Advance time past the lifetime
     tb.d_testClock.d_timeSource.advanceTime(

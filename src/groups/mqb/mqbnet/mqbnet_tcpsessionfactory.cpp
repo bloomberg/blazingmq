@@ -951,7 +951,7 @@ void TCPSessionFactory::onClose(const bsl::shared_ptr<bmqio::Channel>& channel,
 
         // Disable reauthentication timer if there's any
         if (channelInfo->d_authenticationCtx_sp) {
-            channelInfo->d_authenticationCtx_sp->onClose();
+            channelInfo->d_authenticationCtx_sp->close();
         }
 
         if (channelInfo->d_authenticationClient_sp) {
