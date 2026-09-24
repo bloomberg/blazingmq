@@ -905,6 +905,16 @@ bool PartitionRaftLog::isRollover(bsls::Types::Uint64 index) const
            entry.d_syncPointType == mqbs::SyncPointType::e_ROLLOVER;
 }
 
+bool PartitionRaftLog::isRegularSyncPoint(bsls::Types::Uint64 index) const
+{
+    BSLS_ASSERT_SAFE(index >= d_frontIndex && index <= lastIndex());
+
+    const mqbs::RecoveryRecordInfo& entry = d_index[index - d_frontIndex].d_info;
+
+    return entry.d_recordType == mqbs::RecordType::e_JOURNAL_OP &&
+           entry.d_syncPointType == mqbs::SyncPointType::e_REGULAR;
+}
+
 bool PartitionRaftLog::hasUncommittedRollover(
     bsls::Types::Uint64 commitIndex) const
 {
