@@ -194,7 +194,7 @@ PartitionRaft::PartitionRaft(unsigned int partitionId,
 , d_isDispatchingOutput(false)
 , d_deferred(d_allocator_p)
 , d_isRolloverPending(false)
-, d_isExpectingTermCommit(false)
+, d_reportedSyncPointTerm(0)
 , d_needsBecomeLeaderSyncPoint(false)
 , d_leadershipCb(leadershipCb)
 , d_canShutdown(false)
@@ -331,11 +331,6 @@ void PartitionRaft::dispatchOutput(RaftNodeOutput* output)
 
     if (output->d_lostLeadership) {
         d_isRolloverPending = false;
-
-        // This term's sync point will not commit under this node; leaving the
-        // expectation set would fire the 'haveCommit' callback for the next
-        // term this node leads, on whatever entry commits first.
-        d_isExpectingTermCommit = false;
 
         // The queues stay local for now.  Converting them is the cluster's
         // call, because the handles the peers opened here have to go first
@@ -795,18 +790,28 @@ void PartitionRaft::applyCommittedEntry(const LogEntry&    entry,
 {
     // executed by the partition *DISPATCHER* thread
 
+    // Read before applying: the entry leaves the log's index below.
+    const bool isSyncPoint = d_raftLog_mp->isRegularSyncPoint(entry.d_index);
+
     // The log routes on the entry itself: one it holds a write for had the
     // storage side done at propose time, whatever this node's leadership has
     // done since, and only the write holds what apply still needs.
-    const bool wasOwn = d_raftLog_mp->applyCommittedEntry(entry.d_index,
-                                                          entry.d_data,
-                                                          commitTimepoint);
+    d_raftLog_mp->applyCommittedEntry(entry.d_index,
+                                      entry.d_data,
+                                      commitTimepoint);
 
-    if (wasOwn && isLeader() && d_isExpectingTermCommit) {
-        d_isExpectingTermCommit = false;
+    if (isSyncPoint && entry.d_term == d_raftNode_mp->currentTerm() &&
+        entry.d_term > d_reportedSyncPointTerm) {
+        // The leader writes this sync point once the CSL advisory for its
+        // leaseId has committed, so it is the partition's first record under
+        // that leaseId.  Applying it is how a node -- leader or replica --
+        // knows its storage holds everything committed under the leaseId the
+        // CSL confirmed; the cluster waits for it before going available.
+        d_reportedSyncPointTerm = entry.d_term;
+
         d_leadershipCb(d_partitionId,
                        d_raftNode_mp->leaderId(),
-                       d_raftNode_mp->currentTerm(),
+                       entry.d_term,
                        true);
     }
 }
@@ -1588,11 +1593,6 @@ void PartitionRaft::proposeDeferredSyncPoint()
     BALL_LOG_INFO << "Partition [" << d_partitionId
                   << "] writing deferred become-leader sync point (partition "
                   << "activated; CSL advisory for its leaseId has committed).";
-
-    // Set before proposing: in a single-node cluster 'propose' commits and
-    // applies synchronously, so 'applyCommittedEntry' runs before this
-    // returns.
-    d_isExpectingTermCommit = true;
 
     proposeSyncPoint();
 
