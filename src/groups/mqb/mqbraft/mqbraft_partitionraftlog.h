@@ -329,6 +329,11 @@ class PartitionRaftLog : public RaftLog {
     /// which excludes every entry already applied and trimmed.
     bool isRollover(bsls::Types::Uint64 index) const;
 
+    /// Return `true` if the entry at the specified `index` is an `e_REGULAR`
+    /// sync point -- the type `proposeSyncPoint` writes, as opposed to the
+    /// `e_ROLLOVER` one.  Same `d_index` restriction as `isRollover`.
+    bool isRegularSyncPoint(bsls::Types::Uint64 index) const;
+
     /// Return `true` if the log holds an `e_ROLLOVER` entry above the
     /// specified `commitIndex` (i.e. an uncommitted rollover, whether
     /// self-proposed or inherited from a prior leader).  A new leader uses
