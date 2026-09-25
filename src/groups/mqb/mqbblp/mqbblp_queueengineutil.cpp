@@ -1023,7 +1023,8 @@ size_t QueueEngineUtil_AppState::catchUp(
                 // Do not block other Subscriptions. Continue.
             }
             else if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
-                         result == Routers::e_NO_CAPACITY_ALL)) {
+                         result == Routers::e_NO_CAPACITY_ALL ||
+                         result == Routers::e_DELAY)) {
                 d_resumePoint = current->guid();
                 break;
             }
