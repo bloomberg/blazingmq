@@ -32,6 +32,7 @@ from blazingmq.dev.it.data import data_metrics as dt
 from blazingmq.dev.it.process.admin import AdminClient
 from blazingmq.dev.it.process.broker import Broker
 from blazingmq.dev.it.process.client import Client
+from blazingmq.dev.it.util import wait_until
 
 pytestmark = order(1)
 
@@ -50,6 +51,15 @@ class PostRecord:
         assert self.domain == other.domain
         assert self.queue_name == other.queue_name
         self.num += other.num
+
+
+def wait_all_pushed(consumer: Client, uri: str, num: int) -> None:
+    """
+    Wait until the specified 'consumer' has received all the specified 'num'
+    messages from the specified 'uri'.  The messages may arrive in several
+    PUSH events, so confirming after the first one can miss some of them.
+    """
+    assert wait_until(lambda: len(consumer.list(uri, block=True)) == num, 3)
 
 
 def post_n_msgs(
@@ -232,17 +242,17 @@ def test_queue_stats(single_node: Cluster, domain_urls: tc.DomainUrls) -> None:
     # Stage 2: check stats after confirming messages
     consumer_foo: Client = proxy.create_client("consumer_foo")
     consumer_foo.open(f"{task.uri}?id=foo", flags=["read"], succeed=True)
-    consumer_foo.wait_push_event()
+    wait_all_pushed(consumer_foo, f"{task.uri}?id=foo", task.num)
     consumer_foo.confirm(f"{task.uri}?id=foo", "*", succeed=True)
 
     consumer_bar: Client = proxy.create_client("consumer_bar")
     consumer_bar.open(f"{task.uri}?id=bar", flags=["read"], succeed=True)
-    consumer_bar.wait_push_event()
+    wait_all_pushed(consumer_bar, f"{task.uri}?id=bar", task.num)
     consumer_bar.confirm(f"{task.uri}?id=bar", "+22", succeed=True)
 
     consumer_baz: Client = proxy.create_client("consumer_baz")
     consumer_baz.open(f"{task.uri}?id=baz", flags=["read"], succeed=True)
-    consumer_baz.wait_push_event()
+    wait_all_pushed(consumer_baz, f"{task.uri}?id=baz", task.num)
     consumer_baz.confirm(f"{task.uri}?id=baz", "+11", succeed=True)
 
     stats = extract_stats(admin.send_admin("encoding json_pretty stat show"))
@@ -371,17 +381,17 @@ def test_app_id_stats(multi_node: Cluster, domain_urls: tc.DomainUrls) -> None:
     # Stage 2: check stats after confirming messages
     consumer_foo: Client = proxy.create_client("consumer_foo")
     consumer_foo.open(f"{task.uri}?id=foo", flags=["read"], succeed=True)
-    consumer_foo.wait_push_event()
+    wait_all_pushed(consumer_foo, f"{task.uri}?id=foo", task.num)
     consumer_foo.confirm(f"{task.uri}?id=foo", "*", succeed=True)
 
     consumer_bar: Client = proxy.create_client("consumer_bar")
     consumer_bar.open(f"{task.uri}?id=bar", flags=["read"], succeed=True)
-    consumer_bar.wait_push_event()
+    wait_all_pushed(consumer_bar, f"{task.uri}?id=bar", task.num)
     consumer_bar.confirm(f"{task.uri}?id=bar", "+22", succeed=True)
 
     consumer_baz: Client = proxy.create_client("consumer_baz")
     consumer_baz.open(f"{task.uri}?id=baz", flags=["read"], succeed=True)
-    consumer_baz.wait_push_event()
+    wait_all_pushed(consumer_baz, f"{task.uri}?id=baz", task.num)
     consumer_baz.confirm(f"{task.uri}?id=baz", "+11", succeed=True)
 
     admin.stop()
