@@ -221,14 +221,11 @@ static void test2_priority()
 
     bsls::ObjectBuffer<mqbmock::QueueHandle> handle;
 
-    const bmqp_ctrlmsg::StreamParameters streamParameters(
-        bmqtst::TestHelperUtil::allocator());
     mqbblp::Routers::Consumers consumers(bmqtst::TestHelperUtil::allocator());
     const unsigned int         subQueueId           = 13;
     mqbblp::Routers::Consumers::SharedItem consumer = consumers.record(
         handle.address(),
-        mqbblp::Routers::Consumer(streamParameters,
-                                  subQueueId,
+        mqbblp::Routers::Consumer(subQueueId,
                                   true,
                                   bmqtst::TestHelperUtil::allocator()));
 

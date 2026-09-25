@@ -357,7 +357,6 @@ class Routers {
         BSLMF_NESTED_TRAIT_DECLARATION(Consumer, bslma::UsesBslmaAllocator)
 
         // DATA
-        const bmqp_ctrlmsg::StreamParameters d_streamParameters;
 
         /// Time at which the last message was sent.
         bsls::TimeInterval d_timeLastMessageSent;
@@ -375,13 +374,11 @@ class Routers {
 
         // CREATORS
 
-        /// Creates a new `Consumer` using the specified
-        /// `streamParameters`, `subQueueId`, `isBroadcastBroker`, and
-        /// `allocator`.
-        Consumer(const bmqp_ctrlmsg::StreamParameters& streamParameters,
-                 unsigned int                          subQueueId,
-                 bool                                  isBroadcastBroker,
-                 bslma::Allocator*                     allocator);
+        /// Creates a new `Consumer` using the specified `subQueueId`,
+        /// `isBroadcastBroker`, and `allocator`.
+        Consumer(unsigned int      subQueueId,
+                 bool              isBroadcastBroker,
+                 bslma::Allocator* allocator);
         Consumer(const Consumer& other, bslma::Allocator* allocator = 0);
 
         ~Consumer();
@@ -815,13 +812,10 @@ class Routers {
 // struct Routers::Consumer
 // -----------------------------
 
-inline Routers::Consumer::Consumer(
-    const bmqp_ctrlmsg::StreamParameters& streamParameters,
-    unsigned int                          subQueueId,
-    bool                                  isBroadcastBroker,
-    bslma::Allocator*                     allocator)
-: d_streamParameters(streamParameters, allocator)
-, d_timeLastMessageSent(0)
+inline Routers::Consumer::Consumer(unsigned int      subQueueId,
+                                   bool              isBroadcastBroker,
+                                   bslma::Allocator* allocator)
+: d_timeLastMessageSent(0)
 , d_lastSentMessage()
 , d_highestSubscriptions(allocator)
 , d_downstreamSubQueueId(subQueueId)
@@ -832,8 +826,7 @@ inline Routers::Consumer::Consumer(
 
 inline Routers::Consumer::Consumer(const Consumer&   other,
                                    bslma::Allocator* allocator)
-: d_streamParameters(other.d_streamParameters, allocator)
-, d_timeLastMessageSent(other.d_timeLastMessageSent)
+: d_timeLastMessageSent(other.d_timeLastMessageSent)
 , d_lastSentMessage(other.d_lastSentMessage)
 , d_highestSubscriptions(other.d_highestSubscriptions, allocator)
 , d_downstreamSubQueueId(other.d_downstreamSubQueueId)
