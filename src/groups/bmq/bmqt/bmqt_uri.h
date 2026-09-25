@@ -46,11 +46,12 @@
 ///
 ///   - The URI authority is the name of BlazingMQ domain (such as
 ///     "ts.trades.myapp") as registered with the BlazingMQ infrastructure.
-///     The domain name may contain alphanumeric characters, dots and dashes
-///     (it has to match the following regular expression:
-///     `[-a-zA-Z0-9\\._]+`).  The domain may be followed by an optional tier,
-///     introduced by the ".~" sequence and consisting of alphanumeric
-///     characters and dashes.  The ".~" sequence is not part of the tier.
+///     The domain name may contain alphanumeric characters, dots, dashes, and
+///     underscores (each character must match `[-a-zA-Z0-9\\._]`) and must
+///     not contain consecutive dots.  The domain may be followed by an
+///     optional tier, introduced by the ".~" sequence and consisting of
+///     alphanumeric characters and dashes.  The ".~" sequence is not part of
+///     the tier.
 ///
 ///   - The URI path is the name of the queue ("my.queue" above) and may
 ///     contain alphanumeric characters, dashes, underscores and tild (it has

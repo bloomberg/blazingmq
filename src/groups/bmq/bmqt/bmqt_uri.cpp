@@ -120,6 +120,7 @@ struct UriParsingContext {
         //       ^        ^
         //       start    (start + (*length))
         // Allowed characters: [-a-zA-Z0-9\\._]
+        // Consecutive dots are not allowed.
         for (size_t pos = start; pos < d_uri.length(); ++pos) {
             if (isalnum_fast(d_uri[pos])) {
                 continue;
@@ -131,6 +132,13 @@ struct UriParsingContext {
                 continue;
             }
             case '.': {
+                if (pos + 1 < d_uri.length() && d_uri[pos + 1] == '.') {
+                    BMQT_RETURN_WITH_ERROR(
+                        UriParser::UriParseResult::e_UNSUPPORTED_CHAR,
+                        errorDescription,
+                        "Domain parsing failed: consecutive dots are not "
+                        "allowed");  // RETURN
+                }
                 if (pos + 1 < d_uri.length() && d_uri[pos + 1] == '~') {
                     d_hasTier = true;
                     *length   = pos - start;
