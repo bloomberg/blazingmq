@@ -23,8 +23,8 @@
 ///
 /// This component provides a value-semantic type, @bbref{bmqt::Uri}
 /// representing a URI for a BlazingMQ queue.  A @bbref{bmqt::Uri} can be built
-/// by parsing from a string representation, using the @bbref{bmqt::UriParser},
-/// or built using the @bbref{bmqt::UriBuilder}.
+/// by parsing from a string representation using @bbref{bmqt::Uri::parse}, or
+/// built using the @bbref{bmqt::UriBuilder}.
 ///
 /// @see https://tools.ietf.org/html/rfc3986
 ///
@@ -81,12 +81,12 @@
 /// bmqt::Uri   uri(allocator);
 /// bsl::string errorDescription;
 ///
-/// int         rc = bmqt::UriParser::parse(&uri, &errorDescription, input);
+/// int         rc = bmqt::Uri::parse(&uri, input, &errorDescription);
 /// if (rc != 0) {
 ///    BALL_LOG_ERROR << "Invalid URI [error: " << errorDescription << "]";
 /// }
 /// assert(rc == 0);
-/// assert(error == "");
+/// assert(errorDescription == "");
 /// assert(uri.scheme()    == "bmq");
 /// assert(uri.domain()    == "my.domain");
 /// assert(uri.queue()     == "queue");
@@ -96,7 +96,8 @@
 /// ===============
 ///
 /// Instantiate a @bbref{bmqt::Uri} object with a string representation of the
-/// URI and an allocator.
+/// URI and an allocator.  Prefer @bbref{bmqt::Uri::parse} when the caller
+/// needs to handle parse failures explicitly.
 ///
 /// ```
 /// bmqt::Uri uri("bmq://my.domain/queue", allocator);
@@ -118,6 +119,7 @@
 #include <bsl_ostream.h>
 #include <bsl_string.h>
 #include <bsla_maybeunused.h>
+#include <bsla_nodiscard.h>
 #include <bslh_hash.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
@@ -194,6 +196,19 @@ class Uri {
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(Uri, bslma::UsesBslmaAllocator)
+
+    // CLASS METHODS
+
+    /// Parse the specified `uriString` into the specified `result` object if
+    /// `uriString` is a valid URI, otherwise load the specified
+    /// `errorDescription` with a description of the syntax error present in
+    /// `uriString`.  Return 0 on success and non-zero if `uriString` does not
+    /// have a valid syntax.  Note that `errorDescription` may be null if the
+    /// caller does not care about getting error messages.
+    BSLA_NODISCARD
+    static int parse(Uri*                     result,
+                     const bslstl::StringRef& uriString,
+                     bsl::string*             errorDescription);
 
     // CREATORS
 
