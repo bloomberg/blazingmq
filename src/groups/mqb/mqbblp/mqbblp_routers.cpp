@@ -278,10 +278,7 @@ void Routers::AppContext::load(
     // Unique Consumer per App
     Consumers::SharedItem itConsumer = d_consumers.record(
         handle,
-        Consumer(streamParameters,
-                 downstreamSubQueueId,
-                 isBroadcastBroker,
-                 d_allocator_p));
+        Consumer(downstreamSubQueueId, isBroadcastBroker, d_allocator_p));
 
     // For convenience, the flag is used for correct comma ', ' printing when
     // multiple errors are logged.
