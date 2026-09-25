@@ -386,10 +386,15 @@ void Routers::AppContext::load(
             }
 
             // Unique Priority level per App
-            Priority& priorityLevel = d_priorities
-                                          .emplace(priority,
-                                                   Priority(d_allocator_p))
-                                          .first->second;
+            // TODO: use 'try_emplace' once C++03 support is dropped (its C++03
+            // emulation needs a default-constructible 'Priority').
+            Priorities::iterator itPriority = d_priorities.find(priority);
+            if (itPriority == d_priorities.end()) {
+                itPriority = d_priorities
+                                 .emplace(priority, Priority(d_allocator_p))
+                                 .first;
+            }
+            Priority& priorityLevel = itPriority->second;
 
             // Unique Subscriber per Priority level
             Subscribers::SharedItem itSubscriber =
