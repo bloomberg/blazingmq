@@ -294,8 +294,6 @@ DomainManager::decodeAndUpsert(DecodeAndUpsertValue* out,
     int rc = decoder.decode(jsonStream, &domainVariant, options);
     if (rc != 0) {
         bmqu::MemOutStream err;
-        // Do not include the raw configuration in this client-visible
-        // error because it may contain sensitive information.
         err << "rc = " << rc << " error = '" << decoder.loggedMessages()
             << "'";
         out->makeError(Error(bmqp_ctrlmsg::StatusCategory::E_REFUSED,

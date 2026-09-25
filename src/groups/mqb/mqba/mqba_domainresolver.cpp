@@ -244,8 +244,6 @@ int DomainResolver::getOrRead(bsl::ostream&    errorDescription,
 
         rc = decoder.decode(jsonStream, &domainVariant, options);
         if (rc != 0) {
-            // Do not include the raw configuration in this client-visible
-            // error because it may contain sensitive information.
             errorDescription << "Error while decoding domain configuration "
                              << "[domain: '" << domainName << "'"
                              << ", rc: " << rc << ", error: '"
