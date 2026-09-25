@@ -337,11 +337,6 @@ struct UriParser {
                      bsl::string*             errorDescription,
                      const bslstl::StringRef& uriString);
 
-    /// Return `true` if the specified `domain` is a non-empty domain name
-    /// containing only characters supported by the BlazingMQ URI grammar and
-    /// does not contain consecutive dots.
-    static bool isValidDomain(const bslstl::StringRef& domain);
-
   private:
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("BMQT.URI");

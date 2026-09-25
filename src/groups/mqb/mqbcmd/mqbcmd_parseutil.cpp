@@ -18,8 +18,9 @@
 #include <mqbscm_version.h>
 // MQB
 #include <mqbcmd_messages.h>
+#include <mqbu_domainutil.h>
 
-#include <bmqt_uri.h>
+// BMQ
 #include <bmqu_memoutstream.h>
 #include <bmqu_stringutil.h>
 
@@ -51,7 +52,7 @@ int validateDomainName(bsl::string*             error,
                        const bslstl::StringRef& name,
                        const bslstl::StringRef& command)
 {
-    if (bmqt::UriParser::isValidDomain(name)) {
+    if (mqbu::DomainUtil::isValidDomain(name)) {
         return 0;
     }
 

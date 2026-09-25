@@ -20,11 +20,10 @@
 #include <mqbcfg_brokerconfig.h>
 #include <mqbcfg_messages.h>
 #include <mqbcmd_messages.h>
+#include <mqbu_domainutil.h>
 
 // BMQ
 #include <bmqscm_versiontag.h>
-
-#include <bmqt_uri.h>
 #include <bmqu_memoutstream.h>
 #include <bmqu_printutil.h>
 #include <bmqu_stringutil.h>
@@ -125,7 +124,7 @@ void ConfigProvider::getDomainConfig(bsl::string_view         domainName,
         e_INVALIDDOMAIN = -3,
     };
 
-    if (!bmqt::UriParser::isValidDomain(domainName)) {
+    if (!mqbu::DomainUtil::isValidDomain(domainName)) {
         callback(e_INVALIDDOMAIN, "Invalid domain name");
         return;  // RETURN
     }

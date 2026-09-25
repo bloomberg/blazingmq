@@ -21,8 +21,9 @@
 #include <mqbcmd_messages.h>
 #include <mqbconfm_messages.h>
 #include <mqbscm_version.h>
+#include <mqbu_domainutil.h>
 
-#include <bmqt_uri.h>
+// BMQ
 #include <bmqu_memoutstream.h>
 #include <bmqu_printutil.h>
 #include <bmqu_stringutil.h>
@@ -130,7 +131,7 @@ int DomainResolver::getOrRead(bsl::ostream&    errorDescription,
     BSLS_ASSERT_SAFE(resolvedDomainName);
     BSLS_ASSERT_SAFE(clusterName);
 
-    if (!bmqt::UriParser::isValidDomain(domainName)) {
+    if (!mqbu::DomainUtil::isValidDomain(domainName)) {
         errorDescription << "Invalid domain name";
         return -1;  // RETURN
     }
@@ -163,7 +164,7 @@ int DomainResolver::getOrRead(bsl::ostream&    errorDescription,
     bsl::string redirectedDomainName(domainName, d_allocator_p);
 
     for (; redirection < 2; ++redirection) {
-        if (!bmqt::UriParser::isValidDomain(redirectedDomainName)) {
+        if (!mqbu::DomainUtil::isValidDomain(redirectedDomainName)) {
             errorDescription << "Invalid domain redirect";
             return rc_REDIRECTION_ERROR;  // RETURN
         }

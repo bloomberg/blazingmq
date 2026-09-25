@@ -100,12 +100,6 @@ static void test1_breathingTest()
 
     PV("Test basic parsing");
     {
-        BMQTST_ASSERT(bmqt::UriParser::isValidDomain("my.domain-name_1"));
-        BMQTST_ASSERT(!bmqt::UriParser::isValidDomain(""));
-        BMQTST_ASSERT(!bmqt::UriParser::isValidDomain("my..domain"));
-        BMQTST_ASSERT(!bmqt::UriParser::isValidDomain("my/domain"));
-        BMQTST_ASSERT(!bmqt::UriParser::isValidDomain("my~domain"));
-
         bmqt::Uri obj(bmqtst::TestHelperUtil::allocator());
         BMQTST_ASSERT_EQ(obj.isValid(), false);
         {

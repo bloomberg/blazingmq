@@ -530,37 +530,6 @@ Uri::print(bsl::ostream& stream, int level, int spacesPerLevel) const
 // struct UriParser
 // ----------------
 
-bool UriParser::isValidDomain(const bslstl::StringRef& domain)
-{
-    if (domain.empty()) {
-        return false;
-    }
-
-    for (size_t pos = 0; pos < domain.length(); ++pos) {
-        if (UriParsingContext::isalnum_fast(domain[pos])) {
-            continue;
-        }
-
-        switch (domain[pos]) {
-        case '-': BSLA_FALLTHROUGH;
-        case '_': {
-            continue;
-        }
-        case '.': {
-            if (pos + 1 < domain.length() && domain[pos + 1] == '.') {
-                return false;
-            }
-            continue;
-        }
-        default: {
-            return false;
-        }
-        }
-    }
-
-    return true;
-}
-
 int UriParser::parse(Uri*                     result,
                      bsl::string*             errorDescription,
                      const bslstl::StringRef& uriString)
