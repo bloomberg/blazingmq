@@ -30,7 +30,6 @@
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_protocol.h>
-#include <bmqu_atomicgate.h>
 #include <bmqu_sharedresource.h>
 
 // BDE
@@ -130,12 +129,6 @@ class AuthenticationContext {
 
     /// Scheduler used to schedule and cancel the reauthentication timer.
     bdlmt::EventScheduler* d_scheduler_p;
-
-    /// Gate entered by the scheduled reauthentication callbacks.  Closed once
-    /// the channel is closing, so that those callbacks can be cancelled and
-    /// drained without contending on `d_mutex`.  Declared before `d_self` so
-    /// that it outlives the callbacks `d_self` waits for.
-    bmqu::GateKeeper d_gateKeeper;
 
     /// Used to make sure no callback is invoked on a destroyed object.
     bmqu::SharedResource<AuthenticationContext> d_self;

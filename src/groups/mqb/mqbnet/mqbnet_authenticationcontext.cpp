@@ -109,7 +109,6 @@ AuthenticationContext::AuthenticationContext(
     bslma::Allocator*                          allocator)
 : d_allocator_p(allocator)
 , d_scheduler_p(scheduler)
-, d_gateKeeper()
 , d_self(this)  // use default allocator
 , d_mutex()
 , d_authenticationResultSp()
@@ -122,8 +121,6 @@ AuthenticationContext::AuthenticationContext(
 {
     // PRECONDITION
     BSLS_ASSERT_SAFE(d_scheduler_p);
-
-    d_gateKeeper.open();
 }
 
 AuthenticationContext::~AuthenticationContext()
@@ -195,13 +192,6 @@ void AuthenticationContext::onReauthenticationTimeout(
 {
     // executed by the *SCHEDULER* thread
 
-    // Do not take 'd_mutex' here: the callers of 'cancelEventAndWait' hold it
-    // while waiting for this callback to return.
-    bmqu::GateKeeper::Status gateStatus(d_gateKeeper);
-    if (!gateStatus.isOpen()) {
-        return;  // RETURN
-    }
-
     bsl::shared_ptr<bmqio::Channel> channel_sp = channel_wp.lock();
     if (!channel_sp) {
         // The channel has already been destroyed; nothing to close.
@@ -258,9 +248,6 @@ void AuthenticationContext::close()
         d_state = AuthenticationState::e_CLOSED;
     }  // UNLOCK
 
-    // Close the gate first, so that no new reauthentication timeout can start
-    // after the cancel below.
-    d_gateKeeper.close();
     d_scheduler_p->cancelEventAndWait(&d_timeoutHandle);
 }
 
