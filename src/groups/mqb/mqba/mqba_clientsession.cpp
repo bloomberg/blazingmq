@@ -718,12 +718,6 @@ void ClientSession::tearDownImpl(bslmt::Semaphore*            semaphore,
         return;  // RETURN
     }
 
-    // If stop request handling is in progress cancel checking for the
-    // unconfirmed messages.
-    if (d_periodicUnconfirmedCheckHandler) {
-        d_scheduler_p->cancelEventAndWait(d_periodicUnconfirmedCheckHandler);
-    }
-
     d_self.invalidate();
     // Invalidating this CS in CS thread for the sake of synchronization
     // with `finishCheckUnconfirmed / finishCheckUnconfirmedDispatched` and
@@ -1003,12 +997,6 @@ void ClientSession::processDisconnectAllQueues(
     }
     const bool doDeconfigure = d_operationState == e_RUNNING;
     d_operationState         = e_DISCONNECTING;
-
-    // If stop request handling is in progress cancel checking for the
-    // unconfirmed messages.
-    if (d_periodicUnconfirmedCheckHandler) {
-        d_scheduler_p->cancelEventAndWait(d_periodicUnconfirmedCheckHandler);
-    }
 
     // Step 1/3 of disconnect request processing: executed following an enqueue
     // to the client dispatcher from the IO thread.  Drops all applicable
@@ -2458,7 +2446,6 @@ ClientSession::ClientSession(
                         allocator)
 , d_clusterCatalog_p(clusterCatalog)
 , d_scheduler_p(scheduler)
-, d_periodicUnconfirmedCheckHandler()
 , d_shutdownChain(allocator)
 , d_authorizer_sp(authorizer)
 {

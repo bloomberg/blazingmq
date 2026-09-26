@@ -353,10 +353,6 @@ class ClientSession : public mqbnet::Session,
     /// Pointer to the event scheduler to use (held, not owned).
     bdlmt::EventScheduler* d_scheduler_p;
 
-    /// Handler to manage the scheduled event that triggers the checking of
-    /// unconfirmed messages during the session shutdown.
-    bdlmt::EventSchedulerEventHandle d_periodicUnconfirmedCheckHandler;
-
     /// Mechanism used for the graceful shutdown of the session to serialize
     /// execution of the queue handle deconfigure callbacks.
     bmqu::OperationChain d_shutdownChain;
