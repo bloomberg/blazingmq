@@ -196,7 +196,7 @@ int DataFileIterator::nextRecord()
             // We don't have footers for our records and since they are
             // variable-sized, we can't navigate backwards safely, so we have
             // to navigate from the first record.
-            unsigned int position = firstRecordPosition();
+            bsls::Types::Uint64 position = firstRecordPosition();
             while (position < d_blockIter.position()) {
                 OffsetPtr<const DataHeader> header(*d_blockIter.block(),
                                                    position);
@@ -217,7 +217,7 @@ void DataFileIterator::flipDirection()
 {
     d_blockIter.flipDirection();
 
-    unsigned int firstRecordPos = firstRecordPosition();
+    bsls::Types::Uint64 firstRecordPos = firstRecordPosition();
     if (d_blockIter.position() < firstRecordPos) {
         return;  // RETURN
     }
