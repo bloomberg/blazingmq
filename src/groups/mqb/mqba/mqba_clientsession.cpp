@@ -78,28 +78,29 @@
 //:   has e_RUNNING value corresponding to the state when the session is
 //:   running normally.  It is changed when the session is shutting down by one
 //:   of the reasons:
-//:   o e_SHUTTING_DOWN - when 'initiateShutdown' is called and graceful
-//:     shutdown is performed.  All the queue handles get deconfigured and the
-//:     session is waiting for the unconfirmed messages if there are any;
 //:   o e_DISCONNECTING - when disconnect request comes from the client.  All
 //:     the queue handles get dropped and when done the disconnect response is
-//:     sent back to the client;
-//:   o e_DISCONNECTED - in case of the channel went down, or right after
-//:     sending the 'DisconnectResponse' message to the client.  Once set to
-//:     e_DISCONNECTED, no messages should ever be delivered to the client.
+//:     sent back to the client.  Also set when 'initiateShutdown' is called,
+//:     after which open and close queue requests are ignored;
+//:   o e_DISCONNECTED - right after sending the 'DisconnectResponse' message
+//:     to the client.  Once set to e_DISCONNECTED, no messages should ever be
+//:     delivered to the client;
+//:   o e_DEAD - in case of the channel went down, or the session was
+//:     invalidated.  The session must not do any more work.
 //:   Since the above events may happen concurrently (e.g. disconnect request
 //:   comes when the graceful shutdown is in progress) the following state
 //:   transitions are possible:
-//:   e_RUNNING       -> e_SHUTTING_DOWN
-//:   e_RUNNING       -> e_DISCONNECTING
-//:   e_RUNNING       -> e_DISCONNECTED
-//:   e_SHUTTING_DOWN -> e_DISCONNECTING
-//:   e_SHUTTING_DOWN -> e_DISCONNECTED
-//:   e_DISCONNECTING -> e_DISCONNECTED
-//:   This means that the e_SHUTTING_DOWN has the lowest priority, i.e. the
-//:   graceful shutdown sequence is started only if the session was running
-//:   normally, and the sequence is interrupted once disconnect or channel down
-//:   events come.
+//:   e_RUNNING       -> e_DISCONNECTING  (client Disconnect, broker shutdown)
+//:   e_RUNNING       -> e_DEAD           (channel down, invalidate)
+//:   e_DISCONNECTING -> e_DISCONNECTED   (DisconnectResponse sent)
+//:   e_DISCONNECTING -> e_DEAD
+//:   e_DISCONNECTED  -> e_DEAD
+//:   e_DISCONNECTED  -> e_DISCONNECTING  (broker shutdown)
+//:   A client Disconnect during a broker shutdown, or the reverse, leaves the
+//:   state at e_DISCONNECTING.  Note that the last transition is possible
+//:   because 'initiateShutdownDispatched' only checks for e_DEAD, and it lifts
+//:   the e_DISCONNECTED guarantee that no messages are delivered to the
+//:   client.
 //: o d_isDisconnecting:
 //:   This boolean is only set and checked in 'processEvent', executing on the
 //:   IO thread, to validate and safe-guard against a client misbehaving and
@@ -119,7 +120,8 @@
 // those are downstream to upstream events and if the client sent us such
 // messages, we should honor them even if the client crashed right after.
 //
-// 'd_operationState' is set to 'e_DISCONNECTED' under two conditions:
+// 'd_operationState' is set to 'e_DISCONNECTED' or 'e_DEAD' under two
+// conditions:
 // 1) at the end of the processing of a client Disconnect request, after which,
 //    per contract, no messages (especially no 'Confirm' nor 'Put' events are
 //    expected to be received).  The 'd_isDisconnecting' check in
@@ -144,7 +146,7 @@
 //   - Not checking the 'd_operationState' everytime in those methods is also a
 //     welcome micro optimization as those are on the critical message path.
 //   - for the case of 'PutEvent', we will have to check, and not send NACKs if
-//     the 'd_operationState' is set to 'e_DISCONNECTED'.
+//     the 'd_operationState' is set to 'e_DISCONNECTED' or 'e_DEAD'.
 
 // MQB
 #include <mqbact_actions.h>

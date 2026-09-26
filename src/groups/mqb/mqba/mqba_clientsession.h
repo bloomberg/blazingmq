@@ -260,11 +260,15 @@ class ClientSession : public mqbnet::Session,
     enum OperationState {
         /// Running normally.
         e_RUNNING,
-        /// Shutting down due to `initiateShutdown` request.
+        /// Handling a `Disconnect` request from the client (queue handles are
+        /// dropped), or `initiateShutdown` was called (open and close queue
+        /// requests are ignored).  Messages can still be sent to the client.
         e_DISCONNECTING,
-        /// The session is disconnected and no longer valid.
+        /// `DisconnectResponse` was sent; nothing more may be sent to the
+        /// client.
         e_DISCONNECTED,
-        /// The session cannot do anything.
+        /// The channel is down or the session was invalidated; the session
+        /// must not do any more work.
         e_DEAD
     };
 
