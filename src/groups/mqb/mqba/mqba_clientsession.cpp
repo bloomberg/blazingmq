@@ -2975,6 +2975,8 @@ void ClientSession::processClusterMessage(
             return;  // RETURN
         }
 
+        // The StopResponse is sent when the last reference to 'context' is
+        // released, i.e. once every queue handle has been deconfigured.
         ShutdownContextSp context;
         context.createInplace(
             d_state.d_allocator_p,
@@ -2996,18 +2998,16 @@ void ClientSession::processClusterMessage(
 void ClientSession::onDeconfiguredHandle(
     BSLA_MAYBE_UNUSED const ShutdownContextSp& contextSp)
 {
-    // empty
+    // Only holds a reference to 'contextSp'; see 'processClusterMessage'.
 }
 
 void ClientSession::processStopRequest(ShutdownContextSp& contextSp)
 {
+    // executed by the *CLIENT* dispatcher thread
+
     // This StopRequest arrives from a downstream (otherwise, ClusterProxy
     // would receive it).  As an upstream, this node needs to deconfigure all
     // queues and then respond with StopResponse.
-
-    // Use the same logic as in the 'initiateShutdown' except that the final
-    // step is sending StopResponse instead of 'closeChannel'
-    // executed by the *CLIENT* dispatcher thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(inDispatcherThread());
@@ -3018,11 +3018,9 @@ void ClientSession::processStopRequest(ShutdownContextSp& contextSp)
     }
 
     if (d_operationState == e_DISCONNECTING) {
-        // The broker is already shutting down or processing a StopRequest or
-        // disconnecting.
-        // The de-configuring is done.
-        // Even if the waiting is in progress, still reply with StopResponse
-
+        // Handles are already being dropped.  Nothing else holds
+        // 'contextSp', so the StopResponse is sent once the caller releases
+        // it.
         return;  // RETURN
     }
     for (QueueStateMapCIter cit = d_queueSessionManager.queues().begin();

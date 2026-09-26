@@ -272,7 +272,9 @@ class ClientSession : public mqbnet::Session,
         e_DEAD
     };
 
-    /// Struct to be used as a context for shutdown operation.
+    /// Invokes `d_callback` on destruction.  Shared between asynchronous
+    /// steps of a shutdown operation, so that the callback runs once the last
+    /// step releases its reference.
     struct ShutdownContext {
         ShutdownCb d_callback;
 
