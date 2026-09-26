@@ -46,17 +46,14 @@
 
 #include <bmqio_channel.h>
 #include <bmqio_channelfactory.h>
-#include <bmqu_operationchain.h>
 #include <bmqu_operationlogger.h>
 #include <bmqu_sharedresource.h>
-#include <bmqu_time.h>
 
 // BDE
 #include <bdlb_nullablevalue.h>
 #include <bdlbb_blob.h>
 #include <bdlcc_objectpool.h>
 #include <bdlcc_sharedobjectpool.h>
-#include <bdlmt_eventscheduler.h>
 #include <bdlmt_throttle.h>
 #include <bsl_deque.h>
 #include <bsl_functional.h>
@@ -67,7 +64,6 @@
 #include <bsl_utility.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
-#include <bsls_atomic.h>
 #include <bsls_types.h>
 
 namespace BloombergLP {
@@ -264,29 +260,30 @@ class ClientSession : public mqbnet::Session,
     enum OperationState {
         /// Running normally.
         e_RUNNING,
-        /// Shutting down due to `initiateShutdown` request.
+        /// Handling a `Disconnect` request from the client (queue handles are
+        /// dropped), or `initiateShutdown` was called (open and close queue
+        /// requests are ignored).  Messages can still be sent to the client.
         e_DISCONNECTING,
-        /// The session is disconnected and no longer valid.
+        /// `DisconnectResponse` was sent; nothing more may be sent to the
+        /// client.
         e_DISCONNECTED,
-        /// The session cannot do anything.
+        /// The channel is down or the session was invalidated; the session
+        /// must not do any more work.
         e_DEAD
     };
 
-    /// Struct to be used as a context for shutdown operation.
+    /// Invokes `d_callback` on destruction.  Shared between asynchronous
+    /// steps of a shutdown operation, so that the callback runs once the last
+    /// step releases its reference.
     struct ShutdownContext {
-        ShutdownCb         d_callback;
-        bsls::TimeInterval d_stopTime;
-        bsls::AtomicInt64  d_numUnconfirmedTotal;
+        ShutdownCb d_callback;
 
         // TRAITS
         BSLMF_NESTED_TRAIT_DECLARATION(ShutdownContext,
                                        bslma::UsesBslmaAllocator)
 
         // CREATORS
-        ShutdownContext(const ShutdownCb&         callback,
-                        const bsls::TimeInterval& timeout);
-
-        ShutdownContext(const ShutdownCb& callback);
+        explicit ShutdownContext(const ShutdownCb& callback);
 
         ~ShutdownContext();
     };
@@ -349,17 +346,6 @@ class ClientSession : public mqbnet::Session,
 
     /// Cluster catalog to query for cluster information.
     mqbblp::ClusterCatalog* d_clusterCatalog_p;
-
-    /// Pointer to the event scheduler to use (held, not owned).
-    bdlmt::EventScheduler* d_scheduler_p;
-
-    /// Handler to manage the scheduled event that triggers the checking of
-    /// unconfirmed messages during the session shutdown.
-    bdlmt::EventSchedulerEventHandle d_periodicUnconfirmedCheckHandler;
-
-    /// Mechanism used for the graceful shutdown of the session to serialize
-    /// execution of the queue handle deconfigure callbacks.
-    bmqu::OperationChain d_shutdownChain;
 
     /// Owned handle to the application's authorizer.
     bsl::shared_ptr<const mqbi::Authorizer> d_authorizer_sp;
@@ -581,7 +567,7 @@ class ClientSession : public mqbnet::Session,
 
     /// Constructor of a new session associated to the specified `channel`
     /// and using the specified `dispatcher`, `domainFactory`, `blobSpPool`,
-    /// `bufferFactory` and `scheduler`.  The specified `clientStatContext`
+    /// and `bufferFactory`.  The specified `clientStatContext`
     /// should be used as the top level for statistics associated to this
     /// session.  The specified `negotiationMessage` represents the identity
     /// received from the peer during negotiation, and the specified
@@ -596,7 +582,6 @@ class ClientSession : public mqbnet::Session,
                   const bsl::shared_ptr<bmqst::StatContext>& clientStatContext,
                   ClientSessionState::BlobSpPool*            blobSpPool,
                   bdlbb::BlobBufferFactory*                  bufferFactory,
-                  bdlmt::EventScheduler*                     scheduler,
                   const bsl::shared_ptr<const mqbi::Authorizer>& authorizer,
                   bslma::Allocator*                              allocator);
 
@@ -726,21 +711,8 @@ inline ClientSessionState::UnackedMessageInfo::UnackedMessageInfo(
 
 // CREATORS
 inline ClientSession::ShutdownContext::ShutdownContext(
-    const ShutdownCb&         callback,
-    const bsls::TimeInterval& timeout)
-: d_callback(callback)
-, d_stopTime(bmqu::Time::nowMonotonicClock())
-, d_numUnconfirmedTotal(0)
-{
-    BSLS_ASSERT_SAFE(d_callback);
-    d_stopTime += timeout;
-}
-
-inline ClientSession::ShutdownContext::ShutdownContext(
     const ShutdownCb& callback)
 : d_callback(callback)
-, d_stopTime()              // unused in V2
-, d_numUnconfirmedTotal(0)  // unused in V2
 {
     BSLS_ASSERT_SAFE(d_callback);
 }

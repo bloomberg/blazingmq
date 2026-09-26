@@ -725,7 +725,6 @@ class TestBench {
            d_clientStatContext_sp,
            &d_blobSpPool,
            &d_bufferFactory,
-           &d_scheduler,
            d_authorizer_sp,
            allocator)
     , d_allocator_p(allocator)
