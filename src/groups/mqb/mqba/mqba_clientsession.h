@@ -48,7 +48,6 @@
 #include <bmqio_channelfactory.h>
 #include <bmqu_operationlogger.h>
 #include <bmqu_sharedresource.h>
-#include <bmqu_time.h>
 
 // BDE
 #include <bdlb_nullablevalue.h>
@@ -65,7 +64,6 @@
 #include <bsl_utility.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
-#include <bsls_atomic.h>
 #include <bsls_types.h>
 
 namespace BloombergLP {
@@ -272,19 +270,14 @@ class ClientSession : public mqbnet::Session,
 
     /// Struct to be used as a context for shutdown operation.
     struct ShutdownContext {
-        ShutdownCb         d_callback;
-        bsls::TimeInterval d_stopTime;
-        bsls::AtomicInt64  d_numUnconfirmedTotal;
+        ShutdownCb d_callback;
 
         // TRAITS
         BSLMF_NESTED_TRAIT_DECLARATION(ShutdownContext,
                                        bslma::UsesBslmaAllocator)
 
         // CREATORS
-        ShutdownContext(const ShutdownCb&         callback,
-                        const bsls::TimeInterval& timeout);
-
-        ShutdownContext(const ShutdownCb& callback);
+        explicit ShutdownContext(const ShutdownCb& callback);
 
         ~ShutdownContext();
     };
@@ -712,21 +705,8 @@ inline ClientSessionState::UnackedMessageInfo::UnackedMessageInfo(
 
 // CREATORS
 inline ClientSession::ShutdownContext::ShutdownContext(
-    const ShutdownCb&         callback,
-    const bsls::TimeInterval& timeout)
-: d_callback(callback)
-, d_stopTime(bmqu::Time::nowMonotonicClock())
-, d_numUnconfirmedTotal(0)
-{
-    BSLS_ASSERT_SAFE(d_callback);
-    d_stopTime += timeout;
-}
-
-inline ClientSession::ShutdownContext::ShutdownContext(
     const ShutdownCb& callback)
 : d_callback(callback)
-, d_stopTime()              // unused in V2
-, d_numUnconfirmedTotal(0)  // unused in V2
 {
     BSLS_ASSERT_SAFE(d_callback);
 }
