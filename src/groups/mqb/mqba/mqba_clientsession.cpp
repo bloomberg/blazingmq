@@ -718,11 +718,8 @@ void ClientSession::tearDownImpl(bslmt::Semaphore*            semaphore,
         return;  // RETURN
     }
 
+    // From now on, callbacks bound with 'd_self.acquireWeak()' are no-ops.
     d_self.invalidate();
-    // Invalidating this CS in CS thread for the sake of synchronization
-    // with `finishCheckUnconfirmed / finishCheckUnconfirmedDispatched` and
-    // `checkUnconfirmed` / `checkUnconfirmedDispatched`.  Otherwise, they
-    // need `weakMemFn`.
 
     // Drop all *applicable* queue handles, ie, all those handles for which
     // either a final close-queue request has not been received, or those
@@ -740,9 +737,6 @@ void ClientSession::tearDownImpl(bslmt::Semaphore*            semaphore,
 
     const bool hasLostTheClient = (!isBrokerShutdown && !isProxy());
 
-    // Set up the 'd_operationState' to indicate that the channel is dying and
-    // we should not use it anymore trying to send any messages and should also
-    // stop enqueuing 'callbacks' to the client dispatcher thread ...
     const bool doDeconfigure = d_operationState == e_RUNNING;
 
     int numHandlesDropped = dropAllQueueHandles(doDeconfigure,
@@ -1258,12 +1252,6 @@ void ClientSession::closeQueueCb(
 
     // Release the handle's ptr in the queue's context to guarantee that the
     // handle will be destroyed after all ongoing queue events are handled.
-    // E.g. in case of graceful shutdown each handle may be checked for the
-    // unconfirmed messages (see 'checkUnconfirmedDispatched').  This check is
-    // done in the queue's dispatcher thread, but the handle may be dropped
-    // right after this check is scheduled.  Releasing the handle in the
-    // queue's thread allows to keep the handle alive until the check is
-    // complete.
     //
     // NOTE: We copy and pass 'description()' string to the callback because
     //       this 'ClientSession' object might be already destroyed when event
