@@ -2418,7 +2418,6 @@ ClientSession::ClientSession(
     const bsl::shared_ptr<bmqst::StatContext>&     clientStatContext,
     ClientSessionState::BlobSpPool*                blobSpPool,
     bdlbb::BlobBufferFactory*                      bufferFactory,
-    bdlmt::EventScheduler*                         scheduler,
     const bsl::shared_ptr<const mqbi::Authorizer>& authorizer,
     bslma::Allocator*                              allocator)
 : d_self(this)  // use default allocator
@@ -2445,7 +2444,6 @@ ClientSession::ClientSession(
                         domainFactory,
                         allocator)
 , d_clusterCatalog_p(clusterCatalog)
-, d_scheduler_p(scheduler)
 , d_shutdownChain(allocator)
 , d_authorizer_sp(authorizer)
 {
@@ -2456,7 +2454,6 @@ ClientSession::ClientSession(
     BSLS_ASSERT(clientStatContext);
     BSLS_ASSERT(blobSpPool);
     BSLS_ASSERT(bufferFactory);
-    BSLS_ASSERT(scheduler);
     BSLS_ASSERT(authorizer);
 
     // Register this client to the dispatcher

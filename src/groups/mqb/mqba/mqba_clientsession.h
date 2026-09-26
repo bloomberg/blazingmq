@@ -56,7 +56,6 @@
 #include <bdlbb_blob.h>
 #include <bdlcc_objectpool.h>
 #include <bdlcc_sharedobjectpool.h>
-#include <bdlmt_eventscheduler.h>
 #include <bdlmt_throttle.h>
 #include <bsl_deque.h>
 #include <bsl_functional.h>
@@ -350,9 +349,6 @@ class ClientSession : public mqbnet::Session,
     /// Cluster catalog to query for cluster information.
     mqbblp::ClusterCatalog* d_clusterCatalog_p;
 
-    /// Pointer to the event scheduler to use (held, not owned).
-    bdlmt::EventScheduler* d_scheduler_p;
-
     /// Mechanism used for the graceful shutdown of the session to serialize
     /// execution of the queue handle deconfigure callbacks.
     bmqu::OperationChain d_shutdownChain;
@@ -577,7 +573,7 @@ class ClientSession : public mqbnet::Session,
 
     /// Constructor of a new session associated to the specified `channel`
     /// and using the specified `dispatcher`, `domainFactory`, `blobSpPool`,
-    /// `bufferFactory` and `scheduler`.  The specified `clientStatContext`
+    /// and `bufferFactory`.  The specified `clientStatContext`
     /// should be used as the top level for statistics associated to this
     /// session.  The specified `negotiationMessage` represents the identity
     /// received from the peer during negotiation, and the specified
@@ -592,7 +588,6 @@ class ClientSession : public mqbnet::Session,
                   const bsl::shared_ptr<bmqst::StatContext>& clientStatContext,
                   ClientSessionState::BlobSpPool*            blobSpPool,
                   bdlbb::BlobBufferFactory*                  bufferFactory,
-                  bdlmt::EventScheduler*                     scheduler,
                   const bsl::shared_ptr<const mqbi::Authorizer>& authorizer,
                   bslma::Allocator*                              allocator);
 
