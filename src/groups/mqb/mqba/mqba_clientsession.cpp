@@ -724,10 +724,6 @@ void ClientSession::tearDownImpl(bslmt::Semaphore*            semaphore,
     // `checkUnconfirmed` / `checkUnconfirmedDispatched`.  Otherwise, they
     // need `weakMemFn`.
 
-    // Stop the graceful shutdown chain (no-op if not started)
-    d_shutdownChain.stop();
-    d_shutdownChain.removeAll();
-
     // Drop all *applicable* queue handles, ie, all those handles for which
     // either a final close-queue request has not been received, or those
     // handles which haven't been dropped yet (eg, via
@@ -2444,7 +2440,6 @@ ClientSession::ClientSession(
                         domainFactory,
                         allocator)
 , d_clusterCatalog_p(clusterCatalog)
-, d_shutdownChain(allocator)
 , d_authorizer_sp(authorizer)
 {
     // PRECONDITIONS
@@ -2486,7 +2481,6 @@ ClientSession::~ClientSession()
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!d_self.isValid());
-    BSLS_ASSERT_SAFE(d_shutdownChain.numOperations() == 0);
 
     BALL_LOG_INFO << description() << ": destructor";
 

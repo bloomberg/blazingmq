@@ -46,7 +46,6 @@
 
 #include <bmqio_channel.h>
 #include <bmqio_channelfactory.h>
-#include <bmqu_operationchain.h>
 #include <bmqu_operationlogger.h>
 #include <bmqu_sharedresource.h>
 #include <bmqu_time.h>
@@ -348,10 +347,6 @@ class ClientSession : public mqbnet::Session,
 
     /// Cluster catalog to query for cluster information.
     mqbblp::ClusterCatalog* d_clusterCatalog_p;
-
-    /// Mechanism used for the graceful shutdown of the session to serialize
-    /// execution of the queue handle deconfigure callbacks.
-    bmqu::OperationChain d_shutdownChain;
 
     /// Owned handle to the application's authorizer.
     bsl::shared_ptr<const mqbi::Authorizer> d_authorizer_sp;
