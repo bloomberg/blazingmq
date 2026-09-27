@@ -16,6 +16,12 @@
 #ifndef INCLUDED_M_BMQSTORAGEWRITER_UTIL
 #define INCLUDED_M_BMQSTORAGEWRITER_UTIL
 
+//@PURPOSE: Provide helpers for reading fields from JSON input.
+//
+//@DESCRIPTION: Free functions to read string, integer and storage key fields
+// from a 'bdljsn::JsonObject', returning a default value when a field is
+// absent.
+
 #include <bdljsn_json.h>
 #include <bsl_cstdlib.h>
 #include <bsl_string.h>

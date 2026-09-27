@@ -16,6 +16,16 @@
 #ifndef INCLUDED_M_BMQSTORAGEWRITER_CSLWRITER
 #define INCLUDED_M_BMQSTORAGEWRITER_CSLWRITER
 
+//@PURPOSE: Provide writing of CSL records from JSON input.
+//
+//@CLASSES:
+//  AppIdInfo:       appId and appKey for one application of a queue.
+//  QueueCacheEntry: uri and appIds of a queue, keyed by queue key.
+//
+//@DESCRIPTION: Read CSL records in JSON form and write them to a CSL file,
+// building a 'QueueCache' of queue uri and appId information for the journal
+// writer to use.
+
 #include <bdljsn_json.h>
 #include <bdls_filesystemutil.h>
 #include <bsl_map.h>
@@ -35,12 +45,18 @@ struct AppIdInfo {
 
     BSLMF_NESTED_TRAIT_DECLARATION(AppIdInfo, bslma::UsesBslmaAllocator)
 
-    AppIdInfo(bslma::Allocator* allocator)
+    // CREATORS
+
+    /// Create an `AppIdInfo` using the specified `allocator` for memory
+    /// allocation.
+    explicit AppIdInfo(bslma::Allocator* allocator)
     : d_appId(allocator)
     , d_appKey()
     {
     }
 
+    /// Create an `AppIdInfo` having the value of the specified `other`, using
+    /// the specified `allocator` for memory allocation.
     AppIdInfo(const AppIdInfo& other, bslma::Allocator* allocator)
     : d_appId(other.d_appId, allocator)
     , d_appKey(other.d_appKey)
@@ -54,12 +70,18 @@ struct QueueCacheEntry {
 
     BSLMF_NESTED_TRAIT_DECLARATION(QueueCacheEntry, bslma::UsesBslmaAllocator)
 
-    QueueCacheEntry(bslma::Allocator* allocator)
+    // CREATORS
+
+    /// Create a `QueueCacheEntry` using the specified `allocator` for memory
+    /// allocation.
+    explicit QueueCacheEntry(bslma::Allocator* allocator)
     : d_uri(allocator)
     , d_appIds(allocator)
     {
     }
 
+    /// Create a `QueueCacheEntry` having the value of the specified `other`,
+    /// using the specified `allocator` for memory allocation.
     QueueCacheEntry(const QueueCacheEntry& other, bslma::Allocator* allocator)
     : d_uri(other.d_uri, allocator)
     , d_appIds(other.d_appIds, allocator)

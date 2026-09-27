@@ -289,15 +289,23 @@ int processCslInput(QueueCache*                          cache,
         if (newFile) {
             mqbc::ClusterStateFileHeader cslFileHeader;
             cslFileHeader.setFileKey(logId);
-            bdls::FilesystemUtil::write(cslFd,
-                                        &cslFileHeader,
-                                        sizeof(cslFileHeader));
+            int written = bdls::FilesystemUtil::write(cslFd,
+                                                      &cslFileHeader,
+                                                      sizeof(cslFileHeader));
+            if (written != static_cast<int>(sizeof(cslFileHeader))) {
+                bsl::cerr << "Error: failed to write CSL file header\n";
+                return -1;
+            }
             existingLogId = logId;
             newFile       = false;
         }
         else if (existingLogId.isNull()) {
             mqbc::ClusterStateFileHeader hdr;
-            bdls::FilesystemUtil::read(cslFd, &hdr, sizeof(hdr));
+            int read = bdls::FilesystemUtil::read(cslFd, &hdr, sizeof(hdr));
+            if (read != static_cast<int>(sizeof(hdr))) {
+                bsl::cerr << "Error: failed to read CSL file header\n";
+                return -1;
+            }
             existingLogId = hdr.fileKey();
             bdls::FilesystemUtil::seek(cslFd,
                                        0,

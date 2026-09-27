@@ -13,4 +13,7 @@ set_target_properties(bmqstoragewriter
   PROPERTIES OUTPUT_NAME "bmqstoragewriter.tsk")
 bbs_setup_target_uor(bmqstoragewriter SKIP_TESTS)
 
+include(BMQTest)
+bmq_add_application_test(bmqstoragewriter COMPAT)
+
 install(TARGETS bmqstoragewriter RUNTIME DESTINATION bin COMPONENT bmqstoragewriter)

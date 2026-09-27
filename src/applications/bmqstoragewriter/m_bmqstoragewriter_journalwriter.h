@@ -16,6 +16,12 @@
 #ifndef INCLUDED_M_BMQSTORAGEWRITER_JOURNALWRITER
 #define INCLUDED_M_BMQSTORAGEWRITER_JOURNALWRITER
 
+//@PURPOSE: Provide writing of journal, data and qlist records from JSON input.
+//
+//@DESCRIPTION: Read journal records in JSON form and write them to the
+// journal, data and qlist files, using a 'QueueCache' to supply queue uri and
+// appId information for queue-op records.
+
 #include <m_bmqstoragewriter_cslwriter.h>
 
 #include <bdls_filesystemutil.h>
