@@ -35,6 +35,7 @@ SessionOptions::SessionOptions(bslma::Allocator* allocator)
 , d_processNameOverride(allocator)
 , d_numProcessingThreads(k_NUM_PROCESSING_THREADS_DEFAULT)
 , d_blobBufferSize(k_BLOB_BUFFER_DEFAULT_SIZE)
+, d_channelLowWatermark(k_CHANNEL_LOW_WATERMARK_DEFAULT)
 , d_channelHighWatermark(k_CHANNEL_HIGH_WATERMARK_DEFAULT)
 , d_statsDumpInterval(k_STATS_DUMP_DEFAULT_INTERVAL_SEC)
 , d_connectTimeout(k_CONNECT_DEFAULT_TIMEOUT_SEC)
@@ -61,6 +62,7 @@ SessionOptions::SessionOptions(const SessionOptions& other,
 , d_processNameOverride(other.processNameOverride(), allocator)
 , d_numProcessingThreads(other.numProcessingThreads())
 , d_blobBufferSize(other.blobBufferSize())
+, d_channelLowWatermark(other.channelLowWatermark())
 , d_channelHighWatermark(other.channelHighWatermark())
 , d_statsDumpInterval(other.statsDumpInterval())
 , d_connectTimeout(other.connectTimeout())
@@ -88,6 +90,7 @@ SessionOptions& SessionOptions::operator=(const SessionOptions& other)
         d_processNameOverride     = other.d_processNameOverride;
         d_numProcessingThreads    = other.d_numProcessingThreads;
         d_blobBufferSize          = other.d_blobBufferSize;
+        d_channelLowWatermark     = other.d_channelLowWatermark;
         d_channelHighWatermark    = other.d_channelHighWatermark;
         d_statsDumpInterval       = other.d_statsDumpInterval;
         d_connectTimeout          = other.d_connectTimeout;
