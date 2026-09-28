@@ -9767,6 +9767,15 @@ void FileStore::gcExpiredMessages()
         return;  // RETURN
     }
 
+    if (isRaft() && 0 == writeHeadSeqNum()) {
+        // Nothing written under this leaseId yet, so the become-leader sync
+        // point is still pending and the CSL advisory carrying the leaseId
+        // may not have committed.  A DELETION here would be the partition's
+        // first record under a leaseId the CSL does not have.  The next
+        // sweep picks these up.
+        return;  // RETURN
+    }
+
     BSLS_ASSERT_SAFE(0 < d_fileSets.size());
     FileSet* activeFileSet = d_fileSets[0].get();
     BSLS_ASSERT_SAFE(activeFileSet);

@@ -873,22 +873,36 @@ class StorageMonitor : public mqbs::StorageMonitor {
     /// Map of appKey -> appId for a queue's registered apps.
     typedef mqbs::DataStoreConfigQueueInfo::AppInfos AppKeyToIdMap;
 
+    /// What has been proposed for a queue and has not taken effect here yet.
+    struct Awaiting {
+        enum Enum {
+            e_NONE = 0,
+            /// The queue's creation, or the addition of an App.
+            e_REGISTRATION = 1 << 0,
+            /// The deletion of an App.
+            e_APP_REMOVAL = 1 << 1,
+            /// The deletion of the queue.
+            e_DELETION = 1 << 2
+        };
+    };
+
     struct StorageWithApps {
         StorageSp     d_storage_sp;
         AppKeyToIdMap d_apps;
 
-        /// `true` between proposing this queue's registration and the storage
-        /// (or the Apps) actually arriving.  On the Raft write path a
-        /// QueueOp only takes effect when it commits, so without this a
-        /// second `registerQueue` -- a concurrent open, or a parked one
-        /// replayed by `onQueueStorageReady` -- would look at an unchanged
-        /// storage and propose the very same record again.
-        bool d_awaitingRegistration;
+        /// The `Awaiting` bits proposed for this queue and not yet applied.
+        /// On the Raft write path a QueueOp only takes effect when it
+        /// commits, so without these a second caller -- a concurrent open, a
+        /// parked one replayed by `onQueueStorageReady`, or the next
+        /// `maybeTransitionToAvailable` re-running the journal-to-cluster
+        /// state comparison -- would look at an unchanged storage and propose
+        /// the very same record again.
+        int d_awaiting;
 
         StorageWithApps(bslma::Allocator* basicAllocator = 0)
         : d_storage_sp()
         , d_apps(basicAllocator)
-        , d_awaitingRegistration(false)
+        , d_awaiting(Awaiting::e_NONE)
         {
         }
 
@@ -896,7 +910,7 @@ class StorageMonitor : public mqbs::StorageMonitor {
                         bslma::Allocator*      basicAllocator = 0)
         : d_storage_sp(other.d_storage_sp)
         , d_apps(other.d_apps, basicAllocator)
-        , d_awaitingRegistration(other.d_awaitingRegistration)
+        , d_awaiting(other.d_awaiting)
         {
         }
     };
@@ -1006,6 +1020,14 @@ class StorageMonitor : public mqbs::StorageMonitor {
                   int                            partitionId,
                   const mqbi::Storage::AppInfos& appIdKeyPairs,
                   mqbi::Domain*                  domain);
+
+    /// Return `true` if the specified `awaiting` may be proposed for the
+    /// queue having the specified `uri` on the specified `partitionId`,
+    /// marking it outstanding; `false` if that or anything else is already
+    /// outstanding for the queue, or the queue has no storage here.  The
+    /// mark is cleared by the `onStorage*` notification the record's commit
+    /// drives.
+    bool mark(const bmqt::Uri& uri, int partitionId, Awaiting::Enum awaiting);
 
     // ACCESSORS
 

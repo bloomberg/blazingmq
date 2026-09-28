@@ -163,13 +163,16 @@ void applyQueueAssignment(mqbc::ClusterState* clusterState,
 }
 
 void applyQueueUnassignment(mqbc::ClusterState* clusterState,
-                            const bsl::vector<bmqp_ctrlmsg::QueueInfo>& queues)
+                            const bsl::vector<bmqp_ctrlmsg::QueueInfo>& queues,
+                            bsls::Types::Uint64 electorTerm)
 {
     for (bsl::vector<bmqp_ctrlmsg::QueueInfo>::const_iterator it =
              queues.begin();
          it != queues.end();
          ++it) {
-        clusterState->unassignQueue(it->uri());
+        // Pass the current term so 'unassignQueue' keeps a placeholder if a
+        // reassignment is in flight for this queue this term.
+        clusterState->unassignQueue(it->uri(), electorTerm);
         // NOTE: There are cases where the persistent entry may not
         //       exist when receiving this advisory, so the return code
         //       of the 'unassignQueue' operation is not checked.
@@ -417,20 +420,131 @@ bool populateQueueUpdate(bmqp_ctrlmsg::QueueUpdateAdvisory* queueAdvisory,
 // ------------------
 
 void ClusterUtil::setPendingUnassignment(const ClusterState* clusterState,
+                                         const ClusterData&  clusterData,
                                          const bmqt::Uri&    uri)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(clusterState);
     BSLS_ASSERT_SAFE(uri.isCanonical());
 
+    // A single-node cluster acks itself, so 'ClusterState::unassignQueue' ran
+    // and erased the queue before the caller got back its success.
     mqbc::ClusterUtil::DomainStatesCIter citer =
         clusterState->domainStates().find(uri.qualifiedDomain());
     if (citer != clusterState->domainStates().cend()) {
         UriToQueueInfoMapIter qiter = citer->second->queuesInfo().find(uri);
         if (qiter != citer->second->queuesInfo().cend()) {
-            qiter->second->setState(
-                ClusterStateQueueInfo::State::k_UNASSIGNING);
+            qiter->second->setUnassignAdvisoryTerm(
+                clusterData.electorInfo().electorTerm());
         }
+    }
+}
+
+void ClusterUtil::setPendingAssignment(
+    ClusterState*                                clusterState,
+    const ClusterData&                           clusterData,
+    const bmqp_ctrlmsg::QueueAssignmentAdvisory& advisory,
+    bslma::Allocator*                            allocator)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(clusterState);
+    BSLS_ASSERT_SAFE(allocator);
+    BSLS_ASSERT_SAFE(!advisory.queues().empty());
+
+    const bsls::Types::Uint64 electorTerm =
+        clusterData.electorInfo().electorTerm();
+
+    for (bsl::vector<bmqp_ctrlmsg::QueueInfo>::const_iterator cit =
+             advisory.queues().cbegin();
+         cit != advisory.queues().cend();
+         ++cit) {
+        const bmqt::Uri uri(cit->uri());
+        BSLS_ASSERT_SAFE(uri.isCanonical());
+
+        ClusterState::DomainState& domState = clusterState->getDomainState(
+            uri.qualifiedDomain());
+        UriToQueueInfoMapIter qiter = domState.queuesInfo().find(uri);
+
+        if (qiter == domState.queuesInfo().end()) {
+            // Leader-local 'k_NONE' placeholder so the queue counts toward the
+            // domain limit until its assignment advisory commits;
+            // 'startQueueAssignment' checked capacity for this one.  Every
+            // reader treats 'k_NONE' as not assigned.
+            ClusterState::QueueInfoSp queueInfo;
+            queueInfo.createInplace(allocator, uri, allocator);
+            qiter = domState.queuesInfo().emplace(uri, queueInfo).first;
+        }
+        else if (ClusterStateQueueInfo::State::k_ASSIGNED ==
+                     qiter->second->state() &&
+                 !qiter->second->isUnassigning(electorTerm)) {
+            // Already assigned and not being unassigned: the advisory
+            // committed.
+            continue;  // CONTINUE
+        }
+
+        qiter->second->setAssignAdvisoryTerm(electorTerm);
+    }
+}
+
+void ClusterUtil::unassignQueuesNotIn(
+    ClusterState*                               clusterState,
+    const bsl::vector<bmqp_ctrlmsg::QueueInfo>& queues,
+    bslma::Allocator*                           allocator)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(clusterState);
+    BSLS_ASSERT_SAFE(allocator);
+
+    bsl::unordered_set<mqbu::StorageKey> kept(allocator);
+
+    for (bsl::vector<bmqp_ctrlmsg::QueueInfo>::const_iterator cit =
+             queues.cbegin();
+         cit != queues.cend();
+         ++cit) {
+        kept.insert(mqbu::StorageKey(mqbu::StorageKey::BinaryRepresentation(),
+                                     cit->key().data()));
+    }
+
+    // The queue key is what says whether this is the same queue: a uri the
+    // snapshot carries under another key was deleted and recreated, and the
+    // old one has to go so the apply can add the new one.  A difference in
+    // partitionId or Apps is an update the apply makes in place.
+    //
+    // 'unassignQueue' erases the queue, and the domain once its last queue
+    // goes, and notifies observers, which may touch the state too.  No
+    // iterator survives a call, so gather first and unassign after.
+    bsl::vector<bmqt::Uri> gone(allocator);
+
+    for (DomainStatesCIter domCit = clusterState->domainStates().cbegin();
+         domCit != clusterState->domainStates().cend();
+         ++domCit) {
+        const UriToQueueInfoMap& queuesInfo = domCit->second->queuesInfo();
+
+        for (UriToQueueInfoMapCIter qCit = queuesInfo.cbegin();
+             qCit != queuesInfo.cend();
+             ++qCit) {
+            // Only assigned queues go in a snapshot; a 'k_NONE' placeholder
+            // has a null key and no partition id.
+            if (qCit->second->state() !=
+                ClusterStateQueueInfo::State::k_ASSIGNED) {
+                continue;  // CONTINUE
+            }
+
+            if (0 == kept.count(qCit->second->key())) {
+                gone.push_back(qCit->first);
+            }
+        }
+    }
+
+    for (bsl::vector<bmqt::Uri>::const_iterator cit = gone.cbegin();
+         cit != gone.cend();
+         ++cit) {
+        BALL_LOG_INFO << "Cluster [" << clusterState->name()
+                      << "]: Unassigning queue [" << *cit
+                      << "]: the cluster state snapshot does not carry its "
+                      << "queue key.";
+
+        clusterState->unassignQueue(*cit);
     }
 }
 
@@ -958,26 +1072,39 @@ bool ClusterUtil::startQueueAssignment(
         }
     }
 
-    ClusterStateQueueInfo::State::Enum previousState =
-        ClusterStateQueueInfo::State::k_NONE;
+    // Both the self-open path and a peer's queueAssignmentRequest reach here,
+    // so dedup lives here (not in a single caller).
     if (queueIt != domIt->second->queuesInfo().end()) {
-        // If we have a queue state in the map, we can extract this state.
-        // For k_ASSIGNED or k_ASSIGNING states we don't need to do anything
-        // here and can return early.
-        // If the state is k_UNASSIGNING, we proceed with assigning.
-        previousState = queueIt->second->state();
+        const bsls::Types::Uint64 electorTerm =
+            clusterData->electorInfo().electorTerm();
 
-        if (previousState == ClusterStateQueueInfo::State::k_ASSIGNING) {
+        if (queueIt->second->state() ==
+            ClusterStateQueueInfo::State::k_ASSIGNED) {
+            if (!queueIt->second->isUnassigning(electorTerm)) {
+                BALL_LOG_INFO << cluster->description()
+                              << "queueAssignment of '" << uri
+                              << "' is already done.";
+                return true;  // RETURN
+            }
+            if (queueIt->second->isAssigning(electorTerm)) {
+                // A reassignment (ordered after the in-flight unassignment) is
+                // already pending this term; a second open/request must not
+                // propose another advisory for the same queue.
+                BALL_LOG_INFO << cluster->description()
+                              << "queueAssignment of '" << uri
+                              << "' is already pending.";
+                return true;  // RETURN
+            }
+            // An unassignment is in flight this term; publish an assignment
+            // the leader orders after it, so the queue comes back.
+        }
+        else if (queueIt->second->isAssigning(electorTerm)) {
             BALL_LOG_INFO << cluster->description() << "queueAssignment of '"
                           << uri << "' is already pending.";
             return true;  // RETURN
         }
-
-        if (previousState == ClusterStateQueueInfo::State::k_ASSIGNED) {
-            BALL_LOG_INFO << cluster->description() << "queueAssignment of '"
-                          << uri << "' is already done.";
-            return true;  // RETURN
-        }
+        // Otherwise only a marker from an earlier term remains (its advisory
+        // did not commit); assign the queue afresh.
     }
 
     struct local {
@@ -1006,12 +1133,9 @@ bool ClusterUtil::startQueueAssignment(
         domIt->second->domain()->config();
 
     if (queueIt == domIt->second->queuesInfo().end()) {
-        BSLS_ASSERT_SAFE(previousState ==
-                         ClusterStateQueueInfo::State::k_NONE);
-
         // Need to check if we have capacity before we allocate resources
-        // for this new queue.  The current number of registered queues is:
-        // num(assigned) + num(assigning) + num(unassigning).
+        // for this new queue.  The current number of registered queues is
+        // the assigned queues plus the in-flight assignment placeholders.
         const int registeredQueues = static_cast<int>(
             domIt->second->queuesInfo().size());
         const int maxQueues = domainCfg->maxQueues();
@@ -1041,29 +1165,16 @@ bool ClusterUtil::startQueueAssignment(
             }
         }
 
-        // We have capacity and can add this queue to the collection.
-        // The queue will be in k_ASSIGNING state until we commit queue
-        // assignment advisory.
-        QueueInfoSp queueInfo;
-
-        queueInfo.createInplace(allocator, uri, allocator);
-
-        queueIt = domIt->second->queuesInfo().emplace(uri, queueInfo).first;
+        // We have capacity.  The placeholder entry is added by
+        // 'setPendingAssignment', which the caller invokes once the advisory
+        // populated below has been published.
     }
     else {
-        // Note that we already have `queueIt` and allocated resources for this
-        // queue.  No need to allocate new QueueInfo and check capacity.
-        BSLS_ASSERT_SAFE(previousState ==
-                         ClusterStateQueueInfo::State::k_UNASSIGNING);
+        // Entry and resources already exist for this queue (a placeholder, or
+        // a committed queue being assigned again after an unassignment).  No
+        // new QueueInfo or capacity check needed.
     }
 
-    // Set the queue as assigning (no longer pending unassignment)
-    queueIt->second->setState(ClusterStateQueueInfo::State::k_ASSIGNING);
-
-    BALL_LOG_INFO << "Cluster [" << cluster->description()
-                  << "]: Transition: " << previousState << " -> "
-                  << ClusterStateQueueInfo::State::k_ASSIGNING << " for ["
-                  << uri << "].";
     // Populate 'queueAssignmentAdvisory'
 
     mqbu::StorageKey key;
@@ -1150,6 +1261,12 @@ bool ClusterUtil::assignQueue(ClusterState*         clusterState,
 
             // Permanent failure, cannot continue
             result = false;
+        }
+        else {
+            setPendingAssignment(clusterState,
+                                 *clusterData,
+                                 queueAdvisory,
+                                 allocator);
         }
     }
 
@@ -1757,7 +1874,9 @@ void ClusterUtil::apply(mqbc::ClusterState*                 clusterState,
     case MsgChoice::SELECTION_ID_QUEUE_UN_ASSIGNMENT_ADVISORY: {
         const bmqp_ctrlmsg::QueueUnAssignmentAdvisory& queueAdvisory =
             clusterMessage.choice().queueUnAssignmentAdvisory();
-        applyQueueUnassignment(clusterState, queueAdvisory.queues());
+        applyQueueUnassignment(clusterState,
+                               queueAdvisory.queues(),
+                               clusterData.electorInfo().electorTerm());
     } break;  // BREAK
     case MsgChoice::SELECTION_ID_QUEUE_UPDATE_ADVISORY: {
         const bmqp_ctrlmsg::QueueUpdateAdvisory& queueAdvisory =
@@ -2208,9 +2327,7 @@ void ClusterUtil::loadQueuesInfo(bsl::vector<bmqp_ctrlmsg::QueueInfo>* out,
              qCit != queuesInfoPerDomain.cend();
              ++qCit) {
             const ClusterState::QueueInfoSp& infoSp = qCit->second;
-            if (infoSp->state() != ClusterStateQueueInfo::State::k_ASSIGNED &&
-                infoSp->state() !=
-                    ClusterStateQueueInfo::State::k_UNASSIGNING) {
+            if (infoSp->state() != ClusterStateQueueInfo::State::k_ASSIGNED) {
                 continue;  // CONTINUE
             }
 

@@ -121,10 +121,27 @@ struct ClusterUtil {
     /// Return true if the specified `spoPair` is valid, false otherwise.
     static bool isValid(const bmqp_ctrlmsg::SyncPointOffsetPair& spoPair);
 
-    /// Set the specified `uri` to have the `k_UNASSIGNING` state in the
-    /// specified `clusterState`.
+    /// Mark the queue at the specified `uri` in the specified `clusterState`
+    /// as having an unassignment advisory in flight, tagged with the current
+    /// elector term from the specified `clusterData`.  A term other than the
+    /// current one names an advisory that did not commit.  Does nothing if the
+    /// queue no longer exists (a single-node cluster commits and erases it
+    /// before the caller learns the unassignment succeeded).
     static void setPendingUnassignment(const ClusterState* clusterState,
+                                       const ClusterData&  clusterData,
                                        const bmqt::Uri&    uri);
+
+    /// Unassign from the specified `clusterState` every queue that the
+    /// specified `queues` does not name, or names under a different queue
+    /// key.  Call this before applying a cluster state snapshot, whose
+    /// `queues` are every queue still assigned as of it: `apply` only adds
+    /// and updates, so the ones it drops have to be removed here, and a
+    /// queue whose key changed was deleted and recreated and has to be seen
+    /// as both.  A queue the snapshot names unchanged is left alone.
+    static void
+    unassignQueuesNotIn(ClusterState* clusterState,
+                        const bsl::vector<bmqp_ctrlmsg::QueueInfo>& queues,
+                        bslma::Allocator*                           allocator);
 
     /// Load into the specified `message` the message encoded in the
     /// specified `eventBlob` using the specified `allocator`.
@@ -233,7 +250,8 @@ struct ClusterUtil {
 
     /// Same as above but load the resulting advisory into the specified
     /// `clusterMessage` instead of applying to a ledger.  The caller is
-    /// responsible for proposing/applying it.
+    /// responsible for publishing it, and for calling `setPendingAssignment`
+    /// once that succeeds.
     static bool
     startQueueAssignment(bmqp_ctrlmsg::QueueAssignmentAdvisory* queueAdvisory,
                          ClusterState*                          clusterState,
@@ -242,6 +260,21 @@ struct ClusterUtil {
                          const bmqt::Uri&                       uri,
                          bmqp_ctrlmsg::Status*                  status,
                          bslma::Allocator*                      allocator);
+
+    /// For each queue in the specified `advisory`, mark it in the specified
+    /// `clusterState` as having an assignment advisory in flight, tagged with
+    /// the current elector term from the specified `clusterData`, adding a
+    /// leader-local `k_NONE` placeholder where there is none, using the
+    /// specified `allocator`, so the queue counts toward its domain's queue
+    /// limit until the advisory commits.  Call this only once the `advisory`
+    /// has been published.  A queue already `k_ASSIGNED` is left alone, since
+    /// a single-node cluster acks itself and commits the advisory before the
+    /// caller learns it succeeded.
+    static void
+    setPendingAssignment(ClusterState*      clusterState,
+                         const ClusterData& clusterData,
+                         const bmqp_ctrlmsg::QueueAssignmentAdvisory& advisory,
+                         bslma::Allocator* allocator);
 
     /// Register a queue info for the queue with the values in the specified
     /// `advisory` to the specified `clusterState` of the specified `cluster`.
