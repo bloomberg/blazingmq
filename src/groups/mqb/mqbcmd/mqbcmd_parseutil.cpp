@@ -18,7 +18,9 @@
 #include <mqbscm_version.h>
 // MQB
 #include <mqbcmd_messages.h>
+#include <mqbu_domainutil.h>
 
+// BMQ
 #include <bmqu_memoutstream.h>
 #include <bmqu_stringutil.h>
 
@@ -44,6 +46,18 @@ namespace {
 bool equalCaseless(const bslstl::StringRef& lhs, const bslstl::StringRef& rhs)
 {
     return bdlb::StringRefUtil::areEqualCaseless(lhs, rhs);
+}
+
+int validateDomainName(bsl::string*             error,
+                       const bslstl::StringRef& name,
+                       const bslstl::StringRef& command)
+{
+    if (mqbu::DomainUtil::isValidDomain(name)) {
+        return 0;
+    }
+
+    *error = "Invalid domain name '" + name + "' for " + command;
+    return -1;
 }
 
 /// This `class` provides a function-like cursor over a contiguous sequence
@@ -391,6 +405,10 @@ int parseDomainCommand(Domain* domain, bsl::string* error, WordGenerator next)
         return -1;  // RETURN
     }
 
+    if (validateDomainName(error, name, "DOMAINS DOMAIN") != 0) {
+        return -1;  // RETURN
+    }
+
     domain->name() = name;
 
     const bslstl::StringRef subCommand = next();
@@ -558,6 +576,9 @@ int parseDomainReconfigure(DomainReconfigure* reconfigure,
                  "domain name.";
         return -1;  // RETURN
     }
+    if (validateDomainName(error, domain, "DOMAINS RECONFIGURE") != 0) {
+        return -1;  // RETURN
+    }
     reconfigure->makeDomain(domain);
 
     return expectEnd(error, next);
@@ -574,6 +595,10 @@ int parseDomainRemove(DomainRemove* remove,
     if (domain.empty()) {
         *error = "DOMAINS REMOVE command must be followed by a "
                  "domain name.";
+        return -1;  // RETURN
+    }
+
+    if (validateDomainName(error, domain, "DOMAINS REMOVE") != 0) {
         return -1;  // RETURN
     }
 
@@ -611,6 +636,9 @@ int parseClearCache(ClearCache*              clear,
         clear->makeAll();
     }
     else {
+        if (validateDomainName(error, domain, command) != 0) {
+            return -1;  // RETURN
+        }
         clear->makeDomain(domain);
     }
 

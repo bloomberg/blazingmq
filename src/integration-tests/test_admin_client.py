@@ -815,3 +815,69 @@ def test_commands_on_non_existing_domain(
 
     # Stop the admin session
     admin.stop()
+
+
+def test_domain_commands_reject_path_traversal(single_node: Cluster) -> None:
+    """
+    Test: domain admin commands reject path traversal in domain names.
+
+    Concerns:
+    - DOMAIN, RECONFIGURE, and REMOVE reject traversal sequences.
+    - Rejected commands do not expose configuration contents.
+    """
+    admin = AdminClient()
+    admin.connect(*single_node.admin_endpoint)
+
+    for command in (
+        "DOMAINS DOMAIN ../bmqbrkrcfg INFOS",
+        "DOMAINS RECONFIGURE ../bmqbrkrcfg",
+        "DOMAINS REMOVE ../bmqbrkrcfg",
+    ):
+        response = admin.send_admin(command)
+        assert "Invalid domain name" in response
+        assert "taskConfig" not in response
+
+    admin.stop()
+
+
+def test_domain_reconfigure_does_not_return_invalid_config(
+    single_node: Cluster, domain_urls: tc.DomainUrls
+) -> None:
+    """
+    Test: RECONFIGURE does not return malformed domain configuration content.
+
+    Stage 1: load a domain with valid configuration
+
+    Stage 2: replace the configuration with identifiable invalid content
+
+    Stage 3: reconfigure the domain and inspect the error response
+
+    Concerns:
+    - RECONFIGURE reports the decoding failure to the admin client.
+    - The response does not contain the invalid configuration content.
+    """
+    admin = AdminClient()
+    admin.connect(*single_node.admin_endpoint)
+
+    broker = single_node.nodes()[0]
+    domains_dir = single_node.work_dir / broker.name / "etc" / "domains"
+    sentinel = "SENSITIVE_DOMAIN_CONTENT"
+
+    # Stage 1: load a domain with valid configuration
+    loaded_domain = domain_urls.domain_priority
+    response = admin.send_admin(f"DOMAINS DOMAIN {loaded_domain} INFOS")
+    assert "ActiveQueues ..: 0" in response
+
+    # Stage 2: replace the configuration with identifiable invalid content
+    loaded_path = domains_dir / f"{loaded_domain}.json"
+    original_content = loaded_path.read_text()
+    try:
+        loaded_path.write_text(sentinel)
+
+        # Stage 3: reconfigure the domain and inspect the error response
+        response = admin.send_admin(f"DOMAINS RECONFIGURE {loaded_domain}")
+        assert "error =" in response
+        assert sentinel not in response
+    finally:
+        loaded_path.write_text(original_content)
+        admin.stop()
