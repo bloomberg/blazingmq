@@ -476,7 +476,7 @@ class ClusterStateManager BSLS_KEYWORD_FINAL
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
-    void unassignQueue(const bmqp_ctrlmsg::QueueUnAssignmentAdvisory& advisory)
+    int unassignQueue(const bmqp_ctrlmsg::QueueUnAssignmentAdvisory& advisory)
         BSLS_KEYWORD_OVERRIDE;
 
     /// Send the current cluster state to follower nodes.  If the specified

@@ -121,7 +121,9 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
 
   private:
     // PRIVATE TYPES
-    typedef bsl::shared_ptr<const mqbc::ClusterStateQueueInfo>
+    /// Not const: the same object the cluster state holds, and a queue
+    /// awaiting unassignment is reconsidered through it.
+    typedef bsl::shared_ptr<mqbc::ClusterStateQueueInfo>
         ClusterStateQueueInfoCSp;
 
     struct OpenQueueContext;
@@ -297,6 +299,13 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
         /// outstanding.  `d_openQueueRetryHandle` stays set after the event
         /// fires, so it cannot answer this.
         bool d_openQueueRetryScheduled;
+
+        /// `primaryLeaseId` that `requestQueueUnassignment` sent its
+        /// `QueueUnassignmentRequest` under, `0` if it sent none.  The request
+        /// cannot commit once the partition has another primary -- the leader
+        /// refuses it with `e_SOURCE_NOT_PRIMARY` -- so a value the partition
+        /// has moved past no longer holds the queue.
+        unsigned int d_unassignmentRequestLeaseId;
 
         bdlmt::EventScheduler::EventHandle d_openQueueRetryHandle;
 
@@ -574,20 +583,19 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
                                    mqbnet::ClusterNode* responder);
 
     /// Send a queueUnassignment request to the leader, requesting unassignment
-    /// of the queue with the specified `uri`, `key` and `partitionId`.  This
-    /// is called only on a non-leader active primary (which detects the queue
-    /// as GC-able but cannot broadcast the QueueUnAssignmentAdvisory itself).
-    void requestQueueUnassignment(const bmqt::Uri&        uri,
-                                  const mqbu::StorageKey& key,
-                                  int                     partitionId);
+    /// of the queue in the specified `queueContext`.  This is called only on a
+    /// non-leader active primary (which detects the queue as GC-able but
+    /// cannot broadcast the QueueUnAssignmentAdvisory itself).
+    void requestQueueUnassignment(const QueueContextSp& queueContext);
 
-    /// QueueUnassignment request response handler, for a queue with the
-    /// specified `uri`, and with the request and its associated response in
-    /// the specified `requestContext`.  Best-effort: the queue is actually
-    /// removed only when the leader's advisory commits (`onQueueUnassigned`).
-    void onQueueUnassignmentResponse(const RequestSp&     requestContext,
-                                     const bmqt::Uri&     uri,
-                                     mqbnet::ClusterNode* responder);
+    /// QueueUnassignment request response handler, for the queue in the
+    /// specified `queueContext`, and with the request and its associated
+    /// response in the specified `requestContext`.  Best-effort: the queue is
+    /// actually removed only when the leader's advisory commits
+    /// (`onQueueUnassigned`).
+    void onQueueUnassignmentResponse(const RequestSp&      requestContext,
+                                     const QueueContextSp& queueContext,
+                                     mqbnet::ClusterNode*  responder);
 
     /// Method invoked when the queue in the specified `queueContext` has
     /// been assigned; to resume the operation on any pending contexts.
@@ -942,9 +950,17 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     bool hasActiveAvailablePrimary(int                  partitionId,
                                    mqbnet::ClusterNode* otherThan = 0) const;
 
+    /// Return the current elector term.
+    bsls::Types::Uint64 electorTerm() const;
+
     /// Return true if the queue in the specified `queueContext` is
     /// assigned.
     bool isQueueAssigned(const QueueContext& queueContext) const;
+
+    /// Return true if `requestQueueUnassignment` sent a request for the queue
+    /// in the specified `queueContext` under the leaseId the partition still
+    /// has.
+    bool hasPendingUnassignmentRequest(const QueueContext& queueContext) const;
 
     /// Return true if the queue in the specified `queueContext` is assigned
     /// and its associated primary is AVAILABLE and is different from the
@@ -1450,6 +1466,11 @@ inline bool ClusterQueueHelper::hasActiveAvailablePrimary(
     return bmqp_ctrlmsg::NodeStatus::E_AVAILABLE == ns->nodeStatus();
 }
 
+inline bsls::Types::Uint64 ClusterQueueHelper::electorTerm() const
+{
+    return d_clusterData_p->electorInfo().electorTerm();
+}
+
 inline bool
 ClusterQueueHelper::isQueueAssigned(const QueueContext& queueContext) const
 {
@@ -1458,17 +1479,39 @@ ClusterQueueHelper::isQueueAssigned(const QueueContext& queueContext) const
                bmqp::QueueId::k_UNASSIGNED_QUEUE_ID;  // RETURN
     }
 
-    mqbc::ClusterStateQueueInfo* assigned = d_clusterState_p->getAssigned(
-        queueContext.uri());
+    const mqbc::ClusterStateQueueInfo* qinfo =
+        queueContext.d_stateQInfo_sp.get();
 
-    if (assigned == 0) {
+    if (qinfo == 0 ||
+        qinfo->state() != mqbc::ClusterStateQueueInfo::State::k_ASSIGNED) {
         return false;  // RETURN
     }
 
-    BSLS_ASSERT_SAFE(assigned->partitionId() !=
+    // The active leader withholds a queue whose unassignment it has in flight
+    // this term: serving it would write under a queueKey the advisory is about
+    // to remove.
+    if (d_clusterData_p->electorInfo().isSelfActiveLeader() &&
+        qinfo->isUnassigning(electorTerm())) {
+        return false;  // RETURN
+    }
+
+    BSLS_ASSERT_SAFE(qinfo->partitionId() !=
                          mqbi::Storage::k_INVALID_PARTITION_ID &&
-                     !assigned->key().isNull());
+                     !qinfo->key().isNull());
     return true;
+}
+
+inline bool ClusterQueueHelper::hasPendingUnassignmentRequest(
+    const QueueContext& queueContext) const
+{
+    const unsigned int leaseId =
+        queueContext.d_liveQInfo.d_unassignmentRequestLeaseId;
+
+    // A request sent under a leaseId the partition has moved past cannot
+    // commit: the leader refuses it with 'e_SOURCE_NOT_PRIMARY'.
+    return leaseId != 0 &&
+           leaseId == d_clusterState_p->partition(queueContext.partitionId())
+                          .primaryLeaseId();
 }
 
 inline bool ClusterQueueHelper::isQueuePrimaryAvailable(
@@ -1491,12 +1534,11 @@ inline bool ClusterQueueHelper::isQueuePrimaryAvailable(
 
     // For a cluster member, a queue's primary is available if queue is
     // assigned to a valid partition, that partition has a primary, and the
-    // primary is active.
+    // primary is active.  A queue awaiting unassignment keeps the partition
+    // it was assigned to, so the partition alone does not say it is assigned.
 
-    const int partitionId = queueContext.partitionId();
-
-    return partitionId != mqbi::Storage::k_INVALID_PARTITION_ID &&
-           hasActiveAvailablePrimary(partitionId, otherThan);
+    return isQueueAssigned(queueContext) &&
+           hasActiveAvailablePrimary(queueContext.partitionId(), otherThan);
 }
 
 inline bool ClusterQueueHelper::isSelfAvailablePrimary(int partitionId) const

@@ -4195,7 +4195,7 @@ void StorageMonitor::onStorageRegistered(
 
         what.d_storage_sp           = storageSp;
         what.d_apps                 = apps;  // appKey -> appId
-        what.d_awaitingRegistration = false;
+        what.d_awaiting &= ~Awaiting::e_REGISTRATION;
     }
     d_cluster_p->onQueueStorageReady(partitionId, uri);
 }
@@ -4219,7 +4219,7 @@ void StorageMonitor::onStorageRegistered(int              partitionId,
         StorageWithApps& what = d_storages[partitionId][uri];
 
         what.d_storage_sp           = storageSp;
-        what.d_awaitingRegistration = false;
+        what.d_awaiting &= ~Awaiting::e_REGISTRATION;
         what.d_apps.clear();
         for (mqbi::Storage::AppInfos::const_iterator cit = apps.cbegin();
              cit != apps.cend();
@@ -4254,7 +4254,7 @@ void StorageMonitor::onStorageAppsAdded(int              partitionId,
             it->second.d_apps.insert(bsl::make_pair(cit->second, cit->first));
         }
 
-        it->second.d_awaitingRegistration = false;
+        it->second.d_awaiting &= ~Awaiting::e_REGISTRATION;
     }
 
     d_cluster_p->onQueueStorageReady(partitionId, uri);
@@ -4279,6 +4279,7 @@ void StorageMonitor::onStorageAppRemoved(int                     partitionId,
         }
 
         it->second.d_apps.erase(appKey);
+        it->second.d_awaiting &= ~Awaiting::e_APP_REMOVAL;
     }
 
     d_cluster_p->onQueueStorageReady(partitionId, uri);
@@ -4403,8 +4404,8 @@ StorageMonitor::RegistrationState StorageMonitor::registerQueue(
 
     if (it == d_storages[partitionId].end()) {
         // Placeholder: somewhere to hold the mark until the storage arrives.
-        StorageWithApps& what       = d_storages[partitionId][uri];
-        what.d_awaitingRegistration = true;
+        StorageWithApps& what = d_storages[partitionId][uri];
+        what.d_awaiting |= Awaiting::e_REGISTRATION;
         return e_REQUIRED;  // RETURN
     }
 
@@ -4428,12 +4429,37 @@ StorageMonitor::RegistrationState StorageMonitor::registerQueue(
         }
     }
 
-    if (what.d_awaitingRegistration) {
+    if (Awaiting::e_NONE != what.d_awaiting) {
+        // A registration of its own, or a deletion this registration must
+        // not race.
         return e_PENDING;  // RETURN
     }
 
-    what.d_awaitingRegistration = true;
+    what.d_awaiting |= Awaiting::e_REGISTRATION;
     return e_REQUIRED;
+}
+
+bool StorageMonitor::mark(const bmqt::Uri& uri,
+                          int              partitionId,
+                          Awaiting::Enum   awaiting)
+{
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(d_storages.size()));
+
+    bslmt::LockGuard<bslmt::Mutex> guard(
+        d_storageLockVec[partitionId].get());  // LOCK
+
+    StorageSpMap::iterator it = d_storages[partitionId].find(uri);
+    if (it == d_storages[partitionId].end()) {
+        return false;  // RETURN
+    }
+
+    if (Awaiting::e_NONE != it->second.d_awaiting) {
+        return false;  // RETURN
+    }
+
+    it->second.d_awaiting |= awaiting;
+    return true;
 }
 
 bool StorageMonitor::hasStorage(const bmqt::Uri& uri, int partitionId) const

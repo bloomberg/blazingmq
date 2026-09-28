@@ -1413,10 +1413,16 @@ void ClusterStateRaft::applySnapshotChunk(const bdlbb::Blob&   event,
     oldLog->close();
     bdls::FilesystemUtil::remove(oldPath);
 
-    // A snapshot replaces the cluster state; 'ClusterUtil::apply' merges, so
-    // without clearing first, queues unassigned before 'lastIncludedIndex'
-    // would survive.
-    d_clusterState_p->clearQueues();
+    // A snapshot replaces the cluster state, while 'ClusterUtil::apply'
+    // merges: it adds and updates, and never removes.  So remove first --
+    // before the apply, while the queue keys it would overwrite are still
+    // here -- and then apply.  Clearing the whole state instead would notify
+    // observers that every queue is going away, dropping their storage and
+    // tearing down live queues that the apply puts straight back.
+    mqbc::ClusterUtil::unassignQueuesNotIn(
+        d_clusterState_p,
+        clusterMessage.choice().leaderAdvisory().queues(),
+        d_allocator_p);
     mqbc::ClusterUtil::apply(d_clusterState_p,
                              clusterMessage,
                              *d_clusterData_p);
@@ -1480,6 +1486,12 @@ bool ClusterStateRaft::assignQueue(const bmqt::Uri&      uri,
             status->code()     = -1;
             status->message()  = "Raft propose failed";
             result             = false;
+        }
+        else {
+            mqbc::ClusterUtil::setPendingAssignment(d_clusterState_p,
+                                                    *d_clusterData_p,
+                                                    queueAdvisory,
+                                                    d_allocator_p);
         }
     }
 
@@ -1549,12 +1561,20 @@ void ClusterStateRaft::processQueueAssignmentRequest(
     d_clusterData_p->messageTransmitter().sendMessage(response, requester);
 }
 
-void ClusterStateRaft::unassignQueue(
+int ClusterStateRaft::unassignQueue(
     const bmqp_ctrlmsg::QueueUnAssignmentAdvisory& advisory)
 {
     bmqp_ctrlmsg::ClusterMessage msg(d_allocator_p);
     msg.choice().makeQueueUnAssignmentAdvisory() = advisory;
-    propose(msg);
+
+    const int rc = propose(msg);
+    if (rc != 0) {
+        BALL_LOG_ERROR << d_clusterData_p->identity().description()
+                       << ": Failed to propose queue unassignment advisory: "
+                       << advisory << ", rc: " << rc;
+    }
+
+    return rc;
 }
 
 mqbi::ClusterErrorCode::Enum

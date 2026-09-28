@@ -28,6 +28,8 @@ primaryship at all -- the command is rejected outright -- so these run on
 'fsm_multi_cluster' only.
 """
 
+import re
+
 import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import (
     Cluster,
@@ -64,10 +66,8 @@ def _move_primary(
     Hand primaryship of `partition_id` to the specified `target`, or to some
     other node if none is named, and return the new primary.
 
-    The optionally specified `expect` names substrings the ex-primary must log,
-    given **in the order it logs them**: the capture reads its output forward,
-    so asking for an earlier line after a later one has been consumed can never
-    match.
+    The optionally specified `expect` names substrings the ex-primary must
+    log, in any order.
     """
     if target is None:
         target = next(node for node in cluster.nodes() if node != primary)
@@ -75,8 +75,7 @@ def _move_primary(
 
     # Sent without waiting for the reply: waiting reads the ex-primary's
     # output forward to the command's completion line, past everything checked
-    # below.  The completion is checked last instead, where it falls in the
-    # stream.
+    # below.
     primary.transfer_leadership(target, partition_id=partition_id)
 
     # Primaryship really moved, and to the node we named.
@@ -84,19 +83,19 @@ def _move_primary(
     assert wait_until(lambda: leader.wait_queue_primary(uri) == target, 20)
     assert leader.wait_queue_primary(uri) == target
 
-    for substr in expect:
-        assert primary.outputs_substr(substr, timeout=10), substr
-
-    # The ex-primary keeps the queue and its storage, and turns it into a
-    # remote one addressed at the new primary.
-    assert primary.outputs_substr("converting to remote", timeout=10)
-
-    # The broker logs this once it is done with the command, after everything
-    # above, so it is still ahead in the stream.  A rejected transfer logs
+    # 'converting to remote': the ex-primary keeps the queue and its storage,
+    # and turns it into a remote one addressed at the new primary.
+    # 'processed successfully': the command itself; a rejected transfer logs
     # 'Error processing command' instead and this times out.
-    assert primary.outputs_regex(
-        r"TRANSFER_LEADERSHIP.*processed successfully", timeout=10
-    )
+    #
+    # All in one scan, because the admin thread logs the command and the queue
+    # thread logs the conversion, so their order in the output is not fixed.
+    patterns = [re.escape(substr) for substr in expect] + [
+        re.escape("converting to remote"),
+        r"TRANSFER_LEADERSHIP.*processed successfully",
+    ]
+    results = primary.capture_n(patterns, timeout=20)
+    assert all(results), [p for p, r in zip(patterns, results) if r is None]
 
     return target
 

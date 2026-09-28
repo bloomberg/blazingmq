@@ -95,8 +95,10 @@ class ClusterStateUpdater {
     virtual bool assignQueue(const bmqt::Uri&      uri,
                              bmqp_ctrlmsg::Status* status) = 0;
 
-    /// Unassign the queue in the specified `advisory`.
-    virtual void
+    /// Unassign the queue in the specified `advisory`.  Return 0 if the
+    /// advisory was proposed/applied, non-zero if it was not and no commit
+    /// is to be expected for it.
+    virtual int
     unassignQueue(const bmqp_ctrlmsg::QueueUnAssignmentAdvisory& advisory) = 0;
 
     /// Register/unregister the specified `added`/`removed` appIds for

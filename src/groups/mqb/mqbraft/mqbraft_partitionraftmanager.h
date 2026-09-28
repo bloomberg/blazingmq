@@ -181,6 +181,17 @@ class PartitionRaftManager : public mqbi::StorageProvider,
     /// 'partitionId'.
     void unregisterQueueDispatched(int partitionId, const bmqt::Uri& uri);
 
+    /// Make the journal of the specified `partitionId` say what the cluster
+    /// state says: write the creation of a queue the journal does not have,
+    /// the addition or deletion of the apps they differ on, and the deletion
+    /// of a queue the cluster state no longer has.  The writes are dispatched
+    /// to the partition's thread, so calling this before the sync point's own
+    /// dispatch puts them ahead of it.  A queue that still holds messages is
+    /// left for a later leadership, once TTL has emptied it.
+    ///
+    /// THREAD: Executed by the *CLUSTER DISPATCHER* thread.
+    void conformToClusterState(unsigned int partitionId);
+
     /// Enqueue a TTL message-GC pass on every partition's dispatcher thread.
     /// Invoked periodically by 'd_gcMessagesEventHandle' from the scheduler
     /// thread; only the partition's Raft leader actually GCs (the FileStore's
