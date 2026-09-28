@@ -78,28 +78,29 @@
 //:   has e_RUNNING value corresponding to the state when the session is
 //:   running normally.  It is changed when the session is shutting down by one
 //:   of the reasons:
-//:   o e_SHUTTING_DOWN - when 'initiateShutdown' is called and graceful
-//:     shutdown is performed.  All the queue handles get deconfigured and the
-//:     session is waiting for the unconfirmed messages if there are any;
 //:   o e_DISCONNECTING - when disconnect request comes from the client.  All
 //:     the queue handles get dropped and when done the disconnect response is
-//:     sent back to the client;
-//:   o e_DISCONNECTED - in case of the channel went down, or right after
-//:     sending the 'DisconnectResponse' message to the client.  Once set to
-//:     e_DISCONNECTED, no messages should ever be delivered to the client.
+//:     sent back to the client.  Also set when 'initiateShutdown' is called,
+//:     after which open and close queue requests are ignored;
+//:   o e_DISCONNECTED - right after sending the 'DisconnectResponse' message
+//:     to the client.  Once set to e_DISCONNECTED, no messages should ever be
+//:     delivered to the client;
+//:   o e_DEAD - in case of the channel went down, or the session was
+//:     invalidated.  The session must not do any more work.
 //:   Since the above events may happen concurrently (e.g. disconnect request
 //:   comes when the graceful shutdown is in progress) the following state
 //:   transitions are possible:
-//:   e_RUNNING       -> e_SHUTTING_DOWN
-//:   e_RUNNING       -> e_DISCONNECTING
-//:   e_RUNNING       -> e_DISCONNECTED
-//:   e_SHUTTING_DOWN -> e_DISCONNECTING
-//:   e_SHUTTING_DOWN -> e_DISCONNECTED
-//:   e_DISCONNECTING -> e_DISCONNECTED
-//:   This means that the e_SHUTTING_DOWN has the lowest priority, i.e. the
-//:   graceful shutdown sequence is started only if the session was running
-//:   normally, and the sequence is interrupted once disconnect or channel down
-//:   events come.
+//:   e_RUNNING       -> e_DISCONNECTING  (client Disconnect, broker shutdown)
+//:   e_RUNNING       -> e_DEAD           (channel down, invalidate)
+//:   e_DISCONNECTING -> e_DISCONNECTED   (DisconnectResponse sent)
+//:   e_DISCONNECTING -> e_DEAD
+//:   e_DISCONNECTED  -> e_DEAD
+//:   e_DISCONNECTED  -> e_DISCONNECTING  (broker shutdown)
+//:   A client Disconnect during a broker shutdown, or the reverse, leaves the
+//:   state at e_DISCONNECTING.  Note that the last transition is possible
+//:   because 'initiateShutdownDispatched' only checks for e_DEAD, and it lifts
+//:   the e_DISCONNECTED guarantee that no messages are delivered to the
+//:   client.
 //: o d_isDisconnecting:
 //:   This boolean is only set and checked in 'processEvent', executing on the
 //:   IO thread, to validate and safe-guard against a client misbehaving and
@@ -119,7 +120,8 @@
 // those are downstream to upstream events and if the client sent us such
 // messages, we should honor them even if the client crashed right after.
 //
-// 'd_operationState' is set to 'e_DISCONNECTED' under two conditions:
+// 'd_operationState' is set to 'e_DISCONNECTED' or 'e_DEAD' under two
+// conditions:
 // 1) at the end of the processing of a client Disconnect request, after which,
 //    per contract, no messages (especially no 'Confirm' nor 'Put' events are
 //    expected to be received).  The 'd_isDisconnecting' check in
@@ -144,7 +146,7 @@
 //   - Not checking the 'd_operationState' everytime in those methods is also a
 //     welcome micro optimization as those are on the critical message path.
 //   - for the case of 'PutEvent', we will have to check, and not send NACKs if
-//     the 'd_operationState' is set to 'e_DISCONNECTED'.
+//     the 'd_operationState' is set to 'e_DISCONNECTED' or 'e_DEAD'.
 
 // MQB
 #include <mqbact_actions.h>
@@ -718,21 +720,8 @@ void ClientSession::tearDownImpl(bslmt::Semaphore*            semaphore,
         return;  // RETURN
     }
 
-    // If stop request handling is in progress cancel checking for the
-    // unconfirmed messages.
-    if (d_periodicUnconfirmedCheckHandler) {
-        d_scheduler_p->cancelEventAndWait(d_periodicUnconfirmedCheckHandler);
-    }
-
+    // From now on, callbacks bound with 'd_self.acquireWeak()' are no-ops.
     d_self.invalidate();
-    // Invalidating this CS in CS thread for the sake of synchronization
-    // with `finishCheckUnconfirmed / finishCheckUnconfirmedDispatched` and
-    // `checkUnconfirmed` / `checkUnconfirmedDispatched`.  Otherwise, they
-    // need `weakMemFn`.
-
-    // Stop the graceful shutdown chain (no-op if not started)
-    d_shutdownChain.stop();
-    d_shutdownChain.removeAll();
 
     // Drop all *applicable* queue handles, ie, all those handles for which
     // either a final close-queue request has not been received, or those
@@ -750,9 +739,6 @@ void ClientSession::tearDownImpl(bslmt::Semaphore*            semaphore,
 
     const bool hasLostTheClient = (!isBrokerShutdown && !isProxy());
 
-    // Set up the 'd_operationState' to indicate that the channel is dying and
-    // we should not use it anymore trying to send any messages and should also
-    // stop enqueuing 'callbacks' to the client dispatcher thread ...
     const bool doDeconfigure = d_operationState == e_RUNNING;
 
     int numHandlesDropped = dropAllQueueHandles(doDeconfigure,
@@ -1003,12 +989,6 @@ void ClientSession::processDisconnectAllQueues(
     }
     const bool doDeconfigure = d_operationState == e_RUNNING;
     d_operationState         = e_DISCONNECTING;
-
-    // If stop request handling is in progress cancel checking for the
-    // unconfirmed messages.
-    if (d_periodicUnconfirmedCheckHandler) {
-        d_scheduler_p->cancelEventAndWait(d_periodicUnconfirmedCheckHandler);
-    }
 
     // Step 1/3 of disconnect request processing: executed following an enqueue
     // to the client dispatcher from the IO thread.  Drops all applicable
@@ -1274,12 +1254,6 @@ void ClientSession::closeQueueCb(
 
     // Release the handle's ptr in the queue's context to guarantee that the
     // handle will be destroyed after all ongoing queue events are handled.
-    // E.g. in case of graceful shutdown each handle may be checked for the
-    // unconfirmed messages (see 'checkUnconfirmedDispatched').  This check is
-    // done in the queue's dispatcher thread, but the handle may be dropped
-    // right after this check is scheduled.  Releasing the handle in the
-    // queue's thread allows to keep the handle alive until the check is
-    // complete.
     //
     // NOTE: We copy and pass 'description()' string to the callback because
     //       this 'ClientSession' object might be already destroyed when event
@@ -2430,7 +2404,6 @@ ClientSession::ClientSession(
     const bsl::shared_ptr<bmqst::StatContext>&     clientStatContext,
     ClientSessionState::BlobSpPool*                blobSpPool,
     bdlbb::BlobBufferFactory*                      bufferFactory,
-    bdlmt::EventScheduler*                         scheduler,
     const bsl::shared_ptr<const mqbi::Authorizer>& authorizer,
     bslma::Allocator*                              allocator)
 : d_self(this)  // use default allocator
@@ -2457,9 +2430,6 @@ ClientSession::ClientSession(
                         domainFactory,
                         allocator)
 , d_clusterCatalog_p(clusterCatalog)
-, d_scheduler_p(scheduler)
-, d_periodicUnconfirmedCheckHandler()
-, d_shutdownChain(allocator)
 , d_authorizer_sp(authorizer)
 {
     // PRECONDITIONS
@@ -2469,7 +2439,6 @@ ClientSession::ClientSession(
     BSLS_ASSERT(clientStatContext);
     BSLS_ASSERT(blobSpPool);
     BSLS_ASSERT(bufferFactory);
-    BSLS_ASSERT(scheduler);
     BSLS_ASSERT(authorizer);
 
     // Register this client to the dispatcher
@@ -2502,7 +2471,6 @@ ClientSession::~ClientSession()
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!d_self.isValid());
-    BSLS_ASSERT_SAFE(d_shutdownChain.numOperations() == 0);
 
     BALL_LOG_INFO << description() << ": destructor";
 
@@ -3007,6 +2975,8 @@ void ClientSession::processClusterMessage(
             return;  // RETURN
         }
 
+        // The StopResponse is sent when the last reference to 'context' is
+        // released, i.e. once every queue handle has been deconfigured.
         ShutdownContextSp context;
         context.createInplace(
             d_state.d_allocator_p,
@@ -3028,18 +2998,16 @@ void ClientSession::processClusterMessage(
 void ClientSession::onDeconfiguredHandle(
     BSLA_MAYBE_UNUSED const ShutdownContextSp& contextSp)
 {
-    // empty
+    // Only holds a reference to 'contextSp'; see 'processClusterMessage'.
 }
 
 void ClientSession::processStopRequest(ShutdownContextSp& contextSp)
 {
+    // executed by the *CLIENT* dispatcher thread
+
     // This StopRequest arrives from a downstream (otherwise, ClusterProxy
     // would receive it).  As an upstream, this node needs to deconfigure all
     // queues and then respond with StopResponse.
-
-    // Use the same logic as in the 'initiateShutdown' except that the final
-    // step is sending StopResponse instead of 'closeChannel'
-    // executed by the *CLIENT* dispatcher thread
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(inDispatcherThread());
@@ -3050,11 +3018,9 @@ void ClientSession::processStopRequest(ShutdownContextSp& contextSp)
     }
 
     if (d_operationState == e_DISCONNECTING) {
-        // The broker is already shutting down or processing a StopRequest or
-        // disconnecting.
-        // The de-configuring is done.
-        // Even if the waiting is in progress, still reply with StopResponse
-
+        // Handles are already being dropped.  Nothing else holds
+        // 'contextSp', so the StopResponse is sent once the caller releases
+        // it.
         return;  // RETURN
     }
     for (QueueStateMapCIter cit = d_queueSessionManager.queues().begin();
