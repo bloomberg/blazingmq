@@ -170,9 +170,7 @@ ClusterStateQueueInfo::State::toAscii(ClusterStateQueueInfo::State::Enum value)
 
     switch (value) {
         CASE(NONE)
-        CASE(ASSIGNING)
         CASE(ASSIGNED)
-        CASE(UNASSIGNING)
     default: return "(* NONE *)";
     }
 
@@ -193,9 +191,7 @@ bool ClusterStateQueueInfo::State::fromAscii(
     }
 
     CHECKVALUE(NONE)
-    CHECKVALUE(ASSIGNING)
     CHECKVALUE(ASSIGNED)
-    CHECKVALUE(UNASSIGNING)
 
     // Invalid string
     return false;
@@ -582,8 +578,11 @@ void ClusterState::assignQueue(const bmqp_ctrlmsg::QueueInfo& advisory)
         queue->setApps(advisory);
     }
 
-    // Set the queue as assigned
+    // Set the queue as assigned; the commit clears any in-flight advisory
+    // markers.
     queue->setState(ClusterStateQueueInfo::State::k_ASSIGNED);
+    queue->setAssignAdvisoryTerm(0);
+    queue->setUnassignAdvisoryTerm(0);
 
     updatePartitionQueueMapped(partitionId, 1);
 
@@ -609,7 +608,8 @@ void ClusterState::assignQueue(const bmqp_ctrlmsg::QueueInfo& advisory)
                      d_partitionsInfo[partitionId].numActiveQueues());
 }
 
-bool ClusterState::unassignQueue(const bmqt::Uri& uri)
+bool ClusterState::unassignQueue(const bmqt::Uri&    uri,
+                                 bsls::Types::Uint64 electorTerm)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -639,10 +639,28 @@ bool ClusterState::unassignQueue(const bmqt::Uri& uri)
         (*it)->onQueueUnassigned(cit->second);
     }
 
-    domIt->second->queuesInfo().erase(cit);
+    if (cit->second->isAssigning(electorTerm)) {
+        // A reassignment (ordered by the leader after this unassignment) is in
+        // flight this term.  Keep a 'k_NONE' placeholder carrying the assign
+        // marker instead of erasing, so the reassignment's commit repopulates
+        // this entry and a concurrent open/request dedups on it rather than
+        // proposing a duplicate assignment.  Only the leader has the marker
+        // set (markers are leader-local), so followers and the
+        // teardown/snapshot paths (electorTerm == 0) erase as usual.  Reset to
+        // a fresh placeholder (null key, invalid partition --
+        // 'queuesInfo().size()' still counts it) so the reassignment's
+        // 'assignQueue' remaps the partition cleanly; re-stamp the assign
+        // marker that 'reset' cleared.
+        cit->second->reset();
+        cit->second->setState(ClusterStateQueueInfo::State::k_NONE);
+        cit->second->setAssignAdvisoryTerm(electorTerm);
+    }
+    else {
+        domIt->second->queuesInfo().erase(cit);
 
-    if (domIt->second->queuesInfo().empty()) {
-        d_domainStates.erase(domIt);
+        if (domIt->second->queuesInfo().empty()) {
+            d_domainStates.erase(domIt);
+        }
     }
 
     // POSTCONDITIONS

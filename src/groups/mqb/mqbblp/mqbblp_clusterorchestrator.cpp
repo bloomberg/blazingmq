@@ -2377,6 +2377,7 @@ void ClusterOrchestrator::maybeIssuePartitionPrimaryAdvisory()
     // executed by the cluster *DISPATCHER* thread
 
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+    BSLS_ASSERT_SAFE(d_clusterStateRaft_mp);
 
     // Raft mode and self is the CSL leader.  Per Raft 5.4.2, a new leader
     // commits inherited prior-term entries only by committing an entry of its
@@ -2387,9 +2388,7 @@ void ClusterOrchestrator::maybeIssuePartitionPrimaryAdvisory()
     // Called only from 'maybeTransitionToAvailable', which has already
     // verified every partition has a locally-known leader (its gate 1) before
     // calling this -- not re-checked here.
-    if (!d_clusterStateRaft_mp) {
-        return;  // RETURN (legacy mode)
-    }
+
     if (bmqp_ctrlmsg::NodeStatus::E_STOPPING ==
         d_clusterData_p->membership().selfNodeStatus()) {
         return;  // RETURN (shutting down; do not propose new CSL entries)
@@ -2466,6 +2465,7 @@ void ClusterOrchestrator::maybeTransitionToAvailable()
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+    BSLS_ASSERT_SAFE(d_clusterStateRaft_mp);
 
     // This is the single unified readiness check, invoked from two
     // independent triggers: (1) a data-partition's own Raft leadership
@@ -2479,9 +2479,6 @@ void ClusterOrchestrator::maybeTransitionToAvailable()
     // 'onPartitionRaftLeadershipDispatched'), and only the tail of this
     // function re-opens it, so bailing out early here would leave that
     // partition's gate permanently closed.
-    if (!d_clusterStateRaft_mp) {
-        return;  // RETURN (legacy mode)
-    }
 
     if (bmqp_ctrlmsg::NodeStatus::E_STOPPING ==
         d_clusterData_p->membership().selfNodeStatus()) {
@@ -2911,28 +2908,55 @@ void ClusterOrchestrator::processRaftSnapshotEvent(const bmqp::Event&   event,
     BSLS_ASSERT_SAFE(d_partitionRaftManager_mp);
 
     // The CSL Raft group shares this event type with the partitions; the
-    // file type tells them apart.
+    // file type tells them apart.  An event this cannot read names neither,
+    // so drop it rather than hand it to one of them.
     bmqu::BlobPosition position;
-    if (0 == bmqu::BlobUtil::findOffsetSafe(&position,
+    if (0 != bmqu::BlobUtil::findOffsetSafe(&position,
                                             *event.blob(),
                                             sizeof(bmqp::EventHeader))) {
-        bmqu::BlobObjectProxy<bmqp::SnapshotChunkHeader> hdr(event.blob(),
-                                                             position,
-                                                             true,    // read
-                                                             false);  // write
-        if (hdr.isSet() &&
-            hdr->fileType() == bmqp::SnapshotChunkHeader::k_FILE_TYPE_CSL) {
-            BSLS_ASSERT_SAFE(d_clusterStateRaft_mp);
+        BALL_LOG_ERROR << d_clusterData_p->identity().description()
+                       << ": Failed to locate SnapshotChunkHeader in "
+                       << "e_RAFT_SNAPSHOT event from "
+                       << source->nodeDescription();
+        return;  // RETURN
+    }
 
-            dispatcher()->execute(
-                bdlf::BindUtil::bind(
-                    &ClusterOrchestrator::processRaftCslSnapshotDispatched,
-                    this,
-                    event.sharedBlob(),
-                    source),
-                d_cluster_p);
-            return;  // RETURN
-        }
+    bmqu::BlobObjectProxy<bmqp::SnapshotChunkHeader> hdr(event.blob(),
+                                                         position,
+                                                         true,    // read
+                                                         false);  // write
+    if (!hdr.isSet()) {
+        BALL_LOG_ERROR << d_clusterData_p->identity().description()
+                       << ": Failed to read SnapshotChunkHeader in "
+                       << "e_RAFT_SNAPSHOT event from "
+                       << source->nodeDescription();
+        return;  // RETURN
+    }
+
+    const unsigned int fileType = hdr->fileType();
+    hdr.reset();
+
+    if (bmqp::SnapshotChunkHeader::k_FILE_TYPE_CSL == fileType) {
+        BSLS_ASSERT_SAFE(d_clusterStateRaft_mp);
+
+        dispatcher()->execute(
+            bdlf::BindUtil::bind(
+                &ClusterOrchestrator::processRaftCslSnapshotDispatched,
+                this,
+                event.sharedBlob(),
+                source),
+            d_cluster_p);
+        return;  // RETURN
+    }
+
+    if (bmqp::SnapshotChunkHeader::k_FILE_TYPE_DATA != fileType &&
+        bmqp::SnapshotChunkHeader::k_FILE_TYPE_QLIST != fileType &&
+        bmqp::SnapshotChunkHeader::k_FILE_TYPE_JOURNAL != fileType) {
+        BALL_LOG_ERROR << d_clusterData_p->identity().description()
+                       << ": Unknown file type [" << fileType
+                       << "] in e_RAFT_SNAPSHOT event from "
+                       << source->nodeDescription();
+        return;  // RETURN
     }
 
     d_partitionRaftManager_mp->appendSnapshotChunk(event.sharedBlob(), source);

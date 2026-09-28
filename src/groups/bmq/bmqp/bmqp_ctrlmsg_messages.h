@@ -144,9 +144,6 @@ namespace bmqp_ctrlmsg {
 class QueueUnassignmentRequest;
 }
 namespace bmqp_ctrlmsg {
-class RaftAppendEntriesResponse;
-}
-namespace bmqp_ctrlmsg {
 class RaftInstallSnapshot;
 }
 namespace bmqp_ctrlmsg {
@@ -5810,34 +5807,43 @@ namespace bmqp_ctrlmsg {
 class QueueUnassignmentRequest {
     // This type represents a request, sent to the leader, to unassign the
     // queue with the specified 'queueUri'.
+    // primaryLeaseId: lease id under which the sender is primary for
+    // 'partitionId'.  0 if the sender does not send it.
 
     // INSTANCE DATA
     bsl::vector<char> d_queueKey;
     bsl::string       d_queueUri;
+    unsigned int      d_primaryLeaseId;
     int               d_partitionId;
 
     // PRIVATE ACCESSORS
     template <typename t_HASH_ALGORITHM>
     void hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const;
 
+    bool isEqualTo(const QueueUnassignmentRequest& rhs) const;
+
   public:
     // TYPES
     enum {
-        ATTRIBUTE_ID_QUEUE_URI    = 0,
-        ATTRIBUTE_ID_PARTITION_ID = 1,
-        ATTRIBUTE_ID_QUEUE_KEY    = 2
+        ATTRIBUTE_ID_QUEUE_URI        = 0,
+        ATTRIBUTE_ID_PARTITION_ID     = 1,
+        ATTRIBUTE_ID_QUEUE_KEY        = 2,
+        ATTRIBUTE_ID_PRIMARY_LEASE_ID = 3
     };
 
-    enum { NUM_ATTRIBUTES = 3 };
+    enum { NUM_ATTRIBUTES = 4 };
 
     enum {
-        ATTRIBUTE_INDEX_QUEUE_URI    = 0,
-        ATTRIBUTE_INDEX_PARTITION_ID = 1,
-        ATTRIBUTE_INDEX_QUEUE_KEY    = 2
+        ATTRIBUTE_INDEX_QUEUE_URI        = 0,
+        ATTRIBUTE_INDEX_PARTITION_ID     = 1,
+        ATTRIBUTE_INDEX_QUEUE_KEY        = 2,
+        ATTRIBUTE_INDEX_PRIMARY_LEASE_ID = 3
     };
 
     // CONSTANTS
     static const char CLASS_NAME[];
+
+    static const unsigned int DEFAULT_INITIALIZER_PRIMARY_LEASE_ID;
 
     static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
 
@@ -5945,6 +5951,10 @@ class QueueUnassignmentRequest {
     // Return a reference to the modifiable "QueueKey" attribute of this
     // object.
 
+    unsigned int& primaryLeaseId();
+    // Return a reference to the modifiable "PrimaryLeaseId" attribute of
+    // this object.
+
     // ACCESSORS
     bsl::ostream&
     print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
@@ -5999,6 +6009,9 @@ class QueueUnassignmentRequest {
     // Return a reference offering non-modifiable access to the "QueueKey"
     // attribute of this object.
 
+    unsigned int primaryLeaseId() const;
+    // Return the value of the "PrimaryLeaseId" attribute of this object.
+
     // HIDDEN FRIENDS
     friend bool operator==(const QueueUnassignmentRequest& lhs,
                            const QueueUnassignmentRequest& rhs)
@@ -6006,9 +6019,7 @@ class QueueUnassignmentRequest {
     // have the same value, and 'false' otherwise.  Two attribute objects
     // have the same value if each respective attribute has the same value.
     {
-        return lhs.queueUri() == rhs.queueUri() &&
-               lhs.partitionId() == rhs.partitionId() &&
-               lhs.queueKey() == rhs.queueKey();
+        return lhs.isEqualTo(rhs);
     }
 
     friend bool operator!=(const QueueUnassignmentRequest& lhs,
@@ -6044,189 +6055,6 @@ class QueueUnassignmentRequest {
 
 BDLAT_DECL_SEQUENCE_WITH_ALLOCATOR_BITWISEMOVEABLE_TRAITS(
     bmqp_ctrlmsg::QueueUnassignmentRequest)
-
-namespace bmqp_ctrlmsg {
-
-// ===============================
-// class RaftAppendEntriesResponse
-// ===============================
-
-class RaftAppendEntriesResponse {
-    // Follower's response to AppendEntries.
-    // success....: True if log matched and entries were appended matchIndex.:
-    // Follower's last log index
-
-    // INSTANCE DATA
-    bsls::Types::Uint64 d_matchIndex;
-    bool                d_success;
-
-  public:
-    // TYPES
-    enum { ATTRIBUTE_ID_SUCCESS = 0, ATTRIBUTE_ID_MATCH_INDEX = 1 };
-
-    enum { NUM_ATTRIBUTES = 2 };
-
-    enum { ATTRIBUTE_INDEX_SUCCESS = 0, ATTRIBUTE_INDEX_MATCH_INDEX = 1 };
-
-    // CONSTANTS
-    static const char CLASS_NAME[];
-
-    static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
-
-  public:
-    // CLASS METHODS
-    static const bdlat_AttributeInfo* lookupAttributeInfo(int id);
-    // Return attribute information for the attribute indicated by the
-    // specified 'id' if the attribute exists, and 0 otherwise.
-
-    static const bdlat_AttributeInfo* lookupAttributeInfo(const char* name,
-                                                          int nameLength);
-    // Return attribute information for the attribute indicated by the
-    // specified 'name' of the specified 'nameLength' if the attribute
-    // exists, and 0 otherwise.
-
-    // CREATORS
-    RaftAppendEntriesResponse();
-    // Create an object of type 'RaftAppendEntriesResponse' having the
-    // default value.
-
-    // MANIPULATORS
-    void reset();
-    // Reset this object to the default value (i.e., its value upon
-    // default construction).
-
-    template <typename t_MANIPULATOR>
-    int manipulateAttributes(t_MANIPULATOR& manipulator);
-    // Invoke the specified 'manipulator' sequentially on the address of
-    // each (modifiable) attribute of this object, supplying 'manipulator'
-    // with the corresponding attribute information structure until such
-    // invocation returns a non-zero value.  Return the value from the
-    // last invocation of 'manipulator' (i.e., the invocation that
-    // terminated the sequence).
-
-    template <typename t_MANIPULATOR>
-    int manipulateAttribute(t_MANIPULATOR& manipulator, int id);
-    // Invoke the specified 'manipulator' on the address of
-    // the (modifiable) attribute indicated by the specified 'id',
-    // supplying 'manipulator' with the corresponding attribute
-    // information structure.  Return the value returned from the
-    // invocation of 'manipulator' if 'id' identifies an attribute of this
-    // class, and -1 otherwise.
-
-    template <typename t_MANIPULATOR>
-    int manipulateAttribute(t_MANIPULATOR& manipulator,
-                            const char*    name,
-                            int            nameLength);
-    // Invoke the specified 'manipulator' on the address of
-    // the (modifiable) attribute indicated by the specified 'name' of the
-    // specified 'nameLength', supplying 'manipulator' with the
-    // corresponding attribute information structure.  Return the value
-    // returned from the invocation of 'manipulator' if 'name' identifies
-    // an attribute of this class, and -1 otherwise.
-
-    bool& success();
-    // Return a reference to the modifiable "Success" attribute of this
-    // object.
-
-    bsls::Types::Uint64& matchIndex();
-    // Return a reference to the modifiable "MatchIndex" attribute of this
-    // object.
-
-    // ACCESSORS
-    bsl::ostream&
-    print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
-    // Format this object to the specified output 'stream' at the
-    // optionally specified indentation 'level' and return a reference to
-    // the modifiable 'stream'.  If 'level' is specified, optionally
-    // specify 'spacesPerLevel', the number of spaces per indentation level
-    // for this and all of its nested objects.  Each line is indented by
-    // the absolute value of 'level * spacesPerLevel'.  If 'level' is
-    // negative, suppress indentation of the first line.  If
-    // 'spacesPerLevel' is negative, suppress line breaks and format the
-    // entire output on one line.  If 'stream' is initially invalid, this
-    // operation has no effect.  Note that a trailing newline is provided
-    // in multiline mode only.
-
-    template <typename t_ACCESSOR>
-    int accessAttributes(t_ACCESSOR& accessor) const;
-    // Invoke the specified 'accessor' sequentially on each
-    // (non-modifiable) attribute of this object, supplying 'accessor'
-    // with the corresponding attribute information structure until such
-    // invocation returns a non-zero value.  Return the value from the
-    // last invocation of 'accessor' (i.e., the invocation that terminated
-    // the sequence).
-
-    template <typename t_ACCESSOR>
-    int accessAttribute(t_ACCESSOR& accessor, int id) const;
-    // Invoke the specified 'accessor' on the (non-modifiable) attribute
-    // of this object indicated by the specified 'id', supplying 'accessor'
-    // with the corresponding attribute information structure.  Return the
-    // value returned from the invocation of 'accessor' if 'id' identifies
-    // an attribute of this class, and -1 otherwise.
-
-    template <typename t_ACCESSOR>
-    int accessAttribute(t_ACCESSOR& accessor,
-                        const char* name,
-                        int         nameLength) const;
-    // Invoke the specified 'accessor' on the (non-modifiable) attribute
-    // of this object indicated by the specified 'name' of the specified
-    // 'nameLength', supplying 'accessor' with the corresponding attribute
-    // information structure.  Return the value returned from the
-    // invocation of 'accessor' if 'name' identifies an attribute of this
-    // class, and -1 otherwise.
-
-    bool success() const;
-    // Return the value of the "Success" attribute of this object.
-
-    bsls::Types::Uint64 matchIndex() const;
-    // Return the value of the "MatchIndex" attribute of this object.
-
-    // HIDDEN FRIENDS
-    friend bool operator==(const RaftAppendEntriesResponse& lhs,
-                           const RaftAppendEntriesResponse& rhs)
-    // Return 'true' if the specified 'lhs' and 'rhs' attribute objects
-    // have the same value, and 'false' otherwise.  Two attribute objects
-    // have the same value if each respective attribute has the same value.
-    {
-        return lhs.success() == rhs.success() &&
-               lhs.matchIndex() == rhs.matchIndex();
-    }
-
-    friend bool operator!=(const RaftAppendEntriesResponse& lhs,
-                           const RaftAppendEntriesResponse& rhs)
-    // Returns '!(lhs == rhs)'
-    {
-        return !(lhs == rhs);
-    }
-
-    friend bsl::ostream& operator<<(bsl::ostream&                    stream,
-                                    const RaftAppendEntriesResponse& rhs)
-    // Format the specified 'rhs' to the specified output 'stream' and
-    // return a reference to the modifiable 'stream'.
-    {
-        return rhs.print(stream, 0, -1);
-    }
-
-    template <typename t_HASH_ALGORITHM>
-    friend void hashAppend(t_HASH_ALGORITHM&                hashAlg,
-                           const RaftAppendEntriesResponse& object)
-    // Pass the specified 'object' to the specified 'hashAlg'.  This
-    // function integrates with the 'bslh' modular hashing system and
-    // effectively provides a 'bsl::hash' specialization for
-    // 'RaftAppendEntriesResponse'.
-    {
-        using bslh::hashAppend;
-        hashAppend(hashAlg, object.success());
-        hashAppend(hashAlg, object.matchIndex());
-    }
-};
-
-}  // close package namespace
-
-// TRAITS
-
-BDLAT_DECL_SEQUENCE_WITH_BITWISEMOVEABLE_TRAITS(
-    bmqp_ctrlmsg::RaftAppendEntriesResponse)
 
 namespace bmqp_ctrlmsg {
 
@@ -13049,10 +12877,9 @@ namespace bmqp_ctrlmsg {
 class RaftMessageChoice {
     // INSTANCE DATA
     union {
-        bsls::ObjectBuffer<RaftRequestVote>           d_requestVote;
-        bsls::ObjectBuffer<RaftRequestVoteResponse>   d_requestVoteResponse;
-        bsls::ObjectBuffer<RaftAppendEntriesResponse> d_appendEntriesResponse;
-        bsls::ObjectBuffer<RaftInstallSnapshot>       d_installSnapshot;
+        bsls::ObjectBuffer<RaftRequestVote>         d_requestVote;
+        bsls::ObjectBuffer<RaftRequestVoteResponse> d_requestVoteResponse;
+        bsls::ObjectBuffer<RaftInstallSnapshot>     d_installSnapshot;
         bsls::ObjectBuffer<RaftInstallSnapshotResponse>
                                            d_installSnapshotResponse;
         bsls::ObjectBuffer<RaftTimeoutNow> d_timeoutNow;
@@ -13073,21 +12900,19 @@ class RaftMessageChoice {
         SELECTION_ID_UNDEFINED                 = -1,
         SELECTION_ID_REQUEST_VOTE              = 0,
         SELECTION_ID_REQUEST_VOTE_RESPONSE     = 1,
-        SELECTION_ID_APPEND_ENTRIES_RESPONSE   = 2,
-        SELECTION_ID_INSTALL_SNAPSHOT          = 3,
-        SELECTION_ID_INSTALL_SNAPSHOT_RESPONSE = 4,
-        SELECTION_ID_TIMEOUT_NOW               = 5
+        SELECTION_ID_INSTALL_SNAPSHOT          = 2,
+        SELECTION_ID_INSTALL_SNAPSHOT_RESPONSE = 3,
+        SELECTION_ID_TIMEOUT_NOW               = 4
     };
 
-    enum { NUM_SELECTIONS = 6 };
+    enum { NUM_SELECTIONS = 5 };
 
     enum {
         SELECTION_INDEX_REQUEST_VOTE              = 0,
         SELECTION_INDEX_REQUEST_VOTE_RESPONSE     = 1,
-        SELECTION_INDEX_APPEND_ENTRIES_RESPONSE   = 2,
-        SELECTION_INDEX_INSTALL_SNAPSHOT          = 3,
-        SELECTION_INDEX_INSTALL_SNAPSHOT_RESPONSE = 4,
-        SELECTION_INDEX_TIMEOUT_NOW               = 5
+        SELECTION_INDEX_INSTALL_SNAPSHOT          = 2,
+        SELECTION_INDEX_INSTALL_SNAPSHOT_RESPONSE = 3,
+        SELECTION_INDEX_TIMEOUT_NOW               = 4
     };
 
     // CONSTANTS
@@ -13176,19 +13001,6 @@ class RaftMessageChoice {
     // 'value' is not specified, the default "RequestVoteResponse" value is
     // used.
 
-    RaftAppendEntriesResponse& makeAppendEntriesResponse();
-    RaftAppendEntriesResponse&
-    makeAppendEntriesResponse(const RaftAppendEntriesResponse& value);
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-    RaftAppendEntriesResponse&
-    makeAppendEntriesResponse(RaftAppendEntriesResponse&& value);
-#endif
-    // Set the value of this object to be a "AppendEntriesResponse" value.
-    // Optionally specify the 'value' of the "AppendEntriesResponse".  If
-    // 'value' is not specified, the default "AppendEntriesResponse" value
-    // is used.
-
     RaftInstallSnapshot& makeInstallSnapshot();
     RaftInstallSnapshot& makeInstallSnapshot(const RaftInstallSnapshot& value);
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
@@ -13240,12 +13052,6 @@ class RaftMessageChoice {
     // of this object if "RequestVoteResponse" is the current selection.
     // The behavior is undefined unless "RequestVoteResponse" is the
     // selection of this object.
-
-    RaftAppendEntriesResponse& appendEntriesResponse();
-    // Return a reference to the modifiable "AppendEntriesResponse"
-    // selection of this object if "AppendEntriesResponse" is the current
-    // selection.  The behavior is undefined unless "AppendEntriesResponse"
-    // is the selection of this object.
 
     RaftInstallSnapshot& installSnapshot();
     // Return a reference to the modifiable "InstallSnapshot" selection of
@@ -13301,12 +13107,6 @@ class RaftMessageChoice {
     // selection.  The behavior is undefined unless "RequestVoteResponse"
     // is the selection of this object.
 
-    const RaftAppendEntriesResponse& appendEntriesResponse() const;
-    // Return a reference to the non-modifiable "AppendEntriesResponse"
-    // selection of this object if "AppendEntriesResponse" is the current
-    // selection.  The behavior is undefined unless "AppendEntriesResponse"
-    // is the selection of this object.
-
     const RaftInstallSnapshot& installSnapshot() const;
     // Return a reference to the non-modifiable "InstallSnapshot" selection
     // of this object if "InstallSnapshot" is the current selection.  The
@@ -13331,10 +13131,6 @@ class RaftMessageChoice {
     bool isRequestVoteResponseValue() const;
     // Return 'true' if the value of this object is a "RequestVoteResponse"
     // value, and return 'false' otherwise.
-
-    bool isAppendEntriesResponseValue() const;
-    // Return 'true' if the value of this object is a
-    // "AppendEntriesResponse" value, and return 'false' otherwise.
 
     bool isInstallSnapshotValue() const;
     // Return 'true' if the value of this object is a "InstallSnapshot"
@@ -18720,10 +18516,11 @@ namespace bmqp_ctrlmsg {
 class RaftMessage {
     // Top-level type for Raft consensus messages, carried as
     // ControlMessage.raftMessage (bdem:id=18).
-    // AppendEntries (data path) is NOT represented here — it travels as a
-    // binary event (e_RAFT_CLUSTER or e_RAFT_PARTITION) with a RaftHeader
-    // followed by raw entry blobs (CSL records or journal records + payloads),
-    // for zero-copy efficiency.
+    // AppendEntries (data path) and its response are NOT represented here —
+    // they travel as binary events (e_RAFT_CLUSTER or e_RAFT_PARTITION) with a
+    // RaftHeader followed by a RaftAppendEntriesHeader and raw entry blobs
+    // (CSL records or journal records + payloads) for zero-copy efficiency, or
+    // by a RaftResponseHeader.
     // InstallSnapshot data also travels as raw binary blobs appended after the
     // BER-encoded RaftMessage.  Only the metadata (lastIncludedIndex, offset,
     // done) is in the XSD.
@@ -27925,6 +27722,16 @@ void QueueUnassignmentRequest::hashAppendImpl(
     hashAppend(hashAlgorithm, this->queueUri());
     hashAppend(hashAlgorithm, this->partitionId());
     hashAppend(hashAlgorithm, this->queueKey());
+    hashAppend(hashAlgorithm, this->primaryLeaseId());
+}
+
+inline bool
+QueueUnassignmentRequest::isEqualTo(const QueueUnassignmentRequest& rhs) const
+{
+    return this->queueUri() == rhs.queueUri() &&
+           this->partitionId() == rhs.partitionId() &&
+           this->queueKey() == rhs.queueKey() &&
+           this->primaryLeaseId() == rhs.primaryLeaseId();
 }
 
 // CLASS METHODS
@@ -27952,6 +27759,12 @@ int QueueUnassignmentRequest::manipulateAttributes(t_MANIPULATOR& manipulator)
         return ret;
     }
 
+    ret = manipulator(&d_primaryLeaseId,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRIMARY_LEASE_ID]);
+    if (ret) {
+        return ret;
+    }
+
     return 0;
 }
 
@@ -27973,6 +27786,11 @@ int QueueUnassignmentRequest::manipulateAttribute(t_MANIPULATOR& manipulator,
     case ATTRIBUTE_ID_QUEUE_KEY: {
         return manipulator(&d_queueKey,
                            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_QUEUE_KEY]);
+    }
+    case ATTRIBUTE_ID_PRIMARY_LEASE_ID: {
+        return manipulator(
+            &d_primaryLeaseId,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRIMARY_LEASE_ID]);
     }
     default: return NOT_FOUND;
     }
@@ -28009,6 +27827,11 @@ inline bsl::vector<char>& QueueUnassignmentRequest::queueKey()
     return d_queueKey;
 }
 
+inline unsigned int& QueueUnassignmentRequest::primaryLeaseId()
+{
+    return d_primaryLeaseId;
+}
+
 // ACCESSORS
 template <typename t_ACCESSOR>
 int QueueUnassignmentRequest::accessAttributes(t_ACCESSOR& accessor) const
@@ -28029,6 +27852,12 @@ int QueueUnassignmentRequest::accessAttributes(t_ACCESSOR& accessor) const
 
     ret = accessor(d_queueKey,
                    ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_QUEUE_KEY]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_primaryLeaseId,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRIMARY_LEASE_ID]);
     if (ret) {
         return ret;
     }
@@ -28054,6 +27883,11 @@ int QueueUnassignmentRequest::accessAttribute(t_ACCESSOR& accessor,
     case ATTRIBUTE_ID_QUEUE_KEY: {
         return accessor(d_queueKey,
                         ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_QUEUE_KEY]);
+    }
+    case ATTRIBUTE_ID_PRIMARY_LEASE_ID: {
+        return accessor(
+            d_primaryLeaseId,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRIMARY_LEASE_ID]);
     }
     default: return NOT_FOUND;
     }
@@ -28090,140 +27924,9 @@ inline const bsl::vector<char>& QueueUnassignmentRequest::queueKey() const
     return d_queueKey;
 }
 
-// -------------------------------
-// class RaftAppendEntriesResponse
-// -------------------------------
-
-// CLASS METHODS
-// MANIPULATORS
-template <typename t_MANIPULATOR>
-int RaftAppendEntriesResponse::manipulateAttributes(t_MANIPULATOR& manipulator)
+inline unsigned int QueueUnassignmentRequest::primaryLeaseId() const
 {
-    int ret;
-
-    ret = manipulator(&d_success,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SUCCESS]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = manipulator(&d_matchIndex,
-                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MATCH_INDEX]);
-    if (ret) {
-        return ret;
-    }
-
-    return 0;
-}
-
-template <typename t_MANIPULATOR>
-int RaftAppendEntriesResponse::manipulateAttribute(t_MANIPULATOR& manipulator,
-                                                   int            id)
-{
-    enum { NOT_FOUND = -1 };
-
-    switch (id) {
-    case ATTRIBUTE_ID_SUCCESS: {
-        return manipulator(&d_success,
-                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SUCCESS]);
-    }
-    case ATTRIBUTE_ID_MATCH_INDEX: {
-        return manipulator(&d_matchIndex,
-                           ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MATCH_INDEX]);
-    }
-    default: return NOT_FOUND;
-    }
-}
-
-template <typename t_MANIPULATOR>
-int RaftAppendEntriesResponse::manipulateAttribute(t_MANIPULATOR& manipulator,
-                                                   const char*    name,
-                                                   int            nameLength)
-{
-    enum { NOT_FOUND = -1 };
-
-    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
-                                                                   nameLength);
-    if (0 == attributeInfo) {
-        return NOT_FOUND;
-    }
-
-    return manipulateAttribute(manipulator, attributeInfo->d_id);
-}
-
-inline bool& RaftAppendEntriesResponse::success()
-{
-    return d_success;
-}
-
-inline bsls::Types::Uint64& RaftAppendEntriesResponse::matchIndex()
-{
-    return d_matchIndex;
-}
-
-// ACCESSORS
-template <typename t_ACCESSOR>
-int RaftAppendEntriesResponse::accessAttributes(t_ACCESSOR& accessor) const
-{
-    int ret;
-
-    ret = accessor(d_success, ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SUCCESS]);
-    if (ret) {
-        return ret;
-    }
-
-    ret = accessor(d_matchIndex,
-                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MATCH_INDEX]);
-    if (ret) {
-        return ret;
-    }
-
-    return 0;
-}
-
-template <typename t_ACCESSOR>
-int RaftAppendEntriesResponse::accessAttribute(t_ACCESSOR& accessor,
-                                               int         id) const
-{
-    enum { NOT_FOUND = -1 };
-
-    switch (id) {
-    case ATTRIBUTE_ID_SUCCESS: {
-        return accessor(d_success,
-                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SUCCESS]);
-    }
-    case ATTRIBUTE_ID_MATCH_INDEX: {
-        return accessor(d_matchIndex,
-                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MATCH_INDEX]);
-    }
-    default: return NOT_FOUND;
-    }
-}
-
-template <typename t_ACCESSOR>
-int RaftAppendEntriesResponse::accessAttribute(t_ACCESSOR& accessor,
-                                               const char* name,
-                                               int         nameLength) const
-{
-    enum { NOT_FOUND = -1 };
-
-    const bdlat_AttributeInfo* attributeInfo = lookupAttributeInfo(name,
-                                                                   nameLength);
-    if (0 == attributeInfo) {
-        return NOT_FOUND;
-    }
-
-    return accessAttribute(accessor, attributeInfo->d_id);
-}
-
-inline bool RaftAppendEntriesResponse::success() const
-{
-    return d_success;
-}
-
-inline bsls::Types::Uint64 RaftAppendEntriesResponse::matchIndex() const
-{
-    return d_matchIndex;
+    return d_primaryLeaseId;
 }
 
 // -------------------------
@@ -33494,9 +33197,6 @@ void RaftMessageChoice::hashAppendImpl(t_HASH_ALGORITHM& hashAlgorithm) const
     case Class::SELECTION_ID_REQUEST_VOTE_RESPONSE:
         hashAppend(hashAlgorithm, this->requestVoteResponse());
         break;
-    case Class::SELECTION_ID_APPEND_ENTRIES_RESPONSE:
-        hashAppend(hashAlgorithm, this->appendEntriesResponse());
-        break;
     case Class::SELECTION_ID_INSTALL_SNAPSHOT:
         hashAppend(hashAlgorithm, this->installSnapshot());
         break;
@@ -33519,9 +33219,6 @@ inline bool RaftMessageChoice::isEqualTo(const RaftMessageChoice& rhs) const
             return this->requestVote() == rhs.requestVote();
         case Class::SELECTION_ID_REQUEST_VOTE_RESPONSE:
             return this->requestVoteResponse() == rhs.requestVoteResponse();
-        case Class::SELECTION_ID_APPEND_ENTRIES_RESPONSE:
-            return this->appendEntriesResponse() ==
-                   rhs.appendEntriesResponse();
         case Class::SELECTION_ID_INSTALL_SNAPSHOT:
             return this->installSnapshot() == rhs.installSnapshot();
         case Class::SELECTION_ID_INSTALL_SNAPSHOT_RESPONSE:
@@ -33562,10 +33259,6 @@ int RaftMessageChoice::manipulateSelection(t_MANIPULATOR& manipulator)
         return manipulator(
             &d_requestVoteResponse.object(),
             SELECTION_INFO_ARRAY[SELECTION_INDEX_REQUEST_VOTE_RESPONSE]);
-    case RaftMessageChoice::SELECTION_ID_APPEND_ENTRIES_RESPONSE:
-        return manipulator(
-            &d_appendEntriesResponse.object(),
-            SELECTION_INFO_ARRAY[SELECTION_INDEX_APPEND_ENTRIES_RESPONSE]);
     case RaftMessageChoice::SELECTION_ID_INSTALL_SNAPSHOT:
         return manipulator(
             &d_installSnapshot.object(),
@@ -33594,12 +33287,6 @@ inline RaftRequestVoteResponse& RaftMessageChoice::requestVoteResponse()
 {
     BSLS_ASSERT(SELECTION_ID_REQUEST_VOTE_RESPONSE == d_selectionId);
     return d_requestVoteResponse.object();
-}
-
-inline RaftAppendEntriesResponse& RaftMessageChoice::appendEntriesResponse()
-{
-    BSLS_ASSERT(SELECTION_ID_APPEND_ENTRIES_RESPONSE == d_selectionId);
-    return d_appendEntriesResponse.object();
 }
 
 inline RaftInstallSnapshot& RaftMessageChoice::installSnapshot()
@@ -33638,10 +33325,6 @@ int RaftMessageChoice::accessSelection(t_ACCESSOR& accessor) const
         return accessor(
             d_requestVoteResponse.object(),
             SELECTION_INFO_ARRAY[SELECTION_INDEX_REQUEST_VOTE_RESPONSE]);
-    case SELECTION_ID_APPEND_ENTRIES_RESPONSE:
-        return accessor(
-            d_appendEntriesResponse.object(),
-            SELECTION_INFO_ARRAY[SELECTION_INDEX_APPEND_ENTRIES_RESPONSE]);
     case SELECTION_ID_INSTALL_SNAPSHOT:
         return accessor(
             d_installSnapshot.object(),
@@ -33668,13 +33351,6 @@ RaftMessageChoice::requestVoteResponse() const
 {
     BSLS_ASSERT(SELECTION_ID_REQUEST_VOTE_RESPONSE == d_selectionId);
     return d_requestVoteResponse.object();
-}
-
-inline const RaftAppendEntriesResponse&
-RaftMessageChoice::appendEntriesResponse() const
-{
-    BSLS_ASSERT(SELECTION_ID_APPEND_ENTRIES_RESPONSE == d_selectionId);
-    return d_appendEntriesResponse.object();
 }
 
 inline const RaftInstallSnapshot& RaftMessageChoice::installSnapshot() const
@@ -33704,11 +33380,6 @@ inline bool RaftMessageChoice::isRequestVoteValue() const
 inline bool RaftMessageChoice::isRequestVoteResponseValue() const
 {
     return SELECTION_ID_REQUEST_VOTE_RESPONSE == d_selectionId;
-}
-
-inline bool RaftMessageChoice::isAppendEntriesResponseValue() const
-{
-    return SELECTION_ID_APPEND_ENTRIES_RESPONSE == d_selectionId;
 }
 
 inline bool RaftMessageChoice::isInstallSnapshotValue() const
