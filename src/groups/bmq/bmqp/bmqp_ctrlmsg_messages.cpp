@@ -2532,6 +2532,9 @@ bsl::ostream& QueueAssignmentRequest::print(bsl::ostream& stream,
 
 const char QueueUnassignmentRequest::CLASS_NAME[] = "QueueUnassignmentRequest";
 
+const unsigned int
+    QueueUnassignmentRequest::DEFAULT_INITIALIZER_PRIMARY_LEASE_ID = 0;
+
 const bdlat_AttributeInfo QueueUnassignmentRequest::ATTRIBUTE_INFO_ARRAY[] = {
     {ATTRIBUTE_ID_QUEUE_URI,
      "queueUri",
@@ -2547,14 +2550,19 @@ const bdlat_AttributeInfo QueueUnassignmentRequest::ATTRIBUTE_INFO_ARRAY[] = {
      "queueKey",
      sizeof("queueKey") - 1,
      "",
-     bdlat_FormattingMode::e_HEX}};
+     bdlat_FormattingMode::e_HEX},
+    {ATTRIBUTE_ID_PRIMARY_LEASE_ID,
+     "primaryLeaseId",
+     sizeof("primaryLeaseId") - 1,
+     "",
+     bdlat_FormattingMode::e_DEC}};
 
 // CLASS METHODS
 
 const bdlat_AttributeInfo*
 QueueUnassignmentRequest::lookupAttributeInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 4; ++i) {
         const bdlat_AttributeInfo& attributeInfo =
             QueueUnassignmentRequest::ATTRIBUTE_INFO_ARRAY[i];
 
@@ -2577,6 +2585,8 @@ QueueUnassignmentRequest::lookupAttributeInfo(int id)
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PARTITION_ID];
     case ATTRIBUTE_ID_QUEUE_KEY:
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_QUEUE_KEY];
+    case ATTRIBUTE_ID_PRIMARY_LEASE_ID:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_PRIMARY_LEASE_ID];
     default: return 0;
     }
 }
@@ -2587,6 +2597,7 @@ QueueUnassignmentRequest::QueueUnassignmentRequest(
     bslma::Allocator* basicAllocator)
 : d_queueKey(basicAllocator)
 , d_queueUri(basicAllocator)
+, d_primaryLeaseId(DEFAULT_INITIALIZER_PRIMARY_LEASE_ID)
 , d_partitionId()
 {
 }
@@ -2596,6 +2607,7 @@ QueueUnassignmentRequest::QueueUnassignmentRequest(
     bslma::Allocator*               basicAllocator)
 : d_queueKey(original.d_queueKey, basicAllocator)
 , d_queueUri(original.d_queueUri, basicAllocator)
+, d_primaryLeaseId(original.d_primaryLeaseId)
 , d_partitionId(original.d_partitionId)
 {
 }
@@ -2606,6 +2618,7 @@ QueueUnassignmentRequest::QueueUnassignmentRequest(
     QueueUnassignmentRequest&& original) noexcept
 : d_queueKey(bsl::move(original.d_queueKey)),
   d_queueUri(bsl::move(original.d_queueUri)),
+  d_primaryLeaseId(bsl::move(original.d_primaryLeaseId)),
   d_partitionId(bsl::move(original.d_partitionId))
 {
 }
@@ -2615,6 +2628,7 @@ QueueUnassignmentRequest::QueueUnassignmentRequest(
     bslma::Allocator*          basicAllocator)
 : d_queueKey(bsl::move(original.d_queueKey), basicAllocator)
 , d_queueUri(bsl::move(original.d_queueUri), basicAllocator)
+, d_primaryLeaseId(bsl::move(original.d_primaryLeaseId))
 , d_partitionId(bsl::move(original.d_partitionId))
 {
 }
@@ -2630,9 +2644,10 @@ QueueUnassignmentRequest&
 QueueUnassignmentRequest::operator=(const QueueUnassignmentRequest& rhs)
 {
     if (this != &rhs) {
-        d_queueUri    = rhs.d_queueUri;
+        d_queueUri       = rhs.d_queueUri;
         d_partitionId = rhs.d_partitionId;
-        d_queueKey    = rhs.d_queueKey;
+        d_queueKey       = rhs.d_queueKey;
+        d_primaryLeaseId = rhs.d_primaryLeaseId;
     }
 
     return *this;
@@ -2644,9 +2659,10 @@ QueueUnassignmentRequest&
 QueueUnassignmentRequest::operator=(QueueUnassignmentRequest&& rhs)
 {
     if (this != &rhs) {
-        d_queueUri    = bsl::move(rhs.d_queueUri);
+        d_queueUri       = bsl::move(rhs.d_queueUri);
         d_partitionId = bsl::move(rhs.d_partitionId);
-        d_queueKey    = bsl::move(rhs.d_queueKey);
+        d_queueKey       = bsl::move(rhs.d_queueKey);
+        d_primaryLeaseId = bsl::move(rhs.d_primaryLeaseId);
     }
 
     return *this;
@@ -2658,6 +2674,7 @@ void QueueUnassignmentRequest::reset()
     bdlat_ValueTypeFunctions::reset(&d_queueUri);
     bdlat_ValueTypeFunctions::reset(&d_partitionId);
     bdlat_ValueTypeFunctions::reset(&d_queueKey);
+    d_primaryLeaseId = DEFAULT_INITIALIZER_PRIMARY_LEASE_ID;
 }
 
 // ACCESSORS
@@ -2680,88 +2697,7 @@ bsl::ostream& QueueUnassignmentRequest::print(bsl::ostream& stream,
                                        this->queueKey().end());
         stream << " ]" << (multilineFlag ? "\n" : "");
     }
-    printer.end();
-    return stream;
-}
-
-// -------------------------------
-// class RaftAppendEntriesResponse
-// -------------------------------
-
-// CONSTANTS
-
-const char RaftAppendEntriesResponse::CLASS_NAME[] =
-    "RaftAppendEntriesResponse";
-
-const bdlat_AttributeInfo RaftAppendEntriesResponse::ATTRIBUTE_INFO_ARRAY[] = {
-    {ATTRIBUTE_ID_SUCCESS,
-     "success",
-     sizeof("success") - 1,
-     "",
-     bdlat_FormattingMode::e_TEXT},
-    {ATTRIBUTE_ID_MATCH_INDEX,
-     "matchIndex",
-     sizeof("matchIndex") - 1,
-     "",
-     bdlat_FormattingMode::e_DEC}};
-
-// CLASS METHODS
-
-const bdlat_AttributeInfo*
-RaftAppendEntriesResponse::lookupAttributeInfo(const char* name,
-                                               int         nameLength)
-{
-    for (int i = 0; i < 2; ++i) {
-        const bdlat_AttributeInfo& attributeInfo =
-            RaftAppendEntriesResponse::ATTRIBUTE_INFO_ARRAY[i];
-
-        if (nameLength == attributeInfo.d_nameLength &&
-            0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength)) {
-            return &attributeInfo;
-        }
-    }
-
-    return 0;
-}
-
-const bdlat_AttributeInfo*
-RaftAppendEntriesResponse::lookupAttributeInfo(int id)
-{
-    switch (id) {
-    case ATTRIBUTE_ID_SUCCESS:
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_SUCCESS];
-    case ATTRIBUTE_ID_MATCH_INDEX:
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_MATCH_INDEX];
-    default: return 0;
-    }
-}
-
-// CREATORS
-
-RaftAppendEntriesResponse::RaftAppendEntriesResponse()
-: d_matchIndex()
-, d_success()
-{
-}
-
-// MANIPULATORS
-
-void RaftAppendEntriesResponse::reset()
-{
-    bdlat_ValueTypeFunctions::reset(&d_success);
-    bdlat_ValueTypeFunctions::reset(&d_matchIndex);
-}
-
-// ACCESSORS
-
-bsl::ostream& RaftAppendEntriesResponse::print(bsl::ostream& stream,
-                                               int           level,
-                                               int spacesPerLevel) const
-{
-    bslim::Printer printer(&stream, level, spacesPerLevel);
-    printer.start();
-    printer.printAttribute("success", this->success());
-    printer.printAttribute("matchIndex", this->matchIndex());
+    printer.printAttribute("primaryLeaseId", this->primaryLeaseId());
     printer.end();
     return stream;
 }
@@ -7067,11 +7003,6 @@ const bdlat_SelectionInfo RaftMessageChoice::SELECTION_INFO_ARRAY[] = {
      sizeof("requestVoteResponse") - 1,
      "",
      bdlat_FormattingMode::e_DEFAULT},
-    {SELECTION_ID_APPEND_ENTRIES_RESPONSE,
-     "appendEntriesResponse",
-     sizeof("appendEntriesResponse") - 1,
-     "",
-     bdlat_FormattingMode::e_DEFAULT},
     {SELECTION_ID_INSTALL_SNAPSHOT,
      "installSnapshot",
      sizeof("installSnapshot") - 1,
@@ -7093,7 +7024,7 @@ const bdlat_SelectionInfo RaftMessageChoice::SELECTION_INFO_ARRAY[] = {
 const bdlat_SelectionInfo*
 RaftMessageChoice::lookupSelectionInfo(const char* name, int nameLength)
 {
-    for (int i = 0; i < 6; ++i) {
+    for (int i = 0; i < 5; ++i) {
         const bdlat_SelectionInfo& selectionInfo =
             RaftMessageChoice::SELECTION_INFO_ARRAY[i];
 
@@ -7113,8 +7044,6 @@ const bdlat_SelectionInfo* RaftMessageChoice::lookupSelectionInfo(int id)
         return &SELECTION_INFO_ARRAY[SELECTION_INDEX_REQUEST_VOTE];
     case SELECTION_ID_REQUEST_VOTE_RESPONSE:
         return &SELECTION_INFO_ARRAY[SELECTION_INDEX_REQUEST_VOTE_RESPONSE];
-    case SELECTION_ID_APPEND_ENTRIES_RESPONSE:
-        return &SELECTION_INFO_ARRAY[SELECTION_INDEX_APPEND_ENTRIES_RESPONSE];
     case SELECTION_ID_INSTALL_SNAPSHOT:
         return &SELECTION_INFO_ARRAY[SELECTION_INDEX_INSTALL_SNAPSHOT];
     case SELECTION_ID_INSTALL_SNAPSHOT_RESPONSE:
@@ -7139,10 +7068,6 @@ RaftMessageChoice::RaftMessageChoice(const RaftMessageChoice& original)
     case SELECTION_ID_REQUEST_VOTE_RESPONSE: {
         new (d_requestVoteResponse.buffer())
             RaftRequestVoteResponse(original.d_requestVoteResponse.object());
-    } break;
-    case SELECTION_ID_APPEND_ENTRIES_RESPONSE: {
-        new (d_appendEntriesResponse.buffer()) RaftAppendEntriesResponse(
-            original.d_appendEntriesResponse.object());
     } break;
     case SELECTION_ID_INSTALL_SNAPSHOT: {
         new (d_installSnapshot.buffer())
@@ -7174,10 +7099,6 @@ RaftMessageChoice::RaftMessageChoice(RaftMessageChoice&& original) noexcept
         new (d_requestVoteResponse.buffer()) RaftRequestVoteResponse(
             bsl::move(original.d_requestVoteResponse.object()));
     } break;
-    case SELECTION_ID_APPEND_ENTRIES_RESPONSE: {
-        new (d_appendEntriesResponse.buffer()) RaftAppendEntriesResponse(
-            bsl::move(original.d_appendEntriesResponse.object()));
-    } break;
     case SELECTION_ID_INSTALL_SNAPSHOT: {
         new (d_installSnapshot.buffer()) RaftInstallSnapshot(
             bsl::move(original.d_installSnapshot.object()));
@@ -7206,9 +7127,6 @@ RaftMessageChoice& RaftMessageChoice::operator=(const RaftMessageChoice& rhs)
         } break;
         case SELECTION_ID_REQUEST_VOTE_RESPONSE: {
             makeRequestVoteResponse(rhs.d_requestVoteResponse.object());
-        } break;
-        case SELECTION_ID_APPEND_ENTRIES_RESPONSE: {
-            makeAppendEntriesResponse(rhs.d_appendEntriesResponse.object());
         } break;
         case SELECTION_ID_INSTALL_SNAPSHOT: {
             makeInstallSnapshot(rhs.d_installSnapshot.object());
@@ -7242,10 +7160,6 @@ RaftMessageChoice& RaftMessageChoice::operator=(RaftMessageChoice&& rhs)
             makeRequestVoteResponse(
                 bsl::move(rhs.d_requestVoteResponse.object()));
         } break;
-        case SELECTION_ID_APPEND_ENTRIES_RESPONSE: {
-            makeAppendEntriesResponse(
-                bsl::move(rhs.d_appendEntriesResponse.object()));
-        } break;
         case SELECTION_ID_INSTALL_SNAPSHOT: {
             makeInstallSnapshot(bsl::move(rhs.d_installSnapshot.object()));
         } break;
@@ -7275,9 +7189,6 @@ void RaftMessageChoice::reset()
     case SELECTION_ID_REQUEST_VOTE_RESPONSE: {
         d_requestVoteResponse.object().~RaftRequestVoteResponse();
     } break;
-    case SELECTION_ID_APPEND_ENTRIES_RESPONSE: {
-        d_appendEntriesResponse.object().~RaftAppendEntriesResponse();
-    } break;
     case SELECTION_ID_INSTALL_SNAPSHOT: {
         d_installSnapshot.object().~RaftInstallSnapshot();
     } break;
@@ -7301,9 +7212,6 @@ int RaftMessageChoice::makeSelection(int selectionId)
     } break;
     case SELECTION_ID_REQUEST_VOTE_RESPONSE: {
         makeRequestVoteResponse();
-    } break;
-    case SELECTION_ID_APPEND_ENTRIES_RESPONSE: {
-        makeAppendEntriesResponse();
     } break;
     case SELECTION_ID_INSTALL_SNAPSHOT: {
         makeInstallSnapshot();
@@ -7424,55 +7332,6 @@ RaftMessageChoice::makeRequestVoteResponse(RaftRequestVoteResponse&& value)
     }
 
     return d_requestVoteResponse.object();
-}
-#endif
-
-RaftAppendEntriesResponse& RaftMessageChoice::makeAppendEntriesResponse()
-{
-    if (SELECTION_ID_APPEND_ENTRIES_RESPONSE == d_selectionId) {
-        bdlat_ValueTypeFunctions::reset(&d_appendEntriesResponse.object());
-    }
-    else {
-        reset();
-        new (d_appendEntriesResponse.buffer()) RaftAppendEntriesResponse();
-        d_selectionId = SELECTION_ID_APPEND_ENTRIES_RESPONSE;
-    }
-
-    return d_appendEntriesResponse.object();
-}
-
-RaftAppendEntriesResponse& RaftMessageChoice::makeAppendEntriesResponse(
-    const RaftAppendEntriesResponse& value)
-{
-    if (SELECTION_ID_APPEND_ENTRIES_RESPONSE == d_selectionId) {
-        d_appendEntriesResponse.object() = value;
-    }
-    else {
-        reset();
-        new (d_appendEntriesResponse.buffer())
-            RaftAppendEntriesResponse(value);
-        d_selectionId = SELECTION_ID_APPEND_ENTRIES_RESPONSE;
-    }
-
-    return d_appendEntriesResponse.object();
-}
-
-#if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
-    defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-RaftAppendEntriesResponse&
-RaftMessageChoice::makeAppendEntriesResponse(RaftAppendEntriesResponse&& value)
-{
-    if (SELECTION_ID_APPEND_ENTRIES_RESPONSE == d_selectionId) {
-        d_appendEntriesResponse.object() = bsl::move(value);
-    }
-    else {
-        reset();
-        new (d_appendEntriesResponse.buffer())
-            RaftAppendEntriesResponse(bsl::move(value));
-        d_selectionId = SELECTION_ID_APPEND_ENTRIES_RESPONSE;
-    }
-
-    return d_appendEntriesResponse.object();
 }
 #endif
 
@@ -7633,10 +7492,6 @@ bsl::ostream& RaftMessageChoice::print(bsl::ostream& stream,
         printer.printAttribute("requestVoteResponse",
                                d_requestVoteResponse.object());
     } break;
-    case SELECTION_ID_APPEND_ENTRIES_RESPONSE: {
-        printer.printAttribute("appendEntriesResponse",
-                               d_appendEntriesResponse.object());
-    } break;
     case SELECTION_ID_INSTALL_SNAPSHOT: {
         printer.printAttribute("installSnapshot", d_installSnapshot.object());
     } break;
@@ -7660,9 +7515,6 @@ const char* RaftMessageChoice::selectionName() const
         return SELECTION_INFO_ARRAY[SELECTION_INDEX_REQUEST_VOTE].name();
     case SELECTION_ID_REQUEST_VOTE_RESPONSE:
         return SELECTION_INFO_ARRAY[SELECTION_INDEX_REQUEST_VOTE_RESPONSE]
-            .name();
-    case SELECTION_ID_APPEND_ENTRIES_RESPONSE:
-        return SELECTION_INFO_ARRAY[SELECTION_INDEX_APPEND_ENTRIES_RESPONSE]
             .name();
     case SELECTION_ID_INSTALL_SNAPSHOT:
         return SELECTION_INFO_ARRAY[SELECTION_INDEX_INSTALL_SNAPSHOT].name();
@@ -11186,12 +11038,6 @@ const bdlat_AttributeInfo* RaftMessage::lookupAttributeInfo(const char* name,
     }
 
     if (bdlb::String::areEqualCaseless("requestVoteResponse",
-                                       name,
-                                       nameLength)) {
-        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CHOICE];
-    }
-
-    if (bdlb::String::areEqualCaseless("appendEntriesResponse",
                                        name,
                                        nameLength)) {
         return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CHOICE];

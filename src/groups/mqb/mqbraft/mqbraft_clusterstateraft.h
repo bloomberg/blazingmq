@@ -327,7 +327,7 @@ class ClusterStateRaft : public mqbi::ClusterStateUpdater,
     bool assignQueue(const bmqt::Uri&      uri,
                      bmqp_ctrlmsg::Status* status) BSLS_KEYWORD_OVERRIDE;
 
-    void unassignQueue(const bmqp_ctrlmsg::QueueUnAssignmentAdvisory& advisory)
+    int unassignQueue(const bmqp_ctrlmsg::QueueUnAssignmentAdvisory& advisory)
         BSLS_KEYWORD_OVERRIDE;
 
     mqbi::ClusterErrorCode::Enum
