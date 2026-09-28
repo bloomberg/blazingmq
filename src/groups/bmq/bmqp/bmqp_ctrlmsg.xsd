@@ -1198,12 +1198,16 @@
       <documentation>
         This type represents a request, sent to the leader, to unassign the
         queue with the specified 'queueUri'.
+
+        primaryLeaseId: lease id under which the sender is primary for
+                        'partitionId'.  0 if the sender does not send it.
       </documentation>
     </annotation>
     <sequence>
-      <element name='queueUri'    type='string'/>
-      <element name='partitionId' type='int'/>
-      <element name='queueKey'    type='hexBinary'/>
+      <element name='queueUri'       type='string'/>
+      <element name='partitionId'    type='int'/>
+      <element name='queueKey'       type='hexBinary'/>
+      <element name='primaryLeaseId' type='unsignedInt' default='0'/>
     </sequence>
   </complexType>
 
