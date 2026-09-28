@@ -441,8 +441,9 @@ class RequestManager {
     // the 'MONOTONIC' clock type)
 
     int d_nextRequestId;
-    // Id of the next request to use (int not
-    // atomicInt since this will always be
+    // Id most recently assigned to a request, or
+    // zero if no request has been sent yet (int
+    // not atomicInt since this will always be
     // manipulated under the 'd_mutex' lock)
 
     RequestMap d_requests;
@@ -480,6 +481,19 @@ class RequestManager {
     sendHelper(bmqio::Channel*                     channel,
                const bsl::shared_ptr<bdlbb::Blob>& blob_sp,
                bsls::Types::Int64                  watermark);
+
+    /// @brief Return the identifier to assign to the next request to send.
+    ///
+    /// Identifiers are handed out in increasing order and resume from the
+    /// lowest valid identifier once the highest one has been used.  An
+    /// identifier held by an outstanding request is never handed out
+    /// again for as long as that request remains outstanding.
+    ///
+    /// @return A strictly positive identifier which is not in use by any
+    ///         outstanding request.
+    ///
+    /// Note that this method must be called with `d_mutex` locked.
+    int generateRequestId();
 
     /// Callback invoked by the scheduler when the request identified by the
     /// specified `requestId` has timedout.
