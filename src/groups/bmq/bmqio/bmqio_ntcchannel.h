@@ -46,6 +46,7 @@
 #include <bsl_list.h>
 #include <bsl_memory.h>
 #include <bsl_string.h>
+#include <bsl_vector.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
 #include <bsls_keyword.h>
@@ -208,7 +209,7 @@ class NtcChannel : public bmqio::Channel,
     bmqio::ConnectOptions                 d_options;
     bmqvt::PropertyBag                    d_properties;
     bdlmt::Signaler<WatermarkFnType>      d_watermarkSignaler;
-    bdlmt::Signaler<CloseFnType>          d_closeSignaler;
+    bsl::vector<CloseFn>                  d_closeFns;
     bmqio::ChannelFactory::ResultCallback d_resultCallback;
     bslma::Allocator*                     d_allocator_p;
 
@@ -380,16 +381,12 @@ class NtcChannel : public bmqio::Channel,
     /// could not be enqueued for execution.
     int execute(const ExecuteCb& cb) BSLS_KEYWORD_OVERRIDE;
 
-    /// Register the specified `cb` to be invoked when a `close` event
-    /// occurs for this channel.  Return a `bdlmt::SignalerConnection`
-    /// object than can be used to unregister the callback.
-    bdlmt::SignalerConnection onClose(const CloseFn& cb) BSLS_KEYWORD_OVERRIDE;
-
-    /// Register the specified `cb` to be invoked when a `close` event
-    /// occurs for this channel.  Invoke the `cb` as part of the specified
-    /// `group`. Return a `bdlmt::SignalerConnection` object than can be
-    /// used to unregister the callback.
-    bdlmt::SignalerConnection onClose(const CloseFn& cb, int group);
+    /// @brief Register a callback to be invoked when this channel closes.
+    ///
+    /// Callbacks are invoked in reverse order of registration.
+    ///
+    /// @param cb The callback to invoke.
+    void onClose(const CloseFn& cb) BSLS_KEYWORD_OVERRIDE;
 
     /// Register the specified `cb` to be invoked when a `watermark` event
     /// occurs for this channel.  Return a `bdlmt::SignalerConnection`
@@ -489,7 +486,7 @@ class NtcListener : public bmqio::ChannelFactoryOperationHandle,
     State                                 d_state;
     bmqio::ListenOptions                  d_options;
     bmqvt::PropertyBag                    d_properties;
-    bdlmt::Signaler<CloseFnType>          d_closeSignaler;
+    bsl::vector<CloseFn>                  d_closeFns;
     bmqio::ChannelFactory::ResultCallback d_resultCallback;
     bslma::Allocator*                     d_allocator_p;
 
@@ -541,16 +538,12 @@ class NtcListener : public bmqio::ChannelFactoryOperationHandle,
     /// Cancel the operation.
     void cancel() BSLS_KEYWORD_OVERRIDE;
 
-    /// Register the specified `cb` to be invoked when a `close` event
-    /// occurs for this channel.  Return a `bdlmt::SignalerConnection`
-    /// object than can be used to unregister the callback.
-    bdlmt::SignalerConnection onClose(const CloseFn& cb);
-
-    /// Register the specified `cb` to be invoked when a `close` event
-    /// occurs for this channel.  Invoke the `cb` as part of the specified
-    /// `group`. Return a `bdlmt::SignalerConnection` object than can be
-    /// used to unregister the callback.
-    bdlmt::SignalerConnection onClose(const CloseFn& cb, int group);
+    /// @brief Register a callback to be invoked when this listener closes.
+    ///
+    /// Callbacks are invoked in reverse order of registration.
+    ///
+    /// @param cb The callback to invoke.
+    void onClose(const CloseFn& cb);
 
     /// Return a reference providing modifiable access to the properties of
     /// this object.

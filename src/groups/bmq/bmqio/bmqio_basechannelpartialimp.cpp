@@ -37,12 +37,12 @@ BaseChannelPartialImp::BaseChannelPartialImp(bslma::Allocator* basicAllocator)
 }
 
 // MANIPULATORS
-bdlmt::SignalerConnection BaseChannelPartialImp::onClose(const CloseFn& cb)
+void BaseChannelPartialImp::onClose(const CloseFn& cb)
 {
     // PRECONDITIONS
     BSLS_ASSERT(cb);
 
-    return d_closeSignaler.connect(cb);
+    d_closeSignaler.connect(cb);
 }
 
 bdlmt::SignalerConnection

@@ -851,27 +851,34 @@ void NtcChannel::processShutdownComplete(
 
 void NtcChannel::processClose(const bmqio::Status& status)
 {
-    bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
+    bsl::vector<CloseFn> closeFns(d_allocator_p);
 
-    if (d_state != e_STATE_CLOSING) {
-        return;
+    {
+        bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
+
+        if (d_state != e_STATE_CLOSING) {
+            return;
+        }
+
+        BMQIO_NTCCHANNEL_LOG_CLOSED(this, d_streamSocket_sp, status);
+
+        d_state = e_STATE_CLOSED;
+
+        d_streamSocket_sp.reset();
+        d_interface_sp.reset();
+
+        d_resultCallback = bmqio::ChannelFactory::ResultCallback();
+
+        closeFns.swap(d_closeFns);
     }
 
-    BMQIO_NTCCHANNEL_LOG_CLOSED(this, d_streamSocket_sp, status);
-
-    d_state = e_STATE_CLOSED;
-
-    d_streamSocket_sp.reset();
-    d_interface_sp.reset();
-
-    d_resultCallback = bmqio::ChannelFactory::ResultCallback();
-
-    lock.release()->unlock();
-
-    d_closeSignaler(status);
+    for (bsl::vector<CloseFn>::reverse_iterator it = closeFns.rbegin();
+         it != closeFns.rend();
+         ++it) {
+        (*it)(status);
+    }
 
     d_watermarkSignaler.disconnectAllSlots();
-    d_closeSignaler.disconnectAllSlots();
 }
 
 void NtcChannel::drainReaders(const bmqio::Status& status)
@@ -910,7 +917,7 @@ NtcChannel::NtcChannel(
 , d_options(basicAllocator)
 , d_properties(basicAllocator)
 , d_watermarkSignaler(basicAllocator)
-, d_closeSignaler(basicAllocator)
+, d_closeFns(basicAllocator)
 , d_resultCallback(bsl::allocator_arg, basicAllocator, resultCallback)
 , d_allocator_p(bslma::Default::allocator(basicAllocator))
 {
@@ -1281,14 +1288,10 @@ int NtcChannel::execute(const ExecuteCb& cb)
     return -1;
 }
 
-bdlmt::SignalerConnection NtcChannel::onClose(const CloseFn& cb)
+void NtcChannel::onClose(const CloseFn& cb)
 {
-    return d_closeSignaler.connect(cb);
-}
-
-bdlmt::SignalerConnection NtcChannel::onClose(const CloseFn& cb, int group)
-{
-    return d_closeSignaler.connect(cb, group);
+    bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
+    d_closeFns.push_back(cb);
 }
 
 bdlmt::SignalerConnection NtcChannel::onWatermark(const WatermarkFn& cb)
@@ -1473,26 +1476,32 @@ void NtcListener::processAccept(
 
 void NtcListener::processClose(const bmqio::Status& status)
 {
-    bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
+    bsl::vector<CloseFn> closeFns(d_allocator_p);
 
-    if (d_state != e_STATE_CLOSING) {
-        return;
+    {
+        bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
+
+        if (d_state != e_STATE_CLOSING) {
+            return;
+        }
+
+        BMQIO_NTCLISTENER_LOG_CLOSED(this, d_listenerSocket_sp, status);
+
+        d_state = e_STATE_CLOSED;
+
+        d_listenerSocket_sp.reset();
+        d_interface_sp.reset();
+
+        d_resultCallback = bmqio::ChannelFactory::ResultCallback();
+
+        closeFns.swap(d_closeFns);
     }
 
-    BMQIO_NTCLISTENER_LOG_CLOSED(this, d_listenerSocket_sp, status);
-
-    d_state = e_STATE_CLOSED;
-
-    d_listenerSocket_sp.reset();
-    d_interface_sp.reset();
-
-    d_resultCallback = bmqio::ChannelFactory::ResultCallback();
-
-    lock.release()->unlock();
-
-    d_closeSignaler(status);
-
-    d_closeSignaler.disconnectAllSlots();
+    for (bsl::vector<CloseFn>::reverse_iterator it = closeFns.rbegin();
+         it != closeFns.rend();
+         ++it) {
+        (*it)(status);
+    }
 }
 
 // CREATORS
@@ -1506,7 +1515,7 @@ NtcListener::NtcListener(
 , d_state(e_STATE_DEFAULT)
 , d_options(basicAllocator)
 , d_properties(basicAllocator)
-, d_closeSignaler(basicAllocator)
+, d_closeFns(basicAllocator)
 , d_resultCallback(bsl::allocator_arg, basicAllocator, resultCallback)
 , d_allocator_p(bslma::Default::allocator(basicAllocator))
 {
@@ -1681,14 +1690,10 @@ void NtcListener::cancel()
         bdlf::BindUtil::bind(&NtcListener::processClose, self, status));
 }
 
-bdlmt::SignalerConnection NtcListener::onClose(const CloseFn& cb)
+void NtcListener::onClose(const CloseFn& cb)
 {
-    return d_closeSignaler.connect(cb);
-}
-
-bdlmt::SignalerConnection NtcListener::onClose(const CloseFn& cb, int group)
-{
-    return d_closeSignaler.connect(cb, group);
+    bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
+    d_closeFns.push_back(cb);
 }
 
 bmqvt::PropertyBag& NtcListener::properties()

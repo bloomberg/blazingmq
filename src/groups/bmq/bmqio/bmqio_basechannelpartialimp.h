@@ -86,10 +86,10 @@ class BaseChannelPartialImp : public Channel {
 
     // Channel
 
-    /// Register the specified `cb` to be invoked when a `close` event
-    /// occurs for this channel.  Return a `bdlmt::SignalerConnection`
-    /// object than can be used to unregister the callback.
-    bdlmt::SignalerConnection onClose(const CloseFn& cb) BSLS_KEYWORD_OVERRIDE;
+    /// @brief Register a callback to be invoked when this channel closes.
+    ///
+    /// @param cb The callback to invoke.
+    void onClose(const CloseFn& cb) BSLS_KEYWORD_OVERRIDE;
 
     /// Register the specified `cb` to be invoked when a `watermark` event
     /// occurs for this channel.  Return a `bdlmt::SignalerConnection`
