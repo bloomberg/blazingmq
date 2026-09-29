@@ -130,7 +130,6 @@ ReconnectingChannelFactory_ConnectHandle::
 , d_endpoints(basicAllocator)
 , d_currentAttemptCounter(0)
 , d_baseConnectHandle()
-, d_closeFnConnection()
 , d_reconnectHandle()
 , d_lastConnectAttemptTime(-1)
 , d_lastConnectInterval()
@@ -373,11 +372,10 @@ void ReconnectingChannelFactory::connectResultCb(
         if (handle->d_options.autoReconnect()) {
             // Monitor this channel, so we can schedule a reconnect when it
             // gets disconnected.
-            handle->d_closeFnConnection = channel->onClose(
-                bdlf::BindUtil::bind(
-                    &ReconnectingChannelFactory::onChannelDown,
-                    this,
-                    handle));
+            channel->onClose(bdlf::BindUtil::bind(
+                &ReconnectingChannelFactory::onChannelDown,
+                this,
+                handle));
         }
 
         handle->d_endpoints.clear();
@@ -439,8 +437,6 @@ void ReconnectingChannelFactory::onChannelDown(const ConnectHandlePtr& handle)
     if (!guard.isValid()) {
         return;  // RETURN
     }
-
-    handle->d_closeFnConnection.reset();
 
     // We only monitor autoReconnect channel for the down event
     BSLS_ASSERT_SAFE(handle->d_options.autoReconnect());

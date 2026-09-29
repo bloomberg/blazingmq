@@ -50,7 +50,6 @@
 #include <bdlcc_deque.h>
 #include <bdlf_memfn.h>
 #include <bdlmt_eventscheduler.h>
-#include <bdlmt_signaler.h>
 #include <bsl_memory.h>
 #include <bslma_managedptr.h>
 #include <bslmt_lockguard.h>
@@ -430,10 +429,6 @@ struct TestSession BSLS_CPP11_FINAL {
     bmqimp::BrokerSession d_brokerSession;
     // the broker session object
     // under the test
-
-    bdlmt::SignalerConnection d_onChannelCloseHandler;
-    // signaler handler associated with
-    // onChannelClose slot
 
     TestClock* d_testClock_p;
     // pointer to struct to initialize system time
@@ -865,14 +860,14 @@ TestSession::TestSession(const bmqt::SessionOptions& sessionOptions,
                   bdlf::MemFnUtil::memFn(&TestSession::stateCb, this),
                   bmqimp::SessionId(),
                   d_allocator_p)
-, d_onChannelCloseHandler(d_testChannel.onClose(
-      bdlf::MemFnUtil::memFn(&TestSession::onChannelClose, this)))
 , d_testClock_p(0)
 , d_startCounter(0)
 , d_stopCounter(0)
 {
     // Set peer uri for the sake of better logging
     d_testChannel.setPeerUri("tcp://testHost:1234");
+    d_testChannel.onClose(
+        bdlf::MemFnUtil::memFn(&TestSession::onChannelClose, this));
 
     int rc = d_scheduler.start();
     BMQTST_ASSERT_EQ(rc, 0);
@@ -902,14 +897,14 @@ TestSession::TestSession(const bmqt::SessionOptions& sessionOptions,
                   bdlf::MemFnUtil::memFn(&TestSession::stateCb, this),
                   bmqimp::SessionId(),
                   d_allocator_p)
-, d_onChannelCloseHandler(d_testChannel.onClose(
-      bdlf::MemFnUtil::memFn(&TestSession::onChannelClose, this)))
 , d_testClock_p(&testClock)
 , d_startCounter(0)
 , d_stopCounter(0)
 {
     // Set peer uri for the sake of better logging
     d_testChannel.setPeerUri("tcp://testHost:1234");
+    d_testChannel.onClose(
+        bdlf::MemFnUtil::memFn(&TestSession::onChannelClose, this));
 
     bmqu::Time::shutdown();
     bmqu::Time::initialize(
@@ -926,7 +921,6 @@ TestSession::~TestSession()
 {
     d_scheduler.cancelAllEventsAndWait();
     d_scheduler.stop();
-    d_onChannelCloseHandler.disconnect();
 }
 
 // ACCESSORS
