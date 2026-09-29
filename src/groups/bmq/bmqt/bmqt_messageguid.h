@@ -39,6 +39,17 @@
 /// processed message ID across task instantiations.  `fromHex` method can be
 /// used to convert a valid externalized buffer back to a message ID.
 ///
+/// Format                                          {#bmqt_messageguid_format}
+/// ======
+///
+/// Despite the name, `bmqt::MessageGUID` is **not** an RFC 4122 UUID/GUID:
+/// no version or variant bits per that standard are set, and its 16 bytes
+/// should not be interpreted or generated using RFC 4122 tooling.  Instead,
+/// BlazingMQ packs a monotonic counter, a timer tick (nanoseconds since
+/// generator construction, to allow recovering a GUID's approximate creation
+/// time), and a hash derived from host/process identity.  See
+/// @bbref{bmqp::MessageGUIDGenerator} for the exact bit layout.
+///
 /// Efficient comparison and hash function        {#bmqt_messageguid_efficient}
 /// ======================================
 ///
@@ -128,8 +139,8 @@ class MessageGUID {
     //                      reinterpret_cast a char[e_SIZE_BINARY] to a
     //                      MessageGUID (instead of using 'fromBinary()') so
     //                      that they can return a const MessageGUID&.
-    // IMPLEMENTATION NOTE: See mqbu_messageguidutil.cpp for internal layout of
-    //                      MessageGUID
+    // IMPLEMENTATION NOTE: See bmqp_messageguidgenerator.h for internal
+    //                      layout of MessageGUID.
 
     // DATA
     char d_buffer[e_SIZE_BINARY];

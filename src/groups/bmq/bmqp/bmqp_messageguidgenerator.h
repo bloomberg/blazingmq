@@ -23,7 +23,7 @@
 //
 //@SEE_ALSO:
 // bmqt::MessageGUID
-// mqbu::MessageGUIDUtil (for GUID version 0 generation)
+// mqbu::MessageGUIDUtil (convenience wrapper around this generator)
 //
 //@DESCRIPTION: 'bmqp::MessageGUIDGenerator' provides a class to generate
 // 'bmqt::MessageGUID' according to the layout defined in the below section.
