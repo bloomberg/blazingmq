@@ -49,6 +49,7 @@
 
 // BDE
 #include <bsl_string.h>
+#include <bslma_allocator.h>
 
 namespace BloombergLP {
 namespace bmqu {
@@ -66,12 +67,12 @@ struct TempUtil {
     /// the system.  The result is guaranteed to have a trailing path
     /// separator, even if the definition of the environment variable does
     /// not.
-    static bsl::string tempDir();
+    static bsl::string tempDir(bslma::Allocator* allocator = 0);
 
     /// Return the default temporary directory when no environment variables
     /// are defined.  The result is guaranteed to have a trailing path
     /// separator.
-    static bsl::string tempDirDefault();
+    static bsl::string tempDirDefault(bslma::Allocator* allocator = 0);
 };
 
 }  // close package namespace

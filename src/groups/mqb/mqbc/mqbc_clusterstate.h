@@ -109,6 +109,16 @@ class ClusterStatePartitionInfo {
     // Status of the primary.
     bmqp_ctrlmsg::PrimaryStatus::Value d_primaryStatus;
 
+    /// Raft mode only.  The leaseId of the most recent committed CSL
+    /// `partitionPrimaryAdvisory` observed by this node for this partition;
+    /// zero if none observed yet.  Recorded independently of
+    /// `d_primaryLeaseId` (which reflects this node's own, locally-observed
+    /// data-partition Raft leadership) so the two can be compared: they are
+    /// two independently-arriving signals (local partition-Raft election vs.
+    /// CSL advisory commit) that must both agree on the leaseId before the
+    /// partition may be considered ready.
+    unsigned int d_advisoryConfirmedLeaseId;
+
   public:
     // CREATORS
 
@@ -129,6 +139,10 @@ class ClusterStatePartitionInfo {
     ClusterStatePartitionInfo&
     setPrimaryStatus(bmqp_ctrlmsg::PrimaryStatus::Value value);
 
+    /// Set the corresponding member to the specified `value` and return a
+    /// reference offering modifiable access to this object.
+    ClusterStatePartitionInfo& setAdvisoryConfirmedLeaseId(unsigned int value);
+
     // ACCESSORS
     int                  partitionId() const;
     unsigned int         primaryLeaseId() const;
@@ -140,6 +154,9 @@ class ClusterStatePartitionInfo {
 
     /// Return the value of the corresponding member of this object.
     bmqp_ctrlmsg::PrimaryStatus::Value primaryStatus() const;
+
+    /// Return the value of the corresponding member of this object.
+    unsigned int advisoryConfirmedLeaseId() const;
 };
 
 // ===========================
@@ -162,16 +179,11 @@ class ClusterStateQueueInfo {
 
     struct State {
       public:
-        /// State of Assignment.  In CSL, assignment and unassignment are
-        /// asynchronous, hence the need for `k_ASSIGNING`/`k_UNASSIGNING`
-        /// Assigning following unassigning is also supported.  On Replica, the
-        /// only possible state is `k_ASSIGNED`.
-        enum Enum {
-            k_NONE        = 0,
-            k_ASSIGNING   = -1,
-            k_ASSIGNED    = -2,
-            k_UNASSIGNING = -3
-        };
+        /// Committed assignment state of a queue.  An assignment or
+        /// unassignment in flight is tracked by the leader's term markers
+        /// (`d_assignAdvisoryTerm`/`d_unassignAdvisoryTerm`), not by this
+        /// state, so every node only ever holds `k_NONE` or `k_ASSIGNED`.
+        enum Enum { k_NONE = 0, k_ASSIGNED = -2 };
 
         /// Write the string representation of the specified enumeration
         /// `value` to the specified output `stream`, and return a reference to
@@ -226,9 +238,19 @@ class ClusterStateQueueInfo {
     /// @todo Should also be added to @bbref{mqbconfm::Domain}.
     AppInfos d_appInfos;
 
-    /// Flag indicating whether this queue is in the process of being assigned
-    /// / unassigned.
+    /// Committed assignment state: `k_ASSIGNED` for an assigned queue, else
+    /// `k_NONE` (a leader-local placeholder for an assignment in flight).
     State::Enum d_state;
+
+    /// Elector term the leader proposed a still-uncommitted assignment
+    /// advisory in, `0` if none.  A term other than the current one named an
+    /// advisory that did not commit, so it reads as no advisory in flight.
+    /// Leader-local, never serialized.
+    bsls::Types::Uint64 d_assignAdvisoryTerm;
+
+    /// Elector term the leader proposed a still-uncommitted unassignment
+    /// advisory in, `0` if none.  Stale like `d_assignAdvisoryTerm`.
+    bsls::Types::Uint64 d_unassignAdvisoryTerm;
 
     bslma::Allocator* d_allocator_p;
 
@@ -266,9 +288,13 @@ class ClusterStateQueueInfo {
     ClusterStateQueueInfo& setPartitionId(int value);
     void                   setApps(const bmqp_ctrlmsg::QueueInfo& advisory);
 
-    /// Set the corresponding member to the specified `value` and return a
-    /// reference offering modifiable access to this object.
+    /// Set the state to the specified `value`.
     void setState(State::Enum value);
+
+    /// Record that the leader proposed an assignment/unassignment advisory in
+    /// the specified `electorTerm` (`0` clears it).
+    void setAssignAdvisoryTerm(bsls::Types::Uint64 electorTerm);
+    void setUnassignAdvisoryTerm(bsls::Types::Uint64 electorTerm);
 
     /// Get a modifiable reference to this object's appIdInfos.
     AppInfos& appInfos();
@@ -286,7 +312,11 @@ class ClusterStateQueueInfo {
 
     /// Return the value of the corresponding member of this object.
     State::Enum state() const;
-    bool        pendingUnassignment() const;
+
+    /// Return `true` if the leader has an assignment/unassignment advisory in
+    /// flight in the specified current `electorTerm`.
+    bool isAssigning(bsls::Types::Uint64 electorTerm) const;
+    bool isUnassigning(bsls::Types::Uint64 electorTerm) const;
 
     /// Return `true` if the specified `advisory` matches this object.
     bool equal(const bmqp_ctrlmsg::QueueInfo& advisory) const;
@@ -575,11 +605,6 @@ class ClusterState {
     /// TODO (FSM); remove after switching to FSM
     Assignments d_doubleAssignments;
 
-    // PRIVATE ACCESSORS
-
-    /// Return the cluster name with temporary suffix if applicable.
-    const bsl::string name() const;
-
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(ClusterState, bslma::UsesBslmaAllocator)
@@ -647,6 +672,19 @@ class ClusterState {
     setPartitionPrimaryStatus(int                                partitionId,
                               bmqp_ctrlmsg::PrimaryStatus::Value value);
 
+    /// Raft mode only.  Record the specified `leaseId` as the one carried by
+    /// the most recent committed CSL `partitionPrimaryAdvisory` observed by
+    /// this node for the specified `partitionId`.  Unlike
+    /// `setPartitionPrimary`, this may be called regardless of whether this
+    /// node has locally observed a primary for the partition yet -- it
+    /// records the CSL-side half of the two independent signals (local
+    /// data-partition Raft leadership vs. CSL advisory commit) that must
+    /// agree before the partition is considered ready.  The behavior is
+    /// undefined unless `partitionId >= 0` and `partitionId <
+    /// partitionsCount`.
+    ClusterState& setPartitionAdvisoryConfirmedLeaseId(int partitionId,
+                                                       unsigned int leaseId);
+
     /// Update the number of queues mapped to the specified `partitionId` by
     /// adjusting the current value with the specified `delta`.  The
     /// bahavior is undefined unless `partitionId >= 0` and 'partitionId <
@@ -672,11 +710,18 @@ class ClusterState {
     void assignQueue(const bmqp_ctrlmsg::QueueInfo& queueInfo);
 
     /// Un-assign the queue with the specified `uri`.  Return true if
-    /// successful, or false if the queue does not exist.
+    /// successful, or false if the queue does not exist.  If the entry has an
+    /// assignment advisory in flight in the optionally specified `electorTerm`
+    /// (a reassignment the leader ordered after this unassignment), keep a
+    /// `k_NONE` placeholder carrying that marker instead of erasing the entry,
+    /// so the reassignment's commit repopulates it and a concurrent
+    /// open/request dedups on it.  `electorTerm == 0` (the default, used by
+    /// teardown/snapshot paths and followers) always erases.
     ///
     /// THREAD: This method should only be called from the associated
     /// cluster's dispatcher thread.
-    bool unassignQueue(const bmqt::Uri& uri);
+    bool unassignQueue(const bmqt::Uri&    uri,
+                       bsls::Types::Uint64 electorTerm = 0);
 
     /// Un-assign all queues.
     ///
@@ -706,6 +751,10 @@ class ClusterState {
     void iterateDoubleAssignments(int partitionId, AssignmentVisitor& visitor);
 
     // ACCESSORS
+
+    /// Return the cluster name with temporary suffix if applicable.
+    const bsl::string name() const;
+
     /// Return the value of the corresponding member of this object.
     const mqbi::Cluster*  cluster() const;
     const PartitionsInfo& partitionsInfo() const;
@@ -753,20 +802,6 @@ class ClusterState {
     /// `partitionId >= 0` and `partitionId < partitionsCount`.
     const ClusterStatePartitionInfo& partition(int partitionId) const;
 
-    /// Return `ClusterStateQueueInfo` for the specified `uri` or `0` if it
-    /// does not exist.
-    ClusterStateQueueInfo* getQueueInfo(const bmqt::Uri& uri) const;
-
-    /// Return `ClusterStateQueueInfo` for the specified `uri` if it exists and
-    /// is in the `k_ASSIGNED` state or `0` otherwise.
-    ClusterStateQueueInfo* getAssigned(const bmqt::Uri& uri) const;
-
-    /// Return `ClusterStateQueueInfo` for the specified `uri` if it exists and
-    /// is in either the `k_ASSIGNED` or `k_UNASSIGNING` state.  Return `0`
-    /// otherwise.
-    ClusterStateQueueInfo*
-    getAssignedOrUnassigning(const bmqt::Uri& uri) const;
-
     /// TODO (FSM); remove after switching to FSM
     void iterateDoubleAssignments(
         const Assignments::const_iterator& partitionAssignments,
@@ -790,6 +825,7 @@ inline ClusterStatePartitionInfo::ClusterStatePartitionInfo()
 , d_numActiveQueues(0)
 , d_primaryNodeSession_p(0)
 , d_primaryStatus(bmqp_ctrlmsg::PrimaryStatus::E_UNDEFINED)
+, d_advisoryConfirmedLeaseId(0)
 {
     // NOTHING
 }
@@ -844,6 +880,13 @@ inline ClusterStatePartitionInfo& ClusterStatePartitionInfo::setPrimaryStatus(
     return *this;
 }
 
+inline ClusterStatePartitionInfo&
+ClusterStatePartitionInfo::setAdvisoryConfirmedLeaseId(unsigned int value)
+{
+    d_advisoryConfirmedLeaseId = value;
+    return *this;
+}
+
 // ACCESSORS
 inline int ClusterStatePartitionInfo::partitionId() const
 {
@@ -887,6 +930,11 @@ ClusterStatePartitionInfo::primaryStatus() const
     return d_primaryStatus;
 }
 
+inline unsigned int ClusterStatePartitionInfo::advisoryConfirmedLeaseId() const
+{
+    return d_advisoryConfirmedLeaseId;
+}
+
 // ---------------------------
 // class ClusterStateQueueInfo
 // ---------------------------
@@ -900,6 +948,8 @@ inline ClusterStateQueueInfo::ClusterStateQueueInfo(
 , d_partitionId(mqbi::Storage::k_INVALID_PARTITION_ID)
 , d_appInfos(allocator)
 , d_state(State::k_NONE)
+, d_assignAdvisoryTerm(0)
+, d_unassignAdvisoryTerm(0)
 , d_allocator_p(allocator)
 {
     // NOTHING
@@ -913,6 +963,8 @@ inline ClusterStateQueueInfo::ClusterStateQueueInfo(
 , d_partitionId(advisory.partitionId())
 , d_appInfos(allocator)
 , d_state(State::k_NONE)
+, d_assignAdvisoryTerm(0)
+, d_unassignAdvisoryTerm(0)
 , d_allocator_p(allocator)
 {
     setApps(advisory);
@@ -932,24 +984,21 @@ inline ClusterStateQueueInfo& ClusterStateQueueInfo::setPartitionId(int value)
     return *this;
 }
 
-inline void
-ClusterStateQueueInfo::setState(ClusterStateQueueInfo::State::Enum value)
+inline void ClusterStateQueueInfo::setState(State::Enum value)
 {
-    //                            k_NONE
-    //                            |     |
-    //  ClusterUtil::assignQueue  |     |
-    //                            |     V
-    //                            | k_ASSIGNING <---+
-    //                            |     |           |
-    //  ClusterState::assignQueue |     |           |
-    //                            V     V           |
-    //                          k_ASSIGNED          |
-    //                                  |           |
-    //                                  |           | ClusterState::assignQueue
-    //                                  V           |
-    //                                  k_UNASSIGNING
-
     d_state = value;
+}
+
+inline void
+ClusterStateQueueInfo::setAssignAdvisoryTerm(bsls::Types::Uint64 electorTerm)
+{
+    d_assignAdvisoryTerm = electorTerm;
+}
+
+inline void
+ClusterStateQueueInfo::setUnassignAdvisoryTerm(bsls::Types::Uint64 electorTerm)
+{
+    d_unassignAdvisoryTerm = electorTerm;
 }
 
 inline ClusterStateQueueInfo::AppInfos& ClusterStateQueueInfo::appInfos()
@@ -965,6 +1014,8 @@ inline void ClusterStateQueueInfo::reset()
     d_key.reset();
     d_partitionId = mqbi::Storage::k_INVALID_PARTITION_ID;
     d_appInfos.clear();
+    d_assignAdvisoryTerm   = 0;
+    d_unassignAdvisoryTerm = 0;
 }
 
 // ACCESSORS
@@ -994,9 +1045,17 @@ inline ClusterStateQueueInfo::State::Enum ClusterStateQueueInfo::state() const
     return d_state;
 }
 
-inline bool ClusterStateQueueInfo::pendingUnassignment() const
+inline bool
+ClusterStateQueueInfo::isAssigning(bsls::Types::Uint64 electorTerm) const
 {
-    return d_state == State::k_UNASSIGNING;
+    return d_assignAdvisoryTerm != 0 && d_assignAdvisoryTerm == electorTerm;
+}
+
+inline bool
+ClusterStateQueueInfo::isUnassigning(bsls::Types::Uint64 electorTerm) const
+{
+    return d_unassignAdvisoryTerm != 0 &&
+           d_unassignAdvisoryTerm == electorTerm;
 }
 
 inline bool
@@ -1011,7 +1070,7 @@ ClusterStateQueueInfo::isEquivalent(const ClusterStateQueueInfo& rhs) const
 // class ClusterState
 // ------------------
 
-// PRIVATE ACCESSORS
+// ACCESSORS
 
 inline const bsl::string ClusterState::name() const
 {
@@ -1200,48 +1259,6 @@ ClusterState::partition(int partitionId) const
     BSLS_ASSERT_SAFE(partitionId < static_cast<int>(d_partitionsInfo.size()));
 
     return d_partitionsInfo[partitionId];
-}
-
-inline ClusterStateQueueInfo*
-ClusterState::getQueueInfo(const bmqt::Uri& uri) const
-{
-    const DomainStatesCIter domCit = domainStates().find(
-        uri.qualifiedDomain());
-    if (domCit == domainStates().cend()) {
-        return 0;
-    }
-
-    UriToQueueInfoMapCIter qcit = domCit->second->queuesInfo().find(uri);
-    if (qcit == domCit->second->queuesInfo().cend()) {
-        return 0;
-    }
-
-    return qcit->second.get();
-}
-
-inline ClusterStateQueueInfo*
-ClusterState::getAssigned(const bmqt::Uri& uri) const
-{
-    ClusterStateQueueInfo* queue = getQueueInfo(uri);
-
-    return queue ? queue->state() == ClusterStateQueueInfo::State::k_ASSIGNED
-                       ? queue
-                       : 0
-                 : 0;
-}
-
-inline ClusterStateQueueInfo*
-ClusterState::getAssignedOrUnassigning(const bmqt::Uri& uri) const
-{
-    ClusterStateQueueInfo* queue = getQueueInfo(uri);
-
-    return queue
-               ? queue->state() == ClusterStateQueueInfo::State::k_ASSIGNED ||
-                         queue->state() ==
-                             ClusterStateQueueInfo::State::k_UNASSIGNING
-                     ? queue
-                     : 0
-               : 0;
 }
 
 // --------------------------------

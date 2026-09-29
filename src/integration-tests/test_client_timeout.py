@@ -151,13 +151,15 @@ def test_client_timeout_close(multi_node: Cluster, domain_urls: tc.DomainUrls):
     brokers = multi_node.nodes()
     leader = multi_node.last_known_leader
 
-    # Ensure the producer is connected to a replica
-    producer_broker = brokers[0] if brokers[0] is not leader else brokers[1]
-
     # Start a producer with a long timeout and open queue, to ensure the queues
     # are assigned.
     long_timeout_producer = leader.create_client("producer_long_timeout")
     long_timeout_producer.open(uri_priority, flags=["write,ack"], succeed=True)
+
+    # Ensure the producer is connected to a replica -- i.e. not the queue's
+    # partition primary, which in Raft mode need not be the CSL leader.
+    primary = leader.wait_queue_primary(uri_priority)
+    producer_broker = multi_node.nodes(exclude=primary)[0]
 
     # Start a producer with a short timeout and open the queue
     producer = producer_broker.create_client("producer", options=["--timeout=1"])

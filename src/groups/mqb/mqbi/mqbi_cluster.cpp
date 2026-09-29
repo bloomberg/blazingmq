@@ -121,5 +121,32 @@ Cluster::~Cluster()
     // NOTHING (pure interface)
 }
 
+void Cluster::onQueueStorageReady(int partitionId, const bmqt::Uri& uri)
+{
+    // NOTHING (default: not all implementations own a ClusterQueueHelper)
+    (void)partitionId;
+    (void)uri;
+}
+
+void Cluster::onConversionToRemote(
+    Queue*                                     queue,
+    const bmqp_ctrlmsg::QueueHandleParameters& handleParameters)
+{
+    // NOTHING (default: not all implementations own a ClusterQueueHelper)
+    (void)queue;
+    (void)handleParameters;
+}
+
+bool Cluster::loadAppIds(bsl::unordered_set<bsl::string>* out,
+                         const bmqt::Uri&                 uri,
+                         int                              partitionId) const
+{
+    // Default: not all implementations own a local storage.
+    (void)out;
+    (void)uri;
+    (void)partitionId;
+    return false;
+}
+
 }  // close package namespace
 }  // close enterprise namespace
