@@ -31,17 +31,17 @@ namespace BloombergLP {
 namespace mqbnet {
 
 // --------------------------
-// class Channel::ControlArgs
+// class Channel::BlobBuilder
 // --------------------------
 
-size_t Channel::ControlArgs::eventSize() const
+size_t Channel::BlobBuilder::eventSize() const
 {
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(messageCount() == 0)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         return 0;  // RETURN
     }
 
-    return d_data_sp->length();
+    return d_item.data()->length();
 }
 
 // --------------------
@@ -75,9 +75,28 @@ Channel::Channel(bdlbb::BlobBufferFactory* blobBufferFactory,
 , d_ackBuilder(d_blobSpPool_sp.get(), d_allocator_p)
 , d_confirmBuilder(d_blobSpPool_sp.get(), d_allocator_p)
 , d_rejectBuilder(d_blobSpPool_sp.get(), d_allocator_p)
-, d_itemPool(sizeof(Item),
-             bsls::BlockGrowth::BSLS_CONSTANT,
-             d_allocators.get("ItemPool"))
+, d_putItemPool(sizeof(ChannelPutItem),
+                bsls::BlockGrowth::BSLS_CONSTANT,
+                d_allocators.get("ItemPool"))
+, d_explicitPayloadPushItemPool(sizeof(ChannelExplicitPayloadPushItem),
+                                bsls::BlockGrowth::BSLS_CONSTANT,
+                                d_allocators.get("ItemPool"))
+, d_implicitPayloadPushItemPool(sizeof(ChannelImplicitPayloadPushItem),
+                                bsls::BlockGrowth::BSLS_CONSTANT,
+                                d_allocators.get("ItemPool"))
+, d_ackItemPool(sizeof(ChannelAckItem),
+                bsls::BlockGrowth::BSLS_CONSTANT,
+                d_allocators.get("ItemPool"))
+, d_confirmItemPool(sizeof(ChannelConfirmItem),
+                    bsls::BlockGrowth::BSLS_CONSTANT,
+                    d_allocators.get("ItemPool"))
+, d_rejectItemPool(sizeof(ChannelRejectItem),
+                   bsls::BlockGrowth::BSLS_CONSTANT,
+                   d_allocators.get("ItemPool"))
+, d_blobItemPool(sizeof(ChannelBlobItem),
+                 bsls::BlockGrowth::BSLS_CONSTANT,
+                 d_allocators.get("ItemPool"))
+, d_wakeUpItem()
 , d_buffer(1024, allocator)
 , d_isStopped(false)
 , d_state(e_RESET)
@@ -129,21 +148,16 @@ void Channel::stop()
     BSLS_ASSERT_SAFE(rc == 0);
 }
 
-void Channel::deleteItem(void* item, void* cookie)
-{
-    static_cast<Channel*>(cookie)->d_itemPool.deleteObject(
-        static_cast<Item*>(item));
-}
-
 bmqt::GenericResult::Enum
 Channel::writePut(const bmqp::PutHeader&                    ph,
                   const bsl::shared_ptr<bdlbb::Blob>&       data,
                   const bsl::shared_ptr<bmqu::AtomicState>& state)
 {
-    bslma::ManagedPtr<Item> item(new (d_itemPool.allocate())
-                                     Item(ph, data, state, d_allocator_p),
-                                 this,
-                                 deleteItem);
+    bslma::ManagedPtr<ChannelItem> item(
+        bslma::ManagedPtrUtil::allocateManaged<ChannelPutItem>(&d_putItemPool,
+                                                               ph,
+                                                               data,
+                                                               state));
     return enqueue(item);
 }
 
@@ -157,18 +171,18 @@ Channel::writePush(const bsl::shared_ptr<bdlbb::Blob>&       payload,
                    const bmqp::Protocol::SubQueueInfosArray& subQueueInfos,
                    const bsl::shared_ptr<bmqu::AtomicState>& state)
 {
-    bslma::ManagedPtr<Item> item(new (d_itemPool.allocate())
-                                     Item(queueId,
-                                          msgId,
-                                          flags,
-                                          compressionType,
-                                          logic,
-                                          payload,
-                                          subQueueInfos,
-                                          state,
-                                          d_allocator_p),
-                                 this,
-                                 deleteItem);
+    bslma::ManagedPtr<ChannelItem> item(
+        bslma::ManagedPtrUtil::allocateManaged<ChannelExplicitPayloadPushItem>(
+            &d_explicitPayloadPushItemPool,
+            queueId,
+            msgId,
+            flags,
+            compressionType,
+            logic,
+            payload,
+            subQueueInfos,
+            state,
+            d_allocator_p));
     return enqueue(item);
 }
 
@@ -181,17 +195,17 @@ Channel::writePush(int                                       queueId,
                    const bmqp::Protocol::SubQueueInfosArray& subQueueInfos,
                    const bsl::shared_ptr<bmqu::AtomicState>& state)
 {
-    bslma::ManagedPtr<Item> item(new (d_itemPool.allocate())
-                                     Item(queueId,
-                                          msgId,
-                                          flags,
-                                          compressionType,
-                                          logic,
-                                          subQueueInfos,
-                                          state,
-                                          d_allocator_p),
-                                 this,
-                                 deleteItem);
+    bslma::ManagedPtr<ChannelItem> item(
+        bslma::ManagedPtrUtil::allocateManaged<ChannelImplicitPayloadPushItem>(
+            &d_implicitPayloadPushItemPool,
+            queueId,
+            msgId,
+            flags,
+            compressionType,
+            logic,
+            subQueueInfos,
+            state,
+            d_allocator_p));
     return enqueue(item);
 }
 
@@ -202,11 +216,13 @@ Channel::writeAck(int                                       status,
                   int                                       queueId,
                   const bsl::shared_ptr<bmqu::AtomicState>& state)
 {
-    bslma::ManagedPtr<Item> item(
-        new (d_itemPool.allocate())
-            Item(status, correlationId, guid, queueId, state, d_allocator_p),
-        this,
-        deleteItem);
+    bslma::ManagedPtr<ChannelItem> item(
+        bslma::ManagedPtrUtil::allocateManaged<ChannelAckItem>(&d_ackItemPool,
+                                                               status,
+                                                               correlationId,
+                                                               guid,
+                                                               queueId,
+                                                               state));
     return enqueue(item);
 }
 
@@ -216,15 +232,13 @@ Channel::writeConfirm(int                                       queueId,
                       const bmqt::MessageGUID&                  guid,
                       const bsl::shared_ptr<bmqu::AtomicState>& state)
 {
-    bslma::ManagedPtr<Item> item(new (d_itemPool.allocate())
-                                     Item(queueId,
-                                          subQueueId,
-                                          guid,
-                                          state,
-                                          bmqp::EventType::e_CONFIRM,
-                                          d_allocator_p),
-                                 this,
-                                 deleteItem);
+    bslma::ManagedPtr<ChannelItem> item(
+        bslma::ManagedPtrUtil::allocateManaged<ChannelConfirmItem>(
+            &d_confirmItemPool,
+            queueId,
+            subQueueId,
+            guid,
+            state));
     return enqueue(item);
 }
 
@@ -234,15 +248,13 @@ Channel::writeReject(int                                       queueId,
                      const bmqt::MessageGUID&                  guid,
                      const bsl::shared_ptr<bmqu::AtomicState>& state)
 {
-    bslma::ManagedPtr<Item> item(new (d_itemPool.allocate())
-                                     Item(queueId,
-                                          subQueueId,
-                                          guid,
-                                          state,
-                                          bmqp::EventType::e_REJECT,
-                                          d_allocator_p),
-                                 this,
-                                 deleteItem);
+    bslma::ManagedPtr<ChannelItem> item(
+        bslma::ManagedPtrUtil::allocateManaged<ChannelRejectItem>(
+            &d_rejectItemPool,
+            queueId,
+            subQueueId,
+            guid,
+            state));
     return enqueue(item);
 }
 
@@ -251,10 +263,12 @@ Channel::writeBlob(const bsl::shared_ptr<bdlbb::Blob>&       data,
                    bmqp::EventType::Enum                     type,
                    const bsl::shared_ptr<bmqu::AtomicState>& state)
 {
-    bslma::ManagedPtr<Item> item(new (d_itemPool.allocate())
-                                     Item(data, type, state, d_allocator_p),
-                                 this,
-                                 deleteItem);
+    bslma::ManagedPtr<ChannelItem> item(
+        bslma::ManagedPtrUtil::allocateManaged<ChannelBlobItem>(
+            &d_blobItemPool,
+            data,
+            type,
+            state));
 
     return enqueue(item);
 }
@@ -369,10 +383,9 @@ void Channel::reset()
 void Channel::wakeUp()
 {
     // Thread: any
-    bslma::ManagedPtr<Item> item(new (d_itemPool.allocate())
-                                     Item(d_allocator_p),
-                                 this,
-                                 deleteItem);
+    bslma::ManagedPtr<ChannelItem> item(&d_wakeUpItem,
+                                        0,
+                                        &bslma::ManagedPtrUtil::noOpDeleter);
 
     d_buffer.pushBack(bslmf::MovableRefUtil::move(item));
 }
@@ -415,92 +428,83 @@ bmqt::GenericResult::Enum
 Channel::writeBufferedItem(bool*                                  isConsumed,
                            const bsl::shared_ptr<bmqio::Channel>& channel,
                            const bsl::string&                     description,
-                           Item&                                  item)
+                           const ChannelItem&                     item)
 {
     // executed by the internal thread
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_internalThreadChecker.inSameThread());
 
-    // Convert 'Item' into corresponding args and execute the write.
+    // Write the item using the builder corresponding to its type.
     bmqt::GenericResult::Enum rc = bmqt::GenericResult::e_SUCCESS;
-    switch (item.d_type) {
-    case bmqp::EventType::e_UNDEFINED:
-        BSLS_ASSERT_SAFE(false && "unexpected UNDEFINED item");
+    switch (item.type()) {
+    case ChannelItemType::e_WAKE_UP:
+        BSLS_ASSERT_SAFE(false && "unexpected wake up item");
         break;
-    case bmqp::EventType::e_PUT:
+    case ChannelItemType::e_PUT:
         rc = writeImmediate(isConsumed,
                             channel,
                             description,
                             d_putBuilder,
-                            PutArgs(item),
-                            item.d_state);
+                            *item.the<ChannelPutItem>(),
+                            item.state());
         break;
-    case bmqp::EventType::e_PUSH:
-        if (item.d_data_sp) {
-            rc = writeImmediate(isConsumed,
-                                channel,
-                                description,
-                                d_pushBuilder,
-                                ExplicitPushArgs(item),
-                                item.d_state);
-        }
-        else {
-            rc = writeImmediate(isConsumed,
-                                channel,
-                                description,
-                                d_pushBuilder,
-                                ImplicitPushArgs(item),
-                                item.d_state);
-        }
+    case ChannelItemType::e_EXPLICIT_PAYLOAD_PUSH:
+        rc = writeImmediate(isConsumed,
+                            channel,
+                            description,
+                            d_pushBuilder,
+                            *item.the<ChannelExplicitPayloadPushItem>(),
+                            item.state());
         break;
-    case bmqp::EventType::e_CONFIRM:
+    case ChannelItemType::e_IMPLICIT_PAYLOAD_PUSH:
+        rc = writeImmediate(isConsumed,
+                            channel,
+                            description,
+                            d_pushBuilder,
+                            *item.the<ChannelImplicitPayloadPushItem>(),
+                            item.state());
+        break;
+    case ChannelItemType::e_CONFIRM:
         rc = writeImmediate(isConsumed,
                             channel,
                             description,
                             d_confirmBuilder,
-                            ConfirmArgs(item),
-                            item.d_state);
+                            *item.the<ChannelConfirmItem>(),
+                            item.state());
         break;
-    case bmqp::EventType::e_ACK:
+    case ChannelItemType::e_ACK:
         rc = writeImmediate(isConsumed,
                             channel,
                             description,
                             d_ackBuilder,
-                            AckArgs(item),
-                            item.d_state);
+                            *item.the<ChannelAckItem>(),
+                            item.state());
         break;
-    case bmqp::EventType::e_REJECT:
+    case ChannelItemType::e_REJECT:
         rc = writeImmediate(isConsumed,
                             channel,
                             description,
                             d_rejectBuilder,
-                            RejectArgs(item),
-                            item.d_state);
+                            *item.the<ChannelRejectItem>(),
+                            item.state());
         break;
-    case bmqp::EventType::e_CONTROL:
-    case bmqp::EventType::e_CLUSTER_STATE:
-    case bmqp::EventType::e_ELECTOR:
-    case bmqp::EventType::e_STORAGE:
-    case bmqp::EventType::e_RECOVERY:
-    case bmqp::EventType::e_PARTITION_SYNC:
-    case bmqp::EventType::e_HEARTBEAT_REQ:
-    case bmqp::EventType::e_HEARTBEAT_RSP:
-    case bmqp::EventType::e_REPLICATION_RECEIPT:
-    case bmqp::EventType::e_AUTHENTICATION:
+    case ChannelItemType::e_BLOB:
     default: {
-        ControlArgs x(item);
+        const ChannelBlobItem& blobItem = *item.the<ChannelBlobItem>();
+        BlobBuilder            builder(blobItem);
+
         rc = writeImmediate(isConsumed,
                             channel,
                             description,
-                            x,
-                            x,
-                            item.d_state);
+                            builder,
+                            blobItem,
+                            item.state());
 
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
                 rc == bmqt::GenericResult::e_NOT_READY)) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-            // not keeping the control pseudo builder
+            // not keeping the pseudo builder
             *isConsumed = false;
         }
     } break;
@@ -510,21 +514,21 @@ Channel::writeBufferedItem(bool*                                  isConsumed,
 }
 
 bmqt::EventBuilderResult::Enum Channel::pack(bmqp::PutEventBuilder& builder,
-                                             const PutArgs&         args)
+                                             const ChannelPutItem&  item)
 {
     // executed by the internal thread
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_internalThreadChecker.inSameThread());
 
-    if (!args.d_data_sp.get()) {
+    if (!item.data().get()) {
         return bmqt::EventBuilderResult::e_PAYLOAD_EMPTY;
     }
-    const bmqp::PutHeader& ph = args.d_putHeader;
+    const bmqp::PutHeader& ph = item.putHeader();
 
     builder.startMessage();
     builder.setMessageGUID(ph.messageGUID())
         .setFlags(ph.flags())
-        .setMessagePayload(args.d_data_sp.get())
+        .setMessagePayload(item.data().get())
         .setCompressionAlgorithmType(ph.compressionAlgorithmType())
         .setCrc32c(ph.crc32c())
         .setMessagePropertiesInfo(bmqp::MessagePropertiesInfo(ph));
@@ -534,86 +538,89 @@ bmqt::EventBuilderResult::Enum Channel::pack(bmqp::PutEventBuilder& builder,
     return builder.packMessageRaw(ph.queueId());
 }
 
-bmqt::EventBuilderResult::Enum Channel::pack(bmqp::PushEventBuilder& builder,
-                                             const ExplicitPushArgs& args)
+bmqt::EventBuilderResult::Enum
+Channel::pack(bmqp::PushEventBuilder&               builder,
+              const ChannelExplicitPayloadPushItem& item)
 {
     // executed by the internal thread
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_internalThreadChecker.inSameThread());
 
     bmqt::EventBuilderResult::Enum rc = builder.addSubQueueInfosOption(
-        args.d_subQueueInfos);
+        item.subQueueInfos());
     if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(
             rc == bmqt::EventBuilderResult::e_SUCCESS)) {
-        rc = builder.packMessage(*args.d_data_sp,
-                                 args.d_queueId,
-                                 args.d_msgId,
-                                 args.d_flags,
-                                 args.d_compressionAlgorithmType,
-                                 args.d_messagePropertiesInfo);
+        rc = builder.packMessage(*item.data(),
+                                 item.queueId(),
+                                 item.msgId(),
+                                 item.flags(),
+                                 item.compressionAlgorithmType(),
+                                 item.messagePropertiesInfo());
     }
     return rc;
 }
 
-bmqt::EventBuilderResult::Enum Channel::pack(bmqp::PushEventBuilder& builder,
-                                             const ImplicitPushArgs& args)
+bmqt::EventBuilderResult::Enum
+Channel::pack(bmqp::PushEventBuilder&               builder,
+              const ChannelImplicitPayloadPushItem& item)
 {
     // executed by the internal thread
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_internalThreadChecker.inSameThread());
 
     bmqt::EventBuilderResult::Enum rc = builder.addSubQueueInfosOption(
-        args.d_subQueueInfos);
+        item.subQueueInfos());
     if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(
             rc == bmqt::EventBuilderResult::e_SUCCESS)) {
-        rc = builder.packMessage(args.d_queueId,
-                                 args.d_msgId,
-                                 args.d_flags,
-                                 args.d_compressionAlgorithmType,
-                                 args.d_messagePropertiesInfo);
+        rc = builder.packMessage(item.queueId(),
+                                 item.msgId(),
+                                 item.flags(),
+                                 item.compressionAlgorithmType(),
+                                 item.messagePropertiesInfo());
     }
     return rc;
 }
 
 bmqt::EventBuilderResult::Enum Channel::pack(bmqp::AckEventBuilder& builder,
-                                             const AckArgs&         args)
+                                             const ChannelAckItem&  item)
 {
     // executed by the internal thread
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_internalThreadChecker.inSameThread());
 
-    return builder.appendMessage(args.d_status,
-                                 args.d_correlationId,
-                                 args.d_guid,
-                                 args.d_queueId);
+    return builder.appendMessage(item.status(),
+                                 item.correlationId(),
+                                 item.guid(),
+                                 item.queueId());
 }
 
 bmqt::EventBuilderResult::Enum Channel::pack(bmqp::RejectEventBuilder& builder,
-                                             const RejectArgs&         args)
+                                             const ChannelRejectItem&  item)
 {
     // executed by the internal thread
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_internalThreadChecker.inSameThread());
 
-    return builder.appendMessage(args.d_queueId,
-                                 args.d_subQueueId,
-                                 args.d_guid);
+    return builder.appendMessage(item.queueId(),
+                                 item.subQueueId(),
+                                 item.guid());
 }
 
 bmqt::EventBuilderResult::Enum
-Channel::pack(bmqp::ConfirmEventBuilder& builder, const ConfirmArgs& args)
+Channel::pack(bmqp::ConfirmEventBuilder& builder,
+              const ChannelConfirmItem&  item)
 {
     // executed by the internal thread
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_internalThreadChecker.inSameThread());
 
-    return builder.appendMessage(args.d_queueId,
-                                 args.d_subQueueId,
-                                 args.d_guid);
+    return builder.appendMessage(item.queueId(),
+                                 item.subQueueId(),
+                                 item.guid());
 }
 
-bmqt::EventBuilderResult::Enum Channel::pack(ControlArgs& builder,
-                                             const ControlArgs&)
+bmqt::EventBuilderResult::Enum Channel::pack(BlobBuilder& builder,
+                                             const ChannelBlobItem&)
 {
     // executed by the internal thread
     // PRECONDITIONS
@@ -767,7 +774,7 @@ void Channel::threadFn()
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_internalThreadChecker.inSameThread());
 
-    bslma::ManagedPtr<Item>         item;
+    bslma::ManagedPtr<ChannelItem>  item;
     bsl::shared_ptr<bmqio::Channel> channel;
     bsl::string                     description;
     int                             mode = e_BLOCK;
@@ -894,7 +901,7 @@ void Channel::threadFn()
             }
             }
         }
-        else if (item->d_type == bmqp::EventType::e_UNDEFINED) {
+        else if (item->type() == ChannelItemType::e_WAKE_UP) {
             // Enqueued by 'wakeUp', ignore this item
             item.reset();
         }
@@ -911,7 +918,7 @@ void Channel::threadFn()
                     rc == bmqt::GenericResult::e_NOT_READY)) {
                 BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
                 BALL_LOG_WARN << "Reached a limit while writing event "
-                              << item->d_type << " to " << description
+                              << item->eventType() << " to " << description
                               << " with " << numItems() << " items and "
                               << bmqu::PrintUtil::prettyBytes(numBytes())
                               << " pending bytes";
@@ -933,7 +940,7 @@ void Channel::threadFn()
             if (isConsumed) {
                 // done with the 'item'
 
-                d_stats.removeItem(item->d_type, item->d_numBytes);
+                d_stats.onRemoveItem(*item);
                 item.reset();
             }
             // else keep the item
