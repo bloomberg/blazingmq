@@ -41,10 +41,12 @@ BSLMF_ASSERT(k_MINIMUM_SDK_VERSION_SUPPORTED_CPP <=
              k_MINIMUM_SDK_VERSION_RECOMMENDED_CPP);
 
 // Java
-const int k_MINIMUM_SDK_VERSION_SUPPORTED_JAVA = BMQ_MAKE_EXT_VERSION(0, 0, 9);
+const int k_MINIMUM_SDK_VERSION_SUPPORTED_JAVA   = BMQ_MAKE_EXT_VERSION(0,
+                                                                      0,
+                                                                      13);
 const int k_MINIMUM_SDK_VERSION_RECOMMENDED_JAVA = BMQ_MAKE_EXT_VERSION(0,
                                                                         0,
-                                                                        9);
+                                                                        13);
 BSLMF_ASSERT(k_MINIMUM_SDK_VERSION_SUPPORTED_JAVA <=
              k_MINIMUM_SDK_VERSION_RECOMMENDED_JAVA);
 
