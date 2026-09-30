@@ -242,10 +242,10 @@ class RawClient:
         authentication mechanism 'auth_mechanism' and authentication data 'auth_data'.
         Return the authentication response from the broker.
         """
-        self._send_authentication_request(auth_mechanism, auth_data)
+        self.send_authentication_request(auth_mechanism, auth_data)
         return self._receive_authentication_response()
 
-    def _send_authentication_request(
+    def send_authentication_request(
         self, auth_mechanism: str, auth_data: Union[str, bytes]
     ) -> None:
         """
