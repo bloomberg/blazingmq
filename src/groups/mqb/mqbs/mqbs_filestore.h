@@ -580,6 +580,29 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
                                FileSet*            oldFileSet,
                                FileSet*            newFileSet);
 
+    /// @brief Log a summary of the queues rolled over during rollover.
+    ///
+    /// @details Formats one line per queue (message count, byte count, and
+    /// queue URI), sorted by descending byte count, and emits it at INFO
+    /// level. Has no effect on the state of this file store.
+    ///
+    /// @param queueKeyCounterMap Per-queue message and byte counts gathered
+    ///         while copying the outstanding records.
+    void logQueueRolloverSummary(
+        const QueueKeyCounterMap& queueKeyCounterMap) const;
+
+    /// @brief Log the data, journal, and qlist file-size compaction ratios
+    /// achieved by a rollover.
+    ///
+    /// @details Emits the new and old sizes of each file (and the new/old
+    /// percentage) at INFO level.  Has no effect on the state of this file
+    /// store.
+    ///
+    /// @param activeFileSet    The old (pre-rollover) file set.
+    /// @param newActiveFileSet The new (post-rollover) file set.
+    void logCompactionMetrics(const FileSet& activeFileSet,
+                              const FileSet& newActiveFileSet) const;
+
     /// Issue a sync point.
     ///
     /// THREAD: This method is called from the scheduler thread.
