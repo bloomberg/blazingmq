@@ -866,6 +866,57 @@ def test_authenticate_client_disconnect_during_auth(
     new_client.stop()
 
 
+@tweak.broker.app_config.authentication(
+    {
+        "authenticators": [
+            {
+                "name": "TestAuthenticator",
+                "settings": [
+                    {"key": "sleepTimeMs", "value": {"intVal": 1000}},
+                ],
+            }
+        ],
+        "minThreads": 1,
+        "maxThreads": 1,
+    }
+)
+def test_authenticate_client_disconnect_while_queued(
+    single_node: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+) -> None:
+    """
+    Test that the broker skips an authentication request whose client
+    disconnected while the request was still queued behind another one,
+    rather than crashing when the queued request is finally processed.
+    """
+    broker = single_node.nodes()[0]
+
+    # Occupy the only authentication thread
+    blocker = RawClient()
+    blocker.open_channel(*single_node.admin_endpoint)
+    blocker.send_authentication_request("TEST", "")
+    assert broker.capture("Authenticating connection .* with mechanism 'TEST'", 5)
+
+    # Queue a second request and disconnect before it gets processed
+    client = RawClient()
+    client.open_channel(*single_node.admin_endpoint)
+    client.send_authentication_request("TEST", "")
+    client.stop()
+
+    assert broker.capture("Skipping authentication .*client already disconnected", 10)
+
+    blocker.stop()
+
+    # Verify the broker is still functional
+    new_client = RawClient()
+    new_client.open_channel(*single_node.admin_endpoint)
+
+    nego_resp = new_client.negotiate()
+    assert nego_resp["brokerResponse"]["result"]["code"] == 0
+
+    new_client.stop()
+
+
 # ==============================================================================
 # Broker-to-Broker Authentication Tests
 # ==============================================================================
