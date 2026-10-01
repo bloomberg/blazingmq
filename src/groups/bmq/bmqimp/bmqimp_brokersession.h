@@ -431,8 +431,13 @@ class BrokerSession BSLS_CPP11_FINAL {
 
         // MANIPULATORS
 
-        /// Handle user start request event
-        bmqt::GenericResult::Enum handleStartRequest();
+        /// Handle user start request event.  If not empty, `startCb` is
+        /// stored (only when the request actually initiates a start) so that
+        /// `handleChannelUp`/`setStopped` can attach it to the terminal start
+        /// event.  On an already started session it is attached to a CONNECTED
+        /// event enqueued right away.  It is never invoked on the FSM thread.
+        bmqt::GenericResult::Enum
+        handleStartRequest(const EventCallback& startCb);
 
         /// Handle start request timeout event
         void handleStartTimeout();
@@ -440,8 +445,12 @@ class BrokerSession BSLS_CPP11_FINAL {
         /// Handle synchronous start request failure.
         void handleStartSynchronousFailure();
 
-        /// Handle user stop request event
-        void handleStopRequest();
+        /// Handle user stop request event.  If not empty, `stopCb` is stored
+        /// (only when the request actually initiates/reaches a stop) so that
+        /// `setStopped` can attach it to the terminal DISCONNECTED event.  A
+        /// stop request arriving while a stop is already in progress drops
+        /// `stopCb`.  It is never invoked on the FSM thread.
+        void handleStopRequest(const EventCallback& stopCb);
 
         /// Handle IO channel up event that provides the specified `channel`
         void handleChannelUp(const bsl::shared_ptr<bmqio::Channel>& channel);
@@ -865,6 +874,16 @@ class BrokerSession BSLS_CPP11_FINAL {
     bslmt::Semaphore d_stopSemaphore;
     // Semaphore used for making 'sync'
     // stop
+
+    /// Optional user callback carried by the terminal event of an
+    /// asynchronous start operation.  Set and cleared only from the FSM
+    /// thread.
+    EventCallback d_startCb;
+
+    /// Optional user callback carried by the terminal event of an
+    /// asynchronous stop operation.  Set and cleared only from the FSM
+    /// thread.
+    EventCallback d_stopCb;
 
     bslmt::Mutex d_startStopMutex;
     // Mutex to synchronize the stop and
@@ -1305,14 +1324,18 @@ class BrokerSession BSLS_CPP11_FINAL {
     /// representing the operation of starting the session.
     void doStart(bslmt::Semaphore*                     semaphore,
                  int*                                  status,
+                 const EventCallback&                  startCb,
                  const bsl::shared_ptr<Event>&         eventSp,
                  const bsl::shared_ptr<bmqpi::DTSpan>& span);
 
     /// Invoked from the FSM thread as a handler to the user stop request
     /// event, specified as `eventSp`.  This method initiates session stop
-    /// procedure. If not empty, `span` is the Distributed Trace span
-    /// representing the operation of stopping the session.
-    void doStop(const bsl::shared_ptr<Event>&         eventSp,
+    /// procedure.  If not empty, `stopCb` is invoked (via the terminal session
+    /// event, on the event delivery thread) upon completion of the stop.  If
+    /// not empty, `span` is the Distributed Trace span representing the
+    /// operation of stopping the session.
+    void doStop(const EventCallback&                  stopCb,
+                const bsl::shared_ptr<Event>&         eventSp,
                 const bsl::shared_ptr<bmqpi::DTSpan>& span);
 
     /// Invoked from the FSM thread as a handler to the user open queue
@@ -1539,17 +1562,29 @@ class BrokerSession BSLS_CPP11_FINAL {
     /// any case of failure.
     int start(const bsls::TimeInterval& timeout);
 
-    /// Start the broker session in a non-blocking mode.  Returns 0 on
-    /// success or non-zero on any case of failure.
-    int startAsync();
+    /// Start the broker session in a non-blocking mode.  If the optionally
+    /// specified `startCb` is not empty, it is invoked (via the terminal
+    /// session event, on the event delivery thread and never on the FSM
+    /// thread) upon completion of the start operation, unless a non-zero value
+    /// is returned.  That terminal event carries `startCb` and is therefore
+    /// consumed by it instead of being delivered to the event handler.
+    /// Returns 0 on success or non-zero on any case of failure.
+    int startAsync(const EventCallback& startCb = EventCallback());
 
     /// Initiate a stop of the broker session.  Return after the session is
     /// fully stopped.
     void stop();
 
     /// Initiate a stop of the broker session.  Return immediately after
-    /// starting the stop process.
-    void stopAsync();
+    /// starting the stop process.  If the optionally specified `stopCb` is not
+    /// empty, it is invoked (via the terminal DISCONNECTED session event, on
+    /// the event delivery thread and never on the FSM thread) upon completion
+    /// of the stop operation.  That event carries `stopCb`, so in EventHandler
+    /// mode it is consumed by the callback instead of being delivered to the
+    /// event handler; in `nextEvent` mode the event is also re-enqueued for
+    /// the application's event loop to pop.  `stopCb` is dropped if a stop is
+    /// already in progress.
+    void stopAsync(const EventCallback& stopCb = EventCallback());
 
     /// Return the next event.  If the event queue is empty, block until an
     /// event is available or until the specified `timeout` (relative)
