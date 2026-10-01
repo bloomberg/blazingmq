@@ -93,24 +93,10 @@ static const ChannelWatermarkType::Enum WAT_HIGH =
 static const ChannelWatermarkType::Enum WAT_LOW =
     ChannelWatermarkType::e_LOW_WATERMARK;
 
-// Adjust attempt interval depending on the platform
-#ifdef BSLS_PLATFORM_OS_SOLARIS
-static const int k_ATTEMPT_INTERVAL_MS = 300;
-#elif defined(                                                                \
-    __has_feature)  // Clang-supported method for checking sanitizers.
-static const int k_ATTEMPT_INTERVAL_MS =
-    (__has_feature(address_sanitizer) || __has_feature(memory_sanitizer) ||
-     __has_feature(thread_sanitizer) ||
-     __has_feature(undefined_behavior_sanitizer))
-        ? 400
-        : 1;
-#elif defined(__SANITIZE_ADDRESS__) || defined(__SANITIZE_MEMORY__) ||        \
-    defined(__SANITIZE_THREAD__) || defined(__SANITIZE_UNDEFINED__)
-// GCC-supported macros for checking ASAN, MSAN, TSAN and UBSAN.
+// NTC aborts a connect attempt still pending after the attempt interval,
+// yet the listener may already have accepted it, yielding a spurious
+// CHANNEL_UP.  Keep this generous so slow builds don't hit it.
 static const int k_ATTEMPT_INTERVAL_MS = 400;
-#else
-static const int k_ATTEMPT_INTERVAL_MS = 1;
-#endif
 
 // ========================
 // class Tester_ChannelInfo
