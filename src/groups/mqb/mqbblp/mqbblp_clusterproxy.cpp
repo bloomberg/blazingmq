@@ -613,9 +613,9 @@ void ClusterProxy::processEvent(const bmqp::Event&   event,
             dispatcher()
                 ->getDefaultEventSource()
                 ->getEvent<mqbevt::PushEvent>();
+        BSLS_ASSERT_SAFE(event.sharedBlob());
         bsl::shared_ptr<bdlbb::Blob> blobSp =
-            d_clusterData.blobSpPool().getObject();
-        *blobSp = *(event.blob());
+            bsl::const_pointer_cast<bdlbb::Blob>(event.sharedBlob());
         (*event_sp).setBlob(blobSp).setSource(this);
         dispatcher()->dispatchEvent(bslmf::MovableRefUtil::move(event_sp),
                                     this);
@@ -626,9 +626,9 @@ void ClusterProxy::processEvent(const bmqp::Event&   event,
             dispatcher()
                 ->getDefaultEventSource()
                 ->getEvent<mqbevt::AckEvent>();
+        BSLS_ASSERT_SAFE(event.sharedBlob());
         bsl::shared_ptr<bdlbb::Blob> blobSp =
-            d_clusterData.blobSpPool().getObject();
-        *blobSp = *(event.blob());
+            bsl::const_pointer_cast<bdlbb::Blob>(event.sharedBlob());
         (*event_sp).setBlob(blobSp).setSource(this);
         dispatcher()->dispatchEvent(bslmf::MovableRefUtil::move(event_sp),
                                     this);
