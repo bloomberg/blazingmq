@@ -139,8 +139,6 @@ const int k_CLIENT_CLOSE_WAIT = 20;
 // Time to wait incrementally (in seconds) for all clients and
 // proxies to be destroyed during stop sequence.
 
-const int k_BLOB_POOL_GROWTH_STRATEGY = 1024;
-
 int calculateInitialMissedHbCounter(const mqbcfg::TcpInterfaceConfig& config)
 {
     // Calculate the value with which 'ChannelInfo.d_missedHeartbeatCounter'
@@ -548,7 +546,7 @@ void TCPSessionFactory::read(ChannelInfo*       channelInfo,
 {
     // executed by one of the *IO* threads
 
-    const bsl::shared_ptr<bdlbb::Blob> readBlob = d_blobSpPool.getObject();
+    const bsl::shared_ptr<bdlbb::Blob> readBlob = d_blobSpPool_p->getObject();
 
     bdlbb::BlobUtil::append(readBlob.get(), source, offset, length);
 
@@ -1171,6 +1169,7 @@ TCPSessionFactory::TCPSessionFactory(
     const mqbcfg::TcpInterfaceConfig& config,
     bdlmt::EventScheduler*            scheduler,
     bdlbb::BlobBufferFactory*         blobBufferFactory,
+    bmqp::BlobPoolUtil::BlobSpPool*   blobSpPool,
     Authenticator*                    authenticator,
     Negotiator*                       negotiator,
     mqbstat::StatController*          statController,
@@ -1184,7 +1183,7 @@ TCPSessionFactory::TCPSessionFactory(
 , d_name("TCPSessionFactory '" + d_config_mp->name() + "'", allocator)
 , d_scheduler_p(scheduler)
 , d_blobBufferFactory_p(blobBufferFactory)
-, d_blobSpPool(k_BLOB_POOL_GROWTH_STRATEGY, allocator)
+, d_blobSpPool_p(blobSpPool)
 , d_authenticator_p(authenticator)
 , d_negotiator_p(negotiator)
 , d_statController_p(statController)
@@ -1211,6 +1210,7 @@ TCPSessionFactory::TCPSessionFactory(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(scheduler->clockType() ==
                      bsls::SystemClockType::e_MONOTONIC);
+    BSLS_ASSERT_SAFE(blobSpPool);
 
     // Thread name
     d_threadName = "bmqIO_" + d_config_mp->name().substr(0, 15 - 6);

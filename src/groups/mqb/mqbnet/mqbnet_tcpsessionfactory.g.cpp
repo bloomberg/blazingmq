@@ -26,6 +26,7 @@
 
 // BMQ
 #include <bmqio_testchannelfactory.h>
+#include <bmqp_blobpoolutil.h>
 #include <bmqp_event.h>
 
 // BDE
@@ -144,11 +145,14 @@ class MockChannel : public bmqio::Channel {
 
 class TCPSessionFactoryTest : public ::testing::Test {
   protected:
+    typedef bmqp::BlobPoolUtil::BlobSpPoolSp BlobSpPoolSp;
+
     bslma::Allocator*              d_allocator;
     mqbcfg::AppConfig              d_appConfig;
     mqbcfg::TcpInterfaceConfig     d_tcpConfig;
     bdlmt::EventScheduler          d_scheduler;
     bdlbb::PooledBlobBufferFactory d_blobBufferFactory;
+    BlobSpPoolSp                   d_blobSpPool_sp;
     MockAuthenticator              d_authenticator;
     MockNegotiator                 d_negotiator;
     mqbplug::PluginManager         d_pluginManager;
@@ -182,6 +186,8 @@ class TCPSessionFactoryTest : public ::testing::Test {
     , d_tcpConfig(d_allocator)
     , d_scheduler(bsls::SystemClockType::e_MONOTONIC, d_allocator)
     , d_blobBufferFactory(1024, d_allocator)
+    , d_blobSpPool_sp(bmqp::BlobPoolUtil::createBlobPool(&d_blobBufferFactory,
+                                                         d_allocator))
     , d_authenticator()
     , d_negotiator()
     , d_pluginManager(d_allocator)
@@ -194,6 +200,7 @@ class TCPSessionFactoryTest : public ::testing::Test {
     , d_tcpSessionFactory(d_tcpConfig,
                           &d_scheduler,
                           &d_blobBufferFactory,
+                          d_blobSpPool_sp.get(),
                           &d_authenticator,
                           &d_negotiator,
                           &d_statController,

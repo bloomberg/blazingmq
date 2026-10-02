@@ -81,11 +81,11 @@
 #include <bmqio_channel.h>
 #include <bmqio_channelfactory.h>
 #include <bmqio_status.h>
+#include <bmqp_blobpoolutil.h>
 #include <bmqu_sharedresource.h>
 
 // BDE
 #include <bdlbb_blob.h>
-#include <bdlcc_sharedobjectpool.h>
 #include <bdlmt_eventscheduler.h>
 #include <bsl_cstddef.h>
 #include <bsl_functional.h>
@@ -356,10 +356,8 @@ class TCPSessionFactory {
     /// BlobBuffer factory to use (passed to the ChannelFactory)
     bdlbb::BlobBufferFactory* d_blobBufferFactory_p;
 
-    bdlcc::SharedObjectPool<bdlbb::Blob,
-                            bdlcc::ObjectPoolFunctors::DefaultCreator,
-                            bdlcc::ObjectPoolFunctors::RemoveAll<bdlbb::Blob> >
-        d_blobSpPool;
+    /// Pool of blobs to read events into, held not owned
+    bmqp::BlobPoolUtil::BlobSpPool* d_blobSpPool_p;
 
     /// Authenticator to use for authentication
     Authenticator* d_authenticator_p;
@@ -606,12 +604,13 @@ class TCPSessionFactory {
     // CREATORS
 
     /// Create a new `TCPSessionFactory` configured with the specified
-    /// `config`, `scheduler` and `blobBufferFactory`, and using the
-    /// specified `negotiator` for session negotiation.  Use the specified
-    /// `allocator` for any memory allocation.
+    /// `config`, `scheduler`, `blobBufferFactory` and `blobSpPool`, and
+    /// using the specified `negotiator` for session negotiation.  Use the
+    /// specified `allocator` for any memory allocation.
     TCPSessionFactory(const mqbcfg::TcpInterfaceConfig& config,
                       bdlmt::EventScheduler*            scheduler,
                       bdlbb::BlobBufferFactory*         blobBufferFactory,
+                      bmqp::BlobPoolUtil::BlobSpPool*   blobSpPool,
                       Authenticator*                    authenticator,
                       Negotiator*                       negotiator,
                       mqbstat::StatController*          statController,
