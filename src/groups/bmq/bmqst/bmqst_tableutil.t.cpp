@@ -32,18 +32,17 @@ using namespace bsl;
 
 namespace {
 
-bsl::vector<bsl::string> stringVector(bsl::string_view s)
+/// @brief Append the space-separated tokens of `s` to `out`.
+/// @param[out] out  Vector to append tokens to.
+/// @param      s    Space-separated input.
+void stringVector(bsl::vector<bsl::string>* out, bsl::string_view s)
 {
-    bslma::Allocator*        alloc = bmqtst::TestHelperUtil::allocator();
-    bsl::vector<bsl::string> ret(alloc);
-    bdlb::Tokenizer          tokenizer(s, " ");
+    bdlb::Tokenizer tokenizer(s, " ");
     for (bdlb::TokenizerIterator iter = tokenizer.begin();
          iter != tokenizer.end();
          ++iter) {
-        ret.emplace_back(bsl::string(*iter, alloc));
+        out->emplace_back(*iter);
     }
-
-    return ret;
 }
 
 // ===========================
@@ -172,10 +171,21 @@ static void test1_usageExample()
 {
     bmqtst::TestHelper::printTestName("USAGE EXAMPLE");
 
-    TestTableInfoProvider tip(bmqtst::TestHelperUtil::allocator());
-    tip.addHeaderLevel(stringVector("a b c"));
-    tip.addRow(stringVector("1 2 3"));
-    tip.addRow(stringVector("4 5 6"));
+    bslma::Allocator* alloc = bmqtst::TestHelperUtil::allocator();
+
+    TestTableInfoProvider    tip(alloc);
+    bsl::vector<bsl::string> row(alloc);
+
+    stringVector(&row, "a b c");
+    tip.addHeaderLevel(row);
+
+    row.clear();
+    stringVector(&row, "1 2 3");
+    tip.addRow(row);
+
+    row.clear();
+    stringVector(&row, "4 5 6");
+    tip.addRow(row);
     bmqst::TableUtil::printTable(bsl::cout, tip);
 }
 
