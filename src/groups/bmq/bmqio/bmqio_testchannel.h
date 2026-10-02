@@ -295,7 +295,7 @@ class TestChannel : public Channel {
     void cancelRead() BSLS_KEYWORD_OVERRIDE;
     void close(const Status& status = Status()) BSLS_KEYWORD_OVERRIDE;
     int  execute(const ExecuteCb& cb) BSLS_KEYWORD_OVERRIDE;
-    bdlmt::SignalerConnection onClose(const CloseFn& cb) BSLS_KEYWORD_OVERRIDE;
+    void onClose(const CloseFn& cb) BSLS_KEYWORD_OVERRIDE;
     bdlmt::SignalerConnection
     onWatermark(const WatermarkFn& cb) BSLS_KEYWORD_OVERRIDE;
     bmqvt::PropertyBag& properties() BSLS_KEYWORD_OVERRIDE;

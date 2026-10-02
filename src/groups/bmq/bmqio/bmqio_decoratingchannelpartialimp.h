@@ -84,7 +84,7 @@ class DecoratingChannelPartialImp : public Channel {
     void cancelRead() BSLS_KEYWORD_OVERRIDE;
     void close(const Status& status = Status()) BSLS_KEYWORD_OVERRIDE;
     int  execute(const ExecuteCb& cb) BSLS_KEYWORD_OVERRIDE;
-    bdlmt::SignalerConnection onClose(const CloseFn& cb) BSLS_KEYWORD_OVERRIDE;
+    void onClose(const CloseFn& cb) BSLS_KEYWORD_OVERRIDE;
     bdlmt::SignalerConnection
          onWatermark(const WatermarkFn& cb) BSLS_KEYWORD_OVERRIDE;
     void setWriteQueueLowWatermark(int lowWatermark) BSLS_KEYWORD_OVERRIDE;
@@ -142,10 +142,9 @@ inline int DecoratingChannelPartialImp::execute(const ExecuteCb& cb)
     return d_base->execute(cb);
 }
 
-inline bdlmt::SignalerConnection
-DecoratingChannelPartialImp::onClose(const CloseFn& cb)
+inline void DecoratingChannelPartialImp::onClose(const CloseFn& cb)
 {
-    return d_base->onClose(cb);
+    d_base->onClose(cb);
 }
 
 inline bdlmt::SignalerConnection
