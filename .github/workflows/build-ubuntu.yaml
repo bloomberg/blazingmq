@@ -3,8 +3,10 @@ name: Build Ubuntu
 description: |
   This is a reusable workflow to build BlazingMQ on Ubuntu.
   Optionally run unit tests if the target is "all.t".
-  Given a ref and a target, this workflow will build the project and will save the build results both as artifact and in cache.
-  The cache key is generated based on the ref and the target, and is returned via workflow output.
+  Given a ref and a target, this workflow will build the project and optionally save the build results as an artifact.
+  The artifact key is generated based on the ref and the target, and is returned via workflow output.
+  Compilation is accelerated with ccache.  The ccache directory is restored from the most recent
+  cache for the same C++ standard, and saved only on pushes to main.
 
 on:
   workflow_call:
@@ -64,39 +66,24 @@ jobs:
           persist-credentials: false
 
       # Since input.ref can be a branch, tag or commit SHA,
-      # we need to get the commit SHA to use it in the cache key.
-      - name: Generate cache key from commit SHA
+      # we need to get the commit SHA to use it in the artifact key.
+      - name: Generate artifact key from commit SHA
         id: get_cache_key
         if: inputs.save_build_as_artifacts == true # Variable type is boolean, thus no quotes
-        # When restoring from cache fails, it searches for other keys to fall back to.
-        # If the given key is a prefix of another key, it will be used.
-        # E.g. "...-all" can fallback to "...-all.t"
-        # Thus do not put the target at the end of the key.
         run: |
           COMMIT_SHA=$(git rev-parse HEAD)
-          echo "cache_key=cache-${{ inputs.cxx_standard }}-${{ inputs.target }}-${COMMIT_SHA}" >> $GITHUB_OUTPUT
           echo "artifact_key=${{ inputs.name }}-${{ inputs.target }}-${COMMIT_SHA}" >> $GITHUB_OUTPUT
-      - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        id: build-cache-restore-step
-        if: inputs.save_build_as_artifacts == true # Variable type is boolean, thus no quotes
-        with:
-          path: |
-            build/blazingmq
-            deps
-          key: ${{ steps.get_cache_key.outputs.cache_key }}
 
       # The following steps restore cached deps
       # If the cache is not hit, it will build and install the dependencies
       # If the cache is hit, building deps is skipped, only make install is run
       - uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        if: steps.build-cache-restore-step.outputs.cache-hit != 'true' # Variable type is string, thus using quotes
         with:
           path: |
             deps
             /opt/bb
           key: ${{ needs.get_dependencies.outputs.cache_key }}
       - name: Set up dependencies
-        if: steps.build-cache-restore-step.outputs.cache-hit != 'true' # Variable type is string, thus using quotes
         run: |
           sudo apt-get update
           sudo apt-get install -qy build-essential \
@@ -106,26 +93,61 @@ jobs:
             python3-pip \
             cmake \
             ninja-build \
+            ccache \
             pkg-config \
             bison \
             libfl-dev \
             libbenchmark-dev \
             libz-dev
 
+      # The ccache directory lives outside the workspace so that the "*.o"
+      # clean-up below cannot touch it.
+      - name: Set up ccache
+        if: inputs.target != '' # Variable type is string, thus using quotes
+        run: |
+          {
+            echo "CCACHE_DIR=${RUNNER_TEMP}/ccache"
+            echo "CCACHE_BASEDIR=${GITHUB_WORKSPACE}"
+            echo "CCACHE_MAXSIZE=2G"
+            echo "CMAKE_C_COMPILER_LAUNCHER=ccache"
+            echo "CMAKE_CXX_COMPILER_LAUNCHER=ccache"
+          } >> "$GITHUB_ENV"
+      - name: Restore ccache
+        if: inputs.target != '' # Variable type is string, thus using quotes
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/ccache
+          key: ccache-${{ runner.os }}-${{ runner.arch }}-${{ inputs.cxx_standard }}-${{ inputs.target }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            ccache-${{ runner.os }}-${{ runner.arch }}-${{ inputs.cxx_standard }}-${{ inputs.target }}-
+            ccache-${{ runner.os }}-${{ runner.arch }}-${{ inputs.cxx_standard }}-
+
       # Build BlazingMQ
       - name: Configure BlazingMQ
-        if: steps.build-cache-restore-step.outputs.cache-hit != 'true' # Variable type is string, thus using quotes
         run: cmake --preset gh-build-ubuntu-latest-${{ inputs.cxx_standard }} -S .
 
       - name: Build BlazingMQ
-        if: steps.build-cache-restore-step.outputs.cache-hit != 'true' && inputs.target != '' # Variable type is string, thus using quotes
+        if: inputs.target != '' # Variable type is string, thus using quotes
         run: |
+          ccache --zero-stats
+          BUILD_START=$(date +%s)
           echo "::add-matcher::.github/workflows/problem-matchers/cpp.json"
           cmake --build --preset gh-build-ubuntu-latest-${{ inputs.cxx_standard }} --target ${{ inputs.target }}
           echo "::remove-matcher owner=cpp"
+          ccache --show-stats --verbose
+          # Cache hits refresh an entry's mtime, so this drops only entries
+          # unused by this build and keeps the saved cache small.
+          ccache --evict-older-than "$(( $(date +%s) - BUILD_START + 60 ))s"
+          ccache --show-stats
 
-      - name: Clean-up build directories before caching
-        if: steps.build-cache-restore-step.outputs.cache-hit != 'true' # Variable type is string, thus using quotes
+      - name: Save ccache
+        if: inputs.target != '' && github.event_name == 'push' && github.ref == 'refs/heads/main' # Variable type is string, thus using quotes
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ runner.temp }}/ccache
+          key: ccache-${{ runner.os }}-${{ runner.arch }}-${{ inputs.cxx_standard }}-${{ inputs.target }}-${{ github.run_id }}-${{ github.run_attempt }}
+
+      - name: Clean-up build directories before upload
         run: |
           find . -name "*.o" -type f -delete
           find . -name "*.a" -type f -delete
@@ -150,14 +172,3 @@ jobs:
             deps
           name: ${{ steps.get_cache_key.outputs.artifact_key }}
           retention-days: 1
-
-      - name: Build Cache Save
-        # Type of "save_build_as_artifacts" variable is boolean, thus no quotes
-        # Type of "cache-hit" variable is string, thus using quotes
-        if: inputs.save_build_as_artifacts == true && steps.build-cache-restore-step.outputs.cache-hit != 'true'
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: |
-            build/blazingmq
-            deps
-          key: ${{ steps.get_cache_key.outputs.cache_key }}
