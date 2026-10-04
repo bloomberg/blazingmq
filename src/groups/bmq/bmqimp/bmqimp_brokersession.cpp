@@ -1677,7 +1677,8 @@ void BrokerSession::QueueFsm::handleRequestWriteError(
     case QueueState::e_OPENING_OPN:
     case QueueState::e_OPENING_CFG:
     case QueueState::e_PENDING:
-    case QueueState::e_CLOSED: {
+    case QueueState::e_CLOSED:
+    default: {
         // OPENING_OPN and OPENING_CFG are unreachable: initial opens use
         // buffered requests, so write errors are swallowed.
         BSLS_ASSERT_SAFE(false && "Unexpected Queue state for write error");
