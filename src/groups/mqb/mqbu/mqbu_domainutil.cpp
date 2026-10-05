@@ -18,20 +18,27 @@
 namespace BloombergLP {
 namespace mqbu {
 
-bool DomainUtil::isValidDomain(bsl::string_view domain)
+namespace {
+
+bool isAlnumOrDash(char ch)
 {
-    if (domain.empty()) {
+    return (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') ||
+           (ch >= '0' && ch <= '9') || ch == '-';
+}
+
+bool isValidName(bsl::string_view name)
+{
+    if (name.empty()) {
         return false;
     }
 
-    for (size_t pos = 0; pos < domain.length(); ++pos) {
-        const char ch = domain[pos];
-        if ((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z') ||
-            (ch >= '0' && ch <= '9') || ch == '-' || ch == '_') {
+    for (size_t pos = 0; pos < name.length(); ++pos) {
+        const char ch = name[pos];
+        if (isAlnumOrDash(ch) || ch == '_') {
             continue;
         }
         if (ch == '.') {
-            if (pos > 0 && domain[pos - 1] == '.') {
+            if (pos > 0 && name[pos - 1] == '.') {
                 return false;
             }
             continue;
@@ -40,6 +47,35 @@ bool DomainUtil::isValidDomain(bsl::string_view domain)
     }
 
     return true;
+}
+
+bool isValidTier(bsl::string_view tier)
+{
+    if (tier.empty()) {
+        return false;
+    }
+
+    for (size_t pos = 0; pos < tier.length(); ++pos) {
+        if (!isAlnumOrDash(tier[pos])) {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+}  // close unnamed namespace
+
+bool DomainUtil::isValidDomain(bsl::string_view domain)
+{
+    const size_t tierPos = domain.find(".~");
+    if (tierPos == bsl::string_view::npos) {
+        return isValidName(domain);
+    }
+
+    const bsl::string_view name = domain.substr(0, tierPos);
+    return isValidName(name) && name[name.length() - 1] != '.' &&
+           isValidTier(domain.substr(tierPos + 2));
 }
 
 }  // close package namespace
