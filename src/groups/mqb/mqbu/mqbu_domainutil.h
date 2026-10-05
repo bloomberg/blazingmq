@@ -36,9 +36,13 @@ namespace mqbu {
 
 /// Provide validation for broker domain names.
 struct DomainUtil {
-    /// Return `true` if the specified `domain` is non-empty, contains only
-    /// ASCII letters, digits, dashes, underscores, and dots, and has no
-    /// consecutive dots.
+    /// Return `true` if the specified `domain` is a valid, optionally tiered,
+    /// domain name of the form `<name>[.~<tier>]` (i.e., as returned by
+    /// `bmqt::Uri::qualifiedDomain()`), and `false` otherwise.  `<name>`
+    /// must be non-empty, contain only ASCII letters, digits, dashes,
+    /// underscores, and dots, and have no consecutive dots (including with
+    /// the `.` introducing the tier).  `<tier>` must be non-empty and
+    /// contain only ASCII letters, digits, and dashes.
     static bool isValidDomain(bsl::string_view domain);
 };
 

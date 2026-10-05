@@ -153,6 +153,15 @@ const Test k_TESTS[] = {
      "{\"domains\": {\"domain\": {\"name\": \"foo\", \"command\": {\"info\""
      ": {}}}}}"},
     {__LINE__,
+     "domain-specific information for a tiered domain",
+     "DOMAINS DOMAIN foo.~dv INFOS",
+     "{\"domains\": {\"domain\": {\"name\": \"foo.~dv\", \"command\": "
+     "{\"info\": {}}}}}"},
+    {__LINE__,
+     "DOMAINS DOMAIN rejects a malformed tier",
+     "DOMAINS DOMAIN foo.~../secret INFOS",
+     0},
+    {__LINE__,
      "DOMAINS DOMAIN <name> QUEUE command requires queue name",
      "DOMAINS DOMAIN foo QUEUE",
      0},
