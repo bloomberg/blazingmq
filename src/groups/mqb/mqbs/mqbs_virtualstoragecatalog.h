@@ -390,6 +390,12 @@ class VirtualStorageCatalog BSLS_KEYWORD_FINAL {
     const mqbi::AppMessage&
     appMessageView(const mqbi::DataStreamMessage& dataStreamMessage,
                    unsigned int                   ordinal) const;
+
+    /// Return `true` if the specified `appMessage` accounts for a reference
+    /// in the refCount of its message, and `false` otherwise.  A proxy
+    /// counts only the Apps a message was pushed to, while other nodes count
+    /// every App with a pending state.
+    bool holdsReference(const mqbi::AppMessage& appMessage) const;
 };
 
 // ============================================================================
@@ -467,6 +473,12 @@ inline const mqbi::AppMessage& VirtualStorageCatalog::defaultAppMessage() const
 inline mqbi::Queue* VirtualStorageCatalog::queue() const
 {
     return d_isProxy ? 0 : d_queue_p;
+}
+
+inline bool
+VirtualStorageCatalog::holdsReference(const mqbi::AppMessage& appMessage) const
+{
+    return d_isProxy ? appMessage.isPushing() : appMessage.isPending();
 }
 
 }  // close package namespace
