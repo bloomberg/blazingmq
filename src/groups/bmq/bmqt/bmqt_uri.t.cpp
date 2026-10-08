@@ -64,7 +64,7 @@ static void test1_breathingTest()
 //
 // Testing:
 //   class Uri
-//   int Uri::parseUri
+//   int Uri::parse
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("BREATHING TEST");
@@ -96,6 +96,50 @@ static void test1_breathingTest()
 
         BMQTST_ASSERT_EQ(obj4.isValid(), true);
         BMQTST_ASSERT_EQ(obj3, obj4);
+    }
+
+    PV("Test explicit parse");
+    {
+        const char  k_URI[] = "bmq://my.domain/queue-foo-bar?id=my.app";
+        bmqt::Uri   obj(bmqtst::TestHelperUtil::allocator());
+        bsl::string parseError(bmqtst::TestHelperUtil::allocator());
+
+        rc = bmqt::Uri::parse(&obj, k_URI, &parseError);
+
+        BMQTST_ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT_EQ(parseError, "");
+        BMQTST_ASSERT_EQ(obj.isValid(), true);
+        BMQTST_ASSERT_EQ(obj.scheme(), "bmq");
+        BMQTST_ASSERT_EQ(obj.domain(), "my.domain");
+        BMQTST_ASSERT_EQ(obj.queue(), "queue-foo-bar");
+        BMQTST_ASSERT_EQ(obj.id(), "my.app");
+        BMQTST_ASSERT_EQ(obj.canonical(), "bmq://my.domain/queue-foo-bar");
+    }
+
+    PV("Test explicit parse failures");
+    {
+        const char k_VALID_URI[] = "bmq://my.domain/queue-foo-bar";
+
+        bmqt::Uri   obj(k_VALID_URI, bmqtst::TestHelperUtil::allocator());
+        bsl::string parseError(bmqtst::TestHelperUtil::allocator());
+
+        BMQTST_ASSERT_EQ(obj.isValid(), true);
+
+        rc = bmqt::Uri::parse(&obj, "foobar", &parseError);
+
+        BMQTST_ASSERT_EQ(rc,
+                         bmqt::UriParser::UriParseResult::e_INVALID_SCHEME);
+        BMQTST_ASSERT_EQ(obj.isValid(), false);
+        BMQTST_ASSERT(!parseError.empty());
+
+        bmqt::Uri objNoError(k_VALID_URI, bmqtst::TestHelperUtil::allocator());
+        BMQTST_ASSERT_EQ(objNoError.isValid(), true);
+
+        rc = bmqt::Uri::parse(&objNoError, "foobar", 0);
+
+        BMQTST_ASSERT_EQ(rc,
+                         bmqt::UriParser::UriParseResult::e_INVALID_SCHEME);
+        BMQTST_ASSERT_EQ(objNoError.isValid(), false);
     }
 
     PV("Test basic parsing");
