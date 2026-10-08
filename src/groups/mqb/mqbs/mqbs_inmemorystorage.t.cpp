@@ -44,6 +44,7 @@
 #include <ball_severity.h>
 #include <bdlbb_blob.h>
 #include <bdlbb_blobutil.h>
+#include <bdlbb_pooledblobbufferfactory.h>
 #include <bsl_algorithm.h>
 #include <bsl_ostream.h>
 #include <bsl_string.h>
@@ -87,6 +88,7 @@ using namespace bsl;
 // - capacityMeter_limitMessages
 //   capacityMeter_limitBytes
 // - garbageCollect
+// - proxyRemoveVirtualStorage_refCountOfUnpushedApp
 // - addQueueOpRecordHandle
 //-----------------------------------------------------------------------------
 
@@ -1432,6 +1434,74 @@ BMQTST_TEST(garbageCollect)
     // No messages left
     BMQTST_ASSERT_EQ(storage.numMessages(mqbu::StorageKey::k_NULL_KEY), 0);
     BMQTST_ASSERT_EQ(storage.numBytes(mqbu::StorageKey::k_NULL_KEY), 0);
+}
+
+BMQTST_TEST(proxyRemoveVirtualStorage_refCountOfUnpushedApp)
+// ------------------------------------------------------------------------
+// Proxy has 3 Apps.  A PUSH arrives for app1 and app2 only (refCount 2),
+// as done by 'RelayQueueEngine::storePushIfProxy'.  Removing app3's
+// virtual storage must not release a reference app3 never held.
+//
+// Every App slot of a new 'DataStreamMessage' starts as 'e_PUT', which
+// counts as pending, so app3's untouched slot looks like it holds a ref.
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName(
+        "proxyRemoveVirtualStorage_refCountOfUnpushedApp");
+
+    bmqu::MemOutStream errDescription(bmqtst::TestHelperUtil::allocator());
+
+    Tester tester(k_PROXY_PARTITION_ID, bmqtst::TestHelperUtil::allocator());
+    tester.configure(k_INT64_MAX, k_INT64_MAX);
+
+    mqbs::ReplicatedStorage& storage = tester.storage();
+
+    storage.addVirtualStorage(errDescription, k_APP_ID1, k_APP_KEY1);
+    storage.addVirtualStorage(errDescription, k_APP_ID2, k_APP_KEY2);
+    storage.addVirtualStorage(errDescription, k_APP_ID3, k_APP_KEY3);
+
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    const bmqt::MessageGUID            guid = generateRandomGUID();
+    const int                          data = 0;
+    const bsl::shared_ptr<bdlbb::Blob> appData(
+        new (*bmqtst::TestHelperUtil::allocator())
+            bdlbb::Blob(&bufferFactory, bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::BlobUtil::append(appData.get(),
+                            reinterpret_cast<const char*>(&data),
+                            static_cast<int>(sizeof(int)));
+
+    mqbi::StorageMessageAttributes attributes(
+        0,
+        2,  // refCount: app1 and app2
+        static_cast<unsigned int>(appData->length()),
+        bmqp::MessagePropertiesInfo::makeNoSchema(),
+        bmqt::CompressionAlgorithmType::e_NONE);
+
+    mqbi::DataStreamMessage* dataStreamMessage = 0;
+    BMQTST_ASSERT_EQ(storage.put(&attributes,
+                                 guid,
+                                 appData,
+                                 bsl::shared_ptr<bdlbb::Blob>(),
+                                 &dataStreamMessage),
+                     mqbi::StorageResult::e_SUCCESS);
+    BMQTST_ASSERT(dataStreamMessage);
+
+    // Ordinals follow 'addVirtualStorage' order: app1 is 0, app2 is 1.
+    // app3's slot (ordinal 2) stays 'e_PUT'.
+    dataStreamMessage->app(0).setPushState();
+    dataStreamMessage->app(1).setPushState();
+
+    // app3 never received the PUSH; its last reader goes away.
+    BMQTST_ASSERT(storage.removeVirtualStorage(k_APP_KEY3, false));
+
+    // app2 still holds the message, so app1's CONFIRM must not reach zero.
+    BMQTST_ASSERT_EQ(storage.confirm(guid, k_APP_KEY1, 0),
+                     mqbi::StorageResult::e_NON_ZERO_REFERENCES);
+    BMQTST_ASSERT_EQ(storage.confirm(guid, k_APP_KEY2, 0),
+                     mqbi::StorageResult::e_ZERO_REFERENCES);
 }
 
 BMQTST_TEST_F(Test, addQueueOpRecordHandle)
