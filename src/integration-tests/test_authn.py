@@ -782,6 +782,29 @@ def test_custom_anonymous_without_credential_fails_startup(
     check_fail_to_start(single_node)
 
 
+@start_cluster(False)
+@tweak.broker.app_config.authentication(
+    {
+        "credentialProvider": {
+            "name": "NonExistentCredentialProvider",
+            "settings": [],
+        },
+    }
+)
+def test_unknown_credential_provider_fails_startup(
+    single_node: Cluster,
+    domain_urls: tc.DomainUrls,  # pylint: disable=unused-argument
+) -> None:
+    """
+    Test that broker fails at startup when the configured credential provider
+    name does not match any available plugin.
+    """
+    check_fail_to_start(single_node)
+    assert single_node.nodes()[0].outputs_regex(
+        "CredentialProvider plugin 'NonExistentCredentialProvider' not found"
+    )
+
+
 # ==============================================================================
 # TestAuthenticator Tests
 # ==============================================================================
