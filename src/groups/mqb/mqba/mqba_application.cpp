@@ -379,6 +379,7 @@ int Application::start(bsl::ostream& errorDescription)
     d_transportManager_mp.load(new (*d_allocator_p) mqbnet::TransportManager(
                                    d_scheduler_p,
                                    &d_bufferFactory,
+                                   &d_blobSpPool,
                                    authenticatorMp,
                                    negotiatorMp,
                                    d_statController_mp.get(),
