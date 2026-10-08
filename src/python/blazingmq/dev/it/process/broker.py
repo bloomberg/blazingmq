@@ -134,9 +134,12 @@ class Broker(blazingmq.dev.it.process.bmqproc.BMQProcess):
         """
 
         with internal_use(self):
-            seen = wait_until(lambda: self._started_successfully, START_TIMEOUT)
+            wait_until(
+                lambda: self._started_successfully or not self.is_alive(),
+                START_TIMEOUT,
+            )
             self.raise_if_exited_in_error()
-            if not seen:
+            if not self._started_successfully:
                 raise RuntimeError(f"Failed to start broker on {self.name}: timeout")
 
         with (self._cwd / "bmqbrkr.pid").open("r") as file:
