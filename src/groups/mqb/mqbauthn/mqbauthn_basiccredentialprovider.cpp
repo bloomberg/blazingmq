@@ -110,6 +110,12 @@ BasicCredentialProvider::~BasicCredentialProvider()
                     "stop() must be called before destroying this object");
 }
 
+// ACCESSORS
+bsl::string_view BasicCredentialProvider::name() const
+{
+    return k_NAME;
+}
+
 // MANIPULATORS
 mqbplug::CredentialProvider::CredentialCb BasicCredentialProvider::load()
 {
