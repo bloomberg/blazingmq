@@ -97,6 +97,67 @@ jobs:
 
           echo "✅ All .mem files are sorted."
 
+  xsd_schema_check:
+    runs-on: ubuntu-slim
+    name: XSD Schema Check
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Install xmllint
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libxml2-utils
+
+      - name: Validate XSD schemas with xmllint
+        run: |
+          #!/usr/bin/env bash
+          set -euo pipefail
+
+          echo "Validating all .xsd files under src/ with xmllint..."
+
+          # Find all XSD schemas tracked in the source tree.
+          files=$(find src -type f -name "*.xsd" | sort)
+
+          if [ -z "$files" ]; then
+            echo "No .xsd files found under src/."
+            exit 0
+          fi
+
+          failed=0
+
+          for f in $files; do
+            echo "→ $f"
+
+            # 1. Well-formedness: the file must be valid XML.
+            if ! xmllint --noout "$f"; then
+              echo "❌ Not well-formed XML: $f"
+              failed=1
+              continue
+            fi
+
+            # 2. Schema validity: compile the file as an XML Schema. Loading it
+            #    via --schema forces libxml2 to compile the schema, surfacing
+            #    structural XSD errors (unknown types, dangling refs, etc.). The
+            #    file is passed as its own instance document only because
+            #    xmllint requires one; the instance result is irrelevant, so we
+            #    key on schema *compilation* failures alone.
+            out=$(xmllint --noout --schema "$f" "$f" 2>&1 || true)
+            if echo "$out" | grep -Eq "parser error|failed to compile"; then
+              echo "❌ Invalid XML Schema: $f"
+              echo "$out" | grep -E "parser error|failed to compile" || true
+              failed=1
+            fi
+          done
+
+          if [ "$failed" -ne 0 ]; then
+            echo
+            echo "Some XSD schemas failed validation."
+            exit 1
+          fi
+
+          echo "✅ All XSD schemas are well-formed and valid."
+
   cpp_formatting_check:
     name: C++ Formatting Check
     runs-on: ubuntu-26.04

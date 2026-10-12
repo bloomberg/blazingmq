@@ -1,137 +1,139 @@
 <?xml version='1.0' encoding='UTF-8'?>
-<xs:schema xmlns:xs='http://www.w3.org/2001/XMLSchema'
-           xmlns:bdem='http://bloomberg.com/schemas/bdem'
-           bdem:package='bmqstm'>
+<schema xmlns='http://www.w3.org/2001/XMLSchema'
+        xmlns:bdem='http://bloomberg.com/schemas/bdem'
+        xmlns:tns='http://bloomberg.com/schemas/bmqstm'
+        targetNamespace='http://bloomberg.com/schemas/bmqstm'
+        bdem:package='bmqstm'>
 
-  <xs:element name='statContext'     type='StatContextUpdate'/>
-  <xs:element name='statContextList' type='StatContextUpdateList'/>
+  <element name='statContext'     type='tns:StatContextUpdate'/>
+  <element name='statContextList' type='tns:StatContextUpdateList'/>
 
-  <xs:complexType name='StatContextUpdate'>
-    <xs:annotation>
-      <xs:documentation>
+  <complexType name='StatContextUpdate'>
+    <annotation>
+      <documentation>
         This type represents an externalizable 'StatContext', having an integer
         'id' distinct from all sibling contexts, a set of 'flags' denoting if
         this is a new or deleted context, an optional 'configuration' that
         describes the context structure that is excluded if redundant, a set of
         'directValues' and 'expiredValues', and a set of 'subcontexts'.
-      </xs:documentation>
-    </xs:annotation>
-    <xs:sequence>
-      <xs:element name='id'            type='xs:int'/>
-      <xs:element name='flags'         type='xs:unsignedInt'/>
-      <xs:element name='timeStamp'     type='xs:long'/>
-      <xs:element name='configuration' type='StatContextConfiguration'
-                                       minOccurs='0'/>
-      <xs:element name='directValues'  type='StatValueUpdate'
-                                       minOccurs='0'
-                                       maxOccurs='unbounded'/>
-      <xs:element name='expiredValues'  type='StatValueUpdate'
-                                        minOccurs='0'
-                                        maxOccurs='unbounded'/>
-      <xs:element name='subcontexts' type='StatContextUpdate'
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='id'            type='int'/>
+      <element name='flags'         type='unsignedInt'/>
+      <element name='timeStamp'     type='long'/>
+      <element name='configuration' type='tns:StatContextConfiguration'
+                                    minOccurs='0'/>
+      <element name='directValues'  type='tns:StatValueUpdate'
+                                    minOccurs='0'
+                                    maxOccurs='unbounded'/>
+      <element name='expiredValues'  type='tns:StatValueUpdate'
                                      minOccurs='0'
                                      maxOccurs='unbounded'/>
-    </xs:sequence>
-  </xs:complexType>
-
-  <xs:complexType name='StatContextUpdateList'>
-    <xs:annotation>
-      <xs:documentation>
-        This type represents a sequence of 'StatContext' objects.
-      </xs:documentation>
-    </xs:annotation>
-    <xs:sequence>
-      <xs:element name='contexts' type='StatContextUpdate'
+      <element name='subcontexts' type='tns:StatContextUpdate'
                                   minOccurs='0'
                                   maxOccurs='unbounded'/>
-    </xs:sequence>
-  </xs:complexType>
+    </sequence>
+  </complexType>
 
-  <xs:simpleType name='StatContextUpdateFlags'>
-    <xs:annotation>
-      <xs:documentation>
+  <complexType name='StatContextUpdateList'>
+    <annotation>
+      <documentation>
+        This type represents a sequence of 'StatContext' objects.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='contexts' type='tns:StatContextUpdate'
+                               minOccurs='0'
+                               maxOccurs='unbounded'/>
+    </sequence>
+  </complexType>
+
+  <simpleType name='StatContextUpdateFlags'>
+    <annotation>
+      <documentation>
         This type enumerates the flags that can be set on a 'StatContext'.  A
         context having the 'CONTEXT_CREATED' flag indicates that the context
         was just created, and the 'CONTEXT_DELETED' flag indicates that it was
         deleted.
-      </xs:documentation>
-    </xs:annotation>
-    <xs:restriction base='xs:string'>
-      <xs:enumeration value='E_CONTEXT_CREATED' bdem:id='0'/>
-      <xs:enumeration value='E_CONTEXT_DELETED' bdem:id='1'/>
-    </xs:restriction>
-  </xs:simpleType>
+      </documentation>
+    </annotation>
+    <restriction base='string'>
+      <enumeration value='E_CONTEXT_CREATED' bdem:id='0'/>
+      <enumeration value='E_CONTEXT_DELETED' bdem:id='1'/>
+    </restriction>
+  </simpleType>
 
-  <xs:complexType name='StatContextConfiguration'>
-    <xs:annotation>
-      <xs:documentation>
+  <complexType name='StatContextConfiguration'>
+    <annotation>
+      <documentation>
         This type represents the configuration of a stat context, having some
         configuration 'flags', a user supplied 'userId' that may either be a
         long integer 'id' or a string 'name', and a set of 'values' to track.
         Note that 'values' may be omitted if this configuration is for a
         subcontext of a table context.
-      </xs:documentation>
-    </xs:annotation>
-    <xs:sequence>
-      <xs:element name='flags'         type='xs:unsignedInt'/>
-      <xs:choice>
-        <xs:element name='id'   type='xs:long'/>
-        <xs:element name='name' type='xs:string'/>
-      </xs:choice>
-      <xs:element name='values' type='StatValueDefinition'
-                                minOccurs='0'
-                                maxOccurs='unbounded'/>
-    </xs:sequence>
-  </xs:complexType>
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='flags'         type='unsignedInt'/>
+      <choice>
+        <element name='id'   type='long'/>
+        <element name='name' type='string'/>
+      </choice>
+      <element name='values' type='tns:StatValueDefinition'
+                             minOccurs='0'
+                             maxOccurs='unbounded'/>
+    </sequence>
+  </complexType>
 
-  <xs:simpleType name='StatContextConfigurationFlags'>
-    <xs:annotation>
-      <xs:documentation>
+  <simpleType name='StatContextConfigurationFlags'>
+    <annotation>
+      <documentation>
         This type enumerates the flags that can be set on a
         'StatContextConfiguration'.  A configuration having the 'IS_TABLE' flag
         denotes that it is a table context, and 'STORE_EXPIRED_VALUES'
         indicates it should remember the values of expired subcontexts.
-      </xs:documentation>
-    </xs:annotation>
-    <xs:restriction base='xs:string'>
-      <xs:enumeration value='E_IS_TABLE'             bdem:id='0'/>
-      <xs:enumeration value='E_STORE_EXPIRED_VALUES' bdem:id='1'/>
-    </xs:restriction>
-  </xs:simpleType>
+      </documentation>
+    </annotation>
+    <restriction base='string'>
+      <enumeration value='E_IS_TABLE'             bdem:id='0'/>
+      <enumeration value='E_STORE_EXPIRED_VALUES' bdem:id='1'/>
+    </restriction>
+  </simpleType>
 
-  <xs:complexType name='StatValueDefinition'>
-    <xs:annotation>
-      <xs:documentation>
+  <complexType name='StatValueDefinition'>
+    <annotation>
+      <documentation>
         This type represents the definition of a stat collecting value, having
         a 'name', a 'type' and an array of 'historySizes' indicating the number
         of snapshots and levels of snapshots to keep.
-      </xs:documentation>
-    </xs:annotation>
-    <xs:sequence>
-      <xs:element name='name'         type='xs:string'/>
-      <xs:element name='type'         type='StatValueType'/>
-      <xs:element name='historySizes' type='xs:unsignedInt'
-                                      minOccurs='0'
-                                      maxOccurs='unbounded'/>
-    </xs:sequence>
-  </xs:complexType>
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='name'         type='string'/>
+      <element name='type'         type='tns:StatValueType'/>
+      <element name='historySizes' type='unsignedInt'
+                                   minOccurs='0'
+                                   maxOccurs='unbounded'/>
+    </sequence>
+  </complexType>
 
-  <xs:simpleType name='StatValueType'>
-    <xs:annotation>
-      <xs:documentation>
+  <simpleType name='StatValueType'>
+    <annotation>
+      <documentation>
         This type enumerates the different types of stat values, specifically
         'CONTINUOUS' and 'DISCRETE' values.
-      </xs:documentation>
-    </xs:annotation>
-    <xs:restriction base='xs:string'>
-      <xs:enumeration value='E_CONTINUOUS' bdem:id='0'/>
-      <xs:enumeration value='E_DISCRETE'   bdem:id='1'/>
-    </xs:restriction>
-  </xs:simpleType>
+      </documentation>
+    </annotation>
+    <restriction base='string'>
+      <enumeration value='E_CONTINUOUS' bdem:id='0'/>
+      <enumeration value='E_DISCRETE'   bdem:id='1'/>
+    </restriction>
+  </simpleType>
 
-  <xs:complexType name='StatValueUpdate'>
-    <xs:annotation>
-      <xs:documentation>
+  <complexType name='StatValueUpdate'>
+    <annotation>
+      <documentation>
         This type represents changes made to a particular state value.  The
         bits of the 'fieldMask' indicate which actual fields in a stat value
         the elements of 'fields' are updating.  For instance, if the value in
@@ -139,35 +141,35 @@
         'fields' should contain two elements, with 'fields[0]' being the update
         to the 'min' value, and 'fields[1]' being the update to the 'max'
         value.
-      </xs:documentation>
-    </xs:annotation>
-    <xs:sequence>
-      <xs:element name='fieldMask' type='xs:unsignedInt'/>
-      <xs:element name='fields'    type='xs:long'
-                                   minOccurs='0'
-                                   maxOccurs='unbounded'/>
-    </xs:sequence>
-  </xs:complexType>
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='fieldMask' type='unsignedInt'/>
+      <element name='fields'    type='long'
+                                minOccurs='0'
+                                maxOccurs='unbounded'/>
+    </sequence>
+  </complexType>
 
-  <xs:simpleType name='StatValueFields'>
-    <xs:annotation>
-      <xs:documentation>
+  <simpleType name='StatValueFields'>
+    <annotation>
+      <documentation>
         This type enumerates the different bit indices corresponding to fields
         in a stat value.
-      </xs:documentation>
-    </xs:annotation>
-    <xs:restriction base='xs:string'>
-      <xs:enumeration value='E_ABSOLUTE_MIN' bdem:id='0'/>
-      <xs:enumeration value='E_ABSOLUTE_MAX' bdem:id='1'/>
-      <xs:enumeration value='E_MIN'          bdem:id='2'/>
-      <xs:enumeration value='E_MAX'          bdem:id='3'/>
-      <xs:enumeration value='E_EVENTS'       bdem:id='4'/>
-      <xs:enumeration value='E_SUM'          bdem:id='5'/>
-      <xs:enumeration value='E_VALUE'        bdem:id='6'/>
-      <xs:enumeration value='E_INCREMENTS'   bdem:id='7'/>
-      <xs:enumeration value='E_DECREMENTS'   bdem:id='8'/>
-    </xs:restriction>
-  </xs:simpleType>
+      </documentation>
+    </annotation>
+    <restriction base='string'>
+      <enumeration value='E_ABSOLUTE_MIN' bdem:id='0'/>
+      <enumeration value='E_ABSOLUTE_MAX' bdem:id='1'/>
+      <enumeration value='E_MIN'          bdem:id='2'/>
+      <enumeration value='E_MAX'          bdem:id='3'/>
+      <enumeration value='E_EVENTS'       bdem:id='4'/>
+      <enumeration value='E_SUM'          bdem:id='5'/>
+      <enumeration value='E_VALUE'        bdem:id='6'/>
+      <enumeration value='E_INCREMENTS'   bdem:id='7'/>
+      <enumeration value='E_DECREMENTS'   bdem:id='8'/>
+    </restriction>
+  </simpleType>
 
-</xs:schema>
+</schema>
 <!-- vim:set syntax=xml tabstop=2 shiftwidth=2 expandtab: -->
