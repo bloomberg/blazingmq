@@ -856,8 +856,6 @@ inline void MultiQueueThreadPool<TYPE>::stop()
 {
     BSLS_ASSERT_SAFE(isStarted() && "MQTP has not been started");
 
-    d_started = false;
-
     if (d_config.d_eventScheduler_p) {
         d_config.d_eventScheduler_p->cancelEventAndWait(
             &d_alarmMonitorEventHandle);
@@ -909,6 +907,8 @@ inline void MultiQueueThreadPool<TYPE>::stop()
 
         d_allocator_p->deleteObject(info.d_queue_p);
     }
+
+    d_started = false;
 
     d_queues.clear();
 }
