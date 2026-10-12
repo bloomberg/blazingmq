@@ -844,13 +844,14 @@ int Application::start(const bsls::TimeInterval& timeout)
     return d_brokerSession.start(timeout);
 }
 
-int Application::startAsync(const bsls::TimeInterval& timeout)
+int Application::startAsync(const bsls::TimeInterval&           timeout,
+                            const BrokerSession::EventCallback& startCb)
 {
     BALL_LOG_INFO << id()
                   << "::: START (ASYNC) [state: " << d_brokerSession.state()
                   << "] :::";
 
-    int rc = d_brokerSession.startAsync();
+    int rc = d_brokerSession.startAsync(startCb);
     if (rc != 0) {
         BALL_LOG_ERROR << id() << "Failed to start brokerSession [rc: " << rc
                        << "]";
@@ -878,7 +879,7 @@ void Application::stop()
     d_brokerSession.stop();
 }
 
-void Application::stopAsync()
+void Application::stopAsync(const BrokerSession::EventCallback& stopCb)
 {
     BALL_LOG_INFO << id()
                   << "::: STOP (ASYNC) [state: " << d_brokerSession.state()
@@ -887,7 +888,7 @@ void Application::stopAsync()
     stopHeartbeat();
 
     // Stop the brokerSession
-    d_brokerSession.stopAsync();
+    d_brokerSession.stopAsync(stopCb);
 }
 
 bsl::shared_ptr<bmqp::HeartbeatMonitor>
