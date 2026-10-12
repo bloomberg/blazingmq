@@ -33,22 +33,16 @@
 // bmqu::Printer
 //
 //@DESCRIPTION:
-// This component provides a set of utility functions and stream manipulators
-// for writing numbers, time intervals, and bytes amounts in a human-readable
-// format.
-// The 'pretty*' functions exist in two styles:
-//: o Procedural: The argument list consists of the destination output stream,
-//:   followed by the value to write, possibly followed by formatting
-//:   parameters (group size, group separator, etc). The function writes the
-//:   value to the stream and returns void.
-//: o Manipulator: The argument list consists of the value to write, possibly
-//:   followed by formatting parameters (group size, group separator, etc).
-//:   The function returns an object which, when inserted into an output
-//:   stream, writes the value to the stream. This is similar to the standard
-//:   library stream manipulators ('std::setw', 'std::setprecision', etc).
+// This component provides a set of stream manipulators for writing numbers,
+// time intervals, and bytes amounts in a human-readable format.
+// The argument list of a 'pretty*' function consists of the value to write,
+// possibly followed by formatting parameters (group size, group separator,
+// etc).  The function returns an object which, when inserted into an output
+// stream, writes the value to the stream.  This is similar to the standard
+// library stream manipulators ('std::setw', 'std::setprecision', etc).
 //
-// The '*indent' functions exist only as manipulators that invoke the
-// corresponding functions in the 'bdlb_print' component.
+// The '*indent' manipulators invoke the corresponding functions in the
+// 'bdlb_print' component.
 //
 // All the functions provided by this component have sensible default values
 // for the formatting parameters. Numbers are written following the US American
@@ -57,17 +51,9 @@
 //
 /// Usage
 ///-----
-// Write values using the procedural interface:
+// Write values using manipulators:
 //..
-//  // os is a bsl::ostream                  output:
-//  prettyNumber(os, 1234567, 2, '.'); // 1.23.45.67
-//  prettyNumber(os, 1234567);         // 1,234,567
-//  prettyBytes(os, 1025);             // 1.00 KB
-//  prettyTimeInterval(os, 12432);     // 12.43 us
-//..
-//
-// Write the same values using manipulators:
-//..
+//  // os is a bsl::ostream                    output:
 //  os << prettyNumber(1234567, 2, '.'); // 1.23.45.67
 //  os << prettyNumber(1234567);         // 1,234,567
 //  os << prettyBytes(1025);             // 1.00 KB
@@ -108,17 +94,6 @@ struct PrettyTimeIntervalManipulator;
 
 // FREE FUNCTIONS
 
-/// Print the specified `value` to the specified `stream` with the specified
-/// `separator` character between every `groupSize` digits.
-bsl::ostream& prettyNumber(bsl::ostream& stream,
-                           int           value,
-                           int           groupSize = 3,
-                           char          separator = ',');
-bsl::ostream& prettyNumber(bsl::ostream&      stream,
-                           bsls::Types::Int64 value,
-                           int                groupSize = 3,
-                           char               separator = ',');
-
 /// Return a stream manipulator that inserts the specified `value` with the
 /// specified `separator` character between every `groupSize` digits.
 PrettyIntManipulator
@@ -126,13 +101,6 @@ prettyNumber(int value, int groupSize = 3, char separator = ',');
 PrettyIntManipulator prettyNumber(bsls::Types::Int64 value,
                                   int                groupSize = 3,
                                   char               separator = ',');
-
-/// Value is truncated, not rounded...
-bsl::ostream& prettyNumber(bsl::ostream& stream,
-                           double        value,
-                           int           precision = 2,
-                           int           groupSize = 3,
-                           char          separator = ',');
 
 /// Return a stream manipulator that inserts the specified `value` with the
 /// specified `precision` with the specified `separator` character between
@@ -142,24 +110,11 @@ PrettyDoubleManipulator prettyNumber(double value,
                                      int    groupSize = 3,
                                      char   separator = ',');
 
-/// Print the specified `bytes` using the appropriate suffix (KB, MB, etc)
-/// to the specified `stream` with the specified `precision`. The behavior
-/// is undefined unless `precision <= 3`.
-bsl::ostream&
-prettyBytes(bsl::ostream& stream, bsls::Types::Int64 bytes, int precision = 2);
-
 /// Return a stream manipulator that inserts the specified `bytes` using the
 /// appropriate suffix (KB, MB, etc) with the specified `precision`. The
 /// behavior is undefined unless `precision <= 3`.
 PrettyBytesManipulator prettyBytes(bsls::Types::Int64 bytes,
                                    int                precision = 2);
-
-/// Print the specified `timeNs` which is assumed to be a number of
-/// nanoseconds to the specified `stream` with the specified `precision` in
-/// a readable form. Values are rounded to the nearest.
-bsl::ostream& prettyTimeInterval(bsl::ostream&      stream,
-                                 bsls::Types::Int64 timeNs,
-                                 int                precision = 2);
 
 /// Return a stream manipulator that inserts the specified `timeNs` which is
 /// assumed to be a number of nanoseconds with the specified `precision` in
@@ -182,8 +137,12 @@ NewlineAndIndentManipulator newlineAndIndent(int level, int spacesPerLevel);
 template <typename TYPE>
 Printer<TYPE> printer(const TYPE& obj);
 
-/// Print the specified `manipulator` into the specified output `stream` and
-/// return `stream`.
+/// @brief Insert the specified `manipulator` into the specified `stream`.
+///
+/// @param stream The destination output stream.
+/// @param manipulator The value and formatting parameters to insert.
+///
+/// @return A reference to the modifiable `stream`.
 bsl::ostream& operator<<(bsl::ostream&               stream,
                          const PrettyIntManipulator& manipulator);
 bsl::ostream& operator<<(bsl::ostream&                  stream,
@@ -465,49 +424,6 @@ template <typename TYPE>
 inline Printer<TYPE> PrintUtil::printer(const TYPE& obj)
 {
     return Printer<TYPE>(&obj);
-}
-
-inline bsl::ostream&
-PrintUtil::operator<<(bsl::ostream&                          stream,
-                      const PrintUtil::PrettyIntManipulator& manipulator)
-{
-    PrintUtil::prettyNumber(stream,
-                            manipulator.d_value,
-                            manipulator.d_groupSize,
-                            manipulator.d_separator);
-    return stream;
-}
-
-inline bsl::ostream&
-PrintUtil::operator<<(bsl::ostream&                  stream,
-                      const PrettyDoubleManipulator& manipulator)
-{
-    PrintUtil::prettyNumber(stream,
-                            manipulator.d_value,
-                            manipulator.d_precision,
-                            manipulator.d_groupSize,
-                            manipulator.d_separator);
-    return stream;
-}
-
-inline bsl::ostream&
-PrintUtil::operator<<(bsl::ostream&                 stream,
-                      const PrettyBytesManipulator& manipulator)
-{
-    PrintUtil::prettyBytes(stream,
-                           manipulator.d_bytes,
-                           manipulator.d_precision);
-    return stream;
-}
-
-inline bsl::ostream&
-PrintUtil::operator<<(bsl::ostream&                        stream,
-                      const PrettyTimeIntervalManipulator& manipulator)
-{
-    PrintUtil::prettyTimeInterval(stream,
-                                  manipulator.d_timeNs,
-                                  manipulator.d_precision);
-    return stream;
 }
 
 inline bsl::ostream&

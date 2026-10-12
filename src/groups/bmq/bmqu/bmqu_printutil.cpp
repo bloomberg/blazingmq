@@ -83,45 +83,36 @@ char* prettyNumberImp(char*              buf,
 
 namespace PrintUtil {
 
-bsl::ostream&
-prettyNumber(bsl::ostream& stream, int value, int groupSize, char separator)
-{
-    return prettyNumber(stream,
-                        static_cast<bsls::Types::Int64>(value),
-                        groupSize,
-                        separator);
-}
-
-bsl::ostream& prettyNumber(bsl::ostream&      stream,
-                           bsls::Types::Int64 value,
-                           int                groupSize,
-                           char               separator)
+bsl::ostream& operator<<(bsl::ostream&               stream,
+                         const PrettyIntManipulator& manipulator)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(groupSize > 0);
+    BSLS_ASSERT_SAFE(manipulator.d_groupSize > 0);
 
     char  buf[64];
     char* pos = buf + 63;
     *pos      = '\0';
 
-    return stream << prettyNumberImp(pos, value, groupSize, separator);
+    return stream << prettyNumberImp(pos,
+                                     manipulator.d_value,
+                                     manipulator.d_groupSize,
+                                     manipulator.d_separator);
 }
 
-bsl::ostream& prettyNumber(bsl::ostream& stream,
-                           double        value,
-                           int           precision,
-                           int           groupSize,
-                           char          separator)
+bsl::ostream& operator<<(bsl::ostream&                  stream,
+                         const PrettyDoubleManipulator& manipulator)
 {
     // PRECONDITIONS
-    BSLS_ASSERT_SAFE(groupSize > 0);
+    BSLS_ASSERT_SAFE(manipulator.d_groupSize > 0);
+
+    const int precision = manipulator.d_precision;
 
     char  buf[128];
     char* pos = buf + 127;
     *pos      = '\0';
 
     if (precision > 0) {
-        const double absValue  = bsl::abs(value);
+        const double absValue  = bsl::abs(manipulator.d_value);
         const int    remainder = static_cast<int>(
             bsl::floor((absValue - bsl::floor(absValue)) *
                        bsl::pow(static_cast<double>(10.),
@@ -136,15 +127,19 @@ bsl::ostream& prettyNumber(bsl::ostream& stream,
         pos -= precision + 2;
     }
 
-    return stream << prettyNumberImp(pos,
-                                     static_cast<bsls::Types::Int64>(value),
-                                     groupSize,
-                                     separator);
+    return stream << prettyNumberImp(
+               pos,
+               static_cast<bsls::Types::Int64>(manipulator.d_value),
+               manipulator.d_groupSize,
+               manipulator.d_separator);
 }
 
-bsl::ostream&
-prettyBytes(bsl::ostream& stream, bsls::Types::Int64 bytes, int precision)
+bsl::ostream& operator<<(bsl::ostream&                 stream,
+                         const PrettyBytesManipulator& manipulator)
 {
+    bsls::Types::Int64 bytes     = manipulator.d_bytes;
+    const int          precision = manipulator.d_precision;
+
     static const char* k_UNITS[]     = {" B", "KB", "MB", "GB", "TB", "PB"};
     static const int   k_UNITS_COUNT = sizeof(k_UNITS) / sizeof(*k_UNITS);
 
@@ -228,10 +223,12 @@ prettyBytes(bsl::ostream& stream, bsls::Types::Int64 bytes, int precision)
     return stream;
 }
 
-bsl::ostream& prettyTimeInterval(bsl::ostream&      stream,
-                                 bsls::Types::Int64 timeNs,
-                                 int                precision)
+bsl::ostream& operator<<(bsl::ostream&                        stream,
+                         const PrettyTimeIntervalManipulator& manipulator)
 {
+    bsls::Types::Int64 timeNs    = manipulator.d_timeNs;
+    const int          precision = manipulator.d_precision;
+
     static const char* k_UNITS[] = {"ns", "us", "ms", "s", "m", "h", "d", "w"};
     static const int   k_SIZES[] = {1000, 1000, 1000, 60, 60, 24, 7};
     static const int   k_SIZES_COUNT = sizeof(k_SIZES) / sizeof(*k_SIZES);
