@@ -16,6 +16,7 @@ bmqu_samethreadchecker
 bmqu_sharedresource
 bmqu_singletonallocator
 bmqu_stringutil
+bmqu_synchronizedvalue
 bmqu_tempdirectory
 bmqu_temputil
 bmqu_throttledaction
