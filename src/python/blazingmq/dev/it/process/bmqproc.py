@@ -37,7 +37,7 @@ _LOG_FORMAT_DEFINITION = [
     ("%t", r"(\d+)"),  # thread
     ("%s", r"([A-Z]+)"),  # level
     ("%F:%l", r"(\w+(?:\.\w+)+):(\d+)"),  # file, line
-    ("%m", r"(.*)"),  # message
+    ("%m %a", r"(.*)"),  # message
 ]
 
 _LOG_FIELD_SEP = "~@~"
