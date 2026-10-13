@@ -664,6 +664,65 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
                                  const bsl::shared_ptr<bdlbb::Blob>& event,
                                  const bmqu::BlobPosition& recordPosition);
 
+    /// @brief Apply a JournalOp record just appended to the journal.
+    ///
+    /// @details Validates the record's journal-op and sync point types,
+    /// checks that self's DATA file offset (and QLIST file offset, if
+    /// qlist-aware) matches the sync point, records the sync point, performs
+    /// a rollover when the sync point requests one, and notes the last sync
+    /// point when self is stopping.
+    ///
+    /// @param recHeader     Record header supplying the PSN of the record.
+    /// @param journalOpType Type of the JournalOp record.
+    /// @param recordOffset  Offset of the record in the journal.
+    /// @param activeFileSet File set the record was appended to.
+    /// @returns 0 on success, and otherwise the non-zero value that
+    ///          `writeJournalRecord` reports for the failure.
+    int applyJournalOpRecord(const mqbs::RecordHeader& recHeader,
+                             JournalOpType::Enum       journalOpType,
+                             bsls::Types::Uint64       recordOffset,
+                             const FileSet&            activeFileSet);
+
+    /// @brief Apply a QueueOp record just appended to the journal.
+    ///
+    /// @details Validates the queue-op type and registers the record, then
+    /// purges the storage (or the virtual storage for `appKey`) or deletes
+    /// the queue, invoking the queue deletion callback last.
+    ///
+    /// @param recHeader    Record header supplying the PSN of the record.
+    /// @param queueOpType  Type of the QueueOp record.
+    /// @param recordOffset Offset of the record in the journal.
+    /// @param queueKey     Key of the queue the record belongs to.
+    /// @param appKey       Key of the app the record applies to, or the null
+    ///                     key for the whole queue.
+    /// @param rstorage     Storage registered for `queueKey`.
+    /// @returns 0 on success, and otherwise the non-zero value that
+    ///          `writeJournalRecord` reports for the failure.
+    int applyQueueOpRecord(const mqbs::RecordHeader& recHeader,
+                           QueueOpType::Enum         queueOpType,
+                           bsls::Types::Uint64       recordOffset,
+                           const mqbu::StorageKey&   queueKey,
+                           const mqbu::StorageKey&   appKey,
+                           ReplicatedStorage*        rstorage);
+
+    /// @brief Write the journal record contained in a storage message
+    /// received from the primary.
+    ///
+    /// @details Append the CONFIRM, DELETION, JOURNAL_OP or QUEUE_OP record
+    /// carried by `event` to the JOURNAL file after checking that self's
+    /// JOURNAL offset matches the primary's.  Then, for records that belong
+    /// to a queue, validate the queue and app keys, and apply the record:
+    /// CONFIRM and DELETION records to the queue's storage, and JOURNAL_OP
+    /// and QUEUE_OP records with `applyJournalOpRecord` and
+    /// `applyQueueOpRecord`.
+    ///
+    /// @param header         Storage header of the message.
+    /// @param recHeader      Record header supplying the leaseId and
+    ///                       sequence number the record is keyed on.
+    /// @param event          Blob holding the storage message.
+    /// @param recordPosition Position of the record within `event`.
+    /// @param messageType    Type of the storage message.
+    /// @returns 0 on success, and a non-zero value otherwise.
     int writeJournalRecord(const bmqp::StorageHeader&          header,
                            const mqbs::RecordHeader&           recHeader,
                            const bsl::shared_ptr<bdlbb::Blob>& event,
