@@ -5036,7 +5036,7 @@ int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
                         << "primary, rc: " << rc
                         << ", sync point: " << syncPoint
                         << BMQTSK_ALARMLOG_END;
-                    return 10 * rc + rc_ROLLOVER_FAILURE;  // RETURN
+                    return 100 * rc + rc_ROLLOVER_FAILURE;  // RETURN
                 }
             }
             else {
