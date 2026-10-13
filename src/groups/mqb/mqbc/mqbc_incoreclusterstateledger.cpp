@@ -1006,7 +1006,7 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
         BALL_LOG_ERROR << description() << ": Failed to apply record from '"
                        << source->nodeDescription()
                        << "'. Reason: invalid header.";
-        return rc * 10 + rc_INVALID_HEADER;  // RETURN
+        return rc * 100 + rc_INVALID_HEADER;  // RETURN
     }
     BSLS_ASSERT_SAFE(ClusterStateLedgerUtil::recordSize(*recordHeader) ==
                      (event.length() - eventHeaderSize));
@@ -1100,7 +1100,7 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
                                                     event,
                                                     eventHeaderSize);
     if (rc != 0) {
-        return rc * 10 + rc_LOAD_MESSAGE_FAILURE;  // RETURN
+        return rc * 100 + rc_LOAD_MESSAGE_FAILURE;  // RETURN
     }
 
     BSLS_ASSERT_SAFE(message.choice().isQueueAssignmentAdvisoryValue() ||
@@ -1252,7 +1252,7 @@ int IncoreClusterStateLedger::applyImpl(const bdlbb::Blob&   event,
             << ", self LSN: "
             << printLSN(d_clusterData_p->electorInfo().leaderMessageSequence())
             << "]. rc: " << rc;
-        return rc * 10 + rc_APPLY_RECORD_FAILURE;  // RETURN
+        return rc * 100 + rc_APPLY_RECORD_FAILURE;  // RETURN
     }
 
     if (recordHeader->recordType() == ClusterStateRecordType::e_SNAPSHOT) {
