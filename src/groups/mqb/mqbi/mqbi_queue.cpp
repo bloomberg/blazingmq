@@ -29,12 +29,11 @@ bsl::ostream& operator<<(bsl::ostream&                   stream,
     stream << "["
            << (rhs.hasNoHandleStreamConsumers() ? " hasNoHandleStreamConsumers"
                                                 : "")
-           << (rhs.hasNoHandleStreamProducers() ? " hasNoHandleStreamProducers"
-                                                : "")
+           << (rhs.hasNoHandleProducers() ? " hasNoHandleProducers" : "")
            << (rhs.hasNoQueueStreamConsumers() ? " hasNoQueueStreamConsumers"
                                                : "")
-           << (rhs.hasNoQueueStreamProducers() ? " hasNoQueueStreamProducers"
-                                               : "")
+           << (rhs.isHandleStreamEmpty() ? " emptyHandleStream" : "")
+           << (rhs.isQueueStreamEmpty() ? " emptyQueueStream" : "")
            << (rhs.hasNoHandleClients() ? " hasNoHandleClients" : "") << " ]";
     return stream;
 }

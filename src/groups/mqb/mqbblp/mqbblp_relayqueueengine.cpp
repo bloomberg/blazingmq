@@ -762,8 +762,8 @@ void RelayQueueEngine::onHandleReleasedDispatched(
             d_pushStream.removeApp(upstreamSubQueueId);
             app->clear();
         }
-        if (streamResult.hasNoHandleStreamProducers()) {
-            // Remove the producer handle from cached producers/consumers
+        if (streamResult.isHandleStreamEmpty()) {
+            // Remove the handle from this App's cached parameters
             app->d_cache.erase(handle);
         }
     }

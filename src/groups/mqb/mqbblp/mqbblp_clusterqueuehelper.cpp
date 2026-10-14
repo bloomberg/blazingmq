@@ -2433,8 +2433,7 @@ void ClusterQueueHelper::onHandleReleasedDispatched(
 
     // Delete the stream if fully released.
 
-    if (result.hasNoHandleClients() || (result.hasNoHandleStreamConsumers() &&
-                                        result.hasNoHandleStreamProducers())) {
+    if (result.hasNoHandleClients() || result.isHandleStreamEmpty()) {
         // Expect `handle` to be non-empty with these values in `result`
         BSLS_ASSERT_SAFE(handle);
 
