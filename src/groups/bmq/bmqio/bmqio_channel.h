@@ -195,10 +195,10 @@ class Channel {
     /// could not be enqueued for execution.
     virtual int execute(const ExecuteCb& cb) = 0;
 
-    /// Register the specified `cb` to be invoked when a `close` event
-    /// occurs for this channel.  Return a `bdlmt::SignalerConnection`
-    /// object than can be used to unregister the callback.
-    virtual bdlmt::SignalerConnection onClose(const CloseFn& cb) = 0;
+    /// @brief Register a callback to be invoked when this channel closes.
+    ///
+    /// @param cb The callback to invoke.
+    virtual void onClose(const CloseFn& cb) = 0;
 
     /// Register the specified `cb` to be invoked when a `watermark` event
     /// occurs for this channel.  Return a `bdlmt::SignalerConnection`
