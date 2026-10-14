@@ -142,7 +142,7 @@ jobs:
           echo "Please set the target to include 'all.t' to build unit tests."
           exit 1
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: inputs.save_build_as_artifacts == true # Variable type is boolean, thus no quotes
         with:
           path: |
