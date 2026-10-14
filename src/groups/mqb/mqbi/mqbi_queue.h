@@ -370,14 +370,17 @@ struct QueueHandleReleaseResult {
         /// no more consumers for this subStream for this handle
         e_NO_HANDLE_STREAM_CONSUMERS = (1 << 1),
 
-        /// no more producers for this subStream for this handle
-        e_NO_HANDLE_STREAM_PRODUCERS = (1 << 2),
+        /// no more producers for this handle
+        e_NO_HANDLE_PRODUCERS = (1 << 2),
 
         /// no more consumers for this subStream across all handles
         e_NO_QUEUE_STREAM_CONSUMERS = (1 << 3),
 
-        /// no more producers for this subStream across all handles
-        e_NO_QUEUE_STREAM_PRODUCERS = (1 << 4)
+        /// no more clients for this subStream for this handle
+        e_HANDLE_STREAM_EMPTY = (1 << 4),
+
+        /// no more clients for this subStream across all handles
+        e_QUEUE_STREAM_EMPTY = (1 << 5)
     };
 
     // DATA
@@ -392,17 +395,18 @@ struct QueueHandleReleaseResult {
     /// this queue.
     void makeNoHandleStreamConsumers();
 
-    /// Indicate absence of producers for this subStream for this handle in
-    /// this queue.
-    void makeNoHandleStreamProducers();
+    /// Indicate absence of producers for this handle in this queue.
+    void makeNoHandleProducers();
 
     /// Indicate absence of consumers for this subStream for all handles in
     /// this queue.
     void makeNoQueueStreamConsumers();
 
-    /// Indicate absence of producers for this subStream for all handles in
-    /// this queue.
-    void makeNoQueueStreamProducers();
+    /// Indicate that this subStream for this handle is empty.
+    void makeHandleStreamEmpty();
+
+    /// Indicate that this subStream for all handles is empty.
+    void makeQueueStreamEmpty();
 
     /// Indicate absence of consumers and producers for all subStreams in
     /// in this handle in this queue.
@@ -417,20 +421,19 @@ struct QueueHandleReleaseResult {
     /// handle in this queue.
     bool hasNoHandleStreamConsumers() const;
 
-    /// Return true if there are no producers for this subStream for this
-    /// handle in this queue.
-    bool hasNoHandleStreamProducers() const;
+    /// Return true if there are no producers for this handle in this queue.
+    bool hasNoHandleProducers() const;
 
     /// Return true if there are no consumers for this subStream for all
     /// handles in  this queue.
     bool hasNoQueueStreamConsumers() const;
 
-    /// Return true if there are no producers for this subStream for all
-    /// handles in this queue.
-    bool hasNoQueueStreamProducers() const;
+    /// Return true if there are no clients for this subStream for this
+    /// handle in this queue.
+    bool isHandleStreamEmpty() const;
 
-    /// Return true if there are no consumers and producers for this
-    /// subStream for all handles in this queue.
+    /// Return true if there are no clients for this subStream for all
+    /// handles in this queue.
     bool isQueueStreamEmpty() const;
 
     /// Return true if there are no consumers and producers for all
@@ -1194,9 +1197,9 @@ inline void QueueHandleReleaseResult::makeNoHandleStreamConsumers()
     d_result |= e_NO_HANDLE_STREAM_CONSUMERS;
 }
 
-inline void QueueHandleReleaseResult::makeNoHandleStreamProducers()
+inline void QueueHandleReleaseResult::makeNoHandleProducers()
 {
-    d_result |= e_NO_HANDLE_STREAM_PRODUCERS;
+    d_result |= e_NO_HANDLE_PRODUCERS;
 }
 
 inline void QueueHandleReleaseResult::makeNoQueueStreamConsumers()
@@ -1204,9 +1207,14 @@ inline void QueueHandleReleaseResult::makeNoQueueStreamConsumers()
     d_result |= e_NO_QUEUE_STREAM_CONSUMERS;
 }
 
-inline void QueueHandleReleaseResult::makeNoQueueStreamProducers()
+inline void QueueHandleReleaseResult::makeHandleStreamEmpty()
 {
-    d_result |= e_NO_QUEUE_STREAM_PRODUCERS;
+    d_result |= e_HANDLE_STREAM_EMPTY;
+}
+
+inline void QueueHandleReleaseResult::makeQueueStreamEmpty()
+{
+    d_result |= e_QUEUE_STREAM_EMPTY;
 }
 
 inline void QueueHandleReleaseResult::makeNoHandleClients()
@@ -1230,24 +1238,24 @@ inline bool QueueHandleReleaseResult::hasNoHandleStreamConsumers() const
     return (d_result & e_NO_HANDLE_STREAM_CONSUMERS);
 }
 
-inline bool QueueHandleReleaseResult::hasNoHandleStreamProducers() const
+inline bool QueueHandleReleaseResult::hasNoHandleProducers() const
 {
-    return (d_result & e_NO_HANDLE_STREAM_PRODUCERS);
+    return (d_result & e_NO_HANDLE_PRODUCERS);
+}
+
+inline bool QueueHandleReleaseResult::isHandleStreamEmpty() const
+{
+    return (d_result & e_HANDLE_STREAM_EMPTY);
 }
 
 inline bool QueueHandleReleaseResult::isQueueStreamEmpty() const
 {
-    return hasNoQueueStreamConsumers() && hasNoQueueStreamProducers();
+    return (d_result & e_QUEUE_STREAM_EMPTY);
 }
 
 inline bool QueueHandleReleaseResult::hasNoQueueStreamConsumers() const
 {
     return (d_result & e_NO_QUEUE_STREAM_CONSUMERS);
-}
-
-inline bool QueueHandleReleaseResult::hasNoQueueStreamProducers() const
-{
-    return (d_result & e_NO_QUEUE_STREAM_PRODUCERS);
 }
 
 // ---------------------------------

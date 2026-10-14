@@ -159,9 +159,11 @@ struct QueueEngineUtil_ReleaseHandleProctor {
     // Discern the following (partially orthogonal) cases:
     //
     // - no more consumers or producers for all subStream for this handle
-    // - no more consumers for this subStream across all handles
-    // - no more producers for this subStream across all handles
+    // - no more producers for this handle
     // - no more consumers for this subStream for this handle
+    // - no more clients for this subStream for this handle
+    // - no more consumers for this subStream across all handles
+    // - no more clients for this subStream across all handles
 
     // DATA
 
@@ -202,13 +204,6 @@ struct QueueEngineUtil_ReleaseHandleProctor {
     /// non-zero value on error.
     int releaseHandle(mqbi::QueueHandle*                         handle,
                       const bmqp_ctrlmsg::QueueHandleParameters& params);
-
-    /// Decrement cumulative queue's readCount and writeCount of the stream
-    /// identified by the specified `params` by readCount and writeCount in
-    /// the `params`.  Return result indicating producer/consumer absence
-    /// for the given queue.
-    mqbi::QueueHandleReleaseResult
-    releaseQueueStream(const bmqp_ctrlmsg::QueueHandleParameters& params);
 
     /// Decrement handle's readCount and writeCount of the stream identified
     /// by the specified `params` by readCount and writeCount in the
