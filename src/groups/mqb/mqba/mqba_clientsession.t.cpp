@@ -811,7 +811,7 @@ class TestBench {
         int rc = obj.setMessage(controlMessage, bmqp::EventType::e_CONTROL);
         BMQTST_ASSERT_EQ(rc, 0);
 
-        bmqp::Event event(obj.blob().get(), d_allocator_p);
+        bmqp::Event event(obj.blob(), d_allocator_p);
 
         d_cs.processEvent(event);
     }
@@ -839,7 +839,7 @@ class TestBench {
         int rc = obj.setMessage(controlMessage, bmqp::EventType::e_CONTROL);
         BMQTST_ASSERT_EQ(rc, 0);
 
-        bmqp::Event event(obj.blob().get(), d_allocator_p);
+        bmqp::Event event(obj.blob(), d_allocator_p);
 
         d_cs.processEvent(event);
     }
