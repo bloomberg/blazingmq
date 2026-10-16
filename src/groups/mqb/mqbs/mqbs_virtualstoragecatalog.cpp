@@ -472,8 +472,15 @@ VirtualStorageCatalog::purgeImpl(VirtualStorage*     vs,
         // Must call 'seek' before 'purge'
         setup(dataStreamMessage);
 
-        if (vs->remove(dataStreamMessage, replacingOrdinal)) {
-            // The 'data' was not already removed or confirmed.
+        // First, check whether this App is counted in the message's refCount.
+        // Then, call 'remove' for every message (even if this App does not
+        // hold a reference), which overwrites this App's state.
+        const bool holdsRef = holdsReference(
+            appMessageView(*dataStreamMessage, vs->ordinal()));
+
+        vs->remove(dataStreamMessage, replacingOrdinal);
+
+        if (holdsRef) {
             result = d_storage_p->releaseRef(msgGUID, asPrimary);
         }
 
