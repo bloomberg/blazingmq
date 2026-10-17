@@ -14,16 +14,17 @@
 # limitations under the License.
 
 """
-Fanout queues on a proxy: when an App's last reader goes away, the proxy must
-keep the messages other Apps still need.
+Fanout queues on a proxy: the proxy must keep the messages other Apps still
+need when an App's last reader goes away, or when an App confirms a message
+that was not pushed to it.
 
 A proxy keeps a fanout message until every App it was pushed to has
-confirmed it.  In each test, baz's last reader goes away while the proxy
-holds messages that were not pushed to baz, then the test checks that foo
-and bar still get every message.  If the proxy treats baz as done with those
-messages, foo's CONFIRMs delete messages bar still needs: the proxy either
-aborts, when bar's copy is in the PushStream, or silently drops it, when
-bar's copy is in a redelivery list.
+confirmed it.  In each test, the proxy holds messages that were not pushed
+to baz, and either baz's last reader goes away or baz confirms them.  The
+test then checks that foo and bar still get every message.  If the proxy
+treats baz as done with those messages, foo's CONFIRMs delete messages bar
+still needs: the proxy either aborts, when bar's copy is in the PushStream,
+or silently drops it, when bar's copy is in a redelivery list.
 """
 
 import time
@@ -286,4 +287,64 @@ def test_reader_crash_with_redelivery_backlog(
 
     bar1.confirm(uri_bar, "*", succeed=True)
     assert wait_until(lambda: sorted(_payloads(bar1, uri_bar)) == bar2_payloads, 5)
+    assert proxy.is_alive()
+
+
+def test_confirm_after_proxy_restart(multi_node: Cluster, domain_urls: tc.DomainUrls):
+    """
+    baz confirms messages that the restarted proxy never pushed to it; bar's
+    copy is in a redelivery list.
+
+    1. Only baz consumes.  It receives M1 and M2, then pauses (max 0).
+    2. Restart the proxy.  baz reconnects, still paused and still holding M1
+       and M2.
+    3. foo (max 2), bar1 and bar2 (max 1 each) open.  The primary pushes M1
+       and M2 to foo and bar only.
+    4. Close bar2: its message waits in bar's redelivery list, as bar1 is
+       full.
+    5. baz confirms M1 and M2.
+    6. foo confirms both.  bar1 confirms its message: it must then get the
+       one bar2 held.
+    """
+    du = domain_urls
+    uri = du.uri_fanout
+    uri_foo, uri_bar, uri_baz = du.uri_fanout_foo, du.uri_fanout_bar, du.uri_fanout_baz
+    proxy = next(multi_node.proxy_cycle())
+
+    baz = proxy.create_client("baz")
+    baz.open(uri_baz, flags=["read"], succeed=True)
+    producer = proxy.create_client("producer")
+    producer.open(uri, flags=["write", "ack"], succeed=True)
+    producer.post(uri, payload=["M1"], succeed=True)
+    producer.post(uri, payload=["M2"], succeed=True)
+    assert _wait_count(baz, uri_baz, 2)
+    baz.configure(uri_baz, max_unconfirmed_messages=0, succeed=True)
+
+    proxy.stop()
+    proxy.wait()
+    proxy.start()
+    proxy.wait_until_started()
+    proxy.wait_healthy()
+    baz.wait_state_restored()
+    producer.wait_state_restored()
+
+    foo = proxy.create_client("foo")
+    foo.open(uri_foo, flags=["read"], max_unconfirmed_messages=2, succeed=True)
+    bar1 = proxy.create_client("bar1")
+    bar1.open(uri_bar, flags=["read"], max_unconfirmed_messages=1, succeed=True)
+    bar2 = proxy.create_client("bar2")
+    bar2.open(uri_bar, flags=["read"], max_unconfirmed_messages=1, succeed=True)
+    assert _wait_count(foo, uri_foo, 2)
+    assert _wait_count(bar1, uri_bar, 1)
+    assert _wait_count(bar2, uri_bar, 1)
+    bar2_payloads = _payloads(bar2, uri_bar)
+
+    bar2.close(uri_bar, succeed=True)
+
+    assert sorted(_payloads(baz, uri_baz)) == ["M1", "M2"]
+    baz.confirm(uri_baz, "*", succeed=True)
+
+    foo.confirm(uri_foo, "*", succeed=True)
+    bar1.confirm(uri_bar, "*", succeed=True)
+    assert wait_until(lambda: _payloads(bar1, uri_bar) == bar2_payloads, 5)
     assert proxy.is_alive()
