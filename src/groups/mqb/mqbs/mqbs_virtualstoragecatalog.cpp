@@ -278,6 +278,17 @@ VirtualStorageCatalog::confirm(const bmqt::MessageGUID& msgGUID,
     VirtualStoragesIter it = d_virtualStorages.findByKey2(appKey);
     BSLS_ASSERT_SAFE(it != d_virtualStorages.end());
 
+    const mqbi::AppMessage& appMessage =
+        appMessageView(*data->second, it->value()->ordinal());
+    if (appMessage.isPending() && !holdsReference(appMessage)) {
+        // On a proxy, 'e_PUT' means the message was not pushed to this App,
+        // so this App holds no reference.  A client of this App can still
+        // send a CONFIRM, e.g. for a PUSH it received from another proxy or
+        // before this proxy restarted.
+        // Leave the refCount unchanged so the other Apps keep the message.
+        return mqbi::StorageResult::e_NON_ZERO_REFERENCES;  // RETURN
+    }
+
     const mqbi::StorageResult::Enum rc = it->value()->confirm(
         data->second.get());
     if (mqbi::StorageResult::e_SUCCESS == rc) {

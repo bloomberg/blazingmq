@@ -256,7 +256,8 @@ struct Tester {
                 const int                       msgCount,
                 int                             dataOffset   = 0,
                 bool                            useSameGuids = false,
-                int                             refCount     = 1)
+                int                             refCount     = 1,
+                int                             numPushApps  = 0)
     {
         // PRECONDITIONS
         BSLS_ASSERT_OPT(guidHolder);
@@ -300,14 +301,21 @@ struct Tester {
                 bmqp::MessagePropertiesInfo::makeNoSchema(),
                 bmqt::CompressionAlgorithmType::e_NONE);
 
+            mqbi::DataStreamMessage*  dataStreamMessage = 0;
             mqbi::StorageResult::Enum rc = d_replicatedStorage_mp->put(
                 &attributes,
                 guid,
                 appDataPtr,
-                appDataPtr);
+                appDataPtr,
+                &dataStreamMessage);
 
             if (rc != mqbi::StorageResult::e_SUCCESS) {
                 return rc;  // RETURN
+            }
+
+            // Mark the Apps this message was pushed to, as a proxy does.
+            for (int app = 0; app < numPushApps; ++app) {
+                dataStreamMessage->app(app).setPushState();
             }
         }
 
@@ -1071,11 +1079,12 @@ BMQTST_TEST(confirm)
 
     bsl::vector<bmqt::MessageGUID> guids(bmqtst::TestHelperUtil::allocator());
 
-    // Check 'put': To physical storage (StorageKeys = NULL)
-    BMQTST_ASSERT_EQ(tester.addMessages(&guids, k_MSG_COUNT),
+    // Check 'put': To physical storage (StorageKeys = NULL).  app1 is pushed,
+    // so its CONFIRM releases a reference.
+    BMQTST_ASSERT_EQ(tester.addMessages(&guids, k_MSG_COUNT, 0, false, 1, 1),
                      mqbi::StorageResult::e_SUCCESS);
 
-    BMQTST_ASSERT_EQ(tester.addMessages(&guids, k_MSG_COUNT, 0, true),
+    BMQTST_ASSERT_EQ(tester.addMessages(&guids, k_MSG_COUNT, 0, true, 1, 1),
                      mqbi::StorageResult::e_SUCCESS);
 
     mqbi::StorageMessageAttributes attributes;
@@ -1216,14 +1225,16 @@ BMQTST_TEST(getIterator_withVirtualStorages)
 
     bsl::vector<bmqt::MessageGUID> guids(bmqtst::TestHelperUtil::allocator());
 
-    // Check 'put': To physical storage (StorageKeys = NULL)
-    BMQTST_ASSERT_EQ(tester.addMessages(&guids, 20),
+    // Check 'put': To physical storage (StorageKeys = NULL).  Each message is
+    // pushed to both app1 and app2 (refCount 2), so confirming one App leaves
+    // the message for the other.
+    BMQTST_ASSERT_EQ(tester.addMessages(&guids, 20, 0, false, 2, 2),
                      mqbi::StorageResult::e_SUCCESS);
 
-    BMQTST_ASSERT_EQ(tester.addMessages(&guids, 20, 20),
+    BMQTST_ASSERT_EQ(tester.addMessages(&guids, 20, 20, false, 2, 2),
                      mqbi::StorageResult::e_SUCCESS);
 
-    BMQTST_ASSERT_EQ(tester.addMessages(&guids, 20, 40),
+    BMQTST_ASSERT_EQ(tester.addMessages(&guids, 20, 40, false, 2, 2),
                      mqbi::StorageResult::e_SUCCESS);
 
     // Check Iterator
