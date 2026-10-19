@@ -27,6 +27,8 @@
 #include <bdlbb_pooledblobbufferfactory.h>
 #include <bdlf_bind.h>
 #include <bsla_annotations.h>
+#include <bslmt_semaphore.h>
+#include <bslmt_threadutil.h>
 #include <bsls_types.h>
 
 #include <bmqtst_testhelper.h>
@@ -104,6 +106,27 @@ void executeOnClosedChannelFunc(bmqio::NtcChannel*              channel,
     channel->close();
 }
 
+/// @brief Save the specified `status` to the specified `result` and post on
+///        the specified `semaphore`.
+///
+/// @param semaphore The semaphore to post on.
+/// @param result    The output status.
+/// @param channel   The channel kept alive while this callback is stored.
+/// @param status    The close status.
+void saveCloseStatus(
+    bslmt::Semaphore*       semaphore,
+    Status*                 result,
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<NtcChannel>& channel,
+    const Status&                                        status)
+{
+    // PRECONDITIONS
+    BMQTST_ASSERT(semaphore);
+    BMQTST_ASSERT(result);
+
+    *result = status;
+    semaphore->post();
+}
+
 // ============
 // class Tester
 // ============
@@ -158,6 +181,9 @@ class Tester {
     void init();
 
     bsl::shared_ptr<bmqio::NtcChannel> connect();
+
+    /// @brief Release all references held to the connecting channels.
+    void releaseConnectChannels();
 };
 
 // ------------
@@ -335,6 +361,12 @@ bsl::shared_ptr<bmqio::NtcChannel> Tester::connect()
     return channel;
 }
 
+void Tester::releaseConnectChannels()
+{
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);
+    d_connectChannels.clear();
+}
+
 }  // close unnamed namespace
 
 // ============================================================================
@@ -384,6 +416,67 @@ static void test1_breathingTest()
     channel->close();
 }
 
+static void test2_onCloseAfterClose()
+// ------------------------------------------------------------------------
+// ON CLOSE AFTER CLOSE
+//
+// Concerns:
+//   a) A close callback registered on an already closed channel is
+//      invoked immediately in the calling thread
+//   b) This callback receives the same status as the callbacks invoked
+//      on close
+//   c) Close callbacks holding a reference to the channel do not keep it
+//      alive: the channel is destroyed once all other references are
+//      released
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("On Close After Close");
+
+    Tester tester(bmqtst::TestHelperUtil::allocator());
+    tester.init();
+
+    bsl::shared_ptr<bmqio::NtcChannel> channel = tester.connect();
+    bsl::weak_ptr<bmqio::NtcChannel>   weakChannel(channel);
+
+    bslmt::Semaphore semaphore;
+    Status           status1(bmqtst::TestHelperUtil::allocator());
+    Status           status2(bmqtst::TestHelperUtil::allocator());
+
+    channel->onClose(bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
+                                           saveCloseStatus,
+                                           &semaphore,
+                                           &status1,
+                                           channel,
+                                           bdlf::PlaceHolders::_1));
+
+    channel->close(Status(StatusCategory::e_CANCELED,
+                          bmqtst::TestHelperUtil::allocator()));
+    semaphore.wait();
+    BMQTST_ASSERT_EQ(status1.category(), StatusCategory::e_CANCELED);
+
+    channel->onClose(bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
+                                           saveCloseStatus,
+                                           &semaphore,
+                                           &status2,
+                                           channel,
+                                           bdlf::PlaceHolders::_1));
+
+    BMQTST_ASSERT_EQ(semaphore.tryWait(), 0);
+    BMQTST_ASSERT_EQ(status2.category(), StatusCategory::e_CANCELED);
+
+    // Wait for the channel to be destroyed, as an owner waiting for all its
+    // channels on shutdown would do.  The IO thread may still briefly hold a
+    // reference while finishing the close.
+    channel.reset();
+    tester.releaseConnectChannels();
+
+    const int k_MAX_WAIT_ITERATIONS = 1000;
+    for (int i = 0; i < k_MAX_WAIT_ITERATIONS && !weakChannel.expired(); ++i) {
+        bslmt::ThreadUtil::microSleep(10 * 1000);  // 10ms
+    }
+    BMQTST_ASSERT(weakChannel.expired());
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -394,6 +487,9 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 2: {
+        test2_onCloseAfterClose();
+    } break;
     case 1: {
         test1_breathingTest();
     } break;
