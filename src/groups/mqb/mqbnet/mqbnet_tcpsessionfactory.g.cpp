@@ -124,9 +124,7 @@ class MockChannel : public bmqio::Channel {
 
     MOCK_METHOD1(onClose, void(const bmqio::Channel::CloseFn& cb));
 
-    MOCK_METHOD1(
-        onWatermark,
-        bdlmt::SignalerConnection(const bmqio::Channel::WatermarkFn& cb));
+    MOCK_METHOD1(onWatermark, void(const bmqio::Channel::WatermarkFn& cb));
 
     MOCK_METHOD0(properties, bmqvt::PropertyBag&());
 

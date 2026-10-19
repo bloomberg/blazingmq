@@ -148,13 +148,12 @@ void TestChannel::onClose(const CloseFn& cb)
     d_onCloseCalls.emplace_back(cb, conn);
 }
 
-bdlmt::SignalerConnection TestChannel::onWatermark(const WatermarkFn& cb)
+void TestChannel::onWatermark(const WatermarkFn& cb)
 {
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
 
     bdlmt::SignalerConnection conn = d_watermarkSignaler.connect(cb);
     d_onWatermarkCalls.emplace_back(cb, conn);
-    return conn;
 }
 
 bmqvt::PropertyBag& TestChannel::properties()

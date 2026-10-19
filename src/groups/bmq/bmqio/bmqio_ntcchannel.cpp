@@ -773,7 +773,7 @@ void NtcChannel::processWriteQueueLowWatermark(
 
     BMQIO_NTCCHANNEL_LOG_EVENT(this, d_streamSocket_sp, "write queue", event);
 
-    d_watermarkSignaler(bmqio::ChannelWatermarkType::e_LOW_WATERMARK);
+    notifyWatermark(bmqio::ChannelWatermarkType::e_LOW_WATERMARK);
 }
 
 void NtcChannel::processWriteQueueHighWatermark(
@@ -784,7 +784,7 @@ void NtcChannel::processWriteQueueHighWatermark(
 
     BMQIO_NTCCHANNEL_LOG_EVENT(this, d_streamSocket_sp, "write queue", event);
 
-    d_watermarkSignaler(bmqio::ChannelWatermarkType::e_HIGH_WATERMARK);
+    notifyWatermark(bmqio::ChannelWatermarkType::e_HIGH_WATERMARK);
 }
 
 void NtcChannel::processShutdownInitiated(
@@ -851,7 +851,8 @@ void NtcChannel::processShutdownComplete(
 
 void NtcChannel::processClose(const bmqio::Status& status)
 {
-    bsl::vector<CloseFn> closeFns(d_allocator_p);
+    bsl::vector<CloseFn>     closeFns(d_allocator_p);
+    bsl::vector<WatermarkFn> watermarkFns(d_allocator_p);
 
     {
         bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
@@ -870,6 +871,7 @@ void NtcChannel::processClose(const bmqio::Status& status)
         d_resultCallback = bmqio::ChannelFactory::ResultCallback();
 
         closeFns.swap(d_closeFns);
+        watermarkFns.swap(d_watermarkFns);
     }
 
     for (bsl::vector<CloseFn>::reverse_iterator it = closeFns.rbegin();
@@ -877,8 +879,22 @@ void NtcChannel::processClose(const bmqio::Status& status)
          ++it) {
         (*it)(status);
     }
+}
 
-    d_watermarkSignaler.disconnectAllSlots();
+void NtcChannel::notifyWatermark(bmqio::ChannelWatermarkType::Enum type)
+{
+    bsl::vector<WatermarkFn> watermarkFns(d_allocator_p);
+
+    {
+        bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
+        watermarkFns = d_watermarkFns;
+    }
+
+    for (bsl::vector<WatermarkFn>::iterator it = watermarkFns.begin();
+         it != watermarkFns.end();
+         ++it) {
+        (*it)(type);
+    }
 }
 
 void NtcChannel::drainReaders(const bmqio::Status& status)
@@ -916,7 +932,7 @@ NtcChannel::NtcChannel(
 , d_state(e_STATE_DEFAULT)
 , d_options(basicAllocator)
 , d_properties(basicAllocator)
-, d_watermarkSignaler(basicAllocator)
+, d_watermarkFns(basicAllocator)
 , d_closeFns(basicAllocator)
 , d_resultCallback(bsl::allocator_arg, basicAllocator, resultCallback)
 , d_allocator_p(bslma::Default::allocator(basicAllocator))
@@ -1294,9 +1310,10 @@ void NtcChannel::onClose(const CloseFn& cb)
     d_closeFns.push_back(cb);
 }
 
-bdlmt::SignalerConnection NtcChannel::onWatermark(const WatermarkFn& cb)
+void NtcChannel::onWatermark(const WatermarkFn& cb)
 {
-    return d_watermarkSignaler.connect(cb);
+    bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
+    d_watermarkFns.push_back(cb);
 }
 
 bmqvt::PropertyBag& NtcChannel::properties()
