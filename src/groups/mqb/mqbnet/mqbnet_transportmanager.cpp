@@ -131,29 +131,33 @@ bool TransportManager::processSession(
 
     if (state) {
         // This is an outgoing connection to a broker
-        bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // d_mutex LOCK
+        {
+            bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // d_mutex LOCK
 
-        if (state->d_node_p == 0) {
-            BALL_LOG_INFO << "Session is up, but cluster is no longer valid ["
-                          << "channel: '" << session->channel().get() << "']";
-        }
-        else {
-            BALL_LOG_INFO << "Cluster session is up [cluster: '"
-                          << state->d_node_p->cluster()->name()
-                          << "', channel: '" << session->channel().get()
-                          << "']";
+            if (state->d_node_p == 0) {
+                BALL_LOG_INFO << "Session is up, but cluster is no longer "
+                              << "valid [channel: '"
+                              << session->channel().get() << "']";
+            }
+            else {
+                BALL_LOG_INFO << "Cluster session is up [cluster: '"
+                              << state->d_node_p->cluster()->name()
+                              << "', channel: '" << session->channel().get()
+                              << "']";
 
-            // Set the (reduced) watermarks since the node will use
-            // mqbnet::Channel.
-            d_tcpSessionFactory_mp->setNodeWriteQueueWatermarks(*session);
+                // Set the (reduced) watermarks since the node will use
+                // mqbnet::Channel.
+                d_tcpSessionFactory_mp->setNodeWriteQueueWatermarks(*session);
 
-            // Notify the node it now has a channel
-            bsl::weak_ptr<bmqio::Channel> channel(session->channel());
-            state->d_node_p->setChannel(channel, peerIdentity, readCb);
-        }
+                // Notify the node it now has a channel
+                bsl::weak_ptr<bmqio::Channel> channel(session->channel());
+                state->d_node_p->setChannel(channel, peerIdentity, readCb);
+            }
+        }  // d_mutex UNLOCK
 
         // Add self as observer of the channel (so that we can monitor when it
-        // goes down, and eventually initiate a reconnection).
+        // goes down, and eventually initiate a reconnection).  Done without
+        // holding 'd_mutex', since 'onClose' may be invoked immediately.
         session->channel()->onClose(
             bdlf::BindUtil::bind(&TransportManager::onClose,
                                  this,

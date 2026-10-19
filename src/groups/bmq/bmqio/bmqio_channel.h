@@ -197,6 +197,9 @@ class Channel {
 
     /// @brief Register a callback to be invoked when this channel closes.
     ///
+    /// If this channel is already closed, `cb` may be invoked immediately in
+    /// the calling thread.
+    ///
     /// @param cb The callback to invoke.
     virtual void onClose(const CloseFn& cb) = 0;
 
