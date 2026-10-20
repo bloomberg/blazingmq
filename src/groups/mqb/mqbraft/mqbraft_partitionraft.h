@@ -41,6 +41,7 @@
 #include <mqbraft_raftnode.h>
 #include <mqbs_datastore.h>
 #include <mqbs_filestoreprotocol.h>
+#include <mqbs_filestoreset.h>
 
 // BMQ
 #include <bmqp_ctrlmsg_messages.h>
@@ -131,9 +132,7 @@ class PartitionRaft : public mqbs::RecordStore,
     int                 d_snapshotJournalFd;
     int                 d_snapshotDataFd;
     int                 d_snapshotQlistFd;
-    bsl::string         d_snapshotJournalPath;
-    bsl::string         d_snapshotDataPath;
-    bsl::string         d_snapshotQlistPath;
+    mqbs::FileStoreSet  d_snapshotFiles;
     bsls::Types::Uint64 d_snapshotLastIncludedIndex;
     bsls::Types::Uint64 d_snapshotLastIncludedTerm;
 
@@ -142,10 +141,8 @@ class PartitionRaft : public mqbs::RecordStore,
     /// that has not finished that walk.
     bool d_isDispatchingOutput;
 
-    /// Writes held back because they were issued while
-    /// `d_isDispatchingOutput`; `postDispatch` proposes them once the walk
-    /// has unwound.  Only writes whose caller does not need a record handle
-    /// can go here, since a deferred write leaves `d_handle` unset.
+    /// DELETION records written while `d_isDispatchingOutput` is `true`.
+    /// `postDispatch` proposes them.
     bsl::vector<bsl::shared_ptr<mqbs::Proposal> > d_deferred;
 
     /// `true` if an `e_ROLLOVER` has been proposed but not yet committed.
@@ -225,10 +222,10 @@ class PartitionRaft : public mqbs::RecordStore,
     /// leader and has no transfer under way.
     void reproposeHeldProposals();
 
-    /// Propose each of the specified `proposals` into this node's log, in
-    /// order, and dispatch the resulting output once.  Each reached
-    /// `propose` once already and was set aside rather than appended.  The
-    /// behavior is undefined unless this node is the leader.
+    /// Pass each of the specified `proposals` to `propose`, in order.  Each
+    /// reached `propose` once already and was set aside rather than
+    /// appended.  On failure, give back what the write set aside and NACK a
+    /// PUT.  The behavior is undefined unless this node is the leader.
     void rePropose(const PartitionRaftLog::Proposals& proposals);
 
   public:
@@ -286,10 +283,9 @@ class PartitionRaft : public mqbs::RecordStore,
                          bsls::Types::Uint64 qlistBytes);
 
     /// Drain the buffered writes (taken from the log) into the freshly rolled
-    /// over file set, in FIFO order, each through the normal Raft append path
-    /// so it receives the next contiguous log index.  Called once, from
-    /// `dispatchOutput`, after the committed-entry loop that performed the
-    /// physical rollover.
+    /// over file set, in FIFO order, each through `propose`.  Called once,
+    /// from `dispatchOutput`, after the committed-entry loop that performed
+    /// the physical rollover.
     void drainProposals();
 
     /// Send an AppendEntries message via binary e_RAFT_PARTITION event.
@@ -669,13 +665,11 @@ class PartitionRaft : public mqbs::RecordStore,
     int                 leaderId() const;
     bsls::Types::Uint64 currentTerm() const;
 
-    /// Return `true` if the record the specified `probe` tracks may still
-    /// arrive, using and updating `probe`.  A PUSH commits on a majority
-    /// that need not include this node, so it can outrun the entry carrying
-    /// its record by however far this node is behind; this says whether that
-    /// is what happened, or whether the record was here and is gone.
-    /// `isAbsent` is unused: on the Raft path the record's presence is its
-    /// receipt, so both questions the callers ask are the same one.
+    /// Return `true` if the specified `probe` indicates that the corresponding
+    /// data can still arrive.  Updated the `probe` if necessary.  This node
+    /// may not be the PUSH committer and be behind. `isAbsent` is unused: on
+    /// the Raft path the record's presence is its receipt, so both questions
+    /// the callers ask are the same one.
     bool isPendingReplication(mqbi::Storage::DeliveryProbe* probe,
                               bool isAbsent) const BSLS_KEYWORD_OVERRIDE;
 

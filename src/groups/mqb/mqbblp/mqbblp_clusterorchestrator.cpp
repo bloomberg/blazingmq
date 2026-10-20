@@ -1028,6 +1028,7 @@ void ClusterOrchestrator::processClusterStateFSMMessage(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+    BSLS_ASSERT_SAFE(!d_cluster_p->isRaftEnabled());
     BSLS_ASSERT_SAFE(d_clusterConfig.clusterAttributes().isFSMWorkflow());
     BSLS_ASSERT(message.choice().isClusterMessageValue());
     BSLS_ASSERT(message.choice()
@@ -1086,6 +1087,7 @@ void ClusterOrchestrator::processPartitionMessage(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+    BSLS_ASSERT_SAFE(!d_cluster_p->isRaftEnabled());
     BSLS_ASSERT_SAFE(d_clusterConfig.clusterAttributes().isFSMWorkflow());
     BSLS_ASSERT(message.choice().isClusterMessageValue());
     BSLS_ASSERT(
@@ -1097,18 +1099,6 @@ void ClusterOrchestrator::processPartitionMessage(
                       << ": Not processing partition message : " << message
                       << " from " << source->nodeDescription()
                       << " since self is stopping";
-
-        return;  // RETURN
-    }
-
-    if (d_cluster_p->isRaftEnabled()) {
-        // Raft drives partition sync through its own log, so no partition
-        // message belongs here and no 'StorageManager' exists to handle one
-        // ('mqbblp::Cluster' creates it only when Raft is disabled).
-        BMQTSK_ALARMLOG_ALARM("CLUSTER")
-            << d_clusterData_p->identity().description()
-            << ": unexpected partition message in Raft mode: " << message
-            << " from " << source->nodeDescription() << BMQTSK_ALARMLOG_END;
 
         return;  // RETURN
     }
@@ -1279,6 +1269,14 @@ void ClusterOrchestrator::processNodeStatusAdvisory(
     }
 
     if (bmqp_ctrlmsg::NodeStatus::E_AVAILABLE == nsAdvisory.status()) {
+        if (d_cluster_p->isRaftEnabled()) {
+            // The AVAILABLE peer may be the primary that buffered open-queue
+            // requests wait on (see 'onNodeAvailable').  Runs on every node,
+            // including the CSL leader.
+            d_queueHelper.onNodeAvailable();
+            return;  // RETURN
+        }
+
         if (mqbnet::ElectorState::e_LEADER ==
                 d_clusterData_p->electorInfo().electorState() &&
             mqbc::ElectorInfoLeaderStatus::e_ACTIVE ==
@@ -1305,23 +1303,6 @@ void ClusterOrchestrator::processNodeStatusAdvisory(
                  source->nodeId() ==
                      d_clusterData_p->electorInfo().leaderNodeId()) {
             d_queueHelper.onLeaderAvailable();
-        }
-
-        if (d_cluster_p->isRaftEnabled()) {
-            // Independent of the leader-focused branches above: a peer
-            // transitioning to AVAILABLE may be the primary of a partition for
-            // which self has buffered open-queue requests that were waiting on
-            // that primary node's availability.  In Raft a partition primary
-            // is reported E_ACTIVE for its partition as soon as it wins
-            // leadership, but its *node* only reaches E_AVAILABLE once all of
-            // its partitions have leaders, and 'hasActiveAvailablePrimary'
-            // gates on both.  This must run on *every* node, including the CSL
-            // leader itself (which the first branch above would otherwise
-            // capture), since the leader can be the node holding the pending
-            // contexts.  Idempotent: restore dedups via reopen cycles /
-            // in-flight tracking, so re-running it -- or double-running it
-            // with 'onLeaderAvailable' -- is a harmless no-op.
-            d_queueHelper.onNodeAvailable();
         }
 
         // For each partition for which self is primary, notify the storageMgr
@@ -1416,6 +1397,10 @@ void ClusterOrchestrator::processNodeStateChangeEvent(
         updateDatumStats(ns);
 
         if (bmqp_ctrlmsg::NodeStatus::E_STOPPING == selfStatus) {
+            return;  // RETURN
+        }
+
+        if (d_cluster_p->isRaftEnabled()) {
             return;  // RETURN
         }
 
@@ -1521,6 +1506,7 @@ void ClusterOrchestrator::processLeaderSyncStateQuery(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+    BSLS_ASSERT_SAFE(!d_cluster_p->isRaftEnabled());
 
     d_stateManager_mp->processLeaderSyncStateQuery(message, source);
 }
@@ -1566,6 +1552,7 @@ void ClusterOrchestrator::processLeaderSyncDataQuery(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+    BSLS_ASSERT_SAFE(!d_cluster_p->isRaftEnabled());
 
     d_stateManager_mp->processLeaderSyncDataQuery(message, source);
 }
@@ -1600,6 +1587,7 @@ void ClusterOrchestrator::processStorageSyncRequest(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+    BSLS_ASSERT_SAFE(!d_cluster_p->isRaftEnabled());
     BSLS_ASSERT(message.choice().isClusterMessageValue());
     BSLS_ASSERT(message.choice()
                     .clusterMessage()
@@ -1639,6 +1627,7 @@ void ClusterOrchestrator::processPartitionSyncStateRequest(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+    BSLS_ASSERT_SAFE(!d_cluster_p->isRaftEnabled());
     BSLS_ASSERT(message.choice().isClusterMessageValue());
     BSLS_ASSERT(message.choice()
                     .clusterMessage()
@@ -1683,6 +1672,7 @@ void ClusterOrchestrator::processPartitionSyncDataRequest(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+    BSLS_ASSERT_SAFE(!d_cluster_p->isRaftEnabled());
     BSLS_ASSERT(message.choice().isClusterMessageValue());
     BSLS_ASSERT(message.choice()
                     .clusterMessage()
@@ -1727,6 +1717,7 @@ void ClusterOrchestrator::processPartitionSyncDataRequestStatus(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+    BSLS_ASSERT_SAFE(!d_cluster_p->isRaftEnabled());
     BSLS_ASSERT(message.choice().isClusterMessageValue());
     BSLS_ASSERT(message.choice()
                     .clusterMessage()
@@ -1794,6 +1785,7 @@ void ClusterOrchestrator::processPrimaryStatusAdvisoryImpl(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+    BSLS_ASSERT_SAFE(!d_cluster_p->isRaftEnabled());
 
     // This routine is invoked when the status of a primary 'source' node has
     // changed.
@@ -1974,6 +1966,7 @@ void ClusterOrchestrator::processStateNotification(
 
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+    BSLS_ASSERT_SAFE(!d_cluster_p->isRaftEnabled());
     BSLS_ASSERT_SAFE(notification.choice().isClusterMessageValue());
     BSLS_ASSERT_SAFE(notification.choice()
                          .clusterMessage()
@@ -2559,6 +2552,9 @@ void ClusterOrchestrator::maybeTransitionToAvailable()
     // recorded this leaseId before this, the first journal record under it.
     const int selfNodeId = d_clusterData_p->membership().selfNode()->nodeId();
     bool      allActivated = true;
+    const bool isSelfCslLeader = d_clusterStateRaft_mp->leaderId() ==
+                                 selfNodeId;
+
     for (size_t pid = 0; pid < partitions.size(); ++pid) {
         const bool isSelfPrimary = partitions[pid].primaryNodeId() ==
                                    selfNodeId;
@@ -2569,8 +2565,6 @@ void ClusterOrchestrator::maybeTransitionToAvailable()
             partitions[pid].primaryStatus()) {
             continue;  // CONTINUE
         }
-        const bool isSelfCslLeader = d_clusterStateRaft_mp->leaderId() ==
-                                     selfNodeId;
 
         if ((isSelfPrimary || isSelfCslLeader) &&
             partitions[pid].primaryLeaseId() !=
