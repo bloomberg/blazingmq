@@ -151,6 +151,9 @@ class Queue:
     def confirm(self, *args, **kwargs) -> Optional[int]:
         return self.client.confirm(self.uri, *args, **kwargs)
 
+    def confirm_sync(self, *args, **kwargs) -> None:
+        return self.client.confirm_sync(self.uri, *args, **kwargs)
+
     def configure(self, *args, **kwargs):
         return self.client.configure(self.uri, *args, **kwargs)
 

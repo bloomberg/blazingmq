@@ -45,9 +45,24 @@ class CommandResult(NamedTuple):
 
 blocktimeout = 15
 
+# Default of 'maxUnconfirmedBytes' in bmqtool 'open' and 'configure' commands.
+DEFAULT_MAX_UNCONFIRMED_BYTES = 33554432
+
 
 class ITError(Exception):
     """Base class for exceptions specific to integration tests."""
+
+
+def _bmq_name(name: str) -> str:
+    """
+    Return the bmqtool argument name for the specified python 'name'.
+    """
+
+    if name[-1] == "_":
+        return name[:-1]
+    first, *rest = name.split("_")
+    rest = [word[0].upper() + word[1:] for word in rest]
+    return "".join([first, *rest])
 
 
 def _build_command(
@@ -63,12 +78,7 @@ def _build_command(
 
     cmd = [seed]
     for name, value in kw.items():
-        if name[-1] == "_":
-            bmq_name = name[:-1]
-        else:
-            first, *rest = name.split("_")
-            rest = [word[0].upper() + word[1:] for word in rest]
-            bmq_name = "".join([first, *rest])
+        bmq_name = _bmq_name(name)
         transform = opts[bmq_name]
         if transform is not None:
             value = transform(value)
@@ -125,6 +135,9 @@ class Client(BMQProcess):
             process_log_category="bmqtool",
             **kwargs,
         )
+
+        # Last options passed to 'open' or 'configure', per queue uri.
+        self._queue_options: Dict[str, Dict[str, Any]] = {}
 
     ###########################################################################
     # Public API
@@ -209,6 +222,7 @@ class Client(BMQProcess):
             no_except,
             timeout=timeout,
         )
+        self._remember_queue_options(uri, res.error_code, kw)
         return res.error_code
 
     def configure(
@@ -248,6 +262,7 @@ class Client(BMQProcess):
             no_except,
             timeout=timeout,
         )
+        self._remember_queue_options(uri, res.error_code, kw)
         return res.error_code
 
     def post(
@@ -381,6 +396,12 @@ class Client(BMQProcess):
     def confirm(
         self, uri, guid, block=None, succeed=None, no_except=None
     ) -> Optional[int]:
+        """
+        Confirm the message with the specified 'guid' on the queue with the
+        specified 'uri'.  If 'block' or 'succeed' is specified, wait only
+        until bmqtool has accepted the confirm; this does not wait for the
+        primary to process it.  Use 'confirm_sync' when that is needed.
+        """
         command = _build_command(f'confirm uri="{uri}" guid="{guid}"', {}, {})
         with internal_use(self):
             res = self._command_helper(
@@ -391,6 +412,28 @@ class Client(BMQProcess):
                 no_except,
             )
             return res.error_code
+
+    def confirm_sync(self, uri, guid) -> None:
+        """
+        Confirm the message with the specified 'guid' on the queue with the
+        specified 'uri', and wait until the primary has processed the confirm.
+        This costs an extra configure request for the queue, which keeps the
+        last options passed to 'open' or 'configure' but slightly changes
+        'maxUnconfirmedBytes'.  Do nothing if the queue has no unconfirmed
+        messages.  Raise an 'ITError' on failure.  The queue must have been
+        opened by this client.
+        """
+        if not self.list(uri, block=True):
+            return
+
+        # A reconfigure with changed options is sent after the confirm on the
+        # same channel, so its response means the confirm was processed too.
+        options = dict(self._queue_options[uri])
+        options["maxUnconfirmedBytes"] = (
+            options.get("maxUnconfirmedBytes", DEFAULT_MAX_UNCONFIRMED_BYTES) ^ 1
+        )
+        self.confirm(uri, guid, succeed=True)
+        self.configure(uri, succeed=True, **options)
 
     def close(self, uri, block=None, succeed=None, no_except=None, **kw):
         command = _build_command(
@@ -539,6 +582,19 @@ class Client(BMQProcess):
 
     ###########################################################################
     # Internals
+
+    def _remember_queue_options(
+        self, uri: str, error_code: Optional[int], kw: Dict[str, Any]
+    ) -> None:
+        """
+        Store the queue options from the specified 'kw' for the specified
+        'uri', unless the specified 'error_code' reports a failure.
+        """
+        if error_code not in (None, Client.e_SUCCESS):
+            return
+        options = {_bmq_name(name): value for name, value in kw.items()}
+        options.pop("async", None)
+        self._queue_options[uri] = options
 
     def _command_helper(
         self,
