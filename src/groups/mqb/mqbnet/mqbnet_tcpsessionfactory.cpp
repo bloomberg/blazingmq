@@ -1438,42 +1438,53 @@ void TCPSessionFactory::stopListening()
 void TCPSessionFactory::closeClients()
 {
     bsl::vector<bsl::weak_ptr<Session> > clients(d_allocator_p);
-    bslmt::LockGuard<bslmt::Mutex>       guard(&d_mutex);  // LOCK
+    bool                                 timedOut = false;
 
-    BALL_LOG_INFO << d_name << ": closing " << d_nbOpenClients
-                  << " open client(s)";
+    {
+        bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
 
-    bmqio::Status status(bmqio::StatusCategory::e_SUCCESS,
-                         k_CHANNEL_STATUS_CLOSE_REASON,
-                         true,
-                         d_allocator_p);
-    for (ChannelMap::iterator it = d_channels.begin(); it != d_channels.end();
-         ++it) {
-        if (isClientOrProxy(it->second->d_session_sp.get())) {
-            // SDK client or proxy
-            clients.push_back(it->second->d_session_sp);
-            it->second->d_session_sp->channel()->close(status);
+        BALL_LOG_INFO << d_name << ": closing " << d_nbOpenClients
+                      << " open client(s)";
+
+        bmqio::Status status(bmqio::StatusCategory::e_SUCCESS,
+                             k_CHANNEL_STATUS_CLOSE_REASON,
+                             true,
+                             d_allocator_p);
+        for (ChannelMap::iterator it = d_channels.begin();
+             it != d_channels.end();
+             ++it) {
+            if (isClientOrProxy(it->second->d_session_sp.get())) {
+                // SDK client or proxy
+                clients.push_back(it->second->d_session_sp);
+                it->second->d_session_sp->channel()->close(status);
+            }
         }
-    }
 
-    // Wait for 'onClose' for all sessions.
-    while (d_nbOpenClients) {
-        bsls::TimeInterval timeout = bsls::SystemTime::nowMonotonicClock();
-        timeout.addSeconds(k_CLIENT_CLOSE_WAIT);
-        BALL_LOG_INFO << d_name << ": waiting up to " << k_CLIENT_CLOSE_WAIT
-                      << "s for " << d_nbOpenClients << " clients to close";
-        const int rc = d_noClientCondition.timedWait(&d_mutex, timeout);
-        if (rc == -1) {  // timeout
-            break;       // BREAK
+        // Wait for 'onClose' for all sessions.
+        while (d_nbOpenClients) {
+            bsls::TimeInterval timeout = bsls::SystemTime::nowMonotonicClock();
+            timeout.addSeconds(k_CLIENT_CLOSE_WAIT);
+            BALL_LOG_INFO << d_name << ": waiting up to "
+                          << k_CLIENT_CLOSE_WAIT << "s for " << d_nbOpenClients
+                          << " clients to close";
+            const int rc = d_noClientCondition.timedWait(&d_mutex, timeout);
+            if (rc == -1) {  // timeout
+                break;       // BREAK
+            }
         }
-    }
 
-    if (d_nbOpenClients) {
-        // We timed out
-        BALL_LOG_ERROR << d_name << ": timed out while waiting for clients to "
-                       << "close, remaining clients: " << d_nbOpenClients;
+        if (d_nbOpenClients) {
+            timedOut = true;
+            BALL_LOG_ERROR << d_name
+                           << ": timed out while waiting for clients to "
+                           << "close, remaining clients: " << d_nbOpenClients;
+        }
+    }  // UNLOCK
 
+    if (timedOut) {
         // Invalidate the remaining sessions before stopping all Dispatchers.
+        // 'd_mutex' must not be held here: 'invalidate' waits for the session
+        // dispatcher threads, which may need 'd_mutex' to destroy a session.
 
         for (size_t i = 0; i < clients.size(); ++i) {
             bsl::shared_ptr<Session> session = clients[i].lock();
