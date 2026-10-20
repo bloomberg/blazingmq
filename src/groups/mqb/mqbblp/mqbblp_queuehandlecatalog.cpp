@@ -197,7 +197,6 @@ mqbi::QueueHandle* QueueHandleCatalog::createHandle(
 
 int QueueHandleCatalog::releaseHandleHelper(
     bsl::shared_ptr<mqbi::QueueHandle>*        handleSp,
-    bsls::Types::Uint64*                       lostFlags,
     mqbi::QueueHandle*                         handle,
     const bmqp_ctrlmsg::QueueHandleParameters& handleParameters,
     bool                                       isFinal)
@@ -219,7 +218,6 @@ int QueueHandleCatalog::releaseHandleHelper(
 
     bmqp_ctrlmsg::QueueHandleParameters currentHandleParameters =
         handle->handleParameters();
-    bsls::Types::Uint64 oldFlags = currentHandleParameters.flags();
 
     // Update queue's aggregated parameters
     bmqp::QueueUtil::subtractHandleParameters(&currentHandleParameters,
@@ -228,10 +226,7 @@ int QueueHandleCatalog::releaseHandleHelper(
 
     handle->setHandleParameters(currentHandleParameters);
 
-    *handleSp  = handleIt->value();
-    *lostFlags = bmqt::QueueFlagsUtil::removals(
-        oldFlags,
-        currentHandleParameters.flags());
+    *handleSp = handleIt->value();
 
     const bool allCountsZero = bmqp::QueueUtil::isEmpty(
         currentHandleParameters);
@@ -248,7 +243,6 @@ int QueueHandleCatalog::releaseHandleHelper(
                       << ", lastReleased handle parameters: "
                       << handleParameters << "]";
         d_handles.erase(handleIt);
-        *lostFlags = oldFlags;  // Handle is deleted so all flags are lost.
     }
 
     BALL_LOG_INFO_BLOCK
@@ -260,9 +254,7 @@ int QueueHandleCatalog::releaseHandleHelper(
             << ", removed handle parameters: " << handleParameters
             << ", isFinal: " << isFinal
             << ", remaining handle parameters: " << currentHandleParameters
-            << "], lostFlags: '";
-        bmqt::QueueFlagsUtil::prettyPrint(BALL_LOG_OUTPUT_STREAM, *lostFlags);
-        BALL_LOG_OUTPUT_STREAM << "'";
+            << "]";
     }
 
     return 0;
