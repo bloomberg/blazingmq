@@ -1756,8 +1756,10 @@ int RelayQueueEngine::onRejectMessage(
                           << "] with the counter: [" << rda << "]";
         }
 
-        if (!rda.isUnlimited()) {
-            BSLS_ASSERT_SAFE(result);
+        // The counter value can differ on primary and replica because it is
+        // not persisted/replicated.  Keep it as 0; the primary decides when
+        // the message is removed.
+        if (!rda.isUnlimited() && result > 0) {
             rda.setPotentiallyPoisonous(true);
             rda.setCounter(--result);
 
