@@ -2826,6 +2826,32 @@ void Cluster::processClusterControlMessage(
 
     typedef bmqp_ctrlmsg::ClusterMessageChoice MsgChoice;  // shortcut
 
+    if (isRaftEnabled()) {
+        // Messages of the legacy and FSM workflows.  Their handlers use the
+        // 'ClusterStateManager' and 'StorageManager', which Raft mode does not
+        // create.
+        switch (clusterMessage.choice().selectionId()) {
+        case MsgChoice::SELECTION_ID_LEADER_SYNC_STATE_QUERY:
+        case MsgChoice::SELECTION_ID_LEADER_SYNC_DATA_QUERY:
+        case MsgChoice::SELECTION_ID_STORAGE_SYNC_REQUEST:
+        case MsgChoice::SELECTION_ID_PARTITION_SYNC_STATE_QUERY:
+        case MsgChoice::SELECTION_ID_PARTITION_SYNC_DATA_QUERY:
+        case MsgChoice::SELECTION_ID_PARTITION_SYNC_DATA_QUERY_STATUS:
+        case MsgChoice::SELECTION_ID_PRIMARY_STATUS_ADVISORY:
+        case MsgChoice::SELECTION_ID_STATE_NOTIFICATION:
+        case MsgChoice::SELECTION_ID_CLUSTER_STATE_F_S_M_MESSAGE:
+        case MsgChoice::SELECTION_ID_PARTITION_MESSAGE: {
+            BMQTSK_ALARMLOG_ALARM("CLUSTER")
+                << description()
+                << ": unexpected clusterMessage in Raft mode: " << message
+                << " from " << source->nodeDescription()
+                << BMQTSK_ALARMLOG_END;
+            return;  // RETURN
+        }
+        default: break;
+        }
+    }
+
     switch (clusterMessage.choice().selectionId()) {
     case MsgChoice::SELECTION_ID_LEADER_SYNC_STATE_QUERY_RESPONSE:
     case MsgChoice::SELECTION_ID_LEADER_SYNC_DATA_QUERY_RESPONSE:
