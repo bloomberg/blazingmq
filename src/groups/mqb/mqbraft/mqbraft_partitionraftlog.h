@@ -131,18 +131,16 @@ class PartitionRaftLog : public RaftLog {
     /// whose producer is still attached.
     HeldProposals d_heldProposals;
 
-    /// Entry blobs held in memory, oldest first: the entry at index
-    /// `d_cacheBase + i` is `d_cache[i]`.  Two feeds, one per write path.  For
-    /// an entry of this node's own, `applyCommittedEntry` hands over the blob
-    /// of the write it is about to drop, so the window picks up where the
-    /// entries leave off and serves a retransmit to a peer that has not acked
-    /// what a quorum already committed.  As replica, `append` keeps the blob
-    /// it was sent, so the commit that follows applies it instead of reading
-    /// back what it just wrote.  Bounded by `k_MAX_CACHED_ENTRIES` and
-    /// `k_MAX_CACHED_BYTES`, and trimmed from the front, the end being what is
-    /// read.  The blobs alias what they came from -- the active file set, or
-    /// the received event -- rather than copying it, so the bound is on how
-    /// much of that is pinned; see `clearCache` for what that costs at close.
+    /// Blobs of recent entries, oldest first: `d_cache[i]` is the entry at
+    /// index `d_cacheBase + i`.  Filled by:
+    /// * `applyCommittedEntry`, for an entry of this node's own.  Serves an
+    ///   AppendEntries to a peer that has not acked it yet.
+    /// * `append`, for an entry received as replica.  Its commit applies this
+    ///   blob instead of reading the journal.  After apply, only the last
+    ///   applied entry is kept: the next AppendEntries checks its term.
+    /// At most `k_MAX_CACHED_ENTRIES` entries and `k_MAX_CACHED_BYTES` bytes,
+    /// oldest dropped first.  The blobs alias the active file set or the
+    /// received event, so `clearCache` runs before the file set is closed.
     bsl::deque<EntryBlobSp> d_cache;
 
     /// Log index of `d_index.front()`, or of the next append while `d_index`

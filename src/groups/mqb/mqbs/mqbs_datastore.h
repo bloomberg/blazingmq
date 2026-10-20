@@ -928,10 +928,9 @@ class RecordStore {
     virtual bool isLeader() const = 0;
 
     /// Return `true` if this node is the leader and is handing that over.
-    /// It leads until the target wins the election, but has stopped
-    /// appending so that target can catch up, so a record proposed now is
-    /// held rather than written and may end up belonging to the next
-    /// leader.  Always `false` off the Raft path, which has no transfer.
+    /// It leads until the target wins the election.  A PUT proposed now is
+    /// held rather than written and may end up belonging to the next leader.
+    /// Always `false` off the Raft path, which has no transfer.
     ///
     /// THREAD: Executed by the dispatcher thread of the partition.
     virtual bool isTransferringLeadership() const = 0;

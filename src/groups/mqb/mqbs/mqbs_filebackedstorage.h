@@ -599,6 +599,8 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     void undoConfirm(const bmqt::MessageGUID& guid,
                      const mqbu::StorageKey&  appKey) BSLS_KEYWORD_OVERRIDE;
 
+    void undoDeletion(const bmqt::MessageGUID& guid) BSLS_KEYWORD_OVERRIDE;
+
     int writeAppRemoval(const mqbu::StorageKey& appKey) BSLS_KEYWORD_OVERRIDE;
 
     void addQueueOpRecordHandle(const DataStoreRecordHandle& handle)

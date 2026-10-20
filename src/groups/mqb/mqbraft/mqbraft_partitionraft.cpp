@@ -186,9 +186,7 @@ PartitionRaft::PartitionRaft(unsigned int partitionId,
 , d_snapshotJournalFd(-1)
 , d_snapshotDataFd(-1)
 , d_snapshotQlistFd(-1)
-, d_snapshotJournalPath(d_allocator_p)
-, d_snapshotDataPath(d_allocator_p)
-, d_snapshotQlistPath(d_allocator_p)
+, d_snapshotFiles(d_allocator_p)
 , d_snapshotLastIncludedIndex(0)
 , d_snapshotLastIncludedTerm(0)
 , d_isDispatchingOutput(false)
@@ -460,8 +458,10 @@ void PartitionRaft::repostHeldProposals()
         return;  // RETURN
     }
 
-    size_t numReposted = 0;
-    size_t numKept     = 0;
+    size_t numReposted   = 0;
+    size_t numKept       = 0;
+    size_t numNoProducer = 0;
+    size_t numDropped    = 0;
 
     for (size_t i = 0; i < held.size(); ++i) {
         const mqbs::Proposal& pw = *held[i];
@@ -487,6 +487,7 @@ void PartitionRaft::repostHeldProposals()
         d_fileStore_sp->undoPropose(pw);
 
         if (pw.d_recordType != mqbs::RecordType::e_MESSAGE) {
+            ++numDropped;
             continue;  // CONTINUE
         }
 
@@ -495,6 +496,7 @@ void PartitionRaft::repostHeldProposals()
         // producer left here to answer, and a peer re-sends to the new
         // primary itself.
         if (!queue || !queue->hasHandle(handle)) {
+            ++numNoProducer;
             continue;  // CONTINUE
         }
 
@@ -528,11 +530,16 @@ void PartitionRaft::repostHeldProposals()
         return;  // RETURN
     }
 
-    BALL_LOG_INFO << "Partition [" << d_partitionId << "] re-posted "
-                  << numReposted << " of " << held.size()
-                  << " write(s) held while not the leader; " << numKept
-                  << " still awaiting the conversion, the rest had no "
-                  << "producer left to answer.";
+    BALL_LOG_INFO << "Partition [" << d_partitionId << "] of " << held.size()
+                  << " held record(s): re-posted " << numReposted
+                  << " PUT(s) to the new primary, kept " << numKept
+                  << " PUT(s) for 'convertQueuesToRemote', dropped "
+                  << numNoProducer << " PUT(s) with no producer left to ACK.";
+
+    if (numDropped) {
+        BALL_LOG_WARN << "Partition [" << d_partitionId << "] dropped "
+                      << numDropped << " held record(s) other than PUT.";
+    }
 }
 
 void PartitionRaft::reproposeHeldProposals()
@@ -584,6 +591,8 @@ void PartitionRaft::postDispatch(RaftNodeOutput* output, bool hadRollover)
                                << "] failed to propose a deferred "
                                << deferred[i]->d_recordType
                                << " record, rc: " << rc;
+
+                d_fileStore_sp->undoPropose(*deferred[i]);
             }
         }
     }
@@ -595,29 +604,24 @@ void PartitionRaft::postDispatch(RaftNodeOutput* output, bool hadRollover)
         BSLS_ASSERT_SAFE(d_isRolloverPending);
 
         // The 'e_ROLLOVER' just committed and rolled over in the apply loop.
-        // Clear the in-flight flag before the drain, not after:
-        // 'drainProposals' runs a nested 'dispatchOutput', which must not
-        // see a rollover still in flight.  The drain loop itself does not read
-        // the flag -- it calls 'setProposal' and 'RaftNode::propose'
-        // directly rather than going through 'PartitionRaft::propose'.
+        // Clear the in-flight flag before the drain, not after: the drain
+        // goes through 'propose', which buffers while the flag is set.
         d_isRolloverPending = false;
 
         drainProposals();
     }
 
-    // Writes a truncation took off the log on the way in ('truncateFrom' runs
-    // inside 'handleAppendEntries', ahead of this).  Here rather than there
-    // because re-posting proposes, and the conversion may already have run,
-    // in which case nothing else would come back for them.
+    // Act on 'd_heldProposals'.  Writes are added to it by a truncation
+    // inside 'step', by the stepdown in 'dispatchOutput', and during a
+    // leadership transfer:
+    // * not the leader: re-post PUTs to the new primary.  A PUT whose queue
+    //   is still local stays held for 'convertQueuesToRemote'.
+    // * leader, no transfer under way: propose them into this log.
+    // A no-op while nothing is held.
     if (!isLeader()) {
         repostHeldProposals();
     }
     else if (!d_raftNode_mp->isTransferringLeadership()) {
-        // Still the leader and no longer handing that over, so anything held
-        // is this node's to propose.  Checked every round rather than off
-        // the event that cleared the arming: whatever the reason it went
-        // away, the writes must not stay on the shelf.  A no-op while the
-        // hold list is empty, which is every round but these.
         reproposeHeldProposals();
     }
 
@@ -1016,11 +1020,7 @@ void PartitionRaft::beginReceiveSnapshot(bsls::Types::Uint64 lastIncludedIndex,
     // attempt, in which case the paths below are already the ones to write.
     if (d_fileStore_sp->isOpen()) {
         // Get file paths before wiping
-        mqbs::FileStoreSet fileSet;
-        d_fileStore_sp->loadCurrentFiles(&fileSet);
-        d_snapshotJournalPath = fileSet.journalFile();
-        d_snapshotDataPath    = fileSet.dataFile();
-        d_snapshotQlistPath   = fileSet.qlistFile();
+        d_fileStore_sp->loadCurrentFiles(&d_snapshotFiles);
 
         // Empty the storages, keeping the objects: their contents are handles
         // into 'd_records', which the close below clears, but the objects
@@ -1048,13 +1048,13 @@ void PartitionRaft::beginReceiveSnapshot(bsls::Types::Uint64 lastIncludedIndex,
         d_fileStore_sp->close(false, true);  // flush=false, archive=true
     }
 
-    d_snapshotJournalFd = ::open(d_snapshotJournalPath.c_str(),
+    d_snapshotJournalFd = ::open(d_snapshotFiles.journalFile().c_str(),
                                  O_WRONLY | O_CREAT | O_TRUNC,
                                  0644);
-    d_snapshotDataFd    = ::open(d_snapshotDataPath.c_str(),
+    d_snapshotDataFd    = ::open(d_snapshotFiles.dataFile().c_str(),
                               O_WRONLY | O_CREAT | O_TRUNC,
                               0644);
-    d_snapshotQlistFd   = ::open(d_snapshotQlistPath.c_str(),
+    d_snapshotQlistFd   = ::open(d_snapshotFiles.qlistFile().c_str(),
                                O_WRONLY | O_CREAT | O_TRUNC,
                                0644);
 
@@ -1461,15 +1461,11 @@ int PartitionRaft::propose(const bsl::shared_ptr<mqbs::Proposal>& pw)
     // executed by the partition *DISPATCHER* thread
     enum { rc_UNAVAILABLE = -1 };
 
-    // Ahead of everything below, because all of it appends: a rollover this
-    // write triggers would put one more entry between the transfer target
-    // and 'lastIndex', which is the figure it has to reach before it can be
-    // sent its 'TimeoutNow'.  Held rather than failed, and held rather than
-    // buffered -- this write belongs to whoever wins the election that
-    // 'TimeoutNow' triggers.  'RaftNode::tick' abandons the transfer if the
-    // target never catches up, and 'reproposeHeldProposals' then brings
-    // these back through here.
-    if (d_raftNode_mp->isTransferringLeadership()) {
+    // During a leadership transfer, a PUT is held: 'repostHeldProposals'
+    // re-posts it to the new primary, or 'reproposeHeldProposals' proposes it
+    // here if the transfer is abandoned.  Every other record is proposed.
+    if (d_raftNode_mp->isTransferringLeadership() &&
+        pw->d_recordType == mqbs::RecordType::e_MESSAGE) {
         d_raftLog_mp->holdProposal(pw);
         return 0;  // RETURN
     }
@@ -1793,9 +1789,6 @@ void PartitionRaft::drainProposals()
     BSLS_ASSERT_SAFE(isLeader());
 
     // Take ownership of the buffered writes from the log, emptying its queue.
-    // Each 'setProposal' below then fills the one slot 'append' consumes,
-    // and 'append' hands the write to the entry it creates, so the queue does
-    // not refill.
     PartitionRaftLog::Proposals toReplay(d_allocator_p);
     d_raftLog_mp->takeBufferedProposals(&toReplay);
 
@@ -1806,8 +1799,8 @@ void PartitionRaft::drainProposals()
     BALL_LOG_INFO << "Partition [" << d_partitionId << "] draining "
                   << toReplay.size() << " buffered write(s) after rollover.";
 
-    // Not buffering during the drain (the rollover already committed), so
-    // each of these appends into the new file set.
+    // Each appends into the new file set, unless it does not fit: 'propose'
+    // then proposes the next rollover and buffers the rest for it.
     rePropose(toReplay);
 }
 
@@ -1818,28 +1811,38 @@ void PartitionRaft::rePropose(const PartitionRaftLog::Proposals& proposals)
 
     // Each of these reached 'propose' once and was set aside instead: for a
     // rollover, for a leadership transfer, or by the truncation that took
-    // the entry it had already been appended to.
-
-    // Feed each write through the normal append path into a single shared
-    // output, so each gets the next contiguous log index, then dispatch the
-    // accumulated output once.  'setProposal' fills the one slot 'append'
-    // consumes, and 'append' hands the write to the entry it creates.
-    RaftNodeOutput output(d_allocator_p);
-
+    // the entry it had already been appended to.  Its caller was told it
+    // succeeded, so a failure here is answered here.
     for (PartitionRaftLog::Proposals::const_iterator it = proposals.begin();
          it != proposals.end();
          ++it) {
-        d_raftLog_mp->setProposal(*it);
+        const mqbs::Proposal& pw = **it;
 
-        const int rc = d_raftNode_mp->propose(&output,
-                                              bsl::shared_ptr<bdlbb::Blob>());
-        if (rc != 0) {
-            BALL_LOG_ERROR << "Partition [" << d_partitionId
-                           << "] failed to propose a write, rc: " << rc;
+        const int rc = propose(*it);
+        if (rc == 0) {
+            continue;  // CONTINUE
+        }
+
+        BALL_LOG_ERROR << "Partition [" << d_partitionId
+                       << "] failed to propose a " << pw.d_recordType
+                       << " record, rc: " << rc;
+
+        d_fileStore_sp->undoPropose(pw);
+
+        if (pw.d_recordType != mqbs::RecordType::e_MESSAGE) {
+            continue;  // CONTINUE
+        }
+
+        mqbi::QueueHandle* handle = pw.d_attributes.queueHandle();
+        mqbi::Queue*       queue  = handle ? handle->queue() : 0;
+        if (queue) {
+            // NACK, as 'LocalQueue::postMessage' does for a failed 'put'.
+            queue->onRemoval(pw.d_guid,
+                             handle,
+                             mqbi::StorageResult::toAckResult(
+                                 mqbi::StorageResult::e_WRITE_FAILURE));
         }
     }
-
-    dispatchOutput(&output);
 }
 
 void PartitionRaft::execute(const mqbi::Dispatcher::VoidFunction& functor)
@@ -1911,10 +1914,11 @@ int PartitionRaft::transferLeadership(const bsl::string& targetHostName)
     // executed by the partition *DISPATCHER* thread (admin
     // 'transferLeadership' command)
     enum {
-        rc_SUCCESS        = 0,
-        rc_NOT_LEADER     = -1,
-        rc_UNKNOWN_TARGET = -2,
-        rc_REJECTED       = -3
+        rc_SUCCESS          = 0,
+        rc_NOT_LEADER       = -1,
+        rc_UNKNOWN_TARGET   = -2,
+        rc_REJECTED         = -3,
+        rc_ROLLOVER_PENDING = -4
     };
 
     if (!isLeader()) {
@@ -1938,6 +1942,15 @@ int PartitionRaft::transferLeadership(const bsl::string& targetHostName)
     if (target->nodeId() == d_raftNode_mp->selfId()) {
         // Already in the requested state.
         return rc_SUCCESS;  // RETURN
+    }
+
+    if (d_isRolloverPending) {
+        // Writes buffered for the rollover would follow the PUTs held during
+        // the transfer when both are re-posted to the new primary.
+        BALL_LOG_WARN << "Partition [" << d_partitionId
+                      << "] Transfer leadership rejected: a rollover is "
+                      << "pending.";
+        return rc_ROLLOVER_PENDING;  // RETURN
     }
 
     RaftNodeOutput output(d_allocator_p);
@@ -2287,10 +2300,9 @@ int PartitionRaft::writeDeletionRecord(
     pw->initDeletion(guid, queueKey, deletionFlag, timestamp);
 
     if (d_isDispatchingOutput) {
-        // A purge applying at commit writes a DELETION for every message
-        // whose refCount it drops to zero, and 'dispatchOutput' is still
-        // walking its committed entries.  'postDispatch' proposes these.  The
-        // caller needs no handle back, which is what makes deferring safe.
+        // A per-app purge applying at commit writes a DELETION for each
+        // message whose refCount it drops to zero.  This DELETION goes to
+        // 'd_deferred', and 'postDispatch' proposes it.
         d_deferred.push_back(pw);
         return 0;  // RETURN
     }

@@ -142,10 +142,9 @@ bsl::ostream& operator<<(bsl::ostream& stream, RaftMessageType::Enum value);
 // ==============
 
 /// VST representing a single entry in the Raft log.  'd_data' holds the
-/// primary record blob (journal record for partitions, CSL record for
-/// cluster).  'd_auxiliary' holds the optional supplementary payload
-/// (data-file or qlist-file content for partition MESSAGE/QUEUE_OP
-/// entries); null for all other record types.
+/// record: the CSL record for the cluster, and for a partition the journal
+/// record followed by its payload -- the data-file bytes of a MESSAGE, the
+/// qlist bytes of a QUEUE_OP creation, and nothing for the other types.
 struct LogEntry {
     // DATA
     bsls::Types::Uint64          d_term;
@@ -431,9 +430,6 @@ struct RaftNodeOutput {
 
     RaftNodeOutput(const RaftNodeOutput& other,
                    bslma::Allocator*     allocator = 0);
-
-    // MANIPULATORS
-    void reset();
 };
 
 // ==============
@@ -1058,16 +1054,6 @@ inline RaftNodeOutput::RaftNodeOutput(const RaftNodeOutput& other,
 , d_hasMoreToApply(other.d_hasMoreToApply)
 , d_installSnapshot(other.d_installSnapshot, allocator)
 {
-}
-
-inline void RaftNodeOutput::reset()
-{
-    d_messages.clear();
-    d_committed.clear();
-    d_leaderChanged      = false;
-    d_hasInstallSnapshot = false;
-    d_lostLeadership     = false;
-    d_hasMoreToApply     = false;
 }
 
 // --------------
