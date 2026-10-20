@@ -1940,7 +1940,16 @@ void StorageManager::processReceiptEvent(const bmqp::Event&   event,
     BSLS_ASSERT_SAFE(receipt.isSet());
 
     const unsigned int pid = receipt->partitionId();
-    BSLS_ASSERT_SAFE(d_fileStores.size() > pid);
+
+    // Ensure that 'pid' is valid.
+    if (pid >= d_fileStores.size()) {
+        BMQTSK_ALARMLOG_ALARM("STORAGE")
+            << d_cluster_p->description() << ": Received replication "
+            << "receipt from node " << source->nodeDescription() << " with "
+            << "invalid Partition [" << pid << "]. Ignoring receipt."
+            << BMQTSK_ALARMLOG_END;
+        return;  // RETURN
+    }
 
     mqbs::FileStore* fs = d_fileStores[pid].get();
     BSLS_ASSERT_SAFE(fs);
