@@ -271,6 +271,10 @@ void RaftNode::becomeFollower(RaftNodeOutput*     output,
                               int                 leaderId)
 {
     BSLS_ASSERT_SAFE(output);
+    // This is the only place the term changes on the way down, and it never
+    // goes back: a caller reaches here on a higher term, or on this one with
+    // a role to give up.
+    BSLS_ASSERT_SAFE(term >= d_currentTerm);
 
     // Reported here rather than by each caller: one of the three used to
     // forget, and the term is the partition's leaseId, so a missed report
@@ -598,8 +602,21 @@ void RaftNode::handleAppendEntries(RaftNodeOutput*    output,
                           << ", myTerm=" << existingTerm
                           << " != msgPrevLogTerm=" << msg.d_prevLogTerm
                           << "; truncating from " << msg.d_prevLogIndex;
+
+            // A committed entry is on a quorum and in the log of every later
+            // leader, so no leader asks for one to be dropped.
+            BSLS_ASSERT_SAFE(msg.d_prevLogIndex > d_commitIndex);
+
             // Truncate conflicting entries
-            d_log_p->truncateFrom(msg.d_prevLogIndex);
+            const int truncateRc = d_log_p->truncateFrom(msg.d_prevLogIndex);
+            if (0 != truncateRc) {
+                // The conflicting entries are still here; the rejection below
+                // reports what the log actually holds.
+                BALL_LOG_ERROR << "[partition " << d_config.d_partitionId
+                               << "] self(" << selfName()
+                               << ") failed to truncate from "
+                               << msg.d_prevLogIndex << ", rc=" << truncateRc;
+            }
 
             // As above: the leader now probes backwards and goes quiet.
             breakLeaderCommitContinuity();
@@ -630,6 +647,10 @@ void RaftNode::handleAppendEntries(RaftNodeOutput*    output,
     // AppendEntries carries none, so it verifies only 'prevLogIndex'.
     bsls::Types::Uint64 matchIndex = msg.d_prevLogIndex;
 
+    // Cleared if a truncation or an append below fails, which cuts the batch
+    // short.
+    bool accepted = true;
+
     for (bsl::vector<LogEntry>::size_type i = 0; i < msg.d_entries.size();
          ++i) {
         bsls::Types::Uint64 entryIndex = msg.d_prevLogIndex + 1 + i;
@@ -640,21 +661,34 @@ void RaftNode::handleAppendEntries(RaftNodeOutput*    output,
                 matchIndex = entryIndex;
                 continue;
             }
-            d_log_p->truncateFrom(entryIndex);
+
+            // As above: no leader asks for a committed entry to be dropped.
+            BSLS_ASSERT_SAFE(entryIndex > d_commitIndex);
+
+            const int truncateRc = d_log_p->truncateFrom(entryIndex);
+            if (0 != truncateRc) {
+                // The conflicting entries are still here, so 'append' would
+                // put this one above them rather than at 'entryIndex'.
+                BALL_LOG_ERROR
+                    << "[partition " << d_config.d_partitionId << "] self("
+                    << selfName() << ") failed to truncate from " << entryIndex
+                    << ", rc=" << truncateRc << "; truncating this batch";
+                accepted = false;
+                break;  // BREAK
+            }
         }
 
         int rc = d_log_p->append(msg.d_entries[i].d_term,
                                  msg.d_entries[i].d_data);
         if (rc != 0) {
             // The log refused it, so this node does not have it and must not
-            // claim it below.  The leader keeps its optimistically advanced
-            // 'nextIndex'; the rejection its next message draws is what
-            // corrects it.
+            // claim it below.
             BALL_LOG_ERROR << "[partition " << d_config.d_partitionId
                            << "] self(" << selfName()
                            << ") failed to append entry at index "
                            << entryIndex << ", rc=" << rc
                            << "; truncating this batch";
+            accepted = false;
             break;  // BREAK
         }
         lastIndex  = entryIndex;
@@ -682,8 +716,17 @@ void RaftNode::handleAppendEntries(RaftNodeOutput*    output,
     resp.d_term              = d_currentTerm;
     resp.d_sourceNodeId      = d_config.d_selfId;
     resp.d_destinationNodeId = msg.d_sourceNodeId;
-    resp.d_success           = true;
+    resp.d_success           = accepted;
     resp.d_matchIndex        = matchIndex;
+
+    if (!accepted) {
+        // 'matchIndex' covers only what was taken, and the leader lowers its
+        // own figure to it on a rejection but not on a success.  As in the
+        // rejections above, it now probes backwards and goes quiet.
+        resp.d_rejectedIndex = msg.d_prevLogIndex;
+        breakLeaderCommitContinuity();
+    }
+
     output->d_messages.push_back(resp);
 }
 
@@ -894,6 +937,13 @@ void RaftNode::handleInstallSnapshotResp(RaftNodeOutput*    output,
     BSLS_ASSERT_SAFE(output);
 
     if (d_state != RaftState::e_LEADER) {
+        return;
+    }
+
+    // This response carries no index: 'd_matchIndex' below comes from
+    // 'd_snapshotPendingIndex', so one from an earlier term would advance it
+    // wrongly.
+    if (msg.d_term != d_currentTerm) {
         return;
     }
 

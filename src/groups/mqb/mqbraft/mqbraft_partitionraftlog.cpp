@@ -262,6 +262,8 @@ int PartitionRaftLog::append(bsls::Types::Uint64                 term,
     // can be checked before anything is written.
     if (0 != verifyJournalOffset(lastIndex() + 1,
                                  d_fileStore_p->journalPosition())) {
+        // Not appended; the caller of 'propose' handles the failure.
+        d_currentProposal.reset();
         return rc_BAD_OFFSET_ANCHOR;  // RETURN
     }
 
@@ -311,6 +313,9 @@ int PartitionRaftLog::append(bsls::Types::Uint64                 term,
                            << ", syncPointType=" << pw.d_syncPointType
                            << ") at index " << pw.d_sequenceNumber
                            << ", rc=" << rc;
+
+            // Not appended; the caller of 'propose' handles the failure.
+            d_currentProposal.reset();
             return rc;
         }
 

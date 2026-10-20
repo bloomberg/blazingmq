@@ -7852,9 +7852,10 @@ void FileStore::undoPropose(const Proposal& pw)
 {
     // Nothing was applied to the storage at propose, so all there is to give
     // back is what propose set aside: a MESSAGE's reserved capacity, a
-    // CONFIRM's place in the in-flight count.
+    // CONFIRM's place in the in-flight count, a DELETION's mark.
     if (pw.d_recordType != RecordType::e_MESSAGE &&
-        pw.d_recordType != RecordType::e_CONFIRM) {
+        pw.d_recordType != RecordType::e_CONFIRM &&
+        pw.d_recordType != RecordType::e_DELETION) {
         return;  // RETURN
     }
 
@@ -7865,6 +7866,9 @@ void FileStore::undoPropose(const Proposal& pw)
 
     if (pw.d_recordType == RecordType::e_MESSAGE) {
         sit->second->undoCapacity(pw.d_attributes.appDataLen());
+    }
+    else if (pw.d_recordType == RecordType::e_DELETION) {
+        sit->second->undoDeletion(pw.d_guid);
     }
     else if (pw.d_confirmReason != ConfirmReason::e_AUTO_CONFIRMED) {
         // An auto confirm is not counted: 'put' writes it without going

@@ -636,6 +636,12 @@ void InMemoryStorage::undoConfirm(
     // Replicated in-memory storage is not yet supported; nothing is proposed.
 }
 
+void InMemoryStorage::undoDeletion(
+    BSLA_MAYBE_UNUSED const bmqt::MessageGUID& guid)
+{
+    // Replicated in-memory storage is not yet supported; nothing is proposed.
+}
+
 void InMemoryStorage::purge(BSLA_MAYBE_UNUSED const mqbu::StorageKey& appKey)
 {
     // Replicated in-memory storage is not yet supported.

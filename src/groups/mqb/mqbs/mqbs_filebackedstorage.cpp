@@ -497,6 +497,18 @@ void FileBackedStorage::undoConfirm(const bmqt::MessageGUID& guid,
     --it->second->d_pendingConfirms;
 }
 
+void FileBackedStorage::undoDeletion(const bmqt::MessageGUID& guid)
+{
+    RecordHandleMapIter it = d_handles.find(guid);
+    if (it == d_handles.end()) {
+        // A purge or a storage clear took the entry while this DELETION was
+        // in flight.
+        return;  // RETURN
+    }
+
+    it->second->d_deletionProposedLeaseId = 0;
+}
+
 bslma::ManagedPtr<mqbi::StorageIterator>
 FileBackedStorage::getIterator(const mqbu::StorageKey& appKey)
 {

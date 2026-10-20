@@ -107,6 +107,11 @@ class ReplicatedStorage : public mqbi::Storage {
     virtual void undoConfirm(const bmqt::MessageGUID& guid,
                              const mqbu::StorageKey&  appKey) = 0;
 
+    /// Undo the mark set when a DELETION record was written for the message
+    /// having the specified `guid`, for a record that will never commit, so
+    /// that the TTL sweep can write it again.
+    virtual void undoDeletion(const bmqt::MessageGUID& guid) = 0;
+
     /// Write the records that authorize removing the App identified by the
     /// specified `appKey`: a purge of the messages it can see, and its
     /// deletion.  Return 0 on success.  The removal itself is applied by
