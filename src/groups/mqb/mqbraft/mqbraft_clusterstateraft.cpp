@@ -181,9 +181,7 @@ void ClusterStateRaft::dispatchOutput(RaftNodeOutput* output)
         // that advisory.  Other entry commits (queue assignments, app
         // updates, ...) do not re-invoke the callback here; see
         // 'promoteToActive' for the per-advisory trigger.
-        if (d_availabilityCb) {
-            d_availabilityCb();
-        }
+        d_availabilityCb();
     }
 
     bool caughtUp = false;
@@ -410,15 +408,13 @@ bool ClusterStateRaft::applyCommittedEntry(const LogEntry& entry)
         // and the Raft commit already guarantees persistence.
         //
         // The orchestrator declares a partition ready only once two leaseIds
-        // agree: the one this CSL advisory just committed, and the one
-        // observed locally from data-partition Raft leadership
-        // ('primaryLeaseId').  The two can arrive in either order, so store
-        // the advisory's leaseId in its own field, 'advisoryConfirmedLeaseId',
-        // rather than overwriting 'primaryLeaseId'.  Update it monotonically
-        // so a stale advisory replayed at recovery can't lower a leaseId a
-        // later commit confirmed.
-        // Only a current-term advisory describes the live epoch (Raft 5.4.2);
-        // one replayed from a prior term confirms nothing.
+        // agree: the one this CSL advisory committed, and the one observed
+        // locally from data-partition Raft leadership ('primaryLeaseId'). They
+        // come over two Raft groups, arriving in either order, so store the
+        // advisory's leaseId in its own field, 'advisoryConfirmedLeaseId', not
+        // over 'primaryLeaseId'.
+        // Only a current-term advisory describes the live epoch (Raft 5.4.2),
+        // so a prior-term one replayed at recovery is skipped.
         if (entry.d_term == d_raftNode_mp->currentTerm()) {
             const bmqp_ctrlmsg::PartitionPrimaryAdvisory& adv =
                 clusterMessage.choice().partitionPrimaryAdvisory();
@@ -654,9 +650,7 @@ void ClusterStateRaft::promoteToActive()
 {
     // 'e_ACTIVE' means the state machine holds every committed entry, not
     // just the log: election safety covers the log, but Raft 5.4.2 defers
-    // applying an inherited backlog until a current-term entry commits.  The
-    // caller invokes this at that point.  Legacy and FSM stay 'e_PASSIVE'
-    // until healing likewise.
+    // applying an inherited backlog until a current-term entry commits.
     d_activeTerm = d_raftNode_mp->currentTerm();
 
     d_clusterData_p->electorInfo().setLeaderStatus(

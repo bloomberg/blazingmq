@@ -3662,10 +3662,8 @@ void StorageUtil::purgeQueueDispatched(
     }
 
     if (recordStore->isTransferringLeadership()) {
-        // The purge record would be held rather than written, so
-        // 'purgeSeqNum' would name an earlier record that has already
-        // applied and this command would report a success that never
-        // happened.  Rejected rather than held: the caller is waiting.
+        // A purge appends records the transfer target has to replicate
+        // before it can take over.
         bmqu::MemOutStream errorMsg;
         errorMsg << "Not purging queue '" << storage->queueUri()
                  << "' with record store: " << recordStore->description()

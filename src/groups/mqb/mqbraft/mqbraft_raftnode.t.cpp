@@ -263,7 +263,7 @@ class TestCluster {
     {
         int            total = 0;
         RaftNodeOutput current(*seedOutput, d_allocator_p);
-        seedOutput->reset();
+        *seedOutput = RaftNodeOutput(d_allocator_p);
 
         while (!current.d_messages.empty()) {
             RaftNodeOutput next(d_allocator_p);
@@ -1312,7 +1312,7 @@ static void test21_leadershipTransferAbandoned()
 //
 // Verify that a transfer whose target never catches up is given up after an
 // election timeout, leaving this node the leader.  Without this the arming
-// is permanent, and 'PartitionRaft::propose' holds every write behind it.
+// is permanent, and 'PartitionRaft::propose' holds every PUT behind it.
 {
     bmqtst::TestHelper::printTestName("LEADERSHIP TRANSFER ABANDONED");
 
