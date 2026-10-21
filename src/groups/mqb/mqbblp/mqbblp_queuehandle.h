@@ -233,16 +233,21 @@ class QueueHandle : public mqbi::QueueHandle {
     /// THREAD: this method is invoked only from queue dispatcher thread.
     void clearClientDispatched(bool hasLostClient);
 
-    /// Called by the `Queue` to deliver the specified `message` with the
-    /// specified `msgSize`, `msgGUID`, `attributes` and `isOutOfOrder`
-    /// for the specified `subscriptions` streams of the queue.
+    /// @brief Deliver a message to the specified streams of the queue.
+    ///
     /// The behavior is undefined unless the queueHandle can send a message at
-    /// this time for all of the `subQueueInfos` streams (see
+    /// this time for all of the `subscriptions` streams (see
     /// 'canDeliver(unsigned int subscription)' for more information).
+    ///
+    /// @param message The message to deliver; may be empty.
+    /// @param msgGUID The GUID of the message.
+    /// @param attributes The attributes of the message.
+    /// @param subscriptions The streams of the queue to deliver to.
+    /// @param isOutOfOrder Whether the message is delivered out of order.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
     void
-    deliverMessageImpl(const bsl::shared_ptr<bdlbb::Blob>&       message,
+    deliverMessageImpl(const bsl::shared_ptr<const bdlbb::Blob>& message,
                        const bmqt::MessageGUID&                  msgGUID,
                        const mqbi::StorageMessageAttributes&     attributes,
                        const bmqp::Protocol::SubQueueInfosArray& subscriptions,
@@ -387,15 +392,18 @@ class QueueHandle : public mqbi::QueueHandle {
                                const bmqp::Protocol::SubQueueInfosArray&
                                    subQueueInfos) BSLS_KEYWORD_OVERRIDE;
 
-    /// Post the message with the specified PUT `header`, `appData` and
-    /// `options` to the queue.
+    /// @brief Post a message to the queue.
+    ///
+    /// @param header The PUT header of the message.
+    /// @param appData The application data of the message.
+    /// @param options The options of the message.
     ///
     /// THREAD: this method can be called from any thread and is responsible
     ///         for calling the corresponding method on the `Queue`, on the
     ///         Queue's dispatcher thread.
-    void postMessage(const bmqp::PutHeader&              header,
-                     const bsl::shared_ptr<bdlbb::Blob>& appData,
-                     const bsl::shared_ptr<bdlbb::Blob>& options)
+    void postMessage(const bmqp::PutHeader&                    header,
+                     const bsl::shared_ptr<const bdlbb::Blob>& appData,
+                     const bsl::shared_ptr<bdlbb::Blob>&       options)
         BSLS_KEYWORD_OVERRIDE;
 
     /// Used by the client to configure a given queue handle with the

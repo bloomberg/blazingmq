@@ -136,18 +136,26 @@ struct QueueEngineUtil {
                           const bmqp::MessageProperties* properties,
                           bdlbb::BlobBufferFactory*      blobBufferFactory);
 
-    /// Dump message contents in temporary file after message has been fully
-    /// rejected (with RDA reaching zero). Raise an alarm with the message
-    /// info.
+    /// @brief Dump the contents of a fully rejected message in a temporary
+    ///        file and raise an alarm with the message info.
+    ///
+    /// @param msgGUID The GUID of the message.
+    /// @param appId The app that rejected the message.
+    /// @param subQueueId The subQueueId of the app.
+    /// @param appData The application data of the message.
+    /// @param attributes The attributes of the message.
+    /// @param queueState The state of the queue.
+    /// @param allocator The allocator to use.
+    ///
     /// THREAD: This method is called from misc threadpool.
     static void
-    logRejectMessage(const bmqt::MessageGUID&              msgGUID,
-                     const bsl::string&                    appId,
-                     unsigned int                          subQueueId,
-                     const bsl::shared_ptr<bdlbb::Blob>&   appData,
-                     const mqbi::StorageMessageAttributes& attributes,
-                     const QueueState*                     queueState,
-                     bslma::Allocator*                     allocator);
+    logRejectMessage(const bmqt::MessageGUID&                  msgGUID,
+                     const bsl::string&                        appId,
+                     unsigned int                              subQueueId,
+                     const bsl::shared_ptr<const bdlbb::Blob>& appData,
+                     const mqbi::StorageMessageAttributes&     attributes,
+                     const QueueState*                         queueState,
+                     bslma::Allocator*                         allocator);
 };
 
 // ===========================================

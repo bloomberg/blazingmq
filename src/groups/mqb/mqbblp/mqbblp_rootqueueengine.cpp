@@ -1707,8 +1707,8 @@ int RootQueueEngine::onRejectMessage(
                 // Log the rejected message and raise an alarm, in a throttled
                 // manner.
                 if (d_throttledRejectMessageDump.requestPermission()) {
-                    bsl::shared_ptr<bdlbb::Blob>   appData;
-                    bsl::shared_ptr<bdlbb::Blob>   options;
+                    bsl::shared_ptr<const bdlbb::Blob> appData;
+                    bsl::shared_ptr<bdlbb::Blob>       options;
                     mqbi::StorageMessageAttributes attributes;
                     int retrievalRc = d_queueState_p->storage()->get(
                         &appData,
@@ -1899,7 +1899,7 @@ RootQueueEngine::logAppSubscriptionInfo(bsl::ostream&     stream,
             mqbcmd::HumanPrinter::print(stream, result);
             stream << '\n';
             // Log message properties
-            const bsl::shared_ptr<bdlbb::Blob>& appData =
+            const bsl::shared_ptr<const bdlbb::Blob>& appData =
                 storageIt_mp->appData();
             const bmqp::MessagePropertiesInfo& logic =
                 storageIt_mp->attributes().messagePropertiesInfo();
@@ -2264,9 +2264,9 @@ void RootQueueEngine::unregisterStorage(
 }
 
 void RootQueueEngine::evaluateAppSubscriptions(
-    const bmqp::PutHeader&              putHeader,
-    const bsl::shared_ptr<bdlbb::Blob>& appData,
-    const bmqp::MessagePropertiesInfo&  mpi)
+    const bmqp::PutHeader&                    putHeader,
+    const bsl::shared_ptr<const bdlbb::Blob>& appData,
+    const bmqp::MessagePropertiesInfo&        mpi)
 {
     if (!d_hasAppSubscriptions) {
         // No-op if no application subscriptions configured

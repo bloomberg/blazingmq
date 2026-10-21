@@ -433,13 +433,13 @@ int QueueEngineUtil::dumpMessageInTempfile(
 }
 
 void QueueEngineUtil::logRejectMessage(
-    const bmqt::MessageGUID&              msgGUID,
-    const bsl::string&                    appId,
-    unsigned int                          subQueueId,
-    const bsl::shared_ptr<bdlbb::Blob>&   appData,
-    const mqbi::StorageMessageAttributes& attributes,
-    const QueueState*                     queueState,
-    bslma::Allocator*                     allocator)
+    const bmqt::MessageGUID&                  msgGUID,
+    const bsl::string&                        appId,
+    unsigned int                              subQueueId,
+    const bsl::shared_ptr<const bdlbb::Blob>& appData,
+    const mqbi::StorageMessageAttributes&     attributes,
+    const QueueState*                         queueState,
+    bslma::Allocator*                         allocator)
 {
     bdlbb::Blob payload(queueState->blobBufferFactory(), allocator);
     bmqp::MessageProperties properties(allocator);

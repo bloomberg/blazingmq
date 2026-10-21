@@ -84,7 +84,7 @@ struct TestClock {
 // =======
 void verifyBroadfcastPut(
     BSLA_MAYBE_UNUSED const bmqp::PutHeader& putHeader,
-    BSLA_MAYBE_UNUSED const bsl::shared_ptr<bdlbb::Blob>& appData,
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<const bdlbb::Blob>& appData,
     BSLA_MAYBE_UNUSED const bsl::shared_ptr<bdlbb::Blob>& options,
     mqbi::QueueHandle*                                    source,
     mqbi::QueueHandle*                                    origin,
@@ -107,12 +107,12 @@ class TestBench {
   public:
     struct PutEvent {
         bmqp::PutHeader              d_header;
-        bsl::shared_ptr<bdlbb::Blob> d_appData;
+        bsl::shared_ptr<const bdlbb::Blob> d_appData;
         bsl::shared_ptr<bdlbb::Blob> d_options;
 
-        PutEvent(const bmqp::PutHeader&              header,
-                 const bsl::shared_ptr<bdlbb::Blob>& appData,
-                 const bsl::shared_ptr<bdlbb::Blob>& options);
+        PutEvent(const bmqp::PutHeader&                    header,
+                 const bsl::shared_ptr<const bdlbb::Blob>& appData,
+                 const bsl::shared_ptr<bdlbb::Blob>&       options);
     };
 
     class TestRemoteQueue {
@@ -151,7 +151,7 @@ class TestBench {
     mqbi::InlineResult::Enum
     putProcessor(int                                       partitionId,
                  const bmqp::PutHeader&                    putHeader,
-                 const bsl::shared_ptr<bdlbb::Blob>&       appData,
+                 const bsl::shared_ptr<const bdlbb::Blob>& appData,
                  const bsl::shared_ptr<bdlbb::Blob>&       options,
                  const bsl::shared_ptr<bmqu::AtomicState>& state,
                  bsls::Types::Uint64                       genCount);
@@ -214,9 +214,10 @@ bsl::shared_ptr<mqbmock::Queue> TestBench::getQueue()
     return queue_sp;
 }
 
-TestBench::PutEvent::PutEvent(const bmqp::PutHeader&              header,
-                              const bsl::shared_ptr<bdlbb::Blob>& appData,
-                              const bsl::shared_ptr<bdlbb::Blob>& options)
+TestBench::PutEvent::PutEvent(
+    const bmqp::PutHeader&                    header,
+    const bsl::shared_ptr<const bdlbb::Blob>& appData,
+    const bsl::shared_ptr<bdlbb::Blob>&       options)
 : d_header(header)
 , d_appData(appData)
 , d_options(options)
@@ -225,10 +226,10 @@ TestBench::PutEvent::PutEvent(const bmqp::PutHeader&              header,
 }
 
 mqbi::InlineResult::Enum TestBench::putProcessor(
-    BSLS_ANNOTATION_UNUSED int          partitionId,
-    const bmqp::PutHeader&              putHeader,
-    const bsl::shared_ptr<bdlbb::Blob>& appData,
-    const bsl::shared_ptr<bdlbb::Blob>& options,
+    BSLS_ANNOTATION_UNUSED int                partitionId,
+    const bmqp::PutHeader&                    putHeader,
+    const bsl::shared_ptr<const bdlbb::Blob>& appData,
+    const bsl::shared_ptr<bdlbb::Blob>&       options,
     BSLS_ANNOTATION_UNUSED const bsl::shared_ptr<bmqu::AtomicState>& state,
     BSLS_ANNOTATION_UNUSED bsls::Types::Uint64 genCount)
 {

@@ -536,7 +536,7 @@ void QueueHandle::clearClientDispatched(bool hasLostClient)
 }
 
 void QueueHandle::deliverMessageImpl(
-    const bsl::shared_ptr<bdlbb::Blob>&       message,
+    const bsl::shared_ptr<const bdlbb::Blob>& message,
     const bmqt::MessageGUID&                  msgGUID,
     const mqbi::StorageMessageAttributes&     attributes,
     const bmqp::Protocol::SubQueueInfosArray& subscriptions,
@@ -1054,17 +1054,19 @@ void QueueHandle::deliverMessage(
         return;  // RETURN
     }
 
-    deliverMessageImpl(isClientClusterMember() ? bsl::shared_ptr<bdlbb::Blob>()
-                                               : iter.appData(),
+    deliverMessageImpl(isClientClusterMember()
+                           ? bsl::shared_ptr<const bdlbb::Blob>()
+                           : iter.appData(),
                        iter.guid(),
                        iter.attributes(),
                        targetSubscriptions,
                        isOutOfOrder);
 }
 
-void QueueHandle::postMessage(const bmqp::PutHeader&              putHeader,
-                              const bsl::shared_ptr<bdlbb::Blob>& appData,
-                              const bsl::shared_ptr<bdlbb::Blob>& options)
+void QueueHandle::postMessage(
+    const bmqp::PutHeader&                    putHeader,
+    const bsl::shared_ptr<const bdlbb::Blob>& appData,
+    const bsl::shared_ptr<bdlbb::Blob>&       options)
 {
     // executed by the *CLUSTER_DISPATCHER* or *CLIENT_DISPATCHER* thread
 

@@ -1773,7 +1773,7 @@ void ClientSession::onPushEvent(const mqbevt::PushEvent& event)
         return;  // RETURN
     }
 
-    bdlbb::Blob* blob = event.blob().get();
+    const bdlbb::Blob* blob = event.blob().get();
 
     if (BALL_LOG_IS_ENABLED(ball::Severity::e_TRACE)) {
         // If there are multiple subStreams, we add the corresponding

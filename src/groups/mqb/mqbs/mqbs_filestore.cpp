@@ -279,10 +279,10 @@ void printLastJournalRecord(bsl::ostream&               stream,
     }
 }
 
-void printNextEventRecord(bsl::ostream&                       stream,
-                          const bsl::shared_ptr<bdlbb::Blob>& event,
-                          const bmqu::BlobPosition&           recordPosition,
-                          bslma::Allocator*                   allocator)
+void printNextEventRecord(bsl::ostream&                             stream,
+                          const bsl::shared_ptr<const bdlbb::Blob>& event,
+                          const bmqu::BlobPosition& recordPosition,
+                          bslma::Allocator*         allocator)
 {
     char* p = static_cast<char*>(
         allocator->allocate(FileStoreProtocol::k_JOURNAL_RECORD_SIZE));
@@ -4459,10 +4459,11 @@ void FileStore::processReceiptEvent(unsigned int         primaryLeaseId,
     }
 }
 
-int FileStore::writeMessageRecord(const bmqp::StorageHeader& header,
-                                  const mqbs::RecordHeader&  recHeader,
-                                  const bsl::shared_ptr<bdlbb::Blob>& event,
-                                  const bmqu::BlobPosition& recordPosition)
+int FileStore::writeMessageRecord(
+    const bmqp::StorageHeader&                header,
+    const mqbs::RecordHeader&                 recHeader,
+    const bsl::shared_ptr<const bdlbb::Blob>& event,
+    const bmqu::BlobPosition&                 recordPosition)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(0 < d_fileSets.size());
@@ -4649,10 +4650,10 @@ int FileStore::writeMessageRecord(const bmqp::StorageHeader& header,
 }
 
 int FileStore::writeQueueCreationRecord(
-    const bmqp::StorageHeader&          header,
-    const mqbs::RecordHeader&           recHeader,
-    const bsl::shared_ptr<bdlbb::Blob>& event,
-    const bmqu::BlobPosition&           recordPosition)
+    const bmqp::StorageHeader&                header,
+    const mqbs::RecordHeader&                 recHeader,
+    const bsl::shared_ptr<const bdlbb::Blob>& event,
+    const bmqu::BlobPosition&                 recordPosition)
 {
     enum {
         rc_SUCCESS                           = 0,
@@ -4780,11 +4781,12 @@ int FileStore::writeQueueCreationRecord(
     return rc_SUCCESS;
 }
 
-int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
-                                  const mqbs::RecordHeader&  recHeader,
-                                  const bsl::shared_ptr<bdlbb::Blob>& event,
-                                  const bmqu::BlobPosition& recordPosition,
-                                  bmqp::StorageMessageType::Enum messageType)
+int FileStore::writeJournalRecord(
+    const bmqp::StorageHeader&                header,
+    const mqbs::RecordHeader&                 recHeader,
+    const bsl::shared_ptr<const bdlbb::Blob>& event,
+    const bmqu::BlobPosition&                 recordPosition,
+    bmqp::StorageMessageType::Enum            messageType)
 {
     enum {
         rc_SUCCESS                = 0,
@@ -5471,9 +5473,9 @@ void FileStore::replicateAndInsertDataStoreRecord(
 }
 
 // PRIVATE ACCESSORS
-void FileStore::aliasMessage(bsl::shared_ptr<bdlbb::Blob>* appData,
-                             bsl::shared_ptr<bdlbb::Blob>* options,
-                             const DataStoreRecord&        record) const
+void FileStore::aliasMessage(bsl::shared_ptr<const bdlbb::Blob>* appData,
+                             bsl::shared_ptr<bdlbb::Blob>*       options,
+                             const DataStoreRecord&              record) const
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(0 < d_fileSets.size());
@@ -5515,9 +5517,10 @@ void FileStore::aliasMessage(bsl::shared_ptr<bdlbb::Blob>* appData,
         bslmf::MovableRefUtil::move(appDataBufferSp),
         record.d_appDataUnpaddedLen);
 
-    *appData = d_blobSpPool_p->getObject();
-    (*appData)->appendDataBuffer(
+    bsl::shared_ptr<bdlbb::Blob> appDataSp = d_blobSpPool_p->getObject();
+    appDataSp->appendDataBuffer(
         bslmf::MovableRefUtil::move(appDataBlobBuffer));
+    *appData = appDataSp;
 }
 
 void FileStore::flushIfNeeded(bool immediateFlush)
@@ -5846,12 +5849,13 @@ void FileStore::createStorage(bsl::shared_ptr<ReplicatedStorage>* storageSp,
     }
 }
 
-int FileStore::writeMessageRecord(mqbi::StorageMessageAttributes* attributes,
-                                  DataStoreRecordHandle*          handle,
-                                  const bmqt::MessageGUID&        guid,
-                                  const bsl::shared_ptr<bdlbb::Blob>& appData,
-                                  const bsl::shared_ptr<bdlbb::Blob>& options,
-                                  const mqbu::StorageKey&             queueKey)
+int FileStore::writeMessageRecord(
+    mqbi::StorageMessageAttributes*           attributes,
+    DataStoreRecordHandle*                    handle,
+    const bmqt::MessageGUID&                  guid,
+    const bsl::shared_ptr<const bdlbb::Blob>& appData,
+    const bsl::shared_ptr<bdlbb::Blob>&       options,
+    const mqbu::StorageKey&                   queueKey)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(handle);
@@ -6597,9 +6601,10 @@ void FileStore::onPurgeComplete()
                      k_REQUESTED_JOURNAL_SPACE);
 }
 
-int FileStore::processStorageEvent(const bsl::shared_ptr<bdlbb::Blob>& blob,
-                                   bool                 isPartitionSyncEvent,
-                                   mqbnet::ClusterNode* source)
+int FileStore::processStorageEvent(
+    const bsl::shared_ptr<const bdlbb::Blob>& blob,
+    bool                                      isPartitionSyncEvent,
+    mqbnet::ClusterNode*                      source)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(blob);
@@ -6794,7 +6799,8 @@ int FileStore::processStorageEvent(const bsl::shared_ptr<bdlbb::Blob>& blob,
     return rc_SUCCESS;
 }
 
-int FileStore::processRecoveryEvent(const bsl::shared_ptr<bdlbb::Blob>& blob)
+int FileStore::processRecoveryEvent(
+    const bsl::shared_ptr<const bdlbb::Blob>& blob)
 {
     // executed by the *DISPATCHER* thread
 
@@ -7781,10 +7787,10 @@ void FileStore::loadMessageAttributesRaw(
                                              record.d_arrivalTimepoint);
 }
 
-void FileStore::loadMessageRaw(bsl::shared_ptr<bdlbb::Blob>*   appData,
-                               bsl::shared_ptr<bdlbb::Blob>*   options,
-                               mqbi::StorageMessageAttributes* attributes,
-                               const DataStoreRecordHandle&    handle) const
+void FileStore::loadMessageRaw(bsl::shared_ptr<const bdlbb::Blob>* appData,
+                               bsl::shared_ptr<bdlbb::Blob>*       options,
+                               mqbi::StorageMessageAttributes*     attributes,
+                               const DataStoreRecordHandle& handle) const
 {
     loadMessageAttributesRaw(attributes, handle);
     const RecordIterator& recordIt = *reinterpret_cast<const RecordIterator*>(

@@ -594,7 +594,7 @@ BMQTST_TEST_F(Test, get_noVirtualStorages)
 
         {
             mqbi::StorageMessageAttributes attributes;
-            bsl::shared_ptr<bdlbb::Blob>   appData;
+            bsl::shared_ptr<const bdlbb::Blob> appData;
             bsl::shared_ptr<bdlbb::Blob>   options;
             BMQTST_ASSERT_EQ(
                 storage.get(&appData, &options, &attributes, guids[i]),
@@ -614,7 +614,7 @@ BMQTST_TEST_F(Test, get_noVirtualStorages)
 
     // Check 'get' with a non-existent GUID
     mqbi::StorageMessageAttributes attributes;
-    bsl::shared_ptr<bdlbb::Blob>   appData;
+    bsl::shared_ptr<const bdlbb::Blob> appData;
     bsl::shared_ptr<bdlbb::Blob>   options;
     BMQTST_ASSERT_EQ(storage.get(&attributes, generateUniqueGUID(guids)),
                      mqbi::StorageResult::e_GUID_NOT_FOUND);
@@ -1009,7 +1009,7 @@ BMQTST_TEST(get_withVirtualStorages)
 
     // Verify 'get' operation
     mqbi::StorageMessageAttributes attributes;
-    bsl::shared_ptr<bdlbb::Blob>   appData;
+    bsl::shared_ptr<const bdlbb::Blob> appData;
     bsl::shared_ptr<bdlbb::Blob>   options;
 
     // 'get' messageAttributes: Should reflect correct number of references and

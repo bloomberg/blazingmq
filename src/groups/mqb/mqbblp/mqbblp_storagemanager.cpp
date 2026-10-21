@@ -730,9 +730,9 @@ void StorageManager::clearPrimaryForPartitionDispatched(
 }
 
 void StorageManager::processStorageEventDispatched(
-    int                                 partitionId,
-    const bsl::shared_ptr<bdlbb::Blob>& blob,
-    mqbnet::ClusterNode*                source)
+    int                                       partitionId,
+    const bsl::shared_ptr<const bdlbb::Blob>& blob,
+    mqbnet::ClusterNode*                      source)
 {
     // executed by *DISPATCHER* thread
 
@@ -845,9 +845,9 @@ void StorageManager::processPartitionSyncEvent(
 }
 
 void StorageManager::processPartitionSyncEventDispatched(
-    int                                 partitionId,
-    const bsl::shared_ptr<bdlbb::Blob>& blob,
-    mqbnet::ClusterNode*                source)
+    int                                       partitionId,
+    const bsl::shared_ptr<const bdlbb::Blob>& blob,
+    mqbnet::ClusterNode*                      source)
 {
     // executed by *DISPATCHER* thread
 
