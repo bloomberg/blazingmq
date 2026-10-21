@@ -144,7 +144,7 @@ void QueueEngine::afterPostMessage()
 
 void QueueEngine::evaluateAppSubscriptions(
     BSLA_MAYBE_UNUSED const bmqp::PutHeader& putHeader,
-    BSLA_MAYBE_UNUSED const bsl::shared_ptr<bdlbb::Blob>& appData,
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<const bdlbb::Blob>& appData,
     BSLA_MAYBE_UNUSED const bmqp::MessagePropertiesInfo& mpi)
 {
     // executed by the *QUEUE DISPATCHER* thread

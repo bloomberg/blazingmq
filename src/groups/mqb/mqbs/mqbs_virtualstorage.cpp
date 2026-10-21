@@ -277,7 +277,7 @@ mqbi::AppMessage& StorageIterator::appMessageState(unsigned int appOrdinal)
     return dataStreamMessage->app(appOrdinal);
 }
 
-const bsl::shared_ptr<bdlbb::Blob>& StorageIterator::appData() const
+const bsl::shared_ptr<const bdlbb::Blob>& StorageIterator::appData() const
 {
     loadMessageAndAttributes();
     return d_appData_sp;

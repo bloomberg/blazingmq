@@ -441,7 +441,7 @@ class MyMockQueueHandle : public mqbmock::QueueHandle {
     // PUBLIC TYPES
     struct Post {
         bmqp::PutHeader              d_putHeader;
-        bsl::shared_ptr<bdlbb::Blob> d_appData;
+        bsl::shared_ptr<const bdlbb::Blob> d_appData;
         bsl::shared_ptr<bdlbb::Blob> d_options;
     };
 
@@ -509,9 +509,9 @@ class MyMockQueueHandle : public mqbmock::QueueHandle {
     /// Called by the framework when a new message with the specified
     /// `putHeader`, `appData` and `options` is sent upstream.  We capture
     /// the message.
-    virtual void postMessage(const bmqp::PutHeader&              putHeader,
-                             const bsl::shared_ptr<bdlbb::Blob>& appData,
-                             const bsl::shared_ptr<bdlbb::Blob>& options)
+    virtual void postMessage(const bmqp::PutHeader& putHeader,
+                             const bsl::shared_ptr<const bdlbb::Blob>& appData,
+                             const bsl::shared_ptr<bdlbb::Blob>&       options)
         BSLS_KEYWORD_OVERRIDE
     {
         Post& p = d_postedMessages.emplace_back();
@@ -929,11 +929,11 @@ class TestBench {
     /// Sends a `Push` event for the specified `queueId`, `msgGUID` and
     /// `correlationId` with `isAckRequested` flag
     /// to this testbench's `ClientSession`.
-    void sendPush(const int                            queueId,
-                  const bmqt::MessageGUID&             msgGUID,
-                  const bsl::shared_ptr<bdlbb::Blob>&  blob,
-                  bmqt::CompressionAlgorithmType::Enum cat,
-                  const bmqp::MessagePropertiesInfo&   logic)
+    void sendPush(const int                                 queueId,
+                  const bmqt::MessageGUID&                  msgGUID,
+                  const bsl::shared_ptr<const bdlbb::Blob>& blob,
+                  bmqt::CompressionAlgorithmType::Enum      cat,
+                  const bmqp::MessagePropertiesInfo&        logic)
     {
         PVV("Sending PUSH with queueId=" << queueId << ", guid=" << msgGUID);
 
@@ -2178,7 +2178,7 @@ static void test11_initiateShutdown()
 
         mqbi::AppMessage d_appMessage;
 
-        bsl::shared_ptr<bdlbb::Blob> d_appData;
+        bsl::shared_ptr<const bdlbb::Blob> d_appData;
 
         bsl::shared_ptr<bdlbb::Blob> d_options;
 
@@ -2237,7 +2237,7 @@ static void test11_initiateShutdown()
             return d_appMessage;
         }
 
-        const bsl::shared_ptr<bdlbb::Blob>&
+        const bsl::shared_ptr<const bdlbb::Blob>&
         appData() const BSLS_KEYWORD_OVERRIDE
         {
             return d_appData;

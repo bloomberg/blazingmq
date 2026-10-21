@@ -3014,7 +3014,7 @@ void StorageManager::do_processBufferedLiveData(
         return;  // RETURN
     }
 
-    bsl::vector<bsl::shared_ptr<bdlbb::Blob> > bufferedStorageEvents;
+    bsl::vector<bsl::shared_ptr<const bdlbb::Blob> > bufferedStorageEvents;
     int rc = d_recoveryManager_mp->loadBufferedStorageEvents(
         &bufferedStorageEvents,
         primary,
@@ -3029,7 +3029,7 @@ void StorageManager::do_processBufferedLiveData(
                   << bufferedStorageEvents.size()
                   << " buffered storage events to the partition.";
 
-    for (bsl::vector<bsl::shared_ptr<bdlbb::Blob> >::const_iterator cit =
+    for (bsl::vector<bsl::shared_ptr<const bdlbb::Blob> >::const_iterator cit =
              bufferedStorageEvents.cbegin();
          cit != bufferedStorageEvents.cend();
          ++cit) {

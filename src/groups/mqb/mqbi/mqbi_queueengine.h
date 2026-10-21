@@ -229,15 +229,18 @@ class QueueEngine {
                                    const mqbu::StorageKey& appKey,
                                    unsigned int            appOrdinal);
 
-    /// Given the specified 'putHeader', 'appData', and 'mpi', evaluate all
-    /// application subscriptions and exclude applications with negative
-    /// results from message delivery.
+    /// @brief Evaluate all application subscriptions for a message and
+    ///        exclude applications with negative results from delivery.
+    ///
+    /// @param putHeader The PUT header of the message.
+    /// @param appData The application data of the message.
+    /// @param mpi The message properties info of the message.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
     virtual void
-    evaluateAppSubscriptions(const bmqp::PutHeader&              putHeader,
-                             const bsl::shared_ptr<bdlbb::Blob>& appData,
-                             const bmqp::MessagePropertiesInfo&  mpi) = 0;
+    evaluateAppSubscriptions(const bmqp::PutHeader& putHeader,
+                             const bsl::shared_ptr<const bdlbb::Blob>& appData,
+                             const bmqp::MessagePropertiesInfo& mpi) = 0;
 
     // ACCESSORS
 

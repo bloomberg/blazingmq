@@ -288,7 +288,7 @@ class PushStreamIterator : public mqbi::StorageIterator {
     /// If this variable is empty, it is assumed that attributes, message, and
     /// options have not been loaded in this iteration (see also
     /// `loadMessageAndAttributes` impl).
-    mutable bsl::shared_ptr<bdlbb::Blob> d_appData_sp;
+    mutable bsl::shared_ptr<const bdlbb::Blob> d_appData_sp;
 
     mutable bsl::shared_ptr<bdlbb::Blob> d_options_sp;
 
@@ -389,10 +389,12 @@ class PushStreamIterator : public mqbi::StorageIterator {
     mqbi::AppMessage&
     appMessageState(unsigned int appOrdinal) BSLS_KEYWORD_OVERRIDE;
 
-    /// Return a reference offering non-modifiable access to the application
-    /// data associated with the item currently pointed at by this iterator.
+    /// @brief Return the application data associated with the item currently
+    ///        pointed at by this iterator.
+    ///
     /// The behavior is undefined unless `atEnd` returns `false`.
-    const bsl::shared_ptr<bdlbb::Blob>& appData() const BSLS_KEYWORD_OVERRIDE;
+    const bsl::shared_ptr<const bdlbb::Blob>&
+    appData() const BSLS_KEYWORD_OVERRIDE;
 
     /// Return a reference offering non-modifiable access to the options
     /// associated with the item currently pointed at by this iterator.  The
