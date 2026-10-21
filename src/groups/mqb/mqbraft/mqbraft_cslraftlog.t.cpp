@@ -689,6 +689,99 @@ static void test8_openAfterCrashRestart()
     }
 }
 
+static void test9_appendPastTruncationPoint()
+// APPEND PAST TRUNCATION POINT
+//
+// A follower truncates its log and then appends the leader's entries.  The
+// file stays at its mapped size, so those entries may run past the old end
+// of data.  After a restart without 'close()', 'open()' must stop at the
+// entries written after the truncation: the removed ones read as zero.
+{
+    bmqtst::TestHelper::printTestName("APPEND PAST TRUNCATION POINT");
+
+    bslma::Allocator*              alloc = bmqtst::TestHelperUtil::allocator();
+    bmqu::TempDirectory            tempDir(alloc);
+    bdlbb::PooledBlobBufferFactory factory(256, alloc);
+    bmqp::BlobPoolUtil::BlobSpPoolSp poolSp =
+        bmqp::BlobPoolUtil::createBlobPool(&factory, alloc);
+
+    bsl::string      logPath = tempDir.path() + "/csl_truncate.bmq";
+    mqbsi::LogConfig logConfig(k_LOG_MAX_SIZE,
+                               k_LOG_KEY,
+                               logPath,
+                               false,  // reserveOnDisk
+                               false,
+                               alloc);
+
+    // Enough records to cover several pages.
+    const bsls::Types::Uint64 k_NUM_RECORDS = 1000;
+    const bsls::Types::Uint64 k_KEEP        = 1;
+    const bsls::Types::Uint64 k_REAPPEND    = 10;
+
+    {
+        bsl::shared_ptr<mqbsl::MemoryMappedOnDiskLog> log(
+            new (*alloc) mqbsl::MemoryMappedOnDiskLog(logConfig),
+            alloc);
+        BMQTST_ASSERT_EQ(log->open(mqbsi::Log::e_CREATE_IF_MISSING), 0);
+
+        mqbc::ClusterStateFileHeader fileHeader;
+        log->write(&fileHeader,
+                   0,
+                   static_cast<int>(sizeof(mqbc::ClusterStateFileHeader)));
+
+        CslRaftLog raftLog(log, poolSp.get(), alloc);
+        BMQTST_ASSERT_EQ(raftLog.open(), 0);
+
+        for (bsls::Types::Uint64 i = 1; i <= k_NUM_RECORDS; ++i) {
+            BMQTST_ASSERT_EQ(raftLog.append(1,
+                                            makeRecord(1, i, &factory, alloc)),
+                             0);
+        }
+
+        BMQTST_ASSERT_EQ(raftLog.truncateFrom(k_KEEP + 1), 0);
+        BMQTST_ASSERT_EQ(raftLog.lastIndex(), k_KEEP);
+
+        // The file keeps its mapped size.
+        BMQTST_ASSERT_EQ(bdls::FilesystemUtil::getFileSize(logPath),
+                         k_LOG_MAX_SIZE);
+
+        // Run past the truncation point by more than a page.
+        for (bsls::Types::Uint64 i = k_KEEP + 1; i <= k_NUM_RECORDS; ++i) {
+            BMQTST_ASSERT_EQ(raftLog.append(2,
+                                            makeRecord(2, i, &factory, alloc)),
+                             0);
+        }
+        BMQTST_ASSERT_EQ(raftLog.lastIndex(), k_NUM_RECORDS);
+
+        // Remove most of them again and append a few, so the tail past the
+        // new end held records.
+        BMQTST_ASSERT_EQ(raftLog.truncateFrom(k_KEEP + 1), 0);
+        for (bsls::Types::Uint64 i = 1; i <= k_REAPPEND; ++i) {
+            BMQTST_ASSERT_EQ(
+                raftLog.append(3, makeRecord(3, k_KEEP + i, &factory, alloc)),
+                0);
+        }
+
+        // No 'close()': the process is gone.
+    }
+
+    {
+        bsl::shared_ptr<mqbsl::MemoryMappedOnDiskLog> log(
+            new (*alloc) mqbsl::MemoryMappedOnDiskLog(logConfig),
+            alloc);
+        BMQTST_ASSERT_EQ(log->open(mqbsi::Log::e_CREATE_IF_MISSING), 0);
+
+        CslRaftLog raftLog(log, poolSp.get(), alloc);
+        BMQTST_ASSERT_EQ(raftLog.open(), 0);
+
+        BMQTST_ASSERT_EQ(raftLog.lastIndex(), k_KEEP + k_REAPPEND);
+        BMQTST_ASSERT_EQ(raftLog.term(k_KEEP), 1ULL);
+        BMQTST_ASSERT_EQ(raftLog.term(k_KEEP + k_REAPPEND), 3ULL);
+
+        log->close();
+    }
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ============================================================================
@@ -699,6 +792,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 9: test9_appendPastTruncationPoint(); break;
     case 8: test8_openAfterCrashRestart(); break;
     case 7: test7_rolloverMatchesOpen(); break;
     case 6: test6_installSnapshotMatchesOpen(); break;

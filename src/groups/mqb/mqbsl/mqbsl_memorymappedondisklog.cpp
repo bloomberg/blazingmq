@@ -240,12 +240,15 @@ int MemoryMappedOnDiskLog::truncate(Offset offset)
     if (!d_isOpened) {
         return LogOpResult::e_UNSUPPORTED_OPERATION;  // RETURN
     }
-
-    bmqu::MemOutStream errorDescription;
-    int rc = mqbs::FileSystemUtil::truncate(&d_mfd, offset, errorDescription);
-    if (rc != 0) {
-        return LogOpResult::e_FILE_TRUNCATE_FAILURE;  // RETURN
+    if (offset > d_currentOffset) {
+        return LogOpResult::e_OFFSET_OUT_OF_RANGE;  // RETURN
     }
+
+    // Zero the removed bytes and move the write position back, but keep the
+    // file at its mapped size: a write past 'offset' then lands on a page the
+    // file backs, and a reader that stops at the first invalid record stops
+    // at 'offset'.
+    bsl::memset(d_mfd.mapping() + offset, 0, d_currentOffset - offset);
 
     d_currentOffset       = offset;
     d_outstandingNumBytes = offset;
