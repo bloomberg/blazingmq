@@ -44,6 +44,9 @@
 // This component is NOT thread-safe.  All methods must be called from the
 // same thread (the cluster dispatcher thread in production).
 
+// MQB
+#include <mqbraft_persistentstate.h>
+
 // BDE
 #include <ball_log.h>
 #include <bdlbb_blob.h>
@@ -419,6 +422,10 @@ struct RaftNodeOutput {
     /// nothing else will, since `commitTo` only runs when the commit index
     /// advances.
     bool d_hasMoreToApply;
+
+    /// `true` when this call changed `currentTerm` or the vote.  The caller
+    /// must save `RaftNode::persistentState` before sending `d_messages`.
+    bool d_persistentStateChanged;
 
     RaftMessage d_installSnapshot;
 
@@ -807,6 +814,11 @@ class RaftNode {
     void initRecoveredState(bsls::Types::Uint64 term,
                             bsls::Types::Uint64 commitIndex);
 
+    /// Raise `d_currentTerm` to at least the term in the specified `state`,
+    /// and take its vote if it was cast in the resulting term.  Called at
+    /// startup, after `initRecoveredState`.
+    void restorePersistentState(const PersistentState& state);
+
     /// Record that the peer with the specified `peerNodeId` is reachable or
     /// not, per the specified `isAvailable`.  Becoming reachable resets that
     /// peer back to probing.
@@ -818,6 +830,9 @@ class RaftNode {
     int                 selfId() const;
     bsls::Types::Uint64 currentTerm() const;
     bsls::Types::Uint64 commitIndex() const;
+
+    /// Return `d_currentTerm` and the vote cast in it.
+    PersistentState persistentState() const;
 
     /// Return the term of the log entry at the current commit index (0 if
     /// nothing is committed).  Used to check whether a current-term entry
@@ -1040,6 +1055,7 @@ inline RaftNodeOutput::RaftNodeOutput(bslma::Allocator* allocator)
 , d_hasInstallSnapshot(false)
 , d_lostLeadership(false)
 , d_hasMoreToApply(false)
+, d_persistentStateChanged(false)
 , d_installSnapshot(allocator)
 {
 }
@@ -1052,6 +1068,7 @@ inline RaftNodeOutput::RaftNodeOutput(const RaftNodeOutput& other,
 , d_hasInstallSnapshot(other.d_hasInstallSnapshot)
 , d_lostLeadership(other.d_lostLeadership)
 , d_hasMoreToApply(other.d_hasMoreToApply)
+, d_persistentStateChanged(other.d_persistentStateChanged)
 , d_installSnapshot(other.d_installSnapshot, allocator)
 {
 }

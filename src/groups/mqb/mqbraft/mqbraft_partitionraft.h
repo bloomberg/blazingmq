@@ -166,6 +166,12 @@ class PartitionRaft : public mqbs::RecordStore,
     /// dispatcher thread.  Initially `false`.
     bsls::AtomicBool d_canShutdown;
 
+    /// File holding this partition's `PersistentState`.
+    bsl::string d_persistentStatePath;
+
+    /// `true` while `currentTerm` or the vote has changed and is not saved.
+    bool d_isPersistentStateDirty;
+
     // NOT IMPLEMENTED
     PartitionRaft(const PartitionRaft&);
     PartitionRaft& operator=(const PartitionRaft&);
@@ -194,7 +200,12 @@ class PartitionRaft : public mqbs::RecordStore,
     /// THREAD: Executed by this partition's dispatcher thread.
     void setPeerAvailabilityDispatched(int nodeId, bool isAvailable);
 
-    /// Send every message in the specified `output`.
+    /// Save the `RaftNode`'s `PersistentState` if the specified `changed` is
+    /// `true` or an earlier save failed.  Return `true` if it is on disk.
+    bool savePersistentState(bool changed);
+
+    /// Send every message in the specified `output`, once
+    /// `savePersistentState` succeeds; send none if it fails.
     void dispatchMessages(RaftNodeOutput* output);
 
     /// Dispatch RaftNode output: send messages to peers and notify FileStore
