@@ -200,10 +200,11 @@ class Channel {
     /// @param cb The callback to invoke.
     virtual void onClose(const CloseFn& cb) = 0;
 
-    /// Register the specified `cb` to be invoked when a `watermark` event
-    /// occurs for this channel.  Return a `bdlmt::SignalerConnection`
-    /// object than can be used to unregister the callback.
-    virtual bdlmt::SignalerConnection onWatermark(const WatermarkFn& cb) = 0;
+    /// @brief Register a callback to be invoked on each watermark event of
+    /// this channel.
+    ///
+    /// @param cb The callback to invoke.
+    virtual void onWatermark(const WatermarkFn& cb) = 0;
 
     /// Return a reference providing modifiable access to the properties of
     /// this Channel.
