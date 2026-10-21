@@ -131,16 +131,10 @@ class PartitionRaftLog : public RaftLog {
     /// whose producer is still attached.
     HeldProposals d_heldProposals;
 
-    /// Blobs of recent entries, oldest first: `d_cache[i]` is the entry at
-    /// index `d_cacheBase + i`.  Filled by:
-    /// * `applyCommittedEntry`, for an entry of this node's own.  Serves an
-    ///   AppendEntries to a peer that has not acked it yet.
-    /// * `append`, for an entry received as replica.  Its commit applies this
-    ///   blob instead of reading the journal.  After apply, only the last
-    ///   applied entry is kept: the next AppendEntries checks its term.
-    /// At most `k_MAX_CACHED_ENTRIES` entries and `k_MAX_CACHED_BYTES` bytes,
-    /// oldest dropped first.  The blobs alias the active file set or the
-    /// received event, so `clearCache` runs before the file set is closed.
+    /// Cache blobs of recent entries to avoid reading journal.  At most
+    /// `k_MAX_CACHED_ENTRIES` entries and `k_MAX_CACHED_BYTES` bytes.  The
+    /// blobs alias the active file set or the received event, so must run
+    /// `clearCache` before the file set is closed.
     bsl::deque<EntryBlobSp> d_cache;
 
     /// Log index of `d_index.front()`, or of the next append while `d_index`

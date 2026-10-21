@@ -289,8 +289,9 @@ void RaftNode::becomeFollower(RaftNodeOutput*     output,
     }
 
     if (d_currentTerm != term) {
-        d_currentTerm           = term;
-        output->d_leaderChanged = true;
+        d_currentTerm                    = term;
+        output->d_leaderChanged          = true;
+        output->d_persistentStateChanged = true;
     }
 
     d_state = RaftState::e_FOLLOWER;
@@ -332,8 +333,9 @@ void RaftNode::becomeCandidate(RaftNodeOutput* output, bool preVote)
             d_currentTerm = lastLogTerm;
         }
         d_currentTerm++;
-        d_votedFor = d_config.d_selfId;
-        d_state    = RaftState::e_CANDIDATE;
+        d_votedFor                       = d_config.d_selfId;
+        d_state                          = RaftState::e_CANDIDATE;
+        output->d_persistentStateChanged = true;
 
         // Only a real candidacy abandons the leader.  A pre-vote asks whether
         // a term change *would* be supported and leaves the term alone (Raft
@@ -450,7 +452,10 @@ void RaftNode::handleRequestVote(RaftNodeOutput*    output,
                  d_votedFor == msg.d_sourceNodeId) {
             grant = isLogUpToDate(msg.d_lastLogTerm, msg.d_lastLogIndex);
             if (grant) {
-                d_votedFor = msg.d_sourceNodeId;
+                if (d_votedFor != msg.d_sourceNodeId) {
+                    d_votedFor                       = msg.d_sourceNodeId;
+                    output->d_persistentStateChanged = true;
+                }
                 resetElectionTimer();
             }
         }
@@ -883,9 +888,10 @@ void RaftNode::handleInstallSnapshot(RaftNodeOutput*    output,
     // the "CSL backlog applied for this term" signal) off this flag, and a
     // term advance invalidates it.  Mirrors 'becomeFollower'.
     if (msg.d_term > d_currentTerm) {
-        d_currentTerm           = msg.d_term;
-        d_votedFor              = k_INVALID_NODE_ID;
-        output->d_leaderChanged = true;
+        d_currentTerm                    = msg.d_term;
+        d_votedFor                       = k_INVALID_NODE_ID;
+        output->d_leaderChanged          = true;
+        output->d_persistentStateChanged = true;
     }
 
     d_state = RaftState::e_FOLLOWER;
@@ -1508,6 +1514,32 @@ void RaftNode::initRecoveredState(bsls::Types::Uint64 term,
     // flight, so whatever was known before is the last word from before a
     // silence and must not read as progress since.
     breakLeaderCommitContinuity();
+}
+
+void RaftNode::restorePersistentState(const PersistentState& state)
+{
+    if (state.d_currentTerm > d_currentTerm) {
+        d_currentTerm = state.d_currentTerm;
+    }
+
+    // A vote from an older term does not count in this one.
+    d_votedFor = state.d_voteTerm == d_currentTerm ? state.d_votedFor
+                                                   : k_INVALID_NODE_ID;
+
+    BALL_LOG_INFO << "[partition " << d_config.d_partitionId << "] self("
+                  << selfName() << ") restored " << state << ": term "
+                  << d_currentTerm << ", votedFor=" << nodeName(d_votedFor);
+}
+
+PersistentState RaftNode::persistentState() const
+{
+    PersistentState state;
+    state.d_currentTerm = d_currentTerm;
+    if (d_votedFor != k_INVALID_NODE_ID) {
+        state.d_voteTerm = d_currentTerm;
+        state.d_votedFor = d_votedFor;
+    }
+    return state;
 }
 
 void RaftNode::setPeerAvailability(int peerNodeId, bool isAvailable)

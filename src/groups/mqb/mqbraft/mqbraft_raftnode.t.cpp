@@ -1372,6 +1372,147 @@ static void test21_leadershipTransferAbandoned()
     BMQTST_ASSERT_EQ(cluster.node(target)->state(), RaftState::e_FOLLOWER);
 }
 
+namespace {
+
+/// Return a config for node 0 of a 3-node group, without pre-vote.
+RaftNodeConfig makeVoterConfig(bslma::Allocator* allocator)
+{
+    RaftNodeConfig config(RaftNodeConfig::k_CSL_PARTITION_ID,
+                          false,
+                          allocator);
+    config.setSelf(0, nodeName(0, allocator));
+    for (int peer = 0; peer < 3; ++peer) {
+        config.addNode(peer, nodeName(peer, allocator));
+    }
+    config.d_electionTimeoutMin = k_ELECTION_TIMEOUT_MIN;
+    config.d_electionTimeoutMax = 20;
+    config.d_heartbeatInterval  = 3;
+    config.d_preVote            = false;
+    return config;
+}
+
+/// Return a RequestVote to node 0 from the specified `candidate` for the
+/// specified `term`, from an empty log.
+RaftMessage
+requestVote(int candidate, bsls::Types::Uint64 term, bslma::Allocator* alloc)
+{
+    RaftMessage msg(alloc);
+    msg.d_type              = RaftMessageType::e_REQUEST_VOTE;
+    msg.d_term              = term;
+    msg.d_sourceNodeId      = candidate;
+    msg.d_destinationNodeId = 0;
+    msg.d_lastLogIndex      = 0;
+    msg.d_lastLogTerm       = 0;
+    msg.d_preVote           = false;
+    return msg;
+}
+
+/// Return `true` if the specified `output` grants a vote.
+bool isGranted(const RaftNodeOutput& output)
+{
+    for (size_t i = 0; i < output.d_messages.size(); ++i) {
+        const RaftMessage& msg = output.d_messages[i];
+        if (msg.d_type == RaftMessageType::e_REQUEST_VOTE_RESP &&
+            msg.d_success) {
+            return true;
+        }
+    }
+    return false;
+}
+
+}  // close unnamed namespace
+
+static void test22_persistentState()
+// PERSISTENT STATE
+//
+// A node that restarts after granting a vote must not grant another in the
+// same term.  Every change of term or vote sets `d_persistentStateChanged`,
+// and `restorePersistentState` brings the vote back only if it was cast in
+// the restored term.
+{
+    bmqtst::TestHelper::printTestName("PERSISTENT STATE");
+
+    bslma::TestAllocator alloc("test", false);
+    const RaftNodeConfig config = makeVoterConfig(&alloc);
+
+    // Grant a vote to node 1 in term 5.
+    PersistentState saved;
+    {
+        MemoryRaftLog  log(&alloc);
+        RaftNode       node(config, &log, &alloc);
+        RaftNodeOutput output(&alloc);
+
+        node.step(&output, requestVote(1, 5, &alloc));
+        BMQTST_ASSERT(isGranted(output));
+        BMQTST_ASSERT(output.d_persistentStateChanged);
+
+        saved = node.persistentState();
+        BMQTST_ASSERT_EQ(saved.d_currentTerm, 5ULL);
+        BMQTST_ASSERT_EQ(saved.d_voteTerm, 5ULL);
+        BMQTST_ASSERT_EQ(saved.d_votedFor, 1);
+    }
+
+    // Restart: the vote for node 1 in term 5 holds.
+    {
+        MemoryRaftLog log(&alloc);
+        RaftNode      node(config, &log, &alloc);
+        node.initRecoveredState(log.lastTerm(), 0);
+        node.restorePersistentState(saved);
+        BMQTST_ASSERT_EQ(node.currentTerm(), 5ULL);
+
+        RaftNodeOutput other(&alloc);
+        node.step(&other, requestVote(2, 5, &alloc));
+        BMQTST_ASSERT(!isGranted(other));
+        BMQTST_ASSERT(!other.d_persistentStateChanged);
+
+        RaftNodeOutput same(&alloc);
+        node.step(&same, requestVote(1, 5, &alloc));
+        BMQTST_ASSERT(isGranted(same));
+        BMQTST_ASSERT(!same.d_persistentStateChanged);
+    }
+
+    // A vote from an older term does not count.
+    {
+        PersistentState older;
+        older.d_currentTerm = 7;
+        older.d_voteTerm    = 5;
+        older.d_votedFor    = 1;
+
+        MemoryRaftLog log(&alloc);
+        RaftNode      node(config, &log, &alloc);
+        node.restorePersistentState(older);
+        BMQTST_ASSERT_EQ(node.currentTerm(), 7ULL);
+        BMQTST_ASSERT_EQ(node.persistentState().d_votedFor,
+                         RaftNode::k_INVALID_NODE_ID);
+
+        RaftNodeOutput output(&alloc);
+        node.step(&output, requestVote(2, 7, &alloc));
+        BMQTST_ASSERT(isGranted(output));
+        BMQTST_ASSERT(output.d_persistentStateChanged);
+    }
+
+    // Becoming a candidate votes for self in a new term.
+    {
+        MemoryRaftLog log(&alloc);
+        RaftNode      node(config, &log, &alloc);
+
+        bool changed = false;
+        for (int t = 0; t < 30 && node.state() != RaftState::e_CANDIDATE;
+             ++t) {
+            RaftNodeOutput output(&alloc);
+            node.tick(&output);
+            changed = output.d_persistentStateChanged;
+        }
+        BMQTST_ASSERT_EQ(node.state(), RaftState::e_CANDIDATE);
+        BMQTST_ASSERT(changed);
+
+        const PersistentState state = node.persistentState();
+        BMQTST_ASSERT_EQ(state.d_currentTerm, node.currentTerm());
+        BMQTST_ASSERT_EQ(state.d_voteTerm, node.currentTerm());
+        BMQTST_ASSERT_EQ(state.d_votedFor, 0);
+    }
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ============================================================================
@@ -1382,6 +1523,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 22: test22_persistentState(); break;
     case 21: test21_leadershipTransferAbandoned(); break;
     case 20: test20_leadershipTransferDeferred(); break;
     case 19: test19_installSnapshotAlreadyHeld(); break;

@@ -371,8 +371,8 @@ class Log {
     /// overwriting existing bytes.
     virtual int seek(Offset offset) = 0;
 
-    /// Truncate the log to the specified `offset`, physically removing
-    /// all data beyond that point.  Repositions the write cursor to
+    /// Truncate the log to the specified `offset`, zeroing the data beyond
+    /// that point; the file keeps its size.  Repositions the write cursor to
     /// `offset` and updates outstanding/total byte counts.  Return 0 on
     /// success, or a negative value LogOpResult on error.
     virtual int truncate(Offset offset) = 0;
