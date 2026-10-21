@@ -278,7 +278,7 @@ class TestPoisonMessages:
                     f"{uri}{suffixes[count]}", flags=["read"], succeed=True
                 )
             else:
-                consumer.confirm(f"{uri}{suffixes[count]}", "*", True)
+                consumer.confirm_sync(f"{uri}{suffixes[count]}", "*")
 
         # Send another message, have any one of the consumers
         producer.post(uri, payload=["2"], succeed=True)

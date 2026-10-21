@@ -243,17 +243,17 @@ def test_queue_stats(single_node: Cluster, domain_urls: tc.DomainUrls) -> None:
     consumer_foo: Client = proxy.create_client("consumer_foo")
     consumer_foo.open(f"{task.uri}?id=foo", flags=["read"], succeed=True)
     wait_all_pushed(consumer_foo, f"{task.uri}?id=foo", task.num)
-    consumer_foo.confirm(f"{task.uri}?id=foo", "*", succeed=True)
+    consumer_foo.confirm_sync(f"{task.uri}?id=foo", "*")
 
     consumer_bar: Client = proxy.create_client("consumer_bar")
     consumer_bar.open(f"{task.uri}?id=bar", flags=["read"], succeed=True)
     wait_all_pushed(consumer_bar, f"{task.uri}?id=bar", task.num)
-    consumer_bar.confirm(f"{task.uri}?id=bar", "+22", succeed=True)
+    consumer_bar.confirm_sync(f"{task.uri}?id=bar", "+22")
 
     consumer_baz: Client = proxy.create_client("consumer_baz")
     consumer_baz.open(f"{task.uri}?id=baz", flags=["read"], succeed=True)
     wait_all_pushed(consumer_baz, f"{task.uri}?id=baz", task.num)
-    consumer_baz.confirm(f"{task.uri}?id=baz", "+11", succeed=True)
+    consumer_baz.confirm_sync(f"{task.uri}?id=baz", "+11")
 
     stats = extract_stats(admin.send_admin("encoding json_pretty stat show"))
     queue_stats = stats["domainQueues"]["domains"][domain_fanout][task.uri]
@@ -382,17 +382,17 @@ def test_app_id_stats(multi_node: Cluster, domain_urls: tc.DomainUrls) -> None:
     consumer_foo: Client = proxy.create_client("consumer_foo")
     consumer_foo.open(f"{task.uri}?id=foo", flags=["read"], succeed=True)
     wait_all_pushed(consumer_foo, f"{task.uri}?id=foo", task.num)
-    consumer_foo.confirm(f"{task.uri}?id=foo", "*", succeed=True)
+    consumer_foo.confirm_sync(f"{task.uri}?id=foo", "*")
 
     consumer_bar: Client = proxy.create_client("consumer_bar")
     consumer_bar.open(f"{task.uri}?id=bar", flags=["read"], succeed=True)
     wait_all_pushed(consumer_bar, f"{task.uri}?id=bar", task.num)
-    consumer_bar.confirm(f"{task.uri}?id=bar", "+22", succeed=True)
+    consumer_bar.confirm_sync(f"{task.uri}?id=bar", "+22")
 
     consumer_baz: Client = proxy.create_client("consumer_baz")
     consumer_baz.open(f"{task.uri}?id=baz", flags=["read"], succeed=True)
     wait_all_pushed(consumer_baz, f"{task.uri}?id=baz", task.num)
-    consumer_baz.confirm(f"{task.uri}?id=baz", "+11", succeed=True)
+    consumer_baz.confirm_sync(f"{task.uri}?id=baz", "+11")
 
     admin.stop()
 

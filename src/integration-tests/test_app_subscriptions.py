@@ -138,15 +138,8 @@ class TestAppSubscriptions:
             du.domain_fanout, [self.consumer_bar, self.consumer_baz], ["foo"], 1
         )
 
-        self.consumer_bar.confirm(du.uri_fanout_bar, "*", succeed=True)
-        self.consumer_baz.confirm(du.uri_fanout_baz, "*", succeed=True)
-
-        # need to make sure confirm has made it to the primary since this is a
-        # non-blocking op.
-        # Must make different configuration, change maxUnconfirmedMessages
-        self.consumer_baz.configure(
-            du.uri_fanout_baz, maxUnconfirmedMessages=100, block=True
-        )
+        self.consumer_bar.confirm_sync(du.uri_fanout_bar, "*")
+        self.consumer_baz.confirm_sync(du.uri_fanout_baz, "*")
 
         self._verify(du.domain_fanout, 0)
 
@@ -320,15 +313,8 @@ class TestAppSubscriptions:
         self._verify_delivery(self.consumer_bar, 2)
         self._verify_delivery(self.consumer_baz, 2)
 
-        self.consumer_bar.confirm(du.uri_fanout_bar, "*", succeed=True)
-        self.consumer_baz.confirm(du.uri_fanout_baz, "*", succeed=True)
-
-        # need to make sure confirm has made it to the primary since this is a
-        # non-blocking op.
-        # Must make different configuration, change maxUnconfirmedMessages
-        self.consumer_baz.configure(
-            du.uri_fanout_baz, maxUnconfirmedMessages=100, block=True
-        )
+        self.consumer_bar.confirm_sync(du.uri_fanout_bar, "*")
+        self.consumer_baz.confirm_sync(du.uri_fanout_baz, "*")
 
         self._verify(du.domain_fanout, 0)
 
