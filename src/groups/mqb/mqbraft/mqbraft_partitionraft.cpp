@@ -33,12 +33,15 @@
 #include <bmqtsk_alarmlog.h>
 #include <bmqu_blob.h>
 #include <bmqu_blobobjectproxy.h>
+#include <bmqu_memoutstream.h>
 #include <bmqu_time.h>
 
 // BDE
 #include <ball_log.h>
 #include <bdlbb_blobutil.h>
 #include <bdlf_bind.h>
+#include <bdls_pathutil.h>
+#include <bsl_string.h>
 #include <bsl_vector.h>
 #include <bslmf_movableref.h>
 #include <bsls_assert.h>
@@ -196,6 +199,8 @@ PartitionRaft::PartitionRaft(unsigned int partitionId,
 , d_needsBecomeLeaderSyncPoint(false)
 , d_leadershipCb(leadershipCb)
 , d_canShutdown(false)
+, d_persistentStatePath(d_allocator_p)
+, d_isPersistentStateDirty(false)
 {
     BSLS_ASSERT_SAFE(d_fileStore_sp);
     BSLS_ASSERT_SAFE(clusterData);
@@ -278,10 +283,45 @@ void PartitionRaft::flush()
     dispatchMessages(&output);
 }
 
+bool PartitionRaft::savePersistentState(bool changed)
+{
+    // executed by the partition *DISPATCHER* thread
+
+    if (changed) {
+        d_isPersistentStateDirty = true;
+    }
+    if (!d_isPersistentStateDirty) {
+        return true;  // RETURN
+    }
+
+    const PersistentState state = d_raftNode_mp->persistentState();
+    bmqu::MemOutStream    errorDescription(d_allocator_p);
+    const int             rc = PersistentStateUtil::save(errorDescription,
+                                             d_persistentStatePath,
+                                             state);
+    if (0 != rc) {
+        BMQTSK_ALARMLOG_ALARM("FILE_IO")
+            << "Partition [" << d_partitionId << "] failed to save " << state
+            << ", rc: " << rc << ", " << errorDescription.str()
+            << ".  Raft messages are not sent until it is saved."
+            << BMQTSK_ALARMLOG_END;
+        return false;  // RETURN
+    }
+
+    d_isPersistentStateDirty = false;
+    return true;
+}
+
 void PartitionRaft::dispatchMessages(RaftNodeOutput* output)
 {
     // executed by the partition *DISPATCHER* thread
     BSLS_ASSERT_SAFE(output);
+
+    // A message carries the term, and a vote reply the vote: neither may
+    // leave before they are on disk.
+    if (!savePersistentState(output->d_persistentStateChanged)) {
+        return;  // RETURN
+    }
 
     for (bsl::vector<RaftMessage>::size_type i = 0;
          i < output->d_messages.size();
@@ -611,13 +651,7 @@ void PartitionRaft::postDispatch(RaftNodeOutput* output, bool hadRollover)
         drainProposals();
     }
 
-    // Act on 'd_heldProposals'.  Writes are added to it by a truncation
-    // inside 'step', by the stepdown in 'dispatchOutput', and during a
-    // leadership transfer:
-    // * not the leader: re-post PUTs to the new primary.  A PUT whose queue
-    //   is still local stays held for 'convertQueuesToRemote'.
-    // * leader, no transfer under way: propose them into this log.
-    // A no-op while nothing is held.
+    // Re-post held writes to the new primary, or propose them if still leader.
     if (!isLeader()) {
         repostHeldProposals();
     }
@@ -1222,6 +1256,9 @@ void PartitionRaft::applySnapshotChunk(const bdlbb::Blob&   event,
     resp.d_sourceNodeId = d_clusterData_p->membership().selfNode()->nodeId();
     resp.d_destinationNodeId = source->nodeId();
     resp.d_lastLogIndex      = d_snapshotLastIncludedIndex;
+    if (!savePersistentState(false)) {
+        return;  // RETURN
+    }
     sendControlMessage(resp);
 
     BALL_LOG_INFO << "Partition [" << d_partitionId
@@ -1406,6 +1443,29 @@ void PartitionRaft::start()
     // leader confirms them.
     d_raftNode_mp->initRecoveredState(d_raftLog_mp->lastTerm(),
                                       d_raftLog_mp->snapshotIndex());
+
+    // The term and vote, which the log does not hold.
+    d_persistentStatePath =
+        d_clusterData_p->clusterConfig().partitionConfig().location();
+    bdls::PathUtil::appendRaw(&d_persistentStatePath, "bmq_raft_");
+    d_persistentStatePath.append(bsl::to_string(d_partitionId));
+    d_persistentStatePath.append(".bmq_raft");
+
+    PersistentState    persistentState;
+    bmqu::MemOutStream errorDescription(d_allocator_p);
+    const int          loadRc = PersistentStateUtil::load(&persistentState,
+                                                 errorDescription,
+                                                 d_persistentStatePath);
+    if (0 != loadRc) {
+        BMQTSK_ALARMLOG_ALARM("FILE_IO")
+            << d_clusterData_p->identity().description() << " Partition ["
+            << d_partitionId
+            << "]: failed to load Raft term and vote, rc: " << loadRc << ", "
+            << errorDescription.str() << "." << BMQTSK_ALARMLOG_END;
+
+        mqbu::ExitUtil::terminate(mqbu::ExitCode::e_RECOVERY_FAILURE);  // EXIT
+    }
+    d_raftNode_mp->restorePersistentState(persistentState);
 
     // Register before seeding: 'onNodeStateChange' reports transitions only,
     // and it dispatches to this same thread, so an event raised during the
