@@ -24,6 +24,7 @@
 #include <bmqa_messageproperties.h>
 #include <bmqa_queueid.h>
 #include <bmqa_sessionevent.h>
+#include <bmqa_sessionstatus.h>
 #include <bmqimp_application.h>
 #include <bmqimp_event.h>
 #include <bmqimp_eventqueue.h>
@@ -197,6 +198,7 @@ struct SessionUtil {
     typedef Session::OpenQueueCallback      OpenQueueCallback;
     typedef Session::ConfigureQueueCallback ConfigureQueueCallback;
     typedef Session::CloseQueueCallback     CloseQueueCallback;
+    typedef Session::SessionCallback        SessionCallback;
 
     // CLASS METHODS
 
@@ -239,6 +241,14 @@ struct SessionUtil {
     template <typename OPERATION_RESULT_TYPE, typename OPERATION_RESULT_ENUM>
     static void createOperationResult(OPERATION_RESULT_TYPE* status,
                                       const SessionEvent&    event);
+
+    /// Invoked when the specified `event` is emitted as the terminal event of
+    /// an asynchronous session start or stop operation.  Convert it to a
+    /// `bmqa::SessionStatus` and forward it to the specified `callback`.
+    /// This runs on the event delivery thread, never on the FSM thread.
+    static void
+    sessionResultCallbackWrapper(const bsl::shared_ptr<bmqimp::Event>& event,
+                                 const SessionCallback& callback);
 
     // Queue management helpers
     // ------------------------
@@ -516,6 +526,39 @@ void SessionUtil::operationResultCallbackWrapper(
                                        OPERATION_RESULT_ENUM>(&result, event);
 
     callback(result);
+}
+
+// Session management helpers
+// --------------------------
+void SessionUtil::sessionResultCallbackWrapper(
+    const bsl::shared_ptr<bmqimp::Event>& event,
+    const SessionCallback&                callback)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(event->type() == bmqimp::Event::EventType::e_SESSION);
+
+    // The two terminal events of a successful start/stop carry a generic
+    // result of their own that is not meaningful here ('CONNECTED' and
+    // 'DISCONNECTED' are enqueued by the FSM as plain notifications), so map
+    // them explicitly.  'CONNECTION_TIMEOUT' predates this API and is enqueued
+    // with 'e_UNKNOWN'.  Every other terminal event is emitted by the FSM
+    // specifically for this callback and carries the right result.
+    const bmqt::SessionEventType::Enum type = event->sessionEventType();
+
+    bmqt::GenericResult::Enum result;
+    if (type == bmqt::SessionEventType::e_CONNECTED ||
+        type == bmqt::SessionEventType::e_DISCONNECTED) {
+        result = bmqt::GenericResult::e_SUCCESS;
+    }
+    else if (type == bmqt::SessionEventType::e_CONNECTION_TIMEOUT) {
+        result = bmqt::GenericResult::e_TIMEOUT;
+    }
+    else {
+        result = event->result();
+    }
+
+    SessionStatus status(result, event->errorDescription());
+    callback(status);
 }
 
 bmqt::OpenQueueResult::Enum SessionUtil::validateAndSetOpenQueueParameters(
@@ -865,6 +908,45 @@ int Session::startAsync(const bsls::TimeInterval& timeout)
     return 0;
 }
 
+int Session::startAsync(const SessionCallback&    callback,
+                        const bsls::TimeInterval& timeout)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT(callback && "'callback' must not be empty");
+
+    int rc = 0;
+
+    // Create application only once
+    if (!d_impl.d_application_mp) {
+        rc = SessionUtil::createApplication(&d_impl);
+        if (rc != 0) {
+            return rc;  // RETURN
+        }
+    }
+
+    // Use default timeout (from SessionOptions) if none was provided
+    bsls::TimeInterval time = timeout;
+    if (time == bsls::TimeInterval()) {
+        time = d_impl.d_application_mp->sessionOptions().connectTimeout();
+    }
+
+    // Adapt the user callback: the terminal start event is converted to a
+    // 'bmqa::SessionStatus' and delivered to 'callback' on the event delivery
+    // thread (never the FSM thread).
+    const bmqimp::BrokerSession::EventCallback eventCallback =
+        bdlf::BindUtil::bind(&SessionUtil::sessionResultCallbackWrapper,
+                             bdlf::PlaceHolders::_1,  // eventImpl
+                             callback);
+
+    // Start the application
+    rc = d_impl.d_application_mp->startAsync(time, eventCallback);
+    if (rc != 0) {
+        return rc;  // RETURN
+    }
+
+    return 0;
+}
+
 void Session::stop()
 {
     if (d_impl.d_application_mp) {
@@ -877,6 +959,32 @@ void Session::stopAsync()
     if (d_impl.d_application_mp) {
         d_impl.d_application_mp->stopAsync();
     }
+}
+
+void Session::stopAsync(const SessionCallback& callback)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT(callback && "'callback' must not be empty");
+
+    if (!d_impl.d_application_mp) {
+        // The session was never started, so there is no event delivery thread
+        // to invoke the callback from, and nothing to stop.  Complete inline
+        // rather than dropping the callback.
+        SessionStatus status(bmqt::GenericResult::e_SUCCESS,
+                             bsl::string(d_impl.d_allocator_p),
+                             d_impl.d_allocator_p);
+        callback(status);
+        return;  // RETURN
+    }
+
+    // Adapt the user callback: the terminal stop event (DISCONNECTED) is
+    // converted to a 'bmqa::SessionStatus' and delivered to 'callback' on the
+    // event delivery thread (never the FSM thread).
+    const bmqimp::BrokerSession::EventCallback eventCallback =
+        bdlf::BindUtil::bind(&SessionUtil::sessionResultCallbackWrapper,
+                             bdlf::PlaceHolders::_1,  // eventImpl
+                             callback);
+    d_impl.d_application_mp->stopAsync(eventCallback);
 }
 
 void Session::finalizeStop()
