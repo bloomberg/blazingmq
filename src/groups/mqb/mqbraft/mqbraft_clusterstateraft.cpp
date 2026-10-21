@@ -29,11 +29,13 @@
 
 #include <bmqtsk_alarmlog.h>
 #include <bmqu_blobobjectproxy.h>
+#include <bmqu_memoutstream.h>
 
 // BDE
 #include <ball_log.h>
 #include <bdlf_bind.h>
 #include <bdls_filesystemutil.h>
+#include <bdls_pathutil.h>
 #include <bdlt_datetime.h>
 #include <bsls_assert.h>
 #include <bsls_timeinterval.h>
@@ -103,6 +105,8 @@ ClusterStateRaft::ClusterStateRaft(
 , d_activeTerm(0)
 , d_isStarted(false)
 , d_allocator_p(bslma::Default::allocator(allocator))
+, d_persistentStatePath(d_allocator_p)
+, d_isPersistentStateDirty(false)
 {
     BSLS_ASSERT_SAFE(clusterData);
     BSLS_ASSERT_SAFE(clusterState);
@@ -131,6 +135,33 @@ mqbnet::ClusterNode* ClusterStateRaft::peerNode(int nodeId)
     return node;
 }
 
+bool ClusterStateRaft::savePersistentState(bool changed)
+{
+    if (changed) {
+        d_isPersistentStateDirty = true;
+    }
+    if (!d_isPersistentStateDirty) {
+        return true;  // RETURN
+    }
+
+    const PersistentState state = d_raftNode_mp->persistentState();
+    bmqu::MemOutStream    errorDescription(d_allocator_p);
+    const int             rc = PersistentStateUtil::save(errorDescription,
+                                             d_persistentStatePath,
+                                             state);
+    if (0 != rc) {
+        BMQTSK_ALARMLOG_ALARM("FILE_IO")
+            << "CSL failed to save " << state << ", rc: " << rc << ", "
+            << errorDescription.str()
+            << ".  Raft messages are not sent until it is saved."
+            << BMQTSK_ALARMLOG_END;
+        return false;  // RETURN
+    }
+
+    d_isPersistentStateDirty = false;
+    return true;
+}
+
 void ClusterStateRaft::dispatchOutput(RaftNodeOutput* output)
 {
     BSLS_ASSERT_SAFE(output);
@@ -139,8 +170,12 @@ void ClusterStateRaft::dispatchOutput(RaftNodeOutput* output)
     // deferral 'PartitionRaft' does, and this keeps the sends where they were.
     d_raftNode_mp->flushSends(output);
 
+    // A message carries the term, and a vote reply the vote: neither may
+    // leave before they are on disk.
+    const bool canSend = savePersistentState(output->d_persistentStateChanged);
+
     for (bsl::vector<RaftMessage>::size_type i = 0;
-         i < output->d_messages.size();
+         canSend && i < output->d_messages.size();
          ++i) {
         const RaftMessage& msg = output->d_messages[i];
         if (msg.d_type == RaftMessageType::e_APPEND_ENTRIES) {
@@ -737,6 +772,21 @@ int ClusterStateRaft::start(bsl::ostream& errorDescription)
     // path.
     d_raftNode_mp->initRecoveredState(d_cslLog_mp->lastTerm(),
                                       d_cslLog_mp->snapshotIndex());
+
+    // The term and vote, which the log does not hold.
+    d_persistentStatePath = d_partitionConfig.location();
+    bdls::PathUtil::appendRaw(&d_persistentStatePath, "bmq_raft_csl.bmq_raft");
+
+    PersistentState persistentState;
+    rc = PersistentStateUtil::load(&persistentState,
+                                   errorDescription,
+                                   d_persistentStatePath);
+    if (rc != 0) {
+        errorDescription << " (failed to load CSL Raft term and vote, rc="
+                         << rc << ")";
+        return rc;  // RETURN
+    }
+    d_raftNode_mp->restorePersistentState(persistentState);
 
     bsls::TimeInterval tickInterval;
     tickInterval.setTotalMilliseconds(k_TICK_INTERVAL_MS);
@@ -1443,6 +1493,9 @@ void ClusterStateRaft::sendInstallSnapshotResponse(
     resp.d_destinationNodeId = source->nodeId();
     resp.d_lastLogIndex      = lastIncludedIndex;
 
+    if (!savePersistentState(false)) {
+        return;  // RETURN
+    }
     sendControlMessage(resp);
 }
 

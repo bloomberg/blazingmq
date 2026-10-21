@@ -117,6 +117,12 @@ class ClusterStateRaft : public mqbi::ClusterStateUpdater,
     /// Nodes resolved by `peerNode`, so a linked-list walk is not repeated.
     bsl::unordered_map<int, mqbnet::ClusterNode*> d_peerNodes;
 
+    /// File holding the CSL group's `PersistentState`.
+    bsl::string d_persistentStatePath;
+
+    /// `true` while `currentTerm` or the vote has changed and is not saved.
+    bool d_isPersistentStateDirty;
+
     // NOT IMPLEMENTED
     ClusterStateRaft(const ClusterStateRaft&);
     ClusterStateRaft& operator=(const ClusterStateRaft&);
@@ -138,6 +144,10 @@ class ClusterStateRaft : public mqbi::ClusterStateUpdater,
     ///
     /// THREAD: Executed by the cluster *DISPATCHER* thread.
     void setPeerAvailabilityDispatched(int nodeId, bool isAvailable);
+
+    /// Save the `RaftNode`'s `PersistentState` if the specified `changed` is
+    /// `true` or an earlier save failed.  Return `true` if it is on disk.
+    bool savePersistentState(bool changed);
 
     void dispatchOutput(RaftNodeOutput* output);
 
