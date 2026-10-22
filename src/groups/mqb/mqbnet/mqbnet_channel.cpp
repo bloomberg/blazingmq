@@ -320,6 +320,7 @@ void Channel::setChannel(const bsl::weak_ptr<bmqio::Channel>& value)
     d_description = d_name + " - " + channelSp->peerUri();
     channelSp->onWatermark(bdlf::BindUtil::bind(&Channel::onWatermark,
                                                 this,
+                                                value,
                                                 bdlf::PlaceHolders::_1));
     // type
     d_channel_wp = value;
@@ -383,9 +384,23 @@ void Channel::wakeUp()
     d_buffer.pushBack(bslmf::MovableRefUtil::move(item));
 }
 
-void Channel::onWatermark(bmqio::ChannelWatermarkType::Enum type)
+void Channel::onWatermark(const bsl::weak_ptr<bmqio::Channel>& source,
+                          bmqio::ChannelWatermarkType::Enum    type)
 {
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
+
+    const int state = d_state;
+    if (state != e_READY && state != e_LWM && state != e_HWM) {
+        // Channel is not available to enqueue, do not report watermark event.
+        return;  // RETURN
+    }
+    // It is fine if we are stopping: can still report a watermark event.
+
+    bsl::shared_ptr<bmqio::Channel> current = d_channel_wp.lock();
+    if (!current || current != source.lock()) {
+        // The current channel differs from the source of this watermark event.
+        return;  // RETURN
+    }
 
     switch (type) {
     case bmqio::ChannelWatermarkType::e_LOW_WATERMARK:
