@@ -1817,7 +1817,7 @@ TCPSessionFactory::ChannelRegistry::findStarting(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(channel);
 
-    InitialConnectionContextMp::const_iterator it = d_startingChannels.find(
+    InitialConnectionContextMap::const_iterator it = d_startingChannels.find(
         channel);
     if (it == d_startingChannels.end()) {
         return bsl::shared_ptr<InitialConnectionContext>();  // RETURN
