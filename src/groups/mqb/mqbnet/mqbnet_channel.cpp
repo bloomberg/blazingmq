@@ -276,7 +276,7 @@ bool Channel::resetChannel(
         BALL_LOG_INFO << "Disconnected " << d_description;
 
         // Need to 'reset' which only the writing thread can do.
-        d_state       = e_RESET;
+        setState(e_RESET);
         d_description = d_name + " - ";
         d_channel_wp.reset();
 
@@ -291,7 +291,12 @@ bool Channel::resetChannel(
 
 void Channel::requestToStop()
 {
-    d_isStopping.store(true);
+    {
+        bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
+
+        d_isStopping.store(true);
+        d_enqueueGate.close();
+    }
 
     // No need to 'signal' to interrupt the waiting.
     // Waiting means there is no connection and therefore nothing to close.
@@ -318,7 +323,7 @@ void Channel::setChannel(const bsl::weak_ptr<bmqio::Channel>& value)
                                                 bdlf::PlaceHolders::_1));
     // type
     d_channel_wp = value;
-    d_state      = e_RESET;
+    setState(e_RESET);
 
     // Case 1: this is the initial thread setting for `mqbnet::Channel`.
     // In this case, `mqbnet::Channel::threadFn` is waiting on condition.
@@ -348,6 +353,7 @@ void Channel::reset()
     // Expects 'd_mutex' to be locked by the caller.
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_internalThreadChecker.inSameThread());
+    BSLS_ASSERT_SAFE(!isAvailable());
 
     d_buffer.reset();
 
@@ -390,7 +396,7 @@ void Channel::onWatermark(bmqio::ChannelWatermarkType::Enum type)
                       << " items and "
                       << bmqu::PrintUtil::prettyBytes(d_stats.d_numBytes)
                       << " pending bytes.";
-        d_state = e_LWM;
+        setState(e_LWM);
         d_stateCondition.signal();
         break;
     case bmqio::ChannelWatermarkType::e_HIGH_WATERMARK:
@@ -401,7 +407,7 @@ void Channel::onWatermark(bmqio::ChannelWatermarkType::Enum type)
                       << " items and "
                       << bmqu::PrintUtil::prettyBytes(d_stats.d_numBytes)
                       << " pending bytes.";
-        d_state = e_HWM;
+        setState(e_HWM);
         break;
     default: {
         BSLS_ASSERT_SAFE(false && "Unknown watermark type");
@@ -410,6 +416,18 @@ void Channel::onWatermark(bmqio::ChannelWatermarkType::Enum type)
 }
 
 // PRIVATE MANIPULATORS
+
+void Channel::setState(EnumState state)
+{
+    d_state = state;
+
+    if (isAvailable()) {
+        d_enqueueGate.open();
+    }
+    else {
+        d_enqueueGate.close();
+    }
+}
 
 bmqt::GenericResult::Enum
 Channel::writeBufferedItem(bool*                                  isConsumed,
@@ -829,11 +847,11 @@ void Channel::threadFn()
                 if (channel) {
                     // This is the only place for the transition
                     //  e_RESET -> e_READY
-                    d_state = e_READY;
+                    setState(e_READY);
                 }
             }
             else if (d_state == e_LWM) {
-                d_state = e_READY;
+                setState(e_READY);
             }
             // The state can be 'e_HWM' in which case 'onWatermark' transitions
             //  e_HWM  -> e_READY
@@ -884,7 +902,11 @@ void Channel::threadFn()
                 // Does not matter if 'flushAll' has failed; must close
                 if (d_isStopping) {
                     channel->close();
-                    d_state.testAndSwap(e_READY, e_CLOSE);
+
+                    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
+                    if (d_state == e_READY) {
+                        setState(e_CLOSE);
+                    }
                     // bmqio::Channel observer will trigger 'resetChannel'
                 }
             } break;
@@ -917,14 +939,20 @@ void Channel::threadFn()
                               << " pending bytes";
                 // If 'onWatermark' did not happen yet, do go into e_HWM to
                 // avoid calling transport layer until LWM
-                d_state.testAndSwap(e_READY, e_HWM);
+                bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
+                if (d_state == e_READY) {
+                    setState(e_HWM);
+                }
             }
             else if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
                          rc == bmqt::GenericResult::e_NOT_CONNECTED)) {
                 // Set the state to e_CLOSE to avoid repeated attempts to write
                 // until 'OnClose' calls 'resetChannel'.
 
-                d_state.testAndSwap(e_READY, e_CLOSE);
+                bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
+                if (d_state == e_READY) {
+                    setState(e_CLOSE);
+                }
             }
 
             // 'e_NOT_READY' can be the result of flashing the builder

@@ -80,6 +80,7 @@
 #include <bmqio_channel.h>
 #include <bmqio_status.h>
 #include <bmqma_countingallocatorstore.h>
+#include <bmqu_atomicgate.h>
 #include <bmqu_atomicstate.h>
 #include <bmqu_samethreadchecker.h>
 
@@ -398,6 +399,10 @@ class Channel {
 
     bsls::AtomicInt d_state;
 
+    /// Open if and only if `isAvailable`; `enqueue` must enter it to push.
+    /// Updated under `d_mutex`.
+    bmqu::GateKeeper d_enqueueGate;
+
     bdlcc::SingleConsumerQueue<bmqc::MonitoredQueueState::Enum> d_queueStates;
     // 'ItemQueue' threshold events get
     // processed in the 'threadFn' (instead of
@@ -431,9 +436,15 @@ class Channel {
     /// Copy constructor and assignment operator are not implemented.
     Channel& operator=(const Channel&) BSLS_CPP11_DELETED;
 
-    /// Reset active buffer and builders.  This must be called from the
-    /// writing thread only.
+    /// @brief Reset active buffer and builders.  This must be called from
+    /// the writing thread only, while the channel is not available.
     void reset();
+
+    /// @brief Set the state to the specified `state` and open or close the
+    /// enqueue gate to match `isAvailable`.  `d_mutex` must be locked.
+    ///
+    /// @param state The new state.
+    void setState(EnumState state);
 
     /// Flush the specified `builder` to the specified `channel`.  Return
     /// result category.
@@ -447,7 +458,12 @@ class Channel {
     bmqio::StatusCategory::Enum
     flushAll(const bsl::shared_ptr<bmqio::Channel>& channel);
 
-    /// Enqueue the specified `item`.
+    /// @brief Enqueue the specified `item`.
+    ///
+    /// @param item The item to enqueue.
+    ///
+    /// @return `e_SUCCESS` if `item` is enqueued before the next reset of
+    ///         the buffer, or `e_NOT_CONNECTED` otherwise.
     bmqt::GenericResult::Enum enqueue(bslma::ManagedPtr<Item>& item);
 
     /// Pack the specified `item` using builder corresponding to the `item`
@@ -1079,7 +1095,9 @@ Channel::enqueue(bslma::ManagedPtr<Item>& item)
 {
     // This method is called by public write methods.
 
-    if (!isAvailable()) {
+    bmqu::GateKeeper::Status status(d_enqueueGate);
+
+    if (!status.isOpen()) {
         return bmqt::GenericResult::e_NOT_CONNECTED;  // RETURN
     }
 
