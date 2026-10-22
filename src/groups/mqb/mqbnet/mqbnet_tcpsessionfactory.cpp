@@ -1210,7 +1210,7 @@ TCPSessionFactory::TCPSessionFactory(
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(scheduler->clockType() ==
                      bsls::SystemClockType::e_MONOTONIC);
-    BSLS_ASSERT_SAFE(blobSpPool);
+    BSLS_ASSERT_SAFE(d_blobSpPool_p);
 
     // Thread name
     d_threadName = "bmqIO_" + d_config_mp->name().substr(0, 15 - 6);
