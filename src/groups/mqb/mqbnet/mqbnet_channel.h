@@ -55,14 +55,16 @@
 // transitions to 'e_READY'.  It the state is not e_READY, the thread waits on
 //  condition variable until the state is e_READY.  If the state is 'e_READY',
 // the thread pop an Item from the queue and attempts to write.
-// Three public methods can change the state:
+// Three methods can change the state:
 //  - 'resetChannel'    sets the state to 'e_RESET';
 //  - 'setChannel'      sets the state to 'e_RESET' and waits for the internal
 //                      thread to transition to 'e_READY'.  This is done to
 //                      make sure, any write succeeds after 'setChannel'
 //                      returns. The transition 'e_RESET' -> 'e_READY' is
 //                      signaled by conditional variable.
-//  - 'onWatermark'     sets the state to 'e_READY' on LWM and 'e_HWM' on HWM.
+//  - 'onWatermark'     sets the state to 'e_READY' on LWM and 'e_HWM' on HWM,
+//                      if reported by the current channel while it is
+//                      available to enqueue.
 
 // MQB
 #include <mqbi_dispatcher.h>
@@ -446,6 +448,15 @@ class Channel {
     /// @param state The new state.
     void setState(EnumState state);
 
+    /// @brief Handle a watermark of the specified `type` reported by the
+    /// specified `source`.  Ignore it if `source` is not the current
+    /// channel, or if the channel is not available to enqueue.
+    ///
+    /// @param source The channel reporting the watermark.
+    /// @param type   The watermark type.
+    void onWatermark(const bsl::weak_ptr<bmqio::Channel>& source,
+                     bmqio::ChannelWatermarkType::Enum    type);
+
     /// Flush the specified `builder` to the specified `channel`.  Return
     /// result category.
     template <class Builder>
@@ -624,10 +635,6 @@ class Channel {
     /// Wake up the internal thread if it's waiting for a new item to write.
     /// This leads to flushing of the inner message builders.
     void wakeUp();
-
-    /// Notify the channel when a watermark of the specified `type` is being
-    /// reached.
-    void onWatermark(bmqio::ChannelWatermarkType::Enum type);
 
     // ACCESSORS
     bool isAvailable() const;
