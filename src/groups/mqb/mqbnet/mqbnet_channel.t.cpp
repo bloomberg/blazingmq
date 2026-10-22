@@ -67,6 +67,8 @@ class TestChannelEx : public TestChannel {
     bsl::shared_ptr<bdlbb::Blob> d_eof_sp;
 
   public:
+    BSLMF_NESTED_TRAIT_DECLARATION(TestChannelEx, bslma::UsesBslmaAllocator)
+
     TestChannelEx(mqbnet::Channel&                channel,
                   bdlbb::BlobBufferFactory*       factory,
                   bmqp::BlobPoolUtil::BlobSpPool* blobSpPool_p,
@@ -349,13 +351,12 @@ void TestChannelEx::setLimit(size_t limit)
     if (d_isInHWM) {
         if (limit == 0 || numWriteCalls() < limit) {
             d_isInHWM = false;
-            d_channel.onWatermark(
-                bmqio::ChannelWatermarkType::e_LOW_WATERMARK);
+            watermarkSignaler()(bmqio::ChannelWatermarkType::e_LOW_WATERMARK);
         }
     }
     else if (limit <= numWriteCalls()) {
         d_isInHWM = true;
-        d_channel.onWatermark(bmqio::ChannelWatermarkType::e_HIGH_WATERMARK);
+        watermarkSignaler()(bmqio::ChannelWatermarkType::e_HIGH_WATERMARK);
     }
     d_limit = limit;
 }
@@ -367,7 +368,7 @@ void TestChannelEx::lowWatermark()
 
     if (d_isInHWM) {
         d_isInHWM = false;
-        d_channel.onWatermark(bmqio::ChannelWatermarkType::e_LOW_WATERMARK);
+        watermarkSignaler()(bmqio::ChannelWatermarkType::e_LOW_WATERMARK);
     }
 }
 
@@ -391,7 +392,7 @@ void TestChannelEx::write(bmqio::Status*     status,
     if (d_limit && d_limit <= numWriteCalls()) {
         d_isInHWM = true;
         status->setCategory(bmqio::StatusCategory::e_LIMIT);
-        d_channel.onWatermark(bmqio::ChannelWatermarkType::e_HIGH_WATERMARK);
+        watermarkSignaler()(bmqio::ChannelWatermarkType::e_HIGH_WATERMARK);
     }
 
     TestChannel::write(status, blob, watermark);
@@ -804,7 +805,8 @@ static void test1_write()
     }
 
     testChannel->setWriteStatus(bmqio::StatusCategory::e_SUCCESS);
-    channel.onWatermark(bmqio::ChannelWatermarkType::e_LOW_WATERMARK);
+    testChannel->watermarkSignaler()(
+        bmqio::ChannelWatermarkType::e_LOW_WATERMARK);
 
     size_t writeBlobs = 0;
 
@@ -900,7 +902,8 @@ static void test2_highWatermark()
     reject.stop();
 
     testChannel->setWriteStatus(bmqio::StatusCategory::e_LIMIT);
-    channel.onWatermark(bmqio::ChannelWatermarkType::e_HIGH_WATERMARK);
+    testChannel->watermarkSignaler()(
+        bmqio::ChannelWatermarkType::e_HIGH_WATERMARK);
 
     phase2.wait();
 
@@ -919,7 +922,8 @@ static void test2_highWatermark()
     reject.join();
 
     testChannel->setWriteStatus(bmqio::StatusCategory::e_SUCCESS);
-    channel.onWatermark(bmqio::ChannelWatermarkType::e_LOW_WATERMARK);
+    testChannel->watermarkSignaler()(
+        bmqio::ChannelWatermarkType::e_LOW_WATERMARK);
 
     size_t writeBlobs = 0;
 
@@ -1248,6 +1252,78 @@ static void test5_reconnect()
     BMQTST_ASSERT_EQ(testChannel->numWriteCalls(), 2U);
 }
 
+static void test6_staleWatermark()
+// ------------------------------------------------------------------------
+//
+// Verify that watermark events from a channel which is not the current one
+// do not change the state of the mqbnet::Channel:
+//  1. LWM from a reset channel does not make the mqbnet::Channel available.
+//  2. HWM from a replaced channel does not block writing to the new one.
+//
+// ------------------------------------------------------------------------
+{
+    bslma::Allocator* alloc = bmqtst::TestHelperUtil::allocator();
+
+    bdlbb::PooledBlobBufferFactory   bufferFactory(k_BUFFER_SIZE, alloc);
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(&bufferFactory, alloc));
+
+    {
+        PVV("LWM from a reset channel");
+
+        mqbnet::Channel channel(&bufferFactory, "test", alloc);
+
+        bsl::shared_ptr<bmqio::TestChannelEx> testChannel =
+            bsl::allocate_shared<bmqio::TestChannelEx>(alloc,
+                                                       channel,
+                                                       &bufferFactory,
+                                                       blobSpPool.get());
+
+        channel.setChannel(bsl::weak_ptr<bmqio::TestChannelEx>(testChannel));
+        channel.resetChannel(testChannel);
+
+        testChannel->watermarkSignaler()(
+            bmqio::ChannelWatermarkType::e_LOW_WATERMARK);
+
+        bsl::shared_ptr<bdlbb::Blob> payload_sp = blobSpPool->getObject();
+        bdlbb::BlobBuffer            blobBuffer;
+
+        bufferFactory.allocate(&blobBuffer);
+        setContent(&blobBuffer);
+        payload_sp->appendDataBuffer(blobBuffer);
+
+        BMQTST_ASSERT_EQ(channel.writeBlob(payload_sp,
+                                           bmqp::EventType::e_CONTROL),
+                         bmqt::GenericResult::e_NOT_CONNECTED);
+    }
+
+    {
+        PVV("HWM from a replaced channel");
+
+        mqbnet::Channel channel(&bufferFactory, "test", alloc);
+
+        bsl::shared_ptr<bmqio::TestChannelEx> oldChannel =
+            bsl::allocate_shared<bmqio::TestChannelEx>(alloc,
+                                                       channel,
+                                                       &bufferFactory,
+                                                       blobSpPool.get());
+        bsl::shared_ptr<bmqio::TestChannelEx> newChannel =
+            bsl::allocate_shared<bmqio::TestChannelEx>(alloc,
+                                                       channel,
+                                                       &bufferFactory,
+                                                       blobSpPool.get());
+
+        channel.setChannel(bsl::weak_ptr<bmqio::TestChannelEx>(oldChannel));
+        channel.setChannel(bsl::weak_ptr<bmqio::TestChannelEx>(newChannel));
+
+        oldChannel->watermarkSignaler()(
+            bmqio::ChannelWatermarkType::e_HIGH_WATERMARK);
+
+        BMQTST_ASSERT(newChannel->waitForChannel(bsls::TimeInterval(1)));
+        BMQTST_ASSERT_EQ(oldChannel->numWriteCalls(), 0U);
+    }
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -1259,6 +1335,7 @@ int main(int argc, char* argv[])
     // expect BALL_LOG_ERROR
     switch (_testCase) {
     case 0:
+    case 6: test6_staleWatermark(); break;
     case 1: test1_write(); break;
     case 2: test2_highWatermark(); break;
     case 3: test3_highWatermarkInWriteCb(); break;
