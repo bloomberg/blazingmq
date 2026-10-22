@@ -324,7 +324,7 @@ class TCPSessionFactory {
 
     typedef bsl::unordered_map<const bmqio::Channel*,
                                bsl::shared_ptr<InitialConnectionContext> >
-        InitialConnectionContextMp;
+        InitialConnectionContextMap;
 
     /// @brief Registry of channels that are either still in the initial
     ///        connection (authentication and negotiation), or established
@@ -341,7 +341,7 @@ class TCPSessionFactory {
 
         /// Channels in the initial connection, owning their contexts to
         /// keep them alive until the initial connection completes.
-        InitialConnectionContextMp d_startingChannels;
+        InitialConnectionContextMap d_startingChannels;
 
         /// Established channels, each with a session.
         ChannelMap d_channels;
