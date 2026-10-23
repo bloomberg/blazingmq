@@ -110,7 +110,7 @@ class RecoveryManager {
     class ReceiveDataContext {
       public:
         // TYPES
-        typedef bsl::vector<bsl::shared_ptr<bdlbb::Blob> > StorageEvents;
+        typedef bsl::vector<bsl::shared_ptr<const bdlbb::Blob> > StorageEvents;
 
       public:
         // DATA
@@ -164,7 +164,7 @@ class RecoveryManager {
     class RecoveryContext {
       public:
         // TYPES
-        typedef bsl::vector<bsl::shared_ptr<bdlbb::Blob> > StorageEvents;
+        typedef bsl::vector<bsl::shared_ptr<const bdlbb::Blob> > StorageEvents;
 
       public:
         // DATA
@@ -336,20 +336,28 @@ class RecoveryManager {
         const bmqp_ctrlmsg::PartitionSequenceNumber& endSeqNum,
         const mqbs::FileStore&                       fs);
 
-    /// Process the recovery data chunks contained in the specified `blob`
-    /// sent by the specified `source` for the specified `partitionId`.
-    /// Forward the processing to the specified `fs` if `fs` is open. Use the
-    /// specified `firstSyncPointAfterRolloverSeqNum` to update journal header.
-    /// Return 0 on success and non-zero code on error.
+    /// @brief Process recovery data chunks.
+    ///
+    /// The processing is forwarded to `fs` if `fs` is open.
+    ///
+    /// @param blob The event holding the data chunks.
+    /// @param source The node the event comes from.
+    /// @param fs The file store of the partition.
+    /// @param partitionId The partition of the event.
+    /// @param firstSyncPointAfterRolloverSeqNum Used to update the journal
+    ///                                          header.
+    ///
+    /// @return 0 on success, or a non-zero code otherwise.
     ///
     /// THREAD: Executed in the dispatcher thread associated with the
     /// specified `partitionId`.
-    int processReceiveDataChunks(const bsl::shared_ptr<bdlbb::Blob>& blob,
-                                 mqbnet::ClusterNode*                source,
-                                 mqbs::FileStore*                    fs,
-                                 int partitionId,
-                                 const bmqp_ctrlmsg::PartitionSequenceNumber&
-                                     firstSyncPointAfterRolloverSeqNum);
+    int
+    processReceiveDataChunks(const bsl::shared_ptr<const bdlbb::Blob>& blob,
+                             mqbnet::ClusterNode*                      source,
+                             mqbs::FileStore*                          fs,
+                             int partitionId,
+                             const bmqp_ctrlmsg::PartitionSequenceNumber&
+                                 firstSyncPointAfterRolloverSeqNum);
 
     /// Create the internal recovery file set for the specified
     /// `partitionId`, using the specified `fs`.  Return 0 on success, non
@@ -412,26 +420,33 @@ class RecoveryManager {
     /// specified `partitionId`.
     void setLiveDataSource(mqbnet::ClusterNode* source, int partitionId);
 
-    /// Buffer the storage event for the specified `partitionId` contained
-    /// in the specified `blob` sent from the specified `source`.
+    /// @brief Buffer a storage event.
+    ///
+    /// @param partitionId The partition of the event.
+    /// @param blob The storage event.
+    /// @param source The node the event comes from.
     ///
     /// THREAD: Executed in the dispatcher thread associated with the
     /// specified `partitionId`.
-    void bufferStorageEvent(int                                 partitionId,
-                            const bsl::shared_ptr<bdlbb::Blob>& blob,
-                            mqbnet::ClusterNode*                source);
+    void bufferStorageEvent(int partitionId,
+                            const bsl::shared_ptr<const bdlbb::Blob>& blob,
+                            mqbnet::ClusterNode*                      source);
 
-    /// Load into the specified `out` all buffered storage events for the
-    /// specified `partitionId`, verifying that they are sent from the
-    /// specified `source`, then clear the buffer.  Return 0 on success and
-    /// non-zero otherwise.
+    /// @brief Load all buffered storage events of a partition, then clear
+    ///        the buffer.
+    ///
+    /// @param[out] out Loaded with the buffered storage events.
+    /// @param source The node the events are expected to come from.
+    /// @param partitionId The partition of the events.
+    ///
+    /// @return 0 on success, or a non-zero value otherwise.
     ///
     /// THREAD: Executed in the dispatcher thread associated with the
     /// specified `partitionId`.
-    int
-    loadBufferedStorageEvents(bsl::vector<bsl::shared_ptr<bdlbb::Blob> >* out,
-                              const mqbnet::ClusterNode* source,
-                              int                        partitionId);
+    int loadBufferedStorageEvents(
+        bsl::vector<bsl::shared_ptr<const bdlbb::Blob> >* out,
+        const mqbnet::ClusterNode*                        source,
+        int                                               partitionId);
 
     /// Cleared all buffered storage event for the specified `partitionId`.
     ///

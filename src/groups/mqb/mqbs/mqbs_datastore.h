@@ -615,17 +615,24 @@ class DataStore : public mqbi::DispatcherClient {
     /// Payload related
     /// ---------------
 
-    /// Write the specified `appData` and `options` belonging to specified
-    /// `queueKey` and having specified `guid` and `attributes` to the data
-    /// store, and update the specified `handle` with an identifier which
-    /// can be used to retrieve the message.  Return zero on success,
-    /// non-zero value otherwise.
-    virtual int writeMessageRecord(mqbi::StorageMessageAttributes* attributes,
-                                   DataStoreRecordHandle*          handle,
-                                   const bmqt::MessageGUID&        guid,
-                                   const bsl::shared_ptr<bdlbb::Blob>& appData,
-                                   const bsl::shared_ptr<bdlbb::Blob>& options,
-                                   const mqbu::StorageKey& queueKey) = 0;
+    /// @brief Write a message to the data store.
+    ///
+    /// @param attributes The attributes of the message.
+    /// @param[out] handle Loaded with an identifier which can be used to
+    ///                    retrieve the message.
+    /// @param guid The GUID of the message.
+    /// @param appData The application data of the message.
+    /// @param options The options of the message.
+    /// @param queueKey The key of the queue the message belongs to.
+    ///
+    /// @return 0 on success, or a non-zero value otherwise.
+    virtual int
+    writeMessageRecord(mqbi::StorageMessageAttributes*           attributes,
+                       DataStoreRecordHandle*                    handle,
+                       const bmqt::MessageGUID&                  guid,
+                       const bsl::shared_ptr<const bdlbb::Blob>& appData,
+                       const bsl::shared_ptr<bdlbb::Blob>&       options,
+                       const mqbu::StorageKey&                   queueKey) = 0;
 
     /// Queue List related
     /// -------------
@@ -685,22 +692,36 @@ class DataStore : public mqbi::DispatcherClient {
     /// outstanding records.
     virtual void onPurgeComplete() = 0;
 
-    /// Process the specified storage event `blob` containing one or more
-    /// storage messages.  Return zero on success, or a non-zero value if the
-    /// event was dropped because one of its records is malformed.  The
-    /// behavior is undefined unless each message in the event belongs to
+    /// @brief Process a storage event containing one or more storage
+    ///        messages.
+    ///
+    /// The behavior is undefined unless each message in the event belongs to
     /// this partition, and has same primary and primary leaseId as expected
     /// by this data store instance.
-    virtual int processStorageEvent(const bsl::shared_ptr<bdlbb::Blob>& blob,
-                                    bool                 isPartitionSyncEvent,
-                                    mqbnet::ClusterNode* source) = 0;
+    ///
+    /// @param blob The storage event.
+    /// @param isPartitionSyncEvent Whether the event is a partition sync
+    ///                             event.
+    /// @param source The node the event comes from.
+    ///
+    /// @return 0 on success, or a non-zero value if the event was dropped
+    ///         because one of its records is malformed.
+    virtual int
+    processStorageEvent(const bsl::shared_ptr<const bdlbb::Blob>& blob,
+                        bool                 isPartitionSyncEvent,
+                        mqbnet::ClusterNode* source) = 0;
 
-    /// Process the specified recovery event `blob` containing one or more
-    /// storage messages.  Return zero on success, non-zero value otherwise.
+    /// @brief Process a recovery event containing one or more storage
+    ///        messages.
+    ///
     /// The behavior is undefined unless each message in the event belongs
     /// to this partition.
+    ///
+    /// @param blob The recovery event.
+    ///
+    /// @return 0 on success, or a non-zero value otherwise.
     virtual int
-    processRecoveryEvent(const bsl::shared_ptr<bdlbb::Blob>& blob) = 0;
+    processRecoveryEvent(const bsl::shared_ptr<const bdlbb::Blob>& blob) = 0;
 
     /// Process Receipt for the specified `primaryLeaseId` and
     /// `sequenceNum`.  The behavior is undefined unless the event belongs
@@ -760,9 +781,15 @@ class DataStore : public mqbi::DispatcherClient {
     loadMessageAttributesRaw(mqbi::StorageMessageAttributes* buffer,
                              const DataStoreRecordHandle&    handle) const = 0;
 
-    virtual void loadMessageRaw(bsl::shared_ptr<bdlbb::Blob>*   appData,
-                                bsl::shared_ptr<bdlbb::Blob>*   options,
-                                mqbi::StorageMessageAttributes* attributes,
+    /// @brief Load a message identified by a record handle.
+    ///
+    /// @param[out] appData Loaded with the application data of the message.
+    /// @param[out] options Loaded with the options of the message.
+    /// @param[out] attributes Loaded with the attributes of the message.
+    /// @param handle The handle of the message record.
+    virtual void loadMessageRaw(bsl::shared_ptr<const bdlbb::Blob>* appData,
+                                bsl::shared_ptr<bdlbb::Blob>*       options,
+                                mqbi::StorageMessageAttributes*     attributes,
                                 const DataStoreRecordHandle& handle) const = 0;
 
     virtual unsigned int

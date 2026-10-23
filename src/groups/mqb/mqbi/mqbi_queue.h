@@ -146,20 +146,27 @@ class InlineClient {
     // CREATORS
     virtual ~InlineClient();
 
+    /// @brief Deliver a message to the specified streams of the queue.
+    ///
+    /// @param msgGUID The GUID of the message.
+    /// @param queueId The id of the queue.
+    /// @param message The message to deliver.
+    /// @param attributes The attributes of the message.
+    /// @param mps The message properties info of the message.
+    /// @param subQueues The streams of the queue to deliver to.
+    /// @param isOutOfOrder Whether the message is delivered out of order.
+    ///
+    /// @return The result of the operation.
+    ///
+    /// THREAD: This method is called from the Queue's dispatcher thread.
     virtual mqbi::InlineResult::Enum
     sendPush(const bmqt::MessageGUID&                  msgGUID,
              int                                       queueId,
-             const bsl::shared_ptr<bdlbb::Blob>&       message,
+             const bsl::shared_ptr<const bdlbb::Blob>& message,
              const mqbi::StorageMessageAttributes&     attributes,
              const bmqp::MessagePropertiesInfo&        mps,
              const bmqp::Protocol::SubQueueInfosArray& subQueues,
              bool                                      isOutOfOrder) = 0;
-    // Called by the 'queueId' to deliver the specified 'message' with the
-    // specified 'message', 'msgGUID', 'attributes' and 'mps' for the
-    // specified 'subQueues' streams of the queue.
-    // Return 'InlineResult::Enum'.
-    //
-    // THREAD: This method is called from the Queue's dispatcher thread.
 
     virtual mqbi::InlineResult::Enum
     sendAck(int queueId, const bmqp::AckMessage& ackMessage) = 0;
@@ -604,14 +611,17 @@ class QueueHandle {
     /// optimizations.
     virtual QueueHandle* setIsClientClusterMember(bool value) = 0;
 
-    /// Post the message with the specified PUT `header`, `appData` and
-    /// `options` to the queue.
+    /// @brief Post a message to the queue.
+    ///
+    /// @param header The PUT header of the message.
+    /// @param appData The application data of the message.
+    /// @param options The options of the message.
     ///
     /// THREAD: this method can be called from any thread and is responsible
     ///         for calling the corresponding method on the `Queue`, on the
     ///         Queue's dispatcher thread.
-    virtual void postMessage(const bmqp::PutHeader&              header,
-                             const bsl::shared_ptr<bdlbb::Blob>& appData,
+    virtual void postMessage(const bmqp::PutHeader&                    header,
+                             const bsl::shared_ptr<const bdlbb::Blob>& appData,
                              const bsl::shared_ptr<bdlbb::Blob>& options) = 0;
 
     /// Confirm the message with the specified `msgGUID` for the specified
@@ -899,17 +909,22 @@ class Queue : public DispatcherClient {
     /// - Stop sending PUSHes and stop idle GC.
     virtual void setStopping() = 0;
 
-    /// Called when a message with the specified `msgGUID`, `appData`,
-    /// `options`, `compressionAlgorithmType` payload is pushed to this
-    /// queue.  Note that depending upon the location of the queue instance,
-    /// `appData` may be empty.
+    /// @brief Called when a message is pushed to this queue.
+    ///
+    /// @param msgGUID The GUID of the message.
+    /// @param appData The application data of the message; may be empty
+    ///                depending upon the location of the queue instance.
+    /// @param options The options of the message.
+    /// @param messagePropertiesInfo The message properties info.
+    /// @param compressionAlgorithmType The compression of the message.
+    /// @param isOutOfOrder Whether the message is pushed out of order.
     virtual void onPushMessage(
-        const bmqt::MessageGUID&             msgGUID,
-        const bsl::shared_ptr<bdlbb::Blob>&  appData,
-        const bsl::shared_ptr<bdlbb::Blob>&  options,
-        const bmqp::MessagePropertiesInfo&   messagePropertiesInfo,
-        bmqt::CompressionAlgorithmType::Enum compressionAlgorithmType,
-        bool                                 isOutOfOrder) = 0;
+        const bmqt::MessageGUID&                  msgGUID,
+        const bsl::shared_ptr<const bdlbb::Blob>& appData,
+        const bsl::shared_ptr<bdlbb::Blob>&       options,
+        const bmqp::MessagePropertiesInfo&        messagePropertiesInfo,
+        bmqt::CompressionAlgorithmType::Enum      compressionAlgorithmType,
+        bool                                      isOutOfOrder) = 0;
 
     /// Confirm the message with the specified `msgGUID` for the specified
     /// `upstreamSubQueueId` stream of the queue on behalf of the client

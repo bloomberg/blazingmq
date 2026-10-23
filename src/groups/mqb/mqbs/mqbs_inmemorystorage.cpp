@@ -165,11 +165,11 @@ InMemoryStorage::getIterator(bslma::ManagedPtr<mqbi::StorageIterator>* out,
 }
 
 mqbi::StorageResult::Enum
-InMemoryStorage::put(mqbi::StorageMessageAttributes*     attributes,
-                     const bmqt::MessageGUID&            msgGUID,
-                     const bsl::shared_ptr<bdlbb::Blob>& appData,
-                     const bsl::shared_ptr<bdlbb::Blob>& options,
-                     mqbi::DataStreamMessage**           out)
+InMemoryStorage::put(mqbi::StorageMessageAttributes*           attributes,
+                     const bmqt::MessageGUID&                  msgGUID,
+                     const bsl::shared_ptr<const bdlbb::Blob>& appData,
+                     const bsl::shared_ptr<bdlbb::Blob>&       options,
+                     mqbi::DataStreamMessage**                 out)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(appData);
@@ -541,10 +541,10 @@ void InMemoryStorage::autoConfirm(const mqbu::StorageKey& appKey)
 // ACCESSORS
 //   (virtual mqbi::Storage)
 mqbi::StorageResult::Enum
-InMemoryStorage::get(bsl::shared_ptr<bdlbb::Blob>*   appData,
-                     bsl::shared_ptr<bdlbb::Blob>*   options,
-                     mqbi::StorageMessageAttributes* attributes,
-                     const bmqt::MessageGUID&        msgGUID) const
+InMemoryStorage::get(bsl::shared_ptr<const bdlbb::Blob>* appData,
+                     bsl::shared_ptr<bdlbb::Blob>*       options,
+                     mqbi::StorageMessageAttributes*     attributes,
+                     const bmqt::MessageGUID&            msgGUID) const
 {
     ItemsMapConstIter it = d_items.find(msgGUID);
     if (it == d_items.end()) {

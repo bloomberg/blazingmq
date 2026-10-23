@@ -133,7 +133,7 @@ class Channel {
     /// This is template parameter to generalized writing code.
     struct PutArgs {
         const bmqp::PutHeader&              d_putHeader;
-        const bsl::shared_ptr<bdlbb::Blob>& d_data_sp;
+        const bsl::shared_ptr<const bdlbb::Blob>& d_data_sp;
 
         PutArgs(const Item& item);
 
@@ -162,7 +162,7 @@ class Channel {
     /// data.
     /// This is template parameter to generalized writing code.
     struct ExplicitPushArgs : PushArgsBase {
-        const bsl::shared_ptr<bdlbb::Blob>& d_data_sp;
+        const bsl::shared_ptr<const bdlbb::Blob>& d_data_sp;
 
         const bmqp::Protocol::SubQueueInfosArray& d_subQueueInfos;
 
@@ -225,7 +225,7 @@ class Channel {
     /// `control` builder.
     struct ControlArgs {
         bmqp::EventType::Enum               d_type;
-        const bsl::shared_ptr<bdlbb::Blob>& d_data_sp;
+        const bsl::shared_ptr<const bdlbb::Blob>& d_data_sp;
         int                                 d_messageCount;
 
         ControlArgs(const Item& item);
@@ -248,7 +248,7 @@ class Channel {
 
         // union of event data copies
         const bmqp::PutHeader                      d_putHeader;
-        const bsl::shared_ptr<bdlbb::Blob>         d_data_sp;
+        const bsl::shared_ptr<const bdlbb::Blob>   d_data_sp;
         const int                                  d_queueId;
         const int                                  d_subQueueId;
         const bmqt::MessageGUID                    d_msgId;
@@ -266,7 +266,7 @@ class Channel {
         Item(bslma::Allocator* allocator);
 
         Item(const bmqp::PutHeader&                    ph,
-             const bsl::shared_ptr<bdlbb::Blob>&       data,
+             const bsl::shared_ptr<const bdlbb::Blob>& data,
              const bsl::shared_ptr<bmqu::AtomicState>& state,
              bslma::Allocator*                         allocator);
 
@@ -275,7 +275,7 @@ class Channel {
              int                                  flags,
              bmqt::CompressionAlgorithmType::Enum compressionAlgorithmType,
              const bmqp::MessagePropertiesInfo&   messagePropertiesInfo,
-             const bsl::shared_ptr<bdlbb::Blob>&  payload,
+             const bsl::shared_ptr<const bdlbb::Blob>& payload,
              const bmqp::Protocol::SubQueueInfosArray& subQueueInfos,
              const bsl::shared_ptr<bmqu::AtomicState>& state,
              bslma::Allocator*                         allocator);
@@ -303,14 +303,14 @@ class Channel {
              bmqp::EventType::Enum                     type,
              bslma::Allocator*                         allocator);
 
-        Item(const bsl::shared_ptr<bdlbb::Blob>&       data,
+        Item(const bsl::shared_ptr<const bdlbb::Blob>& data,
              bmqp::EventType::Enum                     type,
              const bsl::shared_ptr<bmqu::AtomicState>& state,
              bslma::Allocator*                         allocator);
 
         ~Item();
 
-        const bsl::shared_ptr<bdlbb::Blob>& data();
+        const bsl::shared_ptr<const bdlbb::Blob>& data();
     };
 
     enum Mode {
@@ -547,18 +547,32 @@ class Channel {
     /// Stop the channel thread once all draining is done.
     void stop();
 
-    /// Write PUT message using the specified `ph`, `data`, and `state`.
-    /// Return e_SUCCESS even if the channel is in HWM.
+    /// @brief Write a PUT message.
+    ///
+    /// @param ph The PUT header of the message.
+    /// @param data The application data of the message.
+    /// @param state The state of the queue.
+    ///
+    /// @return e_SUCCESS, even if the channel is in HWM.
     bmqt::GenericResult::Enum
     writePut(const bmqp::PutHeader&                    ph,
-             const bsl::shared_ptr<bdlbb::Blob>&       data,
+             const bsl::shared_ptr<const bdlbb::Blob>& data,
              const bsl::shared_ptr<bmqu::AtomicState>& state);
 
-    /// Write `explicit` PUSH message using the specified `payload`,
-    /// `queueId`, `msgId`, `flags`, `compressionType`, `subQueueInfos`, and
-    /// `state`.  Return e_SUCCESS even if the channel is in HWM.
+    /// @brief Write an `explicit` PUSH message.
+    ///
+    /// @param payload The payload of the message.
+    /// @param queueId The id of the queue.
+    /// @param msgId The GUID of the message.
+    /// @param flags The PUSH header flags.
+    /// @param compressionType The compression of the message.
+    /// @param messagePropertiesInfo The message properties info.
+    /// @param subQueueInfos The streams of the queue.
+    /// @param state The state of the queue.
+    ///
+    /// @return e_SUCCESS, even if the channel is in HWM.
     bmqt::GenericResult::Enum
-    writePush(const bsl::shared_ptr<bdlbb::Blob>&       payload,
+    writePush(const bsl::shared_ptr<const bdlbb::Blob>& payload,
               int                                       queueId,
               const bmqt::MessageGUID&                  msgId,
               int                                       flags,
@@ -609,15 +623,21 @@ class Channel {
                 const bsl::shared_ptr<bmqu::AtomicState>& state =
                     bsl::shared_ptr<bmqu::AtomicState>());
 
-    /// Send the specified `data` using the specified `state`.  The
-    /// specified `type` controls whether to flush everything accumulated
-    /// prior to sending (the default behavior) and whether to keep the
-    /// `data` and `state` until `Flush` is called at which point send
-    /// everything accumulated before the `Flush` call (as in the case of
-    /// Replication Receipt).  Return e_SUCCESS even if the channel is in
-    /// High WaterMark.
+    /// @brief Send a blob.
+    ///
+    /// The `type` controls whether to flush everything accumulated prior to
+    /// sending (the default behavior) and whether to keep the `data` and
+    /// `state` until `Flush` is called at which point send everything
+    /// accumulated before the `Flush` call (as in the case of Replication
+    /// Receipt).
+    ///
+    /// @param data The blob to send.
+    /// @param type The type of the event in `data`.
+    /// @param state The state of the queue.
+    ///
+    /// @return e_SUCCESS, even if the channel is in High WaterMark.
     bmqt::GenericResult::Enum
-    writeBlob(const bsl::shared_ptr<bdlbb::Blob>&       data,
+    writeBlob(const bsl::shared_ptr<const bdlbb::Blob>& data,
               bmqp::EventType::Enum                     type,
               const bsl::shared_ptr<bmqu::AtomicState>& state = 0);
 
@@ -834,7 +854,7 @@ inline Channel::Item::Item(bslma::Allocator* allocator)
 }
 
 inline Channel::Item::Item(const bmqp::PutHeader&                    ph,
-                           const bsl::shared_ptr<bdlbb::Blob>&       data,
+                           const bsl::shared_ptr<const bdlbb::Blob>& data,
                            const bsl::shared_ptr<bmqu::AtomicState>& state,
                            bslma::Allocator*                         allocator)
 : d_type(bmqp::EventType::e_PUT)
@@ -861,7 +881,7 @@ inline Channel::Item::Item(
     int                                       flags,
     bmqt::CompressionAlgorithmType::Enum      compressionAlgorithmType,
     const bmqp::MessagePropertiesInfo&        messagePropertiesInfo,
-    const bsl::shared_ptr<bdlbb::Blob>&       payload,
+    const bsl::shared_ptr<const bdlbb::Blob>& payload,
     const bmqp::Protocol::SubQueueInfosArray& subQueueInfos,
     const bsl::shared_ptr<bmqu::AtomicState>& state,
     bslma::Allocator*                         allocator)
@@ -968,7 +988,7 @@ inline Channel::Item::Item(int                      queueId,
     }
 }
 
-inline Channel::Item::Item(const bsl::shared_ptr<bdlbb::Blob>&       data,
+inline Channel::Item::Item(const bsl::shared_ptr<const bdlbb::Blob>& data,
                            bmqp::EventType::Enum                     type,
                            const bsl::shared_ptr<bmqu::AtomicState>& state,
                            bslma::Allocator*                         allocator)
@@ -995,7 +1015,7 @@ inline Channel::Item::~Item()
     // NOTHING
 }
 
-inline const bsl::shared_ptr<bdlbb::Blob>& Channel::Item::data()
+inline const bsl::shared_ptr<const bdlbb::Blob>& Channel::Item::data()
 {
     return d_data_sp;
 }

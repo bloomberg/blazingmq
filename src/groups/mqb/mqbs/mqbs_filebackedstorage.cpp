@@ -158,10 +158,10 @@ FileBackedStorage::~FileBackedStorage()
 }
 
 mqbi::StorageResult::Enum
-FileBackedStorage::get(bsl::shared_ptr<bdlbb::Blob>*   appData,
-                       bsl::shared_ptr<bdlbb::Blob>*   options,
-                       mqbi::StorageMessageAttributes* attributes,
-                       const bmqt::MessageGUID&        msgGUID) const
+FileBackedStorage::get(bsl::shared_ptr<const bdlbb::Blob>* appData,
+                       bsl::shared_ptr<bdlbb::Blob>*       options,
+                       mqbi::StorageMessageAttributes*     attributes,
+                       const bmqt::MessageGUID&            msgGUID) const
 {
     RecordHandleMap::const_iterator it = d_handles.find(msgGUID);
     if (it == d_handles.end()) {
@@ -280,11 +280,11 @@ void FileBackedStorage::close()
 }
 
 mqbi::StorageResult::Enum
-FileBackedStorage::put(mqbi::StorageMessageAttributes*     attributes,
-                       const bmqt::MessageGUID&            msgGUID,
-                       const bsl::shared_ptr<bdlbb::Blob>& appData,
-                       const bsl::shared_ptr<bdlbb::Blob>& options,
-                       mqbi::DataStreamMessage**           out)
+FileBackedStorage::put(mqbi::StorageMessageAttributes*           attributes,
+                       const bmqt::MessageGUID&                  msgGUID,
+                       const bsl::shared_ptr<const bdlbb::Blob>& appData,
+                       const bsl::shared_ptr<bdlbb::Blob>&       options,
+                       mqbi::DataStreamMessage**                 out)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(appData);

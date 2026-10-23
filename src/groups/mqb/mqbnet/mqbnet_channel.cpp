@@ -137,7 +137,7 @@ void Channel::deleteItem(void* item, void* cookie)
 
 bmqt::GenericResult::Enum
 Channel::writePut(const bmqp::PutHeader&                    ph,
-                  const bsl::shared_ptr<bdlbb::Blob>&       data,
+                  const bsl::shared_ptr<const bdlbb::Blob>& data,
                   const bsl::shared_ptr<bmqu::AtomicState>& state)
 {
     bslma::ManagedPtr<Item> item(new (d_itemPool.allocate())
@@ -148,7 +148,7 @@ Channel::writePut(const bmqp::PutHeader&                    ph,
 }
 
 bmqt::GenericResult::Enum
-Channel::writePush(const bsl::shared_ptr<bdlbb::Blob>&       payload,
+Channel::writePush(const bsl::shared_ptr<const bdlbb::Blob>& payload,
                    int                                       queueId,
                    const bmqt::MessageGUID&                  msgId,
                    int                                       flags,
@@ -247,7 +247,7 @@ Channel::writeReject(int                                       queueId,
 }
 
 bmqt::GenericResult::Enum
-Channel::writeBlob(const bsl::shared_ptr<bdlbb::Blob>&       data,
+Channel::writeBlob(const bsl::shared_ptr<const bdlbb::Blob>& data,
                    bmqp::EventType::Enum                     type,
                    const bsl::shared_ptr<bmqu::AtomicState>& state)
 {

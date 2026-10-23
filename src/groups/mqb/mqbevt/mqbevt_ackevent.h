@@ -69,7 +69,7 @@ class AckEvent : public mqbi::DispatcherEvent {
     bmqp::AckMessage d_ackMessage;
 
     /// Blob associated to this event.
-    bsl::shared_ptr<bdlbb::Blob> d_blob_sp;
+    bsl::shared_ptr<const bdlbb::Blob> d_blob_sp;
 
     /// Options blob associated to this event.
     bsl::shared_ptr<bdlbb::Blob> d_options_sp;
@@ -98,9 +98,12 @@ class AckEvent : public mqbi::DispatcherEvent {
     /// offering modifiable access to this object.
     AckEvent& setAckMessage(const bmqp::AckMessage& value);
 
-    /// Set the blob to the specified `value` and return a reference
-    /// offering modifiable access to this object.
-    AckEvent& setBlob(const bsl::shared_ptr<bdlbb::Blob>& value);
+    /// @brief Set the blob associated to this event.
+    ///
+    /// @param value The blob to associate.
+    ///
+    /// @return A reference offering modifiable access to this object.
+    AckEvent& setBlob(const bsl::shared_ptr<const bdlbb::Blob>& value);
 
     /// Set the options blob to the specified `value` and return a reference
     /// offering modifiable access to this object.
@@ -130,9 +133,8 @@ class AckEvent : public mqbi::DispatcherEvent {
     /// associated to this event.
     const bmqp::AckMessage& ackMessage() const;
 
-    /// Return a reference not offering modifiable access to the blob
-    /// associated to this event.
-    const bsl::shared_ptr<bdlbb::Blob>& blob() const;
+    /// @brief Return the blob associated to this event.
+    const bsl::shared_ptr<const bdlbb::Blob>& blob() const;
 
     /// Return a reference not offering modifiable access to the options
     /// blob associated to this event.
@@ -167,7 +169,7 @@ inline const bmqp::AckMessage& AckEvent::ackMessage() const
     return d_ackMessage;
 }
 
-inline const bsl::shared_ptr<bdlbb::Blob>& AckEvent::blob() const
+inline const bsl::shared_ptr<const bdlbb::Blob>& AckEvent::blob() const
 {
     return d_blob_sp;
 }
@@ -198,7 +200,8 @@ inline AckEvent& AckEvent::setAckMessage(const bmqp::AckMessage& value)
     return *this;
 }
 
-inline AckEvent& AckEvent::setBlob(const bsl::shared_ptr<bdlbb::Blob>& value)
+inline AckEvent&
+AckEvent::setBlob(const bsl::shared_ptr<const bdlbb::Blob>& value)
 {
     d_blob_sp = value;
     return *this;

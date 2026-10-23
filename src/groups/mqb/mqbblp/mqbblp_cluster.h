@@ -593,14 +593,22 @@ class Cluster : public mqbi::Cluster,
         int                         partitionId,
         const bmqp::ConfirmMessage& message) BSLS_KEYWORD_OVERRIDE;
 
-    /// Send PUT message for the specified 'partitionId' using the specified
-    /// 'putHeader', 'appData', 'options', 'state', 'genCount' without
-    /// switching thread context.
+    /// @brief Send a PUT message without switching thread context.
+    ///
     /// 'onRelayPutEvent' replacement.
+    ///
+    /// @param partitionId The partition of the queue.
+    /// @param putHeader The PUT header of the message.
+    /// @param appData The application data of the message.
+    /// @param options The options of the message.
+    /// @param state The state of the queue.
+    /// @param genCount The generation count of the queue.
+    ///
+    /// @return The result of the operation.
     mqbi::InlineResult::Enum
     sendPutInline(int                                       partitionId,
                   const bmqp::PutHeader&                    putHeader,
-                  const bsl::shared_ptr<bdlbb::Blob>&       appData,
+                  const bsl::shared_ptr<const bdlbb::Blob>& appData,
                   const bsl::shared_ptr<bdlbb::Blob>&       options,
                   const bsl::shared_ptr<bmqu::AtomicState>& state,
                   bsls::Types::Uint64 genCount) BSLS_KEYWORD_OVERRIDE;

@@ -506,7 +506,7 @@ mqbi::InlineResult::Enum Cluster::sendConfirmInline(
 mqbi::InlineResult::Enum
 Cluster::sendPutInline(int                                       partitionId,
                        const bmqp::PutHeader&                    putHeader,
-                       const bsl::shared_ptr<bdlbb::Blob>&       appData,
+                       const bsl::shared_ptr<const bdlbb::Blob>& appData,
                        const bsl::shared_ptr<bdlbb::Blob>&       options,
                        const bsl::shared_ptr<bmqu::AtomicState>& state,
                        bsls::Types::Uint64                       genCount)

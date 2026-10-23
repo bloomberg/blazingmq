@@ -114,7 +114,7 @@ class PartitionFSMEventData {
     PartitionSeqNumDataRange d_partitionSeqNumDataRange;
 
     /// The StorageEvent received, consisting of data chunks.
-    bsl::shared_ptr<bdlbb::Blob> d_storageEvent;
+    bsl::shared_ptr<const bdlbb::Blob> d_storageEvent;
 
   public:
     // CREATORS
@@ -168,12 +168,17 @@ class PartitionFSMEventData {
                           int                             incrementCount,
                           const PartitionSeqNumDataRange& seqNumDataRange);
 
-    /// Create an instance of PartitionFSMEventData using the specified
-    /// `source`, `partitionId`, 'incrementCount' and `storageEvent`.
-    PartitionFSMEventData(mqbnet::ClusterNode*                source,
-                          int                                 partitionId,
-                          int                                 incrementCount,
-                          const bsl::shared_ptr<bdlbb::Blob>& storageEvent);
+    /// @brief Create an instance of PartitionFSMEventData.
+    ///
+    /// @param source The node the event comes from.
+    /// @param partitionId The partition of the event.
+    /// @param incrementCount The increment count.
+    /// @param storageEvent The storage event.
+    PartitionFSMEventData(
+        mqbnet::ClusterNode*                      source,
+        int                                       partitionId,
+        int                                       incrementCount,
+        const bsl::shared_ptr<const bdlbb::Blob>& storageEvent);
 
     // MANIPULATORS
 
@@ -197,8 +202,8 @@ class PartitionFSMEventData {
     mqbnet::ClusterNode*            highestSeqNumNode() const;
     const PartitionSeqNumDataRange& partitionSeqNumDataRange() const;
 
-    /// Return the value of the corresponding member of this object
-    const bsl::shared_ptr<bdlbb::Blob>& storageEvent() const;
+    /// @brief Return the storage event of this object.
+    const bsl::shared_ptr<const bdlbb::Blob>& storageEvent() const;
 };
 
 // ==================
@@ -409,10 +414,10 @@ inline PartitionFSMEventData::PartitionFSMEventData(
 }
 
 inline PartitionFSMEventData::PartitionFSMEventData(
-    mqbnet::ClusterNode*                source,
-    int                                 partitionId,
-    int                                 incrementCount,
-    const bsl::shared_ptr<bdlbb::Blob>& storageEvent)
+    mqbnet::ClusterNode*                      source,
+    int                                       partitionId,
+    int                                       incrementCount,
+    const bsl::shared_ptr<const bdlbb::Blob>& storageEvent)
 : d_source_p(source)
 , d_requestId(-1)  // Invalid requestId
 , d_partitionId(partitionId)
@@ -494,7 +499,7 @@ PartitionFSMEventData::partitionSeqNumDataRange() const
     return d_partitionSeqNumDataRange;
 }
 
-inline const bsl::shared_ptr<bdlbb::Blob>&
+inline const bsl::shared_ptr<const bdlbb::Blob>&
 PartitionFSMEventData::storageEvent() const
 {
     return d_storageEvent;

@@ -265,7 +265,7 @@ void Queue::setStopping()
 
 void Queue::onPushMessage(
     BSLA_MAYBE_UNUSED const bmqt::MessageGUID& msgGUID,
-    BSLA_MAYBE_UNUSED const bsl::shared_ptr<bdlbb::Blob>& appData,
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<const bdlbb::Blob>& appData,
     BSLA_MAYBE_UNUSED const bsl::shared_ptr<bdlbb::Blob>& options,
     BSLA_MAYBE_UNUSED const bmqp::MessagePropertiesInfo& hasMessageProperties,
     BSLA_MAYBE_UNUSED      bmqt::CompressionAlgorithmType::Enum
