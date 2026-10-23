@@ -560,6 +560,11 @@ class RaftNode {
         /// advances past the boundary.
         bool d_needsSnapshot;
 
+        /// True from `forceSnapshot` until this peer answers the
+        /// `InstallSnapshot`: it is sent nothing else meanwhile.  Not cleared
+        /// by `reset`.
+        bool d_snapshotForced;
+
         /// True while this peer's match index is unknown: right after
         /// becoming leader, and after a rejection.  A probing peer is sent one
         /// entry-carrying AppendEntries at a time, so a log that has forked is
@@ -717,6 +722,12 @@ class RaftNode {
                            PeerState*                          peer,
                            bsl::vector<RaftMessage>::size_type roundBegin);
 
+    /// Append to the specified `output` an `InstallSnapshot` of this log's
+    /// snapshot for the peer with the specified `peerId`, and mark the
+    /// specified `peer` as having it in flight.
+    void
+    sendInstallSnapshot(RaftNodeOutput* output, int peerId, PeerState* peer);
+
     /// Move the commit index to the specified `newCommit` and append the
     /// entries it newly commits to `output->d_committed`.  The behavior is
     /// undefined unless `newCommit` is above the current commit index and at
@@ -796,6 +807,21 @@ class RaftNode {
     /// already leader; 'e_NEVER' takes effect on future elections only.  Any
     /// resulting messages/committed entries are emitted via 'output'.
     void setElectionMode(RaftNodeOutput* output, ElectionMode::Enum mode);
+
+    /// On a leader whose log the caller has just replaced with a snapshot --
+    /// its full state as the entry at `snapshotIndex() + 1`, in this term --
+    /// set the commit index to `snapshotIndex()` and send every peer that
+    /// snapshot before anything else, whatever its log holds.  A lone node
+    /// commits the snapshot at once, appending it to `output->d_committed`.
+    /// The behavior is undefined unless this node is the leader.
+    void forceSnapshot(RaftNodeOutput* output);
+
+    /// Set both `d_commitIndex` and `d_lastAppliedCommit` to the specified
+    /// `index`, lower or higher than now.  Called on a follower after it
+    /// installs a snapshot `forceSnapshot` sent: its log then holds only the
+    /// snapshot, the entry at `index + 1`, and nothing is committed above
+    /// `index`.
+    void setCommitIndex(bsls::Types::Uint64 index);
 
     /// Initialize recovered state at startup: raise 'd_currentTerm' to at
     /// least the specified 'term' (the recovered log's last term), and both
