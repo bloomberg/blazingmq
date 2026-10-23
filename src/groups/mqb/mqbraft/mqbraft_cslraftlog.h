@@ -26,8 +26,7 @@
 //@DESCRIPTION: This component implements the 'mqbraft::RaftLog' interface
 // using an 'mqbsi::Log' as the underlying storage.  CSL records already carry
 // 'electorTerm' and 'sequenceNumber' which map directly to Raft '(term,
-// index)'.  Only 'e_UPDATE' and 'e_SNAPSHOT' record types are treated as Raft
-// log entries.
+// index)'.  Each record, of any type, is the entry at its sequence number.
 //
 /// Threading
 ///----------
@@ -98,8 +97,13 @@ class CslRaftLog : public RaftLog {
 
     // MANIPULATORS
 
-    /// Open the log and build the in-memory index by scanning all records.
-    /// Return 0 on success, non-zero on error.
+    /// Open the log and build the in-memory index.  The log starts at the
+    /// latest `e_SNAPSHOT`, as legacy recovery does; earlier records are not
+    /// entries.  Each record from there, of any type, is the entry at its
+    /// sequence number.  The log ends at the first record whose sequence
+    /// number is not the previous one + 1: that record and every record after
+    /// it are not entries, and the next `append` writes over them.  Return 0
+    /// on success, non-zero on error.
     int open();
 
     /// Close the underlying log.
@@ -138,8 +142,9 @@ class CslRaftLog : public RaftLog {
     /// underlying log into the specified `oldLog` so the caller can
     /// close/archive it.  Return 0 on success and a non-zero value
     /// otherwise.  Unlike `rollover`, `recordIndex` may exceed `lastIndex()`
-    /// -- that is the case this serves: the leader compacted past what this
-    /// node holds, so there is no tail worth keeping.
+    /// -- the leader compacted past what this node holds -- or be at or below
+    /// `snapshotIndex()` -- the leader replaced every peer's log with its
+    /// snapshot (`RaftNode::forceSnapshot`).
     ///
     /// On return `snapshotIndex()` is `recordIndex - 1` and `snapshotRecord`
     /// is the entry at `recordIndex` -- the same two values `open()` computes
@@ -184,8 +189,9 @@ class CslRaftLog : public RaftLog {
     /// Load into the specified `out` the base `e_SNAPSHOT` record at the
     /// start of the current log -- the compacted-state snapshot that must be
     /// applied to reconstruct `ClusterState` before replaying the tail.
-    /// Return 0 on success, 1 if the current log has no base snapshot (i.e.
-    /// `snapshotIndex() == 0`), and a negative value on error.
+    /// Return 0 on success, 1 if the current log is empty, and a negative
+    /// value on error (including a first record that is not an
+    /// `e_SNAPSHOT`).
     int loadSnapshotRecord(bsl::shared_ptr<bdlbb::Blob>* out) const;
 };
 

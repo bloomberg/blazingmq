@@ -1513,6 +1513,124 @@ static void test22_persistentState()
     }
 }
 
+static void test23_forceSnapshot()
+// FORCE SNAPSHOT
+//
+// After 'forceSnapshot' a leader sends every peer its snapshot and nothing
+// else until the peer answers, also across a snapshot timeout, then resumes
+// AppendEntries from the snapshot.  A lone leader commits the snapshot at
+// once.
+{
+    bmqtst::TestHelper::printTestName("FORCE SNAPSHOT");
+
+    bslma::TestAllocator alloc("test", false);
+
+    {
+        TestCluster cluster(3, false, &alloc);
+        for (int n = 0; n < 3; ++n) {
+            for (int i = 0; i < 5; ++i) {
+                cluster.log(n)->append(1, cluster.makeBlob("e"));
+            }
+        }
+
+        const int leader = electLeader(&cluster);
+        BMQTST_ASSERT_GE(leader, 0);
+        const int peer = (leader + 1) % 3;
+
+        RaftNode*      node = cluster.node(leader);
+        MemoryRaftLog* log  = cluster.log(leader);
+
+        // What 'ClusterStateRaft::installLeaderSnapshot' leaves: the snapshot
+        // as the entry after the old log, in this term.
+        const bsls::Types::Uint64 term = node->currentTerm();
+        log->append(term, cluster.makeBlob("s"));
+        log->setSnapshot(log->lastIndex() - 1, term);
+        const bsls::Types::Uint64 snapshotIndex = log->snapshotIndex();
+
+        RaftNodeOutput output(&alloc);
+        node->forceSnapshot(&output);
+        node->flushSends(&output);
+
+        BMQTST_ASSERT_EQ(node->commitIndex(), snapshotIndex);
+
+        int snapshots = 0;
+        for (size_t i = 0; i < output.d_messages.size(); ++i) {
+            const RaftMessage& m = output.d_messages[i];
+            BMQTST_ASSERT(m.d_type != RaftMessageType::e_APPEND_ENTRIES);
+            if (m.d_type == RaftMessageType::e_INSTALL_SNAPSHOT) {
+                ++snapshots;
+                BMQTST_ASSERT_EQ(m.d_lastLogIndex, snapshotIndex);
+            }
+        }
+        BMQTST_ASSERT_EQ(snapshots, 2);
+
+        // No answer: past the timeout the peer gets the snapshot again, and
+        // never AppendEntries.
+        bool resent = false;
+        for (int t = 0; t <= RaftNode::k_SNAPSHOT_TIMEOUT_TICKS; ++t) {
+            RaftNodeOutput tickOutput(&alloc);
+            node->tick(&tickOutput);
+            node->flushSends(&tickOutput);
+            for (size_t i = 0; i < tickOutput.d_messages.size(); ++i) {
+                const RaftMessage& m = tickOutput.d_messages[i];
+                if (!goesTo(m, peer)) {
+                    continue;  // CONTINUE
+                }
+                BMQTST_ASSERT(m.d_type != RaftMessageType::e_APPEND_ENTRIES);
+                if (m.d_type == RaftMessageType::e_INSTALL_SNAPSHOT) {
+                    resent = true;
+                }
+            }
+        }
+        BMQTST_ASSERT(resent);
+
+        // The peer answers: AppendEntries resume after the snapshot.
+        RaftMessage resp(&alloc);
+        resp.d_type              = RaftMessageType::e_INSTALL_SNAPSHOT_RESP;
+        resp.d_term              = term;
+        resp.d_sourceNodeId      = peer;
+        resp.d_destinationNodeId = leader;
+
+        RaftNodeOutput respOutput(&alloc);
+        node->step(&respOutput, resp);
+        node->flushSends(&respOutput);
+
+        bool appended = false;
+        for (size_t i = 0; i < respOutput.d_messages.size(); ++i) {
+            const RaftMessage& m = respOutput.d_messages[i];
+            if (goesTo(m, peer) &&
+                m.d_type == RaftMessageType::e_APPEND_ENTRIES) {
+                appended = true;
+                BMQTST_ASSERT_EQ(m.d_prevLogIndex, snapshotIndex);
+            }
+        }
+        BMQTST_ASSERT(appended);
+    }
+
+    // A lone leader.
+    {
+        TestCluster cluster(1, false, &alloc);
+        for (int i = 0; i < 3; ++i) {
+            cluster.log(0)->append(1, cluster.makeBlob("e"));
+        }
+        BMQTST_ASSERT_EQ(electLeader(&cluster), 0);
+
+        RaftNode*      node = cluster.node(0);
+        MemoryRaftLog* log  = cluster.log(0);
+
+        const bsls::Types::Uint64 term = node->currentTerm();
+        log->append(term, cluster.makeBlob("s"));
+        log->setSnapshot(log->lastIndex() - 1, term);
+
+        RaftNodeOutput output(&alloc);
+        node->forceSnapshot(&output);
+
+        BMQTST_ASSERT_EQ(node->commitIndex(), log->lastIndex());
+        BMQTST_ASSERT_EQ(output.d_committed.size(), 1u);
+        BMQTST_ASSERT_EQ(output.d_committed[0].d_index, log->lastIndex());
+    }
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ============================================================================
@@ -1523,6 +1641,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 23: test23_forceSnapshot(); break;
     case 22: test22_persistentState(); break;
     case 21: test21_leadershipTransferAbandoned(); break;
     case 20: test20_leadershipTransferDeferred(); break;

@@ -158,6 +158,7 @@ RaftNode::PeerState::PeerState(bslma::Allocator* allocator)
 RaftNode::PeerState::PeerState(const bsl::string_view& name,
                                bslma::Allocator*       allocator)
 : d_name(name, allocator)
+, d_snapshotForced(false)
 , d_isAvailable(true)
 {
     reset(0);
@@ -173,6 +174,7 @@ RaftNode::PeerState::PeerState(const PeerState&  other,
 , d_snapshotPendingIndex(other.d_snapshotPendingIndex)
 , d_snapshotPendingTerm(other.d_snapshotPendingTerm)
 , d_needsSnapshot(other.d_needsSnapshot)
+, d_snapshotForced(other.d_snapshotForced)
 , d_probing(other.d_probing)
 , d_probeSent(other.d_probeSent)
 , d_stalledTicks(other.d_stalledTicks)
@@ -402,6 +404,7 @@ void RaftNode::becomeLeader(RaftNodeOutput* output)
          it != d_peerStates.end();
          ++it) {
         it->second.reset(nextIdx);
+        it->second.d_snapshotForced = false;
     }
 
     d_heartbeatTicks = 0;
@@ -972,6 +975,7 @@ void RaftNode::handleInstallSnapshotResp(RaftNodeOutput*    output,
             it->second.d_matchIndex = it->second.d_snapshotPendingIndex;
             it->second.d_nextIndex  = it->second.d_snapshotPendingIndex + 1;
         }
+        it->second.d_snapshotForced = false;
     }
 
     it->second.d_snapshotPending      = false;
@@ -1030,6 +1034,11 @@ void RaftNode::sendAppendEntries(
         return;  // RETURN
     }
 
+    if (peer->d_snapshotForced) {
+        sendInstallSnapshot(output, peerId, peer);
+        return;  // RETURN
+    }
+
     // The peer's log has forked and its rejection is still in flight: one
     // entry-carrying message at a time, so it is not streamed entries it is
     // going to discard.
@@ -1053,20 +1062,7 @@ void RaftNode::sendAppendEntries(
         // 'InstallSnapshot': a peer already at 'snapshotIndex' accepts it, one
         // genuinely behind rejects it and gets the snapshot on retry.
         if (nextIdx != snapshotIndex || peer->d_needsSnapshot) {
-            RaftMessage snap(d_allocator_p);
-            snap.d_type              = RaftMessageType::e_INSTALL_SNAPSHOT;
-            snap.d_term              = d_currentTerm;
-            snap.d_sourceNodeId      = d_config.d_selfId;
-            snap.d_destinationNodeId = peerId;
-            snap.d_lastLogIndex      = snapshotIndex;
-            snap.d_lastLogTerm       = d_log_p->snapshotTerm();
-            output->d_messages.push_back(snap);
-
-            peer->d_snapshotPending      = true;
-            peer->d_snapshotPendingTicks = 0;
-            peer->d_snapshotPendingIndex = snap.d_lastLogIndex;
-            peer->d_snapshotPendingTerm  = snap.d_lastLogTerm;
-            peer->d_needsSnapshot        = false;
+            sendInstallSnapshot(output, peerId, peer);
             return;  // RETURN
         }
 
@@ -1183,6 +1179,29 @@ void RaftNode::sendAppendEntries(
         // rejection recomputes 'nextIndex' from the peer's own 'matchIndex'.
         peer->d_nextIndex = prevLogIndex + msg_p->d_entries.size() + 1;
     }
+}
+
+void RaftNode::sendInstallSnapshot(RaftNodeOutput* output,
+                                   int             peerId,
+                                   PeerState*      peer)
+{
+    BSLS_ASSERT_SAFE(output);
+    BSLS_ASSERT_SAFE(peer);
+
+    RaftMessage snap(d_allocator_p);
+    snap.d_type              = RaftMessageType::e_INSTALL_SNAPSHOT;
+    snap.d_term              = d_currentTerm;
+    snap.d_sourceNodeId      = d_config.d_selfId;
+    snap.d_destinationNodeId = peerId;
+    snap.d_lastLogIndex      = d_log_p->snapshotIndex();
+    snap.d_lastLogTerm       = d_log_p->snapshotTerm();
+    output->d_messages.push_back(snap);
+
+    peer->d_snapshotPending      = true;
+    peer->d_snapshotPendingTicks = 0;
+    peer->d_snapshotPendingIndex = snap.d_lastLogIndex;
+    peer->d_snapshotPendingTerm  = snap.d_lastLogTerm;
+    peer->d_needsSnapshot        = false;
 }
 
 void RaftNode::commitTo(RaftNodeOutput* output, bsls::Types::Uint64 newCommit)
@@ -1494,6 +1513,45 @@ int RaftNode::propose(RaftNodeOutput*                     output,
     }
 
     return 0;
+}
+
+void RaftNode::forceSnapshot(RaftNodeOutput* output)
+{
+    BSLS_ASSERT_SAFE(output);
+    BSLS_ASSERT_SAFE(d_state == RaftState::e_LEADER);
+
+    const bsls::Types::Uint64 snapshotIndex = d_log_p->snapshotIndex();
+
+    setCommitIndex(snapshotIndex);
+
+    for (bsl::unordered_map<int, PeerState>::iterator it =
+             d_peerStates.begin();
+         it != d_peerStates.end();
+         ++it) {
+        it->second.reset(snapshotIndex + 1);
+        it->second.d_snapshotForced = true;
+    }
+
+    d_heartbeatDue = true;
+
+    BALL_LOG_INFO << "[partition " << d_config.d_partitionId << "] self("
+                  << selfName() << ") [term " << d_currentTerm
+                  << "] sending every peer the snapshot at index "
+                  << snapshotIndex + 1;
+
+    // A lone node is its own quorum.
+    if (d_peerStates.empty()) {
+        commitTo(output, d_log_p->lastIndex());
+    }
+}
+
+void RaftNode::setCommitIndex(bsls::Types::Uint64 index)
+{
+    d_commitIndex       = index;
+    d_lastAppliedCommit = index;
+
+    // What a leader reported before refers to the log just replaced.
+    breakLeaderCommitContinuity();
 }
 
 void RaftNode::initRecoveredState(bsls::Types::Uint64 term,

@@ -2372,11 +2372,12 @@ void ClusterOrchestrator::maybeIssuePartitionPrimaryAdvisory()
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
     BSLS_ASSERT_SAFE(d_clusterStateRaft_mp);
 
-    // Raft mode and self is the CSL leader.  Per Raft 5.4.2, a new leader
-    // commits inherited prior-term entries only by committing an entry of its
-    // own term; this advisory is that entry.  Only the CSL leader publishes
-    // it; on applying the commit, every node (including self) promotes its
-    // elector to e_ACTIVE and marks its partition primaries E_ACTIVE.
+    // Raft mode and self is the CSL leader.  This advisory records in the CSL
+    // the partition leaseIds the leader's snapshot (its first entry in the
+    // term, see 'ClusterStateRaft::installLeaderSnapshot') did not: those
+    // learned, or changed, after it.  Only the CSL leader publishes it; on
+    // applying the commit, every node records the leaseIds as confirmed,
+    // which 'maybeTransitionToAvailable' waits for.
     //
     // Called only from 'maybeTransitionToAvailable', which has already
     // verified every partition has a locally-known leader (its gate 1) before
@@ -2393,7 +2394,7 @@ void ClusterOrchestrator::maybeIssuePartitionPrimaryAdvisory()
     const mqbc::ClusterState::PartitionsInfo& partitions =
         d_clusterState_p->partitions();
 
-    // Propose when no advisory for currentTerm() has committed yet -- the
+    // Propose while the leader's snapshot has not committed yet -- the
     // elector is still e_PASSIVE -- or when a partition's leaseId has run
     // ahead of the one the last committed advisory confirmed.
     bool needsAdvisory = !d_clusterData_p->electorInfo().hasActiveLeader();
@@ -2509,7 +2510,7 @@ void ClusterOrchestrator::maybeTransitionToAvailable()
 
     // If self is the CSL leader, this is the trigger to publish the combined
     // artificial partition-primary advisory (every partition now has a
-    // leader).  Its commit promotes the elector to e_ACTIVE.
+    // leader).  Its commit confirms the leaseIds checked below.
     // Self-dedups against re-proposing an identical advisory.
     maybeIssuePartitionPrimaryAdvisory();
 
