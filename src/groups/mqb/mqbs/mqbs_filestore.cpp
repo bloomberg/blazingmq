@@ -4780,6 +4780,259 @@ int FileStore::writeQueueCreationRecord(
     return rc_SUCCESS;
 }
 
+int FileStore::applyJournalOpRecord(const mqbs::RecordHeader& recHeader,
+                                    JournalOpType::Enum       journalOpType,
+                                    bsls::Types::Uint64       recordOffset,
+                                    const FileSet&            activeFileSet)
+{
+    enum {
+        rc_SUCCESS                = 0,
+        rc_INVALID_CONTENT        = -1,
+        rc_DATA_FILE_OUT_OF_SYNC  = -2,
+        rc_QLIST_FILE_OUT_OF_SYNC = -3,
+        rc_ROLLOVER_FAILURE       = -4
+    };
+
+    const MappedFileDescriptor& journal = activeFileSet.d_journal.d_file;
+
+    // Take appropriate action based on JournalOpType.
+
+    if (JournalOpType::e_UNDEFINED == journalOpType) {
+        BMQTSK_ALARMLOG_ALARM("REPLICATION")
+            << partitionDesc()
+            << "Received JournalOp msg with invalid type: " << journalOpType
+            << ", PSN: "
+            << printPSN(recHeader.primaryLeaseId(), recHeader.sequenceNumber())
+            << ". Ignoring this message." << BMQTSK_ALARMLOG_END;
+        return rc_INVALID_CONTENT;  // RETURN
+    }
+
+    if (JournalOpType::e_SYNCPOINT == journalOpType) {
+        OffsetPtr<const JournalOpRecord> jOpRec(journal.block(), recordOffset);
+
+        if (SyncPointType::e_UNDEFINED == jOpRec->syncPointType()) {
+            BMQTSK_ALARMLOG_ALARM("REPLICATION")
+                << partitionDesc()
+                << "Received sync point record with invalid type: "
+                << jOpRec->syncPointType() << ", PSN: "
+                << printPSN(recHeader.primaryLeaseId(),
+                            recHeader.sequenceNumber())
+                << ". Ignoring this message." << BMQTSK_ALARMLOG_END;
+            return rc_INVALID_CONTENT;  // RETURN
+        }
+
+        // Note that 'jOpRec->primaryLeaseId()' may be smaller than
+        // 'recHeader.primaryLeaseId()' if a new primary was chosen, and as
+        // its first job, it issues a sync point with old
+        // PSN.  Also note that in this case,
+        // 'recHeader.sequenceNumber()' will be different from
+        // 'jOpRec->sequenceNum()'.
+
+        BSLS_ASSERT_SAFE(jOpRec->primaryLeaseId() <=
+                         recHeader.primaryLeaseId());
+
+        // Keep track of latest sync point.  This needs to occur *before*
+        // potential rollover() of the file store, rollover() routine uses
+        // the latest sync point.
+
+        bmqp_ctrlmsg::SyncPointOffsetPair spoPair;
+        bmqp_ctrlmsg::SyncPoint&          syncPoint = spoPair.syncPoint();
+        syncPoint.primaryLeaseId()                  = jOpRec->primaryLeaseId();
+        syncPoint.sequenceNum()                     = jOpRec->sequenceNum();
+        syncPoint.dataFileOffsetDwords() = jOpRec->dataFileOffsetDwords();
+        syncPoint.qlistFileOffsetWords() = d_qListAware
+                                               ? jOpRec->qlistFileOffsetWords()
+                                               : 0;
+        spoPair.offset()                 = recordOffset;
+
+        // Ensure that replica's DATA file is in sync with that of primary.
+
+        if (activeFileSet.d_data.d_filePosition !=
+            (static_cast<bsls::Types::Uint64>(
+                 syncPoint.dataFileOffsetDwords()) *
+             bmqp::Protocol::k_DWORD_SIZE)) {
+            BMQTSK_ALARMLOG_ALARM("REPLICATION")
+                << partitionDesc()
+                << "DATA file offset mismatch. Received sync point: "
+                << syncPoint << ", offset maintained by self (DWORDS): "
+                << (activeFileSet.d_data.d_filePosition /
+                    bmqp::Protocol::k_DWORD_SIZE)
+                << BMQTSK_ALARMLOG_END;
+
+            return rc_DATA_FILE_OUT_OF_SYNC;  // RETURN
+        }
+
+        if (d_qListAware) {
+            // Ensure that replica's QLIST file is in sync with that of
+            // primary.
+
+            if (activeFileSet.d_qlist.d_filePosition !=
+                (static_cast<bsls::Types::Uint64>(
+                     syncPoint.qlistFileOffsetWords()) *
+                 bmqp::Protocol::k_WORD_SIZE)) {
+                BMQTSK_ALARMLOG_ALARM("REPLICATION")
+                    << partitionDesc()
+                    << "QLIST file offset mismatch. Received sync point: "
+                    << syncPoint << ", offset maintained by self (WORDS): "
+                    << (activeFileSet.d_qlist.d_filePosition /
+                        bmqp::Protocol::k_WORD_SIZE)
+                    << BMQTSK_ALARMLOG_END;
+
+                return rc_QLIST_FILE_OUT_OF_SYNC;  // RETURN
+            }
+        }
+
+        d_syncPoints.push_back(spoPair);
+        if (SyncPointType::e_ROLLOVER == jOpRec->syncPointType()) {
+            BALL_LOG_INFO << partitionDesc()
+                          << "Received sync point indicating rollover: "
+                          << syncPoint
+                          << ", at journal offset: " << recordOffset
+                          << ". Initiating rollover.";
+
+            // We can call rolloverImpl() directly here instead of
+            // rollover() because there is no need to issue sync points.
+            int rc = rolloverImpl(jOpRec->header().timestamp());
+
+            if (0 != rc) {
+                BMQTSK_ALARMLOG_ALARM("REPLICATION")
+                    << partitionDesc()
+                    << "Failed to rollover partition as notified by the "
+                    << "primary, rc: " << rc << ", sync point: " << syncPoint
+                    << BMQTSK_ALARMLOG_END;
+                return 100 * rc + rc_ROLLOVER_FAILURE;  // RETURN
+            }
+        }
+        else {
+            BSLS_ASSERT_SAFE(SyncPointType::e_REGULAR ==
+                             jOpRec->syncPointType());
+            BALL_LOG_INFO << partitionDesc()
+                          << "Received regular sync point: " << syncPoint
+                          << ", at journal offset: " << recordOffset << ".";
+        }
+
+        // If self is stopping, update the flag which indicates that self
+        // has received the "last" SyncPt from the primary, and self should
+        // ignore all storage events from this point forward for a clean
+        // shutdown.
+
+        if (d_isStopping) {
+            d_lastSyncPtReceived = true;
+
+            BALL_LOG_INFO
+                << partitionDesc()
+                << "Received last sync point from the primary while "
+                   "shutting "
+                << "down. No further storage events will be processed by "
+                << "self. Current PSN: "
+                << printPSN(d_writeHeadLeaseId, writeHeadSeqNum()) << ".";
+        }
+    }
+
+    return rc_SUCCESS;
+}
+
+int FileStore::applyQueueOpRecord(const mqbs::RecordHeader& recHeader,
+                                  QueueOpType::Enum         queueOpType,
+                                  bsls::Types::Uint64       recordOffset,
+                                  const mqbu::StorageKey&   queueKey,
+                                  const mqbu::StorageKey&   appKey,
+                                  ReplicatedStorage*        rstorage)
+{
+    enum {
+        rc_SUCCESS              = 0,
+        rc_INVALID_CONTENT      = -1,
+        rc_QUEUE_DELETION_ERROR = -2
+    };
+
+    // Take appropriate action based on QueueOpType.
+
+    if (QueueOpType::e_UNDEFINED == queueOpType ||
+        QueueOpType::e_CREATION == queueOpType ||
+        QueueOpType::e_ADDITION == queueOpType) {
+        // QueueCreation event is not a journal record.  Its replicated as
+        // a StorageMessageType::e_QLIST message.
+
+        BMQTSK_ALARMLOG_ALARM("REPLICATION")
+            << partitionDesc()
+            << "Received QueueOp message with invalid type: " << queueOpType
+            << ", PSN: "
+            << printPSN(recHeader.primaryLeaseId(), recHeader.sequenceNumber())
+            << ". Ignoring this message." << BMQTSK_ALARMLOG_END;
+        return rc_INVALID_CONTENT;  // RETURN
+    }
+
+    BALL_LOG_INFO << partitionDesc() << "Received QueueOpRecord of type ["
+                  << queueOpType << "] for queue ["
+                  << (rstorage ? rstorage->queueUri() : "**UNKNOWN_URI**")
+                  << "], queueKey [" << queueKey << "], appKey [" << appKey
+                  << "].";
+
+    DataStoreRecordKey    key(recHeader.primaryLeaseId(),
+                           recHeader.sequenceNumber());
+    DataStoreRecord       record(RecordType::e_QUEUE_OP, recordOffset);
+    DataStoreRecordHandle handle;
+    insertDataStoreRecord(&handle, key, record);
+
+    if (QueueOpType::e_PURGE == queueOpType) {
+        if (appKey.isNull() || rstorage->hasVirtualStorage(appKey)) {
+            rstorage->purge(appKey);
+        }
+        else {
+            // In ANY mode, if we are unregistering the 'appKey', then we
+            // would have purged the subqueue and removed the virtual
+            // storage for the 'appKey' before receiving this QueueOp Purge
+            // record.  That why we don't process this queue-purge command
+            // in CSL mode.
+        }
+        rstorage->addQueueOpRecordHandle(handle);
+    }
+    else {
+        BSLS_ASSERT_SAFE(QueueOpType::e_DELETION == queueOpType);
+        BSLS_ASSERT_SAFE(rstorage);
+        if (appKey.isNull()) {
+            // Entire queue is being deleted.
+
+            // Replica runs legacy mode
+            const bsls::Types::Int64 numMsgs = rstorage->numMessages(
+                mqbu::StorageKey::k_NULL_KEY);
+            if (0 != numMsgs) {
+                BMQTSK_ALARMLOG_ALARM("REPLICATION")
+                    << partitionDesc()
+                    << "Received QueueOpRecord.DELETION for queue ["
+                    << rstorage->queueUri() << "] which has [" << numMsgs
+                    << "] outstanding messages." << BMQTSK_ALARMLOG_END;
+                return rc_QUEUE_DELETION_ERROR;  // RETURN
+            }
+
+            const ReplicatedStorage::RecordHandles& recHandles =
+                rstorage->queueOpRecordHandles();
+
+            for (size_t idx = 0; idx < recHandles.size(); ++idx) {
+                removeRecordRaw(recHandles[idx]);
+            }
+
+            // Delete the QueueOpRecord.DELETION record written above.
+            // This needs to be done in both CSL and non-CSL modes.
+            removeRecordRaw(handle);
+        }
+        // else: a non-null appKey is specified in a QueueOpRecord.DELETION
+        // record.  No need to remove any queueOpRecords.
+
+        // Once below callback returns, 'rstorage' will no longer be
+        // valid.  So invoking this callback should be the last thing
+        // to do in this 'else' snippet.
+
+        BSLS_ASSERT_SAFE(d_config.queueDeletionCb());
+        d_config.queueDeletionCb()(d_config.partitionId(),
+                                   rstorage->queueUri(),
+                                   queueKey,
+                                   appKey);
+    }
+
+    return rc_SUCCESS;
+}
+
 int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
                                   const mqbs::RecordHeader&  recHeader,
                                   const bsl::shared_ptr<bdlbb::Blob>& event,
@@ -4787,17 +5040,14 @@ int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
                                   bmqp::StorageMessageType::Enum messageType)
 {
     enum {
-        rc_SUCCESS                = 0,
-        rc_UNAVAILABLE            = -1,
-        rc_JOURNAL_OUT_OF_SYNC    = -2,
-        rc_UNKNOWN_QUEUE_KEY      = -3,
-        rc_INCOMPATIBLE_STORAGE   = -4,
-        rc_UNKNOWN_APP_KEY        = -5,
-        rc_INVALID_CONTENT        = -6,
-        rc_DATA_FILE_OUT_OF_SYNC  = -7,
-        rc_QLIST_FILE_OUT_OF_SYNC = -8,
-        rc_ROLLOVER_FAILURE       = -9,
-        rc_QUEUE_DELETION_ERROR   = -10
+        rc_SUCCESS              = 0,
+        rc_UNAVAILABLE          = -1,
+        rc_JOURNAL_OUT_OF_SYNC  = -2,
+        rc_UNKNOWN_QUEUE_KEY    = -3,
+        rc_INCOMPATIBLE_STORAGE = -4,
+        rc_UNKNOWN_APP_KEY      = -5,
+        rc_JOURNAL_OP_FAILURE   = -6,
+        rc_QUEUE_OP_FAILURE     = -7
     };
 
     BSLS_ASSERT_SAFE(0 < d_fileSets.size());
@@ -4980,232 +5230,28 @@ int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
         rstorage->processDeletionRecord(*guid);
     }
     else if (RecordType::e_JOURNAL_OP == recordType) {
-        // Take appropriate action based on JournalOpType.
-
-        if (JournalOpType::e_UNDEFINED == journalOpType) {
-            BMQTSK_ALARMLOG_ALARM("REPLICATION")
-                << partitionDesc()
-                << "Received JournalOp msg with invalid type: "
-                << journalOpType << ", PSN: "
-                << printPSN(recHeader.primaryLeaseId(),
-                            recHeader.sequenceNumber())
-                << ". Ignoring this message." << BMQTSK_ALARMLOG_END;
-            return rc_INVALID_CONTENT;  // RETURN
-        }
-
-        if (JournalOpType::e_SYNCPOINT == journalOpType) {
-            OffsetPtr<const JournalOpRecord> jOpRec(journal.block(),
-                                                    recordOffset);
-
-            if (SyncPointType::e_UNDEFINED == jOpRec->syncPointType()) {
-                BMQTSK_ALARMLOG_ALARM("REPLICATION")
-                    << partitionDesc()
-                    << "Received sync point record with invalid type: "
-                    << jOpRec->syncPointType() << ", PSN: "
-                    << printPSN(recHeader.primaryLeaseId(),
-                                recHeader.sequenceNumber())
-                    << ". Ignoring this message." << BMQTSK_ALARMLOG_END;
-                return rc_INVALID_CONTENT;  // RETURN
-            }
-
-            // Note that 'jOpRec->primaryLeaseId()' may be smaller than
-            // 'recHeader.primaryLeaseId()' if a new primary was chosen, and as
-            // its first job, it issues a sync point with old
-            // PSN.  Also note that in this case,
-            // 'recHeader.sequenceNumber()' will be different from
-            // 'jOpRec->sequenceNum()'.
-
-            BSLS_ASSERT_SAFE(jOpRec->primaryLeaseId() <=
-                             recHeader.primaryLeaseId());
-
-            // Keep track of latest sync point.  This needs to occur *before*
-            // potential rollover() of the file store, rollover() routine uses
-            // the latest sync point.
-
-            bmqp_ctrlmsg::SyncPointOffsetPair spoPair;
-            bmqp_ctrlmsg::SyncPoint&          syncPoint = spoPair.syncPoint();
-            syncPoint.primaryLeaseId()       = jOpRec->primaryLeaseId();
-            syncPoint.sequenceNum()          = jOpRec->sequenceNum();
-            syncPoint.dataFileOffsetDwords() = jOpRec->dataFileOffsetDwords();
-            syncPoint.qlistFileOffsetWords() =
-                d_qListAware ? jOpRec->qlistFileOffsetWords() : 0;
-            spoPair.offset() = recordOffset;
-
-            // Ensure that replica's DATA file is in sync with that of primary.
-
-            if (activeFileSet->d_data.d_filePosition !=
-                (static_cast<bsls::Types::Uint64>(
-                     syncPoint.dataFileOffsetDwords()) *
-                 bmqp::Protocol::k_DWORD_SIZE)) {
-                BMQTSK_ALARMLOG_ALARM("REPLICATION")
-                    << partitionDesc()
-                    << "DATA file offset mismatch. Received sync point: "
-                    << syncPoint << ", offset maintained by self (DWORDS): "
-                    << (activeFileSet->d_data.d_filePosition /
-                        bmqp::Protocol::k_DWORD_SIZE)
-                    << BMQTSK_ALARMLOG_END;
-
-                return rc_DATA_FILE_OUT_OF_SYNC;  // RETURN
-            }
-
-            if (d_qListAware) {
-                // Ensure that replica's QLIST file is in sync with that of
-                // primary.
-
-                if (activeFileSet->d_qlist.d_filePosition !=
-                    (static_cast<bsls::Types::Uint64>(
-                         syncPoint.qlistFileOffsetWords()) *
-                     bmqp::Protocol::k_WORD_SIZE)) {
-                    BMQTSK_ALARMLOG_ALARM("REPLICATION")
-                        << partitionDesc()
-                        << "QLIST file offset mismatch. Received sync point: "
-                        << syncPoint << ", offset maintained by self (WORDS): "
-                        << (activeFileSet->d_qlist.d_filePosition /
-                            bmqp::Protocol::k_WORD_SIZE)
-                        << BMQTSK_ALARMLOG_END;
-
-                    return rc_QLIST_FILE_OUT_OF_SYNC;  // RETURN
-                }
-            }
-
-            d_syncPoints.push_back(spoPair);
-            if (SyncPointType::e_ROLLOVER == jOpRec->syncPointType()) {
-                BALL_LOG_INFO
-                    << partitionDesc()
-                    << "Received sync point indicating rollover: " << syncPoint
-                    << ", at journal offset: " << recordOffset
-                    << ". Initiating rollover.";
-
-                // We can call rolloverImpl() directly here instead of
-                // rollover() because there is no need to issue sync points.
-                int rc = rolloverImpl(jOpRec->header().timestamp());
-
-                if (0 != rc) {
-                    BMQTSK_ALARMLOG_ALARM("REPLICATION")
-                        << partitionDesc()
-                        << "Failed to rollover partition as notified by the "
-                        << "primary, rc: " << rc
-                        << ", sync point: " << syncPoint
-                        << BMQTSK_ALARMLOG_END;
-                    return 100 * rc + rc_ROLLOVER_FAILURE;  // RETURN
-                }
-            }
-            else {
-                BSLS_ASSERT_SAFE(SyncPointType::e_REGULAR ==
-                                 jOpRec->syncPointType());
-                BALL_LOG_INFO << partitionDesc()
-                              << "Received regular sync point: " << syncPoint
-                              << ", at journal offset: " << recordOffset
-                              << ".";
-            }
-
-            // If self is stopping, update the flag which indicates that self
-            // has received the "last" SyncPt from the primary, and self should
-            // ignore all storage events from this point forward for a clean
-            // shutdown.
-
-            if (d_isStopping) {
-                d_lastSyncPtReceived = true;
-
-                BALL_LOG_INFO
-                    << partitionDesc()
-                    << "Received last sync point from the primary while "
-                       "shutting "
-                    << "down. No further storage events will be processed by "
-                    << "self. Current PSN: "
-                    << printPSN(d_writeHeadLeaseId, writeHeadSeqNum()) << ".";
-            }
+        const int rc = applyJournalOpRecord(recHeader,
+                                            journalOpType,
+                                            recordOffset,
+                                            *activeFileSet);
+        if (0 != rc) {
+            return 100 * rc + rc_JOURNAL_OP_FAILURE;  // RETURN
         }
     }
     else {
-        // A QueueOp message.  Take appropriate action based on QueueOpType.
+        // A QueueOp message.
 
         BSLS_ASSERT_SAFE(RecordType::e_QUEUE_OP == recordType);
         BSLS_ASSERT_SAFE(queueKey);
 
-        if (QueueOpType::e_UNDEFINED == queueOpType ||
-            QueueOpType::e_CREATION == queueOpType ||
-            QueueOpType::e_ADDITION == queueOpType) {
-            // QueueCreation event is not a journal record.  Its replicated as
-            // a StorageMessageType::e_QLIST message.
-
-            BMQTSK_ALARMLOG_ALARM("REPLICATION")
-                << partitionDesc()
-                << "Received QueueOp message with invalid type: "
-                << queueOpType << ", PSN: "
-                << printPSN(recHeader.primaryLeaseId(),
-                            recHeader.sequenceNumber())
-                << ". Ignoring this message." << BMQTSK_ALARMLOG_END;
-            return rc_INVALID_CONTENT;  // RETURN
-        }
-
-        BALL_LOG_INFO << partitionDesc() << "Received QueueOpRecord of type ["
-                      << queueOpType << "] for queue ["
-                      << (rstorage ? rstorage->queueUri() : "**UNKNOWN_URI**")
-                      << "], queueKey [" << *queueKey << "], appKey ["
-                      << *appKey << "].";
-
-        DataStoreRecordKey    key(recHeader.primaryLeaseId(),
-                               recHeader.sequenceNumber());
-        DataStoreRecord       record(recordType, recordOffset);
-        DataStoreRecordHandle handle;
-        insertDataStoreRecord(&handle, key, record);
-
-        if (QueueOpType::e_PURGE == queueOpType) {
-            if (appKey->isNull() || rstorage->hasVirtualStorage(*appKey)) {
-                rstorage->purge(*appKey);
-            }
-            else {
-                // In ANY mode, if we are unregistering the 'appKey', then we
-                // would have purged the subqueue and removed the virtual
-                // storage for the 'appKey' before receiving this QueueOp Purge
-                // record.  That why we don't process this queue-purge command
-                // in CSL mode.
-            }
-            rstorage->addQueueOpRecordHandle(handle);
-        }
-        else {
-            BSLS_ASSERT_SAFE(QueueOpType::e_DELETION == queueOpType);
-            BSLS_ASSERT_SAFE(rstorage);
-            BSLS_ASSERT_SAFE(appKey);
-            if (appKey->isNull()) {
-                // Entire queue is being deleted.
-
-                // Replica runs legacy mode
-                const bsls::Types::Int64 numMsgs = rstorage->numMessages(
-                    mqbu::StorageKey::k_NULL_KEY);
-                if (0 != numMsgs) {
-                    BMQTSK_ALARMLOG_ALARM("REPLICATION")
-                        << partitionDesc()
-                        << "Received QueueOpRecord.DELETION for queue ["
-                        << rstorage->queueUri() << "] which has [" << numMsgs
-                        << "] outstanding messages." << BMQTSK_ALARMLOG_END;
-                    return rc_QUEUE_DELETION_ERROR;  // RETURN
-                }
-
-                const ReplicatedStorage::RecordHandles& recHandles =
-                    rstorage->queueOpRecordHandles();
-
-                for (size_t idx = 0; idx < recHandles.size(); ++idx) {
-                    removeRecordRaw(recHandles[idx]);
-                }
-
-                // Delete the QueueOpRecord.DELETION record written above.
-                // This needs to be done in both CSL and non-CSL modes.
-                removeRecordRaw(handle);
-            }
-            // else: a non-null appKey is specified in a QueueOpRecord.DELETION
-            // record.  No need to remove any queueOpRecords.
-
-            // Once below callback returns, 'rstorage' will no longer be
-            // valid.  So invoking this callback should be the last thing
-            // to do in this 'else' snippet.
-
-            BSLS_ASSERT_SAFE(d_config.queueDeletionCb());
-            d_config.queueDeletionCb()(d_config.partitionId(),
-                                       rstorage->queueUri(),
-                                       *queueKey,
-                                       *appKey);
+        const int rc = applyQueueOpRecord(recHeader,
+                                          queueOpType,
+                                          recordOffset,
+                                          *queueKey,
+                                          *appKey,
+                                          rstorage);
+        if (0 != rc) {
+            return 100 * rc + rc_QUEUE_OP_FAILURE;  // RETURN
         }
     }
 
