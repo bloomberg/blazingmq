@@ -72,51 +72,77 @@ int CslRaftLog::open()
     d_snapshotIndex = 0;
     d_snapshotTerm  = 0;
 
-    const bsls::Types::Int64 numBytes   = d_log_sp->outstandingNumBytes();
-    mqbsi::Log::Offset       offset     = k_FILE_HEADER_SIZE;
-    bool                     firstEntry = true;
+    const bsls::Types::Int64 numBytes = d_log_sp->outstandingNumBytes();
+
+    // Find the latest 'e_SNAPSHOT'.  Legacy recovery ('ClusterUtil::load')
+    // starts there too, and legacy CSL files can differ between nodes before
+    // it.
+    mqbsi::Log::Offset start  = k_FILE_HEADER_SIZE;
+    mqbsi::Log::Offset offset = k_FILE_HEADER_SIZE;
 
     while (offset + k_RECORD_HEADER_SIZE <= numBytes) {
-        mqbc::ClusterStateRecordHeader* header = 0;
-        int rc = d_log_sp->alias(reinterpret_cast<void**>(&header),
-                                 k_RECORD_HEADER_SIZE,
-                                 offset);
-        if (rc != 0) {
-            break;
+        void* address = 0;
+        if (0 != d_log_sp->alias(&address, k_RECORD_HEADER_SIZE, offset)) {
+            break;  // BREAK
         }
+        const mqbc::ClusterStateRecordHeader* header =
+            static_cast<const mqbc::ClusterStateRecordHeader*>(address);
 
-        bsls::Types::Int64 recSize = mqbc::ClusterStateLedgerUtil::recordSize(
-            *header);
+        const bsls::Types::Int64 recSize =
+            mqbc::ClusterStateLedgerUtil::recordSize(*header);
         if (recSize <= 0 || offset + recSize > numBytes) {
-            break;
+            break;  // BREAK
         }
 
-        mqbc::ClusterStateRecordType::Enum recType = header->recordType();
-        if (recType == mqbc::ClusterStateRecordType::e_UPDATE ||
-            recType == mqbc::ClusterStateRecordType::e_SNAPSHOT) {
-            if (firstEntry &&
-                recType == mqbc::ClusterStateRecordType::e_SNAPSHOT &&
-                header->sequenceNumber() > 0) {
-                // The first record of a rolled-over (or migration-seeded) CSL
-                // file is the base snapshot: it captures the full committed
-                // cluster state at its sequence number, so the log resumes at
-                // that index.  Set the snapshot boundary to 'seq - 1' but
-                // STILL index the record: the committed base snapshot is then
-                // applied by the normal commit drain (which runs after the
-                // cluster's 'ClusterState' observer is registered), keeping
-                // 'ClusterState' and the queue helper's 'd_queues' consistent
-                // -- rather than by a special early apply during 'start()'.
-                // A plain (never-rolled) file whose first record is an
-                // 'e_UPDATE' leaves 'd_snapshotIndex == 0'.
-                d_snapshotIndex = header->sequenceNumber() - 1;
-                d_snapshotTerm  = header->electorTerm();
-            }
-            RecordInfo info;
-            info.d_offset = offset;
-            info.d_term   = header->electorTerm();
-            d_index.push_back(info);
-            firstEntry = false;
+        if (header->recordType() == mqbc::ClusterStateRecordType::e_SNAPSHOT &&
+            header->sequenceNumber() > 0) {
+            start = offset;
         }
+
+        offset += recSize;
+    }
+
+    // Index from there: each record is the entry at its sequence number, so
+    // the same record has the same index on every node.  The log ends at the
+    // first record whose sequence number is not the next one.  The base
+    // 'e_SNAPSHOT' stays an entry, so the commit drain applies it.
+    bsls::Types::Uint64 expected = 1;
+    offset                       = start;
+
+    while (offset + k_RECORD_HEADER_SIZE <= numBytes) {
+        void* address = 0;
+        if (0 != d_log_sp->alias(&address, k_RECORD_HEADER_SIZE, offset)) {
+            break;  // BREAK
+        }
+        const mqbc::ClusterStateRecordHeader* header =
+            static_cast<const mqbc::ClusterStateRecordHeader*>(address);
+
+        const bsls::Types::Int64 recSize =
+            mqbc::ClusterStateLedgerUtil::recordSize(*header);
+        if (recSize <= 0 || offset + recSize > numBytes) {
+            break;  // BREAK
+        }
+
+        if (d_index.empty() &&
+            header->recordType() == mqbc::ClusterStateRecordType::e_SNAPSHOT &&
+            header->sequenceNumber() > 0) {
+            expected        = header->sequenceNumber();
+            d_snapshotIndex = expected - 1;
+            d_snapshotTerm  = header->electorTerm();
+        }
+
+        if (header->sequenceNumber() != expected) {
+            BALL_LOG_WARN << "CSL log ends at offset " << offset
+                          << ": sequence number " << header->sequenceNumber()
+                          << ", expected " << expected;
+            break;  // BREAK
+        }
+
+        RecordInfo info;
+        info.d_offset = offset;
+        info.d_term   = header->electorTerm();
+        d_index.push_back(info);
+        ++expected;
 
         offset += recSize;
     }
@@ -276,7 +302,6 @@ int CslRaftLog::installSnapshot(
     BSLS_ASSERT_SAFE(newLog && newLog->isOpened());
     BSLS_ASSERT_SAFE(snapshotRecord);
     BSLS_ASSERT_SAFE(recordIndex > 0);
-    BSLS_ASSERT_SAFE(d_snapshotIndex < recordIndex);
 
     mqbc::ClusterStateFileHeader fh;
     fh.setProtocolVersion(mqbc::ClusterStateLedgerProtocol::k_VERSION)
@@ -437,8 +462,7 @@ int CslRaftLog::loadSnapshotRecord(bsl::shared_ptr<bdlbb::Blob>* out) const
 {
     BSLS_ASSERT_SAFE(out);
 
-    if (d_snapshotIndex == 0) {
-        // No base snapshot: a plain (never-rolled, non-seeded) file.
+    if (d_index.empty()) {
         return 1;  // RETURN
     }
 

@@ -48,14 +48,16 @@ class TestRolloverCSL:
         producer = proxy.create_client("producer")
 
         csl_files_before_rollover = glob.glob(
-            str(cluster.work_dir.joinpath(leader.name, "storage")) + "/*csl*"
+            str(cluster.work_dir.joinpath(leader.name, "storage"))
+            + "/bmq_csl_*.bmq_csl"
         )
         assert len(csl_files_before_rollover) == 1
 
         simulate_csl_rollover(domain_urls, leader, producer)
 
         csl_files_after_rollover = glob.glob(
-            str(cluster.work_dir.joinpath(leader.name, "storage")) + "/*csl*"
+            str(cluster.work_dir.joinpath(leader.name, "storage"))
+            + "/bmq_csl_*.bmq_csl"
         )
         assert len(csl_files_after_rollover) == 1
         assert csl_files_before_rollover[0] != csl_files_after_rollover[0]

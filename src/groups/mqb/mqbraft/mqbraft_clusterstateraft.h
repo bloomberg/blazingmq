@@ -179,11 +179,10 @@ class ClusterStateRaft : public mqbi::ClusterStateUpdater,
                                  mqbnet::ClusterNode* source,
                                  bsls::Types::Uint64  term);
 
-    /// Apply a single committed CSL entry to ClusterState and write
-    /// an e_COMMIT record for rollback compatibility.  Return true if the
-    /// entry is the first of the current term (the artificial
-    /// `partitionPrimaryAdvisory`), whose commit is what applies the backlog
-    /// inherited from prior terms.
+    /// Apply a single committed CSL entry to ClusterState.  Return true if
+    /// the entry is the first of the current term (the leader's snapshot,
+    /// see `installLeaderSnapshot`), whose commit is what applies the backlog
+    /// inherited from prior terms, or a later current-term advisory.
     bool applyCommittedEntry(const LogEntry& entry);
 
     /// Move the elector's leader status to `e_ACTIVE` and notify the
@@ -197,6 +196,34 @@ class ClusterStateRaft : public mqbi::ClusterStateUpdater,
     /// per-node local rollover of `IncoreClusterStateLedger::onLogRolloverCb`.
     /// Return 0 on success and a non-zero value otherwise.
     int rolloverCsl();
+
+    /// Replace the CSL log with a single `e_SNAPSHOT` record holding the
+    /// state the log ends at, committed or not, as the entry after
+    /// `lastIndex()` in the current term.  Called on becoming leader, before
+    /// `RaftNode::forceSnapshot` sends that record to every peer.  Return 0
+    /// on success and a non-zero value otherwise.
+    int installLeaderSnapshot();
+
+    /// Load into the specified `record` an `e_SNAPSHOT` record holding, as a
+    /// `LeaderAdvisory`, the queues of the specified `state` and the
+    /// partitions of the cluster state, which data-partition Raft keeps
+    /// current, stamped with the specified `index` and `term`.  Return 0 on
+    /// success and a non-zero value otherwise.
+    int buildSnapshotRecord(bdlbb::Blob*              record,
+                            const mqbc::ClusterState& state,
+                            bsls::Types::Uint64       index,
+                            bsls::Types::Uint64       term);
+
+    /// Record the leaseIds of the specified `partitions` as confirmed by a
+    /// committed CSL advisory (`advisoryConfirmedLeaseId`).
+    void confirmLeaseIds(
+        const bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>& partitions);
+
+    /// Apply the specified `message` to the specified `state`.  A
+    /// `LeaderAdvisory` replaces the queues in `state`; `ClusterUtil::apply`
+    /// alone only adds and updates.
+    void applyToState(mqbc::ClusterState*                 state,
+                      const bmqp_ctrlmsg::ClusterMessage& message);
 
     /// Create and open a fresh, empty CSL log file in the configured
     /// location, loading it into the specified `logOut` and its generated id

@@ -114,6 +114,42 @@ bsl::shared_ptr<bdlbb::Blob> makeRecord(bsls::Types::Uint64       term,
     return record;
 }
 
+/// Build a legacy `e_COMMIT` CSL record blob with the specified `term` and
+/// `seqNum`, committing the record at `term` and the specified
+/// `committedSeqNum`.
+bsl::shared_ptr<bdlbb::Blob>
+makeCommitRecord(bsls::Types::Uint64       term,
+                 bsls::Types::Uint64       seqNum,
+                 bsls::Types::Uint64       committedSeqNum,
+                 bdlbb::BlobBufferFactory* factory,
+                 bslma::Allocator*         allocator)
+{
+    bmqp_ctrlmsg::ClusterMessage        clusterMessage(allocator);
+    bmqp_ctrlmsg::LeaderMessageSequence lms;
+    lms.electorTerm()    = term;
+    lms.sequenceNumber() = seqNum;
+
+    bmqp_ctrlmsg::LeaderAdvisoryCommit& commit =
+        clusterMessage.choice().makeLeaderAdvisoryCommit();
+    commit.sequenceNumber()                           = lms;
+    commit.sequenceNumberCommitted().electorTerm()    = term;
+    commit.sequenceNumberCommitted().sequenceNumber() = committedSeqNum;
+
+    bsl::shared_ptr<bdlbb::Blob> record =
+        bsl::make_shared<bdlbb::Blob>(factory, allocator);
+    int rc = mqbc::ClusterStateLedgerUtil::appendRecord(
+        record.get(),
+        clusterMessage,
+        lms,
+        0,
+        mqbc::ClusterStateRecordType::e_COMMIT,
+        allocator);
+    BSLS_ASSERT_OPT(rc == 0);
+    (void)rc;
+
+    return record;
+}
+
 /// Helper class that creates a temp directory, opens a
 /// MemoryMappedOnDiskLog, writes a CSL file header, and provides a
 /// CslRaftLog for testing.
@@ -782,6 +818,103 @@ static void test9_appendPastTruncationPoint()
     }
 }
 
+static void test10_openLegacyFile()
+// OPEN LEGACY FILE
+//
+// A legacy CSL file holds every record type, numbered by sequence number
+// within a term, with gaps before each 'leaderAdvisory'.  'open()' starts at
+// the latest 'e_SNAPSHOT', makes each record the entry at its sequence
+// number, and ends the log at the first record whose sequence number is not
+// the next one.
+{
+    bmqtst::TestHelper::printTestName("OPEN LEGACY FILE");
+
+    bslma::Allocator*              alloc = bmqtst::TestHelperUtil::allocator();
+    bmqu::TempDirectory            tempDir(alloc);
+    bdlbb::PooledBlobBufferFactory factory(256, alloc);
+    bmqp::BlobPoolUtil::BlobSpPoolSp poolSp =
+        bmqp::BlobPoolUtil::createBlobPool(&factory, alloc);
+
+    bsl::string      logPath = tempDir.path() + "/csl_legacy.bmq";
+    mqbsi::LogConfig logConfig(k_LOG_MAX_SIZE,
+                               k_LOG_KEY,
+                               logPath,
+                               false,  // reserveOnDisk
+                               false,
+                               alloc);
+
+    mqbsi::Log::Offset endOfLastEntry = 0;
+    {
+        bsl::shared_ptr<mqbsl::MemoryMappedOnDiskLog> log(
+            new (*alloc) mqbsl::MemoryMappedOnDiskLog(logConfig),
+            alloc);
+        BMQTST_ASSERT_EQ(log->open(mqbsi::Log::e_CREATE_IF_MISSING), 0);
+
+        mqbc::ClusterStateFileHeader fileHeader;
+        log->write(&fileHeader,
+                   0,
+                   static_cast<int>(sizeof(mqbc::ClusterStateFileHeader)));
+
+        bsl::vector<bsl::shared_ptr<bdlbb::Blob> > records(alloc);
+        records.push_back(makeSnapshotRecord(1, 1, &factory, alloc));
+        records.push_back(makeCommitRecord(1, 2, 1, &factory, alloc));
+        records.push_back(makeRecord(1, 3, &factory, alloc));
+        records.push_back(makeCommitRecord(1, 4, 3, &factory, alloc));
+        // Seq 5 to 8 missed; brought up to date by the next advisory.
+        records.push_back(makeSnapshotRecord(1, 9, &factory, alloc));
+        records.push_back(makeCommitRecord(1, 10, 9, &factory, alloc));
+        records.push_back(makeRecord(1, 11, &factory, alloc));
+
+        for (size_t i = 0; i < records.size(); ++i) {
+            log->write(*records[i],
+                       bmqu::BlobPosition(),
+                       records[i]->length());
+        }
+        endOfLastEntry = log->currentOffset();
+
+        // Not the next sequence number: the log ends before it.
+        bsl::shared_ptr<bdlbb::Blob> stale =
+            makeRecord(2, 500, &factory, alloc);
+        log->write(*stale, bmqu::BlobPosition(), stale->length());
+
+        log->close();
+    }
+
+    {
+        bsl::shared_ptr<mqbsl::MemoryMappedOnDiskLog> log(
+            new (*alloc) mqbsl::MemoryMappedOnDiskLog(logConfig),
+            alloc);
+        BMQTST_ASSERT_EQ(log->open(0), 0);
+
+        CslRaftLog raftLog(log, poolSp.get(), alloc);
+        BMQTST_ASSERT_EQ(raftLog.open(), 0);
+
+        BMQTST_ASSERT_EQ(raftLog.snapshotIndex(), 8ULL);
+        BMQTST_ASSERT_EQ(raftLog.snapshotTerm(), 1ULL);
+        BMQTST_ASSERT_EQ(raftLog.lastIndex(), 11ULL);
+        BMQTST_ASSERT_EQ(raftLog.lastTerm(), 1ULL);
+        BMQTST_ASSERT_EQ(log->currentOffset(), endOfLastEntry);
+
+        bsl::vector<LogEntry> entries(alloc);
+        raftLog.entries(9, 12, &entries, 0, 0);
+        BMQTST_ASSERT_EQ(entries.size(), 3u);
+
+        bmqp_ctrlmsg::ClusterMessage message(alloc);
+        BMQTST_ASSERT_EQ(mqbc::ClusterStateLedgerUtil::loadClusterMessage(
+                             &message,
+                             *entries[0].d_data),
+                         0);
+        BMQTST_ASSERT(message.choice().isLeaderAdvisoryValue());
+        BMQTST_ASSERT_EQ(mqbc::ClusterStateLedgerUtil::loadClusterMessage(
+                             &message,
+                             *entries[1].d_data),
+                         0);
+        BMQTST_ASSERT(message.choice().isLeaderAdvisoryCommitValue());
+
+        log->close();
+    }
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ============================================================================
@@ -792,6 +925,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 10: test10_openLegacyFile(); break;
     case 9: test9_appendPastTruncationPoint(); break;
     case 8: test8_openAfterCrashRestart(); break;
     case 7: test7_rolloverMatchesOpen(); break;
