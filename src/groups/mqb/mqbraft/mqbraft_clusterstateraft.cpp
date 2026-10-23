@@ -24,6 +24,7 @@
 #include <mqbnet_controlmessagetransmitter.h>
 #include <mqbs_storageutil.h>
 #include <mqbsl_memorymappedondisklog.h>
+#include <mqbu_exit.h>
 
 #include <bmqt_uri.h>
 
@@ -166,6 +167,21 @@ void ClusterStateRaft::dispatchOutput(RaftNodeOutput* output)
 {
     BSLS_ASSERT_SAFE(output);
 
+    // A new leader's log may not be a Raft log -- a legacy CSL file is not --
+    // and neither may its peers'.  So before it sends anything, it replaces
+    // its log with its state and makes every peer take that state.
+    if (output->d_leaderChanged && isLeader()) {
+        if (0 != installLeaderSnapshot()) {
+            BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
+                << "CSL leader failed to replace its log with a snapshot of "
+                << "its state; exiting so that another node can lead."
+                << BMQTSK_ALARMLOG_END;
+            mqbu::ExitUtil::terminate(
+                mqbu::ExitCode::e_RECOVERY_FAILURE);  // EXIT
+        }
+        d_raftNode_mp->forceSnapshot(output);
+    }
+
     // The CSL runs a round on every event: its rate does not justify the
     // deferral 'PartitionRaft' does, and this keeps the sends where they were.
     d_raftNode_mp->flushSends(output);
@@ -205,12 +221,11 @@ void ClusterStateRaft::dispatchOutput(RaftNodeOutput* output)
         // here -- see 'promoteToActive' below.
         updateElectorInfo();
 
-        // No separate become-leader no-op is proposed here.  The CSL leader's
-        // first current-term entry is instead the artificial
-        // 'partitionPrimaryAdvisory' issued (via the orchestrator) once every
-        // partition has a leader; committing it both commits/applies the
-        // recovered backlog (Raft 5.4.2, exactly as a no-op would) and
-        // publishes the leaseIds.
+        // The CSL leader's first current-term entry is its snapshot
+        // ('installLeaderSnapshot', above); committing it applies the
+        // inherited backlog (Raft 5.4.2) and promotes to 'e_ACTIVE'.  The
+        // orchestrator's 'partitionPrimaryAdvisory' records partition leaseIds
+        // that change after it.
         //
         // A leadership change also lets the orchestrator re-evaluate/re-issue
         // that advisory.  Other entry commits (queue assignments, app
@@ -434,42 +449,41 @@ bool ClusterStateRaft::applyCommittedEntry(const LogEntry& entry)
         return caughtUp;  // RETURN
     }
 
+    if (clusterMessage.choice().isLeaderAdvisoryCommitValue()) {
+        // A legacy 'e_COMMIT' record: an entry, because 'CslRaftLog' indexes
+        // records by sequence number, but there is nothing to apply.
+        return caughtUp;  // RETURN
+    }
+
     if (clusterMessage.choice().selectionId() ==
         bmqp_ctrlmsg::ClusterMessageChoice::
             SELECTION_ID_PARTITION_PRIMARY_ADVISORY) {
-        // Don't apply to ClusterState: under Raft the data-partition Raft, not
-        // the CSL, owns partition primary/leaseId, so 'ClusterUtil::apply' ->
-        // 'applyPartitionPrimary' is a no-op ('isRaftEnabled()' early-return)
-        // and the Raft commit already guarantees persistence.
-        //
-        // The orchestrator declares a partition ready only once two leaseIds
-        // agree: the one this CSL advisory committed, and the one observed
-        // locally from data-partition Raft leadership ('primaryLeaseId'). They
-        // come over two Raft groups, arriving in either order, so store the
-        // advisory's leaseId in its own field, 'advisoryConfirmedLeaseId', not
-        // over 'primaryLeaseId'.
-        // Only a current-term advisory describes the live epoch (Raft 5.4.2),
-        // so a prior-term one replayed at recovery is skipped.
+        // Don't apply to ClusterState: 'ClusterUtil::apply' ->
+        // 'applyPartitionPrimary' is a no-op under Raft ('isRaftEnabled()'
+        // early-return).  Only a current-term advisory describes the live
+        // epoch (Raft 5.4.2), so a prior-term one replayed at recovery is
+        // skipped.  Promote on it too: 'maybeTransitionToAvailable' waits on
+        // these leaseIds.
         if (entry.d_term == d_raftNode_mp->currentTerm()) {
-            const bmqp_ctrlmsg::PartitionPrimaryAdvisory& adv =
-                clusterMessage.choice().partitionPrimaryAdvisory();
-            for (bsl::vector<
-                     bmqp_ctrlmsg::PartitionPrimaryInfo>::const_iterator it =
-                     adv.partitions().cbegin();
-                 it != adv.partitions().cend();
-                 ++it) {
-                d_clusterState_p->setPartitionAdvisoryConfirmedLeaseId(
-                    it->partitionId(),
-                    it->primaryLeaseId());
-            }
-
+            confirmLeaseIds(clusterMessage.choice()
+                                .partitionPrimaryAdvisory()
+                                .partitions());
             caughtUp = true;
         }
     }
     else {
-        mqbc::ClusterUtil::apply(d_clusterState_p,
-                                 clusterMessage,
-                                 *d_clusterData_p);
+        applyToState(d_clusterState_p, clusterMessage);
+
+        // A current-term 'LeaderAdvisory' is the leader's snapshot
+        // ('installLeaderSnapshot'), its first entry in the term: committing
+        // it applies everything before it (Raft 5.4.2).  Its partitions are
+        // the leaseIds the leader knew then.
+        if (clusterMessage.choice().isLeaderAdvisoryValue() &&
+            entry.d_term == d_raftNode_mp->currentTerm()) {
+            confirmLeaseIds(
+                clusterMessage.choice().leaderAdvisory().partitions());
+            caughtUp = true;
+        }
     }
 
     BALL_LOG_INFO << "Applied committed CSL entry at term " << entry.d_term
@@ -1219,28 +1233,12 @@ int ClusterStateRaft::rolloverCsl()
     // a 'LeaderAdvisory'.  This mirrors legacy
     // 'IncoreClusterStateLedger::onLogRolloverCb', which each node writes
     // locally on its own rollover (never broadcast).
-    bmqp_ctrlmsg::ClusterMessage  clusterMessage(d_allocator_p);
-    bmqp_ctrlmsg::LeaderAdvisory& advisory =
-        clusterMessage.choice().makeLeaderAdvisory();
-    advisory.sequenceNumber().electorTerm()    = compactTerm;
-    advisory.sequenceNumber().sequenceNumber() = compactIndex;
-    mqbc::ClusterUtil::loadPartitionsInfo(&advisory.partitions(),
-                                          *d_clusterState_p);
-    mqbc::ClusterUtil::loadQueuesInfo(&advisory.queues(), *d_clusterState_p);
-
     bsl::shared_ptr<bdlbb::Blob> snapshotRecord =
         d_clusterData_p->blobSpPool().getObject();
-    bmqp_ctrlmsg::LeaderMessageSequence lms;
-    lms.electorTerm()    = compactTerm;
-    lms.sequenceNumber() = compactIndex;
-
-    int rc = mqbc::ClusterStateLedgerUtil::appendRecord(
-        snapshotRecord.get(),
-        clusterMessage,
-        lms,
-        0,  // timestamp
-        mqbc::ClusterStateRecordType::e_SNAPSHOT,
-        d_allocator_p);
+    int rc = buildSnapshotRecord(snapshotRecord.get(),
+                                 *d_clusterState_p,
+                                 compactIndex,
+                                 compactTerm);
     if (rc != 0) {
         BALL_LOG_ERROR << "Failed to build CSL rollover snapshot, rc=" << rc;
         return rc;  // RETURN
@@ -1302,6 +1300,160 @@ int ClusterStateRaft::rolloverCsl()
     bdls::FilesystemUtil::remove(oldPath);
 
     return 0;
+}
+
+int ClusterStateRaft::installLeaderSnapshot()
+{
+    const bsls::Types::Uint64 snapshotIndex = d_cslLog_mp->snapshotIndex();
+    const bsls::Types::Uint64 lastIndex     = d_cslLog_mp->lastIndex();
+
+    // Every entry counts, committed or not: the snapshot replaces the log.
+    // The first entry is a base 'e_SNAPSHOT' holding the full state, or the
+    // log starts at index 1.
+    bsl::vector<LogEntry> entries(d_allocator_p);
+    d_cslLog_mp->entries(snapshotIndex + 1, lastIndex + 1, &entries, 0, 0);
+    if (entries.size() != lastIndex - snapshotIndex) {
+        BALL_LOG_ERROR << "Failed to read CSL entries " << snapshotIndex + 1
+                       << " to " << lastIndex << " for the leader snapshot";
+        return -1;  // RETURN
+    }
+
+    mqbc::ClusterState state(&d_clusterData_p->cluster(),
+                             d_partitionConfig.numPartitions(),
+                             true,  // isTemporary
+                             d_allocator_p);
+
+    for (bsl::vector<LogEntry>::const_iterator it = entries.begin();
+         it != entries.end();
+         ++it) {
+        bmqp_ctrlmsg::ClusterMessage message(d_allocator_p);
+        if (0 !=
+            mqbc::ClusterStateLedgerUtil::loadClusterMessage(&message,
+                                                             *it->d_data)) {
+            BALL_LOG_ERROR << "Failed to decode CSL entry " << it->d_index
+                           << " for the leader snapshot";
+            return -2;  // RETURN
+        }
+
+        // Neither changes the queues: see 'applyCommittedEntry'.
+        if (message.choice().isLeaderAdvisoryCommitValue() ||
+            message.choice().isPartitionPrimaryAdvisoryValue()) {
+            continue;  // CONTINUE
+        }
+
+        applyToState(&state, message);
+    }
+
+    const bsls::Types::Uint64 index = lastIndex + 1;
+    const bsls::Types::Uint64 term  = d_raftNode_mp->currentTerm();
+
+    bsl::shared_ptr<bdlbb::Blob> record =
+        d_clusterData_p->blobSpPool().getObject();
+    int rc = buildSnapshotRecord(record.get(), state, index, term);
+    if (rc != 0) {
+        BALL_LOG_ERROR << "Failed to build the leader snapshot, rc=" << rc;
+        return rc;  // RETURN
+    }
+
+    bsl::shared_ptr<mqbsi::Log> newLog;
+    mqbu::StorageKey            newLogId;
+    rc = createNewCslLog(&newLog,
+                         &newLogId,
+                         sizeof(mqbc::ClusterStateFileHeader) +
+                             record->length());
+    if (rc != 0) {
+        BALL_LOG_ERROR << "Failed to create new CSL log for the leader "
+                       << "snapshot, rc=" << rc;
+        return rc;  // RETURN
+    }
+
+    bsl::shared_ptr<mqbsi::Log> oldLog;
+    rc = d_cslLog_mp
+             ->installSnapshot(&oldLog, newLog, newLogId, record, index, term);
+    if (rc != 0) {
+        BALL_LOG_ERROR << "Failed to install the leader snapshot, rc=" << rc;
+        const bsl::string newPath(newLog->logConfig().location(),
+                                  d_allocator_p);
+        newLog->close();
+        bdls::FilesystemUtil::remove(newPath);
+        return rc;  // RETURN
+    }
+
+    const bsl::string oldPath(oldLog->logConfig().location(), d_allocator_p);
+    oldLog->close();
+    bdls::FilesystemUtil::remove(oldPath);
+
+    BALL_LOG_INFO << "CSL leader replaced its log, entries "
+                  << snapshotIndex + 1 << " to " << lastIndex
+                  << ", with a snapshot at index " << index << " (term "
+                  << term << ")";
+
+    return 0;
+}
+
+int ClusterStateRaft::buildSnapshotRecord(bdlbb::Blob*              record,
+                                          const mqbc::ClusterState& state,
+                                          bsls::Types::Uint64       index,
+                                          bsls::Types::Uint64       term)
+{
+    BSLS_ASSERT_SAFE(record);
+
+    bmqp_ctrlmsg::ClusterMessage  clusterMessage(d_allocator_p);
+    bmqp_ctrlmsg::LeaderAdvisory& advisory =
+        clusterMessage.choice().makeLeaderAdvisory();
+    advisory.sequenceNumber().electorTerm()    = term;
+    advisory.sequenceNumber().sequenceNumber() = index;
+    mqbc::ClusterUtil::loadPartitionsInfo(&advisory.partitions(),
+                                          *d_clusterState_p);
+    mqbc::ClusterUtil::loadQueuesInfo(&advisory.queues(), state);
+
+    return mqbc::ClusterStateLedgerUtil::appendRecord(
+        record,
+        clusterMessage,
+        advisory.sequenceNumber(),
+        0,  // timestamp
+        mqbc::ClusterStateRecordType::e_SNAPSHOT,
+        d_allocator_p);
+}
+
+void ClusterStateRaft::confirmLeaseIds(
+    const bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>& partitions)
+{
+    // Under Raft the data-partition Raft, not the CSL, owns partition
+    // primary/leaseId.  The orchestrator declares a partition ready only once
+    // two leaseIds agree: the one a CSL advisory committed, and the one
+    // observed locally from data-partition Raft leadership ('primaryLeaseId').
+    // They come over two Raft groups, arriving in either order, so the
+    // committed one goes in its own field.
+    for (bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>::const_iterator it =
+             partitions.cbegin();
+         it != partitions.cend();
+         ++it) {
+        d_clusterState_p->setPartitionAdvisoryConfirmedLeaseId(
+            it->partitionId(),
+            it->primaryLeaseId());
+    }
+}
+
+void ClusterStateRaft::applyToState(
+    mqbc::ClusterState*                 state,
+    const bmqp_ctrlmsg::ClusterMessage& message)
+{
+    BSLS_ASSERT_SAFE(state);
+
+    if (message.choice().isLeaderAdvisoryValue()) {
+        // Remove first, before the apply, while the queue keys it would
+        // overwrite are still here.  Clearing the whole state instead would
+        // notify observers that every queue is going away, dropping their
+        // storage and tearing down live queues that the apply puts straight
+        // back.
+        mqbc::ClusterUtil::unassignQueuesNotIn(
+            state,
+            message.choice().leaderAdvisory().queues(),
+            d_allocator_p);
+    }
+
+    mqbc::ClusterUtil::apply(state, message, *d_clusterData_p);
 }
 
 void ClusterStateRaft::applySnapshotChunk(const bdlbb::Blob&   event,
@@ -1392,13 +1544,16 @@ void ClusterStateRaft::applySnapshotChunk(const bdlbb::Blob&   event,
         return;  // RETURN
     }
 
-    if (lastIncludedIndex <= d_cslLog_mp->snapshotIndex() + 1) {
-        // Already installed: 'installSnapshot' leaves 'snapshotIndex()' one
-        // below the record's index.  Answer anyway -- the leader resends on
-        // every timeout until it hears back.
+    if (lastIncludedIndex <= d_cslLog_mp->lastIndex() &&
+        d_cslLog_mp->term(lastIncludedIndex) == lastIncludedTerm) {
+        // Already installed: this log holds the record's index at the
+        // record's term.  Answer anyway -- the leader resends on every
+        // timeout until it hears back.  A record at an index this log does
+        // not hold at that term replaces the log, even below
+        // 'snapshotIndex()' ('RaftNode::forceSnapshot').
         BALL_LOG_INFO << "Ignoring CSL snapshot at index " << lastIncludedIndex
                       << " from " << source->nodeDescription()
-                      << ": already at " << d_cslLog_mp->snapshotIndex();
+                      << ": already installed";
         sendInstallSnapshotResponse(source, lastIncludedIndex);
         return;  // RETURN
     }
@@ -1428,9 +1583,6 @@ void ClusterStateRaft::applySnapshotChunk(const bdlbb::Blob&   event,
         return;  // RETURN
     }
 
-    // Swap the CSL file before touching 'ClusterState': if the write fails
-    // the node keeps its old (stale but coherent) state and the leader
-    // retries, rather than holding state no log backs.
     bsl::shared_ptr<mqbsi::Log> newLog;
     mqbu::StorageKey            newLogId;
     rc = createNewCslLog(&newLog, &newLogId);
@@ -1457,23 +1609,11 @@ void ClusterStateRaft::applySnapshotChunk(const bdlbb::Blob&   event,
     oldLog->close();
     bdls::FilesystemUtil::remove(oldPath);
 
-    // A snapshot replaces the cluster state, while 'ClusterUtil::apply'
-    // merges: it adds and updates, and never removes.  So remove first --
-    // before the apply, while the queue keys it would overwrite are still
-    // here -- and then apply.  Clearing the whole state instead would notify
-    // observers that every queue is going away, dropping their storage and
-    // tearing down live queues that the apply puts straight back.
-    mqbc::ClusterUtil::unassignQueuesNotIn(
-        d_clusterState_p,
-        clusterMessage.choice().leaderAdvisory().queues(),
-        d_allocator_p);
-    mqbc::ClusterUtil::apply(d_clusterState_p,
-                             clusterMessage,
-                             *d_clusterData_p);
-
-    // The log can no longer serve indices at or below the new boundary, so
-    // commitIndex/lastAppliedCommit must move up with it.
-    d_raftNode_mp->initRecoveredState(lastIncludedTerm, lastIncludedIndex);
+    // The record is the entry at 'lastIncludedIndex', not yet committed: the
+    // commit drain applies it once the leader commits it, replacing the
+    // cluster state ('applyToState').  Set, not raised: a snapshot
+    // 'forceSnapshot' sent can be below this node's old commit index.
+    d_raftNode_mp->setCommitIndex(lastIncludedIndex - 1);
 
     sendInstallSnapshotResponse(source, lastIncludedIndex);
 
