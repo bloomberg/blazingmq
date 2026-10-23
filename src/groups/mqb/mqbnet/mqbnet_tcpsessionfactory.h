@@ -324,7 +324,92 @@ class TCPSessionFactory {
 
     typedef bsl::unordered_map<const bmqio::Channel*,
                                bsl::shared_ptr<InitialConnectionContext> >
-        InitialConnectionContextMp;
+        InitialConnectionContextMap;
+
+    /// @brief Registry of channels that are either still in the initial
+    ///        connection (authentication and negotiation), or established
+    ///        with a session.
+    ///
+    /// A channel is in at most one of the two collections at any time.  The
+    /// only way for a channel to move from the starting channels to
+    /// the established channels is `promote`, which does it in one step.
+    ///
+    /// This class is not thread-safe.
+    class ChannelRegistry {
+      private:
+        // PRIVATE DATA
+
+        /// Channels in the initial connection, owning their contexts to
+        /// keep them alive until the initial connection completes.
+        InitialConnectionContextMap d_startingChannels;
+
+        /// Established channels, each with a session.
+        ChannelMap d_channels;
+
+      private:
+        // NOT IMPLEMENTED
+        ChannelRegistry(const ChannelRegistry&);             // = delete;
+        ChannelRegistry& operator=(const ChannelRegistry&);  // = delete;
+
+      public:
+        // CREATORS
+
+        /// @brief Create an empty registry.
+        ///
+        /// @param allocator The allocator to use for memory allocation.
+        explicit ChannelRegistry(bslma::Allocator* allocator);
+
+        // MANIPULATORS
+
+        /// @brief Register the specified `channel` as starting.
+        ///
+        /// @param channel The channel.  The behavior is undefined if it is
+        ///                already registered.
+        /// @param context The initial connection context of `channel`.
+        void
+        addStarting(const bmqio::Channel*                            channel,
+                    const bsl::shared_ptr<InitialConnectionContext>& context);
+
+        /// @brief Remove the specified `channel` from the starting
+        ///        channels, if present.
+        ///
+        /// @param channel The channel.
+        void removeStarting(const bmqio::Channel* channel);
+
+        /// @brief Move the specified `channel` from the starting
+        ///        channels to the established channels.
+        ///
+        /// @param channel The channel.  The behavior is undefined unless it
+        ///                is starting.
+        /// @param info    The established channel information.
+        void promote(const bmqio::Channel* channel, const ChannelInfoSp& info);
+
+        /// @brief Remove the specified `channel` from the established
+        ///        channels, if present.
+        ///
+        /// @param channel The channel.
+        ///
+        /// @return The removed channel information, or an empty pointer if
+        ///         `channel` is not established.
+        ChannelInfoSp remove(const bmqio::Channel* channel);
+
+        // ACCESSORS
+
+        /// @brief Find the initial connection context of the specified
+        ///        `channel`.
+        ///
+        /// @param channel The channel.
+        ///
+        /// @return The context, or an empty pointer if `channel` is not
+        ///         starting.
+        bsl::shared_ptr<InitialConnectionContext>
+        findStarting(const bmqio::Channel* channel) const;
+
+        /// @brief Access the established channels.
+        ///
+        /// @return The established channels.
+        const ChannelMap& channels() const;
+    };
 
     typedef TCPSessionFactory_OperationContext OperationContext;
 
@@ -381,14 +466,6 @@ class TCPSessionFactory {
 
     bslma::ManagedPtr<bmqio::StatChannelFactory> d_statChannelFactory_mp;
 
-    /// Cache of shared pointers to @bbref{mqbnet::InitialConnectionContext} to
-    /// preserve their lifetime while an initial connection
-    /// (authentication/negotiation) is in progress.  Each context is added by
-    /// @bbref{handleInitialConnection} and removed by
-    /// @bbref{initialConnectionComplete} once negotiation finishes (success or
-    /// failure).
-    InitialConnectionContextMp d_initialConnectionContextCache;
-
     /// Name to use for the IO threads
     bsl::string d_threadName;
 
@@ -414,8 +491,8 @@ class TCPSessionFactory {
     /// destroyed.
     bslmt::Condition d_noClientCondition;
 
-    /// Map of all active channels
-    ChannelMap d_channels;
+    /// Starting and established channels.
+    ChannelRegistry d_channelRegistry;
 
     /// Manager of all open ports
     PortManager d_ports;
@@ -761,7 +838,7 @@ inline TCPSessionFactoryIterator::TCPSessionFactoryIterator(
 {
     BSLS_ASSERT_SAFE(factory);
     d_factory_p->d_mutex.lock();
-    d_iterator = d_factory_p->d_channels.begin();
+    d_iterator = d_factory_p->d_channelRegistry.channels().begin();
 }
 
 inline TCPSessionFactoryIterator::~TCPSessionFactoryIterator()
@@ -778,7 +855,7 @@ inline void TCPSessionFactoryIterator::operator++()
 // ACCESSORS
 inline TCPSessionFactoryIterator::operator const void*() const
 {
-    return (d_iterator == d_factory_p->d_channels.end())
+    return (d_iterator == d_factory_p->d_channelRegistry.channels().end())
                ? 0
                : const_cast<TCPSessionFactoryIterator*>(this);
 }

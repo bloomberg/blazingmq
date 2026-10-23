@@ -455,11 +455,12 @@ void TCPSessionFactory::handleInitialConnection(
                 bdlf::PlaceHolders::_4,  // channel
                 context));
 
-    // Cache the context.  It will be removed in 'initialConnectionComplete'.
+    // Register the context.  It will be removed in
+    // 'initialConnectionComplete'.
     {
         bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);
-        d_initialConnectionContextCache[channel.get()] =
-            initialConnectionContext_sp;
+        d_channelRegistry.addStarting(channel.get(),
+                                      initialConnectionContext_sp);
     }
 
     // Register as observer of the channel to get the 'onClose'
@@ -591,19 +592,23 @@ void TCPSessionFactory::initialConnectionComplete(
 {
     // executed by one of the *IO* threads or an *AUTHENTICATION* thread
 
-    // We need to remove this context form the cache, however, we need to keep
-    // a shared pointer to InitialConnectionContext alive in this scope.
+    // This context is removed from the registry in this function, however, we
+    // need to keep a shared pointer to InitialConnectionContext alive in this
+    // scope.
     // In some code paths we call channel->close(), and erasing the last
     // reference to InitialConnectionContext would remove the last reference
     // of channel: channel->close() would then cause a segfault.
+    // On success, the channel stays in the starting channels until it is
+    // promoted, so that 'onClose' always finds it in the registry.
     bsl::shared_ptr<InitialConnectionContext> initialConnectionContext_sp;
     {
-        bslmt::LockGuard<bslmt::Mutex>       guard(&d_mutex);
-        InitialConnectionContextMp::iterator iter =
-            d_initialConnectionContextCache.find(channel.get());
-        BSLS_ASSERT_SAFE(iter != d_initialConnectionContextCache.end());
-        initialConnectionContext_sp = iter->second;
-        d_initialConnectionContextCache.erase(channel.get());
+        bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);
+        initialConnectionContext_sp = d_channelRegistry.findStarting(
+            channel.get());
+        BSLS_ASSERT_SAFE(initialConnectionContext_sp);
+        if (statusCode != 0) {
+            d_channelRegistry.removeStarting(channel.get());
+        }
     }
 
     // Reset any authentication message stored in the authentication context
@@ -664,8 +669,7 @@ void TCPSessionFactory::initialConnectionComplete(
                              bdlf::PlaceHolders::_1,  // ptr
                              rawSession.second));     // rep
 
-    ChannelInfoSp                         info;
-    bsl::pair<ChannelMap::iterator, bool> inserted;
+    ChannelInfoSp info;
 
     {
         bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
@@ -682,6 +686,8 @@ void TCPSessionFactory::initialConnectionComplete(
             BALL_LOG_WARN
                 << "#TCP_UNEXPECTED_STATE " << d_name
                 << ": got an already closed channel after negotiation.";
+
+            d_channelRegistry.removeStarting(channel.get());
 
             // Since the 'session' has missed 'onClose', call 'tearDown' here.
             session->tearDown(session, false);
@@ -701,17 +707,14 @@ void TCPSessionFactory::initialConnectionComplete(
             d_initialMissedHeartbeatCounter);
         // See comments in 'calculateInitialMissedHbCounter'.
 
-        bsl::pair<bmqio::Channel*, ChannelInfoSp> toInsert(channel.get(),
-                                                           info);
-        inserted = d_channels.insert(toInsert);
-        info     = inserted.first->second;
+        d_channelRegistry.promote(channel.get(), info);
 
         if (info->d_monitor_mp->isHearbeatEnabled() &&
             d_heartbeatSchedulerActive) {
             // Enable/Disable heartbeating under the lock
             // If the 'result' below is 'false' and the channel gets closed,
-            // then 'onClose' must be called and since the session is inserted
-            // into 'd_channels', 'onClose' will disable heartbeat.
+            // then 'onClose' must be called and since the channel is
+            // established, 'onClose' will disable heartbeat.
             d_scheduler_p->scheduleEvent(
                 bsls::SystemTime::nowMonotonicClock(),
                 bdlf::BindUtil::bind(&TCPSessionFactory::enableHeartbeat,
@@ -898,17 +901,15 @@ void TCPSessionFactory::onClose(const bsl::shared_ptr<bmqio::Channel>& channel,
 
         // set the 'isClosed' flag under lock to be checked under lock in
         // 'initialConnectionComplete'.
-        InitialConnectionContextMp::iterator      iter =
-            d_initialConnectionContextCache.find(channel.get());
-        if (iter != d_initialConnectionContextCache.end()) {
-            iter->second->onClose();
+        const bsl::shared_ptr<InitialConnectionContext>
+            initialConnectionContext_sp = d_channelRegistry.findStarting(
+                channel.get());
+        if (initialConnectionContext_sp) {
+            initialConnectionContext_sp->onClose();
         }
 
-        ChannelMap::const_iterator it = d_channels.find(channel.get());
-        if (it != d_channels.end()) {
-            channelInfo = it->second;
-            d_channels.erase(it);
-
+        channelInfo = d_channelRegistry.remove(channel.get());
+        if (channelInfo) {
             // Synchronously remove from heartbeat monitored channels
             if (channelInfo->d_monitor_mp->isHearbeatEnabled() &&
                 d_heartbeatSchedulerActive) {
@@ -934,7 +935,7 @@ void TCPSessionFactory::onClose(const bsl::shared_ptr<bmqio::Channel>& channel,
 
     if (!channelInfo) {
         // We register to the close event as soon as the channel is up;
-        // however, we insert in the d_channels only upon successful
+        // however, the channel is established only upon successful
         // negotiation; therefore a failed to negotiate channel (like during
         // intrusion testing) would trigger this trace.
         BALL_LOG_INFO << "#TCP_UNEXPECTED_STATE " << d_name
@@ -1197,7 +1198,7 @@ TCPSessionFactory::TCPSessionFactory(
 , d_nbSessions(0)
 , d_noSessionCondition(bsls::SystemClockType::e_MONOTONIC)
 , d_noClientCondition(bsls::SystemClockType::e_MONOTONIC)
-, d_channels(allocator)
+, d_channelRegistry(allocator)
 , d_ports(allocator)
 , d_heartbeatSchedulerActive(false)
 , d_heartbeatChannels(allocator)
@@ -1450,8 +1451,9 @@ void TCPSessionFactory::closeClients()
                              k_CHANNEL_STATUS_CLOSE_REASON,
                              true,
                              d_allocator_p);
-        for (ChannelMap::iterator it = d_channels.begin();
-             it != d_channels.end();
+        const ChannelMap& channels = d_channelRegistry.channels();
+        for (ChannelMap::const_iterator it = channels.begin();
+             it != channels.end();
              ++it) {
             if (isClientOrProxy(it->second->d_session_sp.get())) {
                 // SDK client or proxy
@@ -1509,7 +1511,7 @@ void TCPSessionFactory::stop()
                   << " alive sessions]";
 
     // NOTE: We don't need to manually call 'teardown' on any active session in
-    //       the 'd_channels' map: calling 'stop' on the channel factory will
+    //       the channel registry: calling 'stop' on the channel factory will
     //       invoke the 'onClose' for every sessions.
 
     // STOP
@@ -1740,6 +1742,94 @@ TCPSessionFactory::ChannelInfo::ChannelInfo(
         // No eventProcessor was provided default to the negotiated session
         d_eventProcessor_p = monitoredSession.get();
     }
+}
+
+// ----------------------------------------
+// class TCPSessionFactory::ChannelRegistry
+// ----------------------------------------
+
+TCPSessionFactory::ChannelRegistry::ChannelRegistry(
+    bslma::Allocator* allocator)
+: d_startingChannels(allocator)
+, d_channels(allocator)
+{
+}
+
+void TCPSessionFactory::ChannelRegistry::addStarting(
+    const bmqio::Channel*                            channel,
+    const bsl::shared_ptr<InitialConnectionContext>& context)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(channel);
+    BSLS_ASSERT_SAFE(context);
+    BSLS_ASSERT_SAFE(d_channels.find(channel) == d_channels.end());
+
+    BSLA_MAYBE_UNUSED const bool inserted =
+        d_startingChannels.emplace(channel, context).second;
+    BSLS_ASSERT_SAFE(inserted);
+}
+
+void TCPSessionFactory::ChannelRegistry::removeStarting(
+    const bmqio::Channel* channel)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(channel);
+
+    d_startingChannels.erase(channel);
+}
+
+void TCPSessionFactory::ChannelRegistry::promote(const bmqio::Channel* channel,
+                                                 const ChannelInfoSp&  info)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(channel);
+    BSLS_ASSERT_SAFE(info);
+
+    BSLA_MAYBE_UNUSED const bsl::size_t erased = d_startingChannels.erase(
+        channel);
+    BSLS_ASSERT_SAFE(erased == 1);
+
+    BSLA_MAYBE_UNUSED const bool inserted =
+        d_channels.emplace(channel, info).second;
+    BSLS_ASSERT_SAFE(inserted);
+}
+
+TCPSessionFactory::ChannelInfoSp
+TCPSessionFactory::ChannelRegistry::remove(const bmqio::Channel* channel)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(channel);
+
+    ChannelMap::iterator it = d_channels.find(channel);
+    if (it == d_channels.end()) {
+        return ChannelInfoSp();  // RETURN
+    }
+
+    ChannelInfoSp info = it->second;
+    d_channels.erase(it);
+    return info;
+}
+
+bsl::shared_ptr<InitialConnectionContext>
+TCPSessionFactory::ChannelRegistry::findStarting(
+    const bmqio::Channel* channel) const
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(channel);
+
+    InitialConnectionContextMap::const_iterator it = d_startingChannels.find(
+        channel);
+    if (it == d_startingChannels.end()) {
+        return bsl::shared_ptr<InitialConnectionContext>();  // RETURN
+    }
+
+    return it->second;
+}
+
+const TCPSessionFactory::ChannelMap&
+TCPSessionFactory::ChannelRegistry::channels() const
+{
+    return d_channels;
 }
 
 // ------------------------------------
