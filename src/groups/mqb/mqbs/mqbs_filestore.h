@@ -676,8 +676,7 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// @param journalOpType Type of the JournalOp record.
     /// @param recordOffset  Offset of the record in the journal.
     /// @param activeFileSet File set the record was appended to.
-    /// @returns 0 on success, and otherwise the non-zero value that
-    ///          `writeJournalRecord` reports for the failure.
+    /// @returns 0 on success, and a non-zero value otherwise.
     int applyJournalOpRecord(const mqbs::RecordHeader& recHeader,
                              JournalOpType::Enum       journalOpType,
                              bsls::Types::Uint64       recordOffset,
@@ -696,8 +695,7 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// @param appKey       Key of the app the record applies to, or the null
     ///                     key for the whole queue.
     /// @param rstorage     Storage registered for `queueKey`.
-    /// @returns 0 on success, and otherwise the non-zero value that
-    ///          `writeJournalRecord` reports for the failure.
+    /// @returns 0 on success, and a non-zero value otherwise.
     int applyQueueOpRecord(const mqbs::RecordHeader& recHeader,
                            QueueOpType::Enum         queueOpType,
                            bsls::Types::Uint64       recordOffset,

@@ -4734,14 +4734,12 @@ int FileStore::applyJournalOpRecord(const mqbs::RecordHeader& recHeader,
                                     bsls::Types::Uint64       recordOffset,
                                     const FileSet&            activeFileSet)
 {
-    // Return codes match those of 'writeJournalRecord', which returns them
-    // unchanged.
     enum {
         rc_SUCCESS                = 0,
-        rc_INVALID_CONTENT        = -6,
-        rc_DATA_FILE_OUT_OF_SYNC  = -7,
-        rc_QLIST_FILE_OUT_OF_SYNC = -8,
-        rc_ROLLOVER_FAILURE       = -9
+        rc_INVALID_CONTENT        = -1,
+        rc_DATA_FILE_OUT_OF_SYNC  = -2,
+        rc_QLIST_FILE_OUT_OF_SYNC = -3,
+        rc_ROLLOVER_FAILURE       = -4
     };
 
     const MappedFileDescriptor& journal = activeFileSet.d_journal.d_file;
@@ -4890,12 +4888,10 @@ int FileStore::applyQueueOpRecord(const mqbs::RecordHeader& recHeader,
                                   const mqbu::StorageKey&   appKey,
                                   ReplicatedStorage*        rstorage)
 {
-    // Return codes match those of 'writeJournalRecord', which returns them
-    // unchanged.
     enum {
         rc_SUCCESS              = 0,
-        rc_INVALID_CONTENT      = -6,
-        rc_QUEUE_DELETION_ERROR = -10
+        rc_INVALID_CONTENT      = -1,
+        rc_QUEUE_DELETION_ERROR = -2
     };
 
     // Take appropriate action based on QueueOpType.
@@ -4993,21 +4989,15 @@ int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
                                   bmqp::StorageMessageType::Enum messageType)
 {
     enum {
-        rc_SUCCESS                = 0,
-        rc_UNAVAILABLE            = -1,
-        rc_JOURNAL_OUT_OF_SYNC    = -2,
-        rc_UNKNOWN_QUEUE_KEY      = -3,
-        rc_INCOMPATIBLE_STORAGE   = -4,
-        rc_UNKNOWN_APP_KEY        = -5,
-        rc_INVALID_CONTENT        = -6,
-        rc_DATA_FILE_OUT_OF_SYNC  = -7,
-        rc_QLIST_FILE_OUT_OF_SYNC = -8,
-        rc_ROLLOVER_FAILURE       = -9,
-        rc_QUEUE_DELETION_ERROR   = -10
+        rc_SUCCESS              = 0,
+        rc_UNAVAILABLE          = -1,
+        rc_JOURNAL_OUT_OF_SYNC  = -2,
+        rc_UNKNOWN_QUEUE_KEY    = -3,
+        rc_INCOMPATIBLE_STORAGE = -4,
+        rc_UNKNOWN_APP_KEY      = -5,
+        rc_JOURNAL_OP_FAILURE   = -6,
+        rc_QUEUE_OP_FAILURE     = -7
     };
-    // 'rc_INVALID_CONTENT' through 'rc_QUEUE_DELETION_ERROR' are returned by
-    // 'applyJournalOpRecord' and 'applyQueueOpRecord', which define the same
-    // values.
 
     BSLS_ASSERT_SAFE(0 < d_fileSets.size());
     FileSet* activeFileSet = d_fileSets[0].get();
@@ -5194,7 +5184,7 @@ int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
                                             recordOffset,
                                             *activeFileSet);
         if (0 != rc) {
-            return rc;  // RETURN
+            return 100 * rc + rc_JOURNAL_OP_FAILURE;  // RETURN
         }
     }
     else {
@@ -5210,7 +5200,7 @@ int FileStore::writeJournalRecord(const bmqp::StorageHeader& header,
                                           *appKey,
                                           rstorage);
         if (0 != rc) {
-            return rc;  // RETURN
+            return 100 * rc + rc_QUEUE_OP_FAILURE;  // RETURN
         }
     }
 
