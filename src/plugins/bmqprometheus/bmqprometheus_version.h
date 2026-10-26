@@ -13,8 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef INCLUDED_PROMETHEUS_VERSION
-#define INCLUDED_PROMETHEUS_VERSION
+#ifndef INCLUDED_BMQPROMETHEUS_VERSION
+#define INCLUDED_BMQPROMETHEUS_VERSION
 
 //@PURPOSE: Provide source control management (versioning) information.
 //

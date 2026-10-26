@@ -13,8 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef INCLUDED_MQBAUTHZ_ANONPASSPLUGINLIBRARY
-#define INCLUDED_MQBAUTHZ_ANONPASSPLUGINLIBRARY
+#ifndef INCLUDED_MQBAUTHZ_PLUGINLIBRARY
+#define INCLUDED_MQBAUTHZ_PLUGINLIBRARY
 
 /// @file mqbauthz_pluginlibrary.h
 ///

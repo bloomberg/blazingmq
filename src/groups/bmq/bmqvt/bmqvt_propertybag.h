@@ -13,8 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef INCLUDED_BMQT_PROPERTYBAG
-#define INCLUDED_BMQT_PROPERTYBAG
+#ifndef INCLUDED_BMQVT_PROPERTYBAG
+#define INCLUDED_BMQVT_PROPERTYBAG
 
 //@PURPOSE: Provide a bag of named properties.
 //
