@@ -97,6 +97,37 @@
 //:   !fragment!.
 //
 //
+/// Event Layout
+///------------
+// Every event starts with an 'EventHeader', whose 'Type' determines what
+// follows.  Sizes are those of the current header versions; parsers must use
+// each header's own size field.
+//..
+//  EventHeader (8B)
+//  |
+//  +- PUT / PUSH: repeated per message
+//  |    PutHeader (36B) | PushHeader (32B)
+//  |    [OptionHeader][option content] ...    0..N; total = 'OptionsWords'
+//  |    [MessagePropertiesHeader][MessagePropertyHeader x N]
+//  |      [name][value] ... [padding]         if e_MESSAGE_PROPERTIES flag
+//  |    [payload]                             absent if PUSH and
+//  |                                          e_IMPLICIT_PAYLOAD flag
+//  |
+//  +- ACK:     AckHeader     (4B) + AckMessage     (24B) x N
+//  +- CONFIRM: ConfirmHeader (4B) + ConfirmMessage (24B) x N
+//  +- REJECT:  RejectHeader  (4B) + RejectMessage  (24B) x N
+//  |
+//  +- STORAGE / PARTITION_SYNC: [StorageHeader (12B) + payload] x N
+//  +- RECOVERY:                 [RecoveryHeader (28B) + file chunk] x N
+//  +- REPLICATION_RECEIPT:      ReplicationReceipt (16B)
+//  |
+//  +- CONTROL / AUTHENTICATION: schema message (codec in 'TypeSpecific')
+//  +- ELECTOR:                  schema message (always BER)
+//  +- CLUSTER_STATE:            cluster state ledger record
+//  +- HEARTBEAT_REQ / HEARTBEAT_RSP: nothing
+//..
+//
+//
 /// Protocol Limitations
 ///====================
 //..
