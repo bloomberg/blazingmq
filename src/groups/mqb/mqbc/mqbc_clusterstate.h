@@ -110,13 +110,12 @@ class ClusterStatePartitionInfo {
     bmqp_ctrlmsg::PrimaryStatus::Value d_primaryStatus;
 
     /// Raft mode only.  The leaseId of the most recent committed CSL
-    /// `partitionPrimaryAdvisory` observed by this node for this partition;
-    /// zero if none observed yet.  Recorded independently of
+    /// `leaderAdvisory` / `partitionPrimaryAdvisory`.  Independent of
     /// `d_primaryLeaseId` (which reflects this node's own, locally-observed
-    /// data-partition Raft leadership) so the two can be compared: they are
+    /// data-partition Raft leadership). They are
     /// two independently-arriving signals (local partition-Raft election vs.
     /// CSL advisory commit) that must both agree on the leaseId before the
-    /// partition may be considered ready.
+    /// partition may be considered ACTIVE.
     unsigned int d_advisoryConfirmedLeaseId;
 
   public:

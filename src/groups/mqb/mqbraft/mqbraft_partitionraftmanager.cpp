@@ -794,7 +794,9 @@ void PartitionRaftManager::convertQueuesToRemote(int partitionId)
         bdlf::BindUtil::bind(&PartitionRaft::convertQueuesToRemote, raft));
 }
 
-void PartitionRaftManager::onPeerNodeStopping()
+void PartitionRaftManager::onPeerNodeStopping(
+    int                                     peerId,
+    const PartitionRaft::StopContextHolder& stopContext)
 {
     // executed by the *CLUSTER DISPATCHER* thread
 
@@ -802,8 +804,10 @@ void PartitionRaftManager::onPeerNodeStopping()
         PartitionRaft* raft = d_partitionRafts[i].get();
         if (raft) {
             raft->execute(
-                bdlf::BindUtil::bind(&PartitionRaft::proposeShutdownSyncPoint,
-                                     raft));
+                bdlf::BindUtil::bind(&PartitionRaft::onPeerNodeStopping,
+                                     raft,
+                                     peerId,
+                                     stopContext));
         }
     }
 }

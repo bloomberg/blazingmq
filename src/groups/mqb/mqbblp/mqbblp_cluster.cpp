@@ -899,14 +899,25 @@ void Cluster::onPutEvent(const mqbevt::PutEvent& event)
                                                   ns->queueHandles().end())) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
+            // Expected under Raft after a stepdown; see below.
+            const ball::Severity::Level severity =
+                isRaftEnabled() ? ball::Severity::e_INFO
+                                : ball::Severity::e_ERROR;
+
             BMQU_THROTTLEDACTION_THROTTLE(
                 d_throttledFailedPutMessages,
-                BALL_LOG_ERROR << description()
-                               << ": PUT message for queue with unknown"
-                               << " Id (" << queueId.id() << ") from "
-                               << source->nodeDescription());
+                BALL_LOG_STREAM(severity)
+                    << description() << ": PUT message for queue with unknown"
+                    << " Id (" << queueId.id() << ") from "
+                    << source->nodeDescription());
 
-            sendAck(bmqt::AckResult::e_INVALID_ARGUMENT,
+            // Under Raft, a primary that steps down drops the handles peers
+            // opened on it ('ClusterQueueHelper::dropPeerHandles') before the
+            // peers learn of it.  'e_NOT_READY' is the NACK
+            // 'RemoteQueue::onAckMessageDispatched' keeps the PUT for, so the
+            // peer re-sends it to the new primary.
+            sendAck(isRaftEnabled() ? bmqt::AckResult::e_NOT_READY
+                                    : bmqt::AckResult::e_INVALID_ARGUMENT,
                     bmqp::AckMessage::k_NULL_CORRELATION_ID,
                     putIt.header().messageGUID(),
                     queueId.id(),
