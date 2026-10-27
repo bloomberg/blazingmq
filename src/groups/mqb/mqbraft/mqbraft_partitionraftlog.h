@@ -24,20 +24,21 @@
 //  mqbraft::PartitionRaftLog: RaftLog implementation over journal+data files
 //
 //@DESCRIPTION: This component implements the 'mqbraft::RaftLog' interface
-// using a partition's journal and data files as the underlying storage.
-// Journal records already carry 'primaryLeaseId' and 'sequenceNumber' which
-// map directly to Raft '(term, index)'.  All journal record types (MESSAGE,
-// CONFIRM, DELETE, JOURNAL_OP) are Raft log entries.
+// using a partition's journal and data files as the underlying storage.  In
+// a record written in Raft mode, 'primaryLeaseId' is the Raft term and
+// 'sequenceNumber' is the Raft index.  Every journal record type (MESSAGE,
+// CONFIRM, DELETION, QUEUE_OP, JOURNAL_OP) is a Raft log entry.
 //
-// The 'append()' method delegates physical writes to 'mqbs::FileStore' via
-// its 'writeFormattedRecord()' method.  This is the same code path for both
-// leader and follower — the blob passed to 'append()' always contains a
-// fully-formed entry.
+// 'append()' writes an entry in one of two ways:
+// 1. Leader: no blob is passed.  The 'FileStore' formats the record from the
+//    'Proposal' that 'setProposal' stored ('FileStore::format*Record').
+// 2. Replica: the blob from AppendEntries is written as is
+//    ('FileStore::writeFormattedRecord').
 //
-// A bounded cache of recently appended entry blobs avoids re-reading them
-// from the mmap'd files.  It is populated by 'append()' and served by
-// 'entries()', and trims itself; the log invalidates it on truncation and
-// rollover, so callers do not manage it.
+// A bounded cache of recent entry blobs serves 'entries()' without reading
+// the journal.  A replica fills the cache in 'append()', and the leader fills
+// the cache when it applies its own entries.  The log clears the cache on
+// truncation, rollover and 'open', so callers do not manage the cache.
 //
 /// Threading
 ///----------
@@ -75,19 +76,12 @@ class PartitionRaftLog : public RaftLog {
   public:
     // TYPES
 
-    /// FIFO of writes accepted on the primary path but not yet carried by a
-    /// log entry: the one `setProposal` enqueued for the next `append`,
-    /// and -- during a rollover window -- those buffered for the drain that
-    /// follows it.  A write leaves here the moment `append` gives it an
-    /// entry; from then on the entry owns it.
+    /// Writes, in the order they were proposed.
     typedef bsl::deque<bsl::shared_ptr<mqbs::Proposal> > Proposals;
 
-    /// Writes taken off the primary path that no log entry will ever carry,
-    /// kept for their producers rather than undone.
-    /// The same container as `Proposals`, under the name of the list it is
-    /// taken from.  Kept distinct in the interface because the two lists
-    /// are: only `d_bufferedProposals` reserves log indices, and
-    /// `proposalHeadIndex` counts on nothing else being parked there.
+    /// Writes that no log entry will carry, held for their producers
+    /// (`takeHeldProposals`).  A separate name from `Proposals` because
+    /// `proposalHeadIndex` counts only `d_bufferedProposals`.
     typedef Proposals HeldProposals;
 
   private:
@@ -113,28 +107,26 @@ class PartitionRaftLog : public RaftLog {
     bsls::Types::Uint64   d_snapshotTerm;
     bslma::Allocator*     d_allocator_p;
 
-    /// The write `setProposal` enqueued for the next `append`, which
-    /// consumes it.  Set and cleared within a single `propose`, and kept out
-    /// of `d_bufferedProposals` so that nothing else can be appended in its
-    /// place.
+    /// The write `setProposal` stored for the next `append`, which takes the
+    /// write.  Set and cleared within a single `propose`.
     bsl::shared_ptr<Proposal> d_currentProposal;
 
-    /// Writes buffered by `bufferProposal` while an `e_ROLLOVER` is in
-    /// flight, drained in order once it commits (see `takeBufferedProposals`).
-    /// Each takes the next index above the log when it drains, derived from
-    /// this queue's size, so nothing else may be parked here.
+    /// Writes buffered by `bufferProposal` while an `e_ROLLOVER` is pending,
+    /// drained in order once the `e_ROLLOVER` commits
+    /// (`takeBufferedProposals`).  `proposalHeadIndex` counts these writes,
+    /// so only buffered writes belong here.
     Proposals d_bufferedProposals;
 
-    /// Writes no log entry carries any more -- a truncation erased theirs, or
-    /// they never got one -- kept for their producers rather than undone.
-    /// The owner takes them with `takeHeldProposals` and re-posts each one
-    /// whose producer is still attached.
+    /// Writes that no log entry carries: a truncation removed their entries,
+    /// or they never had one.  The owner takes them with `takeHeldProposals`,
+    /// then re-posts or re-proposes them.
     HeldProposals d_heldProposals;
 
-    /// Cache blobs of recent entries to avoid reading journal.  At most
-    /// `k_MAX_CACHED_ENTRIES` entries and `k_MAX_CACHED_BYTES` bytes.  The
-    /// blobs alias the active file set or the received event, so must run
-    /// `clearCache` before the file set is closed.
+    /// Blobs of recent entries, which `entries()` serves without reading the
+    /// journal.  At most `k_MAX_CACHED_ENTRIES` entries and
+    /// `k_MAX_CACHED_BYTES` bytes.  The blobs alias the active file set or a
+    /// received event, so `clearCache` must run before the file set is
+    /// closed.
     bsl::deque<EntryBlobSp> d_cache;
 
     /// Log index of `d_index.front()`, or of the next append while `d_index`
@@ -165,7 +157,8 @@ class PartitionRaftLog : public RaftLog {
 
     /// Retain the specified `blob` and `term` as the entry at the specified
     /// `index`, and drop the oldest cached entries until the cache is back
-    /// within its bounds.  A non-contiguous `index` restarts the window.
+    /// within its bounds.  A non-contiguous `index` or a different `term`
+    /// restarts the window.  A null `blob` clears the cache.
     void cacheEntry(bsls::Types::Uint64 index,
                     bsls::Types::Uint64 term,
                     const EntryBlobSp&  blob);
@@ -184,8 +177,9 @@ class PartitionRaftLog : public RaftLog {
 
     /// Take the specified `pw` off the primary path: clear the handle into a
     /// record that is gone and the blob aliasing a mapping that is rolled
-    /// back, then hold it for its producer if the specified `hold` is true,
-    /// or give back what propose set aside if it is false.
+    /// back.  Then hold the write for its producer if the specified `hold` is
+    /// true, or undo what `propose` reserved (`FileStore::undoPropose`) if
+    /// `hold` is false.
     void releaseProposal(const bsl::shared_ptr<Proposal>& pw, bool hold);
 
     /// Return the journal offset the anchor predicts for the specified
@@ -215,11 +209,12 @@ class PartitionRaftLog : public RaftLog {
 
     // MANIPULATORS
 
-    /// Open the FileStore, recover journal records into `d_index`, and
-    /// reverse to forward order.  Return 0 on success.
+    /// Open the FileStore and recover journal records into `d_index`
+    /// (`FileStore::openForRaft`).  Set the snapshot index from the first sync
+    /// point after the last rollover.  Return 0 on success.
     int open();
 
-    /// Enqueue the specified `pw` for the next `append`.
+    /// Store the specified `pw` for the next `append`.
     void setProposal(const bsl::shared_ptr<Proposal>& pw);
 
     /// Hold the specified `pw` until the in-flight `e_ROLLOVER` commits and
@@ -230,17 +225,16 @@ class PartitionRaftLog : public RaftLog {
     /// Load into the specified `out` the buffered writes, emptying the queue.
     void takeBufferedProposals(Proposals* out);
 
-    /// Return the index the most recently accepted write will occupy: the
-    /// last appended one's, or -- during a rollover window -- the reserved
-    /// index of the last buffered one, which `bufferProposal` derives the
-    /// same way.
+    /// Return `lastIndex()` plus the number of buffered writes.  The drain
+    /// appends those writes at the next indices.
     bsls::Types::Uint64 proposalHeadIndex() const;
 
     /// Stop tracking proposals this node accepted on the primary path: the
     /// one awaiting `append`, all buffered while rollover was pending, and
     /// the ones in the log at or above the specified `index`.  Hold them
-    /// for re-posting if the specified `hold` is true, otherwise undo their
-    /// impact (capacity, confirm tracking).  Reset the proposals' record
+    /// for re-posting if the specified `hold` is true, otherwise undo what
+    /// `propose` reserved for them (`FileStore::undoPropose`).  Reset the
+    /// proposals' record
     /// handles and blobs (aliasing the active file set) -- so this runs
     /// before that file set is closed or replaced, as well as before a
     /// truncation.
@@ -253,12 +247,14 @@ class PartitionRaftLog : public RaftLog {
     void holdProposal(const bsl::shared_ptr<Proposal>& pw);
 
     /// Load into the specified `out` the writes held for their producers,
-    /// oldest first, emptying the list.  Whoever takes them owes each one
-    /// either a re-post or the capacity behind it.
+    /// oldest first, emptying the list.  The caller must re-post or re-propose
+    /// each write, or undo what `propose` reserved for the write
+    /// (`FileStore::undoPropose`).
     void takeHeldProposals(HeldProposals* out);
 
-    /// Drop every cached entry.  The blobs alias the active file set, so this
-    /// runs before anything that replaces or closes it.
+    /// Drop every cached entry.  The blobs alias the active file set or a
+    /// received event, so this runs before anything that replaces or closes
+    /// the file set.
     void clearCache();
 
     int append(bsls::Types::Uint64                 term,
@@ -275,15 +271,14 @@ class PartitionRaftLog : public RaftLog {
     /// specified `data`, at the specified `commitTimepoint`.  Return `true`
     /// if a write of this node's produced the entry.
     ///
-    /// Such an entry already has its record, its handle and its storage-side
-    /// effects in place from propose time, and only the write itself holds
-    /// what apply still needs -- the producer to answer, the capacity to
-    /// charge -- so it goes to `FileStore::onRecordCommittedPrimary` even if
-    /// leadership has since moved.  Every other entry, replicated or
-    /// recovered, goes to `FileStore::onRecordCommittedReplica`, which reads
-    /// `data`.  The entry answers which, so a truncation that erased this
-    /// node's entry and the write with it cannot leave the replacement
-    /// looking like its own.
+    /// Such an entry has its record and handle from `append`, and only the
+    /// write holds what apply still needs (the producer to answer, the
+    /// capacity to charge).  So the entry goes to
+    /// `FileStore::onRecordCommittedPrimary`, even if leadership has moved
+    /// since.  Every other entry, replicated or recovered, goes to
+    /// `FileStore::onRecordCommittedReplica`, which reads `data`.  The entry
+    /// itself decides which, so the entry that replaces a truncated one is
+    /// never taken for this node's own.
     bool applyCommittedEntry(bsls::Types::Uint64                 index,
                              const bsl::shared_ptr<bdlbb::Blob>& data,
                              bsls::Types::Int64 commitTimepoint);
@@ -301,8 +296,8 @@ class PartitionRaftLog : public RaftLog {
     term(bsls::Types::Uint64 index) const BSLS_KEYWORD_OVERRIDE;
 
     /// Append to the specified 'out' the log entries in the half-open range
-    /// '[lo, hi)'.  For entries matching the single-entry cache, the cached
-    /// blob is returned directly.  For other entries, zero-copy aliased
+    /// '[lo, hi)'.  For entries in `d_cache`, the cached blob is returned
+    /// directly.  For other entries, zero-copy aliased
     /// blobs are created from the mmap'd journal+data files via
     /// 'FileStore::readRecord()'.  See 'RaftLog::entries'.
     void entries(bsls::Types::Uint64    lo,

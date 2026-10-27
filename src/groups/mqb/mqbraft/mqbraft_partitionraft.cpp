@@ -45,6 +45,7 @@
 #include <bsl_vector.h>
 #include <bslmf_movableref.h>
 #include <bsls_assert.h>
+#include <bsls_systemtime.h>
 
 // SYSTEM
 #include <fcntl.h>
@@ -58,6 +59,10 @@ namespace mqbraft {
 namespace {
 
 const int k_TICK_INTERVAL_MS = 100;
+
+/// How long a StopResponse waits for the stopping peer to acknowledge its
+/// sync point.  Well below the stopping peer's StopRequest timeout.
+const int k_STOP_RESPONSE_WAIT_MS = 1000;
 const int k_JREC_SIZE        = mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
 const bsls::Types::Uint64 k_CHUNK_SIZE = 4ULL * 1024 * 1024;
 
@@ -73,11 +78,9 @@ RaftNodeConfig makeRaftConfig(mqbc::ClusterData& clusterData,
 
     config.setSelf(selfNode->nodeId(), selfNode->hostName());
 
-    // 'd_peers' is the *full* membership including self:
-    // 'RaftNode::quorum()' is 'peers.size()/2 + 1' (majority of the whole
-    // cluster for both odd and even sizes) and
-    // 'becomeCandidate'/'becomeLeader' skip self while iterating.
-    // 'netCluster->nodes()' already includes self.
+    // 'd_peers' is the full membership, self included: 'RaftNode::quorum()'
+    // is 'peers.size() / 2 + 1', and 'RaftNode' skips self where it iterates
+    // peers.  'netCluster->nodes()' includes self.
     const mqbnet::Cluster::NodesList& nodes =
         clusterData.membership().netCluster()->nodes();
     for (mqbnet::Cluster::NodesList::const_iterator it = nodes.begin();
@@ -93,10 +96,9 @@ RaftNodeConfig makeRaftConfig(mqbc::ClusterData& clusterData,
     return config;
 }
 
-/// Every lookup here is relative to the specified `pos`, the record's own
-/// position: resolving from the start of `blob` instead would rescan the
-/// buffer list from the beginning, making a walk over the entries of one
-/// event quadratic in their count.
+/// Return the size of the entry at the specified `pos` in the specified
+/// `blob`, or -1 if the entry cannot be read.  Every lookup is relative to
+/// `pos`.  This is to avoid rescanning `blob` from its start for each entry.
 int computeEntrySize(const bdlbb::Blob& blob, const bmqu::BlobPosition& pos)
 {
     bmqu::BlobObjectProxy<mqbs::RecordHeader> rh(&blob, pos, true, false);
@@ -123,14 +125,13 @@ int computeEntrySize(const bdlbb::Blob& blob, const bmqu::BlobPosition& pos)
         return k_JREC_SIZE + dh->messageWords() * bmqp::Protocol::k_WORD_SIZE;
     }
     case mqbs::RecordType::e_QUEUE_OP: {
-        // A QUEUE_OP carries an inline qlist payload only when its journal
-        // record references one -- i.e. 'queueUriRecordOffsetWords() > 0'
-        // (CREATION/ADDITION when qlist-aware).  PURGE/DELETION ops, and any
-        // op when not qlist-aware, have none.  This mirrors
-        // 'FileStore::readRecord', which appends the qlist under the same
-        // condition.  Without this check a qlist-less QUEUE_OP would blindly
-        // read the *next* entry's journal record as a QueueRecordHeader and
-        // compute a bogus (over-large) size.
+        // In 'blob', a QUEUE_OP entry starts with a journal record at 'pos'.
+        // A qlist record comes right after that journal record only if the
+        // journal record's 'queueUriRecordOffsetWords()' is non-zero
+        // ('FileStore::readRecord' builds the entry this way).
+        // 1. If the offset is zero, the entry size is the journal record size.
+        // 2. Otherwise, add the qlist record size, read from the
+        //    'QueueRecordHeader' right after the journal record.
         bmqu::BlobObjectProxy<mqbs::QueueOpRecord> qop(&blob,
                                                        pos,
                                                        true,
@@ -199,6 +200,7 @@ PartitionRaft::PartitionRaft(unsigned int partitionId,
 , d_needsBecomeLeaderSyncPoint(false)
 , d_leadershipCb(leadershipCb)
 , d_canShutdown(false)
+, d_stopResponseWaits(d_allocator_p)
 , d_persistentStatePath(d_allocator_p)
 , d_isPersistentStateDirty(false)
 {
@@ -268,10 +270,7 @@ void PartitionRaft::onNodeStateChange(mqbnet::ClusterNode* node,
 
 void PartitionRaft::flush()
 {
-    // executed by the partition *DISPATCHER* thread, from 'FileStore::flush()'
-    // once the dispatcher has drained this partition's queue.  Every
-    // AppendEntries this leader owes is produced here, so a batch of proposals
-    // and responses yields one round rather than one send apiece.
+    // executed by the partition *DISPATCHER* thread
     BSLS_ASSERT_SAFE(d_fileStore_sp->inDispatcherThread());
 
     if (!d_isStarted) {
@@ -281,6 +280,10 @@ void PartitionRaft::flush()
     RaftNodeOutput output(d_allocator_p);
     d_raftNode_mp->flushSends(&output);
     dispatchMessages(&output);
+
+    // Runs after every event on this thread, including each tick and each
+    // AppendEntries response.
+    checkIfCanSendStopResponse();
 }
 
 bool PartitionRaft::savePersistentState(bool changed)
@@ -355,14 +358,12 @@ void PartitionRaft::dispatchOutput(RaftNodeOutput* output)
 
     dispatchMessages(output);
 
-    // If not the leader, nothing pending can be appended - neither the
-    // buffered proposals waiting on a rollover nor the current 'setProposal'.
-
-    // Hold every pending proposal; 'repostHeldProposals' re-posts them to the
-    // new primary.  Do not touch 'd_index' - hence 'lastIndex() + 1' - those
-    // entries can still commit, and 'truncateFrom' drops the ones that do not.
-
     if (!isLeader()) {
+        // The proposals above the log (the current one and those buffered for
+        // a rollover) can no longer be appended.  Hold them for
+        // 'repostHeldProposals'.  Entries already in 'd_index' stay (hence
+        // 'lastIndex() + 1'): they can still commit, and 'truncateFrom' drops
+        // the ones that do not.
         d_raftLog_mp->dropProposalsFrom(d_raftLog_mp->lastIndex() + 1,
                                         true);  // hold to re-post
     }
@@ -370,19 +371,18 @@ void PartitionRaft::dispatchOutput(RaftNodeOutput* output)
     if (output->d_lostLeadership) {
         d_isRolloverPending = false;
 
-        // The queues stay local for now.  Converting them is the cluster's
-        // call, because the handles the peers opened here have to go first
-        // and only it can take those out of their sessions; it drives both
-        // from the leadership change this signals below.  Writes arriving
-        // meanwhile are held by 'propose' rather than rejected, and the
-        // conversion hands them on.
+        // The queues stay local for now.  The cluster will convert the queue
+        // to remote after dropping all cluster node handles.  Until then,
+        // 'propose' holds new writes.
         //
-        // Nothing to do with the uncommitted tail.  Each of the entries
-        // still holds the write this node appended, so if it commits
-        // under the new leader this node applies it as its own and ACKs if SC.
-        // Otherwise the conflicting AppendEntries truncates it, and
-        // 'truncateFrom' holds that write for 'repostHeldProposals' - EC has
-        // already ACKed it.
+        // Each uncommitted entry this node appended holds the 'Proposal' this
+        // node proposed ('EntryInfo::d_ownProposal'):
+        // 1. If the entry commits under the new leader, this node applies the
+        //    'Proposal' ('FileStore::onRecordCommittedPrimary'), which ACKs a
+        //    strong consistency PUT.
+        // 2. If a conflicting AppendEntries truncates the entry,
+        //    'truncateFrom' holds the 'Proposal' for 'repostHeldProposals'.
+        //    An eventual consistency PUT was ACKed at propose.
     }
 
     bool hadRollover = false;
@@ -416,28 +416,19 @@ void PartitionRaft::dispatchOutput(RaftNodeOutput* output)
 
     postDispatch(output, hadRollover);
 
-    // Note on leadership changes: becoming leader needs no action here.  The
-    // become-leader sync point is NOT written here -- it is the first journal
-    // record under the new leaseId (== term), and strict ordering requires the
-    // CSL's artificial 'partitionPrimaryAdvisory' (carrying this leaseId) to
-    // commit first.  See 'proposeDeferredSyncPoint' called by the orchestrator
-    // once the advisory commits and the partition reaches E_ACTIVE.
-
-    // On any leadership change record the primary identity on the FileStore
-    // and signal the cluster.  'd_leaderChanged' is set exactly when
-    // '(leaderId, term)' moved -- the pair published below -- so a Raft role
-    // transition that moves neither does not reach here.
+    // 'd_leaderChanged' is set when '(leaderId, term)' changes, and on every
+    // election timeout in 'e_NEVER' mode.
     if (output->d_leaderChanged) {
         const int                 leaderNodeId = d_raftNode_mp->leaderId();
         const bsls::Types::Uint64 term         = d_raftNode_mp->currentTerm();
 
-        // Record the primary identity on the FileStore so 'fs->primaryNode()',
-        // 'primaryLeaseId()' and 'd_isPrimary' reflect Raft leadership (the
-        // primary sets self, replicas set the remote leader).
-        // 'isRaft=true' keeps only the identity bookkeeping and skips the
-        // legacy sync-point machinery (Raft drives sync points through its own
-        // log).
         if (RaftNode::k_INVALID_NODE_ID != leaderNodeId) {
+            // Record the primary identity on the FileStore so
+            // 'fs->primaryNode()', 'primaryLeaseId()' and 'd_isPrimary'
+            // reflect Raft leadership (the primary sets self, replicas set the
+            // remote leader).  'isRaft=true' keeps only the identity
+            // bookkeeping and skips the legacy sync-point machinery (Raft
+            // drives sync points through its own log).
             mqbnet::ClusterNode* leaderNode =
                 (leaderNodeId ==
                  d_clusterData_p->membership().selfNode()->nodeId())
@@ -451,11 +442,13 @@ void PartitionRaft::dispatchOutput(RaftNodeOutput* output)
             }
         }
 
-        // Arm the become-leader sync point for this leadership.  It cannot be
-        // inferred from 'lastTerm() == currentTerm()': the leader commits and
-        // applies its recovered log on becoming leader, and those applies
-        // propose queue records of their own, so a current-term entry can
-        // exist without this sync point ever having been written.
+        // Set 'd_needsBecomeLeaderSyncPoint' if this node is the leader.  The
+        // become-leader sync point is not proposed here: the sync point waits
+        // until the CSL commits this leaseId (the term), and the cluster then
+        // calls 'proposeDeferredSyncPoint'.  'd_needsBecomeLeaderSyncPoint'
+        // cannot be inferred from 'lastTerm() == currentTerm()': applying
+        // earlier entries can propose current-term records (per-app purge
+        // DELETIONs) before this sync point.
         d_needsBecomeLeaderSyncPoint = isLeader();
 
         // Signal the cluster so it can (re)compute this partition's
@@ -480,10 +473,10 @@ void PartitionRaft::convertQueuesToRemote()
     d_fileStore_sp->convertQueuesToRemote(
         d_clusterData_p->clusterConfig().queueOperations().ackWindowSize());
 
-    // After the conversion, so each write reaches a queue that can relay it,
-    // and after the cluster's handle drops, which it scheduled ahead of this
-    // on the same thread: a write from a peer whose handle is now gone is
-    // that peer's to re-send.
+    // After the conversion, so each PUT reaches a queue that can relay the
+    // PUT.  After the cluster's handle drops, which the cluster scheduled
+    // ahead of this on the same thread, so a PUT from a peer finds no
+    // producer and is dropped.
     repostHeldProposals();
 }
 
@@ -522,8 +515,8 @@ void PartitionRaft::repostHeldProposals()
             continue;  // CONTINUE
         }
 
-        // The message never entered this node's storage, so the capacity
-        // 'put' set aside for it goes back whether or not it is re-posted.
+        // The record never entered this node's storage, so what 'propose'
+        // reserved for the record goes back, whether or not it is re-posted.
         d_fileStore_sp->undoPropose(pw);
 
         if (pw.d_recordType != mqbs::RecordType::e_MESSAGE) {
@@ -533,8 +526,8 @@ void PartitionRaft::repostHeldProposals()
 
         // Gone means either a cluster peer whose handle the demotion dropped,
         // or a client that has since disconnected.  Either way there is no
-        // producer left here to answer, and a peer re-sends to the new
-        // primary itself.
+        // producer left here to answer.  A peer re-sends its unacknowledged
+        // PUTs, except broadcast PUTs, when it reopens on the new primary.
         if (!queue || !queue->hasHandle(handle)) {
             ++numNoProducer;
             continue;  // CONTINUE
@@ -557,10 +550,8 @@ void PartitionRaft::repostHeldProposals()
 
         pw.d_attributes.messagePropertiesInfo().applyTo(&header);
 
-        // Not 'QueueHandle::postMessage': that one hops from the producer's
-        // dispatcher thread onto the queue's, and asserts it is on the
-        // former.  This runs on the partition's dispatcher thread, which is
-        // the queue's, so hand the message straight to the queue.
+        // This runs on the partition's dispatcher thread, which is the
+        // queue's, so hand the message straight to the queue.
         queue->postMessage(header, pw.d_appData, pw.d_options, handle);
         ++numReposted;
     }
@@ -597,11 +588,8 @@ void PartitionRaft::reproposeHeldProposals()
         return;  // RETURN
     }
 
-    // This node is the leader and is no longer handing that over, so these go
-    // into its own log after all.  Proposed rather than re-posted: the queues
-    // are still local, so there is no upstream to send them to, and no
-    // 'undoPropose' either -- 'put' reserved their capacity and this is the
-    // write it reserved it for.
+    // Propose them into this node's log: the queues are still local.  No
+    // 'undoPropose': the capacity 'put' reserved is for this write.
     BALL_LOG_INFO << "Partition [" << d_partitionId << "] proposing "
                   << held.size() << " write(s) held for a leadership "
                   << "transfer that was abandoned.";
@@ -613,14 +601,10 @@ void PartitionRaft::postDispatch(RaftNodeOutput* output, bool hadRollover)
 {
     // executed by the partition *DISPATCHER* thread
 
-    // Everything here runs after the apply loop of 'dispatchOutput', never
-    // inside it, because it proposes: a propose from within the loop re-enters
-    // 'dispatchOutput' on a frame that is still walking 'd_committed'.
-
-    // Writes the apply loop held back for that reason.  Swap first: 'propose'
-    // runs a nested 'dispatchOutput', so this must not be re-entered on the
-    // same entries.
     if (!d_deferred.empty()) {
+        // Propose the DELETIONs the apply loop deferred.  Swap first:
+        // 'propose' runs a nested 'dispatchOutput', which reaches this code
+        // again.
         bsl::vector<bsl::shared_ptr<mqbs::Proposal> > deferred(d_allocator_p);
         deferred.swap(d_deferred);
 
@@ -637,21 +621,18 @@ void PartitionRaft::postDispatch(RaftNodeOutput* output, bool hadRollover)
         }
     }
 
-    // Resolve buffered writes once the rollover outcome is known.  Buffered
-    // writes exist only during/after a rollover window, so during normal
-    // writes the buffer is empty and this does not fire.
     if (hadRollover && isLeader()) {
         BSLS_ASSERT_SAFE(d_isRolloverPending);
 
         // The 'e_ROLLOVER' just committed and rolled over in the apply loop.
-        // Clear the in-flight flag before the drain, not after: the drain
-        // goes through 'propose', which buffers while the flag is set.
+        // Propose the writes buffered during the rollover ('drainProposals').
+        // Clear the flag before the drain: the drain goes through 'propose',
+        // which buffers while the flag is set.
         d_isRolloverPending = false;
 
         drainProposals();
     }
 
-    // Re-post held writes to the new primary, or propose them if still leader.
     if (!isLeader()) {
         repostHeldProposals();
     }
@@ -659,25 +640,26 @@ void PartitionRaft::postDispatch(RaftNodeOutput* output, bool hadRollover)
         reproposeHeldProposals();
     }
 
-    // A committed whole-queue purge freed journal space; reclaim it now.
-    // 'onPurgeComplete' proposes an 'e_ROLLOVER'.
     if (d_fileStore_sp->takePurgeCompleted()) {
+        // A committed whole-queue purge freed journal space.
+        // 'onPurgeComplete' proposes an 'e_ROLLOVER' if one is needed.
         onPurgeComplete();
     }
 
-    // The gather stopped at its cap; nothing else brings us back, since
-    // 'commitTo' only runs when the commit index advances.  Re-post rather
-    // than loop, so the dispatcher gets a turn between batches.
     if (output->d_hasMoreToApply) {
+        // 'RaftNode::loadCommittedBatch' stopped at 'k_MAX_APPLY_PER_BATCH'.
+        // 'commitTo' runs again only when the commit index advances, so post
+        // the next batch here.  Posting gives the dispatcher a turn between
+        // batches.
         execute(
             bdlf::BindUtil::bind(&PartitionRaft::applyCommittedBatchDispatched,
                                  this));
     }
 
     // Re-drive delivery once for the whole batch applied above.  Each
-    // committed message noted its queue rather than notifying it, so a queue
-    // that took several entries is walked once, and one deleted later in the
-    // same batch is not walked at all.
+    // committed message only noted its queue.  So a queue that took several
+    // entries is walked once, and a queue deleted later in the same batch is
+    // not walked.
     d_fileStore_sp->notifyQueuesOnReplicatedBatch();
 }
 
@@ -730,8 +712,8 @@ void PartitionRaft::sendAppendEntries(const RaftMessage& msg)
     (*eh).setLength(event.length());
     eh.reset();
 
-    // One event, every peer at this anchor.  Channels copy the blob's buffer
-    // references on write and never modify it, so it is shared, not rebuilt.
+    // One event for every destination at this 'prevLogIndex'.  Each channel
+    // queues the same 'event_sp'.
     for (size_t i = 0; i < msg.destinationCount(); ++i) {
         const int            nodeId   = msg.destination(i);
         mqbnet::ClusterNode* destNode = peerNode(nodeId);
@@ -813,13 +795,9 @@ void PartitionRaft::sendControlMessage(const RaftMessage& msg)
     bmqp_ctrlmsg::RaftMessage& raftMsg = controlMsg.choice().makeRaftMessage();
     toCtrlMsg(&raftMsg, msg);
 
-    // Use this partition's own 'FileStore::sendMessage' (backed by its
-    // per-partition 'ControlMessageTransmitter'), NOT
-    // 'd_clusterData_p->messageTransmitter()': that shared, cluster-level
-    // transmitter's 'SchemaEventBuilder' is documented as usable only from the
-    // cluster dispatcher thread, but this method runs on the partition
-    // dispatcher thread.  With multiple partitions (each own thread) this
-    // would race on the transmitter's shared blob-building state.
+    // Use this partition's own transmitter ('FileStore::sendMessage').  This
+    // is to avoid using the cluster's transmitter, which is usable only on the
+    // cluster dispatcher thread.
     d_fileStore_sp->sendMessage(controlMsg, destNode);
 }
 
@@ -831,20 +809,22 @@ void PartitionRaft::applyCommittedEntry(const LogEntry&    entry,
     // Read before applying: the entry leaves the log's index below.
     const bool isSyncPoint = d_raftLog_mp->isRegularSyncPoint(entry.d_index);
 
-    // The log routes on the entry itself: one it holds a write for had the
-    // storage side done at propose time, whatever this node's leadership has
-    // done since, and only the write holds what apply still needs.
+    // The log routes by the entry.  An entry holding this node's own write is
+    // applied from that write ('FileStore::onRecordCommittedPrimary'),
+    // whatever this node's leadership is now: only the write holds what that
+    // apply needs.  Any other entry is applied from its blob
+    // ('FileStore::onRecordCommittedReplica').
     d_raftLog_mp->applyCommittedEntry(entry.d_index,
                                       entry.d_data,
                                       commitTimepoint);
 
     if (isSyncPoint && entry.d_term == d_raftNode_mp->currentTerm() &&
         entry.d_term > d_reportedSyncPointTerm) {
-        // The leader writes this sync point once the CSL advisory for its
-        // leaseId has committed, so it is the partition's first record under
-        // that leaseId.  Applying it is how a node -- leader or replica --
-        // knows its storage holds everything committed under the leaseId the
-        // CSL confirmed; the cluster waits for it before going available.
+        // Report the first sync point committed under the current term.
+        // Applying it means this node, leader or replica, has applied every
+        // entry before it, including those inherited from earlier terms.
+        // 'ClusterOrchestrator::maybeTransitionToAvailable' waits for this
+        // report.
         d_reportedSyncPointTerm = entry.d_term;
 
         d_leadershipCb(d_partitionId,
@@ -912,10 +892,8 @@ void PartitionRaft::sendSnapshot(int                 destNodeId,
         return;  // RETURN
     }
 
-    // The InstallSnapshot control message that puts the follower into
-    // receiving mode is sent by the caller ('dispatchOutput'), immediately
-    // before this.  Sending a second one here made the follower handle the
-    // same message twice and answer twice.
+    // The caller ('dispatchMessages') sends the InstallSnapshot control
+    // message that puts the follower into receiving mode, just before this.
 
     const int hdrSize = static_cast<int>(sizeof(bmqp::EventHeader) +
                                          sizeof(bmqp::SnapshotChunkHeader));
@@ -961,9 +939,10 @@ void PartitionRaft::sendSnapshot(int                 destNodeId,
             const bmqt::GenericResult::Enum writeRc =
                 destNode->write(event_sp, bmqp::EventType::e_RAFT_SNAPSHOT);
             if (bmqt::GenericResult::e_NOT_CONNECTED == writeRc) {
-                // The channel went away mid-transfer.  Report it: 'RaftNode'
-                // has this snapshot marked in flight, which suppresses
-                // replication to the peer until it times out.
+                // The channel went away mid-transfer.  Mark the peer
+                // unavailable, which resets its state in 'RaftNode'.  This is
+                // to avoid the snapshot staying marked in flight, which
+                // suppresses replication to the peer until a timeout.
                 BALL_LOG_WARN << "Partition [" << d_partitionId
                               << "] snapshot to node " << destNode->hostName()
                               << " aborted: channel is gone";
@@ -979,8 +958,8 @@ void PartitionRaft::sendSnapshot(int                 destNodeId,
         }
     }
 
-    // The done flag cannot ride on the last chunk of a file: the receiver
-    // finalizes on it, and a file of size 0 emits no chunk to carry it.
+    // Send the done flag in its own chunk: the receiver finalizes on the flag,
+    // and a file of size 0 sends no chunk that could carry the flag.
     {
         bsl::shared_ptr<bdlbb::Blob> event_sp =
             d_clusterData_p->blobSpPool().getObject();
@@ -1056,25 +1035,21 @@ void PartitionRaft::beginReceiveSnapshot(bsls::Types::Uint64 lastIncludedIndex,
         // Get file paths before wiping
         d_fileStore_sp->loadCurrentFiles(&d_snapshotFiles);
 
-        // Empty the storages, keeping the objects: their contents are handles
-        // into 'd_records', which the close below clears, but the objects
-        // themselves are the ones the queues hold and were configured with.
-        // Dropping them instead leaves each queue on an orphan -- kept alive
-        // by the queue's own reference, while recovery registers a
-        // replacement that every later record goes to.  Neither side reports
-        // that, and delivery for the queue stops on this node for good.
+        // Empty the storages but keep the objects: their contents are handles
+        // into 'd_records', which the close below clears, and the queues hold
+        // the objects.  This is to avoid leaving a queue on a storage that
+        // recovery has replaced (delivery for the queue would stop on this
+        // node).
         d_fileStore_sp->clearStorages();
 
-        // This path closes the 'FileStore' directly rather than through
-        // 'PartitionRaft::close', so it has to release what aliases the file
-        // set itself: the cached entry blobs, and the proposals a leader
-        // stint left behind (stepdown keeps the appended ones, and only a
-        // truncation drops them -- an InstallSnapshot never truncates).  Their
-        // record handles are iterators into 'd_records', which the close
-        // invalidates.  From index 0, because the snapshot replaces the log
-        // wholesale: nothing this node appended can still commit.  'open()'
-        // clears the cache too, but only after the wipe, and never touches the
-        // proposals.
+        // This path closes the 'FileStore' directly, so release here what
+        // aliases the file set, as 'PartitionRaft::close' does:
+        // 1. The proposals still in the log.  Their record handles are
+        //    iterators into 'd_records', which the close invalidates.  From
+        //    index 0: the snapshot replaces the whole log, so nothing this
+        //    node appended can still commit.
+        // 2. The cached entry blobs.  'open()' clears the cache only after the
+        //    close.
         d_raftLog_mp->dropProposalsFrom(0, false);  // discard
         d_raftLog_mp->clearCache();
 
@@ -1219,37 +1194,27 @@ void PartitionRaft::applySnapshotChunk(const bdlbb::Blob&   event,
         return;
     }
 
-    // The installed files moved the log's floor, so raise the applied state to
-    // match: it would otherwise ask for entries below that floor forever.  The
-    // floor, and not 'servedIndex': the files restore storage to the snapshot
-    // boundary only, and 'open' recovered the entries above it as unapplied
-    // ones.  Seeding the watermark past them marks them applied without
-    // applying them -- their records never reach the storage, and every later
-    // entry that refers to one finds nothing there.  The commit path applies
-    // them, as it does after a restart ('start' seeds the same way).
+    // The installed files moved the log's floor ('snapshotIndex()'), so raise
+    // the applied state to the floor.  This is to avoid asking for entries
+    // below the floor.  The files restore storage only up to the floor.
+    // 'open' recovered the entries above it as unapplied, and the commit path
+    // applies them, as after a restart ('start' seeds the same way).
     d_raftNode_mp->initRecoveredState(d_raftLog_mp->lastTerm(),
                                       d_raftLog_mp->snapshotIndex());
 
-    // Re-seat each queue onto its refilled storage, and nudge it.  Both are
-    // needed and neither happens on its own:
-    //
-    // The queues kept their storage objects across the wipe, but everything
-    // positioned inside them was emptied, so their iterators are on contents
-    // that are gone.
-    //
-    // And the install refilled those storages without going through the
-    // commit path, which is the only thing that re-drives delivery.  The
-    // leader does not stop pushing to a peer while its transfer is in flight
-    // -- only Raft replication is gated on 'd_snapshotPending' -- so those
-    // PUSHes arrived against an emptied storage and are parked in the relay
-    // push stream.  Left unsent they stay unconfirmed on the primary's handle
-    // for this node, whose window then never frees.
+    // For each queue, re-seat it onto its refilled storage and re-drive
+    // delivery:
+    // 1. The queues kept their storage objects across the close, but the
+    //    contents were emptied, so their iterators point at contents that
+    //    are gone.
+    // 2. The install refilled the storages outside the commit path, which is
+    //    the only path that re-drives delivery.  PUSHes that arrived during
+    //    the transfer wait in the relay push stream until then.
     d_fileStore_sp->notifyAllQueuesOnRestore();
 
-    // Answer the node that sent the chunks, not 'leaderId()': that is
-    // 'k_INVALID_NODE_ID' whenever the term advanced during the transfer, and
-    // the response is then dropped -- which the leader sees as a timeout and
-    // answers with another full snapshot.
+    // Answer the node that sent the chunks.  This is to avoid answering
+    // 'leaderId()', which is 'k_INVALID_NODE_ID' if the term advanced during
+    // the transfer.
     RaftMessage resp(d_allocator_p);
     resp.d_type         = RaftMessageType::e_INSTALL_SNAPSHOT_RESP;
     resp.d_term         = d_raftNode_mp->currentTerm();
@@ -1395,9 +1360,8 @@ void PartitionRaft::tickDispatched()
     d_raftNode_mp->tick(&output);
     dispatchOutput(&output);
 
-    // Legacy refreshes these whenever it issues a sync point; Raft issues none
-    // periodically, so they would otherwise keep the values 'openForRaft' read
-    // off an empty file set.
+    // Refresh the partition stats on each tick.  Raft has no periodic sync
+    // point to refresh the stats.
     d_fileStore_sp->updatePartitionStats();
 }
 
@@ -1419,8 +1383,8 @@ void PartitionRaft::start()
 
     const int rc = d_raftLog_mp->open();
     if (0 != rc) {
-        // FileStore open/recovery failure is unrecoverable; ALARM and
-        // terminate, matching legacy 'StorageManager::do_attemptOpenStorage'.
+        // A FileStore open or recovery failure is unrecoverable: ALARM and
+        // terminate.
         BMQTSK_ALARMLOG_ALARM("FILE_IO")
             << d_clusterData_p->identity().description() << " Partition ["
             << d_partitionId
@@ -1430,17 +1394,13 @@ void PartitionRaft::start()
         mqbu::ExitUtil::terminate(mqbu::ExitCode::e_RECOVERY_FAILURE);  // EXIT
     }
 
-    // Seed the recovered term and applied state.  The term (or legacy-written
-    // journal's leaseId, since the on-disk field is the same) must never
-    // regress across a restart per Raft's persistent-state contract; the
-    // applied state must be raised to the snapshot boundary -- a node that
-    // ever rolled over has 'snapshotIndex > 0', and without this the
-    // hardcoded 'currentTerm/commitIndex/lastAppliedCommit = 0' from the
-    // RaftNode ctor would let this node re-propose a stale term and would
-    // stall on indices at or below the snapshot floor. Both watermarks take
-    // the snapshot boundary: recovery restores storage to exactly that point,
-    // and the entries above it are applied by the normal commit path once a
-    // leader confirms them.
+    // Seed the recovered term and applied state ('initRecoveredState' only
+    // raises them).  The term is the log's last term, which for a journal
+    // written by legacy is its leaseId.  The term must never decrease across a
+    // restart.  The commit index and the applied state take the snapshot
+    // boundary ('snapshotIndex()', above 0 once the partition has rolled
+    // over).  Recovery restores storage up to that point, and the commit path
+    // applies the entries above it once a leader confirms them.
     d_raftNode_mp->initRecoveredState(d_raftLog_mp->lastTerm(),
                                       d_raftLog_mp->snapshotIndex());
 
@@ -1491,8 +1451,7 @@ void PartitionRaft::start()
 
     d_isStarted = true;
 
-    // Every AppendEntries goes out from here, once the dispatcher has drained
-    // this partition's queue.
+    // The dispatcher calls 'flush' once it has drained this partition's queue.
     d_fileStore_sp->setFlushCallback(
         bdlf::BindUtil::bind(&PartitionRaft::flush, this));
 
@@ -1521,30 +1480,27 @@ int PartitionRaft::propose(const bsl::shared_ptr<mqbs::Proposal>& pw)
     // executed by the partition *DISPATCHER* thread
     enum { rc_UNAVAILABLE = -1 };
 
-    // During a leadership transfer, a PUT is held: 'repostHeldProposals'
-    // re-posts it to the new primary, or 'reproposeHeldProposals' proposes it
-    // here if the transfer is abandoned.  Every other record is proposed.
     if (d_raftNode_mp->isTransferringLeadership() &&
         pw->d_recordType == mqbs::RecordType::e_MESSAGE) {
+        // Hold the PUT.  'repostHeldProposals' re-posts the PUT to the new
+        // primary, or 'reproposeHeldProposals' proposes the PUT here if the
+        // transfer is abandoned.  Every other record is proposed.
         d_raftLog_mp->holdProposal(pw);
         return 0;  // RETURN
     }
 
-    // Skipped while a rollover of this node's own is in flight:
-    // 'proposeRollover' marks the partition unavailable for its duration, so
-    // the read-only branch below would reject every write of that window
-    // instead of letting it buffer.
+    // Skipped while a rollover is pending: 'proposeRollover' marks the
+    // journal unavailable for the rollover's duration.  This is to avoid the
+    // read-only branch below rejecting the writes that should buffer.
     if (!d_isRolloverPending) {
         if (!d_fileStore_sp->isFileSetAvailable()) {
             // The journal is read-only: a rollover could not reclaim enough
-            // space (outstanding records exceed the policy threshold).  Mirror
-            // legacy 'FileStore::writeQueueOpRecord': the ONLY write still
-            // permitted is a full-queue PURGE, written into the reserved PURGE
-            // area, which frees outstanding records and lets
-            // 'onPurgeComplete' roll over to recover.  A per-appId purge
-            // (non-null appKey) writes per-message deletion records, for which
-            // there is no room -- reject it, like any other write, so the
-            // partition stays read-only.
+            // space (outstanding records exceed the policy threshold).  The
+            // only write allowed is a full-queue PURGE, into the reserved
+            // PURGE area ('primaryHasPurgeReserve').  The purge frees
+            // outstanding records, and 'onPurgeComplete' then proposes a
+            // rollover.  A per-app purge (non-null appKey) is rejected: its
+            // per-message DELETION records have no room.
             const bool isPurge = pw->d_recordType ==
                                      mqbs::RecordType::e_QUEUE_OP &&
                                  pw->d_queueOpType ==
@@ -1589,32 +1545,25 @@ int PartitionRaft::propose(const bsl::shared_ptr<mqbs::Proposal>& pw)
         }
     }
 
-    // Buffer for replay into the new file set once the rollover commits; this
-    // covers both the write that triggered it and every one that follows
-    // while it is in flight.
     if (d_isRolloverPending) {
+        // Buffer the write for replay into the new file set once the rollover
+        // commits.  This covers the write that triggered the rollover and
+        // every write after it until the commit.
         return d_raftLog_mp->bufferProposal(pw);
     }
 
-    // Only a local queue proposes, and a local queue only exists on the
-    // primary, so the sole way to arrive here without leadership is between
-    // this node's stepdown and the conversion of its queues to remote.  Hold
-    // the write rather than fail it: the caller would have to answer its
-    // producer, and the only answer available would be a NACK for a message
-    // the new primary is about to accept.
-    //
-    // Not 'bufferProposal': that queues the write for replay into this
-    // log once the rollover commits, and this write is bound for the new
-    // primary instead -- no rollover of this node's will ever drain it.
     if (!isLeader()) {
+        // A local queue is between this node's stepdown and the conversion of
+        // its queues to remote.  Hold the write for 'repostHeldProposals',
+        // which re-posts a PUT to the new primary.  This is to avoid NACKing a
+        // PUT that the new primary can accept.
         d_raftLog_mp->holdProposal(pw);
         return 0;  // RETURN
     }
 
-    // Otherwise enqueue it for 'append()'; the record's sequence number
-    // (index) is stamped there.  'setProposal' stores this same
-    // shared_ptr, so 'append()' sets 'pw->d_handle' on the very object the
-    // caller holds -- no separate step to surface the handle back is needed.
+    // Hand the write to 'append()', which stamps the record's sequence number
+    // (the log index).  'setProposal' stores this same shared_ptr, so
+    // 'append()' sets 'pw->d_handle' on the object the caller holds.
     d_raftLog_mp->setProposal(pw);
 
     RaftNodeOutput output(d_allocator_p);
@@ -1625,9 +1574,6 @@ int PartitionRaft::propose(const bsl::shared_ptr<mqbs::Proposal>& pw)
 
     dispatchOutput(&output);
 
-    // The cache is NOT released here: the round that reads this entry runs at
-    // 'flush()', which releases it once the entry has been served to the
-    // peers.  Clearing it now would send every round to mmap instead.
     return 0;
 }
 
@@ -1636,10 +1582,8 @@ void PartitionRaft::proposeDeferredSyncPoint()
     // executed by the partition *DISPATCHER* thread
     BSLS_ASSERT_SAFE(d_fileStore_sp->inDispatcherThread());
 
-    // Idempotent: a no-op unless this node is the leader and has not yet
-    // written the sync point for this leadership.
-    // 'd_needsBecomeLeaderSyncPoint' is armed on becoming leader and cleared
-    // here, so it is self-correcting across leadership changes.
+    // 'd_needsBecomeLeaderSyncPoint' is set on each leadership change and
+    // cleared here.
     if (!isLeader() || !d_needsBecomeLeaderSyncPoint) {
         return;  // RETURN
     }
@@ -1652,20 +1596,17 @@ void PartitionRaft::proposeDeferredSyncPoint()
 
     proposeSyncPoint();
 
-    // The sync point just appended is this term's first entry.  If the log
-    // also holds an uncommitted 'e_ROLLOVER' inherited from a prior leader
-    // (which proposed the rollover but lost leadership before it committed),
-    // that sync point is the current-term entry that will carry the
-    // 'e_ROLLOVER' to commit -- so it will commit and roll over regardless of
-    // this node's own rollover configuration.  Enter the rollover-pending
-    // state now so client writes buffer (keeping the post-'e_ROLLOVER' tail to
-    // journal-op sync points) and no duplicate 'e_ROLLOVER' is proposed; the
-    // buffered writes drain into the new file set once the inherited rollover
-    // commits.  This must not rely on 'rolloverIfNeeded' (a
-    // differently-configured new leader may not re-trigger), hence the direct
-    // log check.
     if (!d_isRolloverPending &&
         d_raftLog_mp->hasUncommittedRollover(d_raftNode_mp->commitIndex())) {
+        // The log holds an uncommitted 'e_ROLLOVER' from a prior leader.
+        // This current-term sync point's commit also commits that
+        // 'e_ROLLOVER', and every node rolls over.  Enter the rollover-pending
+        // state now:
+        // 1. Writes buffer until the rollover, then drain into the new file
+        //    set.
+        // 2. No second 'e_ROLLOVER' is proposed.
+        // The log is checked directly: 'rolloverIfNeeded' depends on this
+        // node's configuration, which can differ from the prior leader's.
         d_isRolloverPending = true;
         BALL_LOG_INFO << "Partition [" << d_partitionId
                       << "] inherited an uncommitted e_ROLLOVER; buffering "
@@ -1678,7 +1619,10 @@ void PartitionRaft::proposeShutdownSyncPoint()
     // executed by the partition *DISPATCHER* thread
     BSLS_ASSERT_SAFE(d_fileStore_sp->inDispatcherThread());
 
-    if (!isLeader()) {
+    // Skip before the become-leader sync point: the CSL may not have this
+    // leaseId yet.  This is to avoid a sync point that stops a restart into
+    // legacy ('e_STORAGE_OUT_OF_SYNC').
+    if (!isLeader() || d_needsBecomeLeaderSyncPoint) {
         return;  // RETURN
     }
 
@@ -1686,6 +1630,46 @@ void PartitionRaft::proposeShutdownSyncPoint()
                   << "] writing final sync point on shutdown.";
 
     proposeSyncPoint();
+}
+
+void PartitionRaft::onPeerNodeStopping(int                      peerId,
+                                       const StopContextHolder& stopContext)
+{
+    // executed by the partition *DISPATCHER* thread
+    BSLS_ASSERT_SAFE(d_fileStore_sp->inDispatcherThread());
+
+    // Skip before the become-leader sync point, as in
+    // 'proposeShutdownSyncPoint'.  Releasing 'stopContext' lets the
+    // StopResponse go out.
+    if (!isLeader() || d_needsBecomeLeaderSyncPoint) {
+        return;  // RETURN
+    }
+
+    BALL_LOG_INFO << "Partition [" << d_partitionId
+                  << "] writing sync point for stopping node " << peerId;
+
+    const bsls::Types::Uint64 lastIndex = d_raftLog_mp->lastIndex();
+
+    proposeSyncPoint();
+
+    // Not appended: 'propose' failed, or buffered it behind a pending
+    // rollover.
+    if (d_isRolloverPending || d_raftLog_mp->lastIndex() == lastIndex) {
+        return;  // RETURN
+    }
+
+    StopResponseWait wait;
+    wait.d_peerId     = peerId;
+    wait.d_index      = d_raftLog_mp->lastIndex();
+    wait.d_whenToStop = bsls::SystemTime::now(
+        bsls::SystemClockType::e_MONOTONIC);
+    wait.d_whenToStop.addMilliseconds(k_STOP_RESPONSE_WAIT_MS);
+    wait.d_stopContext = stopContext;
+
+    d_stopResponseWaits.push_back(wait);
+
+    // Send the sync point now.
+    flush();
 }
 
 bool PartitionRaft::checkIfCanShutdown()
@@ -1734,14 +1718,53 @@ void PartitionRaft::checkIfCanShutdownDispatched()
     d_canShutdown = true;
 }
 
+void PartitionRaft::checkIfCanSendStopResponse()
+{
+    // executed by the partition *DISPATCHER* thread
+    BSLS_ASSERT_SAFE(d_fileStore_sp->inDispatcherThread());
+
+    if (d_stopResponseWaits.empty()) {
+        return;  // RETURN
+    }
+
+    const bsls::TimeInterval now = bsls::SystemTime::now(
+        bsls::SystemClockType::e_MONOTONIC);
+
+    bsl::vector<StopResponseWait>::iterator it = d_stopResponseWaits.begin();
+    while (it != d_stopResponseWaits.end()) {
+        mqbnet::ClusterNode* node       = peerNode(it->d_peerId);
+        bsls::Types::Uint64  matchIndex = 0;
+
+        // 'matchIndex' returns false once this node is not the leader.
+        const bool isLeader     = d_raftNode_mp->matchIndex(&matchIndex,
+                                                        it->d_peerId);
+        const bool hasSyncPoint = isLeader && matchIndex >= it->d_index;
+
+        if (!isLeader || hasSyncPoint || !node || !node->isAvailable() ||
+            now >= it->d_whenToStop) {
+            if (!hasSyncPoint) {
+                BALL_LOG_WARN << "Partition [" << d_partitionId
+                              << "] sending StopResponse to node "
+                              << it->d_peerId << " without its sync point "
+                              << "at index " << it->d_index;
+            }
+
+            // Destroying the holder releases the stop context.
+            it = d_stopResponseWaits.erase(it);
+        }
+        else {
+            ++it;
+        }
+    }
+}
+
 void PartitionRaft::proposeSyncPoint()
 {
     // executed by the partition *DISPATCHER* thread
     BSLS_ASSERT_SAFE(isLeader());
 
-    // A sync point is journal-only; 'propose()' runs 'rolloverIfNeeded' and
-    // skips issuing it if a rollover is required but blocked by an uncommitted
-    // 'e_ROLLOVER' (it will be re-issued on a later tick).
+    // A sync point writes only to the journal.  While a rollover is pending,
+    // 'propose' buffers the sync point.
     bsl::shared_ptr<mqbs::Proposal> pw = d_proposalPool.getObject();
     pw->initSyncPoint(mqbs::SyncPointType::e_REGULAR);
 
@@ -1760,19 +1783,9 @@ int PartitionRaft::proposeRollover()
 
     bsl::shared_ptr<mqbs::Proposal> pw = d_proposalPool.getObject();
     pw->initSyncPoint(mqbs::SyncPointType::e_ROLLOVER);
-    // Not buffering here (this is what *starts* the rollover), so this simply
-    // enqueues 'e_ROLLOVER' for 'append()'.
+    // 'e_ROLLOVER' goes to 'append()' directly, not through 'propose'.
     d_raftLog_mp->setProposal(pw);
 
-    // Buffering state is now derived by the log: once 'e_ROLLOVER' is appended
-    // it becomes the last log entry, so 'isBuffering()' returns true.  In a
-    // single-node cluster 'propose()' commits (and applies, hence rolls over)
-    // synchronously, at which point 'isBuffering()' flips back to false and
-    // the triggering write appends straight into the new file.
-
-    // Inline the 'propose()' sequence (rather than calling it) to keep the
-    // AppendEntries dispatch and cache clearing local.  The physical rollover
-    // is now driven by the apply hook when 'e_ROLLOVER' commits, not here.
     RaftNodeOutput output(d_allocator_p);
     int rc = d_raftNode_mp->propose(&output, bsl::shared_ptr<bdlbb::Blob>());
     if (rc != 0) {
@@ -1781,21 +1794,14 @@ int PartitionRaft::proposeRollover()
         return rc;  // RETURN
     }
 
-    // Disable the (old) file set now that the 'e_ROLLOVER' marker has been
-    // appended to it (the marker write itself must NOT be blocked, so this
-    // cannot precede 'propose()' -- 'formatSyncPointRecord' rejects any write
-    // to an unavailable set).  This must also precede 'dispatchOutput()':  in
-    // a single-node cluster 'dispatchOutput()' applies the just-committed
-    // 'e_ROLLOVER' and performs the physical rollover synchronously, swapping
-    // in a fresh (available) 'FileSet'; disabling afterwards would wrongly
-    // mark that new set unavailable.
-    //
-    // The flag is defensive here: every regular write during the pending-
-    // rollover window is already buffered upstream ('d_isRolloverPending' gate
-    // in 'propose()') and never reaches 'format*Record'.  It mirrors legacy's
-    // "leave the partition unavailable rather than silently accept writes past
-    // capacity" on rollover failure -- a guarantee also enforced by
-    // 'PartitionRaftLog::rollover()' on its own failure path.
+    // Mark the old file set unavailable.  The order matters:
+    // 1. After 'propose': the 'e_ROLLOVER' record must be written, and
+    //    'formatSyncPointRecord' rejects any write to an unavailable set.
+    // 2. Before 'dispatchOutput': in a single-node cluster 'dispatchOutput'
+    //    commits and rolls over at once, and the new file set must stay
+    //    available.
+    // The flag is defensive: 'propose' buffers every write while
+    // 'd_isRolloverPending' is set, so none reaches 'format*Record'.
     d_fileStore_sp->setAvailabilityStatus(false);
     d_isRolloverPending = true;
 
@@ -1819,23 +1825,21 @@ int PartitionRaft::rolloverIfNeeded(bsls::Types::Uint64 dataBytes,
         return rc_SUCCESS;  // RETURN
     }
     case mqbs::FileStore::e_ROLLOVER_READONLY: {
-        // A rollover cannot reclaim enough space -- the partition is full.
-        // 'primaryRolloverNeed' has already marked it read-only and panicked;
-        // NACK the triggering write rather than roll over into a same-size
-        // file and overflow it.  The partition recovers only via a full purge
-        // (see 'onPurgeComplete').
+        // A rollover cannot reclaim enough space: the partition is full.
+        // 'primaryRolloverNeed' has already marked the partition read-only and
+        // panicked.  NACK the triggering write.  The partition recovers only
+        // through a full purge (see 'onPurgeComplete').
         return rc_READONLY;  // RETURN
     }
     case mqbs::FileStore::e_ROLLOVER_NEEDED:
     default: {
-        // A rollover is required and will reclaim enough space.  Rather than
-        // NACK the triggering write, propose 'e_ROLLOVER' (unless one is
-        // already in flight -- at most one uncommitted rollover at a time).
-        // 'setProposal()' then buffers this triggering write, and every
-        // subsequent one, until the rollover commits.
+        // A rollover is required and will reclaim enough space.  Propose
+        // 'e_ROLLOVER', unless one is already pending.  'propose' then
+        // buffers this triggering write, and every later one, until the
+        // rollover commits.
         if (!d_isRolloverPending) {
-            // A failed proposal is logged and left there, as before: the
-            // triggering write is not NACKed for it.
+            // A failed proposal is only logged: the triggering write is not
+            // NACKed for the failure.
             proposeRollover();
         }
         return rc_SUCCESS;  // RETURN
@@ -1859,8 +1863,9 @@ void PartitionRaft::drainProposals()
     BALL_LOG_INFO << "Partition [" << d_partitionId << "] draining "
                   << toReplay.size() << " buffered write(s) after rollover.";
 
-    // Each appends into the new file set, unless it does not fit: 'propose'
-    // then proposes the next rollover and buffers the rest for it.
+    // Each write appends into the new file set, unless the write does not
+    // fit.  'propose' then proposes the next rollover and buffers the
+    // remaining writes.
     rePropose(toReplay);
 }
 
@@ -1869,10 +1874,9 @@ void PartitionRaft::rePropose(const PartitionRaftLog::Proposals& proposals)
     // executed by the partition *DISPATCHER* thread
     BSLS_ASSERT_SAFE(isLeader());
 
-    // Each of these reached 'propose' once and was set aside instead: for a
-    // rollover, for a leadership transfer, or by the truncation that took
-    // the entry it had already been appended to.  Its caller was told it
-    // succeeded, so a failure here is answered here.
+    // Each of these was set aside by an earlier 'propose' (for a rollover or a
+    // leadership transfer), or by a truncation that removed its entry.  Its
+    // caller was told it succeeded, so a failure here is answered here.
     for (PartitionRaftLog::Proposals::const_iterator it = proposals.begin();
          it != proposals.end();
          ++it) {
@@ -1916,17 +1920,19 @@ int PartitionRaft::close(bool flush, bool archive)
 {
     // executed by the partition *DISPATCHER* thread
 
-    // Any proposal still sitting in the Raft log (e.g. a shutdown sync
-    // point proposed moments ago that never got a chance to commit) holds a
-    // blob aliased into the active file set.  Drop it now, while this
-    // partition's dispatcher is still alive, so 'FileStore::close' below
-    // does not leave that alias for a deferred 'FileStore::gc' to release
-    // later -- by which time the Dispatcher may already be stopped.  From
-    // index 0: this node is closing, so no entry of its own commits again.
+    // A proposal still in the Raft log (e.g. an uncommitted shutdown sync
+    // point) holds a blob aliased into the active file set.  Drop the
+    // proposals now.  This is to avoid leaving the release to a deferred
+    // 'FileStore::gc', which can run after the dispatcher stops.  From index
+    // 0: this node is closing, so no entry of its own commits again.
     d_raftLog_mp->dropProposalsFrom(0, false);  // discard
 
     // Same reason: the cached entry blobs alias the active file set too.
     d_raftLog_mp->clearCache();
+
+    // 'stop' removed the flush callback, so nothing checks these again.
+    // Release them so each StopResponse goes out.
+    d_stopResponseWaits.clear();
 
     return d_fileStore_sp->close(flush, archive);
 }
@@ -1934,9 +1940,7 @@ int PartitionRaft::close(bool flush, bool archive)
 int PartitionRaft::rollover()
 {
     // executed by the partition *DISPATCHER* thread (admin 'rollover'
-    // command). Route the admin rollover through the Raft mechanism instead of
-    // legacy FileStore::rollover (which would write an e_ROLLOVER + trailing
-    // sync point outside the Raft log).
+    // command).  The rollover goes through the Raft log ('proposeRollover').
     enum {
         rc_SUCCESS          = 0,
         rc_NOT_LEADER       = -1,
@@ -1959,10 +1963,9 @@ int PartitionRaft::rollover()
         return rc_ROLLOVER_PENDING;  // RETURN
     }
 
-    // Reported rather than only logged: with no 'e_ROLLOVER' entry appended,
-    // nothing will ever commit to roll the file set over, so the caller must
-    // not be left waiting for it.
     if (0 != proposeRollover()) {
+        // Return a failure to the caller: with no 'e_ROLLOVER' entry appended,
+        // no rollover will happen.
         return rc_PROPOSE_FAILED;  // RETURN
     }
 
@@ -2005,8 +2008,8 @@ int PartitionRaft::transferLeadership(const bsl::string& targetHostName)
     }
 
     if (d_isRolloverPending) {
-        // Writes buffered for the rollover would follow the PUTs held during
-        // the transfer when both are re-posted to the new primary.
+        // This is to avoid re-posting the writes buffered for the rollover
+        // after the PUTs held during the transfer, which arrived later.
         BALL_LOG_WARN << "Partition [" << d_partitionId
                       << "] Transfer leadership rejected: a rollover is "
                       << "pending.";
@@ -2041,26 +2044,19 @@ void PartitionRaft::appendEntries(
     const bdlbb::Blob& event = *event_sp;
 
     if (d_receivingSnapshot) {
-        // The FileStore is closed for the duration of an InstallSnapshot
-        // transfer ('beginReceiveSnapshot'), so there is nowhere to append
-        // this entry.  Drop it: the leader learns this node's real
-        // 'matchIndex' from the InstallSnapshot response and re-sends
-        // anything past it on its next heartbeat/propose broadcast, so
-        // nothing is lost -- same as a dropped packet in ordinary Raft.
+        // The FileStore is closed during an InstallSnapshot transfer
+        // ('beginReceiveSnapshot'), so drop the event.  The leader learns this
+        // node's 'matchIndex' from the InstallSnapshot response and re-sends
+        // the entries past that index, as for a dropped packet.
         BALL_LOG_INFO << "Partition [" << d_partitionId
                       << "] ignoring AppendEntries while receiving snapshot";
         return;
     }
 
     if (!d_fileStore_sp->isOpen()) {
-        // Shutdown/teardown: 'StorageUtil::shutdown' -> 'FileStore::close'
-        // runs on this same partition dispatcher thread, so a queued
-        // AppendEntries can be drained *after* the partition has closed.  The
-        // FileStore then has no journal to append to and no storage to apply
-        // committed entries against; applying would touch already-freed
-        // storage (use-after-free in 'onRecordCommittedReplica' ->
-        // 'processMessageRecord').  Drop it -- the leader resends on its next
-        // heartbeat if this node returns.
+        // At shutdown, 'FileStore::close' runs on this same thread, so a
+        // queued AppendEntries can arrive after the close.  Drop the event.
+        // This is to avoid applying entries to freed storage.
         BALL_LOG_INFO << "Partition [" << d_partitionId
                       << "] ignoring AppendEntries; FileStore is closed.";
         return;
@@ -2087,11 +2083,9 @@ void PartitionRaft::appendEntries(
         return;
     }
 
-    // Applying another partition's entries would write its records into this
-    // partition's files.  Routing already selected this object by the same
-    // field, so a mismatch means the id changed underneath or the event was
-    // misrouted; either way, drop it rather than corrupt the file set.
     if (rh->partitionId() != d_partitionId) {
+        // Drop the event.  This is to avoid writing another partition's
+        // records into this partition's files.
         BMQTSK_ALARMLOG_ALARM("RAFT_MISROUTE")
             << "Partition [" << d_partitionId
             << "] received an AppendEntries addressed to partition "
@@ -2130,10 +2124,8 @@ void PartitionRaft::appendEntries(
     internalMsg.d_prevLogTerm  = aeh->prevLogTerm();
     internalMsg.d_leaderCommit = aeh->leaderCommit();
 
-    // 'skip' hops from one record to the next, starting past the headers.
-    // Resolving each record by its offset from the start of 'event' would
-    // rescan the buffer list every time, and an event carrying a peer's
-    // backlog holds a buffer or two per entry.
+    // 'skip' moves from one record to the next, starting past the headers.
+    // This is to avoid rescanning 'event' from its start for each record.
     int skip = sizeof(bmqp::EventHeader) + sizeof(bmqp::RaftHeader) +
                sizeof(bmqp::RaftAppendEntriesHeader);
     int          remaining  = event.length() - skip;
@@ -2226,9 +2218,9 @@ void PartitionRaft::onAppendEntriesResponse(
         return;  // RETURN
     }
 
-    // See 'appendEntries': a response for another partition would advance the
-    // wrong peer state.
     if (rh->partitionId() != d_partitionId) {
+        // Drop the response.  This is to avoid advancing this partition's
+        // peer state with another partition's response.
         BMQTSK_ALARMLOG_ALARM("RAFT_MISROUTE")
             << "Partition [" << d_partitionId
             << "] received an AppendEntries response addressed to partition "
@@ -2280,12 +2272,11 @@ void PartitionRaft::onRaftControlMessage(
     BSLS_ASSERT_SAFE(source);
 
     if (!d_fileStore_sp->isOpen()) {
-        // As in 'appendEntries' and 'onAppendEntriesResponse': the FileStore
-        // is closed for the whole of an InstallSnapshot transfer, and again
-        // from 'FileStore::close' at shutdown, both on this same thread. Every
-        // message handled below reaches the log -- 'handleRequestVote' asks it
-        // for 'lastTerm()' -- and a closed store has no file set to read. Drop
-        // it: the sender retries, as it would for a dropped packet.
+        // As in 'appendEntries': the FileStore is closed during an
+        // InstallSnapshot transfer and after 'FileStore::close' at shutdown.
+        // Every message handled below reads the log (e.g. 'handleRequestVote'
+        // reads 'lastTerm()'), and a closed store has no file set.  Drop the
+        // message.  The sender retries, as for a dropped packet.
         BALL_LOG_INFO << "Partition [" << d_partitionId
                       << "] ignoring Raft control message; FileStore is "
                       << "closed.";
@@ -2566,20 +2557,16 @@ void PartitionRaft::onPurgeComplete()
 {
     // executed by the partition *DISPATCHER* thread
 
-    // Reclaim the space a purge freed through the Raft rollover mechanism
-    // (propose 'e_ROLLOVER'; the physical rollover happens deterministically
-    // on commit), NOT the legacy 'FileStore::onPurgeComplete' path, which
-    // would drive 'rolloverImpl' directly -- outside the Raft log.  Only the
-    // leader proposes, and only if the file set is at capacity;
-    // 'rolloverIfNeeded' is a no-op otherwise, so this is safe on replicas too
-    // (they roll over via the committed 'e_ROLLOVER' apply hook).
+    // Reclaim the space the purge freed with a Raft rollover
+    // ('rolloverIfNeeded').  Only the leader proposes, and only if the file
+    // set needs a rollover.  Replicas roll over when the 'e_ROLLOVER'
+    // commits.
     //
-    // If a full purge just recovered a read-only partition, the journal is
-    // marked unavailable.  Re-enable it (mirrors legacy
-    // 'FileStore::onPurgeComplete') so the reclaiming rollover's sync-point
-    // marker can be written -- 'writeSyncPointRecord' refuses on an
-    // unavailable journal.  'rolloverIfNeeded' re-disables it if the freed
-    // space is still insufficient (a rollover would still overflow).
+    // After a full purge of a read-only partition, the journal is still
+    // marked unavailable.  Make the journal writable again, so the
+    // 'e_ROLLOVER' record can be written ('writeSyncPointRecord' rejects an
+    // unavailable journal).  'rolloverIfNeeded' marks the journal read-only
+    // again if the freed space is still not enough.
     if (isLeader() && !d_fileStore_sp->isFileSetAvailable()) {
         d_fileStore_sp->setAvailabilityStatus(true);
     }
@@ -2712,28 +2699,22 @@ bool PartitionRaft::isPendingReplication(mqbi::Storage::DeliveryProbe* probe,
         d_raftNode_mp->leaderCommitGeneration();
 
     if (0 == probe->d_u0 || generation != probe->d_u1) {
-        // First look at this message, or the figure below is no longer
-        // comparable with the one taken then -- a different leader, its
-        // channel back, a rejection that put this node under a backward
-        // probe, or a snapshot.  The leader sends the PUSH only once the
-        // record has committed, but what is known here may predate that
-        // commit, so it is no upper bound on the record's index yet.  Note it
-        // and wait for a higher figure from this generation on: only a leader
-        // that is sending to this node can raise it, so that one was reported
-        // after the PUSH and does cover the record.
+        // 'probe->d_u0' holds the 'leaderCommit' recorded for this message,
+        // and 'probe->d_u1' holds the 'leaderCommitGeneration' at that time.
+        // On the first call for this message, or after the generation changed
+        // (a new leader, the channel to the leader came back, a rejection, or
+        // a snapshot):
+        // 1. Raise 'd_u0' to 'leaderCommit', and store the generation.
+        // 2. Return true: the leader sends the PUSH only after the record
+        //    commits, but 'leaderCommit' here may predate that commit.
+        // A later 'leaderCommit' above 'd_u0' in the same generation was sent
+        // after the PUSH, so it is at or above the record's index.  That needs
+        // 'leaderCommit' to be the leader's whole commit index (see
+        // 'd_leaderCommit' in 'RaftNode::sendAppendEntries').
         //
-        // That last step needs the figure to be the leader's whole commit
-        // index rather than the end of what it happens to be sending this
-        // node; see the note on 'd_leaderCommit' in
-        // 'RaftNode::sendAppendEntries'.
-        //
-        // Never lower the bar, though.  A successor's commit index starts
-        // below the point already committed cluster-wide and climbs to it, so
-        // re-baselining onto it would accept a later small rise as covering a
-        // record that sits above both.  Keeping whatever a previous leader
-        // reached costs waiting for the new one to pass it, which is the safe
-        // direction: a wrong wait is a retry, a wrong settle discards an
-        // acknowledged message.
+        // 'd_u0' is never lowered: a new leader's commit index starts below
+        // what is already committed, and a small rise from it can stay below
+        // the record's index.
         if (leaderCommit > probe->d_u0) {
             probe->d_u0 = leaderCommit;
         }
@@ -2755,13 +2736,10 @@ bool PartitionRaft::isPendingReplication(mqbi::Storage::DeliveryProbe* probe,
         return true;  // RETURN
     }
 
-    // The log's own end, as well as the leader's figure.  An InstallSnapshot
-    // raises the applied watermark to the boundary the snapshot carried -- an
-    // index this node was never told about in a 'leaderCommit', since the
-    // leader stops sending to a peer while its transfer is in flight.  The
-    // watermark is then fresh and 'leaderCommit' stale, so the test above
-    // passes while the entries the install recovered above that boundary are
-    // still unapplied, and the record may be among them.
+    // Also require the applied watermark to reach the log's end.  After an
+    // InstallSnapshot, the watermark is at the snapshot boundary while the
+    // entries recovered above that boundary are still unapplied, and the
+    // record may be among them.
     return applied < d_raftLog_mp->lastIndex();
 }
 

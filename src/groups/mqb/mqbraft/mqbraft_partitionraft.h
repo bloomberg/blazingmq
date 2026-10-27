@@ -17,8 +17,8 @@
 #ifndef INCLUDED_MQBRAFT_PARTITIONRAFT
 #define INCLUDED_MQBRAFT_PARTITIONRAFT
 
-//@PURPOSE: Provide glue between RaftNode and BlazingMQ partition
-// infrastructure for journal+data replication.
+//@PURPOSE: Connect 'RaftNode' to a BlazingMQ partition for journal and data
+// replication.
 //
 //@CLASSES:
 //  mqbraft::PartitionRaft: Manages RaftNode + PartitionRaftLog for one
@@ -31,8 +31,8 @@
 //
 /// Threading
 ///----------
-// This component is NOT thread-safe.  All methods except 'start()' and
-// 'stop()' must be called from the partition's dispatcher thread.
+// This component is NOT thread-safe.  Most methods must be called on the
+// partition's dispatcher thread.
 
 // MQB
 #include <mqbc_clusterdata.h>
@@ -56,11 +56,13 @@
 #include <bsl_deque.h>
 #include <bsl_functional.h>
 #include <bsl_unordered_map.h>
+#include <bsl_vector.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
 #include <bsls_atomic.h>
+#include <bsls_timeinterval.h>
 #include <bsls_types.h>
 
 namespace BloombergLP {
@@ -94,20 +96,31 @@ class PartitionRaft : public mqbs::RecordStore,
                                bool                haveCommit)>
         PartitionLeadershipCb;
 
+    /// Holds a reference to the cluster's stop context.  The StopResponse to
+    /// the stopping peer goes out once every copy is destroyed.
+    typedef bsl::function<void()> StopContextHolder;
+
   private:
     // CLASS-SCOPE CATEGORY
     BALL_LOG_SET_CLASS_CATEGORY("MQBRAFT.PARTITIONRAFT");
 
     // TYPES
 
-    /// Pool of shared pointers to `Proposal`, so the (large) struct is
-    /// heap-allocated once and threaded through the write path by shared_ptr
-    /// instead of being copied into the log's buffered-proposal deque.
+    /// Pool of `Proposal` objects, passed along the write path by shared_ptr.
     typedef bdlcc::SharedObjectPool<
         mqbs::Proposal,
         bdlcc::ObjectPoolFunctors::DefaultCreator,
         bdlcc::ObjectPoolFunctors::Reset<mqbs::Proposal> >
         ProposalSpPool;
+
+    /// A stopping peer whose StopResponse waits for the sync point at
+    /// `d_index` to reach it.
+    struct StopResponseWait {
+        int                 d_peerId;
+        bsls::Types::Uint64 d_index;
+        bsls::TimeInterval  d_whenToStop;
+        StopContextHolder   d_stopContext;
+    };
 
     // DATA
     unsigned int                                d_partitionId;
@@ -118,13 +131,12 @@ class PartitionRaft : public mqbs::RecordStore,
     bslma::ManagedPtr<RaftNode>                 d_raftNode_mp;
     bdlmt::EventScheduler::RecurringEventHandle d_tickHandle;
 
-    /// Pool from which each `Proposal` shared_ptr is allocated.
     ProposalSpPool d_proposalPool;
 
     bool              d_isStarted;
     bslma::Allocator* d_allocator_p;
 
-    /// Nodes resolved by `peerNode`, so a linked-list walk is not repeated.
+    /// Nodes found by `peerNode`.
     bsl::unordered_map<int, mqbnet::ClusterNode*> d_peerNodes;
 
     // Snapshot transfer state (receiver side)
@@ -148,23 +160,23 @@ class PartitionRaft : public mqbs::RecordStore,
     /// `true` if an `e_ROLLOVER` has been proposed but not yet committed.
     bool d_isRolloverPending;
 
-    /// Term of the last sync point reported through `d_leadershipCb`.  The
-    /// first sync point committed under a term is the partition's first
-    /// record under that leaseId, and only that one is reported.
+    /// Term of the last sync point reported through `d_leadershipCb`.  Only
+    /// the first sync point committed under each term is reported.
     bsls::Types::Uint64 d_reportedSyncPointTerm;
 
     /// `true` from becoming leader until this term's become-leader sync
     /// point is proposed.
     bool d_needsBecomeLeaderSyncPoint;
 
-    /// Invoked on every Raft leadership change to signal the cluster (see
-    /// `PartitionLeadershipCb`).  Required (asserted non-empty at
-    /// construction).
+    /// Signals the cluster (see `PartitionLeadershipCb`).
     PartitionLeadershipCb d_leadershipCb;
 
     /// Result of the last `checkIfCanShutdown`, read by the cluster
     /// dispatcher thread.  Initially `false`.
     bsls::AtomicBool d_canShutdown;
+
+    /// Stopping peers whose StopResponse waits on this partition.
+    bsl::vector<StopResponseWait> d_stopResponseWaits;
 
     /// File holding this partition's `PersistentState`.
     bsl::string d_persistentStatePath;
@@ -186,12 +198,16 @@ class PartitionRaft : public mqbs::RecordStore,
     /// THREAD: Executed by this partition's dispatcher thread.
     void checkIfCanShutdownDispatched();
 
+    /// Release the stop context of each entry in `d_stopResponseWaits` whose
+    /// peer has the sync point, has no channel, or has waited past
+    /// `d_whenToStop`.  Release all of them if this node is not the leader.
+    ///
+    /// THREAD: Executed by this partition's dispatcher thread.
+    void checkIfCanSendStopResponse();
+
     /// Return the node with the specified `nodeId`, or 0 if there is none.
-    /// `mqbnet::Cluster::lookupNode` walks a linked list, so its result is
-    /// resolved once per node and held: the sends of one round would otherwise
-    /// walk it once per peer.  Membership is fixed after construction, so a
-    /// held pointer stays valid; a node added later resolves on first use, but
-    /// node *removal*, if it is ever implemented, has to clear this.
+    /// Look in `d_peerNodes` first, and add a node found by
+    /// `mqbnet::Cluster::lookupNode`.
     mqbnet::ClusterNode* peerNode(int nodeId);
 
     /// Pass the specified `isAvailable` for the peer with the specified
@@ -219,84 +235,79 @@ class PartitionRaft : public mqbs::RecordStore,
     /// `d_committed`.
     void postDispatch(RaftNodeOutput* output, bool hadRollover);
 
-    /// Give back what `d_heldProposals` set aside and hand each write whose
-    /// producer is still attached to its queue, now a remote one, to relay to
-    /// the new primary.  Call after the conversion, so the handles a cluster
-    /// peer opened are already gone and their writes are left to that peer to
-    /// re-send.
+    /// Take the held proposals from the log (`takeHeldProposals`).  Hold
+    /// again a PUT whose queue is still local.  For the rest, undo what each
+    /// one reserved (`mqbs::FileStore::undoPropose`), re-post each PUT whose
+    /// producer is still attached to its queue, now a remote one, and drop the
+    /// others.  Call after the conversion, so the handles cluster peers opened
+    /// are already gone.
     void repostHeldProposals();
 
-    /// Give back what `d_heldProposals` set aside and propose each one into
-    /// this node's log.  The counterpart of `repostHeldProposals` for a node
-    /// that kept its leadership: a leadership transfer held these and was
-    /// then abandoned.  The behavior is undefined unless this node is the
-    /// leader and has no transfer under way.
+    /// Take the held proposals from the log (`takeHeldProposals`) and propose
+    /// each one into this node's log.  Call when the leadership transfer that
+    /// held them is abandoned.  The behavior is undefined unless this node is
+    /// the leader and has no transfer under way.
     void reproposeHeldProposals();
 
     /// Pass each of the specified `proposals` to `propose`, in order.  Each
-    /// reached `propose` once already and was set aside rather than
-    /// appended.  On failure, give back what the write set aside and NACK a
-    /// PUT.  The behavior is undefined unless this node is the leader.
+    /// was set aside by an earlier `propose`.  On failure, undo what the
+    /// proposal reserved (`mqbs::FileStore::undoPropose`), and NACK it if it
+    /// is a PUT.  The behavior is undefined unless this node is the leader.
     void rePropose(const PartitionRaftLog::Proposals& proposals);
 
   public:
     /// Convert this partition's queues to remote, self no longer leading it,
-    /// and hand them the writes held since the stepdown.  Called by the
-    /// cluster once it has released the handles the peers opened here.
+    /// and re-post the PUTs held since the stepdown (`repostHeldProposals`).
+    /// Called by the cluster once it has released the handles the peers
+    /// opened here.
     void convertQueuesToRemote();
 
   private:
     /// Apply the next batch of committed-but-unapplied entries.  Re-posted to
-    /// this partition's dispatcher between batches so a long replay -- a
-    /// restarted node has everything since the last rollover to apply -- does
-    /// not hold the thread for its whole duration.
+    /// this partition's dispatcher between batches.  This is to avoid holding
+    /// the thread for a whole replay (a restarted node applies everything
+    /// since the last rollover).
     void applyCommittedBatchDispatched();
 
-    /// Run a Raft send round.  Installed on the `FileStore` as its flush
-    /// callback, so the dispatcher calls this once it has drained this
-    /// partition's queue: a batch of proposals and responses then produces one
-    /// round instead of a send per event, and the peers it serves come out of
-    /// it at the same log position, so the next round can send them one shared
-    /// message.
+    /// Run a Raft send round, then `checkIfCanSendStopResponse`.  Installed on
+    /// the `FileStore` as its flush callback, so the dispatcher calls this
+    /// once it has drained this partition's queue.  One round then serves a
+    /// batch of proposals and responses.
     void flush();
 
-    /// Propose a sync-point log entry under the current term.  Called once
-    /// upon becoming leader: per Raft \S5.4.2, a leader cannot advance
-    /// 'commitIndex' over entries from prior terms by counting replicas
-    /// alone; committing this current-term entry indirectly commits the
-    /// inherited (prior-term) tail via the Log Matching Property.  This is
-    /// also the Raft analog of legacy's "issue a sync point upon becoming
-    /// active primary", and doubles as a legacy-recovery checkpoint.
+    /// Propose a sync-point log entry under the current term.  Called by
+    /// `proposeDeferredSyncPoint`, `proposeShutdownSyncPoint`, and
+    /// `onPeerNodeStopping`.  The become-leader sync point is a current-term
+    /// entry, so its commit also commits the entries inherited from prior
+    /// terms (Raft \S5.4.2).  Legacy recovery uses the last sync point in the
+    /// journal as a checkpoint.
     void proposeSyncPoint();
 
     /// Propose an `e_ROLLOVER` sync-point log entry under the current term.
-    /// Called from the write path when the active file set has reached
-    /// capacity.  The physical rollover is *not* done here: it happens
-    /// deterministically on every node when the committed `e_ROLLOVER` is
-    /// applied (see `PartitionRaftLog::rollover`, driven from
-    /// `applyCommittedEntry`).  Writes arriving between this proposal and that
-    /// commit are buffered by the log (`PartitionRaftLog::setProposal`)
-    /// and drained into the new file set afterwards.  Return 0 on success, or
-    /// the non-zero rc of the failed `propose` -- no `e_ROLLOVER` entry then
-    /// exists, so nothing will ever commit to roll the file set over.
+    /// Called from the write path (`rolloverIfNeeded`) and by the admin
+    /// `rollover`.  Every node rolls the file set over when the committed
+    /// `e_ROLLOVER` reaches `dispatchOutput` (`PartitionRaftLog::rollover`).
+    /// Until then, `propose` buffers writes in the log
+    /// (`PartitionRaftLog::bufferProposal`), and `drainProposals` replays them
+    /// into the new file set.  Return 0 on success, or the non-zero rc of the
+    /// failed `propose`; no `e_ROLLOVER` entry then exists.
     int proposeRollover();
 
     /// If this node is the leader and the active file set cannot accommodate a
     /// record needing the specified `dataBytes` in the DATA file and
-    /// `qlistBytes` in the QLIST file (the JOURNAL reserve is always checked;
-    /// pass 0 where DATA/QLIST are not written), trigger `proposeRollover()`
-    /// (unless a rollover is already in flight -- at most one uncommitted
-    /// rollover at a time) before the record is written.  Called first thing
-    /// by each write-path method.  Returns 0; the triggering write and any
-    /// that follow while the rollover is in flight are then buffered by
-    /// `propose()` rather than appended after `e_ROLLOVER`.
+    /// `qlistBytes` in the QLIST file, call `proposeRollover`, unless a
+    /// rollover is already pending.  The JOURNAL reserve is always checked.  A
+    /// record that writes nothing to DATA or QLIST passes 0 for that file.
+    /// Return 0, or a non-zero value if a rollover cannot free enough space
+    /// (the partition is then read-only).  While the rollover is pending,
+    /// `propose` buffers the triggering write and the writes after it.
     int rolloverIfNeeded(bsls::Types::Uint64 dataBytes,
                          bsls::Types::Uint64 qlistBytes);
 
-    /// Drain the buffered writes (taken from the log) into the freshly rolled
-    /// over file set, in FIFO order, each through `propose`.  Called once,
-    /// from `dispatchOutput`, after the committed-entry loop that performed
-    /// the physical rollover.
+    /// Take the writes the log buffered during the rollover
+    /// (`takeBufferedProposals`) and propose them into the new file set, in
+    /// order (`rePropose`).  Called from `postDispatch` after the committed
+    /// `e_ROLLOVER` rolled the file set over.
     void drainProposals();
 
     /// Send an AppendEntries message via binary e_RAFT_PARTITION event.
@@ -308,10 +319,8 @@ class PartitionRaft : public mqbs::RecordStore,
     /// Send an election/control RaftMessage via ControlMessageTransmitter.
     void sendControlMessage(const RaftMessage& msg);
 
-    /// Notify FileStore of a single committed entry.
     /// Apply the specified committed `entry`.  The specified
-    /// `commitTimepoint` is when this batch of commits was applied, taken once
-    /// by the caller rather than per entry.
+    /// `commitTimepoint` is when the caller applied this batch of commits.
     void applyCommittedEntry(const LogEntry&    entry,
                              bsls::Types::Int64 commitTimepoint);
 
@@ -329,12 +338,12 @@ class PartitionRaft : public mqbs::RecordStore,
     /// dispatchOutput.
     void sendSnapshot(int destNodeId, bsls::Types::Uint64 lastIncludedIndex);
 
-    /// Begin receiving a snapshot: wipe current FileStore and open temp
-    /// files for writing.
+    /// Begin receiving a snapshot: empty the storages, close the `FileStore`
+    /// (archiving its files), and open the current file set's paths for
+    /// writing.
     void beginReceiveSnapshot(bsls::Types::Uint64 lastIncludedIndex,
                               bsls::Types::Uint64 lastIncludedTerm);
 
-    /// Apply a received snapshot chunk to the appropriate temp file.
     /// Apply one snapshot chunk from the specified `event`, received from the
     /// specified `source`, and on the terminal chunk reopen the file set and
     /// answer `source`.
@@ -364,15 +373,14 @@ class PartitionRaft : public mqbs::RecordStore,
     // MANIPULATORS
 
     /// Open and recover the FileStore-backed Raft log, seed the applied state,
-    /// and schedule the tick timer.  FileStore open/recovery is unrecoverable
-    /// on failure, so this ALARMs and terminates the process rather than
-    /// returning an error, matching legacy
-    /// `StorageManager::do_attemptOpenStorage`.
+    /// and schedule the tick timer.  A FileStore open or recovery failure is
+    /// unrecoverable, so this ALARMs and terminates the process.
     ///
     /// THREAD: Executed by this partition's dispatcher thread.
     void start();
 
-    /// Stop: cancel tick timer.
+    /// Remove the `FileStore` flush callback, unregister from the cluster's
+    /// node state changes, and cancel the tick timer.
     void stop();
 
     // mqbnet::ClusterObserver OVERRIDES
@@ -384,62 +392,61 @@ class PartitionRaft : public mqbs::RecordStore,
     void onNodeStateChange(mqbnet::ClusterNode* node,
                            bool isAvailable) BSLS_KEYWORD_OVERRIDE;
 
-    /// Write this partition's deferred become-leader sync point.  Idempotent:
-    /// a no-op unless this node is the leader and has not yet appended any
-    /// entry under its current term.  Called once the partition is activated
-    /// -- i.e. the CSL's artificial `partitionPrimaryAdvisory` carrying this
-    /// leaseId has committed -- so the CSL records the leaseId before this
-    /// first journal record under it.
+    /// Propose this term's become-leader sync point, if this node is the
+    /// leader and has not proposed it yet (`d_needsBecomeLeaderSyncPoint`).
+    /// Called by the cluster once the CSL has committed this partition's
+    /// leaseId.
     ///
     /// THREAD: Executed by this partition's dispatcher thread.
     void proposeDeferredSyncPoint();
 
-    /// Write one more sync point, if this node is the leader, so whichever
-    /// node is about to lose contact (self, on its own graceful shutdown, or
-    /// a peer that just announced it is stopping) has a legacy-recognizable
-    /// boundary marker covering everything committed so far.  Unlike
-    /// 'proposeDeferredSyncPoint', this is unconditional (not gated on "no
-    /// entry appended yet this term"). Called from two sites:
-    /// 'PartitionRaftManager::processShutdownEvent' (self is shutting down)
-    /// and 'PartitionRaftManager::onPeerNodeStopping' (a peer announced it is
-    /// stopping, while still connected -- mirroring legacy's
-    /// 'StorageUtil::processShutdownEventDispatched' and
-    /// 'StorageUtil::processReplicaStatusAdvisoryDispatched' respectively).
-    /// Without this, entries committed after the become-leader sync point
-    /// (i.e. essentially all writes in the term) have no trailing sync point,
-    /// so legacy's no-peers-available recovery fallback -- which trusts the
-    /// journal only up to its last recognized sync point -- truncates them
-    /// away on a restart into legacy mode (or Raft's own local-fallback
-    /// path). No-op if not leader.
+    /// Propose a sync point, if this node is the leader and has proposed this
+    /// term's become-leader sync point.  Called when self is shutting down
+    /// (`PartitionRaftManager::processShutdownEvent`).  This is to avoid
+    /// legacy recovery truncating the journal back to an older sync point on
+    /// a restart into legacy mode.
     ///
     /// THREAD: Executed by this partition's dispatcher thread.
     void proposeShutdownSyncPoint();
 
+    /// Propose a sync point, if this node is the leader and has proposed this
+    /// term's become-leader sync point, for the peer with the specified
+    /// `peerId`, which announced it is stopping.  Hold the specified
+    /// `stopContext` until that peer's `matchIndex` reaches the sync point, or
+    /// until `checkIfCanSendStopResponse` gives up.  The StopResponse goes out
+    /// when the last copy of `stopContext` is destroyed.
+    ///
+    /// THREAD: Executed by this partition's dispatcher thread.
+    void onPeerNodeStopping(int peerId, const StopContextHolder& stopContext);
+
     /// Return true if every peer that has a channel has acknowledged this
-    /// node's whole log, as computed by the previous call.  Request a new
-    /// computation, on this partition's dispatcher thread, if it did not.
+    /// node's whole log, as computed by the previous call.  If not, request a
+    /// new computation on this partition's dispatcher thread.
     ///
     /// THREAD: Called from the cluster dispatcher thread.
     bool checkIfCanShutdown();
 
     /// Set this partition Raft group's leadership-eligibility override to the
     /// specified `mode` (see `RaftNode::setElectionMode`) and dispatch any
-    /// resulting Raft messages.  Used to reproduce the legacy per-node
-    /// `set_quorum` primary-pinning knob.
+    /// resulting Raft messages.  Used for the QUORUM tunable
+    /// (`ClusterOrchestrator::processCommand`).
     ///
     /// THREAD: Executed by this partition's dispatcher thread.
     void setElectionMode(ElectionMode::Enum mode);
 
     /// Propose the write described by the specified `pw` for replication.
-    /// This is the single entry point for every Raft partition write: it
-    /// computes the rollover footprint from `pw`, runs `rolloverIfNeeded`
-    /// (returning non-zero if the write must be deferred because a previous
-    /// `e_ROLLOVER` is still uncommitted), assigns the write id, hands `pw`
-    /// to the log, and drives the Raft propose sequence.  The record's
-    /// sequence number (log index) is stamped in `PartitionRaftLog::append`
-    /// at append time (not baked in here).  Return 0 on success, non-zero
-    /// otherwise.  On success the write's DataStoreRecordHandle is available
-    /// directly on the passed-in `pw` (`pw->d_handle`).
+    /// This is the single entry point for every Raft partition write.  Return
+    /// 0 on success, non-zero otherwise.  In order:
+    /// 1. During a leadership transfer, hold a PUT.
+    /// 2. If no rollover is pending: when the journal is read-only, reject any
+    ///    write other than a full-queue PURGE; otherwise, run
+    ///    `rolloverIfNeeded` with the footprint of `pw`.
+    /// 3. While a rollover is pending, buffer the write.
+    /// 4. If this node is not the leader, hold the write.
+    /// 5. Otherwise, append `pw` to the log through the `RaftNode`.
+    ///    `pw->d_handle` then becomes valid, and the record's sequence number
+    ///    is its log index.
+    /// A held or buffered write returns 0 without a valid `pw->d_handle`.
     int propose(const bsl::shared_ptr<mqbs::Proposal>& pw);
 
     /// Handle an incoming binary AppendEntries event (e_RAFT_PARTITION)
@@ -471,9 +478,9 @@ class PartitionRaft : public mqbs::RecordStore,
 
     /// Write the specified `appData` and `options` belonging to specified
     /// `queueKey` and having specified `guid` and `attributes` to the data
-    /// store, and update the specified `handle` with an identifier which
-    /// can be used to retrieve the message.  Return zero on success,
-    /// non-zero value otherwise.
+    /// store.  Return zero on success, non-zero value otherwise.  Raft callers
+    /// do not read the specified `handle`: the record enters the storage when
+    /// it commits (`FileStore::onRecordCommittedPrimary`).
     int
     writeMessageRecord(mqbi::StorageMessageAttributes*     attributes,
                        mqbs::DataStoreRecordHandle*        handle,
@@ -569,26 +576,28 @@ class PartitionRaft : public mqbs::RecordStore,
 
     /// Close this record store.  If the optional `flush` flag is true, flush
     /// to the backup storage (e.g., disk) if applicable.  If the optional
-    /// `archive` flag is true, archive it.  Return zero on success, non-zero
-    /// value otherwise.  `PartitionRaft` first drops any outstanding pending
-    /// write (e.g. an uncommitted shutdown sync point) before delegating to
-    /// its `FileStore`, so no reference into the file set outlives this call
-    /// on account of Raft bookkeeping.  The behavior is undefined unless
-    /// called on this record store's dispatcher thread (see `execute`).
+    /// `archive` flag is true, archive the files.  Return zero on success,
+    /// non-zero value otherwise.  Before closing the `FileStore`, drop the
+    /// proposals still in the log and clear the cached entry blobs (both
+    /// alias the file set), and release `d_stopResponseWaits`.  The behavior
+    /// is undefined unless called on this record store's dispatcher thread
+    /// (see `execute`).
     int close(bool flush = false, bool archive = false) BSLS_KEYWORD_OVERRIDE;
 
-    /// Drive a Raft rollover (admin `rollover` command): if this node is the
-    /// leader and no previous `e_ROLLOVER` is still uncommitted, propose
-    /// `e_ROLLOVER` and orchestrate the rollover.  Return zero on success,
-    /// non-zero if rejected (not leader, or a rollover is already in flight).
+    /// Admin `rollover` command: if this node is the leader and no
+    /// `e_ROLLOVER` is pending, call `proposeRollover`.  Return zero on
+    /// success, non-zero if this node is not the leader, a rollover is
+    /// pending, or the proposal fails.
     int rollover() BSLS_KEYWORD_OVERRIDE;
 
     /// Drive a Raft leadership transfer to the node whose host name is the
     /// specified `targetHostName` (admin `transferLeadership` command): if
     /// this node is the leader, catch the target up and send it a
-    /// `TimeoutNow`. Return zero if the transfer was initiated (it completes
-    /// asynchronously, once the target wins the election it starts), non-zero
-    /// if rejected.
+    /// `TimeoutNow`.  Return zero if the transfer was initiated (it completes
+    /// asynchronously, once the target wins the election it starts) or the
+    /// target is self.  Return non-zero if this node is not the leader, the
+    /// target is unknown, a rollover is pending, or `RaftNode` rejects the
+    /// transfer.
     int transferLeadership(const bsl::string& targetHostName)
         BSLS_KEYWORD_OVERRIDE;
 
@@ -600,11 +609,12 @@ class PartitionRaft : public mqbs::RecordStore,
     /// `factor`, by delegating to the owned `FileStore`.
     void setReplicationFactor(int factor) BSLS_KEYWORD_OVERRIDE;
 
-    /// Attempt to rollover the journal if needed after a purge has cleared
-    /// outstanding records.
+    /// Called after a purge cleared outstanding records.  If this node is the
+    /// leader and the journal is read-only, make the journal writable again.
+    /// Then call `rolloverIfNeeded`.
     void onPurgeComplete() BSLS_KEYWORD_OVERRIDE;
 
-    /// Flush any buffered replication messages to the peers.
+    /// Call `FileStore::flushStorage`, then run a send round (`flush`).
     void flushStorage() BSLS_KEYWORD_OVERRIDE;
 
     /// Set the last strong consistency point. No-op for Raft partitions.
@@ -641,13 +651,12 @@ class PartitionRaft : public mqbs::RecordStore,
     unsigned int getMessageLenRaw(
         const mqbs::DataStoreRecordHandle& handle) const BSLS_KEYWORD_OVERRIDE;
 
-    /// Return the write-head leaseId for this partition: the lease id of the
-    /// next record this store writes or applies.
+    /// Return the write-head leaseId for this partition: the current Raft
+    /// term.
     virtual unsigned int writeHeadLeaseId() const BSLS_KEYWORD_OVERRIDE;
 
-    /// Return the log index the most recently accepted write will occupy.
-    /// Counts the writes buffered during a rollover window, whose reserved
-    /// indices are above `lastIndex()` until the drain appends them.
+    /// Return the log's `lastIndex()` plus the number of writes buffered for a
+    /// pending rollover.  The drain appends those writes at the next indices.
     ///
     /// THREAD: Executed by this partition's dispatcher thread.
     bsls::Types::Uint64 writeHeadSeqNum() const BSLS_KEYWORD_OVERRIDE;
@@ -677,10 +686,9 @@ class PartitionRaft : public mqbs::RecordStore,
     bsls::Types::Uint64 currentTerm() const;
 
     /// Return `true` if the specified `probe` indicates that the corresponding
-    /// data can still arrive.  Updated the `probe` if necessary.  This node
-    /// may not be the PUSH committer and be behind. `isAbsent` is unused: on
-    /// the Raft path the record's presence is its receipt, so both questions
-    /// the callers ask are the same one.
+    /// data can still arrive, and update `probe` if necessary.  Return `false`
+    /// on the leader, which holds every committed record.  `isAbsent` is
+    /// unused: on Raft a record's presence is its receipt.
     bool isPendingReplication(mqbi::Storage::DeliveryProbe* probe,
                               bool isAbsent) const BSLS_KEYWORD_OVERRIDE;
 
