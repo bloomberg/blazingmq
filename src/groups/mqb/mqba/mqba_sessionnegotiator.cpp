@@ -876,7 +876,6 @@ SessionNegotiator::createSession(mqbnet::InitialConnectionContext* context_p,
                                                    statContext,
                                                    d_blobSpPool_p,
                                                    d_bufferFactory_p,
-                                                   d_scheduler_p,
                                                    d_authorizer_sp);  // RETURN
     }
 
