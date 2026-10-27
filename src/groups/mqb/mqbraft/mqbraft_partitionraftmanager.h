@@ -385,9 +385,14 @@ class PartitionRaftManager : public mqbi::StorageProvider,
     /// 'AppendEntries' reaches it and gives its own journal a fresh
     /// legacy-recognizable checkpoint before it goes down, instead of relying
     /// solely on the become-leader sync point from potentially long ago.
+    /// The specified `peerId` is the stopping node.  Each partition holds a
+    /// copy of the specified `stopContext` until the stopping node has its
+    /// sync point (see 'PartitionRaft::onPeerNodeStopping').
     ///
     /// THREAD: Called from the cluster dispatcher thread.
-    void onPeerNodeStopping();
+    void
+    onPeerNodeStopping(int                                     peerId,
+                       const PartitionRaft::StopContextHolder& stopContext);
 
     /// Set the leadership-eligibility override to the specified `mode` (see
     /// `RaftNode::setElectionMode`) on every partition Raft group, hopping to
