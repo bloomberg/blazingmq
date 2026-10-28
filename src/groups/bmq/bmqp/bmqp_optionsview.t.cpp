@@ -714,6 +714,7 @@ void test4_invalidOptionsArea()
 //
 // Plan:
 //   - One less sub-queue info than specified in OptionHeader
+//   - A SubQueueInfos option with an invalid item size or payload size
 //   - An OptionsHeader but no option payload (sub-queue info)
 //   - A non-packed OptionHeader with zero 'words'
 //   - An OptionHeader with type 'OptionType::e_UNDEFINED'
@@ -788,6 +789,79 @@ void test4_invalidOptionsArea()
 
     {
         // [2]
+        PV("SUB-QUEUE INFOS WITH INVALID ITEM SIZE OR PAYLOAD SIZE");
+
+        // A non-packed SubQueueInfos option whose 'typeSpecific' item size is
+        // not 'sizeof(SubQueueInfo)', or whose payload is not a whole number
+        // of items.  The view is valid, but loading the option must fail.
+        struct Test {
+            int           d_line;
+            unsigned char d_typeSpecific;  // item size in words
+            int           d_words;  // option size in words, header included
+        } k_DATA[] = {
+            {L_, 0, 3},    // zero item size
+            {L_, 1, 3},    // item smaller than SubQueueInfo
+            {L_, 3, 7},    // item larger than SubQueueInfo
+            {L_, 3, 46},   // same, payload larger than the local buffer
+            {L_, 15, 15},  // max item size, payload shorter than one item
+            {L_, 2, 2},    // payload shorter than one SubQueueInfo
+            {L_, 2, 4},    // payload not a multiple of SubQueueInfo
+        };
+
+        const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
+
+        for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+            const Test& test = k_DATA[idx];
+
+            PVV(test.d_line << ": typeSpecific "
+                            << static_cast<int>(test.d_typeSpecific)
+                            << ", words " << test.d_words);
+
+            bdlbb::Blob              optionsBlob(&bufferFactory,
+                                    bmqtst::TestHelperUtil::allocator());
+            const bmqu::BlobPosition optionsAreaPosition;  // start of blob
+
+            const int optionsAreaSize = test.d_words *
+                                        bmqp::Protocol::k_WORD_SIZE;
+            const int optionPayloadSize = optionsAreaSize -
+                                          sizeof(bmqp::OptionHeader);
+
+            bmqp::OptionHeader oh;
+            oh.setType(bmqp::OptionType::e_SUB_QUEUE_INFOS);
+            oh.setTypeSpecific(test.d_typeSpecific);
+            oh.setWords(test.d_words);
+
+            // Write OptionHeader
+            bdlbb::BlobUtil::append(&optionsBlob,
+                                    reinterpret_cast<const char*>(&oh),
+                                    sizeof(bmqp::OptionHeader));
+
+            // Write option payload
+            const bsl::vector<char> payload(
+                optionPayloadSize,
+                'x',
+                bmqtst::TestHelperUtil::allocator());
+            bdlbb::BlobUtil::append(&optionsBlob,
+                                    payload.data(),
+                                    optionPayloadSize);
+
+            bmqp::OptionsView view(&optionsBlob,
+                                   optionsAreaPosition,
+                                   optionsAreaSize,
+                                   bmqtst::TestHelperUtil::allocator());
+            BMQTST_ASSERT_EQ_D(test.d_line, true, view.isValid());
+
+            bmqp::Protocol::SubQueueInfosArray subQueueInfos(
+                bmqtst::TestHelperUtil::allocator());
+            const int rc = view.loadSubQueueInfosOption(&subQueueInfos);
+
+            BMQTST_ASSERT_NE_D(test.d_line, 0, rc);
+            BMQTST_ASSERT_EQ_D(test.d_line, true, subQueueInfos.empty());
+        }
+    }
+
+    {
+        // [3]
         PV("OPTION HEADER INDICATES ZERO OPTION VALUES");
 
         // An OptionsHeader but no option payload (sub-queue info)
@@ -815,7 +889,7 @@ void test4_invalidOptionsArea()
     }
 
     {
-        // [3]
+        // [4]
         PV("OPTION HEADER WITH ZERO WORDS");
 
         // A non-packed OptionHeader whose 'words' is zero
@@ -844,7 +918,7 @@ void test4_invalidOptionsArea()
     }
 
     {
-        // [4]
+        // [5]
         PV("OPTION HEADER WITH TYPE UNDEFINED");
 
         // An OptionHeader with type 'OptionType::e_UNDEFINED'
@@ -887,7 +961,7 @@ void test4_invalidOptionsArea()
         BMQTST_ASSERT_EQ(false, view.isValid());
     }
     {
-        // [5]
+        // [6]
         PV("MULTIPLE OPTION HEADERS OF THE SAME TYPE (DUPLICATE)");
 
         // Multiple OptionHeader of the same type (duplicate)
@@ -954,7 +1028,7 @@ void test4_invalidOptionsArea()
         BMQTST_ASSERT_EQ(false, view.isValid());
     }
     {
-        // [6]
+        // [7]
         PV("EMPTY BLOB");
 
         bdlbb::Blob              optionsBlob(&bufferFactory,
@@ -974,7 +1048,7 @@ void test4_invalidOptionsArea()
         BMQTST_ASSERT_EQ(false, view.isValid());
     }
     {
-        // [7]
+        // [8]
         PV("WRONG AREA SIZE FOR OPTION VIEW");
 
         bdlbb::Blob              optionsBlob(&bufferFactory,
