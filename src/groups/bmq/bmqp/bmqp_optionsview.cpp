@@ -120,8 +120,8 @@ int OptionsView::resetImpl(const bdlbb::Blob*        blob,
         // 'OptionHeader::k_MAX_TYPE' + 1.
         d_optionPositions[optionType] = blobIter.position();
 
-        // At this point we have validated this OptionHeader (but not the
-        // option itself).
+        // At this point we have validated this OptionHeader, except for its
+        // type-specific field, but not the option itself.
         optionsAreaSize -= optionSize;
         blobIter.advance(optionSize);
     }
