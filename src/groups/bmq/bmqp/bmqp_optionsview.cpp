@@ -76,7 +76,8 @@ int OptionsView::resetImpl(const bdlbb::Blob*        blob,
         const int optionSize = oh->packed()
                                    ? sizeof(OptionHeader)
                                    : (oh->words() * Protocol::k_WORD_SIZE);
-        if (!oh->packed() && optionSize == sizeof(OptionHeader)) {
+        if (!oh->packed() &&
+            optionSize <= static_cast<int>(sizeof(OptionHeader))) {
             // At this time we don't support an non-packed option header that
             // is not followed by an option payload.
             clear();
