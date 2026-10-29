@@ -144,6 +144,7 @@ build_google_test() {
         -DCMAKE_CXX_STANDARD="$cmake_cxx_standard" \
         -DCMAKE_INSTALL_PREFIX=/opt/bb \
         -DCMAKE_INSTALL_LIBDIR=lib64 \
+        -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \
         -S . -B build
     cmake --build build -j8
     cd build && make install
