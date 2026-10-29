@@ -247,7 +247,6 @@ int OptionsView::loadSubQueueIdsOption(
 
     const int rc = loadSubQueueInfosOptionHelper(
         &tempVec,
-        Protocol::k_WORD_SIZE,
         OptionType::e_SUB_QUEUE_IDS_OLD);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
@@ -270,9 +269,15 @@ int OptionsView::loadSubQueueInfosOption(
 
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS      = 0,
+        /// Success
+        rc_SUCCESS = 0,
+        /// The option payload is malformed
         rc_LOAD_FAILURE = -1,
-        rc_UNREACHABLE  = -2
+        /// The SubQueueInfos item size, in 'typeSpecific' words, is not
+        /// 'sizeof(SubQueueInfo)'
+        rc_INVALID_ITEM_SIZE = -2,
+        /// Code that must never be reached
+        rc_UNREACHABLE = -3
     };
 
     if (find(OptionType::e_SUB_QUEUE_INFOS) != end()) {
@@ -294,19 +299,23 @@ int OptionsView::loadSubQueueInfosOption(
             return rc_SUCCESS;  // RETURN
         }
 
+        // Only items of exactly 'sizeof(SubQueueInfo)' can be decoded.
+        const int itemSize = oh->typeSpecific() * Protocol::k_WORD_SIZE;
+        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
+                itemSize != static_cast<int>(sizeof(SubQueueInfo)))) {
+            BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+            return rc_INVALID_ITEM_SIZE;  // RETURN
+        }
+
         // Read in the encoded SubQueueInfos and then decode them into the
         // output.
         bdlma::LocalSequentialAllocator<16 * sizeof(SubQueueInfo)>
                                   bufferedAllocator(d_allocator_p);
         bsl::vector<SubQueueInfo> tempVec(&bufferedAllocator);
 
-        const unsigned int itemSize = static_cast<unsigned int>(
-                                          oh->typeSpecific()) *
-                                      Protocol::k_WORD_SIZE;
-
-        int rc = loadSubQueueInfosOptionHelper(&tempVec,
-                                               itemSize,
-                                               OptionType::e_SUB_QUEUE_INFOS);
+        const int rc = loadSubQueueInfosOptionHelper(
+            &tempVec,
+            OptionType::e_SUB_QUEUE_INFOS);
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
             return rc_LOAD_FAILURE;  // RETURN
@@ -324,9 +333,8 @@ int OptionsView::loadSubQueueInfosOption(
                                            bufferedAllocator(d_allocator_p);
         bsl::vector<bdlb::BigEndianUint32> tempVec(&bufferedAllocator);
 
-        int rc = loadSubQueueInfosOptionHelper(
+        const int rc = loadSubQueueInfosOptionHelper(
             &tempVec,
-            Protocol::k_WORD_SIZE,
             OptionType::e_SUB_QUEUE_IDS_OLD);
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;

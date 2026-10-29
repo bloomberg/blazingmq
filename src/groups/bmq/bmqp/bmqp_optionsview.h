@@ -205,16 +205,20 @@ class OptionsView {
                                   const bmqp::OptionType::Enum optionType,
                                   const bool hasPadding) const;
 
-    /// Load into the specified `out` the sub-queue infos associated with
-    /// the options pointed to by this view stored using the specified
-    /// `optionType`.  Each item in the sub-queue infos must have the
-    /// specified `itemSize`.  Return zero on success, and a non-zero value
-    /// otherwise.  Behavior is undefined unless `out` is empty, `isValid()`
-    /// returns true and `optionType` is either e_SUB_QUEUE_INFOS or
-    /// e_SUB_QUEUE_IDS_OLD.
+    /// @brief Load the sub-queue infos stored in the option of the specified
+    /// `optionType`.
+    ///
+    /// @details The behavior is undefined unless `isValid()` returns true,
+    /// `out` is empty, and `optionType` is either `e_SUB_QUEUE_INFOS` or
+    /// `e_SUB_QUEUE_IDS_OLD`.
+    ///
+    /// @tparam SUB_QUEUE_INFO The type of one item in the option payload.
+    /// @param[out] out The loaded items.
+    /// @param[in] optionType The option type.
+    /// @returns Zero on success, or a non-zero value if the option payload is
+    /// malformed.
     template <typename SUB_QUEUE_INFO>
     int loadSubQueueInfosOptionHelper(bsl::vector<SUB_QUEUE_INFO>* out,
-                                      int                          itemSize,
                                       OptionType::Enum optionType) const;
 
   public:
@@ -408,7 +412,6 @@ OptionsView::advance(int initialOffset) const
 template <typename SUB_QUEUE_INFO>
 int OptionsView::loadSubQueueInfosOptionHelper(
     bsl::vector<SUB_QUEUE_INFO>* out,
-    int                          itemSize,
     OptionType::Enum             optionType) const
 {
     // PRECONDITIONS
@@ -422,9 +425,15 @@ int OptionsView::loadSubQueueInfosOptionHelper(
 
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS      = 0,
-        rc_INVALID_BLOB = -1
+        /// Success
+        rc_SUCCESS = 0,
+        /// The option payload does not fall within the blob
+        rc_INVALID_BLOB = -1,
+        /// The option payload size is not a multiple of the item size
+        rc_INVALID_PAYLOAD_SIZE = -2
     };
+
+    const int k_ITEM_SIZE = static_cast<int>(sizeof(SUB_QUEUE_INFO));
 
     bmqu::BlobPosition firstSubQueueInfoPos;
     int                subQueueInfosSize;
@@ -435,14 +444,15 @@ int OptionsView::loadSubQueueInfosOptionHelper(
                                        false);  // hasPadding
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        // Will happen if the range
-        // [headerPos, headerPos + sizeof(OptionHeader)] does not fall within
-        // the blob.
         return rc_INVALID_BLOB;  // RETURN
     }
 
-    const int numSubQueueInfos = subQueueInfosSize / itemSize;
-    out->resize(numSubQueueInfos);
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(subQueueInfosSize %
+                                              k_ITEM_SIZE)) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        return rc_INVALID_PAYLOAD_SIZE;  // RETURN
+    }
+    out->resize(subQueueInfosSize / k_ITEM_SIZE);
 
     // Read option payload
     rc = bmqu::BlobUtil::readNBytes(reinterpret_cast<char*>(out->data()),
