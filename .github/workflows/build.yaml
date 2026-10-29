@@ -73,12 +73,19 @@ jobs:
         with:
           persist-credentials: false
 
+        # xsdata 25.7 does not support python3.14
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          python-version: '3.13'
+          activate-environment: true
+          venv-path: venv
+
       - name: Run Python Unit Tests
         env:
           PYTHONPATH: ${{ github.workspace }}/src/python
         run: |
-          pip install -r ${{ github.workspace }}/src/python/requirements-test.txt
-          pip install "xsdata[cli]==25.7"
+          uv pip install -r ${{ github.workspace }}/src/python/requirements-test.txt
+          uv pip install "xsdata[cli]==25.7"
           cd ${{ github.workspace }}
           src/python/bin/schemagen
           src/python/bin/tweakgen
@@ -114,9 +121,11 @@ jobs:
           name: ${{needs.build_ubuntu.outputs.artifact_key }}
 
         # Solaris: make sure all ITs scripts are compatible with python3.8
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
           python-version: '3.8'
+          activate-environment: true
+          venv-path: venv
 
         # Set execution permissions for all .tsk
         # which were lost when the artifact was created
@@ -143,7 +152,7 @@ jobs:
           export GOPATH=$HOME/go
           export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin
 
-          pip install -r ${{ github.workspace }}/src/python/requirements-test.txt
+          uv pip install -r ${{ github.workspace }}/src/python/requirements-test.txt
 
           ${{ github.workspace }}/src/integration-tests/run-tests \
             "${{ matrix.mode }} and ${{ matrix.cluster }} and ${{ matrix.consistency }}" \
