@@ -339,7 +339,7 @@ jobs:
           sudo apt-get install -qy build-essential \
             gdb \
             curl \
-            python3.10 \
+            python3 \
             cmake \
             ninja-build \
             pkg-config \
