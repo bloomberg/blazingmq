@@ -348,6 +348,7 @@ jobs:
             libbenchmark-dev \
             libgmock-dev \
             libgtest-dev \
+            libjitterentropy3-dev \
             libz-dev \
             autoconf \
             libtool \
