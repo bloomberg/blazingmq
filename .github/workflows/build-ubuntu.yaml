@@ -98,6 +98,7 @@ jobs:
             bison \
             libfl-dev \
             libbenchmark-dev \
+            libjitterentropy3-dev \
             libz-dev
 
       # The ccache directory lives outside the workspace so that the "*.o"
