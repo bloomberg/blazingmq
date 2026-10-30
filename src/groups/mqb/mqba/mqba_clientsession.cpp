@@ -2701,9 +2701,9 @@ void ClientSession::processEvent(const bmqp::Event& event,
 
         // Not a control or leader message, it's either a put or a confirm ..
 
+        BSLS_ASSERT_SAFE(event.sharedBlob());
         bsl::shared_ptr<bdlbb::Blob> blob_sp =
-            d_state.d_blobSpPool_p->getObject();
-        *blob_sp = *(event.blob());
+            bsl::const_pointer_cast<bdlbb::Blob>(event.sharedBlob());
 
         // Dispatch the event
         // TODO(678098): revisit, use per-IO thread event source

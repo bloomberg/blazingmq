@@ -100,6 +100,7 @@ int TransportManager::createAndStartTcpInterface(
                                     TCPSessionFactory(config,
                                                       d_scheduler_p,
                                                       d_blobBufferFactory_p,
+                                                      d_blobSpPool_p,
                                                       d_authenticator_mp.get(),
                                                       d_negotiator_mp.get(),
                                                       d_statController_p,
@@ -320,6 +321,7 @@ int TransportManager::selfNodeIdLocked(
 TransportManager::TransportManager(
     bdlmt::EventScheduler*            scheduler,
     bdlbb::BlobBufferFactory*         blobBufferFactory,
+    bmqp::BlobPoolUtil::BlobSpPool*   blobSpPool,
     bslma::ManagedPtr<Authenticator>& authenticator,
     bslma::ManagedPtr<Negotiator>&    negotiator,
     mqbstat::StatController*          statController,
@@ -328,6 +330,7 @@ TransportManager::TransportManager(
 , d_state(e_STOPPED)
 , d_scheduler_p(scheduler)
 , d_blobBufferFactory_p(blobBufferFactory)
+, d_blobSpPool_p(blobSpPool)
 , d_authenticator_mp(authenticator)
 , d_negotiator_mp(negotiator)
 , d_statController_p(statController)
