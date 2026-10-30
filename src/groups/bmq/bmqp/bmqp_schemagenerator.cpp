@@ -23,7 +23,7 @@
 #include <bsl_cstring.h>
 #include <bsl_limits.h>
 #include <bsl_utility.h>
-#include <bslma_deallocatorguard.h>
+#include <bslma_deallocateobjectproctor.h>
 
 namespace BloombergLP {
 namespace bmqp {
@@ -92,6 +92,8 @@ SchemaGenerator::getSchemaId(const MessageProperties* mps)
     char             localBuffer[1024];
     char            *buffer        = localBuffer;
     char            *dynamicBuffer = 0;
+    bslma::DeallocateObjectProctor<bslma::Allocator *, char> bufferGuard(
+        d_allocator_p, 0);
     bsl::size_t      size          = 0;
     bsl::size_t      capacity      = sizeof localBuffer;
 
@@ -120,6 +122,7 @@ SchemaGenerator::getSchemaId(const MessageProperties* mps)
             if (dynamicBuffer) {
                 d_allocator_p->deallocate(dynamicBuffer);
             }
+            bufferGuard.reset(next);
 
             dynamicBuffer = next;
             buffer        = next;
@@ -134,14 +137,7 @@ SchemaGenerator::getSchemaId(const MessageProperties* mps)
     bdlma::LocalSequentialAllocator<1024> localAllocator(d_allocator_p);
     bsl::string key(&localAllocator);
 
-    if (dynamicBuffer) {
-        bslma::DeallocatorGuard<bslma::Allocator> guard(dynamicBuffer,
-                                                        d_allocator_p);
-        key.assign(buffer, size);
-    }
-    else {
-        key.assign(buffer, size);
-    }
+    key.assign(buffer, size);
 
     typedef bsl::pair<ContextMap::iterator, bool> InsertOrLookup;
 
