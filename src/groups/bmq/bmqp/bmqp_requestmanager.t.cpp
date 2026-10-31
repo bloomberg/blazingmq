@@ -1100,7 +1100,53 @@ static void test8_requestSignalWaitTest()
             (*request)->wait();
             *worked = true;
         }
+
+        /// As `waiter`, but arrive at the specified `barrier` first so the
+        /// caller can race a `signal` with the blocking `wait`.
+        static void waiterAtBarrier(bslmt::Barrier* barrier,
+                                    bool*           worked,
+                                    const ReqSp*    request)
+        {
+            barrier->wait();
+            waiter(worked, request);
+        }
     };
+
+    {
+        // 'signal' before 'wait' returns immediately and consumes the
+        // notification, so a later 'wait' stays blocked until another
+        // 'signal'.
+        bool  worked = false;
+        ReqSp request;
+        BMQTST_ASSERT_PASS(
+            request.createInplace(bmqtst::TestHelperUtil::allocator(),
+                                  bmqtst::TestHelperUtil::allocator()));
+
+        request->signal();
+        request->wait();
+
+        bslmt::Barrier            barrier(2);
+        bslmt::ThreadUtil::Handle handle;
+
+        int rc = bslmt::ThreadUtil::createWithAllocator(
+            &handle,
+            bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
+                                  &RequestKeeper::waiterAtBarrier,
+                                  &barrier,
+                                  &worked,
+                                  &request),
+            bmqtst::TestHelperUtil::allocator());
+        BMQTST_ASSERT_EQ(rc, 0);
+        barrier.wait();
+        for (int i = 0; i < 100 && !worked; ++i) {
+            bslmt::ThreadUtil::yield();
+        }
+        BMQTST_ASSERT(!worked);
+        request->signal();
+        rc = bslmt::ThreadUtil::join(handle);
+        BMQTST_ASSERT_EQ(rc, 0);
+        BMQTST_ASSERT(worked);
+    }
 
     {
         // Wait for signal in separate thread
@@ -1128,6 +1174,46 @@ static void test8_requestSignalWaitTest()
         rc = bslmt::ThreadUtil::join(handle);
         BMQTST_ASSERT_EQ(rc, 0);
         BMQTST_ASSERT(worked);
+    }
+
+    {
+        // Repeated 'clear' drops a pending notification so the next 'wait'
+        // blocks, and a later 'signal' still wakes that waiter.
+        ReqSp request;
+        BMQTST_ASSERT_PASS(
+            request.createInplace(bmqtst::TestHelperUtil::allocator(),
+                                  bmqtst::TestHelperUtil::allocator()));
+
+        for (int cycle = 0; cycle < 2; ++cycle) {
+            bool                      worked = false;
+            bslmt::Barrier            barrier(2);
+            bslmt::ThreadUtil::Handle handle;
+
+            request->signal();
+            request->clear();
+
+            int rc = bslmt::ThreadUtil::createWithAllocator(
+                &handle,
+                bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
+                                      &RequestKeeper::waiterAtBarrier,
+                                      &barrier,
+                                      &worked,
+                                      &request),
+                bmqtst::TestHelperUtil::allocator());
+            BMQTST_ASSERT_EQ(rc, 0);
+            barrier.wait();
+            for (int i = 0; i < 100 && !worked; ++i) {
+                bslmt::ThreadUtil::yield();
+            }
+            // The notification published before 'clear' must not wake
+            // this wait.
+            BMQTST_ASSERT(!worked);
+
+            request->signal();
+            rc = bslmt::ThreadUtil::join(handle);
+            BMQTST_ASSERT_EQ(rc, 0);
+            BMQTST_ASSERT(worked);
+        }
     }
 }
 
