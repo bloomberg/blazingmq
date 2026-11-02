@@ -278,14 +278,42 @@ struct AppMessage {
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(AppMessage, bsl::is_trivially_copyable)
 
-    // PULIC TYOES
-    enum State { e_NONE = 0, e_PUT = 1, e_PUSH = 2, e_CONFIRM = 3 };
+    // PUBLIC TYPES
+
+    /// State of a message for one App.  On a primary or replica, a message is
+    /// kept for every App from the time it is PUT.  A proxy keeps a message
+    /// only for the Apps named in the PUSHes it received.
+    enum State {
+        /// The message is not kept for the App: it was removed by a purge or
+        /// App unregistration, or the App is younger than the message.
+        e_NONE = 0,
+
+        /// Not yet confirmed by the App.  Every App starts in this state.
+        ///
+        /// - On a primary or replica, the message stays in this state until
+        ///   the App confirms it, whether or not it has been delivered.
+        /// - On a proxy, this state means the message has not been pushed
+        ///   to the App, so the proxy is not keeping it for the App.
+        e_PUT = 1,
+
+        /// Only used on a proxy: a PUSH for the App was received and the
+        /// message is kept until the App confirms it.  The message may not
+        /// have been sent to the client yet.
+        e_PUSH = 2,
+
+        /// Confirmed by the App.
+        e_CONFIRM = 3
+    };
 
     bmqp::RdaInfo d_rdaInfo;
     unsigned int  d_subscriptionId;
     State         d_state;
 
+    // CREATORS
+
     AppMessage(const bmqp::RdaInfo& rdaInfo);
+
+    // MANIPULATORS
 
     /// Set this object state to indicate a delivery by (Replica or Proxy).
     void setPushState();
@@ -295,6 +323,8 @@ struct AppMessage {
 
     /// Set this object state to indicate a corresponding CONFIRM.
     void setRemovedState();
+
+    // ACCESSORS
 
     /// Return `true` if this object is expecting CONFIRM or purge.
     bool isPending() const;

@@ -120,25 +120,20 @@ class TestReconfigureDomains:
         assert not self.post_n_msgs(uri_priority_2, 1)
 
         # Confirm 10 messages from the 'reader'.
-        self.reader.confirm(uri_priority_1, "+10", succeed=True)
+        self.reader.confirm_sync(uri_priority_1, "+10")
 
         # Observe that posting still fails, since we are still at capacity.
         assert not self.post_n_msgs(uri_priority_1, 1)
         assert not self.post_n_msgs(uri_priority_2, 1)
 
         # Confirm one more message, and observe that posting then succeeds.
-        self.reader.confirm(uri_priority_1, "+1", succeed=True)
+        self.reader.confirm_sync(uri_priority_1, "+1")
         assert self.post_n_msgs(uri_priority_1, 1)
 
         # Confirm that we are again at capacity, but that reading a message
         # from one queue unblocks posting on the other.
         assert not self.post_n_msgs(uri_priority_2, 1)
-        self.reader.confirm(uri_priority_1, "+1", succeed=True)
-
-        # need to make sure confirm has made it to the primary since this is a
-        # non-blocking op.
-        # Must make different configuration, change maxUnconfirmedMessages
-        self.reader.configure(uri_priority_1, maxUnconfirmedMessages=100, block=True)
+        self.reader.confirm_sync(uri_priority_1, "+1")
 
         assert self.post_n_msgs(uri_priority_2, 1)
 
@@ -197,12 +192,7 @@ class TestReconfigureDomains:
         # Ensure the capacity increased as expected, then confirm one message.
         assert self.post_n_msgs(uri_priority_1, 1)
         assert not self.post_n_msgs(uri_priority_1, 1)
-        self.reader.confirm(uri_priority_1, "+1", succeed=True)
-
-        # need to make sure confirm has made it to the primary since this is a
-        # non-blocking op.
-        # Must make different configuration, change maxUnconfirmedMessages
-        self.reader.configure(uri_priority_1, maxUnconfirmedMessages=100, block=True)
+        self.reader.confirm_sync(uri_priority_1, "+1")
 
         # Take the leader offline.
         leader.check_exit_code = False

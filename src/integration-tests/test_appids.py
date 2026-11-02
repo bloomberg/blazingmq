@@ -283,7 +283,7 @@ def test_unregister_in_presence_of_queues(cluster: Cluster, domain_urls: tc.Doma
 
     test_logger.info("confirm msg 1 for bar, expecting 1 msg in storage")
     time.sleep(1)  # Let the message reach the proxy
-    bar.confirm(du.uri_fanout_bar, "+1", succeed=True)
+    bar.confirm_sync(du.uri_fanout_bar, "+1")
 
     @attempt(3)
     def _():
@@ -292,7 +292,7 @@ def test_unregister_in_presence_of_queues(cluster: Cluster, domain_urls: tc.Doma
 
     test_logger.info("confirm msg 1 for baz, expecting 0 msg in storage")
     time.sleep(1)  # Let the message reach the proxy
-    baz.confirm(du.uri_fanout_baz, "+1", succeed=True)
+    baz.confirm_sync(du.uri_fanout_baz, "+1")
 
     @attempt(3)
     def _():
@@ -417,7 +417,7 @@ def test_unauthorized_appid_doesnt_hold_messages(
         assert wait_until(
             lambda: len(consumer.list(appid_uri, block=True)) == max_msgs, 3
         )
-        consumer.confirm(appid_uri, "*", succeed=True)
+        consumer.confirm_sync(appid_uri, "*")
 
     # ---------------------------------------------------------------------
     # process a new message to confirm that 'unauthorized' substream did
@@ -472,7 +472,7 @@ def test_deauthorized_appid_doesnt_hold_messages(
     assert wait_until(lambda: len(consumer.list(appid_uri, block=True)) == num_msgs, 3)
     msgs = consumer.list(appid_uri, block=True)
     for _ in msgs:
-        consumer.confirm(appid_uri, "+1", succeed=True)
+        consumer.confirm_sync(appid_uri, "+1")
 
     # process a new message to confirm that 'bar' and 'baz' substreams did
     # not hold messages
@@ -986,7 +986,7 @@ def test_gc_old_data_new_app(cluster: Cluster, domain_urls: tc.DomainUrls):
     assert wait_until(
         lambda: len(consumer.list(consumer_uri, block=True)) == 1, timeout
     )
-    assert consumer.confirm(consumer_uri, f"+{1}", block=True) == Client.e_SUCCESS
+    consumer.confirm_sync(consumer_uri, f"+{1}")
 
     # ---------------------------------------------------------------------
     # +new_app_1
@@ -1109,7 +1109,7 @@ def test_add_remove_add_app(cluster: Cluster, domain_urls: tc.DomainUrls):
         consumer.open(appid_uri, flags=["read"], succeed=True)
         assert consumer.wait_push_event()
         assert wait_until(lambda: len(consumer.list(appid_uri, block=True)) == 1, 3)
-        consumer.confirm(appid_uri, "*", succeed=True)
+        consumer.confirm_sync(appid_uri, "*")
 
     # ---------------------------------------------------------------------
     # -new_app_1

@@ -73,7 +73,7 @@ def test_sync_after_missed_rollover(
         producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
 
         consumer.wait_push_event()
-        consumer.confirm(uri_priority, "*", succeed=True)
+        consumer.confirm_sync(uri_priority, "*")
 
     # Stop replica
     replica.stop()
@@ -161,7 +161,7 @@ def test_sync_after_missed_rollover_after_restart(
         producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
 
         consumer.wait_push_event()
-        consumer.confirm(uri_priority, "*", succeed=True)
+        consumer.confirm_sync(uri_priority, "*")
 
     # Stop replica `east2`
     east2.stop()

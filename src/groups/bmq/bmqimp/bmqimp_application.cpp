@@ -396,11 +396,6 @@ void Application::channelStateCallback(
         BALL_LOG_INFO << id() << "Session with '" << channel->peerUri()
                       << "' is now UP";
 
-        channel->onClose(
-            bdlf::BindUtil::bind(&Application::onChannelDown,
-                                 this,
-                                 channel->peerUri(),
-                                 bdlf::PlaceHolders::_1));  // status
         channel->onWatermark(
             bdlf::BindUtil::bind(&Application::onChannelWatermark,
                                  this,
@@ -408,6 +403,14 @@ void Application::channelStateCallback(
                                  bdlf::PlaceHolders::_1));  // type
 
         d_brokerSession.setChannel(channel);
+
+        // Done after 'setChannel', since 'onChannelDown' may be invoked
+        // immediately.
+        channel->onClose(
+            bdlf::BindUtil::bind(&Application::onChannelDown,
+                                 this,
+                                 channel->peerUri(),
+                                 bdlf::PlaceHolders::_1));  // status
 
         bsl::shared_ptr<bmqp::HeartbeatMonitor> monitor = createMonitor(
             channel);

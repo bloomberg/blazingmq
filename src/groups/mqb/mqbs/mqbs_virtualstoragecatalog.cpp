@@ -278,6 +278,17 @@ VirtualStorageCatalog::confirm(const bmqt::MessageGUID& msgGUID,
     VirtualStoragesIter it = d_virtualStorages.findByKey2(appKey);
     BSLS_ASSERT_SAFE(it != d_virtualStorages.end());
 
+    const mqbi::AppMessage& appMessage =
+        appMessageView(*data->second, it->value()->ordinal());
+    if (appMessage.isPending() && !holdsReference(appMessage)) {
+        // On a proxy, 'e_PUT' means the message was not pushed to this App,
+        // so this App holds no reference.  A client of this App can still
+        // send a CONFIRM, e.g. for a PUSH it received from another proxy or
+        // before this proxy restarted.
+        // Leave the refCount unchanged so the other Apps keep the message.
+        return mqbi::StorageResult::e_NON_ZERO_REFERENCES;  // RETURN
+    }
+
     const mqbi::StorageResult::Enum rc = it->value()->confirm(
         data->second.get());
     if (mqbi::StorageResult::e_SUCCESS == rc) {
@@ -472,8 +483,15 @@ VirtualStorageCatalog::purgeImpl(VirtualStorage*     vs,
         // Must call 'seek' before 'purge'
         setup(dataStreamMessage);
 
-        if (vs->remove(dataStreamMessage, replacingOrdinal)) {
-            // The 'data' was not already removed or confirmed.
+        // First, check whether this App is counted in the message's refCount.
+        // Then, call 'remove' for every message (even if this App does not
+        // hold a reference), which overwrites this App's state.
+        const bool holdsRef = holdsReference(
+            appMessageView(*dataStreamMessage, vs->ordinal()));
+
+        vs->remove(dataStreamMessage, replacingOrdinal);
+
+        if (holdsRef) {
             result = d_storage_p->releaseRef(msgGUID, asPrimary);
         }
 

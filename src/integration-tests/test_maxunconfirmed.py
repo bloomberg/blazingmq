@@ -184,19 +184,10 @@ def test_stuck_downstream(multi_node: Cluster, domain_urls: tc.DomainUrls):
 
     # confirm all
     for i in range(0, 10):
-        consumers[i].confirm(uri, "*", succeed=True)
+        consumers[i].confirm_sync(uri, "*")
 
     # one more round of confirms for messages deleivered after the first round
     for i in range(0, 10):
-        consumers[i].confirm(uri, "*", succeed=True)
-
-    # The bmqtool does not actually wait and check that confirm command was
-    # completed: 'success' is returned just when the command is enqueued
-    # for send in bmqtool.
-    # We need a strong guarantee that confirm was executed on the primary
-    # node of the cluster. For that reason we open the same queue for write
-    # and close it right away.
-
-    producer.close(uri, succeed=True)
+        consumers[i].confirm_sync(uri, "*")
 
     assert wait_until(lambda: check_message_count(0), 5)

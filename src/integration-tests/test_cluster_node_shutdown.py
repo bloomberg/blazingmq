@@ -158,7 +158,7 @@ class TestClusterNodeShutdown:
                 raise BMQITError(
                     f"Unexpected message payload: {msgs[0].payload} (expected: {expected})"
                 )
-            consumer.confirm(uri_group, "*", succeed=True)
+            consumer.confirm_sync(uri_group, "*")
 
         def check_both_received_one_of(*expected):
             self.consumer1.wait_push_event()

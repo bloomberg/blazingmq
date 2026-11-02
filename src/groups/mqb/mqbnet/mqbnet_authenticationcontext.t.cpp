@@ -482,6 +482,80 @@ static void test7_contextDestroyedBeforeTimeout()
     BMQTST_ASSERT_EQ(tb.d_channel->numCloseCalls(), 0u);
 }
 
+static void test8_loadAuthenticationMessage()
+// ------------------------------------------------------------------------
+// LOAD AUTHENTICATION MESSAGE
+//
+// Concerns:
+//   - loadAuthenticationMessage() succeeds only while AUTHENTICATING,
+//     including during reauthentication.
+//   - Once the context is closed (e.g., the client disconnected while an
+//     authentication job was queued), it fails instead of asserting, and
+//     leaves the outputs unmodified.
+//
+// Plan:
+//   1) Create a context in AUTHENTICATING state and load the message.
+//   2) Authenticate and verify that loading fails.
+//   3) Start reauthentication and verify the new message is loaded.
+//   4) Close the context and verify that loading fails.
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("LOAD AUTHENTICATION MESSAGE");
+
+    bslma::Allocator* alloc = bmqtst::TestHelperUtil::allocator();
+    TestBench         tb(alloc);
+
+    bmqp_ctrlmsg::AuthenticationMessage initialMsg(alloc);
+    initialMsg.makeAuthenticationRequest().mechanism() = "initial";
+
+    bsl::shared_ptr<mqbnet::AuthenticationContext> ctx =
+        bsl::allocate_shared<mqbnet::AuthenticationContext>(
+            alloc,
+            &tb.d_scheduler,
+            static_cast<mqbnet::InitialConnectionContext*>(0),
+            "testMechanism",
+            initialMsg,
+            bmqp::EncodingType::e_JSON,
+            mqbnet::AuthenticationState::e_AUTHENTICATING);
+
+    bmqp_ctrlmsg::AuthenticationMessage loadedMsg(alloc);
+    bmqp::EncodingType::Enum loadedEncoding = bmqp::EncodingType::e_UNKNOWN;
+
+    // 1) Initial authentication
+    BMQTST_ASSERT(ctx->loadAuthenticationMessage(&loadedMsg, &loadedEncoding));
+    BMQTST_ASSERT_EQ(loadedMsg, initialMsg);
+    BMQTST_ASSERT_EQ(loadedEncoding, bmqp::EncodingType::e_JSON);
+
+    // 2) Authenticated
+    bmqu::MemOutStream                 errStream(alloc);
+    bsl::optional<bsls::Types::Uint64> noLifetime;
+    int rc = ctx->setAuthenticatedAndScheduleReauthn(errStream,
+                                                     noLifetime,
+                                                     tb.d_channel);
+    BMQTST_ASSERT_EQ(rc, 0);
+    BMQTST_ASSERT(
+        !ctx->loadAuthenticationMessage(&loadedMsg, &loadedEncoding));
+
+    // 3) Reauthentication
+    bmqp_ctrlmsg::AuthenticationMessage reauthnMsg(alloc);
+    reauthnMsg.makeAuthenticationRequest().mechanism() = "reauthn";
+    BMQTST_ASSERT(
+        ctx->tryStartReauthentication(reauthnMsg, bmqp::EncodingType::e_BER));
+    BMQTST_ASSERT(ctx->loadAuthenticationMessage(&loadedMsg, &loadedEncoding));
+    BMQTST_ASSERT_EQ(loadedMsg, reauthnMsg);
+    BMQTST_ASSERT_EQ(loadedEncoding, bmqp::EncodingType::e_BER);
+
+    // 4) Closed while AUTHENTICATING
+    ctx->close();
+
+    bmqp_ctrlmsg::AuthenticationMessage untouchedMsg(alloc);
+    bmqp::EncodingType::Enum untouchedEncoding = bmqp::EncodingType::e_UNKNOWN;
+    BMQTST_ASSERT(
+        !ctx->loadAuthenticationMessage(&untouchedMsg, &untouchedEncoding));
+    BMQTST_ASSERT(untouchedMsg.isUndefinedValue());
+    BMQTST_ASSERT_EQ(untouchedEncoding, bmqp::EncodingType::e_UNKNOWN);
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -495,6 +569,7 @@ int main(int argc, char* argv[])
 
         switch (_testCase) {
         case 0:
+        case 8: test8_loadAuthenticationMessage(); break;
         case 7: test7_contextDestroyedBeforeTimeout(); break;
         case 6: test6_onCloseBeforeTimeout(); break;
         case 5: test5_noLifetimeNoTimer(); break;

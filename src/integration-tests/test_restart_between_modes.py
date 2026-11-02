@@ -76,14 +76,7 @@ def confirm_only_one_message(
         f"Queue with app_id '{queue_with_appid}' not found in consumerMap"
     )
     consumer = consumerMap[queue_with_appid]
-    consumer.confirm(queue_with_appid, "+1", succeed=True)
-
-    # Need to make sure confirm has made it to the primary since this is a
-    # non-blocking op.
-    # Cannot open new queue as it will affect partition assignments.
-    # Must make different configuration, change maxUnconfirmedMessages
-
-    consumer.configure(queue_with_appid, maxUnconfirmedMessages=100, block=True)
+    consumer.confirm_sync(queue_with_appid, "+1")
 
 
 def confirm_one_message(consumer: Client, queue: str, app_id: Optional[str] = None):

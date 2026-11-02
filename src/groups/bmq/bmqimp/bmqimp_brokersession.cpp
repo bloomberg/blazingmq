@@ -1677,7 +1677,8 @@ void BrokerSession::QueueFsm::handleRequestWriteError(
     case QueueState::e_OPENING_OPN:
     case QueueState::e_OPENING_CFG:
     case QueueState::e_PENDING:
-    case QueueState::e_CLOSED: {
+    case QueueState::e_CLOSED:
+    default: {
         // OPENING_OPN and OPENING_CFG are unreachable: initial opens use
         // buffered requests, so write errors are swallowed.
         BSLS_ASSERT_SAFE(false && "Unexpected Queue state for write error");
@@ -3238,11 +3239,6 @@ void BrokerSession::eventHandlerCbWrapper(
 {
     // executed by one of the *EVENT HANDLER* threads
 
-    if (event->eventCallback()) {
-        event->eventCallback()(event);
-        return;  // RETURN
-    }
-
     // If the current event is a special DISCONNECTED event with the status
     // code set to -1 then do not dispatch it to the user.  Instead check if
     // there are no active handlers and release the stop semaphore.
@@ -3252,12 +3248,22 @@ void BrokerSession::eventHandlerCbWrapper(
                                      bmqt::SessionEventType::e_DISCONNECTED &&
                                  event->statusCode() == -1);
 
+    // Count the user callback invocation too: an event carrying one (an async
+    // operation result, in particular the terminal event of an async stop)
+    // rides immediately ahead of the special DISCONNECTED event, and the stop
+    // semaphore must not be released -- and 'this' possibly destroyed -- while
+    // the callback is still running.
     ++d_inProgressEventHandlerCount;
 
-    if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(!isDisconnected)) {
+    if (event->eventCallback()) {
+        event->eventCallback()(event);
+    }
+    else if (BSLS_PERFORMANCEHINT_PREDICT_LIKELY(!isDisconnected)) {
         eventHandlerCb(event);
     }
-    else {
+
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(isDisconnected)) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         d_isStopping = true;
     }
 

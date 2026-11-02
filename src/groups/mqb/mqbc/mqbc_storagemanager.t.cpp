@@ -20,6 +20,7 @@
 #include <bmqp_crc32c.h>
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_event.h>
+#include <bmqp_protocolutil.h>
 #include <bmqp_storageeventbuilder.h>
 #include <bmqp_storagemessageiterator.h>
 #include <bmqt_compressionalgorithmtype.h>
@@ -58,6 +59,7 @@
 #include <bdlmt_fixedthreadpool.h>
 #include <bdlt_currenttime.h>
 #include <bdlt_epochutil.h>
+#include <bsl_limits.h>
 #include <bsl_string.h>
 #include <bsl_unordered_map.h>
 #include <bsl_utility.h>
@@ -4164,6 +4166,107 @@ static void test25_replicaHealingRefusesEndPSNMismatch()
     helper.d_cluster_mp->stop();
 }
 
+static void test26_receiptWithInvalidPartitionId()
+// ------------------------------------------------------------------------
+// RECEIPT WITH INVALID PARTITION ID
+//
+// Concerns:
+//   A replication receipt carries its partitionId on the wire.  A receipt
+//   whose partitionId is out of range must be ignored, rather than used to
+//   look up a FileStore.  A receipt with a valid partitionId must still be
+//   processed.
+//
+// Plan:
+//   1) Start the StorageManager with self as the primary.
+//   2) For each row of the table below, send a receipt with the given
+//      partitionId from another node to processReceiptEvent.
+//   3) Verify that no assertion fires.
+//
+// Testing:
+//   processReceiptEvent partitionId validation
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("RECEIPT WITH INVALID PARTITION ID");
+
+    TestHelper helper;
+
+    mqbc::StorageManager storageManager(
+        helper.d_cluster_mp->_clusterDefinition(),
+        helper.d_cluster_mp.get(),
+        helper.d_cluster_mp->_clusterData(),
+        helper.d_cluster_mp->_state(),
+        helper.d_cluster_mp->_clusterData()->domainFactory(),
+        helper.d_cluster_mp->dispatcher(),
+        k_WATCHDOG_TIMEOUT_DURATION,
+        k_WATCHDOG_NUM_RETRIES,
+        mockOnRecoveryStatus,
+        mockOnPartitionPrimaryStatus,
+        bmqtst::TestHelperUtil::allocator());
+
+    const int selfNodeId = helper.d_cluster_mp->_clusterData()
+                               ->membership()
+                               .netCluster()
+                               ->selfNodeId();
+
+    mqbnet::ClusterNode* selfNode = helper.d_cluster_mp->_clusterData()
+                                        ->membership()
+                                        .netCluster()
+                                        ->lookupNode(selfNodeId);
+
+    // Receipts are sent by replicas to the primary, so make self the primary
+    // and send the receipts from another node.
+    helper.startStorageManager(&storageManager, selfNode);
+
+    mqbnet::ClusterNode* source = helper.d_cluster_mp->_clusterData()
+                                      ->membership()
+                                      .netCluster()
+                                      ->lookupNode(selfNodeId + 1);
+
+    const int numPartitions = static_cast<int>(helper.numPartitions());
+
+    struct Test {
+        /// Line of this row, reported when an assertion fails.
+        int d_line;
+
+        /// Scenario summary.
+        const char* d_description;
+
+        /// PartitionId to put in the receipt.
+        int d_partitionId;
+    } k_DATA[] = {
+        {L_, "valid partitionId", 0},
+        {L_, "partitionId equal to numPartitions", numPartitions},
+        {L_, "partitionId of 9999", 9999},
+        {L_, "partitionId of INT_MAX", bsl::numeric_limits<int>::max()}};
+
+    const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
+
+    for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+        const Test& test = k_DATA[idx];
+
+        PVV(test.d_line << ": Testing: " << test.d_description);
+
+        bsl::shared_ptr<bdlbb::Blob> blob_sp;
+        blob_sp.createInplace(bmqtst::TestHelperUtil::allocator(),
+                              helper.d_cluster_mp->bufferFactory(),
+                              bmqtst::TestHelperUtil::allocator());
+        bmqp::ProtocolUtil::buildReceipt(blob_sp.get(),
+                                         test.d_partitionId,
+                                         1,   // primaryLeaseId
+                                         1);  // sequenceNumber
+
+        const bmqp::Event event(blob_sp.get(),
+                                bmqtst::TestHelperUtil::allocator());
+
+        BMQTST_ASSERT_SAFE_PASS(
+            storageManager.processReceiptEvent(event, source));
+    }
+
+    storageManager.stopPFSMs();
+    storageManager.stop();
+    helper.d_cluster_mp->stop();
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -4181,6 +4284,7 @@ int main(int argc, char* argv[])
         //      - test21_replicaHealingReceivesReplicaDataRqstDrop();
         //      - test20_replicaHealingReceivesReplicaDataRqstPush();
         //      - test19_primaryHealedSendsDataChunks();
+    case 26: test26_receiptWithInvalidPartitionId(); break;
     case 25: test25_replicaHealingRefusesEndPSNMismatch(); break;
     case 24: test24_unknownSurvivesReplicaDataRequestPull(); break;
     case 23: test23_replicaHealingRefusesInvalidReplicaDataRequest(); break;

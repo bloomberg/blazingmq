@@ -32,6 +32,7 @@ from blazingmq.dev.it.data import data_metrics as dt
 from blazingmq.dev.it.process.admin import AdminClient
 from blazingmq.dev.it.process.broker import Broker
 from blazingmq.dev.it.process.client import Client
+from blazingmq.dev.it.util import wait_until
 
 pytestmark = order(1)
 
@@ -50,6 +51,15 @@ class PostRecord:
         assert self.domain == other.domain
         assert self.queue_name == other.queue_name
         self.num += other.num
+
+
+def wait_all_pushed(consumer: Client, uri: str, num: int) -> None:
+    """
+    Wait until the specified 'consumer' has received all the specified 'num'
+    messages from the specified 'uri'.  The messages may arrive in several
+    PUSH events, so confirming after the first one can miss some of them.
+    """
+    assert wait_until(lambda: len(consumer.list(uri, block=True)) == num, 3)
 
 
 def post_n_msgs(
@@ -232,18 +242,18 @@ def test_queue_stats(single_node: Cluster, domain_urls: tc.DomainUrls) -> None:
     # Stage 2: check stats after confirming messages
     consumer_foo: Client = proxy.create_client("consumer_foo")
     consumer_foo.open(f"{task.uri}?id=foo", flags=["read"], succeed=True)
-    consumer_foo.wait_push_event()
-    consumer_foo.confirm(f"{task.uri}?id=foo", "*", succeed=True)
+    wait_all_pushed(consumer_foo, f"{task.uri}?id=foo", task.num)
+    consumer_foo.confirm_sync(f"{task.uri}?id=foo", "*")
 
     consumer_bar: Client = proxy.create_client("consumer_bar")
     consumer_bar.open(f"{task.uri}?id=bar", flags=["read"], succeed=True)
-    consumer_bar.wait_push_event()
-    consumer_bar.confirm(f"{task.uri}?id=bar", "+22", succeed=True)
+    wait_all_pushed(consumer_bar, f"{task.uri}?id=bar", task.num)
+    consumer_bar.confirm_sync(f"{task.uri}?id=bar", "+22")
 
     consumer_baz: Client = proxy.create_client("consumer_baz")
     consumer_baz.open(f"{task.uri}?id=baz", flags=["read"], succeed=True)
-    consumer_baz.wait_push_event()
-    consumer_baz.confirm(f"{task.uri}?id=baz", "+11", succeed=True)
+    wait_all_pushed(consumer_baz, f"{task.uri}?id=baz", task.num)
+    consumer_baz.confirm_sync(f"{task.uri}?id=baz", "+11")
 
     stats = extract_stats(admin.send_admin("encoding json_pretty stat show"))
     queue_stats = stats["domainQueues"]["domains"][domain_fanout][task.uri]
@@ -371,18 +381,18 @@ def test_app_id_stats(multi_node: Cluster, domain_urls: tc.DomainUrls) -> None:
     # Stage 2: check stats after confirming messages
     consumer_foo: Client = proxy.create_client("consumer_foo")
     consumer_foo.open(f"{task.uri}?id=foo", flags=["read"], succeed=True)
-    consumer_foo.wait_push_event()
-    consumer_foo.confirm(f"{task.uri}?id=foo", "*", succeed=True)
+    wait_all_pushed(consumer_foo, f"{task.uri}?id=foo", task.num)
+    consumer_foo.confirm_sync(f"{task.uri}?id=foo", "*")
 
     consumer_bar: Client = proxy.create_client("consumer_bar")
     consumer_bar.open(f"{task.uri}?id=bar", flags=["read"], succeed=True)
-    consumer_bar.wait_push_event()
-    consumer_bar.confirm(f"{task.uri}?id=bar", "+22", succeed=True)
+    wait_all_pushed(consumer_bar, f"{task.uri}?id=bar", task.num)
+    consumer_bar.confirm_sync(f"{task.uri}?id=bar", "+22")
 
     consumer_baz: Client = proxy.create_client("consumer_baz")
     consumer_baz.open(f"{task.uri}?id=baz", flags=["read"], succeed=True)
-    consumer_baz.wait_push_event()
-    consumer_baz.confirm(f"{task.uri}?id=baz", "+11", succeed=True)
+    wait_all_pushed(consumer_baz, f"{task.uri}?id=baz", task.num)
+    consumer_baz.confirm_sync(f"{task.uri}?id=baz", "+11")
 
     admin.stop()
 
@@ -815,3 +825,69 @@ def test_commands_on_non_existing_domain(
 
     # Stop the admin session
     admin.stop()
+
+
+def test_domain_commands_reject_path_traversal(single_node: Cluster) -> None:
+    """
+    Test: domain admin commands reject path traversal in domain names.
+
+    Concerns:
+    - DOMAIN, RECONFIGURE, and REMOVE reject traversal sequences.
+    - Rejected commands do not expose configuration contents.
+    """
+    admin = AdminClient()
+    admin.connect(*single_node.admin_endpoint)
+
+    for command in (
+        "DOMAINS DOMAIN ../bmqbrkrcfg INFOS",
+        "DOMAINS RECONFIGURE ../bmqbrkrcfg",
+        "DOMAINS REMOVE ../bmqbrkrcfg",
+    ):
+        response = admin.send_admin(command)
+        assert "Invalid domain name" in response
+        assert "taskConfig" not in response
+
+    admin.stop()
+
+
+def test_domain_reconfigure_does_not_return_invalid_config(
+    single_node: Cluster, domain_urls: tc.DomainUrls
+) -> None:
+    """
+    Test: RECONFIGURE does not return malformed domain configuration content.
+
+    Stage 1: load a domain with valid configuration
+
+    Stage 2: replace the configuration with identifiable invalid content
+
+    Stage 3: reconfigure the domain and inspect the error response
+
+    Concerns:
+    - RECONFIGURE reports the decoding failure to the admin client.
+    - The response does not contain the invalid configuration content.
+    """
+    admin = AdminClient()
+    admin.connect(*single_node.admin_endpoint)
+
+    broker = single_node.nodes()[0]
+    domains_dir = single_node.work_dir / broker.name / "etc" / "domains"
+    sentinel = "SENSITIVE_DOMAIN_CONTENT"
+
+    # Stage 1: load a domain with valid configuration
+    loaded_domain = domain_urls.domain_priority
+    response = admin.send_admin(f"DOMAINS DOMAIN {loaded_domain} INFOS")
+    assert "ActiveQueues ..: 0" in response
+
+    # Stage 2: replace the configuration with identifiable invalid content
+    loaded_path = domains_dir / f"{loaded_domain}.json"
+    original_content = loaded_path.read_text()
+    try:
+        loaded_path.write_text(sentinel)
+
+        # Stage 3: reconfigure the domain and inspect the error response
+        response = admin.send_admin(f"DOMAINS RECONFIGURE {loaded_domain}")
+        assert "error =" in response
+        assert sentinel not in response
+    finally:
+        loaded_path.write_text(original_content)
+        admin.stop()

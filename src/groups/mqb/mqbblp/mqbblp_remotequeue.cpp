@@ -759,7 +759,7 @@ void RemoteQueue::onHandleReleased(
             }
         }
     }
-    if (result.hasNoHandleStreamProducers()) {
+    if (result.hasNoHandleProducers()) {
         // Leaving it to the downstream to NACK pending messages.
         cleanPendingMessages(handle.get());
     }

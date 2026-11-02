@@ -488,8 +488,7 @@ void QueueSessionManager::onHandleReleasedDispatched(
             handle->queue(),
             mqbi::DispatcherEventType::e_DISPATCHER);
     }
-    else if (result.hasNoQueueStreamConsumers() &&
-             result.hasNoQueueStreamProducers()) {
+    else if (result.isHandleStreamEmpty()) {
         QueueState::StreamsMap::const_iterator sqiIter =
             it->second.d_subQueueInfosMap.findBySubId(queueId.subId());
         BSLS_ASSERT_SAFE(sqiIter != it->second.d_subQueueInfosMap.end());

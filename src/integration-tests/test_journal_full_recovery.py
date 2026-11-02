@@ -154,11 +154,11 @@ def test_journal_full_purge_recovery(
 
     # 7. Verify end-to-end: consume the post-recovery fanout message.
     consumer_foo.wait_push_event()
-    consumer_foo.confirm(du.uri_fanout_foo, "*", succeed=True)
+    consumer_foo.confirm_sync(du.uri_fanout_foo, "*")
 
     # 8. Verify end-to-end: consume the post-recovery priority message.
     pri_consumer.wait_push_event()
-    pri_consumer.confirm(du.uri_priority, "*", succeed=True)
+    pri_consumer.confirm_sync(du.uri_priority, "*")
 
     # 9. Restart leader and verify the partition recovers cleanly.
     leader.stop()

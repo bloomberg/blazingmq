@@ -195,13 +195,10 @@ class QueueHandleCatalog {
     /// longer representing any resource, it is removed from the internal
     /// map, the specified `deleted` is set to true and the specified
     /// `handleSp` is populated with it allowing the caller to control at
-    /// which time destruction will occur.  The specified `lostFlags` is set
-    /// to the flags that were set on the queue prior to the release, but
-    /// are no longer after.  Return 0 on success, or a non-zero value on
-    /// error.
+    /// which time destruction will occur.  Return 0 on success, or a
+    /// non-zero value on error.
     int releaseHandleHelper(
         bsl::shared_ptr<mqbi::QueueHandle>*        handleSp,
-        bsls::Types::Uint64*                       lostFlags,
         mqbi::QueueHandle*                         handle,
         const bmqp_ctrlmsg::QueueHandleParameters& handleParameters,
         bool                                       isFinal);

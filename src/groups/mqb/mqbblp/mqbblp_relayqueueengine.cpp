@@ -762,8 +762,8 @@ void RelayQueueEngine::onHandleReleasedDispatched(
             d_pushStream.removeApp(upstreamSubQueueId);
             app->clear();
         }
-        if (streamResult.hasNoHandleStreamProducers()) {
-            // Remove the producer handle from cached producers/consumers
+        if (streamResult.isHandleStreamEmpty()) {
+            // Remove the handle from this App's cached parameters
             app->d_cache.erase(handle);
         }
     }
@@ -1756,8 +1756,10 @@ int RelayQueueEngine::onRejectMessage(
                           << "] with the counter: [" << rda << "]";
         }
 
-        if (!rda.isUnlimited()) {
-            BSLS_ASSERT_SAFE(result);
+        // The counter value can differ on primary and replica because it is
+        // not persisted/replicated.  Keep it as 0; the primary decides when
+        // the message is removed.
+        if (!rda.isUnlimited() && result > 0) {
             rda.setPotentiallyPoisonous(true);
             rda.setCounter(--result);
 

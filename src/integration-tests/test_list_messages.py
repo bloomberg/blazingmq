@@ -13,8 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import time
-
 import blazingmq.dev.it.testconstants as tc
 from blazingmq.dev.it.fixtures import (
     Cluster,
@@ -59,7 +57,7 @@ def test_list_messages_fanout(cluster: Cluster, domain_urls: tc.DomainUrls):
     guids = [msg.guid for msg in consumer.list(du.uri_fanout_foo, block=True)]
 
     for i, uri in enumerate([du.uri_fanout_foo, du.uri_fanout_bar, du.uri_fanout_baz]):
-        consumer.confirm(uri, guids[i], succeed=True)
+        consumer.confirm_sync(uri, guids[i])
 
     leader.list_messages(du.domain_fanout, tc.TEST_QUEUE, 0, 3)
     assert leader.outputs_substr(expected_header(0, 3, 3, 60), TIMEOUT)
@@ -92,7 +90,6 @@ def test_list_messages_fanout(cluster: Cluster, domain_urls: tc.DomainUrls):
     leader.list_messages(du.domain_fanout, tc.TEST_QUEUE, 0, "UNLIMITED garbage")
     assert leader.outputs_substr("Error processing command", TIMEOUT)
 
-    time.sleep(2)  # Allow previous confirmations to complete
     for i, appid in enumerate(["foo", "bar", "baz"]):
         leader.list_messages(
             du.domain_fanout, tc.TEST_QUEUE, 0, "UNLIMITED", appid=appid

@@ -76,7 +76,8 @@ int OptionsView::resetImpl(const bdlbb::Blob*        blob,
         const int optionSize = oh->packed()
                                    ? sizeof(OptionHeader)
                                    : (oh->words() * Protocol::k_WORD_SIZE);
-        if (!oh->packed() && optionSize == sizeof(OptionHeader)) {
+        if (!oh->packed() &&
+            optionSize <= static_cast<int>(sizeof(OptionHeader))) {
             // At this time we don't support an non-packed option header that
             // is not followed by an option payload.
             clear();
@@ -119,8 +120,8 @@ int OptionsView::resetImpl(const bdlbb::Blob*        blob,
         // 'OptionHeader::k_MAX_TYPE' + 1.
         d_optionPositions[optionType] = blobIter.position();
 
-        // At this point we have validated this OptionHeader (but not the
-        // option itself).
+        // At this point we have validated this OptionHeader, except for its
+        // type-specific field, but not the option itself.
         optionsAreaSize -= optionSize;
         blobIter.advance(optionSize);
     }

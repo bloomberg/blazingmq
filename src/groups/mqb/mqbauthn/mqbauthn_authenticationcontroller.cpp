@@ -424,18 +424,23 @@ int AuthenticationController::initializeCredentialProvider(
          ++it) {
         mqbplug::CredentialProviderPluginFactory* candidate =
             dynamic_cast<mqbplug::CredentialProviderPluginFactory*>(*it);
-        BSLS_ASSERT_SAFE(candidate);
+        if (!candidate) {
+            continue;  // CONTINUE
+        }
         bslma::ManagedPtr<mqbplug::CredentialProvider> provider =
             candidate->create(d_allocator_p);
-        if (provider) {
+        if (provider && provider->name() == providerName) {
             d_credentialProvider_mp = bslmf::MovableRefUtil::move(provider);
-            break;
+            break;  // BREAK
         }
     }
 
     if (!d_credentialProvider_mp) {
-        errorDescription << "CredentialProvider plugin '" << providerName
-                         << "' not found";
+        errorDescription
+            << "CredentialProvider plugin '" << providerName
+            << "' not found or could not be created."
+            << " Ensure the plugin is either built-in or listed in "
+            << "plugins.enabled[], or its configuration is correct.";
         return rc_PLUGIN_NOT_FOUND;  // RETURN
     }
 

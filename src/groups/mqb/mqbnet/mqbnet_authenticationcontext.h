@@ -133,8 +133,9 @@ class AuthenticationContext {
     /// Used to make sure no callback is invoked on a destroyed object.
     bmqu::SharedResource<AuthenticationContext> d_self;
 
-    /// Mutex to protect the state and timeoutHandle of this object.
-    bslmt::Mutex d_mutex;
+    /// Mutex to protect the state, timeoutHandle, and authentication message
+    /// of this object.
+    mutable bslmt::Mutex d_mutex;
 
     /// The authentication result to be used for authorization.  It is first
     /// set during the initial authentication, and can be updated later during
@@ -253,10 +254,23 @@ class AuthenticationContext {
 
     // ACCESSORS
     const bsl::shared_ptr<mqbplug::AuthenticationResult>&
-                                               authenticationResult() const;
-    bsl::string_view                           mechanism() const;
-    const bmqp_ctrlmsg::AuthenticationMessage& authenticationMessage() const;
-    bmqp::EncodingType::Enum                   encodingType() const;
+                     authenticationResult() const;
+    bsl::string_view mechanism() const;
+
+    /// @brief Load the authentication message being processed and the
+    ///        encoding type to answer it with.
+    ///
+    /// The state is checked and the values are copied under the same lock,
+    /// since the context may be closed concurrently by an IO thread.
+    ///
+    /// @param[out] message      Loaded with the authentication message.
+    /// @param[out] encodingType Loaded with the response encoding type.
+    ///
+    /// @return true on success, or false, leaving the outputs unmodified, if
+    ///         this context is not authenticating (e.g., it was closed).
+    bool
+    loadAuthenticationMessage(bmqp_ctrlmsg::AuthenticationMessage* message,
+                              bmqp::EncodingType::Enum* encodingType) const;
 
     InitialConnectionContext* initialConnectionContext();
 };

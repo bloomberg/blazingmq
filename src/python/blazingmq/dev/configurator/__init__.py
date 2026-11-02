@@ -424,6 +424,9 @@ class Proto:
                     authenticators=[],
                     anonymous_credential=None,
                 ),
+                authorization=mqbcfg.AuthorizerConfig(
+                    authorizer=None,
+                ),
             ),
         )
     )

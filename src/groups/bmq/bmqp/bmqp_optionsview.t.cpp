@@ -715,6 +715,7 @@ void test4_invalidOptionsArea()
 // Plan:
 //   - One less sub-queue info than specified in OptionHeader
 //   - An OptionsHeader but no option payload (sub-queue info)
+//   - A non-packed OptionHeader with zero 'words'
 //   - An OptionHeader with type 'OptionType::e_UNDEFINED'
 //   - An OptionHeader with an unsupported type
 //   - Multiple OptionHeader of the same type (duplicate)
@@ -815,6 +816,35 @@ void test4_invalidOptionsArea()
 
     {
         // [3]
+        PV("OPTION HEADER WITH ZERO WORDS");
+
+        // A non-packed OptionHeader whose 'words' is zero
+        bdlbb::Blob              optionsBlob(&bufferFactory,
+                                bmqtst::TestHelperUtil::allocator());
+        const bmqu::BlobPosition optionsAreaPosition;  // start of blob
+        const int                optionsAreaSize = sizeof(bmqp::OptionHeader);
+
+        bmqp::OptionHeader oh;
+        oh.setType(bmqp::OptionType::e_SUB_QUEUE_INFOS);
+        oh.setWords(0);
+
+        // Write OptionHeader
+        bdlbb::BlobUtil::append(&optionsBlob,
+                                reinterpret_cast<const char*>(&oh),
+                                sizeof(bmqp::OptionHeader));
+
+        // Must be rejected as an invalid options area, not as a duplicate
+        bmqp::OptionsView view(bmqtst::TestHelperUtil::allocator());
+        const int         rc = view.reset(&optionsBlob,
+                                  optionsAreaPosition,
+                                  optionsAreaSize);
+
+        BMQTST_ASSERT_NE(0, rc);
+        BMQTST_ASSERT_EQ(false, view.isValid());
+    }
+
+    {
+        // [4]
         PV("OPTION HEADER WITH TYPE UNDEFINED");
 
         // An OptionHeader with type 'OptionType::e_UNDEFINED'
@@ -857,7 +887,7 @@ void test4_invalidOptionsArea()
         BMQTST_ASSERT_EQ(false, view.isValid());
     }
     {
-        // [4]
+        // [5]
         PV("MULTIPLE OPTION HEADERS OF THE SAME TYPE (DUPLICATE)");
 
         // Multiple OptionHeader of the same type (duplicate)
@@ -924,7 +954,7 @@ void test4_invalidOptionsArea()
         BMQTST_ASSERT_EQ(false, view.isValid());
     }
     {
-        // [5]
+        // [6]
         PV("EMPTY BLOB");
 
         bdlbb::Blob              optionsBlob(&bufferFactory,
@@ -944,7 +974,7 @@ void test4_invalidOptionsArea()
         BMQTST_ASSERT_EQ(false, view.isValid());
     }
     {
-        // [6]
+        // [7]
         PV("WRONG AREA SIZE FOR OPTION VIEW");
 
         bdlbb::Blob              optionsBlob(&bufferFactory,

@@ -39,6 +39,7 @@
 #include <bsl_optional.h>
 #include <bsl_ostream.h>
 #include <bsl_string.h>
+#include <bsl_string_view.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
 #include <bslma_usesbslmaallocator.h>
@@ -96,6 +97,11 @@ class BasicCredentialProvider : public mqbplug::CredentialProvider {
 
     /// Destructor.
     ~BasicCredentialProvider() BSLS_KEYWORD_OVERRIDE;
+
+    // ACCESSORS
+
+    /// Return the name of the plugin.
+    bsl::string_view name() const BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
 

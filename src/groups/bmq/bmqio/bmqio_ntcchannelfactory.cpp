@@ -29,7 +29,6 @@
 #include <bsl_iomanip.h>
 #include <bsl_ios.h>
 #include <bsl_iostream.h>
-#include <bsl_limits.h>
 #include <bslma_allocator.h>
 #include <bslma_default.h>
 #include <bsls_assert.h>
@@ -47,8 +46,6 @@ BALL_LOG_SET_NAMESPACE_CATEGORY("BMQIO.NTCCHANNELFACTORY");
 #else
 #define BMQIO_ADDRESS_WIDTH 8
 #endif
-
-const int k_CLOSE_GROUP = bsl::numeric_limits<int>::max();
 
 struct AddressFormatter {
     void* d_address_p;
@@ -98,8 +95,7 @@ void NtcChannelFactory::processListenerResult(
                 alias->onClose(
                     bdlf::BindUtil::bind(&NtcChannelFactory::removeChannel,
                                          this,
-                                         catalogHandle),
-                    k_CLOSE_GROUP);
+                                         catalogHandle));
 
                 d_createSignaler(alias, alias);
 
@@ -303,8 +299,7 @@ void NtcChannelFactory::listen(Status*                      status,
     const int catalogHandle = addListener(listener);
     listener->onClose(bdlf::BindUtil::bind(&NtcChannelFactory::removeListener,
                                            this,
-                                           catalogHandle),
-                      k_CLOSE_GROUP);
+                                           catalogHandle));
 
     // `handle` might be modified from another thread once we call
     // `channel->listen`, make sure to initialize it before.
@@ -374,8 +369,7 @@ void NtcChannelFactory::connect(Status*                      status,
 
     channel->onClose(bdlf::BindUtil::bind(&NtcChannelFactory::removeChannel,
                                           this,
-                                          catalogHandle),
-                     k_CLOSE_GROUP);
+                                          catalogHandle));
 
     // `handle` might be modified from another thread once we call
     // `channel->connect`, make sure to initialize it before.

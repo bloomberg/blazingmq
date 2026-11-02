@@ -18,6 +18,7 @@
 #include <mqbscm_version.h>
 
 // MQB
+#include <mqbact_actions.h>
 #include <mqbauthz_authorizationcontroller.h>
 #include <mqbplug_authorizer.h>
 
@@ -50,7 +51,17 @@ bool Authorizer::authorize(const mqbact::Action&                action,
                            const mqbplug::AuthenticationResult& authnResult)
 {
     ball::ScopedAttribute principalAttr("principal", authnResult.principal());
-    return d_authzController_p->authorizer().authorize(action, authnResult);
+    bool isAllowed = d_authzController_p->authorizer().authorize(action,
+                                                                 authnResult);
+    if (isAllowed) {
+        BALL_LOG_INFO << "ALLOW for " << action << " to "
+                      << authnResult.principal();
+    }
+    else {
+        BALL_LOG_INFO << "DENY for " << action << " to "
+                      << authnResult.principal();
+    }
+    return isAllowed;
 }
 
 }  // close package namespace

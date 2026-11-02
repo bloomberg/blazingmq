@@ -566,9 +566,7 @@ int QueueEngineUtil_ReleaseHandleProctor::releaseHandle(
     mqbi::QueueHandle*                         handle,
     const bmqp_ctrlmsg::QueueHandleParameters& params)
 {
-    bsls::Types::Uint64 lostFlags = 0;
     int rc = d_queueState_p->handleCatalog().releaseHandleHelper(&d_handleSp,
-                                                                 &lostFlags,
                                                                  handle,
                                                                  params,
                                                                  d_isFinal);
@@ -587,38 +585,12 @@ int QueueEngineUtil_ReleaseHandleProctor::releaseHandle(
         d_result.makeNoHandleClients();
     }
 
-    if (bmqt::QueueFlagsUtil::isReader(lostFlags)) {
-        // no more consumers for any subStreams for this handle
-        d_result.makeNoHandleStreamConsumers();
-    }
-
-    if (bmqt::QueueFlagsUtil::isWriter(lostFlags)) {
-        // no more producers for any subStreams for this handle
-        d_result.makeNoHandleStreamProducers();
+    if (0 == handle->handleParameters().writeCount()) {
+        // no more producers for this handle
+        d_result.makeNoHandleProducers();
     }
 
     return 0;
-}
-
-mqbi::QueueHandleReleaseResult
-QueueEngineUtil_ReleaseHandleProctor::releaseQueueStream(
-    const bmqp_ctrlmsg::QueueHandleParameters& params)
-{
-    BSLS_ASSERT_SAFE(d_handleSp);
-
-    mqbi::QueueHandleReleaseResult result;
-    // Update queue's aggregated parameters.
-    mqbi::QueueCounts cumulative = d_queueState_p->subtract(params);
-
-    if (cumulative.d_readCount == 0) {
-        // no more consumers for this subStream across all handles
-        result.makeNoQueueStreamConsumers();
-    }
-    if (cumulative.d_writeCount == 0) {
-        // no more producers for this subStream across all handles
-        result.makeNoQueueStreamProducers();
-    }
-    return result;
 }
 
 mqbi::QueueHandleReleaseResult
@@ -632,17 +604,8 @@ QueueEngineUtil_ReleaseHandleProctor::releaseStream(
                                        params.readCount(),
                                        params.writeCount());
 
-    // `d_result` is accumulated result in the case of wildcard.
-    // `result` is about the given stream only.
-    mqbi::QueueHandleReleaseResult result;
-
-    if (0 == diff.d_readCount) {
-        result.makeNoHandleStreamConsumers();
-    }
-    if (0 == diff.d_writeCount) {
-        result.makeNoHandleStreamProducers();
-    }
-    result.apply(releaseQueueStream(params));
+    // Update queue's aggregated parameters.
+    mqbi::QueueCounts cumulative = d_queueState_p->subtract(params);
 
     if (d_isFinal && (diff.d_readCount || diff.d_writeCount)) {
         // mismatch between isFinal and actual counts in the closeQueue
@@ -657,10 +620,27 @@ QueueEngineUtil_ReleaseHandleProctor::releaseStream(
         copy.readCount()  = diff.d_readCount;
         copy.writeCount() = diff.d_writeCount;
 
-        result.apply(releaseQueueStream(copy));
+        cumulative = d_queueState_p->subtract(copy);
+        diff       = mqbi::QueueCounts(0, 0);
+    }
 
+    // `d_result` is accumulated result in the case of wildcard.
+    // `result` is about the given stream only.
+    mqbi::QueueHandleReleaseResult result;
+
+    if (0 == diff.d_readCount) {
+        // no more consumers for this subStream for this handle
         result.makeNoHandleStreamConsumers();
-        result.makeNoHandleStreamProducers();
+        if (0 == diff.d_writeCount) {
+            result.makeHandleStreamEmpty();
+        }
+    }
+    if (0 == cumulative.d_readCount) {
+        // no more consumers for this subStream across all handles
+        result.makeNoQueueStreamConsumers();
+        if (0 == cumulative.d_writeCount) {
+            result.makeQueueStreamEmpty();
+        }
     }
     d_result.apply(result);
 

@@ -24,6 +24,7 @@
 #include <mqbi_authorizer.h>
 
 // BDE
+#include <ball_log.h>
 #include <bsl_ostream.h>
 #include <bsls_keyword.h>
 
@@ -42,6 +43,8 @@ namespace mqba {
 /// authorizer for a BlazingMQ session with client or broker
 class Authorizer : public mqbi::Authorizer {
   private:
+    BALL_LOG_SET_CLASS_CATEGORY("MQBA.AUTHORIZER");
+
     // DATA
 
     /// Authorization Controller.

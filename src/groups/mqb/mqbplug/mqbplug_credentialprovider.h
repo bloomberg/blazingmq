@@ -40,6 +40,7 @@
 #include <bsl_functional.h>
 #include <bsl_iostream.h>
 #include <bsl_optional.h>
+#include <bsl_string_view.h>
 #include <bslma_managedptr.h>
 
 namespace BloombergLP {
@@ -66,6 +67,14 @@ class CredentialProvider {
 
     /// Destroy this object.
     virtual ~CredentialProvider();
+
+    // ACCESSORS
+
+    /// Return the name of the plugin.
+    ///
+    /// This method is valid to call at any time after construction, including
+    /// before `start()` is called.
+    virtual bsl::string_view name() const = 0;
 
     // MANIPULATORS
 

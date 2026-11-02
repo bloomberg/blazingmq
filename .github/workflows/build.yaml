@@ -73,12 +73,19 @@ jobs:
         with:
           persist-credentials: false
 
+        # xsdata 25.7 does not support python3.14
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          python-version: '3.13'
+          activate-environment: true
+          venv-path: venv
+
       - name: Run Python Unit Tests
         env:
           PYTHONPATH: ${{ github.workspace }}/src/python
         run: |
-          pip install -r ${{ github.workspace }}/src/python/requirements-test.txt
-          pip install "xsdata[cli]==25.7"
+          uv pip install -r ${{ github.workspace }}/src/python/requirements-test.txt
+          uv pip install "xsdata[cli]==25.7"
           cd ${{ github.workspace }}
           src/python/bin/schemagen
           src/python/bin/tweakgen
@@ -109,14 +116,16 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: ${{needs.build_ubuntu.outputs.artifact_key }}
 
         # Solaris: make sure all ITs scripts are compatible with python3.8
-      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
         with:
           python-version: '3.8'
+          activate-environment: true
+          venv-path: venv
 
         # Set execution permissions for all .tsk
         # which were lost when the artifact was created
@@ -143,7 +152,7 @@ jobs:
           export GOPATH=$HOME/go
           export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin
 
-          pip install -r ${{ github.workspace }}/src/python/requirements-test.txt
+          uv pip install -r ${{ github.workspace }}/src/python/requirements-test.txt
 
           ${{ github.workspace }}/src/integration-tests/run-tests \
             "${{ matrix.mode }} and ${{ matrix.cluster }} and ${{ matrix.consistency }}" \
@@ -168,7 +177,7 @@ jobs:
 
       - name: Upload failure-logs as artifacts
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ github.run_id }}_failure_logs_${{ env.RUN_UID }}
           path: ${{ github.workspace }}/src/integration-tests/failure-logs
@@ -176,7 +185,7 @@ jobs:
 
       - name: Upload broker executable as artifacts to debug the core
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ github.run_id }}_bmqbrkr
           overwrite: true # broker binary is the same across all matrix runs
@@ -207,7 +216,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: ${{needs.build_ubuntu.outputs.artifact_key }}
 
@@ -251,7 +260,7 @@ jobs:
 
       - name: Upload fuzz-logs as artifacts
         if: failure()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ matrix.request }}_fuzz.log
           path: ${{ github.workspace }}/${{ matrix.request }}_fuzz.log
@@ -271,7 +280,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: ${{needs.build_ubuntu.outputs.artifact_key }}
 
@@ -292,7 +301,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - os: macos-14
+          - os: macos-15
             arch: arm64
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -339,7 +348,7 @@ jobs:
           sudo apt-get install -qy build-essential \
             gdb \
             curl \
-            python3.10 \
+            python3 \
             cmake \
             ninja-build \
             pkg-config \
@@ -348,6 +357,7 @@ jobs:
             libbenchmark-dev \
             libgmock-dev \
             libgtest-dev \
+            libjitterentropy3-dev \
             libz-dev \
             autoconf \
             libtool \

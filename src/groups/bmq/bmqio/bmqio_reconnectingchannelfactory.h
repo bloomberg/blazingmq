@@ -202,7 +202,6 @@ struct ReconnectingChannelFactory_ConnectHandle
     bsl::vector<bsl::string>                    d_endpoints;
     int                                         d_currentAttemptCounter;
     bslma::ManagedPtr<ChannelFactory::OpHandle> d_baseConnectHandle;
-    bdlmt::SignalerConnection                   d_closeFnConnection;
     bdlmt::EventScheduler::EventHandle          d_reconnectHandle;
     bsls::Types::Int64                          d_lastConnectAttemptTime;
     bsls::TimeInterval                          d_lastConnectInterval;

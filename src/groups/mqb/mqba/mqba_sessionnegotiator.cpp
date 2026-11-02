@@ -54,6 +54,7 @@
 #include <mqbcfg_brokerconfig.h>
 #include <mqbcfg_messages.h>
 #include <mqbi_authorizer.h>
+#include <mqbnet_authenticationcontext.h>
 #include <mqbnet_cluster.h>
 #include <mqbnet_dummysession.h>
 #include <mqbnet_initialconnectioncontext.h>
@@ -392,7 +393,15 @@ bsl::shared_ptr<mqbnet::Session> SessionNegotiator::onClientIdentityMessage(
 
     BALL_LOG_INFO << "Handle negotiation message received from '"
                   << context_p->channel().get()
-                  << "': " << bmqu::StringUtil::logSafe(clientIdentity);
+                  << "': " << bmqu::StringUtil::logSafe(clientIdentity)
+                  << " [mechanism: "
+                  << context_p->authenticationContext()->mechanism()
+                  << ", principal: "
+                  << bmqu::StringUtil::logSafe(
+                         context_p->authenticationContext()
+                             ->authenticationResult()
+                             ->principal())
+                  << "]";
 
     // Inject the hostName in the negotiation message if not provided by the
     // connecting peer.
