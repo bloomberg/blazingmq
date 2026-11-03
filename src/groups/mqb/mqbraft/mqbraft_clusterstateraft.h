@@ -40,6 +40,7 @@
 #include <mqbcfg_messages.h>
 #include <mqbi_clusterstatemanager.h>
 #include <mqbnet_cluster.h>
+#include <mqbraft_clusteravailability.h>
 #include <mqbraft_cslraftlog.h>
 #include <mqbraft_raftnode.h>
 
@@ -75,17 +76,23 @@ class ClusterStateRaft : public mqbi::ClusterStateUpdater,
   public:
     // TYPES
 
-    /// Callback invoked (on the cluster dispatcher thread) whenever the CSL
-    /// Raft state advances -- leadership change or committed entries applied
-    /// -- so the orchestrator can re-evaluate whether it may transition to
-    /// AVAILABLE.
-    typedef bsl::function<void()> AvailabilityCb;
+    /// Callback invoked (on the cluster dispatcher thread) once per
+    /// `dispatchOutput` that changes the CSL leader or applies a
+    /// `LeaderAdvisory` or `partitionPrimaryAdvisory`, with the CSL leader
+    /// (`RaftNode::k_INVALID_NODE_ID` if none) and the CSL term, so the
+    /// orchestrator can act on `ClusterAvailability`.
+    typedef bsl::function<void(int leaderId, bsls::Types::Uint64 term)>
+        AvailabilityCb;
 
     // PUBLIC CONSTANTS
 
     /// `transferLeadership` return codes.
     static const int k_TRANSFER_NOT_LEADER     = -1;
     static const int k_TRANSFER_UNKNOWN_TARGET = -2;
+
+    /// `unassignQueue` return code: the advisory's `primaryLeaseId` differs
+    /// from the confirmed leaseId of the partition.
+    static const int k_UNCONFIRMED_LEASE_ID = -3;
 
   private:
     // CLASS-SCOPE CATEGORY
@@ -100,16 +107,10 @@ class ClusterStateRaft : public mqbi::ClusterStateUpdater,
     bdlmt::EventScheduler::RecurringEventHandle d_tickHandle;
     AvailabilityCb                              d_availabilityCb;
 
-    /// Term in which this node last reached `e_ACTIVE`, or 0.  Holding the
-    /// term makes the status recomputable: `promoteToActive` fires once, on
-    /// committing that term's `partitionPrimaryAdvisory`, but anything that
-    /// clears the leader resets the status, and only the CSL *leader* can
-    /// publish another advisory -- gated on the leader's own status, which a
-    /// follower's reset does not change.  Being caught up is a property of
-    /// the term (at most one leader per term, and applying further entries
-    /// cannot unmake it), so `updateElectorInfo` re-asserts `e_ACTIVE` while
-    /// this still equals the current term.
-    bsls::Types::Uint64 d_activeTerm;
+    /// Receives the CSL leader and term (`updateElectorInfo`), and the
+    /// leaseIds of each applied `LeaderAdvisory` and
+    /// `partitionPrimaryAdvisory`.  Held, not owned.
+    ClusterAvailability* d_availability_p;
 
     bool              d_isStarted;
     bslma::Allocator* d_allocator_p;
@@ -180,15 +181,9 @@ class ClusterStateRaft : public mqbi::ClusterStateUpdater,
                                  bsls::Types::Uint64  term);
 
     /// Apply a single committed CSL entry to ClusterState.  Return true if
-    /// the entry is the first of the current term (the leader's snapshot,
-    /// see `installLeaderSnapshot`), whose commit is what applies the backlog
-    /// inherited from prior terms, or a later current-term advisory.
+    /// the entry is a `LeaderAdvisory` or a `partitionPrimaryAdvisory`, whose
+    /// leaseIds are reported to `d_availability_p`.
     bool applyCommittedEntry(const LogEntry& entry);
-
-    /// Move the elector's leader status to `e_ACTIVE` and notify the
-    /// orchestrator.  Call only once the first current-term entry has been
-    /// applied.
-    void promoteToActive();
 
     /// Roll over the CSL log: snapshot the committed cluster state into a
     /// fresh file (preserving the uncommitted tail) and remove the old file.
@@ -206,18 +201,28 @@ class ClusterStateRaft : public mqbi::ClusterStateUpdater,
 
     /// Load into the specified `record` an `e_SNAPSHOT` record holding, as a
     /// `LeaderAdvisory`, the queues of the specified `state` and the
-    /// partitions of the cluster state, which data-partition Raft keeps
-    /// current, stamped with the specified `index` and `term`.  Return 0 on
-    /// success and a non-zero value otherwise.
-    int buildSnapshotRecord(bdlbb::Blob*              record,
-                            const mqbc::ClusterState& state,
-                            bsls::Types::Uint64       index,
-                            bsls::Types::Uint64       term);
+    /// specified `partitions`, stamped with the specified `index` and
+    /// `term`.  Return 0 on success and a non-zero value otherwise.
+    int buildSnapshotRecord(
+        bdlbb::Blob*                                           record,
+        const mqbc::ClusterState&                              state,
+        const bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>& partitions,
+        bsls::Types::Uint64                                    index,
+        bsls::Types::Uint64                                    term);
 
-    /// Record the leaseIds of the specified `partitions` as confirmed by a
-    /// committed CSL advisory (`advisoryConfirmedLeaseId`).
+    /// Load into the specified `partitions` the primary node and leaseId of
+    /// every partition, as data-partition Raft reports them to the cluster
+    /// state, raised to the confirmed primary node and leaseId
+    /// (`ClusterAvailability::raiseToConfirmed`).
+    void loadSnapshotPartitions(
+        bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>* partitions) const;
+
+    /// Report the leaseIds of the specified `partitions` of an applied CSL
+    /// advisory, whose entry has the specified `entryTerm`, to
+    /// `d_availability_p`.
     void confirmLeaseIds(
-        const bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>& partitions);
+        const bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>& partitions,
+        bsls::Types::Uint64                                    entryTerm);
 
     /// Apply the specified `message` to the specified `state`.  A
     /// `LeaderAdvisory` replaces the queues in `state`; `ClusterUtil::apply`
@@ -269,6 +274,7 @@ class ClusterStateRaft : public mqbi::ClusterStateUpdater,
                      mqbc::ClusterState*            clusterState,
                      const mqbcfg::PartitionConfig& partitionConfig,
                      const AvailabilityCb&          availabilityCb,
+                     ClusterAvailability*           availability,
                      bslma::Allocator*              allocator = 0);
 
     ~ClusterStateRaft() BSLS_KEYWORD_OVERRIDE;

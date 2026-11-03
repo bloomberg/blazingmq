@@ -894,7 +894,7 @@ class StorageMonitor : public mqbs::StorageMonitor {
         /// On the Raft write path a QueueOp only takes effect when it
         /// commits, so without these a second caller -- a concurrent open, a
         /// parked one replayed by `onQueueStorageReady`, or the next
-        /// `maybeTransitionToAvailable` re-running the journal-to-cluster
+        /// `proposeDeferredSyncPoint` re-running the journal-to-cluster
         /// state comparison -- would look at an unchanged storage and propose
         /// the very same record again.
         int d_awaiting;

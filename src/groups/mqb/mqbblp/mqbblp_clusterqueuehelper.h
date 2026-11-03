@@ -566,7 +566,6 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// replica and will initiate the proper sequence of operation based on the
     /// role of the current node within the cluster.  Return `false`, if the
     /// assignment has failed, return `true` on success or on no ACTIVE leader.
-    bool assignQueueIfNeeded(const QueueContextSp& queueContext_sp);
     bool assignQueue(const QueueContextSp& queueContext_sp);
 
     /// Send a queueAssignment request to the leader, requesting assignment

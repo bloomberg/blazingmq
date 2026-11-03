@@ -63,7 +63,7 @@ const int k_TICK_INTERVAL_MS = 100;
 /// How long a StopResponse waits for the stopping peer to acknowledge its
 /// sync point.  Well below the stopping peer's StopRequest timeout.
 const int k_STOP_RESPONSE_WAIT_MS = 1000;
-const int k_JREC_SIZE        = mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
+const int k_JREC_SIZE = mqbs::FileStoreProtocol::k_JOURNAL_RECORD_SIZE;
 const bsls::Types::Uint64 k_CHUNK_SIZE = 4ULL * 1024 * 1024;
 
 RaftNodeConfig makeRaftConfig(mqbc::ClusterData& clusterData,
@@ -601,14 +601,31 @@ void PartitionRaft::postDispatch(RaftNodeOutput* output, bool hadRollover)
 {
     // executed by the partition *DISPATCHER* thread
 
-    if (!d_deferred.empty()) {
-        // Propose the DELETIONs the apply loop deferred.  Swap first:
-        // 'propose' runs a nested 'dispatchOutput', which reaches this code
-        // again.
+    // A leader holds the DELETIONs the apply loop deferred until it has
+    // applied its become-leader sync point:
+    // 1. That sync point is proposed only after the cluster state has this
+    //    leaseId.  This is to avoid a DELETION under a leaseId the cluster
+    //    state may not have.
+    // 2. Applying that sync point applies every entry before it, including
+    //    the previous leader's DELETIONs.  A held DELETION whose message is
+    //    gone is dropped.  This is to avoid a second DELETION per message.
+    // A node that is not the leader proposes them at once: 'propose' holds
+    // them, and 'repostHeldProposals' drops them.
+    const bool isSyncPointApplied = d_reportedSyncPointTerm ==
+                                    d_raftNode_mp->currentTerm();
+    if (!d_deferred.empty() && (!isLeader() || isSyncPointApplied)) {
+        // Swap first: 'propose' runs a nested 'dispatchOutput', which
+        // reaches this code again.
         bsl::vector<bsl::shared_ptr<mqbs::Proposal> > deferred(d_allocator_p);
         deferred.swap(d_deferred);
 
         for (size_t i = 0; i < deferred.size(); ++i) {
+            if (isLeader() &&
+                !d_fileStore_sp->hasMessage(deferred[i]->d_queueKey,
+                                            deferred[i]->d_guid)) {
+                continue;  // CONTINUE
+            }
+
             const int rc = propose(deferred[i]);
             if (rc != 0) {
                 BALL_LOG_ERROR << "Partition [" << d_partitionId
@@ -823,8 +840,8 @@ void PartitionRaft::applyCommittedEntry(const LogEntry&    entry,
         // Report the first sync point committed under the current term.
         // Applying it means this node, leader or replica, has applied every
         // entry before it, including those inherited from earlier terms.
-        // 'ClusterOrchestrator::maybeTransitionToAvailable' waits for this
-        // report.
+        // 'ClusterAvailability::evaluatePartition' waits until this node
+        // reports the sync point.
         d_reportedSyncPointTerm = entry.d_term;
 
         d_leadershipCb(d_partitionId,
@@ -1489,6 +1506,17 @@ int PartitionRaft::propose(const bsl::shared_ptr<mqbs::Proposal>& pw)
         return 0;  // RETURN
     }
 
+    if (!isLeader()) {
+        // A local queue is between this node's stepdown and the conversion of
+        // its queues to remote.  Hold the write for 'repostHeldProposals',
+        // which re-posts a PUT to the new primary.  This is to avoid NACKing a
+        // PUT that the new primary can accept.  Ahead of the 'FileStore'
+        // checks below: an InstallSnapshot closes the 'FileStore' while the
+        // queues are still local.
+        d_raftLog_mp->holdProposal(pw);
+        return 0;  // RETURN
+    }
+
     // Skipped while a rollover is pending: 'proposeRollover' marks the
     // journal unavailable for the rollover's duration.  This is to avoid the
     // read-only branch below rejecting the writes that should buffer.
@@ -1550,15 +1578,6 @@ int PartitionRaft::propose(const bsl::shared_ptr<mqbs::Proposal>& pw)
         // commits.  This covers the write that triggered the rollover and
         // every write after it until the commit.
         return d_raftLog_mp->bufferProposal(pw);
-    }
-
-    if (!isLeader()) {
-        // A local queue is between this node's stepdown and the conversion of
-        // its queues to remote.  Hold the write for 'repostHeldProposals',
-        // which re-posts a PUT to the new primary.  This is to avoid NACKing a
-        // PUT that the new primary can accept.
-        d_raftLog_mp->holdProposal(pw);
-        return 0;  // RETURN
     }
 
     // Hand the write to 'append()', which stamps the record's sequence number
@@ -2571,6 +2590,13 @@ void PartitionRaft::onPurgeComplete()
         d_fileStore_sp->setAvailabilityStatus(true);
     }
 
+    if (d_needsBecomeLeaderSyncPoint) {
+        // An 'e_ROLLOVER' proposed now would be written under a leaseId the
+        // cluster state may not have.  The become-leader sync point goes
+        // through 'propose', which calls 'rolloverIfNeeded'.
+        return;  // RETURN
+    }
+
     rolloverIfNeeded(0, 0);
 }
 
@@ -2665,9 +2691,10 @@ bool PartitionRaft::isLeader() const
     return d_raftNode_mp->state() == RaftState::e_LEADER;
 }
 
-bool PartitionRaft::isTransferringLeadership() const
+bool PartitionRaft::isLeadershipStable() const
 {
-    return d_raftNode_mp->isTransferringLeadership();
+    return !d_raftNode_mp->isTransferringLeadership() &&
+           !d_needsBecomeLeaderSyncPoint;
 }
 
 int PartitionRaft::leaderId() const
