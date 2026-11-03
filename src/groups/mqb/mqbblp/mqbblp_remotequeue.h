@@ -337,6 +337,13 @@ class RemoteQueue {
     /// Return the queue engine used by this queue.
     mqbi::QueueEngine* queueEngine();
 
+    /// Take over the state left by the `LocalQueue` this queue replaces:
+    /// rebuild the engine from the surviving handles, and put every subStream
+    /// into buffering until the reopen supplies a generation count.  Return 0
+    /// on success, and load a description into the specified
+    /// `errorDescription` otherwise.
+    int importState(bsl::ostream& errorDescription);
+
     /// Reset the state of this object.
     void resetState();
 

@@ -325,6 +325,17 @@ class CapacityMeter {
     CommitResult commitUnreserved(bsls::Types::Int64 messages,
                                   bsls::Types::Int64 bytes);
 
+    /// Reserve the specified `messages` and `bytes` resources on this object
+    /// if it has enough capacity for it, or be a no-op otherwise.  Return
+    /// whether the resources were reserved, or which limit was hit.  Applies
+    /// the same rule as `commitUnreserved` -- the requested amounts are not
+    /// themselves counted in the capacity check, so the capacity may be
+    /// exceeded exactly once -- but stops at the reservation, leaving the
+    /// caller to `commit` or `release` it.  Used where the resource is
+    /// claimed before it is known whether it will be kept.
+    CommitResult tryReserve(bsls::Types::Int64 messages,
+                            bsls::Types::Int64 bytes);
+
     /// Force commit usage of the specified `messages` and `bytes` which
     /// must *NOT* have been previously reserved; and do not perform any
     /// capacity checking.  This is mostly used for recovery startup where

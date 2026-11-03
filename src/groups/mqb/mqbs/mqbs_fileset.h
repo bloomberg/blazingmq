@@ -91,6 +91,11 @@ struct FileSet BSLS_KEYWORD_FINAL {
 
     bool d_fileSetRolloverPolicyAlarm;
 
+    /// `true` once this FileSet's files have been moved to the archive
+    /// location.  A close that cannot unmap yet moves them there ahead of the
+    /// unmap; whoever unmaps later must not move them again.
+    bool d_isArchived;
+
     /// `true` if this FileSet is garbage-collected on rollover, `false` if
     /// GC is expected on the last alias destruction.
     bsls::AtomicBool d_inlineGc;
@@ -149,6 +154,7 @@ inline FileSet::FileSet(FileStore* store, bslma::Allocator* allocator)
 , d_qlist(allocator)
 , d_journalFileAvailable(true)
 , d_fileSetRolloverPolicyAlarm(false)
+, d_isArchived(false)
 , d_inlineGc(false)
 , d_aliasedChunk_sp()
 , d_aliasedChunk_wp()

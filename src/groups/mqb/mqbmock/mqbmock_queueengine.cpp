@@ -39,8 +39,7 @@ QueueEngine::~QueueEngine()
 }
 
 // MANIPULATORS
-int QueueEngine::configure(BSLA_MAYBE_UNUSED bsl::ostream& errorDescription,
-                           BSLA_MAYBE_UNUSED bool          isReconfigure)
+int QueueEngine::configure(BSLA_MAYBE_UNUSED bool isReconfigure)
 {
     return 0;
 }
@@ -51,6 +50,11 @@ void QueueEngine::close()
 }
 
 void QueueEngine::resetState(BSLA_MAYBE_UNUSED bool keepConfirming)
+{
+    // NOTHING
+}
+
+void QueueEngine::resetStorage()
 {
     // NOTHING
 }

@@ -1779,7 +1779,7 @@ void ClusterStateManager::registerQueueInfo(
                                          forceUpdate);
 }
 
-void ClusterStateManager::unassignQueue(
+int ClusterStateManager::unassignQueue(
     const bmqp_ctrlmsg::QueueUnAssignmentAdvisory& advisory)
 {
     // executed by the *DISPATCHER* thread
@@ -1799,6 +1799,8 @@ void ClusterStateManager::unassignQueue(
                        << ": Failed to apply queue unassignment advisory: "
                        << advisory << ", rc: " << rc;
     }
+
+    return rc;
 }
 
 void ClusterStateManager::sendClusterState(
