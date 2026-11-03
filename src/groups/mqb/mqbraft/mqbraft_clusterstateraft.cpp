@@ -83,6 +83,29 @@ RaftNodeConfig makeRaftConfig(const mqbc::ClusterData& clusterData,
     return config;
 }
 
+/// Replace the primary node and leaseId of each of the specified
+/// `partitions` with those in the specified `from` when the leaseId in
+/// `from` is higher.
+void raiseLeaseIds(bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>* partitions,
+                   const bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>& from)
+{
+    for (bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>::const_iterator it =
+             from.cbegin();
+         it != from.cend();
+         ++it) {
+        const int pid = it->partitionId();
+        if (pid < 0 || pid >= static_cast<int>(partitions->size())) {
+            continue;  // CONTINUE
+        }
+
+        bmqp_ctrlmsg::PartitionPrimaryInfo& info = (*partitions)[pid];
+        if (it->primaryLeaseId() > info.primaryLeaseId()) {
+            info.primaryLeaseId() = it->primaryLeaseId();
+            info.primaryNodeId()  = it->primaryNodeId();
+        }
+    }
+}
+
 }  // close unnamed namespace
 
 // ======================
@@ -95,6 +118,7 @@ ClusterStateRaft::ClusterStateRaft(
     mqbc::ClusterState*            clusterState,
     const mqbcfg::PartitionConfig& partitionConfig,
     const AvailabilityCb&          availabilityCb,
+    ClusterAvailability*           availability,
     bslma::Allocator*              allocator)
 : d_partitionConfig(partitionConfig, allocator)
 , d_cslLog_mp()
@@ -103,7 +127,7 @@ ClusterStateRaft::ClusterStateRaft(
 , d_clusterState_p(clusterState)
 , d_tickHandle()
 , d_availabilityCb(bsl::allocator_arg, allocator, availabilityCb)
-, d_activeTerm(0)
+, d_availability_p(availability)
 , d_isStarted(false)
 , d_allocator_p(bslma::Default::allocator(allocator))
 , d_persistentStatePath(d_allocator_p)
@@ -112,6 +136,7 @@ ClusterStateRaft::ClusterStateRaft(
     BSLS_ASSERT_SAFE(clusterData);
     BSLS_ASSERT_SAFE(clusterState);
     BSLS_ASSERT_SAFE(availabilityCb);
+    BSLS_ASSERT_SAFE(availability);
 }
 
 ClusterStateRaft::~ClusterStateRaft()
@@ -213,38 +238,35 @@ void ClusterStateRaft::dispatchOutput(RaftNodeOutput* output)
 
     // 'd_leaderChanged' is set exactly when '(leaderId, term)' moved, so a
     // Raft role transition that moves neither does not reach here -- it would
-    // otherwise reset a status this node was promoted to earlier in this same
-    // term, which nothing re-arms.
+    // otherwise reset the 'e_ACTIVE' status of the same term.
     if (output->d_leaderChanged) {
         // Resets the leader status to 'e_PASSIVE' (or clears the leader
-        // outright).  Promotion back to 'e_ACTIVE' is deliberately not done
-        // here -- see 'promoteToActive' below.
+        // outright).  The orchestrator sets 'e_ACTIVE'
+        // ('ClusterAvailability::isCslCaughtUp').  Before applying the
+        // committed entries: applying a queue advisory reads the elector
+        // term.
         updateElectorInfo();
-
-        // The CSL leader's first current-term entry is its snapshot
-        // ('installLeaderSnapshot', above); committing it applies the
-        // inherited backlog (Raft 5.4.2) and promotes to 'e_ACTIVE'.  The
-        // orchestrator's 'partitionPrimaryAdvisory' records partition leaseIds
-        // that change after it.
-        //
-        // A leadership change also lets the orchestrator re-evaluate/re-issue
-        // that advisory.  Other entry commits (queue assignments, app
-        // updates, ...) do not re-invoke the callback here; see
-        // 'promoteToActive' for the per-advisory trigger.
-        d_availabilityCb();
     }
 
-    bool caughtUp = false;
+    bool hasAdvisory = false;
     for (bsl::vector<LogEntry>::size_type i = 0;
          i < output->d_committed.size();
          ++i) {
-        caughtUp |= applyCommittedEntry(output->d_committed[i]);
+        hasAdvisory |= applyCommittedEntry(output->d_committed[i]);
     }
 
-    // Promote after the whole batch is applied: this fires observers that
-    // 'propose', which in a single-node cluster re-enters here inline.
-    if (caughtUp) {
-        promoteToActive();
+    // The CSL leader's first current-term entry is its snapshot
+    // ('installLeaderSnapshot', above); applying the snapshot applies the
+    // inherited backlog (Raft 5.4.2), which makes the CSL state caught up.
+    // The orchestrator's 'partitionPrimaryAdvisory' records partition
+    // leaseIds that change after the snapshot.
+    //
+    // Notify the orchestrator once, after both the leadership change and the
+    // advisories applied.  Other entry commits (queue assignments, app
+    // updates, ...) do not notify.
+    if (output->d_leaderChanged || hasAdvisory) {
+        d_availabilityCb(d_raftNode_mp->leaderId(),
+                         d_raftNode_mp->currentTerm());
     }
 }
 
@@ -438,7 +460,7 @@ void ClusterStateRaft::sendControlMessage(const RaftMessage& msg)
 
 bool ClusterStateRaft::applyCommittedEntry(const LogEntry& entry)
 {
-    bool caughtUp = false;
+    bool isAdvisory = false;
 
     bmqp_ctrlmsg::ClusterMessage clusterMessage(d_allocator_p);
 
@@ -446,13 +468,13 @@ bool ClusterStateRaft::applyCommittedEntry(const LogEntry& entry)
                                                               *entry.d_data);
     if (rc != 0) {
         BALL_LOG_ERROR << "Failed to decode committed CSL entry, rc=" << rc;
-        return caughtUp;  // RETURN
+        return isAdvisory;  // RETURN
     }
 
     if (clusterMessage.choice().isLeaderAdvisoryCommitValue()) {
         // A legacy 'e_COMMIT' record: an entry, because 'CslRaftLog' indexes
         // records by sequence number, but there is nothing to apply.
-        return caughtUp;  // RETURN
+        return isAdvisory;  // RETURN
     }
 
     if (clusterMessage.choice().selectionId() ==
@@ -460,36 +482,32 @@ bool ClusterStateRaft::applyCommittedEntry(const LogEntry& entry)
             SELECTION_ID_PARTITION_PRIMARY_ADVISORY) {
         // Don't apply to ClusterState: 'ClusterUtil::apply' ->
         // 'applyPartitionPrimary' is a no-op under Raft ('isRaftEnabled()'
-        // early-return).  Only a current-term advisory describes the live
-        // epoch (Raft 5.4.2), so a prior-term one replayed at recovery is
-        // skipped.  Promote on it too: 'maybeTransitionToAvailable' waits on
-        // these leaseIds.
-        if (entry.d_term == d_raftNode_mp->currentTerm()) {
-            confirmLeaseIds(clusterMessage.choice()
-                                .partitionPrimaryAdvisory()
-                                .partitions());
-            caughtUp = true;
-        }
+        // early-return).  'ClusterAvailability::evaluatePartition' waits
+        // until these leaseIds are confirmed.
+        confirmLeaseIds(
+            clusterMessage.choice().partitionPrimaryAdvisory().partitions(),
+            entry.d_term);
+        isAdvisory = true;
     }
     else {
         applyToState(d_clusterState_p, clusterMessage);
 
         // A current-term 'LeaderAdvisory' is the leader's snapshot
         // ('installLeaderSnapshot'), its first entry in the term: committing
-        // it applies everything before it (Raft 5.4.2).  Its partitions are
-        // the leaseIds the leader knew then.
-        if (clusterMessage.choice().isLeaderAdvisoryValue() &&
-            entry.d_term == d_raftNode_mp->currentTerm()) {
+        // the snapshot applies every entry before the snapshot (Raft 5.4.2).
+        // Its partitions are the leaseIds the leader knew then.
+        if (clusterMessage.choice().isLeaderAdvisoryValue()) {
             confirmLeaseIds(
-                clusterMessage.choice().leaderAdvisory().partitions());
-            caughtUp = true;
+                clusterMessage.choice().leaderAdvisory().partitions(),
+                entry.d_term);
+            isAdvisory = true;
         }
     }
 
     BALL_LOG_INFO << "Applied committed CSL entry at term " << entry.d_term
                   << ": " << clusterMessage;
 
-    return caughtUp;
+    return isAdvisory;
 }
 
 void ClusterStateRaft::toCtrlMsg(bmqp_ctrlmsg::RaftMessage* out,
@@ -637,6 +655,9 @@ void ClusterStateRaft::updateElectorInfo()
             d_raftNode_mp->currentTerm(),
             0,
             mqbc::ElectorInfoLeaderStatus::e_UNDEFINED);
+        d_availability_p->onCslLeader(false,
+                                      false,
+                                      d_raftNode_mp->currentTerm());
 
         return;  // RETURN
     }
@@ -678,34 +699,14 @@ void ClusterStateRaft::updateElectorInfo()
         leaderNode,
         mqbc::ElectorInfoLeaderStatus::e_PASSIVE);
 
-    // This node already proved it holds the term's backlog, and the term has
-    // not moved, so the reset above dropped a status it is still entitled to.
-    // Nothing else would restore it: the advisory whose commit sets it is
-    // published once per term, by the CSL leader, gated on the *leader's* own
-    // status -- which a follower's reset leaves untouched.  Two steps because
-    // 'setLeaderStatus' forbids 'e_UNDEFINED' -> 'e_ACTIVE' directly.
-    if (0 != d_activeTerm && d_activeTerm == d_raftNode_mp->currentTerm()) {
-        BALL_LOG_INFO << "ClusterStateRaft::updateElectorInfo (node "
-                      << d_clusterData_p->membership().selfNode()->hostName()
-                      << "): still caught up for term " << d_activeTerm
-                      << " -> re-asserting ACTIVE";
-
-        d_clusterData_p->electorInfo().setLeaderStatus(
-            mqbc::ElectorInfoLeaderStatus::e_ACTIVE);
-    }
-}
-
-void ClusterStateRaft::promoteToActive()
-{
-    // 'e_ACTIVE' means the state machine holds every committed entry, not
-    // just the log: election safety covers the log, but Raft 5.4.2 defers
-    // applying an inherited backlog until a current-term entry commits.
-    d_activeTerm = d_raftNode_mp->currentTerm();
-
-    d_clusterData_p->electorInfo().setLeaderStatus(
-        mqbc::ElectorInfoLeaderStatus::e_ACTIVE);
-
-    d_availabilityCb();
+    // Together with 'ElectorInfo'.  This is to avoid an event already
+    // dispatched to the cluster thread reading the CSL leader and term of the
+    // previous term from 'ClusterAvailability' (marking a partition active
+    // while 'ElectorInfo' has no active leader).
+    d_availability_p->onCslLeader(
+        true,
+        leaderId == d_clusterData_p->membership().selfNode()->nodeId(),
+        d_raftNode_mp->currentTerm());
 }
 
 // MANIPULATORS
@@ -1233,10 +1234,14 @@ int ClusterStateRaft::rolloverCsl()
     // a 'LeaderAdvisory'.  This mirrors legacy
     // 'IncoreClusterStateLedger::onLogRolloverCb', which each node writes
     // locally on its own rollover (never broadcast).
+    bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo> partitions(d_allocator_p);
+    loadSnapshotPartitions(&partitions);
+
     bsl::shared_ptr<bdlbb::Blob> snapshotRecord =
         d_clusterData_p->blobSpPool().getObject();
     int rc = buildSnapshotRecord(snapshotRecord.get(),
                                  *d_clusterState_p,
+                                 partitions,
                                  compactIndex,
                                  compactTerm);
     if (rc != 0) {
@@ -1323,6 +1328,14 @@ int ClusterStateRaft::installLeaderSnapshot()
                              true,  // isTemporary
                              d_allocator_p);
 
+    // The snapshot carries the highest leaseId of each partition in the log,
+    // committed or not.  This is to avoid publishing a leaseId lower than a
+    // leaseId the CSL has confirmed, when self has not applied that
+    // confirmation (accepting a 'QueueUnassignmentRequest' from an old
+    // primary).
+    bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo> partitions(d_allocator_p);
+    loadSnapshotPartitions(&partitions);
+
     for (bsl::vector<LogEntry>::const_iterator it = entries.begin();
          it != entries.end();
          ++it) {
@@ -1335,9 +1348,19 @@ int ClusterStateRaft::installLeaderSnapshot()
             return -2;  // RETURN
         }
 
-        // Neither changes the queues: see 'applyCommittedEntry'.
-        if (message.choice().isLeaderAdvisoryCommitValue() ||
-            message.choice().isPartitionPrimaryAdvisoryValue()) {
+        if (message.choice().isPartitionPrimaryAdvisoryValue()) {
+            raiseLeaseIds(
+                &partitions,
+                message.choice().partitionPrimaryAdvisory().partitions());
+            continue;  // CONTINUE
+        }
+        if (message.choice().isLeaderAdvisoryValue()) {
+            raiseLeaseIds(&partitions,
+                          message.choice().leaderAdvisory().partitions());
+        }
+
+        // Does not change the queues: see 'applyCommittedEntry'.
+        if (message.choice().isLeaderAdvisoryCommitValue()) {
             continue;  // CONTINUE
         }
 
@@ -1349,7 +1372,7 @@ int ClusterStateRaft::installLeaderSnapshot()
 
     bsl::shared_ptr<bdlbb::Blob> record =
         d_clusterData_p->blobSpPool().getObject();
-    int rc = buildSnapshotRecord(record.get(), state, index, term);
+    int rc = buildSnapshotRecord(record.get(), state, partitions, index, term);
     if (rc != 0) {
         BALL_LOG_ERROR << "Failed to build the leader snapshot, rc=" << rc;
         return rc;  // RETURN
@@ -1391,10 +1414,12 @@ int ClusterStateRaft::installLeaderSnapshot()
     return 0;
 }
 
-int ClusterStateRaft::buildSnapshotRecord(bdlbb::Blob*              record,
-                                          const mqbc::ClusterState& state,
-                                          bsls::Types::Uint64       index,
-                                          bsls::Types::Uint64       term)
+int ClusterStateRaft::buildSnapshotRecord(
+    bdlbb::Blob*                                           record,
+    const mqbc::ClusterState&                              state,
+    const bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>& partitions,
+    bsls::Types::Uint64                                    index,
+    bsls::Types::Uint64                                    term)
 {
     BSLS_ASSERT_SAFE(record);
 
@@ -1403,8 +1428,7 @@ int ClusterStateRaft::buildSnapshotRecord(bdlbb::Blob*              record,
         clusterMessage.choice().makeLeaderAdvisory();
     advisory.sequenceNumber().electorTerm()    = term;
     advisory.sequenceNumber().sequenceNumber() = index;
-    mqbc::ClusterUtil::loadPartitionsInfo(&advisory.partitions(),
-                                          *d_clusterState_p);
+    advisory.partitions()                      = partitions;
     mqbc::ClusterUtil::loadQueuesInfo(&advisory.queues(), state);
 
     return mqbc::ClusterStateLedgerUtil::appendRecord(
@@ -1416,23 +1440,29 @@ int ClusterStateRaft::buildSnapshotRecord(bdlbb::Blob*              record,
         d_allocator_p);
 }
 
+void ClusterStateRaft::loadSnapshotPartitions(
+    bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>* partitions) const
+{
+    BSLS_ASSERT_SAFE(partitions);
+
+    partitions->clear();
+    mqbc::ClusterUtil::loadPartitionsInfo(partitions, *d_clusterState_p);
+    d_availability_p->raiseToConfirmed(partitions);
+}
+
 void ClusterStateRaft::confirmLeaseIds(
-    const bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>& partitions)
+    const bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>& partitions,
+    bsls::Types::Uint64                                    entryTerm)
 {
     // Under Raft the data-partition Raft, not the CSL, owns partition
     // primary/leaseId.  The orchestrator declares a partition ready only once
     // two leaseIds agree: the one a CSL advisory committed, and the one
     // observed locally from data-partition Raft leadership ('primaryLeaseId').
     // They come over two Raft groups, arriving in either order, so the
-    // committed one goes in its own field.
-    for (bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>::const_iterator it =
-             partitions.cbegin();
-         it != partitions.cend();
-         ++it) {
-        d_clusterState_p->setPartitionAdvisoryConfirmedLeaseId(
-            it->partitionId(),
-            it->primaryLeaseId());
-    }
+    // committed one is kept apart ('ClusterAvailability').
+    d_availability_p->onLeaseIdsConfirmed(partitions,
+                                          entryTerm,
+                                          d_raftNode_mp->currentTerm());
 }
 
 void ClusterStateRaft::applyToState(
@@ -1751,6 +1781,20 @@ void ClusterStateRaft::processQueueAssignmentRequest(
 int ClusterStateRaft::unassignQueue(
     const bmqp_ctrlmsg::QueueUnAssignmentAdvisory& advisory)
 {
+    const unsigned int confirmedLeaseId = d_availability_p->confirmedLeaseId(
+        advisory.partitionId());
+    if (advisory.primaryLeaseId() != confirmedLeaseId) {
+        // The advisory carries self's leaseId for the partition.  Self is
+        // behind on the partition, or the CSL has not confirmed the leaseId
+        // yet.  This is to avoid unassigning a queue that a newer primary
+        // serves (deleting the queue storage).
+        BALL_LOG_WARN << d_clusterData_p->identity().description()
+                      << ": Not proposing queue unassignment advisory: "
+                      << advisory << ": confirmed leaseId of partition "
+                      << advisory.partitionId() << " is " << confirmedLeaseId;
+        return k_UNCONFIRMED_LEASE_ID;  // RETURN
+    }
+
     bmqp_ctrlmsg::ClusterMessage msg(d_allocator_p);
     msg.choice().makeQueueUnAssignmentAdvisory() = advisory;
 

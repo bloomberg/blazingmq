@@ -125,9 +125,12 @@ class ReplicatedStorage : public mqbi::Storage {
 
     /// Purge the virtual storage associated with the specified `appKey`.
     /// If `appKey` is null, purge the physical as well as all virtual
-    /// storages.  Note that this routine does not write a record; the caller
-    /// has already written (or received) the QueueOp that authorizes it.
-    virtual void purge(const mqbu::StorageKey& appKey) = 0;
+    /// storages.  If the specified `asPrimary` is `true`, write a DELETION
+    /// for each message whose refCount the purge of `appKey` drops to zero.
+    /// Note that this routine does not write the purge record; the caller
+    /// has already written (or received) the QueueOp that authorizes the
+    /// purge.
+    virtual void purge(const mqbu::StorageKey& appKey, bool asPrimary) = 0;
 
     /// Empty this storage of everything tied to the file set behind it, so
     /// that a rebuild can refill it.  Unlike `purge` this keeps nothing: the

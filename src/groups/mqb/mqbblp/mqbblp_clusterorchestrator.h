@@ -40,6 +40,7 @@
 #include <mqbi_clusterstatemanager.h>
 #include <mqbi_dispatcher.h>
 #include <mqbnet_elector.h>
+#include <mqbraft_clusteravailability.h>
 #include <mqbraft_clusterstateraft.h>
 #include <mqbraft_partitionraftmanager.h>
 
@@ -196,9 +197,9 @@ class ClusterOrchestrator {
     /// status advisories and their source.
     PrimaryStatusAdvisoryInfosVec d_bufferedPrimaryStatusAdvisoryInfosVec;
 
-    /// Per-partition leaseId whose deferred sync point has committed; 0 if
-    /// none. Indexed by partitionId.
-    bsl::vector<unsigned int> d_partitionCommittedLeaseId;
+    /// Per-partition facts that decide when a partition becomes `E_ACTIVE`
+    /// and when self becomes `E_AVAILABLE`.  Raft mode only.
+    mqbraft::ClusterAvailability d_availability;
 
   private:
     // NOT IMPLEMENTED
@@ -271,30 +272,44 @@ class ClusterOrchestrator {
                                              bsls::Types::Uint64 term,
                                              bool                haveCommit);
 
-    /// If self is the CSL Raft leader, the CSL is caught up, and every
-    /// partition has a leader (leaseId known), propose a combined
-    /// `partitionPrimaryAdvisory` capturing every partition's
-    /// (primaryNodeId, leaseId==Raft term) to the CSL Raft.  This is the
-    /// "artificial" advisory that keeps the CSL's recorded leaseId in step
-    /// with the journal (== term) for legacy-broker interoperability, and
-    /// whose commit is the activation barrier that flips partition primaries
-    /// PASSIVE->ACTIVE.  Idempotent: re-proposes only when the set of
-    /// leaseIds has changed since the last successful proposal.  A no-op in
-    /// legacy mode, on non-leaders, or before the preconditions hold.
+    /// Propose a `partitionPrimaryAdvisory` listing every partition's
+    /// primary and leaseId (the partition's Raft term).  The advisory keeps
+    /// the CSL's leaseIds in step with the journal, so that a legacy broker
+    /// can recover.  Raft mode only.
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
-    void maybeIssuePartitionPrimaryAdvisory();
+    void proposePartitionPrimaryAdvisory();
 
-    /// Transition the self node to `E_AVAILABLE` if, and only if, every
-    /// partition has an active primary (FSM-parity readiness).  A partition
-    /// cannot become active before its local journal is recovered, so this
-    /// subsumes the recovery precondition.  One-shot; a no-op once already
-    /// available.  Raft-mode only.
+    /// Act on a CSL event with the specified `leaderId` as the CSL leader at
+    /// the specified `term`:
+    ///
+    /// 1. if the CSL state is caught up, mark the CSL leader `e_ACTIVE` in
+    ///    `ElectorInfo`;
+    /// 2. propose the `partitionPrimaryAdvisory` if `d_availability` needs
+    ///    the advisory;
+    /// 3. if the CSL state is caught up, perform the action `d_availability`
+    ///    returns for each partition.
+    ///
+    /// `ClusterStateRaft` has already reported the CSL leader and term to
+    /// `d_availability`.
+    ///
+    /// Raft mode only.
     ///
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
-    void maybeTransitionToAvailable();
+    void onClusterRaftLeadershipDispatched(int                 leaderId,
+                                           bsls::Types::Uint64 term);
+
+    /// Perform the specified `action` for the specified `partitionId`: ask
+    /// for the deferred sync point, or mark the partition `E_ACTIVE` and
+    /// possibly transition self to `E_AVAILABLE`.  Raft mode only.
+    ///
+    /// THREAD: This method is invoked in the associated cluster's
+    ///         dispatcher thread.
+    void
+    performPartitionAction(int partitionId,
+                           mqbraft::ClusterAvailability::Action::Enum action);
 
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
@@ -624,7 +639,14 @@ class ClusterOrchestrator {
                                    bsls::Types::Uint64 term,
                                    bool                haveCommit);
 
-    void onClusterRaftLeadership();
+    /// Signal a CSL event: the CSL leader changed, or a `LeaderAdvisory` or
+    /// `partitionPrimaryAdvisory` was applied.  The CSL leader is the
+    /// specified `leaderId` (or `RaftNode::k_INVALID_NODE_ID` if none) at the
+    /// specified `term`.  Wired as `ClusterStateRaft`'s availability callback
+    /// (Raft-mode only).
+    ///
+    /// THREAD: Executed by the cluster dispatcher thread.
+    void onClusterRaftLeadership(int leaderId, bsls::Types::Uint64 term);
 
     /// Re-check readiness of any queue-open locally parked on the storage/app
     /// for the specified `uri` on the specified `partitionId` becoming

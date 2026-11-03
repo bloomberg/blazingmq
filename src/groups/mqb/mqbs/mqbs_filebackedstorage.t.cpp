@@ -533,10 +533,7 @@ class MockDataStore : public mqbs::DataStore {
 
     bool isLeader() const BSLS_KEYWORD_OVERRIDE { return true; }
 
-    bool isTransferringLeadership() const BSLS_KEYWORD_OVERRIDE
-    {
-        return false;
-    }
+    bool isLeadershipStable() const BSLS_KEYWORD_OVERRIDE { return true; }
 
     void loadSummary(mqbcmd::FileStore*) const BSLS_KEYWORD_OVERRIDE {}
 
@@ -1022,7 +1019,7 @@ BMQTST_TEST_F(Test, supportedOperations)
         BMQTST_ASSERT_OPT_PASS(storage.processDeletionRecord(guid));
     }
 
-    BMQTST_ASSERT_OPT_PASS(storage.purge(appKey));
+    BMQTST_ASSERT_OPT_PASS(storage.purge(appKey, true));
 }
 
 BMQTST_TEST_F(Test, put_noVirtualStorage)

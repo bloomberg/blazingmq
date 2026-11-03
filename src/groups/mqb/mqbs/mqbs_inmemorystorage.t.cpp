@@ -489,7 +489,7 @@ BMQTST_TEST_F(Test, unsupportedOperations)
                                      handle,
                                      false));
     BMQTST_ASSERT_OPT_FAIL(storage.processDeletionRecord(guid));
-    BMQTST_ASSERT_OPT_FAIL(storage.purge(appKey));
+    BMQTST_ASSERT_OPT_FAIL(storage.purge(appKey, false));
 }
 
 BMQTST_TEST_F(Test, put_noVirtualStorage)
