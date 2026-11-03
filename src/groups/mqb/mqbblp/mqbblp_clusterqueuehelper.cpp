@@ -498,28 +498,6 @@ void ClusterQueueHelper::afterPartitionPrimaryAssignment(
     }
 }
 
-bool ClusterQueueHelper::assignQueueIfNeeded(
-    const QueueContextSp& queueContext_sp)
-{
-    // executed by the cluster *DISPATCHER* thread
-
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
-
-    BSLS_ASSERT_SAFE(queueContext_sp);
-
-    if (isQueueAssigned(*queueContext_sp)) {
-        // Already assigned, nothing to do
-        return true;  // RETURN
-    }
-
-    // Queue is not assigned to a partition; get it assigned.  If
-    // self is leader, it will assign it locally, if not it will
-    // send a request to the leader, etc.
-
-    return assignQueue(queueContext_sp);
-}
-
 bool ClusterQueueHelper::assignQueue(const QueueContextSp& queueContext)
 {
     // executed by the cluster *DISPATCHER* thread
@@ -4981,6 +4959,9 @@ void ClusterQueueHelper::onQueueUnassigned(
                              << qinfo.d_numQueueHandles << "].";
     }
 
+    // Read before 'removeQueueRaw' below can erase the entry.
+    const bool hasParkedOpens = !qinfo.d_pending.empty();
+
     if (qinfo.d_inFlight != 0 || !qinfo.d_pending.empty()) {
         // If we have in flight requests, we can't delete the QueueInfo
         // references; so we simply reset it's members.  This can occur in
@@ -5045,6 +5026,19 @@ void ClusterQueueHelper::onQueueUnassigned(
 
     BMQ_LOGTHROTTLE_INFO << d_cluster_p->description()
                          << ": Unassigned queue: " << *info;
+
+    if (hasParkedOpens && d_cluster_p->isRaftEnabled()) {
+        // The parked opens need the queue assigned again.  This is to avoid
+        // leaving them parked when the leader answered an earlier assignment
+        // request as already done, before proposing this unassignment.  Last
+        // in this function: a single-node cluster commits the assignment
+        // inline, which must not precede releasing the old queueKey and
+        // storage above.
+        const QueueContextMapIter it = d_queues.find(info->uri());
+        if (it != d_queues.end() && !assignQueue(it->second)) {
+            d_queues.erase(it);
+        }
+    }
 }
 
 void ClusterQueueHelper::onQueueUpdated(

@@ -254,8 +254,9 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     void clearAutoConfirming();
 
     /// Purge the App identified by the specified `appKey`, which must not be
-    /// null.
-    void purgeApp(const mqbu::StorageKey& appKey);
+    /// null.  If the specified `asPrimary` is `true`, write a DELETION for
+    /// each message whose refCount the purge drops to zero.
+    void purgeApp(const mqbu::StorageKey& appKey, bool asPrimary);
 
     /// Purge every message of this storage, keeping the dedup history.
     void purgeQueue();
@@ -606,7 +607,8 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     void addQueueOpRecordHandle(const DataStoreRecordHandle& handle)
         BSLS_KEYWORD_OVERRIDE;
 
-    void purge(const mqbu::StorageKey& appKey) BSLS_KEYWORD_OVERRIDE;
+    void purge(const mqbu::StorageKey& appKey,
+               bool                    asPrimary) BSLS_KEYWORD_OVERRIDE;
 
     /// Empty this storage, dedup history included; see
     /// `mqbs::ReplicatedStorage::clear`.

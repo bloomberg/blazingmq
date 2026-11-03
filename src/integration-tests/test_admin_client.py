@@ -426,9 +426,7 @@ def test_app_id_stats(multi_node: Cluster, domain_urls: tc.DomainUrls) -> None:
     # the current primary, so ask it.
     def confirms_applied() -> bool:
         try:
-            stats = extract_stats(
-                admin.send_admin("encoding json_pretty stat show")
-            )
+            stats = extract_stats(admin.send_admin("encoding json_pretty stat show"))
         except KeyError:
             # 'stat show' forces a snapshot and refuses when asked more often
             # than the snapshot interval; that is not an answer, so retry.
@@ -441,9 +439,9 @@ def test_app_id_stats(multi_node: Cluster, domain_urls: tc.DomainUrls) -> None:
             and apps["baz"]["values"]["queue_msgs_current"] == 21
         )
 
-    assert wait_until(
-        confirms_applied, timeout=10, interval=2
-    ), "confirms were not applied on the primary before the failover"
+    assert wait_until(confirms_applied, timeout=10, interval=2), (
+        "confirms were not applied on the primary before the failover"
+    )
 
     admin.stop()
 

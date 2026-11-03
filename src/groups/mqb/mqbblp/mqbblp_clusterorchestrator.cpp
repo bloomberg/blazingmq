@@ -525,8 +525,8 @@ void ClusterOrchestrator::onNodeUnavailable(mqbnet::ClusterNode* node)
         // 'markOrphan' clears the primary.  Raft cannot clear it.  Nothing
         // would set the primary back, because
         // 'onPartitionRaftLeadershipDispatched' runs only when the leader or
-        // the term changes.  'maybeTransitionToAvailable' would then wait for
-        // a leader forever.
+        // the term changes.  The partition would then have no primary
+        // forever.
         const mqbc::ClusterState::PartitionsInfo& partitions =
             d_clusterState_p->partitions();
         for (size_t pid = 0; pid < partitions.size(); ++pid) {
@@ -647,7 +647,7 @@ ClusterOrchestrator::ClusterOrchestrator(
 , d_clusterState_p(clusterState)
 , d_storageManager_p(0)
 , d_bufferedPrimaryStatusAdvisoryInfosVec(allocator)
-, d_partitionCommittedLeaseId(allocator)
+, d_availability(clusterConfig.partitionConfig().numPartitions(), allocator)
 {
     // executed by *ANY* thread
 
@@ -661,10 +661,6 @@ ClusterOrchestrator::ClusterOrchestrator(
     d_bufferedPrimaryStatusAdvisoryInfosVec.resize(
         d_clusterConfig.partitionConfig().numPartitions(),
         PrimaryStatusAdvisoryInfos(allocator));
-
-    d_partitionCommittedLeaseId.resize(
-        d_clusterConfig.partitionConfig().numPartitions(),
-        0);
 }
 
 ClusterOrchestrator::~ClusterOrchestrator()
@@ -688,12 +684,14 @@ void ClusterOrchestrator::init(mqbc::ClusterState* clusterState)
                 clusterState,
                 d_clusterConfig.partitionConfig(),
                 // 'ClusterStateRaft' calls this when the CSL leader changes
-                // and when a current-term 'LeaderAdvisory' or
-                // 'partitionPrimaryAdvisory' commits.  It calls this on the
-                // cluster dispatcher thread.
+                // and when a 'LeaderAdvisory' or 'partitionPrimaryAdvisory'
+                // commits.  It calls this on the cluster dispatcher thread.
                 bdlf::BindUtil::bind(
                     &ClusterOrchestrator::onClusterRaftLeadership,
-                    this),
+                    this,
+                    bdlf::PlaceHolders::_1,   // leaderId
+                    bdlf::PlaceHolders::_2),  // term
+                &d_availability,
                 d_allocator_p),
             d_allocator_p);
 
@@ -1159,6 +1157,9 @@ void ClusterOrchestrator::processNodeStoppingNotification(
     if (ns->clusterNode() == d_clusterData_p->electorInfo().leaderNode()) {
         d_clusterData_p->electorInfo().setLeaderStatus(
             mqbc::ElectorInfoLeaderStatus::e_PASSIVE);
+        if (d_cluster_p->isRaftEnabled()) {
+            d_availability.onCslLeaderStopping();
+        }
     }
 
     // Cancel all pending requests to this stopping node
@@ -2174,19 +2175,23 @@ void ClusterOrchestrator::onPartitionPrimaryStatus(int          partitionId,
         d_cluster_p);
 }
 
-void ClusterOrchestrator::onClusterRaftLeadership()
+void ClusterOrchestrator::onClusterRaftLeadership(int                 leaderId,
+                                                  bsls::Types::Uint64 term)
 {
     BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << ": onClusterRaftLeadership fired, term: "
-                  << d_clusterStateRaft_mp->currentTerm();
+                  << ": onClusterRaftLeadership fired, leaderId: " << leaderId
+                  << ", term: " << term;
 
     // Dispatch even though this runs on the cluster thread.  In a single-node
     // cluster 'propose' commits immediately.  A direct call to
-    // 'maybeTransitionToAvailable' would then call this function again in the
-    // same stack.
+    // 'onClusterRaftLeadershipDispatched' would then call this function again
+    // in the same stack.
     dispatcher()->execute(
-        bdlf::BindUtil::bind(&ClusterOrchestrator::maybeTransitionToAvailable,
-                             this),
+        bdlf::BindUtil::bind(
+            &ClusterOrchestrator::onClusterRaftLeadershipDispatched,
+            this,
+            leaderId,
+            term),
         d_cluster_p);
 }
 
@@ -2290,8 +2295,7 @@ void ClusterOrchestrator::onPartitionRaftLeadershipDispatched(
                 bmqp_ctrlmsg::PrimaryStatus::E_UNDEFINED);
 
             // Drop the recorded primary.  This is to avoid reading the node as
-            // primary in subsequent 'maybeTransitionToAvailable' (reopening
-            // queues and serving open queue requests).
+            // primary (reopening queues and serving open queue requests).
             //
             // The leaseId is kept: 'setPartitionPrimary' asserts the leaseId
             // never decreases.
@@ -2299,6 +2303,7 @@ void ClusterOrchestrator::onPartitionRaftLeadershipDispatched(
                                                   lastLeaseId,
                                                   0);  // no primary
         }
+        d_availability.onPartitionNoPrimary(partitionId);
         return;  // RETURN
     }
 
@@ -2321,11 +2326,11 @@ void ClusterOrchestrator::onPartitionRaftLeadershipDispatched(
 
     const unsigned int leaseId = static_cast<unsigned int>(term);
 
-    // The primary stays E_PASSIVE until 'maybeTransitionToAvailable' marks it
-    // E_ACTIVE.  This is to make the CSL record the leaseId (the Raft term)
-    // before the partition writes any sync point under that leaseId (a
-    // restart into a legacy broker then never finds the CSL behind the
-    // journal).
+    // The primary stays E_PASSIVE until 'd_availability' returns an
+    // 'e_ACTIVATE' action.  This is to make the CSL record the leaseId (the
+    // Raft term) before the partition writes any sync point under that
+    // leaseId (a restart into a legacy broker then never finds the CSL
+    // behind the journal).
     const mqbc::ClusterStatePartitionInfo& pinfo = d_clusterState_p->partition(
         partitionId);
     if (pinfo.primaryNode() != leaderNode ||
@@ -2337,56 +2342,36 @@ void ClusterOrchestrator::onPartitionRaftLeadershipDispatched(
         // Not a leadership change: the primary, leaseId, and status are
         // already recorded, and this node has applied the first sync point
         // under this leaseId.
-        d_partitionCommittedLeaseId[partitionId] = leaseId;
-    }
-    else {
-        d_clusterState_p->setPartitionPrimaryStatus(
-            partitionId,
-            bmqp_ctrlmsg::PrimaryStatus::E_PASSIVE);
+        performPartitionAction(partitionId,
+                               d_availability.onSyncPointApplied(partitionId,
+                                                                 leaseId));
+        return;  // RETURN
     }
 
-    maybeTransitionToAvailable();
+    d_clusterState_p->setPartitionPrimaryStatus(
+        partitionId,
+        bmqp_ctrlmsg::PrimaryStatus::E_PASSIVE);
+
+    const mqbraft::ClusterAvailability::Action::Enum action =
+        d_availability.onPartitionPrimary(partitionId,
+                                          leaseId,
+                                          leaderNode == selfNode);
+
+    if (d_availability.needsAdvisory()) {
+        proposePartitionPrimaryAdvisory();
+    }
+    performPartitionAction(partitionId, action);
 }
 
-void ClusterOrchestrator::maybeIssuePartitionPrimaryAdvisory()
+void ClusterOrchestrator::proposePartitionPrimaryAdvisory()
 {
     // executed by the cluster *DISPATCHER* thread
 
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
     BSLS_ASSERT_SAFE(d_clusterStateRaft_mp);
 
-    // If self is the CSL Raft leader, make sure all partition leaseIds get
-    // committed to the CSL.
-    //
-    // Called only from 'maybeTransitionToAvailable', which has already
-    // verified every partition has a locally-known leader.
-
-    if (bmqp_ctrlmsg::NodeStatus::E_STOPPING ==
-        d_clusterData_p->membership().selfNodeStatus()) {
-        return;  // RETURN (shutting down; do not propose new CSL entries)
-    }
-    if (!d_clusterStateRaft_mp->isLeader()) {
-        return;  // RETURN
-    }
-
     const mqbc::ClusterState::PartitionsInfo& partitions =
         d_clusterState_p->partitions();
-
-    // Propose if the leader's snapshot (its first entry in the term, see
-    // 'ClusterStateRaft::installLeaderSnapshot') has not committed yet, or if
-    // a partition's leaseId differs from the one in the last committed
-    // advisory.
-    bool needsAdvisory = !d_clusterData_p->electorInfo().hasActiveLeader();
-
-    for (size_t pid = 0; !needsAdvisory && pid < partitions.size(); ++pid) {
-        if (partitions[pid].primaryLeaseId() !=
-            partitions[pid].advisoryConfirmedLeaseId()) {
-            needsAdvisory = true;
-        }
-    }
-    if (!needsAdvisory) {
-        return;  // RETURN (CSL reflects current leaseIds)
-    }
 
     // Each partition's leaseId is its Raft term.
     bmqp_ctrlmsg::ClusterMessage            clusterMessage(d_allocator_p);
@@ -2415,8 +2400,8 @@ void ClusterOrchestrator::maybeIssuePartitionPrimaryAdvisory()
         BALL_LOG_WARN
             << d_clusterData_p->identity().description()
             << ": failed to propose artificial partitionPrimaryAdvisory"
-            << ", rc: " << rc << ". Will retry on the next leadership "
-            << "or CSL commit event.";
+            << ", rc: " << rc << ". Will retry when a partition leaseId "
+            << "changes or this node becomes the CSL leader again.";
     }
 }
 
@@ -2430,7 +2415,9 @@ void ClusterOrchestrator::onQueueStorageReady(int              partitionId,
     d_queueHelper.onStorageReady(partitionId, uri);
 }
 
-void ClusterOrchestrator::maybeTransitionToAvailable()
+void ClusterOrchestrator::onClusterRaftLeadershipDispatched(
+    int                 leaderId,
+    bsls::Types::Uint64 term)
 {
     // executed by the cluster *DISPATCHER* thread
 
@@ -2438,125 +2425,76 @@ void ClusterOrchestrator::maybeTransitionToAvailable()
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
     BSLS_ASSERT_SAFE(d_clusterStateRaft_mp);
 
-    // Called on these five events:
-    // 1. the CSL leader changes ('onClusterRaftLeadership');
-    // 2. the CSL leader's 'LeaderAdvisory' commits
-    //    ('onClusterRaftLeadership');
-    // 3. a partition's Raft leader changes to a known node
-    //    ('onPartitionRaftLeadershipDispatched');
-    // 4. the 'partitionPrimaryAdvisory' commits ('onClusterRaftLeadership');
-    // 5. this node applies the partition's sync point
-    //    ('onPartitionRaftLeadershipDispatched').
-    //
-    //   1 --> 2
-    //          \
-    //           --> 4 --> 5
-    //           |
-    //   3 ---> all partitions
-    //
-    // 4 waits for 3 on every partition.
-    // Runs even when self is already E_AVAILABLE: a later leadership change
-    // marks that partition's primary E_PASSIVE, and only the loop below
-    // marks it E_ACTIVE again.
+    mqbc::ElectorInfo& electorInfo = d_clusterData_p->electorInfo();
+    if (d_availability.isCslCaughtUp() && electorInfo.leaderNode() &&
+        electorInfo.leaderNodeId() == leaderId &&
+        electorInfo.electorTerm() == term &&
+        mqbc::ElectorInfoLeaderStatus::e_ACTIVE !=
+            electorInfo.leaderStatus()) {
+        // 'e_ACTIVE' means the CSL state holds every committed entry.  Only
+        // when 'ElectorInfo' still holds this leader and term: a later CSL
+        // event has its own dispatch.
+        electorInfo.setLeaderStatus(mqbc::ElectorInfoLeaderStatus::e_ACTIVE);
+    }
 
     if (bmqp_ctrlmsg::NodeStatus::E_STOPPING ==
         d_clusterData_p->membership().selfNodeStatus()) {
-        return;  // RETURN (shutting down)
+        return;  // RETURN (shutting down; do not propose new CSL entries)
     }
 
-    const mqbc::ClusterState::PartitionsInfo& partitions =
-        d_clusterState_p->partitions();
-
-    // Every partition must have a primary, set by
-    // 'onPartitionRaftLeadershipDispatched'.
-    for (size_t pid = 0; pid < partitions.size(); ++pid) {
-        if (0 == partitions[pid].primaryNode() ||
-            0 == partitions[pid].primaryLeaseId()) {
-            BALL_LOG_INFO << d_clusterData_p->identity().description()
-                          << ": maybeTransitionToAvailable blocked: "
-                          << "partition " << pid << " missing leader "
-                          << "(node=" << partitions[pid].primaryNode()
-                          << ", leaseId=" << partitions[pid].primaryLeaseId()
-                          << ")";
-            return;  // RETURN (not all partitions have leaders yet)
-        }
+    if (d_availability.needsAdvisory()) {
+        // The advisory's commit confirms each partition's leaseId
+        // ('mqbraft::ClusterAvailability::onLeaseIdsConfirmed').
+        proposePartitionPrimaryAdvisory();
     }
 
-    // The CSL must have a leader.
-    if (mqbraft::RaftNode::k_INVALID_NODE_ID ==
-        d_clusterStateRaft_mp->leaderId()) {
-        BALL_LOG_INFO << d_clusterData_p->identity().description()
-                      << ": maybeTransitionToAvailable blocked: "
-                      << "no CSL leader yet";
-        return;  // RETURN (no recognized CSL leader yet)
-    }
-
-    // The advisory's commit sets each partition's 'advisoryConfirmedLeaseId',
-    // which the check below compares with 'primaryLeaseId'.
-    maybeIssuePartitionPrimaryAdvisory();
-
-    // The full CSL backlog must be applied.  This is to avoid serving queue
-    // reopens against a partly applied cluster state (creating conflicting
-    // queue and app keys).  'ClusterStateRaft::promoteToActive' sets the
-    // leader status to 'e_ACTIVE' when the first current-term entry commits.
-    if (!d_clusterData_p->electorInfo().hasActiveLeader()) {
-        BALL_LOG_INFO << d_clusterData_p->identity().description()
-                      << ": maybeTransitionToAvailable blocked: "
-                      << "not caught up";
+    if (!d_availability.isCslCaughtUp()) {
+        // No partition can become active.
         return;  // RETURN
     }
 
-    // Every partition's 'primaryLeaseId', set by Raft leadership, must match
-    // its 'advisoryConfirmedLeaseId', set by the last committed CSL advisory.
-    // On a node other than the CSL leader, the two arrive in either order.
-    for (size_t pid = 0; pid < partitions.size(); ++pid) {
-        if (partitions[pid].primaryLeaseId() !=
-            partitions[pid].advisoryConfirmedLeaseId()) {
-            BALL_LOG_INFO << d_clusterData_p->identity().description()
-                          << ": maybeTransitionToAvailable blocked: "
-                          << "partition " << pid << " leaseId mismatch "
-                          << "(primaryLeaseId="
-                          << partitions[pid].primaryLeaseId()
-                          << ", advisoryConfirmedLeaseId="
-                          << partitions[pid].advisoryConfirmedLeaseId() << ")";
-            return;  // RETURN (lease mismatch; not ready)
-        }
+    // A CSL event changes facts every partition depends on: whether the CSL
+    // state is caught up, and the confirmed leaseIds.
+    for (size_t pid = 0; pid < d_clusterState_p->partitions().size(); ++pid) {
+        const int partitionId = static_cast<int>(pid);
+        performPartitionAction(partitionId,
+                               d_availability.evaluatePartition(partitionId));
     }
 
-    // The CSL has committed every partition's current leaseId.  This node can
-    // now propose the deferred sync point on each partition it leads.  That
-    // sync point is the first journal record under the leaseId.
-    const int selfNodeId = d_clusterData_p->membership().selfNode()->nodeId();
-    bool      allActivated = true;
-    const bool isSelfCslLeader = d_clusterStateRaft_mp->leaderId() ==
-                                 selfNodeId;
+    if (d_availability.becomeAvailable()) {
+        BALL_LOG_INFO << d_clusterData_p->identity().description()
+                      << ": all partitions confirmed via the CSL advisory. "
+                      << "Transitioning to AVAILABLE.";
 
-    for (size_t pid = 0; pid < partitions.size(); ++pid) {
-        const bool isSelfPrimary = partitions[pid].primaryNodeId() ==
-                                   selfNodeId;
-        if (isSelfPrimary && d_partitionRaftManager_mp) {
-            d_partitionRaftManager_mp->proposeDeferredSyncPoint(pid);
-        }
-        if (bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE ==
-            partitions[pid].primaryStatus()) {
-            continue;  // CONTINUE
-        }
+        transitionToAvailable();
+    }
+}
 
-        if ((isSelfPrimary || isSelfCslLeader) &&
-            partitions[pid].primaryLeaseId() !=
-                d_partitionCommittedLeaseId[pid]) {
-            BALL_LOG_INFO << d_clusterData_p->identity().description()
-                          << ": maybeTransitionToAvailable blocked: "
-                          << "partition " << pid
-                          << " sync point for leaseId "
-                          << partitions[pid].primaryLeaseId()
-                          << " not applied here yet";
-            allActivated = false;
-            continue;  // CONTINUE
-        }
+void ClusterOrchestrator::performPartitionAction(
+    int                                        partitionId,
+    mqbraft::ClusterAvailability::Action::Enum action)
+{
+    // executed by the cluster *DISPATCHER* thread
 
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+    BSLS_ASSERT_SAFE(d_partitionRaftManager_mp);
+
+    typedef mqbraft::ClusterAvailability::Action Action;
+
+    switch (action) {
+    case Action::e_NONE: break;
+    case Action::e_REQUEST_SYNC_POINT: {
+        // The CSL has committed the leaseId, so this node, as the primary,
+        // proposes the deferred sync point: the first journal record under
+        // the leaseId.  'proposeDeferredSyncPoint' also conforms the journal
+        // to the cluster state.
+        d_partitionRaftManager_mp->proposeDeferredSyncPoint(partitionId);
+    } break;
+    case Action::e_ACTIVATE:
+    case Action::e_ACTIVATE_AND_BECOME_AVAILABLE: {
         d_clusterState_p->setPartitionPrimaryStatus(
-            static_cast<int>(pid),
+            partitionId,
             bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE);
 
         // Retries open and reopen requests buffered while this partition had
@@ -2565,23 +2503,20 @@ void ClusterOrchestrator::maybeTransitionToAvailable()
         // call (see 'setAfterPartitionPrimaryAssignmentCb' in 'init').  Raft
         // mode has no 'd_stateManager_mp'.
         d_queueHelper.afterPartitionPrimaryAssignment(
-            static_cast<int>(pid),
-            partitions[pid].primaryNode(),
+            partitionId,
+            d_clusterState_p->partition(partitionId).primaryNode(),
             bmqp_ctrlmsg::PrimaryStatus::E_ACTIVE);
+
+        if (Action::e_ACTIVATE_AND_BECOME_AVAILABLE == action) {
+            BALL_LOG_INFO << d_clusterData_p->identity().description()
+                          << ": all partitions confirmed via the CSL "
+                          << "advisory. Transitioning to AVAILABLE.";
+
+            transitionToAvailable();
+        }
+    } break;
+    default: BSLS_ASSERT_SAFE(false && "Unknown action");
     }
-
-    if (!allActivated) {
-        // This is to avoid serving reopens before this node has applied the
-        // entries inherited from the prior term.  The sync point's commit
-        // applies those entries.
-        return;  // RETURN (a sync point is not applied here yet)
-    }
-
-    BALL_LOG_INFO << d_clusterData_p->identity().description()
-                  << ": all partitions confirmed via the CSL advisory. "
-                  << "Transitioning to AVAILABLE.";
-
-    transitionToAvailable();
 }
 
 void ClusterOrchestrator::processBufferedPrimaryStatusAdvisories(

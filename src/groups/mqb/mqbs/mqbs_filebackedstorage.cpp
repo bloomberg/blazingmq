@@ -71,7 +71,8 @@ void FileBackedStorage::clearAutoConfirming()
     d_currentlyAutoConfirming = bmqt::MessageGUID();
 }
 
-void FileBackedStorage::purgeApp(const mqbu::StorageKey& appKey)
+void FileBackedStorage::purgeApp(const mqbu::StorageKey& appKey,
+                                 bool                    asPrimary)
 {
     // Purges only the virtual storage of 'appKey'.  QueueEngine should not be
     // manipulated in this routine.
@@ -80,10 +81,8 @@ void FileBackedStorage::purgeApp(const mqbu::StorageKey& appKey)
 
     clearAutoConfirming();
 
-    // The primary writes the DELETION for every message this drops to a zero
-    // refCount; a replica waits for those to replicate.
     const mqbi::StorageResult::Enum rc =
-        d_virtualStorageCatalog.purge(appKey, d_store_p->isLeader());
+        d_virtualStorageCatalog.purge(appKey, asPrimary);
     BSLS_ASSERT_SAFE(mqbi::StorageResult::e_APPKEY_NOT_FOUND != rc);
     static_cast<void>(rc);
 }
@@ -942,6 +941,17 @@ int FileBackedStorage::gcExpiredMessages(const bdlt::Datetime& currentTimeUtc,
     if (!d_store_p->isFileSetAvailable()) {
         return 0;
     }
+
+    if (!d_store_p->isLeadershipStable()) {
+        // 1. During a leadership transfer, a DELETION is one more entry the
+        //    transfer target has to replicate before the target takes the
+        //    leadership.
+        // 2. Before the become-leader sync point, a DELETION would be written
+        //    under a leaseId the cluster state may not have.
+        // A later sweep writes the DELETION.
+        return 0;
+    }
+
     bsls::Types::Uint64 latestMsgTimestampEpoch = 0;
 
     int                numMsgsDeleted     = 0;
@@ -1335,7 +1345,7 @@ void FileBackedStorage::addQueueOpRecordHandle(
     d_queueOpRecordHandles.push_back(handle);
 }
 
-void FileBackedStorage::purge(const mqbu::StorageKey& appKey)
+void FileBackedStorage::purge(const mqbu::StorageKey& appKey, bool asPrimary)
 {
     bsl::string appId;
 
@@ -1349,7 +1359,7 @@ void FileBackedStorage::purge(const mqbu::StorageKey& appKey)
         appId = bmqp::ProtocolUtil::k_NULL_APP_ID;
     }
     else {
-        purgeApp(appKey);
+        purgeApp(appKey, asPrimary);
 
         const bool rc = d_virtualStorageCatalog.hasVirtualStorage(appKey,
                                                                   &appId);

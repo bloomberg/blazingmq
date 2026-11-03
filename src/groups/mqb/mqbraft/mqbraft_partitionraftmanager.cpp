@@ -665,7 +665,7 @@ void PartitionRaftManager::conformToClusterState(unsigned int partitionId)
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
 
     // Self is this partition's primary: the only caller,
-    // 'ClusterOrchestrator::maybeTransitionToAvailable', checks that before
+    // 'ClusterOrchestrator::performPartitionAction', checks that before
     // asking for the sync point.  Raft's own leadership is not read here --
     // it belongs to the partition's thread -- and the writes below are
     // dispatched there, where 'unregisterQueueDispatched' re-checks it.

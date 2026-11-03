@@ -927,13 +927,15 @@ class RecordStore {
     /// Return `true` if this node is the leader/primary for this partition.
     virtual bool isLeader() const = 0;
 
-    /// Return `true` if this node is the leader and is handing that over.
-    /// It leads until the target wins the election.  A PUT proposed now is
-    /// held rather than written and may end up belonging to the next leader.
-    /// Always `false` off the Raft path, which has no transfer.
+    /// Return `false` if this node leads this partition and either is handing
+    /// the leadership over or has not yet proposed its become-leader sync
+    /// point, and `true` otherwise.  A record an admin command proposes in the
+    /// first case delays the handover.  In the second case the record is
+    /// written under a leaseId the cluster state may not have.  Always `true`
+    /// off the Raft path.
     ///
     /// THREAD: Executed by the dispatcher thread of the partition.
-    virtual bool isTransferringLeadership() const = 0;
+    virtual bool isLeadershipStable() const = 0;
 
     /// Load a summary of this partition into the specified `summary`.  Used by
     /// the admin partition/cluster summary command.

@@ -642,7 +642,8 @@ void InMemoryStorage::undoDeletion(
     // Replicated in-memory storage is not yet supported; nothing is proposed.
 }
 
-void InMemoryStorage::purge(BSLA_MAYBE_UNUSED const mqbu::StorageKey& appKey)
+void InMemoryStorage::purge(BSLA_MAYBE_UNUSED const mqbu::StorageKey& appKey,
+                            BSLA_MAYBE_UNUSED bool asPrimary)
 {
     // Replicated in-memory storage is not yet supported.
 

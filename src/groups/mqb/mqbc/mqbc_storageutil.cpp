@@ -857,13 +857,16 @@ void StorageUtil::doRolloverDispatched(bslmt::Latch*          latch,
 
     *rolloverSeqNum = 0;
 
-    if (recordStore->isTransferringLeadership()) {
-        // An 'e_ROLLOVER' appended now is one more entry the target has to
-        // replicate before it can be sent its 'TimeoutNow', so it works
-        // against the handover this node is in the middle of.
+    if (!recordStore->isLeadershipStable()) {
+        // 1. During a leadership transfer, an 'e_ROLLOVER' appended now is one
+        //    more entry the target has to replicate before the target can be
+        //    sent its 'TimeoutNow', which delays the handover.
+        // 2. Before the become-leader sync point, the 'e_ROLLOVER' would be
+        //    written under a leaseId the cluster state may not have.
         BALL_LOG_WARN << "Partition [" << partitionId
                       << "] Rollover rejected: this node is handing over "
-                      << "leadership of the partition.";
+                      << "leadership of the partition or has not yet written "
+                      << "its become-leader sync point.";
         *rc = rc_ROLLOVER_REJECTED;
         latch->arrive();
         return;  // RETURN
@@ -2349,7 +2352,7 @@ void StorageUtil::recoveredQueuesCb(
                 // implementation may or may not invoke certain business logic.
 
                 if (rs->hasVirtualStorage(appKey)) {
-                    rs->purge(appKey);
+                    rs->purge(appKey, recordStore->isLeader());
                 }
             }
 
@@ -3661,14 +3664,18 @@ void StorageUtil::purgeQueueDispatched(
         return;  // RETURN
     }
 
-    if (recordStore->isTransferringLeadership()) {
-        // A purge appends records the transfer target has to replicate
-        // before it can take over.
+    if (!recordStore->isLeadershipStable()) {
+        // 1. During a leadership transfer, a purge appends records the
+        //    transfer target has to replicate before the target takes the
+        //    leadership.
+        // 2. Before the become-leader sync point, the purge records would be
+        //    written under a leaseId the cluster state may not have.
         bmqu::MemOutStream errorMsg;
         errorMsg << "Not purging queue '" << storage->queueUri()
                  << "' with record store: " << recordStore->description()
                  << " [reason: this node is handing over leadership of the "
-                 << "partition]";
+                 << "partition or has not yet written its become-leader "
+                 << "sync point]";
         mqbcmd::Error& error = purgedQueueResult->makeError();
         error.message()      = errorMsg.str();
         return;  // RETURN
@@ -4191,8 +4198,8 @@ void StorageMonitor::onStorageRegistered(
             d_storageLockVec[partitionId].get());  // LOCK
         StorageWithApps& what = d_storages[partitionId][uri];
 
-        what.d_storage_sp           = storageSp;
-        what.d_apps                 = apps;  // appKey -> appId
+        what.d_storage_sp = storageSp;
+        what.d_apps       = apps;  // appKey -> appId
         what.d_awaiting &= ~Awaiting::e_REGISTRATION;
     }
     d_cluster_p->onQueueStorageReady(partitionId, uri);
@@ -4216,7 +4223,7 @@ void StorageMonitor::onStorageRegistered(int              partitionId,
             d_storageLockVec[partitionId].get());  // LOCK
         StorageWithApps& what = d_storages[partitionId][uri];
 
-        what.d_storage_sp           = storageSp;
+        what.d_storage_sp = storageSp;
         what.d_awaiting &= ~Awaiting::e_REGISTRATION;
         what.d_apps.clear();
         for (mqbi::Storage::AppInfos::const_iterator cit = apps.cbegin();

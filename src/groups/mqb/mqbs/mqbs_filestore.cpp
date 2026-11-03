@@ -5732,7 +5732,7 @@ int FileStore::applyQueueOpRecord(const mqbs::RecordHeader& recHeader,
 
     if (QueueOpType::e_PURGE == queueOpType) {
         if (appKey.isNull() || rstorage->hasVirtualStorage(appKey)) {
-            rstorage->purge(appKey);
+            rstorage->purge(appKey, isLeader());
         }
         else {
             // In ANY mode, if we are unregistering the 'appKey', then we
@@ -7923,6 +7923,13 @@ void FileStore::undoPropose(const Proposal& pw)
     }
 }
 
+bool FileStore::hasMessage(const mqbu::StorageKey&  queueKey,
+                           const bmqt::MessageGUID& guid) const
+{
+    const StorageMapConstIter sit = d_storages.find(queueKey);
+    return sit != d_storages.end() && sit->second->hasMessage(guid);
+}
+
 int FileStore::writeFormattedRecord(const bdlbb::Blob&  data,
                                     RecoveryRecordInfo* info)
 {
@@ -8604,7 +8611,10 @@ void FileStore::applyCommittedQueueOp(const DataStoreRecordHandle& handle)
     if (QueueOpType::e_PURGE == qOpRec->type()) {
         if (qOpRec->appKey().isNull() ||
             rstorage->hasVirtualStorage(qOpRec->appKey())) {
-            rstorage->purge(qOpRec->appKey());
+            // The leader writes the DELETIONs.  'PartitionRaft::postDispatch'
+            // holds them until the leader's become-leader sync point is
+            // applied.
+            rstorage->purge(qOpRec->appKey(), isLeader());
 
             if (qOpRec->appKey().isNull()) {
                 // 'onPurgeComplete' proposes 'e_ROLLOVER' and so cannot run
@@ -9870,15 +9880,6 @@ void FileStore::gcExpiredMessages()
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(d_isStopping)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        return;  // RETURN
-    }
-
-    if (isRaft() && 0 == writeHeadSeqNum()) {
-        // Nothing written under this leaseId yet, so the become-leader sync
-        // point is still pending and the CSL advisory carrying the leaseId
-        // may not have committed.  A DELETION here would be the partition's
-        // first record under a leaseId the CSL does not have.  The next
-        // sweep picks these up.
         return;  // RETURN
     }
 

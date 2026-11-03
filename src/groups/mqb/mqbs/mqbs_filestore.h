@@ -1647,10 +1647,11 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// Return `true` if this node is the active primary for this partition.
     bool isLeader() const BSLS_KEYWORD_OVERRIDE;
 
-    /// Return `false`: reaching a `FileStore` directly means the legacy
-    /// path, which has no leadership transfer.  On the Raft path the
-    /// storage's `RecordStore` is the `PartitionRaft`, which overrides this.
-    bool isTransferringLeadership() const BSLS_KEYWORD_OVERRIDE;
+    /// Return `true`: reaching a `FileStore` directly means the legacy
+    /// path, which has no leadership transfer and no become-leader sync
+    /// point.  On the Raft path the storage's `RecordStore` is the
+    /// `PartitionRaft`, and `PartitionRaft::isLeadershipStable` applies.
+    bool isLeadershipStable() const BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
 
@@ -1697,6 +1698,12 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
 
     // ACCESSORS
     int processorId() const;
+
+    /// Return `true` if the storage of the queue with the specified
+    /// `queueKey` holds the message with the specified `guid`, and `false`
+    /// otherwise.
+    bool hasMessage(const mqbu::StorageKey&  queueKey,
+                    const bmqt::MessageGUID& guid) const;
 
     //   (virtual: mqbi::DispatcherClient)
 
@@ -2009,9 +2016,9 @@ inline bool FileStore::isLeader() const
            d_primaryNode_p->nodeId() == d_config.nodeId();
 }
 
-inline bool FileStore::isTransferringLeadership() const
+inline bool FileStore::isLeadershipStable() const
 {
-    return false;
+    return true;
 }
 
 inline bool FileStore::isRaft() const

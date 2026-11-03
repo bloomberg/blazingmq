@@ -59,9 +59,7 @@ def _place_queue(cluster: Cluster, uri):
     return primary, partition_id
 
 
-def _move_primary(
-    cluster: Cluster, uri, primary, partition_id, target=None, expect=()
-):
+def _move_primary(cluster: Cluster, uri, primary, partition_id, target=None, expect=()):
     """
     Hand primaryship of `partition_id` to the specified `target`, or to some
     other node if none is named, and return the new primary.
@@ -306,9 +304,7 @@ def test_transfer_preserves_subscriptions(
 
     assert consumer.wait_push_event()
     assert wait_until(lambda: len(consumer.list(uri, block=True)) == 1, 5)
-    assert [msg.payload for msg in consumer.list(uri, block=True)] == [
-        "yes-before"
-    ]
+    assert [msg.payload for msg in consumer.list(uri, block=True)] == ["yes-before"]
 
     _move_primary(fsm_multi_cluster, uri, primary, partition_id)
 

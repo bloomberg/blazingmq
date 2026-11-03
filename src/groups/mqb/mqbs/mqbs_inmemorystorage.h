@@ -570,7 +570,8 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     void addQueueOpRecordHandle(const DataStoreRecordHandle& handle)
         BSLS_KEYWORD_OVERRIDE;
 
-    void purge(const mqbu::StorageKey& appKey) BSLS_KEYWORD_OVERRIDE;
+    void purge(const mqbu::StorageKey& appKey,
+               bool                    asPrimary) BSLS_KEYWORD_OVERRIDE;
 
     /// Not supported; see `purge`.  Replicated in-memory storage does not
     /// exist, so nothing installs a snapshot under one.
