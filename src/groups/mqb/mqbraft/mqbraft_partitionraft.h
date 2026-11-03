@@ -679,9 +679,10 @@ class PartitionRaft : public mqbs::RecordStore,
     int  partitionId() const BSLS_KEYWORD_OVERRIDE;
     bool isLeader() const BSLS_KEYWORD_OVERRIDE;
 
-    /// Return `true` if this node leads this partition and a leadership
-    /// transfer is under way; see `mqbs::RecordStore`.
-    bool                isTransferringLeadership() const BSLS_KEYWORD_OVERRIDE;
+    /// Return `false` if this node leads this partition and either a
+    /// leadership transfer is under way or 'd_needsBecomeLeaderSyncPoint' is
+    /// set, and `true` otherwise; see `mqbs::RecordStore`.
+    bool                isLeadershipStable() const BSLS_KEYWORD_OVERRIDE;
     int                 leaderId() const;
     bsls::Types::Uint64 currentTerm() const;
 

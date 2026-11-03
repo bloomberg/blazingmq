@@ -233,7 +233,6 @@ def rollover_queues_and_apps_test(cluster: Cluster, domain_urls, trigger_rollove
     consumer_fanout.confirm(fanout_queue + "?id=foo", "+1", succeed=True)
     consumer_fanout.close(fanout_queue + "?id=foo", succeed=True)
 
-
     current_app_ids = tc.TEST_APPIDS[:] + ["quux"]
     cluster.set_app_ids(current_app_ids, du)
     producer.post(
