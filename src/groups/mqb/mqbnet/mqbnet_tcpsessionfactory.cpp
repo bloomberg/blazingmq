@@ -670,6 +670,7 @@ void TCPSessionFactory::initialConnectionComplete(
                              rawSession.second));     // rep
 
     ChannelInfoSp info;
+    bool          isChannelClosed = false;
 
     {
         bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
@@ -688,40 +689,46 @@ void TCPSessionFactory::initialConnectionComplete(
                 << ": got an already closed channel after negotiation.";
 
             d_channelRegistry.removeStarting(channel.get());
-
-            // Since the 'session' has missed 'onClose', call 'tearDown' here.
-            session->tearDown(session, false);
-            return;  // RETURN
+            isChannelClosed = true;
         }
+        else {
+            info = bsl::allocate_shared<ChannelInfo>(
+                d_allocator_p,
+                channel,
+                initialConnectionContext_sp->authenticationContext(),
+                initialConnectionContext_sp->authenticationClient(),
+                monitoredSession,
+                initialConnectionContext_sp->negotiationContext()
+                    ->eventProcessor(),
+                initialConnectionContext_sp->negotiationContext()
+                    ->maxMissedHeartbeats(),
+                d_initialMissedHeartbeatCounter);
+            // See comments in 'calculateInitialMissedHbCounter'.
 
-        info = bsl::allocate_shared<ChannelInfo>(
-            d_allocator_p,
-            channel,
-            initialConnectionContext_sp->authenticationContext(),
-            initialConnectionContext_sp->authenticationClient(),
-            monitoredSession,
-            initialConnectionContext_sp->negotiationContext()
-                ->eventProcessor(),
-            initialConnectionContext_sp->negotiationContext()
-                ->maxMissedHeartbeats(),
-            d_initialMissedHeartbeatCounter);
-        // See comments in 'calculateInitialMissedHbCounter'.
+            d_channelRegistry.promote(channel.get(), info);
 
-        d_channelRegistry.promote(channel.get(), info);
-
-        if (info->d_monitor_mp->isHearbeatEnabled() &&
-            d_heartbeatSchedulerActive) {
-            // Enable/Disable heartbeating under the lock
-            // If the 'result' below is 'false' and the channel gets closed,
-            // then 'onClose' must be called and since the channel is
-            // established, 'onClose' will disable heartbeat.
-            d_scheduler_p->scheduleEvent(
-                bsls::SystemTime::nowMonotonicClock(),
-                bdlf::BindUtil::bind(&TCPSessionFactory::enableHeartbeat,
-                                     this,
-                                     info));
+            if (info->d_monitor_mp->isHearbeatEnabled() &&
+                d_heartbeatSchedulerActive) {
+                // Enable/Disable heartbeating under the lock
+                // If the 'result' below is 'false' and the channel gets
+                // closed, then 'onClose' must be called and since the channel
+                // is established, 'onClose' will disable heartbeat.
+                d_scheduler_p->scheduleEvent(
+                    bsls::SystemTime::nowMonotonicClock(),
+                    bdlf::BindUtil::bind(&TCPSessionFactory::enableHeartbeat,
+                                         this,
+                                         info));
+            }
         }
     }  // close mutex lock guard                                      // UNLOCK
+
+    if (isChannelClosed) {
+        // Since the 'session' has missed 'onClose', call 'tearDown' here.
+        // 'd_mutex' must not be held here: 'tearDown' waits for the session
+        // dispatcher thread, which may need 'd_mutex' to destroy a session.
+        session->tearDown(session, false);
+        return;  // RETURN
+    }
 
     // Do not initiate reading from the channel.  Transport observer(s) will
     // enable the read when they are ready.
