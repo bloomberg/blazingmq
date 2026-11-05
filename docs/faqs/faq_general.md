@@ -9,42 +9,33 @@ nav_order: 2
 
 ## What platforms are supported by BlazingMQ?
 
-BlazingMQ can run on Linux and Solaris operating systems.  The minimum
-required versions of these operating systems are as follows:
-
-| Operating System | Version |
-| ---------------- | ------- |
-| Linux            | 3.10.0  |
-| Solaris          | 5.11    |
-
-Any operating system not listed above, or any operating system listed but with
-a version less than the minimum specified version is not supported.
+BlazingMQ is built on the [BDE](https://github.com/bloomberg/bde) and
+[NTF](https://github.com/bloomberg/ntf-core) libraries, and the BlazingMQ
+message broker and C++ client library largely follow their platform and
+compiler requirements.  See BDE's
+[Supported Platforms](https://bloomberg.github.io/bde/library_information/supported_platforms.html)
+page and NTF's
+[System Requirements](https://github.com/bloomberg/ntf-core#system-requirements)
+for the current lists of supported operating systems and minimum compiler
+versions.  Where the two differ, the stricter requirement applies.
 
 For development, BlazingMQ can also be built on Darwin, though production usage
 on Darwin is not supported.
 
-BlazingMQ message broker and C++ client library requires the following minimum
-compiler versions.  Any compiler not listed, or any compiler listed but with a
-version less than the minimum specified version is not supported.
-
-| Compiler       | Version |
-| --------       | ------- |
-| GCC            | 7.3     |
-| clang          | 10.0.1  |
-| Solaris Studio | 5.13    |
-
 BlazingMQ message broker and C++ client library require the C++03 version of
 the C++ language standard, or any version above it.
 
-BlazingMQ Java client library is supported on JDK 8, JDK 11 and JDK 17.
+BlazingMQ Java client library is supported on JDK 17 and above.
 
 ---
 
 ## In what languages are BlazingMQ client libraries available?
 
-BlazingMQ client libraries are available in C++, Java and Python.  C++ and Java
-client libraries are available in the initial open source release, and Python
-client library will follow soon.
+BlazingMQ client libraries are available in C++,
+[Java](https://github.com/bloomberg/blazingmq-sdk-java) and
+[Python](https://github.com/bloomberg/blazingmq-sdk-python).  The C++ client
+library is part of the [BlazingMQ](https://github.com/bloomberg/blazingmq)
+repository.
 
 ---
 
