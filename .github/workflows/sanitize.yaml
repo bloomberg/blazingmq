@@ -74,4 +74,4 @@ jobs:
       - name: IT [c++,${{ matrix.mode }}]
         if: ${{ matrix.fuzz == 'off' }}
         run: |
-          docker exec sanitizer /blazingmq/cmake.bld/Linux/run-it.sh -k breathing --bmq-tolerate-dirty-shutdown
+          docker exec sanitizer /blazingmq/cmake.bld/Linux/run-it.sh --bmq-tolerate-dirty-shutdown -n logical
