@@ -805,10 +805,12 @@ bool SessionNegotiator::authorizeIncomingConnection(
         action.makeConnectClient();
     } break;
     case mqbnet::ConnectionType::e_CLUSTER_MEMBER: {
-        action.makeConnectClusterNode().clusterName() =
-            negotiationContext->negotiationMessage()
-                .clientIdentity()
-                .clusterName();
+        const bmqp_ctrlmsg::ClientIdentity& peerIdentity =
+            negotiationContext->negotiationMessage().clientIdentity();
+        mqbact::ConnectClusterNode& connectClusterNode =
+            action.makeConnectClusterNode();
+        connectClusterNode.clusterName()   = peerIdentity.clusterName();
+        connectClusterNode.clusterNodeId() = peerIdentity.clusterNodeId();
     } break;
     // An incoming connection (this method's precondition) can never be of
     // type 'e_CLUSTER_PROXY': it is only used for a broker's own outbound
