@@ -2372,33 +2372,37 @@ void Elector::stop()
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
 
-    bslmt::LockGuard<bslmt::Mutex> guard(&d_lock);  // LOCK
+    {
+        bslmt::LockGuard<bslmt::Mutex> guard(&d_lock);  // LOCK
 
-    if (!d_state.isEnabled()) {
-        return;  // RETURN
-    }
+        if (!d_state.isEnabled()) {
+            return;  // RETURN
+        }
 
-    cancelSchedulerEvents();
-    d_state.disable();
-    dispatchElectorCallback();  // state change is implicit when state machine
-                                // is disabled
-    d_nodes.clear();
+        cancelSchedulerEvents();
+        d_state.disable();
+        dispatchElectorCallback();  // state change is implicit when state
+                                    // machine is disabled
+        d_nodes.clear();
 
-    // Let your peers know that you are not participating in election anymore.
-    // This also means that current leader (if any) has lost this node's
-    // support, and may relinquish its leadership if it loses quorum.  Note
-    // that if this node is going down, then peer electors will also get
-    // NodeDown notification from the net layer (after the below
-    // NODE_UNAVAILABLE event).  If this node is not going down, and it is just
-    // desired not to participate in the election, then this notification is
-    // needed to inform the peers.
+        // Let your peers know that you are not participating in election
+        // anymore.  This also means that current leader (if any) has lost
+        // this node's support, and may relinquish its leadership if it loses
+        // quorum.  Note that if this node is going down, then peer electors
+        // will also get NodeDown notification from the net layer (after the
+        // below NODE_UNAVAILABLE event).  If this node is not going down, and
+        // it is just desired not to participate in the election, then this
+        // notification is needed to inform the peers.
 
-    emitIOEvent(
-        ElectorStateMachineOutput(ElectorStateMachine::k_INVALID_TERM,
-                                  ElectorIOEventType::e_NODE_UNAVAILABLE,
-                                  ElectorTimerEventType::e_NONE,
-                                  k_ALL_NODES_ID));
+        emitIOEvent(
+            ElectorStateMachineOutput(ElectorStateMachine::k_INVALID_TERM,
+                                      ElectorIOEventType::e_NODE_UNAVAILABLE,
+                                      ElectorTimerEventType::e_NONE,
+                                      k_ALL_NODES_ID));
+    }  // UNLOCK
 
+    // 'd_lock' must not be held here: 'd_scheduler.stop' waits for a running
+    // timer callback, which locks 'd_lock'.
     d_scheduler.stop();
     d_schedDispThreadId = bslmt::ThreadUtil::invalidHandle();
 }
