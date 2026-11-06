@@ -206,10 +206,10 @@ class ConnectAdmin {
         return rhs.print(stream, 0, -1);
     }
 
-    template <typename t_HASH_ALGORITHM>
     /// Pass the specified `object` to the specified `hashAlg`.  This function
     /// integrates with the `bslh` modular hashing system and effectively
     /// provides a `bsl::hash` specialization for `ConnectAdmin`.
+    template <typename t_HASH_ALGORITHM>
     friend void hashAppend(t_HASH_ALGORITHM&, const ConnectAdmin&)
     {
     }
@@ -359,10 +359,10 @@ class ConnectClient {
         return rhs.print(stream, 0, -1);
     }
 
-    template <typename t_HASH_ALGORITHM>
     /// Pass the specified `object` to the specified `hashAlg`.  This function
     /// integrates with the `bslh` modular hashing system and effectively
     /// provides a `bsl::hash` specialization for `ConnectClient`.
+    template <typename t_HASH_ALGORITHM>
     friend void hashAppend(t_HASH_ALGORITHM&, const ConnectClient&)
     {
     }
@@ -386,15 +386,19 @@ class ConnectClusterNode {
     // INSTANCE DATA
 
     bsl::string d_clusterName;
+    int         d_clusterNodeId;
 
   public:
     // TYPES
 
-    enum { ATTRIBUTE_ID_CLUSTER_NAME = 0 };
+    enum { ATTRIBUTE_ID_CLUSTER_NAME = 0, ATTRIBUTE_ID_CLUSTER_NODE_ID = 1 };
 
-    enum { NUM_ATTRIBUTES = 1 };
+    enum { NUM_ATTRIBUTES = 2 };
 
-    enum { ATTRIBUTE_INDEX_CLUSTER_NAME = 0 };
+    enum {
+        ATTRIBUTE_INDEX_CLUSTER_NAME    = 0,
+        ATTRIBUTE_INDEX_CLUSTER_NODE_ID = 1
+    };
 
     // CONSTANTS
 
@@ -500,6 +504,10 @@ class ConnectClusterNode {
     /// object.
     bsl::string& clusterName();
 
+    /// Return a reference to the modifiable "ClusterNodeId" attribute of this
+    /// object.
+    int& clusterNodeId();
+
     // ACCESSORS
 
     /// Format this object to the specified output `stream` at the
@@ -548,6 +556,9 @@ class ConnectClusterNode {
     /// attribute of this object.
     const bsl::string& clusterName() const;
 
+    /// Return the value of the "ClusterNodeId" attribute of this object.
+    int clusterNodeId() const;
+
     // HIDDEN FRIENDS
 
     /// Return `true` if the specified `lhs` and `rhs` attribute objects have
@@ -556,7 +567,8 @@ class ConnectClusterNode {
     friend bool operator==(const ConnectClusterNode& lhs,
                            const ConnectClusterNode& rhs)
     {
-        return lhs.clusterName() == rhs.clusterName();
+        return lhs.clusterName() == rhs.clusterName() &&
+               lhs.clusterNodeId() == rhs.clusterNodeId();
     }
 
     /// Return `true` if the specified `lhs` and `rhs` objects do not have the
@@ -575,15 +587,16 @@ class ConnectClusterNode {
         return rhs.print(stream, 0, -1);
     }
 
-    template <typename t_HASH_ALGORITHM>
     /// Pass the specified `object` to the specified `hashAlg`.  This function
     /// integrates with the `bslh` modular hashing system and effectively
     /// provides a `bsl::hash` specialization for `ConnectClusterNode`.
+    template <typename t_HASH_ALGORITHM>
     friend void hashAppend(t_HASH_ALGORITHM&         hashAlg,
                            const ConnectClusterNode& object)
     {
         using bslh::hashAppend;
         hashAppend(hashAlg, object.clusterName());
+        hashAppend(hashAlg, object.clusterNodeId());
     }
 };
 
@@ -733,10 +746,10 @@ class ConnectProxy {
         return rhs.print(stream, 0, -1);
     }
 
-    template <typename t_HASH_ALGORITHM>
     /// Pass the specified `object` to the specified `hashAlg`.  This function
     /// integrates with the `bslh` modular hashing system and effectively
     /// provides a `bsl::hash` specialization for `ConnectProxy`.
+    template <typename t_HASH_ALGORITHM>
     friend void hashAppend(t_HASH_ALGORITHM&, const ConnectProxy&)
     {
     }
@@ -949,10 +962,10 @@ class ExecuteAdminCommand {
         return rhs.print(stream, 0, -1);
     }
 
-    template <typename t_HASH_ALGORITHM>
     /// Pass the specified `object` to the specified `hashAlg`.  This function
     /// integrates with the `bslh` modular hashing system and effectively
     /// provides a `bsl::hash` specialization for `ExecuteAdminCommand`.
+    template <typename t_HASH_ALGORITHM>
     friend void hashAppend(t_HASH_ALGORITHM&          hashAlg,
                            const ExecuteAdminCommand& object)
     {
@@ -1163,10 +1176,10 @@ class QueueRead {
         return rhs.print(stream, 0, -1);
     }
 
-    template <typename t_HASH_ALGORITHM>
     /// Pass the specified `object` to the specified `hashAlg`.  This function
     /// integrates with the `bslh` modular hashing system and effectively
     /// provides a `bsl::hash` specialization for `QueueRead`.
+    template <typename t_HASH_ALGORITHM>
     friend void hashAppend(t_HASH_ALGORITHM& hashAlg, const QueueRead& object)
     {
         using bslh::hashAppend;
@@ -1376,10 +1389,10 @@ class QueueWrite {
         return rhs.print(stream, 0, -1);
     }
 
-    template <typename t_HASH_ALGORITHM>
     /// Pass the specified `object` to the specified `hashAlg`.  This function
     /// integrates with the `bslh` modular hashing system and effectively
     /// provides a `bsl::hash` specialization for `QueueWrite`.
+    template <typename t_HASH_ALGORITHM>
     friend void hashAppend(t_HASH_ALGORITHM& hashAlg, const QueueWrite& object)
     {
         using bslh::hashAppend;
@@ -1957,6 +1970,12 @@ int ConnectClusterNode::manipulateAttributes(t_MANIPULATOR& manipulator)
         return ret;
     }
 
+    ret = manipulator(&d_clusterNodeId,
+                      ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CLUSTER_NODE_ID]);
+    if (ret) {
+        return ret;
+    }
+
     return 0;
 }
 
@@ -1969,6 +1988,11 @@ int ConnectClusterNode::manipulateAttribute(t_MANIPULATOR& manipulator, int id)
     case ATTRIBUTE_ID_CLUSTER_NAME: {
         return manipulator(&d_clusterName,
                            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CLUSTER_NAME]);
+    }
+    case ATTRIBUTE_ID_CLUSTER_NODE_ID: {
+        return manipulator(
+            &d_clusterNodeId,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CLUSTER_NODE_ID]);
     }
     default: return NOT_FOUND;
     }
@@ -1995,6 +2019,11 @@ inline bsl::string& ConnectClusterNode::clusterName()
     return d_clusterName;
 }
 
+inline int& ConnectClusterNode::clusterNodeId()
+{
+    return d_clusterNodeId;
+}
+
 // ACCESSORS
 template <typename t_ACCESSOR>
 int ConnectClusterNode::accessAttributes(t_ACCESSOR& accessor) const
@@ -2003,6 +2032,12 @@ int ConnectClusterNode::accessAttributes(t_ACCESSOR& accessor) const
 
     ret = accessor(d_clusterName,
                    ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CLUSTER_NAME]);
+    if (ret) {
+        return ret;
+    }
+
+    ret = accessor(d_clusterNodeId,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CLUSTER_NODE_ID]);
     if (ret) {
         return ret;
     }
@@ -2019,6 +2054,10 @@ int ConnectClusterNode::accessAttribute(t_ACCESSOR& accessor, int id) const
     case ATTRIBUTE_ID_CLUSTER_NAME: {
         return accessor(d_clusterName,
                         ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CLUSTER_NAME]);
+    }
+    case ATTRIBUTE_ID_CLUSTER_NODE_ID: {
+        return accessor(d_clusterNodeId,
+                        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_CLUSTER_NODE_ID]);
     }
     default: return NOT_FOUND;
     }
@@ -2043,6 +2082,11 @@ int ConnectClusterNode::accessAttribute(t_ACCESSOR& accessor,
 inline const bsl::string& ConnectClusterNode::clusterName() const
 {
     return d_clusterName;
+}
+
+inline int ConnectClusterNode::clusterNodeId() const
+{
+    return d_clusterNodeId;
 }
 
 // ------------------
@@ -2710,6 +2754,6 @@ inline bool Action::isUndefinedValue() const
 }  // close enterprise namespace
 #endif
 
-// GENERATED BY BLP_BAS_CODEGEN_2026.05.28
+// GENERATED BY BLP_BAS_CODEGEN_2026.10.29
 // USING bas_codegen.pl -m msg --noAggregateConversion --noExternalization
 // --noIdent --package mqbact --msgComponent actions mqbact.xsd
