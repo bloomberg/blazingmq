@@ -1907,7 +1907,7 @@ struct AckHeaderFlags {
         e_UNUSED1 = (1 << 0),
         e_UNUSED2 = (1 << 1),
         e_UNUSED3 = (1 << 2),
-        e_UNUSED4 = (1 << 4),
+        e_UNUSED4 = (1 << 3),
         e_UNUSED5 = (1 << 4),
         e_UNUSED6 = (1 << 5),
         e_UNUSED7 = (1 << 6),
