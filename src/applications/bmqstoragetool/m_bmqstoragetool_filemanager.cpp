@@ -272,6 +272,31 @@ bool FileManagerImpl::CslFileHandler::resetIterator(
         return false;  // RETURN
     }
 
+    // The log's outstanding byte count is initialized to the physical file
+    // size on open, which for a preallocated (but not truncated) CSL file
+    // includes a zero-filled tail after the last real record.  Left
+    // uncorrected, the record iterator walks into that tail and reports it as
+    // a corrupt/incomplete record.  As mqbc::IncoreClusterStateLedger does on
+    // open, iterate the records once to discover the true end offset, then pin
+    // the log's outstanding byte count to it so all subsequent iteration stops
+    // cleanly at the last valid record.  (This tool is read-only, so unlike
+    // the broker there is no write head to seek.)
+    {
+        mqbc::IncoreClusterStateLedgerIterator discoveryIt(d_ledger_p.get());
+        while (discoveryIt.next() == 0) {
+            continue;
+        }
+        rc = d_ledger_p->setOutstandingNumBytes(
+            discoveryIt.currRecordId().logId(),
+            discoveryIt.currRecordId().offset());
+        if (rc != 0) {
+            errorDescription
+                << "Failed to set CSL outstanding byte count: rc=" << rc
+                << '\n';
+            return false;  // RETURN
+        }
+    }
+
     d_iter_p.load(new (*d_allocator)
                       mqbc::IncoreClusterStateLedgerIterator(d_ledger_p.get()),
                   d_allocator);
