@@ -973,9 +973,7 @@ struct EventHeaderUtil {
 // struct OptionHeader
 // ===================
 
-/// This struct represents the header for an option.  In a typical
-/// implementation usage, every Option struct will start by an
-/// `OptionHeader` member.
+/// This struct represents the header for an option.
 struct OptionHeader {
     // OptionHeader structure datagram [4 bytes]:
     //..
@@ -1013,19 +1011,6 @@ struct OptionHeader {
     //    should be added by decreasing order of usage (or could be sorted by
     //    option id and use optimize the linear search to cut off earlier
     //    eventually).
-    //  o Options that are followed by one or multiple 'variable length'
-    //    fields may include a byte representing the size (words) of the
-    //    optionHeader.
-    //
-    /// Example of a 'real' option struct:
-    /// ---------------------------------
-    //..
-    //  struct MyStruct {
-    //     OptionHeader          d_optionHeader;
-    //     bdlb::BigEndianUint32 d_timesamp;
-    //     bdlb::BigEndianUint32 d_msgId;
-    //   };
-    //..
 
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(OptionHeader, bsl::is_trivially_copyable)
