@@ -74,7 +74,7 @@ jobs:
           persist-credentials: false
 
         # xsdata 25.7 does not support python3.14
-      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           python-version: '3.13'
           activate-environment: true
@@ -121,7 +121,7 @@ jobs:
           name: ${{needs.build_ubuntu.outputs.artifact_key }}
 
         # Solaris: make sure all ITs scripts are compatible with python3.8
-      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
         with:
           python-version: '3.8'
           activate-environment: true
