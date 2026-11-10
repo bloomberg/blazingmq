@@ -311,5 +311,24 @@ int AbstractSession::configureMessageDumping(
     return -1;
 }
 
+/// Session management with a completion callback
+///---------------------------------------------
+int AbstractSession::startAsync(
+    BSLA_MAYBE_UNUSED const SessionCallback& callback,
+    BSLA_MAYBE_UNUSED const bsls::TimeInterval& timeout)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_OPT(false && "Method is undefined in base protocol");
+
+    return -1;
+}
+
+void AbstractSession::stopAsync(
+    BSLA_MAYBE_UNUSED const SessionCallback& callback)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_OPT(false && "Method is undefined in base protocol");
+}
+
 }  // close package namespace
 }  // close enterprise namespace

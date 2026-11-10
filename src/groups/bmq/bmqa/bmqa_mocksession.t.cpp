@@ -102,6 +102,8 @@ struct EventHandler : public bmqa::SessionEventHandler {
 
     bsl::deque<Result> d_receivedResults;
 
+    bsl::deque<bmqa::SessionStatus> d_receivedSessionResults;
+
     bsl::deque<bmqa::MessageEvent> d_receivedMessageEvents;
 
     size_t d_assertsInvoked;
@@ -163,6 +165,8 @@ struct EventHandler : public bmqa::SessionEventHandler {
     // CREATORS
     EventHandler(bslma::Allocator* allocator)
     : d_receivedSessionEvents(allocator)
+    , d_receivedResults(allocator)
+    , d_receivedSessionResults(allocator)
     , d_receivedMessageEvents(allocator)
     , d_assertsInvoked(0)
     , d_allocator_p(allocator)
@@ -174,7 +178,8 @@ struct EventHandler : public bmqa::SessionEventHandler {
     {
         size_t unpoppedEvents = d_receivedMessageEvents.size() +
                                 d_receivedSessionEvents.size() +
-                                d_receivedResults.size();
+                                d_receivedResults.size() +
+                                d_receivedSessionResults.size();
 
         if (unpoppedEvents > 0) {
             bsl::cout << "Un-popped events:\n";
@@ -221,6 +226,11 @@ struct EventHandler : public bmqa::SessionEventHandler {
         d_receivedResults.emplace_back(result);
     }
 
+    void onSessionStatus(const bmqa::SessionStatus& result)
+    {
+        d_receivedSessionResults.push_back(result);
+    }
+
     bmqa::SessionEvent popSessionEvent()
     {
         BSLS_ASSERT(d_receivedSessionEvents.size() > 0);
@@ -248,6 +258,14 @@ struct EventHandler : public bmqa::SessionEventHandler {
         return result;
     }
 
+    bmqa::SessionStatus popSessionResult()
+    {
+        BSLS_ASSERT(d_receivedSessionResults.size() > 0);
+        bmqa::SessionStatus result(d_receivedSessionResults.front());
+        d_receivedSessionResults.pop_front();
+        return result;
+    }
+
     void incrementAsserts(BSLA_MAYBE_UNUSED const char* desc,
                           BSLA_MAYBE_UNUSED const char* file,
                           BSLA_MAYBE_UNUSED int         line)
@@ -260,6 +278,7 @@ struct EventHandler : public bmqa::SessionEventHandler {
         d_receivedSessionEvents.clear();
         d_receivedMessageEvents.clear();
         d_receivedResults.clear();
+        d_receivedSessionResults.clear();
     }
 };
 
@@ -1499,6 +1518,89 @@ static void test8_postBlockedToSuspendedQueue()
     builder.reset();
 }
 
+static void test9_startStopAsyncCallback()
+// ------------------------------------------------------------------------
+// START / STOP ASYNC CALLBACK
+//
+// Concerns:
+//   The callback flavors of 'startAsync' and 'stopAsync' deliver the
+//   emitted 'bmqa::SessionStatus' to the user-provided completion callback
+//   when the corresponding event is emitted.
+//
+// Testing:
+//   int  startAsync(const SessionCallback&, const bsls::TimeInterval&);
+//   void stopAsync(const SessionCallback&);
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("START / STOP ASYNC CALLBACK");
+
+    EventHandler eventHandler(bmqtst::TestHelperUtil::allocator());
+
+    bslma::ManagedPtr<bmqa::SessionEventHandler> handlerMp;
+    handlerMp.load(&eventHandler, 0, bslma::ManagedPtrUtil::noOpDeleter);
+
+    bmqa::MockSession mockSession(
+        handlerMp,
+        bmqt::SessionOptions(bmqtst::TestHelperUtil::allocator()),
+        bmqtst::TestHelperUtil::allocator());
+
+    bmqa::MockSession::SessionCallback sessionCallback =
+        bdlf::MemFnUtil::memFn(&EventHandler::onSessionStatus, &eventHandler);
+
+    {
+        PVV("Successful startAsync response");
+        bmqa::SessionStatus startResult(bmqt::GenericResult::e_SUCCESS,
+                                        "",
+                                        bmqtst::TestHelperUtil::allocator());
+        BMQA_EXPECT_CALL(mockSession, startAsync(sessionCallback))
+            .returning(0)
+            .emitting(startResult);
+
+        BMQTST_ASSERT_EQ(mockSession.startAsync(sessionCallback), 0);
+        BMQTST_ASSERT_EQ(mockSession.emitEvent(), true);
+
+        bmqa::SessionStatus result = eventHandler.popSessionResult();
+        BMQTST_ASSERT_EQ(bool(result), true);
+        BMQTST_ASSERT_EQ(result.result(), bmqt::GenericResult::e_SUCCESS);
+        BMQTST_ASSERT_EQ(result.errorDescription(), "");
+    }
+
+    {
+        PVV("Unsuccessful startAsync response (timeout)");
+        bmqa::SessionStatus startResult(bmqt::GenericResult::e_TIMEOUT,
+                                        "timed out",
+                                        bmqtst::TestHelperUtil::allocator());
+        BMQA_EXPECT_CALL(mockSession, startAsync(sessionCallback))
+            .returning(0)
+            .emitting(startResult);
+
+        BMQTST_ASSERT_EQ(mockSession.startAsync(sessionCallback), 0);
+        BMQTST_ASSERT_EQ(mockSession.emitEvent(), true);
+
+        bmqa::SessionStatus result = eventHandler.popSessionResult();
+        BMQTST_ASSERT_EQ(bool(result), false);
+        BMQTST_ASSERT_EQ(result.result(), bmqt::GenericResult::e_TIMEOUT);
+        BMQTST_ASSERT_EQ(result.errorDescription(), "timed out");
+    }
+
+    {
+        PVV("Successful stopAsync response");
+        bmqa::SessionStatus stopResult(bmqt::GenericResult::e_SUCCESS,
+                                       "",
+                                       bmqtst::TestHelperUtil::allocator());
+        BMQA_EXPECT_CALL(mockSession, stopAsync(sessionCallback))
+            .emitting(stopResult);
+
+        mockSession.stopAsync(sessionCallback);
+        BMQTST_ASSERT_EQ(mockSession.emitEvent(), true);
+
+        bmqa::SessionStatus result = eventHandler.popSessionResult();
+        BMQTST_ASSERT_EQ(bool(result), true);
+        BMQTST_ASSERT_EQ(result.result(), bmqt::GenericResult::e_SUCCESS);
+        BMQTST_ASSERT_EQ(result.errorDescription(), "");
+    }
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -1509,6 +1611,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 9: test9_startStopAsyncCallback(); break;
     case 8: test8_postBlockedToSuspendedQueue(); break;
     case 7: test7_postAndAccess(); break;
     case 6: test6_runThrough(); break;

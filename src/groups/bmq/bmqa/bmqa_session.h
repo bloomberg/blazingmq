@@ -769,6 +769,30 @@ class Session : public AbstractSession {
     int startAsync(const bsls::TimeInterval& timeout = bsls::TimeInterval())
         BSLS_KEYWORD_OVERRIDE;
 
+    /// Connect to the BlazingMQ broker and start the message processing for
+    /// this `Session`.  This method returns without blocking.  The result of
+    /// the operation is communicated to the specified `callback` via a
+    /// `bmqa::SessionStatus`, providing the status of the operation.  If the
+    /// optionally specified `timeout` is not populated, use the one defined
+    /// in the session options.  Return 0 on success (this doesn't imply the
+    /// session is connected!), or a non-zero value corresponding to the
+    /// `bmqt::GenericResult::Enum` enum values otherwise.  If a non-zero
+    /// value is returned, the `callback` will *not* be invoked.  If this
+    /// `Session` is already started, the `callback` is invoked with a success
+    /// status.  The behavior is undefined unless `callback` is not empty.
+    ///
+    /// NOTE: the terminal start session event (`SESSION_CONNECTED` or
+    ///       `CONNECTION_TIMEOUT`) is consumed by the `callback` and is
+    ///       *NOT* delivered to the SessionEventHandler, the way
+    ///       `openQueueAsync` consumes `QUEUE_OPEN_RESULT`.
+    ///
+    /// THREAD: The `callback` will *ALWAYS* be invoked from the EventHandler
+    ///         thread(s) (or if a SessionEventHandler was not specified, from
+    ///         the thread invoking `nextEvent`).
+    int startAsync(const SessionCallback&    callback,
+                   const bsls::TimeInterval& timeout = bsls::TimeInterval())
+        BSLS_KEYWORD_OVERRIDE;
+
     /// Gracefully disconnect from the BlazingMQ broker and stop the
     /// operation of this `Session`.  This method blocks waiting for all
     /// already invoked event handlers to exit and all session-related
@@ -783,6 +807,35 @@ class Session : public AbstractSession {
     /// nor waits for any already started session-related operation to be
     /// finished.  No method may be used after this method returns.
     void stopAsync() BSLS_KEYWORD_OVERRIDE;
+
+    /// Disconnect from the BlazingMQ broker and stop the operation of this
+    /// `Session`.  This method returns without blocking and neither enforce
+    /// nor waits for any already started session-related operation to be
+    /// finished.  The result of the operation is communicated to the
+    /// specified `callback` via a `bmqa::SessionStatus`, providing the status
+    /// of the operation.  No method but `start` may be used once the
+    /// `callback` has been invoked.  The behavior is undefined unless
+    /// `callback` is not empty.
+    ///
+    /// NOTE: when a SessionEventHandler is used, the terminal
+    ///       `SESSION_DISCONNECTED` event is consumed by the `callback` and
+    ///       is *NOT* delivered to that handler.  In `nextEvent` mode the
+    ///       event is delivered as usual (the application's event loop relies
+    ///       on it to exit) *in addition to* invoking the `callback`.
+    ///
+    /// NOTE: if a stop is already in progress, this call is a no-op and the
+    ///       `callback` is *NOT* invoked; the callback given to the stop
+    ///       request that is in flight is the one that completes.
+    ///
+    /// NOTE: in `nextEvent` mode the `callback` runs only if the application
+    ///       keeps calling `nextEvent` until the terminal event is popped.
+    ///       Destroying the `Session` before then drops the `callback`.
+    ///
+    /// THREAD: The `callback` will *ALWAYS* be invoked from the EventHandler
+    ///         thread(s) (or if a SessionEventHandler was not specified, from
+    ///         the thread invoking `nextEvent`).  It is invoked inline, on the
+    ///         calling thread, if this `Session` was never started.
+    void stopAsync(const SessionCallback& callback) BSLS_KEYWORD_OVERRIDE;
 
     /// **DEPRECATED**
     ///
