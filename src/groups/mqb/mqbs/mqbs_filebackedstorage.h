@@ -360,12 +360,11 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     bool
     hasMessage(const bmqt::MessageGUID& msgGUID) const BSLS_KEYWORD_OVERRIDE;
 
-    /// Return `true` if the message the specified `probe` tracks may still
-    /// arrive, using and updating `probe`, where the specified `isAbsent`
-    /// says whether the caller has established that the record is not here.
-    /// Defers to the partition, which knows how far it has replicated.
-    bool isPendingReplication(mqbi::Storage::DeliveryProbe* probe,
-                              bool isAbsent) const BSLS_KEYWORD_OVERRIDE;
+    /// Return `true` if the record of a message may still arrive, given the
+    /// specified `raftIndex` from the PUSH.  Defers to the partition, which
+    /// knows how far it has replicated.
+    bool isPendingReplication(bsls::Types::Uint64 raftIndex) const
+        BSLS_KEYWORD_OVERRIDE;
 
     /// Retrieve the message and its metadata having the specified `msgGUID`
     /// in the specified `appData`, `options` and `attributes` from this
@@ -764,10 +763,9 @@ FileBackedStorage::hasMessage(const bmqt::MessageGUID& msgGUID) const
 }
 
 inline bool
-FileBackedStorage::isPendingReplication(mqbi::Storage::DeliveryProbe* probe,
-                                        bool isAbsent) const
+FileBackedStorage::isPendingReplication(bsls::Types::Uint64 raftIndex) const
 {
-    return d_store_p->isPendingReplication(probe, isAbsent);
+    return d_store_p->isPendingReplication(raftIndex);
 }
 
 inline mqbi::StorageResult::Enum

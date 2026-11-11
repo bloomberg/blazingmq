@@ -148,9 +148,7 @@ class PartitionRaft : public mqbs::RecordStore,
     bsls::Types::Uint64 d_snapshotLastIncludedIndex;
     bsls::Types::Uint64 d_snapshotLastIncludedTerm;
 
-    /// `true` while `dispatchOutput` is walking its committed entries.  A
-    /// propose issued from there would re-enter `dispatchOutput` on a frame
-    /// that has not finished that walk.
+    /// `true` while `dispatchOutput` is walking its committed entries.
     bool d_isDispatchingOutput;
 
     /// DELETION records written while `d_isDispatchingOutput` is `true`.
@@ -190,6 +188,14 @@ class PartitionRaft : public mqbs::RecordStore,
 
     // PRIVATE ACCESSORS
 
+    /// Return the Raft index a PUSH of the record of the specified `handle`
+    /// carries (`bmqp::PushHeader::raftIndex`): the record's log index if
+    /// the sequence number in its `DataStoreRecordKey` is that index
+    /// (`PartitionRaftLog::isRecordAt`), and the applied watermark
+    /// otherwise.
+    bsls::Types::Uint64
+    raftIndexOf(const mqbs::DataStoreRecordHandle& handle) const;
+
     // PRIVATE MANIPULATORS
 
     /// Recompute `d_canShutdown`: whether every peer that has a channel has
@@ -224,15 +230,19 @@ class PartitionRaft : public mqbs::RecordStore,
     /// `savePersistentState` succeeds; send none if it fails.
     void dispatchMessages(RaftNodeOutput* output);
 
-    /// Dispatch RaftNode output: send messages to peers and notify FileStore
-    /// of committed entries.
+    /// Process the output of the `RaftNode` (`RaftNode::output`): the output
+    /// itself, then each output added while processing (`d_nested`).  Return
+    /// at once if called from inside that processing: the call further up
+    /// the stack processes the output of this call next.
+    void dispatchOutput();
+
+    /// Process the specified `output`: send messages to peers and notify
+    /// FileStore of committed entries.
     void dispatchOutput(RaftNodeOutput* output);
 
     /// Run the part of `dispatchOutput` that must follow its apply loop, for
     /// the specified `output`, `hadRollover` telling whether that loop rolled
-    /// the file set over.  Anything that proposes belongs here: a propose from
-    /// inside the loop re-enters `dispatchOutput` on a frame still walking
-    /// `d_committed`.
+    /// the file set over.
     void postDispatch(RaftNodeOutput* output, bool hadRollover);
 
     /// Take the held proposals from the log (`takeHeldProposals`).  Hold
@@ -686,12 +696,12 @@ class PartitionRaft : public mqbs::RecordStore,
     int                 leaderId() const;
     bsls::Types::Uint64 currentTerm() const;
 
-    /// Return `true` if the specified `probe` indicates that the corresponding
-    /// data can still arrive, and update `probe` if necessary.  Return `false`
-    /// on the leader, which holds every committed record.  `isAbsent` is
-    /// unused: on Raft a record's presence is its receipt.
-    bool isPendingReplication(mqbi::Storage::DeliveryProbe* probe,
-                              bool isAbsent) const BSLS_KEYWORD_OVERRIDE;
+    /// Return `true` if this node has not yet applied the entry at the
+    /// specified `raftIndex`, the index the primary sent in the PUSH.  Until
+    /// then the record may still arrive; after, a missing record was removed
+    /// or never committed.
+    bool isPendingReplication(bsls::Types::Uint64 raftIndex) const
+        BSLS_KEYWORD_OVERRIDE;
 
     /// Return a printable description of the client (e.g., for logging).
     bsl::string_view description() const BSLS_KEYWORD_OVERRIDE;

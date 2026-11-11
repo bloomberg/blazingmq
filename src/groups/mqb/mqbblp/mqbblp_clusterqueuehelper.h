@@ -262,21 +262,27 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
         // List of all open queue pending contexts which are awaiting for a
         // next step on the queue (assignment, ...).
 
-        /// A replica-side open-queue call parked in `createQueue` because this
-        /// node's local storage/app for the queue was not yet registered
-        /// (Raft-mode: storage creation is only applied once the underlying
-        /// log entry commits, which can lag the upstream openQueue response).
-        /// Re-attempted in full from `ClusterQueueHelper::onStorageReady` once
-        /// `StorageProvider::hasStorage` reports readiness.
+        /// An open-queue call parked in `createQueue` because this node's
+        /// local storage/app for the queue was not yet registered (Raft-mode:
+        /// storage creation is only applied once the underlying log entry
+        /// commits).  Re-attempted in full from
+        /// `ClusterQueueHelper::onStorageReady` once storage is ready.
         struct StoragePendingContext {
             bsl::shared_ptr<OpenQueueContext> d_context;
             bmqp_ctrlmsg::OpenQueueResponse   d_openQueueResponse;
-            mqbnet::ClusterNode*              d_upstreamNode;
+
+            /// Null when parked as primary.
+            mqbnet::ClusterNode* d_upstreamNode;
+
+            /// `currentGenCount` when parked.  `d_openQueueResponse` and
+            /// `d_upstreamNode` are valid only while `d_generationCount`
+            /// equals `currentGenCount`.
+            bsls::Types::Uint64 d_generationCount;
         };
 
         bsl::vector<StoragePendingContext> d_storagePendingContexts;
-        // List of replica-side 'createQueue' calls parked awaiting local
-        // storage/app readiness.  See 'StoragePendingContext'.
+        // List of 'createQueue' calls parked awaiting local storage/app
+        // readiness.  See 'StoragePendingContext'.
 
         bsl::vector<VoidFunctor> d_pendingUpdates;
         // Operations pending QueueUpdate.
@@ -612,6 +618,19 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
 
     /// Process pending contexts, if any, from the specified `queueContext`.
     void processPendingContexts(QueueContext* queueContext);
+
+    /// Move every `d_storagePendingContexts` entry of the specified
+    /// `queueContext` whose `d_generationCount` differs from
+    /// `currentGenCount` into `d_pending`.  For a replica-side entry, first
+    /// subtract the entry's handle parameters from
+    /// `SubQueueContext::d_parameters`.  This is to avoid replaying an open
+    /// with the response of a stale primary (a queue with no handle at the
+    /// current primary).
+    void restartStaleStoragePending(QueueContext* queueContext);
+
+    /// Call `createQueue` again for every `d_storagePendingContexts` entry of
+    /// the specified `queueContext`.
+    void replayStoragePending(QueueContext* queueContext);
 
     /// Buffer the specified `context` and arrange for the pending contexts
     /// of the specified `queueContext` to be processed after
@@ -1091,11 +1110,11 @@ class ClusterQueueHelper BSLS_KEYWORD_FINAL
     /// constructed state.
     void teardown();
 
-    /// Re-attempt any replica-side `createQueue` call parked (see
+    /// Re-attempt any `createQueue` call parked (see
     /// `QueueLiveState::StoragePendingContext`) on the queue having the
     /// specified `uri` and assigned to the specified `partitionId`, because
     /// its local storage/app was not yet ready.  A no-op if there is no such
-    /// queue or no parked context for it.
+    /// queue, no parked context for the queue, or no ACTIVE primary.
     ///
     /// THREAD: This method is invoked in the associated cluster's dispatcher
     ///         thread.

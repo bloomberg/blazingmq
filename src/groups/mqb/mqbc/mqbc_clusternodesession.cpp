@@ -268,7 +268,8 @@ mqbi::InlineResult::Enum ClusterNodeSession::sendPush(
             flags,
             attributes.compressionAlgorithmType(),
             mps,
-            subQueueInfos);
+            subQueueInfos,
+            attributes.raftIndex());
     }
     else {
         rc = clusterNode()->channel().writePush(
@@ -277,7 +278,8 @@ mqbi::InlineResult::Enum ClusterNodeSession::sendPush(
             flags,
             attributes.compressionAlgorithmType(),
             mps,
-            subQueueInfos);
+            subQueueInfos,
+            attributes.raftIndex());
     }
 
     return rc == bmqt::GenericResult::e_SUCCESS

@@ -81,6 +81,7 @@
 #include <bmqio_channel.h>
 #include <bmqio_channelfactory.h>
 #include <bmqio_status.h>
+#include <bmqp_blobpoolutil.h>
 #include <bmqu_sharedresource.h>
 
 // BDE
@@ -178,6 +179,7 @@ class TCPSessionFactory {
     static const char* k_CHANNEL_STATUS_CLOSE_REASON;
 
     // TYPES
+    typedef bmqp::BlobPoolUtil::BlobSpPool BlobSpPool;
 
     /// Signature of the callback method for a `connect` or `listen` call
     /// where the specified `event` indicates the reason of this call, with
@@ -441,10 +443,10 @@ class TCPSessionFactory {
     /// BlobBuffer factory to use (passed to the ChannelFactory)
     bdlbb::BlobBufferFactory* d_blobBufferFactory_p;
 
-    bdlcc::SharedObjectPool<bdlbb::Blob,
-                            bdlcc::ObjectPoolFunctors::DefaultCreator,
-                            bdlcc::ObjectPoolFunctors::RemoveAll<bdlbb::Blob> >
-        d_blobSpPool;
+    /// Pool of blobs for received events, held not owned.  Must outlive
+    /// every holder of a received event's blob, including callbacks queued
+    /// on other threads.
+    BlobSpPool* d_blobSpPool_p;
 
     /// Authenticator to use for authentication
     Authenticator* d_authenticator_p;
@@ -683,12 +685,13 @@ class TCPSessionFactory {
     // CREATORS
 
     /// Create a new `TCPSessionFactory` configured with the specified
-    /// `config`, `scheduler` and `blobBufferFactory`, and using the
-    /// specified `negotiator` for session negotiation.  Use the specified
-    /// `allocator` for any memory allocation.
+    /// `config`, `scheduler`, `blobBufferFactory` and `blobSpPool`, and
+    /// using the specified `negotiator` for session negotiation.  Use the
+    /// specified `allocator` for any memory allocation.
     TCPSessionFactory(const mqbcfg::TcpInterfaceConfig& config,
                       bdlmt::EventScheduler*            scheduler,
                       bdlbb::BlobBufferFactory*         blobBufferFactory,
+                      BlobSpPool*                       blobSpPool,
                       Authenticator*                    authenticator,
                       Negotiator*                       negotiator,
                       mqbstat::StatController*          statController,

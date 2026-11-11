@@ -1258,10 +1258,7 @@ void RelayQueueEngine::resetStorage()
     // touch -- 'FileBackedStorage::purgeQueue' manipulates no QueueEngine --
     // so its position is still a live entry and is kept.  What it holds about
     // that entry is not: the payload aliases a file set that is now closed,
-    // the receipt was read before the wipe, and the 'isPendingReplication'
-    // probe measured against a commit point the reload has moved.  Keeping
-    // that probe would let the entry settle early and be dropped while its
-    // record is still on its way.
+    // and the receipt was read before the wipe.
     d_realStorageIter_mp = storage()->getIterator(
         mqbu::StorageKey::k_NULL_KEY);
 
@@ -2258,6 +2255,9 @@ void RelayQueueEngine::push(mqbi::StorageMessageAttributes*     attributes,
 
             isOutOfOrder = true;
         }
+        else {
+            itGuid->second.d_raftIndex = attributes->raftIndex();
+        }
     }
 
     // Count only those subQueueIds which 'storage' is aware of.
@@ -2299,7 +2299,7 @@ void RelayQueueEngine::push(mqbi::StorageMessageAttributes*     attributes,
                 continue;  // CONTINUE
             }
 
-            app->putForRedelivery(msgGUID);
+            app->putForRedelivery(msgGUID, attributes->raftIndex());
 
             // Track this App: if its payload has not been replicated/committed
             // here yet, the entry stays parked and `afterNewMessage` (driven

@@ -69,7 +69,8 @@ bmqt::EventBuilderResult::Enum PushEventBuilder::packMessageImp(
     const bmqt::MessageGUID&             msgId,
     int                                  flags,
     bmqt::CompressionAlgorithmType::Enum compressionAlgorithmType,
-    const MessagePropertiesInfo&         messagePropertiesInfo)
+    const MessagePropertiesInfo&         messagePropertiesInfo,
+    bsls::Types::Uint64                  raftIndex)
 {
     // PRECONDITIONS
     BSLA_MAYBE_UNUSED const int optionsCount = d_options.optionsCount();
@@ -122,7 +123,8 @@ bmqt::EventBuilderResult::Enum PushEventBuilder::packMessageImp(
         .setMessageWords(headerWords + optionsWords + numWords)
         .setMessageGUID(msgId)
         .setCompressionAlgorithmType(compressionAlgorithmType)
-        .setFlags(flags);
+        .setFlags(flags)
+        .setRaftIndex(raftIndex);
 
     messagePropertiesInfo.applyTo(d_currPushHeader.object());
 

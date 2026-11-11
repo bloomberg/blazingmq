@@ -1276,16 +1276,16 @@ void test7_dumpBlob()
         // Dump blob
         view.dumpBlob(stream);
         bsl::string str1(stream.str(), bmqtst::TestHelperUtil::allocator());
-        bsl::string str2("     0:   00000044 44020000 4000000F 00000708     "
-                         "|...DD...@.......|\n"
+        bsl::string str2("     0:   0000004C 44020000 40000011 0000070A     "
+                         "|...LD...@.......|\n"
                          "    16:   0000007B 00000000 00000000 00000000     "
                          "|...{............|\n"
-                         "    32:   00000000 00000000 0C400007 00003E39     "
-                         "|.........@....>9|\n"
-                         "    48:   39000000 00001139 39000000 00002686     "
-                         "|9......99.....&.|\n"
-                         "    64:   06000000                                "
-                         "|....            |\n",
+                         "    32:   00000000 00000000 00000000 00000000     "
+                         "|................|\n"
+                         "    48:   0C400007 00003E39 39000000 00001139     "
+                         "|.@....>99......9|\n"
+                         "    64:   39000000 00002686 06000000              "
+                         "|9.....&.....    |\n",
                          bmqtst::TestHelperUtil::allocator());
         // Verify that dump contains expected value
         BMQTST_ASSERT_EQ(str1, str2);
@@ -1360,14 +1360,14 @@ void test8_dumpBlobSubQueueIdsOld()
         // Dump blob
         view.dumpBlob(stream);
         bsl::string str1(stream.str(), bmqtst::TestHelperUtil::allocator());
-        bsl::string str2("     0:   00000038 44020000 4000000C 00000408     "
-                         "|...8D...@.......|\n"
+        bsl::string str2("     0:   00000040 44020000 4000000E 0000040A     "
+                         "|...@D...@.......|\n"
                          "    16:   0000007B 00000000 00000000 00000000     "
                          "|...{............|\n"
-                         "    32:   00000000 00000000 04000004 00003E39     "
-                         "|..............>9|\n"
-                         "    48:   00001139 00002686                       "
-                         "|...9..&.        |\n",
+                         "    32:   00000000 00000000 00000000 00000000     "
+                         "|................|\n"
+                         "    48:   04000004 00003E39 00001139 00002686     "
+                         "|......>9...9..&.|\n",
                          bmqtst::TestHelperUtil::allocator());
 
         // Verify that dump contains expected value

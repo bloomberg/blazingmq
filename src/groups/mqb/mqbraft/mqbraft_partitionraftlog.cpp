@@ -496,6 +496,13 @@ void PartitionRaftLog::dropCacheThrough(bsls::Types::Uint64 index)
     }
 }
 
+bool PartitionRaftLog::isRecordAt(bsls::Types::Uint64 index,
+                                  bsls::Types::Uint64 journalOffset) const
+{
+    return index >= d_firstRecordIndex && index <= lastIndex() &&
+           expectedJournalOffset(index) == journalOffset;
+}
+
 bsls::Types::Uint64
 PartitionRaftLog::journalOffsetAt(bsls::Types::Uint64 index) const
 {

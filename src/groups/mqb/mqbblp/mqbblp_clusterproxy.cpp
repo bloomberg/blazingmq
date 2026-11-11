@@ -443,7 +443,8 @@ void ClusterProxy::onPushEvent(const mqbevt::PushEvent& event)
                              iter.header().compressionAlgorithmType(),
                              bmqp::PushHeaderFlagUtil::isSet(
                                  iter.header().flags(),
-                                 bmqp::PushHeaderFlags::e_OUT_OF_ORDER));
+                                 bmqp::PushHeaderFlags::e_OUT_OF_ORDER),
+                             iter.header().raftIndex());
     }
 }
 

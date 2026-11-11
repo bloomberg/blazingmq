@@ -456,13 +456,6 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// replication complete, so they change from processing PUTs to PUSHes.
     bsl::unordered_set<mqbu::StorageKey> d_replicationNotifications;
 
-    /// `true` once a committed whole-queue PURGE has been applied in the
-    /// current apply batch.  `onPurgeComplete` reclaims the freed space by
-    /// proposing `e_ROLLOVER`, which cannot happen from inside the apply loop,
-    /// so the loop notes it here and `PartitionRaft::dispatchOutput` acts on
-    /// it afterwards.  Same shape as `d_replicationNotifications`.
-    bool d_purgeCompleted;
-
     int d_replicationFactor;
 
     NodeReceiptContexts d_nodes;
@@ -1538,12 +1531,6 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// which is also the queues' own.
     void notifyAllQueuesOnRestore();
 
-    /// Return `true` if a committed whole-queue PURGE was applied since the
-    /// last call, clearing the flag.  The caller reclaims the space the purge
-    /// freed (`onPurgeComplete`), which it must do outside the apply loop
-    /// because it proposes an `e_ROLLOVER`.
-    bool takePurgeCompleted();
-
     /// Refresh this partition's outstanding-bytes, file-offset and sequence
     /// number statistics from the active file set.  Legacy refreshes these
     /// whenever it issues a sync point; Raft issues none periodically, so its
@@ -1596,16 +1583,13 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// in tests): returns `false` in that case.
     bool isRaft() const BSLS_KEYWORD_OVERRIDE;
 
-    /// Return `!isAbsent`: reaching a `FileStore` directly means the legacy
-    /// write path, where a record is in the storage from propose, so one the
-    /// caller has established to be absent is one that was removed.  A
-    /// caller that has only found the message unreceipted says nothing about
-    /// the record, and there the answer is to keep waiting: the legacy path
-    /// never takes the storage out from under a message that is still
-    /// referenced.  On the Raft path the storage's `RecordStore` is the
-    /// `PartitionRaft`, which overrides this.
-    bool isPendingReplication(mqbi::Storage::DeliveryProbe* probe,
-                              bool isAbsent) const BSLS_KEYWORD_OVERRIDE;
+    /// Return `false`: reaching a `FileStore` directly means the legacy
+    /// write path, where a record is in the storage from propose, so an
+    /// absent record was removed.  On the Raft path the storage's
+    /// `RecordStore` is the `PartitionRaft`, which overrides
+    /// `isPendingReplication`.
+    bool isPendingReplication(bsls::Types::Uint64 raftIndex) const
+        BSLS_KEYWORD_OVERRIDE;
 
     void cancelTimersAndWait();
 
@@ -2026,10 +2010,9 @@ inline bool FileStore::isRaft() const
     return d_storageMonitor_p && d_storageMonitor_p->isRaft();
 }
 
-inline bool FileStore::isPendingReplication(mqbi::Storage::DeliveryProbe*,
-                                            bool isAbsent) const
+inline bool FileStore::isPendingReplication(bsls::Types::Uint64) const
 {
-    return !isAbsent;
+    return false;
 }
 
 inline unsigned int FileStore::writeHeadLeaseId() const

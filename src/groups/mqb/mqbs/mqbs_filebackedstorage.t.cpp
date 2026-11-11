@@ -234,10 +234,9 @@ class MockDataStore : public mqbs::DataStore {
 
     bool isRaft() const BSLS_KEYWORD_OVERRIDE { return false; }
 
-    bool isPendingReplication(mqbi::Storage::DeliveryProbe*,
-                              bool isAbsent) const BSLS_KEYWORD_OVERRIDE
+    bool isPendingReplication(bsls::Types::Uint64) const BSLS_KEYWORD_OVERRIDE
     {
-        return !isAbsent;
+        return false;
     }
 
     bsls::Types::Uint64 getMessageCounter() const { return d_messageCounter; }

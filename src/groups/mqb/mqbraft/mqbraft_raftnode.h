@@ -429,14 +429,38 @@ struct RaftNodeOutput {
 
     RaftMessage d_installSnapshot;
 
+    /// `true` while the caller processes this output.  Used on the output a
+    /// `RaftNode` holds (`RaftNode::output`).
+    bool d_isDispatching;
+
+    /// Output of the `RaftNode` calls made while `d_isDispatching`, in call
+    /// order.  The first `d_numNested` are in use, and the rest are kept for
+    /// reuse.  The caller processes them after this output.  This is to
+    /// avoid processing a call made from inside the processing (a propose,
+    /// for example) before the output that caused the call.
+    bsl::vector<bsl::shared_ptr<RaftNodeOutput> > d_nested;
+    bsl::size_t                                   d_numNested;
+
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(RaftNodeOutput, bslma::UsesBslmaAllocator)
 
     // CREATORS
     explicit RaftNodeOutput(bslma::Allocator* allocator = 0);
 
+    /// Copy the messages, committed entries and flags of the specified
+    /// `other`, but not `d_isDispatching` and `d_nested`.
     RaftNodeOutput(const RaftNodeOutput& other,
                    bslma::Allocator*     allocator = 0);
+
+    // MANIPULATORS
+
+    /// Add an empty output after the first `d_numNested` in `d_nested`, and
+    /// return it.
+    RaftNodeOutput* addNested();
+
+    /// Remove every message and committed entry, clear every flag, and reset
+    /// each output in use in `d_nested`, keeping them for reuse.
+    void reset();
 };
 
 // ==============
@@ -488,34 +512,6 @@ class RaftNode {
     /// Highest committed index handed to the caller to apply.  Trails
     /// `d_commitIndex` while a batch is outstanding.
     bsls::Types::Uint64 d_lastAppliedCommit;
-
-    /// Highest `leaderCommit` seen on an AppendEntries, uncapped.  Unlike
-    /// `d_commitIndex`, which Raft caps at this node's own match index, this
-    /// says how far the leader has committed even while this node is far
-    /// behind -- what a follower needs to tell "not replicated to me yet"
-    /// from "gone".
-    ///
-    /// Its reader treats a rise in this as "the leader has reported progress
-    /// since I last looked", and relies on that progress being at or past
-    /// whatever the leader has pushed -- true only because a rise means an
-    /// AppendEntries arrived, and one that arrived after a push was sent
-    /// after it.  That holds while what the leader sends arrives in order
-    /// from the same leader; where it stops holding,
-    /// `d_leaderCommitGeneration` moves.
-    bsls::Types::Uint64 d_lastKnownLeaderCommit;
-
-    /// Incremented wherever `d_lastKnownLeaderCommit` stops being comparable
-    /// with what was read from it before -- the leader or term changed, its
-    /// channel came back, this node rejected an AppendEntries and is about to
-    /// be probed backwards, or a snapshot replaced the log.  A reader holding
-    /// an earlier reading compares this first and starts again if it moved.
-    ///
-    /// It counts rather than resets because a reader only ever sees the value
-    /// at the moments it looks: a reset is overwritten by the next
-    /// AppendEntries -- in the leader-change case within that same call -- so
-    /// a dip and recovery is indistinguishable from a plain rise.  A count
-    /// survives to be noticed whenever the next look happens.
-    bsls::Types::Uint64 d_leaderCommitGeneration;
 
     // Election state
     bsl::unordered_set<int> d_votesReceived;
@@ -658,6 +654,9 @@ class RaftNode {
     // Leadership-eligibility override (see 'ElectionMode')
     ElectionMode::Enum d_electionMode;
 
+    /// The output the public manipulators write to (`output()`).
+    RaftNodeOutput d_output;
+
     bslma::Allocator* d_allocator_p;
 
     // NOT IMPLEMENTED
@@ -666,13 +665,22 @@ class RaftNode {
 
     // PRIVATE MANIPULATORS
 
-    /// Mark what a leader has reported committing as no longer comparable
-    /// with what was read from it before.  For the points where what arrives
-    /// from the leader stops being what it sent, in the order it sent it: the
-    /// leader or term changed, its channel came back, this node rejected an
-    /// AppendEntries and is about to be probed backwards, or a snapshot
-    /// replaced the log.
-    void breakLeaderCommitContinuity();
+    /// Return the output a public manipulator writes to: `d_output`, or,
+    /// while `d_output.d_isDispatching`, an output added to
+    /// `d_output.d_nested`.
+    RaftNodeOutput* currentOutput();
+
+    // The public manipulators of the same name, writing to the specified
+    // `output`.
+    void tick(RaftNodeOutput* output);
+    void step(RaftNodeOutput* output, const RaftMessage& message);
+    void loadCommittedBatch(RaftNodeOutput* output);
+    void flushSends(RaftNodeOutput* output);
+    int  propose(RaftNodeOutput*                     output,
+                 const bsl::shared_ptr<bdlbb::Blob>& data);
+    int  transferLeadership(RaftNodeOutput* output, int targetNodeId);
+    void setElectionMode(RaftNodeOutput* output, ElectionMode::Enum mode);
+    void forceSnapshot(RaftNodeOutput* output);
 
     /// Step down to follower in the specified `term`, under the leader
     /// identified by the specified `leaderId`, and record the transition in
@@ -765,34 +773,37 @@ class RaftNode {
              bslma::Allocator*     allocator = 0);
 
     // MANIPULATORS
+    //
+    // Each manipulator below that produces output writes it to `output()`,
+    // or, while `output().d_isDispatching`, to an output it adds to
+    // `output().d_nested`.
 
     /// Advance the logical clock by one tick.  Drives election timeouts
     /// (follower/candidate) and heartbeat emission (leader).
-    void tick(RaftNodeOutput* output);
+    void tick();
 
     /// Process the specified incoming 'message' from a peer.
-    void step(RaftNodeOutput* output, const RaftMessage& message);
+    void step(const RaftMessage& message);
 
-    /// Append to `output->d_committed` the next batch of committed entries
-    /// that have not been applied, up to `k_MAX_APPLY_PER_BATCH`, and set
-    /// `output->d_hasMoreToApply` if any remain after it.  A no-op when
-    /// everything committed has been applied.
-    void loadCommittedBatch(RaftNodeOutput* output);
+    /// Append to `d_committed` of the output the next batch of committed
+    /// entries that have not been applied, up to `k_MAX_APPLY_PER_BATCH`,
+    /// and set `d_hasMoreToApply` of the output if any remain after that
+    /// batch.  A no-op when everything committed has been applied.
+    void loadCommittedBatch();
 
-    /// Append to the specified `output` the AppendEntries this leader owes its
-    /// peers, and nothing if not the leader.  This is where every
-    /// AppendEntries is produced: `propose`, `step` and `tick` only move peer
-    /// state, so a caller decides when a round runs -- `PartitionRaft` at the
+    /// Append to the output the AppendEntries this leader owes its peers, and
+    /// nothing if not the leader.  This is where every AppendEntries is
+    /// produced: `propose`, `step` and `tick` only move peer state, so a
+    /// caller decides when a round runs -- `PartitionRaft` at the
     /// dispatcher's flush, `ClusterStateRaft` on every event.  Peers at the
     /// same anchor share one message, so their entries are read from the log
     /// once and their event is built once.
-    void flushSends(RaftNodeOutput* output);
+    void flushSends();
 
     /// Propose the specified 'data' as a new log entry; a null 'data' is the
     /// primary path, see 'RaftLog::append'.  Return 0 on success, non-zero if
     /// not the leader.
-    int propose(RaftNodeOutput*                     output,
-                const bsl::shared_ptr<bdlbb::Blob>& data);
+    int propose(const bsl::shared_ptr<bdlbb::Blob>& data);
 
     /// Initiate leadership transfer to the specified `targetNodeId`.  Return
     /// 0 on success, and non-zero if this node is not the leader, if
@@ -800,21 +811,27 @@ class RaftNode {
     /// A `TimeoutNow` goes out at once if the target is already current;
     /// otherwise the transfer is armed and `handleAppendEntriesResp` sends
     /// it once the target reports it is, or `tick` gives it up.
-    int transferLeadership(RaftNodeOutput* output, int targetNodeId);
+    int transferLeadership(int targetNodeId);
 
     /// Set the leadership-eligibility override to the specified 'mode' (see
     /// 'ElectionMode').  'e_FORCE' triggers an immediate real election if not
-    /// already leader; 'e_NEVER' takes effect on future elections only.  Any
-    /// resulting messages/committed entries are emitted via 'output'.
-    void setElectionMode(RaftNodeOutput* output, ElectionMode::Enum mode);
+    /// already leader; 'e_NEVER' takes effect on future elections only.
+    void setElectionMode(ElectionMode::Enum mode);
 
     /// On a leader whose log the caller has just replaced with a snapshot --
     /// its full state as the entry at `snapshotIndex() + 1`, in this term --
     /// set the commit index to `snapshotIndex()` and send every peer that
     /// snapshot before anything else, whatever its log holds.  A lone node
-    /// commits the snapshot at once, appending it to `output->d_committed`.
-    /// The behavior is undefined unless this node is the leader.
-    void forceSnapshot(RaftNodeOutput* output);
+    /// commits the snapshot at once, appending the snapshot to `d_committed`
+    /// of the output.  The behavior is undefined unless this node is the
+    /// leader.
+    void forceSnapshot();
+
+    /// Return the output this object writes to.  The caller sets
+    /// `d_isDispatching`, processes `output()`, then each output in use in
+    /// `output().d_nested`, then calls `output().reset()`, which clears
+    /// `d_isDispatching`.
+    RaftNodeOutput& output();
 
     /// Set both `d_commitIndex` and `d_lastAppliedCommit` to the specified
     /// `index`, lower or higher than now.  Called on a follower after it
@@ -872,15 +889,6 @@ class RaftNode {
     /// transfer under way: the target has been chosen but has not yet been
     /// sent its `TimeoutNow`, because it is still catching up.
     bool isTransferringLeadership() const;
-
-    /// Return the highest `leaderCommit` seen on an AppendEntries (0 if
-    /// none has been seen).  See `d_lastKnownLeaderCommit`.
-    bsls::Types::Uint64 lastKnownLeaderCommit() const;
-
-    /// Return the generation `lastKnownLeaderCommit` currently belongs to.
-    /// Two readings of that figure are comparable only if taken in the same
-    /// generation.  See `d_leaderCommitGeneration`.
-    bsls::Types::Uint64 leaderCommitGeneration() const;
 
     const RaftNodeConfig& config() const;
     int                   quorum() const;
@@ -1083,6 +1091,9 @@ inline RaftNodeOutput::RaftNodeOutput(bslma::Allocator* allocator)
 , d_hasMoreToApply(false)
 , d_persistentStateChanged(false)
 , d_installSnapshot(allocator)
+, d_isDispatching(false)
+, d_nested(allocator)
+, d_numNested(0)
 {
 }
 
@@ -1096,12 +1107,21 @@ inline RaftNodeOutput::RaftNodeOutput(const RaftNodeOutput& other,
 , d_hasMoreToApply(other.d_hasMoreToApply)
 , d_persistentStateChanged(other.d_persistentStateChanged)
 , d_installSnapshot(other.d_installSnapshot, allocator)
+, d_isDispatching(false)
+, d_nested(allocator)
+, d_numNested(0)
 {
 }
 
 // --------------
 // class RaftNode
 // --------------
+
+// MANIPULATORS
+inline RaftNodeOutput& RaftNode::output()
+{
+    return d_output;
+}
 
 // ACCESSORS
 inline RaftState::Enum RaftNode::state() const
@@ -1142,16 +1162,6 @@ inline bsls::Types::Uint64 RaftNode::lastAppliedCommit() const
 inline bool RaftNode::isTransferringLeadership() const
 {
     return k_INVALID_NODE_ID != d_transferTargetId;
-}
-
-inline bsls::Types::Uint64 RaftNode::lastKnownLeaderCommit() const
-{
-    return d_lastKnownLeaderCommit;
-}
-
-inline bsls::Types::Uint64 RaftNode::leaderCommitGeneration() const
-{
-    return d_leaderCommitGeneration;
 }
 
 inline const RaftNodeConfig& RaftNode::config() const

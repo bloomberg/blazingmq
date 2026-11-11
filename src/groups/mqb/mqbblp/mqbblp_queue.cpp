@@ -700,9 +700,10 @@ void Queue::convertToRemote(int          deduplicationTimeoutMs,
         return;  // RETURN
     }
 
-    // The cluster's upstream view of these subStreams is empty: as the
-    // primary, this node had no upstream to advertise them to.  Give it what
-    // the handles hold, so the reopen against the new primary asks for it.
+    // The cluster's upstream view of these subStreams is not kept while the
+    // queue is local: it is zero, or the counts from before the queue became
+    // local.  Give the cluster the counts of the handles, for the reopen on
+    // the new primary.
     d_state.onConversionToRemote();
 
     updateStats();
@@ -923,7 +924,8 @@ void Queue::onPushMessage(
     const bsl::shared_ptr<bdlbb::Blob>&  options,
     const bmqp::MessagePropertiesInfo&   messagePropertiesInfo,
     bmqt::CompressionAlgorithmType::Enum compressionAlgorithmType,
-    bool                                 isOutOfOrder)
+    bool                                 isOutOfOrder,
+    bsls::Types::Uint64                  raftIndex)
 {
     // executed by the *CLUSTER* dispatcher thread
 
@@ -947,7 +949,8 @@ void Queue::onPushMessage(
         .setGuid(msgGUID)
         .setMessagePropertiesInfo(messagePropertiesInfo)
         .setCompressionAlgorithmType(compressionAlgorithmType)
-        .setOutOfOrderPush(isOutOfOrder);
+        .setOutOfOrderPush(isOutOfOrder)
+        .setRaftIndex(raftIndex);
 
     dispatcher()->dispatchEvent(bslmf::MovableRefUtil::move(event_sp), this);
 }

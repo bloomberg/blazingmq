@@ -298,7 +298,8 @@ class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
         const bsl::shared_ptr<bdlbb::Blob>&  options,
         const bmqp::MessagePropertiesInfo&   messagePropertiesInfo,
         bmqt::CompressionAlgorithmType::Enum compressionAlgorithmType,
-        bool isOutOfOrder) BSLS_KEYWORD_OVERRIDE;
+        bool                                 isOutOfOrder,
+        bsls::Types::Uint64                  raftIndex) BSLS_KEYWORD_OVERRIDE;
 
     /// Post the message described by the specified `putHeader`, `appData` and
     /// `options` on behalf of the client identified by the specified

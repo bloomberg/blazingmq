@@ -914,15 +914,17 @@ class Queue : public DispatcherClient {
 
     /// Called when a message with the specified `msgGUID`, `appData`,
     /// `options`, `compressionAlgorithmType` payload is pushed to this
-    /// queue.  Note that depending upon the location of the queue instance,
-    /// `appData` may be empty.
+    /// queue, with the specified `raftIndex` the PUSH carries
+    /// (`bmqp::PushHeader::raftIndex`).  Note that depending upon the
+    /// location of the queue instance, `appData` may be empty.
     virtual void onPushMessage(
         const bmqt::MessageGUID&             msgGUID,
         const bsl::shared_ptr<bdlbb::Blob>&  appData,
         const bsl::shared_ptr<bdlbb::Blob>&  options,
         const bmqp::MessagePropertiesInfo&   messagePropertiesInfo,
         bmqt::CompressionAlgorithmType::Enum compressionAlgorithmType,
-        bool                                 isOutOfOrder) = 0;
+        bool                                 isOutOfOrder,
+        bsls::Types::Uint64                  raftIndex) = 0;
 
     /// Post the message described by the specified `putHeader`, `appData` and
     /// `options` on behalf of the client identified by the specified

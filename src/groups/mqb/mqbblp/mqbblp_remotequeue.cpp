@@ -349,7 +349,8 @@ void RemoteQueue::pushMessage(
     const bsl::shared_ptr<bdlbb::Blob>&  options,
     const bmqp::MessagePropertiesInfo&   messagePropertiesInfo,
     bmqt::CompressionAlgorithmType::Enum compressionAlgorithmType,
-    bool                                 isOutOfOrder)
+    bool                                 isOutOfOrder,
+    bsls::Types::Uint64                  raftIndex)
 {
     // executed by the *QUEUE DISPATCHER* thread
     mqbi::StorageResult::Enum result  = mqbi::StorageResult::e_SUCCESS;
@@ -423,6 +424,7 @@ void RemoteQueue::pushMessage(
         static_cast<unsigned int>(msgSize),
         messagePropertiesInfo,
         compressionAlgorithmType);
+    attributes.setRaftIndex(raftIndex);
     d_queueEngine_mp->push(&attributes,
                            msgGUID,
                            appData,
@@ -811,7 +813,8 @@ void RemoteQueue::onDispatcherEvent(const mqbi::DispatcherEvent& event)
                     realEvent->options(),
                     realEvent->messagePropertiesInfo(),
                     realEvent->compressionAlgorithmType(),
-                    realEvent->isOutOfOrderPush());
+                    realEvent->isOutOfOrderPush(),
+                    realEvent->raftIndex());
     } break;
     case mqbi::DispatcherEventType::e_PUT: {
         const mqbevt::PutEvent* const realEvent =

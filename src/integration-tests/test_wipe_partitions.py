@@ -328,7 +328,8 @@ def test_wipe_storage_all_but_one_node(
     - stop all nodes
     - wipe all partition files + CSL on every node except one
     - restart all nodes, but make sure the surviving node is part of the initial
-      leader quorum
+      leader quorum, and start the last node only once every partition has a
+      primary
     - verify the cluster becomes available
     - connect a consumer, verify messages are received
 
@@ -375,6 +376,20 @@ def test_wipe_storage_all_but_one_node(
     assert surviving_node == cluster.last_known_leader, (
         f"Surviving node {surviving_node} is not cluster.last_known_leader "
         f"{cluster.last_known_leader}"
+    )
+
+    # Every partition must have a primary before the last wiped node starts.
+    # Raft elects each partition separately, and with the last node up the
+    # wiped nodes form a quorum without the surviving node.
+    num_partitions = cluster.config.definition.partition_config.num_partitions
+    primaries = {}
+
+    def all_primaries_elected():
+        primaries.update(surviving_node.partition_primaries(num_partitions))
+        return all(primary is not None for primary in primaries.values())
+
+    assert wait_until(all_primaries_elected, 30), (
+        f"not every partition has a primary: {primaries}"
     )
 
     last_node.start()

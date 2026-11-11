@@ -58,7 +58,6 @@ void PushStreamIterator::clearCache()
     d_appData_sp.reset();
     d_options_sp.reset();
     d_attributes.reset(false);
-    d_probe = mqbi::Storage::DeliveryProbe();
 }
 
 // PRIVATE ACCESSORS
@@ -91,7 +90,6 @@ PushStreamIterator::PushStreamIterator(
 , d_appData_sp()
 , d_options_sp()
 , d_owner_p(owner)
-, d_probe()
 , d_currentElement(0)
 , d_currentOrdinal(mqbi::Storage::k_INVALID_ORDINAL)
 , d_iterator(initialPosition)
@@ -262,24 +260,21 @@ bool PushStreamIterator::hasReceipt()
             return true;  // RETURN
         }
 
-        // Either the record is not here, or it is here and waiting for its
-        // receipts; this cannot tell the two apart, so it says so.
-        if (d_storage_p->isPendingReplication(&d_probe,
-                                              false)) {  // isAbsent
-            // Wait, keeping the order: the record either is here and about to
-            // be receipted, or is on its way -- a PUSH commits on a majority
-            // that need not include this node, so it can outrun the entry
-            // carrying its record.
-            return false;  // RETURN
+        if (!d_storage_p->hasMessage(guid()) &&
+            !d_storage_p->isPendingReplication(message().d_raftIndex)) {
+            // On Raft, an 'InstallSnapshot' replaced the storage, and the
+            // record of this message never arrives.  Drop the message.  This
+            // is to avoid blocking every message behind the message
+            // ('beforeMessageRemoved' needs a DELETION that is not coming).
+            dropCurrentMessage();
+            continue;  // CONTINUE
         }
 
-        // This node has applied past the point where the record would have
-        // arrived, so it never will: an 'InstallSnapshot' replaced the
-        // storage under this entry.  Nothing else takes it out of the
-        // 'PushStream' -- 'beforeMessageRemoved' needs a DELETION that is not
-        // coming -- and leaving it here stops every message behind it for
-        // good.
-        dropCurrentMessage();
+        // Legacy: the record is waiting for its receipts.  Raft: the record
+        // is on its way -- a PUSH commits on a majority that need not include
+        // this node, so the PUSH can arrive before the entry carrying the
+        // record.
+        return false;  // RETURN
     }
 
     return false;

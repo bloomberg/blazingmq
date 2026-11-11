@@ -96,6 +96,10 @@ class PushEvent : public mqbi::DispatcherEvent {
     /// Whether the associated PUSH message is out-of-order.
     bool d_isOutOfOrderPush;
 
+    /// Raft index carried by the associated PUSH message
+    /// (`bmqp::PushHeader::raftIndex`).
+    bsls::Types::Uint64 d_raftIndex;
+
   public:
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(PushEvent, bslma::UsesBslmaAllocator)
@@ -152,6 +156,10 @@ class PushEvent : public mqbi::DispatcherEvent {
     /// reference offering modifiable access to this object.
     PushEvent& setOutOfOrderPush(bool value);
 
+    /// Set the Raft index to the specified `value` and return a reference
+    /// offering modifiable access to this object.
+    PushEvent& setRaftIndex(bsls::Types::Uint64 value);
+
     /// Set the source client to the specified `value` and return a
     /// reference offering modifiable access to this object.
     PushEvent& setSource(mqbi::DispatcherClient* value);
@@ -196,6 +204,9 @@ class PushEvent : public mqbi::DispatcherEvent {
 
     /// Return whether the associated PUSH message is out-of-order.
     bool isOutOfOrderPush() const;
+
+    /// Return the Raft index carried by the associated PUSH message.
+    bsls::Types::Uint64 raftIndex() const;
 
     /// Return the type of this event.
     mqbi::DispatcherEventType::Enum type() const BSLS_KEYWORD_OVERRIDE;
@@ -268,6 +279,11 @@ inline bool PushEvent::isOutOfOrderPush() const
     return d_isOutOfOrderPush;
 }
 
+inline bsls::Types::Uint64 PushEvent::raftIndex() const
+{
+    return d_raftIndex;
+}
+
 inline mqbi::DispatcherEventType::Enum PushEvent::type() const
 {
     return k_TYPE;
@@ -328,6 +344,12 @@ PushEvent::setSubQueueInfos(const bmqp::Protocol::SubQueueInfosArray& value)
 inline PushEvent& PushEvent::setOutOfOrderPush(bool value)
 {
     d_isOutOfOrderPush = value;
+    return *this;
+}
+
+inline PushEvent& PushEvent::setRaftIndex(bsls::Types::Uint64 value)
+{
+    d_raftIndex = value;
     return *this;
 }
 

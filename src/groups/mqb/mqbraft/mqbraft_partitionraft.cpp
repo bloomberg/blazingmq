@@ -277,9 +277,14 @@ void PartitionRaft::flush()
         return;  // RETURN
     }
 
-    RaftNodeOutput output(d_allocator_p);
-    d_raftNode_mp->flushSends(&output);
+    // Every 'RaftNode' call on this thread is followed by 'dispatchOutput',
+    // which resets the output, so the output holds only what 'flushSends'
+    // writes: AppendEntries messages.
+    RaftNodeOutput& output = d_raftNode_mp->output();
+    BSLS_ASSERT_SAFE(!output.d_isDispatching);
+    d_raftNode_mp->flushSends();
     dispatchMessages(&output);
+    output.reset();
 
     // Runs after every event on this thread, including each tick and each
     // AppendEntries response.
@@ -351,10 +356,38 @@ void PartitionRaft::dispatchMessages(RaftNodeOutput* output)
     }
 }
 
+void PartitionRaft::dispatchOutput()
+{
+    // executed by the partition *DISPATCHER* thread
+
+    RaftNodeOutput& output = d_raftNode_mp->output();
+    if (output.d_isDispatching) {
+        return;  // RETURN
+    }
+
+    output.d_isDispatching = true;
+
+    dispatchOutput(&output);
+
+    for (bsl::size_t i = 0; i < output.d_numNested; ++i) {
+        dispatchOutput(output.d_nested[i].get());
+    }
+
+    output.reset();
+}
+
 void PartitionRaft::dispatchOutput(RaftNodeOutput* output)
 {
     // executed by the partition *DISPATCHER* thread
     BSLS_ASSERT_SAFE(output);
+
+    if (output->d_hasInstallSnapshot) {
+        // First: 'beginReceiveSnapshot' empties and closes the 'FileStore',
+        // and the rest of the processing runs against the 'FileStore' in
+        // that state.
+        const RaftMessage& snap = output->d_installSnapshot;
+        beginReceiveSnapshot(snap.d_lastLogIndex, snap.d_lastLogTerm);
+    }
 
     dispatchMessages(output);
 
@@ -450,6 +483,12 @@ void PartitionRaft::dispatchOutput(RaftNodeOutput* output)
         // earlier entries can propose current-term records (per-app purge
         // DELETIONs) before this sync point.
         d_needsBecomeLeaderSyncPoint = isLeader();
+
+        // Ahead of 'd_leadershipCb'.  This is to avoid the cluster thread,
+        // acting on the new leadership, reading a 'StorageMonitor' Awaiting
+        // set under an earlier term as outstanding (an open parked until
+        // timeout).
+        d_storageMonitor_p->onNewTerm(d_partitionId, term);
 
         // Signal the cluster so it can (re)compute this partition's
         // primary/gate state.
@@ -614,8 +653,6 @@ void PartitionRaft::postDispatch(RaftNodeOutput* output, bool hadRollover)
     const bool isSyncPointApplied = d_reportedSyncPointTerm ==
                                     d_raftNode_mp->currentTerm();
     if (!d_deferred.empty() && (!isLeader() || isSyncPointApplied)) {
-        // Swap first: 'propose' runs a nested 'dispatchOutput', which
-        // reaches this code again.
         bsl::vector<bsl::shared_ptr<mqbs::Proposal> > deferred(d_allocator_p);
         deferred.swap(d_deferred);
 
@@ -655,12 +692,6 @@ void PartitionRaft::postDispatch(RaftNodeOutput* output, bool hadRollover)
     }
     else if (!d_raftNode_mp->isTransferringLeadership()) {
         reproposeHeldProposals();
-    }
-
-    if (d_fileStore_sp->takePurgeCompleted()) {
-        // A committed whole-queue purge freed journal space.
-        // 'onPurgeComplete' proposes an 'e_ROLLOVER' if one is needed.
-        onPurgeComplete();
     }
 
     if (output->d_hasMoreToApply) {
@@ -1365,17 +1396,15 @@ void PartitionRaft::applyCommittedBatchDispatched()
         return;  // RETURN
     }
 
-    RaftNodeOutput output(d_allocator_p);
-    d_raftNode_mp->loadCommittedBatch(&output);
-    dispatchOutput(&output);
+    d_raftNode_mp->loadCommittedBatch();
+    dispatchOutput();
 }
 
 void PartitionRaft::tickDispatched()
 {
     // executed by the partition *DISPATCHER* thread
-    RaftNodeOutput output(d_allocator_p);
-    d_raftNode_mp->tick(&output);
-    dispatchOutput(&output);
+    d_raftNode_mp->tick();
+    dispatchOutput();
 
     // Refresh the partition stats on each tick.  Raft has no periodic sync
     // point to refresh the stats.
@@ -1387,9 +1416,8 @@ void PartitionRaft::setElectionMode(ElectionMode::Enum mode)
     // executed by the partition *DISPATCHER* thread
     BSLS_ASSERT_SAFE(d_fileStore_sp->inDispatcherThread());
 
-    RaftNodeOutput output(d_allocator_p);
-    d_raftNode_mp->setElectionMode(&output, mode);
-    dispatchOutput(&output);
+    d_raftNode_mp->setElectionMode(mode);
+    dispatchOutput();
 }
 
 // MANIPULATORS
@@ -1585,13 +1613,12 @@ int PartitionRaft::propose(const bsl::shared_ptr<mqbs::Proposal>& pw)
     // 'append()' sets 'pw->d_handle' on the object the caller holds.
     d_raftLog_mp->setProposal(pw);
 
-    RaftNodeOutput output(d_allocator_p);
-    int rc = d_raftNode_mp->propose(&output, bsl::shared_ptr<bdlbb::Blob>());
+    int rc = d_raftNode_mp->propose(bsl::shared_ptr<bdlbb::Blob>());
     if (rc != 0) {
         return rc;
     }
 
-    dispatchOutput(&output);
+    dispatchOutput();
 
     return 0;
 }
@@ -1805,8 +1832,7 @@ int PartitionRaft::proposeRollover()
     // 'e_ROLLOVER' goes to 'append()' directly, not through 'propose'.
     d_raftLog_mp->setProposal(pw);
 
-    RaftNodeOutput output(d_allocator_p);
-    int rc = d_raftNode_mp->propose(&output, bsl::shared_ptr<bdlbb::Blob>());
+    int rc = d_raftNode_mp->propose(bsl::shared_ptr<bdlbb::Blob>());
     if (rc != 0) {
         BALL_LOG_ERROR << "Partition [" << d_partitionId
                        << "] failed to propose e_ROLLOVER, rc: " << rc;
@@ -1824,7 +1850,7 @@ int PartitionRaft::proposeRollover()
     d_fileStore_sp->setAvailabilityStatus(false);
     d_isRolloverPending = true;
 
-    dispatchOutput(&output);
+    dispatchOutput();
 
     return 0;
 }
@@ -2035,9 +2061,7 @@ int PartitionRaft::transferLeadership(const bsl::string& targetHostName)
         return rc_ROLLOVER_PENDING;  // RETURN
     }
 
-    RaftNodeOutput output(d_allocator_p);
-    const int      rc = d_raftNode_mp->transferLeadership(&output,
-                                                     target->nodeId());
+    const int rc = d_raftNode_mp->transferLeadership(target->nodeId());
     if (rc != 0) {
         BALL_LOG_WARN << "Partition [" << d_partitionId
                       << "] Transfer leadership to '" << targetHostName
@@ -2049,7 +2073,7 @@ int PartitionRaft::transferLeadership(const bsl::string& targetHostName)
                   << "] initiating leadership transfer to '" << targetHostName
                   << "'";
 
-    dispatchOutput(&output);
+    dispatchOutput();
     return rc_SUCCESS;
 }
 
@@ -2192,10 +2216,9 @@ void PartitionRaft::appendEntries(
         remaining -= entrySize;
     }
 
-    RaftNodeOutput output(d_allocator_p);
-    d_raftNode_mp->step(&output, internalMsg);
+    d_raftNode_mp->step(internalMsg);
 
-    dispatchOutput(&output);
+    dispatchOutput();
 }
 
 void PartitionRaft::onAppendEntriesResponse(
@@ -2277,10 +2300,9 @@ void PartitionRaft::onAppendEntriesResponse(
     internalMsg.d_matchIndex    = resp->matchIndex();
     internalMsg.d_rejectedIndex = resp->rejectedIndex();
 
-    RaftNodeOutput output(d_allocator_p);
-    d_raftNode_mp->step(&output, internalMsg);
+    d_raftNode_mp->step(internalMsg);
 
-    dispatchOutput(&output);
+    dispatchOutput();
 }
 
 void PartitionRaft::onRaftControlMessage(
@@ -2305,15 +2327,9 @@ void PartitionRaft::onRaftControlMessage(
     RaftMessage internalMsg(d_allocator_p);
     fromCtrlMsg(&internalMsg, message, source->nodeId());
 
-    RaftNodeOutput output(d_allocator_p);
-    d_raftNode_mp->step(&output, internalMsg);
+    d_raftNode_mp->step(internalMsg);
 
-    if (output.d_hasInstallSnapshot) {
-        const RaftMessage& snap = output.d_installSnapshot;
-        beginReceiveSnapshot(snap.d_lastLogIndex, snap.d_lastLogTerm);
-    }
-
-    dispatchOutput(&output);
+    dispatchOutput();
 }
 
 // RecordStore OVERRIDES
@@ -2633,6 +2649,7 @@ void PartitionRaft::loadMessageRaw(
     const mqbs::DataStoreRecordHandle& handle) const
 {
     d_fileStore_sp->loadMessageRaw(appData, options, attributes, handle);
+    attributes->setRaftIndex(raftIndexOf(handle));
 }
 
 void PartitionRaft::loadMessageAttributesRaw(
@@ -2640,6 +2657,23 @@ void PartitionRaft::loadMessageAttributesRaw(
     const mqbs::DataStoreRecordHandle& handle) const
 {
     d_fileStore_sp->loadMessageAttributesRaw(buffer, handle);
+    buffer->setRaftIndex(raftIndexOf(handle));
+}
+
+bsls::Types::Uint64
+PartitionRaft::raftIndexOf(const mqbs::DataStoreRecordHandle& handle) const
+{
+    const bsls::Types::Uint64 sequenceNum = handle.sequenceNum();
+
+    if (d_raftLog_mp->isRecordAt(sequenceNum, handle.recordOffset())) {
+        // The sequence number is the log index: a record written by Raft.
+        return sequenceNum;  // RETURN
+    }
+
+    // Written by legacy, or copied by a rollover.  The record is in the
+    // storage, so it is applied, and the applied watermark is at or above its
+    // log index.
+    return d_raftNode_mp->lastAppliedCommit();
 }
 
 void PartitionRaft::loadQueueOpRecordRaw(
@@ -2702,72 +2736,12 @@ int PartitionRaft::leaderId() const
     return d_raftNode_mp->leaderId();
 }
 
-bool PartitionRaft::isPendingReplication(mqbi::Storage::DeliveryProbe* probe,
-                                         BSLA_MAYBE_UNUSED bool isAbsent) const
+bool PartitionRaft::isPendingReplication(bsls::Types::Uint64 raftIndex) const
 {
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(probe);
-
-    if (isLeader()) {
-        // The leader holds every committed record, so nothing is on its way:
-        // one that is absent is one that was removed.
-        return false;  // RETURN
-    }
-
-    const bsls::Types::Uint64 leaderCommit =
-        d_raftNode_mp->lastKnownLeaderCommit();
-
-    if (0 == leaderCommit) {
-        // Nothing heard from a leader yet, so there is no bound to wait on.
-        return true;  // RETURN
-    }
-
-    const bsls::Types::Uint64 generation =
-        d_raftNode_mp->leaderCommitGeneration();
-
-    if (0 == probe->d_u0 || generation != probe->d_u1) {
-        // 'probe->d_u0' holds the 'leaderCommit' recorded for this message,
-        // and 'probe->d_u1' holds the 'leaderCommitGeneration' at that time.
-        // On the first call for this message, or after the generation changed
-        // (a new leader, the channel to the leader came back, a rejection, or
-        // a snapshot):
-        // 1. Raise 'd_u0' to 'leaderCommit', and store the generation.
-        // 2. Return true: the leader sends the PUSH only after the record
-        //    commits, but 'leaderCommit' here may predate that commit.
-        // A later 'leaderCommit' above 'd_u0' in the same generation was sent
-        // after the PUSH, so it is at or above the record's index.  That needs
-        // 'leaderCommit' to be the leader's whole commit index (see
-        // 'd_leaderCommit' in 'RaftNode::sendAppendEntries').
-        //
-        // 'd_u0' is never lowered: a new leader's commit index starts below
-        // what is already committed, and a small rise from it can stay below
-        // the record's index.
-        if (leaderCommit > probe->d_u0) {
-            probe->d_u0 = leaderCommit;
-        }
-        probe->d_u1 = generation;
-        return true;  // RETURN
-    }
-
-    if (leaderCommit <= probe->d_u0) {
-        // Nothing newer heard from the leader yet.
-        return true;  // RETURN
-    }
-
-    // Applying through a position that covers the record settles it: had it
-    // ever been written here it would be in the storage, so it is either gone
-    // or was never committed.
-    const bsls::Types::Uint64 applied = d_raftNode_mp->lastAppliedCommit();
-
-    if (applied < leaderCommit) {
-        return true;  // RETURN
-    }
-
-    // Also require the applied watermark to reach the log's end.  After an
-    // InstallSnapshot, the watermark is at the snapshot boundary while the
-    // entries recovered above that boundary are still unapplied, and the
-    // record may be among them.
-    return applied < d_raftLog_mp->lastIndex();
+    // Once this node has applied through 'raftIndex', a record that was
+    // committed there is in the storage.  A message that was delivered from
+    // the storage and put on a redelivery list has 'raftIndex' 0.
+    return d_raftNode_mp->lastAppliedCommit() < raftIndex;
 }
 
 bsls::Types::Uint64 PartitionRaft::currentTerm() const

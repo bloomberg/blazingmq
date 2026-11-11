@@ -34,12 +34,14 @@
 //:   confirmed ('LeaderAdvisory' or 'partitionPrimaryAdvisory'), reported by
 //:   'ClusterStateRaft';
 //: o for each partition, whether self has applied the deferred sync point of
-//:   the primary's leaseId ('ClusterOrchestrator').
+//:   the primary's leaseId ('ClusterOrchestrator');
+//: o for each partition, whether self, after losing primaryship, has
+//:   converted its queues to remote ('ClusterOrchestrator').
 //
-// A partition event ('onPartitionPrimary', 'onSyncPointApplied') returns the
-// 'Action' for that partition.  After a CSL event, the caller asks
-// 'needsAdvisory', then 'evaluatePartition' for each partition, then
-// 'becomeAvailable'.
+// A partition event ('onPartitionPrimary', 'onSyncPointApplied',
+// 'onQueuesConvertedToRemote') returns the 'Action' for that partition.  After
+// a CSL event, the caller asks 'needsAdvisory', then 'evaluatePartition' for
+// each partition, then 'becomeAvailable'.
 //
 /// Threading
 ///---------
@@ -130,6 +132,14 @@ class ClusterAvailability {
         /// `true` if self has applied the sync point of `d_syncPointLeaseId`,
         /// and `false` if self has only asked for that sync point.
         bool d_isSyncPointApplied;
+
+        /// LeaseId of the last `onConversionToRemoteRequested`; 0 if none.
+        unsigned int d_conversionLeaseId;
+
+        /// `true` if self has converted its queues to remote for
+        /// `d_conversionLeaseId`, and `false` if the conversion is only
+        /// requested.
+        bool d_isConversionDone;
 
         PartitionState();
 
@@ -228,22 +238,41 @@ class ClusterAvailability {
     /// partition (`evaluatePartition`).
     Action::Enum onSyncPointApplied(int partitionId, unsigned int leaseId);
 
+    /// Record that self, having lost primaryship of the specified
+    /// `partitionId`, has asked to convert its queues of that partition to
+    /// remote, at the specified `leaseId`.  The partition does not become
+    /// active until `onQueuesConvertedToRemote` with the same `leaseId`.
+    void onConversionToRemoteRequested(int partitionId, unsigned int leaseId);
+
+    /// Record that self has converted its queues of the specified
+    /// `partitionId` to remote, as asked at the specified `leaseId`.  Ignore
+    /// a `leaseId` other than the one of the last
+    /// `onConversionToRemoteRequested`: a later request is still pending.
+    /// Return the action for the partition (`evaluatePartition`).
+    Action::Enum onQueuesConvertedToRemote(int          partitionId,
+                                           unsigned int leaseId);
+
     /// Return the action for the specified `partitionId`, and record the
     /// action as done.  An inactive partition with a primary becomes
     /// active once:
     ///
-    /// 1. the CSL state is caught up.  This is to avoid serving queue
+    /// 1. self has converted its queues of the partition to remote, if
+    ///    asked (`onConversionToRemoteRequested`).  This is to avoid
+    ///    reopening those queues on the new primary before
+    ///    `ClusterQueueHelper` has the counts of their handles;
+    /// 2. the CSL state is caught up.  This is to avoid serving queue
     ///    reopens against a partly applied cluster state (creating
     ///    conflicting queue and app keys);
-    /// 2. the CSL has confirmed the primary's leaseId;
-    /// 3. if self is the primary or the CSL leader, self has applied the
+    /// 3. the CSL has confirmed the primary's leaseId;
+    /// 4. if self is the primary or the CSL leader, self has applied the
     ///    deferred sync point of that leaseId.  This is to avoid serving
     ///    reopens before self has applied the entries inherited from the
     ///    prior term.
     ///
     /// Self, as the primary, asks for the sync point once per leaseId, after
-    /// 1 and 2.  Return `e_ACTIVATE`, not `e_ACTIVATE_AND_BECOME_AVAILABLE`:
-    /// the caller asks `becomeAvailable` after evaluating every partition.
+    /// 1, 2 and 3.  Return `e_ACTIVATE`, not
+    /// `e_ACTIVATE_AND_BECOME_AVAILABLE`: the caller asks `becomeAvailable`
+    /// after evaluating every partition.
     Action::Enum evaluatePartition(int partitionId);
 
     /// Return `true` the first time every partition is active, and `false`

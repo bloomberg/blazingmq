@@ -428,7 +428,25 @@ int StorageUtil::updateQueuePrimaryRaw(mqbs::ReplicatedStorage* storage,
     bsls::Types::Uint64 timestamp = bdlt::EpochUtil::convertToTimeT64(
         bdlt::CurrentTime::utc());
 
-    if (!addedIdKeyPairs.empty()) {
+    // On a Raft partition the storage changes only when a record commits, so
+    // every caller (an open, a live App change, 'conformToClusterState') sees
+    // an App change as still needed until the record commits.  'onPropose'
+    // marks each App change written here and skips one already proposed.
+    // This is to avoid proposing the same App change twice.
+    AppInfos added;
+    for (AppInfos::const_iterator cit = addedIdKeyPairs.cbegin();
+         cit != addedIdKeyPairs.cend();
+         ++cit) {
+        if (!rs->isRaft() ||
+            rs->storageMonitor()->onPropose(rs->partitionId(),
+                                            storage->queueUri(),
+                                            cit->second,
+                                            true)) {  // isAddition
+            added.insert(*cit);
+        }
+    }
+
+    if (!added.empty()) {
         // Write QueueCreation record to data store for added appIds.
         //
         // TODO_CSL Do not write this record when we logically delete the QLIST
@@ -438,7 +456,7 @@ int StorageUtil::updateQueuePrimaryRaw(mqbs::ReplicatedStorage* storage,
         rc = rs->writeQueueCreationRecord(&handle,
                                           storage->queueUri(),
                                           storage->queueKey(),
-                                          addedIdKeyPairs,
+                                          added,
                                           timestamp,
                                           false);  // is new queue?
         if (0 != rc) {
@@ -498,6 +516,14 @@ int StorageUtil::updateQueuePrimaryRaw(mqbs::ReplicatedStorage* storage,
         for (AppInfos::const_iterator cit = removedIdKeyPairs.begin();
              cit != removedIdKeyPairs.end();
              ++cit) {
+            if (rs->isRaft() &&
+                !rs->storageMonitor()->onPropose(rs->partitionId(),
+                                                 storage->queueUri(),
+                                                 cit->second,
+                                                 false)) {  // isAddition
+                continue;                                   // CONTINUE
+            }
+
             rc = storage->writeAppRemoval(cit->second);
             if (0 != rc) {
                 BALL_LOG_ERROR << rs->description()
@@ -2911,6 +2937,15 @@ void StorageUtil::unregisterQueueDispatched(mqbs::RecordStore*   rs,
 
     // Storage has no outstanding messages.
 
+    if (rs->isRaft() &&
+        !rs->storageMonitor()->onPropose(partitionId,
+                                         uri,
+                                         mqbu::StorageKey(),  // the queue
+                                         false)) {            // isAddition
+        // The deletion of the queue is already proposed and not yet applied.
+        return;  // RETURN
+    }
+
     BALL_LOG_INFO << clusterData->identity().description() << ": Partition ["
                   << partitionId << "], Deleting storage for queue [" << uri
                   << "], queueKey [" << storage->queueKey()
@@ -4162,6 +4197,7 @@ StorageMonitor::StorageMonitor(mqbi::Cluster*    cluster,
                                bslma::Allocator* allocator)
 : d_storages(allocator)
 , d_storageLockVec(allocator)
+, d_terms(allocator)
 , d_cluster_p(cluster)
 , d_allocator_p(bslma::Default::allocator(allocator))
 {
@@ -4171,6 +4207,7 @@ StorageMonitor::StorageMonitor(mqbi::Cluster*    cluster,
 void StorageMonitor::resize(int numPartitions)
 {
     d_storages.resize(numPartitions);
+    d_terms.resize(numPartitions, 0);
 
     d_storageLockVec.resize(numPartitions);
     for (int i = 0; i < numPartitions; ++i) {
@@ -4200,7 +4237,7 @@ void StorageMonitor::onStorageRegistered(
 
         what.d_storage_sp = storageSp;
         what.d_apps       = apps;  // appKey -> appId
-        what.d_awaiting &= ~Awaiting::e_REGISTRATION;
+        what.d_pending &= ~Pending::e_REGISTRATION;
     }
     d_cluster_p->onQueueStorageReady(partitionId, uri);
 }
@@ -4224,7 +4261,7 @@ void StorageMonitor::onStorageRegistered(int              partitionId,
         StorageWithApps& what = d_storages[partitionId][uri];
 
         what.d_storage_sp = storageSp;
-        what.d_awaiting &= ~Awaiting::e_REGISTRATION;
+        what.d_pending &= ~Pending::e_REGISTRATION;
         what.d_apps.clear();
         for (mqbi::Storage::AppInfos::const_iterator cit = apps.cbegin();
              cit != apps.cend();
@@ -4257,9 +4294,10 @@ void StorageMonitor::onStorageAppsAdded(int              partitionId,
              cit != apps.cend();
              ++cit) {
             it->second.d_apps.insert(bsl::make_pair(cit->second, cit->first));
+            it->second.d_appAdditions.erase(cit->second);
         }
 
-        it->second.d_awaiting &= ~Awaiting::e_REGISTRATION;
+        it->second.d_pending &= ~Pending::e_REGISTRATION;
     }
 
     d_cluster_p->onQueueStorageReady(partitionId, uri);
@@ -4284,7 +4322,7 @@ void StorageMonitor::onStorageAppRemoved(int                     partitionId,
         }
 
         it->second.d_apps.erase(appKey);
-        it->second.d_awaiting &= ~Awaiting::e_APP_REMOVAL;
+        it->second.d_appRemovals.erase(appKey);
     }
 
     d_cluster_p->onQueueStorageReady(partitionId, uri);
@@ -4306,6 +4344,19 @@ void StorageMonitor::onStorageUnregistered(int              partitionId,
     }
 
     d_cluster_p->onQueueStorageReady(partitionId, uri);
+}
+
+void StorageMonitor::onNewTerm(int partitionId, bsls::Types::Uint64 term)
+{
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(d_storages.size()));
+
+    bslmt::LockGuard<bslmt::Mutex> guard(
+        d_storageLockVec[partitionId].get());  // LOCK
+
+    if (term > d_terms[partitionId]) {
+        d_terms[partitionId] = term;
+    }
 }
 
 void StorageMonitor::releaseStorages(int partitionId)
@@ -4410,43 +4461,67 @@ StorageMonitor::RegistrationState StorageMonitor::registerQueue(
     if (it == d_storages[partitionId].end()) {
         // Placeholder: somewhere to hold the mark until the storage arrives.
         StorageWithApps& what = d_storages[partitionId][uri];
-        what.d_awaiting |= Awaiting::e_REGISTRATION;
+        what.d_pending        = Pending::e_REGISTRATION;
+        what.d_awaitingTerm   = d_terms[partitionId];
         return e_REQUIRED;  // RETURN
     }
 
     StorageWithApps& what = it->second;
 
-    if (what.d_storage_sp) {
-        // 'd_apps' is keyed by appKey, 'appIdKeyPairs' by appId.
-        bool hasAll = true;
-        for (mqbi::Storage::AppInfos::const_iterator cit =
-                 appIdKeyPairs.cbegin();
-             cit != appIdKeyPairs.cend();
-             ++cit) {
-            if (0 == what.d_apps.count(cit->second)) {
-                hasAll = false;
-                break;  // BREAK
-            }
+    if (!what.d_storage_sp) {
+        // A placeholder: the queue's creation.
+        if (isPending(what, partitionId)) {
+            return e_PENDING;  // RETURN
         }
 
-        if (hasAll) {
-            return e_REGISTERED;  // RETURN
+        what.d_pending      = Pending::e_REGISTRATION;
+        what.d_awaitingTerm = d_terms[partitionId];
+        return e_REQUIRED;  // RETURN
+    }
+
+    // Compare the Apps asked for with the Apps the storage carries.  'd_apps'
+    // is keyed by appKey, 'appIdKeyPairs' by appId.  An extra App is matched
+    // by appId, as 'StorageUtil::loadUpdatedAppInfos' does.
+    bool hasChange     = false;
+    bool hasUnproposed = false;
+    for (mqbi::Storage::AppInfos::const_iterator cit = appIdKeyPairs.cbegin();
+         cit != appIdKeyPairs.cend();
+         ++cit) {
+        if (0 == what.d_apps.count(cit->second)) {
+            hasChange = true;
+            if (!isProposed(what.d_appAdditions, cit->second, partitionId)) {
+                hasUnproposed = true;
+            }
+        }
+    }
+    for (AppKeyToIdMap::const_iterator ait = what.d_apps.cbegin();
+         ait != what.d_apps.cend();
+         ++ait) {
+        if (appIdKeyPairs.find(ait->second) == appIdKeyPairs.end()) {
+            hasChange = true;
+            if (!isProposed(what.d_appRemovals, ait->first, partitionId)) {
+                hasUnproposed = true;
+            }
         }
     }
 
-    if (Awaiting::e_NONE != what.d_awaiting) {
-        // A registration of its own, or a deletion this registration must
-        // not race.
+    if (!hasChange) {
+        return e_REGISTERED;  // RETURN
+    }
+
+    if (!hasUnproposed || isPending(what, partitionId)) {
         return e_PENDING;  // RETURN
     }
 
-    what.d_awaiting |= Awaiting::e_REGISTRATION;
+    // 'StorageUtil::updateQueuePrimaryRaw' skips, through 'onPropose', any
+    // App change already proposed.
     return e_REQUIRED;
 }
 
-bool StorageMonitor::mark(const bmqt::Uri& uri,
-                          int              partitionId,
-                          Awaiting::Enum   awaiting)
+bool StorageMonitor::onPropose(int                     partitionId,
+                               const bmqt::Uri&        uri,
+                               const mqbu::StorageKey& appKey,
+                               bool                    isAddition)
 {
     BSLS_ASSERT_SAFE(0 <= partitionId &&
                      partitionId < static_cast<int>(d_storages.size()));
@@ -4456,15 +4531,60 @@ bool StorageMonitor::mark(const bmqt::Uri& uri,
 
     StorageSpMap::iterator it = d_storages[partitionId].find(uri);
     if (it == d_storages[partitionId].end()) {
+        return true;  // RETURN
+    }
+
+    if (appKey.isNull()) {
+        // The deletion of the queue.
+        BSLS_ASSERT_SAFE(!isAddition);
+
+        if (isPending(it->second, partitionId)) {
+            return false;  // RETURN
+        }
+
+        it->second.d_pending      = Pending::e_DELETION;
+        it->second.d_awaitingTerm = d_terms[partitionId];
+        return true;  // RETURN
+    }
+
+    AppProposals& proposals = isAddition ? it->second.d_appAdditions
+                                         : it->second.d_appRemovals;
+    if (isProposed(proposals, appKey, partitionId)) {
         return false;  // RETURN
     }
 
-    if (Awaiting::e_NONE != it->second.d_awaiting) {
-        return false;  // RETURN
-    }
-
-    it->second.d_awaiting |= awaiting;
+    proposals[appKey] = d_terms[partitionId];
     return true;
+}
+
+bool StorageMonitor::isDeletionProposed(const bmqt::Uri& uri,
+                                        int              partitionId) const
+{
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(d_storages.size()));
+
+    bslmt::LockGuard<bslmt::Mutex> guard(
+        d_storageLockVec[partitionId].get());  // LOCK
+
+    StorageSpMap::const_iterator cit = d_storages[partitionId].find(uri);
+    return cit != d_storages[partitionId].end() &&
+           (cit->second.d_pending & Pending::e_DELETION) &&
+           cit->second.d_awaitingTerm == d_terms[partitionId];
+}
+
+bool StorageMonitor::isPending(const StorageWithApps& what,
+                               int                    partitionId) const
+{
+    return Pending::e_NONE != what.d_pending &&
+           what.d_awaitingTerm == d_terms[partitionId];
+}
+
+bool StorageMonitor::isProposed(const AppProposals&     proposals,
+                                const mqbu::StorageKey& appKey,
+                                int                     partitionId) const
+{
+    AppProposals::const_iterator cit = proposals.find(appKey);
+    return cit != proposals.end() && cit->second == d_terms[partitionId];
 }
 
 bool StorageMonitor::hasStorage(const bmqt::Uri& uri, int partitionId) const

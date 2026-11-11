@@ -389,6 +389,38 @@ static void test10_cslCaughtUp()
     BMQTST_ASSERT(!obj.isCslCaughtUp());
 }
 
+static void test11_conversionToRemote()
+{
+    bmqtst::TestHelper::printTestName("CONVERSION TO REMOTE");
+
+    // Self, the primary at leaseId 5, steps down.  The new primary's leaseId
+    // 6 is confirmed already, which would activate the partition at once.
+    ClusterAvailability obj(1, bmqtst::TestHelperUtil::allocator());
+
+    setCsl(&obj, false, true);
+    confirm(&obj, 0, 6);
+    obj.onConversionToRemoteRequested(0, 6);
+    BMQTST_ASSERT_EQ(Action::e_NONE, obj.onPartitionPrimary(0, 6, false));
+    BMQTST_ASSERT(!obj.isActive(0));
+
+    // A second stepdown before the first conversion is done: the first
+    // conversion does not activate the partition.
+    obj.onConversionToRemoteRequested(0, 8);
+    confirm(&obj, 0, 8);
+    BMQTST_ASSERT_EQ(Action::e_NONE, obj.onPartitionPrimary(0, 8, false));
+    BMQTST_ASSERT_EQ(Action::e_NONE, obj.onQueuesConvertedToRemote(0, 6));
+    BMQTST_ASSERT(!obj.isActive(0));
+
+    // The last conversion activates the partition.
+    BMQTST_ASSERT_EQ(Action::e_ACTIVATE_AND_BECOME_AVAILABLE,
+                     obj.onQueuesConvertedToRemote(0, 8));
+    BMQTST_ASSERT(obj.isActive(0));
+
+    // A later primary does not wait for a conversion already done.
+    confirm(&obj, 0, 9);
+    BMQTST_ASSERT_EQ(Action::e_ACTIVATE, obj.onPartitionPrimary(0, 9, false));
+}
+
 static void test8_actionToAscii()
 {
     bmqtst::TestHelper::printTestName("ACTION TO ASCII");
@@ -410,6 +442,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 11: test11_conversionToRemote(); break;
     case 10: test10_cslCaughtUp(); break;
     case 9: test9_confirmedNeverDecreases(); break;
     case 8: test8_actionToAscii(); break;

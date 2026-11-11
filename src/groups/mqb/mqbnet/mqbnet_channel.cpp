@@ -155,6 +155,7 @@ Channel::writePush(const bsl::shared_ptr<bdlbb::Blob>&       payload,
                    bmqt::CompressionAlgorithmType::Enum      compressionType,
                    const bmqp::MessagePropertiesInfo&        logic,
                    const bmqp::Protocol::SubQueueInfosArray& subQueueInfos,
+                   bsls::Types::Uint64                       raftIndex,
                    const bsl::shared_ptr<bmqu::AtomicState>& state)
 {
     bslma::ManagedPtr<Item> item(new (d_itemPool.allocate())
@@ -165,6 +166,7 @@ Channel::writePush(const bsl::shared_ptr<bdlbb::Blob>&       payload,
                                           logic,
                                           payload,
                                           subQueueInfos,
+                                          raftIndex,
                                           state,
                                           d_allocator_p),
                                  this,
@@ -179,6 +181,7 @@ Channel::writePush(int                                       queueId,
                    bmqt::CompressionAlgorithmType::Enum      compressionType,
                    const bmqp::MessagePropertiesInfo&        logic,
                    const bmqp::Protocol::SubQueueInfosArray& subQueueInfos,
+                   bsls::Types::Uint64                       raftIndex,
                    const bsl::shared_ptr<bmqu::AtomicState>& state)
 {
     bslma::ManagedPtr<Item> item(new (d_itemPool.allocate())
@@ -188,6 +191,7 @@ Channel::writePush(int                                       queueId,
                                           compressionType,
                                           logic,
                                           subQueueInfos,
+                                          raftIndex,
                                           state,
                                           d_allocator_p),
                                  this,
@@ -586,7 +590,8 @@ bmqt::EventBuilderResult::Enum Channel::pack(bmqp::PushEventBuilder& builder,
                                  args.d_msgId,
                                  args.d_flags,
                                  args.d_compressionAlgorithmType,
-                                 args.d_messagePropertiesInfo);
+                                 args.d_messagePropertiesInfo,
+                                 args.d_raftIndex);
     }
     return rc;
 }
@@ -606,7 +611,8 @@ bmqt::EventBuilderResult::Enum Channel::pack(bmqp::PushEventBuilder& builder,
                                  args.d_msgId,
                                  args.d_flags,
                                  args.d_compressionAlgorithmType,
-                                 args.d_messagePropertiesInfo);
+                                 args.d_messagePropertiesInfo,
+                                 args.d_raftIndex);
     }
     return rc;
 }

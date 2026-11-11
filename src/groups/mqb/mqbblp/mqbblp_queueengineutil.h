@@ -243,11 +243,13 @@ class RedeliveryList {
     struct Item {
         unsigned int d_stamp;
 
-        /// Scratch for `mqbi::Storage::isPendingReplication`, carried across
-        /// the attempts made on this message.
-        mqbi::Storage::DeliveryProbe d_probe;
+        /// Raft index of the PUSH that added this message
+        /// (`bmqp::PushHeader::raftIndex`), for
+        /// `mqbi::Storage::isPendingReplication`; 0 for a message that was
+        /// delivered from the storage.
+        bsls::Types::Uint64 d_raftIndex;
 
-        Item();
+        explicit Item(bsls::Types::Uint64 raftIndex);
     };
 
     typedef bmqc::OrderedHashMap<bmqt::MessageGUID,
@@ -281,8 +283,9 @@ class RedeliveryList {
 
     // PUBLIC MANIPULATORS
 
-    /// Add the specified `guid` to the list.
-    void add(const bmqt::MessageGUID& guid);
+    /// Add the specified `guid` to the list, with the optionally specified
+    /// `raftIndex` of the PUSH that added `guid`.
+    void add(const bmqt::MessageGUID& guid, bsls::Types::Uint64 raftIndex = 0);
 
     /// Empty the list.
     void clear();
@@ -305,8 +308,8 @@ class RedeliveryList {
     /// (logically re-enable all items).
     void touch();
 
-    /// Return the scratch of the item referenced by the specified `cit`.
-    mqbi::Storage::DeliveryProbe* probe(const iterator& cit);
+    /// Return the Raft index of the item referenced by the specified `cit`.
+    bsls::Types::Uint64 raftIndex(const iterator& cit) const;
 
     /// Record that the last pass left the specified `value` items parked.
     void setNumParked(size_t value);
@@ -536,9 +539,11 @@ struct QueueEngineUtil_AppState {
     // be attempted upon configuration change.
     void putAside(const bmqt::MessageGUID& guid);
 
-    /// Save the specified `guid` in the Redelivery list of messages.  These
-    /// messages get delivered as Out-Of-Order.
-    void putForRedelivery(const bmqt::MessageGUID& guid);
+    /// Save the specified `guid` in the Redelivery list of messages, with
+    /// the optionally specified `raftIndex` of the PUSH that carried
+    /// `guid`.  These messages get delivered as Out-Of-Order.
+    void putForRedelivery(const bmqt::MessageGUID& guid,
+                          bsls::Types::Uint64      raftIndex = 0);
 
     /// Save the current position in the data stream to resume the delivery (by
     /// `deliverMessages`).
@@ -713,8 +718,9 @@ inline bool QueueEngineUtil::isBroadcastMode(const mqbi::Queue* queue)
 // struct QueueEngineUtil_AppState::RedeliveryList
 // -----------------------------------------------
 
-inline RedeliveryList::Item::Item()
+inline RedeliveryList::Item::Item(bsls::Types::Uint64 raftIndex)
 : d_stamp(0)
+, d_raftIndex(raftIndex)
 {
     // NOTHING
 }
@@ -738,9 +744,10 @@ inline RedeliveryList::RedeliveryList(bslma::Allocator* allocator)
     // NOTHING
 }
 
-inline void RedeliveryList::add(const bmqt::MessageGUID& guid)
+inline void RedeliveryList::add(const bmqt::MessageGUID& guid,
+                                bsls::Types::Uint64      raftIndex)
 {
-    d_map.insert(bsl::make_pair(guid, Item()));
+    d_map.insert(bsl::make_pair(guid, Item(raftIndex)));
 }
 
 inline void RedeliveryList::clear()
@@ -795,9 +802,9 @@ inline void RedeliveryList::touch()
     }
 }
 
-inline mqbi::Storage::DeliveryProbe* RedeliveryList::probe(const iterator& cit)
+inline bsls::Types::Uint64 RedeliveryList::raftIndex(const iterator& cit) const
 {
-    return &cit.d_cit->second.d_probe;
+    return cit.d_cit->second.d_raftIndex;
 }
 
 inline bool RedeliveryList::isEnd(const iterator& cit) const
@@ -847,9 +854,10 @@ inline void RedeliveryList::trim(iterator* cit) const
 // -------------------------------
 
 inline void
-QueueEngineUtil_AppState::putForRedelivery(const bmqt::MessageGUID& guid)
+QueueEngineUtil_AppState::putForRedelivery(const bmqt::MessageGUID& guid,
+                                           bsls::Types::Uint64      raftIndex)
 {
-    d_redeliveryList.add(guid);
+    d_redeliveryList.add(guid, raftIndex);
 }
 
 inline size_t QueueEngineUtil_AppState::putAsideListSize() const

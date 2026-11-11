@@ -133,6 +133,11 @@ class PushStream {
         Elements            d_appMessages;
         bsls::Types::Uint64 d_sequenceNumber;
 
+        /// Raft index of the last PUSH for this GUID
+        /// (`bmqp::PushHeader::raftIndex`), for
+        /// `mqbi::Storage::isPendingReplication`.
+        bsls::Types::Uint64 d_raftIndex;
+
         explicit Message(bsls::Types::Uint64 sequenceNumber);
 
         /// Return number of Elements in the list
@@ -295,12 +300,6 @@ class PushStreamIterator : public mqbi::StorageIterator {
   protected:
     PushStream* d_owner_p;
 
-    /// Scratch for `mqbi::Storage::isPendingReplication`, about the item this
-    /// iterator points at; `clearCache` clears it along with the rest.  Only
-    /// one item is ever under test, because `hasReceipt` stops at the first
-    /// one whose record has not arrived.
-    mqbi::Storage::DeliveryProbe d_probe;
-
     /// Current (`mqbi::AppMessage`, `upstreamSubQueueId`) pair.
     mutable PushStream::Element* d_currentElement;
 
@@ -363,8 +362,8 @@ class PushStreamIterator : public mqbi::StorageIterator {
 
     // MANIPULATORS
     /// Forget everything this iterator holds about the item it points at:
-    /// the data `appData`, `options` and `attributes` may have loaded, and
-    /// the `isPendingReplication` probe.  Does not move the iterator.
+    /// the data `appData`, `options` and `attributes` may have loaded.  Does
+    /// not move the iterator.
     /// TODO: refactor iterators to remove cached data.
     void clearCache() BSLS_KEYWORD_OVERRIDE;
 
@@ -661,6 +660,7 @@ inline unsigned int PushStream::Elements::numElements() const
 inline PushStream::Message::Message(bsls::Types::Uint64 sequenceNumber)
 : d_appMessages()
 , d_sequenceNumber(sequenceNumber)
+, d_raftIndex(0)
 {
 }
 

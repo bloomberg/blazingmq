@@ -277,11 +277,14 @@ static void test1_breathingTest()
     BMQTST_ASSERT_LT(sizeof(bmqp::EventHeader),
                      static_cast<size_t>(peb.blob()->length()));
     // But the option is written to the underlying blob
-    rc = peb.packMessage(payload,
+    const bsls::Types::Uint64 raftIndex = 0x123456789ULL;
+    rc                                  = peb.packMessage(payload,
                          queueId,
                          guid,
                          flags,
-                         bmqt::CompressionAlgorithmType::e_NONE);
+                         bmqt::CompressionAlgorithmType::e_NONE,
+                         bmqp::MessagePropertiesInfo(),
+                         raftIndex);
 
     BMQTST_ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
     BMQTST_ASSERT_LT(payload.length(), peb.eventSize());
@@ -309,6 +312,7 @@ static void test1_breathingTest()
     BMQTST_ASSERT_EQ(guid, pushIter.header().messageGUID());
     BMQTST_ASSERT_EQ(bmqt::CompressionAlgorithmType::e_NONE,
                      pushIter.header().compressionAlgorithmType());
+    BMQTST_ASSERT_EQ(raftIndex, pushIter.header().raftIndex());
     bdlbb::Blob payloadBlob(bmqtst::TestHelperUtil::allocator());
     BMQTST_ASSERT_EQ(0, pushIter.loadMessagePayload(&payloadBlob));
 

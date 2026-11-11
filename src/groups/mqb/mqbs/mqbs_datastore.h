@@ -570,6 +570,9 @@ class DataStoreRecordHandle {
     unsigned int primaryLeaseId() const;
 
     bsls::Types::Uint64 sequenceNum() const;
+
+    /// Return the offset of the record in the journal.
+    bsls::Types::Uint64 recordOffset() const;
 };
 
 // FREE OPERATORS
@@ -709,6 +712,25 @@ class StorageMonitor {
 
     virtual void onStorageUnregistered(int              partitionId,
                                        const bmqt::Uri& uri) = 0;
+
+    /// Return `true` if the addition (if the specified `isAddition` is
+    /// `true`) or the deletion (otherwise) of the app having the specified
+    /// `appKey` may be proposed for the queue having the specified `uri` on
+    /// the specified `partitionId`, marking the app change proposed; `false`
+    /// if that app change is already proposed and not yet applied.  This is
+    /// to avoid proposing
+    /// the same app change twice: the storage changes only when the record
+    /// commits.  `onStorageAppsAdded` and `onStorageAppRemoved` clear the
+    /// mark.  A null `appKey` with `isAddition` `false` stands for the
+    /// deletion of the queue; `onStorageUnregistered` clears that mark.
+    virtual bool onPropose(int                     partitionId,
+                           const bmqt::Uri&        uri,
+                           const mqbu::StorageKey& appKey,
+                           bool                    isAddition) = 0;
+
+    /// Notify that the specified `term` is the latest Raft term of the
+    /// specified `partitionId`.
+    virtual void onNewTerm(int partitionId, bsls::Types::Uint64 term) = 0;
 
     virtual void onRecovered(int partitionId) = 0;
 
@@ -954,12 +976,10 @@ class RecordStore {
     /// former and at propose in the latter.
     virtual bool isRaft() const = 0;
 
-    /// Return `true` if the record the specified `probe` tracks may still
-    /// arrive, and `false` if it will not.  Set the specified `isAbsent` to
-    /// `true` only if the caller has established that the record is not in
-    /// this partition.  See `mqbi::Storage::isPendingReplication`.
-    virtual bool isPendingReplication(mqbi::Storage::DeliveryProbe* probe,
-                                      bool isAbsent) const = 0;
+    /// Return `true` if the record of a message may still arrive, and
+    /// `false` if it will not, given the specified `raftIndex` from the
+    /// PUSH.  See `mqbi::Storage::isPendingReplication`.
+    virtual bool isPendingReplication(bsls::Types::Uint64 raftIndex) const = 0;
 
     /// Return the records container for this partition.
     virtual const DataStoreConfig::Records& records() const = 0;
@@ -1542,6 +1562,12 @@ inline bsls::Types::Uint64 DataStoreRecordHandle::sequenceNum() const
 {
     BSLS_ASSERT_SAFE(isValid());
     return d_iterator->first.d_sequenceNum;
+}
+
+inline bsls::Types::Uint64 DataStoreRecordHandle::recordOffset() const
+{
+    BSLS_ASSERT_SAFE(isValid());
+    return d_iterator->second.d_recordOffset;
 }
 
 // =======================

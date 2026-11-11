@@ -860,13 +860,16 @@ class StorageMonitor : public mqbs::StorageMonitor {
   public:
     // TYPES
     enum RegistrationState {
-        /// The storage exists and carries every App asked for.
+        /// The storage exists and carries every App asked for and no other
+        /// App.
         e_REGISTERED = 0,
-        /// A registration is outstanding; wait for it rather than proposing
-        /// a second one.
+        /// The queue's creation, or every App change the storage needs, is
+        /// proposed and not yet applied; wait for the commit rather than
+        /// proposing again.
         e_PENDING = 1,
-        /// Nothing is outstanding and something is missing; the caller must
-        /// propose.  Marked outstanding by the call.
+        /// Something is missing or extra and not yet proposed; the caller
+        /// must propose.  The call marks a queue creation outstanding;
+        /// `onPropose` marks each App change when the change is proposed.
         e_REQUIRED = 2
     };
 
@@ -874,17 +877,21 @@ class StorageMonitor : public mqbs::StorageMonitor {
     typedef mqbs::DataStoreConfigQueueInfo::AppInfos AppKeyToIdMap;
 
     /// What has been proposed for a queue and has not taken effect here yet.
-    struct Awaiting {
+    struct Pending {
         enum Enum {
             e_NONE = 0,
-            /// The queue's creation, or the addition of an App.
+            /// The queue's creation.  App changes are marked per App
+            /// (`StorageWithApps::d_appAdditions` and `d_appRemovals`).
             e_REGISTRATION = 1 << 0,
-            /// The deletion of an App.
-            e_APP_REMOVAL = 1 << 1,
             /// The deletion of the queue.
-            e_DELETION = 1 << 2
+            e_DELETION = 1 << 1
         };
     };
+
+    /// Map of appKey -> `d_terms[partitionId]` when the addition or the
+    /// deletion of the App was proposed.
+    typedef bsl::unordered_map<mqbu::StorageKey, bsls::Types::Uint64>
+        AppProposals;
 
     struct StorageWithApps {
         StorageSp     d_storage_sp;
@@ -897,12 +904,35 @@ class StorageMonitor : public mqbs::StorageMonitor {
         /// `proposeDeferredSyncPoint` re-running the journal-to-cluster
         /// state comparison -- would look at an unchanged storage and propose
         /// the very same record again.
-        int d_awaiting;
+        int d_pending;
+
+        /// `d_terms[partitionId]` when `d_awaiting` was set.  An older value
+        /// means `d_awaiting` is stale.  This is to avoid waiting forever for
+        /// a proposal that a new term removed from the log (a second queue
+        /// creation, if the first one commits after all, is a duplicate that
+        /// `createQueueStorageAsReplica` ignores).
+        bsls::Types::Uint64 d_awaitingTerm;
+
+        /// The Apps whose addition is proposed and not yet applied, marked by
+        /// `onPropose`.  This is to avoid proposing the addition of the same
+        /// App again, as for `d_awaiting`.  One entry per App: two additions
+        /// can be in flight and commit separately, and `onStorageAppsAdded`
+        /// erases the entries of the Apps it adds.  An entry older than
+        /// `d_terms[partitionId]` is stale, as for `d_awaitingTerm`.
+        AppProposals d_appAdditions;
+
+        /// The Apps in `d_apps` whose deletion is proposed and not yet
+        /// applied, marked by `onPropose`.  As for `d_appAdditions`;
+        /// `onStorageAppRemoved` erases the App's entry.
+        AppProposals d_appRemovals;
 
         StorageWithApps(bslma::Allocator* basicAllocator = 0)
         : d_storage_sp()
         , d_apps(basicAllocator)
-        , d_awaiting(Awaiting::e_NONE)
+        , d_pending(Pending::e_NONE)
+        , d_awaitingTerm(0)
+        , d_appAdditions(basicAllocator)
+        , d_appRemovals(basicAllocator)
         {
         }
 
@@ -910,7 +940,10 @@ class StorageMonitor : public mqbs::StorageMonitor {
                         bslma::Allocator*      basicAllocator = 0)
         : d_storage_sp(other.d_storage_sp)
         , d_apps(other.d_apps, basicAllocator)
-        , d_awaiting(other.d_awaiting)
+        , d_pending(other.d_pending)
+        , d_awaitingTerm(other.d_awaitingTerm)
+        , d_appAdditions(other.d_appAdditions, basicAllocator)
+        , d_appRemovals(other.d_appRemovals, basicAllocator)
         {
         }
     };
@@ -940,6 +973,12 @@ class StorageMonitor : public mqbs::StorageMonitor {
     /// one per partition.  See comments for `d_storages`.
     mutable bsl::vector<bsl::shared_ptr<bslmt::Mutex> > d_storageLockVec;
 
+    /// Per partition, the latest Raft term.  See
+    /// `StorageWithApps::d_awaitingTerm`.
+    ///
+    /// THREAD: Protected by `d_storageLockVec` (per partition).
+    bsl::vector<bsls::Types::Uint64> d_terms;
+
     /// Cluster to notify (via `onQueueStorageReady`) whenever a queue's
     /// storage is registered/unregistered or its app set changes, so that
     /// any locally-parked queue-open can re-check readiness.  May be null in
@@ -951,6 +990,20 @@ class StorageMonitor : public mqbs::StorageMonitor {
     // NOT IMPLEMENTED
     StorageMonitor(const StorageMonitor&);
     StorageMonitor& operator=(const StorageMonitor&);
+
+    // PRIVATE ACCESSORS
+
+    /// Return true if the specified `what` on the specified `partitionId`
+    /// has a non-stale `d_awaiting`.  `d_storageLockVec[partitionId]` must be
+    /// held.
+    bool isPending(const StorageWithApps& what, int partitionId) const;
+
+    /// Return true if the specified `proposals` has a non-stale entry for
+    /// the specified `appKey` on the specified `partitionId`.
+    /// `d_storageLockVec[partitionId]` must be held.
+    bool isProposed(const AppProposals&     proposals,
+                    const mqbu::StorageKey& appKey,
+                    int                     partitionId) const;
 
   public:
     // TRAITS
@@ -996,6 +1049,17 @@ class StorageMonitor : public mqbs::StorageMonitor {
     void onStorageUnregistered(int              partitionId,
                                const bmqt::Uri& uri) BSLS_KEYWORD_OVERRIDE;
 
+    bool onPropose(int                     partitionId,
+                   const bmqt::Uri&        uri,
+                   const mqbu::StorageKey& appKey,
+                   bool                    isAddition) BSLS_KEYWORD_OVERRIDE;
+
+    /// Record the specified `term` as the latest Raft term of the specified
+    /// `partitionId`.  Every `d_awaiting` set under an earlier term becomes
+    /// stale.
+    void onNewTerm(int                 partitionId,
+                   bsls::Types::Uint64 term) BSLS_KEYWORD_OVERRIDE;
+
     /// Clear all storages and tracked apps for the specified `partitionId`.
     /// For use during teardown (e.g. a manager's destructor releasing storage
     /// shared_ptrs before its `FileStore`s are destroyed), when the owning
@@ -1012,8 +1076,9 @@ class StorageMonitor : public mqbs::StorageMonitor {
 
     /// Return whether the queue having the specified `uri` and `queueKey` on
     /// the specified `partitionId` still needs registering with the specified
-    /// `appIdKeyPairs` for the specified `domain`.  `e_REQUIRED` marks it
-    /// outstanding, creating a placeholder if the storage does not exist yet.
+    /// `appIdKeyPairs` for the specified `domain`.  If the storage does not
+    /// exist yet, `e_REQUIRED` marks its creation outstanding, creating a
+    /// placeholder.
     RegistrationState
     registerQueue(const bmqt::Uri&               uri,
                   const mqbu::StorageKey&        queueKey,
@@ -1021,15 +1086,11 @@ class StorageMonitor : public mqbs::StorageMonitor {
                   const mqbi::Storage::AppInfos& appIdKeyPairs,
                   mqbi::Domain*                  domain);
 
-    /// Return `true` if the specified `awaiting` may be proposed for the
-    /// queue having the specified `uri` on the specified `partitionId`,
-    /// marking it outstanding; `false` if that or anything else is already
-    /// outstanding for the queue, or the queue has no storage here.  The
-    /// mark is cleared by the `onStorage*` notification the record's commit
-    /// drives.
-    bool mark(const bmqt::Uri& uri, int partitionId, Awaiting::Enum awaiting);
-
     // ACCESSORS
+
+    /// Return `true` if the deletion of the queue having the specified `uri`
+    /// on the specified `partitionId` is proposed and not yet applied.
+    bool isDeletionProposed(const bmqt::Uri& uri, int partitionId) const;
 
     /// Return the number of partitions this monitor covers.  Every partition
     /// has an entry, empty if no queue is registered on it.

@@ -503,6 +503,17 @@ static void test1_breathingTest()
                              ph.flags(),
                              bmqp::PushHeaderFlags::e_IMPLICIT_PAYLOAD),
                          true);
+
+        // Raft index: 0 by default, and above 32 bits
+        BMQTST_ASSERT_EQ(0U, ph.raftIndex());
+        const bsls::Types::Uint64 raftIndex = 0x123456789ULL;
+        ph.setRaftIndex(raftIndex);
+        BMQTST_ASSERT_EQ(raftIndex, ph.raftIndex());
+
+        // A header too short to contain the Raft index reads it as 0
+        ph.setHeaderWords(bmqp::PushHeader::k_MIN_HEADER_SIZE_FOR_SCHEMA_ID /
+                          bmqp::Protocol::k_WORD_SIZE);
+        BMQTST_ASSERT_EQ(0U, ph.raftIndex());
     }
 
     {

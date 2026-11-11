@@ -272,6 +272,21 @@ class ClusterOrchestrator {
                                              bsls::Types::Uint64 term,
                                              bool                haveCommit);
 
+    /// Signal that self has converted its queues of the specified
+    /// `partitionId` to remote, as asked at the specified `leaseId`.
+    ///
+    /// THREAD: Executed by the partition dispatcher thread.
+    void onQueuesConvertedToRemote(int partitionId, unsigned int leaseId);
+
+    /// Record in `d_availability` that self has converted its queues of the
+    /// specified `partitionId` to remote, as asked at the specified
+    /// `leaseId`, and perform the resulting action.
+    ///
+    /// THREAD: This method is invoked in the associated cluster's
+    ///         dispatcher thread.
+    void onQueuesConvertedToRemoteDispatched(int          partitionId,
+                                             unsigned int leaseId);
+
     /// Propose a `partitionPrimaryAdvisory` listing every partition's
     /// primary and leaseId (the partition's Raft term).  The advisory keeps
     /// the CSL's leaseIds in step with the journal, so that a legacy broker

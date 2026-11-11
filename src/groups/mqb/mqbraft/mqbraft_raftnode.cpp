@@ -136,6 +136,43 @@ bsl::ostream& operator<<(bsl::ostream& stream, RaftMessageType::Enum value)
     return RaftMessageType::print(stream, value, 0, -1);
 }
 
+// ====================
+// struct RaftNodeOutput
+// ====================
+
+// MANIPULATORS
+RaftNodeOutput* RaftNodeOutput::addNested()
+{
+    if (d_numNested == d_nested.size()) {
+        bslma::Allocator* allocator = d_nested.get_allocator().mechanism();
+        bsl::shared_ptr<RaftNodeOutput> nested;
+        nested.createInplace(allocator, allocator);
+        d_nested.push_back(nested);
+    }
+
+    // Every output past the first 'd_numNested' is already empty: 'reset'
+    // empties each output it stops using.
+    return d_nested[d_numNested++].get();
+}
+
+void RaftNodeOutput::reset()
+{
+    d_messages.clear();
+    d_committed.clear();
+    d_leaderChanged          = false;
+    d_hasInstallSnapshot     = false;
+    d_lostLeadership         = false;
+    d_hasMoreToApply         = false;
+    d_persistentStateChanged = false;
+    d_installSnapshot        = RaftMessage();
+    d_isDispatching          = false;
+
+    for (bsl::size_t i = 0; i < d_numNested; ++i) {
+        d_nested[i]->reset();
+    }
+    d_numNested = 0;
+}
+
 // =============
 // class RaftLog
 // =============
@@ -215,8 +252,6 @@ RaftNode::RaftNode(const RaftNodeConfig& config,
 , d_leaderId(k_INVALID_NODE_ID)
 , d_commitIndex(0)
 , d_lastAppliedCommit(0)
-, d_lastKnownLeaderCommit(0)
-, d_leaderCommitGeneration(0)
 , d_votesReceived(allocator)
 , d_electionTicks(0)
 , d_electionTimeout(0)
@@ -228,6 +263,7 @@ RaftNode::RaftNode(const RaftNodeConfig& config,
 , d_transferTargetId(k_INVALID_NODE_ID)
 , d_transferTicks(0)
 , d_electionMode(ElectionMode::e_NORMAL)
+, d_output(allocator)
 , d_allocator_p(bslma::Default::allocator(allocator))
 {
     BSLS_ASSERT_SAFE(log);
@@ -263,11 +299,6 @@ void RaftNode::resetElectionTimer()
     d_electionTicks   = 0;
 }
 
-void RaftNode::breakLeaderCommitContinuity()
-{
-    ++d_leaderCommitGeneration;
-}
-
 void RaftNode::becomeFollower(RaftNodeOutput*     output,
                               bsls::Types::Uint64 term,
                               int                 leaderId)
@@ -301,13 +332,6 @@ void RaftNode::becomeFollower(RaftNodeOutput*     output,
     if (d_leaderId != leaderId) {
         d_leaderId              = leaderId;
         output->d_leaderChanged = true;
-    }
-
-    if (output->d_leaderChanged) {
-        // A different leader, or the same one in a different term: what the
-        // previous one reported committing says nothing about what this one
-        // has, since a leader's commit index starts at its own and climbs.
-        breakLeaderCommitContinuity();
     }
 
     d_votesReceived.clear();
@@ -581,12 +605,6 @@ void RaftNode::handleAppendEntries(RaftNodeOutput*    output,
                           << ", prevLogIndex=" << msg.d_prevLogIndex
                           << " > myLastIndex=" << d_log_p->lastIndex();
 
-            // The leader answers a rejection by probing backwards, one
-            // message at a time, and sends nothing else meanwhile.  What it
-            // reported before that is the last word for the whole probe, so
-            // it must not be read afterwards as progress since.
-            breakLeaderCommitContinuity();
-
             RaftMessage resp(d_allocator_p);
             resp.d_type              = RaftMessageType::e_APPEND_ENTRIES_RESP;
             resp.d_term              = d_currentTerm;
@@ -625,9 +643,6 @@ void RaftNode::handleAppendEntries(RaftNodeOutput*    output,
                                << ") failed to truncate from "
                                << msg.d_prevLogIndex << ", rc=" << truncateRc;
             }
-
-            // As above: the leader now probes backwards and goes quiet.
-            breakLeaderCommitContinuity();
 
             RaftMessage resp(d_allocator_p);
             resp.d_type              = RaftMessageType::e_APPEND_ENTRIES_RESP;
@@ -703,13 +718,6 @@ void RaftNode::handleAppendEntries(RaftNodeOutput*    output,
         matchIndex = entryIndex;
     }
 
-    // Keep the leader's figure before capping it below: a node that is behind
-    // needs to know how far the leader has committed, not just how far it can
-    // commit itself.
-    if (msg.d_leaderCommit > d_lastKnownLeaderCommit) {
-        d_lastKnownLeaderCommit = msg.d_leaderCommit;
-    }
-
     // Advance commit index
     if (msg.d_leaderCommit > d_commitIndex) {
         bsls::Types::Uint64 newCommit = bsl::min(msg.d_leaderCommit,
@@ -729,10 +737,8 @@ void RaftNode::handleAppendEntries(RaftNodeOutput*    output,
 
     if (!accepted) {
         // 'matchIndex' covers only what was taken, and the leader lowers its
-        // own figure to it on a rejection but not on a success.  As in the
-        // rejections above, it now probes backwards and goes quiet.
+        // own figure to it on a rejection but not on a success.
         resp.d_rejectedIndex = msg.d_prevLogIndex;
-        breakLeaderCommitContinuity();
     }
 
     output->d_messages.push_back(resp);
@@ -1146,16 +1152,8 @@ void RaftNode::sendAppendEntries(
         msg_p->d_prevLogIndex      = prevLogIndex;
         msg_p->d_prevLogTerm       = prevLogTerm;
 
-        // This node's whole commit index, not the end of what this message
-        // carries.  Clamping it to the peer's backfill position is a
-        // reasonable-looking change and would break
-        // 'PartitionRaft::isPendingReplication': that reads the figure as an
-        // upper bound on the index of any message the leader has PUSHed, and
-        // discards a PUSH whose record it decides can no longer arrive.  A
-        // clamped figure can sit below the index of a message already pushed,
-        // which would make it discard an acknowledged message.  The receiver
-        // clamps for its own commit index ('d_commitIndex') and keeps this
-        // one apart, in 'd_lastKnownLeaderCommit'.
+        // This node's whole commit index.  The receiver caps its own commit
+        // index at what it has verified ('handleAppendEntries').
         msg_p->d_leaderCommit = d_commitIndex;
 
         if (sendEntries) {
@@ -1313,6 +1311,51 @@ const char* RaftNode::selfName() const
 }
 
 // MANIPULATORS
+RaftNodeOutput* RaftNode::currentOutput()
+{
+    return d_output.d_isDispatching ? d_output.addNested() : &d_output;
+}
+
+void RaftNode::tick()
+{
+    tick(currentOutput());
+}
+
+void RaftNode::step(const RaftMessage& message)
+{
+    step(currentOutput(), message);
+}
+
+void RaftNode::loadCommittedBatch()
+{
+    loadCommittedBatch(currentOutput());
+}
+
+void RaftNode::flushSends()
+{
+    flushSends(currentOutput());
+}
+
+int RaftNode::propose(const bsl::shared_ptr<bdlbb::Blob>& data)
+{
+    return propose(currentOutput(), data);
+}
+
+int RaftNode::transferLeadership(int targetNodeId)
+{
+    return transferLeadership(currentOutput(), targetNodeId);
+}
+
+void RaftNode::setElectionMode(ElectionMode::Enum mode)
+{
+    setElectionMode(currentOutput(), mode);
+}
+
+void RaftNode::forceSnapshot()
+{
+    forceSnapshot(currentOutput());
+}
+
 void RaftNode::tick(RaftNodeOutput* output)
 {
     BSLS_ASSERT_SAFE(output);
@@ -1549,9 +1592,6 @@ void RaftNode::setCommitIndex(bsls::Types::Uint64 index)
 {
     d_commitIndex       = index;
     d_lastAppliedCommit = index;
-
-    // What a leader reported before refers to the log just replaced.
-    breakLeaderCommitContinuity();
 }
 
 void RaftNode::initRecoveredState(bsls::Types::Uint64 term,
@@ -1566,12 +1606,6 @@ void RaftNode::initRecoveredState(bsls::Types::Uint64 term,
     if (commitIndex > d_lastAppliedCommit) {
         d_lastAppliedCommit = commitIndex;
     }
-    // Not seeded from 'commitIndex': that figure is the caller's, not one a
-    // leader reported, and its reader would take it for the latter.  Dropped
-    // instead -- the leader sends nothing to a peer while its snapshot is in
-    // flight, so whatever was known before is the last word from before a
-    // silence and must not read as progress since.
-    breakLeaderCommitContinuity();
 }
 
 void RaftNode::restorePersistentState(const PersistentState& state)
@@ -1613,14 +1647,6 @@ void RaftNode::setPeerAvailability(int peerNodeId, bool isAvailable)
     }
 
     it->second.d_isAvailable = isAvailable;
-
-    if (peerNodeId == d_leaderId) {
-        // The channel to the leader went down or came back.  Either way what
-        // it sends next travels a different connection from what it sent
-        // before, so arrival order no longer reflects send order and nothing
-        // learned earlier can be read as progress since.
-        breakLeaderCommitContinuity();
-    }
 
     BALL_LOG_INFO << "[partition " << d_config.d_partitionId << "] self("
                   << selfName() << ") peer " << it->second.d_name << " is now "
