@@ -2026,7 +2026,7 @@ struct AckMessage {
 /// the event sent by the broker to a client to deliver a message from
 /// queue(s).
 struct PushHeader {
-    // PushHeader structure datagram [32 bytes (followed by options, if any,
+    // PushHeader structure datagram [40 bytes (followed by options, if any,
     //                                          then data payload)]:
     //..
     //   +---------------+---------------+---------------+---------------+
@@ -2048,6 +2048,10 @@ struct PushHeader {
     //   +---------------+---------------+---------------+---------------+
     //   |           SchemaId            |           Reserved            |
     //   +---------------+---------------+---------------+---------------+
+    //   |                      RaftIndex Upper Bits                     |
+    //   +---------------+---------------+---------------+---------------+
+    //   |                      RaftIndex Lower Bits                     |
+    //   +---------------+---------------+---------------+---------------+
     //       F..: Flags
     //       CAT: CompressionAlgorithmType
     //       HW.: HeaderWords
@@ -2063,6 +2067,9 @@ struct PushHeader {
     //  QueueId..........: Id of the queue (as advertised during open queue by
     //                     the consumer of this Push event)
     //  MessageGUID......: MessageGUID associated to this message by the broker
+    //  RaftIndex........: Raft log index at or above the index of the entry
+    //                     carrying this message's record, set by a Raft
+    //                     partition primary; 0 if not set
     //..
     //
     // NOTE: From the first byte of the PushHeader the payload can be found by:
@@ -2127,6 +2134,10 @@ struct PushHeader {
 
     BSLA_MAYBE_UNUSED unsigned char d_reserved[2];
     // Reserved.
+
+    bdlb::BigEndianUint32 d_raftIndexUpperBits;
+    bdlb::BigEndianUint32 d_raftIndexLowerBits;
+
   public:
     // PUBLIC CLASS DATA
 
@@ -2158,6 +2169,9 @@ struct PushHeader {
 
     /// Minimum size (bytes) of a `PushHeader` that contains SchemaId.
     static const int k_MIN_HEADER_SIZE_FOR_SCHEMA_ID = 32;
+
+    /// Minimum size (bytes) of a `PushHeader` that contains RaftIndex.
+    static const int k_MIN_HEADER_SIZE_FOR_RAFT_INDEX = 40;
 
     // PUBLIC TYPES
     typedef struct PushHeaderFlags    Flags;
@@ -2210,6 +2224,10 @@ struct PushHeader {
     /// associated with this object.
     SchemaWireId& schemaId();
 
+    /// Set the Raft index to the specified `value` and return a reference
+    /// offering modifiable access to this object.
+    PushHeader& setRaftIndex(bsls::Types::Uint64 value);
+
     // ACCESSORS
 
     /// Return the flags mask of this header.
@@ -2235,6 +2253,10 @@ struct PushHeader {
 
     /// Return the binary protocol representation of Schema Id.
     const SchemaWireId& schemaId() const;
+
+    /// Return the Raft index of this header, or 0 if `headerWords` is too
+    /// small to contain the Raft index.
+    bsls::Types::Uint64 raftIndex() const;
 };
 
 // ======================
@@ -4565,6 +4587,8 @@ inline PushHeader::PushHeader()
 , d_messageGUID()
 , d_schemaId()
 , d_reserved()
+, d_raftIndexUpperBits(bdlb::BigEndianUint32::make(0))
+, d_raftIndexLowerBits(bdlb::BigEndianUint32::make(0))
 {
     const int headerWords = sizeof(PushHeader) / Protocol::k_WORD_SIZE;
     setHeaderWords(headerWords);
@@ -4652,6 +4676,12 @@ inline SchemaWireId& PushHeader::schemaId()
     return d_schemaId;
 }
 
+inline PushHeader& PushHeader::setRaftIndex(bsls::Types::Uint64 value)
+{
+    Protocol::split(&d_raftIndexUpperBits, &d_raftIndexLowerBits, value);
+    return *this;
+}
+
 // ACCESSORS
 inline int PushHeader::flags() const
 {
@@ -4695,6 +4725,16 @@ inline const bmqt::MessageGUID& PushHeader::messageGUID() const
 inline const SchemaWireId& PushHeader::schemaId() const
 {
     return d_schemaId;
+}
+
+inline bsls::Types::Uint64 PushHeader::raftIndex() const
+{
+    if (headerWords() * Protocol::k_WORD_SIZE <
+        k_MIN_HEADER_SIZE_FOR_RAFT_INDEX) {
+        return 0;  // RETURN
+    }
+
+    return Protocol::combine(d_raftIndexUpperBits, d_raftIndexLowerBits);
 }
 
 // -------------------------

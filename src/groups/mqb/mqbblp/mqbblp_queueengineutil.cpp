@@ -1170,8 +1170,7 @@ QueueEngineUtil_AppState::processDeliveryList(bsls::TimeInterval*    delay,
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(reader->atEnd())) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
 
-            if (storage->isPendingReplication(list.probe(it),
-                                              true)) {  // isAbsent
+            if (storage->isPendingReplication(list.raftIndex(it))) {
                 // The record has not reached this node yet: a PUSH commits on
                 // a majority that need not include this node, so it can
                 // outrun the entry carrying its record.  Park the entry and
@@ -1393,7 +1392,8 @@ bool QueueEngineUtil_AppState::transferUnconfirmedMessages(
     int numMsgs = handle->transferUnconfirmedMessageGUID(
         bdlf::BindUtil::bind(&RedeliveryList::add,
                              &d_redeliveryList,
-                             bdlf::PlaceHolders::_1),
+                             bdlf::PlaceHolders::_1,
+                             0),  // raftIndex: delivered from the storage
         subQueue.subId());
 
     // We lost a reader, try to redeliver any potential messages

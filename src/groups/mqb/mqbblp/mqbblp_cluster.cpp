@@ -1708,7 +1708,8 @@ void Cluster::onRelayPushEvent(const mqbevt::PushEvent& event)
                              pushHeader.compressionAlgorithmType(),
                              bmqp::PushHeaderFlagUtil::isSet(
                                  pushHeader.flags(),
-                                 bmqp::PushHeaderFlags::e_OUT_OF_ORDER));
+                                 bmqp::PushHeaderFlags::e_OUT_OF_ORDER),
+                             pushHeader.raftIndex());
         // Note that passing the correct value of MessageProperties flag
         // above is not really needed, because self node (replica) will
         // retrieve the value of this flag from the storage when forwarding

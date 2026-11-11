@@ -2235,7 +2235,20 @@ void RootQueueEngine::registerStorage(const bsl::string&      appId,
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
     Apps::iterator iter = d_apps.find(appId);
-    BSLS_ASSERT_SAFE(iter != d_apps.end());
+    if (iter == d_apps.end()) {
+        // An App the storage carries and the domain config does not.  Its
+        // addition, or its move to a new ordinal by the deletion of another
+        // App ('VirtualStorageCatalog::removeVirtualStorage'), can be applied
+        // after this engine was configured without the App, as in
+        // 'unregisterStorage'.  The domain config does not authorize the App,
+        // so the App stays out of this engine.
+        BMQ_LOGTHROTTLE_INFO
+            << "Local queue: " << d_queueState_p->uri()
+            << " (id: " << d_queueState_p->id()
+            << ") ignoring storage of unknown [App Id: " << appId
+            << ", key: " << appKey << ", ordinal: " << appOrdinal << "]";
+        return;  // RETURN
+    }
 
     AppState& app = *iter->second;
 
@@ -2273,7 +2286,18 @@ void RootQueueEngine::unregisterStorage(
     BSLS_ASSERT_SAFE(d_queueState_p->queue()->inDispatcherThread());
 
     Apps::iterator iter = d_apps.find(appId);
-    BSLS_ASSERT_SAFE(iter != d_apps.end());
+    if (iter == d_apps.end()) {
+        // An App the storage carries and the domain config does not.
+        // 'ClusterQueueHelper::convertToLocal' does not wait for the App's
+        // deletion to commit, so the deletion can be applied after this
+        // engine was configured without the App.  Nothing to unauthorize.
+        BMQ_LOGTHROTTLE_INFO
+            << "Local queue: " << d_queueState_p->uri()
+            << " (id: " << d_queueState_p->id()
+            << ") removing storage of unknown [App Id: " << appId
+            << ", key: " << appKey << "]";
+        return;  // RETURN
+    }
 
     // we still keep the app but invalidate the authorization
     iter->second->unauthorize();

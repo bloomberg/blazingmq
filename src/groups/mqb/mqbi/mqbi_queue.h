@@ -931,13 +931,15 @@ class Queue : public DispatcherClient {
     /// @param messagePropertiesInfo The message properties info.
     /// @param compressionAlgorithmType The compression of the message.
     /// @param isOutOfOrder Whether the message is pushed out of order.
+    /// @param raftIndex The `bmqp::PushHeader::raftIndex` of the PUSH.
     virtual void onPushMessage(
         const bmqt::MessageGUID&                  msgGUID,
         const bsl::shared_ptr<const bdlbb::Blob>& appData,
         const bsl::shared_ptr<bdlbb::Blob>&       options,
         const bmqp::MessagePropertiesInfo&        messagePropertiesInfo,
         bmqt::CompressionAlgorithmType::Enum      compressionAlgorithmType,
-        bool                                      isOutOfOrder) = 0;
+        bool                                      isOutOfOrder,
+        bsls::Types::Uint64                       raftIndex) = 0;
 
     /// Post the message described by the specified `putHeader`, `appData` and
     /// `options` on behalf of the client identified by the specified

@@ -310,13 +310,15 @@ class RemoteQueue {
     /// @param messagePropertiesInfo The message properties info.
     /// @param compressionAlgorithmType The compression of the message.
     /// @param isOutOfOrder Whether the message is pushed out of order.
+    /// @param raftIndex The `bmqp::PushHeader::raftIndex` of the PUSH.
     void
     pushMessage(const bmqt::MessageGUID&                  msgGUID,
                 const bsl::shared_ptr<const bdlbb::Blob>& appData,
                 const bsl::shared_ptr<bdlbb::Blob>&       options,
                 const bmqp::MessagePropertiesInfo&   messagePropertiesInfo,
                 bmqt::CompressionAlgorithmType::Enum compressionAlgorithmType,
-                bool                                 isOutOfOrder);
+                bool                                 isOutOfOrder,
+                bsls::Types::Uint64                  raftIndex);
 
     SubStreamContext& subStreamContext(unsigned int upstreamSubQueueId);
 

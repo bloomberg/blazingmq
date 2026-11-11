@@ -6339,7 +6339,6 @@ FileStore::FileStore(
 , d_records(10000, d_allocators.get("OutstandingRecords"))
 , d_unreceipted(d_allocators.get("UnreceiptedRecords"))
 , d_replicationNotifications(allocator)
-, d_purgeCompleted(false)
 , d_replicationFactor(replicationFactor)
 , d_nodes(allocator)
 , d_lastRecoveredStrongConsistency()
@@ -8567,13 +8566,6 @@ void FileStore::applyCommittedQueueOp(const DataStoreRecordHandle& handle)
             // holds them until the leader's become-leader sync point is
             // applied.
             rstorage->purge(qOpRec->appKey(), isLeader());
-
-            if (qOpRec->appKey().isNull()) {
-                // 'onPurgeComplete' proposes 'e_ROLLOVER' and so cannot run
-                // from inside the apply loop; 'PartitionRaft::dispatchOutput'
-                // drains this once the loop unwinds.
-                d_purgeCompleted = true;
-            }
         }
     }
     rstorage->addQueueOpRecordHandle(handle);
@@ -9737,13 +9729,6 @@ void FileStore::updatePartitionStats()
 void FileStore::onRolloverComplete(bsls::Types::Int64 elapsedNs)
 {
     d_partitionStats_sp->setRoloverTime(elapsedNs);
-}
-
-bool FileStore::takePurgeCompleted()
-{
-    const bool result = d_purgeCompleted;
-    d_purgeCompleted  = false;
-    return result;
 }
 
 void FileStore::convertQueuesToRemote(int ackWindowSize)

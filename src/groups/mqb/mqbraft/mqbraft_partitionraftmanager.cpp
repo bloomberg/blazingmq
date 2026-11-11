@@ -669,8 +669,7 @@ void PartitionRaftManager::conformToClusterState(unsigned int partitionId)
     // asking for the sync point.  Raft's own leadership is not read here --
     // it belongs to the partition's thread -- and the writes below are
     // dispatched there, where 'unregisterQueueDispatched' re-checks it.
-    PartitionRaft* raft = d_partitionRafts[partitionId].get();
-    const int      pid  = static_cast<int>(partitionId);
+    const int pid = static_cast<int>(partitionId);
 
     // What the cluster state has and the journal does not.
     for (mqbc::ClusterState::DomainStatesCIter dsCit =
@@ -701,49 +700,15 @@ void PartitionRaftManager::conformToClusterState(unsigned int partitionId)
                 continue;  // CONTINUE
             }
 
-            // Writes the creation, or the addition of the apps the journal
-            // is missing.  'e_PENDING' means a record for this queue is
-            // already proposed and not yet applied here.
+            // Writes the creation, the addition of the apps the journal is
+            // missing, and the deletion of the apps the journal has and the
+            // cluster state does not.  'e_PENDING' means a record for this
+            // queue is already proposed and not yet applied here.
             registerQueue(qinfo.uri(),
                           qinfo.key(),
                           pid,
                           qinfo.appInfos(),
                           domain);
-
-            // 'registerQueue' does not look for apps the journal has and the
-            // cluster state does not, so ask for those separately.
-            bsl::unordered_set<bsl::string> appIds(d_allocator_p);
-            if (!loadAppIds(&appIds, qinfo.uri(), pid)) {
-                continue;  // CONTINUE
-            }
-
-            bool hasExtra = false;
-            for (bsl::unordered_set<bsl::string>::const_iterator aCit =
-                     appIds.cbegin();
-                 aCit != appIds.cend() && !hasExtra;
-                 ++aCit) {
-                hasExtra = 0 == qinfo.appInfos().count(*aCit);
-            }
-
-            if (hasExtra &&
-                mark(qinfo.uri(),
-                     pid,
-                     mqbc::StorageMonitor::Awaiting::e_APP_REMOVAL)) {
-                BALL_LOG_WARN << d_clusterData_p->identity().description()
-                              << " Partition [" << pid << "]: queue ["
-                              << qinfo.uri() << "] has apps the cluster state "
-                              << "does not; removing them from the journal.";
-
-                // Computes the removals itself, from the apps the storage
-                // has against the ones passed here.
-                d_fileStores[pid]->execute(bdlf::BindUtil::bind(
-                    &mqbc::StorageUtil::registerQueueAsPrimary,
-                    raft,
-                    qinfo.uri(),
-                    qinfo.key(),
-                    qinfo.appInfos(),
-                    domain));
-            }
         }
     }
 
@@ -758,9 +723,10 @@ void PartitionRaftManager::conformToClusterState(unsigned int partitionId)
             continue;  // CONTINUE
         }
 
-        if (!mark((*sCit)->queueUri(),
-                  pid,
-                  mqbc::StorageMonitor::Awaiting::e_DELETION)) {
+        if (isDeletionProposed((*sCit)->queueUri(), pid)) {
+            // The deletion of the queue is already proposed.  This is to avoid
+            // raising the alarm below again ('StorageUtil::
+            // unregisterQueueDispatched' proposes no second deletion).
             continue;  // CONTINUE
         }
 

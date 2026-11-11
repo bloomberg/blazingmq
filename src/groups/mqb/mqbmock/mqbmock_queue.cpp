@@ -270,7 +270,8 @@ void Queue::onPushMessage(
     BSLA_MAYBE_UNUSED const bmqp::MessagePropertiesInfo& hasMessageProperties,
     BSLA_MAYBE_UNUSED      bmqt::CompressionAlgorithmType::Enum
                            compressionAlgorithmType,
-    BSLA_MAYBE_UNUSED bool isOutOfOrder)
+    BSLA_MAYBE_UNUSED bool isOutOfOrder,
+    BSLA_MAYBE_UNUSED bsls::Types::Uint64 raftIndex)
 {
     // NOTHING
 }

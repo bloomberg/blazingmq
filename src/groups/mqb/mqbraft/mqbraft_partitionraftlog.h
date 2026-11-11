@@ -288,6 +288,13 @@ class PartitionRaftLog : public RaftLog {
     /// Return the journal offset of the record for the specified `index`.
     bsls::Types::Uint64 journalOffsetAt(bsls::Types::Uint64 index) const;
 
+    /// Return `true` if the record at the specified `journalOffset` is the
+    /// entry at the specified `index` of this log, and `false` otherwise:
+    /// `index` is outside the current file set, or the anchor places it at a
+    /// different offset (`expectedJournalOffset`).
+    bool isRecordAt(bsls::Types::Uint64 index,
+                    bsls::Types::Uint64 journalOffset) const;
+
     bsls::Types::Uint64 lastIndex() const BSLS_KEYWORD_OVERRIDE;
 
     bsls::Types::Uint64 lastTerm() const BSLS_KEYWORD_OVERRIDE;

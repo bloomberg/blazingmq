@@ -1388,27 +1388,86 @@ void ClusterQueueHelper::onStorageReady(int partitionId, const bmqt::Uri& uri)
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
 
-    (void)partitionId;  // only used for the log line below
-
     QueueContextMapIter qit = d_queues.find(uri);
     if (qit == d_queues.end()) {
         return;  // RETURN
     }
 
-    QueueLiveState& qinfo = qit->second->d_liveQInfo;
-    if (qinfo.d_storagePendingContexts.empty()) {
+    const QueueContextSp queueContext = qit->second;
+    if (queueContext->d_liveQInfo.d_storagePendingContexts.empty()) {
         return;  // RETURN
     }
+
+    if (!hasActiveAvailablePrimary(partitionId)) {
+        // Keep the entries parked; 'restoreStateCluster' resumes them once the
+        // partition has an ACTIVE primary.
+        return;  // RETURN
+    }
+
+    BALL_LOG_INFO << d_cluster_p->description() << ": storage/app ready for '"
+                  << uri << "' (partitionId: " << partitionId << "); resuming "
+                  << queueContext->d_liveQInfo.d_storagePendingContexts.size()
+                  << " parked createQueue call(s)";
+
+    restartStaleStoragePending(queueContext.get());
+    replayStoragePending(queueContext.get());
+    onQueueContextAssigned(queueContext);
+}
+
+void ClusterQueueHelper::restartStaleStoragePending(QueueContext* queueContext)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+
+    QueueLiveState&           qinfo    = queueContext->d_liveQInfo;
+    const bsls::Types::Uint64 genCount = currentGenCount(
+        queueContext->partitionId());
+
+    bsl::vector<QueueLiveState::StoragePendingContext>::iterator it =
+        qinfo.d_storagePendingContexts.begin();
+    while (it != qinfo.d_storagePendingContexts.end()) {
+        if (it->d_generationCount == genCount) {
+            ++it;
+            continue;  // CONTINUE
+        }
+
+        if (it->d_upstreamNode) {
+            // Same rollback as a failed open in 'onOpenQueueResponse'.
+            StreamsMap::iterator subStreamIt =
+                qinfo.d_subQueueIds.findBySubIdSafe(
+                    it->d_context->d_upstreamSubQueueId);
+            if (subStreamIt != qinfo.d_subQueueIds.end()) {
+                bmqp::QueueUtil::subtractHandleParameters(
+                    &subStreamIt->value().d_parameters,
+                    it->d_context->d_handleParameters);
+            }
+        }
+
+        BALL_LOG_INFO << d_cluster_p->description()
+                      << ": restarting createQueue for '"
+                      << queueContext->uri() << "' parked under generation "
+                      << it->d_generationCount << ", current generation "
+                      << genCount;
+
+        qinfo.d_pending.push_back(it->d_context);
+        it = qinfo.d_storagePendingContexts.erase(it);
+    }
+}
+
+void ClusterQueueHelper::replayStoragePending(QueueContext* queueContext)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
 
     // Swap out to re-attempt one by one; a re-attempt that is still not
     // ready will re-park itself into (the now-empty)
     // 'd_storagePendingContexts' via 'createQueue'.
     bsl::vector<QueueLiveState::StoragePendingContext> pending(d_allocator_p);
-    pending.swap(qinfo.d_storagePendingContexts);
-
-    BALL_LOG_INFO << d_cluster_p->description() << ": storage/app ready for '"
-                  << uri << "' (partitionId: " << partitionId << "); resuming "
-                  << pending.size() << " parked createQueue call(s)";
+    pending.swap(queueContext->d_liveQInfo.d_storagePendingContexts);
 
     for (bsl::vector<QueueLiveState::StoragePendingContext>::const_iterator
              it = pending.cbegin();
@@ -2553,6 +2612,7 @@ bool ClusterQueueHelper::createQueue(
         pendingContext.d_context           = context;
         pendingContext.d_openQueueResponse = openQueueResponse;
         pendingContext.d_upstreamNode      = upstreamNode;
+        pendingContext.d_generationCount   = currentGenCount(pid);
         qinfo.d_storagePendingContexts.push_back(pendingContext);
 
         const bsl::string appId(
@@ -4453,6 +4513,10 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
         BSLS_ASSERT_SAFE(isQueueAssigned(*queueContext));
         BSLS_ASSERT_SAFE(isQueuePrimaryAvailable(*queueContext));
 
+        // Before 'restoreStateHelper', so that the reopen does not carry the
+        // handle parameters of a stale parked open.
+        restartStaleStoragePending(queueContext.get());
+
         // Start restore cycle
         bsl::shared_ptr<PartitionReopenCycle> cycle =
             startPartitionReopen(partitionId, pinfo->primaryLeaseId());
@@ -4550,6 +4614,7 @@ void ClusterQueueHelper::restoreStateCluster(int partitionId)
         }
 
         // In all cases, _attempt_ to process pending open queue requests
+        replayStoragePending(queueContext.get());
         onQueueContextAssigned(queueContext);
     }
 }
