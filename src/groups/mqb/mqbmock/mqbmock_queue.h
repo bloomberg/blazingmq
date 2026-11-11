@@ -264,13 +264,15 @@ class Queue : public mqbi::Queue {
     /// @param messagePropertiesInfo The message properties info.
     /// @param compressionAlgorithmType The compression of the message.
     /// @param isOutOfOrder Whether the message is pushed out of order.
+    /// @param raftIndex The `bmqp::PushHeader::raftIndex` of the PUSH.
     void onPushMessage(
         const bmqt::MessageGUID&                  msgGUID,
         const bsl::shared_ptr<const bdlbb::Blob>& appData,
         const bsl::shared_ptr<bdlbb::Blob>&       options,
         const bmqp::MessagePropertiesInfo&        messagePropertiesInfo,
         bmqt::CompressionAlgorithmType::Enum      compressionAlgorithmType,
-        bool isOutOfOrder) BSLS_KEYWORD_OVERRIDE;
+        bool                                      isOutOfOrder,
+        bsls::Types::Uint64 raftIndex) BSLS_KEYWORD_OVERRIDE;
 
     /// Confirm the message with the specified `msgGUID` for the specified
     /// `upstreamSubQueueId` stream of the queue on behalf of the client

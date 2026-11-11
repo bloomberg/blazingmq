@@ -785,8 +785,7 @@ FileBackedStorage::removeAll(const mqbu::StorageKey& appKey)
                 // here as well would purge twice, and -- since this node
                 // writes messages into the storage at propose time -- would
                 // also purge messages whose log position is after the purge.
-                // 'onPurgeComplete' likewise runs from the apply, out of the
-                // apply loop: it proposes 'e_ROLLOVER'.
+                // 'onPurgeComplete' likewise runs from the apply ('purge').
                 return mqbi::StorageResult::e_SUCCESS;  // RETURN
             }
 
@@ -1369,6 +1368,16 @@ void FileBackedStorage::purge(const mqbu::StorageKey& appKey, bool asPrimary)
 
     if (queue()) {
         queue()->queueEngine()->afterQueuePurged(appId, appKey);
+    }
+
+    if (appKey.isNull() && d_store_p->isRaft()) {
+        // Reclaim the journal space the purge freed.
+        // 'PartitionRaft::onPurgeComplete' may propose 'e_ROLLOVER' from
+        // inside the apply loop: 'RaftNode' writes the output of that propose
+        // to 'RaftNodeOutput::d_nested', and 'PartitionRaft::dispatchOutput'
+        // processes 'd_nested' after the whole current output (apply loop and
+        // 'postDispatch').
+        d_store_p->onPurgeComplete();
     }
 }
 

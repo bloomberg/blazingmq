@@ -2182,17 +2182,11 @@ void ClusterOrchestrator::onClusterRaftLeadership(int                 leaderId,
                   << ": onClusterRaftLeadership fired, leaderId: " << leaderId
                   << ", term: " << term;
 
-    // Dispatch even though this runs on the cluster thread.  In a single-node
-    // cluster 'propose' commits immediately.  A direct call to
-    // 'onClusterRaftLeadershipDispatched' would then call this function again
-    // in the same stack.
-    dispatcher()->execute(
-        bdlf::BindUtil::bind(
-            &ClusterOrchestrator::onClusterRaftLeadershipDispatched,
-            this,
-            leaderId,
-            term),
-        d_cluster_p);
+    // Called by 'ClusterStateRaft' while it processes its output.  A propose
+    // from 'onClusterRaftLeadershipDispatched' does not call this function
+    // again in the same stack: 'ClusterStateRaft::dispatchOutput' processes
+    // the output of that propose after the output in progress.
+    onClusterRaftLeadershipDispatched(leaderId, term);
 }
 
 void ClusterOrchestrator::onPartitionRaftLeadership(int partitionId,
@@ -2247,6 +2241,8 @@ void ClusterOrchestrator::onPartitionRaftLeadershipDispatched(
         return;  // RETURN
     }
 
+    const unsigned int leaseId = static_cast<unsigned int>(term);
+
     // Self was this partition's primary and lost leadership, either to no
     // leader or to a new leader.
     mqbnet::ClusterNode* const selfNode =
@@ -2264,8 +2260,21 @@ void ClusterOrchestrator::onPartitionRaftLeadershipDispatched(
         // 3. Both calls are dispatched to the partition's thread, the drops
         //    first.  Each release then runs while the queue is still local,
         //    so the release sends no close upstream.
+        // 4. The partition stays inactive until 'onQueuesConvertedToRemote',
+        //    dispatched to the partition's thread right after the conversion.
+        //    This is to avoid 'restoreState' reopening the queues on the new
+        //    primary before 'onConversionToRemoteDispatched' has set the
+        //    counts of their handles (sending stale or empty counts).
+        d_availability.onConversionToRemoteRequested(partitionId, leaseId);
         d_queueHelper.dropPeerHandles(partitionId);
         d_partitionRaftManager_mp->convertQueuesToRemote(partitionId);
+        dispatcher()->execute(
+            bdlf::BindUtil::bind(
+                &ClusterOrchestrator::onQueuesConvertedToRemote,
+                this,
+                partitionId,
+                leaseId),
+            d_partitionRaftManager_mp->partition(partitionId));
     }
 
     if (mqbraft::RaftNode::k_INVALID_NODE_ID == leaderNodeId) {
@@ -2324,8 +2333,6 @@ void ClusterOrchestrator::onPartitionRaftLeadershipDispatched(
         d_clusterData_p->membership().getClusterNodeSession(leaderNode);
     BSLS_ASSERT_SAFE(ns);
 
-    const unsigned int leaseId = static_cast<unsigned int>(term);
-
     // The primary stays E_PASSIVE until 'd_availability' returns an
     // 'e_ACTIVATE' action.  This is to make the CSL record the leaseId (the
     // Raft term) before the partition writes any sync point under that
@@ -2361,6 +2368,34 @@ void ClusterOrchestrator::onPartitionRaftLeadershipDispatched(
         proposePartitionPrimaryAdvisory();
     }
     performPartitionAction(partitionId, action);
+}
+
+void ClusterOrchestrator::onQueuesConvertedToRemote(int          partitionId,
+                                                    unsigned int leaseId)
+{
+    // executed by the partition *DISPATCHER* thread
+
+    dispatcher()->execute(
+        bdlf::BindUtil::bind(
+            &ClusterOrchestrator::onQueuesConvertedToRemoteDispatched,
+            this,
+            partitionId,
+            leaseId),
+        d_cluster_p);
+}
+
+void ClusterOrchestrator::onQueuesConvertedToRemoteDispatched(
+    int          partitionId,
+    unsigned int leaseId)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
+
+    performPartitionAction(
+        partitionId,
+        d_availability.onQueuesConvertedToRemote(partitionId, leaseId));
 }
 
 void ClusterOrchestrator::proposePartitionPrimaryAdvisory()

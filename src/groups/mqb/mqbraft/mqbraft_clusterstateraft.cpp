@@ -188,6 +188,39 @@ bool ClusterStateRaft::savePersistentState(bool changed)
     return true;
 }
 
+void ClusterStateRaft::dispatchOutput()
+{
+    RaftNodeOutput& output = d_raftNode_mp->output();
+    if (output.d_isDispatching) {
+        return;  // RETURN
+    }
+
+    output.d_isDispatching = true;
+
+    dispatchOutput(&output);
+
+    bsl::size_t i         = 0;
+    bool        isFlushed = false;
+    while (true) {
+        if (i == output.d_numNested) {
+            if (isFlushed) {
+                break;  // BREAK
+            }
+
+            // The CSL runs a round on every event: its rate does not justify
+            // the deferral 'PartitionRaft' does.  Called once, when no output
+            // is left, so that one round carries the entries all the outputs
+            // proposed.
+            d_raftNode_mp->flushSends();
+            isFlushed = true;
+            continue;  // CONTINUE
+        }
+        dispatchOutput(output.d_nested[i++].get());
+    }
+
+    output.reset();
+}
+
 void ClusterStateRaft::dispatchOutput(RaftNodeOutput* output)
 {
     BSLS_ASSERT_SAFE(output);
@@ -195,6 +228,9 @@ void ClusterStateRaft::dispatchOutput(RaftNodeOutput* output)
     // A new leader's log may not be a Raft log -- a legacy CSL file is not --
     // and neither may its peers'.  So before it sends anything, it replaces
     // its log with its state and makes every peer take that state.
+    // 'forceSnapshot' writes the InstallSnapshot messages to an output in
+    // 'd_nested', which 'dispatchOutput' processes before calling
+    // 'flushSends'.
     if (output->d_leaderChanged && isLeader()) {
         if (0 != installLeaderSnapshot()) {
             BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
@@ -204,12 +240,8 @@ void ClusterStateRaft::dispatchOutput(RaftNodeOutput* output)
             mqbu::ExitUtil::terminate(
                 mqbu::ExitCode::e_RECOVERY_FAILURE);  // EXIT
         }
-        d_raftNode_mp->forceSnapshot(output);
+        d_raftNode_mp->forceSnapshot();
     }
-
-    // The CSL runs a round on every event: its rate does not justify the
-    // deferral 'PartitionRaft' does, and this keeps the sends where they were.
-    d_raftNode_mp->flushSends(output);
 
     // A message carries the term, and a vote reply the vote: neither may
     // leave before they are on disk.
@@ -631,9 +663,8 @@ void ClusterStateRaft::tickCb()
 
 void ClusterStateRaft::tickDispatched()
 {
-    RaftNodeOutput output(d_allocator_p);
-    d_raftNode_mp->tick(&output);
-    dispatchOutput(&output);
+    d_raftNode_mp->tick();
+    dispatchOutput();
 }
 
 void ClusterStateRaft::updateElectorInfo()
@@ -860,9 +891,8 @@ void ClusterStateRaft::onRaftControlMessage(
     RaftMessage internalMsg(d_allocator_p);
     fromCtrlMsg(&internalMsg, message, source->nodeId());
 
-    RaftNodeOutput output(d_allocator_p);
-    d_raftNode_mp->step(&output, internalMsg);
-    dispatchOutput(&output);
+    d_raftNode_mp->step(internalMsg);
+    dispatchOutput();
 }
 
 void ClusterStateRaft::onRaftEvent(const bdlbb::Blob&   event,
@@ -943,9 +973,8 @@ void ClusterStateRaft::onAppendEntriesResponse(const bdlbb::Blob&   event,
     internalMsg.d_rejectedIndex = resp->rejectedIndex();
     resp.reset();
 
-    RaftNodeOutput output(d_allocator_p);
-    d_raftNode_mp->step(&output, internalMsg);
-    dispatchOutput(&output);
+    d_raftNode_mp->step(internalMsg);
+    dispatchOutput();
 }
 
 void ClusterStateRaft::appendEntries(const bdlbb::Blob&   event,
@@ -1028,9 +1057,8 @@ void ClusterStateRaft::appendEntries(const bdlbb::Blob&   event,
             // correctly-anchored follow-on AppendEntries (new prevLogIndex =
             // last flushed index, new prevLogTerm = its term).
             if (!internalMsg.d_entries.empty()) {
-                RaftNodeOutput output(d_allocator_p);
-                d_raftNode_mp->step(&output, internalMsg);
-                dispatchOutput(&output);
+                d_raftNode_mp->step(internalMsg);
+                dispatchOutput();
 
                 internalMsg.d_prevLogIndex += internalMsg.d_entries.size();
                 internalMsg.d_prevLogTerm =
@@ -1069,9 +1097,8 @@ void ClusterStateRaft::appendEntries(const bdlbb::Blob&   event,
         incomingBytes += recSize;
     }
 
-    RaftNodeOutput output(d_allocator_p);
-    d_raftNode_mp->step(&output, internalMsg);
-    dispatchOutput(&output);
+    d_raftNode_mp->step(internalMsg);
+    dispatchOutput();
 }
 
 int ClusterStateRaft::propose(const bmqp_ctrlmsg::ClusterMessage& advisory)
@@ -1106,13 +1133,12 @@ int ClusterStateRaft::propose(const bmqp_ctrlmsg::ClusterMessage& advisory)
         }
     }
 
-    RaftNodeOutput output(d_allocator_p);
-    rc = d_raftNode_mp->propose(&output, blob);
+    rc = d_raftNode_mp->propose(blob);
     if (rc != 0) {
         return rc;
     }
 
-    dispatchOutput(&output);
+    dispatchOutput();
     return 0;
 }
 
@@ -1122,9 +1148,8 @@ void ClusterStateRaft::setElectionMode(ElectionMode::Enum mode)
     BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
     BSLS_ASSERT_SAFE(d_raftNode_mp);
 
-    RaftNodeOutput output(d_allocator_p);
-    d_raftNode_mp->setElectionMode(&output, mode);
-    dispatchOutput(&output);
+    d_raftNode_mp->setElectionMode(mode);
+    dispatchOutput();
 }
 
 int ClusterStateRaft::transferLeadership(int targetNodeId)
@@ -1139,8 +1164,7 @@ int ClusterStateRaft::transferLeadership(int targetNodeId)
     }
 
     // -1 not the leader, -2 target is not a peer; both propagate as-is.
-    RaftNodeOutput output(d_allocator_p);
-    const int rc = d_raftNode_mp->transferLeadership(&output, targetNodeId);
+    const int rc = d_raftNode_mp->transferLeadership(targetNodeId);
     if (rc != 0) {
         return rc;  // RETURN
     }
@@ -1151,7 +1175,7 @@ int ClusterStateRaft::transferLeadership(int targetNodeId)
                   << ": initiating CSL leadership transfer to node "
                   << (targetNode ? targetNode->hostName().c_str() : "unknown");
 
-    dispatchOutput(&output);
+    dispatchOutput();
     return 0;
 }
 

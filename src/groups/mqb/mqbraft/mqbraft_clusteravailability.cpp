@@ -59,6 +59,8 @@ ClusterAvailability::PartitionState::PartitionState()
 , d_advisoryLeaseId(0)
 , d_syncPointLeaseId(0)
 , d_isSyncPointApplied(false)
+, d_conversionLeaseId(0)
+, d_isConversionDone(false)
 {
     // NOTHING
 }
@@ -75,6 +77,9 @@ ClusterAvailability::PartitionState::evaluate(int  partitionId,
     const char* waitReason = 0;
     if (!d_hasPrimary || 0 == d_leaseId) {
         waitReason = "no leader";
+    }
+    else if (0 != d_conversionLeaseId && !d_isConversionDone) {
+        waitReason = "queues not converted to remote";
     }
     else if (!isCslCaughtUp) {
         waitReason = "CSL not caught up";
@@ -221,6 +226,34 @@ ClusterAvailability::onSyncPointApplied(int partitionId, unsigned int leaseId)
     PartitionState& state      = d_partitions[partitionId];
     state.d_syncPointLeaseId   = leaseId;
     state.d_isSyncPointApplied = true;
+
+    return maybeBecomeAvailable(
+        state.evaluate(partitionId, isCslCaughtUp(), d_isSelfCslLeader));
+}
+
+void ClusterAvailability::onConversionToRemoteRequested(int partitionId,
+                                                        unsigned int leaseId)
+{
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(d_partitions.size()));
+    BSLS_ASSERT_SAFE(0 != leaseId);
+
+    PartitionState& state     = d_partitions[partitionId];
+    state.d_conversionLeaseId = leaseId;
+    state.d_isConversionDone  = false;
+}
+
+ClusterAvailability::Action::Enum
+ClusterAvailability::onQueuesConvertedToRemote(int          partitionId,
+                                               unsigned int leaseId)
+{
+    BSLS_ASSERT_SAFE(0 <= partitionId &&
+                     partitionId < static_cast<int>(d_partitions.size()));
+
+    PartitionState& state = d_partitions[partitionId];
+    if (leaseId == state.d_conversionLeaseId) {
+        state.d_isConversionDone = true;
+    }
 
     return maybeBecomeAvailable(
         state.evaluate(partitionId, isCslCaughtUp(), d_isSelfCslLeader));

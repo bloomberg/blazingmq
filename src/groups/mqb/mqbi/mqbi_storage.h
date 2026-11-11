@@ -191,6 +191,11 @@ class StorageMessageAttributes {
     // compress this message i.e. the
     // application data.
 
+    /// Raft log index at or above the index of the entry carrying this
+    /// message's record; 0 outside Raft.  A primary sends this value in the
+    /// PUSH (`bmqp::PushHeader::raftIndex`).
+    bsls::Types::Uint64 d_raftIndex;
+
   public:
     // CLASS METHODS
 
@@ -233,6 +238,7 @@ class StorageMessageAttributes {
     StorageMessageAttributes&
     setCompressionAlgorithmType(bmqt::CompressionAlgorithmType::Enum value);
     StorageMessageAttributes& setReceipt(bool value);
+    StorageMessageAttributes& setRaftIndex(bsls::Types::Uint64 value);
 
     /// Set the corresponding attribute to the specified `value` and return
     /// a reference offering modifiable access to this object.
@@ -253,6 +259,7 @@ class StorageMessageAttributes {
     /// Return the CRC32-C associated with this object.
     unsigned int                         crc32c() const;
     bmqt::CompressionAlgorithmType::Enum compressionAlgorithmType() const;
+    bsls::Types::Uint64                  raftIndex() const;
 };
 
 // FREE OPERATORS
@@ -479,16 +486,6 @@ class Storage {
                         bmqp::Protocol::k_SUBID_ARRAY_STATIC_LEN>
         StorageKeys;
 
-    /// Per-message scratch for `isPendingReplication`.  The caller owns it,
-    /// zero-initializes it before the first call for a given message, and
-    /// keeps it across calls; only the storage interprets its contents.
-    struct DeliveryProbe {
-        bsls::Types::Uint64 d_u0;
-        bsls::Types::Uint64 d_u1;
-
-        DeliveryProbe();
-    };
-
   public:
     // CREATORS
 
@@ -708,18 +705,13 @@ class Storage {
     /// `msgGUID`, false otherwise.
     virtual bool hasMessage(const bmqt::MessageGUID& msgGUID) const = 0;
 
-    /// Return `true` if the message the specified `probe` tracks may still
-    /// arrive, and `false` if it will not -- because it was removed, or was
-    /// never committed.  Use and update `probe`, which the caller keeps
-    /// across the calls made for that one message.  A PUSH can reach a
-    /// replica ahead of the replication carrying its record, so absence
-    /// alone does not say which of the two holds; this does.
-    /// Set the specified `isAbsent` to `true` only if the caller has
-    /// established that the record is not in this storage.  A caller that
-    /// has only found the message unreceipted cannot tell that from a record
-    /// still awaiting its receipts, and must pass `false`.
-    virtual bool isPendingReplication(DeliveryProbe* probe,
-                                      bool           isAbsent) const = 0;
+    /// Return `true` if the record of a message that is not in this storage
+    /// may still arrive by replication, and `false` if it will not --
+    /// because it was removed, or was never committed.  The specified
+    /// `raftIndex` is the one the primary sent in the PUSH
+    /// (`bmqp::PushHeader::raftIndex`), or 0 if there is none.  A PUSH can
+    /// reach a replica ahead of the replication carrying its record.
+    virtual bool isPendingReplication(bsls::Types::Uint64 raftIndex) const = 0;
 
     /// @brief Retrieve a message and its metadata from this storage.
     ///
@@ -854,18 +846,6 @@ DataStreamMessage::app(unsigned int appOrdinal) const
     return d_apps[appOrdinal];
 }
 
-// -------------
-// class Storage
-// -------------
-
-// CREATORS
-inline Storage::DeliveryProbe::DeliveryProbe()
-: d_u0(0)
-, d_u1(0)
-{
-    // NOTHING
-}
-
 // ------------------------------
 // class StorageMessageAttributes
 // ------------------------------
@@ -881,6 +861,7 @@ inline StorageMessageAttributes::StorageMessageAttributes(bool hasReceipt)
 , d_queueHandle(0)
 , d_crc32c(0)
 , d_compressionAlgorithmType(bmqt::CompressionAlgorithmType::e_NONE)
+, d_raftIndex(0)
 {
 }
 
@@ -903,6 +884,7 @@ inline StorageMessageAttributes::StorageMessageAttributes(
 , d_queueHandle(queueHandle)
 , d_crc32c(crc32c)
 , d_compressionAlgorithmType(compressionAlgorithmType)
+, d_raftIndex(0)
 {
     // NOTHING
 }
@@ -966,6 +948,13 @@ StorageMessageAttributes::setMessagePropertiesInfo(
     return *this;
 }
 
+inline StorageMessageAttributes&
+StorageMessageAttributes::setRaftIndex(bsls::Types::Uint64 value)
+{
+    d_raftIndex = value;
+    return *this;
+}
+
 inline void StorageMessageAttributes::reset(bool hasReceipt)
 {
     d_arrivalTimestamp         = 0;
@@ -977,6 +966,7 @@ inline void StorageMessageAttributes::reset(bool hasReceipt)
     d_hasReceipt               = hasReceipt;
     d_crc32c                   = 0;
     d_compressionAlgorithmType = bmqt::CompressionAlgorithmType::e_NONE;
+    d_raftIndex                = 0;
 }
 
 // ACCESSORS
@@ -1025,6 +1015,11 @@ inline bmqt::CompressionAlgorithmType::Enum
 StorageMessageAttributes::compressionAlgorithmType() const
 {
     return d_compressionAlgorithmType;
+}
+
+inline bsls::Types::Uint64 StorageMessageAttributes::raftIndex() const
+{
+    return d_raftIndex;
 }
 
 // FREE OPERATORS

@@ -495,11 +495,11 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     bool
     hasMessage(const bmqt::MessageGUID& msgGUID) const BSLS_KEYWORD_OVERRIDE;
 
-    /// Return `!isAbsent`: this storage is written at propose (proxy
-    /// `storePush` or at-most-once), so a record the caller has established
-    /// to be absent is one that was removed, never one still on its way.
-    bool isPendingReplication(mqbi::Storage::DeliveryProbe* probe,
-                              bool isAbsent) const BSLS_KEYWORD_OVERRIDE;
+    /// Return `false`: this storage is written at propose (proxy
+    /// `storePush` or at-most-once), so an absent record was removed, never
+    /// one still on its way.
+    bool isPendingReplication(bsls::Types::Uint64 raftIndex) const
+        BSLS_KEYWORD_OVERRIDE;
 
     /// @brief Retrieve a message and its metadata from this storage.
     ///
@@ -792,11 +792,9 @@ inline bool InMemoryStorage::hasMessage(const bmqt::MessageGUID& msgGUID) const
     return 1 == d_items.count(msgGUID);
 }
 
-inline bool
-InMemoryStorage::isPendingReplication(mqbi::Storage::DeliveryProbe*,
-                                      bool isAbsent) const
+inline bool InMemoryStorage::isPendingReplication(bsls::Types::Uint64) const
 {
-    return !isAbsent;
+    return false;
 }
 
 inline mqbi::StorageResult::Enum

@@ -150,6 +150,15 @@ class ClusterStateRaft : public mqbi::ClusterStateUpdater,
     /// `true` or an earlier save failed.  Return `true` if it is on disk.
     bool savePersistentState(bool changed);
 
+    /// Process the output of the `RaftNode` (`RaftNode::output`): the output
+    /// itself, then each output added while processing (`d_nested`), then
+    /// the AppendEntries owed (`flushSends`).  Return at once if called from
+    /// inside that processing: the call further up the stack processes the
+    /// output of this call next.
+    void dispatchOutput();
+
+    /// Process the specified `output`: send its messages, apply its committed
+    /// entries, and notify the cluster.
     void dispatchOutput(RaftNodeOutput* output);
 
     /// Send an AppendEntries message via binary e_RAFT_CLUSTER event.
