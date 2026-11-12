@@ -442,10 +442,6 @@ struct Protocol {
     // their own such constant, but we ensure that all such
     // constants have the same value.
 
-    static const unsigned int k_RDA_VALUE_MAX;
-    // Constant representing the maximum valid
-    // RemainingDeliveryAttempts counter value.
-
     static const unsigned int k_DEFAULT_SUBSCRIPTION_ID = 0;
     // Internal unique id in Configure request
 
