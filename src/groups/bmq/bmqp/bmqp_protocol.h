@@ -997,11 +997,11 @@ struct OptionHeader {
     //
     // TypeSpecific content:
     // o e_SUB_QUEUE_INFOS: If *packed*, 'words' field will be reinterpreted as
-    //                      the RDA counter for the default SubQueueId.  Note
-    //                      that the options is only *packed* for non-fanout
-    //                      mode.  Else, 'TS' field will represent the size of
-    //                      each item in the SubQueueInfosArray encoded in the
-    //                      option content.
+    //                      the RdaInfo (counter and flags) of the default
+    //                      SubQueueId.  Note that the options is only
+    //                      *packed* for non-fanout mode.  Else, 'TS' field
+    //                      will represent the size of each item in the
+    //                      SubQueueInfosArray encoded in the option content.
     //
     // NOTE:
     //  o In order to preserve alignment, this struct can *NOT* be changed
