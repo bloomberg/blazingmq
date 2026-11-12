@@ -225,12 +225,12 @@ class PushEventBuilder {
 
     /// Add a SubQueueInfo option having the specified `subQueueInfos` to
     /// the current (to-be-packed) message in the event being built.  If the
-    /// specified `packRdaCounter` is true, also pack the remaining delivery
-    /// attempts counter (`rdaCounter`).  If `packRdaCounter` is true and
+    /// specified `packRdaCounter` is true, also pack the RdaInfo (counter
+    /// and flags) of each SubQueueId.  If `packRdaCounter` is true and
     /// `subQueueInfos` contains only the default SubQueueId, pack a special
-    /// option header carrying information about the RDA counter.  Return 0
-    /// on success, or a meaningful non-zero error code otherwise.  In case
-    /// of failure, this method has no effect on the underlying event blob.
+    /// option header carrying its RdaInfo.  Return 0 on success, or a
+    /// meaningful non-zero error code otherwise.  In case of failure, this
+    /// method has no effect on the underlying event blob.
     bmqt::EventBuilderResult::Enum
     addSubQueueInfosOption(const Protocol::SubQueueInfosArray& subQueueInfos,
                            bool packRdaCounter = true);
