@@ -276,8 +276,10 @@ int OptionsView::loadSubQueueInfosOption(
         /// The SubQueueInfos item size, in 'typeSpecific' words, is not
         /// 'sizeof(SubQueueInfo)'
         rc_INVALID_ITEM_SIZE = -2,
+        /// The packed RdaInfo does not fit in one byte
+        rc_INVALID_RDA_INFO = -3,
         /// Code that must never be reached
-        rc_UNREACHABLE = -3
+        rc_UNREACHABLE = -4
     };
 
     if (find(OptionType::e_SUB_QUEUE_INFOS) != end()) {
@@ -288,13 +290,19 @@ int OptionsView::loadSubQueueInfosOption(
         BSLS_ASSERT_SAFE(oh->type() == OptionType::e_SUB_QUEUE_INFOS);
 
         if (oh->packed()) {
-            // *Packed* options => reinterpret 'words' field as RDA counter for
-            //                     the default Subscription Id
-            const unsigned int rdaCounter = static_cast<unsigned int>(
+            // *Packed* options => reinterpret 'words' field as the RdaInfo
+            //                     of the default Subscription Id
+            const unsigned int rdaInfo = static_cast<unsigned int>(
                 oh->words());
+            if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
+                    rdaInfo > RdaInfo::k_MAX_INTERNAL_COUNTER_VALUE)) {
+                BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+                return rc_INVALID_RDA_INFO;  // RETURN
+            }
+
             subQueueInfos->push_back(
                 SubQueueInfo(bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID,
-                             rdaCounter));
+                             rdaInfo));
 
             return rc_SUCCESS;  // RETURN
         }
