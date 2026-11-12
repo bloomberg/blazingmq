@@ -124,7 +124,7 @@ class PushEventBuilder {
     /// `queueId` and `msgId` and `payload` and the specified `flags` and
     /// the specified `compressionAlgorithmType`.  Use the specified
     /// `propertiesLogic` to encode MessageProperties related flag and
-    /// Schema Id.
+    /// Schema Id.  Write the specified `raftIndex` in the `PushHeader`.
     /// Return 0 on success, or a meaningful non-zero error code otherwise.
     /// In case of failure, this method has no effect on the underlying
     /// event blob.
@@ -134,7 +134,8 @@ class PushEventBuilder {
         const bmqt::MessageGUID&             msgId,
         int                                  flags,
         bmqt::CompressionAlgorithmType::Enum compressionAlgorithmType,
-        const MessagePropertiesInfo&         messagePropertiesInfo);
+        const MessagePropertiesInfo&         messagePropertiesInfo,
+        bsls::Types::Uint64                  raftIndex);
 
     /// Check if `PushHeader` has been written for current event.  If it
     /// hasn't, add the `PushHeader`.  The behavior is undefined unless
@@ -179,7 +180,8 @@ class PushEventBuilder {
     /// Add a message to the event being built, having the specified
     /// `queueId`, `msgId`, `payload`, `flags` and
     /// `compressionAlgorithmType`.  Use the specified `propertiesLogic` to
-    /// encode MessageProperties related flag and Schema Id.
+    /// encode MessageProperties related flag and Schema Id.  Write the
+    /// optionally specified `raftIndex` in the `PushHeader`.
     /// Return 0 on success, or a meaningfulnon-zero error code otherwise.
     /// In case of failure, this method has no effect on the underlying
     /// event blob.
@@ -190,14 +192,16 @@ class PushEventBuilder {
                 int                                  flags,
                 bmqt::CompressionAlgorithmType::Enum compressionAlgorithmType,
                 const MessagePropertiesInfo&         messagePropertiesInfo =
-                    bmqp::MessagePropertiesInfo());
+                    bmqp::MessagePropertiesInfo(),
+                bsls::Types::Uint64 raftIndex = 0);
 
     /// Add a message to the event being built, having the specified
     /// `queueId`, `msgId`, `flags` and `compressionAlgorithmType`.  Note
     /// that since no payload is specified, in addition to `flags`, the
     /// `implicit payload` flag will also be set.  Use the specified
     /// `propertiesLogic` to encode MessageProperties related flag and
-    /// Schema Id.
+    /// Schema Id.  Write the optionally specified `raftIndex` in the
+    /// `PushHeader`.
     /// Return 0 on success, or a meaningful non-zero error code otherwise.
     /// In case of failure, this method has no effect on the underlying
     /// event blob.
@@ -207,7 +211,8 @@ class PushEventBuilder {
                 int                                  flags,
                 bmqt::CompressionAlgorithmType::Enum compressionAlgorithmType,
                 const MessagePropertiesInfo&         messagePropertiesInfo =
-                    bmqp::MessagePropertiesInfo());
+                    bmqp::MessagePropertiesInfo(),
+                bsls::Types::Uint64 raftIndex = 0);
 
     /// Add a message to the event being built, having the specified
     /// `payload` and `header`.  Return 0 on success, or a meaningful
@@ -311,7 +316,8 @@ PushEventBuilder::packMessage(const bdlbb::Blob& payload,
                           header.messageGUID(),
                           header.flags(),
                           header.compressionAlgorithmType(),
-                          MessagePropertiesInfo(header));
+                          MessagePropertiesInfo(header),
+                          header.raftIndex());
 }
 
 inline bmqt::EventBuilderResult::Enum PushEventBuilder::packMessage(
@@ -320,14 +326,16 @@ inline bmqt::EventBuilderResult::Enum PushEventBuilder::packMessage(
     const bmqt::MessageGUID&             msgId,
     int                                  flags,
     bmqt::CompressionAlgorithmType::Enum compressionAlgorithmType,
-    const MessagePropertiesInfo&         messagePropertiesInfo)
+    const MessagePropertiesInfo&         messagePropertiesInfo,
+    bsls::Types::Uint64                  raftIndex)
 {
     return packMessageImp(payload,
                           queueId,
                           msgId,
                           flags,
                           compressionAlgorithmType,
-                          messagePropertiesInfo);
+                          messagePropertiesInfo,
+                          raftIndex);
 }
 
 inline bmqt::EventBuilderResult::Enum PushEventBuilder::packMessage(
@@ -335,7 +343,8 @@ inline bmqt::EventBuilderResult::Enum PushEventBuilder::packMessage(
     const bmqt::MessageGUID&             msgId,
     int                                  flags,
     bmqt::CompressionAlgorithmType::Enum compressionAlgorithmType,
-    const MessagePropertiesInfo&         messagePropertiesInfo)
+    const MessagePropertiesInfo&         messagePropertiesInfo,
+    bsls::Types::Uint64                  raftIndex)
 {
     const bdlbb::Blob emptyBlob;
     PushHeaderFlagUtil::setFlag(&flags, PushHeaderFlags::e_IMPLICIT_PAYLOAD);
@@ -344,7 +353,8 @@ inline bmqt::EventBuilderResult::Enum PushEventBuilder::packMessage(
                           msgId,
                           flags,
                           compressionAlgorithmType,
-                          messagePropertiesInfo);
+                          messagePropertiesInfo,
+                          raftIndex);
 }
 
 // ACCESSORS

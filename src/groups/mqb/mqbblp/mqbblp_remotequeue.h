@@ -294,14 +294,16 @@ class RemoteQueue {
                             mqbi::QueueHandle*       source);
 
     /// Called when a message with the specified `msgGUID`, `appData`,
-    /// `options`, `compressionAlgorithmType` is pushed to this queue.
+    /// `options`, `compressionAlgorithmType` is pushed to this queue, with
+    /// the specified `raftIndex` the PUSH carries.
     void
     pushMessage(const bmqt::MessageGUID&             msgGUID,
                 const bsl::shared_ptr<bdlbb::Blob>&  appData,
                 const bsl::shared_ptr<bdlbb::Blob>&  options,
                 const bmqp::MessagePropertiesInfo&   messagePropertiesInfo,
                 bmqt::CompressionAlgorithmType::Enum compressionAlgorithmType,
-                bool                                 isOutOfOrder);
+                bool                                 isOutOfOrder,
+                bsls::Types::Uint64                  raftIndex);
 
     SubStreamContext& subStreamContext(unsigned int upstreamSubQueueId);
 
@@ -336,6 +338,13 @@ class RemoteQueue {
 
     /// Return the queue engine used by this queue.
     mqbi::QueueEngine* queueEngine();
+
+    /// Take over the state left by the `LocalQueue` this queue replaces:
+    /// rebuild the engine from the surviving handles, and put every subStream
+    /// into buffering until the reopen supplies a generation count.  Return 0
+    /// on success, and load a description into the specified
+    /// `errorDescription` otherwise.
+    int importState(bsl::ostream& errorDescription);
 
     /// Reset the state of this object.
     void resetState();

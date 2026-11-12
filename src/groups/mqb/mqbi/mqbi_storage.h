@@ -191,6 +191,11 @@ class StorageMessageAttributes {
     // compress this message i.e. the
     // application data.
 
+    /// Raft log index at or above the index of the entry carrying this
+    /// message's record; 0 outside Raft.  A primary sends this value in the
+    /// PUSH (`bmqp::PushHeader::raftIndex`).
+    bsls::Types::Uint64 d_raftIndex;
+
   public:
     // CLASS METHODS
 
@@ -211,7 +216,7 @@ class StorageMessageAttributes {
                                int                             spacesPerLevel);
 
     // CREATORS
-    StorageMessageAttributes();
+    StorageMessageAttributes(bool hasReceipt = true);
 
     StorageMessageAttributes(
         bsls::Types::Uint64                  arrivalTimestamp,
@@ -233,13 +238,14 @@ class StorageMessageAttributes {
     StorageMessageAttributes&
     setCompressionAlgorithmType(bmqt::CompressionAlgorithmType::Enum value);
     StorageMessageAttributes& setReceipt(bool value);
+    StorageMessageAttributes& setRaftIndex(bsls::Types::Uint64 value);
 
     /// Set the corresponding attribute to the specified `value` and return
     /// a reference offering modifiable access to this object.
     StorageMessageAttributes&
     setMessagePropertiesInfo(const bmqp::MessagePropertiesInfo& value);
 
-    void reset();
+    void reset(bool hasReceipt = true);
 
     // ACCESSORS
     bsls::Types::Uint64                arrivalTimestamp() const;
@@ -253,6 +259,7 @@ class StorageMessageAttributes {
     /// Return the CRC32-C associated with this object.
     unsigned int                         crc32c() const;
     bmqt::CompressionAlgorithmType::Enum compressionAlgorithmType() const;
+    bsls::Types::Uint64                  raftIndex() const;
 };
 
 // FREE OPERATORS
@@ -401,6 +408,13 @@ class StorageIterator {
     virtual void
     reset(const bmqt::MessageGUID& where = bmqt::MessageGUID()) = 0;
 
+    /// Return `true` if this iterator is currently not at the end of the
+    /// `items` collection and the message currently pointed at by this
+    /// iterator has received replication factor Receipts.  An implementation
+    /// may advance past items whose record can no longer arrive, so this can
+    /// move the iterator.
+    virtual bool hasReceipt() = 0;
+
     // ACCESSORS
 
     /// Return a reference offering non-modifiable access to the guid
@@ -437,11 +451,6 @@ class StorageIterator {
     /// Return `true` if this iterator is currently at the end of the items'
     /// collection, and hence doesn't reference a valid item.
     virtual bool atEnd() const = 0;
-
-    /// Return `true` if this iterator is currently not at the end of the
-    /// `items` collection and the message currently pointed at by this
-    /// iterator has received replication factor Receipts.
-    virtual bool hasReceipt() const = 0;
 };
 
 // =============
@@ -690,6 +699,14 @@ class Storage {
     /// `msgGUID`, false otherwise.
     virtual bool hasMessage(const bmqt::MessageGUID& msgGUID) const = 0;
 
+    /// Return `true` if the record of a message that is not in this storage
+    /// may still arrive by replication, and `false` if it will not --
+    /// because it was removed, or was never committed.  The specified
+    /// `raftIndex` is the one the primary sent in the PUSH
+    /// (`bmqp::PushHeader::raftIndex`), or 0 if there is none.  A PUSH can
+    /// reach a replica ahead of the replication carrying its record.
+    virtual bool isPendingReplication(bsls::Types::Uint64 raftIndex) const = 0;
+
     /// Retrieve the message and its metadata having the specified `msgGUID`
     /// in the specified `appData`, `options` and `attributes` from this
     /// storage.  Return zero on success or a non-zero error code on
@@ -824,16 +841,17 @@ DataStreamMessage::app(unsigned int appOrdinal) const
 // ------------------------------
 
 // CREATORS
-inline StorageMessageAttributes::StorageMessageAttributes()
+inline StorageMessageAttributes::StorageMessageAttributes(bool hasReceipt)
 : d_arrivalTimestamp(0)
 , d_arrivalTimepoint(0)
 , d_refCount(0)
 , d_appDataLen(0)
 , d_messagePropertiesInfo()
-, d_hasReceipt(true)
+, d_hasReceipt(hasReceipt)
 , d_queueHandle(0)
 , d_crc32c(0)
 , d_compressionAlgorithmType(bmqt::CompressionAlgorithmType::e_NONE)
+, d_raftIndex(0)
 {
 }
 
@@ -856,6 +874,7 @@ inline StorageMessageAttributes::StorageMessageAttributes(
 , d_queueHandle(queueHandle)
 , d_crc32c(crc32c)
 , d_compressionAlgorithmType(compressionAlgorithmType)
+, d_raftIndex(0)
 {
     // NOTHING
 }
@@ -919,7 +938,14 @@ StorageMessageAttributes::setMessagePropertiesInfo(
     return *this;
 }
 
-inline void StorageMessageAttributes::reset()
+inline StorageMessageAttributes&
+StorageMessageAttributes::setRaftIndex(bsls::Types::Uint64 value)
+{
+    d_raftIndex = value;
+    return *this;
+}
+
+inline void StorageMessageAttributes::reset(bool hasReceipt)
 {
     d_arrivalTimestamp         = 0;
     d_arrivalTimepoint         = 0;
@@ -927,9 +953,10 @@ inline void StorageMessageAttributes::reset()
     d_appDataLen               = 0;
     d_messagePropertiesInfo    = bmqp::MessagePropertiesInfo();
     d_queueHandle              = 0;
-    d_hasReceipt               = true;
+    d_hasReceipt               = hasReceipt;
     d_crc32c                   = 0;
     d_compressionAlgorithmType = bmqt::CompressionAlgorithmType::e_NONE;
+    d_raftIndex                = 0;
 }
 
 // ACCESSORS
@@ -978,6 +1005,11 @@ inline bmqt::CompressionAlgorithmType::Enum
 StorageMessageAttributes::compressionAlgorithmType() const
 {
     return d_compressionAlgorithmType;
+}
+
+inline bsls::Types::Uint64 StorageMessageAttributes::raftIndex() const
+{
+    return d_raftIndex;
 }
 
 // FREE OPERATORS

@@ -58,6 +58,11 @@ class TestClusterNodeShutdown:
 
     def setup_cluster(self, cluster: Cluster, domain_urls: tc.DomainUrls):
         du = domain_urls
+
+        # These cases treat the leader as the primary of every queue's
+        # partition, which only holds in the legacy topology.
+        cluster.pin_all_primaries()
+
         proxies = cluster.proxy_cycle()
 
         # 1: Proxy in same datacenter as leader/primary

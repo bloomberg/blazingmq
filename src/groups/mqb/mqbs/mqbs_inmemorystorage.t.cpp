@@ -481,14 +481,15 @@ BMQTST_TEST_F(Test, unsupportedOperations)
     mqbs::DataStoreRecordHandle handle;
 
     BMQTST_ASSERT_OPT_FAIL(
-        storage.processMessageRecord(guid, msgLen, refCount, handle));
+        storage.processMessageRecord(guid, msgLen, refCount, handle, false));
     BMQTST_ASSERT_OPT_FAIL(
         storage.processConfirmRecord(guid,
                                      appKey,
                                      mqbs::ConfirmReason::e_CONFIRMED,
-                                     handle));
+                                     handle,
+                                     false));
     BMQTST_ASSERT_OPT_FAIL(storage.processDeletionRecord(guid));
-    BMQTST_ASSERT_OPT_FAIL(storage.purge(appKey));
+    BMQTST_ASSERT_OPT_FAIL(storage.purge(appKey, false));
 }
 
 BMQTST_TEST_F(Test, put_noVirtualStorage)

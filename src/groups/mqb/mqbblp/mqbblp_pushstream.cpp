@@ -57,24 +57,22 @@ void PushStreamIterator::clearCache()
 {
     d_appData_sp.reset();
     d_options_sp.reset();
-    d_attributes.reset();
+    d_attributes.reset(false);
 }
 
 // PRIVATE ACCESSORS
-bool PushStreamIterator::loadMessageAndAttributes() const
+mqbi::StorageResult::Enum PushStreamIterator::loadMessageAndAttributes() const
 {
     BSLS_ASSERT_SAFE(!atEnd());
 
+    mqbi::StorageResult::Enum rc = mqbi::StorageResult::e_SUCCESS;
     if (!d_appData_sp) {
-        mqbi::StorageResult::Enum rc = d_storage_p->get(&d_appData_sp,
-                                                        &d_options_sp,
-                                                        &d_attributes,
-                                                        d_iterator->first);
-        BSLS_ASSERT_SAFE(mqbi::StorageResult::e_SUCCESS == rc);
-        static_cast<void>(rc);  // suppress compiler warning
-        return true;            // RETURN
+        rc = d_storage_p->get(&d_appData_sp,
+                              &d_options_sp,
+                              &d_attributes,
+                              d_iterator->first);
     }
-    return false;
+    return rc;
 }
 
 const PushStream::Message& PushStreamIterator::message() const
@@ -88,7 +86,7 @@ PushStreamIterator::PushStreamIterator(
     PushStream*                 owner,
     const PushStream::iterator& initialPosition)
 : d_storage_p(storage)
-, d_attributes()
+, d_attributes(false)
 , d_appData_sp()
 , d_options_sp()
 , d_owner_p(owner)
@@ -224,19 +222,22 @@ mqbi::AppMessage& PushStreamIterator::appMessageState(unsigned int appOrdinal)
 
 const bsl::shared_ptr<bdlbb::Blob>& PushStreamIterator::appData() const
 {
-    loadMessageAndAttributes();
+    mqbi::StorageResult::Enum rc = loadMessageAndAttributes();
+    BSLS_ASSERT_SAFE(mqbi::StorageResult::e_SUCCESS == rc);
     return d_appData_sp;
 }
 
 const bsl::shared_ptr<bdlbb::Blob>& PushStreamIterator::options() const
 {
-    loadMessageAndAttributes();
+    mqbi::StorageResult::Enum rc = loadMessageAndAttributes();
+    BSLS_ASSERT_SAFE(mqbi::StorageResult::e_SUCCESS == rc);
     return d_options_sp;
 }
 
 const mqbi::StorageMessageAttributes& PushStreamIterator::attributes() const
 {
-    loadMessageAndAttributes();
+    mqbi::StorageResult::Enum rc = loadMessageAndAttributes();
+    BSLS_ASSERT_SAFE(mqbi::StorageResult::e_SUCCESS == rc);
     return d_attributes;
 }
 
@@ -245,9 +246,54 @@ bool PushStreamIterator::atEnd() const
     return (d_iterator == d_owner_p->d_stream.end());
 }
 
-bool PushStreamIterator::hasReceipt() const
+bool PushStreamIterator::hasReceipt()
 {
-    return !atEnd();
+    while (!atEnd()) {
+        // Already established for this item.
+        if (d_attributes.hasReceipt()) {
+            return true;  // RETURN
+        }
+
+        if (d_storage_p->hasReceipt(guid())) {
+            d_attributes.setReceipt(true);
+
+            return true;  // RETURN
+        }
+
+        if (!d_storage_p->hasMessage(guid()) &&
+            !d_storage_p->isPendingReplication(message().d_raftIndex)) {
+            // On Raft, an 'InstallSnapshot' replaced the storage, and the
+            // record of this message never arrives.  Drop the message.  This
+            // is to avoid blocking every message behind the message
+            // ('beforeMessageRemoved' needs a DELETION that is not coming).
+            dropCurrentMessage();
+            continue;  // CONTINUE
+        }
+
+        // Legacy: the record is waiting for its receipts.  Raft: the record
+        // is on its way -- a PUSH commits on a majority that need not include
+        // this node, so the PUSH can arrive before the entry carrying the
+        // record.
+        return false;  // RETURN
+    }
+
+    return false;
+}
+
+void PushStreamIterator::dropCurrentMessage()
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(!atEnd());
+
+    clearCache();
+
+    // 'removeAllElements' passes 'canEraseGuid' false, so the GUID outlives
+    // its elements and 'd_iterator' stays valid; the erase below takes it out.
+    removeAllElements();
+
+    d_iterator       = d_owner_p->d_stream.erase(d_iterator);
+    d_currentElement = 0;
+    d_currentOrdinal = mqbi::Storage::k_INVALID_ORDINAL;
 }
 
 // CREATORS
@@ -318,6 +364,28 @@ bool VirtualPushStreamIterator::advance()
     d_iterator = d_currentElement->iteratorGuid();
 
     return true;
+}
+
+void VirtualPushStreamIterator::dropCurrentMessage()
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(!atEnd());
+
+    clearCache();
+
+    // 'removeAllElements' takes this App's element along with the others, so
+    // note where this App goes next before it runs.
+    PushStream::Element* next = d_currentElement->nextInApp();
+
+    removeAllElements();
+
+    d_iterator       = d_owner_p->d_stream.erase(d_iterator);
+    d_currentElement = next;
+    d_currentOrdinal = mqbi::Storage::k_INVALID_ORDINAL;
+
+    if (d_currentElement) {
+        d_iterator = d_currentElement->iteratorGuid();
+    }
 }
 
 bool VirtualPushStreamIterator::atEnd() const

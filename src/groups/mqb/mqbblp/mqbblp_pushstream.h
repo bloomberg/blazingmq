@@ -133,6 +133,11 @@ class PushStream {
         Elements            d_appMessages;
         bsls::Types::Uint64 d_sequenceNumber;
 
+        /// Raft index of the last PUSH for this GUID
+        /// (`bmqp::PushHeader::raftIndex`), for
+        /// `mqbi::Storage::isPendingReplication`.
+        bsls::Types::Uint64 d_raftIndex;
+
         explicit Message(bsls::Types::Uint64 sequenceNumber);
 
         /// Return number of Elements in the list
@@ -317,7 +322,7 @@ class PushStreamIterator : public mqbi::StorageIterator {
     /// returns true or if underlying storage does not contain the
     /// MessageGUID being pointed to by this iterator.  Return `false` if
     /// data are already loaded; return `true` otherwise.
-    bool loadMessageAndAttributes() const;
+    mqbi::StorageResult::Enum loadMessageAndAttributes() const;
 
     const PushStream::Message& message() const;
 
@@ -356,9 +361,9 @@ class PushStreamIterator : public mqbi::StorageIterator {
     virtual PushStream::Element* element(unsigned int appOrdinal) const;
 
     // MANIPULATORS
-    /// Clear any cached data associated with this iterator, if any.
-    /// The cache might be initialized within `appData`, `options` or
-    /// `attributes` routines.
+    /// Forget everything this iterator holds about the item it points at:
+    /// the data `appData`, `options` and `attributes` may have loaded.  Does
+    /// not move the iterator.
     /// TODO: refactor iterators to remove cached data.
     void clearCache() BSLS_KEYWORD_OVERRIDE;
 
@@ -369,6 +374,18 @@ class PushStreamIterator : public mqbi::StorageIterator {
     /// point first item, if any, in the underlying storage.
     void reset(const bmqt::MessageGUID& where = bmqt::MessageGUID())
         BSLS_KEYWORD_OVERRIDE;
+
+    /// Return `true` if this iterator is currently not at the end of the
+    /// `PushStream` and the message it points at is in the storage and
+    /// receipted.  Drop, and step past, every message ahead of that one whose
+    /// record can no longer arrive: nothing else takes those out of the
+    /// `PushStream`, and each would block every message behind it for good.
+    bool hasReceipt() BSLS_KEYWORD_OVERRIDE;
+
+    /// Remove the current PUSH GUID and every element held for it from the
+    /// `PushStream`, and point this iterator at the next item.
+    /// The behavior is undefined unless `atEnd` returns `false`.
+    virtual void dropCurrentMessage();
 
     // ACCESSORS
 
@@ -408,11 +425,6 @@ class PushStreamIterator : public mqbi::StorageIterator {
     /// Return `true` if this iterator is currently at the end of the items'
     /// collection, and hence doesn't reference a valid item.
     bool atEnd() const BSLS_KEYWORD_OVERRIDE;
-
-    /// Return `true` if this iterator is currently not at the end of the
-    /// `items` collection and the message currently pointed at by this
-    /// iterator has received replication factor Receipts.
-    bool hasReceipt() const BSLS_KEYWORD_OVERRIDE;
 };
 
 // ============================
@@ -457,6 +469,11 @@ class VirtualPushStreamIterator : public PushStreamIterator {
 
     // MANIPULATORS
     bool advance() BSLS_KEYWORD_OVERRIDE;
+
+    /// Remove the current PUSH GUID and every element held for it from the
+    /// `PushStream`, and point this iterator at this App's next element.
+    /// The behavior is undefined unless `atEnd` returns `false`.
+    void dropCurrentMessage() BSLS_KEYWORD_OVERRIDE;
 
     /// Return `true` if this iterator is currently at the end of the items'
     /// collection, and hence doesn't reference a valid item.
@@ -643,6 +660,7 @@ inline unsigned int PushStream::Elements::numElements() const
 inline PushStream::Message::Message(bsls::Types::Uint64 sequenceNumber)
 : d_appMessages()
 , d_sequenceNumber(sequenceNumber)
+, d_raftIndex(0)
 {
 }
 

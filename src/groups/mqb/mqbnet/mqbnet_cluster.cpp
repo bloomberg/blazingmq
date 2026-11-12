@@ -52,6 +52,22 @@ bool ClusterUtil::isClientOrProxy(
             negoMsg.clientIdentity().clusterName().empty());
 }
 
+ClusterNode* ClusterUtil::lookupNodeByHostName(Cluster*           netCluster,
+                                               const bsl::string& hostName)
+{
+    BSLS_ASSERT_SAFE(netCluster);
+
+    Cluster::NodesList& nodes = netCluster->nodes();
+    for (Cluster::NodesList::iterator it = nodes.begin(); it != nodes.end();
+         ++it) {
+        if ((*it)->hostName() == hostName) {
+            return *it;  // RETURN
+        }
+    }
+
+    return 0;
+}
+
 // ---------------------
 // class ClusterObserver
 // ---------------------

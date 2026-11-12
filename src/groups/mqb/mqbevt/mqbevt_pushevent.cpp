@@ -40,6 +40,7 @@ PushEvent::PushEvent(bslma::Allocator* allocator)
 , d_messagePropertiesInfo()
 , d_compressionAlgorithmType(bmqt::CompressionAlgorithmType::e_NONE)
 , d_isOutOfOrderPush(false)
+, d_raftIndex(0)
 {
     // NOTHING
 }
@@ -61,6 +62,7 @@ void PushEvent::reset()
     d_messagePropertiesInfo    = bmqp::MessagePropertiesInfo();
     d_compressionAlgorithmType = bmqt::CompressionAlgorithmType::e_NONE;
     d_isOutOfOrderPush         = false;
+    d_raftIndex                = 0;
     mqbi::DispatcherEvent::reset();
 }
 
@@ -90,6 +92,7 @@ PushEvent::print(bsl::ostream& stream, int level, int spacesPerLevel) const
     printer.printAttribute("compressionAlgorithmType",
                            d_compressionAlgorithmType);
     printer.printAttribute("isOutOfOrderPush", d_isOutOfOrderPush);
+    printer.printAttribute("raftIndex", d_raftIndex);
 
     printer.end();
 

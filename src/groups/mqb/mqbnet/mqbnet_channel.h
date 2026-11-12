@@ -149,13 +149,15 @@ class Channel {
         const int                                  d_flags;
         const bmqt::CompressionAlgorithmType::Enum d_compressionAlgorithmType;
         const bmqp::MessagePropertiesInfo          d_messagePropertiesInfo;
+        const bsls::Types::Uint64                  d_raftIndex;
 
         PushArgsBase(
             int                                  queueId,
             const bmqt::MessageGUID&             msgId,
             int                                  flags,
             bmqt::CompressionAlgorithmType::Enum compressionAlgorithmType,
-            const bmqp::MessagePropertiesInfo&   messagePropertiesInfo);
+            const bmqp::MessagePropertiesInfo&   messagePropertiesInfo,
+            bsls::Types::Uint64                  raftIndex);
 
         ~PushArgsBase();
     };
@@ -260,6 +262,7 @@ class Channel {
         const bmqp::Protocol::SubQueueInfosArray   d_subQueueInfos;
         const int                                  d_correlationId;
         const int                                  d_status;
+        const bsls::Types::Uint64                  d_raftIndex;
 
         const bsl::shared_ptr<bmqu::AtomicState> d_state;
 
@@ -279,6 +282,7 @@ class Channel {
              const bmqp::MessagePropertiesInfo&   messagePropertiesInfo,
              const bsl::shared_ptr<bdlbb::Blob>&  payload,
              const bmqp::Protocol::SubQueueInfosArray& subQueueInfos,
+             bsls::Types::Uint64                       raftIndex,
              const bsl::shared_ptr<bmqu::AtomicState>& state,
              bslma::Allocator*                         allocator);
 
@@ -288,6 +292,7 @@ class Channel {
              bmqt::CompressionAlgorithmType::Enum compressionAlgorithmType,
              const bmqp::MessagePropertiesInfo&   messagePropertiesInfo,
              const bmqp::Protocol::SubQueueInfosArray& subQueueInfos,
+             bsls::Types::Uint64                       raftIndex,
              const bsl::shared_ptr<bmqu::AtomicState>& state,
              bslma::Allocator*                         allocator);
 
@@ -567,7 +572,8 @@ class Channel {
 
     /// Write `explicit` PUSH message using the specified `payload`,
     /// `queueId`, `msgId`, `flags`, `compressionType`, `subQueueInfos`, and
-    /// `state`.  Return e_SUCCESS even if the channel is in HWM.
+    /// the optionally specified `raftIndex` and `state`.  Return e_SUCCESS
+    /// even if the channel is in HWM.
     bmqt::GenericResult::Enum
     writePush(const bsl::shared_ptr<bdlbb::Blob>&       payload,
               int                                       queueId,
@@ -576,12 +582,14 @@ class Channel {
               bmqt::CompressionAlgorithmType::Enum      compressionType,
               const bmqp::MessagePropertiesInfo&        messagePropertiesInfo,
               const bmqp::Protocol::SubQueueInfosArray& subQueueInfos,
+              bsls::Types::Uint64                       raftIndex = 0,
               const bsl::shared_ptr<bmqu::AtomicState>& state =
                   bsl::shared_ptr<bmqu::AtomicState>());
 
     /// Write `implicit` PUSH message using the specified `subQueueInfos`,
-    /// `queueId`, `msgId`, `flags`, `compressionType`, and `state`.  Return
-    /// e_SUCCESS even if the channel is in HWM.
+    /// `queueId`, `msgId`, `flags`, `compressionType`, and the optionally
+    /// specified `raftIndex` and `state`.  Return e_SUCCESS even if the
+    /// channel is in HWM.
     bmqt::GenericResult::Enum
     writePush(int                                       queueId,
               const bmqt::MessageGUID&                  msgId,
@@ -589,6 +597,7 @@ class Channel {
               bmqt::CompressionAlgorithmType::Enum      compressionType,
               const bmqp::MessagePropertiesInfo&        messagePropertiesInfo,
               const bmqp::Protocol::SubQueueInfosArray& subQueueInfos,
+              bsls::Types::Uint64                       raftIndex = 0,
               const bsl::shared_ptr<bmqu::AtomicState>& state =
                   bsl::shared_ptr<bmqu::AtomicState>());
 
@@ -678,12 +687,14 @@ inline Channel::PushArgsBase::PushArgsBase(
     const bmqt::MessageGUID&             msgId,
     int                                  flags,
     bmqt::CompressionAlgorithmType::Enum compressionAlgorithmType,
-    const bmqp::MessagePropertiesInfo&   messagePropertiesInfo)
+    const bmqp::MessagePropertiesInfo&   messagePropertiesInfo,
+    bsls::Types::Uint64                  raftIndex)
 : d_queueId(queueId)
 , d_msgId(msgId)
 , d_flags(flags)
 , d_compressionAlgorithmType(compressionAlgorithmType)
 , d_messagePropertiesInfo(messagePropertiesInfo)
+, d_raftIndex(raftIndex)
 {
     // NOTHING
 }
@@ -702,7 +713,8 @@ inline Channel::ExplicitPushArgs::ExplicitPushArgs(const Item& item)
                item.d_msgId,
                item.d_flags,
                item.d_compressionAlgorithmType,
-               item.d_messagePropertiesInfo)
+               item.d_messagePropertiesInfo,
+               item.d_raftIndex)
 , d_data_sp(item.d_data_sp)
 , d_subQueueInfos(item.d_subQueueInfos)
 {
@@ -722,7 +734,8 @@ inline Channel::ImplicitPushArgs::ImplicitPushArgs(const Item& item)
                item.d_msgId,
                item.d_flags,
                item.d_compressionAlgorithmType,
-               item.d_messagePropertiesInfo)
+               item.d_messagePropertiesInfo,
+               item.d_raftIndex)
 , d_subQueueInfos(item.d_subQueueInfos)
 {
     // NOTHING
@@ -834,6 +847,7 @@ inline Channel::Item::Item(bslma::Allocator* allocator)
 , d_subQueueInfos(allocator)
 , d_correlationId(0)
 , d_status(0)
+, d_raftIndex(0)
 , d_state(0)
 , d_numBytes(0)
 {
@@ -856,6 +870,7 @@ inline Channel::Item::Item(const bmqp::PutHeader&                    ph,
 , d_subQueueInfos(allocator)
 , d_correlationId(0)
 , d_status(0)
+, d_raftIndex(0)
 , d_state(state)
 , d_numBytes(sizeof(bmqp::PutHeader) + data->length())
 {
@@ -870,6 +885,7 @@ inline Channel::Item::Item(
     const bmqp::MessagePropertiesInfo&        messagePropertiesInfo,
     const bsl::shared_ptr<bdlbb::Blob>&       payload,
     const bmqp::Protocol::SubQueueInfosArray& subQueueInfos,
+    bsls::Types::Uint64                       raftIndex,
     const bsl::shared_ptr<bmqu::AtomicState>& state,
     bslma::Allocator*                         allocator)
 : d_type(bmqp::EventType::e_PUSH)
@@ -884,6 +900,7 @@ inline Channel::Item::Item(
 , d_subQueueInfos(subQueueInfos, allocator)
 , d_correlationId(0)
 , d_status(0)
+, d_raftIndex(raftIndex)
 , d_state(state)
 , d_numBytes(sizeof(bmqp::PushHeader) + payload->length())
 {
@@ -897,6 +914,7 @@ inline Channel::Item::Item(
     bmqt::CompressionAlgorithmType::Enum      compressionAlgorithmType,
     const bmqp::MessagePropertiesInfo&        messagePropertiesInfo,
     const bmqp::Protocol::SubQueueInfosArray& subQueueInfos,
+    bsls::Types::Uint64                       raftIndex,
     const bsl::shared_ptr<bmqu::AtomicState>& state,
     bslma::Allocator*                         allocator)
 : d_type(bmqp::EventType::e_PUSH)
@@ -911,6 +929,7 @@ inline Channel::Item::Item(
 , d_subQueueInfos(subQueueInfos, allocator)
 , d_correlationId(0)
 , d_status(0)
+, d_raftIndex(raftIndex)
 , d_state(state)
 , d_numBytes(sizeof(bmqp::PushHeader) +
              subQueueInfos.size() * bmqp::Protocol::k_WORD_SIZE)
@@ -936,6 +955,7 @@ inline Channel::Item::Item(int                      status,
 , d_subQueueInfos(allocator)
 , d_correlationId(correlationId)
 , d_status(status)
+, d_raftIndex(0)
 , d_state(state)
 , d_numBytes(sizeof(bmqp::AckMessage))
 {
@@ -960,6 +980,7 @@ inline Channel::Item::Item(int                      queueId,
 , d_subQueueInfos(allocator)
 , d_correlationId(0)
 , d_status(0)
+, d_raftIndex(0)
 , d_state(state)
 , d_numBytes(0)
 {
@@ -991,6 +1012,7 @@ inline Channel::Item::Item(const bsl::shared_ptr<bdlbb::Blob>&       data,
 , d_subQueueInfos(allocator)
 , d_correlationId(0)
 , d_status(0)
+, d_raftIndex(0)
 , d_state(state)
 , d_numBytes(data->length())
 {

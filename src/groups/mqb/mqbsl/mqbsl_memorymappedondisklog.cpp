@@ -118,13 +118,14 @@ void MemoryMappedOnDiskLog::updateInternalState(int writeLength)
     d_totalNumBytes = bsl::max(d_totalNumBytes, d_currentOffset);
 }
 
-MemoryMappedOnDiskLog::MemoryMappedOnDiskLog(const mqbsi::LogConfig& config)
+MemoryMappedOnDiskLog::MemoryMappedOnDiskLog(const mqbsi::LogConfig& config,
+                                             bslma::Allocator*       allocator)
 : d_isOpened(false)
 , d_isReadOnly(false)
 , d_totalNumBytes(0)
 , d_outstandingNumBytes(0)
 , d_currentOffset(0)
-, d_config(config)
+, d_config(config, allocator)
 , d_mfd()
 {
     // NOTHING
@@ -227,6 +228,31 @@ int MemoryMappedOnDiskLog::seek(Offset offset)
     }
 
     d_currentOffset = offset;
+
+    return LogOpResult::e_SUCCESS;
+}
+
+int MemoryMappedOnDiskLog::truncate(Offset offset)
+{
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(offset >= 0);
+
+    if (!d_isOpened) {
+        return LogOpResult::e_UNSUPPORTED_OPERATION;  // RETURN
+    }
+    if (offset > d_currentOffset) {
+        return LogOpResult::e_OFFSET_OUT_OF_RANGE;  // RETURN
+    }
+
+    // Zero the removed bytes and move the write position back, but keep the
+    // file at its mapped size: a write past 'offset' then lands on a page the
+    // file backs, and a reader that stops at the first invalid record stops
+    // at 'offset'.
+    bsl::memset(d_mfd.mapping() + offset, 0, d_currentOffset - offset);
+
+    d_currentOffset       = offset;
+    d_outstandingNumBytes = offset;
+    d_totalNumBytes       = offset;
 
     return LogOpResult::e_SUCCESS;
 }
