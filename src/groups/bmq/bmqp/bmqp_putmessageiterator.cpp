@@ -467,7 +467,6 @@ bool PutMessageIterator::extractMsgGroupId(
 
     // Load Group Id
     const int rc = optionsView.loadMsgGroupIdOption(msgGroupId);
-    BSLS_ASSERT_SAFE(rc == 0);
 
     return (rc == 0);
 }
