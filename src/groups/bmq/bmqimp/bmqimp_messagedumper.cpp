@@ -362,8 +362,12 @@ void MessageDumper::dumpPushEvent(bsl::ostream& out, const bmqp::Event& event)
 
         if (iter.hasMsgGroupId()) {
             bmqp::Protocol::MsgGroupId msgGroupId(d_allocator_p);
-            iter.extractMsgGroupId(&msgGroupId);
-            out << ", msgGroupId: \"" << msgGroupId << "\"";
+            if (iter.extractMsgGroupId(&msgGroupId)) {
+                out << ", msgGroupId: \"" << msgGroupId << "\"";
+            }
+            else {
+                out << ", msgGroupId: <invalid>";
+            }
         }
 
         out << ", payload length: " << iter.messagePayloadSize() << "], first "
@@ -460,8 +464,12 @@ void MessageDumper::dumpPutEvent(bsl::ostream&             out,
 
         if (iter.hasMsgGroupId()) {
             bmqp::Protocol::MsgGroupId msgGroupId(d_allocator_p);
-            iter.extractMsgGroupId(&msgGroupId);
-            out << ", msgGroupId: \"" << msgGroupId << "\"";
+            if (iter.extractMsgGroupId(&msgGroupId)) {
+                out << ", msgGroupId: \"" << msgGroupId << "\"";
+            }
+            else {
+                out << ", msgGroupId: <invalid>";
+            }
         }
 
         out << ", payload length: " << iter.messagePayloadSize() << "]"
