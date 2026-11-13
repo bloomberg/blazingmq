@@ -156,6 +156,16 @@ int OptionsView::loadOptionPositionAndSize(
     BSLS_ASSERT_SAFE(isValid());
     BSLS_ASSERT_SAFE(find(optionType) != end());
 
+    enum RcEnum {
+        // Value for the various RC error categories
+        /// Success
+        rc_SUCCESS = 0,
+        /// The option does not fall within the blob
+        rc_INVALID_BLOB = -1,
+        /// The padding count is not in [1, 'Protocol::k_WORD_SIZE']
+        rc_INVALID_PADDING = -2
+    };
+
     const bmqu::BlobPosition& headerPos = d_optionPositions[optionType];
     bmqu::BlobObjectProxy<OptionHeader> oh(d_blob_p, headerPos);
 
@@ -168,13 +178,13 @@ int OptionsView::loadOptionPositionAndSize(
                                             sizeof(OptionHeader));
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        return rc;  // RETURN
+        return rc_INVALID_BLOB;  // RETURN
     }
 
     if (oh->packed()) {
         // *Packed* options
         *payloadSizeBytes = 0;
-        return rc;  // RETURN
+        return rc_SUCCESS;  // RETURN
     }
 
     // 1 word for header, rest for payload.
@@ -186,7 +196,7 @@ int OptionsView::loadOptionPositionAndSize(
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!hasPadding)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         *payloadSizeBytes = optionLenBytes;
-        return rc;  // RETURN
+        return rc_SUCCESS;  // RETURN
     }
 
     bmqu::BlobPosition lastBytePos;
@@ -196,15 +206,22 @@ int OptionsView::loadOptionPositionAndSize(
                                         optionTotalSizeBytes - 1);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        return rc;  // RETURN
+        return rc_INVALID_BLOB;  // RETURN
     }
 
-    const char lastByte =
-        (*d_blob_p).buffer(lastBytePos.buffer()).data()[lastBytePos.byte()];
+    // Read it unsigned so the check does not depend on the platform-specific
+    // signedness of 'char'.
+    const unsigned char padding = static_cast<unsigned char>(
+        (*d_blob_p).buffer(lastBytePos.buffer()).data()[lastBytePos.byte()]);
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
+            padding == 0 || padding > Protocol::k_WORD_SIZE)) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        return rc_INVALID_PADDING;  // RETURN
+    }
 
-    *payloadSizeBytes = optionLenBytes - lastByte;
+    *payloadSizeBytes = optionLenBytes - padding;
 
-    return rc;
+    return rc_SUCCESS;
 }
 
 // MANIPULATORS
@@ -374,10 +391,15 @@ int OptionsView::loadMsgGroupIdOption(Protocol::MsgGroupId* msgGroupId) const
 
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS           = 0,
-        rc_INVALID_BLOB      = -1,
-        rc_INSUFFICIENT_DATA = -2,
-        rc_INVALID_LENGTH    = -3
+        /// Success
+        rc_SUCCESS = 0,
+        /// The Group Id does not fall within the blob
+        rc_INVALID_BLOB = -1,
+        /// The option payload is malformed
+        rc_LOAD_FAILURE = -2,
+        /// The Group Id length is not in
+        /// [1, 'Protocol::k_MSG_GROUP_ID_MAX_LENGTH']
+        rc_INVALID_LENGTH = -3
     };
 
     bmqu::BlobPosition msgGroupIdStartPos;
@@ -388,10 +410,7 @@ int OptionsView::loadMsgGroupIdOption(Protocol::MsgGroupId* msgGroupId) const
                                        true);  // hasPadding
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        // Will happen if the range
-        // [headerPos, headerPos + sizeof(OptionHeader)] does not fall within
-        // the blob.
-        return rc_INSUFFICIENT_DATA;  // RETURN
+        return rc * 10 + rc_LOAD_FAILURE;  // RETURN
     }
 
     // If there's no Group Id information, the OptionHeader shouldn't be set.
