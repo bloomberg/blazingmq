@@ -147,12 +147,16 @@ class Flattener {
     CloneSingleStatus
     cloneAndPackSingle(const Protocol::SubQueueInfosArray& subQInfo);
 
-    /// Add the option having any available `type` (with the exception of
-    /// `e_SUB_QUEUE_IDS` which is handled separately) in `d_optionsView` to
-    /// the current (to-be-packed) message in the event being built by
-    /// `d_builder`.  Return 0 on success, or a meaningful non-zero error
-    /// code otherwise.  The behavior is undefined unless `d_optionsView` is
-    /// valid.
+    /// @brief Add the options in `d_optionsView` to the current
+    ///        (to-be-packed) message in the event being built by
+    ///        `d_builder`.
+    ///
+    /// @details SubQueueIds and SubQueueInfos options are skipped, as they
+    /// are handled separately.  The behavior is undefined unless
+    /// `d_optionsView` is valid.
+    ///
+    /// @returns `e_SUCCESS` on success, `e_UNKNOWN` if an option payload is
+    ///          malformed, or the error from `d_builder` otherwise.
     EventBuilderResult importOptions();
 
     /// Does the actual packing for a single message with the specified
@@ -332,10 +336,14 @@ Flattener::EventBuilderResult Flattener::importOptions()
             LSA                        lsa(d_allocator_p);
             bmqp::Protocol::MsgGroupId msgGroupId(&lsa);
 
-            BSLA_MAYBE_UNUSED int rc = d_optionsView.loadMsgGroupIdOption(
-                &msgGroupId);
-            BSLS_ASSERT_SAFE(rc == 0);
-            result = d_builder.addMsgGroupIdOption(msgGroupId);
+            const int rc = d_optionsView.loadMsgGroupIdOption(&msgGroupId);
+            if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
+                BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+                result = bmqt::EventBuilderResult::e_UNKNOWN;
+            }
+            else {
+                result = d_builder.addMsgGroupIdOption(msgGroupId);
+            }
         } break;
         case OptionType::e_SUB_QUEUE_INFOS: {
             // NOTE: This case is explicitly handled by the caller and we do
