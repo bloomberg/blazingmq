@@ -1201,9 +1201,9 @@ ClusterProxy::sendConfirmInline(BSLA_MAYBE_UNUSED int       partitionId,
 }
 
 mqbi::InlineResult::Enum ClusterProxy::sendPutInline(
-    BSLA_MAYBE_UNUSED int               partitionId,
-    const bmqp::PutHeader&              putHeader,
-    const bsl::shared_ptr<bdlbb::Blob>& appData,
+    BSLA_MAYBE_UNUSED int                     partitionId,
+    const bmqp::PutHeader&                    putHeader,
+    const bsl::shared_ptr<const bdlbb::Blob>& appData,
     BSLA_MAYBE_UNUSED const bsl::shared_ptr<bdlbb::Blob>& options,
     const bsl::shared_ptr<bmqu::AtomicState>&             state,
     bsls::Types::Uint64                                   genCount)

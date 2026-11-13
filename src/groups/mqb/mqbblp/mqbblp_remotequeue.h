@@ -83,10 +83,11 @@ namespace mqbblp {
 class RemoteQueue {
   public:
     // PUBLIC TYPES
-    typedef bsl::function<void(const bmqp::PutHeader&              header,
-                               const bsl::shared_ptr<bdlbb::Blob>& appData,
-                               const bsl::shared_ptr<bdlbb::Blob>& options,
-                               mqbi::QueueHandle*                  source)>
+    typedef bsl::function<void(
+        const bmqp::PutHeader&                    header,
+        const bsl::shared_ptr<const bdlbb::Blob>& appData,
+        const bsl::shared_ptr<bdlbb::Blob>&       options,
+        mqbi::QueueHandle*                        source)>
         PutsVisitor;
 
     typedef bsl::function<void(const bmqt::MessageGUID& msgGUID,
@@ -107,20 +108,28 @@ class RemoteQueue {
   private:
     // PRIVATE TYPES
     struct PutMessage {
-        mqbi::QueueHandle* const     d_handle;
-        const bmqp::PutHeader        d_header;
-        bsl::shared_ptr<bdlbb::Blob> d_appData;
-        bsl::shared_ptr<bdlbb::Blob> d_options;
+        mqbi::QueueHandle* const           d_handle;
+        const bmqp::PutHeader              d_header;
+        bsl::shared_ptr<const bdlbb::Blob> d_appData;
+        bsl::shared_ptr<bdlbb::Blob>       d_options;
         /// Insertion time.  Do not retransmit past `deduplication` timeout.
         const bsls::Types::Int64           d_timeReceived;
         bsl::shared_ptr<bmqu::AtomicState> d_state_sp;
 
-        PutMessage(mqbi::QueueHandle*                  handle,
-                   const bmqp::PutHeader&              header,
-                   const bsl::shared_ptr<bdlbb::Blob>& appData,
-                   const bsl::shared_ptr<bdlbb::Blob>& options,
-                   bsls::Types::Int64                  time,
-                   bsl::shared_ptr<bmqu::AtomicState>& state);
+        /// @brief Create a pending PUT message.
+        ///
+        /// @param handle The producer of the message.
+        /// @param header The PUT header of the message.
+        /// @param appData The application data of the message.
+        /// @param options The options of the message.
+        /// @param time The insertion time.
+        /// @param state The state of the queue.
+        PutMessage(mqbi::QueueHandle*                        handle,
+                   const bmqp::PutHeader&                    header,
+                   const bsl::shared_ptr<const bdlbb::Blob>& appData,
+                   const bsl::shared_ptr<bdlbb::Blob>&       options,
+                   bsls::Types::Int64                        time,
+                   bsl::shared_ptr<bmqu::AtomicState>&       state);
 
         ~PutMessage();
     };
@@ -293,12 +302,18 @@ class RemoteQueue {
                             unsigned int             upstreamSubQueueId,
                             mqbi::QueueHandle*       source);
 
-    /// Called when a message with the specified `msgGUID`, `appData`,
-    /// `options`, `compressionAlgorithmType` is pushed to this queue.
+    /// @brief Called when a message is pushed to this queue.
+    ///
+    /// @param msgGUID The GUID of the message.
+    /// @param appData The application data of the message.
+    /// @param options The options of the message.
+    /// @param messagePropertiesInfo The message properties info.
+    /// @param compressionAlgorithmType The compression of the message.
+    /// @param isOutOfOrder Whether the message is pushed out of order.
     void
-    pushMessage(const bmqt::MessageGUID&             msgGUID,
-                const bsl::shared_ptr<bdlbb::Blob>&  appData,
-                const bsl::shared_ptr<bdlbb::Blob>&  options,
+    pushMessage(const bmqt::MessageGUID&                  msgGUID,
+                const bsl::shared_ptr<const bdlbb::Blob>& appData,
+                const bsl::shared_ptr<bdlbb::Blob>&       options,
                 const bmqp::MessagePropertiesInfo&   messagePropertiesInfo,
                 bmqt::CompressionAlgorithmType::Enum compressionAlgorithmType,
                 bool                                 isOutOfOrder);
@@ -381,10 +396,16 @@ class RemoteQueue {
 
     void flush();
 
-    void postMessage(const bmqp::PutHeader&              putHeader,
-                     const bsl::shared_ptr<bdlbb::Blob>& appData,
-                     const bsl::shared_ptr<bdlbb::Blob>& options,
-                     mqbi::QueueHandle*                  source);
+    /// @brief Post a message to this queue.
+    ///
+    /// @param putHeader The PUT header of the message.
+    /// @param appData The application data of the message.
+    /// @param options The options of the message.
+    /// @param source The producer of the message.
+    void postMessage(const bmqp::PutHeader&                    putHeader,
+                     const bsl::shared_ptr<const bdlbb::Blob>& appData,
+                     const bsl::shared_ptr<bdlbb::Blob>&       options,
+                     mqbi::QueueHandle*                        source);
 
     /// Confirm the message with the specified `msgGUID` for the specified
     /// `upstreamSubQueueId` stream of the queue on behalf of the client
@@ -499,12 +520,12 @@ inline const char* RemoteQueue::SubStreamContext::toAscii(
 // -----------------
 
 inline RemoteQueue::PutMessage::PutMessage(
-    mqbi::QueueHandle*                  handle,
-    const bmqp::PutHeader&              header,
-    const bsl::shared_ptr<bdlbb::Blob>& appData,
-    const bsl::shared_ptr<bdlbb::Blob>& options,
-    bsls::Types::Int64                  time,
-    bsl::shared_ptr<bmqu::AtomicState>& state)
+    mqbi::QueueHandle*                        handle,
+    const bmqp::PutHeader&                    header,
+    const bsl::shared_ptr<const bdlbb::Blob>& appData,
+    const bsl::shared_ptr<bdlbb::Blob>&       options,
+    bsls::Types::Int64                        time,
+    bsl::shared_ptr<bmqu::AtomicState>&       state)
 : d_handle(handle)
 , d_header(header)
 , d_appData(appData)

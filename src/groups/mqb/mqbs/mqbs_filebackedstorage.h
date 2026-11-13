@@ -326,15 +326,19 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     bool
     hasMessage(const bmqt::MessageGUID& msgGUID) const BSLS_KEYWORD_OVERRIDE;
 
-    /// Retrieve the message and its metadata having the specified `msgGUID`
-    /// in the specified `appData`, `options` and `attributes` from this
-    /// storage.  Return zero on success or a non-zero error code on
-    /// failure.
+    /// @brief Retrieve a message and its metadata from this storage.
+    ///
+    /// @param[out] appData Loaded with the application data of the message.
+    /// @param[out] options Loaded with the options of the message.
+    /// @param[out] attributes Loaded with the attributes of the message.
+    /// @param msgGUID The GUID of the message to retrieve.
+    ///
+    /// @return 0 on success, or a non-zero error code otherwise.
     mqbi::StorageResult::Enum
-    get(bsl::shared_ptr<bdlbb::Blob>*   appData,
-        bsl::shared_ptr<bdlbb::Blob>*   options,
-        mqbi::StorageMessageAttributes* attributes,
-        const bmqt::MessageGUID&        msgGUID) const BSLS_KEYWORD_OVERRIDE;
+    get(bsl::shared_ptr<const bdlbb::Blob>* appData,
+        bsl::shared_ptr<bdlbb::Blob>*       options,
+        mqbi::StorageMessageAttributes*     attributes,
+        const bmqt::MessageGUID& msgGUID) const BSLS_KEYWORD_OVERRIDE;
 
     /// Populate the specified `attributes` buffer with attributes of the
     /// message having the specified `msgGUID`.  Return zero on success or a
@@ -403,19 +407,24 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     /// Close this storage.
     void close() BSLS_KEYWORD_OVERRIDE;
 
-    /// Save the message contained in the specified 'appData', 'options' and
-    /// the associated 'attributes' and 'msgGUID' into this storage and the
-    /// associated virtual storage.  The 'attributes' is an in/out parameter
-    /// and storage layer can populate certain fields of that struct.  If the
-    /// optionally specified `out` is not zero, load the created
-    /// `DataStreamMessage` into the 'out'.
-    /// Return 0 on success or an non-zero error code on failure.
+    /// @brief Save a message into this storage and the associated virtual
+    ///        storage.
+    ///
+    /// @param[in,out] attributes The message attributes; the storage layer
+    ///                           may populate some of its fields.
+    /// @param msgGUID The GUID of the message.
+    /// @param appData The application data of the message.
+    /// @param options The options of the message.
+    /// @param[out] out If not zero, loaded with the created
+    ///                 `DataStreamMessage`.
+    ///
+    /// @return 0 on success, or a non-zero error code otherwise.
     mqbi::StorageResult::Enum
-    put(mqbi::StorageMessageAttributes*     attributes,
-        const bmqt::MessageGUID&            msgGUID,
-        const bsl::shared_ptr<bdlbb::Blob>& appData,
-        const bsl::shared_ptr<bdlbb::Blob>& options,
-        mqbi::DataStreamMessage**           out = 0) BSLS_KEYWORD_OVERRIDE;
+    put(mqbi::StorageMessageAttributes*           attributes,
+        const bmqt::MessageGUID&                  msgGUID,
+        const bsl::shared_ptr<const bdlbb::Blob>& appData,
+        const bsl::shared_ptr<bdlbb::Blob>&       options,
+        mqbi::DataStreamMessage** out = 0) BSLS_KEYWORD_OVERRIDE;
 
     /// Get an iterator for data stored in the virtual storage identified by
     /// the specified 'appKey'.

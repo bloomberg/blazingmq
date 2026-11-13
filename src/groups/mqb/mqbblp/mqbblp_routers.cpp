@@ -172,8 +172,8 @@ void Routers::MessagePropertiesReader::clear()
 }
 
 void Routers::MessagePropertiesReader::next(
-    const bsl::shared_ptr<bdlbb::Blob>& appData,
-    const bmqp::MessagePropertiesInfo&  messagePropertiesInfo)
+    const bsl::shared_ptr<const bdlbb::Blob>& appData,
+    const bmqp::MessagePropertiesInfo&        messagePropertiesInfo)
 {
     clear();
 

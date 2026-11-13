@@ -205,7 +205,7 @@ int StorageUtil::loadRecordHeaderAndPos(
     bmqu::BlobObjectProxy<mqbs::RecordHeader>* recordHeader,
     bmqu::BlobPosition*                        recordPosition,
     const bmqp::StorageMessageIterator&        storageIter,
-    const bsl::shared_ptr<bdlbb::Blob>&        stroageEvent,
+    const bsl::shared_ptr<const bdlbb::Blob>&  stroageEvent,
     const bslstl::StringRef&                   partitionDesc)
 {
     // PRECONDITIONS

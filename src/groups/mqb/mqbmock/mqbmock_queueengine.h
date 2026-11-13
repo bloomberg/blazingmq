@@ -203,15 +203,18 @@ class QueueEngine : public mqbi::QueueEngine {
     /// THREAD: This method is called from the Queue's dispatcher thread.
     void afterPostMessage() BSLS_KEYWORD_OVERRIDE;
 
-    /// Given the specified 'putHeader', 'appData', and 'mpi', evaluate all
-    /// application subscriptions and exclude applications with negative
-    /// results from message delivery.
+    /// @brief Evaluate all application subscriptions for a message and
+    ///        exclude applications with negative results from delivery.
+    ///
+    /// @param putHeader The PUT header of the message.
+    /// @param appData The application data of the message.
+    /// @param mpi The message properties info of the message.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
-    void evaluateAppSubscriptions(const bmqp::PutHeader& putHeader,
-                                  const bsl::shared_ptr<bdlbb::Blob>& appData,
-                                  const bmqp::MessagePropertiesInfo&  mpi)
-        BSLS_KEYWORD_OVERRIDE;
+    void evaluateAppSubscriptions(
+        const bmqp::PutHeader&                    putHeader,
+        const bsl::shared_ptr<const bdlbb::Blob>& appData,
+        const bmqp::MessagePropertiesInfo&        mpi) BSLS_KEYWORD_OVERRIDE;
 
     // ACCESSORS
     //   (virtual mqbi::QueueEngine)

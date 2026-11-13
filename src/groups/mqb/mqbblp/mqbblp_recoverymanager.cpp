@@ -1434,7 +1434,7 @@ void RecoveryManager::onPartitionRecoveryStatus(int partitionId, int status)
     // new round of recovery in that callback, which will use the same context
     // object.
     mqbnet::ClusterNode* recoveryPeerNode = recoveryCtx.recoveryPeer();
-    bsl::vector<bsl::shared_ptr<bdlbb::Blob> > bufferedStorageEvents(
+    bsl::vector<bsl::shared_ptr<const bdlbb::Blob> > bufferedStorageEvents(
         recoveryCtx.storageEvents());
     PartitionRecoveryCb partitionRecoveryCb = recoveryCtx.recoveryCb();
     recoveryCtx.clear();
@@ -2197,14 +2197,15 @@ int RecoveryManager::syncPeerPartition(PrimarySyncContext* primarySyncCtx,
     return 0;
 }
 
-bool RecoveryManager::hasSyncPoint(bmqp_ctrlmsg::SyncPoint* syncPoint,
-                                   mqbs::RecordHeader*      syncPointRecHeader,
-                                   bmqu::BlobPosition* syncPointHeaderPosition,
-                                   int*                messageNumber,
-                                   bsls::Types::Uint64* journalOffset,
-                                   int                  partitionId,
-                                   const bsl::shared_ptr<bdlbb::Blob>& blob,
-                                   const mqbnet::ClusterNode*          source)
+bool RecoveryManager::hasSyncPoint(
+    bmqp_ctrlmsg::SyncPoint*                  syncPoint,
+    mqbs::RecordHeader*                       syncPointRecHeader,
+    bmqu::BlobPosition*                       syncPointHeaderPosition,
+    int*                                      messageNumber,
+    bsls::Types::Uint64*                      journalOffset,
+    int                                       partitionId,
+    const bsl::shared_ptr<const bdlbb::Blob>& blob,
+    const mqbnet::ClusterNode*                source)
 {
     // executed by each of the *STORAGE (QUEUE) DISPATCHER* threads
 
@@ -3263,9 +3264,9 @@ void RecoveryManager::startRecovery(
 }
 
 void RecoveryManager::processStorageEvent(
-    int                                 partitionId,
-    const bsl::shared_ptr<bdlbb::Blob>& blob,
-    mqbnet::ClusterNode*                source)
+    int                                       partitionId,
+    const bsl::shared_ptr<const bdlbb::Blob>& blob,
+    mqbnet::ClusterNode*                      source)
 {
     // executed by the *STORAGE (QUEUE) DISPATCHER* thread
 
@@ -3404,9 +3405,9 @@ void RecoveryManager::processStorageEvent(
 }
 
 void RecoveryManager::processRecoveryEvent(
-    int                                 partitionId,
-    const bsl::shared_ptr<bdlbb::Blob>& blob,
-    mqbnet::ClusterNode*                source)
+    int                                       partitionId,
+    const bsl::shared_ptr<const bdlbb::Blob>& blob,
+    mqbnet::ClusterNode*                      source)
 {
     // executed by the *STORAGE (QUEUE) DISPATCHER* thread
 

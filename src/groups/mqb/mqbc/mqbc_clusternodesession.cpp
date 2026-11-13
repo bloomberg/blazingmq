@@ -223,7 +223,7 @@ void ClusterNodeSession::removeAllPartitions()
 mqbi::InlineResult::Enum ClusterNodeSession::sendPush(
     const bmqt::MessageGUID&                  msgGUID,
     int                                       queueId,
-    const bsl::shared_ptr<bdlbb::Blob>&       message,
+    const bsl::shared_ptr<const bdlbb::Blob>& message,
     const mqbi::StorageMessageAttributes&     attributes,
     const bmqp::MessagePropertiesInfo&        mps,
     const bmqp::Protocol::SubQueueInfosArray& subQueueInfos,

@@ -85,7 +85,7 @@ class InMemoryStorageIterator;
 class InMemoryStorage_Item {
   private:
     // DATA
-    bsl::shared_ptr<bdlbb::Blob> d_appData;
+    bsl::shared_ptr<const bdlbb::Blob> d_appData;
 
     bsl::shared_ptr<bdlbb::Blob> d_options;
 
@@ -95,13 +95,23 @@ class InMemoryStorage_Item {
     // CREATORS
     InMemoryStorage_Item();
 
-    InMemoryStorage_Item(const bsl::shared_ptr<bdlbb::Blob>&   appData,
-                         const bsl::shared_ptr<bdlbb::Blob>&   options,
-                         const mqbi::StorageMessageAttributes& attributes);
+    /// @brief Create an item holding a message.
+    ///
+    /// @param appData The application data of the message.
+    /// @param options The options of the message.
+    /// @param attributes The attributes of the message.
+    InMemoryStorage_Item(const bsl::shared_ptr<const bdlbb::Blob>& appData,
+                         const bsl::shared_ptr<bdlbb::Blob>&       options,
+                         const mqbi::StorageMessageAttributes&     attributes);
 
     // MANIPULATORS
+    /// @brief Set the application data of this item.
+    ///
+    /// @param value The application data.
+    ///
+    /// @return A reference offering modifiable access to this object.
     InMemoryStorage_Item&
-    setAppData(const bsl::shared_ptr<bdlbb::Blob>& value);
+    setAppData(const bsl::shared_ptr<const bdlbb::Blob>& value);
     InMemoryStorage_Item&
     setOptions(const bsl::shared_ptr<bdlbb::Blob>& value);
     InMemoryStorage_Item&
@@ -111,7 +121,8 @@ class InMemoryStorage_Item {
     void reset();
 
     // ACCESSORS
-    const bsl::shared_ptr<bdlbb::Blob>&   appData() const;
+    /// @brief Return the application data of this item.
+    const bsl::shared_ptr<const bdlbb::Blob>& appData() const;
     const bsl::shared_ptr<bdlbb::Blob>&   options() const;
     const mqbi::StorageMessageAttributes& attributes() const;
 };
@@ -308,19 +319,24 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
                 const mqbu::StorageKey&                   appKey,
                 const bmqt::MessageGUID& msgGUID) BSLS_KEYWORD_OVERRIDE;
 
-    /// Save the message contained in the specified 'appData', 'options' and
-    /// the associated 'attributes' and 'msgGUID' into this storage and the
-    /// associated virtual storage.  The 'attributes' is an in/out parameter
-    /// and storage layer can populate certain fields of that struct.  If the
-    /// optionally specified `out` is not zero, load the created
-    /// `DataStreamMessage` into the 'out'.
-    /// Return 0 on success or an non-zero error code on failure.
+    /// @brief Save a message into this storage and the associated virtual
+    ///        storage.
+    ///
+    /// @param[in,out] attributes The message attributes; the storage layer
+    ///                           may populate some of its fields.
+    /// @param msgGUID The GUID of the message.
+    /// @param appData The application data of the message.
+    /// @param options The options of the message.
+    /// @param[out] out If not zero, loaded with the created
+    ///                 `DataStreamMessage`.
+    ///
+    /// @return 0 on success, or a non-zero error code otherwise.
     mqbi::StorageResult::Enum
-    put(mqbi::StorageMessageAttributes*     attributes,
-        const bmqt::MessageGUID&            msgGUID,
-        const bsl::shared_ptr<bdlbb::Blob>& appData,
-        const bsl::shared_ptr<bdlbb::Blob>& options,
-        mqbi::DataStreamMessage**           out = 0) BSLS_KEYWORD_OVERRIDE;
+    put(mqbi::StorageMessageAttributes*           attributes,
+        const bmqt::MessageGUID&                  msgGUID,
+        const bsl::shared_ptr<const bdlbb::Blob>& appData,
+        const bsl::shared_ptr<bdlbb::Blob>&       options,
+        mqbi::DataStreamMessage** out = 0) BSLS_KEYWORD_OVERRIDE;
 
     /// Update the App state corresponding to the specified 'msgGUID' and the
     /// specified 'appKey' in the DataStream.  Decrement the reference count of
@@ -479,15 +495,19 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     bool
     hasMessage(const bmqt::MessageGUID& msgGUID) const BSLS_KEYWORD_OVERRIDE;
 
-    /// Retrieve the message and its metadata having the specified `msgGUID`
-    /// in the specified `appData`, `options` and `attributes` from this
-    /// storage.  Return zero on success or a non-zero error code on
-    /// failure.
+    /// @brief Retrieve a message and its metadata from this storage.
+    ///
+    /// @param[out] appData Loaded with the application data of the message.
+    /// @param[out] options Loaded with the options of the message.
+    /// @param[out] attributes Loaded with the attributes of the message.
+    /// @param msgGUID The GUID of the message to retrieve.
+    ///
+    /// @return 0 on success, or a non-zero error code otherwise.
     mqbi::StorageResult::Enum
-    get(bsl::shared_ptr<bdlbb::Blob>*   appData,
-        bsl::shared_ptr<bdlbb::Blob>*   options,
-        mqbi::StorageMessageAttributes* attributes,
-        const bmqt::MessageGUID&        msgGUID) const BSLS_KEYWORD_OVERRIDE;
+    get(bsl::shared_ptr<const bdlbb::Blob>* appData,
+        bsl::shared_ptr<bdlbb::Blob>*       options,
+        mqbi::StorageMessageAttributes*     attributes,
+        const bmqt::MessageGUID& msgGUID) const BSLS_KEYWORD_OVERRIDE;
 
     /// Populate the specified `attributes` buffer with attributes of the
     /// message having the specified `msgGUID`.  Return zero on success or a
@@ -592,9 +612,9 @@ inline InMemoryStorage_Item::InMemoryStorage_Item()
 }
 
 inline InMemoryStorage_Item::InMemoryStorage_Item(
-    const bsl::shared_ptr<bdlbb::Blob>&   appData,
-    const bsl::shared_ptr<bdlbb::Blob>&   options,
-    const mqbi::StorageMessageAttributes& attributes)
+    const bsl::shared_ptr<const bdlbb::Blob>& appData,
+    const bsl::shared_ptr<bdlbb::Blob>&       options,
+    const mqbi::StorageMessageAttributes&     attributes)
 : d_appData(appData)
 , d_options(options)
 , d_attributes(attributes)
@@ -602,8 +622,8 @@ inline InMemoryStorage_Item::InMemoryStorage_Item(
 }
 
 // MANIPULATORS
-inline InMemoryStorage_Item&
-InMemoryStorage_Item::setAppData(const bsl::shared_ptr<bdlbb::Blob>& value)
+inline InMemoryStorage_Item& InMemoryStorage_Item::setAppData(
+    const bsl::shared_ptr<const bdlbb::Blob>& value)
 {
     d_appData = value;
     return *this;
@@ -635,7 +655,7 @@ inline void InMemoryStorage_Item::reset()
 }
 
 // ACCESSORS
-inline const bsl::shared_ptr<bdlbb::Blob>&
+inline const bsl::shared_ptr<const bdlbb::Blob>&
 InMemoryStorage_Item::appData() const
 {
     return d_appData;

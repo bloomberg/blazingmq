@@ -210,7 +210,7 @@ QueueHandle::setIsClientClusterMember(BSLA_MAYBE_UNUSED bool value)
 
 void QueueHandle::postMessage(
     BSLA_MAYBE_UNUSED const bmqp::PutHeader& putHeader,
-    BSLA_MAYBE_UNUSED const bsl::shared_ptr<bdlbb::Blob>& appData,
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<const bdlbb::Blob>& appData,
     BSLA_MAYBE_UNUSED const bsl::shared_ptr<bdlbb::Blob>& options)
 {
     // NOTHING
@@ -643,7 +643,7 @@ bsl::string QueueHandle::_messages(const bsl::string& appId) const
          msgCiter != cit->second.d_unconfirmedMessages.end();
          ++msgCiter) {
         BSLS_ASSERT_SAFE(msgCiter->second.first &&
-                         "Null shared_ptr<bdlbb::Blob> in messages map");
+                         "Null shared_ptr<const bdlbb::Blob> in messages map");
 
         if (msgCiter != cit->second.d_unconfirmedMessages.begin()) {
             out << ",";
