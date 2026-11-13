@@ -67,6 +67,7 @@
 
 #include <bmqio_channel.h>
 #include <bmqio_channelfactory.h>
+#include <bmqp_blobpoolutil.h>
 
 // BDE
 #include <ball_log.h>
@@ -178,6 +179,9 @@ class TransportManager {
     bdlbb::BlobBufferFactory* d_blobBufferFactory_p;
     // BlobBufferFactory to use by the
     // sessions
+
+    /// Pool of blobs the session factory reads events into, held not owned
+    bmqp::BlobPoolUtil::BlobSpPool* d_blobSpPool_p;
 
     /// Authenticator to use for authenticating a connection.
     bslma::ManagedPtr<mqbnet::Authenticator> d_authenticator_mp;
@@ -296,10 +300,11 @@ class TransportManager {
     // CREATORS
 
     /// Create a new `TransportManager` using the specified `scheduler`,
-    /// `blobBufferFactory`, `negotiator` and `statController` and the
-    /// specified `allocator` for any memory allocation.
+    /// `blobBufferFactory`, `blobSpPool`, `negotiator` and `statController`
+    /// and the specified `allocator` for any memory allocation.
     TransportManager(bdlmt::EventScheduler*            scheduler,
                      bdlbb::BlobBufferFactory*         blobBufferFactory,
+                     bmqp::BlobPoolUtil::BlobSpPool*   blobSpPool,
                      bslma::ManagedPtr<Authenticator>& authenticator,
                      bslma::ManagedPtr<Negotiator>&    negotiator,
                      mqbstat::StatController*          statController,
