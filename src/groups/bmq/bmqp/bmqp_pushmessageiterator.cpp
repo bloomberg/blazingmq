@@ -468,7 +468,7 @@ void PushMessageIterator::extractQueueInfo(int*          queueId,
     *rdaInfo        = RdaInfo(subQueueInfos[0].rdaInfo());
 }
 
-void PushMessageIterator::extractMsgGroupId(
+bool PushMessageIterator::extractMsgGroupId(
     bmqp::Protocol::MsgGroupId* msgGroupId) const
 {
     // PRECONDITIONS
@@ -477,7 +477,7 @@ void PushMessageIterator::extractMsgGroupId(
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!hasOptions())) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        return;  // RETURN
+        return false;  // RETURN
     }
 
     // Load options view
@@ -491,12 +491,13 @@ void PushMessageIterator::extractMsgGroupId(
             optionsView.find(OptionType::e_MSG_GROUP_ID) ==
             optionsView.end())) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        return;  // RETURN
+        return false;  // RETURN
     }
 
     // Load Group Id
-    BSLA_MAYBE_UNUSED int rc = optionsView.loadMsgGroupIdOption(msgGroupId);
-    BSLS_ASSERT_SAFE(rc == 0);
+    const int rc = optionsView.loadMsgGroupIdOption(msgGroupId);
+
+    return (rc == 0);
 }
 
 int PushMessageIterator::totalSize() const
