@@ -178,7 +178,7 @@ int OptionsView::loadOptionPositionAndSize(
                                             sizeof(OptionHeader));
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        return rc_INVALID_BLOB;  // RETURN
+        return rc * 10 + rc_INVALID_BLOB;  // RETURN
     }
 
     if (oh->packed()) {
@@ -206,7 +206,7 @@ int OptionsView::loadOptionPositionAndSize(
                                         optionTotalSizeBytes - 1);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        return rc_INVALID_BLOB;  // RETURN
+        return rc * 10 + rc_INVALID_BLOB;  // RETURN
     }
 
     // Read it unsigned so the check does not depend on the platform-specific
