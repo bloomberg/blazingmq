@@ -235,13 +235,6 @@ class PushEventBuilder {
     addSubQueueInfosOption(const Protocol::SubQueueInfosArray& subQueueInfos,
                            bool packRdaCounter = true);
 
-    /// Add a Group Id option having the specified `msgGroupId` to the
-    /// current (to-be-packed) message in the event being built.  Return 0
-    /// on success, or a meaningful non-zero error code otherwise.  In case
-    /// of failure, this method has no effect on the underlying event blob.
-    bmqt::EventBuilderResult::Enum
-    addMsgGroupIdOption(const Protocol::MsgGroupId& msgGroupId);
-
     // ACCESSORS
 
     /// Return the current size of the event being built.  Note that this
