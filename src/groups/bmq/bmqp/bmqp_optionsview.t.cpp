@@ -748,6 +748,7 @@ void test4_invalidOptionsArea()
 //   - A non-packed OptionHeader with zero 'words'
 //   - An OptionHeader with type 'OptionType::e_UNDEFINED'
 //   - An OptionHeader with an unsupported type
+//   - A packed OptionHeader of a type other than SubQueueInfos
 //   - Multiple OptionHeader of the same type (duplicate)
 //   - Empty blob used for initialization
 //   - Blob with not enough size to locate OptionHeader
@@ -1041,6 +1042,48 @@ void test4_invalidOptionsArea()
     }
     {
         // [7]
+        PV("PACKED OPTION HEADER OF A TYPE OTHER THAN SUB-QUEUE INFOS");
+
+        // Only a SubQueueInfos option may be packed.  A packed option of any
+        // other type must be rejected as an invalid options area.
+        struct Test {
+            int                    d_line;
+            bmqp::OptionType::Enum d_type;
+            bool                   d_isValid;
+        } k_DATA[] = {
+            {L_, bmqp::OptionType::e_SUB_QUEUE_IDS_OLD, false},
+            {L_, bmqp::OptionType::e_SUB_QUEUE_INFOS, true},  // control
+        };
+
+        const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
+
+        for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+            const Test& test = k_DATA[idx];
+
+            PVV(test.d_line << ": type " << test.d_type);
+
+            bdlbb::Blob optionsBlob(&bufferFactory,
+                                    bmqtst::TestHelperUtil::allocator());
+
+            bmqp::OptionHeader oh(test.d_type, true);
+            oh.setWords(5);
+
+            // Write OptionHeader
+            bdlbb::BlobUtil::append(&optionsBlob,
+                                    reinterpret_cast<const char*>(&oh),
+                                    sizeof(bmqp::OptionHeader));
+
+            bmqp::OptionsView view(bmqtst::TestHelperUtil::allocator());
+            const int         rc = view.reset(&optionsBlob,
+                                      bmqu::BlobPosition(),
+                                      sizeof(bmqp::OptionHeader));
+
+            BMQTST_ASSERT_EQ_D(test.d_line, test.d_isValid, rc == 0);
+            BMQTST_ASSERT_EQ_D(test.d_line, test.d_isValid, view.isValid());
+        }
+    }
+    {
+        // [8]
         PV("MULTIPLE OPTION HEADERS OF THE SAME TYPE (DUPLICATE)");
 
         // Multiple OptionHeader of the same type (duplicate)
@@ -1107,7 +1150,7 @@ void test4_invalidOptionsArea()
         BMQTST_ASSERT_EQ(false, view.isValid());
     }
     {
-        // [8]
+        // [9]
         PV("EMPTY BLOB");
 
         bdlbb::Blob              optionsBlob(&bufferFactory,
@@ -1127,7 +1170,7 @@ void test4_invalidOptionsArea()
         BMQTST_ASSERT_EQ(false, view.isValid());
     }
     {
-        // [9]
+        // [10]
         PV("WRONG AREA SIZE FOR OPTION VIEW");
 
         bdlbb::Blob              optionsBlob(&bufferFactory,
