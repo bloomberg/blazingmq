@@ -432,9 +432,6 @@ struct Protocol {
     // Constant representing the maximum valid consumer
     // priority.  Must be >= 'k_CONSUMER_PRIORITY_MIN'.
 
-    static const int k_MSG_GROUP_ID_MAX_LENGTH = 31;
-    // Constant representing the maximum valid Group Id size.
-
     static const int k_MAX_OPTIONS_SIZE;
     // Constant representing the maximum size of options area
     // for any type of event (PUT, PUSH, etc).  Note that

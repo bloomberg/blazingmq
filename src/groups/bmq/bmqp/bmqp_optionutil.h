@@ -218,12 +218,6 @@ struct OptionUtil {
                                     const bmqu::BlobPosition& startPosition);
 
   public:
-    /// Returns `bmqt::EventBuilderResult::e_SUCCESS` if the specified
-    /// `length` is valid for a Group Id or appropriate error code
-    /// otherwise.
-    static bmqt::EventBuilderResult::Enum
-    isValidMsgGroupId(const Protocol::MsgGroupId& msgGroupId);
-
     /// Set the specified `optionsSize` and `optionsPosition` to the
     /// appropriate values, so to describe the options segment of the
     /// message on the specified `blob`.  The specified `header` is the
