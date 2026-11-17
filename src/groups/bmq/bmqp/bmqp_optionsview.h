@@ -311,14 +311,6 @@ class OptionsView {
     int
     loadSubQueueInfosOption(Protocol::SubQueueInfosArray* subQueueInfos) const;
 
-    /// Load into the specified `msgGroupId` the Group Id associated with
-    /// the options pointed to by this view.  Return zero on success, and a
-    /// non-zero value otherwise.  Behavior is undefined unless `isValid()`
-    /// returns `true`, `find(bmqp::OptionType::Enum::e_MSG_GROUP_ID)`
-    /// returns a valid iterator and `msgGroupId` is a pointer to a valid
-    /// empty `Protocol::MsgGroupId`.
-    int loadMsgGroupIdOption(Protocol::MsgGroupId* msgGroupId) const;
-
     /// Return an iterator pointing to the beginning of the available
     /// `bmqp::OptionType::Enum` for this container
     const_iterator begin() const;
