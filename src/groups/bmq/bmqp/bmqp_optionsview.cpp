@@ -105,6 +105,12 @@ int OptionsView::resetImpl(const bdlbb::Blob*        blob,
             return rc_INVALID_OPTIONS_AREA;  // RETURN
         }
 
+        if (oh->packed() && optionType != OptionType::e_SUB_QUEUE_INFOS) {
+            // Only a SubQueueInfos option may be packed
+            clear();
+            return rc_INVALID_OPTIONS_AREA;  // RETURN
+        }
+
         // Insert BlobPosition for this OptionType
         if (d_optionPositions[optionType] != d_NullBlobPosition) {
             // We already have an option of this type (we processed it at a
