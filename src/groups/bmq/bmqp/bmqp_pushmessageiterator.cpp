@@ -468,38 +468,6 @@ void PushMessageIterator::extractQueueInfo(int*          queueId,
     *rdaInfo        = RdaInfo(subQueueInfos[0].rdaInfo());
 }
 
-bool PushMessageIterator::extractMsgGroupId(
-    bmqp::Protocol::MsgGroupId* msgGroupId) const
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(msgGroupId);
-    BSLS_ASSERT_SAFE(isValid());
-
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!hasOptions())) {
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        return false;  // RETURN
-    }
-
-    // Load options view
-    initCachedOptionsView();
-
-    BSLS_ASSERT_SAFE(!d_optionsView.isNull());
-    OptionsView& optionsView = d_optionsView.value();
-    BSLS_ASSERT_SAFE(optionsView.isValid());
-
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
-            optionsView.find(OptionType::e_MSG_GROUP_ID) ==
-            optionsView.end())) {
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        return false;  // RETURN
-    }
-
-    // Load Group Id
-    const int rc = optionsView.loadMsgGroupIdOption(msgGroupId);
-
-    return (rc == 0);
-}
-
 int PushMessageIterator::totalSize() const
 {
     return d_header.messageWords() * Protocol::k_WORD_SIZE;
