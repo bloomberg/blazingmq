@@ -84,8 +84,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 
     for (bmqp::OptionsView::const_iterator it = view.begin(); it != view.end();
          ++it) {
-        BSLS_ASSERT_OPT(*it >= bmqp::OptionType::k_LOWEST_SUPPORTED_TYPE);
-        BSLS_ASSERT_OPT(*it <= bmqp::OptionType::k_HIGHEST_SUPPORTED_TYPE);
+        BSLS_ASSERT_OPT(bmqp::OptionType::isSupported(*it));
     }
 
     const bool hasSubQueueIdsOld =

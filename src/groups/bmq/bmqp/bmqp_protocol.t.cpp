@@ -1421,11 +1421,16 @@ static void test4_enumPrint()
 
     PV("Test bmqp::OptionType printing");
     {
-        BSLMF_ASSERT(bmqp::OptionType::k_LOWEST_SUPPORTED_TYPE ==
-                     bmqp::OptionType::e_SUB_QUEUE_IDS_OLD);
-
-        BSLMF_ASSERT(bmqp::OptionType::k_HIGHEST_SUPPORTED_TYPE ==
-                     bmqp::OptionType::e_SUB_QUEUE_INFOS);
+        BMQTST_ASSERT(
+            !bmqp::OptionType::isSupported(bmqp::OptionType::e_UNDEFINED));
+        BMQTST_ASSERT(bmqp::OptionType::isSupported(
+            bmqp::OptionType::e_SUB_QUEUE_IDS_OLD));
+        BMQTST_ASSERT(
+            !bmqp::OptionType::isSupported(bmqp::OptionType::e_MSG_GROUP_ID));
+        BMQTST_ASSERT(bmqp::OptionType::isSupported(
+            bmqp::OptionType::e_SUB_QUEUE_INFOS));
+        BMQTST_ASSERT(!bmqp::OptionType::isSupported(
+            bmqp::OptionType::e_SUB_QUEUE_INFOS + 1));
 
         PrintTestData k_DATA[] = {
             {L_, bmqp::OptionType::e_UNDEFINED, "UNDEFINED"},

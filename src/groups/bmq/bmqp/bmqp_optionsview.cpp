@@ -100,11 +100,7 @@ int OptionsView::resetImpl(const bdlbb::Blob*        blob,
         // in fact an OptionHeader (for instance, if we are reading a word that
         // was intended to be a sub-queue id but because of an incorrect
         // 'words' field in a previous OptionHeader we advanced to it).
-        const int optionTypeAsInt = static_cast<int>(optionType);
-        if (optionTypeAsInt < OptionType::k_LOWEST_SUPPORTED_TYPE ||
-            optionTypeAsInt > OptionType::k_HIGHEST_SUPPORTED_TYPE) {
-            // An option type is not valid unless it is in the range
-            // (OptionType::e_UNDEFINED, OptionType::e_HIGHEST_SUPPORTED_TYPE]
+        if (!OptionType::isSupported(optionType)) {
             clear();
             return rc_INVALID_OPTIONS_AREA;  // RETURN
         }

@@ -351,45 +351,6 @@ void populatePackedBlob(bdlbb::Blob*                     blob,
                                sizeof(bmqp::OptionHeader));
 }
 
-/// @brief Append a MSG_GROUP_ID option to a blob.
-///
-/// @details The option holds the specified `msgGroupId` followed by the
-/// protocol padding, whose last byte, the padding count, is replaced by the
-/// specified `lastByte`.
-///
-/// @param[out] blob       The blob to append the option to.
-/// @param      msgGroupId The Group Id to encode.
-/// @param      lastByte   The value of the last padding byte.
-/// @returns The size of the option in bytes, header included.
-int appendMsgGroupIdOption(bdlbb::Blob*                      blob,
-                           const bmqp::Protocol::MsgGroupId& msgGroupId,
-                           char                              lastByte)
-{
-    BSLS_ASSERT_SAFE(blob);
-
-    const int length  = static_cast<int>(msgGroupId.length());
-    const int padding = bmqp::Protocol::k_WORD_SIZE -
-                        length % bmqp::Protocol::k_WORD_SIZE;
-    const int optionSize = static_cast<int>(sizeof(bmqp::OptionHeader)) +
-                           length + padding;
-
-    bmqp::OptionHeader oh(bmqp::OptionType::e_MSG_GROUP_ID, false);
-    oh.setWords(optionSize / bmqp::Protocol::k_WORD_SIZE);
-
-    bsl::vector<char> paddingBytes(padding,
-                                   static_cast<char>(padding),
-                                   bmqtst::TestHelperUtil::allocator());
-    paddingBytes.back() = lastByte;
-
-    bdlbb::BlobUtil::append(blob,
-                            reinterpret_cast<const char*>(&oh),
-                            sizeof(bmqp::OptionHeader));
-    bdlbb::BlobUtil::append(blob, msgGroupId.data(), length);
-    bdlbb::BlobUtil::append(blob, paddingBytes.data(), padding);
-
-    return optionSize;
-}
-
 // ============================================================================
 //                                    TESTS
 // ----------------------------------------------------------------------------
@@ -772,74 +733,7 @@ void test3_packedOptions()
     }
 }
 
-void test4_msgGroupIdOption()
-// ------------------------------------------------------------------------
-// MSG GROUP ID OPTION
-//
-// Concerns:
-//   Load a Group Id from a MSG_GROUP_ID option using this component.
-//
-// Plan:
-//   For Group Ids of various lengths, covering each padding size:
-//   - Append a MSG_GROUP_ID option with protocol padding
-//   - Create OptionView instance to observe the option
-//   - Load the Group Id and verify it is loaded unchanged
-//
-// Testing:
-//   loadMsgGroupIdOption(...)
-// ------------------------------------------------------------------------
-{
-    bdlbb::PooledBlobBufferFactory bufferFactory(
-        1024,
-        bmqtst::TestHelperUtil::allocator());
-
-    struct Test {
-        int         d_line;
-        const char* d_msgGroupId;
-    } k_DATA[] = {
-        {L_, "a"},                                // 3 bytes of padding
-        {L_, "abc"},                              // 1 byte of padding
-        {L_, "abcd"},                             // 4 bytes of padding
-        {L_, "abcdefghijklmnopqrstuvwxyz01234"},  // max length
-    };
-
-    const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
-
-    for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
-        const Test& test = k_DATA[idx];
-
-        PVV(test.d_line << ": Group Id '" << test.d_msgGroupId << "'");
-
-        const bmqp::Protocol::MsgGroupId msgGroupId(
-            test.d_msgGroupId,
-            bmqtst::TestHelperUtil::allocator());
-        const char padding = static_cast<char>(
-            bmqp::Protocol::k_WORD_SIZE -
-            msgGroupId.length() % bmqp::Protocol::k_WORD_SIZE);
-
-        bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
-        const int   optionsAreaSize = appendMsgGroupIdOption(&blob,
-                                                           msgGroupId,
-                                                           padding);
-
-        bmqp::OptionsView view(&blob,
-                               bmqu::BlobPosition(),
-                               optionsAreaSize,
-                               bmqtst::TestHelperUtil::allocator());
-        BMQTST_ASSERT_EQ_D(test.d_line, true, view.isValid());
-        BMQTST_ASSERT_D(test.d_line,
-                        view.find(bmqp::OptionType::e_MSG_GROUP_ID) !=
-                            view.end());
-
-        bmqp::Protocol::MsgGroupId loaded(bmqtst::TestHelperUtil::allocator());
-        const int                  rc = view.loadMsgGroupIdOption(&loaded);
-
-        BMQTST_ASSERT_EQ_D(test.d_line, 0, rc);
-        BMQTST_ASSERT_EQ_D(test.d_line, msgGroupId, loaded);
-    }
-}
-
-void test5_invalidOptionsArea()
+void test4_invalidOptionsArea()
 // ------------------------------------------------------------------------
 // INVALID OPTIONS AREA
 //
@@ -850,7 +744,6 @@ void test5_invalidOptionsArea()
 //   - One less sub-queue info than specified in OptionHeader
 //   - A SubQueueInfos option with an invalid item size or payload size
 //   - A packed SubQueueInfos option with an RdaInfo above 255
-//   - A MSG_GROUP_ID option with an invalid padding count
 //   - An OptionsHeader but no option payload (sub-queue info)
 //   - A non-packed OptionHeader with zero 'words'
 //   - An OptionHeader with type 'OptionType::e_UNDEFINED'
@@ -1048,62 +941,6 @@ void test5_invalidOptionsArea()
 
     {
         // [4]
-        PV("MSG GROUP ID WITH INVALID PADDING COUNT");
-
-        // A MSG_GROUP_ID option whose last padding byte, the padding count,
-        // is not in [1, 4].
-        struct Test {
-            int  d_line;
-            char d_lastByte;
-        } k_DATA[] = {
-            {L_, 0},                        // no padding
-            {L_, 5},                        // more than one word
-            {L_, 0x52},                     // more than the option payload
-            {L_, static_cast<char>(0xFF)},  // negative as a signed char
-        };
-
-        const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
-
-        for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
-            const Test& test = k_DATA[idx];
-
-            PVV(test.d_line << ": last byte "
-                            << static_cast<int>(static_cast<unsigned char>(
-                                   test.d_lastByte)));
-
-            bdlbb::Blob                      optionsBlob(&bufferFactory,
-                                    bmqtst::TestHelperUtil::allocator());
-            const bmqp::Protocol::MsgGroupId msgGroupId(
-                "abcde",
-                bmqtst::TestHelperUtil::allocator());
-            const int optionsAreaSize = appendMsgGroupIdOption(
-                &optionsBlob,
-                msgGroupId,
-                test.d_lastByte);
-
-            // Bytes after the options area
-            const char k_TRAILER[] = "xxxx";
-            bdlbb::BlobUtil::append(&optionsBlob,
-                                    k_TRAILER,
-                                    sizeof(k_TRAILER) - 1);
-
-            bmqp::OptionsView view(&optionsBlob,
-                                   bmqu::BlobPosition(),
-                                   optionsAreaSize,
-                                   bmqtst::TestHelperUtil::allocator());
-            BMQTST_ASSERT_EQ_D(test.d_line, true, view.isValid());
-
-            bmqp::Protocol::MsgGroupId loaded(
-                bmqtst::TestHelperUtil::allocator());
-            const int rc = view.loadMsgGroupIdOption(&loaded);
-
-            BMQTST_ASSERT_NE_D(test.d_line, 0, rc);
-            BMQTST_ASSERT_EQ_D(test.d_line, true, loaded.empty());
-        }
-    }
-
-    {
-        // [5]
         PV("OPTION HEADER INDICATES ZERO OPTION VALUES");
 
         // An OptionsHeader but no option payload (sub-queue info)
@@ -1131,7 +968,7 @@ void test5_invalidOptionsArea()
     }
 
     {
-        // [6]
+        // [5]
         PV("OPTION HEADER WITH ZERO WORDS");
 
         // A non-packed OptionHeader whose 'words' is zero
@@ -1160,7 +997,7 @@ void test5_invalidOptionsArea()
     }
 
     {
-        // [7]
+        // [6]
         PV("OPTION HEADER WITH TYPE UNDEFINED");
 
         // An OptionHeader with type 'OptionType::e_UNDEFINED'
@@ -1203,7 +1040,7 @@ void test5_invalidOptionsArea()
         BMQTST_ASSERT_EQ(false, view.isValid());
     }
     {
-        // [8]
+        // [7]
         PV("MULTIPLE OPTION HEADERS OF THE SAME TYPE (DUPLICATE)");
 
         // Multiple OptionHeader of the same type (duplicate)
@@ -1270,7 +1107,7 @@ void test5_invalidOptionsArea()
         BMQTST_ASSERT_EQ(false, view.isValid());
     }
     {
-        // [9]
+        // [8]
         PV("EMPTY BLOB");
 
         bdlbb::Blob              optionsBlob(&bufferFactory,
@@ -1290,7 +1127,7 @@ void test5_invalidOptionsArea()
         BMQTST_ASSERT_EQ(false, view.isValid());
     }
     {
-        // [10]
+        // [9]
         PV("WRONG AREA SIZE FOR OPTION VIEW");
 
         bdlbb::Blob              optionsBlob(&bufferFactory,
@@ -1332,7 +1169,7 @@ void test5_invalidOptionsArea()
     }
 }
 
-void test6_iteratorTest()
+void test5_iteratorTest()
 {
     // ------------------------------------------------------------------------
     // ITERATOR TEST TEST
@@ -1397,7 +1234,7 @@ void test6_iteratorTest()
     BMQTST_ASSERT(iter == view.end());
 }
 
-void test7_iteratorTestSubQueueIdsOld()
+void test6_iteratorTestSubQueueIdsOld()
 {
     // ------------------------------------------------------------------------
     // ITERATOR TEST TEST SUB QUEUE IDS OLD
@@ -1463,7 +1300,7 @@ void test7_iteratorTestSubQueueIdsOld()
     BMQTST_ASSERT(iter == view.end());
 }
 
-void test8_dumpBlob()
+void test7_dumpBlob()
 {
     // --------------------------------------------------------------------
     // DUMP BLOB
@@ -1548,7 +1385,7 @@ void test8_dumpBlob()
     }
 }
 
-void test9_dumpBlobSubQueueIdsOld()
+void test8_dumpBlobSubQueueIdsOld()
 {
     // --------------------------------------------------------------------
     // DUMP BLOB SUB QUEUE IDS OLD
@@ -1630,12 +1467,11 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
-    case 9: test9_dumpBlobSubQueueIdsOld(); break;
-    case 8: test8_dumpBlob(); break;
-    case 7: test7_iteratorTestSubQueueIdsOld(); break;
-    case 6: test6_iteratorTest(); break;
-    case 5: test5_invalidOptionsArea(); break;
-    case 4: test4_msgGroupIdOption(); break;
+    case 8: test8_dumpBlobSubQueueIdsOld(); break;
+    case 7: test7_dumpBlob(); break;
+    case 6: test6_iteratorTestSubQueueIdsOld(); break;
+    case 5: test5_iteratorTest(); break;
+    case 4: test4_invalidOptionsArea(); break;
     case 3: test3_packedOptions(); break;
     case 2: test2_subQueueIdsOld(); break;
     case 1: test1_breathingTest(); break;
