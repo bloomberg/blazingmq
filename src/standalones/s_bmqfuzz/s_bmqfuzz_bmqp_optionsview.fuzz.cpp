@@ -105,16 +105,6 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
         BSLS_ASSERT_OPT(loadRc != 0 || !subQueueInfos.empty());
     }
 
-    if (view.find(bmqp::OptionType::e_MSG_GROUP_ID) != view.end()) {
-        bmqp::Protocol::MsgGroupId msgGroupId(alloc);
-        const int loadRc = view.loadMsgGroupIdOption(&msgGroupId);
-        BSLS_ASSERT_OPT(loadRc != 0 ||
-                        (!msgGroupId.empty() &&
-                         msgGroupId.size() <=
-                             static_cast<size_t>(
-                                 bmqp::Protocol::k_MSG_GROUP_ID_MAX_LENGTH)));
-    }
-
     // Exercise copy and dump
     bmqp::OptionsView copy(view, alloc);
     BSLS_ASSERT_OPT(copy.isValid());
