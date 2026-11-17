@@ -305,7 +305,7 @@ const char* OptionType::toAscii(OptionType::Enum value)
     switch (value) {
         CASE(UNDEFINED)
         CASE(SUB_QUEUE_IDS_OLD)
-        CASE(MSG_GROUP_ID)
+        CASE(UNUSED)
         CASE(SUB_QUEUE_INFOS)
     default: return "(* UNKNOWN *)";
     }

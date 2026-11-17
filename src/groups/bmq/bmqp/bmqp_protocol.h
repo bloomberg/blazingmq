@@ -394,9 +394,6 @@ struct Protocol {
     typedef bmqc::Array<unsigned int, k_SUBID_ARRAY_STATIC_LEN>
         SubQueueIdsArrayOld;
 
-    /// Holds the client-provided Group Id.
-    typedef bsl::string MsgGroupId;
-
     // CONSTANTS
     static const int k_VERSION = 1;
     // Version of the protocol
@@ -695,12 +692,12 @@ struct SubscriptionsFeatures {
 struct OptionType {
     // TYPES
     enum Enum {
-        // Values for the OptionHeader 'type' field.  Valid values are in the
-        // range [0, OptionHeader::k_MAX_TYPE].  They must begin at 0 and
-        // increment by one.
+        // Values for the OptionHeader 'type' field.
+        // They must begin at 0 and increment by one, and must not
+        // change value since they are used in network protocol.
         e_UNDEFINED         = 0,
         e_SUB_QUEUE_IDS_OLD = 1,
-        e_MSG_GROUP_ID      = 2,
+        e_UNUSED            = 2,
         e_SUB_QUEUE_INFOS   = 3
     };
 
@@ -718,7 +715,7 @@ struct OptionType {
         case e_SUB_QUEUE_IDS_OLD: BSLA_FALLTHROUGH;
         case e_SUB_QUEUE_INFOS: return true;
         case e_UNDEFINED: BSLA_FALLTHROUGH;
-        case e_MSG_GROUP_ID: BSLA_FALLTHROUGH;
+        case e_UNUSED: BSLA_FALLTHROUGH;
         default: return false;
         }
     }
