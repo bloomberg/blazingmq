@@ -2160,16 +2160,12 @@ static void test11_initiateShutdown()
     const bsl::string uri("bmq://my.domain/queue-foo-bar",
                           bmqtst::TestHelperUtil::allocator());
 
-    const int                  queueId      = 4;  // A queue number
-    const bool                 isAtMostOnce = false;
-    bslmt::TimedSemaphore      semaphore;
-    bmqp::Protocol::MsgGroupId msgGroupId(bmqtst::TestHelperUtil::allocator());
-    const unsigned int         subscriptionId =
-        bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID;
+    const int  queueId      = 4;  // A queue number
+    const bool isAtMostOnce = false;
 
     bmqp::Protocol::SubQueueInfosArray subQueueInfos(
         1,
-        bmqp::SubQueueInfo(subscriptionId),
+        bmqp::SubQueueInfo(bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID),
         bmqtst::TestHelperUtil::allocator());
 
     struct MockStorageIterator : public mqbi::StorageIterator {
@@ -2278,6 +2274,8 @@ static void test11_initiateShutdown()
 
         // Verify there are no unconfirmed messages in the handle
         BMQTST_ASSERT_EQ(0, tb.d_domain.d_queueHandle->countUnconfirmed());
+
+        bslmt::TimedSemaphore semaphore;
 
         // Initiate client session shutdown
         tb.d_cs.initiateShutdown(bdlf::BindUtil::bind(&onShutdownComplete,
