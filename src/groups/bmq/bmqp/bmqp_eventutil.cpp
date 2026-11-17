@@ -30,7 +30,6 @@
 #include <bdlma_localsequentialallocator.h>
 #include <bsl_utility.h>
 #include <bsl_vector.h>
-#include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bslmf_assert.h>
 #include <bsls_assert.h>
@@ -140,18 +139,6 @@ class Flattener {
     /// will add the subId option to the message.  Otherwise it will not.
     CloneSingleStatus
     cloneAndPackSingle(const Protocol::SubQueueInfosArray& subQInfo);
-
-    /// @brief Add the options in `d_optionsView` to the current
-    ///        (to-be-packed) message in the event being built by
-    ///        `d_builder`.
-    ///
-    /// @details SubQueueIds and SubQueueInfos options are skipped, as they
-    /// are handled separately.  The behavior is undefined unless
-    /// `d_optionsView` is valid.
-    ///
-    /// @returns `e_SUCCESS` on success, `e_UNKNOWN` if an option payload is
-    ///          malformed, or the error from `d_builder` otherwise.
-    EventBuilderResult importOptions();
 
     /// Does the actual packing for a single message with the specified
     /// `subQInfo` (should contain only a single element).
@@ -273,16 +260,9 @@ Flattener::cloneAndPackSingle(const Protocol::SubQueueInfosArray& subQInfo)
 
     // Step 1. Add SubQueueInfo to this event. Set packRdaCounter to true.
     result = d_builder.addSubQueueInfosOption(subQInfo, true);
+    // TODO(678098): check if we can safely return here with error
 
-    // Step 2. Copy all options (excluding SubQueueId and rdaCounter which
-    //                           was done on Step 1.)
-    result = importOptions();
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(result != k_SUCCESS)) {
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        return CloneSingleStatus(result, rc_ADD_OPTION_ERROR);  // RETURN
-    }
-
-    // Step 3. Pack this message using 'd_builder'.
+    // Step 2. Pack this message using 'd_builder'.
     result = packMesage(subQInfo);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(result != k_SUCCESS)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
@@ -290,44 +270,6 @@ Flattener::cloneAndPackSingle(const Protocol::SubQueueInfosArray& subQInfo)
     }
 
     return CloneSingleStatus(result, rc_SUCCESS);
-}
-
-Flattener::EventBuilderResult Flattener::importOptions()
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_optionsView.isValid());
-
-    EventBuilderResult result = k_SUCCESS;
-    for (OptionsView::const_iterator i = d_optionsView.begin();
-         i != d_optionsView.end();
-         ++i) {
-        const OptionType::Enum type = *i;
-
-        switch (type) {
-        case OptionType::e_SUB_QUEUE_IDS_OLD: {
-            // NOTE: This case is explicitly handled by the caller and we do
-            //       not need to handle it here.
-            result = k_SUCCESS;
-        } break;
-        case OptionType::e_SUB_QUEUE_INFOS: {
-            // NOTE: This case is explicitly handled by the caller and we do
-            //       not need to handle it here.
-            result = k_SUCCESS;
-        } break;
-        case OptionType::e_UNDEFINED: BSLA_FALLTHROUGH;
-        case OptionType::e_MSG_GROUP_ID: BSLA_FALLTHROUGH;
-        default: {
-            // Not supported
-            continue;
-        }
-        }
-
-        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(result != k_SUCCESS)) {
-            BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-            break;  // BREAK
-        }
-    }
-    return result;
 }
 
 Flattener::EventBuilderResult
