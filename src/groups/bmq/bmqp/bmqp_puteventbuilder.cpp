@@ -80,7 +80,6 @@ bmqt::EventBuilderResult::Enum
 PutEventBuilder::packMessageInternal(const bdlbb::Blob& appData, int queueId)
 {
     typedef bmqt::EventBuilderResult Result;
-    typedef OptionUtil::OptionMeta   OptionMeta;
 
     int       appDataLength   = appData.length();
     int       numPaddingBytes = 0;
@@ -117,26 +116,7 @@ PutEventBuilder::packMessageInternal(const bdlbb::Blob& appData, int queueId)
                 sizeof(bmqp::PutHeader));
 
     // Add option(s) if they fit.
-    OptionUtil::OptionsBox optionBox;
-    if (!d_msgGroupId.isNull()) {
-        const OptionMeta msgGroupId = OptionMeta::forOptionWithPadding(
-            OptionType::e_MSG_GROUP_ID,
-            static_cast<int>(d_msgGroupId.value().length()));
-        Result::Enum res = OptionUtil::isValidMsgGroupId(d_msgGroupId.value());
-        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(res != Result::e_SUCCESS)) {
-            BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-            return res;  // RETURN
-        }
-        res = optionBox.canAdd(sizeNoOptions, msgGroupId);
-        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(res != Result::e_SUCCESS)) {
-            BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-            return res;  // RETURN
-        }
-        optionBox.add(
-            d_blob_sp.get(),
-            reinterpret_cast<const char*>(d_msgGroupId.value().data()),
-            msgGroupId);
-    }
+    OptionUtil::OptionsBox optionBox;  // empty
 
     const int headerWords = sizeof(bmqp::PutHeader) / Protocol::k_WORD_SIZE;
     const int optionsSize = optionBox.size();
@@ -184,7 +164,6 @@ PutEventBuilder::PutEventBuilder(BlobSpPool*       blobSpPool_p,
 , d_properties_p(0)
 , d_flags(0)
 , d_messageGUID()
-, d_msgGroupId(allocator)
 , d_msgCount(0)
 , d_crc32c(0)
 , d_compressionAlgorithmType(bmqt::CompressionAlgorithmType::e_NONE)
@@ -211,8 +190,7 @@ int PutEventBuilder::reset()
     d_rawPayload_p     = 0;
     d_rawPayloadLength = 0;
     d_properties_p     = 0;
-    d_flags            = 0;
-    d_msgGroupId.reset();
+    d_flags                             = 0;
     d_messageGUID                       = bmqt::MessageGUID();
     d_msgCount                          = 0;
     d_crc32c                            = 0;
