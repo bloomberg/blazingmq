@@ -13,7 +13,6 @@
 	#define yyterminate() SimpleEvaluatorParser::make_END();
 %}
 
-%option nodefault
 %option noyywrap
 %option c++
 %option yyclass="SimpleEvaluatorScanner"
