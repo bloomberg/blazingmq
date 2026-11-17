@@ -297,11 +297,6 @@ class PutMessageIterator {
     /// undefined unless `isValid` returns true.
     bool hasMessageProperties() const;
 
-    /// Return `true` if the message currently pointed by this iterator has
-    /// a Group Id associated with it, `false` otherwise.  Behavior is
-    /// undefined unless `isValid` returns true.
-    bool hasMsgGroupId() const;
-
     /// Return true if the message currently pointed by this iterator has
     /// options associated with it, false otherwise.  Behavior is undefined
     /// unless `isValid` returns true.
@@ -395,12 +390,6 @@ class PutMessageIterator {
     /// value otherwise.  Behavior is undefined unless latest call to
     /// `next()` returned 1.
     int loadMessagePayload(bdlbb::Blob* blob) const;
-
-    /// Load into the specified `msgGroupId` the Group Id associated with
-    /// the message currently pointed to by this iterator.  Return `true` if
-    /// the load was successfully or `false` otherwise.  Behavior is
-    /// undefined unless latest call to `next()` returned 1.
-    bool extractMsgGroupId(bmqp::Protocol::MsgGroupId* msgGroupId) const;
 
     /// Return the size (in bytes) of wire representation for the message.
     int totalSize() const;
@@ -516,25 +505,6 @@ inline bool PutMessageIterator::hasMessageProperties() const
 
     return PutHeaderFlagUtil::isSet(header().flags(),
                                     PutHeaderFlags::e_MESSAGE_PROPERTIES);
-}
-
-inline bool PutMessageIterator::hasMsgGroupId() const
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(isValid());
-
-    if (!hasOptions()) {
-        return false;  // RETURN
-    }
-
-    // Load options view
-    initCachedOptionsView();
-
-    BSLS_ASSERT_SAFE(!d_optionsView.isNull());
-    OptionsView& optionsView = d_optionsView.value();
-    BSLS_ASSERT_SAFE(optionsView.isValid());
-
-    return optionsView.find(OptionType::e_MSG_GROUP_ID) != optionsView.end();
 }
 
 inline bool PutMessageIterator::hasOptions() const
