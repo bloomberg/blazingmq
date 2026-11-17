@@ -123,7 +123,7 @@ def reserve_port() -> typing.Iterator[TcpAddress]:
 
     with socket.socket() as sock:
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.bind(("0.0.0.0", 0))
+        sock.bind(("127.0.0.1", 0))
         sockname = sock.getsockname()
 
         address = tcp_address(sockname[0], sockname[1])
@@ -155,7 +155,7 @@ def reserve_port_pool(pool_size: int = 32) -> typing.Generator[int, None, None]:
             sock = socket.socket()
             stack.enter_context(sock)
             sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            sock.bind(("0.0.0.0", 0))
+            sock.bind(("127.0.0.1", 0))
             sockname = sock.getsockname()
             ports.append(sockname[1])
 
