@@ -194,23 +194,19 @@ class OptionsView {
     /// @brief Load the position and size of the payload of the option of
     ///        the specified `optionType`.
     ///
-    /// @details If the specified `hasPadding` is true, the option payload
-    /// ends with 1 to `Protocol::k_WORD_SIZE` bytes of padding, the last of
-    /// which holds the padding count, and the loaded size excludes the
-    /// padding.  The behavior is undefined unless `isValid()` returns true,
+    /// @details The behavior is undefined unless `isValid()` returns true,
     /// `find(optionType)` returns a valid iterator, and the option is not
     /// *packed*.
     ///
     /// @param[out] payloadPosition  The position of the option payload.
     /// @param[out] payloadSizeBytes The size of the option payload in bytes.
     /// @param      optionType       The type of the option to locate.
-    /// @param      hasPadding       Whether the option payload is padded.
     /// @returns Zero on success, or a non-zero value if the option does not
-    ///          fall within the blob or its padding count is malformed.
-    int loadUnpackedOptionPayload(bmqu::BlobPosition* payloadPosition,
-                                  int*                payloadSizeBytes,
-                                  const bmqp::OptionType::Enum optionType,
-                                  const bool hasPadding) const;
+    ///          fall within the blob.
+    int
+    loadUnpackedOptionPayload(bmqu::BlobPosition*          payloadPosition,
+                              int*                         payloadSizeBytes,
+                              const bmqp::OptionType::Enum optionType) const;
 
     /// @brief Load the sub-queue infos stored in the option of the specified
     /// `optionType`.
@@ -440,8 +436,7 @@ int OptionsView::loadUnpackedSubQueueInfosOptionHelper(
 
     int rc = loadUnpackedOptionPayload(&firstSubQueueInfoPos,
                                        &subQueueInfosSize,
-                                       optionType,
-                                       false);  // hasPadding
+                                       optionType);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         return rc_INVALID_BLOB;  // RETURN
