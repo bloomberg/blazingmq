@@ -146,7 +146,7 @@ int OptionsView::resetImpl(const bdlbb::Blob*        blob,
 }
 
 // PRIVATE ACCESSORS
-int OptionsView::loadOptionPositionAndSize(
+int OptionsView::loadUnpackedOptionPayload(
     bmqu::BlobPosition*          payloadPosition,
     int*                         payloadSizeBytes,
     const bmqp::OptionType::Enum optionType,
@@ -170,9 +170,8 @@ int OptionsView::loadOptionPositionAndSize(
 
     const bmqu::BlobPosition& headerPos = d_optionPositions[optionType];
     bmqu::BlobObjectProxy<OptionHeader> oh(d_blob_p, headerPos);
-
     BSLS_ASSERT_SAFE(oh.isSet() && "Option header not set");
-    // should be ok, as in the constructor
+    BSLS_ASSERT_SAFE(!oh->packed() && "Packed option has no payload");
 
     int rc = bmqu::BlobUtil::findOffsetSafe(payloadPosition,
                                             *d_blob_p,
@@ -181,12 +180,6 @@ int OptionsView::loadOptionPositionAndSize(
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         return rc * 10 + rc_INVALID_BLOB;  // RETURN
-    }
-
-    if (oh->packed()) {
-        // *Packed* options
-        *payloadSizeBytes = 0;
-        return rc_SUCCESS;  // RETURN
     }
 
     // 1 word for header, rest for payload.
@@ -264,7 +257,7 @@ int OptionsView::loadSubQueueIdsOption(
                                        bufferedAllocator(d_allocator_p);
     bsl::vector<bdlb::BigEndianUint32> tempVec(&bufferedAllocator);
 
-    const int rc = loadSubQueueInfosOptionHelper(
+    const int rc = loadUnpackedSubQueueInfosOptionHelper(
         &tempVec,
         OptionType::e_SUB_QUEUE_IDS_OLD);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
@@ -340,7 +333,7 @@ int OptionsView::loadSubQueueInfosOption(
                                   bufferedAllocator(d_allocator_p);
         bsl::vector<SubQueueInfo> tempVec(&bufferedAllocator);
 
-        const int rc = loadSubQueueInfosOptionHelper(
+        const int rc = loadUnpackedSubQueueInfosOptionHelper(
             &tempVec,
             OptionType::e_SUB_QUEUE_INFOS);
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
@@ -360,7 +353,7 @@ int OptionsView::loadSubQueueInfosOption(
                                            bufferedAllocator(d_allocator_p);
         bsl::vector<bdlb::BigEndianUint32> tempVec(&bufferedAllocator);
 
-        const int rc = loadSubQueueInfosOptionHelper(
+        const int rc = loadUnpackedSubQueueInfosOptionHelper(
             &tempVec,
             OptionType::e_SUB_QUEUE_IDS_OLD);
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
