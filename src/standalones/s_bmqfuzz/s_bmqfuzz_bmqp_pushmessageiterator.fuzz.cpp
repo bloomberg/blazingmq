@@ -75,11 +75,6 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
             iter.loadMessageProperties(&props);
         }
 
-        if (iter.hasMsgGroupId()) {
-            bmqp::Protocol::MsgGroupId msgGroupId(alloc);
-            iter.extractMsgGroupId(&msgGroupId);
-        }
-
         {
             bdlbb::Blob appDataBlob(&bufferFactory, alloc);
             iter.loadApplicationData(&appDataBlob);
