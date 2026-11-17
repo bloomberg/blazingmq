@@ -983,7 +983,8 @@ struct OptionHeader {
     //                       'words' field will be reinterpreted as extra
     //                       type-specific content of this option in addition
     //                       to the 'TS' field, and there will be no option
-    //                       content following this header
+    //                       content following this header.  Only an
+    //                       'e_SUB_QUEUE_INFOS' option may be *packed*
     //  Type-Specific (TS).: Content specific to this option's type, see below
     //  Words..............: Length (words) of this option, including this
     //                       header.  If *packed*, this field will be
