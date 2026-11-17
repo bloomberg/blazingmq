@@ -28,7 +28,6 @@
 #include <bsl_vector.h>
 #include <bsla_annotations.h>
 #include <bslma_allocator.h>
-#include <bslmf_assert.h>
 #include <bsls_performancehint.h>
 
 namespace BloombergLP {
@@ -383,57 +382,6 @@ bmqt::EventBuilderResult::Enum PushEventBuilder::addSubQueueInfosOption(
 
     d_options.add(d_blob_sp.get(),
                   reinterpret_cast<const char*>(tempVec.data()),
-                  option);
-
-    return bmqt::EventBuilderResult::e_SUCCESS;
-}
-
-bmqt::EventBuilderResult::Enum
-PushEventBuilder::addMsgGroupIdOption(const Protocol::MsgGroupId& msgGroupId)
-{
-    // PRECONDITIONS
-    BSLMF_ASSERT(OptionHeader::k_MAX_SIZE >
-                 Protocol::k_MSG_GROUP_ID_MAX_LENGTH);
-    // There are two checks below to validate option size.  One deals with
-    // 'OptionHeader::k_MAX_SIZE' limit, see
-    // 'OptionUtil::OptionsBox::canAdd'.  Another one checks that the
-    // specified 'msgGroupId' doesn't exceed
-    // 'Protocol::k_MSG_GROUP_ID_MAX_LENGTH', see
-    // 'OptionUtil::isValidMsgGroupId'.  The order of the validation checks
-    // is meant to ensure that both error scenarios are captured by this
-    // method.
-
-    BSLA_MAYBE_UNUSED const int optionsSize = d_options.size();
-    BSLS_ASSERT_SAFE((optionsSize > 0 && d_currPushHeader.isSet()) ||
-                     (optionsSize == 0 && !d_currPushHeader.isSet()));
-
-    typedef bmqt::EventBuilderResult Result;
-    typedef OptionUtil::OptionMeta   OptionMeta;
-
-    const int  currentSize = eventSize() + sizeof(PushHeader);
-    const size_t size        = msgGroupId.length();
-    OptionMeta   option      = OptionMeta::forOptionWithPadding(
-        OptionType::e_MSG_GROUP_ID,
-        static_cast<int>(size));
-    Result::Enum rc = d_options.canAdd(currentSize, option);
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != Result::e_SUCCESS)) {
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        eraseCurrentMessage();
-        return rc;  // RETURN
-    }
-
-    rc = OptionUtil::isValidMsgGroupId(msgGroupId);
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != Result::e_SUCCESS)) {
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        eraseCurrentMessage();
-        return rc;  // RETURN
-    }
-
-    // Make sure PushHeader is written for current message
-    ensurePushHeader();
-
-    d_options.add(d_blob_sp.get(),
-                  reinterpret_cast<const char*>(msgGroupId.data()),
                   option);
 
     return bmqt::EventBuilderResult::e_SUCCESS;
