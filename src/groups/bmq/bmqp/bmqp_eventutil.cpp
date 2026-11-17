@@ -41,12 +41,6 @@ namespace bmqp {
 
 namespace {
 
-BSLMF_ASSERT(OptionType::k_HIGHEST_SUPPORTED_TYPE ==
-             OptionType::e_SUB_QUEUE_INFOS);
-// If we add new options (i.e. options other than SubQueueId), we simply
-// need to implement the processing of that particular option inside
-// 'importOptions' below.
-
 BSLMF_ASSERT(Protocol::SubQueueIdsArrayOld::static_size >= 1);
 // We want the static size of the SubQueueIdsArray to be at least one to
 // have our 'currSubQueueId' array in the 'flattenPushEvent' method not
@@ -303,24 +297,11 @@ Flattener::EventBuilderResult Flattener::importOptions()
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_optionsView.isValid());
 
-    static const int lowI = static_cast<int>(
-        OptionType::k_LOWEST_SUPPORTED_TYPE);
-    static const int highI = static_cast<int>(
-        OptionType::k_HIGHEST_SUPPORTED_TYPE);
-
     EventBuilderResult result = k_SUCCESS;
     for (OptionsView::const_iterator i = d_optionsView.begin();
          i != d_optionsView.end();
          ++i) {
         const OptionType::Enum type = *i;
-        const int              intI = static_cast<int>(*i);
-
-        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
-                !(lowI <= intI && intI <= highI))) {
-            BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-            // Not supported in this version
-            continue;  // CONTINUE
-        }
 
         switch (type) {
         case OptionType::e_SUB_QUEUE_IDS_OLD: {
@@ -328,32 +309,16 @@ Flattener::EventBuilderResult Flattener::importOptions()
             //       not need to handle it here.
             result = k_SUCCESS;
         } break;
-        case OptionType::e_MSG_GROUP_ID: {
-            typedef bdlma::LocalSequentialAllocator<
-                bmqp::Protocol::k_MSG_GROUP_ID_MAX_LENGTH + 1>
-                LSA;
-
-            LSA                        lsa(d_allocator_p);
-            bmqp::Protocol::MsgGroupId msgGroupId(&lsa);
-
-            const int rc = d_optionsView.loadMsgGroupIdOption(&msgGroupId);
-            if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
-                BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-                result = bmqt::EventBuilderResult::e_UNKNOWN;
-            }
-            else {
-                result = d_builder.addMsgGroupIdOption(msgGroupId);
-            }
-        } break;
         case OptionType::e_SUB_QUEUE_INFOS: {
             // NOTE: This case is explicitly handled by the caller and we do
             //       not need to handle it here.
             result = k_SUCCESS;
         } break;
-        // Add operations for your own 'OptionType's here.
-        case OptionType::e_UNDEFINED:
+        case OptionType::e_UNDEFINED: BSLA_FALLTHROUGH;
+        case OptionType::e_MSG_GROUP_ID: BSLA_FALLTHROUGH;
         default: {
-            BSLS_ASSERT_SAFE(false && "Unknown option");
+            // Not supported
+            continue;
         }
         }
 

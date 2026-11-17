@@ -707,19 +707,24 @@ struct OptionType {
         e_SUB_QUEUE_INFOS   = 3
     };
 
-    // CONSTANTS
-
-    /// NOTE: This value must always be equal to the lowest type in the
-    /// enum because it is being used as a lower bound to verify that an
-    /// OptionHeader's `type` field is a supported type.
-    static const int k_LOWEST_SUPPORTED_TYPE = e_SUB_QUEUE_IDS_OLD;
-
-    /// NOTE: This value must always be equal to the highest type in the
-    /// enum because it is being used as an upper bound to verify an
-    /// OptionHeader's `type` field is a supported type.
-    static const int k_HIGHEST_SUPPORTED_TYPE = e_SUB_QUEUE_INFOS;
-
     // CLASS METHODS
+
+    /// @brief Check whether an option type is supported.
+    ///
+    /// @param value The option type, as read from an `OptionHeader`.
+    ///
+    /// @return `true` if `value` is a supported option type, `false`
+    ///         otherwise.
+    static bool isSupported(int value)
+    {
+        switch (value) {
+        case e_SUB_QUEUE_IDS_OLD: BSLA_FALLTHROUGH;
+        case e_SUB_QUEUE_INFOS: return true;
+        case e_UNDEFINED: BSLA_FALLTHROUGH;
+        case e_MSG_GROUP_ID: BSLA_FALLTHROUGH;
+        default: return false;
+        }
+    }
 
     /// Write the string representation of the specified enumeration `value`
     /// to the specified output `stream`, and return a reference to
