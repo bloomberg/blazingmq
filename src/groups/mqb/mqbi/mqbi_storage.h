@@ -713,6 +713,10 @@ class Storage {
     /// reach a replica ahead of the replication carrying its record.
     virtual bool isPendingReplication(bsls::Types::Uint64 raftIndex) const = 0;
 
+    /// Return `true` if this node leads the Raft partition of this storage or
+    /// the partition is not on Raft, and `false` otherwise.
+    virtual bool isLeader() const = 0;
+
     /// @brief Retrieve a message and its metadata from this storage.
     ///
     /// @param[out] appData Loaded with the application data of the message.

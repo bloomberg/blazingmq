@@ -948,7 +948,7 @@ class Queue : public DispatcherClient {
     /// so the message is handed to the local or remote queue directly.
     ///
     /// THREAD: This method is called from the Queue's dispatcher thread.
-    virtual void postMessage(const bmqp::PutHeader&                    putHeader,
+    virtual void postMessage(const bmqp::PutHeader& putHeader,
                              const bsl::shared_ptr<const bdlbb::Blob>& appData,
                              const bsl::shared_ptr<bdlbb::Blob>&       options,
                              QueueHandle* source) = 0;

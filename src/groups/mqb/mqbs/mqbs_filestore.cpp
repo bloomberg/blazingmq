@@ -138,8 +138,8 @@ Proposal::Proposal(bslma::Allocator* basicAllocator)
 {
 }
 
-void Proposal::initMessage(mqbi::StorageMessageAttributes*           attributes,
-                           const bmqt::MessageGUID&                  guid,
+void Proposal::initMessage(mqbi::StorageMessageAttributes* attributes,
+                           const bmqt::MessageGUID&        guid,
                            const bsl::shared_ptr<const bdlbb::Blob>& appData,
                            const bsl::shared_ptr<bdlbb::Blob>&       options,
                            const mqbu::StorageKey&                   queueKey)

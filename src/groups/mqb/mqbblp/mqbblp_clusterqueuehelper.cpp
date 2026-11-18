@@ -5095,10 +5095,7 @@ void ClusterQueueHelper::onQueueUnassigned(
     if (hasParkedOpens && d_cluster_p->isRaftEnabled()) {
         // The parked opens need the queue assigned again.  This is to avoid
         // leaving them parked when the leader answered an earlier assignment
-        // request as already done, before proposing this unassignment.  Last
-        // in this function: a single-node cluster commits the assignment
-        // inline, which must not precede releasing the old queueKey and
-        // storage above.
+        // request as already done, before proposing this unassignment.
         const QueueContextMapIter it = d_queues.find(info->uri());
         if (it != d_queues.end() && !assignQueue(it->second)) {
             d_queues.erase(it);

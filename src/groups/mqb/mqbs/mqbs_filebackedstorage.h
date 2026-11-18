@@ -103,6 +103,10 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     // where -1 due to last confirm optimization.
     static const size_t k_MOST_LIKELY_NUM_RECORDS = 2;
 
+    // Return code of 'proposeDeletion' when a DELETION for the GUID is already
+    // proposed.  Positive, so distinct from the 'writeDeletionRecord' errors.
+    static const int k_ALREADY_PROPOSED = 1;
+
     // PRIVATE TYPES
     typedef bmqc::Array<DataStoreRecordHandle, k_MOST_LIKELY_NUM_RECORDS>
         RecordHandlesArray;
@@ -124,10 +128,6 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
         /// which takes another node winning an election, so the next lease
         /// this node sweeps under cannot match a value left behind that way.
         unsigned int d_deletionProposedLeaseId;
-
-        /// Return true if a DELETION record for this GUID was proposed under
-        /// the specified `leaseId` and has not committed.
-        bool wasDeletionProposed(unsigned int leaseId) const;
 
         void reset();
     };
@@ -249,6 +249,18 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     /// the map's own `gc` if `now` is 0.
     void removeMessage(RecordHandleMapIter it, bsls::Types::Int64 now);
 
+    /// Write a DELETION record for the specified `guid`, whose entry is the
+    /// specified `item`, with the specified `deletionFlag` and `timestamp`,
+    /// and mark `item` as having a DELETION proposed.  Return 0 on success,
+    /// `k_ALREADY_PROPOSED` without writing if `item` is already marked, or
+    /// the `writeDeletionRecord` error, leaving `item` unmarked.  On success
+    /// `item` may already be erased: on a single-node cluster the record
+    /// commits inside the write and `processDeletionRecord` erases the entry.
+    int proposeDeletion(Item*                    item,
+                        const bmqt::MessageGUID& guid,
+                        DeletionRecordFlag::Enum deletionFlag,
+                        bsls::Types::Uint64      timestamp);
+
     /// Drop the staged auto CONFIRMs and the Apps collected for the message
     /// being put, whose message is going away.
     void clearAutoConfirming();
@@ -289,6 +301,11 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
                          const DataStoreRecordHandle start);
 
     // PRIVATE ACCESSORS
+
+    /// Return true if a DELETION record for the GUID of the specified `item`
+    /// was proposed under the lease id `DataStore::writeHeadLeaseId` returns
+    /// and has not committed.
+    bool wasDeletionProposed(const Item& item) const;
 
     /// Callback function called by `d_capacityMeter` to log appllications
     /// subscription info into the specified `stream`.
@@ -365,6 +382,10 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     /// knows how far it has replicated.
     bool isPendingReplication(bsls::Types::Uint64 raftIndex) const
         BSLS_KEYWORD_OVERRIDE;
+
+    /// Return `true` if this node leads the Raft partition of this storage or
+    /// the partition is not on Raft, and `false` otherwise.
+    bool isLeader() const BSLS_KEYWORD_OVERRIDE;
 
     /// @brief Retrieve a message and its metadata from this storage.
     ///
@@ -657,15 +678,6 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
 // FileBackedStorage::Item
 // -----------------------
 
-inline bool
-FileBackedStorage::Item::wasDeletionProposed(unsigned int leaseId) const
-{
-    // 0 is both 'never proposed' and the lease id of a partition with no
-    // primary, so it never counts as a match.
-    return 0 != d_deletionProposedLeaseId &&
-           d_deletionProposedLeaseId == leaseId;
-}
-
 inline void FileBackedStorage::Item::reset()
 {
     d_array.clear();
@@ -775,6 +787,11 @@ inline bool
 FileBackedStorage::isPendingReplication(bsls::Types::Uint64 raftIndex) const
 {
     return d_store_p->isPendingReplication(raftIndex);
+}
+
+inline bool FileBackedStorage::isLeader() const
+{
+    return !d_store_p->isRaft() || d_store_p->isLeader();
 }
 
 inline mqbi::StorageResult::Enum

@@ -71,6 +71,36 @@ void FileBackedStorage::clearAutoConfirming()
     d_currentlyAutoConfirming = bmqt::MessageGUID();
 }
 
+int FileBackedStorage::proposeDeletion(Item*                    item,
+                                       const bmqt::MessageGUID& guid,
+                                       DeletionRecordFlag::Enum deletionFlag,
+                                       bsls::Types::Uint64      timestamp)
+{
+    if (wasDeletionProposed(*item)) {
+        return k_ALREADY_PROPOSED;  // RETURN
+    }
+
+    // Mark before the write: on a single-node cluster the record commits
+    // inside the write and erases the entry holding 'item'.  The mark keeps
+    // the TTL sweep, 'remove' and 'releaseRef' from writing a second DELETION
+    // while this one is in flight.
+    if (d_store_p->isRaft()) {
+        item->d_deletionProposedLeaseId = d_store_p->writeHeadLeaseId();
+    }
+
+    const int rc = d_store_p->writeDeletionRecord(guid,
+                                                  d_queueKey,
+                                                  deletionFlag,
+                                                  timestamp);
+    if (0 != rc) {
+        // Nothing was written, so 'item' is still live and its message is
+        // still to be deleted.
+        item->d_deletionProposedLeaseId = 0;
+    }
+
+    return rc;
+}
+
 void FileBackedStorage::purgeApp(const mqbu::StorageKey& appKey,
                                  bool                    asPrimary)
 {
@@ -613,21 +643,18 @@ FileBackedStorage::releaseRef(const bmqt::MessageGUID& guid, bool asPrimary)
             // This appKey was the last outstanding client for this message.
             // Message can now be deleted.
 
-            // Mark before the write: on a single-node cluster the record
-            // commits inside it and erases this entry, after which 'it' is
-            // dangling.  The mark keeps the TTL sweep from writing a second
-            // DELETION while this one is in flight.
             const bool isRaft = d_store_p->isRaft();
-            if (isRaft) {
-                it->second->d_deletionProposedLeaseId =
-                    d_store_p->writeHeadLeaseId();
-            }
-
-            int rc = d_store_p->writeDeletionRecord(
+            const int  rc     = proposeDeletion(
+                it->second.get(),
                 guid,
-                d_queueKey,
                 DeletionRecordFlag::e_NONE,
                 bdlt::EpochUtil::convertToTimeT64(bdlt::CurrentTime::utc()));
+
+            if (k_ALREADY_PROPOSED == rc) {
+                // The TTL sweep or an earlier CONFIRM already proposed a
+                // DELETION for this GUID.
+                return mqbi::StorageResult::e_ZERO_REFERENCES;  // RETURN
+            }
 
             if (0 != rc) {
                 BMQTSK_ALARMLOG_ALARM("FILE_IO")
@@ -673,24 +700,13 @@ FileBackedStorage::remove(const bmqt::MessageGUID& msgGUID, int* msgSize)
     int msgLen = static_cast<int>(d_store_p->getMessageLenRaw(handles[0]));
     const bool isRaft = d_store_p->isRaft();
 
-    // Mark before the write: on a single-node cluster the record commits
-    // inside it and erases this entry, after which 'it' is dangling.  The mark
-    // keeps the TTL sweep from writing a second DELETION while this one is in
-    // flight.
-    if (isRaft) {
-        it->second->d_deletionProposedLeaseId = d_store_p->writeHeadLeaseId();
-    }
-
-    int rc = d_store_p->writeDeletionRecord(
+    const int rc = proposeDeletion(
+        it->second.get(),
         msgGUID,
-        d_queueKey,
         DeletionRecordFlag::e_NONE,
         bdlt::EpochUtil::convertToTimeT64(bdlt::CurrentTime::utc()));
 
-    if (0 != rc) {
-        if (isRaft) {
-            it->second->d_deletionProposedLeaseId = 0;
-        }
+    if (0 != rc && k_ALREADY_PROPOSED != rc) {
         return mqbi::StorageResult::e_WRITE_FAILURE;  // RETURN
     }
 
@@ -971,7 +987,7 @@ int FileBackedStorage::gcExpiredMessages(const bdlt::Datetime& currentTimeUtc,
         }
         cit = next++;
 
-        if (cit->second->wasDeletionProposed(d_store_p->writeHeadLeaseId())) {
+        if (wasDeletionProposed(*cit->second)) {
             // A DELETION for this message is already in the log, waiting to
             // commit.  Sweeping again before it does would write a second one.
             continue;  // CONTINUE
@@ -1006,21 +1022,16 @@ int FileBackedStorage::gcExpiredMessages(const bdlt::Datetime& currentTimeUtc,
             deletionFlag = DeletionRecordFlag::e_TTL_EXPIRATION;
         }
 
-        // Read and mark before the write: on a single-node cluster the record
-        // commits inside it and 'processDeletionRecord' erases this entry,
-        // after which 'cit' is no longer live.
+        // Copy the GUID before the write: on a single-node cluster the record
+        // commits inside the write and 'processDeletionRecord' erases this
+        // entry, after which 'cit' is no longer live.
         const bmqt::MessageGUID guid   = cit->first;
         const bool              isRaft = d_store_p->isRaft();
 
-        if (isRaft) {
-            cit->second->d_deletionProposedLeaseId =
-                d_store_p->writeHeadLeaseId();
-        }
-
-        int rc = d_store_p->writeDeletionRecord(guid,
-                                                d_queueKey,
-                                                deletionFlag,
-                                                secondsFromEpoch);
+        const int rc = proposeDeletion(cit->second.get(),
+                                       guid,
+                                       deletionFlag,
+                                       secondsFromEpoch);
         if (0 != rc) {
             BMQTSK_ALARMLOG_ALARM("FILE_IO")
                 << "Partition [" << partitionId() << "]"
@@ -1029,8 +1040,6 @@ int FileBackedStorage::gcExpiredMessages(const bdlt::Datetime& currentTimeUtc,
                 << "', queueKey '" << d_queueKey << "' while attempting to GC "
                 << "the message due to TTL/ACK expiration, rc: " << rc
                 << BMQTSK_ALARMLOG_END;
-            // Nothing was written, so this message is still to be swept.
-            cit->second->d_deletionProposedLeaseId = 0;
 
             // Do NOT remove the expired record without replicating Deletion.
             return numMsgsDeleted;  // RETURN
@@ -1423,6 +1432,15 @@ void FileBackedStorage::removeAutoConfirmHandles()
     d_autoConfirmHandles.clear();
 
     d_currentlyAutoConfirming = bmqt::MessageGUID();
+}
+
+// PRIVATE ACCESSORS
+bool FileBackedStorage::wasDeletionProposed(const Item& item) const
+{
+    // 0 is both 'never proposed' and the lease id of a partition with no
+    // primary, so it never counts as a match.
+    return 0 != item.d_deletionProposedLeaseId &&
+           item.d_deletionProposedLeaseId == d_store_p->writeHeadLeaseId();
 }
 
 bsl::ostream&

@@ -501,6 +501,10 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     bool isPendingReplication(bsls::Types::Uint64 raftIndex) const
         BSLS_KEYWORD_OVERRIDE;
 
+    /// Return `true` if this node leads the Raft partition of this storage or
+    /// the partition is not on Raft, and `false` otherwise.
+    bool isLeader() const BSLS_KEYWORD_OVERRIDE;
+
     /// @brief Retrieve a message and its metadata from this storage.
     ///
     /// @param[out] appData Loaded with the application data of the message.
@@ -795,6 +799,11 @@ inline bool InMemoryStorage::hasMessage(const bmqt::MessageGUID& msgGUID) const
 inline bool InMemoryStorage::isPendingReplication(bsls::Types::Uint64) const
 {
     return false;
+}
+
+inline bool InMemoryStorage::isLeader() const
+{
+    return !d_store_p || !d_store_p->isRaft() || d_store_p->isLeader();
 }
 
 inline mqbi::StorageResult::Enum
