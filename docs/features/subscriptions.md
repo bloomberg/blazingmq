@@ -413,16 +413,16 @@ manipulation, as a tiny subset of the C programming language.
 ### Operator Precedence
 {:.no_toc}
 
- - Operator precedence and associativity are the same as in C; from high
-   precedence to low:
+ - Operator precedence is the same as in C, but relational operators do not
+   associate (see below); from high precedence to low:
 
 | Operator          | Associativity |
 | ----------------- | ------------- |
 | `!`               | Right         |
 | `*` `/` `%`       | Left          |
 | `+` `-`           | Left          |
-| `<` `<=` `>` `>=` | Left          |
-| `==` `!=`         | Left          |
+| `<` `<=` `>` `>=` | None          |
+| `==` `!=`         | None          |
 | `&&`              | Left          |
 | `||`              | Left          |
 
@@ -432,9 +432,14 @@ manipulation, as a tiny subset of the C programming language.
 - Operations with higher precedence are evaluated before operations
   with lower precedence. For example, `a*x+b>0` is evaluated as `((a*x)+b)>0`.
 
-- When two operators have the same precedence, they are evaluated from left to
-  right, except for `!` which is evaluated right to left. For example, in
-  `a-b-c` is evaluated as `(a-b)-c`. `!!ok` is evaluated as `!(!ok)`.
+- When two arithmetic or boolean operators have the same precedence, they are
+  evaluated from left to right, except for `!` which is evaluated right to
+  left. For example, in `a-b-c` is evaluated as `(a-b)-c`. `!!ok` is evaluated
+  as `!(!ok)`.
+
+- Relational operators of the same precedence do not associate, so they cannot
+  be chained: `a < b < c` and `a == b == c` are syntax errors. To test that `b`
+  lies between `a` and `c`, write `a < b && b < c`.
 
 ### Built-in functions
 {:.no_toc}
