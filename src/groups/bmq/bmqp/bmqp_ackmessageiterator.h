@@ -77,19 +77,18 @@ namespace bmqp {
 class AckMessageIterator {
   private:
     // DATA
+
+    /// Blob iterator pointing to the current message in the blob.
     bmqu::BlobIterator d_blobIter;
-    // Blob iterator pointing to the current
-    // message in the blob.
 
+    /// Header
     bmqu::BlobObjectProxy<AckHeader> d_header;
-    // Header
 
+    /// Current message
     bmqu::BlobObjectProxy<AckMessage> d_message;
-    // Current message
 
+    /// How much should we advance in 'next()'.
     int d_advanceLength;
-    // How much should we advance in
-    // 'next()'.
 
   private:
     // PRIVATE MANIPULATORS

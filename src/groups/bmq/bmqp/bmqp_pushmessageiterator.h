@@ -88,72 +88,58 @@ class PushMessageIterator {
 
   private:
     // DATA
+
+    /// Blob iterator pointing to the current message in the blob.
     bmqu::BlobIterator d_blobIter;
-    // Blob iterator pointing to the
-    // current message in the blob.
 
+    /// Current PushHeader
     PushHeader d_header;
-    // Current PushHeader
 
+    /// Computed application data real size (without padding). -1 if not
+    /// initialized. Note that if 'd_decompressFlag' is true, this will store
+    /// the size of decompressed application data and vice-versa.
     mutable int d_applicationDataSize;
-    // Computed application data real size
-    // (without padding). -1 if not
-    // initialized. Note that if
-    // 'd_decompressFlag' is true, this will
-    // store the size of decompressed
-    // application data and vice-versa.
 
+    /// Lazily computed payload real size (without padding).  -1 if not
+    /// initialized.
     mutable int d_lazyMessagePayloadSize;
-    // Lazily computed payload real size
-    // (without padding).  -1 if not
-    // initialized.
 
+    /// Lazily computed payload position.  Unset if not initialized.
     mutable bmqu::BlobPosition d_lazyMessagePayloadPosition;
-    // Lazily computed payload position.
-    // Unset if not initialized.
 
+    /// Message properties size.  0 if not initialized.  Note that this length
+    /// includes padding and message properties header.
     mutable int d_messagePropertiesSize;
-    // Message properties size.  0 if not
-    // initialized.  Note that this length
-    // includes padding and message
-    // properties header.
 
+    /// Application Data position. For each blob, initialized in next().
     bmqu::BlobPosition d_applicationDataPosition;
-    // Application Data position. For each
-    // blob, initialized in next().
 
+    /// Message options size.
     mutable int d_optionsSize;
-    // Message options size.
 
+    /// Message options position.  Unset if not initialized.
     mutable bmqu::BlobPosition d_optionsPosition;
-    // Message options position.  Unset if
-    // not initialized.
 
+    /// How much should we advance in the blob when calling 'next()'.  The
+    /// iterator is considered in invalid state if this value is == -1.
     int d_advanceLength;
-    // How much should we advance in the
-    // blob when calling 'next()'.  The
-    // iterator is considered in invalid
-    // state if this value is == -1.
 
+    /// The OptionsView for this iterator.
     mutable NullableOptionsView d_optionsView;
-    // The OptionsView for this iterator.
 
+    /// Flag indicating if message should be decompressed when calling next().
+    /// false if not initialized.
     bool d_decompressFlag;
-    // Flag indicating if message should be
-    // decompressed when calling next().
-    // false if not initialized.
 
+    /// Decompressed application data.  Populated only if d_decompressFlag is
+    /// true (empty otherwise).
     bdlbb::Blob d_applicationData;
-    // Decompressed application data.
-    // Populated only if d_decompressFlag is
-    // true (empty otherwise).
 
+    /// Buffer factory used for decompressed application data.
     bdlbb::BlobBufferFactory* d_bufferFactory_p;
-    // Buffer factory used for decompressed
-    // application data.
 
+    /// Allocator to use by this object.
     bslma::Allocator* d_allocator_p;
-    // Allocator to use by this object.
 
   private:
     // PRIVATE MANIPULATORS

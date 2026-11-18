@@ -78,18 +78,16 @@ namespace bmqp {
 class RecoveryMessageIterator {
   private:
     // DATA
+
+    /// Blob iterator pointing to the current message in the blob.
     bmqu::BlobIterator d_blobIter;
-    // Blob iterator pointing to the
-    // current message in the blob.
 
+    /// Current PutHeader
     bmqu::BlobObjectProxy<RecoveryHeader> d_header;
-    // Current PutHeader
 
+    /// How much should we advance in the blob when calling 'next()'.  The
+    /// iterator is considered in invalid state if this value is == -1.
     int d_advanceLength;
-    // How much should we advance in the
-    // blob when calling 'next()'.  The
-    // iterator is considered in invalid
-    // state if this value is == -1.
 
   private:
     // PRIVATE MANIPULATORS
