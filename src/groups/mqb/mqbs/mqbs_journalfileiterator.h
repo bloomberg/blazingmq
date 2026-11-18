@@ -108,13 +108,16 @@ class JournalFileIterator {
     /// and `isValid`.
     int nextRecord();
 
-    /// Advance to the message with the specified `distance` to the iterator's
-    /// configured direction.  Return 1 if the new position is valid and
-    /// represents a valid record, 0 if iteration has reached the end of the
-    /// file, or < 0 if an error was encountered.  Note that if this method
-    /// returns 0, this instance goes in an invalid state, and after that, only
-    /// valid operations on this instance are assignment, `reset` and
-    /// `isValid`.
+    /// @brief Move by `distance` records in the configured direction.
+    ///
+    /// If this returns 0, the iterator becomes invalid, and only
+    /// assignment, `reset` and `isValid` may be called on it.
+    ///
+    /// @param distance The number of records to move.  Must be non-zero.
+    ///
+    /// @return 1 if the new position is a valid record, 0 if the end of
+    ///         the file is reached, or < 0 on error, including zero
+    ///         `distance`.
     int advance(const bsls::Types::Uint64 distance);
 
     /// Changes the direction of the iterator.  Unlike calling reset,
