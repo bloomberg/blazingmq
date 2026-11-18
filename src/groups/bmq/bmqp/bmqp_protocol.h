@@ -394,9 +394,6 @@ struct Protocol {
     typedef bmqc::Array<unsigned int, k_SUBID_ARRAY_STATIC_LEN>
         SubQueueIdsArrayOld;
 
-    /// Holds the client-provided Group Id.
-    typedef bsl::string MsgGroupId;
-
     // CONSTANTS
     static const int k_VERSION = 1;
     // Version of the protocol
@@ -431,9 +428,6 @@ struct Protocol {
     static const int k_CONSUMER_PRIORITY_MAX;
     // Constant representing the maximum valid consumer
     // priority.  Must be >= 'k_CONSUMER_PRIORITY_MIN'.
-
-    static const int k_MSG_GROUP_ID_MAX_LENGTH = 31;
-    // Constant representing the maximum valid Group Id size.
 
     static const int k_MAX_OPTIONS_SIZE;
     // Constant representing the maximum size of options area
@@ -698,28 +692,33 @@ struct SubscriptionsFeatures {
 struct OptionType {
     // TYPES
     enum Enum {
-        // Values for the OptionHeader 'type' field.  Valid values are in the
-        // range [0, OptionHeader::k_MAX_TYPE].  They must begin at 0 and
-        // increment by one.
+        // Values for the OptionHeader 'type' field.
+        // They must begin at 0 and increment by one, and must not
+        // change value since they are used in network protocol.
         e_UNDEFINED         = 0,
         e_SUB_QUEUE_IDS_OLD = 1,
-        e_MSG_GROUP_ID      = 2,
+        e_UNUSED            = 2,
         e_SUB_QUEUE_INFOS   = 3
     };
 
-    // CONSTANTS
-
-    /// NOTE: This value must always be equal to the lowest type in the
-    /// enum because it is being used as a lower bound to verify that an
-    /// OptionHeader's `type` field is a supported type.
-    static const int k_LOWEST_SUPPORTED_TYPE = e_SUB_QUEUE_IDS_OLD;
-
-    /// NOTE: This value must always be equal to the highest type in the
-    /// enum because it is being used as an upper bound to verify an
-    /// OptionHeader's `type` field is a supported type.
-    static const int k_HIGHEST_SUPPORTED_TYPE = e_SUB_QUEUE_INFOS;
-
     // CLASS METHODS
+
+    /// @brief Check whether an option type is supported.
+    ///
+    /// @param value The option type, as read from an `OptionHeader`.
+    ///
+    /// @return `true` if `value` is a supported option type, `false`
+    ///         otherwise.
+    static bool isSupported(int value)
+    {
+        switch (value) {
+        case e_SUB_QUEUE_IDS_OLD: BSLA_FALLTHROUGH;
+        case e_SUB_QUEUE_INFOS: return true;
+        case e_UNDEFINED: BSLA_FALLTHROUGH;
+        case e_UNUSED: BSLA_FALLTHROUGH;
+        default: return false;
+        }
+    }
 
     /// Write the string representation of the specified enumeration `value`
     /// to the specified output `stream`, and return a reference to

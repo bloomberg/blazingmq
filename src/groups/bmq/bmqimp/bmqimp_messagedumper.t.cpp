@@ -201,11 +201,10 @@ struct Tester BSLS_CPP11_FINAL {
     void insertQueue(const bslstl::StringRef& uri);
 
     /// Add to the PUSH event being built a PUSH message having the
-    /// specified `payload` and the optionally specified `msgGroupId` and
-    /// associated with the queue corresponding to the specified `uri`. The
-    /// behavior is undefined unless a queue with the `uri` was created and
-    /// inserted using a call to `insertQueue`, or if packing the message is
-    /// unsuccessful.
+    /// specified `payload` and associated with the queue corresponding to
+    /// the specified `uri`. The behavior is undefined unless a queue with
+    /// the `uri` was created and inserted using a call to `insertQueue`,
+    /// or if packing the message is unsuccessful.
     void packPushMessage(const bslstl::StringRef& uri,
                          const bslstl::StringRef& payload,
                          unsigned int             subscriptionId);

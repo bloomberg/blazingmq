@@ -264,11 +264,6 @@ class PushMessageIterator {
     /// undefined unless `isValid` returns true.
     bool hasMessageProperties() const;
 
-    /// Return `true` if the message currently pointed by this iterator has
-    /// a Group Id associated with it, `false` otherwise.  Behavior is
-    /// undefined unless `isValid` returns true.
-    bool hasMsgGroupId() const;
-
     /// Return true if the message currently pointed by this iterator has an
     /// implicit application data, which means that message contains only a
     /// PUSH header and options.
@@ -375,12 +370,6 @@ class PushMessageIterator {
     void extractQueueInfo(int*          queueId,
                           unsigned int* subscriptionId,
                           RdaInfo*      rdaInfo) const;
-
-    /// Load into the specified `msgGroupId` the Group Id associated with
-    /// the message currently pointed to by this iterator.  Return `true` if
-    /// the load was successful or `false` otherwise.  Behavior is undefined
-    /// unless latest call to `next()` returned 1.
-    void extractMsgGroupId(bmqp::Protocol::MsgGroupId* msgGroupId) const;
 
     /// Return the size (in bytes) of wire representation for the message.
     int totalSize() const;
@@ -493,25 +482,6 @@ inline bool PushMessageIterator::hasMessageProperties() const
 
     return PushHeaderFlagUtil::isSet(header().flags(),
                                      PushHeaderFlags::e_MESSAGE_PROPERTIES);
-}
-
-inline bool PushMessageIterator::hasMsgGroupId() const
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(isValid());
-
-    if (!hasOptions()) {
-        return false;  // RETURN
-    }
-
-    initCachedOptionsView();
-
-    BSLS_ASSERT_SAFE(!d_optionsView.isNull());
-
-    OptionsView& optionsView = d_optionsView.value();
-    BSLS_ASSERT_SAFE(optionsView.isValid());
-
-    return optionsView.find(OptionType::e_MSG_GROUP_ID) != optionsView.end();
 }
 
 inline bool PushMessageIterator::isApplicationDataImplicit() const

@@ -358,15 +358,8 @@ void MessageDumper::dumpPushEvent(bsl::ostream& out, const bmqp::Event& event)
             << ", queue: " << queue->uri()
             << ", queueId: " << bmqp::QueueId(qId, queue->subQueueId())
             << ", rdaCounter: " << rdaInfo
-            << ", correlationId: " << correlationId;
-
-        if (iter.hasMsgGroupId()) {
-            bmqp::Protocol::MsgGroupId msgGroupId(d_allocator_p);
-            iter.extractMsgGroupId(&msgGroupId);
-            out << ", msgGroupId: \"" << msgGroupId << "\"";
-        }
-
-        out << ", payload length: " << iter.messagePayloadSize() << "], first "
+            << ", correlationId: " << correlationId
+            << ", payload length: " << iter.messagePayloadSize() << "], first "
             << e_NUM_BYTES_IN_BLOB_TO_DUMP
             << "-bytes hex dump of the payload:\n";
 
@@ -456,15 +449,8 @@ void MessageDumper::dumpPutEvent(bsl::ostream&             out,
             << "[correlationId: " << correlationId << ", queue: "
             << d_queueManager_p
                    ->lookupQueue(bmqp::QueueId(iter.header().queueId()))
-                   ->uri();
-
-        if (iter.hasMsgGroupId()) {
-            bmqp::Protocol::MsgGroupId msgGroupId(d_allocator_p);
-            iter.extractMsgGroupId(&msgGroupId);
-            out << ", msgGroupId: \"" << msgGroupId << "\"";
-        }
-
-        out << ", payload length: " << iter.messagePayloadSize() << "]"
+                   ->uri()
+            << ", payload length: " << iter.messagePayloadSize() << "]"
             << ", first " << e_NUM_BYTES_IN_BLOB_TO_DUMP << "-bytes "
             << "hex dump of the payload:\n";
 

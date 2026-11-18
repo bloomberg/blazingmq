@@ -191,15 +191,22 @@ class OptionsView {
     /// `initialOffset`.
     const_iterator advance(int initialOffset = -1) const;
 
-    /// Load the specified `payloadPosition` and `payloadSizeBytes` with the
-    /// position and the size respectively of the specified `optionType`
-    /// inside the blob.  Return 0 on success or a non-zero value if the
-    /// range for `optionType` doesn't fall within the blob.  If the
-    /// specified `hasPadding` is set, then `payloadSizeBytes` takes into
-    /// account (and excludes) the padding this option has.  Behavior is
-    /// undefined unless `isValid()` returns `true` and `find(optionType)`
-    /// returns a valid iterator.  Note that if the option blob is *packed*,
-    /// `payloadSizeBytes` will be loaded as zero.
+    /// @brief Load the position and size of the payload of the option of
+    ///        the specified `optionType`.
+    ///
+    /// @details If the specified `hasPadding` is true, the option payload
+    /// ends with 1 to `Protocol::k_WORD_SIZE` bytes of padding, the last of
+    /// which holds the padding count, and the loaded size excludes the
+    /// padding.  If the option is *packed*, the loaded size is zero.  The
+    /// behavior is undefined unless `isValid()` returns true and
+    /// `find(optionType)` returns a valid iterator.
+    ///
+    /// @param[out] payloadPosition  The position of the option payload.
+    /// @param[out] payloadSizeBytes The size of the option payload in bytes.
+    /// @param      optionType       The type of the option to locate.
+    /// @param      hasPadding       Whether the option payload is padded.
+    /// @returns Zero on success, or a non-zero value if the option does not
+    ///          fall within the blob or its padding count is malformed.
     int loadOptionPositionAndSize(bmqu::BlobPosition* payloadPosition,
                                   int*                payloadSizeBytes,
                                   const bmqp::OptionType::Enum optionType,
@@ -303,14 +310,6 @@ class OptionsView {
     /// infos will be set to zeros.  Else, behavior is undefined.
     int
     loadSubQueueInfosOption(Protocol::SubQueueInfosArray* subQueueInfos) const;
-
-    /// Load into the specified `msgGroupId` the Group Id associated with
-    /// the options pointed to by this view.  Return zero on success, and a
-    /// non-zero value otherwise.  Behavior is undefined unless `isValid()`
-    /// returns `true`, `find(bmqp::OptionType::Enum::e_MSG_GROUP_ID)`
-    /// returns a valid iterator and `msgGroupId` is a pointer to a valid
-    /// empty `Protocol::MsgGroupId`.
-    int loadMsgGroupIdOption(Protocol::MsgGroupId* msgGroupId) const;
 
     /// Return an iterator pointing to the beginning of the available
     /// `bmqp::OptionType::Enum` for this container

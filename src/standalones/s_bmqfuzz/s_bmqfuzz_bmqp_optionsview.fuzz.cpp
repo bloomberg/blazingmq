@@ -84,8 +84,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
 
     for (bmqp::OptionsView::const_iterator it = view.begin(); it != view.end();
          ++it) {
-        BSLS_ASSERT_OPT(*it >= bmqp::OptionType::k_LOWEST_SUPPORTED_TYPE);
-        BSLS_ASSERT_OPT(*it <= bmqp::OptionType::k_HIGHEST_SUPPORTED_TYPE);
+        BSLS_ASSERT_OPT(bmqp::OptionType::isSupported(*it));
     }
 
     const bool hasSubQueueIdsOld =
@@ -104,16 +103,6 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t* data, size_t size)
         bmqp::Protocol::SubQueueInfosArray subQueueInfos(alloc);
         const int loadRc = view.loadSubQueueInfosOption(&subQueueInfos);
         BSLS_ASSERT_OPT(loadRc != 0 || !subQueueInfos.empty());
-    }
-
-    if (view.find(bmqp::OptionType::e_MSG_GROUP_ID) != view.end()) {
-        bmqp::Protocol::MsgGroupId msgGroupId(alloc);
-        const int loadRc = view.loadMsgGroupIdOption(&msgGroupId);
-        BSLS_ASSERT_OPT(loadRc != 0 ||
-                        (!msgGroupId.empty() &&
-                         msgGroupId.size() <=
-                             static_cast<size_t>(
-                                 bmqp::Protocol::k_MSG_GROUP_ID_MAX_LENGTH)));
     }
 
     // Exercise copy and dump
