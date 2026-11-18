@@ -381,7 +381,7 @@ manipulation, as a tiny subset of the C programming language.
 {:.no_toc}
 
 - Relational operators are:
-  - `=`
+  - `==`
   - `!=`
   - `<`
   - `<=`
