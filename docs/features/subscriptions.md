@@ -377,6 +377,15 @@ manipulation, as a tiny subset of the C programming language.
   - `%` (modulus)
 - They require two integer arguments.
 
+- Arithmetic is performed on 64-bit signed integers.  An operation whose result
+  does not fit in a 64-bit signed integer is an error: results never wrap
+  around.  Division or modulus by zero is also an error.
+
+- An arithmetic error stops the evaluation of the whole expression, and the
+  message does not match the subscription.  For example, if `x` is
+  `9223372036854775807`, the largest 64-bit signed integer, neither
+  `x + 1 > x` nor `!(x + 1 > x)` matches.
+
 ### Relational Operators
 {:.no_toc}
 
