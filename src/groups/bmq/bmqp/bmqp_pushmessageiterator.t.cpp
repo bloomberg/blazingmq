@@ -1091,7 +1091,7 @@ static void test4_iterateInvalidPushEvent()
     // Second message is error..
     int rc = iter.next();
     BMQTST_ASSERT_LT(rc, 0);
-    bsl::cout << "Error returned: " << rc << bsl::endl;
+    bsl::cout << "Error returned: " << rc << "\n";
     iter.dumpBlob(bsl::cout);
 }
 
@@ -1531,7 +1531,7 @@ int main(int argc, char* argv[])
     case 2: test2_iteratorReset(); break;
     case 1: test1_breathingTest(); break;
     default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
+        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }

@@ -481,7 +481,7 @@ static void test1_breathingTest()
         for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
             const Test& test = k_DATA[idx];
 
-            bsl::cout << test.d_line << "'" << test.d_data << "'" << bsl::endl;
+            bsl::cout << test.d_line << "'" << test.d_data << "'" << "\n";
             bsls::Types::Int64 compressionTime   = 0;
             bsls::Types::Int64 decompressionTime = 0;
             bsl::string        inputString(test.d_data,
@@ -681,7 +681,7 @@ static void test2_compression_cluster_message()
             bmqtst::TestHelperUtil::allocator());
         BMQTST_ASSERT_EQ(rc, 0);
 
-        bsl::cout << "Input size: " << input.length() << endl;
+        bsl::cout << "Input size: " << input.length() << "\n";
 
         rc = bmqp::Compression_Impl::compressZlib(
             &compressed,
@@ -691,7 +691,7 @@ static void test2_compression_cluster_message()
             &error,
             bmqtst::TestHelperUtil::allocator());
         BMQTST_ASSERT_EQ(rc, 0);
-        bsl::cout << "Compressed size: " << compressed.length() << endl;
+        bsl::cout << "Compressed size: " << compressed.length() << "\n";
 
         rc = bmqp::Compression_Impl::decompressZlib(
             &decompressed,
@@ -702,7 +702,7 @@ static void test2_compression_cluster_message()
             bmqtst::TestHelperUtil::allocator());
         BMQTST_ASSERT_EQ(rc, 0);
         BMQTST_ASSERT_EQ(bdlbb::BlobUtil::compare(decompressed, input), 0);
-        bsl::cout << "Decompressed size: " << decompressed.length() << endl;
+        bsl::cout << "Decompressed size: " << decompressed.length() << "\n";
     }
 }
 
@@ -1026,7 +1026,7 @@ static void testN2_calculateThroughput()
                 (k_NUM_ITERS * bdlt::TimeUnitRatio::k_NS_PER_S * length) /
                 compressionTotalTime)
          << " per second.\n"
-         << endl;
+         << "\n";
 
     cout << "=========================\n";
     cout << "For a payload of length " << bmqu::PrintUtil::prettyBytes(length)
@@ -1049,7 +1049,7 @@ static void testN2_calculateThroughput()
                 (k_NUM_ITERS * bdlt::TimeUnitRatio::k_NS_PER_S * length) /
                 decompressionTotalTime)
          << " per second.\n"
-         << endl;
+         << "\n";
 }
 
 static void testN3_performanceCompressionRatio()
@@ -1245,7 +1245,7 @@ int main(int argc, char* argv[])
         break;
     case -3: testN3_performanceCompressionRatio(); break;
     default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
+        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }

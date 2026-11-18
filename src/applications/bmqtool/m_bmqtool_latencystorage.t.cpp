@@ -255,7 +255,7 @@ static void test_N1_manualSaveInspection()
 
     LatencyStorage storage("test", 3, bmqtst::TestHelperUtil::allocator());
 
-    cout << "\nGenerating random latencies..." << endl;
+    cout << "\nGenerating random latencies..." << "\n";
 
     const bsls::Types::Int64 k_ONE_MILLION = 1000000;
     const bsls::Types::Int64 k_ONE_BILLION = 1000000000;
@@ -275,38 +275,38 @@ static void test_N1_manualSaveInspection()
 
         // Print progress every 100k
         if ((i + 1) % 100000 == 0) {
-            cout << "  Inserted " << (i + 1) << " latencies" << endl;
+            cout << "  Inserted " << (i + 1) << " latencies" << "\n";
         }
     }
 
-    cout << "Saving to file..." << endl;
+    cout << "Saving to file..." << "\n";
     int rc = storage.save(filename);
     BMQTST_ASSERT_EQ(rc, 0);
 
-    cout << filename << endl;
+    cout << filename << "\n";
 
-    cout << "\nStatistics:" << endl;
+    cout << "\nStatistics:" << "\n";
     storage.printSummary(cout);
 
     // Get file size
     bsl::ifstream file(filename.c_str(), bsl::ios_base::ate);
     if (file) {
         bsl::streampos size = file.tellg();
-        cout << "\nFile size: " << size << " bytes" << endl;
+        cout << "\nFile size: " << size << " bytes" << "\n";
         file.close();
     }
 
-    cout << "\nFirst 50 lines of JSON:" << endl;
-    cout << "-----" << endl;
+    cout << "\nFirst 50 lines of JSON:" << "\n";
+    cout << "-----" << "\n";
     bsl::ifstream infile(filename.c_str());
     bsl::string   line;
     int           lineCount = 0;
     while (bsl::getline(infile, line) && lineCount < 50) {
-        cout << line << endl;
+        cout << line << "\n";
         ++lineCount;
     }
     infile.close();
-    cout << "-----" << endl;
+    cout << "-----" << "\n";
 }
 
 // ============================================================================
@@ -327,7 +327,7 @@ int main(int argc, char* argv[])
     case 6: test6_saveAndLoadTest(); break;
     case -1: test_N1_manualSaveInspection(); break;
     default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
+        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }

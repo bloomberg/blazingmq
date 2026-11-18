@@ -5195,7 +5195,7 @@ int main(int argc, char* argv[])
         case -2: testN2_broadcastExhaustiveCanDeliver(); break;
         case -3: testN3_broadcastExhaustiveConsumerPriority(); break;
         default: {
-            cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
+            cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
             bmqtst::TestHelperUtil::testStatus() = -1;
         } break;
         }

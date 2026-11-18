@@ -622,7 +622,7 @@ int main(int argc, char* argv[])
     case 2: test2_ops_on_custom_value_error_types(); break;
     case 1: test1_ops_on_string_int(); break;
     default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
+        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }

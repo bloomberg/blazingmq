@@ -797,8 +797,7 @@ int main(int argc, char* argv[])
     case 10: test10_lineDetailResultTest(); break;
     case 11: test11_lineSummaryTest(); break;
     default: {
-        bsl::cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND."
-                  << bsl::endl;
+        bsl::cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }

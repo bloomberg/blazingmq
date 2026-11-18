@@ -228,7 +228,7 @@ static void test0_usageExample()
     // iterating 1
     for (TestMap::iterator iter = map.begin(); iter != map.end(); ++iter) {
         bsl::cout << iter->key1() << " : " << iter->key2() << " => "
-                  << iter->value() << bsl::endl;
+                  << iter->value() << "\n";
     }
 
     // iterating 2
@@ -1966,8 +1966,7 @@ int main(int argc, char** argv)
     case 1: test1_basicCreators(); break;
     case 0: test0_usageExample(); break;
     default: {
-        bsl::cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND."
-                  << bsl::endl;
+        bsl::cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }

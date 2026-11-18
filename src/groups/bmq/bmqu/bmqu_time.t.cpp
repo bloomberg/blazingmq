@@ -257,7 +257,7 @@ static void testN1_performance()
         cout << k_NUM_CALLS << " function calls in "
              << bmqu::PrintUtil::prettyTimeInterval(end - start)
              << " (average of " << (end - start) / k_NUM_CALLS
-             << " nano seconds per call)." << endl;
+             << " nano seconds per call)." << "\n";
     }
 
     PV("Function pointer");
@@ -275,7 +275,7 @@ static void testN1_performance()
         cout << k_NUM_CALLS << " function calls in "
              << bmqu::PrintUtil::prettyTimeInterval(end - start)
              << " (average of " << (end - start) / k_NUM_CALLS
-             << " nano seconds per call)." << endl;
+             << " nano seconds per call)." << "\n";
     }
 
     PV("bsl::function");
@@ -293,7 +293,7 @@ static void testN1_performance()
         cout << k_NUM_CALLS << " function calls in "
              << bmqu::PrintUtil::prettyTimeInterval(end - start)
              << " (average of " << (end - start) / k_NUM_CALLS
-             << " nano seconds per call)." << endl;
+             << " nano seconds per call)." << "\n";
     }
 
     PV("bdlf::Bind");
@@ -311,7 +311,7 @@ static void testN1_performance()
         cout << k_NUM_CALLS << " function calls in "
              << bmqu::PrintUtil::prettyTimeInterval(end - start)
              << " (average of " << (end - start) / k_NUM_CALLS
-             << " nano seconds per call)." << endl;
+             << " nano seconds per call)." << "\n";
     }
 }
 
@@ -417,7 +417,7 @@ int main(int argc, char* argv[])
 #endif
         break;
     default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
+        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }

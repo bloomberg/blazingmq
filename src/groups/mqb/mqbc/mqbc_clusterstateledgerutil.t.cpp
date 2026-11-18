@@ -886,7 +886,7 @@ int main(int argc, char* argv[])
     case 9: test9_loadClusterMessageBlob(); break;
     case 10: test10_recordSize(); break;
     default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
+        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }

@@ -45,13 +45,12 @@ namespace {
 static void
 printSummary(bsl::string_view desc, bsls::Types::Int64 dt, size_t iters)
 {
-    bsl::cout << desc << ":" << bsl::endl;
+    bsl::cout << desc << ":" << "\n";
     bsl::cout << "       total: " << bmqu::PrintUtil::prettyTimeInterval(dt)
-              << " (" << iters << " iterations)" << bsl::endl;
+              << " (" << iters << " iterations)" << "\n";
     bsl::cout << "    per call: "
-              << bmqu::PrintUtil::prettyTimeInterval((dt) / iters)
-              << bsl::endl;
-    bsl::cout << bsl::endl;
+              << bmqu::PrintUtil::prettyTimeInterval((dt) / iters) << "\n";
+    bsl::cout << "\n";
 }
 
 void increment(size_t* calls)
@@ -370,10 +369,10 @@ static void testN1_ManagedCallbackPerformance()
         callback.reset();
     }
 
-    bsl::cout << "========= Benchmark 1: function call ==========" << bsl::endl
-              << "Build a functor once and call it multiple times" << bsl::endl
-              << "===============================================" << bsl::endl
-              << bsl::endl;
+    bsl::cout << "========= Benchmark 1: function call ==========" << "\n"
+              << "Build a functor once and call it multiple times" << "\n"
+              << "===============================================" << "\n"
+              << "\n";
     {
         bsl::function<void(void)> callback;
         callback = bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
@@ -416,10 +415,10 @@ static void testN1_ManagedCallbackPerformance()
                      k_ITERS_NUM);
     }
 
-    bsl::cout << "========= Benchmark 2: new construct ==========" << bsl::endl
-              << "Build a functor multiple times without calling" << bsl::endl
-              << "===============================================" << bsl::endl
-              << bsl::endl;
+    bsl::cout << "========= Benchmark 2: new construct ==========" << "\n"
+              << "Build a functor multiple times without calling" << "\n"
+              << "===============================================" << "\n"
+              << "\n";
     {
         bsl::vector<bsl::function<void(void)> > cbs(
             bmqtst::TestHelperUtil::allocator());
@@ -479,10 +478,10 @@ static void testN1_ManagedCallbackPerformance()
                      k_ITERS_NUM);
     }
 
-    bsl::cout << "========= Benchmark 3: reuse functor ==========" << bsl::endl
-              << "Reset and call a functor multiple times" << bsl::endl
-              << "===============================================" << bsl::endl
-              << bsl::endl;
+    bsl::cout << "========= Benchmark 3: reuse functor ==========" << "\n"
+              << "Reset and call a functor multiple times" << "\n"
+              << "===============================================" << "\n"
+              << "\n";
     {
         bsl::function<void(void)> callback;
 
@@ -530,10 +529,10 @@ static void testN1_ManagedCallbackPerformance()
                      k_ITERS_NUM);
     }
 
-    bsl::cout << "===== Benchmark 4: reuse complex functor ======" << bsl::endl
-              << "Reset and call a complex functor multiple times" << bsl::endl
-              << "===============================================" << bsl::endl
-              << bsl::endl;
+    bsl::cout << "===== Benchmark 4: reuse complex functor ======" << "\n"
+              << "Reset and call a complex functor multiple times" << "\n"
+              << "===============================================" << "\n"
+              << "\n";
     {
         bsl::function<void(void)> callback;
 
@@ -596,7 +595,7 @@ static void testN1_ManagedCallbackPerformance()
     }
 
     if (calls < 100000) {
-        bsl::cout << calls << bsl::endl;
+        bsl::cout << calls << "\n";
     }
 }
 
@@ -616,8 +615,7 @@ int main(int argc, char* argv[])
     case 1: test1_ManagedCallback(); break;
     case -1: testN1_ManagedCallbackPerformance(); break;
     default: {
-        bsl::cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND."
-                  << bsl::endl;
+        bsl::cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }

@@ -376,7 +376,7 @@ void test1_breathingTest()
         1024,
         bmqtst::TestHelperUtil::allocator());
 
-    PV(endl << "BREATHING TEST" << endl << "==============" << endl);
+    PV("\n" << "BREATHING TEST" << "\n" << "==============" << "\n");
 
     {
         // [1]
@@ -599,7 +599,7 @@ void test2_subQueueIdsOld()
 //   loadSubQueueIdsOption(...)
 // ------------------------------------------------------------------------
 {
-    PV(endl << "SUB QUEUE IDS OLD" << endl << "=================" << endl);
+    PV("\n" << "SUB QUEUE IDS OLD" << "\n" << "=================" << "\n");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
@@ -758,9 +758,9 @@ void test4_invalidOptionsArea()
 //   to load an option's payload as determined by the return code.
 // ------------------------------------------------------------------------
 {
-    PV(endl
-       << "INVALID OPTIONS AREA" << endl
-       << "====================" << endl);
+    PV("\n"
+       << "INVALID OPTIONS AREA" << "\n"
+       << "====================" << "\n");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
@@ -1476,7 +1476,7 @@ int main(int argc, char* argv[])
     case 2: test2_subQueueIdsOld(); break;
     case 1: test1_breathingTest(); break;
     default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
+        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }

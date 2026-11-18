@@ -74,7 +74,7 @@ static void aSsErT(int c, const char* s, int i)
 {
     if (c) {
         cout << "Error " << __FILE__ << "(" << i << "): " << s
-             << "    (failed)" << endl;
+             << "    (failed)" << "\n";
         if (0 <= testStatus && testStatus <= 100)
             ++testStatus;
     }
@@ -314,8 +314,7 @@ static void usageExample(bsl::ostream& stream, bslma::Allocator* allocator)
 
         // Print the table
         if (verbose) {
-            stream << bsl::endl
-                   << "After " << (i + 1) << " seconds:" << bsl::endl;
+            stream << "\n" << "After " << (i + 1) << " seconds:" << "\n";
             tip.update();
             bmqst::TableUtil::printTable(stream, tip);
         }
@@ -399,8 +398,7 @@ static void usageExampleUpdate(bsl::ostream&     stream,
 
         // Print the table
         if (verbose) {
-            stream << bsl::endl
-                   << "After " << (i + 1) << " seconds:" << bsl::endl;
+            stream << "\n" << "After " << (i + 1) << " seconds:" << "\n";
             tip.update();
             bmqst::TableUtil::printTable(stream, tip);
         }
@@ -767,7 +765,7 @@ static void valueLevelUsageExample(bsl::ostream&     stream,
         // Print with the TIP after each minute
         tip.update();
         if (verbose) {
-            stream << bsl::endl << "Minute number " << i;
+            stream << "\n" << "Minute number " << i;
             bmqst::TableUtil::printTable(stream, tip);
         }
     }
@@ -841,7 +839,7 @@ static void valueLevelUsageExampleUpdate(bsl::ostream&     stream,
         // Print with the TIP after each minute
         tip.update();
         if (verbose) {
-            stream << bsl::endl << "Minute number " << i;
+            stream << "\n" << "Minute number " << i;
             bmqst::TableUtil::printTable(stream, tip);
         }
     }
@@ -1121,7 +1119,7 @@ int main(int argc, char** argv)
 
     bsls::AssertFailureHandlerGuard g(bsls::AssertTest::failTestDriver);
 
-    cout << "TEST " << __FILE__ << " CASE " << test << endl;
+    cout << "TEST " << __FILE__ << " CASE " << test << "\n";
 
     switch (test) {
     case 0:  // Zero is always the leading case.
@@ -1131,7 +1129,7 @@ int main(int argc, char** argv)
         // --------------------------------------------------------------------
 
         if (verbose)
-            cout << endl << "TEST USER DATA" << endl << "==========" << endl;
+            cout << "\n" << "TEST USER DATA" << "\n" << "==========" << "\n";
         testUserData(&ta);
     } break;
 
@@ -1141,7 +1139,7 @@ int main(int argc, char** argv)
         // --------------------------------------------------------------------
 
         if (verbose)
-            cout << endl << "TEST DATUM" << endl << "==========" << endl;
+            cout << "\n" << "TEST DATUM" << "\n" << "==========" << "\n";
         testDatum(&ta);
     } break;
 
@@ -1151,9 +1149,9 @@ int main(int argc, char** argv)
         // --------------------------------------------------------------------
 
         if (verbose)
-            cout << endl
-                 << "USAGE EXAMPLES WITH UPDATES" << endl
-                 << "===========================" << endl;
+            cout << "\n"
+                 << "USAGE EXAMPLES WITH UPDATES" << "\n"
+                 << "===========================" << "\n";
         testUpdatesWithUsageExample(&ta);
     } break;
 
@@ -1163,7 +1161,7 @@ int main(int argc, char** argv)
         // --------------------------------------------------------------------
 
         if (verbose)
-            cout << endl << "TEST UPDATES" << endl << "============" << endl;
+            cout << "\n" << "TEST UPDATES" << "\n" << "============" << "\n";
         testUpdates(&ta);
     } break;
 
@@ -1172,9 +1170,9 @@ int main(int argc, char** argv)
         // USAGE EXAMPLE WITH VALUE LEVEL
         // --------------------------------------------------------------------
         if (verbose)
-            cout << endl
-                 << "USAGE EXAMPLE WITH VALUE LEVEL" << endl
-                 << "==============================" << endl;
+            cout << "\n"
+                 << "USAGE EXAMPLE WITH VALUE LEVEL" << "\n"
+                 << "==============================" << "\n";
         valueLevelUsageExample(cout, &ta);
     } break;
 
@@ -1183,9 +1181,9 @@ int main(int argc, char** argv)
         // USAGE EXAMPLE WITH SUBCONTEXT
         // --------------------------------------------------------------------
         if (verbose)
-            cout << endl
-                 << "USAGE EXAMPLE WITH SUBCONTEXT" << endl
-                 << "=============================" << endl;
+            cout << "\n"
+                 << "USAGE EXAMPLE WITH SUBCONTEXT" << "\n"
+                 << "=============================" << "\n";
         subcontextUsageExample(cout, &ta);
     } break;
 
@@ -1194,9 +1192,9 @@ int main(int argc, char** argv)
         // USAGE EXAMPLE WITH TABLE
         // --------------------------------------------------------------------
         if (verbose)
-            cout << endl
-                 << "USAGE EXAMPLE WITH TABLES" << endl
-                 << "=========================" << endl;
+            cout << "\n"
+                 << "USAGE EXAMPLE WITH TABLES" << "\n"
+                 << "=========================" << "\n";
         tableUsageExample(cout, &ta);
     } break;
 
@@ -1205,12 +1203,12 @@ int main(int argc, char** argv)
         // USAGE EXAMPLE
         // --------------------------------------------------------------------
         if (verbose)
-            cout << endl << "USAGE EXAMPLE" << endl << "=============" << endl;
+            cout << "\n" << "USAGE EXAMPLE" << "\n" << "=============" << "\n";
         usageExample(cout, &ta);
     } break;
 
     default:
-        cerr << "WARNING: CASE `" << test << "' NOT FOUND." << endl;
+        cerr << "WARNING: CASE `" << test << "' NOT FOUND." << "\n";
         testStatus = -1;
         break;
     }

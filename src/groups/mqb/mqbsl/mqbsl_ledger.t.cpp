@@ -1754,7 +1754,7 @@ int main(int argc, char* argv[])
         case 11: test11_aliasRecordRaw(); break;
         case 12: test12_aliasRecordBlob(); break;
         default: {
-            cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
+            cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
             bmqtst::TestHelperUtil::testStatus() = -1;
         } break;
         }
