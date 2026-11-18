@@ -82,7 +82,7 @@ class RecoveryMessageIterator {
     /// Blob iterator pointing to the current message in the blob.
     bmqu::BlobIterator d_blobIter;
 
-    /// Current PutHeader
+    /// Current RecoveryHeader
     bmqu::BlobObjectProxy<RecoveryHeader> d_header;
 
     /// How much should we advance in the blob when calling 'next()'.  The
