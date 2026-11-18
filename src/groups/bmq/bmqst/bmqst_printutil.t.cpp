@@ -92,7 +92,7 @@ int main(int argc, char* argv[])
     // int veryVerbose = argc > 3;
     // int veryVeryVerbose = argc > 4;
 
-    cout << "TEST " << __FILE__ << " CASE " << test << endl;
+    cout << "TEST " << __FILE__ << " CASE " << test << "\n";
 
     // Use test allocator
     bslma::TestAllocator testAllocator;
@@ -113,7 +113,7 @@ int main(int argc, char* argv[])
         // --------------------------------------------------------------------
 
         if (verbose)
-            cout << endl << "PRINTER TEST" << endl << "============" << endl;
+            cout << "\n" << "PRINTER TEST" << "\n" << "============" << "\n";
 
         {
             bsl::map<int, double> obj;
@@ -138,7 +138,7 @@ int main(int argc, char* argv[])
         // --------------------------------------------------------------------
 
         if (verbose)
-            cout << endl << "PRINT ORDINAL" << endl << "=============" << endl;
+            cout << "\n" << "PRINT ORDINAL" << "\n" << "=============" << "\n";
 
         const struct TestData {
             int         d_line;
@@ -188,9 +188,9 @@ int main(int argc, char* argv[])
         // --------------------------------------------------------------------
 
         if (verbose)
-            cout << endl
-                 << "PRINT TIME INTERVAL NS TEST" << endl
-                 << "===========================" << endl;
+            cout << "\n"
+                 << "PRINT TIME INTERVAL NS TEST" << "\n"
+                 << "===========================" << "\n";
 
         const struct TestData {
             int         d_line;
@@ -243,9 +243,9 @@ int main(int argc, char* argv[])
         // --------------------------------------------------------------------
 
         if (verbose)
-            cout << endl
-                 << "PRINT DOUBLE VALUE WITH SEPARATOR TEST" << endl
-                 << "======================================" << endl;
+            cout << "\n"
+                 << "PRINT DOUBLE VALUE WITH SEPARATOR TEST" << "\n"
+                 << "======================================" << "\n";
 
         const struct TestData {
             int         d_line;
@@ -301,9 +301,9 @@ int main(int argc, char* argv[])
         // --------------------------------------------------------------------
 
         if (verbose)
-            cout << endl
-                 << "PRINT VALUE WITH SEPARATOR TEST" << endl
-                 << "===============================" << endl;
+            cout << "\n"
+                 << "PRINT VALUE WITH SEPARATOR TEST" << "\n"
+                 << "===============================" << "\n";
 
         const Int64 maxInt = bsl::numeric_limits<Int64>::max();
         const Int64 minInt = bsl::numeric_limits<Int64>::min();
@@ -352,9 +352,9 @@ int main(int argc, char* argv[])
         // --------------------------------------------------------------------
 
         if (verbose)
-            cout << endl
-                 << "PRINT MEMORY TEST" << endl
-                 << "=================" << endl;
+            cout << "\n"
+                 << "PRINT MEMORY TEST" << "\n"
+                 << "=================" << "\n";
 
 #define TO_I64(x) static_cast<Int64>(x)
 
@@ -409,7 +409,7 @@ int main(int argc, char* argv[])
     } break;
 
     default: {
-        cerr << "WARNING: CASE '" << test << "' NOT FOUND." << endl;
+        cerr << "WARNING: CASE '" << test << "' NOT FOUND." << "\n";
         testStatus = -1;
     } break;
     }
@@ -425,7 +425,7 @@ int main(int argc, char* argv[])
     }
 
     if (testStatus > 0) {
-        cerr << "Error, non-zero test status = " << testStatus << "." << endl;
+        cerr << "Error, non-zero test status = " << testStatus << "." << "\n";
     }
     return testStatus;
 }

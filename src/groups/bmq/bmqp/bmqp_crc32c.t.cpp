@@ -1042,7 +1042,7 @@ static void testN1_performanceDefaultUserInput()
     bmqtst::TestHelper::printTestName(
         "PERFORMANCE: CALCULATE CRC32-C DEFAULT ON USER INPUT");
 
-    cout << "Please enter the string:" << endl << "> ";
+    cout << "Please enter the string:" << "\n" << "> ";
 
     // Read from stdin
     bsl::string input(bmqtst::TestHelperUtil::allocator());
@@ -1226,7 +1226,7 @@ static void testN3_defaultCalculateThroughput()
     //=======================================================================//
     //                        [4] Report
 
-    cout << endl;
+    cout << "\n";
     cout << "=========================\n";
 #ifdef BSLS_PLATFORM_CPU_64_BIT
     cout << "DEFAULT {SSE 4.2, 64 bit}\n";
@@ -1242,13 +1242,13 @@ static void testN3_defaultCalculateThroughput()
          << "In other words: "
          << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
                 (k_NUM_ITERS * bdlt::TimeUnitRatio::k_NS_PER_S) / diffDef))
-         << " HW-version iterations per second." << endl
+         << " HW-version iterations per second." << "\n"
          << "HW-version throughput: "
          << bmqu::PrintUtil::prettyBytes(
                 (k_NUM_ITERS * bdlt::TimeUnitRatio::k_NS_PER_S * bufLen) /
                 diffDef)
          << " per second.\n\n"
-         << endl;
+         << "\n";
 
     bmqtst::TestHelperUtil::allocator()->deallocate(buf);
     static_cast<void>(resultDef);
@@ -1311,14 +1311,14 @@ static void testN3_bdldCalculateThroughput()
          << "In other words: "
          << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
                 (k_NUM_ITERS * bdlt::TimeUnitRatio::k_NS_PER_S) / diffBde))
-         << " BDE-version iterations per second." << endl
+         << " BDE-version iterations per second." << "\n"
          << "BDE-version throughput: "
          << bmqu::PrintUtil::prettyBytes(
                 (k_NUM_ITERS * bdlt::TimeUnitRatio::k_NS_PER_S * bufLen) /
                 diffBde)
          << " per second.\n"
-         << endl
-         << endl;
+         << "\n"
+         << "\n";
 
     bmqtst::TestHelperUtil::allocator()->deallocate(buf);
     static_cast<void>(resultBde);
@@ -1699,7 +1699,7 @@ testN1_performanceDefaultUserInput_GoogleBenchmark(benchmark::State& state)
         "GOOGLE BENCHMARK PERFORMANCE: "
         "CALCULATE CRC32-C DEFAULT ON USER INPUT");
 
-    cout << "Please enter the string:" << endl << "> ";
+    cout << "Please enter the string:" << "\n" << "> ";
 
     // Read from stdin
     bsl::string input(bmqtst::TestHelperUtil::allocator());
@@ -2002,7 +2002,7 @@ int main(int argc, char* argv[])
             Apply(populateBufferLengthsSorted_GoogleBenchmark_Large));
         break;
     default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
+        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }

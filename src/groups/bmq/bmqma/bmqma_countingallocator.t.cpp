@@ -221,7 +221,7 @@ static void test3_deallocate()
 #endif
 
     if (skipTestForSanitizers) {
-        bsl::cout << "Test skipped (running under sanitizer)" << bsl::endl;
+        bsl::cout << "Test skipped (running under sanitizer)" << "\n";
         return;  // RETURN
     }
 
@@ -808,7 +808,7 @@ int main(int argc, char** argv)
 #endif
         break;
     default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
+        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }

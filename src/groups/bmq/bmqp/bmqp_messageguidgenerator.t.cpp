@@ -260,7 +260,7 @@ HashBenchmarkStats benchmarkHash(const bsl::string& name)
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(hasher(guid) == i)) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
             // To prevent this loop from being optimized out in Release
-            bsl::cout << bsl::endl;
+            bsl::cout << "\n";
         }
     }
     const bsls::Types::Int64 end = bsls::TimeUtil::getTimer();
@@ -281,7 +281,7 @@ HashBenchmarkStats benchmarkHash(const bsl::string& name)
          << stats.d_timePerHashNs << " nano seconds.\n"
          << "In other words: "
          << bmqu::PrintUtil::prettyNumber(stats.d_hashesPerSecond)
-         << " hashes per second." << endl;
+         << " hashes per second." << "\n";
 
     return stats;
 }
@@ -845,20 +845,20 @@ static void test6_defaultHashUniqueness()
 
     if (maxDuplicates >= k_MAX_EXPECTED_DUPLICATES) {
         cout << "Hash duplicates percentage..........: "
-             << 100 - 100.0f * hashes.size() / k_NUM_GUIDS << "%" << endl
+             << 100 - 100.0f * hashes.size() / k_NUM_GUIDS << "%" << "\n"
              << "Max duplicates per hash............: " << maxDuplicates
-             << endl
+             << "\n"
              << "Hash...............................: " << maxDuplicatesHash
-             << endl
+             << "\n"
              << "Num GUIDs with that hash...........: "
-             << hashes[maxDuplicatesHash].size() << endl
-             << "GUIDs with the highest collisions..: " << endl;
+             << hashes[maxDuplicatesHash].size() << "\n"
+             << "GUIDs with the highest collisions..: " << "\n";
 
         Guids& guids = hashes[maxDuplicatesHash];
         for (size_t i = 0; i < guids.size(); ++i) {
             cout << "  ";
             bmqp::MessageGUIDGenerator::print(cout, guids[i]);
-            cout << endl;
+            cout << "\n";
         }
     }
 }
@@ -935,20 +935,20 @@ static void test7_customHashUniqueness()
 
     if (maxCollisions >= k_MAX_EXPECTED_COLLISIONS) {
         cout << "Hash collision percentage..........: "
-             << 100 - 100.0f * hashes.size() / k_NUM_GUIDS << "%" << endl
+             << 100 - 100.0f * hashes.size() / k_NUM_GUIDS << "%" << "\n"
              << "Max collisions.....................: " << maxCollisions
-             << endl
+             << "\n"
              << "Hash...............................: " << maxCollisionsHash
-             << endl
+             << "\n"
              << "Num GUIDs with that hash...........: "
-             << hashes[maxCollisionsHash].size() << endl
-             << "GUIDs with the highest collisions..: " << endl;
+             << hashes[maxCollisionsHash].size() << "\n"
+             << "GUIDs with the highest collisions..: " << "\n";
 
         Guids& guids = hashes[maxCollisionsHash];
         for (size_t i = 0; i < guids.size(); ++i) {
             cout << "  ";
             bmqp::MessageGUIDGenerator::print(cout, guids[i]);
-            cout << endl;
+            cout << "\n";
         }
     }
 }
@@ -985,8 +985,8 @@ static void testN1_decode()
     cout << "Please enter the hex representation of a GUID, followed by\n"
          << "<enter> when done (optionally, specify the nanoSecondsFromEpoch\n"
          << "to resolve the time):\n"
-         << "  hexGUID [nanoSecondsFromEpoch]" << endl
-         << endl;
+         << "  hexGUID [nanoSecondsFromEpoch]" << "\n"
+         << "\n";
 
     // Read from stdin
     char buffer[256];
@@ -1001,7 +1001,7 @@ static void testN1_decode()
 
     // Ensure valid input
     if (!bmqt::MessageGUID::isValidHexRepresentation(hexGuid.c_str())) {
-        cout << "The input '" << buffer << "' is not a valid hex GUID" << endl;
+        cout << "The input '" << buffer << "' is not a valid hex GUID" << "\n";
         return;  // RETURN
     }
 
@@ -1010,7 +1010,7 @@ static void testN1_decode()
         is >> nanoSecondsFromEpoch;
         if (is.fail()) {
             cout << "The input '" << buffer << "' is not properly formatted "
-                 << "[hexGuid nanoSecondsFromEpoch]" << endl;
+                 << "[hexGuid nanoSecondsFromEpoch]" << "\n";
             return;  // RETURN
         }
     }
@@ -1021,9 +1021,9 @@ static void testN1_decode()
     BMQTST_ASSERT_EQ(guid.isUnset(), false);
 
     // Print it
-    cout << "--------------------------------" << endl;
+    cout << "--------------------------------" << "\n";
     bmqp::MessageGUIDGenerator::print(cout, guid);
-    cout << endl;
+    cout << "\n";
 
     if (nanoSecondsFromEpoch != 0) {
         int                version;
@@ -1044,12 +1044,11 @@ static void testN1_decode()
             const bdlt::Datetime timestamp =
                 bdlt::EpochUtil::convertFromTimeInterval(interval);
 
-            bsl::cout << "Converted timestamp (UTC): " << timestamp
-                      << bsl::endl;
+            bsl::cout << "Converted timestamp (UTC): " << timestamp << "\n";
         }
         else {
             bsl::cout << "GUID field extraction failed (rc: " << rc << ")"
-                      << bsl::endl;
+                      << "\n";
         }
     }
 }
@@ -1109,7 +1108,7 @@ static void testN2_bmqtPerformance()
          << bmqu::PrintUtil::prettyNumber((k_NUM_GUIDS * 1000000000) /
                                           (end - start))
          << " bmqt::MessageGUIDs per second.\n\n"
-         << endl;
+         << "\n";
 }
 
 BSLA_MAYBE_UNUSED
@@ -1164,7 +1163,7 @@ static void testN2_bdlbPerformance()
          << "In other words: "
          << bmqu::PrintUtil::prettyNumber((k_NUM_GUIDS * 1000000000) /
                                           (end - start))
-         << " bdlb::Guids per second." << endl;
+         << " bdlb::Guids per second." << "\n";
 }
 
 BSLA_MAYBE_UNUSED static void testN3_defaultHashBenchmark()
@@ -1259,7 +1258,7 @@ BSLA_MAYBE_UNUSED static void testN5_hashTableWithDefaultHashBenchmark()
          << "In other words: "
          << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
                 (k_NUM_ELEMS * 1000000000) / (end - begin)))
-         << " insertions per second." << endl;
+         << " insertions per second." << "\n";
 }
 
 BSLA_MAYBE_UNUSED static void testN6_hashTableWithCustomHashBenchmark()
@@ -1312,7 +1311,7 @@ BSLA_MAYBE_UNUSED static void testN6_hashTableWithCustomHashBenchmark()
          << "In other words: "
          << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
                 (k_NUM_ELEMS * 1000000000) / (end - begin)))
-         << " insertions per second." << endl;
+         << " insertions per second." << "\n";
 }
 
 BSLA_MAYBE_UNUSED static void testN7_orderedMapWithDefaultHashBenchmark()
@@ -1363,7 +1362,7 @@ BSLA_MAYBE_UNUSED static void testN7_orderedMapWithDefaultHashBenchmark()
          << "In other words: "
          << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
                 (k_NUM_ELEMS * 1000000000) / (end - begin)))
-         << " insertions per second." << endl;
+         << " insertions per second." << "\n";
 }
 
 BSLA_MAYBE_UNUSED static void testN8_orderedMapWithCustomHashBenchmark()
@@ -1415,7 +1414,7 @@ BSLA_MAYBE_UNUSED static void testN8_orderedMapWithCustomHashBenchmark()
          << "In other words: "
          << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
                 (k_NUM_ELEMS * 1000000000) / (end - begin)))
-         << " insertions per second." << endl;
+         << " insertions per second." << "\n";
 }
 
 BSLA_MAYBE_UNUSED
@@ -1707,9 +1706,9 @@ static void testN10_hashCollisionsComparison()
         sample.resize(bmqt::MessageGUID::e_SIZE_HEX);
         guids.at(k_NUM_GUIDS / 2).toHex(sample.data());
 
-        bsl::cout << "Distribution <" << gen.d_name << ">:" << bsl::endl;
-        bsl::cout << gen.d_description << bsl::endl;
-        bsl::cout << "Sample: " << sample << bsl::endl << bsl::endl;
+        bsl::cout << "Distribution <" << gen.d_name << ">:" << "\n";
+        bsl::cout << gen.d_description << "\n";
+        bsl::cout << "Sample: " << sample << "\n" << "\n";
 
         for (size_t checkerId = 0; checkerId < k_NUM_HASH_CHECKERS;
              checkerId++) {
@@ -2104,7 +2103,7 @@ int main(int argc, char* argv[])
     case -9: testN9_hashBenchmarkComparison(); break;
     case -10: testN10_hashCollisionsComparison(); break;
     default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
+        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
