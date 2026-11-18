@@ -112,14 +112,22 @@ struct ZLib {
                               bdlbb::BlobBufferFactory* factory,
                               z_stream*                 stream);
 
-    /// Apply the operation given by the specified `zlibMethod` and
-    /// `zlibEndMethod` on the specified `input` using the specified
-    /// `stream`, and write the result to the specified `output`.  If the
-    /// specified `maxOutputSize` is non-zero, fail as soon as the
-    /// accumulated output would exceed `maxOutputSize` bytes; a value
-    /// of 0 means no limit is enforced.  Return 0 on success and
-    /// non-zero otherwise, in which case a message is written to the
-    /// specified `errorStream` if it is non-zero.
+    /// @brief Run `zlibMethod` on `input` through `stream` and append the
+    ///        result to `output`, then end `stream` with `zlibEndMethod`.
+    ///
+    /// Input with trailing data after the end of the stream is an error.
+    ///
+    /// @param[out] output        The blob to append the result to.
+    /// @param      factory       The factory supplying output data buffers.
+    /// @param      stream        The initialized zlib stream.
+    /// @param      errorStream   If non-null, receives error details.
+    /// @param      input         The data to process.
+    /// @param      zlibMethod    The zlib method to run, such as `inflate`.
+    /// @param      zlibEndMethod The zlib method that ends `stream`.
+    /// @param      maxOutputSize The maximum output size in bytes, or 0 for
+    ///                           no limit.
+    ///
+    /// @return 0 on success, or a non-zero code otherwise.
     static int writeOutput(bdlbb::Blob*              output,
                            bdlbb::BlobBufferFactory* factory,
                            z_stream*                 stream,
@@ -238,7 +246,8 @@ int ZLib::writeOutput(bdlbb::Blob*              output,
         rc_STREAM_INIT_FAILURE    = -1,
         rc_STREAM_PROCESS_FAILURE = -2,
         rc_STREAM_END_FAILURE     = -3,
-        rc_MAX_SIZE_EXCEEDED      = -4
+        rc_MAX_SIZE_EXCEEDED      = -4,
+        rc_TRAILING_DATA          = -5
     };
 
     bdlbb::BlobBuffer inBuffer;
@@ -255,8 +264,20 @@ int ZLib::writeOutput(bdlbb::Blob*              output,
         advanceOutput(output, &outBuffer, factory, stream);
 
         result = zlibMethod(stream, Z_NO_FLUSH);
-        if (Z_OK != result && Z_BUF_ERROR != result &&
-            Z_STREAM_END != result) {
+
+        if (Z_STREAM_END == result) {
+            // Trailing data after the end of the stream is an error.
+            if (stream->total_in != static_cast<uLong>(input.length())) {
+                setError(errorStream,
+                         "Input has trailing data after compressed stream",
+                         0);
+                zlibEndMethod(stream);
+                return rc_TRAILING_DATA;  // RETURN
+            }
+            break;  // BREAK
+        }
+
+        if (Z_OK != result && Z_BUF_ERROR != result) {
             setError(errorStream,
                      "Error processing stream",
                      result,

@@ -85,18 +85,22 @@ struct Compression {
                         bsl::ostream*                        errorStream = 0,
                         bslma::Allocator*                    allocator   = 0);
 
-    /// Decompress the data within the specified `input` as per the
-    /// specified `algorithm`, and load the uncompressed data into specified
-    /// `output`, using the specified `factory` to supply the needed data
-    /// buffers. Return 0 on success, and non-zero otherwise. Optionally
-    /// specify a `maxOutputSize`, in bytes, beyond which decompression fails
-    /// closed with a non-zero return code rather than continuing to allocate
-    /// output buffers; a value of 0 (the default) means no limit is enforced.
-    /// This bounds the memory consumed when decompressing highly-compressible
-    /// input. Optionally specify an `errorStream` to record details
-    /// on any errors that may occur during this operation. Also, optionally
-    /// specify `allocator` which will be used to supply memory.  Also note,
-    /// that any existing data in the specified `output` will be preserved.
+    /// @brief Decompress `input` using `algorithm` and append the result to
+    ///        `output`.
+    ///
+    /// Existing data in `output` is preserved.  Input with trailing data
+    /// after the end of the compressed stream is an error.
+    ///
+    /// @param[out] output        The blob to append the decompressed data to.
+    /// @param      factory       The factory supplying output data buffers.
+    /// @param      algorithm     The compression algorithm of `input`.
+    /// @param      input         The compressed data.
+    /// @param      maxOutputSize The maximum decompressed size in bytes, or 0
+    ///                           for no limit.
+    /// @param      errorStream   If non-null, receives error details.
+    /// @param      allocator     The allocator supplying memory.
+    ///
+    /// @return 0 on success, or a non-zero code otherwise.
     static int decompress(bdlbb::Blob*                         output,
                           bdlbb::BlobBufferFactory*            factory,
                           bmqt::CompressionAlgorithmType::Enum algorithm,
@@ -134,16 +138,20 @@ struct Compression_Impl {
                             bsl::ostream*             errorStream,
                             bslma::Allocator*         allocator);
 
-    /// Decompress the data within the specified `input` as according to the
-    /// Zlib algorithm, and load the uncompressed data into the specified
-    /// `output` blob, using the specified `factory` to supply needed data
-    /// buffers. Return 0 on success, and non-zero otherwise. Optionally
-    /// specify a `maxOutputSize`, in bytes, beyond which decompression fails
-    /// closed with a non-zero return code rather than continuing to allocate
-    /// output buffers; a value of 0 (the default) means no limit is enforced.
-    /// Specify an `errorStream` to record details on any errors that may
-    /// occur during this operation. Also, specify `allocator` which will be
-    /// used to supply memory. Return 0 on success, and non-zero otherwise.
+    /// @brief Decompress Zlib `input` and append the result to `output`.
+    ///
+    /// Input with trailing data after the end of the compressed stream is an
+    /// error.
+    ///
+    /// @param[out] output        The blob to append the decompressed data to.
+    /// @param      factory       The factory supplying output data buffers.
+    /// @param      input         The compressed data.
+    /// @param      maxOutputSize The maximum decompressed size in bytes, or 0
+    ///                           for no limit.
+    /// @param      errorStream   If non-null, receives error details.
+    /// @param      allocator     The allocator supplying memory.
+    ///
+    /// @return 0 on success, or a non-zero code otherwise.
     static int decompressZlib(bdlbb::Blob*              output,
                               bdlbb::BlobBufferFactory* factory,
                               const bdlbb::Blob&        input,
