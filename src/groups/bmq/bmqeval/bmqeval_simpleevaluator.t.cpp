@@ -70,6 +70,7 @@ MockPropertiesReader::MockPropertiesReader(bslma::Allocator* allocator)
     d_map["i_neg1"]  = bdld::Datum::createInteger(-1);
     d_map["s_foo"]   = bdld::Datum::createStringRef("foo", allocator);
     d_map["exists"]  = bdld::Datum::createInteger(42);
+    d_map["bin"]     = bdld::Datum::createError(ErrorType::e_BINARY);
 }
 
 bdld::Datum MockPropertiesReader::get(const bsl::string& name,
@@ -567,6 +568,8 @@ static void test3_evaluation()
         {"exists(non_existing_property) && non_existing_property > 41", false},
         {"exists == 42", true},
         {"exists(exists)", true},
+        {"exists(bin)", true},
+        {"!exists(bin)", false},
     };
     const TestParameters* testParametersEnd = testParameters +
                                               sizeof(testParameters) /
@@ -614,6 +617,9 @@ static void test4_evaluationErrors()
 
         // undefined property
         {"non_existing_property", ErrorType::e_NAME},
+
+        // binary property
+        {"bin == 1", ErrorType::e_BINARY},
 
         // division by zero
         {"i_42 / i_0 == 0", ErrorType::e_ARITHMETIC},
