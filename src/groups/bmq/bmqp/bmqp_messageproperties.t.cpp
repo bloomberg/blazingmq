@@ -16,6 +16,7 @@
 #include <bmqp_messageproperties.h>
 
 // BMQ
+#include <bmqeval_simpleevaluator.h>
 #include <bmqp_protocol.h>
 #include <bmqp_protocolutil.h>
 #include <bmqt_resultcode.h>
@@ -1450,6 +1451,81 @@ static void test13_streamInMalformedHeaderTest()
     BMQTST_ASSERT_EQ(0, dst.numProperties());
 }
 
+static void test14_getPropertyRefTest()
+// ------------------------------------------------------------------------
+// GET PROPERTY REF TEST
+//
+// Concerns:
+//   'getPropertyRef' returns a Datum holding the value of a property of
+//   each supported type, and an error Datum with the corresponding
+//   'bmqeval::ErrorType' code for a missing or binary property.
+//
+// Plan:
+//   1. Set a property of each type.
+//   2. Verify the Datum returned for each, and for a missing name.
+//
+// Testing:
+//   bdld::Datum getPropertyRef(bsl::string_view, bslma::Allocator*) const;
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("GET PROPERTY REF TEST");
+
+    bslma::Allocator*       alloc = bmqtst::TestHelperUtil::allocator();
+    bmqp::MessageProperties p(alloc);
+
+    BMQTST_ASSERT_EQ(0, p.setPropertyAsBool("bool", true));
+    BMQTST_ASSERT_EQ(0, p.setPropertyAsChar("char", 'c'));
+    BMQTST_ASSERT_EQ(0, p.setPropertyAsShort("short", 42));
+    BMQTST_ASSERT_EQ(0, p.setPropertyAsInt32("int32", 4200));
+    BMQTST_ASSERT_EQ(0,
+                     p.setPropertyAsInt64("int64",
+                                          bsls::Types::Int64(42000000000LL)));
+    BMQTST_ASSERT_EQ(0, p.setPropertyAsString("string", "value"));
+    BMQTST_ASSERT_EQ(0,
+                     p.setPropertyAsBinary("binary",
+                                           bsl::vector<char>(3, 'b', alloc)));
+
+    bdld::Datum d = p.getPropertyRef("bool", alloc);
+    BMQTST_ASSERT(d.isBoolean());
+    BMQTST_ASSERT_EQ(true, d.theBoolean());
+    bdld::Datum::destroy(d, alloc);
+
+    d = p.getPropertyRef("char", alloc);
+    BMQTST_ASSERT(d.isInteger());
+    BMQTST_ASSERT_EQ(static_cast<int>('c'), d.theInteger());
+    bdld::Datum::destroy(d, alloc);
+
+    d = p.getPropertyRef("short", alloc);
+    BMQTST_ASSERT(d.isInteger());
+    BMQTST_ASSERT_EQ(42, d.theInteger());
+    bdld::Datum::destroy(d, alloc);
+
+    d = p.getPropertyRef("int32", alloc);
+    BMQTST_ASSERT(d.isInteger());
+    BMQTST_ASSERT_EQ(4200, d.theInteger());
+    bdld::Datum::destroy(d, alloc);
+
+    d = p.getPropertyRef("int64", alloc);
+    BMQTST_ASSERT(d.isInteger64());
+    BMQTST_ASSERT_EQ(bsls::Types::Int64(42000000000LL), d.theInteger64());
+    bdld::Datum::destroy(d, alloc);
+
+    d = p.getPropertyRef("string", alloc);
+    BMQTST_ASSERT(d.isString());
+    BMQTST_ASSERT(d.theString() == "value");
+    bdld::Datum::destroy(d, alloc);
+
+    d = p.getPropertyRef("binary", alloc);
+    BMQTST_ASSERT(d.isError());
+    BMQTST_ASSERT_EQ(bmqeval::ErrorType::e_BINARY, d.theError().code());
+    bdld::Datum::destroy(d, alloc);
+
+    d = p.getPropertyRef("missing", alloc);
+    BMQTST_ASSERT(d.isError());
+    BMQTST_ASSERT_EQ(bmqeval::ErrorType::e_NAME, d.theError().code());
+    bdld::Datum::destroy(d, alloc);
+}
+
 #ifdef BMQTST_BENCHMARK_ENABLED
 
 struct MessagePropertiesBenchmark_getPropertyRef {
@@ -1627,6 +1703,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 14: test14_getPropertyRefTest(); break;
     case 13: test13_streamInMalformedHeaderTest(); break;
     case 12: test12_emptyPropertyValueStreamOutTest(); break;
     case 11: test11_binaryPropertyRvalueTest(); break;
