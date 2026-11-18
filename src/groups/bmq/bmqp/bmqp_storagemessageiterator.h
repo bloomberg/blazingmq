@@ -82,7 +82,7 @@ class StorageMessageIterator {
     /// Blob iterator pointing to the current message in the blob.
     bmqu::BlobIterator d_blobIter;
 
-    /// Current PutHeader
+    /// Current StorageHeader
     bmqu::BlobObjectProxy<StorageHeader> d_header;
 
     /// How much should we advance in the blob when calling 'next()'.  The
