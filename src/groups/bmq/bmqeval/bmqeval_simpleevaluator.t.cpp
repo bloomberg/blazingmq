@@ -552,6 +552,7 @@ static void test3_evaluation()
         {"b_true != false", true},
         {"b_false != true", true},
         {"b_false != false", false},
+        {"(b_true == true) == b_true", true},
         // overflows
         // supported_ints
         {"i_0 != -32768", true},                // -(2 ** 15)
@@ -632,6 +633,11 @@ static void test4_evaluationErrors()
         // quotient overflow
         {"i64_min / i_neg1 == 0", ErrorType::e_ARITHMETIC},
         {"i64_min % i_neg1 == 0", ErrorType::e_ARITHMETIC},
+
+        // comparison with a boolean literal
+        {"(s_foo == true) == s_foo", ErrorType::e_TYPE},
+        {"(true == s_foo) == s_foo", ErrorType::e_TYPE},
+        {"(i_1 != false) == i_1", ErrorType::e_TYPE},
 
     };
     const TestParameters* testParametersEnd = testParameters +
