@@ -45,6 +45,7 @@
 #include <bsl_iostream.h>
 #include <bsl_iterator.h>
 #include <bsl_memory.h>
+#include <bsl_string_view.h>
 #include <bsl_vector.h>
 
 // CONVENIENCE
@@ -868,6 +869,68 @@ static void test4_decompressionSizeLimit()
     }
 }
 
+static void test5_decompressionTrailingData()
+// ------------------------------------------------------------------------
+// DECOMPRESSION WITH TRAILING DATA
+//
+// Concerns:
+//   Decompressing input that has trailing data after the end of a valid
+//   compressed stream must return an error.
+//
+// Plan:
+//   - Compress a payload and append trailing data to the compressed data.
+//   - Decompress it and check that a non-zero code is returned.
+//
+// Testing:
+//   bmqp::Compression::decompress
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("DECOMPRESSION TRAILING DATA TEST");
+
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+
+    bmqu::MemOutStream error(bmqtst::TestHelperUtil::allocator());
+
+    // Build a valid input payload.
+    const bsl::string_view k_DATA = "Hello, BlazingMQ!";
+
+    bdlbb::Blob input(&bufferFactory, bmqtst::TestHelperUtil::allocator());
+    bdlbb::BlobUtil::append(&input,
+                            k_DATA.data(),
+                            static_cast<int>(k_DATA.length()));
+
+    // Compress the valid payload into a valid stream.
+    bdlbb::Blob compressed(&bufferFactory,
+                           bmqtst::TestHelperUtil::allocator());
+    int         rc = bmqp::Compression::compress(
+        &compressed,
+        &bufferFactory,
+        bmqt::CompressionAlgorithmType::e_ZLIB,
+        input,
+        &error,
+        bmqtst::TestHelperUtil::allocator());
+    BMQTST_ASSERT_EQ(rc, 0);
+
+    // Append trailing data after the end of the compressed stream.
+    const bsl::string_view k_TRAILING = "junk";
+    bdlbb::BlobUtil::append(&compressed,
+                            k_TRAILING.data(),
+                            static_cast<int>(k_TRAILING.length()));
+
+    bdlbb::Blob decompressed(&bufferFactory,
+                             bmqtst::TestHelperUtil::allocator());
+    rc = bmqp::Compression::decompress(&decompressed,
+                                       &bufferFactory,
+                                       bmqt::CompressionAlgorithmType::e_ZLIB,
+                                       compressed,
+                                       0,  // no cap
+                                       &error,
+                                       bmqtst::TestHelperUtil::allocator());
+    BMQTST_ASSERT_NE(rc, 0);
+}
+
 // ============================================================================
 //                              PERFORMANCE TESTS
 // ----------------------------------------------------------------------------
@@ -1230,6 +1293,7 @@ int main(int argc, char* argv[])
     case 2: test2_compression_cluster_message(); break;
     case 3: test3_compression_decompression_none(); break;
     case 4: test4_decompressionSizeLimit(); break;
+    case 5: test5_decompressionTrailingData(); break;
     case -1:
         BMQTST_BENCHMARK_WITH_ARGS(
             testN1_performanceCompressionDecompressionDefault,
