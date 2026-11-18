@@ -653,9 +653,9 @@ static void test5_iteratorLoading()
         BMQTST_ASSERT_EQ(event.isValid(),
                          (test.d_type != bmqp::EventType::e_UNDEFINED));
 
-        bmqp::AckMessageIterator      ackIter;
-        bmqp::ConfirmMessageIterator  confirmIter;
-        bmqp::PushMessageIterator     pushIter(
+        bmqp::AckMessageIterator     ackIter;
+        bmqp::ConfirmMessageIterator confirmIter;
+        bmqp::PushMessageIterator    pushIter(
             &bufferFactory,
             bmqtst::TestHelperUtil::allocator());
         bmqp::PutMessageIterator      putIter(&bufferFactory,

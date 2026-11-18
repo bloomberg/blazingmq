@@ -58,8 +58,8 @@ using namespace bsl;
 namespace {
 
 struct Data {
-    bmqt::MessageGUID                  d_guid;
-    int                                d_qid;
+    bmqt::MessageGUID                    d_guid;
+    int                                  d_qid;
     bmqp::Protocol::SubQueueInfosArray   d_subQueueInfos;
     bdlbb::Blob                          d_payload;
     int                                  d_flags;

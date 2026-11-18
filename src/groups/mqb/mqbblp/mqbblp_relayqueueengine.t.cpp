@@ -944,7 +944,7 @@ static void test11_roundRobinAndRedelivery()
     appIDs.push_back("b");
     appIDs.push_back("c");
 
-    mqbblp::QueueEngineTester tester(config,
+    mqbblp::QueueEngineTester                                tester(config,
                                      false,  // start scheduler
                                      bmqtst::TestHelperUtil::allocator());
     mqbblp::QueueEngineTesterGuard<mqbblp::RelayQueueEngine> guard(&tester);
@@ -1625,7 +1625,7 @@ static void test19_redeliveryAndResume()
     appIDs.push_back("a");
     appIDs.push_back("b");
 
-    mqbblp::QueueEngineTester tester(config,
+    mqbblp::QueueEngineTester                                tester(config,
                                      false,  // start scheduler
                                      bmqtst::TestHelperUtil::allocator());
     mqbblp::QueueEngineTesterGuard<mqbblp::RelayQueueEngine> guard(&tester);
@@ -1829,7 +1829,7 @@ static void test21_deliverOutOfOrder()
     appIDs.push_back("a");
     appIDs.push_back("b");
 
-    mqbblp::QueueEngineTester tester(config,
+    mqbblp::QueueEngineTester                                tester(config,
                                      false,  // start scheduler
                                      bmqtst::TestHelperUtil::allocator());
     mqbblp::QueueEngineTesterGuard<mqbblp::RelayQueueEngine> guard(&tester);

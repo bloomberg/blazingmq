@@ -466,7 +466,7 @@ bool CommandLineArguments::isValidRecordType(const bsl::string* recordType,
 {
     if (*recordType != k_ALL_TYPE && *recordType != k_MESSAGE_TYPE &&
         *recordType != k_QUEUEOP_TYPE && *recordType != k_JOURNALOP_TYPE) {
-        stream << "--record-type invalid: " << *recordType << bsl::endl;
+        stream << "--record-type invalid: " << *recordType << "\n";
 
         return false;  // RETURN
     }
@@ -483,7 +483,7 @@ bool CommandLineArguments::isValidCslRecordType(
         *cslRecordType != k_CSL_UPDATE_TYPE &&
         *cslRecordType != k_CSL_COMMIT_TYPE &&
         *cslRecordType != k_CSL_ACK_TYPE) {
-        stream << "--csl-record-type invalid: " << *cslRecordType << bsl::endl;
+        stream << "--csl-record-type invalid: " << *cslRecordType << "\n";
         return false;  // RETURN
     }
 
@@ -495,7 +495,7 @@ bool CommandLineArguments::isValidPrintMode(const bsl::string* printMode,
 {
     if (*printMode != k_HUMAN_MODE && *printMode != k_JSON_PRETTY_MODE &&
         *printMode != k_JSON_LINE_MODE) {
-        stream << "--print-mode invalid: " << *printMode << bsl::endl;
+        stream << "--print-mode invalid: " << *printMode << "\n";
 
         return false;  // RETURN
     }
@@ -507,8 +507,7 @@ bool CommandLineArguments::isValidFileName(const bsl::string* fileName,
                                            bsl::ostream&      stream)
 {
     if (!bdls::FilesystemUtil::isRegularFile(*fileName, true)) {
-        stream << "The specified file does not exist: " << *fileName
-               << bsl::endl;
+        stream << "The specified file does not exist: " << *fileName << "\n";
 
         return false;  // RETURN
     }
@@ -740,7 +739,7 @@ void Parameters::validateQueueNames() const
     for (; it != d_queueName.cend(); ++it) {
         if (!d_queueMap.findKeyByUri(*it).has_value()) {
             ss << "Queue name: '" << *it << "' is not found in Csl file."
-               << bsl::endl;
+               << "\n";
         }
     }
     if (!ss.isEmpty()) {

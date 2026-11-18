@@ -232,7 +232,7 @@ class TestContext {
 TestContext::TestContext(int nodesCount, bslma::Allocator* allocator)
 : d_allocator_p(bslma::Default::allocator(allocator))
 , d_tempDir(d_allocator_p)
-, d_cluster_mp(new(*d_allocator_p) mqbmock::Cluster(
+, d_cluster_mp(new (*d_allocator_p) mqbmock::Cluster(
                    d_allocator_p,
                    true,   // isClusterMember
                    false,  // isLeader

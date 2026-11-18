@@ -460,8 +460,8 @@ static void test2_instanceInvariants()
     bmqa::QueueId*                  dummyQueueIdPtr             = 0;
     bmqt::CorrelationId             dummyCorrelationId;
     bmqt::QueueOptions              dummyQueueOptions;
-    bmqt::Uri dummyUri(bmqtst::TestHelperUtil::allocator());
-    bsls::TimeInterval              dummyTimeInterval(0);
+    bmqt::Uri          dummyUri(bmqtst::TestHelperUtil::allocator());
+    bsls::TimeInterval dummyTimeInterval(0);
 
     const bmqa::AbstractSession::OpenQueueCallback      openQueueCallback;
     const bmqa::AbstractSession::ConfigureQueueCallback configureQueueCallback;

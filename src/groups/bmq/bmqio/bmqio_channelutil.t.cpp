@@ -115,7 +115,7 @@ static void test1_handleRead_singlePacket()
         bdlbb::Blob packet(&bufferFactory,
                            bmqtst::TestHelperUtil::allocator());
         bdlbb::Blob input(&bufferFactory, bmqtst::TestHelperUtil::allocator());
-        int                            numNeeded = 0;
+        int         numNeeded = 0;
 
         const int rc = bmqio::ChannelUtil::handleRead(&packet,
                                                       &numNeeded,
@@ -134,7 +134,7 @@ static void test1_handleRead_singlePacket()
         bdlbb::Blob packet(&bufferFactory,
                            bmqtst::TestHelperUtil::allocator());
         bdlbb::Blob input(&bufferFactory, bmqtst::TestHelperUtil::allocator());
-        int                            numNeeded = 0;
+        int         numNeeded = 0;
 
         const int totalLength = k_MINIMUM_PACKET_LENGTH + 12;
         appendToInputBlob(&input, 3, totalLength);
@@ -155,7 +155,7 @@ static void test1_handleRead_singlePacket()
         bdlbb::Blob packet(&bufferFactory,
                            bmqtst::TestHelperUtil::allocator());
         bdlbb::Blob input(&bufferFactory, bmqtst::TestHelperUtil::allocator());
-        int                            numNeeded = 0;
+        int         numNeeded = 0;
 
         const int totalLength = k_MINIMUM_PACKET_LENGTH + 12;
         appendToInputBlob(&input, totalLength, totalLength - 1);
@@ -176,7 +176,7 @@ static void test1_handleRead_singlePacket()
         bdlbb::Blob packet(&bufferFactory,
                            bmqtst::TestHelperUtil::allocator());
         bdlbb::Blob input(&bufferFactory, bmqtst::TestHelperUtil::allocator());
-        int                            numNeeded = 0;
+        int         numNeeded = 0;
 
         const int totalLength = k_MINIMUM_PACKET_LENGTH + 12;
         appendToInputBlob(&input, totalLength, totalLength);
@@ -197,7 +197,7 @@ static void test1_handleRead_singlePacket()
         bdlbb::Blob packet(&bufferFactory,
                            bmqtst::TestHelperUtil::allocator());
         bdlbb::Blob input(&bufferFactory, bmqtst::TestHelperUtil::allocator());
-        int                            numNeeded = 0;
+        int         numNeeded = 0;
 
         const int totalLength = k_MINIMUM_PACKET_LENGTH + 12;
         appendToInputBlob(&input, totalLength, totalLength);
@@ -222,7 +222,7 @@ static void test2_handleRead_multiplePackets()
             bmqtst::TestHelperUtil::allocator());
         bsl::vector<bdlbb::Blob> packets(bmqtst::TestHelperUtil::allocator());
         bdlbb::Blob input(&bufferFactory, bmqtst::TestHelperUtil::allocator());
-        int                            numNeeded = 0;
+        int         numNeeded = 0;
 
         const int totalLength = k_MINIMUM_PACKET_LENGTH + 12;
         appendToInputBlob(&input, totalLength, totalLength);
@@ -249,7 +249,7 @@ static void test2_handleRead_multiplePackets()
             bmqtst::TestHelperUtil::allocator());
         bsl::vector<bdlbb::Blob> packets(bmqtst::TestHelperUtil::allocator());
         bdlbb::Blob input(&bufferFactory, bmqtst::TestHelperUtil::allocator());
-        int                            numNeeded = 0;
+        int         numNeeded = 0;
 
         const int totalLength = k_MINIMUM_PACKET_LENGTH + 12;
         appendToInputBlob(&input, totalLength, totalLength);
@@ -276,7 +276,7 @@ static void test2_handleRead_multiplePackets()
             bmqtst::TestHelperUtil::allocator());
         bsl::vector<bdlbb::Blob> packets(bmqtst::TestHelperUtil::allocator());
         bdlbb::Blob input(&bufferFactory, bmqtst::TestHelperUtil::allocator());
-        int                            numNeeded = 0;
+        int         numNeeded = 0;
 
         const int totalLength = k_MINIMUM_PACKET_LENGTH + 12;
         appendToInputBlob(&input, totalLength, totalLength);
@@ -303,7 +303,7 @@ static void test2_handleRead_multiplePackets()
             bmqtst::TestHelperUtil::allocator());
         bsl::vector<bdlbb::Blob> packets(bmqtst::TestHelperUtil::allocator());
         bdlbb::Blob input(&bufferFactory, bmqtst::TestHelperUtil::allocator());
-        int                            numNeeded = 0;
+        int         numNeeded = 0;
 
         const int totalLength = k_MINIMUM_PACKET_LENGTH + 12;
         appendToInputBlob(&input, totalLength, totalLength);
@@ -333,7 +333,7 @@ static void test2_handleRead_multiplePackets()
             bmqtst::TestHelperUtil::allocator());
         bsl::vector<bdlbb::Blob> packets(bmqtst::TestHelperUtil::allocator());
         bdlbb::Blob input(&bufferFactory, bmqtst::TestHelperUtil::allocator());
-        int                            numNeeded = 0;
+        int         numNeeded = 0;
 
         const int totalLength = k_MINIMUM_PACKET_LENGTH + 12;
         appendToInputBlob(&input, totalLength, totalLength);
@@ -361,7 +361,7 @@ static void test2_handleRead_multiplePackets()
             bmqtst::TestHelperUtil::allocator());
         bsl::vector<bdlbb::Blob> packets(bmqtst::TestHelperUtil::allocator());
         bdlbb::Blob input(&bufferFactory, bmqtst::TestHelperUtil::allocator());
-        int                            numNeeded = 0;
+        int         numNeeded = 0;
 
         const int totalLength = k_MINIMUM_PACKET_LENGTH + 12;
         appendToInputBlob(&input, totalLength, totalLength);

@@ -653,9 +653,9 @@ inline size_t Tester<Builder>::verify(
 
     bmqio::TestChannel::WriteCall writeCall;
     size_t                        writeCallIndex = 0;
-    Iterator<Builder> itEvents(&d_bufferFactory, d_allocator_p);
-    size_t            counter    = 0;
-    size_t            writeBlobs = 0;
+    Iterator<Builder>             itEvents(&d_bufferFactory, d_allocator_p);
+    size_t                        counter    = 0;
+    size_t                        writeBlobs = 0;
 
     for (BlobDeque::iterator itHistory = d_history.begin();
          itHistory != d_history.end();

@@ -283,8 +283,8 @@ static void test3_enhancedLog()
     const double             k_MSGS_THRESHOLD            = 0.5;
     const bsls::Types::Int64 k_MSGS_HIGH_WATERMARK_VALUE = k_MSGS_LIMIT *
                                                            k_MSGS_THRESHOLD;
-    const bsls::Types::Int64 k_BYTES_LIMIT                = 1024;
-    const double             k_BYTES_THRESHOLD            = 0.8;
+    const bsls::Types::Int64 k_BYTES_LIMIT     = 1024;
+    const double             k_BYTES_THRESHOLD = 0.8;
 
     bmqtst::ScopedLogObserver observer(ball::Severity::e_WARN,
                                        bmqtst::TestHelperUtil::allocator());
