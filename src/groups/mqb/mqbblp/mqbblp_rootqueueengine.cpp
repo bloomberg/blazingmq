@@ -183,6 +183,14 @@ void RootQueueEngine::deliverMessages(AppState* app)
 
     BSLS_ASSERT_SAFE(d_queueState_p->storage());
 
+    if (!d_queueState_p->storage()->isLeader()) {
+        // Self lost Raft leadership and the queue is local until
+        // 'convertQueuesToRemote'.  Do not deliver.  This is to avoid pushing
+        // the messages of the new leader, which this node applies as a
+        // follower (duplicates).
+        return;  // RETURN
+    }
+
     if (!app->isAuthorized()) {
         return;  // RETURN
     }
@@ -1433,6 +1441,11 @@ void RootQueueEngine::afterNewMessage()
     BSLS_ASSERT_SAFE(queue);
 
     BSLS_ASSERT_SAFE(queue->inDispatcherThread());
+
+    if (!d_queueState_p->storage()->isLeader()) {
+        // See 'deliverMessages'.
+        return;  // RETURN
+    }
 
     mqbi::StorageIterator* storageIt = d_storageIter_mp.get();
     bsls::TimeInterval     now       = bsls::SystemTime::now(
