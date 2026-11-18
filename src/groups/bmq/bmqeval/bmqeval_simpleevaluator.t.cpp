@@ -67,6 +67,9 @@ MockPropertiesReader::MockPropertiesReader(bslma::Allocator* allocator)
     d_map["i64_min"] = bdld::Datum::createInteger64(
         bsl::numeric_limits<bsls::Types::Int64>::min(),
         allocator);
+    d_map["i64_max"] = bdld::Datum::createInteger64(
+        bsl::numeric_limits<bsls::Types::Int64>::max(),
+        allocator);
     d_map["i_neg1"]  = bdld::Datum::createInteger(-1);
     d_map["s_foo"]   = bdld::Datum::createStringRef("foo", allocator);
     d_map["exists"]  = bdld::Datum::createInteger(42);
@@ -556,6 +559,14 @@ static void test3_evaluation()
         {"i_0 != 9223372036854775807", true},   // 2 ** 63 - 1
         {"i_0 != -9223372036854775808", true},  // -(2 ** 63)
 
+        // arithmetic at the limits of Int64
+        {"i64_max - i_1 < i64_max", true},
+        {"i64_min + i_1 > i64_min", true},
+        {"i64_max + i64_min == i_neg1", true},
+        {"i64_min * i_1 == i64_min", true},
+        {"i64_max * i_neg1 == i64_min + i_1", true},
+        {"-i64_max == i64_min + i_1", true},
+
         // exists
         // Note that we allow to set a message property with name `exists`.
         // In this case the usage context defines whether it's a function call
@@ -624,6 +635,21 @@ static void test4_evaluationErrors()
         // quotient overflow
         {"i64_min / i_neg1 == 0", ErrorType::e_ARITHMETIC},
         {"i64_min % i_neg1 == 0", ErrorType::e_ARITHMETIC},
+        // addition overflow
+        {"i64_max + i_1 > 0", ErrorType::e_ARITHMETIC},
+        {"i64_min + i_neg1 < 0", ErrorType::e_ARITHMETIC},
+        {"9223372036854775807 + 1 > 0 && i_0 == 0", ErrorType::e_ARITHMETIC},
+        // subtraction overflow
+        {"i64_min - i_1 < 0", ErrorType::e_ARITHMETIC},
+        {"i64_max - i_neg1 > 0", ErrorType::e_ARITHMETIC},
+        // multiplication overflow
+        {"i64_max * i_2 > 0", ErrorType::e_ARITHMETIC},
+        {"i64_min * i_neg1 > 0", ErrorType::e_ARITHMETIC},
+        {"i_neg1 * i64_min > 0", ErrorType::e_ARITHMETIC},
+        // negation overflow
+        {"-i64_min > 0", ErrorType::e_ARITHMETIC},
+        // complex arithmetic overflow
+        {"i64_min / 2 - (i64_min / 2 - 1) > 0", ErrorType::e_ARITHMETIC},
 
     };
     const TestParameters* testParametersEnd = testParameters +
