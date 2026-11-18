@@ -485,10 +485,11 @@ class MessageProperties {
                                bslma::Allocator* basicAllocator) const;
 
     // Return a reference to the property with the specified 'name' if
-    // property with such a name exists.  Return 'bdld::Datum::createError'
-    // if property with 'name' does not exist.  Behavior is undefined when
-    // accessing the returned reference after this object changes its
-    // state.
+    // property with such a name exists.  Return an error Datum with code
+    // 'bmqeval::ErrorType::e_NAME' if property with 'name' does not exist,
+    // and with code 'bmqeval::ErrorType::e_BINARY' if it is binary.
+    // Behavior is undefined when accessing the returned reference after this
+    // object changes its state.
 
     SchemaPtr makeSchema(bslma::Allocator* allocator);
 
