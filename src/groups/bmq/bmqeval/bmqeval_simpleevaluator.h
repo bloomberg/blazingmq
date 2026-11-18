@@ -129,7 +129,9 @@ class PropertiesReader {
     // MANIPULATORS
 
     /// Return a `bdld::Datum` object with value for the specified `name`.
-    /// Use the specified `allocator` for any memory allocation.
+    /// Use the specified `allocator` for any memory allocation.  Return an
+    /// error Datum with code `ErrorType::e_NAME` if there is no property
+    /// named `name`.
     virtual bdld::Datum get(const bsl::string& name,
                             bslma::Allocator*  allocator) = 0;
 };

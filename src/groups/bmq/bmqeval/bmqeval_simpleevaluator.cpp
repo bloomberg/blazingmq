@@ -380,7 +380,10 @@ bdld::Datum SimpleEvaluator::Exists::evaluate(EvaluationContext& context) const
     bdld::Datum value = context.d_propertiesReader->get(d_name,
                                                         context.d_allocator);
 
-    return bdld::Datum::createBoolean(!value.isError());
+    const bool exists = !value.isError() ||
+                        value.theError().code() != ErrorType::e_NAME;
+
+    return bdld::Datum::createBoolean(exists);
 }
 
 }  // close package namespace
