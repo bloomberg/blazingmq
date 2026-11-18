@@ -20,6 +20,7 @@
 
 #include <bmqp_confirmmessageiterator.h>
 #include <bmqp_protocol.h>
+#include <bsl_cstring.h>
 
 using namespace BloombergLP;
 

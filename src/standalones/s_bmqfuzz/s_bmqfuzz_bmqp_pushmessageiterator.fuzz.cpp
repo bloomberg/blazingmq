@@ -21,6 +21,7 @@
 #include <bmqp_messageproperties.h>
 #include <bmqp_protocol.h>
 #include <bmqp_pushmessageiterator.h>
+#include <bsl_cstring.h>
 
 using namespace BloombergLP;
 

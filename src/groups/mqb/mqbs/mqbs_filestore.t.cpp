@@ -64,6 +64,8 @@
 #include <bdls_filesystemutil.h>
 #include <bdlt_currenttime.h>
 #include <bdlt_epochutil.h>
+#include <bsl_cstddef.h>
+#include <bsl_cstring.h>
 #include <bsl_iostream.h>
 #include <bsl_map.h>
 #include <bsl_memory.h>

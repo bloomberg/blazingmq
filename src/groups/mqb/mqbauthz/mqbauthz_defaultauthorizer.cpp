@@ -32,7 +32,9 @@
 #include <baljsn_decoderoptions.h>
 #include <ball_log.h>
 #include <bdlsb_fixedmeminstreambuf.h>
+#include <bsl_algorithm.h>
 #include <bsl_fstream.h>
+#include <bsl_vector.h>
 #include <bsla_maybeunused.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>

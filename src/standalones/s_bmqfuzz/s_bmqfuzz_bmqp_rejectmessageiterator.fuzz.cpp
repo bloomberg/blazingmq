@@ -20,6 +20,7 @@
 
 #include <bmqp_protocol.h>
 #include <bmqp_rejectmessageiterator.h>
+#include <bsl_cstring.h>
 
 using namespace BloombergLP;
 

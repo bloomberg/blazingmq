@@ -45,7 +45,9 @@
 
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
+#include <bsl_algorithm.h>
 #include <bsl_functional.h>
+#include <bsl_ios.h>
 #include <bsl_limits.h>
 #include <bsl_map.h>
 

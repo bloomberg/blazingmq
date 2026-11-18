@@ -22,6 +22,7 @@
 
 #include <bsl_algorithm.h>
 #include <bsl_iomanip.h>
+#include <bsl_ostream.h>
 #include <bsl_vector.h>
 
 namespace BloombergLP {

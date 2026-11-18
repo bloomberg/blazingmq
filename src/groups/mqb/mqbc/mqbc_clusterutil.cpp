@@ -56,6 +56,7 @@
 #include <bdlma_localsequentialallocator.h>
 #include <bsl_iostream.h>
 #include <bsl_limits.h>
+#include <bsl_memory.h>
 #include <bsl_unordered_set.h>
 #include <bsl_utility.h>
 #include <bslma_managedptr.h>

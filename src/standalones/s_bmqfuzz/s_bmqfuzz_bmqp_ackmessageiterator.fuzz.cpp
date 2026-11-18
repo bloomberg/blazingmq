@@ -20,6 +20,8 @@
 
 #include <bmqp_ackmessageiterator.h>
 #include <bmqp_protocol.h>
+#include <bsl_cstring.h>
+#include <bsl_limits.h>
 
 using namespace BloombergLP;
 
