@@ -369,7 +369,10 @@ manipulation, as a tiny subset of the C programming language.
 ### Arithmetic Operators
 {:.no_toc}
 
-- Arithmetic operators are:
+- The unary arithmetic operator is `-` (negation), which requires one integer
+  argument.
+
+- The binary arithmetic operators are:
   - `+`
   - `-`
   - `*`
@@ -418,7 +421,7 @@ manipulation, as a tiny subset of the C programming language.
 
 | Operator          | Associativity |
 | ----------------- | ------------- |
-| `!`               | Right         |
+| `!` and unary `-` | Right         |
 | `*` `/` `%`       | Left          |
 | `+` `-`           | Left          |
 | `<` `<=` `>` `>=` | None          |
@@ -433,9 +436,9 @@ manipulation, as a tiny subset of the C programming language.
   with lower precedence. For example, `a*x+b>0` is evaluated as `((a*x)+b)>0`.
 
 - When two arithmetic or boolean operators have the same precedence, they are
-  evaluated from left to right, except for `!` which is evaluated right to
-  left. For example, in `a-b-c` is evaluated as `(a-b)-c`. `!!ok` is evaluated
-  as `!(!ok)`.
+  evaluated from left to right, except for `!` and unary `-`, which are
+  evaluated right to left. For example, in `a-b-c` is evaluated as `(a-b)-c`.
+  `!!ok` is evaluated as `!(!ok)`.
 
 - Relational operators of the same precedence do not associate, so they cannot
   be chained: `a < b < c` and `a == b == c` are syntax errors. To test that `b`
