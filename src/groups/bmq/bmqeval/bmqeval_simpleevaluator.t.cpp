@@ -69,6 +69,7 @@ MockPropertiesReader::MockPropertiesReader(bslma::Allocator* allocator)
         allocator);
     d_map["i_neg1"]  = bdld::Datum::createInteger(-1);
     d_map["s_foo"]   = bdld::Datum::createStringRef("foo", allocator);
+    d_map["s_esc"]   = bdld::Datum::createStringRef("a\"b\\c", allocator);
     d_map["exists"]  = bdld::Datum::createInteger(42);
 }
 
@@ -501,6 +502,11 @@ static void test3_evaluation()
         {"\"bar\" >= s_foo", false},
         {"\"foo\" >= s_foo", true},
         {"\"zig\" >= s_foo", true},
+
+        // escapes in string literals
+        {"s_esc == \"a\\\"b\\\\c\"", true},
+        {"s_esc == \"a\\\"b\\\\\\\\c\"", false},
+        {"s_esc == \"a\\\\\\\"b\\\\c\"", false},
 
         // logical operators
         {"!b_true", false},
