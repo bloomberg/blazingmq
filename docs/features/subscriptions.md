@@ -323,18 +323,23 @@ manipulation, as a tiny subset of the C programming language.
 {:.no_toc}
 
 - Identifiers consist of a combination of upper and lower-case alphabetical
-  letters, digits, and underscores.
+  letters, digits, underscores, and periods.
 
-- The first character may not be an underscore.
+- The first character must be a letter.
 
 - Property names are case sensitive. Example of valid identifiers are: `ask`,
-  `Ask`, `askPrice`, `ask_price`, `sp500`; note that `ask` and `Ask` are
-  different identifiers.
+  `Ask`, `askPrice`, `ask_price`, `ask.price`, `sp500`; note that `ask` and
+  `Ask` are different identifiers.
 
 - Examples of _invalid_ identifiers are:
   - `_ask` (begins with underscore)
+  - `.ask` (begins with period)
   - `1Y` (begins with digit)
   - `a+b` (would be parsed as three tokens: `a`, `+`, and `b`).
+
+- `true` and `false` are boolean literals, so they cannot be used as
+  identifiers. `exists` can be used both as an identifier and as the built-in
+  function `exists` (see below).
 
 - When an identifier is evaluated, the value of the eponymous property, in the
   current message, is returned.
