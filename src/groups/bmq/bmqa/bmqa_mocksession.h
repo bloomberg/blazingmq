@@ -1145,13 +1145,13 @@ class MockSession : public AbstractSession {
     /// Configure this component to keep track of statistics.
     void initializeStats();
 
-    /// Open the specified `queueId` with the specified `uri` and `flags`.
-    /// If the specified `async` param is true, set the state of the
-    /// specified `queueId` to `e_OPENING`, else set it to 'e_OPENED.  This
-    /// is to account for the fact that in `openQueue` blocks until the
-    /// queue is opened whereas `openQueueAsync` returns immediately and the
-    /// state changes to opened on emission of a successfull open queue
-    /// response.
+    /// @brief Open a queue using new style message properties.
+    /// @param[in,out] queueId The queue to open; must not be null.
+    /// @param options The queue options.
+    /// @param uri The queue URI.
+    /// @param flags The queue flags.
+    /// @param async Whether to leave the queue opening until a successful
+    ///              open response is emitted, or mark it opened immediately.
     void openQueueImp(QueueId*                  queueId,
                       const bmqt::QueueOptions& options,
                       const bmqt::Uri&          uri,

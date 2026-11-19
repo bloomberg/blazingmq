@@ -280,17 +280,6 @@ MessageProperties::propertyType(bsl::string_view name) const
     return d_impl_p->propertyType(name);
 }
 
-const bdlbb::Blob&
-MessageProperties::streamOut(bdlbb::BlobBufferFactory* bufferFactory) const
-{
-    // PRECONDITIONS
-    BSLS_ASSERT(bufferFactory && "Buffer factory must be specified.");
-
-    return d_impl_p->streamOut(bufferFactory,
-                               bmqp::MessagePropertiesInfo::makeNoSchema());
-    // For backward-compatibility, use the old format.
-}
-
 bsl::ostream& MessageProperties::print(bsl::ostream& stream,
                                        int           level,
                                        int           spacesPerLevel) const

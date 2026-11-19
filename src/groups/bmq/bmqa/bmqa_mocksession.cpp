@@ -33,6 +33,7 @@
 #include <bmqp_crc32c.h>
 #include <bmqp_event.h>
 #include <bmqp_messageguidgenerator.h>
+#include <bmqp_messageproperties.h>
 #include <bmqp_protocol.h>
 #include <bmqp_protocolutil.h>
 #include <bmqp_pusheventbuilder.h>
@@ -198,6 +199,12 @@ Event createAckEventImpl(bmqp::AckEventBuilder& ackBuilder,
     return event;
 }
 
+/// @brief Create a PUSH event using new style message properties.
+/// @param pushBuilder The builder to populate.
+/// @param pushEventParams The messages to include; must not be empty.
+/// @param bufferFactory The buffer factory to use; must not be null.
+/// @param allocator The allocator to use.
+/// @return The event containing the messages.
 Event createPushEventImpl(
     bmqp::PushEventBuilder&                                pushBuilder,
     const bsl::vector<MockSessionUtil::PushMessageParams>& pushEventParams,
@@ -235,10 +242,11 @@ Event createPushEventImpl(
         bmqp::MessagePropertiesInfo logic;
 
         if (pushMessageParams.d_properties.numProperties() > 0) {
-            combinedBlob = pushMessageParams.d_properties.streamOut(
-                bufferFactory);
-            logic = bmqp::MessagePropertiesInfo::makeNoSchema();
-            // Use the same old style as the 'streamOut' above.
+            const bmqp::MessageProperties* propertiesImpl =
+                *reinterpret_cast<const bmqp::MessageProperties* const*>(
+                    &pushMessageParams.d_properties);
+            logic        = bmqp::MessagePropertiesInfo::makeInvalidSchema();
+            combinedBlob = propertiesImpl->streamOut(bufferFactory, logic);
         }
 
         bdlbb::BlobUtil::append(&combinedBlob, pushMessageParams.d_payload);
@@ -883,6 +891,9 @@ void MockSession::openQueueImp(QueueId*                  queueId,
                                bsls::Types::Uint64       flags,
                                bool                      async)
 {
+    // PRECONDITIONS
+    BSLS_ASSERT_SAFE(queueId);
+
     // Cast the supplied queue
     QueueImplSp& queueImpl = reinterpret_cast<QueueImplSp&>(*queueId);
 
@@ -897,6 +908,7 @@ void MockSession::openQueueImp(QueueId*                  queueId,
     queueImpl->setUri(uri);
     queueImpl->setFlags(flags);
     queueImpl->setOptions(options);
+    queueImpl->setOldStyle(false);
 
     if (async) {
         queueImpl->setState(bmqimp::QueueState::e_OPENING_OPN);
