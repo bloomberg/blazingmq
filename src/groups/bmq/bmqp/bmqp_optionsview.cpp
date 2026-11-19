@@ -105,6 +105,12 @@ int OptionsView::resetImpl(const bdlbb::Blob*        blob,
             return rc_INVALID_OPTIONS_AREA;  // RETURN
         }
 
+        if (oh->packed() && optionType != OptionType::e_SUB_QUEUE_INFOS) {
+            // Only a SubQueueInfos option may be packed
+            clear();
+            return rc_INVALID_OPTIONS_AREA;  // RETURN
+        }
+
         // Insert BlobPosition for this OptionType
         if (d_optionPositions[optionType] != d_NullBlobPosition) {
             // We already have an option of this type (we processed it at a
@@ -140,11 +146,10 @@ int OptionsView::resetImpl(const bdlbb::Blob*        blob,
 }
 
 // PRIVATE ACCESSORS
-int OptionsView::loadOptionPositionAndSize(
+int OptionsView::loadUnpackedOptionPayload(
     bmqu::BlobPosition*          payloadPosition,
     int*                         payloadSizeBytes,
-    const bmqp::OptionType::Enum optionType,
-    const bool                   hasPadding) const
+    const bmqp::OptionType::Enum optionType) const
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(payloadPosition);
@@ -157,65 +162,27 @@ int OptionsView::loadOptionPositionAndSize(
         /// Success
         rc_SUCCESS = 0,
         /// The option does not fall within the blob
-        rc_INVALID_BLOB = -1,
-        /// The padding count is not in [1, 'Protocol::k_WORD_SIZE']
-        rc_INVALID_PADDING = -2
+        rc_INVALID_BLOB = -1
     };
 
     const bmqu::BlobPosition& headerPos = d_optionPositions[optionType];
     bmqu::BlobObjectProxy<OptionHeader> oh(d_blob_p, headerPos);
-
     BSLS_ASSERT_SAFE(oh.isSet() && "Option header not set");
-    // should be ok, as in the constructor
+    BSLS_ASSERT_SAFE(!oh->packed() && "Packed option has no payload");
 
-    int rc = bmqu::BlobUtil::findOffsetSafe(payloadPosition,
-                                            *d_blob_p,
-                                            headerPos,
-                                            sizeof(OptionHeader));
+    const int rc = bmqu::BlobUtil::findOffsetSafe(payloadPosition,
+                                                  *d_blob_p,
+                                                  headerPos,
+                                                  sizeof(OptionHeader));
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         return rc * 10 + rc_INVALID_BLOB;  // RETURN
-    }
-
-    if (oh->packed()) {
-        // *Packed* options
-        *payloadSizeBytes = 0;
-        return rc_SUCCESS;  // RETURN
     }
 
     // 1 word for header, rest for payload.
     const int words = oh->words();
     BSLS_ASSERT_SAFE((words > 1) && "Expect positive number of words");
-    const int optionTotalSizeBytes = words * Protocol::k_WORD_SIZE;
-    const int optionLenBytes       = (oh->words() - 1) * Protocol::k_WORD_SIZE;
-
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!hasPadding)) {
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        *payloadSizeBytes = optionLenBytes;
-        return rc_SUCCESS;  // RETURN
-    }
-
-    bmqu::BlobPosition lastBytePos;
-    rc = bmqu::BlobUtil::findOffsetSafe(&lastBytePos,
-                                        *d_blob_p,
-                                        headerPos,
-                                        optionTotalSizeBytes - 1);
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        return rc * 10 + rc_INVALID_BLOB;  // RETURN
-    }
-
-    // Read it unsigned so the check does not depend on the platform-specific
-    // signedness of 'char'.
-    const unsigned char padding = static_cast<unsigned char>(
-        (*d_blob_p).buffer(lastBytePos.buffer()).data()[lastBytePos.byte()]);
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
-            padding == 0 || padding > Protocol::k_WORD_SIZE)) {
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        return rc_INVALID_PADDING;  // RETURN
-    }
-
-    *payloadSizeBytes = optionLenBytes - padding;
+    *payloadSizeBytes = (words - 1) * Protocol::k_WORD_SIZE;
 
     return rc_SUCCESS;
 }
@@ -258,7 +225,7 @@ int OptionsView::loadSubQueueIdsOption(
                                        bufferedAllocator(d_allocator_p);
     bsl::vector<bdlb::BigEndianUint32> tempVec(&bufferedAllocator);
 
-    const int rc = loadSubQueueInfosOptionHelper(
+    const int rc = loadUnpackedSubQueueInfosOptionHelper(
         &tempVec,
         OptionType::e_SUB_QUEUE_IDS_OLD);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
@@ -334,7 +301,7 @@ int OptionsView::loadSubQueueInfosOption(
                                   bufferedAllocator(d_allocator_p);
         bsl::vector<SubQueueInfo> tempVec(&bufferedAllocator);
 
-        const int rc = loadSubQueueInfosOptionHelper(
+        const int rc = loadUnpackedSubQueueInfosOptionHelper(
             &tempVec,
             OptionType::e_SUB_QUEUE_INFOS);
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
@@ -354,7 +321,7 @@ int OptionsView::loadSubQueueInfosOption(
                                            bufferedAllocator(d_allocator_p);
         bsl::vector<bdlb::BigEndianUint32> tempVec(&bufferedAllocator);
 
-        const int rc = loadSubQueueInfosOptionHelper(
+        const int rc = loadUnpackedSubQueueInfosOptionHelper(
             &tempVec,
             OptionType::e_SUB_QUEUE_IDS_OLD);
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
