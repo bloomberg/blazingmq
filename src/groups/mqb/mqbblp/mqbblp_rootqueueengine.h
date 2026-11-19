@@ -178,6 +178,12 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
                             const Apps::iterator&                itApp,
                             const Routers::AppContext*           previous);
 
+    /// @brief Rebuild the routing of the specified `appId` from the
+    ///        current consumers of the queue.
+    ///
+    /// @param appId The App to rebuild.  It must be registered.
+    void rebuildAppRouting(const bsl::string& appId);
+
     Apps::iterator makeSubStream(const bsl::string&      appId,
                                  const mqbu::StorageKey& appKey,
                                  unsigned int            upstreamSubQueueId);
