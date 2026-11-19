@@ -222,7 +222,7 @@ mqbi::AppMessage& PushStreamIterator::appMessageState(unsigned int appOrdinal)
     return *element(appOrdinal)->appState();
 }
 
-const bsl::shared_ptr<bdlbb::Blob>& PushStreamIterator::appData() const
+const bsl::shared_ptr<const bdlbb::Blob>& PushStreamIterator::appData() const
 {
     loadMessageAndAttributes();
     return d_appData_sp;

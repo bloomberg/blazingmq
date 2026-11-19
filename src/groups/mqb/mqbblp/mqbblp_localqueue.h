@@ -162,19 +162,20 @@ class LocalQueue BSLS_CPP11_FINAL {
     /// to provide batch and nagling mechanism.
     void flush();
 
-    /// Add the message with the specified `msgGUID`, specified `appData` as
-    /// application payload and specified `options` to this queue.  The
-    /// specified `source` correspond to the producer of the message, and
-    /// the specified `correlationId` is used to notify back the `source`
-    /// when either the message failed to be posted, or was successfully
-    /// posted (the time at which a success confirm is generated depends on
-    /// the configuration and the SLA, whether it's when the message is
-    /// locally saved, or when one, multiple or all remove member of the
-    /// cluster have received it).
-    void postMessage(const bmqp::PutHeader&              putHeader,
-                     const bsl::shared_ptr<bdlbb::Blob>& appData,
-                     const bsl::shared_ptr<bdlbb::Blob>& options,
-                     mqbi::QueueHandle*                  source);
+    /// @brief Add a message to this queue.
+    ///
+    /// The `source` is notified when the message either failed to be posted
+    /// or was successfully posted; the time at which a success is reported
+    /// depends on the configuration and the SLA.
+    ///
+    /// @param putHeader The PUT header of the message.
+    /// @param appData The application payload of the message.
+    /// @param options The options of the message.
+    /// @param source The producer of the message.
+    void postMessage(const bmqp::PutHeader&                    putHeader,
+                     const bsl::shared_ptr<const bdlbb::Blob>& appData,
+                     const bsl::shared_ptr<bdlbb::Blob>&       options,
+                     mqbi::QueueHandle*                        source);
 
     /// Called when a message with the specified `msgGUID` and `blob`
     /// associated payload is pushed to this queue.  Note that depending

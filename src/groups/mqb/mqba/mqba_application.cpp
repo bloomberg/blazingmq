@@ -553,8 +553,8 @@ void Application::stop()
         OBJ.reset();                                                          \
     }
 
-    // Only if 'start()' got far enough to construct the transport manager.
-    if (d_transportManager_mp) {
+    // Only if 'start()' got far enough to construct the cluster catalog.
+    if (d_transportManager_mp && d_clusterCatalog_mp) {
         stopTransportAndClusters();
     }
 

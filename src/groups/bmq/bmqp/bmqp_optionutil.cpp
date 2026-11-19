@@ -24,7 +24,6 @@
 // BDE
 #include <bdlbb_blobutil.h>
 #include <bsl_cstring.h>  // for bsl::memset
-#include <bsla_annotations.h>
 #include <bslmf_assert.h>
 #include <bsls_performancehint.h>
 
@@ -240,12 +239,6 @@ bool OptionUtil::loadOptionsPosition(int*                      optionsSize,
     *optionsSize     = myOptionsSize;
 
     return true;
-}
-
-bmqt::EventBuilderResult::Enum OptionUtil::isValidMsgGroupId(
-    BSLA_MAYBE_UNUSED const Protocol::MsgGroupId& msgGroupId)
-{
-    return bmqt::EventBuilderResult::e_UNKNOWN;
 }
 
 }  // close package namespace

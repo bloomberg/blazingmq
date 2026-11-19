@@ -802,7 +802,7 @@ int main(int argc, char* argv[])
 #endif  // BMQTST_BENCHMARK_ENABLED
     } break;
     default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
+        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }

@@ -806,12 +806,12 @@ void Queue::close(const bsl::function<void(void)>& callback)
 }
 
 void Queue::onPushMessage(
-    const bmqt::MessageGUID&             msgGUID,
-    const bsl::shared_ptr<bdlbb::Blob>&  appData,
-    const bsl::shared_ptr<bdlbb::Blob>&  options,
-    const bmqp::MessagePropertiesInfo&   messagePropertiesInfo,
-    bmqt::CompressionAlgorithmType::Enum compressionAlgorithmType,
-    bool                                 isOutOfOrder)
+    const bmqt::MessageGUID&                  msgGUID,
+    const bsl::shared_ptr<const bdlbb::Blob>& appData,
+    const bsl::shared_ptr<bdlbb::Blob>&       options,
+    const bmqp::MessagePropertiesInfo&        messagePropertiesInfo,
+    bmqt::CompressionAlgorithmType::Enum      compressionAlgorithmType,
+    bool                                      isOutOfOrder)
 {
     // executed by the *CLUSTER* dispatcher thread
 

@@ -272,17 +272,24 @@ void populateBlob(bdlbb::Blob*                        blob,
     }
 }
 
-/// Populate the specified `blob` with a PUSH event consisting of an event
-/// header, a push header, and a *packed* option header containing a random
-/// generated RDA counter for the default sub-queue id, with no option
-/// payload.  Load the default sub-queue id and the RDA counter into the
-/// specified `subQueueInfos`.  Load into the specified
-/// `optionsAreaPosition` the position of the options area, and load into
-/// the specified `optionsAreaSize` the size of the options area in bytes.
+/// @brief Populate a blob with a PUSH event carrying a *packed*
+///        SubQueueInfos option.
+///
+/// @details The event consists of an event header, a push header, and a
+/// *packed* option header whose 'words' field is the specified `rdaInfo`,
+/// with no option payload.
+///
+/// @param[out] blob                The blob to append the event to.
+/// @param[out] optionsAreaPosition The position of the options area.
+/// @param[out] optionsAreaSize     The size of the options area in bytes.
+/// @param[out] subQueueInfos       The SubQueueInfos the option encodes.
+/// @param      rdaInfo             The internal representation of the
+///                                 RdaInfo of the default sub-queue id.
 void populatePackedBlob(bdlbb::Blob*                     blob,
                         bmqu::BlobPosition*              optionsAreaPosition,
                         int*                             optionsAreaSize,
-                        bsl::vector<bmqp::SubQueueInfo>* subQueueInfos)
+                        bsl::vector<bmqp::SubQueueInfo>* subQueueInfos,
+                        unsigned int                     rdaInfo)
 {
     BSLS_ASSERT_SAFE(blob);
     BSLS_ASSERT_SAFE(optionsAreaPosition);
@@ -332,9 +339,11 @@ void populatePackedBlob(bdlbb::Blob*                     blob,
     bmqp::OptionHeader oh;
     oh.setType(bmqp::OptionType::e_SUB_QUEUE_INFOS).setPacked(true);
 
-    generateSubQueueInfos(subQueueInfos, 1);
-    // Reinterpret 'words' field as RDA counter
-    oh.setWords(subQueueInfos->front().rdaInfo().internalRepresentation());
+    subQueueInfos->assign(
+        1,
+        bmqp::SubQueueInfo(bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID,
+                           bmqp::RdaInfo(rdaInfo)));
+    oh.setWords(rdaInfo);
 
     bmqu::BlobUtil::writeBytes(blob,
                                *optionsAreaPosition,
@@ -367,7 +376,7 @@ void test1_breathingTest()
         1024,
         bmqtst::TestHelperUtil::allocator());
 
-    PV(endl << "BREATHING TEST" << endl << "==============" << endl);
+    PV("\n" << "BREATHING TEST" << "\n" << "==============" << "\n");
 
     {
         // [1]
@@ -590,7 +599,7 @@ void test2_subQueueIdsOld()
 //   loadSubQueueIdsOption(...)
 // ------------------------------------------------------------------------
 {
-    PV(endl << "SUB QUEUE IDS OLD" << endl << "=================" << endl);
+    PV("\n" << "SUB QUEUE IDS OLD" << "\n" << "=================" << "\n");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
@@ -647,62 +656,81 @@ void test3_packedOptions()
 // PACKED OPTIONS
 //
 // Concerns:
-//   Load a *packed* option containing a RDA counter for the default
+//   Load a *packed* option containing the RdaInfo for the default
 //   sub-queue id into a Protocol::SubQueueInfosArray using this component.
 //
 // Plan:
+//   For each RdaInfo boundary value, flag bits included:
 //   - Init blob and populate it via push event and a *packed* option
-//     containing a RDA counter for the default sub-queue id
+//     containing the RdaInfo for the default sub-queue id
 //   - Create OptionView instance to observe created options
 //   - Iterate over options. Check iteration is correct
 //   - Copy to other OptionView instances and verify expected behavior
 //
 // Testing:
-//   loadSubQueueIdsOption(...)
+//   loadSubQueueInfosOption(...)
 // ------------------------------------------------------------------------
 {
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
 
-    // Create valid view, PUSH event with a *packed* sub-queue id option
-    bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
-    bmqu::BlobPosition optionsAreaPosition;
-    int                optionsAreaSize = 0;
+    const unsigned int k_RDA_INFOS[] = {
+        0,    // counter 0
+        63,   // max counter
+        64,   // poisonous flag
+        128,  // unlimited flag
+        255   // max value of one byte
+    };
 
-    bsl::vector<bmqp::SubQueueInfo> subQueueInfos(
-        bmqtst::TestHelperUtil::allocator());
-    populatePackedBlob(&blob,
-                       &optionsAreaPosition,
-                       &optionsAreaSize,
-                       &subQueueInfos);
+    const size_t k_NUM_RDA_INFOS = sizeof(k_RDA_INFOS) / sizeof(*k_RDA_INFOS);
 
-    // Iterate and verify
-    bmqp::OptionsView view(&blob,
-                           optionsAreaPosition,
-                           optionsAreaSize,
-                           bmqtst::TestHelperUtil::allocator());
-    verifySubQueueInfos(view, subQueueInfos);
+    for (size_t idx = 0; idx < k_NUM_RDA_INFOS; ++idx) {
+        const unsigned int rdaInfo = k_RDA_INFOS[idx];
 
-    // Copy valid instance, iterate and verify
-    bmqp::OptionsView view2(view, bmqtst::TestHelperUtil::allocator());
-    verifySubQueueInfos(view2, subQueueInfos);
+        PVV("RdaInfo " << rdaInfo);
 
-    // Clear original
-    view.clear();
-    BMQTST_ASSERT_EQ(false, view.isValid());
+        // Create valid view, PUSH event with a *packed* sub-queue id option
+        bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
+        bmqu::BlobPosition optionsAreaPosition;
+        int                optionsAreaSize = 0;
 
-    // Verify second instance remains valid
-    verifySubQueueInfos(view2, subQueueInfos);
+        bsl::vector<bmqp::SubQueueInfo> subQueueInfos(
+            bmqtst::TestHelperUtil::allocator());
+        populatePackedBlob(&blob,
+                           &optionsAreaPosition,
+                           &optionsAreaSize,
+                           &subQueueInfos,
+                           rdaInfo);
 
-    // Copy invalid instance (original)
-    bmqp::OptionsView view3(view, bmqtst::TestHelperUtil::allocator());
-    BMQTST_ASSERT_EQ(false, view3.isValid());
+        // Iterate and verify
+        bmqp::OptionsView view(&blob,
+                               optionsAreaPosition,
+                               optionsAreaSize,
+                               bmqtst::TestHelperUtil::allocator());
+        verifySubQueueInfos(view, subQueueInfos);
 
-    // Reset original, iterate and verify again
-    BMQTST_ASSERT_EQ(0,
-                     view.reset(&blob, optionsAreaPosition, optionsAreaSize));
-    verifySubQueueInfos(view, subQueueInfos);
+        // Copy valid instance, iterate and verify
+        bmqp::OptionsView view2(view, bmqtst::TestHelperUtil::allocator());
+        verifySubQueueInfos(view2, subQueueInfos);
+
+        // Clear original
+        view.clear();
+        BMQTST_ASSERT_EQ(false, view.isValid());
+
+        // Verify second instance remains valid
+        verifySubQueueInfos(view2, subQueueInfos);
+
+        // Copy invalid instance (original)
+        bmqp::OptionsView view3(view, bmqtst::TestHelperUtil::allocator());
+        BMQTST_ASSERT_EQ(false, view3.isValid());
+
+        // Reset original, iterate and verify again
+        BMQTST_ASSERT_EQ(
+            0,
+            view.reset(&blob, optionsAreaPosition, optionsAreaSize));
+        verifySubQueueInfos(view, subQueueInfos);
+    }
 }
 
 void test4_invalidOptionsArea()
@@ -714,7 +742,10 @@ void test4_invalidOptionsArea()
 //
 // Plan:
 //   - One less sub-queue info than specified in OptionHeader
+//   - A SubQueueInfos option with an invalid item size or payload size
+//   - A packed SubQueueInfos option with an RdaInfo above 255
 //   - An OptionsHeader but no option payload (sub-queue info)
+//   - A non-packed OptionHeader with zero 'words'
 //   - An OptionHeader with type 'OptionType::e_UNDEFINED'
 //   - An OptionHeader with an unsupported type
 //   - Multiple OptionHeader of the same type (duplicate)
@@ -727,9 +758,9 @@ void test4_invalidOptionsArea()
 //   to load an option's payload as determined by the return code.
 // ------------------------------------------------------------------------
 {
-    PV(endl
-       << "INVALID OPTIONS AREA" << endl
-       << "====================" << endl);
+    PV("\n"
+       << "INVALID OPTIONS AREA" << "\n"
+       << "====================" << "\n");
 
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
@@ -787,6 +818,129 @@ void test4_invalidOptionsArea()
 
     {
         // [2]
+        PV("SUB-QUEUE INFOS WITH INVALID ITEM SIZE OR PAYLOAD SIZE");
+
+        // A non-packed SubQueueInfos option whose 'typeSpecific' item size is
+        // not 'sizeof(SubQueueInfo)', or whose payload is not a whole number
+        // of items.  The view is valid, but loading the option must fail.
+        struct Test {
+            int           d_line;
+            unsigned char d_typeSpecific;  // item size in words
+            int           d_words;  // option size in words, header included
+        } k_DATA[] = {
+            {L_, 0, 3},    // zero item size
+            {L_, 1, 3},    // item smaller than SubQueueInfo
+            {L_, 3, 7},    // item larger than SubQueueInfo
+            {L_, 3, 46},   // same, payload larger than the local buffer
+            {L_, 15, 15},  // max item size, payload shorter than one item
+            {L_, 2, 2},    // payload shorter than one SubQueueInfo
+            {L_, 2, 4},    // payload not a multiple of SubQueueInfo
+        };
+
+        const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
+
+        for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+            const Test& test = k_DATA[idx];
+
+            PVV(test.d_line << ": typeSpecific "
+                            << static_cast<int>(test.d_typeSpecific)
+                            << ", words " << test.d_words);
+
+            bdlbb::Blob              optionsBlob(&bufferFactory,
+                                    bmqtst::TestHelperUtil::allocator());
+            const bmqu::BlobPosition optionsAreaPosition;  // start of blob
+
+            const int optionsAreaSize = test.d_words *
+                                        bmqp::Protocol::k_WORD_SIZE;
+            const int optionPayloadSize = optionsAreaSize -
+                                          sizeof(bmqp::OptionHeader);
+
+            bmqp::OptionHeader oh;
+            oh.setType(bmqp::OptionType::e_SUB_QUEUE_INFOS);
+            oh.setTypeSpecific(test.d_typeSpecific);
+            oh.setWords(test.d_words);
+
+            // Write OptionHeader
+            bdlbb::BlobUtil::append(&optionsBlob,
+                                    reinterpret_cast<const char*>(&oh),
+                                    sizeof(bmqp::OptionHeader));
+
+            // Write option payload
+            const bsl::vector<char> payload(
+                optionPayloadSize,
+                'x',
+                bmqtst::TestHelperUtil::allocator());
+            bdlbb::BlobUtil::append(&optionsBlob,
+                                    payload.data(),
+                                    optionPayloadSize);
+
+            bmqp::OptionsView view(&optionsBlob,
+                                   optionsAreaPosition,
+                                   optionsAreaSize,
+                                   bmqtst::TestHelperUtil::allocator());
+            BMQTST_ASSERT_EQ_D(test.d_line, true, view.isValid());
+
+            bmqp::Protocol::SubQueueInfosArray subQueueInfos(
+                bmqtst::TestHelperUtil::allocator());
+            const int rc = view.loadSubQueueInfosOption(&subQueueInfos);
+
+            BMQTST_ASSERT_NE_D(test.d_line, 0, rc);
+            BMQTST_ASSERT_EQ_D(test.d_line, true, subQueueInfos.empty());
+        }
+    }
+
+    {
+        // [3]
+        PV("PACKED SUB-QUEUE INFOS WITH OUT-OF-RANGE RDA INFO");
+
+        // A packed SubQueueInfos option whose 'words' field, the RdaInfo of
+        // the default SubQueueId, does not fit in one byte.  The view is
+        // valid, but loading the option must fail.
+        struct Test {
+            int d_line;
+            int d_words;  // RdaInfo
+        } k_DATA[] = {
+            {L_, 256},       // smallest value that does not fit in one byte
+            {L_, 0x1FFFFF},  // max 'words' value
+        };
+
+        const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
+
+        for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
+            const Test& test = k_DATA[idx];
+
+            PVV(test.d_line << ": words " << test.d_words);
+
+            bdlbb::Blob              optionsBlob(&bufferFactory,
+                                    bmqtst::TestHelperUtil::allocator());
+            const bmqu::BlobPosition optionsAreaPosition;  // start of blob
+            const int optionsAreaSize = sizeof(bmqp::OptionHeader);
+
+            bmqp::OptionHeader oh(bmqp::OptionType::e_SUB_QUEUE_INFOS, true);
+            oh.setWords(test.d_words);
+
+            // Write OptionHeader
+            bdlbb::BlobUtil::append(&optionsBlob,
+                                    reinterpret_cast<const char*>(&oh),
+                                    sizeof(bmqp::OptionHeader));
+
+            bmqp::OptionsView view(&optionsBlob,
+                                   optionsAreaPosition,
+                                   optionsAreaSize,
+                                   bmqtst::TestHelperUtil::allocator());
+            BMQTST_ASSERT_EQ_D(test.d_line, true, view.isValid());
+
+            bmqp::Protocol::SubQueueInfosArray subQueueInfos(
+                bmqtst::TestHelperUtil::allocator());
+            const int rc = view.loadSubQueueInfosOption(&subQueueInfos);
+
+            BMQTST_ASSERT_NE_D(test.d_line, 0, rc);
+            BMQTST_ASSERT_EQ_D(test.d_line, true, subQueueInfos.empty());
+        }
+    }
+
+    {
+        // [4]
         PV("OPTION HEADER INDICATES ZERO OPTION VALUES");
 
         // An OptionsHeader but no option payload (sub-queue info)
@@ -814,7 +968,36 @@ void test4_invalidOptionsArea()
     }
 
     {
-        // [3]
+        // [5]
+        PV("OPTION HEADER WITH ZERO WORDS");
+
+        // A non-packed OptionHeader whose 'words' is zero
+        bdlbb::Blob              optionsBlob(&bufferFactory,
+                                bmqtst::TestHelperUtil::allocator());
+        const bmqu::BlobPosition optionsAreaPosition;  // start of blob
+        const int                optionsAreaSize = sizeof(bmqp::OptionHeader);
+
+        bmqp::OptionHeader oh;
+        oh.setType(bmqp::OptionType::e_SUB_QUEUE_INFOS);
+        oh.setWords(0);
+
+        // Write OptionHeader
+        bdlbb::BlobUtil::append(&optionsBlob,
+                                reinterpret_cast<const char*>(&oh),
+                                sizeof(bmqp::OptionHeader));
+
+        // Must be rejected as an invalid options area, not as a duplicate
+        bmqp::OptionsView view(bmqtst::TestHelperUtil::allocator());
+        const int         rc = view.reset(&optionsBlob,
+                                  optionsAreaPosition,
+                                  optionsAreaSize);
+
+        BMQTST_ASSERT_NE(0, rc);
+        BMQTST_ASSERT_EQ(false, view.isValid());
+    }
+
+    {
+        // [6]
         PV("OPTION HEADER WITH TYPE UNDEFINED");
 
         // An OptionHeader with type 'OptionType::e_UNDEFINED'
@@ -857,7 +1040,7 @@ void test4_invalidOptionsArea()
         BMQTST_ASSERT_EQ(false, view.isValid());
     }
     {
-        // [4]
+        // [7]
         PV("MULTIPLE OPTION HEADERS OF THE SAME TYPE (DUPLICATE)");
 
         // Multiple OptionHeader of the same type (duplicate)
@@ -924,7 +1107,7 @@ void test4_invalidOptionsArea()
         BMQTST_ASSERT_EQ(false, view.isValid());
     }
     {
-        // [5]
+        // [8]
         PV("EMPTY BLOB");
 
         bdlbb::Blob              optionsBlob(&bufferFactory,
@@ -944,7 +1127,7 @@ void test4_invalidOptionsArea()
         BMQTST_ASSERT_EQ(false, view.isValid());
     }
     {
-        // [6]
+        // [9]
         PV("WRONG AREA SIZE FOR OPTION VIEW");
 
         bdlbb::Blob              optionsBlob(&bufferFactory,
@@ -1293,7 +1476,7 @@ int main(int argc, char* argv[])
     case 2: test2_subQueueIdsOld(); break;
     case 1: test1_breathingTest(); break;
     default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
+        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }

@@ -13,8 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef INCLUDED_BMQT_VALUEORERROR
-#define INCLUDED_BMQT_VALUEORERROR
+#ifndef INCLUDED_BMQVT_VALUEORERROR
+#define INCLUDED_BMQVT_VALUEORERROR
 
 //@PURPOSE: Provide a value-semantic class that may hold a value or an error.
 //

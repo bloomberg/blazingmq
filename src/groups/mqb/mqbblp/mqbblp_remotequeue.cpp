@@ -310,7 +310,7 @@ bool RemoteQueue::loadSubQueueInfos(
             << "#CORRUPTED_MESSAGE "
             << "Failed to load options for a PUSH message for queue ["
             << d_state_p->description() << "], GUID [" << msgGUID
-            << "], upstream queueId [" << d_state_p->id() << ", rc: " << rc
+            << "], upstream queueId [" << d_state_p->id() << "], rc: " << rc
             << ". Message will be dropped.";
         return false;  // RETURN
     }
@@ -322,7 +322,15 @@ bool RemoteQueue::loadSubQueueInfos(
             d_optionsView.find(bmqp::OptionType::e_SUB_QUEUE_IDS_OLD));
 
     rc = d_optionsView.loadSubQueueInfosOption(subQueueInfos);
-    BSLS_ASSERT_SAFE(0 == rc);
+    if (rc) {
+        BALL_LOG_ERROR
+            << "#CORRUPTED_MESSAGE "
+            << "Failed to load SubQueueInfos for a PUSH message for queue ["
+            << d_state_p->description() << "], GUID [" << msgGUID
+            << "], upstream queueId [" << d_state_p->id() << "], rc: " << rc
+            << ". Message will be dropped.";
+        return false;  // RETURN
+    }
 
     return subQueueInfos->size();
 }
@@ -348,12 +356,12 @@ bool RemoteQueue::loadSubQueueInfos(
 // Redundant storage at Proxy
 
 void RemoteQueue::pushMessage(
-    const bmqt::MessageGUID&             msgGUID,
-    const bsl::shared_ptr<bdlbb::Blob>&  appData,
-    const bsl::shared_ptr<bdlbb::Blob>&  options,
-    const bmqp::MessagePropertiesInfo&   messagePropertiesInfo,
-    bmqt::CompressionAlgorithmType::Enum compressionAlgorithmType,
-    bool                                 isOutOfOrder)
+    const bmqt::MessageGUID&                  msgGUID,
+    const bsl::shared_ptr<const bdlbb::Blob>& appData,
+    const bsl::shared_ptr<bdlbb::Blob>&       options,
+    const bmqp::MessagePropertiesInfo&        messagePropertiesInfo,
+    bmqt::CompressionAlgorithmType::Enum      compressionAlgorithmType,
+    bool                                      isOutOfOrder)
 {
     // executed by the *QUEUE DISPATCHER* thread
     mqbi::StorageResult::Enum result  = mqbi::StorageResult::e_SUCCESS;
@@ -867,10 +875,11 @@ void RemoteQueue::flush()
     }
 }
 
-void RemoteQueue::postMessage(const bmqp::PutHeader&              putHeaderIn,
-                              const bsl::shared_ptr<bdlbb::Blob>& appData,
-                              const bsl::shared_ptr<bdlbb::Blob>& options,
-                              mqbi::QueueHandle*                  source)
+void RemoteQueue::postMessage(
+    const bmqp::PutHeader&                    putHeaderIn,
+    const bsl::shared_ptr<const bdlbb::Blob>& appData,
+    const bsl::shared_ptr<bdlbb::Blob>&       options,
+    mqbi::QueueHandle*                        source)
 {
     // executed by the *DISPATCHER* thread
 

@@ -24,6 +24,7 @@
   <complexType name='ConnectClusterNode'>
     <sequence>
       <element name='clusterName' type='string'/>
+      <element name='clusterNodeId' type='int'/>
     </sequence>
   </complexType>
 

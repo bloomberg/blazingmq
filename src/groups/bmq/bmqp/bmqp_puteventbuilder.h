@@ -72,7 +72,6 @@
 #include <bmqt_resultcode.h>
 
 // BDE
-#include <bdlb_nullablevalue.h>
 #include <bdlbb_blob.h>
 #include <bsl_memory.h>
 #include <bslma_allocator.h>
@@ -93,8 +92,6 @@ namespace bmqp {
 class PutEventBuilder {
   public:
     // TYPES
-    typedef bdlb::NullableValue<bmqp::Protocol::MsgGroupId> NullableMsgGroupId;
-
     typedef bmqp::BlobPoolUtil::BlobSpPool BlobSpPool;
 
   private:
@@ -149,10 +146,6 @@ class PutEventBuilder {
 
     bmqt::MessageGUID d_messageGUID;
     // GUID of the current message.
-
-    NullableMsgGroupId d_msgGroupId;
-    // Optional Group Id of the current
-    // message.
 
     int d_msgCount;
     // number of messages currently in
@@ -227,10 +220,6 @@ class PutEventBuilder {
     /// object.
     PutEventBuilder& setFlags(int value);
 
-    /// Set the Group Id of the current message to the specified `value` and
-    /// return a reference offering modifiable access to this object.
-    PutEventBuilder& setMsgGroupId(const bmqp::Protocol::MsgGroupId& value);
-
     /// Set the message guid of the current message to the specified `value`
     /// and return a reference offering modifiable access to this object.
     PutEventBuilder& setMessageGUID(const bmqt::MessageGUID& value);
@@ -271,10 +260,6 @@ class PutEventBuilder {
     /// a reference offering modifiable access to this object.
     PutEventBuilder& clearMessageProperties();
 
-    /// Clear out the Group Id, if any, of the current message and return a
-    /// reference offering modifiable access to this object.
-    PutEventBuilder& clearMsgGroupId();
-
     /// Add the current message to the underlying event blob with the
     /// specified `queueId` as the destination queue.  Return zero on
     /// success, and a meaningful non-zero error code otherwise.  In case of
@@ -305,10 +290,6 @@ class PutEventBuilder {
     /// Return the flags that were last set.  Note that flags are reset
     /// after every call to packMessage().
     int flags() const;
-
-    /// Return the Group Id that was last set.  Note that Group Id is reset
-    /// after every call to packMessage().
-    const NullableMsgGroupId& msgGroupId() const;
 
     /// Return the message guid that was last set.  Note that an unset guid
     /// is a valid return value.  Also note that guid is reset after every
@@ -375,17 +356,6 @@ inline PutEventBuilder& PutEventBuilder::setFlags(int value)
     BSLS_ASSERT_SAFE(d_msgStarted == true);
 
     d_flags = value;
-
-    return *this;
-}
-
-inline PutEventBuilder&
-PutEventBuilder::setMsgGroupId(const bmqp::Protocol::MsgGroupId& value)
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_msgStarted == true);
-
-    d_msgGroupId = value;
 
     return *this;
 }
@@ -468,12 +438,6 @@ inline PutEventBuilder& PutEventBuilder::clearMessageProperties()
     return *this;
 }
 
-inline PutEventBuilder& PutEventBuilder::clearMsgGroupId()
-{
-    d_msgGroupId.reset();
-    return *this;
-}
-
 inline void PutEventBuilder::startMessage()
 {
     d_msgStarted = true;
@@ -486,7 +450,6 @@ inline void PutEventBuilder::startMessage()
     d_flags                    = 0;
     d_compressionAlgorithmType = bmqt::CompressionAlgorithmType::e_NONE;
     d_messageGUID              = bmqt::MessageGUID();
-    d_msgGroupId.reset();
     d_crc32c                = 0;
     d_messagePropertiesInfo = MessagePropertiesInfo();
 }
@@ -495,12 +458,6 @@ inline void PutEventBuilder::startMessage()
 inline int PutEventBuilder::flags() const
 {
     return d_flags;
-}
-
-inline const PutEventBuilder::NullableMsgGroupId&
-PutEventBuilder::msgGroupId() const
-{
-    return d_msgGroupId;
 }
 
 inline const bmqt::MessageGUID& PutEventBuilder::messageGUID() const

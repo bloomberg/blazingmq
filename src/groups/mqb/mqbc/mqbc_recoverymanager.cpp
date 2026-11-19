@@ -588,10 +588,10 @@ int RecoveryManager::processSendDataChunks(
 }
 
 int RecoveryManager::processReceiveDataChunks(
-    const bsl::shared_ptr<bdlbb::Blob>& blob,
-    mqbnet::ClusterNode*                source,
-    mqbs::FileStore*                    fs,
-    int                                 partitionId,
+    const bsl::shared_ptr<const bdlbb::Blob>& blob,
+    mqbnet::ClusterNode*                      source,
+    mqbs::FileStore*                          fs,
+    int                                       partitionId,
     const bmqp_ctrlmsg::PartitionSequenceNumber&
         firstSyncPointAfterRolloverSeqNum)
 {
@@ -1675,9 +1675,9 @@ void RecoveryManager::setLiveDataSource(mqbnet::ClusterNode* source,
 }
 
 void RecoveryManager::bufferStorageEvent(
-    int                                 partitionId,
-    const bsl::shared_ptr<bdlbb::Blob>& blob,
-    mqbnet::ClusterNode*                source)
+    int                                       partitionId,
+    const bsl::shared_ptr<const bdlbb::Blob>& blob,
+    mqbnet::ClusterNode*                      source)
 {
     // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
 
@@ -1710,9 +1710,9 @@ void RecoveryManager::bufferStorageEvent(
 }
 
 int RecoveryManager::loadBufferedStorageEvents(
-    bsl::vector<bsl::shared_ptr<bdlbb::Blob> >* out,
-    const mqbnet::ClusterNode*                  source,
-    int                                         partitionId)
+    bsl::vector<bsl::shared_ptr<const bdlbb::Blob> >* out,
+    const mqbnet::ClusterNode*                        source,
+    int                                               partitionId)
 {
     // executed by the *QUEUE DISPATCHER* thread associated with 'partitionId'
 

@@ -254,19 +254,28 @@ class ClusterNodeSession : public mqbi::DispatcherClient,
     void removeAllPartitions();
 
     //   (virtual: mqbi::InlineClient)
+
+    /// @brief Deliver a message to the specified streams of the queue.
+    ///
+    /// @param msgGUID The GUID of the message.
+    /// @param queueId The id of the queue.
+    /// @param message The message to deliver; may be empty.
+    /// @param attributes The attributes of the message.
+    /// @param mps The message properties info of the message.
+    /// @param subQueueInfos The streams of the queue to deliver to.
+    /// @param isOutOfOrder Whether the message is delivered out of order.
+    ///
+    /// @return The result of the operation.
+    ///
+    /// THREAD: This method is called from the Queue's dispatcher thread.
     mqbi::InlineResult::Enum
     sendPush(const bmqt::MessageGUID&                  msgGUID,
              int                                       queueId,
-             const bsl::shared_ptr<bdlbb::Blob>&       message,
+             const bsl::shared_ptr<const bdlbb::Blob>& message,
              const mqbi::StorageMessageAttributes&     attributes,
              const bmqp::MessagePropertiesInfo&        mps,
              const bmqp::Protocol::SubQueueInfosArray& subQueueInfos,
              bool isOutOfOrder) BSLS_KEYWORD_OVERRIDE;
-    // Called by the 'queueId' to deliver the specified 'message' with the
-    // specified 'message', 'msgGUID', 'attributes' and 'mps' for the
-    // specified 'subQueueInfos' streams of the queue.
-    //
-    // THREAD: This method is called from the Queue's dispatcher thread.
 
     mqbi::InlineResult::Enum
     sendAck(int                     queueId,

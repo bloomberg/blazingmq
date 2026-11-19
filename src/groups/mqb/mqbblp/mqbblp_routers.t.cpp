@@ -551,7 +551,7 @@ int main(int argc, char* argv[])
     case 3: test3_parse(); break;
     case 4: test4_generate(); break;
     default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
+        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }

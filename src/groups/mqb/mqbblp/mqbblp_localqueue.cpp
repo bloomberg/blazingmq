@@ -399,10 +399,10 @@ void LocalQueue::flush()
     deliverIfNeeded();
 }
 
-void LocalQueue::postMessage(const bmqp::PutHeader&              putHeader,
-                             const bsl::shared_ptr<bdlbb::Blob>& appData,
-                             const bsl::shared_ptr<bdlbb::Blob>& options,
-                             mqbi::QueueHandle*                  source)
+void LocalQueue::postMessage(const bmqp::PutHeader& putHeader,
+                             const bsl::shared_ptr<const bdlbb::Blob>& appData,
+                             const bsl::shared_ptr<bdlbb::Blob>&       options,
+                             mqbi::QueueHandle*                        source)
 {
     // executed by the *DISPATCHER* thread
 

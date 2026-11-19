@@ -1756,8 +1756,10 @@ int RelayQueueEngine::onRejectMessage(
                           << "] with the counter: [" << rda << "]";
         }
 
-        if (!rda.isUnlimited()) {
-            BSLS_ASSERT_SAFE(result);
+        // The counter value can differ on primary and replica because it is
+        // not persisted/replicated.  Keep it as 0; the primary decides when
+        // the message is removed.
+        if (!rda.isUnlimited() && result > 0) {
             rda.setPotentiallyPoisonous(true);
             rda.setCounter(--result);
 
@@ -1881,7 +1883,7 @@ void RelayQueueEngine::afterPostMessage()
 
 void RelayQueueEngine::evaluateAppSubscriptions(
     BSLA_MAYBE_UNUSED const bmqp::PutHeader& putHeader,
-    BSLA_MAYBE_UNUSED const bsl::shared_ptr<bdlbb::Blob>& appData,
+    BSLA_MAYBE_UNUSED const bsl::shared_ptr<const bdlbb::Blob>& appData,
     BSLA_MAYBE_UNUSED const bmqp::MessagePropertiesInfo& mpi)
 {
     // executed by the *QUEUE DISPATCHER* thread
@@ -2043,9 +2045,9 @@ bool RelayQueueEngine::subscriptionId2upstreamSubQueueId(
 //  Proxy       use PushStream      use RedeliveryList (per App)
 //              storePush           storePush
 
-void RelayQueueEngine::push(mqbi::StorageMessageAttributes*     attributes,
-                            const bmqt::MessageGUID&            msgGUID,
-                            const bsl::shared_ptr<bdlbb::Blob>& appData,
+void RelayQueueEngine::push(mqbi::StorageMessageAttributes* attributes,
+                            const bmqt::MessageGUID&        msgGUID,
+                            const bsl::shared_ptr<const bdlbb::Blob>& appData,
                             bmqp::Protocol::SubQueueInfosArray& subscriptions,
                             bool                                isOutOfOrder)
 {
@@ -2225,7 +2227,7 @@ bool RelayQueueEngine::isDuplicate(const App_State*         app,
 void RelayQueueEngine::storePushIfProxy(
     mqbi::StorageMessageAttributes*           attributes,
     const bmqt::MessageGUID&                  msgGUID,
-    const bsl::shared_ptr<bdlbb::Blob>&       appData,
+    const bsl::shared_ptr<const bdlbb::Blob>& appData,
     const bmqp::Protocol::SubQueueInfosArray& subQueueIds)
 {
     if (d_queueState_p->domain()->cluster()->isRemote()) {

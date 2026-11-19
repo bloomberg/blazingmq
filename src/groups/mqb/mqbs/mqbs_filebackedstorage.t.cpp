@@ -193,7 +193,8 @@ class MockDataStore : public mqbs::DataStore {
     Records d_records;
 
     bsl::map<bsls::Types::Uint64, mqbi::StorageMessageAttributes> d_attributes;
-    bsl::map<bsls::Types::Uint64, bsl::shared_ptr<bdlbb::Blob> >  d_appData;
+    bsl::map<bsls::Types::Uint64, bsl::shared_ptr<const bdlbb::Blob> >
+                                                                  d_appData;
     bsl::map<bsls::Types::Uint64, bsl::shared_ptr<bdlbb::Blob> >  d_options;
 
     bsls::Types::Uint64 d_messageCounter;
@@ -255,7 +256,7 @@ class MockDataStore : public mqbs::DataStore {
     int writeMessageRecord(mqbi::StorageMessageAttributes* attributes,
                            mqbs::DataStoreRecordHandle*    handle,
                            BSLA_MAYBE_UNUSED const bmqt::MessageGUID& guid,
-                           const bsl::shared_ptr<bdlbb::Blob>&        appData,
+                           const bsl::shared_ptr<const bdlbb::Blob>&  appData,
                            const bsl::shared_ptr<bdlbb::Blob>&        options,
                            BSLA_MAYBE_UNUSED const mqbu::StorageKey& queueKey)
         BSLS_KEYWORD_OVERRIDE
@@ -346,10 +347,10 @@ class MockDataStore : public mqbs::DataStore {
         *buffer = d_attributes.at(id);
     }
 
-    void loadMessageRaw(bsl::shared_ptr<bdlbb::Blob>*      appData,
-                        bsl::shared_ptr<bdlbb::Blob>*      options,
-                        mqbi::StorageMessageAttributes*    attributes,
-                        const mqbs::DataStoreRecordHandle& handle) const
+    void loadMessageRaw(bsl::shared_ptr<const bdlbb::Blob>* appData,
+                        bsl::shared_ptr<bdlbb::Blob>*       options,
+                        mqbi::StorageMessageAttributes*     attributes,
+                        const mqbs::DataStoreRecordHandle&  handle) const
         BSLS_KEYWORD_OVERRIDE
     {
         loadMessageAttributesRaw(attributes, handle);
@@ -458,14 +459,14 @@ class MockDataStore : public mqbs::DataStore {
         // NOTHING
     }
 
-    int processStorageEvent(const bsl::shared_ptr<bdlbb::Blob>&,
+    int processStorageEvent(const bsl::shared_ptr<const bdlbb::Blob>&,
                             bool,
                             mqbnet::ClusterNode*) BSLS_KEYWORD_OVERRIDE
     {
         return 0;
     }
 
-    int processRecoveryEvent(const bsl::shared_ptr<bdlbb::Blob>&)
+    int processRecoveryEvent(const bsl::shared_ptr<const bdlbb::Blob>&)
         BSLS_KEYWORD_OVERRIDE
     {
         return 0;
@@ -1020,7 +1021,7 @@ BMQTST_TEST_F(Test, get_noVirtualStorages)
 
         {
             mqbi::StorageMessageAttributes attributes;
-            bsl::shared_ptr<bdlbb::Blob>   appData;
+            bsl::shared_ptr<const bdlbb::Blob> appData;
             bsl::shared_ptr<bdlbb::Blob>   options;
             BMQTST_ASSERT_EQ(
                 storage.get(&appData, &options, &attributes, guids[i]),
@@ -1040,7 +1041,7 @@ BMQTST_TEST_F(Test, get_noVirtualStorages)
 
     // Check 'get' with a non-existent GUID
     mqbi::StorageMessageAttributes attributes;
-    bsl::shared_ptr<bdlbb::Blob>   appData;
+    bsl::shared_ptr<const bdlbb::Blob> appData;
     bsl::shared_ptr<bdlbb::Blob>   options;
     BMQTST_ASSERT_EQ(storage.get(&attributes, generateUniqueGUID(guids)),
                      mqbi::StorageResult::e_GUID_NOT_FOUND);
@@ -1432,7 +1433,7 @@ BMQTST_TEST(get_withVirtualStorages)
 
     // Verify 'get' operation
     mqbi::StorageMessageAttributes attributes;
-    bsl::shared_ptr<bdlbb::Blob>   appData;
+    bsl::shared_ptr<const bdlbb::Blob> appData;
     bsl::shared_ptr<bdlbb::Blob>   options;
 
     // 'get' messageAttributes: Should reflect correct number of references and

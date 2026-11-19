@@ -1428,8 +1428,7 @@ int main(int argc, char* argv[])
     case 16: test16_link_swap(); break;
 
     default: {
-        bsl::cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND."
-                  << bsl::endl;
+        bsl::cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }

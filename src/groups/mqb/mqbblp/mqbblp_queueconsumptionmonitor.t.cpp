@@ -115,7 +115,7 @@ struct MockStorageIterator : public mqbi::StorageIterator {
 
     mqbi::AppMessage d_appMessage;
 
-    bsl::shared_ptr<bdlbb::Blob> d_appData;
+    bsl::shared_ptr<const bdlbb::Blob> d_appData;
 
     bsl::shared_ptr<bdlbb::Blob> d_options;
 
@@ -141,7 +141,8 @@ struct MockStorageIterator : public mqbi::StorageIterator {
     mqbi::AppMessage& appMessageState(
         BSLA_MAYBE_UNUSED unsigned int appOrdinal) BSLS_KEYWORD_OVERRIDE;
 
-    const bsl::shared_ptr<bdlbb::Blob>& appData() const BSLS_KEYWORD_OVERRIDE;
+    const bsl::shared_ptr<const bdlbb::Blob>&
+    appData() const BSLS_KEYWORD_OVERRIDE;
 
     const bsl::shared_ptr<bdlbb::Blob>& options() const BSLS_KEYWORD_OVERRIDE;
 
@@ -198,7 +199,7 @@ MockStorageIterator::appMessageState(BSLA_MAYBE_UNUSED unsigned int appOrdinal)
     return d_appMessage;
 }
 
-const bsl::shared_ptr<bdlbb::Blob>& MockStorageIterator::appData() const
+const bsl::shared_ptr<const bdlbb::Blob>& MockStorageIterator::appData() const
 {
     return d_appData;
 }

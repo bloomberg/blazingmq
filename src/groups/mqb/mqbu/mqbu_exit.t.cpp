@@ -481,7 +481,7 @@ int main(int argc, char* argv[])
     case 2: test2_exitCode_fromAscii(); break;
     case 1: test1_exitCode_toAscii(); break;
     default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
+        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }

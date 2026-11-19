@@ -566,12 +566,12 @@ class Routers {
 
         bmqp::SchemaLearner::Context d_schemaLearnerContext;
 
-        bmqp::MessageProperties      d_properties;
-        const mqbi::StorageIterator* d_currentMessage_p;
-        bsl::shared_ptr<bdlbb::Blob> d_appData;
-        bmqp::MessagePropertiesInfo  d_messagePropertiesInfo;
-        bool                         d_needData;
-        unsigned int                 d_numHits;
+        bmqp::MessageProperties            d_properties;
+        const mqbi::StorageIterator*       d_currentMessage_p;
+        bsl::shared_ptr<const bdlbb::Blob> d_appData;
+        bmqp::MessagePropertiesInfo        d_messagePropertiesInfo;
+        bool                               d_needData;
+        unsigned int                       d_numHits;
 
       public:
         MessagePropertiesReader(bmqp::SchemaLearner& schemaLearner,
@@ -586,10 +586,12 @@ class Routers {
         /// `currentMessage`.
         void next(const mqbi::StorageIterator* currentMessage);
 
-        /// Prepare the reader for the next message given the specified
-        /// `appData` and `messagePropertiesInfo`.
-        void next(const bsl::shared_ptr<bdlbb::Blob>& appData,
-                  const bmqp::MessagePropertiesInfo&  messagePropertiesInfo);
+        /// @brief Prepare the reader for the next message.
+        ///
+        /// @param appData The application data of the message.
+        /// @param messagePropertiesInfo The message properties info.
+        void next(const bsl::shared_ptr<const bdlbb::Blob>& appData,
+                  const bmqp::MessagePropertiesInfo& messagePropertiesInfo);
 
         /// Reset the reader to the state of empty properties.
         void clear();

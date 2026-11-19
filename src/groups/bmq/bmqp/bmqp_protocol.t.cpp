@@ -299,17 +299,17 @@ static void test1_breathingTest()
         BMQTST_ASSERT_EQ(oh.words(), 2097151);
 
         // Create non-packed OptionHeader with non-default ctor
-        bmqp::OptionHeader oh2(bmqp::OptionType::e_MSG_GROUP_ID,
+        bmqp::OptionHeader oh2(bmqp::OptionType::e_UNUSED,
                                false);  // isPacked
-        BMQTST_ASSERT_EQ(oh2.type(), bmqp::OptionType::e_MSG_GROUP_ID);
+        BMQTST_ASSERT_EQ(oh2.type(), bmqp::OptionType::e_UNUSED);
         BMQTST_ASSERT_EQ(oh2.packed(), false);
         BMQTST_ASSERT_EQ(oh2.typeSpecific(), 0);
         BMQTST_ASSERT_EQ(oh2.words(), numWords);
 
         // Create *packed* OptionHeader with non-default ctor
-        bmqp::OptionHeader oh3(bmqp::OptionType::e_MSG_GROUP_ID,
+        bmqp::OptionHeader oh3(bmqp::OptionType::e_UNUSED,
                                true);  // isPacked
-        BMQTST_ASSERT_EQ(oh3.type(), bmqp::OptionType::e_MSG_GROUP_ID);
+        BMQTST_ASSERT_EQ(oh3.type(), bmqp::OptionType::e_UNUSED);
         BMQTST_ASSERT_EQ(oh3.packed(), true);
         BMQTST_ASSERT_EQ(oh3.typeSpecific(), 0);
         BMQTST_ASSERT_EQ(oh3.words(), 0);
@@ -1421,16 +1421,21 @@ static void test4_enumPrint()
 
     PV("Test bmqp::OptionType printing");
     {
-        BSLMF_ASSERT(bmqp::OptionType::k_LOWEST_SUPPORTED_TYPE ==
-                     bmqp::OptionType::e_SUB_QUEUE_IDS_OLD);
-
-        BSLMF_ASSERT(bmqp::OptionType::k_HIGHEST_SUPPORTED_TYPE ==
-                     bmqp::OptionType::e_SUB_QUEUE_INFOS);
+        BMQTST_ASSERT(
+            !bmqp::OptionType::isSupported(bmqp::OptionType::e_UNDEFINED));
+        BMQTST_ASSERT(bmqp::OptionType::isSupported(
+            bmqp::OptionType::e_SUB_QUEUE_IDS_OLD));
+        BMQTST_ASSERT(
+            !bmqp::OptionType::isSupported(bmqp::OptionType::e_UNUSED));
+        BMQTST_ASSERT(bmqp::OptionType::isSupported(
+            bmqp::OptionType::e_SUB_QUEUE_INFOS));
+        BMQTST_ASSERT(!bmqp::OptionType::isSupported(
+            bmqp::OptionType::e_SUB_QUEUE_INFOS + 1));
 
         PrintTestData k_DATA[] = {
             {L_, bmqp::OptionType::e_UNDEFINED, "UNDEFINED"},
             {L_, bmqp::OptionType::e_SUB_QUEUE_IDS_OLD, "SUB_QUEUE_IDS_OLD"},
-            {L_, bmqp::OptionType::e_MSG_GROUP_ID, "MSG_GROUP_ID"},
+            {L_, bmqp::OptionType::e_UNUSED, "UNUSED"},
             {L_, bmqp::OptionType::e_SUB_QUEUE_INFOS, "SUB_QUEUE_INFOS"}};
 
         printEnumHelper<bmqp::OptionType>(k_DATA);
@@ -1773,7 +1778,7 @@ int main(int argc, char* argv[])
     case 2: test2_bitManipulation(); break;
     case 1: test1_breathingTest(); break;
     default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
+        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }

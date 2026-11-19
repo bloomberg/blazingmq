@@ -1433,7 +1433,9 @@ int FileStoreUtil::writeMessageRecordImpl(
         rc_MISSING_PAYLOAD      = -1,
         rc_MISSING_PAYLOAD_HDR  = -2,
         rc_INCOMPLETE_PAYLOAD   = -3,
-        rc_DATA_OFFSET_MISMATCH = -4
+        rc_DATA_OFFSET_MISMATCH = -4,
+        rc_INVALID_DATA_HEADER  = -5,
+        rc_INVALID_PADDING      = -6
     };
 
     // Extract payload's position from blob, based on 'recordPosition'.  Per
@@ -1463,33 +1465,60 @@ int FileStoreUtil::writeMessageRecordImpl(
         return rc_MISSING_PAYLOAD_HDR;  // RETURN
     }
 
+    const int headerSizeVal = dataHeader->headerWords() *
+                              bmqp::Protocol::k_WORD_SIZE;
+    const int messageSizeVal = dataHeader->messageWords() *
+                               bmqp::Protocol::k_WORD_SIZE;
+    if (0 == headerSizeVal || messageSizeVal <= headerSizeVal) {
+        return rc_INVALID_DATA_HEADER;  // RETURN
+    }
+
     // Ensure that blob has enough data as indicated by length in 'dataHeader'.
+    // The last byte of a message holds the padding length.
     //
     // TBD: find a cheaper way for this check.
 
-    const int messageSizeVal = dataHeader->messageWords() *
+    bmqu::BlobPosition paddingBytePos;
+    rc = bmqu::BlobUtil::findOffsetSafe(&paddingBytePos,
+                                        event,
+                                        payloadBeginPos,
+                                        messageSizeVal - 1);
+    if (0 != rc) {
+        return 10 * rc + rc_INCOMPLETE_PAYLOAD;  // RETURN
+    }
+
+    char paddingByte = 0;
+    rc = bmqu::BlobUtil::readNBytes(&paddingByte, event, paddingBytePos, 1);
+    if (0 != rc) {
+        return 10 * rc + rc_INCOMPLETE_PAYLOAD;  // RETURN
+    }
+
+    // Only the first word of 'dataHeader' is guaranteed to be read from the
+    // blob until the message is known to be complete.
+
+    const int optionsSizeVal = dataHeader->optionsWords() *
                                bmqp::Protocol::k_WORD_SIZE;
+    if ((headerSizeVal + optionsSizeVal) >= messageSizeVal) {
+        return rc_INVALID_DATA_HEADER;  // RETURN
+    }
+
+    if (paddingByte < 1 || paddingByte > bmqp::Protocol::k_DWORD_SIZE ||
+        messageSizeVal <= (headerSizeVal + optionsSizeVal +
+                           static_cast<unsigned char>(paddingByte))) {
+        return rc_INVALID_PADDING;  // RETURN
+    }
+
     if (messageSize) {
         *messageSize = messageSizeVal;
     }
     if (headerSize) {
-        *headerSize = dataHeader->headerWords() * bmqp::Protocol::k_WORD_SIZE;
+        *headerSize = headerSizeVal;
     }
     if (optionsSize) {
-        *optionsSize = dataHeader->optionsWords() *
-                       bmqp::Protocol::k_WORD_SIZE;
+        *optionsSize = optionsSizeVal;
     }
     if (messagePropertiesInfo) {
         *messagePropertiesInfo = bmqp::MessagePropertiesInfo(*dataHeader);
-    }
-
-    bmqu::BlobPosition payloadEndPos;
-    rc = bmqu::BlobUtil::findOffsetSafe(&payloadEndPos,
-                                        event,
-                                        payloadBeginPos,
-                                        messageSizeVal);
-    if (0 != rc) {
-        return 10 * rc + rc_INCOMPLETE_PAYLOAD;  // RETURN
     }
 
     BSLS_ASSERT_SAFE(dataFile.fileSize() >= (*dataFilePos + messageSizeVal));

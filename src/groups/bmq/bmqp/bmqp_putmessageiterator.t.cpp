@@ -164,7 +164,6 @@ static void test1_breathingTest()
                          bdlbb::BlobUtil::compare(retrievedPayloadBlob,
                                                   expectedBlob));
 
-        BMQTST_ASSERT_EQ(false, iter.hasMsgGroupId());
         BMQTST_ASSERT_EQ(true, iter.isValid());
         BMQTST_ASSERT_EQ(false, iter.next());
         BMQTST_ASSERT_EQ(false, iter.isValid());
@@ -211,7 +210,6 @@ static void test1_breathingTest()
                          bdlbb::BlobUtil::compare(retrievedPayloadBlob2,
                                                   expectedBlob));
 
-        BMQTST_ASSERT_EQ(false, iter.hasMsgGroupId());
         BMQTST_ASSERT_EQ(true, iter.isValid());
         BMQTST_ASSERT_EQ(false, iter.next());
         BMQTST_ASSERT_EQ(false, iter.isValid());
@@ -272,7 +270,6 @@ static void test1_breathingTest()
         BMQTST_ASSERT_EQ(0, iter.loadApplicationData(&retrievedPayloadBlob));
         BMQTST_ASSERT(retrievedPayloadBlob.length() > 0);
 
-        BMQTST_ASSERT_EQ(false, iter.hasMsgGroupId());
         BMQTST_ASSERT_EQ(true, iter.isValid());
         BMQTST_ASSERT_EQ(false, iter.next());
         BMQTST_ASSERT_EQ(false, iter.isValid());
@@ -319,7 +316,6 @@ static void test1_breathingTest()
                          bdlbb::BlobUtil::compare(retrievedPayloadBlob2,
                                                   expectedBlob));
 
-        BMQTST_ASSERT_EQ(false, iter.hasMsgGroupId());
         BMQTST_ASSERT_EQ(true, iter.isValid());
         BMQTST_ASSERT_EQ(false, iter.next());
         BMQTST_ASSERT_EQ(false, iter.isValid());
@@ -397,7 +393,6 @@ static void test1_breathingTest()
                          bdlbb::BlobUtil::compare(retrievedPayloadBlob,
                                                   expectedBlob));
 
-        BMQTST_ASSERT_EQ(false, iter.hasMsgGroupId());
         BMQTST_ASSERT_EQ(true, iter.isValid());
         BMQTST_ASSERT_EQ(false, iter.next());
         BMQTST_ASSERT_EQ(false, iter.isValid());
@@ -455,7 +450,6 @@ static void test1_breathingTest()
                          bdlbb::BlobUtil::compare(retrievedPayloadBlob2,
                                                   expectedBlob));
 
-        BMQTST_ASSERT_EQ(false, iter.hasMsgGroupId());
         BMQTST_ASSERT_EQ(true, iter.isValid());
         BMQTST_ASSERT_EQ(false, iter.next());
         BMQTST_ASSERT_EQ(false, iter.isValid());
@@ -536,7 +530,6 @@ static void test1_breathingTest()
                          bdlbb::BlobUtil::compare(retrievedPayloadBlob,
                                                   expectedBlob));
 
-        BMQTST_ASSERT_EQ(false, iter.hasMsgGroupId());
         BMQTST_ASSERT_EQ(true, iter.isValid());
         BMQTST_ASSERT_EQ(false, iter.next());
         BMQTST_ASSERT_EQ(false, iter.isValid());
@@ -594,7 +587,6 @@ static void test1_breathingTest()
                          bdlbb::BlobUtil::compare(retrievedPayloadBlob2,
                                                   expectedBlob));
 
-        BMQTST_ASSERT_EQ(false, iter.hasMsgGroupId());
         BMQTST_ASSERT_EQ(true, iter.isValid());
         BMQTST_ASSERT_EQ(false, iter.next());
         BMQTST_ASSERT_EQ(false, iter.isValid());
@@ -674,7 +666,6 @@ static void test2_reset()
         BMQTST_ASSERT_EQ(0,
                          bdlbb::BlobUtil::compare(appDataBlob, expectedBlob));
 
-        BMQTST_ASSERT_EQ(false, pmt.hasMsgGroupId());
         BMQTST_ASSERT_EQ(true, pmt.isValid());
         BMQTST_ASSERT_EQ(false, pmt.next());
         BMQTST_ASSERT_EQ(false, pmt.isValid());
@@ -745,7 +736,6 @@ static void test2_reset()
         BMQTST_ASSERT_EQ(0,
                          bdlbb::BlobUtil::compare(appDataBlob, expectedBlob));
 
-        BMQTST_ASSERT_EQ(false, pmt.hasMsgGroupId());
         BMQTST_ASSERT_EQ(true, pmt.isValid());
         BMQTST_ASSERT_EQ(false, pmt.next());
         BMQTST_ASSERT_EQ(false, pmt.isValid());
@@ -971,8 +961,6 @@ static void test5_putEventWithMultipleMessages()
                                0,
                                bdlbb::BlobUtil::compare(appData, D.d_appData));
 
-            BMQTST_ASSERT_EQ_D(index, false, iter.hasMsgGroupId());
-
             BMQTST_ASSERT_EQ_D(index, 0, iter.loadOptions(&options));
             BMQTST_ASSERT_EQ_D(index, 0, options.length());
 
@@ -1061,8 +1049,6 @@ static void test5_putEventWithMultipleMessages()
             BMQTST_ASSERT_EQ_D(index,
                                0,
                                bdlbb::BlobUtil::compare(appData, D.d_appData));
-
-            BMQTST_ASSERT_EQ_D(index, false, iter.hasMsgGroupId());
 
             BMQTST_ASSERT_EQ_D(index, 0, iter.loadOptions(&options));
             BMQTST_ASSERT_EQ_D(index, 0, options.length());
@@ -1168,8 +1154,6 @@ static void test6_putEventWithZeroLengthPutMessages()
                                0,
                                bdlbb::BlobUtil::compare(appData, D.d_appData));
 
-            BMQTST_ASSERT_EQ_D(index, false, iter.hasMsgGroupId());
-
             ++index;
         }
 
@@ -1195,7 +1179,7 @@ int main(int argc, char* argv[])
     case 2: test2_reset(); break;
     case 1: test1_breathingTest(); break;
     default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
+        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }

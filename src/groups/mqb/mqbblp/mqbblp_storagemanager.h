@@ -159,7 +159,7 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager {
 
     typedef bsl::function<void(int, const PrimaryLeaseIds&)> RecoveryStatusCb;
 
-    typedef bsl::shared_ptr<bdlbb::Blob> BlobSp;
+    typedef bsl::shared_ptr<const bdlbb::Blob> BlobSp;
 
     typedef mqbs::DataStoreConfig::QueueKeyInfoMap QueueKeyInfoMap;
 
@@ -342,20 +342,32 @@ class StorageManager BSLS_KEYWORD_FINAL : public mqbi::StorageManager {
     void clearPrimaryForPartitionDispatched(int                  partitionId,
                                             mqbnet::ClusterNode* primary);
 
-    /// Executed by queue/file-store dispatcher thread.
-    void
-    processStorageEventDispatched(int partitionId,
-                                  const bsl::shared_ptr<bdlbb::Blob>& blob,
-                                  mqbnet::ClusterNode*                source);
+    /// @brief Process a storage event for a partition.
+    ///
+    /// @param partitionId The partition of the event.
+    /// @param blob The storage event.
+    /// @param source The node the event comes from.
+    ///
+    /// THREAD: Executed by queue/file-store dispatcher thread.
+    void processStorageEventDispatched(
+        int                                       partitionId,
+        const bsl::shared_ptr<const bdlbb::Blob>& blob,
+        mqbnet::ClusterNode*                      source);
 
     /// Executed in cluster dispatcher thread.
     void processPartitionSyncEvent(const mqbevt::StorageEvent& event);
 
-    /// Executed by queue/file-store dispatcher thread.
+    /// @brief Process a partition sync event for a partition.
+    ///
+    /// @param partitionId The partition of the event.
+    /// @param blob The partition sync event.
+    /// @param source The node the event comes from.
+    ///
+    /// THREAD: Executed by queue/file-store dispatcher thread.
     void processPartitionSyncEventDispatched(
-        int                                 partitionId,
-        const bsl::shared_ptr<bdlbb::Blob>& blob,
-        mqbnet::ClusterNode*                source);
+        int                                       partitionId,
+        const bsl::shared_ptr<const bdlbb::Blob>& blob,
+        mqbnet::ClusterNode*                      source);
 
     /// Executed by queue/file-store dispatcher thread.
     void processStorageSyncRequestDispatched(

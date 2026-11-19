@@ -168,7 +168,7 @@ class RecoveryManager_FileTransferInfo {
 class RecoveryManager_RecoveryContext {
   public:
     // TYPES
-    typedef bsl::vector<bsl::shared_ptr<bdlbb::Blob> > StorageEvents;
+    typedef bsl::vector<bsl::shared_ptr<const bdlbb::Blob> > StorageEvents;
 
     typedef bsl::function<void(int                  partitionId,
                                int                  status,
@@ -325,7 +325,10 @@ class RecoveryManager_RecoveryContext {
 
     EventHandle& recoveryStatusCheckHandle();
 
-    void addStorageEvent(const bsl::shared_ptr<bdlbb::Blob>& event);
+    /// @brief Buffer a storage event.
+    ///
+    /// @param event The storage event to buffer.
+    void addStorageEvent(const bsl::shared_ptr<const bdlbb::Blob>& event);
 
     void purgeStorageEvents();
 
@@ -916,14 +919,29 @@ class RecoveryManager : public mqbnet::ClusterObserver {
         const RequestSp&           context,
         const mqbnet::ClusterNode* responder);
 
+    /// @brief Find a sync point in a storage event.
+    ///
+    /// @param[out] syncPoint Loaded with the sync point.
+    /// @param[out] syncPointRecHeader Loaded with the record header of the
+    ///                                sync point.
+    /// @param[out] syncPointHeaderPosition Loaded with the position of the
+    ///                                     sync point header in `blob`.
+    /// @param[out] messageNumber Loaded with the index of the sync point
+    ///                           message in `blob`.
+    /// @param[out] journalOffset Loaded with the primary's journal offset.
+    /// @param partitionId The partition of the event.
+    /// @param blob The storage event.
+    /// @param source The node the event comes from.
+    ///
+    /// @return `true` if `blob` has a sync point, `false` otherwise.
     bool hasSyncPoint(bmqp_ctrlmsg::SyncPoint* syncPoint,
                       mqbs::RecordHeader*      syncPointRecHeader,
                       bmqu::BlobPosition*      syncPointHeaderPosition,
                       int*                     messageNumber,
                       bsls::Types::Uint64*     journalOffset,
                       int                      partitionId,
-                      const bsl::shared_ptr<bdlbb::Blob>& blob,
-                      const mqbnet::ClusterNode*          source);
+                      const bsl::shared_ptr<const bdlbb::Blob>& blob,
+                      const mqbnet::ClusterNode*                source);
 
   public:
     // CREATORS
@@ -952,11 +970,17 @@ class RecoveryManager : public mqbnet::ClusterObserver {
                        const mqbi::DispatcherClientData& dispatcherData,
                        const PartitionRecoveryCb&        partitionRecoveryCb);
 
-    /// Executed in the dispatcher thread associated with the specified
-    /// `partitionId`.
-    void processStorageEvent(int                                 partitionId,
-                             const bsl::shared_ptr<bdlbb::Blob>& blob,
-                             mqbnet::ClusterNode*                source);
+    /// @brief Process a storage event received during recovery.
+    ///
+    /// @param partitionId The partition of the event.
+    /// @param blob The storage event.
+    /// @param source The node the event comes from.
+    ///
+    /// THREAD: Executed in the dispatcher thread associated with
+    ///         `partitionId`.
+    void processStorageEvent(int partitionId,
+                             const bsl::shared_ptr<const bdlbb::Blob>& blob,
+                             mqbnet::ClusterNode*                      source);
 
     /// Executed in the dispatcher thread associated with the partition
     /// belonging to the specified `message`/`fs`.
@@ -964,11 +988,17 @@ class RecoveryManager : public mqbnet::ClusterObserver {
                                    mqbnet::ClusterNode*                source,
                                    const mqbs::FileStore*              fs);
 
-    /// Executed in the dispatcher thread associated with the specified
-    /// `partitionId`.
-    void processRecoveryEvent(int                                 partitionId,
-                              const bsl::shared_ptr<bdlbb::Blob>& blob,
-                              mqbnet::ClusterNode*                source);
+    /// @brief Process a recovery event.
+    ///
+    /// @param partitionId The partition of the event.
+    /// @param blob The recovery event.
+    /// @param source The node the event comes from.
+    ///
+    /// THREAD: Executed in the dispatcher thread associated with
+    ///         `partitionId`.
+    void processRecoveryEvent(int partitionId,
+                              const bsl::shared_ptr<const bdlbb::Blob>& blob,
+                              mqbnet::ClusterNode* source);
 
     /// Executed in the dispatcher thread associated with the specified
     /// `partitionId`.
@@ -1344,7 +1374,7 @@ RecoveryManager_RecoveryContext::setQlistFileOffset(bsls::Types::Uint64 offset)
 }
 
 inline void RecoveryManager_RecoveryContext::addStorageEvent(
-    const bsl::shared_ptr<bdlbb::Blob>& event)
+    const bsl::shared_ptr<const bdlbb::Blob>& event)
 {
     d_bufferedEvents.push_back(event);
 }
@@ -1466,7 +1496,7 @@ RecoveryManager_RecoveryContext::lastChunkSequenceNumber() const
     return d_lastChunkSequenceNumber;
 }
 
-inline const bsl::vector<bsl::shared_ptr<bdlbb::Blob> >&
+inline const bsl::vector<bsl::shared_ptr<const bdlbb::Blob> >&
 RecoveryManager_RecoveryContext::storageEvents() const
 {
     return d_bufferedEvents;

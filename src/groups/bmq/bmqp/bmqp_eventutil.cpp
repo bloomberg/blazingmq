@@ -30,7 +30,6 @@
 #include <bdlma_localsequentialallocator.h>
 #include <bsl_utility.h>
 #include <bsl_vector.h>
-#include <bsla_annotations.h>
 #include <bslma_allocator.h>
 #include <bslmf_assert.h>
 #include <bsls_assert.h>
@@ -40,12 +39,6 @@ namespace BloombergLP {
 namespace bmqp {
 
 namespace {
-
-BSLMF_ASSERT(OptionType::k_HIGHEST_SUPPORTED_TYPE ==
-             OptionType::e_SUB_QUEUE_INFOS);
-// If we add new options (i.e. options other than SubQueueId), we simply
-// need to implement the processing of that particular option inside
-// 'importOptions' below.
 
 BSLMF_ASSERT(Protocol::SubQueueIdsArrayOld::static_size >= 1);
 // We want the static size of the SubQueueIdsArray to be at least one to
@@ -146,14 +139,6 @@ class Flattener {
     /// will add the subId option to the message.  Otherwise it will not.
     CloneSingleStatus
     cloneAndPackSingle(const Protocol::SubQueueInfosArray& subQInfo);
-
-    /// Add the option having any available `type` (with the exception of
-    /// `e_SUB_QUEUE_IDS` which is handled separately) in `d_optionsView` to
-    /// the current (to-be-packed) message in the event being built by
-    /// `d_builder`.  Return 0 on success, or a meaningful non-zero error
-    /// code otherwise.  The behavior is undefined unless `d_optionsView` is
-    /// valid.
-    EventBuilderResult importOptions();
 
     /// Does the actual packing for a single message with the specified
     /// `subQInfo` (should contain only a single element).
@@ -275,16 +260,9 @@ Flattener::cloneAndPackSingle(const Protocol::SubQueueInfosArray& subQInfo)
 
     // Step 1. Add SubQueueInfo to this event. Set packRdaCounter to true.
     result = d_builder.addSubQueueInfosOption(subQInfo, true);
+    // TODO(678098): check if we can safely return here with error
 
-    // Step 2. Copy all options (excluding SubQueueId and rdaCounter which
-    //                           was done on Step 1.)
-    result = importOptions();
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(result != k_SUCCESS)) {
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        return CloneSingleStatus(result, rc_ADD_OPTION_ERROR);  // RETURN
-    }
-
-    // Step 3. Pack this message using 'd_builder'.
+    // Step 2. Pack this message using 'd_builder'.
     result = packMesage(subQInfo);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(result != k_SUCCESS)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
@@ -292,69 +270,6 @@ Flattener::cloneAndPackSingle(const Protocol::SubQueueInfosArray& subQInfo)
     }
 
     return CloneSingleStatus(result, rc_SUCCESS);
-}
-
-Flattener::EventBuilderResult Flattener::importOptions()
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(d_optionsView.isValid());
-
-    static const int lowI = static_cast<int>(
-        OptionType::k_LOWEST_SUPPORTED_TYPE);
-    static const int highI = static_cast<int>(
-        OptionType::k_HIGHEST_SUPPORTED_TYPE);
-
-    EventBuilderResult result = k_SUCCESS;
-    for (OptionsView::const_iterator i = d_optionsView.begin();
-         i != d_optionsView.end();
-         ++i) {
-        const OptionType::Enum type = *i;
-        const int              intI = static_cast<int>(*i);
-
-        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
-                !(lowI <= intI && intI <= highI))) {
-            BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-            // Not supported in this version
-            continue;  // CONTINUE
-        }
-
-        switch (type) {
-        case OptionType::e_SUB_QUEUE_IDS_OLD: {
-            // NOTE: This case is explicitly handled by the caller and we do
-            //       not need to handle it here.
-            result = k_SUCCESS;
-        } break;
-        case OptionType::e_MSG_GROUP_ID: {
-            typedef bdlma::LocalSequentialAllocator<
-                bmqp::Protocol::k_MSG_GROUP_ID_MAX_LENGTH + 1>
-                LSA;
-
-            LSA                        lsa(d_allocator_p);
-            bmqp::Protocol::MsgGroupId msgGroupId(&lsa);
-
-            BSLA_MAYBE_UNUSED int rc = d_optionsView.loadMsgGroupIdOption(
-                &msgGroupId);
-            BSLS_ASSERT_SAFE(rc == 0);
-            result = d_builder.addMsgGroupIdOption(msgGroupId);
-        } break;
-        case OptionType::e_SUB_QUEUE_INFOS: {
-            // NOTE: This case is explicitly handled by the caller and we do
-            //       not need to handle it here.
-            result = k_SUCCESS;
-        } break;
-        // Add operations for your own 'OptionType's here.
-        case OptionType::e_UNDEFINED:
-        default: {
-            BSLS_ASSERT_SAFE(false && "Unknown option");
-        }
-        }
-
-        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(result != k_SUCCESS)) {
-            BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-            break;  // BREAK
-        }
-    }
-    return result;
 }
 
 Flattener::EventBuilderResult

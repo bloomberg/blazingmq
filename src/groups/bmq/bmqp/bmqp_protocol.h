@@ -97,6 +97,37 @@
 //:   !fragment!.
 //
 //
+/// Event Layout
+///------------
+// Every event starts with an 'EventHeader', whose 'Type' determines what
+// follows.  Sizes are those of the current header versions; parsers must use
+// each header's own size field.
+//..
+//  EventHeader (8B)
+//  |
+//  +- PUT / PUSH: repeated per message
+//  |    PutHeader (36B) | PushHeader (32B)
+//  |    [OptionHeader][option content] ...    0..N; total = 'OptionsWords'
+//  |    [MessagePropertiesHeader][MessagePropertyHeader x N]
+//  |      [name][value] ... [padding]         if e_MESSAGE_PROPERTIES flag
+//  |    [payload]                             absent if PUSH and
+//  |                                          e_IMPLICIT_PAYLOAD flag
+//  |
+//  +- ACK:     AckHeader     (4B) + AckMessage     (24B) x N
+//  +- CONFIRM: ConfirmHeader (4B) + ConfirmMessage (24B) x N
+//  +- REJECT:  RejectHeader  (4B) + RejectMessage  (24B) x N
+//  |
+//  +- STORAGE / PARTITION_SYNC: [StorageHeader (12B) + payload] x N
+//  +- RECOVERY:                 [RecoveryHeader (28B) + file chunk] x N
+//  +- REPLICATION_RECEIPT:      ReplicationReceipt (16B)
+//  |
+//  +- CONTROL / AUTHENTICATION: schema message (codec in 'TypeSpecific')
+//  +- ELECTOR:                  schema message (always BER)
+//  +- CLUSTER_STATE:            cluster state ledger record
+//  +- HEARTBEAT_REQ / HEARTBEAT_RSP: nothing
+//..
+//
+//
 /// Protocol Limitations
 ///====================
 //..
@@ -363,9 +394,6 @@ struct Protocol {
     typedef bmqc::Array<unsigned int, k_SUBID_ARRAY_STATIC_LEN>
         SubQueueIdsArrayOld;
 
-    /// Holds the client-provided Group Id.
-    typedef bsl::string MsgGroupId;
-
     // CONSTANTS
     static const int k_VERSION = 1;
     // Version of the protocol
@@ -401,19 +429,12 @@ struct Protocol {
     // Constant representing the maximum valid consumer
     // priority.  Must be >= 'k_CONSUMER_PRIORITY_MIN'.
 
-    static const int k_MSG_GROUP_ID_MAX_LENGTH = 31;
-    // Constant representing the maximum valid Group Id size.
-
     static const int k_MAX_OPTIONS_SIZE;
     // Constant representing the maximum size of options area
     // for any type of event (PUT, PUSH, etc).  Note that
     // each header (PutHeader, PushHeader, etc) may define
     // their own such constant, but we ensure that all such
     // constants have the same value.
-
-    static const unsigned int k_RDA_VALUE_MAX;
-    // Constant representing the maximum valid
-    // RemainingDeliveryAttempts counter value.
 
     static const unsigned int k_DEFAULT_SUBSCRIPTION_ID = 0;
     // Internal unique id in Configure request
@@ -671,28 +692,33 @@ struct SubscriptionsFeatures {
 struct OptionType {
     // TYPES
     enum Enum {
-        // Values for the OptionHeader 'type' field.  Valid values are in the
-        // range [0, OptionHeader::k_MAX_TYPE].  They must begin at 0 and
-        // increment by one.
+        // Values for the OptionHeader 'type' field.
+        // They must begin at 0 and increment by one, and must not
+        // change value since they are used in network protocol.
         e_UNDEFINED         = 0,
         e_SUB_QUEUE_IDS_OLD = 1,
-        e_MSG_GROUP_ID      = 2,
+        e_UNUSED            = 2,
         e_SUB_QUEUE_INFOS   = 3
     };
 
-    // CONSTANTS
-
-    /// NOTE: This value must always be equal to the lowest type in the
-    /// enum because it is being used as a lower bound to verify that an
-    /// OptionHeader's `type` field is a supported type.
-    static const int k_LOWEST_SUPPORTED_TYPE = e_SUB_QUEUE_IDS_OLD;
-
-    /// NOTE: This value must always be equal to the highest type in the
-    /// enum because it is being used as an upper bound to verify an
-    /// OptionHeader's `type` field is a supported type.
-    static const int k_HIGHEST_SUPPORTED_TYPE = e_SUB_QUEUE_INFOS;
-
     // CLASS METHODS
+
+    /// @brief Check whether an option type is supported.
+    ///
+    /// @param value The option type, as read from an `OptionHeader`.
+    ///
+    /// @return `true` if `value` is a supported option type, `false`
+    ///         otherwise.
+    static bool isSupported(int value)
+    {
+        switch (value) {
+        case e_SUB_QUEUE_IDS_OLD: BSLA_FALLTHROUGH;
+        case e_SUB_QUEUE_INFOS: return true;
+        case e_UNDEFINED: BSLA_FALLTHROUGH;
+        case e_UNUSED: BSLA_FALLTHROUGH;
+        default: return false;
+        }
+    }
 
     /// Write the string representation of the specified enumeration `value`
     /// to the specified output `stream`, and return a reference to
@@ -942,9 +968,7 @@ struct EventHeaderUtil {
 // struct OptionHeader
 // ===================
 
-/// This struct represents the header for an option.  In a typical
-/// implementation usage, every Option struct will start by an
-/// `OptionHeader` member.
+/// This struct represents the header for an option.
 struct OptionHeader {
     // OptionHeader structure datagram [4 bytes]:
     //..
@@ -968,11 +992,11 @@ struct OptionHeader {
     //
     // TypeSpecific content:
     // o e_SUB_QUEUE_INFOS: If *packed*, 'words' field will be reinterpreted as
-    //                      the RDA counter for the default SubQueueId.  Note
-    //                      that the options is only *packed* for non-fanout
-    //                      mode.  Else, 'TS' field will represent the size of
-    //                      each item in the SubQueueInfosArray encoded in the
-    //                      option content.
+    //                      the RdaInfo (counter and flags) of the default
+    //                      SubQueueId.  Note that the options is only
+    //                      *packed* for non-fanout mode.  Else, 'TS' field
+    //                      will represent the size of each item in the
+    //                      SubQueueInfosArray encoded in the option content.
     //
     // NOTE:
     //  o In order to preserve alignment, this struct can *NOT* be changed
@@ -982,19 +1006,6 @@ struct OptionHeader {
     //    should be added by decreasing order of usage (or could be sorted by
     //    option id and use optimize the linear search to cut off earlier
     //    eventually).
-    //  o Options that are followed by one or multiple 'variable length'
-    //    fields may include a byte representing the size (words) of the
-    //    optionHeader.
-    //
-    /// Example of a 'real' option struct:
-    /// ---------------------------------
-    //..
-    //  struct MyStruct {
-    //     OptionHeader          d_optionHeader;
-    //     bdlb::BigEndianUint32 d_timesamp;
-    //     bdlb::BigEndianUint32 d_msgId;
-    //   };
-    //..
 
     // TRAITS
     BSLMF_NESTED_TRAIT_DECLARATION(OptionHeader, bsl::is_trivially_copyable)
@@ -1876,7 +1887,7 @@ struct AckHeaderFlags {
         e_UNUSED1 = (1 << 0),
         e_UNUSED2 = (1 << 1),
         e_UNUSED3 = (1 << 2),
-        e_UNUSED4 = (1 << 4),
+        e_UNUSED4 = (1 << 3),
         e_UNUSED5 = (1 << 4),
         e_UNUSED6 = (1 << 5),
         e_UNUSED7 = (1 << 6),

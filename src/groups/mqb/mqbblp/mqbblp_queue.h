@@ -277,12 +277,21 @@ class Queue BSLS_CPP11_FINAL : public mqbi::Queue {
     /// - Stop sending PUSHes and stop idle GC.
     void setStopping() BSLS_KEYWORD_OVERRIDE;
 
+    /// @brief Called when a message is pushed to this queue.
+    ///
+    /// @param msgGUID The GUID of the message.
+    /// @param appData The application data of the message; may be empty
+    ///                depending upon the location of the queue instance.
+    /// @param options The options of the message.
+    /// @param messagePropertiesInfo The message properties info.
+    /// @param compressionAlgorithmType The compression of the message.
+    /// @param isOutOfOrder Whether the message is pushed out of order.
     void onPushMessage(
-        const bmqt::MessageGUID&             msgGUID,
-        const bsl::shared_ptr<bdlbb::Blob>&  appData,
-        const bsl::shared_ptr<bdlbb::Blob>&  options,
-        const bmqp::MessagePropertiesInfo&   messagePropertiesInfo,
-        bmqt::CompressionAlgorithmType::Enum compressionAlgorithmType,
+        const bmqt::MessageGUID&                  msgGUID,
+        const bsl::shared_ptr<const bdlbb::Blob>& appData,
+        const bsl::shared_ptr<bdlbb::Blob>&       options,
+        const bmqp::MessagePropertiesInfo&        messagePropertiesInfo,
+        bmqt::CompressionAlgorithmType::Enum      compressionAlgorithmType,
         bool isOutOfOrder) BSLS_KEYWORD_OVERRIDE;
 
     /// Confirm the message with the specified `msgGUID` for the specified

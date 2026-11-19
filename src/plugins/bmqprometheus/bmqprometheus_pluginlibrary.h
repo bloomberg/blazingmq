@@ -13,8 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef INCLUDED_PROMETHEUS_PLUGINLIBRARY
-#define INCLUDED_PROMETHEUS_PLUGINLIBRARY
+#ifndef INCLUDED_BMQPROMETHEUS_PLUGINLIBRARY
+#define INCLUDED_BMQPROMETHEUS_PLUGINLIBRARY
 
 //@PURPOSE: Provide library of Prometheus plugin for broker.
 //

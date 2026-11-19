@@ -130,15 +130,21 @@ struct StorageUtil {
     loadArrivalTimeDelta(bsls::Types::Int64*                   out,
                          const mqbi::StorageMessageAttributes& attributes);
 
-    /// Load the specified `recordHeader` and `recordPosition` of the
-    /// storage header currently pointed by the specified `storageIter` over
-    /// the specified `stroageEvent`.  Return 0 on success and non-zero code
-    /// on error.  Use the specified `partitionDesc` for logging.
+    /// @brief Load the record header and position of the storage message
+    ///        currently pointed by an iterator over a storage event.
+    ///
+    /// @param[out] recordHeader Loaded with the record header.
+    /// @param[out] recordPosition Loaded with the record position.
+    /// @param storageIter The iterator over `stroageEvent`.
+    /// @param stroageEvent The storage event.
+    /// @param partitionDesc The partition description, used for logging.
+    ///
+    /// @return 0 on success, or a non-zero code otherwise.
     static int loadRecordHeaderAndPos(
         bmqu::BlobObjectProxy<mqbs::RecordHeader>* recordHeader,
         bmqu::BlobPosition*                        recordPosition,
         const bmqp::StorageMessageIterator&        storageIter,
-        const bsl::shared_ptr<bdlbb::Blob>&        stroageEvent,
+        const bsl::shared_ptr<const bdlbb::Blob>&  stroageEvent,
         const bslstl::StringRef&                   partitionDesc);
 };
 

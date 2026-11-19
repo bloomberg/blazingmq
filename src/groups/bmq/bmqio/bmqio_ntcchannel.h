@@ -210,6 +210,7 @@ class NtcChannel : public bmqio::Channel,
     bmqvt::PropertyBag                    d_properties;
     bsl::vector<WatermarkFn>              d_watermarkFns;
     bsl::vector<CloseFn>                  d_closeFns;
+    bmqio::Status                         d_closeStatus;
     bmqio::ChannelFactory::ResultCallback d_resultCallback;
     bslma::Allocator*                     d_allocator_p;
 
@@ -388,7 +389,9 @@ class NtcChannel : public bmqio::Channel,
 
     /// @brief Register a callback to be invoked when this channel closes.
     ///
-    /// Callbacks are invoked in reverse order of registration.
+    /// Callbacks registered before close are invoked in reverse order of
+    /// registration.  If this channel is already closed, `cb` is invoked
+    /// immediately in the calling thread.
     ///
     /// @param cb The callback to invoke.
     void onClose(const CloseFn& cb) BSLS_KEYWORD_OVERRIDE;
@@ -494,6 +497,7 @@ class NtcListener : public bmqio::ChannelFactoryOperationHandle,
     bmqio::ListenOptions                  d_options;
     bmqvt::PropertyBag                    d_properties;
     bsl::vector<CloseFn>                  d_closeFns;
+    bmqio::Status                         d_closeStatus;
     bmqio::ChannelFactory::ResultCallback d_resultCallback;
     bslma::Allocator*                     d_allocator_p;
 
@@ -547,7 +551,9 @@ class NtcListener : public bmqio::ChannelFactoryOperationHandle,
 
     /// @brief Register a callback to be invoked when this listener closes.
     ///
-    /// Callbacks are invoked in reverse order of registration.
+    /// Callbacks registered before close are invoked in reverse order of
+    /// registration.  If this listener is already closed, `cb` is invoked
+    /// immediately in the calling thread.
     ///
     /// @param cb The callback to invoke.
     void onClose(const CloseFn& cb);

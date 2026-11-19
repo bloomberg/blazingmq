@@ -54,13 +54,12 @@ namespace {
 static void
 printSummary(bsl::string_view desc, bsls::Types::Int64 dt, size_t iters)
 {
-    bsl::cout << desc << ":" << bsl::endl;
+    bsl::cout << desc << ":" << "\n";
     bsl::cout << "       total: " << bmqu::PrintUtil::prettyTimeInterval(dt)
-              << " (" << iters << " iterations)" << bsl::endl;
+              << " (" << iters << " iterations)" << "\n";
     bsl::cout << "    per call: "
-              << bmqu::PrintUtil::prettyTimeInterval((dt) / iters)
-              << bsl::endl;
-    bsl::cout << bsl::endl;
+              << bmqu::PrintUtil::prettyTimeInterval((dt) / iters) << "\n";
+    bsl::cout << "\n";
 }
 
 static mqbcfg::DispatcherConfig makeConfig()
@@ -786,7 +785,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     case -1: testN1_inDispatcherThread(); break;
     default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
+        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }

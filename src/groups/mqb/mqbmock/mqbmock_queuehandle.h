@@ -94,7 +94,7 @@ class QueueHandle : public mqbi::QueueHandle {
     /// order.
     typedef bmqc::OrderedHashMap<
         bmqt::MessageGUID,
-        bsl::pair<bsl::shared_ptr<bdlbb::Blob>, unsigned>,
+        bsl::pair<bsl::shared_ptr<const bdlbb::Blob>, unsigned>,
         bslh::Hash<bmqt::MessageGUIDHashAlgo> >
         GUIDMap;
 
@@ -266,15 +266,18 @@ class QueueHandle : public mqbi::QueueHandle {
     mqbi::QueueHandle*
     setIsClientClusterMember(bool value) BSLS_KEYWORD_OVERRIDE;
 
-    /// Post the message with the specified PUT `header`, `appData` and
-    /// `options` to the queue.
+    /// @brief Post a message to the queue.
+    ///
+    /// @param header The PUT header of the message.
+    /// @param appData The application data of the message.
+    /// @param options The options of the message.
     ///
     /// THREAD: this method can be called from any thread and is responsible
     ///         for calling the corresponding method on the `Queue`, on the
     ///         Queue's dispatcher thread.
-    void postMessage(const bmqp::PutHeader&              header,
-                     const bsl::shared_ptr<bdlbb::Blob>& appData,
-                     const bsl::shared_ptr<bdlbb::Blob>& options)
+    void postMessage(const bmqp::PutHeader&                    header,
+                     const bsl::shared_ptr<const bdlbb::Blob>& appData,
+                     const bsl::shared_ptr<bdlbb::Blob>&       options)
         BSLS_KEYWORD_OVERRIDE;
 
     /// Confirm the message with the specified `msgGUID` for the specified

@@ -483,16 +483,18 @@ def test_ttl_zero_delivers_to_subscribed_consumer(
     def drain(*, timeout):
         # Collect everything the consumer has received so far, confirming to
         # keep the unconfirmed set bounded.  Return as soon as every posted
-        # message has been accounted for, or once the consumer stops pushing
-        # for the specified 'timeout'.
+        # message has been accounted for, or once no push arrives within the
+        # specified 'timeout' and nothing is left to list.
         while len(received) < len(posted):
-            if not consumer.wait_push_event(timeout=timeout, quiet=True):
-                break
+            pushed = consumer.wait_push_event(timeout=timeout, quiet=True)
             msgs = consumer.list(uri, block=True)
             if not msgs:
-                # The push was announced before the message became listable;
-                # pick it up on the next round.
+                if not pushed:
+                    break
+                # The messages were confirmed already,
+                # but bmqtool wrote a late PUSH log line
                 continue
+
             for msg in msgs:
                 received.add(msg.payload)
             # Confirm exactly the listed messages.  Both 'list' and '+N' walk

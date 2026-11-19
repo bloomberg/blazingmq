@@ -339,10 +339,16 @@ class RelayQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     bool isDuplicate(const App_State*         app,
                      const bmqt::MessageGUID& msgGUID) const;
 
+    /// @brief Store a pushed message in the storage if this node is a proxy.
+    ///
+    /// @param attributes The attributes of the message.
+    /// @param msgGUID The GUID of the message.
+    /// @param appData The application data of the message.
+    /// @param subQueueIds The streams of the queue the message is pushed to.
     void
     storePushIfProxy(mqbi::StorageMessageAttributes*           attributes,
                      const bmqt::MessageGUID&                  msgGUID,
-                     const bsl::shared_ptr<bdlbb::Blob>&       appData,
+                     const bsl::shared_ptr<const bdlbb::Blob>& appData,
                      const bmqp::Protocol::SubQueueInfosArray& subQueueIds);
 
     void beforeOneAppRemoved(unsigned int upstreamSubQueueId);
@@ -517,25 +523,35 @@ class RelayQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
                            const mqbu::StorageKey& appKey,
                            unsigned int appOrdinal) BSLS_KEYWORD_OVERRIDE;
 
-    /// Not valid for 'RelayQueueEngine'
-    void evaluateAppSubscriptions(const bmqp::PutHeader& putHeader,
-                                  const bsl::shared_ptr<bdlbb::Blob>& appData,
-                                  const bmqp::MessagePropertiesInfo&  mpi)
-        BSLS_KEYWORD_OVERRIDE;
+    /// @brief Not valid for 'RelayQueueEngine'.
+    ///
+    /// @param putHeader Unused.
+    /// @param appData Unused.
+    /// @param mpi Unused.
+    void evaluateAppSubscriptions(
+        const bmqp::PutHeader&                    putHeader,
+        const bsl::shared_ptr<const bdlbb::Blob>& appData,
+        const bmqp::MessagePropertiesInfo&        mpi) BSLS_KEYWORD_OVERRIDE;
 
     // MANIPULATORS
 
-    /// If the specified `isOutOfOrder` is `true`, insert the specified
-    // `msgGUID` into the corresponding App redelivery list.  Otherwise, insert
-    // the `msgGUID` into the PushStream; insert PushStream Elements
-    // (`mqbi::AppMessage`, `upstreamSubQueueId`) pairs for each recognized App
-    /// in the specified `subscriptions`.
-
-    void push(mqbi::StorageMessageAttributes*     attributes,
-              const bmqt::MessageGUID&            msgGUID,
-              const bsl::shared_ptr<bdlbb::Blob>& appData,
-              bmqp::Protocol::SubQueueInfosArray& subscriptions,
-              bool                                isOutOfOrder);
+    /// @brief Accept a message pushed from upstream.
+    ///
+    /// If `isOutOfOrder` is `true`, insert `msgGUID` into the corresponding
+    /// App redelivery list.  Otherwise, insert `msgGUID` into the PushStream
+    /// with (`mqbi::AppMessage`, `upstreamSubQueueId`) pairs for each
+    /// recognized App in `subscriptions`.
+    ///
+    /// @param attributes The attributes of the message.
+    /// @param msgGUID The GUID of the message.
+    /// @param appData The application data of the message; may be empty.
+    /// @param subscriptions The subscriptions the message is pushed to.
+    /// @param isOutOfOrder Whether the message is pushed out of order.
+    void push(mqbi::StorageMessageAttributes*           attributes,
+              const bmqt::MessageGUID&                  msgGUID,
+              const bsl::shared_ptr<const bdlbb::Blob>& appData,
+              bmqp::Protocol::SubQueueInfosArray&       subscriptions,
+              bool                                      isOutOfOrder);
     // ACCESSORS
 
     /// Return the reference count that should be applied to a message

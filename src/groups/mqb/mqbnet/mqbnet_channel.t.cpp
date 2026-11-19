@@ -61,13 +61,22 @@ namespace bmqio {
 class TestChannelEx : public TestChannel {
   private:
     size_t                       d_limit;
-    mqbnet::Channel&             d_channel;
+    mqbnet::Channel*             d_channel_p;
     bool                         d_isInHWM;
     bslmt::ReaderWriterMutex     d_mutex;
     bsl::shared_ptr<bdlbb::Blob> d_eof_sp;
 
   public:
-    TestChannelEx(mqbnet::Channel&                channel,
+    BSLMF_NESTED_TRAIT_DECLARATION(TestChannelEx, bslma::UsesBslmaAllocator)
+
+    /// @brief Create a test channel that writes control blobs to the
+    /// specified `channel`.
+    ///
+    /// @param channel        The channel to write control blobs to.
+    /// @param factory        The factory for blob buffers.
+    /// @param blobSpPool_p   The pool of blobs.
+    /// @param basicAllocator The allocator to use.
+    TestChannelEx(mqbnet::Channel*                channel,
                   bdlbb::BlobBufferFactory*       factory,
                   bmqp::BlobPoolUtil::BlobSpPool* blobSpPool_p,
                   bslma::Allocator*               basicAllocator);
@@ -307,16 +316,19 @@ inline void setContent(bdlbb::BlobBuffer* buffer)
 namespace BloombergLP {
 namespace bmqio {
 
-TestChannelEx::TestChannelEx(mqbnet::Channel&                channel,
+TestChannelEx::TestChannelEx(mqbnet::Channel*                channel,
                              bdlbb::BlobBufferFactory*       factory,
                              bmqp::BlobPoolUtil::BlobSpPool* blobSpPool_p,
                              bslma::Allocator*               basicAllocator)
 : TestChannel(basicAllocator)
 , d_limit(0)
-, d_channel(channel)
+, d_channel_p(channel)
 , d_isInHWM(false)
 , d_eof_sp(0, basicAllocator)
 {
+    BSLS_ASSERT_SAFE(d_channel_p);
+    BSLS_ASSERT_SAFE(blobSpPool_p);
+
     d_eof_sp                      = blobSpPool_p->getObject();
     static const char signature[] = "12345";
     bdlbb::BlobBuffer blobBuffer;
@@ -349,13 +361,12 @@ void TestChannelEx::setLimit(size_t limit)
     if (d_isInHWM) {
         if (limit == 0 || numWriteCalls() < limit) {
             d_isInHWM = false;
-            d_channel.onWatermark(
-                bmqio::ChannelWatermarkType::e_LOW_WATERMARK);
+            watermarkSignaler()(bmqio::ChannelWatermarkType::e_LOW_WATERMARK);
         }
     }
     else if (limit <= numWriteCalls()) {
         d_isInHWM = true;
-        d_channel.onWatermark(bmqio::ChannelWatermarkType::e_HIGH_WATERMARK);
+        watermarkSignaler()(bmqio::ChannelWatermarkType::e_HIGH_WATERMARK);
     }
     d_limit = limit;
 }
@@ -367,7 +378,7 @@ void TestChannelEx::lowWatermark()
 
     if (d_isInHWM) {
         d_isInHWM = false;
-        d_channel.onWatermark(bmqio::ChannelWatermarkType::e_LOW_WATERMARK);
+        watermarkSignaler()(bmqio::ChannelWatermarkType::e_LOW_WATERMARK);
     }
 }
 
@@ -391,7 +402,7 @@ void TestChannelEx::write(bmqio::Status*     status,
     if (d_limit && d_limit <= numWriteCalls()) {
         d_isInHWM = true;
         status->setCategory(bmqio::StatusCategory::e_LIMIT);
-        d_channel.onWatermark(bmqio::ChannelWatermarkType::e_HIGH_WATERMARK);
+        watermarkSignaler()(bmqio::ChannelWatermarkType::e_HIGH_WATERMARK);
     }
 
     TestChannel::write(status, blob, watermark);
@@ -399,7 +410,8 @@ void TestChannelEx::write(bmqio::Status*     status,
 
 bool TestChannelEx::waitForChannel(const bsls::TimeInterval& interval)
 {
-    BMQTST_ASSERT_EQ(d_channel.writeBlob(d_eof_sp, bmqp::EventType::e_CONTROL),
+    BMQTST_ASSERT_EQ(d_channel_p->writeBlob(d_eof_sp,
+                                            bmqp::EventType::e_CONTROL),
                      bmqt::GenericResult::e_SUCCESS);
 
     return waitFor(*d_eof_sp, interval);
@@ -741,47 +753,39 @@ static void test1_write()
 //
 // ------------------------------------------------------------------------
 {
-    bdlbb::PooledBlobBufferFactory bufferFactory(
-        k_BUFFER_SIZE,
-        bmqtst::TestHelperUtil::allocator());
-    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
-        bmqp::BlobPoolUtil::createBlobPool(
-            &bufferFactory,
-            bmqtst::TestHelperUtil::allocator()));
-    mqbnet::Channel channel(&bufferFactory,
-                            "test",
-                            bmqtst::TestHelperUtil::allocator());
+    bslma::Allocator* alloc = bmqtst::TestHelperUtil::allocator();
 
-    bsl::shared_ptr<bmqio::TestChannelEx> testChannel(
-        new (*bmqtst::TestHelperUtil::allocator())
-            bmqio::TestChannelEx(channel,
-                                 &bufferFactory,
-                                 blobSpPool.get(),
-                                 bmqtst::TestHelperUtil::allocator()),
-        bmqtst::TestHelperUtil::allocator());
+    bdlbb::PooledBlobBufferFactory   bufferFactory(k_BUFFER_SIZE, alloc);
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(&bufferFactory, alloc));
+    mqbnet::Channel channel(&bufferFactory, "test", alloc);
+
+    bsl::shared_ptr<bmqio::TestChannelEx> testChannel =
+        bsl::allocate_shared<bmqio::TestChannelEx>(alloc,
+                                                   &channel,
+                                                   &bufferFactory,
+                                                   blobSpPool.get());
 
     Tester<bmqp::PutEventBuilder>     put(channel,
                                       bufferFactory,
                                       *blobSpPool,
-                                      bmqtst::TestHelperUtil::allocator());
+                                      alloc);
     Tester<bmqp::PushEventBuilder>    push(channel,
                                         bufferFactory,
                                         *blobSpPool,
-                                        bmqtst::TestHelperUtil::allocator());
+                                        alloc);
     Tester<bmqp::AckEventBuilder>     ack(channel,
                                       bufferFactory,
                                       *blobSpPool,
-                                      bmqtst::TestHelperUtil::allocator());
-    Tester<bmqp::ConfirmEventBuilder> confirm(
-        channel,
-        bufferFactory,
-        *blobSpPool,
-        bmqtst::TestHelperUtil::allocator());
-    Tester<bmqp::RejectEventBuilder> reject(
-        channel,
-        bufferFactory,
-        *blobSpPool,
-        bmqtst::TestHelperUtil::allocator());
+                                      alloc);
+    Tester<bmqp::ConfirmEventBuilder> confirm(channel,
+                                              bufferFactory,
+                                              *blobSpPool,
+                                              alloc);
+    Tester<bmqp::RejectEventBuilder>  reject(channel,
+                                            bufferFactory,
+                                            *blobSpPool,
+                                            alloc);
 
     channel.setChannel(bsl::weak_ptr<bmqio::TestChannel>(testChannel));
 
@@ -804,7 +808,8 @@ static void test1_write()
     }
 
     testChannel->setWriteStatus(bmqio::StatusCategory::e_SUCCESS);
-    channel.onWatermark(bmqio::ChannelWatermarkType::e_LOW_WATERMARK);
+    testChannel->watermarkSignaler()(
+        bmqio::ChannelWatermarkType::e_LOW_WATERMARK);
 
     size_t writeBlobs = 0;
 
@@ -831,51 +836,40 @@ static void test2_highWatermark()
 //
 // ------------------------------------------------------------------------
 {
-    bdlbb::PooledBlobBufferFactory bufferFactory(
-        k_BUFFER_SIZE,
-        bmqtst::TestHelperUtil::allocator());
-    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
-        bmqp::BlobPoolUtil::createBlobPool(
-            &bufferFactory,
-            bmqtst::TestHelperUtil::allocator()));
-    mqbnet::Channel channel(&bufferFactory,
-                            "test",
-                            bmqtst::TestHelperUtil::allocator());
+    bslma::Allocator* alloc = bmqtst::TestHelperUtil::allocator();
 
-    bsl::shared_ptr<bmqio::TestChannelEx> testChannel(
-        new (*bmqtst::TestHelperUtil::allocator())
-            bmqio::TestChannelEx(channel,
-                                 &bufferFactory,
-                                 blobSpPool.get(),
-                                 bmqtst::TestHelperUtil::allocator()),
-        bmqtst::TestHelperUtil::allocator());
+    bdlbb::PooledBlobBufferFactory   bufferFactory(k_BUFFER_SIZE, alloc);
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(&bufferFactory, alloc));
+    mqbnet::Channel channel(&bufferFactory, "test", alloc);
+
+    bsl::shared_ptr<bmqio::TestChannelEx> testChannel =
+        bsl::allocate_shared<bmqio::TestChannelEx>(alloc,
+                                                   &channel,
+                                                   &bufferFactory,
+                                                   blobSpPool.get());
 
     Tester<bmqp::PutEventBuilder>     put(channel,
                                       bufferFactory,
                                       *blobSpPool,
-                                      bmqtst::TestHelperUtil::allocator());
+                                      alloc);
     Tester<bmqp::PushEventBuilder>    push(channel,
                                         bufferFactory,
                                         *blobSpPool,
-                                        bmqtst::TestHelperUtil::allocator());
+                                        alloc);
     Tester<bmqp::AckEventBuilder>     ack(channel,
                                       bufferFactory,
                                       *blobSpPool,
-                                      bmqtst::TestHelperUtil::allocator());
-    Tester<bmqp::ConfirmEventBuilder> confirm(
-        channel,
-        bufferFactory,
-        *blobSpPool,
-        bmqtst::TestHelperUtil::allocator());
-    Tester<PseudoBuilder>            control(channel,
-                                  bufferFactory,
-                                  *blobSpPool,
-                                  bmqtst::TestHelperUtil::allocator());
-    Tester<bmqp::RejectEventBuilder> reject(
-        channel,
-        bufferFactory,
-        *blobSpPool,
-        bmqtst::TestHelperUtil::allocator());
+                                      alloc);
+    Tester<bmqp::ConfirmEventBuilder> confirm(channel,
+                                              bufferFactory,
+                                              *blobSpPool,
+                                              alloc);
+    Tester<PseudoBuilder> control(channel, bufferFactory, *blobSpPool, alloc);
+    Tester<bmqp::RejectEventBuilder> reject(channel,
+                                            bufferFactory,
+                                            *blobSpPool,
+                                            alloc);
 
     bslmt::Barrier phase1(6 + 1);
     bslmt::Barrier phase2(6 + 1);
@@ -900,7 +894,8 @@ static void test2_highWatermark()
     reject.stop();
 
     testChannel->setWriteStatus(bmqio::StatusCategory::e_LIMIT);
-    channel.onWatermark(bmqio::ChannelWatermarkType::e_HIGH_WATERMARK);
+    testChannel->watermarkSignaler()(
+        bmqio::ChannelWatermarkType::e_HIGH_WATERMARK);
 
     phase2.wait();
 
@@ -919,7 +914,8 @@ static void test2_highWatermark()
     reject.join();
 
     testChannel->setWriteStatus(bmqio::StatusCategory::e_SUCCESS);
-    channel.onWatermark(bmqio::ChannelWatermarkType::e_LOW_WATERMARK);
+    testChannel->watermarkSignaler()(
+        bmqio::ChannelWatermarkType::e_LOW_WATERMARK);
 
     size_t writeBlobs = 0;
 
@@ -948,47 +944,39 @@ static void test3_highWatermarkInWriteCb()
 //
 // ------------------------------------------------------------------------
 {
-    bdlbb::PooledBlobBufferFactory bufferFactory(
-        k_BUFFER_SIZE,
-        bmqtst::TestHelperUtil::allocator());
-    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
-        bmqp::BlobPoolUtil::createBlobPool(
-            &bufferFactory,
-            bmqtst::TestHelperUtil::allocator()));
-    mqbnet::Channel channel(&bufferFactory,
-                            "test",
-                            bmqtst::TestHelperUtil::allocator());
+    bslma::Allocator* alloc = bmqtst::TestHelperUtil::allocator();
 
-    bsl::shared_ptr<bmqio::TestChannelEx> testChannel(
-        new (*bmqtst::TestHelperUtil::allocator())
-            bmqio::TestChannelEx(channel,
-                                 &bufferFactory,
-                                 blobSpPool.get(),
-                                 bmqtst::TestHelperUtil::allocator()),
-        bmqtst::TestHelperUtil::allocator());
+    bdlbb::PooledBlobBufferFactory   bufferFactory(k_BUFFER_SIZE, alloc);
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(&bufferFactory, alloc));
+    mqbnet::Channel channel(&bufferFactory, "test", alloc);
+
+    bsl::shared_ptr<bmqio::TestChannelEx> testChannel =
+        bsl::allocate_shared<bmqio::TestChannelEx>(alloc,
+                                                   &channel,
+                                                   &bufferFactory,
+                                                   blobSpPool.get());
 
     Tester<bmqp::PutEventBuilder>     put(channel,
                                       bufferFactory,
                                       *blobSpPool,
-                                      bmqtst::TestHelperUtil::allocator());
+                                      alloc);
     Tester<bmqp::PushEventBuilder>    push(channel,
                                         bufferFactory,
                                         *blobSpPool,
-                                        bmqtst::TestHelperUtil::allocator());
+                                        alloc);
     Tester<bmqp::AckEventBuilder>     ack(channel,
                                       bufferFactory,
                                       *blobSpPool,
-                                      bmqtst::TestHelperUtil::allocator());
-    Tester<bmqp::ConfirmEventBuilder> confirm(
-        channel,
-        bufferFactory,
-        *blobSpPool,
-        bmqtst::TestHelperUtil::allocator());
-    Tester<bmqp::RejectEventBuilder> reject(
-        channel,
-        bufferFactory,
-        *blobSpPool,
-        bmqtst::TestHelperUtil::allocator());
+                                      alloc);
+    Tester<bmqp::ConfirmEventBuilder> confirm(channel,
+                                              bufferFactory,
+                                              *blobSpPool,
+                                              alloc);
+    Tester<bmqp::RejectEventBuilder>  reject(channel,
+                                            bufferFactory,
+                                            *blobSpPool,
+                                            alloc);
 
     bslmt::Barrier phase1(5 + 1);
     bslmt::Barrier phase2(5 + 1);
@@ -1062,47 +1050,39 @@ static void test4_controlBlob()
 //
 // ------------------------------------------------------------------------
 {
-    bdlbb::PooledBlobBufferFactory bufferFactory(
-        k_BUFFER_SIZE,
-        bmqtst::TestHelperUtil::allocator());
-    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
-        bmqp::BlobPoolUtil::createBlobPool(
-            &bufferFactory,
-            bmqtst::TestHelperUtil::allocator()));
-    mqbnet::Channel channel(&bufferFactory,
-                            "test",
-                            bmqtst::TestHelperUtil::allocator());
+    bslma::Allocator* alloc = bmqtst::TestHelperUtil::allocator();
 
-    bsl::shared_ptr<bmqio::TestChannelEx> testChannel(
-        new (*bmqtst::TestHelperUtil::allocator())
-            bmqio::TestChannelEx(channel,
-                                 &bufferFactory,
-                                 blobSpPool.get(),
-                                 bmqtst::TestHelperUtil::allocator()),
-        bmqtst::TestHelperUtil::allocator());
+    bdlbb::PooledBlobBufferFactory   bufferFactory(k_BUFFER_SIZE, alloc);
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(&bufferFactory, alloc));
+    mqbnet::Channel channel(&bufferFactory, "test", alloc);
+
+    bsl::shared_ptr<bmqio::TestChannelEx> testChannel =
+        bsl::allocate_shared<bmqio::TestChannelEx>(alloc,
+                                                   &channel,
+                                                   &bufferFactory,
+                                                   blobSpPool.get());
 
     Tester<bmqp::PutEventBuilder>     put(channel,
                                       bufferFactory,
                                       *blobSpPool,
-                                      bmqtst::TestHelperUtil::allocator());
+                                      alloc);
     Tester<bmqp::PushEventBuilder>    push(channel,
                                         bufferFactory,
                                         *blobSpPool,
-                                        bmqtst::TestHelperUtil::allocator());
+                                        alloc);
     Tester<bmqp::AckEventBuilder>     ack(channel,
                                       bufferFactory,
                                       *blobSpPool,
-                                      bmqtst::TestHelperUtil::allocator());
-    Tester<bmqp::ConfirmEventBuilder> confirm(
-        channel,
-        bufferFactory,
-        *blobSpPool,
-        bmqtst::TestHelperUtil::allocator());
-    Tester<bmqp::RejectEventBuilder> reject(
-        channel,
-        bufferFactory,
-        *blobSpPool,
-        bmqtst::TestHelperUtil::allocator());
+                                      alloc);
+    Tester<bmqp::ConfirmEventBuilder> confirm(channel,
+                                              bufferFactory,
+                                              *blobSpPool,
+                                              alloc);
+    Tester<bmqp::RejectEventBuilder>  reject(channel,
+                                            bufferFactory,
+                                            *blobSpPool,
+                                            alloc);
 
     channel.setChannel(bsl::weak_ptr<bmqio::TestChannelEx>(testChannel));
 
@@ -1157,24 +1137,18 @@ static void test5_reconnect()
 //
 // ------------------------------------------------------------------------
 {
-    bdlbb::PooledBlobBufferFactory bufferFactory(
-        k_BUFFER_SIZE,
-        bmqtst::TestHelperUtil::allocator());
-    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
-        bmqp::BlobPoolUtil::createBlobPool(
-            &bufferFactory,
-            bmqtst::TestHelperUtil::allocator()));
-    mqbnet::Channel channel(&bufferFactory,
-                            "test",
-                            bmqtst::TestHelperUtil::allocator());
+    bslma::Allocator* alloc = bmqtst::TestHelperUtil::allocator();
 
-    bsl::shared_ptr<bmqio::TestChannelEx> testChannel(
-        new (*bmqtst::TestHelperUtil::allocator())
-            bmqio::TestChannelEx(channel,
-                                 &bufferFactory,
-                                 blobSpPool.get(),
-                                 bmqtst::TestHelperUtil::allocator()),
-        bmqtst::TestHelperUtil::allocator());
+    bdlbb::PooledBlobBufferFactory   bufferFactory(k_BUFFER_SIZE, alloc);
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(&bufferFactory, alloc));
+    mqbnet::Channel channel(&bufferFactory, "test", alloc);
+
+    bsl::shared_ptr<bmqio::TestChannelEx> testChannel =
+        bsl::allocate_shared<bmqio::TestChannelEx>(alloc,
+                                                   &channel,
+                                                   &bufferFactory,
+                                                   blobSpPool.get());
 
     channel.setChannel(bsl::weak_ptr<bmqio::TestChannelEx>(testChannel));
 
@@ -1248,6 +1222,78 @@ static void test5_reconnect()
     BMQTST_ASSERT_EQ(testChannel->numWriteCalls(), 2U);
 }
 
+static void test6_staleWatermark()
+// ------------------------------------------------------------------------
+//
+// Verify that watermark events from a channel which is not the current one
+// do not change the state of the mqbnet::Channel:
+//  1. LWM from a reset channel does not make the mqbnet::Channel available.
+//  2. HWM from a replaced channel does not block writing to the new one.
+//
+// ------------------------------------------------------------------------
+{
+    bslma::Allocator* alloc = bmqtst::TestHelperUtil::allocator();
+
+    bdlbb::PooledBlobBufferFactory   bufferFactory(k_BUFFER_SIZE, alloc);
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(&bufferFactory, alloc));
+
+    {
+        PVV("LWM from a reset channel");
+
+        mqbnet::Channel channel(&bufferFactory, "test", alloc);
+
+        bsl::shared_ptr<bmqio::TestChannelEx> testChannel =
+            bsl::allocate_shared<bmqio::TestChannelEx>(alloc,
+                                                       &channel,
+                                                       &bufferFactory,
+                                                       blobSpPool.get());
+
+        channel.setChannel(bsl::weak_ptr<bmqio::TestChannelEx>(testChannel));
+        channel.resetChannel(testChannel);
+
+        testChannel->watermarkSignaler()(
+            bmqio::ChannelWatermarkType::e_LOW_WATERMARK);
+
+        bsl::shared_ptr<bdlbb::Blob> payload_sp = blobSpPool->getObject();
+        bdlbb::BlobBuffer            blobBuffer;
+
+        bufferFactory.allocate(&blobBuffer);
+        setContent(&blobBuffer);
+        payload_sp->appendDataBuffer(blobBuffer);
+
+        BMQTST_ASSERT_EQ(channel.writeBlob(payload_sp,
+                                           bmqp::EventType::e_CONTROL),
+                         bmqt::GenericResult::e_NOT_CONNECTED);
+    }
+
+    {
+        PVV("HWM from a replaced channel");
+
+        mqbnet::Channel channel(&bufferFactory, "test", alloc);
+
+        bsl::shared_ptr<bmqio::TestChannelEx> oldChannel =
+            bsl::allocate_shared<bmqio::TestChannelEx>(alloc,
+                                                       &channel,
+                                                       &bufferFactory,
+                                                       blobSpPool.get());
+        bsl::shared_ptr<bmqio::TestChannelEx> newChannel =
+            bsl::allocate_shared<bmqio::TestChannelEx>(alloc,
+                                                       &channel,
+                                                       &bufferFactory,
+                                                       blobSpPool.get());
+
+        channel.setChannel(bsl::weak_ptr<bmqio::TestChannelEx>(oldChannel));
+        channel.setChannel(bsl::weak_ptr<bmqio::TestChannelEx>(newChannel));
+
+        oldChannel->watermarkSignaler()(
+            bmqio::ChannelWatermarkType::e_HIGH_WATERMARK);
+
+        BMQTST_ASSERT(newChannel->waitForChannel(bsls::TimeInterval(1)));
+        BMQTST_ASSERT_EQ(oldChannel->numWriteCalls(), 0U);
+    }
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -1264,8 +1310,9 @@ int main(int argc, char* argv[])
     case 3: test3_highWatermarkInWriteCb(); break;
     case 4: test4_controlBlob(); break;
     case 5: test5_reconnect(); break;
+    case 6: test6_staleWatermark(); break;
     default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
+        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }

@@ -13,8 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef INCLUDED_M_BMQSTORAGETOOL_MESSGEDETAILS
-#define INCLUDED_M_BMQSTORAGETOOL_MESSGEDETAILS
+#ifndef INCLUDED_M_BMQSTORAGETOOL_MESSAGEDETAILS
+#define INCLUDED_M_BMQSTORAGETOOL_MESSAGEDETAILS
 
 //@PURPOSE: Provide a representation of message details.
 //

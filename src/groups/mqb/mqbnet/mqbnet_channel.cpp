@@ -137,7 +137,7 @@ void Channel::deleteItem(void* item, void* cookie)
 
 bmqt::GenericResult::Enum
 Channel::writePut(const bmqp::PutHeader&                    ph,
-                  const bsl::shared_ptr<bdlbb::Blob>&       data,
+                  const bsl::shared_ptr<const bdlbb::Blob>& data,
                   const bsl::shared_ptr<bmqu::AtomicState>& state)
 {
     bslma::ManagedPtr<Item> item(new (d_itemPool.allocate())
@@ -148,7 +148,7 @@ Channel::writePut(const bmqp::PutHeader&                    ph,
 }
 
 bmqt::GenericResult::Enum
-Channel::writePush(const bsl::shared_ptr<bdlbb::Blob>&       payload,
+Channel::writePush(const bsl::shared_ptr<const bdlbb::Blob>& payload,
                    int                                       queueId,
                    const bmqt::MessageGUID&                  msgId,
                    int                                       flags,
@@ -247,7 +247,7 @@ Channel::writeReject(int                                       queueId,
 }
 
 bmqt::GenericResult::Enum
-Channel::writeBlob(const bsl::shared_ptr<bdlbb::Blob>&       data,
+Channel::writeBlob(const bsl::shared_ptr<const bdlbb::Blob>& data,
                    bmqp::EventType::Enum                     type,
                    const bsl::shared_ptr<bmqu::AtomicState>& state)
 {
@@ -320,6 +320,7 @@ void Channel::setChannel(const bsl::weak_ptr<bmqio::Channel>& value)
     d_description = d_name + " - " + channelSp->peerUri();
     channelSp->onWatermark(bdlf::BindUtil::bind(&Channel::onWatermark,
                                                 this,
+                                                value,
                                                 bdlf::PlaceHolders::_1));
     // type
     d_channel_wp = value;
@@ -383,9 +384,23 @@ void Channel::wakeUp()
     d_buffer.pushBack(bslmf::MovableRefUtil::move(item));
 }
 
-void Channel::onWatermark(bmqio::ChannelWatermarkType::Enum type)
+void Channel::onWatermark(const bsl::weak_ptr<bmqio::Channel>& source,
+                          bmqio::ChannelWatermarkType::Enum    type)
 {
     bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // LOCK
+
+    const int state = d_state;
+    if (state != e_READY && state != e_LWM && state != e_HWM) {
+        // Channel is not available to enqueue, do not report watermark event.
+        return;  // RETURN
+    }
+    // It is fine if we are stopping: can still report a watermark event.
+
+    bsl::shared_ptr<bmqio::Channel> current = d_channel_wp.lock();
+    if (!current || current != source.lock()) {
+        // The current channel differs from the source of this watermark event.
+        return;  // RETURN
+    }
 
     switch (type) {
     case bmqio::ChannelWatermarkType::e_LOW_WATERMARK:

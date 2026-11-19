@@ -441,7 +441,7 @@ class MyMockQueueHandle : public mqbmock::QueueHandle {
     // PUBLIC TYPES
     struct Post {
         bmqp::PutHeader              d_putHeader;
-        bsl::shared_ptr<bdlbb::Blob> d_appData;
+        bsl::shared_ptr<const bdlbb::Blob> d_appData;
         bsl::shared_ptr<bdlbb::Blob> d_options;
     };
 
@@ -509,9 +509,9 @@ class MyMockQueueHandle : public mqbmock::QueueHandle {
     /// Called by the framework when a new message with the specified
     /// `putHeader`, `appData` and `options` is sent upstream.  We capture
     /// the message.
-    virtual void postMessage(const bmqp::PutHeader&              putHeader,
-                             const bsl::shared_ptr<bdlbb::Blob>& appData,
-                             const bsl::shared_ptr<bdlbb::Blob>& options)
+    virtual void postMessage(const bmqp::PutHeader& putHeader,
+                             const bsl::shared_ptr<const bdlbb::Blob>& appData,
+                             const bsl::shared_ptr<bdlbb::Blob>&       options)
         BSLS_KEYWORD_OVERRIDE
     {
         Post& p = d_postedMessages.emplace_back();
@@ -929,11 +929,11 @@ class TestBench {
     /// Sends a `Push` event for the specified `queueId`, `msgGUID` and
     /// `correlationId` with `isAckRequested` flag
     /// to this testbench's `ClientSession`.
-    void sendPush(const int                            queueId,
-                  const bmqt::MessageGUID&             msgGUID,
-                  const bsl::shared_ptr<bdlbb::Blob>&  blob,
-                  bmqt::CompressionAlgorithmType::Enum cat,
-                  const bmqp::MessagePropertiesInfo&   logic)
+    void sendPush(const int                                 queueId,
+                  const bmqt::MessageGUID&                  msgGUID,
+                  const bsl::shared_ptr<const bdlbb::Blob>& blob,
+                  bmqt::CompressionAlgorithmType::Enum      cat,
+                  const bmqp::MessagePropertiesInfo&        logic)
     {
         PVV("Sending PUSH with queueId=" << queueId << ", guid=" << msgGUID);
 
@@ -2160,16 +2160,12 @@ static void test11_initiateShutdown()
     const bsl::string uri("bmq://my.domain/queue-foo-bar",
                           bmqtst::TestHelperUtil::allocator());
 
-    const int                  queueId      = 4;  // A queue number
-    const bool                 isAtMostOnce = false;
-    bslmt::TimedSemaphore      semaphore;
-    bmqp::Protocol::MsgGroupId msgGroupId(bmqtst::TestHelperUtil::allocator());
-    const unsigned int         subscriptionId =
-        bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID;
+    const int  queueId      = 4;  // A queue number
+    const bool isAtMostOnce = false;
 
     bmqp::Protocol::SubQueueInfosArray subQueueInfos(
         1,
-        bmqp::SubQueueInfo(subscriptionId),
+        bmqp::SubQueueInfo(bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID),
         bmqtst::TestHelperUtil::allocator());
 
     struct MockStorageIterator : public mqbi::StorageIterator {
@@ -2178,7 +2174,7 @@ static void test11_initiateShutdown()
 
         mqbi::AppMessage d_appMessage;
 
-        bsl::shared_ptr<bdlbb::Blob> d_appData;
+        bsl::shared_ptr<const bdlbb::Blob> d_appData;
 
         bsl::shared_ptr<bdlbb::Blob> d_options;
 
@@ -2237,7 +2233,7 @@ static void test11_initiateShutdown()
             return d_appMessage;
         }
 
-        const bsl::shared_ptr<bdlbb::Blob>&
+        const bsl::shared_ptr<const bdlbb::Blob>&
         appData() const BSLS_KEYWORD_OVERRIDE
         {
             return d_appData;
@@ -2278,6 +2274,8 @@ static void test11_initiateShutdown()
 
         // Verify there are no unconfirmed messages in the handle
         BMQTST_ASSERT_EQ(0, tb.d_domain.d_queueHandle->countUnconfirmed());
+
+        bslmt::TimedSemaphore semaphore;
 
         // Initiate client session shutdown
         tb.d_cs.initiateShutdown(bdlf::BindUtil::bind(&onShutdownComplete,
@@ -2471,7 +2469,7 @@ static void testN1_ackConfiguration()
          << "ackRequested: from " << e_AckNotRequested << " to "
          << e_AckRequested << "\n"
          << "ackSuccess  : from " << e_AckFailure << " to " << e_AckSuccess
-         << endl;
+         << "\n";
 
     // Read from stdin
     char buffer[10];
@@ -2488,35 +2486,35 @@ static void testN1_ackConfiguration()
     is >> clientType;
     if (is.fail()) {
         cout << "The input '" << buffer << "' is not properly formatted."
-             << endl;
+             << "\n";
         return;  // RETURN
     }
 
     is >> atMostOnce;
     if (is.fail()) {
         cout << "The input '" << buffer << "' is not properly formatted."
-             << endl;
+             << "\n";
         return;  // RETURN
     }
 
     is >> putAction;
     if (is.fail()) {
         cout << "The input '" << buffer << "' is not properly formatted."
-             << endl;
+             << "\n";
         return;  // RETURN
     }
 
     is >> ackRequested;
     if (is.fail()) {
         cout << "The input '" << buffer << "' is not properly formatted."
-             << endl;
+             << "\n";
         return;  // RETURN
     }
 
     is >> ackSuccess;
     if (is.fail()) {
         cout << "The input '" << buffer << "' is not properly formatted."
-             << endl;
+             << "\n";
         return;  // RETURN
     }
 
@@ -2556,7 +2554,7 @@ static void testN2_invalidPutConfiguration()
          << e_AckRequested << "\n"
          << "invalidPut  : from " << e_InvalidPutUnknownQueue << " to "
          << e_InvalidPutClosedQueue << "\n"
-         << endl;
+         << "\n";
 
     // Read from stdin
     char buffer[8];
@@ -2572,28 +2570,28 @@ static void testN2_invalidPutConfiguration()
     is >> clientType;
     if (is.fail()) {
         cout << "The input '" << buffer << "' is not properly formatted."
-             << endl;
+             << "\n";
         return;  // RETURN
     }
 
     is >> atMostOnce;
     if (is.fail()) {
         cout << "The input '" << buffer << "' is not properly formatted."
-             << endl;
+             << "\n";
         return;  // RETURN
     }
 
     is >> ackRequested;
     if (is.fail()) {
         cout << "The input '" << buffer << "' is not properly formatted."
-             << endl;
+             << "\n";
         return;  // RETURN
     }
 
     is >> invalidPut;
     if (is.fail()) {
         cout << "The input '" << buffer << "' is not properly formatted."
-             << endl;
+             << "\n";
         return;  // RETURN
     }
 
@@ -2630,7 +2628,7 @@ static void testN3_guidCollisionConfiguration()
          << "\n"
          << "ackRequested: from " << e_AckNotRequested << " to "
          << e_AckRequested << "\n"
-         << endl;
+         << "\n";
 
     // Read from stdin
     char buffer[8];
@@ -2645,21 +2643,21 @@ static void testN3_guidCollisionConfiguration()
     is >> clientType;
     if (is.fail()) {
         cout << "The input '" << buffer << "' is not properly formatted."
-             << endl;
+             << "\n";
         return;  // RETURN
     }
 
     is >> atMostOnce;
     if (is.fail()) {
         cout << "The input '" << buffer << "' is not properly formatted."
-             << endl;
+             << "\n";
         return;  // RETURN
     }
 
     is >> ackRequested;
     if (is.fail()) {
         cout << "The input '" << buffer << "' is not properly formatted."
-             << endl;
+             << "\n";
         return;  // RETURN
     }
 
@@ -2709,7 +2707,7 @@ int main(int argc, char* argv[])
         case -2: testN2_invalidPutConfiguration(); break;
         case -3: testN3_guidCollisionConfiguration(); break;
         default: {
-            cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
+            cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
             bmqtst::TestHelperUtil::testStatus() = -1;
         } break;
         }

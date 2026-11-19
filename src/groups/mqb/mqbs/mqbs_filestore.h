@@ -637,10 +637,19 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
                                const bmqp_ctrlmsg::SyncPoint& syncPoint,
                                bool replicate = true);
 
-    int writeMessageRecord(const bmqp::StorageHeader&          header,
-                           const mqbs::RecordHeader&           recHeader,
-                           const bsl::shared_ptr<bdlbb::Blob>& event,
-                           const bmqu::BlobPosition&           recordPosition);
+    /// @brief Write the message record contained in a storage message
+    ///        received from the primary.
+    ///
+    /// @param header Storage header of the message.
+    /// @param recHeader Record header of the message.
+    /// @param event Blob holding the storage message.
+    /// @param recordPosition Position of the record within `event`.
+    ///
+    /// @return 0 on success, or a non-zero value otherwise.
+    int writeMessageRecord(const bmqp::StorageHeader&                header,
+                           const mqbs::RecordHeader&                 recHeader,
+                           const bsl::shared_ptr<const bdlbb::Blob>& event,
+                           const bmqu::BlobPosition& recordPosition);
 
     /// @brief Write the queue creation/addition record contained in a storage
     /// message received from the primary.
@@ -659,16 +668,74 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// @returns 0 on success, `FileStoreUtil::k_MALFORMED_QUEUE_RECORD` if
     ///          the queue record is structurally invalid, and another non-zero
     ///          value otherwise.
-    int writeQueueCreationRecord(const bmqp::StorageHeader&          header,
-                                 const mqbs::RecordHeader&           recHeader,
-                                 const bsl::shared_ptr<bdlbb::Blob>& event,
-                                 const bmqu::BlobPosition& recordPosition);
+    int
+    writeQueueCreationRecord(const bmqp::StorageHeader& header,
+                             const mqbs::RecordHeader&  recHeader,
+                             const bsl::shared_ptr<const bdlbb::Blob>& event,
+                             const bmqu::BlobPosition& recordPosition);
 
-    int writeJournalRecord(const bmqp::StorageHeader&          header,
-                           const mqbs::RecordHeader&           recHeader,
-                           const bsl::shared_ptr<bdlbb::Blob>& event,
-                           const bmqu::BlobPosition&           recordPosition,
-                           bmqp::StorageMessageType::Enum      messageType);
+    /// @brief Apply a JournalOp record just appended to the journal.
+    ///
+    /// @details Validates the record's journal-op and sync point types,
+    /// checks that self's DATA file offset (and QLIST file offset, if
+    /// qlist-aware) matches the sync point, records the sync point, performs
+    /// a rollover when the sync point requests one, and notes the last sync
+    /// point when self is stopping.
+    ///
+    /// @param recHeader     Record header supplying the PSN of the record.
+    /// @param journalOpType Type of the JournalOp record.
+    /// @param recordOffset  Offset of the record in the journal.
+    /// @param activeFileSet File set the record was appended to.
+    /// @returns 0 on success, and a non-zero value otherwise.
+    int applyJournalOpRecord(const mqbs::RecordHeader& recHeader,
+                             JournalOpType::Enum       journalOpType,
+                             bsls::Types::Uint64       recordOffset,
+                             const FileSet&            activeFileSet);
+
+    /// @brief Apply a QueueOp record just appended to the journal.
+    ///
+    /// @details Validates the queue-op type and registers the record, then
+    /// purges the storage (or the virtual storage for `appKey`) or deletes
+    /// the queue, invoking the queue deletion callback last.
+    ///
+    /// @param recHeader    Record header supplying the PSN of the record.
+    /// @param queueOpType  Type of the QueueOp record.
+    /// @param recordOffset Offset of the record in the journal.
+    /// @param queueKey     Key of the queue the record belongs to.
+    /// @param appKey       Key of the app the record applies to, or the null
+    ///                     key for the whole queue.
+    /// @param rstorage     Storage registered for `queueKey`.
+    /// @returns 0 on success, and a non-zero value otherwise.
+    int applyQueueOpRecord(const mqbs::RecordHeader& recHeader,
+                           QueueOpType::Enum         queueOpType,
+                           bsls::Types::Uint64       recordOffset,
+                           const mqbu::StorageKey&   queueKey,
+                           const mqbu::StorageKey&   appKey,
+                           ReplicatedStorage*        rstorage);
+
+    /// @brief Write the journal record contained in a storage message
+    /// received from the primary.
+    ///
+    /// @details Append the CONFIRM, DELETION, JOURNAL_OP or QUEUE_OP record
+    /// carried by `event` to the JOURNAL file after checking that self's
+    /// JOURNAL offset matches the primary's.  Then, for records that belong
+    /// to a queue, validate the queue and app keys, and apply the record:
+    /// CONFIRM and DELETION records to the queue's storage, and JOURNAL_OP
+    /// and QUEUE_OP records with `applyJournalOpRecord` and
+    /// `applyQueueOpRecord`.
+    ///
+    /// @param header         Storage header of the message.
+    /// @param recHeader      Record header supplying the leaseId and
+    ///                       sequence number the record is keyed on.
+    /// @param event          Blob holding the storage message.
+    /// @param recordPosition Position of the record within `event`.
+    /// @param messageType    Type of the storage message.
+    /// @returns 0 on success, and a non-zero value otherwise.
+    int writeJournalRecord(const bmqp::StorageHeader&                header,
+                           const mqbs::RecordHeader&                 recHeader,
+                           const bsl::shared_ptr<const bdlbb::Blob>& event,
+                           const bmqu::BlobPosition&      recordPosition,
+                           bmqp::StorageMessageType::Enum messageType);
 
     /// Replicate the record of specified `type` starting at specified
     /// `journalOffset` in the JOURNAL file.  The behavior is undefined if
@@ -764,9 +831,14 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
                       bsls::Types::Uint64         position,
                       bsls::Types::Uint64         length) const;
 
-    void aliasMessage(bsl::shared_ptr<bdlbb::Blob>* appData,
-                      bsl::shared_ptr<bdlbb::Blob>* options,
-                      const DataStoreRecord&        record) const;
+    /// @brief Load blobs aliasing the payload of a message in the data file.
+    ///
+    /// @param[out] appData Loaded with the application data of the message.
+    /// @param[out] options Loaded with the options of the message, if any.
+    /// @param record The record of the message.
+    void aliasMessage(bsl::shared_ptr<const bdlbb::Blob>* appData,
+                      bsl::shared_ptr<bdlbb::Blob>*       options,
+                      const DataStoreRecord&              record) const;
 
     /// Attempt to garbage-collect messages for which TTL has expired.
     /// Note that this routine is no-op unless at the primary node.
@@ -871,16 +943,23 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// Payload related
     /// ---------------
 
-    /// Write the specified `appData` and `options` belonging to specified
-    /// `queueKey` and having specified `guid` and `attributes` to the data
-    /// store, and update the specified `handle` with an identifier which
-    /// can be used to retrieve the message.
+    /// @brief Write a message to the data store.
+    ///
+    /// @param attributes The attributes of the message.
+    /// @param[out] handle Loaded with an identifier which can be used to
+    ///                    retrieve the message.
+    /// @param guid The GUID of the message.
+    /// @param appData The application data of the message.
+    /// @param options The options of the message.
+    /// @param queueKey The key of the queue the message belongs to.
+    ///
+    /// @return 0 on success, or a non-zero value otherwise.
     int
-    writeMessageRecord(mqbi::StorageMessageAttributes*     attributes,
-                       DataStoreRecordHandle*              handle,
-                       const bmqt::MessageGUID&            guid,
-                       const bsl::shared_ptr<bdlbb::Blob>& appData,
-                       const bsl::shared_ptr<bdlbb::Blob>& options,
+    writeMessageRecord(mqbi::StorageMessageAttributes*           attributes,
+                       DataStoreRecordHandle*                    handle,
+                       const bmqt::MessageGUID&                  guid,
+                       const bsl::shared_ptr<const bdlbb::Blob>& appData,
+                       const bsl::shared_ptr<bdlbb::Blob>&       options,
                        const mqbu::StorageKey& queueKey) BSLS_KEYWORD_OVERRIDE;
 
     /// Qlist related
@@ -945,21 +1024,34 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// outstanding records.
     void onPurgeComplete() BSLS_KEYWORD_OVERRIDE;
 
-    /// Process the specified storage event `blob` containing one or more
-    /// storage messages.  Return zero on success, or a non-zero value if the
-    /// event was dropped because one of its records is malformed.  The
-    /// behavior is undefined unless each message in the event belongs to
+    /// @brief Process a storage event containing one or more storage
+    ///        messages.
+    ///
+    /// The behavior is undefined unless each message in the event belongs to
     /// this partition, and has same primary and primary leaseId as expected
     /// by this data store instance.
-    int processStorageEvent(const bsl::shared_ptr<bdlbb::Blob>& blob,
+    ///
+    /// @param blob The storage event.
+    /// @param isPartitionSyncEvent Whether the event is a partition sync
+    ///                             event.
+    /// @param source The node the event comes from.
+    ///
+    /// @return 0 on success, or a non-zero value if the event was dropped
+    ///         because one of its records is malformed.
+    int processStorageEvent(const bsl::shared_ptr<const bdlbb::Blob>& blob,
                             bool                 isPartitionSyncEvent,
                             mqbnet::ClusterNode* source) BSLS_KEYWORD_OVERRIDE;
 
-    /// Process the specified recovery event `blob` containing one or more
-    /// storage messages.  Return zero on success, non-zero value otherwise.
+    /// @brief Process a recovery event containing one or more storage
+    ///        messages.
+    ///
     /// The behavior is undefined unless each message in the event belongs
     /// to this partition.
-    int processRecoveryEvent(const bsl::shared_ptr<bdlbb::Blob>& blob)
+    ///
+    /// @param blob The recovery event.
+    ///
+    /// @return 0 on success, or a non-zero value otherwise.
+    int processRecoveryEvent(const bsl::shared_ptr<const bdlbb::Blob>& blob)
         BSLS_KEYWORD_OVERRIDE;
 
     /// Process Receipt for the specified `primaryLeaseId` and
@@ -1081,10 +1173,16 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
                                   const DataStoreRecordHandle&    handle) const
         BSLS_KEYWORD_OVERRIDE;
 
-    void loadMessageRaw(bsl::shared_ptr<bdlbb::Blob>*   appData,
-                        bsl::shared_ptr<bdlbb::Blob>*   options,
-                        mqbi::StorageMessageAttributes* attributes,
-                        const DataStoreRecordHandle&    handle) const
+    /// @brief Load a message identified by a record handle.
+    ///
+    /// @param[out] appData Loaded with the application data of the message.
+    /// @param[out] options Loaded with the options of the message.
+    /// @param[out] attributes Loaded with the attributes of the message.
+    /// @param handle The handle of the message record.
+    void loadMessageRaw(bsl::shared_ptr<const bdlbb::Blob>* appData,
+                        bsl::shared_ptr<bdlbb::Blob>*       options,
+                        mqbi::StorageMessageAttributes*     attributes,
+                        const DataStoreRecordHandle&        handle) const
         BSLS_KEYWORD_OVERRIDE;
 
     unsigned int getMessageLenRaw(const DataStoreRecordHandle& handle) const

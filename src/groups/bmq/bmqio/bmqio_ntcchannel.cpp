@@ -863,7 +863,8 @@ void NtcChannel::processClose(const bmqio::Status& status)
 
         BMQIO_NTCCHANNEL_LOG_CLOSED(this, d_streamSocket_sp, status);
 
-        d_state = e_STATE_CLOSED;
+        d_state       = e_STATE_CLOSED;
+        d_closeStatus = status;
 
         d_streamSocket_sp.reset();
         d_interface_sp.reset();
@@ -934,6 +935,7 @@ NtcChannel::NtcChannel(
 , d_properties(basicAllocator)
 , d_watermarkFns(basicAllocator)
 , d_closeFns(basicAllocator)
+, d_closeStatus(basicAllocator)
 , d_resultCallback(bsl::allocator_arg, basicAllocator, resultCallback)
 , d_allocator_p(bslma::Default::allocator(basicAllocator))
 {
@@ -1306,8 +1308,20 @@ int NtcChannel::execute(const ExecuteCb& cb)
 
 void NtcChannel::onClose(const CloseFn& cb)
 {
-    bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
-    d_closeFns.push_back(cb);
+    bmqio::Status status(d_allocator_p);
+
+    {
+        bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
+
+        if (d_state != e_STATE_CLOSED) {
+            d_closeFns.push_back(cb);
+            return;  // RETURN
+        }
+
+        status = d_closeStatus;
+    }
+
+    cb(status);
 }
 
 void NtcChannel::onWatermark(const WatermarkFn& cb)
@@ -1504,7 +1518,8 @@ void NtcListener::processClose(const bmqio::Status& status)
 
         BMQIO_NTCLISTENER_LOG_CLOSED(this, d_listenerSocket_sp, status);
 
-        d_state = e_STATE_CLOSED;
+        d_state       = e_STATE_CLOSED;
+        d_closeStatus = status;
 
         d_listenerSocket_sp.reset();
         d_interface_sp.reset();
@@ -1533,6 +1548,7 @@ NtcListener::NtcListener(
 , d_options(basicAllocator)
 , d_properties(basicAllocator)
 , d_closeFns(basicAllocator)
+, d_closeStatus(basicAllocator)
 , d_resultCallback(bsl::allocator_arg, basicAllocator, resultCallback)
 , d_allocator_p(bslma::Default::allocator(basicAllocator))
 {
@@ -1709,8 +1725,20 @@ void NtcListener::cancel()
 
 void NtcListener::onClose(const CloseFn& cb)
 {
-    bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
-    d_closeFns.push_back(cb);
+    bmqio::Status status(d_allocator_p);
+
+    {
+        bslmt::LockGuard<bslmt::Mutex> lock(&d_mutex);
+
+        if (d_state != e_STATE_CLOSED) {
+            d_closeFns.push_back(cb);
+            return;  // RETURN
+        }
+
+        status = d_closeStatus;
+    }
+
+    cb(status);
 }
 
 bmqvt::PropertyBag& NtcListener::properties()

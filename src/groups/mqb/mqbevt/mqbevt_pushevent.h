@@ -69,7 +69,7 @@ class PushEvent : public mqbi::DispatcherEvent {
     mqbi::DispatcherClient* d_source_p;
 
     /// Blob associated to this event.
-    bsl::shared_ptr<bdlbb::Blob> d_blob_sp;
+    bsl::shared_ptr<const bdlbb::Blob> d_blob_sp;
 
     /// Options blob associated to this event.
     bsl::shared_ptr<bdlbb::Blob> d_options_sp;
@@ -110,9 +110,12 @@ class PushEvent : public mqbi::DispatcherEvent {
 
     // MANIPULATORS
 
-    /// Set the blob to the specified `value` and return a reference
-    /// offering modifiable access to this object.
-    PushEvent& setBlob(const bsl::shared_ptr<bdlbb::Blob>& value);
+    /// @brief Set the blob associated to this event.
+    ///
+    /// @param value The blob to associate.
+    ///
+    /// @return A reference offering modifiable access to this object.
+    PushEvent& setBlob(const bsl::shared_ptr<const bdlbb::Blob>& value);
 
     /// Set the options blob to the specified `value` and return a reference
     /// offering modifiable access to this object.
@@ -164,9 +167,8 @@ class PushEvent : public mqbi::DispatcherEvent {
     /// Return the source client of this event.
     mqbi::DispatcherClient* source() const;
 
-    /// Return a reference not offering modifiable access to the blob
-    /// associated to this event.
-    const bsl::shared_ptr<bdlbb::Blob>& blob() const;
+    /// @brief Return the blob associated to this event.
+    const bsl::shared_ptr<const bdlbb::Blob>& blob() const;
 
     /// Return a reference not offering modifiable access to the options
     /// blob associated to this event.
@@ -215,7 +217,7 @@ inline mqbi::DispatcherClient* PushEvent::source() const
     return d_source_p;
 }
 
-inline const bsl::shared_ptr<bdlbb::Blob>& PushEvent::blob() const
+inline const bsl::shared_ptr<const bdlbb::Blob>& PushEvent::blob() const
 {
     return d_blob_sp;
 }
@@ -273,7 +275,8 @@ inline mqbi::DispatcherEventType::Enum PushEvent::type() const
     return k_TYPE;
 }
 
-inline PushEvent& PushEvent::setBlob(const bsl::shared_ptr<bdlbb::Blob>& value)
+inline PushEvent&
+PushEvent::setBlob(const bsl::shared_ptr<const bdlbb::Blob>& value)
 {
     d_blob_sp = value;
     return *this;

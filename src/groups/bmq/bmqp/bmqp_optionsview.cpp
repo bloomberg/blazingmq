@@ -76,7 +76,8 @@ int OptionsView::resetImpl(const bdlbb::Blob*        blob,
         const int optionSize = oh->packed()
                                    ? sizeof(OptionHeader)
                                    : (oh->words() * Protocol::k_WORD_SIZE);
-        if (!oh->packed() && optionSize == sizeof(OptionHeader)) {
+        if (!oh->packed() &&
+            optionSize <= static_cast<int>(sizeof(OptionHeader))) {
             // At this time we don't support an non-packed option header that
             // is not followed by an option payload.
             clear();
@@ -99,11 +100,7 @@ int OptionsView::resetImpl(const bdlbb::Blob*        blob,
         // in fact an OptionHeader (for instance, if we are reading a word that
         // was intended to be a sub-queue id but because of an incorrect
         // 'words' field in a previous OptionHeader we advanced to it).
-        const int optionTypeAsInt = static_cast<int>(optionType);
-        if (optionTypeAsInt < OptionType::k_LOWEST_SUPPORTED_TYPE ||
-            optionTypeAsInt > OptionType::k_HIGHEST_SUPPORTED_TYPE) {
-            // An option type is not valid unless it is in the range
-            // (OptionType::e_UNDEFINED, OptionType::e_HIGHEST_SUPPORTED_TYPE]
+        if (!OptionType::isSupported(optionType)) {
             clear();
             return rc_INVALID_OPTIONS_AREA;  // RETURN
         }
@@ -119,8 +116,8 @@ int OptionsView::resetImpl(const bdlbb::Blob*        blob,
         // 'OptionHeader::k_MAX_TYPE' + 1.
         d_optionPositions[optionType] = blobIter.position();
 
-        // At this point we have validated this OptionHeader (but not the
-        // option itself).
+        // At this point we have validated this OptionHeader, except for its
+        // type-specific field, but not the option itself.
         optionsAreaSize -= optionSize;
         blobIter.advance(optionSize);
     }
@@ -155,6 +152,16 @@ int OptionsView::loadOptionPositionAndSize(
     BSLS_ASSERT_SAFE(isValid());
     BSLS_ASSERT_SAFE(find(optionType) != end());
 
+    enum RcEnum {
+        // Value for the various RC error categories
+        /// Success
+        rc_SUCCESS = 0,
+        /// The option does not fall within the blob
+        rc_INVALID_BLOB = -1,
+        /// The padding count is not in [1, 'Protocol::k_WORD_SIZE']
+        rc_INVALID_PADDING = -2
+    };
+
     const bmqu::BlobPosition& headerPos = d_optionPositions[optionType];
     bmqu::BlobObjectProxy<OptionHeader> oh(d_blob_p, headerPos);
 
@@ -167,13 +174,13 @@ int OptionsView::loadOptionPositionAndSize(
                                             sizeof(OptionHeader));
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        return rc;  // RETURN
+        return rc * 10 + rc_INVALID_BLOB;  // RETURN
     }
 
     if (oh->packed()) {
         // *Packed* options
         *payloadSizeBytes = 0;
-        return rc;  // RETURN
+        return rc_SUCCESS;  // RETURN
     }
 
     // 1 word for header, rest for payload.
@@ -185,7 +192,7 @@ int OptionsView::loadOptionPositionAndSize(
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!hasPadding)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         *payloadSizeBytes = optionLenBytes;
-        return rc;  // RETURN
+        return rc_SUCCESS;  // RETURN
     }
 
     bmqu::BlobPosition lastBytePos;
@@ -195,15 +202,22 @@ int OptionsView::loadOptionPositionAndSize(
                                         optionTotalSizeBytes - 1);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        return rc;  // RETURN
+        return rc * 10 + rc_INVALID_BLOB;  // RETURN
     }
 
-    const char lastByte =
-        (*d_blob_p).buffer(lastBytePos.buffer()).data()[lastBytePos.byte()];
+    // Read it unsigned so the check does not depend on the platform-specific
+    // signedness of 'char'.
+    const unsigned char padding = static_cast<unsigned char>(
+        (*d_blob_p).buffer(lastBytePos.buffer()).data()[lastBytePos.byte()]);
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
+            padding == 0 || padding > Protocol::k_WORD_SIZE)) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        return rc_INVALID_PADDING;  // RETURN
+    }
 
-    *payloadSizeBytes = optionLenBytes - lastByte;
+    *payloadSizeBytes = optionLenBytes - padding;
 
-    return rc;
+    return rc_SUCCESS;
 }
 
 // MANIPULATORS
@@ -246,7 +260,6 @@ int OptionsView::loadSubQueueIdsOption(
 
     const int rc = loadSubQueueInfosOptionHelper(
         &tempVec,
-        Protocol::k_WORD_SIZE,
         OptionType::e_SUB_QUEUE_IDS_OLD);
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
@@ -269,9 +282,17 @@ int OptionsView::loadSubQueueInfosOption(
 
     enum RcEnum {
         // Value for the various RC error categories
-        rc_SUCCESS      = 0,
+        /// Success
+        rc_SUCCESS = 0,
+        /// The option payload is malformed
         rc_LOAD_FAILURE = -1,
-        rc_UNREACHABLE  = -2
+        /// The SubQueueInfos item size, in 'typeSpecific' words, is not
+        /// 'sizeof(SubQueueInfo)'
+        rc_INVALID_ITEM_SIZE = -2,
+        /// The packed RdaInfo does not fit in one byte
+        rc_INVALID_RDA_INFO = -3,
+        /// Code that must never be reached
+        rc_UNREACHABLE = -4
     };
 
     if (find(OptionType::e_SUB_QUEUE_INFOS) != end()) {
@@ -282,15 +303,29 @@ int OptionsView::loadSubQueueInfosOption(
         BSLS_ASSERT_SAFE(oh->type() == OptionType::e_SUB_QUEUE_INFOS);
 
         if (oh->packed()) {
-            // *Packed* options => reinterpret 'words' field as RDA counter for
-            //                     the default Subscription Id
-            const unsigned int rdaCounter = static_cast<unsigned int>(
+            // *Packed* options => reinterpret 'words' field as the RdaInfo
+            //                     of the default Subscription Id
+            const unsigned int rdaInfo = static_cast<unsigned int>(
                 oh->words());
+            if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
+                    rdaInfo > RdaInfo::k_MAX_INTERNAL_COUNTER_VALUE)) {
+                BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+                return rc_INVALID_RDA_INFO;  // RETURN
+            }
+
             subQueueInfos->push_back(
                 SubQueueInfo(bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID,
-                             rdaCounter));
+                             rdaInfo));
 
             return rc_SUCCESS;  // RETURN
+        }
+
+        // Only items of exactly 'sizeof(SubQueueInfo)' can be decoded.
+        const int itemSize = oh->typeSpecific() * Protocol::k_WORD_SIZE;
+        if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
+                itemSize != static_cast<int>(sizeof(SubQueueInfo)))) {
+            BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+            return rc_INVALID_ITEM_SIZE;  // RETURN
         }
 
         // Read in the encoded SubQueueInfos and then decode them into the
@@ -299,13 +334,9 @@ int OptionsView::loadSubQueueInfosOption(
                                   bufferedAllocator(d_allocator_p);
         bsl::vector<SubQueueInfo> tempVec(&bufferedAllocator);
 
-        const unsigned int itemSize = static_cast<unsigned int>(
-                                          oh->typeSpecific()) *
-                                      Protocol::k_WORD_SIZE;
-
-        int rc = loadSubQueueInfosOptionHelper(&tempVec,
-                                               itemSize,
-                                               OptionType::e_SUB_QUEUE_INFOS);
+        const int rc = loadSubQueueInfosOptionHelper(
+            &tempVec,
+            OptionType::e_SUB_QUEUE_INFOS);
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
             return rc_LOAD_FAILURE;  // RETURN
@@ -323,9 +354,8 @@ int OptionsView::loadSubQueueInfosOption(
                                            bufferedAllocator(d_allocator_p);
         bsl::vector<bdlb::BigEndianUint32> tempVec(&bufferedAllocator);
 
-        int rc = loadSubQueueInfosOptionHelper(
+        const int rc = loadSubQueueInfosOptionHelper(
             &tempVec,
-            Protocol::k_WORD_SIZE,
             OptionType::e_SUB_QUEUE_IDS_OLD);
         if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
             BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
@@ -345,68 +375,6 @@ int OptionsView::loadSubQueueInfosOption(
 
     BSLS_ASSERT_SAFE(false && "SubQueueInfos not found");
     return rc_UNREACHABLE;
-}
-
-int OptionsView::loadMsgGroupIdOption(Protocol::MsgGroupId* msgGroupId) const
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(msgGroupId);
-    BSLS_ASSERT_SAFE(msgGroupId->empty());
-    BSLS_ASSERT_SAFE(isValid());
-    BSLS_ASSERT_SAFE(find(OptionType::e_MSG_GROUP_ID) != end());
-
-    enum RcEnum {
-        // Value for the various RC error categories
-        rc_SUCCESS           = 0,
-        rc_INVALID_BLOB      = -1,
-        rc_INSUFFICIENT_DATA = -2,
-        rc_INVALID_LENGTH    = -3
-    };
-
-    bmqu::BlobPosition msgGroupIdStartPos;
-    int                msgGroupIdSizeBytes;
-    int                rc = loadOptionPositionAndSize(&msgGroupIdStartPos,
-                                       &msgGroupIdSizeBytes,
-                                       OptionType::e_MSG_GROUP_ID,
-                                       true);  // hasPadding
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        // Will happen if the range
-        // [headerPos, headerPos + sizeof(OptionHeader)] does not fall within
-        // the blob.
-        return rc_INSUFFICIENT_DATA;  // RETURN
-    }
-
-    // If there's no Group Id information, the OptionHeader shouldn't be set.
-    // Empty Group Ids are currently invalid.
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(msgGroupIdSizeBytes == 0)) {
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        return rc_INVALID_LENGTH;  // RETURN
-    }
-
-    // The maximum allowed value is Protocol::k_MSG_GROUP_ID_MAX_LENGTH.
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
-            msgGroupIdSizeBytes > Protocol::k_MSG_GROUP_ID_MAX_LENGTH)) {
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        return rc_INVALID_LENGTH;  // RETURN
-    }
-
-    // Read msgGroupId
-    msgGroupId->resize(msgGroupIdSizeBytes);
-    rc = bmqu::BlobUtil::readNBytes(&(*msgGroupId)[0],
-                                    *d_blob_p,
-                                    msgGroupIdStartPos,
-                                    msgGroupIdSizeBytes);
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        msgGroupId->clear();
-        // The range
-        // [msgGroupIdStartPos, msgGroupIdStartPos + msgGroupIdSizeBytes]
-        // doesn't fall within the blob.
-        return rc_INVALID_BLOB;  // RETURN
-    }
-
-    return rc_SUCCESS;
 }
 
 }  // close package namespace

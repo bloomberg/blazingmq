@@ -370,20 +370,20 @@ static void test4_defaultHashUniqueness()
 
     if (maxCollisions >= k_MAX_EXPECTED_COLLISIONS) {
         cout << "Hash collision percentage..........: "
-             << 100 - 100.0f * hashes.size() / k_NUM_GUIDS << "%" << endl
+             << 100 - 100.0f * hashes.size() / k_NUM_GUIDS << "%" << "\n"
              << "Max collisions.....................: " << maxCollisions
-             << endl
+             << "\n"
              << "Hash...............................: " << maxCollisionsHash
-             << endl
+             << "\n"
              << "Num GUIDs with that hash...........: "
-             << hashes[maxCollisionsHash].size() << endl
-             << "GUIDs with the highest collisions..: " << endl;
+             << hashes[maxCollisionsHash].size() << "\n"
+             << "GUIDs with the highest collisions..: " << "\n";
 
         Guids& guids = hashes[maxCollisionsHash];
         for (size_t i = 0; i < guids.size(); ++i) {
             cout << "  ";
             mqbu::MessageGUIDUtil::print(cout, guids[i]);
-            cout << endl;
+            cout << "\n";
         }
     }
 }
@@ -458,20 +458,20 @@ static void test5_customHashUniqueness()
 
     if (maxCollisions >= k_MAX_EXPECTED_COLLISIONS) {
         cout << "Hash collision percentage..........: "
-             << 100 - 100.0f * hashes.size() / k_NUM_GUIDS << "%" << endl
+             << 100 - 100.0f * hashes.size() / k_NUM_GUIDS << "%" << "\n"
              << "Max collisions.....................: " << maxCollisions
-             << endl
+             << "\n"
              << "Hash...............................: " << maxCollisionsHash
-             << endl
+             << "\n"
              << "Num GUIDs with that hash...........: "
-             << hashes[maxCollisionsHash].size() << endl
-             << "GUIDs with the highest collisions..: " << endl;
+             << hashes[maxCollisionsHash].size() << "\n"
+             << "GUIDs with the highest collisions..: " << "\n";
 
         Guids& guids = hashes[maxCollisionsHash];
         for (size_t i = 0; i < guids.size(); ++i) {
             cout << "  ";
             mqbu::MessageGUIDUtil::print(cout, guids[i]);
-            cout << endl;
+            cout << "\n";
         }
     }
 }
@@ -507,8 +507,8 @@ static void testN1_decode()
     cout << "Please enter the hex representation of a GUID, followed by\n"
          << "<enter> when done (optionally, specify the currentTimerTick as\n"
          << "well as secondsFromEpoch to resolve the time):\n"
-         << "  hexGUID [currentTimerTick secondsFromEpoch]" << endl
-         << endl;
+         << "  hexGUID [currentTimerTick secondsFromEpoch]" << "\n"
+         << "\n";
 
     // Read from stdin
     char buffer[256];
@@ -524,7 +524,7 @@ static void testN1_decode()
 
     // Ensure valid input
     if (!bmqt::MessageGUID::isValidHexRepresentation(hexGuid.c_str())) {
-        cout << "The input '" << buffer << "' is not a valid hex GUID" << endl;
+        cout << "The input '" << buffer << "' is not a valid hex GUID" << "\n";
         return;  // RETURN
     }
 
@@ -534,7 +534,7 @@ static void testN1_decode()
         is >> startTimerTick;
         if (is.fail()) {
             cout << "The input '" << buffer << "' is not properly formatted "
-                 << "[hexGuid currentTimerTick secondsFromEpoch]" << endl;
+                 << "[hexGuid currentTimerTick secondsFromEpoch]" << "\n";
             return;  // RETURN
         }
 
@@ -542,7 +542,7 @@ static void testN1_decode()
         is >> startSecondsFromEpoch;
         if (is.fail()) {
             cout << "The input '" << buffer << "' is not properly formatted "
-                 << "[hexGuid currentTimerTick secondsFromEpoch]" << endl;
+                 << "[hexGuid currentTimerTick secondsFromEpoch]" << "\n";
             return;  // RETURN
         }
     }
@@ -553,9 +553,9 @@ static void testN1_decode()
     BMQTST_ASSERT_EQ(guid.isUnset(), false);
 
     // Print it
-    cout << "--------------------------------" << endl;
+    cout << "--------------------------------" << "\n";
     mqbu::MessageGUIDUtil::print(cout, guid);
-    cout << endl;
+    cout << "\n";
 
     if (startTimerTick != 0) {
         int                version;
@@ -576,7 +576,7 @@ static void testN1_decode()
             (guidTimerTick - startTimerTick) /
             bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MICROSECOND);
 
-        bsl::cout << "Converted timestamp (UTC): " << timestamp << bsl::endl;
+        bsl::cout << "Converted timestamp (UTC): " << timestamp << "\n";
     }
 }
 
@@ -628,7 +628,7 @@ static void testN2_bdlbPerformance()
          << "In other words: "
          << bmqu::PrintUtil::prettyNumber((k_NUM_GUIDS * 1000000000) /
                                           (end - start))
-         << " bdlb::Guids per second." << endl;
+         << " bdlb::Guids per second." << "\n";
 }
 
 BSLA_MAYBE_UNUSED
@@ -678,7 +678,7 @@ static void testN2_mqbuPerformance()
          << "In other words: "
          << bmqu::PrintUtil::prettyNumber((k_NUM_GUIDS * 1000000000) /
                                           (end - start))
-         << " bdlb::Guids per second." << endl;
+         << " bdlb::Guids per second." << "\n";
 }
 
 BSLA_MAYBE_UNUSED static void testN3_defaultHashBenchmark()
@@ -715,7 +715,7 @@ BSLA_MAYBE_UNUSED static void testN3_defaultHashBenchmark()
          << "In other words: "
          << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
                 (k_NUM_ITERATIONS * 1000000000) / (end - begin)))
-         << " hashes per second." << endl;
+         << " hashes per second." << "\n";
 }
 
 BSLA_MAYBE_UNUSED
@@ -753,7 +753,7 @@ static void testN4_customHashBenchmark()
          << "In other words: "
          << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
                 (k_NUM_ITERATIONS * 1000000000) / (end - begin)))
-         << " hashes per second." << endl;
+         << " hashes per second." << "\n";
 }
 
 BSLA_MAYBE_UNUSED static void testN5_hashTableWithDefaultHashBenchmark()
@@ -797,7 +797,7 @@ BSLA_MAYBE_UNUSED static void testN5_hashTableWithDefaultHashBenchmark()
          << "In other words: "
          << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
                 (k_NUM_ELEMS * 1000000000) / (end - begin)))
-         << " insertions per second." << endl;
+         << " insertions per second." << "\n";
 }
 
 BSLA_MAYBE_UNUSED static void testN6_hashTableWithCustomHashBenchmark()
@@ -844,7 +844,7 @@ BSLA_MAYBE_UNUSED static void testN6_hashTableWithCustomHashBenchmark()
          << "In other words: "
          << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
                 (k_NUM_ELEMS * 1000000000) / (end - begin)))
-         << " insertions per second." << endl;
+         << " insertions per second." << "\n";
 }
 
 BSLA_MAYBE_UNUSED static void testN7_orderedMapWithDefaultHashBenchmark()
@@ -888,7 +888,7 @@ BSLA_MAYBE_UNUSED static void testN7_orderedMapWithDefaultHashBenchmark()
          << "In other words: "
          << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
                 (k_NUM_ELEMS * 1000000000) / (end - begin)))
-         << " insertions per second." << endl;
+         << " insertions per second." << "\n";
 }
 
 BSLA_MAYBE_UNUSED static void testN8_orderedMapWithCustomHashBenchmark()
@@ -934,7 +934,7 @@ BSLA_MAYBE_UNUSED static void testN8_orderedMapWithCustomHashBenchmark()
          << "In other words: "
          << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
                 (k_NUM_ELEMS * 1000000000) / (end - begin)))
-         << " insertions per second." << endl;
+         << " insertions per second." << "\n";
 }
 
 #ifdef BMQTST_BENCHMARK_ENABLED
@@ -1277,7 +1277,7 @@ int main(int argc, char* argv[])
                                        ->Unit(benchmark::kMillisecond));
         break;
     default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
+        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
