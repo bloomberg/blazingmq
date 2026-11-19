@@ -31,6 +31,12 @@ jobs:
         with:
           commits: ${{ steps.get-pr-commits.outputs.commits }}
 
+  forbid_merge_commits:
+    runs-on: ubuntu-slim
+    name: Forbid Merge Commits
+    steps:
+      - uses: motlin/forbid-merge-commits-action@49483ed78d3c59ae66e338ad12edd34c6dac7fdf  # v1.0.8
+
   license_check:
     runs-on: ubuntu-slim
     name: License Check
