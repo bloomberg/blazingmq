@@ -57,7 +57,7 @@
 	}
 }
 
-\"([^\\\"]|\\.)*\" {
+\"([^\\\"]|\\[\\\"])*\" {
 	updatePosition();
 	return SimpleEvaluatorParser::make_STRING(bsl::string(yytext + 1, strlen(yytext) - 2));
 }

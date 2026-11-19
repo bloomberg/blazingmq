@@ -234,6 +234,14 @@ static void test1_compilationErrors()
          "564819967",
          ErrorType::e_SYNTAX,
          "integer overflow at offset 7"},  // 2 ** 255 - 1
+
+        // invalid escapes in string literals
+        {"s_foo == \"\\n\"",
+         ErrorType::e_SYNTAX,
+         "syntax error, unexpected invalid character at offset 9"},
+        {"s_foo == \"a\\qb\"",
+         ErrorType::e_SYNTAX,
+         "syntax error, unexpected invalid character at offset 9"},
     };
     const TestParameters* testParametersEnd = testParameters +
                                               sizeof(testParameters) /
