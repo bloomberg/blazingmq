@@ -140,6 +140,7 @@ void PostingContext::postNext()
                 }
             }
 
+            bsl::string messageData(d_allocator_p);
             if (!d_parameters.sequentialMessagePattern().empty()) {
                 char buffer[16];
                 length = snprintf(buffer,
@@ -147,9 +148,7 @@ void PostingContext::postNext()
                                   "%09d",
                                   d_numMessagesPosted);
 
-                bsl::string messageData(
-                    d_parameters.sequentialMessagePattern(),
-                    d_allocator_p);
+                messageData = d_parameters.sequentialMessagePattern();
                 messageData.append(buffer);
                 msg.setDataRef(messageData.c_str(), messageData.length());
             }
