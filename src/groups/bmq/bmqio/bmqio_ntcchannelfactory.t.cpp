@@ -1424,7 +1424,7 @@ int main(int argc, char* argv[])
     case 6: test6_preCreationCbTest(); break;
     case 7: test7_checkMultithreadListen(); break;
     default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
+        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }

@@ -1153,7 +1153,7 @@ int main(int argc, char* argv[])
     case 4: test4_buffering(); break;
     case 5: test5_reopen_failure(); break;
     default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
+        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }

@@ -226,7 +226,7 @@ void outputGuidString(bsl::ostream&            ostream,
 {
     ostream << messageGUID;
     if (addNewLine)
-        ostream << bsl::endl;
+        ostream << "\n";
 }
 
 enum ProcessRecordTypeFlags {
@@ -2652,7 +2652,7 @@ int main(int argc, char* argv[])
     case 25: test25_searchConfirmAndDeletionRecordsBySeqNumber(); break;
     case 26: test26_summaryWithQueueDetailsTest(); break;
     default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
+        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }

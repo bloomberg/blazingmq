@@ -128,8 +128,7 @@ int main(int argc, char* argv[])
     case 0:
     case 1: test1_breathingTest(); break;
     default: {
-        bsl::cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND."
-                  << bsl::endl;
+        bsl::cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }

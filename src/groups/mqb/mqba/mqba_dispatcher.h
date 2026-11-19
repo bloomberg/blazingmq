@@ -184,11 +184,6 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
         /// The object responsible for distributing clients across processors.
         mqbu::LoadBalancer<mqbi::DispatcherClient> d_loadBalancer;
 
-        /// Vector of vector of pointers to `DispatcherClients` with the
-        /// clients for which a flush needs to be called.  The first index of
-        /// the vector corresponds to the processor.
-        bsl::vector<DispatcherClientPtrVector> d_flushList;
-
         /// An event sources that should be exclusively used by the threads
         /// assigned for each processor.
         bsl::vector<bsl::shared_ptr<mqbi::DispatcherEventSource> >
@@ -216,30 +211,37 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
     typedef bsl::shared_ptr<DispatcherContext> DispatcherContextSp;
 
     /// Functor that processes dispatcher events for a specific processor
-    /// queue, pre-caching the flush list and stat context pointers to avoid
-    /// repeated lookups on the hot path.
+    /// queue.  Owns the flush list of this queue and pre-caches the stat
+    /// context pointer to avoid repeated lookups on the hot path.
     class EventCallback {
       private:
         // DATA
 
-        /// Queue name (used for logging).
-        bsl::string_view d_queueName;
+        // Fields used for every event come first.
 
         /// Stat context for this processor queue.
         bsl::shared_ptr<bmqst::StatContext> d_stats_sp;
+
+        /// Clients of this processor queue for which a flush needs to be
+        /// called.
+        DispatcherClientPtrVector d_flushList;
 
         /// Gate controlling whether client flushing is enabled (held, not
         /// owned).
         bmqu::GateKeeper* d_flushClientsGate_p;
 
-        /// Flush list for this processor queue (held, not owned).
-        mqba::Dispatcher::DispatcherClientPtrVector* d_flushList_p;
-
-        /// Processor pull for logging the size of the queue (held, not owned).
-        const ProcessorPool* d_processorPool_p;
+        /// Atomic timestamp tracking when the last event started processing,
+        /// used by the stuck-event monitor (held, not owned).
+        bsls::AtomicInt64* d_lastProcessingStartTime_p;
 
         /// Timeout for warnings if processing of the event takes longer.
         const bsls::Types::Int64 d_warningTimeoutNs;
+
+        /// Queue name (used for logging).
+        bsl::string_view d_queueName;
+
+        /// Processor pull for logging the size of the queue (held, not owned).
+        const ProcessorPool* d_processorPool_p;
 
         /// Type of the dispatcher client (used for logging).
         const mqbi::DispatcherClientType::Enum d_type;
@@ -247,32 +249,46 @@ class Dispatcher BSLS_KEYWORD_FINAL : public mqbi::Dispatcher {
         /// Processor queue identifier (used for logging).
         const int d_queueId;
 
-        /// Atomic timestamp tracking when the last event started processing,
-        /// used by the stuck-event monitor (held, not owned).
-        bsls::AtomicInt64* d_lastProcessingStartTime_p;
-
         // PRIVATE MANIPULATORS
 
         /// Flush all clients in the flush list and clear it.
         void flushClients();
 
       public:
+        // TRAITS
+        BSLMF_NESTED_TRAIT_DECLARATION(EventCallback,
+                                       bslma::UsesBslmaAllocator)
+
         // CREATORS
 
-        /// Create an event callback for the processor having the specified
-        /// `queueId` in charge of dispatcher clients of the specified
-        /// `type`, using the specified `flushClientsGate_p` to control
-        /// flushing, the specified `context_sp` to obtain the flush list
-        /// and stat context, and the specified
-        /// `lastProcessingStartTime` to track event processing for the
-        /// stuck-event monitor.
+        /// @brief Create an event callback for one processor queue.
+        ///
+        /// @param type                    Type of the dispatcher clients.
+        /// @param queueId                 Processor queue identifier.
+        /// @param flushClientsGate_p      Gate controlling client flushing.
+        /// @param context_sp              Context to get the stat context
+        /// from.
+        /// @param warningTimeoutNs        Event processing time above which a
+        ///                                warning is logged.
+        /// @param lastProcessingStartTime Start time of the event being
+        ///                                processed, for the stuck-event
+        ///                                monitor.
+        /// @param allocator               Allocator to use for the flush list.
         explicit EventCallback(
             mqbi::DispatcherClientType::Enum             type,
             int                                          queueId,
             bmqu::GateKeeper*                            flushClientsGate_p,
             const mqba::Dispatcher::DispatcherContextSp& context_sp,
             bsls::Types::Int64                           warningTimeoutNs,
-            bsls::AtomicInt64* lastProcessingStartTime);
+            bsls::AtomicInt64* lastProcessingStartTime,
+            bslma::Allocator*  allocator = 0);
+
+        /// @brief Create a copy of the specified `other` event callback.
+        ///
+        /// @param other     Event callback to copy.
+        /// @param allocator Allocator to use for the flush list.
+        EventCallback(const EventCallback& other,
+                      bslma::Allocator*    allocator = 0);
 
         // MANIPULATORS
 

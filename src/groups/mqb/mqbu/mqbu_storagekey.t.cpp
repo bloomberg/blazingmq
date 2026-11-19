@@ -438,22 +438,22 @@ void test4_defaultHashUniqueness()
 
     if (true || (maxCollisions >= k_MAX_EXPECTED_COLLISIONS)) {
         cout << "Number of collisions...............: "
-             << k_NUM_ELEMS - hashes.size() << endl
+             << k_NUM_ELEMS - hashes.size() << "\n"
              << "Hash collision percentage..........: "
-             << 100 - 100.0f * (hashes.size() / k_NUM_ELEMS) << "%" << endl
+             << 100 - 100.0f * (hashes.size() / k_NUM_ELEMS) << "%" << "\n"
              << "Max collisions.....................: " << maxCollisions
-             << endl
+             << "\n"
              << "Hash...............................: " << maxCollisionsHash
-             << endl
+             << "\n"
              << "Num StorageKeys with that hash...........: "
-             << hashes[maxCollisionsHash].size() << endl
-             << "StorageKeys with the highest collisions..: " << endl;
+             << hashes[maxCollisionsHash].size() << "\n"
+             << "StorageKeys with the highest collisions..: " << "\n";
 
         StorageKeys& keys = hashes[maxCollisionsHash];
         for (size_t i = 0; i < keys.size(); ++i) {
             cout << "  ";
             keys[i].print(cout);
-            cout << endl;
+            cout << "\n";
         }
     }
 }
@@ -524,22 +524,22 @@ void test5_customHashUniqueness()
 
     if (true || (maxCollisions >= k_MAX_EXPECTED_COLLISIONS)) {
         cout << "Number of collisions...............: "
-             << k_NUM_ELEMS - hashes.size() << endl
+             << k_NUM_ELEMS - hashes.size() << "\n"
              << "Hash collision percentage..........: "
-             << 100 - 100.0f * hashes.size() / k_NUM_ELEMS << "%" << endl
+             << 100 - 100.0f * hashes.size() / k_NUM_ELEMS << "%" << "\n"
              << "Max collisions.....................: " << maxCollisions
-             << endl
+             << "\n"
              << "Hash...............................: " << maxCollisionsHash
-             << endl
+             << "\n"
              << "Num StorageKeys with that hash...........: "
-             << hashes[maxCollisionsHash].size() << endl
-             << "StorageKeys with the highest collisions..: " << endl;
+             << hashes[maxCollisionsHash].size() << "\n"
+             << "StorageKeys with the highest collisions..: " << "\n";
 
         StorageKeys& keys = hashes[maxCollisionsHash];
         for (size_t i = 0; i < keys.size(); ++i) {
             cout << "  ";
             keys[i].print(cout);
-            cout << endl;
+            cout << "\n";
         }
     }
 }
@@ -589,7 +589,7 @@ void testN1_defaultHashBenchmark()
          << "In other words: "
          << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
                 (k_NUM_ITERATIONS * 1000000000) / (end - begin)))
-         << " hashes per second." << endl;
+         << " hashes per second." << "\n";
 }
 
 BSLA_MAYBE_UNUSED
@@ -633,7 +633,7 @@ void testN2_customHashBenchmark()
          << "In other words: "
          << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
                 (k_NUM_ITERATIONS * 1000000000) / (end - begin)))
-         << " hashes per second." << endl;
+         << " hashes per second." << "\n";
 }
 
 BSLA_MAYBE_UNUSED
@@ -679,7 +679,7 @@ void testN3_hashTableWithDefaultHashBenchmark()
          << "In other words: "
          << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
                 (k_NUM_ELEMS * 1000000000) / (end - begin)))
-         << " insertions per second." << endl;
+         << " insertions per second." << "\n";
 }
 
 BSLA_MAYBE_UNUSED
@@ -726,7 +726,7 @@ void testN4_hashTableWithCustomHashBenchmark()
          << "In other words: "
          << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
                 (k_NUM_ELEMS * 1000000000) / (end - begin)))
-         << " insertions per second." << endl;
+         << " insertions per second." << "\n";
 }
 
 BSLA_MAYBE_UNUSED
@@ -780,7 +780,7 @@ void testN5_orderedMapWithDefaultHashBenchmark()
          << "In other words: "
          << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
                 (k_NUM_ELEMS * 1000000000) / (end - begin)))
-         << " insertions per second." << endl;
+         << " insertions per second." << "\n";
 }
 
 BSLA_MAYBE_UNUSED
@@ -835,7 +835,7 @@ void testN6_orderedMapWithCustomHashBenchmark()
          << "In other words: "
          << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
                 (k_NUM_ELEMS * 1000000000) / (end - begin)))
-         << " insertions per second." << endl;
+         << " insertions per second." << "\n";
 }
 
 // Begin Google Benchmark Tests
@@ -1119,7 +1119,7 @@ int main(int argc, char* argv[])
                                        benchmark::kMillisecond));
         break;
     default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
+        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }

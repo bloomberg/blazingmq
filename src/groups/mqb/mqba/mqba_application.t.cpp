@@ -132,7 +132,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     case 2: test2_stopAfterStartFailure(); break;
     default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
+        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }

@@ -2469,7 +2469,7 @@ static void testN1_ackConfiguration()
          << "ackRequested: from " << e_AckNotRequested << " to "
          << e_AckRequested << "\n"
          << "ackSuccess  : from " << e_AckFailure << " to " << e_AckSuccess
-         << endl;
+         << "\n";
 
     // Read from stdin
     char buffer[10];
@@ -2486,35 +2486,35 @@ static void testN1_ackConfiguration()
     is >> clientType;
     if (is.fail()) {
         cout << "The input '" << buffer << "' is not properly formatted."
-             << endl;
+             << "\n";
         return;  // RETURN
     }
 
     is >> atMostOnce;
     if (is.fail()) {
         cout << "The input '" << buffer << "' is not properly formatted."
-             << endl;
+             << "\n";
         return;  // RETURN
     }
 
     is >> putAction;
     if (is.fail()) {
         cout << "The input '" << buffer << "' is not properly formatted."
-             << endl;
+             << "\n";
         return;  // RETURN
     }
 
     is >> ackRequested;
     if (is.fail()) {
         cout << "The input '" << buffer << "' is not properly formatted."
-             << endl;
+             << "\n";
         return;  // RETURN
     }
 
     is >> ackSuccess;
     if (is.fail()) {
         cout << "The input '" << buffer << "' is not properly formatted."
-             << endl;
+             << "\n";
         return;  // RETURN
     }
 
@@ -2554,7 +2554,7 @@ static void testN2_invalidPutConfiguration()
          << e_AckRequested << "\n"
          << "invalidPut  : from " << e_InvalidPutUnknownQueue << " to "
          << e_InvalidPutClosedQueue << "\n"
-         << endl;
+         << "\n";
 
     // Read from stdin
     char buffer[8];
@@ -2570,28 +2570,28 @@ static void testN2_invalidPutConfiguration()
     is >> clientType;
     if (is.fail()) {
         cout << "The input '" << buffer << "' is not properly formatted."
-             << endl;
+             << "\n";
         return;  // RETURN
     }
 
     is >> atMostOnce;
     if (is.fail()) {
         cout << "The input '" << buffer << "' is not properly formatted."
-             << endl;
+             << "\n";
         return;  // RETURN
     }
 
     is >> ackRequested;
     if (is.fail()) {
         cout << "The input '" << buffer << "' is not properly formatted."
-             << endl;
+             << "\n";
         return;  // RETURN
     }
 
     is >> invalidPut;
     if (is.fail()) {
         cout << "The input '" << buffer << "' is not properly formatted."
-             << endl;
+             << "\n";
         return;  // RETURN
     }
 
@@ -2628,7 +2628,7 @@ static void testN3_guidCollisionConfiguration()
          << "\n"
          << "ackRequested: from " << e_AckNotRequested << " to "
          << e_AckRequested << "\n"
-         << endl;
+         << "\n";
 
     // Read from stdin
     char buffer[8];
@@ -2643,21 +2643,21 @@ static void testN3_guidCollisionConfiguration()
     is >> clientType;
     if (is.fail()) {
         cout << "The input '" << buffer << "' is not properly formatted."
-             << endl;
+             << "\n";
         return;  // RETURN
     }
 
     is >> atMostOnce;
     if (is.fail()) {
         cout << "The input '" << buffer << "' is not properly formatted."
-             << endl;
+             << "\n";
         return;  // RETURN
     }
 
     is >> ackRequested;
     if (is.fail()) {
         cout << "The input '" << buffer << "' is not properly formatted."
-             << endl;
+             << "\n";
         return;  // RETURN
     }
 
@@ -2707,7 +2707,7 @@ int main(int argc, char* argv[])
         case -2: testN2_invalidPutConfiguration(); break;
         case -3: testN3_guidCollisionConfiguration(); break;
         default: {
-            cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
+            cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
             bmqtst::TestHelperUtil::testStatus() = -1;
         } break;
         }

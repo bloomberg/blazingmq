@@ -310,6 +310,7 @@ jobs:
 
       - name: Set up dependencies
         run: |
+          brew update && \
           brew install \
             bison \
             flex \

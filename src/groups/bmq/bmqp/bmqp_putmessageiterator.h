@@ -89,100 +89,79 @@ class PutMessageIterator {
 
   private:
     // DATA
+
+    /// Blob iterator pointing to the current message in the blob.
     bmqu::BlobIterator d_blobIter;
-    // Blob iterator pointing to the current
-    // message in the blob.
 
+    /// Deep copy of current PutHeader.  Force decompression (controlled by
+    /// 'd_isDecompressingOldMPs') results in de-compressed data (in
+    /// 'd_applicationData') and the corresponding 'header()' should not have
+    /// the compression flag while the original blob and the original header
+    /// stay intact.  Therefore cannot use BlobObjectProxy which could simply
+    /// alias to an offset in BlobBuffer and rewrite it.
     PutHeader d_header;
-    // Deep copy of current PutHeader.
-    // Force decompression (controlled by
-    // 'd_isDecompressingOldMPs') results in
-    // de-compressed data (in
-    // 'd_applicationData') and the
-    // corresponding 'header()' should not
-    // have the compression flag while the
-    // original blob and the original header
-    // stay intact.  Therefore cannot use
-    // BlobObjectProxy which could simply
-    // alias to an offset in BlobBuffer and
-    // rewrite it.
 
+    /// Computed application data real size (without padding). -1 if not
+    /// initialized. Note that if 'd_decompressFlag' is true, this will store
+    /// the size of decompressed application data and vice-versa.
     mutable int d_applicationDataSize;
-    // Computed application data real size
-    // (without padding). -1 if not
-    // initialized. Note that if
-    // 'd_decompressFlag' is true, this will
-    // store the size of decompressed
-    // application data and vice-versa.
 
+    /// Lazily computed payload real size (without padding).  -1 if not
+    /// initialized.
     mutable int d_lazyMessagePayloadSize;
-    // Lazily computed payload real size
-    // (without padding).  -1 if not
-    // initialized.
 
+    /// Lazily computed payload position.  Unset if not initialized.
     mutable bmqu::BlobPosition d_lazyMessagePayloadPosition;
-    // Lazily computed payload position.
-    // Unset if not initialized.
 
+    /// Message properties size.  0 if not initialized.  Note that this length
+    /// includes padding and message properties header.
     mutable int d_messagePropertiesSize;
-    // Message properties size.  0 if not
-    // initialized.  Note that this length
-    // includes padding and message
-    // properties header.
 
+    /// Application Data position. For each blob, initialized in next().
     mutable bmqu::BlobPosition d_applicationDataPosition;
-    // Application Data position. For each
-    // blob, initialized in next().
 
+    /// Message options size.
     mutable int d_optionsSize;
-    // Message options size.
 
+    /// Message options position.  Unset if not initialized.
     mutable bmqu::BlobPosition d_optionsPosition;
-    // Message options position.  Unset if
-    // not initialized.
 
+    /// How much should we advance in the blob when calling 'next()'.  The
+    /// iterator is considered in invalid state if this value is == -1.
     int d_advanceLength;
-    // How much should we advance in the
-    // blob when calling 'next()'.  The
-    // iterator is considered in invalid
-    // state if this value is == -1.
 
+    /// The OptionsView for this iterator.
     mutable NullableOptionsView d_optionsView;
-    // The OptionsView for this iterator.
 
+    /// Flag indicating if message should be decompressed when calling next().
+    /// false if not initialized.
     bool d_decompressFlag;
-    // Flag indicating if message should be
-    // decompressed when calling next().
-    // false if not initialized.
 
+    /// Decompressed application data.  Populated only if d_decompressFlag is
+    /// true (empty otherwise).
     bdlbb::Blob d_applicationData;
-    // Decompressed application data.
-    // Populated only if d_decompressFlag is
-    // true (empty otherwise).
 
+    /// Buffer factory used for decompressed application data.
     bdlbb::BlobBufferFactory* d_bufferFactory_p;
-    // Buffer factory used for decompressed
-    // application data.
 
+    /// Temporary; shall remove after 2ns roll out of "new style" brokers.
+    ///
+    /// Recognize the following scenarios
+    /// 1) De-compress everything
+    ///      (d_decompressFlag == true)
+    /// 2) De-compress old format only
+    ///    (d_isDecompressingOldMPs == true)
+    /// 3) Do not de-compress
+    ///      (d_decompressFlag == false &&
+    ///      isDecompressingOldMPs == false)
+    /// Payload is de-compressed when
+    /// (d_decompressFlag == true ||
+    ///  (isDecompressingOldMPs == true &&
+    ///   isOldFormat == true))
     bool d_isDecompressingOldMPs;
-    // Temporary; shall remove after 2ns
-    // roll out of "new style" brokers.
-    //
-    // Recognize the following scenarios
-    // 1) De-compress everything
-    //      (d_decompressFlag == true)
-    // 2) De-compress old format only
-    //    (d_isDecompressingOldMPs == true)
-    // 3) Do not de-compress
-    //      (d_decompressFlag == false &&
-    //      isDecompressingOldMPs == false)
-    // Payload is de-compressed when
-    // (d_decompressFlag == true ||
-    //  (isDecompressingOldMPs == true &&
-    //   isOldFormat == true))
 
+    /// Allocator to use by this object.
     bslma::Allocator* d_allocator_p;
-    // Allocator to use by this object.
 
   private:
     // PRIVATE MANIPULATORS

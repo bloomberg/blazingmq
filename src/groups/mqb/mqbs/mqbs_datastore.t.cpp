@@ -200,14 +200,14 @@ static void test2_defaultHashUniqueness()
     if (bmqtst::TestHelperUtil::verbosityLevel() >= 1 ||
         maxCollisions >= k_MAX_EXPECTED_COLLISIONS) {
         cout << "Hash collision percentage..........: "
-             << 100 - 100.0f * hashes.size() / k_NUM_KEYS << "%" << endl
+             << 100 - 100.0f * hashes.size() / k_NUM_KEYS << "%" << "\n"
              << "Max collisions.....................: " << maxCollisions
-             << endl
+             << "\n"
              << "Hash...............................: " << maxCollisionsHash
-             << endl
+             << "\n"
              << "Num Keys with that hash...........: "
-             << hashes[maxCollisionsHash].size() << endl
-             << "Keys with the highest collisions..: " << endl;
+             << hashes[maxCollisionsHash].size() << "\n"
+             << "Keys with the highest collisions..: " << "\n";
 
         Keys& keys = hashes[maxCollisionsHash];
         for (size_t i = 0; i < keys.size(); ++i) {
@@ -287,14 +287,14 @@ static void test3_customHashUniqueness()
     if (bmqtst::TestHelperUtil::verbosityLevel() >= 1 ||
         maxCollisions >= k_MAX_EXPECTED_COLLISIONS) {
         cout << "Hash collision percentage..........: "
-             << 100 - 100.0f * hashes.size() / k_NUM_KEYS << "%" << endl
+             << 100 - 100.0f * hashes.size() / k_NUM_KEYS << "%" << "\n"
              << "Max collisions.....................: " << maxCollisions
-             << endl
+             << "\n"
              << "Hash...............................: " << maxCollisionsHash
-             << endl
+             << "\n"
              << "Num Keys with that hash...........: "
-             << hashes[maxCollisionsHash].size() << endl
-             << "Keys with the highest collisions..: " << endl;
+             << hashes[maxCollisionsHash].size() << "\n"
+             << "Keys with the highest collisions..: " << "\n";
 
         Keys& keys = hashes[maxCollisionsHash];
         for (size_t i = 0; i < keys.size(); ++i) {
@@ -410,7 +410,7 @@ static void testN3_orderedMapWithDefaultHashBenchmark()
          << "In other words: "
          << bmqu::PrintUtil::prettyNumber(static_cast<bsls::Types::Int64>(
                 (k_NUM_ELEMS * 1000000000) / (end - begin)))
-         << " insertions per second." << endl;
+         << " insertions per second." << "\n";
 }
 BSLA_MAYBE_UNUSED
 static void testN4_orderedMapWithCustomHashBenchmark()
@@ -614,7 +614,7 @@ int main(int argc, char* argv[])
                                        ->Unit(benchmark::kMillisecond));
         break;
     default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
+        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }

@@ -533,7 +533,7 @@ class Tester {
                 if (0 != rc) {
                     bsl::cout
                         << "Error writing QueueCreationRecord, rc: " << rc
-                        << bsl::endl;
+                        << "\n";
                     return false;  // RETURN
                 }
 
@@ -606,7 +606,7 @@ class Tester {
 
                 if (0 != rc) {
                     bsl::cout << "Error writing MessageRecord, rc: " << rc
-                              << bsl::endl;
+                              << "\n";
                     return false;  // RETURN
                 }
 
@@ -665,7 +665,7 @@ class Tester {
                                             mqbs::ConfirmReason::e_CONFIRMED);
                 if (0 != rc) {
                     bsl::cout << "Error writing ConfirmRecord, rc: " << rc
-                              << bsl::endl;
+                              << "\n";
                     return false;  // RETURN
                 }
 
@@ -735,7 +735,7 @@ class Tester {
                                              rec.d_timestamp);
                 if (0 != rc) {
                     bsl::cout << "Error writing DeletionRecord, rc: " << rc
-                              << bsl::endl;
+                              << "\n";
                     return false;  // RETURN
                 }
 
@@ -768,8 +768,7 @@ class Tester {
                 rc = fs->issueSyncPoint();
 
                 if (rc) {
-                    bsl::cout << "Error writing SyncPt, rc: " << rc
-                              << bsl::endl;
+                    bsl::cout << "Error writing SyncPt, rc: " << rc << "\n";
                     return false;  // RETURN
                 }
 
@@ -832,7 +831,7 @@ class Tester {
                                                mqbs::DataStoreRecordHandle());
                 if (0 != rc) {
                     bsl::cout << "Error writing QueuePurgeRecord, rc: " << rc
-                              << bsl::endl;
+                              << "\n";
                     return false;  // RETURN
                 }
 
@@ -892,7 +891,7 @@ class Tester {
                 if (0 != rc) {
                     bsl::cout
                         << "Error writing QueueDeletionRecord, rc: " << rc
-                        << bsl::endl;
+                        << "\n";
                     return false;  // RETURN
                 }
 
@@ -951,7 +950,7 @@ static void test1_breathingTest()
     int rc = fs.open(0, primaryLeaseId);
     BMQTST_ASSERT_EQ(0, rc);
     if (rc) {
-        cout << "Failed to open partition, rc: " << rc << endl;
+        cout << "Failed to open partition, rc: " << rc << "\n";
         return;  // RETURN
     }
 
@@ -1180,7 +1179,7 @@ static void test3_partitionFullAlarm()
     int rc = fs.open(0, primaryLeaseId);
     BMQTST_ASSERT_EQ(0, rc);
     if (rc) {
-        cout << "Failed to open partition, rc: " << rc << endl;
+        cout << "Failed to open partition, rc: " << rc << "\n";
         return;  // RETURN
     }
 
@@ -1326,7 +1325,7 @@ static void test4_recoverMessagesAcrossLeaseIds()
     int rc = fs.open(0, primaryLeaseId);
     BMQTST_ASSERT_EQ(0, rc);
     if (rc) {
-        cout << "Failed to open partition, rc: " << rc << endl;
+        cout << "Failed to open partition, rc: " << rc << "\n";
         return;  // RETURN
     }
 
@@ -1893,7 +1892,7 @@ int main(int argc, char* argv[])
     case 2: test2_printTest(); break;
     case 1: test1_breathingTest(); break;
     default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
+        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }

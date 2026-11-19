@@ -80,7 +80,6 @@ namespace {
 // CONSTANTS
 const double             k_RECONNECT_INTERVAL_MS = 500;
 const int                k_RECONNECT_COUNT = bsl::numeric_limits<int>::max();
-const bsls::Types::Int64 k_CHANNEL_LOW_WATERMARK         = 512 * 1024;
 const int                k_DEFAULT_MAX_MISSED_HEARTBEATS = 10;
 const int                k_DEFAULT_HEARTBEAT_INTERVAL_MS = 1000;
 
@@ -126,7 +125,7 @@ ntcCreateInterfaceConfig(const bmqt::SessionOptions& sessionOptions,
     config.setMaxThreads(1);  // there is only one channel used on this
                               // ChannelPool, with the bmqbrkr
     config.setMaxConnections(128);
-    config.setWriteQueueLowWatermark(k_CHANNEL_LOW_WATERMARK);
+    config.setWriteQueueLowWatermark(sessionOptions.channelLowWatermark());
     config.setWriteQueueHighWatermark(sessionOptions.channelHighWatermark());
 
     config.setDriverMetrics(false);

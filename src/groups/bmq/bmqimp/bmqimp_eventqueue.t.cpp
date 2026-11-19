@@ -127,8 +127,7 @@ void printProcessedItems(int numItems, bsls::Types::Int64 elapsedTime)
 
     bsl::cout << "Processed " << numItems << " items in "
               << bmqu::PrintUtil::prettyTimeInterval(elapsedTime) << ". "
-              << bmqu::PrintUtil::prettyNumber(itemsPerSec) << "/s"
-              << bsl::endl;
+              << bmqu::PrintUtil::prettyNumber(itemsPerSec) << "/s" << "\n";
 }
 
 void queuePerformance(int                       numReaders,
@@ -769,7 +768,7 @@ int main(int argc, char* argv[])
     case 1: test1_breathingTest(); break;
     case -1: testN1_performance(); break;
     default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
+        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }

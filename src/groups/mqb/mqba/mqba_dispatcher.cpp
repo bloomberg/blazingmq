@@ -147,9 +147,6 @@ Dispatcher::DispatcherContext::DispatcherContext(
 : d_threadPool_mp()
 , d_processorPool_mp()
 , d_loadBalancer(config.numProcessors(), allocator)
-, d_flushList(config.numProcessors(),
-              DispatcherClientPtrVector(allocator),
-              allocator)
 , d_eventSources(config.numProcessors(), allocator)
 , d_clientStatContext_mp()
 , d_statContexts(config.numProcessors(), allocator)
@@ -688,7 +685,8 @@ Dispatcher::eventCallbackCreator(mqbi::DispatcherClientType::Enum type,
         d_contexts[type],
         bdlt::TimeUnitRatio::k_NS_PER_MS *
             static_cast<bsls::Types::Int64>(d_config.warningTimeoutMs()),
-        lastProcessingStartTime);
+        lastProcessingStartTime,
+        d_allocator_p);
 }
 
 // -------------------------------
@@ -701,20 +699,35 @@ mqba::Dispatcher::EventCallback::EventCallback(
     bmqu::GateKeeper*                            flushClientsGate_p,
     const mqba::Dispatcher::DispatcherContextSp& context_sp,
     bsls::Types::Int64                           warningTimeoutNs,
-    bsls::AtomicInt64*                           lastProcessingStartTime)
-: d_queueName(context_sp->d_processorPool_mp->queueName(queueId))
-, d_stats_sp(context_sp->d_statContexts[queueId])
+    bsls::AtomicInt64*                           lastProcessingStartTime,
+    bslma::Allocator*                            allocator)
+: d_stats_sp(context_sp->d_statContexts[queueId])
+, d_flushList(allocator)
 , d_flushClientsGate_p(flushClientsGate_p)
-, d_flushList_p(&context_sp->d_flushList[queueId])
-, d_processorPool_p(context_sp->d_processorPool_mp.get())
+, d_lastProcessingStartTime_p(lastProcessingStartTime)
 , d_warningTimeoutNs(warningTimeoutNs)
+, d_queueName(context_sp->d_processorPool_mp->queueName(queueId))
+, d_processorPool_p(context_sp->d_processorPool_mp.get())
 , d_type(type)
 , d_queueId(queueId)
-, d_lastProcessingStartTime_p(lastProcessingStartTime)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(d_flushClientsGate_p);
     BSLS_ASSERT_SAFE(d_lastProcessingStartTime_p);
+}
+
+mqba::Dispatcher::EventCallback::EventCallback(const EventCallback& other,
+                                               bslma::Allocator*    allocator)
+: d_stats_sp(other.d_stats_sp)
+, d_flushList(other.d_flushList, allocator)
+, d_flushClientsGate_p(other.d_flushClientsGate_p)
+, d_lastProcessingStartTime_p(other.d_lastProcessingStartTime_p)
+, d_warningTimeoutNs(other.d_warningTimeoutNs)
+, d_queueName(other.d_queueName)
+, d_processorPool_p(other.d_processorPool_p)
+, d_type(other.d_type)
+, d_queueId(other.d_queueId)
+{
 }
 
 void mqba::Dispatcher::EventCallback::operator()(
@@ -754,7 +767,7 @@ void mqba::Dispatcher::EventCallback::operator()(
             if (!event->destination()
                      ->dispatcherClientData()
                      .addedToFlushList()) {
-                d_flushList_p->emplace_back(event->destination());
+                d_flushList.emplace_back(event->destination());
                 event->destination()
                     ->dispatcherClientData()
                     .setAddedToFlushList(true);
@@ -797,11 +810,11 @@ void mqba::Dispatcher::EventCallback::flushClients()
         return;  // RETURN
     }
 
-    for (size_t i = 0; i < d_flushList_p->size(); ++i) {
-        (*d_flushList_p)[i]->flush();
-        (*d_flushList_p)[i]->dispatcherClientData().setAddedToFlushList(false);
+    for (size_t i = 0; i < d_flushList.size(); ++i) {
+        d_flushList[i]->flush();
+        d_flushList[i]->dispatcherClientData().setAddedToFlushList(false);
     }
-    d_flushList_p->clear();
+    d_flushList.clear();
 }
 
 }  // close package namespace

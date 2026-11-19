@@ -2599,7 +2599,7 @@ int main(int argc, char* argv[])
     case 23: test23_jsonLineOutstandingTest(); break;
     case 24: test24_jsonLineSummaryTest(); break;
     default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
+        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
         bmqtst::TestHelperUtil::testStatus() = -1;
     } break;
     }
