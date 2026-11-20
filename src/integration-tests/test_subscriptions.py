@@ -731,6 +731,59 @@ def test_priorities(cluster: Cluster, domain_urls: tc.DomainUrls):
 
 @tweak.broker.app_config.configure_stream(True)
 @tweak.broker.app_config.advertise_subscriptions(True)
+def test_priority_queue_level_vs_subscription_level(
+    cluster: Cluster, domain_urls: tc.DomainUrls
+):
+    """
+    Test: the queue-wide 'consumerPriority' of open/configure is a default
+    for subscriptions that don't set their own 'consumerPriority'.
+    - Create 1 producer / 2 consumers: C1, C2.
+    - Open 1 priority queue.
+    - C2: subscription "x >= 0" with priority 5 for the whole test.
+    - C1: queue-wide priority 10 on every open/configure; only its
+    subscriptions change.
+
+    Stage 1:
+    - C1: no subscriptions, so the default subscription gets priority 10.
+    - Expect all messages for C1 (10 > 5).
+
+    Stage 2:
+    - C1: reconfigure with subscription "x >= 0" with priority 1.
+    - Expect all messages for C2 (1 < 5).
+
+    Stage 3:
+    - C1: reconfigure with subscription "x >= 0" without priority, so it
+    inherits 10.
+    - Expect all messages for C1 (10 > 5).
+
+    Concerns:
+    - A subscription's own priority overrides the queue-wide priority.
+    - Otherwise the subscription inherits the queue-wide priority.
+    """
+    uri = domain_urls.uri_priority
+    producer = Producer(cluster, uri)
+    consumer1 = Consumer(cluster, uri, consumer_priority=10)
+    consumer2 = Consumer(cluster, uri, subscriptions=[("x >= 0", 5)])
+
+    expected = producer.post_diff(num=3, offset=0)
+    consumer1.expect_messages(expected, confirm=True)
+    consumer2.expect_empty()
+
+    consumer1.configure(subscriptions=[("x >= 0", 1)], consumer_priority=10)
+
+    expected = producer.post_diff(num=3, offset=100)
+    consumer2.expect_messages(expected, confirm=True)
+    consumer1.expect_empty()
+
+    consumer1.configure(subscriptions=["x >= 0"], consumer_priority=10)
+
+    expected = producer.post_diff(num=3, offset=200)
+    consumer1.expect_messages(expected, confirm=True)
+    consumer2.expect_empty()
+
+
+@tweak.broker.app_config.configure_stream(True)
+@tweak.broker.app_config.advertise_subscriptions(True)
 def test_fanout(cluster: Cluster, domain_urls: tc.DomainUrls):
     """
     Test: subscriptions work in fanout mode.
