@@ -2,7 +2,7 @@
 layout: default
 title: Client/Broker Protocol
 parent: Architecture
-nav_order: 8
+nav_order: 9
 ---
 
 # BlazingMQ Client/Broker Protocol
