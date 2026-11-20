@@ -15,23 +15,19 @@
 
 #include <bmqu_time.h>
 
-#include <bmqu_printutil.h>
-
 // BDE
 #include <bdlf_bind.h>
 #include <bsl_functional.h>
+#include <bsl_string_view.h>
+#include <bsls_assert.h>
 #include <bsls_systemtime.h>
 #include <bsls_timeinterval.h>
 #include <bsls_timeutil.h>
 #include <bsls_types.h>
 
 // TEST DRIVER
+#include <bmqtst_table.h>
 #include <bmqtst_testhelper.h>
-
-// BENCHMARKING LIBRARY
-#ifdef BMQTST_BENCHMARK_ENABLED
-#include <benchmark/benchmark.h>
-#endif
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -59,6 +55,48 @@ struct TestClock {
 
     bsls::Types::Int64 highResTimer() { return d_highResTimer; }
 };
+
+/// @brief Functor calling the monotonic clock directly.
+struct DirectCall {
+    /// @brief Return the current monotonic clock time.
+    bsls::TimeInterval operator()() const
+    {
+        return bsls::SystemTime::nowMonotonicClock();
+    }
+};
+
+/// @brief Call the specified `fn` the specified `numCalls` times and add the
+///        timing results as a row with the specified `name` to the specified
+///        `table`.
+///
+/// @param table    The table to add the row to.
+/// @param name     The name of the row.
+/// @param fn       The function to call.
+/// @param numCalls The number of calls to make.
+template <class FN>
+void addResult(bmqtst::Table*     table,
+               bsl::string_view   name,
+               FN                 fn,
+               bsls::Types::Int64 numCalls)
+{
+    BSLS_ASSERT_OPT(table);
+
+    const bsls::Types::Int64 start = bsls::TimeUtil::getTimer();
+    for (bsls::Types::Int64 i = 0; i < numCalls; ++i) {
+        bsls::TimeInterval value = fn();
+        (void)value;
+    }
+    const bsls::Types::Int64 end = bsls::TimeUtil::getTimer();
+
+    table->column("Name").insertValue(name);
+    table->column("Calls").insertValue(
+        static_cast<bsls::Types::Uint64>(numCalls));
+    table->column("Total time (ns)")
+        .insertValue(static_cast<bsls::Types::Uint64>(end - start));
+    table->column("Per call (ns)")
+        .insertValue(
+            static_cast<bsls::Types::Uint64>((end - start) / numCalls));
+}
 
 }  // close unnamed namespace
 
@@ -202,7 +240,6 @@ static void test3_customInitializeShutdown()
 // ============================================================================
 //                              PERFORMANCE TESTS
 // ----------------------------------------------------------------------------
-BSLA_MAYBE_UNUSED
 static void testN1_performance()
 // ------------------------------------------------------------------------
 // PERFORMANCE (micro-benchmark)
@@ -213,7 +250,7 @@ static void testN1_performance()
 //
 // Plan:
 //   - Run a micro-benchmark (making 100 million calls) to the monotonic
-//     clock using each of the 4 ways to call them, and print average time
+//     clock using each of the 5 ways to call them, and print average time
 //     per call.
 //
 // Testing:
@@ -232,152 +269,45 @@ static void testN1_performance()
 //          typedef bsl::function<bsls::TimeInterval()> Fn;
 //           Fn fn = bdlf::BindUtil::bind(
 //                                   &bsls::SystemTime::nowMonotonicClock);
+//   (5): call through bmqu::Time
+//          bmqu::Time::nowMonotonicClock();
 //
-//          | Debug | Release |
-//          +-------+---------+
-//      (1) |   60  |    36   |    Times are in nanoseconds per call,
-//      (2) |   60  |    36   |    average from 100 million calls on a
-//      (3) |   70  |    36   |    Linux system.
-//      (4) |  100  |    36   |
-// ------------------------------------------------------------------------
+// Results (RelWithDebInfo / Linux):
+//
+//             Name |     Calls | Total time (ns) | Per call (ns)
+// ==============================================================
+//      Direct call | 100000000 |      2038425572 |            20
+// Function pointer | 100000000 |      2024406280 |            20
+//    bsl::function | 100000000 |      2068457219 |            20
+//       bdlf::Bind | 100000000 |      2109586223 |            21
+//       bmqu::Time | 100000000 |      2216486878 |            22
+// --------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("PERFORMANCE");
 
-    const bsls::Types::Int64 k_NUM_CALLS = 100000000;  // 1O0 million
-
-    PV("Direct call");
-    {
-        bsls::Types::Int64 start = bsls::TimeUtil::getTimer();
-        for (bsls::Types::Int64 i = 0; i < k_NUM_CALLS; ++i) {
-            bsls::TimeInterval value = bsls::SystemTime::nowMonotonicClock();
-            (void)value;
-        }
-        bsls::Types::Int64 end = bsls::TimeUtil::getTimer();
-
-        cout << k_NUM_CALLS << " function calls in "
-             << bmqu::PrintUtil::prettyTimeInterval(end - start)
-             << " (average of " << (end - start) / k_NUM_CALLS
-             << " nano seconds per call)." << "\n";
-    }
-
-    PV("Function pointer");
-    {
-        bsls::TimeInterval (*fn)();
-        fn = &bsls::SystemTime::nowMonotonicClock;
-
-        bsls::Types::Int64 start = bsls::TimeUtil::getTimer();
-        for (bsls::Types::Int64 i = 0; i < k_NUM_CALLS; ++i) {
-            bsls::TimeInterval value = fn();
-            (void)value;
-        }
-        bsls::Types::Int64 end = bsls::TimeUtil::getTimer();
-
-        cout << k_NUM_CALLS << " function calls in "
-             << bmqu::PrintUtil::prettyTimeInterval(end - start)
-             << " (average of " << (end - start) / k_NUM_CALLS
-             << " nano seconds per call)." << "\n";
-    }
-
-    PV("bsl::function");
-    {
-        typedef bsl::function<bsls::TimeInterval()> Fn;
-        Fn fn = &bsls::SystemTime::nowMonotonicClock;
-
-        bsls::Types::Int64 start = bsls::TimeUtil::getTimer();
-        for (bsls::Types::Int64 i = 0; i < k_NUM_CALLS; ++i) {
-            bsls::TimeInterval value = fn();
-            (void)value;
-        }
-        bsls::Types::Int64 end = bsls::TimeUtil::getTimer();
-
-        cout << k_NUM_CALLS << " function calls in "
-             << bmqu::PrintUtil::prettyTimeInterval(end - start)
-             << " (average of " << (end - start) / k_NUM_CALLS
-             << " nano seconds per call)." << "\n";
-    }
-
-    PV("bdlf::Bind");
-    {
-        typedef bsl::function<bsls::TimeInterval()> Fn;
-        Fn fn = bdlf::BindUtil::bind(&bsls::SystemTime::nowMonotonicClock);
-
-        bsls::Types::Int64 start = bsls::TimeUtil::getTimer();
-        for (bsls::Types::Int64 i = 0; i < k_NUM_CALLS; ++i) {
-            bsls::TimeInterval value = fn();
-            (void)value;
-        }
-        bsls::Types::Int64 end = bsls::TimeUtil::getTimer();
-
-        cout << k_NUM_CALLS << " function calls in "
-             << bmqu::PrintUtil::prettyTimeInterval(end - start)
-             << " (average of " << (end - start) / k_NUM_CALLS
-             << " nano seconds per call)." << "\n";
-    }
-}
-
-// Begin benchmarking tests
-#ifdef BMQTST_BENCHMARK_ENABLED
-static void testN1_defaultPerformance_GoogleBenchmark(benchmark::State& state)
-{
-    // Default function call
-    bmqtst::TestHelper::printTestName("PERFORMANCE GOOGLE BENCHMARK");
-
-    for (auto _ : state) {
-        for (bsls::Types::Int64 i = 0; i < state.range(0); ++i) {
-            bsls::TimeInterval value = bsls::SystemTime::nowMonotonicClock();
-            (void)value;
-        }
-    }
-}
-
-static void testN1_funcptrPerformance_GoogleBenchmark(benchmark::State& state)
-{
-    // Function pointer
-    bmqtst::TestHelper::printTestName("PERFORMANCE GOOGLE BENCHMARK");
-
-    bsls::TimeInterval (*fn)();
-    fn = &bsls::SystemTime::nowMonotonicClock;
-
-    for (auto _ : state) {
-        for (bsls::Types::Int64 i = 0; i < state.range(0); ++i) {
-            bsls::TimeInterval value = fn();
-            (void)value;
-        }
-    }
-}
-
-static void testN1_bslPerformance_GoogleBenchmark(benchmark::State& state)
-{
-    // BSL Typdef performance
-    bmqtst::TestHelper::printTestName("PERFORMANCE GOOGLE BENCHMARK");
+    const bsls::Types::Int64 k_NUM_CALLS = 100000000;  // 100 million
 
     typedef bsl::function<bsls::TimeInterval()> Fn;
-    Fn fn = &bsls::SystemTime::nowMonotonicClock;
 
-    for (auto _ : state) {
-        for (bsls::Types::Int64 i = 0; i < state.range(0); ++i) {
-            bsls::TimeInterval value = fn();
-            (void)value;
-        }
-    }
+    bsls::TimeInterval (*fnPtr)() = &bsls::SystemTime::nowMonotonicClock;
+    Fn bslFn                      = &bsls::SystemTime::nowMonotonicClock;
+    Fn bindFn = bdlf::BindUtil::bind(&bsls::SystemTime::nowMonotonicClock);
+
+    bmqtst::Table table(bmqtst::TestHelperUtil::allocator());
+    addResult(&table, "Direct call", DirectCall(), k_NUM_CALLS);
+    addResult(&table, "Function pointer", fnPtr, k_NUM_CALLS);
+    addResult(&table, "bsl::function", bslFn, k_NUM_CALLS);
+    addResult(&table, "bdlf::Bind", bindFn, k_NUM_CALLS);
+
+    bmqu::Time::initialize(bmqtst::TestHelperUtil::allocator());
+    addResult(&table,
+              "bmqu::Time",
+              &bmqu::Time::nowMonotonicClock,
+              k_NUM_CALLS);
+    bmqu::Time::shutdown();
+
+    table.print(bsl::cout);
 }
-
-static void testN1_bindPerformance_GoogleBenchmark(benchmark::State& state)
-{
-    // Binding performance
-    bmqtst::TestHelper::printTestName("PERFORMANCE GOOGLE BENCHMARK");
-
-    typedef bsl::function<bsls::TimeInterval()> Fn;
-    Fn fn = bdlf::BindUtil::bind(&bsls::SystemTime::nowMonotonicClock);
-
-    for (auto _ : state) {
-        for (bsls::Types::Int64 i = 0; i < state.range(0); ++i) {
-            bsls::TimeInterval value = fn();
-            (void)value;
-        }
-    }
-}
-#endif  // BMQTST_BENCHMARK_ENABLED
 
 // ============================================================================
 //                                 MAIN PROGRAM
@@ -392,30 +322,7 @@ int main(int argc, char* argv[])
     case 3: test3_customInitializeShutdown(); break;
     case 2: test2_defaultInitializeShutdown(); break;
     case 1: test1_breathingTest(); break;
-    case -1:
-#ifdef BMQTST_BENCHMARK_ENABLED
-        BENCHMARK(testN1_defaultPerformance_GoogleBenchmark)
-            ->RangeMultiplier(10)
-            ->Range(1000, 100000000)
-            ->Unit(benchmark::kMillisecond);
-        BENCHMARK(testN1_funcptrPerformance_GoogleBenchmark)
-            ->RangeMultiplier(10)
-            ->Range(1000, 100000000)
-            ->Unit(benchmark::kMillisecond);
-        BENCHMARK(testN1_bslPerformance_GoogleBenchmark)
-            ->RangeMultiplier(10)
-            ->Range(1000, 100000000)
-            ->Unit(benchmark::kMillisecond);
-        BENCHMARK(testN1_bindPerformance_GoogleBenchmark)
-            ->RangeMultiplier(10)
-            ->Range(1000, 100000000)
-            ->Unit(benchmark::kMillisecond);
-        benchmark::Initialize(&argc, argv);
-        benchmark::RunSpecifiedBenchmarks();
-#else
-        testN1_performance();
-#endif
-        break;
+    case -1: testN1_performance(); break;
     default: {
         cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
         bmqtst::TestHelperUtil::testStatus() = -1;
