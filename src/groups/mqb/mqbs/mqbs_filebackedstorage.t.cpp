@@ -393,6 +393,11 @@ class MockDataStore : public mqbs::DataStore {
         return d_description;
     }
 
+    int partitionId() const BSLS_KEYWORD_OVERRIDE
+    {
+        return d_config.partitionId();
+    }
+
     int open(QueueKeyInfoMap*, unsigned int) BSLS_KEYWORD_OVERRIDE
     {
         return 0;
