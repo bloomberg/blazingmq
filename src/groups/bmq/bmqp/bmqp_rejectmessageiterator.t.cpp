@@ -416,6 +416,8 @@ static void test4_resetMethod()
     //     2. The underlying message is corrupted (e.g., number of bytes in the
     //        blob is less than the payload size needed to allocate the message
     //        header).
+    //     3. The message header declares zero header words.
+    //     4. The message header declares zero per-message words.
     //
     // Plan:
     //   1. Create and init iterator by blob of event header size.
@@ -423,6 +425,11 @@ static void test4_resetMethod()
     //   3. Create and init iterator by blob of size one byte less then sum of
     //      event header and message header
     //   4. Expect that reset method will return error code
+    //   5. Reset iterator by blob whose message header has zero header words
+    //   6. Expect that reset method will return error code
+    //   7. Reset iterator by blob whose message header has zero per-message
+    //      words
+    //   8. Expect that reset method will return error code
     //
     // Testing:
     //   int reset();
@@ -487,6 +494,48 @@ static void test4_resetMethod()
         // Reset and verify
         BMQTST_ASSERT_LT(iter.reset(&blob, eventHeader),
                          0);  // rc_NOT_ENOUGH_BYTES
+        BMQTST_ASSERT(!iter.isValid());
+    }
+
+    // Reset method. Zero header words case.
+    {
+        // Create buffer factory and blob
+        bdlbb::PooledBlobBufferFactory bufferFactory(
+            1024,
+            bmqtst::TestHelperUtil::allocator());
+        bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
+
+        // Populate blob and corrupt the RejectHeader
+        populateBlob(&blob, &eventHeader, qId, guid, sQId);
+        bmqp::RejectHeader* rh = reinterpret_cast<bmqp::RejectHeader*>(
+            blob.buffer(0).data() + sizeof(bmqp::EventHeader));
+        rh->setHeaderWords(0);
+
+        // Reset and verify
+        bmqp::RejectMessageIterator iter;
+        const int                   rc = iter.reset(&blob, eventHeader);
+        BMQTST_ASSERT_LT(rc, 0);
+        BMQTST_ASSERT(!iter.isValid());
+    }
+
+    // Reset method. Zero per-message words case.
+    {
+        // Create buffer factory and blob
+        bdlbb::PooledBlobBufferFactory bufferFactory(
+            1024,
+            bmqtst::TestHelperUtil::allocator());
+        bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
+
+        // Populate blob and corrupt the RejectHeader
+        populateBlob(&blob, &eventHeader, qId, guid, sQId);
+        bmqp::RejectHeader* rh = reinterpret_cast<bmqp::RejectHeader*>(
+            blob.buffer(0).data() + sizeof(bmqp::EventHeader));
+        rh->setPerMessageWords(0);
+
+        // Reset and verify
+        bmqp::RejectMessageIterator iter;
+        const int                   rc = iter.reset(&blob, eventHeader);
+        BMQTST_ASSERT_LT(rc, 0);
         BMQTST_ASSERT(!iter.isValid());
     }
 }
