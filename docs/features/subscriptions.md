@@ -391,7 +391,10 @@ manipulation, as a tiny subset of the C programming language.
   - `>`
   - `>=`
 
-- They require two arguments of the same type.
+- `==` and `!=` require two arguments of the same type.
+
+- `<`, `<=`, `>`, and `>=` require two integers or two strings.  Booleans are
+  not ordered, so these operators cannot compare two booleans.
 
 ### Boolean Operators
 {:.no_toc}
