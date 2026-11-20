@@ -69,6 +69,9 @@ int RejectMessageIterator::next()
         return rc_INVALID;  // RETURN
     }
 
+    // 'reset()' rejects zero header and per-message sizes
+    BSLS_ASSERT_SAFE(d_advanceLength > 0);
+
     if (d_blobIter.advance(d_advanceLength) == false) {
         d_header.reset();
         return rc_AT_END;  // RETURN
@@ -108,7 +111,8 @@ int RejectMessageIterator::reset(const bdlbb::Blob* blob,
         /// The blob doesn't contain a complete EventHeader, or is not followed
         /// by a RejectHeader
         rc_INVALID_EVENTHEADER = -1,
-        /// The blob doesn't contain a complete RejectHeader
+        /// The blob doesn't contain a complete RejectHeader, or the
+        /// RejectHeader declares zero header or per-message words
         rc_INVALID_REJECTHEADER = -2,
         /// The number of bytes in the blob is less than the header size
         /// declared in the header
@@ -145,6 +149,14 @@ int RejectMessageIterator::reset(const bdlbb::Blob* blob,
     }
 
     const int headerSize = d_header->headerWords() * Protocol::k_WORD_SIZE;
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
+            headerSize < RejectHeader::k_MIN_HEADER_SIZE ||
+            d_header->perMessageWords() == 0)) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        d_header.reset();
+        return rc_INVALID_REJECTHEADER;  // RETURN
+    }
+
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(headerSize >
                                               d_blobIter.remaining())) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
