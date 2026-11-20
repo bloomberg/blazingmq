@@ -371,9 +371,10 @@ class Log {
     /// overwriting existing bytes.
     virtual int seek(Offset offset) = 0;
 
-    /// Truncate the log to the specified `offset`, zeroing the data beyond
-    /// that point; the file keeps its size.  Repositions the write cursor to
-    /// `offset` and updates outstanding/total byte counts.  Return 0 on
+    /// Truncate the log to the specified `offset`, zeroing and syncing the
+    /// bytes beyond `offset`; the file keeps its size.  Set the write position
+    /// and the total number of bytes to `offset`, and lower the number of
+    /// outstanding bytes by the number of bytes removed.  Return 0 on
     /// success, or a negative value LogOpResult on error.
     virtual int truncate(Offset offset) = 0;
 
@@ -412,8 +413,9 @@ class Log {
 
     /// Flush any cached data up to the optionally specified `offset` to the
     /// underlying storing mechanism, and return 0 on success, or a negative
-    /// value `LogOpResult` on error.  If `offset` is not specified, all
-    /// data is flushed.
+    /// value `LogOpResult` on error, `LogOpResult::e_OFFSET_OUT_OF_RANGE` if
+    /// `offset` is beyond the current write position.  If `offset` is not
+    /// specified, all data is flushed.
     virtual int flush(Offset offset = 0) = 0;
 
     // ACCESSORS

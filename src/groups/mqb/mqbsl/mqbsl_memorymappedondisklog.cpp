@@ -26,6 +26,7 @@
 #include <bdlbb_blobutil.h>
 #include <bdlf_bind.h>
 #include <bdls_filesystemutil.h>
+#include <bdls_memoryutil.h>
 #include <bsl_algorithm.h>  // for bsl::max
 #include <bsl_cstring.h>    // for bsl::memcpy
 #include <bsl_memory.h>
@@ -75,9 +76,9 @@ MemoryMappedOnDiskLogFactory::~MemoryMappedOnDiskLogFactory()
 bslma::ManagedPtr<mqbsi::Log>
 MemoryMappedOnDiskLogFactory::create(const mqbsi::LogConfig& config)
 {
-    bslma::ManagedPtr<mqbsi::Log> log(new (*d_allocator_p)
-                                          MemoryMappedOnDiskLog(config),
-                                      d_allocator_p);
+    bslma::ManagedPtr<mqbsi::Log> log(
+        new (*d_allocator_p) MemoryMappedOnDiskLog(config, d_allocator_p),
+        d_allocator_p);
     return log;
 }
 
@@ -240,19 +241,37 @@ int MemoryMappedOnDiskLog::truncate(Offset offset)
     if (!d_isOpened) {
         return LogOpResult::e_UNSUPPORTED_OPERATION;  // RETURN
     }
-    if (offset > d_currentOffset) {
+    if (d_isReadOnly) {
+        return LogOpResult::e_LOG_READONLY;  // RETURN
+    }
+    if (offset > d_totalNumBytes) {
         return LogOpResult::e_OFFSET_OUT_OF_RANGE;  // RETURN
     }
 
-    // Zero the removed bytes and move the write position back, but keep the
-    // file at its mapped size: a write past 'offset' then lands on a page the
-    // file backs, and a reader that stops at the first invalid record stops
-    // at 'offset'.
-    bsl::memset(d_mfd.mapping() + offset, 0, d_currentOffset - offset);
+    // 1. Zero the removed bytes but keep the file at its mapped size.  A
+    //    write past 'offset' then lands on a page the file backs, and a reader
+    //    that stops at the first invalid record stops at 'offset'.
+    // 2. Sync the zeroed bytes, from the start of the page holding 'offset'
+    //    ('msync' needs a page-aligned address).  This is to avoid a crash
+    //    before 'close' restoring the removed records ('flush' syncs only up
+    //    to the write position).
+    const bsls::Types::Int64 numRemoved = d_totalNumBytes - offset;
+    if (numRemoved > 0) {
+        bsl::memset(d_mfd.mapping() + offset, 0, numRemoved);
 
-    d_currentOffset       = offset;
-    d_outstandingNumBytes = offset;
-    d_totalNumBytes       = offset;
+        const bsls::Types::Int64 pageStart = offset -
+                                             offset %
+                                                 bdls::MemoryUtil::pageSize();
+        if (0 != ::msync(d_mfd.mapping() + pageStart,
+                         d_totalNumBytes - pageStart,
+                         MS_SYNC)) {
+            return LogOpResult::e_FILE_MSYNC_FAILURE;  // RETURN
+        }
+    }
+
+    d_currentOffset = offset;
+    d_outstandingNumBytes -= numRemoved;
+    d_totalNumBytes = offset;
 
     return LogOpResult::e_SUCCESS;
 }
@@ -330,10 +349,12 @@ int MemoryMappedOnDiskLog::flush(Offset offset)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(offset >= 0);
-    BSLS_ASSERT_SAFE(offset <= d_currentOffset);
 
     if (!d_isOpened) {
         return LogOpResult::e_UNSUPPORTED_OPERATION;  // RETURN
+    }
+    if (offset > d_currentOffset) {
+        return LogOpResult::e_OFFSET_OUT_OF_RANGE;  // RETURN
     }
 
     // no-op
