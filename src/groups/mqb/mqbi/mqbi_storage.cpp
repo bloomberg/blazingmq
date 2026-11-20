@@ -143,6 +143,7 @@ StorageMessageAttributes::print(bsl::ostream&                   stream,
     printer.printAttribute("hasMessageProperties",
                            value.messagePropertiesInfo().isPresent());
     printer.printAttribute("crc32c", value.crc32c());
+    printer.printAttribute("raftIndex", value.raftIndex());
 
     printer.end();
 

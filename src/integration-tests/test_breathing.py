@@ -771,18 +771,27 @@ def test_command_timeout(multi_node: Cluster, domain_urls: tc.DomainUrls):
     # Cannot use proxies as they do not read cluster config
 
     leader = multi_node.last_known_leader
-    host = multi_node.nodes()[0]
-    if host == leader:
-        host = multi_node.nodes()[1]
+
+    # this may fail due to the short timeout; we just need queue assigned
+    leader.create_client("assigner").open(
+        du.uri_fanout, flags=["write", "ack"], block=True
+    )
+
+    # the open waits on the queue's partition primary, which is not the leader
+    # in Raft
+    primary = leader.wait_queue_primary(du.uri_fanout)
+    host = next(node for node in multi_node.nodes() if node != primary)
 
     client = host.create_client("client")
-    # this may fail due to the short timeout; we just need queue assigned
+
+    # Assign from the host too; without a local assignment the open below takes
+    # the assignment path, which retries the leader instead of timing out.
     client.open(du.uri_fanout, flags=["write", "ack"], block=True)
 
-    leader.suspend()
+    primary.suspend()
 
     result = client.open(du.uri_fanout_foo, flags=["read"], block=True)
-    leader.resume()
+    primary.resume()
 
     assert result == Client.e_TIMEOUT
 
@@ -800,10 +809,14 @@ def test_queue_purge_command(multi_node: Cluster, domain_urls: tc.DomainUrls):
     producer.open(du.uri_fanout, flags=["write", "ack"], succeed=True)
     producer.post(du.uri_fanout, ["msg1"], succeed=True, wait_ack=True)
 
-    leader = multi_node.last_known_leader
+    # PURGE runs on the queue's partition primary, which is not the leader in
+    # FSM mode; elsewhere it purges nothing and still returns success
+    primary = multi_node.last_known_leader.wait_queue_primary(du.uri_fanout)
 
     # Purge queue, but *only* for 'foo' appId
-    leader.command(f"DOMAINS DOMAIN {du.domain_fanout} QUEUE {tc.TEST_QUEUE} PURGE foo")
+    primary.command(
+        f"DOMAINS DOMAIN {du.domain_fanout} QUEUE {tc.TEST_QUEUE} PURGE foo"
+    )
 
     # Open consumers for all appIds and ensure that the one with 'foo' appId
     # does not receive the message, while other consumers do.
@@ -842,7 +855,7 @@ def test_queue_purge_command(multi_node: Cluster, domain_urls: tc.DomainUrls):
 
     producer.post(du.uri_fanout, ["msg2"], succeed=True, wait_ack=True)
 
-    leader.command(f"DOMAINS DOMAIN {du.domain_fanout} QUEUE {tc.TEST_QUEUE} PURGE *")
+    primary.command(f"DOMAINS DOMAIN {du.domain_fanout} QUEUE {tc.TEST_QUEUE} PURGE *")
 
     consumer1 = proxy.create_client("consumer1")
     consumer1.open(du.uri_fanout_foo, flags=["read"], succeed=True)

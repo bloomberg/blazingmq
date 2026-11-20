@@ -1,0 +1,1889 @@
+// Copyright 2025-2026 Bloomberg Finance L.P.
+// SPDX-License-Identifier: Apache-2.0
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// mqbraft_clusterstateraft.cpp -*-C++-*-
+#include <mqbraft_clusterstateraft.h>
+
+// MQB
+#include <mqbc_clusterstateledgerprotocol.h>
+#include <mqbc_clusterstateledgerutil.h>
+#include <mqbc_clusterutil.h>
+#include <mqbnet_cluster.h>
+#include <mqbnet_controlmessagetransmitter.h>
+#include <mqbs_storageutil.h>
+#include <mqbsl_memorymappedondisklog.h>
+#include <mqbu_exit.h>
+
+#include <bmqt_uri.h>
+
+#include <bmqtsk_alarmlog.h>
+#include <bmqu_blobobjectproxy.h>
+#include <bmqu_memoutstream.h>
+
+// BDE
+#include <ball_log.h>
+#include <bdlf_bind.h>
+#include <bdls_filesystemutil.h>
+#include <bdls_pathutil.h>
+#include <bdlt_datetime.h>
+#include <bsls_assert.h>
+#include <bsls_timeinterval.h>
+
+namespace BloombergLP {
+namespace mqbraft {
+
+namespace {
+
+const int k_TICK_INTERVAL_MS = 100;
+
+RaftNodeConfig makeRaftConfig(const mqbc::ClusterData& clusterData,
+                              bslma::Allocator*        allocator)
+{
+    RaftNodeConfig config(RaftNodeConfig::k_CSL_PARTITION_ID,
+                          true,  // broadcastHeartbeatOnCommit
+                          allocator);
+
+    mqbnet::Cluster* netCluster = clusterData.membership().netCluster();
+
+    const mqbnet::ClusterNode* selfNode = clusterData.membership().selfNode();
+
+    config.setSelf(selfNode->nodeId(), selfNode->hostName());
+
+    // 'd_peers' holds the *full* membership including self: 'quorum()' is
+    // 'peers.size()/2 + 1' (== majority of the whole cluster for both odd
+    // and even sizes), and 'becomeCandidate'/'becomeLeader' skip self while
+    // iterating.  'netCluster->nodes()' already includes self, so add each
+    // node exactly once (the previous code additionally pushed self a second
+    // time, which made a single-node cluster size 2 -> quorum 2 -> never
+    // elects).
+    const mqbnet::Cluster::NodesList& nodes = netCluster->nodes();
+    for (mqbnet::Cluster::NodesList::const_iterator it = nodes.begin();
+         it != nodes.end();
+         ++it) {
+        config.addNode((*it)->nodeId(), (*it)->hostName());
+    }
+
+    config.d_electionTimeoutMin = 10;
+    config.d_electionTimeoutMax = 20;
+    config.d_heartbeatInterval  = 3;
+    config.d_preVote            = true;
+
+    return config;
+}
+
+/// Replace the primary node and leaseId of each of the specified
+/// `partitions` with those in the specified `from` when the leaseId in
+/// `from` is higher.
+void raiseLeaseIds(bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>* partitions,
+                   const bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>& from)
+{
+    for (bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>::const_iterator it =
+             from.cbegin();
+         it != from.cend();
+         ++it) {
+        const int pid = it->partitionId();
+        if (pid < 0 || pid >= static_cast<int>(partitions->size())) {
+            continue;  // CONTINUE
+        }
+
+        bmqp_ctrlmsg::PartitionPrimaryInfo& info = (*partitions)[pid];
+        if (it->primaryLeaseId() > info.primaryLeaseId()) {
+            info.primaryLeaseId() = it->primaryLeaseId();
+            info.primaryNodeId()  = it->primaryNodeId();
+        }
+    }
+}
+
+}  // close unnamed namespace
+
+// ======================
+// class ClusterStateRaft
+// ======================
+
+// CREATORS
+ClusterStateRaft::ClusterStateRaft(
+    mqbc::ClusterData*             clusterData,
+    mqbc::ClusterState*            clusterState,
+    const mqbcfg::PartitionConfig& partitionConfig,
+    const AvailabilityCb&          availabilityCb,
+    ClusterAvailability*           availability,
+    bslma::Allocator*              allocator)
+: d_partitionConfig(partitionConfig, allocator)
+, d_cslLog_mp()
+, d_raftNode_mp()
+, d_clusterData_p(clusterData)
+, d_clusterState_p(clusterState)
+, d_tickHandle()
+, d_availabilityCb(bsl::allocator_arg, allocator, availabilityCb)
+, d_availability_p(availability)
+, d_isStarted(false)
+, d_allocator_p(bslma::Default::allocator(allocator))
+, d_persistentStatePath(d_allocator_p)
+, d_isPersistentStateDirty(false)
+{
+    BSLS_ASSERT_SAFE(clusterData);
+    BSLS_ASSERT_SAFE(clusterState);
+    BSLS_ASSERT_SAFE(availabilityCb);
+    BSLS_ASSERT_SAFE(availability);
+}
+
+ClusterStateRaft::~ClusterStateRaft()
+{
+    BSLS_ASSERT_SAFE(!d_isStarted);
+}
+
+// PRIVATE MANIPULATORS
+mqbnet::ClusterNode* ClusterStateRaft::peerNode(int nodeId)
+{
+    bsl::unordered_map<int, mqbnet::ClusterNode*>::const_iterator it =
+        d_peerNodes.find(nodeId);
+    if (it != d_peerNodes.end()) {
+        return it->second;  // RETURN
+    }
+
+    mqbnet::ClusterNode* node =
+        d_clusterData_p->membership().netCluster()->lookupNode(nodeId);
+    if (node) {
+        d_peerNodes[nodeId] = node;
+    }
+    return node;
+}
+
+bool ClusterStateRaft::savePersistentState(bool changed)
+{
+    if (changed) {
+        d_isPersistentStateDirty = true;
+    }
+    if (!d_isPersistentStateDirty) {
+        return true;  // RETURN
+    }
+
+    const PersistentState state = d_raftNode_mp->persistentState();
+    bmqu::MemOutStream    errorDescription(d_allocator_p);
+    const int             rc = PersistentStateUtil::save(errorDescription,
+                                             d_persistentStatePath,
+                                             state);
+    if (0 != rc) {
+        BMQTSK_ALARMLOG_ALARM("FILE_IO")
+            << "CSL failed to save " << state << ", rc: " << rc << ", "
+            << errorDescription.str()
+            << ".  Raft messages are not sent until it is saved."
+            << BMQTSK_ALARMLOG_END;
+        return false;  // RETURN
+    }
+
+    d_isPersistentStateDirty = false;
+    return true;
+}
+
+void ClusterStateRaft::dispatchOutput()
+{
+    RaftNodeOutput& output = d_raftNode_mp->output();
+    if (output.d_isDispatching) {
+        return;  // RETURN
+    }
+
+    output.d_isDispatching = true;
+
+    dispatchOutput(&output);
+
+    bsl::size_t i         = 0;
+    bool        isFlushed = false;
+    while (true) {
+        if (i == output.d_numNested) {
+            if (isFlushed) {
+                break;  // BREAK
+            }
+
+            // The CSL runs a round on every event: its rate does not justify
+            // the deferral 'PartitionRaft' does.  Called once, when no output
+            // is left, so that one round carries the entries all the outputs
+            // proposed.
+            d_raftNode_mp->flushSends();
+            isFlushed = true;
+            continue;  // CONTINUE
+        }
+        dispatchOutput(output.d_nested[i++].get());
+    }
+
+    output.reset();
+}
+
+void ClusterStateRaft::dispatchOutput(RaftNodeOutput* output)
+{
+    BSLS_ASSERT_SAFE(output);
+
+    // A new leader's log may not be a Raft log -- a legacy CSL file is not --
+    // and neither may its peers'.  So before it sends anything, it replaces
+    // its log with its state and makes every peer take that state.
+    // 'forceSnapshot' writes the InstallSnapshot messages to an output in
+    // 'd_nested', which 'dispatchOutput' processes before calling
+    // 'flushSends'.
+    if (output->d_leaderChanged && isLeader()) {
+        if (0 != installLeaderSnapshot()) {
+            BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
+                << "CSL leader failed to replace its log with a snapshot of "
+                << "its state; exiting so that another node can lead."
+                << BMQTSK_ALARMLOG_END;
+            mqbu::ExitUtil::terminate(
+                mqbu::ExitCode::e_RECOVERY_FAILURE);  // EXIT
+        }
+        d_raftNode_mp->forceSnapshot();
+    }
+
+    // A message carries the term, and a vote reply the vote: neither may
+    // leave before they are on disk.
+    const bool canSend = savePersistentState(output->d_persistentStateChanged);
+
+    for (bsl::vector<RaftMessage>::size_type i = 0;
+         canSend && i < output->d_messages.size();
+         ++i) {
+        const RaftMessage& msg = output->d_messages[i];
+        if (msg.d_type == RaftMessageType::e_APPEND_ENTRIES) {
+            sendAppendEntries(msg);
+        }
+        else if (msg.d_type == RaftMessageType::e_APPEND_ENTRIES_RESP) {
+            sendAppendEntriesResponse(msg);
+        }
+        else {
+            sendControlMessage(msg);
+
+            if (msg.d_type == RaftMessageType::e_INSTALL_SNAPSHOT) {
+                // The control message above is metadata only; the snapshot
+                // itself follows on the same channel.
+                sendSnapshotRecord(msg);
+            }
+        }
+    }
+
+    // 'd_leaderChanged' is set exactly when '(leaderId, term)' moved, so a
+    // Raft role transition that moves neither does not reach here -- it would
+    // otherwise reset the 'e_ACTIVE' status of the same term.
+    if (output->d_leaderChanged) {
+        // Resets the leader status to 'e_PASSIVE' (or clears the leader
+        // outright).  The orchestrator sets 'e_ACTIVE'
+        // ('ClusterAvailability::isCslCaughtUp').  Before applying the
+        // committed entries: applying a queue advisory reads the elector
+        // term.
+        updateElectorInfo();
+    }
+
+    bool hasAdvisory = false;
+    for (bsl::vector<LogEntry>::size_type i = 0;
+         i < output->d_committed.size();
+         ++i) {
+        hasAdvisory |= applyCommittedEntry(output->d_committed[i]);
+    }
+
+    // The CSL leader's first current-term entry is its snapshot
+    // ('installLeaderSnapshot', above); applying the snapshot applies the
+    // inherited backlog (Raft 5.4.2), which makes the CSL state caught up.
+    // The orchestrator's 'partitionPrimaryAdvisory' records partition
+    // leaseIds that change after the snapshot.
+    //
+    // Notify the orchestrator once, after both the leadership change and the
+    // advisories applied.  Other entry commits (queue assignments, app
+    // updates, ...) do not notify.
+    if (output->d_leaderChanged || hasAdvisory) {
+        d_availabilityCb(d_raftNode_mp->leaderId(),
+                         d_raftNode_mp->currentTerm());
+    }
+}
+
+void ClusterStateRaft::sendAppendEntries(const RaftMessage& msg)
+{
+    bsl::shared_ptr<bdlbb::Blob> event_sp =
+        d_clusterData_p->blobSpPool().getObject();
+    bdlbb::Blob& event = *event_sp;
+
+    // Reserve space for EventHeader + RaftHeader + RaftAppendEntriesHeader
+    event.setLength(sizeof(bmqp::EventHeader) + sizeof(bmqp::RaftHeader) +
+                    sizeof(bmqp::RaftAppendEntriesHeader));
+
+    // Write RaftHeader
+    bmqu::BlobObjectProxy<bmqp::RaftHeader> rh(
+        &event,
+        bmqu::BlobPosition(0, static_cast<int>(sizeof(bmqp::EventHeader))),
+        true,   // read
+        true);  // write
+    *rh = bmqp::RaftHeader();
+    (*rh)
+        .setMsgType(bmqp::RaftHeader::k_MSG_TYPE_APPEND_ENTRIES)
+        .setPartitionId(0)
+        .setTerm(msg.d_term);
+    rh.reset();
+
+    // Write RaftAppendEntriesHeader
+    bmqu::BlobObjectProxy<bmqp::RaftAppendEntriesHeader> aeh(
+        &event,
+        bmqu::BlobPosition(0,
+                           static_cast<int>(sizeof(bmqp::EventHeader) +
+                                            sizeof(bmqp::RaftHeader))),
+        true,   // read
+        true);  // write
+    *aeh = bmqp::RaftAppendEntriesHeader();
+    (*aeh)
+        .setPrevLogIndex(msg.d_prevLogIndex)
+        .setPrevLogTerm(msg.d_prevLogTerm)
+        .setLeaderCommit(msg.d_leaderCommit)
+        .setEntryCount(static_cast<unsigned int>(msg.d_entries.size()));
+    aeh.reset();
+
+    // Append entry blobs (CSL record blobs — same as on disk)
+    for (bsl::vector<LogEntry>::size_type i = 0; i < msg.d_entries.size();
+         ++i) {
+        bmqu::BlobUtil::appendToBlob(&event,
+                                     *msg.d_entries[i].d_data,
+                                     bmqu::BlobPosition());
+    }
+
+    // Fill EventHeader
+    bmqu::BlobObjectProxy<bmqp::EventHeader> eh(&event);
+    (*eh) = bmqp::EventHeader(bmqp::EventType::e_RAFT_CLUSTER);
+    (*eh).setLength(event.length());
+    eh.reset();
+
+    // One event, every peer at this anchor.  Channels copy the blob's buffer
+    // references on write and never modify it, so it is shared, not rebuilt.
+    for (size_t i = 0; i < msg.destinationCount(); ++i) {
+        const int            nodeId   = msg.destination(i);
+        mqbnet::ClusterNode* destNode = peerNode(nodeId);
+        if (!destNode) {
+            BALL_LOG_WARN << "Cannot send Raft AppendEntries to unknown node "
+                          << nodeId;
+            continue;  // CONTINUE
+        }
+        destNode->write(event_sp, bmqp::EventType::e_RAFT_CLUSTER);
+    }
+}
+
+void ClusterStateRaft::sendAppendEntriesResponse(const RaftMessage& msg)
+{
+    mqbnet::ClusterNode* destNode = peerNode(msg.d_destinationNodeId);
+    if (!destNode) {
+        BALL_LOG_WARN
+            << "Cannot send Raft AppendEntries response to unknown node "
+            << msg.d_destinationNodeId;
+        return;  // RETURN
+    }
+
+    bsl::shared_ptr<bdlbb::Blob> event_sp =
+        d_clusterData_p->blobSpPool().getObject();
+    bdlbb::Blob& event = *event_sp;
+
+    event.setLength(sizeof(bmqp::EventHeader) + sizeof(bmqp::RaftHeader) +
+                    sizeof(bmqp::RaftResponseHeader));
+
+    bmqu::BlobObjectProxy<bmqp::RaftHeader> rh(
+        &event,
+        bmqu::BlobPosition(0, static_cast<int>(sizeof(bmqp::EventHeader))),
+        true,   // read
+        true);  // write
+    *rh = bmqp::RaftHeader();
+    (*rh)
+        .setMsgType(bmqp::RaftHeader::k_MSG_TYPE_APPEND_ENTRIES_RESP)
+        .setPartitionId(0)
+        .setTerm(msg.d_term);
+    rh.reset();
+
+    bmqu::BlobObjectProxy<bmqp::RaftResponseHeader> resp(
+        &event,
+        bmqu::BlobPosition(0,
+                           static_cast<int>(sizeof(bmqp::EventHeader) +
+                                            sizeof(bmqp::RaftHeader))),
+        true,   // read
+        true);  // write
+    *resp = bmqp::RaftResponseHeader();
+    (*resp)
+        .setSuccess(msg.d_success)
+        .setMatchIndex(msg.d_matchIndex)
+        .setRejectedIndex(msg.d_rejectedIndex);
+    resp.reset();
+
+    bmqu::BlobObjectProxy<bmqp::EventHeader> eh(&event);
+    (*eh) = bmqp::EventHeader(bmqp::EventType::e_RAFT_CLUSTER);
+    (*eh).setLength(event.length());
+    eh.reset();
+
+    destNode->write(event_sp, bmqp::EventType::e_RAFT_CLUSTER);
+}
+
+void ClusterStateRaft::sendSnapshotRecord(const RaftMessage& msg)
+{
+    mqbnet::ClusterNode* destNode = peerNode(msg.d_destinationNodeId);
+    if (!destNode) {
+        BALL_LOG_WARN << "Cannot send CSL snapshot to unknown node "
+                      << msg.d_destinationNodeId;
+        return;  // RETURN
+    }
+
+    bsl::shared_ptr<bdlbb::Blob> record;
+    int                          rc = d_cslLog_mp->loadSnapshotRecord(&record);
+    if (rc != 0) {
+        BALL_LOG_ERROR << "Failed to load CSL snapshot record for node "
+                       << destNode->hostName() << ", rc=" << rc;
+        return;  // RETURN
+    }
+
+    BALL_LOG_INFO << "Sending CSL snapshot to node " << destNode->hostName()
+                  << ", lastIncludedIndex=" << msg.d_lastLogIndex
+                  << ", lastIncludedTerm=" << msg.d_lastLogTerm << ", "
+                  << record->length() << " bytes";
+
+    bsl::shared_ptr<bdlbb::Blob> event_sp =
+        d_clusterData_p->blobSpPool().getObject();
+    bdlbb::Blob& event = *event_sp;
+
+    event.setLength(static_cast<int>(sizeof(bmqp::EventHeader) +
+                                     sizeof(bmqp::SnapshotChunkHeader)));
+
+    bmqu::BlobObjectProxy<bmqp::SnapshotChunkHeader> hdr(
+        &event,
+        bmqu::BlobPosition(0, static_cast<int>(sizeof(bmqp::EventHeader))),
+        true,   // read
+        true);  // write
+    (*hdr)
+        .setPartitionId(0)
+        .setFileType(bmqp::SnapshotChunkHeader::k_FILE_TYPE_CSL)
+        .setDone(true)
+        .setLastIncludedIndex(msg.d_lastLogIndex)
+        .setOffset(0)
+        .setTotalSize(record->length())
+        .setChunkLength(record->length());
+    hdr.reset();
+
+    bmqu::BlobUtil::appendToBlob(&event, *record, bmqu::BlobPosition());
+
+    bmqu::BlobObjectProxy<bmqp::EventHeader> eh(&event);
+    (*eh) = bmqp::EventHeader(bmqp::EventType::e_RAFT_SNAPSHOT);
+    (*eh).setLength(event.length());
+    eh.reset();
+
+    destNode->write(event_sp, bmqp::EventType::e_RAFT_SNAPSHOT);
+}
+
+void ClusterStateRaft::sendControlMessage(const RaftMessage& msg)
+{
+    mqbnet::ClusterNode* destNode = peerNode(msg.d_destinationNodeId);
+    if (!destNode) {
+        BALL_LOG_WARN << "Cannot send Raft control message to unknown node "
+                      << msg.d_destinationNodeId;
+        return;
+    }
+
+    bmqp_ctrlmsg::ControlMessage controlMsg;
+    bmqp_ctrlmsg::RaftMessage& raftMsg = controlMsg.choice().makeRaftMessage();
+    toCtrlMsg(&raftMsg, msg);
+
+    d_clusterData_p->messageTransmitter().sendMessage(controlMsg, destNode);
+}
+
+bool ClusterStateRaft::applyCommittedEntry(const LogEntry& entry)
+{
+    bool isAdvisory = false;
+
+    bmqp_ctrlmsg::ClusterMessage clusterMessage(d_allocator_p);
+
+    int rc = mqbc::ClusterStateLedgerUtil::loadClusterMessage(&clusterMessage,
+                                                              *entry.d_data);
+    if (rc != 0) {
+        BALL_LOG_ERROR << "Failed to decode committed CSL entry, rc=" << rc;
+        return isAdvisory;  // RETURN
+    }
+
+    if (clusterMessage.choice().isLeaderAdvisoryCommitValue()) {
+        // A legacy 'e_COMMIT' record: an entry, because 'CslRaftLog' indexes
+        // records by sequence number, but there is nothing to apply.
+        return isAdvisory;  // RETURN
+    }
+
+    if (clusterMessage.choice().selectionId() ==
+        bmqp_ctrlmsg::ClusterMessageChoice::
+            SELECTION_ID_PARTITION_PRIMARY_ADVISORY) {
+        // Don't apply to ClusterState: 'ClusterUtil::apply' ->
+        // 'applyPartitionPrimary' is a no-op under Raft ('isRaftEnabled()'
+        // early-return).  'ClusterAvailability::evaluatePartition' waits
+        // until these leaseIds are confirmed.
+        confirmLeaseIds(
+            clusterMessage.choice().partitionPrimaryAdvisory().partitions(),
+            entry.d_term);
+        isAdvisory = true;
+    }
+    else {
+        applyToState(d_clusterState_p, clusterMessage);
+
+        // A current-term 'LeaderAdvisory' is the leader's snapshot
+        // ('installLeaderSnapshot'), its first entry in the term: committing
+        // the snapshot applies every entry before the snapshot (Raft 5.4.2).
+        // Its partitions are the leaseIds the leader knew then.
+        if (clusterMessage.choice().isLeaderAdvisoryValue()) {
+            confirmLeaseIds(
+                clusterMessage.choice().leaderAdvisory().partitions(),
+                entry.d_term);
+            isAdvisory = true;
+        }
+    }
+
+    BALL_LOG_INFO << "Applied committed CSL entry at term " << entry.d_term
+                  << ": " << clusterMessage;
+
+    return isAdvisory;
+}
+
+void ClusterStateRaft::toCtrlMsg(bmqp_ctrlmsg::RaftMessage* out,
+                                 const RaftMessage&         msg) const
+{
+    BSLS_ASSERT_SAFE(out);
+
+    out->term()        = msg.d_term;
+    out->partitionId() = 0;  // CSL Raft group
+
+    switch (msg.d_type) {
+    case RaftMessageType::e_REQUEST_VOTE: {
+        bmqp_ctrlmsg::RaftRequestVote& rv = out->choice().makeRequestVote();
+        rv.lastLogIndex()                 = msg.d_lastLogIndex;
+        rv.lastLogTerm()                  = msg.d_lastLogTerm;
+        rv.preVote()                      = msg.d_preVote;
+    } break;
+    case RaftMessageType::e_REQUEST_VOTE_RESP: {
+        bmqp_ctrlmsg::RaftRequestVoteResponse& rvr =
+            out->choice().makeRequestVoteResponse();
+        rvr.voteGranted() = msg.d_success;
+        rvr.preVote()     = msg.d_preVote;
+    } break;
+    case RaftMessageType::e_TIMEOUT_NOW: {
+        out->choice().makeTimeoutNow();
+    } break;
+    case RaftMessageType::e_INSTALL_SNAPSHOT: {
+        bmqp_ctrlmsg::RaftInstallSnapshot& is =
+            out->choice().makeInstallSnapshot();
+        is.lastIncludedIndex() = msg.d_lastLogIndex;
+        is.lastIncludedTerm()  = msg.d_lastLogTerm;
+        is.offset()            = 0;
+        is.done()              = true;
+    } break;
+    case RaftMessageType::e_INSTALL_SNAPSHOT_RESP: {
+        out->choice().makeInstallSnapshotResponse();
+    } break;
+    case RaftMessageType::e_APPEND_ENTRIES:
+    case RaftMessageType::e_APPEND_ENTRIES_RESP:
+    default: {
+        // Both go through the binary path ('sendAppendEntries',
+        // 'sendAppendEntriesResponse').  Should not reach here.
+        BSLS_ASSERT_SAFE(false);
+    } break;
+    }
+}
+
+void ClusterStateRaft::fromCtrlMsg(RaftMessage*                     out,
+                                   const bmqp_ctrlmsg::RaftMessage& msg,
+                                   int sourceNodeId) const
+{
+    BSLS_ASSERT_SAFE(out);
+
+    out->d_term         = msg.term();
+    out->d_sourceNodeId = sourceNodeId;
+
+    typedef bmqp_ctrlmsg::RaftMessageChoice Choice;
+
+    switch (msg.choice().selectionId()) {
+    case Choice::SELECTION_ID_REQUEST_VOTE: {
+        const bmqp_ctrlmsg::RaftRequestVote& rv = msg.choice().requestVote();
+        out->d_type         = RaftMessageType::e_REQUEST_VOTE;
+        out->d_lastLogIndex = rv.lastLogIndex();
+        out->d_lastLogTerm  = rv.lastLogTerm();
+        out->d_preVote      = rv.preVote();
+    } break;
+    case Choice::SELECTION_ID_REQUEST_VOTE_RESPONSE: {
+        const bmqp_ctrlmsg::RaftRequestVoteResponse& rvr =
+            msg.choice().requestVoteResponse();
+        out->d_type    = RaftMessageType::e_REQUEST_VOTE_RESP;
+        out->d_success = rvr.voteGranted();
+        out->d_preVote = rvr.preVote();
+    } break;
+    case Choice::SELECTION_ID_TIMEOUT_NOW: {
+        out->d_type = RaftMessageType::e_TIMEOUT_NOW;
+    } break;
+    case Choice::SELECTION_ID_INSTALL_SNAPSHOT: {
+        const bmqp_ctrlmsg::RaftInstallSnapshot& is =
+            msg.choice().installSnapshot();
+        out->d_type         = RaftMessageType::e_INSTALL_SNAPSHOT;
+        out->d_lastLogIndex = is.lastIncludedIndex();
+        out->d_lastLogTerm  = is.lastIncludedTerm();
+    } break;
+    case Choice::SELECTION_ID_INSTALL_SNAPSHOT_RESPONSE: {
+        out->d_type = RaftMessageType::e_INSTALL_SNAPSHOT_RESP;
+    } break;
+    default: break;
+    }
+}
+
+void ClusterStateRaft::setPeerAvailabilityDispatched(int  nodeId,
+                                                     bool isAvailable)
+{
+    // executed by the cluster *DISPATCHER* thread
+    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
+
+    d_raftNode_mp->setPeerAvailability(nodeId, isAvailable);
+}
+
+void ClusterStateRaft::onNodeStateChange(mqbnet::ClusterNode* node,
+                                         bool                 isAvailable)
+{
+    // executed by the *IO* thread, holding 'ClusterImp::d_mutex': do no work
+    // here beyond handing the change to the cluster dispatcher.
+    BSLS_ASSERT_SAFE(node);
+
+    d_clusterData_p->cluster().dispatcher()->execute(
+        bdlf::BindUtil::bind(&ClusterStateRaft::setPeerAvailabilityDispatched,
+                             this,
+                             node->nodeId(),
+                             isAvailable),
+        &d_clusterData_p->cluster());
+}
+
+void ClusterStateRaft::tickCb()
+{
+    d_clusterData_p->cluster().dispatcher()->execute(
+        bdlf::BindUtil::bind(&ClusterStateRaft::tickDispatched, this),
+        &d_clusterData_p->cluster());
+}
+
+void ClusterStateRaft::tickDispatched()
+{
+    d_raftNode_mp->tick();
+    dispatchOutput();
+}
+
+void ClusterStateRaft::updateElectorInfo()
+{
+    int leaderId = d_raftNode_mp->leaderId();
+
+    BALL_LOG_INFO << "ClusterStateRaft::updateElectorInfo (node "
+                  << d_clusterData_p->membership().selfNode()->hostName()
+                  << "): raftState=" << d_raftNode_mp->state()
+                  << ", leaderId=" << leaderId
+                  << ", currentTerm=" << d_raftNode_mp->currentTerm();
+
+    if (leaderId == RaftNode::k_INVALID_NODE_ID) {
+        BALL_LOG_INFO << "ClusterStateRaft::updateElectorInfo (node "
+                      << d_clusterData_p->membership().selfNode()->hostName()
+                      << "): no leader -> DORMANT/UNDEFINED";
+        d_clusterData_p->electorInfo().setElectorInfo(
+            mqbnet::ElectorState::e_DORMANT,
+            d_raftNode_mp->currentTerm(),
+            0,
+            mqbc::ElectorInfoLeaderStatus::e_UNDEFINED);
+        d_availability_p->onCslLeader(false,
+                                      false,
+                                      d_raftNode_mp->currentTerm());
+
+        return;  // RETURN
+    }
+
+    mqbnet::ClusterNode* leaderNode = peerNode(leaderId);
+
+    if (!leaderNode) {
+        BALL_LOG_WARN << "ClusterStateRaft::updateElectorInfo (node "
+                      << d_clusterData_p->membership().selfNode()->hostName()
+                      << "): leaderId=" << leaderId
+                      << " not found in netCluster; skipping elector update";
+        return;  // RETURN
+    }
+
+    mqbnet::ElectorState::Enum electorState;
+
+    switch (d_raftNode_mp->state()) {
+    case RaftState::e_LEADER:
+        electorState = mqbnet::ElectorState::e_LEADER;
+        break;
+    case RaftState::e_CANDIDATE:
+    case RaftState::e_PRE_CANDIDATE:
+        electorState = mqbnet::ElectorState::e_CANDIDATE;
+        break;
+    case RaftState::e_FOLLOWER:
+    default: electorState = mqbnet::ElectorState::e_FOLLOWER; break;
+    }
+
+    BALL_LOG_INFO << "ClusterStateRaft::updateElectorInfo (node "
+                  << d_clusterData_p->membership().selfNode()->hostName()
+                  << "): leader=" << leaderNode->hostName()
+                  << ", electorState=" << electorState
+                  << ", term=" << d_raftNode_mp->currentTerm()
+                  << " -> setElectorInfo(PASSIVE)";
+
+    d_clusterData_p->electorInfo().setElectorInfo(
+        electorState,
+        d_raftNode_mp->currentTerm(),
+        leaderNode,
+        mqbc::ElectorInfoLeaderStatus::e_PASSIVE);
+
+    // Together with 'ElectorInfo'.  This is to avoid an event already
+    // dispatched to the cluster thread reading the CSL leader and term of the
+    // previous term from 'ClusterAvailability' (marking a partition active
+    // while 'ElectorInfo' has no active leader).
+    d_availability_p->onCslLeader(
+        true,
+        leaderId == d_clusterData_p->membership().selfNode()->nodeId(),
+        d_raftNode_mp->currentTerm());
+}
+
+// MANIPULATORS
+int ClusterStateRaft::start(bsl::ostream& errorDescription)
+{
+    // Discover or create the CSL log file path.
+    bsl::string      filePath(d_allocator_p);
+    mqbu::StorageKey logId;
+
+    int rc = mqbc::ClusterStateLedgerUtil::generateCslFilePath(
+        &filePath,
+        &logId,
+        d_partitionConfig.location(),
+        errorDescription,
+        d_allocator_p);
+    if (rc != 0) {
+        return rc;  // RETURN
+    }
+
+    mqbsi::LogConfig logConfig(d_partitionConfig.maxCSLFileSize(),
+                               logId,
+                               filePath,
+                               d_partitionConfig.preallocate(),
+                               d_partitionConfig.prefaultPages(),
+                               d_allocator_p);
+
+    bsl::shared_ptr<mqbsi::Log> cslLog =
+        bsl::allocate_shared<mqbsl::MemoryMappedOnDiskLog>(d_allocator_p,
+                                                           logConfig,
+                                                           d_allocator_p);
+
+    rc = cslLog->open(mqbsi::Log::e_CREATE_IF_MISSING);
+    if (rc != 0) {
+        errorDescription << "Failed to open CSL log at '" << filePath
+                         << "', rc=" << rc;
+        return rc;  // RETURN
+    }
+
+    if (cslLog->outstandingNumBytes() == 0) {
+        mqbc::ClusterStateFileHeader fh;
+        fh.setProtocolVersion(mqbc::ClusterStateLedgerProtocol::k_VERSION)
+            .setHeaderWords(mqbc::ClusterStateFileHeader::k_HEADER_NUM_WORDS)
+            .setFileKey(logId);
+        cslLog->write(&fh,
+                      0,
+                      static_cast<int>(sizeof(mqbc::ClusterStateFileHeader)));
+    }
+
+    d_cslLog_mp.load(
+        new (*d_allocator_p)
+            CslRaftLog(cslLog, &d_clusterData_p->blobSpPool(), d_allocator_p),
+        d_allocator_p);
+
+    rc = d_cslLog_mp->open();
+    if (rc != 0) {
+        errorDescription << "Failed to build CslRaftLog index, rc=" << rc;
+        return rc;  // RETURN
+    }
+
+    // Note: a recovered base snapshot (rolled-over/migration-seeded file) is
+    // NOT applied here.  'CslRaftLog::open' keeps it as the first committed
+    // log entry (snapshot boundary = its index - 1), so it is applied by the
+    // normal commit drain once this node re-commits its backlog -- by which
+    // point the cluster's 'ClusterState' observer is registered, so both
+    // 'ClusterState' and the queue helper's 'd_queues' are populated
+    // consistently.  Applying it here (before observer registration) would
+    // populate 'ClusterState' but not 'd_queues'.
+
+    d_raftNode_mp.load(new (*d_allocator_p) RaftNode(
+                           makeRaftConfig(*d_clusterData_p, d_allocator_p),
+                           d_cslLog_mp.get(),
+                           d_allocator_p),
+                       d_allocator_p);
+
+    // Seed the recovered term and applied state; see 'PartitionRaft::start()'
+    // for why this is needed.  'commitIndex' and 'lastAppliedCommit' both
+    // start at the snapshot index; entries above it are applied by the commit
+    // path.
+    d_raftNode_mp->initRecoveredState(d_cslLog_mp->lastTerm(),
+                                      d_cslLog_mp->snapshotIndex());
+
+    // The term and vote, which the log does not hold.
+    d_persistentStatePath = d_partitionConfig.location();
+    bdls::PathUtil::appendRaw(&d_persistentStatePath, "bmq_raft_csl.bmq_raft");
+
+    PersistentState persistentState;
+    rc = PersistentStateUtil::load(&persistentState,
+                                   errorDescription,
+                                   d_persistentStatePath);
+    if (rc != 0) {
+        errorDescription << " (failed to load CSL Raft term and vote, rc="
+                         << rc << ")";
+        return rc;  // RETURN
+    }
+    d_raftNode_mp->restorePersistentState(persistentState);
+
+    bsls::TimeInterval tickInterval;
+    tickInterval.setTotalMilliseconds(k_TICK_INTERVAL_MS);
+
+    d_clusterData_p->scheduler().scheduleRecurringEvent(
+        &d_tickHandle,
+        tickInterval,
+        bdlf::BindUtil::bind(&ClusterStateRaft::tickCb, this));
+
+    // Register before seeding: 'onNodeStateChange' reports transitions only,
+    // and it dispatches to this same thread, so a change raised during the
+    // seed below queues behind it and applies after.
+    mqbnet::Cluster* netCluster = d_clusterData_p->membership().netCluster();
+    netCluster->registerObserver(this);
+
+    const mqbnet::Cluster::NodesList& nodes = netCluster->nodes();
+    for (mqbnet::Cluster::NodesList::const_iterator it = nodes.begin();
+         it != nodes.end();
+         ++it) {
+        d_raftNode_mp->setPeerAvailability((*it)->nodeId(),
+                                           (*it)->isAvailable());
+    }
+
+    d_isStarted = true;
+
+    BALL_LOG_INFO << "ClusterStateRaft started for node "
+                  << d_raftNode_mp->selfId();
+
+    return 0;
+}
+
+void ClusterStateRaft::stop()
+{
+    if (!d_isStarted) {
+        return;
+    }
+
+    d_clusterData_p->membership().netCluster()->unregisterObserver(this);
+
+    d_clusterData_p->scheduler().cancelEventAndWait(&d_tickHandle);
+    if (d_cslLog_mp) {
+        d_cslLog_mp->close();
+    }
+    d_isStarted = false;
+
+    BALL_LOG_INFO << "ClusterStateRaft stopped for node "
+                  << d_raftNode_mp->selfId();
+}
+
+void ClusterStateRaft::onRaftControlMessage(
+    const bmqp_ctrlmsg::RaftMessage& message,
+    mqbnet::ClusterNode*             source)
+{
+    BSLS_ASSERT_SAFE(source);
+
+    RaftMessage internalMsg(d_allocator_p);
+    fromCtrlMsg(&internalMsg, message, source->nodeId());
+
+    d_raftNode_mp->step(internalMsg);
+    dispatchOutput();
+}
+
+void ClusterStateRaft::onRaftEvent(const bdlbb::Blob&   event,
+                                   mqbnet::ClusterNode* source)
+{
+    BSLS_ASSERT_SAFE(source);
+
+    // Parse RaftHeader after EventHeader
+    bmqu::BlobPosition position;
+
+    if (0 != bmqu::BlobUtil::findOffsetSafe(&position,
+                                            event,
+                                            sizeof(bmqp::EventHeader))) {
+        BALL_LOG_ERROR
+            << "Failed to locate RaftHeader in e_RAFT_CLUSTER event";
+        return;  // RETURN
+    }
+
+    bmqu::BlobObjectProxy<bmqp::RaftHeader> rh(&event,
+                                               position,
+                                               true,    // read
+                                               false);  // write
+    if (!rh.isSet()) {
+        BALL_LOG_ERROR << "Failed to read RaftHeader from event";
+        return;  // RETURN
+    }
+
+    const unsigned int        msgType = rh->msgType();
+    const bsls::Types::Uint64 term    = rh->term();
+    rh.reset();
+
+    switch (msgType) {
+    case bmqp::RaftHeader::k_MSG_TYPE_APPEND_ENTRIES: {
+        appendEntries(event, source, term);
+    } break;
+    case bmqp::RaftHeader::k_MSG_TYPE_APPEND_ENTRIES_RESP: {
+        onAppendEntriesResponse(event, source, term);
+    } break;
+    default: {
+        BALL_LOG_ERROR << "Ignoring e_RAFT_CLUSTER event with unknown "
+                       << "message type " << msgType;
+    } break;
+    }
+}
+
+void ClusterStateRaft::onAppendEntriesResponse(const bdlbb::Blob&   event,
+                                               mqbnet::ClusterNode* source,
+                                               bsls::Types::Uint64  term)
+{
+    BSLS_ASSERT_SAFE(source);
+
+    bmqu::BlobPosition position;
+
+    if (0 != bmqu::BlobUtil::findOffsetSafe(&position,
+                                            event,
+                                            sizeof(bmqp::EventHeader) +
+                                                sizeof(bmqp::RaftHeader))) {
+        BALL_LOG_ERROR << "Failed to locate RaftResponseHeader in "
+                       << "e_RAFT_CLUSTER event";
+        return;  // RETURN
+    }
+
+    bmqu::BlobObjectProxy<bmqp::RaftResponseHeader> resp(&event,
+                                                         position,
+                                                         true,    // read
+                                                         false);  // write
+    if (!resp.isSet()) {
+        BALL_LOG_ERROR << "Failed to read RaftResponseHeader from event";
+        return;  // RETURN
+    }
+
+    RaftMessage internalMsg(d_allocator_p);
+    internalMsg.d_type          = RaftMessageType::e_APPEND_ENTRIES_RESP;
+    internalMsg.d_term          = term;
+    internalMsg.d_sourceNodeId  = source->nodeId();
+    internalMsg.d_success       = resp->success();
+    internalMsg.d_matchIndex    = resp->matchIndex();
+    internalMsg.d_rejectedIndex = resp->rejectedIndex();
+    resp.reset();
+
+    d_raftNode_mp->step(internalMsg);
+    dispatchOutput();
+}
+
+void ClusterStateRaft::appendEntries(const bdlbb::Blob&   event,
+                                     mqbnet::ClusterNode* source,
+                                     bsls::Types::Uint64  term)
+{
+    BSLS_ASSERT_SAFE(source);
+
+    bmqu::BlobPosition aehPosition;
+
+    if (0 != bmqu::BlobUtil::findOffsetSafe(&aehPosition,
+                                            event,
+                                            sizeof(bmqp::EventHeader) +
+                                                sizeof(bmqp::RaftHeader))) {
+        BALL_LOG_ERROR << "Failed to locate RaftAppendEntriesHeader in "
+                       << "e_RAFT_CLUSTER event";
+        return;  // RETURN
+    }
+
+    bmqu::BlobObjectProxy<bmqp::RaftAppendEntriesHeader> aeh(&event,
+                                                             aehPosition,
+                                                             true,    // read
+                                                             false);  // write
+    if (!aeh.isSet()) {
+        BALL_LOG_ERROR << "Failed to read RaftAppendEntriesHeader from event";
+        return;  // RETURN
+    }
+
+    RaftMessage internalMsg(d_allocator_p);
+    internalMsg.d_type         = RaftMessageType::e_APPEND_ENTRIES;
+    internalMsg.d_term         = term;
+    internalMsg.d_sourceNodeId = source->nodeId();
+    internalMsg.d_prevLogIndex = aeh->prevLogIndex();
+    internalMsg.d_prevLogTerm  = aeh->prevLogTerm();
+    internalMsg.d_leaderCommit = aeh->leaderCommit();
+
+    // Parse entry blobs after RaftAppendEntriesHeader.  'skip' hops from one
+    // record to the next, starting past the headers: resolving each record by
+    // its offset from the start of 'event' would rescan the buffer list every
+    // time, which is quadratic in the entries one event carries.
+    int skip = sizeof(bmqp::EventHeader) + sizeof(bmqp::RaftHeader) +
+               sizeof(bmqp::RaftAppendEntriesHeader);
+    int          remaining     = event.length() - skip;
+    unsigned int entryCount    = aeh->entryCount();
+    int          incomingBytes = 0;
+
+    bmqu::BlobPosition recPos;  // start of 'event'
+
+    for (unsigned int i = 0; i < entryCount && remaining > 0; ++i) {
+        bmqu::BlobPosition nextPos;
+        if (0 !=
+            bmqu::BlobUtil::findOffsetSafe(&nextPos, event, recPos, skip)) {
+            break;
+        }
+        recPos = nextPos;
+
+        // Each entry is a CSL record blob; read its header to get size
+        bmqu::BlobObjectProxy<mqbc::ClusterStateRecordHeader> recHeader(
+            &event,
+            recPos,
+            true,    // read
+            false);  // write
+        if (!recHeader.isSet()) {
+            break;
+        }
+
+        int recSize = static_cast<int>(
+            mqbc::ClusterStateLedgerUtil::recordSize(*recHeader));
+        if (recSize <= 0 || recSize > remaining) {
+            break;
+        }
+
+        if (!d_cslLog_mp->canAppend(incomingBytes + recSize)) {
+            // The next entry would overflow the current CSL file.  Flush the
+            // entries accumulated so far (they fit) via 'step()', then roll
+            // over so the fresh file has room for the rest.  After flushing,
+            // advance the running prev-log marker to the last flushed entry:
+            // 'handleAppendEntries' positions entries at 'prevLogIndex + 1 +
+            // <position in this batch>', so the remaining entries must form a
+            // correctly-anchored follow-on AppendEntries (new prevLogIndex =
+            // last flushed index, new prevLogTerm = its term).
+            if (!internalMsg.d_entries.empty()) {
+                d_raftNode_mp->step(internalMsg);
+                dispatchOutput();
+
+                internalMsg.d_prevLogIndex += internalMsg.d_entries.size();
+                internalMsg.d_prevLogTerm =
+                    internalMsg.d_entries.back().d_term;
+                internalMsg.d_entries.clear();
+                incomingBytes = 0;
+            }
+
+            // A follower must roll over its own CSL before applying replicated
+            // entries that would overflow the log file.
+            int rrc = rolloverCsl();
+            if (rrc != 0) {
+                BALL_LOG_ERROR
+                    << "Follower CSL rollover failed before applying "
+                    << "replicated entries, rc=" << rrc;
+                return;  // RETURN
+            }
+        }
+
+        // Extract the CSL record blob
+        bsl::shared_ptr<bdlbb::Blob> entryBlob =
+            d_clusterData_p->blobSpPool().getObject();
+        bmqu::BlobUtil::appendToBlob(entryBlob.get(), event, recPos, recSize);
+
+        // Index by position within the CURRENT sub-batch: after a mid-batch
+        // flush 'd_prevLogIndex' is advanced and 'd_entries' cleared, so the
+        // outer loop counter 'i' no longer aligns with the log index.  This
+        // matches how 'handleAppendEntries' places entries.
+        internalMsg.d_entries.push_back(LogEntry(
+            recHeader->electorTerm(),
+            internalMsg.d_prevLogIndex + 1 + internalMsg.d_entries.size(),
+            entryBlob));
+
+        skip = recSize;
+        remaining -= recSize;
+        incomingBytes += recSize;
+    }
+
+    d_raftNode_mp->step(internalMsg);
+    dispatchOutput();
+}
+
+int ClusterStateRaft::propose(const bmqp_ctrlmsg::ClusterMessage& advisory)
+{
+    bsl::shared_ptr<bdlbb::Blob> blob =
+        d_clusterData_p->blobSpPool().getObject();
+
+    bmqp_ctrlmsg::LeaderMessageSequence lms;
+    lms.electorTerm()    = d_raftNode_mp->currentTerm();
+    lms.sequenceNumber() = d_cslLog_mp->lastIndex() + 1;
+
+    int rc = mqbc::ClusterStateLedgerUtil::appendRecord(
+        blob.get(),
+        advisory,
+        lms,
+        0,
+        mqbc::ClusterStateRecordType::e_UPDATE,
+        d_allocator_p);
+    if (rc != 0) {
+        return rc;
+    }
+
+    // If this record would overflow the current CSL file, roll over first --
+    // snapshot the committed state into a fresh file and drop the compacted
+    // prefix -- so the append below has room.  Rollover preserves 'lastIndex'
+    // (only the committed prefix is compacted), so the record's
+    // already-stamped LSN ('lastIndex + 1') remains valid.
+    if (!d_cslLog_mp->canAppend(blob->length())) {
+        rc = rolloverCsl();
+        if (rc != 0) {
+            return rc;  // RETURN
+        }
+    }
+
+    rc = d_raftNode_mp->propose(blob);
+    if (rc != 0) {
+        return rc;
+    }
+
+    dispatchOutput();
+    return 0;
+}
+
+void ClusterStateRaft::setElectionMode(ElectionMode::Enum mode)
+{
+    // executed by the cluster *DISPATCHER* thread
+    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
+    BSLS_ASSERT_SAFE(d_raftNode_mp);
+
+    d_raftNode_mp->setElectionMode(mode);
+    dispatchOutput();
+}
+
+int ClusterStateRaft::transferLeadership(int targetNodeId)
+{
+    // executed by the cluster *DISPATCHER* thread
+    BSLS_ASSERT_SAFE(d_clusterData_p->cluster().inDispatcherThread());
+    BSLS_ASSERT_SAFE(d_raftNode_mp);
+
+    if (targetNodeId == d_raftNode_mp->selfId()) {
+        // Already in the requested state.
+        return isLeader() ? 0 : k_TRANSFER_NOT_LEADER;  // RETURN
+    }
+
+    // -1 not the leader, -2 target is not a peer; both propagate as-is.
+    const int rc = d_raftNode_mp->transferLeadership(targetNodeId);
+    if (rc != 0) {
+        return rc;  // RETURN
+    }
+
+    mqbnet::ClusterNode* targetNode = peerNode(targetNodeId);
+
+    BALL_LOG_INFO << d_clusterData_p->identity().description()
+                  << ": initiating CSL leadership transfer to node "
+                  << (targetNode ? targetNode->hostName().c_str() : "unknown");
+
+    dispatchOutput();
+    return 0;
+}
+
+int ClusterStateRaft::createNewCslLog(bsl::shared_ptr<mqbsi::Log>* logOut,
+                                      mqbu::StorageKey*            logIdOut,
+                                      bsls::Types::Uint64          minSize)
+{
+    BSLS_ASSERT_SAFE(logOut);
+    BSLS_ASSERT_SAFE(logIdOut);
+
+    // Build a fresh CSL file path matching 'k_CSL_FILE_PATTERN' so both the
+    // Raft and legacy readers discover it:
+    //   <location>/bmq_csl_YYYYMMDD_HHMMSS_<LOGID>.bmq_csl
+    // 'generateStorageKey' is time-salted, so the id (and hence the filename)
+    // differs from the current file even within the same second.
+    bsl::string dir(d_partitionConfig.location(), d_allocator_p);
+    if (!dir.empty() && dir[dir.length() - 1] != '/') {
+        dir.append(1, '/');
+    }
+
+    bsl::string filePath(dir, d_allocator_p);
+    filePath.append("bmq_csl_");
+    mqbc::ClusterStateLedgerUtil::appendFormattedDatetime(&filePath);
+    filePath.append("_");
+    mqbs::StorageUtil::generateStorageKey(logIdOut, filePath);
+    char logIdStr[mqbu::StorageKey::e_KEY_LENGTH_HEX + 1];
+    logIdOut->loadHex(logIdStr);
+    logIdStr[mqbu::StorageKey::e_KEY_LENGTH_HEX] = '\0';
+    filePath.append(logIdStr);
+    filePath.append(".bmq_csl");
+
+    const bsls::Types::Uint64 maxSize =
+        bsl::max(d_partitionConfig.maxCSLFileSize(), minSize);
+    if (maxSize > d_partitionConfig.maxCSLFileSize()) {
+        BALL_LOG_WARN << "Creating CSL file '" << filePath << "' at "
+                      << maxSize << " bytes, above the configured maximum of "
+                      << d_partitionConfig.maxCSLFileSize()
+                      << ": the uncommitted tail it has to carry does not fit "
+                      << "in the configured size.";
+    }
+
+    mqbsi::LogConfig logConfig(maxSize,
+                               *logIdOut,
+                               filePath,
+                               d_partitionConfig.preallocate(),
+                               d_partitionConfig.prefaultPages(),
+                               d_allocator_p);
+
+    bsl::shared_ptr<mqbsi::Log> log =
+        bsl::allocate_shared<mqbsl::MemoryMappedOnDiskLog>(d_allocator_p,
+                                                           logConfig,
+                                                           d_allocator_p);
+
+    int rc = log->open(mqbsi::Log::e_CREATE_IF_MISSING);
+    if (rc != 0) {
+        return rc;  // RETURN
+    }
+
+    *logOut = log;
+    return 0;
+}
+
+int ClusterStateRaft::rolloverCsl()
+{
+    // Compact up to the last committed (and applied) index: only committed
+    // state is folded into the snapshot; entries above it are the uncommitted
+    // tail and are preserved by 'CslRaftLog::rollover'.
+    const bsls::Types::Uint64 compactIndex = d_raftNode_mp->commitIndex();
+    const bsls::Types::Uint64 compactTerm  = d_cslLog_mp->term(compactIndex);
+
+    if (compactIndex == 0) {
+        // Nothing committed, so there is nothing to compact and a rollover
+        // cannot free anything.  The record would also be the entry at index
+        // 0, which is not an index a log entry can occupy.
+        BALL_LOG_ERROR << "Cannot roll over the CSL: nothing is committed.";
+        return -1;  // RETURN
+    }
+
+    // Build the base snapshot: the full committed cluster state serialized as
+    // a 'LeaderAdvisory'.  This mirrors legacy
+    // 'IncoreClusterStateLedger::onLogRolloverCb', which each node writes
+    // locally on its own rollover (never broadcast).
+    bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo> partitions(d_allocator_p);
+    loadSnapshotPartitions(&partitions);
+
+    bsl::shared_ptr<bdlbb::Blob> snapshotRecord =
+        d_clusterData_p->blobSpPool().getObject();
+    int rc = buildSnapshotRecord(snapshotRecord.get(),
+                                 *d_clusterState_p,
+                                 partitions,
+                                 compactIndex,
+                                 compactTerm);
+    if (rc != 0) {
+        BALL_LOG_ERROR << "Failed to build CSL rollover snapshot, rc=" << rc;
+        return rc;  // RETURN
+    }
+
+    // The new file has to hold its own header, the base snapshot, and every
+    // entry above 'compactIndex' -- only committed entries are compacted
+    // away, so the rest are copied forward.
+    const bsls::Types::Uint64 required = sizeof(mqbc::ClusterStateFileHeader) +
+                                         snapshotRecord->length() +
+                                         d_cslLog_mp->bytesAbove(compactIndex);
+
+    // Create the new (empty) CSL file.
+    bsl::shared_ptr<mqbsi::Log> newLog;
+    mqbu::StorageKey            newLogId;
+    rc = createNewCslLog(&newLog, &newLogId, required);
+    if (rc != 0) {
+        BALL_LOG_ERROR << "Failed to create new CSL log for rollover, rc="
+                       << rc;
+        return rc;  // RETURN
+    }
+
+    // Roll over: 'newLog' gets [file header | base snapshot | uncommitted
+    // tail], we switch to it, and the old log is handed back for cleanup.
+    bsl::shared_ptr<mqbsi::Log> oldLog;
+    rc = d_cslLog_mp->rollover(&oldLog,
+                               newLog,
+                               newLogId,
+                               snapshotRecord,
+                               compactIndex,
+                               compactTerm);
+    if (rc != 0) {
+        // The CSL keeps its old file, so it is still readable -- but it is
+        // also still full, and nothing else shrinks it: the append that
+        // needed this rollover keeps failing, so nothing commits, so the
+        // uncommitted tail never gets compacted.  Alarm rather than log.
+        BMQTSK_ALARMLOG_ALARM("CLUSTER_STATE")
+            << "CSL rollover failed, rc=" << rc << ", compacting at index "
+            << compactIndex << " with " << required
+            << " bytes required.  The CSL cannot accept new records."
+            << BMQTSK_ALARMLOG_END;
+
+        const bsl::string newPath(newLog->logConfig().location(),
+                                  d_allocator_p);
+        newLog->close();
+        bdls::FilesystemUtil::remove(newPath);
+        return rc;  // RETURN
+    }
+
+    const bsl::string oldPath(oldLog->logConfig().location(), d_allocator_p);
+
+    BALL_LOG_INFO << "Rolling over from log with logId; old CSL file '"
+                  << oldPath << "' -> new CSL file '"
+                  << newLog->logConfig().location() << "', compacted at index "
+                  << compactIndex << " (term " << compactTerm << ")";
+
+    // Close and remove the old file so only the new CSL file remains.
+    oldLog->close();
+    bdls::FilesystemUtil::remove(oldPath);
+
+    return 0;
+}
+
+int ClusterStateRaft::installLeaderSnapshot()
+{
+    const bsls::Types::Uint64 snapshotIndex = d_cslLog_mp->snapshotIndex();
+    const bsls::Types::Uint64 lastIndex     = d_cslLog_mp->lastIndex();
+
+    // Every entry counts, committed or not: the snapshot replaces the log.
+    // The first entry is a base 'e_SNAPSHOT' holding the full state, or the
+    // log starts at index 1.
+    bsl::vector<LogEntry> entries(d_allocator_p);
+    d_cslLog_mp->entries(snapshotIndex + 1, lastIndex + 1, &entries, 0, 0);
+    if (entries.size() != lastIndex - snapshotIndex) {
+        BALL_LOG_ERROR << "Failed to read CSL entries " << snapshotIndex + 1
+                       << " to " << lastIndex << " for the leader snapshot";
+        return -1;  // RETURN
+    }
+
+    mqbc::ClusterState state(&d_clusterData_p->cluster(),
+                             d_partitionConfig.numPartitions(),
+                             true,  // isTemporary
+                             d_allocator_p);
+
+    // The snapshot carries the highest leaseId of each partition in the log,
+    // committed or not.  This is to avoid publishing a leaseId lower than a
+    // leaseId the CSL has confirmed, when self has not applied that
+    // confirmation (accepting a 'QueueUnassignmentRequest' from an old
+    // primary).
+    bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo> partitions(d_allocator_p);
+    loadSnapshotPartitions(&partitions);
+
+    for (bsl::vector<LogEntry>::const_iterator it = entries.begin();
+         it != entries.end();
+         ++it) {
+        bmqp_ctrlmsg::ClusterMessage message(d_allocator_p);
+        if (0 !=
+            mqbc::ClusterStateLedgerUtil::loadClusterMessage(&message,
+                                                             *it->d_data)) {
+            BALL_LOG_ERROR << "Failed to decode CSL entry " << it->d_index
+                           << " for the leader snapshot";
+            return -2;  // RETURN
+        }
+
+        if (message.choice().isPartitionPrimaryAdvisoryValue()) {
+            raiseLeaseIds(
+                &partitions,
+                message.choice().partitionPrimaryAdvisory().partitions());
+            continue;  // CONTINUE
+        }
+        if (message.choice().isLeaderAdvisoryValue()) {
+            raiseLeaseIds(&partitions,
+                          message.choice().leaderAdvisory().partitions());
+        }
+
+        // Does not change the queues: see 'applyCommittedEntry'.
+        if (message.choice().isLeaderAdvisoryCommitValue()) {
+            continue;  // CONTINUE
+        }
+
+        applyToState(&state, message);
+    }
+
+    const bsls::Types::Uint64 index = lastIndex + 1;
+    const bsls::Types::Uint64 term  = d_raftNode_mp->currentTerm();
+
+    bsl::shared_ptr<bdlbb::Blob> record =
+        d_clusterData_p->blobSpPool().getObject();
+    int rc = buildSnapshotRecord(record.get(), state, partitions, index, term);
+    if (rc != 0) {
+        BALL_LOG_ERROR << "Failed to build the leader snapshot, rc=" << rc;
+        return rc;  // RETURN
+    }
+
+    bsl::shared_ptr<mqbsi::Log> newLog;
+    mqbu::StorageKey            newLogId;
+    rc = createNewCslLog(&newLog,
+                         &newLogId,
+                         sizeof(mqbc::ClusterStateFileHeader) +
+                             record->length());
+    if (rc != 0) {
+        BALL_LOG_ERROR << "Failed to create new CSL log for the leader "
+                       << "snapshot, rc=" << rc;
+        return rc;  // RETURN
+    }
+
+    bsl::shared_ptr<mqbsi::Log> oldLog;
+    rc = d_cslLog_mp
+             ->installSnapshot(&oldLog, newLog, newLogId, record, index, term);
+    if (rc != 0) {
+        BALL_LOG_ERROR << "Failed to install the leader snapshot, rc=" << rc;
+        const bsl::string newPath(newLog->logConfig().location(),
+                                  d_allocator_p);
+        newLog->close();
+        bdls::FilesystemUtil::remove(newPath);
+        return rc;  // RETURN
+    }
+
+    const bsl::string oldPath(oldLog->logConfig().location(), d_allocator_p);
+    oldLog->close();
+    bdls::FilesystemUtil::remove(oldPath);
+
+    BALL_LOG_INFO << "CSL leader replaced its log, entries "
+                  << snapshotIndex + 1 << " to " << lastIndex
+                  << ", with a snapshot at index " << index << " (term "
+                  << term << ")";
+
+    return 0;
+}
+
+int ClusterStateRaft::buildSnapshotRecord(
+    bdlbb::Blob*                                           record,
+    const mqbc::ClusterState&                              state,
+    const bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>& partitions,
+    bsls::Types::Uint64                                    index,
+    bsls::Types::Uint64                                    term)
+{
+    BSLS_ASSERT_SAFE(record);
+
+    bmqp_ctrlmsg::ClusterMessage  clusterMessage(d_allocator_p);
+    bmqp_ctrlmsg::LeaderAdvisory& advisory =
+        clusterMessage.choice().makeLeaderAdvisory();
+    advisory.sequenceNumber().electorTerm()    = term;
+    advisory.sequenceNumber().sequenceNumber() = index;
+    advisory.partitions()                      = partitions;
+    mqbc::ClusterUtil::loadQueuesInfo(&advisory.queues(), state);
+
+    return mqbc::ClusterStateLedgerUtil::appendRecord(
+        record,
+        clusterMessage,
+        advisory.sequenceNumber(),
+        0,  // timestamp
+        mqbc::ClusterStateRecordType::e_SNAPSHOT,
+        d_allocator_p);
+}
+
+void ClusterStateRaft::loadSnapshotPartitions(
+    bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>* partitions) const
+{
+    BSLS_ASSERT_SAFE(partitions);
+
+    partitions->clear();
+    mqbc::ClusterUtil::loadPartitionsInfo(partitions, *d_clusterState_p);
+    d_availability_p->raiseToConfirmed(partitions);
+}
+
+void ClusterStateRaft::confirmLeaseIds(
+    const bsl::vector<bmqp_ctrlmsg::PartitionPrimaryInfo>& partitions,
+    bsls::Types::Uint64                                    entryTerm)
+{
+    // Under Raft the data-partition Raft, not the CSL, owns partition
+    // primary/leaseId.  The orchestrator declares a partition ready only once
+    // two leaseIds agree: the one a CSL advisory committed, and the one
+    // observed locally from data-partition Raft leadership ('primaryLeaseId').
+    // They come over two Raft groups, arriving in either order, so the
+    // committed one is kept apart ('ClusterAvailability').
+    d_availability_p->onLeaseIdsConfirmed(partitions,
+                                          entryTerm,
+                                          d_raftNode_mp->currentTerm());
+}
+
+void ClusterStateRaft::applyToState(
+    mqbc::ClusterState*                 state,
+    const bmqp_ctrlmsg::ClusterMessage& message)
+{
+    BSLS_ASSERT_SAFE(state);
+
+    if (message.choice().isLeaderAdvisoryValue()) {
+        // Remove first, before the apply, while the queue keys it would
+        // overwrite are still here.  Clearing the whole state instead would
+        // notify observers that every queue is going away, dropping their
+        // storage and tearing down live queues that the apply puts straight
+        // back.
+        mqbc::ClusterUtil::unassignQueuesNotIn(
+            state,
+            message.choice().leaderAdvisory().queues(),
+            d_allocator_p);
+    }
+
+    mqbc::ClusterUtil::apply(state, message, *d_clusterData_p);
+}
+
+void ClusterStateRaft::applySnapshotChunk(const bdlbb::Blob&   event,
+                                          mqbnet::ClusterNode* source)
+{
+    // executed by the cluster *DISPATCHER* thread
+    BSLS_ASSERT_SAFE(source);
+
+    const int recOffset = static_cast<int>(sizeof(bmqp::EventHeader) +
+                                           sizeof(bmqp::SnapshotChunkHeader));
+
+    bmqu::BlobPosition hdrPos;
+    if (0 != bmqu::BlobUtil::findOffsetSafe(&hdrPos,
+                                            event,
+                                            sizeof(bmqp::EventHeader))) {
+        BALL_LOG_ERROR << "Failed to locate SnapshotChunkHeader in "
+                       << "e_RAFT_SNAPSHOT event";
+        return;  // RETURN
+    }
+
+    bmqu::BlobObjectProxy<bmqp::SnapshotChunkHeader> hdr(&event,
+                                                         hdrPos,
+                                                         true,    // read
+                                                         false);  // write
+    if (!hdr.isSet()) {
+        BALL_LOG_ERROR << "Failed to read SnapshotChunkHeader from "
+                       << source->nodeDescription();
+        return;  // RETURN
+    }
+
+    const bsls::Types::Uint64 advertisedIndex = hdr->lastIncludedIndex();
+    hdr.reset();
+
+    // The record carries its own term and index in the legacy CSL record
+    // header, so the chunk is self-describing: it does not depend on the
+    // metadata control message having arrived first.
+    bmqu::BlobPosition recPos;
+    if (0 != bmqu::BlobUtil::findOffsetSafe(&recPos, event, recOffset)) {
+        BALL_LOG_ERROR << "Failed to locate CSL snapshot record in "
+                       << "e_RAFT_SNAPSHOT event";
+        return;  // RETURN
+    }
+
+    bmqu::BlobObjectProxy<mqbc::ClusterStateRecordHeader> recHeader(
+        &event,
+        recPos,
+        true,    // read
+        false);  // write
+    if (!recHeader.isSet() ||
+        recHeader->recordType() != mqbc::ClusterStateRecordType::e_SNAPSHOT) {
+        BALL_LOG_ERROR << "Malformed CSL snapshot record from "
+                       << source->nodeDescription();
+        return;  // RETURN
+    }
+
+    const bsls::Types::Uint64 lastIncludedIndex = recHeader->sequenceNumber();
+    const bsls::Types::Uint64 lastIncludedTerm  = recHeader->electorTerm();
+    const int recSize = mqbc::ClusterStateLedgerUtil::recordSize(*recHeader);
+    recHeader.reset();
+
+    if (recSize <= 0 || recOffset + recSize > event.length()) {
+        BALL_LOG_ERROR << "Truncated CSL snapshot record from "
+                       << source->nodeDescription();
+        return;  // RETURN
+    }
+
+    // A base snapshot is the entry at its own sequence number, so index 0 is
+    // not one.  'open()' skips such a record for the same reason.
+    if (lastIncludedIndex == 0) {
+        BALL_LOG_ERROR << "Refusing CSL snapshot from "
+                       << source->nodeDescription()
+                       << ": record has sequence number 0";
+        return;  // RETURN
+    }
+
+    // The sender advertises its own 'snapshotIndex()', which is one below the
+    // record it ships (see 'CslRaftLog::rollover' and '::installSnapshot').
+    // Installing a record the sender frames differently is what leaves the
+    // two disagreeing about 'prevLogIndex' afterwards, so refuse it: no
+    // install and no response, which surfaces as the leader retrying.
+    if (advertisedIndex + 1 != lastIncludedIndex) {
+        BALL_LOG_ERROR << "Refusing CSL snapshot from "
+                       << source->nodeDescription() << ": record is the entry "
+                       << "at index " << lastIncludedIndex
+                       << ", but the sender advertised snapshotIndex "
+                       << advertisedIndex << " (expected "
+                       << (lastIncludedIndex - 1) << ")";
+        return;  // RETURN
+    }
+
+    if (lastIncludedIndex <= d_cslLog_mp->lastIndex() &&
+        d_cslLog_mp->term(lastIncludedIndex) == lastIncludedTerm) {
+        // Already installed: this log holds the record's index at the
+        // record's term.  Answer anyway -- the leader resends on every
+        // timeout until it hears back.  A record at an index this log does
+        // not hold at that term replaces the log, even below
+        // 'snapshotIndex()' ('RaftNode::forceSnapshot').
+        BALL_LOG_INFO << "Ignoring CSL snapshot at index " << lastIncludedIndex
+                      << " from " << source->nodeDescription()
+                      << ": already installed";
+        sendInstallSnapshotResponse(source, lastIncludedIndex);
+        return;  // RETURN
+    }
+
+    bmqp_ctrlmsg::ClusterMessage clusterMessage(d_allocator_p);
+    int rc = mqbc::ClusterStateLedgerUtil::loadClusterMessage(&clusterMessage,
+                                                              event,
+                                                              recOffset);
+    if (rc != 0 || !clusterMessage.choice().isLeaderAdvisoryValue()) {
+        BALL_LOG_ERROR << "Failed to decode CSL snapshot from "
+                       << source->nodeDescription() << ", rc=" << rc;
+        return;  // RETURN
+    }
+
+    BALL_LOG_INFO << "Installing CSL snapshot from "
+                  << source->nodeDescription() << " at index "
+                  << lastIncludedIndex << " (term " << lastIncludedTerm
+                  << "): " << clusterMessage;
+
+    // Copy the record out of the event: it seeds the new log file.
+    bsl::shared_ptr<bdlbb::Blob> record =
+        d_clusterData_p->blobSpPool().getObject();
+    if (0 !=
+        bmqu::BlobUtil::appendToBlob(record.get(), event, recPos, recSize)) {
+        BALL_LOG_ERROR << "Failed to extract CSL snapshot record from "
+                       << source->nodeDescription();
+        return;  // RETURN
+    }
+
+    bsl::shared_ptr<mqbsi::Log> newLog;
+    mqbu::StorageKey            newLogId;
+    rc = createNewCslLog(&newLog, &newLogId);
+    if (rc != 0) {
+        BALL_LOG_ERROR << "Failed to create new CSL log for snapshot, rc="
+                       << rc;
+        return;  // RETURN
+    }
+
+    bsl::shared_ptr<mqbsi::Log> oldLog;
+    rc = d_cslLog_mp->installSnapshot(&oldLog,
+                                      newLog,
+                                      newLogId,
+                                      record,
+                                      lastIncludedIndex,
+                                      lastIncludedTerm);
+    if (rc != 0) {
+        BALL_LOG_ERROR << "Failed to install CSL snapshot, rc=" << rc;
+        newLog->close();
+        return;  // RETURN
+    }
+
+    const bsl::string oldPath(oldLog->logConfig().location(), d_allocator_p);
+    oldLog->close();
+    bdls::FilesystemUtil::remove(oldPath);
+
+    // The record is the entry at 'lastIncludedIndex', not yet committed: the
+    // commit drain applies it once the leader commits it, replacing the
+    // cluster state ('applyToState').  Set, not raised: a snapshot
+    // 'forceSnapshot' sent can be below this node's old commit index.
+    d_raftNode_mp->setCommitIndex(lastIncludedIndex - 1);
+
+    sendInstallSnapshotResponse(source, lastIncludedIndex);
+
+    BALL_LOG_INFO << "CSL snapshot installed at index " << lastIncludedIndex;
+}
+
+void ClusterStateRaft::sendInstallSnapshotResponse(
+    mqbnet::ClusterNode* source,
+    bsls::Types::Uint64  lastIncludedIndex)
+{
+    BSLS_ASSERT_SAFE(source);
+
+    RaftMessage resp(d_allocator_p);
+    resp.d_type         = RaftMessageType::e_INSTALL_SNAPSHOT_RESP;
+    resp.d_term         = d_raftNode_mp->currentTerm();
+    resp.d_sourceNodeId = d_clusterData_p->membership().selfNode()->nodeId();
+    resp.d_destinationNodeId = source->nodeId();
+    resp.d_lastLogIndex      = lastIncludedIndex;
+
+    if (!savePersistentState(false)) {
+        return;  // RETURN
+    }
+    sendControlMessage(resp);
+}
+
+bool ClusterStateRaft::assignQueue(const bmqt::Uri&      uri,
+                                   bmqp_ctrlmsg::Status* status)
+{
+    bmqp_ctrlmsg::QueueAssignmentAdvisory queueAdvisory(d_allocator_p);
+
+    bool result = mqbc::ClusterUtil::startQueueAssignment(
+        &queueAdvisory,
+        d_clusterState_p,
+        d_clusterData_p,
+        &d_clusterData_p->cluster(),
+        uri,
+        status,
+        d_allocator_p);
+
+    // Propose only if 'startQueueAssignment' actually produced an advisory.
+    // When the queue is already ASSIGNING or ASSIGNED (e.g. a concurrent
+    // request for the same queue is already in flight or committed), it
+    // returns success without populating 'queueAdvisory'.  Proposing that
+    // empty advisory would burn a Raft entry that assigns nothing.  The
+    // already-pending advisory will still commit and resolve all pending
+    // contexts for the queue, so replying success here is correct.
+    if (status->category() == bmqp_ctrlmsg::StatusCategory::E_SUCCESS &&
+        !queueAdvisory.queues().empty()) {
+        BSLS_ASSERT_SAFE(result);
+
+        bmqp_ctrlmsg::ClusterMessage clusterMessage(d_allocator_p);
+        clusterMessage.choice().makeQueueAssignmentAdvisory() = queueAdvisory;
+
+        int rc = propose(clusterMessage);
+        if (rc != 0) {
+            status->category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+            status->code()     = -1;
+            status->message()  = "Raft propose failed";
+            result             = false;
+        }
+        else {
+            mqbc::ClusterUtil::setPendingAssignment(d_clusterState_p,
+                                                    *d_clusterData_p,
+                                                    queueAdvisory,
+                                                    d_allocator_p);
+        }
+    }
+
+    return result;
+}
+
+void ClusterStateRaft::processQueueAssignmentRequest(
+    const bmqp_ctrlmsg::ControlMessage& request,
+    mqbnet::ClusterNode*                requester)
+{
+    // executed by the cluster *DISPATCHER* thread
+
+    BSLS_ASSERT_SAFE(requester);
+    BSLS_ASSERT_SAFE(request.choice().isClusterMessageValue());
+    BSLS_ASSERT_SAFE(request.choice()
+                         .clusterMessage()
+                         .choice()
+                         .isQueueAssignmentRequestValue());
+
+    BALL_LOG_INFO << "ClusterStateRaft: processing queueAssignment request "
+                  << "from '" << requester->nodeDescription()
+                  << "': " << request;
+
+    bmqp_ctrlmsg::ControlMessage response(d_allocator_p);
+    response.rId() = request.rId();
+
+    // Only the active CSL leader can assign queues.  'startQueueAssignment'
+    // (reached via 'assignQueue') asserts 'isSelfActiveLeader()', so these
+    // guards must run first; a failure here tells the requester to retry or
+    // wait for a new leader.
+    if (!d_clusterData_p->electorInfo().isSelfLeader() ||
+        !d_clusterData_p->electorInfo().isSelfActiveLeader()) {
+        bmqp_ctrlmsg::Status& failure = response.choice().makeStatus();
+        failure.category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+        failure.code()     = mqbi::ClusterErrorCode::e_NOT_LEADER;
+        failure.message()  = "Not an active leader";
+
+        d_clusterData_p->messageTransmitter().sendMessage(response, requester);
+        return;  // RETURN
+    }
+
+    if (bmqp_ctrlmsg::NodeStatus::E_STOPPING ==
+        d_clusterData_p->membership().selfNodeStatus()) {
+        bmqp_ctrlmsg::Status& failure = response.choice().makeStatus();
+        failure.category() = bmqp_ctrlmsg::StatusCategory::E_REFUSED;
+        failure.code()     = mqbi::ClusterErrorCode::e_STOPPING;
+        failure.message()  = "Leader is stopping";
+
+        d_clusterData_p->messageTransmitter().sendMessage(response, requester);
+        return;  // RETURN
+    }
+
+    const bmqp_ctrlmsg::QueueAssignmentRequest& assignment =
+        request.choice().clusterMessage().choice().queueAssignmentRequest();
+    bmqt::Uri uri(assignment.queueUri(), d_allocator_p);
+
+    // Domain/limit/duplicate checks and the CSL Raft propose all happen inside
+    // 'assignQueue' (via 'ClusterUtil::startQueueAssignment'); it populates
+    // 'status' accordingly.
+    bmqp_ctrlmsg::Status& status = response.choice().makeStatus();
+    status.category()            = bmqp_ctrlmsg::StatusCategory::E_SUCCESS;
+    status.code()                = 0;
+    status.message()             = "";
+
+    assignQueue(uri, &status);
+
+    d_clusterData_p->messageTransmitter().sendMessage(response, requester);
+}
+
+int ClusterStateRaft::unassignQueue(
+    const bmqp_ctrlmsg::QueueUnAssignmentAdvisory& advisory)
+{
+    const unsigned int confirmedLeaseId = d_availability_p->confirmedLeaseId(
+        advisory.partitionId());
+    if (advisory.primaryLeaseId() != confirmedLeaseId) {
+        // The advisory carries self's leaseId for the partition.  Self is
+        // behind on the partition, or the CSL has not confirmed the leaseId
+        // yet.  This is to avoid unassigning a queue that a newer primary
+        // serves (deleting the queue storage).
+        BALL_LOG_WARN << d_clusterData_p->identity().description()
+                      << ": Not proposing queue unassignment advisory: "
+                      << advisory << ": confirmed leaseId of partition "
+                      << advisory.partitionId() << " is " << confirmedLeaseId;
+        return k_UNCONFIRMED_LEASE_ID;  // RETURN
+    }
+
+    bmqp_ctrlmsg::ClusterMessage msg(d_allocator_p);
+    msg.choice().makeQueueUnAssignmentAdvisory() = advisory;
+
+    const int rc = propose(msg);
+    if (rc != 0) {
+        BALL_LOG_ERROR << d_clusterData_p->identity().description()
+                       << ": Failed to propose queue unassignment advisory: "
+                       << advisory << ", rc: " << rc;
+    }
+
+    return rc;
+}
+
+mqbi::ClusterErrorCode::Enum
+ClusterStateRaft::updateAppIds(const bsl::vector<bsl::string>& added,
+                               const bsl::vector<bsl::string>& removed,
+                               const bsl::string&              domainName,
+                               const bsl::string&              uri)
+{
+    bmqp_ctrlmsg::QueueUpdateAdvisory queueAdvisory(d_allocator_p);
+
+    mqbi::ClusterErrorCode::Enum rc = mqbc::ClusterUtil::startQueueUpdate(
+        &queueAdvisory,
+        d_clusterData_p,
+        *d_clusterState_p,
+        added,
+        removed,
+        domainName,
+        uri,
+        d_allocator_p);
+    if (rc != mqbi::ClusterErrorCode::e_OK) {
+        return rc;
+    }
+
+    bmqp_ctrlmsg::ClusterMessage clusterMessage(d_allocator_p);
+    clusterMessage.choice().makeQueueUpdateAdvisory() = queueAdvisory;
+
+    int proposeRc = propose(clusterMessage);
+    if (proposeRc != 0) {
+        return mqbi::ClusterErrorCode::e_UNKNOWN;
+    }
+
+    return mqbi::ClusterErrorCode::e_OK;
+}
+
+// ACCESSORS
+bool ClusterStateRaft::isLeader() const
+{
+    return d_raftNode_mp->state() == RaftState::e_LEADER;
+}
+
+int ClusterStateRaft::leaderId() const
+{
+    return d_raftNode_mp->leaderId();
+}
+
+bsls::Types::Uint64 ClusterStateRaft::currentTerm() const
+{
+    return d_raftNode_mp->currentTerm();
+}
+
+int ClusterStateRaft::quorum() const
+{
+    return d_raftNode_mp->quorum();
+}
+
+}  // close package namespace
+}  // close enterprise namespace

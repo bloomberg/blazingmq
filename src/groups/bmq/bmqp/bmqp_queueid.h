@@ -47,9 +47,6 @@ class QueueId {
         -10);
 
     /// Constant representing the numeric value of the `primary` of a queue.
-    static const unsigned int k_PRIMARY_QUEUE_ID = static_cast<unsigned int>(
-        -2);
-
     static const unsigned int k_UNASSIGNED_QUEUE_ID =
         static_cast<unsigned int>(-1);
 

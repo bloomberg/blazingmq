@@ -191,7 +191,7 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     /// Might be NULL:
     /// - On a proxy (in this case `gcExpired` is not called)
     /// - In UTs (in this case `gcExpired` might be called)
-    DataStore* d_store_p;
+    RecordStore* d_store_p;
 
     mqbu::StorageKey d_key;
 
@@ -264,7 +264,7 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     /// Constructor of a new object associated to the queue having specified
     /// `uri` and using the specified `parentCapacityMeter`, and
     /// `allocator`.
-    InMemoryStorage(DataStore*                     dataStore_p,
+    InMemoryStorage(RecordStore*                   dataStore_p,
                     const bmqt::Uri&               uri,
                     const mqbu::StorageKey&        queueKey,
                     mqbi::Domain*                  domain,
@@ -495,6 +495,16 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     bool
     hasMessage(const bmqt::MessageGUID& msgGUID) const BSLS_KEYWORD_OVERRIDE;
 
+    /// Return `false`: this storage is written at propose (proxy
+    /// `storePush` or at-most-once), so an absent record was removed, never
+    /// one still on its way.
+    bool isPendingReplication(bsls::Types::Uint64 raftIndex) const
+        BSLS_KEYWORD_OVERRIDE;
+
+    /// Return `true` if this node leads the Raft partition of this storage or
+    /// the partition is not on Raft, and `false` otherwise.
+    bool isLeader() const BSLS_KEYWORD_OVERRIDE;
+
     /// @brief Retrieve a message and its metadata from this storage.
     ///
     /// @param[out] appData Loaded with the application data of the message.
@@ -560,22 +570,36 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     void processMessageRecord(const bmqt::MessageGUID&     guid,
                               unsigned int                 msgLen,
                               unsigned int                 refCount,
-                              const DataStoreRecordHandle& handle)
-        BSLS_KEYWORD_OVERRIDE;
+                              const DataStoreRecordHandle& handle,
+                              bool isOwn) BSLS_KEYWORD_OVERRIDE;
 
     void processConfirmRecord(const bmqt::MessageGUID&     guid,
                               const mqbu::StorageKey&      appKey,
                               ConfirmReason::Enum          reason,
-                              const DataStoreRecordHandle& handle)
-        BSLS_KEYWORD_OVERRIDE;
+                              const DataStoreRecordHandle& handle,
+                              bool isOwn) BSLS_KEYWORD_OVERRIDE;
 
     void
     processDeletionRecord(const bmqt::MessageGUID& guid) BSLS_KEYWORD_OVERRIDE;
 
+    void undoCapacity(unsigned int msgLen) BSLS_KEYWORD_OVERRIDE;
+
+    void undoConfirm(const bmqt::MessageGUID& guid,
+                     const mqbu::StorageKey&  appKey) BSLS_KEYWORD_OVERRIDE;
+
+    void undoDeletion(const bmqt::MessageGUID& guid) BSLS_KEYWORD_OVERRIDE;
+
+    int writeAppRemoval(const mqbu::StorageKey& appKey) BSLS_KEYWORD_OVERRIDE;
+
     void addQueueOpRecordHandle(const DataStoreRecordHandle& handle)
         BSLS_KEYWORD_OVERRIDE;
 
-    void purge(const mqbu::StorageKey& appKey) BSLS_KEYWORD_OVERRIDE;
+    void purge(const mqbu::StorageKey& appKey,
+               bool                    asPrimary) BSLS_KEYWORD_OVERRIDE;
+
+    /// Not supported; see `purge`.  Replicated in-memory storage does not
+    /// exist, so nothing installs a snapshot under one.
+    void clear() BSLS_KEYWORD_OVERRIDE;
 
     virtual void setPrimary() BSLS_KEYWORD_OVERRIDE;
 
@@ -607,7 +631,7 @@ class InMemoryStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
 inline InMemoryStorage_Item::InMemoryStorage_Item()
 : d_appData()
 , d_options()
-, d_attributes()
+, d_attributes(true)
 {
 }
 
@@ -770,6 +794,16 @@ inline bool InMemoryStorage::isEmpty() const
 inline bool InMemoryStorage::hasMessage(const bmqt::MessageGUID& msgGUID) const
 {
     return 1 == d_items.count(msgGUID);
+}
+
+inline bool InMemoryStorage::isPendingReplication(bsls::Types::Uint64) const
+{
+    return false;
+}
+
+inline bool InMemoryStorage::isLeader() const
+{
+    return !d_store_p || !d_store_p->isRaft() || d_store_p->isLeader();
 }
 
 inline mqbi::StorageResult::Enum

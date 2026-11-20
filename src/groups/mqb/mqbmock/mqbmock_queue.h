@@ -264,13 +264,15 @@ class Queue : public mqbi::Queue {
     /// @param messagePropertiesInfo The message properties info.
     /// @param compressionAlgorithmType The compression of the message.
     /// @param isOutOfOrder Whether the message is pushed out of order.
+    /// @param raftIndex The `bmqp::PushHeader::raftIndex` of the PUSH.
     void onPushMessage(
         const bmqt::MessageGUID&                  msgGUID,
         const bsl::shared_ptr<const bdlbb::Blob>& appData,
         const bsl::shared_ptr<bdlbb::Blob>&       options,
         const bmqp::MessagePropertiesInfo&        messagePropertiesInfo,
         bmqt::CompressionAlgorithmType::Enum      compressionAlgorithmType,
-        bool isOutOfOrder) BSLS_KEYWORD_OVERRIDE;
+        bool                                      isOutOfOrder,
+        bsls::Types::Uint64 raftIndex) BSLS_KEYWORD_OVERRIDE;
 
     /// Confirm the message with the specified `msgGUID` for the specified
     /// `upstreamSubQueueId` stream of the queue on behalf of the client
@@ -278,6 +280,12 @@ class Queue : public mqbi::Queue {
     /// are no `ack of confirms`, this method is void, and will eventually
     /// throttle warnings if the `msgGUID` is invalid.
     ///
+    /// THREAD: This method is called from the Queue's dispatcher thread.
+    void postMessage(const bmqp::PutHeader&                    putHeader,
+                     const bsl::shared_ptr<const bdlbb::Blob>& appData,
+                     const bsl::shared_ptr<bdlbb::Blob>&       options,
+                     mqbi::QueueHandle* source) BSLS_KEYWORD_OVERRIDE;
+
     /// THREAD: This method is called from the Queue's dispatcher thread.
     void confirmMessage(const bmqt::MessageGUID& msgGUID,
                         unsigned int             upstreamSubQueueId,
@@ -357,6 +365,14 @@ class Queue : public mqbi::Queue {
 
     void convertToLocal() BSLS_KEYWORD_OVERRIDE;
 
+    void resetStorage() BSLS_KEYWORD_OVERRIDE;
+
+    bool isLocal() const BSLS_KEYWORD_OVERRIDE;
+
+    void convertToRemote(int          deduplicationTimeoutMs,
+                         int          ackWindowSize,
+                         StateSpPool* statePool) BSLS_KEYWORD_OVERRIDE;
+
     // MANIPULATORS
     //   (specific to mqbmock::Queue)
     Queue& _setDispatcher(mqbi::Dispatcher* value);
@@ -421,6 +437,11 @@ class Queue : public mqbi::Queue {
     /// parameters of all currently opened queueHandles on this queue.
     const bmqp_ctrlmsg::QueueHandleParameters&
     handleParameters() const BSLS_KEYWORD_OVERRIDE;
+
+    /// Return true if the specified `handle` is one this queue currently
+    /// holds.
+    bool
+    hasHandle(const mqbi::QueueHandle* handle) const BSLS_KEYWORD_OVERRIDE;
 
     /// Return true if the queue has upstream parameters for the specified
     /// `upstreamSubQueueId` in which case load the parameters into the

@@ -54,15 +54,17 @@ class Killer:
 class TestStrongConsistency:
     """
     This test verifies strong consistency.
-    The consumer connects to replica Proxy and opens strong and weak consistency
-    queues.
-    The producer connects to replica Proxy and post messages to both queues while
-    non-active replica node are paused (strong consistency queue first).
-    Weak consistency queue should get deliver message(s) to the consumer while
-    strong consistency queue should not.
+    The consumer connects to replica Proxy and opens a strong consistency queue.
+    The producer connects to replica Proxy and posts a message while the
+    non-active replica nodes are paused, so the message cannot reach a quorum.
+    The message should be neither ACKed nor delivered until those nodes resume.
     """
 
     def setup_cluster(self, cluster, domain_urls: tc.DomainUrls = None):  # pylint: disable=unused-argument
+        # The tests keep the leader and the proxy's active node running and
+        # break the rest, so the queues' primaries must be on the leader.
+        cluster.pin_all_primaries()
+
         proxies = cluster.proxy_cycle()
         # pick proxy in datacenter opposite to the primary's
         next(proxies)
@@ -98,17 +100,12 @@ class TestStrongConsistency:
 
             # post SC
             self.producer.post(tc.URI_FANOUT_SC, payload=["msg"], succeed=True)
-            # post WC
-            self.producer.post(tc.URI_FANOUT, payload=["msg"], succeed=True)
-
-            # receive WC messages
-            self.consumer.wait_push_event()
-            for uri in [tc.URI_FANOUT_FOO, tc.URI_FANOUT_BAR, tc.URI_FANOUT_BAZ]:
-                assert wait_until(
-                    lambda: len(self.consumer.list(uri, block=True)) == 1, 2
-                )
-            # the WC queue was last sending data and the SC one was first which
-            # means it is sufficent to wait on WC before checking SC
+            # The WC ACK is sent inline by 'LocalQueue::postMessage' and needs
+            # no quorum.  It cannot arrive before the SC post ahead of it was
+            # processed.
+            self.producer.post(
+                tc.URI_FANOUT, payload=["msg"], succeed=True, wait_ack=True
+            )
 
             if has_timeout:
                 # expect NACK
@@ -255,14 +252,14 @@ class TestStrongConsistency:
                 for node in suspended_nodes[1:]:
                     stack.enter_context(Suspender(node))
 
-                # Verify that a message can be sent to non-SC queue.
+                # Verify that a message can be sent to non-SC queue.  It is not
+                # delivered while the suspended nodes hold up the quorum.
                 self.producer.post(
                     ec_domain_urls.uri_priority,
                     payload=["msg-without-receipt"],
                     succeed=True,
                     wait_ack=True,
                 )
-                assert self.consumer.wait_push_event()
 
                 multi_node.config.domains[
                     tc.DOMAIN_PRIORITY
