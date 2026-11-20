@@ -28,6 +28,7 @@
 #include <bdlbb_pooledblobbufferfactory.h>
 #include <bdlf_bind.h>
 #include <bdls_pathutil.h>
+#include <bdls_tempdirectoryguard.h>
 #include <bsl_cstring.h>  // for memcmp
 #include <bsl_memory.h>
 #include <bsl_string.h>
@@ -45,7 +46,6 @@
 
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
-#include <bmqu_tempdirectory.h>
 #include <bmqu_time.h>
 
 // CONVENIENCE
@@ -155,7 +155,7 @@ struct Tester {
     bsl::shared_ptr<mqbsi::LogFactory>     d_logFactory_sp;
     mqbsi::LedgerConfig                    d_config;
     bslma::ManagedPtr<mqbsi::Ledger>       d_ledger_mp;
-    bmqu::TempDirectory                    d_tempDir;
+    bdls::TempDirectoryGuard               d_tempDir;
     bdlbb::PooledBlobBufferFactory         d_bufferFactory;
     bdlbb::PooledBlobBufferFactory         d_miniBufferFactory;
     bslma::Allocator*                      d_allocator_p;
@@ -167,7 +167,7 @@ struct Tester {
            bslma::Allocator*  allocator = bmqtst::TestHelperUtil::allocator())
     : d_config(allocator)
     , d_ledger_mp(0)
-    , d_tempDir(allocator)
+    , d_tempDir("mqbsl_ledger_", allocator)
     , d_bufferFactory(k_LONG_ENTRY_LEN * 2, allocator)
     , d_miniBufferFactory(k_ENTRY_LEN, allocator)
     , d_allocator_p(allocator)
@@ -186,7 +186,7 @@ struct Tester {
                                     ".bmq",
                                 allocator);
 
-        d_config.setLocation(d_tempDir.path())
+        d_config.setLocation(d_tempDir.getTempDirName())
             .setPattern(filePattern)
             .setMaxLogSize(maxLogSize)
             .setReserveOnDisk(false)
@@ -217,7 +217,8 @@ struct Tester {
             d_logIdGenerator_sp->generateLogId(&logName, &logId);
 
             // Create and open a new log
-            const bsl::string& logFullPath = d_tempDir.path() + "/" + logName;
+            const bsl::string& logFullPath = d_tempDir.getTempDirName() + "/" +
+                                             logName;
             PVV("Generating log file: " << logFullPath);
             mqbsi::LogConfig logConfig(k_LOG_MAX_SIZE,
                                        logId,

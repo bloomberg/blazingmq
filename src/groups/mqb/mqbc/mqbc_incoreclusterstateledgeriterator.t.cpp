@@ -36,6 +36,7 @@
 #include <bdlbb_pooledblobbufferfactory.h>
 #include <bdlf_bind.h>
 #include <bdlf_placeholder.h>
+#include <bdls_tempdirectoryguard.h>
 #include <bsl_memory.h>
 #include <bsl_string.h>
 #include <bsl_utility.h>  // bsl::pair, bsl::make_pair
@@ -48,7 +49,6 @@
 
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
-#include <bmqu_tempdirectory.h>
 #include <bmqu_time.h>
 
 // CONVENIENCE
@@ -241,7 +241,7 @@ struct Tester {
     // DATA
     bsl::shared_ptr<mqbsi::LogIdGenerator> d_logIdGenerator_sp;
     bsl::shared_ptr<mqbsi::LogFactory>     d_logFactory_sp;
-    bmqu::TempDirectory                    d_tempDir;
+    bdls::TempDirectoryGuard               d_tempDir;
     mqbsi::LedgerConfig                    d_config;
     bslma::ManagedPtr<mqbsi::Ledger>       d_ledger_mp;
     bdlbb::PooledBlobBufferFactory         d_bufferFactory;
@@ -252,7 +252,7 @@ struct Tester {
            bslma::Allocator*  allocator  = bmqtst::TestHelperUtil::allocator())
     : d_logIdGenerator_sp(0)
     , d_logFactory_sp(0)
-    , d_tempDir(allocator)
+    , d_tempDir("mqbc_incoreclusterstateledgeriterator_", allocator)
     , d_config(allocator)
     , d_ledger_mp(0)
     , d_bufferFactory(1024, allocator)
@@ -271,7 +271,7 @@ struct Tester {
                                     ".bmq",
                                 allocator);
 
-        d_config.setLocation(d_tempDir.path())
+        d_config.setLocation(d_tempDir.getTempDirName())
             .setPattern(filePattern)
             .setMaxLogSize(maxLogSize)
             .setReserveOnDisk(false)

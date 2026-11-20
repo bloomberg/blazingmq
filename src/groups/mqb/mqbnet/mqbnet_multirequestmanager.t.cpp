@@ -29,13 +29,13 @@
 #include <mqbmock_cluster.h>
 #include <mqbnet_mockcluster.h>
 
-#include <bmqu_tempdirectory.h>
 #include <bmqu_time.h>
 
 // BDE
 #include <bdlbb_blobutil.h>
 #include <bdlbb_pooledblobbufferfactory.h>
 #include <bdld_datum.h>
+#include <bdls_tempdirectoryguard.h>
 #include <bsl_cstddef.h>
 #include <bsl_fstream.h>
 #include <bsl_iostream.h>
@@ -122,7 +122,7 @@ class TestContext {
     bslma::Allocator* d_allocator_p;
 
     /// Temp directory needed for Cluster object
-    bmqu::TempDirectory d_tempDir;
+    bdls::TempDirectoryGuard d_tempDir;
 
     /// Cluster object used for generating mock nodes
     bslma::ManagedPtr<mqbmock::Cluster> d_cluster_mp;
@@ -231,8 +231,8 @@ class TestContext {
 
 TestContext::TestContext(int nodesCount, bslma::Allocator* allocator)
 : d_allocator_p(bslma::Default::allocator(allocator))
-, d_tempDir(d_allocator_p)
-, d_cluster_mp(new(*d_allocator_p) mqbmock::Cluster(
+, d_tempDir("mqbnet_multirequestmanager_", d_allocator_p)
+, d_cluster_mp(new (*d_allocator_p) mqbmock::Cluster(
                    d_allocator_p,
                    true,   // isClusterMember
                    false,  // isLeader
@@ -240,7 +240,7 @@ TestContext::TestContext(int nodesCount, bslma::Allocator* allocator)
                    false,  // doesFSMwriteQLIST
                    generateNodeDefs(nodesCount, d_allocator_p),
                    "testCluster",
-                   d_tempDir.path()),
+                   d_tempDir.getTempDirName()),
                d_allocator_p)
 , d_nodes(clusterNodes(d_cluster_mp.get(), d_allocator_p), d_allocator_p)
 , d_blobSpPool_sp(
@@ -447,9 +447,11 @@ static void test1_contextTest()
     bmqtst::TestHelper::printTestName("CONTEXT TEST");
 
     {
+        bslma::Allocator* alloc = bmqtst::TestHelperUtil::allocator();
+
         ReqContextSp reqContext;
-        BMQTST_ASSERT_PASS(reqContext = bsl::make_shared<ReqContextType>(
-                               bmqtst::TestHelperUtil::allocator()));
+        BMQTST_ASSERT_PASS(
+            reqContext = bsl::make_shared<ReqContextType>(alloc));
 
         BMQTST_ASSERT_EQ(reqContext->componentId(),
                          bmqp::RequestManagerComponentId::k_NO_COMPONENT_ID);
@@ -459,26 +461,22 @@ static void test1_contextTest()
         BMQTST_ASSERT_EQ(reqContext->componentId(),
                          bmqp::RequestManagerComponentId::k_CLUSTER_FSM);
 
-        ReqSp request = bsl::make_shared<Req>(
-            bmqtst::TestHelperUtil::allocator());
+        ReqSp request = bsl::make_shared<Req>(alloc);
         TestContext::populateRequest(request);
         BMQTST_ASSERT_PASS(reqContext->request() = request->request());
 
-        mqbmock::Cluster::ClusterNodeDefs defs = TestContext::generateNodeDefs(
-            5,
-            bmqtst::TestHelperUtil::allocator());
-        bmqu::TempDirectory tempDir(bmqtst::TestHelperUtil::allocator());
-        mqbmock::Cluster    cluster(bmqtst::TestHelperUtil::allocator(),
+        mqbmock::Cluster::ClusterNodeDefs defs =
+            TestContext::generateNodeDefs(5, alloc);
+        bdls::TempDirectoryGuard tempDir("mqbnet_multirequestmanager_", alloc);
+        mqbmock::Cluster         cluster(alloc,
                                  true,   // isClusterMember
                                  false,  // isLeader
                                  false,  // isFSMWorkflow
                                  false,  // doesFSMwriteQLIST
                                  defs,
                                  "testCluster",
-                                 tempDir.path());
-        Nodes               nodes = TestContext::clusterNodes(
-            &cluster,
-            bmqtst::TestHelperUtil::allocator());
+                                 tempDir.getTempDirName());
+        Nodes nodes = TestContext::clusterNodes(&cluster, alloc);
         BMQTST_ASSERT_PASS(reqContext->setDestinationNodes(nodes));
         NodeResponses responses = reqContext->response();
         BMQTST_ASSERT_EQ(nodes.size(), responses.size());
@@ -492,8 +490,7 @@ static void test1_contextTest()
         reqContext->clear();
         // Check that the MultiRequestManagerRequestContext object returned to
         // the default state
-        BMQTST_ASSERT_EQ(reqContext->request(),
-                         Mes(bmqtst::TestHelperUtil::allocator()));
+        BMQTST_ASSERT_EQ(reqContext->request(), Mes(alloc));
         BMQTST_ASSERT(reqContext->response().empty());
         BMQTST_ASSERT_EQ(reqContext->componentId(),
                          bmqp::RequestManagerComponentId::k_NO_COMPONENT_ID);

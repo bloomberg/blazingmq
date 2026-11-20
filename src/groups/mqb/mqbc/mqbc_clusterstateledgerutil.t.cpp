@@ -28,13 +28,13 @@
 #include <bmqp_crc32c.h>
 #include <bmqp_ctrlmsg_messages.h>
 #include <bmqp_protocol.h>
-#include <bmqu_tempdirectory.h>
 #include <bmqu_time.h>
 
 // BDE
 #include <bdlbb_blob.h>
 #include <bdlbb_blobutil.h>
 #include <bdlbb_pooledblobbufferfactory.h>
+#include <bdls_tempdirectoryguard.h>
 #include <bsl_memory.h>
 #include <bsl_string.h>
 #include <bsla_annotations.h>
@@ -91,7 +91,7 @@ struct Tester {
     // DATA
     mqbsi::LedgerConfig              d_config;
     bslma::ManagedPtr<mqbsi::Ledger> d_ledger_mp;
-    bmqu::TempDirectory              d_tempDir;
+    bdls::TempDirectoryGuard         d_tempDir;
     bdlbb::PooledBlobBufferFactory   d_bufferFactory;
 
   public:
@@ -103,7 +103,7 @@ struct Tester {
     Tester(bslma::Allocator* allocator = bmqtst::TestHelperUtil::allocator())
     : d_config(allocator)
     , d_ledger_mp(0)
-    , d_tempDir(allocator)
+    , d_tempDir("mqbc_clusterstateledgerutil_", allocator)
     , d_bufferFactory(1024, allocator)
     {
         // Instantiate ledger config
@@ -120,7 +120,7 @@ struct Tester {
                                     ".bmq",
                                 allocator);
 
-        d_config.setLocation(d_tempDir.path())
+        d_config.setLocation(d_tempDir.getTempDirName())
             .setPattern(filePattern)
             .setMaxLogSize(64 * 1024 * 1024)
             .setReserveOnDisk(false)

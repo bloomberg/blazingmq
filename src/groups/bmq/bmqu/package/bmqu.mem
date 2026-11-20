@@ -16,8 +16,6 @@ bmqu_samethreadchecker
 bmqu_sharedresource
 bmqu_singletonallocator
 bmqu_stringutil
-bmqu_tempdirectory
-bmqu_temputil
 bmqu_throttledaction
 bmqu_time
 bmqu_todo

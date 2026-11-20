@@ -57,6 +57,7 @@
 #include <bdlbb_blobutil.h>
 #include <bdlf_bind.h>
 #include <bdlmt_fixedthreadpool.h>
+#include <bdls_tempdirectoryguard.h>
 #include <bdlt_currenttime.h>
 #include <bdlt_epochutil.h>
 #include <bsl_limits.h>
@@ -73,7 +74,6 @@
 
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
-#include <bmqu_tempdirectory.h>
 #include <bsl_cstring.h>
 
 // CONVENIENCE
@@ -153,15 +153,16 @@ struct TestHelper {
     // PUBLIC DATA
     bslma::ManagedPtr<mqbmock::Cluster> d_cluster_mp;
 
-    bmqu::TempDirectory d_tempDir;
+    bdls::TempDirectoryGuard d_tempDir;
 
-    bmqu::TempDirectory d_tempArchiveDir;
+    bdls::TempDirectoryGuard d_tempArchiveDir;
 
     // CREATORS
     TestHelper()
     : d_cluster_mp(0)
-    , d_tempDir(bmqtst::TestHelperUtil::allocator())
-    , d_tempArchiveDir(bmqtst::TestHelperUtil::allocator())
+    , d_tempDir("mqbc_storagemanager_", bmqtst::TestHelperUtil::allocator())
+    , d_tempArchiveDir("mqbc_storagemanager_archive_",
+                       bmqtst::TestHelperUtil::allocator())
     {
         // Create the cluster
         mqbmock::Cluster::ClusterNodeDefs clusterNodeDefs(
@@ -204,8 +205,8 @@ struct TestHelper {
                                  false,  // doesFSMwriteQLIST
                                  clusterNodeDefs,
                                  "testCluster",
-                                 d_tempDir.path(),
-                                 d_tempArchiveDir.path()),
+                                 d_tempDir.getTempDirName(),
+                                 d_tempArchiveDir.getTempDirName()),
             bmqtst::TestHelperUtil::allocator());
 
         d_cluster_mp->_clusterData()->stats().setIsMember(true);
