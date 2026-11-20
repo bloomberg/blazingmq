@@ -2697,8 +2697,7 @@ inline void Cluster::sendToDispatcher(const bmqp::Event&   event,
     // executed by the *IO* thread
 
     BSLS_ASSERT_SAFE(event.sharedBlob());
-    bsl::shared_ptr<bdlbb::Blob> blob_sp =
-        bsl::const_pointer_cast<bdlbb::Blob>(event.sharedBlob());
+    const bsl::shared_ptr<const bdlbb::Blob>& blob_sp = event.sharedBlob();
     bsl::shared_ptr<EVENT_TYPE> event_sp =
         dispatcher()->getDefaultEventSource()->getEvent<EVENT_TYPE>();
     (*event_sp)
@@ -2716,8 +2715,7 @@ inline void Cluster::sendToDispatcher(const bmqp::Event&   event,
     // executed by the *IO* thread
 
     BSLS_ASSERT_SAFE(event.sharedBlob());
-    bsl::shared_ptr<bdlbb::Blob> blob_sp =
-        bsl::const_pointer_cast<bdlbb::Blob>(event.sharedBlob());
+    const bsl::shared_ptr<const bdlbb::Blob>& blob_sp = event.sharedBlob();
     bsl::shared_ptr<EVENT_TYPE> event_sp =
         dispatcher()->getDefaultEventSource()->getEvent<EVENT_TYPE>();
     (*event_sp).setSource(this).setBlob(blob_sp).setClusterNode(source);
