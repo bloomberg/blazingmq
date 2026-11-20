@@ -40,6 +40,11 @@ using namespace bsl;
 // ----------------------------------------------------------------------------
 namespace {
 
+// Values of the single reject message built by `populateBlob(blob, eh)`.
+// `test5_dumpBlob` hard-codes a hex dump derived from them.
+const int k_REJECT_QUEUE_ID    = 54321;
+const int k_REJECT_SUBQUEUE_ID = 123;
+
 /// Struct representing the attributes of a RejectMessage.
 struct Data {
     int               d_queueId;
@@ -133,19 +138,16 @@ static void populateBlob(bdlbb::Blob*       blob,
     e->setLength(eventLength);
 }
 
-/// Populate the specified `blob` with full RejectMessage event for the
-/// message having the specified `queueId`, `guid`, and `subQueueId`; and
-/// populate the specified `eh` with the corresponding event header.
-static void populateBlob(bdlbb::Blob*             blob,
-                         bmqp::EventHeader*       eh,
-                         int                      queueId,
-                         const bmqt::MessageGUID& guid,
-                         int                      subQueueId)
+/// @brief Populate the specified `blob` with a reject event holding a single
+///        reject message built from the `k_REJECT_*` values and a default
+///        GUID.
+/// @param[out] blob The blob to append the event to.
+/// @param[out] eh   The event header written at the start of `blob`.
+static void populateBlob(bdlbb::Blob* blob, bmqp::EventHeader* eh)
 {
     Data data;
-    data.d_queueId    = queueId;
-    data.d_guid       = guid;
-    data.d_subQueueId = subQueueId;
+    data.d_queueId    = k_REJECT_QUEUE_ID;
+    data.d_subQueueId = k_REJECT_SUBQUEUE_ID;
 
     const int eventLength = sizeof(bmqp::EventHeader) +
                             sizeof(bmqp::RejectHeader) +
@@ -223,11 +225,9 @@ static void test1_breathingTest()
 
         // Populate blob
         bmqp::EventHeader       eventHeader;
-        const int               qId = 54321;
         const bmqt::MessageGUID guid;
-        const int               sQId = 123;
 
-        populateBlob(&blob, &eventHeader, qId, guid, sQId);
+        populateBlob(&blob, &eventHeader);
 
         // Iterate and verify
         bmqp::RejectMessageIterator iter(&blob, eventHeader);
@@ -235,9 +235,9 @@ static void test1_breathingTest()
         BMQTST_ASSERT_EQ(iter.isValid(), true);
         BMQTST_ASSERT_EQ(iter.next(), 1);
 
-        BMQTST_ASSERT_EQ(iter.message().queueId(), qId);
+        BMQTST_ASSERT_EQ(iter.message().queueId(), k_REJECT_QUEUE_ID);
         BMQTST_ASSERT_EQ(iter.message().messageGUID(), guid);
-        BMQTST_ASSERT_EQ(iter.message().subQueueId(), sQId);
+        BMQTST_ASSERT_EQ(iter.message().subQueueId(), k_REJECT_SUBQUEUE_ID);
 
         BMQTST_ASSERT_EQ(iter.next(), 0);
         BMQTST_ASSERT_EQ(iter.isValid(), false);
@@ -260,9 +260,9 @@ static void test1_breathingTest()
         iter.reset(&blob, eventHeader);
         BMQTST_ASSERT_EQ(iter.isValid(), true);
         BMQTST_ASSERT_EQ(iter.next(), 1);
-        BMQTST_ASSERT_EQ(iter.message().queueId(), qId);
+        BMQTST_ASSERT_EQ(iter.message().queueId(), k_REJECT_QUEUE_ID);
         BMQTST_ASSERT_EQ(iter.message().messageGUID(), guid);
-        BMQTST_ASSERT_EQ(iter.message().subQueueId(), sQId);
+        BMQTST_ASSERT_EQ(iter.message().subQueueId(), k_REJECT_SUBQUEUE_ID);
 
         BMQTST_ASSERT_EQ(iter.next(), 0);
         BMQTST_ASSERT_EQ(iter.isValid(), false);
@@ -272,9 +272,9 @@ static void test1_breathingTest()
         iter2 = iter;
         BMQTST_ASSERT_EQ(iter2.isValid(), true);
         BMQTST_ASSERT_EQ(iter2.next(), 1);
-        BMQTST_ASSERT_EQ(iter2.message().queueId(), qId);
+        BMQTST_ASSERT_EQ(iter2.message().queueId(), k_REJECT_QUEUE_ID);
         BMQTST_ASSERT_EQ(iter2.message().messageGUID(), guid);
-        BMQTST_ASSERT_EQ(iter2.message().subQueueId(), sQId);
+        BMQTST_ASSERT_EQ(iter2.message().subQueueId(), k_REJECT_SUBQUEUE_ID);
 
         BMQTST_ASSERT_EQ(iter2.next(), 0);
         BMQTST_ASSERT_EQ(iter2.isValid(), false);
@@ -352,11 +352,7 @@ static void test3_nextMethod()
     // ------------------------------------------------------------------------
     bmqtst::TestHelper::printTestName("NEXT METHOD");
 
-    // Default values for event header
-    bmqp::EventHeader       eventHeader;
-    const int               qId = 54321;
-    const bmqt::MessageGUID guid;
-    const int               sQId = 123;
+    bmqp::EventHeader eventHeader;
 
     // Next method. Iterator is in invalid state case.
     {
@@ -367,7 +363,7 @@ static void test3_nextMethod()
         bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Populate blob
-        populateBlob(&blob, &eventHeader, qId, guid, sQId);
+        populateBlob(&blob, &eventHeader);
 
         // Create valid iterator
         bmqp::RejectMessageIterator iter(&blob, eventHeader);
@@ -393,7 +389,7 @@ static void test3_nextMethod()
         bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Populate blob
-        populateBlob(&blob, &eventHeader, qId, guid, sQId);
+        populateBlob(&blob, &eventHeader);
 
         // Create iterator
         bmqp::RejectMessageIterator iter(&blob, eventHeader);
@@ -436,11 +432,7 @@ static void test4_resetMethod()
     // ------------------------------------------------------------------------
     bmqtst::TestHelper::printTestName("RESET METHOD");
 
-    // Default values for event header
-    bmqp::EventHeader       eventHeader;
-    const int               qId = 54321;
-    const bmqt::MessageGUID guid;
-    const int               sQId = 123;
+    bmqp::EventHeader eventHeader;
 
     // Reset method. Invalid event header case.
     {
@@ -454,7 +446,7 @@ static void test4_resetMethod()
         bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Populate blob and manually set length
-        populateBlob(&blob, &eventHeader, qId, guid, sQId);
+        populateBlob(&blob, &eventHeader);
 
         // Create iterator
         bmqp::RejectMessageIterator iter(&blob, eventHeader);
@@ -484,7 +476,7 @@ static void test4_resetMethod()
         bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Populate blob and manually set length
-        populateBlob(&blob, &eventHeader, qId, guid, sQId);
+        populateBlob(&blob, &eventHeader);
 
         // Create iterator
         bmqp::RejectMessageIterator iter(&blob, eventHeader);
@@ -506,7 +498,7 @@ static void test4_resetMethod()
         bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Populate blob and corrupt the RejectHeader
-        populateBlob(&blob, &eventHeader, qId, guid, sQId);
+        populateBlob(&blob, &eventHeader);
         bmqp::RejectHeader* rh = reinterpret_cast<bmqp::RejectHeader*>(
             blob.buffer(0).data() + sizeof(bmqp::EventHeader));
         rh->setHeaderWords(0);
@@ -527,7 +519,7 @@ static void test4_resetMethod()
         bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Populate blob and corrupt the RejectHeader
-        populateBlob(&blob, &eventHeader, qId, guid, sQId);
+        populateBlob(&blob, &eventHeader);
         bmqp::RejectHeader* rh = reinterpret_cast<bmqp::RejectHeader*>(
             blob.buffer(0).data() + sizeof(bmqp::EventHeader));
         rh->setPerMessageWords(0);
@@ -566,16 +558,13 @@ static void test5_dumpBlob()
 
     bmqp::EventHeader              eventHeader;
     bmqu::MemOutStream             stream(bmqtst::TestHelperUtil::allocator());
-    const int                      qId = 54321;
-    const bmqt::MessageGUID        guid;
-    const int                      sQId = 123;
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
     bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
     // Populate blob
-    populateBlob(&blob, &eventHeader, qId, guid, sQId);
+    populateBlob(&blob, &eventHeader);
 
     //  Create and check iterator blob layout
     {
