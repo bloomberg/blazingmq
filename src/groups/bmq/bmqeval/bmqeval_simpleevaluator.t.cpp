@@ -529,6 +529,12 @@ static void test3_evaluation()
         {"i_2 + 20 * 2 == 42", true},
         {"-i_1 + 1 == 0", true},
 
+        // boolean comparison
+        {"b_true == b_true", true},
+        {"!(b_true == b_false)", true},
+        {"b_true != b_false", true},
+        {"!(b_false != b_false)", true},
+
         // boolean literals
         // test literals on both sides; throw in a property to fool validation
         {"true || b_true", true},
@@ -611,6 +617,8 @@ static void test4_evaluationErrors()
         {"s_foo == 42 && b_false", ErrorType::e_TYPE},
         {"b_false || s_foo == 42", ErrorType::e_TYPE},
         {"!(s_foo == 42)", ErrorType::e_TYPE},
+        {"b_true == i_1", ErrorType::e_TYPE},
+        {"b_false < b_true", ErrorType::e_TYPE},
 
         // undefined property
         {"non_existing_property", ErrorType::e_NAME},
