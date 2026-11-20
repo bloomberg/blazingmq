@@ -24,12 +24,12 @@
 #include <bdlbb_blob.h>
 #include <bdlbb_blobutil.h>
 #include <bdlbb_pooledblobbufferfactory.h>
+#include <bdls_tempdirectoryguard.h>
 #include <bsl_cstring.h>  // for memcmp
 #include <bsls_types.h>
 
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
-#include <bmqu_tempdirectory.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -107,7 +107,7 @@ static bdlbb::PooledBlobBufferFactory* g_miniBufferFactory_p = 0;
 struct Tester {
   private:
     // DATA
-    bmqu::TempDirectory    d_tempDirectory;
+    bdls::TempDirectoryGuard d_tempDirectory;
     const mqbsi::LogConfig d_config;
     MemoryMappedOnDiskLog  d_log;
 
@@ -115,10 +115,10 @@ struct Tester {
     // CREATORS
     Tester(bsls::Types::Int64 logMaxSize = k_LOG_MAX_SIZE,
            bslma::Allocator*  allocator  = bmqtst::TestHelperUtil::allocator())
-    : d_tempDirectory(allocator)
+    : d_tempDirectory("mqbsl_memorymappedondisklog_", allocator)
     , d_config(logMaxSize,
                k_LOG_KEY,
-               d_tempDirectory.path() + "/test_log.bmq",
+               d_tempDirectory.getTempDirName() + "/test_log.bmq",
                true,   // reserveOnDisk
                false,  // prefaultPages
                allocator)

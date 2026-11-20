@@ -36,7 +36,6 @@
 #include <mqbstat_queuestats.h>
 
 #include <bmqtsk_alarmlog.h>
-#include <bmqu_temputil.h>
 #include <bmqu_time.h>
 
 // BDE
@@ -395,7 +394,17 @@ int QueueEngineUtil::dumpMessageInTempfile(
         rc_FILE_OPEN_FAILURE     = -2
     };
 
-    const bsl::string                    prefix = bmqu::TempUtil::tempDir();
+    BSLS_ASSERT_SAFE(filepath);
+
+    bsl::string prefix;
+    if (0 != bdls::FilesystemUtil::getSystemTemporaryDirectory(&prefix) ||
+        prefix.empty()) {
+        prefix = "/tmp";
+    }
+    if (prefix.back() != '/') {
+        prefix.push_back('/');
+    }
+
     bdls::FilesystemUtil::FileDescriptor fileDescriptor =
         bdls::FilesystemUtil::createTemporaryFile(filepath, prefix);
     if (fileDescriptor == bdls::FilesystemUtil::k_INVALID_FD) {

@@ -17,7 +17,7 @@
 #include <m_bmqtool_latencystorage.h>
 
 // BDE
-#include <bmqtst_tempfile.h>
+#include <bdls_tempdirectoryguard.h>
 #include <bmqtst_testhelper.h>
 #include <bsl_cstdlib.h>
 #include <bsl_fstream.h>
@@ -200,7 +200,9 @@ static void test6_saveAndLoadTest()
 {
     bmqtst::TestHelper::printTestName("SAVE AND LOAD TEST");
 
-    bmqtst::TempFile tempFile;
+    bdls::TempDirectoryGuard tempDir("m_bmqtool_latencystorage_",
+                                     bmqtst::TestHelperUtil::allocator());
+    const bsl::string filePath = tempDir.getTempDirName() + "/latency.json";
     {
         LatencyStorage storage("test", 2, bmqtst::TestHelperUtil::allocator());
 
@@ -214,12 +216,12 @@ static void test6_saveAndLoadTest()
         BMQTST_ASSERT_EQ(storage.minLatency(), 100);
         BMQTST_ASSERT_EQ(storage.maxLatency(), 300);
 
-        int rc = storage.save(tempFile.path());
+        int rc = storage.save(filePath);
         BMQTST_ASSERT_EQ(rc, 0);
     }
 
     // Verify file exists and contains JSON
-    bsl::ifstream file(tempFile.path().c_str());
+    bsl::ifstream file(filePath.c_str());
     BMQTST_ASSERT(file.good());
 
     bsl::string line;
