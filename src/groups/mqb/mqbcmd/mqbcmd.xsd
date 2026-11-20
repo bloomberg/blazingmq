@@ -2,7 +2,6 @@
 <schema xmlns="http://www.w3.org/2001/XMLSchema"
         xmlns:bdem="http://bloomberg.com/schemas/bdem"
         xmlns:tns="http://bloomberg.com/schemas/schema"
-        xmlns:xs="http://www.w3.org/2001/XMLSchema"
         targetNamespace="http://bloomberg.com/schemas/schema">
 
   <complexType name="Command">
@@ -48,8 +47,8 @@
       </documentation>
     </annotation>
     <sequence>
-      <element name="sourceNodeDescription"   type="xs:string"/>
-      <element name="response" type="xs:string"/>
+      <element name="sourceNodeDescription"   type="string"/>
+      <element name="response" type="string"/>
     </sequence>
   </complexType>
 
@@ -71,7 +70,7 @@
       </documentation>
     </annotation>
     <sequence>
-      <element name="sourceNodeDescription" type="xs:string"/>
+      <element name="sourceNodeDescription" type="string"/>
       <element name="result" type="tns:Result"/>
     </sequence>
   </complexType>
@@ -132,7 +131,7 @@
       <element name="messageGroupIdHelper"       type="tns:MessageGroupIdHelper"/>
       <element name="queueContents"              type="tns:QueueContents"/>
       <element name="message"                    type="tns:Message"/>
-      <element name="stats"                      type="xs:string"/>
+      <element name="stats"                      type="string"/>
       <element name="clusterList"                type="tns:ClusterList"/>
       <element name="clusterStatus"              type="tns:ClusterStatus"/>
       <element name="clusterProxyStatus"         type="tns:ClusterProxyStatus"/>
@@ -218,7 +217,7 @@
   <complexType name="StatResult">
     <choice>
       <element name="error"               type="tns:Error"/>
-      <element name="stats"               type="xs:string"/>
+      <element name="stats"               type="string"/>
       <element name="tunable"             type="tns:Tunable"/>
       <element name="tunables"            type="tns:Tunables"/>
       <element name="tunableConfirmation" type="tns:TunableConfirmation"/>
@@ -249,11 +248,11 @@
 
   <complexType name="PurgedQueueDetails">
       <sequence>
-        <element name="queueUri"          type="xs:string"/>
-        <element name="appId"             type="xs:string"/>
-        <element name="appKey"            type="xs:string"/>
-        <element name="numMessagesPurged" type="xs:long"/>
-        <element name="numBytesPurged"    type="xs:long"/>
+        <element name="queueUri"          type="string"/>
+        <element name="appId"             type="string"/>
+        <element name="appKey"            type="string"/>
+        <element name="numMessagesPurged" type="long"/>
+        <element name="numBytesPurged"    type="long"/>
       </sequence>
   </complexType>
 
@@ -263,40 +262,40 @@
 
   <complexType name="Error">
     <sequence>
-      <element name="message" type="xs:string"/>
+      <element name="message" type="string"/>
     </sequence>
   </complexType>
 
   <complexType name="HelpCommand">
     <sequence>
-      <element name="plumbing" type="xs:boolean" default="false"/>
+      <element name="plumbing" type="boolean" default="false"/>
     </sequence>
   </complexType>
 
   <complexType name="Value">
     <choice>
       <element name="theNull"     type="tns:Void"/>
-      <element name="theBool"     type="xs:boolean"/>
-      <element name="theInteger"  type="xs:integer"/>
-      <element name="theDouble"   type="xs:double"/>
-      <element name="theDate"     type="xs:date"/>
-      <element name="theTime"     type="xs:time"/>
-      <element name="theDatetime" type="xs:dateTime"/>
-      <element name="theString"   type="xs:string"/>
+      <element name="theBool"     type="boolean"/>
+      <element name="theInteger"  type="integer"/>
+      <element name="theDouble"   type="double"/>
+      <element name="theDate"     type="date"/>
+      <element name="theTime"     type="time"/>
+      <element name="theDatetime" type="dateTime"/>
+      <element name="theString"   type="string"/>
     </choice>
   </complexType>
 
   <complexType name="Tunable">
     <sequence>
-      <element name="name"        type="xs:string"/>
+      <element name="name"        type="string"/>
       <element name="value"       type="tns:Value"/>
-      <element name="description" type="xs:string"/>
+      <element name="description" type="string"/>
     </sequence>
   </complexType>
 
   <complexType name="TunableConfirmation">
     <sequence>
-      <element name="name"     type="xs:string"/>
+      <element name="name"     type="string"/>
       <element name="oldValue" type="tns:Value"/>
       <element name="newValue" type="tns:Value"/>
     </sequence>
@@ -338,7 +337,7 @@
 
   <complexType name="ClearCache">
     <choice>
-      <element name="domain" type="xs:string"/>
+      <element name="domain" type="string"/>
       <element name="all"    type="tns:Void"/>
     </choice>
   </complexType>
@@ -363,55 +362,55 @@
 
   <complexType name="ClusterStorageSummary">
     <sequence>
-      <element name="clusterFileStoreLocation" type="xs:string"/>
+      <element name="clusterFileStoreLocation" type="string"/>
       <element name="fileStores"               type="tns:FileStore" maxOccurs="unbounded" minOccurs="0" />
     </sequence>
   </complexType>
 
   <complexType name="FileStoreSummary">
     <sequence>
-      <element name="primaryNodeDescription" type="xs:string"/>
-      <element name="primaryLeaseId"         type="xs:unsignedInt"/>
-      <element name="sequenceNum"            type="xs:unsignedLong"/>
-      <element name="isAvailable"            type="xs:boolean"/>
+      <element name="primaryNodeDescription" type="string"/>
+      <element name="primaryLeaseId"         type="unsignedInt"/>
+      <element name="sequenceNum"            type="unsignedLong"/>
+      <element name="isAvailable"            type="boolean"/>
       <element name="fileSets"               type="tns:FileSet" maxOccurs="unbounded" minOccurs="0"/>
       <element name="activeFileSet"          type="tns:ActiveFileSet"/>
-      <element name="totalMappedBytes"       type="xs:unsignedLong"/>
-      <element name="numOutstandingRecords"  type="xs:unsignedInt"/>
-      <element name="numUnreceiptedMessages" type="xs:unsignedInt"/>
-      <element name="naglePacketCount"       type="xs:unsignedInt"/>
+      <element name="totalMappedBytes"       type="unsignedLong"/>
+      <element name="numOutstandingRecords"  type="unsignedInt"/>
+      <element name="numUnreceiptedMessages" type="unsignedInt"/>
+      <element name="naglePacketCount"       type="unsignedInt"/>
       <element name="storageContent"         type="tns:StorageContent"/>
     </sequence>
   </complexType>
 
   <complexType name="FileInfo">
     <sequence>
-      <element name="positionBytes"    type="xs:unsignedLong"/>
-      <element name="sizeBytes"        type="xs:unsignedLong"/>
-      <element name="outstandingBytes" type="xs:unsignedLong"/>
+      <element name="positionBytes"    type="unsignedLong"/>
+      <element name="sizeBytes"        type="unsignedLong"/>
+      <element name="outstandingBytes" type="unsignedLong"/>
     </sequence>
   </complexType>
 
   <complexType name="Help">
     <sequence>
       <element name="commands"     type="tns:CommandSpec" maxOccurs="unbounded" minOccurs="0"/>
-      <element name="isPlumbing"   type="xs:boolean"/>
+      <element name="isPlumbing"   type="boolean"/>
     </sequence>
   </complexType>
 
   <complexType name="CommandSpec">
     <sequence>
-      <element name="command"     type="xs:string"/>
-      <element name="description" type="xs:string"/>
+      <element name="command"     type="string"/>
+      <element name="description" type="string"/>
     </sequence>
   </complexType>
 
   <complexType name="ClusterStatus">
     <sequence>
-      <element name="name"                  type="xs:string"/>
-      <element name="description"           type="xs:string"/>
-      <element name="selfNodeDescription"   type="xs:string"/>
-      <element name="isHealthy"             type="xs:boolean"/>
+      <element name="name"                  type="string"/>
+      <element name="description"           type="string"/>
+      <element name="selfNodeDescription"   type="string"/>
+      <element name="isHealthy"             type="boolean"/>
       <element name="nodeStatuses"          type="tns:NodeStatuses"/>
       <element name="electorInfo"           type="tns:ElectorInfo"/>
       <element name="partitionsInfo"        type="tns:PartitionsInfo"/>
@@ -422,9 +421,9 @@
 
   <complexType name="ClusterProxyStatus">
     <sequence>
-      <element name="description"           type="xs:string"/>
-      <element name="activeNodeDescription" type="xs:string" minOccurs="0"/>
-      <element name="isHealthy"             type="xs:boolean"/>
+      <element name="description"           type="string"/>
+      <element name="activeNodeDescription" type="string" minOccurs="0"/>
+      <element name="isHealthy"             type="boolean"/>
       <element name="nodeStatuses"          type="tns:NodeStatuses"/>
       <element name="queuesInfo"            type="tns:StorageContent"/>
     </sequence>
@@ -445,7 +444,7 @@
   <complexType name="ElectorInfo">
     <sequence>
       <element name="electorState"          type="tns:ElectorState"/>
-      <element name="leaderNode"            type="xs:string"/>
+      <element name="leaderNode"            type="string"/>
       <element name="leaderMessageSequence" type="tns:LeaderMessageSequence"/>
       <element name="leaderStatus"          type="tns:LeaderStatus"/>
     </sequence>
@@ -453,23 +452,23 @@
 
   <complexType name="PartitionInfo">
     <sequence>
-      <element name="numQueuesMapped" type="xs:int"/>
-      <element name="numActiveQueues" type="xs:int"/>
-      <element name="primaryNode"     type="xs:string" minOccurs="0"/>
-      <element name="primaryLeaseId"  type="xs:unsignedInt"/>
+      <element name="numQueuesMapped" type="int"/>
+      <element name="numActiveQueues" type="int"/>
+      <element name="primaryNode"     type="string" minOccurs="0"/>
+      <element name="primaryLeaseId"  type="unsignedInt"/>
       <element name="primaryStatus"   type="tns:PrimaryStatus"/>
     </sequence>
   </complexType>
 
   <complexType name="LeaderMessageSequence">
     <sequence>
-      <element name="electorTerm"    type="tns:unsignedLong"/>
-      <element name="sequenceNumber" type="xs:unsignedLong"/>
+      <element name="electorTerm"    type="unsignedLong"/>
+      <element name="sequenceNumber" type="unsignedLong"/>
     </sequence>
   </complexType>
 
   <simpleType name="LeaderStatus" bdem:preserveEnumOrder='1'>
-    <restriction base="xs:string">
+    <restriction base="string">
       <enumeration value="UNDEFINED"/>
       <enumeration value="PASSIVE"/>
       <enumeration value="ACTIVE"/>
@@ -477,7 +476,7 @@
   </simpleType>
 
   <simpleType name="PrimaryStatus" bdem:preserveEnumOrder='1'>
-    <restriction base="xs:string">
+    <restriction base="string">
       <enumeration value="UNDEFINED" bdem:id='0'/>
       <enumeration value="PASSIVE"   bdem:id='1'/>
       <enumeration value="ACTIVE"    bdem:id='5'/>
@@ -485,7 +484,7 @@
   </simpleType>
 
   <simpleType name="ElectorState" bdem:preserveEnumOrder='1'>
-    <restriction base="xs:string">
+    <restriction base="string">
       <enumeration value="DORMANT"/>
       <enumeration value="FOLLOWER"/>
       <enumeration value="CANDIDATE"/>
@@ -495,12 +494,12 @@
 
   <complexType name="BrokerConfig">
     <sequence>
-      <element name="asJSON" type="xs:string"/>
+      <element name="asJSON" type="string"/>
     </sequence>
   </complexType>
 
   <simpleType name="Locality" bdem:preserveEnumOrder='1'>
-    <restriction base="xs:string">
+    <restriction base="string">
       <enumeration value="remote"/>
       <enumeration value="local"/>
       <enumeration value="member"/>
@@ -509,11 +508,11 @@
 
   <complexType name="ClusterQueueHelper">
     <sequence>
-      <element name="clusterName"                   type="xs:string"/>
+      <element name="clusterName"                   type="string"/>
       <element name="locality"                      type="tns:Locality"/>
-      <element name="numQueues"                     type="xs:unsignedInt"/>
-      <element name="numQueueKeys"                  type="xs:unsignedInt"/>
-      <element name="numPendingReopenQueueRequests" type="xs:unsignedInt"/>
+      <element name="numQueues"                     type="unsignedInt"/>
+      <element name="numQueueKeys"                  type="unsignedInt"/>
+      <element name="numPendingReopenQueueRequests" type="unsignedInt"/>
       <element name="domains"                       type="tns:ClusterDomain" maxOccurs="unbounded" minOccurs="0"/>
       <element name="queues"                        type="tns:ClusterQueue"  maxOccurs="unbounded" minOccurs="0"/>
     </sequence>
@@ -521,11 +520,11 @@
 
   <complexType name="DomainInfo">
     <sequence>
-      <element name="name"                      type="xs:string"/>
-      <element name="configJson"                type="xs:string"/>
-      <element name="clusterName"               type="xs:string"/>
+      <element name="name"                      type="string"/>
+      <element name="configJson"                type="string"/>
+      <element name="clusterName"               type="string"/>
       <element name="capacityMeter"             type="tns:CapacityMeter"/>
-      <element name="queueUris"                 type="xs:string" maxOccurs="unbounded" minOccurs="0"/>
+      <element name="queueUris"                 type="string" maxOccurs="unbounded" minOccurs="0"/>
       <element name="storageContent"            type="tns:StorageContent"/>
     </sequence>
   </complexType>
@@ -538,13 +537,13 @@
 
   <complexType name="StorageQueueInfo">
     <sequence>
-      <element name="queueUri"        type="xs:string"/>
-      <element name="queueKey"        type="xs:string"/>
-      <element name="partitionId"     type="xs:int"/>
-      <element name="numMessages"     type="xs:long"/>
-      <element name="numBytes"        type="xs:long"/>
-      <element name="isPersistent"    type="xs:boolean"/>
-      <element name="internalQueueId" type="xs:unsignedInt"/>
+      <element name="queueUri"        type="string"/>
+      <element name="queueKey"        type="string"/>
+      <element name="partitionId"     type="int"/>
+      <element name="numMessages"     type="long"/>
+      <element name="numBytes"        type="long"/>
+      <element name="isPersistent"    type="boolean"/>
+      <element name="internalQueueId" type="unsignedInt"/>
     </sequence>
   </complexType>
 
@@ -557,10 +556,10 @@
 
   <complexType name="RemoteQueue">
     <sequence>
-      <element name="numPendingPuts"                 type="xs:long"/>
-      <element name="numPendingConfirms"             type="xs:long"/>
-      <element name="isPushExpirationTimerScheduled" type="xs:boolean"/>
-      <element name="numUpstreamGeneration"          type="xs:unsignedInt"/>
+      <element name="numPendingPuts"                 type="long"/>
+      <element name="numPendingConfirms"             type="long"/>
+      <element name="isPushExpirationTimerScheduled" type="boolean"/>
+      <element name="numUpstreamGeneration"          type="unsignedInt"/>
       <element name="streams"                        type="tns:RemoteStreamInfo" maxOccurs="unbounded" minOccurs="0"/>
       <element name="queueEngine"                    type="tns:QueueEngine"/>
     </sequence>
@@ -568,9 +567,9 @@
 
   <complexType name="RemoteStreamInfo">
     <sequence>
-      <element name="id"        type="xs:int"/>
-      <element name="state"     type="xs:string"/>
-      <element name="genCount"  type="xs:long"/>
+      <element name="id"        type="int"/>
+      <element name="state"     type="string"/>
+      <element name="genCount"  type="long"/>
     </sequence>
   </complexType>
 
@@ -589,8 +588,8 @@
 
   <complexType name="FanoutQueueEngine">
     <sequence>
-      <element name="maxConsumers"   type="xs:unsignedInt"/>
-      <element name="mode"           type="xs:string"/>
+      <element name="maxConsumers"   type="unsignedInt"/>
+      <element name="mode"           type="string"/>
       <element name="consumerStates" type="tns:ConsumerState" maxOccurs="unbounded" minOccurs="0"/>
       <element name="Routing"        type="tns:Routing"/>
     </sequence>
@@ -604,25 +603,25 @@
 
   <complexType name="SubscriptionGroup">
     <sequence>
-      <element name="id"                        type="xs:unsignedInt"/>
-      <element name="expression"                type="xs:string"/>
-      <element name="upstreamSubQueueId"        type="xs:unsignedInt"/>
-      <element name="priorityGroup"             type="PriorityGroup" minOccurs="0"/>
+      <element name="id"                        type="unsignedInt"/>
+      <element name="expression"                type="string"/>
+      <element name="upstreamSubQueueId"        type="unsignedInt"/>
+      <element name="priorityGroup"             type="tns:PriorityGroup" minOccurs="0"/>
     </sequence>
   </complexType>
 
   <complexType name="PriorityGroup">
     <sequence>
-      <element name="id"                        type="xs:unsignedInt"/>
-      <element name="highestSubscriptions"      type="Subscription" maxOccurs="unbounded" minOccurs="0"/>
+      <element name="id"                        type="unsignedInt"/>
+      <element name="highestSubscriptions"      type="tns:Subscription" maxOccurs="unbounded" minOccurs="0"/>
     </sequence>
   </complexType>
 
   <complexType name="Subscription">
     <sequence>
-      <element name="downstreamSubscriptionId"  type="xs:unsignedInt"/>
+      <element name="downstreamSubscriptionId"  type="unsignedInt"/>
       <element name='consumer'                  type='tns:ConsumerInfo'/>
-      <element name='subscriber'                type='Subscriber'/>
+      <element name='subscriber'                type='tns:Subscriber'/>
     </sequence>
   </complexType>
 
@@ -649,9 +648,9 @@
 
   <complexType name="MessageGroupIdHelper">
     <sequence>
-      <element name="timeoutNanoseconds" type="xs:long"/>
-      <element name="maxMsgGroupIds"     type="xs:int"/>
-      <element name="isRebalanceOn"      type="xs:boolean"/>
+      <element name="timeoutNanoseconds" type="long"/>
+      <element name="maxMsgGroupIds"     type="int"/>
+      <element name="isRebalanceOn"      type="boolean"/>
       <element name="status"             type="tns:MessageGroupIdManagerIndex"/>
     </sequence>
   </complexType>
@@ -665,16 +664,16 @@
 
   <complexType name="RouterConsumer">
     <sequence>
-      <element name="priority"    type="xs:int"/>
+      <element name="priority"    type="int"/>
       <element name="queueHandle" type="tns:QueueHandle"/>
-      <element name="count"       type="xs:unsignedInt"/>
-      <element name="expression"  type="xs:string"/>
+      <element name="count"       type="unsignedInt"/>
+      <element name="expression"  type="string"/>
     </sequence>
   </complexType>
 
   <complexType name="RelayQueueEngine">
     <sequence>
-      <element name="numSubstreams" type="xs:unsignedInt"/>
+      <element name="numSubstreams" type="unsignedInt"/>
       <element name="subStreams"    type="tns:RelayQueueEngineSubStream" maxOccurs="unbounded" minOccurs="0"/>
       <element name="appStates"     type="tns:AppState" maxOccurs="unbounded" minOccurs="0"/>
       <element name="Routing"       type="tns:Routing"/>
@@ -683,24 +682,24 @@
 
   <complexType name="RelayQueueEngineSubStream">
     <sequence>
-      <element name="appId"  type="xs:string"/>
-      <element name="appKey" type="xs:string">
+      <element name="appId"  type="string"/>
+      <element name="appKey" type="string">
         <annotation>
           <documentation>a.k.a. "storage key"</documentation>
         </annotation>
       </element>
-      <element name="numMessages" type="xs:unsignedInt"/>
+      <element name="numMessages" type="unsignedInt"/>
     </sequence>
   </complexType>
 
   <complexType name="QueueState">
     <sequence>
-      <element name="uri"                  type="xs:string"/>
-      <element name="handleParametersJson" type="xs:string"/>
-      <element name="streamParametersJson" type="xs:string"/>
-      <element name="id"                   type="xs:unsignedInt"/>
-      <element name="key"                  type="xs:string"/>
-      <element name="partitionId"          type="xs:int"/>
+      <element name="uri"                  type="string"/>
+      <element name="handleParametersJson" type="string"/>
+      <element name="streamParametersJson" type="string"/>
+      <element name="id"                   type="unsignedInt"/>
+      <element name="key"                  type="string"/>
+      <element name="partitionId"          type="int"/>
       <element name="storage"              type="tns:QueueStorage"  minOccurs="0"/>
       <element name="capacityMeter"        type="tns:CapacityMeter" minOccurs="0"/>
       <element name="handles"              type="tns:QueueHandle" maxOccurs="unbounded" minOccurs="0" />
@@ -709,23 +708,23 @@
 
   <complexType name="CapacityMeter">
     <sequence>
-      <element name="name"                type="xs:string"/>
-      <element name="isDisabled"          type="xs:boolean"/>
-      <element name="numMessages"         type="xs:long"/>
-      <element name="messageCapacity"     type="xs:long"/>
-      <element name="numMessagesReserved" type="xs:long"/>
-      <element name="numBytes"            type="xs:long"/>
-      <element name="byteCapacity"        type="xs:long"/>
-      <element name="numBytesReserved"    type="xs:long"/>
+      <element name="name"                type="string"/>
+      <element name="isDisabled"          type="boolean"/>
+      <element name="numMessages"         type="long"/>
+      <element name="messageCapacity"     type="long"/>
+      <element name="numMessagesReserved" type="long"/>
+      <element name="numBytes"            type="long"/>
+      <element name="byteCapacity"        type="long"/>
+      <element name="numBytesReserved"    type="long"/>
       <element name="parent"              type="tns:CapacityMeter" minOccurs="0" />
     </sequence>
   </complexType>
 
   <complexType name="QueueHandle">
     <sequence>
-      <element name="clientDescription"     type="xs:string"/>
-      <element name="parametersJson"        type="xs:string"/>
-      <element name="isClientClusterMember" type="xs:boolean"/>
+      <element name="clientDescription"     type="string"/>
+      <element name="parametersJson"        type="string"/>
+      <element name="isClientClusterMember" type="boolean"/>
       <element name="subStreams"            type="tns:QueueHandleSubStream" maxOccurs="unbounded" minOccurs="0"/>
     </sequence>
   </complexType>
@@ -734,23 +733,23 @@
     <sequence>
       <element name="state"                      type="tns:ResourceUsageMonitorState"/>
       <element name="messagesState"              type="tns:ResourceUsageMonitorState"/>
-      <element name="numMessages"                type="xs:long"/>
-      <element name="messagesLowWatermarkRatio"  type="xs:long"/>
-      <element name="messagesHighWatermarkRatio" type="xs:long"/>
-      <element name="messagesCapacity"           type="xs:long"/>
+      <element name="numMessages"                type="long"/>
+      <element name="messagesLowWatermarkRatio"  type="long"/>
+      <element name="messagesHighWatermarkRatio" type="long"/>
+      <element name="messagesCapacity"           type="long"/>
       <element name="bytesState"                 type="tns:ResourceUsageMonitorState"/>
-      <element name="numBytes"                   type="xs:long"/>
-      <element name="bytesLowWatermarkRatio"     type="xs:long"/>
-      <element name="bytesHighWatermarkRatio"    type="xs:long"/>
-      <element name="bytesCapacity"              type="xs:long"/>
+      <element name="numBytes"                   type="long"/>
+      <element name="bytesLowWatermarkRatio"     type="long"/>
+      <element name="bytesHighWatermarkRatio"    type="long"/>
+      <element name="bytesCapacity"              type="long"/>
     </sequence>
   </complexType>
 
   <complexType name="QueueContents">
     <sequence>
       <element name="messages"           type="tns:Message" maxOccurs="unbounded" minOccurs="0" />
-      <element name="offset"             type="xs:long"/>
-      <element name="totalQueueMessages" type="xs:long"/>
+      <element name="offset"             type="long"/>
+      <element name="totalQueueMessages" type="long"/>
     </sequence>
   </complexType>
 
@@ -777,14 +776,14 @@
 
   <complexType name="DomainReconfigure">
     <choice>
-      <element name="domain" type="xs:string"/>
+      <element name="domain" type="string"/>
     </choice>
   </complexType>
 
   <complexType name="DomainRemove">
     <sequence>
-      <element name="domain"   type="xs:string"/>
-      <element name="finalize" type="xs:boolean" minOccurs="0"/>
+      <element name="domain"   type="string"/>
+      <element name="finalize" type="boolean" minOccurs="0"/>
     </sequence>
   </complexType>
 
@@ -798,7 +797,7 @@
     <choice>
       <element name="show" type="tns:Void"/>
       <element name="setTunable"   type="tns:SetTunable"/>
-      <element name="getTunable"   type="xs:string"/>
+      <element name="getTunable"   type="string"/>
       <element name="listTunables" type="tns:Void"/>
     </choice>
   </complexType>
@@ -818,28 +817,28 @@
 
   <complexType name="DomainQueue">
     <sequence>
-      <element name="name"    type="xs:string"/>
+      <element name="name"    type="string"/>
       <element name="command" type="tns:QueueCommand"/>
     </sequence>
   </complexType>
 
   <complexType name="StoragePartition">
     <sequence>
-      <element name="partitionId" type="xs:int"/>
+      <element name="partitionId" type="int"/>
       <element name="command"     type="tns:StoragePartitionCommand"/>
     </sequence>
   </complexType>
 
   <complexType name="StorageDomain">
     <sequence>
-      <element name="name"    type="xs:string"/>
+      <element name="name"    type="string"/>
       <element name="command" type="tns:StorageDomainCommand"/>
     </sequence>
   </complexType>
 
   <complexType name="StorageQueue">
     <sequence>
-      <element name="canonicalUri" type="xs:string"/>
+      <element name="canonicalUri" type="string"/>
       <element name="command"      type="tns:StorageQueueCommand"/>
     </sequence>
   </complexType>
@@ -862,7 +861,7 @@
 
   <complexType name="FileStore">
     <sequence>
-      <element name="partitionId" type="xs:int"/>
+      <element name="partitionId" type="int"/>
       <element name="state"       type="tns:FileStoreState"/>
       <element name="summary"     type="tns:FileStoreSummary"/>
     </sequence>
@@ -870,8 +869,8 @@
 
   <complexType name="FileSet">
     <sequence>
-      <element name="dataFileName"           type="xs:string"/>
-      <element name="aliasedBlobBufferCount" type="xs:unsignedLong"/>
+      <element name="dataFileName"           type="string"/>
+      <element name="aliasedBlobBufferCount" type="unsignedLong"/>
     </sequence>
   </complexType>
 
@@ -885,10 +884,10 @@
 
   <complexType name="ClusterNodeInfo">
     <sequence>
-      <element name="description"            type="xs:string"/>
-      <element name="isAvailable"            type="xs:boolean" minOccurs="0"/>
-      <element name="status"                 type="xs:NodeStatus"/>
-      <element name="primaryForPartitionIds" type="xs:int" maxOccurs="unbounded" minOccurs="0"/>
+      <element name="description"            type="string"/>
+      <element name="isAvailable"            type="boolean" minOccurs="0"/>
+      <element name="status"                 type="tns:NodeStatus"/>
+      <element name="primaryForPartitionIds" type="int" maxOccurs="unbounded" minOccurs="0"/>
     </sequence>
   </complexType>
 
@@ -909,32 +908,32 @@
 
   <complexType name="ClusterDomain">
     <sequence>
-      <element name="name"              type="xs:string"/>
-      <element name="numAssignedQueues" type="xs:unsignedInt"/>
-      <element name="loaded"            type="xs:boolean"/>
+      <element name="name"              type="string"/>
+      <element name="numAssignedQueues" type="unsignedInt"/>
+      <element name="loaded"            type="boolean"/>
     </sequence>
   </complexType>
 
   <complexType name="ClusterQueue">
     <sequence>
-      <element name="uri"                   type="xs:string"/>
-      <element name="numInFlightContexts"   type="xs:unsignedInt"/>
-      <element name="isAssigned"            type="xs:boolean"/>
-      <element name="isPrimaryAvailable"    type="xs:boolean"/>
-      <element name="id"                    type="xs:unsignedInt"/>
+      <element name="uri"                   type="string"/>
+      <element name="numInFlightContexts"   type="unsignedInt"/>
+      <element name="isAssigned"            type="boolean"/>
+      <element name="isPrimaryAvailable"    type="boolean"/>
+      <element name="id"                    type="unsignedInt"/>
       <element name="subIds"                type="tns:SubId" maxOccurs="unbounded" minOccurs="0"/>
-      <element name="partitionId"           type="xs:int"/>
-      <element name="primaryNodeDescription" type="xs:string" minOccurs="0"/>
-      <element name="key"                   type="xs:string"/>
-      <element name="isCreated"             type="xs:boolean"/>
+      <element name="partitionId"           type="int"/>
+      <element name="primaryNodeDescription" type="string" minOccurs="0"/>
+      <element name="key"                   type="string"/>
+      <element name="isCreated"             type="boolean"/>
       <element name="contexts"              type="tns:Context" maxOccurs="unbounded" minOccurs="0"/>
     </sequence>
   </complexType>
 
   <complexType name="SubId">
     <sequence>
-      <element name="subId" type="xs:unsignedInt"/>
-      <element name="appId" type="xs:string"/>
+      <element name="subId" type="unsignedInt"/>
+      <element name="appId" type="string"/>
     </sequence>
   </complexType>
 
@@ -948,57 +947,57 @@
 
   <complexType name="ConsumerState">
     <sequence>
-      <element name="appId"            type="xs:string"/>
+      <element name="appId"            type="string"/>
       <element name="status"           type="tns:ConsumerStatus"/>
-      <element name="isAtEndOfStorage" type="xs:boolean" minOccurs="0"/>
+      <element name="isAtEndOfStorage" type="boolean" minOccurs="0"/>
       <element name="appState"         type="tns:AppState"/>
     </sequence>
   </complexType>
 
   <complexType name="AppState">
     <sequence>
-      <element name="appId"                type="xs:string"/>
-      <element name="numConsumers"         type="xs:unsignedInt"/>
-      <element name="redeliveryListLength" type="xs:long"/>
-      <element name="roundRobinRouter"     type="xs:RoundRobinRouter"/>
+      <element name="appId"                type="string"/>
+      <element name="numConsumers"         type="unsignedInt"/>
+      <element name="redeliveryListLength" type="long"/>
+      <element name="roundRobinRouter"     type="tns:RoundRobinRouter"/>
     </sequence>
   </complexType>
 
   <complexType name="LeastRecentlyUsedGroupId">
     <sequence>
-      <element name="clientDescription"        type="xs:string"/>
-      <element name="msgGroupId"               type="xs:string"/>
-      <element name="lastSeenDeltaNanoseconds" type="xs:integer"/>
+      <element name="clientDescription"        type="string"/>
+      <element name="msgGroupId"               type="string"/>
+      <element name="lastSeenDeltaNanoseconds" type="integer"/>
     </sequence>
   </complexType>
 
   <complexType name="ClientMsgGroupsCount">
     <sequence>
-      <element name="clientDescription" type="xs:string"/>
-      <element name="numMsgGroupIds"    type="xs:unsignedInt"/>
+      <element name="clientDescription" type="string"/>
+      <element name="numMsgGroupIds"    type="unsignedInt"/>
     </sequence>
   </complexType>
 
   <complexType name="QueueStorage">
     <sequence>
-      <element name="numMessages"     type="xs:unsignedInt"/>
-      <element name="numBytes"        type="xs:unsignedInt"/>
+      <element name="numMessages"     type="unsignedInt"/>
+      <element name="numBytes"        type="unsignedInt"/>
       <element name="virtualStorages" type="tns:VirtualStorage" maxOccurs="unbounded" minOccurs="0"/>
     </sequence>
   </complexType>
 
   <complexType name="QueueHandleSubStream">
     <sequence>
-      <element name="subId"                  type="xs:unsignedInt"/>
-      <element name="appId"                  type="xs:string" minOccurs="0"/>
-      <element name="parametersJson"         type="xs:string"/>
+      <element name="subId"                  type="unsignedInt"/>
+      <element name="appId"                  type="string" minOccurs="0"/>
+      <element name="parametersJson"         type="string"/>
       <element name="unconfirmedMonitors"    type="tns:ResourceUsageMonitor" maxOccurs="unbounded" minOccurs="0"/>
-      <element name="numUnconfirmedMessages" type="xs:long" minOccurs="0"/>
+      <element name="numUnconfirmedMessages" type="long" minOccurs="0"/>
     </sequence>
   </complexType>
 
   <simpleType name="ResourceUsageMonitorState" bdem:preserveEnumOrder='1'>
-    <restriction base="xs:string">
+    <restriction base="string">
       <enumeration value="STATE_NORMAL"/>
       <enumeration value="STATE_HIGH_WATERMARK"/>
       <enumeration value="STATE_FULL"/>
@@ -1006,37 +1005,37 @@
   </simpleType>
   <complexType name="Message">
     <sequence>
-      <element name="guid"             type="xs:string"/>
-      <element name="sizeBytes"        type="xs:integer"/>
-      <element name="arrivalTimestamp" type="xs:dateTime"/>
+      <element name="guid"             type="string"/>
+      <element name="sizeBytes"        type="integer"/>
+      <element name="arrivalTimestamp" type="dateTime"/>
     </sequence>
   </complexType>
 
   <complexType name="ClusterInfo">
     <sequence>
       <element name="locality" type="tns:Locality"/>
-      <element name="name"     type="xs:string"/>
+      <element name="name"     type="string"/>
       <element name="nodes"    type="tns:ClusterNode" maxOccurs="unbounded" minOccurs="0"/>
     </sequence>
   </complexType>
 
   <complexType name="Domain">
     <sequence>
-      <element name="name"    type="xs:string"/>
+      <element name="name"    type="string"/>
       <element name="command" type="tns:DomainCommand"/>
     </sequence>
   </complexType>
 
   <complexType name="Cluster">
     <sequence>
-      <element name="name"    type="xs:string"/>
+      <element name="name"    type="string"/>
       <element name="command" type="tns:ClusterCommand"/>
     </sequence>
   </complexType>
 
   <complexType name="QueueCommand">
     <choice>
-      <element name="purgeAppId" type="xs:string">
+      <element name="purgeAppId" type="string">
         <annotation>
           <documentation>The special value "*" indicates the entire queue.</documentation>
         </annotation>
@@ -1064,7 +1063,7 @@
 
   <complexType name="StorageQueueCommand">
     <choice>
-      <element name="purgeAppId" type="xs:string">
+      <element name="purgeAppId" type="string">
         <annotation>
           <documentation>The special value "*" indicates the entire queue.</documentation>
         </annotation>
@@ -1074,7 +1073,7 @@
 
   <complexType name="SetTunable">
     <sequence>
-      <element name="name"  type="xs:string"/>
+      <element name="name"  type="string"/>
       <element name="value" type="tns:Value"/>
       <choice>
         <element name="all" type="tns:Void"/>
@@ -1085,7 +1084,7 @@
 
   <complexType name="GetTunable">
     <sequence>
-      <element name="name"  type="xs:string"/>
+      <element name="name"  type="string"/>
       <choice>
         <element name="all" type="tns:Void"/>
         <element name="self" type="tns:Void"/>
@@ -1094,7 +1093,7 @@
   </complexType>
 
   <simpleType name="FileStoreState" bdem:preserveEnumOrder='1'>
-    <restriction base="xs:string">
+    <restriction base="string">
       <enumeration value="open"/>
       <enumeration value="closed"/>
       <enumeration value="stopping"/>
@@ -1103,7 +1102,7 @@
 
   <complexType name="Context">
     <sequence>
-      <element name="queueHandleParametersJson" type="xs:string"/>
+      <element name="queueHandleParametersJson" type="string"/>
     </sequence>
   </complexType>
 
@@ -1112,7 +1111,7 @@
   </complexType>
 
   <simpleType name="ConsumerStatus" bdem:preserveEnumOrder='1'>
-    <restriction base="xs:string">
+    <restriction base="string">
       <enumeration value="alive"/>
       <enumeration value="registered"/>
       <enumeration value="unauthorized"/>
@@ -1120,25 +1119,25 @@
   </simpleType>
   <complexType name="VirtualStorage">
     <sequence>
-      <element name="appId"       type="xs:string"/>
-      <element name="appKey"      type="xs:string"/>
-      <element name="numMessages" type="xs:unsignedInt"/>
+      <element name="appId"       type="string"/>
+      <element name="appKey"      type="string"/>
+      <element name="numMessages" type="unsignedInt"/>
     </sequence>
   </complexType>
 
   <complexType name="ClusterNode">
     <sequence>
-      <element name="hostName"   type="xs:string"/>
-      <element name="nodeId"     type="xs:int"/>
-      <element name="dataCenter" type="xs:string"/>
+      <element name="hostName"   type="string"/>
+      <element name="nodeId"     type="int"/>
+      <element name="dataCenter" type="string"/>
     </sequence>
   </complexType>
 
   <complexType name="ListMessages">
     <sequence>
-      <element name="appId"  type="xs:string" minOccurs="0"/>
-      <element name="offset" type="xs:int"/>
-      <element name="count"  type="xs:int"/>
+      <element name="appId"  type="string" minOccurs="0"/>
+      <element name="offset" type="int"/>
+      <element name="count"  type="int"/>
     </sequence>
   </complexType>
 
