@@ -1887,7 +1887,19 @@
   </complexType>
 
   <complexType name='RaftInstallSnapshotResponse'>
-    <sequence/>
+    <annotation>
+      <documentation>
+        Follower's answer to an InstallSnapshot.
+
+        lastIncludedIndex.: lastIncludedIndex of the InstallSnapshot this
+                            answers.  The leader can send another snapshot
+                            before this answer arrives; the index tells the
+                            two apart.
+      </documentation>
+    </annotation>
+    <sequence>
+      <element name='lastIncludedIndex' type='unsignedLong' default='0'/>
+    </sequence>
   </complexType>
 
   <complexType name='RaftTimeoutNow'>

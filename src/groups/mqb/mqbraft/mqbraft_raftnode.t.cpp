@@ -1663,6 +1663,7 @@ static void test23_forceSnapshot()
         resp.d_term              = term;
         resp.d_sourceNodeId      = peer;
         resp.d_destinationNodeId = leader;
+        resp.d_lastLogIndex      = snapshotIndex;
 
         RaftNodeOutput respOutput(&alloc);
         node->step(resp);
@@ -1706,6 +1707,178 @@ static void test23_forceSnapshot()
     }
 }
 
+static void test24_lateInstallSnapshotResponse()
+// LATE INSTALL SNAPSHOT RESPONSE
+//
+// A leader that sends a peer a second snapshot, with a later
+// 'lastIncludedIndex', before the peer answers the first one, ignores the
+// answer to the first one and resumes AppendEntries only on the answer to the
+// second one.
+{
+    bmqtst::TestHelper::printTestName("LATE INSTALL SNAPSHOT RESPONSE");
+
+    bslma::TestAllocator alloc("test", false);
+
+    TestCluster cluster(3, false, &alloc);
+    for (int n = 0; n < 3; ++n) {
+        for (int i = 0; i < 5; ++i) {
+            cluster.log(n)->append(1, cluster.makeBlob("e"));
+        }
+    }
+
+    const int leader = electLeader(&cluster);
+    BMQTST_ASSERT_GE(leader, 0);
+    const int peer = (leader + 1) % 3;
+
+    RaftNode*      node = cluster.node(leader);
+    MemoryRaftLog* log  = cluster.log(leader);
+
+    // First snapshot.
+    const bsls::Types::Uint64 term = node->currentTerm();
+    log->append(term, cluster.makeBlob("s"));
+    log->setSnapshot(log->lastIndex() - 1, term);
+    const bsls::Types::Uint64 firstIndex = log->snapshotIndex();
+
+    {
+        RaftNodeOutput output(&alloc);
+        node->forceSnapshot();
+        node->flushSends();
+        collect(&output, node);
+    }
+
+    // A second snapshot, forced before the peer answers the first one.
+    log->append(term, cluster.makeBlob("e"));
+    log->append(term, cluster.makeBlob("s"));
+    log->setSnapshot(log->lastIndex() - 1, term);
+    const bsls::Types::Uint64 secondIndex = log->snapshotIndex();
+    BMQTST_ASSERT_GT(secondIndex, firstIndex);
+
+    {
+        RaftNodeOutput output(&alloc);
+        node->forceSnapshot();
+        node->flushSends();
+        collect(&output, node);
+
+        bool resent = false;
+        for (size_t i = 0; i < output.d_messages.size(); ++i) {
+            const RaftMessage& m = output.d_messages[i];
+            if (goesTo(m, peer) &&
+                m.d_type == RaftMessageType::e_INSTALL_SNAPSHOT) {
+                resent = true;
+                BMQTST_ASSERT_EQ(m.d_lastLogIndex, secondIndex);
+            }
+        }
+        BMQTST_ASSERT(resent);
+    }
+
+    RaftMessage resp(&alloc);
+    resp.d_type              = RaftMessageType::e_INSTALL_SNAPSHOT_RESP;
+    resp.d_term              = term;
+    resp.d_sourceNodeId      = peer;
+    resp.d_destinationNodeId = leader;
+
+    // The answer to the first snapshot arrives late: the peer gets nothing.
+    {
+        resp.d_lastLogIndex = firstIndex;
+
+        RaftNodeOutput respOutput(&alloc);
+        node->step(resp);
+        node->flushSends();
+        collect(&respOutput, node);
+        for (size_t i = 0; i < respOutput.d_messages.size(); ++i) {
+            BMQTST_ASSERT(!goesTo(respOutput.d_messages[i], peer));
+        }
+    }
+
+    // The answer to the second snapshot: AppendEntries resume after the second
+    // snapshot.
+    {
+        resp.d_lastLogIndex = secondIndex;
+
+        RaftNodeOutput respOutput(&alloc);
+        node->step(resp);
+        node->flushSends();
+        collect(&respOutput, node);
+
+        bool appended = false;
+        for (size_t i = 0; i < respOutput.d_messages.size(); ++i) {
+            const RaftMessage& m = respOutput.d_messages[i];
+            if (goesTo(m, peer) &&
+                m.d_type == RaftMessageType::e_APPEND_ENTRIES) {
+                appended = true;
+                BMQTST_ASSERT_EQ(m.d_prevLogIndex, secondIndex);
+            }
+        }
+        BMQTST_ASSERT(appended);
+    }
+}
+
+static void test25_compactedPrevLogIndex()
+// COMPACTED PREV LOG INDEX
+//
+// A follower that receives an AppendEntries whose 'prevLogIndex' is below its
+// 'snapshotIndex' rejects it with its last index and keeps its log.  A CSL
+// follower compacts at its own commit index, so a copy of a catch-up message
+// the leader sent earlier can arrive after the compaction.
+{
+    bmqtst::TestHelper::printTestName("COMPACTED PREV LOG INDEX");
+
+    bslma::TestAllocator alloc("test", false);
+    TestCluster          cluster(3, false, &alloc);
+
+    // Follower 1 holds entries 1..14, all at term 1.
+    for (int i = 0; i < 14; ++i) {
+        cluster.log(1)->append(1, cluster.makeBlob("e"));
+    }
+
+    // A heartbeat commits the follower through 13.
+    RaftMessage hb(&alloc);
+    hb.d_type              = RaftMessageType::e_APPEND_ENTRIES;
+    hb.d_term              = 1;
+    hb.d_sourceNodeId      = cluster.node(0)->selfId();
+    hb.d_destinationNodeId = cluster.node(1)->selfId();
+    hb.d_prevLogIndex      = 14;
+    hb.d_prevLogTerm       = 1;
+    hb.d_leaderCommit      = 13;
+    {
+        RaftNodeOutput hbOut(&alloc);
+        cluster.node(1)->step(hb);
+        collect(&hbOut, cluster.node(1));
+    }
+    BMQTST_ASSERT_EQ(cluster.node(1)->commitIndex(), 13ULL);
+
+    // The follower compacts through 12, below its commit index.
+    cluster.log(1)->setSnapshot(12, 1);
+
+    // A catch-up message anchored at index 10, carrying entries 11..14.
+    RaftMessage ae(&alloc);
+    ae.d_type              = RaftMessageType::e_APPEND_ENTRIES;
+    ae.d_term              = 1;
+    ae.d_sourceNodeId      = cluster.node(0)->selfId();
+    ae.d_destinationNodeId = cluster.node(1)->selfId();
+    ae.d_prevLogIndex      = 10;
+    ae.d_prevLogTerm       = 1;
+    ae.d_leaderCommit      = 13;
+    for (bsls::Types::Uint64 index = 11; index <= 14; ++index) {
+        ae.d_entries.push_back(LogEntry(1, index, cluster.makeBlob("e")));
+    }
+
+    RaftNodeOutput out(&alloc);
+    cluster.node(1)->step(ae);
+    collect(&out, cluster.node(1));
+
+    BMQTST_ASSERT_EQ(out.d_messages.size(), 1u);
+    const RaftMessage& resp = out.d_messages[0];
+    BMQTST_ASSERT_EQ(resp.d_type, RaftMessageType::e_APPEND_ENTRIES_RESP);
+    BMQTST_ASSERT(!resp.d_success);
+    BMQTST_ASSERT_EQ(resp.d_matchIndex, 14ULL);
+    BMQTST_ASSERT_EQ(resp.d_rejectedIndex, 10ULL);
+
+    // The log is untouched.
+    BMQTST_ASSERT_EQ(cluster.log(1)->lastIndex(), 14ULL);
+    BMQTST_ASSERT_EQ(cluster.log(1)->snapshotIndex(), 12ULL);
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ============================================================================
@@ -1716,6 +1889,8 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 25: test25_compactedPrevLogIndex(); break;
+    case 24: test24_lateInstallSnapshotResponse(); break;
     case 23: test23_forceSnapshot(); break;
     case 22: test22_persistentState(); break;
     case 21: test21_leadershipTransferAbandoned(); break;

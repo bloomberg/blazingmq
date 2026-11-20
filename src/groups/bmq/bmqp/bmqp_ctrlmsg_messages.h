@@ -6288,14 +6288,28 @@ namespace bmqp_ctrlmsg {
 // =================================
 
 class RaftInstallSnapshotResponse {
+    // Follower's answer to an InstallSnapshot.
+    // lastIncludedIndex.: lastIncludedIndex of the InstallSnapshot this
+    // answers.  The leader can send another snapshot before this answer
+    // arrives; the index tells the two apart.
+
     // INSTANCE DATA
+    bsls::Types::Uint64 d_lastIncludedIndex;
 
   public:
     // TYPES
-    enum { NUM_ATTRIBUTES = 0 };
+    enum { ATTRIBUTE_ID_LAST_INCLUDED_INDEX = 0 };
+
+    enum { NUM_ATTRIBUTES = 1 };
+
+    enum { ATTRIBUTE_INDEX_LAST_INCLUDED_INDEX = 0 };
 
     // CONSTANTS
     static const char CLASS_NAME[];
+
+    static const bsls::Types::Uint64 DEFAULT_INITIALIZER_LAST_INCLUDED_INDEX;
+
+    static const bdlat_AttributeInfo ATTRIBUTE_INFO_ARRAY[];
 
   public:
     // CLASS METHODS
@@ -6310,6 +6324,9 @@ class RaftInstallSnapshotResponse {
     // exists, and 0 otherwise.
 
     // CREATORS
+    RaftInstallSnapshotResponse();
+    // Create an object of type 'RaftInstallSnapshotResponse' having the
+    // default value.
 
     // MANIPULATORS
     void reset();
@@ -6344,6 +6361,10 @@ class RaftInstallSnapshotResponse {
     // corresponding attribute information structure.  Return the value
     // returned from the invocation of 'manipulator' if 'name' identifies
     // an attribute of this class, and -1 otherwise.
+
+    bsls::Types::Uint64& lastIncludedIndex();
+    // Return a reference to the modifiable "LastIncludedIndex" attribute
+    // of this object.
 
     // ACCESSORS
     bsl::ostream&
@@ -6388,13 +6409,18 @@ class RaftInstallSnapshotResponse {
     // invocation of 'accessor' if 'name' identifies an attribute of this
     // class, and -1 otherwise.
 
+    bsls::Types::Uint64 lastIncludedIndex() const;
+    // Return the value of the "LastIncludedIndex" attribute of this
+    // object.
+
     // HIDDEN FRIENDS
-    friend bool operator==(const RaftInstallSnapshotResponse&,
-                           const RaftInstallSnapshotResponse&)
-    // Returns 'true' as this type has no attributes and so all objects of
-    // this type are considered equal.
+    friend bool operator==(const RaftInstallSnapshotResponse& lhs,
+                           const RaftInstallSnapshotResponse& rhs)
+    // Return 'true' if the specified 'lhs' and 'rhs' attribute objects
+    // have the same value, and 'false' otherwise.  Two attribute objects
+    // have the same value if each respective attribute has the same value.
     {
-        return true;
+        return lhs.lastIncludedIndex() == rhs.lastIncludedIndex();
     }
 
     friend bool operator!=(const RaftInstallSnapshotResponse& lhs,
@@ -6413,13 +6439,15 @@ class RaftInstallSnapshotResponse {
     }
 
     template <typename t_HASH_ALGORITHM>
-    friend void hashAppend(t_HASH_ALGORITHM&,
-                           const RaftInstallSnapshotResponse&)
+    friend void hashAppend(t_HASH_ALGORITHM&                  hashAlg,
+                           const RaftInstallSnapshotResponse& object)
     // Pass the specified 'object' to the specified 'hashAlg'.  This
     // function integrates with the 'bslh' modular hashing system and
     // effectively provides a 'bsl::hash' specialization for
     // 'RaftInstallSnapshotResponse'.
     {
+        using bslh::hashAppend;
+        hashAppend(hashAlg, object.lastIncludedIndex());
     }
 };
 
@@ -12321,12 +12349,12 @@ class QueueInfoUpdate {
     // the 'uri', 'key' and 'partitionId' will all be set to null/invalid.
 
     // INSTANCE DATA
-    bsl::vector<char>      d_key;
-    bsl::vector<AppIdInfo> d_addedAppIds;
-    bsl::vector<AppIdInfo> d_removedAppIds;
-    bsl::string            d_uri;
-    bsl::string            d_domain;
-    int                    d_partitionId;
+    bsl::vector<char>       d_key;
+    bsl::vector<AppIdInfo>  d_addedAppIds;
+    bsl::vector<AppIdInfo>  d_removedAppIds;
+    bsl::string             d_uri;
+    bsl::string             d_domain;
+    int                     d_partitionId;
 
     // PRIVATE ACCESSORS
     template <typename t_HASH_ALGORITHM>
@@ -28155,7 +28183,15 @@ template <typename t_MANIPULATOR>
 int RaftInstallSnapshotResponse::manipulateAttributes(
     t_MANIPULATOR& manipulator)
 {
-    (void)manipulator;
+    int ret;
+
+    ret = manipulator(
+        &d_lastIncludedIndex,
+        ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LAST_INCLUDED_INDEX]);
+    if (ret) {
+        return ret;
+    }
+
     return 0;
 }
 
@@ -28164,10 +28200,14 @@ int RaftInstallSnapshotResponse::manipulateAttribute(
     t_MANIPULATOR& manipulator,
     int            id)
 {
-    (void)manipulator;
     enum { NOT_FOUND = -1 };
 
     switch (id) {
+    case ATTRIBUTE_ID_LAST_INCLUDED_INDEX: {
+        return manipulator(
+            &d_lastIncludedIndex,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LAST_INCLUDED_INDEX]);
+    }
     default: return NOT_FOUND;
     }
 }
@@ -28189,11 +28229,23 @@ int RaftInstallSnapshotResponse::manipulateAttribute(
     return manipulateAttribute(manipulator, attributeInfo->d_id);
 }
 
+inline bsls::Types::Uint64& RaftInstallSnapshotResponse::lastIncludedIndex()
+{
+    return d_lastIncludedIndex;
+}
+
 // ACCESSORS
 template <typename t_ACCESSOR>
 int RaftInstallSnapshotResponse::accessAttributes(t_ACCESSOR& accessor) const
 {
-    (void)accessor;
+    int ret;
+
+    ret = accessor(d_lastIncludedIndex,
+                   ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LAST_INCLUDED_INDEX]);
+    if (ret) {
+        return ret;
+    }
+
     return 0;
 }
 
@@ -28201,10 +28253,14 @@ template <typename t_ACCESSOR>
 int RaftInstallSnapshotResponse::accessAttribute(t_ACCESSOR& accessor,
                                                  int         id) const
 {
-    (void)accessor;
     enum { NOT_FOUND = -1 };
 
     switch (id) {
+    case ATTRIBUTE_ID_LAST_INCLUDED_INDEX: {
+        return accessor(
+            d_lastIncludedIndex,
+            ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LAST_INCLUDED_INDEX]);
+    }
     default: return NOT_FOUND;
     }
 }
@@ -28223,6 +28279,12 @@ int RaftInstallSnapshotResponse::accessAttribute(t_ACCESSOR& accessor,
     }
 
     return accessAttribute(accessor, attributeInfo->d_id);
+}
+
+inline bsls::Types::Uint64
+RaftInstallSnapshotResponse::lastIncludedIndex() const
+{
+    return d_lastIncludedIndex;
 }
 
 // ---------------------

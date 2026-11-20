@@ -617,6 +617,32 @@ void RaftNode::handleAppendEntries(RaftNodeOutput*    output,
             return;
         }
 
+        if (msg.d_prevLogIndex < d_log_p->snapshotIndex()) {
+            // 'prevLogIndex' is compacted, so its term is unknown.  Reject
+            // without truncating: the leader resends from this node's last
+            // index.  This is to avoid truncating committed entries (a CSL
+            // follower compacts at its own commit index, so a message the
+            // leader sent earlier can arrive after the compaction).
+            BALL_LOG_INFO << "[partition " << d_config.d_partitionId
+                          << "] self(" << selfName() << ") [term "
+                          << d_currentTerm
+                          << "] REJECT AppendEntries (compacted prevLogIndex) "
+                          << "from " << nodeName(msg.d_sourceNodeId)
+                          << ", prevLogIndex=" << msg.d_prevLogIndex
+                          << " < snapshotIndex=" << d_log_p->snapshotIndex();
+
+            RaftMessage resp(d_allocator_p);
+            resp.d_type              = RaftMessageType::e_APPEND_ENTRIES_RESP;
+            resp.d_term              = d_currentTerm;
+            resp.d_sourceNodeId      = d_config.d_selfId;
+            resp.d_destinationNodeId = msg.d_sourceNodeId;
+            resp.d_success           = false;
+            resp.d_matchIndex        = d_log_p->lastIndex();
+            resp.d_rejectedIndex     = msg.d_prevLogIndex;
+            output->d_messages.push_back(resp);
+            return;
+        }
+
         bsls::Types::Uint64 existingTerm = d_log_p->term(msg.d_prevLogIndex);
         if (existingTerm != msg.d_prevLogTerm) {
             BALL_LOG_INFO << "[partition " << d_config.d_partitionId
@@ -955,9 +981,6 @@ void RaftNode::handleInstallSnapshotResp(RaftNodeOutput*    output,
         return;
     }
 
-    // This response carries no index: 'd_matchIndex' below comes from
-    // 'd_snapshotPendingIndex', so one from an earlier term would advance it
-    // wrongly.
     if (msg.d_term != d_currentTerm) {
         return;
     }
@@ -968,8 +991,21 @@ void RaftNode::handleInstallSnapshotResp(RaftNodeOutput*    output,
         return;
     }
 
-    // 'msg.d_lastLogIndex' is always 0 on this response; advance from
-    // 'd_snapshotPendingIndex' instead.
+    if (msg.d_lastLogIndex != it->second.d_snapshotPendingIndex) {
+        // A response to an earlier snapshot, which a timeout or
+        // 'forceSnapshot' replaced with a later one before the response
+        // arrived.  This is to avoid advancing 'd_matchIndex' to
+        // 'd_snapshotPendingIndex' on a peer that holds only the earlier
+        // snapshot.
+        BALL_LOG_INFO << "[partition " << d_config.d_partitionId << "] self("
+                      << selfName() << ") ignoring InstallSnapshot response "
+                      << "from " << nodeName(msg.d_sourceNodeId)
+                      << " for lastIncludedIndex=" << msg.d_lastLogIndex
+                      << ", pending lastIncludedIndex="
+                      << it->second.d_snapshotPendingIndex;
+        return;
+    }
+
     if (it->second.d_snapshotPending) {
         BALL_LOG_INFO << "[partition " << d_config.d_partitionId << "] self("
                       << selfName()

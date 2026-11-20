@@ -575,7 +575,8 @@ void ClusterStateRaft::toCtrlMsg(bmqp_ctrlmsg::RaftMessage* out,
         is.done()              = true;
     } break;
     case RaftMessageType::e_INSTALL_SNAPSHOT_RESP: {
-        out->choice().makeInstallSnapshotResponse();
+        out->choice().makeInstallSnapshotResponse().lastIncludedIndex() =
+            msg.d_lastLogIndex;
     } break;
     case RaftMessageType::e_APPEND_ENTRIES:
     case RaftMessageType::e_APPEND_ENTRIES_RESP:
@@ -625,6 +626,8 @@ void ClusterStateRaft::fromCtrlMsg(RaftMessage*                     out,
     } break;
     case Choice::SELECTION_ID_INSTALL_SNAPSHOT_RESPONSE: {
         out->d_type = RaftMessageType::e_INSTALL_SNAPSHOT_RESP;
+        out->d_lastLogIndex =
+            msg.choice().installSnapshotResponse().lastIncludedIndex();
     } break;
     default: break;
     }
@@ -1538,7 +1541,7 @@ void ClusterStateRaft::applySnapshotChunk(const bdlbb::Blob&   event,
         return;  // RETURN
     }
 
-    const bsls::Types::Uint64 advertisedIndex = hdr->lastIncludedIndex();
+    const bsls::Types::Uint64 lastIncludedIndex = hdr->lastIncludedIndex();
     hdr.reset();
 
     // The record carries its own term and index in the legacy CSL record
@@ -1563,8 +1566,8 @@ void ClusterStateRaft::applySnapshotChunk(const bdlbb::Blob&   event,
         return;  // RETURN
     }
 
-    const bsls::Types::Uint64 lastIncludedIndex = recHeader->sequenceNumber();
-    const bsls::Types::Uint64 lastIncludedTerm  = recHeader->electorTerm();
+    const bsls::Types::Uint64 recordIndex = recHeader->sequenceNumber();
+    const bsls::Types::Uint64 recordTerm  = recHeader->electorTerm();
     const int recSize = mqbc::ClusterStateLedgerUtil::recordSize(*recHeader);
     recHeader.reset();
 
@@ -1576,7 +1579,7 @@ void ClusterStateRaft::applySnapshotChunk(const bdlbb::Blob&   event,
 
     // A base snapshot is the entry at its own sequence number, so index 0 is
     // not one.  'open()' skips such a record for the same reason.
-    if (lastIncludedIndex == 0) {
+    if (recordIndex == 0) {
         BALL_LOG_ERROR << "Refusing CSL snapshot from "
                        << source->nodeDescription()
                        << ": record has sequence number 0";
@@ -1588,24 +1591,24 @@ void ClusterStateRaft::applySnapshotChunk(const bdlbb::Blob&   event,
     // Installing a record the sender frames differently is what leaves the
     // two disagreeing about 'prevLogIndex' afterwards, so refuse it: no
     // install and no response, which surfaces as the leader retrying.
-    if (advertisedIndex + 1 != lastIncludedIndex) {
+    if (lastIncludedIndex + 1 != recordIndex) {
         BALL_LOG_ERROR << "Refusing CSL snapshot from "
                        << source->nodeDescription() << ": record is the entry "
-                       << "at index " << lastIncludedIndex
+                       << "at index " << recordIndex
                        << ", but the sender advertised snapshotIndex "
-                       << advertisedIndex << " (expected "
-                       << (lastIncludedIndex - 1) << ")";
+                       << lastIncludedIndex << " (expected "
+                       << (recordIndex - 1) << ")";
         return;  // RETURN
     }
 
-    if (lastIncludedIndex <= d_cslLog_mp->lastIndex() &&
-        d_cslLog_mp->term(lastIncludedIndex) == lastIncludedTerm) {
+    if (recordIndex <= d_cslLog_mp->lastIndex() &&
+        d_cslLog_mp->term(recordIndex) == recordTerm) {
         // Already installed: this log holds the record's index at the
         // record's term.  Answer anyway -- the leader resends on every
         // timeout until it hears back.  A record at an index this log does
         // not hold at that term replaces the log, even below
         // 'snapshotIndex()' ('RaftNode::forceSnapshot').
-        BALL_LOG_INFO << "Ignoring CSL snapshot at index " << lastIncludedIndex
+        BALL_LOG_INFO << "Ignoring CSL snapshot at index " << recordIndex
                       << " from " << source->nodeDescription()
                       << ": already installed";
         sendInstallSnapshotResponse(source, lastIncludedIndex);
@@ -1623,9 +1626,8 @@ void ClusterStateRaft::applySnapshotChunk(const bdlbb::Blob&   event,
     }
 
     BALL_LOG_INFO << "Installing CSL snapshot from "
-                  << source->nodeDescription() << " at index "
-                  << lastIncludedIndex << " (term " << lastIncludedTerm
-                  << "): " << clusterMessage;
+                  << source->nodeDescription() << " at index " << recordIndex
+                  << " (term " << recordTerm << "): " << clusterMessage;
 
     // Copy the record out of the event: it seeds the new log file.
     bsl::shared_ptr<bdlbb::Blob> record =
@@ -1651,8 +1653,8 @@ void ClusterStateRaft::applySnapshotChunk(const bdlbb::Blob&   event,
                                       newLog,
                                       newLogId,
                                       record,
-                                      lastIncludedIndex,
-                                      lastIncludedTerm);
+                                      recordIndex,
+                                      recordTerm);
     if (rc != 0) {
         BALL_LOG_ERROR << "Failed to install CSL snapshot, rc=" << rc;
         newLog->close();
@@ -1663,15 +1665,15 @@ void ClusterStateRaft::applySnapshotChunk(const bdlbb::Blob&   event,
     oldLog->close();
     bdls::FilesystemUtil::remove(oldPath);
 
-    // The record is the entry at 'lastIncludedIndex', not yet committed: the
-    // commit drain applies it once the leader commits it, replacing the
-    // cluster state ('applyToState').  Set, not raised: a snapshot
-    // 'forceSnapshot' sent can be below this node's old commit index.
-    d_raftNode_mp->setCommitIndex(lastIncludedIndex - 1);
+    // The record is the entry at 'recordIndex', not yet committed: the commit
+    // drain applies it once the leader commits it, replacing the cluster state
+    // ('applyToState').  Set, not raised: a snapshot 'forceSnapshot' sent can
+    // be below this node's old commit index.
+    d_raftNode_mp->setCommitIndex(lastIncludedIndex);
 
     sendInstallSnapshotResponse(source, lastIncludedIndex);
 
-    BALL_LOG_INFO << "CSL snapshot installed at index " << lastIncludedIndex;
+    BALL_LOG_INFO << "CSL snapshot installed at index " << recordIndex;
 }
 
 void ClusterStateRaft::sendInstallSnapshotResponse(

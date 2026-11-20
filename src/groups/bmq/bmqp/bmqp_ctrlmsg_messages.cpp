@@ -2809,14 +2809,32 @@ bsl::ostream& RaftInstallSnapshot::print(bsl::ostream& stream,
 const char RaftInstallSnapshotResponse::CLASS_NAME[] =
     "RaftInstallSnapshotResponse";
 
+const bsls::Types::Uint64
+    RaftInstallSnapshotResponse::DEFAULT_INITIALIZER_LAST_INCLUDED_INDEX = 0;
+
+const bdlat_AttributeInfo RaftInstallSnapshotResponse::ATTRIBUTE_INFO_ARRAY[] =
+    {{ATTRIBUTE_ID_LAST_INCLUDED_INDEX,
+      "lastIncludedIndex",
+      sizeof("lastIncludedIndex") - 1,
+      "",
+      bdlat_FormattingMode::e_DEC}};
+
 // CLASS METHODS
 
 const bdlat_AttributeInfo*
 RaftInstallSnapshotResponse::lookupAttributeInfo(const char* name,
                                                  int         nameLength)
 {
-    (void)name;
-    (void)nameLength;
+    for (int i = 0; i < 1; ++i) {
+        const bdlat_AttributeInfo& attributeInfo =
+            RaftInstallSnapshotResponse::ATTRIBUTE_INFO_ARRAY[i];
+
+        if (nameLength == attributeInfo.d_nameLength &&
+            0 == bsl::memcmp(attributeInfo.d_name_p, name, nameLength)) {
+            return &attributeInfo;
+        }
+    }
+
     return 0;
 }
 
@@ -2824,23 +2842,36 @@ const bdlat_AttributeInfo*
 RaftInstallSnapshotResponse::lookupAttributeInfo(int id)
 {
     switch (id) {
+    case ATTRIBUTE_ID_LAST_INCLUDED_INDEX:
+        return &ATTRIBUTE_INFO_ARRAY[ATTRIBUTE_INDEX_LAST_INCLUDED_INDEX];
     default: return 0;
     }
 }
 
 // CREATORS
 
+RaftInstallSnapshotResponse::RaftInstallSnapshotResponse()
+: d_lastIncludedIndex(DEFAULT_INITIALIZER_LAST_INCLUDED_INDEX)
+{
+}
+
 // MANIPULATORS
 
 void RaftInstallSnapshotResponse::reset()
 {
+    d_lastIncludedIndex = DEFAULT_INITIALIZER_LAST_INCLUDED_INDEX;
 }
 
 // ACCESSORS
 
-bsl::ostream&
-RaftInstallSnapshotResponse::print(bsl::ostream& stream, int, int) const
+bsl::ostream& RaftInstallSnapshotResponse::print(bsl::ostream& stream,
+                                                 int           level,
+                                                 int spacesPerLevel) const
 {
+    bslim::Printer printer(&stream, level, spacesPerLevel);
+    printer.start();
+    printer.printAttribute("lastIncludedIndex", this->lastIncludedIndex());
+    printer.end();
     return stream;
 }
 

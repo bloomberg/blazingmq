@@ -1327,7 +1327,8 @@ void PartitionRaft::toCtrlMsg(bmqp_ctrlmsg::RaftMessage* out,
         is.done()              = true;
     } break;
     case RaftMessageType::e_INSTALL_SNAPSHOT_RESP: {
-        out->choice().makeInstallSnapshotResponse();
+        out->choice().makeInstallSnapshotResponse().lastIncludedIndex() =
+            msg.d_lastLogIndex;
     } break;
     case RaftMessageType::e_APPEND_ENTRIES:
     case RaftMessageType::e_APPEND_ENTRIES_RESP:
@@ -1377,6 +1378,8 @@ void PartitionRaft::fromCtrlMsg(RaftMessage*                     out,
     } break;
     case Choice::SELECTION_ID_INSTALL_SNAPSHOT_RESPONSE: {
         out->d_type = RaftMessageType::e_INSTALL_SNAPSHOT_RESP;
+        out->d_lastLogIndex =
+            msg.choice().installSnapshotResponse().lastIncludedIndex();
     } break;
     default: break;
     }
