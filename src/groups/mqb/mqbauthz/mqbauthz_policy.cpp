@@ -26,6 +26,7 @@
 #include <bdlpcre_regex.h>
 #include <bsl_algorithm.h>
 #include <bsl_optional.h>
+#include <bsl_set.h>
 #include <bsl_string_view.h>
 #include <bsl_unordered_map.h>
 #include <bsl_variant.h>

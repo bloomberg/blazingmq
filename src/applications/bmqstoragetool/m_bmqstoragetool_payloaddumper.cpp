@@ -24,6 +24,7 @@
 #include <bmqp_messageproperties.h>
 #include <bmqu_memoutstream.h>
 #include <bsl_algorithm.h>
+#include <bsl_memory.h>
 #include <bsl_ostream.h>
 
 namespace BloombergLP {
