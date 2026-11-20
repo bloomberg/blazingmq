@@ -1202,6 +1202,9 @@ class FileStore BSLS_KEYWORD_FINAL : public DataStore {
     /// Return a printable description of the client (e.g. for logging).
     bsl::string_view description() const BSLS_KEYWORD_OVERRIDE;
 
+    /// Return the partition id associated with this record store.
+    int partitionId() const BSLS_KEYWORD_OVERRIDE;
+
     /// Load into the specified `fileStoreSet` the active (current) file
     /// set.  The behavior is undefined unless there is a fileSet in current
     /// use.
@@ -1478,6 +1481,11 @@ inline mqbi::DispatcherClientData& FileStore::dispatcherClientData()
 inline bsl::string_view FileStore::description() const
 {
     return partitionDesc();
+}
+
+inline int FileStore::partitionId() const
+{
+    return d_config.partitionId();
 }
 
 inline bool FileStore::isOpen() const

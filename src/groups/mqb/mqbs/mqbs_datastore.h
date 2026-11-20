@@ -571,49 +571,23 @@ bool operator==(const DataStoreRecordHandle& lhs,
 bool operator!=(const DataStoreRecordHandle& lhs,
                 const DataStoreRecordHandle& rhs);
 
-// ===============
-// class DataStore
-// ===============
+// =================
+// class RecordStore
+// =================
 
-/// This component provides an interface for a BlazingMQ data store.
-class DataStore : public mqbi::DispatcherClient {
+/// Narrow interface used by 'FileBackedStorage' to write and read records
+/// for a single partition.  Both the legacy 'FileStore' (via 'DataStore')
+/// and 'PartitionRaft' implement this interface.
+class RecordStore {
   public:
     // TYPES
     typedef mqbi::Storage::AppInfos AppInfos;
 
-    typedef DataStoreConfig::QueueKeyInfoMap QueueKeyInfoMap;
-
   public:
     // CREATORS
-    virtual ~DataStore() BSLS_KEYWORD_OVERRIDE;
+    virtual ~RecordStore();
 
     // MANIPULATORS
-
-    /// Open this instance using the optionally specified `queueKeyInfoMap`,
-    /// which must be supplied only when self is the primary.  The specified
-    /// `primaryLeaseId` is the leaseId of the current primary; it is unused
-    /// when `queueKeyInfoMap` is null.  Return zero on success, non-zero value
-    /// otherwise.
-    virtual int open(QueueKeyInfoMap* queueKeyInfoMap,
-                     unsigned int     primaryLeaseId) = 0;
-
-    /// Close this instance.  If the optional `flush` flag is true, flush
-    /// the data store to the backup storage (e.g., disk) if applicable.
-    /// If the optional `archive` flag is true, archive the data store.  Return
-    /// zero on success, non-zero value otherwise.
-    virtual int close(bool flush = false, bool archive = false) = 0;
-
-    /// Create and load into the specified `storageSp` an instance of
-    /// ReplicatedStorage for the queue having the specified `queueUri` and
-    /// `queueKey` and belonging to the specified `domain`.  Behavior is
-    /// undefined unless `storageSp` and `domain` are non-null.
-    virtual void createStorage(bsl::shared_ptr<ReplicatedStorage>* storageSp,
-                               const bmqt::Uri&                    queueUri,
-                               const mqbu::StorageKey&             queueKey,
-                               mqbi::Domain*                       domain) = 0;
-
-    /// Payload related
-    /// ---------------
 
     /// @brief Write a message to the data store.
     ///
@@ -683,14 +657,105 @@ class DataStore : public mqbi::DispatcherClient {
     virtual int writeSyncPointRecord(const bmqp_ctrlmsg::SyncPoint& syncPoint,
                                      SyncPointType::Enum            type) = 0;
 
+    /// Create and load into the specified `storageSp` an instance of
+    /// ReplicatedStorage for the queue having the specified `queueUri`
+    /// and `queueKey` and belonging to the specified `domain`.
+    virtual void createStorage(bsl::shared_ptr<ReplicatedStorage>* storageSp,
+                               const bmqt::Uri&                    queueUri,
+                               const mqbu::StorageKey&             queueKey,
+                               mqbi::Domain*                       domain) = 0;
+
     /// Remove the record identified by the specified `handle`.  Behavior is
     /// undefined unless `handle` is valid and represents a record in the
     /// data store.
     virtual void removeRecordRaw(const DataStoreRecordHandle& handle) = 0;
 
+    /// Close this record store.  If the optional `flush` flag is true, flush
+    /// to the backup storage (e.g., disk) if applicable.  If the optional
+    /// `archive` flag is true, archive it.  Return zero on success, non-zero
+    /// value otherwise.  `PartitionRaft` first drops any outstanding pending
+    /// write (e.g. an uncommitted shutdown sync point) before delegating to
+    /// its `FileStore`, so no reference into the file set outlives this call
+    /// on account of Raft bookkeeping.  The behavior is undefined unless
+    /// called on this record store's dispatcher thread (see `execute`).
+    virtual int close(bool flush = false, bool archive = false) = 0;
+
     /// Attempt to rollover the journal if needed after a purge has cleared
     /// outstanding records.
     virtual void onPurgeComplete() = 0;
+
+    /// Flush any buffered replication messages to the peers.  Behaviour is
+    /// undefined unless this cluster node is the primary for this partition.
+    virtual void flushStorage() = 0;
+
+    // ACCESSORS
+
+    /// @brief Load a message identified by a record handle.
+    ///
+    /// @param[out] appData Loaded with the application data of the message.
+    /// @param[out] options Loaded with the options of the message.
+    /// @param[out] attributes Loaded with the attributes of the message.
+    /// @param handle The handle of the message record.
+    virtual void loadMessageRaw(bsl::shared_ptr<const bdlbb::Blob>* appData,
+                                bsl::shared_ptr<bdlbb::Blob>*       options,
+                                mqbi::StorageMessageAttributes*     attributes,
+                                const DataStoreRecordHandle& handle) const = 0;
+
+    virtual void
+    loadMessageAttributesRaw(mqbi::StorageMessageAttributes* buffer,
+                             const DataStoreRecordHandle&    handle) const = 0;
+
+    virtual void
+    loadQueueOpRecordRaw(QueueOpRecord*               buffer,
+                         const DataStoreRecordHandle& handle) const = 0;
+
+    virtual unsigned int
+    getMessageLenRaw(const DataStoreRecordHandle& handle) const = 0;
+
+    /// Return the write-head leaseId for this partition: the lease id of the
+    /// next record this store writes or applies.
+    virtual unsigned int writeHeadLeaseId() const = 0;
+
+    /// Return `true` if there was Replication Receipt for the specified
+    /// `handle`.
+    virtual bool hasReceipt(const DataStoreRecordHandle& handle) const = 0;
+
+    /// Return the partition id associated with this record store.
+    virtual int partitionId() const = 0;
+
+    /// Return a printable description of the client (e.g., for logging).
+    /// The returned view is valid for the lifetime of this object and must
+    /// be copied before any deferred use.
+    virtual bsl::string_view description() const = 0;
+};
+
+// ===============
+// class DataStore
+// ===============
+
+/// This component provides an interface for a BlazingMQ data store.
+class DataStore : public RecordStore, public mqbi::DispatcherClient {
+  public:
+    // TYPES
+    typedef mqbi::Storage::AppInfos AppInfos;
+
+    typedef DataStoreConfig::QueueKeyInfoMap QueueKeyInfoMap;
+
+  public:
+    // CREATORS
+    virtual ~DataStore() BSLS_KEYWORD_OVERRIDE;
+
+    // MANIPULATORS
+
+    /// Open this instance using the optionally specified `queueKeyInfoMap`,
+    /// which must be supplied only when self is the primary.  The specified
+    /// `primaryLeaseId` is the leaseId of the current primary; it is unused
+    /// when `queueKeyInfoMap` is null.  Return zero on success, non-zero value
+    /// otherwise.
+    virtual int open(QueueKeyInfoMap* queueKeyInfoMap,
+                     unsigned int     primaryLeaseId) = 0;
+
+    // 'close()' is inherited from 'RecordStore'.
 
     /// @brief Process a storage event containing one or more storage
     ///        messages.
@@ -743,10 +808,6 @@ class DataStore : public mqbi::DispatcherClient {
     /// Clear the current primary associated with this partition.
     virtual void clearPrimary() = 0;
 
-    /// Flush any buffered replication messages to the peers.  Behaviour is
-    /// undefined unless this cluster node is the primary for this partition.
-    virtual void flushStorage() = 0;
-
     // ACCESSORS
 
     /// Return true if this instance is open, false otherwise.
@@ -772,36 +833,6 @@ class DataStore : public mqbi::DispatcherClient {
     virtual void
     loadDeletionRecordRaw(DeletionRecord*              buffer,
                           const DataStoreRecordHandle& handle) const = 0;
-
-    virtual void
-    loadQueueOpRecordRaw(QueueOpRecord*               buffer,
-                         const DataStoreRecordHandle& handle) const = 0;
-
-    virtual void
-    loadMessageAttributesRaw(mqbi::StorageMessageAttributes* buffer,
-                             const DataStoreRecordHandle&    handle) const = 0;
-
-    /// @brief Load a message identified by a record handle.
-    ///
-    /// @param[out] appData Loaded with the application data of the message.
-    /// @param[out] options Loaded with the options of the message.
-    /// @param[out] attributes Loaded with the attributes of the message.
-    /// @param handle The handle of the message record.
-    virtual void loadMessageRaw(bsl::shared_ptr<const bdlbb::Blob>* appData,
-                                bsl::shared_ptr<bdlbb::Blob>*       options,
-                                mqbi::StorageMessageAttributes*     attributes,
-                                const DataStoreRecordHandle& handle) const = 0;
-
-    virtual unsigned int
-    getMessageLenRaw(const DataStoreRecordHandle& handle) const = 0;
-
-    /// Return the write-head leaseId for this partition: the lease id of the
-    /// next record this store writes or applies.
-    virtual unsigned int writeHeadLeaseId() const = 0;
-
-    /// Return `true` if there was Replication Receipt for the specified
-    /// `handle`.
-    virtual bool hasReceipt(const DataStoreRecordHandle& handle) const = 0;
 };
 
 // ============================================================================
