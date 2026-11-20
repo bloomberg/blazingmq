@@ -217,10 +217,10 @@ static void test1_compilationErrors()
         // unsupported_ints
         {"i_0 != 9223372036854775808",
          ErrorType::e_SYNTAX,
-         "integer overflow at offset 7"},  // 2 ** 63
+         "syntax error, unexpected integer overflow at offset 7"},  // 2 ** 63
         {"i_0 != -170141183460469231731687303715884105728",
          ErrorType::e_SYNTAX,
-         "integer overflow at offset 7"},  // -(2 ** 127)
+         "integer overflow at offset 8"},  // -(2 ** 127)
         {"i_0 != 170141183460469231731687303715884105727",
          ErrorType::e_SYNTAX,
          "integer overflow at offset 7"},  // 2 ** 127 - 1
@@ -228,12 +228,30 @@ static void test1_compilationErrors()
          "-5789604461865809771178549250434395392663499233282028201972879200395"
          "6564819968",
          ErrorType::e_SYNTAX,
-         "integer overflow at offset 7"},  // -(2 ** 255)
+         "integer overflow at offset 8"},  // -(2 ** 255)
         {"i_0 != "
          "57896044618658097711785492504343953926634992332820282019728792003956"
          "564819967",
          ErrorType::e_SYNTAX,
          "integer overflow at offset 7"},  // 2 ** 255 - 1
+        {"i_0 - 9223372036854775808 < 0",
+         ErrorType::e_SYNTAX,
+         "syntax error, unexpected integer overflow at offset 6"},  // 2 ** 63
+        {"9223372036854775808 + -9223372036854775808 > i_0",
+         ErrorType::e_SYNTAX,
+         "syntax error, unexpected integer overflow at offset 0"},  // 2 ** 63
+        {"i_0 != -(9223372036854775808)",
+         ErrorType::e_SYNTAX,
+         "syntax error, unexpected integer overflow at offset 9"},  // 2 ** 63
+
+        // unary minus is an operator, including on literals
+        {"i_0 != -1 && i_0 != -2 && i_0 != -3 && b_true",
+         ErrorType::e_TOO_COMPLEX,
+         "too many operators (13), max allowed operators: 10"},
+        {"i_0 != -9223372036854775808 && i_0 != -9223372036854775808 && "
+         "i_0 != -9223372036854775808",
+         ErrorType::e_TOO_COMPLEX,
+         "too many operators (11), max allowed operators: 10"},
     };
     const TestParameters* testParametersEnd = testParameters +
                                               sizeof(testParameters) /
@@ -528,6 +546,17 @@ static void test3_evaluation()
         {"i_2 * 20 + 2 == 42", true},
         {"i_2 + 20 * 2 == 42", true},
         {"-i_1 + 1 == 0", true},
+        // subtraction without spaces
+        {"i_2-1 == 1", true},
+        {"i_2 -1 == 1", true},
+        {"(i_2)-1 == 1", true},
+        {"i_42-2-20 == 20", true},
+        {"i_2*3-1 == 5", true},
+        {"i_1-1*2 == -1", true},
+        {"i_0 - -1 == 1", true},
+        {"i_0-9223372036854775807 == -9223372036854775807", true},
+        // negation of 9223372036854775808 (2 ** 63)
+        {"i_0 != - 9223372036854775808", true},
 
         // boolean literals
         // test literals on both sides; throw in a property to fool validation

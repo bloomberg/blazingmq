@@ -68,6 +68,7 @@
 %token <bsl::string> PROPERTY "property"
 %token <bsl::string> STRING "string"
 %token <uint64_t> INTEGER "integer"
+%token INTEGER_MIN_MAGNITUDE "integer overflow"
 %token TRUE "true"
 %token FALSE "false"
 %token LPAR "("
@@ -171,6 +172,12 @@ expression
         { $$ = ctx.makeNumBinaryExpression<bsl::modulus>($1, $3); }
     | MINUS expression %prec NOT
         { $$ = ctx.makeUnaryExpression<SimpleEvaluator::UnaryMinus>($2); }
+    | MINUS INTEGER_MIN_MAGNITUDE
+        {
+            ++ctx.d_numOperators;
+            $$ = ctx.makeLiteral<SimpleEvaluator::IntegerLiteral>(
+                bsl::numeric_limits<bsls::Types::Int64>::min());
+        }
     | LPAR expression RPAR
         { $$ = $2; }
 
