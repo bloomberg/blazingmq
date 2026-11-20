@@ -146,6 +146,7 @@ class TCPSessionFactoryTest : public ::testing::Test {
     mqbcfg::TcpInterfaceConfig     d_tcpConfig;
     bdlmt::EventScheduler          d_scheduler;
     bdlbb::PooledBlobBufferFactory d_blobBufferFactory;
+    mqbnet::TCPSessionFactory::BlobSpPool d_blobSpPool;
     MockAuthenticator              d_authenticator;
     MockNegotiator                 d_negotiator;
     mqbplug::PluginManager         d_pluginManager;
@@ -179,6 +180,7 @@ class TCPSessionFactoryTest : public ::testing::Test {
     , d_tcpConfig(d_allocator)
     , d_scheduler(bsls::SystemClockType::e_MONOTONIC, d_allocator)
     , d_blobBufferFactory(1024, d_allocator)
+    , d_blobSpPool(1024, d_allocator)
     , d_authenticator()
     , d_negotiator()
     , d_pluginManager(d_allocator)
@@ -191,6 +193,7 @@ class TCPSessionFactoryTest : public ::testing::Test {
     , d_tcpSessionFactory(d_tcpConfig,
                           &d_scheduler,
                           &d_blobBufferFactory,
+                          &d_blobSpPool,
                           &d_authenticator,
                           &d_negotiator,
                           &d_statController,
