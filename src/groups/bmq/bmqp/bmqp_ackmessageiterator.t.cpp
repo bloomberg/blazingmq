@@ -43,6 +43,13 @@ using namespace bsl;
 // ----------------------------------------------------------------------------
 namespace {
 
+// Values of the single ACK message built by `populateBlob(blob, eh)`.
+// `test5_dumpBlob` hard-codes a hex dump derived from them.
+const int           k_ACK_STATUS   = 3;
+const int           k_ACK_CORR_ID  = 54321;
+const int           k_ACK_QUEUE_ID = 9876;
+const unsigned char k_ACK_FLAGS    = 62;
+
 struct Data {
     // DATA
     int               d_status;
@@ -116,13 +123,11 @@ void populateBlob(bdlbb::Blob*       blob,
     e->setLength(eventLength);
 }
 
-void populateBlob(bdlbb::Blob*             blob,
-                  bmqp::EventHeader*       eh,
-                  int                      status,
-                  int                      corrId,
-                  const bmqt::MessageGUID& guid,
-                  int                      queueId,
-                  unsigned char            flags)
+/// @brief Populate the specified `blob` with an ACK event holding a single
+///        ACK message built from the `k_ACK_*` values and a default GUID.
+/// @param[out] blob The blob to append the event to.
+/// @param[out] eh   The event header written at the start of `blob`.
+void populateBlob(bdlbb::Blob* blob, bmqp::EventHeader* eh)
 {
     int eventLength = sizeof(bmqp::EventHeader) + sizeof(bmqp::AckHeader) +
                       sizeof(bmqp::AckMessage);
@@ -139,7 +144,7 @@ void populateBlob(bdlbb::Blob*             blob,
 
     // AckHeader
     bmqp::AckHeader ah;
-    ah.setFlags(flags)
+    ah.setFlags(k_ACK_FLAGS)
         .setHeaderWords(sizeof(bmqp::AckHeader) / bmqp::Protocol::k_WORD_SIZE)
         .setPerMessageWords(sizeof(bmqp::AckMessage) /
                             bmqp::Protocol::k_WORD_SIZE);
@@ -149,10 +154,10 @@ void populateBlob(bdlbb::Blob*             blob,
                             sizeof(bmqp::AckHeader));
 
     bmqp::AckMessage ackMessage;
-    ackMessage.setStatus(status)
-        .setCorrelationId(corrId)
-        .setMessageGUID(guid)
-        .setQueueId(queueId);
+    ackMessage.setStatus(k_ACK_STATUS)
+        .setCorrelationId(k_ACK_CORR_ID)
+        .setMessageGUID(bmqt::MessageGUID())
+        .setQueueId(k_ACK_QUEUE_ID);
 
     bdlbb::BlobUtil::append(blob,
                             reinterpret_cast<const char*>(&ackMessage),
@@ -221,32 +226,22 @@ static void test1_breathingTest()
         bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Populate blob
-        const bmqt::MessageGUID GUID;
+        const bmqt::MessageGUID k_GUID;
         bmqp::EventHeader       eventHeader;
-        unsigned char           FLAGS    = 62;
-        const int               CORR_ID  = 54321;
-        const int               STATUS   = 3;
-        const int               QUEUE_ID = 9876;
 
-        populateBlob(&blob,
-                     &eventHeader,
-                     STATUS,
-                     CORR_ID,
-                     GUID,
-                     QUEUE_ID,
-                     FLAGS);
+        populateBlob(&blob, &eventHeader);
 
         // Iterate and verify
         bmqp::AckMessageIterator iter(&blob, eventHeader);
 
         BMQTST_ASSERT_EQ(true, iter.isValid());
         BMQTST_ASSERT_EQ(1, iter.next());
-        BMQTST_ASSERT_EQ(FLAGS, iter.header().flags());
+        BMQTST_ASSERT_EQ(k_ACK_FLAGS, iter.header().flags());
 
-        BMQTST_ASSERT_EQ(STATUS, iter.message().status());
-        BMQTST_ASSERT_EQ(CORR_ID, iter.message().correlationId());
-        BMQTST_ASSERT_EQ(GUID, iter.message().messageGUID());
-        BMQTST_ASSERT_EQ(QUEUE_ID, iter.message().queueId());
+        BMQTST_ASSERT_EQ(k_ACK_STATUS, iter.message().status());
+        BMQTST_ASSERT_EQ(k_ACK_CORR_ID, iter.message().correlationId());
+        BMQTST_ASSERT_EQ(k_GUID, iter.message().messageGUID());
+        BMQTST_ASSERT_EQ(k_ACK_QUEUE_ID, iter.message().queueId());
 
         BMQTST_ASSERT_EQ(false, iter.next());
         BMQTST_ASSERT_EQ(false, iter.isValid());
@@ -274,12 +269,12 @@ static void test1_breathingTest()
         iter.reset(&blob, eventHeader);
         BMQTST_ASSERT_EQ(true, iter.isValid());
         BMQTST_ASSERT_EQ(1, iter.next());
-        BMQTST_ASSERT_EQ(FLAGS, iter.header().flags());
+        BMQTST_ASSERT_EQ(k_ACK_FLAGS, iter.header().flags());
 
-        BMQTST_ASSERT_EQ(STATUS, iter.message().status());
-        BMQTST_ASSERT_EQ(CORR_ID, iter.message().correlationId());
-        BMQTST_ASSERT_EQ(GUID, iter.message().messageGUID());
-        BMQTST_ASSERT_EQ(QUEUE_ID, iter.message().queueId());
+        BMQTST_ASSERT_EQ(k_ACK_STATUS, iter.message().status());
+        BMQTST_ASSERT_EQ(k_ACK_CORR_ID, iter.message().correlationId());
+        BMQTST_ASSERT_EQ(k_GUID, iter.message().messageGUID());
+        BMQTST_ASSERT_EQ(k_ACK_QUEUE_ID, iter.message().queueId());
 
         BMQTST_ASSERT_EQ(0, iter.next());
         BMQTST_ASSERT_EQ(false, iter.isValid());
@@ -289,12 +284,12 @@ static void test1_breathingTest()
         iter2 = iter;
         BMQTST_ASSERT_EQ(true, iter2.isValid());
         BMQTST_ASSERT_EQ(1, iter2.next());
-        BMQTST_ASSERT_EQ(FLAGS, iter2.header().flags());
+        BMQTST_ASSERT_EQ(k_ACK_FLAGS, iter2.header().flags());
 
-        BMQTST_ASSERT_EQ(STATUS, iter2.message().status());
-        BMQTST_ASSERT_EQ(CORR_ID, iter2.message().correlationId());
-        BMQTST_ASSERT_EQ(GUID, iter2.message().messageGUID());
-        BMQTST_ASSERT_EQ(QUEUE_ID, iter2.message().queueId());
+        BMQTST_ASSERT_EQ(k_ACK_STATUS, iter2.message().status());
+        BMQTST_ASSERT_EQ(k_ACK_CORR_ID, iter2.message().correlationId());
+        BMQTST_ASSERT_EQ(k_GUID, iter2.message().messageGUID());
+        BMQTST_ASSERT_EQ(k_ACK_QUEUE_ID, iter2.message().queueId());
 
         BMQTST_ASSERT_EQ(0, iter2.next());
         BMQTST_ASSERT_EQ(false, iter2.isValid());
@@ -303,12 +298,12 @@ static void test1_breathingTest()
         BMQTST_ASSERT_EQ(iter2.reset(&blob, iter), 0);
         BMQTST_ASSERT_EQ(true, iter2.isValid());
         BMQTST_ASSERT_EQ(1, iter2.next());
-        BMQTST_ASSERT_EQ(FLAGS, iter2.header().flags());
+        BMQTST_ASSERT_EQ(k_ACK_FLAGS, iter2.header().flags());
 
-        BMQTST_ASSERT_EQ(STATUS, iter2.message().status());
-        BMQTST_ASSERT_EQ(CORR_ID, iter2.message().correlationId());
-        BMQTST_ASSERT_EQ(GUID, iter2.message().messageGUID());
-        BMQTST_ASSERT_EQ(QUEUE_ID, iter2.message().queueId());
+        BMQTST_ASSERT_EQ(k_ACK_STATUS, iter2.message().status());
+        BMQTST_ASSERT_EQ(k_ACK_CORR_ID, iter2.message().correlationId());
+        BMQTST_ASSERT_EQ(k_GUID, iter2.message().messageGUID());
+        BMQTST_ASSERT_EQ(k_ACK_QUEUE_ID, iter2.message().queueId());
 
         BMQTST_ASSERT_EQ(0, iter2.next());
         BMQTST_ASSERT_EQ(false, iter2.isValid());
@@ -403,14 +398,6 @@ static void test3_nextMethod()
 
     // Test iterating over ACK event having multiple ACK messages
 
-    // Default values for event header
-    // Populate blob
-    const bmqt::MessageGUID k_GUID;
-    unsigned char           k_FLAGS    = 62;
-    const int               k_CORR_ID  = 54321;
-    const int               k_STATUS   = 3;
-    const int               k_QUEUE_ID = 9876;
-
     bmqp::EventHeader eventHeader;
 
     // Next method. Iterator is in invalid state case.
@@ -422,13 +409,7 @@ static void test3_nextMethod()
         bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Populate blob
-        populateBlob(&blob,
-                     &eventHeader,
-                     k_STATUS,
-                     k_CORR_ID,
-                     k_GUID,
-                     k_QUEUE_ID,
-                     k_FLAGS);
+        populateBlob(&blob, &eventHeader);
 
         // Create valid iterator
         bmqp::AckMessageIterator iter(&blob, eventHeader);
@@ -449,13 +430,7 @@ static void test3_nextMethod()
         bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Populate blob
-        populateBlob(&blob,
-                     &eventHeader,
-                     k_STATUS,
-                     k_CORR_ID,
-                     k_GUID,
-                     k_QUEUE_ID,
-                     k_FLAGS);
+        populateBlob(&blob, &eventHeader);
 
         // Min buf size not to reproduce given rc
         const size_t enoughSize = sizeof(bmqp::EventHeader) +
@@ -503,14 +478,6 @@ static void test4_resetMethod()
     // --------------------------------------------------------------------
     bmqtst::TestHelper::printTestName("RESET METHOD");
 
-    // Default values for event header
-    // Populate blob
-    const bmqt::MessageGUID k_GUID;
-    unsigned char           k_FLAGS    = 62;
-    const int               k_CORR_ID  = 54321;
-    const int               k_STATUS   = 3;
-    const int               k_QUEUE_ID = 9876;
-
     bmqp::EventHeader eventHeader;
 
     // Reset method. Invalid event header case.
@@ -523,13 +490,7 @@ static void test4_resetMethod()
         bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Populate blob and manually set length
-        populateBlob(&blob,
-                     &eventHeader,
-                     k_STATUS,
-                     k_CORR_ID,
-                     k_GUID,
-                     k_QUEUE_ID,
-                     k_FLAGS);
+        populateBlob(&blob, &eventHeader);
 
         // Min buf size not to reproduce given rc
         const size_t enoughSize = sizeof(bmqp::EventHeader) + 1;
@@ -558,13 +519,7 @@ static void test4_resetMethod()
         bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Populate blob and manually set length
-        populateBlob(&blob,
-                     &eventHeader,
-                     k_STATUS,
-                     k_CORR_ID,
-                     k_GUID,
-                     k_QUEUE_ID,
-                     k_FLAGS);
+        populateBlob(&blob, &eventHeader);
 
         // Min buf size not to reproduce given rc
         const size_t enoughSize = sizeof(bmqp::EventHeader) +
@@ -590,13 +545,7 @@ static void test4_resetMethod()
         bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Populate blob and corrupt the AckHeader
-        populateBlob(&blob,
-                     &eventHeader,
-                     k_STATUS,
-                     k_CORR_ID,
-                     k_GUID,
-                     k_QUEUE_ID,
-                     k_FLAGS);
+        populateBlob(&blob, &eventHeader);
         bmqp::AckHeader* ah = reinterpret_cast<bmqp::AckHeader*>(
             blob.buffer(0).data() + sizeof(bmqp::EventHeader));
         ah->setHeaderWords(0);
@@ -617,13 +566,7 @@ static void test4_resetMethod()
         bdlbb::Blob blob(&bufferFactory, bmqtst::TestHelperUtil::allocator());
 
         // Populate blob and corrupt the AckHeader
-        populateBlob(&blob,
-                     &eventHeader,
-                     k_STATUS,
-                     k_CORR_ID,
-                     k_GUID,
-                     k_QUEUE_ID,
-                     k_FLAGS);
+        populateBlob(&blob, &eventHeader);
         bmqp::AckHeader* ah = reinterpret_cast<bmqp::AckHeader*>(
             blob.buffer(0).data() + sizeof(bmqp::EventHeader));
         ah->setPerMessageWords(0);
@@ -660,12 +603,6 @@ static void test5_dumpBlob()
 
     // Test iterator dump contains expected value
 
-    const bmqt::MessageGUID k_GUID;
-    unsigned char           k_FLAGS    = 62;
-    const int               k_CORR_ID  = 54321;
-    const int               k_STATUS   = 3;
-    const int               k_QUEUE_ID = 9876;
-
     bdlbb::PooledBlobBufferFactory bufferFactory(
         1024,
         bmqtst::TestHelperUtil::allocator());
@@ -674,13 +611,7 @@ static void test5_dumpBlob()
     bmqu::MemOutStream stream(bmqtst::TestHelperUtil::allocator());
 
     // Populate blob
-    populateBlob(&blob,
-                 &eventHeader,
-                 k_STATUS,
-                 k_CORR_ID,
-                 k_GUID,
-                 k_QUEUE_ID,
-                 k_FLAGS);
+    populateBlob(&blob, &eventHeader);
 
     //  Create and check iterator blob layout
     {
