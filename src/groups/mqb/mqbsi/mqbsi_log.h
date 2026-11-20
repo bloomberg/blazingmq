@@ -46,6 +46,7 @@
 #include <bsl_string.h>
 #include <bslma_allocator.h>
 #include <bslma_managedptr.h>
+#include <bslma_usesbslmaallocator.h>
 #include <bsls_types.h>
 
 namespace BloombergLP {
@@ -222,6 +223,9 @@ class LogConfig {
                            // file representing the log
 
   public:
+    // TRAITS
+    BSLMF_NESTED_TRAIT_DECLARATION(LogConfig, bslma::UsesBslmaAllocator)
+
     // CREATORS
 
     /// Create a new `LogConfig` with the specified `maxSize` and `logId`
@@ -237,6 +241,8 @@ class LogConfig {
               bool                     reserveOnDisk,
               bool                     prefaultPages,
               bslma::Allocator*        allocator);
+
+    LogConfig(const LogConfig& original, bslma::Allocator* allocator = 0);
 
     // MANIPULATORS
     LogConfig& setMaxSize(bsls::Types::Int64 value);
@@ -365,6 +371,13 @@ class Log {
     /// overwriting existing bytes.
     virtual int seek(Offset offset) = 0;
 
+    /// Truncate the log to the specified `offset`, zeroing and syncing the
+    /// bytes beyond `offset`; the file keeps its size.  Set the write position
+    /// and the total number of bytes to `offset`, and lower the number of
+    /// outstanding bytes by the number of bytes removed.  Return 0 on
+    /// success, or a negative value LogOpResult on error.
+    virtual int truncate(Offset offset) = 0;
+
     /// Increment the number of outstanding bytes in the log by the
     /// specified `value` (can be negative).
     virtual void updateOutstandingNumBytes(bsls::Types::Int64 value) = 0;
@@ -400,8 +413,9 @@ class Log {
 
     /// Flush any cached data up to the optionally specified `offset` to the
     /// underlying storing mechanism, and return 0 on success, or a negative
-    /// value `LogOpResult` on error.  If `offset` is not specified, all
-    /// data is flushed.
+    /// value `LogOpResult` on error, `LogOpResult::e_OFFSET_OUT_OF_RANGE` if
+    /// `offset` is beyond the current write position.  If `offset` is not
+    /// specified, all data is flushed.
     virtual int flush(Offset offset = 0) = 0;
 
     // ACCESSORS
@@ -473,6 +487,16 @@ inline LogConfig::LogConfig(bsls::Types::Int64       maxSize,
 , d_prefaultPages(prefaultPages)
 {
     // NOTHING
+}
+
+inline LogConfig::LogConfig(const LogConfig&  original,
+                            bslma::Allocator* allocator)
+: d_maxSize(original.d_maxSize)
+, d_logId(original.d_logId)
+, d_location(original.d_location, allocator)
+, d_reserveOnDisk(original.d_reserveOnDisk)
+, d_prefaultPages(original.d_prefaultPages)
+{
 }
 
 // MANIPULATORS
