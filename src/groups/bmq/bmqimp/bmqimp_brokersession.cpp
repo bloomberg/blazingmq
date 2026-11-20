@@ -3753,6 +3753,26 @@ void BrokerSession::processAckEvent(const bmqp::Event& event)
         return;  // RETURN
     }
 
+    // Validate the whole event first, so that a malformed one is dropped
+    // before any correlationId is removed below.
+    bmqp::AckMessageIterator it;
+    event.loadAckMessageIterator(&it);
+    int rc = 0;
+    while ((rc = it.next()) == 1) {
+        // NOTHING
+    }
+
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc < 0)) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        BALL_LOG_ERROR_BLOCK
+        {
+            BALL_LOG_OUTPUT_STREAM << id() << "Dropping invalid ACK event "
+                                   << "[rc: " << rc << "]\n";
+            it.dumpBlob(BALL_LOG_OUTPUT_STREAM);
+        }
+        return;  // RETURN
+    }
+
     bsl::shared_ptr<Event> queueEvent = createEvent();
     queueEvent->configureAsMessageEvent(event);
 
@@ -3761,10 +3781,9 @@ void BrokerSession::processAckEvent(const bmqp::Event& event)
     // 'internal correlationId' => 'user-provided correlationId' map, if
     // applicable (i.e., if internal correlationId is non-null)
 
-    bmqp::AckMessageIterator it;
     event.loadAckMessageIterator(&it);
     int numAckMsgs = 0;
-    while (it.next()) {
+    while (it.next() == 1) {
         ++numAckMsgs;
         const bmqp::AckMessage& ackMsg = it.message();
 
