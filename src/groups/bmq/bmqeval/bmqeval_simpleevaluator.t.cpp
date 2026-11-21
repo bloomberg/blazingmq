@@ -529,6 +529,12 @@ static void test3_evaluation()
         {"i_2 + 20 * 2 == 42", true},
         {"-i_1 + 1 == 0", true},
 
+        // boolean comparison
+        {"b_true == b_true", true},
+        {"!(b_true == b_false)", true},
+        {"b_true != b_false", true},
+        {"!(b_false != b_false)", true},
+
         // boolean literals
         // test literals on both sides; throw in a property to fool validation
         {"true || b_true", true},
@@ -546,6 +552,7 @@ static void test3_evaluation()
         {"b_true != false", true},
         {"b_false != true", true},
         {"b_false != false", false},
+        {"(b_true == true) == b_true", true},
         // overflows
         // supported_ints
         {"i_0 != -32768", true},                // -(2 ** 15)
@@ -611,6 +618,8 @@ static void test4_evaluationErrors()
         {"s_foo == 42 && b_false", ErrorType::e_TYPE},
         {"b_false || s_foo == 42", ErrorType::e_TYPE},
         {"!(s_foo == 42)", ErrorType::e_TYPE},
+        {"b_true == i_1", ErrorType::e_TYPE},
+        {"b_false < b_true", ErrorType::e_TYPE},
 
         // undefined property
         {"non_existing_property", ErrorType::e_NAME},
@@ -624,6 +633,11 @@ static void test4_evaluationErrors()
         // quotient overflow
         {"i64_min / i_neg1 == 0", ErrorType::e_ARITHMETIC},
         {"i64_min % i_neg1 == 0", ErrorType::e_ARITHMETIC},
+
+        // comparison with a boolean literal
+        {"(s_foo == true) == s_foo", ErrorType::e_TYPE},
+        {"(true == s_foo) == s_foo", ErrorType::e_TYPE},
+        {"(i_1 != false) == i_1", ErrorType::e_TYPE},
 
     };
     const TestParameters* testParametersEnd = testParameters +

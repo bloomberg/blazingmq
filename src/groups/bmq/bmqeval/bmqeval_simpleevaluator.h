@@ -284,9 +284,6 @@ class SimpleEvaluator {
         /// Datum.
         bdld::Datum
         evaluate(EvaluationContext& context) const BSLS_KEYWORD_OVERRIDE;
-
-        /// Return `d_value`.
-        bool value() const;
     };
 
     // ----------
@@ -314,10 +311,13 @@ class SimpleEvaluator {
         // ACCESSORS
 
         /// Evaluate the `left` and `right` expressions passed to the
-        /// constructor.  If they have the same type, compare them using
-        /// `Op`, and return the result as a boolean Datum. Otherwise, set
-        /// the error in the context to  e_TYPE, stop the evaluation, and
-        /// return a null datum.
+        /// constructor, compare them using `Op`, and return the result as a
+        /// boolean Datum.  The equality operators (`equal_to` and
+        /// `not_equal_to`) compare two strings, two integers, or two
+        /// booleans.  The relational operators (`less`, `less_equal`,
+        /// `greater`, and `greater_equal`) compare two strings or two
+        /// integers.  For any other operands, set the error in the context
+        /// to e_TYPE, stop the evaluation, and return a null datum.
         bdld::Datum
         evaluate(EvaluationContext& context) const BSLS_KEYWORD_OVERRIDE;
     };
@@ -823,11 +823,6 @@ inline SimpleEvaluator::BooleanLiteral::BooleanLiteral(bool value)
 {
 }
 
-inline bool SimpleEvaluator::BooleanLiteral::value() const
-{
-    return d_value;
-}
-
 // ------------------------------------------
 // template class SimpleEvaluator::Comparison
 // ------------------------------------------
@@ -852,6 +847,17 @@ SimpleEvaluator::Comparison<Op>::evaluate(EvaluationContext& context) const
     bdld::Datum right = d_right->evaluate(context);
     if (context.hasError()) {
         return bdld::Datum::createNull();  // RETURN
+    }
+
+    if (left.isBoolean() && right.isBoolean()) {
+        if (!bsl::is_same<Op<int>, bsl::equal_to<int> >::value &&
+            !bsl::is_same<Op<int>, bsl::not_equal_to<int> >::value) {
+            context.setError(ErrorType::e_TYPE);
+            return bdld::Datum::createNull();  // RETURN
+        }
+
+        return bdld::Datum::createBoolean(
+            Op<bool>()(left.theBoolean(), right.theBoolean()));  // RETURN
     }
 
     if (left.isString()) {
@@ -1069,81 +1075,6 @@ CompilationContext::makeComparison(ExpressionPtr a, ExpressionPtr b)
 
     if (d_validationOnly) {
         return ExpressionPtr();  // RETURN
-    }
-
-    // Handle comparisons with boolean literals at compile time.
-    //   - for 'expr == true'  and 'true == expr'  return 'expr'
-    //   - for 'expr == false' and 'false == expr' return '!expr'
-    //   - for 'expr != true'  and 'true != expr'  return '!expr'
-    //   - for 'expr != false' and 'false != expr' return 'expr'
-    //   - if both sides are boolean literals, return
-    //   'BooleanLiteral(Op(a, b))'
-
-    typedef SimpleEvaluator::BooleanLiteral BooleanLiteral;
-    typedef SimpleEvaluator::Not            Not;
-
-    if /*constexpr*/ (bsl::is_same<Op<int>, bsl::equal_to<int> >::value) {
-        const BooleanLiteral* boolean_a = dynamic_cast<const BooleanLiteral*>(
-            a.get());
-        const BooleanLiteral* boolean_b = dynamic_cast<const BooleanLiteral*>(
-            b.get());
-
-        if (boolean_a) {
-            if (boolean_b) {
-                return ExpressionPtr(
-                    new (*d_allocator) BooleanLiteral(
-                        Op<bool>()(boolean_a->value(), boolean_b->value())),
-                    d_allocator);  // RETURN
-            }
-
-            if (boolean_a->value()) {
-                return b;  // RETURN
-            }
-
-            return ExpressionPtr(new (*d_allocator) Not(b),
-                                 d_allocator);  // RETURN
-        }
-
-        if (boolean_b) {
-            if (boolean_b->value()) {
-                return a;  // RETURN
-            }
-
-            return ExpressionPtr(new (*d_allocator) Not(a),
-                                 d_allocator);  // RETURN
-        }
-    }
-
-    if /*constexpr*/ (bsl::is_same<Op<int>, bsl::not_equal_to<int> >::value) {
-        const BooleanLiteral* boolean_a = dynamic_cast<const BooleanLiteral*>(
-            a.get());
-        const BooleanLiteral* boolean_b = dynamic_cast<const BooleanLiteral*>(
-            b.get());
-
-        if (boolean_a) {
-            if (boolean_b) {
-                return ExpressionPtr(
-                    new (*d_allocator) BooleanLiteral(
-                        Op<bool>()(boolean_a->value(), boolean_b->value())),
-                    d_allocator);  // RETURN
-            }
-
-            if (boolean_a->value()) {
-                return ExpressionPtr(new (*d_allocator) Not(b),
-                                     d_allocator);  // RETURN
-            }
-
-            return b;  // RETURN
-        }
-
-        if (boolean_b) {
-            if (boolean_b->value()) {
-                return ExpressionPtr(new (*d_allocator) Not(a),
-                                     d_allocator);  // RETURN
-            }
-
-            return a;  // RETURN
-        }
     }
 
     return ExpressionPtr(new (*d_allocator)
