@@ -1040,49 +1040,55 @@ void RootQueueEngine::configureHandle(
         return;  // RETURN
     }
 
-    Apps::iterator iter = d_apps.find(appId);
-    BSLS_ASSERT_SAFE(iter != d_apps.end());
+    {
+        Apps::iterator iter = d_apps.find(appId);
+        BSLS_ASSERT_SAFE(iter != d_apps.end());
 
-    const AppStateSp& affectedApp = iter->second;
+        const AppStateSp& affectedApp = iter->second;
 
-    if (d_queueState_p->isAtMostOnce()) {
-        // Attempt to deliver all data in the storage.  Otherwise, broadcast
-        // data can get dropped if the configure response removes consumers.
-        deliverMessages(affectedApp.get());
+        if (d_queueState_p->isAtMostOnce()) {
+            // Attempt to deliver all data in the storage.  Otherwise,
+            // broadcast data can get dropped if the configure response
+            // removes consumers.
+            deliverMessages(affectedApp.get());
+        }
+
+        // prepare the App for rebuilding consumers
+        affectedApp->undoRouting();
+
+        // Rebuild the highest priority state for all affected apps.
+
+        BSLS_ASSERT_SAFE(bmqt::QueueFlagsUtil::isReader(
+            handle->handleParameters().flags()));
+
+        const bsl::shared_ptr<Routers::AppContext> previous =
+            affectedApp->routing();
+
+        affectedApp->routing() = bsl::allocate_shared<Routers::AppContext>(
+            d_allocator_p,
+            &d_queueState_p->routingContext());
+
+        d_queueState_p->handleCatalog().iterateConsumers(
+            bdlf::BindUtil::bind(&RootQueueEngine::rebuildSelectedApp,
+                                 this,
+                                 bdlf::PlaceHolders::_1,  // handle
+                                 bdlf::PlaceHolders::_2,  // info
+                                 iter,
+                                 previous.get()));
+
+        affectedApp->routing()->finalize();
+        affectedApp->routing()->apply();
+        affectedApp->routing()->registerSubscriptions();
+
+        BALL_LOG_INFO << "Rebuilt active consumers of the highest "
+                      << "priority for queue '"
+                      << d_queueState_p->queue()->description()
+                      << "', appId = '" << iter->first << "'. Now there are "
+                      << affectedApp->routing()->priorityCount()
+                      << " consumers.";
+
+        // Not safe to use 'iter' and 'affectedApp' after calling CONFIGURE_CB.
     }
-
-    // prepare the App for rebuilding consumers
-    affectedApp->undoRouting();
-
-    // Rebuild the highest priority state for all affected apps.
-
-    BSLS_ASSERT_SAFE(
-        bmqt::QueueFlagsUtil::isReader(handle->handleParameters().flags()));
-
-    const bsl::shared_ptr<Routers::AppContext> previous =
-        affectedApp->routing();
-
-    affectedApp->routing() = bsl::allocate_shared<Routers::AppContext>(
-        d_allocator_p,
-        &d_queueState_p->routingContext());
-
-    d_queueState_p->handleCatalog().iterateConsumers(
-        bdlf::BindUtil::bind(&RootQueueEngine::rebuildSelectedApp,
-                             this,
-                             bdlf::PlaceHolders::_1,  // handle
-                             bdlf::PlaceHolders::_2,  // info
-                             iter,
-                             previous.get()));
-
-    affectedApp->routing()->finalize();
-    affectedApp->routing()->apply();
-    affectedApp->routing()->registerSubscriptions();
-
-    BALL_LOG_INFO << "Rebuilt active consumers of the highest "
-                  << "priority for queue '"
-                  << d_queueState_p->queue()->description() << "', appId = '"
-                  << iter->first << "'. Now there are "
-                  << affectedApp->routing()->priorityCount() << " consumers.";
 
     // Inform the requester of the success before attempting to deliver new
     // messages.
@@ -1091,8 +1097,10 @@ void RootQueueEngine::configureHandle(
                  "",
                  streamParameters);
 
-    // Now triggering message delivery for affected apps
-    deliverMessages(affectedApp.get());
+    Apps::iterator iter = d_apps.find(appId);
+    if (iter != d_apps.end()) {
+        deliverMessages(iter->second.get());
+    }
 }
 
 void RootQueueEngine::releaseHandle(

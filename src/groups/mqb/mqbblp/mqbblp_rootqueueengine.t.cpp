@@ -44,6 +44,8 @@
 #include <bmqu_time.h>
 
 // TEST DRIVER
+#include <bdlf_bind.h>
+#include <bdlf_placeholder.h>
 #include <bmqtst_testhelper.h>
 #include <bsl_functional.h>
 #include <bsl_limits.h>
@@ -2567,6 +2569,69 @@ static void test21_breathingTest()
         BMQTST_ASSERT_EQ(C2->_appIds(), "");
         BMQTST_ASSERT_EQ(C3->_appIds(), "");
     }
+}
+
+static void test22_releaseUnauthorizedAppInConfigureCallback()
+// ------------------------------------------------------------------------
+// RELEASE UNAUTHORIZED APP IN CONFIGURE CALLBACK
+//
+// Concerns:
+//   The configure callback may release the last consumer of an
+//   unauthorized appId, which removes the app from the engine.
+//   'configureHandle' must not use the app after the callback.
+//
+// Plan:
+//   1) Bring up a consumer with an unauthorized appId.
+//   2) Configure it with null stream parameters, releasing the handle
+//      from the callback (as a dropped handle does).
+//
+// Testing:
+//   RootQueueEngine::configureHandle
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName(
+        "RELEASE UNAUTHORIZED APP IN CONFIGURE CALLBACK");
+
+    struct Local {
+        /// @brief Release a handle from within a configure callback.
+        ///
+        /// @param tester     The tester owning the handle.
+        /// @param clientText The release request, in the tester's format.
+        static void releaseOnConfigured(mqbblp::QueueEngineTester* tester,
+                                        const bsl::string&         clientText,
+                                        const bmqp_ctrlmsg::Status&,
+                                        const bmqp_ctrlmsg::StreamParameters&)
+        {
+            BSLS_ASSERT_OPT(tester);
+
+            tester->releaseHandle(clientText);
+        }
+    };
+
+    mqbblp::QueueEngineTester tester(fanoutConfig("a"),
+                                     false,  // start scheduler
+                                     bmqtst::TestHelperUtil::allocator());
+
+    mqbblp::QueueEngineTesterGuard<mqbblp::RootQueueEngine> guard(&tester);
+
+    mqbmock::QueueHandle* C1 = tester.getHandle("C1@pikachu readCount=1");
+    BMQTST_ASSERT_EQ(tester.configureHandle("C1@pikachu consumerPriority=1"
+                                            " consumerPriorityCount=1"),
+                     0);
+
+    bmqp_ctrlmsg::StreamParameters nullStreamParams(
+        bmqtst::TestHelperUtil::allocator());
+    nullStreamParams.appId() = "pikachu";
+
+    guard.engine()->configureHandle(
+        C1,
+        nullStreamParams,
+        bdlf::BindUtil::bind(&Local::releaseOnConfigured,
+                             &tester,
+                             bsl::string("C1@pikachu readCount=1 isFinal=true",
+                                         bmqtst::TestHelperUtil::allocator()),
+                             bdlf::PlaceHolders::_1,    // status
+                             bdlf::PlaceHolders::_2));  // streamParameters
 }
 
 static void test23_loadRoutingConfiguration()
@@ -5163,7 +5228,7 @@ int main(int argc, char* argv[])
         case 25: test25_getHandleSameHandleMultipleAppIds(); break;
         case 24: test24_getHandleDuplicateAppId(); break;
         case 23: test23_loadRoutingConfiguration(); break;
-        case 22: /* vacant */ break;
+        case 22: test22_releaseUnauthorizedAppInConfigureCallback(); break;
         case 21: test21_breathingTest(); break;
         case 20: test20_priorityRedeliverAfterGc(); break;
         case 19: test19_priorityReleaseHandle_isDeletedFlag(); break;
