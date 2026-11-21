@@ -63,7 +63,7 @@ static void test1_breathingTest()
 
     PV("Default Constructor");
     {
-        bmqa::QueueId obj(bmqtst::TestHelperUtil::allocator());
+        bmqa::QueueId      obj(bmqtst::TestHelperUtil::allocator());
         bmqu::MemOutStream reason(bmqtst::TestHelperUtil::allocator());
         BMQTST_ASSERT_EQ(obj.isValid(&reason), false);
         BMQTST_ASSERT_EQ(reason.str(), "Invalid QueueId: 4294967295");

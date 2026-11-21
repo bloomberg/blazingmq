@@ -86,7 +86,7 @@ static void test1_breathingTest()
 
         bsl::vector<ntsa::IpAddress> addresses(
             bmqtst::TestHelperUtil::allocator());
-        ntsa::Error                  error =
+        ntsa::Error error =
             bmqio::ResolveUtil::getIpAddress(&addresses, "www.wikipedia.org");
 
         BMQTST_ASSERT_EQ(error.code(), ntsa::Error::e_OK);

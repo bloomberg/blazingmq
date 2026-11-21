@@ -102,7 +102,7 @@ void PayloadDumper::outputPayload(bsls::Types::Uint64 messageOffsetDwords)
                                              bmqp::Protocol::k_DWORD_SIZE;
 
     if (seekToRecord(d_dataFile_p, recordOffset) != 0) {
-        d_ostream << "Failed to retrieve message from DATA file" << bsl::endl;
+        d_ostream << "Failed to retrieve message from DATA file" << "\n";
         return;
     }
 
@@ -138,7 +138,7 @@ void PayloadDumper::outputPayload(bsls::Types::Uint64 messageOffsetDwords)
             bmqp::MessagePropertiesInfo(dh));
         if (rc) {
             d_ostream << "Failed to retrieve message properties, rc: " << rc
-                      << bsl::endl;
+                      << "\n";
         }
     }
 

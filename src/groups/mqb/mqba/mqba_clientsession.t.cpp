@@ -440,9 +440,9 @@ class MyMockQueueHandle : public mqbmock::QueueHandle {
   public:
     // PUBLIC TYPES
     struct Post {
-        bmqp::PutHeader              d_putHeader;
+        bmqp::PutHeader                    d_putHeader;
         bsl::shared_ptr<const bdlbb::Blob> d_appData;
-        bsl::shared_ptr<bdlbb::Blob> d_options;
+        bsl::shared_ptr<bdlbb::Blob>       d_options;
     };
 
   private:

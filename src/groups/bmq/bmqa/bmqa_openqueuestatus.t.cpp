@@ -223,7 +223,7 @@ static void test3_print()
 
     bmqtst::TestHelper::printTestName("PRINT");
 
-    const bmqt::CorrelationId correlationId(2);
+    const bmqt::CorrelationId         correlationId(2);
     bmqa::QueueId                     queueId = bmqa::QueueId(correlationId,
                                           bmqtst::TestHelperUtil::allocator());
     const bmqt::OpenQueueResult::Enum result =

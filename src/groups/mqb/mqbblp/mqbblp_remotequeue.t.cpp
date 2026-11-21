@@ -106,9 +106,9 @@ class TestBench {
 
   public:
     struct PutEvent {
-        bmqp::PutHeader              d_header;
+        bmqp::PutHeader                    d_header;
         bsl::shared_ptr<const bdlbb::Blob> d_appData;
-        bsl::shared_ptr<bdlbb::Blob> d_options;
+        bsl::shared_ptr<bdlbb::Blob>       d_options;
 
         PutEvent(const bmqp::PutHeader&                    header,
                  const bsl::shared_ptr<const bdlbb::Blob>& appData,
