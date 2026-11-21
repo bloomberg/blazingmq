@@ -129,7 +129,9 @@ class PropertiesReader {
     // MANIPULATORS
 
     /// Return a `bdld::Datum` object with value for the specified `name`.
-    /// Use the specified `allocator` for any memory allocation.
+    /// Use the specified `allocator` for any memory allocation.  Return an
+    /// error Datum with code `ErrorType::e_NAME` if there is no property
+    /// named `name`.
     virtual bdld::Datum get(const bsl::string& name,
                             bslma::Allocator*  allocator) = 0;
 };
@@ -494,23 +496,21 @@ class SimpleEvaluator {
       public:
         // CREATORS
 
-        /// Create an object that evaluates property `name`, in the
-        /// evaluation context, as a boolean.
+        /// Create an object that tests whether property `name` exists in
+        /// the evaluation context.
         explicit Exists(const bsl::string& name);
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-        /// Create an object that evaluates property `name`, in the
-        /// evaluation context, as a boolean.
+        /// Create an object that tests whether property `name` exists in
+        /// the evaluation context.
         explicit Exists(bsl::string&& name) noexcept;
 #endif
 
         // ACCESSORS
 
-        /// Evaluate `expression` passed to the constructor.  If it is a
-        /// boolean, return the negated value as a boolean Datum.
-        /// Otherwise, set the error in the context to e_TYPE, stop the
-        /// evaluation, and return a null datum.
+        /// Return, as a boolean Datum, whether the property passed to the
+        /// constructor exists.
         bdld::Datum
         evaluate(EvaluationContext& context) const BSLS_KEYWORD_OVERRIDE;
     };
