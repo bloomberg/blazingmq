@@ -240,9 +240,9 @@ class MessageProperties {
     int setPropertyAsBinary(bsl::string_view      name,
                             bsl::span<const char> value);
 
-    /// Populate this instance with its BlazingMQ wire protocol
-    /// representation from the specified `blob`.  Return zero on success,
-    /// and a non-zero value otherwise.
+    /// @brief Populate this object from its wire representation.
+    /// @param blob The serialized message properties.
+    /// @return Zero on success, or a non-zero value otherwise.
     int streamIn(const bdlbb::Blob& blob);
 
     ///@}
@@ -345,15 +345,6 @@ class MessageProperties {
     const bsl::vector<char>&
     getPropertyAsBinaryOr(bsl::string_view         name,
                           const bsl::vector<char>& value) const;
-
-    /// Return a blob having the BlazingMQ wire protocol representation of
-    /// this instance, using the specified `bufferFactory` to build the
-    /// blob.  Behavior is undefined unless `bufferFactory` is non-null.
-    /// Note that if this instance is empty (i.e., `numProperties()` == 0),
-    /// returned blob will be empty.  In other words, an empty instance has
-    /// no wire representation.
-    const bdlbb::Blob&
-    streamOut(bdlbb::BlobBufferFactory* bufferFactory) const;
 
     /// Format this object to the specified output `stream` at the (absolute
     /// value of) the optionally specified indentation `level` and return a
