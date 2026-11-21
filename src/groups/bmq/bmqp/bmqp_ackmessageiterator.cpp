@@ -74,6 +74,9 @@ int AckMessageIterator::next()
         return rc_INVALID;  // RETURN
     }
 
+    // 'reset()' rejects zero header and per-message sizes
+    BSLS_ASSERT_SAFE(d_advanceLength > 0);
+
     if (d_blobIter.advance(d_advanceLength) == false) {
         d_header.reset();
         return rc_AT_END;  // RETURN
@@ -115,7 +118,8 @@ int AckMessageIterator::reset(const bdlbb::Blob* blob,
         /// The blob doesn't contain a complete EventHeader, or is not followed
         /// by an AckHeader
         rc_INVALID_EVENTHEADER = -1,
-        /// The blob doesn't contain a complete AckHeader
+        /// The blob doesn't contain a complete AckHeader, or the AckHeader
+        /// declares zero header or per-message words
         rc_INVALID_ACKHEADER = -2,
         /// The number of bytes in the blob is less than the header size
         /// declared in the header
@@ -153,6 +157,14 @@ int AckMessageIterator::reset(const bdlbb::Blob* blob,
     }
 
     const int headerSize = d_header->headerWords() * Protocol::k_WORD_SIZE;
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
+            headerSize < AckHeader::k_MIN_HEADER_SIZE ||
+            d_header->perMessageWords() == 0)) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        d_header.reset();
+        return rc_INVALID_ACKHEADER;  // RETURN
+    }
+
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(headerSize >
                                               d_blobIter.remaining())) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;

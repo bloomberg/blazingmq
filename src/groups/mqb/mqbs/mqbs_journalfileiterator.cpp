@@ -121,11 +121,8 @@ int JournalFileIterator::reset(const MappedFileDescriptor* mfd,
     d_journalHeaderOffset = fhSize;
     d_recordSize          = jh->recordWords() * bmqp::Protocol::k_WORD_SIZE;
 
-    if (0 == d_recordSize) {
-        // We don't have magic words in headers (FileHeader, JournalFileHeader,
-        // QueueRecordHeader, etc). This means that the header size could be ok
-        // but it may contain invalid (null, zero etc) values. This check takes
-        // care of this scenario.
+    if (d_recordSize !=
+        static_cast<unsigned int>(FileStoreProtocol::k_JOURNAL_RECORD_SIZE)) {
         clear();
         return rc_CORRUPT_JOURNAL_HEADER;  // RETURN
     }
@@ -202,8 +199,15 @@ int JournalFileIterator::advance(const bsls::Types::Uint64 distance)
         /// Invalid sequence number
         rc_INVALID_SEQ_NUM = -3,
         /// Magic mismatch
-        rc_MAGIC_MISMATCH = -4
+        rc_MAGIC_MISMATCH = -4,
+        /// Unsupported zero distance requested
+        rc_ZERO_DISTANCE = -5
     };
+
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(0 == distance)) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        return rc_ZERO_DISTANCE;  // RETURN
+    }
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!isValid())) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
