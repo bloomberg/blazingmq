@@ -21,6 +21,7 @@
 #include <bmqu_stringutil.h>
 
 // BDE
+#include <bdlb_chartype.h>
 #include <bdlb_print.h>
 #include <bdlb_stringviewutil.h>
 #include <bdlma_localsequentialallocator.h>
@@ -69,7 +70,10 @@ TCPEndpoint::TCPEndpoint(const bslstl::StringRef& host,
 
 bool TCPEndpoint::fromUri(const bsl::string& uri)
 {
+    // Reset all members, so that a failed parse leaves no stale values behind
     d_uri.clear();
+    d_host.clear();
+    d_port = 0;
 
     // Check 'uri' starts by the proper expected scheme
     if (!bdlb::StringViewUtil::startsWith(uri, k_SCHEME)) {
@@ -89,8 +93,28 @@ bool TCPEndpoint::fromUri(const bsl::string& uri)
         return false;  // RETURN
     }
 
-    // Extract the port part: i.e. after the last ':'
-    const long port = bsl::strtol(uri.c_str() + colon + 1, 0, 10);
+    // The host is mandatory: there must be at least one character between the
+    // scheme and the ':'.
+    if (colon == k_SCHEME_LEN) {
+        return false;  // RETURN
+    }
+
+    // Extract the port part: i.e. after the last ':'.  'bsl::strtol' skips
+    // leading whitespace and accepts a sign, so first require a digit.  This
+    // also rejects an empty port, since 'portBegin' then points to the null
+    // terminator.
+    const char* portBegin = uri.c_str() + colon + 1;
+    if (!bdlb::CharType::isDigit(*portBegin)) {
+        return false;  // RETURN
+    }
+
+    char*      portEnd = 0;
+    const long port    = bsl::strtol(portBegin, &portEnd, 10);
+
+    // The port must be made of digits only, up to the end of 'uri'
+    if (portEnd != uri.c_str() + uri.length()) {
+        return false;  // RETURN
+    }
 
     // For simplicity, do not accept ambiguous `port` value 0
     if (port <= 0 || port > 65535) {
