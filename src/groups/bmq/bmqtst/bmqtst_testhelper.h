@@ -277,6 +277,9 @@
 //  }
 //..
 
+// BMQ
+#include <bmqtst_testguard.h>
+
 // BDE
 #include <ball_attributecontext.h>
 #include <ball_fileobserver.h>
