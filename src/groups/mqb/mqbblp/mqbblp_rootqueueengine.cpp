@@ -602,35 +602,6 @@ void RootQueueEngine::resetState(bool isShuttingDown)
     }
 }
 
-void RootQueueEngine::rebuildSelectedApp(
-    mqbi::QueueHandle*                   handle,
-    const mqbi::QueueHandle::StreamInfo& info,
-    const Apps::iterator&                itApp,
-    const Routers::AppContext*           previous)
-{
-    BSLS_ASSERT_SAFE(handle);
-
-    const AppStateSp& app = itApp->second;
-
-    BSLS_ASSERT_SAFE(app->routing());
-
-    bmqu::MemOutStream errorStream(d_allocator_p);
-
-    app->routing()->loadApp(itApp->first.c_str(),
-                            handle,
-                            &errorStream,
-                            info,
-                            previous);
-
-    if (errorStream.length() > 0) {
-        BALL_LOG_WARN << "#BMQ_SUBSCRIPTION_FAILURE for queue '"
-                      << d_queueState_p->uri()
-                      << "', error rebuilding routing [stream parameters: "
-                      << info.d_streamParameters << "]: [ "
-                      << errorStream.str() << " ]";
-    }
-}
-
 void RootQueueEngine::rebuildAppRouting(const bsl::string& appId)
 {
     Apps::iterator iter = d_apps.find(appId);
@@ -644,26 +615,19 @@ void RootQueueEngine::rebuildAppRouting(const bsl::string& appId)
         deliverMessages(app.get());
     }
 
-    // prepare the App for rebuilding consumers
-    app->undoRouting();
-
-    const bsl::shared_ptr<Routers::AppContext> previous = app->routing();
-
-    app->routing() = bsl::allocate_shared<Routers::AppContext>(
-        d_allocator_p,
-        &d_queueState_p->routingContext());
-
-    d_queueState_p->handleCatalog().iterateConsumers(
-        bdlf::BindUtil::bind(&RootQueueEngine::rebuildSelectedApp,
-                             this,
-                             bdlf::PlaceHolders::_1,  // handle
-                             bdlf::PlaceHolders::_2,  // info
-                             iter,
-                             previous.get()));
-
-    app->routing()->finalize();
-    app->routing()->apply();
-    app->routing()->registerSubscriptions();
+    bmqu::MemOutStream errorStream(d_allocator_p);
+    app->rebuildConsumers(iter->first.c_str(),
+                          &errorStream,
+                          d_queueState_p,
+                          bsl::allocate_shared<Routers::AppContext>(
+                              d_allocator_p,
+                              &d_queueState_p->routingContext()));
+    if (errorStream.length() > 0) {
+        BALL_LOG_WARN << "#BMQ_SUBSCRIPTION_FAILURE for queue '"
+                      << d_queueState_p->uri()
+                      << "', error rebuilding routing: [ " << errorStream.str()
+                      << " ]";
+    }
 
     BALL_LOG_INFO << "Rebuilt active consumers of the highest "
                   << "priority for queue '"
