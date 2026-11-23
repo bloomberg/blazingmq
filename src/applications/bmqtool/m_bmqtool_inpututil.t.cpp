@@ -20,13 +20,13 @@
 #include <bmqa_messageproperties.h>
 
 // BMQ
-#include <bmqtst_tempfile.h>
 #include <bmqu_memoutstream.h>
 
 // BDE
 #include <bdlbb_blob.h>
 #include <bdlbb_blobutil.h>
 #include <bdlbb_pooledblobbufferfactory.h>
+#include <bdls_tempdirectoryguard.h>
 
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
@@ -274,8 +274,9 @@ static void test2_loadMessageFromFileTest()
         const Test& test = k_DATA[idx];
 
         // Create temp file and write content
-        bmqtst::TempFile  tempFile(bmqtst::TestHelperUtil::allocator());
-        const bsl::string filePath = tempFile.path();
+        bdls::TempDirectoryGuard tempDir("m_bmqtool_inpututil_",
+                                         bmqtst::TestHelperUtil::allocator());
+        const bsl::string filePath = tempDir.getTempDirName() + "/message";
         {
             bsl::ofstream ofs(filePath.c_str());
             BMQTST_ASSERT_EQ(ofs.is_open(), true);
@@ -333,5 +334,6 @@ int main(int argc, char* argv[])
 
     // Check for default allocator is explicitly disabled as
     // 'bmqa::MessageProperties' or one of its data members may allocate
-    // temporaries with default allocator. The same for 'bmqtst::TempFile'.
+    // temporaries with default allocator. The same for
+    // 'bdls::TempDirectoryGuard'.
 }

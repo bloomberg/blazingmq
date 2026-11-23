@@ -40,6 +40,7 @@
 #include <bdlb_nullablevalue.h>
 #include <bdlf_bind.h>
 #include <bdlf_placeholder.h>
+#include <bdls_tempdirectoryguard.h>
 #include <bsl_iostream.h>
 #include <bsl_memory.h>
 #include <bsl_utility.h>
@@ -47,7 +48,6 @@
 
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
-#include <bmqu_tempdirectory.h>
 
 // CONVENIENCE
 using namespace BloombergLP;
@@ -126,13 +126,14 @@ struct TestHelper {
 
     bsl::vector<mqbnet::MockClusterNode*> d_nodes;
 
-    bmqu::TempDirectory d_tempDir;
+    bdls::TempDirectoryGuard d_tempDir;
 
     // CREATORS
     TestHelper()
     : d_cluster_mp(0)
     , d_nodes(bmqtst::TestHelperUtil::allocator())
-    , d_tempDir(bmqtst::TestHelperUtil::allocator())
+    , d_tempDir("mqbblp_clusterstatemonitor_",
+                bmqtst::TestHelperUtil::allocator())
     {
         mqbmock::Cluster::ClusterNodeDefs clusterNodeDefs(
             bmqtst::TestHelperUtil::allocator());
@@ -182,7 +183,7 @@ struct TestHelper {
                                  false,  // doesFSMwriteQLIST
                                  clusterNodeDefs,
                                  "testCluster",
-                                 d_tempDir.path()),
+                                 d_tempDir.getTempDirName()),
             bmqtst::TestHelperUtil::allocator());
 
         // In some UTs, operations with cluster might be executed either

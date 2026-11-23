@@ -35,11 +35,11 @@
 #include <bmqst_statcontext.h>
 #include <bmqt_uri.h>
 #include <bmqu_memoutstream.h>
-#include <bmqu_tempdirectory.h>
 
 // BDE
 #include <bdlbb_pooledblobbufferfactory.h>
 #include <bdlf_bind.h>
+#include <bdls_tempdirectoryguard.h>
 #include <bsl_memory.h>
 #include <bsl_string.h>
 #include <bsl_string_view.h>
@@ -168,7 +168,7 @@ void teardownCb(BSLA_MAYBE_UNUSED const bsl::string& domainName)
 struct DomainTester {
     // DATA
     bslma::Allocator*                     d_allocator_p;
-    bmqu::TempDirectory                   d_tempDir;
+    bdls::TempDirectoryGuard              d_tempDir;
     bdlbb::PooledBlobBufferFactory        d_bufferFactory;
     mqbmock::Dispatcher                   d_dispatcher;
     bsl::shared_ptr<mqbmock::Cluster>     d_cluster_sp;
@@ -183,7 +183,7 @@ struct DomainTester {
     /// @param allocator The allocator to supply memory.
     explicit DomainTester(bslma::Allocator* allocator)
     : d_allocator_p(allocator)
-    , d_tempDir(allocator)
+    , d_tempDir("mqbblp_domain_", allocator)
     , d_bufferFactory(1024, allocator)
     , d_dispatcher(allocator)
     , d_cluster_sp(0)
@@ -222,7 +222,7 @@ struct DomainTester {
                                    false,  // doesFSMwriteQLIST
                                    nodeDefs,
                                    "testCluster",
-                                   d_tempDir.path());
+                                   d_tempDir.getTempDirName());
 
         // Allow dispatcher-thread checks (e.g. in 'registerQueue') to pass
         // from any thread.

@@ -36,11 +36,11 @@
 #include <bmqtst_schedulerlockguard.h>
 
 #include <bmqu_memoutstream.h>
-#include <bmqu_tempdirectory.h>
 #include <bmqu_time.h>
 
 // BDE
 #include <bdlf_bind.h>
+#include <bdls_tempdirectoryguard.h>
 #include <bsl_memory.h>
 #include <bslma_managedptr.h>
 #include <bsls_assert.h>
@@ -105,7 +105,7 @@ struct Tester {
   public:
     // PUBLIC DATA
     bool                                         d_isLeader;
-    bmqu::TempDirectory                          d_tempDir;
+    bdls::TempDirectoryGuard                     d_tempDir;
     bslma::ManagedPtr<mqbmock::Cluster>          d_cluster_mp;
     mqbmock::ClusterStateLedger*                 d_clusterStateLedger_p;
     bslma::ManagedPtr<mqbc::ClusterStateManager> d_clusterStateManager_mp;
@@ -117,7 +117,8 @@ struct Tester {
            int                numRetries      = k_WATCHDOG_NUM_RETRIES,
            bsls::Types::Int64 watchdogTimeout = k_WATCHDOG_TIMEOUT_DURATION)
     : d_isLeader(isLeader)
-    , d_tempDir(bmqtst::TestHelperUtil::allocator())
+    , d_tempDir("mqbc_clusterstatemanager_",
+                bmqtst::TestHelperUtil::allocator())
     , d_cluster_mp(0)
     , d_clusterStateLedger_p(0)
     , d_clusterStateManager_mp(0)
@@ -164,7 +165,7 @@ struct Tester {
                                  false,  // doesFSMwriteQLIST
                                  clusterNodeDefs,
                                  "testCluster",
-                                 d_tempDir.path()),
+                                 d_tempDir.getTempDirName()),
             bmqtst::TestHelperUtil::allocator());
 
         d_cluster_mp->_clusterData()->stats().setIsMember(true);

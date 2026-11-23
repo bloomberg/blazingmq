@@ -40,6 +40,7 @@
 #include <bdlbb_blob.h>
 #include <bdlbb_blobutil.h>
 #include <bdls_filesystemutil.h>
+#include <bdls_tempdirectoryguard.h>
 #include <bdlsb_memoutstreambuf.h>
 #include <bsl_algorithm.h>
 #include <bsl_cstdio.h>
@@ -58,7 +59,6 @@
 
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
-#include <bmqu_tempdirectory.h>
 #include <bsl_deque.h>
 
 // CONVENIENCE
@@ -186,7 +186,7 @@ struct Tester {
   public:
     // PUBLIC DATA
     bool                                              d_isLeader;
-    bmqu::TempDirectory                               d_tempDir;
+    bdls::TempDirectoryGuard                          d_tempDir;
     bsl::string                                       d_location;
     bslma::ManagedPtr<mqbmock::Cluster>               d_cluster_mp;
     bslma::ManagedPtr<mqbc::IncoreClusterStateLedger> d_clusterStateLedger_mp;
@@ -198,11 +198,12 @@ struct Tester {
     explicit Tester(bool                     isLeader = true,
                     const bslstl::StringRef& location = "")
     : d_isLeader(isLeader)
-    , d_tempDir(bmqtst::TestHelperUtil::allocator())
+    , d_tempDir("mqbc_incoreclusterstateledger_",
+                bmqtst::TestHelperUtil::allocator())
     , d_location(
           !location.empty()
               ? bsl::string(location, bmqtst::TestHelperUtil::allocator())
-              : d_tempDir.path())
+              : d_tempDir.getTempDirName())
     , d_cluster_mp(0)
     , d_clusterStateLedger_mp(0)
     , d_committedMessages(bmqtst::TestHelperUtil::allocator())
@@ -2381,6 +2382,6 @@ int main(int argc, char* argv[])
     bmqu::Time::shutdown();
 
     TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
-    // The tester object makes use of 'bmqu::TempDirectory', which
+    // The tester object makes use of 'bdls::TempDirectoryGuard', which
     // allocates a temporary string using the default allocator.
 }
