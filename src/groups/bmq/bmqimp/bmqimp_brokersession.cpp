@@ -2932,7 +2932,11 @@ void BrokerSession::QueueFsm::handleLateResponse(
         bmqt::ConfigureQueueResult::Enum rc =
             actionReconfigureQueue(queue, context->response());
         if (rc != bmqt::ConfigureQueueResult::e_SUCCESS) {
-            handleRequestNotSent(queue, context, rc);
+            // The reconfigure request that fails here is the
+            // session's own request, so there's no way to report it
+            // to the user.  Log and keep the queue open.
+            BALL_LOG_WARN << id() << "Failed to send reconfigure request for "
+                          << "queue: " << *queue << " [rc: " << rc << "]";
         }
     } break;
     case QueueState::e_CLOSING_CFG:
