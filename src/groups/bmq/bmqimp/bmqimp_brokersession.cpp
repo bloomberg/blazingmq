@@ -1624,19 +1624,6 @@ void BrokerSession::QueueFsm::handleRequestWriteError(
         BSLS_ASSERT_SAFE(0 < d_session.d_numPendingReopenQueues);
         --d_session.d_numPendingReopenQueues;
     } break;
-    case QueueState::e_OPENED: {
-        // Failed to send standalone configure queue request
-        BSLS_ASSERT_SAFE(isConfigure(context->request(), context->response()));
-        BSLS_ASSERT_SAFE(context->response().choice().isStatusValue());
-
-        // Keep the OPENED state
-        setQueueState(queue, QueueState::e_OPENED, event);
-
-        logOperationTime(queue->uri().asString(), "Configure queue");
-
-        // Notify about configure queue result
-        context->signal();
-    } break;
     case QueueState::e_CLOSING_CFG: {
         BSLS_ASSERT_SAFE(context->request().choice().isCloseQueueValue());
         BSLS_ASSERT_SAFE(bmqt::QueueFlagsUtil::isReader(queue->flags()));
@@ -1674,13 +1661,16 @@ void BrokerSession::QueueFsm::handleRequestWriteError(
 
         d_session.d_channel_sp->close();
     } break;
+    case QueueState::e_OPENED:
     case QueueState::e_OPENING_OPN:
     case QueueState::e_OPENING_CFG:
     case QueueState::e_PENDING:
     case QueueState::e_CLOSED:
     default: {
-        // OPENING_OPN and OPENING_CFG are unreachable: initial opens use
-        // buffered requests, so write errors are swallowed.
+        // OPENED is unreachable: a request that fails to send in OPENED is
+        // handled where it is sent, not here.  OPENING_OPN and OPENING_CFG
+        // are unreachable: initial opens use buffered requests, so write
+        // errors are swallowed.
         BSLS_ASSERT_SAFE(false && "Unexpected Queue state for write error");
     } break;
     }
@@ -1702,20 +1692,6 @@ void BrokerSession::QueueFsm::handleRequestBad(
                   << "QueueState: " << state << "]";
 
     switch (state) {
-    case QueueState::e_OPENED: {
-        // Failed to send standalone configure queue request
-        BSLS_ASSERT_SAFE(isConfigure(context->request(), context->response()));
-        // Check error response is set
-        BSLS_ASSERT_SAFE(context->response().choice().isStatusValue());
-
-        // Keep the OPENED state
-        setQueueState(queue, QueueState::e_OPENED, event);
-
-        logOperationTime(queue->uri().asString(), "Configure queue");
-
-        // Notify about configure queue result
-        context->signal();
-    } break;
     case QueueState::e_OPENING_OPN: {
         BSLS_ASSERT_SAFE(context->request().choice().isOpenQueueValue());
 
@@ -1862,8 +1838,11 @@ void BrokerSession::QueueFsm::handleRequestBad(
         // Close the channel
         d_session.d_channel_sp->close();
     } break;
+    case QueueState::e_OPENED:
     case QueueState::e_PENDING:
     case QueueState::e_CLOSED: {
+        // OPENED is unreachable: a request that fails to send in OPENED is
+        // handled where it is sent, not here.
         BALL_LOG_ERROR << id() << "Unexpected queue state: " << *queue
                        << " when handling " << event;
         BSLS_ASSERT_SAFE(false);
