@@ -25,7 +25,8 @@ from blazingmq.dev.it.fixtures import (
     tweak,
 )
 from blazingmq.dev.it.cluster_util import (
-    stop_cluster_and_compare_journal_files,
+    compare_journal_files,
+    stop_cluster,
     wipe_files,
 )
 from blazingmq.dev.it.util import wait_until
@@ -105,7 +106,8 @@ def test_wipe_single_partition_files(
     replica_consumer.confirm(uri_priority, "*", succeed=True)
     replica_consumer.close(uri_priority, succeed=True)
 
-    stop_cluster_and_compare_journal_files(leader.name, replica.name, cluster)
+    stop_cluster(cluster, leader)
+    compare_journal_files(cluster, leader, [replica])
 
 
 @tweak.cluster.queue_operations.shutdown_timeout_ms(100)
@@ -177,7 +179,8 @@ def test_wipe_all_partitions_and_csl(
     replica_consumer.confirm(uri_priority, "*", succeed=True)
     replica_consumer.close(uri_priority, succeed=True)
 
-    stop_cluster_and_compare_journal_files(leader.name, replica.name, cluster)
+    stop_cluster(cluster, leader)
+    compare_journal_files(cluster, leader, [replica])
 
 
 @tweak.cluster.queue_operations.shutdown_timeout_ms(100)
@@ -245,7 +248,8 @@ def test_wipe_csl_only(
     replica_consumer.confirm(uri_priority, "*", succeed=True)
     replica_consumer.close(uri_priority, succeed=True)
 
-    stop_cluster_and_compare_journal_files(leader.name, replica.name, cluster)
+    stop_cluster(cluster, leader)
+    compare_journal_files(cluster, leader, [replica])
 
 
 @tweak.cluster.queue_operations.shutdown_timeout_ms(100)
@@ -310,7 +314,8 @@ def test_crash_restart_keeps_csl(
     replica_consumer.confirm(uri_priority, "*", succeed=True)
     replica_consumer.close(uri_priority, succeed=True)
 
-    stop_cluster_and_compare_journal_files(leader.name, replica.name, cluster)
+    stop_cluster(cluster, leader)
+    compare_journal_files(cluster, leader, [replica])
 
 
 @tweak.cluster.queue_operations.shutdown_timeout_ms(100)
@@ -410,9 +415,8 @@ def test_wipe_storage_all_but_one_node(
     consumer.close(uri_priority, succeed=True)
 
     # Compare surviving node vs wiped node
-    stop_cluster_and_compare_journal_files(
-        surviving_node.name, wiped_node.name, cluster
-    )
+    stop_cluster(cluster, surviving_node)
+    compare_journal_files(cluster, surviving_node, [wiped_node])
 
 
 @tweak.cluster.queue_operations.shutdown_timeout_ms(100)
@@ -563,9 +567,8 @@ def test_wipe_partitions_stale_replica(
     consumer.confirm(uri_priority, "*", succeed=True)
     consumer.close(uri_priority, succeed=True)
 
-    stop_cluster_and_compare_journal_files(
-        stale_replica.name, wiped_replica.name, cluster
-    )
+    stop_cluster(cluster, cluster.last_known_leader)
+    compare_journal_files(cluster, stale_replica, [wiped_replica])
 
 
 @tweak.cluster.queue_operations.shutdown_timeout_ms(100)

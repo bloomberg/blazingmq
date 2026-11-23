@@ -2338,17 +2338,22 @@ void ClusterOrchestrator::onPartitionRaftLeadershipDispatched(
     // Raft term) before the partition writes any sync point under that
     // leaseId (a restart into a legacy broker then never finds the CSL
     // behind the journal).
-    const mqbc::ClusterStatePartitionInfo& pinfo = d_clusterState_p->partition(
-        partitionId);
-    if (pinfo.primaryNode() != leaderNode ||
-        pinfo.primaryLeaseId() != leaseId) {
-        d_clusterState_p->setPartitionPrimary(partitionId, leaseId, ns);
-    }
+    d_clusterState_p->setPartitionPrimary(partitionId, leaseId, ns);
 
     if (haveCommit) {
         // Not a leadership change: the primary, leaseId, and status are
         // already recorded, and this node has applied the first sync point
         // under this leaseId.
+        if (leaderNode == selfNode) {
+            // 1. After this sync point commits, which applies the records
+            //    inherited from earlier terms.  This is to avoid
+            //    'conformToClusterState' missing a queue those records create
+            //    (the queue has no storage until the records are applied).
+            // 2. Before 'performPartitionAction' activates the partition, so
+            //    the corrections reach the partition's thread ahead of any
+            //    open request served after the activation.
+            d_partitionRaftManager_mp->conformToClusterState(partitionId);
+        }
         performPartitionAction(partitionId,
                                d_availability.onSyncPointApplied(partitionId,
                                                                  leaseId));
@@ -2522,8 +2527,7 @@ void ClusterOrchestrator::performPartitionAction(
     case Action::e_REQUEST_SYNC_POINT: {
         // The CSL has committed the leaseId, so this node, as the primary,
         // proposes the deferred sync point: the first journal record under
-        // the leaseId.  'proposeDeferredSyncPoint' also conforms the journal
-        // to the cluster state.
+        // the leaseId.
         d_partitionRaftManager_mp->proposeDeferredSyncPoint(partitionId);
     } break;
     case Action::e_ACTIVATE:

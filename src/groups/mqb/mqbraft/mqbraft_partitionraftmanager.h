@@ -181,17 +181,6 @@ class PartitionRaftManager : public mqbi::StorageProvider,
     /// 'partitionId'.
     void unregisterQueueDispatched(int partitionId, const bmqt::Uri& uri);
 
-    /// Make the journal of the specified `partitionId` say what the cluster
-    /// state says: write the creation of a queue the journal does not have,
-    /// the addition or deletion of the apps they differ on, and the deletion
-    /// of a queue the cluster state no longer has.  The writes are dispatched
-    /// to the partition's thread, so calling this before the sync point's own
-    /// dispatch puts them ahead of it.  A queue that still holds messages is
-    /// left for a later leadership, once TTL has emptied it.
-    ///
-    /// THREAD: Executed by the *CLUSTER DISPATCHER* thread.
-    void conformToClusterState(unsigned int partitionId);
-
     /// Enqueue a TTL message-GC pass on every partition's dispatcher thread.
     /// Invoked periodically by 'd_gcMessagesEventHandle' from the scheduler
     /// thread; only the partition's Raft leader actually GCs (the FileStore's
@@ -365,6 +354,19 @@ class PartitionRaftManager : public mqbi::StorageProvider,
     ///
     /// THREAD: May be called from the cluster dispatcher thread.
     void proposeDeferredSyncPoint(unsigned int partitionId);
+
+    /// Make the journal of the specified `partitionId` say what the cluster
+    /// state says: write the creation of a queue the journal does not have,
+    /// the addition or deletion of the apps they differ on, and the deletion
+    /// of a queue the cluster state no longer has.  The writes are dispatched
+    /// to the partition's thread.  Call this on the leader once the leader
+    /// has applied its become-leader sync point, which applies the records
+    /// inherited from earlier terms.  This is to avoid missing a queue those
+    /// records create.  A queue that still holds messages is left for a later
+    /// leadership, once TTL has emptied the queue.
+    ///
+    /// THREAD: Executed by the *CLUSTER DISPATCHER* thread.
+    void conformToClusterState(unsigned int partitionId);
 
     /// Convert the queues of the specified `partitionId` to remote, self no
     /// longer leading it, and hand the writes held since the stepdown to

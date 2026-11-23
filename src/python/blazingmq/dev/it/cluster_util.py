@@ -314,13 +314,10 @@ def clean_storage_output(output_str: str) -> str:
     return json.dumps(data, indent=2)
 
 
-def stop_cluster_and_compare_journal_files(
-    leader_name: str, replica_name: str, cluster: Cluster
-) -> None:
+def stop_cluster(cluster: Cluster, first: Broker) -> None:
     """
-    Stop cluster after bumping quorum on all replicas to prevent primary
-    switch.  Then, compare leader and replica journal files content, and
-    assert that they are equal.
+    Stop all nodes of the specified `cluster`, the specified `first` node
+    first, after bumping quorum on all running nodes to prevent primary switch.
 
     NOTE: Stopping all nodes ensures that all journal files are closed and
     flushed to disk, and that there are no discrepancies due to in-flight
@@ -331,84 +328,73 @@ def stop_cluster_and_compare_journal_files(
         if node.is_alive():
             node.set_quorum(5)
 
-    leader = cluster.last_known_leader
-    if leader:
-        leader.stop()
-        cluster.make_sure_node_stopped(leader)
+    first.stop()
+    cluster.make_sure_node_stopped(first)
     cluster.stop_nodes()
 
-    leader_journal_files = glob.glob(
-        str(cluster.work_dir.joinpath(leader_name, "storage")) + "/*journal*"
-    )
-    replica_journal_files = glob.glob(
-        str(cluster.work_dir.joinpath(replica_name, "storage")) + "/*journal*"
-    )
 
-    num_partitions = cluster.config.definition.partition_config.num_partitions
-    assert len(leader_journal_files) == num_partitions, (
-        f"Expected {num_partitions} leader journal files, got {len(leader_journal_files)}"
-    )
-    assert len(replica_journal_files) == num_partitions, (
-        f"Expected {num_partitions} replica journal files, got {len(replica_journal_files)}"
-    )
+def compare_journal_files(
+    cluster: Cluster, reference: Broker, others: list, partition_id: int = None
+) -> None:
+    """
+    Assert that the journal files of each node in the specified `others` have
+    the same details and summary as the journal files of the specified
+    `reference` node of the specified `cluster`.  Compare only the journal
+    file of the optionally specified `partition_id` if given, and the journal
+    files of every partition otherwise.  The behavior is undefined unless all
+    nodes of `cluster` are stopped.
+    """
 
-    for leader_file, replica_file in zip(
-        sorted(leader_journal_files),
-        sorted(replica_journal_files),
-    ):
-        leader_res = run_storage_tool(leader_file, "details")
-        assert leader_res.returncode == 0, (
-            f"Leader storage tool failed on {leader_file} with rc {leader_res.returncode}"
+    pattern = "*journal*" if partition_id is None else f"bmq_{partition_id}.*journal*"
+    num_files = (
+        cluster.config.definition.partition_config.num_partitions
+        if partition_id is None
+        else 1
+    )
+    modes = ("details", "summary")
+
+    def load(node: Broker) -> list:
+        files = sorted(
+            glob.glob(str(cluster.work_dir.joinpath(node.name, "storage", pattern)))
+        )
+        assert len(files) == num_files, (
+            f"Expected {num_files} journal files on {node.name}, got {len(files)}"
         )
 
-        replica_res = run_storage_tool(replica_file, "details")
-        assert replica_res.returncode == 0, (
-            f"Replica storage tool failed on {replica_file} with rc {replica_res.returncode}"
-        )
-
-        leader_out = clean_storage_output(leader_res.stdout)
-        replica_out = clean_storage_output(replica_res.stdout)
-        if leader_out != replica_out:
-            diff = "\n".join(
-                difflib.unified_diff(
-                    leader_out.splitlines(),
-                    replica_out.splitlines(),
-                    fromfile=str(leader_file),
-                    tofile=str(replica_file),
-                    lineterm="",
+        outputs = []
+        for journal_file in files:
+            outs = {}
+            for mode in modes:
+                res = run_storage_tool(journal_file, mode)
+                assert res.returncode == 0, (
+                    f"Storage tool ({mode}) failed on {journal_file} with rc "
+                    f"{res.returncode}"
                 )
-            )
-            assert False, (
-                f"Leader and replica journal file contents differ for "
-                f"{leader_file} and {replica_file}\n{diff}"
-            )
+                outs[mode] = clean_storage_output(res.stdout)
+            outputs.append((journal_file, outs))
+        return outputs
 
-        leader_res = run_storage_tool(leader_file, "summary")
-        assert leader_res.returncode == 0, (
-            f"Leader storage tool (summary) failed on {leader_file} with rc {leader_res.returncode}"
-        )
-
-        replica_res = run_storage_tool(replica_file, "summary")
-        assert replica_res.returncode == 0, (
-            f"Replica storage tool (summary) failed on {replica_file} with rc {replica_res.returncode}"
-        )
-
-        leader_out = clean_storage_output(leader_res.stdout)
-        replica_out = clean_storage_output(replica_res.stdout)
-        if leader_out != replica_out:
-            diff = "\n".join(
-                difflib.unified_diff(
-                    leader_out.splitlines(),
-                    replica_out.splitlines(),
-                    fromfile=str(leader_file),
-                    tofile=str(replica_file),
-                    lineterm="",
+    reference_outputs = load(reference)
+    for other in others:
+        for (reference_file, reference_outs), (other_file, other_outs) in zip(
+            reference_outputs, load(other)
+        ):
+            for mode in modes:
+                if reference_outs[mode] == other_outs[mode]:
+                    continue
+                diff = "\n".join(
+                    difflib.unified_diff(
+                        reference_outs[mode].splitlines(),
+                        other_outs[mode].splitlines(),
+                        fromfile=str(reference_file),
+                        tofile=str(other_file),
+                        lineterm="",
+                    )
                 )
-            )
-            assert False, (
-                f"Leader and replica journal file summary differ for "
-                f"{leader_file} and {replica_file}\n{diff}"
-            )
+                assert False, (
+                    f"Journal file {mode} differ for {reference_file} and "
+                    f"{other_file}\n{diff}"
+                )
 
 
 def wipe_files(file_patterns: list, storage_dir: str) -> None:

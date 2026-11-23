@@ -30,7 +30,8 @@ from blazingmq.dev.it.fixtures import (
     test_logger,
 )
 from blazingmq.dev.it.cluster_util import (
-    stop_cluster_and_compare_journal_files,
+    compare_journal_files,
+    stop_cluster,
 )
 
 
@@ -117,7 +118,8 @@ def test_sync_after_missed_rollover(
     )
 
     # Check that primary and replica journal files are equal, after stopping all nodes
-    stop_cluster_and_compare_journal_files(primary.name, replica.name, cluster)
+    stop_cluster(cluster, primary)
+    compare_journal_files(cluster, primary, [replica])
 
 
 @start_cluster(False)
@@ -229,7 +231,8 @@ def test_sync_after_missed_rollover_after_restart(
     )
 
     # Check that leader `east1` and replica `east2` (which is missed rollover) journal files are equal, after stopping all nodes
-    stop_cluster_and_compare_journal_files(east1.name, east2.name, cluster)
+    stop_cluster(cluster, east1)
+    compare_journal_files(cluster, east1, [east2])
 
 
 @tweak.cluster.queue_operations.shutdown_timeout_ms(100)
@@ -288,7 +291,8 @@ def test_sync_after_missed_records(
     )
 
     # Check that leader and replica journal files are equal, after stopping all nodes
-    stop_cluster_and_compare_journal_files(leader.name, replica.name, cluster)
+    stop_cluster(cluster, leader)
+    compare_journal_files(cluster, leader, [replica])
 
 
 @tweak.cluster.queue_operations.shutdown_timeout_ms(100)
@@ -366,7 +370,8 @@ def test_sync_if_leader_missed_records(
     replica = cluster.nodes(exclude=next_leader)[0]
 
     # Check that `next_leader` and replica journal files are equal, after stopping all nodes
-    stop_cluster_and_compare_journal_files(next_leader.name, replica.name, cluster)
+    stop_cluster(cluster, next_leader)
+    compare_journal_files(cluster, next_leader, [replica])
 
 
 @tweak.cluster.queue_operations.shutdown_timeout_ms(100)
@@ -456,7 +461,8 @@ def test_sync_if_leader_missed_rollover(
     replica = cluster.nodes(exclude=next_leader)[0]
 
     # Check that `next_leader` and replica journal files are equal, after stopping all nodes
-    stop_cluster_and_compare_journal_files(next_leader.name, replica.name, cluster)
+    stop_cluster(cluster, next_leader)
+    compare_journal_files(cluster, next_leader, [replica])
 
 
 @tweak.cluster.queue_operations.shutdown_timeout_ms(100)
@@ -548,8 +554,8 @@ def test_sync_after_replicas_missed_various_records(
     )
 
     # Check that leader and replicas' journal files are equal, after stopping all nodes
-    for replica in (replica1, replica2, replica3):
-        stop_cluster_and_compare_journal_files(leader.name, replica.name, cluster)
+    stop_cluster(cluster, leader)
+    compare_journal_files(cluster, leader, [replica1, replica2, replica3])
 
 
 @tweak.cluster.queue_operations.shutdown_timeout_ms(100)
@@ -648,8 +654,8 @@ def test_sync_after_replicas_missed_or_extra_records(
     )
 
     # Check that new primary and replicas' journal files are equal
-    for replica in (replica1, replica2, leader):
-        stop_cluster_and_compare_journal_files(replica3.name, replica.name, cluster)
+    stop_cluster(cluster, replica3)
+    compare_journal_files(cluster, replica3, [replica1, replica2, leader])
 
 
 def test_sync_after_primary_extra_records(
@@ -795,8 +801,8 @@ def test_sync_after_primary_extra_records(
     ), f"Replica {target_replica} did not detect irreconcilable primary data"
 
     # Check that primary and replicas' journal files are equal
-    for replica in cluster.nodes(exclude=leader):
-        stop_cluster_and_compare_journal_files(leader.name, replica.name, cluster)
+    stop_cluster(cluster, leader)
+    compare_journal_files(cluster, leader, cluster.nodes(exclude=leader))
 
 
 def test_sync_after_primary_missed_queue_deletion(
@@ -876,13 +882,17 @@ def test_sync_after_primary_missed_queue_deletion(
 
     # Start all nodes.
     cluster.start_nodes(wait_leader=True, wait_ready=False)
-    new_primary = cluster.last_known_leader
+
+    # The queue is on partition 0, the cluster's only queue.  Its primary, not
+    # the cluster leader, conforms the journal: the two can be different nodes.
+    new_primary = cluster.last_known_leader.wait_partition_primary(partition_id=0)
 
     # Verify the new primary conforms its journal to the CSL for the extra
     # queue and becomes available.
     matches = new_primary.capture_n(
         [
-            r"Conforming journal to cluster state: writing a corrective QueueOp.DELETION for extra queueKey",
+            r"(Conforming journal to cluster state: writing a corrective QueueOp.DELETION for extra queueKey"
+            r"|is in the journal but not in the cluster state)",
             r"Cluster \(itCluster\) is available",
         ],
         2,
@@ -895,6 +905,15 @@ def test_sync_after_primary_missed_queue_deletion(
         f"New primary {new_primary} did not output 'Cluster (itCluster) is available'"
     )
 
+    # Wait until every other node knows the primary of partition 0, so that each
+    # replicates the records of the new primary before the cluster stops.
+    for node in cluster.nodes(exclude=new_primary):
+        node.wait_status(wait_leader=False, wait_ready=True)
+
     # Verify that all nodes are synchronized by examining storage files.
-    for replica in cluster.nodes(exclude=new_primary):
-        stop_cluster_and_compare_journal_files(new_primary.name, replica.name, cluster)
+    # Only partition 0: the primaries of the other partitions can be other
+    # nodes, which write sync points while the remaining nodes stop.
+    stop_cluster(cluster, new_primary)
+    compare_journal_files(
+        cluster, new_primary, cluster.nodes(exclude=new_primary), partition_id=0
+    )

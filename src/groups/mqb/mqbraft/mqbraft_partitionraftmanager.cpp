@@ -648,10 +648,6 @@ void PartitionRaftManager::proposeDeferredSyncPoint(unsigned int partitionId)
         return;  // RETURN
     }
 
-    // Ahead of the sync point, so a node that has applied the sync point has
-    // applied the corrections too.
-    conformToClusterState(partitionId);
-
     // Hop to the partition's dispatcher thread; the sync-point write is a
     // no-op there unless this node is the leader and deferred one.
     raft->execute(
@@ -665,8 +661,9 @@ void PartitionRaftManager::conformToClusterState(unsigned int partitionId)
     BSLS_ASSERT_SAFE(d_cluster_p->inDispatcherThread());
 
     // Self is this partition's primary: the only caller,
-    // 'ClusterOrchestrator::performPartitionAction', checks that before
-    // asking for the sync point.  Raft's own leadership is not read here --
+    // 'ClusterOrchestrator::onPartitionRaftLeadershipDispatched', calls this
+    // function only when the partition's leader is this node.  Raft's own
+    // leadership is not read here --
     // it belongs to the partition's thread -- and the writes below are
     // dispatched there, where 'unregisterQueueDispatched' re-checks it.
     const int pid = static_cast<int>(partitionId);
