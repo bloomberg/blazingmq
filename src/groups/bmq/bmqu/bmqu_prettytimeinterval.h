@@ -55,7 +55,8 @@ class PrettyTimeInterval {
     /// @brief Create a manipulator for the specified time interval.
     ///
     /// @param timeNs The time interval, in nanoseconds.
-    /// @param precision The number of digits after the decimal point.
+    /// @param precision The number of digits after the decimal point, in
+    ///                  the range `[0, 18]`.
     explicit PrettyTimeInterval(bsls::Types::Int64 timeNs, int precision = 2);
 
     // ACCESSORS
