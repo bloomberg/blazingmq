@@ -9730,22 +9730,7 @@ static void test65_queueLateAsyncCanceledWriter4()
                            bmqimp::QueueState::e_PENDING);
 }
 
-static void test68_queueLateAsyncCanceledHybrid3()
-{
-    bmqtst::TestHelper::printTestName(
-        "QUEUE LATE ASYNC CANCELED HYBRID TEST 3");
-
-    bsls::Types::Uint64 flags = 0;
-    bmqt::QueueFlagsUtil::setReader(&flags);
-    bmqt::QueueFlagsUtil::setWriter(&flags);
-
-    queueLateAsyncCanceled(L_,
-                           flags,
-                           TestSession::e_LATE_RECONFIGURING,
-                           bmqimp::QueueState::e_PENDING);
-}
-
-static void test69_malformedAckEvent()
+static void test67_malformedAckEvent()
 // ------------------------------------------------------------------------
 // MALFORMED ACK EVENT TEST
 //
@@ -9928,6 +9913,21 @@ static void test69_malformedAckEvent()
     obj.stopGracefully();
 }
 
+static void test68_queueLateAsyncCanceledHybrid3()
+{
+    bmqtst::TestHelper::printTestName(
+        "QUEUE LATE ASYNC CANCELED HYBRID TEST 3");
+
+    bsls::Types::Uint64 flags = 0;
+    bmqt::QueueFlagsUtil::setReader(&flags);
+    bmqt::QueueFlagsUtil::setWriter(&flags);
+
+    queueLateAsyncCanceled(L_,
+                           flags,
+                           TestSession::e_LATE_RECONFIGURING,
+                           bmqimp::QueueState::e_PENDING);
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -9940,9 +9940,8 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
-    case 69: test69_malformedAckEvent(); break;
     case 68: test68_queueLateAsyncCanceledHybrid3(); break;
-    case 67: /* removed test */ break;
+    case 67: test67_malformedAckEvent(); break;
     case 66: /* removed test */ break;
     case 65: test65_queueLateAsyncCanceledWriter4(); break;
     case 64: test64_queueLateAsyncCanceledWriter3(); break;
