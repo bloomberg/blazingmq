@@ -11,6 +11,7 @@ bmqu_memoutstream
 bmqu_operationchain
 bmqu_operationlogger
 bmqu_outstreamformatsaver
+bmqu_prettytimeinterval
 bmqu_printutil
 bmqu_samethreadchecker
 bmqu_sharedresource
