@@ -169,15 +169,6 @@ class RootQueueEngine BSLS_KEYWORD_FINAL : public mqbi::QueueEngine {
     /// specified `appId`.  Return false otherwise.
     bool hasHandle(const bsl::string& appId, mqbi::QueueHandle* handle) const;
 
-    /// Insert the specified `streamParameters` of the specified `handle`
-    /// into consumers map corresponding to the appId in the
-    /// `streamParameters` if the `streamParameters` have highest priority
-    /// and the specified `itApp` references the same appId.
-    void rebuildSelectedApp(mqbi::QueueHandle*                   handle,
-                            const mqbi::QueueHandle::StreamInfo& info,
-                            const Apps::iterator&                itApp,
-                            const Routers::AppContext*           previous);
-
     /// @brief Rebuild the routing of the specified `appId` from the
     ///        current consumers of the queue.
     ///
