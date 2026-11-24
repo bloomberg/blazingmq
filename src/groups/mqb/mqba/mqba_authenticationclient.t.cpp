@@ -682,12 +682,15 @@ static void test11_onCloseCancelsReauthTimer()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+    bmqtst::TestGuard guard(argc, argv);
+    // NOTE: Can't check default allocation because BER codec internals
+    //       (balber::BerEncoder/BerDecoder) use the default allocator.
+    guard.disableDefaultAllocatorCheck();
 
     {
         bmqu::Time::initialize(bmqtst::TestHelperUtil::allocator());
 
-        switch (_testCase) {
+        switch (guard.testCase()) {
         case 0:
         case 11: test11_onCloseCancelsReauthTimer(); break;
         case 10: test10_reauthChannelGoneAtTimerFire(); break;
@@ -700,16 +703,11 @@ int main(int argc, char* argv[])
         case 3: test3_authenticateCredentialFailure(); break;
         case 2: test2_authenticateChannelGone(); break;
         case 1: test1_authenticateSuccess(); break;
-        default: {
-            cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
-            bmqtst::TestHelperUtil::testStatus() = -1;
-        } break;
+        default: guard.caseNotFound(); break;
         }
 
         bmqu::Time::shutdown();
     }
 
-    // NOTE: Can't check default allocation because BER codec internals
-    //       (balber::BerEncoder/BerDecoder) use the default allocator.
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
+    return guard.finish();
 }

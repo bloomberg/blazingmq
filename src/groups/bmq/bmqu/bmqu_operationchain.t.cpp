@@ -1394,7 +1394,8 @@ static void test16_link_swap()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+    bmqtst::TestGuard guard(argc, argv);
+    guard.disableDefaultAllocatorCheck();
 
     // utility mechanisms
     bdlmt::ThreadPool threadPool(bslmt::ThreadAttributes(),
@@ -1404,7 +1405,7 @@ int main(int argc, char* argv[])
     int               rc = threadPool.start();
     BSLS_ASSERT_OPT(rc == 0);
 
-    switch (_testCase) {
+    switch (guard.testCase()) {
     // usage example
     case 1: test1_usageExample(); break;
 
@@ -1427,14 +1428,11 @@ int main(int argc, char* argv[])
     case 15: test15_link_removeAll(); break;
     case 16: test16_link_swap(); break;
 
-    default: {
-        bsl::cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
-        bmqtst::TestHelperUtil::testStatus() = -1;
-    } break;
+    default: guard.caseNotFound(); break;
     }
 
     // shutdown
     threadPool.stop();
 
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
+    return guard.finish();
 }

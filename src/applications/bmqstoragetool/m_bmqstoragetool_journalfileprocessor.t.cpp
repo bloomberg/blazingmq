@@ -2621,9 +2621,10 @@ int main(int argc, char* argv[])
 {
     ::testing::GTEST_FLAG(throw_on_failure) = true;
     ::testing::InitGoogleMock(&argc, argv);
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+    bmqtst::TestGuard guard(argc, argv);
+    guard.disableDefaultAllocatorCheck();
 
-    switch (_testCase) {
+    switch (guard.testCase()) {
     case 0:
     case 1: test1_breathingTest(); break;
     case 2: test2_searchGuidTest(); break;
@@ -2651,11 +2652,8 @@ int main(int argc, char* argv[])
     case 24: test24_searchConfirmAndDeletionRecordsByOffset(); break;
     case 25: test25_searchConfirmAndDeletionRecordsBySeqNumber(); break;
     case 26: test26_summaryWithQueueDetailsTest(); break;
-    default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
-        bmqtst::TestHelperUtil::testStatus() = -1;
-    } break;
+    default: guard.caseNotFound(); break;
     }
 
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
+    return guard.finish();
 }

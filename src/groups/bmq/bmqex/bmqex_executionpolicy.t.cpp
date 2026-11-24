@@ -327,21 +327,19 @@ static void test4_util()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+    bmqtst::TestGuard guard(argc, argv);
+    // 'ExecutionPolicyUtil::defaultPolicy()' allocates a 'SystemExecutor'
+    // context from the default allocator via 'bsl::allocate_shared'.
+    guard.disableDefaultAllocatorCheck();
 
-    switch (_testCase) {
+    switch (guard.testCase()) {
     case 1: test1_policy_constructor(); break;
     case 2: test2_policy_copyConstructor(); break;
     case 3: test3_policy_transformations(); break;
     case 4: test4_util(); break;
 
-    default: {
-        bsl::cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
-        bmqtst::TestHelperUtil::testStatus() = -1;
-    } break;
+    default: guard.caseNotFound(); break;
     }
 
-    // 'ExecutionPolicyUtil::defaultPolicy()' allocates a 'SystemExecutor'
-    // context from the default allocator via 'bsl::allocate_shared'.
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
+    return guard.finish();
 }

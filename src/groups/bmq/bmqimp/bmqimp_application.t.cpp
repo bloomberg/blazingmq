@@ -181,22 +181,21 @@ static void test3_startStopAsyncTest()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
-
-    switch (_testCase) {
-    case 0:
-    case 3: test3_startStopAsyncTest(); break;
-    case 2: test2_startStopTest(); break;
-    case 1: test1_breathingTest(); break;
-    default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
-        bmqtst::TestHelperUtil::testStatus() = -1;
-    } break;
-    }
-
-    TEST_EPILOG(bmqtst::TestHelper::e_DEFAULT);
+    bmqtst::TestGuard guard(argc, argv);
     // Default: EventQueue uses bmqc::MonitoredFixedQueue, which uses
     //          'bdlcc::SharedObjectPool' which uses bslmt::Semaphore which
     //          generates a unique name using an ostringstream, hence the
     //          default allocator.
+    guard.disableDefaultAllocatorCheck();
+    guard.disableGlobalAllocatorCheck();
+
+    switch (guard.testCase()) {
+    case 0:
+    case 3: test3_startStopAsyncTest(); break;
+    case 2: test2_startStopTest(); break;
+    case 1: test1_breathingTest(); break;
+    default: guard.caseNotFound(); break;
+    }
+
+    return guard.finish();
 }

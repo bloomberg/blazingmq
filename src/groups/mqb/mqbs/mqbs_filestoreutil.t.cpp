@@ -527,19 +527,17 @@ static void test2_writeQueueCreationRecordImplMalformed()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+    bmqtst::TestGuard guard(argc, argv);
+    // 'writeQueueCreationRecordImpl' builds a 'bmqt::Uri' and a log stream
+    // from the default allocator, so only the global allocator is checked.
+    guard.disableDefaultAllocatorCheck();
 
-    switch (_testCase) {
+    switch (guard.testCase()) {
     case 0:
     case 2: test2_writeQueueCreationRecordImplMalformed(); break;
     case 1: test1_writeQueueCreationRecordImpl(); break;
-    default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
-        bmqtst::TestHelperUtil::testStatus() = -1;
-    } break;
+    default: guard.caseNotFound(); break;
     }
 
-    // 'writeQueueCreationRecordImpl' builds a 'bmqt::Uri' and a log stream
-    // from the default allocator, so only the global allocator is checked.
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
+    return guard.finish();
 }

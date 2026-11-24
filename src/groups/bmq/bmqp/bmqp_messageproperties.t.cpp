@@ -1623,9 +1623,13 @@ static void testN1_benchmark(benchmark::State& state)
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+    bmqtst::TestGuard guard(argc, argv);
+    // Check for default allocator is explicitly disabled as
+    // 'bmqp::MessageProperties' or one of its data members may allocate
+    // temporaries with default allocator.
+    guard.disableDefaultAllocatorCheck();
 
-    switch (_testCase) {
+    switch (guard.testCase()) {
     case 0:
     case 13: test13_streamInMalformedHeaderTest(); break;
     case 12: test12_emptyPropertyValueStreamOutTest(); break;
@@ -1659,20 +1663,13 @@ int main(int argc, char* argv[])
         benchmark::Initialize(&argc, argv);
         benchmark::RunSpecifiedBenchmarks();
 #else
-        cerr << "WARNING: BENCHMARK '" << _testCase
+        cerr << "WARNING: BENCHMARK '" << guard.testCase()
              << "' IS NOT SUPPORTED ON THIS PLATFORM." << endl;
         bmqtst::TestHelperUtil::testStatus() = -1;
 #endif  // BMQTST_BENCHMARK_ENABLED
     } break;
-    default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
-        bmqtst::TestHelperUtil::testStatus() = -1;
-    } break;
+    default: guard.caseNotFound(); break;
     }
 
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
-
-    // Check for default allocator is explicitly disabled as
-    // 'bmqp::MessageProperties' or one of its data members may allocate
-    // temporaries with default allocator.
+    return guard.finish();
 }

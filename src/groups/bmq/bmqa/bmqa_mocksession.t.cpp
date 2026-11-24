@@ -1505,9 +1505,11 @@ static void test8_postBlockedToSuspendedQueue()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+    bmqtst::TestGuard guard(argc, argv);
+    guard.disableDefaultAllocatorCheck();
+    guard.disableGlobalAllocatorCheck();
 
-    switch (_testCase) {
+    switch (guard.testCase()) {
     case 0:
     case 8: test8_postBlockedToSuspendedQueue(); break;
     case 7: test7_postAndAccess(); break;
@@ -1517,11 +1519,8 @@ int main(int argc, char* argv[])
     case 3: test3_queueManagement(); break;
     case 2: test2_call(); break;
     case 1: test1_staticMethods(); break;
-    default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
-        bmqtst::TestHelperUtil::testStatus() = -1;
-    } break;
+    default: guard.caseNotFound(); break;
     }
 
-    TEST_EPILOG(bmqtst::TestHelper::e_DEFAULT);
+    return guard.finish();
 }

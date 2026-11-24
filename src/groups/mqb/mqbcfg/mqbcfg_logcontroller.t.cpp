@@ -102,19 +102,17 @@ static void test1_logControllerConfigFromObj()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
-
-    switch (_testCase) {
-    case 0:
-    case 1: test1_logControllerConfigFromObj(); break;
-    default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        bmqtst::TestHelperUtil::testStatus() = -1;
-    } break;
-    }
-
-    // 'e_CHECK_DEF_GBL_ALLOC' check fails because 'fromDatum' function of
+    bmqtst::TestGuard guard(argc, argv);
+    // The default allocator check fails because 'fromDatum' function of
     // bmqtsk::LogControllerConfig allocates bsl::string with default
     // allocator.
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
+    guard.disableDefaultAllocatorCheck();
+
+    switch (guard.testCase()) {
+    case 0:
+    case 1: test1_logControllerConfigFromObj(); break;
+    default: guard.caseNotFound(); break;
+    }
+
+    return guard.finish();
 }

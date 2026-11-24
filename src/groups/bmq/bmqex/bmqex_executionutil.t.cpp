@@ -592,9 +592,10 @@ static void test4_execute_always_blocking()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+    bmqtst::TestGuard guard(argc, argv);
+    guard.disableDefaultAllocatorCheck();
 
-    switch (_testCase) {
+    switch (guard.testCase()) {
     // traits
     case 1: test1_executeResult(); break;
 
@@ -603,11 +604,8 @@ int main(int argc, char* argv[])
     case 3: test3_execute_possibly_blocking(); break;
     case 4: test4_execute_always_blocking(); break;
 
-    default: {
-        bsl::cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
-        bmqtst::TestHelperUtil::testStatus() = -1;
-    } break;
+    default: guard.caseNotFound(); break;
     }
 
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
+    return guard.finish();
 }

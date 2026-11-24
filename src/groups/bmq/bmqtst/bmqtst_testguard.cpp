@@ -104,7 +104,8 @@ TestGuard::TestGuard(int argc, char* argv[], bool useStackTraceAllocator)
 , d_logManagerGuard(&d_logMultiplexObserver, logConfig())
 , d_gblAlloc(installGlobalAllocator())
 , d_defAlloc("default", TestHelperUtil::verbosityLevel() >= 4)
-, d_defAllocGuard(&d_defAlloc)
+, d_defLogAlloc(&d_defAlloc)
+, d_defAllocGuard(&d_defLogAlloc)
 , d_testAlloc("test", TestHelperUtil::verbosityLevel() >= 4)
 , d_stTestAlloc()
 {
@@ -142,12 +143,12 @@ void TestGuard::caseNotFound()
 
 void TestGuard::disableDefaultAllocatorCheck()
 {
-    d_checkDefaultAllocator = false;
+    // d_checkDefaultAllocator = false;
 }
 
 void TestGuard::disableGlobalAllocatorCheck()
 {
-    d_checkGlobalAllocator = false;
+    // d_checkGlobalAllocator = false;
 }
 
 int TestGuard::finish()

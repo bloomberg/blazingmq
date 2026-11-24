@@ -2027,7 +2027,11 @@ static void test22_resumeAfterTTL()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+    bmqtst::TestGuard guard(argc, argv);
+    // Default allocator check is disabled for all UTs:
+    // `mqbblp::QueueEngine` and mocks from `mqbi` methods use ball logging
+    // that allocates using default allocator.
+    guard.disableDefaultAllocatorCheck();
 
     bmqu::Time::initialize(bmqtst::TestHelperUtil::allocator());
 
@@ -2040,7 +2044,7 @@ int main(int argc, char* argv[])
                 30,
                 bmqtst::TestHelperUtil::allocator());
 
-        switch (_testCase) {
+        switch (guard.testCase()) {
         case 0:
         case 22: test22_resumeAfterTTL(); break;
         case 21: test21_deliverOutOfOrder(); break;
@@ -2064,17 +2068,11 @@ int main(int argc, char* argv[])
         case 3: test3_reconfigure(); break;
         case 2: test2_aggregateDownstream(); break;
         case 1: test1_breathingTest(); break;
-        default: {
-            cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
-            bmqtst::TestHelperUtil::testStatus() = -1;
-        } break;
+        default: guard.caseNotFound(); break;
         }
     }
 
     bmqu::Time::shutdown();
 
-    // Default allocator check is disabled for all UTs:
-    // `mqbblp::QueueEngine` and mocks from `mqbi` methods use ball logging
-    // that allocates using default allocator.
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
+    return guard.finish();
 }

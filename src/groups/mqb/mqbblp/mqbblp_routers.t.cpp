@@ -539,22 +539,22 @@ static void test4_generate()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+    bmqtst::TestGuard guard(argc, argv);
+    guard.disableDefaultAllocatorCheck();
 
-    mqbcfg::AppConfig brokerConfig(bmqtst::TestHelperUtil::allocator());
-    mqbcfg::BrokerConfig::set(brokerConfig);
-    // expect BALL_LOG_ERROR
-    switch (_testCase) {
-    case 0:
-    case 1: test1_registry(); break;
-    case 2: test2_priority(); break;
-    case 3: test3_parse(); break;
-    case 4: test4_generate(); break;
-    default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
-        bmqtst::TestHelperUtil::testStatus() = -1;
-    } break;
+    {
+        mqbcfg::AppConfig brokerConfig(bmqtst::TestHelperUtil::allocator());
+        mqbcfg::BrokerConfig::set(brokerConfig);
+        // expect BALL_LOG_ERROR
+        switch (guard.testCase()) {
+        case 0:
+        case 1: test1_registry(); break;
+        case 2: test2_priority(); break;
+        case 3: test3_parse(); break;
+        case 4: test4_generate(); break;
+        default: guard.caseNotFound(); break;
+        }
     }
 
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
+    return guard.finish();
 }

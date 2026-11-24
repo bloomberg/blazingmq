@@ -5186,20 +5186,24 @@ static void test49_closeWithScheduledAlarm()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+    bmqtst::TestGuard guard(argc, argv);
+    // Default allocator check is disabled for all UTs:
+    // `mqbblp::QueueEngine` and mocks from `mqbi` methods use ball logging
+    // that allocates using default allocator.
+    guard.disableDefaultAllocatorCheck();
 
     bmqu::Time::initialize(bmqtst::TestHelperUtil::allocator());
 
-    mqbcfg::AppConfig brokerConfig(bmqtst::TestHelperUtil::allocator());
-    mqbcfg::BrokerConfig::set(brokerConfig);
-
     {
+        mqbcfg::AppConfig brokerConfig(bmqtst::TestHelperUtil::allocator());
+        mqbcfg::BrokerConfig::set(brokerConfig);
+
         bsl::shared_ptr<bmqst::StatContext> statContext =
             mqbstat::BrokerStatsUtil::initializeStatContext(
                 30,
                 bmqtst::TestHelperUtil::allocator());
 
-        switch (_testCase) {
+        switch (guard.testCase()) {
         case 0:
         case 49: test49_closeWithScheduledAlarm(); break;
         case 48: test48_unknownReject(); break;
@@ -5259,17 +5263,11 @@ int main(int argc, char* argv[])
         case -1: testN1_broadcastExhaustiveSubscriptions(); break;
         case -2: testN2_broadcastExhaustiveCanDeliver(); break;
         case -3: testN3_broadcastExhaustiveConsumerPriority(); break;
-        default: {
-            cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
-            bmqtst::TestHelperUtil::testStatus() = -1;
-        } break;
+        default: guard.caseNotFound(); break;
         }
     }
 
     bmqu::Time::shutdown();
 
-    // Default allocator check is disabled for all UTs:
-    // `mqbblp::QueueEngine` and mocks from `mqbi` methods use ball logging
-    // that allocates using default allocator.
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
+    return guard.finish();
 }

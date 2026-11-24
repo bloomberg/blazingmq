@@ -514,7 +514,9 @@ static void test2_safeConcurrentTeardown()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+    bmqtst::TestGuard guard(argc, argv);
+    guard.disableDefaultAllocatorCheck();
+    guard.disableGlobalAllocatorCheck();
 
     {
         bmqu::Time::initialize(bmqtst::TestHelperUtil::allocator());
@@ -522,19 +524,15 @@ int main(int argc, char* argv[])
         mqbcfg::AppConfig brokerConfig(bmqtst::TestHelperUtil::allocator());
         mqbcfg::BrokerConfig::set(brokerConfig);
 
-        switch (_testCase) {
+        switch (guard.testCase()) {
         case 0:
         case 1: test1_watermark(); break;
         case 2: test2_safeConcurrentTeardown(); break;
-        default: {
-            cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
-            bmqtst::TestHelperUtil::testStatus() = -1;
-        } break;
+        default: guard.caseNotFound(); break;
         }
 
         bmqu::Time::shutdown();
     }
 
-    TEST_EPILOG(bmqtst::TestHelper::e_DEFAULT);
-    // Do not check for default/global allocator usage.
+    return guard.finish();
 }

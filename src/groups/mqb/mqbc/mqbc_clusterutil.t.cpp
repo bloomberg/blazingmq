@@ -395,19 +395,17 @@ static void test1_validateState()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
-
-    switch (_testCase) {
-    case 0:
-    case 1: test1_validateState(); break;
-    default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
-        bmqtst::TestHelperUtil::testStatus() = -1;
-    } break;
-    }
-
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
+    bmqtst::TestGuard guard(argc, argv);
     // Can't ensure no default memory is allocated because
     // 'bdlmt::EventSchedulerTestTimeSource' inside 'mqbmock::Cluster' uses
     // the default allocator in its constructor.
+    guard.disableDefaultAllocatorCheck();
+
+    switch (guard.testCase()) {
+    case 0:
+    case 1: test1_validateState(); break;
+    default: guard.caseNotFound(); break;
+    }
+
+    return guard.finish();
 }

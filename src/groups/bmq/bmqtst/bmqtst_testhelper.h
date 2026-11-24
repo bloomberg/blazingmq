@@ -28,34 +28,12 @@
 //
 /// TEST SHELL
 ///----------
-// Two macros 'TEST_PROLOG' and 'TEST_EPILOG' are provided, and should
-// respectively be called first and last in main.  They take care of all the
-// boilerplate (such as parsing arguments, initializing ball logging,
-// allocators, ensuring no default or global memory was used, ...).  Each of
-// them takes a bitmask flag value (which is a combination of the flags defined
-// in the 'bmqtst::TestHelper::e_FLAGS' enum to control and alter what gets
-// initialized and checked.
+// The environment of a test driver (arguments, ball logging, allocators,
+// allocator checks) is set up by 'bmqtst::TestGuard' (see
+// 'bmqtst_testguard').
 //
-//: o Prolog flags:
-//:   o !e_USE_STACKTRACE_ALLOCATOR!:
-//:     use a 'balst::StackTraceTestAllocator' instead of a
-//:     'bslma::TestAllocator' to report stacks of the memory leaks.
-//:
-//: o Epilog flags:
-//:   o !e_CHECK_DEF_ALLOC!:
-//:     verify that no memory was allocated from the default allocator during
-//:     the test.
-//:   o !e_CHECK_GBL_ALLOC!:
-//:     verify that no memory was allocated from the global allocator during
-//:     the test.
-//:   o !e_CHECK_DEF_GBL_ALLOC!:
-//:     verify that no memory was allocated from either the default or the
-//:     global allocator during the test.
-//
-// NOTE: Because the Epilog flags are global and apply to all the tests in
-//       the test driver, it is not always possible to enable them if one of
-//       the test cases may make usage of default or global allocator.  For
-//       that matter, the global variables
+// NOTE: The allocator checks of 'bmqtst::TestGuard' apply to all the tests in
+//       the test driver.  The global variables
 //       'TestHelperUtil::ignoreCheckDefAlloc()' and
 //       'TestHelperUtil::ignoreCheckGblAlloc()' can be set to 'true' in the
 //       test of a given case to selectively disable those checks for that test
@@ -114,24 +92,6 @@
 //: o !T_!:    Print a tab (w/o newline)
 //: o !L_!:    Current line number
 //
-/// ALLOCATORS
-///----------
-// 'TEST_PROLOG' registers a 'bslma::TestAllocator' for the default and global
-// allocators.  During 'TEST_EPILOG', unless requested not to, the allocators
-// are checked to ensure the execution of the test did not make any usage of
-// either the default or the global allocators. 'TEST_PROLOG' also creates a
-// 'bslma::TestAllocator' (by default, or a 'balst::StackTraceTestAllocator' if
-// the 'e_USE_STACKTRACE_ALLOCATOR' flag is set) and makes it available as the
-// global 'TestHelperUtil::allocator()' pointer.  This allocator is the one
-// that should be used and passed to all objects under test.  'TEST_EPILOG'
-// does verify that no memory was leaked from that allocator as well.
-//
-/// BALL LOGGING
-///------------
-// The BALL infrastructure is initialized during 'TEST_PROLOG', to provide ball
-// logging to stdout.  Note that the logging is done asynchronously, thus a
-// separate thread is created by the test framework.
-//
 /// TEST REGISTRATION
 ///-----------------
 // This component includes basic support for creating test suites in a manner
@@ -159,7 +119,7 @@
 //
 // Function 'bmqtst::runTest()' replaces the traditional BDE switch
 // statement. It runs the i-th test in order of appearance, as specified by the
-// first command-line argument (extracted by 'TEST_PROLOG' into '_testCase').
+// first command-line argument (see 'bmqtst::TestGuard::testCase()').
 // Running a test consists of the following steps:
 //: o If no fixture is specified (i.e. test was created with 'TEST'):
 //:   o Execute the test code
@@ -210,18 +170,14 @@
 //
 //  int main(int argc, char *argv[])
 //  {
-//      TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+//      bmqtst::TestGuard guard(argc, argv);
 //
-//      switch (_testCase) { case 0:
+//      switch (guard.testCase()) { case 0:
 //        case 1: test1_breathingTest(); break;
-//        default: {
-//          bsl::cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND."
-//                    << bsl::endl;
-//          TestHelperUtil::testStatus() = -1;
-//        } break;
+//        default: guard.caseNotFound(); break;
 //      }
 //
-//      TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+//      return guard.finish();
 //  }
 //..
 //
@@ -269,11 +225,11 @@
 //
 //  int main(int argc, char *argv[])
 //  {
-//      TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+//      bmqtst::TestGuard guard(argc, argv);
 //
-//      bmqtst::runTest(_testCase);
+//      bmqtst::runTest(guard.testCase());
 //
-//      TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+//      return guard.finish();
 //  }
 //..
 
@@ -546,141 +502,8 @@
     };
 
 // ============================================================================
-//                                 TEST SHELL
+//                              TEST REGISTRATION
 // ----------------------------------------------------------------------------
-#define TEST_PROLOG(F)                                                        \
-    const int _testCase                      = argc > 1 ? atoi(argv[1]) : 0;  \
-    bmqtst::TestHelperUtil::verbosityLevel() = argc - 2;                      \
-                                                                              \
-    /* Install an assert handler to gracefully mark the test as failure */    \
-    /* in case of assert.                                               */    \
-    bsls::AssertFailureHandlerGuard _assertGuard(::_assertViolationHandler);  \
-                                                                              \
-    /* Initialize BALL */                                                     \
-    /* NOTE: BALL mechanisms use the default allocator, that is why */        \
-    /*       logging is initialized before the allocators.          */        \
-    INIT_BALL_LOGGING();                                                      \
-                                                                              \
-    /* Initialize allocators */                                               \
-    INIT_ALLOCATORS(F);                                                       \
-                                                                              \
-    bsl::cout << "TEST " << __FILE__ << " CASE " << _testCase << bsl::endl;   \
-                                                                              \
-    /* Create a scope for all code in between TEST_PROLOG and TEST_EPILOG */  \
-    {
-#define INIT_BALL_LOGGING()                                                   \
-    /* create logger configuration */                                         \
-    ball::LoggerManagerConfiguration _logConfig;                              \
-    ball::Severity::Level            _logSeverity = ball::Severity::e_WARN;   \
-    {                                                                         \
-        if (bmqtst::TestHelperUtil::verbosityLevel() == 1) {                  \
-            _logSeverity = ball::Severity::e_INFO;                            \
-        }                                                                     \
-        else if (bmqtst::TestHelperUtil::verbosityLevel() == 2) {             \
-            _logSeverity = ball::Severity::e_DEBUG;                           \
-        }                                                                     \
-        else if (bmqtst::TestHelperUtil::verbosityLevel() >= 3) {             \
-            _logSeverity = ball::Severity::e_TRACE;                           \
-        }                                                                     \
-        _logConfig.setDefaultThresholdLevelsIfValid(ball::Severity::e_OFF,    \
-                                                    _logSeverity,             \
-                                                    ball::Severity::e_OFF,    \
-                                                    ball::Severity::e_OFF);   \
-    }                                                                         \
-                                                                              \
-    ball::AttributeContextProctor _attributeContextProctor;                   \
-                                                                              \
-    /* create a multiplex observer to register other observers */             \
-    ball::MultiplexObserver _logMultiplexObserver;                            \
-                                                                              \
-    /* create and register an observer that writes to stdout */               \
-    ball::FileObserver _logStdoutObserver(_logSeverity);                      \
-    _logMultiplexObserver.registerObserver(&_logStdoutObserver);              \
-                                                                              \
-    /* initialize logger manager */                                           \
-    ball::LoggerManagerScopedGuard _logManagerGuard(&_logMultiplexObserver,   \
-                                                    _logConfig);
-
-#define INIT_GLOBAL_ALLOCATOR_INTERNAL()                                      \
-    /* Global Allocator */                                                    \
-    /* NOTE: The global allocator has a static storage duration to outlive */ \
-    /*       all static objects using that allocator.                      */ \
-    static bslma::TestAllocator _gblAlloc(                                    \
-        "global",                                                             \
-        (bmqtst::TestHelperUtil::verbosityLevel() >= 4));                     \
-    /* Access the metrics registry default instance before assigning the */   \
-    /* global allocator                                                  */   \
-    bdlm::MetricsRegistry::defaultInstance();                                 \
-    bslma::Default::setGlobalAllocator(&_gblAlloc);
-
-#ifdef BSLS_PLATFORM_CMP_CLANG
-/* Suppress "exit-time-destructor" warning on Clang by qualifying the */
-/* static variable '_gblAlloc' with Clang-specific attribute.         */
-#define INIT_GLOBAL_ALLOCATOR()                                               \
-    [[clang::no_destroy]] INIT_GLOBAL_ALLOCATOR_INTERNAL()
-#else
-#define INIT_GLOBAL_ALLOCATOR() INIT_GLOBAL_ALLOCATOR_INTERNAL()
-#endif
-
-#define INIT_ALLOCATORS(F)                                                    \
-    INIT_GLOBAL_ALLOCATOR();                                                  \
-                                                                              \
-    /* Default allocator */                                                   \
-    bslma::TestAllocator _defAlloc(                                           \
-        "default",                                                            \
-        (bmqtst::TestHelperUtil::verbosityLevel() >= 4));                     \
-    bslma::DefaultAllocatorGuard _defAllocGuard(&_defAlloc);                  \
-    bmqtst::TestHelperUtil::setDefaultAllocator(_defAlloc);                   \
-                                                                              \
-    /* Test driver allocator */                                               \
-    bslma::TestAllocator _testAlloc(                                          \
-        "test",                                                               \
-        (bmqtst::TestHelperUtil::verbosityLevel() >= 4));                     \
-    _testAlloc.setNoAbort(true);                                              \
-                                                                              \
-    balst::StackTraceTestAllocator _stTestAlloc;                              \
-    _stTestAlloc.setName("test");                                             \
-                                                                              \
-    if ((F) & bmqtst::TestHelper::e_USE_STACKTRACE_ALLOCATOR) {               \
-        bmqtst::TestHelperUtil::allocator() = &_stTestAlloc;                  \
-    }                                                                         \
-    else {                                                                    \
-        bmqtst::TestHelperUtil::allocator() = &_testAlloc;                    \
-    }
-
-#define TEST_EPILOG(F)                                                        \
-    /* Close the scope for all code in between TEST_PROLOG and TEST_EPILOG */ \
-    }                                                                         \
-                                                                              \
-    /* Ensure no memory leak from the component under test */                 \
-    BMQTST_ASSERT_EQ(_testAlloc.numBlocksInUse(), 0);                         \
-                                                                              \
-    /* Verify no default allocator usage */                                   \
-    if (F & bmqtst::TestHelper::e_CHECK_DEF_ALLOC &&                          \
-        !bmqtst::TestHelperUtil::ignoreCheckDefAlloc()) {                     \
-        BMQTST_ASSERT_EQ(_defAlloc.numBlocksTotal(), 0);                      \
-    }                                                                         \
-                                                                              \
-    /* Verify no global allocator usage */                                    \
-    if (F & bmqtst::TestHelper::e_CHECK_GBL_ALLOC &&                          \
-        !bmqtst::TestHelperUtil::ignoreCheckGblAlloc()) {                     \
-        BMQTST_ASSERT_EQ(_gblAlloc.numBlocksTotal(), 0);                      \
-    }                                                                         \
-                                                                              \
-    /* shutdown log observers */                                              \
-    _logMultiplexObserver.deregisterObserver(&_logStdoutObserver);            \
-                                                                              \
-    /* Check test result */                                                   \
-    if (bmqtst::TestHelperUtil::testStatus() > 0) {                           \
-        bsl::cerr << "Error, non-zero test status: "                          \
-                  << bmqtst::TestHelperUtil::testStatus() << "."              \
-                  << bsl::endl;                                               \
-    }                                                                         \
-                                                                              \
-    bmqtst::TestHelperUtil::allocator() =                                     \
-        0; /* clang-tidy warning silencing */                                 \
-    return bmqtst::TestHelperUtil::testStatus();
-
 #define BMQTST_TEST_F(FIXTURE, NAME)                                          \
     struct FIXTURE##NAME : FIXTURE {                                          \
         void body() BSLS_KEYWORD_OVERRIDE;                                    \
@@ -927,20 +750,6 @@ class TestHelper_Printer {
 
 /// Namespace for a set of utilities.
 struct TestHelper {
-    // TYPES
-    /// Flags to provide to `TEST_PROLOG` and `TEST_EPILOG` macros.
-    enum e_FLAGS {
-        e_DEFAULT = 0,
-
-        // PROLOG FLAGS
-        e_USE_STACKTRACE_ALLOCATOR = 1 << 0,
-
-        // EPILOG FLAGS
-        e_CHECK_DEF_ALLOC     = 1 << 0,
-        e_CHECK_GBL_ALLOC     = 1 << 1,
-        e_CHECK_DEF_GBL_ALLOC = e_CHECK_DEF_ALLOC | e_CHECK_GBL_ALLOC
-    };
-
     // CLASS METHODS
 
     /// Print the banner of the name of the test, in the specified `value`.

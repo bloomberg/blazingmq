@@ -317,21 +317,18 @@ static void test2_loadMessageFromFileTest()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
-
-    switch (_testCase) {
-    case 0:
-    case 1: test1_decodeHexDumpTest(); break;
-    case 2: test2_loadMessageFromFileTest(); break;
-    default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
-        bmqtst::TestHelperUtil::testStatus() = -1;
-    } break;
-    }
-
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
-
+    bmqtst::TestGuard guard(argc, argv);
     // Check for default allocator is explicitly disabled as
     // 'bmqa::MessageProperties' or one of its data members may allocate
     // temporaries with default allocator. The same for 'bmqtst::TempFile'.
+    guard.disableDefaultAllocatorCheck();
+
+    switch (guard.testCase()) {
+    case 0:
+    case 1: test1_decodeHexDumpTest(); break;
+    case 2: test2_loadMessageFromFileTest(); break;
+    default: guard.caseNotFound(); break;
+    }
+
+    return guard.finish();
 }

@@ -315,9 +315,11 @@ static void test_N1_manualSaveInspection()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+    bmqtst::TestGuard guard(argc, argv);
+    guard.disableDefaultAllocatorCheck();
+    guard.disableGlobalAllocatorCheck();
 
-    switch (_testCase) {
+    switch (guard.testCase()) {
     case 0:
     case 1: test1_breathingTest(); break;
     case 2: test2_roundingPrecisionTest(); break;
@@ -326,11 +328,8 @@ int main(int argc, char* argv[])
     case 5: test5_statisticsTest(); break;
     case 6: test6_saveAndLoadTest(); break;
     case -1: test_N1_manualSaveInspection(); break;
-    default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
-        bmqtst::TestHelperUtil::testStatus() = -1;
-    } break;
+    default: guard.caseNotFound(); break;
     }
 
-    TEST_EPILOG(bmqtst::TestHelper::e_DEFAULT);
+    return guard.finish();
 }
