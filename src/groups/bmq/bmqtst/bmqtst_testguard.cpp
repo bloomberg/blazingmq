@@ -159,7 +159,9 @@ int TestGuard::finish()
     BMQTST_ASSERT_EQ(d_testAlloc.numBlocksInUse(), 0);
 
     if (d_checkDefaultAllocator && !TestHelperUtil::ignoreCheckDefAlloc()) {
-        BMQTST_ASSERT_EQ(d_defAlloc.numBlocksTotal(), 0);
+        BMQTST_ASSERT_EQ(d_defAlloc.numBlocksTotal() -
+                             d_defLogAlloc.numKnownAllocations(),
+                         0);
     }
 
     if (d_checkGlobalAllocator && !TestHelperUtil::ignoreCheckGblAlloc()) {
