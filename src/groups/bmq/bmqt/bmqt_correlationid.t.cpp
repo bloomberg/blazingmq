@@ -202,11 +202,16 @@ static void test3_compare()
     bmqt::CorrelationIdLess less;
     const int               val1 = 1;
     const int               val4 = 4;
-    bsl::shared_ptr<int>    intPtr1;
-    bsl::shared_ptr<int>    intPtr4;
 
-    intPtr1.createInplace(bmqtst::TestHelperUtil::allocator(), val1);
-    intPtr4.createInplace(bmqtst::TestHelperUtil::allocator(), val4);
+    // Shared pointers are compared by address, so point them into one array
+    // to get a known order.
+    int                  values[] = {val1, val4};
+    bsl::shared_ptr<int> intPtr1(&values[0],
+                                 bslstl::SharedPtrNilDeleter(),
+                                 bmqtst::TestHelperUtil::allocator());
+    bsl::shared_ptr<int> intPtr4(&values[1],
+                                 bslstl::SharedPtrNilDeleter(),
+                                 bmqtst::TestHelperUtil::allocator());
 
     bmqt::CorrelationId sptrId1(intPtr1);
     bmqt::CorrelationId sptrId4(intPtr4);
