@@ -179,6 +179,9 @@ class TransportManager {
     // BlobBufferFactory to use by the
     // sessions
 
+    /// Pool of blobs passed to the `TCPSessionFactory`, held not owned.
+    TCPSessionFactory::BlobSpPool* d_blobSpPool_p;
+
     /// Authenticator to use for authenticating a connection.
     bslma::ManagedPtr<mqbnet::Authenticator> d_authenticator_mp;
 
@@ -296,10 +299,11 @@ class TransportManager {
     // CREATORS
 
     /// Create a new `TransportManager` using the specified `scheduler`,
-    /// `blobBufferFactory`, `negotiator` and `statController` and the
-    /// specified `allocator` for any memory allocation.
+    /// `blobBufferFactory`, `blobSpPool`, `negotiator` and `statController`
+    /// and the specified `allocator` for any memory allocation.
     TransportManager(bdlmt::EventScheduler*            scheduler,
                      bdlbb::BlobBufferFactory*         blobBufferFactory,
+                     TCPSessionFactory::BlobSpPool*    blobSpPool,
                      bslma::ManagedPtr<Authenticator>& authenticator,
                      bslma::ManagedPtr<Negotiator>&    negotiator,
                      mqbstat::StatController*          statController,
