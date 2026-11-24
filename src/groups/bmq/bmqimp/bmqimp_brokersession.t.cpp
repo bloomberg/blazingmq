@@ -9745,6 +9745,106 @@ static void test68_queueLateAsyncCanceledHybrid3()
                            bmqimp::QueueState::e_PENDING);
 }
 
+static void test71_lateConfigureResponseReconfigureNotSent()
+// ------------------------------------------------------------------------
+// LATE CONFIGURE RESPONSE WHOSE RECONFIGURE IS NOT SENT
+//
+// Concerns:
+//   1. When a standalone configure request times out, the queue goes back
+//      to its previous options.  If the broker then applies the request
+//      and answers it late, the session sends a reconfigure request with
+//      the previous options.  If that request cannot be sent, the user's
+//      configure, which already completed with a timeout, must not
+//      complete again, and the queue stays open.
+//
+// Plan:
+//   1. Create bmqimp::BrokerSession test wrapper object and start the
+//      session.
+//   2. Open a reader queue.
+//   3. Configure the queue with new options.
+//   4. Let the configure request time out, and ensure the queue is back
+//      to its previous options.
+//   5. Make writes to the channel fail.
+//   6. Send back the late configure response, confirming the new options.
+//   7. Ensure the session closed the channel, whose write failed.  It
+//      does so while handling the late response.
+//   8. Ensure the configure does not complete again, and the queue is
+//      still open.
+//   9. Report the channel down, and stop the session.
+//
+// Testing manipulators:
+//   - configureQueueAsync
+//-------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName(
+        "LATE CONFIGURE RESPONSE WHOSE RECONFIGURE IS NOT SENT");
+
+    const bsls::TimeInterval timeout = bsls::TimeInterval(15);
+    bmqt::SessionOptions     sessionOptions;
+    bdlmt::EventScheduler    scheduler(bsls::SystemClockType::e_MONOTONIC,
+                                    bmqtst::TestHelperUtil::allocator());
+    TestClock                testClock(scheduler);
+
+    sessionOptions.setNumProcessingThreads(1)
+        .setOpenQueueTimeout(timeout)
+        .setConfigureQueueTimeout(timeout)
+        .setCloseQueueTimeout(timeout);
+
+    TestSession obj(sessionOptions,
+                    testClock,
+                    bmqtst::TestHelperUtil::allocator());
+
+    PVV_SAFE("Step 1. Starting session...");
+    obj.startAndConnect();
+
+    PVV_SAFE("Step 2. Open a reader queue");
+    bsl::shared_ptr<bmqimp::Queue> pQueue = obj.createQueue(
+        k_URI,
+        bmqt::QueueFlags::e_READ,
+        bmqt::QueueOptions(bmqtst::TestHelperUtil::allocator()));
+
+    obj.arriveAtStep(pQueue, TestSession::e_OPEN_OPENED, timeout);
+
+    const bmqt::QueueOptions previousOptions = pQueue->options();
+
+    PVV_SAFE("Step 3. Configure the queue with new options");
+    bmqt::QueueOptions newOptions = previousOptions;
+    newOptions.setMaxUnconfirmedBytes(newOptions.maxUnconfirmedBytes() + 1);
+
+    int rc = obj.session().configureQueueAsync(pQueue, newOptions, timeout);
+    BMQTST_ASSERT_EQ(rc, bmqt::ConfigureQueueResult::e_SUCCESS);
+
+    bmqp_ctrlmsg::ControlMessage request = obj.getNextOutboundRequest(
+        TestSession::e_REQ_CONFIG_QUEUE);
+
+    PVV_SAFE("Step 4. Let the configure request time out");
+    obj.advanceTime(timeout);
+
+    BMQTST_ASSERT(obj.verifyOperationResult(
+        bmqt::SessionEventType::e_QUEUE_CONFIGURE_RESULT,
+        bmqp_ctrlmsg::StatusCategory::E_TIMEOUT));
+    BMQTST_ASSERT_EQ(pQueue->options(), previousOptions);
+
+    PVV_SAFE("Step 5. Make writes to the channel fail");
+    obj.channel().setWriteStatus(bmqio::StatusCategory::e_GENERIC_ERROR);
+
+    PVV_SAFE("Step 6. Send back the late configure response");
+    obj.sendResponse(request);
+
+    PVV_SAFE("Step 7. Ensure the session closed the channel");
+    BMQTST_ASSERT(obj.waitForChannelClose());
+
+    PVV_SAFE("Step 8. Ensure the configure does not complete again");
+    BMQTST_ASSERT(obj.checkNoEvent());
+    BMQTST_ASSERT_EQ(pQueue->state(), bmqimp::QueueState::e_OPENED);
+
+    PVV_SAFE("Step 9. Drop the channel, and stop the session");
+    BMQTST_ASSERT(obj.waitConnectionLostEvent());
+    BMQTST_ASSERT(
+        obj.waitForQueueState(pQueue, bmqimp::QueueState::e_PENDING));
+    BMQTST_ASSERT(obj.stop());
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -9757,6 +9857,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 71: test71_lateConfigureResponseReconfigureNotSent(); break;
     case 70: /* removed test */ break;
     case 69: /* removed test */ break;
     case 68: test68_queueLateAsyncCanceledHybrid3(); break;
