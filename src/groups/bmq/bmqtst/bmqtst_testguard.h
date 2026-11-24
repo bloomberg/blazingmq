@@ -28,6 +28,7 @@
 //: o sets up BALL logging to stdout
 //: o installs test allocators as the global and default allocators, and
 //:   provides the test allocator via 'TestHelperUtil::allocator()'
+//: o prints the stack trace of each default allocator usage to 'stderr'
 //
 // 'finish' checks that the test allocator has no leaks and, unless disabled
 // with 'disableDefaultAllocatorCheck' or 'disableGlobalAllocatorCheck', that
@@ -47,6 +48,9 @@
 //      return guard.finish();
 //  }
 //..
+
+// BMQ
+#include <bmqtst_loggingallocator.h>
 
 // BDE
 #include <ball_attributecontext.h>
@@ -81,6 +85,7 @@ class TestGuard {
     ball::LoggerManagerScopedGuard  d_logManagerGuard;
     bslma::TestAllocator&           d_gblAlloc;
     bslma::TestAllocator            d_defAlloc;
+    LoggingAllocator                d_defLogAlloc;
     bslma::DefaultAllocatorGuard    d_defAllocGuard;
     bslma::TestAllocator            d_testAlloc;
     balst::StackTraceTestAllocator  d_stTestAlloc;
