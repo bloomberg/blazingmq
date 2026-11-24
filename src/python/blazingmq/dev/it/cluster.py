@@ -445,7 +445,7 @@ class Cluster(contextlib.AbstractContextManager):
         return self._start_broker(broker, self._proxies, None)
 
     def start_tcp_relay(
-        self, broker: Union[cfg.Broker, str], port: str = None
+        self, broker: Union[cfg.Broker, str], port: Optional[str] = None
     ) -> Tuple[str, Process]:
         """Start a TCP relay forwarding to the specified 'broker'.
 
