@@ -965,8 +965,7 @@ static void testN1_decode()
 // Concerns: Expose a way to decode a GUID from its hex representation for
 //   quick troubleshooting.  Optionally, support resolving the timer tick
 //   field if the 'currentTimerTick' and 'secondsFromEpoch' are provided
-//   (printed from the 'bmqp_messageguidutil::initialize()' method at
-//   startup).
+//   (logged by the 'bmqp::MessageGUIDGenerator' constructor at startup).
 //
 // Plan:
 //   - Build a GUID from reading it's hex representation from stdin, and
