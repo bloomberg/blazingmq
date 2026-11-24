@@ -38,7 +38,8 @@ bool isKnownAllocation(bsl::string_view stackTrace)
     const bsl::string_view k_KNOWN[] = {
         "bdlmt::EventSchedulerTestTimeSource::EventSchedulerTestTimeSource",
         "bdls::FilesystemUtil::makeUnsafeTemporaryFilename",
-        "bdls::FilesystemUtil::remove"};
+        "bdls::FilesystemUtil::remove",
+        "ntsu::ResolverUtil::getIpAddress"};
 
     const size_t k_NUM_KNOWN = sizeof(k_KNOWN) / sizeof(*k_KNOWN);
     for (size_t i = 0; i < k_NUM_KNOWN; ++i) {
@@ -58,6 +59,7 @@ bool isKnownAllocation(bsl::string_view stackTrace)
 // CREATORS
 LoggingAllocator::LoggingAllocator(bslma::Allocator* allocator)
 : d_allocator_p(allocator)
+, d_numKnownAllocations(0)
 {
     BSLS_ASSERT_OPT(d_allocator_p);
 }
@@ -74,7 +76,12 @@ void* LoggingAllocator::allocate(size_type size)
     bmqu::MemOutStream os(&bslma::NewDeleteAllocator::singleton());
     balst::StackTracePrintUtil::printStackTrace(os);
 
-    if (!isKnownAllocation(os.str())) {
+    if (isKnownAllocation(os.str())) {
+        if (0 != size) {
+            ++d_numKnownAllocations;
+        }
+    }
+    else {
         bsl::cerr << os.str() << "\n";
     }
 
@@ -84,6 +91,12 @@ void* LoggingAllocator::allocate(size_type size)
 void LoggingAllocator::deallocate(void* address)
 {
     d_allocator_p->deallocate(address);
+}
+
+// ACCESSORS
+bsls::Types::Int64 LoggingAllocator::numKnownAllocations() const
+{
+    return d_numKnownAllocations;
 }
 
 }  // close package namespace

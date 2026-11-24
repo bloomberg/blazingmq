@@ -24,12 +24,15 @@
 //@DESCRIPTION: 'bmqtst::LoggingAllocator' implements the 'bslma::Allocator'
 // protocol.  It forwards all calls to an underlying allocator and prints the
 // stack trace of each allocation to 'stderr', except for a few known
-// allocations made by BDE and BMQ utilities.  It is used to find the origin
-// of unexpected default allocator usage in test drivers.
+// allocations made by BDE, NTF and BMQ utilities, which it counts instead.
+// It is used to find the origin of unexpected default allocator usage in test
+// drivers.
 
 // BDE
 #include <bslma_allocator.h>
+#include <bsls_atomic.h>
 #include <bsls_keyword.h>
+#include <bsls_types.h>
 
 namespace BloombergLP {
 namespace bmqtst {
@@ -43,6 +46,8 @@ class LoggingAllocator BSLS_KEYWORD_FINAL : public bslma::Allocator {
   private:
     // DATA
     bslma::Allocator* d_allocator_p;
+
+    bsls::AtomicInt64 d_numKnownAllocations;
 
   private:
     // NOT IMPLEMENTED
@@ -62,8 +67,8 @@ class LoggingAllocator BSLS_KEYWORD_FINAL : public bslma::Allocator {
 
     // MANIPULATORS
 
-    /// @brief Print the stack trace of this call, unless it is a known
-    /// allocation, and allocate from the underlying allocator.
+    /// @brief Print the stack trace of this call, or count it if it is a
+    /// known allocation, and allocate from the underlying allocator.
     ///
     /// @param size The minimum size of the block in bytes.
     ///
@@ -75,6 +80,11 @@ class LoggingAllocator BSLS_KEYWORD_FINAL : public bslma::Allocator {
     ///
     /// @param address The address of the block, or null for no effect.
     void deallocate(void* address) BSLS_KEYWORD_OVERRIDE;
+
+    // ACCESSORS
+
+    /// @brief Return the number of known allocations made so far.
+    bsls::Types::Int64 numKnownAllocations() const;
 };
 
 }  // close package namespace
