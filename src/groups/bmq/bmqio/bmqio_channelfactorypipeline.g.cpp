@@ -426,11 +426,11 @@ TEST_F(ChannelFactoryPipelineTest, getDoesntFindNonexistantSubtype)
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+    bmqtst::TestGuard guard(argc, argv);
 
     ::testing::InitGoogleTest(&argc, argv);
 
     bmqtst::TestHelperUtil::testStatus() = RUN_ALL_TESTS();
 
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    return guard.finish();
 }

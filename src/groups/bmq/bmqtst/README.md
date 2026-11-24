@@ -14,4 +14,5 @@ Component                  | Provides ...
 ---------------------------|---------------------------------------------------
 `bmqtst_blobtestutil`      | blob utilities for use in test drivers.
 `bmqtst_scopedlogobserver` | a scoped implementation of the log observer protocol.
+`bmqtst_testguard`         | a guard setting up the environment of a test driver.
 `bmqtst_testhelper`        | macros and utilities to assist in writing test drivers.

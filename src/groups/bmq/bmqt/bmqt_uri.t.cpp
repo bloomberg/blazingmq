@@ -747,9 +747,9 @@ static void testN1_benchmark(benchmark::State& state)
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+    bmqtst::TestGuard guard(argc, argv);
 
-    switch (_testCase) {
+    switch (guard.testCase()) {
     case 0:
     case 6: test6_testLongUri(); break;
     case 5: test5_hashAppend(); break;
@@ -796,16 +796,13 @@ int main(int argc, char* argv[])
         benchmark::Initialize(&argc, argv);
         benchmark::RunSpecifiedBenchmarks();
 #else
-        cerr << "WARNING: BENCHMARK '" << _testCase
+        cerr << "WARNING: BENCHMARK '" << guard.testCase()
              << "' IS NOT SUPPORTED ON THIS PLATFORM." << endl;
         bmqtst::TestHelperUtil::testStatus() = -1;
 #endif  // BMQTST_BENCHMARK_ENABLED
     } break;
-    default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
-        bmqtst::TestHelperUtil::testStatus() = -1;
-    } break;
+    default: guard.caseNotFound(); break;
     }
 
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    return guard.finish();
 }

@@ -1948,9 +1948,9 @@ static void test13_equality()
 
 int main(int argc, char** argv)
 {
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+    bmqtst::TestGuard guard(argc, argv);
 
-    switch (_testCase) {
+    switch (guard.testCase()) {
     case 13: test13_equality(); break;
     case 12: test12_sizeObservers(); break;
     case 11: test11_findByKey2(); break;
@@ -1965,11 +1965,8 @@ int main(int argc, char** argv)
     case 2: test2_copyAndMove(); break;
     case 1: test1_basicCreators(); break;
     case 0: test0_usageExample(); break;
-    default: {
-        bsl::cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
-        bmqtst::TestHelperUtil::testStatus() = -1;
-    } break;
+    default: guard.caseNotFound(); break;
     }
 
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    return guard.finish();
 }

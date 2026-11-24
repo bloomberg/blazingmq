@@ -1285,9 +1285,9 @@ static void testN2_calculateThroughput_GoogleBenchmark(benchmark::State& state)
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+    bmqtst::TestGuard guard(argc, argv);
 
-    switch (_testCase) {
+    switch (guard.testCase()) {
     case 0:
     case 1: test1_breathingTest(); break;
     case 2: test2_compression_cluster_message(); break;
@@ -1308,16 +1308,13 @@ int main(int argc, char* argv[])
                                        ->Unit(benchmark::kMillisecond));
         break;
     case -3: testN3_performanceCompressionRatio(); break;
-    default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
-        bmqtst::TestHelperUtil::testStatus() = -1;
-    } break;
+    default: guard.caseNotFound(); break;
     }
 #ifdef BMQTST_BENCHMARK_ENABLED
-    if (_testCase < 0) {
+    if (guard.testCase() < 0) {
         benchmark::Initialize(&argc, argv);
         benchmark::RunSpecifiedBenchmarks();
     }
 #endif
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    return guard.finish();
 }

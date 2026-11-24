@@ -640,18 +640,15 @@ static void test4_subscriptionHandle()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
-    switch (_testCase) {
+    bmqtst::TestGuard guard(argc, argv);
+    switch (guard.testCase()) {
     case 0:
     case 1: test1_messageOnStackIsInvalid(); break;
     case 2: test2_validPushMessagePrint(); break;
     case 3: test3_messageProperties(); break;
     case 4: test4_subscriptionHandle(); break;
-    default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
-        bmqtst::TestHelperUtil::testStatus() = -1;
-    } break;
+    default: guard.caseNotFound(); break;
     }
 
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    return guard.finish();
 }

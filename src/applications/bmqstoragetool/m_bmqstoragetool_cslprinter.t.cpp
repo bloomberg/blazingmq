@@ -781,9 +781,9 @@ static void test11_lineSummaryTest()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+    bmqtst::TestGuard guard(argc, argv);
 
-    switch (_testCase) {
+    switch (guard.testCase()) {
     case 0:
     case 1: test1_humanReadableShortResultTest(); break;
     case 2: test2_humanReadableDetailResultTest(); break;
@@ -796,11 +796,8 @@ int main(int argc, char* argv[])
     case 9: test9_lineShortResultTest(); break;
     case 10: test10_lineDetailResultTest(); break;
     case 11: test11_lineSummaryTest(); break;
-    default: {
-        bsl::cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
-        bmqtst::TestHelperUtil::testStatus() = -1;
-    } break;
+    default: guard.caseNotFound(); break;
     }
 
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    return guard.finish();
 }
