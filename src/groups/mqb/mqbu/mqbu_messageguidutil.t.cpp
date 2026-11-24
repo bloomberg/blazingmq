@@ -487,8 +487,7 @@ static void testN1_decode()
 // Concerns: Expose a way to decode a GUID from its hex representation for
 //   quick troubleshooting.  Optionally, support resolving the timer tick
 //   field if the 'currentTimerTick' and 'secondsFromEpoch' are provided
-//   (printed from the 'mqbu_messageguidutil::initialize()' method at
-//   startup).
+//   (logged by the 'bmqp::MessageGUIDGenerator' constructor at startup).
 //
 // Plan:
 //   - Build a GUID from reading it's hex representation from stdin, and
@@ -1213,9 +1212,6 @@ static void testN8_orderedMapWithCustomHashBenchmark_GoogleBenchmark(
 
 int main(int argc, char* argv[])
 {
-    // To be called only once per process instantiation.  Calling those two
-    // here before the TEST_PROLOG because 'MessageGUIDUtil::initialize' prints
-    // a BALL_LOG_INFO which allocates using the default allocator.
     bsls::TimeUtil::initialize();
 
     TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
