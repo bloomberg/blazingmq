@@ -212,7 +212,17 @@ class Event {
     template <class TYPE>
     int loadAuthenticationEvent(TYPE* message) const;
 
-    void loadAckMessageIterator(AckMessageIterator* iterator) const;
+    /// @brief Load into the specified `iterator` an iterator over the
+    ///        messages of this ACK event.
+    ///
+    /// @details The behavior is undefined unless `isAckEvent()` and
+    /// `isValid()` return true.
+    ///
+    /// @param[out] iterator The iterator to reset onto this event.
+    /// @returns 0 on success, or a negative value if `iterator` is left in an
+    ///          invalid state.
+    int loadAckMessageIterator(AckMessageIterator* iterator) const;
+
     void loadConfirmMessageIterator(ConfirmMessageIterator* iterator) const;
     void loadPushMessageIterator(PushMessageIterator* iterator,
                                  bool decompressFlag = false) const;
