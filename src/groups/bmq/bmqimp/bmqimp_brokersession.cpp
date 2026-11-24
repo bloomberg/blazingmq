@@ -3753,6 +3753,20 @@ void BrokerSession::processAckEvent(const bmqp::Event& event)
         return;  // RETURN
     }
 
+    bmqp::AckMessageIterator it;
+    int                      rc = event.loadAckMessageIterator(&it);
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        BALL_LOG_ERROR_BLOCK
+        {
+            BALL_LOG_OUTPUT_STREAM
+                << id() << "Dropping invalid ACK event "
+                << "[reason: 'Invalid AckIterator', rc: " << rc << "]\n";
+            it.dumpBlob(BALL_LOG_OUTPUT_STREAM);
+        }
+        return;  // RETURN
+    }
+
     bsl::shared_ptr<Event> queueEvent = createEvent();
     queueEvent->configureAsMessageEvent(event);
 
@@ -3764,9 +3778,10 @@ void BrokerSession::processAckEvent(const bmqp::Event& event)
         d_allocator_p);
     bsl::vector<GuidAndStatus> acks(&localAllocator);
 
-    bmqp::AckMessageIterator it;
-    event.loadAckMessageIterator(&it);
-    int rc = 0;
+    // Upper bound on the message count
+    acks.reserve(event.blob()->length() / (it.header().perMessageWords() *
+                                           bmqp::Protocol::k_WORD_SIZE));
+
     while ((rc = it.next()) == 1) {
         const bmqp::AckMessage& ackMsg = it.message();
 
