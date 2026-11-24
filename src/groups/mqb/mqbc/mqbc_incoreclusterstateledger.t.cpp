@@ -2349,11 +2349,14 @@ static void test13_quorumChangeCb()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+    bmqtst::TestGuard guard(argc, argv);
+    // The tester object makes use of 'bmqu::TempDirectory', which
+    // allocates a temporary string using the default allocator.
+    guard.disableDefaultAllocatorCheck();
 
     bmqu::Time::initialize(bmqtst::TestHelperUtil::allocator());
 
-    switch (_testCase) {
+    switch (guard.testCase()) {
     case 0:
     case 13: test13_quorumChangeCb(); break;
     // @TODO RENABLE AND FIX THIS TEST
@@ -2372,15 +2375,10 @@ int main(int argc, char* argv[])
     case 3: test3_apply_QueueAssignmentAdvisory(); break;
     case 2: test2_apply_PartitionPrimaryAdvisory(); break;
     case 1: test1_breathingTest(); break;
-    default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND.\n";
-        bmqtst::TestHelperUtil::testStatus() = -1;
-    } break;
+    default: guard.caseNotFound(); break;
     }
 
     bmqu::Time::shutdown();
 
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
-    // The tester object makes use of 'bmqu::TempDirectory', which
-    // allocates a temporary string using the default allocator.
+    return guard.finish();
 }

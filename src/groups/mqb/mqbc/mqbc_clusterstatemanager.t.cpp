@@ -3099,9 +3099,13 @@ static void test29_watchdogLeaderRetryExhaustion()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+    bmqtst::TestGuard guard(argc, argv);
+    // Can't ensure no default memory is allocated because
+    // 'bdlmt::EventSchedulerTestTimeSource' inside 'mqbmock::Cluster' uses
+    // the default allocator in its constructor.
+    guard.disableDefaultAllocatorCheck();
 
-    switch (_testCase) {
+    switch (guard.testCase()) {
     case 0:
     case 29: test29_watchdogLeaderRetryExhaustion(); break;
     case 28: test28_watchdogFollowerRetryExhaustion(); break;
@@ -3132,14 +3136,8 @@ int main(int argc, char* argv[])
     case 3: test3_invalidMessagesUnknownState(); break;
     case 2: test2_breathingTestFollower(); break;
     case 1: test1_breathingTestLeader(); break;
-    default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
-        bmqtst::TestHelperUtil::testStatus() = -1;
-    } break;
+    default: guard.caseNotFound(); break;
     }
 
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
-    // Can't ensure no default memory is allocated because
-    // 'bdlmt::EventSchedulerTestTimeSource' inside 'mqbmock::Cluster' uses
-    // the default allocator in its constructor.
+    return guard.finish();
 }

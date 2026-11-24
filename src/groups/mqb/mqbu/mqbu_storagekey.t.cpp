@@ -1077,9 +1077,10 @@ int main(int argc, char* argv[])
 {
     bsls::TimeUtil::initialize();
 
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+    bmqtst::TestGuard guard(argc, argv);
+    guard.disableDefaultAllocatorCheck();
 
-    switch (_testCase) {
+    switch (guard.testCase()) {
     case 0:
     case 5: test5_customHashUniqueness(); break;
     case 4: test4_defaultHashUniqueness(); break;
@@ -1118,19 +1119,16 @@ int main(int argc, char* argv[])
                                    RangeMultiplier(10)->Range(10, 10000)->Unit(
                                        benchmark::kMillisecond));
         break;
-    default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
-        bmqtst::TestHelperUtil::testStatus() = -1;
-    } break;
+    default: guard.caseNotFound(); break;
     }
 #ifdef BMQTST_BENCHMARK_ENABLED
-    if (_testCase < 0) {
+    if (guard.testCase() < 0) {
         benchmark::Initialize(&argc, argv);
         benchmark::RunSpecifiedBenchmarks();
     }
 #endif
 
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
+    return guard.finish();
 }
 
 // ----------------------------------------------------------------------------

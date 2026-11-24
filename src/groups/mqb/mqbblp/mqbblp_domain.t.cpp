@@ -608,25 +608,24 @@ static void test4_concurrentProcessCommandAndRegisterQueue()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+    bmqtst::TestGuard guard(argc, argv);
+    guard.disableDefaultAllocatorCheck();
+    // Can't ensure no global memory is allocated because
+    // 'bslmt::ThreadUtil::create()' uses the global allocator.
+    guard.disableGlobalAllocatorCheck();
 
     {
         mqbcfg::AppConfig brokerConfig(bmqtst::TestHelperUtil::allocator());
         mqbcfg::BrokerConfig::set(brokerConfig);
 
-        switch (_testCase) {
+        switch (guard.testCase()) {
         case 4: test4_concurrentProcessCommandAndRegisterQueue(); break;
         case 3: test3_reconfigureSkipsUnregisteredQueue(); break;
         case 2: test2_concurrentConfigureAndRegisterQueue(); break;
         case 1: test1_breathingTest(); break;
-        default: {
-            cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
-            bmqtst::TestHelperUtil::testStatus() = -1;
-        } break;
+        default: guard.caseNotFound(); break;
         }
     }
 
-    TEST_EPILOG(bmqtst::TestHelper::e_DEFAULT);
-    // Can't ensure no global memory is allocated because
-    // 'bslmt::ThreadUtil::create()' uses the global allocator.
+    return guard.finish();
 }

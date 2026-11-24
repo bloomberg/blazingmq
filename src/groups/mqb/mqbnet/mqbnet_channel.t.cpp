@@ -1300,10 +1300,11 @@ static void test6_staleWatermark()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+    bmqtst::TestGuard guard(argc, argv);
+    guard.disableDefaultAllocatorCheck();
 
     // expect BALL_LOG_ERROR
-    switch (_testCase) {
+    switch (guard.testCase()) {
     case 0:
     case 1: test1_write(); break;
     case 2: test2_highWatermark(); break;
@@ -1311,11 +1312,8 @@ int main(int argc, char* argv[])
     case 4: test4_controlBlob(); break;
     case 5: test5_reconnect(); break;
     case 6: test6_staleWatermark(); break;
-    default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
-        bmqtst::TestHelperUtil::testStatus() = -1;
-    } break;
+    default: guard.caseNotFound(); break;
     }
 
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
+    return guard.finish();
 }

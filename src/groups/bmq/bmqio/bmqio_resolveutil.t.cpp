@@ -133,18 +133,16 @@ static void test1_breathingTest()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
-
-    switch (_testCase) {
-    case 0:
-    case 1: test1_breathingTest(); break;
-    default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
-        bmqtst::TestHelperUtil::testStatus() = -1;
-    } break;
-    }
-
+    bmqtst::TestGuard guard(argc, argv);
     // Internally, 'ntsu::ResolverUtil::getIpAddress()' rountine uses vector
     // with default allocator so we can check here only for global allocations.
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
+    guard.disableDefaultAllocatorCheck();
+
+    switch (guard.testCase()) {
+    case 0:
+    case 1: test1_breathingTest(); break;
+    default: guard.caseNotFound(); break;
+    }
+
+    return guard.finish();
 }

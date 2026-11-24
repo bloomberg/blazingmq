@@ -1282,11 +1282,13 @@ static void test9_cancelRequestsOrderTest()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+    bmqtst::TestGuard guard(argc, argv);
+    // Default: EventQueue uses default allocator.
+    guard.disableDefaultAllocatorCheck();
 
     bmqu::Time::initialize(bmqtst::TestHelperUtil::allocator());
 
-    switch (_testCase) {
+    switch (guard.testCase()) {
     case 0:
     case 9: test9_cancelRequestsOrderTest(); break;
     case 8: test8_requestSignalWaitTest(); break;
@@ -1297,14 +1299,10 @@ int main(int argc, char* argv[])
     case 3: test3_createRequestTest(); break;
     case 2: test2_setExecutorTest(); break;
     case 1: test1_creatorsTest(); break;
-    default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
-        bmqtst::TestHelperUtil::testStatus() = -1;
-    } break;
+    default: guard.caseNotFound(); break;
     }
 
     bmqu::Time::shutdown();
 
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);  // RETURN
-    // Default: EventQueue uses default allocator.
+    return guard.finish();
 }

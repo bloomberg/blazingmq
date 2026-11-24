@@ -659,27 +659,25 @@ static void test4_evaluationErrors()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+    bmqtst::TestGuard guard(argc, argv);
+    guard.disableDefaultAllocatorCheck();
 
-    switch (_testCase) {
+    switch (guard.testCase()) {
     case 0:
     case 4: test4_evaluationErrors(); break;
     case 3: test3_evaluation(); break;
     case 2: test2_propertyNames(); break;
     case 1: test1_compilationErrors(); break;
     case -1: BMQTST_BENCHMARK(testN1_SimpleEvaluator); break;
-    default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << endl;
-        bmqtst::TestHelperUtil::testStatus() = -1;
-    } break;
+    default: guard.caseNotFound(); break;
     }
 
 #ifdef BMQTST_BENCHMARK_ENABLED
-    if (_testCase < 0) {
+    if (guard.testCase() < 0) {
         benchmark::Initialize(&argc, argv);
         benchmark::RunSpecifiedBenchmarks();
     }
 #endif
 
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
+    return guard.finish();
 }

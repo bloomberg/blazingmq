@@ -1877,11 +1877,12 @@ static void test8_conformExtraQueueCausesRollover()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+    bmqtst::TestGuard guard(argc, argv);
+    guard.disableGlobalAllocatorCheck();
 
     bmqu::Time::initialize();
 
-    switch (_testCase) {
+    switch (guard.testCase()) {
     case 0:
     case 8: test8_conformExtraQueueCausesRollover(); break;
     case 7: test7_conformExtraQueueWithoutRollover(); break;
@@ -1891,13 +1892,10 @@ int main(int argc, char* argv[])
     case 3: test3_partitionFullAlarm(); break;
     case 2: test2_printTest(); break;
     case 1: test1_breathingTest(); break;
-    default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
-        bmqtst::TestHelperUtil::testStatus() = -1;
-    } break;
+    default: guard.caseNotFound(); break;
     }
 
     bmqu::Time::shutdown();
 
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_ALLOC);
+    return guard.finish();
 }

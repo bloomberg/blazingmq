@@ -786,7 +786,8 @@ int main(int argc, char* argv[])
 {
     BALL_LOG_SET_CATEGORY("MAIN");
 
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+    bmqtst::TestGuard guard(argc, argv);
+    guard.disableDefaultAllocatorCheck();
 
     ball::LoggerManager::singleton().setDefaultThresholdLevels(
         ball::Severity::e_OFF,
@@ -802,8 +803,8 @@ int main(int argc, char* argv[])
                 30,
                 bmqtst::TestHelperUtil::allocator());
 
-        bmqtst::runTest(_testCase);
+        bmqtst::runTest(guard.testCase());
     }
 
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
+    return guard.finish();
 }

@@ -4273,9 +4273,13 @@ static void test26_receiptWithInvalidPartitionId()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+    bmqtst::TestGuard guard(argc, argv);
+    // Can't ensure no default memory is allocated because
+    // 'bdlmt::EventSchedulerTestTimeSource' inside 'mqbmock::Cluster' uses
+    // the default allocator in its constructor.
+    guard.disableDefaultAllocatorCheck();
 
-    switch (_testCase) {
+    switch (guard.testCase()) {
     case 0:
         // TODO: overview the removed tests or remove this comment
         //      -
@@ -4316,14 +4320,8 @@ int main(int argc, char* argv[])
     case 3: test3_unknownDetectSelfReplica(); break;
     case 2: test2_unknownDetectSelfPrimary(); break;
     case 1: test1_breathingTest(); break;
-    default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
-        bmqtst::TestHelperUtil::testStatus() = -1;
-    } break;
+    default: guard.caseNotFound(); break;
     }
 
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
-    // Can't ensure no default memory is allocated because
-    // 'bdlmt::EventSchedulerTestTimeSource' inside 'mqbmock::Cluster' uses
-    // the default allocator in its constructor.
+    return guard.finish();
 }

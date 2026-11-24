@@ -1554,7 +1554,8 @@ int main(int argc, char* argv[])
 {
     BALL_LOG_SET_CATEGORY("MAIN");
 
-    TEST_PROLOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
+    bmqtst::TestGuard guard(argc, argv);
+    guard.disableDefaultAllocatorCheck();
 
     bmqu::Time::initialize(bmqtst::TestHelperUtil::allocator());
 
@@ -1567,10 +1568,10 @@ int main(int argc, char* argv[])
                 30,
                 bmqtst::TestHelperUtil::allocator());
 
-        bmqtst::runTest(_testCase);
+        bmqtst::runTest(guard.testCase());
     }
 
     bmqu::Time::shutdown();
 
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
+    return guard.finish();
 }

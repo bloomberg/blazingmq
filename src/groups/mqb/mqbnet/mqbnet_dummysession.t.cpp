@@ -104,18 +104,16 @@ static void test1_BreathingTest()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
-
-    switch (_testCase) {
-    case 0:
-    case 1: test1_BreathingTest(); break;
-    default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
-        bmqtst::TestHelperUtil::testStatus() = -1;
-    } break;
-    }
-
+    bmqtst::TestGuard guard(argc, argv);
     // NOTE: Can't check default allocation because of BALL logging from
     //       constructor/desctructor of the object under test.
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
+    guard.disableDefaultAllocatorCheck();
+
+    switch (guard.testCase()) {
+    case 0:
+    case 1: test1_BreathingTest(); break;
+    default: guard.caseNotFound(); break;
+    }
+
+    return guard.finish();
 }

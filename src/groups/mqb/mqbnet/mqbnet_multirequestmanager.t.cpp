@@ -790,25 +790,23 @@ static void test5_cancelByComponentIdTest()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+    bmqtst::TestGuard guard(argc, argv);
+    // Default: EventQueue uses default allocator.
+    guard.disableDefaultAllocatorCheck();
 
     bmqu::Time::initialize(bmqtst::TestHelperUtil::allocator());
 
-    switch (_testCase) {
+    switch (guard.testCase()) {
     case 0:
     case 5: test5_cancelByComponentIdTest(); break;
     case 4: test4_handleResponseTest(); break;
     case 3: test3_sendRequestTest(); break;
     case 2: test2_creatorsTest(); break;
     case 1: test1_contextTest(); break;
-    default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
-        bmqtst::TestHelperUtil::testStatus() = -1;
-    } break;
+    default: guard.caseNotFound(); break;
     }
 
     bmqu::Time::shutdown();
 
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);  // RETURN
-    // Default: EventQueue uses default allocator.
+    return guard.finish();
 }

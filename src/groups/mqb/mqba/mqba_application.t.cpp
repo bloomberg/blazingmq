@@ -125,19 +125,18 @@ static void test2_stopAfterStartFailure()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+    bmqtst::TestGuard guard(argc, argv);
+    // Disable default/global allocator check:
+    //  - Logger uses the default allocator
+    guard.disableDefaultAllocatorCheck();
+    guard.disableGlobalAllocatorCheck();
 
-    switch (_testCase) {
+    switch (guard.testCase()) {
     case 0:
     case 1: test1_breathingTest(); break;
     case 2: test2_stopAfterStartFailure(); break;
-    default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
-        bmqtst::TestHelperUtil::testStatus() = -1;
-    } break;
+    default: guard.caseNotFound(); break;
     }
 
-    // Disable default/global allocator check:
-    //  - Logger uses the default allocator
-    TEST_EPILOG(bmqtst::TestHelper::e_DEFAULT);
+    return guard.finish();
 }

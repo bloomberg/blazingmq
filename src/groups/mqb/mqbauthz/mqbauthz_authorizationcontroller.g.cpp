@@ -105,17 +105,20 @@ TEST(AuthorizationController, configuredWithUnknownNameFails)
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+    bmqtst::TestGuard guard(argc, argv);
+    guard.disableDefaultAllocatorCheck();
 
-    // 'DefaultAuthorizerPluginFactory::create()' looks up its settings from
-    // the broker's global authorization configuration, so it must be set
-    // before any test constructs an authorizer.
-    mqbcfg::AppConfig brokerConfig(bmqtst::TestHelperUtil::allocator());
-    mqbcfg::BrokerConfig::set(brokerConfig);
+    {
+        // 'DefaultAuthorizerPluginFactory::create()' looks up its settings
+        // from the broker's global authorization configuration, so it must be
+        // set before any test constructs an authorizer.
+        mqbcfg::AppConfig brokerConfig(bmqtst::TestHelperUtil::allocator());
+        mqbcfg::BrokerConfig::set(brokerConfig);
 
-    ::testing::InitGoogleTest(&argc, argv);
+        ::testing::InitGoogleTest(&argc, argv);
 
-    bmqtst::TestHelperUtil::testStatus() = RUN_ALL_TESTS();
+        bmqtst::TestHelperUtil::testStatus() = RUN_ALL_TESTS();
+    }
 
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
+    return guard.finish();
 }

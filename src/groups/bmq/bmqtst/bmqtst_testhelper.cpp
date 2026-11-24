@@ -145,7 +145,7 @@ void runTest(int index)
     const int testCase = index - 1;
 
     if (testCase < 0 || testCase >= TestHelper_Test::s_numTests) {
-        bsl::cerr << "WARNING: CASE '" << testCase << "' NOT FOUND.\n";
+        bsl::cerr << "WARNING: CASE '" << index << "' NOT FOUND.\n";
         bmqtst::TestHelperUtil::testStatus() = -1;
 
         return;  // RETURN

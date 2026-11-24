@@ -54,11 +54,12 @@ TEST(TodoTest, docTest)
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+    bmqtst::TestGuard guard(argc, argv);
+    guard.disableDefaultAllocatorCheck();
 
     ::testing::InitGoogleTest(&argc, argv);
 
     bmqtst::TestHelperUtil::testStatus() = RUN_ALL_TESTS();
 
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
+    return guard.finish();
 }

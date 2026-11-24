@@ -754,11 +754,16 @@ static void testN1_performance()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+    bmqtst::TestGuard guard(argc, argv);
+    // Default: EventQueue uses bmqc::MonitoredFixedQueue, which uses
+    //          'bdlcc::SharedObjectPool' which uses bslmt::Semaphore which
+    //          generates a unique name using an ostringstream, hence the
+    //          default allocator.
+    guard.disableDefaultAllocatorCheck();
 
     bmqu::Time::initialize();
 
-    switch (_testCase) {
+    switch (guard.testCase()) {
     case 0:
     case 6: test6_workingStatsTest(); break;
     case 5: test5_emptyStatsTest(); break;
@@ -767,17 +772,10 @@ int main(int argc, char* argv[])
     case 2: test2_capacityTest(); break;
     case 1: test1_breathingTest(); break;
     case -1: testN1_performance(); break;
-    default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
-        bmqtst::TestHelperUtil::testStatus() = -1;
-    } break;
+    default: guard.caseNotFound(); break;
     }
 
     bmqu::Time::shutdown();
 
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
-    // Default: EventQueue uses bmqc::MonitoredFixedQueue, which uses
-    //          'bdlcc::SharedObjectPool' which uses bslmt::Semaphore which
-    //          generates a unique name using an ostringstream, hence the
-    //          default allocator.
+    return guard.finish();
 }

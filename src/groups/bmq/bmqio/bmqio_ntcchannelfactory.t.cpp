@@ -1410,11 +1410,13 @@ static void test1_breathingTest()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+    bmqtst::TestGuard guard(argc, argv);
+    guard.disableDefaultAllocatorCheck();
+    guard.disableGlobalAllocatorCheck();
 
     // ntcf::System::initialize();
 
-    switch (_testCase) {
+    switch (guard.testCase()) {
     case 0:
     case 1: test1_breathingTest(); break;
     case 2: test2_connectListenFailTest(); break;
@@ -1423,13 +1425,10 @@ int main(int argc, char* argv[])
     case 5: test5_visitChannelsTest(); break;
     case 6: test6_preCreationCbTest(); break;
     case 7: test7_checkMultithreadListen(); break;
-    default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
-        bmqtst::TestHelperUtil::testStatus() = -1;
-    } break;
+    default: guard.caseNotFound(); break;
     }
 
     // ntcf::System::exit();
 
-    TEST_EPILOG(0);
+    return guard.finish();
 }

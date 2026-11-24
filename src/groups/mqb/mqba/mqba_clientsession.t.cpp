@@ -2672,7 +2672,9 @@ static void testN3_guidCollisionConfiguration()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+    bmqtst::TestGuard guard(argc, argv);
+    guard.disableDefaultAllocatorCheck();
+    guard.disableGlobalAllocatorCheck();
 
     {
         bmqu::Time::initialize(bmqtst::TestHelperUtil::allocator());
@@ -2688,7 +2690,7 @@ int main(int argc, char* argv[])
                 30,
                 bmqtst::TestHelperUtil::allocator());
 
-        switch (_testCase) {
+        switch (guard.testCase()) {
         case 0:
         case 13: test13_queueUriLogInjection(); break;
         case 12: test12_openQueueDuplicateQueueId(); break;
@@ -2706,15 +2708,11 @@ int main(int argc, char* argv[])
         case -1: testN1_ackConfiguration(); break;
         case -2: testN2_invalidPutConfiguration(); break;
         case -3: testN3_guidCollisionConfiguration(); break;
-        default: {
-            cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
-            bmqtst::TestHelperUtil::testStatus() = -1;
-        } break;
+        default: guard.caseNotFound(); break;
         }
 
         bmqu::Time::shutdown();
     }
 
-    TEST_EPILOG(bmqtst::TestHelper::e_DEFAULT);
-    // Do not check for default/global allocator usage.
+    return guard.finish();
 }
