@@ -323,7 +323,7 @@ static void test1_staticMethods()
     {
         PVV("Create Ack Event");
 
-        bmqa::QueueId       queueId(1);
+        bmqa::QueueId       queueId(1, bmqtst::TestHelperUtil::allocator());
         bmqt::CorrelationId corrId(1);
 
         bsl::string       errorDescription("some random description");
@@ -355,7 +355,7 @@ static void test1_staticMethods()
         PVV("Create Queue Session Event");
         bsl::string errorDescription("some random description");
 
-        bmqa::QueueId       queueId(1);
+        bmqa::QueueId       queueId(1, bmqtst::TestHelperUtil::allocator());
         bmqt::CorrelationId corrId(1);
 
         bmqa::Event event = bmqa::MockSessionUtil::createQueueSessionEvent(
@@ -378,7 +378,7 @@ static void test1_staticMethods()
         PVV("Create Queue Session Event With Result");
         bsl::string errorDescription("some random description");
 
-        bmqa::QueueId       queueId(1);
+        bmqa::QueueId       queueId(1, bmqtst::TestHelperUtil::allocator());
         bmqt::CorrelationId corrId(1);
 
         bmqa::Event event = bmqa::MockSessionUtil::createQueueSessionEvent(
@@ -401,7 +401,7 @@ static void test1_staticMethods()
     {
         PVV("Create Message Event");
 
-        bmqa::QueueId queueId(1);
+        bmqa::QueueId queueId(1, bmqtst::TestHelperUtil::allocator());
 
         bsl::vector<bmqa::MockSessionUtil::PushMessageParams> pushMsgs(
             bmqtst::TestHelperUtil::allocator());
@@ -777,8 +777,8 @@ static void test4_queueManagementSync()
     bmqt::CorrelationId corrId1(1);
     bmqt::CorrelationId corrId2(2);
 
-    bmqa::QueueId queueId1(corrId1);
-    bmqa::QueueId queueId2(corrId2);
+    bmqa::QueueId queueId1(corrId1, bmqtst::TestHelperUtil::allocator());
+    bmqa::QueueId queueId2(corrId2, bmqtst::TestHelperUtil::allocator());
 
     PVV("Verify state changes");
 
@@ -869,7 +869,7 @@ static void test5_confirmingMessages()
         bmqtst::TestHelperUtil::allocator());
 
     bmqt::CorrelationId corrId(1);
-    bmqa::QueueId       queueId(corrId);
+    bmqa::QueueId       queueId(corrId, bmqtst::TestHelperUtil::allocator());
 
     typedef bsl::shared_ptr<bmqimp::Queue>& QueueImplPtr;
     QueueImplPtr implPtr = reinterpret_cast<QueueImplPtr>(queueId);
@@ -1043,7 +1043,7 @@ static void test6_runThrough()
         4 * 1024,
         bmqtst::TestHelperUtil::allocator());
     bmqt::CorrelationId corrId(1);
-    bmqa::QueueId       queueId(corrId);
+    bmqa::QueueId       queueId(corrId, bmqtst::TestHelperUtil::allocator());
     bsl::string         input = "bmq://my.domain/queue";
     bmqt::Uri           uri(bmqtst::TestHelperUtil::allocator());
     bsl::string         error;
@@ -1274,7 +1274,7 @@ static void test6_runThrough()
 
         // 'closeQueueAsync' is called on queue therefore it has not been
         // removed from the two key hash map yet and can still be looked up.
-        bmqa::QueueId foundId;
+        bmqa::QueueId foundId(bmqtst::TestHelperUtil::allocator());
         int           rc = mockSession.getQueueId(&foundId, uri);
         BMQTST_ASSERT_EQ(rc, 0);
 
@@ -1306,7 +1306,8 @@ static void test7_postAndAccess()
 
     bmqt::UriParser::parse(&uri, &error, input);
 
-    bmqa::QueueId queueId(bmqt::CorrelationId(1));
+    bmqa::QueueId queueId(bmqt::CorrelationId(1),
+                          bmqtst::TestHelperUtil::allocator());
 
     // Open a queue
     EventHandler::openQueue(&mockSession, &queueId, uri);
@@ -1463,7 +1464,8 @@ static void test8_postBlockedToSuspendedQueue()
 
     bmqt::UriParser::parse(&uri, &error, input);
 
-    bmqa::QueueId queueId(bmqt::CorrelationId(1));
+    bmqa::QueueId queueId(bmqt::CorrelationId(1),
+                          bmqtst::TestHelperUtil::allocator());
 
     // Open a queue
     EventHandler::openQueue(&mockSession, &queueId, uri);
@@ -1505,9 +1507,9 @@ static void test8_postBlockedToSuspendedQueue()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+    bmqtst::TestGuard guard(argc, argv);
 
-    switch (_testCase) {
+    switch (guard.testCase()) {
     case 0:
     case 8: test8_postBlockedToSuspendedQueue(); break;
     case 7: test7_postAndAccess(); break;
@@ -1517,11 +1519,8 @@ int main(int argc, char* argv[])
     case 3: test3_queueManagement(); break;
     case 2: test2_call(); break;
     case 1: test1_staticMethods(); break;
-    default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
-        bmqtst::TestHelperUtil::testStatus() = -1;
-    } break;
+    default: guard.caseNotFound(); break;
     }
 
-    TEST_EPILOG(bmqtst::TestHelper::e_DEFAULT);
+    return guard.finish();
 }
