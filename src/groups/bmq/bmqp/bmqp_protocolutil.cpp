@@ -570,6 +570,11 @@ int ProtocolUtil::parse(bdlbb::Blob*              messagePropertiesOutput,
             if (rc < 0) {
                 return rc * 10 + rc_INVALID_MSG_PROPERTIES_HEADER;  // RETURN
             }
+            if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
+                    length < *messagePropertiesSize)) {
+                BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+                return rc_INVALID_MSG_PROPERTIES_HEADER;  // RETURN
+            }
             if (messagePropertiesOutput) {
                 bdlbb::BlobUtil::append(messagePropertiesOutput,
                                         input,
