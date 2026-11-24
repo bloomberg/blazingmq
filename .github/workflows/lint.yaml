@@ -227,7 +227,7 @@ jobs:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: ${{ needs.configure_ubuntu.outputs.artifact_key }}
-      - uses: cpp-linter/cpp-linter-action@774040af57f011a5fc47911f08ff0c3059d1835a
+      - uses: cpp-linter/cpp-linter-action@71cf8e84d4876ee304e3330f314df15b9da49c67
         id: linter
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
