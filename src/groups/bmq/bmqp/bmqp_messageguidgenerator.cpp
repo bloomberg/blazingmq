@@ -164,10 +164,8 @@ MessageGUIDGenerator::MessageGUIDGenerator(int sessionId, bool doIpResolving)
     // ClientId == first 'k_CLIENT_ID_LEN_BINARY' bytes of the md5 hash
     bsl::memcpy(d_clientId, md5Buffer.buffer(), k_CLIENT_ID_LEN_BINARY);
 
-    // NOTE: since we know the size, the `defaultAllocator` will never be
-    //       used here
     bdlma::LocalSequentialAllocator<k_CLIENT_ID_LEN_HEX> localAllocator(0);
-    bmqu::MemOutStream                                   os(&localAllocator);
+    bmqu::MemOutStream os(k_CLIENT_ID_LEN_HEX, &localAllocator);
     bdlb::Print::singleLineHexDump(os, d_clientId, k_CLIENT_ID_LEN_BINARY);
     bsl::memcpy(d_clientIdHex, os.str().data(), os.str().length());
 
@@ -272,7 +270,7 @@ int MessageGUIDGenerator::extractFields(int*                     version,
 
     // ClientId
     bdlma::LocalSequentialAllocator<k_CLIENT_ID_LEN_HEX> localAlloc(0);
-    bmqu::MemOutStream                                   os(&localAlloc);
+    bmqu::MemOutStream os(k_CLIENT_ID_LEN_HEX, &localAlloc);
     bdlb::Print::singleLineHexDump(os, buffer, k_CLIENT_ID_LEN_BINARY);
     clientId->assign(os.str());
 
