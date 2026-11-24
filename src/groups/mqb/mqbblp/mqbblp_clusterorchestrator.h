@@ -40,6 +40,9 @@
 #include <mqbi_clusterstatemanager.h>
 #include <mqbi_dispatcher.h>
 #include <mqbnet_elector.h>
+#include <mqbraft_clusteravailability.h>
+#include <mqbraft_clusterstateraft.h>
+#include <mqbraft_partitionraftmanager.h>
 
 // BMQ
 #include <bmqma_countingallocatorstore.h>
@@ -177,6 +180,15 @@ class ClusterOrchestrator {
 
     ElectorMp d_elector_mp;
 
+    bslma::ManagedPtr<mqbraft::ClusterStateRaft> d_clusterStateRaft_mp;
+
+    bslma::ManagedPtr<mqbraft::PartitionRaftManager> d_partitionRaftManager_mp;
+
+    /// Cluster state.  Held directly (not via `d_stateManager_mp`, which is
+    /// null in Raft mode) so the Raft leadership path can update partition
+    /// primary state.  Set in `init()`.
+    mqbc::ClusterState* d_clusterState_p;
+
     mqbi::StorageManager* d_storageManager_p;
 
     RecurringEventHandle d_consumptionMonitorEventHandle;
@@ -184,6 +196,10 @@ class ClusterOrchestrator {
     /// Vector, indexed by partitionId, of vectors of pairs of buffered primary
     /// status advisories and their source.
     PrimaryStatusAdvisoryInfosVec d_bufferedPrimaryStatusAdvisoryInfosVec;
+
+    /// Per-partition facts that decide when a partition becomes `E_ACTIVE`
+    /// and when self becomes `E_AVAILABLE`.  Raft mode only.
+    mqbraft::ClusterAvailability d_availability;
 
   private:
     // NOT IMPLEMENTED
@@ -193,8 +209,19 @@ class ClusterOrchestrator {
   private:
     // PRIVATE MANIPULATORS
 
+    /// Initialize data members for the given cluster mode
+    void init(mqbc::ClusterState* clusterState);
+
     /// Return the dispatcher of the associated cluster.
     mqbi::Dispatcher* dispatcher();
+
+    void processRaftClusterEventDispatched(
+        const bsl::shared_ptr<const bdlbb::Blob>& blob,
+        mqbnet::ClusterNode*                      source);
+
+    void processRaftCslSnapshotDispatched(
+        const bsl::shared_ptr<const bdlbb::Blob>& blob,
+        mqbnet::ClusterNode*                      source);
 
     void processElectorEventDispatched(const bmqp::Event&   event,
                                        mqbnet::ClusterNode* source);
@@ -232,6 +259,73 @@ class ClusterOrchestrator {
                                             int          status,
                                             unsigned int primaryLeaseId);
 
+    /// Apply a Raft leadership change for the specified `partitionId`: record
+    /// the specified `leaderNodeId` (or `RaftNode::k_INVALID_NODE_ID` for no
+    /// leader) as the partition primary with the specified `term` as its lease
+    /// id, and open (E_ACTIVE) or close (E_PASSIVE) the partition gate in
+    /// `ClusterState` accordingly.  Raft-mode only.
+    ///
+    /// THREAD: This method is invoked in the associated cluster's
+    ///         dispatcher thread.
+    void onPartitionRaftLeadershipDispatched(int                 partitionId,
+                                             int                 leaderNodeId,
+                                             bsls::Types::Uint64 term,
+                                             bool                haveCommit);
+
+    /// Signal that self has converted its queues of the specified
+    /// `partitionId` to remote, as asked at the specified `leaseId`.
+    ///
+    /// THREAD: Executed by the partition dispatcher thread.
+    void onQueuesConvertedToRemote(int partitionId, unsigned int leaseId);
+
+    /// Record in `d_availability` that self has converted its queues of the
+    /// specified `partitionId` to remote, as asked at the specified
+    /// `leaseId`, and perform the resulting action.
+    ///
+    /// THREAD: This method is invoked in the associated cluster's
+    ///         dispatcher thread.
+    void onQueuesConvertedToRemoteDispatched(int          partitionId,
+                                             unsigned int leaseId);
+
+    /// Propose a `partitionPrimaryAdvisory` listing every partition's
+    /// primary and leaseId (the partition's Raft term).  The advisory keeps
+    /// the CSL's leaseIds in step with the journal, so that a legacy broker
+    /// can recover.  Raft mode only.
+    ///
+    /// THREAD: This method is invoked in the associated cluster's
+    ///         dispatcher thread.
+    void proposePartitionPrimaryAdvisory();
+
+    /// Act on a CSL event with the specified `leaderId` as the CSL leader at
+    /// the specified `term`:
+    ///
+    /// 1. if the CSL state is caught up, mark the CSL leader `e_ACTIVE` in
+    ///    `ElectorInfo`;
+    /// 2. propose the `partitionPrimaryAdvisory` if `d_availability` needs
+    ///    the advisory;
+    /// 3. if the CSL state is caught up, perform the action `d_availability`
+    ///    returns for each partition.
+    ///
+    /// `ClusterStateRaft` has already reported the CSL leader and term to
+    /// `d_availability`.
+    ///
+    /// Raft mode only.
+    ///
+    /// THREAD: This method is invoked in the associated cluster's
+    ///         dispatcher thread.
+    void onClusterRaftLeadershipDispatched(int                 leaderId,
+                                           bsls::Types::Uint64 term);
+
+    /// Perform the specified `action` for the specified `partitionId`: ask
+    /// for the deferred sync point, or mark the partition `E_ACTIVE` and
+    /// possibly transition self to `E_AVAILABLE`.  Raft mode only.
+    ///
+    /// THREAD: This method is invoked in the associated cluster's
+    ///         dispatcher thread.
+    void
+    performPartitionAction(int partitionId,
+                           mqbraft::ClusterAvailability::Action::Enum action);
+
     /// THREAD: This method is invoked in the associated cluster's
     ///         dispatcher thread.
     void onNodeUnavailable(mqbnet::ClusterNode* node);
@@ -263,6 +357,17 @@ class ClusterOrchestrator {
     void processNodeStoppingNotification(
         mqbc::ClusterNodeSession*           ns,
         const bmqp_ctrlmsg::ControlMessage* request);
+
+    /// Hand cluster leadership to the node whose host name is the specified
+    /// `targetName`, writing the outcome to the specified `result`.  Return 0
+    /// if the transfer was initiated and non-zero otherwise; the caller waits
+    /// for the target to take over.  Legacy cannot move leadership, so it only
+    /// reports whether self is already the leader and is itself the target.
+    ///
+    /// THREAD: This method is invoked in the associated cluster's
+    ///         dispatcher thread.
+    int processTransferLeadership(mqbcmd::ClusterResult* result,
+                                  const bsl::string&     targetName);
 
     // PRIVATE ACCESSORS
 
@@ -353,6 +458,27 @@ class ClusterOrchestrator {
     void processElectorEvent(const bmqp::Event&   event,
                              mqbnet::ClusterNode* source);
 
+    /// Process an incoming binary Raft AppendEntries event
+    /// (e_RAFT_CLUSTER) from the specified 'source'.
+    void processRaftClusterEvent(const bmqp::Event&   event,
+                                 mqbnet::ClusterNode* source);
+
+    /// Process an incoming binary Raft AppendEntries event
+    /// (e_RAFT_PARTITION) from the specified 'source'.  Dispatches to the
+    /// partition thread internally.
+    void processRaftPartitionEvent(const bmqp::Event&   event,
+                                   mqbnet::ClusterNode* source);
+
+    /// Process an incoming Raft snapshot chunk event (e_RAFT_SNAPSHOT) from
+    /// the specified 'source'.  Dispatches to the partition thread internally.
+    void processRaftSnapshotEvent(const bmqp::Event&   event,
+                                  mqbnet::ClusterNode* source);
+
+    /// Process an incoming Raft control message (election, response) from
+    /// the specified 'source'.
+    void processRaftControlMessage(const bmqp_ctrlmsg::RaftMessage& message,
+                                   mqbnet::ClusterNode*             source);
+
     /// Process the specified leader-sync-state-query `message` from the
     /// specified `source`.
     ///
@@ -385,6 +511,16 @@ class ClusterOrchestrator {
     void
     processQueueAssignmentRequest(const bmqp_ctrlmsg::ControlMessage& request,
                                   mqbnet::ClusterNode* requester);
+
+    /// Process the queue unassignment in the specified `request`, received
+    /// from the specified `requester` (a primary asking this leader to gc a
+    /// queue).
+    ///
+    /// THREAD: This method is invoked in the associated cluster's
+    ///         dispatcher thread.
+    void processQueueUnassignmentRequest(
+        const bmqp_ctrlmsg::ControlMessage& request,
+        mqbnet::ClusterNode*                requester);
 
     /// Process the specified storage sync request `message` from the
     /// specified `source`.
@@ -507,6 +643,35 @@ class ClusterOrchestrator {
                                   int          status,
                                   unsigned int primaryLeaseId);
 
+    /// Signal a Raft leadership change for the specified `partitionId`: the
+    /// current leader is the specified `leaderNodeId` (or
+    /// `RaftNode::k_INVALID_NODE_ID` if none) at the specified `term`.  Wired
+    /// as `PartitionRaft`'s leadership callback (Raft-mode only).
+    ///
+    /// THREAD: Executed by the partition dispatcher thread.
+    void onPartitionRaftLeadership(int                 partitionId,
+                                   int                 leaderNodeId,
+                                   bsls::Types::Uint64 term,
+                                   bool                haveCommit);
+
+    /// Signal a CSL event: the CSL leader changed, or a `LeaderAdvisory` or
+    /// `partitionPrimaryAdvisory` was applied.  The CSL leader is the
+    /// specified `leaderId` (or `RaftNode::k_INVALID_NODE_ID` if none) at the
+    /// specified `term`.  Wired as `ClusterStateRaft`'s availability callback
+    /// (Raft-mode only).
+    ///
+    /// THREAD: Executed by the cluster dispatcher thread.
+    void onClusterRaftLeadership(int leaderId, bsls::Types::Uint64 term);
+
+    /// Re-check readiness of any queue-open locally parked on the storage/app
+    /// for the specified `uri` on the specified `partitionId` becoming
+    /// available.  Wired as `Cluster::onQueueStorageReady`'s cluster-thread
+    /// continuation (see `mqbi::Cluster::onQueueStorageReady`).
+    ///
+    /// THREAD: This method is invoked in the associated cluster's dispatcher
+    ///         thread (the caller is responsible for the hop).
+    void onQueueStorageReady(int partitionId, const bmqt::Uri& uri);
+
     /// PFSM signals when it is `e_DONE_RECEIVING_DATA_CHUNKS`.  Previously
     /// buffered PrimaryStatusAdvisories should be reread.
     void processBufferedPrimaryStatusAdvisories(int partitionId);
@@ -522,6 +687,13 @@ class ClusterOrchestrator {
 
     /// Get a modifiable reference to this object's queue helper.
     ClusterQueueHelper& queueHelper();
+
+    /// Get a pointer to the ClusterStateRaft, or null if not in Raft mode.
+    mqbraft::ClusterStateRaft* clusterStateRaft();
+
+    /// Return the active storage provider (legacy: StorageManager, Raft:
+    /// PartitionRaftManager).
+    mqbi::StorageProvider* storageProvider();
 
     // ACCESSORS
     const mqbc::ClusterState* clusterState() const;
@@ -564,7 +736,10 @@ inline ClusterQueueHelper& ClusterOrchestrator::queueHelper()
 // ACCESSORS
 inline const mqbc::ClusterState* ClusterOrchestrator::clusterState() const
 {
-    return d_stateManager_mp->clusterState();
+    // Held directly (set in 'init()') rather than via 'd_stateManager_mp',
+    // which is null in Raft mode.  It is the same object the state manager was
+    // constructed with in legacy mode.
+    return d_clusterState_p;
 }
 
 inline const ClusterQueueHelper& ClusterOrchestrator::queueHelper() const

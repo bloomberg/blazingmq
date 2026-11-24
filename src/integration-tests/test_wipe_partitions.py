@@ -14,7 +14,8 @@
 # limitations under the License.
 
 """
-Testing node recovery after wiping partition files.
+Testing node recovery after wiping partition files, and after a crash that
+leaves them intact.
 """
 
 import blazingmq.dev.it.testconstants as tc
@@ -24,12 +25,17 @@ from blazingmq.dev.it.fixtures import (
     tweak,
 )
 from blazingmq.dev.it.cluster_util import (
-    stop_cluster_and_compare_journal_files,
+    compare_journal_files,
+    stop_cluster,
     wipe_files,
 )
 from blazingmq.dev.it.util import wait_until
 
 pytestmark = order(4)
+
+
+def setup_cluster(cluster: Cluster, domain_urls: tc.DomainUrls):
+    cluster.pin_all_primaries()
 
 
 @tweak.cluster.queue_operations.shutdown_timeout_ms(100)
@@ -100,7 +106,8 @@ def test_wipe_single_partition_files(
     replica_consumer.confirm(uri_priority, "*", succeed=True)
     replica_consumer.close(uri_priority, succeed=True)
 
-    stop_cluster_and_compare_journal_files(leader.name, replica.name, cluster)
+    stop_cluster(cluster, leader)
+    compare_journal_files(cluster, leader, [replica])
 
 
 @tweak.cluster.queue_operations.shutdown_timeout_ms(100)
@@ -172,7 +179,8 @@ def test_wipe_all_partitions_and_csl(
     replica_consumer.confirm(uri_priority, "*", succeed=True)
     replica_consumer.close(uri_priority, succeed=True)
 
-    stop_cluster_and_compare_journal_files(leader.name, replica.name, cluster)
+    stop_cluster(cluster, leader)
+    compare_journal_files(cluster, leader, [replica])
 
 
 @tweak.cluster.queue_operations.shutdown_timeout_ms(100)
@@ -240,7 +248,74 @@ def test_wipe_csl_only(
     replica_consumer.confirm(uri_priority, "*", succeed=True)
     replica_consumer.close(uri_priority, succeed=True)
 
-    stop_cluster_and_compare_journal_files(leader.name, replica.name, cluster)
+    stop_cluster(cluster, leader)
+    compare_journal_files(cluster, leader, [replica])
+
+
+@tweak.cluster.queue_operations.shutdown_timeout_ms(100)
+def test_crash_restart_keeps_csl(
+    multi_node: Cluster,
+    domain_urls: tc.DomainUrls,
+) -> None:
+    """
+    Test that a replica rejoins after being killed with its storage left
+    intact.  Every other test here either stops the node gracefully or wipes
+    its files; a kill leaves the CSL file at the size the broker grew it to,
+    which is not the size a clean shutdown leaves behind.
+    - start cluster
+    - post messages
+    - SIGKILL a replica, leaving its storage alone
+    - restart the replica, verify it becomes available again
+    - connect a consumer to the healed replica, verify messages are received
+    """
+    cluster = multi_node
+    uri_priority = domain_urls.uri_priority
+
+    leader = cluster.last_known_leader
+    proxy = next(cluster.proxy_cycle())
+
+    producer = proxy.create_client("producer")
+    producer.open(uri_priority, flags=["write,ack"], succeed=True)
+
+    for i in range(1, 5):
+        producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
+
+    replica = cluster.nodes(exclude=leader)[0]
+
+    # Kill the replica.  Nothing is wiped: it restarts on the files it was
+    # using when it died.
+    cluster.drain()
+    replica.check_exit_code = False
+    replica.kill()
+    replica.wait()
+
+    storage_dir = cluster.work_dir.joinpath(replica.name, "storage")
+    assert list(storage_dir.glob("*csl*")), (
+        f"Replica {replica} has no CSL file to restart on"
+    )
+
+    replica.start()
+    replica.wait_until_started()
+
+    assert replica.outputs_substr("Cluster (itCluster) is available", 30), (
+        f"Replica {replica} did not become available within 30s after being "
+        f"killed and restarted on its own storage"
+    )
+
+    # Verify a consumer connected to the healed replica can receive messages
+    replica_consumer = replica.create_client("replica_consumer")
+    replica_consumer.open(uri_priority, flags=["read"], succeed=True)
+
+    assert wait_until(
+        lambda: len(replica_consumer.list(uri_priority, block=True)) == 4,
+        3,
+    ), "Consumer on healed replica did not receive 4 messages"
+
+    replica_consumer.confirm(uri_priority, "*", succeed=True)
+    replica_consumer.close(uri_priority, succeed=True)
+
+    stop_cluster(cluster, leader)
+    compare_journal_files(cluster, leader, [replica])
 
 
 @tweak.cluster.queue_operations.shutdown_timeout_ms(100)
@@ -258,7 +333,8 @@ def test_wipe_storage_all_but_one_node(
     - stop all nodes
     - wipe all partition files + CSL on every node except one
     - restart all nodes, but make sure the surviving node is part of the initial
-      leader quorum
+      leader quorum, and start the last node only once every partition has a
+      primary
     - verify the cluster becomes available
     - connect a consumer, verify messages are received
 
@@ -307,6 +383,20 @@ def test_wipe_storage_all_but_one_node(
         f"{cluster.last_known_leader}"
     )
 
+    # Every partition must have a primary before the last wiped node starts.
+    # Raft elects each partition separately, and with the last node up the
+    # wiped nodes form a quorum without the surviving node.
+    num_partitions = cluster.config.definition.partition_config.num_partitions
+    primaries = {}
+
+    def all_primaries_elected():
+        primaries.update(surviving_node.partition_primaries(num_partitions))
+        return all(primary is not None for primary in primaries.values())
+
+    assert wait_until(all_primaries_elected, 30), (
+        f"not every partition has a primary: {primaries}"
+    )
+
     last_node.start()
     last_node.wait_until_started()
     last_node.wait_status(wait_leader=True, wait_ready=True)
@@ -325,9 +415,8 @@ def test_wipe_storage_all_but_one_node(
     consumer.close(uri_priority, succeed=True)
 
     # Compare surviving node vs wiped node
-    stop_cluster_and_compare_journal_files(
-        surviving_node.name, wiped_node.name, cluster
-    )
+    stop_cluster(cluster, surviving_node)
+    compare_journal_files(cluster, surviving_node, [wiped_node])
 
 
 @tweak.cluster.queue_operations.shutdown_timeout_ms(100)
@@ -478,9 +567,8 @@ def test_wipe_partitions_stale_replica(
     consumer.confirm(uri_priority, "*", succeed=True)
     consumer.close(uri_priority, succeed=True)
 
-    stop_cluster_and_compare_journal_files(
-        stale_replica.name, wiped_replica.name, cluster
-    )
+    stop_cluster(cluster, cluster.last_known_leader)
+    compare_journal_files(cluster, stale_replica, [wiped_replica])
 
 
 @tweak.cluster.queue_operations.shutdown_timeout_ms(100)

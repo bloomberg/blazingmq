@@ -30,12 +30,17 @@ from blazingmq.dev.it.fixtures import (
     test_logger,
 )
 from blazingmq.dev.it.cluster_util import (
-    stop_cluster_and_compare_journal_files,
+    compare_journal_files,
+    stop_cluster,
 )
 
 
 # Set max journal file size to a small value to force rollover during the test
 MAX_JOURNAL_FILE_SIZE = 1844
+
+
+def setup_cluster(cluster: Cluster, domain_urls: tc.DomainUrls):
+    cluster.pin_all_primaries()
 
 
 @tweak.cluster.partition_config.max_journal_file_size(MAX_JOURNAL_FILE_SIZE)
@@ -65,8 +70,12 @@ def test_sync_after_missed_rollover(
     consumer = proxy.create_client("consumer")
     consumer.open(uri_priority, flags=["read"], succeed=True)
 
-    replicas = cluster.nodes(exclude=leader)
-    replica = replicas[0]
+    # 'Initiating rollover'/'ROLLOVER COMPLETE' are logged by the queue's
+    # partition primary, which in Raft need not be the CSL leader ('leader').
+    # Poll that primary, and pick 'replica' from the remaining nodes so
+    # stopping it doesn't force a real primary failover.
+    primary = leader.wait_queue_primary(uri_priority)
+    replica = cluster.nodes(exclude=primary)[0]
 
     # Put 2 messages with confirms
     for i in range(1, 3):
@@ -80,16 +89,19 @@ def test_sync_after_missed_rollover(
     cluster.make_sure_node_stopped(replica)
     replica.drain()
 
-    # Put more messages w/o confirm to initiate the rollover
+    # Put more messages with confirms to initiate the rollover
+    # (Raft has no periodic sync points, so confirms generate dead bytes needed for trigger)
     i = 3
-    while not leader.outputs_substr("Initiating rollover", 0.01):
+    while not primary.outputs_substr("Initiating rollover", 0.01):
         assert i < 8, f"Rollover was not initiated after {i - 1} messages"
         producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
+        consumer.wait_push_event()
+        consumer.confirm(uri_priority, "*", succeed=True)
         i += 1
 
     # Wait until rollover completed
-    assert leader.outputs_substr("ROLLOVER COMPLETE", 10), (
-        f"Leader {leader} did not output 'ROLLOVER COMPLETE' within 10s"
+    assert primary.outputs_substr("ROLLOVER COMPLETE", 10), (
+        f"Primary {primary} did not output 'ROLLOVER COMPLETE' within 10s"
     )
 
     # Restart the stopped replica which missed rollover
@@ -101,12 +113,13 @@ def test_sync_after_missed_rollover(
         f"Replica {replica} did not output 'Cluster (itCluster) is available' within 10s"
     )
 
-    assert leader == cluster.last_known_leader, (
-        f"Leader {leader} is not cluster.last_known_leader {cluster.last_known_leader}"
+    assert primary == primary.wait_queue_primary(uri_priority), (
+        f"Primary {primary} is no longer the partition primary"
     )
 
-    # Check that leader and replica journal files are equal, after stopping all nodes
-    stop_cluster_and_compare_journal_files(leader.name, replica.name, cluster)
+    # Check that primary and replica journal files are equal, after stopping all nodes
+    stop_cluster(cluster, primary)
+    compare_journal_files(cluster, primary, [replica])
 
 
 @start_cluster(False)
@@ -168,11 +181,14 @@ def test_sync_after_missed_rollover_after_restart(
     cluster.make_sure_node_stopped(east2)
     east2.drain()
 
-    # Put more messages w/o confirm to initiate the rollover
+    # Put more messages with confirms to initiate the rollover
+    # (Raft has no periodic sync points, so confirms generate dead bytes needed for trigger)
     i = 3
     while not east1.outputs_substr("Initiating rollover", 0.01):
         assert i < 8, f"Rollover was not initiated after {i - 1} messages"
         producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
+        consumer.wait_push_event()
+        consumer.confirm(uri_priority, "*", succeed=True)
         i += 1
 
     # Wait until rollover completed on all running nodes
@@ -215,7 +231,8 @@ def test_sync_after_missed_rollover_after_restart(
     )
 
     # Check that leader `east1` and replica `east2` (which is missed rollover) journal files are equal, after stopping all nodes
-    stop_cluster_and_compare_journal_files(east1.name, east2.name, cluster)
+    stop_cluster(cluster, east1)
+    compare_journal_files(cluster, east1, [east2])
 
 
 @tweak.cluster.queue_operations.shutdown_timeout_ms(100)
@@ -274,7 +291,8 @@ def test_sync_after_missed_records(
     )
 
     # Check that leader and replica journal files are equal, after stopping all nodes
-    stop_cluster_and_compare_journal_files(leader.name, replica.name, cluster)
+    stop_cluster(cluster, leader)
+    compare_journal_files(cluster, leader, [replica])
 
 
 @tweak.cluster.queue_operations.shutdown_timeout_ms(100)
@@ -352,7 +370,8 @@ def test_sync_if_leader_missed_records(
     replica = cluster.nodes(exclude=next_leader)[0]
 
     # Check that `next_leader` and replica journal files are equal, after stopping all nodes
-    stop_cluster_and_compare_journal_files(next_leader.name, replica.name, cluster)
+    stop_cluster(cluster, next_leader)
+    compare_journal_files(cluster, next_leader, [replica])
 
 
 @tweak.cluster.queue_operations.shutdown_timeout_ms(100)
@@ -403,10 +422,13 @@ def test_sync_if_leader_missed_rollover(
     for i in range(3, 5):
         producer.post(uri_priority, [f"msg{i}"], succeed=True, wait_ack=True)
 
-    # Initiate rollover via admin command
-    leader.trigger_rollover(0)
+    # Initiate rollover via admin command on partition 0's primary: in Raft
+    # mode the CSL leader need not be that primary, and it may have just changed
+    # if the killed node was partition 0's primary.  ('leader' is the CSL leader
+    # and is still alive -- 'next_leader' was excluded from it.)
+    leader.wait_partition_primary(0).trigger_rollover(0)
 
-    # Wait until rollover completed for other nodes
+    # Wait until rollover completed for other nodes (they roll via replication)
     for node in cluster.nodes(exclude=[next_leader]):
         node.wait_rollover_complete()
 
@@ -439,7 +461,8 @@ def test_sync_if_leader_missed_rollover(
     replica = cluster.nodes(exclude=next_leader)[0]
 
     # Check that `next_leader` and replica journal files are equal, after stopping all nodes
-    stop_cluster_and_compare_journal_files(next_leader.name, replica.name, cluster)
+    stop_cluster(cluster, next_leader)
+    compare_journal_files(cluster, next_leader, [replica])
 
 
 @tweak.cluster.queue_operations.shutdown_timeout_ms(100)
@@ -531,8 +554,8 @@ def test_sync_after_replicas_missed_various_records(
     )
 
     # Check that leader and replicas' journal files are equal, after stopping all nodes
-    for replica in (replica1, replica2, replica3):
-        stop_cluster_and_compare_journal_files(leader.name, replica.name, cluster)
+    stop_cluster(cluster, leader)
+    compare_journal_files(cluster, leader, [replica1, replica2, replica3])
 
 
 @tweak.cluster.queue_operations.shutdown_timeout_ms(100)
@@ -631,8 +654,8 @@ def test_sync_after_replicas_missed_or_extra_records(
     )
 
     # Check that new primary and replicas' journal files are equal
-    for replica in (replica1, replica2, leader):
-        stop_cluster_and_compare_journal_files(replica3.name, replica.name, cluster)
+    stop_cluster(cluster, replica3)
+    compare_journal_files(cluster, replica3, [replica1, replica2, leader])
 
 
 def test_sync_after_primary_extra_records(
@@ -778,8 +801,8 @@ def test_sync_after_primary_extra_records(
     ), f"Replica {target_replica} did not detect irreconcilable primary data"
 
     # Check that primary and replicas' journal files are equal
-    for replica in cluster.nodes(exclude=leader):
-        stop_cluster_and_compare_journal_files(leader.name, replica.name, cluster)
+    stop_cluster(cluster, leader)
+    compare_journal_files(cluster, leader, cluster.nodes(exclude=leader))
 
 
 def test_sync_after_primary_missed_queue_deletion(
@@ -859,13 +882,17 @@ def test_sync_after_primary_missed_queue_deletion(
 
     # Start all nodes.
     cluster.start_nodes(wait_leader=True, wait_ready=False)
-    new_primary = cluster.last_known_leader
+
+    # The queue is on partition 0, the cluster's only queue.  Its primary, not
+    # the cluster leader, conforms the journal: the two can be different nodes.
+    new_primary = cluster.last_known_leader.wait_partition_primary(partition_id=0)
 
     # Verify the new primary conforms its journal to the CSL for the extra
     # queue and becomes available.
     matches = new_primary.capture_n(
         [
-            r"Conforming journal to cluster state: writing a corrective QueueOp.DELETION for extra queueKey",
+            r"(Conforming journal to cluster state: writing a corrective QueueOp.DELETION for extra queueKey"
+            r"|is in the journal but not in the cluster state)",
             r"Cluster \(itCluster\) is available",
         ],
         2,
@@ -878,6 +905,15 @@ def test_sync_after_primary_missed_queue_deletion(
         f"New primary {new_primary} did not output 'Cluster (itCluster) is available'"
     )
 
+    # Wait until every other node knows the primary of partition 0, so that each
+    # replicates the records of the new primary before the cluster stops.
+    for node in cluster.nodes(exclude=new_primary):
+        node.wait_status(wait_leader=False, wait_ready=True)
+
     # Verify that all nodes are synchronized by examining storage files.
-    for replica in cluster.nodes(exclude=new_primary):
-        stop_cluster_and_compare_journal_files(new_primary.name, replica.name, cluster)
+    # Only partition 0: the primaries of the other partitions can be other
+    # nodes, which write sync points while the remaining nodes stop.
+    stop_cluster(cluster, new_primary)
+    compare_journal_files(
+        cluster, new_primary, cluster.nodes(exclude=new_primary), partition_id=0
+    )

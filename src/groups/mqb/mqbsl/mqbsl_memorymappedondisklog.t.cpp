@@ -50,6 +50,7 @@ using namespace bsl;
 // - aliasRaw
 // - aliasBlob
 // - seek
+// - truncate
 //-----------------------------------------------------------------------------
 
 // ============================================================================
@@ -1027,6 +1028,79 @@ static void test12_seek()
     bmqtst::TestHelperUtil::allocator()->deallocate(entry);
 }
 
+static void test13_truncate()
+// ------------------------------------------------------------------------
+// TRUNCATE
+//
+// Concerns:
+//   Verify that 'truncate' accepts any offset up to the end of the log, also
+//   after a 'seek' back, updates the byte counts, lets writing resume at the
+//   offset, leaves the log at the new end across a close, and fails on a
+//   read-only log.
+//
+// Testing:
+//   truncate(...)
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("TRUNCATE");
+
+    Tester                 tester;
+    MemoryMappedOnDiskLog& log = tester.log();
+    BSLS_ASSERT_OPT(log.open(Log::e_CREATE_IF_MISSING) ==
+                    LogOpResult::e_SUCCESS);
+
+    // 1. Write a list of entries, lower the outstanding bytes by one entry,
+    //    then seek back to the beginning.
+    for (int i = 0; i < k_NUM_ENTRIES; ++i) {
+        BSLS_ASSERT_OPT(log.write(k_ENTRIES[i], 0, k_ENTRY_LENGTH) ==
+                        static_cast<Offset>(i * k_ENTRY_LENGTH));
+    }
+    const Offset endpoint = static_cast<Offset>(k_NUM_ENTRIES *
+                                                k_ENTRY_LENGTH);
+    log.updateOutstandingNumBytes(-k_ENTRY_LENGTH);
+    BMQTST_ASSERT_EQ(log.seek(0), LogOpResult::e_SUCCESS);
+
+    // 2. Truncate past the write position, at the fourth entry.
+    const Offset cut = static_cast<Offset>(3 * k_ENTRY_LENGTH);
+    BMQTST_ASSERT_EQ(log.truncate(endpoint + 1),
+                     LogOpResult::e_OFFSET_OUT_OF_RANGE);
+    BMQTST_ASSERT_EQ(log.truncate(cut), LogOpResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(log.currentOffset(), cut);
+    BMQTST_ASSERT_EQ(log.totalNumBytes(), cut);
+    BMQTST_ASSERT_EQ(log.outstandingNumBytes(), cut - k_ENTRY_LENGTH);
+
+    char entry[k_LONG_ENTRY_LENGTH];
+    BMQTST_ASSERT_EQ(log.read(static_cast<void*>(entry), k_ENTRY_LENGTH, cut),
+                     LogOpResult::e_REACHED_END_OF_LOG);
+
+    // 3. Writing resumes at the offset.
+    BMQTST_ASSERT_EQ(
+        log.write(k_LONG_ENTRY, k_LONG_ENTRY_OFFSET, k_LONG_ENTRY_LENGTH),
+        cut);
+    const Offset newEnd = cut + k_LONG_ENTRY_LENGTH;
+    BMQTST_ASSERT_EQ(log.totalNumBytes(), newEnd);
+    BMQTST_ASSERT_EQ(
+        log.read(static_cast<void*>(entry), k_LONG_ENTRY_LENGTH, cut),
+        LogOpResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(
+        bsl::memcmp(entry, k_LONG_ENTRY_MEAT, k_LONG_ENTRY_LENGTH),
+        0);
+
+    // 4. Close and reopen read-only: the log ends at the new end, and
+    //    'truncate' fails.
+    BMQTST_ASSERT_EQ(log.flush(newEnd + 1),
+                     LogOpResult::e_OFFSET_OUT_OF_RANGE);
+    BSLS_ASSERT_OPT(log.flush() == LogOpResult::e_SUCCESS);
+    BSLS_ASSERT_OPT(log.close() == LogOpResult::e_SUCCESS);
+
+    BSLS_ASSERT_OPT(log.open(Log::e_READ_ONLY) == LogOpResult::e_SUCCESS);
+    BMQTST_ASSERT_EQ(log.totalNumBytes(), newEnd);
+    BMQTST_ASSERT_EQ(log.truncate(0), LogOpResult::e_LOG_READONLY);
+    BMQTST_ASSERT_EQ(log.totalNumBytes(), newEnd);
+
+    BSLS_ASSERT_OPT(log.close() == LogOpResult::e_SUCCESS);
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -1059,6 +1133,7 @@ int main(int argc, char* argv[])
         case 10: test10_aliasRaw(); break;
         case 11: test11_aliasBlob(); break;
         case 12: test12_seek(); break;
+        case 13: test13_truncate(); break;
         default: {
             cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
             bmqtst::TestHelperUtil::testStatus() = -1;

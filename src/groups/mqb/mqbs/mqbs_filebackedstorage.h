@@ -103,6 +103,10 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     // where -1 due to last confirm optimization.
     static const size_t k_MOST_LIKELY_NUM_RECORDS = 2;
 
+    // Return code of 'proposeDeletion' when a DELETION for the GUID is already
+    // proposed.  Positive, so distinct from the 'writeDeletionRecord' errors.
+    static const int k_ALREADY_PROPOSED = 1;
+
     // PRIVATE TYPES
     typedef bmqc::Array<DataStoreRecordHandle, k_MOST_LIKELY_NUM_RECORDS>
         RecordHandlesArray;
@@ -110,6 +114,20 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     struct Item {
         RecordHandlesArray d_array;
         unsigned int       d_refCount;  // Outstanding reference count
+
+        /// CONFIRM records proposed for this GUID and not yet committed.
+        /// Always zero outside Raft.  `d_refCount` only drops when a CONFIRM
+        /// commits, so `d_refCount - d_pendingConfirms` is the number of apps
+        /// that have yet to confirm.
+        unsigned int d_pendingConfirms;
+
+        /// Lease id under which a DELETION record for this GUID was proposed,
+        /// 0 if none was.  On Raft the entry stays here until that record
+        /// commits, so this is what stops a second DELETION being written in
+        /// the meantime.  A record that never commits is truncated or dropped,
+        /// which takes another node winning an election, so the next lease
+        /// this node sweeps under cannot match a value left behind that way.
+        unsigned int d_deletionProposedLeaseId;
 
         void reset();
     };
@@ -162,10 +180,9 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     // DATA
     bslma::Allocator* d_allocator_p;
 
-    /// The pointer to the parent DataStore object that contains this storage.
-    /// Held, not owned.
+    /// The pointer to the record store for this partition.  Held, not owned.
     /// Is always not NULL.
-    DataStore* d_store_p;
+    RecordStore* d_store_p;
 
     mqbu::StorageKey d_queueKey;
 
@@ -225,7 +242,36 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
 
   private:
     // PRIVATE MANIPULATORS
-    void purgeCommon(const mqbu::StorageKey& appKey, bool asPrimary);
+
+    /// Remove the message at the specified `it` from every container holding
+    /// it, without writing any record: the apply half of a DELETION.  Erase
+    /// its entry using the specified `now`, or leave its history retention to
+    /// the map's own `gc` if `now` is 0.
+    void removeMessage(RecordHandleMapIter it, bsls::Types::Int64 now);
+
+    /// Write a DELETION record for the specified `guid`, whose entry is the
+    /// specified `item`, with the specified `deletionFlag` and `timestamp`,
+    /// and mark `item` as having a DELETION proposed.  Return 0 on success,
+    /// `k_ALREADY_PROPOSED` without writing if `item` is already marked, or
+    /// the `writeDeletionRecord` error, leaving `item` unmarked.  On success
+    /// `item` may already be erased: on a single-node cluster the record
+    /// commits inside the write and `processDeletionRecord` erases the entry.
+    int proposeDeletion(Item*                    item,
+                        const bmqt::MessageGUID& guid,
+                        DeletionRecordFlag::Enum deletionFlag,
+                        bsls::Types::Uint64      timestamp);
+
+    /// Drop the staged auto CONFIRMs and the Apps collected for the message
+    /// being put, whose message is going away.
+    void clearAutoConfirming();
+
+    /// Purge the App identified by the specified `appKey`, which must not be
+    /// null.  If the specified `asPrimary` is `true`, write a DELETION for
+    /// each message whose refCount the purge drops to zero.
+    void purgeApp(const mqbu::StorageKey& appKey, bool asPrimary);
+
+    /// Purge every message of this storage, keeping the dedup history.
+    void purgeQueue();
 
     /// Clear the state created by 'selectForAutoConfirming'.
     void removeAutoConfirmHandles();
@@ -256,6 +302,11 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
 
     // PRIVATE ACCESSORS
 
+    /// Return true if a DELETION record for the GUID of the specified `item`
+    /// was proposed under the lease id `DataStore::writeHeadLeaseId` returns
+    /// and has not committed.
+    bool wasDeletionProposed(const Item& item) const;
+
     /// Callback function called by `d_capacityMeter` to log appllications
     /// subscription info into the specified `stream`.
     bsl::ostream& logAppsSubscriptionInfoCb(bsl::ostream& stream) const;
@@ -271,7 +322,7 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     /// `queueUri` and `queueKey`, backed by the specified `dataStore`, and
     /// using the specified `config`, `parentCapacityMeter`, and
     /// `allocator`.
-    FileBackedStorage(DataStore*                     dataStore,
+    FileBackedStorage(RecordStore*                   dataStore,
                       const bmqt::Uri&               queueUri,
                       const mqbu::StorageKey&        queueKey,
                       mqbi::Domain*                  domain,
@@ -325,6 +376,16 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     /// `msgGUID`, false otherwise.
     bool
     hasMessage(const bmqt::MessageGUID& msgGUID) const BSLS_KEYWORD_OVERRIDE;
+
+    /// Return `true` if the record of a message may still arrive, given the
+    /// specified `raftIndex` from the PUSH.  Defers to the partition, which
+    /// knows how far it has replicated.
+    bool isPendingReplication(bsls::Types::Uint64 raftIndex) const
+        BSLS_KEYWORD_OVERRIDE;
+
+    /// Return `true` if this node leads the Raft partition of this storage or
+    /// the partition is not on Raft, and `false` otherwise.
+    bool isLeader() const BSLS_KEYWORD_OVERRIDE;
 
     /// @brief Retrieve a message and its metadata from this storage.
     ///
@@ -551,22 +612,36 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
     void processMessageRecord(const bmqt::MessageGUID&     guid,
                               unsigned int                 msgLen,
                               unsigned int                 refCount,
-                              const DataStoreRecordHandle& handle)
-        BSLS_KEYWORD_OVERRIDE;
+                              const DataStoreRecordHandle& handle,
+                              bool isOwn) BSLS_KEYWORD_OVERRIDE;
 
     void processConfirmRecord(const bmqt::MessageGUID&     guid,
                               const mqbu::StorageKey&      appKey,
                               ConfirmReason::Enum          reason,
-                              const DataStoreRecordHandle& handle)
-        BSLS_KEYWORD_OVERRIDE;
+                              const DataStoreRecordHandle& handle,
+                              bool isOwn) BSLS_KEYWORD_OVERRIDE;
 
     void
     processDeletionRecord(const bmqt::MessageGUID& guid) BSLS_KEYWORD_OVERRIDE;
 
+    void undoCapacity(unsigned int msgLen) BSLS_KEYWORD_OVERRIDE;
+
+    void undoConfirm(const bmqt::MessageGUID& guid,
+                     const mqbu::StorageKey&  appKey) BSLS_KEYWORD_OVERRIDE;
+
+    void undoDeletion(const bmqt::MessageGUID& guid) BSLS_KEYWORD_OVERRIDE;
+
+    int writeAppRemoval(const mqbu::StorageKey& appKey) BSLS_KEYWORD_OVERRIDE;
+
     void addQueueOpRecordHandle(const DataStoreRecordHandle& handle)
         BSLS_KEYWORD_OVERRIDE;
 
-    void purge(const mqbu::StorageKey& appKey) BSLS_KEYWORD_OVERRIDE;
+    void purge(const mqbu::StorageKey& appKey,
+               bool                    asPrimary) BSLS_KEYWORD_OVERRIDE;
+
+    /// Empty this storage, dedup history included; see
+    /// `mqbs::ReplicatedStorage::clear`.
+    void clear() BSLS_KEYWORD_OVERRIDE;
 
     void selectForAutoConfirming(const bmqt::MessageGUID& msgGUID)
         BSLS_KEYWORD_OVERRIDE;
@@ -606,7 +681,9 @@ class FileBackedStorage BSLS_KEYWORD_FINAL : public ReplicatedStorage {
 inline void FileBackedStorage::Item::reset()
 {
     d_array.clear();
-    d_refCount = 0;
+    d_refCount                = 0;
+    d_pendingConfirms         = 0;
+    d_deletionProposedLeaseId = 0;
 }
 
 inline FileBackedStorage::AutoConfirm::AutoConfirm(
@@ -706,6 +783,17 @@ FileBackedStorage::hasMessage(const bmqt::MessageGUID& msgGUID) const
     return 1 == d_handles.count(msgGUID);
 }
 
+inline bool
+FileBackedStorage::isPendingReplication(bsls::Types::Uint64 raftIndex) const
+{
+    return d_store_p->isPendingReplication(raftIndex);
+}
+
+inline bool FileBackedStorage::isLeader() const
+{
+    return !d_store_p->isRaft() || d_store_p->isLeader();
+}
+
 inline mqbi::StorageResult::Enum
 FileBackedStorage::getMessageSize(int*                     msgSize,
                                   const bmqt::MessageGUID& msgGUID) const
@@ -726,7 +814,7 @@ FileBackedStorage::getMessageSize(int*                     msgSize,
 
 inline int FileBackedStorage::partitionId() const
 {
-    return d_store_p->config().partitionId();
+    return d_store_p->partitionId();
 }
 
 inline const ReplicatedStorage::RecordHandles&

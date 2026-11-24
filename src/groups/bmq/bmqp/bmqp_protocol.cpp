@@ -207,6 +207,9 @@ const char* EventType::toAscii(EventType::Enum value)
         CASE(HEARTBEAT_RSP)
         CASE(REPLICATION_RECEIPT)
         CASE(AUTHENTICATION)
+        CASE(RAFT_CLUSTER)
+        CASE(RAFT_PARTITION)
+        CASE(RAFT_SNAPSHOT)
     default: return "(* UNKNOWN *)";
     }
 
@@ -979,6 +982,13 @@ const int RecoveryHeader::k_HEADER_WORDS_MASK = bdlb::BitMaskUtil::one(
 const int RecoveryHeader::k_FILE_CHUNK_TYPE_MASK = bdlb::BitMaskUtil::one(
     RecoveryHeader::k_FILE_CHUNK_TYPE_START_IDX,
     RecoveryHeader::k_FILE_CHUNK_TYPE_NUM_BITS);
+
+// -----------------
+// struct RaftHeader
+// -----------------
+
+const unsigned int RaftHeader::k_MSG_TYPE_APPEND_ENTRIES;
+const unsigned int RaftHeader::k_MSG_TYPE_APPEND_ENTRIES_RESP;
 
 }  // close package namespace
 }  // close enterprise namespace

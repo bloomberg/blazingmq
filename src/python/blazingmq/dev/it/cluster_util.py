@@ -66,9 +66,15 @@ def ensure_message_at_storage_layer(
 
         def check(node=node):
             node.command(f"CLUSTERS CLUSTER {node.cluster_name} STORAGE SUMMARY")
+            # Use a short per-attempt timeout so a stale snapshot (taken just
+            # before the message replicates) doesn't consume the entire
+            # 'wait_until' budget on a single command -- without this, the
+            # outer retry loop below never gets a chance to re-send
+            # 'STORAGE SUMMARY' and observe a fresher count.
             return node.outputs_regex(
                 r"\w{10}\s+%s\s+%s\s+\d+\s+B\s+" % (partition_id, expected_count)
-                + re.escape(queue_uri)
+                + re.escape(queue_uri),
+                timeout=1,
             )
 
         assert wait_until(
@@ -89,9 +95,36 @@ def simulate_csl_rollover(du: tc.DomainUrls, leader: Broker, producer: Client):
     Simulate rollover of CSL file by opening and closing many queues.
     """
 
+    ROLLOVER_RE = r"Rolling over from log with logId"
+    UNASSIGN_RE = r"queueUnAssignmentAdvisory"
+
+    # 'FORCE_GC_QUEUES' only unassigns queues on the partition's Raft primary
+    # ('gcExpiredQueues' bails with rc_SELF_IS_NOT_PRIMARY otherwise); in
+    # FSM/Raft mode that primary is independent of 'leader' (the CSL leader).
+    # Dummy queues are assigned round-robin across partitions, so partition
+    # 0's primary will own some of them.
+    partition_primary = leader.wait_partition_primary()
+
     i = 0
-    # Open queues until rollover detected
-    while not leader.outputs_regex(r"Rolling over from log with logId", 0.01):
+    rollover_seen = False
+    unassignment_seen = False
+
+    # The interleaved 'queueUnAssignmentAdvisory' can be logged just before OR
+    # just after "Rolling over": Raft logs an advisory when it commits/applies
+    # -- decoupled from whichever record's write later overflows the log --
+    # while the record that DOES overflow is only applied (and logged) once
+    # its post-rollover append commits, i.e. strictly after the roll. Track
+    # both patterns on every scan so neither is missed regardless of order.
+    while not rollover_seen:
+        rollover, unassignment = leader.capture_n(
+            [ROLLOVER_RE, UNASSIGN_RE],
+            count=1,
+            timeout=0.01,
+            warn_on_timeout=False,
+        )
+        rollover_seen = rollover_seen or rollover is not None
+        unassignment_seen = unassignment_seen or unassignment is not None
+
         producer.open(
             f"bmq://{du.domain_priority}/q_dummy_{i}",
             flags=["write,ack"],
@@ -102,7 +135,7 @@ def simulate_csl_rollover(du: tc.DomainUrls, leader: Broker, producer: Client):
 
         if i % 5 == 0:
             # do not wait for success, otherwise the following capture will fail
-            leader.force_gc_queues(block=False)
+            partition_primary.force_gc_queues(block=False)
 
         assert i < 10000, (
             "Failed to detect rollover after opening a reasonable number of queues"
@@ -110,7 +143,9 @@ def simulate_csl_rollover(du: tc.DomainUrls, leader: Broker, producer: Client):
     test_logger.info(f"Rollover detected after opening {i} queues")
 
     # Rollover and queueUnAssignmentAdvisory interleave
-    assert leader.outputs_regex(r"queueUnAssignmentAdvisory", timeout=5)
+    assert unassignment_seen or leader.outputs_regex(
+        r"queueUnAssignmentAdvisory", timeout=5
+    )
 
 
 def check_if_queue_has_n_messages(consumer: Client, queue: str, expected_count: int):
@@ -183,6 +218,9 @@ def rollover_queues_and_apps_test(cluster: Cluster, domain_urls, trigger_rollove
             wait_ack=True,
         )
 
+    # Wait for delivery before confirming: with nothing delivered yet, bmqtool
+    # logs "No messages to confirm" and never calls 'session.confirmMessage()',
+    # which is the line 'confirm(succeed=True)' waits for.
     consumer_priority = proxy.create_client("consumer_priority")
     consumer_priority.open(priority_queue, flags=["read"], succeed=True)
     assert consumer_priority.wait_push_event()
@@ -276,45 +314,10 @@ def clean_storage_output(output_str: str) -> str:
     return json.dumps(data, indent=2)
 
 
-def _wait_for_passive_advisories(leader: Broker, cluster: Cluster, timeout: int = 10):
+def stop_cluster(cluster: Cluster, first: Broker) -> None:
     """
-    Wait until every non-leader node has received a PASSIVE primary status
-    advisory from the leader for every partition.
-
-    During leader shutdown, each partition's queue dispatcher issues a forced
-    sync point and then broadcasts a PASSIVE advisory (flushing the sync point
-    first per PR #1202).  However, ``closeChannels()`` can tear down the TCP
-    connection before the channel thread drains all buffered data.  Waiting for
-    the PASSIVE advisory on each replica confirms that the preceding forced
-    sync point was also delivered (same TCP stream, guaranteed ordering).
-    """
-    num_partitions = cluster.config.definition.partition_config.num_partitions
-    patterns = [
-        (
-            f"received primary status advisory: "
-            f"\\[ partitionId = {pid} primaryLeaseId = \\d+ "
-            f"status = E_PASSIVE \\], from: \\[{re.escape(leader.name)}"
-        )
-        for pid in range(num_partitions)
-    ]
-    for node in cluster.nodes(exclude=leader):
-        if not node.is_alive():
-            continue
-        results = node.capture_n(patterns, timeout=timeout)
-        missing = [pid for pid, match in enumerate(results) if match is None]
-        assert not missing, (
-            f"Node {node.name} did not receive PASSIVE advisory from leader "
-            f"{leader.name} for partition(s) {missing} within {timeout}s"
-        )
-
-
-def stop_cluster_and_compare_journal_files(
-    leader_name: str, replica_name: str, cluster: Cluster
-) -> None:
-    """
-    Stop cluster after bumping quorum on all replicas to prevent primary
-    switch.  Then, compare leader and replica journal files content, and
-    assert that they are equal.
+    Stop all nodes of the specified `cluster`, the specified `first` node
+    first, after bumping quorum on all running nodes to prevent primary switch.
 
     NOTE: Stopping all nodes ensures that all journal files are closed and
     flushed to disk, and that there are no discrepancies due to in-flight
@@ -325,85 +328,73 @@ def stop_cluster_and_compare_journal_files(
         if node.is_alive():
             node.set_quorum(5)
 
-    leader = cluster.last_known_leader
-    if leader:
-        leader.stop()
-        _wait_for_passive_advisories(leader, cluster)
-        cluster.make_sure_node_stopped(leader)
+    first.stop()
+    cluster.make_sure_node_stopped(first)
     cluster.stop_nodes()
 
-    leader_journal_files = glob.glob(
-        str(cluster.work_dir.joinpath(leader_name, "storage")) + "/*journal*"
-    )
-    replica_journal_files = glob.glob(
-        str(cluster.work_dir.joinpath(replica_name, "storage")) + "/*journal*"
-    )
 
-    num_partitions = cluster.config.definition.partition_config.num_partitions
-    assert len(leader_journal_files) == num_partitions, (
-        f"Expected {num_partitions} leader journal files, got {len(leader_journal_files)}"
-    )
-    assert len(replica_journal_files) == num_partitions, (
-        f"Expected {num_partitions} replica journal files, got {len(replica_journal_files)}"
-    )
+def compare_journal_files(
+    cluster: Cluster, reference: Broker, others: list, partition_id: int = None
+) -> None:
+    """
+    Assert that the journal files of each node in the specified `others` have
+    the same details and summary as the journal files of the specified
+    `reference` node of the specified `cluster`.  Compare only the journal
+    file of the optionally specified `partition_id` if given, and the journal
+    files of every partition otherwise.  The behavior is undefined unless all
+    nodes of `cluster` are stopped.
+    """
 
-    for leader_file, replica_file in zip(
-        sorted(leader_journal_files),
-        sorted(replica_journal_files),
-    ):
-        leader_res = run_storage_tool(leader_file, "details")
-        assert leader_res.returncode == 0, (
-            f"Leader storage tool failed on {leader_file} with rc {leader_res.returncode}"
+    pattern = "*journal*" if partition_id is None else f"bmq_{partition_id}.*journal*"
+    num_files = (
+        cluster.config.definition.partition_config.num_partitions
+        if partition_id is None
+        else 1
+    )
+    modes = ("details", "summary")
+
+    def load(node: Broker) -> list:
+        files = sorted(
+            glob.glob(str(cluster.work_dir.joinpath(node.name, "storage", pattern)))
+        )
+        assert len(files) == num_files, (
+            f"Expected {num_files} journal files on {node.name}, got {len(files)}"
         )
 
-        replica_res = run_storage_tool(replica_file, "details")
-        assert replica_res.returncode == 0, (
-            f"Replica storage tool failed on {replica_file} with rc {replica_res.returncode}"
-        )
-
-        leader_out = clean_storage_output(leader_res.stdout)
-        replica_out = clean_storage_output(replica_res.stdout)
-        if leader_out != replica_out:
-            diff = "\n".join(
-                difflib.unified_diff(
-                    leader_out.splitlines(),
-                    replica_out.splitlines(),
-                    fromfile=str(leader_file),
-                    tofile=str(replica_file),
-                    lineterm="",
+        outputs = []
+        for journal_file in files:
+            outs = {}
+            for mode in modes:
+                res = run_storage_tool(journal_file, mode)
+                assert res.returncode == 0, (
+                    f"Storage tool ({mode}) failed on {journal_file} with rc "
+                    f"{res.returncode}"
                 )
-            )
-            assert False, (
-                f"Leader and replica journal file contents differ for "
-                f"{leader_file} and {replica_file}\n{diff}"
-            )
+                outs[mode] = clean_storage_output(res.stdout)
+            outputs.append((journal_file, outs))
+        return outputs
 
-        leader_res = run_storage_tool(leader_file, "summary")
-        assert leader_res.returncode == 0, (
-            f"Leader storage tool (summary) failed on {leader_file} with rc {leader_res.returncode}"
-        )
-
-        replica_res = run_storage_tool(replica_file, "summary")
-        assert replica_res.returncode == 0, (
-            f"Replica storage tool (summary) failed on {replica_file} with rc {replica_res.returncode}"
-        )
-
-        leader_out = clean_storage_output(leader_res.stdout)
-        replica_out = clean_storage_output(replica_res.stdout)
-        if leader_out != replica_out:
-            diff = "\n".join(
-                difflib.unified_diff(
-                    leader_out.splitlines(),
-                    replica_out.splitlines(),
-                    fromfile=str(leader_file),
-                    tofile=str(replica_file),
-                    lineterm="",
+    reference_outputs = load(reference)
+    for other in others:
+        for (reference_file, reference_outs), (other_file, other_outs) in zip(
+            reference_outputs, load(other)
+        ):
+            for mode in modes:
+                if reference_outs[mode] == other_outs[mode]:
+                    continue
+                diff = "\n".join(
+                    difflib.unified_diff(
+                        reference_outs[mode].splitlines(),
+                        other_outs[mode].splitlines(),
+                        fromfile=str(reference_file),
+                        tofile=str(other_file),
+                        lineterm="",
+                    )
                 )
-            )
-            assert False, (
-                f"Leader and replica journal file summary differ for "
-                f"{leader_file} and {replica_file}\n{diff}"
-            )
+                assert False, (
+                    f"Journal file {mode} differ for {reference_file} and "
+                    f"{other_file}\n{diff}"
+                )
 
 
 def wipe_files(file_patterns: list, storage_dir: str) -> None:
