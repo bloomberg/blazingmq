@@ -333,10 +333,6 @@ static void test1_breathingTest()
 //   Basic functionality
 // ------------------------------------------------------------------------
 {
-    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
-    // 'bmqp::MessageGUIDGenerator::ctor' prints a BALL_LOG_INFO which
-    // allocates using the default allocator.
-
     bmqtst::TestHelper::printTestName("BREATHING TEST");
 
     bmqp::MessageGUIDGenerator generator(0);
@@ -402,9 +398,6 @@ static void test2_extract()
 // TBD:
 // ------------------------------------------------------------------------
 {
-    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() =
-        true;  // Implicit string conversion in BMQTST_ASSERT_EQ
-
     bmqtst::TestHelper::printTestName("EXTRACT");
 
     {
@@ -524,10 +517,6 @@ static void test3_multithreadUseIP()
     // 'bslmt::ThreadUtil::create()' uses the global allocator to allocate
     // memory.
 
-    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
-    // 'bmqp::MessageGUIDGenerator::ctor' prints a BALL_LOG_INFO which
-    // allocates using the default allocator.
-
     bmqtst::TestHelper::printTestName("MULTITHREAD");
 
     const int k_NUM_THREADS = 10;
@@ -607,10 +596,6 @@ static void test4_multithreadUseHostname()
     // 'bslmt::ThreadUtil::create()' uses the global allocator to allocate
     // memory.
 
-    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
-    // 'bmqp::MessageGUIDGenerator::ctor' prints a BALL_LOG_INFO which
-    // allocates using the default allocator.
-
     bmqtst::TestHelper::printTestName("MULTITHREAD");
 
     const int k_NUM_THREADS = 10;
@@ -678,10 +663,6 @@ static void test5_print()
 //   Printing of the various parts of a GUID.
 // ------------------------------------------------------------------------
 {
-    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
-    // 'bmqp::MessageGUIDGenerator::ctor' prints a BALL_LOG_INFO which
-    // allocates using the default allocator.
-
     bmqtst::TestHelper::printTestName("PRINT");
 
     bmqp::MessageGUIDGenerator generator(0);
