@@ -144,19 +144,16 @@ static void test4_lockThenCancelThenProcess()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    bmqtst::TestGuard guard(argc, argv);
 
-    switch (_testCase) {
+    switch (guard.testCase()) {
     case 0:
     case 1: test1_cancelThenProcess(); break;
     case 2: test2_processThenCancel(); break;
     case 3: test3_lockThenProcess(); break;
     case 4: test4_lockThenCancelThenProcess(); break;
-    default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
-        bmqtst::TestHelperUtil::testStatus() = -1;
-    } break;
+    default: guard.caseNotFound(); break;
     }
 
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    return guard.finish();
 }

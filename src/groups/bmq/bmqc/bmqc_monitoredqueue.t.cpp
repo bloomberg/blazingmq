@@ -167,17 +167,14 @@ static void test2_MonitoredQueueState_print()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+    bmqtst::TestGuard guard(argc, argv);
 
-    switch (_testCase) {
+    switch (guard.testCase()) {
     case 0:
     case 2: test2_MonitoredQueueState_print(); break;
     case 1: test1_MonitoredQueueState_toAscii(); break;
-    default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
-        bmqtst::TestHelperUtil::testStatus() = -1;
-    } break;
+    default: guard.caseNotFound(); break;
     }
 
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    return guard.finish();
 }

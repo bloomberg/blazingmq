@@ -2039,9 +2039,9 @@ int main(int argc, char* argv[])
     // To be called only once per process instantiation.
     bsls::TimeUtil::initialize();
 
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+    bmqtst::TestGuard guard(argc, argv);
 
-    switch (_testCase) {
+    switch (guard.testCase()) {
     case 0:
     case 7: test7_customHashUniqueness(); break;
     case 6: test6_defaultHashUniqueness(); break;
@@ -2102,17 +2102,14 @@ int main(int argc, char* argv[])
         break;
     case -9: testN9_hashBenchmarkComparison(); break;
     case -10: testN10_hashCollisionsComparison(); break;
-    default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
-        bmqtst::TestHelperUtil::testStatus() = -1;
-    } break;
+    default: guard.caseNotFound(); break;
     }
 #ifdef BMQTST_BENCHMARK_ENABLED
-    if (_testCase < 0) {
+    if (guard.testCase() < 0) {
         benchmark::Initialize(&argc, argv);
         benchmark::RunSpecifiedBenchmarks();
     }
 #endif
 
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    return guard.finish();
 }

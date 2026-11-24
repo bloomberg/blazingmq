@@ -1951,17 +1951,17 @@ testN6_bdldPerformanceDefault_GoogleBenchmark(benchmark::State& state)
 
 int main(int argc, char* argv[])
 {
-    // We explicitly initialize before the 'TEST_PROLOG' to circumvent a
+    // We explicitly initialize before the test guard to circumvent a
     // case where the associated logging infrastructure triggers a default
     // allocation violation for no apparent reason.
 
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+    bmqtst::TestGuard guard(argc, argv);
 
     size_t seed = bsl::time(0);
     PV("Seed: " << seed);
     bsl::srand(seed);
 
-    switch (_testCase) {
+    switch (guard.testCase()) {
     case 0:
     case 8: test8_calculateOnBlobWithPreviousCrc(); break;
     case 7: test7_calculateOnBlob(); break;
@@ -2001,16 +2001,13 @@ int main(int argc, char* argv[])
             testN6_bdldPerformanceDefault,
             Apply(populateBufferLengthsSorted_GoogleBenchmark_Large));
         break;
-    default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
-        bmqtst::TestHelperUtil::testStatus() = -1;
-    } break;
+    default: guard.caseNotFound(); break;
     }
 #ifdef BMQTST_BENCHMARK_ENABLED
-    if (_testCase < 0) {
+    if (guard.testCase() < 0) {
         benchmark::Initialize(&argc, argv);
         benchmark::RunSpecifiedBenchmarks();
     }
 #endif
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    return guard.finish();
 }

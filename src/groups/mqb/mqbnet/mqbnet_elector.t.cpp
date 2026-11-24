@@ -2785,7 +2785,7 @@ static void test20()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+    bmqtst::TestGuard guard(argc, argv);
 
     using namespace mqbnet;
 
@@ -2793,7 +2793,7 @@ int main(int argc, char* argv[])
     s_electorClock = new (*bmqtst::TestHelperUtil::allocator())
         bmqtst::MockTime;
 
-    switch (_testCase) {
+    switch (guard.testCase()) {
     case 0:
     case 20: test20(); break;
     case 19: test19(); break;
@@ -2815,13 +2815,10 @@ int main(int argc, char* argv[])
     case 3: test3(); break;
     case 2: test2(); break;
     case 1: test1_breathingTest(); break;
-    default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
-        bmqtst::TestHelperUtil::testStatus() = -1;
-    } break;
+    default: guard.caseNotFound(); break;
     }
 
     bmqtst::TestHelperUtil::allocator()->deallocate(s_electorClock);
 
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    return guard.finish();
 }
