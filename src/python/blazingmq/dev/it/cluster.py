@@ -23,6 +23,7 @@ import json
 import logging
 import shutil
 import signal
+import sys
 from typing import Dict, List, Optional, Union, Tuple
 from pathlib import Path
 import os
@@ -443,38 +444,40 @@ class Cluster(contextlib.AbstractContextManager):
 
         return self._start_broker(broker, self._proxies, None)
 
-    def start_tproxy(
+    def start_tcp_relay(
         self, broker: Union[cfg.Broker, str], port: str = None
     ) -> Tuple[str, Process]:
-        """Start the tproxy for the specified 'broker'.
+        """Start a TCP relay forwarding to the specified 'broker'.
 
-        If the 'port' is specified tproxy will try to start listening it.
-        Otherwise, tproxy will allocate a port itself.
+        If the 'port' is specified the relay will try to listen on it.
+        Otherwise, the relay will allocate a port itself.
         """
 
         if isinstance(broker, str):
             broker = self.config.configurator.brokers[broker]
 
-        self._logger.info("starting tproxy for [%s]", broker.name)
+        self._logger.info("starting tcp relay for [%s]", broker.name)
 
         command = [
-            "tproxy",
+            sys.executable,
+            "-I",
+            str(Path(__file__).with_name("tcprelay.py")),
             "-r",
             f"{broker.host}:{broker.port}",
         ]
         if port is not None:
             command.extend(["-p", port])
 
-        tproxy = Process(
-            f"tproxy_{broker.name}",
+        relay = Process(
+            f"relay_{broker.name}",
             command,
         )
-        tproxy.start()
-        tproxy_port = tproxy.capture(r"Listening on (.+):(\d+)", timeout=2).group(2)
+        relay.start()
+        relay_port = relay.capture(r"Listening on (.+):(\d+)", timeout=2).group(2)
 
-        self._other_processes.append(tproxy)
+        self._other_processes.append(relay)
 
-        return tproxy_port, tproxy
+        return relay_port, relay
 
     def process(self, name):
         """Return the process (node or proxy) specified by 'name'."""
