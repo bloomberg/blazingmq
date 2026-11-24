@@ -57,9 +57,16 @@
 	}
 }
 
-\"([^\\\"]|\\.)*\" {
+\"([^\\\"]|\\[\\\"])*\" {
 	updatePosition();
-	return SimpleEvaluatorParser::make_STRING(bsl::string(yytext + 1, strlen(yytext) - 2));
+	bsl::string value;
+	for (const char* p = yytext + 1; p < yytext + yyleng - 1; ++p) {
+	    if (*p == '\\') {
+	        ++p;
+	    }
+	    value.push_back(*p);
+	}
+	return SimpleEvaluatorParser::make_STRING(value);
 }
 
 \( {
