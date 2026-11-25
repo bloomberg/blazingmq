@@ -54,16 +54,11 @@
 
 // BMQ
 
+#include <bmqp_fixedsizemessageiterator.h>
 #include <bmqp_protocol.h>
-
-#include <bmqu_blob.h>
-#include <bmqu_blobiterator.h>
-#include <bmqu_blobobjectproxy.h>
 
 // BDE
 #include <bdlbb_blob.h>
-#include <bsl_ostream.h>
-#include <bsls_assert.h>
 
 namespace BloombergLP {
 namespace bmqp {
@@ -73,30 +68,13 @@ namespace bmqp {
 // ========================
 
 /// An iterator providing read-only sequential access to messages contained
-/// into a `AckEvent`.
-class AckMessageIterator {
+/// in a `AckEvent`.  See `bmqp_fixedsizemessageiterator` for the iteration
+/// and error-handling contract.
+class AckMessageIterator
+: public FixedSizeMessageIterator<AckHeader, AckMessage> {
   private:
-    // DATA
-
-    /// Blob iterator pointing to the current message in the blob.
-    bmqu::BlobIterator d_blobIter;
-
-    /// Header
-    bmqu::BlobObjectProxy<AckHeader> d_header;
-
-    /// Current message
-    bmqu::BlobObjectProxy<AckMessage> d_message;
-
-    /// How much should we advance in 'next()'.
-    int d_advanceLength;
-
-  private:
-    // PRIVATE MANIPULATORS
-
-    /// Make this instance a copy of the specified `src`, that is copy and
-    /// adjust each of its members to represent the same object as the one
-    /// from `src`.
-    void copyFrom(const AckMessageIterator& src);
+    // PRIVATE TYPES
+    typedef FixedSizeMessageIterator<AckHeader, AckMessage> Base;
 
   public:
     // CREATORS
@@ -112,60 +90,8 @@ class AckMessageIterator {
     AckMessageIterator(const bdlbb::Blob* blob,
                        const EventHeader& eventHeader);
 
-    /// Copy constructor from the specified `src`.  Needed because
-    /// BlobObjectProxy doesn't authorize copy semantic.
-    AckMessageIterator(const AckMessageIterator& src);
-
-    // MANIPULATORS
-
-    /// Assignment operator from the specified `rhs`.  Needed because
-    /// BlobObjectProxy doesn't authorize copy semantic.
-    AckMessageIterator& operator=(const AckMessageIterator& rhs);
-
-    /// Advance to the next message.  Return 1 if the new position is valid
-    /// and represent a valid message, 0 if iteration has reached the end of
-    /// the event, or < 0 if an error was encountered.  Note that if this
-    /// method returns 0, this instance goes in an invalid state, and after
-    /// that, only valid operations on this instance are assignment, `reset`
-    /// and `isValid`.
-    int next();
-
-    /// Reset this instance using the specified `blob` and `eventHeader`.
-    /// Behavior is undefined if the `blob` pointer is null, or the
-    /// pointed-to blob does not contain enough bytes to fit at least the
-    /// `eventHeader`.  Return 0 on success, and non-zero on error.
-    int reset(const bdlbb::Blob* blob, const EventHeader& eventHeader);
-
-    /// Point this instance to the specified `blob` using the position and
-    /// other meta data from the specified `other` instance.  This method is
-    /// useful when it is desired to copy `other` instance into this
-    /// instance but the blob being held by `other` instance will not
-    /// outlive this instance.  Behavior is undefined unless `blob` is
-    /// non-null.  Return 0 on success, and non-zero on error.
-    int reset(const bdlbb::Blob* blob, const AckMessageIterator& other);
-
-    /// Set the internal state of this instance to be same as default
-    /// constructed, i.e., invalid.
-    void clear();
-
-    /// Dump the beginning of the blob associated to this AckMessageIterator
-    /// to the specified `stream`.
-    void dumpBlob(bsl::ostream& stream);
-
-    // ACCESSORS
-
-    /// Return true if this iterator is initialized and valid, and `next()`
-    /// can be called on this instance, or return false in all other cases.
-    bool isValid() const;
-
-    /// Return a const reference to the ack header of this event.  Behavior
-    /// is undefined unless `isValid` returns true.
-    const AckHeader& header() const;
-
-    /// Return a const reference to the message currently point to by this
-    /// iterator.  Behavior is undefined unless latest call to `next()`
-    /// returned 1.
-    const AckMessage& message() const;
+    // The compiler-generated copy constructor and copy-assignment operator
+    // forward to 'Base', which copies the 'BlobObjectProxy' members.
 };
 
 // ============================================================================
@@ -178,64 +104,16 @@ class AckMessageIterator {
 
 // CREATORS
 inline AckMessageIterator::AckMessageIterator()
-: d_blobIter(0, bmqu::BlobPosition(), 0, true)
-, d_advanceLength(0)
+: Base()
 {
     // NOTHING
 }
 
 inline AckMessageIterator::AckMessageIterator(const bdlbb::Blob* blob,
                                               const EventHeader& eventHeader)
-: d_blobIter(0, bmqu::BlobPosition(), 0, true)  // no def ctor - set in reset
+: Base(blob, eventHeader)
 {
-    reset(blob, eventHeader);
-}
-
-inline AckMessageIterator::AckMessageIterator(const AckMessageIterator& src)
-: d_blobIter(0,
-             bmqu::BlobPosition(),
-             0,
-             true)  // no def ctor - set in copyFrom
-{
-    copyFrom(src);
-}
-
-// MANIPULATORS
-inline AckMessageIterator&
-AckMessageIterator::operator=(const AckMessageIterator& rhs)
-{
-    copyFrom(rhs);
-    return *this;
-}
-
-inline void AckMessageIterator::clear()
-{
-    d_blobIter.reset(0, bmqu::BlobPosition(), 0, true);
-    d_header.reset();
-    d_message.reset();
-    d_advanceLength = 0;
-}
-
-// ACCESSORS
-inline bool AckMessageIterator::isValid() const
-{
-    return d_header.isSet();
-}
-
-inline const AckHeader& AckMessageIterator::header() const
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(isValid());
-
-    return *d_header;
-}
-
-inline const AckMessage& AckMessageIterator::message() const
-{
-    // PRECONDITIONS
-    BSLS_ASSERT_SAFE(isValid());
-
-    return *d_message;
+    // NOTHING
 }
 
 }  // close package namespace
