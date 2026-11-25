@@ -492,11 +492,6 @@ static void test3_searchNonExistingGuidTest()
 {
     bmqtst::TestHelper::printTestName("SEARCH NON EXISTING GUID");
 
-    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
-    // Disable default allocator check for this test because
-    // EXPECT_CALL(PrinterMock::printGuidsNotFound(const GuidsList&))
-    // uses default allocator
-
     // Simulate journal file
     const size_t                 k_NUM_RECORDS = 15;
     JournalFile::RecordsListType records(bmqtst::TestHelperUtil::allocator());
@@ -562,11 +557,6 @@ static void test4_searchExistingAndNonExistingGuidTest()
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("SEARCH EXISTING AND NON EXISTING GUID");
-
-    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
-    // Disable default allocator check for this test because
-    // EXPECT_CALL(PrinterMock::printGuidsNotFound(const GuidsList&))
-    // uses default allocator
 
     // Simulate journal file
     const size_t                 k_NUM_RECORDS = 15;
@@ -1182,12 +1172,6 @@ static void test12_printMessagesDetailsTest()
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("PRINT MESSAGE DETAILS TEST");
-
-#if defined(BSLS_PLATFORM_OS_SOLARIS)
-    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
-    // Disable default allocator check for this test until we can debug
-    // it on Solaris
-#endif
 
     // Simulate journal file
     const size_t                 k_NUM_RECORDS = 15;
@@ -2538,12 +2522,6 @@ static void test26_summaryWithQueueDetailsTest()
     bmqtst::TestHelper::printTestName(
         "OUTPUT SUMMARY WITH QUEUE DETAILS TEST");
 
-    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
-    // Disable default allocator check for this test because
-    // EXPECT_CALL(PrinterMock::printRecordSummary(bsls::Types::Uint64,
-    //                                             const QueueDetailsMap&))
-    // uses default allocator
-
     // Simulate journal file
     const size_t                 k_NUM_RECORDS = 15;
     JournalFile::RecordsListType records(bmqtst::TestHelperUtil::allocator());
@@ -2621,9 +2599,9 @@ int main(int argc, char* argv[])
 {
     ::testing::GTEST_FLAG(throw_on_failure) = true;
     ::testing::InitGoogleMock(&argc, argv);
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+    bmqtst::TestGuard guard(argc, argv);
 
-    switch (_testCase) {
+    switch (guard.testCase()) {
     case 0:
     case 1: test1_breathingTest(); break;
     case 2: test2_searchGuidTest(); break;
@@ -2651,11 +2629,8 @@ int main(int argc, char* argv[])
     case 24: test24_searchConfirmAndDeletionRecordsByOffset(); break;
     case 25: test25_searchConfirmAndDeletionRecordsBySeqNumber(); break;
     case 26: test26_summaryWithQueueDetailsTest(); break;
-    default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
-        bmqtst::TestHelperUtil::testStatus() = -1;
-    } break;
+    default: guard.caseNotFound(); break;
     }
 
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
+    return guard.finish();
 }

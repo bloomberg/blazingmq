@@ -263,14 +263,14 @@ def test_summary_with_queue_info_json(storagetool, journal_path, csl_file):
         assert res.returncode == EX_OK
 
         json_res = json.loads(res.stdout)
-        assert json_res["TotalMessagesNumber"] == "2"
-        assert json_res["PartiallyConfirmedMessagesNumber"] == "0"
-        assert json_res["ConfirmedMessagesNumber"] == "1"
-        assert json_res["OutstandingMessagesNumber"] == "1"
+        assert json_res["TotalMsgNum"] == "2"
+        assert json_res["PartialConfirmedMsgNum"] == "0"
+        assert json_res["ConfirmedMsgNum"] == "1"
+        assert json_res["OutstandingMsgNum"] == "1"
         assert json_res["OutstandingRatio"] == "50"
-        assert json_res["TotalRecordsNumber"] == "4"
-        assert len(json_res["PerQueueRecordsNumber"]) == 1
-        assert json_res["PerQueueRecordsNumber"][0]["Queue Key"] == TEST_QUEUE_KEY
+        assert json_res["TotalRecordsNum"] == "4"
+        assert len(json_res["PerQueueRecordsNum"]) == 1
+        assert json_res["PerQueueRecordsNum"][0]["Queue Key"] == TEST_QUEUE_KEY
         assert "JournalFileDetails" in json_res
         assert "DataFileDetails" in json_res
 
@@ -392,9 +392,9 @@ def test_queueop_journalop_summary_json(storagetool, journal_file):
         )
         assert res.returncode == EX_OK
         json_res = json.loads(res.stdout)
-        assert json_res["TotalQueueOperationsNumber"] == "1"
-        assert json_res["CreationOperationsNumber"] == "1"
-        assert json_res["JournalOperationsNumber"] == "8"
-        assert json_res["TotalRecordsNumber"] == "9"
+        assert json_res["TotalQueueOperationsNum"] == "1"
+        assert json_res["CreationOperationsNum"] == "1"
+        assert json_res["JournalOperationsNum"] == "8"
+        assert json_res["TotalRecordsNum"] == "9"
         assert "JournalFileDetails" in json_res
         assert "DataFileDetails" not in json_res

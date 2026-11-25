@@ -106,9 +106,6 @@ static void test2_humanReadableDetailResultTest()
 {
     bmqtst::TestHelper::printTestName("HUMAN DETAIL RESULT TEST");
 
-    // Ignore check default allocator due to issue with bslim::Printer::print()
-    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
-
     // Create human printer
     bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
     bsl::shared_ptr<CslPrinter> printer = createCslPrinter(
@@ -418,9 +415,6 @@ static void test7_prettyDetailResultTest()
     bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
     bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
 
-    // Ignore check default allocator due to allocations in baljsn encoder
-    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
-
     // Create record data
     bmqp_ctrlmsg::ClusterMessage record(bmqtst::TestHelperUtil::allocator());
     record.choice().makeLeaderAdvisory();
@@ -493,10 +487,6 @@ static void test8_prettySummaryTest()
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("PRETTY SUMMARY TEST");
-
-    // Ignore check default allocator due to issue with bslim::Printer::print()
-    // used in recordToJsonString()
-    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
 
     bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
 
@@ -643,9 +633,6 @@ static void test10_lineDetailResultTest()
     bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
     bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
 
-    // Ignore check default allocator due to allocations in baljsn encoder
-    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
-
     // Create record data
     bmqp_ctrlmsg::ClusterMessage record(bmqtst::TestHelperUtil::allocator());
     record.choice().makeLeaderAdvisory();
@@ -705,10 +692,6 @@ static void test11_lineSummaryTest()
 // ------------------------------------------------------------------------
 {
     bmqtst::TestHelper::printTestName("LINE SUMMARY TEST");
-
-    // Ignore check default allocator due to issue with bslim::Printer::print()
-    // used in recordToJsonString()
-    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
 
     bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
 
