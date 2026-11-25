@@ -48,11 +48,13 @@
 #include <ball_log.h>
 #include <ball_loggermanager.h>
 #include <ball_loggermanagerconfiguration.h>
+#include <ball_logthrottle.h>
 #include <ball_streamobserver.h>
 #include <bdlbb_blobutil.h>
 #include <bdlf_bind.h>
 #include <bdlf_memfn.h>
 #include <bdlf_placeholder.h>
+#include <bdlt_timeunitratio.h>
 #include <bsl_fstream.h>
 #include <bsl_iomanip.h>
 #include <bsl_iostream.h>
@@ -74,6 +76,11 @@ namespace m_bmqtool {
 namespace {
 
 BALL_LOG_SET_NAMESPACE_CATEGORY("BMQTOOL.APPLICATION");
+
+const int k_MAX_INSTANT_MESSAGES = 10;
+
+const bsls::Types::Int64 k_NS_PER_MESSAGE =
+    bdlt::TimeUnitRatio::k_NANOSECONDS_PER_MINUTE / k_MAX_INSTANT_MESSAGES;
 
 /// Stack-built functor to pass to `bmqp::ProtocolUtil::buildEvent`
 struct BuildConfirmFunctor {
@@ -706,8 +713,10 @@ void Application::onMessageEvent(const bmqa::MessageEvent& event)
                     // need to access each individual's message details.
                 }
                 else {
-                    BALL_LOG_ERROR << "Failed to confirm [" << message
-                                   << "]: " << rc << ".";
+                    BALL_LOGTHROTTLE_ERROR(k_MAX_INSTANT_MESSAGES,
+                                           k_NS_PER_MESSAGE)
+                        << "[THROTTLED] Failed to confirm [" << message
+                        << "]: " << rc << ".";
                 }
             }
 
