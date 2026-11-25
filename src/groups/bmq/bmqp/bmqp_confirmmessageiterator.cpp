@@ -67,15 +67,16 @@ int ConfirmMessageIterator::next()
         rc_INVALID = -1,
         /// The number of bytes in the blob is less than the payload size of
         /// the message declared in the header
-        rc_NOT_ENOUGH_BYTES = -2,
-        /// Advance length is not positive
-        rc_INVALID_ADVANCE_LENGTH = -3
+        rc_NOT_ENOUGH_BYTES = -2
     };
 
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(!isValid())) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
         return rc_INVALID;  // RETURN
     }
+
+    // 'reset()' rejects zero header and per-message sizes
+    BSLS_ASSERT_SAFE(d_advanceLength > 0);
 
     if (d_blobIter.advance(d_advanceLength) == false) {
         d_header.reset();
@@ -88,13 +89,6 @@ int ConfirmMessageIterator::next()
     //       'ConfirmHeader', since first 'next()' should move beyond the
     //       'ConfirmHeader'.
     d_advanceLength = d_header->perMessageWords() * Protocol::k_WORD_SIZE;
-
-    // Validation: must ensure that 'd_advanceLength > 0' after update, or
-    // iteration process via 'next()' might be infinite
-    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(d_advanceLength == 0)) {
-        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        return rc_INVALID_ADVANCE_LENGTH;  // RETURN
-    }
 
     // Update ConfirmMessage, supporting protocol evolution by reading as many
     // bytes as the header declares (and not as many as the size of the struct)
@@ -125,7 +119,8 @@ int ConfirmMessageIterator::reset(const bdlbb::Blob* blob,
         /// The blob doesn't contain a complete EventHeader, or is not followed
         /// by a ConfirmHeader
         rc_INVALID_EVENTHEADER = -1,
-        /// The blob doesn't contain a complete ConfirmHeader
+        /// The blob doesn't contain a complete ConfirmHeader, or the
+        /// ConfirmHeader declares zero header or per-message words
         rc_INVALID_CONFIRMHEADER = -2,
         /// The number of bytes in the blob is less than the header size
         /// declared in the header
@@ -165,10 +160,11 @@ int ConfirmMessageIterator::reset(const bdlbb::Blob* blob,
 
     const int headerSize = d_header->headerWords() * Protocol::k_WORD_SIZE;
     if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(
-            headerSize < ConfirmHeader::k_MIN_HEADER_SIZE)) {
+            headerSize < ConfirmHeader::k_MIN_HEADER_SIZE ||
+            d_header->perMessageWords() == 0)) {
         BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
-        // Header is declaring less bytes than expected, probably this is
-        // because header is malformed.
+        // Header is declaring less bytes than expected, or zero bytes per
+        // message, probably this is because header is malformed.
         // Explicitly reset the proxy so that isValid() returns false.
         d_header.reset();
         return rc_INVALID_CONFIRMHEADER;  // RETURN
