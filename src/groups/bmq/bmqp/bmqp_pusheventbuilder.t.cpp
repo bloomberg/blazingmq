@@ -32,6 +32,7 @@
 #include <bdlbb_blob.h>
 #include <bdlbb_blobutil.h>
 #include <bdlbb_pooledblobbufferfactory.h>
+#include <bdlbb_simpleblobbufferfactory.h>
 #include <bdlf_bind.h>
 #include <bsl_cstdlib.h>
 #include <bsl_cstring.h>  // for bsl::strlen
@@ -39,9 +40,12 @@
 #include <bsl_fstream.h>
 #include <bsl_iostream.h>
 #include <bsl_limits.h>
+#include <bsl_string_view.h>
 #include <bsl_vector.h>
+#include <bslma_testallocator.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
+#include <bsls_types.h>
 
 // TEST DRIVER
 #include <bmqtst_testhelper.h>
@@ -1155,6 +1159,103 @@ static void test8_buildEventTooBig()
     BMQTST_ASSERT_EQ(count, peb.messageCount());
 }
 
+static void test9_buildEventMemoryUsage()
+// --------------------------------------------------------------------
+// BUILD EVENT MEMORY USAGE
+//
+// Concerns:
+//   The memory held by a built event stays close to the event length,
+//   even with many small messages.
+//
+// Plan:
+//   1. Build an event with many messages with small payloads, using one
+//      allocator for all the blob buffers.
+//   2. Release everything except the event, and check that the memory
+//      still in use is not much bigger than the event length.
+//   3. Iterate the event and verify every message.
+// --------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("BUILD EVENT MEMORY USAGE");
+
+    const int              k_BUFFER_SIZE = 1024;
+    const int              k_NUM_MSGS    = 100;
+    const int              k_QID         = 5;
+    const bsl::string_view k_PAYLOAD     = "abcdefghij";
+
+    bslma::TestAllocator             bufferAllocator("buffers");
+    bdlbb::SimpleBlobBufferFactory   bufferFactory(k_BUFFER_SIZE,
+                                                 &bufferAllocator);
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
+
+    bsl::shared_ptr<bdlbb::Blob> event;
+    {
+        bmqp::PushEventBuilder peb(blobSpPool.get(),
+                                   bmqtst::TestHelperUtil::allocator());
+
+        bdlbb::Blob payload(&bufferFactory,
+                            bmqtst::TestHelperUtil::allocator());
+        bdlbb::BlobUtil::append(&payload,
+                                k_PAYLOAD.data(),
+                                static_cast<int>(k_PAYLOAD.length()));
+
+        for (int i = 0; i < k_NUM_MSGS; ++i) {
+            BMQTST_ASSERT_EQ_D(
+                i,
+                bmqt::EventBuilderResult::e_SUCCESS,
+                peb.packMessage(payload,
+                                k_QID,
+                                bmqt::MessageGUID(),
+                                0,
+                                bmqt::CompressionAlgorithmType::e_NONE));
+        }
+
+        event = peb.blob();
+    }
+
+    // All the buffer memory still in use is held by the event.
+    const bsls::Types::Int64 k_REASONABLE_SIZE = 2 * k_NUM_MSGS *
+                                                 (sizeof(bmqp::PushHeader) +
+                                                  k_PAYLOAD.length());
+    BMQTST_ASSERT_LE(bufferAllocator.numBytesInUse(), k_REASONABLE_SIZE);
+
+    bdlbb::PooledBlobBufferFactory otherFactory(
+        k_BUFFER_SIZE,
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob expectedPayload(&otherFactory,
+                                bmqtst::TestHelperUtil::allocator());
+    bdlbb::BlobUtil::append(&expectedPayload,
+                            k_PAYLOAD.data(),
+                            static_cast<int>(k_PAYLOAD.length()));
+
+    bmqp::Event rawEvent(event.get(), bmqtst::TestHelperUtil::allocator());
+    BMQTST_ASSERT(rawEvent.isPushEvent());
+
+    bmqp::PushMessageIterator pushIter(&otherFactory,
+                                       bmqtst::TestHelperUtil::allocator());
+    rawEvent.loadPushMessageIterator(&pushIter, true);
+    BMQTST_ASSERT(pushIter.isValid());
+
+    int numMsgs = 0;
+    while (pushIter.next() == 1) {
+        BMQTST_ASSERT_EQ_D(numMsgs, k_QID, pushIter.header().queueId());
+
+        bdlbb::Blob msgPayload(bmqtst::TestHelperUtil::allocator());
+        BMQTST_ASSERT_EQ_D(numMsgs,
+                           0,
+                           pushIter.loadMessagePayload(&msgPayload));
+        BMQTST_ASSERT_EQ_D(numMsgs,
+                           0,
+                           bdlbb::BlobUtil::compare(msgPayload,
+                                                    expectedPayload));
+        ++numMsgs;
+    }
+
+    BMQTST_ASSERT_EQ(k_NUM_MSGS, numMsgs);
+}
+
 static void testN1_decodeFromFile()
 // --------------------------------------------------------------------
 // DECODE FROM FILE
@@ -1307,6 +1408,7 @@ int main(int argc, char* argv[])
     //                  encoding RDA counters.
     switch (guard.testCase()) {
     case 0:
+    case 9: test9_buildEventMemoryUsage(); break;
     case 8: test8_buildEventTooBig(); break;
     case 7: test7_buildEventOptionTooBig(); break;
     case 6: test6_buildEventWithImplicitPayload(); break;
