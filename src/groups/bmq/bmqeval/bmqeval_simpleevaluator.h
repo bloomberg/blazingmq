@@ -426,7 +426,9 @@ class SimpleEvaluator {
         /// constructor. If they have are both integers, apply `Op`, and
         /// return the result as a Int64 Datum. Otherwise, set the error in
         /// the context to  e_TYPE, stop the evaluation, and return a null
-        /// datum.
+        /// datum. If the result of `Op` is not representable as an Int64,
+        /// set the error in the context to e_ARITHMETIC, stop the
+        /// evaluation, and return a null datum.
         bdld::Datum
         evaluate(EvaluationContext& context) const BSLS_KEYWORD_OVERRIDE;
     };
@@ -453,7 +455,9 @@ class SimpleEvaluator {
         /// Evaluate `expression` passed to the constructor. If it is an
         /// integer, return the negated value as an Int64 Datum. Otherwise,
         /// set the error in the context to  e_TYPE, stop the evaluation,
-        /// and return a null datum.
+        /// and return a null datum. If the negated value is not
+        /// representable as an Int64, set the error in the context to
+        /// e_ARITHMETIC, stop the evaluation, and return a null datum.
         bdld::Datum
         evaluate(EvaluationContext& context) const BSLS_KEYWORD_OVERRIDE;
     };
@@ -976,6 +980,31 @@ bdld::Datum SimpleEvaluator::NumBinaryOperation<Op>::evaluate(
     }
     else {
         context.setError(ErrorType::e_TYPE);
+        return bdld::Datum::createNull();  // RETURN
+    }
+
+    typedef bsl::numeric_limits<bsls::Types::Int64> Limits;
+
+    if (bsl::is_same<Op<int>, bsl::plus<int> >::value &&
+        ((b > 0 && a > Limits::max() - b) ||
+         (b < 0 && a < Limits::min() - b))) {
+        context.setError(ErrorType::e_ARITHMETIC);
+        return bdld::Datum::createNull();  // RETURN
+    }
+
+    if (bsl::is_same<Op<int>, bsl::minus<int> >::value &&
+        ((b < 0 && a > Limits::max() + b) ||
+         (b > 0 && a < Limits::min() + b))) {
+        context.setError(ErrorType::e_ARITHMETIC);
+        return bdld::Datum::createNull();  // RETURN
+    }
+
+    if (bsl::is_same<Op<int>, bsl::multiplies<int> >::value &&
+        ((a > 0 && b > 0 && a > Limits::max() / b) ||
+         (a > 0 && b < 0 && b < Limits::min() / a) ||
+         (a < 0 && b > 0 && a < Limits::min() / b) ||
+         (a < 0 && b < 0 && b < Limits::max() / a))) {
+        context.setError(ErrorType::e_ARITHMETIC);
         return bdld::Datum::createNull();  // RETURN
     }
 

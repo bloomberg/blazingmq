@@ -243,6 +243,11 @@ SimpleEvaluator::UnaryMinus::evaluate(EvaluationContext& context) const
         return bdld::Datum::createNull();  // RETURN
     }
 
+    if (value == bsl::numeric_limits<bsls::Types::Int64>::min()) {
+        context.setError(ErrorType::e_ARITHMETIC);
+        return bdld::Datum::createNull();  // RETURN
+    }
+
     return bdld::Datum::createInteger64(-value, context.d_allocator);
 }
 
