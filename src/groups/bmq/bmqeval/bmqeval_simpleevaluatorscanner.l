@@ -42,14 +42,22 @@
 	return SimpleEvaluatorParser::make_PROPERTY(yytext);
 }
 
--?[0-9]+ {
+[0-9]+ {
 	updatePosition();
 	try {
 	    // There is a problem with parsing Int64 on Solaris with string
-	    // streams: fail flag is not set when overflow expected.  'bsl::stoll'
+	    // streams: fail flag is not set when overflow expected.  'bsl::stoull'
 	    // is used as a workaround.
-	    bsls::Types::Int64 value = bsl::stoll(yytext);
-        return SimpleEvaluatorParser::make_INTEGER(value);
+	    const bsls::Types::Uint64 max = static_cast<bsls::Types::Uint64>(
+	        bsl::numeric_limits<bsls::Types::Int64>::max());
+	    bsls::Types::Uint64 value = bsl::stoull(yytext);
+	    if (value <= max) {
+	        return SimpleEvaluatorParser::make_INTEGER(value);
+	    }
+	    if (value == max + 1) {
+	        return SimpleEvaluatorParser::make_INTEGER_MIN_MAGNITUDE();
+	    }
+	    return SimpleEvaluatorParser::make_OVERFLOW(yytext);
 	} catch (...) {
 	    // 'bsl::out_of_range' or 'bsl::invalid_argument' might be thrown, make
 	    // overflow for simplicity for both cases
