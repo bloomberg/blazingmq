@@ -1825,27 +1825,32 @@ RootQueueEngine::logAppSubscriptionInfo(bsl::ostream&     stream,
     const bsl::vector<mqbcmd::SubscriptionGroup>& subscrGroups =
         routing.subscriptionGroups();
     if (!subscrGroups.empty()) {
-        // Limit to log only k_EXPR_NUM_LIMIT expressions
         static const size_t k_EXPR_NUM_LIMIT = 10;
-        if (subscrGroups.size() > k_EXPR_NUM_LIMIT) {
-            stream << "First " << k_EXPR_NUM_LIMIT
-                   << " of consumer subscription expressions: \n";
-        }
-        else {
-            stream << "Consumer subscription expressions: \n";
-        }
 
-        size_t exprNum = 0;
+        stream << "Consumer subscription expressions: \n";
+
+        size_t numEmpty   = 0;
+        size_t numPrinted = 0;
         for (bsl::vector<mqbcmd::SubscriptionGroup>::const_iterator cIt =
                  subscrGroups.begin();
-             cIt != subscrGroups.end() && exprNum < k_EXPR_NUM_LIMIT;
-             ++cIt, ++exprNum) {
+             cIt != subscrGroups.end();
+             ++cIt) {
             if (cIt->expression().empty()) {
-                stream << "<Empty>\n";
+                ++numEmpty;
             }
-            else {
+            else if (numPrinted < k_EXPR_NUM_LIMIT) {
                 stream << cIt->expression() << '\n';
+                ++numPrinted;
             }
+        }
+
+        const size_t numNotPrinted = subscrGroups.size() - numEmpty -
+                                     numPrinted;
+        if (0 < numNotPrinted) {
+            stream << "... and " << numNotPrinted << " more\n";
+        }
+        if (0 < numEmpty) {
+            stream << "<Empty> x " << numEmpty << '\n';
         }
         stream << '\n';
     }
