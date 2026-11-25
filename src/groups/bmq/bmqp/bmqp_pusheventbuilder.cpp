@@ -28,6 +28,7 @@
 #include <bsl_vector.h>
 #include <bsla_annotations.h>
 #include <bslma_allocator.h>
+#include <bslmf_movableref.h>
 #include <bsls_performancehint.h>
 
 namespace BloombergLP {
@@ -127,7 +128,11 @@ bmqt::EventBuilderResult::Enum PushEventBuilder::packMessageImp(
 
     d_currPushHeader.reset();  // i.e., flush writing to blob..
 
-    // Add the payload
+    // Add the payload.  `append` trims the last buffer and drops its unused
+    // end, so trim it here and keep that end for the next `PushHeader`.
+    if (0 < payloadLen) {
+        d_leftover = d_blob_sp->trimLastDataBuffer();
+    }
     bdlbb::BlobUtil::append(d_blob_sp.get(), payload);
 
     // Add padding
@@ -144,6 +149,11 @@ void PushEventBuilder::ensurePushHeader()
     // Check if PushHeader has not been written for current message
     if (d_options.size() != 0) {
         return;  // RETURN
+    }
+
+    if (0 < d_leftover.size()) {
+        d_blob_sp->appendBuffer(bslmf::MovableRefUtil::move(d_leftover));
+        d_leftover.reset();
     }
 
     // Add the PushHeader
@@ -214,6 +224,7 @@ int PushEventBuilder::reset()
     // refer to any valid blob object.
 
     d_blob_sp = d_blobSpCreator();
+    d_leftover.reset();
 
     d_msgCount = 0;
     d_options.reset();
