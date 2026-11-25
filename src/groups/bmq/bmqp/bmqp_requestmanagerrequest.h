@@ -76,7 +76,9 @@
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_allocatorargt.h>
 #include <bslmf_nestedtraitdeclaration.h>
-#include <bslmt_semaphore.h>
+#include <bslmt_condition.h>
+#include <bslmt_lockguard.h>
+#include <bslmt_mutex.h>
 #include <bsls_assert.h>
 #include <bsls_cpp11.h>
 #include <bsls_types.h>
@@ -171,9 +173,16 @@ class RequestManagerRequest {
     bmqp_ctrlmsg::ControlMessage d_responseMessage;
     // The response
 
-    bslmt::Semaphore d_semaphore;
-    // Semaphore associated to this request,
-    // used for synchronous calls wait.
+    bslmt::Mutex d_mutex;
+    // Mutex guarding 'd_isSignaled'.
+
+    bslmt::Condition d_condition;
+    // Condition variable used to wake a thread
+    // blocked in 'wait'.
+
+    bool d_isSignaled;
+    // Flag set by 'signal' until 'wait' consumes
+    // it.  'clear' resets it.
 
     bdlmt::EventScheduler::EventHandle d_timeoutSchedulerHandle;
     // Scheduler handle for the timeout
@@ -270,8 +279,8 @@ class RequestManagerRequest {
     void clear();
 
     /// Wakes up any thread that was waiting on this request (from a call to
-    /// `wait()`) by positing to the semaphore.  This will also invoke the
-    /// `asyncNotifierCb` if one was provided.
+    /// `wait()`).  This will also invoke the `asyncNotifierCb` if one was
+    /// provided.
     void signal();
 
     /// Block until a response for this request is received (or until the
@@ -391,7 +400,9 @@ inline RequestManagerRequest::RequestManagerRequest(
     bslma::Allocator* allocator)
 : d_requestMessage(allocator)
 , d_responseMessage(allocator)
-, d_semaphore()
+, d_mutex()
+, d_condition()
+, d_isSignaled(false)
 , d_timeoutSchedulerHandle()
 , d_responseCb(bsl::allocator_arg, allocator)
 , d_asyncNotifierCb(bsl::allocator_arg, allocator)
@@ -418,9 +429,10 @@ inline void RequestManagerRequest::clear()
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(!d_timeoutSchedulerHandle);
 
-    // Reset the semaphore
-    while (d_semaphore.tryWait() == 0) {
-        // nothing
+    // Drop any notification that has not yet been consumed.
+    {
+        bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // MUTEX LOCKED
+        d_isSignaled = false;
     }
 
     // d_self_wp: Purposely not reset-ed :)
@@ -446,14 +458,23 @@ inline void RequestManagerRequest::signal()
         d_asyncNotifierCb(context);
     }
 
-    d_semaphore.post();
+    // Publish while holding the mutex so a signal that arrives before
+    // 'wait', or a spurious wakeup, cannot drop or duplicate the
+    // notification.  'wait' consumes it.
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // MUTEX LOCKED
+    d_isSignaled = true;
+    d_condition.signal();
 }
 
 inline void RequestManagerRequest::wait()
 {
-    // No need to timedWait on a timedSemaphore, 'sendRequest()' schedules an
-    // event for timeout that will post on the semaphore.
-    d_semaphore.wait();
+    // No need to wait with a timeout: 'sendRequest()' schedules an event
+    // for timeout that signals this request.
+    bslmt::LockGuard<bslmt::Mutex> guard(&d_mutex);  // MUTEX LOCKED
+    while (!d_isSignaled) {
+        d_condition.wait(&d_mutex);  // UNLOCK / LOCK
+    }
+    d_isSignaled = false;
 }
 
 inline bmqp_ctrlmsg::ControlMessage& RequestManagerRequest::request()
