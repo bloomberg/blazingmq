@@ -69,7 +69,10 @@ MockPropertiesReader::MockPropertiesReader(bslma::Allocator* allocator)
         allocator);
     d_map["i_neg1"]  = bdld::Datum::createInteger(-1);
     d_map["s_foo"]   = bdld::Datum::createStringRef("foo", allocator);
+    d_map["s_anulb"] = bdld::Datum::createStringRef("a\0b", 3, allocator);
+    d_map["s_nul"]   = bdld::Datum::createStringRef("\0", 1, allocator);
     d_map["exists"]  = bdld::Datum::createInteger(42);
+    d_map["bin"]     = bdld::Datum::createError(ErrorType::e_BINARY);
 }
 
 bdld::Datum MockPropertiesReader::get(const bsl::string& name,
@@ -529,6 +532,12 @@ static void test3_evaluation()
         {"i_2 + 20 * 2 == 42", true},
         {"-i_1 + 1 == 0", true},
 
+        // boolean comparison
+        {"b_true == b_true", true},
+        {"!(b_true == b_false)", true},
+        {"b_true != b_false", true},
+        {"!(b_false != b_false)", true},
+
         // boolean literals
         // test literals on both sides; throw in a property to fool validation
         {"true || b_true", true},
@@ -567,6 +576,8 @@ static void test3_evaluation()
         {"exists(non_existing_property) && non_existing_property > 41", false},
         {"exists == 42", true},
         {"exists(exists)", true},
+        {"exists(bin)", true},
+        {"!exists(bin)", false},
     };
     const TestParameters* testParametersEnd = testParameters +
                                               sizeof(testParameters) /
@@ -611,9 +622,14 @@ static void test4_evaluationErrors()
         {"s_foo == 42 && b_false", ErrorType::e_TYPE},
         {"b_false || s_foo == 42", ErrorType::e_TYPE},
         {"!(s_foo == 42)", ErrorType::e_TYPE},
+        {"b_true == i_1", ErrorType::e_TYPE},
+        {"b_false < b_true", ErrorType::e_TYPE},
 
         // undefined property
         {"non_existing_property", ErrorType::e_NAME},
+
+        // binary property
+        {"bin == 1", ErrorType::e_BINARY},
 
         // division by zero
         {"i_42 / i_0 == 0", ErrorType::e_ARITHMETIC},
@@ -653,6 +669,76 @@ static void test4_evaluationErrors()
     }
 }
 
+/// Return a view of the specified string literal `chars`, including any
+/// null characters it contains.
+template <bsl::size_t N>
+static bsl::string_view literal(const char (&chars)[N])
+{
+    return bsl::string_view(chars, N - 1);
+}
+
+static void test5_nullsInStringLiterals()
+{
+    MockPropertiesReader reader(bmqtst::TestHelperUtil::allocator());
+    EvaluationContext    evaluationContext(&reader,
+                                        bmqtst::TestHelperUtil::allocator());
+
+    // A null character in a string literal is an ordinary character of the
+    // literal: it neither ends the literal nor is dropped from it.
+    struct TestParameters {
+        bsl::string_view expression;
+        bool             expected;
+    } testParameters[] = {
+        // a null character inside a literal
+        {literal("s_anulb == \"a\0b\""), true},
+        {literal("s_anulb != \"a\0b\""), false},
+        {literal("s_anulb == \"a\""), false},
+        {literal("s_anulb != \"a\""), true},
+        {literal("s_anulb == \"ab\""), false},
+        {literal("s_anulb == \"a\0a\""), false},
+        {literal("s_anulb != \"a\0a\""), true},
+        {literal("s_anulb > \"a\""), true},
+        {literal("s_anulb > \"a\0a\""), true},
+        {literal("s_anulb < \"a\0c\""), true},
+        {literal("\"a\0b\" == s_anulb"), true},
+
+        // a literal starting with a null character
+        {literal("s_nul == \"\0\""), true},
+        {literal("s_nul == \"\""), false},
+        {literal("s_nul > \"\""), true},
+        {literal("s_nul == \"\0abc\""), false},
+        {literal("s_nul < \"\0abc\""), true},
+        {literal("\"\0\" == s_nul"), true},
+        {literal("b_true && s_nul == \"\0\""), true},
+    };
+    const TestParameters* testParametersEnd = testParameters +
+                                              sizeof(testParameters) /
+                                                  sizeof(*testParameters);
+
+    for (const TestParameters* parameters = testParameters;
+         parameters < testParametersEnd;
+         ++parameters) {
+        const bsl::string expression(parameters->expression,
+                                     bmqtst::TestHelperUtil::allocator());
+        PV(bsl::string("TESTING ") + expression);
+
+        CompilationContext compilationContext(
+            bmqtst::TestHelperUtil::allocator());
+        SimpleEvaluator evaluator;
+
+        if (evaluator.compile(expression, compilationContext)) {
+            PV(bsl::string("UNEXPECTED: ") +
+               compilationContext.lastErrorMessage());
+            BMQTST_ASSERT(false);
+        }
+        else {
+            BMQTST_ASSERT(evaluator.isValid());
+            BMQTST_ASSERT_EQ(evaluator.evaluate(evaluationContext),
+                             parameters->expected);
+        }
+    }
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -663,6 +749,7 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
+    case 5: test5_nullsInStringLiterals(); break;
     case 4: test4_evaluationErrors(); break;
     case 3: test3_evaluation(); break;
     case 2: test2_propertyNames(); break;

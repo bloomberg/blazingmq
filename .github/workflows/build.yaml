@@ -147,11 +147,6 @@ jobs:
           # Allow core dumps
           ulimit -c unlimited
 
-          # Pin tproxy of 27 Feb 2026:
-          go install github.com/kevwan/tproxy@d6d45cbbd1b3c5dad6e5043b74120f9ea962826b
-          export GOPATH=$HOME/go
-          export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin
-
           uv pip install -r ${{ github.workspace }}/src/python/requirements-test.txt
 
           ${{ github.workspace }}/src/integration-tests/run-tests \

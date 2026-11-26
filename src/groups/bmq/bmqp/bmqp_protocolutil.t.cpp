@@ -689,16 +689,80 @@ static void test10_parseMessageProperties()
     BMQTST_ASSERT_EQ(0, bdlbb::BlobUtil::compare(payloadOut, payload));
 }
 
+static void test11_parseMessagePropertiesExceedLength()
+// ------------------------------------------------------------------------
+// PARSE MESSAGE PROPERTIES EXCEEDING LENGTH
+//
+// Concerns:
+//   'ProtocolUtil::parse' rejects a message whose MessagePropertiesHeader
+//   claims more bytes than the specified 'length', even when the input
+//   blob has enough bytes after the message.
+//
+// Plan:
+//   Build a blob with a MessagePropertiesHeader claiming more bytes than
+//   'length', followed by extra bytes, and parse it as compressed data.
+//
+// Testing:
+//   ProtocolUtil::parse
+// ------------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName(
+        "PARSE MESSAGE PROPERTIES EXCEEDING LENGTH");
+
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bdlbb::Blob input(&bufferFactory, bmqtst::TestHelperUtil::allocator());
+
+    const int k_LENGTH    = 16;
+    const int k_MPS_WORDS = 16;
+    const int k_MPS_SIZE  = k_MPS_WORDS * bmqp::Protocol::k_WORD_SIZE;
+
+    bmqp::MessagePropertiesHeader mpsHeader;
+    mpsHeader.setMessagePropertiesAreaWords(k_MPS_WORDS);
+    bdlbb::BlobUtil::append(&input,
+                            reinterpret_cast<const char*>(&mpsHeader),
+                            sizeof(mpsHeader));
+
+    const bsl::string extra(k_MPS_SIZE,
+                            '\0',
+                            bmqtst::TestHelperUtil::allocator());
+    bdlbb::BlobUtil::append(&input, extra.data(), extra.length());
+
+    BMQTST_ASSERT_LT(k_LENGTH, k_MPS_SIZE);
+    BMQTST_ASSERT_LE(k_MPS_SIZE, input.length());
+
+    int         messagePropertiesSize = 0;
+    bdlbb::Blob dataOutput(&bufferFactory,
+                           bmqtst::TestHelperUtil::allocator());
+    const int   rc = bmqp::ProtocolUtil::parse(
+        0,  // do not separate MPs from data
+        &messagePropertiesSize,
+        &dataOutput,
+        input,
+        k_LENGTH,
+        true,  // decompress
+        bmqu::BlobPosition(),
+        true,  // MPs
+        true,  // new style
+        bmqt::CompressionAlgorithmType::e_ZLIB,
+        &bufferFactory,
+        bmqtst::TestHelperUtil::allocator());
+
+    BMQTST_ASSERT_LT(rc, 0);
+}
+
 // ============================================================================
 //                                MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+    bmqtst::TestGuard guard(argc, argv);
 
-    switch (_testCase) {
+    switch (guard.testCase()) {
     case 0:
+    case 11: test11_parseMessagePropertiesExceedLength(); break;
     case 10: test10_parseMessageProperties(); break;
     case 9: test9_encodeDecodeMessage(); break;
     case 8: test8_loadFieldValues(); break;
@@ -709,11 +773,8 @@ int main(int argc, char* argv[])
     case 3: test3_paddingChar(); break;
     case 2: test2_calcNumWordsAndPadding(); break;
     case 1: break;
-    default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
-        bmqtst::TestHelperUtil::testStatus() = -1;
-    } break;
+    default: guard.caseNotFound(); break;
     }
 
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    return guard.finish();
 }

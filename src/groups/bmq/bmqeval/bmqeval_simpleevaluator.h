@@ -129,7 +129,9 @@ class PropertiesReader {
     // MANIPULATORS
 
     /// Return a `bdld::Datum` object with value for the specified `name`.
-    /// Use the specified `allocator` for any memory allocation.
+    /// Use the specified `allocator` for any memory allocation.  Return an
+    /// error Datum with code `ErrorType::e_NAME` if there is no property
+    /// named `name`.
     virtual bdld::Datum get(const bsl::string& name,
                             bslma::Allocator*  allocator) = 0;
 };
@@ -314,10 +316,13 @@ class SimpleEvaluator {
         // ACCESSORS
 
         /// Evaluate the `left` and `right` expressions passed to the
-        /// constructor.  If they have the same type, compare them using
-        /// `Op`, and return the result as a boolean Datum. Otherwise, set
-        /// the error in the context to  e_TYPE, stop the evaluation, and
-        /// return a null datum.
+        /// constructor, compare them using `Op`, and return the result as a
+        /// boolean Datum.  The equality operators (`equal_to` and
+        /// `not_equal_to`) compare two strings, two integers, or two
+        /// booleans.  The relational operators (`less`, `less_equal`,
+        /// `greater`, and `greater_equal`) compare two strings or two
+        /// integers.  For any other operands, set the error in the context
+        /// to e_TYPE, stop the evaluation, and return a null datum.
         bdld::Datum
         evaluate(EvaluationContext& context) const BSLS_KEYWORD_OVERRIDE;
     };
@@ -494,23 +499,21 @@ class SimpleEvaluator {
       public:
         // CREATORS
 
-        /// Create an object that evaluates property `name`, in the
-        /// evaluation context, as a boolean.
+        /// Create an object that tests whether property `name` exists in
+        /// the evaluation context.
         explicit Exists(const bsl::string& name);
 
 #if defined(BSLS_COMPILERFEATURES_SUPPORT_RVALUE_REFERENCES) &&               \
     defined(BSLS_COMPILERFEATURES_SUPPORT_NOEXCEPT)
-        /// Create an object that evaluates property `name`, in the
-        /// evaluation context, as a boolean.
+        /// Create an object that tests whether property `name` exists in
+        /// the evaluation context.
         explicit Exists(bsl::string&& name) noexcept;
 #endif
 
         // ACCESSORS
 
-        /// Evaluate `expression` passed to the constructor.  If it is a
-        /// boolean, return the negated value as a boolean Datum.
-        /// Otherwise, set the error in the context to e_TYPE, stop the
-        /// evaluation, and return a null datum.
+        /// Return, as a boolean Datum, whether the property passed to the
+        /// constructor exists.
         bdld::Datum
         evaluate(EvaluationContext& context) const BSLS_KEYWORD_OVERRIDE;
     };
@@ -852,6 +855,17 @@ SimpleEvaluator::Comparison<Op>::evaluate(EvaluationContext& context) const
     bdld::Datum right = d_right->evaluate(context);
     if (context.hasError()) {
         return bdld::Datum::createNull();  // RETURN
+    }
+
+    if (left.isBoolean() && right.isBoolean()) {
+        if (!bsl::is_same<Op<int>, bsl::equal_to<int> >::value &&
+            !bsl::is_same<Op<int>, bsl::not_equal_to<int> >::value) {
+            context.setError(ErrorType::e_TYPE);
+            return bdld::Datum::createNull();  // RETURN
+        }
+
+        return bdld::Datum::createBoolean(
+            Op<bool>()(left.theBoolean(), right.theBoolean()));  // RETURN
     }
 
     if (left.isString()) {

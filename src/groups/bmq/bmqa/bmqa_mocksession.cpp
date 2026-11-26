@@ -2258,9 +2258,13 @@ int MockSession::confirmMessages(ConfirmEventBuilder* builder)
 
     bmqpEvent.loadConfirmMessageIterator(&cIter);
 
-    while (cIter.next()) {
+    int rc = 0;
+    while ((rc = cIter.next()) == 1) {
         d_unconfirmedGUIDs.erase(cIter.message().messageGUID());
     }
+
+    // A builder-produced blob is always well-formed
+    BSLS_ASSERT_SAFE(rc == 0);
 
     BMQA_ASSERT_AND_POP_FRONT();
     return 0;

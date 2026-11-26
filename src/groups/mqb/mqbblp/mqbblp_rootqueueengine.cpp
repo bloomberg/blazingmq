@@ -602,33 +602,38 @@ void RootQueueEngine::resetState(bool isShuttingDown)
     }
 }
 
-void RootQueueEngine::rebuildSelectedApp(
-    mqbi::QueueHandle*                   handle,
-    const mqbi::QueueHandle::StreamInfo& info,
-    const Apps::iterator&                itApp,
-    const Routers::AppContext*           previous)
+void RootQueueEngine::rebuildAppRouting(const bsl::string& appId)
 {
-    BSLS_ASSERT_SAFE(handle);
+    Apps::iterator iter = d_apps.find(appId);
+    BSLS_ASSERT_SAFE(iter != d_apps.end());
 
-    const AppStateSp& app = itApp->second;
+    const AppStateSp& app = iter->second;
 
-    BSLS_ASSERT_SAFE(app->routing());
+    if (d_queueState_p->isAtMostOnce()) {
+        // Attempt to deliver all data in the storage.  Otherwise, broadcast
+        // data can get dropped if the configure response removes consumers.
+        deliverMessages(app.get());
+    }
 
     bmqu::MemOutStream errorStream(d_allocator_p);
-
-    app->routing()->loadApp(itApp->first.c_str(),
-                            handle,
-                            &errorStream,
-                            info,
-                            previous);
-
+    app->rebuildConsumers(iter->first.c_str(),
+                          &errorStream,
+                          d_queueState_p,
+                          bsl::allocate_shared<Routers::AppContext>(
+                              d_allocator_p,
+                              &d_queueState_p->routingContext()));
     if (errorStream.length() > 0) {
         BALL_LOG_WARN << "#BMQ_SUBSCRIPTION_FAILURE for queue '"
                       << d_queueState_p->uri()
-                      << "', error rebuilding routing [stream parameters: "
-                      << info.d_streamParameters << "]: [ "
-                      << errorStream.str() << " ]";
+                      << "', error rebuilding routing: [ " << errorStream.str()
+                      << " ]";
     }
+
+    BALL_LOG_INFO << "Rebuilt active consumers of the highest "
+                  << "priority for queue '"
+                  << d_queueState_p->queue()->description() << "', appId = '"
+                  << iter->first << "'. Now there are "
+                  << app->routing()->priorityCount() << " consumers.";
 }
 
 int RootQueueEngine::rebuildInternalState(bsl::ostream& errorDescription)
@@ -1040,49 +1045,10 @@ void RootQueueEngine::configureHandle(
         return;  // RETURN
     }
 
-    Apps::iterator iter = d_apps.find(appId);
-    BSLS_ASSERT_SAFE(iter != d_apps.end());
-
-    const AppStateSp& affectedApp = iter->second;
-
-    if (d_queueState_p->isAtMostOnce()) {
-        // Attempt to deliver all data in the storage.  Otherwise, broadcast
-        // data can get dropped if the configure response removes consumers.
-        deliverMessages(affectedApp.get());
-    }
-
-    // prepare the App for rebuilding consumers
-    affectedApp->undoRouting();
-
-    // Rebuild the highest priority state for all affected apps.
-
     BSLS_ASSERT_SAFE(
         bmqt::QueueFlagsUtil::isReader(handle->handleParameters().flags()));
 
-    const bsl::shared_ptr<Routers::AppContext> previous =
-        affectedApp->routing();
-
-    affectedApp->routing() = bsl::allocate_shared<Routers::AppContext>(
-        d_allocator_p,
-        &d_queueState_p->routingContext());
-
-    d_queueState_p->handleCatalog().iterateConsumers(
-        bdlf::BindUtil::bind(&RootQueueEngine::rebuildSelectedApp,
-                             this,
-                             bdlf::PlaceHolders::_1,  // handle
-                             bdlf::PlaceHolders::_2,  // info
-                             iter,
-                             previous.get()));
-
-    affectedApp->routing()->finalize();
-    affectedApp->routing()->apply();
-    affectedApp->routing()->registerSubscriptions();
-
-    BALL_LOG_INFO << "Rebuilt active consumers of the highest "
-                  << "priority for queue '"
-                  << d_queueState_p->queue()->description() << "', appId = '"
-                  << iter->first << "'. Now there are "
-                  << affectedApp->routing()->priorityCount() << " consumers.";
+    rebuildAppRouting(appId);
 
     // Inform the requester of the success before attempting to deliver new
     // messages.
@@ -1091,8 +1057,10 @@ void RootQueueEngine::configureHandle(
                  "",
                  streamParameters);
 
-    // Now triggering message delivery for affected apps
-    deliverMessages(affectedApp.get());
+    Apps::iterator iter = d_apps.find(appId);
+    if (iter != d_apps.end()) {
+        deliverMessages(iter->second.get());
+    }
 }
 
 void RootQueueEngine::releaseHandle(
@@ -1857,27 +1825,32 @@ RootQueueEngine::logAppSubscriptionInfo(bsl::ostream&     stream,
     const bsl::vector<mqbcmd::SubscriptionGroup>& subscrGroups =
         routing.subscriptionGroups();
     if (!subscrGroups.empty()) {
-        // Limit to log only k_EXPR_NUM_LIMIT expressions
         static const size_t k_EXPR_NUM_LIMIT = 10;
-        if (subscrGroups.size() > k_EXPR_NUM_LIMIT) {
-            stream << "First " << k_EXPR_NUM_LIMIT
-                   << " of consumer subscription expressions: \n";
-        }
-        else {
-            stream << "Consumer subscription expressions: \n";
-        }
 
-        size_t exprNum = 0;
+        stream << "Consumer subscription expressions: \n";
+
+        size_t numEmpty   = 0;
+        size_t numPrinted = 0;
         for (bsl::vector<mqbcmd::SubscriptionGroup>::const_iterator cIt =
                  subscrGroups.begin();
-             cIt != subscrGroups.end() && exprNum < k_EXPR_NUM_LIMIT;
-             ++cIt, ++exprNum) {
+             cIt != subscrGroups.end();
+             ++cIt) {
             if (cIt->expression().empty()) {
-                stream << "<Empty>\n";
+                ++numEmpty;
             }
-            else {
+            else if (numPrinted < k_EXPR_NUM_LIMIT) {
                 stream << cIt->expression() << '\n';
+                ++numPrinted;
             }
+        }
+
+        const size_t numNotPrinted = subscrGroups.size() - numEmpty -
+                                     numPrinted;
+        if (0 < numNotPrinted) {
+            stream << "... and " << numNotPrinted << " more\n";
+        }
+        if (0 < numEmpty) {
+            stream << "<Empty> x " << numEmpty << '\n';
         }
         stream << '\n';
     }

@@ -202,11 +202,16 @@ static void test3_compare()
     bmqt::CorrelationIdLess less;
     const int               val1 = 1;
     const int               val4 = 4;
-    bsl::shared_ptr<int>    intPtr1;
-    bsl::shared_ptr<int>    intPtr4;
 
-    intPtr1.createInplace(bmqtst::TestHelperUtil::allocator(), val1);
-    intPtr4.createInplace(bmqtst::TestHelperUtil::allocator(), val4);
+    // Shared pointers are compared by address, so point them into one array
+    // to get a known order.
+    int                  values[] = {val1, val4};
+    bsl::shared_ptr<int> intPtr1(&values[0],
+                                 bslstl::SharedPtrNilDeleter(),
+                                 bmqtst::TestHelperUtil::allocator());
+    bsl::shared_ptr<int> intPtr4(&values[1],
+                                 bslstl::SharedPtrNilDeleter(),
+                                 bmqtst::TestHelperUtil::allocator());
 
     bmqt::CorrelationId sptrId1(intPtr1);
     bmqt::CorrelationId sptrId4(intPtr4);
@@ -447,9 +452,9 @@ static void test7_printTest()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+    bmqtst::TestGuard guard(argc, argv);
 
-    switch (_testCase) {
+    switch (guard.testCase()) {
     case 0:
     case 7: test7_printTest(); break;
     case 6: test6_hashAppend(); break;
@@ -458,11 +463,8 @@ int main(int argc, char* argv[])
     case 3: test3_compare(); break;
     case 2: test2_copyAndAssign(); break;
     case 1: test1_breathingTest(); break;
-    default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
-        bmqtst::TestHelperUtil::testStatus() = -1;
-    } break;
+    default: guard.caseNotFound(); break;
     }
 
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    return guard.finish();
 }

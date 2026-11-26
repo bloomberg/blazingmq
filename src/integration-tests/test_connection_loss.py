@@ -49,35 +49,35 @@ def test_broker_client(
     """
     Test: connection loss between a broker and a client.
     - Start a broker and save the port it is listening.
-    - Start a tproxy redirecting to the broker started on the previous step.
-    - Start a client and connect it to the tproxy started on the previous step.
-    - Kill the tproxy to break the connection between the client and the broker.
+    - Start a relay redirecting to the broker started on the previous step.
+    - Start a client and connect it to the relay started on the previous step.
+    - Kill the relay to break the connection between the client and the broker.
 
     Concerns:
     - The client is able to detect the connection loss.
-    - The connection is restored after tproxy restart.
+    - The connection is restored after relay restart.
     """
 
     broker = next(cluster.proxy_cycle())
 
-    # Start tproxy between broker's and client's ports
-    tproxy_port, tproxy = cluster.start_tproxy(broker.config)
+    # Start relay between broker's and client's ports
+    relay_port, relay = cluster.start_tcp_relay(broker.config)
 
     # Start a client
     client: Client = broker.create_client(
-        f"client@{broker.name}", port=tproxy_port, start=False
+        f"client@{broker.name}", port=relay_port, start=False
     )
     client.start_session(block=False)
     # There is a race between "session.start" log line and "CONNECTED" log line.
     # Due to this, we do not check for "session.start" and only check for "CONNECTED" event.
     assert client.capture(r"CONNECTED", 5)
 
-    # Kill tproxy to break the connection between broker and client
-    tproxy.kill()
+    # Kill relay to break the connection between broker and client
+    relay.kill()
     assert client.wait_connection_lost(5)
 
-    # Start tproxy to restore the connection between broker and client
-    cluster.start_tproxy(broker.config, port=tproxy_port)
+    # Start relay to restore the connection between broker and client
+    cluster.start_tcp_relay(broker.config, port=relay_port)
     assert client.capture(r"RECONNECTED", 5)
 
     client.exit_gracefully()
@@ -94,12 +94,12 @@ def test_force_leader_primary_divergence(
 ) -> None:
     """
     Test: connection loss between cluster nodes.
-    - Run three instances of tproxy redirecting to endpoints of nodes "east2", "west1" and "west2".
-      Capture new ports from tproxies' output:
-        # tproxy -r localhost:old_port_1
-        Listening on localhost:new_port_1...
+    - Run three TCP relays redirecting to endpoints of nodes "east2", "west1" and "west2".
+      Capture new ports from relays' output:
+        # tcprelay.py -r localhost:old_port_1
+        Listening on 127.0.0.1:new_port_1
         Where "localhost:old_port_1" is the endpoint of "east2" extracted from the config.
-        And "localhost:new_port_1" is the new endpoint of tproxy.
+        And "localhost:new_port_1" is the new endpoint of the relay.
     - Before starting the cluster modify cluster.json configs for all nodes:
       in cluster config of "east1", change for:
         - modify endpoint of east2 from "tcp://localhost:old_port_1" to "tcp://localhost:new_port_1"
@@ -111,7 +111,7 @@ def test_force_leader_primary_divergence(
     - Wait until "east1" becomes leader. It is the only possible leader because only it has
       quorum = 3
     - Start "east2"
-    - Kill "tproxy_1" and "tproxy_2". It disconnects "east2" and "west1" from "east1"
+    - Kill "relay_east2" and "relay_west1". It disconnects "east2" and "west1" from "east1"
     - Leader must become "west2"; it is the only node connected to all other nodes
     - "east1" is not a leader anymore but still primary for the partitions. It detects
       leader/primary divergence and exits gracefully. So we wait for "east1" to terminate, check
@@ -125,7 +125,7 @@ def test_force_leader_primary_divergence(
     """
 
     cluster = multi_node
-    tproxies: Dict[str, Process] = {}
+    relays: Dict[str, Process] = {}
 
     # Modify cluster config for node "east1"
     broker = cluster.configurator.brokers["east1"]
@@ -133,15 +133,15 @@ def test_force_leader_primary_divergence(
     cluster_def.elector.quorum = 0
     for node in cluster_def.nodes:
         if node.name != "east1":
-            # For all the nodes except "east1" start a tproxy connected to the
+            # For all the nodes except "east1" start a relay connected to the
             # node's endpoint. Change the endpoint in the config to the port of
-            # just started tproxy. So "east1" will connect to tproxies instead of
+            # just started relay. So "east1" will connect to relays instead of
             # the nodes.
             broker_config = cluster.config.nodes[node.name]
-            tproxy_port, tproxy = cluster.start_tproxy(broker_config)
-            tproxies[tproxy.name] = tproxy
+            relay_port, relay = cluster.start_tcp_relay(broker_config)
+            relays[relay.name] = relay
             node.transport.tcp.endpoint = node.transport.tcp.endpoint.replace(
-                str(broker_config.port), tproxy_port
+                str(broker_config.port), relay_port
             )
     cluster.configurator.deploy_clusters(broker, cluster.get_broker_local_site(broker))
 
@@ -155,11 +155,11 @@ def test_force_leader_primary_divergence(
     old_leader = cluster.wait_leader()
     assert old_leader.name == "east1"
 
-    # Start "east2" and kill two tproxies disconnecting "east2" and "west1" from "east1".
+    # Start "east2" and kill two relays disconnecting "east2" and "west1" from "east1".
     east2 = cluster.start_node("east2")
     east2.wait_status(wait_leader=True, wait_ready=True)
-    tproxies["tproxy_east2"].kill()
-    tproxies["tproxy_west1"].kill()
+    relays["relay_east2"].kill()
+    relays["relay_west1"].kill()
 
     # Leader must become "west2" as it is the only node connected to all other nodes
     new_leader = cluster.wait_leader()

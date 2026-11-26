@@ -60,6 +60,8 @@
 //  os << prettyTimeInterval(12432);     // 12.43 us
 //..
 
+#include <bmqu_prettytimeinterval.h>
+
 // BDE
 #include <bdlb_print.h>
 #include <bsl_map.h>
@@ -90,7 +92,6 @@ struct NewlineAndIndentManipulator;
 struct PrettyBytesManipulator;
 struct PrettyDoubleManipulator;
 struct PrettyIntManipulator;
-struct PrettyTimeIntervalManipulator;
 
 // FREE FUNCTIONS
 
@@ -116,11 +117,15 @@ PrettyDoubleManipulator prettyNumber(double value,
 PrettyBytesManipulator prettyBytes(bsls::Types::Int64 bytes,
                                    int                precision = 2);
 
-/// Return a stream manipulator that inserts the specified `timeNs` which is
-/// assumed to be a number of nanoseconds with the specified `precision` in
-/// a readable form. Values are rounded to the nearest.
-PrettyTimeIntervalManipulator prettyTimeInterval(bsls::Types::Int64 timeNs,
-                                                 int precision = 2);
+/// @brief Return a stream manipulator that writes a time interval in a
+///        readable form.
+///
+/// @param timeNs The time interval, in nanoseconds.
+/// @param precision The number of digits after the decimal point.
+///
+/// @return A `PrettyTimeInterval` manipulator.
+PrettyTimeInterval prettyTimeInterval(bsls::Types::Int64 timeNs,
+                                      int                precision = 2);
 
 /// Return a stream manipulator that emits the number of spaces (` `) equal
 /// to the absolute value of the product of the specified `level` and
@@ -149,8 +154,6 @@ bsl::ostream& operator<<(bsl::ostream&                  stream,
                          const PrettyDoubleManipulator& manipulator);
 bsl::ostream& operator<<(bsl::ostream&                 stream,
                          const PrettyBytesManipulator& manipulator);
-bsl::ostream& operator<<(bsl::ostream&                        stream,
-                         const PrettyTimeIntervalManipulator& manipulator);
 bsl::ostream& operator<<(bsl::ostream&            stream,
                          const IndentManipulator& manipulator);
 bsl::ostream& operator<<(bsl::ostream&                      stream,
@@ -227,31 +230,6 @@ struct PrettyBytesManipulator {
 
     /// Create a `PrettyBytesManipulator` object.
     PrettyBytesManipulator(bsls::Types::Int64 bytes, int precision);
-
-    // ACCESSORS
-
-    /// Print to the specified output `stream`, using the optionally
-    /// specified indentation `level` and the optionally specified
-    /// `spacesPerLevel` the value of this object, as per the contract of
-    /// the standard BDE print method. If `stream` is not valid on entry,
-    /// this function has no effect.
-    bsl::ostream&
-    print(bsl::ostream& stream, int level = 0, int spacesPerLevel = 4) const;
-};
-
-// ====================================
-// struct PrettyTimeIntervalManipulator
-// ====================================
-
-struct PrettyTimeIntervalManipulator {
-    // DATA
-    bsls::Types::Int64 d_timeNs;
-    int                d_precision;
-
-    // CREATORS
-
-    /// Create a `PrettyTimeIntervalManipulator` object.
-    PrettyTimeIntervalManipulator(bsls::Types::Int64 timeNs, int precision);
 
     // ACCESSORS
 
@@ -402,10 +380,10 @@ PrintUtil::prettyBytes(bsls::Types::Int64 bytes, int precision)
     return PrintUtil::PrettyBytesManipulator(bytes, precision);
 }
 
-inline PrintUtil::PrettyTimeIntervalManipulator
+inline PrettyTimeInterval
 PrintUtil::prettyTimeInterval(bsls::Types::Int64 timeNs, int precision)
 {
-    return PrintUtil::PrettyTimeIntervalManipulator(timeNs, precision);
+    return PrettyTimeInterval(timeNs, precision);
 }
 
 inline PrintUtil::IndentManipulator PrintUtil::indent(int level,
@@ -519,40 +497,6 @@ inline bsl::ostream&
 PrintUtil::PrettyBytesManipulator::print(bsl::ostream& stream,
                                          int           level,
                                          int           spacesPerLevel) const
-{
-    if (stream.bad()) {
-        return stream;  // RETURN
-    }
-
-    bdlb::Print::indent(stream, level, spacesPerLevel);
-    stream << *this;
-
-    if (spacesPerLevel >= 0) {
-        stream << '\n';
-    }
-
-    return stream;
-}
-
-// -----------------------------------------------
-// struct PrintUtil::PrettyTimeIntervalManipulator
-// -----------------------------------------------
-
-// CREATORS
-inline PrintUtil::PrettyTimeIntervalManipulator::PrettyTimeIntervalManipulator(
-    bsls::Types::Int64 timeNs,
-    int                precision)
-: d_timeNs(timeNs)
-, d_precision(precision)
-{
-    // NOTHING
-}
-
-// ACCESSORS
-inline bsl::ostream&
-PrintUtil::PrettyTimeIntervalManipulator::print(bsl::ostream& stream,
-                                                int           level,
-                                                int spacesPerLevel) const
 {
     if (stream.bad()) {
         return stream;  // RETURN

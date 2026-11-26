@@ -117,6 +117,10 @@ class PushEventBuilder {
     // Push Header associated with the
     // current (to-be-packed) message.
 
+    /// Unused end of the buffer holding the last `PushHeader`, kept to
+    /// write the next `PushHeader`.
+    bdlbb::BlobBuffer d_leftover;
+
   private:
     // PRIVATE MANIPULATORS
 

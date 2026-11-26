@@ -275,21 +275,18 @@ static void test2_totalElapsed()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+    bmqtst::TestGuard guard(argc, argv);
 
     bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
     // 'snapshot' in 'mqbstat::StatMonitor' passes a string using default
     // alloc.
 
-    switch (_testCase) {
+    switch (guard.testCase()) {
     case 0:
     case 2: test2_totalElapsed(); break;
     case 1: test1_usageExample(); break;
-    default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
-        bmqtst::TestHelperUtil::testStatus() = -1;
-    } break;
+    default: guard.caseNotFound(); break;
     }
 
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    return guard.finish();
 }

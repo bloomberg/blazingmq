@@ -235,92 +235,21 @@ static void test3_prettyBytes()
     }
 }
 
-static void test4_prettyTimeInterval()
-// ------------------------------------------------------------------------
-// prettyTimeInterval
-//
-// Concerns:
-//   Ensure proper behavior of 'prettyTimeInterval' method.
-//
-// Plan:
-//   Test various inputs.
-//
-// Testing:
-//   Proper behavior of 'prettyTimeInterval(timeNs, precision)'
-// ------------------------------------------------------------------------
-{
-    bmqtst::TestHelper::printTestName("prettyTimeInterval");
-
-    const bsls::Types::Int64 k_INTMAX =
-        bsl::numeric_limits<bsls::Types::Int64>::max();
-    const bsls::Types::Int64 k_INTMIN =
-        bsl::numeric_limits<bsls::Types::Int64>::min();
-
-    struct Test {
-        int                d_line;
-        bsls::Types::Int64 d_value;
-        int                d_precision;
-        const char*        d_expected;
-    } k_DATA[] = {
-        {L_, 10, 3, "10 ns"},
-        {L_, -10, 3, "-10 ns"},
-        {L_, 1000, 3, "1.000 us"},
-        {L_, 12000, 3, "12.000 us"},
-        {L_, 12432, 2, "12.43 us"},
-        {L_, 12436, 2, "12.44 us"},
-        {L_, 12435, 2, "12.44 us"},
-        {L_, 12432, 3, "12.432 us"},
-        {L_, 12678123, 0, "13 ms"},
-        {L_, 12678123, 1, "12.7 ms"},
-        {L_, 12678123, 2, "12.68 ms"},
-        {L_, 12678123, 3, "12.678 ms"},
-        {L_, 12678123, 4, "12.6781 ms"},
-        {L_, 1000000000LL, 3, "1.000 s"},
-        {L_, 9999123400000LL, 3, "2.778 h"},
-        {L_, 5LL * 60 * 1000 * 1000 * 1000, 2, "5.00 m"},
-        {L_, -5LL * 60 * 1000 * 1000 * 1000, 2, "-5.00 m"},
-        {L_, 1000LL * 1000 * 1000 * 60 * 60 * 24 * 20, 2, "2.86 w"},
-        {L_, k_INTMAX, 3, "15250.284 w"},
-        {L_, k_INTMIN, 2, "-15250.28 w"},
-        {L_, 923456789123456LL, 0, "2 w"},
-        {L_, 923456789123456LL, 1, "1.5 w"},   // 1.5268w
-        {L_, 923456789123456LL, 2, "1.53 w"},  // 1.5268w
-    };
-
-    const size_t k_NUM_DATA = sizeof(k_DATA) / sizeof(*k_DATA);
-
-    for (size_t idx = 0; idx < k_NUM_DATA; ++idx) {
-        const Test& test = k_DATA[idx];
-
-        PVV(test.d_line << ": checking value '" << test.d_value << "' "
-                        << " (precision: " << test.d_precision << ")");
-
-        bmqu::MemOutStream buf(bmqtst::TestHelperUtil::allocator());
-        buf << bmqu::PrintUtil::prettyTimeInterval(test.d_value,
-                                                   test.d_precision);
-        BMQTST_ASSERT_EQ_D(test.d_line, buf.str(), test.d_expected);
-    }
-}
-
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+    bmqtst::TestGuard guard(argc, argv);
 
-    switch (_testCase) {
+    switch (guard.testCase()) {
     case 0:
-    case 4: test4_prettyTimeInterval(); break;
     case 3: test3_prettyBytes(); break;
     case 2: test2_prettyNumberDouble(); break;
     case 1: test1_prettyNumberInt64(); break;
-    default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
-        bmqtst::TestHelperUtil::testStatus() = -1;
-    } break;
+    default: guard.caseNotFound(); break;
     }
 
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    return guard.finish();
 }

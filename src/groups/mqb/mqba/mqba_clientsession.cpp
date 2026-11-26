@@ -354,8 +354,8 @@ struct BuildAckOverflowFunctor {
 };
 
 template <typename EVENT_TYPE>
-void dispatchEvent(const bsl::shared_ptr<bdlbb::Blob>& blob_sp,
-                   mqba::ClientSession*                source)
+void dispatchEvent(const bsl::shared_ptr<const bdlbb::Blob>& blob_sp,
+                   mqba::ClientSession*                      source)
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(source);
@@ -2701,9 +2701,8 @@ void ClientSession::processEvent(const bmqp::Event& event,
 
         // Not a control or leader message, it's either a put or a confirm ..
 
-        bsl::shared_ptr<bdlbb::Blob> blob_sp =
-            d_state.d_blobSpPool_p->getObject();
-        *blob_sp = *(event.blob());
+        BSLS_ASSERT_SAFE(event.sharedBlob());
+        const bsl::shared_ptr<const bdlbb::Blob>& blob_sp = event.sharedBlob();
 
         // Dispatch the event
         // TODO(678098): revisit, use per-IO thread event source

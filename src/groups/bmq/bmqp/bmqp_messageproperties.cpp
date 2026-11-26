@@ -17,6 +17,7 @@
 
 #include <bmqscm_version.h>
 // BMQ
+#include <bmqeval_simpleevaluator.h>
 #include <bmqp_protocolutil.h>
 
 #include <bmqu_blob.h>
@@ -881,7 +882,7 @@ MessageProperties::getPropertyRef(bsl::string_view  name,
 {
     PropertyMapIter it = findProperty(name);
     if (it == d_properties.end()) {
-        return bdld::Datum::createError(-1);  // RETURN
+        return bdld::Datum::createError(bmqeval::ErrorType::e_NAME);  // RETURN
     }
     const Property& property = it->second;
 
@@ -908,10 +909,9 @@ MessageProperties::getPropertyRef(bsl::string_view  name,
                                                 basicAllocator);
         }
     case bmqt::PropertyType::e_BINARY:
-        // do not want to use binary
-        return bdld::Datum::createError(-2);
+        return bdld::Datum::createError(bmqeval::ErrorType::e_BINARY);
     case bmqt::PropertyType::e_UNDEFINED:
-    default: return bdld::Datum::createError(-3);
+    default: return bdld::Datum::createError(bmqeval::ErrorType::e_UNDEFINED);
     }
 }
 

@@ -223,11 +223,6 @@ jobs:
           # Store all info about cluster in cluster.json
           BLAZINGMQ_CLUSTER_CONFIG_COMPATIBILITY_MODE: "true"
         run: |
-          # Pin tproxy of 27 Feb 2026:
-          go install github.com/kevwan/tproxy@d6d45cbbd1b3c5dad6e5043b74120f9ea962826b
-          export GOPATH=$HOME/go
-          export PATH=$PATH:/usr/local/go/bin:$GOPATH/bin
-
           pip install -r ./src/python/requirements-test.txt
 
           ./src/integration-tests/run-tests \

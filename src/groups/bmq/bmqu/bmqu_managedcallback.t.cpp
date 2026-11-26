@@ -608,17 +608,14 @@ int main(int argc, char* argv[])
     // To be called only once per process instantiation.
     bsls::TimeUtil::initialize();
 
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+    bmqtst::TestGuard guard(argc, argv);
 
-    switch (_testCase) {
+    switch (guard.testCase()) {
     case 0:
     case 1: test1_ManagedCallback(); break;
     case -1: testN1_ManagedCallbackPerformance(); break;
-    default: {
-        bsl::cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
-        bmqtst::TestHelperUtil::testStatus() = -1;
-    } break;
+    default: guard.caseNotFound(); break;
     }
 
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_DEF_GBL_ALLOC);
+    return guard.finish();
 }
