@@ -35,13 +35,13 @@ namespace bmqp {
 // class Event
 // -----------
 
-void Event::loadAckMessageIterator(AckMessageIterator* iterator) const
+int Event::loadAckMessageIterator(AckMessageIterator* iterator) const
 {
     // PRECONDITIONS
     BSLS_ASSERT_SAFE(isAckEvent());
     BSLS_ASSERT_SAFE(isValid());
 
-    iterator->reset(blob(), *d_header);
+    return iterator->reset(blob(), *d_header);
 }
 
 void Event::loadConfirmMessageIterator(ConfirmMessageIterator* iterator) const

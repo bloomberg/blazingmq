@@ -3753,19 +3753,36 @@ void BrokerSession::processAckEvent(const bmqp::Event& event)
         return;  // RETURN
     }
 
+    bmqp::AckMessageIterator it;
+    int                      rc = event.loadAckMessageIterator(&it);
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc != 0)) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        BALL_LOG_ERROR_BLOCK
+        {
+            BALL_LOG_OUTPUT_STREAM
+                << id() << "Dropping invalid ACK event "
+                << "[reason: 'Invalid AckIterator', rc: " << rc << "]\n";
+            it.dumpBlob(BALL_LOG_OUTPUT_STREAM);
+        }
+        return;  // RETURN
+    }
+
     bsl::shared_ptr<Event> queueEvent = createEvent();
     queueEvent->configureAsMessageEvent(event);
 
-    // Iterate over all messages in this ACK event and retrieve their
-    // correlationIds, while removing the entry from the underlying
-    // 'internal correlationId' => 'user-provided correlationId' map, if
-    // applicable (i.e., if internal correlationId is non-null)
+    // GUID and status of each message, so that correlationIds are removed
+    // only once the whole event is known to be valid.
+    typedef bsl::pair<bmqt::MessageGUID, int> GuidAndStatus;
 
-    bmqp::AckMessageIterator it;
-    event.loadAckMessageIterator(&it);
-    int numAckMsgs = 0;
-    while (it.next()) {
-        ++numAckMsgs;
+    bdlma::LocalSequentialAllocator<64 * sizeof(GuidAndStatus)> localAllocator(
+        d_allocator_p);
+    bsl::vector<GuidAndStatus> acks(&localAllocator);
+
+    // Upper bound on the message count
+    acks.reserve(event.blob()->length() / (it.header().perMessageWords() *
+                                           bmqp::Protocol::k_WORD_SIZE));
+
+    while ((rc = it.next()) == 1) {
         const bmqp::AckMessage& ackMsg = it.message();
 
         // Lookup queue
@@ -3784,22 +3801,42 @@ void BrokerSession::processAckEvent(const bmqp::Event& event)
                     << ", GUID: " << ackMsg.messageGUID() << "]");
         }
 
+        queueEvent->insertQueue(queue);
+        acks.emplace_back(ackMsg.messageGUID(), ackMsg.status());
+    }
+
+    if (BSLS_PERFORMANCEHINT_PREDICT_UNLIKELY(rc < 0)) {
+        BSLS_PERFORMANCEHINT_UNLIKELY_HINT;
+        BALL_LOG_ERROR_BLOCK
+        {
+            BALL_LOG_OUTPUT_STREAM << id() << "Dropping invalid ACK event "
+                                   << "[rc: " << rc << "]\n";
+            it.dumpBlob(BALL_LOG_OUTPUT_STREAM);
+        }
+        return;  // RETURN
+    }
+
+    // Retrieve the correlationId of each message, while removing the entry
+    // from the underlying 'internal correlationId' => 'user-provided
+    // correlationId' map, if applicable (i.e., if internal correlationId is
+    // non-null)
+    for (bsl::vector<GuidAndStatus>::const_iterator ackIt = acks.begin();
+         ackIt != acks.end();
+         ++ackIt) {
         bmqt::CorrelationId correlationId;
-        if (d_messageCorrelationIdContainer.remove(ackMsg.messageGUID(),
+        if (d_messageCorrelationIdContainer.remove(ackIt->first,
                                                    &correlationId) != 0) {
             // There is no correlationId associated with this GUID.
             // Per contract, broker does not send ACKs where status is zero and
             // correlationId is null.
-            BSLS_ASSERT_SAFE(0 != ackMsg.status());
+            BSLS_ASSERT_SAFE(0 != ackIt->second);
         }
 
         // Keep track of user-provided CorrelationId (it may be unset)
         queueEvent->addContext(correlationId);
-
-        // Insert queue into event
-        queueEvent->insertQueue(queue);
     }
 
+    const int numAckMsgs = static_cast<int>(acks.size());
     BSLS_ASSERT_SAFE(numAckMsgs == queueEvent->numCorrrelationIds());
 
     // Add to event queue. Note that we are now forwarding an ACK event which

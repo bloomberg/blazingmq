@@ -9730,6 +9730,189 @@ static void test65_queueLateAsyncCanceledWriter4()
                            bmqimp::QueueState::e_PENDING);
 }
 
+static void test67_malformedAckEvent()
+// ------------------------------------------------------------------------
+// MALFORMED ACK EVENT TEST
+//
+// Concerns:
+//   1. An ACK event whose AckHeader declares zero per-message words is
+//      dropped.
+//   2. An ACK event whose last message is truncated is dropped as a whole,
+//      leaving the correlationIds of its preceding messages pending.
+//   3. The session keeps processing ACK events after dropping a malformed
+//      one.
+//
+// Plan:
+//   1. Start the session and open a queue for writing.
+//   2. Post a PUT event with two messages requesting an ACK.
+//   3. Inject an ACK event for both messages, declaring zero per-message
+//      words.
+//   4. Inject an ACK event for both messages, declaring one more
+//      per-message word than written, which truncates the second message.
+//   5. Inject a valid ACK event for both messages, and verify it is the
+//      only ACK event delivered, carrying both correlationIds.
+//   6. Close the queue and stop the session.
+//
+// Testing manipulators:
+//   - processPacket
+//   ----------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("MALFORMED ACK EVENT TEST");
+
+    const char* k_PAYLOAD     = "abcdefghijklmnopqrstuvwxyz";
+    const int   k_PAYLOAD_LEN = bsl::strlen(k_PAYLOAD);
+
+    const int k_ACK_STATUS_SUCCESS = bmqp::ProtocolUtil::ackResultToCode(
+        bmqt::AckResult::e_SUCCESS);
+
+    const bsls::TimeInterval       timeout = bsls::TimeInterval(5);
+    bmqt::SessionOptions           sessionOptions;
+    bmqt::QueueOptions             queueOptions;
+    bdlbb::PooledBlobBufferFactory bufferFactory(
+        1024,
+        bmqtst::TestHelperUtil::allocator());
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(
+            &bufferFactory,
+            bmqtst::TestHelperUtil::allocator()));
+    bmqp::PutEventBuilder     putEventBuilder(blobSpPool.get(),
+                                          bmqtst::TestHelperUtil::allocator());
+    const bmqt::CorrelationId corrIdFirst(243);
+    const bmqt::CorrelationId corrIdSecond(987);
+    const bmqt::MessageGUID guidFirst = bmqp::MessageGUIDGenerator::testGUID();
+    const bmqt::MessageGUID guidSecond =
+        bmqp::MessageGUIDGenerator::testGUID();
+    bdlmt::EventScheduler scheduler(bsls::SystemClockType::e_MONOTONIC,
+                                    bmqtst::TestHelperUtil::allocator());
+
+    sessionOptions.setNumProcessingThreads(1);
+    sessionOptions.setChannelWriteTimeout(timeout);
+
+    TestSession obj(sessionOptions,
+                    scheduler,
+                    bmqtst::TestHelperUtil::allocator());
+
+    bsl::shared_ptr<bmqimp::Queue> pQueue =
+        obj.createQueue(k_URI, bmqt::QueueFlags::e_WRITE, queueOptions);
+
+    PVV_SAFE("Step 1. Start the session and open the queue");
+    obj.startAndConnect();
+    obj.openQueue(pQueue, timeout);
+
+    PVV_SAFE("Step 2. Send PUT messages");
+    bsl::shared_ptr<bmqimp::Event> putEvent = obj.session().createEvent();
+
+    bmqimp::MessageCorrelationIdContainer* idsContainer =
+        putEvent->messageCorrelationIdContainer();
+    const bmqp::QueueId qid(pQueue->id(), pQueue->subQueueId());
+    idsContainer->add(guidFirst, corrIdFirst, qid);
+    idsContainer->add(guidSecond, corrIdSecond, qid);
+
+    int phFlags = 0;
+    bmqp::PutHeaderFlagUtil::setFlag(&phFlags,
+                                     bmqp::PutHeaderFlags::e_ACK_REQUESTED);
+
+    putEventBuilder.startMessage();
+    putEventBuilder.setMessageGUID(guidFirst)
+        .setMessagePayload(k_PAYLOAD, k_PAYLOAD_LEN)
+        .setFlags(phFlags);
+    bmqt::EventBuilderResult::Enum rc = putEventBuilder.packMessage(
+        pQueue->id());
+    BMQTST_ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
+
+    putEventBuilder.startMessage();
+    putEventBuilder.setMessageGUID(guidSecond)
+        .setMessagePayload(k_PAYLOAD, k_PAYLOAD_LEN)
+        .setFlags(phFlags);
+    rc = putEventBuilder.packMessage(pQueue->id());
+    BMQTST_ASSERT_EQ(rc, bmqt::EventBuilderResult::e_SUCCESS);
+
+    const int res = obj.session().post(putEventBuilder.blob());
+    BMQTST_ASSERT_EQ(res, bmqt::PostResult::e_SUCCESS);
+
+    bmqp::Event rawEvent(bmqtst::TestHelperUtil::allocator());
+    obj.getOutboundEvent(&rawEvent);
+    BMQTST_ASSERT(rawEvent.isPutEvent());
+
+    PVV_SAFE("Step 3. Inject ACK event with zero per-message words");
+    {
+        bmqp::AckEventBuilder builder(blobSpPool.get(),
+                                      bmqtst::TestHelperUtil::allocator());
+        builder.appendMessage(k_ACK_STATUS_SUCCESS,
+                              bmqp::AckMessage::k_NULL_CORRELATION_ID,
+                              guidFirst,
+                              pQueue->id());
+        builder.appendMessage(k_ACK_STATUS_SUCCESS,
+                              bmqp::AckMessage::k_NULL_CORRELATION_ID,
+                              guidSecond,
+                              pQueue->id());
+
+        const bsl::shared_ptr<bdlbb::Blob>& blob = builder.blob();
+        bmqp::AckHeader* ackHeader = reinterpret_cast<bmqp::AckHeader*>(
+            blob->buffer(0).data() + sizeof(bmqp::EventHeader));
+        ackHeader->setPerMessageWords(0);
+
+        obj.session().processPacket(blob);
+    }
+
+    PVV_SAFE("Step 4. Inject ACK event with a truncated last message");
+    {
+        bmqp::AckEventBuilder builder(blobSpPool.get(),
+                                      bmqtst::TestHelperUtil::allocator());
+        builder.appendMessage(k_ACK_STATUS_SUCCESS,
+                              bmqp::AckMessage::k_NULL_CORRELATION_ID,
+                              guidFirst,
+                              pQueue->id());
+        builder.appendMessage(k_ACK_STATUS_SUCCESS,
+                              bmqp::AckMessage::k_NULL_CORRELATION_ID,
+                              guidSecond,
+                              pQueue->id());
+
+        const bsl::shared_ptr<bdlbb::Blob>& blob = builder.blob();
+        bmqp::AckHeader* ackHeader = reinterpret_cast<bmqp::AckHeader*>(
+            blob->buffer(0).data() + sizeof(bmqp::EventHeader));
+        ackHeader->setPerMessageWords(ackHeader->perMessageWords() + 1);
+
+        obj.session().processPacket(blob);
+    }
+
+    PVV_SAFE("Step 5. Inject valid ACK event and verify it is delivered");
+    {
+        bmqp::AckEventBuilder builder(blobSpPool.get(),
+                                      bmqtst::TestHelperUtil::allocator());
+        builder.appendMessage(k_ACK_STATUS_SUCCESS,
+                              bmqp::AckMessage::k_NULL_CORRELATION_ID,
+                              guidFirst,
+                              pQueue->id());
+        builder.appendMessage(k_ACK_STATUS_SUCCESS,
+                              bmqp::AckMessage::k_NULL_CORRELATION_ID,
+                              guidSecond,
+                              pQueue->id());
+
+        obj.session().processPacket(builder.blob());
+    }
+
+    // Events are delivered in order, so a delivered malformed event would
+    // surface here first.
+    bsl::shared_ptr<bmqimp::Event> ackEvent = obj.waitAckEvent();
+    BMQTST_ASSERT(ackEvent);
+
+    bmqp::AckMessageIterator* ackIter = ackEvent->ackMessageIterator();
+    BMQTST_ASSERT_EQ(1, ackIter->next());
+    BMQTST_ASSERT_EQ(guidFirst, ackIter->message().messageGUID());
+    BMQTST_ASSERT_EQ(1, ackIter->next());
+    BMQTST_ASSERT_EQ(guidSecond, ackIter->message().messageGUID());
+    BMQTST_ASSERT_EQ(0, ackIter->next());
+    BMQTST_ASSERT_EQ(2, ackEvent->numCorrrelationIds());
+    BMQTST_ASSERT_EQ(corrIdFirst, ackEvent->context(0).d_correlationId);
+    BMQTST_ASSERT_EQ(corrIdSecond, ackEvent->context(1).d_correlationId);
+    BMQTST_ASSERT(obj.checkNoEvent());
+
+    PVV_SAFE("Step 6. Close the queue and stop the session");
+    obj.closeQueue(pQueue, timeout);
+    obj.stopGracefully();
+}
+
 static void test68_queueLateAsyncCanceledHybrid3()
 {
     bmqtst::TestHelper::printTestName(
@@ -9757,10 +9940,8 @@ int main(int argc, char* argv[])
 
     switch (_testCase) {
     case 0:
-    case 70: /* removed test */ break;
-    case 69: /* removed test */ break;
     case 68: test68_queueLateAsyncCanceledHybrid3(); break;
-    case 67: /* removed test */ break;
+    case 67: test67_malformedAckEvent(); break;
     case 66: /* removed test */ break;
     case 65: test65_queueLateAsyncCanceledWriter4(); break;
     case 64: test64_queueLateAsyncCanceledWriter3(); break;
