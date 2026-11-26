@@ -27,10 +27,11 @@
 // 'bmqio::TCPEndpoint', to convert between a URI ('tcp://host:port')
 // representation and a { host, port } pair, to use with the 'bmqio' channels.
 // This is simply a convenient utility object to create a URI from an host and
-// port.  Note that the URI format must be of the form 'tcp://:int' (the host
-// is optional, but the port is not; host can either be an IP address or a host
-// name).  Creating an 'TCPEndpoint' by URI with should be followed by a call
-// to operator bool() to check if the endpoint is valid.
+// port.  Note that the URI format must be of the form 'tcp://host:port' (both
+// the host and the port are required; host can either be an IP address or a
+// host name, and port must be made of decimal digits only, in the range
+// [1, 65535]).  Creating an 'TCPEndpoint' by URI with should be followed by a
+// call to operator bool() to check if the endpoint is valid.
 //
 // This component should not be used (directly) by client code.  This component
 // is an implementation detail of 'dmp' and 'mbs' and is *not* intended for
@@ -80,7 +81,8 @@ class TCPEndpoint {
     // MANIPULATORS
 
     /// Set the uri of this endpoint to `uri`. Return true on success, or
-    /// false if the uri failed to parse.
+    /// false if the uri failed to parse, in which case this endpoint is left
+    /// invalid, with an empty `host()` and a `port()` of 0.
     bool fromUri(const bsl::string& uri);
 
     /// DEPRECATED: use `fromUri` instead.
