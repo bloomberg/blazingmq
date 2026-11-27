@@ -157,6 +157,15 @@ bsl::ostream& DataStoreConfig::print(bsl::ostream& stream,
     return stream;
 }
 
+// -----------------
+// class RecordStore
+// -----------------
+
+RecordStore::~RecordStore()
+{
+    // NOTHING
+}
+
 // ---------------
 // class DataStore
 // ---------------
