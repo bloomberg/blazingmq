@@ -34,6 +34,7 @@
 #include <bdlbb_pooledblobbufferfactory.h>
 #include <bdlbb_simpleblobbufferfactory.h>
 #include <bdlf_bind.h>
+#include <bdlmt_threadpool.h>
 #include <bsl_cstdlib.h>
 #include <bsl_cstring.h>  // for bsl::strlen
 #include <bsl_ctime.h>
@@ -42,12 +43,18 @@
 #include <bsl_limits.h>
 #include <bsl_string_view.h>
 #include <bsl_vector.h>
+#include <bslma_newdeleteallocator.h>
 #include <bslma_testallocator.h>
 #include <bslma_usesbslmaallocator.h>
 #include <bslmf_nestedtraitdeclaration.h>
+#include <bslmt_barrier.h>
+#include <bslmt_latch.h>
+#include <bslmt_threadattributes.h>
+#include <bsls_timeutil.h>
 #include <bsls_types.h>
 
 // TEST DRIVER
+#include <bmqtst_table.h>
 #include <bmqtst_testhelper.h>
 #include <bsl_algorithm.h>
 #include <bsl_memory.h>
@@ -209,6 +216,124 @@ bool isDefaultSubscription(
     return subQueueInfos.size() == 1U &&
            (subQueueInfos[0].id() ==
             bmqp::Protocol::k_DEFAULT_SUBSCRIPTION_ID);
+}
+
+/// @brief Build push events after all threads are ready.
+///
+/// @param blobSpPool    Pool of blobs shared between the threads.
+/// @param bufferFactory Buffer factory shared between the threads.
+/// @param numEvents     Number of events to build.
+/// @param numMsgs       Number of messages packed in each event.
+/// @param startBarrier  Barrier to wait on before building.
+/// @param doneLatch     Latch to arrive at when done.
+static void buildPushEvents(bmqp::BlobPoolUtil::BlobSpPool* blobSpPool,
+                            bdlbb::BlobBufferFactory*       bufferFactory,
+                            int                             numEvents,
+                            int                             numMsgs,
+                            bslmt::Barrier*                 startBarrier,
+                            bslmt::Latch*                   doneLatch)
+{
+    BSLS_ASSERT_OPT(blobSpPool);
+    BSLS_ASSERT_OPT(bufferFactory);
+    BSLS_ASSERT_OPT(startBarrier);
+    BSLS_ASSERT_OPT(doneLatch);
+
+    const bsl::string_view k_PAYLOAD(
+        "abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz");
+    bslma::Allocator* alloc = &bslma::NewDeleteAllocator::singleton();
+
+    bdlbb::Blob payload(bufferFactory, alloc);
+    bdlbb::BlobUtil::append(&payload,
+                            k_PAYLOAD.data(),
+                            static_cast<int>(k_PAYLOAD.length()));
+
+    bmqp::PushEventBuilder peb(blobSpPool, alloc);
+
+    startBarrier->wait();
+
+    for (int i = 0; i < numEvents; ++i) {
+        for (int j = 0; j < numMsgs; ++j) {
+            const bmqt::EventBuilderResult::Enum rc = peb.packMessage(
+                payload,
+                1,
+                bmqt::MessageGUID(),
+                0,
+                bmqt::CompressionAlgorithmType::e_NONE);
+            BSLS_ASSERT_OPT(rc == bmqt::EventBuilderResult::e_SUCCESS);
+        }
+        BSLS_ASSERT_OPT(peb.blob()->length() > 0);
+        peb.reset();
+    }
+
+    doneLatch->arrive();
+}
+
+/// @brief Measure how fast push events are built from many threads.
+///
+/// @param table      Table to add the result row to.
+/// @param numThreads Number of threads building events.
+/// @param numEvents  Total number of events, split between the threads.
+/// @param numMsgs    Number of messages packed in each event.
+static void runPushEventBenchmark(bmqtst::Table* table,
+                                  int            numThreads,
+                                  int            numEvents,
+                                  int            numMsgs)
+{
+    BSLS_ASSERT_OPT(table);
+
+    bslma::Allocator* alloc = &bslma::NewDeleteAllocator::singleton();
+
+    bdlbb::PooledBlobBufferFactory   bufferFactory(4096, alloc);
+    bmqp::BlobPoolUtil::BlobSpPoolSp blobSpPool(
+        bmqp::BlobPoolUtil::createBlobPool(&bufferFactory, alloc));
+
+    bdlmt::ThreadPool threadPool(bslmt::ThreadAttributes(),
+                                 numThreads,
+                                 numThreads,
+                                 bsl::numeric_limits<int>::max(),
+                                 bmqtst::TestHelperUtil::allocator());
+    BSLS_ASSERT_OPT(threadPool.start() == 0);
+
+    const int eventsPerThread = numEvents / numThreads;
+
+    bslmt::Barrier startBarrier(numThreads + 1);
+    bslmt::Latch   doneLatch(numThreads);
+
+    for (int i = 0; i < numThreads; ++i) {
+        threadPool.enqueueJob(
+            bdlf::BindUtil::bindS(bmqtst::TestHelperUtil::allocator(),
+                                  &buildPushEvents,
+                                  blobSpPool.get(),
+                                  &bufferFactory,
+                                  eventsPerThread,
+                                  numMsgs,
+                                  &startBarrier,
+                                  &doneLatch));
+    }
+
+    startBarrier.wait();
+    const bsls::Types::Int64 startTime = bsls::TimeUtil::getTimer();
+    doneLatch.wait();
+    const bsls::Types::Int64 elapsed = bsls::TimeUtil::getTimer() - startTime;
+
+    threadPool.stop();
+
+    const bsls::Types::Uint64 totalMsgs = static_cast<bsls::Types::Uint64>(
+                                              eventsPerThread) *
+                                          numThreads * numMsgs;
+    const double numSeconds = static_cast<double>(elapsed) / 1000000000LL;
+
+    table->column("Threads").insertValue(
+        static_cast<bsls::Types::Uint64>(numThreads));
+    table->column("Msgs/event")
+        .insertValue(static_cast<bsls::Types::Uint64>(numMsgs));
+    table->column("Messages").insertValue(totalMsgs);
+    table->column("Time (ns)")
+        .insertValue(static_cast<bsls::Types::Uint64>(elapsed));
+    table->column("Per msg (ns)")
+        .insertValue(static_cast<bsls::Types::Uint64>(elapsed / totalMsgs));
+    table->column("Msgs/s").insertValue(
+        static_cast<bsls::Types::Uint64>(totalMsgs / numSeconds));
 }
 
 }  // close unnamed namespace
@@ -1382,6 +1507,37 @@ static void testN1_decodeFromFile()
     BMQTST_ASSERT_EQ(0, pushIter.next());  // we added only 1 msg
     BMQTST_ASSERT_EQ(false, pushIter.isValid());
 }
+
+static void testN2_multithreadBuildBenchmark()
+// --------------------------------------------------------------------
+// MULTITHREAD BUILD BENCHMARK
+//
+// Concerns:
+//   Check how fast push events are built from many threads that share
+//   one blob buffer factory and one blob pool.
+//
+// Plan:
+//   1. For each number of threads, build a fixed total number of events
+//      split between the threads, each thread with its own builder.
+//   2. Measure the elapsed time and print the results table.
+// --------------------------------------------------------------------
+{
+    bmqtst::TestHelper::printTestName("MULTITHREAD BUILD BENCHMARK");
+
+    const int k_NUM_EVENTS = 200 * 1000;
+
+    bmqtst::Table table(bmqtst::TestHelperUtil::allocator());
+    runPushEventBenchmark(&table, 1, k_NUM_EVENTS, 1);
+    runPushEventBenchmark(&table, 2, k_NUM_EVENTS, 1);
+    runPushEventBenchmark(&table, 4, k_NUM_EVENTS, 1);
+    runPushEventBenchmark(&table, 8, k_NUM_EVENTS, 1);
+    runPushEventBenchmark(&table, 1, k_NUM_EVENTS, 32);
+    runPushEventBenchmark(&table, 2, k_NUM_EVENTS, 32);
+    runPushEventBenchmark(&table, 4, k_NUM_EVENTS, 32);
+    runPushEventBenchmark(&table, 8, k_NUM_EVENTS, 32);
+    table.print(bsl::cout);
+}
+
 // ============================================================================
 //                                 MAIN PROGRAM
 // ----------------------------------------------------------------------------
@@ -1418,6 +1574,7 @@ int main(int argc, char* argv[])
     case 2: test2_buildEventBackwardsCompatibility(); break;
     case 1: test1_breathingTest(); break;
     case -1: testN1_decodeFromFile(); break;
+    case -2: testN2_multithreadBuildBenchmark(); break;
     default: guard.caseNotFound(); break;
     }
 
