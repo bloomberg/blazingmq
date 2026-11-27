@@ -154,18 +154,18 @@ void printJournalFileMeta(bsl::ostream&                    ostream,
             // Print journal-specific fields
             bsl::vector<bsl::string> fieldsSyncPoint(allocator);
             fieldsSyncPoint.reserve(12);
-            fieldsSyncPoint.push_back("Last Valid Record Offset");
-            fieldsSyncPoint.push_back("Record Type");
-            fieldsSyncPoint.push_back("Record Timestamp");
-            fieldsSyncPoint.push_back("Record Epoch");
-            fieldsSyncPoint.push_back("Last Valid SyncPoint Offset");
-            fieldsSyncPoint.push_back("SyncPoint Timestamp");
-            fieldsSyncPoint.push_back("SyncPoint Epoch");
-            fieldsSyncPoint.push_back("SyncPoint SeqNum");
-            fieldsSyncPoint.push_back("SyncPoint Primary NodeId");
-            fieldsSyncPoint.push_back("SyncPoint Primary LeaseId");
-            fieldsSyncPoint.push_back("SyncPoint DataFileOffset (DWORDS)");
-            fieldsSyncPoint.push_back("SyncPoint QlistFileOffset (WORDS)");
+            fieldsSyncPoint.emplace_back("Last Valid Record Offset");
+            fieldsSyncPoint.emplace_back("Record Type");
+            fieldsSyncPoint.emplace_back("Record Timestamp");
+            fieldsSyncPoint.emplace_back("Record Epoch");
+            fieldsSyncPoint.emplace_back("Last Valid SyncPoint Offset");
+            fieldsSyncPoint.emplace_back("SyncPoint Timestamp");
+            fieldsSyncPoint.emplace_back("SyncPoint Epoch");
+            fieldsSyncPoint.emplace_back("SyncPoint SeqNum");
+            fieldsSyncPoint.emplace_back("SyncPoint Primary NodeId");
+            fieldsSyncPoint.emplace_back("SyncPoint Primary LeaseId");
+            fieldsSyncPoint.emplace_back("SyncPoint DataFileOffset (DWORDS)");
+            fieldsSyncPoint.emplace_back("SyncPoint QlistFileOffset (WORDS)");
 
             PRINTER_TYPE2       p(s, fieldsSyncPoint);
             bsls::Types::Uint64 lastRecPos =
@@ -255,18 +255,18 @@ void printQueueDetails(bsl::ostream&          ostream,
         // Setup fields to be displayed
         bsl::vector<bsl::string> fields(allocator);
         fields.reserve(8);
-        fields.push_back("Queue Key");
+        fields.emplace_back("Queue Key");
         if (!details.d_queueUri.empty()) {
-            fields.push_back("Queue URI");
+            fields.emplace_back("Queue URI");
         }
-        fields.push_back("Total Records");
-        fields.push_back("Num Queue Op Records");
-        fields.push_back("Num Message Records");
-        fields.push_back("Num Confirm Records");
+        fields.emplace_back("Total Records");
+        fields.emplace_back("Num Queue Op Records");
+        fields.emplace_back("Num Message Records");
+        fields.emplace_back("Num Confirm Records");
         if (appKeysCount > 1U) {
-            fields.push_back("Num Records Per App");
+            fields.emplace_back("Num Records Per App");
         }
-        fields.push_back("Num Delete Records");
+        fields.emplace_back("Num Delete Records");
 
         {
             PRINTER_TYPE printer(ostream, fields);
@@ -578,10 +578,10 @@ void HumanReadablePrinter::printQueueOpSummary(
 
         bsl::vector<bsl::string> fields(d_allocator_p);
         fields.reserve(4);
-        fields.push_back("Number of 'purge' operations");
-        fields.push_back("Number of 'creation' operations");
-        fields.push_back("Number of 'deletion' operations");
-        fields.push_back("Number of 'addition' operations");
+        fields.emplace_back("Number of 'purge' operations");
+        fields.emplace_back("Number of 'creation' operations");
+        fields.emplace_back("Number of 'deletion' operations");
+        fields.emplace_back("Number of 'addition' operations");
         bmqu::AlignedPrinter printer(d_ostream, fields);
         printer << queueOpCountsVec[mqbs::QueueOpType::e_PURGE]
                 << queueOpCountsVec[mqbs::QueueOpType::e_CREATION]
@@ -885,12 +885,11 @@ void JsonPrinter::printMessageSummary(bsl::size_t totalMessagesCount,
                                       bsl::size_t outstandingCount) const
 {
     closeBraceIfOpen();
-    d_ostream << "  \"TotalMessagesNumber\": \"" << totalMessagesCount
-              << "\",\n  \"PartiallyConfirmedMessagesNumber\": \""
-              << partiallyConfirmedCount
-              << "\",\n  \"ConfirmedMessagesNumber\": \"" << confirmedCount
-              << "\",\n  \"OutstandingMessagesNumber\": \"" << outstandingCount
-              << "\"";
+    d_ostream << "  \"TotalMsgNum\": \"" << totalMessagesCount
+              << "\",\n  \"PartialConfirmedMsgNum\": \""
+              << partiallyConfirmedCount << "\",\n  \"ConfirmedMsgNum\": \""
+              << confirmedCount << "\",\n  \"OutstandingMsgNum\": \""
+              << outstandingCount << "\"";
 }
 
 void JsonPrinter::printQueueOpSummary(
@@ -901,11 +900,11 @@ void JsonPrinter::printQueueOpSummary(
     closeBraceIfOpen();
     bsl::vector<bsl::string> fields(d_allocator_p);
     fields.reserve(5);
-    fields.push_back("TotalQueueOperationsNumber");
-    fields.push_back("PurgeOperationsNumber");
-    fields.push_back("CreationOperationsNumber");
-    fields.push_back("DeletionOperationsNumber");
-    fields.push_back("AdditionOperationsNumber");
+    fields.emplace_back("TotalQueueOperationsNum");
+    fields.emplace_back("PurgeOperationsNum");
+    fields.emplace_back("CreationOperationsNum");
+    fields.emplace_back("DeletionOperationsNum");
+    fields.emplace_back("AdditionOperationsNum");
 
     bmqu::JsonPrinter<true, false, 0, 2> printer(d_ostream, fields);
     printer << queueOpRecordsCount
@@ -919,7 +918,7 @@ void JsonPrinter::printJournalOpSummary(
     bsls::Types::Uint64 journalOpRecordsCount) const
 {
     closeBraceIfOpen();
-    d_ostream << "  \"JournalOperationsNumber\": \"" << journalOpRecordsCount
+    d_ostream << "  \"JournalOperationsNum\": \"" << journalOpRecordsCount
               << "\"";
 }
 
@@ -1091,11 +1090,10 @@ void JsonPrettyPrinter::printRecordSummary(
     const QueueDetailsMap& queueDetailsMap) const
 {
     closeBraceIfOpen();
-    d_ostream << "  \"TotalRecordsNumber\": \"" << totalRecordsCount
-              << "\",\n";
+    d_ostream << "  \"TotalRecordsNum\": \"" << totalRecordsCount << "\",\n";
 
     // Print information per Queue:
-    d_ostream << "  \"PerQueueRecordsNumber\": [\n";
+    d_ostream << "  \"PerQueueRecordsNum\": [\n";
     printQueueDetails<bmqu::JsonPrinter<true, true, 4, 6> >(d_ostream,
                                                             queueDetailsMap,
                                                             d_allocator_p);
@@ -1230,11 +1228,10 @@ void JsonLinePrinter::printRecordSummary(
     const QueueDetailsMap& queueDetailsMap) const
 {
     closeBraceIfOpen();
-    d_ostream << "  \"TotalRecordsNumber\": \"" << totalRecordsCount
-              << "\",\n";
+    d_ostream << "  \"TotalRecordsNum\": \"" << totalRecordsCount << "\",\n";
 
     // Print information per Queue:
-    d_ostream << "  \"PerQueueRecordsNumber\": [\n";
+    d_ostream << "  \"PerQueueRecordsNum\": [\n";
     printQueueDetails<bmqu::JsonPrinter<false, true, 4, 6> >(d_ostream,
                                                              queueDetailsMap,
                                                              d_allocator_p);

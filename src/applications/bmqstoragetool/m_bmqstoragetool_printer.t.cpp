@@ -1521,21 +1521,16 @@ static void test16_jsonPrettySummaryTest()
 {
     bmqtst::TestHelper::printTestName("PRETTY SUMMARY TEST");
 
-    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
-    // Disable default allocator check for this test because
-    // bdljsn::JsonUtil::read()
-    // uses default allocator in the first two sub-tests.
-
     {
         // Test no message summary
         bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
         bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
         // Prepare expected output
         expectedStream << "{\n"
-                       << "  \"TotalMessagesNumber\": \"0\",\n"
-                       << "  \"PartiallyConfirmedMessagesNumber\": \"1\",\n"
-                       << "  \"ConfirmedMessagesNumber\": \"2\",\n"
-                       << "  \"OutstandingMessagesNumber\": \"3\"\n"
+                       << "  \"TotalMsgNum\": \"0\",\n"
+                       << "  \"PartialConfirmedMsgNum\": \"1\",\n"
+                       << "  \"ConfirmedMsgNum\": \"2\",\n"
+                       << "  \"OutstandingMsgNum\": \"3\"\n"
                        << "}\n";
         {
             // Create printer
@@ -1565,11 +1560,11 @@ static void test16_jsonPrettySummaryTest()
 
             // Prepare expected output
             expectedStream << "{\n"
-                           << "  \"TotalQueueOperationsNumber\": \"123\",\n"
-                           << "  \"PurgeOperationsNumber\": \"1\",\n"
-                           << "  \"CreationOperationsNumber\": \"2\",\n"
-                           << "  \"DeletionOperationsNumber\": \"3\",\n"
-                           << "  \"AdditionOperationsNumber\": \"4\"\n"
+                           << "  \"TotalQueueOperationsNum\": \"123\",\n"
+                           << "  \"PurgeOperationsNum\": \"1\",\n"
+                           << "  \"CreationOperationsNum\": \"2\",\n"
+                           << "  \"DeletionOperationsNum\": \"3\",\n"
+                           << "  \"AdditionOperationsNum\": \"4\"\n"
                            << "}\n";
             QueueOpCountsVec vec(mqbs::QueueOpType::e_ADDITION + 1,
                                  0,
@@ -1599,7 +1594,7 @@ static void test16_jsonPrettySummaryTest()
                 bmqtst::TestHelperUtil::allocator());
 
             // Prepare expected output
-            expectedStream << "{\n  \"JournalOperationsNumber\": \"123\"\n}\n";
+            expectedStream << "{\n  \"JournalOperationsNum\": \"123\"\n}\n";
             printer->printJournalOpSummary(123u);
         }
         bdljsn::Json  json(bmqtst::TestHelperUtil::allocator());
@@ -1622,8 +1617,8 @@ static void test16_jsonPrettySummaryTest()
             // Prepare expected output
             expectedStream
                 << "{\n"
-                << "  \"TotalRecordsNumber\": \"123\",\n"
-                << "  \"PerQueueRecordsNumber\": [\n"
+                << "  \"TotalRecordsNum\": \"123\",\n"
+                << "  \"PerQueueRecordsNum\": [\n"
                 << "    {\n"
                 << "      \"Queue Key\": \"5175657565\",\n"
                 << "      \"Queue URI\": \"QueueUri1\",\n"
@@ -2405,21 +2400,16 @@ static void test24_jsonLineSummaryTest()
 {
     bmqtst::TestHelper::printTestName("LINE SUMMARY TEST");
 
-    bmqtst::TestHelperUtil::ignoreCheckDefAlloc() = true;
-    // Disable default allocator check for this test because
-    // bdljsn::JsonUtil::read()
-    // uses default allocator in the first two sub-tests.
-
     {
         // Test no message summary
         bmqu::MemOutStream resultStream(bmqtst::TestHelperUtil::allocator());
         bmqu::MemOutStream expectedStream(bmqtst::TestHelperUtil::allocator());
         // Prepare expected output
         expectedStream << "{\n"
-                       << "  \"TotalMessagesNumber\": \"0\",\n"
-                       << "  \"PartiallyConfirmedMessagesNumber\": \"1\",\n"
-                       << "  \"ConfirmedMessagesNumber\": \"2\",\n"
-                       << "  \"OutstandingMessagesNumber\": \"3\"\n"
+                       << "  \"TotalMsgNum\": \"0\",\n"
+                       << "  \"PartialConfirmedMsgNum\": \"1\",\n"
+                       << "  \"ConfirmedMsgNum\": \"2\",\n"
+                       << "  \"OutstandingMsgNum\": \"3\"\n"
                        << "}\n";
         {
             // Create printer
@@ -2449,11 +2439,11 @@ static void test24_jsonLineSummaryTest()
 
             // Prepare expected output
             expectedStream << "{\n"
-                           << "  \"TotalQueueOperationsNumber\": \"123\",\n"
-                           << "  \"PurgeOperationsNumber\": \"1\",\n"
-                           << "  \"CreationOperationsNumber\": \"2\",\n"
-                           << "  \"DeletionOperationsNumber\": \"3\",\n"
-                           << "  \"AdditionOperationsNumber\": \"4\"\n"
+                           << "  \"TotalQueueOperationsNum\": \"123\",\n"
+                           << "  \"PurgeOperationsNum\": \"1\",\n"
+                           << "  \"CreationOperationsNum\": \"2\",\n"
+                           << "  \"DeletionOperationsNum\": \"3\",\n"
+                           << "  \"AdditionOperationsNum\": \"4\"\n"
                            << "}\n";
             QueueOpCountsVec vec(mqbs::QueueOpType::e_ADDITION + 1,
                                  0,
@@ -2483,7 +2473,7 @@ static void test24_jsonLineSummaryTest()
                 bmqtst::TestHelperUtil::allocator());
 
             // Prepare expected output
-            expectedStream << "{\n  \"JournalOperationsNumber\": \"123\"\n}\n";
+            expectedStream << "{\n  \"JournalOperationsNum\": \"123\"\n}\n";
             printer->printJournalOpSummary(123u);
         }
         bdljsn::Json  json(bmqtst::TestHelperUtil::allocator());
@@ -2506,8 +2496,8 @@ static void test24_jsonLineSummaryTest()
             // Prepare expected output
             expectedStream
                 << "{\n"
-                << "  \"TotalRecordsNumber\": \"123\",\n"
-                << "  \"PerQueueRecordsNumber\": [\n"
+                << "  \"TotalRecordsNum\": \"123\",\n"
+                << "  \"PerQueueRecordsNum\": [\n"
                 << "    {" << "\"Queue Key\": \"5175657565\", "
                 << "\"Queue URI\": \"QueueUri1\", "
                 << "\"Total Records\": \"12345\", "
@@ -2570,9 +2560,9 @@ static void test24_jsonLineSummaryTest()
 
 int main(int argc, char* argv[])
 {
-    TEST_PROLOG(bmqtst::TestHelper::e_DEFAULT);
+    bmqtst::TestGuard guard(argc, argv);
 
-    switch (_testCase) {
+    switch (guard.testCase()) {
     case 0:
     case 1: test1_humanReadableGuidTest(); break;
     case 2: test2_humanReadableMessageTest(); break;
@@ -2598,11 +2588,8 @@ int main(int argc, char* argv[])
     case 22: test22_jsonLineFooterTest(); break;
     case 23: test23_jsonLineOutstandingTest(); break;
     case 24: test24_jsonLineSummaryTest(); break;
-    default: {
-        cerr << "WARNING: CASE '" << _testCase << "' NOT FOUND." << "\n";
-        bmqtst::TestHelperUtil::testStatus() = -1;
-    } break;
+    default: guard.caseNotFound(); break;
     }
 
-    TEST_EPILOG(bmqtst::TestHelper::e_CHECK_GBL_ALLOC);
+    return guard.finish();
 }
